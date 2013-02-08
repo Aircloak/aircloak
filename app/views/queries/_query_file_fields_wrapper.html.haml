@@ -1,0 +1,3 @@
+= form_for @query do |f|
+  = f.fields_for :query_files do |builder|
+    = render 'query_file_fields', f: builder

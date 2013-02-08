@@ -1,0 +1,55 @@
+.control-group
+  .controls
+    %h5= f.object.name
+    = f.hidden_field :sha
+    = f.hidden_field :name
+    = f.hidden_field :query_interface
+    = f.hidden_field :index_ops
+    = f.hidden_field :package
+- if f.object.index_ops then
+  .control-group
+    %label.control-label Indices
+    .controls
+      %p 
+        This query adds or removes from indices.
+        Please declare what the index names that
+        are mutated are.
+      %p 
+        Select from existing indices:
+        %select#existing_indices 
+          - Index.all.each do |index|
+            %option{:data => index.to_json}= index.human_name
+        = link_to "Add existing index", "#", 
+          class: "add-existing-index btn-mini btn btn-success", 
+          id: f.object.object_id
+        %script{:id => "template-index-#{f.object.object_id}", :type => "text/x-tmpl"}
+          = f.fields_for Index.new do |builder|
+            %tr
+              %td {%=o.human_name%}
+              %td {%=o.name%}
+              %td {%=o.system_index%}
+              %td
+                = builder.hidden_field :_destroy
+                = link_to "Remove", "#", class: "btn-mini btn btn-danger remove-index"
+      %table.table.table-condensed.table-hover
+        %thead
+          %tr
+            %th Human name
+            %th System identifier
+            %th System provided index
+            %th
+        %tbody
+          = f.fields_for :indices do |builder|
+            %tr
+              %td= builder.object.human_name
+              %td= builder.object.name
+              %td= builder.object.system_index
+              %td
+                = builder.hidden_field :_destroy
+                = link_to "Remove", "#", class: "btn-mini btn btn-danger remove-index"
+          %tr#add-new-index-row
+            %td= text_field_tag :test, "", class: "hidden"
+            %td= text_field_tag :test, "", class: "hidden"
+            %td &nbsp;
+            %td= link_to_add_index("Add new index", f)
+

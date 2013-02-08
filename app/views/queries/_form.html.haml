@@ -1,0 +1,122 @@
+.form-container{:"ng-app" => "queryEditor", :"ng-controller" => "QueryEditorCtrl", 
+  :"ng-init" => "#{loaded_form_data}"}
+  = form_for @query, :html => {:class => "form-horizontal new_query"} do |f|
+    - if @query.errors.any?
+      .well.alert-error
+        %h3= "#{pluralize(@query.errors.count, "error")} prohibited this query from being saved:"
+        %ul
+          - @query.errors.full_messages.each do |msg|
+            %li= msg
+
+    = control_group(:name, @query) do
+      = f.label :name, :class => "control-label"
+      .controls= f.text_field :name
+    = control_group(:index, @query) do
+      = f.label :index_id, :class => "control-label"
+      .controls
+        = f.select :index_id, options_from_collection_for_select(Index.all, :id, :human_name)
+    = control_group(:system_query, @query) do
+      .controls
+        %label.checkbox
+          = f.check_box :system_query, :"ng-model" => "system_query"
+          Mark if this query is a system query, run on behalf of Aircloak
+    .control-group#query_type_box{:"ng-class" => "{alert: mutator_query == 'true'}"}
+      %label.control-label Query type
+      .controls
+        %label.radio
+          = f.radio_button :mutator, "true", :"ng-model" => "mutator_query"
+          Mutator
+        %label.radio
+          = f.radio_button :mutator, "false", :"ng-model" => "mutator_query"
+          Reader
+        .danger-mutate-info{:"ng-class" => "{hidden: mutator_query == 'false'}"}
+          Modifier queries cannot be run in parallel. They therefore have a significant const,
+          and put a limit to the concurrency of our system. 
+          %strong 
+            Can this query be made into a reader query?
+        .danger-mutate-shared-info{:"ng-class" => "{hidden: !(mutator_query == 'true' && system_query)}"}
+          A query that is both run on behalf of aircloak, and is also a mutator will be able
+          to modify the shared files about a user. These are the files that all other analysts'
+          queries depend on. 
+          %strong 
+            Make sure that this query really is written by aircloak, and that
+            we are certain that it behaves corectly.
+    = control_group(:update_query, @query) do
+      .controls
+        %label.checkbox
+          = f.check_box :update_query, :"ng-model" => "identifier_enabled"
+          Mark if this is a stored query to be run on updates from clients
+    = control_group(:identifier, @query) do
+      = f.label :identifier, :class => "control-label"
+      .controls
+        = f.text_field :identifier, :"ng-disabled" => "!identifier_enabled"
+        -# = f.text_field :identifier, :disabled => !@query.update_query
+        %p The identifier used by the client when submitting updates for this query
+
+    .control-group
+      .controls
+        = f.submit 'Save', :class => "btn btn-success"
+
+    %script{:type => "text/ng-template", :id => "index_chooser.html"}
+      .indices{:"ng-show" => "queryFile.index_ops"}
+        %select{:"ng-model" => "selectedIndex", :"ng-options" => "i.human_name for i in notInIndicesForQueryFile(availableIndices)"}
+          %option{:value => ""} choose an existing index
+        .btn.btn-success.btn-small{:"ng-click" => "addIndex()", :"ng-class" => "{disabled: !selectedIndex}"} Add existing index
+        %form.form-inline{:"ng-submit" => "newIndex()"}
+          %input.input-small{:type => "text", :placeholder => "human name", :"ng-model" => "human_name"}
+          %input.input-small{:type => "text", :placeholder => "id-name", :"ng-model" => "name"}
+          %label.checkbox
+            %input{:type => "checkbox", :"ng-model" => "system_index"} System index
+          %button.btn.btn-success.btn-small{:type => "submit"} Add new index
+          %span.help-block 
+            The string used for the machine id-name should match exactly the name
+            used by your query class to refer to this index.
+            If it does not, then other queries depending on this index may not
+            run correctly.
+        %p{:"ng-show" => "queryFile.indices"} Indices
+        %ul
+          %li{:"ng-repeat" => "i in queryFile.indices"}
+            {{i.human_name}}
+            .btn-mini.btn-warning.btn{:"ng-click" => "removeIndex(i)"} Remove index
+
+    .query_files
+      %input{:type => "hidden", :name => "query_files", :value => "{{data.query_files | json}}"}
+      .control-group
+        %label{:class => "control-label"} Query files
+        .controls
+          .well.well-large.clear#class_drop_target
+            Drop class files here to upload
+          .query_files_upload
+          .alert.alert-error{:"ng-show" => "numberOfMainClasses() == 0"}
+            %button.close{:type=>"button", :"data-dismiss"=>"alert"} &times
+            %strong Warning!
+            You need one main query class entry point for the query to be able to
+            execute. This should be a class that implements the 
+            %i RunnableQuery 
+            interface.
+          .alert.alert-error{:"ng-show" => "tooManyMainClasses()"}
+            %button.close{:type=>"button", :"data-dismiss"=>"alert"} &times
+            %strong Error!
+            You currently have listed 
+            %span.badge.badge-important {{numberOfMainClasses()}}
+            main entry point classes for this query.
+            Please remove {{numberOfMainClasses() - 1}} of them.
+          %table.table
+            %tbody
+              %tr{:"ng-repeat" => "q in data.query_files | unlessScheduledForRemoval", :"ng-class" => "{success: q.query_interface}"}
+                %td
+                  {{q.name}}
+                  %span.label{:"ng-show" => "q.query_interface"} Main class
+                  .btn.btn-warning.btn-mini{:"ng-click" => "removeQueryFile(q)"} Remove query file
+                  %indices{:available_indices => "data.indices", :query_file => "q"}
+
+
+  = form_tag queries_upload_query_file_path, {:multipart => true, :id => "query_files_form"} do
+    = file_field_tag :image, multiple: true, :name => "query_file", :class => "hidden"
+
+  %script{:id => "template-upload", :type => "text/x-tmpl" }
+    .progress_container
+      .upload {%=o.name%}
+      .progress.progress-striped.active.progress-success
+        .bar{:style => "width: 0%"}
+

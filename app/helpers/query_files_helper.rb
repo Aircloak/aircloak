@@ -1,0 +1,2 @@
+module QueryFilesHelper
+end
