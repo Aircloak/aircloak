@@ -1,3 +1,0 @@
-NAME
-<%= @query_file.get('name') %>
-<div class="indices"></div>
