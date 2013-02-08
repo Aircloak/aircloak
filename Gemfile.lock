@@ -108,7 +108,9 @@ GEM
     commonjs (0.2.6)
     d3-rails (0.0.5)
       railties (>= 3.1)
+    daemons (1.1.9)
     erubis (2.7.0)
+    eventmachine (1.0.0)
     execjs (1.4.0)
       multi_json (~> 1.0)
     haml (3.1.7)
@@ -168,6 +170,10 @@ GEM
     therubyracer (0.11.3)
       libv8 (~> 3.11.8.12)
       ref
+    thin (1.5.0)
+      daemons (>= 1.0.9)
+      eventmachine (>= 0.12.6)
+      rack (>= 1.0.0)
     thor (0.17.0)
     thread_safe (0.1.0)
       atomic
@@ -213,6 +219,7 @@ DEPENDENCIES
   sass-rails!
   sprockets-rails!
   therubyracer
+  thin
   turbolinks
   twitter-bootstrap-rails
   uglifier (>= 1.0.3)

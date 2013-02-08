@@ -4,8 +4,6 @@ gem 'rails',     github: 'rails/rails'
 gem 'arel',      github: 'rails/arel'
 gem 'activerecord-deprecated_finders', github: 'rails/activerecord-deprecated_finders'
 
-gem 'pg'
-
 gem 'haml'
 gem 'd3-rails'
 
@@ -17,6 +15,12 @@ group :development do
   gem 'meta_request'
   gem 'pry'
   gem 'haml-rails', github: 'indirect/haml-rails'
+  gem 'pg'
+end
+
+group :production do
+  gem 'thin'
+  gem 'pg'
 end
 
 # Gems used only for assets and not required
