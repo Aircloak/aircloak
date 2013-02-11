@@ -95,6 +95,7 @@ GEM
     angularjs-rails (1.0.3)
     atomic (1.0.1)
     bcrypt-ruby (3.0.1)
+    beefcake (0.3.7)
     better_errors (0.3.2)
       coderay (>= 1.0.0)
       erubis (>= 2.7.0)
@@ -201,6 +202,7 @@ DEPENDENCIES
   angularjs-rails
   arel!
   bcrypt-ruby (~> 3.0.0)
+  beefcake
   better_errors
   binding_of_caller
   coffee-rails!

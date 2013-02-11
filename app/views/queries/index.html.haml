@@ -7,6 +7,8 @@
       %th Running on behalf of
       %th Index
       %th # Query files
+      %th Current executions
+      %th
       %th
       %th
   %tbody
@@ -16,8 +18,14 @@
       %th= query.on_behalf_of
       %th= query.index ? query.index.human_name : "unnamed index"
       %th= query.query_files.count
-      %td= link_to 'Edit', edit_query_path(query)
-      %td= link_to 'Destroy', query, :method => :delete, :data => { :confirm => 'Are you sure?' }
+      - if query.update_query then
+        %td N/A
+        %td
+      - else
+        %td= query.pending_results.size
+        %td= link_to 'Execute batch', execute_as_batch_query_query_path(query), method: "post", class: "btn btn-mini"
+      %td= link_to 'Edit', edit_query_path(query), class: "btn btn-mini"
+      %td= link_to 'Destroy', query, :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
 
 %br
 

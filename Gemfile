@@ -8,6 +8,7 @@ gem 'haml'
 gem 'd3-rails'
 
 gem "javaclass"
+gem 'beefcake'
 
 group :development do
   gem 'better_errors'

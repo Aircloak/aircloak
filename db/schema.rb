@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130207131407) do
+ActiveRecord::Schema.define(version: 20130211120259) do
 
   create_table "index_query_files", force: true do |t|
     t.integer  "index_id"
@@ -27,6 +27,15 @@ ActiveRecord::Schema.define(version: 20130207131407) do
     t.datetime "created_at"
     t.datetime "updated_at"
   end
+
+  create_table "pending_results", force: true do |t|
+    t.integer  "query_id"
+    t.string   "auth_token"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "pending_results", ["query_id"], name: "index_pending_results_on_query_id"
 
   create_table "queries", force: true do |t|
     t.string   "name"

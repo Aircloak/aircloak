@@ -1,14 +1,11 @@
 Web::Application.routes.draw do
   post "/queries/upload_query_file", :to => "temp_query_files#create"
   resources :queries do
-    collection do
-      post :upload_query_file_for_new_query
-    end
     member do
-      post :upload_query_file_for_query
+      post "execute_as_batch_query"
     end
   end
-  resources :query_files
+  resources :results
 
 
   # The priority is based upon order of creation: first created -> highest priority.
