@@ -3,7 +3,7 @@ class ResultsController < ApplicationController
 
   def create
     auth_token = request.headers["QueryAuthToken"]
-    pending_result = PendingResult.where(auth_token: auth_token)
+    pending_result = PendingResult.where(auth_token: auth_token).first
     if pending_result.blank?
       render text: "Illegal auth token", status: 403, layout: false
     else

@@ -76,8 +76,8 @@ private
       pr = PendingResult.create(query: self)
       request["QueryAuthToken"] = pr.auth_token
     end
-    request["Content-Type"] = "application/x-protobuf"
-    request.body = Base64.encode64(self.cquery.encode)
+    request.content_type = "application/x-protobuf"
+    request.body = self.cquery.encode.buf
     http.request(request)
   end
 
