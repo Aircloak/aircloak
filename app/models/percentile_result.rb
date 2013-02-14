@@ -14,7 +14,7 @@ class PercentileResult < ActiveRecord::Base
     end
     create(
       bucket: perc.name,
-      raw_values: raw_values
+      raw_values: raw_values,
 
       # TODO: Also add analyst here
       query_id: query_id

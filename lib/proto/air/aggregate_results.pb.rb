@@ -21,7 +21,7 @@ class Percentile
     include Beefcake::Message
 
 
-    optional :percent, :uint32, 1
+    optional :percent, :double, 1
     optional :value, :sint64, 2
     optional :percent_noise, :float, 3
 
