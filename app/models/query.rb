@@ -22,7 +22,9 @@ class Query < ActiveRecord::Base
       type: self.mutator ? CQuery::Type::MUTATOR : CQuery::Type::READER,
       query_id: self.id,
       index: self.index.name,
-      analyst_id: self.system_query ? "aircloak" : "some_analyst"
+      # TODO: Change to real id of analyst when we start introducing that
+      analyst_id: self.system_query ? "aircloak" : "some_analyst",
+      system_query: self.system_query
     )
     if self.update_query then
       cquery.stored_options = CQuery::StoredOptions.new(payload_identifier: self.identifier)

@@ -45,8 +45,9 @@ class CQuery
   required :query_id, :fixed64, 4
   required :index, :string, 5
   required :analyst_id, :string, 6
-  optional :query_class, CQuery::QueryClass, 7
-  optional :batch_options, CQuery::BatchOptions, 8
-  optional :stored_options, CQuery::StoredOptions, 9
+  required :system_query, :bool, 7
+  optional :query_class, CQuery::QueryClass, 8
+  optional :batch_options, CQuery::BatchOptions, 9
+  optional :stored_options, CQuery::StoredOptions, 10
 
 end

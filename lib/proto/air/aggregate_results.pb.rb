@@ -23,7 +23,7 @@ class Percentile
 
     optional :percent, :uint32, 1
     optional :value, :sint64, 2
-    optional :percent_noise, :double, 3
+    optional :percent_noise, :float, 3
 
   end
 

@@ -14,10 +14,10 @@
   %tbody
   - @queries.each do |query|
     %tr
-      %th= query.name
-      %th= query.on_behalf_of
-      %th= query.index ? query.index.human_name : "unnamed index"
-      %th= query.query_files.count
+      %td= query.name
+      %td= query.on_behalf_of
+      %td= query.index ? query.index.human_name : "unnamed index"
+      %td= query.query_files.count
       - if query.update_query then
         %td N/A
         %td

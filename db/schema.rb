@@ -11,7 +11,18 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130211120259) do
+ActiveRecord::Schema.define(version: 20130212083451) do
+
+  create_table "exception_results", force: true do |t|
+    t.integer  "query_id"
+    t.string   "stack",      array: true
+    t.integer  "count"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "exception_results", ["count"], name: "index_exception_results_on_count"
+  add_index "exception_results", ["query_id"], name: "index_exception_results_on_query_id"
 
   create_table "index_query_files", force: true do |t|
     t.integer  "index_id"
@@ -36,6 +47,35 @@ ActiveRecord::Schema.define(version: 20130211120259) do
   end
 
   add_index "pending_results", ["query_id"], name: "index_pending_results_on_query_id"
+
+  create_table "percentile_results", force: true do |t|
+    t.string   "bucket"
+    t.integer  "query_id"
+    t.hstore   "raw_values"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "percentile_results", ["bucket"], name: "index_percentile_results_on_bucket"
+  add_index "percentile_results", ["query_id"], name: "index_percentile_results_on_query_id"
+
+  create_table "properties_results", force: true do |t|
+    t.string   "bucket"
+    t.boolean  "numeric",    default: false
+    t.string   "str_value"
+    t.integer  "long_value"
+    t.integer  "count"
+    t.integer  "query_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "properties_results", ["bucket"], name: "index_properties_results_on_bucket"
+  add_index "properties_results", ["count"], name: "index_properties_results_on_count"
+  add_index "properties_results", ["long_value"], name: "index_properties_results_on_long_value"
+  add_index "properties_results", ["numeric"], name: "index_properties_results_on_numeric"
+  add_index "properties_results", ["query_id"], name: "index_properties_results_on_query_id"
+  add_index "properties_results", ["str_value"], name: "index_properties_results_on_str_value"
 
   create_table "queries", force: true do |t|
     t.string   "name"
