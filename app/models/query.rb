@@ -14,8 +14,8 @@ class Query < ActiveRecord::Base
   validate :existing_identifier
 
   before_validation :should_have_identifier?
-
   after_save :upload_stored_query
+  after_destroy :remove_query_from_cloak
 
   def cquery
     cquery = CQuery.new(
@@ -46,11 +46,6 @@ class Query < ActiveRecord::Base
     cquery
   end
 
-  def upload_stored_query
-    return unless self.update_query
-    post_query url: cloak_url("query")
-  end
-
   class NotABatchQueryException < Exception 
   end
 
@@ -70,6 +65,23 @@ class Query < ActiveRecord::Base
 
 private
 
+  def upload_stored_query
+    return unless self.update_query
+    post_query url: cloak_url("query")
+  end
+
+  def remove_query_from_cloak
+    return unless self.update_query
+    delete_query url: cloak_url("query"), id: self.id
+  end
+
+  def delete_query args
+    url = URI.parse("#{args[:url]}/#{args[:id]}")
+    http = Net::HTTP.new(url.host, url.port)
+    request = Net::HTTP::Delete.new(url.path)
+    result = http.request(request)
+  end
+
   def post_query args
     url = URI.parse(args[:url])
     http = Net::HTTP.new(url.host, url.port)
@@ -80,7 +92,7 @@ private
     end
     request.content_type = "application/x-protobuf"
     request.body = self.cquery.encode.buf
-    http.request(request)
+    result = http.request(request)
   end
 
   def cloak_url path
