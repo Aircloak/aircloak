@@ -1,8 +1,10 @@
+require "bundler/capistrano"
+
 load "config/recipes/base"
 load "config/recipes/nginx"
-load "config/recipes/nodejs"
 load "config/recipes/passenger"
 load "config/recipes/postgresql"
+load "config/recipes/rbenv"
 load "config/recipes/check"
 
 server "graphite", :web, :app
