@@ -16,8 +16,9 @@ set :use_sudo, false
 set :scm, :git
 set :repository,  "git@github.com:Aircloak/web.git"
 set :branch, "master"
+set :git_enable_submodules, 1
 
-set :gateway, "contact.mpi-sws.org"
+set :gateway, "spe@contact.mpi-sws.org"
 
 default_run_options[:pty]
 ssh_options[:forward_agent] = true

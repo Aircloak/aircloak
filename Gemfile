@@ -41,15 +41,14 @@ group :assets do
 end
 
 gem 'jquery-rails'
-
-# # Turbolinks makes following links in your web application faster. Read more: https://github.com/rails/turbolinks
-# gem 'turbolinks'
+gem 'turbolinks'
 
 # To use ActiveModel has_secure_password
 gem 'bcrypt-ruby', '~> 3.0.0'
 
 # Deploy with Capistrano
 gem 'capistrano', group: :development
+gem 'rvm-capistrano', group: :development
 
 # gem 'backbone-on-rails'
 gem 'angularjs-rails'

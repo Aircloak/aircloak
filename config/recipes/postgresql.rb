@@ -1,4 +1,4 @@
-set_default(:postgresql_host) { Capistrano::CLI.ask "PostgreSQL database server" }
+set_default(:postgresql_host) { Capistrano::CLI.ui.ask "PostgreSQL database server: " }
 set_default(:postgresql_password) { Capistrano::CLI.password_prompt "PostgreSQL Password: " }
 set_default(:postgresql_user) { "#{application}_production" }
 set_default(:postgresql_database) { "#{application}_production" }

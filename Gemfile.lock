@@ -171,6 +171,8 @@ GEM
       json (~> 1.4)
     ref (1.0.2)
     rubyzip (0.9.9)
+    rvm-capistrano (1.2.7)
+      capistrano (>= 2.0.0)
     sass (3.2.5)
     slop (3.4.3)
     sprockets (2.8.2)
@@ -188,6 +190,8 @@ GEM
     treetop (1.4.12)
       polyglot
       polyglot (>= 0.3.1)
+    turbolinks (1.0.0)
+      coffee-rails
     twitter-bootstrap-rails (2.2.0)
       actionpack (>= 3.1)
       execjs
@@ -222,9 +226,11 @@ DEPENDENCIES
   pg
   pry
   rails!
+  rvm-capistrano
   sass-rails!
   sprockets-rails!
   therubyracer
+  turbolinks
   twitter-bootstrap-rails
   uglifier (>= 1.0.3)
   underscore-rails
