@@ -1,0 +1,19 @@
+= form_for @cloak do |f|
+  - if @cloak.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(@cloak.errors.count, "error")} prohibited this cloak from being saved:"
+      %ul
+        - @cloak.errors.full_messages.each do |msg|
+          %li= msg
+
+  .control-group
+    %label.control-label Name
+    .controls
+      = f.text_field :name
+  .control-group
+    %label.control-label IP
+    .controls
+      = f.text_field :ip
+  .control-group
+    .controls
+      = f.submit 'Save', class: "btn"

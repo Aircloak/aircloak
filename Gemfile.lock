@@ -101,7 +101,7 @@ GEM
       erubis (>= 2.7.0)
     binding_of_caller (0.6.8)
     builder (3.1.4)
-    capistrano (2.14.2)
+    capistrano (2.13.5)
       highline
       net-scp (>= 1.0.0)
       net-sftp (>= 2.0.0)
@@ -213,7 +213,7 @@ DEPENDENCIES
   beefcake
   better_errors
   binding_of_caller
-  capistrano
+  capistrano (= 2.13.5)
   coffee-rails!
   d3-rails
   haml

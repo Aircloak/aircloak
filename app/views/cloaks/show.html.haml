@@ -1,0 +1,15 @@
+%p#notice= notice
+
+%p
+  %b Name:
+  = @cloak.name
+%p
+  %b Ip:
+  = @cloak.ip
+%p
+  %b Part of ring:
+  = @cloak.part_of_ring
+
+= link_to 'Edit', edit_cloak_path(@cloak)
+\|
+= link_to 'Back', cloaks_path

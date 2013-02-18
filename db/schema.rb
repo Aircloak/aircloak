@@ -11,7 +11,15 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130212083451) do
+ActiveRecord::Schema.define(version: 20130218154854) do
+
+  create_table "cloaks", force: true do |t|
+    t.string   "name"
+    t.string   "ip"
+    t.boolean  "part_of_ring"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
 
   create_table "exception_results", force: true do |t|
     t.integer  "query_id"

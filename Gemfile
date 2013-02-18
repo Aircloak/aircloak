@@ -47,7 +47,7 @@ gem 'turbolinks'
 gem 'bcrypt-ruby', '~> 3.0.0'
 
 # Deploy with Capistrano
-gem 'capistrano', group: :development
+gem 'capistrano', '2.13.5', group: :development
 gem 'rvm-capistrano', group: :development
 
 # gem 'backbone-on-rails'

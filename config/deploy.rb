@@ -7,7 +7,7 @@ load "config/recipes/postgresql"
 load "config/recipes/rbenv"
 load "config/recipes/check"
 
-server "graphite", :web, :app
+server "graphite", :web, :app, :db, primary: true
 
 set :application, "aircloak"
 set :user, "root"

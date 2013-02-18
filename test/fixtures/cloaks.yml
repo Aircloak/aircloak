@@ -1,0 +1,11 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
+
+one:
+  name: MyString
+  ip: MyString
+  part_of_ring: false
+
+two:
+  name: MyString
+  ip: MyString
+  part_of_ring: false

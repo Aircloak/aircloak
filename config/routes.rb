@@ -1,4 +1,6 @@
 Web::Application.routes.draw do
+  resources :cloaks
+
   post "/queries/upload_query_file", :to => "temp_query_files#create"
   resources :queries do
     member do
