@@ -30,7 +30,7 @@ group :assets do
   gem 'sass-rails',   github: 'rails/sass-rails'
   gem 'coffee-rails', github: 'rails/coffee-rails'
   gem 'twitter-bootstrap-rails'
-  # gem 'less-rails'
+  gem 'less-rails'
 
   # For uploading query files
   gem 'jquery-fileupload-rails'
