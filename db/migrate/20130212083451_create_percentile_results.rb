@@ -1,6 +1,6 @@
 class CreatePercentileResults < ActiveRecord::Migration
   def change
-    execute "CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public;"
+    # execute "CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public;"
     create_table :percentile_results do |t|
       t.string :bucket
       t.references :query, index: true

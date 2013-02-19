@@ -4,6 +4,12 @@ Aircloak Web
 The web-frontend of Aircloak, and the RESTful API for storing and retrieving
 queries and results.
 
+# Notice: Non-MPI Deploy
+In the postgresql database at MPI we are not allowed to execute the command
+that would give us hstore. This has to be done by the admins.
+When deploying with our own PostgreSQL, please uncomment the line in the
+`create_percentile_result` migration.
+
 # Setup
 Make sure you hande a recent version of ruby. Rails 4 required 1.9.3 or newer.
 I recommend installing your ruby using the [Ruby Version Manager](https://rvm.io).
