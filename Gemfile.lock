@@ -129,6 +129,7 @@ GEM
       railties (>= 3.0, < 5.0)
       thor (>= 0.14, < 2.0)
     json (1.7.6)
+    kgio (2.8.0)
     less (2.2.2)
       commonjs (~> 0.2.6)
     less-rails (2.2.6)
@@ -164,13 +165,12 @@ GEM
       rack (>= 0.9.1)
     rack-test (0.6.2)
       rack (>= 1.0)
+    raindrops (0.10.0)
     rake (10.0.3)
     rdoc (3.12)
       json (~> 1.4)
     ref (1.0.2)
     rubyzip (0.9.9)
-    rvm-capistrano (1.2.7)
-      capistrano (>= 2.0.0)
     sass (3.2.5)
     slop (3.4.3)
     sprockets (2.8.2)
@@ -199,6 +199,10 @@ GEM
       execjs (>= 0.3.0)
       multi_json (~> 1.0, >= 1.0.2)
     underscore-rails (1.4.3)
+    unicorn (4.6.0)
+      kgio (~> 2.6)
+      rack
+      raindrops (~> 0.7)
 
 PLATFORMS
   ruby
@@ -223,7 +227,6 @@ DEPENDENCIES
   pg
   pry
   rails!
-  rvm-capistrano
   sass-rails!
   sprockets-rails!
   therubyracer
@@ -231,3 +234,4 @@ DEPENDENCIES
   twitter-bootstrap-rails
   uglifier (>= 1.0.3)
   underscore-rails
+  unicorn

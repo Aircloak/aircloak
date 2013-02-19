@@ -48,8 +48,8 @@ gem 'bcrypt-ruby', '~> 3.0.0'
 
 # Deploy with Capistrano
 gem 'capistrano', '2.13.5', group: :development
-gem 'rvm-capistrano', group: :development
 
-# gem 'backbone-on-rails'
+gem 'unicorn'
+
 gem 'angularjs-rails'
 gem 'underscore-rails'

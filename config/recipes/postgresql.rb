@@ -5,6 +5,11 @@ set_default(:postgresql_database) { "#{application}_production" }
 
 namespace :postgresql do
   desc "Generate the database.yml configuration file."
+  task :setup, roles: :app do
+    run "mkdir -p #{shared_path}/config"
+    template "postgresql.yml.erb", "#{shared_path}/config/database.yml"
+  end
+  after "deploy:setup", "postgresql:setup"
 
   task :install, roles: :app do
     run "#{sudo} apt-get -y install libpq-dev"

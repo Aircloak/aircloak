@@ -5,12 +5,13 @@ load "config/recipes/nginx"
 load "config/recipes/passenger"
 load "config/recipes/postgresql"
 load "config/recipes/rbenv"
+load "config/recipes/unicorn"
 load "config/recipes/check"
 
 server "graphite", :web, :app, :db, primary: true
 
 set :application, "aircloak"
-set :user, "root"
+set :user, "deployer"
 set :deploy_to, "/websites/#{application}"
 set :deploy_via, :remote_cache
 set :use_sudo, false
