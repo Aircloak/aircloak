@@ -56,7 +56,7 @@ filterOutScheduledForRemoval = (items) ->
       scope.queryFile.indices.push i
 
 
-@QueryEditorCtrl = ($scope, $window) ->
+@QueryEditorCtrl = ["$scope", "$window", ($scope, $window) ->
   $scope.data = {}
   $scope.data.query_files = []
   $scope.temp = undefined
@@ -91,7 +91,7 @@ filterOutScheduledForRemoval = (items) ->
   $scope.removeQueryFile = (queryFile) ->
     queryFile.scheduleRemove = true
     console.log queryFile
-
+]
 
 # Dealing with file uploads
 activate_fileupload = ->
