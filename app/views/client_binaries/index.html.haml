@@ -1,0 +1,35 @@
+%h1 Client binaries
+
+.row
+  - ["client", "updater"].each do |what|
+    .span6
+      %h4= "Upload a new #{what}"
+      = form_tag client_binaries_path, {:multipart => true, :id => "client_binaries_form"} do
+        .control-group
+          %label.control-label Select binary
+          .controls
+            = hidden_field_tag :updater, what == "updater"
+            = file_field_tag :binary, multiple: false, :name => "binary"
+        .control-group
+          .controls
+            = submit_tag "Upload", class: "btn"
+
+.row
+  - [@clients, @updaters].each do |thing|
+    .span6
+      %table.table.table-condensed
+        %thead
+          %tr
+            %th Date
+            %th Size
+            %th Sha1
+            %th
+
+        - thing.each do |binary|
+          %tbody
+            %tr
+              %td= time_ago_in_words binary.created_at
+              %td= "#{binary.size / 1024} kB"
+              %td= binary.sha1
+              %td= link_to 'Remove', binary, :method => :delete, :data => { :confirm => 'Are you sure?' }
+

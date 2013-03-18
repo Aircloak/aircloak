@@ -1,5 +1,7 @@
 Web::Application.routes.draw do
-  get "welcome/index"
+  resources :client_binaries
+  get "commands.xml", to: "client_binaries#commands"
+
   resources :cloaks
 
   post "/queries/upload_query_file", :to => "temp_query_files#create"

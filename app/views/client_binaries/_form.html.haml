@@ -1,0 +1,10 @@
+= form_for @client_binary do |f|
+  - if @client_binary.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(@client_binary.errors.count, "error")} prohibited this client_binary from being saved:"
+      %ul
+        - @client_binary.errors.full_messages.each do |msg|
+          %li= msg
+
+  .actions
+    = f.submit 'Save'
