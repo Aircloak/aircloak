@@ -1,10 +1,9 @@
 source 'https://rubygems.org'
+ruby '2.0.0'
 
-gem 'rails',     github: 'rails/rails'
-gem 'arel',      github: 'rails/arel'
-gem 'activerecord-deprecated_finders', github: 'rails/activerecord-deprecated_finders'
+gem 'rails', '~> 4.0.0.beta'
 
-gem 'haml'
+gem "haml", :github => "haml/haml", :branch => "stable"
 # gem 'd3-rails'
 
 gem "javaclass"
@@ -46,7 +45,7 @@ group :assets do
 end
 
 gem 'jquery-rails'
-gem 'turbolinks'
+gem 'turbolinks', github: 'rails/turbolinks'
 
 # To use ActiveModel has_secure_password
 gem 'bcrypt-ruby', '~> 3.0.0'

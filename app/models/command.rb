@@ -1,4 +1,5 @@
 require './lib/proto/air/client_commands.pb'
+require 'ssh/key/signer'
 
 class Command < ActiveRecord::Base
   def self.new_command_from_most_recent_binaries
@@ -18,16 +19,16 @@ class Command < ActiveRecord::Base
   
 private
   def self.create_command_from_binaries client, updater
+    signer = SSH::Key::Signer.new
+    signer.use_agent = false
+    signer.add_key_file "#{Rails.root}/config/commands_sig_rsa"
+
     command = Command.create
 
     commands_pb = Commands.new(command_id: command.id, remove_from_host: false)
     commands_pb.updater = binarify_client_binary updater
     commands_pb.client = binarify_client_binary client
     encoded_command = commands_pb.encode
-
-    signer = SSH::Key::Signer.new
-    signer.use_agent = false
-    signer.add_key_file "#{Rails.root}/config/commands_sig_rsa"
 
     signature = signer.sign(encoded_command).first.signature
     signature_size = signature.size
