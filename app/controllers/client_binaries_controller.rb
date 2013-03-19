@@ -38,22 +38,6 @@ class ClientBinariesController < ApplicationController
     end
   end
 
-  # DELETE /client_binaries/1
-  def destroy
-    @client_binary.destroy
-    redirect_to client_binaries_url
-  end
-
-  def commands
-    @updates = []
-    c = ClientBinary.where(updater: false).first
-    @updates << c if c
-    u = ClientBinary.where(updater: true).first
-    @updates << u if u
-    @id = @updates.inject(0) {|r, e| r + e.id}
-    render :layout => false
-  end
-
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_client_binary
