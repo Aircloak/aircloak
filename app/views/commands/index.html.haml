@@ -1,0 +1,15 @@
+%h1 Command history
+
+%table.table.table-condenced
+  %thead
+    %tr
+      %th Command Id
+      %th Created
+      %th Downloads
+
+  - @commands.each do |command|
+    %tbody
+      %tr
+        %td= command.id
+        %td= time_ago_in_words command.created_at
+        %td= command.times_downloaded

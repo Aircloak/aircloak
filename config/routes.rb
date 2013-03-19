@@ -1,6 +1,10 @@
 Web::Application.routes.draw do
+  resources :commands do
+    get 'signed_command', on: :collection
+  end
+  # get "signed_commands", to: "commands#signed_commands"
+
   resources :client_binaries
-  get "commands.xml", to: "client_binaries#commands"
 
   resources :cloaks
 

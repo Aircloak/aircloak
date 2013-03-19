@@ -1,21 +1,33 @@
 require 'digest/sha1'
-require 'base64'
 
 class ClientBinary < ActiveRecord::Base
   def self.binary_from_file(tempfile) 
-    c = ClientBinary.new
-    c.data = tempfile.gets
-    # c.sha1 = Base64.encode64 Digest::SHA1.hexdigest c.data
-    c.sha1 = Digest::SHA1.hexdigest c.data
-    c.size = c.data.size
-    return c
+    data = tempfile.gets
+    sha1 = Digest::SHA1.hexdigest data
+    c = nil
+    if ClientBinary.where(sha1: sha1).blank? then
+      c = ClientBinary.new
+      c.data = data
+      c.sha1 = sha1
+      c.size = data.size
+    end
+    c
   end
 
-  def xml_type
+  def tickle
+    self.times_downloaded += 1
+    save
+  end
+
+  def type
     updater ? "updater" : "client"
   end
 
-  def xml_name
+  def download_url
+    "http://graphite.mpi-sws.org:5000/client_binary/#{id}"
+  end
+
+  def name
     updater ? "AircloakClient.#{id}.exe" : "AircloakClientUpdater.#{id}.exe"
   end
 end

@@ -5,6 +5,7 @@ class CreateClientBinaries < ActiveRecord::Migration
       t.integer :size
       t.string :sha1
       t.binary :data
+      t.integer :times_downloaded, default: 0
 
       t.timestamps
     end

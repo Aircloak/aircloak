@@ -11,13 +11,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130318124558) do
+ActiveRecord::Schema.define(version: 20130319085249) do
 
   create_table "client_binaries", force: true do |t|
-    t.boolean  "updater",    default: false
+    t.boolean  "updater",          default: false
     t.integer  "size"
     t.string   "sha1"
     t.binary   "data"
+    t.integer  "times_downloaded", default: 0
     t.datetime "created_at"
     t.datetime "updated_at"
   end
@@ -26,6 +27,14 @@ ActiveRecord::Schema.define(version: 20130318124558) do
     t.string   "name"
     t.string   "ip"
     t.boolean  "part_of_ring", default: false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  create_table "commands", force: true do |t|
+    t.binary   "command_binary"
+    t.boolean  "valid_command",    default: false
+    t.integer  "times_downloaded", default: 0
     t.datetime "created_at"
     t.datetime "updated_at"
   end

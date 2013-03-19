@@ -10,11 +10,16 @@ gem 'haml'
 gem "javaclass"
 gem 'beefcake'
 
+# We use this gem to sign the
+# update commands for the client apps
+gem "sshkeyauth"
+
 group :development do
   gem 'better_errors'
   gem 'binding_of_caller'
   gem 'meta_request'
   gem 'pry'
+  gem 'pry-nav'
   gem 'haml-rails', github: 'indirect/haml-rails'
   gem 'pg'
 end

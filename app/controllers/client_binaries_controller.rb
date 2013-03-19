@@ -10,16 +10,28 @@ class ClientBinariesController < ApplicationController
   # GET /client_binaries/1
   def show
     binary = ClientBinary.find(params[:id])
-    send_data binary.data, filename: binary.xml_name, type: "application/octet-stream"
+    binary.tickle
+    send_data binary.data, filename: binary.name, type: "application/octet-stream"
   end
 
   # POST /client_binaries
   def create
-    @client_binary = ClientBinary.binary_from_file(params[:binary].tempfile)
-    is_updater = params[:updater] == "true" ? true : false
-    @client_binary.updater = is_updater
+    unless params[:binary]
+      flash[:error] = 'Please select a file to upload'
+      return redirect_to client_binaries_path
+    end
 
-    if @client_binary.save
+    client_binary = ClientBinary.binary_from_file(params[:binary].tempfile)
+    unless client_binary then
+      flash[:error] = 'This file has already been uploaded in the past'
+      return redirect_to client_binaries_path
+    end
+
+    is_updater = params[:updater] == "true" ? true : false
+    client_binary.updater = is_updater
+
+    if client_binary.save
+      Command.new_command_from_most_recent_binaries
       redirect_to client_binaries_path, notice: 'Client binary was successfully created.'
     else
       redirect_to client_binaries_path, notice: 'Uploading the #{is_updater ? "updater" : "client"} failed'

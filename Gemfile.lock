@@ -160,6 +160,8 @@ GEM
       coderay (~> 1.0.5)
       method_source (~> 0.8)
       slop (~> 3.4)
+    pry-nav (0.2.3)
+      pry (~> 0.9.10)
     rack (1.5.1)
     rack-contrib (1.1.0)
       rack (>= 0.9.1)
@@ -178,6 +180,8 @@ GEM
       multi_json (~> 1.0)
       rack (~> 1.0)
       tilt (~> 1.1, != 1.3.0)
+    sshkeyauth (0.0.11)
+      net-ssh
     therubyracer (0.11.3)
       libv8 (~> 3.11.8.12)
       ref
@@ -226,9 +230,11 @@ DEPENDENCIES
   meta_request
   pg
   pry
+  pry-nav
   rails!
   sass-rails!
   sprockets-rails!
+  sshkeyauth
   therubyracer
   turbolinks
   twitter-bootstrap-rails
