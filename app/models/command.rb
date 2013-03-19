@@ -1,4 +1,3 @@
-require "ssh/key/signer"
 require './lib/proto/air/client_commands.pb'
 
 class Command < ActiveRecord::Base
