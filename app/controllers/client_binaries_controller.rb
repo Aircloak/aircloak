@@ -3,8 +3,8 @@ class ClientBinariesController < ApplicationController
   
   # GET /client_binaries
   def index
-    @updaters = ClientBinary.where(updater: true)
-    @clients = ClientBinary.where(updater: false)
+    @updaters = ClientBinary.where(updater: true).order(created_at: :desc)
+    @clients = ClientBinary.where(updater: false).order(created_at: :desc)
   end
 
   # GET /client_binaries/1
