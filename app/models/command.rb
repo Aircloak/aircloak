@@ -9,7 +9,7 @@ class Command < ActiveRecord::Base
   end
 
   def self.most_recent_command
-    Command.where(valid_command: true).first
+    Command.where(valid_command: true).last
   end
 
   def tickle
