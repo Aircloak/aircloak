@@ -21,7 +21,7 @@ class ClientBinariesController < ApplicationController
       return redirect_to client_binaries_path
     end
 
-    client_binary = ClientBinary.binary_from_file(params[:binary].tempfile)
+    client_binary = ClientBinary.new_binary_from_file(params[:binary].tempfile)
     unless client_binary then
       flash[:error] = 'This file has already been uploaded in the past'
       return redirect_to client_binaries_path

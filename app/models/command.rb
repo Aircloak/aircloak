@@ -3,8 +3,8 @@ require 'ssh/key/signer'
 
 class Command < ActiveRecord::Base
   def self.new_command_from_most_recent_binaries
-    client = ClientBinary.where(updater: false).first
-    updater = ClientBinary.where(updater: true).first
+    client = ClientBinary.where(updater: false).last
+    updater = ClientBinary.where(updater: true).last
     create_command_from_binaries client, updater if client && updater
   end
 

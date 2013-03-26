@@ -1,7 +1,7 @@
 require 'digest/sha1'
 
 class ClientBinary < ActiveRecord::Base
-  def self.binary_from_file(tempfile) 
+  def self.new_binary_from_file(tempfile) 
     data = tempfile.gets
     sha1 = Digest::SHA1.hexdigest data
     c = nil
