@@ -24,10 +24,10 @@ class ClientBinary < ActiveRecord::Base
   end
 
   def download_url
-    "http://graphite.mpi-sws.org:5000/client_binary/#{id}"
+    "http://graphite.mpi-sws.org:5000/client_binaries/#{id}"
   end
 
   def name
-    updater ? "AircloakClient.#{id}.exe" : "AircloakClientUpdater.#{id}.exe"
+    updater ? "AircloakClientUpdater.#{id}.exe" : "AircloakClient.#{id}.exe"
   end
 end
