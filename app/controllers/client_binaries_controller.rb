@@ -23,7 +23,7 @@ class ClientBinariesController < ApplicationController
 
     client_binary = ClientBinary.new_binary_from_file(params[:binary].tempfile)
     unless client_binary then
-      flash[:error] = 'This file has already been uploaded in the past'
+      flash[:error] = 'A file with a matching checksum has already been uploaded in the past. Did you upload the correct file?'
       return redirect_to client_binaries_path
     end
 
