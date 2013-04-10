@@ -29,7 +29,7 @@
           %tbody
             %tr
               %td= time_ago_in_words binary.created_at
-              %td= binary.sha1
+              %td= link_to binary.sha1, client_binary_path(binary)
               %td= binary.times_downloaded
               %td= "#{(binary.size / 1024).to_i} kB"
 
