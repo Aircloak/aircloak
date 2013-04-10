@@ -2,7 +2,6 @@ server {
   listen 80 default deferred;
   server_name localhost;
   root <%= current_path %>/public;
-  passenger_enabled on;
 
   location ^~ /assets/ {
     gzip_static on;
