@@ -11,7 +11,6 @@ class ClientBinary < ActiveRecord::Base
       c.sha1 = sha1
       c.size = data.size
     end
-    binding.pry
     c
   end
 
