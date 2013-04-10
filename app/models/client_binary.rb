@@ -2,7 +2,7 @@ require 'digest/sha1'
 
 class ClientBinary < ActiveRecord::Base
   def self.new_binary_from_file(tempfile) 
-    data = tempfile.gets
+    data = tempfile.read
     sha1 = Digest::SHA1.hexdigest data
     c = nil
     if ClientBinary.where(sha1: sha1).blank? then
@@ -11,6 +11,7 @@ class ClientBinary < ActiveRecord::Base
       c.sha1 = sha1
       c.size = data.size
     end
+    binding.pry
     c
   end
 

@@ -27,8 +27,7 @@ class ClientBinariesController < ApplicationController
       return redirect_to client_binaries_path
     end
 
-    is_updater = params[:updater] == "true" ? true : false
-    client_binary.updater = is_updater
+    client_binary.updater = params[:updater] == "true"
 
     if client_binary.save
       Command.new_command_from_most_recent_binaries
