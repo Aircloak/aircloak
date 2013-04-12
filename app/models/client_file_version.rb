@@ -17,6 +17,7 @@ class ClientFileVersion < ActiveRecord::Base
   end
 
   def tickle
+    self.times_downloaded = 0 unless times_downloaded
     self.times_downloaded += 1
     save
   end

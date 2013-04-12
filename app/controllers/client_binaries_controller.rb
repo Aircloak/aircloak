@@ -1,6 +1,4 @@
 class ClientBinariesController < ApplicationController
-  before_action :set_client_binary, only: [:show, :edit, :update, :destroy]
-  
   # GET /client_binaries
   def index
     @versions = ClientFile.get_most_recent_versions
@@ -37,11 +35,6 @@ class ClientBinariesController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_client_binary
-      @client_binary = ClientBinary.find(params[:id])
-    end
-
     # Never trust parameters from the scary internet, only allow the white list through.
     def client_binary_params
       params[:client_binary]
