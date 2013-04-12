@@ -19,7 +19,8 @@ This interface allows you to upload new versions of the applications and depende
   .control-group
     %label.control-label Select binary
     .controls
-      = file_field_tag :binary, multiple: false, :name => "binary"
+      %span.btn.btn-file
+        = file_field_tag :binary, multiple: false, name: "binary"
   .control-group
     %label.control-label File
     .controls
