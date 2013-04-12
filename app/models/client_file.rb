@@ -4,7 +4,7 @@ class ClientFile < ActiveRecord::Base
 
   validates :local_name, uniqueness: true
   validates :name, uniqueness: true
-  validates_presence_of :local_name, :name, :extension, :client_file_type_id
+  validates_presence_of :local_name, :name, :client_file_type_id
 
   def self.as_options
     ClientFile.all.map do |ft|

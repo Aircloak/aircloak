@@ -3,7 +3,8 @@ class ClientFileType < ActiveRecord::Base
 
   validates :human_name, uniqueness: true
   validates :name, uniqueness: true
-  validates_presence_of :human_name, :name
+  validates :extension, uniqueness: true
+  validates_presence_of :human_name, :name, :extension
 
   def self.as_options
     ClientFileType.all.map do |ft|
