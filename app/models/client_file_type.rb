@@ -7,7 +7,7 @@ class ClientFileType < ActiveRecord::Base
 
   def self.as_options
     ClientFileType.all.map do |ft|
-      [ft.human_name, ft.id]
+      ["#{ft.human_name} ({{local_name}}.#{ft.extension})", ft.id]
     end
   end
 end

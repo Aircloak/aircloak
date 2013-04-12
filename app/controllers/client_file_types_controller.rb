@@ -29,7 +29,7 @@ class ClientFileTypesController < ApplicationController
   # PATCH/PUT /client_file_types/1
   def update
     if @client_file_type.update(client_file_type_params)
-      redirect_to @client_file_type, notice: 'Client file type was successfully updated.'
+      redirect_to client_file_types_path, notice: 'Client file type was successfully updated.'
     else
       render action: 'edit'
     end
@@ -49,6 +49,6 @@ class ClientFileTypesController < ApplicationController
 
     # Never trust parameters from the scary internet, only allow the white list through.
     def client_file_type_params
-      params.require(:client_file_type).permit(:name, :human_name)
+      params.require(:client_file_type).permit(:name, :human_name, :extension)
     end
 end

@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130412075321) do
+ActiveRecord::Schema.define(version: 20130412123620) do
 
   create_table "client_binaries", force: true do |t|
     t.boolean  "updater",          default: false
@@ -28,6 +28,7 @@ ActiveRecord::Schema.define(version: 20130412075321) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.string   "human_name"
+    t.string   "extension"
   end
 
   create_table "client_file_versions", force: true do |t|

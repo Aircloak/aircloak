@@ -17,6 +17,12 @@
       = f.text_field :name
       %span.help-block This name is used in the update command and is interpreted by the client updater
   .control-group
+    %label.control-label= f.label :extension
+    .controls
+      .input-prepend
+        %span.add-on FileName.#.
+        = f.text_field :extension, class: "span1"
+  .control-group
     .controls
       = f.submit 'Save', class: "btn"
       = link_to 'Cancel', client_file_types_path, class: "btn"

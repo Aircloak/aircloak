@@ -49,6 +49,6 @@ class ClientFilesController < ApplicationController
 
     # Never trust parameters from the scary internet, only allow the white list through.
     def client_file_params
-      params.require(:client_file).permit(:name, :local_name, :client_file_type_id, :extension)
+      params.require(:client_file).permit(:name, :local_name, :client_file_type_id)
     end
 end

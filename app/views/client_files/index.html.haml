@@ -17,7 +17,7 @@
       %tr
         %td= client_file.name
         %td= client_file.local_name
-        %td= client_file.extension
+        %td= client_file.client_file_type.extension
         %td= client_file.client_file_type.human_name
         %td= link_to 'Edit', edit_client_file_path(client_file)
         %td= link_to 'Destroy', client_file, :method => :delete, :data => { :confirm => 'Are you sure?' }

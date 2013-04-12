@@ -26,6 +26,6 @@ class ClientFileVersion < ActiveRecord::Base
   end
 
   def name
-    "#{client_file.local_name}.#{id}.#{client_file.extension}"
+    "#{client_file.local_name}.#{id}.#{client_file.client_file_type.extension}"
   end
 end

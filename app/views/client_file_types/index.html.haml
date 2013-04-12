@@ -4,13 +4,15 @@
   %thead
     %tr
       %th Name
+      %th Extension
       %th
       %th
 
   %tbody
     - @client_file_types.each do |client_file_type|
       %tr
-        %td= client_file_type.name
+        %td= client_file_type.human_name
+        %td= client_file_type.extension
         %td= link_to 'Edit', edit_client_file_type_path(client_file_type)
         %td= link_to 'Remove', client_file_type, :method => :delete, :data => { :confirm => 'Are you sure?' }
 
