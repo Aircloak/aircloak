@@ -3,9 +3,7 @@ require 'ssh/key/signer'
 
 class Command < ActiveRecord::Base
   def self.new_command_from_most_recent_binaries
-    client = ClientBinary.where(updater: false).last
-    updater = ClientBinary.where(updater: true).last
-    create_command_from_binaries client, updater if client && updater
+    create_command_from_binaries ClientFile.get_most_recent_existing_versions
   end
 
   def self.most_recent_command
@@ -18,16 +16,17 @@ class Command < ActiveRecord::Base
   end
   
 private
-  def self.create_command_from_binaries client, updater
+  def self.create_command_from_binaries versions
     signer = SSH::Key::Signer.new
     signer.use_agent = false
     signer.add_key_file "#{Rails.root}/config/commands_sig_rsa"
 
     command = Command.create
 
-    commands_pb = Commands.new(command_id: command.id, remove_from_host: false)
-    commands_pb.updater = binarify_client_binary updater
-    commands_pb.client = binarify_client_binary client
+    commands_pb = Commands.new(file: [], command_id: command.id, remove_from_host: false)
+    versions.each do |v|
+      commands_pb.file << binarify_file_version(v)
+    end
     encoded_command = commands_pb.encode
 
     signature = signer.sign(encoded_command).first.signature
@@ -46,10 +45,11 @@ private
     command.save
   end
 
-  def self.binarify_client_binary binary
-    Commands::Application.new(sha1: binary.sha1,
-                              version_id: binary.id,
-                              local_name: binary.name,
-                              download_url: binary.download_url)
+  def self.binarify_file_version version
+    Commands::File.new(sha1: version.sha1,
+                       version_id: version.id,
+                       local_name: version.name,
+                       download_url: version.download_url,
+                       type: version.client_file.client_file_type.name)
   end
 end

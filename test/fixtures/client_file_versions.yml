@@ -1,0 +1,13 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
+
+one:
+  data: 
+  sha1: MyString
+  size: 1
+  times_downloaded: 1
+
+two:
+  data: 
+  sha1: MyString
+  size: 1
+  times_downloaded: 1

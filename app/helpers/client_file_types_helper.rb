@@ -1,0 +1,2 @@
+module ClientFileTypesHelper
+end

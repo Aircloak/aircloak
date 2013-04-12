@@ -1,0 +1,37 @@
+-# .form-container{:"ng-app" => "clientFileEditor", :"ng-controller" => "ClientFileEditor"}
+.form-container{:"ng-app" => "clientFileEditor"}
+  = form_for @client_file, html: {class: "form-horizontal"} do |f|
+    - if @client_file.errors.any?
+      #error_explanation
+        %h2= "#{pluralize(@client_file.errors.count, "error")} prohibited this client_file from being saved:"
+        %ul
+          - @client_file.errors.full_messages.each do |msg|
+            %li= msg
+
+    .control-group
+      %label.control-label= f.label :name
+      .controls
+        = f.text_field :name
+        %span.help-block This name is within the web interface to identify the file
+    .control-group
+      %label.control-label= f.label :local_name
+      .controls
+        .input-append
+          = f.text_field :local_name, :'ng-model' => "local_name", value: "App"
+          %span.add-on .#.{{extension}}
+        %span.help-block This is the name under which the file is stored on the client
+    .control-group
+      %label.control-label= f.label :extension
+      .controls
+        .input-prepend
+          %span.add-on {{local_name}}.#.
+          = f.text_field :extension, class: "span1", :'ng-model' => "extension"
+    .control-group
+      %label.control-label File type
+      .controls
+        = f.select :client_file_type_id, options_for_select(ClientFileType.as_options)
+        = link_to 'Add new file type', new_client_file_type_path, class: "btn"
+    .control-group
+      .controls
+        = f.submit 'Save', class: "btn btn-success"
+        = link_to 'Cancel', client_files_path, class: "btn"

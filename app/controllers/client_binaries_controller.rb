@@ -3,13 +3,12 @@ class ClientBinariesController < ApplicationController
   
   # GET /client_binaries
   def index
-    @updaters = ClientBinary.where(updater: true).order(created_at: :desc)
-    @clients = ClientBinary.where(updater: false).order(created_at: :desc)
+    @versions = ClientFile.get_most_recent_versions
   end
 
   # GET /client_binaries/1
   def show
-    binary = ClientBinary.find(params[:id])
+    binary = ClientFileVersion.find(params[:id])
     binary.tickle
     send_data binary.data, filename: binary.name, type: "application/octet-stream"
   end
@@ -21,15 +20,15 @@ class ClientBinariesController < ApplicationController
       return redirect_to client_binaries_path
     end
 
-    client_binary = ClientBinary.new_binary_from_file(params[:binary].tempfile)
-    unless client_binary then
+    client_file_version = ClientFileVersion.new_binary_from_file(params[:binary].tempfile)
+    unless client_file_version then
       flash[:error] = 'A file with a matching checksum has already been uploaded in the past. Did you upload the correct file?'
       return redirect_to client_binaries_path
     end
 
-    client_binary.updater = params[:updater] == "true"
+    client_file_version.client_file_id = params[:client_file_id]
 
-    if client_binary.save
+    if client_file_version.save
       Command.new_command_from_most_recent_binaries
       redirect_to client_binaries_path, notice: 'Client binary was successfully created.'
     else

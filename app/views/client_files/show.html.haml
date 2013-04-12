@@ -1,0 +1,12 @@
+%p#notice= notice
+
+%p
+  %b Name:
+  = @client_file.name
+%p
+  %b Local name:
+  = @client_file.local_name
+
+= link_to 'Edit', edit_client_file_path(@client_file)
+\|
+= link_to 'Back', client_files_path

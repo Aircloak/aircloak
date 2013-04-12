@@ -1,4 +1,8 @@
 Web::Application.routes.draw do
+  resources :client_file_versions
+  resources :client_file_types
+  resources :client_files
+
   resources :commands do
     get 'signed_command', on: :collection
   end

@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130319085249) do
+ActiveRecord::Schema.define(version: 20130412075321) do
 
   create_table "client_binaries", force: true do |t|
     t.boolean  "updater",          default: false
@@ -21,6 +21,32 @@ ActiveRecord::Schema.define(version: 20130319085249) do
     t.integer  "times_downloaded", default: 0
     t.datetime "created_at"
     t.datetime "updated_at"
+  end
+
+  create_table "client_file_types", force: true do |t|
+    t.string   "name"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.string   "human_name"
+  end
+
+  create_table "client_file_versions", force: true do |t|
+    t.binary   "data"
+    t.string   "sha1"
+    t.integer  "size"
+    t.integer  "times_downloaded"
+    t.integer  "client_file_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  create_table "client_files", force: true do |t|
+    t.string   "name"
+    t.string   "local_name"
+    t.integer  "client_file_type_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.string   "extension"
   end
 
   create_table "cloaks", force: true do |t|
