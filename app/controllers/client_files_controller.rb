@@ -20,7 +20,7 @@ class ClientFilesController < ApplicationController
     @client_file = ClientFile.new(client_file_params)
 
     if @client_file.save
-      redirect_to client_files_path, notice: 'Client file was successfully created.'
+      redirect_to client_binaries_path, notice: 'Client file was successfully created.'
     else
       render action: 'new'
     end

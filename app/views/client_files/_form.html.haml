@@ -22,6 +22,7 @@
       .controls
         = f.select :client_file_type_id, options_for_select(ClientFileType.as_options)
         = link_to 'Add new file type', new_client_file_type_path, class: "btn"
+        = link_to "Is the file type needed not in the list above? Please add it", new_client_file_type_path
     .control-group
       .controls
         = f.submit 'Save', class: "btn btn-success"

@@ -5,15 +5,7 @@ This interface allows you to upload new versions of the applications and depende
 %hr
 
 %p
-  %strong Add a file or file type to the clients
-
-=link_to "Add file", new_client_file_path, class: "btn"
-=link_to "Add file type", new_client_file_type_path, class: "btn"
-
-%hr
-
-%p
-  %strong Upload a new version of an existing file
+  %strong Upload a new version of a file
 
 = form_tag client_binaries_path, class: "form-horizontal", multipart: true, id: "client_binaries_form" do
   .control-group
@@ -24,7 +16,9 @@ This interface allows you to upload new versions of the applications and depende
     %label.control-label File
     .controls
       = select_tag :client_file_id, options_for_select(ClientFile.as_options)
-      =link_to "Add file", new_client_file_path, class: "btn"
+      = link_to "Add new file", new_client_file_path, class: "btn"
+      %span.help-block
+        = link_to "Do you want to upload a different file? Click here to add it first.", new_client_file_path
   .control-group
     .controls
       = submit_tag "Upload", class: "btn"

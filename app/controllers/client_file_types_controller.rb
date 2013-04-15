@@ -20,7 +20,7 @@ class ClientFileTypesController < ApplicationController
     @client_file_type = ClientFileType.new(client_file_type_params)
 
     if @client_file_type.save
-      redirect_to client_file_types_path, notice: 'Client file type was successfully created.'
+      redirect_to new_client_file_path, notice: 'Client file type was successfully created.'
     else
       render action: 'new'
     end
