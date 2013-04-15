@@ -37,6 +37,7 @@ This interface allows you to upload new versions of the applications and depende
     %tr
       %th Name
       %th Version
+      %th Type
       %th Date
       %th Sha1
       %th Downloads 
@@ -51,10 +52,12 @@ This interface allows you to upload new versions of the applications and depende
         %td
         %td
         %td
+        %td
     - else
       %tr
         %td= version.client_file.name
         %td= version.id
+        %td= version.client_file.client_file_type.human_name
         %td= time_ago_in_words version.created_at
         %td= link_to version.sha1, client_binary_path(version)
         %td= version.times_downloaded
