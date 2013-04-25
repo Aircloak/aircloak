@@ -4,12 +4,14 @@
   %thead
     %tr
       %th Command Id
+      %th Deployment group
       %th Created
       %th Downloads
 
-  - @commands.each do |command|
-    %tbody
+  %tbody
+    - @commands.each do |command|
       %tr
         %td= command.id
+        %td= command.deployment_group.name
         %td= time_ago_in_words command.created_at
         %td= command.times_downloaded

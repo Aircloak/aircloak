@@ -3,6 +3,7 @@ class CreateClientFileTypes < ActiveRecord::Migration
     create_table :client_file_types do |t|
       t.string :name
       t.string :extension
+      t.string :human_name
 
       t.timestamps
     end

@@ -8,12 +8,12 @@ class CommandsController < ApplicationController
   end
 
   def signed_command
-    command = Command.most_recent_command
+    group = DeploymentGroup.where(identifier: params[:id]).first
+    not_found unless group
+    not_found unless group.has_active_command?
+
+    command = group.active_command
     command.tickle
-    if command
-      send_data command.command_binary, filename: "signed_command", type: "application/octet-stream"
-    else
-      render :text => "Missing command", :status => 404
-    end
+    send_data command.command_binary, filename: "signed_command", type: "application/octet-stream"
   end
 end

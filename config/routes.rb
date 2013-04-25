@@ -1,10 +1,20 @@
 Web::Application.routes.draw do
+  resources :verifications
+
+  resources :client_file_events
+
+  resources :staging_machines
+
+  resources :deployment_groups do
+    post 'create_command', on: :member
+  end
+
   resources :client_file_versions
   resources :client_file_types
   resources :client_files
 
   resources :commands do
-    get 'signed_command', on: :collection
+    get 'signed_command', on: :member
   end
   # get "signed_commands", to: "commands#signed_commands"
 

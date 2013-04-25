@@ -1,0 +1,9 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
+
+one:
+  command_id: 
+  client_file_version_id: 
+
+two:
+  command_id: 
+  client_file_version_id: 

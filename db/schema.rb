@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130412123620) do
+ActiveRecord::Schema.define(version: 20130426103821) do
 
   create_table "client_binaries", force: true do |t|
     t.boolean  "updater",          default: false
@@ -23,12 +23,22 @@ ActiveRecord::Schema.define(version: 20130412123620) do
     t.datetime "updated_at"
   end
 
-  create_table "client_file_types", force: true do |t|
-    t.string   "name"
+  create_table "client_file_events", force: true do |t|
+    t.boolean  "positive",               default: true
+    t.string   "description"
+    t.string   "event"
+    t.integer  "client_file_version_id"
+    t.integer  "staging_machine_id"
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.string   "human_name"
+  end
+
+  create_table "client_file_types", force: true do |t|
+    t.string   "name"
     t.string   "extension"
+    t.string   "human_name"
+    t.datetime "created_at"
+    t.datetime "updated_at"
   end
 
   create_table "client_file_versions", force: true do |t|
@@ -39,6 +49,7 @@ ActiveRecord::Schema.define(version: 20130412123620) do
     t.integer  "client_file_id"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.boolean  "verified",         default: false
   end
 
   create_table "client_files", force: true do |t|
@@ -47,7 +58,7 @@ ActiveRecord::Schema.define(version: 20130412123620) do
     t.integer  "client_file_type_id"
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.string   "extension"
+    t.boolean  "requires_verifications", default: true
   end
 
   create_table "cloaks", force: true do |t|
@@ -58,10 +69,32 @@ ActiveRecord::Schema.define(version: 20130412123620) do
     t.datetime "updated_at"
   end
 
+  create_table "command_file_versions", force: true do |t|
+    t.integer  "command_id"
+    t.integer  "client_file_version_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "command_file_versions", ["client_file_version_id"], name: "index_command_file_versions_on_client_file_version_id"
+  add_index "command_file_versions", ["command_id"], name: "index_command_file_versions_on_command_id"
+
   create_table "commands", force: true do |t|
     t.binary   "command_binary"
-    t.boolean  "valid_command",    default: false
-    t.integer  "times_downloaded", default: 0
+    t.boolean  "valid_command",       default: false
+    t.integer  "times_downloaded",    default: 0
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.integer  "deployment_group_id"
+  end
+
+  add_index "commands", ["deployment_group_id"], name: "index_commands_on_deployment_group_id"
+
+  create_table "deployment_groups", force: true do |t|
+    t.string   "identifier"
+    t.string   "name"
+    t.boolean  "verified_only", default: true
+    t.boolean  "autoupdate",    default: false
     t.datetime "created_at"
     t.datetime "updated_at"
   end
@@ -149,6 +182,13 @@ ActiveRecord::Schema.define(version: 20130412123620) do
     t.boolean  "query_interface"
     t.boolean  "index_ops"
     t.string   "package"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  create_table "staging_machines", force: true do |t|
+    t.string   "name"
+    t.string   "description"
     t.datetime "created_at"
     t.datetime "updated_at"
   end

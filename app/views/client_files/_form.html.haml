@@ -25,5 +25,11 @@
         = link_to "Is the file type needed not in the list above? Please add it", new_client_file_type_path
     .control-group
       .controls
+        %label.checkbox
+          = f.check_box :requires_verifications 
+          Requires verification
+        %span.help-block Executable files should require verification. It does not make sense for files like for example images.
+    .control-group
+      .controls
         = f.submit 'Save', class: "btn btn-success"
         = link_to 'Cancel', client_files_path, class: "btn"

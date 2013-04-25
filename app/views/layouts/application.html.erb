@@ -13,6 +13,19 @@
       <div class="content">
         <div class="row">
           <div class="span12">
+            <div class="navbar">
+              <div class="navbar-inner">
+                <div class="brand">Aircloak admin</div>
+                <ul class="nav">
+                  <li><%= link_to "Queries", queries_path %></li>
+                  <li><%= link_to "Client binaries", client_binaries_path %></li>
+                  <li><%= link_to "Client binaries", client_binaries_path %></li>
+                  <li><%= link_to "Existing commands", commands_path %></li>
+                  <li><%= link_to "Staging machines", staging_machines_path %></li>
+                  <li><%= link_to "Deployment groups", deployment_groups_path %></li>
+                </ul>
+              </div>
+            </div>
           <% if flash[:error] -%>
             <div class="alert alert-error">
               <button type="button" class="close" data-dismiss="alert">&times;</button>

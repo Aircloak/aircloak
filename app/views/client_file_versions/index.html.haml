@@ -1,25 +1,19 @@
-%h1 Listing client_file_versions
+%h1 Client file versions
 
-%table
-  %tr
-    %th Data
-    %th Sha1
-    %th Size
-    %th Times downloaded
-    %th
-    %th
-    %th
-
-  - @client_file_versions.each do |client_file_version|
+%table.table.table-condensed
+  %thead
     %tr
-      %td= client_file_version.data
-      %td= client_file_version.sha1
-      %td= client_file_version.size
-      %td= client_file_version.times_downloaded
-      %td= link_to 'Show', client_file_version
-      %td= link_to 'Edit', edit_client_file_version_path(client_file_version)
-      %td= link_to 'Destroy', client_file_version, :method => :delete, :data => { :confirm => 'Are you sure?' }
+      %th Version Id
+      %th Sha1
+      %th Size
+      %th Times downloaded
+      %th Verified
 
-%br
-
-= link_to 'New Client file version', new_client_file_version_path
+  %tbody
+    - @client_file_versions.each do |client_file_version|
+      %tr
+        %td= client_file_version.id
+        %td= client_file_version.sha1
+        %td= client_file_version.size
+        %td= client_file_version.times_downloaded
+        %td= link_to client_file_version.verification_description, verification_path(client_file_version.id)

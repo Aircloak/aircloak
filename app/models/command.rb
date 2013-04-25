@@ -2,8 +2,15 @@ require './lib/proto/air/client_commands.pb'
 require 'ssh/key/signer'
 
 class Command < ActiveRecord::Base
-  def self.new_command_from_most_recent_binaries
-    create_command_from_binaries ClientFile.get_most_recent_existing_versions
+  belongs_to :deployment_group
+  has_many :command_file_versions
+  has_many :client_file_versions, through: :command_file_versions
+
+  def self.new_command_from_most_recent_binaries group
+    recent_file_versions = ClientFile.get_most_recent_existing_versions only_verified: group.verified_only
+    new_command = create_command_from_binaries recent_file_versions
+    new_command.deployment_group = group
+    new_command.save
   end
 
   def self.most_recent_command
@@ -22,6 +29,7 @@ private
     signer.add_key_file "#{Rails.root}/config/commands_sig_rsa"
 
     command = Command.create
+    command.client_file_versions = versions
 
     commands_pb = Commands.new(file: [], command_id: command.id, remove_from_host: false)
     versions.each do |v|
@@ -43,6 +51,7 @@ private
     command.command_binary = binary_data
     command.valid_command = true
     command.save
+    command
   end
 
   def self.binarify_file_version version

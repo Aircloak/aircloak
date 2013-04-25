@@ -1,0 +1,18 @@
+%p#notice= notice
+
+%p
+  %b Idenfitier:
+  = @deployment_group.idenfitier
+%p
+  %b Name:
+  = @deployment_group.name
+%p
+  %b Verified only:
+  = @deployment_group.verified_only
+%p
+  %b Autoupdate:
+  = @deployment_group.autoupdate
+
+= link_to 'Edit', edit_deployment_group_path(@deployment_group)
+\|
+= link_to 'Back', deployment_groups_path

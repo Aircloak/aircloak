@@ -1,6 +1,6 @@
 %h1 Client files
 
-%p This is a list of the filees that are part of the aircloak client software.
+%p This is a list of the files that are part of the aircloak client software.
 
 %table.table.table-condensed
   %thead
@@ -9,6 +9,7 @@
       %th Local name
       %th File extension
       %th Type
+      %th Requires verification
       %th
       %th
 
@@ -19,6 +20,7 @@
         %td= client_file.local_name
         %td= client_file.client_file_type.extension
         %td= client_file.client_file_type.human_name
+        %td= client_file.requires_verifications
         %td= link_to 'Edit', edit_client_file_path(client_file)
         %td= link_to 'Destroy', client_file, :method => :delete, :data => { :confirm => 'Are you sure?' }
 

@@ -29,7 +29,7 @@ class ClientFilesController < ApplicationController
   # PATCH/PUT /client_files/1
   def update
     if @client_file.update(client_file_params)
-      redirect_to @client_file, notice: 'Client file was successfully updated.'
+      redirect_to client_files_path, notice: 'Client file was successfully updated.'
     else
       render action: 'edit'
     end
@@ -49,6 +49,6 @@ class ClientFilesController < ApplicationController
 
     # Never trust parameters from the scary internet, only allow the white list through.
     def client_file_params
-      params.require(:client_file).permit(:name, :local_name, :client_file_type_id)
+      params.require(:client_file).permit(:name, :local_name, :client_file_type_id, :requires_verifications)
     end
 end

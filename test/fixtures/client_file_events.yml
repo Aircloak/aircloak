@@ -1,0 +1,15 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
+
+one:
+  positive: false
+  description: MyString
+  event: MyString
+  client_file_version: 
+  staging_machine: 
+
+two:
+  positive: false
+  description: MyString
+  event: MyString
+  client_file_version: 
+  staging_machine: 

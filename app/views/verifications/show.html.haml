@@ -1,0 +1,22 @@
+%h1 
+  Verifications for 
+  = @file.name
+
+%table.table.table-condensed
+  %thead
+    %tr 
+      %th Events
+      - @machines.each do |machine|
+        %th= machine.name
+  %tbody
+    - @event_names.each do |name|
+      %tr
+        %td= name
+        - @machines.each do |machine|
+          %td
+            - if machine.result_for(@file, name) == true
+              %span.boxed-span.green ok
+            - if machine.result_for(@file, name) == false
+              %span.boxed-span.red &times
+            - if machine.result_for(@file, name) == :missing
+              %span.boxed-span.yellow ?

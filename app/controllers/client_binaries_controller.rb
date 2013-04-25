@@ -1,7 +1,8 @@
 class ClientBinariesController < ApplicationController
   # GET /client_binaries
   def index
-    @versions = ClientFile.get_most_recent_versions
+    @versions = ClientFile.get_most_recent_versions only_verified:false
+    @deployment_groups = DeploymentGroup.all
   end
 
   # GET /client_binaries/1
@@ -27,7 +28,7 @@ class ClientBinariesController < ApplicationController
     client_file_version.client_file_id = params[:client_file_id]
 
     if client_file_version.save
-      Command.new_command_from_most_recent_binaries
+      DeploymentGroup.new_valid_commands?
       redirect_to client_binaries_path, notice: 'Client binary was successfully created.'
     else
       redirect_to client_binaries_path, notice: 'Uploading the #{is_updater ? "updater" : "client"} failed'

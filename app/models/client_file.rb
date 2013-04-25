@@ -12,10 +12,22 @@ class ClientFile < ActiveRecord::Base
     end
   end
 
-  def self.get_most_recent_versions
+  def self.get_most_recent_existing_versions params
+    get_most_recent_versions(params).select do |v|
+      not v.is_a? Hash
+    end
+  end
+
+private
+  def self.get_most_recent_versions params={:only_verified => true}
     files = []
     ClientFile.all.map do |file|
-      version = file.client_file_versions.order(created_at: :desc).first
+      version = nil
+      if params[:only_verified] and file.requires_verifications then
+        version = file.client_file_versions.where(verified:true).order(created_at: :desc).first
+      else
+        version = file.client_file_versions.order(created_at: :desc).first
+      end
       if version
         files << version
       else
@@ -25,9 +37,4 @@ class ClientFile < ActiveRecord::Base
     files
   end
 
-  def self.get_most_recent_existing_versions
-    get_most_recent_versions.select do |v|
-      not v.is_a? Hash
-    end
-  end
 end
