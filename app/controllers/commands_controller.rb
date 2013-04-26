@@ -4,6 +4,12 @@ class CommandsController < ApplicationController
 
   # GET /commands
   def index
+    Command.all.each do |c|
+      if c.deployment_group == nil then
+        c.deployment_group = DeploymentGroup.where(identifier: "staging").first
+        c.save
+      end
+    end
     @commands = Command.all.order(created_at: :desc)
   end
 
