@@ -1,6 +1,4 @@
 class CommandsController < ApplicationController
-  before_action :set_command, only: [:show, :edit, :update, :destroy]
-
   # GET /commands
   def index
     Commands.delete_all
@@ -8,6 +6,7 @@ class CommandsController < ApplicationController
     ClientFile.delete_all
     ClientFileVersion.delete_all
     CommandFileVersion.delete_all
+    ClientFileEvent.delete_all
 
     # @commands = Command.all.order(created_at: :desc)
     @commands = []
