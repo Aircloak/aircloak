@@ -1,4 +1,11 @@
 Web::Application.routes.draw do
+  get 'login' => 'user_sessions#new'
+  get 'logout' => 'user_sessions#destroy'
+
+  resources :user_sessions
+
+  resources :users
+
   resources :verifications do
     post 'event', on: :collection
   end

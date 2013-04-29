@@ -55,5 +55,8 @@ gem 'capistrano', '2.13.5', group: :development
 
 gem 'unicorn'
 
+gem 'authlogic'
+gem 'declarative_authorization'
+
 gem 'angularjs-rails'
 gem 'underscore-rails'
