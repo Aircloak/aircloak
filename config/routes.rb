@@ -1,5 +1,7 @@
 Web::Application.routes.draw do
-  resources :verifications
+  resources :verifications do
+    post 'event', on: :collection
+  end
 
   resources :client_file_events
 

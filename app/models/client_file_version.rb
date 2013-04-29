@@ -59,7 +59,6 @@ private
   # - all staging machines have the same amount of positive events
   # - has more than two events (all files with less will be rejected)
   def is_verified?
-    binding.pry
     # Doesn't require verification? Then yes, it is verified
     return true unless requires_verification?
 
