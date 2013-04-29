@@ -1,7 +1,7 @@
 class CommandsController < ApplicationController
   # GET /commands
   def index
-    Commands.delete_all
+    Command.delete_all
     ClientFileType.delete_all
     ClientFile.delete_all
     ClientFileVersion.delete_all
