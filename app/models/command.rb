@@ -3,7 +3,7 @@ require 'ssh/key/signer'
 
 class Command < ActiveRecord::Base
   belongs_to :deployment_group
-  has_many :command_file_versions
+  has_many :command_file_versions, dependent: :destroy
   has_many :client_file_versions, through: :command_file_versions
 
   def self.new_command_from_most_recent_binaries group
@@ -13,8 +13,9 @@ class Command < ActiveRecord::Base
     new_command.save
   end
 
-  def self.most_recent_command
-    Command.where(valid_command: true).last
+  def is_most_recent?
+    Command.select("id").where(deployment_group_id: self.deployment_group_id)
+                        .order(created_at: :desc).first.id == self.id
   end
 
   def tickle

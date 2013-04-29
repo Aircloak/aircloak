@@ -22,7 +22,11 @@
         %td= client_file.client_file_type.human_name
         %td= client_file.requires_verifications
         %td= link_to 'Edit', edit_client_file_path(client_file)
-        %td= link_to 'Destroy', client_file, :method => :delete, :data => { :confirm => 'Are you sure?' }
+        %td
+          - if client_file.can_destroy?
+            = link_to 'Destroy', client_file, :method => :delete, :data => { :confirm => 'Are you sure?' }
+          - else
+            Cannot destroy. File version in active command
 
 %br
 

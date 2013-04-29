@@ -1,5 +1,5 @@
 class DeploymentGroup < ActiveRecord::Base
-  has_many :commands
+  has_many :commands, dependent: :destroy
 
   def self.new_valid_commands?
     DeploymentGroup.all.each do |group|
@@ -29,6 +29,7 @@ class DeploymentGroup < ActiveRecord::Base
   def exist_newer_configuration?
     most_recent_file_versions = ClientFile.get_most_recent_existing_versions only_verified: verified_only
 
+    return false if most_recent_file_versions.size == 0
     return true if (! has_active_command?) and most_recent_file_versions.size == ClientFile.count
 
     if has_active_command? then
@@ -56,6 +57,6 @@ class DeploymentGroup < ActiveRecord::Base
   end
 
   def active_command
-    commands.last
+    commands.where(deployment_group_id: self.id).last
   end
 end

@@ -9,12 +9,16 @@
       %th
 
   %tbody
-    - @client_file_types.each do |client_file_type|
+    - @client_file_types.each do |cft|
       %tr
-        %td= client_file_type.human_name
-        %td= client_file_type.extension
-        %td= link_to 'Edit', edit_client_file_type_path(client_file_type)
-        %td= link_to 'Remove', client_file_type, :method => :delete, :data => { :confirm => 'Are you sure?' }
+        %td= cft.human_name
+        %td= cft.extension
+        %td= link_to 'Edit', edit_client_file_type_path(cft)
+        %td
+          - if cft.can_destroy?
+            = link_to 'Remove', cft, :method => :delete, :data => { :confirm => 'Are you sure?' }
+          - else
+            Can't be destroyed. In use
 
 %br
 

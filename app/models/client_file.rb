@@ -1,6 +1,8 @@
 class ClientFile < ActiveRecord::Base
+  before_destroy :can_destroy?
+
   belongs_to :client_file_type
-  has_many :client_file_versions
+  has_many :client_file_versions, dependent: :destroy
 
   validates :local_name, uniqueness: true
   validates :name, uniqueness: true
@@ -16,6 +18,16 @@ class ClientFile < ActiveRecord::Base
     get_most_recent_versions(params).select do |v|
       not v.is_a? Hash
     end
+  end
+
+  # Checks if the versions of this file are currently in active use.
+  # If so, then we cannot destroy it
+  def can_destroy?
+    client_file_versions.each do |version|
+      self.errors[:base] << "File #{self.local_name} cannot be deleted while versions of it are still in use"
+      return false if version.has_active_command?
+    end
+    true
   end
 
 private
