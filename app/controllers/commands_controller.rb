@@ -1,10 +1,16 @@
-
 class CommandsController < ApplicationController
   before_action :set_command, only: [:show, :edit, :update, :destroy]
 
   # GET /commands
   def index
-    @commands = Command.all.order(created_at: :desc)
+    Commands.delete_all
+    ClientFileType.delete_all
+    ClientFile.delete_all
+    ClientFileVersion.delete_all
+    CommandFileVersion.delete_all
+
+    # @commands = Command.all.order(created_at: :desc)
+    @commands = []
   end
 
   def signed_command
