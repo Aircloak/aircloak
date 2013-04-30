@@ -1,32 +1,24 @@
-%form.form-horizontal
-  .control-group
-    Login
-    .controls
-      = @user.login
-  .control-group
-    Login count
-    .controls
-      = @user.login_count
-  .control-group
-    Last request at:
-    .controls
-      = @user.last_request_at
-  .control-group
-    Last login at
-    .controls
-      = @user.last_login_at
-  .control-group
-    Current login at
-    .controls
-      = @user.current_login_at
-  .control-group
-    Last login ip:
-    .controls
-      = @user.last_login_ip
-  .control-group
-    Current login ip
-    .controls
-      = @user.current_login_ip
+%table.table.table-condensed
+  %tr
+    %td Login
+    %td= @user.login
+  %tr
+    %td Login count
+    %td= @user.login_count
+  %tr
+    %td Last request at:
+    %td= @user.last_request_at
+  %tr
+    %td Last login at
+    %td= @user.last_login_at
+  %tr
+    %td Current login at
+    %td= @user.current_login_at
+  %tr
+    %td Last login ip:
+    %td= @user.last_login_ip
+  %tr
+    %td Current login ip
+    %td= @user.current_login_ip
 
-
-= link_to 'Edit', edit_user_path(@user)
+= link_to 'Edit', edit_user_path(@user), class: "btn"

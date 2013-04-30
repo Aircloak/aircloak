@@ -2,7 +2,9 @@ authorization do
   role :guest do
     has_permission_on :welcome, to: :index
     has_permission_on :user_sessions, to: [:new, :create, :destroy]
-    has_permission_on :users, to: [:new, :create, :edit]
+    has_permission_on :users, to: [:show, :create, :update] do
+      if_attribute :user => is {user}
+    end
   end
 
   role :ops do
