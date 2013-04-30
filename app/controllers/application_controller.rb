@@ -2,7 +2,7 @@ class ApplicationController < ActionController::Base
   helper :all
   helper_method :current_user_session, :current_user
 
-  filter_access_to :all
+  # filter_access_to :all
   
   before_filter :set_current_user
   
