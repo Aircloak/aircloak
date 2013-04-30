@@ -7,7 +7,8 @@
       %th Sha1
       %th Size
       %th Times downloaded
-      %th Verified
+      - if permitted_to? :read, :verifications
+        %th Verified
 
   %tbody
     - @client_file_versions.each do |client_file_version|
@@ -16,4 +17,5 @@
         %td= client_file_version.sha1
         %td= client_file_version.size
         %td= client_file_version.times_downloaded
-        %td= link_to client_file_version.verification_description, verification_path(client_file_version.id)
+        - if permitted_to? :read, :verifications
+          %td= link_to client_file_version.verification_description, verification_path(client_file_version.id)

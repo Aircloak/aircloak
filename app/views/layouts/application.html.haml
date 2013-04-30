@@ -17,11 +17,13 @@
               .navbar-inner
                 .brand &nbsp;Aircloak admin
                 %ul.nav
-                  %li= link_to "Queries", queries_path
-                  %li= link_to "Client binaries", client_binaries_path
-                  %li= link_to "Existing commands", commands_path
-                  %li= link_to "Staging machines", staging_machines_path
-                  %li= link_to "Deployment groups", deployment_groups_path
+                  %li= link_to "Queries", queries_path if permitted_to? :read, :queries
+                  %li= link_to "Client binaries", client_binaries_path if permitted_to? :read, :client_binaries
+                  %li= link_to "Existing commands", commands_path if permitted_to? :read, :commands
+                  %li= link_to "Staging machines", staging_machines_path if permitted_to? :manage, :staging_machines
+                  %li= link_to "Deployment groups", deployment_groups_path if permitted_to? :manage, :deployment_groups
+                  %li= link_to "Users", users_path if permitted_to? :manage, :users
+                  %li= link_to "Permissions", permissions_path if permitted_to? :manage, :permissions
                 %ul.nav.pull-right
                   - if current_user
                     %li= link_to "Logged in as #{current_user.login}", user_path(current_user)

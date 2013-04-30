@@ -10,8 +10,10 @@
       %th File extension
       %th Type
       %th Requires verification
-      %th
-      %th
+      - if permitted_to? :update, :client_files
+        %th
+      - if permitted_to? :delete, :client_files
+        %th
 
   %tbody
     - @client_files.each do |client_file|
@@ -21,15 +23,17 @@
         %td= client_file.client_file_type.extension
         %td= client_file.client_file_type.human_name
         %td= client_file.requires_verifications
-        %td= link_to 'Edit', edit_client_file_path(client_file)
-        %td
-          - if client_file.can_destroy?
-            = link_to 'Destroy', client_file, :method => :delete, :data => { :confirm => 'Are you sure?' }
-          - else
-            Cannot destroy. File version in active command
+        - if permitted_to? :update, :client_files
+          %td= link_to 'Edit', edit_client_file_path(client_file)
+        - if permitted_to? :delete, :client_files
+          %td
+            - if client_file.can_destroy?
+              = link_to 'Destroy', client_file, :method => :delete, :data => { :confirm => 'Are you sure?' }
+            - else
+              Cannot destroy. File version in active command
 
 %br
 
-= link_to 'Add new file', new_client_file_path, class: "btn"
-= link_to 'Add new file type', new_client_file_type_path, class: "btn"
-= link_to 'Upload new versions', client_binaries_path, class: "btn"
+= link_to 'Add new file', new_client_file_path, class: "btn" if permitted_to? :create, :client_files
+= link_to 'Add new file type', new_client_file_type_path, class: "btn" if permitted_to? :create, :client_file_types
+= link_to 'Upload new versions', client_binaries_path, class: "btn" if permitted_to? :create, :client_file_versions

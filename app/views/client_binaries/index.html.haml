@@ -2,80 +2,87 @@
 
 This interface allows you to upload new versions of the applications and dependencies that run on the client computers.
 
-%hr
-
-%p
-  %strong Upload a new version of a file
-
-= form_tag client_binaries_path, class: "form-horizontal", multipart: true, id: "client_binaries_form" do
-  .control-group
-    %label.control-label Select binary
-    .controls
-      = file_field_tag :binary, multiple: false, name: "binary", class: "btn"
-  .control-group
-    %label.control-label File
-    .controls
-      = select_tag :client_file_id, options_for_select(ClientFile.as_options)
-      = link_to "Add new file", new_client_file_path, class: "btn"
-      %span.help-block
-        = link_to "Do you want to upload a different file? Click here to add it first.", new_client_file_path
-  .control-group
-    .controls
-      = submit_tag "Upload", class: "btn"
-
-- @deployment_groups.each do |group|
+- if permitted_to? :manage, :client_binaries
   %hr
-  %h2= group.name
-  - if group.exist_newer_configuration?
-    .alert
-      %button.close{type: "button", :'data-dismiss' => "alert"} &times
-      %strong Notice!
-      There is a newer version available for this deployment group.
-      The following files have changed:
-      %ul
-        - group.available_updated_files.each do |file|
-          %li= file.name
-      = button_to "Create command", create_command_deployment_group_path(group), class: "btn"
+  %p
+    %strong Upload a new version of a file
 
-  - unless group.has_active_command?
-    %p 
-      %strong= group.name
-      currently has no active deployment.
-  - else
-    %p 
-      File versions in use by 
-      = group.name
+  = form_tag client_binaries_path, class: "form-horizontal", multipart: true, id: "client_binaries_form" do
+    .control-group
+      %label.control-label Select binary
+      .controls
+        = file_field_tag :binary, multiple: false, name: "binary", class: "btn"
+    .control-group
+      %label.control-label File
+      .controls
+        = select_tag :client_file_id, options_for_select(ClientFile.as_options)
+        = link_to "Add new file", new_client_file_path, class: "btn"
+        %span.help-block
+          = link_to "Do you want to upload a different file? Click here to add it first.", new_client_file_path
+    .control-group
+      .controls
+        = submit_tag "Upload", class: "btn"
 
-      %table.table.table-striped
-        %thead
-          %tr
-            %th Name
-            %th Version
-            %th Type
-            %th Date
-            %th Sha1
-            %th Downloads 
-            %th Size
-            %th Verified
-        %tbody
-        - group.active_command.client_file_versions.each do |version|
-          - if version.is_a? Hash
-            %tr.error
-              %td= version[:name]
-              %td No version uploaded
-              %td
-              %td
-              %td
-              %td
-              %td
-              %td
-          - else
+- if permitted_to? :read, :deployment_groups
+  - @deployment_groups.each do |group|
+    %hr
+    %h2= group.name
+    - if group.exist_newer_configuration?
+      .alert
+        %button.close{type: "button", :'data-dismiss' => "alert"} &times
+        %strong Notice!
+        There is a newer version available for this deployment group.
+        The following files have changed:
+        %ul
+          - group.available_updated_files.each do |file|
+            %li= file.name
+        - if permitted_to? :create, :commands
+          = button_to "Create command", create_command_deployment_group_path(group), class: "btn"
+        - else
+          Please notify the deployment manager
+
+    - unless group.has_active_command?
+      %p 
+        %strong= group.name
+        currently has no active deployment.
+    - else
+      %p 
+        File versions in use by 
+        = group.name
+
+        %table.table.table-striped
+          %thead
             %tr
-              %td= version.client_file.name
-              %td= version.id
-              %td= version.client_file.client_file_type.name
-              %td= time_ago_in_words version.created_at
-              %td= link_to version.sha1, client_binary_path(version)
-              %td= version.times_downloaded
-              %td= "#{(version.size / 1024).to_i} kB"
-              %td= link_to version.verification_description, verification_path(version.id)
+              %th Name
+              %th Version
+              %th Type
+              %th Date
+              %th Sha1
+              %th Downloads 
+              %th Size
+              - if permitted_to? :read, :verifications
+                %th Verified
+          %tbody
+          - group.active_command.client_file_versions.each do |version|
+            - if version.is_a? Hash
+              %tr.error
+                %td= version[:name]
+                %td No version uploaded
+                %td
+                %td
+                %td
+                %td
+                %td
+                - if permitted_to? :read, :verifications
+                  %td
+            - else
+              %tr
+                %td= version.client_file.name
+                %td= version.id
+                %td= version.client_file.client_file_type.name
+                %td= time_ago_in_words version.created_at
+                %td= link_to version.sha1, client_binary_path(version)
+                %td= version.times_downloaded
+                %td= "#{(version.size / 1024).to_i} kB"
+                - if permitted_to? :read, :verifications
+                  %td= link_to version.verification_description, verification_path(version.id)

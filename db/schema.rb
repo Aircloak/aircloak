@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130429130656) do
+ActiveRecord::Schema.define(version: 20130430123833) do
 
   create_table "client_binaries", force: true do |t|
     t.boolean  "updater",          default: false
@@ -145,6 +145,13 @@ ActiveRecord::Schema.define(version: 20130429130656) do
   add_index "percentile_results", ["bucket"], name: "index_percentile_results_on_bucket"
   add_index "percentile_results", ["query_id"], name: "index_percentile_results_on_query_id"
 
+  create_table "permissions", force: true do |t|
+    t.string   "name"
+    t.string   "description"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
   create_table "properties_results", force: true do |t|
     t.string   "bucket"
     t.boolean  "numeric",    default: false
@@ -209,6 +216,16 @@ ActiveRecord::Schema.define(version: 20130429130656) do
     t.datetime "updated_at"
   end
 
+  create_table "user_permissions", force: true do |t|
+    t.integer  "user_id"
+    t.integer  "permission_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "user_permissions", ["permission_id"], name: "index_user_permissions_on_permission_id"
+  add_index "user_permissions", ["user_id"], name: "index_user_permissions_on_user_id"
+
   create_table "users", force: true do |t|
     t.string   "login"
     t.string   "email"
@@ -232,5 +249,15 @@ ActiveRecord::Schema.define(version: 20130429130656) do
   add_index "users", ["last_request_at"], name: "index_users_on_last_request_at"
   add_index "users", ["login"], name: "index_users_on_login"
   add_index "users", ["persistence_token"], name: "index_users_on_persistence_token"
+
+  create_table "users_permissions", force: true do |t|
+    t.integer  "user_id"
+    t.integer  "permission_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "users_permissions", ["permission_id"], name: "index_users_permissions_on_permission_id"
+  add_index "users_permissions", ["user_id"], name: "index_users_permissions_on_user_id"
 
 end

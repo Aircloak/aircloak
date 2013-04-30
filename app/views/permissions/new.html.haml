@@ -1,0 +1,5 @@
+%h1 Add a new permission
+
+= render 'form'
+
+= link_to 'Back', permissions_path, class: "btn" if permitted_to? :read, :permissions

@@ -23,6 +23,16 @@
       %label.control-label= f.label :password_confirmation
       .controls
         = f.password_field :password_confirmation
+    - if permitted_to? :manage, :user_permissions
+      .control-group
+        %label.control-label= f.label :permissions
+        .controls
+          - Permission.all.each do |permission|
+            %label.checkbox
+              = check_box_tag "user[permission_ids][]", permission.id, @user.permissions.include?(permission)
+              = permission.name.humanize
+              %span.help-block= permission.description
+
     .control-group
       .controls
         = f.submit 'Save', class: "btn btn-success"

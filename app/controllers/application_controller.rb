@@ -1,6 +1,10 @@
 class ApplicationController < ActionController::Base
   helper :all
   helper_method :current_user_session, :current_user
+
+  filter_access_to :all
+  
+  before_filter :set_current_user
   
   # Prevent CSRF attacks by raising an exception.
   # For APIs, you may want to use :null_session instead.
@@ -8,6 +12,16 @@ class ApplicationController < ActionController::Base
 
   def not_found
     raise ActionController::RoutingError.new('Not Found')
+  end
+
+  def permission_denied
+    flash[:error] = "Your current privileges do not allow this action. Contact your administrator if you believe this is wrong."
+    redirect_to root_path
+  end
+
+protected
+  def set_current_user
+    Authorization.current_user = current_user
   end
 
 private

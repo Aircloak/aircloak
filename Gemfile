@@ -21,6 +21,7 @@ group :development do
   gem 'pry-nav'
   gem 'haml-rails', github: 'indirect/haml-rails'
   gem 'pg'
+  gem 'ruby_parser'
 end
 
 group :production do

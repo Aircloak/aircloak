@@ -5,20 +5,26 @@
     %tr
       %th Login
       %th Email
+      %th Permissions
       %th Last login
       %th Member since
       %th Last updated
-      %th
-      %th
-      %th
+      - if permitted_to? :update, :users
+        %th 
+      - if permitted_to? :delete, :users
+        %th 
   %tbody
     - @users.each do |user|
       %tr
         %td= user.login
         %td= user.email
+        %td
+          - if user.permissions.count == 0
+            No permissions
+          - else
+            = user.permissions.map(&:name).map(&:humanize).join(", ")
         %td= user.last_login_at
         %td= time_ago_in_words user.created_at
         %td= time_ago_in_words user.updated_at
-        %td= link_to 'Show', user
-        %td= link_to 'Edit', edit_user_path(user)
-        %td= link_to 'Remove', user, :method => :delete, :data => { :confirm => 'Are you sure?' }
+        %td= link_to 'Edit', edit_user_path(user) if permitted_to? :update, :users
+        %td= link_to 'Remove', user, :method => :delete, :data => { :confirm => 'Are you sure?' } if permitted_to? :delete, :users
