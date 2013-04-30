@@ -56,7 +56,7 @@ private
 
   def parameters_present ps
     ps.each do |p|
-      unless params[p] then
+      if params[p] == nil then
         report_error "The #{p} parameter is missing"
         return false
       end
