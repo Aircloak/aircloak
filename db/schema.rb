@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130430123833) do
+ActiveRecord::Schema.define(version: 20130501090713) do
 
   create_table "client_binaries", force: true do |t|
     t.boolean  "updater",          default: false
@@ -31,7 +31,10 @@ ActiveRecord::Schema.define(version: 20130430123833) do
     t.integer  "staging_machine_id"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.integer  "client_file_id"
   end
+
+  add_index "client_file_events", ["client_file_id"], name: "index_client_file_events_on_client_file_id"
 
   create_table "client_file_types", force: true do |t|
     t.string   "name"

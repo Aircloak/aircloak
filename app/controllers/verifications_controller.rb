@@ -10,7 +10,7 @@ class VerificationsController < ApplicationController
     @machines = StagingMachine.all
     @event_names = []
     @machines.each do |machine|
-      @event_names += machine.client_file_events.map(&:event)
+      @event_names += machine.client_file_events.where(client_file_id: @file.client_file_id).map(&:event)
     end
     @event_names.uniq!
   end
@@ -30,8 +30,8 @@ class VerificationsController < ApplicationController
       report_error "the version of the executable under test is missing"
       return
     end
-    file = ClientFileVersion.where(sha1: params[:sha1]).first
-    unless file then
+    file_version = ClientFileVersion.where(sha1: params[:sha1]).first
+    unless file_version then
       report_error "unknown file version"
       return
     end
@@ -39,10 +39,11 @@ class VerificationsController < ApplicationController
     if parameters_present [:event, :description, :positive] then
       event = ClientFileEvent.new
       event.staging_machine = machine
-      event.client_file_version = file
+      event.client_file_version = file_version
       event.event = params[:event]
       event.description = params[:description]
       event.positive = params[:positive]
+      event.client_file = file_version.client_file
       event.save
 
       render :text => ({status: :ok}).to_json, layout: false
