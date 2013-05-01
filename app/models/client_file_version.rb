@@ -74,6 +74,20 @@ class ClientFileVersion < ActiveRecord::Base
     false
   end
 
+  # Returns true if verified is false, and there have been no
+  # negative events associated with the file and the file is older
+  # than a certain threshold
+  # In all other cases it returns false
+  def not_verified_and_not_failed
+    self.verified == false and 
+      1.hour.ago > self.created_at and
+      client_file_events.where(positive: false).count == 0
+  end
+
+  def manually_verified
+    verified and requires_verification? and not is_verified?
+  end
+
 private
   def requires_verification?
     client_file.requires_verifications

@@ -15,6 +15,13 @@ class VerificationsController < ApplicationController
     @event_names.uniq!
   end
 
+  def verify
+    cfv = ClientFileVersion.find(params[:id])
+    cfv.verified = true
+    cfv.save
+    redirect_to verification_path(cfv.id)
+  end
+
   def event
     unless params[:machine] then
       report_error "staging machine must be specified"
