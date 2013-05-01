@@ -14,9 +14,15 @@
         %td= name
         - @machines.each do |machine|
           %td
-            - if machine.result_for(@file, name) == true
-              %span.boxed-span.green ok
-            - if machine.result_for(@file, name) == false
-              %span.boxed-span.red &times
-            - if machine.result_for(@file, name) == :missing
+            - event = machine.result_for(@file, name)
+            - if event == :missing
               %span.boxed-span.yellow ?
+            - else 
+              - if event.positive
+                %span.boxed-span.green
+                  ok
+                  = "(#{event.created_at})"
+              - else
+                %span.boxed-span.red 
+                  &times
+                  = "(#{event.created_at})"
