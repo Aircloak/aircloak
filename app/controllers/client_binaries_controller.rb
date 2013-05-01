@@ -1,4 +1,6 @@
 class ClientBinariesController < ApplicationController
+  filter_access_to :show, require: :anon_read
+
   # GET /client_binaries
   def index
     @versions = ClientFile.get_most_recent_versions only_verified:false
