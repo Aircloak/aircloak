@@ -4,7 +4,7 @@
   = form_for @user_session, html: {class: "form-horizontal"} do |f|
     - if @user_session.errors.any?
       #error_explanation
-        %h2= "#{pluralize(@user_session.errors.count, "error")} prohibited this client_file from being saved:"
+        %h2= "Login failed with #{pluralize(@user_session.errors.count, "error")}:"
         %ul
           - @user_session.errors.full_messages.each do |msg|
             %li= msg
