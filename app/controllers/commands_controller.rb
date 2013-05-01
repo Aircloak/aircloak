@@ -1,4 +1,6 @@
 class CommandsController < ApplicationController
+  filter_access_to :signed_command, require: :anon_read
+
   # GET /commands
   def index
     @commands = Command.all.order(created_at: :desc)

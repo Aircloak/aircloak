@@ -2,7 +2,7 @@ class ApplicationController < ActionController::Base
   helper :all
   helper_method :current_user_session, :current_user
 
-  # filter_access_to :all
+  filter_access_to :all
   
   before_filter :set_current_user
   
@@ -16,7 +16,11 @@ class ApplicationController < ActionController::Base
 
   def permission_denied
     flash[:error] = "Your current privileges do not allow this action. Contact your administrator if you believe this is wrong."
-    redirect_to root_path
+    respond_to do |format|
+      format.html { redirect_to(:back) rescue redirect_to root_path }
+      format.xml  { head :unauthorized }
+      format.js   { head :unauthorized }
+    end
   end
 
 protected
