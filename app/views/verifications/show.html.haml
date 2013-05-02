@@ -29,15 +29,21 @@
     %p Another example would be if a missing event comes in as a negative event.
 
     .alert.alert-error.form-horizontal{:"ng-app" => "verifications_matrix"}
-      %h3 Danger zone
-      .control-group
-        %label.control-label File to verify
-        .controls
-          = text_field_tag :verification, "", :'ng-model' => "verification_name"
-          %span.help-block Please type in the name of the file you want to manually verify
-      .control-group
-        .controls
-          = button_to "Manually mark #{@file.name} as verified", verify_verification_path(@file), class: "btn disabled btn-danger", data: {confirm: "Do you understand the consequences of forcefully marking a non-verified file as verified?"}, :'ng-disabled' => "{verification_name != '#{@file.name}'}"
+      = form_tag verify_verification_path(@file), name: 'danger_form' do
+        %h3 Danger zone
+        .control-group
+          %label.control-label File to verify
+          .controls
+            = text_field_tag :verification, "", :'ng-model' => "verification_name", :'ng-pattern' => "/#{@file.name}/", required: true
+            %span.help-block Please type in the name of the file you want to manually verify
+        .control-group
+          .controls
+            = button_to "Manually mark #{@file.name} as verified", 
+              verify_verification_path(@file), 
+              class: "btn btn-danger disabled", 
+              data: {confirm: "Do you understand the consequences of forcefully marking a non-verified file as verified?"}, 
+              :'ng-disabled' => "danger_form.$invalid",
+              :'ng-class' => "{disabled:danger_form.$invalid}"
     %hr
 
 %table.table.table-condensed
