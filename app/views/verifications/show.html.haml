@@ -7,37 +7,38 @@
     %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
     Please not that this file has been manually verified.
 
-- if @file.not_verified_and_not_failed
-  %hr
-  %p
-    %strong= @file.name
-    has not been verified although it was submitted
-    = "#{time_ago_in_words @file.created_at} ago."
-  %p You can forcefully mark it as verified, but only do so if you fully understand the consequences of doing so.
-  %p Reasons for marking a file as verified, despite it not having been programatically verified would be if:
-  %ul
-    %li One of the staging machines have become permanently unavailable yet cannot be removed from the system
-    %li Other good reason (which I cannot think of)
+- if permitted_to? :update, :client_file_versions
+  - if @file.not_verified_and_not_failed
+    %hr
+    %p
+      %strong= @file.name
+      has not been verified although it was submitted
+      = "#{time_ago_in_words @file.created_at} ago."
+    %p You can forcefully mark it as verified, but only do so if you fully understand the consequences of doing so.
+    %p Reasons for marking a file as verified, despite it not having been programatically verified would be if:
+    %ul
+      %li One of the staging machines have become permanently unavailable yet cannot be removed from the system
+      %li Other good reason (which I cannot think of)
 
-  %p
-    %strong Please note:
-    If a staging machine sends in an event (positive or negative) after the file has been marked as 
-    %strong verified
-    then the verification status might again change according to if the file still should be considered to be verified or not.
-  %p For example if the version has two missing events, and one of the two staging machines that had not yet replied sends in a positive event, then the last missing event will again cause the file to be considered not verified.
-  %p Another example would be if a missing event comes in as a negative event.
+    %p
+      %strong Please note:
+      If a staging machine sends in an event (positive or negative) after the file has been marked as 
+      %strong verified
+      then the verification status might again change according to if the file still should be considered to be verified or not.
+    %p For example if the version has two missing events, and one of the two staging machines that had not yet replied sends in a positive event, then the last missing event will again cause the file to be considered not verified.
+    %p Another example would be if a missing event comes in as a negative event.
 
-  .alert.alert-error.form-horizontal{:"ng-app" => "verifications_matrix"}
-    %h3 Danger zone
-    .control-group
-      %label.control-label File to verify
-      .controls
-        = text_field_tag :verification, "", :'ng-model' => "verification_name"
-        %span.help-block Please type in the name of the file you want to manually verify
-    .control-group
-      .controls
-        = button_to "Manually verify #{@file.name}", verify_verification_path(@file), class: "btn disabled btn-danger", data: {confirm: "Do you understand the consequences of forcefully marking a non-verified file as verified?"}, :'ng-class' => "{disabled:verification_name != '#{@file.name}'}" if permitted_to? :update, :client_file_versions
-  %hr
+    .alert.alert-error.form-horizontal{:"ng-app" => "verifications_matrix"}
+      %h3 Danger zone
+      .control-group
+        %label.control-label File to verify
+        .controls
+          = text_field_tag :verification, "", :'ng-model' => "verification_name"
+          %span.help-block Please type in the name of the file you want to manually verify
+      .control-group
+        .controls
+          = button_to "Manually mark #{@file.name} as verified", verify_verification_path(@file), class: "btn disabled btn-danger", data: {confirm: "Do you understand the consequences of forcefully marking a non-verified file as verified?"}, :'ng-disabled' => "{verification_name != '#{@file.name}'}"
+    %hr
 
 %table.table.table-condensed
   %thead
