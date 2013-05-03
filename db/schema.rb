@@ -34,7 +34,7 @@ ActiveRecord::Schema.define(version: 20130501090713) do
     t.integer  "client_file_id"
   end
 
-  add_index "client_file_events", ["client_file_id"], name: "index_client_file_events_on_client_file_id"
+  add_index "client_file_events", ["client_file_id"], name: "index_client_file_events_on_client_file_id", using: :btree
 
   create_table "client_file_types", force: true do |t|
     t.string   "name"
@@ -79,8 +79,8 @@ ActiveRecord::Schema.define(version: 20130501090713) do
     t.datetime "updated_at"
   end
 
-  add_index "command_file_versions", ["client_file_version_id"], name: "index_command_file_versions_on_client_file_version_id"
-  add_index "command_file_versions", ["command_id"], name: "index_command_file_versions_on_command_id"
+  add_index "command_file_versions", ["client_file_version_id"], name: "index_command_file_versions_on_client_file_version_id", using: :btree
+  add_index "command_file_versions", ["command_id"], name: "index_command_file_versions_on_command_id", using: :btree
 
   create_table "commands", force: true do |t|
     t.binary   "command_binary"
@@ -91,7 +91,7 @@ ActiveRecord::Schema.define(version: 20130501090713) do
     t.integer  "deployment_group_id"
   end
 
-  add_index "commands", ["deployment_group_id"], name: "index_commands_on_deployment_group_id"
+  add_index "commands", ["deployment_group_id"], name: "index_commands_on_deployment_group_id", using: :btree
 
   create_table "deployment_groups", force: true do |t|
     t.string   "identifier"
@@ -110,8 +110,8 @@ ActiveRecord::Schema.define(version: 20130501090713) do
     t.datetime "updated_at"
   end
 
-  add_index "exception_results", ["count"], name: "index_exception_results_on_count"
-  add_index "exception_results", ["query_id"], name: "index_exception_results_on_query_id"
+  add_index "exception_results", ["count"], name: "index_exception_results_on_count", using: :btree
+  add_index "exception_results", ["query_id"], name: "index_exception_results_on_query_id", using: :btree
 
   create_table "index_query_files", force: true do |t|
     t.integer  "index_id"
@@ -135,7 +135,7 @@ ActiveRecord::Schema.define(version: 20130501090713) do
     t.datetime "updated_at"
   end
 
-  add_index "pending_results", ["query_id"], name: "index_pending_results_on_query_id"
+  add_index "pending_results", ["query_id"], name: "index_pending_results_on_query_id", using: :btree
 
   create_table "percentile_results", force: true do |t|
     t.string   "bucket"
@@ -145,8 +145,8 @@ ActiveRecord::Schema.define(version: 20130501090713) do
     t.datetime "updated_at"
   end
 
-  add_index "percentile_results", ["bucket"], name: "index_percentile_results_on_bucket"
-  add_index "percentile_results", ["query_id"], name: "index_percentile_results_on_query_id"
+  add_index "percentile_results", ["bucket"], name: "index_percentile_results_on_bucket", using: :btree
+  add_index "percentile_results", ["query_id"], name: "index_percentile_results_on_query_id", using: :btree
 
   create_table "permissions", force: true do |t|
     t.string   "name"
@@ -166,12 +166,12 @@ ActiveRecord::Schema.define(version: 20130501090713) do
     t.datetime "updated_at"
   end
 
-  add_index "properties_results", ["bucket"], name: "index_properties_results_on_bucket"
-  add_index "properties_results", ["count"], name: "index_properties_results_on_count"
-  add_index "properties_results", ["long_value"], name: "index_properties_results_on_long_value"
-  add_index "properties_results", ["numeric"], name: "index_properties_results_on_numeric"
-  add_index "properties_results", ["query_id"], name: "index_properties_results_on_query_id"
-  add_index "properties_results", ["str_value"], name: "index_properties_results_on_str_value"
+  add_index "properties_results", ["bucket"], name: "index_properties_results_on_bucket", using: :btree
+  add_index "properties_results", ["count"], name: "index_properties_results_on_count", using: :btree
+  add_index "properties_results", ["long_value"], name: "index_properties_results_on_long_value", using: :btree
+  add_index "properties_results", ["numeric"], name: "index_properties_results_on_numeric", using: :btree
+  add_index "properties_results", ["query_id"], name: "index_properties_results_on_query_id", using: :btree
+  add_index "properties_results", ["str_value"], name: "index_properties_results_on_str_value", using: :btree
 
   create_table "queries", force: true do |t|
     t.string   "name"
@@ -203,8 +203,8 @@ ActiveRecord::Schema.define(version: 20130501090713) do
     t.datetime "updated_at"
   end
 
-  add_index "sessions", ["session_id"], name: "index_sessions_on_session_id"
-  add_index "sessions", ["updated_at"], name: "index_sessions_on_updated_at"
+  add_index "sessions", ["session_id"], name: "index_sessions_on_session_id", using: :btree
+  add_index "sessions", ["updated_at"], name: "index_sessions_on_updated_at", using: :btree
 
   create_table "staging_machines", force: true do |t|
     t.string   "name"
@@ -226,8 +226,8 @@ ActiveRecord::Schema.define(version: 20130501090713) do
     t.datetime "updated_at"
   end
 
-  add_index "user_permissions", ["permission_id"], name: "index_user_permissions_on_permission_id"
-  add_index "user_permissions", ["user_id"], name: "index_user_permissions_on_user_id"
+  add_index "user_permissions", ["permission_id"], name: "index_user_permissions_on_permission_id", using: :btree
+  add_index "user_permissions", ["user_id"], name: "index_user_permissions_on_user_id", using: :btree
 
   create_table "users", force: true do |t|
     t.string   "login"
@@ -248,19 +248,9 @@ ActiveRecord::Schema.define(version: 20130501090713) do
     t.datetime "updated_at"
   end
 
-  add_index "users", ["email"], name: "index_users_on_email"
-  add_index "users", ["last_request_at"], name: "index_users_on_last_request_at"
-  add_index "users", ["login"], name: "index_users_on_login"
-  add_index "users", ["persistence_token"], name: "index_users_on_persistence_token"
-
-  create_table "users_permissions", force: true do |t|
-    t.integer  "user_id"
-    t.integer  "permission_id"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-  end
-
-  add_index "users_permissions", ["permission_id"], name: "index_users_permissions_on_permission_id"
-  add_index "users_permissions", ["user_id"], name: "index_users_permissions_on_user_id"
+  add_index "users", ["email"], name: "index_users_on_email", using: :btree
+  add_index "users", ["last_request_at"], name: "index_users_on_last_request_at", using: :btree
+  add_index "users", ["login"], name: "index_users_on_login", using: :btree
+  add_index "users", ["persistence_token"], name: "index_users_on_persistence_token", using: :btree
 
 end
