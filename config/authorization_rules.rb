@@ -29,10 +29,8 @@ authorization do
 
   role :admin do
     includes [:ops, :deploy_manager]
-    has_permission_on [:users, :permissions, :user_permissions], to: :manage
-    # has_permission_on [:conferences, :users, :talks], :to => :manage
-    has_permission_on :authorization_rules, :to => :read
-    has_permission_on :authorization_usages, :to => :read
+    has_permission_on [:queries, :results, :users, :permissions, :user_permissions], to: :manage
+    has_permission_on [:authorization_rules, :authorization_usages], :to => :read
   end
   
   # role :user do

@@ -6,6 +6,11 @@ require "base64"
 class Query < ActiveRecord::Base
   has_many :query_files, dependent: :destroy
   has_many :pending_results, dependent: :destroy, counter_cache: true
+
+  has_many :property_results, dependent: :destroy
+  has_many :exception_results, dependent: :destroy
+  has_many :percentile_results, dependent: :destroy
+
   belongs_to :index
 
   accepts_nested_attributes_for :query_files, allow_destroy: true

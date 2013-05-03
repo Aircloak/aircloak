@@ -3,7 +3,11 @@ require './lib/proto/air/aggregate_results.pb'
 class ResultsController < ApplicationController
   filter_access_to :create, require: :anon_write
   protect_from_forgery :except => :create 
-  around_action :validate_auth_token
+  around_action :validate_auth_token, only: :create
+
+  def index
+    @queries = Query.all
+  end
 
   def create
     r = Result.decode(request.body.read)

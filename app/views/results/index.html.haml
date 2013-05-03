@@ -1,0 +1,12 @@
+- if permitted_to? :read, :queries
+  %h1 Queries
+
+  - unless @queries.count == 0
+    %p Select a query to see results from:
+    %ul
+      - @queries.each do |query|
+        %li= link_to query.name, result_path(query)
+
+  - else
+    %p There are no queries to show results from.
+    = link_to "Manage queries", queries_path, class: "btn" if permitted_to? :manage, :queries
