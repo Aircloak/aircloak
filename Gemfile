@@ -1,7 +1,9 @@
 source 'https://rubygems.org'
+
 ruby '2.0.0'
 
-gem 'rails', '~> 4.0.0.beta'
+gem 'rails', '~> 4.0.0.beta' #, github: 'rails/rails'
+# gem 'rails', '~> 4.0.0.rc1', github: "rails/rails"
 
 gem "haml", :github => "haml/haml", :branch => "stable"
 # gem 'd3-rails'
