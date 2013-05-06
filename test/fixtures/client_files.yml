@@ -1,9 +1,8 @@
 # Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
 
-one:
-  name: MyString
-  local_name: MyString
-
-two:
-  name: MyString
-  local_name: MyString
+client:
+  id: 1
+  name: Client
+  local_name: AircloakClient
+  client_file_type_id: 1
+  requires_verifications: true

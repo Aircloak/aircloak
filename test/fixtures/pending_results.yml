@@ -1,9 +1,1 @@
 # Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
-
-one:
-  query_id: 
-  ref: MyString
-
-two:
-  query_id: 
-  ref: MyString

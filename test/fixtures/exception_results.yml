@@ -1,13 +1,1 @@
 # Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
-
-one:
-  query_id: 
-  stack: MyString
-  count: 1
-  noise: 1.5
-
-two:
-  query_id: 
-  stack: MyString
-  count: 1
-  noise: 1.5

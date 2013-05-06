@@ -15,6 +15,11 @@ gem 'beefcake'
 # update commands for the client apps
 gem "sshkeyauth"
 
+group :test do
+  gem 'pry'
+  gem 'pry-nav'
+end
+
 group :development do
   gem 'better_errors'
   gem 'binding_of_caller'

@@ -1,9 +1,2 @@
 # Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
 
-one:
-  sha: MyString
-  name: MyString
-
-two:
-  sha: MyString
-  name: MyString

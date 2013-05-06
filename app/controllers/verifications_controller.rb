@@ -35,11 +35,12 @@ class VerificationsController < ApplicationController
       return
     end
 
-    unless event_data["sha1"] then
+    version_num = get_version event_data
+    unless version_num then
       report_error "the version of the executable under test is missing"
       return
     end
-    file_version = ClientFileVersion.where(sha1: event_data["sha1"]).first
+    file_version = ClientFileVersion.where(sha1: version_num).first
     unless file_version then
       report_error "unknown file version"
       return
@@ -62,6 +63,11 @@ class VerificationsController < ApplicationController
 private
   def report_error error
     render :text => ({status: :error, reason: error}).to_json, layout: false
+  end
+
+  def get_version data
+    return data["version"] if data["version"]
+    data["sha1"] 
   end
 
   def parameters_present ps, data

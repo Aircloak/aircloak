@@ -1,13 +1,8 @@
 # Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
 
 one:
-  data: 
-  sha1: MyString
-  size: 1
-  times_downloaded: 1
+  id: 1
+  client_file_id: 1
+  times_downloaded: 0
+  sha1: "version-sha"
 
-two:
-  data: 
-  sha1: MyString
-  size: 1
-  times_downloaded: 1
