@@ -24,33 +24,34 @@ class VerificationsController < ApplicationController
   end
 
   def event
-    unless params[:machine] then
+    event_data = JSON.parse(request.body.read)
+    unless event_data["machine"] then
       report_error "staging machine must be specified"
       return
     end
-    machine = StagingMachine.where(name: params[:machine]).first
+    machine = StagingMachine.where(name: event_data["machine"]).first
     unless machine then
       report_error "unknown machine"
       return
     end
 
-    unless params[:sha1] then
+    unless event_data["sha1"] then
       report_error "the version of the executable under test is missing"
       return
     end
-    file_version = ClientFileVersion.where(sha1: params[:sha1]).first
+    file_version = ClientFileVersion.where(sha1: event_data["sha1"]).first
     unless file_version then
       report_error "unknown file version"
       return
     end
 
-    if parameters_present [:event, :description, :positive] then
+    if parameters_present ["event", "description", "positive"], event_data then
       event = ClientFileEvent.new
       event.staging_machine = machine
       event.client_file_version = file_version
-      event.event = params[:event]
-      event.description = params[:description]
-      event.positive = params[:positive]
+      event.event = event_data["event"]
+      event.description = event_data["description"]
+      event.positive = event_data["positive"]
       event.client_file = file_version.client_file
       event.save
 
@@ -63,9 +64,9 @@ private
     render :text => ({status: :error, reason: error}).to_json, layout: false
   end
 
-  def parameters_present ps
+  def parameters_present ps, data
     ps.each do |p|
-      if params[p] == nil then
+      if data[p] == nil then
         report_error "The #{p} parameter is missing"
         return false
       end
