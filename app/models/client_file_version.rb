@@ -106,15 +106,20 @@ private
     # If there is a negative event, then we fail the file
     return false if client_file_events.where(positive: false).count > 0
 
-    events = ClientFileEvent.select("count(*) as num_events")
-                            .where(positive: true, client_file_version_id: id)
-                            .group("client_file_events.staging_machine_id")
+    events = ClientFileEvent.positive_events_for_version id
 
-    staging_machine_count = StagingMachine.count
-    
     # Should be as many sets of events as staging machines
     return false unless StagingMachine.count == events.to_a.size
 
+    all_event_counts_ok? events
+  end
+
+  def new_valid_commands?
+    DeploymentGroup.new_valid_commands?
+  end
+
+private
+  def all_event_counts_ok? events
     # They should all have the same amount of positive events associated
     # with the binary
     num_events = events.first.num_events
@@ -126,9 +131,5 @@ private
     end
 
     true
-  end
-
-  def new_valid_commands?
-    DeploymentGroup.new_valid_commands?
   end
 end
