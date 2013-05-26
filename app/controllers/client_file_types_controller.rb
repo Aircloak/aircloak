@@ -1,5 +1,5 @@
 class ClientFileTypesController < ApplicationController
-  before_action :set_client_file_type, only: [:show, :edit, :update, :destroy]
+  before_action :set_client_file_type, only: [:edit, :update, :destroy]
 
   # GET /client_file_types
   def index
@@ -9,10 +9,6 @@ class ClientFileTypesController < ApplicationController
   # GET /client_file_types/new
   def new
     @client_file_type = ClientFileType.new
-  end
-
-  # GET /client_file_types/1/edit
-  def edit
   end
 
   # POST /client_file_types
