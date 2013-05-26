@@ -1,5 +1,5 @@
 class ClientFilesController < ApplicationController
-  before_action :set_client_file, only: [:show, :edit, :update, :destroy]
+  before_action :set_client_file, only: [:edit, :update, :destroy]
 
   # GET /client_files
   def index
@@ -9,10 +9,6 @@ class ClientFilesController < ApplicationController
   # GET /client_files/new
   def new
     @client_file = ClientFile.new
-  end
-
-  # GET /client_files/1/edit
-  def edit
   end
 
   # POST /client_files

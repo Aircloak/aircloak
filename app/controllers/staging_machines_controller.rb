@@ -1,22 +1,14 @@
 class StagingMachinesController < ApplicationController
-  before_action :set_staging_machine, only: [:show, :edit, :update, :destroy]
+  before_action :set_staging_machine, only: [:edit, :update, :destroy]
 
   # GET /staging_machines
   def index
     @staging_machines = StagingMachine.all
   end
 
-  # GET /staging_machines/1
-  def show
-  end
-
   # GET /staging_machines/new
   def new
     @staging_machine = StagingMachine.new
-  end
-
-  # GET /staging_machines/1/edit
-  def edit
   end
 
   # POST /staging_machines
