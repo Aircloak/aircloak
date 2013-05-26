@@ -1,5 +1,5 @@
 class DeploymentGroupsController < ApplicationController
-  before_action :set_deployment_group, only: [:show, :edit, :update, :destroy]
+  before_action :set_deployment_group, only: [:edit, :update, :destroy]
 
   # GET /deployment_groups
   def index
@@ -9,10 +9,6 @@ class DeploymentGroupsController < ApplicationController
   # GET /deployment_groups/new
   def new
     @deployment_group = DeploymentGroup.new
-  end
-
-  # GET /deployment_groups/1/edit
-  def edit
   end
 
   # POST /deployment_groups
