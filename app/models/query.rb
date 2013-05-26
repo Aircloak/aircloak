@@ -101,7 +101,20 @@ private
   end
 
   def cloak_url path
-    Rails.env.production? ? "http://cloak.aircloak.com/#{path}" : "http://localhost:8098/#{path}"
+    return @cloak_url if @cloak_url
+
+    cloak_url = ""
+    if Rails.env.production? then
+      # Get a cloak to speak to
+      resolver = Resolv::DNS.new
+      resource = resolver.getresources("_cloak._tcp.aircloak.com", 
+                                       Resolv::DNS::Resource::IN::SRV).sample
+      cloak_url = resource.target.to_s
+    else
+      cloak_url = "http://localhost:8098"
+    end
+
+    @cloak_url = "#{cloak_url}/#{path}"
   end
 
   def should_have_identifier?
