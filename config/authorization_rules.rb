@@ -29,7 +29,7 @@ authorization do
 
   role :admin do
     includes [:ops, :deploy_manager]
-    has_permission_on [:queries, :results, :users, :permissions, :user_permissions], to: :manage
+    has_permission_on [:temp_query_files, :queries, :results, :users, :permissions, :user_permissions], to: :manage
     has_permission_on [:authorization_rules, :authorization_usages], :to => :read
   end
   
