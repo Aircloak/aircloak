@@ -52,42 +52,9 @@ private
     query_files = ActiveSupport::JSON.decode(params[:query_files])
     files_to_return = []
     query_files.each do |qf|
-      q = nil
-      if qf["fresh"] then
-        if qf["scheduleRemove"] then
-          TempQueryFile.destroy(qf["temp_file"])
-          next
-        else
-          temp_file = TempQueryFile.find(qf["temp_file"])
-          q = QueryFile.new(
-            name: qf["name"],
-            query_interface: qf["query_interface"],
-            index_ops: qf["index_ops"],
-            package: qf["package"],
-            index_ops: qf["index_ops"],
-            data: temp_file.data)
-        end
-      else
-        if qf["scheduleRemove"] then
-          QueryFile.destroy(qf["id"])
-          next
-        else
-          q = QueryFile.find(qf["id"])
-        end
-      end
-      qf["indices"].each do |i|
-        index = nil
-        if i["fresh"]
-          index = Index.new(
-            name: i["name"],
-            human_name: i["human_name"],
-            system_index: !i["system_index"])
-          index.save
-        else
-          index = Index.find(i["id"])
-        end
-        q.indices << index
-      end
+      q = QueryFile.perform_json_ops qf
+      next unless q
+      q.add_indices_from_json qf
       q.save
       files_to_return << q
     end
