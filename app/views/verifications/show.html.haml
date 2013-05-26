@@ -5,7 +5,7 @@
 - if @file.manually_verified
   .alert.alert-info
     %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
-    Please not that this file has been manually verified.
+    Please note that this file has been manually verified.
 
 - if permitted_to? :update, :client_file_versions
   - if @file.not_verified_and_not_failed
