@@ -13,8 +13,6 @@ Web::Application.routes.draw do
     post 'verify', on: :member
   end
 
-  resources :client_file_events
-
   resources :staging_machines
 
   resources :deployment_groups do
