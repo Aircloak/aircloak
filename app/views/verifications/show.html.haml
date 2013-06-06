@@ -1,6 +1,11 @@
 %h1 
   Verifications for 
   = @file.name
+%p
+  This version of 
+  %strong= @file.name
+  has sha1:
+  %strong= @file.sha1
 
 - if @file.manually_verified
   .alert.alert-info
@@ -63,7 +68,7 @@
             %td
               %span.boxed-span.yellow ?
           - else
-            %td{title: "#{event.description}. Occurred at #{event.created_at}", :other => true}
+            %td{title: "#{event.description}. Occurred at #{event.updated_at}", :other => true}
               - if event.positive
                 %span.boxed-span.green ok
               - else
