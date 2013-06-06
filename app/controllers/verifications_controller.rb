@@ -55,7 +55,9 @@ class VerificationsController < ApplicationController
         event = ClientFileEvent.new
       elsif events.size > 1 
         event = events.pop
-        events.destroy
+        events.each do |event|
+          event.destroy
+        end
       else
         event = events.first
       end
