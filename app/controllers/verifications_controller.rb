@@ -9,11 +9,11 @@ class VerificationsController < ApplicationController
   def show
     @file = ClientFileVersion.find(params[:id])
     @machines = StagingMachine.all
-    @event_names = []
+    @events = []
     @machines.each do |machine|
-      @event_names += machine.client_file_events.where(client_file_id: @file.client_file_id).map(&:event)
+      @events += machine.client_file_events.where(client_file_id: @file.client_file_id)
     end
-    @event_names.uniq!
+    @events.uniq!
   end
 
   def verify

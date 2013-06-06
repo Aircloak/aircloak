@@ -53,12 +53,15 @@
       - @machines.each do |machine|
         %th= machine.name
   %tbody
-    - @event_names.each do |name|
+    - @events.each do |event|
       %tr
-        %td= name
+        %td
+          %strong= event.event
+          %small= event.description
+          %small= event.updated_at
         - @machines.each do |machine|
           %td
-            - event = machine.result_for(@file, name)
+            - event = machine.result_for(@file, event.event)
             - if event == :missing
               %span.boxed-span.yellow ?
             - else 
