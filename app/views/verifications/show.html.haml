@@ -61,15 +61,15 @@
           %small= event.updated_at
         - @machines.each do |machine|
           %td
-            - event = machine.result_for(@file, event.event)
-            - if event == :missing
+            - machine_event = machine.result_for(@file, event.event)
+            - if machine_event == :missing
               %span.boxed-span.yellow ?
             - else 
-              - if event.positive
+              - if machine_event.positive
                 %span.boxed-span.green
                   ok
-                  = "(#{event.created_at})"
+                  = "(#{machine_event.created_at})"
               - else
                 %span.boxed-span.red 
                   &times
-                  = "(#{event.created_at})"
+                  = "(#{machine_event.created_at})"
