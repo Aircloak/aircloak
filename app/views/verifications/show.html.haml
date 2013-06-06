@@ -53,23 +53,21 @@
       - @machines.each do |machine|
         %th= machine.name
   %tbody
-    - @events.each do |event|
+    - @event_names.each do |name|
       %tr
-        %td
-          %strong= event.event
-          %small= event.description
-          %small= event.updated_at
+        %td{title: description_for_event_name(name)}
+          = name
         - @machines.each do |machine|
           %td
-            - machine_event = machine.result_for(@file, event.event)
-            - if machine_event == :missing
+            - event = machine.result_for(@file, name)
+            - if event == :missing
               %span.boxed-span.yellow ?
             - else 
-              - if machine_event.positive
+              - if event.positive
                 %span.boxed-span.green
                   ok
-                  = "(#{machine_event.created_at})"
+                  = "(#{event.created_at})"
               - else
                 %span.boxed-span.red 
                   &times
-                  = "(#{machine_event.created_at})"
+                  = "(#{event.created_at})"
