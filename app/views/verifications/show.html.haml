@@ -55,19 +55,16 @@
   %tbody
     - @event_names.each do |name|
       %tr
-        %td{title: description_for_event_name(name)}
+        %td
           = name
         - @machines.each do |machine|
-          %td
-            - event = machine.result_for(@file, name)
-            - if event == :missing
+          - event = machine.result_for(@file, name)
+          - if event == :missing
+            %td
               %span.boxed-span.yellow ?
-            - else 
+          - else
+            %td{title: "#{event.description}. Occurred at #{event.created_at}", :other => true}
               - if event.positive
-                %span.boxed-span.green
-                  ok
-                  = "(#{event.created_at})"
+                %span.boxed-span.green ok
               - else
-                %span.boxed-span.red 
-                  &times
-                  = "(#{event.created_at})"
+                %span.boxed-span.red &times
