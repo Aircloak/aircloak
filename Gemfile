@@ -53,7 +53,7 @@ group :assets do
 end
 
 gem 'jquery-rails'
-gem 'turbolinks', github: 'rails/turbolinks'
+# gem 'turbolinks', github: 'rails/turbolinks'
 
 # To use ActiveModel has_secure_password
 gem 'bcrypt-ruby', '~> 3.0.0'

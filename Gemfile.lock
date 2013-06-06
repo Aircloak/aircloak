@@ -42,13 +42,6 @@ GIT
       activesupport (>= 3.0)
       sprockets (~> 2.8)
 
-GIT
-  remote: git://github.com/rails/turbolinks.git
-  revision: 91ef59132111eaf3e365ec8e00aa1f1836f6074a
-  specs:
-    turbolinks (1.1.1)
-      coffee-rails
-
 GEM
   remote: https://rubygems.org/
   specs:
@@ -240,7 +233,6 @@ DEPENDENCIES
   sprockets-rails!
   sshkeyauth
   therubyracer
-  turbolinks!
   twitter-bootstrap-rails
   uglifier (>= 1.0.3)
   underscore-rails
