@@ -11,7 +11,8 @@ class VerificationsController < ApplicationController
     @machines = StagingMachine.all
     @event_names = []
     @machines.each do |machine|
-      @event_names += machine.client_file_events.where(client_file_id: @file.client_file_id).map(&:event)
+      @event_names += machine.client_file_events.where(client_file_id: @file.client_file_id,
+                                                       client_file_version_id: @file.id).map(&:event)
     end
     @event_names.uniq!
   end
@@ -47,7 +48,17 @@ class VerificationsController < ApplicationController
     end
 
     if parameters_present ["event", "description", "positive"], event_data then
-      event = ClientFileEvent.new
+      events = ClientFileEvent.where(event: event_data["event"], 
+                                    staging_machine_id: machine.id,
+                                    client_file_id: file_version.client_file_id)
+      if events.size == 0
+        event = ClientFileEvent.new
+      elsif events.size > 1 
+        event = events.pop
+        events.destroy
+      else
+        event = events.first
+      end
       event.staging_machine = machine
       event.client_file_version = file_version
       event.event = event_data["event"]
