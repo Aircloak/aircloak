@@ -227,7 +227,7 @@ DEPENDENCIES
   pg
   pry
   pry-nav
-  rails (~> 4.0.0.beta)
+  rails (~> 4.0.0.rc1)
   ruby_parser
   sass-rails!
   sprockets-rails!
