@@ -1,4 +1,5 @@
 class QueriesController < ApplicationController
+  filter_access_to :execute_as_batch_query, require: :manage
   before_action :set_query, only: [:edit, :update, :destroy, :execute_as_batch_query]
 
   # GET /queries
