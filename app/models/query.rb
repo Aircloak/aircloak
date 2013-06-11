@@ -1,5 +1,6 @@
 require './lib/proto/cloak/query.pb'
 require 'net/http'
+require 'net/https'
 require 'uri'
 require "base64"
 
@@ -89,7 +90,10 @@ private
 
   def post_query args
     url = URI.parse(args[:url])
-    http = Net::HTTP.new(url.host, url.port)
+    https = Net::HTTP.new(url.host, url.port)
+    https.use_ssl = true
+    # FIXME: Get the SSL cert from somewhere
+    https.verify_mode = OpenSSL::SSL::VERIFY_NONE
     request = Net::HTTP::Post.new(url.path)
     if args[:expect_response] then
       pr = PendingResult.create(query: self)
@@ -97,7 +101,7 @@ private
     end
     request.content_type = "application/x-protobuf"
     request.body = self.cquery.encode.buf
-    result = http.request(request)
+    result = https.request(request)
   end
 
   def cloak_url path
@@ -110,11 +114,14 @@ private
       resource = resolver.getresources("_cloak._tcp.aircloak.com", 
                                        Resolv::DNS::Resource::IN::SRV).sample
       cloak_url = resource.target.to_s
+      # FIXME: Once DNS has been updated,
+      #        allow the cloak to get this through DNS
+      cloak_url = "tpm-dell1.mpi-sws.org"
     else
       cloak_url = "http://localhost:8098"
     end
 
-    @cloak_url = "#{cloak_url}/#{path}"
+    @cloak_url = "https://#{cloak_url}/#{path}"
   end
 
   def should_have_identifier?
