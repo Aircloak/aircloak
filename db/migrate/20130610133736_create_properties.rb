@@ -1,7 +1,7 @@
 class CreateProperties < ActiveRecord::Migration
   def change
     create_table :properties do |t|
-      t.reference :query
+      t.references :query, index: true
       t.string :property
 
       t.timestamps
