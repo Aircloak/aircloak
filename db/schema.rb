@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130501090713) do
+ActiveRecord::Schema.define(version: 20130610145800) do
 
   create_table "client_binaries", force: true do |t|
     t.boolean  "updater",          default: false
@@ -138,15 +138,20 @@ ActiveRecord::Schema.define(version: 20130501090713) do
   add_index "pending_results", ["query_id"], name: "index_pending_results_on_query_id", using: :btree
 
   create_table "percentile_results", force: true do |t|
+    t.hstore   "raw_values"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.integer  "percentile_id"
+  end
+
+  create_table "percentiles", force: true do |t|
     t.string   "bucket"
     t.integer  "query_id"
-    t.hstore   "raw_values"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
 
-  add_index "percentile_results", ["bucket"], name: "index_percentile_results_on_bucket", using: :btree
-  add_index "percentile_results", ["query_id"], name: "index_percentile_results_on_query_id", using: :btree
+  add_index "percentiles", ["query_id"], name: "index_percentiles_on_query_id", using: :btree
 
   create_table "permissions", force: true do |t|
     t.string   "name"
@@ -155,22 +160,26 @@ ActiveRecord::Schema.define(version: 20130501090713) do
     t.datetime "updated_at"
   end
 
-  create_table "properties_results", force: true do |t|
-    t.string   "bucket"
-    t.boolean  "numeric",    default: false
-    t.string   "str_value"
-    t.integer  "long_value"
-    t.integer  "count"
+  create_table "properties", force: true do |t|
     t.integer  "query_id"
+    t.string   "property"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
 
-  add_index "properties_results", ["bucket"], name: "index_properties_results_on_bucket", using: :btree
+  create_table "properties_results", force: true do |t|
+    t.boolean  "numeric",     default: false
+    t.string   "str_value"
+    t.integer  "long_value"
+    t.integer  "count"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.integer  "property_id"
+  end
+
   add_index "properties_results", ["count"], name: "index_properties_results_on_count", using: :btree
   add_index "properties_results", ["long_value"], name: "index_properties_results_on_long_value", using: :btree
   add_index "properties_results", ["numeric"], name: "index_properties_results_on_numeric", using: :btree
-  add_index "properties_results", ["query_id"], name: "index_properties_results_on_query_id", using: :btree
   add_index "properties_results", ["str_value"], name: "index_properties_results_on_str_value", using: :btree
 
   create_table "queries", force: true do |t|
@@ -252,5 +261,15 @@ ActiveRecord::Schema.define(version: 20130501090713) do
   add_index "users", ["last_request_at"], name: "index_users_on_last_request_at", using: :btree
   add_index "users", ["login"], name: "index_users_on_login", using: :btree
   add_index "users", ["persistence_token"], name: "index_users_on_persistence_token", using: :btree
+
+  create_table "users_permissions", force: true do |t|
+    t.integer  "user_id"
+    t.integer  "permission_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "users_permissions", ["permission_id"], name: "index_users_permissions_on_permission_id", using: :btree
+  add_index "users_permissions", ["user_id"], name: "index_users_permissions_on_user_id", using: :btree
 
 end

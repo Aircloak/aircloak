@@ -9,8 +9,12 @@ class ResultsController < ApplicationController
     @queries = Query.all
   end
 
+  def show
+    @query = Query.find(params[:id])
+  end
+
   def create
-    r = Result.decode(request.body.read)
+    r = ResultProto.decode(request.body.read)
     query_id = r.query_id
     if query_id == @pending_result.query_id then
       r.properties.each {|prop| PropertiesResult.create_from_proto query_id, prop} unless r.properties.blank?

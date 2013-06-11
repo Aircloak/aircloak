@@ -1,7 +1,10 @@
 class PercentileResult < ActiveRecord::Base
-  belongs_to :query
+  belongs_to :percentile
+  has_one :query, through: :percentile
 
   def self.create_from_proto query_id, perc
+    percentile = Percentile.from_proto query_id, perc
+
     raw_values = {
       min: perc.min,
       max: perc.max
@@ -13,11 +16,8 @@ class PercentileResult < ActiveRecord::Base
       }
     end
     create(
-      bucket: perc.name,
       raw_values: raw_values,
-
-      # TODO: Also add analyst here
-      query_id: query_id
+      percentile: percentile
     )
   end
 

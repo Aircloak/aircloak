@@ -2,7 +2,7 @@
 require "beefcake"
 
 
-class Property
+class PropertyProto
   include Beefcake::Message
 
 
@@ -13,7 +13,7 @@ class Property
 
 end
 
-class Percentile
+class PercentileProto
   include Beefcake::Message
 
 
@@ -27,14 +27,14 @@ class Percentile
 
   end
 
-  repeated :points, Percentile::Point, 1
+  repeated :points, PercentileProto::Point, 1
   optional :name, :string, 2
   optional :min, :sint64, 3
   optional :max, :sint64, 4
 
 end
 
-class Exception
+class ExceptionProto
   include Beefcake::Message
 
 
@@ -43,14 +43,14 @@ class Exception
 
 end
 
-class Result
+class ResultProto
   include Beefcake::Message
 
 
   optional :analyst_id, :string, 1
   optional :query_id, :fixed64, 2
-  repeated :properties, Property, 4
-  repeated :percentiles, Percentile, 5
-  repeated :exceptions, Exception, 6
+  repeated :properties, PropertyProto, 4
+  repeated :percentiles, PercentileProto, 5
+  repeated :exceptions, ExceptionProto, 6
 
 end
