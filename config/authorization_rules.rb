@@ -23,7 +23,7 @@ authorization do
   role :deploy_manager do
     includes :guest
     includes :client_manager
-    has_permission_on [:commands, :command_file_versions], to: :manage
+    has_permission_on [:verifications, :commands, :command_file_versions], to: :manage
     has_permission_on :deployment_groups, to: :create_command
   end
 

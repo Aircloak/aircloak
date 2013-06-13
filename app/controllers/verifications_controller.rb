@@ -1,5 +1,6 @@
 class VerificationsController < ApplicationController
   filter_access_to :event, require: :anon_write
+  filter_access_to :verify, require: :manage
   protect_from_forgery :except => :event
 
   def index
