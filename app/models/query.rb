@@ -37,7 +37,7 @@ class Query < ActiveRecord::Base
       cquery.query_class = CQuery::QueryClass::STORED
     else
       # Extract out URL to some place sensible
-      domain = Rails.env.production? ? "http://www.aircloak.com/results" : "http://localhost:3000/results"
+      domain = Rails.env.production? ? "http://graphite.mpi-sws.org:5000/results" : "http://localhost:3000/results"
       cquery.batch_options = CQuery::BatchOptions.new(url: domain)
       cquery.query_class = CQuery::QueryClass::BATCH
     end
@@ -91,7 +91,7 @@ private
   def post_query args
     url = URI.parse(args[:url])
     https = Net::HTTP.new(url.host, url.port)
-    https.use_ssl = true
+    https.use_ssl = true if url.port == 443
     # FIXME: Get the SSL cert from somewhere
     https.verify_mode = OpenSSL::SSL::VERIFY_NONE
     request = Net::HTTP::Post.new(url.path)
@@ -118,7 +118,7 @@ private
       #        allow the cloak to get this through DNS
       cloak_url = "tpm-dell1.mpi-sws.org"
     else
-      cloak_url = "http://localhost:8098"
+      return "http://localhost:8098/#{path}"
     end
 
     @cloak_url = "https://#{cloak_url}/#{path}"
