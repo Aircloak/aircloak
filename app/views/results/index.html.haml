@@ -9,7 +9,8 @@
       - unless query.properties.count == 0
         %ul
           - query.properties.each do |p|
-            %li= p.property
+            %li
+              = p.property
               %ul
                 - p.property_results.each do |result|
                   %li= "str: #{result.str_value}, num: #{result.long_value} (#{result.count})"
@@ -18,7 +19,8 @@
       - unless query.percentiles.count == 0
         %ul
           - query.percentiles.each do |p|
-            %li= p.bucket
+            %li
+              = p.bucket
               %ul
                 - p.percentile_results.each do |result|
                   %li= "values: #{result.raw_values}"
