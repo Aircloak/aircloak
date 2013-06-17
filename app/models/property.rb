@@ -1,6 +1,6 @@
 class Property < ActiveRecord::Base
   belongs_to :query
-  has_many :property_results, dependent: :destroy
+  has_many :properties_results, dependent: :destroy
 
   def self.from_proto query_id, prop
     p = Property.where(property: prop.name, query_id: query_id).first

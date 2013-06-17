@@ -12,8 +12,8 @@
             %li
               = p.property
               %ul
-                - p.property_results.each do |result|
-                  %li= "str: #{result.str_value}, num: #{result.long_value} (#{result.count})"
+                - p.properties_results.reverse.each do |result|
+                  %li= "str: #{result.str_value}, num: #{result.long_value} (#{result.count}) #{time_ago_in_words result.created_at} ago"
       - else
         %p No properties to report.
       - unless query.percentiles.count == 0
@@ -22,8 +22,8 @@
             %li
               = p.bucket
               %ul
-                - p.percentile_results.each do |result|
-                  %li= "values: #{result.raw_values}"
+                - p.percentile_results.reverse.each do |result|
+                  %li= "values: #{result.raw_values} #{time_ago_in_words result.created_at} ago"
       - else
         %p No petercentils to report.
 
