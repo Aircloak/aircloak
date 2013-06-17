@@ -1,0 +1,2 @@
+module GetLatestHelper
+end

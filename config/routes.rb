@@ -4,6 +4,7 @@ Web::Application.routes.draw do
   resources :user_sessions
   resources :users
   resources :permissions
+  resources :get_latest
 
   resources :verifications do
     post 'event', on: :collection
