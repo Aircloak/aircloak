@@ -1,7 +1,7 @@
 class GetLatestController < ApplicationController
   def show
     name = params[:id]
-    file = ClientFile.where(name: name).first
+    file = ClientFile.where(local_name: name).first
     if file
       binary = file.client_file_versions.last
       binary.tickle
