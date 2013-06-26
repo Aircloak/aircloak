@@ -6,18 +6,16 @@
       %th Name
       %th Running on behalf of
       %th Index
-      %th # Query files
       %th Current executions
       %th
       %th
       %th
   %tbody
-  - @queries.each do |query|
+  - @ready_queries.each do |query|
     %tr
       %td= query.name
       %td= query.on_behalf_of
       %td= query.index ? query.index.human_name : "unnamed index"
-      %td= query.query_files.count
       - if query.update_query then
         %td N/A
         %td
@@ -27,6 +25,22 @@
       %td= link_to 'Edit', edit_query_path(query), class: "btn btn-mini"
       %td= link_to 'Destroy', query, :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
 
-%br
+- if @not_ready_queries.count > 0
+  %h1 New queries
+  %p The following queries have had binary data uploaded, but haven't yet been assigned the properties that would allow them to be executed.
 
-= link_to 'New Query', new_query_path, class: "btn"
+  %table.table.table-condensed
+    %thead
+      %tr
+        %th Java Package
+        %th
+        %th
+    %tbody
+    - @not_ready_queries.each do |query|
+      %tr
+        %td= query.main_package
+        %td= link_to 'Add query', edit_query_path(query), class: "btn btn-mini"
+        %td= link_to 'Destroy', query, :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
+  %br
+
+%p To add a new query, please upload it using the Query Uploader java application that can be found in the Queries repository.

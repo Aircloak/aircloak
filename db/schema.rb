@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130610145800) do
+ActiveRecord::Schema.define(version: 20130626112516) do
 
   create_table "client_binaries", force: true do |t|
     t.boolean  "updater",          default: false
@@ -38,10 +38,10 @@ ActiveRecord::Schema.define(version: 20130610145800) do
 
   create_table "client_file_types", force: true do |t|
     t.string   "name"
-    t.string   "extension"
-    t.string   "human_name"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.string   "human_name"
+    t.string   "extension"
   end
 
   create_table "client_file_versions", force: true do |t|
@@ -61,6 +61,7 @@ ActiveRecord::Schema.define(version: 20130610145800) do
     t.integer  "client_file_type_id"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.string   "extension"
     t.boolean  "requires_verifications", default: true
   end
 
@@ -167,6 +168,8 @@ ActiveRecord::Schema.define(version: 20130610145800) do
     t.datetime "updated_at"
   end
 
+  add_index "properties", ["query_id"], name: "index_properties_on_query_id", using: :btree
+
   create_table "properties_results", force: true do |t|
     t.boolean  "numeric",     default: false
     t.string   "str_value"
@@ -185,25 +188,27 @@ ActiveRecord::Schema.define(version: 20130610145800) do
   create_table "queries", force: true do |t|
     t.string   "name"
     t.integer  "index_id"
-    t.boolean  "update_query", default: false
+    t.boolean  "update_query",    default: false
     t.string   "identifier"
-    t.boolean  "system_query", default: false
-    t.boolean  "mutator",      default: false
+    t.boolean  "system_query",    default: false
+    t.boolean  "mutator",         default: false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.binary   "packaged_data"
+    t.string   "main_package"
+    t.boolean  "manages_indices", default: false
+  end
+
+  create_table "query_indices", force: true do |t|
+    t.integer  "query_id"
+    t.integer  "user_id"
+    t.string   "name"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
 
-  create_table "query_files", force: true do |t|
-    t.string   "sha"
-    t.string   "name"
-    t.integer  "query_id"
-    t.binary   "data"
-    t.boolean  "query_interface"
-    t.boolean  "index_ops"
-    t.string   "package"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-  end
+  add_index "query_indices", ["query_id"], name: "index_query_indices_on_query_id", using: :btree
+  add_index "query_indices", ["user_id"], name: "index_query_indices_on_user_id", using: :btree
 
   create_table "sessions", force: true do |t|
     t.string   "session_id"
@@ -261,15 +266,5 @@ ActiveRecord::Schema.define(version: 20130610145800) do
   add_index "users", ["last_request_at"], name: "index_users_on_last_request_at", using: :btree
   add_index "users", ["login"], name: "index_users_on_login", using: :btree
   add_index "users", ["persistence_token"], name: "index_users_on_persistence_token", using: :btree
-
-  create_table "users_permissions", force: true do |t|
-    t.integer  "user_id"
-    t.integer  "permission_id"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-  end
-
-  add_index "users_permissions", ["permission_id"], name: "index_users_permissions_on_permission_id", using: :btree
-  add_index "users_permissions", ["user_id"], name: "index_users_permissions_on_user_id", using: :btree
 
 end

@@ -43,9 +43,6 @@ group :assets do
   gem 'twitter-bootstrap-rails'
   gem 'less-rails'
 
-  # For uploading query files
-  gem 'jquery-fileupload-rails'
-
   # See https://github.com/sstephenson/execjs#readme for more supported runtimes
   gem 'therubyracer', platforms: :ruby
   gem 'uglifier', '>= 1.0.3'

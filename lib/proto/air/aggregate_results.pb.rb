@@ -43,7 +43,7 @@ class ExceptionProto
 
 end
 
-class ResultProto
+class Result
   include Beefcake::Message
 
 

@@ -5,8 +5,9 @@ require 'uri'
 require "base64"
 
 class Query < ActiveRecord::Base
-  has_many :query_files, dependent: :destroy
   has_many :pending_results, dependent: :destroy, counter_cache: true
+  has_many :query_indices
+  belongs_to :used_index, class_name: :query_index, foreign_key: :index_id
 
   has_many :properties, dependent: :destroy
   has_many :percentiles, dependent: :destroy
@@ -14,7 +15,7 @@ class Query < ActiveRecord::Base
 
   belongs_to :index
 
-  accepts_nested_attributes_for :query_files, allow_destroy: true
+  # accepts_nested_attributes_for query_files, allow_destroy: true
 
   validates :name, :index_id, :presence => true
   validate :existing_identifier
@@ -30,25 +31,32 @@ class Query < ActiveRecord::Base
       index: self.index.name,
       # TODO: Change to real id of analyst when we start introducing that
       analyst_id: self.system_query ? "aircloak" : "some_analyst",
-      system_query: self.system_query
+      system_query: self.system_query,
+      main_class: main_package
     )
+
     if self.update_query then
+      # Update queries are such that they are run when data about
+      # a user arrives in the cloak. They never send results back
+      # outside the cloak, hence they don't need a return address either.
       cquery.stored_options = CQuery::StoredOptions.new(payload_identifier: self.identifier)
       cquery.query_class = CQuery::QueryClass::STORED
     else
-      # Extract out URL to some place sensible
-      domain = Rails.env.production? ? "http://graphite.mpi-sws.org:5000/results" : "http://localhost:3000/results"
+      # Queries that are run on demand, need an address to return
+      # the results back to.
+      domain = if Rails.env.production? then
+        "http://graphite.mpi-sws.org:5000/results"
+      else
+        "http://localhost:3000/results"
+      end
       cquery.batch_options = CQuery::BatchOptions.new(url: domain)
       cquery.query_class = CQuery::QueryClass::BATCH
     end
-    self.query_files.each do |qf|
-      cquery.main_class = qf.package if qf.query_interface
-      cquery.data ||= []
-      cquery.data << QueryBinary.new(
-        package: qf.package,
-        data: qf.data
-      )
-    end
+
+    # Attach the data for the query binaries from the stored data
+    qd = QueryData.decode(self.packaged_data.dup)
+    cquery.data = qd.data
+
     cquery
   end
 
@@ -69,15 +77,21 @@ class Query < ActiveRecord::Base
     system_query ? "Aircloak" : "Analyst"
   end
 
+  def ready_for_primetime
+    self.name != nil && self.index_id != 0
+  end
+
 private
 
   def upload_stored_query
     return unless self.update_query
+    return unless ready_for_primetime
     post_query url: cloak_url("query")
   end
 
   def remove_query_from_cloak
     return unless self.update_query
+    return unless ready_for_primetime
     delete_query url: cloak_url("query"), id: self.id
   end
 

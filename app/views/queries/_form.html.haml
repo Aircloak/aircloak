@@ -1,5 +1,4 @@
-.form-container{:"ng-app" => "queryEditor", :"ng-controller" => "QueryEditorCtrl", 
-  :"ng-init" => "#{loaded_form_data}"}
+.form-container{:"ng-app" => "queryEditor", :"ng-controller" => "QueryEditorCtrl"}
   = form_for @query, :html => {:class => "form-horizontal new_query"} do |f|
     - if @query.errors.any?
       .well.alert-error
@@ -11,6 +10,9 @@
     = control_group(:name, @query) do
       = f.label :name, :class => "control-label"
       .controls= f.text_field :name
+    .control-group
+      .controls
+        = @query.main_package
     = control_group(:index, @query) do
       = f.label :index_id, :class => "control-label"
       .controls
@@ -53,70 +55,14 @@
         -# = f.text_field :identifier, :disabled => !@query.update_query
         %p The identifier used by the client when submitting updates for this query
 
+    -# Show an indices editor for queries that add or remove to indices.
+    -# Ideally we should we able to detect which indices are being used,
+    -# but since the index names can be dynamically generated, I am not sure how to do this.
+    - if @query.manages_indices
+      .control-group
+        %label.control-label Indices managed by this query
+        .controls Adds list...
+
     .control-group
       .controls
         = f.submit 'Save', :class => "btn btn-success"
-
-    %script{:type => "text/ng-template", :id => "index_chooser.html"}
-      .indices{:"ng-show" => "queryFile.index_ops"}
-        %select{:"ng-model" => "selectedIndex", :"ng-options" => "i.human_name for i in notInIndicesForQueryFile(availableIndices)"}
-          %option{:value => ""} choose an existing index
-        .btn.btn-success.btn-small{:"ng-click" => "addIndex()", :"ng-class" => "{disabled: !selectedIndex}"} Add existing index
-        %form.form-inline{:"ng-submit" => "newIndex()"}
-          %input.input-small{:type => "text", :placeholder => "human name", :"ng-model" => "human_name"}
-          %input.input-small{:type => "text", :placeholder => "id-name", :"ng-model" => "name"}
-          %label.checkbox
-            %input{:type => "checkbox", :"ng-model" => "system_index"} System index
-          %button.btn.btn-success.btn-small{:type => "submit"} Add new index
-          %span.help-block 
-            The string used for the machine id-name should match exactly the name
-            used by your query class to refer to this index.
-            If it does not, then other queries depending on this index may not
-            run correctly.
-        %p{:"ng-show" => "queryFile.indices"} Indices
-        %ul
-          %li{:"ng-repeat" => "i in queryFile.indices"}
-            {{i.human_name}}
-            .btn-mini.btn-warning.btn{:"ng-click" => "removeIndex(i)"} Remove index
-
-    .query_files
-      %input{:type => "hidden", :name => "query_files", :value => "{{data.query_files | json}}"}
-      .control-group
-        %label{:class => "control-label"} Query files
-        .controls
-          .well.well-large.clear#class_drop_target
-            Drop class files here to upload
-          .query_files_upload
-          .alert.alert-error{:"ng-show" => "numberOfMainClasses() == 0"}
-            %button.close{:type=>"button", :"data-dismiss"=>"alert"} &times
-            %strong Warning!
-            You need one main query class entry point for the query to be able to
-            execute. This should be a class that implements the 
-            %i RunnableQuery 
-            interface.
-          .alert.alert-error{:"ng-show" => "tooManyMainClasses()"}
-            %button.close{:type=>"button", :"data-dismiss"=>"alert"} &times
-            %strong Error!
-            You currently have listed 
-            %span.badge.badge-important {{numberOfMainClasses()}}
-            main entry point classes for this query.
-            Please remove {{numberOfMainClasses() - 1}} of them.
-          %table.table
-            %tbody
-              %tr{:"ng-repeat" => "q in data.query_files | unlessScheduledForRemoval", :"ng-class" => "{success: q.query_interface}"}
-                %td
-                  {{q.name}}
-                  %span.label{:"ng-show" => "q.query_interface"} Main class
-                  .btn.btn-warning.btn-mini{:"ng-click" => "removeQueryFile(q)"} Remove query file
-                  %indices{:available_indices => "data.indices", :query_file => "q"}
-
-
-  = form_tag queries_upload_query_file_path, {:multipart => true, :id => "query_files_form"} do
-    = file_field_tag :image, multiple: true, :name => "query_file", :class => "hidden"
-
-  %script{:id => "template-upload", :type => "text/x-tmpl" }
-    .progress_container
-      .upload {%=o.name%}
-      .progress.progress-striped.active.progress-success
-        .bar{:style => "width: 0%"}
-
