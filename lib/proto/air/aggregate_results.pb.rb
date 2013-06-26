@@ -17,7 +17,7 @@ class PercentileProto
   include Beefcake::Message
 
 
-  class Point
+  class PointProto
     include Beefcake::Message
 
 
@@ -27,7 +27,7 @@ class PercentileProto
 
   end
 
-  repeated :points, PercentileProto::Point, 1
+  repeated :points, PercentileProto::PointProto, 1
   optional :name, :string, 2
   optional :min, :sint64, 3
   optional :max, :sint64, 4
