@@ -19,8 +19,7 @@ class Command < ActiveRecord::Base
   end
 
   def tickle
-    self.times_downloaded += 1
-    save
+    Command.increment_counter :times_downloaded, self.id
   end
   
 private
