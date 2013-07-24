@@ -33,9 +33,7 @@ class ClientFileVersion < ActiveRecord::Base
   end
 
   def tickle
-    self.times_downloaded = 0 unless self.times_downloaded
-    self.times_downloaded += 1
-    save
+    ClientFileVersion.increment_counter :times_downloaded, self.id
   end
 
   def download_url
