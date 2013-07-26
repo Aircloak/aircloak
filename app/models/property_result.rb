@@ -3,12 +3,6 @@ class PropertyResult < ActiveRecord::Base
   has_one :query, through: :property
   has_many :property_result_counts, dependent: :destroy
 
-  attr_accessor :count
-
-  def initialize
-    count = 0
-  end
-
   def self.create_from_proto query_id, prop
     property = Property.from_proto query_id, prop
 
