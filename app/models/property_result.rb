@@ -28,7 +28,7 @@ class PropertyResult < ActiveRecord::Base
       numeric: numeric,
       long_value: long_value,
       str_value: str_value,
-      property_id: property_id
+      property_id: property.id
     ) unless pr
     pr.property_result_counts.create(count: count)
   end
