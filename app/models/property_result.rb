@@ -11,12 +11,25 @@ class PropertyResult < ActiveRecord::Base
 
   def self.create_from_proto query_id, prop
     property = Property.from_proto query_id, prop
-    create(
-      numeric: prop.long_answer.blank?,
-      long_value: prop.long_answer,
-      str_value: prop.str_answer,
-      count: prop.count,
-      property: property
-    )
+
+    numeric = prop.long_answer.blank?
+    long_value = prop.long_answer
+    str_value = prop.str_answer
+    count = prop.count
+
+    # Check to see if we have a property result 
+    # for this particular property
+    pr = if numeric
+      PropertyResult.where(property_id: property.id, long_value: long_value).first
+    else
+      PropertyResult.where(property_id: property.id, str_value: str_value).first
+    end
+    pr = create(
+      numeric: numeric,
+      long_value: long_value,
+      str_value: str_value,
+      property_id: property_id
+    ) unless pr
+    pr.property_result_counts.create(count: count)
   end
 end
