@@ -38,6 +38,7 @@ Web::Application.routes.draw do
     end
   end
   resources :results
+  resources :properties
 
   root to: 'welcome#index'
 end

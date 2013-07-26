@@ -1,0 +1,6 @@
+%h1= @property.query.name
+%h2= @property.property.humanize
+
+%ul
+  - @results.each do |result|
+    %li= "#{result["count"]}: #{result["str_value"]}"

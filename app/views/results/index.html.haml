@@ -10,22 +10,23 @@
         %ul
           - query.properties.each do |p|
             %li
-              = p.property
-              %ul
-                - p.properties_results.reverse.each do |result|
-                  %li= "str: #{result.str_value}, num: #{result.long_value} (#{result.count}) #{time_ago_in_words result.created_at} ago"
+              = link_to p.property.humanize, property_path(p)
+              [
+              = link_to "Destroy", result_path(p.id), method: :delete
+              ]
       - else
         %p No properties to report.
-      - unless query.percentiles.count == 0
-        %ul
-          - query.percentiles.each do |p|
-            %li
-              = p.bucket
-              %ul
-                - p.percentile_results.reverse.each do |result|
-                  %li= "values: #{result.raw_values} #{time_ago_in_words result.created_at} ago"
-      - else
-        %p No petercentils to report.
+
+      -# - unless query.percentiles.count == 0
+      -#   %ul
+      -#     - query.percentiles.each do |p|
+      -#       %li
+      -#         = p.bucket
+      -#         %ul
+      -#           - p.percentile_results.reverse.each do |result|
+      -#             %li= "values: #{result.raw_values} #{time_ago_in_words result.created_at} ago"
+      -# - else
+      -#   %p No petercentils to report.
 
   - else
     %p There are no queries to show results from.

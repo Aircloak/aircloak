@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class PropertiesResultTest < ActiveSupport::TestCase
+class PropertyResultCountTest < ActiveSupport::TestCase
   # test "the truth" do
   #   assert true
   # end

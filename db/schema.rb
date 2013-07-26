@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130626112516) do
+ActiveRecord::Schema.define(version: 20130726091754) do
 
   create_table "client_binaries", force: true do |t|
     t.boolean  "updater",          default: false
@@ -170,20 +170,25 @@ ActiveRecord::Schema.define(version: 20130626112516) do
 
   add_index "properties", ["query_id"], name: "index_properties_on_query_id", using: :btree
 
-  create_table "properties_results", force: true do |t|
+  create_table "property_result_counts", force: true do |t|
+    t.integer  "property_result_id"
+    t.integer  "count"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  create_table "property_results", force: true do |t|
     t.boolean  "numeric",     default: false
     t.string   "str_value"
     t.integer  "long_value"
-    t.integer  "count"
     t.datetime "created_at"
     t.datetime "updated_at"
     t.integer  "property_id"
   end
 
-  add_index "properties_results", ["count"], name: "index_properties_results_on_count", using: :btree
-  add_index "properties_results", ["long_value"], name: "index_properties_results_on_long_value", using: :btree
-  add_index "properties_results", ["numeric"], name: "index_properties_results_on_numeric", using: :btree
-  add_index "properties_results", ["str_value"], name: "index_properties_results_on_str_value", using: :btree
+  add_index "property_results", ["long_value"], name: "index_property_results_on_long_value", using: :btree
+  add_index "property_results", ["numeric"], name: "index_property_results_on_numeric", using: :btree
+  add_index "property_results", ["str_value"], name: "index_property_results_on_str_value", using: :btree
 
   create_table "queries", force: true do |t|
     t.string   "name"
