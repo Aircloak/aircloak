@@ -15,8 +15,6 @@ class Query < ActiveRecord::Base
 
   belongs_to :index
 
-  # accepts_nested_attributes_for query_files, allow_destroy: true
-
   validates :name, :index_id, :presence => true
   validate :existing_identifier
 

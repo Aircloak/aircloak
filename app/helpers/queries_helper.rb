@@ -7,14 +7,4 @@ module QueriesHelper
     end
     link_to(name, '#', class: "add-new-index btn btn-mini btn-success", data: {id: id, fields: fields.gsub("\n", "")})
   end
-
-  def loaded_form_data
-    <<EOF
-      data.query_files = #{@query.query_files.to_json(:root => false, :include => :indices, :except => :data)}; 
-      data.indices = #{raw Index.all.to_json(:root => false)}; 
-      mutator_query = '#{@query.mutator}'; 
-      system_query = #{@query.system_query}; 
-      identifier_enabled = #{@query.update_query};
-EOF
-  end
 end

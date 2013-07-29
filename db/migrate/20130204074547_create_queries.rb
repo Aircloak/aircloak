@@ -4,11 +4,15 @@ class CreateQueries < ActiveRecord::Migration
       t.string :name
       t.references :index
 
-      t.boolean :update_query, :default => false
+      t.boolean :update_query, default: false
       t.string :identifier
 
-      t.boolean :system_query, :default => false
-      t.boolean :mutator, :default => false
+      t.boolean :system_query, default: false
+      t.boolean :mutator, default: false
+
+      t.binary :packaged_data
+      t.string :main_package
+      t.boolean :manages_indices, default: false
 
       t.timestamps
     end
