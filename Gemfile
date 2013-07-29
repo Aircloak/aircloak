@@ -14,17 +14,16 @@ gem 'beefcake'
 # update commands for the client apps
 gem "sshkeyauth"
 
-group :test do
+group :development, :test do
   gem 'pry'
   gem 'pry-nav'
+  gem 'rspec-rails', '~> 2.0'
 end
 
 group :development do
   gem 'better_errors'
   gem 'binding_of_caller'
   gem 'meta_request'
-  gem 'pry'
-  gem 'pry-nav'
   gem 'haml-rails', github: 'indirect/haml-rails'
   gem 'pg'
   gem 'ruby_parser'

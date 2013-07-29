@@ -229,12 +229,6 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.datetime "updated_at"
   end
 
-  create_table "temp_query_files", force: true do |t|
-    t.binary   "data"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-  end
-
   create_table "user_permissions", force: true do |t|
     t.integer  "user_id"
     t.integer  "permission_id"
