@@ -1,4 +1,5 @@
 require './lib/proto/air/aggregate_results.pb'
+require './lib/results_handler'
 
 class ResultsController < ApplicationController
   filter_access_to :create, require: :anon_write
