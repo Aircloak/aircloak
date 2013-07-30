@@ -17,7 +17,7 @@ class ResultsController < ApplicationController
     r = ResultProto.decode(request.body.read)
     query_id = r.query_id
     if query_id == @pending_result.query_id then
-      r.properties.each {|prop| PropertyResult.create_from_proto query_id, prop} unless r.properties.blank?
+      r.properties.each {|prop| ResultHandler.add_property_result query_id, prop} unless r.properties.blank?
       r.exceptions.each {|expt| ExceptionResult.create_from_proto query_id, expt} unless r.exceptions.blank?
       r.percentiles.each {|expt| PercentileResult.create_from_proto query_id, expt} unless r.percentiles.blank?
     end
