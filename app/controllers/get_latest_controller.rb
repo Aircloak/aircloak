@@ -5,7 +5,7 @@ class GetLatestController < ApplicationController
     if file
       binary = DeploymentGroup.where(identifier: "deployment").first
           .commands.last
-          .client_file_versions.where(client_file_id: file.id, verified: true).last
+          .client_file_versions.where(client_file_id: file.id).last
       if binary
         binary.tickle
         send_data binary.data, filename: binary.name, type: "application/octet-stream"
