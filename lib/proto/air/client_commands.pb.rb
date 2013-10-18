@@ -1,4 +1,4 @@
-## Generated from aircloak/air/client_commands.proto for aircloak.air
+## Generated from aircloak/air/client_commands.proto for aircloak
 require "beefcake"
 
 

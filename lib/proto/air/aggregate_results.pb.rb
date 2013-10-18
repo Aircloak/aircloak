@@ -1,4 +1,4 @@
-## Generated from aircloak/air/aggregate_results.proto for aircloak.air
+## Generated from aircloak/air/aggregate_results.proto for aircloak
 require "beefcake"
 
 
