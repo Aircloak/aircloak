@@ -9,6 +9,6 @@ protoc --beefcake_out lib/proto/cloak -I proto proto/aircloak/cloak/query.proto
 
 (cd lib/proto/air/;
 mv query_upload.pb.rb t.rb;
-sed 's/aircloak::cloak:://g' t.rb > query_upload.pb.rb;
+sed 's/aircloak:://g' t.rb > query_upload.pb.rb;
 rm t.rb
 )

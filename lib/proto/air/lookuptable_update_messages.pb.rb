@@ -1,4 +1,4 @@
-## Generated from aircloak/air/lookuptable_update_messages.proto for aircloak.cloak
+## Generated from aircloak/air/lookuptable_update_messages.proto for aircloak
 require "beefcake"
 
 
