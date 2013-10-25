@@ -10,6 +10,9 @@
 # Ignore the default SQLite database.
 /db/*.sqlite3
 /db/*.sqlite3-journal
+# The schema differs depending on which environment you are in,
+# it shouldn't be part of the git repo
+/db/schema.rb
 
 # Ignore all logfiles and tempfiles.
 /log/*.log
@@ -18,3 +21,4 @@
 .DS_Store
 
 /config/database.yml
+
