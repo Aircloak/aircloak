@@ -237,6 +237,7 @@ DEPENDENCIES
   pry
   pry-nav
   rails (~> 4.0.0.rc1)
+  rake
   rspec-rails (~> 2.0)
   ruby_parser
   sass-rails!
