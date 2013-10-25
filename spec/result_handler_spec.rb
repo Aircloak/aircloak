@@ -1,8 +1,5 @@
 require './lib/result_handler'
 
-class Property
-end
-
 describe ResultHandler do
   before do
     @query_id = 1
