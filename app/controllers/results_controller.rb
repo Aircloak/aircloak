@@ -16,11 +16,12 @@ class ResultsController < ApplicationController
 
   def create
     r = ResultProto.decode(request.body.read)
-    query_id = r.query_id
-    if query_id == @pending_result.query_id then
-      r.properties.each {|prop| ResultHandler.add_property_result query_id, prop} unless r.properties.blank?
-      r.exceptions.each {|expt| ExceptionResult.create_from_proto query_id, expt} unless r.exceptions.blank?
-      r.percentiles.each {|expt| PercentileResult.create_from_proto query_id, expt} unless r.percentiles.blank?
+    task_id = r.task_id
+    if task_id == @pending_result.query_id then
+      r.properties.each {|prop| ResultHandler.add_property_result task_id, r.index, prop}
+          unless r.properties.blank?
+      r.exceptions.each {|expt| ExceptionResult.create_from_proto task_id, r.analyst_id, r.index, expt}
+          unless r.exceptions.blank?
     end
     render text: "Got it buddy, thanks", layout: false
   end
