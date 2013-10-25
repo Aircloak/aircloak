@@ -18,6 +18,7 @@ group :development, :test do
   gem 'pry'
   gem 'pry-nav'
   gem 'rspec-rails', '~> 2.0'
+  gem 'sqlite3'
 end
 
 group :development do
@@ -25,7 +26,6 @@ group :development do
   gem 'binding_of_caller'
   gem 'meta_request'
   gem 'haml-rails', github: 'indirect/haml-rails'
-  gem 'pg'
   gem 'ruby_parser'
 end
 
