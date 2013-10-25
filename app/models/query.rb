@@ -10,7 +10,6 @@ class Query < ActiveRecord::Base
   belongs_to :used_index, class_name: :query_index, foreign_key: :index_id
 
   has_many :properties, dependent: :destroy
-  has_many :percentiles, dependent: :destroy
   has_many :exception_results, dependent: :destroy
 
   belongs_to :index

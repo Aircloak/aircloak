@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130726091754) do
+ActiveRecord::Schema.define(version: 20131025122504) do
 
   create_table "client_binaries", force: true do |t|
     t.boolean  "updater",          default: false
@@ -34,7 +34,7 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.integer  "client_file_id"
   end
 
-  add_index "client_file_events", ["client_file_id"], name: "index_client_file_events_on_client_file_id", using: :btree
+  add_index "client_file_events", ["client_file_id"], name: "index_client_file_events_on_client_file_id"
 
   create_table "client_file_types", force: true do |t|
     t.string   "name"
@@ -50,9 +50,9 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.integer  "size"
     t.integer  "times_downloaded"
     t.integer  "client_file_id"
+    t.boolean  "verified",         default: false
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.boolean  "verified",         default: false
   end
 
   create_table "client_files", force: true do |t|
@@ -79,8 +79,8 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.datetime "updated_at"
   end
 
-  add_index "command_file_versions", ["client_file_version_id"], name: "index_command_file_versions_on_client_file_version_id", using: :btree
-  add_index "command_file_versions", ["command_id"], name: "index_command_file_versions_on_command_id", using: :btree
+  add_index "command_file_versions", ["client_file_version_id"], name: "index_command_file_versions_on_client_file_version_id"
+  add_index "command_file_versions", ["command_id"], name: "index_command_file_versions_on_command_id"
 
   create_table "commands", force: true do |t|
     t.binary   "command_binary"
@@ -91,7 +91,7 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.integer  "deployment_group_id"
   end
 
-  add_index "commands", ["deployment_group_id"], name: "index_commands_on_deployment_group_id", using: :btree
+  add_index "commands", ["deployment_group_id"], name: "index_commands_on_deployment_group_id"
 
   create_table "deployment_groups", force: true do |t|
     t.string   "identifier"
@@ -104,21 +104,14 @@ ActiveRecord::Schema.define(version: 20130726091754) do
 
   create_table "exception_results", force: true do |t|
     t.integer  "query_id"
-    t.string   "stack",      array: true
+    t.string   "stack"
     t.integer  "count"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
 
-  add_index "exception_results", ["count"], name: "index_exception_results_on_count", using: :btree
-  add_index "exception_results", ["query_id"], name: "index_exception_results_on_query_id", using: :btree
-
-  create_table "index_query_files", force: true do |t|
-    t.integer  "index_id"
-    t.integer  "query_file_id"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-  end
+  add_index "exception_results", ["count"], name: "index_exception_results_on_count"
+  add_index "exception_results", ["query_id"], name: "index_exception_results_on_query_id"
 
   create_table "indices", force: true do |t|
     t.string   "name",         default: ""
@@ -135,23 +128,7 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.datetime "updated_at"
   end
 
-  add_index "pending_results", ["query_id"], name: "index_pending_results_on_query_id", using: :btree
-
-  create_table "percentile_results", force: true do |t|
-    t.hstore   "raw_values"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-    t.integer  "percentile_id"
-  end
-
-  create_table "percentiles", force: true do |t|
-    t.string   "bucket"
-    t.integer  "query_id"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-  end
-
-  add_index "percentiles", ["query_id"], name: "index_percentiles_on_query_id", using: :btree
+  add_index "pending_results", ["query_id"], name: "index_pending_results_on_query_id"
 
   create_table "permissions", force: true do |t|
     t.string   "name"
@@ -166,6 +143,8 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.datetime "created_at"
     t.datetime "updated_at"
   end
+
+  add_index "properties", ["query_id"], name: "index_properties_on_query_id"
 
   create_table "property_result_counts", force: true do |t|
     t.integer  "property_result_id"
@@ -183,9 +162,9 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.integer  "property_id"
   end
 
-  add_index "property_results", ["long_value"], name: "index_property_results_on_long_value", using: :btree
-  add_index "property_results", ["numeric"], name: "index_property_results_on_numeric", using: :btree
-  add_index "property_results", ["str_value"], name: "index_property_results_on_str_value", using: :btree
+  add_index "property_results", ["long_value"], name: "index_property_results_on_long_value"
+  add_index "property_results", ["numeric"], name: "index_property_results_on_numeric"
+  add_index "property_results", ["str_value"], name: "index_property_results_on_str_value"
 
   create_table "queries", force: true do |t|
     t.string   "name"
@@ -194,11 +173,11 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.string   "identifier"
     t.boolean  "system_query",    default: false
     t.boolean  "mutator",         default: false
-    t.datetime "created_at"
-    t.datetime "updated_at"
     t.binary   "packaged_data"
     t.string   "main_package"
     t.boolean  "manages_indices", default: false
+    t.datetime "created_at"
+    t.datetime "updated_at"
   end
 
   create_table "query_indices", force: true do |t|
@@ -209,8 +188,8 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.datetime "updated_at"
   end
 
-  add_index "query_indices", ["query_id"], name: "index_query_indices_on_query_id", using: :btree
-  add_index "query_indices", ["user_id"], name: "index_query_indices_on_user_id", using: :btree
+  add_index "query_indices", ["query_id"], name: "index_query_indices_on_query_id"
+  add_index "query_indices", ["user_id"], name: "index_query_indices_on_user_id"
 
   create_table "sessions", force: true do |t|
     t.string   "session_id"
@@ -219,8 +198,8 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.datetime "updated_at"
   end
 
-  add_index "sessions", ["session_id"], name: "index_sessions_on_session_id", using: :btree
-  add_index "sessions", ["updated_at"], name: "index_sessions_on_updated_at", using: :btree
+  add_index "sessions", ["session_id"], name: "index_sessions_on_session_id"
+  add_index "sessions", ["updated_at"], name: "index_sessions_on_updated_at"
 
   create_table "staging_machines", force: true do |t|
     t.string   "name"
@@ -236,8 +215,8 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.datetime "updated_at"
   end
 
-  add_index "user_permissions", ["permission_id"], name: "index_user_permissions_on_permission_id", using: :btree
-  add_index "user_permissions", ["user_id"], name: "index_user_permissions_on_user_id", using: :btree
+  add_index "user_permissions", ["permission_id"], name: "index_user_permissions_on_permission_id"
+  add_index "user_permissions", ["user_id"], name: "index_user_permissions_on_user_id"
 
   create_table "users", force: true do |t|
     t.string   "login"
@@ -258,19 +237,9 @@ ActiveRecord::Schema.define(version: 20130726091754) do
     t.datetime "updated_at"
   end
 
-  add_index "users", ["email"], name: "index_users_on_email", using: :btree
-  add_index "users", ["last_request_at"], name: "index_users_on_last_request_at", using: :btree
-  add_index "users", ["login"], name: "index_users_on_login", using: :btree
-  add_index "users", ["persistence_token"], name: "index_users_on_persistence_token", using: :btree
-
-  create_table "users_permissions", force: true do |t|
-    t.integer  "user_id"
-    t.integer  "permission_id"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-  end
-
-  add_index "users_permissions", ["permission_id"], name: "index_users_permissions_on_permission_id", using: :btree
-  add_index "users_permissions", ["user_id"], name: "index_users_permissions_on_user_id", using: :btree
+  add_index "users", ["email"], name: "index_users_on_email"
+  add_index "users", ["last_request_at"], name: "index_users_on_last_request_at"
+  add_index "users", ["login"], name: "index_users_on_login"
+  add_index "users", ["persistence_token"], name: "index_users_on_persistence_token"
 
 end

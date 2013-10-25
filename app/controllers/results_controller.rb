@@ -20,7 +20,6 @@ class ResultsController < ApplicationController
     if query_id == @pending_result.query_id then
       r.properties.each {|prop| ResultHandler.add_property_result query_id, prop} unless r.properties.blank?
       r.exceptions.each {|expt| ExceptionResult.create_from_proto query_id, expt} unless r.exceptions.blank?
-      r.percentiles.each {|expt| PercentileResult.create_from_proto query_id, expt} unless r.percentiles.blank?
     end
     render text: "Got it buddy, thanks", layout: false
   end

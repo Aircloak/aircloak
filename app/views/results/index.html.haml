@@ -17,17 +17,6 @@
       - else
         %p No properties to report.
 
-      -# - unless query.percentiles.count == 0
-      -#   %ul
-      -#     - query.percentiles.each do |p|
-      -#       %li
-      -#         = p.bucket
-      -#         %ul
-      -#           - p.percentile_results.reverse.each do |result|
-      -#             %li= "values: #{result.raw_values} #{time_ago_in_words result.created_at} ago"
-      -# - else
-      -#   %p No petercentils to report.
-
   - else
     %p There are no queries to show results from.
     = link_to "Manage queries", queries_path, class: "btn" if permitted_to? :manage, :queries
