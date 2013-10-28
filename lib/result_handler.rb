@@ -15,10 +15,8 @@ class ResultHandler
   # exists, and otherwise creates and returns a new one
   def self.get_property_result! property, property_proto
     result = if property_proto.range.blank?
-      r = property.property_results.where(str_value: property_proto.string, has_range: false,
-          range_min: 0, range_max: 0).first
-      r = property.property_results.create(str_value: property_proto.string, has_range: false,
-          range_min: 0, range_max: 0) unless r
+      r = property.property_results.where(str_value: property_proto.string, has_range: false).first
+      r = property.property_results.create(str_value: property_proto.string, has_range: false) unless r
       r
     else
       r = property.property_results.where(str_value: property_proto.string, has_range: true,
