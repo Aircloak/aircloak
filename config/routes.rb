@@ -1,4 +1,6 @@
 Web::Application.routes.draw do
+  resources :deployable_entities
+
   get 'login' => 'user_sessions#new'
   get 'logout' => 'user_sessions#destroy'
   resources :user_sessions

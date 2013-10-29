@@ -1,5 +1,14 @@
 require './lib/result_handler'
 
+# We conditionally construct the
+# Property class so the ResultHandler
+# can be tested with spec/test
+begin Property
+rescue NameError
+  class Property
+  end
+end
+
 describe ResultHandler do
   before do
     @query_id = 1
