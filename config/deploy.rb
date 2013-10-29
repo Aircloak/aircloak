@@ -8,6 +8,14 @@ load "config/recipes/rbenv"
 load "config/recipes/unicorn"
 load "config/recipes/check"
 
+
+# This requires something along the lines of this
+# in your ~/.ssh/config
+#
+#   Host graphite
+#     User deployer
+#     ProxyCommand ssh [USERNAME]@contact.mpi-sws.org nc %h %p 2> /dev/null
+#
 server "graphite", :web, :app, :db, primary: true
 
 set :application, "aircloak"
@@ -20,8 +28,6 @@ set :scm, :git
 set :repository,  "git@github.com:Aircloak/web.git"
 set :branch, "master"
 set :git_enable_submodules, 1
-
-set :gateway, "spe@contact.mpi-sws.org"
 
 default_run_options[:pty]
 ssh_options[:forward_agent] = true
