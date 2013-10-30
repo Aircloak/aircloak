@@ -2,17 +2,23 @@ source 'https://rubygems.org'
 
 ruby '2.0.0'
 
-gem 'rails', '~> 4.0.0.rc1' #, github: 'rails/rails'
+gem 'rails', '~> 4.0.0' #, github: 'rails/rails'
 
 gem "haml", :github => "haml/haml", :branch => "stable"
 # gem 'd3-rails'
 
 gem "javaclass"
+# Ruby zip 1 has broken javaclass, so we need a version that is younger
+gem 'rubyzip', '< 1.0.0'
+
 gem 'beefcake'
 
 # We use this gem to sign the
 # update commands for the client apps
 gem "sshkeyauth"
+
+# We use this for interacting with the github api
+gem "github_api"
 
 group :development, :test do
   gem 'pry'
@@ -23,7 +29,8 @@ end
 
 group :test do
   gem 'rake'
-  gem 'sqlite3'
+  gem 'excon'
+  gem 'vcr'
 end
 
 group :development do

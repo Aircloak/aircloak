@@ -33,6 +33,7 @@ authorization do
     has_permission_on [:queries, 
                        :results, 
                        :users, 
+                       :deployable_entities,
                        :permissions, 
                        :user_permissions], to: :manage
     has_permission_on [:authorization_rules, 

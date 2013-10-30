@@ -1,0 +1,28 @@
+= form_for @deployable_entity do |f|
+  - if @deployable_entity.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(@deployable_entity.errors.count, "error")} prohibited this cloak from being saved:"
+      %ul
+        - @deployable_entity.errors.full_messages.each do |msg|
+          %li= msg
+
+  .control-group
+    %label.control-label Repository name
+    .controls
+      = f.text_field :repo
+  - unless @deployable_entity.description.blank?
+    .control-group
+      %label.control-label Description
+      .controls
+        = @deployable_entity.description
+  .control-group
+    %label.control-label TPM-environment name
+    .controls
+      = f.text_field :tpm_env
+  .control-group
+    %label.control-label Test environment name
+    .controls
+      = f.text_field :no_tpm_env
+  .control-group
+    .controls
+      = f.submit 'Save', class: "btn"

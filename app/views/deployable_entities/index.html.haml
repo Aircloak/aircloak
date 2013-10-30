@@ -1,0 +1,24 @@
+%h1 Current deployable entities
+%p These are the applications and configuration entities that we deploy as part of cloak clusters.
+
+%table.table.table-striped
+  %tr
+    %th Repo
+    %th Description
+    %th TPM conf
+    %th No tpm conf
+    %th
+    %th
+
+  - @deployable_entities.each do |deployable_entity|
+    %tr
+      %td= deployable_entity.repo
+      %td= deployable_entity.description
+      %td= deployable_entity.tpm_env
+      %td= deployable_entity.no_tpm_env
+      %td= link_to 'Edit', edit_deployable_entity_path(deployable_entity)
+      %td= link_to 'Destroy', deployable_entity, :method => :delete, :data => { :confirm => 'Are you sure?' }
+
+%br
+
+= link_to 'Add a new entity', new_deployable_entity_path

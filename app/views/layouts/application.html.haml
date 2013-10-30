@@ -17,6 +17,7 @@
               .navbar-inner
                 .brand &nbsp;Aircloak admin
                 %ul.nav
+                  %li= link_to "Deployable entitis", deployable_entities_path if permitted_to? :read, :deployable_entities
                   %li= link_to "Queries", queries_path if permitted_to? :read, :queries
                   %li= link_to "Results", results_path if permitted_to? :read, :results
                   %li= link_to "Client binaries", client_binaries_path if permitted_to? :read, :client_binaries
