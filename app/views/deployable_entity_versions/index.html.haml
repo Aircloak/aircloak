@@ -1,0 +1,13 @@
+%h1 Version of #{@deployable_entity.repo}
+
+%table.table.table-striped
+  %tr
+    %th Commit Id
+    %th Author
+    %th Message
+
+  - @deployable_entity.commits.each do |commit|
+    %tr
+      %td= commit.commit_id
+      %td= commit.author
+      %td= commit.message

@@ -1,10 +1,19 @@
 require 'github_api'
+require 'pry'
 
 class Gh
   def self.description_for repo
     github.repos.find("aircloak", repo).description
   rescue Github::Error::NotFound
     raise UnknownRepository
+  end
+
+  def self.add_message_and_author version
+    repo = version.deployable_entity.repo
+    commit_id = version.commit_id
+    commit = github.repos.commits.find("aircloak", repo, commit_id).commit
+    version.message = commit.message
+    version.author = commit.author.name
   end
 
 private

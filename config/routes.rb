@@ -1,5 +1,8 @@
 Web::Application.routes.draw do
-  resources :deployable_entities
+  resources :deployable_entities do
+    resources :deployable_entity_versions
+  end
+  post 'register_version' => "register_version#create"
 
   get 'login' => 'user_sessions#new'
   get 'logout' => 'user_sessions#destroy'
