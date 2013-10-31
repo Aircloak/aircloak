@@ -11,27 +11,14 @@ class BuildsController < ApplicationController
     @build = Build.new
   end
 
-  def edit
-  end
-
   def create
     @build = Build.new(build_params)
+    BuildVersionsAssigner.assign_from_params @build, params
     if @build.save
-      BuildVersionsAssigner.assign_from_params @build, params
       redirect_to builds_path, notice: "Build with name #{@build.name} was" +
           " successfully created."
     else
       render action: 'new'
-    end
-  end
-
-  def update
-    if @build.update(build_params)
-      BuildVersionsAssigner.assign_from_params @build, params
-      redirect_to builds_path, notice: "Build with name #{@build.name} was " +
-          "successfully updated."
-    else
-      render action: 'edit'
     end
   end
 

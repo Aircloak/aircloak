@@ -5,13 +5,11 @@
     %th Name
     %th Requires TPM
     %th
-    %th
 
   - @builds.each do |build|
     %tr
       %td= build.name
       %td= build.tpm
-      %td= link_to 'Edit', edit_build_path(build)
       %td= link_to 'Destroy', build_path(build), :method => :delete, :data => { :confirm => 'Are you sure?' }
 
 %br
