@@ -5,9 +5,14 @@
     %th Commit Id
     %th Author
     %th Message
+    %th In build
 
   - @deployable_entity.commits.each do |commit|
     %tr
-      %td= commit.commit_id
+      %td= commit.short_commit_id
       %td= commit.author
       %td= commit.message
+      - if commit.part_of_build?
+        %td Yes
+      - else
+        %td

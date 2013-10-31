@@ -14,6 +14,14 @@ class DeployableEntity < ActiveRecord::Base
     self.deployable_entity_versions.create commit_id: commit_id
   end
 
+  # Produces the title that is used in the builds
+  # creation form
+  def select_tag_titles
+    deployable_entity_versions.map do |version|
+      ["#{version.short_commit_id} - #{version.message[0..10]}", version.id]
+    end
+  end
+
 private
   def set_description
     self.description = Gh.description_for repo

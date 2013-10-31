@@ -35,6 +35,7 @@ authorization do
                        :users, 
                        :deployable_entities,
                        :deployable_entity_versions,
+                       :builds,
                        :permissions, 
                        :user_permissions], to: :manage
     has_permission_on [:authorization_rules, 
