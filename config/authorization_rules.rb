@@ -7,7 +7,7 @@ authorization do
       if_attribute :user => is {user}
     end
     has_permission_on [:commands, :client_binaries, :queries], to: :anon_read
-    has_permission_on [:verifications, :results], to: :anon_write
+    has_permission_on [:verifications, :results, :register_version], to: :anon_write
   end
 
   role :ops do
@@ -34,6 +34,7 @@ authorization do
                        :results, 
                        :users, 
                        :deployable_entities,
+                       :deployable_entity_versions,
                        :permissions, 
                        :user_permissions], to: :manage
     has_permission_on [:authorization_rules, 

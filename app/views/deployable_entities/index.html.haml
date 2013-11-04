@@ -7,6 +7,7 @@
     %th Description
     %th TPM conf
     %th No tpm conf
+    %th # versions
     %th
     %th
 
@@ -16,6 +17,7 @@
       %td= deployable_entity.description
       %td= deployable_entity.tpm_env
       %td= deployable_entity.no_tpm_env
+      %td= link_to deployable_entity.commits.count, deployable_entity_deployable_entity_versions_path(deployable_entity)
       %td= link_to 'Edit', edit_deployable_entity_path(deployable_entity)
       %td= link_to 'Destroy', deployable_entity, :method => :delete, :data => { :confirm => 'Are you sure?' }
 

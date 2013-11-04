@@ -13,8 +13,9 @@ describe DeployableEntity do
     }
   end
 
-  before do
+  before(:each) do
     DeployableEntity.destroy_all
+    DeployableEntityVersion.destroy_all
   end
 
   describe "Validations" do
@@ -60,6 +61,25 @@ describe DeployableEntity do
         d1.description = "foo"
         d1.save.should eq(false)
         d1.description.should eq("foo")
+      end
+    end
+  end
+
+  describe "Version" do
+    it "should be possible to add versions to an entity" do
+      Gh.should_receive(:add_message_and_author)
+
+      VCR.use_cassette('entity-save-erlattest', allow_playback_repeats: true) do
+        d = DeployableEntity.new valid_params
+        d.save.should eq(true)
+
+        # Fine, now we have a valid entity
+        commit = "commit_id"
+        d.add_commit commit
+        # Unique on commit_id, so no risk of finding multiple
+        c = DeployableEntityVersion.where(commit_id: commit).first 
+        c.deployable_entity.should eq(d)
+        d.commits.should eq([c])
       end
     end
   end

@@ -1,0 +1,2 @@
+module RegisterVersionHelper
+end
