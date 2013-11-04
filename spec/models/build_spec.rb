@@ -47,4 +47,22 @@ describe Build do
     b.deployable_entity_versions << deployable_entity_version
     b.version_for_entity(deployable_entity).should eq(deployable_entity_version.id)
   end
+
+  it "should have a fingerprint after save" do
+    deployable_entity = PreRecorded.setup_deployable_entity
+    deployable_entity_version = PreRecorded.setup_deployable_entity_version deployable_entity
+
+    b = Build.new name: "test"
+    b.deployable_entity_versions << deployable_entity_version
+    b.save
+
+    b.fingerprint.should eq FingerPrintCreator.fingerprint b
+  end
+
+  it "should not save two builds with the same versions" do
+    Build.create name: "test"
+    b = Build.new name: "test2"
+    b.save.should eq false
+    b.errors.messages[:fingerprint].should_not eq nil
+  end
 end

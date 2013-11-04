@@ -22,6 +22,12 @@ class DeployableEntity < ActiveRecord::Base
     end
   end
 
+  def status
+    most_recent = deployable_entity_versions.last
+    return "" unless most_recent
+    most_recent.status
+  end
+
 private
   def set_description
     self.description = Gh.description_for repo

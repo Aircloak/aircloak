@@ -82,5 +82,15 @@ describe DeployableEntity do
         d.commits.should eq([c])
       end
     end
+
+    it "should know the status of the last build" do
+      de = PreRecorded.setup_deployable_entity
+ 
+      # There is no version yet
+      de.status.should eq ""
+
+      dev = PreRecorded.setup_deployable_entity_version de
+      de.status.should eq dev.status
+    end
   end
 end

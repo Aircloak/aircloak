@@ -1,4 +1,5 @@
 require './lib/finger_print_creator.rb'
+require './lib/build_manager.rb'
 
 class Build < ActiveRecord::Base
   validates_presence_of :name
@@ -28,6 +29,18 @@ class Build < ActiveRecord::Base
 
 private
   def send_request_for_building
+    build_request = BuildManager.create_build_request self
     
+    url = URI.parse("http://cloakbuild.mpi-sws.org/build")
+    https = Net::HTTP.new(url.host, url.port)
+    request = Net::HTTP::Post.new(url.path)
+    request.content_type = "application/x-protobuf"
+    request.body = build_request.encode.buf
+    result = https.request(request)
+    unless result.code == "201" then
+      self.build_completed = true
+      self.build_success = false
+      save
+    end
   end
 end

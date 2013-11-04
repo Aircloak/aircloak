@@ -60,4 +60,24 @@ describe DeployableEntityVersion do
     d.commit_id = "1234567890abcdefghijklmnopqr"
     d.short_commit_id.should eq "1234567890"
   end
+
+  it "should know the status of the build" do
+    dev = PreRecorded.setup_deployable_entity_version @d
+
+    # Not yet part of a build
+    dev.status.should eq ""
+
+    b = Build.create name: "test-build"
+    b.deployable_entity_versions << dev
+    b.save
+
+    dev.status.should eq "Building"
+
+    dev.build_completed = true
+    dev.build_success = true
+    dev.status.should eq "Built"
+
+    dev.build_success = false
+    dev.status.should eq "Failed"
+  end
 end

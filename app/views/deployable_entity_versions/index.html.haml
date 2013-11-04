@@ -6,6 +6,7 @@
     %th Author
     %th Message
     %th In build
+    %th Status
 
   - @deployable_entity.commits.each do |commit|
     %tr
@@ -16,3 +17,4 @@
         %td Yes
       - else
         %td
+      %td= link_to commit.status, deployable_entity_deployable_entity_version_path(@deployable_entity, commit)
