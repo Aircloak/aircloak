@@ -15,8 +15,16 @@ class DeployableEntityVersion < ActiveRecord::Base
     commit_id[0...10]
   end
 
+  def status
+    return "" if builds.count == 0
+    return "Building" unless build_completed
+    return "Built" if build_completed && build_success
+    return "Failed" if build_completed && ! build_success
+  end
+
 private
   def set_message_and_author
+    return if self.message and self.author
     Gh.add_message_and_author self
   end
 end

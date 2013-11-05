@@ -1,7 +1,7 @@
 require './lib/build_versions_assigner.rb'
 
 class BuildsController < ApplicationController
-  before_action :set_build, only: [:show, :edit, :update, :destroy]
+  before_action :set_build, only: [:destroy]
 
   def index
     @builds = Build.all
@@ -11,27 +11,14 @@ class BuildsController < ApplicationController
     @build = Build.new
   end
 
-  def edit
-  end
-
   def create
     @build = Build.new(build_params)
+    BuildVersionsAssigner.assign_from_params @build, params
     if @build.save
-      BuildVersionsAssigner.assign_from_params @build, params
       redirect_to builds_path, notice: "Build with name #{@build.name} was" +
           " successfully created."
     else
       render action: 'new'
-    end
-  end
-
-  def update
-    if @build.update(build_params)
-      BuildVersionsAssigner.assign_from_params @build, params
-      redirect_to builds_path, notice: "Build with name #{@build.name} was " +
-          "successfully updated."
-    else
-      render action: 'edit'
     end
   end
 

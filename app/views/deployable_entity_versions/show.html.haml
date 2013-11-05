@@ -1,0 +1,13 @@
+%h1= "commit #{@deployable_entity_version.commit_id}"
+
+%p= "#{@deployable_entity_version.deployable_entity.repo} commit #{@deployable_entity_version.commit_id}"
+
+%h2= "Status #{@deployable_entity_version.status}"
+
+%h2 tpm environment log
+%pre
+  = @deployable_entity_version.build_log_tpm
+
+%h2 non-tpm environment log
+%pre
+  = @deployable_entity_version.build_log_no_tpm
