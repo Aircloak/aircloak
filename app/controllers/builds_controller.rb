@@ -1,7 +1,7 @@
 require './lib/build_versions_assigner.rb'
 
 class BuildsController < ApplicationController
-  before_action :set_build, only: [:show, :edit, :update, :destroy]
+  before_action :set_build, only: [:destroy]
 
   def index
     @builds = Build.all
