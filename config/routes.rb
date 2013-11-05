@@ -4,6 +4,12 @@ Web::Application.routes.draw do
   end
   post 'register_version' => "register_version#create"
 
+  # Resource for builds of cloak software.
+  # A build in this context is a set of 
+  # deployable entities that together make
+  # a cloak machine setup
+  resources :builds
+
   get 'login' => 'user_sessions#new'
   get 'logout' => 'user_sessions#destroy'
   resources :user_sessions
