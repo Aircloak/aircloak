@@ -11,7 +11,7 @@ class Build < ActiveRecord::Base
     self.fingerprint = FingerPrintCreator.fingerprint self
   end
 
-  after_save :send_request_for_building
+  after_create :send_request_for_building
 
   has_many :build_versions
   has_many :deployable_entity_versions, through: :build_versions
