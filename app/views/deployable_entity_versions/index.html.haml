@@ -1,0 +1,20 @@
+%h1 Version of #{@deployable_entity.repo}
+
+%table.table.table-striped
+  %tr
+    %th Commit Id
+    %th Author
+    %th Message
+    %th In build
+    %th Status
+
+  - @deployable_entity.commits.each do |commit|
+    %tr
+      %td= commit.short_commit_id
+      %td= commit.author
+      %td= commit.message
+      - if commit.part_of_build?
+        %td Yes
+      - else
+        %td
+      %td= link_to commit.status, deployable_entity_deployable_entity_version_path(@deployable_entity, commit)

@@ -1,0 +1,29 @@
+= form_for @build do |f|
+  - if @build.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(@build.errors.count, "error")} prohibited this build from being saved:"
+      %ul
+        - @build.errors.full_messages.each do |msg|
+          %li= msg
+
+  .control-group
+    %label.control-label Build name
+    .controls
+      = f.text_field :name
+  .control-group
+    %label.control-label Use TPM?
+    .controls
+      = f.check_box :tpm
+
+  %h2 Select versions of the deployable entities
+
+  - DeployableEntity.all.each do |de|
+    .control-group
+      %label.control-label= de.repo
+      .controls
+        = select_tag "build_versions[]", options_for_select(de.select_tag_titles, @build.version_for_entity(de))
+
+
+  .control-group
+    .controls
+      = f.submit 'Save', class: "btn"

@@ -1,4 +1,23 @@
 Web::Application.routes.draw do
+  resources :deployable_entities do
+    resources :deployable_entity_versions
+  end
+  post 'register_version' => "register_version#create"
+
+  # Resource for builds of cloak software.
+  # A build in this context is a set of 
+  # deployable entities that together make
+  # a cloak machine setup
+  resources :builds
+
+  # We track the progress of both individual
+  # deployable entities being built (and 
+  # collect the log output for better trouble
+  # shooting), and the progress of complete
+  # builds.
+  post 'register_build_progress' => "build_progress#build_progress"
+  post 'register_version_progress' => "build_progress#version_progress"
+
   get 'login' => 'user_sessions#new'
   get 'logout' => 'user_sessions#destroy'
   resources :user_sessions

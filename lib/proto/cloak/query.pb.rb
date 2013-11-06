@@ -4,6 +4,11 @@ require "beefcake"
 
 class QueryBinary
   include Beefcake::Message
+
+
+  required :package, :string, 1
+  required :data, :bytes, 2
+
 end
 
 class CQuery
@@ -13,7 +18,6 @@ class CQuery
     MUTATOR = 0
     READER = 1
   end
-
   module QueryClass
     BATCH = 0
     STORED = 1
@@ -21,28 +25,18 @@ class CQuery
 
   class BatchOptions
     include Beefcake::Message
+
+
+    optional :url, :string, 1
+
   end
 
   class StoredOptions
     include Beefcake::Message
-  end
-end
-
-class QueryBinary
-  required :package, :string, 1
-  required :data, :bytes, 2
-end
 
 
-class CQuery
-
-  class BatchOptions
-    optional :url, :string, 1
-  end
-
-
-  class StoredOptions
     required :payload_identifier, :string, 1
+
   end
 
   repeated :data, QueryBinary, 1
@@ -55,5 +49,5 @@ class CQuery
   optional :query_class, CQuery::QueryClass, 8
   optional :batch_options, CQuery::BatchOptions, 9
   optional :stored_options, CQuery::StoredOptions, 10
-end
 
+end

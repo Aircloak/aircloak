@@ -1,0 +1,97 @@
+require 'spec_helper'
+require './lib/proto/air/build_messages.pb.rb'
+
+describe BuildProgressController do
+  before(:each) do
+    Build.destroy_all
+  end
+
+  describe "POST /register_build_progress" do
+    it "should fail gracefully for missing builds" do
+      Build.where(id: 123).should eq []
+      brp = BuildResponseProto.new(
+        build_id: 123,
+        status: BuildResponseProto::Status::OK,
+      )
+      post '/register_build_progress', brp.encode.buf
+      response.status.should be(200)
+    end
+
+    it "should mark builds as completed and set success" do
+      b = Build.create(name: "test-build")
+      b.build_completed.should eq nil
+      brp = BuildResponseProto.new(
+        build_id: b.id,
+        status: BuildResponseProto::Status::OK,
+      )
+      post '/register_build_progress', brp.encode.buf
+      response.status.should be(200)
+      b1 = Build.find(b.id)
+      b1.build_completed.should eq true
+      b1.build_success.should eq true
+    end
+
+    it "should mark builds as completed and set failure" do
+      b = Build.create(name: "test-build")
+      b.build_completed.should eq nil
+      brp = BuildResponseProto.new(
+        build_id: b.id,
+        status: BuildResponseProto::Status::ERROR,
+        error_message: "msg"
+      )
+      post '/register_build_progress', brp.encode.buf
+      response.status.should be(200)
+      b1 = Build.find(b.id)
+      b1.build_completed.should eq true
+      b1.build_success.should eq false
+    end
+  end
+
+  describe "POST /register_version_progress" do
+    it "should fail gracefully for missing versions" do
+      DeployableEntityVersion.should_receive(:find_by_commit_id).with("commit_id").and_return(nil)
+      vbrp = VersionBuildResponseProto.new(
+        commit_id: "commit_id",
+        status: VersionBuildResponseProto::Status::OK,
+        environment: "tpm",
+        log_output: "all iz well"
+      )
+      post '/register_version_progress', vbrp.encode.buf
+      response.status.should be(200)
+    end
+
+    it "should set persist log" do
+      de = double(:deployable_entity, tpm_env: "tpm-env", no_tpm_env: "no-tpm-env")
+      dev = double(:deployment_entity_version, deployable_entity: de)
+      DeployableEntityVersion.should_receive(:find_by_commit_id).twice.with("commit_id").and_return(dev)
+
+      # For TPM env
+      vbrp = VersionBuildResponseProto.new(
+        commit_id: "commit_id",
+        status: VersionBuildResponseProto::Status::OK,
+        environment: "tpm-env",
+        log_output: "all iz well"
+      )
+      expect(dev).to receive(:build_log_tpm=).with("all iz well")
+      expect(dev).to receive(:build_completed=).with(true)
+      expect(dev).to receive(:build_success=).with(true)
+
+      post '/register_version_progress', vbrp.encode.buf
+      response.status.should be(200)
+      
+      # For non TPM env
+      vbrp = VersionBuildResponseProto.new(
+        commit_id: "commit_id",
+        status: VersionBuildResponseProto::Status::ERROR,
+        environment: "no-tpm-env",
+        log_output: "all iz partly well"
+      )
+      expect(dev).to receive(:build_log_no_tpm=).with("all iz partly well")
+      expect(dev).to receive(:build_completed=).with(true)
+      expect(dev).to receive(:build_success=).with(false)
+
+      post '/register_version_progress', vbrp.encode.buf
+      response.status.should be(200)
+    end
+  end
+end
