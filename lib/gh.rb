@@ -1,5 +1,4 @@
 require 'github_api'
-require 'pry'
 
 class Gh
   def self.description_for repo
