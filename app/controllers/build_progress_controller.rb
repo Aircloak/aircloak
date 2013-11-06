@@ -1,5 +1,6 @@
 class BuildProgressController < ApplicationController
   filter_access_to [:version_progress, :build_progress], require: :anon_write
+  protect_from_forgery :except => [:version_progress, :build_progress]
 
   def version_progress
     r = VersionBuildResponseProto.decode(request.body.read)
