@@ -3,7 +3,7 @@ class PropertiesController < ApplicationController
     @property = Property.find(params[:id])
     sql = <<-SQL
       SELECT property_results.*, 
-        (SELECT property_result_counts.joiners AS joiners property_result_counts.leavers AS leavers
+        (SELECT property_result_counts.joiners AS joiners, property_result_counts.leavers AS leavers
          FROM property_result_counts
          WHERE property_result_counts.property_result_id = property_results.id
          ORDER BY property_result_counts.id ASC)
