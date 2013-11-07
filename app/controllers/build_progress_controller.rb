@@ -14,6 +14,7 @@ class BuildProgressController < ApplicationController
       end
       version.build_completed = true
       version.build_success = r.status == VersionBuildResponseProto::Status::OK
+      version.save
     end
     render text: "Version on!", layout: false
   end
