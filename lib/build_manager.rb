@@ -15,4 +15,14 @@ class BuildManager
       end
     )
   end
+    
+  def self.send_build_request build
+    build_request = create_build_request build
+    url = URI.parse("http://cloakbuild.mpi-sws.org/build")
+    https = Net::HTTP.new(url.host, url.port)
+    request = Net::HTTP::Post.new(url.path)
+    request.content_type = "application/x-protobuf"
+    request.body = build_request.encode.buf
+    https.request(request)
+  end
 end

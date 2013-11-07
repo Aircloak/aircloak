@@ -60,4 +60,10 @@ describe BuildVersionsAssigner do
     devs.size.should eq 2
     devs.should eq [bv1, bv2]
   end
+
+  it "should not fail when called with empty build_versions" do
+    build = double(:build)
+    params = {}
+    expect{BuildVersionsAssigner.assign_from_params build, params}.to_not raise_error
+  end
 end
