@@ -1,0 +1,21 @@
+%p#notice= notice
+
+%p
+  %b Name:
+  = @cluster.name
+%p
+  %b TPM:
+  = @cluster.tpm
+%p
+  %b Using build:
+  = Build.find(@cluster.build_id).name
+%p
+  %b Attached cloaks:
+  %ul
+    - @cluster.cloaks.all.each do |cloak|
+        %li= cloak.name
+      end
+
+= link_to 'Edit', edit_cluster_path(@cluster)
+\|
+= link_to 'Back', clusters_path
