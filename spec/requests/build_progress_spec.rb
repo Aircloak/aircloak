@@ -3,6 +3,7 @@ require './lib/proto/air/build_messages.pb.rb'
 
 describe BuildProgressController do
   before(:each) do
+    BuildManager.stub(:send_build_request).and_return(true)
     Build.destroy_all
   end
 
@@ -62,7 +63,7 @@ describe BuildProgressController do
 
     it "should set persist log" do
       de = double(:deployable_entity, tpm_env: "tpm-env", no_tpm_env: "no-tpm-env")
-      dev = double(:deployment_entity_version, deployable_entity: de)
+      dev = double(:deployment_entity_version, deployable_entity: de, save: true)
       DeployableEntityVersion.should_receive(:find_by_commit_id).twice.with("commit_id").and_return(dev)
 
       # For TPM env

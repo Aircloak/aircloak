@@ -2,6 +2,7 @@ require 'spec_helper'
 
 describe Build do
   before(:each) do
+    BuildManager.stub(:send_build_request).and_return(true)
     Build.destroy_all
     BuildVersion.destroy_all
     DeployableEntity.destroy_all
