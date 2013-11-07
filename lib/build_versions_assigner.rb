@@ -7,6 +7,7 @@ class BuildVersionsAssigner
   end
 
   def self.assign_from_params build, params
+    return unless params["build_versions"]
     version_ids = params["build_versions"].map(&:to_i)
     assign_versions build, version_ids
   end
