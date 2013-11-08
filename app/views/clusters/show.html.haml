@@ -13,8 +13,8 @@
   %b Attached cloaks:
   %ul
     - @cluster.cloaks.all.each do |cloak|
-        %li= cloak.name
-      end
+      %li= cloak.name
+    end
 
 = link_to 'Edit', edit_cluster_path(@cluster)
 \|

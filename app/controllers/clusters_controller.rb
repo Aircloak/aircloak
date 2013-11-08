@@ -1,5 +1,5 @@
 class ClustersController < ApplicationController
-  before_action :set_cluster, only: [:destroy, :show, :edit]
+  before_action :set_cluster, only: [:destroy, :show, :edit, :update]
 
   def index
     @builds = Build.all
@@ -12,12 +12,21 @@ class ClustersController < ApplicationController
   end
 
   def create
-    @cluster = Cluster.create(cluster_params, tpm: Build.find(params[:build_id]).tpm)
+    @cluster = Cluster.create(cluster_params)
+    @cluster.tpm = Build.find(params[:cluster]["build_id"].to_i).tpm
 
     if @cluster.save
-      redirect_to cluster_path, notice: 'Cluster was successfully created.'
+      redirect_to clusters_path, notice: 'Cluster was successfully created.'
     else
       render action: 'new'
+    end
+  end
+
+  def update
+    if @cluster.update(cluster_params)
+      redirect_to clusters_path, notice: 'Cluster was successfully updated.'
+    else
+      render action: 'edit'
     end
   end
 
@@ -37,6 +46,6 @@ private
   end
 
   def cluster_params
-    params.require(:name, :build_id)
+    params.require(:cluster).permit(:name, :build_id)
   end
 end

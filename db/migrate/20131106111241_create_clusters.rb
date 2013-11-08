@@ -3,6 +3,7 @@ class CreateClusters < ActiveRecord::Migration
     create_table :clusters do |t|
       t.string :name
       t.boolean :tpm, default: true
+      t.belongs_to :build, index: true
 
       t.timestamps
     end

@@ -15,6 +15,7 @@ class Build < ActiveRecord::Base
 
   has_many :build_versions
   has_many :deployable_entity_versions, through: :build_versions
+  has_many :clusters
 
   # A build has associated with it a set of deployable entity versions.
   # In the form for creating builds we want to be able to remember which

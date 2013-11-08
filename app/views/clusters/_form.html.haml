@@ -12,4 +12,8 @@
       = f.text_field :name
     %label.control-label Build ID
     .controls
-      = f.select :build_id, Build.all.map {|build| [build.id, build.name]}
+      = f.select :build_id, Build.all.map {|build| [build.name, build.id]}
+
+  .control-group
+    .controls
+      = f.submit 'Save', class: "btn"
