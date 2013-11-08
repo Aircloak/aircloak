@@ -19,6 +19,7 @@ gem "sshkeyauth"
 
 # We use this for interacting with the github api
 gem "github_api"
+gem 'excon'
 
 group :development, :test do
   gem 'pry'
@@ -29,7 +30,6 @@ end
 
 group :test do
   gem 'rake'
-  gem 'excon'
   gem 'vcr'
 end
 
