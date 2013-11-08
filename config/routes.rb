@@ -2,6 +2,11 @@ Web::Application.routes.draw do
   resources :deployable_entities do
     resources :deployable_entity_versions
   end
+
+  # This action is for receiving information about
+  # successful builds from Travis-CI.
+  # It will register a commit, so it can
+  # later be compiled as part of a build
   post 'register_version' => "register_version#create"
 
   # Resource for builds of cloak software.
