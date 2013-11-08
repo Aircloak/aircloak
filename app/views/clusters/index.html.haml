@@ -8,17 +8,24 @@
         %th TPM
         %th Build
         %th Number of cloaks
+        %th Number of cloaks Changing
+        %th Number of cloaks Down
+        %th Health
         %th
         %th
         %th
 
     %tbody
       - @clusters.each do |cluster|
+        - health = cluster.health_of_cloaks
         %tr
           %td= cluster.name
           %td= cluster.tpm
           %td= Build.find(cluster.build_id).name
           %td= cluster.cloaks.size
+          %td= health[:changing]
+          %td= health[:down]
+          %td= if health[:down] > 0; "poor"; else; "healthy"; end
           %td= link_to 'Show', cluster
           %td= link_to 'Edit', edit_cluster_path(cluster)
           %td= link_to 'Destroy', cluster, :method => :delete, :data => { :confirm => 'Are you sure?' }
