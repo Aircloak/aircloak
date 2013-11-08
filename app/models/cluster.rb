@@ -2,12 +2,16 @@ class Cluster < ActiveRecord::Base
   has_many :cloaks
   belongs_to :build
 
-  validates_associated :cloaks
   validates :name, presence: true, uniqueness: true
-  validates_each :cloaks do |record, attr, value|
-    record.error.add(attr, 'must match tpm configuration') unless value == [] || value.tpm == record.tpm
-  end
-  validates_each :build_id do |record, attr, value|
-    record.error.add(attr, 'must match tpm configuration') unless Build.find(value).tpm == record.tpm
+  validates :build_id, presence: true
+  validate :matching_tpm_for_cloaks_and_build
+
+  def matching_tpm_for_cloaks_and_build
+    cloaks.each do |cloak|
+      self.errors.add :cloaks, "must match tpm configuration" unless cloak.tpm == self.tpm
+    end
+    unless self.build == nil || self.build.tpm == self.tpm
+      self.errors.add :build, "must match tpm configuration"
+    end
   end
 end

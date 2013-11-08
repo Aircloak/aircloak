@@ -1,4 +1,4 @@
-%h1 Listing cloaks
+%h1 Listing clusters
 
 - if @clusters.size > 0 then
   %table.table.table-striped
@@ -23,5 +23,5 @@
           %td= link_to 'Edit', edit_cluster_path(cluster)
           %td= link_to 'Destroy', cluster, :method => :delete, :data => { :confirm => 'Are you sure?' }
 
-%h4 Add a new cloak
+%h4 Add a new cluster
 = render 'form'

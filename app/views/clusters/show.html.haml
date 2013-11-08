@@ -12,7 +12,7 @@
 %p
   %b Attached cloaks:
   %ul
-    - @cluster.cloaks.all.each do |cloak|
+    - @cluster.cloaks.each do |cloak|
       %li= cloak.name
     end
 
