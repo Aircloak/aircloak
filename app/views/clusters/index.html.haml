@@ -1,4 +1,4 @@
-%h1 Listing cloaks
+%h1 Listing clusters
 
 - if @clusters.size > 0 then
   %table.table.table-striped
@@ -21,8 +21,8 @@
         %tr
           %td= cluster.name
           %td= cluster.tpm
-          %td= Build.find(cluster.build_id).name
-          %td= cluster.cloaks.size
+          %td= cluster.build.name
+          %td= cluster.cloaks.count
           %td= health[:changing]
           %td= health[:down]
           %td= if health[:down] > 0; "poor"; else; "healthy"; end
@@ -30,5 +30,5 @@
           %td= link_to 'Edit', edit_cluster_path(cluster)
           %td= link_to 'Destroy', cluster, :method => :delete, :data => { :confirm => 'Are you sure?' }
 
-%h4 Add a new cloak
+%h4 Add a new cluster
 = render 'form'

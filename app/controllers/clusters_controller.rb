@@ -2,7 +2,6 @@ class ClustersController < ApplicationController
   before_action :set_cluster, only: [:destroy, :show, :edit, :update]
 
   def index
-    @builds = Build.all
     @clusters = Cluster.all
     @cluster = Cluster.new
   end
