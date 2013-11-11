@@ -13,7 +13,9 @@
   %b Attached cloaks:
   %ul
     - @cluster.cloaks.each do |cloak|
-      %li= cloak.name
+      %li
+        = cloak.name
+        %em= "(#{cloak.health})"
     end
 
 = link_to 'Edit', edit_cluster_path(@cluster)

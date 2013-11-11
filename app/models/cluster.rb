@@ -13,4 +13,13 @@ class Cluster < ActiveRecord::Base
     end
     self.errors.add :build, "must match tpm configuration" if self.build && self.build.tpm != self.tpm
   end
+
+  def health_of_cloaks
+    res = {:ok => 0, :changing => 0, :down => 0}
+    cloaks.each do |cloak|
+      health = cloak.health
+      res[health] += 1
+    end
+    res
+  end
 end
