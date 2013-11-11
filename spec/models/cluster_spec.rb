@@ -5,6 +5,7 @@ describe Cluster do
     Cloak.destroy_all
     Build.destroy_all
     Cluster.destroy_all
+    BuildManager.stub(:send_build_request)
   end
 
   it "should have a name" do
