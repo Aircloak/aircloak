@@ -1,0 +1,27 @@
+%h1 Listing clusters
+
+- if @clusters.size > 0 then
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Name
+        %th TPM
+        %th Build
+        %th Number of cloaks
+        %th
+        %th
+        %th
+
+    %tbody
+      - @clusters.each do |cluster|
+        %tr
+          %td= cluster.name
+          %td= cluster.tpm
+          %td= cluster.build.name
+          %td= cluster.cloaks.count
+          %td= link_to 'Show', cluster
+          %td= link_to 'Edit', edit_cluster_path(cluster)
+          %td= link_to 'Destroy', cluster, :method => :delete, :data => { :confirm => 'Are you sure?' }
+
+%h4 Add a new cluster
+= render 'form'

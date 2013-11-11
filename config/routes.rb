@@ -52,6 +52,8 @@ Web::Application.routes.draw do
 
   resources :cloaks
 
+  resources :clusters
+
   resources :queries do
     member do
       post "execute_as_batch_query"
