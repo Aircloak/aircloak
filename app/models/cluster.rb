@@ -16,9 +16,9 @@ class Cluster < ActiveRecord::Base
 
   def health_of_cloaks
     res = {:ok => 0, :changing => 0, :down => 0}
-    cloaks.all.each do |cloak|
+    cloaks.each do |cloak|
       health = cloak.health
-      res[health] = res[health] + 1
+      res[health] += 1
     end
     res
   end
