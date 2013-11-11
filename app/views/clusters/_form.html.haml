@@ -12,7 +12,12 @@
       = f.text_field :name
     %label.control-label Build ID
     .controls
-      = f.select :build_id, Build.all.map {|build| [build.name, build.id]}
+      = f.select :build_id, Build.all.map {|build| [build.name + (if build.tpm; ""; else; " (non-tpm)"; end), build.id]}
+
+  .control-group
+    %label.control-label Cloaks (choose any number with matching TPM)
+    .controls
+      = select_tag "cloak_selections", options_for_select(@cluster.available_cloaks, @cluster.selected_cloaks), :multiple => true
 
   .control-group
     .controls

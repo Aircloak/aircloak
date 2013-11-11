@@ -5,6 +5,7 @@ describe Cluster do
     Cloak.destroy_all
     Build.destroy_all
     Cluster.destroy_all
+    ClusterCloak.destroy_all
     BuildManager.stub(:send_build_request)
   end
 
@@ -65,14 +66,16 @@ describe Cluster do
     cl2.save.should eq true
 
     c1 = Cluster.new(name: "cluster1", build: b)
-    c1.cloaks << cl1
     c1.tpm = false
     c1.save.should eq true
+    cc1 = ClusterCloak.new(cluster: c1, cloak: cl1)
+    cc1.save.should eq true
 
     c2 = Cluster.new(name: "cluster2", build: b)
-    c2.cloaks << cl2
     c2.tpm = false
-    c2.save.should eq false
-    c2.errors.messages[:cloaks].should_not eq nil
+    c2.save.should eq true
+    cc2 = ClusterCloak.new(cluster:c2, cloak: cl2)
+    cc2.save.should eq false
+    cc2.errors.messages[:cloak].should_not eq nil
   end
 end

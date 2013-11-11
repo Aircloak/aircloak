@@ -8,10 +8,16 @@ class Cluster < ActiveRecord::Base
   validate :matching_tpm_for_cloaks_and_build
 
   def matching_tpm_for_cloaks_and_build
-    cloaks.each do |cloak|
-      self.errors.add :cloaks, "must match tpm configuration" unless cloak.tpm == self.tpm
-    end
+    self.errors.add :cloaks, "must match tpm configuration" unless self.check_cloaks cloaks
     self.errors.add :build, "must match tpm configuration" if self.build && self.build.tpm != self.tpm
+  end
+
+  def check_cloaks cloak_list
+    res = true
+    cloak_list.each do |cloak|
+      res = res && (cloak.tpm == self.tpm)
+    end
+    res
   end
 
   def health_of_cloaks
@@ -21,5 +27,20 @@ class Cluster < ActiveRecord::Base
       res[health] += 1
     end
     res
+  end
+
+  def available_cloaks
+    unassigned = Cloak.includes(:cluster_cloak).where(cluster_cloaks: { id: nil })
+    (cloaks.all + unassigned.all).sort.map do |cloak|
+      if cloak.tpm
+        [cloak.name, cloak.id]
+      else
+        [cloak.name + " (no tpm)", cloak.id]
+      end
+    end
+  end
+
+  def selected_cloaks
+    cloaks.all.map { |cloak| cloak.id }
   end
 end
