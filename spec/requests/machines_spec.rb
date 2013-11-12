@@ -7,7 +7,6 @@ describe "ResultsController" do
     it "should provide a list of machines" do
       machine = MachineProto.new(
         machine_id: 1,
-        ip: "1.2.3.4",
         name: "tpm-monster.mpi-sws.org",
         type: MachineProto::MachineType::PHYSICAL
       )
