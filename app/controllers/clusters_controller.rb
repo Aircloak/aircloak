@@ -14,35 +14,11 @@ class ClustersController < ApplicationController
 
   def create
     @cluster = Cluster.create(cluster_params)
-    @cluster.tpm = Build.find(params[:cluster]["build_id"].to_i).tpm
-    cloaks = ClusterCloaksAssigner.get_cloaks params
-    if @cluster.check_cloaks cloaks
-      ClusterCloaksAssigner.assign_from_list @cluster, cloaks
-
-      if @cluster.save
-        redirect_to clusters_path, notice: 'Cluster was successfully created.'
-      else
-        render action: 'new'
-      end
-    else
-      @cluster.errors.add :cloaks, "tpm must match for cloaks and build"
-      render action: 'new'
-    end
+    update_cloaks 'Cluster was successfully created.', 'new'
   end
 
   def update
-    cloaks = ClusterCloaksAssigner.get_cloaks params
-    if @cluster.check_cloaks cloaks
-      ClusterCloaksAssigner.assign_from_list @cluster, cloaks
-      if @cluster.update(cluster_params)
-        redirect_to clusters_path, notice: 'Cluster was successfully updated.'
-      else
-        render action: 'edit'
-      end
-    else
-      @cluster.errors.add :cloaks, "tpm must match for cloaks and build"
-      render action: 'edit'
-    end
+    update_cloaks 'Cluster was successfully updated.', 'edit'
   end
 
   def destroy
@@ -56,11 +32,27 @@ class ClustersController < ApplicationController
   end
 
 private
+  def update_cloaks msg, action
+    cloaks = cloaks_params
+    @cluster.assign_cloaks cloaks
+    if @cluster.update(cluster_params)
+      redirect_to clusters_path, notice: msg
+    else
+      render action: action
+    end
+  end
+
   def set_cluster
     @cluster = Cluster.find(params[:id])
   end
 
   def cluster_params
     params.require(:cluster).permit(:name, :build_id)
+  end
+
+  def cloaks_params
+    return [] unless params["cloak_selections"]
+    cloak_ids = params["cloak_selections"].map(&:to_id)
+    cloak_ids.map {|id| Cloak.find(id)}
   end
 end

@@ -14,11 +14,11 @@ class Cloak < ActiveRecord::Base
     end
   end
 
-  def tpm_string
-    if tpm
-      "tpm"
-    else
-      "non-tpm"
-    end
+  def display_string
+    name + (tpm ? "" : " (no tpm)")
+  end
+
+  def self.all_unassigned
+    Cloak.includes(:cluster_cloak).where(cluster_cloaks: { id: nil })
   end
 end
