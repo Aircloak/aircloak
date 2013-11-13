@@ -9,16 +9,19 @@ describe Cluster do
     BuildManager.stub(:send_build_request)
   end
 
-  it "should have a name" do
-    c = Cluster.new
-    c.save.should eq false
-    c.errors.messages[:name].should_not eq nil
-  end
-
   it "should have a build" do
     c = Cluster.new name: "test"
     c.save.should eq false
     c.errors.messages[:build].should_not eq nil
+  end
+
+  it "should have a name" do
+    b = Build.new name: "build"
+    b.save.should eq true
+
+    c = Cluster.new build: b
+    c.save.should eq false
+    c.errors.messages[:name].should_not eq nil
   end
 
   it "should require a unique name" do

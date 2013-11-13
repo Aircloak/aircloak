@@ -8,7 +8,7 @@ class Cluster < ActiveRecord::Base
   validate :must_match_tpm_configuration
 
   def tpm
-    build.tpm unless build == nil
+    @has_tpm ||= build.tpm
   end
 
   def health_of_cloaks
@@ -38,14 +38,8 @@ class Cluster < ActiveRecord::Base
 private
 
   def must_match_tpm_configuration
-    self_tpm = self.tpm
-    self.cloaks.each do |cloak|
-      self.errors.add :cloaks, "must match tpm configuration" if cloak.tpm != self_tpm
+    unless cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == self.tpm }
+      self.errors.add :cloaks, "must match tpm configuration"
     end
-  end
-
-  def check_cloaks cloak_list
-    self_tpm = self.tpm
-    cloak_list.inject(true) {|res, cloak| res && cloak.tpm == self_tpm }
   end
 end

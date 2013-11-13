@@ -31,7 +31,7 @@ class ClustersController < ApplicationController
 
 private
   def update_cloaks msg, action
-    cloaks = cloaks_params
+    cloaks = cloaks_from_params
     @cluster.assign_cloaks cloaks
     if @cluster.update(cluster_params)
       redirect_to clusters_path, notice: msg
@@ -48,7 +48,7 @@ private
     params.require(:cluster).permit(:name, :build_id)
   end
 
-  def cloaks_params
+  def cloaks_from_params
     return [] unless params["cloak_selections"]
     cloak_ids = params["cloak_selections"].map(&:to_i)
     cloak_ids.map {|id| Cloak.find(id)}
