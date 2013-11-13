@@ -6,7 +6,12 @@ authorization do
     has_permission_on :users, to: [:show, :create, :update] do
       if_attribute :user => is {user}
     end
-    has_permission_on [:commands, :client_binaries, :queries], to: :anon_read
+    has_permission_on [
+      :commands,
+      :client_binaries,
+      :queries,
+      :machines
+    ], to: :anon_read
     has_permission_on [
       :verifications, 
       :results, 
