@@ -7,7 +7,7 @@ require File.expand_path("../../config/environment", __FILE__)
 require 'rspec/rails'
 require 'rspec/autorun'
 require './spec/slim_helpers.rb'
- 
+
 require 'declarative_authorization/maintenance'
 include Authorization::TestHelper
 
