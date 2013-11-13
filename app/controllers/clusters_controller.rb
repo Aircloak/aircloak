@@ -1,5 +1,3 @@
-require './lib/cluster_cloaks_assigner.rb'
-
 class ClustersController < ApplicationController
   before_action :set_cluster, only: [:destroy, :show, :edit, :update]
 
@@ -52,7 +50,7 @@ private
 
   def cloaks_params
     return [] unless params["cloak_selections"]
-    cloak_ids = params["cloak_selections"].map(&:to_id)
+    cloak_ids = params["cloak_selections"].map(&:to_i)
     cloak_ids.map {|id| Cloak.find(id)}
   end
 end

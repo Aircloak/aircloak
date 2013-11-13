@@ -57,9 +57,9 @@ describe Cluster do
   end
 
   context "#assign_cloaks" do
-    let! (:cloak1) { Cloak.create!(name: "foo", ip: "1.1.1.1") }
-    let! (:cloak2) { Cloak.create!(name: "bar", ip: "2.2.2.2") }
-    let! (:cloak3) { Cloak.create!(name: "baz", ip: "3.3.3.3") }
+    let! (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1") }
+    let! (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2") }
+    let! (:cloak3) { Cloak.create(name: "baz", ip: "3.3.3.3") }
     let! (:build) { Build.create(name: "build") }
     let! (:cluster) { Cluster.create(name: "cluster", build: build) }
 

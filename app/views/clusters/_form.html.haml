@@ -14,10 +14,14 @@
     .controls
       = f.select :build_id, Build.all.map {|build| [build.name + (if build.tpm; ""; else; " (no tpm)"; end), build.id]}
 
-  .control-group
-    %label.control-label Cloaks (choose any number with matching TPM)
-    .controls
-      = select_tag "cloak_selections", options_for_select(@cluster.available_cloaks, @cluster.selected_cloaks), :multiple => true
+
+  %h2 Cloaks (choose any number with matching TPM)
+
+  %ul
+    - @cluster.available_cloaks.each do |cloak|
+      %li
+        = check_box_tag "cloak_selections[]", cloak.id, cloak.cluster == @cluster
+        = cloak.display_name
 
   .control-group
     .controls

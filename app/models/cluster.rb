@@ -23,7 +23,6 @@ class Cluster < ActiveRecord::Base
   def available_cloaks
     unassigned = Cloak.all_unassigned
     available_cloaks = (cloaks + unassigned).sort { |a, b| a.name <=> b.name }
-    available_cloaks.map(&:display_name)
   end
 
   def selected_cloaks

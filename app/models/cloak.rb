@@ -14,7 +14,7 @@ class Cloak < ActiveRecord::Base
     end
   end
 
-  def display_string
+  def display_name
     name + (tpm ? "" : " (no tpm)")
   end
 
