@@ -20,11 +20,7 @@ class Cloak < ActiveRecord::Base
   end
 
   def tpm_display
-    if tpm
-      "TPM"
-    else
-      "no TPM"
-    end
+    tpm ? "TPM" : "no TPM"
   end
 
   def self.all_unassigned
