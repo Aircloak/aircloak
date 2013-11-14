@@ -1,22 +1,51 @@
-%h1 Listing cloaks
+- if @assigned_cloaks.size > 0 then
+  %h1 Listing of assigned cloaks
 
-- if @cloaks.size > 0 then
   %table.table.table-striped
     %thead
       %tr
         %th Name
         %th Ip
-        %th Part of ring
+        %th Type
+        %th Health
+        %th Cluster
         %th
         %th
         %th
 
     %tbody
-      - @cloaks.each do |cloak|
+      - @assigned_cloaks.each do |cloak|
         %tr
           %td= cloak.name
           %td= cloak.ip
-          %td= cloak.part_of_ring ? "Yes" : "Not yet"
+          %td= cloak.tpm_display
+          %td= cloak.health
+          %td= cloak.cluster.name
+          %td= link_to 'Show', cloak
+          %td= link_to 'Edit', edit_cloak_path(cloak)
+          %td= link_to 'Destroy', cloak, :method => :delete, :data => { :confirm => 'Are you sure?' }
+
+- if @unassigned_cloaks.size > 0 then
+  %h1 Listing of unassigned cloaks
+
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Name
+        %th Ip
+        %th Type
+        %th Health
+        %th
+        %th
+        %th
+
+    %tbody
+      - @unassigned_cloaks.each do |cloak|
+        %tr
+          %td= cloak.name
+          %td= cloak.ip
+          %td= cloak.tpm_display
+          %td= cloak.health
           %td= link_to 'Show', cloak
           %td= link_to 'Edit', edit_cloak_path(cloak)
           %td= link_to 'Destroy', cloak, :method => :delete, :data => { :confirm => 'Are you sure?' }

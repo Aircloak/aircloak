@@ -7,8 +7,17 @@
   %b Ip:
   = @cloak.ip
 %p
-  %b Part of ring:
-  = @cloak.part_of_ring
+  %b Type:
+  = @cloak.tpm_display
+%p
+  %b Health:
+  = @cloak.health
+%p
+  - if @cloak.cluster
+    %b Part of cluster:
+    = @cloak.cluster.name
+  - else
+    %b available
 
 = link_to 'Edit', edit_cloak_path(@cloak)
 \|

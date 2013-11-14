@@ -3,7 +3,8 @@ class CloaksController < ApplicationController
 
   # GET /cloaks
   def index
-    @cloaks = Cloak.all
+    @assigned_cloaks = Cloak.all_assigned_sorted
+    @unassigned_cloaks = Cloak.all_unassigned
     @cloak = Cloak.new
   end
 
