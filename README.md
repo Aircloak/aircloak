@@ -1,6 +1,9 @@
 Aircloak Web
 ============
 
+[![Code
+Climate](https://codeclimate.com/repos/52834e57c7f3a36f49049694/badges/b93de74f2a883ef1f819/gpa.png)](https://codeclimate.com/repos/52834e57c7f3a36f49049694/feed)
+
 The web-frontend of Aircloak, and the RESTful API for storing and retrieving
 queries and results.
 

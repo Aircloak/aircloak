@@ -91,6 +91,8 @@ GEM
       net-sftp (>= 2.0.0)
       net-ssh (>= 2.0.14)
       net-ssh-gateway (>= 1.1.0)
+    codeclimate-test-reporter (0.1.1)
+      simplecov (>= 0.7.1, < 1.0.0)
     coderay (1.0.9)
     coffee-script (2.2.0)
       coffee-script-source
@@ -100,6 +102,7 @@ GEM
     debug_inspector (0.0.2)
     declarative_authorization (0.5.7)
     diff-lcs (1.2.4)
+    docile (1.1.0)
     erubis (2.7.0)
     excon (0.25.3)
     execjs (2.0.2)
@@ -132,6 +135,7 @@ GEM
       actionpack (>= 3.1)
       less (~> 2.4.0)
     libv8 (3.16.14.3)
+    lockfile (2.1.0)
     mail (2.5.4)
       mime-types (~> 1.16)
       treetop (~> 1.4.8)
@@ -207,6 +211,12 @@ GEM
     rubyzip (0.9.9)
     sass (3.2.12)
     sexp_processor (4.4.0)
+    simplecov (0.8.1)
+      docile (~> 1.1.0)
+      lockfile (>= 2.1.0)
+      multi_json
+      simplecov-html (~> 0.8.0)
+    simplecov-html (0.8.0)
     slop (3.4.6)
     sprockets (2.10.0)
       hike (~> 1.2)
@@ -253,6 +263,7 @@ DEPENDENCIES
   better_errors
   binding_of_caller
   capistrano (= 2.13.5)
+  codeclimate-test-reporter
   coffee-rails!
   declarative_authorization
   excon

@@ -51,6 +51,10 @@ Web::Application.routes.draw do
   end
 
   resources :cloaks
+  # Resource that very much mimicks the cloaks resource,
+  # but makes cloaked machines available in a format
+  # consumable by manny-air
+  resources :machines
 
   resources :clusters
 
