@@ -1,25 +1,5 @@
-%h1 Listing cloaks
-
-- if @cloaks.size > 0 then
-  %table.table.table-striped
-    %thead
-      %tr
-        %th Name
-        %th Ip
-        %th Part of ring
-        %th
-        %th
-        %th
-
-    %tbody
-      - @cloaks.each do |cloak|
-        %tr
-          %td= cloak.name
-          %td= cloak.ip
-          %td= cloak.part_of_ring ? "Yes" : "Not yet"
-          %td= link_to 'Show', cloak
-          %td= link_to 'Edit', edit_cloak_path(cloak)
-          %td= link_to 'Destroy', cloak, :method => :delete, :data => { :confirm => 'Are you sure?' }
+= render 'list', cloaks: @assigned_cloaks, render_assigned: true
+= render 'list', cloaks: @unassigned_cloaks, render_assigned: false
 
 %h4 Add a new cloak
 = render 'form'
