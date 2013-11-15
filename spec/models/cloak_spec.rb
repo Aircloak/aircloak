@@ -5,28 +5,41 @@ describe Cloak do
     Cloak.destroy_all
   end
 
+  it "should have a valid raw_health" do
+    cloak = Cloak.new(name: "cloak", ip: "1.1.1.1", raw_health: -1)
+    cloak.save.should eq false
+    cloak.errors.messages[:raw_health].should_not eq nil
+
+    cloak = Cloak.new(name: "cloak", ip: "1.1.1.1", raw_health: 4)
+    cloak.save.should eq false
+    cloak.errors.messages[:raw_health].should_not eq nil
+
+    cloak = Cloak.new(name: "cloak", ip: "1.1.1.1", raw_health: 0)
+    cloak.save.should eq true
+  end
+
   it "should have a name" do
-    cloak = Cloak.new
+    cloak = Cloak.new(raw_health: 0, ip: "1.1.1.1")
     cloak.save.should eq false
     cloak.errors.messages[:name].should_not eq nil
   end
 
   it "should have an ip" do
-    cloak = Cloak.new(name: "cloak")
+    cloak = Cloak.new(name: "cloak", raw_health: 0)
     cloak.save.should eq false
     cloak.errors.messages[:ip].should_not eq nil
   end
 
   it "should have an unique name" do
-    cloak1 = Cloak.create(name: "cloak", ip: "1.1.1.1")
-    cloak2 = Cloak.new(name: "cloak", ip: "2.2.2.2")
+    cloak1 = Cloak.create(name: "cloak", ip: "1.1.1.1", raw_health: 0)
+    cloak2 = Cloak.new(name: "cloak", ip: "2.2.2.2", raw_health: 0)
     cloak2.save.should eq false
     cloak2.errors.messages[:name].should_not eq nil
   end
 
   it "should have an unique ip" do
-    cloak1 = Cloak.create(name: "cloak1", ip: "1.1.1.1")
-    cloak2 = Cloak.new(name: "cloak2", ip: "1.1.1.1")
+    cloak1 = Cloak.create(name: "cloak1", ip: "1.1.1.1", raw_health: 0)
+    cloak2 = Cloak.new(name: "cloak2", ip: "1.1.1.1", raw_health: 0)
     cloak2.save.should eq false
     cloak2.errors.messages[:ip].should_not eq nil
   end
@@ -39,9 +52,9 @@ describe Cloak do
       BuildManager.stub(:send_build_request)
     end
 
-    let! (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1") }
-    let! (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2") }
-    let! (:cloak3) { Cloak.create(name: "baz", ip: "3.3.3.3") }
+    let! (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1", raw_health: 0) }
+    let! (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2", raw_health: 0) }
+    let! (:cloak3) { Cloak.create(name: "baz", ip: "3.3.3.3", raw_health: 0) }
     let! (:build) { Build.create(name: "build") }
     let! (:cluster) { Cluster.create(name: "cluster", build: build) }
 

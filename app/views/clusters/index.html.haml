@@ -7,9 +7,10 @@
         %th Name
         %th TPM
         %th Build
-        %th Number of cloaks
-        %th Number of cloaks Changing
-        %th Number of cloaks Down
+        %th #Cloaks
+        %th #Cloaks Changing
+        %th #Cloaks with SW Problems
+        %th #Cloaks with HW Problems
         %th Health
         %th
         %th
@@ -24,8 +25,9 @@
           %td= cluster.build.name
           %td= cluster.cloaks.count
           %td= health[:changing]
-          %td= health[:down]
-          %td= if health[:down] > 0; "poor"; else; "healthy"; end
+          %td= health[:sw_failure]
+          %td= health[:hw_failure]
+          %td= if health[:sw_failure] + health[:hw_failure] > 0; "poor"; else; "healthy"; end
           %td= link_to 'Show', cluster
           %td= link_to 'Edit', edit_cluster_path(cluster)
           %td= link_to 'Destroy', cluster, :method => :delete, :data => { :confirm => 'Are you sure?' }

@@ -4,14 +4,14 @@ class Cloak < ActiveRecord::Base
   validates :ip, format: { with: /\A(((25[0-5])|(2[0-4][0-9])|([01]?[0-9][0-9]?))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9][0-9]?))/}
   validates_presence_of :name
   validates_uniqueness_of :name, :ip
+  validates_inclusion_of :raw_health, :in => 0..3
 
   def health
     case raw_health
-    when 0 then :ok
+    when 0 then :good
     when 1 then :changing
-    when 2 then :down
-    when 3 then :unavailable
-    else :unknown
+    when 2 then :sw_failing
+    when 3 then :hw_failing
     end
   end
 
