@@ -22,10 +22,9 @@ class MachinesController < ApplicationController
 
 private
   def state_to_health state
-    health = :good if state == MachineStateProto::State::GOOD
-    health = :changing if state == MachineStateProto::State::CHANGING
-    health = :sw_failing if state == MachineStateProto::State::SW_FAILING
-    health = :hw_failing if state == MachineStateProto::State::HW_FAILING
-    health
+    return :good if state == MachineStateProto::State::GOOD
+    return :changing if state == MachineStateProto::State::CHANGING
+    return :sw_failing if state == MachineStateProto::State::SW_FAILING
+    return :hw_failing if state == MachineStateProto::State::HW_FAILING
   end
 end
