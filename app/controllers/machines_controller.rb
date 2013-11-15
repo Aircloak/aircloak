@@ -11,17 +11,19 @@ class MachinesController < ApplicationController
   def update
     ms = MachineStateProto.decode(request.body.read)
     cloak = Cloak.find(params[:id])
-    cloak.raw_health = case ms.state
-    when :GOOD then 0
-    when :CHANGING then 1
-    when :SW_FAILING then 2
-    when :HW_FAILING then 3
-    else 10000 # big number which is not allowed...
-    end
+    cloak.set_health(state_to_health ms.state)
     if cloak.save
       render text: "Yeah, new state!  Finally something happening!", layout: false
     else
       render text: "I cannot do that Dave.", status: 400, layout: false
     end
+  end
+
+private
+  def state_to_health state
+    health = :good if state == MachineStateProto::State::GOOD
+    health = :changing if state == MachineStateProto::State::CHANGING
+    health = :sw_failing if state == MachineStateProto::State::SW_FAILING
+    health = :hw_failing if state == MachineStateProto::State::HW_FAILING
   end
 end

@@ -4,15 +4,18 @@ class Cloak < ActiveRecord::Base
   validates :ip, format: { with: /\A(((25[0-5])|(2[0-4][0-9])|([01]?[0-9][0-9]?))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9][0-9]?))/}
   validates_presence_of :name
   validates_uniqueness_of :name, :ip
-  validates_inclusion_of :raw_health, :in => 0..3
+  validates_inclusion_of :raw_health, :in => 0..4
+
+  def self.health_types
+    health_mappings.values
+  end
 
   def health
-    case raw_health
-    when 0 then :good
-    when 1 then :changing
-    when 2 then :sw_failing
-    when 3 then :hw_failing
-    end
+    Cloak.health_mappings[raw_health]
+  end
+
+  def set_health health
+    self.raw_health = Cloak.health_mappings.invert[health]
   end
 
   def display_name
@@ -35,5 +38,16 @@ class Cloak < ActiveRecord::Base
       when 1 then 1
       end
     end
+  end
+
+private
+  def self.health_mappings
+    {
+      0 => :good, 
+      1 => :changing, 
+      2 => :sw_failing,
+      3 => :hw_failing,
+      4 => :unknown
+    }
   end
 end
