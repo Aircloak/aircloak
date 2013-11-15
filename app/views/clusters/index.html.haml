@@ -8,8 +8,8 @@
         %th TPM
         %th Build
         %th Number of cloaks
-        %th Number of cloaks Changing
-        %th Number of cloaks Down
+        - Cloak.health_types.each do |type|
+          %th= "# in state #{type}"
         %th Health
         %th
         %th
@@ -23,9 +23,9 @@
           %td= cluster.tpm
           %td= cluster.build.name
           %td= cluster.cloaks.count
-          %td= health[:changing]
-          %td= health[:down]
-          %td= if health[:down] > 0; "poor"; else; "healthy"; end
+          - Cloak.health_types.each do |type|
+            %th= health[type]
+          %td= cluster.health
           %td= link_to 'Show', cluster
           %td= link_to 'Edit', edit_cluster_path(cluster)
           %td= link_to 'Destroy', cluster, :method => :delete, :data => { :confirm => 'Are you sure?' }

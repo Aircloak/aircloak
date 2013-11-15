@@ -11,11 +11,18 @@ class MachineProto
   end
 end
 
-class MachinesProto
+class MachineStateProto
   include Beefcake::Message
+
+  module State
+    GOOD = 1
+    CHANGING = 2
+    SW_FAILING = 3
+    HW_FAILING = 4
+  end
 end
 
-class MachineChangeProto
+class MachinesProto
   include Beefcake::Message
 end
 
@@ -27,6 +34,12 @@ class MachineProto
   required :machine_id, :uint32, 1
   required :name, :string, 2
   required :type, MachineProto::MachineType, 3
+  required :state, MachineStateProto, 4
+end
+
+
+class MachineStateProto
+  required :state, MachineStateProto::State, 1
 end
 
 
@@ -35,14 +48,8 @@ class MachinesProto
 end
 
 
-class MachineChangeProto
-  repeated :added_machines, MachineProto, 1
-  repeated :removed_machines, MachineProto, 2
-end
-
-
 class ClusterProto
   required :cluster_id, :uint32, 1
-  required :machines, MachineChangeProto, 2
+  repeated :machine_ids, :uint32, 2
 end
 
