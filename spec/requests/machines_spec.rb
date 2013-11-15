@@ -8,7 +8,8 @@ describe "ResultsController" do
       machine = MachineProto.new(
         machine_id: 1,
         name: "tpm-monster.mpi-sws.org",
-        type: MachineProto::MachineType::PHYSICAL
+        type: MachineProto::MachineType::PHYSICAL,
+        state: MachineStateProto.new(state: MachineStateProto::State::GOOD)
       )
       p = MachinesProto.new machines: [machine]
 
