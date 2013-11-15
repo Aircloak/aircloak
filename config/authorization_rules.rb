@@ -16,7 +16,8 @@ authorization do
       :verifications, 
       :results, 
       :register_version,
-      :build_progress
+      :build_progress,
+      :machines
     ], to: :anon_write
   end
 
