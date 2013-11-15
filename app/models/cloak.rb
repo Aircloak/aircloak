@@ -5,12 +5,26 @@ class Cloak < ActiveRecord::Base
   validates_presence_of :name
   validates_uniqueness_of :name, :ip
 
+  def self.health_types
+    health_mappings.values
+  end
+
   def health
-    case raw_health
-    when 0 then :ok
-    when 1 then :changing
-    when 2 then :down
-    else :unknown
-    end
+    Cloak.health_mappings[raw_health]
+  end
+
+  def set_health health
+    self.raw_health = Cloak.health_mappings.invert[health]
+  end
+
+private
+  def self.health_mappings
+    {
+      nil => :unknown, 
+      0 => :good, 
+      1 => :changing, 
+      2 => :sw_failing,
+      3 => :hw_failing
+    }
   end
 end
