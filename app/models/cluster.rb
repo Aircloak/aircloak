@@ -31,6 +31,15 @@ class Cluster < ActiveRecord::Base
     (old_cloaks - new_cloaks).each {|cloak| cloak.cluster_cloak.destroy }
   end
 
+  def health
+    healths = health_of_cloaks
+    poor_health_types = Cloak.health_types - [:good, :unknown]
+    poor_health_types.each do |phtype|
+      return :poor if healths[phtype] > 0
+    end
+    :healthy
+  end
+
 private
 
   def must_match_tpm_configuration

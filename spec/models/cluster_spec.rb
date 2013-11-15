@@ -72,6 +72,21 @@ describe Cluster do
     cluster.health_of_cloaks[:good].should eq 1
   end
 
+  it "should know if a cluster is healthy" do
+    cluster = Cluster.new
+    c = Cloak.new
+    cluster.cloaks << c
+
+    c.set_health :good
+    cluster.health.should eq :healthy
+
+    types = Cloak.health_types - [:good, :unknown]
+    types.each do |type|
+      c.set_health type
+      cluster.health.should eq :poor
+    end
+  end
+
   context "#assign_cloaks" do
     let! (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1") }
     let! (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2") }
