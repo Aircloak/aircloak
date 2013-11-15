@@ -2,7 +2,7 @@ require 'spec_helper'
 require './lib/proto/air/management_messages.pb'
 require './lib/machine_packer.rb'
 
-describe "ResultsController" do
+describe MachinesController do
   describe "GET /machines" do
     it "should provide a list of machines" do
       machine = MachineProto.new(

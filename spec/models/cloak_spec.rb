@@ -5,7 +5,7 @@ describe Cloak do
     let(:cloak) { Cloak.new }
 
     it "should know what health types are supported" do
-      Cloak.health_types.should eq [:unknown, :good, :changing, :sw_failing, :hw_failing]
+      Cloak.health_types.should eq [:good, :changing, :sw_failing, :hw_failing, :unknown]
     end
 
     it "should default to an unknown health" do
@@ -23,6 +23,19 @@ describe Cloak do
   context "validations" do
     before(:each) do
       Cloak.destroy_all
+    end
+
+    it "should have a valid raw_health" do
+      cloak = Cloak.new(name: "cloak", ip: "1.1.1.1", raw_health: -1)
+      cloak.save.should eq false
+      cloak.errors.messages[:raw_health].should_not eq nil
+
+      cloak = Cloak.new(name: "cloak", ip: "1.1.1.1", raw_health: 5)
+      cloak.save.should eq false
+      cloak.errors.messages[:raw_health].should_not eq nil
+
+      cloak = Cloak.new(name: "cloak", ip: "1.1.1.1", raw_health: 0)
+      cloak.save.should eq true
     end
 
     it "should have a name" do
@@ -61,9 +74,9 @@ describe Cloak do
       BuildManager.stub(:send_build_request)
     end
 
-    let! (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1") }
-    let! (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2") }
-    let! (:cloak3) { Cloak.create(name: "baz", ip: "3.3.3.3") }
+    let! (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1", raw_health: 0) }
+    let! (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2", raw_health: 0) }
+    let! (:cloak3) { Cloak.create(name: "baz", ip: "3.3.3.3", raw_health: 0) }
     let! (:build) { Build.create(name: "build") }
     let! (:cluster) { Cluster.create(name: "cluster", build: build) }
 
