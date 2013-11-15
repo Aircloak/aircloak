@@ -15,11 +15,7 @@ class Cluster < ActiveRecord::Base
   end
 
   def health_of_cloaks
-    res = {:ok => 0, :changing => 0, :down => 0}
-    cloaks.each do |cloak|
-      health = cloak.health
-      res[health] += 1
-    end
-    res
+    res = Cloak.health_types.inject(Hash.new) {|r, type| r[type] = 0; r }
+    cloaks.inject(res) {|res, cloak| res[cloak.health] += 1; res }
   end
 end

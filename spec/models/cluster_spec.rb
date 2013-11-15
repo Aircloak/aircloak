@@ -75,4 +75,17 @@ describe Cluster do
     c2.save.should eq false
     c2.errors.messages[:cloaks].should_not eq nil
   end
+
+  it "should be able to list the health of it's cloaks" do
+    cluster = Cluster.new
+    c1 = Cloak.new
+    cluster.cloaks << c1
+    c1.set_health :good
+
+    types = Cloak.health_types - [:good]
+    types.each do |type|
+      cluster.health_of_cloaks[type].should eq 0
+    end
+    cluster.health_of_cloaks[:good].should eq 1
+  end
 end
