@@ -54,6 +54,7 @@ describe Cloak do
 
   context "self.all_unassigned" do
     before(:each) do
+      Cloak.destroy_all
       Build.destroy_all
       Cluster.destroy_all
       ClusterCloak.destroy_all
