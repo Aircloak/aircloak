@@ -7,7 +7,7 @@
         %th Name
         %th Ip
         %th Type
-        %th Health
+        %th Good
         - if render_assigned
           %th Cluster
         %th
@@ -20,7 +20,7 @@
           %td= cloak.name
           %td= cloak.ip
           %td= cloak.tpm_display
-          %td= cloak.health
+          %td= cloak.good
           - if render_assigned
             %td= cloak.cluster.name
           %td= link_to 'Show', cloak

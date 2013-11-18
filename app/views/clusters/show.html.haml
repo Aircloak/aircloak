@@ -10,12 +10,15 @@
   %b Using build:
   = @cluster.build.name
 %p
+  %b Health:
+  = @cluster.health
+%p
   %b Attached cloaks:
   %ul
     - @cluster.cloaks.each do |cloak|
       %li
         = cloak.name
-        %em= "(#{cloak.health})"
+        %em= "(#{cloak.good ? :ok : :broken})"
 
 = link_to 'Edit', edit_cluster_path(@cluster)
 \|

@@ -9,7 +9,7 @@ describe MachinesController do
         machine_id: 1,
         name: "tpm-monster.mpi-sws.org",
         type: MachineProto::MachineType::PHYSICAL,
-        state: MachineStateProto.new(state: MachineStateProto::State::GOOD)
+        good: true
       )
       p = MachinesProto.new machines: [machine]
 

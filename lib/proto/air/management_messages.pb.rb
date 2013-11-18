@@ -11,17 +11,6 @@ class MachineProto
   end
 end
 
-class MachineStateProto
-  include Beefcake::Message
-
-  module State
-    GOOD = 1
-    CHANGING = 2
-    SW_FAILING = 3
-    HW_FAILING = 4
-  end
-end
-
 class MachinesProto
   include Beefcake::Message
 end
@@ -34,12 +23,7 @@ class MachineProto
   required :machine_id, :uint32, 1
   required :name, :string, 2
   required :type, MachineProto::MachineType, 3
-  required :state, MachineStateProto, 4
-end
-
-
-class MachineStateProto
-  required :state, MachineStateProto::State, 1
+  required :good, :bool, 4
 end
 
 
