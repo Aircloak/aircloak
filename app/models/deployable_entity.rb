@@ -1,6 +1,18 @@
 require './lib/gh.rb'
 
 class DeployableEntity < ActiveRecord::Base
+  # This before_destroy callback needs to be called
+  # before the object is destroyed. The object
+  # might get destroyed through a :dependent => :destroy
+  # from the DeployableEntity. It should not be allowed to
+  # finish the destroy if there is a build
+  # relying on this version.
+  # Since the :dependent => :destroy mechanism itself
+  # relies on callbacks we need to ensure our callback
+  # is defined before the other callbacks, in
+  # order for it to be executed first.
+  before_destroy :can_destroy?
+
   has_many :deployable_entity_versions, dependent: :destroy
 
   validates_uniqueness_of :repo
@@ -26,6 +38,17 @@ class DeployableEntity < ActiveRecord::Base
     most_recent = deployable_entity_versions.last
     return "" unless most_recent
     most_recent.status
+  end
+
+  def can_destroy?
+    deployable_entity_versions.each do |version|
+      unless version.can_destroy?
+        self.errors.add(:deployable_entity_version, 
+            "cannot delete a deployable entity with version that are part of a build")
+        return false
+      end
+    end
+    true
   end
 
 private

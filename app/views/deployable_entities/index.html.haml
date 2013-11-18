@@ -21,7 +21,11 @@
       %td= link_to deployable_entity.commits.count, deployable_entity_deployable_entity_versions_path(deployable_entity)
       %td= deployable_entity.status
       %td= link_to 'Edit', edit_deployable_entity_path(deployable_entity)
-      %td= link_to 'Destroy', deployable_entity, :method => :delete, :data => { :confirm => 'Are you sure?' }
+      %td 
+        - if deployable_entity.can_destroy?
+          = link_to 'Destroy', deployable_entity, :method => :delete, :data => { :confirm => 'Are you sure?' }
+        - else
+          Part of active build
 
 %br
 

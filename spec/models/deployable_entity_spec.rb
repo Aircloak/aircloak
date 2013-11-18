@@ -14,6 +14,15 @@ describe DeployableEntity do
   end
 
   before(:each) do
+    begin
+      BuildManager
+    rescue
+      class BuildManager; end
+    end
+    
+    BuildManager.stub(:send_build_request).and_return(true)
+    Build.destroy_all
+
     DeployableEntity.destroy_all
     DeployableEntityVersion.destroy_all
   end
@@ -43,6 +52,40 @@ describe DeployableEntity do
         d.errors.messages[:tpm_env].should_not eq(nil)
         d.errors.messages[:no_tpm_env].should_not eq(nil)
       end
+    end
+
+    it "should allow to delete an entity without any versions" do
+      d = nil
+      VCR.use_cassette('entity-save-erlattest', allow_playback_repeats: true) do
+        d = DeployableEntity.create params_for "erlattest"
+      end
+      d.can_destroy?.should eq true
+      d.destroy.destroyed?.should eq true
+    end
+
+    it "should allow to delete an entity with versions if they are not used in builds" do
+      d = nil
+      VCR.use_cassette('entity-save-erlattest', allow_playback_repeats: true) do
+        d = DeployableEntity.create params_for "erlattest"
+      end
+      dev = PreRecorded.setup_deployable_entity_version d
+      d.deployable_entity_versions << dev
+      d.can_destroy?.should eq true
+      d.destroy.destroyed?.should eq true
+    end
+
+    it "should not allow to delete an entity with a version in use in a build" do
+      d = nil
+      VCR.use_cassette('entity-save-erlattest', allow_playback_repeats: true) do
+        d = DeployableEntity.create params_for "erlattest"
+      end
+      dev = PreRecorded.setup_deployable_entity_version d
+      dev.builds << Build.new(name: "super build")
+      d.deployable_entity_versions << dev
+
+      d.can_destroy?.should eq false
+      d.destroy.should eq false
+      d.destroyed?.should eq false
     end
   end
 
