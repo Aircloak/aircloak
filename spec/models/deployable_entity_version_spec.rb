@@ -2,10 +2,16 @@ require 'spec_helper'
 
 describe DeployableEntityVersion do
   before(:each) do
+    begin
+      BuildManager
+    rescue
+      class BuildManager; end
+    end
+    
     BuildManager.stub(:send_build_request).and_return(true)
+    Build.destroy_all
     DeployableEntityVersion.destroy_all
     DeployableEntity.destroy_all
-    Build.destroy_all
     @d = nil
     VCR.use_cassette('entity-create-erlattest', allow_playback_repeats: true) do
       @d = DeployableEntity.create(
@@ -21,6 +27,15 @@ describe DeployableEntityVersion do
       d = DeployableEntityVersion.new
       d.save.should eq(false)
       d.errors.messages[:deployable_entity_id].should_not eq(nil)
+    end
+
+    it "should not be possible to destroy a version that is in a build that cannot be destroyed" do
+      dev = PreRecorded.setup_deployable_entity_version @d
+      dev.can_destroy?.should eq true
+      dev.builds << Build.new(name: "testbuild")
+      dev.can_destroy?.should eq false
+      dev.errors.messages[:build].should_not eq(nil)
+      dev.destroy.should eq false
     end
   end
 

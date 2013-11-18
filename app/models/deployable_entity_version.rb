@@ -1,4 +1,16 @@
 class DeployableEntityVersion < ActiveRecord::Base
+  # This before_destroy callback needs to be called
+  # before the object is destroyed. The object
+  # might get destroyed through a :dependent => :destroy
+  # from the DeployableEntity. It should not be allowed to
+  # finish the destroy if there is a build
+  # relying on this version.
+  # Since the :dependent => :destroy mechanism itself
+  # relies on callbacks we need to ensure our callback
+  # is defined before the other callbacks, in
+  # order for it to be executed first.
+  before_destroy :can_destroy?
+
   belongs_to :deployable_entity
   before_save :set_message_and_author
   has_many :build_versions
@@ -20,6 +32,15 @@ class DeployableEntityVersion < ActiveRecord::Base
     return "Building" unless build_completed
     return "Built" if build_completed && build_success
     return "Failed" if build_completed && ! build_success
+  end
+
+  def can_destroy?
+    unless builds.empty?
+      self.errors.add(:build, "cannot delete a deployable entity version that is part of a build")
+      false
+    else
+      true
+    end
   end
 
 private
