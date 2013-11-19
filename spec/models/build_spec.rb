@@ -3,6 +3,7 @@ require 'spec_helper'
 describe Build do
   before(:each) do
     BuildManager.stub(:send_build_request).and_return(true)
+    Cluster.destroy_all
     Build.destroy_all
     BuildVersion.destroy_all
     DeployableEntity.destroy_all
@@ -65,5 +66,23 @@ describe Build do
     b = Build.new name: "test2"
     b.save.should eq false
     b.errors.messages[:fingerprint].should_not eq nil
+  end
+
+  context "should know if it can be deleted" do
+    let(:build) { Build.create name: "test-build" }
+    let(:cluster) { Cluster.create name: "test-cluster", build: build }
+
+    it "should say it can be deleted if not part of a cluster" do
+      build.can_destroy?.should eq true
+    end
+
+    it "should say it cannot be destroyed if it is part of a cluster" do
+      cluster.build.can_destroy?.should eq false
+    end
+
+    it "should not be possible to delete a build that has a cluster" do
+      cluster.build.destroy
+      cluster.build.destroyed?.should eq false
+    end
   end
 end

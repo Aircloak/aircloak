@@ -9,6 +9,7 @@ describe DeployableEntityVersion do
     end
     
     BuildManager.stub(:send_build_request).and_return(true)
+    Cluster.destroy_all
     Build.destroy_all
     DeployableEntityVersion.destroy_all
     DeployableEntity.destroy_all

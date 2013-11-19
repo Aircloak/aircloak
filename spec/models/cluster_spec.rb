@@ -3,8 +3,8 @@ require 'spec_helper'
 describe Cluster do
   before(:each) do
     Cloak.destroy_all
-    Build.destroy_all
     Cluster.destroy_all
+    Build.destroy_all
     ClusterCloak.destroy_all
     BuildManager.stub(:send_build_request)
   end
