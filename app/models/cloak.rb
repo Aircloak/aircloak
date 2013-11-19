@@ -8,7 +8,7 @@ class Cloak < ActiveRecord::Base
   validates_presence_of :name
   validates_uniqueness_of :name, :ip
   after_create :create_inform_mannyair
-  before_destroy :can_destroy?
+  before_destroy :validate_destroyability
   after_destroy :destroy_inform_mannyair
 
   def display_name
@@ -20,12 +20,7 @@ class Cloak < ActiveRecord::Base
   end
 
   def can_destroy?
-    if cluster_cloak
-      self.errors.add(:cluster_cloak, "cannot destroy a cloak assigned to a cluster")
-      return false
-    else
-      return true
-    end
+    !cluster_cloak
   end
 
   def self.all_unassigned
@@ -47,6 +42,13 @@ class Cloak < ActiveRecord::Base
   end
 
 private
+  def validate_destroyability
+    if not can_destroy?
+      self.errors.add(:cluster_cloak, "cannot destroy a cloak assigned to a cluster")
+      return false
+    end
+  end
+
   def mannyair_machine
     "manny-air.aircloak.com"
   end

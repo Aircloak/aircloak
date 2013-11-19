@@ -10,6 +10,8 @@ describe Cloak do
 
     context "validations" do
       before(:each) do
+        # remove cluster-cloaks as we cannot remove cloaks if they are assigned to a cluster
+        ClusterCloak.destroy_all
         Cloak.destroy_all
       end
 
