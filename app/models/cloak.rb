@@ -1,4 +1,5 @@
 require './lib/proto/air/management_messages.pb'
+require './lib/protobuf_sender'
 
 class Cloak < ActiveRecord::Base
   has_one :cluster_cloak
@@ -7,6 +8,7 @@ class Cloak < ActiveRecord::Base
   validates_presence_of :name
   validates_uniqueness_of :name, :ip
   after_create :create_inform_mannyair
+  before_destroy :can_destroy?
   after_destroy :destroy_inform_mannyair
 
   def display_name
@@ -15,6 +17,15 @@ class Cloak < ActiveRecord::Base
 
   def tpm_display
     tpm ? "TPM" : "no TPM"
+  end
+
+  def can_destroy?
+    if cluster_cloak
+      self.errors.add(:cluster_cloak, "cannot destroy a cloak assigned to a cluster")
+      return false
+    else
+      return true
+    end
   end
 
   def self.all_unassigned

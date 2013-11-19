@@ -12,7 +12,8 @@
           %th Cluster
         %th
         %th
-        %th
+        - if not render_assigned
+          %th
 
     %tbody
       - cloaks.each do |cloak|
@@ -25,4 +26,5 @@
             %td= cloak.cluster.name
           %td= link_to 'Show', cloak
           %td= link_to 'Edit', edit_cloak_path(cloak)
-          %td= link_to 'Destroy', cloak, :method => :delete, :data => { :confirm => 'Are you sure?' }
+          - if not render_assigned
+            %td= link_to 'Destroy', cloak, :method => :delete, :data => { :confirm => 'Are you sure?' }

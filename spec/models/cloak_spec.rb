@@ -45,12 +45,12 @@ describe Cloak do
       end
     end
 
-    context "self.all_unassigned" do
+    context "cloak cluster interactions" do
       before(:each) do
+        ClusterCloak.destroy_all
+        Cluster.destroy_all
         Cloak.destroy_all
         Build.destroy_all
-        Cluster.destroy_all
-        ClusterCloak.destroy_all
         BuildManager.stub(:send_build_request)
       end
 
@@ -65,16 +65,29 @@ describe Cloak do
         cluster.cloaks << cloak2
         Cloak.all_unassigned.should eq [cloak3]
       end
+
+      it "should destroy a cloak not belonging to a cluster" do
+        cluster.cloaks << cloak1
+        cluster.cloaks << cloak2
+        cloak3.can_destroy?.should eq true
+        cloak3.destroy.destroyed?.should eq true
+      end
+
+      it "should not destroy a cloak belonging to a cluster" do
+        cluster.cloaks << cloak1
+        cloak1.can_destroy?.should eq false
+        cloak1.destroy.should eq false
+      end
     end
   end
 
   context "connection to manny-air" do
     before(:each) do
       Net::HTTP.stub(:delete)
+      ClusterCloak.destroy_all
+      Cluster.destroy_all
       Cloak.destroy_all
       Build.destroy_all
-      Cluster.destroy_all
-      ClusterCloak.destroy_all
       BuildManager.stub(:send_build_request)
     end
 
