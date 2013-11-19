@@ -127,6 +127,24 @@ describe DeployableEntity do
       end
     end
 
+    it "should not add a version that already exists" do
+      Gh.should_receive(:add_message_and_author)
+
+      VCR.use_cassette('entity-save-erlattest', allow_playback_repeats: true) do
+        d = DeployableEntity.new valid_params
+        d.save.should eq(true)
+
+        # Fine, now we have a valid entity
+        commit = "commit_id"
+        d.add_commit commit
+        d.deployable_entity_versions.reload.count.should eq 1
+
+        # Should not re-add a commit if it exists
+        d.add_commit commit
+        d.deployable_entity_versions.reload.count.should eq 1
+      end
+    end
+
     it "should know the status of the last build" do
       de = PreRecorded.setup_deployable_entity
  
