@@ -5,7 +5,6 @@ class Cloak < ActiveRecord::Base
   has_one :cluster, through: :cluster_cloak
   validates :ip, format: { with: /\A(((25[0-5])|(2[0-4][0-9])|([01]?[0-9][0-9]?))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9][0-9]?))/}
   validates_presence_of :name
-  validates_presence_of :good
   validates_uniqueness_of :name, :ip
   after_create :create_inform_mannyair
   after_destroy :destroy_inform_mannyair
