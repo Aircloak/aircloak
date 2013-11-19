@@ -11,14 +11,17 @@ class Cluster < ActiveRecord::Base
     @has_tpm ||= build.tpm
   end
 
-  def health_of_cloaks
-    res = Cloak.health_types.inject(Hash.new) {|r, type| r[type] = 0; r }
-    cloaks.inject(res) {|res, cloak| res[cloak.health] += 1; res }
+  def num_broken
+    cloaks.inject(0) {|res, cloak| cloak.good ? res : res + 1 }
+  end
+
+  def health
+    num_broken > 0 ? :poor : :healthy
   end
 
   def available_cloaks
-    unassigned = Cloak.all_unassigned
-    available_cloaks = (cloaks + unassigned).sort { |a, b| a.name <=> b.name }
+    global_available = Cloak.all_available
+    available_cloaks = (cloaks + global_available).sort { |a, b| a.name <=> b.name }
   end
 
   def selected_cloaks
@@ -29,15 +32,6 @@ class Cluster < ActiveRecord::Base
     old_cloaks = self.cloaks.to_a
     (new_cloaks - old_cloaks).each {|cloak| cloaks << cloak }
     (old_cloaks - new_cloaks).each {|cloak| cloak.cluster_cloak.destroy }
-  end
-
-  def health
-    healths = health_of_cloaks
-    poor_health_types = Cloak.health_types - [:good, :unknown]
-    poor_health_types.each do |phtype|
-      return :poor if healths[phtype] > 0
-    end
-    :healthy
   end
 
 private

@@ -1,22 +1,16 @@
+require './lib/proto/air/management_messages.pb'
+require './lib/protobuf_sender'
+require './lib/machine_packer'
+
 class Cloak < ActiveRecord::Base
   has_one :cluster_cloak
   has_one :cluster, through: :cluster_cloak
   validates :ip, format: { with: /\A(((25[0-5])|(2[0-4][0-9])|([01]?[0-9][0-9]?))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9][0-9]?))/}
   validates_presence_of :name
   validates_uniqueness_of :name, :ip
-  validates_inclusion_of :raw_health, :in => 0..4
-
-  def self.health_types
-    health_mappings.values
-  end
-
-  def health
-    Cloak.health_mappings[raw_health]
-  end
-
-  def set_health health
-    self.raw_health = Cloak.health_mappings.invert[health]
-  end
+  after_create :create_inform_mannyair
+  before_destroy :validate_destroyability
+  after_destroy :destroy_inform_mannyair
 
   def display_name
     name + (tpm ? "" : " (no tpm)")
@@ -26,8 +20,16 @@ class Cloak < ActiveRecord::Base
     tpm ? "TPM" : "no TPM"
   end
 
+  def can_destroy?
+    !cluster_cloak
+  end
+
   def self.all_unassigned
     Cloak.includes(:cluster_cloak).where(cluster_cloaks: { id: nil })
+  end
+
+  def self.all_available
+    Cloak.includes(:cluster_cloak).where(cluster_cloaks: { id: nil }, good: true)
   end
 
   def self.all_assigned_sorted
@@ -41,13 +43,31 @@ class Cloak < ActiveRecord::Base
   end
 
 private
-  def self.health_mappings
-    {
-      0 => :good, 
-      1 => :changing, 
-      2 => :sw_failing,
-      3 => :hw_failing,
-      4 => :unknown
-    }
+  def validate_destroyability
+    if not can_destroy?
+      self.errors.add(:cluster_cloak, "cannot destroy a cloak assigned to a cluster")
+      return false
+    end
+  end
+
+  def mannyair_machine
+    "manny-air.aircloak.com"
+  end
+
+  def mannyair_post_url
+    "http://#{mannyair_machine}/machines"
+  end
+
+  def mannyair_delete_url id
+    "http://#{mannyair_machine}/machines/#{id}"
+  end
+
+  def create_inform_mannyair
+    mp = MachinePacker.package_cloak self
+    ProtobufSender.post_to_url mannyair_post_url, mp
+  end
+
+  def destroy_inform_mannyair
+    Net::HTTP.delete(mannyair_delete_url id)
   end
 end

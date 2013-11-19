@@ -1,11 +1,14 @@
 require 'spec_helper'
+require './lib/protobuf_sender'
 
 describe Cluster do
   before(:each) do
-    Cloak.destroy_all
-    Cluster.destroy_all
-    Build.destroy_all
+    ProtobufSender.stub(:post)
+    Net::HTTP.stub(:delete)
     ClusterCloak.destroy_all
+    Cluster.destroy_all
+    Cloak.destroy_all
+    Build.destroy_all
     BuildManager.stub(:send_build_request)
   end
 
@@ -59,32 +62,15 @@ describe Cluster do
     c2.errors.messages[:cloaks].should_not eq nil
   end
 
-  it "should be able to list the health of it's cloaks" do
-    cluster = Cluster.new
-    c1 = Cloak.new
-    cluster.cloaks << c1
-    c1.set_health :good
-
-    types = Cloak.health_types - [:good]
-    types.each do |type|
-      cluster.health_of_cloaks[type].should eq 0
-    end
-    cluster.health_of_cloaks[:good].should eq 1
-  end
-
   it "should know if a cluster is healthy" do
     cluster = Cluster.new
     c = Cloak.new
     cluster.cloaks << c
 
-    c.set_health :good
     cluster.health.should eq :healthy
 
-    types = Cloak.health_types - [:good, :unknown]
-    types.each do |type|
-      c.set_health type
-      cluster.health.should eq :poor
-    end
+    c.good = false
+    cluster.health.should eq :poor
   end
 
   context "#assign_cloaks" do

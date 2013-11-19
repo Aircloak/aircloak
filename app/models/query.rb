@@ -100,19 +100,13 @@ private
   end
 
   def post_query args
-    url = URI.parse(args[:url])
-    https = Net::HTTP.new(url.host, url.port)
-    https.use_ssl = true if url.port == 443
-    # FIXME: Get the SSL cert from somewhere
-    https.verify_mode = OpenSSL::SSL::VERIFY_NONE
-    request = Net::HTTP::Post.new(url.path)
+    sock = ProtobufSender.construct_sock args[:url]
+    request = ProtobufSender.construct_request args[:url], self.cquery
     if args[:expect_response] then
       pr = PendingResult.create(query: self)
       request["QueryAuthToken"] = pr.auth_token
     end
-    request.content_type = "application/x-protobuf"
-    request.body = self.cquery.encode.buf
-    result = https.request(request)
+    ProtobufSender.post sock, request
   end
 
   def cloak_url path

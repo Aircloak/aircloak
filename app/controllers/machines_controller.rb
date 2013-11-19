@@ -3,28 +3,24 @@ require './lib/machine_packer'
 
 class MachinesController < ApplicationController
   filter_access_to :index, require: :anon_read
-  filter_access_to :update, require: :anon_write
+  filter_access_to :broken, require: :anon_write
 
   def index
     render text: MachinePacker.package_cloaks(Cloak.all).encode.buf, layout: false
   end
 
-  def update
-    ms = MachineStateProto.decode(request.body.read)
-    cloak = Cloak.find(params[:id])
-    cloak.set_health(state_to_health ms.state)
-    if cloak.save
-      render text: "Yeah, new state!  Finally something happening!", layout: false
+  def broken
+    cloak_where = Cloak.where(id: params[:id])
+    if cloak_where.size > 0
+      cloak = cloak_where.first
+      cloak.good = false
+      if cloak.save
+        render text: "*Sniff*, another one left the world of the living!", layout: false
+      else
+        render text: "I cannot do that Dave!", status: 400, layout: false
+      end
     else
-      render text: "I cannot do that Dave.", status: 400, layout: false
+      render text: "Do you even know what machines we have!?", status: 404, layout: false
     end
-  end
-
-private
-  def state_to_health state
-    return :good if state == MachineStateProto::State::GOOD
-    return :changing if state == MachineStateProto::State::CHANGING
-    return :sw_failing if state == MachineStateProto::State::SW_FAILING
-    return :hw_failing if state == MachineStateProto::State::HW_FAILING
   end
 end

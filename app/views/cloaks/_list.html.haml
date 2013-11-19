@@ -7,12 +7,13 @@
         %th Name
         %th Ip
         %th Type
-        %th Health
+        %th Good
         - if render_assigned
           %th Cluster
         %th
         %th
-        %th
+        - if not render_assigned
+          %th
 
     %tbody
       - cloaks.each do |cloak|
@@ -20,9 +21,10 @@
           %td= cloak.name
           %td= cloak.ip
           %td= cloak.tpm_display
-          %td= cloak.health
+          %td= cloak.good
           - if render_assigned
             %td= cloak.cluster.name
           %td= link_to 'Show', cloak
           %td= link_to 'Edit', edit_cloak_path(cloak)
-          %td= link_to 'Destroy', cloak, :method => :delete, :data => { :confirm => 'Are you sure?' }
+          - if not render_assigned
+            %td= link_to 'Destroy', cloak, :method => :delete, :data => { :confirm => 'Are you sure?' }

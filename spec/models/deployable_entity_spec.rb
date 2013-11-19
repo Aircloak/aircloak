@@ -20,11 +20,12 @@ describe DeployableEntity do
       class BuildManager; end
     end
     
+    Cluster.destroy_all
     BuildManager.stub(:send_build_request).and_return(true)
     Build.destroy_all
 
-    DeployableEntity.destroy_all
     DeployableEntityVersion.destroy_all
+    DeployableEntity.destroy_all
   end
 
   describe "Validations" do

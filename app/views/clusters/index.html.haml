@@ -8,8 +8,7 @@
         %th TPM
         %th Build
         %th Number of cloaks
-        - Cloak.health_types.each do |type|
-          %th= "# in state #{type}"
+        %th Broken cloaks
         %th Health
         %th
         %th
@@ -17,14 +16,12 @@
 
     %tbody
       - @clusters.each do |cluster|
-        - health = cluster.health_of_cloaks
         %tr
           %td= cluster.name
           %td= cluster.tpm
           %td= cluster.build.name
           %td= cluster.cloaks.count
-          - Cloak.health_types.each do |type|
-            %th= health[type]
+          %td= cluster.num_broken
           %td= cluster.health
           %td= link_to 'Show', cluster
           %td= link_to 'Edit', edit_cluster_path(cluster)
