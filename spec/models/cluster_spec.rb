@@ -5,10 +5,10 @@ describe Cluster do
   before(:each) do
     ProtobufSender.stub(:post)
     Net::HTTP.stub(:delete)
-    Build.destroy_all
     ClusterCloak.destroy_all
     Cluster.destroy_all
     Cloak.destroy_all
+    Build.destroy_all
     BuildManager.stub(:send_build_request)
   end
 
