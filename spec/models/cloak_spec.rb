@@ -69,8 +69,7 @@ describe Cloak do
       end
 
       it "should destroy a cloak not belonging to a cluster" do
-        cluster.cloaks << cloak1
-        cluster.cloaks << cloak2
+        cloak3.cluster.blank?.should eq true
         cloak3.can_destroy?.should eq true
         cloak3.destroy.destroyed?.should eq true
       end

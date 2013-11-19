@@ -11,12 +11,12 @@ class Cluster < ActiveRecord::Base
     @has_tpm ||= build.tpm
   end
 
-  def broken
+  def num_broken
     cloaks.inject(0) {|res, cloak| cloak.good ? res : res + 1 }
   end
 
   def health
-    broken > 0 ? :poor : :healthy
+    num_broken > 0 ? :poor : :healthy
   end
 
   def available_cloaks

@@ -1,5 +1,6 @@
 require './lib/proto/air/management_messages.pb'
 require './lib/protobuf_sender'
+require './lib/machine_packer'
 
 class Cloak < ActiveRecord::Base
   has_one :cluster_cloak
@@ -62,12 +63,7 @@ private
   end
 
   def create_inform_mannyair
-    mp = MachineProto.new(
-      machine_id: id,
-      name: name,
-      type: tpm ? MachineProto::MachineType::PHYSICAL : MachineProto::MachineType::VM,
-      good: good
-    )
+    mp = MachinePacker.package_cloak self
     ProtobufSender.post_to_url mannyair_post_url, mp
   end
 

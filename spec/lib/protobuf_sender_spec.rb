@@ -4,7 +4,7 @@ describe ProtobufSender do
   it "self.construct_sock should set ssl if https" do
     socket = double
     socket.should_receive(:use_ssl=).with(true)
-    socket.should_receive(:verify_mode=)
+    socket.stub(:verify_mode=)
     Net::HTTP.should_receive(:new).and_return(socket)
     ProtobufSender.construct_sock "https://www.example.org/"
   end
@@ -12,7 +12,7 @@ describe ProtobufSender do
   it "self.construct_sock should not set ssl if http" do
     socket = double
     socket.should_not_receive(:use_ssl=)
-    socket.should_not_receive(:verify_mode=)
+    socket.stub(:verify_mode=)
     Net::HTTP.should_receive(:new).and_return(socket)
     ProtobufSender.construct_sock "http://www.example.org/"
   end
@@ -48,7 +48,7 @@ describe ProtobufSender do
     request.should_receive(:body=).with(data)
     socket = double
     socket.should_receive(:use_ssl=)
-    socket.should_receive(:verify_mode=)
+    socket.stub(:verify_mode=)
     Net::HTTP.should_receive(:new).and_return(socket)
     socket.should_receive(:request).with(request)
     Net::HTTP::Post.should_receive(:new).with("/baz").and_return(request)

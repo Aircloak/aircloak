@@ -34,7 +34,16 @@ describe MachinesController do
       cloak = Cloak.create(name: "cloak", ip: "1.1.1.1")
       cloak.good.should eq true
       post broken_machine_path(cloak.id)
+      response.status.should be(200)
       cloak.reload.good.should eq false
+    end
+
+    it "should return with an error on unknown machines" do
+      ProtobufSender.stub(:post)
+      Net::HTTP.stub(:delete)
+      Cloak.destroy_all
+      post broken_machine_path(1)
+      response.status.should be(404)
     end
   end
 end
