@@ -34,4 +34,10 @@ describe Gh do
     expect(version).to have_received(:message=).with(@msg)
     expect(version).to have_received(:author=).with("root")
   end
+
+  it "should be able to provide the last commit id for a repo" do
+    VCR.use_cassette('erlattest-commits-on-develop', allow_playback_repeats: true) do
+      Gh.latest_commit_on_branch_for_repo("develop", "erlattest").should eq "0fe016e83797498f4fc0400aff71c0707076b901"
+    end
+  end
 end
