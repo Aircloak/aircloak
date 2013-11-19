@@ -28,7 +28,11 @@
           %td= cluster.health
           %td= link_to 'Show', cluster
           %td= link_to 'Edit', edit_cluster_path(cluster)
-          %td= link_to 'Destroy', cluster, :method => :delete, :data => { :confirm => 'Are you sure?' }
+          %td
+            - if cluster.can_destroy?
+              = link_to 'Destroy', cluster, :method => :delete, :data => { :confirm => 'Are you sure?' }
+            - else
+              Build currently in use
 
 %h4 Add a new cluster
 = render 'form'
