@@ -4,6 +4,7 @@ require './lib/proto/air/build_messages.pb.rb'
 describe BuildProgressController do
   before(:each) do
     BuildManager.stub(:send_build_request).and_return(true)
+    Cluster.destroy_all
     Build.destroy_all
   end
 
