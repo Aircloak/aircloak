@@ -2,6 +2,18 @@ require './lib/finger_print_creator.rb'
 require './lib/build_manager.rb'
 
 class Build < ActiveRecord::Base
+  # This before_destroy callback needs to be called
+  # before the object is destroyed. The object
+  # might get destroyed through a :dependent => :destroy
+  # from the DeployableEntity. It should not be allowed to
+  # finish the destroy if there is a build
+  # relying on this version.
+  # Since the :dependent => :destroy mechanism itself
+  # relies on callbacks we need to ensure our callback
+  # is defined before the other callbacks, in
+  # order for it to be executed first.
+  before_destroy :validate_destroyability
+
   validates_presence_of :name
   validates_uniqueness_of :name
   validates_uniqueness_of :fingerprint, message: "is not unique. " +
@@ -28,7 +40,18 @@ class Build < ActiveRecord::Base
     return vid || 0
   end
 
+  def can_destroy?
+    clusters.blank?
+  end
+
 private
+  def validate_destroyability
+    if not can_destroy?
+      self.errors.add(:clusters, "Cannot destroy a build with clusters")
+      false
+    end
+  end
+
   def send_request_for_building
     BuildManager.send_build_request self
   end
