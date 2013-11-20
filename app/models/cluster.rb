@@ -36,12 +36,16 @@ class Cluster < ActiveRecord::Base
   def assign_cloaks new_cloaks
     old_cloaks = self.cloaks.to_a
     (new_cloaks - old_cloaks).each {|cloak| cloaks << cloak }
+    (new_cloaks - (new_cloaks - old_cloaks)).each {|cloak| keep_cloak cloak }
     (old_cloaks - new_cloaks).each {|cloak| cloak.cluster_cloak.set_state :to_be_removed }
   end
 
+  def keep_cloak cloak
+    cloak.cluster_cloak.set_state :to_be_added unless cloak.cluster_cloak.state == :belongs_to
+  end
+
   def timestamp
-    cc_max = ClusterCloak.where(cluster: self).map(&:updated_at).max
-    [cc_max, updated_at].max.to_i
+    updated_at.to_i
   end
 
 private
