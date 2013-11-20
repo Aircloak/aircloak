@@ -28,6 +28,7 @@ class ClusterCloak < ActiveRecord::Base
       destroy
       temp_cluster.destroy if temp_cluster.cloaks.size == 0
     end
+    save
   end
 
 private
