@@ -20,6 +20,11 @@ class Cloak < ActiveRecord::Base
     tpm ? "TPM" : "no TPM"
   end
 
+  def set_broken
+    self.good = false
+    self.save
+  end
+
   def can_destroy?
     !cluster_cloak
   end

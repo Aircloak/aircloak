@@ -36,7 +36,7 @@ class Cluster < ActiveRecord::Base
   def assign_cloaks new_cloaks
     old_cloaks = self.cloaks.to_a
     (new_cloaks - old_cloaks).each {|cloak| cloaks << cloak }
-    (new_cloaks - (new_cloaks - old_cloaks)).each {|cloak| keep_cloak cloak }
+    (new_cloaks & old_cloaks).each {|cloak| keep_cloak cloak }
     (old_cloaks - new_cloaks).each {|cloak| cloak.cluster_cloak.set_state :to_be_removed }
   end
 

@@ -11,11 +11,9 @@ class MachinesController < ApplicationController
   end
 
   def broken
-    cloak_where = Cloak.where(id: params[:id])
-    if cloak_where.size > 0
-      cloak = cloak_where.first
-      cloak.good = false
-      if cloak.save
+    cloak = Cloak.find_by_id(params[:id])
+    if cloak
+      if cloak.set_broken
         render text: "*Sniff*, another one left the world of the living!", layout: false
       else
         render text: "I cannot do that Dave!", status: 400, layout: false
@@ -26,9 +24,8 @@ class MachinesController < ApplicationController
   end
 
   def synchronize
-    cloak_where = Cloak.where(id: params[:id])
-    if cloak_where.size > 0
-      cloak = cloak_where.first
+    cloak = Cloak.find_by_id(params[:id])
+    if cloak
       if cloak.cluster_cloak
         if cloak.cluster_cloak.synchronize
           render text: "Synchronization done!", layout: false
