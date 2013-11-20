@@ -19,6 +19,17 @@ class ClusterCloak < ActiveRecord::Base
     ClusterCloak.proto_state_map[raw_state]
   end
 
+  def synchronize
+    case state
+    when :to_be_added then
+      set_state :belongs_to
+    when :to_be_removed then
+      temp_cluster = cluster
+      destroy
+      temp_cluster.destroy if temp_cluster.cloaks.size == 0
+    end
+  end
+
 private
   def self.state_map
     {
