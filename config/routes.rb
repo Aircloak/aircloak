@@ -59,7 +59,7 @@ Web::Application.routes.draw do
     post 'synchronize', on: :member
   end
 
-  resources :clusters
+  resources :clusters, :except => :destroy
 
   resources :queries do
     member do
