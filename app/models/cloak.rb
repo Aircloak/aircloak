@@ -50,16 +50,12 @@ private
     end
   end
 
-  def mannyair_machine
-    "manny-air.aircloak.com"
-  end
-
   def mannyair_post_url
-    "http://#{mannyair_machine}/machines"
+    "http://#{ProtobufSender.mannyair_host}/machines"
   end
 
   def mannyair_delete_url id
-    "http://#{mannyair_machine}/machines/#{id}"
+    "http://#{ProtobufSender.mannyair_host}/machines/#{id}"
   end
 
   def create_inform_mannyair

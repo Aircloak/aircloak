@@ -23,7 +23,10 @@
           %td= cloak.tpm_display
           %td= cloak.good
           - if render_assigned
-            %td= cloak.cluster.name
+            %td
+              = cloak.cluster.name
+              - if cloak.cluster_cloak.state != :belongs_to
+                = " (#{cloak.cluster_cloak.state})"
           %td= link_to 'Show', cloak
           %td= link_to 'Edit', edit_cloak_path(cloak)
           - if not render_assigned

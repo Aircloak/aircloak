@@ -11,7 +11,7 @@ class ClustersController < ApplicationController
   end
 
   def create
-    @cluster = Cluster.create(cluster_params)
+    @cluster = Cluster.new(cluster_params)
     update_cloaks 'Cluster was successfully created.', 'new'
   end
 

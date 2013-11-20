@@ -16,6 +16,8 @@
   - if @cloak.cluster
     %b Part of cluster:
     = @cloak.cluster.name
+    - if @cloak.cluster_cloak.state != :belongs_to
+      = " (#{@cloak.cluster_cloak.state})"
   - else
     %b available
 

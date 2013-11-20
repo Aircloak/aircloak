@@ -12,35 +12,48 @@ describe Cluster do
     BuildManager.stub(:send_build_request)
   end
 
+  let (:cloak) { Cloak.create(name: "dave", ip: "9.9.9.9") }
+  let (:richard) { Cloak.create(name: "richard", ip: "10.10.10.10") }
+
   it "should have a build" do
-    c = Cluster.new name: "test"
+    c = Cluster.new(name: "test")
+    c.cloaks << cloak
     c.save.should eq false
     c.errors.messages[:build].should_not eq nil
   end
 
   it "should have a name" do
-    b = Build.new name: "build"
-    b.save.should eq true
+    b = Build.create(name: "build")
 
-    c = Cluster.new build: b
+    c = Cluster.new(build: b)
+    c.cloaks << cloak
     c.save.should eq false
     c.errors.messages[:name].should_not eq nil
   end
 
+  it "should have at least a cloak" do
+    b = Build.create(name: "build")
+
+    c = Cluster.new(name: "cluster", build: b)
+    c.save.should eq false
+    c.errors.messages[:cloaks].should_not eq nil
+  end
+
   it "should require a unique name" do
-    b = Build.new name: "build"
-    b.save.should eq true
+    b = Build.create(name: "build")
 
     c1 = Cluster.new(name: "test", build: b)
+    c1.cloaks << cloak
     c1.save.should eq true
 
     c2 = Cluster.new(name: "test", build: b)
+    c2.cloaks << richard
     c2.save.should eq false
     c2.errors.messages[:name].should_not eq nil
   end
 
   it "cloak and cluster tpm settings should match" do
-    b = Build.new name: "build"
+    b = Build.new(name: "build")
     b.tpm = false
     b.save.should eq true
 
@@ -78,10 +91,11 @@ describe Cluster do
     let! (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2") }
     let! (:cloak3) { Cloak.create(name: "baz", ip: "3.3.3.3") }
     let! (:build) { Build.create(name: "build") }
-    let! (:cluster) { Cluster.create(name: "cluster", build: build) }
+    let! (:cluster) { Cluster.new(name: "cluster", build: build) }
 
     it "should add all new selected cloaks" do
       cluster.assign_cloaks [cloak1, cloak2]
+      cluster.save.should eq true
       cloak1.reload.cluster_cloak.cluster.should eq cluster
       cloak2.reload.cluster_cloak.cluster.should eq cluster
       cloak3.reload.cluster_cloak.should eq nil
@@ -93,14 +107,54 @@ describe Cluster do
 
     it "should remove all no-longer selected cloaks" do
       cluster.assign_cloaks [cloak1, cloak2, cloak3]
+      cluster.save.should eq true
       cluster.assign_cloaks [cloak2, cloak3]
-      cloak1.reload.cluster_cloak.should eq nil
+      cloak1.reload.cluster_cloak.should_not eq nil
+      cloak1.cluster_cloak.state.should eq :to_be_removed
     end
 
     it "should keep all selected cloaks" do
       cluster.assign_cloaks [cloak1, cloak2]
+      cluster.save.should eq true
       cluster.assign_cloaks [cloak2, cloak3]
       cloak2.reload.cluster_cloak.cluster.should eq cluster
+    end
+  end
+
+  context "connection to manny-air" do
+    before(:each) do
+      Net::HTTP.stub(:delete)
+      ClusterCloak.destroy_all
+      Cluster.destroy_all
+      Cloak.destroy_all
+      Build.destroy_all
+      BuildManager.stub(:send_build_request)
+    end
+
+    let! (:build) { Build.create(name: "build") }
+    let! (:cluster) { Cluster.new(name: "cluster", build: build) }
+
+    it "should inform about new clusters" do
+      cluster.cloaks << cloak
+      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.cluster_id == cluster.id }
+      cluster.save.should eq true
+    end
+
+    it "should inform about cluster changes if cloaks are added" do
+      cluster.cloaks << cloak
+      cluster.save.should eq true
+      cluster.cloaks << richard
+      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.cluster_id == cluster.id }
+      cluster.save.should eq true
+    end
+
+    it "should inform about cluster changes if cloaks are removed" do
+      cluster.cloaks << cloak
+      cluster.cloaks << richard
+      cluster.save.should eq true
+      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.cluster_id == cluster.id }
+      cluster.assign_cloaks [cloak]
+      cluster.save.should eq true
     end
   end
 end
