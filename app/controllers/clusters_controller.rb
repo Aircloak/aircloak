@@ -1,5 +1,5 @@
 class ClustersController < ApplicationController
-  before_action :set_cluster, only: [:destroy, :show, :edit, :update]
+  before_action :set_cluster, only: [:show, :edit, :update]
 
   def index
     @clusters = Cluster.all
@@ -11,16 +11,12 @@ class ClustersController < ApplicationController
   end
 
   def create
-    @cluster = Cluster.create(cluster_params)
+    @cluster = Cluster.new(cluster_params)
     update_cloaks 'Cluster was successfully created.', 'new'
   end
 
   def update
     update_cloaks 'Cluster was successfully updated.', 'edit'
-  end
-
-  def destroy
-    @cluster.destroy
   end
 
   def show

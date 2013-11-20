@@ -56,9 +56,10 @@ Web::Application.routes.draw do
   # consumable by manny-air
   resources :machines do
     post 'broken', on: :member
+    post 'synchronize', on: :member
   end
 
-  resources :clusters
+  resources :clusters, :except => :destroy
 
   resources :queries do
     member do
