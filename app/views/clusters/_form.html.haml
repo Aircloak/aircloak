@@ -20,7 +20,7 @@
   %ul
     - @cluster.available_cloaks.each do |cloak|
       %li
-        = check_box_tag "cloak_selections[]", cloak.id, cloak.cluster == @cluster
+        = check_box_tag "cloak_selections[]", cloak.id, cloak.cluster == @cluster && cloak.cluster_cloak.state != :to_be_removed
         = cloak.display_name
 
   .control-group
