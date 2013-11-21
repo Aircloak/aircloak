@@ -9,6 +9,10 @@ class ClusterPacker
     )
   end
 
+  def self.package_clusters clusters
+    ClustersProto.new(clusters: clusters.map {|cluster| package_cluster cluster })
+  end
+
 private
   def self.package_machines cluster
     cluster.cluster_cloaks.map do |cluster_cloak|

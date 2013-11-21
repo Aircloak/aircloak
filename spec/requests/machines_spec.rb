@@ -4,7 +4,7 @@ require './lib/machine_packer.rb'
 require './lib/protobuf_sender'
 
 describe MachinesController do
-  describe "GET /machines" do
+  describe "GET /api/machines" do
     it "should provide a list of machines" do
       machine = MachineProto.new(
         machine_id: 1,
@@ -18,7 +18,7 @@ describe MachinesController do
       Cloak.stub(:all).and_return [m]
       MachinePacker.stub(:package_cloaks).with([m]).and_return(p)
 
-      get "/machines"
+      get machines_path
 
       resp = MachinesProto.decode(response.body)
       resp.should eq p
@@ -26,10 +26,11 @@ describe MachinesController do
     end
   end
 
-  describe "POST /machines/:id/broken" do
+  describe "POST /api/machines/:id/broken" do
     it "should mark a machine as brkoen" do
       ProtobufSender.stub(:post)
       Net::HTTP.stub(:delete)
+      ClusterCloak.destroy_all
       Cloak.destroy_all
       cloak = Cloak.create(name: "cloak", ip: "1.1.1.1")
       cloak.good.should eq true
@@ -47,7 +48,7 @@ describe MachinesController do
     end
   end
 
-  describe "POST /machines/:id/synchronize" do
+  describe "POST /api/machines/:id/synchronize" do
     before(:each) do
       ProtobufSender.stub(:post)
       Net::HTTP.stub(:delete)
