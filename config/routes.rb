@@ -54,7 +54,7 @@ Web::Application.routes.draw do
   # Resource that very much mimicks the cloaks resource,
   # but makes cloaked machines available in a format
   # consumable by manny-air
-  resources :machines do
+  resources :machines, path: "api/machines", only: [:index] do
     post 'broken', on: :member
     post 'synchronize', on: :member
   end
