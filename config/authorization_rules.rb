@@ -10,7 +10,8 @@ authorization do
       :commands,
       :client_binaries,
       :queries,
-      :machines
+      :machines,
+      :cluster_lists
     ], to: :anon_read
     has_permission_on [
       :verifications, 

@@ -29,6 +29,10 @@ class ClusterProto
   end
 end
 
+class ClustersProto
+  include Beefcake::Message
+end
+
 class MachineProto
   required :machine_id, :uint32, 1
   required :name, :string, 2
@@ -52,5 +56,10 @@ class ClusterProto
   required :timestamp, :uint64, 1
   required :cluster_id, :uint32, 2
   repeated :machines, ClusterProto::MachineProto, 3
+end
+
+
+class ClustersProto
+  repeated :clusters, ClusterProto, 1
 end
 

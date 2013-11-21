@@ -59,6 +59,8 @@ Web::Application.routes.draw do
     post 'synchronize', on: :member
   end
 
+  resources :cluster_lists, path: "api/clusters", only: [:index]
+
   resources :clusters, :except => :destroy
 
   resources :queries do
