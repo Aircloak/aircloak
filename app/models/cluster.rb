@@ -3,6 +3,10 @@ class Cluster < ActiveRecord::Base
   has_many :cloaks, through: :cluster_cloaks
   belongs_to :build
 
+  # A cluster that is used for an automated test of a commit will have a
+  # version_test instance. For all other clusters this will be nil
+  has_one :version_test
+
   validates :name, presence: true, uniqueness: true
   validates_presence_of :build
   validate :must_match_tpm_configuration

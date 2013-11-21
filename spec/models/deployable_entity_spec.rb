@@ -19,6 +19,8 @@ describe DeployableEntity do
     rescue
       class BuildManager; end
     end
+
+    VersionTest.stub(:new_from_deployable_entity_version)
     
     Cluster.destroy_all
     BuildManager.stub(:send_build_request).and_return(true)

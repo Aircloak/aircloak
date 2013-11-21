@@ -4,6 +4,7 @@ describe RegisterVersionController do
   before(:each) do
     DeployableEntity.destroy_all
     DeployableEntityVersion.destroy_all
+    VersionTest.stub(:new_from_deployable_entity_version)
   end
 
   describe "POST /register_versin" do

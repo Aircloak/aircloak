@@ -29,6 +29,10 @@ class Build < ActiveRecord::Base
   has_many :deployable_entity_versions, through: :build_versions
   has_many :clusters
 
+  # A build that is used for an automated test of a commit will have a
+  # version_test instance. For all other builds this will be nil
+  has_one :version_test
+
   # A build has associated with it a set of deployable entity versions.
   # In the form for creating builds we want to be able to remember which
   # deployable entity versions that are part of a build.

@@ -21,6 +21,7 @@ module PreRecorded
 
   def self.setup_deployable_entity_version de
     commit = "4023b4d576873e7bf3e2d5a6d891b982fd14f36b"
+    # VersionTest.stub(:new_from_deployable_entity_version)
     dev = DeployableEntityVersion.new commit_id: commit, deployable_entity_id: de.id
     VCR.use_cassette('premade-create-deployable-entity-version') do
       dev.save
