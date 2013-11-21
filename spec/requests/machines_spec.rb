@@ -30,6 +30,7 @@ describe MachinesController do
     it "should mark a machine as brkoen" do
       ProtobufSender.stub(:post)
       Net::HTTP.stub(:delete)
+      ClusterCloak.destroy_all
       Cloak.destroy_all
       cloak = Cloak.create(name: "cloak", ip: "1.1.1.1")
       cloak.good.should eq true
