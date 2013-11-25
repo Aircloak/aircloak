@@ -1,7 +1,0 @@
-%h1= @property.query.name
-%h2= @property.property.humanize
-
-%ul
-  - @results.each do |result|
-    %li= "#{result["str_value"]}, #{result["has_range"]}, #{result["range_min"]}, #{result["range_max"]}:"
-      %p= "#{result["joiners"]}, #{result["leavers"]}"
