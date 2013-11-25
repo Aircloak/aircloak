@@ -22,6 +22,10 @@ class ResultProto
   include Beefcake::Message
 end
 
+class ResultsProto
+  include Beefcake::Message
+end
+
 class JoinersLeaversProto
   required :joiners, :uint32, 1
   required :leavers, :uint32, 2
@@ -39,6 +43,7 @@ class PropertyProto
   optional :string, :string, 2
   optional :range, PropertyProto::RangeProto, 3
   optional :joiners_leavers, JoinersLeaversProto, 4
+  optional :accumulated_count, :uint32, 5
 end
 
 
@@ -52,7 +57,13 @@ class ResultProto
   required :analyst_id, :string, 1
   required :task_id, :fixed64, 2
   required :index, :string, 3
-  repeated :properties, PropertyProto, 4
-  repeated :exceptions, ExceptionProto, 5
+  required :result_id, :uint64, 4
+  repeated :properties, PropertyProto, 5
+  repeated :exceptions, ExceptionProto, 6
+end
+
+
+class ResultsProto
+  repeated :result_ids, :uint64, 1
 end
 

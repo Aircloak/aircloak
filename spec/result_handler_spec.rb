@@ -1,64 +1,54 @@
 require './lib/result_handler'
+require './lib/proto/air/aggregate_results.pb'
 
-# We conditionally construct the
-# Property class so the ResultHandler
-# can be tested with spec/test
-begin Property
-rescue NameError
-  class Property
-  end
-end
+class Result; end
+class Bucket; end
 
 describe ResultHandler do
-  before do
-    @query_id = 1
-    @index = "index"
-    @property_proto = double("property_proto", query_id: @query_id, label: "installed_apps", string: "Chrome", range: nil, joiners_leavers: double("joiners_leavers_proto", joiners: 2, leavers: 1))
-    @range = double("range_proto", min: 1, max: 10)
-    @property_proto_range = double("property_proto", query_id: 1, label: "installed_apps_count", string: nil, range: @range, joiners_leavers: double("joiners_leavers_proto", joiners: 3, leavers: 4))
-    @property = double("property", query_id: 1, id: 2, property: "installed_apps")
-    @property_result = double("property_result", property_id: 2, str_value: "Chrome")
-    @property_result_range = double("property_result", property_id: 2, str_value: nil, has_range: true, range_min: 1, range_max: 10)
+  it "should create a bucket from a PropertyProto (without range)" do
+    jl = JoinersLeaversProto.new(joiners: 73, leavers: 37)
+    property = PropertyProto.new(label: "label", string: "string", joiners_leavers: jl, accumulated_count: 32)
+    Bucket.should_receive(:create).with(label: "label", str_answer: "string", range_min: nil, range_max: nil,
+        joiners: 73, leavers: 37, accumulated_count: 32)
+    ResultHandler.create_bucket_for_property property
   end
 
-  it "should load existing properties if they exist" do
-    Property.should_receive(:where).with(query_id: 1, index: @index, property: "installed_apps").and_return([@property_proto])
-    p = ResultHandler.get_property! @query_id, @index, double("property", label: "installed_apps")
-    p.should_not eq(nil)
+  it "should create a bucket from a PropertyProto (with range)" do
+    jl = JoinersLeaversProto.new(joiners: 37, leavers: 73)
+    r = PropertyProto::RangeProto.new(min: -12, max: 33)
+    property = PropertyProto.new(label: "label", range: r, joiners_leavers: jl, accumulated_count: 23)
+    Bucket.should_receive(:create).with(label: "label", str_answer: nil, range_min: -12, range_max: 33,
+        joiners: 37, leavers: 73, accumulated_count: 23)
+    ResultHandler.create_bucket_for_property property
   end
 
-  it "should create properties if they do not exist" do
-    Property.should_receive(:where).with(query_id: 1, index: @index, property: "installed_apps").and_return([])
-    Property.should_receive(:create).with(query_id: 1, index: @index, property: "installed_apps").and_return(@property_proto)
-    p = ResultHandler.get_property! @query_id, @index, @property_proto
-    p.should_not eq(nil)
+  it "should create a new result from a ResultProto" do
+    task = double
+    new_result = double
+    new_result.stub(:save)
+    result = ResultProto.new(analyst_id: "analyst", task_id: 10, index: "index", result_id: 12,
+        properties: [], exceptions: [])
+    Result.should_receive(:new).with(query: task, result_id: 12).and_return(new_result)
+    ResultHandler.store_results task, result
   end
 
-  it "should load existing property results if they exist" do
-    r = double("relation")
-    r.should_receive(:where).and_return([@property_result], [@property_result_range])
-    @property.stub(property_results: r)
-    ResultHandler.get_property_result!(@property, @property_proto).should eq(@property_result)
-    ResultHandler.get_property_result!(@property, @property_proto_range).should eq(@property_result_range)
-  end
-
-  it "should create new property results if no old one exists" do
-    r = double("relation", where: [])
-    @property.stub(property_results: r)
-
-    r.should_receive(:create).with(str_value: "Chrome", has_range: false).and_return(@property_result)
-    r.should_receive(:create).with(str_value: nil, has_range: true, range_min: 1, range_max: 10).and_return(@property_result_range)
-
-    ResultHandler.get_property_result!(@property, @property_proto).should eq(@property_result)
-    ResultHandler.get_property_result!(@property, @property_proto_range).should eq(@property_result_range)
-  end
-
-  it "should add counts to property results" do
-    ResultHandler.should_receive(:'get_property!').with(@query_id, @index, @property_proto).and_return(@property)
-    ResultHandler.should_receive(:'get_property_result!').with(@property, @property_proto).and_return(@property_result)
-    relation = double("relation")
-    @property_result.should_receive(:property_result_counts).and_return(relation)
-    relation.should_receive(:create).with(joiners: 2, leavers: 1).and_return(double("prc"))
-    ResultHandler.add_property_result(@query_id, @index, @property_proto).should eq(true)
+  it "should create all buckets from a ResultProto" do
+    jl = JoinersLeaversProto.new(joiners: 73, leavers: 37)
+    property1 = PropertyProto.new(label: "label1", joiners_leavers: jl, accumulated_count: 32)
+    property2 = PropertyProto.new(label: "label2", joiners_leavers: jl, accumulated_count: 32)
+    bucket1 = double
+    bucket2 = double
+    task = double
+    buckets = double
+    new_result = double(buckets: buckets)
+    new_result.stub(:save)
+    ResultHandler.should_receive(:create_bucket_for_property).with(property1).and_return(bucket1)
+    ResultHandler.should_receive(:create_bucket_for_property).with(property2).and_return(bucket2)
+    buckets.should_receive(:<<).with(bucket1)
+    buckets.should_receive(:<<).with(bucket2)
+    result = ResultProto.new(analyst_id: "analyst", task_id: 10, index: "index", result_id: 12,
+        properties: [property1, property2], exceptions: [])
+    Result.should_receive(:new).with(query: task, result_id: 12).and_return(new_result)
+    ResultHandler.store_results task, result
   end
 end

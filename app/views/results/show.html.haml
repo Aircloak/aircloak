@@ -1,3 +1,13 @@
 %h1= @query.name
 
-%p= @query.properties.count
+%table
+  %tr
+    %th Bucket
+    - @query.results.each do |result|
+      %th= result.result_id
+  - @buckets.each do |bucket|
+      %tr
+        %td= bucket[:name]
+        - @results.each do |result|
+          - r = bucket[:results][result.result_id]
+          %td= r ? r : "--"
