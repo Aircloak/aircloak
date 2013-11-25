@@ -1,5 +1,7 @@
 require 'spec_helper'
 require './lib/proto/air/aggregate_results.pb'
+require './app/models/result'
+require './app/models/bucket'
 
 describe "ResultsController" do
   describe "POST /results" do
@@ -17,8 +19,8 @@ describe "ResultsController" do
 
       # We remove existing properties, so we know
       # what to expect after the test.
-      Property.destroy_all
-      Property.count.should eq(0)
+      Result.destroy_all
+      Result.count.should eq(0)
       props = [
         PropertyProto.new(label: "installed_apps",
                           string: "Chrome",
