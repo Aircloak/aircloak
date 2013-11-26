@@ -17,6 +17,20 @@ end
 
 class ClusterProto
   include Beefcake::Message
+
+  module MachineState
+    BELONGS_TO = 1
+    TO_BE_ADDED = 2
+    TO_BE_REMOVED = 3
+  end
+
+  class MachineProto
+    include Beefcake::Message
+  end
+end
+
+class ClustersProto
+  include Beefcake::Message
 end
 
 class MachineProto
@@ -33,7 +47,19 @@ end
 
 
 class ClusterProto
-  required :cluster_id, :uint32, 1
-  repeated :machine_ids, :uint32, 2
+
+  class MachineProto
+    required :machine_id, :uint32, 1
+    required :state, ClusterProto::MachineState, 2
+  end
+
+  required :timestamp, :uint64, 1
+  required :cluster_id, :uint32, 2
+  repeated :machines, ClusterProto::MachineProto, 3
+end
+
+
+class ClustersProto
+  repeated :clusters, ClusterProto, 1
 end
 

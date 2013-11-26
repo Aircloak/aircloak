@@ -20,6 +20,11 @@ class Cloak < ActiveRecord::Base
     tpm ? "TPM" : "no TPM"
   end
 
+  def set_broken
+    self.good = false
+    self.save
+  end
+
   def can_destroy?
     !cluster_cloak
   end
@@ -50,16 +55,12 @@ private
     end
   end
 
-  def mannyair_machine
-    "manny-air.aircloak.com"
-  end
-
   def mannyair_post_url
-    "http://#{mannyair_machine}/machines"
+    "http://#{ProtobufSender.mannyair_host}/machines"
   end
 
   def mannyair_delete_url id
-    "http://#{mannyair_machine}/machines/#{id}"
+    "http://#{ProtobufSender.mannyair_host}/machines/#{id}"
   end
 
   def create_inform_mannyair

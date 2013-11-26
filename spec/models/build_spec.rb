@@ -1,9 +1,14 @@
 require 'spec_helper'
+require './lib/protobuf_sender'
 
 describe Build do
   before(:each) do
     VersionTest.stub(:new_from_deployable_entity_version)
+    ProtobufSender.stub(:post)
+    Net::HTTP.stub(:delete)
     BuildManager.stub(:send_build_request).and_return(true)
+    ClusterCloak.destroy_all
+    Cloak.destroy_all
     Cluster.destroy_all
     Build.destroy_all
     BuildVersion.destroy_all
@@ -71,7 +76,8 @@ describe Build do
 
   context "should know if it can be deleted" do
     let(:build) { Build.create name: "test-build" }
-    let(:cluster) { Cluster.create name: "test-cluster", build: build }
+    let(:cloak) { Cloak.create name: "cloak", ip: "1.1.1.1" }
+    let(:cluster) { Cluster.create name: "test-cluster", build: build, cloaks: [cloak] }
 
     it "should say it can be deleted if not part of a cluster" do
       build.can_destroy?.should eq true

@@ -29,4 +29,8 @@ class ProtobufSender
     request = construct_request url_string, pb
     post sock, request
   end
+
+  def self.mannyair_host
+    "manny-air.aircloak.com"
+  end
 end

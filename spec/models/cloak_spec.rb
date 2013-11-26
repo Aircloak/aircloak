@@ -60,15 +60,26 @@ describe Cloak do
       let! (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2") }
       let! (:cloak3) { Cloak.create(name: "baz", ip: "3.3.3.3") }
       let! (:build) { Build.create(name: "build") }
-      let! (:cluster) { Cluster.create(name: "cluster", build: build) }
+      let! (:cluster) { Cluster.new(name: "cluster", build: build) }
 
       it "should return all unassigned cloaks" do
         cluster.cloaks << cloak1
         cluster.cloaks << cloak2
+        cluster.save.should eq true
         Cloak.all_unassigned.should eq [cloak3]
       end
 
-      it "should destroy a cloak not belonging to a cluster" do
+      it "should destroy a cloak not belonging to a cluster if there is no cluster" do
+        cloak3.cluster.blank?.should eq true
+        cloak3.can_destroy?.should eq true
+        cloak3.destroy.destroyed?.should eq true
+      end
+
+      it "should destroy a cloak not belonging to a cluster if there is a cluster" do
+        # create at least one cluster
+        cluster.cloaks << cloak1
+        cluster.save.should eq true
+        # real test
         cloak3.cluster.blank?.should eq true
         cloak3.can_destroy?.should eq true
         cloak3.destroy.destroyed?.should eq true
@@ -76,6 +87,7 @@ describe Cloak do
 
       it "should not destroy a cloak belonging to a cluster" do
         cluster.cloaks << cloak1
+        cluster.save.should eq true
         cloak1.can_destroy?.should eq false
         cloak1.destroy.should eq false
       end
