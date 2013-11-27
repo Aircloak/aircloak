@@ -13,6 +13,7 @@ class ClusterCloak < ActiveRecord::Base
 
   def set_state new_state
     self.update(raw_state: ClusterCloak.state_map.invert[new_state])
+    cluster.cloak_ready if new_state == :belongs_to
   end
 
   def proto_state

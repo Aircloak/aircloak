@@ -19,6 +19,8 @@ describe DeployableEntity do
     rescue
       class BuildManager; end
     end
+
+    VersionTest.stub(:new_from_deployable_entity_version)
     
     Cluster.destroy_all
     BuildManager.stub(:send_build_request).and_return(true)
@@ -124,6 +126,24 @@ describe DeployableEntity do
         c = DeployableEntityVersion.where(commit_id: commit).first 
         c.deployable_entity.should eq(d)
         d.commits.should eq([c])
+      end
+    end
+
+    it "should not add a version that already exists" do
+      Gh.should_receive(:add_message_and_author)
+
+      VCR.use_cassette('entity-save-erlattest', allow_playback_repeats: true) do
+        d = DeployableEntity.new valid_params
+        d.save.should eq(true)
+
+        # Fine, now we have a valid entity
+        commit = "commit_id"
+        d.add_commit commit
+        d.deployable_entity_versions.reload.count.should eq 1
+
+        # Should not re-add a commit if it exists
+        d.add_commit commit
+        d.deployable_entity_versions.reload.count.should eq 1
       end
     end
 

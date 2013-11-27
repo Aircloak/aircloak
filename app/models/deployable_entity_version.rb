@@ -13,8 +13,13 @@ class DeployableEntityVersion < ActiveRecord::Base
 
   belongs_to :deployable_entity
   before_save :set_message_and_author
+  after_create :schedule_test
   has_many :build_versions
   has_many :builds, through: :build_versions
+  
+  # version_test is only set for commits that have a test
+  # run on them.
+  has_one :version_test
 
   validates_presence_of :deployable_entity_id
   validates_uniqueness_of :commit_id
@@ -47,5 +52,9 @@ private
   def set_message_and_author
     return if self.message and self.author
     Gh.add_message_and_author self
+  end
+
+  def schedule_test
+    VersionTest.new_from_deployable_entity_version self
   end
 end

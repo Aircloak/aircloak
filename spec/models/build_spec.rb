@@ -3,6 +3,7 @@ require './lib/protobuf_sender'
 
 describe Build do
   before(:each) do
+    VersionTest.stub(:new_from_deployable_entity_version)
     ProtobufSender.stub(:post)
     Net::HTTP.stub(:delete)
     BuildManager.stub(:send_build_request).and_return(true)
@@ -89,6 +90,35 @@ describe Build do
     it "should not be possible to delete a build that has a cluster" do
       cluster.build.destroy
       cluster.build.destroyed?.should eq false
+    end
+  end
+
+  it "should mark itself as done when mark_complete is called" do
+    b = Build.create(name: "test name")
+    expect{b.mark_complete}.to change{b.build_completed}.from(nil).to(true)
+  end
+
+  it "should retain success status from mark_complete call" do
+    b = Build.create(name: "test name")
+    expect{b.mark_complete success: true}.to change{b.build_success}.from(nil).to(true)
+    expect{b.mark_complete success: false}.to change{b.build_success}.from(true).to(false)
+  end
+
+  context "testing" do
+    it "should notify the version test, if it has one, when the build has completed" do
+      b = Build.new
+      v = VersionTest.new
+      b.version_test = v
+      v.should_receive(:mark_build_as_complete)
+      b.mark_complete success: true
+    end
+
+    it "should invalidate a version test if a build fails" do
+      b = Build.new
+      v = VersionTest.new
+      b.version_test = v
+      v.should_receive(:mark_build_as_failed)
+      b.mark_complete success: false
     end
   end
 end

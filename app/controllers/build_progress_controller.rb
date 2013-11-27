@@ -36,14 +36,11 @@ class BuildProgressController < ApplicationController
   def build_progress
     r = BuildResponseProto.decode(request.body.read)
     build = Build.find(r.build_id)
-    build.build_completed = true
-    if r.status == BuildResponseProto::Status::OK then
-      build.build_success = true
+    success = case r.status 
+      when BuildResponseProto::Status::OK then true
+      when BuildResponseProto::Status::ERROR then false
     end
-    if r.status == BuildResponseProto::Status::ERROR then
-      build.build_success = false
-    end
-    build.save
+    build.mark_complete success: success
   rescue ActiveRecord::RecordNotFound
   ensure
     render text: "Fab! Thanks!", layout: false

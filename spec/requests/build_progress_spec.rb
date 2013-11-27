@@ -1,5 +1,6 @@
 require 'spec_helper'
 require './lib/proto/air/build_messages.pb.rb'
+require './lib/build_manager'
 
 describe BuildProgressController do
   before(:each) do
@@ -13,9 +14,10 @@ describe BuildProgressController do
 
   describe "POST /register_build_progress" do
     it "should fail gracefully for missing builds" do
-      Build.where(id: 123).should eq []
+      build_id = 123
+      Build.should_receive(:find).with(build_id) { raise ActiveRecord::RecordNotFound.new }
       brp = BuildResponseProto.new(
-        build_id: 123,
+        build_id: build_id,
         status: BuildResponseProto::Status::OK,
       )
       post '/register_build_progress', brp.encode.buf
@@ -23,32 +25,29 @@ describe BuildProgressController do
     end
 
     it "should mark builds as completed and set success" do
-      b = Build.create(name: "test-build")
-      b.build_completed.should eq nil
+      build_id = 123
+      build = double
+      build.should_receive(:mark_complete).with(success: true)
+      Build.should_receive(:find).with(build_id).and_return build
       brp = BuildResponseProto.new(
-        build_id: b.id,
+        build_id: build_id,
         status: BuildResponseProto::Status::OK,
       )
       post '/register_build_progress', brp.encode.buf
       response.status.should be(200)
-      b1 = Build.find(b.id)
-      b1.build_completed.should eq true
-      b1.build_success.should eq true
     end
 
     it "should mark builds as completed and set failure" do
-      b = Build.create(name: "test-build")
-      b.build_completed.should eq nil
+      build_id = 123
+      build = double
+      build.should_receive(:mark_complete).with(success: false)
+      Build.should_receive(:find).with(build_id).and_return build
       brp = BuildResponseProto.new(
-        build_id: b.id,
+        build_id: build_id,
         status: BuildResponseProto::Status::ERROR,
-        error_message: "msg"
       )
       post '/register_build_progress', brp.encode.buf
       response.status.should be(200)
-      b1 = Build.find(b.id)
-      b1.build_completed.should eq true
-      b1.build_success.should eq false
     end
   end
 
