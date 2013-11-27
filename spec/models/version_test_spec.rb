@@ -1,16 +1,97 @@
 require 'spec_helper'
+require './lib/protobuf_sender'
 
 describe VersionTest do
   before(:each) do
-    DeployableEntity.destroy_all
-    DeployableEntityVersion.destroy_all
-    VersionTest.destroy_all
+    ProtobufSender.stub(:post)
+    Net::HTTP.stub(:delete)
+    Cluster.delete_all
+    ClusterCloak.delete_all
+    Build.delete_all
+    Cloak.delete_all
+    DeployableEntityVersion.delete_all
+    DeployableEntity.delete_all
+    VersionTest.delete_all
+  end
+
+  def create_cloaks
+    4.times {|n| Cloak.create(name: "test #{n}", tpm: false, ip: "#{n}.#{n}.#{n}.#{n}")}
   end
 
   let(:entity) { PreRecorded.setup_deployable_entity }
   let(:entity_version) { PreRecorded.setup_deployable_entity_version entity }
+  let(:version_test) { entity_version.version_test }
 
   it "should create a new VersionTest and assign it to the version" do
-    entity_version.version_test.deployable_entity_version.id.should be entity_version.id
+    version_test.deployable_entity_version.id.should be entity_version.id
+  end
+
+  it "should create a new build including the entity under test" do
+    version_test.build.deployable_entity_versions.should include(entity_version)
+  end
+
+  it "should create a cluster for the test build given the build has completed" do
+    create_cloaks
+    version_test.mark_build_as_complete.cluster.should_not eq nil
+  end
+
+  it "should have a cluster for the given build" do
+    create_cloaks
+    version_test.mark_build_as_complete.cluster.build.should be version_test.build
+  end
+
+  it "should mark itself as failed if it cannot create a cluster" do
+    Cloak.all_available.count.should eq 0
+    version_test.mark_build_as_complete
+    version_test.test_complete.should eq true
+    version_test.test_success.should eq false
+  end
+
+  it "should mark itself as failed if a build fails" do
+    version_test.mark_build_as_failed
+    version_test.test_complete.should eq true
+    version_test.test_success.should eq false
+  end
+
+  it "should should notify the test server when the cluster setup has completed" do
+    create_cloaks
+    ProtobufSender.should_receive(:post_to_url)
+    version_test.mark_build_as_complete
+    version_test.mark_cluster_as_ready
+  end
+
+  it "should package itself as a test request" do
+    create_cloaks
+    version_test.mark_build_as_complete
+    version_test.as_test_request.id.should eq version_test.id
+    version_test.as_test_request.cluster_nodes.each do |node|
+      Cloak.find_by_name(node).should_not eq nil
+    end
+  end
+
+  def results_pb args={}
+    TestResponsePB.new(
+      id: args[:id] || 1,
+      success: args[:success] || false,
+      transcript: args[:transcript] || "none"
+    )
+  end
+
+  it "should mark a test as completed and failed if test server reports failure" do
+    version_test.process_result results_pb(success: false)
+    version_test.test_complete.should eq true
+    version_test.test_success.should eq false
+  end
+
+  it "should mark a test as completed and succeeded if test server reports failure" do
+    version_test.process_result results_pb(success: true)
+    version_test.test_complete.should eq true
+    version_test.test_success.should eq true
+  end
+
+  it "should mark recall the test transcript" do
+    transcript = "this test was so much fun"
+    version_test.process_result results_pb(transcript: transcript)
+    version_test.test_output.should eq transcript
   end
 end

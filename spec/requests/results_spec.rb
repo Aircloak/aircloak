@@ -27,7 +27,7 @@ describe "ResultsController" do
                           string: "Safari",
                           joiners_leavers: JoinersLeaversProto.new(joiners: 1, leavers:0))
       ]
-      rp = ResultProto.new(analyst_id: "analyst", task_id: q.id, index: "index", properties: props)
+      rp = ResultProto.new(analyst_id: "analyst", task_id: q.id, index: "index", properties: props, result_id: 1)
 
       post "/results", rp.encode.buf
 

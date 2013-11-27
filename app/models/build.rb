@@ -48,6 +48,16 @@ class Build < ActiveRecord::Base
     clusters.blank?
   end
 
+  def mark_complete args={}
+    self.build_completed = true
+    self.build_success = args[:success] || false
+    if version_test
+      version_test.mark_build_as_complete if args[:success]
+      version_test.mark_build_as_failed unless args[:success]
+    end
+    save
+  end
+
 private
   def validate_destroyability
     if not can_destroy?

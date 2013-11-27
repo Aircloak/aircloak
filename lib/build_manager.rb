@@ -25,4 +25,22 @@ class BuildManager
     request.body = build_request.encode.buf
     https.request(request)
   end
+
+  def self.all_entities_except this_one
+    DeployableEntity.where("id != (?)", this_one.id)
+  end
+
+  def self.find_right_versions entities
+    entities.map do |entity|
+      required_version = Gh.latest_commit_on_branch_for_repo "develop", entity.repo
+      entity.add_commit required_version
+      DeployableEntityVersion.find_by_commit_id required_version
+    end
+  end
+
+  def self.test_build_for_version version
+    other_entities = all_entities_except(version.deployable_entity)
+    all_versions = (find_right_versions other_entities) << version
+    Build.new name: "testbuild #{version.commit_id}", deployable_entity_versions: all_versions
+  end
 end

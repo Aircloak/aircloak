@@ -48,8 +48,25 @@ class Cluster < ActiveRecord::Base
     cloak.cluster_cloak.set_state :to_be_added unless cloak.cluster_cloak.state == :belongs_to
   end
 
+  # Creates a cluster for testing a particular build.
+  # It will be assigned three random cloak computers
+  # that do not have TPMs (these are likely to be VMs,
+  # but this might not be true in the future).
+  def self.test_cluster_for_build build
+    cloaks = Cloak.cloaks_for_build_testing
+    Cluster.create(build: build, name: "Test cluster - #{build.name}", cloaks: cloaks)
+  end
+
   def timestamp
     updated_at.to_i
+  end
+
+  def cloak_ready
+    return unless version_test
+    cluster_cloaks.each do |cc|
+      return unless cc.state == :belongs_to
+    end
+    version_test.mark_cluster_as_ready
   end
 
 private
