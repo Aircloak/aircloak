@@ -1,12 +1,8 @@
+require './spec/spec_helper'
 require './lib/result_handler'
 require './lib/proto/air/aggregate_results.pb'
 
 describe ResultHandler do
-  before(:each) do
-    class Result; end
-    class Bucket; end
-  end
-
   it "should create a bucket from a PropertyProto (without range)" do
     jl = JoinersLeaversProto.new(joiners: 73, leavers: 37)
     property = PropertyProto.new(label: "label", string: "string", joiners_leavers: jl, accumulated_count: 32)
