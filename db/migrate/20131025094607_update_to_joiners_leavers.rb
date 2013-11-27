@@ -2,7 +2,7 @@ class UpdateToJoinersLeavers < ActiveRecord::Migration
   def change
     reversible do |dir|
       dir.up do
-        Property.destroy_all
+        Property.destroy_all if Object.const_defined?('Property')
         ExceptionResult.destroy_all
         add_column :properties, :index, :string
         add_column :property_results, :range_min, :integer
@@ -19,7 +19,7 @@ class UpdateToJoinersLeavers < ActiveRecord::Migration
         remove_column :exception_results, :stack
       end
       dir.down do
-        Property.destroy_all
+        Property.destroy_all if Object.const_defined?('Property')
         ExceptionResult.destroy_all
         remove_column :properties, :index
         remove_column :property_results, :range_min

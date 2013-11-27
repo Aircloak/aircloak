@@ -53,8 +53,7 @@ authorization do
                        :permissions, 
                        :user_permissions], to: :manage
     has_permission_on [:authorization_rules, 
-                       :authorization_usages,
-                       :properties], :to => :read
+                       :authorization_usages], :to => :read
   end
   
   # role :user do

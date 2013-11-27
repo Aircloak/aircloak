@@ -17,8 +17,8 @@ describe "ResultsController" do
 
       # We remove existing properties, so we know
       # what to expect after the test.
-      Property.destroy_all
-      Property.count.should eq(0)
+      Result.destroy_all
+      Result.count.should eq(0)
       props = [
         PropertyProto.new(label: "installed_apps",
                           string: "Chrome",
@@ -27,17 +27,18 @@ describe "ResultsController" do
                           string: "Safari",
                           joiners_leavers: JoinersLeaversProto.new(joiners: 1, leavers:0))
       ]
-      rp = ResultProto.new(analyst_id: "analyst", task_id: q.id, index: "index", properties: props)
+      rp = ResultProto.new(analyst_id: "analyst", task_id: q.id, index: "index", properties: props,
+          result_id: 12)
 
       post "/results", rp.encode.buf
 
-      Property.count.should eq(1)
-      PropertyResult.count.should eq(2)
-      PropertyResult.all.map(&:str_value).sort.should eq(["Chrome", "Safari"])
-      PropertyResult.all.map(&:has_range).should eq([false, false])
-      PropertyResultCount.count.should eq(2)
-      PropertyResultCount.all.map(&:joiners).sort.should eq([1,2])
-      PropertyResultCount.all.map(&:leavers).should eq([0,0])
+      Result.count.should eq(1)
+      Bucket.count.should eq(2)
+      Bucket.all.map(&:str_answer).sort.should eq(["Chrome", "Safari"])
+      Bucket.all.map(&:range_min).should eq([nil, nil])
+      Bucket.all.map(&:range_max).should eq([nil, nil])
+      Bucket.all.map(&:joiners).sort.should eq([1,2])
+      Bucket.all.map(&:leavers).should eq([0,0])
 
       response.status.should be(200)
     end
