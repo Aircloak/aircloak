@@ -25,8 +25,8 @@ class Query < ActiveRecord::Base
       query_id: self.id,
       index: "all_users",
       # TODO: Change to real id of analyst when we start introducing that
-      analyst_id: self.task.system_query ? "aircloak" : "some_analyst",
-      system_query: self.task.system_query,
+      analyst_id: self.task.system_task ? "aircloak" : "some_analyst",
+      system_query: self.task.system_task,
       main_class: self.task.main_package
     )
 
@@ -71,7 +71,7 @@ class Query < ActiveRecord::Base
 
   # The name of whom this query runs on behalf of
   def on_behalf_of
-    task.system_query ? "Aircloak" : "Analyst"
+    task.system_task ? "Aircloak" : "Analyst"
   end
 
   def ready_for_primetime

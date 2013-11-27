@@ -1,8 +1,8 @@
 class Task < ActiveRecord::Base
   has_many :queries
 
-  validates :name, :packaged_data, :main_package, :presence => true
-  validates_uniqueness_of :name
+  validates :packaged_data, :main_package, :presence => true
+  validates_uniqueness_of :main_package
   validate :existing_payload_identifier
 
   before_validation :should_have_payload_identifier?
