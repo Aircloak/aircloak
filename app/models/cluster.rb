@@ -5,6 +5,8 @@ class Cluster < ActiveRecord::Base
   has_many :cloaks, through: :cluster_cloaks
   belongs_to :build
 
+  has_many :queries, dependent: :destroy
+
   validates :name, presence: true, uniqueness: true
   validates_presence_of :build
   validate :must_match_tpm_configuration
