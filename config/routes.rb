@@ -74,9 +74,6 @@ Web::Application.routes.draw do
     member do
       post "execute_as_batch_query"
     end
-    collection do
-      post "upload_query_data"
-    end
   end
   resources :results
 

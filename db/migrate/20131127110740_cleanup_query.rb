@@ -9,6 +9,7 @@ class CleanupQuery < ActiveRecord::Migration
         remove_column :queries, :identifier
         remove_column :queries, :system_query
         remove_column :queries, :mutator
+        remove_column :queries, :main_package
         remove_column :queries, :packaged_data
         remove_column :queries, :manages_indices
 
