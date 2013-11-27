@@ -2,18 +2,18 @@ class Bucket < ActiveRecord::Base
   belongs_to :result
   has_one :query, through: :result
 
-  # string to display the score
-  def self.display_score score
-    case score
+  # string to display the count
+  def self.display_count count
+    case count
       when 0 then :no_change
-      when self.too_big_score then :too_big
-      else score
+      when self.too_big_count then :too_big
+      else count
     end
   end
 
-  # the score representing "too_big"
-  def self.too_big_score
-    1024*1024*1024*4-1  # TODO: lookup how to make 2^something in Ruby
+  # the count representing "too_big"
+  def self.too_big_count
+    2**32 - 1
   end
 
   def display_name
@@ -21,23 +21,15 @@ class Bucket < ActiveRecord::Base
   end
 
   def display_result
-    "#{accumulated_count} (#{Bucket.display_score joiners}/#{Bucket.display_score leavers})"
+    "#{accumulated_count} (#{Bucket.display_count joiners}/#{Bucket.display_count leavers})"
   end
 
 private
   def display_name_str_answer
-    if str_answer
-      ": #{str_answer}"
-    else
-      ""
-    end
+    str_answer ? ": #{str_answer}" : ""
   end
 
   def display_name_range
-    if range_min
-      " [#{range_min},#{range_max}]"
-    else
-      ""
-    end
+    range_min ? " [#{range_min},#{range_max}]" : ""
   end
 end

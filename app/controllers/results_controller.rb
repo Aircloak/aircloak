@@ -52,7 +52,7 @@ private
     @buckets = {}
     buckets.each do |bucket|
       name = bucket.display_name
-      @buckets[name] = {name: name} unless @buckets[name]
+      @buckets[name] ||= {name: name, bucket: {}}
       @buckets[name][:results][bucket.result.result_id] = bucket.display_result
     end
   end

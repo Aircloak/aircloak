@@ -1,7 +1,7 @@
 require 'spec_helper'
 require './lib/proto/air/aggregate_results.pb'
-require './app/models/result'
-require './app/models/bucket'
+#require './app/models/result'
+#require './app/models/bucket'
 
 describe "ResultsController" do
   describe "POST /results" do
