@@ -47,6 +47,9 @@ class TasksController < ApplicationController
     else
       render text: "I cannot do that Dave!", status: 400
     end
+    # after updating task binary we need to ensure that the clusters get the new code...
+    # this update is done in the save hook of the corresponding query model, so we use that
+    queries.each {|query| query.save}
   end
 
 private
