@@ -5,17 +5,7 @@
     %p Select a property you want to see
 
     - @queries.each do |query|
-      %h2= query.name
-      - unless query.properties.count == 0
-        %ul
-          - query.properties.each do |p|
-            %li
-              = link_to p.property.humanize, property_path(p)
-              [
-              = link_to "Destroy", result_path(p.id), method: :delete
-              ]
-      - else
-        %p No properties to report.
+      %h2= link_to query.name, result_path(query.query_id)
 
   - else
     %p There are no queries to show results from.

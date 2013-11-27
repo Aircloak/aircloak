@@ -9,7 +9,8 @@ class Query < ActiveRecord::Base
   has_many :query_indices
   belongs_to :used_index, class_name: :query_index, foreign_key: :index_id
 
-  has_many :properties, dependent: :destroy
+  has_many :results, dependent: :destroy
+  has_many :buckets, through: :result
   has_many :exception_results, dependent: :destroy
 
   belongs_to :index
