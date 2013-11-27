@@ -1,5 +1,5 @@
 require './lib/build_manager.rb'
-require './lib/Gh.rb'
+require './lib/gh.rb'
 
 describe BuildManager do
   before(:each) do
