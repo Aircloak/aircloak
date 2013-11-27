@@ -1,3 +1,4 @@
+require './lib/proto/air/query.pb'
 require './lib/proto/air/query_upload.pb'
 
 class TasksController < ApplicationController
@@ -19,6 +20,7 @@ class TasksController < ApplicationController
 
   # PATCH/PUT /tasks/:id
   def update
+    @task.ready = true
     if @task.update(task_params)
       redirect_to tasks_path, notice: 'Task was successfully updated.'
     else

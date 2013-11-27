@@ -43,6 +43,7 @@ authorization do
   role :admin do
     includes [:ops, :deploy_manager]
     has_permission_on [:queries, 
+                       :tasks,
                        :results, 
                        :users, 
                        :deployable_entities,

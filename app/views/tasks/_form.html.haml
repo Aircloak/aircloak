@@ -7,9 +7,6 @@
           - @task.errors.full_messages.each do |msg|
             %li= msg
 
-    = control_group(:name, @task) do
-      = f.label :name, :class => "control-label"
-      .controls= f.text_field :name
     .control-group
       .controls
         = @task.main_package

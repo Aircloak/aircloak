@@ -34,8 +34,11 @@
     - @not_ready_tasks.each do |task|
       %tr
         %td= task.main_package
-        %td= link_to 'Add query', edit_task_path(task), class: "btn btn-mini"
+        %td= link_to 'Add task', edit_task_path(task), class: "btn btn-mini"
         %td= link_to 'Destroy', task, :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
   %br
+
+- if @ready_tasks.count + @not_ready_tasks.count == 0
+  %h1 No tasks available
 
 %p To add a new task, please upload it using the Query Uploader java application that can be found in the Queries repository.
