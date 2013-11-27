@@ -2,6 +2,8 @@ require './lib/proto/air/management_messages.pb'
 require './lib/protobuf_sender'
 require './lib/machine_packer'
 
+class NotEnoughCloaks < Exception; end
+
 class Cloak < ActiveRecord::Base
   has_one :cluster_cloak
   has_one :cluster, through: :cluster_cloak
@@ -45,6 +47,12 @@ class Cloak < ActiveRecord::Base
       when 1 then 1
       end
     end
+  end
+
+  def self.cloaks_for_build_testing
+    cloaks = Cloak.all_available.where(tpm: false).limit(3)
+    raise NotEnoughCloaks.new if cloaks.count < 3
+    cloaks
   end
 
 private

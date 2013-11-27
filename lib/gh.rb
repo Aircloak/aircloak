@@ -15,6 +15,11 @@ class Gh
     version.author = commit.author.name
   end
 
+  def self.latest_commit_on_branch_for_repo branch, repo
+    commits = github.repos.commits.list "aircloak", repo, sha: branch
+    commits.first.sha
+  end
+
 private
   def self.github
     @github ||= Github.new do |config|

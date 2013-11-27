@@ -7,6 +7,10 @@ class Cluster < ActiveRecord::Base
 
   has_many :queries, dependent: :destroy
 
+  # A cluster that is used for an automated test of a commit will have a
+  # version_test instance. For all other clusters this will be nil
+  has_one :version_test
+
   validates :name, presence: true, uniqueness: true
   validates_presence_of :build
   validate :must_match_tpm_configuration
@@ -46,8 +50,25 @@ class Cluster < ActiveRecord::Base
     cloak.cluster_cloak.set_state :to_be_added unless cloak.cluster_cloak.state == :belongs_to
   end
 
+  # Creates a cluster for testing a particular build.
+  # It will be assigned three random cloak computers
+  # that do not have TPMs (these are likely to be VMs,
+  # but this might not be true in the future).
+  def self.test_cluster_for_build build
+    cloaks = Cloak.cloaks_for_build_testing
+    Cluster.create(build: build, name: "Test cluster - #{build.name}", cloaks: cloaks)
+  end
+
   def timestamp
     updated_at.to_i
+  end
+
+  def cloak_ready
+    return unless version_test
+    cluster_cloaks.each do |cc|
+      return unless cc.state == :belongs_to
+    end
+    version_test.mark_cluster_as_ready
   end
 
 private
