@@ -62,10 +62,13 @@ class Query < ActiveRecord::Base
     if task.update_task
       raise NotABatchQueryException.new("Query #{self.id} uses an update task, not a batch task")
     end
-    response = post_query url: cloak_url("batch_query"), expect_response: true
-    d =  ActiveSupport::JSON.decode(response.body)
-    unless d['status'].downcase == 'ok' then
-      # TODO: LOG
+    url = cloak_url("batch_query")
+    if url
+      response = post_query url: url, expect_response: true
+      d =  ActiveSupport::JSON.decode(response.body)
+      unless d['status'].downcase == 'ok' then
+        # TODO: LOG
+      end
     end
   end
 
@@ -83,13 +86,15 @@ private
   def upload_stored_query
     return unless task.update_task
     return unless ready_for_primetime
-    post_query url: cloak_url("query")
+    url = cloak_url("query")
+    post_query url: url if url
   end
 
   def remove_query_from_cloak
     return unless task.update_task
     return unless ready_for_primetime
-    delete_query url: cloak_url("query"), id: self.id
+    url = cloak_url("query")
+    delete_query url: url, id: self.id if url
   end
 
   def delete_query args
@@ -109,24 +114,8 @@ private
     ProtobufSender.post sock, request
   end
 
-  # TODO(#107): here is a bug as @cloak_url doesn't account for changes in path parameter
   def cloak_url path
-    return @cloak_url if @cloak_url
-
-    cloak_url = ""
-    if Rails.env.production? then
-      # Get a cloak to speak to
-      resolver = Resolv::DNS.new
-      resource = resolver.getresources("_cloak._tcp.aircloak.com", 
-                                       Resolv::DNS::Resource::IN::SRV).sample
-      cloak_url = resource.target.to_s
-      # FIXME: Once DNS has been updated,
-      #        allow the cloak to get this through DNS
-      cloak_url = "tpm-dell1.mpi-sws.org"
-    else
-      return "http://localhost:8098/#{path}"
-    end
-
-    @cloak_url = "https://#{cloak_url}/#{path}"
+    cluster_cloaks = ClusterCloak.where(cluster: cluster, raw_state: 2) # :belongs_to
+    "https://#{cluster_cloaks.first.cloak.ip}/#{path}" if cluster_cloaks.count > 0
   end
 end
