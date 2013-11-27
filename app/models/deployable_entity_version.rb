@@ -17,7 +17,7 @@ class DeployableEntityVersion < ActiveRecord::Base
   has_many :build_versions
   has_many :builds, through: :build_versions
   
-  # version_test is only set for commits that have an attest
+  # version_test is only set for commits that have a test
   # run on them.
   has_one :version_test
 
