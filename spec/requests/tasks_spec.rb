@@ -9,39 +9,24 @@ describe "TasksController" do
       Task.destroy_all
     end
 
-    it "should create a new task binary upon upload" do
+    it "should create a new task binary upon upload if there isn't already one with the same main package" do
       bin = QueryBinary.new(package: "task", data: "1234")
       data = QueryData.new(main_package: "task", data: [bin])
 
-      Task.count.should eq(0)
-
-      post "/tasks/update_task_binary", data.encode.buf
+      expect {
+        post "/tasks/update_task_binary", data.encode.buf
+      }.to change {Task.count}.from(0).to(1)
 
       response.status.should be(200)
 
-      Task.count.should eq(1)
       Task.all.map(&:ready).should eq([false])
     end
 
     it "should update a task binary upon upload" do
       bin1 = QueryBinary.new(package: "task", data: "1234")
       data1 = QueryData.new(main_package: "task", data: [bin1])
-
-      Task.count.should eq(0)
-
-      post "/tasks/update_task_binary", data1.encode.buf
-
-      response.status.should be(200)
-
-      Task.count.should eq(1)
-      Task.all.map(&:ready).should eq([false])
-
-      task = Task.first
-      task.ready = true
+      task = Task.new(main_package: "task", packaged_data: data1.encode.buf, ready: true)
       task.save.should eq true
-
-      Task.count.should eq(1)
-      Task.all.map(&:ready).should eq([true])
 
       bin2 = QueryBinary.new(package: "task", data: "5678")
       data2 = QueryData.new(main_package: "task", data: [bin2])
