@@ -35,7 +35,7 @@ class TasksController < ApplicationController
   end
 
   # POST /tasks/update_task_binary
-  def upload_query_data
+  def upload_task_binary
     data = request.body.read
     data_to_save = data.dup
     qd = QueryData.decode(data)
@@ -44,12 +44,12 @@ class TasksController < ApplicationController
     task.packaged_data = data_to_save
     if task.save
       render text: "Thanks"
+      # after updating task binary we need to ensure that the clusters get the new code...
+      # this update is done in the save hook of the corresponding query model, so we use that
+      task.queries.each {|query| query.save}
     else
       render text: "I cannot do that Dave!", status: 400
     end
-    # after updating task binary we need to ensure that the clusters get the new code...
-    # this update is done in the save hook of the corresponding query model, so we use that
-    task.queries.each {|query| query.save}
   end
 
 private

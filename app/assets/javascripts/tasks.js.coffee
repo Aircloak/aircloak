@@ -1,4 +1,4 @@
 //= require angular
 
-@app = angular.module("queryEditor", [])
-@QueryEditorCtrl = ->
+@app = angular.module("taskEditor", [])
+@TaskEditorCtrl = ->
