@@ -1,0 +1,53 @@
+.form-container{:"ng-app" => "taskEditor", :"ng-controller" => "TaskEditorCtrl"}
+  = form_for @task, :html => {:class => "form-horizontal new_query"} do |f|
+    - if @task.errors.any?
+      .well.alert-error
+        %h3= "#{pluralize(@task.errors.count, "error")} prohibited this task from being saved:"
+        %ul
+          - @task.errors.full_messages.each do |msg|
+            %li= msg
+
+    .control-group
+      .controls
+        = @task.main_package
+    = control_group(:system_task, @task) do
+      .controls
+        %label.checkbox
+          = f.check_box :system_task, :"ng-model" => "system_task"
+          Mark if this task is a system task, run on behalf of Aircloak
+    .control-group#task_type_box{:"ng-class" => "{alert: mutator_task == 'true'}"}
+      %label.control-label Task type
+      .controls
+        %label.radio
+          = f.radio_button :mutator, "true", :"ng-model" => "mutator_task"
+          Mutator
+        %label.radio
+          = f.radio_button :mutator, "false", :"ng-model" => "mutator_task"
+          Reader
+        .danger-mutate-info{:"ng-class" => "{hidden: mutator_task == 'false'}"}
+          Modifier tasks cannot be run in parallel. They therefore have a significant const,
+          and put a limit to the concurrency of our system. 
+          %strong 
+            Can this task be made into a reader task?
+        .danger-mutate-shared-info{:"ng-class" => "{hidden: !(mutator_task == 'true' && system_task)}"}
+          A task that is both run on behalf of aircloak, and is also a mutator will be able
+          to modify the shared files about a user. These are the files that all other analysts'
+          tasks depend on. 
+          %strong 
+            Make sure that this task really is written by aircloak, and that
+            we are certain that it behaves corectly.
+    = control_group(:update_task, @task) do
+      .controls
+        %label.checkbox
+          = f.check_box :update_task, :"ng-model" => "identifier_enabled"
+          Mark if this is a stored task to be run on updates from clients
+    = control_group(:payload_identifier, @task) do
+      = f.label :payload_identifier, :class => "control-label"
+      .controls
+        = f.text_field :payload_identifier, :"ng-disabled" => "!identifier_enabled"
+        -# = f.text_field :payload_identifier, :disabled => !@task.update_task
+        %p The payload identifier used by the client when submitting updates for this task
+
+    .control-group
+      .controls
+        = f.submit 'Save', :class => "btn btn-success"

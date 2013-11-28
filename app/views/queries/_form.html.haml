@@ -1,68 +1,22 @@
-.form-container{:"ng-app" => "queryEditor", :"ng-controller" => "QueryEditorCtrl"}
-  = form_for @query, :html => {:class => "form-horizontal new_query"} do |f|
-    - if @query.errors.any?
-      .well.alert-error
-        %h3= "#{pluralize(@query.errors.count, "error")} prohibited this query from being saved:"
-        %ul
-          - @query.errors.full_messages.each do |msg|
-            %li= msg
+= form_for @query do |f|
+  - if @query.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(@query.errors.count, "error")} prohibited this query from being saved:"
+      %ul
+        - @query.errors.full_messages.each do |msg|
+          %li= msg
 
-    = control_group(:name, @query) do
-      = f.label :name, :class => "control-label"
-      .controls= f.text_field :name
-    .control-group
-      .controls
-        = @query.main_package
-    = control_group(:index, @query) do
-      = f.label :index_id, :class => "control-label"
-      .controls
-        = f.select :index_id, options_from_collection_for_select(Index.all, :id, :human_name)
-    = control_group(:system_query, @query) do
-      .controls
-        %label.checkbox
-          = f.check_box :system_query, :"ng-model" => "system_query"
-          Mark if this query is a system query, run on behalf of Aircloak
-    .control-group#query_type_box{:"ng-class" => "{alert: mutator_query == 'true'}"}
-      %label.control-label Query type
-      .controls
-        %label.radio
-          = f.radio_button :mutator, "true", :"ng-model" => "mutator_query"
-          Mutator
-        %label.radio
-          = f.radio_button :mutator, "false", :"ng-model" => "mutator_query"
-          Reader
-        .danger-mutate-info{:"ng-class" => "{hidden: mutator_query == 'false'}"}
-          Modifier queries cannot be run in parallel. They therefore have a significant const,
-          and put a limit to the concurrency of our system. 
-          %strong 
-            Can this query be made into a reader query?
-        .danger-mutate-shared-info{:"ng-class" => "{hidden: !(mutator_query == 'true' && system_query)}"}
-          A query that is both run on behalf of aircloak, and is also a mutator will be able
-          to modify the shared files about a user. These are the files that all other analysts'
-          queries depend on. 
-          %strong 
-            Make sure that this query really is written by aircloak, and that
-            we are certain that it behaves corectly.
-    = control_group(:update_query, @query) do
-      .controls
-        %label.checkbox
-          = f.check_box :update_query, :"ng-model" => "identifier_enabled"
-          Mark if this is a stored query to be run on updates from clients
-    = control_group(:identifier, @query) do
-      = f.label :identifier, :class => "control-label"
-      .controls
-        = f.text_field :identifier, :"ng-disabled" => "!identifier_enabled"
-        -# = f.text_field :identifier, :disabled => !@query.update_query
-        %p The identifier used by the client when submitting updates for this query
+  .control-group
+    %label.control-label Name
+    .controls
+      = f.text_field :name
+    %label.control-label Task
+    .controls
+      = f.select :task_id, Task.where(ready: true).map {|task| [task.main_package, task.id]}
+    %label.control-label Cluster
+    .controls
+      = f.select :cluster_id, Cluster.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
 
-    -# Show an indices editor for queries that add or remove to indices.
-    -# Ideally we should we able to detect which indices are being used,
-    -# but since the index names can be dynamically generated, I am not sure how to do this.
-    - if @query.manages_indices
-      .control-group
-        %label.control-label Indices managed by this query
-        .controls Adds list...
-
-    .control-group
-      .controls
-        = f.submit 'Save', :class => "btn btn-success"
+  .control-group
+    .controls
+      = f.submit 'Save', class: "btn"

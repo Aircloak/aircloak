@@ -3,16 +3,12 @@ require './lib/proto/air/query_upload.pb'
 
 class QueriesController < ApplicationController
   filter_access_to :execute_as_batch_query, require: :manage
-  filter_access_to :upload_query_data, require: :anon_read
   before_action :set_query, only: [:edit, :update, :destroy, :execute_as_batch_query]
-  protect_from_forgery :except => :upload_query_data 
+  protect_from_forgery
 
   # GET /queries
   def index
-    queries = Query.all
-
-    @ready_queries = queries.select { |q| q.ready_for_primetime }
-    @not_ready_queries = queries.select { |q| not q.ready_for_primetime }
+    @queries = Query.all
   end
 
   # GET /queries/new
@@ -52,17 +48,6 @@ class QueriesController < ApplicationController
   def execute_as_batch_query
     @query.execute_batch_query
     redirect_to queries_path
-  end
-
-  def upload_query_data
-    data = request.body.read
-    data_to_save = data.dup
-    qd = QueryData.decode(data)
-    q = Query.where(main_package: qd.main_package).first
-    q = Query.new(main_package: qd.main_package) unless q
-    q.packaged_data = data_to_save
-    q.save(validate: false)
-    render text: "Thanks"
   end
 
 private

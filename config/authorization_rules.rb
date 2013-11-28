@@ -18,7 +18,8 @@ authorization do
       :results, 
       :register_version,
       :build_progress,
-      :machines
+      :machines,
+      :tasks
     ], to: :anon_write
   end
 
@@ -43,6 +44,7 @@ authorization do
   role :admin do
     includes [:ops, :deploy_manager]
     has_permission_on [:queries, 
+                       :tasks,
                        :results, 
                        :users, 
                        :deployable_entities,

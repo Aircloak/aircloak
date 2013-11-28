@@ -5,6 +5,8 @@ class Cluster < ActiveRecord::Base
   has_many :cloaks, through: :cluster_cloaks
   belongs_to :build
 
+  has_many :queries, dependent: :destroy
+
   # A cluster that is used for an automated test of a commit will have a
   # version_test instance. For all other clusters this will be nil
   has_one :version_test
@@ -67,6 +69,12 @@ class Cluster < ActiveRecord::Base
       return unless cc.state == :belongs_to
     end
     version_test.mark_cluster_as_ready
+  end
+
+  def self.ready_clusters
+    clusters = ClusterCloak.where(raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).map(&:cluster)
+    sorted_cluster = clusters.sort { |a, b| a.name <=> b.name }
+    sorted_cluster.uniq { |cluster| cluster.name }
   end
 
 private

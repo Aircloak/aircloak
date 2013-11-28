@@ -5,7 +5,10 @@ describe "ResultsController" do
   describe "POST /results" do
     it "should persist new properties upon receiving them from the cloak" do
       Query.destroy_all
-      q = Query.new
+      Task.destroy_all
+      t = Task.new
+      t.save validate: false
+      q = Query.new(task: t)
       q.save validate: false
 
       # We need a valid pending result in order to get through

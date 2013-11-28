@@ -1,0 +1,44 @@
+- if @ready_tasks.count > 0
+  %h1 Tasks
+
+  %table.table.table-condensed
+    %thead
+      %tr
+        %th Name (Main)
+        %th System Task
+        %th Mutator
+        %th Update Task
+        %th
+        %th
+    %tbody
+    - @ready_tasks.each do |task|
+      %tr
+        %td= task.main_package
+        %td= task.system_task
+        %td= task.mutator
+        %td= task.update_task ? "yes (#{task.payload_identifier})" : "no"
+        %td= link_to 'Edit', edit_task_path(task), class: "btn btn-mini"
+        %td= link_to 'Destroy', task, :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
+
+- if @not_ready_tasks.count > 0
+  %h1 New Tasks
+  %p The following tasks have had binary data uploaded, but haven't yet been assigned the properties that would allow them to be executed.
+
+  %table.table.table-condensed
+    %thead
+      %tr
+        %th Name
+        %th
+        %th
+    %tbody
+    - @not_ready_tasks.each do |task|
+      %tr
+        %td= task.main_package
+        %td= link_to 'Add task', edit_task_path(task), class: "btn btn-mini"
+        %td= link_to 'Destroy', task, :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
+  %br
+
+- if @ready_tasks.count + @not_ready_tasks.count == 0
+  %h1 No tasks available
+
+%p To add a new task, please upload it using the Query Uploader java application that can be found in the Queries repository.

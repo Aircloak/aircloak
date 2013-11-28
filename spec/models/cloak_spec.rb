@@ -125,6 +125,7 @@ describe Cloak do
     let (:cloak_tpm) { Cloak.create(name: "tpm", ip: "5.5.5.5", tpm: true) }
 
     before(:each) do
+      ClusterCloak.destroy_all
       Cloak.destroy_all
     end
 

@@ -65,12 +65,14 @@ Web::Application.routes.draw do
 
   resources :clusters, :except => :destroy
 
+  resources :tasks, only: [:index, :edit, :update, :show, :destroy] do
+    collection do
+      post "update_task_binary"
+    end
+  end
   resources :queries do
     member do
       post "execute_as_batch_query"
-    end
-    collection do
-      post "upload_query_data"
     end
   end
   resources :results
