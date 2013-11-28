@@ -15,10 +15,7 @@
       = f.select :task_id, Task.where(ready: true).map {|task| [task.main_package, task.id]}
     %label.control-label Cluster
     .controls
-      - clusters = ClusterCloak.where(raw_state: 2).map {|cc| cc.cluster }
-      - sorted_cluster = clusters.sort { |a, b| a.name <=> b.name }
-      - uniq_cluster = sorted_cluster.uniq { |cluster| cluster.name }
-      = f.select :cluster_id, clusters.map {|cluster| [cluster.name, cluster.id]}
+      = f.select :cluster_id, Cluster.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
 
   .control-group
     .controls

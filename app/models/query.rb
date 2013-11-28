@@ -14,7 +14,7 @@ class Query < ActiveRecord::Base
   belongs_to :task
   belongs_to :cluster
 
-  validates :name, :task_id, :presence => true
+  validates_presence_of :name, :task_id
 
   after_save :upload_stored_query
   after_destroy :remove_query_from_cloak
@@ -30,7 +30,7 @@ class Query < ActiveRecord::Base
       main_class: self.task.main_package
     )
 
-    if self.task.update_task then
+    if task.update_task? then
       # Update queries are such that they are run when data about
       # a user arrives in the cloak. They never send results back
       # outside the cloak, hence they don't need a return address either.
@@ -59,7 +59,7 @@ class Query < ActiveRecord::Base
   end
 
   def execute_batch_query
-    if task.update_task
+    if task.update_task?
       raise NotABatchQueryException.new("Query #{self.id} uses an update task, not a batch task")
     end
     url = cloak_url("batch_query")
@@ -84,14 +84,14 @@ class Query < ActiveRecord::Base
 private
 
   def upload_stored_query
-    return unless task.update_task
+    return unless task.update_task?
     return unless ready_for_primetime
     url = cloak_url("query")
     post_query url: url if url
   end
 
   def remove_query_from_cloak
-    return unless task.update_task
+    return unless task.update_task?
     return unless ready_for_primetime
     url = cloak_url("query")
     delete_query url: url, id: self.id if url
@@ -115,7 +115,8 @@ private
   end
 
   def cloak_url path
-    cluster_cloaks = ClusterCloak.where(cluster: cluster, raw_state: 2) # :belongs_to
+    cluster_cloaks = ClusterCloak.where(cluster: cluster,
+        raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).limit(1)
     "https://#{cluster_cloaks.first.cloak.ip}/#{path}" if cluster_cloaks.count > 0
   end
 end

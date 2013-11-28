@@ -1,5 +1,5 @@
-.form-container{:"ng-app" => "taskEditor", :"ng-controller" => "TaskEditorCtrl"}
-  = form_for @task, :html => {:class => "form-horizontal new_task"} do |f|
+.form-container{:"ng-app" => "queryEditor", :"ng-controller" => "QueryEditorCtrl"}
+  = form_for @task, :html => {:class => "form-horizontal new_query"} do |f|
     - if @task.errors.any?
       .well.alert-error
         %h3= "#{pluralize(@task.errors.count, "error")} prohibited this task from being saved:"
