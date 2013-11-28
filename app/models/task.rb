@@ -15,11 +15,11 @@ class Task < ActiveRecord::Base
 private
 
   def should_have_payload_identifier?
-    self.payload_identifier = "" unless update_task
+    self.payload_identifier = "" unless update_task?
   end
 
   def existing_payload_identifier
-    if update_task && payload_identifier.blank?
+    if update_task? && payload_identifier.blank?
       errors.add(:payload_identifier, "is required for update tasks")
     end
   end

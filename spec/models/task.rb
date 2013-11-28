@@ -6,7 +6,7 @@ describe Task do
     Task.destroy_all
   end
 
-  it "update tasks should have a payload identifier" do
+  it "enforces that update tasks have a payload identifier" do
     task1 = Task.new(main_package: "task1", packaged_data: "binary", update_task: true)
     task1.save.should eq false
     task1.errors[:payload_identifier].should_not eq nil
