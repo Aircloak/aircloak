@@ -18,7 +18,8 @@ authorization do
       :results, 
       :register_version,
       :build_progress,
-      :machines
+      :machines,
+      :tasks
     ], to: :anon_write
   end
 

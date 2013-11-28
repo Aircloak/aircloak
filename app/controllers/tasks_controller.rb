@@ -2,7 +2,7 @@ require './lib/proto/air/query.pb'
 require './lib/proto/air/query_upload.pb'
 
 class TasksController < ApplicationController
-  filter_access_to :update_task_binary, require: :anon_read
+  filter_access_to :update_task_binary, require: :anon_write
   before_action :set_task, only: [:edit, :update, :destroy]
   protect_from_forgery :except => :update_task_binary 
 
@@ -35,7 +35,7 @@ class TasksController < ApplicationController
   end
 
   # POST /tasks/update_task_binary
-  def upload_task_binary
+  def update_task_binary
     data = request.body.read
     data_to_save = data.dup
     qd = QueryData.decode(data)
