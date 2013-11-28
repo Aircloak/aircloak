@@ -1,8 +1,10 @@
 require 'spec_helper'
 require './lib/protobuf_sender'
+require './lib/build_manager'
 
 describe VersionTest do
   before(:each) do
+    BuildManager.stub(:send_build_request)
     ProtobufSender.stub(:post)
     Net::HTTP.stub(:delete)
     Cluster.delete_all
