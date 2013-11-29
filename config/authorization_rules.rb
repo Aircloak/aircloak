@@ -20,7 +20,8 @@ authorization do
       :build_progress,
       :machines,
       :tasks,
-      :version_tests
+      :version_tests,
+      :api_queries
     ], to: :anon_write
   end
 

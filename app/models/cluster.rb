@@ -77,6 +77,13 @@ class Cluster < ActiveRecord::Base
     sorted_cluster.uniq { |cluster| cluster.name }
   end
 
+  def ready?
+    cluster_cloaks.each do |cc|
+      return true if cc.state == :belongs_to
+    end
+    return false
+  end
+
 private
   def must_match_tpm_configuration
     unless !build || cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == self.tpm }
