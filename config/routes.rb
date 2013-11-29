@@ -64,7 +64,9 @@ Web::Application.routes.draw do
 
     resources :version_tests, only: :update
 
-    resources :api_queries, path: "queries", only: [:create]
+    resources :api_queries, path: "queries", only: [:create, :show] do
+      get "results/:result", on: :member, action: 'get_result'
+    end
   end
 
   resources :clusters, :except => :destroy
