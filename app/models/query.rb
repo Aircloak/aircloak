@@ -19,13 +19,21 @@ class Query < ActiveRecord::Base
   after_save :upload_stored_query
   after_destroy :remove_query_from_cloak
 
+  def analyst
+    self.task.system_task ? "aircloak" : "some_analyst"
+  end
+
+  def index
+    "all_users"
+  end
+
   def cquery
     cquery = CQuery.new(
       type: self.task.mutator ? CQuery::Type::MUTATOR : CQuery::Type::READER,
       query_id: self.id,
-      index: "all_users",
+      index: self.index,
       # TODO(#110): Change to real id of analyst when we start introducing that
-      analyst_id: self.task.system_task ? "aircloak" : "some_analyst",
+      analyst_id: self.analyst,
       system_query: self.task.system_task,
       main_class: self.task.main_package
     )

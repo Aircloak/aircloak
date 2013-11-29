@@ -11,7 +11,8 @@ authorization do
       :client_binaries,
       :queries,
       :machines,
-      :cluster_lists
+      :cluster_lists,
+      :api_queries
     ], to: :anon_read
     has_permission_on [
       :verifications, 

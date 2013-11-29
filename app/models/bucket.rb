@@ -1,3 +1,5 @@
+require './lib/proto/air/aggregate_results.pb'
+
 class Bucket < ActiveRecord::Base
   belongs_to :result
   has_one :query, through: :result
@@ -22,6 +24,13 @@ class Bucket < ActiveRecord::Base
 
   def display_result
     "#{accumulated_count} (#{Bucket.display_count joiners}/#{Bucket.display_count leavers})"
+  end
+
+  def to_property_proto
+    range = PropertyProto::RangeProto.new(min: range_min, max: range_max) if range_min
+    joiners_leavers = JoinersLeaversProto.new(joiners: joiners, leavers: leavers)
+    PropertyProto.new(label: label, string: str_answer, range: range, joiners_leavers: joiners_leavers,
+        accumulated_count: accumulated_count)
   end
 
 private
