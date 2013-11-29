@@ -81,7 +81,7 @@ describe BuildManager do
     version = double(deployable_entity: entity, commit_id: "COMMIT")
     DeployableEntity.should_receive(:where).with("id != (?)", 1).and_return([])
     build = double
-    Build.should_receive(:new).with(name: "testbuild COMMIT", deployable_entity_versions: [version]).and_return build
+    Build.should_receive(:new).with(tpm: false, name: "testbuild COMMIT", deployable_entity_versions: [version]).and_return build
     BuildManager.test_build_for_version(version).should eq build
   end
 end

@@ -12,7 +12,8 @@ end
 
 class TestRequestPB
   required :id, :uint32, 1
-  repeated :cluster_nodes, :string, 2
+  required :cluster_id, :uint32, 2
+  repeated :cluster_nodes, :string, 3
 end
 
 

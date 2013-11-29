@@ -61,6 +61,8 @@ Web::Application.routes.draw do
     end
 
     resources :cluster_lists, path: "clusters", only: [:index]
+
+    resources :version_tests, only: :update
   end
 
   resources :clusters, :except => :destroy
