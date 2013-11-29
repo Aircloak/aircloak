@@ -3,8 +3,8 @@ require './lib/proto/air/aggregate_results.pb'
 
 class ApiQueriesController < ApplicationController
   filter_access_to :create, require: :anon_write
-  filter_access_to :show, require: :anon_read
-  filter_access_to :get_result, require: :anon_read
+  filter_access_to [:show, :get_result], require: :anon_read
+  layout false
 
   class ClusterNotFound < StandardError; end
   class InvalidCluster < StandardError; end
@@ -20,35 +20,35 @@ class ApiQueriesController < ApplicationController
     query_name = "API generated #{cq.main_package}:#{cq.cluster_id}"
     query = Query.new(name: query_name, cluster: cluster, task: task)
     if query.save
-      render text: "#{query.id}", layout: false
+      render text: "#{query.id}"
     else
-      render text: "Cannot create query!", status: 400, layout: false
+      render text: "Cannot create query!", status: 400
     end
   rescue ClusterNotFound
-    render text: "I don't know that cluster!", status: 404, layout: false
+    render text: "I don't know that cluster!", status: 404
   rescue InvalidCluster
-    render text: "The cluster is not ready!", status: 400, layout: false
+    render text: "The cluster is not ready!", status: 400
   rescue TaskNotFound
-    render text: "I don't know such a task!", status: 404, layout: false
+    render text: "I don't know such a task!", status: 404
   rescue InvalidTask
-    render text: "The task is not ready!", status: 400, layout: false
+    render text: "The task is not ready!", status: 400
   end
 
   # GET /api/queries/:id
   def show
     query = Query.find(params[:id])
     pb = ResultsProto.new(result_ids: query.results.map(&:result_id))
-    render text: pb.encode.buf, content_type: "application/x-protobuf", layout: false
+    render text: pb.encode.buf, content_type: "application/x-protobuf"
   rescue ActiveRecord::RecordNotFound
-    render text: "Unknown query!", status: 404, layout: false
+    render text: "Unknown query!", status: 404
   end
 
   # GET /api/queries/:id/results/:result
   def get_result
     result = get_result_by_query params[:id], params[:result]
-    render text: result.to_result_proto.encode.buf, content_type: "application/x-protobuf", layout: false
+    render text: result.to_result_proto.encode.buf, content_type: "application/x-protobuf"
   rescue QueryOrResultNotFound
-    render text: "Unknown query or result!", status: 404, layout: false
+    render text: "Unknown query or result!", status: 404
   end
 
 private
