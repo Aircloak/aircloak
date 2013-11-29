@@ -33,6 +33,7 @@ class VersionTest < ActiveRecord::Base
   def as_test_request
     TestRequestPB.new(
       id: id,
+      cluster_id: cluster.id,
       cluster_nodes: cluster.cloaks.map(&:name)
     )
   end

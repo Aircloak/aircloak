@@ -57,7 +57,7 @@ describe VersionTest do
 
   it "should should notify the test server when the cluster setup has completed" do
     create_cloaks
-    ProtobufSender.should_receive(:post_to_url)
+    ProtobufSender.should_receive(:post_to_url).twice
     version_test.mark_build_as_complete
     version_test.mark_cluster_as_ready
   end
@@ -65,7 +65,9 @@ describe VersionTest do
   it "should package itself as a test request" do
     create_cloaks
     version_test.mark_build_as_complete
+    version_test.save.should eq true
     version_test.as_test_request.id.should eq version_test.id
+    version_test.as_test_request.cluster_id.should eq version_test.cluster.id
     version_test.as_test_request.cluster_nodes.each do |node|
       Cloak.find_by_name(node).should_not eq nil
     end
