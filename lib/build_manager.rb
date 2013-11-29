@@ -41,6 +41,6 @@ class BuildManager
   def self.test_build_for_version version
     other_entities = all_entities_except(version.deployable_entity)
     all_versions = (find_right_versions other_entities) << version
-    Build.new name: "testbuild #{version.commit_id}", deployable_entity_versions: all_versions
+    Build.new tpm: false, name: "testbuild #{version.commit_id}", deployable_entity_versions: all_versions
   end
 end
