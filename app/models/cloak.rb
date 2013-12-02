@@ -64,11 +64,11 @@ private
   end
 
   def mannyair_post_url
-    "http://#{ProtobufSender.mannyair_host}/machines"
+    "http://#{Rails.configuration.manny_air.host}/machines"
   end
 
   def mannyair_delete_url id
-    "http://#{ProtobufSender.mannyair_host}/machines/#{id}"
+    "http://#{Rails.configuration.manny_air.host}/machines/#{id}"
   end
 
   def create_inform_mannyair

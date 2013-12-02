@@ -37,7 +37,7 @@ class ClientFileVersion < ActiveRecord::Base
   end
 
   def download_url
-    "http://graphite.mpi-sws.org:5000/client_binaries/#{id}"
+    "http://#{Rails.configuration.client_file_version.download_host}/client_binaries/#{id}"
   end
 
   def name

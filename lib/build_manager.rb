@@ -18,7 +18,7 @@ class BuildManager
     
   def self.send_build_request build
     build_request = create_build_request build
-    url = URI.parse("http://build.aircloak.com/build")
+    url = URI.parse("http://#{Rails.configuration.build_server.host}/build")
     https = Net::HTTP.new(url.host, url.port)
     request = Net::HTTP::Post.new(url.path)
     request.content_type = "application/x-protobuf"

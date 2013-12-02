@@ -1,0 +1,23 @@
+defaults: &defaults
+  web:
+    host: graphite.mpi-sws.org:5000
+  manny_air:
+    host: manny-air.aircloak.com
+  test_server:
+    host: test-server.aircloak.com
+  build_server:
+    host: build.aircloak.com
+
+development:
+  <<: *defaults
+
+test: &testing
+  <<: *defaults
+  web:
+    host: localhost
+  manny_air:
+    host: localhost
+  test_server:
+    host: localhost
+  build_server:
+    host: localhost

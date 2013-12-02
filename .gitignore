@@ -22,3 +22,4 @@
 
 /config/database.yml
 
+config/settings.local.yml
