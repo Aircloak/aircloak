@@ -34,6 +34,7 @@ class VersionTest < ActiveRecord::Base
     TestRequestPB.new(
       id: id,
       cluster_id: cluster.id,
+      reply_uri: "http://#{Rails.configuration.web.host}/api/version_tests/",
       cluster_nodes: cluster.cloaks.map(&:name)
     )
   end
