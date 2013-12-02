@@ -5,6 +5,7 @@ require './lib/build_manager'
 describe VersionTest do
   before(:each) do
     BuildManager.stub(:send_build_request)
+    ProtobufSender.stub(:post_to_url)
     ProtobufSender.stub(:post)
     Net::HTTP.stub(:delete)
     Cluster.delete_all
@@ -57,7 +58,6 @@ describe VersionTest do
 
   it "should should notify the test server when the cluster setup has completed" do
     create_cloaks
-    ProtobufSender.should_receive(:post_to_url).twice
     version_test.mark_build_as_complete
     version_test.mark_cluster_as_ready
   end

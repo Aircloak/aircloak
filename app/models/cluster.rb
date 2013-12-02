@@ -4,6 +4,7 @@ class Cluster < ActiveRecord::Base
   has_many :cluster_cloaks
   has_many :cloaks, through: :cluster_cloaks
   belongs_to :build
+  belongs_to :os_tag
 
   has_many :queries, dependent: :destroy
 
@@ -12,7 +13,7 @@ class Cluster < ActiveRecord::Base
   has_one :version_test
 
   validates :name, presence: true, uniqueness: true
-  validates_presence_of :build
+  validates_presence_of :build, :os_tag
   validate :must_match_tpm_configuration
   validate :must_have_at_least_one_cloak
 
@@ -56,7 +57,7 @@ class Cluster < ActiveRecord::Base
   # but this might not be true in the future).
   def self.test_cluster_for_build build
     cloaks = Cloak.cloaks_for_build_testing
-    Cluster.create(build: build, name: "Test cluster - #{build.name}", cloaks: cloaks)
+    Cluster.create(build: build, name: "Test cluster - #{build.name}", cloaks: cloaks, os_tag: OsTag.last)
   end
 
   def timestamp

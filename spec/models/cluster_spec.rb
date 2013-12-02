@@ -15,12 +15,28 @@ describe Cluster do
   let (:cloak) { Cloak.create(name: "dave", ip: "9.9.9.9") }
   let (:richard) { Cloak.create(name: "richard", ip: "10.10.10.10") }
   let (:build) { Build.create(name: "build") }
+  let (:os_tag) { OsTag.create(name: "First version", description: "Crucial OS stuff") }
+
+  def base_cluster vals={}
+    Cluster.new(
+      name: vals.delete(:name) || "test",
+      build: vals.delete(:build) || build, 
+      os_tag: vals.delete(:os_tag) || os_tag
+    )
+  end
 
   it "should have a build" do
     c = Cluster.new(name: "test")
     c.cloaks << cloak
     c.save.should eq false
     c.errors.messages[:build].should_not eq nil
+  end
+
+  it "should have a os_tag" do
+    c = Cluster.new(name: "test", build: build)
+    c.cloaks << cloak
+    c.save.should eq false
+    c.errors.messages[:os_tag].should_not eq nil
   end
 
   it "should have a name" do
@@ -31,17 +47,17 @@ describe Cluster do
   end
 
   it "should have at least a cloak" do
-    c = Cluster.new(name: "cluster", build: build)
+    c = base_cluster
     c.save.should eq false
     c.errors.messages[:cloaks].should_not eq nil
   end
 
   it "should require a unique name" do
-    c1 = Cluster.new(name: "test", build: build)
+    c1 = base_cluster
     c1.cloaks << cloak
     c1.save.should eq true
 
-    c2 = Cluster.new(name: "test", build: build)
+    c2 = base_cluster
     c2.cloaks << richard
     c2.save.should eq false
     c2.errors.messages[:name].should_not eq nil
@@ -59,18 +75,18 @@ describe Cluster do
     cl2.tpm = true
     cl2.save.should eq true
 
-    c1 = Cluster.new(name: "cluster1", build: build)
+    c1 = base_cluster name: "cluster1", build: build
     c1.cloaks << cl1
     c1.save.should eq true
 
-    c2 = Cluster.new(name: "cluster2", build: build)
+    c2 = base_cluster name: "cluster2", build: build
     c2.cloaks << cl2
     c2.save.should eq false
     c2.errors.messages[:cloaks].should_not eq nil
   end
 
   it "should know if a cluster is healthy" do
-    cluster = Cluster.new
+    cluster = base_cluster
     c = Cloak.new
     cluster.cloaks << c
 
@@ -85,7 +101,7 @@ describe Cluster do
     let! (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2") }
     let! (:cloak3) { Cloak.create(name: "baz", ip: "3.3.3.3") }
     let! (:build) { Build.create(name: "build") }
-    let! (:cluster) { Cluster.new(name: "cluster", build: build) }
+    let! (:cluster) { base_cluster name: "cluster", build: build }
 
     it "should add all new selected cloaks as :to_be_added" do
       cluster.assign_cloaks [cloak1, cloak2]
@@ -148,7 +164,7 @@ describe Cluster do
     end
 
     let! (:build) { Build.create(name: "build") }
-    let! (:cluster) { Cluster.new(name: "cluster", build: build) }
+    let! (:cluster) { base_cluster name: "cluster", build: build }
 
     it "should inform about new clusters" do
       cluster.cloaks << cloak
