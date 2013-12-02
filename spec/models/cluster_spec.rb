@@ -14,6 +14,7 @@ describe Cluster do
 
   let (:cloak) { Cloak.create(name: "dave", ip: "9.9.9.9") }
   let (:richard) { Cloak.create(name: "richard", ip: "10.10.10.10") }
+  let (:build) { Build.create(name: "build") }
 
   it "should have a build" do
     c = Cluster.new(name: "test")
@@ -23,39 +24,32 @@ describe Cluster do
   end
 
   it "should have a name" do
-    b = Build.create(name: "build")
-
-    c = Cluster.new(build: b)
+    c = Cluster.new(build: build)
     c.cloaks << cloak
     c.save.should eq false
     c.errors.messages[:name].should_not eq nil
   end
 
   it "should have at least a cloak" do
-    b = Build.create(name: "build")
-
-    c = Cluster.new(name: "cluster", build: b)
+    c = Cluster.new(name: "cluster", build: build)
     c.save.should eq false
     c.errors.messages[:cloaks].should_not eq nil
   end
 
   it "should require a unique name" do
-    b = Build.create(name: "build")
-
-    c1 = Cluster.new(name: "test", build: b)
+    c1 = Cluster.new(name: "test", build: build)
     c1.cloaks << cloak
     c1.save.should eq true
 
-    c2 = Cluster.new(name: "test", build: b)
+    c2 = Cluster.new(name: "test", build: build)
     c2.cloaks << richard
     c2.save.should eq false
     c2.errors.messages[:name].should_not eq nil
   end
 
   it "cloak and cluster tpm settings should match" do
-    b = Build.new(name: "build")
-    b.tpm = false
-    b.save.should eq true
+    build.tpm = false
+    build.save.should eq true
 
     cl1 = Cloak.new(name: "cloak1", ip: "10.10.10.10")
     cl1.tpm = false
@@ -65,11 +59,11 @@ describe Cluster do
     cl2.tpm = true
     cl2.save.should eq true
 
-    c1 = Cluster.new(name: "cluster1", build: b)
+    c1 = Cluster.new(name: "cluster1", build: build)
     c1.cloaks << cl1
     c1.save.should eq true
 
-    c2 = Cluster.new(name: "cluster2", build: b)
+    c2 = Cluster.new(name: "cluster2", build: build)
     c2.cloaks << cl2
     c2.save.should eq false
     c2.errors.messages[:cloaks].should_not eq nil
