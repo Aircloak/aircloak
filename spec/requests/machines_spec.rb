@@ -57,11 +57,13 @@ describe MachinesController do
       Cloak.destroy_all
       Build.destroy_all
       BuildManager.stub(:send_build_request)
+      OsTag.destroy_all
     end
 
     let! (:cloak) { Cloak.create(name: "dave", ip: "9.9.9.9") }
     let! (:build) { Build.create(name: "build") }
-    let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak]) }
+    let (:os_tag) { OsTag.create(name: "OsTag", description: "Smartness") }
+    let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak], os_tag: os_tag) }
 
     it "should synchronize a machine belonging to a cluster" do
       post synchronize_machine_path(cloak.id)

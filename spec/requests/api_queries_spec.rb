@@ -13,11 +13,13 @@ describe "ApiQueriesController" do
     Cloak.destroy_all
     Build.destroy_all
     BuildManager.stub(:send_build_request)
+    OsTag.destroy_all
   end
 
   let! (:cloak) { Cloak.create(name: "cloak", ip: "1.1.1.1") }
   let! (:build) { Build.create(name: "build") }
-  let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak]) }
+  let (:os_tag) { OsTag.create(name: "OsTag", description: "Woho") }
+  let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak], os_tag: os_tag) }
   let! (:task) { Task.create(main_package: "task", packaged_data: "binary") }
 
   describe "getting queries and results" do

@@ -60,7 +60,8 @@ describe Cloak do
       let! (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2") }
       let! (:cloak3) { Cloak.create(name: "baz", ip: "3.3.3.3") }
       let! (:build) { Build.create(name: "build") }
-      let! (:cluster) { Cluster.new(name: "cluster", build: build) }
+      let(:os_tag) { OsTag.create name: "Woho", description: "Waha" }
+      let! (:cluster) { Cluster.new(name: "cluster", build: build, os_tag: os_tag) }
 
       it "should return all unassigned cloaks" do
         cluster.cloaks << cloak1
