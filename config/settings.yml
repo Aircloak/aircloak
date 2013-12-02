@@ -11,6 +11,9 @@ defaults: &defaults
 development:
   <<: *defaults
 
+production:
+  <<: *defaults
+
 test: &testing
   <<: *defaults
   web:
