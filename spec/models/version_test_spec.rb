@@ -20,9 +20,9 @@ describe VersionTest do
     4.times {|n| Cloak.create(name: "test #{n}", tpm: false, ip: "#{n}.#{n}.#{n}.#{n}")}
   end
 
-  let(:entity) { PreRecorded.setup_deployable_entity }
-  let(:entity_version) { PreRecorded.setup_deployable_entity_version entity }
-  let(:version_test) { entity_version.version_test }
+  let (:entity) { PreRecorded.setup_deployable_entity }
+  let (:entity_version) { PreRecorded.setup_deployable_entity_version entity }
+  let (:version_test) { entity_version.version_test }
 
   it "should create a new VersionTest and assign it to the version" do
     version_test.deployable_entity_version.id.should be entity_version.id

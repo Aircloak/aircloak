@@ -76,10 +76,10 @@ describe Build do
   end
 
   context "should know if it can be deleted" do
-    let(:build) { Build.create name: "test-build" }
-    let(:cloak) { Cloak.create name: "cloak", ip: "1.1.1.1" }
-    let(:os_tag) { OsTag.create name: "Fab", description: "Best tag ever" }
-    let(:cluster) { Cluster.create name: "test-cluster", build: build, cloaks: [cloak], os_tag: os_tag }
+    let (:build) { Build.create name: "test-build" }
+    let (:cloak) { Cloak.create name: "cloak", ip: "1.1.1.1" }
+    let (:os_tag) { OsTag.create name: "Fab", description: "Best tag ever" }
+    let (:cluster) { Cluster.create name: "test-cluster", build: build, cloaks: [cloak], os_tag: os_tag }
 
     it "should say it can be deleted if not part of a cluster" do
       build.can_destroy?.should eq true

@@ -9,8 +9,8 @@ describe BuildProgressController do
     Build.destroy_all
   end
 
-  let(:de) { double(:deployable_entity, tpm_env: "tpm-env", no_tpm_env: "no-tpm-env") }
-  let(:dev) { double(:deployment_entity_version, deployable_entity: de, build_success: nil, save: true) }
+  let (:de) { double(:deployable_entity, tpm_env: "tpm-env", no_tpm_env: "no-tpm-env") }
+  let (:dev) { double(:deployment_entity_version, deployable_entity: de, build_success: nil, save: true) }
 
   describe "POST /register_build_progress" do
     it "should fail gracefully for missing builds" do

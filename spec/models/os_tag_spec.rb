@@ -22,10 +22,10 @@ describe OsTag do
     OsTag.create.errors.should include(:description)
   end
 
-  let(:os_tag) { OsTag.new name: "Name", description: "Description" }
-  let(:build) { Build.new tpm: true, name: "Build name" }
-  let(:cloak) { Cloak.create(name: "cloak", ip: "9.9.9.9") }
-  let(:cluster) { Cluster.new name: "ClusterName", os_tag: os_tag, build: build, cloaks: [cloak] }
+  let (:os_tag) { OsTag.new name: "Name", description: "Description" }
+  let (:build) { Build.new tpm: true, name: "Build name" }
+  let (:cloak) { Cloak.create(name: "cloak", ip: "9.9.9.9") }
+  let (:cluster) { Cluster.new name: "ClusterName", os_tag: os_tag, build: build, cloaks: [cloak] }
 
   it "should know if it can be destroyed" do
     os_tag.can_destroy?.should eq true
