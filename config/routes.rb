@@ -83,5 +83,7 @@ Web::Application.routes.draw do
   end
   resources :results
 
+  resources :os_tags
+
   root to: 'welcome#index'
 end

@@ -1,0 +1,33 @@
+%h1 Os tags currently registered
+
+- if @os_tags.size > 0 then
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Name
+        %th Description
+        %th
+
+    %tbody
+      - @os_tags.each do |tag|
+        %tr
+          %td= tag.name
+          %td= tag.description
+          %td
+            - if tag.can_destroy?
+              = link_to 'Destroy', os_tag_path(tag), method: :delete, data: { confirm: "Are you sure?" }
+            - else
+              "In use"
+
+%h4 Add a new os tag
+= render 'form'
+
+%h4 What is an Os Tag
+
+%p This is in case you have forgotten what an OS Tag is in the context of Aircloak, or in case you never knew.
+%p Our cloaks run on top of a standard (but stripped down) version of debian. As we change the packages, or the base config, of the debian image we use, we take a new snapshot of the image. Cloaks running with the new snapshop will produce different attestation codes from cloaks running the same build but a different base image, and are therefore incompatible with other cloaks. To preserve the ability to add new machines to an existing cluster, we need to be able to specify which tagged version of the os we are using. And OS Tag allows us to do just that.
+%p 
+  How do I create one of these tags? You log onto 
+  %strong cloakinst
+  and run the copy script under 
+  %strong /aircloak.

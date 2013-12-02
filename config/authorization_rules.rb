@@ -56,6 +56,7 @@ authorization do
                        :clusters,
                        :cloaks,
                        :permissions, 
+                       :os_tags,
                        :user_permissions], to: :manage
     has_permission_on [:authorization_rules, 
                        :authorization_usages], :to => :read
