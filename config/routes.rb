@@ -58,6 +58,7 @@ Web::Application.routes.draw do
     resources :machines, only: [:index] do
       post 'broken', on: :member
       post 'synchronize', on: :member
+      get 'setup_info', on: :collection
     end
 
     resources :cluster_lists, path: "clusters", only: [:index]

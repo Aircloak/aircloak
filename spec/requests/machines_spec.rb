@@ -82,4 +82,28 @@ describe MachinesController do
       response.status.should be(400)
     end
   end
+
+  describe "GET /api/machines/setup_info" do
+    before(:each) do
+      Cloak.delete_all
+    end
+
+    it "should return an error if called from a machine which isn't known" do
+      Cloak.count.should eq 0
+      get setup_info_machines_path
+      response.status.should eq(400)
+    end
+
+    it "should return an file contain the build id and the os tag" do
+      build = double(id: 14)
+      os_tag = double(name: "tag_name")
+      cluster = double(build: build, os_tag: os_tag)
+      cloak = double(cluster: cluster)
+      Cloak.stub(:find_by_ip).and_return(cloak)
+      get setup_info_machines_path
+      response.status.should be(200)
+      response.body.should include("14")
+      response.body.should include("tag_name")
+    end
+  end
 end
