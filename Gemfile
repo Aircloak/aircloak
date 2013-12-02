@@ -21,6 +21,9 @@ gem "sshkeyauth"
 gem "github_api"
 gem 'excon'
 
+# Configuration management
+gem "choices"
+
 group :development, :test do
   gem 'pry'
   gem 'pry-nav'

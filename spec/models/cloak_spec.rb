@@ -112,7 +112,7 @@ describe Cloak do
     it "should inform about removed cloaks" do
       ProtobufSender.stub(:post)
       cloak = Cloak.create(name: "cloak", ip: "1.1.1.1")
-      Net::HTTP.should_receive(:delete).with("http://manny-air.aircloak.com/machines/#{cloak.id}")
+      Net::HTTP.should_receive(:delete).with("http://#{Rails.configuration.manny_air.host}/machines/#{cloak.id}")
       cloak.destroy
     end
   end

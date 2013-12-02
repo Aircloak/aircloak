@@ -54,7 +54,7 @@ private
   end
 
   def test_server_machine
-    "testserver.aircloak.com"
+    Rails.configuration.test_server.host
   end
 
   def test_server_post_url

@@ -96,7 +96,7 @@ private
   end
 
   def mannyair_post_url
-    "http://#{ProtobufSender.mannyair_host}/clusters"
+    "http://#{Rails.configuration.manny_air.host}/clusters"
   end
 
   def after_save_inform_mannyair

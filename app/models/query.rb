@@ -47,11 +47,7 @@ class Query < ActiveRecord::Base
     else
       # Queries that are run on demand, need an address to return
       # the results back to.
-      domain = if Rails.env.production? then
-        "http://graphite.mpi-sws.org:5000/results"
-      else
-        "http://localhost:3000/results"
-      end
+      domain = "http://#{Rails.configuration.query.return_host}/results"
       cquery.batch_options = CQuery::BatchOptions.new(url: domain)
       cquery.query_class = CQuery::QueryClass::BATCH
     end
