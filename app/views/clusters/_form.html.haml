@@ -13,7 +13,9 @@
     %label.control-label Build ID
     .controls
       = f.select :build_id, Build.all.map {|build| [build.name + (if build.tpm; ""; else; " (no tpm)"; end), build.id]}
-
+    %label.control-label OS Tag
+    .controls
+      = f.select :os_tag_id, OsTag.all.map {|tag| [tag.name, tag.id]}
 
   %h2 Cloaks (choose any number with matching TPM)
 
