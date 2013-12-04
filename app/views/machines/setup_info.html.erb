@@ -1,2 +1,7 @@
+<% if @cloak.cluster -%>
 build_url="http://build.aircloak.com/releases/<%=@cloak.cluster.build.id%>.tar.gz"
 base_image_tag="<%=@cloak.cluster.os_tag.name%>"
+perform_aircloak_install=true
+<% else -%>
+perform_aircloak_install=false
+<% end -%>
