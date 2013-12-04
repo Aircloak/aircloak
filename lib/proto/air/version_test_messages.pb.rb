@@ -13,7 +13,7 @@ end
 class TestRequestPB
   required :id, :uint32, 1
   required :cluster_id, :uint32, 2
-  required :reply_uri, :string, 3
+  required :reply_host, :string, 3
   repeated :cluster_nodes, :string, 4
 end
 
