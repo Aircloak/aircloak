@@ -88,9 +88,15 @@ class Query < ActiveRecord::Base
 
 private
 
+  def query_controls_binary_transfer?
+    control_query = Query.where(cluster: self.cluster, task: self.task).order(:id).limit(1).first
+    self.id == control_query.id
+  end
+
   def upload_stored_query
     return unless task.update_task?
     return unless ready_for_primetime
+    return unless query_controls_binary_transfer?
     url = cloak_url("query")
     post_query url: url if url
   end
