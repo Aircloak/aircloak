@@ -31,7 +31,7 @@ class DeployableEntity < ActiveRecord::Base
   def select_tag_titles
     deployable_entity_versions.map do |version|
       ["#{version.short_commit_id} - #{version.message[0..10]}", version.id]
-    end
+    end.reverse
   end
 
   def status

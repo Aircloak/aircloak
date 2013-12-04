@@ -8,7 +8,7 @@
     %th In build
     %th Status
 
-  - @deployable_entity.commits.each do |commit|
+  - @deployable_entity.commits.reverse.each do |commit|
     %tr
       %td= commit.short_commit_id
       %td= commit.author
