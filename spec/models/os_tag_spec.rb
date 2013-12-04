@@ -5,7 +5,7 @@ require './lib/build_manager'
 describe OsTag do
   before(:each) do
     ProtobufSender.stub(:post)
-    Net::HTTP.stub(:delete)
+    ProtobufSender.stub(:send_delete)
     BuildManager.stub(:send_build_request)
     ClusterCloak.destroy_all
     Cluster.destroy_all

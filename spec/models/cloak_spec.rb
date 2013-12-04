@@ -4,7 +4,7 @@ require './lib/protobuf_sender'
 describe Cloak do
   before(:each) do
     ProtobufSender.stub(:post)
-    Net::HTTP.stub(:delete)
+    ProtobufSender.stub(:send_delete)
   end
 
   context "basic validations" do
@@ -97,7 +97,7 @@ describe Cloak do
 
   context "connection to manny-air" do
     before(:each) do
-      Net::HTTP.stub(:delete)
+      ProtobufSender.stub(:send_delete)
       ClusterCloak.destroy_all
       Cluster.destroy_all
       Cloak.destroy_all
@@ -113,7 +113,7 @@ describe Cloak do
     it "should inform about removed cloaks" do
       ProtobufSender.stub(:post)
       cloak = Cloak.create(name: "cloak", ip: "1.1.1.1")
-      Net::HTTP.should_receive(:delete).with("http://#{Rails.configuration.manny_air.host}/machines/#{cloak.id}")
+      ProtobufSender.should_receive(:send_delete).with("http://#{Rails.configuration.manny_air.host}/machines/#{cloak.id}")
       cloak.destroy
     end
   end

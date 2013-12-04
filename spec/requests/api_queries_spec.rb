@@ -5,7 +5,7 @@ require './lib/protobuf_sender'
 describe "ApiQueriesController" do
   before(:each) do
     ProtobufSender.stub(:post)
-    Net::HTTP.stub(:delete)
+    ProtobufSender.stub(:send_delete)
     Query.destroy_all
     Task.destroy_all
     ClusterCloak.destroy_all
