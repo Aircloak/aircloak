@@ -94,7 +94,7 @@ describe MachinesController do
       response.status.should eq(400)
     end
 
-    it "should return a file contain the build id and the os tag if the machine is part of a cluster" do
+    it "should return a file containing the build id and the os tag if the machine is part of a cluster" do
       build = double(id: 14)
       os_tag = double(name: "tag_name")
       cluster = double(build: build, os_tag: os_tag)
@@ -107,7 +107,7 @@ describe MachinesController do
       response.body.should include("tag_name")
     end
 
-    it "should return a file with a flag set to true for not installing aircloak specific things for machines without clusters" do
+    it "should return a file with a flag signifying that a aircloak specific build should not be performed for machines without clusters" do
       cloak = double(cluster: nil)
       Cloak.stub(:find_by_ip).and_return(cloak)
       get setup_info_machines_path
