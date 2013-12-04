@@ -30,7 +30,9 @@ class DeployableEntity < ActiveRecord::Base
   # creation form
   def select_tag_titles
     deployable_entity_versions.map do |version|
-      ["#{version.short_commit_id} - #{version.message[0..10]}", version.id]
+      short_commit_msg = version.message[0..80]
+      short_commit_msg += "..." if version.message.length > 80
+      ["#{version.short_commit_id} - #{short_commit_msg}", version.id]
     end.reverse
   end
 
