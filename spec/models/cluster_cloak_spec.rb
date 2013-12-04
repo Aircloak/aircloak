@@ -4,7 +4,7 @@ require './lib/protobuf_sender'
 describe Cluster do
   before(:each) do
     ProtobufSender.stub(:post)
-    Net::HTTP.stub(:delete)
+    ProtobufSender.stub(:send_delete)
     ClusterCloak.destroy_all
     Cluster.destroy_all
     Cloak.destroy_all

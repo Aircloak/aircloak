@@ -29,7 +29,7 @@ describe MachinesController do
   describe "POST /api/machines/:id/broken" do
     it "should mark a machine as brkoen" do
       ProtobufSender.stub(:post)
-      Net::HTTP.stub(:delete)
+      ProtobufSender.stub(:send_delete)
       ClusterCloak.destroy_all
       Cloak.destroy_all
       cloak = Cloak.create(name: "cloak", ip: "1.1.1.1")
@@ -41,7 +41,7 @@ describe MachinesController do
 
     it "should return with an error on unknown machines" do
       ProtobufSender.stub(:post)
-      Net::HTTP.stub(:delete)
+      ProtobufSender.stub(:send_delete)
       Cloak.destroy_all
       post broken_machine_path(1)
       response.status.should be(404)
@@ -51,7 +51,7 @@ describe MachinesController do
   describe "POST /api/machines/:id/synchronize" do
     before(:each) do
       ProtobufSender.stub(:post)
-      Net::HTTP.stub(:delete)
+      ProtobufSender.stub(:send_delete)
       ClusterCloak.destroy_all
       Cluster.destroy_all
       Cloak.destroy_all

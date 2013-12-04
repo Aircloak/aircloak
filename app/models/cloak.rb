@@ -77,6 +77,6 @@ private
   end
 
   def destroy_inform_mannyair
-    Net::HTTP.delete(mannyair_delete_url id)
+    ProtobufSender.send_delete(mannyair_delete_url id)
   end
 end

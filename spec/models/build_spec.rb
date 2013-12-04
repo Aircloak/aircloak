@@ -5,7 +5,7 @@ describe Build do
   before(:each) do
     VersionTest.stub(:new_from_deployable_entity_version)
     ProtobufSender.stub(:post)
-    Net::HTTP.stub(:delete)
+    ProtobufSender.stub(:send_delete)
     BuildManager.stub(:send_build_request).and_return(true)
     ClusterCloak.destroy_all
     Cloak.destroy_all

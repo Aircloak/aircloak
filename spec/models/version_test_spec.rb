@@ -6,7 +6,7 @@ describe VersionTest do
   before(:each) do
     BuildManager.stub(:send_build_request)
     ProtobufSender.stub(:post)
-    Net::HTTP.stub(:delete)
+    ProtobufSender.stub(:send_delete)
     Cluster.delete_all
     ClusterCloak.delete_all
     Build.delete_all
