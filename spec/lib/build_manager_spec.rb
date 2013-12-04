@@ -78,10 +78,10 @@ describe BuildManager do
 
   it "should create a build consisting of the required entity versions" do
     entity = double(add_commit: true, repo: "erlattest", id: 1)
-    version = double(deployable_entity: entity, commit_id: "COMMIT")
+    version = double(deployable_entity: entity, message: "Message")
     DeployableEntity.should_receive(:where).with("id != (?)", 1).and_return([])
     build = double
-    Build.should_receive(:new).with(tpm: false, name: "testbuild COMMIT", deployable_entity_versions: [version]).and_return build
+    Build.should_receive(:new).with(tpm: false, name: "testbuild [erlattest] - Message", deployable_entity_versions: [version]).and_return build
     BuildManager.test_build_for_version(version).should eq build
   end
 end
