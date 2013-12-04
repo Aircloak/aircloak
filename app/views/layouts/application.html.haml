@@ -24,7 +24,7 @@
                       %b.caret
                     %ul.dropdown-menu
                       %li= link_to "Builds", builds_path if permitted_to? :read, :builds
-                      %li= link_to "Os Tags", builds_path if permitted_to? :read, :os_tags
+                      %li= link_to "Os Tags", os_tags_path if permitted_to? :read, :os_tags
                       %li= link_to "Clusters", clusters_path if permitted_to? :manage, :clusters
                       %li= link_to "Cloaks", cloaks_path if permitted_to? :manage, :cloaks
                       %li= link_to "Deployable entitis", deployable_entities_path if permitted_to? :read, :deployable_entities
