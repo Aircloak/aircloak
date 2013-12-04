@@ -1,4 +1,5 @@
 require './lib/protobuf_sender'
+require './lib/build_manager'
 require './lib/proto/air/version_test_messages.pb'
 
 class VersionTest < ActiveRecord::Base
