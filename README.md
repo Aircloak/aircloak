@@ -3,6 +3,8 @@ Aircloak Web
 
 [![Code
 Climate](https://codeclimate.com/repos/52834e57c7f3a36f49049694/badges/b93de74f2a883ef1f819/gpa.png)](https://codeclimate.com/repos/52834e57c7f3a36f49049694/feed)
+[![Build
+Status](https://magnum.travis-ci.com/Aircloak/web.png?token=aFqD8qTNFV1Li4zdKtZw&branch=master)](https://magnum.travis-ci.com/Aircloak/web)
 
 The web-frontend of Aircloak, and the RESTful API for storing and retrieving
 queries and results.
@@ -19,6 +21,23 @@ To get the dependencies of the aircloak web app, run the following
 command in the root of the repository:
 
     bundle install
+
+# PRO tip
+
+Rails can be dog-slow, or slow like a glacier if you prefer. To speed things up, I recommend installing the
+zeus gem. You can do this with `gem install zeus`. Zeus preloads rails for you. When you subsequently want to
+perform an action that requires rails to be loaded, it forks the preloaded copy of rails (which happens
+significantly faster than spawning the whole process anew) and performs the operation.
+
+A normal workflow looks like this:
+
+    zeus start # starts the zeus daemon, you need to leave this running in a tab somewhere
+    zeus s # starts the rails server
+    zeus rake SOMETHING # some rake task that otherwise would have been slow
+    zeus g|d controller|model|migration # use the rails generators in no time
+    zeus rspec spec/path/to/test # this is good for tests that require rails.
+    spec/test spec/lib/some_test_spec.rb # this is still significantly faster if your test does not include
+    rails
 
 # Running the app
 
@@ -71,41 +90,3 @@ the unicorns like this:
     bundle exec cap unicorn:start
 
 Happy deploying!
-
--------------------------------------------
-# The things below are from the old readme.
-# They do not yet apply to this version of the app
--------------------------------------------
-
-# Running tests while developing
-
-Make sure you have setup your database
-
-    bundle exec rake db:test:load
-
-Run autotest
-
-    bundle exec autotest
-
-It will rerun tests when files change.
-If you want to run a single test in isolation, run
-
-    bundle exec rake test -Itest test/path/to/testfile
-
-# Have mailers and background tasks work in development
-
-To get the mailer to work, you need to set the correct mandrill 
-username and password file in your environment.
-
-Assuming you are using RVM for Ruby, please adapt the sample rvmrc file:
-
-    cp rvmrc .rvmrc
-
-Update it to contain the correct mandrill username and password.
-To start or stop the delayed job, run either of the following:
-
-    ./start_delayed_job.sh
-    ./stop_delayed_job.sh
-
-
-
