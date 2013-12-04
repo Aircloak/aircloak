@@ -5,6 +5,6 @@ class ClusterListsController < ApplicationController
   filter_access_to :index, require: :anon_read
 
   def index
-    render text: ClusterPacker.package_clusters(Cluster.all).encode.buf, layout: false
+    send_data ClusterPacker.package_clusters(Cluster.all).encode.buf, type: "application/x-protobuf"
   end
 end

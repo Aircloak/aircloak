@@ -38,7 +38,7 @@ class ApiQueriesController < ApplicationController
   def show
     query = Query.find(params[:id])
     pb = ResultsProto.new(result_ids: query.results.map(&:result_id))
-    render text: pb.encode.buf, content_type: "application/x-protobuf"
+    send_data pb.encode.buf, type: "application/x-protobuf"
   rescue ActiveRecord::RecordNotFound
     render text: "Unknown query!", status: 404
   end
@@ -46,13 +46,12 @@ class ApiQueriesController < ApplicationController
   # GET /api/queries/:id/results/:result
   def get_result
     result = get_result_by_query params[:id], params[:result]
-    render text: result.to_result_proto.encode.buf, content_type: "application/x-protobuf"
+    send_data result.to_result_proto.encode.buf, type: "application/x-protobuf"
   rescue QueryOrResultNotFound
     render text: "Unknown query or result!", status: 404
   end
 
 private
-
   def get_cluster cq
     cluster = Cluster.find(cq.cluster_id)
     raise InvalidCluster.new unless cluster.ready?
@@ -73,5 +72,4 @@ private
     raise QueryOrResultNotFound.new unless result
     result
   end
-
 end

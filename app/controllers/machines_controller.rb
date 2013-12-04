@@ -7,7 +7,7 @@ class MachinesController < ApplicationController
   layout false
 
   def index
-    render text: MachinePacker.package_cloaks(Cloak.all).encode.buf, layout: false
+    send_data MachinePacker.package_cloaks(Cloak.all).encode.buf, type: "application/x-protobuf"
   end
 
   def broken
