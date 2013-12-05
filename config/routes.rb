@@ -73,8 +73,6 @@ Web::Application.routes.draw do
 
   resources :clusters, :except => :destroy
 
-#     , except: [:update, :create]
-
   resources :tasks, only: [:index, :edit, :update, :show, :destroy] do
     collection do
       post "update_task_binary"
