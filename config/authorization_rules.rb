@@ -57,6 +57,7 @@ authorization do
                        :cloaks,
                        :permissions, 
                        :os_tags,
+                       :version_tests,
                        :user_permissions], to: :manage
     has_permission_on [:authorization_rules, 
                        :authorization_usages], :to => :read

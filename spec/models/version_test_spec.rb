@@ -98,4 +98,13 @@ describe VersionTest do
     version_test.process_result results_pb(transcript: transcript)
     version_test.test_output.should eq transcript
   end
+
+  it "should produce string results depending on state" do
+    version_test.status.should eq "In progress"
+    version_test.test_complete = true
+    version_test.test_success = true
+    version_test.status.should eq "Passed"
+    version_test.test_success = false
+    version_test.status.should eq "Failed"
+  end
 end
