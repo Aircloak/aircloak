@@ -48,6 +48,13 @@ class VersionTest < ActiveRecord::Base
     save
   end
 
+  def status
+    return "In progress" unless test_complete
+    # The following is assumed:
+    # - test_success is always set when test_complete is set
+    test_complete && test_success ? "Passed" : "Failed"
+  end
+
 private
   def set_failed
     self.test_complete = true

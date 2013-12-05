@@ -63,14 +63,17 @@ Web::Application.routes.draw do
 
     resources :cluster_lists, path: "clusters", only: [:index]
 
-    resources :version_tests, only: :update
-
     resources :api_queries, path: "queries", only: [:create, :show] do
       get "results/:result", on: :member, action: 'get_result'
     end
   end
 
+  put "/api/version_tests/:id", to: "version_tests#update"
+  resources :version_tests, except: [:create, :update]
+
   resources :clusters, :except => :destroy
+
+#     , except: [:update, :create]
 
   resources :tasks, only: [:index, :edit, :update, :show, :destroy] do
     collection do
