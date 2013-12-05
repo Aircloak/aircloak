@@ -7,6 +7,8 @@ class VersionTest < ActiveRecord::Base
   belongs_to :cluster
   belongs_to :deployable_entity_version
 
+  before_destroy :destroy_dependents
+
   def self.new_from_deployable_entity_version version
     v = VersionTest.new deployable_entity_version_id: version.id
     v.test_complete = false
@@ -64,5 +66,10 @@ private
 
   def test_server_post_url
     "http://#{test_server_machine}/tests"
+  end
+
+  def destroy_dependents
+    self.build.destroy
+    self.cluster.destroy
   end
 end
