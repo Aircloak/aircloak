@@ -18,6 +18,7 @@ class Cluster < ActiveRecord::Base
   validate :must_have_at_least_one_cloak
 
   after_save :after_save_inform_mannyair
+  before_destroy :verify_can_destroy
 
   def tpm
     @has_tpm ||= build.tpm
@@ -85,6 +86,10 @@ class Cluster < ActiveRecord::Base
     return false
   end
 
+  def can_destroy?
+    version_test.blank?
+  end
+
 private
   def must_match_tpm_configuration
     unless !build || cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == self.tpm }
@@ -103,5 +108,12 @@ private
   def after_save_inform_mannyair
     cp = ClusterPacker.package_cluster self
     ProtobufSender.post_to_url mannyair_post_url, cp
+  end
+
+  def verify_can_destroy
+    unless can_destroy?
+      self.errors.add(:version_test, "Cannot destroy a build used by a version test")
+      false
+    end
   end
 end
