@@ -45,6 +45,8 @@ class VersionTest < ActiveRecord::Base
     self.test_complete = true
     self.test_success = result.success
     self.test_output = result.transcript
+    self.build.destroy
+    self.cluster.destroy if self.cluster
     save
   end
 
@@ -52,6 +54,7 @@ private
   def set_failed
     self.test_complete = true
     self.test_success = false
+    self.build.destroy
     save
   end
 

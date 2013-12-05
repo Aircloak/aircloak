@@ -98,4 +98,26 @@ describe VersionTest do
     version_test.process_result results_pb(transcript: transcript)
     version_test.test_output.should eq transcript
   end
+
+  it "should delete it's build if the test fails" do
+    create_cloaks
+    version_test.build.should_not eq nil
+    version_test.mark_build_as_failed
+    version_test.reload.build.should eq nil
+  end
+
+  it "should delete it's build when the test has finished" do
+    create_cloaks
+    version_test.build.should_not eq nil
+    version_test.process_result results_pb
+    version_test.reload.build.should eq nil
+  end
+
+  it "should delete it's cluster when the test has finished" do
+    create_cloaks
+    version_test.mark_build_as_complete
+    version_test.cluster.should_not eq nil
+    version_test.process_result results_pb
+    version_test.reload.cluster.should eq nil
+  end
 end
