@@ -26,8 +26,8 @@ describe DeployableEntity do
     BuildManager.stub(:send_build_request).and_return(true)
     Build.destroy_all
 
-    DeployableEntityVersion.destroy_all
-    DeployableEntity.destroy_all
+    DeployableEntityVersion.delete_all
+    DeployableEntity.delete_all
   end
 
   describe "Validations" do

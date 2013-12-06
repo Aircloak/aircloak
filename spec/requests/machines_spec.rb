@@ -110,8 +110,11 @@ describe MachinesController do
     it "should return a file with a flag signifying that a aircloak specific build should not be performed for machines without clusters" do
       cloak = double(cluster: nil)
       Cloak.stub(:find_by_ip).and_return(cloak)
+      most_recent_tag = double(name: "tag_name")
+      OsTag.should_receive(:last).and_return(most_recent_tag)
       get setup_info_machines_path
       response.status.should be(200)
+      response.body.should include("base_image_tag=\"tag_name\"")
       response.body.should include("perform_aircloak_install=false")
     end
   end

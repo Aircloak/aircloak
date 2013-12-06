@@ -3,5 +3,6 @@ build_url="http://build.aircloak.com/releases/<%=@cloak.cluster.build.id%>.tar.g
 base_image_tag="<%=@cloak.cluster.os_tag.name%>"
 perform_aircloak_install=true
 <% else -%>
+base_image_tag="<%=OsTag.last.name%>"
 perform_aircloak_install=false
 <% end -%>
