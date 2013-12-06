@@ -228,13 +228,19 @@ describe Cluster do
 
   context "should know if it can be deleted" do
     let (:cluster) { Cluster.create }
-    it "should know it cannot be delete if used by a test" do
+    it "should know it cannot be delete if used by a test or has cloaks" do
       c = base_cluster
+      c.can_destroy?.should eq true
+
       c.cloaks << cloak
       c.save.should eq true
+
+      c.cloaks = []
       c.can_destroy?.should eq true
+
       c.version_test = VersionTest.new
       c.can_destroy?.should eq false
+
       c.destroy.should eq false
       c.destroyed?.should eq false
     end

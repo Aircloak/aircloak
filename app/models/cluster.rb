@@ -87,7 +87,7 @@ class Cluster < ActiveRecord::Base
   end
 
   def can_destroy?
-    version_test.blank?
+    version_test.blank? and cloaks.count == 0
   end
 
 private
