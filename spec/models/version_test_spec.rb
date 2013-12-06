@@ -125,4 +125,13 @@ describe VersionTest do
     version_test.destroyed?.should eq true
     expect{build.reload}.to raise_error ActiveRecord::RecordNotFound
   end
+
+  it "should produce string results depending on state" do
+    version_test.status.should eq "In progress"
+    version_test.test_complete = true
+    version_test.test_success = true
+    version_test.status.should eq "Passed"
+    version_test.test_success = false
+    version_test.status.should eq "Failed"
+  end
 end
