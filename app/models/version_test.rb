@@ -7,6 +7,8 @@ class VersionTest < ActiveRecord::Base
   belongs_to :cluster
   belongs_to :deployable_entity_version
 
+  before_destroy :destroy_dependents
+
   def self.new_from_deployable_entity_version version
     v = VersionTest.new deployable_entity_version_id: version.id
     v.test_complete = false
@@ -45,6 +47,7 @@ class VersionTest < ActiveRecord::Base
     self.test_complete = true
     self.test_success = result.success
     self.test_output = result.transcript
+    destroy_dependents
     save
   end
 
@@ -59,6 +62,7 @@ private
   def set_failed
     self.test_complete = true
     self.test_success = false
+    destroy_dependents
     save
   end
 
@@ -68,5 +72,16 @@ private
 
   def test_server_post_url
     "http://#{test_server_machine}/tests"
+  end
+
+  def destroy_dependents
+    cluster.assign_cloaks [] unless cluster.blank?
+    if build
+      build.version_test = nil
+      unless build.clusters.blank? or cluster.blank?
+        build.clusters = build.clusters - [cluster]
+      end
+      build.destroy if build.clusters.size == 0
+    end
   end
 end
