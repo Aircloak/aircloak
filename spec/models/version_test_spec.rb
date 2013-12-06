@@ -113,23 +113,16 @@ describe VersionTest do
     version_test.reload.build.should eq nil
   end
 
-  it "should delete it's cluster when the test has finished" do
-    create_cloaks
-    version_test.mark_build_as_complete
-    version_test.cluster.should_not eq nil
-    version_test.process_result results_pb
-    version_test.reload.cluster.should eq nil
-  end
-
-  it "should delete build and cluster when it itself is deleted" do
+  it "should delete the build and start the cluster destruction process when the test has finished" do
     create_cloaks
     version_test.mark_build_as_complete
     build = version_test.build
     cluster = version_test.cluster
+    cluster.should_receive(:assign_cloaks).with([]) # Starts the deletion of the cluster
     build.should_not eq nil
     cluster.should_not eq nil
     version_test.destroy
+    version_test.destroyed?.should eq true
     expect{build.reload}.to raise_error ActiveRecord::RecordNotFound
-    expect{cluster.reload}.to raise_error ActiveRecord::RecordNotFound
   end
 end
