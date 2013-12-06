@@ -6,7 +6,7 @@ describe Cluster do
     ProtobufSender.stub(:post)
     ProtobufSender.stub(:send_delete)
     ClusterCloak.destroy_all
-    Cluster.destroy_all
+    Cluster.delete_all
     Cloak.destroy_all
     Build.destroy_all
     BuildManager.stub(:send_build_request)
@@ -223,6 +223,26 @@ describe Cluster do
       c.cluster_cloaks.each do |cc|
         cc.set_state :belongs_to
       end
+    end
+  end
+
+  context "should know if it can be deleted" do
+    let (:cluster) { Cluster.create }
+    it "should know it cannot be delete if used by a test or has cloaks" do
+      c = base_cluster
+      c.can_destroy?.should eq true
+
+      c.cloaks << cloak
+      c.save.should eq true
+
+      c.cloaks = []
+      c.can_destroy?.should eq true
+
+      c.version_test = VersionTest.new
+      c.can_destroy?.should eq false
+
+      c.destroy.should eq false
+      c.destroyed?.should eq false
     end
   end
 end

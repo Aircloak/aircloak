@@ -36,6 +36,7 @@ describe OsTag do
   it "should not be possible to delete if it cannot be destroyed" do
     cluster.save
     os_tag.destroy.should eq false
+    cluster.cloaks = []
     cluster.destroy
     os_tag.destroy.should_not eq false
     os_tag.destroyed?.should eq true

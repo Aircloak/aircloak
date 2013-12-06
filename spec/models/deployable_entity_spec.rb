@@ -22,7 +22,7 @@ describe DeployableEntity do
 
     VersionTest.stub(:new_from_deployable_entity_version)
     
-    Cluster.destroy_all
+    Cluster.delete_all
     BuildManager.stub(:send_build_request).and_return(true)
     Build.destroy_all
 

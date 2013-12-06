@@ -45,7 +45,7 @@ class Build < ActiveRecord::Base
   end
 
   def can_destroy?
-    clusters.blank?
+    clusters.blank? && version_test.blank?
   end
 
   def mark_complete args={}
