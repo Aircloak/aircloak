@@ -103,14 +103,7 @@ describe VersionTest do
     create_cloaks
     version_test.build.should_not eq nil
     version_test.mark_build_as_failed
-    version_test.reload.build.should eq nil
-  end
-
-  it "should delete it's build when the test has finished" do
-    create_cloaks
-    version_test.build.should_not eq nil
-    version_test.process_result results_pb
-    version_test.reload.build.should eq nil
+    expect{version_test.build.reload}.to raise_error ActiveRecord::RecordNotFound
   end
 
   it "should delete the build and start the cluster destruction process when the test has finished" do
