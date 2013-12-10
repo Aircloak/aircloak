@@ -8,7 +8,7 @@ describe Cluster do
     ClusterCloak.destroy_all
     Cluster.delete_all
     Cloak.destroy_all
-    Build.destroy_all
+    Build.delete_all
     BuildManager.stub(:send_build_request)
   end
 
