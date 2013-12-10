@@ -24,7 +24,7 @@ describe DeployableEntity do
     
     Cluster.delete_all
     BuildManager.stub(:send_build_request).and_return(true)
-    Build.destroy_all
+    Build.delete_all
 
     DeployableEntityVersion.delete_all
     DeployableEntity.delete_all
