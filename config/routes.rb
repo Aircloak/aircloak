@@ -65,6 +65,7 @@ Web::Application.routes.draw do
 
     resources :api_queries, path: "queries", only: [:create, :show] do
       get "results/:result", on: :member, action: 'get_result'
+      post "execute_as_batch_query", on: :member, action: 'execute_as_batch_query'
     end
   end
 
