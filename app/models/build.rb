@@ -67,6 +67,10 @@ private
   end
 
   def send_request_for_building
-    BuildManager.send_build_request self
+    if Rails.configuration.installation.global
+      BuildManager.send_build_request self
+    else
+      mark_complete success: true
+    end
   end
 end

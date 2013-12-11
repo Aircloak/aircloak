@@ -1,4 +1,8 @@
 defaults: &defaults
+  installation:
+    global: true
+  testing:
+    min_cloaks: 3
   web:
     host: graphite.mpi-sws.org:5000
   manny_air:

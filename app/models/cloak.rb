@@ -51,9 +51,11 @@ class Cloak < ActiveRecord::Base
     end
   end
 
+  # Use at least three cloaks if we are on a global installation, otherwise a single is enough
   def self.cloaks_for_build_testing
-    cloaks = Cloak.all_available.where(tpm: false).limit(3)
-    raise NotEnoughCloaks.new if cloaks.count < 3
+    min_cloaks = Rails.configuration.testing.min_cloaks
+    cloaks = Cloak.all_available.where(tpm: false).limit(min_cloaks)
+    raise NotEnoughCloaks.new if cloaks.count < min_cloaks
     cloaks
   end
 
@@ -74,12 +76,16 @@ private
   end
 
   def create_inform_mannyair
-    mp = MachinePacker.package_cloak self
-    ProtobufSender.post_to_url mannyair_post_url, mp
+    if Rails.configuration.installation.global
+      mp = MachinePacker.package_cloak self
+      ProtobufSender.post_to_url mannyair_post_url, mp
+    end
   end
 
   def destroy_inform_mannyair
-    ProtobufSender.send_delete(mannyair_delete_url id)
+    if Rails.configuration.installation.global
+      ProtobufSender.send_delete(mannyair_delete_url id)
+    end
   end
 
   def update_log_server

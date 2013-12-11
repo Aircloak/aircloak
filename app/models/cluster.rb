@@ -115,8 +115,13 @@ private
   end
 
   def after_save_inform_mannyair
-    cp = ClusterPacker.package_cluster self
-    ProtobufSender.post_to_url mannyair_post_url, cp
+    if Rails.configuration.installation.global
+      cp = ClusterPacker.package_cluster self
+      ProtobufSender.post_to_url mannyair_post_url, cp
+    else
+      # simulate manny_air by automatically synchronizing all cloaks on save
+      self.cluster_cloaks.each {|cc| cc.synchronize }
+    end
   end
 
   def verify_can_destroy
