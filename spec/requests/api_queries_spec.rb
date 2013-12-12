@@ -95,7 +95,7 @@ describe "ApiQueriesController" do
       cloak.cluster_cloak.save.should eq true
 
       Query.count.should eq 0
-      post api_queries_path, cq.encode.buf
+      post api_queries_path, cq.encode.buf, {"CONTENT_TYPE" => "application/x-protobuf"}
       response.status.should eq 404
       Query.count.should eq 0
     end
@@ -106,7 +106,7 @@ describe "ApiQueriesController" do
       cloak.cluster_cloak.save.should eq true
 
       Query.count.should eq 0
-      post api_queries_path, cq.encode.buf
+      post api_queries_path, cq.encode.buf, {"CONTENT_TYPE" => "application/x-protobuf"}
       response.status.should eq 400
       Query.count.should eq 0
     end
@@ -117,7 +117,7 @@ describe "ApiQueriesController" do
       task.save.should eq true
 
       Query.count.should eq 0
-      post api_queries_path, cq.encode.buf
+      post api_queries_path, cq.encode.buf, {"CONTENT_TYPE" => "application/x-protobuf"}
       response.status.should eq 404
       Query.count.should eq 0
     end
@@ -128,7 +128,7 @@ describe "ApiQueriesController" do
       task.save.should eq true
 
       Query.count.should eq 0
-      post api_queries_path, cq.encode.buf
+      post api_queries_path, cq.encode.buf, {"CONTENT_TYPE" => "application/x-protobuf"}
       response.status.should eq 400
       Query.count.should eq 0
     end
@@ -141,7 +141,7 @@ describe "ApiQueriesController" do
       cloak.cluster_cloak.save.should eq true
 
       expect {
-        post api_queries_path, cq.encode.buf
+        post api_queries_path, cq.encode.buf, {"CONTENT_TYPE" => "application/x-protobuf"}
         response.status.should be 200
       }.to change {Query.count}.from(0).to(1)
 

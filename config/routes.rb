@@ -61,7 +61,7 @@ Web::Application.routes.draw do
       get 'setup_info', on: :collection
     end
 
-    resources :cluster_lists, path: "clusters", only: [:index]
+    resources :cluster_lists, path: "clusters", only: [:index, :show]
 
     resources :api_queries, path: "queries", only: [:create, :show] do
       get "results/:result", on: :member, action: 'get_result'
