@@ -29,7 +29,7 @@ describe ClusterListsController do
   end
 
   describe "GET /api/clusters/:id" do
-    it "should provide a the cluster if it is there" do
+    it "should provide the cluster if it is there" do
       machine = ClusterProto::MachineProto.new(
         machine_id: 1024,
         state: ClusterProto::MachineState::TO_BE_ADDED
