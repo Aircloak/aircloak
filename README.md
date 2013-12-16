@@ -9,7 +9,17 @@ Status](https://magnum.travis-ci.com/Aircloak/web.png?token=aFqD8qTNFV1Li4zdKtZw
 The web-frontend of Aircloak, and the RESTful API for storing and retrieving
 queries and results.
 
-# Setup
+This document contains:
+
+* [Information on getting dependencies](#setup)
+* [Information about deploying to production](#deploying-to-production)
+* [Information on the high level model components](#components)
+* [Information about how automated integration tests are run](#version-tests)
+
+
+# Development
+
+## Setup
 Make sure you hande a recent version of ruby. We use Ruby 2.0 for development and deployment.
 I recommend installing your ruby using the [Ruby Version Manager](https://rvm.io).
 
@@ -22,7 +32,7 @@ command in the root of the repository:
 
     bundle install
 
-# PRO tip
+## PRO tip
 
 Rails can be dog-slow, or slow like a glacier if you prefer. To speed things up, I recommend installing the
 zeus gem. You can do this with `gem install zeus`. Zeus preloads rails for you. When you subsequently want to
@@ -39,7 +49,7 @@ A normal workflow looks like this:
     spec/test spec/lib/some_test_spec.rb # this is still significantly faster if your test does not include
     rails
 
-# Running the app
+## Running the app
 
 You need to migrate the database:
 
@@ -51,6 +61,7 @@ You need to migrate the database:
     rails s
 
 For easy development, consider using [pow](http://pow.cx).
+
 
 # Deploying to production
 
@@ -90,3 +101,71 @@ the unicorns like this:
     bundle exec cap unicorn:start
 
 Happy deploying!
+
+
+# Components
+
+We have three main components of interest in our system:
+
+* Deployable entities
+* Clusters and cloaks
+* Tasks
+
+## Deployable entities
+
+A [deployable entity](https://github.com/Aircloak/web/blob/master/app/models/deployable_entity.rb) is a program of some sort that is developed by us and that is part of a cloak deployment.
+Examples of such systems would be [erlattest](https://github.com/Aircloak/erlattest), and
+[cloak-core](https://github.com/Aircloak/cloak-core).
+
+Deployable entities come in multiple versions. These are called [deployable entity
+versions](https://github.com/Aircloak/web/blob/master/app/models/deployable_entity_version.rb) where each
+version corresponds to a commit in git.
+
+A group of built and packaged deployable entities entity versions (one for each deployable entity) make up a [build](https://github.com/Aircloak/web/blob/master/app/models/build.rb). A build in turn can be installed onto a machine and makes it into a cloaked machine.
+
+## Clusters and cloaks
+
+A [cluster](https://github.com/Aircloak/web/blob/master/app/models/cluster.rb) represents a set of machines
+known as [cloaks](https://github.com/Aircloak/web/blob/master/app/models/cloak.rb). It ties these together in a logical
+unit that all communicate together and run the same version of our system.
+
+A cluster knows which specific version of our adapted debian system should be used on cloaks that are part
+of the cluster, and also know which build (group of deployable entity versions) should be used.
+
+When a cloak is added to an existing cluster, [manny-air](https://github.com/Aircloak/manny-air) is notified
+and ensures the right software is installed on the cloak.
+
+## Tasks
+
+[Tasks](https://github.com/Aircloak/web/blob/master/app/models/task.rb) are what are executed on cloak clusters.
+Currently they exist as a collection of Java class file binaries that collectively make up a Java application that
+can make meaning of user data stored in the cloak.
+
+Tasks are currently associated with clusters through
+[queries](https://github.com/Aircloak/web/blob/master/app/models/query.rb), although the name _query_ is likely to
+change in the future.
+
+Queries in turn have indices, but these are currently in flux, and will therefore not be discussed further here.
+
+
+# Version tests
+
+Each new version of a deployable entity that passes automatic unit testing in our continuous integration
+environment, automatically spawns an automated integration test. The process of spawning such a test
+seems quite complex at first sight. It encompasses a lot of the web code base as well as three external systems.
+This section will try to shed some light on what is going on behind the scenes.
+
+When a new deployable entity version is created, this automatically also creates a new [version
+test](https://github.com/Aircloak/web/blob/master/app/models/version_test.rb). 
+The version test creates a new build that can be used for testing. This build includes the particular
+deployable entity version under test, as well as the most recent version of the other deployable entities as
+can be found in their respective "develop" branches.
+Once the [build server](https://github.com/Aircloak/buildserver) has successfully created the build, a cluster is created that uses this particular
+build, as well as the most recent version of the debian image as determined by its
+[OsTag](https://github.com/Aircloak/web/blob/master/app/models/os_tag.rb).
+Once the cluster is configured and running as reported by [manny-air](https://github.com/Aircloak/manny-air), the version test informs the [test
+server](https://github.com/Aircloak/testserver) that is should run its test on the particular cluster.
+The test server exercises the cluster and uses the API in the web system to verify that the cluster behaves
+correctly.
+
+If any of the steps above fail, the test is considered to have failed as well.
