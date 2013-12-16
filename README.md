@@ -149,3 +149,23 @@ Queries in turn have indices, but these are currently in flux, and will therefor
 
 
 # Version tests
+
+Each new version of a deployable entity that passes automatic unit testing in our continuous integration
+environment, automatically spawns an automated integration test. The process of spawning such a test
+seems quite complex at first sight. It encompasses a lot of the web code base as well as three external systems.
+This section will try to shed some light on what is going on behind the scenes.
+
+When a new deployable entity version is created, this automatically also creates a new [version
+test](https://github.com/Aircloak/web/blob/master/app/models/version_test.rb). 
+The version test creates a new build that can be used for testing. This build includes the particular
+deployable entity version under test, as well as the most recent version of the other deployable entities as
+can be found in their respective "develop" branches.
+Once the [build server](https://github.com/Aircloak/buildserver) has successfully created the build, a cluster is created that uses this particular
+build, as well as the most recent version of the debian image as determined by its
+[OsTag](https://github.com/Aircloak/web/blob/master/app/models/os_tag.rb).
+Once the cluster is configured and running as reported by [manny-air](https://github.com/Aircloak/manny-air), the version test informs the [test
+server](https://github.com/Aircloak/testserver) that is should run its test on the particular cluster.
+The test server exercises the cluster and uses the API in the web system to verify that the cluster behaves
+correctly.
+
+If any of the steps above fail, the test is considered to have failed as well.
