@@ -15,5 +15,9 @@
     .controls
       = f.text_field :ip
   .control-group
+    %label.control-label TPM
+    .controls
+      = f.check_box :tpm
+  .control-group
     .controls
       = f.submit 'Save', class: "btn"
