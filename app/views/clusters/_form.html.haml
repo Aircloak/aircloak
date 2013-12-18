@@ -8,8 +8,10 @@
 
   .control-group
     %label.control-label Name
+    %span.help-block The cluster name is also used for naming logs on the log server. Please keep it sensible.
     .controls
       = f.text_field :name
+
     %label.control-label Build ID
     .controls
       = f.select :build_id, Build.all.map {|build| [build.name + (if build.tpm; ""; else; " (no tpm)"; end), build.id]}
