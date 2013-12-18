@@ -90,6 +90,13 @@ class Cluster < ActiveRecord::Base
     version_test.blank? and cloaks.count == 0
   end
 
+  # A log name is a version of the cluster name that
+  # is sane for using in folder and file names on the log server
+  def log_name
+    name_base = "#{name}-#{build.name}-#{os_tag.name}"
+    name_base.gsub(" ", "_").gsub(/[^\w^\d^\-]*/, "")
+  end
+
 private
   def must_match_tpm_configuration
     unless !build || cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == self.tpm }
