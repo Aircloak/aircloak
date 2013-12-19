@@ -143,4 +143,19 @@ describe Cloak do
       expect{Cloak.cloaks_for_build_testing }.to raise_exception(NotEnoughCloaks)
     end
   end
+
+  context "log config" do
+    before(:each) do
+      Cloak.delete_all
+    end
+
+    it "should invoke the log server on create, update, and destroy" do
+      LogServerConfigurer.should_receive(:update_config).exactly(3).times
+      c = Cloak.create name: "foo", ip: "1.2.3.4", tpm: false
+      c.name = "bar"
+      c.save.should eq true
+      c.destroy
+      c.destroyed?.should eq true
+    end
+  end
 end

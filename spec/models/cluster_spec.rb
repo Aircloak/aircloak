@@ -245,4 +245,28 @@ describe Cluster do
       c.destroyed?.should eq false
     end
   end
+
+  def cluster args={}
+    b = Build.new name: args.delete(:bname) || "Build name"
+    o = OsTag.new name: args.delete(:oname) || "Os tag name"
+    Cluster.new name: args.delete(:cname) || "Cluster name", build: b, os_tag: o
+  end
+
+  it "should create sane log names from cluster names" do
+    cluster(cname: "cluster", bname: "build", oname: "os").log_name.should eq "cluster-build-os"
+    cluster(cname: "cluster name", bname: "build", oname: "os").log_name.should eq "cluster_name-build-os"
+    cluster(cname: "strange!", bname: "?æname", oname: "/,now better").log_name.should eq "strange-name-now_better"
+  end
+
+  it "should invoke the log server on create, update, and destroy" do
+    LogServerConfigurer.should_receive(:update_config).at_least(3).times
+    c = base_cluster
+    c.cloaks << cloak
+    c.save.should eq true
+    c.cloaks << richard
+    c.save.should eq true
+    c.cloaks = []
+    c.destroy
+    c.destroyed?.should eq true
+  end
 end

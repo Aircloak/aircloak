@@ -7,7 +7,8 @@
           %li= msg
 
   .control-group
-    %label.control-label Name
+    %label.control-label Hostname
+    %span.help-block The hostname, amongst other things, is used for configuring logging. If you can help it, please don't change it.
     .controls
       = f.text_field :name
   .control-group
