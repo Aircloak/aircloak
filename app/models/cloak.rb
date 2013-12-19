@@ -1,6 +1,7 @@
 require './lib/proto/air/management_messages.pb'
 require './lib/protobuf_sender'
 require './lib/machine_packer'
+require './lib/log_server_configurer'
 
 class NotEnoughCloaks < Exception; end
 
@@ -13,6 +14,7 @@ class Cloak < ActiveRecord::Base
   after_create :create_inform_mannyair
   before_destroy :validate_destroyability
   after_destroy :destroy_inform_mannyair
+  after_commit :update_log_server
 
   def display_name
     name + (tpm ? "" : " (no tpm)")
@@ -78,5 +80,9 @@ private
 
   def destroy_inform_mannyair
     ProtobufSender.send_delete(mannyair_delete_url id)
+  end
+
+  def update_log_server
+    LogServerConfigurer.update_config
   end
 end

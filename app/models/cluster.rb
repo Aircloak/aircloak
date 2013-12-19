@@ -1,4 +1,5 @@
 require './lib/cluster_packer.rb'
+require './lib/log_server_configurer'
 
 class Cluster < ActiveRecord::Base
   has_many :cluster_cloaks
@@ -18,6 +19,7 @@ class Cluster < ActiveRecord::Base
   validate :must_have_at_least_one_cloak
 
   after_save :after_save_inform_mannyair
+  after_commit :update_log_server
   before_destroy :verify_can_destroy
 
   def tpm
@@ -122,5 +124,9 @@ private
       self.errors.add(:version_test, "Cannot destroy a build used by a version test")
       false
     end
+  end
+
+  def update_log_server
+    LogServerConfigurer.update_config
   end
 end
