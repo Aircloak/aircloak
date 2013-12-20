@@ -21,8 +21,14 @@ class ResultHandler
     str_answer = property.string
     range_min = property.range.min if property.range
     range_max = property.range.max if property.range
+    if property.joiners_leavers
+      joiners = property.joiners_leavers.joiners
+      leavers = property.joiners_leavers.leavers
+    else
+      joiners = nil
+      leavers = nil
+    end
     Bucket.create(label: label, str_answer: str_answer, range_min: range_min, range_max: range_max,
-        joiners: property.joiners_leavers.joiners, leavers: property.joiners_leavers.leavers,
-        accumulated_count: property.accumulated_count)
+        joiners: joiners, leavers: leavers, accumulated_count: property.accumulated_count)
   end
 end

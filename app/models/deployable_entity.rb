@@ -55,11 +55,15 @@ class DeployableEntity < ActiveRecord::Base
 
 private
   def set_description
-    self.description = Gh.description_for repo
+    if Rails.configuration.installation.global
+      self.description = Gh.description_for repo
+    else
+      self.description = "I'm a description!"
+    end
   end
 
   def repo_exists
-    Gh.description_for repo
+    not Rails.configuration.installation.global or Gh.description_for repo
   rescue UnknownRepository
     errors.add(:repo, "does not exist")
   end

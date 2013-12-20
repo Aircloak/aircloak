@@ -23,3 +23,6 @@
           - else
 
         %td= link_to 'Destroy', test, :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
+
+- unless Rails.configuration.installation.global
+  %h1= link_to 'Start local test', version_tests_create_local_path

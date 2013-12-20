@@ -69,7 +69,10 @@ Web::Application.routes.draw do
     end
   end
 
-  put "/api/version_tests/:id", to: "version_tests#update"
+  post "/api/version_tests/:id", to: "version_tests#update"
+  unless Rails.configuration.installation.global
+    get "/version_tests/create_local", to: "version_tests#create_local"
+  end
   resources :version_tests, except: [:create, :update]
 
   resources :clusters, :except => :destroy

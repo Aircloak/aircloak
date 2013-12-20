@@ -8,6 +8,7 @@ class VersionTest < ActiveRecord::Base
   belongs_to :deployable_entity_version
 
   before_destroy :destroy_dependents
+  after_create :mark_build_complete unless Rails.configuration.installation.global
 
   def self.new_from_deployable_entity_version version
     v = VersionTest.new deployable_entity_version_id: version.id
@@ -20,6 +21,10 @@ class VersionTest < ActiveRecord::Base
   # a cluster for the particular build
   def mark_build_as_complete
     self.cluster = Cluster.test_cluster_for_build build
+    unless Rails.configuration.installation.global
+      self.save
+      self.cluster.cluster_cloaks.each {|cc| cc.synchronize }
+    end
     self
   rescue NotEnoughCloaks
     set_failed
@@ -83,5 +88,9 @@ private
       end
       build.destroy if build.clusters.size == 0
     end
+  end
+
+  def mark_build_complete
+    build.mark_complete success: true
   end
 end

@@ -32,7 +32,7 @@ class ClusterCloak < ActiveRecord::Base
     save
   end
 
-  def state_to_raw_state state
+  def self.state_to_raw_state state
     ClusterCloak.state_map.invert[state]
   end
 

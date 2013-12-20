@@ -10,7 +10,7 @@ describe "VersionTestController" do
         success: true,
         transcript: "First this then that"
       )
-      put '/api/version_tests/1', tr.encode.buf
+      post '/api/version_tests/1', tr.encode.buf
       response.status.should eq(404)
     end
 
@@ -23,7 +23,7 @@ describe "VersionTestController" do
       version_test = double
       VersionTest.should_receive(:find).and_return(version_test)
       version_test.should_receive(:process_result).with(tr)
-      put '/api/version_tests/1', tr.encode.buf
+      post '/api/version_tests/1', tr.encode.buf
       response.status.should eq(200)
     end
   end
