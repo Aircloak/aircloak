@@ -6,21 +6,43 @@ Climate](https://codeclimate.com/repos/52834e57c7f3a36f49049694/badges/b93de74f2
 [![Build
 Status](https://magnum.travis-ci.com/Aircloak/web.png?token=aFqD8qTNFV1Li4zdKtZw&branch=master)](https://magnum.travis-ci.com/Aircloak/web)
 
-The web-frontend of Aircloak, and the RESTful API for storing and retrieving
-queries and results.
+----------------------
 
-This document contains:
+- [What it does](#what-it-does)
+- [Getting started](#getting-started)
+    - [API](#api)
+    - [Running](#running)
+    - [Deploying](#deploying)
+    - [Testing](#testing)
+    - [Good to know](#good-to-know)
+- [Role in the greater picture](#role-in-the-greater-picture)
+- [What it is made up of](#what-it-is-made-up-of)
+    - [Components](#components)
 
-* [Information on getting dependencies](#setup)
-* [Information about deploying to production](#deploying-to-production)
-* [Information on the high level model components](#components)
-* [Information about how automated integration tests are run](#version-tests)
+----------------------
+
+# What it does
+
+This repository contains the web-frontend for the aircloak backend control system, as well as the RESTful API for programatically interacting with our infrastructure.
+
+# Getting started
+## API
+
+The web currently provides an API namespaced under `/api/
+The following resources are exposed under the API:
+
+- machines
+- clusters
+- queries
+- version tests
+
+This API is under flux. The best resource is the code. To get an overview, please have a look at the
+[routes](https://github.com/Aircloak/web/blob/master/config/routes.rb#L57) file.
 
 
-# Development
+## Running
 
-## Setup
-Make sure you hande a recent version of ruby. We use Ruby 2.0 for development and deployment.
+We use Ruby 2.0 for development and deployment.
 I recommend installing your ruby using the [Ruby Version Manager](https://rvm.io).
 
 Next, please install the `bundler gem`:
@@ -32,38 +54,15 @@ command in the root of the repository:
 
     bundle install
 
-## PRO tip
-
-Rails can be dog-slow, or slow like a glacier if you prefer. To speed things up, I recommend installing the
-zeus gem. You can do this with `gem install zeus`. Zeus preloads rails for you. When you subsequently want to
-perform an action that requires rails to be loaded, it forks the preloaded copy of rails (which happens
-significantly faster than spawning the whole process anew) and performs the operation.
-
-A normal workflow looks like this:
-
-    zeus start # starts the zeus daemon, you need to leave this running in a tab somewhere
-    zeus s # starts the rails server
-    zeus rake SOMETHING # some rake task that otherwise would have been slow
-    zeus g|d controller|model|migration # use the rails generators in no time
-    zeus rspec spec/path/to/test # this is good for tests that require rails.
-    spec/test spec/lib/some_test_spec.rb # this is still significantly faster if your test does not include
-    rails
-
-## Running the app
-
-You need to migrate the database:
+Before being able to run the application, you need to create and migrate the database:
 
     bundle exec rake db:create
     bundle exec rake db:migrate
 
-    ...
+You can run the application with `rails s`, but I recommend using zeus. Please see the [good to
+know](#goot-to-know) section below.
 
-    rails s
-
-For easy development, consider using [pow](http://pow.cx).
-
-
-# Deploying to production
+## Deploying
 
 We use [Capistrano](https://github.com/capistrano/capistrano) for deployment. You already get it installed
 automatically when running `bundle install`.
@@ -81,13 +80,13 @@ I recommend you add the following to your ~/.ssh/config:
 If you are not able to log into the web servers, please ask someone who is able to do so, to add your public
 key to the __deployer__ user's __authorized_keys__ file.
 
-## Migrating the schema 
+### Migrating the schema 
 
 To migrate the schema on the production database, please run:
 
     bundle exec cap deploy:migrate
 
-## Deploy website
+### Deploy website
 
 To deploy the website, run
 
@@ -103,7 +102,52 @@ the unicorns like this:
 Happy deploying!
 
 
-# Components
+## Testing
+
+To run the test suite, make sure you have the test database created:
+
+    RAILS_ENV=test bundle exec rake db:create
+    RAILS_ENV=test bundle exec rake db:migrate
+
+then to run the tests use
+
+    bundle exec rake
+
+## Good to know
+
+Rails can be dog-slow, or slow like a glacier if you prefer. To speed things up, I recommend installing the
+zeus gem. You can do this with `gem install zeus`. Zeus preloads rails for you. When you subsequently want to
+perform an action that requires rails to be loaded, it forks the preloaded copy of rails (which happens
+significantly faster than spawning the whole process anew) and performs the operation.
+
+A normal workflow looks like this:
+
+```
+zeus start # starts the zeus daemon, you need to leave this running in a tab somewhere
+zeus s # starts the rails server
+zeus rake SOMETHING # some rake task that otherwise would have been slow
+zeus g|d controller|model|migration # use the rails generators in no time
+zeus rspec spec/path/to/test # this is good for tests that require rails.
+spec/test spec/lib/some_test_spec.rb # this is still significantly faster if your test does not include
+rails
+```
+
+# Role in the greater picture
+
+The web component takes on a lot of different roles.
+It allows us to manage our clusters. We can add physical nodes and create cluster, and see the health of
+clusters and individual cloaks. It also allows us to see the output of building individual deployable
+entities.
+
+The web also currently has the legacy role of providing integration with our windows testing machines for the
+windows testing client, and providing and endpoint at which windows clients can connect and ask for newer
+versions of the windows client. These components currently exist, but aren't actively in use.
+
+The web will in the future also provide means for analysts to upload queries and for them to see the result
+of running these queries.
+
+# What it is made up of
+## Components
 
 We have three main components of interest in our system:
 
@@ -111,7 +155,7 @@ We have three main components of interest in our system:
 * Clusters and cloaks
 * Tasks
 
-## Deployable entities
+### Deployable entities
 
 A [deployable entity](https://github.com/Aircloak/web/blob/master/app/models/deployable_entity.rb) is a program of some sort that is developed by us and that is part of a cloak deployment.
 Examples of such systems would be [erlattest](https://github.com/Aircloak/erlattest), and
@@ -123,7 +167,7 @@ version corresponds to a commit in git.
 
 A group of built and packaged deployable entities entity versions (one for each deployable entity) make up a [build](https://github.com/Aircloak/web/blob/master/app/models/build.rb). A build in turn can be installed onto a machine and makes it into a cloaked machine.
 
-## Clusters and cloaks
+### Clusters and cloaks
 
 A [cluster](https://github.com/Aircloak/web/blob/master/app/models/cluster.rb) represents a set of machines
 known as [cloaks](https://github.com/Aircloak/web/blob/master/app/models/cloak.rb). It ties these together in a logical
@@ -135,7 +179,7 @@ of the cluster, and also know which build (group of deployable entity versions) 
 When a cloak is added to an existing cluster, [manny-air](https://github.com/Aircloak/manny-air) is notified
 and ensures the right software is installed on the cloak.
 
-## Tasks
+### Tasks
 
 [Tasks](https://github.com/Aircloak/web/blob/master/app/models/task.rb) are what are executed on cloak clusters.
 Currently they exist as a collection of Java class file binaries that collectively make up a Java application that
@@ -148,7 +192,7 @@ change in the future.
 Queries in turn have indices, but these are currently in flux, and will therefore not be discussed further here.
 
 
-# Version tests
+### Version tests
 
 Each new version of a deployable entity that passes automatic unit testing in our continuous integration
 environment, automatically spawns an automated integration test. The process of spawning such a test
