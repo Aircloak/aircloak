@@ -10,7 +10,11 @@
     %tr
       %td= build.name
       %td= build.tpm
-      %td= link_to 'Destroy', build_path(build), :method => :delete, :data => { :confirm => 'Are you sure?' }
+      %td 
+        - if build.can_destroy?
+          = link_to 'Destroy', build_path(build), :method => :delete, :data => { :confirm => 'Are you sure?' }
+        - else
+          Currently used by a cluster or version test
 
 %br
 
