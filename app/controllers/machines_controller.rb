@@ -4,6 +4,7 @@ require './lib/machine_packer'
 class MachinesController < ApplicationController
   filter_access_to [:index, :setup_info], require: :anon_read
   filter_access_to [:broken, :synchronize], require: :anon_write
+  protect_from_forgery :except => [:synchronize, :broken]
   layout false
 
   def index
