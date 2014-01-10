@@ -1,11 +1,12 @@
+require './lib/token_generator'
+
 class PendingResult < ActiveRecord::Base
   belongs_to :query
   before_validation :generate_auth_token
 
   def generate_auth_token
-    o =  [('a'..'z'),('A'..'Z')].map{|i| i.to_a}.flatten
     begin
-      token = (0...30).map{ o[rand(o.length)] }.join 
+      token = TokenGenerator.token_of_length 30
     end while PendingResult.where(auth_token: token).count != 0
     self.auth_token = token
   end
