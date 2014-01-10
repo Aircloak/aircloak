@@ -4,7 +4,9 @@ class PendingResult < ActiveRecord::Base
 
   def generate_auth_token
     o =  [('a'..'z'),('A'..'Z')].map{|i| i.to_a}.flatten
-    token = (0...30).map{ o[rand(o.length)] }.join while PendingResult.where(auth_token: token).size != 0
+    begin
+      token = (0...30).map{ o[rand(o.length)] }.join 
+    end while PendingResult.where(auth_token: token).count != 0
     self.auth_token = token
   end
 end
