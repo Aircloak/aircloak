@@ -63,26 +63,42 @@ describe Cluster do
     c2.errors.messages[:name].should_not eq nil
   end
 
-  it "cloak and cluster tpm settings should match" do
+  it "should only allow tpm cloaks for a tpm build" do
+    build.tpm = true
+    build.save.should eq true
+
+    c1 = Cloak.new(name: "cloak2", ip: "20.20.20.20")
+    c1.tpm = true
+    c1.save.should eq true
+
+    cl = base_cluster name: "cluster1", build: build
+    cl.cloaks << c1
+    cl.save.should eq true
+
+    c2 = Cloak.new(name: "cloak1", ip: "10.10.10.10")
+    c2.tpm = false
+    c2.save.should eq true
+
+    cl.cloaks << c2
+    cl.save.should eq false
+    cl.errors.messages[:cloaks].should_not eq nil
+  end
+
+  it "may allow any cloak type for a non-tpm build" do
     build.tpm = false
     build.save.should eq true
 
-    cl1 = Cloak.new(name: "cloak1", ip: "10.10.10.10")
-    cl1.tpm = false
-    cl1.save.should eq true
-
-    cl2 = Cloak.new(name: "cloak2", ip: "20.20.20.20")
-    cl2.tpm = true
-    cl2.save.should eq true
-
-    c1 = base_cluster name: "cluster1", build: build
-    c1.cloaks << cl1
+    c1 = Cloak.new(name: "cloak1", ip: "10.10.10.10")
+    c1.tpm = false
     c1.save.should eq true
 
-    c2 = base_cluster name: "cluster2", build: build
-    c2.cloaks << cl2
-    c2.save.should eq false
-    c2.errors.messages[:cloaks].should_not eq nil
+    c2 = Cloak.new(name: "cloak2", ip: "20.20.20.20")
+    c2.tpm = true
+    c2.save.should eq true
+
+    cl = base_cluster name: "cluster1", build: build
+    cl.cloaks << [c1, c2]
+    cl.save.should eq true
   end
 
   it "should know if a cluster is healthy" do

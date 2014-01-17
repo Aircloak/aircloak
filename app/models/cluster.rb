@@ -102,7 +102,11 @@ class Cluster < ActiveRecord::Base
 private
   def must_match_tpm_configuration
     unless !build || cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == self.tpm }
-      self.errors.add :cloaks, "must match tpm configuration"
+      if self.tpm
+        self.errors.add :cloaks, "must match tpm configuration"
+      else
+        # We allow clusters of mixed machines if the build is a non-tpm build
+      end
     end
   end
 
