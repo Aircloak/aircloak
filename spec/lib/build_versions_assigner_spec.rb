@@ -2,11 +2,11 @@ require './lib/build_versions_assigner.rb'
 
 describe BuildVersionsAssigner do
   # If this test is run in isolation, then we 
-  # need to mock out BuildVersion and DeployableEntities
+  # need to mock out BuildVersion and DeployableEntity
   before(:all) do
-    begin DeployableEntities
+    begin DeployableEntity
     rescue NameError
-      class DeployableEntities
+      class DeployableEntity
       end
     end
     
@@ -23,7 +23,7 @@ describe BuildVersionsAssigner do
     end
   end
 
-  let(:params) {
+  let(:params_from_versions) {
     {
       "utf8"=>"✓",
       "authenticity_token"=>"4MnSU5tTng97r+hiQ475eb6621cirgvv58uKQovvTco=",
@@ -31,7 +31,20 @@ describe BuildVersionsAssigner do
       "build_versions"=>["1","2"],
       "commit"=>"Save",
       "action"=>"create",
-      "controller"=>"builds"
+      "controller"=>"builds",
+      "from_develop" => "false"
+    }
+  }
+  let(:params_develop) {
+    {
+      "utf8"=>"✓",
+      "authenticity_token"=>"4MnSU5tTng97r+hiQ475eb6621cirgvv58uKQovvTco=",
+      "build"=>{"name"=>"asd", "tpm"=>"1"},
+      "build_versions"=>["1","2"],
+      "commit"=>"Save",
+      "action"=>"create",
+      "controller"=>"builds",
+      "from_develop" => "true"
     }
   }
 
@@ -55,15 +68,28 @@ describe BuildVersionsAssigner do
     DeployableEntityVersion.should_receive(:find).with(1).and_return(bv1)
     DeployableEntityVersion.should_receive(:find).with(2).and_return(bv2)
     
-    BuildVersionsAssigner.assign_from_params build, params
+    BuildVersionsAssigner.assign_from_params build, params_from_versions
 
     devs.size.should eq 2
     devs.should eq [bv1, bv2]
   end
 
-  it "should not fail when called with empty build_versions" do
+  it "should not fail when called with empty build_versions if from_develop is false" do
     build = double(:build)
-    params = {}
+    params = {
+      "from_develop" => "false"
+    }
     expect{BuildVersionsAssigner.assign_from_params build, params}.to_not raise_error
+  end
+
+  it "should user the most recent versions from develop branch when requested" do
+    versions = double()
+    entities = double()
+    DeployableEntity.should_receive(:all).and_return(entities)
+    BuildManager.stub(:find_right_versions).and_return(versions)
+    array = []
+    build = double(deployable_entity_versions: array)
+    BuildVersionsAssigner.assign_from_params build, params_develop
+    array.include?(versions).should eq true
   end
 end
