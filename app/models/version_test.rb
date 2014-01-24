@@ -42,7 +42,7 @@ class VersionTest < ActiveRecord::Base
     TestRequestPB.new(
       id: id,
       cluster_id: cluster.id,
-      reply_host: "http://#{Rails.configuration.web.host}",
+      reply_host: "http://#{Rails.configuration.task.return_host}",
       cluster_nodes: cluster.cloaks.map(&:name)
     )
   end

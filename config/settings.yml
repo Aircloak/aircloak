@@ -3,8 +3,8 @@ defaults: &defaults
     global: true
   testing:
     min_cloaks: 3
-  web:
-    host: graphite.mpi-sws.org:5000
+  task:
+    return_host: graphite.mpi-sws.org:5000
   manny_air:
     host: manny-air.aircloak.com
   test_server:
@@ -13,6 +13,9 @@ defaults: &defaults
     host: build.aircloak.com
   log_server:
     host: logserver.aircloak.com
+  cloak:
+    protocol: https
+    port: 447
 
 development:
   <<: *defaults
@@ -22,8 +25,8 @@ production:
 
 test: &testing
   <<: *defaults
-  web:
-    host: localhost
+  task:
+    return_host: localhost
   manny_air:
     host: localhost
   test_server:

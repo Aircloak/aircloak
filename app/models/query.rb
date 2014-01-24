@@ -49,7 +49,7 @@ class Query < ActiveRecord::Base
     else
       # Queries that are run on demand, need an address to return
       # the results back to.
-      domain = "http://#{Rails.configuration.web.host}/results"
+      domain = "http://#{Rails.configuration.task.return_host}/results"
       cquery.batch_options = CQuery::BatchOptions.new(url: domain)
       cquery.query_class = CQuery::QueryClass::BATCH
     end
@@ -130,10 +130,8 @@ private
   def cloak_url path
     cluster_cloaks = ClusterCloak.where(cluster: cluster,
         raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).limit(1)
-    if Rails.configuration.installation.global
-      return "https://#{cluster_cloaks.first.cloak.ip}:8098/#{path}" if cluster_cloaks.count > 0
-    else
-      return "http://#{cluster_cloaks.first.cloak.ip}:8098/#{path}" if cluster_cloaks.count > 0
-    end
+    prot = Rails.configuration.cloak.protocol
+    port = Rails.configuration.cloak.port
+    return "#{prot}://#{cluster_cloaks.first.cloak.ip}:#{port}/#{path}" if cluster_cloaks.count > 0
   end
 end

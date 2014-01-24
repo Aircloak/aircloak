@@ -5,7 +5,7 @@ class ApiQueriesController < ApplicationController
   filter_access_to :execute_as_batch_query, require: :anon_write
   filter_access_to :create, require: :anon_write
   filter_access_to [:show, :get_result], require: :anon_read
-  protect_from_forgery :only => []
+  skip_before_action :verify_authenticity_token
   layout false
 
   class ClusterNotFound < StandardError; end
