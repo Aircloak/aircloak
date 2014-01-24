@@ -51,7 +51,7 @@ class DeployableEntityVersion < ActiveRecord::Base
 private
   def set_message_and_author
     return if self.message and self.author
-    Gh.add_message_and_author self
+    Gh.add_message_and_author self if Rails.configuration.installation.global
   end
 
   def schedule_test

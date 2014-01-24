@@ -1,4 +1,5 @@
 require './lib/proto/cloak/query.pb'
+require './lib/proto/air/query_upload.pb'
 require 'net/http'
 require 'net/https'
 require 'uri'
@@ -15,6 +16,7 @@ class Query < ActiveRecord::Base
   belongs_to :cluster
 
   validates_presence_of :name, :task_id
+  validates_uniqueness_of :name
 
   after_save :upload_stored_query
   after_destroy :remove_query_from_cloak
@@ -47,7 +49,7 @@ class Query < ActiveRecord::Base
     else
       # Queries that are run on demand, need an address to return
       # the results back to.
-      domain = "http://#{Rails.configuration.query.return_host}/results"
+      domain = "http://#{Rails.configuration.task.return_host}/results"
       cquery.batch_options = CQuery::BatchOptions.new(url: domain)
       cquery.query_class = CQuery::QueryClass::BATCH
     end
@@ -89,7 +91,7 @@ class Query < ActiveRecord::Base
 private
 
   def query_controls_binary_transfer?
-    control_query = Query.where(cluster: self.cluster, task: self.task).order(:id).limit(1).first
+    control_query = self.class.where(cluster: self.cluster, task: self.task).order(:id).limit(1).first
     self.id == control_query.id
   end
 
@@ -128,6 +130,8 @@ private
   def cloak_url path
     cluster_cloaks = ClusterCloak.where(cluster: cluster,
         raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).limit(1)
-    "https://#{cluster_cloaks.first.cloak.ip}/#{path}" if cluster_cloaks.count > 0
+    prot = Rails.configuration.cloak.protocol
+    port = Rails.configuration.cloak.port
+    return "#{prot}://#{cluster_cloaks.first.cloak.ip}:#{port}/#{path}" if cluster_cloaks.count > 0
   end
 end

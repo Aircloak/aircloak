@@ -14,7 +14,7 @@ class ResultsController < ApplicationController
     @query = Query.find(params[:id])
     @results = Result.where(query: @query).order(result_id: :asc)
     buckets = Bucket.where(query: @query).order(label: :asc, str_answer: :asc, range_min: :asc)
-    @buckets = ResultController.process_buckets buckets
+    @buckets = ResultsController.process_buckets buckets
   end
 
   def create

@@ -48,6 +48,9 @@ class Cluster < ActiveRecord::Base
     (new_cloaks - old_cloaks).each {|cloak| cloaks << cloak }
     (new_cloaks & old_cloaks).each {|cloak| keep_cloak cloak }
     (old_cloaks - new_cloaks).each {|cloak| cloak.cluster_cloak.set_state :to_be_removed }
+    unless Rails.configuration.installation.global
+      (old_cloaks - new_cloaks).each {|cloak| cloak.cluster_cloak.synchronize }
+    end
   end
 
   def keep_cloak cloak
@@ -119,8 +122,10 @@ private
   end
 
   def after_save_inform_mannyair
-    cp = ClusterPacker.package_cluster self
-    ProtobufSender.post_to_url mannyair_post_url, cp
+    if Rails.configuration.installation.global
+      cp = ClusterPacker.package_cluster self
+      ProtobufSender.post_to_url mannyair_post_url, cp
+    end
   end
 
   def verify_can_destroy
