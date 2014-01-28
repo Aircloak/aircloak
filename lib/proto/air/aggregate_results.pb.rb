@@ -43,7 +43,7 @@ class PropertyProto
   optional :string, :string, 2
   optional :range, PropertyProto::RangeProto, 3
   optional :joiners_leavers, JoinersLeaversProto, 4
-  optional :accumulated_count, :uint32, 5
+  optional :accumulated_count, :sint64, 5
 end
 
 
