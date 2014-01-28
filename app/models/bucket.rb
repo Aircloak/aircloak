@@ -28,7 +28,7 @@ class Bucket < ActiveRecord::Base
 
   def to_property_proto
     range = PropertyProto::RangeProto.new(min: range_min, max: range_max) if range_min
-    joiners_leavers = JoinersLeaversProto.new(joiners: joiners, leavers: leavers)
+    joiners_leavers = JoinersLeaversProto.new(joiners: joiners, leavers: leavers) if joiners && leavers
     PropertyProto.new(label: label, string: str_answer, range: range, joiners_leavers: joiners_leavers,
         accumulated_count: accumulated_count)
   end
