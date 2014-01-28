@@ -2,7 +2,7 @@
 require "beefcake"
 
 
-class MachineProto
+class MachinePB
   include Beefcake::Message
 
   module MachineType
@@ -11,11 +11,11 @@ class MachineProto
   end
 end
 
-class MachinesProto
+class MachinesPB
   include Beefcake::Message
 end
 
-class ClusterProto
+class ClusterPB
   include Beefcake::Message
 
   module MachineState
@@ -24,42 +24,42 @@ class ClusterProto
     TO_BE_REMOVED = 3
   end
 
-  class MachineProto
+  class MemberPB
     include Beefcake::Message
   end
 end
 
-class ClustersProto
+class ClustersPB
   include Beefcake::Message
 end
 
-class MachineProto
-  required :machine_id, :uint32, 1
+class MachinePB
+  required :id, :uint32, 1
   required :name, :string, 2
-  required :type, MachineProto::MachineType, 3
+  required :type, MachinePB::MachineType, 3
   required :good, :bool, 4
 end
 
 
-class MachinesProto
-  repeated :machines, MachineProto, 1
+class MachinesPB
+  repeated :machines, MachinePB, 1
 end
 
 
-class ClusterProto
+class ClusterPB
 
-  class MachineProto
+  class MemberPB
     required :machine_id, :uint32, 1
-    required :state, ClusterProto::MachineState, 2
+    required :state, ClusterPB::MachineState, 2
   end
 
   required :timestamp, :uint64, 1
-  required :cluster_id, :uint32, 2
-  repeated :machines, ClusterProto::MachineProto, 3
+  required :id, :uint32, 2
+  repeated :members, ClusterPB::MemberPB, 3
 end
 
 
-class ClustersProto
-  repeated :clusters, ClusterProto, 1
+class ClustersPB
+  repeated :clusters, ClusterPB, 1
 end
 

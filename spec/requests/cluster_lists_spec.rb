@@ -5,16 +5,16 @@ require './lib/cluster_packer.rb'
 describe ClusterListsController do
   describe "GET /api/clusters" do
     it "should provide a list of clusters" do
-      machine = ClusterProto::MachineProto.new(
+      machine = ClusterPB::MemberPB.new(
         machine_id: 1024,
-        state: ClusterProto::MachineState::TO_BE_ADDED
+        state: ClusterPB::MachineState::TO_BE_ADDED
       )
-      cluster = ClusterProto.new(
+      cluster = ClusterPB.new(
         timestamp: 0,
-        cluster_id: 1,
+        id: 1,
         machines: [machine]
       )
-      proto = ClustersProto.new(clusters: [cluster])
+      proto = ClustersPB.new(clusters: [cluster])
 
       clusters = double
       Cluster.stub(:all).and_return(clusters)
@@ -23,20 +23,20 @@ describe ClusterListsController do
       get cluster_lists_path
 
       response.status.should be(200)
-      response_proto = ClustersProto.decode(response.body)
+      response_proto = ClustersPB.decode(response.body)
       response_proto.should eq proto
     end
   end
 
   describe "GET /api/clusters/:id" do
     it "should provide the cluster if it is there" do
-      machine = ClusterProto::MachineProto.new(
-        machine_id: 1024,
-        state: ClusterProto::MachineState::TO_BE_ADDED
+      machine = ClusterPB::MemberPB.new(
+        id: 1024,
+        state: ClusterPB::MachineState::TO_BE_ADDED
       )
-      proto = ClusterProto.new(
+      proto = ClusterPB.new(
         timestamp: 0,
-        cluster_id: 1,
+        id: 1,
         machines: [machine]
       )
 
@@ -47,7 +47,7 @@ describe ClusterListsController do
       get cluster_list_path(1)
 
       response.status.should be(200)
-      response_proto = ClusterProto.decode(response.body)
+      response_proto = ClusterPB.decode(response.body)
       response_proto.should eq proto
     end
 
