@@ -184,7 +184,7 @@ describe Cluster do
 
     it "should inform about new clusters" do
       cluster.cloaks << cloak
-      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.cluster_id == cluster.id }
+      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.id == cluster.id }
       cluster.save.should eq true
     end
 
@@ -192,7 +192,7 @@ describe Cluster do
       cluster.cloaks << cloak
       cluster.save.should eq true
       cluster.cloaks << richard
-      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.cluster_id == cluster.id }
+      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.id == cluster.id }
       cluster.save.should eq true
     end
 
@@ -200,7 +200,7 @@ describe Cluster do
       cluster.cloaks << cloak
       cluster.cloaks << richard
       cluster.save.should eq true
-      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.cluster_id == cluster.id }
+      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.id == cluster.id }
       cluster.assign_cloaks [cloak]
       cluster.save.should eq true
     end

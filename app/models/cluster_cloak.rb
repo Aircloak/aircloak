@@ -47,9 +47,9 @@ private
 
   def self.proto_state_map
     {
-      1 => ClusterProto::MachineState::TO_BE_ADDED,
-      2 => ClusterProto::MachineState::BELONGS_TO,
-      3 => ClusterProto::MachineState::TO_BE_REMOVED
+      1 => ClusterPB::MachineState::TO_BE_ADDED,
+      2 => ClusterPB::MachineState::BELONGS_TO,
+      3 => ClusterPB::MachineState::TO_BE_REMOVED
     }
   end
 end

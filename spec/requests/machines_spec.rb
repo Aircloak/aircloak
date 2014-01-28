@@ -6,13 +6,13 @@ require './lib/protobuf_sender'
 describe MachinesController do
   describe "GET /api/machines" do
     it "should provide a list of machines" do
-      machine = MachineProto.new(
-        machine_id: 1,
+      machine = MachinePB.new(
+        id: 1,
         name: "tpm-monster.mpi-sws.org",
-        type: MachineProto::MachineType::PHYSICAL,
+        type: MachinePB::MachineType::PHYSICAL,
         good: true
       )
-      p = MachinesProto.new machines: [machine]
+      p = MachinesPB.new machines: [machine]
 
       m = double
       Cloak.stub(:all).and_return [m]
@@ -20,7 +20,7 @@ describe MachinesController do
 
       get machines_path
 
-      resp = MachinesProto.decode(response.body)
+      resp = MachinesPB.decode(response.body)
       resp.should eq p
       response.status.should be(200)
     end
