@@ -58,6 +58,6 @@ private
   end
 
   def task_params
-    params.require(:task).permit(:update_task, :payload_identifier, :system_query, :mutator)
+    params.require(:task).permit(:update_task, :payload_identifier, :system_task, :mutator)
   end
 end
