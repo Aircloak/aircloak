@@ -5,7 +5,8 @@ class ClusterPacker
     ClusterPB.new(
       timestamp: cluster.timestamp,
       id: cluster.id,
-      members: (package_members cluster)
+      members: (package_members cluster),
+      name: cluster.name
     )
   end
 
