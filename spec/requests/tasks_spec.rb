@@ -38,5 +38,18 @@ describe "TasksController" do
 
       QueryData.decode(task.packaged_data.dup).data.should eq [bin2]
     end
+
+    it "should create/update a new task binary upon upload and set it ready if enough information" do
+      bin = QueryBinary.new(package: "task", data: "1234")
+      data = QueryData.new(main_package: "task", data: [bin], system_task: true, mutator: false)
+
+      expect {
+        post "/tasks/update_task_binary", data.encode.buf
+      }.to change {Task.count}.from(0).to(1)
+
+      response.status.should be(200)
+
+      Task.all.map(&:ready).should eq([true])
+    end
   end
 end
