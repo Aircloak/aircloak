@@ -13,6 +13,7 @@ Status](https://magnum.travis-ci.com/Aircloak/web.png?token=aFqD8qTNFV1Li4zdKtZw
     - [API](#api)
     - [Running](#running)
     - [Deploying](#deploying)
+    - [Setting up new servers](#setting-up-new-servers)
     - [Testing](#testing)
     - [Good to know](#good-to-know)
 - [Role in the greater picture](#role-in-the-greater-picture)
@@ -62,6 +63,7 @@ Before being able to run the application, you need to create and migrate the dat
 You can run the application with `rails s`, but I recommend using zeus. Please see the [good to
 know](#goot-to-know) section below.
 
+
 ## Deploying
 
 We use [Capistrano](https://github.com/capistrano/capistrano) for deployment. You already get it installed
@@ -100,6 +102,102 @@ the unicorns like this:
     bundle exec cap unicorn:start
 
 Happy deploying!
+
+
+## Setting up new servers
+
+Setting up new web servers unfortunately is still a bit of a manual process.
+Currently there are a set of commands that need to be run manually, and then
+the rest can be done automatically.
+
+### Step 1: Manual install
+
+Please log onto the machine as root, and do the following steps:
+
+```bash
+apt-get update && apt-get -y upgrade
+apt-get install -y autoconf nginx curl git-core
+
+# Dependencies needed for ruby
+apt-get -y install build-essential libssl-dev
+# Packages required for compilation of some stdlib modules
+apt-get -y install tklib 
+# Extras for RubyGems and Rails:
+apt-get -y install zlib1g-dev libssl-dev
+# Readline Dev on Ubuntu 12.04 LTS:
+apt-get -y install libreadline-gplv2-dev
+# Install some nokogiri dependencies:
+apt-get -y install libxml2 libxml2-dev libxslt1-dev
+# Needed for pg gem
+apt-get -y install libpq-dev 
+
+# Add deployment user
+adduser --disabled-password --gecos "" deployer
+mkdir /websites
+chown -R deployer:deployer /websites
+
+touch /etc/init.d/unicorn_aircloak
+chown deployer:deployer /etc/init.d/unicorn_aircloak
+chmod +x /etc/init.d/unicorn_aircloak
+update-rc.d -f unicorn_aircloak defaults
+
+su - deployer
+curl -L https://raw.github.com/fesplugas/rbenv-installer/master/bin/rbenv-installer | bash
+
+touch ~/.bashrc
+echo "export RBENV_ROOT=\"\${HOME}/.rbenv\"
+if [ -d \"\${RBENV_ROOT}\" ]; then
+  export PATH=\"\${RBENV_ROOT}/bin:\${PATH}\"
+  eval \"\$(rbenv init -)\"
+fi" >> ~/.bashrc
+source ~/.bashrc
+
+rbenv install 2.0.0-p247
+rbenv global 2.0.0-p247
+
+gem install bundler --no-ri --no-rdoc
+rbenv rehash
+
+```
+
+### Step 2: Configure nginx
+
+Please manually copy
+[config/nginx.conf](https://github.com/Aircloak/web/blob/master/config/nginx.conf) to __/etc/nginx/nginx.conf__ and then run `/etc/init.d/nginx
+restart`.
+
+### Step 3: Configure ~/.ssh/config
+
+From now on you want to log onto the machine as the __deployer__ user when you push changes.
+Please adapt your __~/.ssh/config__ file such that when logging into the host, you are the __deployer__ user.
+
+Example ~/.ssh/config
+
+
+    ## ------------------------------------------------------------------
+    ## Web hosts
+    ## ------------------------------------------------------------------
+
+    Host air1-root
+      User root
+      HostName air1
+      ProxyCommand ssh [USER-NAME]@contact.mpi-sws.org nc %h %p 2> /dev/null
+
+    Host air1
+      User deployer
+      ProxyCommand ssh [USER-NAME]@contact.mpi-sws.org nc %h %p 2> /dev/null
+
+You also need to have you public key added to the __~/.ssh/authorized_keys__ file for the deployer user for
+this to work.
+
+### Step 4: Setup and deploy
+
+Now run `bundle exec cap deploy:setup` to setup the infrastructure.
+For the initial deployment, the application is also going to want to download all the ruby gems. The server
+itself is sitting in a restricted network, without access to outside resources. Therefore you need to enable
+an http proxy for the server for the duration of the install. For instructions, please follow this
+[guide](https://github.com/Aircloak/org/wiki/admin::Useful-tips-and-tricks#wiki-getting-web-access-from-a-system-within-the-dmz).
+Once the proxy has been setup, run `bundle exec cap deploy:cold`, and you should be good to go!
 
 
 ## Testing
