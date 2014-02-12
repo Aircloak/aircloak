@@ -51,5 +51,57 @@ describe "TasksController" do
 
       Task.all.map(&:ready).should eq([true])
     end
+
+    it "should create/update a new task to be an update task if a payload identifier is given" do
+      bin = QueryBinary.new(package: "task", data: "1234")
+      data = QueryData.new(main_package: "task", data: [bin], payload_identifier: "foo")
+
+      expect {
+        post "/tasks/update_task_binary", data.encode.buf
+      }.to change {Task.count}.from(0).to(1)
+
+      response.status.should be(200)
+
+      Task.all.map(&:update_task).should eq([true])
+    end
+
+    it "should create/update a new task to be no update task if no payload identifier is given" do
+      bin = QueryBinary.new(package: "task", data: "1234")
+      data = QueryData.new(main_package: "task", data: [bin])
+
+      expect {
+        post "/tasks/update_task_binary", data.encode.buf
+      }.to change {Task.count}.from(0).to(1)
+
+      response.status.should be(200)
+
+      Task.all.map(&:update_task).should eq([false])
+    end
+
+    it "should create/update a new task that is not ready if system_task is not set" do
+      bin = QueryBinary.new(package: "task", data: "1234")
+      data = QueryData.new(main_package: "task", data: [bin], mutator: false)
+
+      expect {
+        post "/tasks/update_task_binary", data.encode.buf
+      }.to change {Task.count}.from(0).to(1)
+
+      response.status.should be(200)
+
+      Task.all.map(&:ready).should eq([false])
+    end
+
+    it "should create/update a new task that is not ready if mutator is not set" do
+      bin = QueryBinary.new(package: "task", data: "1234")
+      data = QueryData.new(main_package: "task", data: [bin], system_task: false)
+
+      expect {
+        post "/tasks/update_task_binary", data.encode.buf
+      }.to change {Task.count}.from(0).to(1)
+
+      response.status.should be(200)
+
+      Task.all.map(&:ready).should eq([false])
+    end
   end
 end
