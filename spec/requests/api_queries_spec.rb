@@ -22,7 +22,7 @@ describe "ApiQueriesController" do
   let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak], os_tag: os_tag) }
   let! (:task) { Task.create(main_package: "task", packaged_data: "binary") }
 
-  describe "getting queries and results" do
+  describe "getting queries and results, and destroying queries" do
     before(:each) do
       cloak.cluster_cloak.set_state :belongs_to
       cloak.cluster_cloak.save.should eq true
@@ -84,6 +84,24 @@ describe "ApiQueriesController" do
         rp.properties.first.joiners_leavers.joiners.should eq 2
         rp.properties.first.joiners_leavers.leavers.should eq 3
         rp.properties.first.accumulated_count.should eq 1
+      end
+    end
+
+    describe "DELETE /api/queries/:id" do
+      it "should delete a known query" do
+        query
+        expect {
+          delete "/api/queries/#{query.id}"
+        }.to change {Query.count}.from(1).to(0)
+        response.status.should eq 200
+      end
+
+      it "should return an error for an unknown query" do
+        query
+        Query.count.should eq 1
+        delete "/api/queries/#{query.id + 1}"
+        response.status.should eq 404
+        Query.count.should eq 1
       end
     end
   end
