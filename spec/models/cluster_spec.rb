@@ -169,43 +169,6 @@ describe Cluster do
     end
   end
 
-  context "connection to manny-air" do
-    before(:each) do
-      ProtobufSender.stub(:send_delete)
-      ClusterCloak.destroy_all
-      Cluster.destroy_all
-      Cloak.destroy_all
-      Build.destroy_all
-      BuildManager.stub(:send_build_request)
-    end
-
-    let! (:build) { Build.create(name: "build") }
-    let! (:cluster) { base_cluster name: "cluster", build: build }
-
-    it "should inform about new clusters" do
-      cluster.cloaks << cloak
-      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.id == cluster.id }
-      cluster.save.should eq true
-    end
-
-    it "should inform about cluster changes if cloaks are added" do
-      cluster.cloaks << cloak
-      cluster.save.should eq true
-      cluster.cloaks << richard
-      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.id == cluster.id }
-      cluster.save.should eq true
-    end
-
-    it "should inform about cluster changes if cloaks are removed" do
-      cluster.cloaks << cloak
-      cluster.cloaks << richard
-      cluster.save.should eq true
-      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.id == cluster.id }
-      cluster.assign_cloaks [cloak]
-      cluster.save.should eq true
-    end
-  end
-
   context "testing" do
     let (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1", tpm: false) }
     let (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2", tpm: false) }

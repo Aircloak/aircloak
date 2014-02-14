@@ -5,8 +5,6 @@ defaults: &defaults
     min_cloaks: 3
   task:
     return_host: graphite.mpi-sws.org:5000
-  manny_air:
-    host: manny-air.aircloak.com
   test_server:
     host: test-server.aircloak.com
   build_server:
@@ -27,8 +25,6 @@ test: &testing
   <<: *defaults
   task:
     return_host: localhost
-  manny_air:
-    host: localhost
   test_server:
     host: localhost
   build_server:

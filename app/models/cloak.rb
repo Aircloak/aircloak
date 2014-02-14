@@ -11,9 +11,7 @@ class Cloak < ActiveRecord::Base
   validates :ip, format: { with: /\A(((25[0-5])|(2[0-4][0-9])|([01]?[0-9][0-9]?))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9][0-9]?))/}
   validates_presence_of :name
   validates_uniqueness_of :name, :ip
-  after_create :create_inform_mannyair
   before_destroy :validate_destroyability
-  after_destroy :destroy_inform_mannyair
   after_commit :update_log_server
 
   def display_name
@@ -64,27 +62,6 @@ private
     if not can_destroy?
       self.errors.add(:cluster_cloak, "cannot destroy a cloak assigned to a cluster")
       return false
-    end
-  end
-
-  def mannyair_post_url
-    "http://#{Rails.configuration.manny_air.host}/machines"
-  end
-
-  def mannyair_delete_url id
-    "http://#{Rails.configuration.manny_air.host}/machines/#{id}"
-  end
-
-  def create_inform_mannyair
-    if Rails.configuration.installation.global
-      mp = MachinePacker.package_cloak self
-      ProtobufSender.post_to_url mannyair_post_url, mp
-    end
-  end
-
-  def destroy_inform_mannyair
-    if Rails.configuration.installation.global
-      ProtobufSender.send_delete(mannyair_delete_url id)
     end
   end
 

@@ -18,7 +18,6 @@ class Cluster < ActiveRecord::Base
   validate :must_match_tpm_configuration
   validate :must_have_at_least_one_cloak
 
-  after_save :after_save_inform_mannyair
   after_commit :update_log_server
   before_destroy :verify_can_destroy
 
@@ -115,17 +114,6 @@ private
 
   def must_have_at_least_one_cloak
     self.errors.add :cloaks, "must have at least one cloak" unless cloaks.size > 0
-  end
-
-  def mannyair_post_url
-    "http://#{Rails.configuration.manny_air.host}/clusters"
-  end
-
-  def after_save_inform_mannyair
-    if Rails.configuration.installation.global
-      cp = ClusterPacker.package_cluster self
-      ProtobufSender.post_to_url mannyair_post_url, cp
-    end
   end
 
   def verify_can_destroy
