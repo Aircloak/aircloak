@@ -230,6 +230,17 @@ spec/test spec/lib/some_test_spec.rb # this is still significantly faster if you
 rails
 ```
 
+### Changing gems (and why is the web unable to speak to the buildserver)
+
+When the gems used by the application have changed, the deployment needs to download gems from the Internet.
+Since the web host sits in a restrictive network, we need to enable an HTTP Proxy for this to happen.
+
+Please consult the [wiki](https://github.com/Aircloak/org/wiki/admin::Useful-tips-and-tricks) for help on how
+to enable the proxy.
+To use the HTTP Proxy you need to uncomment and environmental flag in the deployment script.
+It is important to restart the unicorn process afterwards. Otherwise it believes it needs to use a proxy,
+and cannot communicate with the buildserver.
+
 # Role in the greater picture
 
 The web component takes on a lot of different roles.
