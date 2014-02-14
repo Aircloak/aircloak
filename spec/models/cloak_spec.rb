@@ -95,29 +95,6 @@ describe Cloak do
     end
   end
 
-  context "connection to manny-air" do
-    before(:each) do
-      ProtobufSender.stub(:send_delete)
-      ClusterCloak.destroy_all
-      Cluster.destroy_all
-      Cloak.destroy_all
-      Build.destroy_all
-      BuildManager.stub(:send_build_request)
-    end
-
-    it "should inform about new cloaks" do
-      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.name == "cloak" }
-      Cloak.create(name: "cloak", ip: "1.1.1.1")
-    end
-
-    it "should inform about removed cloaks" do
-      ProtobufSender.stub(:post)
-      cloak = Cloak.create(name: "cloak", ip: "1.1.1.1")
-      ProtobufSender.should_receive(:send_delete).with("http://#{Rails.configuration.manny_air.host}/machines/#{cloak.id}")
-      cloak.destroy
-    end
-  end
-
   context "testing commits" do
     let (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1", tpm: false) }
     let (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2", tpm: false) }
