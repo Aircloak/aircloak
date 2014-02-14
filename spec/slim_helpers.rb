@@ -27,4 +27,13 @@ module PreRecorded
     end
     dev
   end
+
+  def self.setup_alternate_deployable_entity_version de
+    commit = "0c9da85d642145674510cdfe30b5eb75c4b3f49a"
+    dev = DeployableEntityVersion.new commit_id: commit, deployable_entity_id: de.id
+    VCR.use_cassette('premade-create-alternate-deployable-entity-version') do
+      dev.save
+    end
+    dev
+  end
 end

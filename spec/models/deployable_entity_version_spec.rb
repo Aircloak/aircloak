@@ -99,9 +99,19 @@ describe DeployableEntityVersion do
     dev.status.should eq "Failed"
   end
 
+  it "should not create tests for itself if it is the first deployable entity version" do
+    commit = "4023b4d576873e7bf3e2d5a6d891b982fd14f36b"
+    dev = DeployableEntityVersion.new commit_id: commit, deployable_entity: @d
+    VersionTest.should_not_receive(:new_from_deployable_entity_version)
+    VCR.use_cassette('premade-create-deployable-entity-version') do
+      dev.save
+    end
+  end
+
   it "should create tests for itself" do
     commit = "4023b4d576873e7bf3e2d5a6d891b982fd14f36b"
-    dev = DeployableEntityVersion.new commit_id: commit, deployable_entity_id: @d.id
+    dev = DeployableEntityVersion.new commit_id: commit, deployable_entity: @d
+    @d.stub(:deployable_entity_versions).and_return(double(count: 2))
     VersionTest.should_receive(:new_from_deployable_entity_version).with(dev)
     VCR.use_cassette('premade-create-deployable-entity-version') do
       dev.save
