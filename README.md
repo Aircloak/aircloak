@@ -238,7 +238,7 @@ Since the web host sits in a restrictive network, we need to enable an HTTP Prox
 Please consult the [wiki](https://github.com/Aircloak/org/wiki/admin::Useful-tips-and-tricks) for help on how
 to enable the proxy.
 To use the HTTP Proxy you need to uncomment and environmental flag in the deployment script.
-It is important that restart the unicorn process afterwards. Otherwise it believes it needs to use a proxy,
+It is important to restart the unicorn process afterwards. Otherwise it believes it needs to use a proxy,
 and cannot communicate with the buildserver.
 
 # Role in the greater picture
