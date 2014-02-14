@@ -4,7 +4,7 @@ defaults: &defaults
   testing:
     min_cloaks: 3
   task:
-    return_host: graphite.mpi-sws.org:5000
+    return_host: hello.aircloak.com
   test_server:
     host: test-server.aircloak.com
   build_server:
@@ -13,7 +13,7 @@ defaults: &defaults
     host: logserver.aircloak.com
   cloak:
     protocol: https
-    port: 447
+    port: 443
 
 development:
   <<: *defaults
