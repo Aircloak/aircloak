@@ -9,8 +9,6 @@ load "config/recipes/check"
 # We need to fudge the path a little to ensure capistrano
 # finds the bundler gem and ruby while deploying.
 set :default_environment, {
-  'PATH' => "/home/deployer/.rbenv/shims:/home/deployer/.rbenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games",
-
   # When gems should be downloaded, we need to enable an http proxy.
   # For normal deployments, where the list of gems haven't changed,
   # nothing needs to be done.
@@ -19,7 +17,20 @@ set :default_environment, {
   # Please note that you can only get access to this proxy if you
   # are on the MPI network (meaning you either need to be physically
   # there, or using the VPN).
-  'http_proxy' => "http://dmz-gw.mpi-klsb.mpg.de:3128/"
+  # This flag cannot be set when deploying the web application
+  # when there are no gem changes needed. The reason is that
+  # the web application will attempt to do all inter 
+  # application communication over the proxy, and fail.
+  # An example is when communicating with the buildserver.
+  # Please also note that when doing a deploy that requires
+  # an update to the gems (i.e. the proxy is enabled),
+  # then one needs to run a `bundle exec cap unicorn:stop`
+  # followed by `bundle exec cap unicorn:start` afterwards,
+  # to ensure the web application runs without the proxy
+  # environment variable afterwards.
+  # 'http_proxy' => "http://dmz-gw.mpi-klsb.mpg.de:3128/",
+
+  'PATH' => "/home/deployer/.rbenv/shims:/home/deployer/.rbenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games"
 }
 
 
