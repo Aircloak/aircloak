@@ -2,8 +2,7 @@ require './lib/proto/air/task_management.pb'
 require './lib/proto/air/aggregate_results.pb'
 
 class ApiQueriesController < ApplicationController
-  filter_access_to :execute_as_batch_query, require: :anon_write
-  filter_access_to :create, require: :anon_write
+  filter_access_to [:execute_as_batch_query, :create, :destroy], require: :anon_write
   filter_access_to [:show, :get_result], require: :anon_read
   skip_before_action :verify_authenticity_token
   layout false
@@ -41,6 +40,15 @@ class ApiQueriesController < ApplicationController
     query = Query.find(params[:id])
     pb = ResultsProto.new(result_ids: query.results.map(&:result_id))
     send_data pb.encode.buf, type: "application/x-protobuf"
+  rescue ActiveRecord::RecordNotFound
+    render text: "Unknown query!", status: 404
+  end
+
+  # DELETE /api/queries/:id
+  def destroy
+    query = Query.find(params[:id])
+    query.destroy
+    render text: "query #{params[:id]} destroyed"
   rescue ActiveRecord::RecordNotFound
     render text: "Unknown query!", status: 404
   end
