@@ -52,7 +52,8 @@ class Cloak < ActiveRecord::Base
   # Use at least three cloaks if we are on a global installation, otherwise a single is enough
   def self.cloaks_for_build_testing
     min_cloaks = Rails.configuration.testing.min_cloaks
-    cloaks = Cloak.all_available.where(tpm: false).limit(min_cloaks)
+    tpm_for_test = Rails.configuration.cloak_for_test.tpm
+    cloaks = Cloak.all_available.where(tpm: tpm_for_test).limit(min_cloaks)
     raise NotEnoughCloaks.new if cloaks.count < min_cloaks
     cloaks
   end
