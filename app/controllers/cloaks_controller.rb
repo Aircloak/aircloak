@@ -53,8 +53,7 @@ class CloaksController < ApplicationController
       @cloak = Cloak.find(params[:id])
     end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
     def cloak_params
-      params.require(:cloak).permit(:name, :ip, :part_of_ring)
+      params.require(:cloak).permit(:name, :ip, :tpm)
     end
 end
