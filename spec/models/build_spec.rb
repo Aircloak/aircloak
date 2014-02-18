@@ -128,4 +128,37 @@ describe Build do
       b.mark_complete success: false
     end
   end
+
+  context "status" do
+    def dev b, args = {}
+      d = DeployableEntityVersion.new
+      d.build_completed = args.delete(:completed) || false
+      d.build_success = args.delete(:success) || false
+      b.deployable_entity_versions << d
+    end
+
+    it "should show status as failed if any of the deployable entities have failed to build" do
+      b = Build.new
+      dev b, {success: false}
+      dev b, {success: true, completed: true}
+      dev b, {success: true, completed: true}
+      b.status_message.should == "Failed"
+    end
+
+    it "should status as building if no entity has failed an one or more are still building" do
+      b = Build.new
+      dev b, {success: true, completed: false}
+      dev b, {success: true, completed: true}
+      dev b, {success: true, completed: true}
+      b.status_message.should == "Building"
+    end
+
+    it "should status as built when all entities have finished successfully" do
+      b = Build.new
+      dev b, {success: true, completed: true}
+      dev b, {success: true, completed: true}
+      dev b, {success: true, completed: true}
+      b.status_message.should == "Built"
+    end
+  end
 end
