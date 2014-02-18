@@ -14,8 +14,9 @@ defaults: &defaults
   cloak:
     protocol: https
     port: 443
-  cloak_for_test:
+  version_test:
     tpm: false
+    enabled: true
 
 development:
   <<: *defaults
@@ -25,8 +26,9 @@ production:
   # At the moment we cannot automatically setup
   # non-tpm machines, so we want to run automated
   # tests on our thor hardware
-  cloak_for_test:
+  version_test:
     tpm: true
+    enabled: false
 
 test: &testing
   <<: *defaults

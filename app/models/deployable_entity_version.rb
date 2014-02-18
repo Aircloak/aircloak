@@ -55,6 +55,7 @@ private
   end
 
   def schedule_test
+    return unless Rails.configuration.version_test.enabled
     # We do not schedule a test for the very first deployable entity version.
     # The reason is that this would in turn schedule a test for all the other
     # deployable entity versions, and since they would all be the very first
