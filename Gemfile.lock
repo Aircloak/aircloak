@@ -94,6 +94,7 @@ GEM
       net-ssh-gateway (>= 1.1.0)
     choices (0.4.0)
       hashie (>= 0.4.0)
+    chronic (0.10.2)
     codeclimate-test-reporter (0.1.1)
       simplecov (>= 0.7.1, < 1.0.0)
     coderay (1.0.9)
@@ -254,6 +255,9 @@ GEM
       rack
       raindrops (~> 0.7)
     vcr (2.6.0)
+    whenever (0.9.0)
+      activesupport (>= 2.3.4)
+      chronic (>= 0.6.3)
 
 PLATFORMS
   ruby
@@ -297,3 +301,4 @@ DEPENDENCIES
   underscore-rails
   unicorn
   vcr
+  whenever

@@ -1,4 +1,5 @@
 require "bundler/capistrano"
+require "whenever/capistrano"
 
 load "config/recipes/base"
 load "config/recipes/nginx"
@@ -65,3 +66,11 @@ ssh_options[:forward_agent] = true
 
 # Cleans up old deploys, leaving only 5
 after "deploy:restart", "deploy:cleanup"
+
+namespace :deploy do
+  desc "Update the crontab file"
+  task :update_crontab, :roles => :db do
+    run "cd #{release_path} && whenever --update-crontab #{application}"
+  end
+end
+after "deploy:symlink", "deploy:update_crontab"
