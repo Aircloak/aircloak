@@ -22,7 +22,8 @@ authorization do
       :machines,
       :tasks,
       :version_tests,
-      :api_queries
+      :api_queries,
+      :api_clusters
     ], to: :anon_write
   end
 

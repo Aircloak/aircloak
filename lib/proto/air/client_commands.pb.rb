@@ -19,9 +19,7 @@ class Commands
     required :version_id, :uint32, 4
     required :type, :string, 5
   end
-
   required :command_id, :uint64, 1
   required :remove_from_host, :bool, 2
   repeated :file, Commands::File, 3
 end
-

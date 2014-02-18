@@ -20,7 +20,7 @@ describe ClusterListsController do
       Cluster.stub(:all).and_return(clusters)
       ClusterPacker.stub(:package_clusters).with(clusters).and_return(proto)
 
-      get cluster_lists_path
+      get "/api/clusters"
 
       response.status.should be(200)
       response_proto = ClustersPB.decode(response.body)
@@ -44,7 +44,7 @@ describe ClusterListsController do
       Cluster.stub(:find).with("1").and_return(cluster)
       ClusterPacker.stub(:package_cluster).with(cluster).and_return(proto)
 
-      get cluster_list_path(1)
+      get "/api/clusters/1"
 
       response.status.should be(200)
       response_proto = ClusterPB.decode(response.body)
@@ -52,7 +52,7 @@ describe ClusterListsController do
     end
 
     it "should return an error if the cluster is not there" do
-      get cluster_list_path(1)
+      get "/api/clusters/1"
       response.status.should be(404)
     end
   end
