@@ -10,6 +10,14 @@ class VersionTest < ActiveRecord::Base
   before_destroy :destroy_dependents
   after_create :mark_build_complete unless Rails.configuration.installation.global
 
+  def self.new_from_develop_branch
+    de = DeployableEntity.first
+    commit = Gh.latest_commit_on_branch_for_repo "develop", de.repo
+    de.add_commit commit
+    dev = DeployableEntityVersion.find_by_commit_id commit
+    VersionTest.new_from_deployable_entity_version dev
+  end
+
   def self.new_from_deployable_entity_version version
     v = VersionTest.new deployable_entity_version_id: version.id
     v.test_complete = false
