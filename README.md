@@ -166,6 +166,12 @@ Please manually copy
 [config/nginx.conf](https://github.com/Aircloak/web/blob/master/config/nginx.conf) to __/etc/nginx/nginx.conf__ and then run `/etc/init.d/nginx
 restart`.
 
+You also need to copy over the SSL certificate we use. The __nginx.conf__ expects to find it at
+`/root/certs/aircloak.com.chain.pem`.
+Please make sure it is only readable by the root user.
+
+Sebastian has the cert stored in a safe place, so ask him for a copy, or better yet ask him to upload it.
+
 ### Step 3: Configure ~/.ssh/config
 
 From now on you want to log onto the machine as the __deployer__ user when you push changes.
