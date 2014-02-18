@@ -1,26 +1,42 @@
 defaults: &defaults
-  web:
-    host: graphite.mpi-sws.org:5000
-  manny_air:
-    host: manny-air.aircloak.com
+  installation:
+    global: true
+  testing:
+    min_cloaks: 3
+  task:
+    return_host: hello.aircloak.com
   test_server:
     host: test-server.aircloak.com
   build_server:
     host: build.aircloak.com
+  log_server:
+    host: logserver.aircloak.com
+  cloak:
+    protocol: https
+    port: 443
+  version_test:
+    tpm: false
+    enabled: true
 
 development:
   <<: *defaults
 
 production:
   <<: *defaults
+  # At the moment we cannot automatically setup
+  # non-tpm machines, so we want to run automated
+  # tests on our thor hardware
+  version_test:
+    tpm: true
+    enabled: false
 
 test: &testing
   <<: *defaults
-  web:
-    host: localhost
-  manny_air:
-    host: localhost
+  task:
+    return_host: localhost
   test_server:
     host: localhost
   build_server:
+    host: localhost
+  log_server:
     host: localhost

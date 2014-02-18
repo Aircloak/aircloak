@@ -51,10 +51,18 @@ class DeployableEntityVersion < ActiveRecord::Base
 private
   def set_message_and_author
     return if self.message and self.author
-    Gh.add_message_and_author self
+    Gh.add_message_and_author self if Rails.configuration.installation.global
   end
 
   def schedule_test
-    VersionTest.new_from_deployable_entity_version self
+    return unless Rails.configuration.version_test.enabled
+    # We do not schedule a test for the very first deployable entity version.
+    # The reason is that this would in turn schedule a test for all the other
+    # deployable entity versions, and since they would all be the very first
+    # deployable entity versions, it ends up in an infinite loop of trying
+    # to schedule tests.
+    if self.deployable_entity.deployable_entity_versions.count > 1
+      VersionTest.new_from_deployable_entity_version self 
+    end
   end
 end

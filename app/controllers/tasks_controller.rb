@@ -42,6 +42,15 @@ class TasksController < ApplicationController
     task = Task.where(main_package: qd.main_package).first
     task = Task.new(main_package: qd.main_package) unless task
     task.packaged_data = data_to_save
+    task.mutator = qd.mutator unless qd.mutator.nil?
+    task.system_task = qd.system_task unless qd.system_task.nil?
+    task.ready = true unless qd.mutator.nil? or qd.system_task.nil?
+    if qd.payload_identifier
+      task.payload_identifier = qd.payload_identifier
+      task.update_task = true
+    else
+      task.update_task = false
+    end
     if task.save
       render text: "Thanks"
       # after updating task binary we need to ensure that the clusters get the new code...
@@ -58,6 +67,6 @@ private
   end
 
   def task_params
-    params.require(:task).permit(:update_task, :payload_identifier, :system_query, :mutator)
+    params.require(:task).permit(:update_task, :payload_identifier, :system_task, :mutator)
   end
 end

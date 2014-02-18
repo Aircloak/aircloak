@@ -22,7 +22,8 @@ authorization do
       :machines,
       :tasks,
       :version_tests,
-      :api_queries
+      :api_queries,
+      :api_clusters
     ], to: :anon_write
   end
 
@@ -57,6 +58,7 @@ authorization do
                        :cloaks,
                        :permissions, 
                        :os_tags,
+                       :version_tests,
                        :user_permissions], to: :manage
     has_permission_on [:authorization_rules, 
                        :authorization_usages], :to => :read

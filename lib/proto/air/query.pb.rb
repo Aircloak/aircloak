@@ -33,18 +33,15 @@ class QueryBinary
   required :data, :bytes, 2
 end
 
-
 class CQuery
 
   class BatchOptions
     optional :url, :string, 1
   end
 
-
   class StoredOptions
     required :payload_identifier, :string, 1
   end
-
   repeated :data, QueryBinary, 1
   required :main_class, :string, 2
   required :type, CQuery::Type, 3
@@ -56,4 +53,3 @@ class CQuery
   optional :batch_options, CQuery::BatchOptions, 9
   optional :stored_options, CQuery::StoredOptions, 10
 end
-

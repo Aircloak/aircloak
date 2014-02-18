@@ -10,7 +10,7 @@ describe Build do
     ClusterCloak.destroy_all
     Cloak.destroy_all
     Cluster.destroy_all
-    Build.destroy_all
+    Build.delete_all
     BuildVersion.destroy_all
     DeployableEntity.destroy_all
     DeployableEntityVersion.destroy_all
@@ -92,6 +92,11 @@ describe Build do
     it "should not be possible to delete a build that has a cluster" do
       cluster.build.destroy
       cluster.build.destroyed?.should eq false
+    end
+
+    it "should not be possible to delete a build is used by a test" do
+      build.version_test = VersionTest.new
+      build.can_destroy?.should eq false
     end
   end
 

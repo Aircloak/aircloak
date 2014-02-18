@@ -1,4 +1,5 @@
 require './lib/cluster_packer.rb'
+require './lib/log_server_configurer'
 
 class Cluster < ActiveRecord::Base
   has_many :cluster_cloaks
@@ -17,7 +18,8 @@ class Cluster < ActiveRecord::Base
   validate :must_match_tpm_configuration
   validate :must_have_at_least_one_cloak
 
-  after_save :after_save_inform_mannyair
+  after_commit :update_log_server
+  before_destroy :verify_can_destroy
 
   def tpm
     @has_tpm ||= build.tpm
@@ -45,6 +47,9 @@ class Cluster < ActiveRecord::Base
     (new_cloaks - old_cloaks).each {|cloak| cloaks << cloak }
     (new_cloaks & old_cloaks).each {|cloak| keep_cloak cloak }
     (old_cloaks - new_cloaks).each {|cloak| cloak.cluster_cloak.set_state :to_be_removed }
+    unless Rails.configuration.installation.global
+      (old_cloaks - new_cloaks).each {|cloak| cloak.cluster_cloak.synchronize }
+    end
   end
 
   def keep_cloak cloak
@@ -85,10 +90,42 @@ class Cluster < ActiveRecord::Base
     return false
   end
 
+  def can_destroy?
+    version_test.blank? and cloaks.count == 0
+  end
+
+  # A log name is a version of the cluster name that
+  # is sane for using in folder and file names on the log server
+  def log_name
+    name_base = "#{name}-#{build.name}-#{os_tag.name}"
+    name_base.gsub(" ", "_").gsub(/[^\w^\d^\-]*/, "")
+  end
+
+  def status= raw_status
+    self.status_value = status_mappings[raw_status]
+    if raw_status == :active then
+      self.status_description = ""
+    end
+  end
+
+  def status
+    status_mappings.invert[status_value]
+  end
+
+  def status_for_display
+    msg = status.to_s.humanize
+    msg = "#{msg}: #{status_description}" if status != :active
+    msg
+  end
+
 private
   def must_match_tpm_configuration
     unless !build || cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == self.tpm }
-      self.errors.add :cloaks, "must match tpm configuration"
+      if self.tpm
+        self.errors.add :cloaks, "must match tpm configuration"
+      else
+        # We allow clusters of mixed machines if the build is a non-tpm build
+      end
     end
   end
 
@@ -96,12 +133,22 @@ private
     self.errors.add :cloaks, "must have at least one cloak" unless cloaks.size > 0
   end
 
-  def mannyair_post_url
-    "http://#{Rails.configuration.manny_air.host}/clusters"
+  def verify_can_destroy
+    unless can_destroy?
+      self.errors.add(:version_test, "Cannot destroy a build used by a version test")
+      false
+    end
   end
 
-  def after_save_inform_mannyair
-    cp = ClusterPacker.package_cluster self
-    ProtobufSender.post_to_url mannyair_post_url, cp
+  def update_log_server
+    LogServerConfigurer.update_config
+  end
+
+  def status_mappings
+    {
+      active: 1,
+      in_service: 2,
+      inactive: 3
+    }
   end
 end

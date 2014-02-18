@@ -1,6 +1,7 @@
 require './lib/proto/air/management_messages.pb'
 require './lib/protobuf_sender'
 require './lib/machine_packer'
+require './lib/log_server_configurer'
 
 class NotEnoughCloaks < Exception; end
 
@@ -10,9 +11,8 @@ class Cloak < ActiveRecord::Base
   validates :ip, format: { with: /\A(((25[0-5])|(2[0-4][0-9])|([01]?[0-9][0-9]?))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9][0-9]?))/}
   validates_presence_of :name
   validates_uniqueness_of :name, :ip
-  after_create :create_inform_mannyair
   before_destroy :validate_destroyability
-  after_destroy :destroy_inform_mannyair
+  after_commit :update_log_server
 
   def display_name
     name + (tpm ? "" : " (no tpm)")
@@ -49,9 +49,12 @@ class Cloak < ActiveRecord::Base
     end
   end
 
+  # Use at least three cloaks if we are on a global installation, otherwise a single is enough
   def self.cloaks_for_build_testing
-    cloaks = Cloak.all_available.where(tpm: false).limit(3)
-    raise NotEnoughCloaks.new if cloaks.count < 3
+    min_cloaks = Rails.configuration.testing.min_cloaks
+    tpm_for_test = Rails.configuration.version_test.tpm
+    cloaks = Cloak.all_available.where(tpm: tpm_for_test).limit(min_cloaks)
+    raise NotEnoughCloaks.new if cloaks.count < min_cloaks
     cloaks
   end
 
@@ -63,20 +66,7 @@ private
     end
   end
 
-  def mannyair_post_url
-    "http://#{Rails.configuration.manny_air.host}/machines"
-  end
-
-  def mannyair_delete_url id
-    "http://#{Rails.configuration.manny_air.host}/machines/#{id}"
-  end
-
-  def create_inform_mannyair
-    mp = MachinePacker.package_cloak self
-    ProtobufSender.post_to_url mannyair_post_url, mp
-  end
-
-  def destroy_inform_mannyair
-    ProtobufSender.send_delete(mannyair_delete_url id)
+  def update_log_server
+    LogServerConfigurer.update_config
   end
 end

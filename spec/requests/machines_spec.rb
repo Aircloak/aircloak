@@ -6,13 +6,13 @@ require './lib/protobuf_sender'
 describe MachinesController do
   describe "GET /api/machines" do
     it "should provide a list of machines" do
-      machine = MachineProto.new(
-        machine_id: 1,
+      machine = MachinePB.new(
+        id: 1,
         name: "tpm-monster.mpi-sws.org",
-        type: MachineProto::MachineType::PHYSICAL,
+        type: MachinePB::MachineType::PHYSICAL,
         good: true
       )
-      p = MachinesProto.new machines: [machine]
+      p = MachinesPB.new machines: [machine]
 
       m = double
       Cloak.stub(:all).and_return [m]
@@ -20,7 +20,7 @@ describe MachinesController do
 
       get machines_path
 
-      resp = MachinesProto.decode(response.body)
+      resp = MachinesPB.decode(response.body)
       resp.should eq p
       response.status.should be(200)
     end
@@ -94,7 +94,7 @@ describe MachinesController do
       response.status.should eq(400)
     end
 
-    it "should return an file contain the build id and the os tag" do
+    it "should return a file containing the build id and the os tag if the machine is part of a cluster" do
       build = double(id: 14)
       os_tag = double(name: "tag_name")
       cluster = double(build: build, os_tag: os_tag)
@@ -102,8 +102,20 @@ describe MachinesController do
       Cloak.stub(:find_by_ip).and_return(cloak)
       get setup_info_machines_path
       response.status.should be(200)
+      response.body.should include("perform_aircloak_install=true")
       response.body.should include("14")
       response.body.should include("tag_name")
+    end
+
+    it "should return a file with a flag signifying that a aircloak specific build should not be performed for machines without clusters" do
+      cloak = double(cluster: nil)
+      Cloak.stub(:find_by_ip).and_return(cloak)
+      most_recent_tag = double(name: "tag_name")
+      OsTag.should_receive(:last).and_return(most_recent_tag)
+      get setup_info_machines_path
+      response.status.should be(200)
+      response.body.should include("base_image_tag=\"tag_name\"")
+      response.body.should include("perform_aircloak_install=false")
     end
   end
 end

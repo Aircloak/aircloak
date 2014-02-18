@@ -22,12 +22,12 @@ describe DeployableEntity do
 
     VersionTest.stub(:new_from_deployable_entity_version)
     
-    Cluster.destroy_all
+    Cluster.delete_all
     BuildManager.stub(:send_build_request).and_return(true)
-    Build.destroy_all
+    Build.delete_all
 
-    DeployableEntityVersion.destroy_all
-    DeployableEntity.destroy_all
+    DeployableEntityVersion.delete_all
+    DeployableEntity.delete_all
   end
 
   describe "Validations" do

@@ -1,14 +1,15 @@
 require 'spec_helper'
 require './lib/protobuf_sender'
+require './lib/proto/air/management_messages.pb.rb'
 
 describe Cluster do
   before(:each) do
     ProtobufSender.stub(:post)
     ProtobufSender.stub(:send_delete)
     ClusterCloak.destroy_all
-    Cluster.destroy_all
+    Cluster.delete_all
     Cloak.destroy_all
-    Build.destroy_all
+    Build.delete_all
     BuildManager.stub(:send_build_request)
   end
 
@@ -63,26 +64,42 @@ describe Cluster do
     c2.errors.messages[:name].should_not eq nil
   end
 
-  it "cloak and cluster tpm settings should match" do
+  it "should only allow tpm cloaks for a tpm build" do
+    build.tpm = true
+    build.save.should eq true
+
+    c1 = Cloak.new(name: "cloak2", ip: "20.20.20.20")
+    c1.tpm = true
+    c1.save.should eq true
+
+    cl = base_cluster name: "cluster1", build: build
+    cl.cloaks << c1
+    cl.save.should eq true
+
+    c2 = Cloak.new(name: "cloak1", ip: "10.10.10.10")
+    c2.tpm = false
+    c2.save.should eq true
+
+    cl.cloaks << c2
+    cl.save.should eq false
+    cl.errors.messages[:cloaks].should_not eq nil
+  end
+
+  it "may allow any cloak type for a non-tpm build" do
     build.tpm = false
     build.save.should eq true
 
-    cl1 = Cloak.new(name: "cloak1", ip: "10.10.10.10")
-    cl1.tpm = false
-    cl1.save.should eq true
-
-    cl2 = Cloak.new(name: "cloak2", ip: "20.20.20.20")
-    cl2.tpm = true
-    cl2.save.should eq true
-
-    c1 = base_cluster name: "cluster1", build: build
-    c1.cloaks << cl1
+    c1 = Cloak.new(name: "cloak1", ip: "10.10.10.10")
+    c1.tpm = false
     c1.save.should eq true
 
-    c2 = base_cluster name: "cluster2", build: build
-    c2.cloaks << cl2
-    c2.save.should eq false
-    c2.errors.messages[:cloaks].should_not eq nil
+    c2 = Cloak.new(name: "cloak2", ip: "20.20.20.20")
+    c2.tpm = true
+    c2.save.should eq true
+
+    cl = base_cluster name: "cluster1", build: build
+    cl.cloaks << [c1, c2]
+    cl.save.should eq true
   end
 
   it "should know if a cluster is healthy" do
@@ -153,43 +170,6 @@ describe Cluster do
     end
   end
 
-  context "connection to manny-air" do
-    before(:each) do
-      ProtobufSender.stub(:send_delete)
-      ClusterCloak.destroy_all
-      Cluster.destroy_all
-      Cloak.destroy_all
-      Build.destroy_all
-      BuildManager.stub(:send_build_request)
-    end
-
-    let! (:build) { Build.create(name: "build") }
-    let! (:cluster) { base_cluster name: "cluster", build: build }
-
-    it "should inform about new clusters" do
-      cluster.cloaks << cloak
-      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.cluster_id == cluster.id }
-      cluster.save.should eq true
-    end
-
-    it "should inform about cluster changes if cloaks are added" do
-      cluster.cloaks << cloak
-      cluster.save.should eq true
-      cluster.cloaks << richard
-      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.cluster_id == cluster.id }
-      cluster.save.should eq true
-    end
-
-    it "should inform about cluster changes if cloaks are removed" do
-      cluster.cloaks << cloak
-      cluster.cloaks << richard
-      cluster.save.should eq true
-      ProtobufSender.should_receive(:post_to_url) { |url, pb| pb.cluster_id == cluster.id }
-      cluster.assign_cloaks [cloak]
-      cluster.save.should eq true
-    end
-  end
-
   context "testing" do
     let (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1", tpm: false) }
     let (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2", tpm: false) }
@@ -224,5 +204,82 @@ describe Cluster do
         cc.set_state :belongs_to
       end
     end
+  end
+
+  context "should know if it can be deleted" do
+    let (:cluster) { Cluster.create }
+    it "should know it cannot be delete if used by a test or has cloaks" do
+      c = base_cluster
+      c.can_destroy?.should eq true
+
+      c.cloaks << cloak
+      c.save.should eq true
+
+      c.cloaks = []
+      c.can_destroy?.should eq true
+
+      c.version_test = VersionTest.new
+      c.can_destroy?.should eq false
+
+      c.destroy.should eq false
+      c.destroyed?.should eq false
+    end
+  end
+
+  def cluster args={}
+    b = Build.new name: args.delete(:bname) || "Build name"
+    o = OsTag.new name: args.delete(:oname) || "Os tag name"
+    Cluster.new name: args.delete(:cname) || "Cluster name", build: b, os_tag: o
+  end
+
+  it "should create sane log names from cluster names" do
+    cluster(cname: "cluster", bname: "build", oname: "os").log_name.should eq "cluster-build-os"
+    cluster(cname: "cluster name", bname: "build", oname: "os").log_name.should eq "cluster_name-build-os"
+    cluster(cname: "strange!", bname: "?æname", oname: "/,now better").log_name.should eq "strange-name-now_better"
+  end
+
+  it "should invoke the log server on create, update, and destroy" do
+    LogServerConfigurer.should_receive(:update_config).at_least(3).times
+    c = base_cluster
+    c.cloaks << cloak
+    c.save.should eq true
+    c.cloaks << richard
+    c.save.should eq true
+    c.cloaks = []
+    c.destroy
+    c.destroyed?.should eq true
+  end
+
+  it "should set and get status values" do
+    c = cluster
+    c.status = :active
+    c.status.should eq :active
+    c.status = :in_service
+    c.status.should eq :in_service
+    c.status = :inactive
+    c.status.should eq :inactive
+  end
+
+  it "should clear status description when active" do
+    c = cluster
+    c.status = :inactive
+    msg = "Failed for some reason"
+    c.status_description = msg
+    c.status_description.should eq msg
+    c.status = :active
+    c.status_description.should eq ""
+  end
+
+  it "should have a status for display" do
+    c = cluster
+    c.status_description = "Description"
+    c.status = :active
+    c.status_for_display.should == "Active"
+    c.status_description = "Description"
+    c.status = :in_service
+    c.status_for_display.should == "In service: Description"
+    c.status_description = "Description"
+    c.status = :inactive
+    c.status_for_display.should == "Inactive: Description"
   end
 end

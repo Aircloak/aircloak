@@ -2,26 +2,26 @@ require './lib/machine_packer.rb'
 
 describe MachinePacker do
   context "packaging single cloaks" do
-    it "should pack a tpm cloak into a MachineProto message for physical host" do
+    it "should pack a tpm cloak into a MachinePB message for physical host" do
       cloak = double(id: 1, name: "test", tpm: true, good: true)
       machine = MachinePacker.package_cloak cloak
-      machine.machine_id.should eq cloak.id
+      machine.id.should eq cloak.id
       machine.name.should eq cloak.name
-      machine.type.should eq MachineProto::MachineType::PHYSICAL
+      machine.type.should eq MachinePB::MachineType::PHYSICAL
     end
 
-    it "should pack a non-tpm cloak into a MachineProto message for VM host" do
+    it "should pack a non-tpm cloak into a MachinePB message for VM host" do
       cloak = double(id: 1, name: "test", tpm: false, good: true)
       machine = MachinePacker.package_cloak cloak
-      machine.machine_id.should eq cloak.id
+      machine.id.should eq cloak.id
       machine.name.should eq cloak.name
-      machine.type.should eq MachineProto::MachineType::VM
+      machine.type.should eq MachinePB::MachineType::VM
       machine.good.should eq true
     end
   end
 
   context "packaging multiple cloaks" do
-    it "should package a list of cloaks into a MachinesProto" do
+    it "should package a list of cloaks into a MachinesPB" do
       cloak1 = double(id: 1, name: "test", tpm: false, good: true)
       cloak2 = double(id: 2, name: "test", tpm: false, good: true)
       cloak3 = double(id: 3, name: "test", tpm: false, good: true)

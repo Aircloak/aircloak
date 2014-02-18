@@ -9,5 +9,7 @@ end
 class QueryData
   required :main_package, :string, 1
   repeated :data, QueryBinary, 2
+  optional :payload_identifier, :string, 3
+  optional :mutator, :bool, 4
+  optional :system_task, :bool, 5
 end
-

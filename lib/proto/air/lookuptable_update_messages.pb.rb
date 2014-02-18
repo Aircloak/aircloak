@@ -24,21 +24,17 @@ class AdditionTask
     optional :key, :string, 1
     optional :value, :string, 2
   end
-
   optional :analyst_id, :string, 1
   optional :table, :string, 2
   optional :data, AdditionTask::Data, 3
 end
-
 
 class DeleteTask
   optional :analyst_id, :string, 1
   optional :table, :string, 2
 end
 
-
 class LookupTableTasks
   repeated :additions, AdditionTask, 1
   repeated :deletions, DeleteTask, 2
 end
-

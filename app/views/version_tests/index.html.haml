@@ -1,0 +1,28 @@
+- if @version_tests.size > 0
+  %h1 Version tests
+
+  %table.table.table-condensed
+    %thead
+      %tr
+        %th Entity under test
+        %th Commit id
+        %th Message
+        %th Status
+        %th 
+        %th
+    %tbody
+    - @version_tests.each do |test|
+      %tr
+        %td= test.deployable_entity_version.deployable_entity.repo
+        %td= test.deployable_entity_version.short_commit_id
+        %td= test.deployable_entity_version.message
+        %td= test.status
+        %td
+          - if test.test_complete
+            = link_to 'See output', version_test_path(test)
+          - else
+
+        %td= link_to 'Destroy', test, :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
+
+- unless Rails.configuration.installation.global
+  %h1= link_to 'Start local test', version_tests_create_local_path

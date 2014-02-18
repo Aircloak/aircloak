@@ -7,6 +7,17 @@ class VersionTest < ActiveRecord::Base
   belongs_to :cluster
   belongs_to :deployable_entity_version
 
+  before_destroy :destroy_dependents
+  after_create :mark_build_complete unless Rails.configuration.installation.global
+
+  def self.new_from_develop_branch
+    de = DeployableEntity.first
+    commit = Gh.latest_commit_on_branch_for_repo "develop", de.repo
+    de.add_commit commit
+    dev = DeployableEntityVersion.find_by_commit_id commit
+    VersionTest.new_from_deployable_entity_version dev
+  end
+
   def self.new_from_deployable_entity_version version
     v = VersionTest.new deployable_entity_version_id: version.id
     v.test_complete = false
@@ -18,6 +29,10 @@ class VersionTest < ActiveRecord::Base
   # a cluster for the particular build
   def mark_build_as_complete
     self.cluster = Cluster.test_cluster_for_build build
+    unless Rails.configuration.installation.global
+      self.save
+      self.cluster.cluster_cloaks.each {|cc| cc.synchronize }
+    end
     self
   rescue NotEnoughCloaks
     set_failed
@@ -35,7 +50,7 @@ class VersionTest < ActiveRecord::Base
     TestRequestPB.new(
       id: id,
       cluster_id: cluster.id,
-      reply_host: "http://#{Rails.configuration.web.host}",
+      reply_host: "http://#{Rails.configuration.task.return_host}",
       cluster_nodes: cluster.cloaks.map(&:name)
     )
   end
@@ -45,13 +60,22 @@ class VersionTest < ActiveRecord::Base
     self.test_complete = true
     self.test_success = result.success
     self.test_output = result.transcript
+    destroy_dependents
     save
+  end
+
+  def status
+    return "In progress" unless test_complete
+    # The following is assumed:
+    # - test_success is always set when test_complete is set
+    test_complete && test_success ? "Passed" : "Failed"
   end
 
 private
   def set_failed
     self.test_complete = true
     self.test_success = false
+    destroy_dependents
     save
   end
 
@@ -61,5 +85,20 @@ private
 
   def test_server_post_url
     "http://#{test_server_machine}/tests"
+  end
+
+  def destroy_dependents
+    cluster.assign_cloaks [] unless cluster.blank?
+    if build
+      build.version_test = nil
+      unless build.clusters.blank? or cluster.blank?
+        build.clusters = build.clusters - [cluster]
+      end
+      build.destroy if build.clusters.size == 0
+    end
+  end
+
+  def mark_build_complete
+    build.mark_complete success: true
   end
 end

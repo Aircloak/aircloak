@@ -58,6 +58,6 @@ private
 
   # Never trust parameters from the scary internet, only allow the white list through.
   def query_params
-    params.require(:query).permit(:name, :index_id, :update_query, :identifier, :system_query, :mutator)
+    params.require(:query).permit(:name, :task_id, :cluster_id)
   end
 end

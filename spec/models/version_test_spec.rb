@@ -21,7 +21,10 @@ describe VersionTest do
   end
 
   let (:entity) { PreRecorded.setup_deployable_entity }
-  let (:entity_version) { PreRecorded.setup_deployable_entity_version entity }
+  let (:entity_version) { 
+    PreRecorded.setup_deployable_entity_version entity # This one won't have a test
+    PreRecorded.setup_alternate_deployable_entity_version entity 
+  }
   let (:version_test) { entity_version.version_test }
 
   it "should create a new VersionTest and assign it to the version" do
@@ -97,5 +100,34 @@ describe VersionTest do
     transcript = "this test was so much fun"
     version_test.process_result results_pb(transcript: transcript)
     version_test.test_output.should eq transcript
+  end
+
+  it "should delete it's build if the test fails" do
+    create_cloaks
+    version_test.build.should_not eq nil
+    version_test.mark_build_as_failed
+    expect{version_test.build.reload}.to raise_error ActiveRecord::RecordNotFound
+  end
+
+  it "should delete the build and start the cluster destruction process when the test has finished" do
+    create_cloaks
+    version_test.mark_build_as_complete
+    build = version_test.build
+    cluster = version_test.cluster
+    cluster.should_receive(:assign_cloaks).with([]) # Starts the deletion of the cluster
+    build.should_not eq nil
+    cluster.should_not eq nil
+    version_test.destroy
+    version_test.destroyed?.should eq true
+    expect{build.reload}.to raise_error ActiveRecord::RecordNotFound
+  end
+
+  it "should produce string results depending on state" do
+    version_test.status.should eq "In progress"
+    version_test.test_complete = true
+    version_test.test_success = true
+    version_test.status.should eq "Passed"
+    version_test.test_success = false
+    version_test.status.should eq "Failed"
   end
 end

@@ -7,13 +7,18 @@
           %li= msg
 
   .control-group
-    %label.control-label Name
+    %label.control-label Hostname
+    %span.help-block The hostname, amongst other things, is used for configuring logging. If you can help it, please don't change it.
     .controls
       = f.text_field :name
   .control-group
     %label.control-label IP
     .controls
       = f.text_field :ip
+  .control-group
+    %label.control-label TPM
+    .controls
+      = f.check_box :tpm
   .control-group
     .controls
       = f.submit 'Save', class: "btn"
