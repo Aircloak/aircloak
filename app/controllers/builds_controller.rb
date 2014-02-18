@@ -11,6 +11,10 @@ class BuildsController < ApplicationController
     @build = Build.new
   end
 
+  def show
+    @build = Build.find(params[:id])
+  end
+
   def create
     @build = Build.new(build_params)
     BuildVersionsAssigner.assign_from_params @build, params

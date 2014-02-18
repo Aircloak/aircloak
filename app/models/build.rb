@@ -58,6 +58,19 @@ class Build < ActiveRecord::Base
     save
   end
 
+  def status_message
+    building = false
+    deployable_entity_versions.each do |dev|
+      building = true unless dev.build_completed
+      return "Failed" if dev.build_success == false
+    end
+    if building
+      "Building"
+    else
+      "Built"
+    end
+  end
+
 private
   def validate_destroyability
     if not can_destroy?

@@ -4,12 +4,14 @@
   %tr
     %th Name
     %th Requires TPM
+    %th Status
     %th
 
   - @builds.each do |build|
     %tr
       %td= build.name
       %td= build.tpm
+      %td= link_to build.status_message, build_path(build)
       %td= link_to 'Destroy', build_path(build), :method => :delete, :data => { :confirm => 'Are you sure?' }
 
 %br
