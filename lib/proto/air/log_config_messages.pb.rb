@@ -16,8 +16,6 @@ class LogConfigPB
     repeated :cloak_names, :string, 1
     required :cluster_name, :string, 2
   end
-
   repeated :clusters, LogConfigPB::ClusterPB, 1
   repeated :unassigned_cloaks, :string, 2
 end
-

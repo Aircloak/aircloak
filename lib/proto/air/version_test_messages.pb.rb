@@ -17,10 +17,8 @@ class TestRequestPB
   repeated :cluster_nodes, :string, 4
 end
 
-
 class TestResponsePB
   required :id, :uint32, 1
   required :success, :bool, 2
   required :transcript, :string, 3
 end
-

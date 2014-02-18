@@ -101,6 +101,23 @@ class Cluster < ActiveRecord::Base
     name_base.gsub(" ", "_").gsub(/[^\w^\d^\-]*/, "")
   end
 
+  def status= raw_status
+    self.status_value = status_mappings[raw_status]
+    if raw_status == :active then
+      self.status_description = ""
+    end
+  end
+
+  def status
+    status_mappings.invert[status_value]
+  end
+
+  def status_for_display
+    msg = status.to_s.humanize
+    msg = "#{msg}: #{status_description}" if status != :active
+    msg
+  end
+
 private
   def must_match_tpm_configuration
     unless !build || cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == self.tpm }
@@ -125,5 +142,13 @@ private
 
   def update_log_server
     LogServerConfigurer.update_config
+  end
+
+  def status_mappings
+    {
+      active: 1,
+      in_service: 2,
+      inactive: 3
+    }
   end
 end

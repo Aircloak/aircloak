@@ -1,5 +1,6 @@
 require 'spec_helper'
 require './lib/protobuf_sender'
+require './lib/proto/air/management_messages.pb.rb'
 
 describe Cluster do
   before(:each) do
@@ -247,5 +248,38 @@ describe Cluster do
     c.cloaks = []
     c.destroy
     c.destroyed?.should eq true
+  end
+
+  it "should set and get status values" do
+    c = cluster
+    c.status = :active
+    c.status.should eq :active
+    c.status = :in_service
+    c.status.should eq :in_service
+    c.status = :inactive
+    c.status.should eq :inactive
+  end
+
+  it "should clear status description when active" do
+    c = cluster
+    c.status = :inactive
+    msg = "Failed for some reason"
+    c.status_description = msg
+    c.status_description.should eq msg
+    c.status = :active
+    c.status_description.should eq ""
+  end
+
+  it "should have a status for display" do
+    c = cluster
+    c.status_description = "Description"
+    c.status = :active
+    c.status_for_display.should == "Active"
+    c.status_description = "Description"
+    c.status = :in_service
+    c.status_for_display.should == "In service: Description"
+    c.status_description = "Description"
+    c.status = :inactive
+    c.status_for_display.should == "Inactive: Description"
   end
 end

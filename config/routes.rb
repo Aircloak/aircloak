@@ -61,8 +61,6 @@ Web::Application.routes.draw do
       get 'setup_info', on: :collection
     end
 
-    resources :cluster_lists, path: "clusters", only: [:index, :show]
-
     resources :api_queries, path: "queries", only: [:create, :show, :destroy] do
       get "results/:result", on: :member, action: 'get_result'
       post "execute_as_batch_query", on: :member, action: 'execute_as_batch_query'
@@ -70,6 +68,10 @@ Web::Application.routes.draw do
   end
 
   post "/api/version_tests/:id", to: "version_tests#update"
+  get "/api/clusters", to: "cluster_lists#index"
+  get "/api/clusters/:id", to: "cluster_lists#show"
+  post "/api/clusters/:id/status", to: "api_clusters#status"
+
   unless Rails.configuration.installation.global
     get "/version_tests/create_local", to: "version_tests#create_local"
   end

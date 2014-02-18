@@ -13,4 +13,3 @@ class QueryData
   optional :mutator, :bool, 4
   optional :system_task, :bool, 5
 end
-

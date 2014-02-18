@@ -31,14 +31,12 @@ class JoinersLeaversProto
   required :leavers, :uint32, 2
 end
 
-
 class PropertyProto
 
   class RangeProto
     required :min, :sint64, 1
     required :max, :sint64, 2
   end
-
   required :label, :string, 1
   optional :string, :string, 2
   optional :range, PropertyProto::RangeProto, 3
@@ -46,12 +44,10 @@ class PropertyProto
   optional :accumulated_count, :sint64, 5
 end
 
-
 class ExceptionProto
   required :stackEntry, :string, 1
   optional :joiners_leavers, JoinersLeaversProto, 2
 end
-
 
 class ResultProto
   required :analyst_id, :string, 1
@@ -62,8 +58,6 @@ class ResultProto
   repeated :exceptions, ExceptionProto, 6
 end
 
-
 class ResultsProto
   repeated :result_ids, :uint64, 1
 end
-
