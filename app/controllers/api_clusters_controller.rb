@@ -2,6 +2,7 @@ require './lib/proto/air/management_messages.pb'
 
 class ApiClustersController < ApplicationController
   filter_access_to :status, require: :anon_write
+  protect_from_forgery :except => :status
 
   def status
     cs = ClusterStatusPB.decode(request.body.read)
