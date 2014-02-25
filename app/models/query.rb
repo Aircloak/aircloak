@@ -49,10 +49,10 @@ class Query < ActiveRecord::Base
     else
       # Queries that are run on demand, need an address to return
       # the results back to.
-      proto = Rails.configuration.task.return_proto
+      protocol = Rails.configuration.task.return_protocol
       host = Rails.configuration.task.return_host
       port = Rails.configuration.task.return_port
-      domain = "#{proto}://#{host}:#{port}/results"
+      domain = "#{protocol}://#{host}:#{port}/results"
       cquery.batch_options = CQuery::BatchOptions.new(url: domain)
       cquery.query_class = CQuery::QueryClass::BATCH
     end
