@@ -47,10 +47,14 @@ class VersionTest < ActiveRecord::Base
   end
 
   def as_test_request
+    proto = Rails.configuration.task.return_proto
+    host = Rails.configuration.task.return_host
+    port = Rails.configuration.task.return_port
+    domain = "#{proto}://#{host}:#{port}"
     TestRequestPB.new(
       id: id,
       cluster_id: cluster.id,
-      reply_host: "http://#{Rails.configuration.task.return_host}",
+      reply_host: domain,
       cluster_nodes: cluster.cloaks.map(&:name)
     )
   end
