@@ -62,6 +62,7 @@ Web::Application.routes.draw do
     end
 
     resources :api_queries, path: "queries", only: [:create, :show, :destroy] do
+      get "latest_result_id", on: :member, action: 'get_latest_result_id'
       get "results/:result", on: :member, action: 'get_result'
       post "execute_as_batch_query", on: :member, action: 'execute_as_batch_query'
     end

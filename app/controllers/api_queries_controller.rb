@@ -3,7 +3,7 @@ require './lib/proto/air/aggregate_results.pb'
 
 class ApiQueriesController < ApplicationController
   filter_access_to [:execute_as_batch_query, :create, :destroy], require: :anon_write
-  filter_access_to [:show, :get_result], require: :anon_read
+  filter_access_to [:show, :get_result, :get_latest_result_id], require: :anon_read
   skip_before_action :verify_authenticity_token
   layout false
 
@@ -65,6 +65,23 @@ class ApiQueriesController < ApplicationController
   def execute_as_batch_query
     Query.find(params[:id]).execute_batch_query
     render text: "Either it succeeds or not, nobody knows!"
+  end
+
+  # GET /api/queries/:id/latest_result_id
+  # Returns the latest result id that was produced by
+  # cloak-core. The results from cloak-core might arrive
+  # out of order. If they do, this method will always return
+  # the one produced the latest by cloak-core, which it has
+  # received.
+  def get_latest_result_id
+    query = Query.find params[:id]
+    ids = []
+    result = Result.where(query_id: query.id).order("results.result_id DESC").limit(1).first
+    ids << result.result_id if result
+    pb = ResultsProto.new result_ids: ids
+    send_data pb.encode.buf, type: "application/x-protobuf"
+  rescue ActiveRecord::RecordNotFound
+    render text: "Unknown query", status: 404
   end
 
 private
