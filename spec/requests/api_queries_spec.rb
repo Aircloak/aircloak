@@ -31,7 +31,40 @@ describe "ApiQueriesController" do
     end
 
     let (:query) { Query.create(name: "query", cluster: cluster, task: task) }
-    let (:result) { Result.create(query: query, result_id: 1234) }
+
+    def result args = {}
+      Result.create(
+        query: args.delete(:query) || query,
+        result_id: args.delete(:result_id) || 1234
+      )
+    end
+
+    describe "GET /api/queries/:id/latest_result_id" do
+      it "should return an error if the query is unknown" do
+        Query.count.should eq 0
+        get latest_result_id_api_query_path(1)
+        response.status.should eq 404
+      end
+
+      it "should return an empty results proto if there are no results" do
+        q = query # Create the query
+        get latest_result_id_api_query_path(q.id)
+        response.status.should eq 200
+        # This is a strange artifact of the protobuf library we are using.
+        # Rather than return an empty list, we get nil.
+        ResultsProto.decode(response.body).result_ids.should eq nil
+      end
+
+      it "should return the list with the greatest result id" do
+        q = query
+        r1 = result query: q, result_id: 2
+        r2 = result query: q, result_id: 1
+        Result.count.should eq 2
+        get latest_result_id_api_query_path(q.id)
+        response.status.should eq 200
+        ResultsProto.decode(response.body).result_ids.should eq [r1.result_id]
+      end
+    end
 
     describe "GET /api/queries/:id" do
       it "should return an error if the query is unknown" do
@@ -43,11 +76,11 @@ describe "ApiQueriesController" do
       it "should return the list of known results" do
         query
         Query.count.should eq 1
-        result
+        r = result
         Result.count.should eq 1
         get api_query_path(query.id)
         response.status.should eq 200
-        ResultsProto.decode(response.body).result_ids.should eq [result.result_id]
+        ResultsProto.decode(response.body).result_ids.should eq [r.result_id]
       end
     end
 
@@ -68,14 +101,14 @@ describe "ApiQueriesController" do
       it "should return the the known result" do
         query
         Query.count.should eq 1
-        result
+        r = result
         Result.count.should eq 1
-        bucket = Bucket.new(result: result, label: "label", accumulated_count: 1, joiners: 2, leavers: 3)
+        bucket = Bucket.new(result: r, label: "label", accumulated_count: 1, joiners: 2, leavers: 3)
         bucket.save.should eq true
-        get "/api/queries/#{query.id}/results/#{result.result_id}"
+        get "/api/queries/#{query.id}/results/#{r.result_id}"
         response.status.should eq 200
         rp = ResultProto.decode(response.body)
-        rp.result_id.should eq result.result_id
+        rp.result_id.should eq r.result_id
         rp.properties.size.should eq 1
         rp.properties.first.label.should eq "label"
         rp.properties.first.string.should eq nil
