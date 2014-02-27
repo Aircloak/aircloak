@@ -2,7 +2,7 @@ require './lib/proto/air/task_management.pb'
 require './lib/proto/air/aggregate_results.pb'
 
 class ApiQueriesController < ApplicationController
-  filter_access_to [:execute_as_batch_query, :create, :destroy], require: :anon_write
+  filter_access_to [:execute_as_batch_query, :execute_named_batch_query, :create, :destroy], require: :anon_write
   filter_access_to [:show, :get_result, :get_latest_result_id], require: :anon_read
   skip_before_action :verify_authenticity_token
   layout false
@@ -65,6 +65,17 @@ class ApiQueriesController < ApplicationController
   def execute_as_batch_query
     Query.find(params[:id]).execute_batch_query
     render text: "Either it succeeds or not, nobody knows!"
+  end
+
+  # POST /api/queries/execute_named_batch_query/:name
+  def execute_named_batch_query
+    q = Query.find_by_name(params[:name])
+    if q
+      q.execute_batch_query
+      render text: "Executing the query named #{params[:name]}"
+    else
+      render text: "Unknown query!", status: 404
+    end
   end
 
   # GET /api/queries/:id/latest_result_id
