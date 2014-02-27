@@ -11,7 +11,6 @@ class ApiQueriesController < ApplicationController
   class InvalidCluster < StandardError; end
   class TaskNotFound < StandardError; end
   class InvalidTask < StandardError; end
-  class QueryOrResultNotFound < StandardError; end
 
   # POST /api/queries
   def create
@@ -55,16 +54,21 @@ class ApiQueriesController < ApplicationController
 
   # GET /api/queries/:id/results/:result
   def get_result
-    result = get_result_by_query params[:id], params[:result]
+    q = query_by_id params[:id]
+    result = Result.where(query_id: q.id, result_id: params[:result]).limit(1).first
+    raise ActiveRecord::RecordNotFound unless result
     send_data result.to_result_proto.encode.buf, type: "application/x-protobuf"
-  rescue QueryOrResultNotFound
+  rescue ActiveRecord::RecordNotFound
     render text: "Unknown query or result!", status: 404
   end
 
   # POST /api/queries/:id/execute_as_batch_query
   def execute_as_batch_query
-    Query.find(params[:id]).execute_batch_query
+    q = query_by_id params[:id]
+    q.execute_batch_query
     render text: "Either it succeeds or not, nobody knows!"
+  rescue ActiveRecord::RecordNotFound
+    render text: "Unknown query!", status: 404
   end
 
   # POST /api/queries/execute_named_batch_query/:name
@@ -85,7 +89,7 @@ class ApiQueriesController < ApplicationController
   # the one produced the latest by cloak-core, which it has
   # received.
   def get_latest_result_id
-    query = Query.find params[:id]
+    query = query_by_id params[:id]
     ids = []
     result = Result.where(query_id: query.id).order("results.result_id DESC").limit(1).first
     ids << result.result_id if result
@@ -111,9 +115,9 @@ private
     task
   end
 
-  def get_result_by_query id, result
-    result = Result.where(query_id: id, result_id: result).limit(1).first
-    raise QueryOrResultNotFound.new unless result
-    result
+  def query_by_id id
+    q = id.to_i == 0 ? Query.find_by_name(id) : Query.find(id)
+    raise ActiveRecord::RecordNotFound unless q
+    q
   end
 end
