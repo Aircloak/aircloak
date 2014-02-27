@@ -66,6 +66,22 @@ describe "ApiQueriesController" do
       end
     end
 
+    describe "POST /api/queries/execute_named_batch_query/:name" do
+      it "should return an error if the query is unknown" do
+        Query.count.should eq 0
+        post "/api/queries/execute_named_batch_query/bogus_name"
+        response.status.should eq 404
+      end
+
+      it "should execute the named batch query" do
+        q = double
+        Query.should_receive(:find_by_name).with("name").and_return(q)
+        q.should_receive(:execute_batch_query)
+        post "/api/queries/execute_named_batch_query/name"
+        response.status.should eq 200
+      end
+    end
+
     describe "GET /api/queries/:id" do
       it "should return an error if the query is unknown" do
         Query.count.should eq 0
