@@ -3,7 +3,7 @@ class BuildProgressController < ApplicationController
   protect_from_forgery :except => [:version_progress, :build_progress]
 
   def version_progress
-    r = VersionBuildResponseProto.decode(request.body.read)
+    r = VersionBuildResponseProto.decode(request.raw_post)
     version = DeployableEntityVersion.find_by_commit_id(r.commit_id)
     if version then
       if version.deployable_entity.tpm_env == r.environment then
@@ -34,7 +34,7 @@ class BuildProgressController < ApplicationController
   end
 
   def build_progress
-    r = BuildResponseProto.decode(request.body.read)
+    r = BuildResponseProto.decode(request.raw_post)
     build = Build.find(r.build_id)
     success = case r.status 
       when BuildResponseProto::Status::OK then true

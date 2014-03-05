@@ -17,7 +17,7 @@ class VersionTestsController < ApplicationController
 
   def update
     test = VersionTest.find(params[:id])
-    test_result = TestResponsePB.decode(request.body.read)
+    test_result = TestResponsePB.decode(request.raw_post)
     test.process_result test_result
     render text: "Finally!", layout: false
   rescue ActiveRecord::RecordNotFound

@@ -18,7 +18,7 @@ class ResultsController < ApplicationController
   end
 
   def create
-    r = ResultProto.decode(request.body.read)
+    r = ResultProto.decode(request.raw_post)
     task_id = r.task_id
     if task_id == @pending_result.query_id then
       ResultHandler.store_results Query.find(task_id), r
