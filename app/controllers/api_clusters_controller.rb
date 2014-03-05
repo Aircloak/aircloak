@@ -5,7 +5,7 @@ class ApiClustersController < ApplicationController
   protect_from_forgery :except => :status
 
   def status
-    cs = ClusterStatusPB.decode(request.body.read)
+    cs = ClusterStatusPB.decode(request.raw_post)
     cluster = Cluster.find(params[:id])
     cluster.status_description = cs.description
     cluster.status = case cs.status

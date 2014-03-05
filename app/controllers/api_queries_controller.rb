@@ -14,7 +14,7 @@ class ApiQueriesController < ApplicationController
 
   # POST /api/queries
   def create
-    cq = CreateQueryPB.decode(request.body.read)
+    cq = CreateQueryPB.decode(request.raw_post)
     cluster = get_cluster cq
     task = get_task cq
     query_name = "API generated #{cq.main_package}:#{cq.cluster_id}"

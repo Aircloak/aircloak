@@ -36,7 +36,7 @@ class TasksController < ApplicationController
 
   # POST /tasks/update_task_binary
   def update_task_binary
-    data = request.body.read
+    data = request.raw_post
     data_to_save = data.dup
     qd = QueryData.decode(data)
     task = Task.where(main_package: qd.main_package).first

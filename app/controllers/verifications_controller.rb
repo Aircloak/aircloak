@@ -26,7 +26,7 @@ class VerificationsController < ApplicationController
   end
 
   def event
-    event_data = JSON.parse(request.body.read)
+    event_data = JSON.parse(request.raw_post)
     unless event_data["machine"] then
       report_error "staging machine must be specified"
       return
