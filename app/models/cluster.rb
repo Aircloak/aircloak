@@ -118,6 +118,14 @@ class Cluster < ActiveRecord::Base
     msg
   end
 
+  def status_description=(description)
+    usable_description = description
+    if description.size > 255
+      usable_description = description[0...252] + "..."
+    end
+    write_attribute(:status_description, usable_description)
+  end
+
 private
   def must_match_tpm_configuration
     unless !build || cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == self.tpm }

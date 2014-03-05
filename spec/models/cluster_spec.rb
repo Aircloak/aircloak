@@ -282,4 +282,17 @@ describe Cluster do
     c.status = :inactive
     c.status_for_display.should == "Inactive: Description"
   end
+
+  it "should truncate status descriptions that are longer than 255" do
+    c = cluster
+    long_description = %{This is a description that unfortunately
+        is longer than what is allowed for a text column in Postgresql.
+        The text columns only accept 255 characters, so the system will
+        barf if the controller does not handle it gracefully!
+        It should shorten the description appropriately, and add
+        '...' to the end if it is too long}
+    c.status_description = long_description
+    c.status_description.size.should eq 255
+    c.status_description[-3..-1].should eq "..."
+  end
 end
