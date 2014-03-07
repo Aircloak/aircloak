@@ -66,7 +66,7 @@ class Cluster < ActiveRecord::Base
   end
 
   def timestamp
-    updated_at.to_i
+    last_modified.to_i
   end
 
   def cloak_ready

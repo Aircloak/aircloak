@@ -29,6 +29,7 @@ private
   def update_cloaks msg, action
     cloaks = cloaks_from_params
     @cluster.assign_cloaks cloaks
+    @cluster.last_modified = Time.now
     if @cluster.update(cluster_params)
       redirect_to clusters_path, notice: msg
     else
