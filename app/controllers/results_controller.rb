@@ -25,6 +25,14 @@ class ResultsController < ApplicationController
       unless r.exceptions.blank?
         r.exceptions.each {|expt| ExceptionResult.create_from_proto task_id, r.analyst_id, r.index, expt}
       end
+      # remove old
+      result_num = Result.where(query_id: task_id).size
+      if result_num > Rails.configuration.results.max_per_query
+        num_to_drop = result_num - Rails.configuration.results.max_per_query
+        Result.where(query_id: task_id).order("results.result_id ASC").limit(num_to_drop).each do |re|
+          re.destroy
+        end
+      end
     end
     render text: "Got it buddy, thanks", layout: false
   end

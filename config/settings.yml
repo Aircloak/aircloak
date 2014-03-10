@@ -19,6 +19,8 @@ defaults: &defaults
   version_test:
     tpm: false
     enabled: true
+  results:
+    max_per_query: 4
 
 development:
   <<: *defaults
