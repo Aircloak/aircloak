@@ -45,6 +45,7 @@ group :development do
   gem 'meta_request'
   gem 'haml-rails', github: 'indirect/haml-rails'
   gem 'ruby_parser'
+  gem 'quiet_assets' # quiet down assets from the log
 end
 
 group :production do
