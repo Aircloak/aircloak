@@ -111,6 +111,11 @@ describe Build do
     expect{b.mark_complete success: false}.to change{b.build_success}.from(true).to(false)
   end
 
+  it "should delete the release from the build server when deleting" do
+    ProtobufSender.should_receive(:send_delete)
+    Build.create(name: "test name").destroy
+  end
+
   context "testing" do
     it "should notify the version test, if it has one, when the build has completed" do
       b = Build.new

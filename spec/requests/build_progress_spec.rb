@@ -1,12 +1,14 @@
 require 'spec_helper'
 require './lib/proto/air/build_messages.pb.rb'
 require './lib/build_manager'
+require './lib/protobuf_sender'
 
 describe BuildProgressController do
   before(:each) do
     BuildManager.stub(:send_build_request).and_return(true)
     Cluster.destroy_all
     Build.destroy_all
+    ProtobufSender.stub(:send_delete)
   end
 
   let (:de) { double(:deployable_entity, tpm_env: "tpm-env", no_tpm_env: "no-tpm-env") }
