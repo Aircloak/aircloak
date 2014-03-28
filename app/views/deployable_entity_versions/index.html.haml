@@ -7,6 +7,7 @@
     %th Message
     %th In build
     %th Status
+    %th
 
   - @deployable_entity.commits.reverse.each do |commit|
     %tr
@@ -18,3 +19,7 @@
       - else
         %td
       %td= link_to commit.status, deployable_entity_deployable_entity_version_path(@deployable_entity, commit)
+      - if commit.build_completed
+        %td= button_to "Reset build status", reset_deployable_entity_deployable_entity_version_path(@deployable_entity, commit), :class => "btn btn-warning btn-mini"
+      - elsif commit.part_of_build?
+        %td= button_to "Force reset build status", reset_deployable_entity_deployable_entity_version_path(@deployable_entity, commit), :class => "btn btn-danger btn-mini"

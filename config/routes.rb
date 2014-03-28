@@ -1,6 +1,8 @@
 Web::Application.routes.draw do
   resources :deployable_entities do
-    resources :deployable_entity_versions
+    resources :deployable_entity_versions do
+      post 'reset', on: :member
+    end
   end
 
   # This action is for receiving information about
