@@ -62,6 +62,8 @@ authorization do
                        :user_permissions], to: :manage
     has_permission_on [:authorization_rules, 
                        :authorization_usages], :to => :read
+    has_permission_on [:deployable_entity_versions,
+                       :builds], to: :reset
   end
   
   # role :user do
