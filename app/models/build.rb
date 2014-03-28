@@ -72,6 +72,13 @@ class Build < ActiveRecord::Base
     end
   end
 
+  def reset
+    deployable_entity_versions.each do |dev|
+      dev.reset_build_status
+    end
+    send_request_for_building
+  end
+
 private
   def validate_destroyability
     if not can_destroy?

@@ -8,6 +8,7 @@
     %th Requires TPM
     %th Status
     %th
+    %th
 
   - @builds.each do |build|
     %tr
@@ -19,6 +20,7 @@
           = link_to 'Destroy', build_path(build), :method => :delete, :data => { :confirm => 'Are you sure?' }
         - else
           Currently used by a cluster or version test
+      %td= button_to "Rebuild", reset_build_path(build), :class => "btn btn-danger btn-mini"
 
 %br
 

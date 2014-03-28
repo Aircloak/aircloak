@@ -15,7 +15,9 @@ Web::Application.routes.draw do
   # A build in this context is a set of 
   # deployable entities that together make
   # a cloak machine setup
-  resources :builds
+  resources :builds do
+    post 'reset', on: :member
+  end
 
   # We track the progress of both individual
   # deployable entities being built (and 
