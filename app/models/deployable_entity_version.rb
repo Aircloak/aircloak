@@ -60,6 +60,10 @@ class DeployableEntityVersion < ActiveRecord::Base
     ProtobufSender.send_delete url if Rails.configuration.installation.global
   end
 
+  def has_more_than_one_env?
+    deployable_entity.tpm_env != deployable_entity.no_tpm_env
+  end
+
 private
   def set_message_and_author
     return if self.message and self.author
