@@ -117,4 +117,21 @@ describe DeployableEntityVersion do
       dev.save
     end
   end
+
+  it "should be possible to reset build status" do
+    dev = PreRecorded.setup_deployable_entity_version @d
+    dev.build_completed = true
+    dev.build_success = false
+    dev.build_log_tpm = "foo"
+    dev.build_log_no_tpm = "bar"
+    dev.save
+    dev.reload
+    ProtobufSender.should_receive(:send_delete)
+    dev.reset_build_status
+    dev.reload
+    dev.build_completed.should eq false
+    dev.build_success.should eq true
+    dev.build_log_tpm.should eq ""
+    dev.build_log_no_tpm.should eq ""
+  end
 end

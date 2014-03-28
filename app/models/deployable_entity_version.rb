@@ -1,3 +1,5 @@
+require './lib/protobuf_sender'
+
 class DeployableEntityVersion < ActiveRecord::Base
   # This before_destroy callback needs to be called
   # before the object is destroyed. The object
@@ -46,6 +48,16 @@ class DeployableEntityVersion < ActiveRecord::Base
     else
       true
     end
+  end
+
+  def reset_build_status
+    self.build_completed = false
+    self.build_success = true
+    self.build_log_tpm = ""
+    self.build_log_no_tpm = ""
+    save
+    url = "http://#{Rails.configuration.build_server.host}/entity/#{self.commit_id}"
+    ProtobufSender.send_delete url if Rails.configuration.installation.global
   end
 
 private
