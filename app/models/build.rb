@@ -13,6 +13,7 @@ class Build < ActiveRecord::Base
   # is defined before the other callbacks, in
   # order for it to be executed first.
   before_destroy :validate_destroyability
+  after_destroy :remove_from_buildserver
 
   validates_presence_of :name
   validates_uniqueness_of :name
@@ -71,6 +72,13 @@ class Build < ActiveRecord::Base
     end
   end
 
+  def reset
+    deployable_entity_versions.each do |dev|
+      dev.reset_build_status
+    end
+    send_request_for_building
+  end
+
 private
   def validate_destroyability
     if not can_destroy?
@@ -81,5 +89,10 @@ private
 
   def send_request_for_building
     BuildManager.send_build_request self if Rails.configuration.installation.global
+  end
+
+  def remove_from_buildserver
+    url = "http://#{Rails.configuration.build_server.host}/build/#{self.id}"
+    ProtobufSender.send_delete url if Rails.configuration.installation.global
   end
 end

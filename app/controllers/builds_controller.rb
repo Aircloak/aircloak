@@ -1,7 +1,7 @@
 require './lib/build_versions_assigner.rb'
 
 class BuildsController < ApplicationController
-  before_action :set_build, only: [:destroy]
+  before_action :set_build, only: [:destroy, :reset]
 
   def index
     @builds = Build.all
@@ -31,6 +31,11 @@ class BuildsController < ApplicationController
     @build.destroy
     redirect_to builds_path, notice: "Build with name #{name} " +
         "was successfully destroyed."
+  end
+
+  def reset
+    @build.reset
+    redirect_to builds_path, notice: "Build restarted for build #{@build.name}"
   end
 
 private
