@@ -220,8 +220,10 @@ then to run the tests use
 
 ## Testing of full system
 
-It is possible to test the full system including *cloak-core* and *CloakQueryRunner*, but without *mannu-air*
-and *manny-core*.  This allows you to test these three components in an almost real setting.
+It is possible to test the full system which consists of *web*, *cloak-core*, and *CloakQueryRunner*.  All
+other components like *TestServer*, *manny-air*, or *manny-core* are excluded.  This allows you to test these
+three components in an almost real setting.  It allows to run real tasks, so provides a more complete system
+then just the local test facilities of *CloakQueryRunner*.
 
 Setting up the environment for local testing consists of the following steps:
 
