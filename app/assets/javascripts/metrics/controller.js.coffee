@@ -10,7 +10,7 @@ class Metrics.Controller
   constructor: () ->
     initDashboard()
     initAggregations();
-    @parseParams();
+    @viewState = new ViewState(['cluster', 'dashboard', 'aggregation', 'from', 'until'])
     subscribeToEvents(this)
 
   selectedCloaks: () ->
@@ -18,7 +18,7 @@ class Metrics.Controller
       map((cloakName) -> cloakName.replace(".", "_"))
 
   renderGraphs: () ->
-    @parseParams();
+    @viewState.store()
     targets = Metrics.Dashboards[@param('dashboard')](this)
     @loadGraphs(targets)
 
@@ -30,50 +30,14 @@ class Metrics.Controller
             appendTo($("#graphs"))
         )
 
-  param: (value) ->
-    parseParams() unless @params
-    @params[value]
-
-  parseParams: () ->
-    @params = pageParams()
-    _.each(
-          ['cluster', 'dashboard', 'aggregation', 'from', 'until'],
-          (param) => $('#' + param).val(@params[param]) if @params[param]
-        )
-    @params = _.extend(@params, controlsToParams())
-
-  controlsToParams = () ->
-    _.reduce(
-          ['cluster', 'dashboard', 'aggregation', 'from', 'until'],
-          ((memo, param) ->
-            ctrlValue = $('#' + param).val()
-            memo[param] = ctrlValue
-            memo
-          ),
-          pageParams()
-        )
-
-  pageParams = () ->
-    return {} if !window.location.search
-    _.reduce(
-          window.location.search.replace(/^\?/, "").split("&"),
-          ((memo, param) ->
-            [name, value] = param.split("=")
-            memo[name] = decodeURIComponent(value.replace(/\+/g, ' '))
-            memo),
-          {}
-        )
+  param: (name) -> @viewState.param(name)
 
   subscribeToEvents = (controller) ->
     $('#renderGraphs').click(_.partial(onRenderGraphs, controller))
     $(window).bind('popstate', () -> controller.renderGraphs())
 
   onRenderGraphs = (controller) ->
-    setNewState()
     controller.renderGraphs()
-
-  setNewState = () ->
-    history.replaceState(null, "", "?" + $.param(controlsToParams()))
 
   initDropdown = (dropdown, items) =>
     for text, value of items
