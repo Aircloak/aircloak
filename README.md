@@ -15,6 +15,7 @@ Status](https://magnum.travis-ci.com/Aircloak/web.png?token=aFqD8qTNFV1Li4zdKtZw
     - [Deploying](#deploying)
     - [Setting up new servers](#setting-up-new-servers)
     - [Testing](#testing)
+    - [Testing of full system](#testing-of-full-system)
     - [Good to know](#good-to-know)
 - [Role in the greater picture](#role-in-the-greater-picture)
 - [What it is made up of](#what-it-is-made-up-of)
@@ -216,6 +217,58 @@ To run the test suite, make sure you have the test database created:
 then to run the tests use
 
     bundle exec rake
+
+## Testing of full system
+
+It is possible to test the full system which consists of *web*, *cloak-core*, and *CloakQueryRunner*.  All
+other components like *TestServer*, *manny-air*, or *manny-core* are excluded.  This allows you to test these
+three components in an almost real setting.  It allows to run real tasks, so provides a more complete system
+then just the local test facilities of *CloakQueryRunner*.
+
+Setting up the environment for local testing consists of the following steps:
+
+- Setup the database for local testing.
+
+    bundle exec rake db:create
+    bundle exec rake db:migrate
+
+- Start a local instance of the *web* application.
+
+    bundle exec rails server
+
+- Create the directory `/mnt/crypt` and make it read/write for your user.
+
+- Start cloak-core, for example by running `rel/cloak/bin/cloak console` after creating a release with
+  `make rel`.  The logging output should show you a line like
+
+    [info]  query_runner_sup:66: we expect that 3 JVMs are spawned
+
+  which tells you how many *CloakQueryRunner* instances are required.
+
+- Compile *CloakQueryRunner* by running `./build.sh` in the *CloakQueryRunner* repository.  Run the right
+  number of instances by executing `./run.sh <number>` where `<number>` is the instance number.  We count
+  the instances from zero, so for the example above we need to start `./run.sh 0`, `./run.sh 1`, and `./run.sh
+  2`.  The instances are kept in the foreground, so you either put them in the background or run them from
+  different shells.
+
+Now that the components are up and running you have to create the initial setup of *web*.  Point a web-browser
+to `http://localhost:3000/` and login as user `test` with password `1234`.  Do the following steps:
+
+- Create a build and an OS Tag.  you do not need any deployable entities or similar stuff.  You may choose
+  arbitrary names and additional information for the build and the OS Tag.
+
+- Create a cloak with name `localhost` and IP-address `127.0.0.1`.
+
+- Create a cluster with the created cloak.
+
+- Add the tasks to the local *web* by running the `upload-task.sh` script from the *CloakQueryRunner*
+  repository like `../path/to/CloakQueryRunner/upload-task.sh <canonical-class-name> http://localhost:3000`.
+  Do that from the directory containing the `src/` sub-directory with the sources of the task.
+
+- Add the corresponding queries in *web* (a query attaches a task to a cluster).
+
+Now you are ready to upload data by accessing the cloak directly via port *8098* (we do not run nginx which
+provides the SSL connectivity).  You can run batch tasks manually from the *web* interface.
 
 ## Good to know
 

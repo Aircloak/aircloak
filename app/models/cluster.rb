@@ -19,6 +19,7 @@ class Cluster < ActiveRecord::Base
   validate :must_have_at_least_one_cloak
 
   after_commit :update_log_server
+  after_commit :synchronize_in_local_mode
   before_destroy :verify_can_destroy
 
   def tpm
@@ -47,9 +48,6 @@ class Cluster < ActiveRecord::Base
     (new_cloaks - old_cloaks).each {|cloak| cloaks << cloak }
     (new_cloaks & old_cloaks).each {|cloak| keep_cloak cloak }
     (old_cloaks - new_cloaks).each {|cloak| cloak.cluster_cloak.set_state :to_be_removed }
-    unless Rails.configuration.installation.global
-      (old_cloaks - new_cloaks).each {|cloak| cloak.cluster_cloak.synchronize }
-    end
   end
 
   def keep_cloak cloak
@@ -150,6 +148,12 @@ private
 
   def update_log_server
     LogServerConfigurer.update_config
+  end
+
+  def synchronize_in_local_mode
+    unless Rails.configuration.installation.global
+      cluster_cloaks.each {|cluster_cloak| cluster_cloak.synchronize }
+    end
   end
 
   def status_mappings
