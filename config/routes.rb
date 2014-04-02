@@ -12,7 +12,7 @@ Web::Application.routes.draw do
   post 'register_version' => "register_version#create"
 
   # Resource for builds of cloak software.
-  # A build in this context is a set of 
+  # A build in this context is a set of
   # deployable entities that together make
   # a cloak machine setup
   resources :builds do
@@ -20,7 +20,7 @@ Web::Application.routes.draw do
   end
 
   # We track the progress of both individual
-  # deployable entities being built (and 
+  # deployable entities being built (and
   # collect the log output for better trouble
   # shooting), and the progress of complete
   # builds.
@@ -97,6 +97,8 @@ Web::Application.routes.draw do
   resources :results
 
   resources :os_tags
+
+  resources :metrics
 
   root to: 'welcome#index'
 end

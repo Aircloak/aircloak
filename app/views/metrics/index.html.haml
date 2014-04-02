@@ -1,0 +1,22 @@
+= content_for(:javascript_include) {javascript_include_tag "metrics/controller", "data-turbolinks-track" => true}
+
+%h1 Select metrics
+:coffee
+  @clusterCloaks=#{@cluster_cloaks}
+%table
+  %thead
+    %tr
+      %td= "Cluster"
+      %td= "Dashboard"
+      %td= "Aggregation"
+  %tr
+    %td= select_tag :cluster, options_from_collection_for_select(@clusters, "name", "name")
+    %td= select_tag :dashboard, []
+    %td= select_tag :aggregation, []
+%div
+  From: #{text_field_tag :from, "-1h", :size => 15, :style => "width:auto;"}
+  To: #{text_field_tag :until, "", :size => 15, :style => "width:auto;"}
+%br
+#renderGraphs.btn Go
+%br
+#graphs
