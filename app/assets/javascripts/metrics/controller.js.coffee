@@ -47,7 +47,7 @@ class Metrics.Controller
     window.open(window.location.pathname + "?" + $.param(@viewState.allParams()), "_blank")
 
   makeImage: (target) ->
-    $("<img/>", {src: "http://localhost:10000/render?" + $.param(@graphParams(target.params))}).
+    $("<img/>", {src: "/metrics/render_graph?" + $.param(@graphParams(target.params))}).
       css("margin-bottom", "40px")
 
   makeElement: (target) ->
