@@ -1,11 +1,21 @@
 //= require ./graphite_series
 //= require ./dashboards
 
+# Setup the global namespace
 window.Metrics or= {}
 
+# Controller and view responsible for metrics presentation
 class Metrics.Controller
+  # Hack used for passing global cluster -> cloaks mapping to the client side.
+  # We take the hash into a local variable, and then remove it from the global
+  # scope.
   clusterCloaks = window.clusterCloaks
   delete window.clusterCloaks
+
+
+  ## -------------------------------------------------------------------
+  ## Public instance methods
+  ## -------------------------------------------------------------------
 
   constructor: () ->
     initDashboard()
@@ -77,6 +87,11 @@ class Metrics.Controller
     else
       $("#clusterParams").show()
 
+
+  ## -------------------------------------------------------------------
+  ## Private class functions
+  ## -------------------------------------------------------------------
+
   initDropdown = (dropdown, items) =>
     for text, value of items
       value = text if value instanceof Function
@@ -96,4 +111,8 @@ class Metrics.Controller
           upper99: "upper99"
         )
 
+
+# Creates anonymous controller instance. Since controller binds to various
+# events, its reference will be kept alive, and we don't need to store it
+# anywhere in the global (window) context.
 (new Metrics.Controller())

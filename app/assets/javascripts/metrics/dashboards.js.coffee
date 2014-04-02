@@ -1,6 +1,11 @@
+# Setup the global namespace
 window.Metrics or= {}
 
+# Global definition of predefined dashboards. If you need to include your own
+# dashboard, just add id in the object below, and it should automatically appear
+# in the UI.
 Metrics.Dashboards =
+  # Dashboard for cloak queries
   "Cloak queries": (controller) ->
     _.map(
           ["rate", "median", "average", "upper_75", "upper_90", "upper_99"],
@@ -15,6 +20,8 @@ Metrics.Dashboards =
                   aggregate(controller.param("aggregation")).
                   toString()
         )
+
+  # Dashboard for JVM metrics
   "JVM": (controller) ->
     _.map(
           [
@@ -33,6 +40,11 @@ Metrics.Dashboards =
                   aggregate(controller.param("aggregation")).
                   toString()
         )
+
+  # Dashboard for drilldown into individual cloaks.
+  # Note: this dashboard is explicitly disabled from dropdown selection in
+  # Metrics.Controller. Instead, it is used in a hardcoded fashion, when
+  # the user clicks on a graph.
   "Cloak drilldown": (controller) ->
     _.map(
           controller.selectedCloaks(),

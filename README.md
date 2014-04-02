@@ -16,6 +16,7 @@ Status](https://magnum.travis-ci.com/Aircloak/web.png?token=aFqD8qTNFV1Li4zdKtZw
     - [Setting up new servers](#setting-up-new-servers)
     - [Testing](#testing)
     - [Testing of full system](#testing-of-full-system)
+    - [Proxying to graphite server](#proxying-to-graphite-server)
     - [Good to know](#good-to-know)
 - [Role in the greater picture](#role-in-the-greater-picture)
 - [What it is made up of](#what-it-is-made-up-of)
@@ -83,7 +84,7 @@ I recommend you add the following to your ~/.ssh/config:
 If you are not able to log into the web servers, please ask someone who is able to do so, to add your public
 key to the __deployer__ user's __authorized_keys__ file.
 
-### Migrating the schema 
+### Migrating the schema
 
 To migrate the schema on the production database, please run:
 
@@ -122,7 +123,7 @@ apt-get install -y autoconf nginx curl git-core
 # Dependencies needed for ruby
 apt-get -y install build-essential libssl-dev
 # Packages required for compilation of some stdlib modules
-apt-get -y install tklib 
+apt-get -y install tklib
 # Extras for RubyGems and Rails:
 apt-get -y install zlib1g-dev libssl-dev
 # Readline Dev on Ubuntu 12.04 LTS:
@@ -130,7 +131,7 @@ apt-get -y install libreadline-gplv2-dev
 # Install some nokogiri dependencies:
 apt-get -y install libxml2 libxml2-dev libxslt1-dev
 # Needed for pg gem
-apt-get -y install libpq-dev 
+apt-get -y install libpq-dev
 
 # Add deployment user
 adduser --disabled-password --gecos "" deployer
@@ -270,6 +271,27 @@ to `http://localhost:3000/` and login as user `test` with password `1234`.  Do t
 Now you are ready to upload data by accessing the cloak directly via port *8098* (we do not run nginx which
 provides the SSL connectivity).  You can run batch tasks manually from the *web* interface.
 
+## Proxying to graphite server
+
+The reference to graphite server is stored in nginx.conf. A hardcoded url is used, which is then proxied
+via nginx. If you want to use web with your local graphite, you must run local web behind nginx, and setup a
+proxy. Here's an example nginx configuration snippet that sets up the web server on port 5000, and redirects
+graphite urls to port 10000:
+
+```
+server {
+  listen *:5000;
+
+  location /metrics/render_graph {
+    proxy_pass http://localhost:10000/render;
+  }
+
+  location / {
+    proxy_pass http://127.0.0.1:3000/;
+  }
+}
+```
+
 ## Good to know
 
 Rails can be dog-slow, or slow like a glacier if you prefer. To speed things up, I recommend installing the
@@ -368,7 +390,7 @@ seems quite complex at first sight. It encompasses a lot of the web code base as
 This section will try to shed some light on what is going on behind the scenes.
 
 When a new deployable entity version is created, this automatically also creates a new [version
-test](https://github.com/Aircloak/web/blob/master/app/models/version_test.rb). 
+test](https://github.com/Aircloak/web/blob/master/app/models/version_test.rb).
 The version test creates a new build that can be used for testing. This build includes the particular
 deployable entity version under test, as well as the most recent version of the other deployable entities as
 can be found in their respective "develop" branches.

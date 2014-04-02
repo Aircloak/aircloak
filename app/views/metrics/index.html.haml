@@ -1,9 +1,10 @@
+-# Passes the cluster -> cloaks mapping to a global page variable
+= content_for(:javascript_include) {"<script>window.clusterCloaks=#{@cluster_cloaks}</script>".html_safe}
+
+-# Includes additional, page-specific javascripts
 = content_for(:javascript_include) {javascript_include_tag "metrics/controller", "data-turbolinks-track" => true}
 
 %h1 Select metrics
-:coffee
-  @clusterCloaks=#{@cluster_cloaks}
-
 %br
 #inputControls{:style=>"display:none;"}
   %table{:id => "clusterParams"}
