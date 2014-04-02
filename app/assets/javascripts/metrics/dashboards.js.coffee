@@ -1,26 +1,19 @@
 window.Metrics or= {}
 
-globalParams = (controller) ->
-  from: controller.param("from") || "-1h",
-  until: controller.param("until") || "now",
-  tz: "CET",
-  width: "500",
-  height: "300"
-
 Metrics.Dashboards =
   "Cloak queries": (controller) ->
     _.map(
           ["rate", "median", "average", "upper_75", "upper_90", "upper_99"],
           (type) ->
-            params = globalParams(controller)
-            params.target =
-              Metrics.GraphiteSeries.
-                fromPath([controller.selectedCloaks(), "cloak_core.query_coordinator", type]).
-                aggregate(controller.param("aggregation")).
-                toString()
-            params.title = "query_coordinator: " + type
-            params.hideLegend = true
-            params
+            href: () ->
+              drilldown: ["cloak_core.query_coordinator", type].join(".")
+            params:
+              title: "query_coordinator: " + type,
+              target:
+                Metrics.GraphiteSeries.
+                  fromPath([controller.selectedCloaks(), "cloak_core.query_coordinator", type]).
+                  aggregate(controller.param("aggregation")).
+                  toString()
         )
   "JVM": (controller) ->
     _.map(
@@ -30,12 +23,24 @@ Metrics.Dashboards =
             "gc.PS-Scavenge.time"
           ],
           (metric) ->
-            params = globalParams(controller)
-            params.target = Metrics.GraphiteSeries.
-              fromPath([controller.selectedCloaks(), "cloak_core.jvm", metric, "value"]).
-              aggregate(controller.param("aggregation")).
-              toString()
-            params.title = metric
-            params.hideLegend = true
-            params
+            href: () ->
+              drilldown: ["cloak_core.jvm", metric, "value"].join(".")
+            params:
+              title: metric,
+              target:
+                Metrics.GraphiteSeries.
+                  fromPath([controller.selectedCloaks(), "cloak_core.jvm", metric, "value"]).
+                  aggregate(controller.param("aggregation")).
+                  toString()
+        )
+  "Cloak drilldown": (controller) ->
+    _.map(
+          controller.selectedCloaks(),
+          (cloak) ->
+            params:
+              title: [cloak, ": ", controller.param("drilldown")].join(""),
+              target:
+                Metrics.GraphiteSeries.
+                  fromPath([cloak, controller.param("drilldown")]).
+                  toString()
         )

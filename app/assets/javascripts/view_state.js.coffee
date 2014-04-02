@@ -37,10 +37,18 @@ class ViewState
 
   recalcParams: () -> @params = @allParams()
 
-  store: () ->
+  store: () -> history.replaceState(null, "", "?" + $.param(@params))
+
+  recalcAndStore: () ->
     @recalcParams()
-    history.replaceState(null, "", "?" + $.param(@params))
+    @store()
 
   param: (name) -> @params[name]
+
+  merge: (newParams) ->
+    @recalcParams()
+    for key, value of newParams
+      @params[key] = value
+    @store()
 
 window.ViewState = ViewState
