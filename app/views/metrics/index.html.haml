@@ -15,8 +15,10 @@
     %td= select_tag :aggregation, []
 %div
   From: #{text_field_tag :from, "-1h", :size => 15, :style => "width:auto;"}
-  To: #{text_field_tag :until, "", :size => 15, :style => "width:auto;"}
+  &nbsp;
+  Until: #{text_field_tag :until, "", :size => 15, :style => "width:auto;"}
 %br
 #renderGraphs.btn Go
+%br
 %br
 #graphs

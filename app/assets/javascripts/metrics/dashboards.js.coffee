@@ -1,23 +1,27 @@
 window.Metrics or= {}
 
-histogram = (fullPath, aggregation, metricName) ->
-  _.map(
-        ["rate", "median", "average", "upper_75", "upper_90", "upper_99"],
-        (type) ->
-          Metrics.GraphiteSeries.
-            fromPath(fullPath.concat([type])).
-            aggregate(aggregation).
-            alias([type, "(", metricName ,")"].join("")).
-            toString()
-      )
+globalParams = (controller) ->
+  from: controller.param("from") || "-1h",
+  until: controller.param("until") || "now",
+  tz: "CET",
+  width: "500",
+  height: "300"
 
 Metrics.Dashboards =
   "Cloak queries": (controller) ->
-    histogram(
-          [controller.selectedCloaks(), "cloak_core.query_coordinator"],
-          controller.param("aggregation")
-          "query_coordinator"
-      )
+    _.map(
+          ["rate", "median", "average", "upper_75", "upper_90", "upper_99"],
+          (type) ->
+            params = globalParams(controller)
+            params.target =
+              Metrics.GraphiteSeries.
+                fromPath([controller.selectedCloaks(), "cloak_core.query_coordinator", type]).
+                aggregate(controller.param("aggregation")).
+                toString()
+            params.title = "query_coordinator: " + type
+            params.hideLegend = true
+            params
+        )
   "JVM": (controller) ->
     _.map(
           [
@@ -26,8 +30,12 @@ Metrics.Dashboards =
             "gc.PS-Scavenge.time"
           ],
           (metric) ->
-            Metrics.GraphiteSeries.
+            params = globalParams(controller)
+            params.target = Metrics.GraphiteSeries.
               fromPath([controller.selectedCloaks(), "cloak_core.jvm", metric, "value"]).
-              alias(metric).
+              aggregate(controller.param("aggregation")).
               toString()
+            params.title = metric
+            params.hideLegend = true
+            params
         )

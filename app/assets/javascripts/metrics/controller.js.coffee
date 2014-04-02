@@ -22,20 +22,11 @@ class Metrics.Controller
     targets = Metrics.Dashboards[@param('dashboard')](this)
     @loadGraphs(targets)
 
-  graphParams: (target) ->
-    $.param(
-          from: @param("from") || "-1h",
-          until:   @param("until") || "now",
-          tz: "CET",
-          width: "500",
-          height: "300",
-          target: target
-        )
-
   loadGraphs: (targets) ->
     $("#graphs").html("")
     _.each(targets, (target) =>
-          $("<img/>", {src: "http://localhost:10000/render?" + @graphParams(target)}).
+          $("<img/>", {src: "http://localhost:10000/render?" + $.param(target)}).
+            css("margin-bottom", "40px").
             appendTo($("#graphs"))
         )
 
