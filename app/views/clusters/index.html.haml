@@ -13,6 +13,7 @@
         %th Status
         %th
         %th
+        %th
 
     %tbody
       - @clusters.each do |cluster|
@@ -26,6 +27,7 @@
           %td= cluster.status_for_display
           %td= link_to 'Show', cluster
           %td= link_to 'Edit', edit_cluster_path(cluster)
+          %td= link_to 'Statistics', metrics_path(:cluster => cluster.name)
 
 %h4 Add a new cluster
 = render 'form'

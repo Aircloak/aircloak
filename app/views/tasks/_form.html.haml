@@ -1,3 +1,6 @@
+-# Includes additional, page-specific javascripts
+= content_for(:javascript_include) {javascript_include_tag "tasks", "data-turbolinks-track" => true}
+
 .form-container{:"ng-app" => "taskEditor", :"ng-controller" => "TaskEditorCtrl"}
   = form_for @task, :html => {:class => "form-horizontal new_query"} do |f|
     - if @task.errors.any?
@@ -26,14 +29,14 @@
           Reader
         .danger-mutate-info{:"ng-class" => "{hidden: mutator_task == 'false'}"}
           Modifier tasks cannot be run in parallel. They therefore have a significant const,
-          and put a limit to the concurrency of our system. 
-          %strong 
+          and put a limit to the concurrency of our system.
+          %strong
             Can this task be made into a reader task?
         .danger-mutate-shared-info{:"ng-class" => "{hidden: !(mutator_task == 'true' && system_task)}"}
           A task that is both run on behalf of aircloak, and is also a mutator will be able
           to modify the shared files about a user. These are the files that all other analysts'
-          tasks depend on. 
-          %strong 
+          tasks depend on.
+          %strong
             Make sure that this task really is written by aircloak, and that
             we are certain that it behaves corectly.
     = control_group(:update_task, @task) do

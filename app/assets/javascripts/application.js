@@ -14,4 +14,4 @@
 //= require jquery_ujs
 //= require twitter/bootstrap
 //= require underscore
-//= require_tree .
+//= require view_state

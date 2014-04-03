@@ -1,0 +1,29 @@
+-# Passes the cluster -> cloaks mapping to a global page variable
+= content_for(:javascript_include) {"<script>window.clusterCloaks=#{@cluster_cloaks}</script>".html_safe}
+
+-# Includes additional, page-specific javascripts
+= content_for(:javascript_include) {javascript_include_tag "metrics/controller", "data-turbolinks-track" => true}
+
+%h1 Select metrics
+%br
+#inputControls{:style=>"display:none;"}
+  %table{:id => "clusterParams"}
+    %thead
+      %tr
+        %td= "Cluster"
+        %td= "Dashboard"
+        %td= "Aggregation"
+    %tr
+      %td= select_tag :cluster, options_from_collection_for_select(@clusters, "name", "name")
+      %td= select_tag :dashboard, []
+      %td= select_tag :aggregation, []
+  %div
+    From: #{text_field_tag :from, "-1h", :size => 15, :style => "width:auto;"}
+    &nbsp;
+    Until: #{text_field_tag :until, "", :size => 15, :style => "width:auto;"}
+  %br
+  #renderGraphs.btn Show
+  #renderGraphsNewTab.btn Show in new window
+%br
+%br
+#graphs

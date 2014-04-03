@@ -1,8 +1,11 @@
-%h1 
-  Verifications for 
+-# Includes additional, page-specific javascripts
+= content_for(:javascript_include) {javascript_include_tag "verifications", "data-turbolinks-track" => true}
+
+%h1
+  Verifications for
   = @file.name
 %p
-  This version of 
+  This version of
   %strong= @file.name
   has sha1:
   %strong= @file.sha1
@@ -27,7 +30,7 @@
 
     %p
       %strong Please note:
-      If a staging machine sends in an event (positive or negative) after the file has been marked as 
+      If a staging machine sends in an event (positive or negative) after the file has been marked as
       %strong verified
       then the verification status might again change according to if the file still should be considered to be verified or not.
     %p For example if the version has two missing events, and one of the two staging machines that had not yet replied sends in a positive event, then the last missing event will again cause the file to be considered not verified.
@@ -43,17 +46,17 @@
             %span.help-block Please type in the name of the file you want to manually verify
         .control-group
           .controls
-            = button_to "Manually mark #{@file.name} as verified", 
-              verify_verification_path(@file), 
-              class: "btn btn-danger disabled", 
-              data: {confirm: "Do you understand the consequences of forcefully marking a non-verified file as verified?"}, 
+            = button_to "Manually mark #{@file.name} as verified",
+              verify_verification_path(@file),
+              class: "btn btn-danger disabled",
+              data: {confirm: "Do you understand the consequences of forcefully marking a non-verified file as verified?"},
               :'ng-disabled' => "danger_form.$invalid",
               :'ng-class' => "{disabled:danger_form.$invalid}"
     %hr
 
 %table.table.table-condensed
   %thead
-    %tr 
+    %tr
       %th Events
       - @machines.each do |machine|
         %th= machine.name

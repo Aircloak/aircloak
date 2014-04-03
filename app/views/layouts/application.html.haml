@@ -7,7 +7,7 @@
     %title= content_for?(:title) ? yield(:title) : "Aircloak"
     = stylesheet_link_tag "application", media: "all", "data-turbolinks-track" => true
     = csrf_meta_tags
-  
+
   %body
     .container
       .content
@@ -19,7 +19,7 @@
                 %ul.nav.navbar-nav
                   -# Related to managing cloak machines and their deployment
                   %li.dropdown
-                    %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"} 
+                    %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"}
                       Cloak management
                       %b.caret
                     %ul.dropdown-menu
@@ -31,7 +31,7 @@
                       %li= link_to "Version tests", version_tests_path if permitted_to? :manage, :version_tests
                   -# Related to managing queries
                   %li.dropdown
-                    %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"} 
+                    %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"}
                       Task management
                       %b.caret
                     %ul.dropdown-menu
@@ -40,7 +40,7 @@
                       %li= link_to "Results", results_path if permitted_to? :read, :results
                   -# Related to managing client binaries for windows machines, etc
                   %li.dropdown
-                    %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"} 
+                    %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"}
                       Windows client
                       %b.caret
                     %ul.dropdown-menu
@@ -48,14 +48,17 @@
                       %li= link_to "Existing commands", commands_path if permitted_to? :read, :commands
                       %li= link_to "Staging machines", staging_machines_path if permitted_to? :manage, :staging_machines
                       %li= link_to "Deployment groups", deployment_groups_path if permitted_to? :manage, :deployment_groups
+                  - # Related to graphite stats
+                  %li= link_to "Monitoring", metrics_path if permitted_to? :manage, :metrics
                   -# Related to user administration
                   %li.dropdown
-                    %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"} 
+                    %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"}
                       User administration
                       %b.caret
                     %ul.dropdown-menu
                       %li= link_to "Users", users_path if permitted_to? :manage, :users
                       %li= link_to "Permissions", permissions_path if permitted_to? :manage, :permissions
+
                 %ul.nav.pull-right
                   - if current_user
                     %li= link_to "Logged in as #{current_user.login}", user_path(current_user)
@@ -74,3 +77,4 @@
           %div
             = yield
     = javascript_include_tag "application", "data-turbolinks-track" => true
+    = yield(:javascript_include)

@@ -124,6 +124,10 @@ class Cluster < ActiveRecord::Base
     write_attribute(:status_description, usable_description)
   end
 
+  def cloak_names
+    self.cloaks.map {|cloak| cloak.name}
+  end
+
 private
   def must_match_tpm_configuration
     unless !build || cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == self.tpm }

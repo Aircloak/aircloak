@@ -15,8 +15,8 @@ authorization do
       :api_queries
     ], to: :anon_read
     has_permission_on [
-      :verifications, 
-      :results, 
+      :verifications,
+      :results,
       :register_version,
       :build_progress,
       :machines,
@@ -47,25 +47,26 @@ authorization do
 
   role :admin do
     includes [:ops, :deploy_manager]
-    has_permission_on [:queries, 
+    has_permission_on [:queries,
                        :tasks,
-                       :results, 
-                       :users, 
+                       :results,
+                       :users,
                        :deployable_entities,
                        :deployable_entity_versions,
                        :builds,
                        :clusters,
                        :cloaks,
-                       :permissions, 
+                       :permissions,
                        :os_tags,
                        :version_tests,
-                       :user_permissions], to: :manage
-    has_permission_on [:authorization_rules, 
+                       :user_permissions,
+                       :metrics], to: :manage
+    has_permission_on [:authorization_rules,
                        :authorization_usages], :to => :read
     has_permission_on [:deployable_entity_versions,
                        :builds], to: :reset
   end
-  
+
   # role :user do
   #   includes :guest
   #   has_permission_on :conference_attendees, :to => :create, :join_by => :and do
@@ -83,14 +84,14 @@ authorization do
   #     if_attribute :user => is {user}
   #   end
   # end
-  
+
   # role :conference_organizer do
   #   has_permission_on :conferences do
   #     to :manage
   #     # if...
   #   end
   #   has_permission_on [:conference_attendees, :talks, :talk_attendees], :to => :manage
-  # end  
+  # end
 end
 
 privileges do
