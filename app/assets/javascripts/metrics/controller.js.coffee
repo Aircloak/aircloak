@@ -26,7 +26,7 @@ class Metrics.Controller
 
   selectedCloaks: () ->
     (clusterCloaks[@param("cluster")] || []).
-      map((cloakName) -> cloakName.replace(".", "_"))
+      map((cloakName) -> cloakName.replace(/\./g, "_"))
 
   runDashboard: () ->
     dashboard = if @param("drilldown")
