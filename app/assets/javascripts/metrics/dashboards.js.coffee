@@ -15,7 +15,7 @@ Metrics.Dashboards =
               drilldown: ["cloak_core.query_coordinator", type].join(".")
             params:
               _.extend(
-                  title: "query_coordinator: " + type,
+                  title: title("query_coordinator: " + type, if type == "rate" then "queries/s" else "ms")
                   clusterMetric(
                         controller,
                         [controller.selectedCloaks(), "cloak_core.query_coordinator", type]
@@ -25,22 +25,31 @@ Metrics.Dashboards =
 
   # Dashboard for JVM metrics
   "JVM": (controller) ->
+    units =
+      daemon_count: "live daemon threads",
+      fd_usage: "%",
+      heap_commited: "MB", heap_max: "MB", heap_usage: "%", non_heap_usage: "%",
+      uptime:"s", thread_count: "threads",
+      "gc.PS-Scavenge.runs": "runs/s",
+      "gc.PS-Scavenge.time": "ms/s",
+      "gc.PS-MarkSweep.runs": "runs/s",
+      "gc.PS-MarkSweep.time": "ms/s"
     _.map(
           [
-            "daemon_count", "fd_usage", "heap_commited", "heap_max", "heap_usage", "non_heap_usage", "uptime",
-            "thread_count", "gc.PS-MarkSweep.runs", "gc.PS-MarkSweep.time", "gc.PS-Scavenge.runs",
-            "gc.PS-Scavenge.time"
+            "thread_count", "daemon_count", "fd_usage",
+            "heap_commited", "heap_max", "heap_usage", "non_heap_usage",
+            "gc.PS-Scavenge.runs", "gc.PS-Scavenge.time", "gc.PS-MarkSweep.runs", "gc.PS-MarkSweep.time",
           ],
           (metric) ->
+            target = aggregated(controller, [controller.selectedCloaks(), "cloak_core.jvm", metric, "value"])
+            target = target.derivative().scaleToSeconds(1) if metric.match(/^gc\./)
+            target = target.scale(1/(1024*1024)) if units[metric] == "MB"
             href: () ->
               drilldown: ["cloak_core.jvm", metric, "value"].join(".")
             params:
-              title: metric,
-              target:
-                aggregated(controller,
-                      [controller.selectedCloaks(), "cloak_core.jvm", metric, "value"]
-                    ).
-                  toString()
+              title: title(metric, units[metric]),
+              target: target.toString(),
+              lineMode: "staircase"
         )
 
   # Dashboard for drilldown into individual cloaks.
@@ -92,3 +101,10 @@ highlightError = (anonymized, relativeError) ->
       absoluteError.stacked().toString(),
       anonymized.toString()
     ]
+
+# Make title, with optional unit
+title = (name, unit) ->
+  if unit
+    [name, " [", unit, "]"].join("")
+  else
+    name

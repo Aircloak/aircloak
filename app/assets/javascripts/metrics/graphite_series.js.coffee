@@ -24,6 +24,8 @@ class Metrics.GraphiteSeries
   multiply: (series) -> @applyFun("multiplySeries", series)
   scale: (factor) -> @applyFun("scale", factor)
   stacked: () -> @applyFun("stacked")
+  derivative: () -> @applyFun("derivative")
+  scaleToSeconds: (seconds) -> @applyFun("scaleToSeconds", seconds)
   applyFun: (args...) -> applyFun.apply(null, [args[0], this].concat(args[1..-1]))
 
   aggregate: (aggregation) ->
