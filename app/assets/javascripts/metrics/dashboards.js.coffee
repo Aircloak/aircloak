@@ -11,14 +11,17 @@ Metrics.Dashboards =
     _.map(
           ["rate", "median", "average", "upper_75", "upper_90", "upper_99"],
           (type) ->
+            graphTitle = title("query_coordinator: " + type, if type == "rate" then "queries/s" else "ms")
             href: () ->
               drilldown: ["cloak_core.query_coordinator", type].join(".")
+              drilldownTitle: graphTitle
             params:
               _.extend(
-                  title: title("query_coordinator: " + type, if type == "rate" then "queries/s" else "ms")
-                  clusterMetric(
+                  title: graphTitle
+                  plotAnonymized(
                         controller,
-                        [controller.selectedCloaks(), "cloak_core.query_coordinator", type]
+                        [controller.selectedCloaks(), "cloak_core.query_coordinator", type],
+                        (expression) -> expression.aggregate(controller.param("aggregation"))
                       )
                 )
         )
@@ -41,15 +44,27 @@ Metrics.Dashboards =
             "gc.PS-Scavenge.runs", "gc.PS-Scavenge.time", "gc.PS-MarkSweep.runs", "gc.PS-MarkSweep.time",
           ],
           (metric) ->
-            target = aggregated(controller, [controller.selectedCloaks(), "cloak_core.jvm", metric, "value"])
-            target = target.derivative().scaleToSeconds(1) if metric.match(/^gc\./)
-            target = target.scale(1/(1024*1024)) if units[metric] == "MB"
+            graphTitle = title(metric, units[metric])
+            transform = new Metrics.GraphiteSeries()
+            transform = transform.scale(1/(1024*1024)) if units[metric] == "MB"
+            transform = transform.derivative().scaleToSeconds(1) if metric.match(/^gc\./)
             href: () ->
-              drilldown: ["cloak_core.jvm", metric, "value"].join(".")
+              transform: transform.toString()
+              drilldown: ["cloak_core.jvm", metric, "value"].join("."),
+              drilldownTitle: graphTitle
             params:
-              title: title(metric, units[metric]),
-              target: target.toString(),
-              lineMode: "staircase"
+              _.extend(
+                    title: graphTitle,
+                    lineMode: "staircase",
+                    plotAnonymized(
+                            controller,
+                            [controller.selectedCloaks(), "cloak_core.jvm", metric, "value"],
+                            (expression) ->
+                              transform.
+                                materialize(expression).
+                                aggregate(controller.param("aggregation"))
+                          )
+                  )
         )
 
   # Dashboard for drilldown into individual cloaks.
@@ -61,11 +76,21 @@ Metrics.Dashboards =
           controller.selectedCloaks(),
           (cloak) ->
             params:
-              title: [cloak, ": ", controller.param("drilldown")].join(""),
-              target:
-                Metrics.GraphiteSeries.
-                  fromPath([cloak, controller.param("drilldown")]).
-                  toString()
+              _.extend(
+                    title: [
+                        cloak, ": ", controller.param("drilldownTitle") || controller.param("drilldown")
+                      ].join(""),
+                    plotAnonymized(
+                            controller,
+                            [cloak, controller.param("drilldown")],
+                            (expression) ->
+                              if controller.param("transform")
+                                (new Metrics.GraphiteSeries(controller.param("transform"))).
+                                  materialize(expression)
+                              else
+                                expression
+                          )
+                  )
         )
 
 
@@ -73,33 +98,32 @@ Metrics.Dashboards =
 ## Private helper functions
 ## -------------------------------------------------------------------
 
-# Describes the graph containing cluster metric according to controller params
-clusterMetric = (controller, path) ->
+# Plots anonymized data, optionally drawing error margins around
+plotAnonymized = (controller, path, transformer) ->
+  if (!transformer)
+    transformer = (path) -> path
   if controller.param("errorMargin")
     highlightError(
-          aggregated(controller, path),
-          aggregated(controller, ["anonymization_error"].concat(path))
+          transformer,
+          fromPath(path)
+          fromPath(["anonymization_error"].concat(path))
         )
   else
-    target: aggregated(controller, path).toString()
+    target: transformer(fromPath(path)).toString()
 
-# Aggregates the metric according to controller params
-aggregated = (controller, path) ->
-  Metrics.GraphiteSeries.
-    fromPath(path).
-    aggregate(controller.param("aggregation"))
+fromPath = (path) -> Metrics.GraphiteSeries.fromPath(path)
 
 # Describes the graph containing anonymized data together with an error area surrounding it.
 # The area is as large as an error (absolute), and centered around the drawn
 # graph.
-highlightError = (anonymized, relativeError) ->
+highlightError = (transformer, anonymized, relativeError) ->
   absoluteError = relativeError.absolute().scale(0.01).multiply(anonymized)
   colorList: "ffffff00,ff000060,blue", # transparent, semi-opaque red, black
   target:
     [
-      anonymized.diff(absoluteError.scale(0.5)).stacked().toString(),
-      absoluteError.stacked().toString(),
-      anonymized.toString()
+      transformer(anonymized.diff(absoluteError.scale(0.5))).stacked().toString(),
+      transformer(absoluteError).stacked().toString(),
+      transformer(anonymized).toString()
     ]
 
 # Make title, with optional unit
