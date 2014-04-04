@@ -24,6 +24,9 @@
     &nbsp;
     =check_box_tag("errorMargin")
     show error margin
+    &nbsp;
+    =check_box_tag("autoRefresh")
+    auto refresh
   %br
   -# submit button makes it possible to triger render on enter
   =submit_tag(value = "Show", :class => "btn", id: "renderGraphs")

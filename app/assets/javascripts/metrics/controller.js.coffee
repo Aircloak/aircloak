@@ -80,12 +80,20 @@ class Metrics.Controller
                 )
         )
 
+  onAutoRefreshClicked: () ->
+    window.clearInterval(@autoRefreshInterval) if @autoRefreshInterval
+    if $("#autoRefresh").prop("checked")
+      @autoRefreshInterval = setInterval(@renderGraphs.bind(this), 30000)
+    else
+      @autoRefreshInterval = null
+
   param: (name) -> @viewState.param(name)
 
   subscribeToEvents: () ->
     $("#renderGraphs").click(this.onFormSubmitted.bind(this))
     $("#renderGraphsNewTab").click(this.renderGraphsNewTab.bind(this))
     $("#errorMargin").click(this.renderGraphs.bind(this))
+    $("#autoRefresh").click(this.onAutoRefreshClicked.bind(this))
     $(window).bind("popstate", @renderGraphs.bind(this))
 
   showHideControls: () ->
