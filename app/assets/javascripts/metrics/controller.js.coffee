@@ -53,6 +53,10 @@ class Metrics.Controller
     @loadGraphs(@runDashboard())
     @showHideControls()
 
+  onFormSubmitted: (event) ->
+    event.preventDefault()
+    @renderGraphs()
+
   renderGraphsNewTab: () ->
     window.open(window.location.pathname + "?" + $.param(@viewState.allParams()), "_blank")
 
@@ -79,7 +83,7 @@ class Metrics.Controller
   param: (name) -> @viewState.param(name)
 
   subscribeToEvents: () ->
-    $("#renderGraphs").click(this.renderGraphs.bind(this))
+    $("#renderGraphs").click(this.onFormSubmitted.bind(this))
     $("#renderGraphsNewTab").click(this.renderGraphsNewTab.bind(this))
     $("#errorMargin").click(this.renderGraphs.bind(this))
     $(window).bind("popstate", @renderGraphs.bind(this))
