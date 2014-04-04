@@ -21,6 +21,9 @@
     From: #{text_field_tag :from, "-1h", :size => 15, :style => "width:auto;"}
     &nbsp;
     Until: #{text_field_tag :until, "", :size => 15, :style => "width:auto;"}
+    &nbsp;
+    =check_box_tag("errorMargin")
+    show error margin
   %br
   #renderGraphs.btn Show
   #renderGraphsNewTab.btn Show in new window

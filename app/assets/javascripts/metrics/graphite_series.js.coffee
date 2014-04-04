@@ -16,8 +16,14 @@ class Metrics.GraphiteSeries
     value = (from || "").toString()
     @toString = () -> value
 
-  alias: (name) -> applyFun("alias", this, name)
-  percentileOfSeries: (percentile) -> applyFun("percentileOfSeries", this, percentile)
+  alias: (name) -> @applyFun("alias", name)
+  percentileOfSeries: (percentile) -> @applyFun("percentileOfSeries", percentile)
+  absolute: () -> @applyFun("absolute")
+  sum: (series) -> @applyFun("sumSeries", series)
+  diff: (series) -> @applyFun("diffSeries", series)
+  multiply: (series) -> @applyFun("multiplySeries", series)
+  scale: (factor) -> @applyFun("scale", factor)
+  stacked: () -> @applyFun("stacked")
   applyFun: (args...) -> applyFun.apply(null, [args[0], this].concat(args[1..-1]))
 
   aggregate: (aggregation) ->

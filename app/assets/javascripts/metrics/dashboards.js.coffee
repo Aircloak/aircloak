@@ -4,6 +4,7 @@ window.Metrics or= {}
 # Global definition of predefined dashboards. If you need to include your own
 # dashboard, just add id in the object below, and it should automatically appear
 # in the UI.
+
 Metrics.Dashboards =
   # Dashboard for cloak queries
   "Cloak queries": (controller) ->
@@ -13,12 +14,13 @@ Metrics.Dashboards =
             href: () ->
               drilldown: ["cloak_core.query_coordinator", type].join(".")
             params:
-              title: "query_coordinator: " + type,
-              target:
-                Metrics.GraphiteSeries.
-                  fromPath([controller.selectedCloaks(), "cloak_core.query_coordinator", type]).
-                  aggregate(controller.param("aggregation")).
-                  toString()
+              _.extend(
+                  title: "query_coordinator: " + type,
+                  clusterMetric(
+                        controller,
+                        [controller.selectedCloaks(), "cloak_core.query_coordinator", type]
+                      )
+                )
         )
 
   # Dashboard for JVM metrics
@@ -35,9 +37,9 @@ Metrics.Dashboards =
             params:
               title: metric,
               target:
-                Metrics.GraphiteSeries.
-                  fromPath([controller.selectedCloaks(), "cloak_core.jvm", metric, "value"]).
-                  aggregate(controller.param("aggregation")).
+                aggregated(controller,
+                      [controller.selectedCloaks(), "cloak_core.jvm", metric, "value"]
+                    ).
                   toString()
         )
 
@@ -56,3 +58,37 @@ Metrics.Dashboards =
                   fromPath([cloak, controller.param("drilldown")]).
                   toString()
         )
+
+
+## -------------------------------------------------------------------
+## Private helper functions
+## -------------------------------------------------------------------
+
+# Describes the graph containing cluster metric according to controller params
+clusterMetric = (controller, path) ->
+  if controller.param("errorMargin")
+    highlightError(
+          aggregated(controller, path),
+          aggregated(controller, ["anonymization_error"].concat(path))
+        )
+  else
+    target: aggregated(controller, path).toString()
+
+# Aggregates the metric according to controller params
+aggregated = (controller, path) ->
+  Metrics.GraphiteSeries.
+    fromPath(path).
+    aggregate(controller.param("aggregation"))
+
+# Describes the graph containing anonymized data together with an error area surrounding it.
+# The area is as large as an error (absolute), and centered around the drawn
+# graph.
+highlightError = (anonymized, relativeError) ->
+  absoluteError = relativeError.absolute().scale(0.01).multiply(anonymized)
+  colorList: "ffffff00,ff000060,blue", # transparent, semi-opaque red, black
+  target:
+    [
+      anonymized.diff(absoluteError.scale(0.5)).stacked().toString(),
+      absoluteError.stacked().toString(),
+      anonymized.toString()
+    ]

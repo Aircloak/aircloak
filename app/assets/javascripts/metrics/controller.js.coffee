@@ -20,7 +20,7 @@ class Metrics.Controller
   constructor: () ->
     initDashboard()
     initAggregations();
-    @viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until"])
+    @viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until", "errorMargin"])
     @showHideControls()
     @subscribeToEvents()
 
@@ -78,6 +78,7 @@ class Metrics.Controller
   subscribeToEvents: () ->
     $("#renderGraphs").click(this.renderGraphs.bind(this))
     $("#renderGraphsNewTab").click(this.renderGraphsNewTab.bind(this))
+    $("#errorMargin").click(this.renderGraphs.bind(this))
     $(window).bind("popstate", @renderGraphs.bind(this))
 
   showHideControls: () ->
