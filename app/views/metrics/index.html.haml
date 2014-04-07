@@ -6,7 +6,7 @@
 
 %h1 Select metrics
 %br
-#inputControls{:style=>"display:none;"}
+%form{:id => "inputControls", :style=>"display:none;"}
   %table{:id => "clusterParams"}
     %thead
       %tr
@@ -21,8 +21,15 @@
     From: #{text_field_tag :from, "-1h", :size => 15, :style => "width:auto;"}
     &nbsp;
     Until: #{text_field_tag :until, "", :size => 15, :style => "width:auto;"}
+    &nbsp;
+    =check_box_tag("errorMargin")
+    show error margin
+    &nbsp;
+    =check_box_tag("autoRefresh")
+    auto refresh
   %br
-  #renderGraphs.btn Show
+  -# submit button makes it possible to triger render on enter
+  =submit_tag(value = "Show", :class => "btn", id: "renderGraphs")
   #renderGraphsNewTab.btn Show in new window
 %br
 %br

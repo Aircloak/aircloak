@@ -20,7 +20,7 @@ class Metrics.Controller
   constructor: () ->
     initDashboard()
     initAggregations();
-    @viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until"])
+    @viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until", "errorMargin"])
     @showHideControls()
     @subscribeToEvents()
 
@@ -53,31 +53,47 @@ class Metrics.Controller
     @loadGraphs(@runDashboard())
     @showHideControls()
 
+  onFormSubmitted: (event) ->
+    event.preventDefault()
+    @renderGraphs()
+
   renderGraphsNewTab: () ->
     window.open(window.location.pathname + "?" + $.param(@viewState.allParams()), "_blank")
 
-  makeImage: (target) ->
-    $("<img/>", {src: "/metrics/render_graph?" + $.param(@graphParams(target.params))}).
-      css("margin-bottom", "40px")
-
-  makeElement: (target) ->
+  makeElement: (target, image) ->
     if (target.href)
-      $("<a/>").
+      $("<a/>").css("margin-bottom", "40px").css("margin-right", "40px").
         attr("href", "?" + $.param(_.extend(_.clone(@viewState.allParams()), target.href()))).
         attr("target", "_blank").
-        append(@makeImage(target))
+        append(image)
     else
-      @makeImage(target)
+      image.css("margin-bottom", "40px").css("margin-right", "40px")
 
   loadGraphs: (targets) ->
-    $("#graphs").html("")
-    _.each(targets, (target) => $("#graphs").append(@makeElement(target)))
+    preloadImages(
+          _.map(targets, (target) => "/metrics/render_graph?" + $.param(@graphParams(target.params))),
+          (images) =>
+            $("#graphs").html("")
+            _.each(
+                  _.zip(targets, images),
+                  (imageData) => $("#graphs").append(@makeElement.apply(this, imageData))
+                )
+        )
+
+  onAutoRefreshClicked: () ->
+    window.clearInterval(@autoRefreshInterval) if @autoRefreshInterval
+    if $("#autoRefresh").prop("checked")
+      @autoRefreshInterval = setInterval(@renderGraphs.bind(this), 30000)
+    else
+      @autoRefreshInterval = null
 
   param: (name) -> @viewState.param(name)
 
   subscribeToEvents: () ->
-    $("#renderGraphs").click(this.renderGraphs.bind(this))
+    $("#renderGraphs").click(this.onFormSubmitted.bind(this))
     $("#renderGraphsNewTab").click(this.renderGraphsNewTab.bind(this))
+    $("#errorMargin").click(this.renderGraphs.bind(this))
+    $("#autoRefresh").click(this.onAutoRefreshClicked.bind(this))
     $(window).bind("popstate", @renderGraphs.bind(this))
 
   showHideControls: () ->
@@ -110,6 +126,13 @@ class Metrics.Controller
           upper90: "upper90",
           upper99: "upper99"
         )
+
+  preloadImages = (urls, callback) ->
+    count = urls.length
+    onImageLoaded = () ->
+      count -= 1
+      callback(images) if count == 0
+    images = _.map(urls, (url) -> $("<img/>", {src: url}).bind("load", onImageLoaded))
 
 
 # Creates anonymous controller instance. Since controller binds to various

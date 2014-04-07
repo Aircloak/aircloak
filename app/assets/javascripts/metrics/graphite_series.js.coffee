@@ -13,11 +13,19 @@ class Metrics.GraphiteSeries
   ## -------------------------------------------------------------------
 
   constructor: (from) ->
-    value = (from || "").toString()
+    value = (from || "##path_placeholder##").toString()
     @toString = () -> value
 
-  alias: (name) -> applyFun("alias", this, name)
-  percentileOfSeries: (percentile) -> applyFun("percentileOfSeries", this, percentile)
+  alias: (name) -> @applyFun("alias", name)
+  percentileOfSeries: (percentile) -> @applyFun("percentileOfSeries", percentile)
+  absolute: () -> @applyFun("absolute")
+  sum: (series) -> @applyFun("sumSeries", series)
+  diff: (series) -> @applyFun("diffSeries", series)
+  multiply: (series) -> @applyFun("multiplySeries", series)
+  scale: (factor) -> @applyFun("scale", factor)
+  stacked: () -> @applyFun("stacked")
+  derivative: () -> @applyFun("derivative")
+  scaleToSeconds: (seconds) -> @applyFun("scaleToSeconds", seconds)
   applyFun: (args...) -> applyFun.apply(null, [args[0], this].concat(args[1..-1]))
 
   aggregate: (aggregation) ->
@@ -26,6 +34,9 @@ class Metrics.GraphiteSeries
       aggregator(this)
     else
       this.applyFun(aggregation)
+
+  materialize: (value) ->
+    new Metrics.GraphiteSeries(@toString().replace("##path_placeholder##", sanitize(value)))
 
 
   ## -------------------------------------------------------------------
@@ -57,11 +68,10 @@ class Metrics.GraphiteSeries
   applyFun = (name, args...) ->
     new GraphiteSeries([name, "(", sanitizeArgs(args).join(","), ")"].join(""))
 
-  sanitizeArgs = (args) ->
-    _.map(args,
-          (arg) ->
-            if arg instanceof GraphiteSeries
-              arg.toString()
-            else
-              JSON.stringify(arg)
-        )
+  sanitizeArgs = (args) -> _.map(args, sanitize)
+
+  sanitize = (value) ->
+    if value instanceof GraphiteSeries
+      value.toString()
+    else
+      JSON.stringify(value)

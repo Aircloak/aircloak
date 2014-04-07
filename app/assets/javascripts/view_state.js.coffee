@@ -47,7 +47,7 @@ class ViewState
     _.each(
           @controlIds,
           (paramName) =>
-            $('#' + paramName).val(urlParams[paramName]) if urlParams[paramName]
+            setControlValue($('#' + paramName), urlParams[paramName]) if urlParams[paramName]
         )
 
   urlParams: () ->
@@ -66,7 +66,7 @@ class ViewState
           @controlIds,
           (memo, controlId) ->
             control = $("#" + controlId)
-            memo[controlId] = control.val() if (control[0])
+            memo[controlId] = controlValue(control) if (control[0])
             memo
           {}
         )
@@ -74,6 +74,18 @@ class ViewState
   recalcParams: () -> @params = @allParams()
 
   store: () -> history.replaceState(null, "", "?" + $.param(@params))
+
+  setControlValue = (control, value) ->
+    if control.prop('type') == 'checkbox'
+      control.prop('checked', value == "true")
+    else
+      control.val(value)
+
+  controlValue = (control) ->
+    if control.prop('type') == 'checkbox'
+      control.prop('checked')
+    else
+      control.val()
 
 # Makes class globally accessible
 window.ViewState = ViewState
