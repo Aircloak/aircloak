@@ -6,6 +6,7 @@ require './lib/protobuf_sender'
 describe BuildProgressController do
   before(:each) do
     BuildManager.stub(:send_build_request).and_return(true)
+    ProtobufSender.stub(:send_delete)
     Cluster.destroy_all
     Build.destroy_all
     ProtobufSender.stub(:send_delete)
@@ -82,7 +83,7 @@ describe BuildProgressController do
 
       post '/register_version_progress', vbrp.encode.buf
       response.status.should be(200)
-      
+
       # For non TPM env
       vbrp = VersionBuildResponseProto.new(
         commit_id: "commit_id",
@@ -135,7 +136,7 @@ describe BuildProgressController do
 
       post '/register_version_progress', vbrp.encode.buf
       response.status.should be(200)
-      
+
       # Second request that succeeds
       vbrp = VersionBuildResponseProto.new(
         commit_id: "commit_id",

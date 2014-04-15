@@ -41,7 +41,7 @@ class QueriesController < ApplicationController
 
   # DELETE /queries/1
   def destroy
-    @query.destroy
+    @query.efficient_delete
     redirect_to queries_path
   end
 

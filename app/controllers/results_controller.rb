@@ -3,7 +3,7 @@ require './lib/result_handler'
 
 class ResultsController < ApplicationController
   filter_access_to :create, require: :anon_write
-  protect_from_forgery :except => :create 
+  protect_from_forgery :except => :create
   around_action :validate_auth_token, only: :create
 
   def index
@@ -24,14 +24,6 @@ class ResultsController < ApplicationController
       ResultHandler.store_results Query.find(task_id), r
       unless r.exceptions.blank?
         r.exceptions.each {|expt| ExceptionResult.create_from_proto task_id, r.analyst_id, r.index, expt}
-      end
-      # remove old
-      result_num = Result.where(query_id: task_id).size
-      if result_num > Rails.configuration.results.max_per_query
-        num_to_drop = result_num - Rails.configuration.results.max_per_query
-        Result.where(query_id: task_id).order("results.result_id ASC").limit(num_to_drop).each do |re|
-          re.destroy
-        end
       end
     end
     render text: "Got it buddy, thanks", layout: false

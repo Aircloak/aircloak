@@ -25,10 +25,12 @@ describe "ResultsController" do
       props = [
         PropertyProto.new(label: "installed_apps",
                           string: "Chrome",
-                          joiners_leavers: JoinersLeaversProto.new(joiners: 2, leavers:0)),
+                          joiners_leavers: JoinersLeaversProto.new(joiners: 2, leavers:0),
+                          accumulated_count: 2),
         PropertyProto.new(label: "installed_apps",
                           string: "Safari",
-                          joiners_leavers: JoinersLeaversProto.new(joiners: 1, leavers:0))
+                          joiners_leavers: JoinersLeaversProto.new(joiners: 1, leavers:0),
+                          accumulated_count: 30)
       ]
       rp = ResultProto.new(analyst_id: "analyst", task_id: q.id, index: "index", properties: props,
           result_id: 12)
@@ -38,10 +40,11 @@ describe "ResultsController" do
       Result.count.should eq(1)
       Bucket.count.should eq(2)
       Bucket.all.map(&:str_answer).sort.should eq(["Chrome", "Safari"])
-      Bucket.all.map(&:range_min).should eq([nil, nil])
-      Bucket.all.map(&:range_max).should eq([nil, nil])
+      Bucket.all.map(&:range_min).should eq([0, 0])
+      Bucket.all.map(&:range_max).should eq([0, 0])
       Bucket.all.map(&:joiners).sort.should eq([1,2])
       Bucket.all.map(&:leavers).should eq([0,0])
+      Bucket.all.map(&:accumulated_count).should eq([2,30])
 
       response.status.should be(200)
     end
