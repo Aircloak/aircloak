@@ -21,6 +21,15 @@ class Query < ActiveRecord::Base
   after_save :upload_stored_query
   after_destroy :remove_query_from_cloak
 
+  # This does an efficient SQL delete, rather than
+  # loading all the data, running all the validations
+  # and callbacks, etc
+  def efficient_delete
+    Bucket.connection.execute "DELETE FROM buckets WHERE result_id IN (SELECT id FROM results WHERE query_id = #{self.id})"
+    Result.connection.execute "DELETE FROM results WHERE query_id = #{self.id}"
+    destroy
+  end
+
   def analyst
     self.task.system_task ? "aircloak" : "some_analyst"
   end
