@@ -19,10 +19,11 @@ class Metrics.Controller
 
   constructor: () ->
     initDashboard()
-    initAggregations();
+    initAggregations()
     @viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until", "errorMargin"])
     @showHideControls()
     @subscribeToEvents()
+    @renderGraphs() if (@viewState.urlParam("cluster"))
 
   selectedCloaks: () ->
     (clusterCloaks[@param("cluster")] || []).

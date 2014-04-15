@@ -27,6 +27,8 @@
     &nbsp;
     =check_box_tag("autoRefresh")
     auto refresh
+    %br
+    %span{:style => "color:#A0A0A0;"} Time examples: 1s, 1min, 1h, 1d, 1w, 1mon, 1y, 12:00_20140131
   %br
   -# submit button makes it possible to triger render on enter
   =submit_tag(value = "Show", :class => "btn", id: "renderGraphs")

@@ -22,8 +22,11 @@ class ViewState
   allParams: () ->
     _.extend(@urlParams(), @controlParams())
 
-   # Returns the value for some param
+  # Returns the value for some param
   param: (name) -> @params[name]
+
+  # Returns the value for some url param
+  urlParam: (name) -> @urlParams()[name]
 
   # Recalculates params and stores them.
   recalcAndStore: () ->
