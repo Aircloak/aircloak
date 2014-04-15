@@ -3,7 +3,7 @@ require './lib/result_handler'
 
 class ResultsController < ApplicationController
   filter_access_to :create, require: :anon_write
-  protect_from_forgery :except => :create 
+  protect_from_forgery :except => :create
   around_action :validate_auth_token, only: :create
 
   def index

@@ -83,7 +83,7 @@ describe BuildProgressController do
 
       post '/register_version_progress', vbrp.encode.buf
       response.status.should be(200)
-      
+
       # For non TPM env
       vbrp = VersionBuildResponseProto.new(
         commit_id: "commit_id",
@@ -136,7 +136,7 @@ describe BuildProgressController do
 
       post '/register_version_progress', vbrp.encode.buf
       response.status.should be(200)
-      
+
       # Second request that succeeds
       vbrp = VersionBuildResponseProto.new(
         commit_id: "commit_id",

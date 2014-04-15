@@ -73,7 +73,7 @@ class Query < ActiveRecord::Base
     cquery
   end
 
-  class NotABatchQueryException < Exception 
+  class NotABatchQueryException < Exception
   end
 
   def execute_batch_query
