@@ -7,7 +7,7 @@ class Cluster < ActiveRecord::Base
   belongs_to :build
   belongs_to :os_tag
 
-  has_many :queries, dependent: :destroy
+  has_many :tasks, dependent: :destroy
 
   # A cluster that is used for an automated test of a commit will have a
   # version_test instance. For all other clusters this will be nil

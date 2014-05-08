@@ -2,7 +2,7 @@ require './lib/proto/air/aggregate_results.pb'
 
 class Bucket < ActiveRecord::Base
   belongs_to :result
-  has_one :query, through: :result
+  has_one :task, through: :result
 
   # string to display the count
   def self.display_count count
@@ -26,7 +26,7 @@ class Bucket < ActiveRecord::Base
     accumulated_count
   end
 
-  def to_property_proto
+  def to_bucket_proto
     range = BucketPB::RangeProto.new(min: range_min, max: range_max) if range_min
     BucketPB.new(label: label, string: str_answer, range: range, accumulated_count: accumulated_count)
   end
