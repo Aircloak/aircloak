@@ -6,30 +6,23 @@ class ResultHandler
     # create a new result
     new_result = Result.create(query: task, result_id: proto.result_id)
     # copy all properties as buckets
-    create_buckets_for_properties proto.properties, new_result.id if proto.properties
+    create_buckets proto.buckets, new_result.id if proto.buckets
   end
 
   # inserts all the buckets in a single SQL statement
-  def self.create_buckets_for_properties properties, result_id
+  def self.create_buckets buckets, result_id
     inserts = []
-    properties.each do |property|
-      label = Bucket.sanitize property.label
-      str_answer = Bucket.sanitize property.string
-      range_min = property.range ? Bucket.sanitize(property.range.min) : 0
-      range_max = property.range ? Bucket.sanitize(property.range.max) : 0
-      if property.joiners_leavers
-        joiners = Bucket.sanitize property.joiners_leavers.joiners
-        leavers = Bucket.sanitize property.joiners_leavers.leavers
-      else
-        joiners = 0
-        leavers = 0
-      end
-      accumulated_count = Bucket.sanitize property.accumulated_count
+    buckets.each do |bucket|
+      label = Bucket.sanitize bucket.label
+      str_answer = Bucket.sanitize bucket.string
+      range_min = bucket.range ? Bucket.sanitize(bucket.range.min) : 0
+      range_max = bucket.range ? Bucket.sanitize(bucket.range.max) : 0
+      accumulated_count = Bucket.sanitize bucket.accumulated_count
       inserts.push "(#{result_id}, #{label}, #{str_answer}," +
-          " #{range_min}, #{range_max}, #{joiners}, #{leavers}, #{accumulated_count})"
+          " #{range_min}, #{range_max}, #{accumulated_count})"
     end
     sql = "INSERT INTO buckets (result_id, label, str_answer, range_min, range_max, " +
-        "joiners, leavers, accumulated_count) VALUES #{inserts.join(", ")}"
+        "accumulated_count) VALUES #{inserts.join(", ")}"
     Bucket.connection.execute sql
   end
 end
