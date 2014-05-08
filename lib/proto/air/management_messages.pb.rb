@@ -50,9 +50,11 @@ class MachinePB
   required :good, :bool, 4
 end
 
+
 class MachinesPB
   repeated :machines, MachinePB, 1
 end
+
 
 class ClusterPB
 
@@ -60,17 +62,21 @@ class ClusterPB
     required :machine_id, :uint32, 1
     required :state, ClusterPB::MachineState, 2
   end
+
   required :timestamp, :uint64, 1
   required :id, :uint32, 2
   repeated :members, ClusterPB::MemberPB, 3
   optional :name, :string, 4
 end
 
+
 class ClustersPB
   repeated :clusters, ClusterPB, 1
 end
+
 
 class ClusterStatusPB
   required :status, ClusterStatusPB::Status, 1
   optional :description, :string, 2
 end
+
