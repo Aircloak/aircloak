@@ -9,6 +9,22 @@ class TasksController < ApplicationController
   def edit
   end
 
+  # GET /tasks/new
+  def new
+    @task = Task.new()
+  end
+
+  # POST /tasks
+  def create
+    @task = Task.new(task_params)
+    task.sandbox_type = "lua"
+    if @task.save
+      redirect_to tasks_path, notice: 'Task was successfully created.'
+    else
+      render action: 'new'
+    end
+  end
+
   # PATCH/PUT /tasks/:id
   def update
     @task.sandbox_type = "lua"

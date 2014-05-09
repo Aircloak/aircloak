@@ -84,10 +84,7 @@ Web::Application.routes.draw do
 
   resources :clusters, :except => :destroy
 
-  resources :tasks, only: [:index, :edit, :update, :show, :destroy] do
-    collection do
-      post "update_task_binary"
-    end
+  resources :tasks do
     post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
   end
   resources :results
