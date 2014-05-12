@@ -17,7 +17,7 @@ class TasksController < ApplicationController
   # POST /tasks
   def create
     @task = Task.new(task_params)
-    task.sandbox_type = "lua"
+    @task.sandbox_type = "lua"
     if @task.save
       redirect_to tasks_path, notice: 'Task was successfully created.'
     else
