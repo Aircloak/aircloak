@@ -2,11 +2,11 @@ class UpdateTasks < ActiveRecord::Migration
   def change
     reversible do |dir|
       dir.up do
-        Bucket.destroy_all
-        Result.destroy_all
-        Query.destroy_all if Object.const_defined?('Query')
-        Task.destroy_all
-        PendingResult.destroy_all
+        Bucket.delete_all
+        Result.delete_all
+        Query.delete_all if Object.const_defined?('Query')
+        Task.delete_all
+        PendingResult.delete_all
 
         remove_column :tasks, :ready
         remove_column :tasks, :system_task
@@ -29,11 +29,11 @@ class UpdateTasks < ActiveRecord::Migration
         add_belongs_to :pending_results, :task, index: true
       end
       dir.down do
-        Bucket.destroy_all
-        Result.destroy_all
-        Query.destroy_all if Object.const_defined?('Query')
-        Task.destroy_all
-        PendingResult.destroy_all
+        Bucket.delete_all
+        Result.delete_all
+        Query.delete_all if Object.const_defined?('Query')
+        Task.delete_all
+        PendingResult.delete_all
 
         add_column :tasks, :ready, :boolean, :default => false
         add_column :tasks, :system_task, :boolean, :default => false
@@ -50,10 +50,10 @@ class UpdateTasks < ActiveRecord::Migration
         remove_column :results, :task_id
 
         add_belongs_to :exception_results, :query, index: true
-        remove_column :exception_results_id, :task
+        remove_column :exception_results_id, :task_id
 
         add_belongs_to :pending_results, :query, index: true
-        remove_column :pending_results_id, :task
+        remove_column :pending_results_id, :task_id
       end
     end
   end
