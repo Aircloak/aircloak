@@ -47,6 +47,6 @@ private
   end
 
   def task_params
-    params.require(:task).permit(:name, :cluster, :update_task, :stored_task, :payload_identifier, :code)
+    params.require(:task).permit(:name, :cluster_id, :update_task, :stored_task, :payload_identifier, :code)
   end
 end

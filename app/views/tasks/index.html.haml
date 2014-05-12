@@ -11,12 +11,12 @@
         %th
         %th
     %tbody
-    - Task.each do |task|
+    - Task.all.each do |task|
       %tr
         %td= task.name
         %td= task.cluster.name
         %td= task.update_task ? "UPDATE" : "QUERY"
-        %td= task.payload_identifier ? "yes (#{task.payload_identifier})" : "no"
+        %td= task.stored_task ? "yes (#{task.payload_identifier})" : "no"
         %td= link_to 'Edit', edit_task_path(task), class: "btn btn-mini"
         %td= link_to 'Destroy', task, :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
 

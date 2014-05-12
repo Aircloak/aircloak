@@ -1,3 +1,5 @@
+require './lib/proto/cloak/task.pb.rb'
+
 class Task < ActiveRecord::Base
   has_many :pending_results, dependent: :destroy, counter_cache: true
 
@@ -7,7 +9,7 @@ class Task < ActiveRecord::Base
 
   belongs_to :cluster
 
-  validates_presence_of :name, :sandbox_type, :code
+  validates_presence_of :name, :sandbox_type, :code, :cluster
   validates_uniqueness_of :name
   validate :stored_task_must_have_payload_identifier
 
@@ -34,7 +36,7 @@ class Task < ActiveRecord::Base
   def task_upload_pb
     metainfo = TaskMetaInfoPB.new(
       name: self.name,
-      task_type: self.update_task ? TaskMetaInfoPB::UPDATE : TaskMetaInfoPB::QUERY,
+      task_type: self.update_task ? TaskMetaInfoPB::TaskType::UPDATE : TaskMetaInfoPB::TaskType::QUERY,
       task_id: self.id,
       index: self.index,
       # TODO(#110): Change to real id of analyst when we start introducing that
@@ -43,7 +45,7 @@ class Task < ActiveRecord::Base
     metainfo.payload_identifier = self.payload_identifier if self.stored_task
     code = TaskCodePB.new(
       sandbox_type: self.sandbox_type,
-      code: self.sandbox_code
+      code: self.code
     )
     TaskUploadPB.new(
       task_code: code,
