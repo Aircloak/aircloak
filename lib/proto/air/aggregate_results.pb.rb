@@ -2,11 +2,7 @@
 require "beefcake"
 
 
-class JoinersLeaversProto
-  include Beefcake::Message
-end
-
-class PropertyProto
+class BucketPB
   include Beefcake::Message
 
   class RangeProto
@@ -14,50 +10,49 @@ class PropertyProto
   end
 end
 
-class ExceptionProto
+class ExceptionPB
   include Beefcake::Message
 end
 
-class ResultProto
+class ResultPB
   include Beefcake::Message
 end
 
-class ResultsProto
+class ResultsPB
   include Beefcake::Message
 end
 
-class JoinersLeaversProto
-  required :joiners, :uint32, 1
-  required :leavers, :uint32, 2
-end
-
-class PropertyProto
+class BucketPB
 
   class RangeProto
     required :min, :sint64, 1
     required :max, :sint64, 2
   end
+
   required :label, :string, 1
   optional :string, :string, 2
-  optional :range, PropertyProto::RangeProto, 3
-  optional :joiners_leavers, JoinersLeaversProto, 4
-  optional :accumulated_count, :sint64, 5
+  optional :range, BucketPB::RangeProto, 3
+  optional :accumulated_count, :sint64, 4
 end
 
-class ExceptionProto
+
+class ExceptionPB
   required :stackEntry, :string, 1
-  optional :joiners_leavers, JoinersLeaversProto, 2
+  optional :accumulated_count, :sint64, 2
 end
 
-class ResultProto
+
+class ResultPB
   required :analyst_id, :string, 1
-  required :task_id, :fixed64, 2
+  required :task_id, :uint64, 2
   required :index, :string, 3
   required :result_id, :uint64, 4
-  repeated :properties, PropertyProto, 5
-  repeated :exceptions, ExceptionProto, 6
+  repeated :buckets, BucketPB, 5
+  repeated :exceptions, ExceptionPB, 6
 end
 
-class ResultsProto
+
+class ResultsPB
   repeated :result_ids, :uint64, 1
 end
+

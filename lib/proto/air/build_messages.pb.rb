@@ -35,10 +35,12 @@ class BuildRequestProto
     required :commit_id, :string, 2
     required :environment, :string, 3
   end
+
   required :build_name, :string, 1
   required :build_id, :uint32, 2
   repeated :versions, BuildRequestProto::VersionProto, 3
 end
+
 
 class BuildResponseProto
   required :build_id, :uint32, 1
@@ -46,9 +48,11 @@ class BuildResponseProto
   optional :error_message, :string, 3
 end
 
+
 class VersionBuildResponseProto
   required :commit_id, :string, 1
   required :status, VersionBuildResponseProto::Status, 2
   required :environment, :string, 3
   required :log_output, :string, 4
 end
+

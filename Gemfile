@@ -83,3 +83,5 @@ gem 'declarative_authorization'
 
 gem 'angularjs-rails'
 gem 'underscore-rails'
+
+gem 'codemirror-rails'
