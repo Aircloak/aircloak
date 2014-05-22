@@ -65,10 +65,10 @@ Web::Application.routes.draw do
       get 'setup_info', on: :collection
     end
 
-    resources :api_queries, path: "queries", only: [:create, :show, :destroy] do
+    resources :api_tasks, path: "tasks", only: [:show] do
       get "latest_result_id", on: :member, action: 'get_latest_result_id'
       get "results/:result", on: :member, action: 'get_result'
-      post "execute_as_batch_query", on: :member, action: 'execute_as_batch_query'
+      post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
     end
   end
 
@@ -84,15 +84,8 @@ Web::Application.routes.draw do
 
   resources :clusters, :except => :destroy
 
-  resources :tasks, only: [:index, :edit, :update, :show, :destroy] do
-    collection do
-      post "update_task_binary"
-    end
-  end
-  resources :queries do
-    member do
-      post "execute_as_batch_query"
-    end
+  resources :tasks do
+    post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
   end
   resources :results
 

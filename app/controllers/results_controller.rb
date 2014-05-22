@@ -7,21 +7,21 @@ class ResultsController < ApplicationController
   around_action :validate_auth_token, only: :create
 
   def index
-    @queries = Query.where(update_query: false)
+    @tasks = Task.where(stored_task: false)
   end
 
   def show
-    @query = Query.find(params[:id])
-    @results = Result.where(query: @query).order(result_id: :asc)
-    buckets = Bucket.where(query: @query).order(label: :asc, str_answer: :asc, range_min: :asc)
+    @task = Task.find(params[:id])
+    @results = Result.where(task: @task).order(result_id: :asc)
+    buckets = Bucket.where(task: @task).order(label: :asc, str_answer: :asc, range_min: :asc)
     @buckets = ResultsController.process_buckets buckets
   end
 
   def create
-    r = ResultProto.decode(request.raw_post)
+    r = ResultPB.decode(request.raw_post)
     task_id = r.task_id
-    if task_id == @pending_result.query_id then
-      ResultHandler.store_results Query.find(task_id), r
+    if task_id == @pending_result.task_id then
+      ResultHandler.store_results Task.find(task_id), r
       unless r.exceptions.blank?
         r.exceptions.each {|expt| ExceptionResult.create_from_proto task_id, r.analyst_id, r.index, expt}
       end

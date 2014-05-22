@@ -9,10 +9,9 @@ authorization do
     has_permission_on [
       :commands,
       :client_binaries,
-      :queries,
       :machines,
       :cluster_lists,
-      :api_queries
+      :api_tasks
     ], to: :anon_read
     has_permission_on [
       :verifications,
@@ -22,7 +21,7 @@ authorization do
       :machines,
       :tasks,
       :version_tests,
-      :api_queries,
+      :api_tasks,
       :api_clusters
     ], to: :anon_write
   end
@@ -47,8 +46,7 @@ authorization do
 
   role :admin do
     includes [:ops, :deploy_manager]
-    has_permission_on [:queries,
-                       :tasks,
+    has_permission_on [:tasks,
                        :results,
                        :users,
                        :deployable_entities,

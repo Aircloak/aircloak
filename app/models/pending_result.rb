@@ -1,7 +1,7 @@
 require './lib/token_generator'
 
 class PendingResult < ActiveRecord::Base
-  belongs_to :query
+  belongs_to :task
   before_validation :generate_auth_token
 
   def generate_auth_token

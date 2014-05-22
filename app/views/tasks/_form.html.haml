@@ -11,45 +11,38 @@
             %li= msg
 
     .control-group
+      %label.control-label Task name
       .controls
-        = @task.main_package
-    = control_group(:system_task, @task) do
+        = f.text_field :name
+    .control-group
+      %label.control-label Belongs to cluster
       .controls
-        %label.checkbox
-          = f.check_box :system_task, :"ng-model" => "system_task"
-          Mark if this task is a system task, run on behalf of Aircloak
-    .control-group#task_type_box{:"ng-class" => "{alert: mutator_task == 'true'}"}
+        = f.select :cluster_id, Cluster.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
+    .control-group
       %label.control-label Task type
       .controls
         %label.radio
-          = f.radio_button :mutator, "true", :"ng-model" => "mutator_task"
-          Mutator
+          = f.radio_button :update_task, "true"
+          Update
         %label.radio
-          = f.radio_button :mutator, "false", :"ng-model" => "mutator_task"
-          Reader
-        .danger-mutate-info{:"ng-class" => "{hidden: mutator_task == 'false'}"}
-          Modifier tasks cannot be run in parallel. They therefore have a significant const,
-          and put a limit to the concurrency of our system.
-          %strong
-            Can this task be made into a reader task?
-        .danger-mutate-shared-info{:"ng-class" => "{hidden: !(mutator_task == 'true' && system_task)}"}
-          A task that is both run on behalf of aircloak, and is also a mutator will be able
-          to modify the shared files about a user. These are the files that all other analysts'
-          tasks depend on.
-          %strong
-            Make sure that this task really is written by aircloak, and that
-            we are certain that it behaves corectly.
-    = control_group(:update_task, @task) do
+          = f.radio_button :update_task, "false"
+          Query
+    .control-group
+      %label.control-label Execution type
       .controls
-        %label.checkbox
-          = f.check_box :update_task, :"ng-model" => "identifier_enabled"
-          Mark if this is a stored task to be run on updates from clients
-    = control_group(:payload_identifier, @task) do
-      = f.label :payload_identifier, :class => "control-label"
+        %label.radio
+          = f.radio_button :stored_task, "true", :"ng-model" => "stored_task"
+          Stream (stored in the cloak to be run on updates from clients)
+        %label.radio
+          = f.radio_button :stored_task, "false", :"ng-model" => "stored_task"
+          Batch (run on request)
+      .controls{:"ng-class" => "{hidden: stored_task != 'true'}"}
+        %label.text_field
+          = f.text_field :payload_identifier
+    .control-group
+      %label.control-label Code
       .controls
-        = f.text_field :payload_identifier, :"ng-disabled" => "!identifier_enabled"
-        -# = f.text_field :payload_identifier, :disabled => !@task.update_task
-        %p The payload identifier used by the client when submitting updates for this task
+        = f.text_area :code
 
     .control-group
       .controls

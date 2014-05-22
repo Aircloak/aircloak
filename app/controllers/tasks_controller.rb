@@ -1,26 +1,33 @@
-require './lib/proto/air/query.pb'
-require './lib/proto/air/query_upload.pb'
-
 class TasksController < ApplicationController
-  filter_access_to :update_task_binary, require: :anon_write
   before_action :set_task, only: [:edit, :update, :destroy]
-  protect_from_forgery :except => :update_task_binary 
 
   # GET /tasks
   def index
-    tasks = Task.all
-
-    @ready_tasks = tasks.select { |task| task.ready }
-    @not_ready_tasks = tasks.select { |task| not task.ready }
   end
 
   # GET /tasks/:id/edit
   def edit
   end
 
+  # GET /tasks/new
+  def new
+    @task = Task.new()
+  end
+
+  # POST /tasks
+  def create
+    @task = Task.new(task_params)
+    @task.sandbox_type = "lua"
+    if @task.save
+      redirect_to tasks_path, notice: 'Task was successfully created.'
+    else
+      render action: 'new'
+    end
+  end
+
   # PATCH/PUT /tasks/:id
   def update
-    @task.ready = true
+    @task.sandbox_type = "lua"
     if @task.update(task_params)
       redirect_to tasks_path, notice: 'Task was successfully updated.'
     else
@@ -34,39 +41,12 @@ class TasksController < ApplicationController
     redirect_to tasks_path
   end
 
-  # POST /tasks/update_task_binary
-  def update_task_binary
-    data = request.raw_post
-    data_to_save = data.dup
-    qd = QueryData.decode(data)
-    task = Task.where(main_package: qd.main_package).first
-    task = Task.new(main_package: qd.main_package) unless task
-    task.packaged_data = data_to_save
-    task.mutator = qd.mutator unless qd.mutator.nil?
-    task.system_task = qd.system_task unless qd.system_task.nil?
-    task.ready = true unless qd.mutator.nil? or qd.system_task.nil?
-    if qd.payload_identifier
-      task.payload_identifier = qd.payload_identifier
-      task.update_task = true
-    else
-      task.update_task = false
-    end
-    if task.save
-      render text: "Thanks"
-      # after updating task binary we need to ensure that the clusters get the new code...
-      # this update is done in the save hook of the corresponding query model, so we use that
-      task.queries.each {|query| query.save}
-    else
-      render text: "I cannot do that Dave!", status: 400
-    end
-  end
-
 private
   def set_task
     @task = Task.find(params[:id])
   end
 
   def task_params
-    params.require(:task).permit(:update_task, :payload_identifier, :system_task, :mutator)
+    params.require(:task).permit(:name, :cluster_id, :update_task, :stored_task, :payload_identifier, :code)
   end
 end

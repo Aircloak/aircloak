@@ -4,36 +4,31 @@ require './lib/proto/air/aggregate_results.pb'
 describe "ResultsController" do
   describe "POST /results" do
     it "should persist new properties upon receiving them from the cloak" do
-      Query.destroy_all
       Task.destroy_all
       t = Task.new
+      t.stub(:upload_stored_task)
       t.save validate: false
-      q = Query.new(task: t)
-      q.save validate: false
 
       # We need a valid pending result in order to get through
       # the security checks of the controller
       pr = double("pending result")
       PendingResult.should_receive(:where).and_return([pr])
-      pr.should_receive(:query_id).and_return(q.id)
+      pr.should_receive(:task_id).and_return(t.id)
       pr.stub(:destroy)
 
       # We remove existing properties, so we know
       # what to expect after the test.
       Result.destroy_all
       Result.count.should eq(0)
-      props = [
-        PropertyProto.new(label: "installed_apps",
-                          string: "Chrome",
-                          joiners_leavers: JoinersLeaversProto.new(joiners: 2, leavers:0),
-                          accumulated_count: 2),
-        PropertyProto.new(label: "installed_apps",
-                          string: "Safari",
-                          joiners_leavers: JoinersLeaversProto.new(joiners: 1, leavers:0),
-                          accumulated_count: 30)
+      buckets = [
+        BucketPB.new(label: "installed_apps",
+                     string: "Chrome",
+                     accumulated_count: 2),
+        BucketPB.new(label: "installed_apps",
+                     string: "Safari",
+                     accumulated_count: 30)
       ]
-      rp = ResultProto.new(analyst_id: "analyst", task_id: q.id, index: "index", properties: props,
-          result_id: 12)
+      rp = ResultPB.new(analyst_id: "analyst", task_id: t.id, index: "index", buckets: buckets, result_id: 12)
 
       post "/results", rp.encode.buf
 
@@ -42,8 +37,6 @@ describe "ResultsController" do
       Bucket.all.map(&:str_answer).sort.should eq(["Chrome", "Safari"])
       Bucket.all.map(&:range_min).should eq([0, 0])
       Bucket.all.map(&:range_max).should eq([0, 0])
-      Bucket.all.map(&:joiners).sort.should eq([1,2])
-      Bucket.all.map(&:leavers).should eq([0,0])
       Bucket.all.map(&:accumulated_count).should eq([2,30])
 
       response.status.should be(200)

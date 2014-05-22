@@ -2,7 +2,7 @@ require './lib/proto/air/aggregate_results.pb'
 
 class Bucket < ActiveRecord::Base
   belongs_to :result
-  has_one :query, through: :result
+  has_one :task, through: :result
 
   # string to display the count
   def self.display_count count
@@ -23,14 +23,12 @@ class Bucket < ActiveRecord::Base
   end
 
   def display_result
-    "#{accumulated_count} (#{Bucket.display_count joiners}/#{Bucket.display_count leavers})"
+    accumulated_count
   end
 
-  def to_property_proto
-    range = PropertyProto::RangeProto.new(min: range_min, max: range_max) if range_min
-    joiners_leavers = JoinersLeaversProto.new(joiners: joiners, leavers: leavers) if joiners && leavers
-    PropertyProto.new(label: label, string: str_answer, range: range, joiners_leavers: joiners_leavers,
-        accumulated_count: accumulated_count)
+  def to_bucket_proto
+    range = BucketPB::RangeProto.new(min: range_min, max: range_max) if range_min
+    BucketPB.new(label: label, string: str_answer, range: range, accumulated_count: accumulated_count)
   end
 
 private
