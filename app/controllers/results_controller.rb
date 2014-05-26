@@ -13,7 +13,7 @@ class ResultsController < ApplicationController
   def show
     @task = Task.find(params[:id])
     @results = Result.where(task: @task).order(result_id: :asc)
-    buckets = Bucket.where(task: @task).order(label: :asc, str_answer: :asc, range_min: :asc)
+    buckets = Bucket.where(task: @task).order(label: :asc, str_answer: :asc)
     @buckets = ResultsController.process_buckets buckets
   end
 

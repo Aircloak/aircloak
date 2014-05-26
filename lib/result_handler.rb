@@ -15,14 +15,10 @@ class ResultHandler
     buckets.each do |bucket|
       label = Bucket.sanitize bucket.label
       str_answer = Bucket.sanitize bucket.string
-      range_min = bucket.range ? Bucket.sanitize(bucket.range.min) : 0
-      range_max = bucket.range ? Bucket.sanitize(bucket.range.max) : 0
       accumulated_count = Bucket.sanitize bucket.accumulated_count
-      inserts.push "(#{result_id}, #{label}, #{str_answer}," +
-          " #{range_min}, #{range_max}, #{accumulated_count})"
+      inserts.push "(#{result_id}, #{label}, #{str_answer}, #{accumulated_count})"
     end
-    sql = "INSERT INTO buckets (result_id, label, str_answer, range_min, range_max, " +
-        "accumulated_count) VALUES #{inserts.join(", ")}"
+    sql = "INSERT INTO buckets (result_id, label, str_answer, accumulated_count) VALUES #{inserts.join(", ")}"
     Bucket.connection.execute sql
   end
 end
