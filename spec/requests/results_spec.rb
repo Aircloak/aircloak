@@ -35,8 +35,6 @@ describe "ResultsController" do
       Result.count.should eq(1)
       Bucket.count.should eq(2)
       Bucket.all.map(&:str_answer).sort.should eq(["Chrome", "Safari"])
-      Bucket.all.map(&:range_min).should eq([0, 0])
-      Bucket.all.map(&:range_max).should eq([0, 0])
       Bucket.all.map(&:accumulated_count).should eq([2,30])
 
       response.status.should be(200)
