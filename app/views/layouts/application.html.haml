@@ -27,7 +27,7 @@
                       %li= link_to "Os Tags", os_tags_path if permitted_to? :read, :os_tags
                       %li= link_to "Clusters", clusters_path if permitted_to? :manage, :clusters
                       %li= link_to "Cloaks", cloaks_path if permitted_to? :manage, :cloaks
-                      %li= link_to "Deployable entitis", deployable_entities_path if permitted_to? :read, :deployable_entities
+                      %li= link_to "Deployable entities", deployable_entities_path if permitted_to? :read, :deployable_entities
                       %li= link_to "Version tests", version_tests_path if permitted_to? :manage, :version_tests
                   -# Related to managing queries
                   %li.dropdown
