@@ -23,3 +23,5 @@
         %td= button_to "Reset build status", reset_deployable_entity_deployable_entity_version_path(@deployable_entity, commit), :class => "btn btn-warning btn-mini"
       - elsif commit.part_of_build?
         %td= button_to "Force reset build status", reset_deployable_entity_deployable_entity_version_path(@deployable_entity, commit), :class => "btn btn-danger btn-mini"
+      - else
+        %td

@@ -18,7 +18,7 @@ class DeployableEntityVersion < ActiveRecord::Base
   after_create :schedule_test
   has_many :build_versions
   has_many :builds, through: :build_versions
-  
+
   # version_test is only set for commits that have a test
   # run on them.
   has_one :version_test
@@ -78,7 +78,7 @@ private
     # deployable entity versions, it ends up in an infinite loop of trying
     # to schedule tests.
     if self.deployable_entity.deployable_entity_versions.count > 1
-      VersionTest.new_from_deployable_entity_version self 
+      VersionTest.new_from_deployable_entity_version self
     end
   end
 end
