@@ -31,7 +31,7 @@ class TaskMetaInfoPB
   optional :payload_identifier, :string, 3
   required :task_id, :uint64, 4
   required :index, :string, 5
-  required :analyst_id, :string, 6
+  required :analyst_id, :uint64, 6
 end
 
 
