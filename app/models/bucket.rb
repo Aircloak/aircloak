@@ -19,7 +19,7 @@ class Bucket < ActiveRecord::Base
   end
 
   def display_name
-    "#{label}#{display_name_str_answer}#{display_name_range}"
+    "#{label}#{display_name_str_answer}"
   end
 
   def display_result
@@ -27,16 +27,11 @@ class Bucket < ActiveRecord::Base
   end
 
   def to_bucket_proto
-    range = BucketPB::RangeProto.new(min: range_min, max: range_max) if range_min
-    BucketPB.new(label: label, string: str_answer, range: range, accumulated_count: accumulated_count)
+    BucketPB.new(label: label, string: str_answer, accumulated_count: accumulated_count)
   end
 
 private
   def display_name_str_answer
     str_answer ? ": #{str_answer}" : ""
-  end
-
-  def display_name_range
-    range_min ? " [#{range_min},#{range_max}]" : ""
   end
 end

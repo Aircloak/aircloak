@@ -126,7 +126,6 @@ describe "ApiTasksController" do
         rp.buckets.size.should eq 1
         rp.buckets.first.label.should eq "label"
         rp.buckets.first.string.should eq nil
-        rp.buckets.first.range.should eq nil
         rp.buckets.first.accumulated_count.should eq 1
       end
     end
