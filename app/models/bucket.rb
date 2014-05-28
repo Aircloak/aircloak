@@ -2,7 +2,7 @@ require './lib/proto/air/aggregate_results.pb'
 
 class Bucket < ActiveRecord::Base
   belongs_to :result
-  has_one :task, through: :result
+  has_one :task, through: :results
 
   # string to display the count
   def self.display_count count

@@ -1,12 +1,12 @@
-- if permitted_to? :read, :queries
-  %h1 Queries
+- if permitted_to? :read, :tasks
+  %h1 Tasks
 
-  - unless @queries.count == 0
+  - unless @tasks.count == 0
     %p Select a property you want to see
 
-    - @queries.each do |query|
-      %h2= link_to query.name, result_path(query.query_id)
+    - @tasks.each do |task|
+      %h2= link_to task.name, result_path(task.id)
 
   - else
-    %p There are no queries to show results from.
-    = link_to "Manage queries", queries_path, class: "btn" if permitted_to? :manage, :queries
+    %p There are no tasks to show results from.
+    = link_to "Manage tasks", tasks_path, class: "btn" if permitted_to? :manage, :queries
