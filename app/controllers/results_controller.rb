@@ -50,12 +50,11 @@ private
 
   # create for each bucket a corresponding entry for each result (if available)
   def self.process_buckets buckets
-    bucket_table = {}
-    buckets.each do |bucket|
+    buckets.inject({}) do |bucket_table, bucket|
       name = bucket.display_name
       bucket_table[name] ||= {}
       bucket_table[name][bucket.result.result_id] = bucket.display_result
+      bucket_table
     end
-    return bucket_table
   end
 end

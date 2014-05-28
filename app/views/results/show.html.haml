@@ -1,14 +1,14 @@
 %h1= @task.name
 
-%table{:class => "results"}
+%table{:class => "table table-striped"}
   %tr
     %th Bucket
     - @results.each do |result|
       %th= result.result_id
   - if @buckets
-    - @buckets.each do |bucket|
+    - @buckets.each_pair do |name, bucket_results|
       %tr
-        %td= bucket[0]
+        %td= name
         - @results.each do |result|
-          - r = bucket[1][result.result_id]
+          - r = bucket_results[result.result_id]
           %td= r ? r : "--"
