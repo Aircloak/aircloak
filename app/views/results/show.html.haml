@@ -1,14 +1,17 @@
 %h1= @task.name
 
-%table{:class => "table table-striped"}
-  %tr
-    %th Bucket
-    - @results.each do |result|
-      %th= result.result_id
-  - if @buckets
-    - @buckets.each_pair do |name, bucket_results|
-      %tr
-        %td= name
-        - @results.each do |result|
-          - r = bucket_results[result.result_id]
-          %td= r ? r : "--"
+- if @results.count > 0
+  %table.table.table-striped
+    %tr
+      %th Bucket
+      - @results.each do |result|
+        %th= result.result_id
+    - if @buckets
+      - @buckets.each_pair do |name, bucket_results|
+        %tr
+          %td= name
+          - @results.each do |result|
+            - r = bucket_results[result.result_id]
+            %td= r ? r : "--"
+- else
+  %p No results stored for this task.
