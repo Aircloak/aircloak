@@ -43,7 +43,7 @@ end
 
 
 class ResultPB
-  required :analyst_id, :string, 1
+  required :analyst_id, :uint64, 1
   required :task_id, :uint64, 2
   required :index, :string, 3
   required :result_id, :uint64, 4

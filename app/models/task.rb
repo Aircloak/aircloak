@@ -26,7 +26,7 @@ class Task < ActiveRecord::Base
   end
 
   def analyst
-    "aircloak"
+    1 # TODO(#110): Change to real id of analyst when we start introducing that
   end
 
   def index
