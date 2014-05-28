@@ -1,12 +1,21 @@
-- if permitted_to? :read, :queries
-  %h1 Queries
+- if permitted_to? :read, :tasks
+  %h1 Tasks
 
-  - unless @queries.count == 0
-    %p Select a property you want to see
+  - unless @tasks.count == 0
+    %p Select a task you want to see
 
-    - @queries.each do |query|
-      %h2= link_to query.name, result_path(query.query_id)
+    %table.table.table-striped
+      %tr
+        %th Task
+        %th Number of stored results
+        %th
+        %th
+      - @tasks.each do |task|
+        %tr
+          %td= link_to task.name, result_path(task.id)
+          %td= link_to task.results.count, result_path(task.id)
+          %td= link_to 'Execute batch', execute_as_batch_task_task_path(task), method: "post", class: "btn btn-mini" unless task.stored_task
+          %td= link_to 'Edit', edit_task_path(task), class: "btn btn-mini"
 
   - else
-    %p There are no queries to show results from.
-    = link_to "Manage queries", queries_path, class: "btn" if permitted_to? :manage, :queries
+    %p There are no tasks to show results for.

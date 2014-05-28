@@ -1,13 +1,17 @@
-%h1= @query.name
+%h1= @task.name
 
-%table
-  %tr
-    %th Bucket
-    - @query.results.each do |result|
-      %th= result.result_id
-  - @buckets.each do |bucket|
-      %tr
-        %td= bucket[:name]
-        - @results.each do |result|
-          - r = bucket[:results][result.result_id]
-          %td= r ? r : "--"
+- if @results.count > 0
+  %table.table.table-striped
+    %tr
+      %th Bucket
+      - @results.each do |result|
+        %th= result.result_id
+    - if @buckets
+      - @buckets.each_pair do |name, bucket_results|
+        %tr
+          %td= name
+          - @results.each do |result|
+            - r = bucket_results[result.result_id]
+            %td= r ? r : "--"
+- else
+  %p No results stored for this task.

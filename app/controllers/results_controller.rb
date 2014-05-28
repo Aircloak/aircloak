@@ -7,13 +7,14 @@ class ResultsController < ApplicationController
   around_action :validate_auth_token, only: :create
 
   def index
-    @tasks = Task.where(stored_task: false)
+    @tasks = Task.all
   end
 
   def show
     @task = Task.find(params[:id])
     @results = Result.where(task: @task).order(result_id: :asc)
-    buckets = Bucket.where(task: @task).order(label: :asc, str_answer: :asc)
+    buckets = Bucket.joins(:result).where(:results => {task_id: @task.id}).
+        order(label: :asc, str_answer: :asc)
     @buckets = ResultsController.process_buckets buckets
   end
 
@@ -49,11 +50,11 @@ private
 
   # create for each bucket a corresponding entry for each result (if available)
   def self.process_buckets buckets
-    @buckets = {}
-    buckets.each do |bucket|
+    buckets.inject({}) do |bucket_table, bucket|
       name = bucket.display_name
-      @buckets[name] ||= {name: name, bucket: {}}
-      @buckets[name][:results][bucket.result.result_id] = bucket.display_result
+      bucket_table[name] ||= {}
+      bucket_table[name][bucket.result.result_id] = bucket.display_result
+      bucket_table
     end
   end
 end
