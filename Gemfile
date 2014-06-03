@@ -4,7 +4,7 @@ ruby '2.0.0'
 
 gem 'rails', '~> 4.0.3' #, github: 'rails/rails'
 
-gem "haml", :github => "haml/haml", :branch => "stable"
+gem "haml", github: "haml/haml", branch: "stable"
 # gem 'd3-rails'
 
 gem "javaclass"
