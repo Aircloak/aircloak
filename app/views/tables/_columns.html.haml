@@ -1,0 +1,56 @@
+%hr
+
+%h2 Columns
+
+%p The cloak stores data in database tables.
+%p The tables store data in rows where each row has a pre-defined set of columns.
+%p Please specify the columns and their types below.
+
+%hr
+
+%table.table.table-condensed
+  %thead
+    %tr
+      %th Column name
+      %th Type
+      %th Constraints
+      %th
+      %th
+  %tbody#columns
+
+%div#newColumns
+
+  %h3 Add a column
+
+  %form.form-horizontal#dummy-form
+    .control-group
+      %label.control-label Column name
+      .controls
+        %input#column_name{type: :text}
+
+    .control-group
+      %label.control-label Data type
+      .controls
+        %select#type
+          %option{value: "integer"} integer
+          %option{value: "float"} float
+          %option{value: "serial"} serial
+          %option{value: "varchar"} varchar
+          %option{value: "char"} char
+
+        %span#size-span.hidden
+          (
+          %input#size.input-mini{type: :text}
+          )
+
+    .control-group
+      %label.control-label Constraints
+      .controls
+        %label.checkbox
+          %input#unique{type: :checkbox} unique
+        %label.checkbox
+          %input#not_null{type: :checkbox} not null
+
+    .control-group
+      .controls
+        %button.addRow.btn Add row

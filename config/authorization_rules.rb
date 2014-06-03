@@ -58,7 +58,9 @@ authorization do
                        :os_tags,
                        :version_tests,
                        :user_permissions,
-                       :metrics], to: :manage
+                       :metrics,
+                       :tables], to: :manage
+    has_permission_on [:tables], to: :retry_migration
     has_permission_on [:authorization_rules,
                        :authorization_usages], :to => :read
     has_permission_on [:deployable_entity_versions,

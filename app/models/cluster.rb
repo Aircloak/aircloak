@@ -4,6 +4,7 @@ require './lib/log_server_configurer'
 class Cluster < ActiveRecord::Base
   has_many :cluster_cloaks
   has_many :cloaks, through: :cluster_cloaks
+  has_many :analyst_tables
   belongs_to :build
   belongs_to :os_tag
 
@@ -24,6 +25,10 @@ class Cluster < ActiveRecord::Base
 
   def tpm
     @has_tpm ||= build.tpm
+  end
+
+  def random_cloak_ip
+    cloaks.sample.ip
   end
 
   def num_broken
