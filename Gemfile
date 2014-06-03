@@ -13,6 +13,12 @@ gem 'rubyzip', '< 1.0.0'
 
 gem 'beefcake'
 
+# Used in migrations views
+gem "rails-backbone", :github => "codebrew/backbone-rails", tag: "v1.1.0"
+gem 'handlebars_assets'
+
+gem 'rest-client'
+
 # We use this gem to sign the
 # update commands for the client apps
 gem "sshkeyauth"
