@@ -15,3 +15,6 @@
 //= require twitter/bootstrap
 //= require underscore
 //= require view_state
+//= require handlebars.runtime
+//= require_tree ./templates
+//

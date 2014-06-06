@@ -4,7 +4,7 @@ ruby '2.0.0'
 
 gem 'rails', '~> 4.0.3' #, github: 'rails/rails'
 
-gem "haml", :github => "haml/haml", :branch => "stable"
+gem "haml", github: "haml/haml", branch: "stable"
 # gem 'd3-rails'
 
 gem "javaclass"
@@ -12,6 +12,12 @@ gem "javaclass"
 gem 'rubyzip', '< 1.0.0'
 
 gem 'beefcake'
+
+# Used in migrations views
+gem "rails-backbone", :github => "codebrew/backbone-rails", tag: "v1.1.0"
+gem 'handlebars_assets'
+
+gem 'rest-client'
 
 # We use this gem to sign the
 # update commands for the client apps
