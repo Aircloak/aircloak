@@ -1,15 +1,13 @@
-= content_for(:javascript_include) {javascript_include_tag "migrations/main"}
+= content_for(:javascript_include) {javascript_include_tag "migrations/main", "data-turbolinks-track" => true}
 = content_for :javascript do
-  :javascript
-    $(document).ready(function() {
-      var table_data = JSON.parse('#{@table_data}');
-      var migration = JSON.parse('#{@previous_migration}');
-      window.columns.setup({
-        is_creation: true,
-        raw_data: table_data,
+  :coffeescript
+    $(document).ready ->
+      table_data = JSON.parse '#{@table_data}'
+      migration = JSON.parse '#{@previous_migration}'
+      window.columns.setup
+        is_creation: true
+        raw_data: table_data
         raw_previous_migration: migration
-      });
-    });
 
 %h1 Create a table
 
