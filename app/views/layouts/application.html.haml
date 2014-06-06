@@ -38,6 +38,7 @@
                       %li= link_to "Tasks", tasks_path if permitted_to? :read, :tasks
                       %li= link_to "Queries", queries_path if permitted_to? :read, :queries
                       %li= link_to "Results", results_path if permitted_to? :read, :results
+                      %li= link_to "Tables", tables_path if permitted_to? :manage, :tables
                   -# Related to managing client binaries for windows machines, etc
                   %li.dropdown
                     %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"}
