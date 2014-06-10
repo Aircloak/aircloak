@@ -24,7 +24,7 @@ class ResultsController < ApplicationController
     if task_id == @pending_result.task_id then
       ResultHandler.store_results Task.find(task_id), r
       unless r.exceptions.blank?
-        r.exceptions.each {|expt| ExceptionResult.create_from_proto task_id, r.analyst_id, r.index, expt}
+        r.exceptions.each {|expt| ExceptionResult.create_from_proto task_id, r.analyst_id, expt}
       end
     end
     render text: "Got it buddy, thanks", layout: false
