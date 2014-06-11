@@ -28,7 +28,9 @@ describe "ResultsController" do
                      string: "Safari",
                      accumulated_count: 30)
       ]
-      rp = ResultPB.new(analyst_id: 1, task_id: t.id, index: "index", buckets: buckets, result_id: 12)
+      rp = ResultPB.new(
+        analyst_id: 1, task_id: "task-#{t.id}", index: "index", buckets: buckets, result_id: 12
+      )
 
       post "/results", rp.encode.buf
 

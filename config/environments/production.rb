@@ -62,7 +62,14 @@ Web::Application.configure do
 
   # Precompile additional assets.
   # application.js, application.css, and all non-JS/CSS in app/assets folder are already added.
-  config.assets.precompile += ['metrics/controller.js', 'builds.js', 'client_files.js', 'tasks.js', 'verifications.js']
+  config.assets.precompile += [
+    'metrics/controller.js',
+    'builds.js',
+    'client_files.js',
+    'tasks.js',
+    'verifications.js',
+    'migrations/main.js'
+  ]
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.

@@ -29,7 +29,7 @@ class TaskMetaInfoPB
   required :name, :string, 1
   required :task_type, TaskMetaInfoPB::TaskType, 2
   optional :payload_identifier, :string, 3
-  required :task_id, :uint64, 4
+  required :task_id, :string, 4
   required :index, :string, 5
   required :analyst_id, :uint64, 6
 end

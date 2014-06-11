@@ -1,6 +1,8 @@
 require './lib/proto/air/aggregate_results.pb'
 require './lib/result_handler'
 
+class ResultsControllerError < Exception; end
+
 class ResultsController < ApplicationController
   filter_access_to :create, require: :anon_write
   protect_from_forgery :except => :create
@@ -20,11 +22,11 @@ class ResultsController < ApplicationController
 
   def create
     r = ResultPB.decode(request.raw_post)
-    task_id = r.task_id
+    task_id = decode_task_id(r.task_id)
     if task_id == @pending_result.task_id then
       ResultHandler.store_results Task.find(task_id), r
       unless r.exceptions.blank?
-        r.exceptions.each {|expt| ExceptionResult.create_from_proto task_id, r.analyst_id, r.index, expt}
+        r.exceptions.each {|expt| ExceptionResult.create_from_proto task_id, r.analyst_id, expt}
       end
     end
     render text: "Got it buddy, thanks", layout: false
@@ -36,6 +38,14 @@ class ResultsController < ApplicationController
   end
 
 private
+  def decode_task_id(task_id)
+    parts = task_id.split(/^task\-/)
+    if parts.length != 2 || parts[1].empty?
+      raise ResultsControllerError.new(message: "invalid task_id #{task_id}")
+    end
+    parts[1].to_i
+  end
+
   def validate_auth_token
     auth_token = request.headers["QueryAuthToken"]
     @pending_result = PendingResult.where(auth_token: auth_token).first

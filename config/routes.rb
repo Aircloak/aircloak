@@ -88,6 +88,9 @@ Web::Application.routes.draw do
     post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
   end
   resources :results
+  resources :tables do
+    post "retry_migration", on: :member, action: "retry_migration"
+  end
 
   resources :os_tags
 

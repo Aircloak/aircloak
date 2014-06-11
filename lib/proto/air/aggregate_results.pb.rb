@@ -44,11 +44,10 @@ end
 
 class ResultPB
   required :analyst_id, :uint64, 1
-  required :task_id, :uint64, 2
-  required :index, :string, 3
-  required :result_id, :uint64, 4
-  repeated :buckets, BucketPB, 5
-  repeated :exceptions, ExceptionPB, 6
+  required :task_id, :string, 2
+  required :result_id, :uint64, 3
+  repeated :buckets, BucketPB, 4
+  repeated :exceptions, ExceptionPB, 5
 end
 
 
