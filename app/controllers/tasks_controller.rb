@@ -18,6 +18,8 @@ class TasksController < ApplicationController
   def create
     @task = Task.new(task_params)
     @task.sandbox_type = "lua"
+    @task.update_task = false
+    @task.stored_task = false
     if @task.save
       redirect_to tasks_path, notice: 'Task was successfully created.'
     else
@@ -47,6 +49,6 @@ private
   end
 
   def task_params
-    params.require(:task).permit(:name, :cluster_id, :update_task, :stored_task, :payload_identifier, :code)
+    params.require(:task).permit(:name, :cluster_id, :payload_identifier, :code)
   end
 end

@@ -19,27 +19,6 @@
       .controls
         = f.select :cluster_id, Cluster.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
     .control-group
-      %label.control-label Task type
-      .controls
-        %label.radio
-          = f.radio_button :update_task, "true"
-          Update
-        %label.radio
-          = f.radio_button :update_task, "false"
-          Query
-    .control-group
-      %label.control-label Execution type
-      .controls
-        %label.radio
-          = f.radio_button :stored_task, "true", :"ng-model" => "stored_task"
-          Stream (stored in the cloak to be run on updates from clients)
-        %label.radio
-          = f.radio_button :stored_task, "false", :"ng-model" => "stored_task"
-          Batch (run on request)
-      .controls{:"ng-class" => "{hidden: stored_task != 'true'}"}
-        %label.text_field
-          = f.text_field :payload_identifier
-    .control-group
       %label.control-label Code
       .controls
         = f.text_area :code
