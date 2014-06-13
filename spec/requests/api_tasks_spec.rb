@@ -27,7 +27,7 @@ describe "ApiTasksController" do
       cloak.cluster_cloak.save.should eq true
     end
 
-    let (:task) { Task.create(name: "task", cluster: cluster, code: "foo", update_task: false,
+    let (:task) { Task.create(name: "task", cluster: cluster, prefetch: "bar", code: "foo", update_task: false,
         stored_task: false, sandbox_type: "sandbox") }
 
     def result args = {}

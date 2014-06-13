@@ -19,6 +19,10 @@
       .controls
         = f.select :cluster_id, Cluster.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
     .control-group
+      %label.control-label Prefetch
+      .controls
+        = f.text_area :prefetch
+    .control-group
       %label.control-label Code
       .controls
         = f.text_area :code

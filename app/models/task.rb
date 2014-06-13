@@ -9,7 +9,7 @@ class Task < ActiveRecord::Base
 
   belongs_to :cluster
 
-  validates_presence_of :name, :sandbox_type, :code, :cluster
+  validates_presence_of :name, :sandbox_type, :prefetch, :code, :cluster
   validates_uniqueness_of :name
   validate :stored_task_must_have_payload_identifier
 

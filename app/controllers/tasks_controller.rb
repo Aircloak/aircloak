@@ -49,6 +49,6 @@ private
   end
 
   def task_params
-    params.require(:task).permit(:name, :cluster_id, :payload_identifier, :code)
+    params.require(:task).permit(:name, :cluster_id, :payload_identifier, :prefetch, :code)
   end
 end
