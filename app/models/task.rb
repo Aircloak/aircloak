@@ -16,6 +16,20 @@ class Task < ActiveRecord::Base
   after_save :upload_stored_task
   after_destroy :remove_task_from_cloak
 
+  class InvalidTaskId < Exception; end
+
+  def self.decode_id(encoded_task_id)
+    parts = encoded_task_id.split(/^task\-/)
+    if parts.length != 2 || parts[1].empty?
+      raise InvalidTaskId.new(message: "#{task_id}")
+    end
+    parts[1].to_i
+  end
+
+  def self.encode_id(task_id)
+    "task-#{task_id}"
+  end
+
   # This does an efficient SQL delete, rather than
   # loading all the data, running all the validations
   # and callbacks, etc
