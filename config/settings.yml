@@ -46,3 +46,4 @@ test: &testing
     host: localhost
   log_server:
     host: localhost
+  private_key_password: test_password

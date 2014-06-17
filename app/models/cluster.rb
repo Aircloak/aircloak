@@ -5,14 +5,13 @@ class Cluster < ActiveRecord::Base
   has_many :cluster_cloaks
   has_many :cloaks, through: :cluster_cloaks
   has_many :analyst_tables
-  belongs_to :build
-  belongs_to :os_tag
-
   has_many :tasks, dependent: :destroy
-
   # A cluster that is used for an automated test of a commit will have a
   # version_test instance. For all other clusters this will be nil
   has_one :version_test
+  has_and_belongs_to_many :analysts
+  belongs_to :build
+  belongs_to :os_tag
 
   validates :name, presence: true, uniqueness: true
   validates_presence_of :build, :os_tag

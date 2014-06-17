@@ -10,7 +10,7 @@ describe PendingResult do
   end
 
   it "should have a unique auth token" do
-    TokenGenerator.should_receive(:token_of_length).and_return("a", "a", "aa", "a", "aa", "aaa")
+    TokenGenerator.should_receive(:generate_random_string_of_at_least_length).and_return("a", "a", "aa", "a", "aa", "aaa")
     PendingResult.create.auth_token.should eq "a"
     PendingResult.create.auth_token.should eq "aa"
     PendingResult.create.auth_token.should eq "aaa"

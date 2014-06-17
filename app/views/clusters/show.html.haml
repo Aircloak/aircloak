@@ -19,6 +19,12 @@
       %li
         = cloak.name
         %em= "(#{cloak.good ? :ok : :broken})"
+%p
+  %b Analysts:
+  %ul
+    - @cluster.analysts.each do |analyst|
+      %li
+        = analyst.name
 
 = link_to 'Edit', edit_cluster_path(@cluster)
 \|

@@ -16,3 +16,4 @@ development:
   cloak:
     protocol: http
     port: 8098
+  private_key_password: "change to unique string for production"
