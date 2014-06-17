@@ -17,6 +17,7 @@ class ApiClustersController < ApplicationController
         :inactive
     end
     cluster.save
+    ClusterMailer.status_mail(cluster, cs).deliver
     render :text => "thanks", layout: false
   end
 end
