@@ -7,7 +7,8 @@
         %th Name
         %th TPM
         %th Build
-        %th Number of cloaks
+        %th Analysts
+        %th Cloaks
         %th Broken cloaks
         %th Health
         %th Status
@@ -21,6 +22,7 @@
           %td= cluster.name
           %td= cluster.tpm
           %td= cluster.build.name
+          %td= cluster.analysts.count
           %td= cluster.cloaks.count
           %td= cluster.num_broken
           %td= cluster.health

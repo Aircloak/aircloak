@@ -24,6 +24,7 @@
                         Cloak management
                         %b.caret
                       %ul.dropdown-menu
+                        %li= link_to "Analysts", analysts_path if permitted_to? :manage, :analysts
                         %li= link_to "Builds", builds_path if permitted_to? :read, :builds
                         %li= link_to "Os Tags", os_tags_path if permitted_to? :read, :os_tags
                         %li= link_to "Clusters", clusters_path if permitted_to? :manage, :clusters

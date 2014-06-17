@@ -6,6 +6,7 @@ load "config/recipes/nginx"
 load "config/recipes/postgresql"
 load "config/recipes/unicorn"
 load "config/recipes/check"
+load "config/recipes/settings"
 
 # We need to fudge the path a little to ensure capistrano
 # finds the bundler gem and ruby while deploying.

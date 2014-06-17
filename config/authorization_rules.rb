@@ -54,6 +54,7 @@ authorization do
                        :builds,
                        :clusters,
                        :cloaks,
+                       :analysts,
                        :permissions,
                        :os_tags,
                        :version_tests,

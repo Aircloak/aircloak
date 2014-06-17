@@ -27,6 +27,14 @@
         = check_box_tag "cloak_selections[]", cloak.id, cloak.cluster == @cluster && cloak.cluster_cloak.state != :to_be_removed
         = cloak.display_name
 
+  %h2 Analysts
+
+  %ul
+    - Analyst.all.each do |analyst|
+      %li
+        = check_box_tag "analyst_selections[]", analyst.id, @cluster.analysts.include?(analyst)
+        = analyst.name
+
   .control-group
     .controls
       = f.submit 'Save', class: "btn"

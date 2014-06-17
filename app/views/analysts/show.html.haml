@@ -1,0 +1,15 @@
+%p#notice= notice
+
+%p
+  %b Name:
+  = @analyst.name
+%p
+  %b Clusters:
+  %ul
+    - @analyst.clusters.each do |cluster|
+      %li
+        = cluster.name
+
+= link_to 'Edit', edit_analyst_path(@analyst)
+\|
+= link_to 'Back', analysts_path

@@ -1,0 +1,23 @@
+%h1 Listing analysts
+
+- if @analysts.size > 0 then
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Name
+        %th Clusters
+        %th
+        %th
+        %th
+
+    %tbody
+      - @analysts.each do |analyst|
+        %tr
+          %td= analyst.name
+          %td= analyst.clusters.count
+          %td= link_to 'Show', analyst
+          %td= link_to 'Edit', edit_analyst_path(analyst)
+          %td= link_to 'Destroy', analyst, :method => :delete, :data => { :confirm => 'Are you sure?' }
+
+%h4 Add a new analyst
+= render 'form'
