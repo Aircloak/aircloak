@@ -1,5 +1,6 @@
 class TasksController < ApplicationController
-  before_action :set_task, only: [:edit, :update, :destroy]
+  filter_access_to :execute_as_batch_task, require: :manage
+  before_action :set_task, only: [:edit, :update, :destroy, :execute_as_batch_task]
 
   # GET /tasks
   def index
@@ -41,6 +42,12 @@ class TasksController < ApplicationController
   def destroy
     @task.destroy
     redirect_to tasks_path
+  end
+
+  # POST /tasks/:id/execute_as_batch_task
+  def execute_as_batch_task
+    @task.execute_batch_task
+    redirect_to result_path(@task)
   end
 
 private
