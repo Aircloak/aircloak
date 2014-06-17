@@ -39,6 +39,7 @@ class VersionTest < ActiveRecord::Base
   end
 
   def mark_build_as_failed
+    TestMailer.test_build_failed(self).deliver
     set_failed
   end
 
@@ -64,6 +65,7 @@ class VersionTest < ActiveRecord::Base
     self.test_complete = true
     self.test_success = result.success
     self.test_output = result.transcript
+    TestMailer.test_failed(self).deliver unless self.test_success
     destroy_dependents
     save
   end

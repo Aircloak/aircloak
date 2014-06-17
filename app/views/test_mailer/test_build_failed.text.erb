@@ -1,0 +1,28 @@
+Test not attempted!
+===================
+
+The test of build <%= @test.build.name %> failed to
+start due to the build not completing successfully!
+
+The status of the individual built components:
+
+<% @test.build.deployable_entity_versions.each do |entity_version| %>
+<% if entity_version.build_success -%>
+- <%= entity_version.deployable_entity.repo %>: Built successfully
+  <% else -%>
+- <%= entity_version.deployable_entity.repo %>: Failed (report below)
+  <% end -%>
+<% end -%>
+
+<% @test.build.deployable_entity_versions.each do |entity_version| %>
+  <% unless entity_version.build_success -%>
+<%= entity_version.deployable_entity.repo %>
+-----------------
+<%= entity_version.build_log_tpm %>
+<%= entity_version.build_log_no_tpm %>
+  <% end -%>
+<% end -%>
+
+
+Sad greetings from your good friend,
+The Test Server

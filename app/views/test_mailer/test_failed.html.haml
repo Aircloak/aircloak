@@ -1,0 +1,17 @@
+!!!
+%html
+  %head
+    %meta{'content' => 'text/html; charset=UTF-8', 'http-equiv' => 'Content-Type'}
+  %body
+    %h1 Failed test!
+    %p= "Build: #{@test.build.name}"
+    %p= "Cluster: #{@test.cluster.name}"
+
+    %h3 Test output
+
+    %pre= @test.test_output
+
+    %p
+      Sad greetings from your good friend,
+      %br
+      The Test Server
