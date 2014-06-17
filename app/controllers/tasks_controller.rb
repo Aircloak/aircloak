@@ -1,5 +1,6 @@
 class TasksController < ApplicationController
-  before_action :set_task, only: [:edit, :update, :destroy]
+  filter_access_to :execute_as_batch_task, require: :manage
+  before_action :set_task, only: [:edit, :update, :destroy, :execute_as_batch_task]
 
   # GET /tasks
   def index
@@ -18,6 +19,8 @@ class TasksController < ApplicationController
   def create
     @task = Task.new(task_params)
     @task.sandbox_type = "lua"
+    @task.update_task = false
+    @task.stored_task = false
     if @task.save
       redirect_to tasks_path, notice: 'Task was successfully created.'
     else
@@ -41,12 +44,18 @@ class TasksController < ApplicationController
     redirect_to tasks_path
   end
 
+  # POST /tasks/:id/execute_as_batch_task
+  def execute_as_batch_task
+    @task.execute_batch_task
+    redirect_to result_path(@task)
+  end
+
 private
   def set_task
     @task = Task.find(params[:id])
   end
 
   def task_params
-    params.require(:task).permit(:name, :cluster_id, :update_task, :stored_task, :payload_identifier, :code)
+    params.require(:task).permit(:name, :cluster_id, :payload_identifier, :prefetch, :code)
   end
 end

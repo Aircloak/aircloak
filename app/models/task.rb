@@ -1,4 +1,5 @@
 require './lib/proto/cloak/task.pb.rb'
+require './lib/json_sender'
 
 class Task < ActiveRecord::Base
   has_many :pending_results, dependent: :destroy, counter_cache: true
@@ -9,12 +10,26 @@ class Task < ActiveRecord::Base
 
   belongs_to :cluster
 
-  validates_presence_of :name, :sandbox_type, :code, :cluster
+  validates_presence_of :name, :sandbox_type, :prefetch, :code, :cluster
   validates_uniqueness_of :name
   validate :stored_task_must_have_payload_identifier
 
   after_save :upload_stored_task
   after_destroy :remove_task_from_cloak
+
+  class InvalidTaskId < Exception; end
+
+  def self.decode_id(encoded_task_id)
+    parts = encoded_task_id.split(/^task\-/)
+    if parts.length != 2 || parts[1].empty?
+      raise InvalidTaskId.new(message: "#{task_id}")
+    end
+    parts[1].to_i
+  end
+
+  def self.encode_id(task_id)
+    "task-#{task_id}"
+  end
 
   # This does an efficient SQL delete, rather than
   # loading all the data, running all the validations
@@ -56,15 +71,21 @@ class Task < ActiveRecord::Base
   class NotABatchTaskException < Exception
   end
 
-  def execute_batch_query
-    if task.stored_task
+  def execute_batch_task
+    if stored_task
       raise NotABatchTaskException.new("Task #{self.id} is a stream task, not a batch task")
     end
-    url = cloak_url("batch_query")
+    url = cloak_url("/task/run")
     if url
-      response = post_query url: url, expect_response: true
-      d =  ActiveSupport::JSON.decode(response.body)
-      unless d['status'].downcase == 'ok' then
+      pr = PendingResult.create(task: self)
+      response = JsonSender.post(
+        cluster,
+        "task/run",
+        {prefetch: JSON.parse(prefetch), post_processing: {code: code}}.to_json,
+        "task_id" => self.class.encode_id(id),
+        "auth_token" => pr.auth_token
+      )
+      unless response["success"] == true then
         # TODO: LOG
       end
     end

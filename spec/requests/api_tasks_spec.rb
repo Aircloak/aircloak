@@ -27,8 +27,17 @@ describe "ApiTasksController" do
       cloak.cluster_cloak.save.should eq true
     end
 
-    let (:task) { Task.create(name: "task", cluster: cluster, code: "foo", update_task: false,
-        stored_task: false, sandbox_type: "sandbox") }
+    let (:task) do
+      Task.create(
+        name: "task",
+        cluster: cluster,
+        prefetch: "{\"bar\": \"baz\"}",
+        code: "foo",
+        update_task: false,
+        stored_task: false,
+        sandbox_type: "sandbox"
+      )
+    end
 
     def result args = {}
       Result.create(
@@ -127,6 +136,15 @@ describe "ApiTasksController" do
         rp.buckets.first.label.should eq "label"
         rp.buckets.first.string.should eq nil
         rp.buckets.first.accumulated_count.should eq 1
+      end
+    end
+
+    describe "POST /api/tasks/:id/execute_as_batch_task" do
+      it "should execute the task" do
+        t = double
+        Task.should_receive(:find).and_return(t)
+        t.should_receive(:execute_batch_task)
+        post "/api/tasks/#{task.id}/execute_as_batch_task"
       end
     end
   end
