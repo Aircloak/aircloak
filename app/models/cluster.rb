@@ -65,7 +65,7 @@ class Cluster < ActiveRecord::Base
   # but this might not be true in the future).
   def self.test_cluster_for_build build
     cloaks = Cloak.cloaks_for_build_testing
-    Cluster.create(build: build, name: "Test cluster - #{build.name}", cloaks: cloaks, os_tag: OsTag.last)
+    Cluster.create(build: build, name: "test-#{build.name}", cloaks: cloaks, os_tag: OsTag.last)
   end
 
   def timestamp
