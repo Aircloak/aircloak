@@ -1,0 +1,21 @@
+<%= @cloak.name %> is broken!
+=============================
+
+Manny-air reported that <%= @cloak.name %> is broken.
+
+<% if @cloak.cluster %>
+<%= @cloak.name %> belongs to the cluster named <%= @cloak.cluster.name %>.
+
+  <% if @cloak.cluster.status_description %>
+The cluster status is:
+
+--------
+<%= @cloak.cluster.status_description %>
+--------
+  <% end -%>
+<% else -%>
+<%= @cloak.name %> does not currently belong to a cluster.
+<% end -%>
+
+All the best,
+Your friend the manny

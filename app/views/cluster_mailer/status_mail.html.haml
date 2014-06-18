@@ -1,0 +1,18 @@
+!!!
+%html
+  %head
+    %meta{'content' => 'text/html; charset=UTF-8', 'http-equiv' => 'Content-Type'}
+  %body
+    %h1= "#{@cluster.name} is #{@cluster.status}"
+    %p manny-air reports the following status:
+    %pre= @description
+
+    %p
+      Check out the cluster page for more information on
+      = cluster_url(@cluster, host: 'hello.aircloak.com')
+
+    %p Thanks!
+    %p
+      Your friend,
+      %br
+      Manny Air

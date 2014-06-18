@@ -21,9 +21,9 @@ describe VersionTest do
   end
 
   let (:entity) { PreRecorded.setup_deployable_entity }
-  let (:entity_version) { 
+  let (:entity_version) {
     PreRecorded.setup_deployable_entity_version entity # This one won't have a test
-    PreRecorded.setup_alternate_deployable_entity_version entity 
+    PreRecorded.setup_alternate_deployable_entity_version entity
   }
   let (:version_test) { entity_version.version_test }
 
@@ -85,6 +85,9 @@ describe VersionTest do
   end
 
   it "should mark a test as completed and failed if test server reports failure" do
+    create_cloaks
+    version_test.mark_build_as_complete.save.should eq true
+    version_test.cluster.cloaks.each {|cloak| cloak.reload}
     version_test.process_result results_pb(success: false)
     version_test.test_complete.should eq true
     version_test.test_success.should eq false
@@ -98,6 +101,9 @@ describe VersionTest do
 
   it "should mark recall the test transcript" do
     transcript = "this test was so much fun"
+    create_cloaks
+    version_test.mark_build_as_complete.save.should eq true
+    version_test.cluster.cloaks.each {|cloak| cloak.reload}
     version_test.process_result results_pb(transcript: transcript)
     version_test.test_output.should eq transcript
   end

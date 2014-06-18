@@ -15,6 +15,7 @@ class MachinesController < ApplicationController
     cloak = Cloak.find_by_id(params[:id])
     if cloak
       if cloak.set_broken
+        CloakMailer.broken_cloak(cloak).deliver
         render text: "*Sniff*, another one left the world of the living!"
       else
         render text: "I cannot do that Dave!", status: 400

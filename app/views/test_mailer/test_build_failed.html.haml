@@ -1,0 +1,36 @@
+!!!
+%html
+  %head
+    %meta{'content' => 'text/html; charset=UTF-8', 'http-equiv' => 'Content-Type'}
+  %body
+    %h1 Test not attempted!
+    %p
+      The test of build
+      = @test.build.name
+      failed to start due to the build not completing successfully!
+
+    %h3 Build status
+
+    %p The status of the individual built components:
+
+    %ul
+      - @test.build.deployable_entity_versions.each do |entity_version|
+        - if entity_version.build_success
+          %li= "#{entity_version.deployable_entity.repo}: Built successfully"
+        - else
+          %li= "#{entity_version.deployable_entity.repo}: Failed (report below)"
+
+    %h3 Build logs
+
+    - @test.build.deployable_entity_versions.each do |entity_version|
+      - unless entity_version.build_success
+        %h4= entity_version.deployable_entity.repo
+        %strong TPM build log:
+        %pre= entity_version.build_log_tpm
+        %strong Non-TPM build log:
+        %pre= entity_version.build_log_no_tpm
+
+    %p
+      Sad greetings from your good friend,
+      %br
+      The Test Server
