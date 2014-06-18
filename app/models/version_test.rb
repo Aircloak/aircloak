@@ -36,6 +36,7 @@ class VersionTest < ActiveRecord::Base
     self
   rescue NotEnoughCloaks
     set_failed
+    self
   end
 
   def mark_build_as_failed
