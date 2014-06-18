@@ -132,6 +132,20 @@ class Cluster < ActiveRecord::Base
     self.cloaks.map {|cloak| cloak.name}
   end
 
+  def get_root_certificates
+    # we first load the certificate for the cluster's supervisor machine (manny-air)
+    certificates = Cluster.get_root_certificates
+    self.analysts.each do |analyst|
+      # add the certificates of the assigned analysts to the trusted list of CAs
+      certificates += "\n" + analyst.certificate
+    end unless self.id == nil
+    return certificates
+  end
+
+  def self.get_root_certificates
+    File.read("config/supervisor.crt")
+  end
+
 private
   def must_match_tpm_configuration
     unless !build || cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == self.tpm }
