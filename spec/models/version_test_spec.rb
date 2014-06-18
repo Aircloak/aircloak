@@ -21,9 +21,9 @@ describe VersionTest do
   end
 
   let (:entity) { PreRecorded.setup_deployable_entity }
-  let (:entity_version) { 
+  let (:entity_version) {
     PreRecorded.setup_deployable_entity_version entity # This one won't have a test
-    PreRecorded.setup_alternate_deployable_entity_version entity 
+    PreRecorded.setup_alternate_deployable_entity_version entity
   }
   let (:version_test) { entity_version.version_test }
 
