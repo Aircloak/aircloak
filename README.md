@@ -260,6 +260,10 @@ If you need to make a change to an existing test which invalidates a pre-recorde
 - record new VCRs as you desire
 - invalidate the OAuth token on Github so we don't check a valid OAuth token into the source code repository
 
+### Test with specific random seed
+
+The order in which tests are run is randomized by rpsec. This helps uncover ordering dependencies between tests which sometimes camouflage real issues.
+When you have found a order that breaks your tests, you can lock it in by setting the random seed used in `spec/spec_helper.rb`.
 
 ## Testing of full system
 
