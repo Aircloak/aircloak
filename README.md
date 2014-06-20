@@ -19,6 +19,7 @@ Status](https://magnum.travis-ci.com/Aircloak/web.png?token=aFqD8qTNFV1Li4zdKtZw
     - [Proxying to graphite server](#proxying-to-graphite-server)
     - [Running tasks locally](#running-tasks-locally)
     - [Good to know](#good-to-know)
+    - [Authentication](#authentication)
 - [Role in the greater picture](#role-in-the-greater-picture)
 - [What it is made up of](#what-it-is-made-up-of)
     - [Components](#components)
@@ -331,6 +332,23 @@ zeus rspec spec/path/to/test # this is good for tests that require rails.
 spec/test spec/lib/some_test_spec.rb # this is still significantly faster if your test does not include
 rails
 ```
+
+## Authentication
+
+Each analyst has an authentication token composed of a private key and a public certificate.
+The token can be used to sign other tokens for analyst's users. The private keys are stored in the
+database and encrypted with a password for an extra layer of protection against data leaks. The
+password is set in the settings.yml file, for the development and testing environments, and,
+for production, it must be set manually in the settings.local.yml file, in the shared config folder.
+Please backup this password in a safe location as, without it, the private keys are useless.
+When issuing operations on behalf of an analyst (data querying or uploading), the client has to
+authenticate to the cloaks using this token.
+
+The clusters are supervised by a special machine called manny-air. This machine also has a token, used
+to authenticate with the cloaks, and whose public certificate is stored in the config/supervisor.crt file.
+
+The supervisor's and analysts' certificates are stored on each cloak during the installation process.
+
 
 ### Changing gems (and why is the web unable to speak to the buildserver)
 
