@@ -17,6 +17,7 @@ Status](https://magnum.travis-ci.com/Aircloak/web.png?token=aFqD8qTNFV1Li4zdKtZw
     - [Testing](#testing)
     - [Testing of full system](#testing-of-full-system)
     - [Proxying to graphite server](#proxying-to-graphite-server)
+    - [Running tasks locally](#running-tasks-locally)
     - [Good to know](#good-to-know)
 - [Role in the greater picture](#role-in-the-greater-picture)
 - [What it is made up of](#what-it-is-made-up-of)
@@ -291,6 +292,26 @@ server {
   }
 }
 ```
+
+## Running tasks locally
+
+First, you need to configure your cloak to send results to your local air. You need to edit `cloak-core/rel/cloak/etc/app.config` and add `{air, [{return_url, "http://127.0.0.1:3000/results"}]}` under the `cloak` configuration. **Note**: you need to do this every time you rebuild a release.
+
+Then, you need to create some random users and data. There is a rake task for this:
+
+1. Make sure you have cloak and cluster entries in your air database.
+1. Start local cloak, and wait for riak_kv to become available (~ 10 sec)
+1. From the command line run `bundle exec rake air:recreate_test_users[1,1000]`. This will generate
+   a thousand of users in the cluster with ID=1 (use different ID if needed). If test tables exist on the
+   cloak, they will be recreated prior to data insertion. See `air.rake` for details about generated tables.
+
+Data insertion only needs to be done once.
+
+Next, you need to create a task in the web UI. The simplest prefetch code for the task is `[{"table": "age"}]`. The simplest sandbox code is: `report_property('age', tables.age[0].age)`. **Note**: prefetch/code editor is in vi mode, so when you focus the textbox, press `a` to enter text.
+
+Finally, if cloak is started, you can execute the task from the air UI. **Tip**: upon task execution, you're
+redirected to the results page for that task. However, the results usually arrive a bit later, so you'll need
+to refresh the page to see them.
 
 ## Good to know
 
