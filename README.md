@@ -33,7 +33,7 @@ This repository contains the web-frontend for the aircloak backend control syste
 # Getting started
 ## API
 
-The web currently provides an API namespaced under `/api/
+The web currently provides an API namespaced under `/api/`
 The following resources are exposed under the API:
 
 - machines
