@@ -209,6 +209,34 @@ an http proxy for the server for the duration of the install. For instructions, 
 [guide](https://github.com/Aircloak/org/wiki/admin::Useful-tips-and-tricks#wiki-getting-web-access-from-a-system-within-the-dmz).
 Once the proxy has been setup, run `bundle exec cap deploy:cold`, and you should be good to go!
 
+### Step 5: Adding secrets to the server
+
+After the supporting folders have been setup on the server, we need to supply the server with passwords and tokens
+not present in the source code repository, but needed by the server.
+
+We require the following secrets:
+
+- the password used to unlock the private keys of analysts
+- an github OAuth token used by the web app to read meta data from github
+
+#### Analyst private key password
+
+For background, please have a look at the [authentication](#authentication) section of this readme.
+The password is kept safe by @sebastian, but copies are also held by others on the team. If you don't hold a copy yourself for safe-keeping, please contact one of your team-members and ask for a copy, or ask them to upload it to the server.
+
+The `settings.local.yml` file can be found in the `shared/config` folder on the server.
+
+#### Github OAuth token
+
+The github OAuth tokens are generated for the user `aircloak-web`.
+It is a github user that has read-only access to the repositories needed when deploying a cloak.
+Please generate a fresh OAuth token per infrastructure machine, so we can invalidate them when needed, and don't need to store copies for safe-keeping.
+@sebastian controls the `aircloak-web` user, so please confer with him.
+
+The `settings.local.yml` file can be found in the `shared/config` folder.
+
+OAuth tokens can be generated on Github on the __settings__ > __applications__ page.
+
 
 ## Testing
 
@@ -220,6 +248,18 @@ To run the test suite, make sure you have the test database created:
 then to run the tests use
 
     bundle exec rake
+
+### Tests running against Github
+
+Some of the tests run against Github. These interactions have been cached by the VCR gem. The requests were authenticated with an OAuth token that is no longer valid.
+If you need to make a change to an existing test which invalidates a pre-recorded VCR, or you need to create new tests that communicate with Github, then you will need to perform the following steps:
+
+- generate a valid OAuth token on Github on the __settings__ > __applications__ page
+- set the OAuth token in the testing section of your `config/settings.yml` file
+- update the OAuth token in the existing VCRs to match your new OAuth token
+- record new VCRs as you desire
+- invalidate the OAuth token on Github so we don't check a valid OAuth token into the source code repository
+
 
 ## Testing of full system
 
