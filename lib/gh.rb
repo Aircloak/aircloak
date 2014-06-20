@@ -22,6 +22,7 @@ class Gh
 
 private
   def self.github
+    raise "Missing Github oauth token in settings.local.yml" unless Rails.configuration.respond_to? :github_oauth_token
     @github ||= Github.new do |config|
       config.oauth_token = Rails.configuration.github_oauth_token
       config.adapter     = :excon
