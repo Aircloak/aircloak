@@ -66,7 +66,7 @@ Web::Application.configure do
     'metrics/controller.js',
     'builds.js',
     'client_files.js',
-    'tasks.js',
+    'tasks/main.js',
     'verifications.js',
     'migrations/main.js'
   ]
