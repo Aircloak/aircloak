@@ -5,7 +5,7 @@
       table_data = JSON.parse '#{@table_data}'
       migration = JSON.parse '#{@previous_migration}'
       window.columns.setup
-        is_creation: true
+        is_creation: false
         raw_data: table_data
         raw_previous_migration: migration
 
