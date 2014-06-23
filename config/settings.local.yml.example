@@ -17,3 +17,4 @@ development:
     protocol: http
     port: 8098
   private_key_password: "change to unique string for production"
+  github_oauth_token: "an oauth token for github that gives you access to deployable entity repos"

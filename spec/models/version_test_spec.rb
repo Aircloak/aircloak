@@ -14,6 +14,8 @@ describe VersionTest do
     DeployableEntityVersion.delete_all
     DeployableEntity.delete_all
     VersionTest.delete_all
+    OsTag.delete_all
+    OsTag.create name: "OsTag", description: "OsTag description"
   end
 
   def create_cloaks
