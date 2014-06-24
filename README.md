@@ -1,8 +1,6 @@
 Aircloak Web
 ============
 
-[![Code
-Climate](https://codeclimate.com/repos/52834e57c7f3a36f49049694/badges/b93de74f2a883ef1f819/gpa.png)](https://codeclimate.com/repos/52834e57c7f3a36f49049694/feed)
 [![Build
 Status](https://magnum.travis-ci.com/Aircloak/web.png?token=aFqD8qTNFV1Li4zdKtZw&branch=master)](https://magnum.travis-ci.com/Aircloak/web)
 
