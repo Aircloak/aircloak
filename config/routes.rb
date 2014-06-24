@@ -32,27 +32,6 @@ Web::Application.routes.draw do
   resources :user_sessions
   resources :users
   resources :permissions
-  resources :get_latest
-
-  resources :verifications do
-    post 'event', on: :collection
-    post 'verify', on: :member
-  end
-
-  resources :staging_machines
-
-  resources :deployment_groups do
-    post 'create_command', on: :member
-  end
-
-  resources :client_binaries
-  resources :client_file_versions
-  resources :client_file_types
-  resources :client_files
-
-  resources :commands do
-    get 'signed_command', on: :member
-  end
 
   resources :cloaks
   resources :analysts

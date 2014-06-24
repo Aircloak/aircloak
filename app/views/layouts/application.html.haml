@@ -40,16 +40,6 @@
                         %li= link_to "Tasks", tasks_path if permitted_to? :read, :tasks
                         %li= link_to "Results", results_path if permitted_to? :read, :results
                         %li= link_to "Tables", tables_path if permitted_to? :manage, :tables
-                    -# Related to managing client binaries for windows machines, etc
-                    %li.dropdown
-                      %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"}
-                        Windows client
-                        %b.caret
-                      %ul.dropdown-menu
-                        %li= link_to "Client binaries", client_binaries_path if permitted_to? :read, :client_binaries
-                        %li= link_to "Existing commands", commands_path if permitted_to? :read, :commands
-                        %li= link_to "Staging machines", staging_machines_path if permitted_to? :manage, :staging_machines
-                        %li= link_to "Deployment groups", deployment_groups_path if permitted_to? :manage, :deployment_groups
                     - # Related to graphite stats
                     %li= link_to "Monitoring", metrics_path if permitted_to? :manage, :metrics
                     -# Related to user administration
