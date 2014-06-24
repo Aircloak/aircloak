@@ -57,13 +57,11 @@ describe MachinesController do
       Cloak.destroy_all
       Build.destroy_all
       BuildManager.stub(:send_build_request)
-      OsTag.destroy_all
     end
 
     let! (:cloak) { Cloak.create(name: "dave", ip: "9.9.9.9") }
     let! (:build) { Build.create(name: "build") }
-    let (:os_tag) { OsTag.create(name: "OsTag", description: "Smartness") }
-    let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak], os_tag: os_tag) }
+    let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak]) }
 
     it "should synchronize a machine belonging to a cluster" do
       post synchronize_machine_path(cloak.id)
@@ -96,8 +94,7 @@ describe MachinesController do
 
     it "should return a file containing the build id, the os tag and root certificates if the machine is part of a cluster" do
       build = double(id: 14)
-      os_tag = double(name: "tag_name")
-      cluster = double(build: build, os_tag: os_tag)
+      cluster = double(build: build)
       cluster.stub(:get_root_certificates).and_return("CERTIFICATE")
       cloak = double(cluster: cluster)
       Cloak.stub(:find_by_ip).and_return(cloak)
@@ -105,18 +102,14 @@ describe MachinesController do
       response.status.should be(200)
       response.body.should include("perform_aircloak_install=true")
       response.body.should include("14")
-      response.body.should include("tag_name")
       response.body.should include("CERTIFICATE")
     end
 
     it "should return a file with a flag signifying that a aircloak specific build should not be performed for machines without clusters" do
       cloak = double(cluster: nil)
       Cloak.stub(:find_by_ip).and_return(cloak)
-      most_recent_tag = double(name: "tag_name")
-      OsTag.should_receive(:last).and_return(most_recent_tag)
       get setup_info_machines_path
       response.status.should be(200)
-      response.body.should include("base_image_tag=\"tag_name\"")
       response.body.should include("perform_aircloak_install=false")
     end
   end

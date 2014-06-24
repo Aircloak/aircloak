@@ -11,15 +11,13 @@ describe "ApiTasksController" do
     Cloak.destroy_all
     Build.destroy_all
     BuildManager.stub(:send_build_request)
-    OsTag.destroy_all
     Result.destroy_all
     Bucket.destroy_all
   end
 
   let! (:cloak) { Cloak.create(name: "cloak", ip: "1.1.1.1") }
   let! (:build) { Build.create(name: "build") }
-  let (:os_tag) { OsTag.create(name: "OsTag", description: "Woho") }
-  let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak], os_tag: os_tag) }
+  let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak]) }
 
   describe "getting queries and results, and destroying queries" do
     before(:each) do

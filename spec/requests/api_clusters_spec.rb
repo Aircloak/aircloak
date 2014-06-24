@@ -9,13 +9,11 @@ describe "ApiClustersController" do
     Cluster.delete_all
     Cloak.delete_all
     Build.delete_all
-    OsTag.delete_all
   end
 
   let (:cloak) { Cloak.create(name: "cloak", ip: "1.1.1.1") }
   let (:build) { Build.create(name: "build") }
-  let (:os_tag) { OsTag.create(name: "OsTag", description: "Woho") }
-  let (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak], os_tag: os_tag) }
+  let (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak]) }
 
   describe "setting the status of a cluster" do
     def post_status args = {}

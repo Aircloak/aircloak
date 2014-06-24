@@ -94,8 +94,6 @@ Web::Application.routes.draw do
     post "retry_migration", on: :member, action: "retry_migration"
   end
 
-  resources :os_tags
-
   resources :metrics
 
   root to: 'welcome#index'

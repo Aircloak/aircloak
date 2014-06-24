@@ -43,7 +43,7 @@ private
   end
 
   def cluster_params
-    params.require(:cluster).permit(:name, :build_id, :os_tag_id)
+    params.require(:cluster).permit(:name, :build_id)
   end
 
   def cloaks_from_params

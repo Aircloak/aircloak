@@ -16,13 +16,11 @@ describe Cluster do
   let (:cloak) { Cloak.create(name: "dave", ip: "9.9.9.9") }
   let (:richard) { Cloak.create(name: "richard", ip: "10.10.10.10") }
   let (:build) { Build.create(name: "build") }
-  let (:os_tag) { OsTag.create(name: "First version", description: "Crucial OS stuff") }
 
   def base_cluster vals={}
     Cluster.new(
       name: vals.delete(:name) || "test",
-      build: vals.delete(:build) || build, 
-      os_tag: vals.delete(:os_tag) || os_tag
+      build: vals.delete(:build) || build
     )
   end
 
@@ -31,13 +29,6 @@ describe Cluster do
     c.cloaks << cloak
     c.save.should eq false
     c.errors.messages[:build].should_not eq nil
-  end
-
-  it "should have a os_tag" do
-    c = Cluster.new(name: "test", build: build)
-    c.cloaks << cloak
-    c.save.should eq false
-    c.errors.messages[:os_tag].should_not eq nil
   end
 
   it "should have a name" do
@@ -228,14 +219,13 @@ describe Cluster do
 
   def cluster args={}
     b = Build.new name: args.delete(:bname) || "Build name"
-    o = OsTag.new name: args.delete(:oname) || "Os tag name"
-    Cluster.new name: args.delete(:cname) || "Cluster name", build: b, os_tag: o
+    Cluster.new name: args.delete(:cname) || "Cluster name", build: b
   end
 
   it "should create sane log names from cluster names" do
-    cluster(cname: "cluster", bname: "build", oname: "os").log_name.should eq "cluster-build-os"
-    cluster(cname: "cluster name", bname: "build", oname: "os").log_name.should eq "cluster_name-build-os"
-    cluster(cname: "strange!", bname: "?æname", oname: "/,now better").log_name.should eq "strange-name-now_better"
+    cluster(cname: "cluster", bname: "build").log_name.should eq "cluster-build"
+    cluster(cname: "cluster name", bname: "build").log_name.should eq "cluster_name-build"
+    cluster(cname: "strange!", bname: "?æname").log_name.should eq "strange-name"
   end
 
   it "should invoke the log server on create, update, and destroy" do

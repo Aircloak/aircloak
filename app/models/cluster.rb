@@ -11,10 +11,9 @@ class Cluster < ActiveRecord::Base
   has_one :version_test
   has_and_belongs_to_many :analysts
   belongs_to :build
-  belongs_to :os_tag
 
   validates :name, presence: true, uniqueness: true
-  validates_presence_of :build, :os_tag
+  validates_presence_of :build
   validate :must_match_tpm_configuration
   validate :must_have_at_least_one_cloak
 
@@ -64,7 +63,7 @@ class Cluster < ActiveRecord::Base
   # but this might not be true in the future).
   def self.test_cluster_for_build build
     cloaks = Cloak.cloaks_for_build_testing
-    Cluster.create(build: build, name: "test-#{build.name}", cloaks: cloaks, os_tag: OsTag.last)
+    Cluster.create(build: build, name: "test-#{build.name}", cloaks: cloaks)
   end
 
   def timestamp
@@ -99,7 +98,7 @@ class Cluster < ActiveRecord::Base
   # A log name is a version of the cluster name that
   # is sane for using in folder and file names on the log server
   def log_name
-    name_base = "#{name}-#{build.name}-#{os_tag.name}"
+    name_base = "#{name}-#{build.name}"
     name_base.gsub(" ", "_").gsub(/[^\w^\d^\-]*/, "")
   end
 
