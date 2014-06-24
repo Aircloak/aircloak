@@ -18,3 +18,7 @@ development:
     port: 8098
   private_key_password: "change to unique string for production"
   github_oauth_token: "an oauth token for github that gives you access to deployable entity repos"
+  # The secret key base is used in /config/initializers/secret_token.rb to
+  # secure session ids in cookies.
+  # For production, it should be at least 30 characters long.
+  secret_key_base: 'replate with random secret'
