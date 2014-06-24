@@ -5,13 +5,9 @@ ruby '2.0.0'
 gem 'rails', '~> 4.0.3' #, github: 'rails/rails'
 
 gem "haml", github: "haml/haml", branch: "stable"
-# gem 'd3-rails'
 
+# Ruby protobuf compiler
 gem 'beefcake'
-
-# Used in migrations views
-gem "rails-backbone", :github => "codebrew/backbone-rails", tag: "v1.1.0"
-gem 'handlebars_assets'
 
 gem 'rest-client'
 
@@ -79,7 +75,8 @@ gem 'unicorn'
 gem 'authlogic'
 gem 'declarative_authorization'
 
-gem 'angularjs-rails'
+gem "rails-backbone", :github => "codebrew/backbone-rails", tag: "v1.1.0"
 gem 'underscore-rails'
-
+gem 'handlebars_assets'
+gem 'angularjs-rails'
 gem 'codemirror-rails'
