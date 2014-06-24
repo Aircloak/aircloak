@@ -33,4 +33,9 @@ Web::Application.configure do
 
   # Print deprecation notices to the stderr.
   config.active_support.deprecation = :stderr
+
+  console do
+    require "pry"
+    config.console = Pry
+  end
 end
