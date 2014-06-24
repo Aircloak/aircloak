@@ -53,15 +53,10 @@ class DeployableEntityVersion < ActiveRecord::Base
   def reset_build_status
     self.build_completed = false
     self.build_success = true
-    self.build_log_tpm = ""
-    self.build_log_no_tpm = ""
+    self.build_log = ""
     save
     url = "http://#{Rails.configuration.build_server.host}/entity/#{self.commit_id}"
     ProtobufSender.send_delete url if Rails.configuration.installation.global
-  end
-
-  def has_more_than_one_env?
-    deployable_entity.tpm_env != deployable_entity.no_tpm_env
   end
 
 private

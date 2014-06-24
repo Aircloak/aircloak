@@ -5,8 +5,6 @@
   %tr
     %th Repo
     %th Description
-    %th TPM conf
-    %th No tpm conf
     %th # versions
     %th Status
     %th
@@ -16,8 +14,6 @@
     %tr
       %td= deployable_entity.repo
       %td= deployable_entity.description
-      %td= deployable_entity.tpm_env
-      %td= deployable_entity.no_tpm_env
       %td= link_to deployable_entity.commits.count, deployable_entity_deployable_entity_versions_path(deployable_entity)
       %td= deployable_entity.status
       %td= link_to 'Edit', edit_deployable_entity_path(deployable_entity)

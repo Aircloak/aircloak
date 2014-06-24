@@ -9,16 +9,6 @@
 - elsif @deployable_entity_version.part_of_build?
   = button_to "Force build status reset despite ongoing build", reset_deployable_entity_deployable_entity_version_path(@deployable_entity_version.deployable_entity, @deployable_entity_version), :class => "btn btn-danger"
 
-- if @deployable_entity_version.has_more_than_one_env?
-  %h2 TPM environment build log
-  %pre
-    = @deployable_entity_version.build_log_tpm
-
-  %h2 Non-TPM environment build log
-  %pre
-    = @deployable_entity_version.build_log_no_tpm
-
-- else
   %h2 Build log
   %pre
-    = @deployable_entity_version.build_log_tpm
+    = @deployable_entity_version.build_log

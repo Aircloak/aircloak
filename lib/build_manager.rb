@@ -6,7 +6,7 @@ class BuildManager
       build_name: build.name,
       build_id: build.id,
       versions: build.deployable_entity_versions.map do |v|
-        env = build.tpm ? v.deployable_entity.tpm_env : v.deployable_entity.no_tpm_env
+        env = "standard"
         BuildRequestProto::VersionProto.new(
           environment: env,
           repo: v.deployable_entity.repo,
@@ -15,7 +15,7 @@ class BuildManager
       end
     )
   end
-    
+
   def self.send_build_request build
     build_request = create_build_request build
     url = URI.parse("http://#{Rails.configuration.build_server.host}/build")

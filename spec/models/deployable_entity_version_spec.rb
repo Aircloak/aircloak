@@ -7,7 +7,7 @@ describe DeployableEntityVersion do
     rescue
       class BuildManager; end
     end
-    
+
     VersionTest.stub(:new_from_deployable_entity_version)
     BuildManager.stub(:send_build_request).and_return(true)
     Cluster.delete_all
@@ -17,9 +17,7 @@ describe DeployableEntityVersion do
     @d = nil
     VCR.use_cassette('entity-create-erlattest', allow_playback_repeats: true) do
       @d = DeployableEntity.create(
-        repo: "erlattest",
-        tpm_env: "tpm",
-        no_tpm_env: "no-tpm"
+        repo: "erlattest"
       )
     end
   end
@@ -122,8 +120,7 @@ describe DeployableEntityVersion do
     dev = PreRecorded.setup_deployable_entity_version @d
     dev.build_completed = true
     dev.build_success = false
-    dev.build_log_tpm = "foo"
-    dev.build_log_no_tpm = "bar"
+    dev.build_log = "foo"
     dev.save
     dev.reload
     ProtobufSender.should_receive(:send_delete)
@@ -131,7 +128,6 @@ describe DeployableEntityVersion do
     dev.reload
     dev.build_completed.should eq false
     dev.build_success.should eq true
-    dev.build_log_tpm.should eq ""
-    dev.build_log_no_tpm.should eq ""
+    dev.build_log.should eq ""
   end
 end

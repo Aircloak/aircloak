@@ -6,10 +6,8 @@ describe DeployableEntity do
   end
 
   def params_for repo
-    { 
-      repo: repo,
-      tpm_env: "tpm",
-      no_tpm_env: "no_tpm"
+    {
+      repo: repo
     }
   end
 
@@ -21,7 +19,7 @@ describe DeployableEntity do
     end
 
     VersionTest.stub(:new_from_deployable_entity_version)
-    
+
     Cluster.delete_all
     BuildManager.stub(:send_build_request).and_return(true)
     Build.delete_all
@@ -46,15 +44,6 @@ describe DeployableEntity do
         d1.save.should eq(false)
       end
       d1.errors.messages[:repo].should_not eq(nil)
-    end
-
-    it "should require tpm_env" do
-      VCR.use_cassette('entity-save-erlattest', allow_playback_repeats: true) do
-        d = DeployableEntity.new repo: "erlattest"
-        d.save.should eq(false)
-        d.errors.messages[:tpm_env].should_not eq(nil)
-        d.errors.messages[:no_tpm_env].should_not eq(nil)
-      end
     end
 
     it "should allow to delete an entity without any versions" do
