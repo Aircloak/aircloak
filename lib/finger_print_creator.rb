@@ -10,6 +10,6 @@ class FingerPrintCreator
     versions.sort! do |a,b|
       a.commit_id <=> b.commit_id
     end
-    create_sha "#{build.tpm}-#{versions.map(&:commit_id).join("-")}"
+    create_sha "#{versions.map(&:commit_id).join("-")}"
   end
 end

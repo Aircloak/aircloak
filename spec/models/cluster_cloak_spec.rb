@@ -10,13 +10,11 @@ describe Cluster do
     Cloak.destroy_all
     Build.destroy_all
     BuildManager.stub(:send_build_request)
-    OsTag.destroy_all
   end
 
   let! (:cloak) { Cloak.create(name: "dave", ip: "9.9.9.9") }
   let! (:build) { Build.create(name: "build") }
-  let (:os_tag) { OsTag.create(name: "ostag", description: "desc") }
-  let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak], os_tag: os_tag) }
+  let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak]) }
 
   it "should go from :to_be_added to :belongs_to if synchronized" do
     cloak.reload.cluster_cloak.synchronize

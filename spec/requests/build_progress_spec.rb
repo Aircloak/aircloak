@@ -12,7 +12,7 @@ describe BuildProgressController do
     ProtobufSender.stub(:send_delete)
   end
 
-  let (:de) { double(:deployable_entity, tpm_env: "tpm-env", no_tpm_env: "no-tpm-env") }
+  let (:de) { double(:deployable_entity) }
   let (:dev) { double(:deployment_entity_version, deployable_entity: de, build_success: nil, save: true) }
 
   describe "POST /register_build_progress" do
@@ -60,7 +60,7 @@ describe BuildProgressController do
       vbrp = VersionBuildResponseProto.new(
         commit_id: "commit_id",
         status: VersionBuildResponseProto::Status::OK,
-        environment: "tpm",
+        environment: "standard",
         log_output: "all iz well"
       )
       post '/register_version_progress', vbrp.encode.buf
@@ -68,86 +68,17 @@ describe BuildProgressController do
     end
 
     it "should persist the log" do
-      DeployableEntityVersion.should_receive(:find_by_commit_id).twice.with("commit_id").and_return(dev)
-
-      # For TPM env
-      vbrp = VersionBuildResponseProto.new(
-        commit_id: "commit_id",
-        status: VersionBuildResponseProto::Status::OK,
-        environment: "tpm-env",
-        log_output: "all iz well"
-      )
-      expect(dev).to receive(:build_log_tpm=).with("all iz well")
-      expect(dev).to receive(:build_completed=).with(true)
-      expect(dev).to receive(:build_success=).with(true)
-
-      post '/register_version_progress', vbrp.encode.buf
-      response.status.should be(200)
-
-      # For non TPM env
-      vbrp = VersionBuildResponseProto.new(
-        commit_id: "commit_id",
-        status: VersionBuildResponseProto::Status::ERROR,
-        environment: "no-tpm-env",
-        log_output: "all iz partly well"
-      )
-      expect(dev).to receive(:build_log_no_tpm=).with("all iz partly well")
-      expect(dev).to receive(:build_completed=).with(true)
-      expect(dev).to receive(:build_success=).with(false)
-
-      post '/register_version_progress', vbrp.encode.buf
-      response.status.should be(200)
-    end
-
-    it "should treat shared logs as logs for all environments" do
       DeployableEntityVersion.should_receive(:find_by_commit_id).with("commit_id").and_return(dev)
 
-      # For TPM env
-      vbrp = VersionBuildResponseProto.new(
-        commit_id: "commit_id",
-        status: VersionBuildResponseProto::Status::ERROR,
-        environment: "shared",
-        log_output: "all iz not well"
-      )
-      expect(dev).to receive(:build_log_tpm=).with("all iz not well")
-      expect(dev).to receive(:build_log_no_tpm=).with("all iz not well")
-      expect(dev).to receive(:build_completed=).with(true)
-      expect(dev).to receive(:build_success=).with(false)
-
-      post '/register_version_progress', vbrp.encode.buf
-      response.status.should be(200)
-    end
-
-    it "negativity trumps everything!" do
-      # If one build fails, and then another succeeds, then the build has still
-      # failed overall...
-      DeployableEntityVersion.should_receive(:find_by_commit_id).twice.with("commit_id").and_return(dev)
-
-      # First request that fails
-      vbrp = VersionBuildResponseProto.new(
-        commit_id: "commit_id",
-        status: VersionBuildResponseProto::Status::ERROR,
-        environment: "tpm-env",
-        log_output: "all iz well"
-      )
-      expect(dev).to receive(:build_log_tpm=).with("all iz well")
-      expect(dev).to receive(:build_completed=).with(true)
-      dev.should_receive(:build_success=).once.with(false)
-
-      post '/register_version_progress', vbrp.encode.buf
-      response.status.should be(200)
-
-      # Second request that succeeds
       vbrp = VersionBuildResponseProto.new(
         commit_id: "commit_id",
         status: VersionBuildResponseProto::Status::OK,
-        environment: "no-tpm-env",
-        log_output: "all iz partly well"
+        environment: "standard",
+        log_output: "all iz well"
       )
-      expect(dev).to receive(:build_log_no_tpm=).with("all iz partly well")
+      expect(dev).to receive(:build_log=).with("all iz well")
       expect(dev).to receive(:build_completed=).with(true)
-      dev.should_receive(:build_success).and_return(false)
-      # build_sucess should not be set again, since we already set it to false
+      expect(dev).to receive(:build_success=).with(true)
 
       post '/register_version_progress', vbrp.encode.buf
       response.status.should be(200)

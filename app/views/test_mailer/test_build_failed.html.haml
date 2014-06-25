@@ -25,10 +25,8 @@
     - @test.build.deployable_entity_versions.each do |entity_version|
       - unless entity_version.build_success
         %h4= entity_version.deployable_entity.repo
-        %strong TPM build log:
-        %pre= entity_version.build_log_tpm
-        %strong Non-TPM build log:
-        %pre= entity_version.build_log_no_tpm
+        %strong Build log:
+        %pre= entity_version.build_log
 
     %p
       Sad greetings from your good friend,

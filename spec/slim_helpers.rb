@@ -11,9 +11,7 @@ module PreRecorded
     VCR.use_cassette('premade-entity-create-erlattest', allow_playback_repeats: true) do
       de = DeployableEntity.create(
         repo: "erlattest",
-        description: "erlattest fixture",
-        tpm_env: "tpm",
-        no_tpm_env: "no-tpm"
+        description: "erlattest fixture"
       )
     end
     de

@@ -31,13 +31,11 @@ class VersionTestsController < ApplicationController
     Cloak.delete_all
     Cluster.delete_all
     VersionTest.delete_all
-    OsTag.delete_all
     Build.delete_all
     DeployableEntityVersion.delete_all
     DeployableEntity.delete_all
-    c = Cloak.create!(name: "localhost", ip: "127.0.0.1", tpm: false)
-    ot = OsTag.create!(name: "ostag", description: "ostag")
-    de = DeployableEntity.create!(repo: "repo", tpm_env: "tpm_env", no_tpm_env: "no_tpm_env")
+    c = Cloak.create!(name: "localhost", ip: "127.0.0.1")
+    de = DeployableEntity.create!(repo: "repo")
     de.add_commit "deadbeef"
     redirect_to version_tests_path
   end

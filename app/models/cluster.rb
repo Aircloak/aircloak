@@ -11,19 +11,18 @@ class Cluster < ActiveRecord::Base
   has_one :version_test
   has_and_belongs_to_many :analysts
   belongs_to :build
-  belongs_to :os_tag
 
   validates :name, presence: true, uniqueness: true
-  validates_presence_of :build, :os_tag
-  validate :must_match_tpm_configuration
+  validates_presence_of :build
   validate :must_have_at_least_one_cloak
+  validate :must_match_tpm_configuration
 
   after_commit :update_log_server
   after_commit :synchronize_in_local_mode
   before_destroy :verify_can_destroy
 
   def tpm
-    @has_tpm ||= build.tpm
+    @has_tpm ||= cloaks.first.tpm
   end
 
   def random_cloak_ip
@@ -48,10 +47,14 @@ class Cluster < ActiveRecord::Base
   end
 
   def assign_cloaks new_cloaks
+    if ! verify_cloaks_match new_cloaks then
+      return false
+    end
     old_cloaks = self.cloaks.to_a
     (new_cloaks - old_cloaks).each {|cloak| cloaks << cloak }
     (new_cloaks & old_cloaks).each {|cloak| keep_cloak cloak }
     (old_cloaks - new_cloaks).each {|cloak| cloak.cluster_cloak.set_state :to_be_removed }
+    return true
   end
 
   def keep_cloak cloak
@@ -64,7 +67,7 @@ class Cluster < ActiveRecord::Base
   # but this might not be true in the future).
   def self.test_cluster_for_build build
     cloaks = Cloak.cloaks_for_build_testing
-    Cluster.create(build: build, name: "test-#{build.name}", cloaks: cloaks, os_tag: OsTag.last)
+    Cluster.create(build: build, name: "test-#{build.name}", cloaks: cloaks)
   end
 
   def timestamp
@@ -99,7 +102,7 @@ class Cluster < ActiveRecord::Base
   # A log name is a version of the cluster name that
   # is sane for using in folder and file names on the log server
   def log_name
-    name_base = "#{name}-#{build.name}-#{os_tag.name}"
+    name_base = "#{name}-#{build.name}"
     name_base.gsub(" ", "_").gsub(/[^\w^\d^\-]*/, "")
   end
 
@@ -147,14 +150,16 @@ class Cluster < ActiveRecord::Base
   end
 
 private
-  def must_match_tpm_configuration
-    unless !build || cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == self.tpm }
-      if self.tpm
-        self.errors.add :cloaks, "must match tpm configuration"
-      else
-        # We allow clusters of mixed machines if the build is a non-tpm build
-      end
+  def verify_cloaks_match new_cloaks
+    if ! new_cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == new_cloaks.first.tpm } then
+      self.errors.add :cloaks, "must match tpm configuration"
+      return false
     end
+    return true
+  end
+
+  def must_match_tpm_configuration
+    verify_cloaks_match self.cloaks
   end
 
   def must_have_at_least_one_cloak

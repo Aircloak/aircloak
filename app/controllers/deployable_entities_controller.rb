@@ -41,6 +41,6 @@ class DeployableEntitiesController < ApplicationController
     end
 
     def deployable_entity_params
-      params.require(:deployable_entity).permit(:repo, :tpm_env, :no_tpm_env)
+      params.require(:deployable_entity).permit(:repo)
     end
 end

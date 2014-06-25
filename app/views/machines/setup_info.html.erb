@@ -1,10 +1,13 @@
 <% if @cloak.cluster -%>
+  <% if @cloak.cluster.build.manual -%>
+image="<%=@cloak.cluster.build.name%>"
+  <% else -%>
+image="base"
 build_url="http://build.aircloak.com/releases/<%=@cloak.cluster.build.id%>.tar.gz"
-base_image_tag="<%=@cloak.cluster.os_tag.name%>"
-perform_aircloak_install=true
+  <% end -%>
+tpm=<%=@cloak.cluster.tpm%>
 root_certificates="<%=@cloak.cluster.get_root_certificates%>"
 <% else -%>
-base_image_tag="<%=OsTag.last.name%>"
-perform_aircloak_install=false
+image="base"
 root_certificates="<%=Cluster.get_root_certificates%>"
 <% end -%>

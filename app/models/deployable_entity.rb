@@ -16,7 +16,6 @@ class DeployableEntity < ActiveRecord::Base
   has_many :deployable_entity_versions, dependent: :destroy
 
   validates_uniqueness_of :repo
-  validates_presence_of :tpm_env, :no_tpm_env
   validate :repo_exists
   before_save :set_description
 

@@ -6,7 +6,7 @@ describe FingerPrintCreator do
   end
 
   def build_for versions
-    double(tpm: true, deployable_entity_versions: versions)
+    double(deployable_entity_versions: versions)
   end
 
   it "should be able to sha something" do
@@ -34,14 +34,5 @@ describe FingerPrintCreator do
     fp1.should_not eq nil
     fp1.should eq fp2
     fp1.should_not eq fp3
-  end
-
-  it "should create fingerprints that depend on whether its for TPM or not" do
-    build1 = double(deployable_entity_versions: [], tpm: true)
-    build2 = double(deployable_entity_versions: [], tpm: false)
-    
-    fp1 = FingerPrintCreator.fingerprint build1
-    fp2 = FingerPrintCreator.fingerprint build2
-    fp1.should_not eq fp2
   end
 end

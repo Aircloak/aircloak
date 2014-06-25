@@ -14,9 +14,7 @@ describe RegisterVersionController do
       # For this we need the erlattest repo
       VCR.use_cassette('entity-save-erlattest', allow_playback_repeats: true) do
         DeployableEntity.create(
-          repo: "erlattest",
-          tpm_env: "tpm",
-          no_tpm_env: "no-tpm"
+          repo: "erlattest"
         )
       end
 

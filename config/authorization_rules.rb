@@ -56,7 +56,6 @@ authorization do
                        :cloaks,
                        :analysts,
                        :permissions,
-                       :os_tags,
                        :version_tests,
                        :user_permissions,
                        :metrics,

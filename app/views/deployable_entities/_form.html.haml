@@ -16,13 +16,5 @@
       .controls
         = @deployable_entity.description
   .control-group
-    %label.control-label TPM-environment name
-    .controls
-      = f.text_field :tpm_env
-  .control-group
-    %label.control-label Test environment name
-    .controls
-      = f.text_field :no_tpm_env
-  .control-group
     .controls
       = f.submit 'Save', class: "btn"
