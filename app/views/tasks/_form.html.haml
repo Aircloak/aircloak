@@ -1,7 +1,7 @@
 -# Includes additional, page-specific javascripts
 = content_for(:javascript_include) {javascript_include_tag "tasks", "data-turbolinks-track" => true}
 
-.form-container{:"ng-app" => "taskEditor", :"ng-controller" => "TaskEditorCtrl"}
+.form-container
   = form_for @task, :html => {:class => "form-horizontal new_query"} do |f|
     - if @task.errors.any?
       .well.alert-error
