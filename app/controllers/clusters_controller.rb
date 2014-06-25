@@ -28,10 +28,9 @@ class ClustersController < ApplicationController
 private
   def update_cluster msg, action
     cloaks = cloaks_from_params
-    @cluster.assign_cloaks cloaks
     @cluster.analysts = analysts_from_params
     @cluster.last_modified = Time.now
-    if @cluster.update(cluster_params)
+    if @cluster.assign_cloaks(cloaks) && @cluster.update(cluster_params)
       redirect_to clusters_path, notice: msg
     else
       render action: action

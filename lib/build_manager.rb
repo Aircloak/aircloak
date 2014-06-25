@@ -42,6 +42,6 @@ class BuildManager
     other_entities = all_entities_except(version.deployable_entity)
     all_versions = (find_right_versions other_entities) << version
     build_name = "testbuild [#{version.deployable_entity.repo}] - #{version.message}"
-    Build.new tpm: false, name: build_name, deployable_entity_versions: all_versions
+    Build.new name: build_name, deployable_entity_versions: all_versions
   end
 end

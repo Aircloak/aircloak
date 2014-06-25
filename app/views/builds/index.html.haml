@@ -5,7 +5,6 @@
 %table.table.table-striped
   %tr
     %th Name
-    %th Requires TPM
     %th Status
     %th
     %th
@@ -13,7 +12,6 @@
   - @builds.each do |build|
     %tr
       %td= build.name
-      %td= build.tpm
       %td= link_to build.status_message, build_path(build)
       %td
         - if build.can_destroy?

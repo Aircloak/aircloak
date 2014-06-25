@@ -15,10 +15,6 @@
       .controls
         = f.text_field :name
     .control-group
-      %label.control-label Use TPM?
-      .controls
-        = f.check_box :tpm
-    .control-group
       %label.control-label Build from
       .controlj
         %input{type: :radio, name: :from_develop, :'ng-model' => "from_branch", value: "true", checked: true} From develop branch

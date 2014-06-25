@@ -9,7 +9,7 @@ describe BuildVersionsAssigner do
       class DeployableEntity
       end
     end
-    
+
     begin DeployableEntityVersion
     rescue NameError
       class DeployableEntityVersion
@@ -27,7 +27,7 @@ describe BuildVersionsAssigner do
     {
       "utf8"=>"✓",
       "authenticity_token"=>"4MnSU5tTng97r+hiQ475eb6621cirgvv58uKQovvTco=",
-      "build"=>{"name"=>"asd", "tpm"=>"1"},
+      "build"=>{"name"=>"asd"},
       "build_versions"=>["1","2"],
       "commit"=>"Save",
       "action"=>"create",
@@ -39,7 +39,7 @@ describe BuildVersionsAssigner do
     {
       "utf8"=>"✓",
       "authenticity_token"=>"4MnSU5tTng97r+hiQ475eb6621cirgvv58uKQovvTco=",
-      "build"=>{"name"=>"asd", "tpm"=>"1"},
+      "build"=>{"name"=>"asd"},
       "build_versions"=>["1","2"],
       "commit"=>"Save",
       "action"=>"create",

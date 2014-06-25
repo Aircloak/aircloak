@@ -55,8 +55,7 @@ describe Cluster do
     c2.errors.messages[:name].should_not eq nil
   end
 
-  it "should only allow tpm cloaks for a tpm build" do
-    build.tpm = true
+  it "should only allow identical cloaks for a build" do
     build.save.should eq true
 
     c1 = Cloak.new(name: "cloak2", ip: "20.20.20.20")
@@ -64,33 +63,14 @@ describe Cluster do
     c1.save.should eq true
 
     cl = base_cluster name: "cluster1", build: build
-    cl.cloaks << c1
-    cl.save.should eq true
+    cl.assign_cloaks([c1]).should eq true
 
     c2 = Cloak.new(name: "cloak1", ip: "10.10.10.10")
     c2.tpm = false
     c2.save.should eq true
 
-    cl.cloaks << c2
-    cl.save.should eq false
+    cl.assign_cloaks([c1, c2]).should eq false
     cl.errors.messages[:cloaks].should_not eq nil
-  end
-
-  it "may allow any cloak type for a non-tpm build" do
-    build.tpm = false
-    build.save.should eq true
-
-    c1 = Cloak.new(name: "cloak1", ip: "10.10.10.10")
-    c1.tpm = false
-    c1.save.should eq true
-
-    c2 = Cloak.new(name: "cloak2", ip: "20.20.20.20")
-    c2.tpm = true
-    c2.save.should eq true
-
-    cl = base_cluster name: "cluster1", build: build
-    cl.cloaks << [c1, c2]
-    cl.save.should eq true
   end
 
   it "should know if a cluster is healthy" do
@@ -166,7 +146,7 @@ describe Cluster do
     let (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2", tpm: false) }
     let (:cloak3) { Cloak.create(name: "baz", ip: "3.3.3.3", tpm: false) }
     let (:cloak_tpm) { Cloak.create(name: "tpm", ip: "4.4.4.4.4", tpm: true) }
-    let (:build) { Build.create(name: "build", tpm: false) }
+    let (:build) { Build.create(name: "build") }
 
     it "should create a test cluster for a build" do
       cloak1; cloak2; cloak3 # Create the cloaks

@@ -44,6 +44,6 @@ private
   end
 
   def build_params
-    params.require(:build).permit(:name, :tpm)
+    params.require(:build).permit(:name)
   end
 end
