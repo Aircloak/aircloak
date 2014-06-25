@@ -5,6 +5,7 @@ image="<%=@cloak.cluster.build.name%>"
 image="base"
 build_url="http://build.aircloak.com/releases/<%=@cloak.cluster.build.id%>.tar.gz"
   <% end -%>
+tpm=<%=@cloak.cluster.tpm%>
 root_certificates="<%=@cloak.cluster.get_root_certificates%>"
 <% else -%>
 image="base"

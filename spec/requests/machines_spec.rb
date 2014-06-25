@@ -94,7 +94,7 @@ describe MachinesController do
 
     it "should return a file containing the build id and root certificates if the machine is part of a cluster" do
       build = double(id: 14, manual: false)
-      cluster = double(build: build)
+      cluster = double(build: build, tpm: true)
       cluster.stub(:get_root_certificates).and_return("CERTIFICATE")
       cloak = double(cluster: cluster)
       Cloak.stub(:find_by_ip).and_return(cloak)
@@ -103,6 +103,7 @@ describe MachinesController do
       response.body.should include("14")
       response.body.should include("CERTIFICATE")
       response.body.should include("image=\"base\"")
+      response.body.should include("tpm=true")
     end
 
     it "should return a file with a flag signifying that a aircloak specific build should not be performed for machines without clusters" do
@@ -111,6 +112,7 @@ describe MachinesController do
       get setup_info_machines_path
       response.status.should be(200)
       response.body.should include("image=\"base\"")
+      response.body.should_not include("tpm=")
       response.body.should_not include("build_url")
     end
   end
