@@ -17,7 +17,7 @@ class Build < ActiveRecord::Base
 
   validates_presence_of :name
   validates_uniqueness_of :name
-  validates_format_of :name, if: :manual, :with => /\A[a-zA-Z0-9-_\/]+\Z/, message: " is not valid for manual builds."
+  validates_format_of :name, if: :manual, :with => /\A[a-zA-Z0-9\-_\/]+\Z/, message: " is not valid for manual builds."
   validates_uniqueness_of :fingerprint, unless: :manual, message: "is not unique. " +
       "There exists another build with the same versions of the deployable entities"
 
