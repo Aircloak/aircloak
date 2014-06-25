@@ -15,20 +15,25 @@
       .controls
         = f.text_field :name
     .control-group
-      %label.control-label Build from
-      .controlj
-        %input{type: :radio, name: :from_develop, :'ng-model' => "from_branch", value: "true", checked: true} From develop branch
-        %br
-        %input{type: :radio, name: :from_develop, :'ng-model' => "from_branch", value: "false"} From commits
+      %label.control-label Manual build?
+      .controls
+        = f.check_box :manual, :'ng-model' => "manual", value: "true", checked: true
+    %div{:'ng-hide' => 'manual'}
+      .control-group
+        %label.control-label Build from
+        .controlj
+          %input{type: :radio, name: :from_develop, :'ng-model' => "from_branch", value: "true", checked: true} From develop branch
+          %br
+          %input{type: :radio, name: :from_develop, :'ng-model' => "from_branch", value: "false"} From commits
 
-    %div{:'ng-hide' => 'from_branch'}
-      %h2 Select versions of the deployable entities
+      %div{:'ng-hide' => 'from_branch'}
+        %h2 Select versions of the deployable entities
 
-      - DeployableEntity.all.each do |de|
-        .control-group
-          %label.control-label= de.repo
-          .controls
-            = select_tag "build_versions[]", options_for_select(de.select_tag_titles, @build.version_for_entity(de))
+        - DeployableEntity.all.each do |de|
+          .control-group
+            %label.control-label= de.repo
+            .controls
+              = select_tag "build_versions[]", options_for_select(de.select_tag_titles, @build.version_for_entity(de))
 
 
     .control-group
