@@ -4,7 +4,7 @@ class ResultHandler
   # Store the new sets of results
   def self.store_results task, proto
     # create a new result
-    new_result = Result.create(task: task, result_id: proto.result_id)
+    new_result = Result.create(task: task)
     # copy all properties as buckets
     create_buckets proto.buckets, new_result.id if proto.buckets
   end

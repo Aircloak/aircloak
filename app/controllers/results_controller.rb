@@ -12,7 +12,7 @@ class ResultsController < ApplicationController
 
   def show
     @task = Task.find(params[:id])
-    @results = Result.where(task: @task).order(result_id: :asc)
+    @results = @task.results
     buckets = Bucket.joins(:result).where(:results => {task_id: @task.id}).
         order(label: :asc, str_answer: :asc)
     @buckets = ResultsController.process_buckets buckets
@@ -53,7 +53,7 @@ private
     buckets.inject({}) do |bucket_table, bucket|
       name = bucket.display_name
       bucket_table[name] ||= {}
-      bucket_table[name][bucket.result.result_id] = bucket.display_result
+      bucket_table[name][bucket.result_id] = bucket.display_result
       bucket_table
     end
   end

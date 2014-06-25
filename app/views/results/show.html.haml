@@ -5,13 +5,13 @@
     %tr
       %th Bucket
       - @results.each do |result|
-        %th= result.result_id
+        %th= result.created_at
     - if @buckets
       - @buckets.each_pair do |name, bucket_results|
         %tr
           %td= name
           - @results.each do |result|
-            - r = bucket_results[result.result_id]
+            - r = bucket_results[result.id]
             %td= r ? r : "--"
 - else
   %p No results stored for this task.
