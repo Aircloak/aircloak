@@ -1,3 +1,0 @@
-%command{:id => @id}
-  - @updates.each do |update|
-    %file{:type => update.xml_type, :url => client_binary_url(update), :sha1 => update.sha1, :localName => update.xml_name}

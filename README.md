@@ -1,8 +1,6 @@
 Aircloak Web
 ============
 
-[![Code
-Climate](https://codeclimate.com/repos/52834e57c7f3a36f49049694/badges/b93de74f2a883ef1f819/gpa.png)](https://codeclimate.com/repos/52834e57c7f3a36f49049694/feed)
 [![Build
 Status](https://magnum.travis-ci.com/Aircloak/web.png?token=aFqD8qTNFV1Li4zdKtZw&branch=master)](https://magnum.travis-ci.com/Aircloak/web)
 
@@ -218,13 +216,14 @@ We require the following secrets:
 
 - the password used to unlock the private keys of analysts
 - an github OAuth token used by the web app to read meta data from github
+- a secret key base used for cookies
+
+All secrets need to be configured in `shared/config/settings.yml.local`
 
 #### Analyst private key password
 
 For background, please have a look at the [authentication](#authentication) section of this readme.
 The password is kept safe by @sebastian, but copies are also held by others on the team. If you don't hold a copy yourself for safe-keeping, please contact one of your team-members and ask for a copy, or ask them to upload it to the server.
-
-The `settings.local.yml` file can be found in the `shared/config` folder on the server.
 
 #### Github OAuth token
 
@@ -233,10 +232,14 @@ It is a github user that has read-only access to the repositories needed when de
 Please generate a fresh OAuth token per infrastructure machine, so we can invalidate them when needed, and don't need to store copies for safe-keeping.
 @sebastian controls the `aircloak-web` user, so please confer with him.
 
-The `settings.local.yml` file can be found in the `shared/config` folder.
-
 OAuth tokens can be generated on Github on the __settings__ > __applications__ page.
 
+#### Secret key base
+
+If this is the very first server you are setting up, please generate a random alphanumeric secret of
+at least 30 characters. If you are setting up a new server which shall operate in a cluster with existing
+servers, please re-use the secret from one of the other servers. Otherwise sessions will not be valid
+across multiple application servers!
 
 ## Testing
 

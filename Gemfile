@@ -5,23 +5,11 @@ ruby '2.0.0'
 gem 'rails', '~> 4.0.3' #, github: 'rails/rails'
 
 gem "haml", github: "haml/haml", branch: "stable"
-# gem 'd3-rails'
 
-gem "javaclass"
-# Ruby zip 1 has broken javaclass, so we need a version that is younger
-gem 'rubyzip', '< 1.0.0'
-
+# Ruby protobuf compiler
 gem 'beefcake'
 
-# Used in migrations views
-gem "rails-backbone", :github => "codebrew/backbone-rails", tag: "v1.1.0"
-gem 'handlebars_assets'
-
 gem 'rest-client'
-
-# We use this gem to sign the
-# update commands for the client apps
-gem "sshkeyauth"
 
 # We use this for interacting with the github api
 gem "github_api"
@@ -40,7 +28,6 @@ group :development, :test do
 end
 
 group :test do
-  gem "codeclimate-test-reporter", require: nil
   gem 'rake'
   gem 'vcr'
 end
@@ -87,7 +74,8 @@ gem 'unicorn'
 gem 'authlogic'
 gem 'declarative_authorization'
 
-gem 'angularjs-rails'
+gem "rails-backbone", :github => "codebrew/backbone-rails", tag: "v1.1.0"
 gem 'underscore-rails'
-
+gem 'handlebars_assets'
+gem 'angularjs-rails'
 gem 'codemirror-rails'
