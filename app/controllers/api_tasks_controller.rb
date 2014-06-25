@@ -4,7 +4,7 @@ class ApiTasksController < ApplicationController
   filter_access_to [:execute_as_batch_task], require: :anon_write
   filter_access_to [:show, :get_result, :get_latest_result_id], require: :anon_read
   skip_before_action :verify_authenticity_token
-  before_filter :assign_task, only: [:get_result, :execute_as_batch_task, :get_latest_result_id]
+  before_filter :assign_task, only: [:execute_as_batch_task, :get_latest_result_id]
   layout false
 
   # GET /api/tasks/:id
@@ -18,7 +18,7 @@ class ApiTasksController < ApplicationController
 
   # GET /api/tasks/:id/results/:result
   def get_result
-    result = Result.where(task_id: @task.id, result_id: params[:result]).limit(1).first
+    result = Result.find(params[:result])
     raise ActiveRecord::RecordNotFound unless result
     send_data result.to_result_proto.encode.buf, type: "application/x-protobuf"
   rescue ActiveRecord::RecordNotFound
@@ -34,15 +34,13 @@ class ApiTasksController < ApplicationController
   end
 
   # GET /api/tasks/:id/latest_result_id
-  # Returns the latest result id that was produced by
-  # cloak-core. The results from cloak-core might arrive
-  # out of order. If they do, this method will always return
-  # the one produced the latest by cloak-core, which it has
-  # received.
+  # Returns the latest result id that has been received
+  # by the web.
+  # If results are received out of order, the result id
+  # might not actually be the youngest one.
   def get_latest_result_id
-    ids = []
-    result = Result.where(task_id: @task.id).order("results.result_id DESC").limit(1).first
-    ids << result.result_id if result
+    result = Result.where(task_id: @task.id).last
+    ids = result ? [result.id] : []
     pb = ResultsPB.new result_ids: ids
     send_data pb.encode.buf, type: "application/x-protobuf"
   rescue ActiveRecord::RecordNotFound
