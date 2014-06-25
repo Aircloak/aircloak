@@ -39,8 +39,7 @@ describe "ApiTasksController" do
 
     def result args = {}
       Result.create(
-        task: args.delete(:task) || task,
-        result_id: args.delete(:result_id) || 1234
+        task: args.delete(:task) || task
       )
     end
 
@@ -60,14 +59,14 @@ describe "ApiTasksController" do
         ResultsPB.decode(response.body).result_ids.should eq nil
       end
 
-      it "should return the list with the greatest result id" do
+      it "should return the list with the id of the last stored result" do
         t = task
-        r1 = result task: t, result_id: 2
-        r2 = result task: t, result_id: 1
+        r1 = result task: t
+        r2 = result task: t
         Result.count.should eq 2
         get latest_result_id_api_task_path(t.id)
         response.status.should eq 200
-        ResultsPB.decode(response.body).result_ids.should eq [r1.result_id]
+        ResultsPB.decode(response.body).result_ids.should eq [r2.id]
       end
     end
 
@@ -101,7 +100,7 @@ describe "ApiTasksController" do
         Result.count.should eq 1
         get api_task_path(task.id)
         response.status.should eq 200
-        ResultsPB.decode(response.body).result_ids.should eq [r.result_id]
+        ResultsPB.decode(response.body).result_ids.should eq [r.id]
       end
     end
 
@@ -126,10 +125,10 @@ describe "ApiTasksController" do
         Result.count.should eq 1
         bucket = Bucket.new(result: r, label: "label", accumulated_count: 1)
         bucket.save.should eq true
-        get "/api/tasks/#{task.id}/results/#{r.result_id}"
+        get "/api/tasks/#{task.id}/results/#{r.id}"
         response.status.should eq 200
         rp = ResultPB.decode(response.body)
-        rp.result_id.should eq r.result_id
+        rp.task_id.should eq task.id.to_s
         rp.buckets.size.should eq 1
         rp.buckets.first.label.should eq "label"
         rp.buckets.first.string.should eq nil

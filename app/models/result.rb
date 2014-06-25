@@ -6,7 +6,6 @@ class Result < ActiveRecord::Base
 
   def to_result_proto
     bs = buckets.map(&:to_bucket_proto)
-    ResultPB.new(analyst_id: task.analyst, task_id: task.id, index: task.index, result_id: result_id,
-        buckets: bs, exceptions: [])
+    ResultPB.new(analyst_id: task.analyst, task_id: task.id, index: task.index, buckets: bs, exceptions: [])
   end
 end
