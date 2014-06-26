@@ -7,5 +7,4 @@
 # no regular words or you'll be exposed to dictionary attacks.
 # You can use `rake secret` to generate a secure secret key.
 
-raise "secret_key_base is missing from settings.local.yml" unless Rails.configuration.secret_key_base
 Web::Application.config.secret_key_base = Rails.configuration.secret_key_base
