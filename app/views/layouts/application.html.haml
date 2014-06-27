@@ -52,6 +52,21 @@
                         %ul.dropdown-menu
                           %li= link_to "Users", users_path if permitted_to? :manage, :users
                           %li= link_to "Permissions", permissions_path if permitted_to? :manage, :permissions
+                      -# Impersontation (one of the three unforgivable curses :|)
+                      %li.dropdown
+                        %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"}
+                          - if current_user.analyst
+                            = "Impersonating #{current_user.analyst.name}"
+                          - else
+                            Impersonation
+                          %b.caret
+                        %ul.dropdown-menu
+                          - if current_user.analyst
+                            %li= link_to "Stop impersonating #{current_user.analyst.name}",
+                                "/i_dont_want_to_be_an_imposter"
+                          - Analyst.all.each do |analyst|
+                            - unless current_user.analyst && current_user.analyst == analyst
+                              %li= link_to "#{analyst.name}", "/impersonate/#{analyst.id}"
 
                 %ul.nav.pull-right
                   - if current_user

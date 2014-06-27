@@ -55,6 +55,7 @@ authorization do
                        :authorization_usages], :to => :read
     has_permission_on [:deployable_entity_versions,
                        :builds], to: :reset
+    has_permission_on [:impersonation], to: [:impersonate, :stop_it]
   end
 end
 
