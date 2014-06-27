@@ -2,15 +2,25 @@ require './lib/migrator'
 
 class TablesController < ApplicationController
   before_action :set_previous_migration
-  before_action :set_table, only: [:new, :create, :edit, :update, :destroy, :retry_migration]
+  before_action :load_table, only: [:new, :create, :edit, :update, :destroy, :retry_migration]
   before_action :validate_no_pending_migrations, only: [:edit, :update, :destroy]
 
   def index
-    @clusters = Cluster.ready_clusters
+    @clusters = current_user.ready_clusters
+    @has_tables = false
+    @tables = @clusters.inject({}) do |memo, cluster|
+      tables = AnalystTable.live_for_cluster(cluster, current_user.analyst)
+      if tables != []
+        @has_tables = true
+        memo[cluster.id] = tables
+      end
+      memo
+    end
   end
 
   def create
     @table = AnalystTable.from_params params
+    @table.analyst = current_user.analyst
     migration = AnalystTableMigration.from_params params
     if Migrator.migrate @table, migration
       flash[:notice] = "Table created"
@@ -107,17 +117,16 @@ class TablesController < ApplicationController
     redirect_to tables_path
   end
 
-
 private
   def set_previous_migration
     @previous_migration = "{}"
   end
 
-  def set_table
+  def load_table
     if params[:id]
-      @table = AnalystTable.find params[:id]
+      @table = current_user.analyst.analyst_tables.find params[:id]
     else
-      @table = AnalystTable.new
+      @table = current_user.analyst.analyst_tables.new
     end
     @table_data = @table.table_data
   end

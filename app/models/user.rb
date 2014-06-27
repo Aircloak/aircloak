@@ -12,4 +12,8 @@ class User < ActiveRecord::Base
     permission_symbols << :inquirer if analyst
     permission_symbols
   end
+
+  def ready_clusters
+    Cluster.ready_clusters(self.analyst)
+  end
 end

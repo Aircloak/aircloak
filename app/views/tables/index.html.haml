@@ -2,7 +2,7 @@
 
 %hr
 
-- if @clusters.inject(0) {|a,c| a + AnalystTable.live_for_cluster(c).count} == 0
+- unless @has_tables
   %strong No tables exist yet
 - else
   - @clusters.each do |cluster|
@@ -14,15 +14,19 @@
           %th Name
           %th
       %tbody
-      - AnalystTable.live_for_cluster(cluster).each do |table|
-        %tr
-          %td= table.table_name
-          %td
-            - if table.pending_migrations?
-              pending migration
-              = link_to 'Retry', retry_migration_table_path(table), method: :post, class: "btn btn-mini"
-            - else
-              = link_to 'Edit', edit_table_path(table), class: "btn btn-mini"
-              = link_to 'Drop table', table_path(table), :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
+        - if @tables[cluster.id]
+          - @tables[cluster.id].each do |table|
+            %tr
+              %td= table.table_name
+              %td
+                - if table.pending_migrations?
+                  pending migration
+                  = link_to 'Retry', retry_migration_table_path(table), method: :post, class: "btn btn-mini"
+                - else
+                  = link_to 'Edit', edit_table_path(table), class: "btn btn-mini"
+                  = link_to 'Drop table', table_path(table), :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
+        - else
+          %tr
+            %td{colspan: 2}= "No tables in #{cluster.name} cluster"
 
 = link_to "Create table", new_table_path, class: "btn btn-mini"

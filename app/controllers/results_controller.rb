@@ -4,14 +4,14 @@ require './lib/result_handler'
 class ResultsController < ApplicationController
   filter_access_to :create, require: :anon_write
   protect_from_forgery :except => :create
+  before_filter :load_task, only: :show
   around_action :validate_auth_token, only: :create
 
   def index
-    @tasks = Task.all
+    @tasks = current_user.analyst.tasks
   end
 
   def show
-    @task = Task.find(params[:id])
     @results = @task.results
     buckets = Bucket.joins(:result).where(:results => {task_id: @task.id}).
         order(label: :asc, str_answer: :asc)
@@ -35,11 +35,6 @@ class ResultsController < ApplicationController
     render text: "Got it buddy, thanks", layout: false
   end
 
-  def destroy
-    Property.find(params[:id]).destroy
-    redirect_to results_path
-  end
-
 private
   def validate_auth_token
     auth_token = request.headers["QueryAuthToken"]
@@ -51,5 +46,9 @@ private
     end
   ensure
     @pending_result.destroy unless @pending_result.blank?
+  end
+
+  def load_task
+    @task = current_user.analyst.tasks.find params[:id]
   end
 end

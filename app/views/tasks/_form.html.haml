@@ -17,7 +17,7 @@
     .control-group
       %label.control-label Belongs to cluster
       .controls
-        = f.select :cluster_id, Cluster.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
+        = f.select :cluster_id, current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
     .control-group
       %label.control-label Prefetch
       .controls

@@ -9,6 +9,7 @@ class Task < ActiveRecord::Base
   has_many :exception_results, dependent: :destroy
 
   belongs_to :cluster
+  belongs_to :analyst
 
   validates_presence_of :name, :sandbox_type, :prefetch, :code, :cluster
   validates_uniqueness_of :name

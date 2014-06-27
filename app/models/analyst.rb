@@ -2,6 +2,12 @@ require './lib/token_generator'
 
 class Analyst < ActiveRecord::Base
   has_and_belongs_to_many :clusters
+  has_many :tasks
+  has_many :analyst_tables
+  has_many :results
+
+  has_many :analysts_clusters
+  has_and_belongs_to_many :clusters
 
   validates_presence_of :name
 

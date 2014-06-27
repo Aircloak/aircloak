@@ -29,7 +29,7 @@
   .control-group
     %label.control-label In cluster
     .controls
-      = select_tag :cluster_id, options_from_collection_for_select(Cluster.ready_clusters, :id, :name)
+      = select_tag :cluster_id, options_from_collection_for_select(current_user.ready_clusters, :id, :name)
 
   %textarea#table_json.hidden{name: :table_json}
   %textarea#migration.hidden{name: :migration}

@@ -9,6 +9,7 @@ class Cluster < ActiveRecord::Base
   # A cluster that is used for an automated test of a commit will have a
   # version_test instance. For all other clusters this will be nil
   has_one :version_test
+  has_many :analysts_clusters
   has_and_belongs_to_many :analysts
   belongs_to :build
 
@@ -82,10 +83,12 @@ class Cluster < ActiveRecord::Base
     version_test.mark_cluster_as_ready
   end
 
-  def self.ready_clusters
-    clusters = ClusterCloak.where(raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).map(&:cluster)
-    sorted_cluster = clusters.sort { |a, b| a.name <=> b.name }
-    sorted_cluster.uniq { |cluster| cluster.name }
+  def self.ready_clusters analyst
+    params = {
+      analyst_id: analyst.id,
+      raw_state: ClusterCloak.state_to_raw_state(:belongs_to)
+    }
+    Cluster.joins(:analysts_clusters, :cluster_cloaks).where("cluster_cloaks.raw_state = :raw_state and analysts_clusters.cluster_id = clusters.id and analysts_clusters.analyst_id = :analyst_id", params).order(:name)
   end
 
   def ready?
