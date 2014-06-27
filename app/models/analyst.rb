@@ -16,9 +16,19 @@ class Analyst < ActiveRecord::Base
 
 private
   def create_token
-    self.key, self.certificate = TokenGenerator.generate_root_token("analyst", self.id)
+    create_analyst_token
+    create_inquirer_token
     save
     true
+  end
+
+  def create_analyst_token
+    self.key, self.certificate = TokenGenerator.generate_root_token "analyst", self.id
+  end
+
+  def create_inquirer_token
+    self.inquirer_key, self.inquirer_cert =
+        TokenGenerator.generate_leaf_token self.key, self.certificate, "inquirer", self.id
   end
 
   def can_destroy
