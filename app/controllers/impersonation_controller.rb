@@ -9,6 +9,6 @@ class ImpersonationController < ApplicationController
     analyst = current_user.analyst
     current_user.analyst = nil
     current_user.save
-    redirect_to request.referer, notice: "No longer impersonating #{analyst.name}"
+    redirect_to "/", notice: "No longer impersonating #{analyst.name}"
   end
 end
