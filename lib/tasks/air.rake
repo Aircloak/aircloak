@@ -15,28 +15,32 @@ namespace :air do
   }
 
   desc "Recreates test tables for users, and inserts dummy users into the database"
-  task :recreate_test_users, [:cluster_id, :num_users] => :environment do |t, args|
-    if args.count != 2 || args[:cluster_id].nil? || args[:num_users].nil?
+  task :recreate_test_users, [:analyst_id, :cluster_id, :num_users] => :environment do |t, args|
+    if args.count != 3 || args[:analyst_id].nil? || args[:cluster_id].nil? || args[:num_users].nil?
       abort <<-eos.gsub(/^ +/, '')
 
-        bundle exec rake air:recreate_test_users[cluster_id,num_users]
+        bundle exec rake air:recreate_test_users[analyst_id,cluster_id,num_users]
 
-        Example: bundle exec rake air:recreate_test_users[1,1000]
+        Example: bundle exec rake air:recreate_test_users[1,1,1000]
         Note: don't use spaces inside square brackets
 
       eos
     end
 
     srand
-    drop_tables(args[:cluster_id].to_i)
-    create_tables(args[:cluster_id].to_i)
-    create_users(args[:cluster_id].to_i, args[:num_users].to_i)
+    analyst_id = args[:analyst_id].to_i
+    cluster_id = args[:cluster_id].to_i
+    num_users = args[:num_users].to_i
+
+    drop_tables(analyst_id, cluster_id)
+    create_tables(analyst_id, cluster_id)
+    create_users(analyst_id, cluster_id, num_users)
   end
 
   private
-    def drop_tables(cluster_id)
+    def drop_tables(analyst_id, cluster_id)
       TestTables.keys.each do |table_name|
-        table = analyst_table(cluster_id, table_name)
+        table = analyst_table(analyst_id, cluster_id, table_name)
         return if table.nil?
 
         if Migrator.migrate table, AnalystTableMigration.drop_migration(table_name)
@@ -49,11 +53,16 @@ namespace :air do
       end
     end
 
-    def create_tables(cluster_id)
+    def create_tables(analyst_id, cluster_id)
       TestTables.each do |table_name, table_spec|
-        table =
-          analyst_table(cluster_id, table_name) ||
-          AnalystTable.from_params(cluster_id: cluster_id, table_name: table_name)
+        table = analyst_table(analyst_id, cluster_id, table_name)
+        unless table
+          params = {
+            cluster_id: cluster_id,
+            table_name: table_name
+          }
+          table = AnalystTable.from_params analyst_id, params
+        end
 
         migration = AnalystTableMigration.from_params(
           table_json: table_spec[:columns].to_json,
@@ -72,13 +81,14 @@ namespace :air do
       end
     end
 
-    def analyst_table(cluster_id, table_name)
-      tables = AnalystTable.where(cluster_id: cluster_id, table_name: table_name)
+    def analyst_table(analyst_id, cluster_id, table_name)
+      tables = AnalystTable.where(analyst_id: analyst_id, cluster_id: cluster_id, table_name: table_name)
       tables.length == 1 ? tables[0] : nil
     end
 
-    def create_users(cluster_id, num_users)
+    def create_users(analyst_id, cluster_id, num_users)
       cluster = Cluster.find(cluster_id)
+      analyst = Analyst.find(analyst_id)
       (1..num_users).each do |index|
         print "\rInserting users (#{(100.0*index/num_users).round} %)"
         STDOUT.flush
@@ -87,7 +97,7 @@ namespace :air do
         insert_data = TestTables.keys.inject({}) do |memo, table_name|
           memo.merge(table_name => [TestTables[table_name][:generate].call(user_id)])
         end
-        JsonSender.post cluster, "insert", insert_data.to_json, user: user_id
+        JsonSender.post analyst, cluster, "insert", insert_data.to_json, user: user_id
       end
       puts "\nDone!\n\n"
     end

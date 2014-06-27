@@ -80,6 +80,7 @@ class Task < ActiveRecord::Base
     if url
       pr = PendingResult.create(task: self)
       response = JsonSender.post(
+        analyst,
         cluster,
         "task/run",
         {prefetch: JSON.parse(prefetch), post_processing: {code: code}}.to_json,

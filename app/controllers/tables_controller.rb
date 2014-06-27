@@ -19,8 +19,7 @@ class TablesController < ApplicationController
   end
 
   def create
-    @table = AnalystTable.from_params params
-    @table.analyst = current_user.analyst
+    @table = AnalystTable.from_params current_user.analyst.id, params
     migration = AnalystTableMigration.from_params params
     if Migrator.migrate @table, migration
       flash[:notice] = "Table created"
