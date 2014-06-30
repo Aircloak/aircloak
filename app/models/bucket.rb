@@ -30,6 +30,10 @@ class Bucket < ActiveRecord::Base
     BucketPB.new(label: label, string: str_answer, accumulated_count: accumulated_count)
   end
 
+  def self.delete_for_task task
+    Bucket.join(:result).where(results: {task_id: task.id}).delete_all
+  end
+
 private
   def display_name_str_answer
     str_answer ? ": #{str_answer}" : ""

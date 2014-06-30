@@ -36,8 +36,7 @@ class Task < ActiveRecord::Base
   # loading all the data, running all the validations
   # and callbacks, etc
   def efficient_delete
-    Bucket.connection.execute "DELETE FROM buckets WHERE result_id IN (SELECT id FROM results WHERE task_id = #{self.id})"
-    Result.connection.execute "DELETE FROM results WHERE task_id = #{self.id}"
+    Result.delete_for_task self
     destroy
   end
 
