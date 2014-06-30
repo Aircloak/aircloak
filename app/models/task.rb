@@ -41,10 +41,6 @@ class Task < ActiveRecord::Base
     destroy
   end
 
-  def analyst
-    1 # TODO(#110): Change to real id of analyst when we start introducing that
-  end
-
   def index
     "all_users"
   end

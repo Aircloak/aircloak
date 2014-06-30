@@ -13,6 +13,7 @@ describe "ApiTasksController" do
     BuildManager.stub(:send_build_request)
     Result.destroy_all
     Bucket.destroy_all
+    Analyst.destroy_all
   end
 
   let! (:cloak) { Cloak.create(name: "cloak", ip: "1.1.1.1") }
@@ -25,6 +26,8 @@ describe "ApiTasksController" do
       cloak.cluster_cloak.save.should eq true
     end
 
+    let (:analyst) { Analyst.create name: "test-analyst" }
+
     let (:task) do
       Task.create(
         name: "task",
@@ -33,7 +36,8 @@ describe "ApiTasksController" do
         code: "foo",
         update_task: false,
         stored_task: false,
-        sandbox_type: "sandbox"
+        sandbox_type: "sandbox",
+        analyst: analyst
       )
     end
 
@@ -118,7 +122,7 @@ describe "ApiTasksController" do
         response.status.should eq 404
       end
 
-      it "should return the the known result" do
+      it "should return the known result" do
         task
         Task.count.should eq 1
         r = result

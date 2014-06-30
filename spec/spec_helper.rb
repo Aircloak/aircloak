@@ -8,6 +8,9 @@ require './spec/slim_helpers.rb'
 require 'declarative_authorization/maintenance'
 include Authorization::TestHelper
 
+require "authlogic/test_case"
+include Authlogic::TestCase
+
 # Requires supporting ruby files with custom matchers and macros, etc,
 # in spec/support/ and its subdirectories.
 Dir[Rails.root.join("spec/support/**/*.rb")].each { |f| require f }
@@ -24,4 +27,12 @@ RSpec.configure do |config|
   # For example:
   # config.seed = 1234
   config.order = "random"
+end
+
+def log_in(user, password)
+  user.should_not be_nil
+  session = UserSession.create! login: user.login, password: password
+  session.should be_valid
+  session.save
+  cookies['user_credentials'] = "#{user.persistence_token}::#{user.send(user.class.primary_key)}"
 end
