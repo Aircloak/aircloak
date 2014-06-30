@@ -3,9 +3,9 @@ class ApplicationController < ActionController::Base
   helper_method :current_user_session, :current_user
 
   filter_access_to :all
-  
+
   before_filter :set_current_user
-  
+
   # Prevent CSRF attacks by raising an exception.
   # For APIs, you may want to use :null_session instead.
   protect_from_forgery with: :exception
@@ -33,12 +33,12 @@ private
     return @current_user_session if defined?(@current_user_session)
     @current_user_session = UserSession.find
   end
-  
+
   def current_user
     return @current_user if defined?(@current_user)
     @current_user = current_user_session && current_user_session.record
   end
-  
+
   def require_user
     unless current_user
       store_location
@@ -56,11 +56,11 @@ private
       return false
     end
   end
-  
+
   def store_location
     session[:return_to] = full_url
   end
-  
+
   def redirect_back_or_default(default)
     redirect_to(session[:return_to] || default)
     session[:return_to] = nil

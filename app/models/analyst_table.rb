@@ -1,27 +1,23 @@
 class AnalystTable < ActiveRecord::Base
   belongs_to :cluster
+  belongs_to :analyst
   has_many :analyst_table_migrations, dependent: :destroy
 
   validates_presence_of :table_name, :cluster
+  validates_uniqueness_of :table_name, scope: [:cluster_id, :analyst_id]
 
-  # FIXME(#256): As soon as we have proper analyst id's in the system,
-  # we should ensure that the uniqueness constraint is on the
-  # (table_name, analyst_id) pair instead of
-  # (table_name, cluster_id)
-  validates_uniqueness_of :table_name, scope: :cluster_id
-
-  def self.live_for_cluster cluster
-    cluster.analyst_tables.where(deleted: false)
+  def self.live_for_cluster cluster, analyst
+    cluster.analyst_tables.where(deleted: false, analyst: analyst)
   end
 
-  def self.from_params params
-    existing_table = AnalystTable.where(table_name: params[:table_name], deleted: true).first
+  def self.from_params analyst_id, params
+    existing_table = AnalystTable.where(table_name: params[:table_name], deleted: true, analyst_id: analyst_id).first
     table = if existing_table
       existing_table.deleted = false
       existing_table.pending_delete = false
       existing_table
     else
-      AnalystTable.new
+      AnalystTable.new(analyst_id: analyst_id)
     end
 
     table.cluster = Cluster.find params[:cluster_id] unless table.cluster

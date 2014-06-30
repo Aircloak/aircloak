@@ -75,5 +75,8 @@ Web::Application.routes.draw do
 
   resources :metrics
 
+  get "impersonate/:analyst_id", to: "impersonation#impersonate"
+  get "i_dont_want_to_be_an_imposter", to: "impersonation#stop_it"
+
   root to: 'welcome#index'
 end

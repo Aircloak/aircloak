@@ -5,6 +5,7 @@ class ResultHandler
   def self.store_results task, proto
     # create a new result
     new_result = Result.create(task: task)
+    new_result.analyst = task.analyst
     # copy all properties as buckets
     create_buckets proto.buckets, new_result.id if proto.buckets
   end

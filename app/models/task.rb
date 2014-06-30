@@ -9,6 +9,7 @@ class Task < ActiveRecord::Base
   has_many :exception_results, dependent: :destroy
 
   belongs_to :cluster
+  belongs_to :analyst
 
   validates_presence_of :name, :sandbox_type, :prefetch, :code, :cluster
   validates_uniqueness_of :name
@@ -35,13 +36,8 @@ class Task < ActiveRecord::Base
   # loading all the data, running all the validations
   # and callbacks, etc
   def efficient_delete
-    Bucket.connection.execute "DELETE FROM buckets WHERE result_id IN (SELECT id FROM results WHERE task_id = #{self.id})"
-    Result.connection.execute "DELETE FROM results WHERE task_id = #{self.id}"
+    Result.delete_for_task self
     destroy
-  end
-
-  def analyst
-    1 # TODO(#110): Change to real id of analyst when we start introducing that
   end
 
   def index
@@ -79,6 +75,7 @@ class Task < ActiveRecord::Base
     if url
       pr = PendingResult.create(task: self)
       response = JsonSender.post(
+        analyst,
         cluster,
         "task/run",
         {prefetch: JSON.parse(prefetch), post_processing: {code: code}}.to_json,

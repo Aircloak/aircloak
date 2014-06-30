@@ -363,10 +363,12 @@ First, you need to configure your cloak to send results to your local air. You n
 Then, you need to create some random users and data. There is a rake task for this:
 
 1. Make sure you have cloak and cluster entries in your air database.
-1. Start local cloak, and wait for riak_kv to become available (~ 10 sec)
-1. From the command line run `bundle exec rake air:recreate_test_users[1,1000]`. This will generate
-   a thousand of users in the cluster with ID=1 (use different ID if needed). If test tables exist on the
-   cloak, they will be recreated prior to data insertion. See `air.rake` for details about generated tables.
+1. Start local cloak
+1. From the command line run `bundle exec rake air:recreate_test_users[1,2,1000]`. This will generate
+   a thousand of users in the cluster with ID=2 (use different ID if needed)
+   on behalf of the analyst with ID=1.
+   If test tables exist on the cloak, they will be recreated prior to data insertion.
+   See `air.rake` for details about generated tables.
 
 Data insertion only needs to be done once.
 

@@ -2,11 +2,30 @@ require 'spec_helper'
 require './lib/proto/air/aggregate_results.pb'
 
 describe "ResultsController" do
+  setup :activate_authlogic
+
+  before(:each) do
+    Task.destroy_all
+    Analyst.destroy_all
+    User.destroy_all
+  end
+
+  let (:analyst) { Analyst.create name: "TestAnalyst" }
+  let (:user) do
+    User.create(
+      password: "password",
+      password_confirmation: "password",
+      login: "test-user",
+      email: "test@example.com",
+      analyst: analyst
+    )
+  end
+
   describe "POST /results" do
     it "should persist new properties upon receiving them from the cloak" do
-      Task.destroy_all
-      t = Task.new
+      t = user.analyst.tasks.new
       t.stub(:upload_stored_task)
+      t.analyst = user.analyst
       t.save validate: false
 
       # We need a valid pending result in order to get through
@@ -29,10 +48,12 @@ describe "ResultsController" do
                      accumulated_count: 30)
       ]
       rp = ResultPB.new(
-        analyst_id: 1, task_id: Task.encode_id(t.id), index: "index", buckets: buckets, result_id: 12
+        analyst_id: user.analyst.id, task_id: Task.encode_id(t.id), index: "index", buckets: buckets
       )
 
-      post "/results", rp.encode.buf
+      with_user user do
+        post "/results", rp.encode.buf
+      end
 
       Result.count.should eq(1)
       Bucket.count.should eq(2)

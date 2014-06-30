@@ -1,9 +1,10 @@
 class TasksController < ApplicationController
   filter_access_to :execute_as_batch_task, require: :manage
-  before_action :set_task, only: [:edit, :update, :destroy, :execute_as_batch_task]
+  before_filter :load_task, only: [:edit, :update, :destroy, :execute_as_batch_task]
 
   # GET /tasks
   def index
+    @tasks = current_user.analyst.tasks
   end
 
   # GET /tasks/:id/edit
@@ -12,12 +13,12 @@ class TasksController < ApplicationController
 
   # GET /tasks/new
   def new
-    @task = Task.new()
+    @task = current_user.analyst.tasks.new
   end
 
   # POST /tasks
   def create
-    @task = Task.new(task_params)
+    @task = current_user.analyst.tasks.new task_params
     @task.sandbox_type = "lua"
     @task.update_task = false
     @task.stored_task = false
@@ -51,8 +52,8 @@ class TasksController < ApplicationController
   end
 
 private
-  def set_task
-    @task = Task.find(params[:id])
+  def load_task
+    @task = current_user.analyst.tasks.find params[:id]
   end
 
   def task_params
