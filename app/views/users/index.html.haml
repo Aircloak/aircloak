@@ -5,8 +5,8 @@
     %tr
       %th Login
       %th Email
-      %th Permissions
       - if current_user.admin?
+        %th Permissions
         %th On behalf of
       %th Last login
       %th Member since
@@ -20,12 +20,12 @@
       %tr
         %td= user.login
         %td= user.email
-        %td
-          - if user.permissions.count == 0
-            No permissions
-          - else
-            = user.role_symbols.map(&:to_s).map(&:humanize).join(", ")
         - if current_user.admin?
+          %td
+            - if user.role_symbols.count == 0
+              No permissions
+            - else
+              = user.role_symbols.map(&:to_s).map(&:humanize).join(", ")
           %td= user.on_behalf_of
         %td= user.last_login_at
         %td= time_ago_in_words user.created_at

@@ -3,9 +3,6 @@ authorization do
     has_permission_on :welcome, to: :index
     has_permission_on :get_latest, to: :show
     has_permission_on :user_sessions, to: [:new, :create, :destroy]
-    has_permission_on :users, to: [:show, :create, :update] do
-      if_attribute :user => is {user}
-    end
     has_permission_on [
       :machines,
       :cluster_lists,
@@ -23,8 +20,12 @@ authorization do
     ], to: :anon_write
   end
 
+  role :user_manager do
+    has_permission_on [:users], to: :manage
+  end
+
   role :inquirer do
-    includes :guest
+    includes [:guest, :user_manager]
     has_permission_on [
       :tasks,
       :results,
@@ -33,11 +34,10 @@ authorization do
   end
 
   role :admin do
-    includes [:guest, :inquirer]
+    includes [:guest, :inquirer, :user_manager]
     has_permission_on [
       :tasks,
       :results,
-      :users,
       :deployable_entities,
       :deployable_entity_versions,
       :builds,

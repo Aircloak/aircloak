@@ -5,6 +5,7 @@ class Analyst < ActiveRecord::Base
   has_many :tasks
   has_many :analyst_tables
   has_many :results
+  has_many :users
 
   has_many :analysts_clusters
   has_and_belongs_to_many :clusters
@@ -13,6 +14,10 @@ class Analyst < ActiveRecord::Base
 
   after_create :create_token, :unless => :key
   before_destroy :can_destroy
+
+  def self.analyst_options
+    [["None", "none"]] + Analyst.all.map {|a| [a.name, a.id]}
+  end
 
 private
   def create_token

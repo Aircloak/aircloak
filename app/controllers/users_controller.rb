@@ -1,9 +1,13 @@
 class UsersController < ApplicationController
-  before_filter :require_no_user, only: [:create]
   before_filter :require_user, only: [:index, :show, :edit, :update]
+  before_filter :load_user, only: [:show, :edit, :update, :destroy]
 
   def index
-    @users = User.all
+    @users = if current_user.admin?
+      User.all
+    else
+      current_user.analyst.users
+    end
   end
 
   def new
@@ -11,9 +15,16 @@ class UsersController < ApplicationController
   end
 
   def create
-    @user = User.new(user_params)
+    @user = if current_user.admin?
+      user = User.new user_params
+      analyst_id = params[:user][:analyst_id]
+      user.analyst = Analyst.find analyst_id if analyst_id != "none"
+      user
+    else
+      current_user.analyst.users.new user_params
+    end
+
     if @user.save
-      UserSession.create(@user)
       flash[:notice] = "Account registered"
       if permitted_to? :read, :users
         redirect_back_or_default users_path
@@ -25,16 +36,7 @@ class UsersController < ApplicationController
     end
   end
 
-  def show
-    @user = current_user
-  end
-
-  def edit
-    @user = user_to_edit
-  end
-
   def update
-    @user = user_to_edit
     if @user.update_attributes(user_params)
       flash[:notice] = "Account updated"
       if permitted_to? :read, :users
@@ -48,21 +50,24 @@ class UsersController < ApplicationController
   end
 
   def destroy
-    user = User.find(params[:id])
-    user.destroy
-    redirect_to users_path, notice: "User #{user.login} was removed from the system"
+    @user.destroy
+    redirect_to users_path, notice: "User #{@user.login} was removed from the system"
   end
 
 private
   def user_params
-    params.require(:user).permit(:email, :login, :password, :password_confirmation, {permission_ids: []})
+    if current_user.admin?
+      params.require(:user).permit(:email, :login, :password, :password_confirmation, {permission_ids: []})
+    else
+      params.require(:user).permit(:email, :login, :password, :password_confirmation)
+    end
   end
 
-  def user_to_edit
-    if permitted_to? :manage, :users
-      @user = User.find(params[:id])
+  def load_user
+    if current_user.admin?
+      @user = User.find params[:id]
     else
-      @user = current_user
+      @user = current_user.analyst.users.find params[:id]
     end
   end
 end
