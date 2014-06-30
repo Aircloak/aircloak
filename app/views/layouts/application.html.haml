@@ -52,7 +52,7 @@
                         %ul.dropdown-menu
                           %li= link_to "Users", users_path if permitted_to? :manage, :users
                           %li= link_to "Permissions", permissions_path if permitted_to? :manage, :permissions
-                      -# Impersontation (one of the three unforgivable curses :|)
+                      -# Impersonation (one of the three unforgivable curses :|)
                       %li.dropdown
                         %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"}
                           - if current_user.analyst
