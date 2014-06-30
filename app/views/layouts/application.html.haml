@@ -61,12 +61,15 @@
                             Impersonation
                           %b.caret
                         %ul.dropdown-menu
-                          - if current_user.analyst
-                            %li= link_to "Stop impersonating #{current_user.analyst.name}",
-                                "/i_dont_want_to_be_an_imposter"
-                          - Analyst.all.each do |analyst|
-                            - unless current_user.analyst && current_user.analyst == analyst
-                              %li= link_to "#{analyst.name}", "/impersonate/#{analyst.id}"
+                          - if Analyst.count == 0
+                            %li= link_to "Add an analyst", new_analyst_path
+                          - else
+                            - Analyst.all.each do |analyst|
+                              - if current_user.analyst && current_user.analyst == analyst
+                                %li= link_to "Stop impersonating #{current_user.analyst.name}",
+                                    "/i_dont_want_to_be_an_imposter"
+                              - else
+                                %li= link_to "#{analyst.name}", "/impersonate/#{analyst.id}"
 
                 %ul.nav.pull-right
                   - if current_user
