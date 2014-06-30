@@ -88,7 +88,11 @@ class Cluster < ActiveRecord::Base
       analyst_id: analyst.id,
       raw_state: ClusterCloak.state_to_raw_state(:belongs_to)
     }
-    Cluster.joins(:analysts_clusters, :cluster_cloaks).where("cluster_cloaks.raw_state = :raw_state and analysts_clusters.cluster_id = clusters.id and analysts_clusters.analyst_id = :analyst_id", params).order(:name)
+    Cluster.joins(:analysts_clusters, :cluster_cloaks)
+        .where("cluster_cloaks.raw_state = :raw_state and " +
+            "analysts_clusters.cluster_id = clusters.id and " +
+            "analysts_clusters.analyst_id = :analyst_id", params)
+        .order(:name)
   end
 
   def ready?
