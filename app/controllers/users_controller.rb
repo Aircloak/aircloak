@@ -20,7 +20,7 @@ class UsersController < ApplicationController
       else
         redirect_back_or_default root_path
       end
-    else 
+    else
       render action: 'new'
     end
   end
