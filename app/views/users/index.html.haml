@@ -6,13 +6,15 @@
       %th Login
       %th Email
       %th Permissions
+      - if current_user.admin?
+        %th On behalf of
       %th Last login
       %th Member since
       %th Last updated
       - if permitted_to? :update, :users
-        %th 
+        %th
       - if permitted_to? :delete, :users
-        %th 
+        %th
   %tbody
     - @users.each do |user|
       %tr
@@ -22,7 +24,9 @@
           - if user.permissions.count == 0
             No permissions
           - else
-            = user.permissions.map(&:name).map(&:humanize).join(", ")
+            = user.role_symbols.map(&:to_s).map(&:humanize).join(", ")
+        - if current_user.admin?
+          %td= user.on_behalf_of
         %td= user.last_login_at
         %td= time_ago_in_words user.created_at
         %td= time_ago_in_words user.updated_at

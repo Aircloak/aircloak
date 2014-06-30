@@ -13,6 +13,21 @@ class User < ActiveRecord::Base
     permission_symbols
   end
 
+  def admin?
+    role_symbols.include? :admin
+  end
+
+  def on_behalf_of
+    entities = []
+    entities << "Aircloak" if role_symbols.include? :admin
+    entities << analyst.name if analyst
+    if entities == []
+      "No affiliation"
+    else
+      entities.join ", "
+    end
+  end
+
   def ready_clusters
     Cluster.ready_clusters(self.analyst)
   end
