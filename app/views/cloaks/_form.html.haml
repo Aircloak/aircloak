@@ -20,10 +20,13 @@
       %label.checkbox
         = f.check_box :tpm
         Has a TPM
-  .control-group
-    %label.control-label Good
-    .controls
-      = f.check_box :good
+      %span.help-block All cloaks used in production clusters are required to have a TPM
   .control-group
     .controls
-      = f.submit 'Save', class: "btn"
+      %label.checkbox
+        = f.check_box :good
+        In a good state
+      %span.help-block Whether the cloak is in a good, consistent and usable state, or not
+  .control-group
+    .controls
+      = f.submit 'Save', class: "btn btn-success"
