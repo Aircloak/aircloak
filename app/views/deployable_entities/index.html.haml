@@ -2,26 +2,28 @@
 %p These are the applications and configuration entities that we deploy as part of cloak clusters.
 
 %table.table.table-striped
-  %tr
-    %th Repo
-    %th Description
-    %th # versions
-    %th Status
-    %th
-    %th
-
-  - @deployable_entities.each do |deployable_entity|
+  %thead
     %tr
-      %td= deployable_entity.repo
-      %td= deployable_entity.description
-      %td= link_to deployable_entity.commits.count, deployable_entity_deployable_entity_versions_path(deployable_entity)
-      %td= deployable_entity.status
-      %td= link_to 'Edit', edit_deployable_entity_path(deployable_entity)
-      %td 
-        - if deployable_entity.can_destroy?
-          = link_to 'Destroy', deployable_entity, :method => :delete, :data => { :confirm => 'Are you sure?' }
-        - else
-          Part of active build
+      %th Repo
+      %th Description
+      %th # versions
+      %th Status
+      %th
+      %th
+
+  %tbody
+    - @deployable_entities.each do |deployable_entity|
+      %tr
+        %td= deployable_entity.repo
+        %td= deployable_entity.description
+        %td= link_to deployable_entity.commits.count, deployable_entity_deployable_entity_versions_path(deployable_entity)
+        %td= deployable_entity.status
+        %td= link_to 'Edit', edit_deployable_entity_path(deployable_entity)
+        %td
+          - if deployable_entity.can_destroy?
+            = link_to 'Destroy', deployable_entity, :method => :delete, :data => { :confirm => 'Are you sure?' }
+          - else
+            Part of active build
 
 %br
 

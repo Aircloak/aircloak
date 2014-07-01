@@ -1,17 +1,19 @@
-%h1 
-  Build 
+%h1
+  Build
   = @build.name
 
 = button_to "Restart build", reset_build_path(@build), :class => "btn btn-danger"
 
 %table.table.table-striped
-  %tr
-    %th Deployable entity version
-    %th Commit id
-    %th Status
-
-  - @build.deployable_entity_versions.each do |dev|
+  %thead
     %tr
-      %td= dev.deployable_entity.repo
-      %td= dev.commit_id
-      %td= link_to dev.status, deployable_entity_deployable_entity_version_path(dev.deployable_entity, dev)
+      %th Deployable entity version
+      %th Commit id
+      %th Status
+
+  %tbody
+    - @build.deployable_entity_versions.each do |dev|
+      %tr
+        %td= dev.deployable_entity.repo
+        %td= dev.commit_id
+        %td= link_to dev.status, deployable_entity_deployable_entity_version_path(dev.deployable_entity, dev)

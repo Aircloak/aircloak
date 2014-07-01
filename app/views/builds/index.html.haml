@@ -3,28 +3,30 @@
 = link_to 'Add a new build', new_build_path
 
 %table.table.table-striped
-  %tr
-    %th Name
-    %th Status
-    %th
-    %th
-
-  - @builds.each do |build|
+  %thead
     %tr
-      %td= build.name
-      %td
-        - if build.manual
-          Manual
-        - else
-          = link_to build.status_message, build_path(build)
-      %td
-        - if build.can_destroy?
-          = link_to 'Destroy', build_path(build), :method => :delete, :data => { :confirm => 'Are you sure?' }
-        - else
-          Currently used by a cluster or version test
-      %td
-        - if ! build.manual
-          = button_to "Rebuild", reset_build_path(build), :class => "btn btn-danger btn-mini"
+      %th Name
+      %th Status
+      %th
+      %th
+
+  %tbody
+    - @builds.each do |build|
+      %tr
+        %td= build.name
+        %td
+          - if build.manual
+            Manual
+          - else
+            = link_to build.status_message, build_path(build)
+        %td
+          - if build.can_destroy?
+            = link_to 'Destroy', build_path(build), :method => :delete, :data => { :confirm => 'Are you sure?' }
+          - else
+            Currently used by a cluster or version test
+        %td
+          - if ! build.manual
+            = button_to "Rebuild", reset_build_path(build), :class => "btn btn-danger btn-mini"
 
 %br
 

@@ -2,16 +2,18 @@
 
 - if @results.count > 0
   %table.table.table-striped
-    %tr
-      %th Bucket
-      - @results.each do |result|
-        %th= result.created_at
+    %thead
+      %tr
+        %th Bucket
+        - @results.each do |result|
+          %th= result.created_at
     - if @buckets
-      - @buckets.each_pair do |name, bucket_results|
-        %tr
-          %td= name
-          - @results.each do |result|
-            - r = bucket_results[result.id]
-            %td= r ? r : "--"
+      %tbody
+        - @buckets.each_pair do |name, bucket_results|
+          %tr
+            %td= name
+            - @results.each do |result|
+              - r = bucket_results[result.id]
+              %td= r ? r : "--"
 - else
   %p No results stored for this task.
