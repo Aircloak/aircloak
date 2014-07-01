@@ -93,6 +93,7 @@ class Cluster < ActiveRecord::Base
             "analysts_clusters.cluster_id = clusters.id and " +
             "analysts_clusters.analyst_id = :analyst_id", params)
         .order(:name)
+        .uniq
   end
 
   def ready?
