@@ -51,8 +51,8 @@ class User < ActiveRecord::Base
   def new_user_from_params params, analyst_id
     if admin?
       new_user = User.new params
-      user.analyst = Analyst.find analyst_id if analyst_id != "none"
-      user
+      new_user.analyst = Analyst.find analyst_id if analyst_id != "none"
+      new_user
     else
       analyst.users.new params
     end
