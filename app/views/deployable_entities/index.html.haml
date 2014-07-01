@@ -12,6 +12,9 @@
       %th
 
   %tbody
+    - if @deployable_entities.count == 0
+      %tr
+        %td{colspan: 6} No deployable entities added
     - @deployable_entities.each do |deployable_entity|
       %tr
         %td= deployable_entity.repo

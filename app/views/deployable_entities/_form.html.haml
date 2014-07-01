@@ -1,4 +1,4 @@
-= form_for @deployable_entity do |f|
+= form_for @deployable_entity, html: {class: "form-horizontal"} do |f|
   - if @deployable_entity.errors.any?
     #error_explanation
       %h2= "#{pluralize(@deployable_entity.errors.count, "error")} prohibited this cloak from being saved:"

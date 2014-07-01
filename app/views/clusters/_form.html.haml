@@ -1,4 +1,4 @@
-= form_for @cluster do |f|
+= form_for @cluster, html: {class: "form-horizontal"} do |f|
   - if @cluster.errors.any?
     #error_explanation
       %h2= "#{pluralize(@cluster.errors.count, "error")} prohibited this cluster from being saved:"
@@ -8,29 +8,30 @@
 
   .control-group
     %label.control-label Name
-    %span.help-block The cluster name is also used for naming logs on the log server. Please keep it sensible.
     .controls
       = f.text_field :name
+      %span.help-block The cluster name is also used for naming logs on the log server. Please keep it sensible.
 
+  .control-group
     %label.control-label Build ID
     .controls
       = f.select :build_id, Build.all.map {|build| [build.name, build.id]}
 
-  %h2 Cloaks (choose any number with matching TPM)
+  .control-group
+    %label.control-label Cloaks
+    .controls
+      - @cluster.available_cloaks.each do |cloak|
+        %label.checkbox
+          = check_box_tag "cloak_selections[]", cloak.id, cloak.cluster == @cluster && cloak.cluster_cloak.state != :to_be_removed
+          = cloak.display_name
 
-  %ul
-    - @cluster.available_cloaks.each do |cloak|
-      %li
-        = check_box_tag "cloak_selections[]", cloak.id, cloak.cluster == @cluster && cloak.cluster_cloak.state != :to_be_removed
-        = cloak.display_name
-
-  %h2 Analysts
-
-  %ul
-    - Analyst.all.each do |analyst|
-      %li
-        = check_box_tag "analyst_selections[]", analyst.id, @cluster.analysts.include?(analyst)
-        = analyst.name
+  .control-group
+    %label.control-label Analysts
+    .controls
+      - Analyst.all.each do |analyst|
+        %label.checkbox
+          = check_box_tag "analyst_selections[]", analyst.id, @cluster.analysts.include?(analyst)
+          = analyst.name
 
   .control-group
     .controls

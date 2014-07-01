@@ -11,6 +11,9 @@
       %th
 
   %tbody
+    - if @deployable_entity.commits.count == 0
+      %tr
+        %td{colspan: 6} Currently no version registered
     - @deployable_entity.commits.reverse.each do |commit|
       %tr
         %td= commit.short_commit_id
