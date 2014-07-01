@@ -3,11 +3,7 @@ class UsersController < ApplicationController
   before_filter :load_user, only: [:show, :edit, :update, :destroy]
 
   def index
-    @users = if current_user.admin?
-      User.all
-    else
-      current_user.analyst.users
-    end
+    @users = current_user.managed_users
   end
 
   def new
@@ -15,14 +11,7 @@ class UsersController < ApplicationController
   end
 
   def create
-    @user = if current_user.admin?
-      user = User.new user_params
-      analyst_id = params[:user][:analyst_id]
-      user.analyst = Analyst.find analyst_id if analyst_id != "none"
-      user
-    else
-      current_user.analyst.users.new user_params
-    end
+    @user = current_user.new_user_from_params user_params, params[:user][:analyst]
 
     if @user.save
       flash[:notice] = "Account registered"
@@ -64,10 +53,6 @@ private
   end
 
   def load_user
-    if current_user.admin?
-      @user = User.find params[:id]
-    else
-      @user = current_user.analyst.users.find params[:id]
-    end
+    @user = current_user.scoped_find params[:id]
   end
 end

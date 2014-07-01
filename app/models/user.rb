@@ -28,6 +28,32 @@ class User < ActiveRecord::Base
     end
   end
 
+  def managed_users
+    if admin?
+      User.all
+    else
+      analyst.users
+    end
+  end
+
+  def new_user_from_params params, analyst_id
+    if admin?
+      new_user = User.new params
+      user.analyst = Analyst.find analyst_id if analyst_id != "none"
+      user
+    else
+      analyst.users.new params
+    end
+  end
+
+  def scoped_find id
+    if admin?
+      User.find id
+    else
+      analyst.users.find id
+    end
+  end
+
   def ready_clusters
     Cluster.ready_clusters(self.analyst)
   end
