@@ -22,10 +22,10 @@
         %td= user.email
         - if current_user.admin?
           %td
-            - if user.role_symbols.count == 0
-              No permissions
-            - else
+            - if user.has_permissions?
               = user.role_symbols.map(&:to_s).map(&:humanize).join(", ")
+            - else
+              No permissions
           %td= user.on_behalf_of
         %td= user.last_login_at
         %td= time_ago_in_words user.created_at

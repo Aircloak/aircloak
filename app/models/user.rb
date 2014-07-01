@@ -17,6 +17,10 @@ class User < ActiveRecord::Base
     role_symbols.include? :admin
   end
 
+  def has_permissions?
+    role_symbols.count != 0
+  end
+
   def on_behalf_of
     entities = []
     entities << "Aircloak" if role_symbols.include? :admin
