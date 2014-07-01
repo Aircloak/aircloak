@@ -7,6 +7,10 @@ class User < ActiveRecord::Base
     crypto_provider = Authlogic::CryptoProviders::BCrypt
   end
 
+  def roles
+    role_symbols.map(&:to_s).map(&:humanize).join(", ")
+  end
+
   def role_symbols
     permission_symbols = permissions.map(&:name).map(&:to_sym)
     permission_symbols << :inquirer if analyst
@@ -15,6 +19,10 @@ class User < ActiveRecord::Base
 
   def admin?
     role_symbols.include? :admin
+  end
+
+  def inquirer?
+    role_symbols.include? :inquirer
   end
 
   def has_permissions?

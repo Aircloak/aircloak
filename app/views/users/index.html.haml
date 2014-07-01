@@ -23,7 +23,7 @@
         - if current_user.admin?
           %td
             - if user.has_permissions?
-              = user.role_symbols.map(&:to_s).map(&:humanize).join(", ")
+              = user.roles
             - else
               No permissions
           %td= user.on_behalf_of
