@@ -4,8 +4,8 @@ class ExceptionResult < ActiveRecord::Base
   def self.create_from_proto task_id, analyst_id, exception
     er = where(task_id: task_id, analyst_id: analyst_id, stacktrace: exception.stackEntry)
     if er
-      if not exception.accumulation_count.blank?
-        er.count = er.count + exception.accumulation_count
+      if not exception.accumulated_count.blank?
+        er.count = er.count + exception.accumulated_count
         er.save
       end
     else
@@ -13,7 +13,7 @@ class ExceptionResult < ActiveRecord::Base
         task_id: task_id,
         analyst_id: analyst_id,
         stacktrace: exception.stackEntry,
-        count: exception.accumulation_count.blank? ?  0 : exception.accumulation_count
+        count: exception.accumulated_count.blank? ?  0 : exception.accumulated_count
       )
     end
   end
