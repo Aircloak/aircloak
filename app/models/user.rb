@@ -29,6 +29,10 @@ class User < ActiveRecord::Base
     role_symbols.count != 0
   end
 
+  def has_multiple_clusters?
+    analyst.clusters.count > 1
+  end
+
   def on_behalf_of
     entities = []
     entities << "Aircloak" if role_symbols.include? :admin
