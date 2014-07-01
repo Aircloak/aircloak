@@ -72,6 +72,10 @@ private
   end
 
   def set_layout
-    self.class.layout "analyst" if current_user.analyst != nil
+    if current_user && current_user.analyst != nil
+      self.class.layout "analyst"
+    else
+      self.class.layout "application"
+    end
   end
 end
