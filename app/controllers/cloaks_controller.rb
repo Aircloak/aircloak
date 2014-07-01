@@ -54,6 +54,6 @@ class CloaksController < ApplicationController
     end
 
     def cloak_params
-      params.require(:cloak).permit(:name, :ip, :tpm)
+      params.require(:cloak).permit(:name, :ip, :tpm, :good)
     end
 end
