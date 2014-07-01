@@ -6,7 +6,7 @@
   %strong No tables exist yet
 - else
   - @clusters.each do |cluster|
-    %h2= cluster.name
+    %h2= cluster.name if current_user.has_multiple_clusters?
 
     %table.table.table-striped
       %thead
@@ -29,4 +29,4 @@
           %tr
             %td{colspan: 2}= "No tables in #{cluster.name} cluster"
 
-= link_to "Create table", new_table_path, class: "btn btn-mini"
+= link_to "Create table", new_table_path, class: "btn"

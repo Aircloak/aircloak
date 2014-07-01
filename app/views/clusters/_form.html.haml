@@ -20,10 +20,14 @@
   .control-group
     %label.control-label Cloaks
     .controls
-      - @cluster.available_cloaks.each do |cloak|
+      - if @cluster.available_cloaks.count == 0
         %label.checkbox
-          = check_box_tag "cloak_selections[]", cloak.id, cloak.cluster == @cluster && cloak.cluster_cloak.state != :to_be_removed
-          = cloak.display_name
+          No cloaks available
+      - else
+        - @cluster.available_cloaks.each do |cloak|
+          %label.checkbox
+            = check_box_tag "cloak_selections[]", cloak.id, cloak.cluster == @cluster && cloak.cluster_cloak.state != :to_be_removed
+            = cloak.display_name
 
   .control-group
     %label.control-label Analysts
@@ -35,4 +39,4 @@
 
   .control-group
     .controls
-      = f.submit 'Save', class: "btn"
+      = f.submit 'Create cluster', class: "btn"

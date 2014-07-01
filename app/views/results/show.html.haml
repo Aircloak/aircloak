@@ -1,5 +1,13 @@
 %h1= @task.name
 
+%p
+  Below are the current results for
+  = "#{@task.name}."
+  To get more results, execute the task again.
+= link_to 'Run task', execute_as_batch_task_task_path(@task), method: "post", class: "btn"
+
+%hr
+
 - if @results.count > 0
   %table.table.table-striped
     %thead

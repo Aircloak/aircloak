@@ -9,7 +9,6 @@
       %th # versions
       %th Status
       %th
-      %th
 
   %tbody
     - if @deployable_entities.count == 0
@@ -21,13 +20,14 @@
         %td= deployable_entity.description
         %td= link_to deployable_entity.commits.count, deployable_entity_deployable_entity_versions_path(deployable_entity)
         %td= deployable_entity.status
-        %td= link_to 'Edit', edit_deployable_entity_path(deployable_entity)
         %td
+          = link_to 'Edit', edit_deployable_entity_path(deployable_entity), class: "btn btn-mini"
           - if deployable_entity.can_destroy?
-            = link_to 'Destroy', deployable_entity, :method => :delete, :data => { :confirm => 'Are you sure?' }
+            = link_to 'Destroy', deployable_entity, :method => :delete, :data => { :confirm => 'Are you sure?' },
+                class: "btn btn-mini btn-danger"
           - else
-            Part of active build
+            Cannot destroy while part of active build
 
 %br
 
-= link_to 'Add a new entity', new_deployable_entity_path
+= link_to 'Add a new entity', new_deployable_entity_path, class: "btn"

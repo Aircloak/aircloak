@@ -19,6 +19,9 @@
         %label.control-label Belongs to cluster
         .controls
           = f.select :cluster_id, current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
+    - else
+      = hidden_field_tag "task[cluster_id]", current_user.ready_clusters.first.id
+
     .control-group
       %label.control-label Prefetch
       .controls
