@@ -11,7 +11,7 @@ class UsersController < ApplicationController
   end
 
   def create
-    @user = current_user.new_user_from_params user_params, params[:user][:analyst]
+    @user = current_user.new_user_from_params user_params, params[:user][:analyst_id]
 
     if @user.save
       flash[:notice] = "Account registered"
