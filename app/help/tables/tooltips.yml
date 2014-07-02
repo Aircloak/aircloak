@@ -1,0 +1,144 @@
+# The tooltips are structured in the following way:
+#
+#   tool_tip_name1:
+#     content: tooltip
+#   tool_tip_name2:
+#     content: |
+#       Multiline markdown
+#       ==hurray==
+#     placement: top | bottom | left | right (default: bottom)
+#     markdown: true (default: false)
+
+table_name:
+  content: |
+    The table will be used as the database table name in the cloak cluster,
+    in tasks that refer to data in the table, as well as in the web interface.
+
+    The name must be a valid SQL table name.
+    It can contain characters `a-z`, integer numbers `0-9`, and an
+    underscore `_`.
+    The name should start with a character.
+  markdown: true
+  placement: bottom
+in_cluster:
+  content: |
+    When creating a new table you are able to choose which cluster the table
+    should be created in.
+
+    Only tasks running on the same cluster as your table has been created on
+    will have access to the data in it.
+    It is not possible to migrate a table from one cluster to another.
+  markdown: true
+save_button_new:
+  content: |
+    Clicking on the __save__ button will create the table in your
+    cluster. If the operation fails, you will be directed back to this
+    form and provided an explanation what went wrong so you can correct it.
+
+    If the button is __disabled__, it most likely is because you have not yet
+    created any columns in the table.
+  markdown: true
+  placement: bottom
+save_button_edit:
+  content: |
+    Clicking on the __save__ button will permanently alter the table in your
+    cluster. If the operation fails change will be made, and you will be
+    directed back to this form and provided an explanation what went wrong.
+
+    If the button is __disabled__, it most likely is because you have not yet
+    made any changes that could be applied to the table in the cluster.
+    Try adding or removing a few columns.
+cancel_button_new:
+  content: |
+    Clicking this button will discard this table.
+    No table will be created in the cluster.
+  markdown: true
+cancel_button_edit:
+  content: |
+    Clicking this button will abort any changes to the
+    table that you were in the process of making.
+    No changes will be made to the tables in the cluster, meaning
+    any data you have already stored in the table should still be
+    intact.
+  markdown: true
+column_form_column_name:
+  content: |
+    The column name is the name used for the column in the
+    database table inside the cloak cluster.
+
+    The name should be a valid SQL name.
+    It can contain characters `a-z`, integer numbers `0-9`, and an
+    underscore `_`.
+
+    The name used for the column also determines the input format
+    of your input JSON you send to the cloak.
+
+    For example if you create a table called `locations` with a
+    column `x` of type integer and a column `y` of type integer,
+    then your input data could look like:
+
+    ```json
+    {"locations": [{"x": 123, "y": 456}]}
+    ```
+
+    Likewise, the names you give your columns also is the name by
+    which you later refer to the data in tasks.
+  markdown: true
+
+column_form_data_type:
+  content: |
+    The column data type affects what value can later be stored
+    in a column.
+
+    If a cloak receives data for a column that does not match the
+    specified column data type, it will reject the data outright.
+  markdown: true
+column_form_constraints:
+  content: |
+    The constraints are a mechanism to ensure that the consistency
+    of your dataset in the cloak is high.
+
+    If you have set the `NOT NULL`-constraint and do not include
+    a the particular field when uploading a data item to a cloak,
+    the complete dataset being uploaded will be rejected.
+
+    The `UNIQUE`-constraint is across __all entries__ in a particular
+    table, and not for an individual user.
+    If the constraint does not hold, the insert operation will
+    fail for the particular user whose data was uploaded.
+    If data for other users was uploaded simultaneously as part
+    of a batch data upload operation, the data for the other
+    users will still be persisted.
+
+    NOTES TO EDITOR:
+
+    1. Should the uniqueness constraint maybe be
+       tied to the individual user, rather than the table?
+    1. We only detect a failure to adhere to the uniqueness constraint
+       when actually attempting to insert the data, and not at validation
+       time. We can therefore not give the uploading client any feedback,
+       at least we certainly are not at the moment.
+  markdown: true
+index_table_buttons:
+  markdown: true
+  placement: bottom
+  content: |
+    There are two actions you can perform on tables:
+
+    1. Edit
+    1. Drop
+
+    ##### Edit
+    Clicking on the __Edit__ table button, brings you
+    to a table manager where you can add or remove columns
+    from the tables in the database.
+    No action that cannot be reverted is performed until
+    you click on __Save__ to save the table changes in the
+    table editor.
+
+    ##### Drop
+    Clicking on the __Drop table__-button immediately drops
+    the table from the machine cluster. __All__ data stored
+    in the cluster __will be deleted permanently__.
+    Please make sure you truly want to delete the table
+    before clicking the __drop table__ button

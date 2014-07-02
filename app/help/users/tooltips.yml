@@ -1,0 +1,25 @@
+# The tooltips are structured in the following way:
+#
+#   tool_tip_name1:
+#     content: tooltip
+#   tool_tip_name2:
+#     content: |
+#       Multiline markdown
+#       ==hurray==
+#     placement: top | bottom | left | right (default: bottom)
+#     markdown: true (default: false)
+
+login:
+  content: The username that will be used when logging in as this user.
+email:
+  content: The email address associated with the users account.
+password:
+  content: |
+    The password should be at least 4 characters long and protects
+    a user account from un-authorized access.
+
+    If a third party gains access to a user account, that third party
+    can delete results from this web system, and completely destroy
+    all data stored in the cloak clusters the user account has access
+    to. __Please store the password safely__.
+  markdown: true

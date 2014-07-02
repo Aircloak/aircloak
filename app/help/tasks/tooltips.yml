@@ -1,0 +1,116 @@
+# The tooltips are structured in the following way:
+#
+#   tool_tip_name1:
+#     content: tooltip
+#   tool_tip_name2:
+#     content: |
+#       Multiline markdown
+#       ==hurray==
+#     placement: top | bottom | left | right (default: bottom)
+#     markdown: true (default: false)
+
+name:
+  content: |
+    The task name is only used internally in the
+    web system to refer to the task.
+
+    Please choose a name that is meaningful to you.
+
+    This value can be changed at a later time if need be.
+  markdown: true
+  placement: bottom
+cluster_select:
+  content: |
+    Since you have multiple clusters, you will need
+    to choose for which one of them the task is made.
+
+    This value can be changed at a later time if need be.
+  markdown: true
+data:
+  content: |
+    Each task computes over some data in order to determine
+    what values should be reported.
+
+    In this section you choose which tables should be made
+    available to the task.
+
+    You can also specify conditions that need to hold for the
+    data. Assuming you had a `location`'s table with an `x` and
+    a `y` column, you could specify that you only want locations
+    where the `x` parameter is between 100 and 200.
+
+    Limiting the data selected as much as you possibly can
+    will make the tasks faster to execute. This is especially
+    important if the task is going to be frequently run.
+  markdown: true
+code:
+  content: |
+    The task's are written in Lua.
+    A task is executed over a single individual user in the system
+    at a time.
+
+    When run it has access to the data that was specified in the
+    data selector above. It is made available through a variable
+    named `tables`.
+
+    If you had a `locations`-table with `x` and `y` columns,
+    then you would have locations records available to you as
+    `tables.locations`.
+
+    To iterate over all locations, you would write:
+
+    ```lua
+    for i = 0, #tables.locations do
+      -- some operation
+    end
+    ```
+
+    In order to report a value about the individual user
+    that is being computed over, use `report_property(PropertyName, Value)`.
+  markdown: true
+cluster_table_header:
+  content: |
+    Each task belongs to a cluster.
+    When clicking the `Run task`-button in the button menu,
+    the task will be executed in the respective cluster's
+    listed below.
+  markdown: true
+stored_results_table_header:
+  content: |
+    When a task is run it receives results back from the
+    cluster on which the task was run.
+
+    This column shows how many stored results a particular
+    task has.
+
+    You can click on the number to be taken directly to the
+    results, or alternatively you can also click the
+    `Results for task`-button to the right.
+  markdown: true
+buttons_table_header:
+  content: |
+    There are several actions that can be performed on a task.
+
+    ##### Results
+    Clicking the `Results for task`-button brings you to a page
+    with the results we have stored from previous invocations
+    of a task.
+
+    ##### Run task
+    Clicking the `Run task`-button will schedule the task
+    for execution in it's cluster.
+    Once the execution is complete, the results will be displayed
+    under the `Results` page.
+
+    ##### Edit task
+    If you have discovered that a task had a bug, or the questions
+    you want to ask was wrongly formulated, you can edit an existing task.
+
+    ##### Destroy task
+    Destroying a task will completely remove it from the system.
+    All results from previous executions on the cluster will also
+    be deleted.
+    Please make sure you really want to remove a task and it's results
+    before clicking this button.
+  placement: left
+  markdown: true
