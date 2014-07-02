@@ -12,9 +12,13 @@ Tasks.Editor = (tables, operators) ->
   view = null
 
   render = ->
+    data.selectClusterId(selectedClusterId())
     $("#prefetchTables").html(HandlebarsTemplates["tasks/prefetch_tables"](data))
     showHideAddTable()
     self
+
+  selectedClusterId = ->
+    parseInt($('#task_cluster_id').val())
 
   initCodeEditor = ->
     CodeMirror.fromTextArea(document.getElementById("task_code"), {
@@ -62,6 +66,7 @@ Tasks.Editor = (tables, operators) ->
 
   decodePrefetch = (tables) ->
     data = new Tasks.Data(tables)
+    data.selectClusterId(selectedClusterId())
     json = $("#task_data").val()
     return if json == ""
     data.fromJson(json)
@@ -75,6 +80,7 @@ Tasks.Editor = (tables, operators) ->
     el: "#taskEditor",
     render: render,
     events:
+      "change #task_cluster_id": render
       "change #newTableName": showHideAddTable
       "click #addTable": addTable
       "click [data-remove-table]": removeTable

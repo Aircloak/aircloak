@@ -73,8 +73,15 @@ private
     raise TasksControllerException.new("not a registered analyst") if current_user.analyst.nil?
     @tables_json =
       current_user.analyst.analyst_tables.
-        map {|table| {id: table.id, name: table.table_name, columns: JSON.parse(table.table_data)}}.
-        to_json
+          map do |table|
+            {
+              id: table.id,
+              name: table.table_name,
+              columns: JSON.parse(table.table_data),
+              cluster_id: table.cluster_id
+            }
+          end.
+          to_json
   end
 
   def task_params
