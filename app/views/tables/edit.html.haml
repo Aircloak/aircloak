@@ -22,12 +22,16 @@
           %li= msg
 
   .control-group
-    %label.control-label Table name
+    %label.control-label
+      Table name
+      = help_tooltip "table_name"
     .controls
       %input#table_name.disabled{type: :text, value: @table.table_name, disabled: true}
 
   .control-group
-    %label.control-label In cluster
+    %label.control-label
+      In cluster
+      = help_tooltip "in_cluster"
     .controls
       %input#table_name.disabled{type: :text, value: @table.cluster.name, disabled: true}
 
@@ -40,9 +44,12 @@
     .controls
       Once you are happy with the changes and colums as listed below,
       = submit_tag 'save changes', :class => "btn btn-success submit-btn disabled"
+      = help_tooltip "save_button_edit"
       , or if you prefer you can
       = link_to "cancel", tables_path, class: "btn"
+      = help_tooltip "cancel_button_edit"
 
 = render 'columns'
 
 = link_to "Back", tables_path, class: "btn"
+= help_tooltip "cancel_button_edit"

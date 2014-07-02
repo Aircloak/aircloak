@@ -6,9 +6,13 @@
       %tr
         %th Name
         - if current_user.has_multiple_clusters?
-          %th Cluster
-        %th Stored Results
+          %th
+            Cluster
+            = help_tooltip "cluster_table_header"
         %th
+          Stored Results
+          = help_tooltip "stored_results_table_header"
+        %th= help_tooltip "buttons_table_header"
     %tbody
     - @tasks.each do |task|
       %tr
