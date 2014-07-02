@@ -1,0 +1,15 @@
+<select data-filter-input data-field="column">
+  <option value="">-- select column --</option>
+  {{#each table.columns}}
+    <option value={{name}}>{{name}}</option>
+  {{/each}}
+</select>
+
+<select data-filter-input data-field="operator">
+  <option value="">-- select operator --</option>
+  {{#each operators}}
+    <option value={{.}}>{{.}}</option>
+  {{/each}}
+</select>
+
+<input data-filter-input type="text" data-field="value"/>

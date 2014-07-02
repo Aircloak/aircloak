@@ -1,6 +1,9 @@
+class TasksControllerException < Exception; end
+
 class TasksController < ApplicationController
   filter_access_to :execute_as_batch_task, require: :manage
-  before_filter :load_task, only: [:edit, :update, :destroy, :execute_as_batch_task]
+  before_action :load_task, only: [:edit, :update, :destroy, :execute_as_batch_task]
+  before_action :set_tables_json, only: [:edit, :new]
 
   # GET /tasks
   def index
@@ -18,13 +21,20 @@ class TasksController < ApplicationController
 
   # POST /tasks
   def create
-    @task = current_user.analyst.tasks.new task_params
+    # We need to create the empty task first, so it is connected to
+    # the analyst...
+    @task = current_user.analyst.tasks.new
+    # ...only then can we validate some values (e.g. data), so we use
+    # manual mass assignment here.
+    @task.attributes = task_params
+
     @task.sandbox_type = "lua"
     @task.update_task = false
     @task.stored_task = false
     if @task.save
       redirect_to tasks_path, notice: 'Task was successfully created.'
     else
+      set_tables_json
       render action: 'new'
     end
   end
@@ -35,6 +45,7 @@ class TasksController < ApplicationController
     if @task.update(task_params)
       redirect_to tasks_path, notice: 'Task was successfully updated.'
     else
+      set_tables_json
       render action: 'edit'
     end
   end
@@ -56,7 +67,17 @@ private
     @task = current_user.analyst.tasks.find params[:id]
   end
 
+  def set_tables_json
+    return if require_user == false
+
+    raise TasksControllerException.new("not a registered analyst") if current_user.analyst.nil?
+    @tables_json =
+      current_user.analyst.analyst_tables.
+        map {|table| {id: table.id, name: table.table_name, columns: JSON.parse(table.table_data)}}.
+        to_json
+  end
+
   def task_params
-    params.require(:task).permit(:name, :cluster_id, :payload_identifier, :prefetch, :code)
+    params.require(:task).permit(:name, :cluster_id, :payload_identifier, :data, :code)
   end
 end

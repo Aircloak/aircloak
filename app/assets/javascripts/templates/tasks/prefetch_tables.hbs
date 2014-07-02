@@ -1,0 +1,31 @@
+{{#with tableFilters}}
+  {{#if ./length}}
+    <div class="task-filters">
+      <table>
+        {{#each .}}
+          <tr>
+            <td class="table-filter-link">
+              <a href="#" data-edit-filter data-table-index="{{@index}}" class="btn btn-small">
+                {{filterString}}
+              </a>
+            </td>
+            <td>
+              <a href="#" data-remove-table data-table-index="{{@index}}" class="btn btn-small btn-warning">
+                remove
+              </a>
+            </td>
+          </tr>
+        {{/each}}
+      </table>
+    </div>
+    <br/>
+  {{/if}}
+{{/with}}
+
+<select id="newTableName">
+  <option value="-1">-- select table --</option>
+  {{#each availableTables}}
+    <option value="{{id}}">{{name}}</option>
+  {{/each}}
+</select>
+<a href="#" id="addTable" class="btn btn-small">Add table</a>

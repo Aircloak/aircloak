@@ -1,5 +1,6 @@
 require './lib/proto/cloak/task.pb.rb'
 require './lib/json_sender'
+require './lib/prefetch_filter'
 
 class Task < ActiveRecord::Base
   has_many :pending_results, dependent: :destroy, counter_cache: true
@@ -11,9 +12,10 @@ class Task < ActiveRecord::Base
   belongs_to :cluster
   belongs_to :analyst
 
-  validates_presence_of :name, :sandbox_type, :prefetch, :code, :cluster
+  validates_presence_of :name, :sandbox_type, :code, :cluster
   validates_uniqueness_of :name
   validate :stored_task_must_have_payload_identifier
+  validate :prefetch_correct
 
   after_save :upload_stored_task
   after_destroy :remove_task_from_cloak
@@ -94,7 +96,37 @@ class Task < ActiveRecord::Base
     "Aircloak"
   end
 
+  # This is a pseudo-attribute which is used to set/retrieve prefetch query.
+  #
+  # We differ between two terms: prefetch and data:
+  #   1. Prefetch is a json describing an sql query as understood by cloak
+  #   2. Data is a json describing a query as understood by web UI
+  #
+  # The reason for this distinction is because cloak supports much more
+  # general query interface, while UI has limited query support. Therefore, we
+  # keep the UI query format much simpler, and perform this translation. Since
+  # UI format is significantly simpler, we don't need to implement another
+  # complicated query parser in JavaScript.
+  def data=(value)
+    @prefetch_error = nil
+    self.prefetch = PrefetchFilter.data_to_prefetch(self, value)
+  rescue InvalidPrefetchFilter => e
+    @prefetch_error = e.message
+  end
+
+  def data
+    PrefetchFilter.prefetch_to_data(prefetch)
+  end
+
 private
+
+  def prefetch_correct
+    if @prefetch_error.nil?
+      self.errors.add :data, "can't be blank" if prefetch.nil? || prefetch.empty?
+    else
+      self.errors.add :data, @prefetch_error
+    end
+  end
 
   def stored_task_must_have_payload_identifier
     return unless self.stored_task

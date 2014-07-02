@@ -9,6 +9,7 @@
     = csrf_meta_tags
 
   %body
+    = render partial: "layouts/popup"
     .container
       .content
         = render partial: "layouts/navbar", locals: {imposter: false}
