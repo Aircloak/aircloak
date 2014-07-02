@@ -10,10 +10,7 @@
         %th Good
         - if render_assigned
           %th Cluster
-        %th
-        %th
-        - if not render_assigned
-          %th
+        %td
 
     %tbody
       - cloaks.each do |cloak|
@@ -27,7 +24,9 @@
               = cloak.cluster.name
               - if cloak.cluster_cloak.state != :belongs_to
                 = " (#{cloak.cluster_cloak.state})"
-          %td= link_to 'Show', cloak
-          %td= link_to 'Edit', edit_cloak_path(cloak)
-          - if not render_assigned
-            %td= link_to 'Destroy', cloak, :method => :delete, :data => { :confirm => 'Are you sure?' }
+          %td
+            = link_to 'Show', cloak, class: "btn btn-mini"
+            = link_to 'Edit', edit_cloak_path(cloak), class: "btn btn-mini"
+            - if not render_assigned
+              = link_to 'Destroy', cloak, :method => :delete, :data => { :confirm => 'Are you sure?' },
+                  class: "btn btn-mini btn-danger"

@@ -7,17 +7,17 @@
         %th Name
         %th Clusters
         %th
-        %th
-        %th
 
     %tbody
       - @analysts.each do |analyst|
         %tr
           %td= analyst.name
           %td= analyst.clusters.count
-          %td= link_to 'Show', analyst
-          %td= link_to 'Edit', edit_analyst_path(analyst)
-          %td= link_to 'Destroy', analyst, :method => :delete, :data => { :confirm => 'Are you sure?' }
+          %td
+            = link_to 'Show', analyst, class: "btn btn-mini"
+            = link_to 'Edit', edit_analyst_path(analyst), class: "btn btn-mini"
+            = link_to 'Destroy', analyst, :method => :delete, :data => { :confirm => 'Are you sure?' },
+                class: "btn btn-mini btn-danger"
 
 %h4 Add a new analyst
 = render 'form'

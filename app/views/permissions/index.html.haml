@@ -1,24 +1,23 @@
 %h1 Permissions available in the system
 
-%table.table.table-condensed
+%table.table.table-striped
   %thead
     %tr
       %th Name
       %th Description
-      - if permitted_to? :update, :permissions
-        %th
-      - if permitted_to? :delete, :permissions
-        %th
+      %th
 
   %tbody
     - @permissions.each do |permission|
       %tr
         %td= permission.name.humanize
         %td= permission.description
-        - if permitted_to? :update, :permissions
-          %td= link_to 'Edit', edit_permission_path(permission)
-        - if permitted_to? :delete, :permissions
-          %td= link_to 'Remove', permission, :method => :delete, :data => { :confirm => 'Are you sure?' }
+        %td
+          - if permitted_to? :update, :permissions
+            = link_to 'Edit', edit_permission_path(permission), class: "btn btn-mini"
+          - if permitted_to? :delete, :permissions
+            %td= link_to 'Remove', permission, :method => :delete, :data => { :confirm => 'Are you sure?' },
+                class: "btn btn-mini btn-danger"
 
 %br
 

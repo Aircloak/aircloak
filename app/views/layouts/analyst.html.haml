@@ -1,0 +1,60 @@
+!!!
+%html
+  %head
+    %meta{charset: "utf-8"}
+    %meta{:'http-equiv' => "X-UA-Compatible", content:"IE=Edge,chrome=1"}
+    %meta{name: "viewport", content: "width=device-width, initial-scale=1.0"}
+    %title= content_for?(:title) ? yield(:title) : "Aircloak"
+    = stylesheet_link_tag "application", media: "all", "data-turbolinks-track" => true
+    = csrf_meta_tags
+
+  %body
+    .container
+      .content
+        - if current_user && current_user.admin?
+          = render partial: "layouts/navbar", locals: {imposter: true}
+
+        .row
+          .span12
+            .div
+              - if flash[:error]
+                .alert.alert-error
+                  %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
+                  = flash[:error]
+              - if flash[:notice]
+                .alert.alert-success
+                  %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
+                  = flash[:notice]
+        .row
+          .span3
+            %h4= link_to "Tasks", tasks_path
+            = link_to "All tasks", tasks_path
+            |
+            = link_to "Add task", new_task_path
+
+            %hr
+
+            %h4= link_to "Tables", tables_path
+            = link_to "All tables", tables_path
+            |
+            = link_to "Add table", new_table_path
+
+            %hr
+
+            %h4= link_to "Users", users_path
+            = link_to "All users", users_path
+            |
+            = link_to "Add user", new_user_path
+
+            %hr
+
+            = link_to "Logged in #{current_user.login}", user_path(current_user)
+            |
+            = link_to "Logout", logout_path
+
+          .span9
+            = yield
+
+    = javascript_include_tag "application", "data-turbolinks-track" => true
+    = yield(:javascript_include)
+    = yield(:javascript)

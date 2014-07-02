@@ -11,10 +11,8 @@
       %th Last login
       %th Member since
       %th Last updated
-      - if permitted_to? :update, :users
-        %th
-      - if permitted_to? :delete, :users
-        %th
+      %th
+
   %tbody
     - @users.each do |user|
       %tr
@@ -30,7 +28,9 @@
         %td= user.last_login_at
         %td= time_ago_in_words user.created_at
         %td= time_ago_in_words user.updated_at
-        %td= link_to 'Edit', edit_user_path(user) if permitted_to? :update, :users
-        %td= link_to 'Remove', user, :method => :delete, :data => { :confirm => 'Are you sure?' } if permitted_to? :delete, :users
+        %td
+          = link_to 'Edit', edit_user_path(user), class: "btn btn-mini" if permitted_to? :update, :users
+          = link_to 'Remove', user, :method => :delete, :data => { :confirm => 'Are you sure?' },
+              class: "btn btn-mini btn-danger" if permitted_to? :delete, :users
 
 = link_to "Add user", new_user_path, class: "btn" if permitted_to? :create, :users

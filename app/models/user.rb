@@ -29,6 +29,10 @@ class User < ActiveRecord::Base
     role_symbols.count != 0
   end
 
+  def has_multiple_clusters?
+    analyst.clusters.count > 1
+  end
+
   def on_behalf_of
     entities = []
     entities << "Aircloak" if role_symbols.include? :admin
@@ -51,8 +55,8 @@ class User < ActiveRecord::Base
   def new_user_from_params params, analyst_id
     if admin?
       new_user = User.new params
-      user.analyst = Analyst.find analyst_id if analyst_id != "none"
-      user
+      new_user.analyst = Analyst.find analyst_id if analyst_id != "none"
+      new_user
     else
       analyst.users.new params
     end

@@ -1,25 +1,25 @@
 - if @tasks.count > 0
   %h1 Tasks
 
-  %table.table.table-condensed
+  %table.table.table-striped
     %thead
       %tr
         %th Name
-        %th Cluster
-        %th Task Type
-        %th Stored task?
+        - if current_user.has_multiple_clusters?
+          %th Cluster
         %th Stored Results
-        %th
         %th
     %tbody
     - @tasks.each do |task|
       %tr
         %td= task.name
-        %td= task.cluster.name
-        %td= task.update_task ? "UPDATE" : "QUERY"
-        %td= task.stored_task ? "yes (#{task.payload_identifier})" : "no"
+        - if current_user.has_multiple_clusters?
+          %td= task.cluster.name
         %td= link_to task.results.count, result_path(task.id)
-        %td= link_to 'Edit', edit_task_path(task), class: "btn btn-mini"
-        %td= link_to 'Destroy', task, :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
+        %td
+          = link_to 'Results for task', result_path(task.id), class: "btn btn-mini"
+          = link_to 'Run task', execute_as_batch_task_task_path(task), method: "post", class: "btn btn-mini"
+          = link_to 'Edit task', edit_task_path(task), class: "btn btn-mini"
+          = link_to 'Destroy task', task, :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
 
-%h4= link_to 'Add a new task', new_task_path
+= link_to 'Add a new task', new_task_path, class: "btn"

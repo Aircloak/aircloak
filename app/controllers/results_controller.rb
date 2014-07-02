@@ -7,10 +7,6 @@ class ResultsController < ApplicationController
   before_filter :load_task, only: :show
   around_action :validate_auth_token, only: :create
 
-  def index
-    @tasks = current_user.analyst.tasks
-  end
-
   def show
     @results = @task.results
     buckets = Bucket.joins(:result).where(:results => {task_id: @task.id}).

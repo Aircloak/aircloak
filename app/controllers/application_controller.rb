@@ -1,6 +1,7 @@
 class ApplicationController < ActionController::Base
   helper :all
   helper_method :current_user_session, :current_user
+  before_action :set_layout
 
   filter_access_to :all
 
@@ -68,5 +69,13 @@ private
 
   def full_url
     "#{request.protocol}#{request.host_with_port}#{request.fullpath}"
+  end
+
+  def set_layout
+    if current_user && current_user.analyst != nil
+      self.class.layout "analyst"
+    else
+      self.class.layout "application"
+    end
   end
 end

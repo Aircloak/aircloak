@@ -2,7 +2,7 @@
 = content_for(:javascript_include) {javascript_include_tag "builds", "data-turbolinks-track" => true}
 
 .form-container{:"ng-app" => "buildEditor"}
-  = form_for @build do |f|
+  = form_for @build, html: {class: "form-horizontal"} do |f|
     - if @build.errors.any?
       #error_explanation
         %h2= "#{pluralize(@build.errors.count, "error")} prohibited this build from being saved:"
@@ -21,10 +21,11 @@
     %div{:'ng-hide' => 'manual'}
       .control-group
         %label.control-label Build from
-        .controlj
-          %input{type: :radio, name: :from_develop, :'ng-model' => "from_branch", value: "true", checked: true} From develop branch
-          %br
-          %input{type: :radio, name: :from_develop, :'ng-model' => "from_branch", value: "false"} From commits
+        .controls
+          %label.radio
+            %input{type: :radio, name: :from_develop, :'ng-model' => "from_branch", value: "true", checked: true} From develop branch
+          %label.radio
+            %input{type: :radio, name: :from_develop, :'ng-model' => "from_branch", value: "false"} From commits
 
       %div{:'ng-hide' => 'from_branch'}
         %h2 Select versions of the deployable entities
@@ -38,4 +39,4 @@
 
     .control-group
       .controls
-        = f.submit 'Save', class: "btn"
+        = f.submit 'Save', class: "btn btn-success"

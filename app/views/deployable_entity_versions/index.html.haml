@@ -1,27 +1,32 @@
 %h1 Version of #{@deployable_entity.repo}
 
 %table.table.table-striped
-  %tr
-    %th Commit Id
-    %th Author
-    %th Message
-    %th In build
-    %th Status
-    %th
-
-  - @deployable_entity.commits.reverse.each do |commit|
+  %thead
     %tr
-      %td= commit.short_commit_id
-      %td= commit.author
-      %td= commit.message
-      - if commit.part_of_build?
-        %td Yes
-      - else
-        %td
-      %td= link_to commit.status, deployable_entity_deployable_entity_version_path(@deployable_entity, commit)
-      - if commit.build_completed
-        %td= button_to "Reset build status", reset_deployable_entity_deployable_entity_version_path(@deployable_entity, commit), :class => "btn btn-warning btn-mini"
-      - elsif commit.part_of_build?
-        %td= button_to "Force reset build status", reset_deployable_entity_deployable_entity_version_path(@deployable_entity, commit), :class => "btn btn-danger btn-mini"
-      - else
-        %td
+      %th Commit Id
+      %th Author
+      %th Message
+      %th In build
+      %th Status
+      %th
+
+  %tbody
+    - if @deployable_entity.commits.count == 0
+      %tr
+        %td{colspan: 6} Currently no version registered
+    - @deployable_entity.commits.reverse.each do |commit|
+      %tr
+        %td= commit.short_commit_id
+        %td= commit.author
+        %td= commit.message
+        - if commit.part_of_build?
+          %td Yes
+        - else
+          %td
+        %td= link_to commit.status, deployable_entity_deployable_entity_version_path(@deployable_entity, commit)
+        - if commit.build_completed
+          %td= button_to "Reset build status", reset_deployable_entity_deployable_entity_version_path(@deployable_entity, commit), :class => "btn btn-warning btn-mini"
+        - elsif commit.part_of_build?
+          %td= button_to "Force reset build status", reset_deployable_entity_deployable_entity_version_path(@deployable_entity, commit), :class => "btn btn-danger btn-mini"
+        - else
+          %td
