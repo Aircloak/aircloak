@@ -358,7 +358,7 @@ server {
 
 ## Running tasks locally
 
-First, you need to configure your cloak to send results to your local air. You need to edit `cloak-core/rel/cloak/etc/app.config` and add `{air, [{return_url, "http://127.0.0.1:3000/results"}]}` under the `cloak` configuration. **Note**: you need to do this every time you rebuild a release.
+First, you need to configure your cloak to send results to your local air. You need to edit `cloak-core/rel/files/app.config` and add `{air, [{return_url, "http://127.0.0.1:3000/results"}]}` under the `cloak` configuration. **Note**: be careful not to commit this.
 
 Then, you need to create some random users and data. There is a rake task for this:
 
@@ -372,7 +372,7 @@ Then, you need to create some random users and data. There is a rake task for th
 
 Data insertion only needs to be done once.
 
-Next, you need to create a task in the web UI. The simplest prefetch code for the task is `[{"table": "age"}]`. The simplest sandbox code is: `report_property('age', tables.age[0].age)`. **Note**: prefetch/code editor is in vi mode, so when you focus the textbox, press `a` to enter text.
+Next, you need to create a task in the web UI. The simplest prefetch must consist of a single table (e.g. age). The simplest sandbox code is: `report_property('age', tables.age[0].age)`. **Note**: code editor is in vi mode, so when you focus the textbox, press `a` to enter text.
 
 Finally, if cloak is started, you can execute the task from the air UI. **Tip**: upon task execution, you're
 redirected to the results page for that task. However, the results usually arrive a bit later, so you'll need
