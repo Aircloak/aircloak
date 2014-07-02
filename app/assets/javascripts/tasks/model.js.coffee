@@ -10,38 +10,40 @@ Tasks.Data = (tables) ->
   # Private members
   # ------------------------------------
 
-  allTables = tables
-  availableTables = null
-  tableFilters = null
+  tableFilters = []
+  clusterId = null
 
-  clear = ->
-    availableTables = allTables
-    sortAvailableTables()
-    tableFilters = []
-
-  sortAvailableTables = ->
-    availableTables = _.sortBy(availableTables, "name")
+  availableTables = ->
+    selectedTables = _.reduce(
+          tableFilters,
+          (memo, filter) ->
+            memo[filter.table().id] = true
+            memo
+          {}
+        )
+    result = _.filter(
+          tables,
+          (table) -> !selectedTables[table.id] && table.cluster_id == clusterId
+        )
+    _.sortBy(result, "name")
 
 
   # ------------------------------------
   # Constructor
   # ------------------------------------
 
-  clear()
-
   _.extend(self, {
-    clear: clear,
+    clear: -> tableFilters = []
 
-    availableTables: -> availableTables
+    availableTables: -> availableTables()
     tableFilter: (id) -> tableFilters[id]
     tableFilters: -> tableFilters
 
-    newTableFilter: (tableId, filter) ->
-      [[selectedTable], availableTables] = _.partition(
-            availableTables,
-            (table) -> table.id == tableId
-          )
-      throw(new Error("invalid table")) if !selectedTable
+    newTableFilter: (tableId, filter, noThrow) ->
+      selectedTable = _.find(tables, (table) -> table.id == tableId)
+      if !selectedTable || selectedTable.cluster_id != clusterId
+        throw(new Error("invalid table")) unless noThrow
+        return
       tableFilter = new TableFilter(selectedTable, filter)
       tableFilters.push(tableFilter)
       tableFilter
@@ -49,15 +51,17 @@ Tasks.Data = (tables) ->
     toJSON: -> tableFilters
 
     fromJson: (json) ->
-      clear()
+      self.clear()
       _.each(JSON.parse(json), (rawFilter) ->
-            self.newTableFilter(rawFilter.tableId, Filter.fromRawGroups(rawFilter.filter.groups))
+            self.newTableFilter(rawFilter.tableId, Filter.fromRawGroups(rawFilter.filter.groups), true)
           )
 
     removeTableFilter: (index) ->
-      oldTable = tableFilters.splice(index, 1)
-      availableTables.push(oldTable[0].table())
-      sortAvailableTables()
+      tableFilters.splice(index, 1)
+
+    selectClusterId: (newClusterId) ->
+      clusterId = newClusterId
+      tableFilters = _.filter(tableFilters, (filter) -> (filter.table().cluster_id == clusterId))
   })
 
 
