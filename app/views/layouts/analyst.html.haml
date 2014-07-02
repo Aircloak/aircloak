@@ -9,6 +9,7 @@
     = csrf_meta_tags
 
   %body
+    = render partial: "layouts/popup"
     .container
       .content
         - if current_user && current_user.admin?
