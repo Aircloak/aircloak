@@ -13,9 +13,21 @@
 //= require jquery
 //= require jquery_ujs
 //= require twitter/bootstrap
+//= require twitter/bootstrap/bootstrap-tooltip
+//= require twitter/bootstrap/bootstrap-popover
+//= require twitter/bootstrap/bootstrap-button
 //= require underscore
 //= require view_state
 //= require popup
 //= require handlebars.runtime
 //= require_tree ./templates
 //
+
+(function() {
+  $("body .container").popover({
+    animation: true,
+    html: true,
+    selector: ".tip",
+    trigger: "click"
+  });
+}).call(this);
