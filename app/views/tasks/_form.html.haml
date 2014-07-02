@@ -1,8 +1,12 @@
 -# Includes additional, page-specific javascripts
 = content_for(:javascript_include) {javascript_include_tag "tasks/main", "data-turbolinks-track" => true}
+= content_for :javascript do
+  :coffeescript
+    $(document).ready ->
+      new Tasks.Editor(#{@tables_json}, #{PrefetchFilter::OperatorSqlToCloak.to_json})
 
 .form-container
-  = form_for @task, :html => {:class => "form-horizontal new_query"} do |f|
+  = form_for @task, :html => {:id => "taskEditor", :class => "form-horizontal new_query"} do |f|
     - if @task.errors.any?
       .well.alert-error
         %h3= "#{pluralize(@task.errors.count, "error")} prohibited this task from being saved:"
@@ -23,9 +27,10 @@
       = hidden_field_tag "task[cluster_id]", current_user.ready_clusters.first.id
 
     .control-group
-      %label.control-label Prefetch
+      %label.control-label Data
       .controls
-        = f.text_area :prefetch
+        = f.hidden_field :data
+        #prefetchTables
     .control-group
       %label.control-label Code
       .controls

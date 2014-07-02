@@ -1,3 +1,15 @@
 /*
  *= require codemirror
  */
+
+.task-filters {
+  padding-top:5px;
+}
+
+.table-filter-link {
+  width: 300px;
+}
+
+.table-filter-link .btn {
+  width: 90%;
+}
