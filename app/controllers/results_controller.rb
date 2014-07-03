@@ -51,9 +51,12 @@ private
 
   def results_csv
     CSV.generate(col_sep: ";") do |csv|
-      csv << @task.result_set.keys
+      csv << (@task.result_set.keys + ["created at"])
       @task.results.each do |result|
-        csv << @task.result_set.map {|name, bucket| bucket[result.id] || ""}
+        csv << (
+          @task.result_set.map {|name, bucket| bucket[result.id] || ""} +
+          [result.created_at.utc.strftime("%Y-%m-%d %H:%M:%S")]
+        )
       end
     end
   end
