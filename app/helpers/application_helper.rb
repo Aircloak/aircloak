@@ -12,7 +12,7 @@ module ApplicationHelper
   def help_tooltip field
     tip = tip_for(request.params["controller"], field)
     return "" if tip.nil?
-    result = <<-END.gsub(/^ {6}/, '')
+    result = <<-END
       <a class="btn btn-mini btn-info tip"
         data-content="#{tip[:content]}"
         data-toggle="button"
