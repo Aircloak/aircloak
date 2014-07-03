@@ -9,20 +9,20 @@
 
 %hr
 
-- if @results.count > 0
+- if @task.results.count > 0
+  = link_to "Download results", "/results/#{@task.id}.csv", class: "btn"
   %table.table.table-striped
     %thead
       %tr
         %th Bucket
-        - @results.each do |result|
+        - @task.results.each do |result|
           %th= result.created_at
-    - if @buckets
-      %tbody
-        - @buckets.each_pair do |name, bucket_results|
-          %tr
-            %td= name
-            - @results.each do |result|
-              - r = bucket_results[result.id]
-              %td= r ? r : "--"
+    %tbody
+      - @task.result_set.each do |name, bucket|
+        %tr
+          %td= name
+          - @task.results.each do |result|
+            - r = bucket[result.id]
+            %td= r ? r : "--"
 - else
   %p No results stored for this task.

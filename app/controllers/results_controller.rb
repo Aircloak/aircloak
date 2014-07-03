@@ -1,3 +1,4 @@
+require 'csv'
 require './lib/proto/air/aggregate_results.pb'
 require './lib/result_handler'
 
@@ -8,14 +9,14 @@ class ResultsController < ApplicationController
   around_action :validate_auth_token, only: :create
 
   def show
-    @results = @task.results
-    buckets = Bucket.joins(:result).where(:results => {task_id: @task.id}).
-        order(label: :asc, str_answer: :asc)
-    @buckets = buckets.inject({}) do |bucket_table, bucket|
-      name = bucket.display_name
-      bucket_table[name] ||= {}
-      bucket_table[name][bucket.result_id] = bucket.display_result
-      bucket_table
+    respond_to do |format|
+      format.html
+
+      format.csv do
+        filename = "task_results_#{@task.id}_#{Time.now.strftime("%Y%m%d%H%M")}.csv"
+        response.headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
+        render :text => results_csv
+      end
     end
   end
 
@@ -45,6 +46,15 @@ private
   end
 
   def load_task
-    @task = current_user.analyst.tasks.find params[:id]
+    @task = current_user.analyst.tasks.find(params[:id], include: {:results => [:buckets]})
+  end
+
+  def results_csv
+    CSV.generate(col_sep: ";") do |csv|
+      csv << @task.result_set.keys
+      @task.results.each do |result|
+        csv << @task.result_set.map {|name, bucket| bucket[result.id] || ""}
+      end
+    end
   end
 end
