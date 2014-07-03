@@ -22,7 +22,7 @@
           %li= msg
 
   .control-group
-    = control_label "Table name", tooltip: "table_name"
+    = control_label "Table name"
     .controls
       = text_field_tag :table_name, @table.table_name
 
@@ -40,12 +40,9 @@
     .controls
       Once you are happy with the table columns below,
       = submit_tag 'create the table', :class => "btn btn-success submit-btn disabled"
-      = help_tooltip "save_button_new"
       , or if you prefer you can
       = link_to "cancel", tables_path, class: "btn"
-      = help_tooltip "cancel_button_new"
 
 = render 'columns'
 
 = link_to "Back", tables_path, class: "btn"
-= help_tooltip "cancel_button_new"

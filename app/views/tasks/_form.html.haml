@@ -15,12 +15,12 @@
             %li= msg
 
     .control-group
-      = control_label "Task name", tooltip: "name"
+      = control_label "Task name"
       .controls
         = f.text_field :name
     - if current_user.has_multiple_clusters?
       .control-group
-        = control_label "Belongs to cluster", tooltip: "cluster_select"
+        = control_label "Belongs to cluster"
         .controls
           = f.select :cluster_id, current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
     - else

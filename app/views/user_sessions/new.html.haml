@@ -10,15 +10,15 @@
             %li= msg
 
     .control-group
-      = control_label "Login", tooltip: "login"
+      = control_label "Login"
       .controls
         = f.text_field :login
     .control-group
-      = control_label "Password", tooltip: "password"
+      = control_label "Password"
       .controls
         = f.password_field :password
     .control-group
-      = control_label "", tooltip: "remember_me"
+      = control_label ""
       .controls
         %label.checkbox
           = f.check_box :remember_me
