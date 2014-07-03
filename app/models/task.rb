@@ -118,6 +118,30 @@ class Task < ActiveRecord::Base
     PrefetchFilter.prefetch_to_data(prefetch)
   end
 
+  # Returns a hash where keys are bucket labels (sorted), and each value is
+  # a hash that maps result id to the display result
+  def result_set
+    return @result_set unless @result_set.nil?
+
+    unsorted_buckets =
+      results.inject({}) do |memo, result|
+        result.buckets.each do |bucket|
+          name = bucket.display_name
+          memo[name] ||= {}
+          memo[name][bucket.result_id] = bucket.display_result
+        end
+        memo
+      end
+
+    @result_set =
+      unsorted_buckets.keys.sort.inject({}) do |memo, key|
+        memo[key] = unsorted_buckets[key]
+        memo
+      end
+
+    @result_set
+  end
+
 private
 
   def prefetch_correct
