@@ -8,21 +8,15 @@
             %li= msg
 
     .control-group
-      %label.control-label
-        Login
-        = help_tooltip "login"
+      = control_label "Login", tooltip: "login"
       .controls
         = f.text_field :login
     .control-group
-      %label.control-label
-        Email
-        = help_tooltip "email"
+      = control_label "Email", tooltip: "email"
       .controls
         = f.text_field :email
     .control-group
-      %label.control-label
-        Password
-        = help_tooltip "password"
+      = control_label "Password", tooltip: "password"
       .controls
         = f.password_field :password
     .control-group

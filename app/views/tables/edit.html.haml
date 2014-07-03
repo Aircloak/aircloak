@@ -22,16 +22,12 @@
           %li= msg
 
   .control-group
-    %label.control-label
-      Table name
-      = help_tooltip "table_name"
+    = control_label "Table name", tooltip: "table_name"
     .controls
       %input#table_name.disabled{type: :text, value: @table.table_name, disabled: true}
 
   .control-group
-    %label.control-label
-      In cluster
-      = help_tooltip "in_cluster"
+    = control_label "In cluster", tooltip: "in_cluster"
     .controls
       %input#table_name.disabled{type: :text, value: @table.cluster.name, disabled: true}
 

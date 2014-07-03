@@ -1,4 +1,14 @@
 module ApplicationHelper
+  def control_label label, options = {}
+    label = <<-END
+      <label class="control-label">
+        #{label}
+        #{options[:tooltip].nil? ? "" : (help_tooltip options[:tooltip])}
+      </label>
+    END
+    label.html_safe
+  end
+
   def help_tooltip field
     tip = tip_for(request.params["controller"], field)
     return "" if tip.nil?

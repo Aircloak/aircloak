@@ -15,32 +15,24 @@
             %li= msg
 
     .control-group
-      %label.control-label
-        Task name
-        = help_tooltip "name"
+      = control_label "Task name", tooltip: "name"
       .controls
         = f.text_field :name
     - if current_user.has_multiple_clusters?
       .control-group
-        %label.control-label
-          Belongs to cluster
-          = help_tooltip "cluster_select"
+        = control_label "Belongs to cluster", tooltip: "cluster_select"
         .controls
           = f.select :cluster_id, current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
     - else
       = hidden_field_tag "task[cluster_id]", current_user.ready_clusters.first.id
 
     .control-group
-      %label.control-label
-        Data
-        = help_tooltip "data"
+      = control_label "Data", tooltip: "data"
       .controls
         = f.hidden_field :data
         #prefetchTables
     .control-group
-      %label.control-label
-        Code
-        = help_tooltip "code"
+      = control_label "Code", tooltip: "code"
       .controls
         = f.text_area :code
     .control-group
