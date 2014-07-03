@@ -21,11 +21,12 @@ module ApplicationHelper
   def help_tooltip field
     tip = tip_for(request.params["controller"], field)
     return "" if tip.nil?
-    result = "<a class=\"btn btn-mini btn-info tip\"" +
-        " data-content=\"" + tip[:content] + "\"" +
-        " data-toggle=\"button\"" +
-        " data-placement=\"" + tip[:placement] + "\"" +
-        ">?</a>"
+    result = <<-END.gsub(/^ {6}/, '')
+      <a class="btn btn-mini btn-info tip"
+        data-content="#{tip[:content]}"
+        data-toggle="button"
+        data-placement="#{tip[:placement]}">?</a>
+    END
     result.html_safe
   end
 
