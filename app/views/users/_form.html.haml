@@ -26,13 +26,13 @@
 
     - if current_user.admin?
       .control-group
-        %label.control-label Analyst
+        = control_label "Analyst"
         .controls
           = f.select :analyst_id, Analyst.analyst_options
 
     - if permitted_to? :manage, :user_permissions
       .control-group
-        %label.control-label= f.label :permissions
+        = control_label "Permissisions"
         .controls
           - Permission.all.each do |permission|
             %label.checkbox

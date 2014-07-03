@@ -7,11 +7,11 @@
           %li= msg
 
   .control-group
-    %label.control-label= f.label :name
+    = control_label "Name"
     .controls
       = f.text_field :name
   .control-group
-    %label.control-label= f.label :description
+    = control_label "Description"
     .controls
       = f.text_field :description
       %span.help-block What does this permission allow a user to do?
