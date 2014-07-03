@@ -7,12 +7,12 @@
           %li= msg
 
   .control-group
-    %label.control-label Repository name
+    = control_label "Repository name"
     .controls
       = f.text_field :repo
   - unless @deployable_entity.description.blank?
     .control-group
-      %label.control-label Description
+      = control_label "Description"
       .controls
         = @deployable_entity.description
   .control-group

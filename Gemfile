@@ -18,6 +18,10 @@ gem 'excon'
 # Configuration management
 gem "choices"
 
+# We need redcarpet for rendering markdown for our
+# help sections
+gem "redcarpet"
+
 gem 'whenever', :require => false
 
 group :development, :test do

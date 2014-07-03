@@ -24,12 +24,12 @@
 
   %form.form-horizontal#dummy-form
     .control-group
-      %label.control-label Column name
+      = control_label "Column name"
       .controls
         %input#column_name{type: :text}
 
     .control-group
-      %label.control-label Data type
+      = control_label "Data type"
       .controls
         %select#type
           %option{value: "integer"} integer
@@ -44,10 +44,8 @@
           )
 
     .control-group
-      %label.control-label Constraints
+      = control_label "Constraints", tooltip: "column_form_constraints"
       .controls
-        %label.checkbox
-          %input#unique{type: :checkbox} unique
         %label.checkbox
           %input#not_null{type: :checkbox} not null
 

@@ -1,0 +1,36 @@
+# The tooltips are structured in the following way:
+#
+#   tool_tip_name1:
+#     content: tooltip
+#   tool_tip_name2:
+#     content: |
+#       Multiline markdown
+#       ==hurray==
+#     placement: top | bottom | left | right (default: bottom)
+#     markdown: true (default: false)
+
+data:
+  content: |
+    Each task computes over some data in order to determine
+    what values should be reported.
+
+    The data that is made available to the task needs to
+    be specified in advance.
+
+    You can also specify conditions that need to hold for the
+    data. Assuming you had a `location`'s table with an `x` and
+    a `y` column, you could specify that you only want locations
+    where the `x`-parameter is between 100 and 200.
+
+    Limiting the data selected as much as you possibly can
+    will make the tasks faster to execute. This is especially
+    important if the task is going to be frequently run.
+  markdown: true
+code:
+  content: |
+    The code is written in Lua and is executed over a single user
+    at a time.
+
+    You have access to the user data under `tables.TableName`
+    and can report values using `report_property(PropertyName, Value)`.
+  markdown: true

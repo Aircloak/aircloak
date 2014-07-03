@@ -10,17 +10,18 @@
             %li= msg
 
     .control-group
-      %label.control-label= f.label :login
+      = control_label "Login"
       .controls
         = f.text_field :login
     .control-group
-      %label.control-label= f.label :password
+      = control_label "Password"
       .controls
         = f.password_field :password
     .control-group
+      = control_label ""
       .controls
         %label.checkbox
-          = f.check_box :remember_me 
+          = f.check_box :remember_me
           Remember me
     .control-group
       .controls

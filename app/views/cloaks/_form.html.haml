@@ -7,12 +7,12 @@
           %li= msg
 
   .control-group
-    %label.control-label Hostname
+    = control_label "Hostname"
     .controls
       = f.text_field :name
       %span.help-block The hostname, amongst other things, is used for configuring logging. If you can help it, please don't change it.
   .control-group
-    %label.control-label IP
+    = control_label "IP"
     .controls
       = f.text_field :ip
   .control-group

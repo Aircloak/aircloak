@@ -11,16 +11,16 @@
             %li= msg
 
     .control-group
-      %label.control-label Build name
+      = control_label "Build name"
       .controls
         = f.text_field :name
     .control-group
-      %label.control-label Manual build?
+      = control_label "Manual build?"
       .controls
         = f.check_box :manual, :'ng-model' => "manual", value: "true", checked: true
     %div{:'ng-hide' => 'manual'}
       .control-group
-        %label.control-label Build from
+        = control_label "Build form"
         .controls
           %label.radio
             %input{type: :radio, name: :from_develop, :'ng-model' => "from_branch", value: "true", checked: true} From develop branch
@@ -32,7 +32,7 @@
 
         - DeployableEntity.all.each do |de|
           .control-group
-            %label.control-label= de.repo
+            = control_label de.repo
             .controls
               = select_tag "build_versions[]", options_for_select(de.select_tag_titles, @build.version_for_entity(de))
 

@@ -8,31 +8,31 @@
             %li= msg
 
     .control-group
-      %label.control-label= f.label :login
+      = control_label "Login"
       .controls
         = f.text_field :login
     .control-group
-      %label.control-label= f.label :email
+      = control_label "Email"
       .controls
         = f.text_field :email
     .control-group
-      %label.control-label= f.label :password
+      = control_label "Password"
       .controls
         = f.password_field :password
     .control-group
-      %label.control-label= f.label :password_confirmation
+      = control_label "Password confirmation"
       .controls
         = f.password_field :password_confirmation
 
     - if current_user.admin?
       .control-group
-        %label.control-label Analyst
+        = control_label "Analyst"
         .controls
           = f.select :analyst_id, Analyst.analyst_options
 
     - if permitted_to? :manage, :user_permissions
       .control-group
-        %label.control-label= f.label :permissions
+        = control_label "Permissisions"
         .controls
           - Permission.all.each do |permission|
             %label.checkbox

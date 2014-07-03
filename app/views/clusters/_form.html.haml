@@ -7,18 +7,18 @@
           %li= msg
 
   .control-group
-    %label.control-label Name
+    = control_label "Name"
     .controls
       = f.text_field :name
       %span.help-block The cluster name is also used for naming logs on the log server. Please keep it sensible.
 
   .control-group
-    %label.control-label Build ID
+    = control_label "Build ID"
     .controls
       = f.select :build_id, Build.all.map {|build| [build.name, build.id]}
 
   .control-group
-    %label.control-label Cloaks
+    = control_label "Cloaks"
     .controls
       - if @cluster.available_cloaks.count == 0
         %label.checkbox
@@ -30,7 +30,7 @@
             = cloak.display_name
 
   .control-group
-    %label.control-label Analysts
+    = control_label "Analysts"
     .controls
       - Analyst.all.each do |analyst|
         %label.checkbox

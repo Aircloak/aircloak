@@ -213,6 +213,7 @@ GEM
       thor (>= 0.18.1, < 2.0)
     raindrops (0.12.0)
     rake (10.1.1)
+    redcarpet (2.3.0)
     ref (1.0.5)
     rest-client (1.6.7)
       mime-types (>= 1.16)
@@ -298,6 +299,7 @@ DEPENDENCIES
   rails (~> 4.0.3)
   rails-backbone!
   rake
+  redcarpet
   rest-client
   rspec-rails (~> 2.0)
   ruby_parser
