@@ -19,15 +19,7 @@
 //= require underscore
 //= require view_state
 //= require popup
+//= require tooltips
 //= require handlebars.runtime
 //= require_tree ./templates
 //
-
-(function() {
-  $("body .container").popover({
-    animation: true,
-    html: true,
-    selector: ".tip",
-    trigger: "click"
-  });
-}).call(this);
