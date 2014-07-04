@@ -173,14 +173,12 @@ MigrationView = Backbone.View.extend
   createNewColumn: ->
     name = @inputColumnName.val()
     return if name == ""
-    checkboxUnique = $("#unique")[0]
     checkboxNotNull = $("#not_null")[0]
 
     if @model.hasColumnWithName name
       alert "A column name '#{name}' already exists"
     else
       constraints = []
-      constraints.push "UNIQUE" if checkboxUnique.checked
       constraints.push "NOT NULL" if checkboxNotNull.checked
       type = @selectType.val()
       type = "#{type}(#{@inputSize.val()})" if type == "varchar" or type == "char"
@@ -195,7 +193,6 @@ MigrationView = Backbone.View.extend
     # Reset input fields so the next column can be added
     @inputColumnName.val ""
     @inputSize.val ""
-    checkboxUnique.checked = false
     checkboxNotNull.checked = false
     @inputColumnName.focus()
 
