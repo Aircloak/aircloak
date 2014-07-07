@@ -11,13 +11,18 @@ Tasks.FilterEditor = (inOptions) ->
   # ------------------------------------
 
   options = inOptions
+  minLimit = options.tableFilter.minLimit()
+  minLimit = Math.round(minLimit / 60.0) if minLimit
+  userRows = options.tableFilter.userRows()
   filter = options.tableFilter.filter().clone()
   view = null
   dirty = false
 
   render = ->
     Popup.show(HandlebarsTemplates["tasks/edit_filter"](
-          table: options.tableFilter.table(),
+          table: options.tableFilter.table()
+          minLimit: minLimit
+          userRows: userRows
           filter: filter,
           operators: _.keys(Tasks.Operators)
           newTemplate: {}
@@ -31,6 +36,8 @@ Tasks.FilterEditor = (inOptions) ->
     return unless dataValid()
     controlsToFilter()
     options.tableFilter.setFilter(filter)
+    options.tableFilter.minLimit(minLimit)
+    options.tableFilter.userRows(userRows)
     dirty = false
     closeWindow()
     options.onSaved()
@@ -59,6 +66,10 @@ Tasks.FilterEditor = (inOptions) ->
         )
 
   controlsToFilter = ->
+    # Ensure that values are either positive, or null
+    userRows = Math.max(parseInt($("#userRows").val()), 0) || null
+    minLimit = Math.max(parseInt($("#minLimit").val()), 0) || null
+
     filter.clear()
     _.each(
           $("[data-filter-controls]"),
@@ -114,6 +125,8 @@ Tasks.FilterEditor = (inOptions) ->
       "click #addFilter": addFilter
       "click [data-remove-filter]": removeFilter
       "change #filterControls [data-filter-input]": setDirty
+      "change #userRows": setDirty
+      "change #minLimit": setDirty
   )
 
   _.extend(self, {
