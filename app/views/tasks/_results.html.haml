@@ -1,5 +1,3 @@
-%h1= @task.name
-
 %p
   Below are the current results for
   = "#{@task.name}."
@@ -9,19 +7,20 @@
 
 %hr
 
-- if @task.results.count > 0
-  = link_to "Download results", "/results/#{@task.id}.csv", class: "btn"
+- if @results.count > 0
+  = link_to "Download results", "#{@results_path}.csv", class: "btn"
   %table.table.table-striped
     %thead
       %tr
         %th Bucket
-        - @task.results.each do |result|
-          %th= result.created_at
+        - @results.each do |result|
+          - @result_outdated = result.created_at < @task.updated_at ? " (outdated code)" : ""
+          %th= link_to "#{result.created_at}#{@result_outdated}", result_path(result)
     %tbody
-      - @task.result_set.each do |name, bucket|
+      - @result_set.each do |name, bucket|
         %tr
           %td= name
-          - @task.results.each do |result|
+          - @results.each do |result|
             - r = bucket[result.id]
             %td= r ? r : "--"
 - else

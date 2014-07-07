@@ -120,11 +120,9 @@ class Task < ActiveRecord::Base
 
   # Returns a hash where keys are bucket labels (sorted), and each value is
   # a hash that maps result id to the display result
-  def result_set
-    return @result_set unless @result_set.nil?
-
+  def result_set results_used
     unsorted_buckets =
-      results.inject({}) do |memo, result|
+      results_used.inject({}) do |memo, result|
         result.buckets.each do |bucket|
           name = bucket.display_name
           memo[name] ||= {}
@@ -133,13 +131,10 @@ class Task < ActiveRecord::Base
         memo
       end
 
-    @result_set =
-      unsorted_buckets.keys.sort.inject({}) do |memo, key|
-        memo[key] = unsorted_buckets[key]
-        memo
-      end
-
-    @result_set
+    unsorted_buckets.keys.sort.inject({}) do |memo, key|
+      memo[key] = unsorted_buckets[key]
+      memo
+    end
   end
 
 private

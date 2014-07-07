@@ -67,6 +67,8 @@ Web::Application.routes.draw do
 
   resources :tasks do
     post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
+    get "latest_results", on: :member, action: 'latest_results'
+    get "all_results", on: :member, action: 'all_results'
   end
   resources :results
   resources :tables do
