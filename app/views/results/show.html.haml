@@ -11,8 +11,8 @@
     %tbody
       - @result.buckets.each do |bucket|
         %tr
-          %td= bucket.name
-          %td= bucket.accumulated_count
+          %td= bucket.display_name
+          %td= bucket.display_result
 
 - if @result.exception_results.count > 0
   %h2 Errors
