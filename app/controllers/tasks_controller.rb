@@ -1,8 +1,11 @@
+require 'csv'
+
 class TasksControllerException < Exception; end
 
 class TasksController < ApplicationController
-  filter_access_to :execute_as_batch_task, require: :manage
-  before_action :load_task, only: [:edit, :update, :destroy, :execute_as_batch_task]
+  filter_access_to [:execute_as_batch_task, :all_results, :latest_results], require: :manage
+  before_action :load_task, only: [:edit, :update, :destroy, :execute_as_batch_task, :all_results,
+      :latest_results]
   before_action :set_tables_json, only: [:edit, :new]
 
   # GET /tasks
@@ -62,6 +65,20 @@ class TasksController < ApplicationController
     redirect_to result_path(@task), notice: "Run of #{@task.name} has been initiated"
   end
 
+  # GET /tasks/:id/all_results
+  def all_results
+    @results = @task.results
+    @results_path = all_results_task_path(@task)
+    render_results
+  end
+
+  # GET /tasks/:id/latest_results
+  def latest_results
+    @results = @task.results.order('created_at DESC').limit(3).reverse
+    @results_path = latest_results_task_path(@task)
+    render_results
+  end
+
 private
   def load_task
     @task = current_user.analyst.tasks.find params[:id]
@@ -86,5 +103,30 @@ private
 
   def task_params
     params.require(:task).permit(:name, :cluster_id, :payload_identifier, :data, :code)
+  end
+
+  def render_results
+    @result_set = @task.result_set(@results)
+    respond_to do |format|
+      format.html
+
+      format.csv do
+        filename = "task_results_#{@task.id}_#{Time.now.strftime("%Y%m%d%H%M")}.csv"
+        response.headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
+        render :text => results_csv
+      end
+    end
+  end
+
+  def results_csv
+    CSV.generate(col_sep: ";") do |csv|
+      csv << (@result_set.keys + ["created at"])
+      @task.results.each do |result|
+        csv << (
+          @result_set.map {|name, bucket| bucket[result.id] || ""} +
+          [result.created_at.utc.strftime("%Y-%m-%d %H:%M:%S")]
+        )
+      end
+    end
   end
 end

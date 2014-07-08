@@ -1,0 +1,27 @@
+%p
+  Below are the current results for
+  = "#{@task.name}."
+  To get more results, execute the task again.
+= link_to 'Run task', execute_as_batch_task_task_path(@task), method: "post", class: "btn"
+= link_to 'Edit task', edit_task_path(@task), class: "btn"
+
+%hr
+
+- if @results.count > 0
+  = link_to "Download results", "#{@results_path}.csv", class: "btn"
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Bucket
+        - @results.each do |result|
+          - @result_outdated = result.created_at < @task.updated_at ? " (outdated code)" : ""
+          %th= link_to "#{result.created_at}#{@result_outdated}", result_path(result)
+    %tbody
+      - @result_set.each do |name, bucket|
+        %tr
+          %td= name
+          - @results.each do |result|
+            - r = bucket[result.id]
+            %td= r ? r : "--"
+- else
+  %p No results stored for this task.

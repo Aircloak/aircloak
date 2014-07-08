@@ -1,28 +1,22 @@
-%h1= @task.name
+%h1= "Result #{@result.created_at} of task #{@result.task.name}"
 
-%p
-  Below are the current results for
-  = "#{@task.name}."
-  To get more results, execute the task again.
-= link_to 'Run task', execute_as_batch_task_task_path(@task), method: "post", class: "btn"
-= link_to 'Edit task', edit_task_path(@task), class: "btn"
+- if @result.buckets.count > 0
+  %h2 Buckets
 
-%hr
-
-- if @task.results.count > 0
-  = link_to "Download results", "/results/#{@task.id}.csv", class: "btn"
   %table.table.table-striped
     %thead
       %tr
         %th Bucket
-        - @task.results.each do |result|
-          %th= result.created_at
+        %th Count
     %tbody
-      - @task.result_set.each do |name, bucket|
+      - @result.buckets.each do |bucket|
         %tr
-          %td= name
-          - @task.results.each do |result|
-            - r = bucket[result.id]
-            %td= r ? r : "--"
-- else
-  %p No results stored for this task.
+          %td= bucket.name
+          %td= bucket.accumulated_count
+
+- if @result.exception_results.count > 0
+  %h2 Errors
+
+  - @result.exception_results.each do |er|
+    %h4= "#{er.count} times"
+    %code= er.stacktrace
