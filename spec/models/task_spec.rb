@@ -47,7 +47,7 @@ describe Task do
       ]
     end
 
-    task.result_set.
+    task.result_set(task.results).
         should eq({"bucket1"=>{1=>"res11", 2=>"res21"}, "bucket2"=>{1=>"res12"}, "bucket3"=>{2=>"res23"}})
   end
 
