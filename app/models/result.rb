@@ -4,6 +4,7 @@ class Result < ActiveRecord::Base
   belongs_to :task
   belongs_to :analyst
   has_many :buckets, dependent: :destroy
+  has_many :exception_results, dependent: :destroy
 
   # This does an efficient SQL delete, rather than
   # loading all the data, running all the validations

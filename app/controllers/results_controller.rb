@@ -5,19 +5,10 @@ require './lib/result_handler'
 class ResultsController < ApplicationController
   filter_access_to :create, require: :anon_write
   protect_from_forgery :except => :create
-  before_filter :load_task, only: :show
   around_action :validate_auth_token, only: :create
 
   def show
-    respond_to do |format|
-      format.html
-
-      format.csv do
-        filename = "task_results_#{@task.id}_#{Time.now.strftime("%Y%m%d%H%M")}.csv"
-        response.headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
-        render :text => results_csv
-      end
-    end
+    @result = Result.find(params[:id])
   end
 
   def create
@@ -25,9 +16,6 @@ class ResultsController < ApplicationController
     task_id = Task.decode_id(r.task_id)
     if task_id == @pending_result.task_id then
       ResultHandler.store_results Task.find(task_id), r
-      unless r.exceptions.blank?
-        r.exceptions.each {|expt| ExceptionResult.create_from_proto task_id, r.analyst_id, expt}
-      end
     end
     render text: "Got it buddy, thanks", layout: false
   end
@@ -43,21 +31,5 @@ private
     end
   ensure
     @pending_result.destroy unless @pending_result.blank?
-  end
-
-  def load_task
-    @task = current_user.analyst.tasks.find(params[:id], include: {:results => [:buckets]})
-  end
-
-  def results_csv
-    CSV.generate(col_sep: ";") do |csv|
-      csv << (@task.result_set.keys + ["created at"])
-      @task.results.each do |result|
-        csv << (
-          @task.result_set.map {|name, bucket| bucket[result.id] || ""} +
-          [result.created_at.utc.strftime("%Y-%m-%d %H:%M:%S")]
-        )
-      end
-    end
   end
 end
