@@ -39,12 +39,12 @@ Tasks.Data = (tables) ->
     tableFilter: (id) -> tableFilters[id]
     tableFilters: -> tableFilters
 
-    newTableFilter: (tableId, filter, noThrow) ->
+    newTableFilter: (tableId, tableFilterDescriptor, noThrow) ->
       selectedTable = _.find(tables, (table) -> table.id == tableId)
       if !selectedTable || selectedTable.cluster_id != clusterId
         throw(new Error("invalid table")) unless noThrow
         return
-      tableFilter = new TableFilter(selectedTable, filter)
+      tableFilter = new TableFilter(selectedTable, tableFilterDescriptor)
       tableFilters.push(tableFilter)
       tableFilter
 
@@ -52,8 +52,8 @@ Tasks.Data = (tables) ->
 
     fromJson: (json) ->
       self.clear()
-      _.each(JSON.parse(json), (rawFilter) ->
-            self.newTableFilter(rawFilter.tableId, Filter.fromRawGroups(rawFilter.filter.groups), true)
+      _.each(JSON.parse(json), (tableFilterDescriptor) ->
+            self.newTableFilter(tableFilterDescriptor.tableId, tableFilterDescriptor, true)
           )
 
     removeTableFilter: (index) ->
@@ -66,7 +66,7 @@ Tasks.Data = (tables) ->
 
 
 # Represents a single selected table, and associated filter.
-TableFilter = (inTable, inFilter) ->
+TableFilter = (inTable, tableFilterDescriptor) ->
   self = {}
 
   # ------------------------------------
@@ -74,23 +74,44 @@ TableFilter = (inTable, inFilter) ->
   # ------------------------------------
 
   table = inTable
-  filter = inFilter || new Filter
+  filter = new Filter()
+  userRows = null
+  timeLimit = null
 
   # ------------------------------------
   # Constructor
   # ------------------------------------
 
+  if tableFilterDescriptor
+    filter = Filter.fromRawGroups(tableFilterDescriptor.filter.groups)
+    userRows = tableFilterDescriptor.user_rows
+    timeLimit = tableFilterDescriptor.time_limit
+
   _.extend(self, {
     toJSON: ->
       filter.compact()
-      {tableId: table.id, filter: filter}
+      {tableId: table.id, user_rows: userRows, time_limit: timeLimit, filter: filter}
 
     filterString: ->
-      res = table.name
-      res += " (#{filter.string()})" unless filter.empty()
-      res
+      res = []
+      res.push(table.name)
+      res.push("last #{self.minLimit()} min") if self.minLimit()
+      res.push("max #{userRows}") if userRows
+      res.push("(#{filter.string()})") unless filter.empty()
+      res.join(", ")
 
     table: -> table
+
+    userRows: ->
+      userRows = arguments[0] if arguments.length == 1
+      userRows
+
+    minLimit: ->
+      if arguments.length == 1
+        timeLimit = arguments[0]
+        timeLimit *= 60 if timeLimit
+      timeLimit && Math.round(timeLimit / 60)
+
     filter: -> filter
     setFilter: (newFilter) -> filter = newFilter
   })

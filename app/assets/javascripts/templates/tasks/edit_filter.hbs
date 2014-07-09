@@ -6,6 +6,23 @@
 
   <div id="filterError" class="text-error"></div>
 
+  <div class="form-horizontal">
+    <div class="control-group">
+      <label class="control-label">Max rows per user</label>
+      <div class="controls">
+        <input id="userRows" type="number" value="{{userRows}}"/>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">Rows created in last</label>
+      <div class="controls">
+        <input id="minLimit" type="number" value="{{minLimit}}"/>
+        <span>min</span>
+      </div>
+    </div>
+  </div>
+
   <div id="filterControls" class="form-horizontal">
     {{#each filter.groups}}
       <div id="filterGroup{{@index}}">

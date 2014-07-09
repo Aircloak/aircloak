@@ -21,6 +21,8 @@ class PrefetchFilter
 
       {
         tableId: table.id,
+        time_limit: prefetch_table["time_limit"],
+        user_rows: prefetch_table["user_rows"],
         filter: parse_where(prefetch_table["where"] || {})
       }
     end
@@ -74,7 +76,11 @@ class PrefetchFilter
           filter_error("invalid table")
         end
         table = table.first
-        {table: table.table_name}.merge(convert_filter(table, prefetch_table["filter"]))
+        {
+          table: table.table_name,
+          time_limit: prefetch_table["time_limit"],
+          user_rows: prefetch_table["user_rows"]
+        }.merge(convert_filter(table, prefetch_table["filter"]))
       end
 
     prefetch.to_json
