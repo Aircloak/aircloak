@@ -62,13 +62,18 @@ class Metrics.Controller
     window.open(window.location.pathname + "?" + $.param(@viewState.allParams()), "_blank")
 
   makeElement: (target, image) ->
-    if (target.href)
-      $("<a/>").css("margin-bottom", "40px").css("margin-right", "40px").
-        attr("href", "?" + $.param(_.extend(_.clone(@viewState.allParams()), target.href()))).
-        attr("target", "_blank").
-        append(image)
-    else
-      image.css("margin-bottom", "40px").css("margin-right", "40px")
+    element =
+      if (target.href)
+        $("<a/>").
+          attr("href", "?" + $.param(_.extend(_.clone(@viewState.allParams()), target.href()))).
+          attr("target", "_blank").
+          append(image)
+      else
+        image
+
+    $("<div/>").
+      append(element).
+      append($("<hr/>"))
 
   loadGraphs: (targets) ->
     preloadImages(
