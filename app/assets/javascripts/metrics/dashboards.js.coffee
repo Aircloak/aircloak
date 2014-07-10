@@ -94,7 +94,7 @@ histogramSpec = (controller, metricPath, graphTitle, dimension) ->
 
 metricSpec = (controller, metricPath, graphTitle, dimension) ->
       href: () ->
-        drilldown: metricPath
+        drilldown: "cloak_core.#{metricPath}"
         drilldownTitle: graphTitle
       params:
         _.extend(
