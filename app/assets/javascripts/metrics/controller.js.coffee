@@ -1,3 +1,4 @@
+//= require backbone
 //= require ./graphite_series
 //= require ./dashboards
 
@@ -12,6 +13,8 @@ Metrics.Controller = () ->
   # ------------------------------------
 
   viewState = null
+  view = null
+  autoRefreshInterval = null
 
   runDashboard = ->
     dashboard = if param("drilldown")
@@ -31,16 +34,16 @@ Metrics.Controller = () ->
     height: "300",
     hideLegend: true
 
-  renderGraphs = ->
+  render = ->
     viewState.recalcAndStore()
     loadGraphs(runDashboard())
     showHideControls()
 
   onFormSubmitted = (event) ->
     event.preventDefault()
-    renderGraphs()
+    render()
 
-  renderGraphsNewTab = () ->
+  renderNewTab = () ->
     window.open(window.location.pathname + "?" + $.param(viewState.allParams()), "_blank")
 
   makeElement = (target, image) ->
@@ -73,21 +76,14 @@ Metrics.Controller = () ->
   onAutoRefreshClicked = ->
     window.clearInterval(autoRefreshInterval) if autoRefreshInterval
     if $("#autoRefresh").prop("checked")
-      autoRefreshInterval = setInterval(renderGraphs, 30000)
+      autoRefreshInterval = setInterval(render, 30000)
     else
       autoRefreshInterval = null
 
   param = (name) -> viewState.param(name)
 
-  subscribeToEvents = () ->
-    $("#renderGraphs").click(onFormSubmitted)
-    $("#renderGraphsNewTab").click(renderGraphsNewTab)
-    $("#errorMargin").click(renderGraphs)
-    $("#autoRefresh").click(onAutoRefreshClicked)
-    $(window).bind("popstate", renderGraphs)
-
   showHideControls = () ->
-    $("#inputControls").show()
+    $("#dashboardParams").show()
     if param("drilldown")
       $("#clusterParams").hide()
     else
@@ -139,12 +135,22 @@ Metrics.Controller = () ->
   # Constructor
   # ------------------------------------
 
-  viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until", "errorMargin"])
+  view = new Backbone.View({
+    el: "#dashboardParams",
+    render: render,
+    events:
+      "click #renderGraphs": onFormSubmitted
+      "click #renderGraphsNewTab": renderNewTab
+      "click #errorMargin": render
+      "click #autoRefresh": onAutoRefreshClicked
+  })
 
   initDashboard()
   initAggregations()
+  viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until", "errorMargin"])
+
   showHideControls()
-  subscribeToEvents()
+  $(window).bind("popstate", render)
 
   _.extend(self, {
     param: param
@@ -155,7 +161,7 @@ Metrics.Controller = () ->
 
   # We can call this only after the object has been fully constructed, with public
   # properties available.
-  renderGraphs() if (viewState.urlParam("cluster"))
+  render() if (viewState.urlParam("cluster"))
   self
 
 
