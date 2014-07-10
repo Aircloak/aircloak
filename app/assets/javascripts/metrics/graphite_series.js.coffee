@@ -7,57 +7,14 @@ window.Metrics or= {}
 # method to get the query param that can be sent to graphite.
 #
 # See dashboards for usage examples.
-class Metrics.GraphiteSeries
-  ## -------------------------------------------------------------------
-  ## Public instance methods
-  ## -------------------------------------------------------------------
+Metrics.GraphiteSeries = (from) ->
+  self = this
 
-  constructor: (from) ->
-    value = (from || "##path_placeholder##").toString()
-    @toString = () -> value
+  # ------------------------------------
+  # Private members
+  # ------------------------------------
 
-  alias: (name) -> @applyFun("alias", name)
-  percentileOfSeries: (percentile) -> @applyFun("percentileOfSeries", percentile)
-  absolute: () -> @applyFun("absolute")
-  sum: (series) -> @applyFun("sumSeries", series)
-  diff: (series) -> @applyFun("diffSeries", series)
-  multiply: (series) -> @applyFun("multiplySeries", series)
-  scale: (factor) -> @applyFun("scale", factor)
-  stacked: () -> @applyFun("stacked")
-  derivative: () -> @applyFun("derivative")
-  scaleToSeconds: (seconds) -> @applyFun("scaleToSeconds", seconds)
-  applyFun: (args...) -> applyFun.apply(null, [args[0], this].concat(args[1..-1]))
-
-  aggregate: (aggregation) ->
-    aggregator = aggregators[aggregation]
-    if aggregator
-      aggregator(this)
-    else
-      this.applyFun(aggregation)
-
-  materialize: (value) ->
-    new Metrics.GraphiteSeries(@toString().replace("##path_placeholder##", sanitize(value)))
-
-
-  ## -------------------------------------------------------------------
-  ## Public class functions
-  ## -------------------------------------------------------------------
-
-  # Can be used to create initial
-  @fromPath = (path) ->
-    fullPath = _.map(path,
-          (component) ->
-            if component instanceof Array
-              ["{", component.join(","), "}"].join("")
-            else
-              component.toString()
-        ).join(".")
-    new GraphiteSeries(fullPath)
-
-
-  ## -------------------------------------------------------------------
-  ## Private class functions
-  ## -------------------------------------------------------------------
+  value = (from || "##path_placeholder##").toString()
 
   aggregators =
     median: (query) -> query.percentileOfSeries(50)
@@ -66,12 +23,57 @@ class Metrics.GraphiteSeries
     upper99: (query) -> query.percentileOfSeries(99)
 
   applyFun = (name, args...) ->
-    new GraphiteSeries([name, "(", sanitizeArgs(args).join(","), ")"].join(""))
-
-  sanitizeArgs = (args) -> _.map(args, sanitize)
+    stringArgs = _.map([self].concat(args), sanitize).join(",")
+    new Metrics.GraphiteSeries("#{name}(#{stringArgs})")
 
   sanitize = (value) ->
-    if value instanceof GraphiteSeries
+    if value instanceof Metrics.GraphiteSeries
       value.toString()
     else
       JSON.stringify(value)
+
+
+  # ------------------------------------
+  # Constructor
+  # ------------------------------------
+
+  _.extend(self, {
+    toString: -> value
+    alias: (name) -> applyFun("alias", name)
+    percentileOfSeries: (percentile) -> applyFun("percentileOfSeries", percentile)
+    absolute: -> applyFun("absolute")
+    sum: (series) -> applyFun("sumSeries", series)
+    diff: (series) -> applyFun("diffSeries", series)
+    multiply: (series) -> applyFun("multiplySeries", series)
+    scale: (factor) -> applyFun("scale", factor)
+    stacked: -> applyFun("stacked")
+    derivative: -> applyFun("derivative")
+    scaleToSeconds: (seconds) -> applyFun("scaleToSeconds", seconds)
+
+    aggregate: (aggregation) ->
+      aggregator = aggregators[aggregation]
+      if aggregator
+        aggregator(self)
+      else
+        applyFun(aggregation)
+
+    materialize: (value) ->
+      new Metrics.GraphiteSeries(toString().replace("##path_placeholder##", sanitize(value)))
+  })
+
+
+# ------------------------------------
+# Public class functions
+# ------------------------------------
+
+_.extend(Metrics.GraphiteSeries, {
+  fromPath: (path) ->
+    fullPath = _.map(path,
+          (component) ->
+            if component instanceof Array
+              ["{", component.join(","), "}"].join("")
+            else
+              component.toString()
+        ).join(".")
+    new Metrics.GraphiteSeries(fullPath)
+})
