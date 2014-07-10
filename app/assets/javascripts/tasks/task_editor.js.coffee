@@ -2,7 +2,7 @@
 window.Tasks or= {}
 
 Tasks.Editor = (tables, operators) ->
-  self = {}
+  self = this
 
   # ------------------------------------
   # Private members
