@@ -6,66 +6,48 @@ window.Metrics or= {}
 # in the UI.
 
 Metrics.Dashboards =
-  # Dashboard for cloak queries
-  "Cloak queries": (controller) ->
-    _.map(
-          ["rate", "median", "average", "upper_75", "upper_90", "upper_99"],
-          (type) ->
-            graphTitle = title("query_coordinator: " + type, if type == "rate" then "queries/s" else "ms")
-            href: () ->
-              drilldown: ["cloak_core.query_coordinator", type].join(".")
-              drilldownTitle: graphTitle
-            params:
-              _.extend(
-                  title: graphTitle
-                  plotAnonymized(
-                        controller,
-                        [controller.selectedCloaks(), "cloak_core.query_coordinator", type],
-                        (expression) -> expression.aggregate(controller.param("aggregation"))
-                      )
-                )
+  "Task": (controller) ->
+    _.flatten(
+          [
+            rateSpec(controller, "task.started", "Task started"),
+            rateSpec(controller, "task.successful", "Task success"),
+            rateSpec(controller, "task.timeout", "Task timeout"),
+            histogramSpec(controller, "task.total", "Task duration", "ms")
+          ],
+          true
         )
 
-  # Dashboard for JVM metrics
-  "JVM": (controller) ->
-    units =
-      daemon_count: "live daemon threads",
-      fd_usage: "%",
-      heap_commited: "MB", heap_max: "MB", heap_usage: "%", non_heap_usage: "%",
-      uptime:"s", thread_count: "threads",
-      "gc.PS-Scavenge.runs": "runs/s",
-      "gc.PS-Scavenge.time": "ms/s",
-      "gc.PS-MarkSweep.runs": "runs/s",
-      "gc.PS-MarkSweep.time": "ms/s"
-    _.map(
+  "Job": (controller) ->
+    _.flatten(
           [
-            "thread_count", "daemon_count", "fd_usage",
-            "heap_commited", "heap_max", "heap_usage", "non_heap_usage",
-            "gc.PS-Scavenge.runs", "gc.PS-Scavenge.time", "gc.PS-MarkSweep.runs", "gc.PS-MarkSweep.time",
+            rateSpec(controller, "job.started", "Job started"),
+            rateSpec(controller, "job.successful", "Job success"),
+            rateSpec(controller, "job.fail", "Job failed"),
+            rateSpec(controller, "job.timeout", "Job Timeout"),
+            histogramSpec(controller, "job.duration", "Job duration", "ms")
           ],
-          (metric) ->
-            graphTitle = title(metric, units[metric])
-            transform = new Metrics.GraphiteSeries()
-            transform = transform.scale(1/(1024*1024)) if units[metric] == "MB"
-            transform = transform.derivative().scaleToSeconds(1) if metric.match(/^gc\./)
-            href: () ->
-              transform: transform.toString()
-              drilldown: ["cloak_core.jvm", metric, "value"].join("."),
-              drilldownTitle: graphTitle
-            params:
-              _.extend(
-                    title: graphTitle,
-                    lineMode: "staircase",
-                    plotAnonymized(
-                            controller,
-                            [controller.selectedCloaks(), "cloak_core.jvm", metric, "value"],
-                            (expression) ->
-                              transform.
-                                materialize(expression).
-                                aggregate(controller.param("aggregation"))
-                          )
-                  )
+          true
         )
+
+  "Batch task phases": (controller) ->
+    stackHistograms(controller, "Duration of batch task phases", "ms", [
+          "task.parse_json", "task.prefetch", "task.group_users_tables", "task.jobs", "task.aggregation",
+          "task.anonymization", "task.send_result"
+        ])
+
+  "Prefetch phases": (controller) ->
+    stackHistograms(controller, "Duration of prefetch phases", "ms", [
+          "prefetch.prepare", "prefetch.execute", "prefetch.return_result"
+        ])
+
+  "Job phases": (controller) ->
+    stackHistograms(controller, "Duration of job execution phases", "ms", [
+          "job.queued", "job.duration", "job.data_insertion"
+        ])
+  "Database operations": (controller) ->
+    stackHistograms(controller, "Duration of database operation phases", "ms", [
+          "db_operation.queued", "db_operation.duration"
+        ])
 
   # Dashboard for drilldown into individual cloaks.
   # Note: this dashboard is explicitly disabled from dropdown selection in
@@ -97,6 +79,53 @@ Metrics.Dashboards =
 ## -------------------------------------------------------------------
 ## Private helper functions
 ## -------------------------------------------------------------------
+
+histogramTypes = ["median", "average", "upper_75", "upper_90", "upper_99"]
+
+rateSpec = (controller, metricPath, graphTitle) ->
+  metricSpec(controller, "#{metricPath}.rate", "#{graphTitle} rate", "times/sec")
+
+histogramSpec = (controller, metricPath, graphTitle, dimension) ->
+  _.map(
+        histogramTypes,
+        (type) ->
+          metricSpec(controller, "#{metricPath}.#{type}", "#{graphTitle} #{type}", dimension)
+      )
+
+metricSpec = (controller, metricPath, graphTitle, dimension) ->
+      href: () ->
+        drilldown: metricPath
+        drilldownTitle: graphTitle
+      params:
+        _.extend(
+            title: title(graphTitle, dimension)
+            drawNullAsZero: true
+            plotAnonymized(
+                  controller,
+                  [controller.selectedCloaks(), "cloak_core", metricPath],
+                  (expression) -> expression.aggregate(controller.param("aggregation"))
+                )
+          )
+
+stackHistograms = (controller, graphTitle, dimension, metrics) ->
+  _.map(
+          histogramTypes,
+          (type) ->
+            params:
+              title: title("#{graphTitle} #{type}", dimension)
+              hideLegend: false
+              yMin: 0
+              target:
+                  _.map(
+                        metrics,
+                        (phase) ->
+                          fromPath([controller.selectedCloaks(), "cloak_core.#{phase}", type]).
+                          aggregate(controller.param("aggregation")).
+                          stacked().
+                          alias(phase).
+                          toString()
+                      )
+        )
 
 # Plots anonymized data, optionally drawing error margins around
 plotAnonymized = (controller, path, transformer) ->

@@ -374,9 +374,13 @@ Data insertion only needs to be done once.
 
 Next, you need to create a task in the web UI. The simplest prefetch must consist of a single table (e.g. age). The simplest sandbox code is: `report_property('age', tables.age[0].age)`. **Note**: code editor is in vi mode, so when you focus the textbox, press `a` to enter text.
 
-Finally, if cloak is started, you can execute the task from the air UI. **Tip**: upon task execution, you're
+If the cloak is started, you can execute the task from the air UI. **Tip**: upon task execution, you're
 redirected to the results page for that task. However, the results usually arrive a bit later, so you'll need
 to refresh the page to see them.
+
+There is also a rake task that allows you to perform a quick load test of task execution. First, make sure you have local cluster and analyst setup. Also, you need to have some tables and data. Finally, you need to create a couple of valid tasks that return results. When all this is setup, start your local air and cloak (make sure it reports back to local air). Then, you can run e.g. `bundle exec rake air:task_load_test[1000]` which will execute each task from your web database a thousand times (in a round robin fashion).
+
+Moreover, if you [setup your local cloak to report to local graphite](https://github.com/Aircloak/org/wiki/tech::Metrics#running-the-system-locally), you'll be able to locally collect and observe metrics.
 
 ## Good to know
 

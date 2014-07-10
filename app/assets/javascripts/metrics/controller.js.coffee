@@ -62,13 +62,20 @@ class Metrics.Controller
     window.open(window.location.pathname + "?" + $.param(@viewState.allParams()), "_blank")
 
   makeElement: (target, image) ->
-    if (target.href)
-      $("<a/>").css("margin-bottom", "40px").css("margin-right", "40px").
-        attr("href", "?" + $.param(_.extend(_.clone(@viewState.allParams()), target.href()))).
-        attr("target", "_blank").
-        append(image)
-    else
-      image.css("margin-bottom", "40px").css("margin-right", "40px")
+    element =
+      if image == null
+        $("<span>No data for #{target.params.title}</span>")
+      else if (target.href)
+        $("<a/>").
+          attr("href", "?" + $.param(_.extend(_.clone(@viewState.allParams()), target.href()))).
+          attr("target", "_blank").
+          append(image)
+      else
+        image
+
+    $("<div/>").
+      append(element).
+      append($("<hr/>"))
 
   loadGraphs: (targets) ->
     preloadImages(
@@ -130,10 +137,25 @@ class Metrics.Controller
 
   preloadImages = (urls, callback) ->
     count = urls.length
+    images = []
+
     onImageLoaded = () ->
       count -= 1
       callback(images) if count == 0
-    images = _.map(urls, (url) -> $("<img/>", {src: url}).bind("load", onImageLoaded))
+
+    onImageError = (event) ->
+      count -= 1
+      index = images.indexOf(event.target)
+      if (index >= 0)
+        images[index] = null
+      callback(images) if count == 0
+
+    images = _.map(urls,
+          (url) ->
+            $("<img/>", {src: url}).
+              bind("load", onImageLoaded).
+              bind("error", onImageError)[0]
+        )
 
 
 # Creates anonymous controller instance. Since controller binds to various

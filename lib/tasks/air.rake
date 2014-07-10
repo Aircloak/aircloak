@@ -37,6 +37,26 @@ namespace :air do
     create_users(analyst_id, cluster_id, num_users)
   end
 
+  task :task_load_test, [:num_iterations] => :environment do |t, args|
+    if args.count != 1 || args[:num_iterations].nil?
+      abort <<-eos.gsub(/^ +/, '')
+
+        bundle exec rake air:task_load_test[num_iterations]
+
+        Example: bundle exec rake air:task_load_test[1000]
+
+      eos
+    end
+    tasks = Task.all.to_a
+    num_iterations = args[:num_iterations].to_i
+    (1..num_iterations).each do |iteration|
+      print "\r#{(100.0*iteration/num_iterations).round} %"
+      tasks.each do |task|
+        task.execute_batch_task
+      end
+    end
+  end
+
   private
     def drop_tables(analyst_id, cluster_id)
       TestTables.keys.each do |table_name|
