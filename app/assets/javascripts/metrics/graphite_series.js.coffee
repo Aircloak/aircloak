@@ -68,12 +68,16 @@ Metrics.GraphiteSeries = (from) ->
 
 _.extend(Metrics.GraphiteSeries, {
   fromPath: (path) ->
-    fullPath = _.map(path,
-          (component) ->
-            if component instanceof Array
-              ["{", component.join(","), "}"].join("")
-            else
-              component.toString()
-        ).join(".")
+    fullPath =
+      if typeof(path) == "string" || path instanceof String
+        path
+      else if path instanceof Array
+        _.map(path,
+            (component) ->
+              if component instanceof Array
+                "{#{component.join(",")}}"
+              else
+                component.toString()
+          ).join(".")
     new Metrics.GraphiteSeries(fullPath)
 })

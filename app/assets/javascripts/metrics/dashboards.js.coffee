@@ -44,6 +44,7 @@ Metrics.Dashboards =
     stackHistograms(controller, "Duration of job execution phases", "ms", [
           "job.queued", "job.duration", "job.data_insertion"
         ])
+
   "Database operations": (controller) ->
     stackHistograms(controller, "Duration of database operation phases", "ms", [
           "db_operation.queued", "db_operation.duration"
@@ -59,12 +60,10 @@ Metrics.Dashboards =
           (cloak) ->
             params:
               _.extend(
-                    title: [
-                        cloak, ": ", controller.param("drilldownTitle") || controller.param("drilldown")
-                      ].join(""),
+                    title: "#{cloak}: #{controller.param("drilldownTitle") || controller.param("drilldown")}"
                     plotAnonymized(
                             controller,
-                            [cloak, controller.param("drilldown")],
+                            "#{cloak}.#{controller.param("drilldown")}",
                             (expression) ->
                               if controller.param("transform")
                                 (new Metrics.GraphiteSeries(controller.param("transform"))).
@@ -102,7 +101,7 @@ metricSpec = (controller, metricPath, graphTitle, dimension) ->
             drawNullAsZero: true
             plotAnonymized(
                   controller,
-                  [controller.selectedCloaks(), "cloak_core", metricPath],
+                  "#{controller.selectedCloaks()}.cloak_core.#{metricPath}",
                   (expression) -> expression.aggregate(controller.param("aggregation"))
                 )
           )
@@ -119,7 +118,9 @@ stackHistograms = (controller, graphTitle, dimension, metrics) ->
                   _.map(
                         metrics,
                         (phase) ->
-                          fromPath([controller.selectedCloaks(), "cloak_core.#{phase}", type]).
+                          Metrics.GraphiteSeries.fromPath([
+                              controller.selectedCloaks(), "cloak_core.#{phase}.#{type}"
+                            ]).
                           aggregate(controller.param("aggregation")).
                           stacked().
                           alias(phase).
@@ -134,13 +135,11 @@ plotAnonymized = (controller, path, transformer) ->
   if controller.param("errorMargin")
     highlightError(
           transformer,
-          fromPath(path)
-          fromPath(["anonymization_error"].concat(path))
+          Metrics.GraphiteSeries.fromPath(path)
+          Metrics.GraphiteSeries.fromPath(["anonymization_error"].concat(path))
         )
   else
-    target: transformer(fromPath(path)).toString()
-
-fromPath = (path) -> Metrics.GraphiteSeries.fromPath(path)
+    target: transformer(Metrics.GraphiteSeries.fromPath(path)).toString()
 
 # Describes the graph containing anonymized data together with an error area surrounding it.
 # The area is as large as an error (absolute), and centered around the drawn
@@ -158,6 +157,6 @@ highlightError = (transformer, anonymized, relativeError) ->
 # Make title, with optional unit
 title = (name, unit) ->
   if unit
-    [name, " [", unit, "]"].join("")
+    "#{name} [#{unit}]"
   else
     name
