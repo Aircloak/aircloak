@@ -6,54 +6,24 @@
 # provided.
 #
 # See metrics controller for example usage
-class ViewState
-  ## -------------------------------------------------------------------
-  ## Public instance methods
-  ## -------------------------------------------------------------------
+window.ViewState = (controlIds) ->
+  self = this
 
-  # Constructor receives a list of control ids (without #). These controls
-  # are then synced with state params.
-  constructor: (@controlIds) ->
-    @initControls()
-    @recalcParams()
+  # ------------------------------------
+  # Private members
+  # ------------------------------------
 
-  # Combines url and control params. If some param is defined in both, the
-  # control one takes precedence.
-  allParams: () ->
-    _.extend(@urlParams(), @controlParams())
+  params = {}
 
-  # Returns the value for some param
-  param: (name) -> @params[name]
-
-  # Returns the value for some url param
-  urlParam: (name) -> @urlParams()[name]
-
-  # Recalculates params and stores them.
-  recalcAndStore: () ->
-    @recalcParams()
-    @store()
-
-  # Merges new params
-  merge: (newParams) ->
-    @recalcParams()
-    for key, value of newParams
-      @params[key] = value
-    @store()
-
-
-  ## -------------------------------------------------------------------
-  ## Internal public instance methods
-  ## -------------------------------------------------------------------
-
-  initControls: () ->
-    urlParams = @urlParams()
+  initControls = ->
+    currentUrlParams = urlParams()
     _.each(
-          @controlIds,
+          controlIds,
           (paramName) =>
-            setControlValue($('#' + paramName), urlParams[paramName]) if urlParams[paramName]
+            setControlValue($('#' + paramName), currentUrlParams[paramName]) if currentUrlParams[paramName]
         )
 
-  urlParams: () ->
+  urlParams = ->
     return {} if !window.location.search
     _.reduce(
           window.location.search.replace(/^\?/, "").split("&"),
@@ -64,9 +34,9 @@ class ViewState
           {}
         )
 
-  controlParams: () ->
+  controlParams = ->
     _.reduce(
-          @controlIds,
+          controlIds,
           (memo, controlId) ->
             control = $("#" + controlId)
             memo[controlId] = controlValue(control) if (control[0])
@@ -74,9 +44,12 @@ class ViewState
           {}
         )
 
-  recalcParams: () -> @params = @allParams()
+  recalcParams = -> params = allParams()
 
-  store: () -> history.replaceState(null, "", "?" + $.param(@params))
+  allParams = () ->
+    _.extend(urlParams(), controlParams())
+
+  store = -> history.replaceState(null, "", "?" + $.param(params))
 
   setControlValue = (control, value) ->
     if control.prop('type') == 'checkbox'
@@ -90,5 +63,34 @@ class ViewState
     else
       control.val()
 
-# Makes class globally accessible
-window.ViewState = ViewState
+
+  # ------------------------------------
+  # Constructor
+  # ------------------------------------
+
+  initControls()
+  recalcParams()
+
+  _.extend(self, {
+    # Combines url and control params. If some param is defined in both, the
+    # control one takes precedence.
+    allParams: allParams
+
+    # Returns the value for some param
+    param: (name) -> params[name]
+
+    # Returns the value for some url param
+    urlParam: (name) -> urlParams()[name]
+
+    # Recalculates params and stores them.
+    recalcAndStore: () ->
+      recalcParams()
+      store()
+
+    # Merges new params
+    merge: (newParams) ->
+      recalcParams()
+      for key, value of newParams
+        params[key] = value
+      store()
+  })

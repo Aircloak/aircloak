@@ -4,7 +4,7 @@ window.Tasks or= {}
 # Represents the data, as seen by UI and users. Data consists of list of tables
 # each table having an optional filter.
 Tasks.Data = (tables) ->
-  self = {}
+  self = this
 
   # ------------------------------------
   # Private members
@@ -67,7 +67,7 @@ Tasks.Data = (tables) ->
 
 # Represents a single selected table, and associated filter.
 TableFilter = (inTable, tableFilterDescriptor) ->
-  self = {}
+  self = this
 
   # ------------------------------------
   # Private members
@@ -121,7 +121,7 @@ TableFilter = (inTable, tableFilterDescriptor) ->
 # group representing a set of conditions (see below). When the final query is
 # built, filters represented by each group will be OR-joined.
 Filter = (inGroups) ->
-  self = {}
+  self = this
 
   # ------------------------------------
   # Private members
@@ -183,7 +183,7 @@ Filter.fromRawGroups = (groups) ->
 # with condition consisting of a column name, operator, and value.
 # When target query is generated, all conditions will be AND-joined.
 Group = (inFilters) ->
-  self = {}
+  self = this
 
   # ------------------------------------
   # Private members

@@ -4,7 +4,7 @@ window.Tasks or= {}
 Handlebars.registerPartial("tasks/filter", HandlebarsTemplates["tasks/filter"]);
 
 Tasks.FilterEditor = (inOptions) ->
-  self = {}
+  self = this
 
   # ------------------------------------
   # Private members

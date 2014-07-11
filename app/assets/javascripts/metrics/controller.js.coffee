@@ -1,73 +1,58 @@
+//= require backbone
 //= require ./graphite_series
 //= require ./dashboards
 
 # Setup the global namespace
 window.Metrics or= {}
 
-# Controller and view responsible for metrics presentation
-class Metrics.Controller
-  # Hack used for passing global cluster -> cloaks mapping to the client side.
-  # We take the hash into a local variable, and then remove it from the global
-  # scope.
-  clusterCloaks = window.clusterCloaks
-  delete window.clusterCloaks
+Metrics.Controller = () ->
+  self = this
 
+  # ------------------------------------
+  # Private members
+  # ------------------------------------
 
-  ## -------------------------------------------------------------------
-  ## Public instance methods
-  ## -------------------------------------------------------------------
+  viewState = null
+  view = null
+  autoRefreshInterval = null
 
-  constructor: () ->
-    initDashboard()
-    initAggregations()
-    @viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until", "errorMargin"])
-    @showHideControls()
-    @subscribeToEvents()
-    @renderGraphs() if (@viewState.urlParam("cluster"))
-
-  selectedCloaks: () ->
-    (clusterCloaks[@param("cluster")] || []).
-      map((cloakName) -> cloakName.replace(/\./g, "_"))
-
-  runDashboard: () ->
-    dashboard = if @param("drilldown")
+  runDashboard = ->
+    dashboard = if param("drilldown")
       Metrics.Dashboards["Cloak drilldown"]
     else
-      Metrics.Dashboards[@param("dashboard")]
-    dashboard(this)
+      Metrics.Dashboards[param("dashboard")]
+    dashboard(self)
 
-  graphParams: (customParams) ->
-    _.extend(
-          {
-            from: @param("from") || "-1h",
-            until: @param("until") || "now",
-            tz: "CET",
-            width: "500",
-            height: "300",
-            hideLegend: true
-          },
-          customParams
-        )
+  graphParams = (customParams) ->
+    _.extend(defaultParams(), customParams)
 
-  renderGraphs: () ->
-    @viewState.recalcAndStore()
-    @loadGraphs(@runDashboard())
-    @showHideControls()
+  defaultParams = ->
+    from: param("from") || "-1h",
+    until: param("until") || "now",
+    tz: "CET",
+    width: "500",
+    height: "300",
+    hideLegend: true
 
-  onFormSubmitted: (event) ->
+  render = ->
+    viewState.recalcAndStore()
+    loadGraphs(runDashboard())
+    showHideControls()
+
+  onFormSubmitted = (event) ->
     event.preventDefault()
-    @renderGraphs()
+    render()
 
-  renderGraphsNewTab: () ->
-    window.open(window.location.pathname + "?" + $.param(@viewState.allParams()), "_blank")
+  renderNewTab = () ->
+    window.open(window.location.pathname + "?" + $.param(viewState.allParams()), "_blank")
 
-  makeElement: (target, image) ->
+  makeElement = (target, image) ->
     element =
       if image == null
         $("<span>No data for #{target.params.title}</span>")
       else if (target.href)
         $("<a/>").
-          attr("href", "?" + $.param(_.extend(_.clone(@viewState.allParams()), target.href()))).
+          attr("href", "?" + $.param(_.extend(_.clone(viewState.allParams()), target.href()))).
           attr("target", "_blank").
           append(image)
       else
@@ -77,44 +62,32 @@ class Metrics.Controller
       append(element).
       append($("<hr/>"))
 
-  loadGraphs: (targets) ->
+  loadGraphs = (targets) ->
     preloadImages(
-          _.map(targets, (target) => "/metrics/render_graph?" + $.param(@graphParams(target.params))),
+          _.map(targets, (target) => "/metrics/render_graph?" + $.param(graphParams(target.params))),
           (images) =>
             $("#graphs").html("")
             _.each(
                   _.zip(targets, images),
-                  (imageData) => $("#graphs").append(@makeElement.apply(this, imageData))
+                  (imageData) => $("#graphs").append(makeElement.apply(this, imageData))
                 )
         )
 
-  onAutoRefreshClicked: () ->
-    window.clearInterval(@autoRefreshInterval) if @autoRefreshInterval
+  onAutoRefreshClicked = ->
+    window.clearInterval(autoRefreshInterval) if autoRefreshInterval
     if $("#autoRefresh").prop("checked")
-      @autoRefreshInterval = setInterval(@renderGraphs.bind(this), 30000)
+      autoRefreshInterval = setInterval(render, 30000)
     else
-      @autoRefreshInterval = null
+      autoRefreshInterval = null
 
-  param: (name) -> @viewState.param(name)
+  param = (name) -> viewState.param(name)
 
-  subscribeToEvents: () ->
-    $("#renderGraphs").click(this.onFormSubmitted.bind(this))
-    $("#renderGraphsNewTab").click(this.renderGraphsNewTab.bind(this))
-    $("#errorMargin").click(this.renderGraphs.bind(this))
-    $("#autoRefresh").click(this.onAutoRefreshClicked.bind(this))
-    $(window).bind("popstate", @renderGraphs.bind(this))
-
-  showHideControls: () ->
-    $("#inputControls").show()
-    if @param("drilldown")
+  showHideControls = () ->
+    $("#dashboardParams").show()
+    if param("drilldown")
       $("#clusterParams").hide()
     else
       $("#clusterParams").show()
-
-
-  ## -------------------------------------------------------------------
-  ## Private class functions
-  ## -------------------------------------------------------------------
 
   initDropdown = (dropdown, items) =>
     for text, value of items
@@ -139,7 +112,7 @@ class Metrics.Controller
     count = urls.length
     images = []
 
-    onImageLoaded = () ->
+    onImageLoaded = ->
       count -= 1
       callback(images) if count == 0
 
@@ -156,6 +129,41 @@ class Metrics.Controller
               bind("load", onImageLoaded).
               bind("error", onImageError)[0]
         )
+
+
+  # ------------------------------------
+  # Constructor
+  # ------------------------------------
+
+  view = new Backbone.View({
+    el: "#dashboardParams",
+    render: render,
+    events:
+      "click #renderGraphs": onFormSubmitted
+      "click #renderGraphsNewTab": renderNewTab
+      "click #errorMargin": render
+      "click #autoRefresh": onAutoRefreshClicked
+  })
+
+  initDashboard()
+  initAggregations()
+  viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until", "errorMargin"])
+
+  showHideControls()
+  $(window).bind("popstate", render)
+
+  _.extend(self, {
+    param: param
+    selectedCloaks: ->
+      (clusterCloaks[param("cluster")] || []).
+        map((cloakName) -> cloakName.replace(/\./g, "_"))
+  })
+
+  # We can call this only after the object has been fully constructed, with public
+  # properties available.
+  render() if (viewState.urlParam("cluster"))
+  self
+
 
 
 # Creates anonymous controller instance. Since controller binds to various
