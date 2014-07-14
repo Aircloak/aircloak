@@ -74,7 +74,7 @@ private
   def set_layout
     if current_user && current_user.analyst != nil
       self.class.layout "analyst"
-    else
+    elseif @layout != false
       self.class.layout "application"
     end
   end
