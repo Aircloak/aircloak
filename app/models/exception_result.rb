@@ -4,7 +4,7 @@ class ExceptionResult < ActiveRecord::Base
 
   def self.create_from_proto result, exception
     create(
-      result: result,
+      result_id: result.id,
       stacktrace: exception.stackEntry,
       count: exception.accumulated_count.blank? ? 0 : exception.accumulated_count
     )
