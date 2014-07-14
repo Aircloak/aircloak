@@ -5,7 +5,10 @@ class ApiTasksController < ApplicationController
   filter_access_to [:show, :get_result, :get_latest_result_id], require: :anon_read
   skip_before_action :verify_authenticity_token
   before_filter :assign_task, only: [:get_result, :execute_as_batch_task, :get_latest_result_id]
-  layout false
+
+  def set_layout
+    self.class.layout false
+  end
 
   # GET /api/tasks/:id
   def show
