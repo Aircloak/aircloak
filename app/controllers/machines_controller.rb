@@ -5,7 +5,10 @@ class MachinesController < ApplicationController
   filter_access_to [:index, :setup_info], require: :anon_read
   filter_access_to [:broken, :synchronize], require: :anon_write
   skip_before_action :verify_authenticity_token
-  layout false
+
+  def set_layout
+    self.class.layout false
+  end
 
   def index
     send_data MachinePacker.package_cloaks(Cloak.all).encode.buf, type: "application/x-protobuf"
