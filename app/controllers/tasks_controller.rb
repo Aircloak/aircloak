@@ -62,7 +62,7 @@ class TasksController < ApplicationController
   # POST /tasks/:id/execute_as_batch_task
   def execute_as_batch_task
     @task.execute_batch_task
-    redirect_to result_path(@task), notice: "Run of #{@task.name} has been initiated"
+    redirect_to latest_results_task_path(@task), notice: "Run of #{@task.name} has been initiated"
   end
 
   # GET /tasks/:id/all_results
