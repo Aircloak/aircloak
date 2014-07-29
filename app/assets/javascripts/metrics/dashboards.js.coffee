@@ -107,7 +107,7 @@ metricSpec = (controller, metricPath, graphTitle, dimension) ->
             drawNullAsZero: true
             plotAnonymized(
                   controller,
-                  "#{controller.selectedCloaks()}.cloak_core.#{metricPath}",
+                  "{#{controller.selectedCloaks()}}.cloak_core.#{metricPath}",
                   (expression) -> expression.aggregate(controller.param("aggregation"))
                 )
           )
