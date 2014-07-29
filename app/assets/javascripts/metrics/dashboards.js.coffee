@@ -45,6 +45,12 @@ Metrics.Dashboards =
           "job.queued", "job.duration", "job.data_insertion"
         ])
 
+  "User insertion": (controller) ->
+    stackHistograms(controller, "Duration of user insertion phases", "us", [
+          "insert_user.read_body", "insert_user.decode_json", "insert_user.validate_structure",
+          "insert_user.parse_tables", "insert_user.validate_data", "insert_user.insert_data"
+        ])
+
   "Database operations": (controller) ->
     stackHistograms(controller, "Duration of database operation phases", "ms", [
           "db_operation.queued", "db_operation.duration"
