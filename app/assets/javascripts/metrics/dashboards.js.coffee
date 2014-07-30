@@ -52,9 +52,40 @@ Metrics.Dashboards =
         ])
 
   "Database operations": (controller) ->
-    stackHistograms(controller, "Duration of database operation phases", "ms", [
-          "db_operation.queued", "db_operation.duration"
+    result = []
+
+    result = result.concat([
+          params:
+            title: title("rate", "times/sec")
+            hideLegend: false
+            target: "{#{controller.selectedCloaks()}}.cloak_core.db_operation.{finished,started}.rate"
         ])
+
+    result = result.concat(stackHistograms(controller, "Duration of database operation phases", "ms", [
+          "db_operation.queued", "db_operation.duration"
+        ]))
+
+    result = result.concat([
+          params:
+            title: title("query rates", "times/sec")
+            hideLegend: false
+            target: "{#{controller.selectedCloaks()}}.cloak_core.db_operation.queries.*.rate"
+        ])
+
+    result = _.reduce(
+          histogramTypes,
+          (memo, histogram) ->
+            memo.push(
+                  params:
+                    title: title("query times #{histogram}", "ms")
+                    hideLegend: false
+                    target: "{#{controller.selectedCloaks()}}.cloak_core.db_operation.queries.*.#{histogram}"
+                )
+            memo
+          result
+        )
+
+    result
 
   # Dashboard for drilldown into individual cloaks.
   # Note: this dashboard is explicitly disabled from dropdown selection in
