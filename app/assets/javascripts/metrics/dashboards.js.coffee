@@ -56,7 +56,10 @@ Metrics.Dashboards =
                   params:
                     title: title("query times #{histogram}", "ms")
                     hideLegend: false
-                    target: "{#{controller.selectedCloaks()}}.cloak_core.db_operation.queries.*.#{histogram}"
+                    target: _.map(
+                          existingHistograms(controller, "db_operation.queries.*"),
+                          (metric) -> clusterMetric(controller, "#{metric}.#{histogram}")
+                        )
               )
         ],
         true)
@@ -90,14 +93,59 @@ Metrics.Dashboards =
 ## Private helper functions
 ## -------------------------------------------------------------------
 
-histogramTypes = ["median", "average", "upper_75", "upper_90", "upper_99"]
+existingSeries = (controller, path) ->
+  params =
+    from: controller.param("from") || "-1h"
+    until: controller.param("until") || "now"
+    tz: "CET"
+    target: path
+    format: "json"
+
+  response = $.ajax(
+        type: "GET",
+        url: "/metrics/render_graph?#{$.param(params)}"
+        async: false
+      )
+  try
+    return [] unless response.status == 200 && response.responseText
+    result = eval(response.responseText)
+    return [] unless result instanceof Array
+    _.uniq(_.map(
+          _.filter(_.map(result, (series) -> series.target), (target) -> target)
+          (key) -> key.replace(/^.+\.cloak_core\./,"")
+        ))
+  catch
+    []
+
+existingHistograms = (controller, path) ->
+  _.uniq(_.map(
+        existingSeries(
+              controller,
+              "{#{controller.selectedCloaks()}}.cloak_core.#{path}.#{histogramTypes}"
+            ),
+        (target) ->
+          parts = target.split(".")
+          parts.splice(-1, 1)
+          parts.join(".")
+      ))
 
 rateSpec = (controller, metricPath, graphTitle) ->
+  existingPaths = existingSeries(controller, "{#{controller.selectedCloaks()}}.cloak_core.#{metricPath}.rate")
   params:
     title: title(graphTitle, "times/sec")
     hideLegend: false
-    target: "{#{controller.selectedCloaks()}}.cloak_core.#{metricPath}.rate"
+    target: _.map(existingPaths, _.bind(clusterMetric, null, controller))
 
+clusterMetric = (controller, path) ->
+  Metrics.GraphiteSeries.
+    fromPath(
+          "{#{controller.selectedCloaks()}}.cloak_core.#{path}"
+        ).
+    aggregate(controller.param("aggregation")).
+    alias(path).
+    toString()
+
+histogramTypes = ["median", "average", "upper_75", "upper_90", "upper_99"]
 histogramSpec = (controller, metricPath, graphTitle, dimension, groupId) ->
   _.map(
         histogramTypes,
