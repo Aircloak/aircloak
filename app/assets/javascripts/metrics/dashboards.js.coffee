@@ -12,7 +12,7 @@ Metrics.Dashboards =
             rateSpec(controller, "task.started", "Task started"),
             rateSpec(controller, "task.successful", "Task success"),
             rateSpec(controller, "task.timeout", "Task timeout"),
-            histogramSpec(controller, "task.total", "Task duration", "ms")
+            histogramSpec(controller, "task.total", "Task duration", "ms", "taskDurationGroup")
           ],
           true
         )
@@ -24,7 +24,7 @@ Metrics.Dashboards =
             rateSpec(controller, "job.successful", "Job success"),
             rateSpec(controller, "job.fail", "Job failed"),
             rateSpec(controller, "job.timeout", "Job Timeout"),
-            histogramSpec(controller, "job.duration", "Job duration", "ms")
+            histogramSpec(controller, "job.duration", "Job duration", "ms", "jobDurationGroup")
           ],
           true
         )
@@ -33,23 +33,23 @@ Metrics.Dashboards =
     stackHistograms(controller, "Duration of batch task phases", "ms", [
           "task.parse_json", "task.prefetch", "task.group_users_tables", "task.jobs", "task.aggregation",
           "task.anonymization", "task.send_result"
-        ])
+        ], "batchTaskPhasesGroup")
 
   "Prefetch phases": (controller) ->
     stackHistograms(controller, "Duration of prefetch phases", "ms", [
           "prefetch.prepare", "prefetch.execute", "prefetch.return_result"
-        ])
+        ], "prefetchPhasesGroup")
 
   "Job phases": (controller) ->
     stackHistograms(controller, "Duration of job execution phases", "ms", [
           "job.queued", "job.duration", "job.data_insertion"
-        ])
+        ], "jobPhasesGroup")
 
   "User insertion": (controller) ->
     stackHistograms(controller, "Duration of user insertion phases", "us", [
           "insert_user.read_body", "insert_user.decode_json", "insert_user.validate_structure",
           "insert_user.parse_tables", "insert_user.validate_data", "insert_user.insert_data"
-        ])
+        ], "userInsertionGroup")
 
   "Database operations": (controller) ->
     result = []
@@ -61,10 +61,6 @@ Metrics.Dashboards =
             target: "{#{controller.selectedCloaks()}}.cloak_core.db_operation.{finished,started}.rate"
         ])
 
-    result = result.concat(stackHistograms(controller, "Duration of database operation phases", "ms", [
-          "db_operation.queued", "db_operation.duration"
-        ]))
-
     result = result.concat([
           params:
             title: title("query rates", "times/sec")
@@ -72,10 +68,15 @@ Metrics.Dashboards =
             target: "{#{controller.selectedCloaks()}}.cloak_core.db_operation.queries.*.rate"
         ])
 
+    result = result.concat(stackHistograms(controller, "Duration of database operation phases", "ms", [
+          "db_operation.queued", "db_operation.duration"
+        ], "databaseOperationPhases"))
+
     result = _.reduce(
           histogramTypes,
           (memo, histogram) ->
             memo.push(
+                  group: {id: "queryTimes", graphId: histogram}
                   params:
                     title: title("query times #{histogram}", "ms")
                     hideLegend: false
@@ -121,17 +122,21 @@ histogramTypes = ["median", "average", "upper_75", "upper_90", "upper_99"]
 rateSpec = (controller, metricPath, graphTitle) ->
   metricSpec(controller, "#{metricPath}.rate", "#{graphTitle} rate", "times/sec")
 
-histogramSpec = (controller, metricPath, graphTitle, dimension) ->
+histogramSpec = (controller, metricPath, graphTitle, dimension, groupId) ->
   _.map(
         histogramTypes,
         (type) ->
-          metricSpec(controller, "#{metricPath}.#{type}", "#{graphTitle} #{type}", dimension)
+          group = null
+          if groupId
+            group = {id: groupId, graphId: type}
+          metricSpec(controller, "#{metricPath}.#{type}", "#{graphTitle} #{type}", dimension, group)
       )
 
-metricSpec = (controller, metricPath, graphTitle, dimension) ->
+metricSpec = (controller, metricPath, graphTitle, dimension, group) ->
       href: () ->
         drilldown: "cloak_core.#{metricPath}"
         drilldownTitle: graphTitle
+      group: group
       params:
         _.extend(
             title: title(graphTitle, dimension)
@@ -143,10 +148,13 @@ metricSpec = (controller, metricPath, graphTitle, dimension) ->
                 )
           )
 
-stackHistograms = (controller, graphTitle, dimension, metrics) ->
+stackHistograms = (controller, graphTitle, dimension, metrics, groupId) ->
   _.map(
           histogramTypes,
           (type) ->
+            if groupId
+              group = {id: groupId, graphId: type}
+            group: group
             params:
               title: title("#{graphTitle} #{type}", dimension)
               hideLegend: false
