@@ -57,10 +57,41 @@ Metrics.Controller = () ->
           append(image)
       else
         image
+    element = $(element)
 
-    $("<div/>").
-      append(element).
-      append($("<hr/>"))
+    groupElement = createGroupElement(target)
+    groupElement.find(".graphs").append(element.hide())
+    if target.group
+      groupElement.find(".selectors").
+        append(
+              $("<input type='radio'/>").
+                attr("name", target.group.id).
+                on("click", ->
+                      groupElement.find(".graphs").children().hide()
+                      element.show()
+                    )
+            ).
+        append("#{target.group.graphId}&nbsp;")
+        groupElement.find(".selectors input:first-child").attr("checked", "checked")
+
+    groupElement.find(".graphs").children(":first").show()
+
+
+  createGroupElement = (target) ->
+    groupElement = if target.group
+      if $("#graphGroup_#{target.group.id}")[0]
+        $("#graphGroup_#{target.group.id}")
+      else
+        $("<div/>").
+          attr("id", "graphGroup_#{target.group.id}").
+          html(HandlebarsTemplates["metrics/group"])
+    else
+      $("<div><div class='graphs'/></div>")
+
+    unless groupElement.parent()[0]
+      $("#graphs").append(groupElement).append("<hr/>")
+
+    groupElement
 
   loadGraphs = (targets) ->
     preloadImages(
@@ -69,7 +100,7 @@ Metrics.Controller = () ->
             $("#graphs").html("")
             _.each(
                   _.zip(targets, images),
-                  (imageData) => $("#graphs").append(makeElement.apply(this, imageData))
+                  (imageData) => makeElement.apply(null, imageData)
                 )
         )
 
