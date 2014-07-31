@@ -12,8 +12,8 @@ describe PrefetchFilter do
   end
 
   it "returns empty data string on invalid prefetch" do
-    PrefetchFilter.prefetch_to_data("[{\"table\":\"non-existing\"}]").should eq ""
-    PrefetchFilter.prefetch_to_data("invalid json").should eq ""
+    PrefetchFilter.prefetch_to_data("[{\"table\":\"non-existing\"}]", 1).should eq ""
+    PrefetchFilter.prefetch_to_data("invalid json", 1).should eq ""
   end
 
   it "fails on invalid table" do
@@ -47,7 +47,7 @@ describe PrefetchFilter do
     end
 
     def prefetch_to_data(prefetch)
-      AnalystTable.should_receive(:where).with(table_name: "age").and_return([age_table_double])
-      PrefetchFilter.prefetch_to_data(prefetch)
+      AnalystTable.should_receive(:where).with(table_name: "age", cluster_id: 1).and_return([age_table_double])
+      PrefetchFilter.prefetch_to_data(prefetch, 1)
     end
 end

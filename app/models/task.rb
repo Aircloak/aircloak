@@ -115,7 +115,7 @@ class Task < ActiveRecord::Base
   end
 
   def data
-    PrefetchFilter.prefetch_to_data(prefetch)
+    PrefetchFilter.prefetch_to_data(prefetch, cluster_id)
   end
 
   # Returns a hash where keys are bucket labels (sorted), and each value is
