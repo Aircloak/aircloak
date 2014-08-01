@@ -17,8 +17,8 @@ Metrics.Controller = () ->
   autoRefreshInterval = null
 
   runDashboard = ->
-    dashboard = if param("drilldown")
-      Metrics.Dashboards["Cloak drilldown"]
+    dashboard = if param("metrics")
+      Metrics.Dashboards["Individual metrics"]
     else
       Metrics.Dashboards[param("dashboard")]
     dashboard(self)
@@ -50,14 +50,17 @@ Metrics.Controller = () ->
     element =
       if image == null
         $("<span>No data for #{target.params.title}</span>")
-      else if (target.href)
+      else if target.metrics
+        linkParams = _.extend(_.clone(viewState.allParams()),
+              metrics: target.metrics.join("----"),
+              metricsDimension: target.metricsDimension
+            )
         $("<a/>").
-          attr("href", "?" + $.param(_.extend(_.clone(viewState.allParams()), target.href()))).
+          attr("href", "?#{$.param(linkParams)}").
           attr("target", "_blank").
           append(image)
       else
-        image
-    element = $(element)
+        $(image)
 
     groupElement = createGroupElement(target)
     groupElement.find(".graphs").append(element.hide())
@@ -120,13 +123,16 @@ Metrics.Controller = () ->
     else
       $("#clusterParams").show()
 
+    if (param("metrics"))
+      $('#dashboard').attr('disabled', true)
+
   initDropdown = (dropdown, items) =>
     for text, value of items
       value = text if value instanceof Function
       dropdown.append($("<option/>").attr("value", value).text(text))
 
   initDashboard = () ->
-    initDropdown($("#dashboard"), _.omit(Metrics.Dashboards, "Cloak drilldown"))
+    initDropdown($("#dashboard"), _.omit(Metrics.Dashboards, "Individual metrics"))
 
   initAggregations = () ->
     initDropdown($("#aggregation"),
@@ -172,13 +178,12 @@ Metrics.Controller = () ->
     events:
       "click #renderGraphs": onFormSubmitted
       "click #renderGraphsNewTab": renderNewTab
-      "click #errorMargin": render
       "click #autoRefresh": onAutoRefreshClicked
   })
 
   initDashboard()
   initAggregations()
-  viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until", "errorMargin"])
+  viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until"])
 
   showHideControls()
   $(window).bind("popstate", render)
@@ -188,6 +193,7 @@ Metrics.Controller = () ->
     selectedCloaks: ->
       (clusterCloaks[param("cluster")] || []).
         map((cloakName) -> cloakName.replace(/\./g, "_"))
+    metrics: () -> (param("metrics") || "").split("----")
   })
 
   # We can call this only after the object has been fully constructed, with public

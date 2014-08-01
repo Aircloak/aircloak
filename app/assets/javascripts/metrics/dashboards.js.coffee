@@ -43,6 +43,7 @@ Metrics.Dashboards =
         ], "userInsertionGroup")
 
   "Database operations": (controller) ->
+    queryTimesMetrics = existingHistograms(controller, "db_operation.queries.*")
     _.flatten([
           rateSpec(controller, "db_operation.{finished,started}", "Query rates")
           rateSpec(controller, "db_operation.queries.*", "Query type rates")
@@ -53,11 +54,13 @@ Metrics.Dashboards =
                 histogramTypes,
                 (histogram) ->
                   group: {id: "queryTimes", graphId: histogram}
+                  metrics: _.map(queryTimesMetrics, (metric) -> "#{metric}.#{histogram}")
+                  metricsDimension: "ms"
                   params:
                     title: title("query times #{histogram}", "ms")
                     hideLegend: false
                     target: _.map(
-                          existingHistograms(controller, "db_operation.queries.*"),
+                          queryTimesMetrics,
                           (metric) -> clusterMetric(controller, "#{metric}.#{histogram}")
                         )
               )
@@ -68,24 +71,23 @@ Metrics.Dashboards =
   # Note: this dashboard is explicitly disabled from dropdown selection in
   # Metrics.Controller. Instead, it is used in a hardcoded fashion, when
   # the user clicks on a graph.
-  "Cloak drilldown": (controller) ->
-    _.map(
-          controller.selectedCloaks(),
-          (cloak) ->
-            params:
-              _.extend(
-                    title: "#{cloak}: #{controller.param("drilldownTitle") || controller.param("drilldown")}"
-                    plotAnonymized(
-                            controller,
-                            "#{cloak}.#{controller.param("drilldown")}",
-                            (expression) ->
-                              if controller.param("transform")
-                                (new Metrics.GraphiteSeries(controller.param("transform"))).
-                                  materialize(expression)
-                              else
-                                expression
-                          )
-                  )
+  "Individual metrics": (controller) ->
+    _.flatten(
+          _.map(
+                controller.metrics(),
+                (metric) ->
+                  params:
+                    _.extend(
+                        title: title(metric, controller.param("metricsDimension"))
+                        drawNullAsZero: true
+                        plotAnonymized(
+                              controller,
+                              "{#{controller.selectedCloaks()}}.cloak_core.#{metric}",
+                              (expression) -> expression.aggregate(controller.param("aggregation"))
+                            )
+                      )
+              )
+          true
         )
 
 
@@ -131,6 +133,9 @@ existingHistograms = (controller, path) ->
 
 rateSpec = (controller, metricPath, graphTitle) ->
   existingPaths = existingSeries(controller, "{#{controller.selectedCloaks()}}.cloak_core.#{metricPath}.rate")
+
+  metrics: existingPaths
+  metricsDimension: "times/sec"
   params:
     title: title(graphTitle, "times/sec")
     hideLegend: false
@@ -153,24 +158,13 @@ histogramSpec = (controller, metricPath, graphTitle, dimension, groupId) ->
           group = null
           if groupId
             group = {id: groupId, graphId: type}
-          metricSpec(controller, "#{metricPath}.#{type}", "#{graphTitle} #{type}", dimension, group)
+          group: group
+          metrics: ["#{metricPath}.#{type}"]
+          metricsDimension: dimension
+          params:
+            title: title(graphTitle || metricPath, dimension)
+            target: clusterMetric(controller, "#{metricPath}.#{type}")
       )
-
-metricSpec = (controller, metricPath, graphTitle, dimension, group) ->
-      href: () ->
-        drilldown: "cloak_core.#{metricPath}"
-        drilldownTitle: graphTitle
-      group: group
-      params:
-        _.extend(
-            title: title(graphTitle, dimension)
-            drawNullAsZero: true
-            plotAnonymized(
-                  controller,
-                  "{#{controller.selectedCloaks()}}.cloak_core.#{metricPath}",
-                  (expression) -> expression.aggregate(controller.param("aggregation"))
-                )
-          )
 
 stackHistograms = (controller, graphTitle, dimension, metrics, groupId) ->
   _.map(
@@ -179,6 +173,8 @@ stackHistograms = (controller, graphTitle, dimension, metrics, groupId) ->
             if groupId
               group = {id: groupId, graphId: type}
             group: group
+            metrics: _.map(metrics, (metric) -> "#{metric}.#{type}")
+            metricsDimension: dimension
             params:
               title: title("#{graphTitle} #{type}", dimension)
               hideLegend: false
@@ -201,14 +197,11 @@ stackHistograms = (controller, graphTitle, dimension, metrics, groupId) ->
 plotAnonymized = (controller, path, transformer) ->
   if (!transformer)
     transformer = (path) -> path
-  if controller.param("errorMargin")
-    highlightError(
-          transformer,
-          Metrics.GraphiteSeries.fromPath(path)
-          Metrics.GraphiteSeries.fromPath(["anonymization_error"].concat(path))
-        )
-  else
-    target: transformer(Metrics.GraphiteSeries.fromPath(path)).toString()
+  highlightError(
+        transformer,
+        Metrics.GraphiteSeries.fromPath(path)
+        Metrics.GraphiteSeries.fromPath(["anonymization_error"].concat(path))
+      )
 
 # Describes the graph containing anonymized data together with an error area surrounding it.
 # The area is as large as an error (absolute), and centered around the drawn
