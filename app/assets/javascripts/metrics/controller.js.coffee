@@ -17,8 +17,8 @@ Metrics.Controller = () ->
   autoRefreshInterval = null
 
   runDashboard = ->
-    dashboard = if param("drilldown")
-      Metrics.Dashboards["Cloak drilldown"]
+    dashboard = if param("metrics")
+      Metrics.Dashboards["Individual metrics"]
     else
       Metrics.Dashboards[param("dashboard")]
     dashboard(self)
@@ -50,14 +50,17 @@ Metrics.Controller = () ->
     element =
       if image == null
         $("<span>No data for #{target.params.title}</span>")
-      else if (target.href)
+      else if target.metrics
+        linkParams = _.extend(_.clone(viewState.allParams()),
+              metrics: target.metrics.join("----"),
+              metricsDimension: target.metricsDimension
+            )
         $("<a/>").
-          attr("href", "?" + $.param(_.extend(_.clone(viewState.allParams()), target.href()))).
+          attr("href", "?#{$.param(linkParams)}").
           attr("target", "_blank").
           append(image)
       else
-        image
-    element = $(element)
+        $(image)
 
     groupElement = createGroupElement(target)
     groupElement.find(".graphs").append(element.hide())
@@ -120,13 +123,18 @@ Metrics.Controller = () ->
     else
       $("#clusterParams").show()
 
+    if (param("metrics"))
+      $('#clusterParams td:nth-child(1)').hide();
+    populateCloaks()
+    showHideAggregation()
+
   initDropdown = (dropdown, items) =>
     for text, value of items
       value = text if value instanceof Function
       dropdown.append($("<option/>").attr("value", value).text(text))
 
   initDashboard = () ->
-    initDropdown($("#dashboard"), _.omit(Metrics.Dashboards, "Cloak drilldown"))
+    initDropdown($("#dashboard"), _.omit(Metrics.Dashboards, "Individual metrics"))
 
   initAggregations = () ->
     initDropdown($("#aggregation"),
@@ -161,6 +169,25 @@ Metrics.Controller = () ->
               bind("error", onImageError)[0]
         )
 
+  populateCloaks = () ->
+    cloaks = ["All"].concat(clusterCloaks[$("#cluster").val()] || [])
+    $("#cloak").html("")
+    _.each(cloaks,
+          (cloak) ->
+            $("#cloak").append($("<option />").val(cloak).text(cloak))
+          )
+    if param("cluster") == $("#cluster").val()
+      $("#cloak").val(viewState.urlParam("cloak") || "All")
+    else
+      $("#cloak").val("All")
+    showHideAggregation()
+
+  showHideAggregation = ->
+    if $("#cloak").val() != "All"
+      $('#clusterParams td:nth-child(4)').hide();
+    else
+      $('#clusterParams td:nth-child(4)').show();
+
 
   # ------------------------------------
   # Constructor
@@ -172,22 +199,36 @@ Metrics.Controller = () ->
     events:
       "click #renderGraphs": onFormSubmitted
       "click #renderGraphsNewTab": renderNewTab
-      "click #errorMargin": render
       "click #autoRefresh": onAutoRefreshClicked
+      "change #cluster": populateCloaks
+      "change #cloak": showHideAggregation
   })
 
   initDashboard()
   initAggregations()
-  viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until", "errorMargin"])
+  viewState = new ViewState(["cluster", "cloak", "dashboard", "aggregation", "from", "until"])
 
   showHideControls()
   $(window).bind("popstate", render)
 
   _.extend(self, {
     param: param
+
     selectedCloaks: ->
-      (clusterCloaks[param("cluster")] || []).
-        map((cloakName) -> cloakName.replace(/\./g, "_"))
+      cloaks =
+        if $("#cloak").val() == "All"
+          clusterCloaks[param("cluster")] || []
+        else
+          [$("#cloak").val()]
+      (cloaks).map((cloakName) -> cloakName.replace(/\./g, "_"))
+
+    metrics: () -> (param("metrics") || "").split("----")
+
+    aggregation: () ->
+      if self.selectedCloaks().length > 1
+        param("aggregation")
+      else
+        null
   })
 
   # We can call this only after the object has been fully constructed, with public
