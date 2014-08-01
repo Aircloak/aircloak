@@ -83,7 +83,7 @@ Metrics.Dashboards =
                         plotAnonymized(
                               controller,
                               "{#{controller.selectedCloaks()}}.cloak_core.#{metric}",
-                              (expression) -> expression.aggregate(controller.param("aggregation"))
+                              (expression) -> expression.aggregate(controller.aggregation())
                             )
                       )
               )
@@ -146,7 +146,7 @@ clusterMetric = (controller, path) ->
     fromPath(
           "{#{controller.selectedCloaks()}}.cloak_core.#{path}"
         ).
-    aggregate(controller.param("aggregation")).
+    aggregate(controller.aggregation()).
     alias(path).
     toString()
 
@@ -186,7 +186,7 @@ stackHistograms = (controller, graphTitle, dimension, metrics, groupId) ->
                           Metrics.GraphiteSeries.fromPath([
                               controller.selectedCloaks(), "cloak_core.#{phase}.#{type}"
                             ]).
-                          aggregate(controller.param("aggregation")).
+                          aggregate(controller.aggregation()).
                           stacked().
                           alias(phase).
                           toString()

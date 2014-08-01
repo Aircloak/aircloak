@@ -51,6 +51,7 @@ Metrics.GraphiteSeries = (from) ->
     scaleToSeconds: (seconds) -> applyFun("scaleToSeconds", seconds)
 
     aggregate: (aggregation) ->
+      return self unless aggregation
       aggregator = aggregators[aggregation]
       if aggregator
         aggregator(self)

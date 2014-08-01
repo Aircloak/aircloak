@@ -124,7 +124,9 @@ Metrics.Controller = () ->
       $("#clusterParams").show()
 
     if (param("metrics"))
-      $('#dashboard').attr('disabled', true)
+      $('#clusterParams td:nth-child(1)').hide();
+    populateCloaks()
+    showHideAggregation()
 
   initDropdown = (dropdown, items) =>
     for text, value of items
@@ -167,6 +169,25 @@ Metrics.Controller = () ->
               bind("error", onImageError)[0]
         )
 
+  populateCloaks = () ->
+    cloaks = ["All"].concat(clusterCloaks[$("#cluster").val()] || [])
+    $("#cloak").html("")
+    _.each(cloaks,
+          (cloak) ->
+            $("#cloak").append($("<option />").val(cloak).text(cloak))
+          )
+    if param("cluster") == $("#cluster").val()
+      $("#cloak").val(viewState.urlParam("cloak") || "All")
+    else
+      $("#cloak").val("All")
+    showHideAggregation()
+
+  showHideAggregation = ->
+    if $("#cloak").val() != "All"
+      $('#clusterParams td:nth-child(4)').hide();
+    else
+      $('#clusterParams td:nth-child(4)').show();
+
 
   # ------------------------------------
   # Constructor
@@ -179,21 +200,35 @@ Metrics.Controller = () ->
       "click #renderGraphs": onFormSubmitted
       "click #renderGraphsNewTab": renderNewTab
       "click #autoRefresh": onAutoRefreshClicked
+      "change #cluster": populateCloaks
+      "change #cloak": showHideAggregation
   })
 
   initDashboard()
   initAggregations()
-  viewState = new ViewState(["cluster", "dashboard", "aggregation", "from", "until"])
+  viewState = new ViewState(["cluster", "cloak", "dashboard", "aggregation", "from", "until"])
 
   showHideControls()
   $(window).bind("popstate", render)
 
   _.extend(self, {
     param: param
+
     selectedCloaks: ->
-      (clusterCloaks[param("cluster")] || []).
-        map((cloakName) -> cloakName.replace(/\./g, "_"))
+      cloaks =
+        if $("#cloak").val() == "All"
+          clusterCloaks[param("cluster")] || []
+        else
+          [$("#cloak").val()]
+      (cloaks).map((cloakName) -> cloakName.replace(/\./g, "_"))
+
     metrics: () -> (param("metrics") || "").split("----")
+
+    aggregation: () ->
+      if self.selectedCloaks().length > 1
+        param("aggregation")
+      else
+        null
   })
 
   # We can call this only after the object has been fully constructed, with public
