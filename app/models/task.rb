@@ -82,6 +82,7 @@ class Task < ActiveRecord::Base
         "task/run",
         {prefetch: JSON.parse(prefetch), post_processing: {code: code}}.to_json,
         "task_id" => self.class.encode_id(id),
+        "async_query" => "true",
         "auth_token" => pr.auth_token
       )
       unless response["success"] == true then
