@@ -73,8 +73,25 @@ Web::Application.configure do
 
   # Mailer config
   config.action_mailer.raise_delivery_errors = true
-  config.action_mailer.delivery_method = :sendmail
   config.action_mailer.default_options from: "no-reply@aircloak.com"
+  config.action_mailer.delivery_method = :smtp
+
+  # We cannot use the "choices" configuration gem for reading the
+  # values needed by the email settings, as the configuration is loaded
+  # earlier than the configuration library.
+  # In this case we should be fine as the Mandrill password has been
+  # restricted to only be valid when used from the following host:
+  # - 139.19.208.225
+  # When adding new hosts, please add the IP of the host to
+  # the key in the mandrillapp.com interface.
+  config.action_mailer.smtp_settings = {
+    address: "smtp.mandrillapp.com",
+    port: 587,
+    user_name: "sebastian@aircloak.com",
+    password: "jScKj_mqhGXaI_SPhUMBeg",
+    domain: "aircloak.com",
+    authentication: :plain
+  }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation can not be found).

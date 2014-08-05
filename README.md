@@ -221,6 +221,12 @@ We require the following secrets:
 
 All secrets need to be configured in `shared/config/settings.yml.local`
 
+### Step 6: Add host to mandrillapp.com
+
+We are using mandrill to send notification emails.
+The API-key has restricted access. After having setup a host you need to add it's IP address to the key.
+
+
 #### Analyst private key password
 
 For background, please have a look at the [authentication](#authentication) section of this readme.
