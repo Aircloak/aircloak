@@ -29,7 +29,8 @@ authorization do
     has_permission_on [
       :tasks,
       :results,
-      :tables
+      :tables,
+      :keys
     ], to: :manage
   end
 

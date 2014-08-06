@@ -74,6 +74,7 @@ Web::Application.routes.draw do
   resources :tables do
     post "retry_migration", on: :member, action: "retry_migration"
   end
+  resources :keys
 
   resources :metrics
 
