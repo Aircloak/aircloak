@@ -6,6 +6,7 @@ class Analyst < ActiveRecord::Base
   has_many :analyst_tables
   has_many :results
   has_many :users
+  has_many :key_materials
 
   has_many :analysts_clusters
   has_and_belongs_to_many :clusters

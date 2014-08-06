@@ -1,0 +1,22 @@
+%h1 Keys
+
+- if @keys.size > 0
+
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Description
+        %th Type
+        %th Created at
+        %th
+    %tbody
+    - @keys.each do |key|
+      %tr
+        %td= key.description
+        %td Key to upload data for any user
+        %td= key.created_at
+        %td= link_to "Download PKCS12", key_path(key), class: "btn"
+
+%hr
+
+= render 'form'

@@ -1,0 +1,19 @@
+%h2 Add a new key
+
+.form-container
+
+  = form_tag({}, class: "form-horizontal new_query") do
+
+    .control-group
+      = control_label "Description"
+      .controls
+        = text_field_tag :description
+
+    .control-group
+      = control_label "Password"
+      .controls
+        = password_field_tag :password
+
+    .control-group
+      .controls
+        = submit_tag 'Create new key', :class => "btn btn-success"
