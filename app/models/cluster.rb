@@ -22,7 +22,7 @@ class Cluster < ActiveRecord::Base
   after_destroy :remove_tasks
 
   def tpm
-    return "Unkown" unless cloaks.size > 0
+    raise "Cluster has no cloaks. Unsure if TPM cluster or not" unless cloaks.size > 0
     @has_tpm ||= cloaks.first.tpm
   end
 
