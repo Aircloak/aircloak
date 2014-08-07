@@ -1,5 +1,4 @@
 require './lib/cluster_packer.rb'
-require './lib/log_server_configurer'
 
 class Cluster < ActiveRecord::Base
   has_many :cluster_cloaks
@@ -18,7 +17,6 @@ class Cluster < ActiveRecord::Base
   validate :must_have_at_least_one_cloak
   validate :must_match_tpm_configuration
 
-  after_commit :update_log_server
   after_commit :synchronize_in_local_mode
   before_destroy :verify_can_destroy
   after_destroy :remove_tasks
@@ -109,13 +107,6 @@ class Cluster < ActiveRecord::Base
     version_test.blank? and cloaks.count == 0
   end
 
-  # A log name is a version of the cluster name that
-  # is sane for using in folder and file names on the log server
-  def log_name
-    name_base = "#{name}-#{build.name}"
-    name_base.gsub(" ", "_").gsub(/[^\w^\d^\-]*/, "")
-  end
-
   def status= raw_status
     self.status_value = status_mappings[raw_status]
     if raw_status == :active then
@@ -181,10 +172,6 @@ private
       self.errors.add(:version_test, "Cannot destroy a build used by a version test")
       false
     end
-  end
-
-  def update_log_server
-    LogServerConfigurer.update_config
   end
 
   def synchronize_in_local_mode
