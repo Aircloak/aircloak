@@ -89,7 +89,7 @@ private
 
     raise TasksControllerException.new("not a registered analyst") if current_user.analyst.nil?
     @tables_json =
-      current_user.analyst.analyst_tables.
+      current_user.analyst.undeleted_analyst_tables.
           map do |table|
             {
               id: table.id,

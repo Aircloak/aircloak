@@ -20,6 +20,10 @@ class Analyst < ActiveRecord::Base
     [["None", "none"]] + Analyst.all.map {|a| [a.name, a.id]}
   end
 
+  def undeleted_analyst_tables
+    analyst_tables.where(deleted: false)
+  end
+
 private
   def create_token
     create_analyst_token
