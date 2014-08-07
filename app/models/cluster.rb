@@ -42,7 +42,7 @@ class Cluster < ActiveRecord::Base
 
   def available_cloaks
     global_available = Cloak.all_available
-    available_cloaks = (cloaks + global_available).sort { |a, b| a.name <=> b.name }
+    (cloaks + global_available).sort { |a, b| a.name <=> b.name }
   end
 
   def selected_cloaks
