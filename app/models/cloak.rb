@@ -1,7 +1,6 @@
 require './lib/proto/air/management_messages.pb'
 require './lib/protobuf_sender'
 require './lib/machine_packer'
-require './lib/log_server_configurer'
 
 class NotEnoughCloaks < Exception; end
 
@@ -12,7 +11,6 @@ class Cloak < ActiveRecord::Base
   validates_presence_of :name
   validates_uniqueness_of :name, :ip
   before_destroy :validate_destroyability
-  after_commit :update_log_server
 
   def display_name
     name + (tpm ? "" : " (no tpm)")
@@ -64,9 +62,5 @@ private
       self.errors.add(:cluster_cloak, "cannot destroy a cloak assigned to a cluster")
       return false
     end
-  end
-
-  def update_log_server
-    LogServerConfigurer.update_config
   end
 end

@@ -162,7 +162,7 @@ private
   end
 
   def remove_task_from_cloak
-    return unless self.stored_task
+    return unless cloak and self.stored_task
     url = cloak_url("query")
     delete_task url: url, id: self.id if url
   end
@@ -185,10 +185,14 @@ private
   end
 
   def cloak_url path
-    cluster_cloaks = ClusterCloak.where(cluster: cluster,
-        raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).limit(1)
+    raise "No cloak in cluster" unless cloak
     prot = Rails.configuration.cloak.protocol
     port = Rails.configuration.cloak.port
-    return "#{prot}://#{cluster_cloaks.first.cloak.ip}:#{port}/#{path}" if cluster_cloaks.count > 0
+    return "#{prot}://#{cloak.ip}:#{port}/#{path}"
+  end
+
+  def cloak
+    cluster_cloak = ClusterCloak.where(cluster_id: cluster_id, raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).limit(1).first
+    cluster_cloak.cloak if cluster_cloak
   end
 end

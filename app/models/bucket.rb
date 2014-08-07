@@ -31,7 +31,7 @@ class Bucket < ActiveRecord::Base
   end
 
   def self.delete_for_task task
-    Bucket.join(:result).where(results: {task_id: task.id}).delete_all
+    Bucket.joins(:result).where(results: {task_id: task.id}).delete_all
   end
 
 private

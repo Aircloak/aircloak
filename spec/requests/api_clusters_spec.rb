@@ -1,10 +1,8 @@
 require 'spec_helper'
 require './lib/build_manager.rb'
-require './lib/log_server_configurer'
 
 describe "ApiClustersController" do
   before(:each) do
-    LogServerConfigurer.stub(:update_config)
     BuildManager.stub(:send_build_request)
     Cluster.delete_all
     Cloak.delete_all

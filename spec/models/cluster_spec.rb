@@ -202,24 +202,6 @@ describe Cluster do
     Cluster.new name: args.delete(:cname) || "Cluster name", build: b
   end
 
-  it "should create sane log names from cluster names" do
-    cluster(cname: "cluster", bname: "build").log_name.should eq "cluster-build"
-    cluster(cname: "cluster name", bname: "build").log_name.should eq "cluster_name-build"
-    cluster(cname: "strange!", bname: "?æname").log_name.should eq "strange-name"
-  end
-
-  it "should invoke the log server on create, update, and destroy" do
-    LogServerConfigurer.should_receive(:update_config).at_least(3).times
-    c = base_cluster
-    c.cloaks << cloak
-    c.save.should eq true
-    c.cloaks << richard
-    c.save.should eq true
-    c.cloaks = []
-    c.destroy
-    c.destroyed?.should eq true
-  end
-
   it "should set and get status values" do
     c = cluster
     c.status = :active

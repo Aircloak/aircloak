@@ -55,7 +55,7 @@ class TasksController < ApplicationController
 
   # DELETE /tasks/:id
   def destroy
-    @task.destroy
+    @task.efficient_delete
     redirect_to tasks_path
   end
 

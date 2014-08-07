@@ -1,11 +1,10 @@
 require './lib/cluster_packer.rb'
-require './lib/log_server_configurer'
 
 class Cluster < ActiveRecord::Base
   has_many :cluster_cloaks
   has_many :cloaks, through: :cluster_cloaks
   has_many :analyst_tables
-  has_many :tasks, dependent: :destroy
+  has_many :tasks
   # A cluster that is used for an automated test of a commit will have a
   # version_test instance. For all other clusters this will be nil
   has_one :version_test
@@ -18,11 +17,12 @@ class Cluster < ActiveRecord::Base
   validate :must_have_at_least_one_cloak
   validate :must_match_tpm_configuration
 
-  after_commit :update_log_server
   after_commit :synchronize_in_local_mode
   before_destroy :verify_can_destroy
+  after_destroy :remove_tasks
 
   def tpm
+    raise "Cluster has no cloaks. Unsure if TPM cluster or not" unless cloaks.size > 0
     @has_tpm ||= cloaks.first.tpm
   end
 
@@ -40,7 +40,7 @@ class Cluster < ActiveRecord::Base
 
   def available_cloaks
     global_available = Cloak.all_available
-    available_cloaks = (cloaks + global_available).sort { |a, b| a.name <=> b.name }
+    (cloaks + global_available).sort { |a, b| a.name <=> b.name }
   end
 
   def selected_cloaks
@@ -105,13 +105,6 @@ class Cluster < ActiveRecord::Base
 
   def can_destroy?
     version_test.blank? and cloaks.count == 0
-  end
-
-  # A log name is a version of the cluster name that
-  # is sane for using in folder and file names on the log server
-  def log_name
-    name_base = "#{name}-#{build.name}"
-    name_base.gsub(" ", "_").gsub(/[^\w^\d^\-]*/, "")
   end
 
   def status= raw_status
@@ -181,10 +174,6 @@ private
     end
   end
 
-  def update_log_server
-    LogServerConfigurer.update_config
-  end
-
   def synchronize_in_local_mode
     unless Rails.configuration.installation.global
       cluster_cloaks.each {|cluster_cloak| cluster_cloak.synchronize }
@@ -197,5 +186,11 @@ private
       in_service: 2,
       inactive: 3
     }
+  end
+
+  def remove_tasks
+    tasks.each do |task|
+      task.efficient_delete
+    end
   end
 end
