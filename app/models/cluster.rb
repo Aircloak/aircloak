@@ -5,7 +5,7 @@ class Cluster < ActiveRecord::Base
   has_many :cluster_cloaks
   has_many :cloaks, through: :cluster_cloaks
   has_many :analyst_tables
-  has_many :tasks, dependent: :destroy
+  has_many :tasks
   # A cluster that is used for an automated test of a commit will have a
   # version_test instance. For all other clusters this will be nil
   has_one :version_test
@@ -21,8 +21,10 @@ class Cluster < ActiveRecord::Base
   after_commit :update_log_server
   after_commit :synchronize_in_local_mode
   before_destroy :verify_can_destroy
+  after_destroy :remove_tasks
 
   def tpm
+    return "Unkown" unless cloaks.size > 0
     @has_tpm ||= cloaks.first.tpm
   end
 
@@ -197,5 +199,11 @@ private
       in_service: 2,
       inactive: 3
     }
+  end
+
+  def remove_tasks
+    tasks.each do |task|
+      task.efficient_delete
+    end
   end
 end
