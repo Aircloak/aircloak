@@ -27,6 +27,8 @@ Metrics.Controller = () ->
     _.extend(defaultParams(), customParams)
 
   defaultParams = ->
+    # Need a unique timestamp, because otherwise the browser seems to cache the result.
+    ts: (new Date()).getTime(),
     from: param("from") || "-1h",
     until: param("until") || "now",
     tz: "CET",
