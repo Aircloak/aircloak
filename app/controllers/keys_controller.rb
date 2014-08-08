@@ -5,7 +5,7 @@ class KeysController < ApplicationController
 
   def show
     key = current_user.analyst.key_materials.find params[:id]
-    send_data Base64.decode64(key.pkcs12), type: "application/x-pkcs12", filename: "#{key.analyst.name}_#{key.id}.pfx"
+    send_data Base64.decode64(key.pkcs12), type: "application/x-pkcs12", filename: key.name
   end
 
   def create

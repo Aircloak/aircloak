@@ -32,6 +32,9 @@ authorization do
       :tables,
       :keys
     ], to: :manage
+    has_permission_on [
+      :help
+    ], to: :read
   end
 
   role :admin do

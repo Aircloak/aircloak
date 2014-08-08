@@ -1,0 +1,118 @@
+title: An introduction to writing queries
+order: 1
+content: |
+
+  # An introduction to writing queries
+
+  Due to the mechanisms we have put in place to provide our strong guarantees
+  for privacy, the way in which you write your queries to our system
+  most likely differs quite significantly from how you today query your
+  other database systems.
+
+  The most significant thing to note is that the queries you write have
+  to be of the kind that return an aggregate count. For example how many
+  users participated were at a location at a given time, the answer to
+  which might be 50.
+
+  Instead of writing queries that have access to all the data in the
+  database system at the same time, you write queries that individually
+  deal with a single user at a time.
+
+  The queries are completely stateless. That means that when a query
+  runs over user _Bob_ it has no notion of what it might previously
+  have seen and computer about _Dylan_.
+
+  When a query is executed, it therefore has to make local decisions
+  based on a single users data, regarding whether the user should be
+  counted and included in an answer, or not.
+
+  For a more indepth explanation of how to think about the query model,
+  take a look at <%= help_link "understanding-the-query-model" %>.
+
+
+  ## Queries are executed in three steps:
+
+  1. The data needed by the query is collected by the cloak
+  2. The query code is run once per user and is given the data from the data
+    collection phase for a particular user at a time. The query needs to make
+    a per user decision if something should be reported or not.
+  3. The results of the query run across all users is aggregated and
+    anonymized and returned from the cloak
+
+  ### Data pre-selection
+
+  In the query interface you select which database tables you want to have access
+  to in your query. You can also limit the data returned for a table by specifying constraints.
+  For example only __<%= sample_table_name %>__ where __<%= sample_constraint %>__.
+
+  You can also specify that you only want the last __N__ results per user, or
+  only results more recent than a certain number of minutes. The more you can
+  restrict the dataset over which the queries run, the faster the queries will
+  be able to finish. This is especially important if you write queries that
+  will execute frequently, for example to provide a real-time view of the
+  state of some system.
+
+  ### Queries
+
+  The queries are written in __Lua__.
+  Basic familiarity with __Lua__ will be very helpful.
+  For a lightning quick introduction, or refresher, to Lua, you can check out this
+  15 minute introduction: http://tylerneylon.com/a/learn-lua/
+
+  #### Accessing data
+
+  In your queries you access the data from the Pre-selection queries using the
+  `tables.` command.
+  For example to get access to the data from the __<%= sample_table_name %>__
+  table, you would issue the command `tables.<%= sample_table_name %>`.
+
+  Very often you will receive a set of rows of data.
+  Looping through these can easily be done as follows:
+
+  ```Lua
+  <%= sample_table_name %> = tables.<%= sample_table_name %>
+  for i = 1, #<%= sample_table_name %> do
+    item = <%= sample_table_name %>[i]
+    process(item) -- where `process` is a function implemented by you
+  end
+  ```
+
+  Reading through the code sample above, you might have noticed
+  that the we index into the data array starting at 1, rather than 0.
+  This is because Lua, contrary to most other programming languages,
+  indexes arrays from 1 rather than 0.
+
+
+  #### Reporting values
+
+  Whenever you want to report a value for a given user, you can use the `report_property` function.
+  It takes two parameters: a __name__ and a __value__.
+
+  You can think of it as follows: The cloak counts how many users report the exact same __name__, __value__ pair.
+  What you get returned from the cloak are effectively __name__, __value__, __count__ triplets.
+
+  If you have a users age, you could for example report "age" as the name, and the age value as the value.
+  You would then get reported how many users you have at distinct ages.
+
+  In Lua, this would look like `report_property("age", age)`, assuming you have the users age stored in
+  a variable called `age`.
+
+  Alternatively, for a user of age 29, you could also report the name "age" and the value "between 20 and 30".
+  The benefit of the latter approach can be hard to get an intuition for, but is quite important.
+  Consider how the cloak cluster anonnymises data: __name__, __value__ pairs that have a too low count
+  are not reported at all. They will silently be dropped by the cloak. If there are particular ages
+  where you don't have very many users, they would therefore not be reported at all. As an analyst
+  you would not know if the fact that a certain age was not reported is due to there not being any
+  users in this age range, or only being very few users.
+  By grouping ages together into larger age segments, the chances of there being enough users within
+  an age group, and hence the group being reported, increases.
+  If you find it hard to get an intuition for this, please get in touch with us at solutions@aircloak.com,
+  and we will do our best to explain it in terms of your particular user case!
+
+
+  #### Results
+
+  Currently the primary way to run a query, is by executing it from the web interface.
+  The web interface also shows the latest results.
+  You can download the complete result set as a CSV file if you want to perform post processing
+  of the data on your own computer.

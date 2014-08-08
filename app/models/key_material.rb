@@ -36,4 +36,8 @@ class KeyMaterial < ActiveRecord::Base
     key_material.save
     key_material
   end
+
+  def name
+    "#{analyst.name}_#{id}.pfx"
+  end
 end
