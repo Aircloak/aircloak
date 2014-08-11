@@ -8,12 +8,10 @@ content: |
   Before uploading data to a cluster, you need to create tables to hold the data.
 
 
-  <% if has_multiple_clusters? %>
   ## Tables and clusters
 
   Database tables only live in a single cluster and can not be migrated from one cluster to another.
   This applies both to the database definitions themselves, as well as the data in the tables.
-  <% end %>
 
 
   ## Naming
@@ -24,8 +22,8 @@ content: |
   - the table name can contain the characters `a` through `z` in any case, and the numbers `0`
     through `9` as well as contain underscores (`_`)
   - a table name has to start with a character
-  - restricted column names which are used by aircloak are not allowed. These include: `user_id`,
-    `created_at`, and `transaction_id`.
+  - restricted column names which are used by aircloak are not allowed. Currently the list contains the following restricted column names: `user_id`, `created_at`, and `transaction_id`.
+
 
   ## Data types
 
@@ -41,7 +39,9 @@ content: |
 
   ## Uploading data
 
-  We provide an HTTP API at `/bulk_insert` for uploading data into cloaks. It is authenticated using
+  We provide an HTTPS API at `/bulk_insert` for uploading data into cloaks.
+  You could upload data to any of your cloaks. A full URL for the API might therefore look like `https://<%= sample_cloak_name %>/bulk_insert`.
+  It is authenticated using
   client certificates. For more information about authentication, please have a look
   at the <%= help_link "authentication" %> page.
 
@@ -104,7 +104,7 @@ content: |
 
   ### Restrictions
 
-  The individual payloads should not exceed _1mb_ in size. The dataset you upload most likely exceeds this, in which case you want
+  The individual payloads should not exceed _5mb_ in size. The dataset you upload most likely exceeds this, in which case you want
   to upload it in parts. Feel free to perform multiple uploads in parallel<%
   if current_user.analyst.clusters.select {|cluster| cluster.cloaks.count > 1 }.count > 0 -%>, either to the same cloak or to multiple distinct cloaks within the same cluster.
   <% else %> to the same cloak.

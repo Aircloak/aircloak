@@ -34,7 +34,7 @@ content: |
   create a table called __locations__.
 
   When defining a table you also specify what columns the table should include. If you track entities in a coordinate space,
-  you might want to have columns named __x__ and __y__ as well as __x-error__ and __y-error__, or if you use longitudes and
+  you might want to have columns named __x__ and __y__ as well as __x_error__ and __y_error__, or if you use longitudes and
   latitudes, you could call your columns __lat__ and __lng__.
 
   For more information on creating tables, check out <%= help_link "managing-data" %>.
@@ -60,10 +60,11 @@ content: |
     "user-id": {
       "table1_name": [
         {"column_name": value, ...},
-        ...
-      ]
+        ... other rows ...
+      ],
+      ... other tables ...
     },
-    ...
+    ... other users ...
   }
   ```
 

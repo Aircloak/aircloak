@@ -33,7 +33,7 @@ content: |
 
   ### The cloak adds statistical noise to the reported counts
 
-  The cloak adds Gausian noise with a mean of 0 to the answer counts.
+  The cloak adds Gaussian noise with a mean of 0 to the answer counts.
   Additionally the noisy counts are rounded to the nearest 5 or 10
   depending on the amount of noise added.
 
@@ -45,7 +45,7 @@ content: |
   Answers where the returned count is too low are therefore withheld completely.
   It therefore might happen that the answer to a query is no answer at all.
   Therefore it is usually helpful to ask for information at multiple levels
-  of granularity.
+  of granularity if your dataset is small.
   Instead of only asking: _how many users are of age 10?_, _how many users
   are of age 11?_ etc, you might additionally want to
   ask _how many users are between the ages of 10 and 15?_, _how many users
@@ -55,16 +55,16 @@ content: |
 
   ### Queries are run over individual users, one at a time
 
-  When a query is run, it only has access to the data of a single user at a time. It
-  has no memory across multiple executions.
+  When a query is run, it for privacy reasons only has access to the data of a
+  single user at a time. It has no memory across multiple executions.
   A query can therefore do complex calculations based on a single user at a time.
   For example it could determine the average amount of time a user spends at a given location,
-  for example waiting for a bus, or on what weekdays a user most frequently visits a parks.
+  waiting for a bus, or on what weekdays a user most frequently visits a parks.
 
   While executing on a single user, the query has to determine if the user
   should be applied towards the count of some property.
   For example _users who spent more than an hour a week in
-  a park.
+  a park_.
 
   It is possible to report multiple properties per user. For example, one could report:
 

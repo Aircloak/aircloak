@@ -10,8 +10,8 @@ content: |
   other database systems.
 
   The most significant thing to note is that the queries you write have
-  to be of the kind that return an aggregate count. For example how many
-  users participated were at a location at a given time, the answer to
+  to be of the kind that return an aggregate count. For example _how many
+  users were at a location at a given time_, the answer to
   which might be 50.
 
   Instead of writing queries that have access to all the data in the
@@ -23,10 +23,10 @@ content: |
   have seen and computer about _Dylan_.
 
   When a query is executed, it therefore has to make local decisions
-  based on a single users data, regarding whether the user should be
+  based on a single users data, regarding whether the user's should be
   counted and included in an answer, or not.
 
-  For a more indepth explanation of how to think about the query model,
+  For a more in-depth explanation of how to think about the query model,
   take a look at <%= help_link "understanding-the-query-model" %>.
 
 
@@ -80,7 +80,7 @@ content: |
   Reading through the code sample above, you might have noticed
   that the we index into the data array starting at 1, rather than 0.
   This is because Lua, contrary to most other programming languages,
-  indexes arrays from 1 rather than 0.
+  indices arrays from 1 rather than 0.
 
 
   #### Reporting values
@@ -90,6 +90,8 @@ content: |
 
   You can think of it as follows: The cloak counts how many users report the exact same __name__, __value__ pair.
   What you get returned from the cloak are effectively __name__, __value__, __count__ triplets.
+
+  ##### Example
 
   If you have a users age, you could for example report "age" as the name, and the age value as the value.
   You would then get reported how many users you have at distinct ages.
@@ -112,7 +114,7 @@ content: |
 
   #### Results
 
-  Currently the primary way to run a query, is by executing it from the web interface.
+  Currently the primary way to run a query is by executing it from the web interface.
   The web interface also shows the latest results.
   You can download the complete result set as a CSV file if you want to perform post processing
   of the data on your own computer.
