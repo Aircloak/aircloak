@@ -6,7 +6,7 @@ content: |
 
   The cloak APIs rely on client certificates for authenticating access.
   The client certificates are provided in the PKCS12 format, and can be managed
-  on the <%= site_link keys_path, "keys page" %>.
+  on the <%= site_link controller.keys_path, "keys page" %>.
 
   Cloaks support three types of certificates:
 
@@ -23,7 +23,7 @@ content: |
   <% if key_count == 0 -%>
   Your can use the same keys for all your clusters.
   <% else -%>
-  The keys you create on the <%= site_link keys_path, "keys page" %>
+  The keys you create on the <%= site_link controller.keys_path, "keys page" %>
   can be used across all your clusters.
   <% end -%>
   <% end -%>

@@ -94,10 +94,10 @@ content: |
 
   The API requires the uploader to be authenticated. Authentication is done through client certificates.
   <% if key_count == 0 -%>
-  You can create these certificates for your team on the <%= site_link keys_path, "keys page" %>.
+  You can create these certificates for your team on the <%= site_link controller.keys_path, "keys page" %>.
   <% else -%>
   Your team already has <%= key_count %> keys. You can
-  administer and download these from the <%= site_link keys_path, "keys page" %>.
+  administer and download these from the <%= site_link controller.keys_path, "keys page" %>.
   <% end -%>
 
   How you use client certificates differs from language to language, but if using `curl`, you would use
