@@ -9,7 +9,7 @@ content: |
   Depending on your particular case, you might have data that is all uploaded once in bulk, or
   you can continuously upload and extend your data over time.
 
-  Logically the data should be about individual entities. An entity can be a user, a car, or any other object that can be uniquely identified.
+  The data should describe discrete logical entities. An entity can be a user, a car, or any other object that can be uniquely identified.
 
   You are free to choose how you wish to identify your entities, but the identities need to stay constant over time if you want to add data to an existing entity.
 
