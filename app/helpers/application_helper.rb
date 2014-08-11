@@ -24,15 +24,16 @@ module ApplicationHelper
   end
 
   def help_link articles
+    help_util = HelpUtils.new current_user, nil
     links = ""
     if articles.instance_of?(Array) then
       article_links = articles.map do |article|
-        HelpUtils.instance.help_link(article)
+        help_util.help_link(article)
       end
       links = "#{article_links[0...-1].join(", ")} and #{article_links.last}"
     else
       article = articles
-      links = HelpUtils.instance.help_link(article)
+      links = help_util.help_link(article)
     end
     "Consider reading: #{links}<hr>".html_safe
   end
