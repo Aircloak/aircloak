@@ -7,7 +7,6 @@ class Task < ActiveRecord::Base
 
   has_many :results, dependent: :destroy
   has_many :buckets, through: :result
-  has_many :exception_results, through: :result
 
   belongs_to :cluster
   belongs_to :analyst
