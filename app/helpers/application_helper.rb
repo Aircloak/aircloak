@@ -9,6 +9,17 @@ module ApplicationHelper
     label.html_safe
   end
 
+  # We only show a notification about exceptions if:
+  # - the user has tasks where the most recent
+  #   result is an exception
+  # - the user is not currently editing a task, in
+  #   which case we would rather show the exception itself.
+  def should_show_exception_notifiaction?
+    current_user.analyst.tasks_with_exceptions.count > 0 and
+        not (controller.controller_name == "tasks" and
+          controller.action_name == "edit")
+  end
+
   def help_tooltip field
     tip = tip_for(request.params["controller"], field)
     return "" if tip.nil?

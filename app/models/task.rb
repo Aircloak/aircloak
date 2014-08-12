@@ -137,6 +137,16 @@ class Task < ActiveRecord::Base
     end
   end
 
+  # Returns true if and only if the latest
+  # result was an exception
+  def has_exceptions?
+    results.count > 0 && results.last.exception_results.count > 0
+  end
+
+  def latest_exceptions
+    results.last.exception_results
+  end
+
 private
 
   def prefetch_correct

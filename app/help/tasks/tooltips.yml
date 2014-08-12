@@ -34,3 +34,10 @@ code:
     You have access to the user data under `tables.TableName`
     and can report values using `report_property(PropertyName, Value)`.
   markdown: true
+exceptions:
+  content: |
+    We show how many times an exception occurred. If the exception
+    only occurrs for a subset of your userbase, it might be due
+    to an error in a part of your task that is only conditionally
+    executed.
+  markdown: true
