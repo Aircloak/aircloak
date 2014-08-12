@@ -6,7 +6,6 @@ end
 
 class HelpUtils
   def initialize user, controller
-  # def initialize user
     @current_user = user
     @controller = controller
   end

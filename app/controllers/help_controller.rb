@@ -13,8 +13,7 @@ class HelpController < ApplicationController
 
 private
   def load_guides
-    @help_utils = HelpUtils.new(current_user, self)
-    # @help_utils = HelpUtils.new current_user
+    @help_utils = HelpUtils.new current_user, self
     guide_names = Dir.entries(@help_utils.guide_disk_dir).select do |file_name|
       File.file?(@help_utils.full_guide_path file_name)
     end
