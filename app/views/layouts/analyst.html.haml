@@ -18,6 +18,16 @@
         .row
           .span12
             .div
+              .alert.alert-error
+                %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
+                %strong Note:
+                You are running a development version of our software.
+                Please do not at this time load sensitive data into your cluster,
+                and be aware that data might be lost during system upgrades.
+
+        .row
+          .span12
+            .div
               - if flash[:error]
                 .alert.alert-error
                   %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
