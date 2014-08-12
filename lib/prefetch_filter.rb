@@ -124,7 +124,8 @@ class PrefetchFilter
     transformed = case type
       when "integer" then value.to_i
       when "float" then value.to_f
-      when "varchar", "char" then value
+      when "boolean" then value.to_s.downcase == "true"
+      when "varchar" then value
     end
 
     # verify we didn't lose anything in conversion

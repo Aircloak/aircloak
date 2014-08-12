@@ -102,6 +102,9 @@ TableFilter = (inTable, tableFilterDescriptor) ->
 
     table: -> table
 
+    column: (name) ->
+      _.find(self.table().columns, (column) -> column.name == name)
+
     userRows: ->
       userRows = arguments[0] if arguments.length == 1
       userRows

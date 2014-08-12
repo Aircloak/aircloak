@@ -43,7 +43,7 @@ Tasks.FilterEditor = (inOptions) ->
     options.onSaved()
 
   dataValid = ->
-    errorElement = _.find($("[data-filter-input]"), (el) -> $(el).val() == "")
+    errorElement = _.find($("[data-filter-input]"), (el) -> $(el).val() == "" || $(el).val() == null)
     if !errorElement
       true
     else
@@ -57,12 +57,33 @@ Tasks.FilterEditor = (inOptions) ->
       view.remove()
       Popup.close()
 
+  onColumnChanged = (e) ->
+    showProperValueControl($(e.target).parent())
+    $(e.target).parent().find("[data-field=value]").val("")
+
+  showProperValueControl = (parent) ->
+    parent.find("[data-field=value]").hide()
+    parent.find("[data-field=value]").removeAttr("data-filter-input")
+    valueInputControl(parent).attr("data-filter-input", "true").show()
+
+  valueInputControl = (parent) ->
+    colName = $(parent).find("[data-field=column]").val()
+    colData = options.tableFilter.column(colName)
+    parent.find("[data-field=value]").hide()
+    if colData && colData.type == "boolean"
+      parent.find("[data-type=boolean]")
+    else
+      parent.find("[data-type=all]")
+
   filterToControls = ->
     return if filter.groups().length == 0
-    _.each(filter.group(0).filters(), (filter, index) ->
-          _.each(_.pairs(filter), ([key, value]) ->
-                $("#subFilter#{index} [data-field=#{key}]").val(value)
-              )
+    _.each(
+          filter.group(0).filters(),
+          (filter, index) ->
+            _.each(_.pairs(filter), ([key, value]) ->
+                  $("#subFilter#{index} [data-field=#{key}]").val(value)
+                )
+            showProperValueControl($("#subFilter#{index}"))
         )
 
   controlsToFilter = ->
@@ -81,7 +102,10 @@ Tasks.FilterEditor = (inOptions) ->
     parent = $(parent)
     _.reduce(["column", "operator", "value"],
           (memo, param) ->
-            memo[param] = parent.find("[data-field=#{param}]").val()
+            if param != "value"
+              memo[param] = parent.find("[data-field=#{param}]").val()
+            else
+              memo[param] = valueInputControl(parent).val()
             memo
           {}
         )
@@ -127,6 +151,7 @@ Tasks.FilterEditor = (inOptions) ->
       "change #filterControls [data-filter-input]": setDirty
       "change #userRows": setDirty
       "change #minLimit": setDirty
+      "change [data-field=column]": onColumnChanged
   )
 
   _.extend(self, {
