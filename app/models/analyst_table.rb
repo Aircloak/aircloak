@@ -52,4 +52,49 @@ class AnalystTable < ActiveRecord::Base
   def pending_migrations?
     analyst_table_migrations.where(migrated: false).count > 0
   end
+
+  # Used to create example in help guides
+  def generate_sample_json
+    columns = JSON.parse(table_data)
+    data = {}
+    ["user1", "user2"].each do |user|
+      data[user] ||= {}
+      data[user][table_name] = []
+      2.times do
+        row = {}
+        columns.each do |column|
+          row[column["name"]] = sample_value(column["type"])
+        end
+        data[user][table_name] << row
+      end
+    end
+    data
+  end
+
+  def self.sample_constraint column
+    type = column["type"]
+    if type =~ /(var)?char/
+      "#{column["name"]} <> \"Carnivore\""
+    elsif type == "float"
+      "#{column["name"]} > 0.4"
+    else
+      "#{column["name"]} > 100"
+    end
+  end
+
+private
+  def sample_value type
+    if type == "integer"
+      rand(1000)
+    elsif type == "float"
+      rand(2) + rand
+    elsif type =~ /(var)?char\((\d*)\)/
+      num = $2.to_i
+      (0...(num)).map { (65 + rand(26)).chr }.join
+    elsif type == "serial"
+      @@serial = 0 unless @@serial
+      @@serial += 1
+      @@serial
+    end
+  end
 end

@@ -1,0 +1,43 @@
+title: Authentication
+order: 2
+content: |
+
+  # Authentication
+
+  The cloak APIs rely on client certificates for authenticating access.
+  The client certificates are provided in the PKCS12 format, and can be managed
+  on the <%= site_link controller.keys_path, "keys page" %>.
+
+  Cloaks support three types of certificates:
+
+  - certificates for uploading data for users in bulk
+  - certificates restricted to uploading data for only a particular user.
+    This is useful when wanting to upload data from an end-users device,
+    but requires integration with your backend services for commissioning
+    certificates
+  - certificates for executing tasks or managing tables. Currently this
+    is performed exclusively through our web interfaces, but we can
+    provide you certificates of this kind on demand
+
+  <% if has_multiple_clusters? -%>
+  <% if key_count == 0 -%>
+  Your can use the same keys for all your clusters.
+  <% else -%>
+  The keys you create on the <%= site_link controller.keys_path, "keys page" %>
+  can be used across all your clusters.
+  <% end -%>
+  <% end -%>
+
+  ## Authentication example
+
+  How you perform authentication with client certificates differs from language to language,
+  but using curl, you would use the `--cert CertificateFile.pfx:<PASSWORD>` flag.
+
+  Taking the API for uploading user data in bulk as an example:
+  Assuming you had data for the __<%= sample_table_name %>__ stored in a file in your current directory
+  called __<%= sample_table_name %>.json__, and a key named <%= sample_key_name %>, you could issue the following
+  `curl` command to upload the data:
+
+  ```
+  curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --date @<%= sample_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
+  ```

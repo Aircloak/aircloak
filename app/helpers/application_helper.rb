@@ -1,3 +1,5 @@
+require './lib/help_utils'
+
 module ApplicationHelper
   def control_label label, options = {}
     label = <<-END
@@ -19,6 +21,21 @@ module ApplicationHelper
         data-placement="#{tip[:placement]}">?</a>
     END
     result.html_safe
+  end
+
+  def help_link articles
+    help_util = HelpUtils.new current_user, nil
+    links = ""
+    if articles.instance_of?(Array) then
+      article_links = articles.map do |article|
+        help_util.help_link(article)
+      end
+      links = "#{article_links[0...-1].join(", ")} and #{article_links.last}"
+    else
+      article = articles
+      links = help_util.help_link(article)
+    end
+    "Consider reading: #{links}<hr>".html_safe
   end
 
 private

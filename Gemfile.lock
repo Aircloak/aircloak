@@ -282,6 +282,7 @@ DEPENDENCIES
   capistrano (= 2.13.5)
   choices
   codemirror-rails
+  coderay
   coffee-rails!
   declarative_authorization
   excon

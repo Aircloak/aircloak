@@ -1,0 +1,5 @@
+%h1 Help articles
+
+%ul
+  - @guides.each do |guide|
+    %li= link_to guide["title"], "/help/#{guide["path"]}"

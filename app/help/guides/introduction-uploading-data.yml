@@ -1,0 +1,115 @@
+title: An introduction to uploading data
+order: 1
+content: |
+
+  # Getting data into the system
+
+  Before any analysis can take place, you need to import the data you want to compute over into the cloak cluster.
+
+  Depending on your particular case, you might have data that is all uploaded once in bulk, or
+  you can continuously upload and extend your data over time.
+
+  The data should describe discrete logical entities. An entity can be a user, a car, or any other object that can be uniquely identified.
+
+  You are free to choose how you wish to identify your entities, but the identities need to stay constant over time if you want to add data to an existing entity.
+
+  Before being able to upload data to a cluster, you need to prepare tables into which the data will be stored<%
+    if current_user.analyst.undeleted_analyst_tables.count > 0 -%>
+  , but that you already have done.
+  <% else -%>
+  .
+  <% end -%>
+  These tables dictate the format the cluster expects the data you upload to be in.
+
+  When uploading data into an existing table, there is no need to first manually create the identities you want to upload beforehand.
+  For example assuming you want to upload the location of individuals into a locations table, and you already have uploaded data for
+  Sam and Tom, and now you want to upload data for Paul. All you have to do is upload the data, and the cluster will take care of
+  creating the corresponding entity for Paul.
+
+
+  ## Creating database tables
+
+  Before uploading data to a cluster, you need to create the database tables that will hold the data in the cluster.
+  It is good practise to name the table after what it stores. If you track user location datapoints, you would for example
+  create a table called __locations__.
+
+  When defining a table you also specify what columns the table should include. If you track entities in a coordinate space,
+  you might want to have columns named __x__ and __y__ as well as __x_error__ and __y_error__, or if you use longitudes and
+  latitudes, you could call your columns __lat__ and __lng__.
+
+  For more information on creating tables, check out <%= help_link "managing-data" %>.
+
+
+  ## Uploading data
+
+  Once you have created database tables to hold your data, you can start uploading data into your cluster.
+
+  The data is uploaded through an HTTP API endpoint that accepts the data encoded as JSON.
+
+  ### Data format
+
+  #### Format
+
+  The payload should be a JSON object with the user ids at the highest level. For each user you can pass in
+  a JSON object containing an entry per table, where the table entry in turn can be an array of rows.
+
+  More concretely, the format should have the following structure
+
+  ```json
+  {
+    "user-id": {
+      "table1_name": [
+        {"column_name": value, ...},
+        ... other rows ...
+      ],
+      ... other tables ...
+    },
+    ... other users ...
+  }
+  ```
+
+  #### Example
+
+  <% if has_tables? -%>
+
+  If you wanted to upload data from your __<%= sample_table_name %>__ table for the two users __user1__ and __user2__,
+  you could upload a JSON payload with the following format
+
+  ```json
+  <%= sample_json %>
+  ```
+
+  <% else -%>
+
+  Say you wanted to upload data for the users __user1__ and __user2__ to a table called __<%= sample_table_name %>__ which has an
+  __x__ and a __y__ column, you would format the data as
+
+  ```json
+  <%= sample_json %>
+  ```
+
+  <% end -%>
+
+
+  ### Authentication
+
+  The API requires the uploader to be authenticated. Authentication is done through client certificates.
+  <% if key_count == 0 -%>
+  You can create these certificates for your team on the <%= site_link controller.keys_path, "keys page" %>.
+  <% else -%>
+  Your team already has <%= key_count %> keys. You can
+  administer and download these from the <%= site_link controller.keys_path, "keys page" %>.
+  <% end -%>
+
+  How you use client certificates differs from language to language, but if using `curl`, you would use
+  the `--cert CertificateFile.pfx:<PASSWORD>` command.
+
+  ### Example
+
+  Assuming you had data for the __<%= sample_table_name %>__ stored in a file in your current directory
+  called __<%= sample_table_name %>.json__, and a key named <%= sample_key_name %>, you could issue the following
+  `curl` command to upload data:
+
+  ```bash
+  curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --date @<%= sample_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
+  ```

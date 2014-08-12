@@ -21,6 +21,7 @@ gem "choices"
 # We need redcarpet for rendering markdown for our
 # help sections
 gem "redcarpet"
+gem "coderay"
 
 gem 'whenever', :require => false
 
