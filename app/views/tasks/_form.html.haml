@@ -31,6 +31,17 @@
       .controls
         = f.hidden_field :data
         #prefetchTables
+    - if @task.has_exceptions?
+      .control-group
+        = control_label "Exceptions", tooltip: "exceptions"
+        .controls
+          = "Your current implementation has #{pluralize(@task.latest_exceptions.count, "exception")}:"
+          %ul
+            - @task.latest_exceptions.each do |exception|
+              %li
+                = "#{exception.count} occurrances of"
+                %strong= exception.stacktrace
+
     .control-group
       = control_label "Code", tooltip: "code"
       .controls

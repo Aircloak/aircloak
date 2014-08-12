@@ -7,7 +7,6 @@ class Task < ActiveRecord::Base
 
   has_many :results, dependent: :destroy
   has_many :buckets, through: :result
-  has_many :exception_results, through: :result
 
   belongs_to :cluster
   belongs_to :analyst
@@ -136,6 +135,16 @@ class Task < ActiveRecord::Base
       memo[key] = unsorted_buckets[key]
       memo
     end
+  end
+
+  # Returns true if and only if the latest
+  # result was an exception
+  def has_exceptions?
+    results.count > 0 && results.last.exception_results.count > 0
+  end
+
+  def latest_exceptions
+    results.last.exception_results
   end
 
 private

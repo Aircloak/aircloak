@@ -18,16 +18,23 @@
         .row
           .span12
             .div
-              - if flash[:error]
-                .alert.alert-error
-                  %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
-                  = flash[:error]
-              - if flash[:notice]
-                .alert.alert-success
-                  %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
-                  = flash[:notice]
+              .alert.alert-error
+                %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
+                %strong Note:
+                You are running a development version of our software.
+                Please do not at this time load sensitive data into your cluster,
+                and be aware that data might be lost during system upgrades.
+
         .row
           .span3
+            %br
+
+            %img{src: "/images/aircloak_web_200.png"}
+
+            %br
+            %br
+            %br
+
             %h4= link_to "Tasks", tasks_path
             = link_to "All tasks", tasks_path
             |
@@ -61,7 +68,45 @@
             |
             = link_to "Logout", logout_path
 
+            %hr
+
+            %a{href: "mailto:solutions@aircloak.com"}
+              %strong Need help?
+              Please send us an email at solutions@aircloak.com.
+
           .span9
+            .row
+              .span9
+                .div
+                  - if flash[:error]
+                    .alert.alert-error
+                      %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
+                      = flash[:error]
+                  - if flash[:notice]
+                    .alert.alert-success
+                      %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
+                      = flash[:notice]
+
+                  -# Show notifications on exceptions, unless we are
+                  -# editing a task
+                  - if should_show_exception_notification?
+                    - exception_tasks = current_user.analyst.tasks_with_exceptions
+                    .alert.alert-error
+                      %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
+                      - if exception_tasks.count == 1
+                        - task = exception_tasks.first
+                        %a{href: edit_task_path(task)}
+                          The
+                          %strong= task.name
+                          task threw an exception. Click here to get to the task editor.
+                      - else
+                        %strong= "You have #{pluralize(exception_tasks.count, "task")} with exceptions."
+                        %p Click on one of the tasks to edit it.
+                        %ul
+                          - exception_tasks.each do |task|
+                            %li
+                              %a{href: edit_task_path(task)}= task.name
+
             = yield
 
     = javascript_include_tag "application", "data-turbolinks-track" => true

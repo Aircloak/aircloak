@@ -24,6 +24,10 @@ class Analyst < ActiveRecord::Base
     analyst_tables.where(deleted: false)
   end
 
+  def tasks_with_exceptions
+    tasks.select {|t| t.has_exceptions? }
+  end
+
 private
   def create_token
     create_analyst_token
