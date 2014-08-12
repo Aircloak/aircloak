@@ -85,7 +85,7 @@
 
                   -# Show notifications on exceptions, unless we are
                   -# editing a task
-                  - if should_show_exception_notifiaction?
+                  - if should_show_exception_notification?
                     - exception_tasks = current_user.analyst.tasks_with_exceptions
                     .alert.alert-error
                       %button.close{type:"button", :'data-dismiss'=>"alert"} &times;

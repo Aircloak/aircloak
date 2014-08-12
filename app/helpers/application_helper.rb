@@ -14,7 +14,7 @@ module ApplicationHelper
   #   result is an exception
   # - the user is not currently editing a task, in
   #   which case we would rather show the exception itself.
-  def should_show_exception_notifiaction?
+  def should_show_exception_notification?
     current_user.analyst.tasks_with_exceptions.count > 0 and
         not (controller.controller_name == "tasks" and
           controller.action_name == "edit")
