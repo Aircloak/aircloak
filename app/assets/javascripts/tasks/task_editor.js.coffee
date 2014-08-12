@@ -22,7 +22,7 @@ Tasks.Editor = (tables, operators) ->
 
   initCodeEditor = ->
     CodeMirror.fromTextArea(document.getElementById("task_code"), {
-      lineNumbers: true, mode: "lua", vimMode: true, matchBrackets: true, showCursorWhenSelecting: true
+      lineNumbers: true, mode: "lua", vimMode: false, matchBrackets: true, showCursorWhenSelecting: true
     })
 
   showHideAddTable = ->
