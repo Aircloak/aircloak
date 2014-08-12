@@ -73,7 +73,7 @@ class AnalystTable < ActiveRecord::Base
 
   def self.sample_constraint column
     type = column["type"]
-    if type =~ /(var)?char/
+    if type =~ /varchar/
       "#{column["name"]} <> \"Carnivore\""
     elsif type == "float"
       "#{column["name"]} > 0.4"
@@ -88,13 +88,11 @@ private
       rand(1000)
     elsif type == "float"
       rand(2) + rand
-    elsif type =~ /(var)?char\((\d*)\)/
+    elsif type =~ /varchar\((\d*)\)/
       num = $2.to_i
       (0...(num)).map { (65 + rand(26)).chr }.join
-    elsif type == "serial"
-      @@serial = 0 unless @@serial
-      @@serial += 1
-      @@serial
+    elsif type == "boolean"
+      rand(2) == 0
     end
   end
 end

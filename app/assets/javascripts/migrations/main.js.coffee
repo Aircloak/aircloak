@@ -159,7 +159,7 @@ MigrationView = Backbone.View.extend
 
   typeSelected: ->
     val = @selectType.val()
-    if val == "char" or val == "varchar"
+    if val == "varchar"
       @inputSpan.removeClass "hidden"
       @inputSize.focus()
     else
@@ -181,7 +181,7 @@ MigrationView = Backbone.View.extend
       constraints = []
       constraints.push "NOT NULL" if checkboxNotNull.checked
       type = @selectType.val()
-      type = "#{type}(#{@inputSize.val()})" if type == "varchar" or type == "char"
+      type = "#{type}(#{@inputSize.val()})" if type == "varchar"
 
       column = new Column
         name: name
