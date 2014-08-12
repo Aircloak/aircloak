@@ -21,8 +21,6 @@ private
       raw_yaml = @help_utils.yaml @help_utils.full_guide_path guide_name
       raw_yaml["path"] = guide_name.gsub("\.yml", "")
       raw_yaml
-    end.sort do |a,b|
-      a["order"] <=> b["order"]
-    end
+    end.sort_by {|a| a["order"] }
   end
 end
