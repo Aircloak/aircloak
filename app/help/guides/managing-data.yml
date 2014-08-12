@@ -32,9 +32,7 @@ content: |
   - integer: signed 4 byte integer which can range from -2147483648 to +2147483647
   - float: 4 byte single precision floating-point number
   - boolean: logical true or false
-  - char: fixed length character string
   - varchar: variable length bounded character string
-  - text: variable length character string
 
 
   ## Uploading data
