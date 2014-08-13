@@ -39,6 +39,7 @@ class Task < ActiveRecord::Base
   # and callbacks, etc
   def efficient_delete
     Result.delete_for_task self
+    PendingResult.delete_for_task self
     destroy
   end
 
