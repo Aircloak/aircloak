@@ -25,7 +25,7 @@ Metrics.Dashboards =
             rateSpec(controller, "job.{started,successful,fail,timeout}", "Job rates"),
             histogramSpec(controller, "job.duration", "Job duration", "ms", "jobDurationGroup")
             stackHistograms(controller, "Duration of job execution phases", "ms", [
-                  "job.queued", "job.duration", "job.data_insertion"
+                  "job.queued", "job.duration", "job.data_insertion", "job.run_next"
                 ], "jobPhasesGroup")
           ],
           true
