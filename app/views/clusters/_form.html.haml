@@ -39,4 +39,7 @@
 
   .control-group
     .controls
-      = f.submit 'Create cluster', class: "btn btn-success"
+      - if controller.action_name == "edit"
+        = f.submit 'Update cluster', class: "btn btn-success"
+      - else
+        = f.submit 'Create cluster', class: "btn btn-success"
