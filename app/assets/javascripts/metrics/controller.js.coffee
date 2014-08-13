@@ -36,9 +36,9 @@ Metrics.Controller = () ->
     height: "300",
     hideLegend: true
 
-  render = ->
+  render = (skipClear) ->
     viewState.recalcAndStore()
-    loadGraphs(runDashboard())
+    loadGraphs(runDashboard(), skipClear)
     showHideControls()
 
   onFormSubmitted = (event) ->
@@ -49,6 +49,8 @@ Metrics.Controller = () ->
     window.open(window.location.pathname + "?" + $.param(viewState.allParams()), "_blank")
 
   makeElement = (target, image) ->
+    elementId = _.flatten([target.params.target], true).join("-")
+
     element =
       if image == null
         $("<span>No data for #{target.params.title}</span>")
@@ -63,6 +65,14 @@ Metrics.Controller = () ->
           append(image)
       else
         $(image)
+    element.attr("id", elementId)
+
+    existingElement = document.getElementById(elementId);
+    if (existingElement)
+      unless ($(existingElement).is(":visible"))
+        element.hide()
+      $(existingElement).replaceWith(element)
+      return
 
     groupElement = createGroupElement(target)
     groupElement.find(".graphs").append(element.hide())
@@ -73,7 +83,7 @@ Metrics.Controller = () ->
                 attr("name", target.group.id).
                 on("click", ->
                       groupElement.find(".graphs").children().hide()
-                      element.show()
+                      $(document.getElementById(elementId)).show()
                     )
             ).
         append("#{target.group.graphId}&nbsp;")
@@ -98,11 +108,12 @@ Metrics.Controller = () ->
 
     groupElement
 
-  loadGraphs = (targets) ->
+  loadGraphs = (targets, skipClear) ->
     preloadImages(
           _.map(targets, (target) => "/metrics/render_graph?" + $.param(graphParams(target.params))),
           (images) =>
-            $("#graphs").html("")
+            unless skipClear
+              $("#graphs").html("")
             _.each(
                   _.zip(targets, images),
                   (imageData) => makeElement.apply(null, imageData)
