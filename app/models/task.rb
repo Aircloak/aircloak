@@ -6,7 +6,8 @@ class Task < ActiveRecord::Base
   has_many :pending_results, dependent: :destroy, counter_cache: true
 
   has_many :results, dependent: :destroy
-  has_many :buckets, through: :result
+  has_many :buckets, through: :results
+  has_many :exception_results, through: :results
 
   belongs_to :cluster
   belongs_to :analyst

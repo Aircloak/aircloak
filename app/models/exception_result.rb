@@ -1,5 +1,6 @@
 class ExceptionResult < ActiveRecord::Base
   belongs_to :buckets
+  belongs_to :result
   has_one :task, through: :results
 
   def self.create_from_proto result, exception
