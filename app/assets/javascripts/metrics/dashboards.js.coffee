@@ -123,7 +123,7 @@ existingHistograms = (controller, path) ->
   _.uniq(_.map(
         existingSeries(
               controller,
-              "{#{controller.selectedCloaks()}}.cloak_core.#{path}.#{histogramTypes}"
+              "{#{controller.selectedCloaks()}}.cloak_core.#{path}.{#{histogramTypes}}"
             ),
         (target) ->
           parts = target.split(".")
@@ -167,13 +167,22 @@ histogramSpec = (controller, metricPath, graphTitle, dimension, groupId) ->
       )
 
 stackHistograms = (controller, graphTitle, dimension, metrics, groupId) ->
+  fullTargets = _.map(metrics, (metric) -> "{#{controller.selectedCloaks()}}.cloak_core.#{metric}.average")
+  existingMetrics = _.map(
+        existingSeries(controller, fullTargets),
+        (target) ->
+          res = target.split(".")
+          res.splice(-1, 1)
+          res.join(".")
+      )
+
   _.map(
           histogramTypes,
           (type) ->
             if groupId
               group = {id: groupId, graphId: type}
             group: group
-            metrics: _.map(metrics, (metric) -> "#{metric}.#{type}")
+            metrics: _.map(existingMetrics, (metric) -> "#{metric}.#{type}")
             metricsDimension: dimension
             params:
               title: title("#{graphTitle} #{type}", dimension)
@@ -181,7 +190,7 @@ stackHistograms = (controller, graphTitle, dimension, metrics, groupId) ->
               yMin: 0
               target:
                   _.map(
-                        metrics,
+                        existingMetrics,
                         (phase) ->
                           Metrics.GraphiteSeries.fromPath([
                               controller.selectedCloaks(), "cloak_core.#{phase}.#{type}"
