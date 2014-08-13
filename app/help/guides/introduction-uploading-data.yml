@@ -113,3 +113,10 @@ content: |
   ```bash
   curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --date @<%= sample_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
   ```
+
+  JSON, being pure text, can easily be compressed.
+  The cloaks supported gzipped JSON:
+
+  ```bash
+  cat <%= sample_table_name %>.json | gzip -c | curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --header "Content-Encoding: gzip" --header "Content-Type: application/json" https://<%= sample_cloak_name %>/bulk_insert --data-binary @-
+  ```
