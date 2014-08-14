@@ -6,8 +6,9 @@
         -# but unfortunately it is neccessary in order
         -# to get code blocks in the help text to render
         -# properly
-        = preserve do
-          = raw @content
+        .help-content
+          = preserve do
+            = raw @content
       .span2
         %h4 Content
         = raw @toc

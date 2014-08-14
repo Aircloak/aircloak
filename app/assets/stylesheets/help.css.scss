@@ -1,3 +1,22 @@
 // Place all the styles related to the help controller here.
 // They will automatically be included in application.css.
 // You can use Sass (SCSS) here: http://sass-lang.com/
+
+div.help-content table {
+  margin: 20px 0 30px 0;
+}
+
+div.help-content td {
+  padding: 4px 25px 4px 0;
+}
+
+div.help-content tr:nth-child(even) {
+  background: #ebebeb
+}
+
+div.help-content th {
+  padding-right: 19px;
+  text-align: left;
+  border-bottom: 1px solid black;
+}
+
