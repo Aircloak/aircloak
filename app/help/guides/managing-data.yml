@@ -39,6 +39,9 @@ content: |
 
   We provide an HTTPS API at `/bulk_insert` for uploading data into cloaks.
   You could upload data to any of your cloaks. A full URL for the API might therefore look like `https://<%= sample_cloak_name %>/bulk_insert`.
+
+  The cloak supports gzipped uploads.
+
   It is authenticated using
   client certificates. For more information about authentication, please have a look
   at the <%= help_link "authentication" %> page.
@@ -102,7 +105,7 @@ content: |
 
   ### Restrictions
 
-  The individual payloads should not exceed _5mb_ in size. The dataset you upload most likely exceeds this, in which case you want
+  The individual payloads should not exceed _10mb_ in size. The dataset you upload most likely exceeds this, in which case you want
   to upload it in parts. Feel free to perform multiple uploads in parallel<%
   if current_user.analyst.clusters.select {|cluster| cluster.cloaks.count > 1 }.count > 0 -%>, either to the same cloak or to multiple distinct cloaks within the same cluster.
   <% else %> to the same cloak.

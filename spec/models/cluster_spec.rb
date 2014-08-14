@@ -11,6 +11,8 @@ describe Cluster do
     Cloak.destroy_all
     Build.delete_all
     BuildManager.stub(:send_build_request)
+    AnalystTable.delete_all
+    AnalystTableMigration.delete_all
   end
 
   let (:cloak) { Cloak.create(name: "dave", ip: "9.9.9.9") }
@@ -246,5 +248,29 @@ describe Cluster do
     c.status_description = long_description
     c.status_description.size.should eq 255
     c.status_description[-3..-1].should eq "..."
+  end
+
+  it "should destroy dependent tables" do
+    c = cluster
+    c.cloaks << cloak # won't save without a cloak
+    c.save
+    table = AnalystTable.create(
+      cluster: c,
+      table_name: "test-table"
+    )
+    table.analyst_table_migrations << AnalystTableMigration.create(
+      migration: "migration",
+      table_json: "table-json",
+      version: 0
+    )
+    c.analyst_tables << table
+    c.save.should == true
+    AnalystTable.count.should == 1
+    AnalystTableMigration.count.should == 1
+    c.reload
+    c.cloaks = [] # won't destroy unless it has no cloaks
+    c.destroy.destroyed?.should == true
+    AnalystTable.count.should == 0
+    AnalystTableMigration.count.should == 0
   end
 end

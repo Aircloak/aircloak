@@ -10,4 +10,8 @@ class PendingResult < ActiveRecord::Base
     end while PendingResult.where(auth_token: token).count != 0
     self.auth_token = token
   end
+
+  def self.delete_for_task task
+    PendingResult.where(task_id: task.id).delete_all
+  end
 end
