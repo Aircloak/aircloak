@@ -1,0 +1,329 @@
+title: Query examples
+order: 6
+content: |
+  # Query examples
+
+  Getting started writing queries can be daunting.
+  Below we provide some example queries describing how we solve
+  common problems in Lua.
+
+  We are happy to help should you get stuck writing queries,
+  and in any case, please feel free to copy from the examples below.
+
+  If you are not familiar with Lua, it might be worth giving the following
+  15 minute introduction a read: http://tylerneylon.com/a/learn-lua/.
+
+  The [language guide on the Lua site](http://www.lua.org/pil/) is also good,
+  albeit more timeconsuming to read.
+
+  ## Gotchas
+
+  Lua does not natively support arrays, but approximates arrays through tables
+  with numerical indices.
+  __Unlike in other languages, the indices start at 1, rather than 0!__
+
+  A property is only counted once per user. If you call `report_property("age", 15)` multiple times inside
+  a task, it will only be counted once.
+
+  ## Setup
+
+  For the purpose of the following examples, you should assume that you have run a pre-select query that makes a
+  __purchases__ table with an integer __amount__ column available to your query as `tables.purchases`.
+
+
+  ### Examples
+
+  #### Count
+
+  If you wanted to know how many users made a purchase that cost more than 100, you could
+  write a query as follows:
+
+  ```lua
+  local purchases = tables.purchases
+  for i = 1, #purchases do
+    if purchases[i].amount > 100 then
+      report_property("purchase", "more_than_100")
+    end
+  end
+  ```
+
+  Notice how the call `report_property("purchase", "more_than_100")` might be made more than once for a user who has more than one purchase priced over 100. These extra properties are filtered out during anonymization.
+
+  The same result could also be achieved by filtering the data given to the query to limit it to only include data for purchases where the amount exceeds 100. We would then know that the property holds true for any user the query runs over, and could write the following Lua code:
+
+  ```lua
+  report_property("purchase", "more_than_100")
+  ```
+
+  In either case, the result to a query like this might look like:
+
+  | label | value | count |
+  |-------|-------|-------|
+  | purchase | more_than_100 | 9910 |
+
+
+  #### Min/Max
+
+  If you wanted to report the minimum and maximum purchase amount, you could write the following query:
+
+  ```lua
+  local purchases = tables.purchases
+  local min = purchases[1].amount
+  local max = purchases[1].amount
+  if #purchases > 1 then
+    for i = 2, #purchases do
+      local amount = purchases[i].amount
+      if min > amount then
+        min = amount
+      end
+      if max < amount then
+        max = amount
+      end
+    end
+  end
+  report_property("min_purchase", min)
+  report_property("max_purchase", max)
+  ```
+
+  The results to a query like the one written above might look like:
+
+  | label | value | count |
+  |-------|-------|-------|
+  | min_purchase | 9 | 50 |
+  | min_purchase | 11 | 5 |
+  | min_purchase | 14 | 400 |
+  | min_purchase | 18 | 410 |
+  | max_purchase | 100 | 40 |
+  | max_purchase | 110 | 500 |
+
+  When writing a query like the one above, you need to consider how the result anonymization works.
+  Properties that are reported by queries are filtered out if there are not enough users who reported
+  the exact same property name and value pair! If for example only two people had a __min_purchase__ of
+  10, you would never be informed of this as the value would be removed by the cloak.
+  The cloak removes values that only hold true for very few users in order to protect their privacy.
+
+  If you are unlucky your dataset might be such that the values are spread out evenly, and nothing at all
+  gets reported if your report the values directly like in the example above.
+  You can solve this by grouping the values into buckets. We have an example of this below.
+
+
+  #### Average
+
+  In the cloak a query gets run over a single user at a time. You therefore cannot compute averages
+  across multiple users inside the cloak itself.
+
+  If you wanted to calculate the average of some property _per_ user, then the cloak could certainly
+  help you achieve this, but if you want to calculate the average _across_ multiple users, you need
+  to do it on the results returned from the cloak.
+  We will create an example for both cases.
+
+
+  ##### Average per user
+
+  If you wanted to know the average purchase price per user, you could write a query like the following:
+
+  ```lua
+  local purchases = tables.purchases
+  local sum = 0
+  for i = 1, #purchases do
+    sum = sum + purchases[i].amount
+  end
+  average = math.floor((sum / #purchases) + 0.5) -- we round the value to the nearest integer
+  report_property("average_purchase_amount", average)
+  ```
+
+  | label | value | count |
+  |-------|-------|-------|
+  | average_purchase_amount | 33 | 40 |
+  | average_purchase_amount | 50 | 20 |
+  | average_purchase_amount | 101 | 55 |
+
+  ##### Average across users
+
+  If you want the average purchase price across all users, you could run a query
+  like the one you would write to get the average per user.
+  Then the total average would be the average value of that returned by all users.
+  This is not something you can do in your queries themselves, but something you
+  would have to do on the results returned from the cloak.
+
+  Depending on the amount of data you have you might want to use excel, another spreadsheet
+  software, or even write a small script of your own.
+
+
+  #### Cumulative Distribution Function
+
+  Very frequently it is good to output a histogram of the data you have in the cloak
+  to get an idea of how it is distributed.
+
+  If we wanted to know how the purchase prices are distributed, we could write a query like:
+
+  ```lua
+  local thresholds = {10, 20, 30, 40, 50, 60, 70, 80}
+  local purchases = tables.purchases
+  for thresholdIndex = 1, #thresholds do
+    for purchaseIndex = 1, #purchases do
+      if purchases[purchaseIndex].amount > thresholds[thresholdIndex] then
+        report_property("purchase_amount_cdf", "exceeds_" .. thresholds[thresholdIndex])
+      end
+    end
+  end
+  ```
+
+  | label | value | count |
+  |-------|-------|-------|
+  | purchase_amount_cdf | exceeds_10 | 60400 |
+  | purchase_amount_cdf | exceeds_20 | 30010 |
+  | purchase_amount_cdf | exceeds_30 | 5000 |
+  | purchase_amount_cdf | exceeds_40 | 4010 |
+  | purchase_amount_cdf | exceeds_50 | 100 |
+  | purchase_amount_cdf | exceeds_60 | 40 |
+  | purchase_amount_cdf | exceeds_70 | 20 |
+  | purchase_amount_cdf | exceeds_80 | 0 |
+
+
+  #### Group results into buckets
+
+  Please recall how the cloaks anonymize data: any individual __(name, value)__-pair that is not
+  reported for enough users gets filtered out completely. This means that if you have two users who
+  made a single purchase costing 10, two users made a single purchase costing 11, and so on up to two
+  users who made a purchase costing 50, and your query reads something like `report_property("amount", amount)`,
+  you would never see a single value reported outside the cloak.
+  Since the cloak would count up how many `("amount", AMOUNT)` pairs it got
+  for each individual amount (always two in this example), they would all be filtered out, in order to avoid
+  leaking detailed information about individuals.
+
+  The solution is to either export a cumulative distribution function (see above), or to group the values
+  into larger groups. For example you could group your users into groups of purchase amounts in units of 10,
+  and report how many users made a purchase costing between 0 and 10, how many users made a purchase costing
+  between 10 and 20, etc.
+
+  In Lua, it could be done as follows:
+
+  ```lua
+  function round_to_nearest (amount, nearest)
+    return math.floor(amount / nearest) * nearest
+  end
+
+  function value_label (amount, group_by)
+    local beginning_range = round_to_nearest(amount, group_by)
+    return beginning_range .. "-" .. beginning_range + group_by
+  end
+
+  local purchases = tables.purchases
+  for i = 1, #purchases do
+    report_property("grouped_purchase_amounts", value_label(purchases[i].amount, 10))
+  end
+  ```
+
+  Now this could yield a result like:
+
+  | label | value | count |
+  |-------|-------|-------|
+  | grouped_purchase_amounts | 0-10 | 4500 |
+  | grouped_purchase_amounts | 10-20 | 1050 |
+  | grouped_purchase_amounts | 20-30 | 9010 |
+  | grouped_purchase_amounts | 50-60 | 400 |
+
+  Notice how the range 40 to 50 is missing from the result. This might be because there are not
+  enough purchases performed in that particular range to be reported. If you still want to
+  get that value as well, you might want report additional larger ranges as well. For example
+  you could extend the previous example as follows:
+
+  ```lua
+  ... as before ...
+  for i = 1, #purchases do
+    report_property("grouped_purchase_amounts", value_label(purchases[i].amount, 10))
+    report_property("grouped_purchase_amounts", value_label(purchases[i].amount, 20))
+    report_property("grouped_purchase_amounts", value_label(purchases[i].amount, 40))
+  end
+  ```
+
+  Which could give you the following results:
+
+  | label | value | count |
+  |-------|-------|-------|
+  | grouped_purchase_amounts | 0-10 | 4500 |
+  | grouped_purchase_amounts | 10-20 | 1050 |
+  | grouped_purchase_amounts | 20-30 | 9010 |
+  | grouped_purchase_amounts | 50-60 | 400 |
+  | grouped_purchase_amounts | 0-20 | 4600 |
+  | grouped_purchase_amounts | 20-40 | 9000 |
+  | grouped_purchase_amounts | 40-60 | 420 |
+  | grouped_purchase_amounts | 0-40 | 9020 |
+  | grouped_purchase_amounts | 40-80 | 450 |
+
+  Notice how the values in the larger ranges are not necessarily the exact sum of the
+  ranges they encompass, as the results have some statistical noise added to them.
+
+  When creating super ranges like in the example above, it is useful to have the smaller
+  ranges divide the larger ones cleanly!
+
+  The technique above is also what we are using at Aircloak to generate heatmaps of geographical
+  spaces. Since it is unlikely that two humans are at the same _x_ and _y_ positions at the same
+  time, we create ever larger squares that we report per user, where the larger squares pass
+  through anonymization, if and only if there are enough users inside it.
+
+  __Notice__ what is reported __is not__ the total amount of purchases in the ranges,
+  but instead how many users had one or more purchases in that range!
+  If you wanted to know how many purchases users had in the individual ranges, you
+  could create buckets for that as well, or like in the following example, create a number of
+  purchase cumulative distribution function:
+
+  ```lua
+  -- The goal of this task is to report how many
+  -- times a given user made a purchase in a price range.
+  -- For reporting the number of purchases made we use
+  -- a cumulative distribution function of a user having
+  -- made *at least* N purchases in the particular
+  -- price range
+
+  function round_to_nearest(amount, nearest)
+    return math.floor(amount / nearest) * nearest
+  end
+
+  function value_label(amount, group_by)
+    local beginning_range = round_to_nearest(amount, group_by)
+    return beginning_range .. "-" .. beginning_range + group_by
+  end
+
+  local purchases = tables.purchases
+  local min_num_purchases = {0, 10, 20, 40, 50}
+  local amount_ranges = {1, 5, 10, 20, 40}
+  local purchases_in_range = {}
+
+  for purchase_index = 1, #purchases do
+    local purchase = purchases[purchase_index]
+    for amount_index = 1, #amount_ranges do
+      local amount_range_size = amount_ranges[amount_index]
+      local amount_range_min = round_to_nearest(purchase.amount, amount_range_size)
+      local amount_range_label = amount_range_min .. "-" .. (amount_range_min + amount_range_size)
+
+      -- account for the fact that we had a purchase in a given amount range
+      local num_purchases_in_range = purchases_in_range[amount_range_label]
+      if num_purchases_in_range == nil then
+        num_purchases_in_range = 0
+      end
+      purchases_in_range[amount_range_label] = num_purchases_in_range + 1
+    end
+  end
+
+  for amount_range, purchases in pairs(purchases_in_range) do
+    for min_num_purchases_index = 1, #min_num_purchases do
+      local min_num = min_num_purchases[min_num_purchases_index]
+      if purchases > min_num then
+        report_property("amounts_and_purchase_nums, more_than_purchases",
+            amount_range .. ", " .. min_num)
+      end
+    end
+  end
+  ```
+
+  Could result in results like:
+
+  | label | value | count |
+  |-------|-------|-------|
+  | amounts_and_purchase_nums, more_than_purchases | 0-10, 10 | 550 |
+  | amounts_and_purchase_nums, more_than_purchases | 0-10, 50 | 50 |
+  | amounts_and_purchase_nums, more_than_purchases | 20-40, 0 | 10010 |
+  | amounts_and_purchase_nums, more_than_purchases | 0-40, 0 | 10400 |
+  | amounts_and_purchase_nums, more_than_purchases | 0-40, 10 | 400 |
