@@ -18,9 +18,12 @@ content: |
 
   ## Gotchas
 
-  Lua does not natively support arrays, but approximates arrays through tables
-  with numerical indices.
-  __Unlike in other languages, the indices start at 1, rather than 0!__
+  In Lua arrays are implemented on top of Lua's table data structure.
+  A table is an associative array, or dictionary, and arrays are created
+  by indexing values with a numeric key.
+  It is the convention in Lua to index the first element at 1, rather than
+  0 like in most other languages.
+  Keep this in mind when accessing table data in your queries.
 
   A property is only counted once per user. If you call `report_property("age", 15)` multiple times inside
   a task, it will only be counted once.
@@ -152,8 +155,11 @@ content: |
 
   #### Cumulative Distribution Function
 
-  Very frequently it is good to output a histogram of the data you have in the cloak
-  to get an idea of how it is distributed.
+  If you know how the data in your dataset is distributed, reporting values as buckets
+  makes sense, as you can size the buckets appropriately.
+  If on the other hand you are not quite sure what values your data takes,
+  or are unsure what bucket sizes you should choose, you can
+  instead export your values as a cumulative distribution function.
 
   If we wanted to know how the purchase prices are distributed, we could write a query like:
 
@@ -179,6 +185,18 @@ content: |
   | purchase_amount_cdf | exceeds_60 | 40 |
   | purchase_amount_cdf | exceeds_70 | 20 |
   | purchase_amount_cdf | exceeds_80 | 0 |
+
+  From the cummulative distribution results above we can generate buckets, like in the table below:
+
+  | label | value | count |
+  |-------|-------|-------|
+  | purchase_amount_bucket | 10-20 | 30390 |
+  | purchase_amount_bucket | 20-30 | 25010 |
+  | purchase_amount_bucket | 30-40 | 990 |
+  | purchase_amount_bucket | 40-50 | 3910 |
+  | purchase_amount_bucket | 50-60 | 60 |
+  | purchase_amount_bucket | 60-70 | 20 |
+  | purchase_amount_bucket | 70-80 | 20 |
 
 
   #### Group results into buckets
