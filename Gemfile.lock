@@ -28,6 +28,22 @@ GIT
       railties (>= 3.1, < 4.1)
 
 GIT
+  remote: git://github.com/nixme/pry-nav.git
+  revision: f0e17451f0bd508f408d4fdda97e3a131d11f696
+  specs:
+    pry-nav (0.2.4)
+      pry (>= 0.9.10, < 0.11.0)
+
+GIT
+  remote: git://github.com/pry/pry.git
+  revision: b7278db6e17bf2d5f955dd83ec9b0ecf93177415
+  specs:
+    pry (0.10.0)
+      coderay (~> 1.1.0)
+      method_source (~> 0.8.1)
+      slop (~> 3.4)
+
+GIT
   remote: git://github.com/rails/coffee-rails.git
   revision: 471ae515b57d484d494eba7e0a1f1016ebcc57e4
   specs:
@@ -52,6 +68,12 @@ GIT
       actionpack (>= 3.0)
       activesupport (>= 3.0)
       sprockets (~> 2.8)
+
+GIT
+  remote: git://github.com/rubychan/coderay.git
+  revision: 38e3338f2824ddc519097a7ab9d03790025f802c
+  specs:
+    coderay (1.1.1.rc1)
 
 GEM
   remote: https://rubygems.org/
@@ -108,7 +130,6 @@ GEM
     chronic (0.10.2)
     codemirror-rails (4.0)
       railties (>= 3.0, < 5)
-    coderay (1.0.9)
     coffee-script (2.2.0)
       coffee-script-source
       execjs
@@ -185,12 +206,6 @@ GEM
       rack (~> 1.2)
     pg (0.17.0)
     polyglot (0.3.4)
-    pry (0.9.12.2)
-      coderay (~> 1.0.5)
-      method_source (~> 0.8)
-      slop (~> 3.4)
-    pry-nav (0.2.3)
-      pry (~> 0.9.10)
     quiet_assets (1.0.2)
       railties (>= 3.1, < 5.0)
     rack (1.5.2)
@@ -232,7 +247,7 @@ GEM
       sexp_processor (~> 4.1)
     sass (3.2.12)
     sexp_processor (4.4.0)
-    slop (3.4.6)
+    slop (3.6.0)
     sprockets (2.11.0)
       hike (~> 1.2)
       multi_json (~> 1.0)
@@ -282,7 +297,7 @@ DEPENDENCIES
   capistrano (= 2.13.5)
   choices
   codemirror-rails
-  coderay
+  coderay!
   coffee-rails!
   declarative_authorization
   excon
@@ -294,8 +309,8 @@ DEPENDENCIES
   less-rails
   meta_request
   pg
-  pry
-  pry-nav
+  pry!
+  pry-nav!
   quiet_assets
   rails (~> 4.0.3)
   rails-backbone!

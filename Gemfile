@@ -21,13 +21,13 @@ gem "choices"
 # We need redcarpet for rendering markdown for our
 # help sections
 gem "redcarpet"
-gem "coderay"
+gem "coderay", github: "rubychan/coderay"
 
 gem 'whenever', :require => false
 
 group :development, :test do
-  gem 'pry'
-  gem 'pry-nav'
+  gem 'pry', github: "pry/pry"
+  gem 'pry-nav', github: "nixme/pry-nav"
   gem 'rspec-rails', '~> 2.0'
   gem 'sqlite3'
 end
