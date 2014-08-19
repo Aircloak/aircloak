@@ -6,7 +6,8 @@ class ClusterPacker
       timestamp: cluster.timestamp,
       id: cluster.id,
       members: (package_members cluster),
-      name: cluster.name
+      name: cluster.name,
+      cas_list: cluster.get_root_certificates
     )
   end
 

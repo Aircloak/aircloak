@@ -12,6 +12,8 @@ describe ClusterListsController do
       cluster = ClusterPB.new(
         timestamp: 0,
         id: 1,
+        name: "test",
+        cas_list: "",
         machines: [machine]
       )
       proto = ClustersPB.new(clusters: [cluster])
@@ -37,6 +39,8 @@ describe ClusterListsController do
       proto = ClusterPB.new(
         timestamp: 0,
         id: 1,
+        name: "",
+        cas_list: "",
         machines: [machine]
       )
 
