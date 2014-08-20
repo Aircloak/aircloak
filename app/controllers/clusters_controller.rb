@@ -30,6 +30,8 @@ private
     cloaks = cloaks_from_params
     @cluster.analysts = analysts_from_params
     @cluster.last_modified = Time.now
+    @cluster.status = :changes_pending
+    @cluster.status_description = ""
     if @cluster.assign_cloaks(cloaks) && @cluster.update(cluster_params)
       redirect_to clusters_path, notice: msg
     else
