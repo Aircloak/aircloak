@@ -138,7 +138,7 @@ class Cluster < ActiveRecord::Base
 
   def get_root_certificates
     # send a root certificates update only when cluster not yet active
-    return "" unless self.status == :active
+    return "" if self.status == :active
     # we first load the certificate for the cluster's supervisor machine (manny-air)
     certificates = Cluster.get_root_certificates
     self.analysts.each do |analyst|
