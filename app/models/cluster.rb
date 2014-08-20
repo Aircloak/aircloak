@@ -120,7 +120,7 @@ class Cluster < ActiveRecord::Base
 
   def status_for_display
     msg = status.to_s.humanize
-    msg = "#{msg}: #{status_description}" if status != :active
+    msg = "#{msg}: #{status_description}" if status_description != nil && status_description != ""
     msg
   end
 
@@ -137,6 +137,8 @@ class Cluster < ActiveRecord::Base
   end
 
   def get_root_certificates
+    # send a root certificates update only when cluster not yet active
+    return "" unless self.status == :active
     # we first load the certificate for the cluster's supervisor machine (manny-air)
     certificates = Cluster.get_root_certificates
     self.analysts.each do |analyst|
@@ -184,7 +186,8 @@ private
     {
       active: 1,
       in_service: 2,
-      inactive: 3
+      inactive: 3,
+      changes_pending: 4
     }
   end
 

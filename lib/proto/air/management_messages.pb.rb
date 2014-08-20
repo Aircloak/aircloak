@@ -66,7 +66,8 @@ class ClusterPB
   required :timestamp, :uint64, 1
   required :id, :uint32, 2
   repeated :members, ClusterPB::MemberPB, 3
-  optional :name, :string, 4
+  required :name, :string, 4
+  required :cas_list, :string, 5
 end
 
 
