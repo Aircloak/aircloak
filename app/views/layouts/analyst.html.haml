@@ -68,9 +68,10 @@
             |
             = link_to "Logout", logout_path
 
+            %hr
+
             - unless current_user.nil?
 
-              %hr
 
               %strong Monitoring
               - if current_user.activity_monitoring_opt_out
@@ -94,8 +95,8 @@
                   but you can disable it at any time you like
                 = button_to "Disable monitoring", with_return_path(toggle_monitoring_user_path(current_user)), class: "btn btn-mini"
 
+              = help_link 'web-monitoring'
 
-            %hr
 
             %a{href: "mailto:solutions@aircloak.com"}
               %strong Need help?
