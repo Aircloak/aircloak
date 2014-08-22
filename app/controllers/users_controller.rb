@@ -60,6 +60,10 @@ class UsersController < ApplicationController
   def toggle_monitoring
     @user.activity_monitoring_opt_out = !!! @user.activity_monitoring_opt_out
     @user.save
+    if @user.activity_monitoring_opt_out
+      @user.remove_tracked_activity
+      OptoutMailer.opted_out(@user).deliver
+    end
     return_back
   end
 

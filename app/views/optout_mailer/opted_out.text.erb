@@ -1,0 +1,14 @@
+<%= @user.login %> opted out from web monitoring.
+
+<% unless @user.admin? %>
+<%= @user.login %> is a user of <%= @user.analyst.name %>.
+<% end %>
+
+Please contact the user and explain why we are performing
+this monitoring, how it helps us, and why we encourage
+our users to opt back in.
+
+The user's email address is <%= @user.email %>
+
+Sad greetings from your good friend,
+The web
