@@ -35,17 +35,19 @@ class ApplicationController < ActionController::Base
   end
 
   def describe_activity description, better_url = nil
-    raise "Can only describe activities for logged in users" unless @activity
+    return unless defined? @activity
     @activity.description = description
     @activity.path = better_url unless better_url.nil?
   end
 
   def describe_failed_activity description, better_url = nil
+    return unless defined? @activity
     describe_activity description, better_url
     @activity.success = false
   end
 
   def describe_successful_activity description, better_url = nil
+    return unless defined? @activity
     describe_activity description, better_url
     @activity.success = true
   end
