@@ -2,6 +2,8 @@ class ApplicationController < ActionController::Base
   helper :all
   helper_method :current_user_session, :current_user
   before_action :set_layout
+  before_action :setup_activity
+  after_action :save_activity
 
   filter_access_to :all
 
@@ -22,6 +24,22 @@ class ApplicationController < ActionController::Base
       format.xml  { head :unauthorized }
       format.js   { head :unauthorized }
     end
+  end
+
+  def describe_activity description, better_url = nil
+    raise "Can only describe activities for logged in users" unless @activity
+    @activity.description = description
+    @activity.path = better_url unless better_url.nil?
+  end
+
+  def describe_failed_activity description, better_url = nil
+    describe_activity description, better_url
+    @activity.success = false
+  end
+
+  def describe_successful_activity description, better_url = nil
+    describe_activity description, better_url
+    @activity.success = true
   end
 
 protected
@@ -77,5 +95,23 @@ private
     else
       self.class.layout "application"
     end
+  end
+
+  def setup_activity
+    return if current_user.nil?
+    path = "/#{params["controller"]}/"
+    case params["action"]
+    when "show"
+      path += params[:id]
+    when "edit"
+      path += "#{params[:id]}/edit"
+    when "new"
+      path += "new"
+    end
+    @activity = Activity.new path: path, user: current_user
+  end
+
+  def save_activity
+    @activity.save if defined? @activity
   end
 end
