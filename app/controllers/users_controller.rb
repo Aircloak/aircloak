@@ -1,6 +1,7 @@
 class UsersController < ApplicationController
-  before_filter :require_user, only: [:index, :show, :edit, :update]
-  before_filter :load_user, only: [:show, :edit, :update, :destroy]
+  before_filter :require_user, only: [:index, :show, :edit, :update, :toggle_monitoring]
+  before_filter :load_user, only: [:show, :edit, :update, :destroy, :toggle_monitoring]
+  filter_access_to :toggle_monitoring, require: :manage
 
   def index
     describe_activity "Listing all users"
@@ -52,6 +53,14 @@ class UsersController < ApplicationController
     @user.destroy
     describe_successful_activity "Destroyed user #{@user.login}"
     redirect_to users_path, notice: "User #{@user.login} was removed from the system"
+  end
+
+  # We track user activity by recording which pages they visit.
+  # To be decent, we allow users to disable it.
+  def toggle_monitoring
+    @user.activity_monitoring_opt_out = !!! @user.activity_monitoring_opt_out
+    @user.save
+    return_back
   end
 
 private

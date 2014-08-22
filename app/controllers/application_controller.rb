@@ -1,3 +1,5 @@
+require 'base64'
+
 class ApplicationController < ActionController::Base
   helper :all
   helper_method :current_user_session, :current_user
@@ -12,6 +14,12 @@ class ApplicationController < ActionController::Base
   # Prevent CSRF attacks by raising an exception.
   # For APIs, you may want to use :null_session instead.
   protect_from_forgery with: :exception
+
+  def return_back
+    raise "Need a return url" unless params["return_to"]
+    url = Base64.decode64 params["return_to"]
+    redirect_to url
+  end
 
   def not_found
     raise ActionController::RoutingError.new('Not Found')
@@ -98,7 +106,7 @@ private
   end
 
   def setup_activity
-    return if current_user.nil?
+    return if current_user.nil? or current_user.activity_monitoring_opt_out
     path = "/#{params["controller"]}/"
     case params["action"]
     when "show"
