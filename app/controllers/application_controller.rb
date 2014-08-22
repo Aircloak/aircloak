@@ -22,6 +22,7 @@ class ApplicationController < ActionController::Base
   end
 
   def not_found
+    describe_failed_activity "Tried accessing missing page"
     raise ActionController::RoutingError.new('Not Found')
   end
 
