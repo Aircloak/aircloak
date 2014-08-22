@@ -30,11 +30,17 @@ Web::Application.routes.draw do
   get 'login' => 'user_sessions#new'
   get 'logout' => 'user_sessions#destroy'
   resources :user_sessions
-  resources :users
+  resources :users do
+    post "toggle_monitoring", on: :member, action: "toggle_monitoring"
+  end
   resources :permissions
 
   resources :cloaks
   resources :analysts
+
+  # Allows aircloak employees to inspect activities performed by
+  # users on the web system
+  resources :activities
 
   # Resource that very much mimicks the cloaks resource,
   # but makes cloaked machines available in a format

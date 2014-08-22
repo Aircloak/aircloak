@@ -16,6 +16,11 @@ class TablesController < ApplicationController
       end
       memo
     end
+    describe_activity "View all tables"
+  end
+
+  def new
+    describe_activity "Creating new table"
   end
 
   def create
@@ -23,12 +28,15 @@ class TablesController < ApplicationController
     migration = AnalystTableMigration.from_params params
     if Migrator.migrate @table, migration
       flash[:notice] = "Table created"
+      describe_successful_activity "Created table", table_path(@table)
       redirect_to tables_path
     else
+      describe_failed_activity "Failed at creating table"
       set_view_params migration.table_json
       render :new
     end
   rescue
+    describe_failed_activity "Created table, but couldn't migrate it"
     flash[:error] = "We could not create the table changes at this time. Please try again later"
     redirect_to tables_path
   end
@@ -37,8 +45,10 @@ class TablesController < ApplicationController
     migration = AnalystTableMigration.from_params params
     if Migrator.migrate @table, migration
       flash[:notice] = "Table updated"
+      describe_successful_activity "Updated table", table_path(@table)
       redirect_to tables_path
     else
+      describe_failed_activity "Failed at updating", table_path(@table)
       # We need to reset the table data in order to
       # preserve deleted columns
       original_table_data = JSON.parse @table.table_data
@@ -49,6 +59,7 @@ class TablesController < ApplicationController
     end
 
   rescue
+    describe_failed_activity "Edited table, but couldn't migrate it"
     flash[:error] = "We could not apply the table changes at this time. Please try again later"
     redirect_to tables_path
   end
@@ -70,11 +81,14 @@ class TablesController < ApplicationController
     migration = AnalystTableMigration.drop_migration @table.table_name
     @table.pending_delete = true
     if Migrator.migrate @table, migration
+      describe_successful_activity "Dropped table #{@table.table_name}"
       flash[:notice] = "Table #{@table.table_name} was dropped"
     else
+      describe_failed_activity "Dropping table #{@table.table_name} failed"
       flash[:error] = "Table #{@table.table_name} could not be dropped"
     end
   rescue
+    describe_failed_activity "Dropping table migration failed for table #{@table.table_name}"
     flash[:error] = "We could not drop the table at this time. Please try again later"
   ensure
     redirect_to tables_path
@@ -88,9 +102,11 @@ class TablesController < ApplicationController
     migration = @table.analyst_table_migrations.where(migrated: false).first
     if migration
       if Migrator.migrate @table, migration
+        describe_successful_activity "Retried previously failed migration successfully"
         flash[:notice] = "Table change successfully applied"
         redirect_to tables_path
       else
+        describe_failed_activity "Retried previously failed migration but it was invalid"
         original_table_data = JSON.parse @table.table_data
         new_table_data = JSON.parse migration.table_json
         full_table_data = original_table_data | new_table_data
@@ -107,11 +123,13 @@ class TablesController < ApplicationController
         end
       end
     else
+      describe_activity "Retried migration which had already been applied"
       flash[:notice] = "Already fully migrated"
       redirect_to tables_path
     end
 
   rescue Exception => error
+    describe_failed_activity "Tried to apply a migration failed to broken cluster, but it still failed"
     flash[:error] = "We still failed at applying the migration. Please retry later"
     redirect_to tables_path
   end

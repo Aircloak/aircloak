@@ -8,6 +8,7 @@
       - if current_user.admin?
         %th Permissions
         %th On behalf of
+        %th Monitoring opt-out
       %th Last login
       %th Member since
       %th Last updated
@@ -25,6 +26,7 @@
             - else
               No permissions
           %td= user.on_behalf_of
+          %td= user.activity_monitoring_opt_out
         %td= user.last_login_at
         %td= time_ago_in_words user.created_at
         %td= time_ago_in_words user.updated_at

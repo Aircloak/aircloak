@@ -18,6 +18,9 @@ gem 'excon'
 # Configuration management
 gem "choices"
 
+# Use to paginate the activities on the activities page
+gem 'will_paginate', '~> 3.0'
+
 # We need redcarpet for rendering markdown for our
 # help sections
 gem "redcarpet"

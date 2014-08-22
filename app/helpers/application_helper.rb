@@ -1,6 +1,15 @@
 require './lib/help_utils'
+require 'base64'
 
 module ApplicationHelper
+  def with_return_path path
+    "#{path}?return_to=#{escaped_url}"
+  end
+
+  def escaped_url
+    Base64.encode64 request.url
+  end
+
   def control_label label, options = {}
     label = <<-END
       <label class="control-label">

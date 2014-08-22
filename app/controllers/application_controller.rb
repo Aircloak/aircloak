@@ -1,7 +1,11 @@
+require 'base64'
+
 class ApplicationController < ActionController::Base
   helper :all
   helper_method :current_user_session, :current_user
   before_action :set_layout
+  before_action :setup_activity
+  after_action :save_activity
 
   filter_access_to :all
 
@@ -11,7 +15,14 @@ class ApplicationController < ActionController::Base
   # For APIs, you may want to use :null_session instead.
   protect_from_forgery with: :exception
 
+  def return_back
+    raise "Need a return url" unless params["return_to"]
+    url = Base64.decode64 params["return_to"]
+    redirect_to url
+  end
+
   def not_found
+    describe_failed_activity "Tried accessing missing page"
     raise ActionController::RoutingError.new('Not Found')
   end
 
@@ -22,6 +33,24 @@ class ApplicationController < ActionController::Base
       format.xml  { head :unauthorized }
       format.js   { head :unauthorized }
     end
+  end
+
+  def describe_activity description, better_url = nil
+    return unless defined? @activity
+    @activity.description = description
+    @activity.path = better_url unless better_url.nil?
+  end
+
+  def describe_failed_activity description, better_url = nil
+    return unless defined? @activity
+    describe_activity description, better_url
+    @activity.success = false
+  end
+
+  def describe_successful_activity description, better_url = nil
+    return unless defined? @activity
+    describe_activity description, better_url
+    @activity.success = true
   end
 
 protected
@@ -77,5 +106,23 @@ private
     else
       self.class.layout "application"
     end
+  end
+
+  def setup_activity
+    return if current_user.nil? or current_user.activity_monitoring_opt_out
+    path = "/#{params["controller"]}/"
+    case params["action"]
+    when "show"
+      path += params[:id]
+    when "edit"
+      path += "#{params[:id]}/edit"
+    when "new"
+      path += "new"
+    end
+    @activity = Activity.new path: path, user: current_user
+  end
+
+  def save_activity
+    @activity.save if defined? @activity
   end
 end

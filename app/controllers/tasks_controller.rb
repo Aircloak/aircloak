@@ -11,15 +11,18 @@ class TasksController < ApplicationController
   # GET /tasks
   def index
     @tasks = current_user.analyst.tasks
+    describe_activity "Browsing all tasks for #{current_user.analyst.name}"
   end
 
   # GET /tasks/:id/edit
   def edit
+    describe_activity "Editing #{@task.name}"
   end
 
   # GET /tasks/new
   def new
     @task = current_user.analyst.tasks.new
+    describe_activity "Creating new task"
   end
 
   # POST /tasks
@@ -35,9 +38,11 @@ class TasksController < ApplicationController
     @task.update_task = false
     @task.stored_task = false
     if @task.save
+      describe_successful_activity "Successfully created a new task"
       redirect_to tasks_path, notice: 'Task was successfully created.'
     else
       set_tables_json
+      describe_failed_activity "Failed at creating a task"
       render action: 'new'
     end
   end
@@ -46,9 +51,11 @@ class TasksController < ApplicationController
   def update
     @task.sandbox_type = "lua"
     if @task.update(task_params)
+      describe_successful_activity "Successfully changed task #{@task.name}"
       redirect_to tasks_path, notice: 'Task was successfully updated.'
     else
       set_tables_json
+      describe_failed_activity "Failed at editing task #{@task.name}"
       render action: 'edit'
     end
   end
@@ -56,12 +63,14 @@ class TasksController < ApplicationController
   # DELETE /tasks/:id
   def destroy
     @task.efficient_delete
+    describe_activity "Destroyed task #{@task.name}"
     redirect_to tasks_path
   end
 
   # POST /tasks/:id/execute_as_batch_task
   def execute_as_batch_task
     @task.execute_batch_task
+    describe_activity "Scheduled a batch run of task #{@task.name}"
     redirect_to latest_results_task_path(@task), notice: "Run of #{@task.name} has been initiated"
   end
 
@@ -69,6 +78,7 @@ class TasksController < ApplicationController
   def all_results
     @results = @task.results
     @results_path = all_results_task_path(@task)
+    describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task)
     render_results
   end
 
@@ -76,6 +86,7 @@ class TasksController < ApplicationController
   def latest_results
     @results = @task.results.order('created_at DESC').limit(3).reverse
     @results_path = latest_results_task_path(@task)
+    describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task)
     render_results
   end
 

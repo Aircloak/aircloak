@@ -1,0 +1,26 @@
+title: Monitoring of website
+order: 9999
+content: |
+
+  # Monitoring
+
+  Aircloak monitors how our customers use our web platform.
+  This is done in order to understand how the product is being
+  used, but also in order to better troubleshoot problems
+  if they should arise.
+
+  More than most, we understand how unpleasant it can be
+  to have a third party monitor what you do.
+  We therefore make it easy to disable the monitoring program.
+  Disabling the program in no way changes the featureset
+  made available to you.
+  You can disable the monitoring using the button in
+  the left hand menu.
+
+  ## What do we collect
+
+  When monitoring is enabled for your user account,
+  we collect the following information:
+
+  - which page on our website you accessed and at what time
+  - if the page allows you to perform an action, for example creating or editing a task, we also record whether the action succeeded

@@ -64,11 +64,39 @@
 
             %hr
 
-            = link_to "Logged in #{current_user.login}", user_path(current_user)
+            = link_to "Logged in as #{current_user.login}", user_path(current_user)
             |
             = link_to "Logout", logout_path
 
             %hr
+
+            - unless current_user.nil?
+
+
+              %strong Monitoring
+              - if current_user.activity_monitoring_opt_out
+                %p
+                  We would like to monitor which parts of our website you visit.
+                  This would allow us to help you debug problems should you
+                  get stuck.
+
+                %p
+                  Monitoring is disabled for your account
+                  but you can enable it at any time you like
+                = button_to "Enable monitoring", with_return_path(toggle_monitoring_user_path(current_user)), class: "btn btn-mini"
+              - else
+                %p
+                  We monitor which parts of our website you visit.
+                  This allows us to help you debug problems should you
+                  get stuck.
+
+                %p
+                  %strong Monitoring is enabled for your account
+                  but you can disable it at any time you like
+                = button_to "Disable monitoring", with_return_path(toggle_monitoring_user_path(current_user)), class: "btn btn-mini"
+
+              = help_link 'web-monitoring'
+
 
             %a{href: "mailto:solutions@aircloak.com"}
               %strong Need help?
