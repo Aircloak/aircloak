@@ -1,6 +1,7 @@
 class User < ActiveRecord::Base
   has_many :user_permissions
   has_many :permissions, through: :user_permissions
+  has_many :activities
   belongs_to :analyst
 
   acts_as_authentic do |c|
