@@ -4,6 +4,8 @@ class User < ActiveRecord::Base
   has_many :activities
   belongs_to :analyst
 
+  before_destroy :remove_tracked_activity
+
   acts_as_authentic do |c|
     crypto_provider = Authlogic::CryptoProviders::BCrypt
   end
@@ -73,5 +75,9 @@ class User < ActiveRecord::Base
 
   def ready_clusters
     Cluster.ready_clusters(self.analyst)
+  end
+
+  def remove_tracked_activity
+    Activity.where(user_id: self.id).delete_all
   end
 end
