@@ -36,6 +36,10 @@ Web::Application.routes.draw do
   resources :cloaks
   resources :analysts
 
+  # Allows aircloak employees to inspect activities performed by
+  # users on the web system
+  resources :activities
+
   # Resource that very much mimicks the cloaks resource,
   # but makes cloaked machines available in a format
   # consumable by manny-air

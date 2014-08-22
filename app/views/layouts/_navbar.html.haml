@@ -19,6 +19,8 @@
                 %li= link_to "Version tests", version_tests_path
             - # Related to graphite stats
             %li= link_to "Monitoring", metrics_path
+            - # Shows all user activity
+            %li= link_to "Acitivity monitor", activities_path
             -# Related to user administration
             %li.dropdown
               %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"}
