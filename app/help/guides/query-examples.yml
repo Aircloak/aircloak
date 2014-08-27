@@ -36,6 +36,29 @@ content: |
 
   ### Examples
 
+  #### If-then-else
+
+  If you wanted to know how many users had made more than 2 purchases, you could write a query as follows:
+
+  ```lua
+  -- #name returns how many items there are in the array
+  -- called `name`. In this case #tables.purchases gives
+  -- us the number of purchases for a given user
+  if #tables.purchases > 2 then
+    report_property("more_than_two_purchases", "true")
+  else
+    report_property("more_than_two_purchases", "false")
+  end
+  ```
+
+  The result would look like:
+
+  | label | value | count |
+  |-------|-------|-------|
+  | more_than_two_purchases | true | 150 |
+  | more_than_two_purchases | false | 910 |
+
+
   #### Count
 
   If you wanted to know how many users made a purchase that cost more than 100, you could
