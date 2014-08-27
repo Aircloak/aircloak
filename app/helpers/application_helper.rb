@@ -55,7 +55,14 @@ module ApplicationHelper
       article = articles
       links = help_util.help_link(article)
     end
-    "Consider reading: #{links}<hr>".html_safe
+    help_section = <<EOF
+    <div class="suggested-reading">
+      <span class="label label-info">Consider reading</span>
+      #{links}
+    </div>
+    <hr>
+EOF
+    help_section.html_safe
   end
 
 private
