@@ -20,7 +20,7 @@ content: |
 
   The queries are completely stateless. That means that when a query
   runs over user _Bob_ it has no notion of what it might previously
-  have seen and computer about _Dylan_.
+  have seen and computed about _Dylan_.
 
   When a query is executed, it therefore has to make local decisions
   based on a single users data, regarding whether the user's should be
