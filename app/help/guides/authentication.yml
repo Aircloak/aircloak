@@ -38,6 +38,6 @@ content: |
   called __<%= sample_table_name %>.json__, and a key named <%= sample_key_name %>, you could issue the following
   `curl` command to upload the data:
 
-  ```
+  ```bash
   curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --date @<%= sample_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
   ```
