@@ -29,7 +29,7 @@ authorization do
     has_permission_on [
       :tasks,
       :results,
-      :tables,
+      :user_tables,
       :keys,
       :lookup_tables
     ], to: :manage
@@ -53,10 +53,10 @@ authorization do
       :version_tests,
       :user_permissions,
       :metrics,
-      :tables,
+      :user_tables,
       :activities
     ], to: :manage
-    has_permission_on [:tables], to: :retry_migration
+    has_permission_on [:user_tables], to: :retry_migration
     has_permission_on [:authorization_rules,
                        :authorization_usages], :to => :read
     has_permission_on [:deployable_entity_versions,

@@ -77,7 +77,7 @@ Web::Application.routes.draw do
     get "all_results", on: :member, action: 'all_results'
   end
   resources :results
-  resources :tables do
+  resources :user_tables do
     post "retry_migration", on: :member, action: "retry_migration"
   end
   resources :lookup_tables
