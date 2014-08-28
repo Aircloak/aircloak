@@ -57,6 +57,8 @@ Web::Application.routes.draw do
       get "results/:result", on: :member, action: 'get_result'
       post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
     end
+
+    resources :api_test_results, path: "test_results", only: [:create]
   end
 
   post "/api/version_tests/:id", to: "version_tests#update"

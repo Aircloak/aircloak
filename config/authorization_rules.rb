@@ -18,6 +18,7 @@ authorization do
       :api_tasks,
       :api_clusters
     ], to: :anon_write
+    has_permission_on :api_test_results, to: :create
   end
 
   role :user_manager do
