@@ -3,7 +3,7 @@ require './lib/token_generator'
 class Analyst < ActiveRecord::Base
   has_and_belongs_to_many :clusters
   has_many :tasks
-  has_many :analyst_tables
+  has_many :user_tables
   has_many :lookup_tables
   has_many :results
   has_many :users
@@ -21,8 +21,8 @@ class Analyst < ActiveRecord::Base
     [["None", "none"]] + Analyst.all.map {|a| [a.name, a.id]}
   end
 
-  def undeleted_analyst_tables
-    analyst_tables.where(deleted: false)
+  def undeleted_user_tables
+    user_tables.where(deleted: false)
   end
 
   def tasks_with_exceptions

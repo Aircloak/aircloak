@@ -80,20 +80,20 @@ class HelpUtils
     @current_user.analyst.key_materials.count
   end
 
-  def has_tables?
-    current_user.analyst.undeleted_analyst_tables.count != 0
+  def has_user_tables?
+    current_user.analyst.undeleted_user_tables.count != 0
   end
 
-  def sample_table_name
-    unless has_tables?
+  def sample_user_table_name
+    unless has_user_tables?
       "locations"
     else
-      @current_user.analyst.undeleted_analyst_tables.first.table_name
+      @current_user.analyst.undeleted_user_tables.first.table_name
     end
   end
 
-  def sample_json
-    table = @current_user.analyst.undeleted_analyst_tables.where(table_name: sample_table_name).first
+  def sample_user_table_json_data
+    table = @current_user.analyst.undeleted_user_tables.where(table_name: sample_user_table_name).first
     json = if table then
       table.generate_sample_json
     else
@@ -145,10 +145,10 @@ class HelpUtils
   end
 
   def sample_constraint
-    if has_tables?
-      table = @current_user.analyst.undeleted_analyst_tables.where(table_name: sample_table_name).first
+    if has_user_tables?
+      table = @current_user.analyst.undeleted_user_tables.where(table_name: sample_user_table_name).first
       column = JSON.parse(table.table_data).first
-      AnalystTable.sample_constraint column
+      UserTable.sample_constraint column
     else
       "x > 10"
     end

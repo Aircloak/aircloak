@@ -9,7 +9,7 @@ class TablesController < ApplicationController
     @clusters = current_user.ready_clusters
     @has_tables = false
     @tables = @clusters.inject({}) do |memo, cluster|
-      tables = AnalystTable.live_for_cluster(cluster, current_user.analyst)
+      tables = UserTable.live_for_cluster(cluster, current_user.analyst)
       if tables != []
         @has_tables = true
         memo[cluster.id] = tables
@@ -24,8 +24,8 @@ class TablesController < ApplicationController
   end
 
   def create
-    @table = AnalystTable.from_params current_user.analyst.id, params
-    migration = AnalystTableMigration.from_params params
+    @table = UserTable.from_params current_user.analyst.id, params
+    migration = UserTableMigration.from_params params
     if Migrator.migrate @table, migration
       flash[:notice] = "Table created"
       describe_successful_activity "Created table", table_path(@table)
@@ -42,7 +42,7 @@ class TablesController < ApplicationController
   end
 
   def update
-    migration = AnalystTableMigration.from_params params
+    migration = UserTableMigration.from_params params
     if Migrator.migrate @table, migration
       flash[:notice] = "Table updated"
       describe_successful_activity "Updated table", table_path(@table)
@@ -78,7 +78,7 @@ class TablesController < ApplicationController
   #    table, it will then continue using the previously dropped
   #    tables history.
   def destroy
-    migration = AnalystTableMigration.drop_migration @table.table_name
+    migration = UserTableMigration.drop_migration @table.table_name
     @table.pending_delete = true
     if Migrator.migrate @table, migration
       describe_successful_activity "Dropped table #{@table.table_name}"
@@ -99,7 +99,7 @@ class TablesController < ApplicationController
   # It is somewhat complex, as it deals with potential creations, alterations
   # and drops.
   def retry_migration
-    migration = @table.analyst_table_migrations.where(migrated: false).first
+    migration = @table.user_table_migrations.where(migrated: false).first
     if migration
       if Migrator.migrate @table, migration
         describe_successful_activity "Retried previously failed migration successfully"
@@ -141,9 +141,9 @@ private
 
   def load_table
     if params[:id]
-      @table = current_user.analyst.analyst_tables.find params[:id]
+      @table = current_user.analyst.user_tables.find params[:id]
     else
-      @table = current_user.analyst.analyst_tables.new
+      @table = current_user.analyst.user_tables.new
     end
     @table_data = @table.table_data
   end

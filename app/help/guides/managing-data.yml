@@ -46,7 +46,7 @@ content: |
   client certificates. For more information about authentication, please have a look
   at the <%= help_link "authentication" %> page.
 
-  <% unless has_tables? -%>
+  <% unless has_user_tables? -%>
 
   __Please note:__
   In order to be able to upload data to your cloak, you will need to create some database tables first.
@@ -83,22 +83,22 @@ content: |
 
   #### Example
 
-  <% if has_tables? -%>
+  <% if has_user_tables? -%>
 
-  If you wanted to upload data from your __<%= sample_table_name %>__ table for the two users __user1__ and __user2__,
+  If you wanted to upload data from your __<%= sample_user_table_name %>__ table for the two users __user1__ and __user2__,
   you could upload a JSON payload with the following format
 
   ```json
-  <%= sample_json %>
+  <%= sample_user_table_json_data %>
   ```
 
   <% else -%>
 
-  Say you wanted to upload data for the users __user1__ and __user2__ to a table called __<%= sample_table_name %>__ which has an
+  Say you wanted to upload data for the users __user1__ and __user2__ to a table called __<%= sample_user_table_name %>__ which has an
   __x__ and a __y__ column, you would format the data as
 
   ```json
-  <%= sample_json %>
+  <%= sample_user_table_json_data %>
   ```
 
   <% end -%>
@@ -115,5 +115,5 @@ content: |
   With [curl](http://curl.haxx.se/), uploading gzipped data could be done as follows:
 
   ```bash
-  cat <%= sample_table_name %>.json | gzip -c | curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --header "Content-Encoding: gzip" --header "Content-Type: application/json" https://<%= sample_cloak_name %>/bulk_insert --data-binary @-
+  cat <%= sample_user_table_name %>.json | gzip -c | curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --header "Content-Encoding: gzip" --header "Content-Type: application/json" https://<%= sample_cloak_name %>/bulk_insert --data-binary @-
   ```

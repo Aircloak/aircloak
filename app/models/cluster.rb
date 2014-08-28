@@ -3,7 +3,7 @@ require './lib/cluster_packer.rb'
 class Cluster < ActiveRecord::Base
   has_many :cluster_cloaks
   has_many :cloaks, through: :cluster_cloaks
-  has_many :analyst_tables, dependent: :destroy
+  has_many :user_tables, dependent: :destroy
   has_many :lookup_tables, dependent: :destroy
   has_many :tasks
   # A cluster that is used for an automated test of a commit will have a

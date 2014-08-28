@@ -12,7 +12,7 @@ class Migrator
   end
 
   def migrate
-    @migration.analyst_table = @table
+    @migration.user_table = @table
     set_version_number
     @migration.save and run_migration
   end
@@ -48,12 +48,12 @@ private
       # If we were unable to run the migration
       # and this was an attempt at creating the table,
       # then the table should not persist.
-      @table.destroy if @table.analyst_table_migrations.where(migrated: true).count == 0
+      @table.destroy if @table.user_table_migrations.where(migrated: true).count == 0
     end
   end
 
   def set_version_number
-    current_migration = @table.analyst_table_migrations.where(migrated: true).last
+    current_migration = @table.user_table_migrations.where(migrated: true).last
     @migration.version = current_migration ? current_migration.version + 1 : 0
   end
 end

@@ -11,8 +11,8 @@ describe Cluster do
     Cloak.destroy_all
     Build.delete_all
     BuildManager.stub(:send_build_request)
-    AnalystTable.delete_all
-    AnalystTableMigration.delete_all
+    UserTable.delete_all
+    UserTableMigration.delete_all
   end
 
   let (:cloak) { Cloak.create(name: "dave", ip: "9.9.9.9") }
@@ -254,23 +254,23 @@ describe Cluster do
     c = cluster
     c.cloaks << cloak # won't save without a cloak
     c.save
-    table = AnalystTable.create(
+    table = UserTable.create(
       cluster: c,
       table_name: "test-table"
     )
-    table.analyst_table_migrations << AnalystTableMigration.create(
+    table.user_table_migrations << UserTableMigration.create(
       migration: "migration",
       table_json: "table-json",
       version: 0
     )
-    c.analyst_tables << table
+    c.user_tables << table
     c.save.should == true
-    AnalystTable.count.should == 1
-    AnalystTableMigration.count.should == 1
+    UserTable.count.should == 1
+    UserTableMigration.count.should == 1
     c.reload
     c.cloaks = [] # won't destroy unless it has no cloaks
     c.destroy.destroyed?.should == true
-    AnalystTable.count.should == 0
-    AnalystTableMigration.count.should == 0
+    UserTable.count.should == 0
+    UserTableMigration.count.should == 0
   end
 end

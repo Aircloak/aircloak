@@ -1,23 +1,23 @@
-class AnalystTable < ActiveRecord::Base
+class UserTable < ActiveRecord::Base
   belongs_to :cluster
   belongs_to :analyst
-  has_many :analyst_table_migrations, dependent: :destroy
+  has_many :user_table_migrations, dependent: :destroy
 
   validates_presence_of :table_name, :cluster
   validates_uniqueness_of :table_name, scope: [:cluster_id, :analyst_id]
 
   def self.live_for_cluster cluster, analyst
-    cluster.analyst_tables.where(deleted: false, analyst: analyst)
+    cluster.user_tables.where(deleted: false, analyst: analyst)
   end
 
   def self.from_params analyst_id, params
-    existing_table = AnalystTable.where(table_name: params[:table_name], deleted: true, analyst_id: analyst_id).first
+    existing_table = UserTable.where(table_name: params[:table_name], deleted: true, analyst_id: analyst_id).first
     table = if existing_table
       existing_table.deleted = false
       existing_table.pending_delete = false
       existing_table
     else
-      AnalystTable.new(analyst_id: analyst_id)
+      UserTable.new(analyst_id: analyst_id)
     end
 
     table.cluster = Cluster.find params[:cluster_id] unless table.cluster
@@ -34,13 +34,13 @@ class AnalystTable < ActiveRecord::Base
     # If we were unable to run the migration
     # and this was an attempt at creating the table,
     # then the table should not persist.
-    self.destroy if analyst_table_migrations.where(migrated: true).count == 0
+    self.destroy if user_table_migrations.where(migrated: true).count == 0
   end
 
   # Returns the table data from the last
   # successful migration.
   def table_data
-    latest_successful_migration = analyst_table_migrations
+    latest_successful_migration = user_table_migrations
         .where(migrated: true)
         .order(created_at: :desc)
         .limit(1)
@@ -50,7 +50,7 @@ class AnalystTable < ActiveRecord::Base
   end
 
   def pending_migrations?
-    analyst_table_migrations.where(migrated: false).count > 0
+    user_table_migrations.where(migrated: false).count > 0
   end
 
   # Used to create example in help guides
