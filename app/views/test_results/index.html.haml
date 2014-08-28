@@ -1,0 +1,25 @@
+- if @results.count > 0
+  %h1 Test Results
+
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Time (UTC)
+        %th Success
+        %th #Tests
+        %th Benchmark: Duration
+        %th Benchmark: Coverage
+        %th
+    %tbody
+    - @results.each do |result|
+      %tr
+        %td= link_to result.testtime_in_UTC, test_result_path(result.id)
+        %td
+          = result.success
+          = "- #{result.test_items.where(success: false).count} failed test(s)" unless result.success
+        %td= result.test_items.count
+        %td= result.benchmark_success ? (display_duration result.benchmark_duration) : "--"
+        %td= result.benchmark_success ? ("%.1f%%" % [result.benchmark_coverage * 100]) : "--"
+        %td= link_to 'View', test_result_path(result.id), class: "btn btn-mini"
+- else
+  No test results stored in the database.

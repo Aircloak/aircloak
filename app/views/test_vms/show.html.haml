@@ -1,0 +1,43 @@
+%h1= "Virtual Machine #{@vm.name} of Testrun at #{@vm.test_result.testtime_in_UTC} (UTC)"
+
+%h2 Overview
+
+%table.table.table-striped
+  %tbody
+    %tr
+      %td Success
+      %td= @vm.success
+    %tr
+      %td Duration
+      %td= display_duration @vm.duration
+    %tr
+      %td Number of Instances
+      %td= @vm.test_item_vms.count
+    %tr
+      %td Number of Tests
+      %td= @tests.count
+
+-if @tests.count > 0
+  %h2 Tests
+
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Name
+        %th Successful execution
+        %th Duration
+        %th Number of VMs used
+        %th
+    %tbody
+      - @tests.each do |test|
+        %tr
+          %td= link_to test.name, test_item_path(test.id)
+          %td= test.success
+          %td= display_duration test.duration
+          %td= test.test_item_vms.count
+          %td= link_to 'View', test_item_path(test.id), class: "btn btn-mini"
+
+-unless @vm.log.nil?
+  %h2 Log
+
+  %pre= @vm.log

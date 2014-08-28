@@ -58,6 +58,16 @@ module ApplicationHelper
     "Consider reading: #{links}<hr>".html_safe
   end
 
+  # Auxiliary function to display durations
+  def display_duration duration
+    prefix = "-" if duration < 0
+    hours = duration.abs / 1000 / 60 / 60
+    minutes = duration.abs / 1000 / 60 % 60
+    seconds = duration.abs / 1000 % 60
+    mseconds = duration.abs % 1000
+    return "#{prefix}%d:%02d:%02d.%04d" % [hours, minutes, seconds, mseconds]
+  end
+
 private
   def tip_for controller, field
     data = yaml(controller)[field]
