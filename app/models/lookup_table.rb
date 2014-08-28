@@ -2,7 +2,7 @@ class LookupTable < ActiveRecord::Base
   belongs_to :cluster
   belongs_to :analyst
 
-  validates_presence_of :table_name, :cluster, :analyst, :upload_data
+  validates_presence_of :table_name, :cluster, :analyst
   validate :upload_data_format
 
   attr_reader :upload_data
@@ -21,6 +21,8 @@ private
   end
 
   def upload_data_error
+    return if self.deleted == true
+    return "can't be blank" if @upload_data.to_s == ''
     data = JSON.parse(@upload_data)
     return "json is not valid" unless data.is_a?(Array)
     data.each do |row|

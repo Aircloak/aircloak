@@ -66,9 +66,29 @@ class LookupTablesController < ApplicationController
     end
   end
 
+  def destroy
+    @table = current_user.analyst.lookup_tables.find params[:id]
+    if remove_table
+      @table.update deleted: true
+      describe_successful_activity "Removed lookup table", lookup_table_path(@table)
+      flash[:notice] = "Lookup table removed."
+      redirect_to lookup_tables_path
+    else
+      describe_failed_activity "Cloak error while removing lookup table"
+      flash[:error] = "Table removal failed. The previous table data is still available."
+      redirect_to lookup_tables_path
+    end
+  end
+
 private
   def upload_table
-    result = JsonSender.post(current_user.analyst, @table.cluster, "lookup_upload", @table.upload_data,
+    result = JsonSender.post(current_user.analyst, @table.cluster, "lookup/upload", @table.upload_data,
+          table: @table.table_name)
+    result["success"]
+  end
+
+  def remove_table
+    result = JsonSender.post(current_user.analyst, @table.cluster, "lookup/remove", '',
           table: @table.table_name)
     result["success"]
   end
