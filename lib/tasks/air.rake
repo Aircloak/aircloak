@@ -60,10 +60,10 @@ namespace :air do
   private
     def drop_tables(analyst_id, cluster_id)
       TestTables.keys.each do |table_name|
-        table = analyst_table(analyst_id, cluster_id, table_name)
+        table = user_table(analyst_id, cluster_id, table_name)
         return if table.nil?
 
-        if Migrator.migrate table, AnalystTableMigration.drop_migration(table_name)
+        if Migrator.migrate table, UserTableMigration.drop_migration(table_name)
           puts "Dropped table #{table_name}"
         else
           # We don't stop on drop error, since it probably fails if the
@@ -75,16 +75,16 @@ namespace :air do
 
     def create_tables(analyst_id, cluster_id)
       TestTables.each do |table_name, table_spec|
-        table = analyst_table(analyst_id, cluster_id, table_name)
+        table = user_table(analyst_id, cluster_id, table_name)
         unless table
           params = {
             cluster_id: cluster_id,
             table_name: table_name
           }
-          table = AnalystTable.from_params analyst_id, params
+          table = UserTable.from_params analyst_id, params
         end
 
-        migration = AnalystTableMigration.from_params(
+        migration = UserTableMigration.from_params(
           table_json: table_spec[:columns].to_json,
           migration: {
             table_name: table_name,
@@ -101,8 +101,8 @@ namespace :air do
       end
     end
 
-    def analyst_table(analyst_id, cluster_id, table_name)
-      tables = AnalystTable.where(analyst_id: analyst_id, cluster_id: cluster_id, table_name: table_name)
+    def user_table(analyst_id, cluster_id, table_name)
+      tables = UserTable.where(analyst_id: analyst_id, cluster_id: cluster_id, table_name: table_name)
       tables.length == 1 ? tables[0] : nil
     end
 

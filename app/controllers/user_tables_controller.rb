@@ -1,6 +1,6 @@
 require './lib/migrator'
 
-class TablesController < ApplicationController
+class UserTablesController < ApplicationController
   before_action :set_previous_migration
   before_action :load_table, only: [:new, :create, :edit, :update, :destroy, :retry_migration]
   before_action :validate_no_pending_migrations, only: [:edit, :update, :destroy]
@@ -9,46 +9,46 @@ class TablesController < ApplicationController
     @clusters = current_user.ready_clusters
     @has_tables = false
     @tables = @clusters.inject({}) do |memo, cluster|
-      tables = AnalystTable.live_for_cluster(cluster, current_user.analyst)
+      tables = UserTable.live_for_cluster(cluster, current_user.analyst)
       if tables != []
         @has_tables = true
         memo[cluster.id] = tables
       end
       memo
     end
-    describe_activity "View all tables"
+    describe_activity "View all user tables"
   end
 
   def new
-    describe_activity "Creating new table"
+    describe_activity "Creating new user table"
   end
 
   def create
-    @table = AnalystTable.from_params current_user.analyst.id, params
-    migration = AnalystTableMigration.from_params params
+    @table = UserTable.from_params current_user.analyst.id, params
+    migration = UserTableMigration.from_params params
     if Migrator.migrate @table, migration
       flash[:notice] = "Table created"
-      describe_successful_activity "Created table", table_path(@table)
-      redirect_to tables_path
+      describe_successful_activity "Created user table", user_table_path(@table)
+      redirect_to user_tables_path
     else
-      describe_failed_activity "Failed at creating table"
+      describe_failed_activity "Failed at creating user table"
       set_view_params migration.table_json
       render :new
     end
   rescue
-    describe_failed_activity "Created table, but couldn't migrate it"
+    describe_failed_activity "Created user table, but couldn't migrate it"
     flash[:error] = "We could not create the table changes at this time. Please try again later"
-    redirect_to tables_path
+    redirect_to user_tables_path
   end
 
   def update
-    migration = AnalystTableMigration.from_params params
+    migration = UserTableMigration.from_params params
     if Migrator.migrate @table, migration
       flash[:notice] = "Table updated"
-      describe_successful_activity "Updated table", table_path(@table)
-      redirect_to tables_path
+      describe_successful_activity "Updated user table", user_table_path(@table)
+      redirect_to user_tables_path
     else
-      describe_failed_activity "Failed at updating", table_path(@table)
+      describe_failed_activity "Failed at updating", user_table_path(@table)
       # We need to reset the table data in order to
       # preserve deleted columns
       original_table_data = JSON.parse @table.table_data
@@ -59,9 +59,9 @@ class TablesController < ApplicationController
     end
 
   rescue
-    describe_failed_activity "Edited table, but couldn't migrate it"
+    describe_failed_activity "Edited user table, but couldn't migrate it"
     flash[:error] = "We could not apply the table changes at this time. Please try again later"
-    redirect_to tables_path
+    redirect_to user_tables_path
   end
 
   # Q: Why are we not properly deleting tables, but marking them as deleted?
@@ -78,20 +78,20 @@ class TablesController < ApplicationController
   #    table, it will then continue using the previously dropped
   #    tables history.
   def destroy
-    migration = AnalystTableMigration.drop_migration @table.table_name
+    migration = UserTableMigration.drop_migration @table.table_name
     @table.pending_delete = true
     if Migrator.migrate @table, migration
-      describe_successful_activity "Dropped table #{@table.table_name}"
+      describe_successful_activity "Dropped user table #{@table.table_name}"
       flash[:notice] = "Table #{@table.table_name} was dropped"
     else
-      describe_failed_activity "Dropping table #{@table.table_name} failed"
+      describe_failed_activity "Dropping user table #{@table.table_name} failed"
       flash[:error] = "Table #{@table.table_name} could not be dropped"
     end
   rescue
-    describe_failed_activity "Dropping table migration failed for table #{@table.table_name}"
+    describe_failed_activity "Dropping user table migration failed for table #{@table.table_name}"
     flash[:error] = "We could not drop the table at this time. Please try again later"
   ensure
-    redirect_to tables_path
+    redirect_to user_tables_path
   end
 
   # This method is required for the odd circumstances where a cluster is down
@@ -99,12 +99,12 @@ class TablesController < ApplicationController
   # It is somewhat complex, as it deals with potential creations, alterations
   # and drops.
   def retry_migration
-    migration = @table.analyst_table_migrations.where(migrated: false).first
+    migration = @table.user_table_migrations.where(migrated: false).first
     if migration
       if Migrator.migrate @table, migration
         describe_successful_activity "Retried previously failed migration successfully"
         flash[:notice] = "Table change successfully applied"
-        redirect_to tables_path
+        redirect_to user_tables_path
       else
         describe_failed_activity "Retried previously failed migration but it was invalid"
         original_table_data = JSON.parse @table.table_data
@@ -125,13 +125,13 @@ class TablesController < ApplicationController
     else
       describe_activity "Retried migration which had already been applied"
       flash[:notice] = "Already fully migrated"
-      redirect_to tables_path
+      redirect_to user_tables_path
     end
 
   rescue Exception => error
     describe_failed_activity "Tried to apply a migration failed to broken cluster, but it still failed"
     flash[:error] = "We still failed at applying the migration. Please retry later"
-    redirect_to tables_path
+    redirect_to user_tables_path
   end
 
 private
@@ -141,9 +141,9 @@ private
 
   def load_table
     if params[:id]
-      @table = current_user.analyst.analyst_tables.find params[:id]
+      @table = current_user.analyst.user_tables.find params[:id]
     else
-      @table = current_user.analyst.analyst_tables.new
+      @table = current_user.analyst.user_tables.new
     end
     @table_data = @table.table_data
   end
@@ -156,7 +156,7 @@ private
   def validate_no_pending_migrations
     if @table.pending_migrations?
       flash[:error] = "Cannot #{params[:action]} a table with pending migrations"
-      redirect_to tables_path
+      redirect_to user_tables_path
     end
   end
 end

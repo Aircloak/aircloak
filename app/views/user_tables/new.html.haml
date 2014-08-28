@@ -13,7 +13,7 @@
 
 %h1 Create a table
 
-= form_tag({controller: "tables", action: "create"}, method: :post,
+= form_tag({controller: "user_tables", action: "create"}, method: :post,
     class: "form-horizontal", id: "table-form") do |f|
 
   - if @table.errors.any?
@@ -28,7 +28,7 @@
     .controls
       = text_field_tag :table_name, @table.table_name
 
-  .control-group
+  .control-group{:style => "#{"display:none" if current_user.ready_clusters.length < 2}"}
     = control_label "In cluster", tooltip: "in_cluster"
     .controls
       = select_tag :cluster_id, options_from_collection_for_select(current_user.ready_clusters, :id, :name)
@@ -43,8 +43,8 @@
       Once you are happy with the table columns below,
       = submit_tag 'create the table', :class => "btn btn-success submit-btn disabled"
       , or if you prefer you can
-      = link_to "cancel", tables_path, class: "btn"
+      = link_to "cancel", user_tables_path, class: "btn"
 
 = render 'columns'
 
-= link_to "Back", tables_path, class: "btn"
+= link_to "Back", user_tables_path, class: "btn"

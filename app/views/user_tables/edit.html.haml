@@ -13,7 +13,7 @@
 
 %h1= "Change #{@table.table_name}"
 
-= form_tag({controller: "tables", action: "update"}, method: :put,
+= form_tag({controller: "user_tables", action: "update"}, method: :put,
     class: "form-horizontal", id: "table-form") do |f|
 
   - if @table.errors.any?
@@ -28,7 +28,7 @@
     .controls
       %input#table_name.disabled{type: :text, value: @table.table_name, disabled: true}
 
-  .control-group
+  .control-group{:style => "#{"display:none" if current_user.ready_clusters.length < 2}"}
     = control_label "In cluster", tooltip: "in_cluster"
     .controls
       %input#table_name.disabled{type: :text, value: @table.cluster.name, disabled: true}
@@ -43,8 +43,8 @@
       Once you are happy with the changes and colums as listed below,
       = submit_tag 'save changes', :class => "btn btn-success submit-btn disabled"
       , or if you prefer you can
-      = link_to "cancel", tables_path, class: "btn"
+      = link_to "cancel", user_tables_path, class: "btn"
 
 = render 'columns'
 
-= link_to "Back", tables_path, class: "btn"
+= link_to "Back", user_tables_path, class: "btn"

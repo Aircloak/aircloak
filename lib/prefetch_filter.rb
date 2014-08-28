@@ -17,7 +17,7 @@ class PrefetchFilter
     return "" if prefetch.nil? || prefetch.empty?
 
     data = JSON.parse(prefetch).map do |prefetch_table|
-      table = AnalystTable.where(cluster_id: cluster_id, table_name: prefetch_table["table"]).first
+      table = UserTable.where(cluster_id: cluster_id, table_name: prefetch_table["table"]).first
 
       {
         tableId: table.id,
@@ -69,7 +69,7 @@ class PrefetchFilter
 
     prefetch =
       data.map do |prefetch_table|
-        table = task.analyst.analyst_tables.where(id: prefetch_table["tableId"], deleted: false)
+        table = task.analyst.user_tables.where(id: prefetch_table["tableId"], deleted: false)
         if table.length != 1
           # This usually shouldn't happen, since we're getting the data
           # we forwarded to client.

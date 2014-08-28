@@ -43,7 +43,7 @@ content: |
 
   In the query interface you select which database tables you want to have access
   to in your query. You can also limit the data returned for a table by specifying constraints.
-  For example only __<%= sample_table_name %>__ where __<%= sample_constraint %>__.
+  For example only __<%= sample_user_table_name %>__ where __<%= sample_constraint %>__.
 
   You can also specify that you only want the last __N__ results per user, or
   only results more recent than a certain number of minutes. The more you can
@@ -63,16 +63,16 @@ content: |
 
   In your queries you access the data from the Pre-selection queries using the
   `tables.` command.
-  For example to get access to the data from the __<%= sample_table_name %>__
-  table, you would issue the command `tables.<%= sample_table_name %>`.
+  For example to get access to the data from the __<%= sample_user_table_name %>__
+  table, you would issue the command `tables.<%= sample_user_table_name %>`.
 
   Very often you will receive a set of rows of data.
   Looping through these can easily be done as follows:
 
   ```Lua
-  <%= sample_table_name %> = tables.<%= sample_table_name %>
-  for i = 1, #<%= sample_table_name %> do
-    item = <%= sample_table_name %>[i]
+  <%= sample_user_table_name %> = tables.<%= sample_user_table_name %>
+  for i = 1, #<%= sample_user_table_name %> do
+    item = <%= sample_user_table_name %>[i]
     process(item) -- where `process` is a function implemented by you
   end
   ```

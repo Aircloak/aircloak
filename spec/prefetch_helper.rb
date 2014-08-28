@@ -44,6 +44,6 @@ module PrefetchHelper
   end
 
   def analyst_double(tables)
-    double(analyst_tables: double(where: tables))
+    double(user_tables: double(where: tables))
   end
 end

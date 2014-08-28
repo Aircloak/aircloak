@@ -42,10 +42,14 @@
 
             %hr
 
-            %h4= link_to "Tables", tables_path
-            = link_to "All tables", tables_path
+            %h4= link_to "User tables", user_tables_path
+            = link_to "All tables", user_tables_path
             |
-            = link_to "Add table", new_table_path
+            = link_to "Add table", new_user_table_path
+
+            %hr
+
+            %h4= link_to "Lookup tables", lookup_tables_path
 
             %hr
 

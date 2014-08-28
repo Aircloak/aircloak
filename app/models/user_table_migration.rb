@@ -1,10 +1,10 @@
-class AnalystTableMigration < ActiveRecord::Base
-  belongs_to :analyst_table, autosave: true
+class UserTableMigration < ActiveRecord::Base
+  belongs_to :user_table, autosave: true
 
-  validates_presence_of :analyst_table, :version
+  validates_presence_of :user_table, :version
 
   def self.from_params params
-    pending_migration = AnalystTableMigration.new
+    pending_migration = UserTableMigration.new
     pending_migration.migration = params[:migration]
     pending_migration.table_json = params[:table_json]
     pending_migration
@@ -15,6 +15,6 @@ class AnalystTableMigration < ActiveRecord::Base
       action: "drop",
       table_name: table_name
     }.to_json
-    AnalystTableMigration.new migration: json_migration
+    UserTableMigration.new migration: json_migration
   end
 end
