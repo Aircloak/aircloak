@@ -30,7 +30,8 @@ authorization do
       :tasks,
       :results,
       :tables,
-      :keys
+      :keys,
+      :lookup_tables
     ], to: :manage
     has_permission_on [
       :help

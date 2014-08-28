@@ -80,6 +80,7 @@ Web::Application.routes.draw do
   resources :tables do
     post "retry_migration", on: :member, action: "retry_migration"
   end
+  resources :lookup_tables
   resources :keys
   resources :help
 

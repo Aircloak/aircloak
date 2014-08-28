@@ -4,6 +4,7 @@ class Analyst < ActiveRecord::Base
   has_and_belongs_to_many :clusters
   has_many :tasks
   has_many :analyst_tables
+  has_many :lookup_tables
   has_many :results
   has_many :users
   has_many :key_materials
