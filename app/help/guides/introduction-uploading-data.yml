@@ -101,17 +101,17 @@ content: |
   administer and download these from the <%= site_link controller.keys_path, "keys page" %>.
   <% end -%>
 
-  How you use client certificates differs from language to language, but if using `curl`, you would use
+  How you use client certificates differs from language to language, but if using [curl](http://curl.haxx.se/), you would use
   the `--cert CertificateFile.pfx:<PASSWORD>` command.
 
   ### Example
 
   Assuming you had data for the __<%= sample_table_name %>__ stored in a file in your current directory
   called __<%= sample_table_name %>.json__, and a key named <%= sample_key_name %>, you could issue the following
-  `curl` command to upload data:
+  [curl](http://curl.haxx.se/) command to upload data:
 
   ```bash
-  curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --date @<%= sample_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
+  curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --data @<%= sample_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
   ```
 
   JSON, being pure text, can easily be compressed.
