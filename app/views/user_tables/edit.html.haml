@@ -28,7 +28,7 @@
     .controls
       %input#table_name.disabled{type: :text, value: @table.table_name, disabled: true}
 
-  .control-group
+  .control-group{:style => "#{"display:none" if current_user.ready_clusters.length < 2}"}
     = control_label "In cluster", tooltip: "in_cluster"
     .controls
       %input#table_name.disabled{type: :text, value: @table.cluster.name, disabled: true}

@@ -28,7 +28,7 @@
     .controls
       = text_field_tag :table_name, @table.table_name
 
-  .control-group
+  .control-group{:style => "#{"display:none" if current_user.ready_clusters.length < 2}"}
     = control_label "In cluster", tooltip: "in_cluster"
     .controls
       = select_tag :cluster_id, options_from_collection_for_select(current_user.ready_clusters, :id, :name)
