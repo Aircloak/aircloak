@@ -1,0 +1,101 @@
+%h1= "Test Result at #{@result.testtime_in_UTC} (UTC)"
+
+%h2 Overview
+
+%table.table.table-striped
+  %tbody
+    %tr
+      %td TestServer Version
+      %td= @result.display_test_server_version
+    %tr
+      %td Success
+      %td= @result.success
+    %tr
+      %td Duration
+      %td= display_duration @result.duration
+    %tr
+      %td Number of Tests
+      %td= @result.test_items.count
+    %tr
+      %td Number of VMs created
+      %td= @result.test_vms.count
+
+%h2 Benchmark
+
+%table.table.table-striped
+  - if @old_result
+    %thead
+      %tr
+        %th
+        %th This Result
+        %th= "Change from #{@old_result.testtime_in_UTC} (UTC)"
+  %tbody
+    - if @old_result && @old_result.test_server_version != @result.test_server_version
+      %tr.info
+        %td TestServer Version
+        %td= @result.display_test_server_version
+        %td= @old_result.display_test_server_version
+    %tr
+      %td Success
+      %td= @result.benchmark_success
+      - if @old_result
+        %td n/a
+    %tr{class: (@result.benchmark_duration_class @old_result)}
+      %td Duration
+      %td= display_duration @result.benchmark_duration
+      - if @old_result
+        - durdiff = @result.benchmark_duration - @old_result.benchmark_duration
+        - prefix = durdiff < 0 ? "" : "+"
+        %td= "#{prefix}#{display_duration durdiff}"
+    %tr{class: (@result.benchmark_coverage_class @old_result)}
+      %td Coverage
+      %td= "%03.1f%%" % [@result.benchmark_coverage * 100]
+      - if @old_result
+        %td= "%+04.1f%%" % [(@result.benchmark_coverage - @old_result.benchmark_coverage) * 100]
+    %tr{class: (@result.benchmark_memory_usage_class @old_result)}
+      %td Memory Usage
+      %td= "#{@result.benchmark_memory_usage} MB"
+      - if @old_result
+        %td= "%+d MB" % [@result.benchmark_memory_usage - @old_result.benchmark_memory_usage]
+
+-if @result.test_items.count > 0
+  %h2 Tests
+
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Name
+        %th Successful execution
+        %th Duration
+        %th Number of VMs used
+        %th
+    %tbody
+      - @result.test_items.each do |test|
+        %tr{class: test.success_class}
+          %td= link_to test.name, test_item_path(test.id)
+          %td= test.success
+          %td= display_duration test.duration
+          %td= test.test_item_vms.count
+          %td= link_to 'View', test_item_path(test.id), class: "btn btn-mini"
+
+- if @result.test_vms.count > 0
+  %h2 Virtual Machines
+
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Name
+        %th Successful creation
+        %th Creation time
+        %th Disk usage/size
+        %th #Tests used
+        %th
+    %tbody
+      - @result.test_vms.each do |vm|
+        %tr{class: vm.success_class}
+          %td= link_to vm.name, test_vm_path(vm.id)
+          %td= vm.success
+          %td= display_duration vm.duration
+          %td= "#{vm.disk_usage} MB/#{vm.disk_size} MB"
+          %td= vm.test_item_vms.count
+          %td= link_to 'View', test_vm_path(vm.id), class: "btn btn-mini"

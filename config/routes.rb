@@ -57,6 +57,8 @@ Web::Application.routes.draw do
       get "results/:result", on: :member, action: 'get_result'
       post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
     end
+
+    resources :api_test_results, path: "test_results", only: [:create]
   end
 
   post "/api/version_tests/:id", to: "version_tests#update"
@@ -70,6 +72,10 @@ Web::Application.routes.draw do
   resources :version_tests, except: [:create, :update]
 
   resources :clusters, :except => :destroy
+
+  resources :test_results, only: [:index, :show]
+  resources :test_vms, only: [:show]
+  resources :test_items, only: [:show]
 
   resources :tasks do
     post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
