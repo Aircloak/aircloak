@@ -13,7 +13,7 @@
         %th
     %tbody
     - @results.each do |result|
-      %tr
+      %tr{class: result.success_class}
         %td= link_to result.testtime_in_UTC, test_result_path(result.id)
         %td= result.display_test_server_version
         %td

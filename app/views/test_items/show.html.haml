@@ -4,7 +4,7 @@
 
 %table.table.table-striped
   %tbody
-    %tr
+    %tr{class: @test.success_class}
       %td Success
       %td= @test.success
     %tr
@@ -28,7 +28,7 @@
         %th
     %tbody
       - @test.test_item_vms.each do |item_vm|
-        %tr
+        %tr{class: item_vm.test_vm.success_class}
           %td= link_to item_vm.test_vm.name, test_vm_path(item_vm.test_vm.id)
           %td= item_vm.test_vm.success
           %td= item_vm.cpus

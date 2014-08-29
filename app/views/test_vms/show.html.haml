@@ -4,7 +4,7 @@
 
 %table.table.table-striped
   %tbody
-    %tr
+    %tr{class: @vm.success_class}
       %td Success
       %td= @vm.success
     %tr
@@ -30,7 +30,7 @@
         %th
     %tbody
       - @tests.each do |test|
-        %tr
+        %tr{class: test.success_class}
           %td= link_to test.name, test_item_path(test.id)
           %td= test.success
           %td= display_duration test.duration

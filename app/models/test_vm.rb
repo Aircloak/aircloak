@@ -4,4 +4,9 @@ class TestVm < ActiveRecord::Base
   belongs_to :test_result
   has_many :test_item_vms
   has_many :test_items, through: :test_item_vms
+
+  def success_class
+    return "" if success
+    return "error"
+  end
 end

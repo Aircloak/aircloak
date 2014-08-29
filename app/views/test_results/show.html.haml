@@ -31,7 +31,7 @@
         %th= "Change from #{@old_result.testtime_in_UTC} (UTC)"
   %tbody
     - if @old_result && @old_result.test_server_version != @result.test_server_version
-      %tr
+      %tr.info
         %td TestServer Version
         %td= @result.display_test_server_version
         %td= @old_result.display_test_server_version
@@ -40,19 +40,19 @@
       %td= @result.benchmark_success
       - if @old_result
         %td n/a
-    %tr
+    %tr{class: (@result.benchmark_duration_class @old_result)}
       %td Duration
       %td= display_duration @result.benchmark_duration
       - if @old_result
         - durdiff = @result.benchmark_duration - @old_result.benchmark_duration
         - prefix = durdiff < 0 ? "" : "+"
         %td= "#{prefix}#{display_duration durdiff}"
-    %tr
+    %tr{class: (@result.benchmark_coverage_class @old_result)}
       %td Coverage
       %td= "%03.1f%%" % [@result.benchmark_coverage * 100]
       - if @old_result
         %td= "%+04.1f%%" % [(@result.benchmark_coverage - @old_result.benchmark_coverage) * 100]
-    %tr
+    %tr{class: (@result.benchmark_memory_usage_class @old_result)}
       %td Memory Usage
       %td= "#{@result.benchmark_memory_usage} MB"
       - if @old_result
@@ -71,7 +71,7 @@
         %th
     %tbody
       - @result.test_items.each do |test|
-        %tr
+        %tr{class: test.success_class}
           %td= link_to test.name, test_item_path(test.id)
           %td= test.success
           %td= display_duration test.duration
@@ -92,7 +92,7 @@
         %th
     %tbody
       - @result.test_vms.each do |vm|
-        %tr
+        %tr{class: vm.success_class}
           %td= link_to vm.name, test_vm_path(vm.id)
           %td= vm.success
           %td= display_duration vm.duration
