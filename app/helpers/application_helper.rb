@@ -72,7 +72,7 @@ EOF
     minutes = duration.abs / 1000 / 60 % 60
     seconds = duration.abs / 1000 % 60
     mseconds = duration.abs % 1000
-    return "#{prefix}%d:%02d:%02d.%04d" % [hours, minutes, seconds, mseconds]
+    return "#{prefix}%d:%02d:%02d.%03d" % [hours, minutes, seconds, mseconds]
   end
 
 private
