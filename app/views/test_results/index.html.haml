@@ -5,6 +5,7 @@
     %thead
       %tr
         %th Time (UTC)
+        %th TestServer Version
         %th Success
         %th #Tests
         %th Benchmark: Duration
@@ -14,6 +15,7 @@
     - @results.each do |result|
       %tr
         %td= link_to result.testtime_in_UTC, test_result_path(result.id)
+        %td= result.display_test_server_version
         %td
           = result.success
           = "- #{result.test_items.where(success: false).count} failed test(s)" unless result.success

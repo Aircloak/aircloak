@@ -2,6 +2,7 @@ class CreateTestResults < ActiveRecord::Migration
   def change
     create_table :test_results do |t|
       t.integer :testtime
+      t.string :test_server_version
       t.integer :duration
 
       t.boolean :benchmark_success

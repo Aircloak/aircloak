@@ -5,6 +5,9 @@
 %table.table.table-striped
   %tbody
     %tr
+      %td TestServer Version
+      %td= @result.display_test_server_version
+    %tr
       %td Success
       %td= @result.success
     %tr
@@ -27,6 +30,11 @@
         %th This Result
         %th= "Change from #{@old_result.testtime_in_UTC} (UTC)"
   %tbody
+    - if @old_result && @old_result.test_server_version != @result.test_server_version
+      %tr
+        %td TestServer Version
+        %td= @result.display_test_server_version
+        %td= @old_result.display_test_server_version
     %tr
       %td Success
       %td= @result.benchmark_success

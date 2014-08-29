@@ -12,6 +12,7 @@ describe "ApiTestResultsController" do
     let (:request) {
       {
         timestamp: 1234,
+        test_server_version: "SHA-1",
         duration: 232,
         benchmark: {
           success: true,
@@ -52,6 +53,12 @@ describe "ApiTestResultsController" do
 
     it "requires .timestamp" do
       request.delete(:timestamp)
+      post "/api/test_results", request.to_json
+      response.status.should eq(403)
+    end
+
+    it "requires .test_server_version" do
+      request.delete(:test_server_version)
       post "/api/test_results", request.to_json
       response.status.should eq(403)
     end

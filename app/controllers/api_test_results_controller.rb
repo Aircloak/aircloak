@@ -14,6 +14,7 @@ private
   def self.create_test_result raw_result
     testResult = TestResult.new(
       testtime: raw_result["timestamp"],
+      test_server_version: raw_result["test_server_version"],
       duration: raw_result["duration"],
       benchmark_success: raw_result["benchmark"]["success"],
       benchmark_duration: raw_result["benchmark"]["duration"],
