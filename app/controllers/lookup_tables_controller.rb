@@ -30,14 +30,15 @@ class LookupTablesController < ApplicationController
         )
     @table.upload_data = params[:upload_data]
     if @table.valid?
-      if upload_table
+      result = upload_table
+      if result["success"]
         @table.save
         describe_successful_activity "Created lookup table", lookup_table_path(@table)
         flash[:notice] = "Lookup table created."
         redirect_to lookup_tables_path
       else
         describe_failed_activity "Cloak error while creating lookup table"
-        flash[:error] = "Table creation failed."
+        flash[:error] = result["error"] || "Table creation failed."
         render :new
       end
     else
@@ -50,14 +51,15 @@ class LookupTablesController < ApplicationController
     @table = current_user.analyst.lookup_tables.find params[:id]
     @table.upload_data = params[:upload_data]
     if @table.valid?
-      if upload_table
+      result = upload_table
+      if result["success"]
         @table.save
         describe_successful_activity "Updated lookup table", lookup_table_path(@table)
         flash[:notice] = "Lookup table data updated."
         redirect_to lookup_tables_path
       else
         describe_failed_activity "Cloak error while updating lookup table"
-        flash[:error] = "Table update failed. The previous table data is still available."
+        flash[:error] = result["error"] || "Table update failed. The previous table data is still available."
         render :edit
       end
     else
@@ -68,28 +70,27 @@ class LookupTablesController < ApplicationController
 
   def destroy
     @table = current_user.analyst.lookup_tables.find params[:id]
-    if remove_table
+    result = remove_table
+    if result["success"]
       @table.update deleted: true
       describe_successful_activity "Removed lookup table", lookup_table_path(@table)
       flash[:notice] = "Lookup table removed."
       redirect_to lookup_tables_path
     else
       describe_failed_activity "Cloak error while removing lookup table"
-      flash[:error] = "Table removal failed. The previous table data is still available."
+      flash[:error] = result["error"] || "Table removal failed. The previous table data is still available."
       redirect_to lookup_tables_path
     end
   end
 
 private
   def upload_table
-    result = JsonSender.post(current_user.analyst, @table.cluster, "lookup/upload", @table.upload_data,
+    JsonSender.post(current_user.analyst, @table.cluster, "lookup/upload", @table.upload_data,
           table: @table.table_name)
-    result["success"]
   end
 
   def remove_table
-    result = JsonSender.post(current_user.analyst, @table.cluster, "lookup/remove", '',
+    JsonSender.post(current_user.analyst, @table.cluster, "lookup/remove", '',
           table: @table.table_name)
-    result["success"]
   end
 end
