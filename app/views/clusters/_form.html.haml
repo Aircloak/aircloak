@@ -15,7 +15,27 @@
   .control-group
     = control_label "Build ID"
     .controls
-      = f.select :build_id, Build.all.map {|build| [build.name, build.id]}
+      = f.select :build_id, Build.all.map {|build| [build.name, build.id]}, {:prompt => true}, {:onChange => "build_change();"}
+
+      :javascript
+        var previousBuild = document.getElementById("cluster_build_id").value;
+
+        function build_change()
+        {
+          if(!previousBuild)
+            return;
+
+          if(confirm(' Changing a cluster`s build will result in that cluster being\n' +
+              'taken offline and having all of it`s cloaks re-imagined with\n' +
+              'the new build.\n Are you sure you want to continue?'))
+          {
+            previousBuild = null; // disable future warnings
+          }
+          else
+          {
+            document.getElementById("cluster_build_id").value = previousBuild;
+          }
+        }
 
   .control-group
     = control_label "Cloaks"

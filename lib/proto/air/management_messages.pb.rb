@@ -22,6 +22,7 @@ class ClusterPB
     BELONGS_TO = 1
     TO_BE_ADDED = 2
     TO_BE_REMOVED = 3
+    TO_BE_UPGRADED = 4
   end
 
   class MemberPB

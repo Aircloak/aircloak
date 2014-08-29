@@ -96,7 +96,8 @@ describe MachinesController do
       build = double(id: 14, manual: false)
       cluster = double(build: build, tpm: true)
       cluster.stub(:get_root_certificates).and_return("CERTIFICATE")
-      cloak = double(cluster: cluster)
+      cluster_cloak = double(state: :to_be_added)
+      cloak = double(cluster: cluster, cluster_cloak: cluster_cloak)
       Cloak.stub(:find_by_ip).and_return(cloak)
       get setup_info_machines_path
       response.status.should be(200)

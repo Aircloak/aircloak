@@ -18,7 +18,6 @@ class Cluster < ActiveRecord::Base
   validate :must_have_at_least_one_cloak
   validate :must_match_tpm_configuration
 
-  after_commit :synchronize_in_local_mode
   before_destroy :verify_can_destroy
   after_destroy :remove_tasks
 
@@ -60,7 +59,8 @@ class Cluster < ActiveRecord::Base
   end
 
   def keep_cloak cloak
-    cloak.cluster_cloak.set_state :to_be_added unless cloak.cluster_cloak.state == :belongs_to
+    cloak.cluster_cloak.set_state :to_be_added unless \
+      cloak.cluster_cloak.state == :belongs_to or cloak.cluster_cloak.state == :to_be_upgraded
   end
 
   # Creates a cluster for testing a particular build.
@@ -153,6 +153,20 @@ class Cluster < ActiveRecord::Base
     File.read("config/supervisor.crt")
   end
 
+  def update_params params
+    if params[:build_id] != self.build_id then
+      self.cluster_cloaks.each do |cluster_cloak|
+        if cluster_cloak.state == :belongs_to  then
+          cluster_cloak.set_state(:to_be_upgraded)
+        end
+      end
+
+      return update(params)
+    end
+
+    return true
+  end
+
 private
   def verify_cloaks_match new_cloaks
     if ! new_cloaks.inject(true) {|is_ok, cloak| is_ok && cloak.tpm == new_cloaks.first.tpm } then
@@ -174,12 +188,6 @@ private
     unless can_destroy?
       self.errors.add(:version_test, "Cannot destroy a build used by a version test")
       false
-    end
-  end
-
-  def synchronize_in_local_mode
-    unless Rails.configuration.installation.global
-      cluster_cloaks.each {|cluster_cloak| cluster_cloak.synchronize }
     end
   end
 
