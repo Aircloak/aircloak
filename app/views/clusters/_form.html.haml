@@ -15,7 +15,7 @@
   .control-group
     = control_label "Build ID"
     .controls
-      = f.select :build_id, Build.all.map {|build| [build.name, build.id]}
+      = f.select :build_id, Build.all.map {|build| [build.name, build.id]}, {:prompt => true}, {:onChange => "build_change();"}
 
   .control-group
     = control_label "Cloaks"

@@ -7,6 +7,7 @@ build_url="http://build.aircloak.com/releases/<%=@cloak.cluster.build.id%>.tar.g
   <% end -%>
 tpm=<%=@cloak.cluster.tpm%>
 root_certificates="<%=Cluster.get_root_certificates%>"
+keep_data="<%=@cloak.cluster_cloak.state == :to_be_upgraded%>"
 <% else -%>
 image="base"
 <% end -%>

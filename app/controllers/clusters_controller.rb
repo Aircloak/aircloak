@@ -32,7 +32,7 @@ private
     @cluster.last_modified = Time.now
     @cluster.status = :changes_pending
     @cluster.status_description = ""
-    if @cluster.assign_cloaks(cloaks) && @cluster.update(cluster_params)
+    if @cluster.assign_cloaks(cloaks) && @cluster.update_params(cluster_params) then
       redirect_to clusters_path, notice: msg
     else
       render action: action
