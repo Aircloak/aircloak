@@ -68,7 +68,8 @@ Web::Application.configure do
     'client_files.js',
     'tasks/main.js',
     'verifications.js',
-    'migrations/main.js'
+    'migrations/main.js',
+    'clusters.js'
   ]
 
   # Mailer config
