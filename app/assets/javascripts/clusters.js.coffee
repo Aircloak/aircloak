@@ -5,9 +5,7 @@ $(document).ready ->
   window.build_change = ->
     return unless previousBuild
 
-    if confirm("Changing a cluster's build will result in that cluster being\n" +
-               "taken offline and having all of it's cloaks re-imagined with\n" +
-               "the new build.\nAre you sure you want to continue?")
+    if confirm("Are you sure you want to take the cluster offline and upgrade it with a new build?")
       previousBuild = null
     else
       document.getElementById("cluster_build_id").value = previousBuild

@@ -18,6 +18,7 @@ class Cluster < ActiveRecord::Base
   validate :must_have_at_least_one_cloak
   validate :must_match_tpm_configuration
 
+  before_save :synchronize_in_local_mode
   before_destroy :verify_can_destroy
   after_destroy :remove_tasks
 
@@ -174,6 +175,13 @@ private
       return false
     end
     return true
+  end
+
+  def synchronize_in_local_mode
+    unless Rails.configuration.installation.global
+      self.status = :active
+      cluster_cloaks.each {|cluster_cloak| cluster_cloak.synchronize }
+    end
   end
 
   def must_match_tpm_configuration
