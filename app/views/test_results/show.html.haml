@@ -28,7 +28,10 @@
       %tr
         %th
         %th This Result
-        %th= "Change from #{@old_result.testtime_in_UTC} (UTC)"
+        %th
+          = link_to "Change from #{@old_result.testtime_in_UTC} (UTC)", test_result_path(@old_result.id)
+          = " / "
+          = link_to 'View old', test_result_path(@old_result.id), class: "btn btn-mini"
   %tbody
     - if @old_result && @old_result.test_server_version != @result.test_server_version
       %tr.info

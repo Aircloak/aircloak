@@ -11,6 +11,9 @@
       %td Duration
       %td= display_duration @vm.duration
     %tr
+      %td Disk usage/size
+      %td= "#{@vm.disk_usage} MB/#{@vm.disk_size} MB"
+    %tr
       %td Number of Instances
       %td= @vm.test_item_vms.count
     %tr
