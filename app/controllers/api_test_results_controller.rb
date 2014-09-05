@@ -21,8 +21,8 @@ private
       benchmark_coverage: raw_result["benchmark"]["coverage"],
       benchmark_memory_usage: raw_result["benchmark"]["memory_usage"]
     )
-    if raw_result["vms"]
-      vms = raw_result["vms"].inject({}) do |vms, raw_vm|
+    vms = if raw_result["vms"]
+      raw_result["vms"].inject({}) do |vms, raw_vm|
         testVm = TestVm.new(
           name: raw_vm["name"],
           success: raw_vm["success"],
@@ -36,7 +36,7 @@ private
         vms
       end
     else
-      vms = {}
+      {}
     end
     if raw_result["tests"]
       raw_result["tests"].each do |raw_test|
@@ -50,11 +50,13 @@ private
         if raw_test["vms"]
           raw_test["vms"].each do |raw_item_vm|
             testItemVm = TestItemVm.new(
-              test_vm: vms[raw_item_vm["name"]],
+              name: raw_item_vm["name"],
+              test_vm: vms[raw_item_vm["type"]],
               cpus: raw_item_vm["cpus"],
               memory_size: raw_item_vm["memory_size"],
               memory_usage: raw_item_vm["memory_usage"],
-              disk_usage: raw_item_vm["disk_usage"]
+              disk_usage: raw_item_vm["disk_usage"],
+              log: raw_item_vm["log"]
             )
             testItem.test_item_vms << testItemVm
           end

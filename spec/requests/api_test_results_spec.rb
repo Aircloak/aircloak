@@ -35,7 +35,16 @@ describe "ApiTestResultsController" do
             name: "foobaz",
             success: true,
             duration: 23,
-            vms: [{name: "foo", cpus: 13, memory_size: 1024, memory_usage: 10, disk_usage: 99}]
+            vms: [
+              {
+                name: "foo-inst",
+                type: "foo",
+                cpus: 13,
+                memory_size: 1024,
+                memory_usage: 10,
+                disk_usage: 99
+              }
+            ]
           }
         ]
       }
@@ -119,6 +128,12 @@ describe "ApiTestResultsController" do
 
     it "requires .tests[].duration" do
       request[:tests][1].delete(:duration)
+      post "/api/test_results", request.to_json
+      response.status.should eq(403)
+    end
+
+    it "requires .tests[].vms[].name" do
+      request[:tests][1][:vms][0].delete(:name)
       post "/api/test_results", request.to_json
       response.status.should eq(403)
     end
