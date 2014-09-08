@@ -9,6 +9,7 @@ class CreateRepeatedAnswers < ActiveRecord::Migration
       t.integer :timestamp
       t.string :source_ip
       t.integer :anonparam_k1
+      t.float :anonparam_delta_k2
       t.integer :anonparam_k2
       t.float :anonparam_target_error
       t.float :anonparam_sigma

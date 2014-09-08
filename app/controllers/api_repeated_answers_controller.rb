@@ -20,6 +20,7 @@ private
       timestamp: raw_report["timestamp"],
       source_ip: raw_report["source_ip"],
       anonparam_k1: raw_report["anonymization_parameters"]["k1"],
+      anonparam_delta_k2: raw_report["anonymization_parameters"]["delta_k2"],
       anonparam_k2: raw_report["anonymization_parameters"]["k2"],
       anonparam_target_error: raw_report["anonymization_parameters"]["target_error"],
       anonparam_sigma: raw_report["anonymization_parameters"]["sigma"],

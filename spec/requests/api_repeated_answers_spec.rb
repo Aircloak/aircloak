@@ -22,6 +22,7 @@ describe "ApiRepeatedAnswersController" do
         source_ip: "1.1.1.1",
         anonymization_parameters: {
           k1: 1,
+          delta_k2: 2.5,
           k2: 2,
           target_error: 0.0001,
           sigma: 423,
@@ -73,6 +74,12 @@ describe "ApiRepeatedAnswersController" do
 
     it "requires .anonymization_parameters.k1" do
       request[:anonymization_parameters].delete(:k1)
+      post "/api/repeated_answers", request.to_json
+      response.status.should eq(403)
+    end
+
+    it "requires .anonymization_parameters.delta_k2" do
+      request[:anonymization_parameters].delete(:delta_k2)
       post "/api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
