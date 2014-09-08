@@ -27,7 +27,10 @@ private
       anonparam_constant_noise_sd: raw_report["anonymization_parameters"]["constant_noise_sd"]
     )
     raw_report["task_codes"].each do |task_code|
-      code = RepeatedAnswerTaskCode.new(code: task_code)
+      code = RepeatedAnswerTaskCode.new(
+        prefetch: task_code["prefetch"],
+        code: task_code["code"]
+      )
       answer.repeated_answer_task_codes << code
     end
     raise "cannot save" unless answer.save
