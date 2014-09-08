@@ -59,6 +59,8 @@ Web::Application.routes.draw do
     end
 
     resources :api_test_results, path: "test_results", only: [:create]
+
+    resources :api_repeated_answers, path: "repeated_answers", only: [:create]
   end
 
   post "/api/version_tests/:id", to: "version_tests#update"
