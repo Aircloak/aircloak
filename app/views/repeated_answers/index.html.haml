@@ -1,0 +1,23 @@
+- if @answers.count > 0
+  %h1 Reported Repeated Answers
+
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Time (UTC)
+        %th Analyst
+        %th Source-IP
+        %th Bucket Label and Value
+        %th Bucket Count
+        %th
+    %tbody
+    - @answers.each do |answer|
+      %tr
+        %td= link_to answer.timestamp_in_UTC, repeated_answer_path(answer.id)
+        %td= answer.analyst.name
+        %td= answer.source_ip
+        %td= answer.bucket_label_and_value
+        %td= answer.bucket_count
+        %td= link_to 'View', repeated_answer_path(answer.id), class: "btn btn-mini"
+- else
+  No repeated answers stored in the database.
