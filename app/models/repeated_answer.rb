@@ -4,6 +4,10 @@ class RepeatedAnswer < ActiveRecord::Base
       :anonparam_target_error, :anonparam_sigma, :anonparam_constant_noise_sd
   has_many :repeated_answer_task_codes
 
+  def timestamp_in_UTC
+    Time.at(timestamp).utc.strftime('%Y-%m-%d %H:%M')
+  end
+
   def bucket_label_and_value
     if bucket_value
       "#{bucket_label}: #{bucket_value}"
