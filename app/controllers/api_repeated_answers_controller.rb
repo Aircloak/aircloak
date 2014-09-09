@@ -36,6 +36,7 @@ private
       answer.repeated_answer_task_codes << code
     end
     raise "cannot save" unless answer.save
+    return answer
   end
 
 end
