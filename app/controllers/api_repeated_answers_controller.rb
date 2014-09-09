@@ -3,7 +3,8 @@ class ApiRepeatedAnswersController < ApplicationController
 
   def create
     raw_report = JSON.parse request.raw_post
-    ApiRepeatedAnswersController.create_report raw_report
+    answer = ApiRepeatedAnswersController.create_report raw_report
+    RepeatedAnswerMailer.new_report(answer).deliver
     render json: {success: true}, status: 200
   rescue Exception => e
     render json: {success: false, error: e.to_s}, status: 403
