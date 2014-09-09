@@ -28,7 +28,16 @@ describe "ApiRepeatedAnswersController" do
           sigma: 423,
           constant_noise_sd: 2323
         },
-        task_codes: ["foo", "bar", "baz"]
+        task_codes: [
+          {
+            prefetch: "foo",
+            code: "bar"
+          },
+          {
+            prefetch: "xxx",
+            code: "yyy"
+          }
+        ]
       }
     }
 
@@ -104,6 +113,18 @@ describe "ApiRepeatedAnswersController" do
 
     it "requires .anonymization_parameters.constant_noise_sd" do
       request[:anonymization_parameters].delete(:constant_noise_sd)
+      post "/api/repeated_answers", request.to_json
+      response.status.should eq(403)
+    end
+
+    it "requires .task_codes[].prefetch" do
+      request[:task_codes][0].delete(:prefetch)
+      post "/api/repeated_answers", request.to_json
+      response.status.should eq(403)
+    end
+
+    it "requires .task_codes[].code" do
+      request[:task_codes][0].delete(:code)
       post "/api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
