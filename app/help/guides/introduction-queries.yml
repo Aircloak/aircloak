@@ -85,6 +85,23 @@ content: |
   You can also query a lookup table (see <%= help_link "lookup-tables" %>),
   by calling `lookup(table_name, key)` which will return the corresponding value.
 
+  It's also worth mentioning that there is a global `user_id` variable available containing the id of the
+  user being processed. This is most often needed if you maintain lookup tables, where the
+  key is the user's id. An example could be a mapping of individual university members to particular disciplines.
+  Relying on `user_id` and the `lookup` function allows you to determine the user's discipline in Lua code.
+
+  #### Dealing with times
+
+  The best way to deal with times is to use the [epoch time](http://en.wikipedia.org/wiki/Unix_time) (number of seconds passed since
+  00:00:00, January 1st, 1970.). It is advised you use a `varchar(10)` as the corresponding data type.
+
+  You can deal with epoch time in Lua scripts using the `to_date` provided function. The result of a call to
+  `to_date` is a Lua table with following fields:
+
+  - `year`, `month`, `day`
+  - `hour`, `min`, `sec`
+  - `wday` (day of the week, 1=Sunday, 2=Monday, ...)
+  - `yday` (day of the year in range of 1-366)
 
   #### Reporting values
 
