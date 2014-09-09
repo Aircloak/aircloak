@@ -13,6 +13,7 @@ private
 
   def self.create_report raw_report
     answer = RepeatedAnswer.new(
+      resolved: false,
       analyst_id: Analyst.find(raw_report["analyst"]).id,
       bucket_label: raw_report["bucket_label"],
       bucket_value: raw_report["bucket_value"],
