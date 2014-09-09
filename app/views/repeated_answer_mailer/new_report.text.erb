@@ -3,7 +3,7 @@ Repeated answers detected for analyst <%= @report.analyst.name %>
 
   - task started from <%= @report.source_ip %> at <%= @report.timestamp_in_UTC %>
   - bucket <%= @report.bucket_label_and_value %> with noisy-count <%= @report.bucket_count %>
-  - used anonymization parameters <%= @report.anonymization_parameters %>
+  - noise standard deviation <%= @report.noise_sd %>
   - there are <%= RepeatedAnswer.where(resolved: false).count %> unresolved reports in total
 
 <% @report.repeated_answer_task_codes.each do |task_code| %>

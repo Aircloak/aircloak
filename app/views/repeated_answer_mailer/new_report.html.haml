@@ -7,8 +7,8 @@
 
     %ul
       %li= "task started from #{@report.source_ip} at #{@report.timestamp_in_UTC}"
-      %li= "Bucket #{@report.bucket_label_and_value} with noisy-count #{@report.bucket_count}"
-      %li= "Used anonymization parameters #{@report.anonymization_parameters}"
+      %li= "bucket #{@report.bucket_label_and_value} with noisy-count #{@report.bucket_count}"
+      %li= "noise standard devication #{@report.noise_sd}"
       %li= "there are #{RepeatedAnswer.where(resolved: false).count} unresolved reports in total"
 
     - @report.repeated_answer_task_codes.each do |task_code|

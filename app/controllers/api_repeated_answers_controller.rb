@@ -21,12 +21,7 @@ private
       bucket_count: raw_report["bucket_count"],
       timestamp: raw_report["timestamp"],
       source_ip: raw_report["source_ip"],
-      anonparam_k1: raw_report["anonymization_parameters"]["k1"],
-      anonparam_delta_k2: raw_report["anonymization_parameters"]["delta_k2"],
-      anonparam_k2: raw_report["anonymization_parameters"]["k2"],
-      anonparam_target_error: raw_report["anonymization_parameters"]["target_error"],
-      anonparam_sigma: raw_report["anonymization_parameters"]["sigma"],
-      anonparam_constant_noise_sd: raw_report["anonymization_parameters"]["constant_noise_sd"]
+      noise_sd: raw_report["noise_sd"]
     )
     raw_report["task_codes"].each do |task_code|
       code = RepeatedAnswerTaskCode.new(

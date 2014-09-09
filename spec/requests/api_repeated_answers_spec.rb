@@ -20,14 +20,7 @@ describe "ApiRepeatedAnswersController" do
         bucket_count: 1234567,
         timestamp: 1234,
         source_ip: "1.1.1.1",
-        anonymization_parameters: {
-          k1: 1,
-          delta_k2: 2.5,
-          k2: 2,
-          target_error: 0.0001,
-          sigma: 423,
-          constant_noise_sd: 2323
-        },
+        noise_sd: 1.234,
         task_codes: [
           {
             prefetch: "foo",
@@ -81,38 +74,8 @@ describe "ApiRepeatedAnswersController" do
       response.status.should eq(403)
     end
 
-    it "requires .anonymization_parameters.k1" do
-      request[:anonymization_parameters].delete(:k1)
-      post "/api/repeated_answers", request.to_json
-      response.status.should eq(403)
-    end
-
-    it "requires .anonymization_parameters.delta_k2" do
-      request[:anonymization_parameters].delete(:delta_k2)
-      post "/api/repeated_answers", request.to_json
-      response.status.should eq(403)
-    end
-
-    it "requires .anonymization_parameters.k2" do
-      request[:anonymization_parameters].delete(:k2)
-      post "/api/repeated_answers", request.to_json
-      response.status.should eq(403)
-    end
-
-    it "requires .anonymization_parameters.target_error" do
-      request[:anonymization_parameters].delete(:target_error)
-      post "/api/repeated_answers", request.to_json
-      response.status.should eq(403)
-    end
-
-    it "requires .anonymization_parameters.sigma" do
-      request[:anonymization_parameters].delete(:sigma)
-      post "/api/repeated_answers", request.to_json
-      response.status.should eq(403)
-    end
-
-    it "requires .anonymization_parameters.constant_noise_sd" do
-      request[:anonymization_parameters].delete(:constant_noise_sd)
+    it "requires .noise_sd" do
+      request.delete(:noise_sd)
       post "/api/repeated_answers", request.to_json
       response.status.should eq(403)
     end

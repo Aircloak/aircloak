@@ -9,6 +9,7 @@
         %th Source-IP
         %th Bucket Label and Value
         %th Bucket Count
+        %th Noise Standard Deviation
         %th
     %tbody
     - @unresolved.each do |answer|
@@ -18,6 +19,7 @@
         %td= answer.source_ip
         %td= answer.bucket_label_and_value
         %td= answer.bucket_count
+        %td= answer.noise_sd
         %td= link_to 'View', repeated_answer_path(answer.id), class: "btn btn-mini"
 - else
   No unresolved repeated answers stored in the database.
@@ -34,6 +36,7 @@
         %th Source-IP
         %th Bucket Label and Value
         %th Bucket Count
+        %th Noise Standard Deviation
         %th
     %tbody
     - @resolved.each do |answer|
@@ -43,4 +46,5 @@
         %td= answer.source_ip
         %td= answer.bucket_label_and_value
         %td= answer.bucket_count
+        %td= answer.noise_sd
         %td= link_to 'View', repeated_answer_path(answer.id), class: "btn btn-mini"
