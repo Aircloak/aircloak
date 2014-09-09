@@ -61,7 +61,7 @@ content: |
 
   #### Accessing data
 
-  In your queries you access the data from the Pre-selection queries using the
+  In your queries you access the data from the pre-selection queries using the
   `tables.` command.
   For example to get access to the data from the __<%= sample_user_table_name %>__
   table, you would issue the command `tables.<%= sample_user_table_name %>`.
