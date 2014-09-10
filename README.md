@@ -96,6 +96,10 @@ To deploy the website, run
 
     bundle exec cap deploy
 
+If you want to both deploy and migrate with a single command, you can run
+
+    cap deploy:migrations
+
 Please note that doing a `cap deploy`, while restarting the unicorn workers, does not always have them reload
 the classes in the __lib__ directory. I haven't investigated why this is. If it happens to you, stop and start
 the unicorns like this:
