@@ -12,6 +12,8 @@ class Analyst < ActiveRecord::Base
   has_many :analysts_clusters
   has_and_belongs_to_many :clusters
 
+  has_many :repeated_answers
+
   validates_presence_of :name
 
   after_create :create_token, :unless => :key

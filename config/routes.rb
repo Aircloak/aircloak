@@ -59,6 +59,8 @@ Web::Application.routes.draw do
     end
 
     resources :api_test_results, path: "test_results", only: [:create]
+
+    resources :api_repeated_answers, path: "repeated_answers", only: [:create]
   end
 
   post "/api/version_tests/:id", to: "version_tests#update"
@@ -77,6 +79,8 @@ Web::Application.routes.draw do
   resources :test_vms, only: [:show]
   resources :test_items, only: [:show]
   resources :test_item_vms, only: [:show]
+
+  resources :repeated_answers, only: [:index, :show, :update]
 
   resources :tasks do
     post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
