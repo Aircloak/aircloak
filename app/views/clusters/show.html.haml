@@ -8,7 +8,7 @@
   = @cluster.tpm
 %p
   %b Using build:
-  = @cluster.build.name
+  = link_to @cluster.build.name, build_path(@cluster.build.id)
 %p
   %b Health:
   = @cluster.health
@@ -17,14 +17,14 @@
   %ul
     - @cluster.cloaks.each do |cloak|
       %li
-        = cloak.name
+        = link_to cloak.name, cloak_path(cloak.id)
         %em= "(#{cloak.good ? :ok : :broken})"
 %p
   %b Analysts:
   %ul
     - @cluster.analysts.each do |analyst|
       %li
-        = analyst.name
+        = link_to analyst.name, analyst_path(analyst.id)
 
 = link_to 'Edit', edit_cluster_path(@cluster)
 \|
