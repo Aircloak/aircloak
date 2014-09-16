@@ -15,7 +15,7 @@
 %p
   - if @cloak.cluster
     %b Part of cluster:
-    = @cloak.cluster.name
+    = link_to @cloak.cluster.name, cluster_path(@cloak.cluster.id)
     - if @cloak.cluster_cloak.state != :belongs_to
       = " (#{@cloak.cluster_cloak.state})"
   - else
