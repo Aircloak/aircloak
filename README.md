@@ -3,7 +3,6 @@ airpub
 
 | Branch      | Build status |
 |-------------|--------------|
-| master      | [![Build Status](https://magnum.travis-ci.com/Aircloak/airpub.png?token=aFqD8qTNFV1Li4zdKtZw&branch=master)](https://magnum.travis-ci.com/Aircloak/airpub) |
 | develop     | [![Build Status](https://magnum.travis-ci.com/Aircloak/airpub.png?token=aFqD8qTNFV1Li4zdKtZw&branch=develop)](https://magnum.travis-ci.com/Aircloak/airpub) |
 
 ----------------------
