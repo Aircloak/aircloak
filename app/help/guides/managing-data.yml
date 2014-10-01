@@ -58,7 +58,9 @@ content: |
   We support the following Postgres datatypes:
 
   - integer: signed 4 byte integer which can range from -2147483648 to +2147483647
+  - bigint: signed 8 byte integer which can range fro -9223372036854775808 to +9223372036854775807
   - float: 4 byte single precision floating-point number
+  - double: 8 byte double precision floating-point number
   - boolean: logical true or false
   - varchar: variable length bounded character string
 
