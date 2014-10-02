@@ -21,7 +21,7 @@ set :default_environment, {
   # there, or using the VPN).
   # This flag cannot be set when deploying the web application
   # when there are no gem changes needed. The reason is that
-  # the web application will attempt to do all inter 
+  # the web application will attempt to do all inter
   # application communication over the proxy, and fail.
   # An example is when communicating with the buildserver.
   # Please also note that when doing a deploy that requires
@@ -59,7 +59,7 @@ set :use_sudo, false
 
 set :scm, :git
 set :repository,  "git@github.com:Aircloak/web.git"
-set :branch, "master"
+set :branch, "develop"
 set :git_enable_submodules, 1
 
 default_run_options[:pty]
