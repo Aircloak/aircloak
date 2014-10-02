@@ -59,7 +59,7 @@ set :use_sudo, false
 
 set :scm, :git
 set :repository,  "git@github.com:Aircloak/web.git"
-set :branch, "master"
+set :branch, "develop"
 set :git_enable_submodules, 1
 
 default_run_options[:pty]
