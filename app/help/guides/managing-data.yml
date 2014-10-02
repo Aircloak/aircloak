@@ -50,7 +50,7 @@ content: |
   - the table name can contain the characters `a` through `z` in any case, and the numbers `0`
     through `9` as well as contain underscores (`_`)
   - a table name has to start with a character
-  - restricted column names which are used by aircloak are not allowed. Currently the list contains the following restricted column names: `user_id`, `created_at`, and `transaction_id`.
+  - a table or column name must not start with `ac_`. This prefix is reserved for Aircloak internal tables and columns.
 
 
   ## Data types
