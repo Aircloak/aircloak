@@ -138,20 +138,21 @@ class Cluster < ActiveRecord::Base
     self.cloaks.map {|cloak| cloak.name}
   end
 
-  def get_root_certificates
-    # send a root certificates update only when cluster not yet active
+  def get_client_credentials
+    # sends client credentials update only when cluster not yet active
     return "" if self.status == :active
-    # we first load the certificate for the cluster's supervisor machine (manny-air)
-    certificates = Cluster.get_root_certificates
+    # we first load the certificate and revocation list for the cluster's supervisor machine (manny-air)
+    certificates, revocation_lists = Cluster.get_client_credentials
     self.analysts.each do |analyst|
       # add the certificates of the assigned analysts to the trusted list of CAs
       certificates += "\n" + analyst.certificate
+      revocation_lists += "\n" + analyst.revocation_list
     end unless self.id == nil
-    return certificates
+    return certificates, revocation_lists
   end
 
-  def self.get_root_certificates
-    File.read("config/supervisor.crt")
+  def self.get_client_credentials
+    return File.read("config/supervisor.crt"), File.read("config/supervisor.crl")
   end
 
   def update_params params
@@ -166,6 +167,12 @@ class Cluster < ActiveRecord::Base
     end
 
     return true
+  end
+
+  def mark_as_changed
+    self.last_modified = Time.now
+    self.status = :changes_pending
+    self.status_description = ""
   end
 
 private

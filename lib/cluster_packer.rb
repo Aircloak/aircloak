@@ -2,12 +2,14 @@ require './lib/proto/air/management_messages.pb'
 
 class ClusterPacker
   def self.package_cluster cluster
+    crts, crls = cluster.get_client_credentials
     ClusterPB.new(
       timestamp: cluster.timestamp,
       id: cluster.id,
       members: (package_members cluster),
       name: cluster.name,
-      cas_list: cluster.get_root_certificates
+      client_crts: crts,
+      client_crls: crls
     )
   end
 

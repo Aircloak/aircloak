@@ -111,4 +111,35 @@ module TokenGenerator
 
     return export_key(entityKey), entityCertificate.to_pem()
   end
+
+  def self.generate_empty_revocation_list(caKeyText, caCertificateText)
+    caKey = import_key(caKeyText)
+    caCertificate = OpenSSL::X509::Certificate.new(caCertificateText)
+
+    crl = OpenSSL::X509::CRL.new
+    crl.issuer = caCertificate.subject
+    crl.version = 1
+    crl.last_update = Time.now
+    crl.sign(caKey, OpenSSL::Digest::SHA1.new)
+
+    return crl.to_pem()
+  end
+
+  def self.revoke_certificate(caKeyText, crlText, certificateText)
+    caKey = import_key(caKeyText)
+
+    certificate = OpenSSL::X509::Certificate.new(certificateText)
+
+    crl = OpenSSL::X509::CRL.new(crlText)
+    crl.last_update = Time.now
+
+    revoked = OpenSSL::X509::Revoked.new
+    revoked.serial = certificate.serial
+    revoked.time = Time.now
+    crl.add_revoked(revoked)
+
+    crl.sign(caKey, OpenSSL::Digest::SHA1.new)
+
+    return crl.to_pem()
+  end
 end

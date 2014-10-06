@@ -31,6 +31,18 @@ class Analyst < ActiveRecord::Base
     tasks.select {|t| t.has_exceptions? }
   end
 
+  def revoke_key key
+    self.revocation_list = TokenGenerator.revoke_certificate self.key, self.revocation_list, key.certificate
+    save
+    key.revoked = true
+    key.save
+    # mark all assigned clusters as needing to be updated with the new revocation list
+    self.clusters.each do |cluster|
+      cluster.mark_as_changed
+      cluster.save
+    end
+  end
+
 private
   def create_token
     create_analyst_token
@@ -41,6 +53,7 @@ private
 
   def create_analyst_token
     self.key, self.certificate = TokenGenerator.generate_root_token "analyst", self.id
+    self.revocation_list = TokenGenerator.generate_empty_revocation_list self.key, self.certificate
   end
 
   def create_inquirer_token

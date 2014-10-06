@@ -11,13 +11,18 @@
         %th Type
         %th Created at
         %th
+        %th
     %tbody
     - @keys.each do |key|
       %tr
         %td= key.description
         %td Key to upload data for any user
         %td= key.created_at
-        %td= link_to "Download PKCS12", key_path(key), class: "btn"
+        - if key.revoked
+          %td{:colspan => "2", :style => "text-align:center; color:red;"} Revoked
+        - else
+          %td= link_to "Download PKCS12", key_path(key), class: "btn"
+          %td= link_to "Revoke", key_path(key), method: :delete, class: "btn", data: { confirm: "Are you sure? This can't be reverted." }
 
 %hr
 

@@ -29,9 +29,7 @@ private
   def update_cluster msg, action
     cloaks = cloaks_from_params
     @cluster.analysts = analysts_from_params
-    @cluster.last_modified = Time.now
-    @cluster.status = :changes_pending
-    @cluster.status_description = ""
+    @cluster.mark_as_changed
     if @cluster.assign_cloaks(cloaks) && @cluster.update_params(cluster_params) then
       redirect_to clusters_path, notice: msg
     else
