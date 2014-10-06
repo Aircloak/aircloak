@@ -140,7 +140,7 @@ class Cluster < ActiveRecord::Base
 
   def get_client_credentials
     # sends client credentials update only when cluster not yet active
-    return "" if self.status == :active
+    return "", "" if self.status == :active
     # we first load the certificate and revocation list for the cluster's supervisor machine (manny-air)
     certificates, revocation_lists = Cluster.get_client_credentials
     self.analysts.each do |analyst|
