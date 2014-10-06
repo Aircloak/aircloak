@@ -68,7 +68,8 @@ class ClusterPB
   required :id, :uint32, 2
   repeated :members, ClusterPB::MemberPB, 3
   required :name, :string, 4
-  required :cas_list, :string, 5
+  required :client_crts, :string, 5
+  required :client_crls, :string, 6
 end
 
 
