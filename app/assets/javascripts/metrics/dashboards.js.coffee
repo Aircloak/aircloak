@@ -46,7 +46,7 @@ Metrics.Dashboards =
     queryTimesMetrics = existingHistograms(controller, "db_operation.queries.*")
     _.flatten([
           rateSpec(controller, "db_operation.{finished,started}", "Query rates")
-          rateSpec(controller, "db_operation.queries.*", "Query type rates")
+          rateSpec(controller, "db_operation.queries.*", "Query type rates", height: 500)
           stackHistograms(controller, "Duration of database operation phases", "ms", [
                 "db_operation.queued", "db_operation.duration"
               ], "databaseOperationPhases"),
@@ -59,6 +59,7 @@ Metrics.Dashboards =
                   params:
                     title: title("query times #{histogram}", "ms")
                     hideLegend: false
+                    height: 500
                     target: _.map(
                           queryTimesMetrics,
                           (metric) -> clusterMetric(controller, "#{metric}.#{histogram}")
@@ -131,15 +132,18 @@ existingHistograms = (controller, path) ->
           parts.join(".")
       ))
 
-rateSpec = (controller, metricPath, graphTitle) ->
+rateSpec = (controller, metricPath, graphTitle, otherParams) ->
   existingPaths = existingSeries(controller, "{#{controller.selectedCloaks()}}.cloak_core.#{metricPath}.rate")
 
-  metrics: existingPaths
-  metricsDimension: "times/sec"
-  params:
+  defaultParams =
     title: title(graphTitle, "times/sec")
     hideLegend: false
     target: _.map(existingPaths, _.bind(clusterMetric, null, controller))
+
+  metrics: existingPaths
+  metricsDimension: "times/sec"
+  params: _.extend(defaultParams, otherParams || {})
+
 
 clusterMetric = (controller, path) ->
   Metrics.GraphiteSeries.
