@@ -9,22 +9,47 @@ class KeyMaterial < ActiveRecord::Base
   #     Aircloak can regenerate a pkcs12 based on the raw certificate
   #     and key.
 
-  # We currently only support pkcs12 for uploading data for any user.
-  # pkcs12's for uploading data for an individual user, or for acting as
-  # an inquirer will be added when we need them.
+  # We currently only support keys for
+  # - uploading data for any user
+  # - inquiring (i.e. running tasks etc)
+  #
+  # Currently we also only allow downloads of the keys in pkcs12
+  # format. This turns out to be somewhat problematic, and should
+  # be extended to include regular pem's as well.
+  #
+  # Keys for uploading data for an individual user will be added
+  # on demand at a later time.
 
   # Creates a new key, cert pair signed by the analysts master key.
   # A corresponding pkcs12 protected by a password specified by the
   # analyst is also generated.
-  def self.create_from_analyst analyst, password, description
+  def self.create_from_analyst analyst, password, description, key_type
     key_material = analyst.key_materials.new
-    raw_key, raw_cert = TokenGenerator.generate_leaf_token analyst.key, analyst.certificate, "any_user", 0
+    key_material.key_type = key_type
+
+    # As far as IDs in the keys go, we use 1 for general purpose exported keys,
+    # with the exception of the data_upload_all key, where it is the convention
+    # that 0 signifies that the key can be used to uplad data for any user.
+    case key_material.key_type
+    when "data_upload_all"
+      key_description = "#{description}. Allows uploading data for any user to any of #{analyst.name}'s clusters"
+      raw_key, raw_cert = TokenGenerator.generate_leaf_token analyst.key, analyst.certificate, "any_user", 0
+
+    when "admin"
+      key_description = "#{description}. Allows performing administrative tasks against any of #{analyst.name}'s clusters"
+      raw_key, raw_cert = TokenGenerator.generate_leaf_token analyst.key, analyst.certificate, "admin", 1
+
+    when "task_runner"
+      key_description = "#{description}. Allows executing tasks against any of #{analyst.name}'s clusters"
+      raw_key, raw_cert = TokenGenerator.generate_leaf_token analyst.key, analyst.certificate, "task_runner", 1
+    end
 
     key = TokenGenerator.import_key raw_key
     cert = OpenSSL::X509::Certificate.new raw_cert
+
     pkcs12 = OpenSSL::PKCS12.create(
       password,
-      "#{description}. Allows uploading data for any user to any of #{analyst.name}'s clusters",
+      key_description,
       key,
       cert
     )
@@ -39,5 +64,17 @@ class KeyMaterial < ActiveRecord::Base
 
   def name
     "#{analyst.name}_#{id}.pfx"
+  end
+
+  # Used for category headings in the view
+  def self.type_description type
+    case type
+    when "admin"
+      "Administrative keys"
+    when "data_upload_all"
+      "Upload data for all users keys"
+    when "task_runner"
+      "Keys for running tasks"
+    end
   end
 end

@@ -75,7 +75,7 @@ module TokenGenerator
     # TODO (Aircloak/web#265): uncomment this when CRL endpoints are implemented
     # Set certificate revokation list location. Note: verification may fail when they are unavailable.
     #hostname = Socket.gethostbyname(Socket.gethostname).first
-    #rootCertificate.add_extension(rootEF.create_extension("crlDistributionPoints", 
+    #rootCertificate.add_extension(rootEF.create_extension("crlDistributionPoints",
     #  "URI:https://#{hostname}/crls/cluster/#{clusterId}/revoked.pem", CRITICAL))
 
     rootCertificate.sign(rootKey, OpenSSL::Digest::SHA256.new)

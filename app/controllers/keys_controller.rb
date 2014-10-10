@@ -1,7 +1,8 @@
 class KeysController < ApplicationController
   def index
     describe_activity "Listing all keys"
-    @keys = current_user.analyst.key_materials
+    keys = current_user.analyst.key_materials.order("revoked ASC, created_at DESC")
+    @keys_by_type = keys.group_by &:key_type
   end
 
   def show
@@ -19,7 +20,7 @@ class KeysController < ApplicationController
   end
 
   def create
-    KeyMaterial.create_from_analyst current_user.analyst, params[:password], params[:description]
+    KeyMaterial.create_from_analyst current_user.analyst, params[:password], params[:description], params[:key_type]
     describe_successful_activity "Created key new key with description #{params[:description]}"
     redirect_to keys_path, notice: "New key created"
   end
