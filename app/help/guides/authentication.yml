@@ -8,16 +8,16 @@ content: |
   The client certificates are provided in the PKCS12 format, and can be managed
   on the <%= site_link controller.keys_path, "keys page" %>.
 
-  Cloaks support three types of certificates:
+  Cloaks support four types of certificates:
 
   - certificates for uploading data for users in bulk
-  - certificates restricted to uploading data for only a particular user.
+  - certificates restricted to uploading data for only a single, identified user.
     This is useful when wanting to upload data from an end-users device,
     but requires integration with your backend services for commissioning
     certificates
-  - certificates for executing tasks or managing tables. Currently this
-    is performed exclusively through our web interfaces, but we can
-    provide you certificates of this kind on demand
+  - certificates for executing tasks against a cluster
+  - certificates for administering a cluster. Administrative tasks include adding,
+    altering or removing tables
 
   <% if has_multiple_clusters? -%>
   <% if key_count == 0 -%>

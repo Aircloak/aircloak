@@ -1,29 +1,28 @@
 = help_link 'authentication'
 
-%h1 Keys
+- @keys_by_type.sort.map do |key_type, keys|
 
-- if @keys.size > 0
+  %h1= KeyMaterial.type_description(key_type)
 
   %table.table.table-striped
     %thead
       %tr
         %th Description
-        %th Type
         %th Created at
         %th
         %th
     %tbody
-    - @keys.each do |key|
+    - keys.each do |key|
       %tr
         %td= key.description
-        %td Key to upload data for any user
         %td= key.created_at
         - if key.revoked
-          %td{:colspan => "2", :style => "text-align:center; color:red;"} Revoked
+          %td{:colspan => "2", :style => "text-align:center; color:red;"}= "Revoked on #{key.updated_at}"
         - else
           %td= link_to "Download PKCS12", key_path(key), class: "btn"
           %td= link_to "Revoke", key_path(key), method: :delete, class: "btn", data: { confirm: "Are you sure? This can't be reverted." }
 
-%hr
+- if @keys_by_type.size > 0
+  %hr
 
 = render 'form'

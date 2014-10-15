@@ -117,7 +117,7 @@ namespace :air do
         insert_data = TestTables.keys.inject({}) do |memo, table_name|
           memo.merge(table_name => [TestTables[table_name][:generate].call(user_id)])
         end
-        JsonSender.post analyst, cluster, "insert", insert_data.to_json, user: user_id
+        JsonSender.post_without_authentication analyst, cluster, "insert", insert_data.to_json, user: user_id
       end
       puts "\nDone!\n\n"
     end

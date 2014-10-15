@@ -77,7 +77,7 @@ class Task < ActiveRecord::Base
     url = cloak_url("/task/run")
     if url
       pr = PendingResult.create(task: self)
-      response = JsonSender.post(
+      response = JsonSender.post_as_task_runner(
         analyst,
         cluster,
         "task/run",

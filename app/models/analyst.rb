@@ -46,7 +46,8 @@ class Analyst < ActiveRecord::Base
 private
   def create_token
     create_analyst_token
-    create_inquirer_token
+    create_admin_token
+    create_task_runner_token
     save
     true
   end
@@ -56,11 +57,18 @@ private
     self.revocation_list = TokenGenerator.generate_empty_revocation_list self.key, self.certificate
   end
 
-  def create_inquirer_token
-    # We use id = 0 for the generic inquirer token that is stored with the
+  def create_admin_token
+    # We use id = 0 for the generic admin token that is stored with the
     # analyst object.
-    self.inquirer_key, self.inquirer_cert =
-        TokenGenerator.generate_leaf_token self.key, self.certificate, "inquirer", 0
+    self.admin_key, self.admin_cert =
+        TokenGenerator.generate_leaf_token self.key, self.certificate, "admin", 0
+  end
+
+  def create_task_runner_token
+    # We use id = 0 for the generic task_runner token that is stored with the
+    # analyst object.
+    self.task_runner_key, self.task_runner_cert =
+        TokenGenerator.generate_leaf_token self.key, self.certificate, "task_runner", 0
   end
 
   def can_destroy

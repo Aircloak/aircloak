@@ -24,7 +24,8 @@ private
   end
 
   def run_migration
-    result = JsonSender.post @table.analyst, @table.cluster, "migrate/#{@migration.version}", @migration.migration
+    result = JsonSender.post_as_admin @table.analyst, @table.cluster,
+        "migrate/#{@migration.version}", @migration.migration
     if result["success"]
       record_success
       true

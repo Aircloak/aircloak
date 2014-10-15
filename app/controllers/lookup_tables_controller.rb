@@ -85,12 +85,12 @@ class LookupTablesController < ApplicationController
 
 private
   def upload_table
-    JsonSender.post(current_user.analyst, @table.cluster, "lookup/upload", @table.upload_data,
-          table: @table.table_name)
+    JsonSender.post_as_admin(current_user.analyst, @table.cluster, "lookup/upload",
+        @table.upload_data, table: @table.table_name)
   end
 
   def remove_table
-    JsonSender.post(current_user.analyst, @table.cluster, "lookup/remove", '',
-          table: @table.table_name)
+    JsonSender.post_as_admin(current_user.analyst, @table.cluster, "lookup/remove", '',
+        table: @table.table_name)
   end
 end
