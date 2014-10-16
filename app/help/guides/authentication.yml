@@ -5,7 +5,7 @@ content: |
   # Authentication
 
   The cloak APIs rely on client certificates for authenticating access.
-  The client certificates are provided in the PKCS12 format, and can be managed
+  The client certificates are provided both in PEM and PKCS12 format, and can be managed
   on the <%= site_link controller.keys_path, "keys page" %>.
 
   Cloaks support four types of certificates:
