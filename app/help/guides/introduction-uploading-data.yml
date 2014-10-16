@@ -102,7 +102,7 @@ content: |
   <% end -%>
 
   How you use client certificates differs from language to language, but if using [curl](http://curl.haxx.se/), you would use
-  the `--cert CertificateFile.pfx:<PASSWORD>` command.
+  the `--cert CertificateFile.pfx` command.
 
   ### Example
 
@@ -111,12 +111,12 @@ content: |
   [curl](http://curl.haxx.se/) command to upload data:
 
   ```bash
-  curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --data @<%= sample_user_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
+  curl -XPOST -k --cert <%= sample_key_name %> --data @<%= sample_user_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
   ```
 
   JSON, being pure text, can easily be compressed.
   The cloaks supported gzipped JSON:
 
   ```bash
-  cat <%= sample_user_table_name %>.json | gzip -c | curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --header "Content-Encoding: gzip" --header "Content-Type: application/json" https://<%= sample_cloak_name %>/bulk_insert --data-binary @-
+  cat <%= sample_user_table_name %>.json | gzip -c | curl -XPOST -k --cert <%= sample_key_name %> --header "Content-Encoding: gzip" --header "Content-Type: application/json" https://<%= sample_cloak_name %>/bulk_insert --data-binary @-
   ```
