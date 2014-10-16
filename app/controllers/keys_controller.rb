@@ -8,7 +8,11 @@ class KeysController < ApplicationController
   def show
     key = current_user.analyst.key_materials.find params[:id]
     describe_activity "Downloaded key #{key.description}"
-    send_data Base64.decode64(key.pkcs12), type: "application/x-pkcs12", filename: key.name
+    respond_to do |format|
+      format.pfx { send_data Base64.decode64(key.pkcs12), type: "application/x-pkcs12", filename: key.name("pfx") }
+      format.pem { send_data key.pem, type: "application/x-pem-file", filename: key.name("pem") }
+      format.html { render text: "Please download key as .pem or .pfx" }
+    end
   end
 
   def destroy
