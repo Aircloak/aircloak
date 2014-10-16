@@ -13,6 +13,15 @@ require 'socket'
 # 3. Leaf Entity Token: this token can only be used for authentication with a cloak on behalf of
 #     the root entity and cannot sign other tokens.
 
+# private? method missing on EC keys, patch class so it works with the OpenSSL::X509::Certificate class
+module OpenSSL
+  module PKey
+    class EC
+      alias_method :private?, :private_key?
+    end
+  end
+end
+
 module TokenGenerator
   def self.generate_random_string_of_at_least_length length
     return SecureRandom.urlsafe_base64(length)
@@ -30,7 +39,7 @@ module TokenGenerator
   end
 
   def self.generate_private_key()
-    return OpenSSL::PKey::RSA.new(2048)
+    return OpenSSL::PKey::EC.new("prime256v1").generate_key
   end
 
   def self.export_key(key)
@@ -44,7 +53,7 @@ module TokenGenerator
     # This is used as a small protection against database leaks without access to server files.
     privateKeyPassword = Rails.configuration.private_key_password
     abort "private_key_password field is not set in the settings.local.yml file." unless privateKeyPassword
-    return OpenSSL::PKey::RSA.new(keyText, privateKeyPassword)
+    return OpenSSL::PKey.read(keyText, privateKeyPassword)
   end
 
   def self.decrypt_key_text(keyText)
@@ -59,7 +68,7 @@ module TokenGenerator
     rootCertificate.issuer = rootCertificate.subject # root CA's are "self-signed"
     rootCertificate.not_before = Time.now
     rootCertificate.not_after = Time.now + 100 * 365 * 24 * 60 * 60 # valid for 100 years
-    rootCertificate.public_key = rootKey.public_key
+    rootCertificate.public_key = rootKey
     rootCertificate.serial = generate_certificate_serial_number()
     rootCertificate.version = 2 # cf. RFC 5280 - to make it a "v3" certificate
 
@@ -71,12 +80,6 @@ module TokenGenerator
     rootCertificate.add_extension(rootEF.create_extension("keyUsage", "digitalSignature,cRLSign,keyCertSign", CRITICAL))
     rootCertificate.add_extension(rootEF.create_extension("subjectKeyIdentifier", "hash", NON_CRITICAL))
     rootCertificate.add_extension(rootEF.create_extension("authorityKeyIdentifier", "keyid:always,issuer:always", NON_CRITICAL))
-
-    # TODO (Aircloak/web#265): uncomment this when CRL endpoints are implemented
-    # Set certificate revokation list location. Note: verification may fail when they are unavailable.
-    #hostname = Socket.gethostbyname(Socket.gethostname).first
-    #rootCertificate.add_extension(rootEF.create_extension("crlDistributionPoints",
-    #  "URI:https://#{hostname}/crls/cluster/#{clusterId}/revoked.pem", CRITICAL))
 
     rootCertificate.sign(rootKey, OpenSSL::Digest::SHA256.new)
 
@@ -94,7 +97,7 @@ module TokenGenerator
     entityCertificate.serial = generate_certificate_serial_number()
     entityCertificate.subject = OpenSSL::X509::Name.parse(generate_subject_string(entityType, entityId))
     entityCertificate.issuer = caCertificate.subject # CA is the issuer
-    entityCertificate.public_key = entityKey.public_key
+    entityCertificate.public_key = entityKey
     entityCertificate.not_before = Time.now
     entityCertificate.not_after = entityCertificate.not_before + 100 * 365 * 24 * 60 * 60 # 100 years validity
 
