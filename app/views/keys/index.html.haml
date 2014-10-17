@@ -21,7 +21,7 @@
         - else
           %td
             = link_to "Download PKCS12", key_path(key, :pfx), class: "btn"
-            = link_to "Download PEM", key_path(key, :pem), class: "btn"
+            = link_to "Download PEM", key_path(key, :pem), class: "btn" if key.pem
           %td= link_to "Revoke", key_path(key), method: :delete, class: "btn", data: { confirm: "Are you sure? This can't be reverted." }
 
 - if @keys_by_type.size > 0
