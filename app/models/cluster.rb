@@ -156,7 +156,7 @@ class Cluster < ActiveRecord::Base
   end
 
   def update_params params
-    if params[:build_id] != self.build_id then
+    if params[:build_id].to_i != self.build_id then
       self.cluster_cloaks.each do |cluster_cloak|
         if cluster_cloak.state == :belongs_to  then
           cluster_cloak.set_state(:to_be_upgraded)

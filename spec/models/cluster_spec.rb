@@ -86,6 +86,29 @@ describe Cluster do
     cluster.health.should eq :poor
   end
 
+  it "should only mark cloaks as needing a build upgrade when the build has changed" do
+    cluster = base_cluster
+    cluster.build_id.should eq build.id
+    cluster.assign_cloaks [cloak]
+    cluster.save.should eq true
+    cloak.reload.cluster_cloak.cluster.should eq cluster
+    cloak.cluster_cloak.state.should eq :to_be_added
+    cloak.cluster_cloak.set_state :belongs_to
+    cloak.cluster_cloak.save.should eq true
+    params = {build_id: build.id.to_s}
+    cluster.update_params params
+    cluster.reload.build_id.should eq build.id # nothing new here
+    cloak.reload.cluster_cloak.state.should eq :belongs_to # not changed
+    build.fingerprint = "free up old fingerprint for new build"
+    build.save.should eq true # otherwise our new builds gets a "same fingerprint" error
+    other_build = Build.create(name: "new_build")
+    other_build.id.should_not eq nil
+    params = {build_id: other_build.id.to_s}
+    cluster.update_params params
+    cluster.reload.build_id.should eq other_build.id # should have noticed new build
+    cloak.reload.cluster_cloak.state.should eq :to_be_upgraded # needs new build
+  end
+
   context "#assign_cloaks" do
     let! (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1") }
     let! (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2") }
@@ -119,16 +142,22 @@ describe Cluster do
     end
 
     it "should keep all selected cloaks with the old state" do
-      cluster.assign_cloaks [cloak1, cloak2]
+      initial_cloaks = [cloak1, cloak2]
+      cluster.assign_cloaks initial_cloaks
       cluster.save.should eq true
-      cloak2.reload.cluster_cloak.set_state :belongs_to
-      cloak2.cluster_cloak.save.should eq true
-      cluster.assign_cloaks [cloak1, cloak2, cloak3]
+      initial_cloaks.each do |c|
+        c.reload.cluster_cloak.state.should eq :to_be_added
+        c.reload.cluster_cloak.set_state :belongs_to
+        c.cluster_cloak.save.should eq true
+      end
+      cluster.assign_cloaks initial_cloaks + [cloak3]
       cluster.save.should eq true
-      cloak1.reload.cluster_cloak.cluster.should eq cluster
-      cloak1.cluster_cloak.state.should eq :to_be_added
-      cloak2.reload.cluster_cloak.cluster.should eq cluster
-      cloak2.cluster_cloak.state.should eq :belongs_to
+      initial_cloaks.each do |c|
+        c.reload.cluster_cloak.cluster.should eq cluster
+        c.cluster_cloak.state.should eq :belongs_to
+      end
+      cloak3.reload.cluster_cloak.cluster.should eq cluster
+      cloak3.cluster_cloak.state.should eq :to_be_added
     end
 
     it "should mark all :to_be_removed cloaks as :to_be_added when selected" do
