@@ -5,7 +5,7 @@ content: |
   # Authentication
 
   The cloak APIs rely on client certificates for authenticating access.
-  The client certificates are provided in the PKCS12 format, and can be managed
+  The client certificates are provided both in PEM and PKCS12 format, and can be managed
   on the <%= site_link controller.keys_path, "keys page" %>.
 
   Cloaks support four types of certificates:
@@ -31,7 +31,7 @@ content: |
   ## Authentication example
 
   How you perform authentication with client certificates differs from language to language,
-  but using [curl](http://curl.haxx.se/), you would use the `--cert CertificateFile.pfx:<PASSWORD>` flag.
+  but using [curl](http://curl.haxx.se/), you would use the `--cert CertificateFile.pfx` flag.
 
   Taking the API for uploading user data in bulk as an example:
   Assuming you had data for the __<%= sample_user_table_name %>__ stored in a file in your current directory
@@ -39,5 +39,5 @@ content: |
   [curl](http://curl.haxx.se/) command to upload the data:
 
   ```bash
-  curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --date @<%= sample_user_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
+  curl -XPOST -k --cert <%= sample_key_name %> --date @<%= sample_user_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
   ```

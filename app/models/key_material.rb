@@ -53,8 +53,8 @@ class KeyMaterial < ActiveRecord::Base
       key,
       cert
     )
-
     key_material.pkcs12 = Base64.encode64 pkcs12.to_der
+    key_material.pem = key.to_pem(OpenSSL::Cipher.new('AES-256-CBC'), password) + cert.to_pem
     key_material.key = raw_key
     key_material.certificate = raw_cert
     key_material.description = description
@@ -62,8 +62,8 @@ class KeyMaterial < ActiveRecord::Base
     key_material
   end
 
-  def name
-    "#{analyst.name}_#{id}.pfx"
+  def name format
+    "#{analyst.name}_#{id}.#{format}"
   end
 
   # Used for category headings in the view

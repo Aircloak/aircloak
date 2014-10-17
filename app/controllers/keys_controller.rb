@@ -8,7 +8,11 @@ class KeysController < ApplicationController
   def show
     key = current_user.analyst.key_materials.find params[:id]
     describe_activity "Downloaded key #{key.description}"
-    send_data Base64.decode64(key.pkcs12), type: "application/x-pkcs12", filename: key.name
+    respond_to do |format|
+      format.pfx { send_data Base64.decode64(key.pkcs12), type: "application/x-pkcs12", filename: key.name("pfx") }
+      format.pem { send_data key.pem, type: "application/x-pem-file", filename: key.name("pem") }
+      format.html { render text: "Please download key as .pem or .pfx" }
+    end
   end
 
   def destroy
@@ -20,8 +24,13 @@ class KeysController < ApplicationController
   end
 
   def create
-    KeyMaterial.create_from_analyst current_user.analyst, params[:password], params[:description], params[:key_type]
-    describe_successful_activity "Created key new key with description #{params[:description]}"
-    redirect_to keys_path, notice: "New key created"
+    password = params[:password]
+    if password.length < 4 then
+      redirect_to keys_path, flash: {error: "The password must be at least 4 characters long"}
+    else
+      KeyMaterial.create_from_analyst current_user.analyst, password, params[:description], params[:key_type]
+      describe_successful_activity "Created key new key with description #{params[:description]}"
+      redirect_to keys_path, notice: "New key created"
+    end
   end
 end

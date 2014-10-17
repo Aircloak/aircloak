@@ -145,5 +145,5 @@ content: |
   With [curl](http://curl.haxx.se/), uploading gzipped data could be done as follows:
 
   ```bash
-  cat <%= sample_user_table_name %>.json | gzip -c | curl -XPOST -k --cert <%= sample_key_name %>:<PASSWORD> --header "Content-Encoding: gzip" --header "Content-Type: application/json" https://<%= sample_cloak_name %>/bulk_insert --data-binary @-
+  cat <%= sample_user_table_name %>.json | gzip -c | curl -XPOST -k --cert <%= sample_key_name %> --header "Content-Encoding: gzip" --header "Content-Type: application/json" https://<%= sample_cloak_name %>/bulk_insert --data-binary @-
   ```
