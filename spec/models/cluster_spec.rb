@@ -142,16 +142,22 @@ describe Cluster do
     end
 
     it "should keep all selected cloaks with the old state" do
-      cluster.assign_cloaks [cloak1, cloak2]
+      initial_cloaks = [cloak1, cloak2]
+      cluster.assign_cloaks initial_cloaks
       cluster.save.should eq true
-      cloak2.reload.cluster_cloak.set_state :belongs_to
-      cloak2.cluster_cloak.save.should eq true
-      cluster.assign_cloaks [cloak1, cloak2, cloak3]
+      initial_cloaks.each do |c|
+        c.reload.cluster_cloak.state.should eq :to_be_added
+        c.reload.cluster_cloak.set_state :belongs_to
+        c.cluster_cloak.save.should eq true
+      end
+      cluster.assign_cloaks initial_cloaks + [cloak3]
       cluster.save.should eq true
-      cloak1.reload.cluster_cloak.cluster.should eq cluster
-      cloak1.cluster_cloak.state.should eq :to_be_added
-      cloak2.reload.cluster_cloak.cluster.should eq cluster
-      cloak2.cluster_cloak.state.should eq :belongs_to
+      initial_cloaks.each do |c|
+        c.reload.cluster_cloak.cluster.should eq cluster
+        c.cluster_cloak.state.should eq :belongs_to
+      end
+      cloak3.reload.cluster_cloak.cluster.should eq cluster
+      cloak3.cluster_cloak.state.should eq :to_be_added
     end
 
     it "should mark all :to_be_removed cloaks as :to_be_added when selected" do
