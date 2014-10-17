@@ -24,8 +24,13 @@ class KeysController < ApplicationController
   end
 
   def create
-    KeyMaterial.create_from_analyst current_user.analyst, params[:password], params[:description], params[:key_type]
-    describe_successful_activity "Created key new key with description #{params[:description]}"
-    redirect_to keys_path, notice: "New key created"
+    password = params[:password]
+    if password.length < 4 then
+      redirect_to keys_path, flash: {error: "The password must be at least 4 characters long"}
+    else
+      KeyMaterial.create_from_analyst current_user.analyst, password, params[:description], params[:key_type]
+      describe_successful_activity "Created key new key with description #{params[:description]}"
+      redirect_to keys_path, notice: "New key created"
+    end
   end
 end
