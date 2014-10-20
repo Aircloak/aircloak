@@ -162,11 +162,8 @@ class Cluster < ActiveRecord::Base
           cluster_cloak.set_state(:to_be_upgraded)
         end
       end
-
-      return update(params)
     end
-
-    return true
+    update(params)
   end
 
   def mark_as_changed

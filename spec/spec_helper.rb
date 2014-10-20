@@ -29,9 +29,9 @@ RSpec.configure do |config|
   config.order = "random"
 end
 
-def log_in(user, password)
+def log_in user
   user.should_not be_nil
-  session = UserSession.create! login: user.login, password: password
+  session = UserSession.create user
   session.should be_valid
   session.save
   cookies['user_credentials'] = "#{user.persistence_token}::#{user.send(user.class.primary_key)}"
