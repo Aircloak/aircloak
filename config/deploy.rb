@@ -63,7 +63,7 @@ set :branch, "develop"
 set :git_enable_submodules, 1
 
 default_run_options[:pty]
-ssh_options[:forward_agent] = true
+ssh_options[:forward_agent] = false
 
 # Cleans up old deploys, leaving only 5
 after "deploy:restart", "deploy:cleanup"
