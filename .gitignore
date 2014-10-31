@@ -4,3 +4,8 @@ deps
 *.beam
 *.plt
 erl_crash.dump
+apps/
+doc/
+ebin/
+rel/airpub/
+.deps_plt
