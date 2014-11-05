@@ -41,7 +41,7 @@ DEPS=erts kernel stdlib crypto inets ssl
 $(DEPS_PLT):
 	@echo Building local plt at $(DEPS_PLT)
 	rm -f $(DEPS_PLT)
-	-dialyzer --output_plt $(DEPS_PLT) --build_plt --apps $(DEPS) -r deps
+	dialyzer --output_plt $(DEPS_PLT) --build_plt --apps $(DEPS) -r deps
 
 dialyzer: $(DEPS_PLT) compile
 	@echo Running dialyzer
