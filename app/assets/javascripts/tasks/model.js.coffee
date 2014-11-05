@@ -78,8 +78,18 @@ Tasks.Data = (tables) ->
       _.find(tables, (table) -> table.id == parseInt(id))
 
     addTestUser: (testUser) -> testUsers.push(testUser)
+    removeTestUser: (userId) ->
+      testUsers = _.filter(testUsers, (testUser) -> testUser.user_id != userId)
 
     sampleTestUser: (table) ->
+      nextId = 1 + _.reduce(
+            testUsers,
+            (memo, testUser) ->
+              currentSuffix = parseInt(testUser.user_id.replace("user_", ""))
+              Math.max(memo, currentSuffix)
+            0
+          )
+
       _.reduce(
             table.columns,
             (memo, column) ->
@@ -94,11 +104,11 @@ Tasks.Data = (tables) ->
                   "foobar"
               memo[column.name] = val
               memo
-            {user_id: "user_#{testUsers.length + 1}"}
+            {user_id: "user_#{nextId}"}
           )
 
-    testUsersTexts: ->
-      _.map(testUsers, JSON.stringify)
+    testUsers: ->
+      _.map(testUsers, (testUser) -> {data: testUser, text: JSON.stringify(testUser)})
 
     testJson: ->
       usersData = {}

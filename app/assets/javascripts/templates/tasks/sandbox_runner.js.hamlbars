@@ -9,9 +9,12 @@
     .control-group
       = control_label "Data", controller: "tasks", tooltip: "sandbox_data"
       .controls
-        = hb "each testUsersTexts" do
+        = hb "each testUsers" do
           %div
-            = hb "."
+            %span
+              %a{:href => "#", :"data-remove-test-user" => true, :"data-user-id" => hb("data.user_id")} X
+              &nbsp;
+              = hb "text"
     .control-group
       = control_label "Table", controller: "tasks", tooltip: "sandbox_table"
       .controls

@@ -140,6 +140,12 @@ Tasks.Editor = (tables, operators) ->
           $("#sandboxResult").html("HTTP #{response.status}\n#{response.responseText}")
         )
 
+  removeTestUser = (e) ->
+    handleEventAndCancel(e, ->
+          data.removeTestUser($(e.target).data("user-id"))
+          renderSandboxEditor()
+        )
+
 
   # ------------------------------------
   # Constructor
@@ -157,6 +163,7 @@ Tasks.Editor = (tables, operators) ->
       "click #runInSandbox": runInSandbox
       "click [data-remove-table]": removeTable
       "click [data-edit-filter]": editFilter
+      "click [data-remove-test-user]": removeTestUser
       "submit": submit
   })
 
