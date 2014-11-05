@@ -1,0 +1,12 @@
+.control-group
+  .control-label
+    %a#addSandboxUser.btn.btn-small{"href" => "#"} Add
+.control-group
+  %label.control-label user_id
+  .controls
+    %input{"data-sandbox-field" => "user_id", :type => "text"}
+= hb "each columns" do
+  .control-group
+    %label.control-label= hb "name"
+    .controls
+      %input{"data-sandbox-field" => hb("name"), :type => "text"}

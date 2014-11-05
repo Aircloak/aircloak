@@ -10,10 +10,12 @@ Tasks.Editor = (tables, operators) ->
 
   data = null
   view = null
+  codeEditor = null
 
   render = ->
     data.selectClusterId(selectedClusterId())
     $("#prefetchTables").html(HandlebarsTemplates["tasks/prefetch_tables"](data))
+    renderSandboxEditor()
     showHideAddTable()
     self
 
@@ -21,7 +23,7 @@ Tasks.Editor = (tables, operators) ->
     parseInt($('#task_cluster_id').val())
 
   initCodeEditor = ->
-    CodeMirror.fromTextArea(document.getElementById("task_code"), {
+    codeEditor = CodeMirror.fromTextArea(document.getElementById("task_code"), {
       lineNumbers: true, mode: "lua", vimMode: false, matchBrackets: true, showCursorWhenSelecting: true
     })
 
@@ -71,6 +73,64 @@ Tasks.Editor = (tables, operators) ->
     return if json == ""
     data.fromJson(json)
 
+  renderSandboxEditor = () ->
+    $("#sandboxRunner").html(HandlebarsTemplates["tasks/sandbox_runner"](data))
+
+  renderUserControls = () ->
+    table = data.table($("#sandboxUserTable").val())
+    $("#userEntryControls").html(HandlebarsTemplates["tasks/sandbox_user"](table))
+
+  addSandboxUser = (e) ->
+    handleEventAndCancel(e, ->
+      table = data.table($("#sandboxUserTable").val())
+      testUser = _.reduce($("[data-sandbox-field]"),
+            (memo, control) ->
+              control = $(control)
+
+              columnName = control.data("sandbox-field")
+              columnType =
+                if columnName == "user_id"
+                  "string"
+                else
+                  _.find(table.columns, (c) -> c.name == columnName).type
+
+              memo[columnName] =
+                if columnType == "integer" || columnType == "bigint"
+                  parseInt(control.val())
+                else if columnType == "float" || columnType == "double"
+                  parseFloat(control.val())
+                else if columnType == "boolean"
+                  control.val().toLowerCase() == "true"
+                else
+                  control.val()
+
+              memo
+            {table: table.name}
+          )
+      data.addTestUser(testUser)
+      renderSandboxEditor()
+    )
+
+  runInSandbox = (e) ->
+    handleEventAndCancel(e, ->
+          codeEditor.save()
+          response = $.ajax(
+            type: "POST",
+            url: "/sandbox/run",
+            async: false,
+            processData: false,
+            dataType: "json",
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify({
+                  payload: JSON.stringify({
+                        users_data: data.testJson(),
+                        code: $("#task_code").val()
+                      })
+                })
+          )
+          $("#sandboxResult").html("HTTP #{response.status}\n#{response.responseText}")
+        )
+
 
   # ------------------------------------
   # Constructor
@@ -82,7 +142,10 @@ Tasks.Editor = (tables, operators) ->
     events:
       "change #task_cluster_id": render
       "change #newTableName": showHideAddTable
+      "change #sandboxUserTable": renderUserControls
       "click #addTable": addTable
+      "click #addSandboxUser": addSandboxUser
+      "click #runInSandbox": runInSandbox
       "click [data-remove-table]": removeTable
       "click [data-edit-filter]": editFilter
       "submit": submit

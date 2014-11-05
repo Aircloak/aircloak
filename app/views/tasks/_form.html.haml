@@ -5,47 +5,51 @@
     $(document).ready ->
       new Tasks.Editor(#{@tables_json}, #{PrefetchFilter::OperatorSqlToCloak.to_json})
 
-.form-container
-  = form_for @task, :html => {:id => "taskEditor", :class => "form-horizontal new_query"} do |f|
-    - if @task.errors.any?
-      .well.alert-error
-        %h3= "#{pluralize(@task.errors.count, "error")} prohibited this task from being saved:"
-        %ul
-          - @task.errors.full_messages.each do |msg|
-            %li= msg
-
-    .control-group
-      = control_label "Task name"
-      .controls
-        = f.text_field :name
-    - if current_user.has_multiple_clusters?
-      .control-group
-        = control_label "Belongs to cluster"
-        .controls
-          = f.select :cluster_id, current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
-    - else
-      = hidden_field_tag "task[cluster_id]", current_user.ready_clusters.first.id
-
-    .control-group
-      = control_label "Data", tooltip: "data"
-      .controls
-        = f.hidden_field :data
-        #prefetchTables
-    - if @task.has_exceptions?
-      .control-group
-        = control_label "Exceptions", tooltip: "exceptions"
-        .controls
-          = "Your current implementation has #{pluralize(@task.latest_exceptions.count, "exception")}:"
+#taskEditor
+  .form-container
+    = form_for @task, :html => {:class => "form-horizontal new_query"} do |f|
+      - if @task.errors.any?
+        .well.alert-error
+          %h3= "#{pluralize(@task.errors.count, "error")} prohibited this task from being saved:"
           %ul
-            - @task.latest_exceptions.each do |exception|
-              %li
-                = "#{exception.count} occurrances of"
-                %strong= exception.stacktrace
+            - @task.errors.full_messages.each do |msg|
+              %li= msg
 
-    .control-group
-      = control_label "Code", tooltip: "code"
-      .controls
-        = f.text_area :code
-    .control-group
-      .controls
-        = f.submit 'Save', :class => "btn btn-success"
+      .control-group
+        = control_label "Task name"
+        .controls
+          = f.text_field :name
+      - if current_user.has_multiple_clusters?
+        .control-group
+          = control_label "Belongs to cluster"
+          .controls
+            = f.select :cluster_id, current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
+      - else
+        = hidden_field_tag "task[cluster_id]", current_user.ready_clusters.first.id
+
+      .control-group
+        = control_label "Data", tooltip: "data"
+        .controls
+          = f.hidden_field :data
+          #prefetchTables
+      - if @task.has_exceptions?
+        .control-group
+          = control_label "Exceptions", tooltip: "exceptions"
+          .controls
+            = "Your current implementation has #{pluralize(@task.latest_exceptions.count, "exception")}:"
+            %ul
+              - @task.latest_exceptions.each do |exception|
+                %li
+                  = "#{exception.count} occurrances of"
+                  %strong= exception.stacktrace
+
+      .control-group
+        = control_label "Code", tooltip: "code"
+        .controls
+          = f.text_area :code
+      .control-group
+        .controls
+          = f.submit 'Save', :class => "btn btn-success"
+  %hr
+  %h3= "Testing"
+  #sandboxRunner

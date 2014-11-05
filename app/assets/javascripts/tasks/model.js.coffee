@@ -12,18 +12,28 @@ Tasks.Data = (tables) ->
 
   tableFilters = []
   clusterId = null
+  testUsers = []
 
-  availableTables = ->
-    selectedTables = _.reduce(
+  selectedTablesMap = ->
+    _.reduce(
           tableFilters,
           (memo, filter) ->
             memo[filter.table().id] = true
             memo
           {}
         )
+
+  selectedTables = ->
     result = _.filter(
           tables,
-          (table) -> !selectedTables[table.id] && table.cluster_id == clusterId
+          (table) -> selectedTablesMap()[table.id] && table.cluster_id == clusterId
+        )
+    _.sortBy(result, "name")
+
+  availableTables = ->
+    result = _.filter(
+          tables,
+          (table) -> !selectedTablesMap()[table.id] && table.cluster_id == clusterId
         )
     _.sortBy(result, "name")
 
@@ -36,6 +46,7 @@ Tasks.Data = (tables) ->
     clear: -> tableFilters = []
 
     availableTables: -> availableTables()
+    selectedTables: -> selectedTables()
     tableFilter: (id) -> tableFilters[id]
     tableFilters: -> tableFilters
 
@@ -62,6 +73,36 @@ Tasks.Data = (tables) ->
     selectClusterId: (newClusterId) ->
       clusterId = newClusterId
       tableFilters = _.filter(tableFilters, (filter) -> (filter.table().cluster_id == clusterId))
+
+    table: (id) ->
+      _.find(tables, (table) -> table.id == parseInt(id))
+
+    addTestUser: (testUser) -> testUsers.push(testUser)
+
+    testUsersTexts: ->
+      _.map(testUsers, JSON.stringify)
+
+    testJson: ->
+      usersData = {}
+      _.each(testUsers, (testUser) ->
+            usersData[testUser.table] ||= {columns: [], data: {}}
+            targetTable = usersData[testUser.table]
+            userRow = []
+
+            iterator = ([field, value]) ->
+              return if field == "table" || field == "user_id"
+              columnIndex = targetTable.columns.indexOf(field)
+              if columnIndex == -1
+                targetTable.columns.push(field)
+                columnIndex = targetTable.columns.indexOf(field)
+              userRow[columnIndex] = value
+
+            _.each(_.pairs(testUser), iterator)
+
+            targetTable.data[testUser.user_id] ||= []
+            targetTable.data[testUser.user_id].push(userRow)
+          )
+      usersData
   })
 
 

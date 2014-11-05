@@ -100,5 +100,7 @@ Web::Application.routes.draw do
   get "impersonate/:analyst_id", to: "impersonation#impersonate"
   get "i_dont_want_to_be_an_imposter", to: "impersonation#stop_it"
 
+  post "/sandbox/run", to: "sandbox#run"
+
   root to: 'welcome#index'
 end
