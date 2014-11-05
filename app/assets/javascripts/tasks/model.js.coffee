@@ -79,6 +79,24 @@ Tasks.Data = (tables) ->
 
     addTestUser: (testUser) -> testUsers.push(testUser)
 
+    sampleTestUser: (table) ->
+      _.reduce(
+            table.columns,
+            (memo, column) ->
+              val =
+                if column.type == "integer" || column.type == "bigint"
+                  Math.floor(Math.random() * 100)
+                else if column.type == "float" || column.type == "double"
+                  Math.floor(Math.random() * 100) + 0.01 * Math.floor(Math.random() * 100)
+                else if column.type == "boolean"
+                  (Math.floor(Math.random() * 2) == 1).toString()
+                else
+                  "foobar"
+              memo[column.name] = val
+              memo
+            {user_id: "user_#{testUsers.length + 1}"}
+          )
+
     testUsersTexts: ->
       _.map(testUsers, JSON.stringify)
 

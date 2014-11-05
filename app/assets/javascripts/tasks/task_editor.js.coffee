@@ -78,7 +78,16 @@ Tasks.Editor = (tables, operators) ->
 
   renderUserControls = () ->
     table = data.table($("#sandboxUserTable").val())
-    $("#userEntryControls").html(HandlebarsTemplates["tasks/sandbox_user"](table))
+    if table
+      $("#userEntryControls").html(HandlebarsTemplates["tasks/sandbox_user"](table))
+      sampleData = data.sampleTestUser(table)
+      _.each($("[data-sandbox-field]"),
+            (el) ->
+              el = $(el)
+              el.val(sampleData[el.data("sandbox-field")] || "")
+          )
+    else
+      $("#userEntryControls").html("")
 
   addSandboxUser = (e) ->
     handleEventAndCancel(e, ->
