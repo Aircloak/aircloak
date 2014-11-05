@@ -8,110 +8,75 @@ airpub
 ----------------------
 
 - [What it does](#what-it-does)
+- [Design](#design)
 - [Getting started](#getting-started)
+- [Deploying](#deploying)
 
 ----------------------
 
+
 # What it does
 
-Airpub is a distribution centre for anonymized metrics.
+Airpub is a distribution centre for anonymized metrics and results.
 
-cloak-core sends results to airpub, which in turn persists the results to the database.
-Analysts can also subscribe to particular queries in airpub, and get results sent directly
-as they become available. This is necessary for streaming queries, but also extremely useful
+cloak-core sends data to airpub, which in turn persists the data to the database.
+Analysts can also subscribe to particular queries in airpub, and get data sent directly
+as it becomes available. This is necessary for streaming queries, but also extremely useful
 for batch queries.
 
-## Initial design sketch
 
-XMPP has support for [pubsub](http://www.xmpp.org/extensions/xep-0060.html) and a proven track record.
-I think it would be foolish to try to replicate what already exists.
-[ejabberd](http://www.ejabberd.im/) seems to be the golden standard when it comes to Jabber servers, and has full pubsub support.
-I suggest we start experimenting with it and see if it works and suits our needs.
+## Design
 
-### Authorization
+The main attributes prioritized during the design of the airpub system were:
 
-There are two stages to authorization:
+  - reduced latency - we want articles to reach subscribers as fast as possible.
+  - security - we only want authorized by web subscribers to be able to receive notifications and only cloak-core to publish data.
+  - abstracted subscription mechanism - we should be able to subscribe to certain nodes using multiple mechanisms: http requests, web-sockets or plain TCP connections.
+  - stateless execution - it should result in lower maintenance overhead and simpler design to have a system that doesn't need to store state on disk between executions (less things to go wrong, less room for failures).
 
-- authentication when logging onto the jabber server
-- authentication when subscribing to a node
+Although systems like Ejabberd or Redis have proven pubsub features that scale to lots of concurrent users, our usage model doesn't map 100% over them and bolting all our needed features on top of them is not ideal, as we would soon start to add lots of hacks so that we bend them to our needs. The decision was made to have a simple Erlang pubsub system that we fully control.
 
-#### Server auth
-
-ejabberd provides a plugin infrastructure where we can provide a tool that [is queried when users attempt to log in](http://www.ejabberd.im/extauth).
-ejabberd is written in Erlang, and if I am not mistaken this is implemented as a port.
-
-We can write a lightweight wrapper that checks authentications against the web to verify if a given user should have access or not.
-
-#### Node subscription
-
-The terminology might not be quite right, but I believe a _stream_ is called a node.
-When publishing you publish to a certain node (for example `/<analyst-id>/<query-id>/...`), and when you subscribe you can attach to any point in this tree structure. For example subscribing to `/<analyst-id>` is as valid as subscribing to `/<analyst-id>/<query-id>/<bucket-name>`.
-
-A subscriber does not receive any updates to a subscription before an owner has granted the subscriber permissions.
-This means, I believe, we need to implement an XMPP user account that grants connectees access, based on what they are allowed to subscribe to.
-Again this component can confer with the web.
-
-This model is very convenient for making short lived test sessions in the web. You can run a query, and then use a web based XMPP client to connect to the server and wait for the response, and get it delivered as soon as it is ready. The XMPP protocol supports temporary id's which don't persist in the server beyond the termination of the subscription. This is very convenient for this kind of use!
-
-##### strophe
-
-[strophe](http://strophe.im/strophejs/) is a XMPP library used for writing JavaScript client-side XMPP based apps.
-It uses BOSH to get XMPP support in the client. BOSH is a comet pulling technology which transports XMPP over HTTP. BOSH is natively supported by ejabberd.
-
-Here is a [tutorial](http://anders.conbere.org/2011/05/03/get_xmpp_-_bosh_working_with_ejabberd_firefox_and_strophe.html)
-
-##### exmpp
-
-exmpp is an erlang xmpp client.
-We could use it for validating user privileges when they subscribe to channels.
-
-It is written by process-one, who are also the authors of ejabberd.
-
-The source can be found on github: [exmpp](http://processone.github.io/exmpp/). It hasn't seen much change in recent years, but I assume that is because it is stable and works.
-The [erim](https://github.com/jeanparpaillon/erim) fork might be better for us. It has rebar support and seems more actively maintained.
-
-exmpp can also be used in the cloak itself to send results to the airpub ejabberd server.
+The current system provides web-socket support for subscribing to notifications and an HTTP endpoint for cloak-core to publish data.
+The publish endpoint will mirror the web endpoint so that cloak-core will not care if it talks with airpub or web. The endpoint is secured by using IP filtering in the nginx config, but we can also add client certificate support if needed.
+All subscribtion requests need to be authorized by the web component. In order to reduce latency and overhead, web and airpub share a secret key used for signing and authenticating the requests, without the need of active communication between the two systems. All subscriptions signatures expire after a fixed period of time (this requires web and airpub to have synchronized clocks).
+The system doesn't save any data on disk. Subscription nodes do not have to be pre-created for clients to publish or subscribe to them. All routing is done dynamically as requests come and go. The system will keep a history of published articles that will get sent to new subscribers, so there is no need to have the subscription executed before the article arrives, as long as the window between the event is short enough (which is most often the case).
 
 
-#### Privacy
+## Getting started
 
-We need to ensure that no discovery mechanisms allow people to see which other analysts, and tasks, are in the system!
-I am not sure how this works with ejabberd. It has to be researched.
+The routed data is represented internally as an article record. It has a content field (opaque, binary data), a content type (optional, usually MIME type) and publication path.
 
+The current publish endpoint accepts HTTP POST requests and sends them to the router module so that interested subscribers are notified.
+You can manually publish test data, from a device that is allowed access, using any HTTP tool you like. For example:
 
-### Post-processing
+```
+curl http://airpub.mpi-sws.org/publish/path/to/article -X POST -H "Content-Type: text/plain" --data "test article content"
+```
 
-Down the line, it seems like XMPP could also allow us to do some rather nifty inline and on-demand post-processing.
+Subscribing can be done using the web-socket endpoint in airpub.
+A subscribe request has the following format: "<hash> subscribe path=<path> timestamp=<timestamp>", where <hash> is the HMAC-SHA2 code of the rest of the request string and the shared secret.
+A notification will come in two frames: a text one with the article header and a binary one with the article content. The article header frame has the following format: "article path=<path> content_type=<content_type> published_at=<timestamp>".
 
-We could build some additional semantics into the node naming structure.
-For example if we have the subscribable path `/-/<analyst>/<query>/[<bucket>]`,
-we could also support `/processed/<processor-id>/-/<analyst>/<query>/[<bucket>]`
+  - <path> is a string specifying the article path (must not contain spaces or equals signs).
+  - <timestamp> is the number of miliseconds since the 1st of January 1970 UTC.
+  - <content_type> is the type of the article supplied by the publisher.
 
-Our XMPP-daemon would then notice that a processing path was being requested, and start a stream processor.
-The stream processor would in turn itself subscribe to the equivalent `/-/` path, and output to the path that was subscribed to.
-Potentially these could even be chained: `/processed/<processor-id1>/processed/<processor-id2>/-/<analyst>/<query>`, where the output
-of processor 2 is fed into processor 1.
+You can use the [test/index.html](test/index.html) page to test the subscription mechanism. You need to set the secret value to the predefined value in the page ("well-known secret").
 
-This needs some more thought, but looks like it could be very convenient for example in order to provide heatmaps.
+## Deploying
 
-#### Processors
+Airpub expects all external configuration data to be present in __../config/__, relative to the airpub release folder.
+Right now, only the __airpub_shared_secret__ file is needed.
 
-The processors could be written in Lua in order to allow us to easily interchange them later on, and even allow
-the analyst to write processors.
+To run locally, execute ```make start```.
 
-### Data persistence
-
-In order to have anonymized results persisted to the database so they can also be shown in the web interface on [hello.aircloak.com](https://hello.aircloak.com),
-we create one or multiple XMPP clients that subscribe to different nodes in the tree. They then directly persist data to Postgres as they receive it.
-As a result the Rails application no longer needs to be involved in persisting data at all.
-
-## Running locally
-
-We need to make it so that we can run the whole setup locally for testing.
-Getting ejabberd running locally should not be a problem.
-We need to instruct cloak-core where to send results to though, and we also need to configure the data persistence daemon to persist the anonymous results in the right database.
-This can probably be done through environmental variables with sensible defaults?
-
-# Getting started
-
-To be completed once we have a minimal version.
+To create a release, execute the ```make rel``` command. You can find the release files in the __rel/airpub__ folder.
+To deploy the component on the airpub server, first pack the release in a tar archive (from the __rel__ folder execute ```tar -czf airpub.tar.gz airpub/*```) and then copy it to __airpub.mpi-sws.org__ in the __/root__ folder. Log in the server and execute:
+```
+cd /aircloak
+airpub/bin/airpub stop
+mv airpub airpub.old
+tar -zxf /root/airpub.tar.gz
+airpub/bin/airpub start
+```
+or, alternatively, the __update_airpub.sh__ script found in __/aircloak__.
