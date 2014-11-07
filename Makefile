@@ -7,9 +7,17 @@ compile:
 
 deps: deps/.make
 
-deps/.make:
+deps/.make: rebar.config.lock
 	rm -rf deps
+	./rebar -C rebar.config.lock get-deps
+	touch deps/.make
+
+update-deps:
+	rm -f rebar.config.lock
+	rm -rf ./deps
 	./rebar get-deps
+	./rebar compile
+	./rebar lock-deps
 	touch deps/.make
 
 clean:
