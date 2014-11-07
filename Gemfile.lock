@@ -151,6 +151,11 @@ GEM
       multi_json (~> 1.4)
       nokogiri (~> 1.6.0)
       oauth2
+    hamlbars (2.1.1)
+      execjs (>= 1.2)
+      haml
+      sprockets (>= 2.0)
+      tilt
     handlebars_assets (0.15)
       execjs (>= 1.2.9)
       multi_json
@@ -305,6 +310,7 @@ DEPENDENCIES
   github_api
   haml!
   haml-rails!
+  hamlbars (~> 2.1)
   handlebars_assets
   jquery-rails
   less-rails

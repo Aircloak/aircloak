@@ -19,6 +19,8 @@ defaults: &defaults
     enabled: true
   results:
     max_per_query: 4
+  local_sandbox:
+    endpoint: http://127.0.0.1:11000
 
 development:
   <<: *defaults

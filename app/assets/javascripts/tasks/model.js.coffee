@@ -12,18 +12,28 @@ Tasks.Data = (tables) ->
 
   tableFilters = []
   clusterId = null
+  testUsers = []
 
-  availableTables = ->
-    selectedTables = _.reduce(
+  selectedTablesMap = ->
+    _.reduce(
           tableFilters,
           (memo, filter) ->
             memo[filter.table().id] = true
             memo
           {}
         )
+
+  selectedTables = ->
     result = _.filter(
           tables,
-          (table) -> !selectedTables[table.id] && table.cluster_id == clusterId
+          (table) -> selectedTablesMap()[table.id] && table.cluster_id == clusterId
+        )
+    _.sortBy(result, "name")
+
+  availableTables = ->
+    result = _.filter(
+          tables,
+          (table) -> !selectedTablesMap()[table.id] && table.cluster_id == clusterId
         )
     _.sortBy(result, "name")
 
@@ -36,6 +46,7 @@ Tasks.Data = (tables) ->
     clear: -> tableFilters = []
 
     availableTables: -> availableTables()
+    selectedTables: -> selectedTables()
     tableFilter: (id) -> tableFilters[id]
     tableFilters: -> tableFilters
 
@@ -62,6 +73,64 @@ Tasks.Data = (tables) ->
     selectClusterId: (newClusterId) ->
       clusterId = newClusterId
       tableFilters = _.filter(tableFilters, (filter) -> (filter.table().cluster_id == clusterId))
+
+    table: (id) ->
+      _.find(tables, (table) -> table.id == parseInt(id))
+
+    addTestUser: (testUser) -> testUsers.push(testUser)
+    removeTestUser: (userId) ->
+      testUsers = _.filter(testUsers, (testUser) -> testUser.user_id != userId)
+
+    sampleTestUser: (table) ->
+      nextId = 1 + _.reduce(
+            testUsers,
+            (memo, testUser) ->
+              currentSuffix = parseInt(testUser.user_id.replace("user_", ""))
+              Math.max(memo, currentSuffix)
+            0
+          )
+
+      _.reduce(
+            table.columns,
+            (memo, column) ->
+              val =
+                if column.type == "integer" || column.type == "bigint"
+                  Math.floor(Math.random() * 100)
+                else if column.type == "float" || column.type == "double"
+                  Math.floor(Math.random() * 100) + 0.01 * Math.floor(Math.random() * 100)
+                else if column.type == "boolean"
+                  (Math.floor(Math.random() * 2) == 1).toString()
+                else
+                  "foobar"
+              memo[column.name] = val
+              memo
+            {user_id: "user_#{nextId}"}
+          )
+
+    testUsers: ->
+      _.map(testUsers, (testUser) -> {data: testUser, text: JSON.stringify(testUser)})
+
+    testJson: ->
+      usersData = {}
+      _.each(testUsers, (testUser) ->
+            usersData[testUser.table] ||= {columns: [], data: {}}
+            targetTable = usersData[testUser.table]
+            userRow = []
+
+            iterator = ([field, value]) ->
+              return if field == "table" || field == "user_id"
+              columnIndex = targetTable.columns.indexOf(field)
+              if columnIndex == -1
+                targetTable.columns.push(field)
+                columnIndex = targetTable.columns.indexOf(field)
+              userRow[columnIndex] = value
+
+            _.each(_.pairs(testUser), iterator)
+
+            targetTable.data[testUser.user_id] ||= []
+            targetTable.data[testUser.user_id].push(userRow)
+          )
+      usersData
   })
 
 

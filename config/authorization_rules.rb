@@ -38,6 +38,7 @@ authorization do
     has_permission_on [
       :help
     ], to: :read
+    has_permission_on [:sandbox], to: :run
   end
 
   role :admin do

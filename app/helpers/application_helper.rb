@@ -14,7 +14,7 @@ module ApplicationHelper
     label = <<-END
       <label class="control-label">
         #{label}
-        #{options[:tooltip].nil? ? "" : (help_tooltip options[:tooltip])}
+        #{options[:tooltip].nil? ? "" : (help_tooltip options[:tooltip], options[:controller])}
       </label>
     END
     label.html_safe
@@ -31,8 +31,8 @@ module ApplicationHelper
           controller.action_name == "edit")
   end
 
-  def help_tooltip field
-    tip = tip_for(request.params["controller"], field)
+  def help_tooltip(field, controller = nil)
+    tip = tip_for(controller || request.params["controller"], field)
     return "" if tip.nil?
     result = <<-END
       <a class="btn btn-mini btn-info tip"
