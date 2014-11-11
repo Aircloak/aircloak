@@ -131,10 +131,9 @@ Tasks.Editor = (tables, operators) ->
             dataType: "json",
             contentType: "application/json; charset=utf-8",
             data: JSON.stringify({
-                  payload: JSON.stringify({
-                        users_data: data.testJson(),
-                        code: $("#task_code").val()
-                      })
+                  task_spec:
+                    users_data: data.testJson(),
+                    code: $("#task_code").val()
                 })
           )
           $("#sandboxResult").html("HTTP #{response.status}\n#{response.responseText}")
