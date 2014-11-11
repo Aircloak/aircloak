@@ -3,7 +3,7 @@
 = content_for :javascript do
   :coffeescript
     $(document).ready ->
-      new Tasks.Editor(#{@tables_json}, #{PrefetchFilter::OperatorSqlToCloak.to_json})
+      new Tasks.Editor(#{@completions}, #{@tables_json}, #{PrefetchFilter::OperatorSqlToCloak.to_json})
 
 #taskEditor
   .form-container

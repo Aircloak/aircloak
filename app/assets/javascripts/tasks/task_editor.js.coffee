@@ -1,7 +1,7 @@
 # Setup the global namespace
 window.Tasks or= {}
 
-Tasks.Editor = (tables, operators) ->
+Tasks.Editor = (completions, tables, operators) ->
   self = this
 
   # ------------------------------------
@@ -23,8 +23,40 @@ Tasks.Editor = (tables, operators) ->
     parseInt($('#task_cluster_id').val())
 
   initCodeEditor = ->
+    CodeMirror.commands.autocomplete = (cm) ->
+      # Initializes auto-completion
+      cm.showHint(
+            hint:
+              (editor, options) ->
+                # Custom hint function. It determines the word at the cursor, and
+                # then returns all choices from the selection provided during by
+                # the rails controller.
+
+                regex = /(\w|\.)/
+                cur = editor.getCursor()
+                curLine = editor.getLine(cur.line)
+                start = cur.ch
+                end = start
+
+                # find start and end of the word
+                while (end < curLine.length && regex.test(curLine.charAt(end)))
+                  end++
+                while (start > 0 && regex.test(curLine.charAt(start - 1)))
+                  start--
+
+                curWord = curLine.slice(start, end)
+                list = _.filter(completions, (candidate) -> candidate.text.indexOf(curWord) == 0)
+
+                return {
+                  list: _.sortBy(list, "text"),
+                  from: CodeMirror.Pos(cur.line, start),
+                  to: CodeMirror.Pos(cur.line, end)
+                }
+          )
+
     codeEditor = CodeMirror.fromTextArea(document.getElementById("task_code"), {
-      lineNumbers: true, mode: "lua", vimMode: false, matchBrackets: true, showCursorWhenSelecting: true
+      lineNumbers: true, mode: "lua", vimMode: false, matchBrackets: true, showCursorWhenSelecting: true,
+      extraKeys: {"Ctrl-Space": "autocomplete"}
     })
 
   showHideAddTable = ->
