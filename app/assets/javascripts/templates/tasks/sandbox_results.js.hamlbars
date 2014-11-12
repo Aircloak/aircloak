@@ -1,0 +1,10 @@
+%table.table.table-striped
+  %thead
+    %tr
+      %th User
+      %th Bucket
+  %tbody
+    = hb "each ." do
+      %tr
+        %td= hb "user"
+        %td= hb "bucket"

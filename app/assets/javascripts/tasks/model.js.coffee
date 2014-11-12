@@ -130,7 +130,11 @@ Tasks.Data = (tables) ->
           )
 
     testUsers: ->
-      _.map(testUsers, (testUser) -> {data: testUser, text: JSON.stringify(testUser)})
+      _.map(
+            _.sortBy(testUsers, (user) -> "#{user.user_id}_#{user.table}"),
+            (user) ->
+              _.extend({fields: JSON.stringify(_.omit(user, "table", "user_id"))}, user)
+          )
 
     testJson: ->
       usersData = {}

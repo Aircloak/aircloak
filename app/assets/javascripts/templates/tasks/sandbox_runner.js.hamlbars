@@ -7,14 +7,27 @@
 .form-container
   %form.form-horizontal.new_query{"accept-charset" => "UTF-8"}
     .control-group
-      = control_label "Data", controller: "tasks", tooltip: "sandbox_data"
+      = control_label "Output", controller: "tasks", tooltip: "sandbox_output"
       .controls
-        = hb "each testUsers" do
-          %div
-            %span
-              %a{:href => "#", :"data-remove-test-user" => true, :"data-user-id" => hb("data.user_id")} X
-              &nbsp;
-              = hb "text"
+        #sandboxResult
+    .control-group
+      = control_label "Input", controller: "tasks", tooltip: "sandbox_data"
+      .controls
+        %table.table.table-striped
+          %thead
+            %th
+            %th user_id
+            %th table
+            %th fields
+          %tbody
+            = hb "each testUsers" do
+              %tr
+                %td
+                  %a{:href => "#", :"data-remove-test-user" => true, :"data-user-id" => hb("user_id")}
+                    X
+                %td= hb "user_id"
+                %td= hb "table"
+                %td= hb "fields"
     .control-group
       = control_label "Table", controller: "tasks", tooltip: "sandbox_table"
       .controls
@@ -25,8 +38,3 @@
               = hb "name"
     %div{"style" => "margin-left:73px;"}
       #userEntryControls
-    %br
-    .control-group
-      %label.control-label Output
-      .controls
-        %pre#sandboxResult/

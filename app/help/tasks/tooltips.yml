@@ -46,6 +46,10 @@ exceptions:
     to an error in a part of your task that is only conditionally
     executed.
   markdown: true
+sandbox_output:
+  content: |
+    Output of the test sandbox execution.
+  markdown: true
 sandbox_data:
   content: |
     Test data which will be provided to the sandbox task.
