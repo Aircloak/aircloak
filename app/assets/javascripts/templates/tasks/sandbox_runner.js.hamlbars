@@ -27,9 +27,6 @@
       #userEntryControls
     %br
     .control-group
-      .controls
-        %a#runInSandbox.btn.btn-small{:href => "#"} Run
-    .control-group
       %label.control-label Output
       .controls
         %pre#sandboxResult/

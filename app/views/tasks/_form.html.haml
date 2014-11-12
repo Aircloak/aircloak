@@ -50,6 +50,7 @@
       .control-group
         .controls
           = f.submit 'Save', :class => "btn btn-success"
+          %a#runInSandbox.btn.btn-small{:href => "#"} Run
   %hr
   %h3= "Testing"
   #sandboxRunner
