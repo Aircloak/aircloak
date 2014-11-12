@@ -30,17 +30,23 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
         HandlebarsTemplates["tasks/task_exceptions"](count: taskExceptions.length, exceptions: taskExceptions)
     $("#taskExceptions").html(html)
 
-  renderSaveInfo = ->
+  saveInfo = ->
     if changed
-      $("#taskStatus").
-          removeClass("hidden alert-error alert-info").addClass("alert-info").
-          html("You didn't test the task since last changes were done. The task may not work properly.")
+      class: "alert-info",
+      message: "You didn't test the task since last changes were done. The task may not work properly."
     else if taskExceptions.length > 0
-      $("#taskStatus").
-          removeClass("hidden alert-error alert-info").addClass("alert-error").
-          html("Last run produced some errors. The task can be saved, but it will not work properly.")
+      class: "alert-error",
+      message: "Last run produced some errors. The task can be saved, but it will not work properly."
     else
-      $("#taskStatus").removeClass("hidden alert-error alert-info").addClass("hidden")
+      class: "hidden",
+      message: ""
+
+  renderSaveInfo = ->
+    si = saveInfo()
+    $("#taskStatus").
+          removeClass("hidden alert-error alert-info").
+          addClass(si.class).
+          html(si.message)
 
   selectedClusterId = ->
     parseInt($('#task_cluster_id').val())
@@ -77,10 +83,22 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
                 }
           )
 
+    CodeMirror.commands.runInSandbox = doRunInSandbox
+
+    CodeMirror.commands.save = (cm) ->
+      unless saveInfo().message.length == 0 || window.confirm("#{saveInfo().message}\n\nSave anyway?")
+        return
+      $("#task_code").closest('form').submit()
+
     codeEditor = CodeMirror.fromTextArea(document.getElementById("task_code"), {
       lineNumbers: true, mode: "lua", vimMode: false, matchBrackets: true, showCursorWhenSelecting: true,
-      extraKeys: {"Ctrl-Space": "autocomplete"}
+      extraKeys: {
+        "Ctrl-Space": "autocomplete",
+        "Ctrl-R": "runInSandbox"
+        "Ctrl-S": "save"
+      }
     })
+
     codeEditor.on("change", () ->
           if !changed
             changed = true
@@ -181,26 +199,27 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
     )
 
   runInSandbox = (e) ->
-    handleEventAndCancel(e, ->
-          codeEditor.save()
-          response = $.ajax(
-            type: "POST",
-            url: "/sandbox/run",
-            async: false,
-            processData: false,
-            dataType: "json",
-            contentType: "application/json; charset=utf-8",
-            data: JSON.stringify({
-                  task_spec:
-                    users_data: data.testJson(),
-                    code: $("#task_code").val()
-                })
-          )
-          changed = false
-          reportSandboxErrors(response)
-          renderSaveInfo()
-          $("#sandboxResult").html("HTTP #{response.status}\n#{response.responseText}")
-        )
+    handleEventAndCancel(e, doRunInSandbox)
+
+  doRunInSandbox = () ->
+    codeEditor.save()
+    response = $.ajax(
+      type: "POST",
+      url: "/sandbox/run",
+      async: false,
+      processData: false,
+      dataType: "json",
+      contentType: "application/json; charset=utf-8",
+      data: JSON.stringify({
+            task_spec:
+              users_data: data.testJson(),
+              code: $("#task_code").val()
+          })
+    )
+    changed = false
+    reportSandboxErrors(response)
+    renderSaveInfo()
+    $("#sandboxResult").html("HTTP #{response.status}\n#{response.responseText}")
 
   reportSandboxErrors = (response) ->
     taskExceptions =
