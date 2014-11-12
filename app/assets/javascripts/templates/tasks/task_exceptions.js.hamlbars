@@ -1,0 +1,15 @@
+:ruby
+  ::Rails.application.assets.context_class.class_eval do
+    include ApplicationHelper
+    include ERB::Util
+  end
+
+.control-group
+  = control_label "Exceptions", tooltip: "exceptions", controller: "tasks"
+  .controls
+    = "Your current implementation has #{hb "count"} errors:"
+    %ul
+      =hb "each exceptions" do
+        %li
+          = "#{hb "count"} occurrances of"
+          %strong= hb "message"

@@ -8,6 +8,7 @@ class TasksController < ApplicationController
       :latest_results]
   before_action :set_tables_json, only: [:edit, :new]
   before_action :set_auto_completions, only: [:edit, :new]
+  before_action :set_task_exceptions, only: [:edit, :new]
 
   # GET /tasks
   def index
@@ -132,6 +133,16 @@ private
     end
 
     @completions = completions.to_json
+  end
+
+  def set_task_exceptions
+    if @task.has_exceptions?
+      @task_exceptions = @task.latest_exceptions.
+          map {|e| {message: e.stacktrace, count: e.count}}.
+          to_json
+    else
+      @task_exceptions = [].to_json
+    end
   end
 
   def task_params

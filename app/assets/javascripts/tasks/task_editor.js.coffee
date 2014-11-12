@@ -1,7 +1,7 @@
 # Setup the global namespace
 window.Tasks or= {}
 
-Tasks.Editor = (completions, tables, operators) ->
+Tasks.Editor = (taskExceptions, completions, tables, operators) ->
   self = this
 
   # ------------------------------------
@@ -16,8 +16,17 @@ Tasks.Editor = (completions, tables, operators) ->
     data.selectClusterId(selectedClusterId())
     $("#prefetchTables").html(HandlebarsTemplates["tasks/prefetch_tables"](data))
     renderSandboxEditor()
+    renderExceptions()
     showHideAddTable()
     self
+
+  renderExceptions = ->
+    html =
+      if taskExceptions.length == 0
+        ""
+      else
+        HandlebarsTemplates["tasks/task_exceptions"](count: taskExceptions.length, exceptions: taskExceptions)
+    $("#taskExceptions").html(html)
 
   selectedClusterId = ->
     parseInt($('#task_cluster_id').val())
