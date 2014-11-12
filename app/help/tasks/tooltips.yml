@@ -33,6 +33,11 @@ code:
 
     You have access to the user data under `tables.TableName`
     and can report values using `report_property(PropertyName, Value)`.
+
+    Some useful hotkeys:
+    - __Ctrl-Space__: autocompletion
+    - __Ctrl-R__: runs the task in the test sandbox
+    - __Ctrl-S__: saves the task
   markdown: true
 exceptions:
   content: |
