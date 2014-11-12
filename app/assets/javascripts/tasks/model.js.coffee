@@ -37,6 +37,23 @@ Tasks.Data = (tables) ->
         )
     _.sortBy(result, "name")
 
+  removeTestUsersForTable = (tableName) ->
+    testUsers = _.filter(testUsers, (testUser) -> testUser.table != tableName)
+
+  addTableForTestUsers = (selectedTable) ->
+    if testUsers.length > 0
+      uniqueUsers = {}
+      _.each(testUsers, (testUser) -> uniqueUsers[testUser.user_id] = true)
+      _.each(
+            _.keys(uniqueUsers),
+            (userId) ->
+              sampleUser = self.sampleTestUser(selectedTable)
+              sampleUser.user_id = userId
+              self.addTestUser(_.extend({table: selectedTable.name}, sampleUser))
+          )
+    else
+      self.addTestUser(_.extend({table: selectedTable.name}, self.sampleTestUser(selectedTable)))
+
 
   # ------------------------------------
   # Constructor
@@ -55,6 +72,9 @@ Tasks.Data = (tables) ->
       if !selectedTable || selectedTable.cluster_id != clusterId
         throw(new Error("invalid table")) unless noThrow
         return
+
+      addTableForTestUsers(selectedTable)
+
       tableFilter = new TableFilter(selectedTable, tableFilterDescriptor)
       tableFilters.push(tableFilter)
       tableFilter
@@ -68,7 +88,9 @@ Tasks.Data = (tables) ->
           )
 
     removeTableFilter: (index) ->
-      tableFilters.splice(index, 1)
+      removed = tableFilters.splice(index, 1)
+      if removed[0]
+        removeTestUsersForTable(removed[0].table().name)
 
     selectClusterId: (newClusterId) ->
       clusterId = newClusterId
