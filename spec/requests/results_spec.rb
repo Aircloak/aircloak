@@ -1,5 +1,6 @@
 require 'spec_helper'
 require './lib/proto/air/aggregate_results.pb'
+require 'json'
 
 describe "ResultsController" do
   setup :activate_authlogic
@@ -32,6 +33,8 @@ describe "ResultsController" do
       # the security checks of the controller
       pr = double("pending result")
       PendingResult.should_receive(:where).and_return([pr])
+      PendingResult.should_receive(:where).and_return([pr])
+      pr.should_receive(:task_id).and_return(t.id)
       pr.should_receive(:task_id).and_return(t.id)
       pr.stub(:destroy)
 
@@ -52,13 +55,14 @@ describe "ResultsController" do
       )
 
       with_user user do
-        post "/results", rp.encode.buf
+        post "/results", rp.encode.buf, { 'Content-Type' => "application/x-protobuf" }
+        post "/results", rp.to_json, { 'Content-Type' => "application/json" }
       end
 
-      Result.count.should eq(1)
-      Bucket.count.should eq(2)
-      Bucket.all.map(&:str_answer).sort.should eq(["Chrome", "Safari"])
-      Bucket.all.map(&:accumulated_count).should eq([2,30])
+      Result.count.should eq(2)
+      Bucket.count.should eq(4)
+      Bucket.all.map(&:str_answer).sort.should eq(["Chrome", "Chrome", "Safari", "Safari"])
+      Bucket.all.map(&:accumulated_count).should eq([2,30,2,30])
 
       response.status.should be(200)
     end
