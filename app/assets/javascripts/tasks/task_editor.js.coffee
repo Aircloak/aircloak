@@ -11,12 +11,14 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
   data = null
   view = null
   codeEditor = null
+  changed = false
 
   render = ->
     data.selectClusterId(selectedClusterId())
     $("#prefetchTables").html(HandlebarsTemplates["tasks/prefetch_tables"](data))
     renderSandboxEditor()
     renderExceptions()
+    renderSaveInfo()
     showHideAddTable()
     self
 
@@ -27,6 +29,18 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
       else
         HandlebarsTemplates["tasks/task_exceptions"](count: taskExceptions.length, exceptions: taskExceptions)
     $("#taskExceptions").html(html)
+
+  renderSaveInfo = ->
+    if changed
+      $("#taskStatus").
+          removeClass("hidden alert-error alert-info").addClass("alert-info").
+          html("You didn't test the task since last changes were done. The task may not work properly.")
+    else if taskExceptions.length > 0
+      $("#taskStatus").
+          removeClass("hidden alert-error alert-info").addClass("alert-error").
+          html("Last run produced some errors. The task can be saved, but it will not work properly.")
+    else
+      $("#taskStatus").removeClass("hidden alert-error alert-info").addClass("hidden")
 
   selectedClusterId = ->
     parseInt($('#task_cluster_id').val())
@@ -67,6 +81,11 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
       lineNumbers: true, mode: "lua", vimMode: false, matchBrackets: true, showCursorWhenSelecting: true,
       extraKeys: {"Ctrl-Space": "autocomplete"}
     })
+    codeEditor.on("change", () ->
+          if !changed
+            changed = true
+            renderSaveInfo()
+        )
 
   showHideAddTable = ->
     if (parseInt($("#newTableName").val()) > 0)
@@ -177,7 +196,9 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
                     code: $("#task_code").val()
                 })
           )
+          changed = false
           reportSandboxErrors(response)
+          renderSaveInfo()
           $("#sandboxResult").html("HTTP #{response.status}\n#{response.responseText}")
         )
 
