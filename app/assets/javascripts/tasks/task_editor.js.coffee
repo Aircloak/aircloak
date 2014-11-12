@@ -177,8 +177,18 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
                     code: $("#task_code").val()
                 })
           )
+          reportSandboxErrors(response)
           $("#sandboxResult").html("HTTP #{response.status}\n#{response.responseText}")
         )
+
+  reportSandboxErrors = (response) ->
+    taskExceptions =
+      if (response.status != 200)
+        [{message: "HTTP error #{response.status}", count: 1}]
+      else
+        (JSON.parse(response.responseText).errors || [])
+
+    renderExceptions()
 
   removeTestUser = (e) ->
     handleEventAndCancel(e, ->
