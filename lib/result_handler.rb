@@ -7,7 +7,7 @@ class ResultHandler
     new_result = Result.create(task: task)
     new_result.analyst = task.analyst
     # copy all properties as buckets
-    create_buckets proto.buckets, new_result.id if proto.buckets
+    create_buckets proto.buckets, new_result.id unless proto.buckets.blank?
     # copy all exceptions as exception_results
     unless proto.exceptions.blank?
       proto.exceptions.each {|ex| ExceptionResult.create_from_proto new_result, ex}
