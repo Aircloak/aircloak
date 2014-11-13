@@ -86,5 +86,4 @@ gem "rails-backbone", :github => "codebrew/backbone-rails", tag: "v1.1.0"
 gem 'underscore-rails', '~> 1.6.0'
 gem 'handlebars_assets'
 gem 'hamlbars', '~> 2.1'
-gem 'angularjs-rails'
 gem 'codemirror-rails'
