@@ -7,8 +7,10 @@ Web::Application.routes.draw do
 
   # This action is for receiving information about
   # successful builds from Travis-CI.
-  # It will register a commit, so it can
-  # later be compiled as part of a build
+  # We no longer use this information.
+  # Remove this route and the corresponding controller
+  # as soon as we have removed the callback from
+  # the respective repositories.
   post 'register_version' => "register_version#create"
 
   # Resource for builds of cloak software.

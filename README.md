@@ -221,7 +221,6 @@ We require the following secrets:
 - the password used to unlock the private keys of analysts
 - an github OAuth token used by the web app to read meta data from github
 - a secret key base used for cookies
-- a token for Travis-CI
 
 All secrets need to be configured in `shared/config/settings.yml.local`
 
@@ -252,19 +251,6 @@ at least 30 characters. If you are setting up a new server which shall operate i
 servers, please re-use the secret from one of the other servers. Otherwise sessions will not be valid
 across multiple application servers!
 
-#### A token for Travis-CI
-
-Travis-CI sends us requests through a webhoook, that in turn start a build and then a full scale
-testing of a new image on our infrastructure. The cost of the resulting actions are quite high.
-If a malicious attacker would craft valid looking requests impersonating Travis-CI, our infrastructure
-could be completely blocked.
-Travis-CI passes an `Authorization` header along with the payload they send us. It is validated using
-amongst other things a token only known to us and Travis-CI.
-The token is stored under the Travis-CI account of Sebastian (due to how Travis-CI has built their services).
-Either copy from an existing infrastructure machine, or if this is the first machine that is being set up,
-please ask @sebastian for the token.
-
-More details can be found in the Travis-CI [documentation](http://docs.travis-ci.com/user/notifications/#Authorization-for-Webhooks).
 
 ## Testing
 

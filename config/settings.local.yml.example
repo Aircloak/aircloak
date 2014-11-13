@@ -22,9 +22,3 @@ development:
   # secure session ids in cookies.
   # For production, it should be at least 30 characters long.
   secret_key_base: 'replate with random secret'
-  # This token can be gotten off of magnum.travis-ci.com
-  # It is the token associated with Sebastian's travis-ci
-  # account... unfortunately Travis-CI uses the token associated
-  # with the account of the user who enabled Travis-CI builds for
-  # the organizations
-  travis_token: "token"
