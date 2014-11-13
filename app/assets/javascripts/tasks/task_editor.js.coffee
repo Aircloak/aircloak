@@ -51,43 +51,45 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
   selectedClusterId = ->
     parseInt($('#task_cluster_id').val())
 
+  # Custom hint function. It determines the word at the cursor, and
+  # then returns all choices from the selection provided during by
+  # the rails controller.
+  completionList = (cm, editor, options) ->
+    regex = /(\w|\.)/
+    cur = editor.getCursor()
+    curLine = editor.getLine(cur.line)
+    start = cur.ch
+    end = start
+
+    # find start and end of the word
+    while (end < curLine.length && regex.test(curLine.charAt(end)))
+      end++
+    while (start > 0 && regex.test(curLine.charAt(start - 1)))
+      start--
+
+    curWord = curLine.slice(start, end)
+
+    list =
+      _.chain([]).
+        union(
+              completions,
+              _.map(data.selectedTables(), (table) -> text: "tables.#{table.name}"),
+              _.map(CodeMirror.hint.anyword(cm, word: /[a-zA-Z_](\w)*/).list, (word) -> text: word)
+            ).
+        filter((candidate) -> candidate.text.indexOf(curWord) == 0).
+        uniq((el) -> el.text).
+        sortBy((el) -> el.text.toUpperCase()).
+        value()
+
+    return {
+      list: list,
+      from: CodeMirror.Pos(cur.line, start),
+      to: CodeMirror.Pos(cur.line, end)
+    }
+
   initCodeEditor = ->
     CodeMirror.commands.autocomplete = (cm) ->
-      # Initializes auto-completion
-      cm.showHint(
-            hint:
-              (editor, options) ->
-                # Custom hint function. It determines the word at the cursor, and
-                # then returns all choices from the selection provided during by
-                # the rails controller.
-
-                regex = /(\w|\.)/
-                cur = editor.getCursor()
-                curLine = editor.getLine(cur.line)
-                start = cur.ch
-                end = start
-
-                # find start and end of the word
-                while (end < curLine.length && regex.test(curLine.charAt(end)))
-                  end++
-                while (start > 0 && regex.test(curLine.charAt(start - 1)))
-                  start--
-
-                curWord = curLine.slice(start, end)
-
-                candidates = _.union(
-                      completions,
-                      _.map(data.selectedTables(), (table) -> text: "tables.#{table.name}")
-                    )
-
-                list = _.filter(candidates, (candidate) -> candidate.text.indexOf(curWord) == 0)
-
-                return {
-                  list: _.sortBy(list, "text"),
-                  from: CodeMirror.Pos(cur.line, start),
-                  to: CodeMirror.Pos(cur.line, end)
-                }
-          )
+      cm.showHint(hint: _.bind(completionList, null, cm))
 
     CodeMirror.commands.runInSandbox = doRunInSandbox
 
