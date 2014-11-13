@@ -162,49 +162,17 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
   renderSandboxEditor = () ->
     $("#sandboxRunner").html(HandlebarsTemplates["tasks/sandbox_runner"](data))
 
-  renderUserControls = () ->
-    table = data.table($("#sandboxUserTable").val())
-    if table
-      $("#userEntryControls").html(HandlebarsTemplates["tasks/sandbox_user"](table))
-      sampleData = data.sampleTestUser(table)
-      _.each($("[data-sandbox-field]"),
-            (el) ->
-              el = $(el)
-              el.val(sampleData[el.data("sandbox-field")] || "")
-          )
-    else
-      $("#userEntryControls").html("")
-
   addSandboxUser = (e) ->
     handleEventAndCancel(e, ->
-      table = data.table($("#sandboxUserTable").val())
-      testUser = _.reduce($("[data-sandbox-field]"),
-            (memo, control) ->
-              control = $(control)
-
-              columnName = control.data("sandbox-field")
-              columnType =
-                if columnName == "user_id"
-                  "string"
-                else
-                  _.find(table.columns, (c) -> c.name == columnName).type
-
-              memo[columnName] =
-                if columnType == "integer" || columnType == "bigint"
-                  parseInt(control.val())
-                else if columnType == "float" || columnType == "double"
-                  parseFloat(control.val())
-                else if columnType == "boolean"
-                  control.val().toLowerCase() == "true"
-                else
-                  control.val()
-
-              memo
-            {table: table.name}
-          )
-      data.addTestUser(testUser)
+          userId = data.newTestUserId()
+          _.each(
+                data.selectedTables(),
+                (table) ->
+                  testUser = data.sampleTestUser(table, userId)
+                  data.addTestUser(testUser)
+              )
+        )
       renderSandboxEditor()
-    )
 
   runInSandbox = (e) ->
     handleEventAndCancel(e, doRunInSandbox)
@@ -258,6 +226,55 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
           renderSandboxEditor()
         )
 
+  editSandboxUser = (e) ->
+    handleEventAndCancel(e, ->
+          target = $(e.target)
+          fields =
+            _.chain(data.findTestUser(target.data("table"), target.data("user-id"))).
+              pairs().
+              reduce(
+                    (memo, [field, value]) -> memo.push(name: field, value: value.toString()); memo
+                    []
+                  )
+              .value()
+          showSandboxUserEditor(target.data("table"), target.data("user-id"), fields)
+        )
+
+  showSandboxUserEditor = (tableName, userId, fields) ->
+    Popup.show(HandlebarsTemplates["tasks/sandbox_user"](fields: fields))
+    $("[data-sandbox-field]").focus()
+    $('#updateSandboxUser').on(
+          'click',
+          (e) -> handleEventAndCancel(e, -> updateSandboxUser(tableName, userId))
+        )
+
+  updateSandboxUser = (tableName, userId) ->
+    userData =
+      _.reduce(
+            $("[data-sandbox-field]"),
+            (memo, control) ->
+              control = $(control)
+              columnName = control.data("sandbox-field")
+              table = data.tableForName(tableName)
+              columnType = _.find(table.columns, (c) -> c.name == columnName).type
+
+              memo[columnName] =
+                if columnType == "integer" || columnType == "bigint"
+                  parseInt(control.val())
+                else if columnType == "float" || columnType == "double"
+                  parseFloat(control.val())
+                else if columnType == "boolean"
+                  control.val().toLowerCase() == "true"
+                else
+                  control.val()
+              memo
+            {}
+          )
+    $('#updateSandboxUser').off('click')
+    Popup.close()
+    data.updateTestUser(tableName, userId, userData)
+    renderSandboxEditor()
+
 
   # ------------------------------------
   # Constructor
@@ -269,13 +286,13 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
     events:
       "change #task_cluster_id": render
       "change #newTableName": showHideAddTable
-      "change #sandboxUserTable": renderUserControls
       "click #addTable": addTable
       "click #addSandboxUser": addSandboxUser
       "click #runInSandbox": runInSandbox
       "click [data-remove-table]": removeTable
       "click [data-edit-filter]": editFilter
       "click [data-remove-test-user]": removeTestUser
+      "click [data-edit-sandbox-user]": editSandboxUser
       "submit": submit
   })
 

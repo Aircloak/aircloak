@@ -47,12 +47,10 @@ Tasks.Data = (tables) ->
       _.each(
             _.keys(uniqueUsers),
             (userId) ->
-              sampleUser = self.sampleTestUser(selectedTable)
-              sampleUser.user_id = userId
-              self.addTestUser(_.extend({table: selectedTable.name}, sampleUser))
+              self.addTestUser(_.extend(self.sampleTestUser(selectedTable), user_id: userId))
           )
     else
-      self.addTestUser(_.extend({table: selectedTable.name}, self.sampleTestUser(selectedTable)))
+      self.addTestUser(self.sampleTestUser(selectedTable))
 
 
   # ------------------------------------
@@ -99,11 +97,24 @@ Tasks.Data = (tables) ->
     table: (id) ->
       _.find(tables, (table) -> table.id == parseInt(id))
 
+    tableForName: (name) ->
+      _.find(tables, (table) -> table.name == name)
+
     addTestUser: (testUser) -> testUsers.push(testUser)
     removeTestUser: (userId) ->
       testUsers = _.filter(testUsers, (testUser) -> testUser.user_id != userId)
 
-    sampleTestUser: (table) ->
+    updateTestUser: (tableName, userId, userData) ->
+      testUsers = _.map(
+            testUsers,
+            (testUser) ->
+              if testUser.table == tableName && testUser.user_id == userId
+                _.extend(testUser, userData)
+              else
+                testUser
+          )
+
+    newTestUserId: () =>
       nextId = 1 + _.reduce(
             testUsers,
             (memo, testUser) ->
@@ -111,7 +122,10 @@ Tasks.Data = (tables) ->
               Math.max(memo, currentSuffix)
             0
           )
+      "user_#{nextId}"
 
+    sampleTestUser: (table, userId) ->
+      userId ||= self.newTestUserId()
       _.reduce(
             table.columns,
             (memo, column) ->
@@ -126,7 +140,7 @@ Tasks.Data = (tables) ->
                   "foobar"
               memo[column.name] = val
               memo
-            {user_id: "user_#{nextId}"}
+            {table: table.name, user_id: userId}
           )
 
     testUsers: ->
@@ -135,6 +149,12 @@ Tasks.Data = (tables) ->
             (user) ->
               _.extend({fields: JSON.stringify(_.omit(user, "table", "user_id"))}, user)
           )
+
+    findTestUser: (tableName, userId) ->
+      _.chain(testUsers).
+        find((testUser) -> testUser.table == tableName && testUser.user_id == userId).
+        omit("table", "user_id").
+        value()
 
     testJson: ->
       usersData = {}

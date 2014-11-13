@@ -15,10 +15,14 @@
       .controls
         %table.table.table-striped
           %thead
-            %th
-            %th user_id
-            %th table
-            %th fields
+            %tr
+              %td{"colspan" => "4"}
+                %a#addSandboxUser.btn{:href => "#"} AddTestUser
+            %tr
+              %th
+              %th user_id
+              %th table
+              %th fields
           %tbody
             = hb "each testUsers" do
               %tr
@@ -27,14 +31,8 @@
                     X
                 %td= hb "user_id"
                 %td= hb "table"
-                %td= hb "fields"
-    .control-group
-      = control_label "Table", controller: "tasks", tooltip: "sandbox_table"
-      .controls
-        %select#sandboxUserTable
-          %option{:value => "-1"} -- select table --
-          = hb "each selectedTables" do
-            %option{:value => hb("id")}
-              = hb "name"
+                %td
+                  %a{"href" => "#", "data-edit-sandbox-user" => true, "data-user-id" => hb("user_id"), "data-table" => hb("table")}
+                    = hb "fields"
     %div{"style" => "margin-left:73px;"}
       #userEntryControls
