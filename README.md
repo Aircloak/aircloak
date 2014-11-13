@@ -47,6 +47,9 @@ The system doesn't save any data on disk. Subscription nodes do not have to be p
 The routed data is represented internally as an article record. It has a content field (opaque, binary data), a content type (optional, usually MIME type) and publication path.
 
 The current publish endpoint accepts HTTP POST requests and sends them to the router module so that interested subscribers are notified.
+You can also specify forward routes in the local configuration file. When an article is published to a matching path and after the article is published
+to all subscribers, it will be forwarded to the specified URL for further processing (like storage).
+This way we avoid reimplementing the same type of processing twice, but we assume the final endpoint has enough throughput to handle the traffic.
 You can manually publish test data, from a device that is allowed access, using any HTTP tool you like. For example:
 
 ```

@@ -54,8 +54,58 @@ handle_publish_request(<<"POST">>, Path, true, ContentType, Req) ->
   {ok, Body, Req2} = cowboy_req:body(Req),
   Article = #article{path = Path, content_type = ContentType, content = Body},
   router:publish(Article),
-  cowboy_req:reply(200, [], <<>>, Req2);
+  case get_forward_url(Path) of
+    undefined ->
+      cowboy_req:reply(200, [], <<>>, Req2);
+    ForwardUrl ->
+      lager:notice("Forwarding article published on ~s to ~s", [Path, ForwardUrl]),
+      ForwardHeaders = get_forward_headers(Path, Req2),
+      StatusCode = forward_article(ForwardUrl, ForwardHeaders, ContentType, Body),
+      cowboy_req:reply(StatusCode, [], <<>>, Req2)
+  end;
 handle_publish_request(<<"POST">>, _Path, false, _ContentType, Req) ->
   cowboy_req:reply(400, [], <<"Missing body.">>, Req); % Bad request.
 handle_publish_request(_Method, _Path, _HasBody, _ContentType, Req) ->
   cowboy_req:reply(405, Req). % Method not allowed
+
+% Returns the forward destination for the longest matching route.
+-spec get_forward_url(string()) -> undefined | string().
+get_forward_url(Path) ->
+  PathLength = string:len(Path),
+  {ok, Routes} = application:get_env(airpub, publishing_forward_routes),
+  {_Length, ForwardUrl} = lists:foldl(fun({SubPath, Url}, {MatchLength, MatchUrl}) ->
+      SubPathLength = string:len(SubPath),
+      case SubPathLength > MatchLength andalso SubPathLength =< PathLength andalso
+          string:substr(Path, 1, SubPathLength) =:= SubPath of
+        true ->
+          {SubPathLength, Url};
+        false ->
+          {MatchLength, MatchUrl}
+      end
+    end, {0, undefined}, Routes),
+  ForwardUrl.
+
+% Computes the header list to forward with the article content.
+-spec get_forward_headers(string(), term()) -> [tuple(string(), string())].
+get_forward_headers(Path, Req) ->
+  QueryAuthToken = header_to_string(cowboy_req:header(<<"queryauthtoken">>, Req)),
+  [{"Path", base64:encode_to_string(Path)}, {"QueryAuthToken", QueryAuthToken}].
+
+% Forwards the published article to another endpoint for further processing.
+-spec forward_article(string(), [tuple(string(), string())], string(), binary()) -> pos_integer().
+forward_article(Url, Headers, ContentType, Body) ->
+  Request = {Url, Headers, ContentType, Body},
+  try
+    case httpc:request(post, Request, [], []) of
+      {ok, {{_Version, Status, _StatusPhrase}, _Headers, _Reply}} ->
+        Status;
+      {error, Reason} ->
+        lager:error("Failed to forward article to ~s. Reason: ~p", [Url, Reason]),
+        500  % internal server error
+    end
+  catch
+    error:ErrorReason ->
+      lager:error("Failed to forward article to ~s, Reason: ~p:~p.",
+        [Url, ErrorReason, erlang:get_stacktrace()]),
+      500 % internal server error
+  end.
