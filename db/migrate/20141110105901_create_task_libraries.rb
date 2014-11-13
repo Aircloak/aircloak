@@ -58,7 +58,7 @@ class CreateTaskLibraries < ActiveRecord::Migration
               for k in pairs(table) do keys[#keys+1] = k end
 
               if order then
-                tbl.sort(keys, function(a,b) return order(t, a, b) end)
+                tbl.sort(keys, function(a,b) return order(table, a, b) end)
               else
                 tbl.sort(keys)
               end
@@ -72,7 +72,7 @@ class CreateTaskLibraries < ActiveRecord::Migration
               return function()
                 i = i + 1
                 if keys[i] then
-                  return keys[i], t[keys[i]]
+                  return keys[i], table[keys[i]]
                 end
               end
             end
