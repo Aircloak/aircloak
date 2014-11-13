@@ -13,10 +13,13 @@ private
   def dep_names(code)
     libs =
       code.
+          # Match all combinations of word characters and dots up to and
+          # including the trailing period. This will extract the namespace
+          # prefix of the `Foo.Bar.baz` string (`Foo.Bar.`).
           scan(/(?'namespace'(\w+\.)+)/).
           flatten.
           uniq.
-          map {|x| x.gsub(/\.$/, "")}
+          map {|x| x.gsub(/\.$/, "")}   # Remove trailing dots
 
     expand(libs).uniq
   end
