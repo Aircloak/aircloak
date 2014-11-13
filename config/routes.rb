@@ -17,6 +17,7 @@ Web::Application.routes.draw do
   # a cloak machine setup
   resources :builds do
     post 'reset', on: :member
+    get 'branch_info', on: :collection
   end
 
   # We track the progress of both individual

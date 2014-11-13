@@ -25,17 +25,18 @@
           %label.radio
             %input{type: :radio, id: "from_develop", name: :from_develop, value: "true", checked: true} From develop branch
           %label.radio
-            %input{type: :radio, id: "from_branch", name: :from_develop, value: "false"} From commits
+            %input{type: :radio, id: "from_branch", name: :from_develop, value: "false"} From other branches
+
+      %input{type: :hidden, name: :branch_selections, id: "branch_selections"}
 
       %div#from_branch
-        %h2 Select versions of the deployable entities
-
-        - DeployableEntity.all.each do |de|
-          .control-group
-            = control_label de.repo
-            .controls
-              = select_tag "build_versions[]", options_for_select(de.select_tag_titles, @build.version_for_entity(de))
-
+        .branch_selector
+          .loading
+            .control-group
+              .controls
+                %strong Loading branch info, please be patient
+          .repos
+            %h2 Select versions of the deployable entities
 
     .control-group
       .controls
