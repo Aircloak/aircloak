@@ -136,7 +136,7 @@ private
   end
 
   def set_task_exceptions
-    if @task.has_exceptions?
+    if @task && @task.has_exceptions?
       @task_exceptions = @task.latest_exceptions.
           map {|e| {message: e.stacktrace, count: e.count}}.
           to_json
