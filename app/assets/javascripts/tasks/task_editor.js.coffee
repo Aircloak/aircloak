@@ -74,7 +74,13 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
                   start--
 
                 curWord = curLine.slice(start, end)
-                list = _.filter(completions, (candidate) -> candidate.text.indexOf(curWord) == 0)
+
+                candidates = _.union(
+                      completions,
+                      _.map(data.selectedTables(), (table) -> text: "tables.#{table.name}")
+                    )
+
+                list = _.filter(candidates, (candidate) -> candidate.text.indexOf(curWord) == 0)
 
                 return {
                   list: _.sortBy(list, "text"),
