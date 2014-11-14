@@ -5,11 +5,12 @@
 %%      Currently, only "subscribe" requests are supported, which need the "path" and "timestamp" parameters.
 %%      The timestamp parameter controls the validity period of the request.
 %% @end
-
 -module(request).
 
 %% API
--export([parse/1]).
+-export([
+  parse/1
+]).
 
 
 %% -------------------------------------------------------------------

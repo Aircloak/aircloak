@@ -5,7 +5,6 @@
 %%	will send it to a new subscriber, when it registers. This way, a subscriber is
 %%	not forced to register before the article is received.
 %% @end
-
 -module(router).
 -behaviour(gen_server).
 
