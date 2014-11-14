@@ -1,6 +1,10 @@
-/*
- *= require codemirror
- */
+//= require codemirror
+//= require codemirror/addons/hint/show-hint
+
+/* Increases the completion width */
+.CodeMirror-hint {
+  max-width: 30em;
+}
 
 .task-filters {
   padding-top:5px;

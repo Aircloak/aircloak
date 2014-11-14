@@ -7,6 +7,8 @@ class TasksController < ApplicationController
   before_action :load_task, only: [:edit, :update, :destroy, :execute_as_batch_task, :all_results,
       :latest_results]
   before_action :set_tables_json, only: [:edit, :new]
+  before_action :set_auto_completions, only: [:edit, :new]
+  before_action :set_task_exceptions, only: [:edit, :new]
 
   # GET /tasks
   def index
@@ -110,6 +112,37 @@ private
             }
           end.
           to_json
+  end
+
+  # Returns functions for the completion list in code editor.
+  def set_auto_completions
+    # hard-coded list of built-in functions
+    completions = [
+      {text: "report_property", displayText: "report_property(label, string)"},
+      {text: "tables"},
+      {text: "lookup", displayText: "lookup(table_name, key)"},
+      {text: "to_date", displayText: "to_date(timestamp)"},
+      {text: "user_id"}
+    ]
+
+    # Functions declared in all library scripts
+    TaskLibrary.all.each do |lib|
+      lib.code.scan(/^function (?'displayText'(?'text'(\w|\.)+)\(.*\))/).each do |fun|
+        completions << {text: fun[1], displayText: fun[0]}
+      end
+    end
+
+    @completions = completions.to_json
+  end
+
+  def set_task_exceptions
+    if @task && @task.has_exceptions?
+      @task_exceptions = @task.latest_exceptions.
+          map {|e| {message: e.stacktrace, count: e.count}}.
+          to_json
+    else
+      @task_exceptions = [].to_json
+    end
   end
 
   def task_params

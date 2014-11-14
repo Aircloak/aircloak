@@ -1,6 +1,7 @@
 require './lib/proto/cloak/task.pb.rb'
 require './lib/json_sender'
 require './lib/prefetch_filter'
+require './lib/task_code'
 
 class Task < ActiveRecord::Base
   has_many :pending_results, dependent: :destroy, counter_cache: true
@@ -81,7 +82,10 @@ class Task < ActiveRecord::Base
         analyst,
         cluster,
         "task/run",
-        {prefetch: JSON.parse(prefetch), post_processing: {code: code}}.to_json,
+        {
+          prefetch: JSON.parse(prefetch),
+          post_processing: {code: code, libraries: TaskCode.dependencies(code)}
+        }.to_json,
         "task_id" => self.class.encode_id(id),
         "async_query" => "true",
         "auth_token" => pr.auth_token

@@ -7,29 +7,32 @@
 .form-container
   %form.form-horizontal.new_query{"accept-charset" => "UTF-8"}
     .control-group
-      = control_label "Data", controller: "tasks", tooltip: "sandbox_data"
+      = control_label "Output", controller: "tasks", tooltip: "sandbox_output"
       .controls
-        = hb "each testUsers" do
-          %div
-            %span
-              %a{:href => "#", :"data-remove-test-user" => true, :"data-user-id" => hb("data.user_id")} X
-              &nbsp;
-              = hb "text"
+        #sandboxResult
     .control-group
-      = control_label "Table", controller: "tasks", tooltip: "sandbox_table"
+      = control_label "Input", controller: "tasks", tooltip: "sandbox_data"
       .controls
-        %select#sandboxUserTable
-          %option{:value => "-1"} -- select table --
-          = hb "each selectedTables" do
-            %option{:value => hb("id")}
-              = hb "name"
+        %table.table.table-striped
+          %thead
+            %tr
+              %td{"colspan" => "4"}
+                %a#addSandboxUser.btn{:href => "#"} AddTestUser
+            %tr
+              %th
+              %th user_id
+              %th table
+              %th fields
+          %tbody
+            = hb "each testUsers" do
+              %tr
+                %td
+                  %a{:href => "#", :"data-remove-test-user" => true, :"data-user-id" => hb("user_id")}
+                    X
+                %td= hb "user_id"
+                %td= hb "table"
+                %td
+                  %a{"href" => "#", "data-edit-sandbox-user" => true, "data-user-id" => hb("user_id"), "data-table" => hb("table")}
+                    = hb "fields"
     %div{"style" => "margin-left:73px;"}
       #userEntryControls
-    %br
-    .control-group
-      .controls
-        %a#runInSandbox.btn.btn-small{:href => "#"} Run
-    .control-group
-      %label.control-label Output
-      .controls
-        %pre#sandboxResult/
