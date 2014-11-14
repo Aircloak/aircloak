@@ -1,7 +1,6 @@
 %% @doc Handler for http publish requests coming through cowboy.
 %%      The format of the request should be that of a POST to http://airpub/publish/article_path,
 %%      where the content is the body of the request and the content_type is provided in the http headers.
-%% @end
 -module(publish_handler).
 
 %% Cowboy callbacks.

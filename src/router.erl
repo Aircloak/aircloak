@@ -4,7 +4,6 @@
 %%	The router also keeps a short history of previously published articles and it
 %%	will send it to a new subscriber, when it registers. This way, a subscriber is
 %%	not forced to register before the article is received.
-%% @end
 -module(router).
 -behaviour(gen_server).
 
@@ -42,31 +41,26 @@
 %% -------------------------------------------------------------------
 
 %% @doc Starts the router as part of a supervisor tree
-%% @end
 -spec start_link() -> {ok, pid()} | ignore | {error, term()}.
 start_link() ->
   gen_server:start_link({local, router}, ?MODULE, [], []).
 
 %% @doc Stops the router.
-%% @end
 -spec stop() -> ok.
 stop() ->
   gen_server:call(router, stop).
 
 %% @doc Registers a new subscriber with the router.
-%% @end
 -spec add_subscriber(#subscriber{}) -> ok.
 add_subscriber(Subscriber) ->
   gen_server:call(router, {add_subscriber, Subscriber}).
 
 %% @doc Removes a registered subscriber from the routing tables.
-%% @end
 -spec remove_subscriber(term()) -> ok.
 remove_subscriber(Id) ->
   gen_server:call(router, {remove_subscriber, Id}).
 
 %% @doc Publish an article to all interested subscribers.
-%% @end
 -spec publish(#article{}) -> ok.
 publish(Article) ->
   gen_server:cast(router, {publish, Article}).
