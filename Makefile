@@ -28,7 +28,11 @@ apps/airpub:
 	(cd apps/airpub && ln -s ../../ebin ebin)
 
 rel: all apps/airpub
+	rm -rf rel/airpub/ # we want a fully new release each time
 	./rebar generate
+	# make process path consistent for easy monitoring
+	mv rel/airpub/erts-* rel/airpub/erts-current
+	echo "current 1" > rel/airpub/releases/start_erl.data
 
 start: rel
 	cp test/index.html rel/airpub/
