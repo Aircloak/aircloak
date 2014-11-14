@@ -5,7 +5,8 @@
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  erlang_common
                  ]},
   {mod, { airpub_app, []}},
   {env, []}
