@@ -1,18 +1,19 @@
 %% @doc Handler for websocket connections coming through cowboy.
 %% @end
-
 -module(websocket_handler).
 
 %% Cowboy callbacks.
 -export([
-    init/2,
-    websocket_handle/3,
-    websocket_info/3,
-    terminate/3
-  ]).
+  init/2,
+  websocket_handle/3,
+  websocket_info/3,
+  terminate/3
+]).
 
 %% Router callbacks
--export([transmit/2]).
+-export([
+  transmit/2
+]).
 
 -include("types.hrl").
 
@@ -43,7 +44,7 @@ websocket_info({transmit, #article{
   {MegaSecs, Secs, MicroSecs} = PublishedAt,
   PublishedAtMillis = (MegaSecs * 1000 * 1000 + Secs) * 1000 + MicroSecs div 1000,
   Header = "article path=" ++ Path ++ " content_type=" ++ ContentType ++
-    " published_at=" ++ integer_to_list(PublishedAtMillis),
+      " published_at=" ++ integer_to_list(PublishedAtMillis),
   {reply, [{text, Header}, {binary, Content}], Req, State};
 websocket_info(_Info, Req, State) ->
   {ok, Req, State}.

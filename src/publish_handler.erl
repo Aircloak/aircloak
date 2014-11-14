@@ -2,13 +2,12 @@
 %%      The format of the request should be that of a POST to http://airpub/publish/article_path,
 %%      where the content is the body of the request and the content_type is provided in the http headers.
 %% @end
-
 -module(publish_handler).
 
 %% Cowboy callbacks.
 -export([
-    init/2
-  ]).
+  init/2
+]).
 
 -include("types.hrl").
 

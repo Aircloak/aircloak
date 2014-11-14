@@ -1,13 +1,12 @@
-{application, airpub,
- [
-  {description, ""},
+{application, airpub, [
+  {description, "Low latency result publishing hub"},
   {vsn, "1"},
   {registered, []},
   {applications, [
-                  kernel,
-                  stdlib,
-                  erlang_common
-                 ]},
-  {mod, { airpub_app, []}},
+    kernel,
+    stdlib,
+    erlang_common
+  ]},
+  {mod, {airpub_app, []}},
   {env, []}
  ]}.
