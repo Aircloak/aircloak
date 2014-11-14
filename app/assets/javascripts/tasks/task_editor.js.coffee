@@ -52,8 +52,7 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
     parseInt($('#task_cluster_id').val())
 
   # Custom hint function. It determines the word at the cursor, and
-  # then returns all choices from the selection provided during by
-  # the rails controller.
+  # returns the completion list.
   completionList = (cm, editor, options) ->
     regex = /(\w|\.)/
     cur = editor.getCursor()
