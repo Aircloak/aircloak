@@ -4,7 +4,6 @@
 %%      The hash is the HMAC-SHA2 value of the shared secret and rest of the string (without the following space).
 %%      Currently, only "subscribe" requests are supported, which need the "path" and "timestamp" parameters.
 %%      The timestamp parameter controls the validity period of the request.
-%% @end
 -module(request).
 
 %% API
@@ -18,7 +17,6 @@
 %% -------------------------------------------------------------------
 
 %% @doc Tries to parse the string into a valid request tuple.
-%% @end
 -spec parse(string()) -> invalid | tuple().
 parse(Text) ->
   try

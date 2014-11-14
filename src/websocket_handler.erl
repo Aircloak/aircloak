@@ -1,5 +1,4 @@
 %% @doc Handler for websocket connections coming through cowboy.
-%% @end
 -module(websocket_handler).
 
 %% Cowboy callbacks.
@@ -55,7 +54,6 @@ websocket_info(_Info, Req, State) ->
 %% -------------------------------------------------------------------
 
 %% @doc Called to transmit an article to an active subscriber.
-%% @end
 -spec transmit(#subscriber{}, #article{}) -> ok.
 transmit(#subscriber{id = Pid}, Article) ->
   Pid ! {transmit, Article},
