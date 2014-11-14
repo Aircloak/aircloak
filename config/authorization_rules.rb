@@ -63,7 +63,7 @@ authorization do
     has_permission_on [:authorization_rules,
                        :authorization_usages], :to => :read
     has_permission_on [:deployable_entity_versions,
-                       :builds], to: :reset
+                       :builds], to: [:reset, :branch_info]
     has_permission_on [:impersonation], to: [:impersonate, :stop_it]
     has_permission_on [:test_results, :test_vms, :test_items, :test_item_vms], :to => :read
     has_permission_on [:repeated_answers], :to => [:read, :update]

@@ -1,20 +1,22 @@
 require './lib/build_manager'
 
 class BuildVersionsAssigner
-  def self.assign_versions build, versions
-    versions.each do |version|
-      dev = DeployableEntityVersion.find(version)
-      build.deployable_entity_versions << dev
-    end
-  end
-
   def self.assign_from_params build, params
     if params["from_develop"] == "true" then
       build.deployable_entity_versions << BuildManager.find_right_versions(DeployableEntity.all)
     else
-      return unless params["build_versions"]
-      version_ids = params["build_versions"].map(&:to_i)
-      assign_versions build, version_ids
+      return unless params["branch_selections"]
+      # The branch_selections param contains an array of objects
+      # where each object contains:
+      # - id: id of rails deployable entity
+      # - repo: repo name, just for good measure, and easier debugging
+      # - sha: commit of the head of the particular branch
+      repo_commits = JSON.parse params["branch_selections"]
+      repo_commits.each do |info|
+        de = DeployableEntity.find info["id"]
+        de.add_commit info["sha"]
+        build.deployable_entity_versions << DeployableEntityVersion.find_by_commit_id(info["sha"])
+      end
     end
   end
 end

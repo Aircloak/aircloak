@@ -1,4 +1,5 @@
 require './lib/build_versions_assigner.rb'
+require './lib/gh'
 
 class BuildsController < ApplicationController
   before_action :set_build, only: [:destroy, :reset]
@@ -9,6 +10,22 @@ class BuildsController < ApplicationController
 
   def new
     @build = Build.new
+  end
+
+  def branch_info
+    branch_infos = []
+    threads = []
+    DeployableEntity.all.each do |de|
+      threads << Thread.new do
+        branch_infos << {
+          id: de.id,
+          repo: de.repo,
+          branches: Gh.branchinfo_for_deployable_entity(de)
+        }
+      end
+    end
+    threads.each {|thread| thread.join}
+    render json: branch_infos.to_json
   end
 
   def show

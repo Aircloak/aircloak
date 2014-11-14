@@ -104,7 +104,6 @@ GEM
       thread_safe (~> 0.1)
       tzinfo (~> 0.3.37)
     addressable (2.3.5)
-    angularjs-rails (1.0.8)
     arel (4.0.2)
     atomic (1.1.14)
     authlogic (3.3.0)
@@ -294,7 +293,6 @@ PLATFORMS
 
 DEPENDENCIES
   SyslogLogger
-  angularjs-rails
   authlogic
   bcrypt-ruby (~> 3.0.0)
   beefcake
