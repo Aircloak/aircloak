@@ -43,6 +43,10 @@ class Analyst < ActiveRecord::Base
     end
   end
 
+  def has_clusters?
+    clusters.count > 0
+  end
+
 private
   def create_token
     create_analyst_token
