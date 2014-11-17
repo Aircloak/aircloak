@@ -8,7 +8,7 @@ class MetricsController < ApplicationController
     # Creates a cluster -> cloaks mapping, that will ultimately be used on the client side
     @cluster_cloaks =
       @clusters.inject({}) do |memo, cluster|
-        memo.merge(cluster.name => cluster.cloak_names)
+        memo.merge(cluster.name => cluster.cloak_internal_domains)
       end.
       to_json
   end

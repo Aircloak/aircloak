@@ -56,6 +56,18 @@ class Cloak < ActiveRecord::Base
     cloaks
   end
 
+  def health
+    good ? "good" : "poor"
+  end
+
+  def internal_domain
+    "#{name}.mpi-sws.org"
+  end
+
+  def aircloak_domain
+    "#{name}.cloak.aircloak.net"
+  end
+
 private
   def validate_destroyability
     if not can_destroy?

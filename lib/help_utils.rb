@@ -130,9 +130,9 @@ class HelpUtils
 
   def sample_cloak_name
     if has_cluster?
-      @current_user.analyst.clusters.first.cloaks.first.name
+      @current_user.analyst.clusters.first.cloaks.first.aircloak_domain
     else
-      "cluster.example.com"
+      "cloak-id.cloak.example.com"
     end
   end
 

@@ -134,8 +134,8 @@ class Cluster < ActiveRecord::Base
     write_attribute(:status_description, usable_description)
   end
 
-  def cloak_names
-    self.cloaks.map {|cloak| cloak.name}
+  def cloak_internal_domains
+    self.cloaks.map {|cloak| cloak.internal_domain}
   end
 
   def get_client_credentials

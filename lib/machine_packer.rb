@@ -4,7 +4,7 @@ class MachinePacker
   def self.package_cloak cloak
     MachinePB.new(
       id: cloak.id,
-      name: cloak.name,
+      name: cloak.internal_domain,
       type: cloak.tpm ? MachinePB::MachineType::PHYSICAL : MachinePB::MachineType::VM,
       good: cloak.good
     )

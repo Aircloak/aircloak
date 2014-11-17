@@ -7,6 +7,14 @@ describe Cloak do
     ProtobufSender.stub(:send_delete)
   end
 
+  it "should represent it's health in textual form" do
+    c = Cloak.new
+    c.good = true
+    c.health.should eq "good"
+    c.good = false
+    c.health.should eq "poor"
+  end
+
   context "basic validations" do
     context "validations" do
       before(:each) do
@@ -117,6 +125,14 @@ describe Cloak do
 
     it "should raise an exception if there aren't sufficient cloaks for testing" do
       expect{Cloak.cloaks_for_build_testing }.to raise_exception(NotEnoughCloaks)
+    end
+  end
+
+  context "domain names" do
+    it "should construct domain names from name" do
+      c = Cloak.new name: "test"
+      c.internal_domain.should eq "test.mpi-sws.org"
+      c.aircloak_domain.should eq "test.cloak.aircloak.net"
     end
   end
 end
