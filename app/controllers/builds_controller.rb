@@ -20,7 +20,7 @@ class BuildsController < ApplicationController
         branch_infos << {
           id: de.id,
           repo: de.repo,
-          branches: Gh.branchinfo_for_deployable_entity(de)
+          branches: Gh.buildpoint_for_deployable_entity(de)
         }
       end
     end
