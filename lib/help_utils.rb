@@ -77,7 +77,7 @@ class HelpUtils
   end
 
   def data_key_count
-    @current_user.analyst.key_materials.count
+    @current_user.analyst.key_materials.where(key_type: 'data_upload_all', revoked: false).count
   end
 
   def has_user_tables?
@@ -140,7 +140,7 @@ class HelpUtils
     if data_key_count == 0
       "MyKey.pfx"
     else
-      @current_user.analyst.key_materials.first.name
+      @current_user.analyst.key_materials.where(key_type: "data_upload_all").first.name "pfx"
     end
   end
 
