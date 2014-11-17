@@ -76,7 +76,7 @@ class HelpUtils
     "<a href=\"#{url}\">#{name}</a>"
   end
 
-  def key_count
+  def data_key_count
     @current_user.analyst.key_materials.count
   end
 
@@ -136,8 +136,8 @@ class HelpUtils
     end
   end
 
-  def sample_key_name
-    if key_count == 0
+  def sample_data_key_name
+    if data_key_count == 0
       "MyKey.pfx"
     else
       @current_user.analyst.key_materials.first.name

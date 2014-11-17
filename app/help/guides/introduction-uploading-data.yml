@@ -94,10 +94,10 @@ content: |
   ### Authentication
 
   The API requires the uploader to be authenticated. Authentication is done through client certificates.
-  <% if key_count == 0 -%>
+  <% if data_key_count == 0 -%>
   You can create these certificates for your team on the <%= site_link controller.keys_path, "keys page" %>.
   <% else -%>
-  Your team already has <%= key_count %> keys. You can
+  Your team already has <%= data_key_count %> keys. You can
   administer and download these from the <%= site_link controller.keys_path, "keys page" %>.
   <% end -%>
 
@@ -107,16 +107,16 @@ content: |
   ### Example
 
   Assuming you had data for the __<%= sample_user_table_name %>__ stored in a file in your current directory
-  called __<%= sample_user_table_name %>.json__, and a key named <%= sample_key_name %>, you could issue the following
+  called __<%= sample_user_table_name %>.json__, and a key named <%= sample_data_key_name %>, you could issue the following
   [curl](http://curl.haxx.se/) command to upload data:
 
   ```bash
-  curl -XPOST -k --cert <%= sample_key_name %> --data @<%= sample_user_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
+  curl -XPOST -k --cert <%= sample_data_key_name %> --data @<%= sample_user_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
   ```
 
   JSON, being pure text, can easily be compressed.
   The cloaks supported gzipped JSON:
 
   ```bash
-  cat <%= sample_user_table_name %>.json | gzip -c | curl -XPOST -k --cert <%= sample_key_name %> --header "Content-Encoding: gzip" --header "Content-Type: application/json" https://<%= sample_cloak_name %>/bulk_insert --data-binary @-
+  cat <%= sample_user_table_name %>.json | gzip -c | curl -XPOST -k --cert <%= sample_data_key_name %> --header "Content-Encoding: gzip" --header "Content-Type: application/json" https://<%= sample_cloak_name %>/bulk_insert --data-binary @-
   ```
