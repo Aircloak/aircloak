@@ -69,14 +69,11 @@ handle_publish_request(_Method, _Path, _HasBody, _ContentType, Req) ->
 % Returns the forward destination for the longest matching route.
 -spec get_forward_url(string()) -> undefined | string().
 get_forward_url(Path) ->
-  PathLength = string:len(Path),
   {ok, Routes} = application:get_env(airpub, publishing_forward_routes),
   {_Length, ForwardUrl} = lists:foldl(fun({SubPath, Url}, {MatchLength, MatchUrl}) ->
-      SubPathLength = string:len(SubPath),
-      case SubPathLength > MatchLength andalso SubPathLength =< PathLength andalso
-          string:substr(Path, 1, SubPathLength) =:= SubPath of
+      case lists:prefix(SubPath, Path) of
         true ->
-          {SubPathLength, Url};
+          {string:len(SubPath), Url};
         false ->
           {MatchLength, MatchUrl}
       end

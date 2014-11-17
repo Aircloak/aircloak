@@ -19,8 +19,8 @@ start(_StartType, _StartArgs) ->
   {ok, Sup} = airpub_sup:start_link(),
   Dispatch = cowboy_router:compile([
     {'_', [
-      {"/", cowboy_static, {file, "index.html"}},
-      {"/websocket", websocket_handler, []},
+      {"/test", cowboy_static, {file, "test.html"}},
+      {"/subscribe/ws", websocket_handler, []},
       {"/publish/[...]", publish_handler, []}
     ]}
   ]),
