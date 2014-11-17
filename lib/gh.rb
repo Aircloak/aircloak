@@ -29,9 +29,9 @@ class Gh
         threads << Thread.new do
           commit = get_commit de.repo, branch.commit.sha
           build_infos << {
-            branch_name: branch.name,
+            name: branch.name,
             sha: branch.commit.sha,
-            commit_title: commit.commit.message.split("\n").first
+            title: commit.commit.message.split("\n").first
           }
         end
       end
@@ -41,9 +41,9 @@ class Gh
       tags = github.repos.tags user: "aircloak", repo: de.repo
       tags.each do |tag|
         build_infos << {
-          branch_name: tag.name,
+          name: tag.name,
           sha: tag.commit.sha,
-          commit_title: "release tag"
+          title: "release tag"
         }
       end
     end
