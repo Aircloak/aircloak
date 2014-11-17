@@ -35,7 +35,7 @@ rel: all apps/airpub
 	echo "current 1" > rel/airpub/releases/start_erl.data
 
 start: rel
-	cp test/index.html rel/airpub/
+	cp test/test.html rel/airpub/
 	rel/airpub/bin/airpub console
 
 relclean:
