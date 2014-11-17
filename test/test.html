@@ -15,7 +15,7 @@ function listen(server, path, callback)
     return;  
   } 
   log("Connecting ...");
-  ws = new WebSocket(server + "/websocket");  
+  ws = new WebSocket(server + "/subscribe/ws");  
   ws.onopen = function()
   {  
     log('Connected. Subscribing to ' + path);  
