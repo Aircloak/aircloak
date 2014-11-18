@@ -76,8 +76,8 @@ class HelpUtils
     "<a href=\"#{url}\">#{name}</a>"
   end
 
-  def key_count
-    @current_user.analyst.key_materials.count
+  def data_key_count
+    @current_user.analyst.key_materials.where(key_type: 'data_upload_all', revoked: false).count
   end
 
   def has_user_tables?
@@ -130,17 +130,17 @@ class HelpUtils
 
   def sample_cloak_name
     if has_cluster?
-      @current_user.analyst.clusters.first.cloaks.first.name
+      @current_user.analyst.clusters.first.cloaks.first.aircloak_domain
     else
-      "cluster.example.com"
+      "cloak-id.cloak.example.com"
     end
   end
 
-  def sample_key_name
-    if key_count == 0
+  def sample_data_key_name
+    if data_key_count == 0
       "MyKey.pfx"
     else
-      @current_user.analyst.key_materials.first.name
+      @current_user.analyst.key_materials.where(key_type: "data_upload_all").first.name "pfx"
     end
   end
 

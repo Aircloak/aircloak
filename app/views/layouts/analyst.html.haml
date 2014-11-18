@@ -66,6 +66,24 @@
 
             %h4= link_to "Documentation", help_index_path
 
+            - if current_user.analyst.has_clusters?
+              %hr
+
+              .machines
+                - if current_user.analyst.clusters.count > 1
+                  %h4 My clusters
+                - else
+                  %h4 My machines
+
+                - current_user.analyst.clusters.each do |cluster|
+
+                  - if current_user.analyst.clusters.count > 1
+                    %h6= "#{cluster.name} cluster"
+
+                  %ul
+                    - cluster.cloaks. each do |cloak|
+                      %li= "#{cloak.aircloak_domain} (#{cloak.health})"
+
             %hr
 
             = link_to "Logged in as #{current_user.login}", user_path(current_user)
