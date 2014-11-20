@@ -84,7 +84,7 @@ class Task < ActiveRecord::Base
         "task/run",
         {
           prefetch: JSON.parse(prefetch),
-          post_processing: {code: code, libraries: TaskCode.dependencies(code)}
+          post_processing: post_processing_spec
         }.to_json,
         "task_id" => self.class.encode_id(id),
         "async_query" => "true",
@@ -209,5 +209,16 @@ private
   def cloak
     cluster_cloak = ClusterCloak.where(cluster_id: cluster_id, raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).limit(1).first
     cluster_cloak.cloak if cluster_cloak
+  end
+
+  def post_processing_spec
+    # Temporary solution that joins all libraries + prefetch code into a single
+    # chunk of lua code. Needed to keep compatibility with cloak 1.0
+    code_parts = TaskCode.dependencies(code).inject([]) do |memo, library|
+      memo.push(library[:code])
+    end
+    code_parts.push(code)
+
+    {code: code_parts.join("\n")}
   end
 end
