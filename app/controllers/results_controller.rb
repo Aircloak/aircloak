@@ -51,8 +51,8 @@ private
       else
         range = nil
       end
-      result.buckets.push BucketPB.new(label: bucket["label"], string: bucket["string"],
-          range: range, accumulated_count: bucket["accumulated_count"])
+      result.buckets.push BucketPB.new(label: bucket["label"], string: bucket["value"],
+          range: range, accumulated_count: bucket["count"])
     end unless hash["buckets"] == nil
     hash["exceptions"].each do |exception|
       result.exceptions.push ExceptionPB:new(stackEntry: exception["stackEntry"],

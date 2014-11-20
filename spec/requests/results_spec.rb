@@ -56,7 +56,12 @@ describe "ResultsController" do
 
       with_user user do
         post "/results", rp.encode.buf, { 'Content-Type' => "application/x-protobuf" }
-        post "/results", rp.to_json, { 'Content-Type' => "application/json" }
+        json = rp.to_json
+        # the fields in the json format have different names compared with the ones in the protobuffs format
+        # we need to manually adjust the generated json field names so they will be accepted by the endpoint
+        json.gsub! '"accumulated_count"', '"count"'
+        json.gsub! '"string"', '"value"'
+        post "/results", json, { 'Content-Type' => "application/json" }
       end
 
       Result.count.should eq(2)
