@@ -102,32 +102,6 @@ describe Cloak do
     end
   end
 
-  context "testing commits" do
-    let (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1", tpm: false) }
-    let (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2", tpm: false) }
-    let (:cloak3) { Cloak.create(name: "baz", ip: "3.3.3.3", tpm: false) }
-    let (:cloak4) { Cloak.create(name: "biz", ip: "4.4.4.4", tpm: false) }
-    let (:cloak_tpm) { Cloak.create(name: "tpm", ip: "5.5.5.5", tpm: true) }
-
-    before(:each) do
-      ClusterCloak.destroy_all
-      Cloak.destroy_all
-    end
-
-    it "should find available cloaks for testing" do
-      cloak1; cloak2; cloak3; cloak4; cloak_tpm; # Create cloaks
-      cloaks = Cloak.cloaks_for_build_testing
-      cloaks.each do |cloak|
-        cloak.tpm.should eq false
-      end
-      cloaks.count.should eq 3
-    end
-
-    it "should raise an exception if there aren't sufficient cloaks for testing" do
-      expect{Cloak.cloaks_for_build_testing }.to raise_exception(NotEnoughCloaks)
-    end
-  end
-
   context "domain names" do
     it "should construct domain names from name" do
       c = Cloak.new name: "test"

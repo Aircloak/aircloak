@@ -26,8 +26,6 @@ gem 'will_paginate', '~> 3.0'
 gem "redcarpet"
 gem "coderay", github: "rubychan/coderay"
 
-gem 'whenever', :require => false
-
 group :development, :test do
   gem 'pry', github: "pry/pry"
   gem 'pry-nav', github: "nixme/pry-nav"

@@ -3,7 +3,6 @@ require './lib/protobuf_sender'
 
 describe Build do
   before(:each) do
-    VersionTest.stub(:new_from_deployable_entity_version)
     ProtobufSender.stub(:post)
     ProtobufSender.stub(:send_delete)
     BuildManager.stub(:send_build_request).and_return(true)
@@ -91,11 +90,6 @@ describe Build do
       cluster.build.destroy
       cluster.build.destroyed?.should eq false
     end
-
-    it "should not be possible to delete a build is used by a test" do
-      build.version_test = VersionTest.new
-      build.can_destroy?.should eq false
-    end
   end
 
   it "should mark itself as done when mark_complete is called" do
@@ -112,24 +106,6 @@ describe Build do
   it "should delete the release from the build server when deleting" do
     ProtobufSender.should_receive(:send_delete)
     Build.create(name: "test name").destroy
-  end
-
-  context "testing" do
-    it "should notify the version test, if it has one, when the build has completed" do
-      b = Build.new
-      v = VersionTest.new
-      b.version_test = v
-      v.should_receive(:mark_build_as_complete)
-      b.mark_complete success: true
-    end
-
-    it "should invalidate a version test if a build fails" do
-      b = Build.new
-      v = VersionTest.new
-      b.version_test = v
-      v.should_receive(:mark_build_as_failed)
-      b.mark_complete success: false
-    end
   end
 
   context "status" do

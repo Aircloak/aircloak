@@ -1,16 +1,12 @@
 development:
   installation:
     global: false
-  testing:
-    min_cloaks: 1
   task:
     return_protocol: http
     return_host: localhost
     return_port: 3000
   manny_air:
     host: localhost
-  test_server:
-    host: localhost:8000
   build_server:
     host: localhost
   cloak:

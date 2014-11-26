@@ -1,22 +1,15 @@
 defaults: &defaults
   installation:
     global: true
-  testing:
-    min_cloaks: 3
   task:
     return_protocol: https
     return_host: hello.aircloak.com
     return_port: 443
-  test_server:
-    host: test-server.aircloak.com
   build_server:
     host: build.aircloak.com
   cloak:
     protocol: https
     port: 443
-  version_test:
-    tpm: false
-    enabled: true
   results:
     max_per_query: 4
   local_sandbox:
@@ -27,12 +20,6 @@ development:
 
 production:
   <<: *defaults
-  # At the moment we cannot automatically setup
-  # non-tpm machines, so we want to run automated
-  # tests on our thor hardware
-  version_test:
-    tpm: true
-    enabled: false
 
 test: &testing
   <<: *defaults
@@ -40,8 +27,6 @@ test: &testing
     return_protocol: http
     return_host: localhost
     return_port: 3000
-  test_server:
-    host: localhost
   build_server:
     host: localhost
   private_key_password: test_password

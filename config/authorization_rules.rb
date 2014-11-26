@@ -14,7 +14,6 @@ authorization do
       :build_progress,
       :machines,
       :tasks,
-      :version_tests,
       :api_tasks,
       :api_clusters
     ], to: :anon_write
@@ -53,7 +52,6 @@ authorization do
       :cloaks,
       :analysts,
       :permissions,
-      :version_tests,
       :user_permissions,
       :metrics,
       :user_tables,

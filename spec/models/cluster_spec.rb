@@ -172,45 +172,9 @@ describe Cluster do
     end
   end
 
-  context "testing" do
-    let (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1", tpm: false) }
-    let (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2", tpm: false) }
-    let (:cloak3) { Cloak.create(name: "baz", ip: "3.3.3.3", tpm: false) }
-    let (:cloak_tpm) { Cloak.create(name: "tpm", ip: "4.4.4.4.4", tpm: true) }
-    let (:build) { Build.create(name: "build") }
-
-    it "should create a test cluster for a build" do
-      cloak1; cloak2; cloak3 # Create the cloaks
-      c = Cluster.test_cluster_for_build build
-      c.build.should be build
-    end
-
-    it "should raise an exception if there aren't sufficient cloaks for testing" do
-      expect{Cluster.test_cluster_for_build build}.to raise_exception(NotEnoughCloaks)
-    end
-
-    it "should not notify the version test, before all cloaks are ready" do
-      cloak1; cloak2; cloak3;
-      c = Cluster.test_cluster_for_build build
-      c.version_test = VersionTest.create
-      ProtobufSender.should_not_receive(:post_to_url)
-      c.cluster_cloaks.first.set_state :belongs_to
-    end
-
-    it "should notify the version test, when all cloaks are ready" do
-      cloaks = [cloak1, cloak2, cloak3]
-      c = Cluster.test_cluster_for_build build
-      c.version_test = VersionTest.new
-      ProtobufSender.should_receive(:post_to_url)
-      c.cluster_cloaks.each do |cc|
-        cc.set_state :belongs_to
-      end
-    end
-  end
-
   context "should know if it can be deleted" do
     let (:cluster) { Cluster.create }
-    it "should know it cannot be delete if used by a test or has cloaks" do
+    it "should know it cannot be delete if it has cloaks" do
       c = base_cluster
       c.can_destroy?.should eq true
 
@@ -219,12 +183,6 @@ describe Cluster do
 
       c.cloaks = []
       c.can_destroy?.should eq true
-
-      c.version_test = VersionTest.new
-      c.can_destroy?.should eq false
-
-      c.destroy.should eq false
-      c.destroyed?.should eq false
     end
   end
 

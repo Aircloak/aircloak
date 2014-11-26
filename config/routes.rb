@@ -66,15 +66,9 @@ Web::Application.routes.draw do
     resources :api_repeated_answers, path: "repeated_answers", only: [:create]
   end
 
-  post "/api/version_tests/:id", to: "version_tests#update"
   get "/api/clusters", to: "cluster_lists#index"
   get "/api/clusters/:id", to: "cluster_lists#show"
   post "/api/clusters/:id/status", to: "api_clusters#status"
-
-  unless Rails.configuration.installation.global
-    get "/version_tests/create_local", to: "version_tests#create_local"
-  end
-  resources :version_tests, except: [:create, :update]
 
   resources :clusters, :except => :destroy
 
