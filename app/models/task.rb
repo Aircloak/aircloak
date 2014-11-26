@@ -78,6 +78,15 @@ class Task < ActiveRecord::Base
     url = cloak_url("/task/run")
     if url
       pr = PendingResult.create(task: self)
+      headers = {
+        "task_id" => self.class.encode_id(id),
+        "async_query" => "true",
+        "auth_token" => pr.auth_token
+      }
+      return_url = Rails.configuration.results_handler
+      if return_url.present? then
+        headers.merge!({"return_url" => Base64.strict_encode64(return_url)})
+      end
       response = JsonSender.post_as_task_runner(
         analyst,
         cluster,
@@ -86,9 +95,7 @@ class Task < ActiveRecord::Base
           prefetch: JSON.parse(prefetch),
           post_processing: post_processing_spec
         }.to_json,
-        "task_id" => self.class.encode_id(id),
-        "async_query" => "true",
-        "auth_token" => pr.auth_token
+        headers
       )
       unless response["success"] == true then
         # TODO: LOG

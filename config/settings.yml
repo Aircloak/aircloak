@@ -17,9 +17,12 @@ defaults: &defaults
 
 development:
   <<: *defaults
+  # empty means send to default cloak-core URL
+  results_handler: "" # https://127.0.0.1:1080/publish
 
 production:
   <<: *defaults
+  results_handler: https://pub.aircloak.com/publish
 
 test: &testing
   <<: *defaults
