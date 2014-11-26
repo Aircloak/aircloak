@@ -21,8 +21,9 @@ describe "ApiTestResultsController" do
           memory_usage: 200
         },
         vms: [
-          {name: "foo", duration: 1, disk_size: 100, disk_usage: 10, log: "foo"},
-          {name: "bar", duration: 2, disk_size: 100, disk_usage: 20}
+          {name: "foo", duration: 1, disk_size: 100, disk_usage: 10, log: "foo", success: true},
+          {name: "bar", duration: 2, disk_size: 100, disk_usage: 20},
+          {name: "failed vm", duration: 2, disk_size: 100, disk_usage: 20, success: false}
         ],
         tests: [
           {
@@ -45,6 +46,18 @@ describe "ApiTestResultsController" do
                 disk_usage: 99
               }
             ]
+          },
+          {
+            name: "failed test 2",
+            success: false,
+            duration: 19,
+            log: "I failed too"
+          },
+          {
+            name: "failed test 1",
+            success: false,
+            duration: 20,
+            log: "I failed"
           }
         ]
       }

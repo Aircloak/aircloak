@@ -6,9 +6,6 @@ class Cluster < ActiveRecord::Base
   has_many :user_tables, dependent: :destroy
   has_many :lookup_tables, dependent: :destroy
   has_many :tasks
-  # A cluster that is used for an automated test of a commit will have a
-  # version_test instance. For all other clusters this will be nil
-  has_one :version_test, dependent: :destroy
   has_many :analysts_clusters
   has_and_belongs_to_many :analysts
   belongs_to :build
@@ -64,25 +61,8 @@ class Cluster < ActiveRecord::Base
       cloak.cluster_cloak.state == :belongs_to or cloak.cluster_cloak.state == :to_be_upgraded
   end
 
-  # Creates a cluster for testing a particular build.
-  # It will be assigned three random cloak computers
-  # that do not have TPMs (these are likely to be VMs,
-  # but this might not be true in the future).
-  def self.test_cluster_for_build build
-    cloaks = Cloak.cloaks_for_build_testing
-    Cluster.create(build: build, name: "test-#{build.name}", cloaks: cloaks)
-  end
-
   def timestamp
     last_modified.to_i
-  end
-
-  def cloak_ready
-    return unless version_test
-    cluster_cloaks.each do |cc|
-      return unless cc.state == :belongs_to
-    end
-    version_test.mark_cluster_as_ready
   end
 
   def self.ready_clusters analyst
@@ -106,7 +86,7 @@ class Cluster < ActiveRecord::Base
   end
 
   def can_destroy?
-    version_test.blank? and cloaks.count == 0
+    cloaks.count == 0
   end
 
   def status= raw_status
@@ -198,7 +178,7 @@ private
 
   def verify_can_destroy
     unless can_destroy?
-      self.errors.add(:version_test, "Cannot destroy a build used by a version test")
+      self.errors.add(:cloaks, "Can only destroy a cluster without any cloaks")
       false
     end
   end

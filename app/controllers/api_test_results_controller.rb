@@ -12,6 +12,7 @@ class ApiTestResultsController < ApplicationController
 private
 
   def self.create_test_result raw_result
+    has_failure = false
     testResult = TestResult.new(
       testtime: raw_result["timestamp"],
       test_server_version: raw_result["test_server_version"],
@@ -23,6 +24,7 @@ private
     )
     vms = if raw_result["vms"]
       raw_result["vms"].inject({}) do |vms, raw_vm|
+        has_failure = true if raw_vm["success"] == false
         testVm = TestVm.new(
           name: raw_vm["name"],
           success: raw_vm["success"],
@@ -40,6 +42,7 @@ private
     end
     if raw_result["tests"]
       raw_result["tests"].each do |raw_test|
+        has_failure = true if raw_test["success"] == false
         testItem = TestItem.new(
           name: raw_test["name"],
           success: raw_test["success"],
@@ -63,7 +66,9 @@ private
         end
       end
     end
-    raise "cannot save" unless testResult.save
+    could_save = testResult.save
+    TestMailer.test_failed(testResult).deliver if (has_failure and could_save)
+    raise "cannot save" unless could_save
   end
 
 end

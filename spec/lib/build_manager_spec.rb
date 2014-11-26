@@ -25,9 +25,9 @@ describe BuildManager do
       double(:version2, commit_id: "commit2", deployable_entity: entity2)
     ]
     build = double(
-      :build, 
-      id: 1, 
-      name: "test-build", 
+      :build,
+      id: 1,
+      name: "test-build",
       deployable_entity_versions: versions
     )
     req = BuildManager.create_build_request build
@@ -54,14 +54,5 @@ describe BuildManager do
     sha = "some-sha"
     Gh.stub(:latest_commit_on_branch_for_repo).and_return(sha)
     BuildManager.find_right_versions([entity]).should eq([version])
-  end
-
-  it "should create a build consisting of the required entity versions" do
-    entity = double(add_commit: true, repo: "erlattest", id: 1)
-    version = double(deployable_entity: entity, message: "Message")
-    DeployableEntity.should_receive(:where).with("id != (?)", 1).and_return([])
-    build = double
-    Build.should_receive(:new).with(name: "testbuild [erlattest] - Message", deployable_entity_versions: [version]).and_return build
-    BuildManager.test_build_for_version(version).should eq build
   end
 end

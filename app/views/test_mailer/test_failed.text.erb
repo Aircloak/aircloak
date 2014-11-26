@@ -1,14 +1,29 @@
-Failed test!
-============
+Nightly regression test failure
+===============================
 
-Build: <%= @test.build.name %>
-Cluster: <%= @test.cluster.name %>
+The current state of our system is broken.
+Please investigate, and someone claim responsibility.
 
-The test produced the following output:
+To inspect the failed test, please visit:
+<%= test_result_url @test_result, host: 'hello.aircloak.com' %>
 
-----------
-<%= @test.test_output %>
-----------
+<% if @test_result.failed_tests.count > 0 -%>
+--------
+
+<%= pluralize(@test_result.failed_tests.count, "test") %> failed:
+<% @test_result.failed_tests.each do |test| -%>
+- <%= test.name %>: <%= test_item_url test, host: 'hello.aircloak.com' %>
+<% end -%>
+<% end -%>
+
+<% if @test_result.failed_vms.count > 0 -%>
+--------
+
+<%= pluralize(@test_result.failed_vms.count, "vm") %> failed:
+<% @test_result.failed_vms.each do |vm| -%>
+- <%= vm.name %>: <%= test_vm_url vm, host: 'hello.aircloak.com' %>
+<% end -%>
+<% end -%>
 
 Sad greetings from your good friend,
 The Test Server

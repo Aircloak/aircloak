@@ -31,10 +31,6 @@ class Build < ActiveRecord::Base
   has_many :deployable_entity_versions, through: :build_versions
   has_many :clusters
 
-  # A build that is used for an automated test of a commit will have a
-  # version_test instance. For all other builds this will be nil
-  has_one :version_test
-
   # A build has associated with it a set of deployable entity versions.
   # In the form for creating builds we want to be able to remember which
   # deployable entity versions that are part of a build.
@@ -47,16 +43,12 @@ class Build < ActiveRecord::Base
   end
 
   def can_destroy?
-    clusters.blank? && version_test.blank?
+    clusters.blank?
   end
 
   def mark_complete args={}
     self.build_completed = true
     self.build_success = args[:success] || false
-    if version_test
-      version_test.mark_build_as_complete if args[:success]
-      version_test.mark_build_as_failed unless args[:success]
-    end
     save
   end
 

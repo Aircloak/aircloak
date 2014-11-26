@@ -18,8 +18,6 @@ describe DeployableEntity do
       class BuildManager; end
     end
 
-    VersionTest.stub(:new_from_deployable_entity_version)
-
     Cluster.delete_all
     BuildManager.stub(:send_build_request).and_return(true)
     Build.delete_all
@@ -112,7 +110,7 @@ describe DeployableEntity do
         commit = "commit_id"
         d.add_commit commit
         # Unique on commit_id, so no risk of finding multiple
-        c = DeployableEntityVersion.where(commit_id: commit).first 
+        c = DeployableEntityVersion.where(commit_id: commit).first
         c.deployable_entity.should eq(d)
         d.commits.should eq([c])
       end
@@ -138,7 +136,7 @@ describe DeployableEntity do
 
     it "should know the status of the last build" do
       de = PreRecorded.setup_deployable_entity
- 
+
       # There is no version yet
       de.status.should eq ""
 
