@@ -34,6 +34,14 @@ class TestResult < ActiveRecord::Base
     choose_class "error", "success", old_result, lambda {|r| r.benchmark_memory_usage}
   end
 
+  def failed_tests
+    test_items.where(success: false)
+  end
+
+  def failed_vms
+    test_vms.where(success: false)
+  end
+
 private
 
   def choose_class class_greater, class_less, old_result, get_flag
