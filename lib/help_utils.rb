@@ -39,6 +39,17 @@ class HelpUtils
     YAML.load_file file
   end
 
+  def load_guides
+    guide_names = Dir.entries(guide_disk_dir).select do |file_name|
+      File.file?(full_guide_path file_name)
+    end
+    guide_names.map do |guide_name|
+      raw_yaml = yaml full_guide_path guide_name
+      raw_yaml["path"] = guide_name.gsub("\.yml", "")
+      raw_yaml
+    end.sort_by {|a| a["order"] }
+  end
+
   def toc_markdown
     return @toc_markdown if defined?(@toc_markdown)
     options = {

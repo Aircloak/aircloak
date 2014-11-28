@@ -19,13 +19,6 @@ class HelpController < ApplicationController
 private
   def load_guides
     @help_utils = HelpUtils.new current_user, self
-    guide_names = Dir.entries(@help_utils.guide_disk_dir).select do |file_name|
-      File.file?(@help_utils.full_guide_path file_name)
-    end
-    @guides = guide_names.map do |guide_name|
-      raw_yaml = @help_utils.yaml @help_utils.full_guide_path guide_name
-      raw_yaml["path"] = guide_name.gsub("\.yml", "")
-      raw_yaml
-    end.sort_by {|a| a["order"] }
+    @guides = @help_utils.load_guides
   end
 end
