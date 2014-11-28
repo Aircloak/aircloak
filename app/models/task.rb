@@ -83,9 +83,11 @@ class Task < ActiveRecord::Base
         "async_query" => "true",
         "auth_token" => pr.auth_token
       }
-      return_url = Rails.configuration.results_handler
-      if return_url.present? then
-        headers.merge!({"return_url" => Base64.strict_encode64(return_url)})
+      publish_url = Rails.configuration.publish_url
+      if publish_url.present? then
+        # publish to "/results/analyst_id/task_id/cluster_id/token"
+        publish_path = "/results/#{analyst.id}/#{self.id}/#{cluster.id}/#{pr.auth_token}"
+        headers.merge!({"return_url" => Base64.strict_encode64(publish_url + publish_path)})
       end
       response = JsonSender.post_as_task_runner(
         analyst,

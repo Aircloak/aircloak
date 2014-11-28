@@ -34,7 +34,8 @@ module Web
       [
         :secret_key_base,
         :github_oauth_token,
-        :private_key_password
+        :private_key_password,
+        :airpub_shared_secret
       ].each do |required_param|
         if not Rails.configuration.respond_to? required_param or eval("Rails.configuration.#{required_param}") == nil
           raise "#{required_param} is missing from settings.local.yml"
