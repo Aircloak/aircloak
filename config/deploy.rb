@@ -66,5 +66,3 @@ ssh_options[:forward_agent] = false
 
 # Cleans up old deploys, leaving only 5
 after "deploy:restart", "deploy:cleanup"
-
-after "deploy:create_symlink", "deploy:update_crontab"
