@@ -1,0 +1,12 @@
+
+%h3 Subscribe to AirPub notifications:
+%br
+
+= form_tag(airpub_path, method: :post, class: "form-horizontal", id: "form") do |f|
+  .control-group
+    = control_label "Path:"
+    .controls
+      = text_field_tag :path, "/results"
+  .control-group
+    .controls
+      = submit_tag 'Subscribe', :class => "btn btn-success submit-btn"
