@@ -60,18 +60,8 @@ Web::Application.configure do
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.action_controller.asset_host = "http://assets.example.com"
 
-  # Precompile additional assets.
-  # application.js, application.css, and all non-JS/CSS in app/assets folder are already added.
-  config.assets.precompile += [
-    'metrics/controller.js',
-    'builds.js',
-    'client_files.js',
-    'tasks/main.js',
-    'verifications.js',
-    'migrations/main.js',
-    'clusters.js',
-    'airpub_api.js'
-  ]
+  # Additional assets to be precompiled are added
+  # in config/initializers/assets.rb
 
   # Mailer config
   config.action_mailer.raise_delivery_errors = true
