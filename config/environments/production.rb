@@ -69,7 +69,8 @@ Web::Application.configure do
     'tasks/main.js',
     'verifications.js',
     'migrations/main.js',
-    'clusters.js'
+    'clusters.js',
+    'airpub_api.js'
   ]
 
   # Mailer config
