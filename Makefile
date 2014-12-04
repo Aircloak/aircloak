@@ -27,8 +27,7 @@ apps/airpub:
 	mkdir -p apps/airpub
 	(cd apps/airpub && ln -s ../../ebin ebin)
 
-rel: all apps/airpub
-	rm -rf rel/airpub/ # we want a fully new release each time
+rel: all apps/airpub relclean
 	./rebar generate
 	# make process path consistent for easy monitoring
 	mv rel/airpub/erts-* rel/airpub/erts-current
@@ -44,6 +43,9 @@ relclean:
 doc:
 	mkdir -p doc
 	./rebar skip_deps=true doc
+
+test:
+	./rebar skip_deps=true eunit
 
 ERLFLAGS= -pa $(CURDIR)/ebin -pa $(CURDIR)/deps/*/ebin
 

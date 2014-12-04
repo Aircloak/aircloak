@@ -28,4 +28,4 @@ start_link() ->
 %% -------------------------------------------------------------------
 
 init([]) ->
-  {ok, {{one_for_one, 5, 10}, [?CHILD(router, worker)]}}.
+  {ok, {{one_for_one, 5, 10}, [?CHILD(history, worker)]}}.
