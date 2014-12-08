@@ -9,7 +9,7 @@
   start_link/0,
   stop/0,
   append/1,
-  get/0
+  filter_by_path/1
 ]).
 
 %% gen_server callbacks
@@ -24,9 +24,12 @@
 
 -include("types.hrl").
 
+%% Cleanup interval for old articles.
+-define(CLEAN_INTERVAL, 1000). % One second
+
 -record(state, {
-  history = [] :: list(#article{}),
-  history_size :: integer() % in microseconds
+  clean_cycle = 1 :: integer(), % incremented on every clean cycle
+  history_size :: integer() % in number of clean cycles
 }).
 
 
@@ -44,15 +47,17 @@ start_link() ->
 stop() ->
   gen_server:call(history, stop).
 
-%% @doc Write a new article into the history log.
+%% @doc Writes a new article into the history log.
 -spec append(#article{}) -> ok.
 append(Article) ->
-  gen_server:cast(history, {append, Article}).
+  CleanCycle = gen_server:call(history, get_article_clean_cycle),
+  ets:insert(history, {CleanCycle, Article#article.path ++ [$/], Article}),
+  ok.
 
-%% @doc Returns the current valid history.
--spec get() -> [#article{}].
-get() ->
-  gen_server:call(history, get).
+%% @doc Returns the articles in the history for the specified path.
+-spec filter_by_path(string()) -> [#article{}].
+filter_by_path(Path) ->
+  lists:flatten(ets:match(history, {'_', Path ++ [$/] ++ '_', '$1'})).
 
 
 %% -------------------------------------------------------------------
@@ -61,24 +66,31 @@ get() ->
 
 init([]) ->
   {ok, HistorySize} = application:get_env(airpub, publish_history_size),
-  State = #state{history_size = HistorySize * 1000 * 1000},
+  State = #state{clean_cycle = 1, history_size = HistorySize},
+  ets:new(history, [bag, named_table, public, {read_concurrency, true}, {write_concurrency, true}]),
+  timer:send_after(?CLEAN_INTERVAL, self(), clean_history),
   {ok, State}.
 
 terminate(normal, _State) ->
   ok.
 
-handle_call(get, _From, #state{history = OldHistory, history_size = HistorySize} = State) ->
-  NewHistory = clean_history(OldHistory, HistorySize),
-  {reply, NewHistory, State#state{history = NewHistory}};
+% Internal message for returning the clean_cycle of a current article.
+handle_call(get_article_clean_cycle, _From, #state{clean_cycle = CleanCycle, history_size = HistorySize} = State) ->
+  {reply, CleanCycle + HistorySize, State};
 handle_call(stop, _From, State) ->
   {stop, normal, ok, State}.
 
-handle_cast({append, Article}, #state{history = OldHistory, history_size = HistorySize} = State) ->
-  NewHistory = clean_history(OldHistory, HistorySize) ++ [Article],
-  {noreply, State#state{history = NewHistory}}.
+handle_cast(_, State) ->
+  io:format("Invalid cast message received."),
+  {noreply, State}.
 
+% Internal message for periodically cleaning up old entries.
+handle_info(clean_history, #state{clean_cycle = CleanCycle} = State) ->
+  NewCleanCycle = clean_history(CleanCycle),
+  timer:send_after(?CLEAN_INTERVAL, self(), clean_history),
+  {noreply, State#state{clean_cycle = NewCleanCycle}};
 handle_info(_, State) ->
-  io:format("Invalid message received."),
+  io:format("Invalid info message received."),
   {noreply, State}.
 
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
@@ -89,9 +101,7 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 %% -------------------------------------------------------------------
 
 % Removes old articles from history.
--spec clean_history(list(#article{}), pos_integer())-> list(#article{}).
-clean_history(OldHistory, HistorySize) ->
-  Now = os:timestamp(),
-  lists:dropwhile(fun (Article) ->
-      timer:now_diff(Now, Article#article.published_at) > HistorySize
-    end, OldHistory).
+-spec clean_history(integer())-> integer().
+clean_history(CleanCycle) ->
+  ets:delete(history, CleanCycle),
+  CleanCycle + 1.
