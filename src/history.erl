@@ -57,8 +57,7 @@ append(Article) ->
 %% @doc Returns the articles in the history for the specified path.
 -spec filter_by_path(string()) -> [#article{}].
 filter_by_path(Path) ->
-  Entries = ets:match_object(history, {'_', Path ++ [$/] ++ '_', '_'}),
-  [Article || {_CleanCycle, _Path, Article} <- Entries].
+  lists:flatten(ets:match(history, {'_', Path ++ [$/] ++ '_', '$1'})).
 
 
 %% -------------------------------------------------------------------
@@ -104,5 +103,5 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 % Removes old articles from history.
 -spec clean_history(integer())-> integer().
 clean_history(CleanCycle) ->
-  ets:match_delete(history, {CleanCycle, '_', '_'}),
+  ets:delete(history, CleanCycle),
   CleanCycle + 1.
