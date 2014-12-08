@@ -25,7 +25,7 @@
 add_subscriber(Path) ->
   gproc:reg({p, l, {subscriber, Path}}),
   lager:info("Added subscriber: ~p:'~s'~n", [self(), Path]),
-  send_history(Path, history:get()),
+  send_history(Path),
   ok.
 
 %% @doc Removes a registered subscriber from the routing tables.
@@ -54,13 +54,12 @@ publish(#article{path = Path} = Article) ->
 %% -------------------------------------------------------------------
 
 % Send the interesting articles from history to the new subscriber.
--spec send_history(string(), [#article{}]) -> ok.
-send_history(SubscriberPath, History) ->
-  lists:foreach(fun (#article{path = ArticlePath} = Article) ->
-      IsSubPath = lists:prefix(SubscriberPath, ArticlePath) andalso
-          lists:nth(string:len(SubscriberPath) + 1, ArticlePath) =:= $/,
-      case IsSubPath of
-        true -> self() ! {notify, Article};
-        false -> ok
-      end
-    end, History).
+-spec send_history(string()) -> ok.
+send_history(SubscriberPath) ->
+  History = history:filter_by_path(SubscriberPath),
+  SortedHistory = lists:sort(fun (A1, A2) ->
+      timer:now_diff(A1#article.published_at, A2#article.published_at) < 0
+    end, History),
+  lists:foreach(fun (Article) ->
+      self() ! {notify, Article}
+    end, SortedHistory).
