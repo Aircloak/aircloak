@@ -50,7 +50,7 @@ stop() ->
 %% @doc Writes a new article into the history log.
 -spec append(#article{}) -> ok.
 append(Article) ->
-  CleanCycle = gen_server:call(history, get_article_clean_cycle),
+  [{article_clean_cycle, CleanCycle}] = ets:lookup(history, article_clean_cycle),
   ets:insert(history, {CleanCycle, Article#article.path ++ [$/], Article}),
   ok.
 
@@ -68,15 +68,13 @@ init([]) ->
   {ok, HistorySize} = application:get_env(airpub, publish_history_size),
   State = #state{clean_cycle = 1, history_size = HistorySize},
   ets:new(history, [bag, named_table, public, {read_concurrency, true}, {write_concurrency, true}]),
+  ets:insert(history, {article_clean_cycle, 1 + HistorySize}),
   timer:send_after(?CLEAN_INTERVAL, self(), clean_history),
   {ok, State}.
 
 terminate(normal, _State) ->
   ok.
 
-% Internal message for returning the clean_cycle of a current article.
-handle_call(get_article_clean_cycle, _From, #state{clean_cycle = CleanCycle, history_size = HistorySize} = State) ->
-  {reply, CleanCycle + HistorySize, State};
 handle_call(stop, _From, State) ->
   {stop, normal, ok, State}.
 
@@ -85,9 +83,11 @@ handle_cast(_, State) ->
   {noreply, State}.
 
 % Internal message for periodically cleaning up old entries.
-handle_info(clean_history, #state{clean_cycle = CleanCycle} = State) ->
+handle_info(clean_history, #state{clean_cycle = CleanCycle, history_size = HistorySize} = State) ->
   NewCleanCycle = clean_history(CleanCycle),
   timer:send_after(?CLEAN_INTERVAL, self(), clean_history),
+  ets:delete(history, article_clean_cycle),
+  ets:insert(history, {article_clean_cycle, NewCleanCycle + HistorySize}),
   {noreply, State#state{clean_cycle = NewCleanCycle}};
 handle_info(_, State) ->
   io:format("Invalid info message received."),
