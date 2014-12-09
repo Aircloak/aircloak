@@ -50,7 +50,7 @@ stop() ->
 %% @doc Writes a new article into the history log.
 -spec append(#article{}) -> ok.
 append(Article) ->
-  CleanCycle = gen_server:call(history, get_article_clean_cycle),
+  [{article_clean_cycle, CleanCycle} | _] = ets:lookup(history, article_clean_cycle),
   ets:insert(history, {CleanCycle, Article#article.path ++ [$/], Article}),
   ok.
 
@@ -68,15 +68,13 @@ init([]) ->
   {ok, HistorySize} = application:get_env(airpub, publish_history_size),
   State = #state{clean_cycle = 1, history_size = HistorySize},
   ets:new(history, [bag, named_table, public, {read_concurrency, true}, {write_concurrency, true}]),
+  ets:insert(history, {article_clean_cycle, 1 + HistorySize}),
   timer:send_after(?CLEAN_INTERVAL, self(), clean_history),
   {ok, State}.
 
 terminate(normal, _State) ->
   ok.
 
-% Internal message for returning the clean_cycle of a current article.
-handle_call(get_article_clean_cycle, _From, #state{clean_cycle = CleanCycle, history_size = HistorySize} = State) ->
-  {reply, CleanCycle + HistorySize, State};
 handle_call(stop, _From, State) ->
   {stop, normal, ok, State}.
 
@@ -85,9 +83,15 @@ handle_cast(_, State) ->
   {noreply, State}.
 
 % Internal message for periodically cleaning up old entries.
-handle_info(clean_history, #state{clean_cycle = CleanCycle} = State) ->
-  NewCleanCycle = clean_history(CleanCycle),
+handle_info(clean_history, #state{clean_cycle = OldCleanCycle, history_size = HistorySize} = State) ->
+  NewCleanCycle = clean_history(OldCleanCycle),
+  % reset timer
   timer:send_after(?CLEAN_INTERVAL, self(), clean_history),
+  % set new clean cycle
+  ets:insert(history, {article_clean_cycle, NewCleanCycle + HistorySize}),
+  % delete the old entry (this might make new entries get the older cycle for a short while,
+  % but that should not be an issue as the article will just be cleaned up one cycle sooner)
+  ets:delete_object(history, {article_clean_cycle, OldCleanCycle + HistorySize}),
   {noreply, State#state{clean_cycle = NewCleanCycle}};
 handle_info(_, State) ->
   io:format("Invalid info message received."),
