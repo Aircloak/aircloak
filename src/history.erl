@@ -50,7 +50,7 @@ stop() ->
 %% @doc Writes a new article into the history log.
 -spec append(#article{}) -> ok.
 append(Article) ->
-  [{article_clean_cycle, CleanCycle}] = ets:lookup(history, article_clean_cycle),
+  [{article_clean_cycle, CleanCycle} | _] = ets:lookup(history, article_clean_cycle),
   ets:insert(history, {CleanCycle, Article#article.path ++ [$/], Article}),
   ok.
 
@@ -83,11 +83,15 @@ handle_cast(_, State) ->
   {noreply, State}.
 
 % Internal message for periodically cleaning up old entries.
-handle_info(clean_history, #state{clean_cycle = CleanCycle, history_size = HistorySize} = State) ->
-  NewCleanCycle = clean_history(CleanCycle),
+handle_info(clean_history, #state{clean_cycle = OldCleanCycle, history_size = HistorySize} = State) ->
+  NewCleanCycle = clean_history(OldCleanCycle),
+  % reset timer
   timer:send_after(?CLEAN_INTERVAL, self(), clean_history),
-  ets:delete(history, article_clean_cycle),
+  % set new clean cycle
   ets:insert(history, {article_clean_cycle, NewCleanCycle + HistorySize}),
+  % delete the old entry (this might make new entries get the older cycle for a short while,
+  % but that should not be an issue as the article will just be cleaned up one cycle sooner)
+  ets:delete_object(history, {article_clean_cycle, OldCleanCycle + HistorySize}),
   {noreply, State#state{clean_cycle = NewCleanCycle}};
 handle_info(_, State) ->
   io:format("Invalid info message received."),
