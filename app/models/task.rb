@@ -35,11 +35,15 @@ class Task < ActiveRecord::Base
     "task-#{task_id}"
   end
 
-  # This does an efficient SQL delete, rather than
-  # loading all the data, running all the validations
-  # and callbacks, etc
+  # This does an efficient SQL delete, rather than loading all the data,
+  # running all the validations and callbacks, etc
   def efficient_delete
     Result.delete_for_task self
+  end
+
+  # This does an efficient SQL delete, rather than loading all the data,
+  # running all the validations and callbacks, etc
+  def efficient_destroy
     PendingResult.delete_for_task self
     destroy
   end

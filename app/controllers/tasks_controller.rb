@@ -64,8 +64,13 @@ class TasksController < ApplicationController
 
   # DELETE /tasks/:id
   def destroy
-    @task.efficient_delete
-    describe_activity "Destroyed task #{@task.name}"
+    if @task.results.count > 0 then
+      @task.efficient_delete
+      describe_activity "Delete results for #{@task.name}"
+    else
+      @task.efficient_destroy
+      describe_activity "Destroyed task #{@task.name}"
+    end
     redirect_to tasks_path
   end
 
