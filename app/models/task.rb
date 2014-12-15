@@ -39,12 +39,14 @@ class Task < ActiveRecord::Base
   # running all the validations and callbacks, etc
   def efficient_delete
     Result.delete_for_task self
+    PendingResult.delete_for_task self
+    ExceptionResult.delete_for_task self
   end
 
   # This does an efficient SQL delete, rather than loading all the data,
   # running all the validations and callbacks, etc
   def efficient_destroy
-    PendingResult.delete_for_task self
+    efficient_delete
     destroy
   end
 
@@ -135,25 +137,6 @@ class Task < ActiveRecord::Base
 
   def data
     PrefetchFilter.prefetch_to_data(prefetch, cluster_id)
-  end
-
-  # Returns a hash where keys are bucket labels (sorted), and each value is
-  # a hash that maps result id to the display result
-  def result_set results_used
-    unsorted_buckets =
-      results_used.inject({}) do |memo, result|
-        result.buckets.each do |bucket|
-          name = bucket.display_name
-          memo[name] ||= {}
-          memo[name][bucket.result_id] = bucket.display_result
-        end
-        memo
-      end
-
-    unsorted_buckets.keys.sort.inject({}) do |memo, key|
-      memo[key] = unsorted_buckets[key]
-      memo
-    end
   end
 
   # Returns true if and only if the latest

@@ -36,6 +36,6 @@ class Bucket < ActiveRecord::Base
 
 private
   def display_name_str_answer
-    str_answer ? ": #{str_answer}" : ""
+    str_answer.present? ? ": #{str_answer}" : ""
   end
 end
