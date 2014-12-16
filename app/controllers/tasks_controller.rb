@@ -23,8 +23,13 @@ class TasksController < ApplicationController
 
   # GET /tasks/new
   def new
-    @task = current_user.analyst.tasks.new
-    describe_activity "Creating new task"
+    if current_user.analyst.clusters.count == 0
+      describe_failed_activity "Cannot create a task without having a cluster"
+      redirect_to tasks_path, flash: {error: 'Cannot create a task without having a cluster'}
+    else
+      @task = current_user.analyst.tasks.new
+      describe_activity "Creating new task"
+    end
   end
 
   # POST /tasks
