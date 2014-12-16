@@ -31,29 +31,36 @@ format_date = (timestamp) ->
 
 
 # adds a row to the results table representing the specified result
-display_result = (result) ->
-  table = document.getElementById('results_table')
-  row = table.insertRow()
+window.display_result = (result) ->
+  table = document.getElementById 'results_table'
 
-  date = row.insertCell(0)
-  timestamp = parseInt(result.published_at)
-  date.innerHTML = format_date(timestamp)
+  if resultsTableLimit?
+    if resultsTableLimit < table.rows.length
+      table.deleteRow table.rows.length - 1
+
+  row = table.insertRow 1
+  date = row.insertCell 0
+
+  # remember when the last article was published
+  window.last_article_update = result.published_at
+
+  timestamp = parseInt result.published_at
+  date.innerHTML = format_date timestamp
   if timestamp < task_last_update
     date.innerHTML += "*"
 
-  errors = row.insertCell(1)
+  errors = row.insertCell 1
   if result.exceptions.length > 0
-    window.e = errors
     errors.innerHTML = "present"
     errors.style.color = "red"
   else
     errors.innerHTML = "none"
 
-  create_columns(result)
+  create_columns result
 
   cells = []
   for index in [1..columns.count]
-    cells.push row.insertCell(index+1)
+    cells.push row.insertCell index+1
 
   for bucket in result.buckets
     index = columns[bucket.name]
@@ -63,5 +70,6 @@ display_result = (result) ->
 $ ->
   window.task_last_update = $('.render_params').data('task-last-update')
   results = $('.render_params').data('results')
+  window.last_article_update = 0
   for result in results
     display_result result

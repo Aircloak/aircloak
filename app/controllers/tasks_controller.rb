@@ -1,4 +1,5 @@
 require 'csv'
+require 'airpub_api'
 
 class TasksControllerException < Exception; end
 
@@ -100,8 +101,10 @@ class TasksController < ApplicationController
 
   # GET /tasks/:id/latest_results
   def latest_results
-    @results = convert_results_for_client_side_rendering @task.results.order('created_at DESC').limit(5)
+    @results = convert_results_for_client_side_rendering @task.results.order('created_at DESC').limit(5).reverse
     @results_path = latest_results_task_path(@task)
+    @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.id}"
+    @server_url = Rails.configuration.airpub_ws_subscribe
     describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task)
   end
 
