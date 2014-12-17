@@ -2,20 +2,21 @@
 # All this logic will automatically be available in application.js.
 # You can use CoffeeScript in this file: http://coffeescript.org/
 
+# create namespace for results-related shared variables
+window.Results = {}
+# the time when last article was published
+Results.last_article_update = 0
 # holds existing results table columns and maps them to indices
-window.columns = {}
-columns.count = 1
-
+Results.columns = {}
+Results.columns.count = 1
 
 # creates a column if doesn't exists already
 create_column = (name) ->
-  if not columns[name]?
-    columns[name] = columns.count
-    columns.count++
-    header = document.getElementById('results_table').tHead
-    column = document.createElement('th')
-    column.innerHTML = name
-    header.rows[0].appendChild(column)
+  if not Results.columns[name]?
+    Results.columns[name] = Results.columns.count
+    Results.columns.count++
+    column = $('<th/>').html name
+    $('#results_table thead tr:first').append column
 
 
 # makes sure all columns needed for showing the result are created
@@ -31,22 +32,22 @@ format_date = (timestamp) ->
 
 
 # adds a row to the results table representing the specified result
-window.display_result = (result) ->
+Results.display = (result) ->
   table = document.getElementById 'results_table'
 
-  if resultsTableLimit?
-    if resultsTableLimit < table.rows.length
+  if Results.resultsTableLimit?
+    if Results.resultsTableLimit < table.rows.length
       table.deleteRow table.rows.length - 1
 
   row = table.insertRow 1
   date = row.insertCell 0
 
   # remember when the last article was published
-  window.last_article_update = result.published_at
+  Results.last_article_update = result.published_at
 
   timestamp = parseInt result.published_at
   date.innerHTML = format_date timestamp
-  if timestamp < task_last_update
+  if timestamp < Results.task_last_update
     date.innerHTML += "*"
 
   errors = row.insertCell 1
@@ -57,19 +58,15 @@ window.display_result = (result) ->
     errors.innerHTML = "none"
 
   create_columns result
-
-  cells = []
-  for index in [1..columns.count]
-    cells.push row.insertCell index+1
+  cells = _.map [1..Results.columns.count], (index) -> row.insertCell index + 1
 
   for bucket in result.buckets
-    index = columns[bucket.name]
+    index = Results.columns[bucket.name]
     cells[index-1].innerHTML = bucket.value
 
 
 $ ->
-  window.task_last_update = $('.render_params').data('task-last-update')
-  results = $('.render_params').data('results')
-  window.last_article_update = 0
-  for result in results
-    display_result result
+  Results.task_last_update = $('.render_params').data('task-last-update')
+  oldResults = $('.render_params').data('results')
+  for result in oldResults
+    Results.display result
