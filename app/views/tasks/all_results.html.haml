@@ -1,6 +1,13 @@
 %h1= "#{@task.name}: all results"
 
-= render 'results'
+= link_to "Download results", "#{@results_path}.csv", class: "btn"
+
+- if @results.count > 0
+  = render 'results'
+- else
+  %hr
+  %p No results stored for this task.
+  %hr
 
 = link_to 'Latest results', latest_results_task_path(@task), class: "btn"
 = link_to 'Back', tasks_path, class: "btn"

@@ -1,27 +1,19 @@
-%p
-  Below are the current results for
-  = "#{@task.name}."
-  To get more results, execute the task again.
-= link_to 'Run task', execute_as_batch_task_task_path(@task), method: "post", class: "btn"
-= link_to 'Edit task', edit_task_path(@task), class: "btn"
+-# Includes additional, page-specific javascripts
+= content_for(:javascript_include) {javascript_include_tag "results", "data-turbolinks-track" => true}
 
 %hr
 
-- if @results.count > 0
-  = link_to "Download results", "#{@results_path}.csv", class: "btn"
-  %table.table.table-striped
-    %thead
-      %tr
-        %th Bucket
-        - @results.each do |result|
-          - @result_outdated = result.created_at < @task.updated_at ? " (outdated code)" : ""
-          %th= link_to "#{result.created_at}#{@result_outdated}", result_path(result)
-    %tbody
-      - @result_set.each do |name, bucket|
-        %tr
-          %td= name
-          - @results.each do |result|
-            - r = bucket[result.id]
-            %td= r ? r : "--"
-- else
-  %p No results stored for this task.
+-# set rendering parameters
+.render_params{data: {results: @results.to_json, task_last_update: @task.updated_at.to_i * 1000}}
+
+%table.table.table-striped#results_table
+  %thead
+    %tr
+      %th time \ label
+      %th errors
+  %tbody
+
+%p
+  * = Outdated code
+
+%hr

@@ -1,4 +1,22 @@
+-# Includes additional, page-specific javascripts
+= content_for(:javascript_include) {javascript_include_tag "latest_results", "data-turbolinks-track" => true}
+= content_for(:javascript_include) {javascript_include_tag "airpub_api", "data-turbolinks-track" => true}
+
 %h1= "#{@task.name}: latest results"
+
+%p
+  Below are the latest results for
+  = "#{@task.name}."
+  To get more results, execute the task again.
+  %div#task_status
+    >
+
+%button{class: "btn", onClick: "Task.execute('#{@task.id}');"}
+  Run task
+= link_to 'Edit task', edit_task_path(@task), class: "btn"
+
+-# set listen parameters
+.listen_params{data: {server_url: @server_url, request: @request}}
 
 = render 'results'
 

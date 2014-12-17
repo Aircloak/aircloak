@@ -1,4 +1,5 @@
 require 'csv'
+require 'airpub_api'
 
 class TasksControllerException < Exception; end
 
@@ -69,8 +70,13 @@ class TasksController < ApplicationController
 
   # DELETE /tasks/:id
   def destroy
-    @task.efficient_delete
-    describe_activity "Destroyed task #{@task.name}"
+    if @task.results.count > 0 then
+      @task.efficient_delete
+      describe_activity "Delete results for #{@task.name}"
+    else
+      @task.efficient_destroy
+      describe_activity "Destroyed task #{@task.name}"
+    end
     redirect_to tasks_path
   end
 
@@ -83,18 +89,28 @@ class TasksController < ApplicationController
 
   # GET /tasks/:id/all_results
   def all_results
-    @results = @task.results
+    @results = convert_results_for_client_side_rendering @task.results
     @results_path = all_results_task_path(@task)
     describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task)
-    render_results
+
+    respond_to do |format|
+      format.html
+
+      format.csv do
+        filename = "task_results_#{@task.id}_#{Time.now.strftime("%Y%m%d%H%M")}.csv"
+        response.headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
+        render :text => results_csv
+      end
+    end
   end
 
   # GET /tasks/:id/latest_results
   def latest_results
-    @results = @task.results.order('created_at DESC').limit(3).reverse
+    @results = convert_results_for_client_side_rendering @task.results.order('created_at DESC').limit(5).reverse
     @results_path = latest_results_task_path(@task)
+    @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.id}"
+    @server_url = Rails.configuration.airpub_ws_subscribe
     describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task)
-    render_results
   end
 
 private
@@ -154,28 +170,57 @@ private
     params.require(:task).permit(:name, :cluster_id, :payload_identifier, :data, :code)
   end
 
-  def render_results
-    @result_set = @task.result_set(@results)
-    respond_to do |format|
-      format.html
-
-      format.csv do
-        filename = "task_results_#{@task.id}_#{Time.now.strftime("%Y%m%d%H%M")}.csv"
-        response.headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
-        render :text => results_csv
-      end
-    end
+  # converts the results to a hashmap that will be converted to JSON and rendered client-side
+  def convert_results_for_client_side_rendering results_raw
+    results_raw.map { |result|
+      {
+        :published_at => result.created_at.utc.to_i * 1000,
+        :id => result.id,
+        :buckets => result.buckets.map { |bucket|
+          {
+            :name => bucket.display_name,
+            :value => bucket.display_result
+          }
+        },
+        :exceptions => result.exception_results.map { |exception|
+          {
+            :id => exception.id,
+            :count => exception.count
+          }
+        }
+      }
+    }
   end
 
   def results_csv
     CSV.generate(col_sep: ";") do |csv|
-      csv << (@result_set.keys + ["created at"])
-      @task.results.each do |result|
-        csv << (
-          @result_set.map {|name, bucket| bucket[result.id] || ""} +
-          [result.created_at.utc.strftime("%Y-%m-%d %H:%M:%S")]
-        )
+      # generate column names
+      columns = ["time / label", "errors"] # pre-set meta-column names
+      columnIndexMap = {}
+      # create columns from labels and map them to header index
+      @results.each do |result|
+        result[:buckets].each do |bucket|
+          if not columnIndexMap.has_key? bucket[:name]
+            columnIndexMap[bucket[:name]] = columns.length
+            columns.push bucket[:name]
+          end
+        end
       end
+      csv << columns # write header
+
+      # generate one row for each result
+      @results.each do |result|
+        date = Time.at(result[:published_at]/1000).strftime("%Y-%m-%d %H:%M:%S")
+        errors = result[:exceptions].length > 0 ? "true" : "false"
+        cells = [date, errors] + Array.new(columns.length, "")
+        # iterate over buckets and fill the correct cell
+        result[:buckets].each do |bucket|
+          index = columnIndexMap[bucket[:name]]
+          cells[index] = bucket[:value]
+        end
+        csv << cells # write row
+      end
+
     end
   end
 end

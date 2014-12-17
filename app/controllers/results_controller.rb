@@ -55,7 +55,7 @@ private
           range: range, accumulated_count: bucket["count"])
     end unless hash["buckets"] == nil
     hash["exceptions"].each do |exception|
-      result.exceptions.push ExceptionPB:new(stackEntry: exception["stackEntry"],
+      result.exceptions.push ExceptionPB.new(stackEntry: exception["stackEntry"],
           accumulated_count: exception["accumulated_count"])
     end unless hash["exceptions"] == nil
     return result

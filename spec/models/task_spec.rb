@@ -41,29 +41,7 @@ describe Task do
     end
   end
 
-  it "returns correct result_set" do
-    task = Task.new
-
-    task.stub(:results) do
-      [
-        double(id: 1, buckets: [
-          double(display_name: "bucket2", display_result: "res12", result_id: 1),
-          double(display_name: "bucket1", display_result: "res11", result_id: 1)
-        ]),
-
-        double(id: 2, buckets: [
-          double(display_name: "bucket3", display_result: "res23", result_id: 2),
-          double(display_name: "bucket1", display_result: "res21", result_id: 2)
-        ])
-      ]
-    end
-
-    task.result_set(task.results).
-        should eq({"bucket1"=>{1=>"res11", 2=>"res21"}, "bucket2"=>{1=>"res12"}, "bucket3"=>{2=>"res23"}})
-  end
-
   def valid_prefetch
-
     prefetch =  '{"table":"test1","where":{"\$\$priority": {"$lt": 3}}}'
   end
 
