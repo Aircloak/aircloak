@@ -34,7 +34,6 @@ Task.execute = (id) ->
 
 convert_article_to_result = (timestamp, article) ->
   result = {published_at: timestamp}
-  console.log "New result: #{article}"
   article = JSON.parse article
   result.buckets = []
   for bucket in article.buckets
