@@ -9,6 +9,6 @@
 - elsif @deployable_entity_version.part_of_build?
   = button_to "Force build status reset despite ongoing build", reset_deployable_entity_deployable_entity_version_path(@deployable_entity_version.deployable_entity, @deployable_entity_version), :class => "btn btn-danger"
 
-  %h2 Build log
-  %pre
-    = @deployable_entity_version.build_log
+%h2 Build log
+%pre
+  = @deployable_entity_version.build_log
