@@ -194,7 +194,7 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
     changed = false
     reportSandboxErrors(response)
     renderSaveInfo()
-    renderResults(response)
+    renderSandboxResults(response)
 
   reportSandboxErrors = (response) ->
     taskExceptions =
@@ -204,20 +204,16 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
         (JSON.parse(response.responseText).errors || [])
     renderExceptions()
 
-  renderResults = (response) ->
-    results = []
+  renderSandboxResults = (response) ->
     if (response.status == 200)
-      _.each(
-            _.pairs(JSON.parse(response.responseText).reported_properties),
-            ([user, properties]) ->
-              _.each(
-                    _.pairs(properties),
-                    ([label, value]) ->
-                      results.push(user: user, bucket: "#{label}: #{value}")
-                  )
-          )
-    results = _.sortBy(results, (result) -> "#{result.user}_#{result.bucket}")
-    $("#sandboxResult").html(HandlebarsTemplates["tasks/sandbox_results"](results))
+      results =
+        _.chain(JSON.parse(response.responseText).reported_properties).
+          pairs().
+          map(([user, properties]) -> _.map(properties, (property) -> user: user, property: property)).
+          flatten(true).
+          sortBy((result) -> "#{result.user}_#{result.property.label}_#{result.property.value}").
+          value()
+    $("#sandboxResult").html(HandlebarsTemplates["tasks/sandbox_results"](results || []))
 
   removeTestUser = (e) ->
     handleEventAndCancel(e, ->
