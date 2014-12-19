@@ -38,7 +38,7 @@ convert_article_to_result = (timestamp, article) ->
   result.buckets = []
   for bucket in article.buckets
     name = bucket.label
-    name += ":#{bucket.value}" if bucket.value
+    name += ": #{bucket.value}" if bucket.value
     result.buckets.push {name: name, value: bucket.count}
   result.exceptions = []
   for exception in article.exceptions
