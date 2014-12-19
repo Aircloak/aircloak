@@ -29,6 +29,7 @@
             = link_to 'Show', cluster, class: "btn btn-mini"
             = link_to 'Edit', edit_cluster_path(cluster), class: "btn btn-mini"
             = link_to 'Statistics', metrics_path(:cluster => cluster.name), class: "btn btn-mini"
+            = link_to 'Audit-log', "/audit_logs/cluster/#{cluster.id}", class: "btn btn-mini"
 
 %h4 Add a new cluster
 = render 'form'

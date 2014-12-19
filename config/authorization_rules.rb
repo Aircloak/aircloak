@@ -10,6 +10,7 @@ authorization do
     ], to: :anon_read
     has_permission_on [
       :results,
+      :audit_logs,
       :register_version,
       :build_progress,
       :machines,
@@ -55,7 +56,8 @@ authorization do
       :user_permissions,
       :metrics,
       :user_tables,
-      :activities
+      :activities,
+      :audit_logs
     ], to: :manage
     has_permission_on [:airpub], to: [:index, :subscribe]
     has_permission_on [:user_tables], to: :retry_migration
@@ -66,6 +68,7 @@ authorization do
     has_permission_on [:impersonation], to: [:impersonate, :stop_it]
     has_permission_on [:test_results, :test_vms, :test_items, :test_item_vms], :to => :read
     has_permission_on [:repeated_answers], :to => [:read, :update]
+    has_permission_on :audit_logs, :to => [:cluster, :cloak]
   end
 end
 

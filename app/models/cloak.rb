@@ -11,6 +11,8 @@ class Cloak < ActiveRecord::Base
   validates_presence_of :name
   validates_uniqueness_of :name, :ip
   before_destroy :validate_destroyability
+  after_destroy :remove_audit_log
+  has_many :audit_logs
 
   def display_name
     name + (tpm ? "" : " (no tpm)")
@@ -65,5 +67,9 @@ private
       self.errors.add(:cluster_cloak, "cannot destroy a cloak assigned to a cluster")
       return false
     end
+  end
+
+  def remove_audit_log
+    AuditLog.where(cloak_id: id).delete_all
   end
 end

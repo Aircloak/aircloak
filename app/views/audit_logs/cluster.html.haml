@@ -1,0 +1,33 @@
+%h1= "Audit log for #{@cluster.name} cluster"
+
+%p= "The following #{@cluster.cloaks.size} cloaks are part of the cluster:"
+%ul
+  - @cluster.cloaks.each do |cloak|
+    %li= link_to cloak.name, "/audit_logs/cloak/#{cloak.id}"
+
+- if @entries.size > 0
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Cloak
+        %th Entry id
+        %th Verified
+        %th Timestamp
+        %th Source
+        %th Message
+        %th
+    %tbody
+      - @entries.each do |log_entry|
+        %tr
+          %td= link_to log_entry.cloak.name, "/audit_logs/cloak/#{log_entry.cloak.id}"
+          %td= log_entry.log_id
+          %td= log_entry.verified
+          %td= log_entry.timestamp
+          %td= log_entry.source
+          %td= log_entry.message
+          %td= link_to 'Raw entry', audit_log_path(log_entry), class: "btn btn-mini"
+
+  = will_paginate @entries
+
+- else
+  %h4 No audit-log entries as of yet

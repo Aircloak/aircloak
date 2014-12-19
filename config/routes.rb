@@ -102,5 +102,12 @@ Web::Application.routes.draw do
 
   post "/sandbox/run", to: "sandbox#run"
 
+  resources :audit_logs do
+    collection do
+      get 'cluster/:cluster_id', to: :cluster
+      get 'cloak/:cloak_id', to: :cloak
+    end
+  end
+
   root to: 'welcome#index'
 end
