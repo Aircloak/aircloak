@@ -30,3 +30,4 @@
             - if not render_assigned
               = link_to 'Destroy', cloak, :method => :delete, :data => { :confirm => 'Are you sure?' },
                   class: "btn btn-mini btn-danger"
+            = link_to 'Audit-log', "/audit_logs/cloak/#{cloak.id}", class: "btn btn-mini"

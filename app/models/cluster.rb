@@ -17,7 +17,7 @@ class Cluster < ActiveRecord::Base
 
   before_save :synchronize_in_local_mode
   before_destroy :verify_can_destroy
-  after_destroy :remove_tasks
+  after_destroy :remove_state
 
   def tpm
     raise "Cluster has no cloaks. Unsure if TPM cluster or not" unless cloaks.size > 0
@@ -192,9 +192,10 @@ private
     }
   end
 
-  def remove_tasks
+  def remove_state
     tasks.each do |task|
       task.efficient_delete
     end
+    AuditLog.where(cloak_id: cloaks.map(&:id)).delete_all
   end
 end
