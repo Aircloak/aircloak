@@ -216,9 +216,18 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
           value()
     $("#sandboxResult").html(HandlebarsTemplates["tasks/sandbox_results"](results || []))
 
+  anotherUserEntry = (e) ->
+    handleEventAndCancel(e,
+          ->
+            userId = $(e.target).data("user-id")
+            testUser = data.sampleTestUser(data.tableForName($(e.target).data("table")), userId)
+            data.addTestUser(testUser)
+            renderSandboxEditor()
+        )
+
   removeTestUser = (e) ->
     handleEventAndCancel(e, ->
-          data.removeTestUser($(e.target).data("user-id"))
+          data.removeTestUser($(e.target).data("userRowId"))
           renderSandboxEditor()
         )
 
@@ -226,25 +235,25 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
     handleEventAndCancel(e, ->
           target = $(e.target)
           fields =
-            _.chain(data.findTestUser(target.data("table"), target.data("user-id"))).
+            _.chain(data.findTestUser(target.data("user-row-id"))).
               pairs().
               reduce(
                     (memo, [field, value]) -> memo.push(name: field, value: value.toString()); memo
                     []
                   )
               .value()
-          showSandboxUserEditor(target.data("table"), target.data("user-id"), fields)
+          showSandboxUserEditor(target.data("table"), target.data("user-row-id"), fields)
         )
 
-  showSandboxUserEditor = (tableName, userId, fields) ->
+  showSandboxUserEditor = (tableName, userRowId, fields) ->
     Popup.show(HandlebarsTemplates["tasks/sandbox_user"](fields: fields))
     $("[data-sandbox-field]").focus()
     $('#updateSandboxUser').on(
           'click',
-          (e) -> handleEventAndCancel(e, -> updateSandboxUser(tableName, userId))
+          (e) -> handleEventAndCancel(e, -> updateSandboxUser(tableName, userRowId))
         )
 
-  updateSandboxUser = (tableName, userId) ->
+  updateSandboxUser = (tableName, userRowId) ->
     userData =
       _.reduce(
             $("[data-sandbox-field]"),
@@ -268,7 +277,7 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
           )
     $('#updateSandboxUser').off('click')
     Popup.close()
-    data.updateTestUser(tableName, userId, userData)
+    data.updateTestUser(tableName, userRowId, userData)
     renderSandboxEditor()
 
 
@@ -288,6 +297,7 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
       "click [data-remove-table]": removeTable
       "click [data-edit-filter]": editFilter
       "click [data-remove-test-user]": removeTestUser
+      "click [data-another-user-entry]": anotherUserEntry
       "click [data-edit-sandbox-user]": editSandboxUser
       "submit": submit
   })
