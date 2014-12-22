@@ -162,16 +162,17 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
     $("#sandboxRunner").html(HandlebarsTemplates["tasks/sandbox_runner"](data))
 
   addSandboxUser = (e) ->
-    handleEventAndCancel(e, ->
-          userId = data.newTestUserId()
-          _.each(
-                data.selectedTables(),
-                (table) ->
-                  testUser = data.sampleTestUser(table, userId)
-                  data.addTestUser(testUser)
-              )
+    handleEventAndCancel(e,
+          ->
+            userId = data.newTestUserId()
+            _.each(
+                  data.selectedTables(),
+                  (table) ->
+                    testUser = data.sampleTestUser(table, userId)
+                    data.addTestUser(testUser)
+                )
+            renderSandboxEditor()
         )
-      renderSandboxEditor()
 
   runInSandbox = (e) ->
     handleEventAndCancel(e, doRunInSandbox)
