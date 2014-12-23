@@ -71,7 +71,7 @@ handle_publish_request(_Method, _Path, _HasBody, _ContentType, Req) ->
 get_forward_info(Path) ->
   {ok, Routes} = application:get_env(airpub, publishing_forward_routes),
   {_Length, Match} = lists:foldl(fun({SubPath, Url, Headers}, {MatchLength, Match}) ->
-      case lists:prefix(SubPath, Path) of
+      case lists:prefix(SubPath, Path) andalso string:len(SubPath) > MatchLength of
         true ->
           {string:len(SubPath), {Url, Headers}};
         false ->
