@@ -52,12 +52,12 @@ handle_publish_request(<<"POST">>, Path, true, ContentType, Req) ->
   {ok, Body, Req2} = cowboy_req:body(Req),
   Article = #article{path = Path, content_type = ContentType, content = Body},
   router:publish(Article),
-  case get_forward_url(Path) of
+  case get_forward_info(Path) of
     undefined ->
       cowboy_req:reply(200, [], <<>>, Req2);
-    ForwardUrl ->
+    {ForwardUrl, ForwardHeadersNames} ->
       lager:notice("Forwarding article published on ~s to ~s", [Path, ForwardUrl]),
-      ForwardHeaders = get_forward_headers(Path, Req2),
+      ForwardHeaders = get_forward_headers(Path, ForwardHeadersNames, Req2),
       StatusCode = forward_article(ForwardUrl, ForwardHeaders, ContentType, Body),
       cowboy_req:reply(StatusCode, [], <<>>, Req2)
   end;
@@ -67,24 +67,25 @@ handle_publish_request(_Method, _Path, _HasBody, _ContentType, Req) ->
   cowboy_req:reply(405, Req). % Method not allowed
 
 % Returns the forward destination for the longest matching route.
--spec get_forward_url(string()) -> undefined | string().
-get_forward_url(Path) ->
+-spec get_forward_info(string()) -> undefined | {string(), [string()]}.
+get_forward_info(Path) ->
   {ok, Routes} = application:get_env(airpub, publishing_forward_routes),
-  {_Length, ForwardUrl} = lists:foldl(fun({SubPath, Url}, {MatchLength, MatchUrl}) ->
+  {_Length, Match} = lists:foldl(fun({SubPath, Url, Headers}, {MatchLength, Match}) ->
       case lists:prefix(SubPath, Path) of
         true ->
-          {string:len(SubPath), Url};
+          {string:len(SubPath), {Url, Headers}};
         false ->
-          {MatchLength, MatchUrl}
+          {MatchLength, Match}
       end
     end, {0, undefined}, Routes),
-  ForwardUrl.
+  Match.
 
 % Computes the header list to forward with the article content.
--spec get_forward_headers(string(), term()) -> [tuple(string(), string())].
-get_forward_headers(Path, Req) ->
-  QueryAuthToken = header_to_string(cowboy_req:header(<<"queryauthtoken">>, Req)),
-  [{"Path", base64:encode_to_string(Path)}, {"QueryAuthToken", QueryAuthToken}].
+-spec get_forward_headers(string(), [string()], term()) -> [tuple(string(), string())].
+get_forward_headers(Path, Headers, Req) ->
+  [{"Path", base64:encode_to_string(Path)} | lists:map(fun(Header) ->
+        header_to_string(cowboy_req:header(list_to_binary(string:to_lower(Header)), Req))
+      end, Headers)].
 
 % Forwards the published article to another endpoint for further processing.
 -spec forward_article(string(), [tuple(string(), string())], string(), binary()) -> pos_integer().
