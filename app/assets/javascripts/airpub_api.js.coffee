@@ -27,7 +27,23 @@ window.airpub_listen = (server, request, callback) ->
       # add content and invoke callback
       object = @object
       delete @object
-      object.content = String.fromCharCode.apply(null, new Uint8Array(event.data)) # convert to string
+
+      # On some browsers (specifically on the mac) String.fromCharCode
+      # only accepts a limited number of arguments. For longer payloads
+      # the conversions fails and the result is never delivered to the
+      # callback, unless we manually break the payload up into parts
+      # not exceeding the allowed length.
+      # See https://bugs.webkit.org/show_bug.cgi?id=80797
+      maxSize = 65537
+      rawData = new Uint8Array(event.data)
+      accumulatedContent = ""
+      startSubArray = 0
+      while startSubArray < rawData.length
+        endSubArray = Math.min(startSubArray + maxSize, rawData.length)
+        subArray = rawData.subarray startSubArray, endSubArray # the range is [a,b)
+        startSubArray = endSubArray
+        accumulatedContent += String.fromCharCode.apply(null, subArray) # convert to string
+      object.content = accumulatedContent
       callback object
 
   ws.onclose = (event) ->
