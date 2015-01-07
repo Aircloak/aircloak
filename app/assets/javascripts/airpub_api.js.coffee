@@ -3,6 +3,37 @@ window.airpub_listen = (server, request, callback) ->
     alert "This browser does not support WebSockets"
     return null
 
+  # Code from: http://snipplr.com/view/31206/
+  readUTF8String = (bytes) ->
+    ix = 0
+    ix = 3 if bytes.subarray(0,3) == "\xEF\xBB\xBF"
+    string = ""
+    while ix < bytes.length
+      byte1 = bytes[ix]
+      if byte1 < 0x80
+        string += String.fromCharCode byte1
+      else if byte1 >= 0xC2 and byte1 < 0xE0
+        byte2 = bytes[++ix]
+        string += String.fromCharCode(((byte1&0x1F)<<6) + (byte2&0x3F))
+      else if  byte1 >= 0xE0 and byte1 < 0xF0
+        byte2 = bytes[++ix]
+        byte3 = bytes[++ix]
+        string += String.fromCharCode(((byte1&0xFF)<<12) + ((byte2&0x3F)<<6) + (byte3&0x3F))
+      else if  byte1 >= 0xF0 && byte1 < 0xF5
+        byte2 = bytes[++ix]
+        byte3 = bytes[++ix]
+        byte4 = bytes[++ix]
+        codepoint = ((byte1&0x07)<<18) + ((byte2&0x3F)<<12) + ((byte3&0x3F)<<6) + (byte4&0x3F)
+        codepoint -= 0x10000;
+        string += String.fromCharCode(
+          (codepoint>>10) + 0xD800,
+          (codepoint&0x3FF) + 0xDC00
+        )
+      else
+        throw "Invalid UTF8 character in received data at byte #{ix}"
+      ix++
+    string
+
   console.log "Connecting to " + server
   ws = new WebSocket(server)
 
@@ -27,7 +58,7 @@ window.airpub_listen = (server, request, callback) ->
       # add content and invoke callback
       object = @object
       delete @object
-      object.content = String.fromCharCode.apply(null, new Uint8Array(event.data)) # convert to string
+      object.content = readUTF8String(new Uint8Array event.data)
       callback object
 
   ws.onclose = (event) ->
