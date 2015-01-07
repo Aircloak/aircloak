@@ -3,6 +3,35 @@ window.airpub_listen = (server, request, callback) ->
     alert "This browser does not support WebSockets"
     return null
 
+  # Code from: http://snipplr.com/view/31206/
+  readUTF8String = (bytes) ->
+    ix = 0
+    ix = 3 if bytes.subarray(0,3) == "\xEF\xBB\xBF"
+    string = ""
+    while ix < bytes.length
+      byte1 = bytes[ix]
+      if byte1 < 0x80
+        string += String.fromCharCode byte1
+      else if byte1 >= 0xC2 and byte1 < 0xE0
+        byte2 = bytes[++ix]
+        string += String.fromCharCode(((byte1&0x1F)<<6) + (byte2&0x3F))
+      else if  byte1 >= 0xE0 and byte1 < 0xF0
+        byte2 = bytes[++ix]
+        byte3 = bytes[++ix]
+        string += String.fromCharCode(((byte1&0xFF)<<12) + ((byte2&0x3F)<<6) + (byte3&0x3F))
+      else if  byte1 >= 0xF0 && byte1 < 0xF5
+        byte2 = bytes[++ix]
+        byte3 = bytes[++ix]
+        byte4 = bytes[++ix]
+        codepoint = ((byte1&0x07)<<18) + ((byte2&0x3F)<<12) + ((byte3&0x3F)<<6) + (byte4&0x3F)
+        codepoint -= 0x10000;
+        string += String.fromCharCode(
+          (codepoint>>10) + 0xD800,
+          (codepoint&0x3FF) + 0xDC00
+        )
+      ix++
+    string
+
   console.log "Connecting to " + server
   ws = new WebSocket(server)
 
@@ -27,23 +56,7 @@ window.airpub_listen = (server, request, callback) ->
       # add content and invoke callback
       object = @object
       delete @object
-
-      # On some browsers (specifically on the mac) String.fromCharCode
-      # only accepts a limited number of arguments. For longer payloads
-      # the conversions fails and the result is never delivered to the
-      # callback, unless we manually break the payload up into parts
-      # not exceeding the allowed length.
-      # See https://bugs.webkit.org/show_bug.cgi?id=80797
-      maxSize = 65537
-      rawData = new Uint8Array(event.data)
-      accumulatedContent = ""
-      startSubArray = 0
-      while startSubArray < rawData.length
-        endSubArray = Math.min(startSubArray + maxSize, rawData.length)
-        subArray = rawData.subarray startSubArray, endSubArray # the range is [a,b)
-        startSubArray = endSubArray
-        accumulatedContent += String.fromCharCode.apply(null, subArray) # convert to string
-      object.content = accumulatedContent
+      object.content = readUTF8String(new Uint8Array event.data)
       callback object
 
   ws.onclose = (event) ->
