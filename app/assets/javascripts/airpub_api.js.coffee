@@ -29,6 +29,8 @@ window.airpub_listen = (server, request, callback) ->
           (codepoint>>10) + 0xD800,
           (codepoint&0x3FF) + 0xDC00
         )
+      else
+        throw "Invalid UTF8 character in received data at byte #{ix}"
       ix++
     string
 
