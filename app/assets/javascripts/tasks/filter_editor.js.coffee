@@ -12,7 +12,6 @@ Tasks.FilterEditor = (inOptions) ->
 
   options = inOptions
   minLimit = options.tableFilter.minLimit()
-  minLimit = Math.round(minLimit / 60.0) if minLimit
   userRows = options.tableFilter.userRows()
   filter = options.tableFilter.filter().clone()
   view = null
