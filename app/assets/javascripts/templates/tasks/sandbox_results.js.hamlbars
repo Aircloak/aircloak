@@ -7,4 +7,4 @@
     = hb "each ." do
       %tr
         %td= hb "user"
-        %td= hb "bucket"
+        %td= "#{hb "property.label"} #{hb "property.value"}"

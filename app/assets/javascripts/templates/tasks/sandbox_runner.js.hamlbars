@@ -19,7 +19,8 @@
               %td{"colspan" => "4"}
                 %a#addSandboxUser.btn{:href => "#"} AddTestUser
             %tr
-              %th
+              %th{style: "width:10px;"}
+              %th{style: "width:50px;"}
               %th user_id
               %th table
               %th fields
@@ -27,12 +28,15 @@
             = hb "each testUsers" do
               %tr
                 %td
-                  %a{:href => "#", :"data-remove-test-user" => true, :"data-user-id" => hb("user_id")}
-                    X
+                  %a{:href => "#", :"data-another-user-entry" => true, :"data-user-id" => hb("user_id"), :"data-table" => hb("table")}
+                    +
+                %td
+                  %a{:href => "#", :"data-remove-test-user" => true, :"data-user-row-id" => hb("userRowId"), :"data-user-id" => hb("user_id"), :"data-table" => hb("table")}
+                    \-
                 %td= hb "user_id"
                 %td= hb "table"
                 %td
-                  %a{"href" => "#", "data-edit-sandbox-user" => true, "data-user-id" => hb("user_id"), "data-table" => hb("table")}
+                  %a{"href" => "#", "data-edit-sandbox-user" => true, "data-user-row-id" => hb("userRowId"), "data-table" => hb("table")}
                     = hb "fields"
     %div{"style" => "margin-left:73px;"}
       #userEntryControls

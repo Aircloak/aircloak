@@ -13,6 +13,7 @@ Tasks.Data = (tables) ->
   tableFilters = []
   clusterId = null
   testUsers = []
+  userRowId = 1
 
   selectedTablesMap = ->
     _.reduce(
@@ -51,6 +52,8 @@ Tasks.Data = (tables) ->
           )
     else
       self.addTestUser(self.sampleTestUser(selectedTable))
+
+  newUserRowId = -> userRowId++
 
 
   # ------------------------------------
@@ -100,15 +103,15 @@ Tasks.Data = (tables) ->
     tableForName: (name) ->
       _.find(tables, (table) -> table.name == name)
 
-    addTestUser: (testUser) -> testUsers.push(testUser)
-    removeTestUser: (userId) ->
-      testUsers = _.filter(testUsers, (testUser) -> testUser.user_id != userId)
+    addTestUser: (testUser) -> testUsers.push(_.extend({userRowId: newUserRowId()}, testUser))
+    removeTestUser: (userRowId) ->
+      testUsers = _.filter(testUsers, (testUser) -> testUser.userRowId != userRowId)
 
-    updateTestUser: (tableName, userId, userData) ->
+    updateTestUser: (tableName, userRowId, userData) ->
       testUsers = _.map(
             testUsers,
             (testUser) ->
-              if testUser.table == tableName && testUser.user_id == userId
+              if testUser.table == tableName && testUser.userRowId == userRowId
                 _.extend(testUser, userData)
               else
                 testUser
@@ -147,13 +150,13 @@ Tasks.Data = (tables) ->
       _.map(
             _.sortBy(testUsers, (user) -> "#{user.user_id}_#{user.table}"),
             (user) ->
-              _.extend({fields: JSON.stringify(_.omit(user, "table", "user_id"))}, user)
+              _.extend({fields: JSON.stringify(_.omit(user, "table", "user_id", "userRowId"))}, user)
           )
 
-    findTestUser: (tableName, userId) ->
+    findTestUser: (userRowId) ->
       _.chain(testUsers).
-        find((testUser) -> testUser.table == tableName && testUser.user_id == userId).
-        omit("table", "user_id").
+        find((testUser) -> testUser.userRowId == userRowId).
+        omit("table", "user_id", "userRowId").
         value()
 
     testJson: ->

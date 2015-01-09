@@ -162,16 +162,17 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
     $("#sandboxRunner").html(HandlebarsTemplates["tasks/sandbox_runner"](data))
 
   addSandboxUser = (e) ->
-    handleEventAndCancel(e, ->
-          userId = data.newTestUserId()
-          _.each(
-                data.selectedTables(),
-                (table) ->
-                  testUser = data.sampleTestUser(table, userId)
-                  data.addTestUser(testUser)
-              )
+    handleEventAndCancel(e,
+          ->
+            userId = data.newTestUserId()
+            _.each(
+                  data.selectedTables(),
+                  (table) ->
+                    testUser = data.sampleTestUser(table, userId)
+                    data.addTestUser(testUser)
+                )
+            renderSandboxEditor()
         )
-      renderSandboxEditor()
 
   runInSandbox = (e) ->
     handleEventAndCancel(e, doRunInSandbox)
@@ -194,7 +195,7 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
     changed = false
     reportSandboxErrors(response)
     renderSaveInfo()
-    renderResults(response)
+    renderSandboxResults(response)
 
   reportSandboxErrors = (response) ->
     taskExceptions =
@@ -204,24 +205,29 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
         (JSON.parse(response.responseText).errors || [])
     renderExceptions()
 
-  renderResults = (response) ->
-    results = []
+  renderSandboxResults = (response) ->
     if (response.status == 200)
-      _.each(
-            _.pairs(JSON.parse(response.responseText).reported_properties),
-            ([user, properties]) ->
-              _.each(
-                    _.pairs(properties),
-                    ([label, value]) ->
-                      results.push(user: user, bucket: "#{label}: #{value}")
-                  )
-          )
-    results = _.sortBy(results, (result) -> "#{result.user}_#{result.bucket}")
-    $("#sandboxResult").html(HandlebarsTemplates["tasks/sandbox_results"](results))
+      results =
+        _.chain(JSON.parse(response.responseText).reported_properties).
+          pairs().
+          map(([user, properties]) -> _.map(properties, (property) -> user: user, property: property)).
+          flatten(true).
+          sortBy((result) -> "#{result.user}_#{result.property.label}_#{result.property.value}").
+          value()
+    $("#sandboxResult").html(HandlebarsTemplates["tasks/sandbox_results"](results || []))
+
+  anotherUserEntry = (e) ->
+    handleEventAndCancel(e,
+          ->
+            userId = $(e.target).data("user-id")
+            testUser = data.sampleTestUser(data.tableForName($(e.target).data("table")), userId)
+            data.addTestUser(testUser)
+            renderSandboxEditor()
+        )
 
   removeTestUser = (e) ->
     handleEventAndCancel(e, ->
-          data.removeTestUser($(e.target).data("user-id"))
+          data.removeTestUser($(e.target).data("userRowId"))
           renderSandboxEditor()
         )
 
@@ -229,25 +235,25 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
     handleEventAndCancel(e, ->
           target = $(e.target)
           fields =
-            _.chain(data.findTestUser(target.data("table"), target.data("user-id"))).
+            _.chain(data.findTestUser(target.data("user-row-id"))).
               pairs().
               reduce(
                     (memo, [field, value]) -> memo.push(name: field, value: value.toString()); memo
                     []
                   )
               .value()
-          showSandboxUserEditor(target.data("table"), target.data("user-id"), fields)
+          showSandboxUserEditor(target.data("table"), target.data("user-row-id"), fields)
         )
 
-  showSandboxUserEditor = (tableName, userId, fields) ->
+  showSandboxUserEditor = (tableName, userRowId, fields) ->
     Popup.show(HandlebarsTemplates["tasks/sandbox_user"](fields: fields))
     $("[data-sandbox-field]").focus()
     $('#updateSandboxUser').on(
           'click',
-          (e) -> handleEventAndCancel(e, -> updateSandboxUser(tableName, userId))
+          (e) -> handleEventAndCancel(e, -> updateSandboxUser(tableName, userRowId))
         )
 
-  updateSandboxUser = (tableName, userId) ->
+  updateSandboxUser = (tableName, userRowId) ->
     userData =
       _.reduce(
             $("[data-sandbox-field]"),
@@ -271,7 +277,7 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
           )
     $('#updateSandboxUser').off('click')
     Popup.close()
-    data.updateTestUser(tableName, userId, userData)
+    data.updateTestUser(tableName, userRowId, userData)
     renderSandboxEditor()
 
 
@@ -291,6 +297,7 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
       "click [data-remove-table]": removeTable
       "click [data-edit-filter]": editFilter
       "click [data-remove-test-user]": removeTestUser
+      "click [data-another-user-entry]": anotherUserEntry
       "click [data-edit-sandbox-user]": editSandboxUser
       "submit": submit
   })
