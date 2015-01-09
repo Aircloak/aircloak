@@ -100,8 +100,8 @@ Tasks.Data = (tables) ->
     table: (id) ->
       _.find(tables, (table) -> table.id == parseInt(id))
 
-    tableForName: (name) ->
-      _.find(tables, (table) -> table.name == name)
+    selectedTableForName: (name) ->
+      _.find(selectedTables(), (table) -> table.name == name)
 
     addTestUser: (testUser) -> testUsers.push(_.extend({userRowId: newUserRowId()}, testUser))
     removeTestUser: (userRowId) ->
