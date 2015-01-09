@@ -220,7 +220,7 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
     handleEventAndCancel(e,
           ->
             userId = $(e.target).data("user-id")
-            testUser = data.sampleTestUser(data.tableForName($(e.target).data("table")), userId)
+            testUser = data.sampleTestUser(data.selectedTableForName($(e.target).data("table")), userId)
             data.addTestUser(testUser)
             renderSandboxEditor()
         )
@@ -260,7 +260,7 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
             (memo, control) ->
               control = $(control)
               columnName = control.data("sandbox-field")
-              table = data.tableForName(tableName)
+              table = data.selectedTableForName(tableName)
               columnType = _.find(table.columns, (c) -> c.name == columnName).type
 
               memo[columnName] =
