@@ -83,11 +83,11 @@ get_forward_info(Path) ->
 % Computes the header list to forward with the article content.
 -spec get_forward_headers(string(), [string()], term()) -> [tuple(string(), string())].
 get_forward_headers(Path, Headers, Req) ->
-  HeaderVal = fun(HeaderName) ->
+  GetHeaderValue = fun(HeaderName) ->
     PreppedHeaderName = list_to_binary(string:to_lower(HeaderName)),
     header_to_string(cowboy_req:header(PreppedHeaderName, Req))
   end,
-  HeadersToForward = [{HeaderName, HeaderVal(HeaderName)} || HeaderName <- Headers],
+  HeadersToForward = [{HeaderName, GetHeaderValue(HeaderName)} || HeaderName <- Headers],
   [{"Path", base64:encode_to_string(Path)} | HeadersToForward].
 
 % Forwards the published article to another endpoint for further processing.
