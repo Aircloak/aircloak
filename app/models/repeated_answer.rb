@@ -14,4 +14,12 @@ class RepeatedAnswer < ActiveRecord::Base
       bucket_label
     end
   end
+
+  # Removes all repeated answer for which there is no longer
+  # an analyst. These are dangling reports from earlier times
+  # before we destroyed reports along with the analysts.
+  def self.remove_orphaned_reports
+    sql = "DELETE FROM repeated_answers WHERE analyst_id not in (SELECT id from analysts)"
+    ActiveRecord::Base.connection.execute(sql)
+  end
 end
