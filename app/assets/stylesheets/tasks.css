@@ -6,6 +6,11 @@
   max-width: 30em;
 }
 
+.CodeMirror {
+  border: 1px solid #eee;
+  height: auto;
+}
+
 .task-filters {
   padding-top:5px;
 }

@@ -98,7 +98,7 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
       $("#task_code").closest('form').submit()
 
     codeEditor = CodeMirror.fromTextArea(document.getElementById("task_code"), {
-      lineNumbers: true, mode: "lua", vimMode: false, matchBrackets: true, showCursorWhenSelecting: true,
+      lineNumbers: true, mode: "lua", vimMode: false, matchBrackets: true, showCursorWhenSelecting: true, viewportMargin: Infinity
       extraKeys: {
         "Ctrl-Space": "autocomplete",
         "Ctrl-R": "runInSandbox"
