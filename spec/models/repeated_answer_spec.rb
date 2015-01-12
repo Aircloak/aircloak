@@ -9,7 +9,11 @@ describe Analyst do
   let(:analyst) { Analyst.create name: "test analyst" }
 
   it "should be able to remove orphaned repeated answers" do
-    sql = "INSERT INTO repeated_answers (analyst_id) VALUES (2), (3), (4), (#{analyst.id})"
+    ids = []
+    analyst.id.upto(analyst.id + 3) do |id|
+      ids << "(#{id})"
+    end
+    sql = "INSERT INTO repeated_answers (analyst_id) VALUES #{ids.join(", ")}"
     ActiveRecord::Base.connection.execute(sql)
     RepeatedAnswer.count.should eq 4
     RepeatedAnswer.remove_orphaned_reports
