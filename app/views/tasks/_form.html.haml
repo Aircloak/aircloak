@@ -38,7 +38,6 @@
         .controls
           = f.collection_select(:task_type, Task.types, :id, :name, {}, disabled: !(@task.new_record?))
 
-
       #streamingTaskParams
         .control-group
           = control_label "Reporting interval [min]", tooltip: "report_interval"
