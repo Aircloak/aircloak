@@ -29,6 +29,14 @@ describe Task do
     try_invalid_save(base_attrs.merge(data: "[]"))[:data].should eq ["can't be blank"]
   end
 
+  it "validates streaming task" do
+    try_invalid_save(base_attrs.merge(task_type: Task::STREAMING_TASK))[:report_interval].
+        should eq ["can't be blank"]
+
+    try_invalid_save(base_attrs.merge(task_type: Task::STREAMING_TASK))[:user_expire_interval].
+        should eq ["can't be blank"]
+  end
+
   it "converts data" do
     prefetch_conversions.each do |data, prefetch|
       task = Task.new

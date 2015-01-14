@@ -15,13 +15,23 @@ class Task < ActiveRecord::Base
 
   validates_presence_of :name, :sandbox_type, :code, :cluster
   validates_uniqueness_of :name
-  validate :stored_task_must_have_payload_identifier
   validate :prefetch_correct
+  validate :streaming_task
 
   after_save :upload_stored_task
   after_destroy :remove_task_from_cloak
 
   class InvalidTaskId < Exception; end
+
+  BATCH_TASK = 1
+  STREAMING_TASK = 2
+
+  def self.types
+    [
+      OpenStruct.new({id: BATCH_TASK, name: "Batch"}),
+      OpenStruct.new({id: STREAMING_TASK, name: "Streaming"})
+    ]
+  end
 
   def self.decode_id(encoded_task_id)
     parts = encoded_task_id.split(/^task\-/)
@@ -46,32 +56,14 @@ class Task < ActiveRecord::Base
   # This does an efficient SQL delete, rather than loading all the data,
   # running all the validations and callbacks, etc
   def efficient_destroy
-    efficient_delete
-    destroy
+    ActiveRecord::Base.transaction do
+      efficient_delete
+      destroy
+    end
   end
 
   def index
     "all_users"
-  end
-
-  def task_upload_pb
-    metainfo = TaskMetaInfoPB.new(
-      name: self.name,
-      task_type: self.update_task ? TaskMetaInfoPB::TaskType::UPDATE : TaskMetaInfoPB::TaskType::QUERY,
-      task_id: self.id,
-      index: self.index,
-      # TODO(#110): Change to real id of analyst when we start introducing that
-      analyst_id: self.analyst
-    )
-    metainfo.payload_identifier = self.payload_identifier if self.stored_task
-    code = TaskCodePB.new(
-      sandbox_type: self.sandbox_type,
-      code: self.code
-    )
-    TaskUploadPB.new(
-      task_code: code,
-      meta_info: metainfo
-    )
   end
 
   class NotABatchTaskException < Exception
@@ -95,15 +87,17 @@ class Task < ActiveRecord::Base
         publish_path = "/results/#{analyst.id}/#{self.id}/#{cluster.id}/#{pr.auth_token}"
         headers.merge!({"return_url" => Base64.strict_encode64(publish_url + publish_path)})
       end
-      response = JsonSender.post_as_task_runner(
+      response = JsonSender.request(
+        :post,
+        :task_runner,
         analyst,
         cluster,
         "task/run",
+        headers,
         {
           prefetch: JSON.parse(prefetch),
           post_processing: post_processing_spec
-        }.to_json,
-        headers
+        }.to_json
       )
       unless response["success"] == true then
         # TODO: LOG
@@ -159,40 +153,52 @@ private
     end
   end
 
-  def stored_task_must_have_payload_identifier
-    return unless self.stored_task
-    unless self.payload_identifier? && self.payload_identifier.length > 0
-      self.errors.add :tasks, "must have payload identifier"
-    end
+  def streaming_task
+    return if task_type != STREAMING_TASK
+    self.errors.add :report_interval, "can't be blank" if report_interval.nil?
+    self.errors.add :user_expire_interval, "can't be blank" if user_expire_interval.nil?
   end
 
   def upload_stored_task
-    return unless self.stored_task
-    url = cloak_url("query")
-    post_task url: url if url
+    return unless self.stored_task && cloak
+
+    pr = PendingResult.where(task: self).first || PendingResult.create(task: self, standing: true)
+    publish_url = Rails.configuration.publish_url
+    if publish_url.present? then
+      publish_path = "/results/#{analyst.id}/#{self.id}/#{cluster.id}/#{pr.auth_token}"
+      headers.merge!({"return_url" => Base64.strict_encode64(publish_url + publish_path)})
+    end
+    response = JsonSender.request(
+          :put,
+          :task_runner,
+          analyst,
+          cluster,
+          "task/#{self.class.encode_id(id)}",
+          {"auth_token" => pr.auth_token},
+          {
+            type: "streaming",
+            report_interval: report_interval,
+            user_expire_interval: user_expire_interval,
+            prefetch: JSON.parse(prefetch),
+            post_processing: post_processing_spec
+          }.to_json,
+        )
+    unless response["success"] == true then
+      # TODO: LOG
+    end
   end
+
+  class RemoveError < Exception; end
 
   def remove_task_from_cloak
-    return unless cloak and self.stored_task
-    url = cloak_url("query")
-    delete_task url: url, id: self.id if url
-  end
+    return unless self.stored_task && cloak
 
-  def delete_task args
-    url = URI.parse("#{args[:url]}/#{args[:id]}")
-    http = Net::HTTP.new(url.host, url.port)
-    request = Net::HTTP::Delete.new(url.path)
-    result = http.request(request)
-  end
+    response = JsonSender.request(:delete, :task_runner, analyst, cluster,
+        "task/#{self.class.encode_id(id)}", {})
 
-  def post_task args
-    sock = ProtobufSender.construct_sock args[:url]
-    request = ProtobufSender.construct_request args[:url], self.task_upload_pb
-    if args[:expect_response] then
-      pr = PendingResult.create(task: self)
-      request["QueryAuthToken"] = pr.auth_token
+    unless response["success"] == true then
+      raise RemoveError.new("Failed removing the task from the cluster.")
     end
-    ProtobufSender.post sock, request
   end
 
   def cloak_url path

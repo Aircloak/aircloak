@@ -5,7 +5,13 @@
         {{#each .}}
           <tr>
             <td class="table-filter-link">
-              <a href="#" data-edit-filter data-table-index="{{@index}}" class="btn btn-small">
+              <a
+                href="#"
+                data-edit-filter
+                data-table-index="{{@index}}"
+                {{#unless supportExtendedFilters}}data-disabled="true"{{/unless}}
+                class="btn btn-small {{#unless supportExtendedFilters}}disabled{{/unless}}"
+              >
                 {{filterString}}
               </a>
             </td>

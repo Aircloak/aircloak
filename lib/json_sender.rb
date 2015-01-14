@@ -1,42 +1,53 @@
 require './lib/token_generator'
 
 class JsonSender
-  def self.post_as_task_runner analyst, cluster, path, json, headers = {}
-    ssl_cert = OpenSSL::X509::Certificate.new(analyst.task_runner_cert)
-    ssl_key = TokenGenerator.import_key analyst.task_runner_key
-    post analyst, cluster, path, json, ssl_cert, ssl_key, headers
-  end
+  def self.request method, auth_type, analyst, cluster, path, headers = {}, body = nil
+    unless [:get, :post, :put, :delete, :head].include?(method)
+      raise ArgumentError.new("Unsupported REST method #{method}")
+    end
 
-  def self.post_as_admin analyst, cluster, path, json, headers = {}
-    ssl_cert = OpenSSL::X509::Certificate.new(analyst.admin_cert)
-    ssl_key = TokenGenerator.import_key analyst.admin_key
-    post analyst, cluster, path, json, ssl_cert, ssl_key, headers
-  end
+    ssl_cert, ssl_key = cert_and_key(auth_type, analyst)
 
-  # Useful when testing locally against a local cloak-core which does not
-  # perform authentication. For example used in the rake task that
-  # generates user data.
-  def self.post_without_authentication analyst, cluster, path, json, headers = {}
-    post analyst, cluster, path, json, nil, nil, headers
-  end
-
-  def self.post analyst, cluster, path, json, ssl_cert, ssl_key, headers = {}
     protocol = Rails.configuration.cloak.protocol
     port = Rails.configuration.cloak.port
     url = "#{protocol}://#{cluster.random_cloak_ip}:#{port}/#{path}"
-    headers = {analyst: analyst.id}.merge(headers)
+    headers = {analyst: analyst.id, :content_type => 'application/json'}.merge(headers)
+
+    args = []
+    args << body if [:post, :put].include?(method)
+    args << headers
+
     # The &block suppresses errors thrown when non-successful status codes
     # are returned by the cloak to indicate that the migration failed.
     raw_result = RestClient::Resource.new(
       url,
       ssl_client_cert: ssl_cert,
       ssl_client_key: ssl_key
-    ).post(json, headers) do |resp, req, result, &block|
+    ).public_send(method, *args) do |resp, req, result, &block|
       resp
     end
     JSON.parse raw_result
   rescue Exception => e
     Rails.logger.error "Cloak request error: #{e.message}\n#{e.backtrace.join("\n")}"
     {}
+  end
+
+  def self.cert_and_key(auth_type, analyst)
+    case auth_type
+    when :task_runner
+      return [
+            OpenSSL::X509::Certificate.new(analyst.task_runner_cert),
+            TokenGenerator.import_key(analyst.task_runner_key)
+          ]
+    when :admin
+      return [
+            OpenSSL::X509::Certificate.new(analyst.admin_cert),
+            TokenGenerator.import_key(analyst.admin_key)
+          ]
+    when :no_auth
+      return [nil, nil]
+    else
+      raise ArgumentError.new("Invalid authentication type #{auth_type}")
+    end
   end
 end

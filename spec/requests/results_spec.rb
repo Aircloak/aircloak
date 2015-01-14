@@ -36,6 +36,8 @@ describe "ResultsController" do
       PendingResult.should_receive(:where).and_return([pr])
       pr.should_receive(:task_id).and_return(t.id)
       pr.should_receive(:task_id).and_return(t.id)
+      pr.should_receive(:standing).and_return(false)
+      pr.should_receive(:standing).and_return(false)
       pr.stub(:destroy)
 
       # We remove existing properties, so we know

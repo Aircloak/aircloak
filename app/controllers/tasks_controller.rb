@@ -8,8 +8,8 @@ class TasksController < ApplicationController
   before_action :load_task, only: [:edit, :update, :destroy, :execute_as_batch_task, :all_results,
       :latest_results]
   before_action :set_tables_json, only: [:edit, :new]
-  before_action :set_auto_completions, only: [:edit, :new]
-  before_action :set_task_exceptions, only: [:edit, :new]
+  before_action :set_auto_completions, only: [:edit, :new, :create]
+  before_action :set_task_exceptions, only: [:edit, :new, :create]
 
   # GET /tasks
   def index
@@ -44,7 +44,7 @@ class TasksController < ApplicationController
 
     @task.sandbox_type = "lua"
     @task.update_task = false
-    @task.stored_task = false
+    @task.stored_task = (@task.task_type == Task::STREAMING_TASK)
     if @task.save
       describe_successful_activity "Successfully created a new task"
       redirect_to tasks_path, notice: 'Task was successfully created.'
@@ -77,6 +77,10 @@ class TasksController < ApplicationController
       @task.efficient_destroy
       describe_activity "Destroyed task #{@task.name}"
     end
+  rescue Task::RemoveError => e
+    describe_failed_activity "Failed at removing task #{@task.name}"
+    flash[:error] = e.message
+  ensure
     redirect_to tasks_path
   end
 
@@ -167,7 +171,9 @@ private
   end
 
   def task_params
-    params.require(:task).permit(:name, :cluster_id, :payload_identifier, :data, :code)
+    params.require(:task).permit(
+          :name, :cluster_id, :data, :code, :task_type, :report_interval, :user_expire_interval
+        )
   end
 
   # converts the results to a hashmap that will be converted to JSON and rendered client-side

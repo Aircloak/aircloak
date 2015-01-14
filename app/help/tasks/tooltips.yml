@@ -59,3 +59,16 @@ sandbox_table:
   content: |
     Select the table for which you want to insert the test data.
   markdown: true
+task_type:
+  content: |
+    - __Batch task__: This type of task must be invoked manually.
+    - __Streaming task__: Runs every time new data is inserted. Reports collected results periodically.
+  markdown: true
+report_interval:
+  content: |
+    Specifies the interval (in seconds) in which results of this task are reported back.
+  markdown: true
+user_expire_interval:
+  content: |
+    Specifies the time period (in seconds) after which a reported bucket is removed from the result.
+  markdown: true

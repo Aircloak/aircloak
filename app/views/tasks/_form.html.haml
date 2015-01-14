@@ -4,6 +4,7 @@
   :coffeescript
     $(document).ready ->
       new Tasks.Editor(
+        #{@task.task_type},
         #{@task_exceptions},
         #{@completions},
         #{@tables_json},
@@ -31,6 +32,21 @@
             = f.select :cluster_id, current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
       - else
         = hidden_field_tag "task[cluster_id]", current_user.ready_clusters.first.id
+
+      .control-group
+        = control_label "Type", tooltip: "task_type"
+        .controls
+          = f.collection_select(:task_type, Task.types, :id, :name, {}, disabled: !(@task.new_record?))
+
+      #streamingTaskParams{style: "display:none;"}
+        .control-group
+          = control_label "Reporting interval [sec]", tooltip: "report_interval"
+          .controls
+            = f.number_field :report_interval
+        .control-group
+          = control_label "Bucket expiry time [sec]", tooltip: "user_expire_interval"
+          .controls
+            = f.number_field :user_expire_interval
 
       .control-group
         = control_label "Data", tooltip: "data"
