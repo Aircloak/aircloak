@@ -61,7 +61,7 @@ sandbox_table:
   markdown: true
 task_type:
   content: |
-    - __Batch task__: Executed manually, on demand.
+    - __Batch task__: This type of task must be invoked manually.
     - __Streaming task__: Runs every time new data is inserted. Reports collected results periodically.
   markdown: true
 report_interval:
