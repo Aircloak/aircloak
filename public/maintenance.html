@@ -25,7 +25,6 @@
               var currentDate = new Date();
               var now = currentDate.getHours() + ":" + currentDate.getMinutes() + ":" + currentDate.getSeconds();
               document.getElementById("reattempt-text").innerHTML = "Last check: " + now + ".";
-              console.log("Got status: " + xmlhttp.status + " now: " + now);
             }
           };
           xmlhttp.open("GET", "/", true /* async */);
