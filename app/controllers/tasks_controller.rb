@@ -49,7 +49,6 @@ class TasksController < ApplicationController
       describe_successful_activity "Successfully created a new task"
       redirect_to tasks_path, notice: 'Task was successfully created.'
     else
-      #raise @task_exceptions.inspect
       set_tables_json
       describe_failed_activity "Failed at creating a task"
       render action: 'new'
