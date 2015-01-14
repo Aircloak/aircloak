@@ -106,15 +106,17 @@ class Task < ActiveRecord::Base
         publish_path = "/results/#{analyst.id}/#{self.id}/#{cluster.id}/#{pr.auth_token}"
         headers.merge!({"return_url" => Base64.strict_encode64(publish_url + publish_path)})
       end
-      response = JsonSender.post_as_task_runner(
+      response = JsonSender.request(
+        :post,
+        :task_runner,
         analyst,
         cluster,
         "task/run",
+        headers,
         {
           prefetch: JSON.parse(prefetch),
           post_processing: post_processing_spec
-        }.to_json,
-        headers
+        }.to_json
       )
       unless response["success"] == true then
         # TODO: LOG
