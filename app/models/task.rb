@@ -17,11 +17,22 @@ class Task < ActiveRecord::Base
   validates_uniqueness_of :name
   validate :stored_task_must_have_payload_identifier
   validate :prefetch_correct
+  validate :streaming_task
 
   after_save :upload_stored_task
   after_destroy :remove_task_from_cloak
 
   class InvalidTaskId < Exception; end
+
+  BATCH_TASK = 1
+  STREAMING_TASK = 2
+
+  def self.types
+    [
+      OpenStruct.new({id: BATCH_TASK, name: "Batch"}),
+      OpenStruct.new({id: STREAMING_TASK, name: "Streaming"})
+    ]
+  end
 
   def self.decode_id(encoded_task_id)
     parts = encoded_task_id.split(/^task\-/)
@@ -157,6 +168,12 @@ private
     else
       self.errors.add :data, @prefetch_error
     end
+  end
+
+  def streaming_task
+    return if task_type != STREAMING_TASK
+    self.errors.add :report_interval, "can't be blank" if report_interval.nil?
+    self.errors.add :user_expire_interval, "can't be blank" if user_expire_interval.nil?
   end
 
   def stored_task_must_have_payload_identifier

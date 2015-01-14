@@ -8,8 +8,8 @@ class TasksController < ApplicationController
   before_action :load_task, only: [:edit, :update, :destroy, :execute_as_batch_task, :all_results,
       :latest_results]
   before_action :set_tables_json, only: [:edit, :new]
-  before_action :set_auto_completions, only: [:edit, :new]
-  before_action :set_task_exceptions, only: [:edit, :new]
+  before_action :set_auto_completions, only: [:edit, :new, :create]
+  before_action :set_task_exceptions, only: [:edit, :new, :create]
 
   # GET /tasks
   def index
@@ -167,7 +167,9 @@ private
   end
 
   def task_params
-    params.require(:task).permit(:name, :cluster_id, :payload_identifier, :data, :code)
+    params.require(:task).permit(
+          :name, :cluster_id, :payload_identifier, :data, :code, :task_type, :report_interval, :user_expire_interval
+        )
   end
 
   # converts the results to a hashmap that will be converted to JSON and rendered client-side
