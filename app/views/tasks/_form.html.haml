@@ -11,7 +11,7 @@
         #{PrefetchFilter::OperatorSqlToCloak.to_json}
       )
 
-#taskEditor
+#taskEditor{style: "display:none;"}
   .form-container
     = form_for @task, :html => {:class => "form-horizontal new_query"} do |f|
       - if @task.errors.any?
