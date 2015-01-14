@@ -40,11 +40,11 @@
 
       #streamingTaskParams
         .control-group
-          = control_label "Reporting interval [min]", tooltip: "report_interval"
+          = control_label "Reporting interval [sec]", tooltip: "report_interval"
           .controls
             = f.number_field :report_interval
         .control-group
-          = control_label "Bucket expiry time [min]", tooltip: "user_expire_interval"
+          = control_label "Bucket expiry time [sec]", tooltip: "user_expire_interval"
           .controls
             = f.number_field :user_expire_interval
 

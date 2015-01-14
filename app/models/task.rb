@@ -175,8 +175,8 @@ private
           {"auth_token" => pr.auth_token},
           {
             type: "streaming",
-            report_interval: report_interval * 60,
-            user_expire_interval: user_expire_interval * 60,
+            report_interval: report_interval,
+            user_expire_interval: user_expire_interval,
             prefetch: JSON.parse(prefetch),
             post_processing: post_processing_spec
           }.to_json,
