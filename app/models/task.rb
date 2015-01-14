@@ -64,26 +64,6 @@ class Task < ActiveRecord::Base
     "all_users"
   end
 
-  def task_upload_pb
-    metainfo = TaskMetaInfoPB.new(
-      name: self.name,
-      task_type: self.update_task ? TaskMetaInfoPB::TaskType::UPDATE : TaskMetaInfoPB::TaskType::QUERY,
-      task_id: self.id,
-      index: self.index,
-      # TODO(#110): Change to real id of analyst when we start introducing that
-      analyst_id: self.analyst
-    )
-    metainfo.payload_identifier = self.payload_identifier if self.stored_task
-    code = TaskCodePB.new(
-      sandbox_type: self.sandbox_type,
-      code: self.code
-    )
-    TaskUploadPB.new(
-      task_code: code,
-      meta_info: metainfo
-    )
-  end
-
   class NotABatchTaskException < Exception
   end
 
@@ -214,23 +194,6 @@ private
     unless response["success"] == true then
       # TODO: LOG
     end
-  end
-
-  def delete_task args
-    url = URI.parse("#{args[:url]}/#{args[:id]}")
-    http = Net::HTTP.new(url.host, url.port)
-    request = Net::HTTP::Delete.new(url.path)
-    result = http.request(request)
-  end
-
-  def post_task args
-    sock = ProtobufSender.construct_sock args[:url]
-    request = ProtobufSender.construct_request args[:url], self.task_upload_pb
-    if args[:expect_response] then
-      pr = PendingResult.create(task: self)
-      request["QueryAuthToken"] = pr.auth_token
-    end
-    ProtobufSender.post sock, request
   end
 
   def cloak_url path
