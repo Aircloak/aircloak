@@ -42,6 +42,14 @@ class AuditLog < ActiveRecord::Base
     message_parts[5..(message_parts.size)].join(";")
   end
 
+  # Removes all repeated answer for which there is no longer
+  # an analyst. These are dangling reports from earlier times
+  # before we destroyed reports along with the analysts.
+  def self.remove_orphaned_logs
+    sql = "DELETE FROM audit_logs WHERE cloak_id not in (SELECT id from cloaks)"
+    ActiveRecord::Base.connection.execute(sql)
+  end
+
 private
   def message_parts
     @parts ||= log_message.split ";"

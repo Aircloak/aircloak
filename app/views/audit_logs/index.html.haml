@@ -4,10 +4,14 @@
 
 %ul
   - @clusters.each do |cluster|
-    %li= link_to cluster.name, "/audit_logs/cluster/#{cluster.id}"
+    %li= link_to cluster.name, "/audit_logs/cluster/#{cluster.id}?except=#{params[:except]}"
 
 - if @latest_entries.size > 0
   %h2 Latest log entries
+
+  - unless params[:except] == "tick tock"
+    = link_to "Hide timestamp messages", "?except=tick tock"
+
   %table.table.table-striped
     %thead
       %tr
@@ -21,7 +25,7 @@
     %tbody
       - @latest_entries.each do |log_entry|
         %tr
-          %td= link_to log_entry.cloak.name, "/audit_logs/cloak/#{log_entry.cloak.id}"
+          %td= link_to log_entry.cloak.name, "/audit_logs/cloak/#{log_entry.cloak.id}?except=#{params[:except]}"
           %td= log_entry.log_id
           %td= log_entry.verified
           %td= log_entry.timestamp

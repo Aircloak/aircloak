@@ -1,8 +1,14 @@
 %h1= "Audit log for #{@cloak.name}"
 
-= link_to "See log entries for the #{@cloak.cluster.name} cluster, which #{@cloak.name} is part of", "/audit_logs/cluster/#{@cloak.cluster.id}" if @cloak.cluster
+= link_to "See log entries for the #{@cloak.cluster.name} cluster, which #{@cloak.name} is part of",
+    "/audit_logs/cluster/#{@cloak.cluster.id}?except=#{params[:except]}" if @cloak.cluster
+
+%hr
 
 - if @entries.size > 0
+  - unless params[:except] == "tick tock"
+    = link_to "Hide timestamp messages", "?except=tick tock"
+
   %table.table.table-striped
     %thead
       %tr
