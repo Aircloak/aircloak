@@ -56,8 +56,10 @@ class Task < ActiveRecord::Base
   # This does an efficient SQL delete, rather than loading all the data,
   # running all the validations and callbacks, etc
   def efficient_destroy
-    efficient_delete
-    destroy
+    ActiveRecord::Base.transaction do
+      efficient_delete
+      destroy
+    end
   end
 
   def index
@@ -186,13 +188,16 @@ private
     end
   end
 
+  class RemoveError < Exception; end
+
   def remove_task_from_cloak
     return unless self.stored_task && cloak
 
     response = JsonSender.request(:delete, :task_runner, analyst, cluster,
         "task/#{self.class.encode_id(id)}", {})
+
     unless response["success"] == true then
-      # TODO: LOG
+      raise RemoveError.new("Failed removing the task from the cluster.")
     end
   end
 

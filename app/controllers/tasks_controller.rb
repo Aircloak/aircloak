@@ -77,6 +77,10 @@ class TasksController < ApplicationController
       @task.efficient_destroy
       describe_activity "Destroyed task #{@task.name}"
     end
+  rescue Task::RemoveError => e
+    describe_failed_activity "Failed at removing task #{@task.name}"
+    flash[:error] = e.message
+  ensure
     redirect_to tasks_path
   end
 
