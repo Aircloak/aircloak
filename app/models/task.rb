@@ -15,7 +15,6 @@ class Task < ActiveRecord::Base
 
   validates_presence_of :name, :sandbox_type, :code, :cluster
   validates_uniqueness_of :name
-  validate :stored_task_must_have_payload_identifier
   validate :prefetch_correct
   validate :streaming_task
 
@@ -178,23 +177,43 @@ private
     self.errors.add :user_expire_interval, "can't be blank" if user_expire_interval.nil?
   end
 
-  def stored_task_must_have_payload_identifier
-    return unless self.stored_task
-    unless self.payload_identifier? && self.payload_identifier.length > 0
-      self.errors.add :tasks, "must have payload identifier"
+  def upload_stored_task
+    return unless self.stored_task && cloak
+
+    pr = PendingResult.where(task: self).first || PendingResult.create(task: self, standing: true)
+    publish_url = Rails.configuration.publish_url
+    if publish_url.present? then
+      publish_path = "/results/#{analyst.id}/#{self.id}/#{cluster.id}/#{pr.auth_token}"
+      headers.merge!({"return_url" => Base64.strict_encode64(publish_url + publish_path)})
+    end
+    response = JsonSender.request(
+          :put,
+          :task_runner,
+          analyst,
+          cluster,
+          "task/#{self.class.encode_id(id)}",
+          {"auth_token" => pr.auth_token},
+          {
+            type: "streaming",
+            report_interval: report_interval * 60,
+            user_expire_interval: user_expire_interval * 60,
+            prefetch: JSON.parse(prefetch),
+            post_processing: post_processing_spec
+          }.to_json,
+        )
+    unless response["success"] == true then
+      # TODO: LOG
     end
   end
 
-  def upload_stored_task
-    return unless self.stored_task
-    url = cloak_url("query")
-    post_task url: url if url
-  end
-
   def remove_task_from_cloak
-    return unless cloak and self.stored_task
-    url = cloak_url("query")
-    delete_task url: url, id: self.id if url
+    return unless self.stored_task && cloak
+
+    response = JsonSender.request(:delete, :task_runner, analyst, cluster,
+        "task/#{self.class.encode_id(id)}", {})
+    unless response["success"] == true then
+      # TODO: LOG
+    end
   end
 
   def delete_task args

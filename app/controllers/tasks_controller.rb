@@ -44,11 +44,12 @@ class TasksController < ApplicationController
 
     @task.sandbox_type = "lua"
     @task.update_task = false
-    @task.stored_task = false
+    @task.stored_task = (@task.task_type == Task::STREAMING_TASK)
     if @task.save
       describe_successful_activity "Successfully created a new task"
       redirect_to tasks_path, notice: 'Task was successfully created.'
     else
+      #raise @task_exceptions.inspect
       set_tables_json
       describe_failed_activity "Failed at creating a task"
       render action: 'new'

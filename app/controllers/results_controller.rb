@@ -39,7 +39,7 @@ private
       yield
     end
   ensure
-    @pending_result.destroy unless @pending_result.blank?
+    @pending_result.destroy unless @pending_result.blank? || @pending_result.standing
   end
 
   # this is a temporary hack until we get rid of protocol buffers completely
