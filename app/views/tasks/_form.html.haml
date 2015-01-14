@@ -11,7 +11,7 @@
         #{PrefetchFilter::OperatorSqlToCloak.to_json}
       )
 
-#taskEditor{style: "display:none;"}
+#taskEditor
   .form-container
     = form_for @task, :html => {:class => "form-horizontal new_query"} do |f|
       - if @task.errors.any?
@@ -38,7 +38,7 @@
         .controls
           = f.collection_select(:task_type, Task.types, :id, :name, {}, disabled: !(@task.new_record?))
 
-      #streamingTaskParams
+      #streamingTaskParams{style: "display:none;"}
         .control-group
           = control_label "Reporting interval [sec]", tooltip: "report_interval"
           .controls
