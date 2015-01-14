@@ -109,4 +109,19 @@ describe Cloak do
       c.aircloak_domain.should eq "test.cloak.aircloak.net"
     end
   end
+
+  context "destruction" do
+    before(:each) do
+      AuditLog.delete_all
+    end
+
+    it "should remove audit logs when being deleted" do
+      c = Cloak.create name: "test", ip: "127.0.0.1"
+      msg = ";HASH;146;hello;2014-12-19T15:40:05Z;world"
+      AuditLog.create_from_log_message(msg, c.id).save
+      AuditLog.count.should eq 1
+      c.destroy
+      AuditLog.count.should eq 0
+    end
+  end
 end
