@@ -20,6 +20,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
     renderExceptions()
     renderSaveInfo()
     showHideAddTable()
+    showHideStreamingTaskControls()
     self
 
   renderExceptions = ->
@@ -117,6 +118,12 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       $("#addTable").show()
     else
       $("#addTable").hide()
+
+  showHideStreamingTaskControls = ->
+    if (taskType == <%= Task::STREAMING_TASK %>)
+      $("#streamingTaskParams").show()
+    else
+      $("#streamingTaskParams").hide()
 
   handleEventAndCancel = (e, fun) ->
     e.stopPropagation()
