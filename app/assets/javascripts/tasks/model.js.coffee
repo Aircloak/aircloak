@@ -76,7 +76,7 @@ Tasks.Data = (tables) ->
 
       addTableForTestUsers(selectedTable)
 
-      tableFilter = new TableFilter(selectedTable, tableFilterDescriptor)
+      tableFilter = new TableFilter(self, selectedTable, tableFilterDescriptor)
       tableFilters.push(tableFilter)
       tableFilter
 
@@ -180,11 +180,14 @@ Tasks.Data = (tables) ->
             targetTable.data[testUser.user_id].push(userRow)
           )
       usersData
+
+    simplifyPrefetch: ->
+      _.each(tableFilters, (tableFilter) -> tableFilter.simplify())
   })
 
 
 # Represents a single selected table, and associated filter.
-TableFilter = (inTable, tableFilterDescriptor) ->
+TableFilter = (task, inTable, tableFilterDescriptor) ->
   self = this
 
   # ------------------------------------
@@ -235,6 +238,14 @@ TableFilter = (inTable, tableFilterDescriptor) ->
 
     filter: -> filter
     setFilter: (newFilter) -> filter = newFilter
+
+    simplify: ->
+      filter = new Filter()
+      userRows = null
+      timeLimit = null
+
+    supportExtendedFilters: ->
+      task.supportExtendedFilters
   })
 
 

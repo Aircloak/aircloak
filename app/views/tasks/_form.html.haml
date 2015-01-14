@@ -4,6 +4,7 @@
   :coffeescript
     $(document).ready ->
       new Tasks.Editor(
+        #{@task.task_type},
         #{@task_exceptions},
         #{@completions},
         #{@tables_json},

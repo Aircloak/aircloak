@@ -1,7 +1,7 @@
 # Setup the global namespace
 window.Tasks or= {}
 
-Tasks.Editor = (taskExceptions, completions, tables, operators) ->
+Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
   self = this
 
   # ------------------------------------
@@ -138,9 +138,19 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
 
   editFilter = (e) ->
     handleEventAndCancel(e, ->
+          return if $(e.target).data("disabled")
           openFilterEditor(data.tableFilter(parseInt($(e.target).data("table-index"))))
           render()
         )
+
+  enableDisableExtendedFilters = ->
+    data.supportExtendedFilters = (taskType == <%= Task::BATCH_TASK %>)
+
+  onTaskTypeChanged = (e) ->
+    taskType = parseInt($('#task_task_type').val())
+    data.simplifyPrefetch() if (taskType == <%= Task::STREAMING_TASK %>)
+    enableDisableExtendedFilters()
+    render()
 
   openFilterEditor = (tableFilter) ->
     editor = new Tasks.FilterEditor
@@ -291,6 +301,7 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
     events:
       "change #task_cluster_id": render
       "change #newTableName": showHideAddTable
+      "change #task_task_type": onTaskTypeChanged
       "click #addTable": addTable
       "click #addSandboxUser": addSandboxUser
       "click #runInSandbox": runInSandbox
@@ -304,6 +315,7 @@ Tasks.Editor = (taskExceptions, completions, tables, operators) ->
 
   Tasks.Operators = operators
   decodePrefetch(tables)
+  enableDisableExtendedFilters()
   initCodeEditor()
   render()
 
