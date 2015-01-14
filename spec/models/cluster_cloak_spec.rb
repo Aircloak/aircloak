@@ -10,6 +10,7 @@ describe Cluster do
     Cloak.destroy_all
     Build.destroy_all
     BuildManager.stub(:send_build_request)
+    AuditLog.delete_all
   end
 
   let! (:cloak) { Cloak.create(name: "dave", ip: "9.9.9.9") }
@@ -25,6 +26,15 @@ describe Cluster do
     cloak.reload.cluster_cloak.set_state :to_be_removed
     cloak.cluster_cloak.synchronize
     cloak.reload.cluster_cloak.should eq nil
+  end
+
+  it "should destroy audit logs when destroyed" do
+    cloak.reload.cluster_cloak.set_state :to_be_removed
+    msg = ";HASH;146;hello;2014-12-19T15:40:05Z;world"
+    AuditLog.create_from_log_message(msg, cloak.id).save
+    AuditLog.count.should eq 1
+    cloak.cluster_cloak.synchronize
+    AuditLog.count.should eq 0
   end
 
   it "cluster should get removed if last cloak is :to_be_removed and gets synchronized" do

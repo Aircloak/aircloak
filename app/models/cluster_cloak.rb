@@ -25,6 +25,7 @@ class ClusterCloak < ActiveRecord::Base
       set_state :belongs_to
     when :to_be_removed then
       temp_cluster = cluster
+      cloak.audit_logs.destroy_all
       destroy
       temp_cluster.destroy if temp_cluster.cloaks.count == 0
     end
