@@ -163,6 +163,7 @@ private
     return unless self.stored_task && cloak
 
     pr = PendingResult.where(task: self).first || PendingResult.create(task: self, standing: true)
+    headers = {"auth_token" => pr.auth_token}
     publish_url = Rails.configuration.publish_url
     if publish_url.present? then
       publish_path = "/results/#{analyst.id}/#{self.id}/#{cluster.id}/#{pr.auth_token}"
@@ -174,7 +175,7 @@ private
           analyst,
           cluster,
           "task/#{self.class.encode_id(id)}",
-          {"auth_token" => pr.auth_token},
+          headers,
           {
             type: "streaming",
             report_interval: report_interval,
