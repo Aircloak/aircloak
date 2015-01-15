@@ -25,6 +25,11 @@
     - @cluster.analysts.each do |analyst|
       %li
         = link_to analyst.name, analyst_path(analyst.id)
+%p
+  %b Capabilities:
+  %ul
+    - @cluster.capabilities.each do |capability|
+      %li= capability.name
 
 = link_to 'Edit', edit_cluster_path(@cluster)
 \|

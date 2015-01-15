@@ -57,7 +57,8 @@ authorization do
       :metrics,
       :user_tables,
       :activities,
-      :audit_logs
+      :audit_logs,
+      :capabilities
     ], to: :manage
     has_permission_on [:airpub], to: [:index, :subscribe]
     has_permission_on [:user_tables], to: :retry_migration

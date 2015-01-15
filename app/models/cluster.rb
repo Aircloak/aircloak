@@ -9,6 +9,8 @@ class Cluster < ActiveRecord::Base
   has_many :analysts_clusters
   has_and_belongs_to_many :analysts
   belongs_to :build
+  has_many :capability_clusters
+  has_many :capabilities, through: :capability_clusters
 
   validates :name, presence: true, uniqueness: true
   validates_presence_of :build
@@ -63,6 +65,11 @@ class Cluster < ActiveRecord::Base
 
   def timestamp
     last_modified.to_i
+  end
+
+  def capable_of? identifier
+    raise UnknownCapability.new if Capability.where(identifier: identifier).count == 0
+    capabilities.where(identifier: identifier).count == 1
   end
 
   def self.ready_clusters analyst
@@ -198,4 +205,7 @@ private
     end
     AuditLog.where(cloak_id: cloaks.map(&:id)).delete_all
   end
+end
+
+class UnknownCapability < RuntimeError
 end

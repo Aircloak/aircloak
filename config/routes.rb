@@ -102,6 +102,8 @@ Web::Application.routes.draw do
 
   post "/sandbox/run", to: "sandbox#run"
 
+  resources :capabilities
+
   resources :audit_logs do
     collection do
       get 'cluster/:cluster_id', to: :cluster

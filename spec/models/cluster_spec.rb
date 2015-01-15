@@ -13,6 +13,8 @@ describe Cluster do
     BuildManager.stub(:send_build_request)
     UserTable.delete_all
     UserTableMigration.delete_all
+    Capability.delete_all
+    CapabilityCluster.delete_all
   end
 
   let (:cloak) { Cloak.create(name: "dave", ip: "9.9.9.9") }
@@ -259,5 +261,23 @@ describe Cluster do
     c.destroy.destroyed?.should == true
     UserTable.count.should == 0
     UserTableMigration.count.should == 0
+  end
+
+  context "capabilities" do
+    let (:cap_stream) { Capability.create(identifier: "streaming_queries") }
+
+    it "should be possible to assign and query capabilities to a cluster" do
+      cluster = base_cluster
+      cluster.cloaks << cloak
+      cluster.save.should eq true
+      cap_stream # We need to exist to not get an exception :)
+      cluster.capable_of?(:streaming_queries).should eq false
+      cluster.capabilities << cap_stream
+      cluster.capable_of?(:streaming_queries).should eq true
+    end
+
+    it "should raise an error if the requested capability doesn't exist" do
+      expect { base_cluster.capable_of?(:snorkling_in_the_rain) }.to raise_error UnknownCapability
+    end
   end
 end
