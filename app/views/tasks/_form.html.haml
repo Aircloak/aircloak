@@ -29,14 +29,17 @@
         .control-group
           = control_label "Belongs to cluster"
           .controls
-            = f.select :cluster_id, current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id]}
+            = f.select :cluster_id, current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id,
+                {'data-streaming-capability' => cluster.capable_of?(:streaming_queries)}]}
       - else
-        = hidden_field_tag "task[cluster_id]", current_user.ready_clusters.first.id
+        = hidden_field_tag "task[cluster_id]", current_user.ready_clusters.first.id,
+            "data-streaming-capability" => current_user.ready_clusters.first.capable_of?(:streaming_queries)
 
-      .control-group
-        = control_label "Type", tooltip: "task_type"
-        .controls
-          = f.collection_select(:task_type, Task.types, :id, :name, {}, disabled: !(@task.new_record?))
+      #taskTypeParams{style: "display:none;"}
+        .control-group
+          = control_label "Type", tooltip: "task_type"
+          .controls
+            = f.collection_select(:task_type, Task.types, :id, :name, {}, disabled: !(@task.new_record?))
 
       #streamingTaskParams{style: "display:none;"}
         .control-group

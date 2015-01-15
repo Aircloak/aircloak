@@ -29,6 +29,7 @@ private
   def update_cluster msg, action
     cloaks = cloaks_from_params
     @cluster.analysts = analysts_from_params
+    @cluster.capabilities = capabilities_from_params
     @cluster.mark_as_changed
     if @cluster.assign_cloaks(cloaks) && @cluster.update_params(cluster_params) then
       redirect_to clusters_path, notice: msg
@@ -55,5 +56,11 @@ private
     return [] unless params["analyst_selections"]
     analyst_ids = params["analyst_selections"].map(&:to_i)
     analyst_ids.map {|id| Analyst.find(id)}
+  end
+
+  def capabilities_from_params
+    return [] unless params["capabilities_selections"]
+    capability_ids = params["capabilities_selections"].map(&:to_i)
+    capability_ids.map {|id| Capability.find(id)}
   end
 end

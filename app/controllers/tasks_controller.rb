@@ -86,9 +86,14 @@ class TasksController < ApplicationController
 
   # POST /tasks/:id/execute_as_batch_task
   def execute_as_batch_task
-    @task.execute_batch_task
-    describe_activity "Scheduled a batch run of task #{@task.name}"
-    redirect_to latest_results_task_path(@task), notice: "Run of #{@task.name} has been initiated"
+    if @task.cluster.nil? then
+      describe_failed_activity "Tried executing task #{@task.name} which doesn't have a cluster"
+      redirect_to tasks_path, error: "Task #{@task.name} needs a cluster to run on. Execution aborted"
+    else
+      @task.execute_batch_task
+      describe_activity "Scheduled a batch run of task #{@task.name}"
+      redirect_to latest_results_task_path(@task), notice: "Run of #{@task.name} has been initiated"
+    end
   end
 
   # GET /tasks/:id/all_results
