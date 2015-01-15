@@ -3,6 +3,12 @@
 - if @tasks.count > 0
   %h1 Tasks
 
+  - if @tasks.any? {|task| task.cluster.nil?}
+    .alert
+      %button.close{type: "button", data: {dismiss: "alert"}} &times;
+      %strong Warning!
+      One or more of your tasks are not assigned to a cluster. They cannot be run
+
   %table.table.table-striped
     %thead
       %tr
@@ -13,10 +19,13 @@
         %th
     %tbody
     - @tasks.each do |task|
-      %tr
+      %tr{class: ("error" if task.cluster.nil?)}
         %td= task.name
         - if current_user.has_multiple_clusters?
-          %td= task.cluster.name
+          - if task.cluster
+            %td= task.cluster.name
+          - else
+            %td NO CLUSTER ASSIGNED
         %td= link_to task.results.count, latest_results_task_path(task.id)
         %td
           = link_to 'Latest results', latest_results_task_path(task.id), class: "btn btn-mini"
