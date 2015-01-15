@@ -215,13 +215,19 @@ private
   end
 
   def post_processing_spec
-    # Temporary solution that joins all libraries + prefetch code into a single
-    # chunk of lua code. Needed to keep compatibility with cloak 1.0
-    code_parts = TaskCode.dependencies(code).inject([]) do |memo, library|
-      memo.push(library[:code])
-    end
-    code_parts.push(code)
+    # Release-1.0.0 clusters do not have support for library code
+    # Once all release-1.0.0 clusters are deprecated this can be removed
+    if cluster.capable_of? :lua_library_support then
+      {code: code, libraries: TaskCode.dependencies(code)}
+    else
+      # Temporary solution that joins all libraries + prefetch code into a single
+      # chunk of lua code. Needed to keep compatibility with cloak 1.0
+      code_parts = TaskCode.dependencies(code).inject([]) do |memo, library|
+        memo.push(library[:code])
+      end
+      code_parts.push(code)
 
-    {code: code_parts.join("\n")}
+      {code: code_parts.join("\n")}
+    end
   end
 end
