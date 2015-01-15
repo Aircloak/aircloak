@@ -54,7 +54,13 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
     parseInt($('#task_cluster_id').val())
 
   selectedClusterCapableOfStreaming = ->
-    $("#task_cluster_id option[value=\"#{selectedClusterId()}\"]").data("streaming-capability")
+    chosenClusterOption = $("#task_cluster_id option[value=\"#{selectedClusterId()}\"]")
+    if chosenClusterOption.length == 0
+      # The user only has a single cluster, and the cluster streaming capability
+      # is provided through a hidden input field
+      $("#task_cluster_id").data("streaming-capability")
+    else
+      chosenClusterOption.data("streaming-capability")
 
   # Custom hint function. It determines the word at the cursor, and
   # returns the completion list.
