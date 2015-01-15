@@ -20,6 +20,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
     renderExceptions()
     renderSaveInfo()
     showHideAddTable()
+    showHideTaskTypeControls()
     showHideStreamingTaskControls()
     self
 
@@ -51,6 +52,9 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
 
   selectedClusterId = ->
     parseInt($('#task_cluster_id').val())
+
+  selectedClusterCapableOfStreaming = ->
+    $("#task_cluster_id option[value=\"#{selectedClusterId()}\"]").data("streaming-capability")
 
   # Custom hint function. It determines the word at the cursor, and
   # returns the completion list.
@@ -120,10 +124,27 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       $("#addTable").hide()
 
   showHideStreamingTaskControls = ->
-    if (taskType == <%= Task::STREAMING_TASK %>)
+    if (taskType == <%= Task::STREAMING_TASK %> and selectedClusterCapableOfStreaming())
       $("#streamingTaskParams").show()
     else
       $("#streamingTaskParams").hide()
+
+  showHideTaskTypeControls = ->
+    if selectedClusterCapableOfStreaming()
+      $("#taskTypeParams").show()
+    else
+      $("#taskTypeParams").hide()
+      # We need to set the task type to batch query, since
+      # that is supported by all clusters. We also need to
+      # re-render the form in case we had to make a change.
+      # Otherwise changing back to a cluster which does support
+      # the streaming query task will show the task type as
+      # batch query, yet at the same time also show the
+      # streaming query options.
+      for option in $("select#task_task_type option")
+        if option.text == "Batch" and not option.selected
+          option.selected = true
+          onTaskTypeChanged()
 
   handleEventAndCancel = (e, fun) ->
     e.stopPropagation()
