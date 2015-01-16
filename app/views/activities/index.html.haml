@@ -1,5 +1,10 @@
 %h1 Activities
 
+- if params[:show_aircloak]
+  = link_to "Hide aircloak employees", activities_path
+- else
+  = link_to "Show aircloak employees", "?show_aircloak=true"
+
 = will_paginate @activities
 
 %table.table.table-striped
