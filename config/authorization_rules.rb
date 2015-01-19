@@ -6,7 +6,8 @@ authorization do
     has_permission_on [
       :machines,
       :cluster_lists,
-      :api_tasks
+      :api_tasks,
+      :task_results
     ], to: :anon_read
     has_permission_on [
       :results,

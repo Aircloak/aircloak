@@ -111,5 +111,7 @@ Web::Application.routes.draw do
     end
   end
 
+  resources :task_results
+
   root to: 'welcome#index'
 end
