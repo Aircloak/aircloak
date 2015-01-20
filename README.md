@@ -360,7 +360,7 @@ Then, you need to create some random users and data. There is a rake task for th
 
 1. Make sure you have cloak and cluster entries in your air database.
 1. Start local cloak
-1. From the command line run `bundle exec rake air:recreate_test_users[1,2,1000]`. This will generate
+1. From the command line run `bundle exec rake air:test:recreate_test_users[1,2,1000]`. This will generate
    a thousand of users in the cluster with ID=2 (use different ID if needed)
    on behalf of the analyst with ID=1.
    If test tables exist on the cloak, they will be recreated prior to data insertion.
@@ -374,7 +374,7 @@ If the cloak is started, you can execute the task from the air UI. **Tip**: upon
 redirected to the results page for that task. However, the results usually arrive a bit later, so you'll need
 to refresh the page to see them.
 
-There is also a rake task that allows you to perform a quick load test of task execution. First, make sure you have local cluster and analyst setup. Also, you need to have some tables and data. Finally, you need to create a couple of valid tasks that return results. When all this is setup, start your local air and cloak (make sure it reports back to local air). Then, you can run e.g. `bundle exec rake air:task_load_test[1000]` which will execute each task from your web database a thousand times (in a round robin fashion).
+There is also a rake task that allows you to perform a quick load test of task execution. First, make sure you have local cluster and analyst setup. Also, you need to have some tables and data. Finally, you need to create a couple of valid tasks that return results. When all this is setup, start your local air and cloak (make sure it reports back to local air). Then, you can run e.g. `bundle exec rake air:test:task_load_test[1000]` which will execute each task from your web database a thousand times (in a round robin fashion).
 
 Moreover, if you [setup your local cloak to report to local graphite](https://github.com/Aircloak/org/wiki/tech::Metrics#running-the-system-locally), you'll be able to locally collect and observe metrics.
 
