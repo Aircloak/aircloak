@@ -8,6 +8,7 @@ class Analyst < ActiveRecord::Base
   has_many :results
   has_many :users
   has_many :key_materials
+  has_many :analyst_tokens
 
   has_many :analysts_clusters
   has_and_belongs_to_many :clusters
@@ -32,14 +33,21 @@ class Analyst < ActiveRecord::Base
   end
 
   def revoke_key key
-    self.revocation_list = TokenGenerator.revoke_certificate self.key, self.revocation_list, key.certificate
-    save
-    key.revoked = true
-    key.save
-    # mark all assigned clusters as needing to be updated with the new revocation list
-    self.clusters.each do |cluster|
-      cluster.mark_as_changed
-      cluster.save
+    if key.analyst_token.nil?
+      self.revocation_list = TokenGenerator.revoke_certificate self.key, self.revocation_list, key.certificate
+      save
+      key.revoked = true
+      key.save
+      # mark all assigned clusters as needing to be updated with the new revocation list
+      self.clusters.each do |cluster|
+        cluster.mark_as_changed
+        cluster.save
+      end
+    else
+      key.analyst_token.destroy
+      key.analyst_token = nil
+      key.revoked = true
+      key.save
     end
   end
 

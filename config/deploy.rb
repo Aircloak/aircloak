@@ -6,6 +6,7 @@ load "config/recipes/postgresql"
 load "config/recipes/unicorn"
 load "config/recipes/check"
 load "config/recipes/settings"
+load "config/recipes/ca"
 load "config/recipes/maintenance"
 
 # We need to fudge the path a little to ensure capistrano

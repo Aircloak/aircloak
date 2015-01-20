@@ -1,4 +1,5 @@
 require 'spec_helper'
+require './lib/build_manager'
 
 describe "TaskResultsController" do
   before(:each) do
@@ -9,6 +10,7 @@ describe "TaskResultsController" do
     ClusterCloak.destroy_all
     Cluster.destroy_all
     Cloak.destroy_all
+    BuildManager.stub(:send_build_request)
   end
 
   let! (:cloak) { Cloak.create(name: "cloak", ip: "1.1.1.1") }
@@ -17,6 +19,7 @@ describe "TaskResultsController" do
 
   describe "retrieving" do
     let (:analyst) { Analyst.create name: "TestAnalyst" }
+    let (:token) { AnalystToken.create_api_token(analyst) }
     let (:task) do
       t = Task.create(
         name: "task",
@@ -36,7 +39,7 @@ describe "TaskResultsController" do
     end
 
     it "retrieves results" do
-      get("/task_results/#{task.id}", {format: :json}, {'analyst' => analyst.id})
+      get("/task_results/#{task.id}", {format: :json}, {'analyst_token' => token.token})
       response.code.should eq "200"
 
       json = JSON.parse(response.body)
@@ -48,7 +51,7 @@ describe "TaskResultsController" do
     end
 
     it "paginates" do
-      get("/task_results/#{task.id}?page=50&per_page=2", {format: :json}, {'analyst' => analyst.id})
+      get("/task_results/#{task.id}?page=50&per_page=2", {format: :json}, {'analyst_token' => token.token})
       response.code.should eq "200"
 
       json = JSON.parse(response.body)
@@ -62,15 +65,16 @@ describe "TaskResultsController" do
 
   describe "invalid inputs" do
     let (:analyst) { Analyst.create name: "TestAnalyst" }
+    let (:token) { AnalystToken.create_api_token(analyst) }
 
     it "should require analyst" do
       get("/task_results/1", format: :json)
       response.code.should eq "401"
 
-      get("/task_results/1", {format: :json}, {'analyst' => analyst.id + 1})
+      get("/task_results/1", {format: :json}, {'analyst_token' => "foobar"})
       response.code.should eq "401"
 
-      get("/task_results/1", {format: :json}, {'analyst' => analyst.id})
+      get("/task_results/1", {format: :json}, {'analyst_token' => token.token})
       response.code.should eq "422"
     end
   end

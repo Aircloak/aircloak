@@ -18,7 +18,8 @@
       = control_label "Key type", tooltip: "key_type"
       .controls
         = select_tag "key_type", options_for_select([["Data upload key", "data_upload_all"],
-          ["Admin key", "admin"], ["Key for running tasks", "task_runner"]], "Data upload key")
+          ["Admin key", "admin"], ["Key for running tasks", "task_runner"],
+          ["Key for issuing REST API calls to web", "web_api"]], "Data upload key")
 
     .control-group
       .controls
