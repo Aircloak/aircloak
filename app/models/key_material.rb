@@ -1,5 +1,21 @@
 class KeyMaterial < ActiveRecord::Base
   belongs_to :analyst
+  belongs_to :analyst_token
+
+  CA_PATH = Rails.root.join("config", "ca")
+  FileUtils.mkdir_p(CA_PATH)
+
+  def self.ca_key_file(type)
+    File.join(CA_PATH, "#{type}.key")
+  end
+
+  def self.ca_cert_file(type)
+    File.join(CA_PATH, "#{type}.cert")
+  end
+
+  def self.api_ca
+    [File.read(ca_key_file("api")), File.read(ca_cert_file("api"))]
+  end
 
   # A key_material contains the following properties
   # - certificate: the raw certificate
@@ -24,6 +40,7 @@ class KeyMaterial < ActiveRecord::Base
   # A corresponding pkcs12 protected by a password specified by the
   # analyst is also generated.
   def self.create_from_analyst analyst, password, description, key_type
+    analyst_token = nil
     key_material = analyst.key_materials.new
     key_material.key_type = key_type
 
@@ -42,6 +59,12 @@ class KeyMaterial < ActiveRecord::Base
     when "task_runner"
       key_description = "#{description}. Allows executing tasks against any of #{analyst.name}'s clusters"
       raw_key, raw_cert = TokenGenerator.generate_leaf_token analyst.key, analyst.certificate, "task_runner", 1
+
+    when "web_api"
+      key_description = "#{description}. Allows issuing REST API calls to web"
+      api_key, api_cert = api_ca
+      analyst_token = AnalystToken.create_api_token(analyst)
+      raw_key, raw_cert = TokenGenerator.generate_leaf_token api_key, api_cert, "analyst_token", analyst_token.token
     end
 
     key = TokenGenerator.import_key raw_key
@@ -58,6 +81,7 @@ class KeyMaterial < ActiveRecord::Base
     key_material.key = raw_key
     key_material.certificate = raw_cert
     key_material.description = description
+    key_material.analyst_token = analyst_token unless analyst_token.nil?
     key_material.save
     key_material
   end
@@ -75,6 +99,8 @@ class KeyMaterial < ActiveRecord::Base
       "Upload data for all users keys"
     when "task_runner"
       "Keys for running tasks"
+    when "web_api"
+      "Keys for issuing REST API calls to web"
     end
   end
 end

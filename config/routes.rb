@@ -64,6 +64,8 @@ Web::Application.routes.draw do
     resources :api_test_results, path: "test_results", only: [:create]
 
     resources :api_repeated_answers, path: "repeated_answers", only: [:create]
+
+    resources :task_results
   end
 
   get "/api/clusters", to: "cluster_lists#index"

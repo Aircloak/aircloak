@@ -25,4 +25,24 @@ class Result < ActiveRecord::Base
     bs = buckets.map(&:to_bucket_proto)
     ResultPB.new(analyst_id: task.analyst_id, task_id: task.id, index: task.index, buckets: bs, exceptions: [])
   end
+
+  # Convert result with buckets to the format appropriate for usage by clients, such as API consumers.
+  def to_client_hash
+    {
+      :published_at => created_at.utc.to_i * 1000,
+      :id => id,
+      :buckets => buckets.map { |bucket|
+        {
+          :name => bucket.display_name,
+          :value => bucket.display_result
+        }
+      },
+      :exceptions => exception_results.map { |exception|
+        {
+          :id => exception.id,
+          :count => exception.count
+        }
+      }
+    }
+  end
 end

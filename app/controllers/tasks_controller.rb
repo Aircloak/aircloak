@@ -183,24 +183,7 @@ private
 
   # converts the results to a hashmap that will be converted to JSON and rendered client-side
   def convert_results_for_client_side_rendering results_raw
-    results_raw.map { |result|
-      {
-        :published_at => result.created_at.utc.to_i * 1000,
-        :id => result.id,
-        :buckets => result.buckets.map { |bucket|
-          {
-            :name => bucket.display_name,
-            :value => bucket.display_result
-          }
-        },
-        :exceptions => result.exception_results.map { |exception|
-          {
-            :id => exception.id,
-            :count => exception.count
-          }
-        }
-      }
-    }
+    results_raw.map {|result| result.to_client_hash}
   end
 
   def results_csv

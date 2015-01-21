@@ -58,6 +58,15 @@ protected
     Authorization.current_user = current_user
   end
 
+  def authenticate_api_analyst
+    if request.headers["analyst_token"].nil?
+        respond_with({success: false, error: "Missing authentication key."}, {status: :unauthorized})
+    else
+      @analyst = AnalystToken.api_analyst(request.headers["analyst_token"])
+      respond_with({success: false, error: "Not authenticated."}, {status: :unauthorized}) if @analyst.nil?
+    end
+  end
+
 private
   def current_user_session
     return @current_user_session if defined?(@current_user_session)
