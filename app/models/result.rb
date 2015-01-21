@@ -26,7 +26,8 @@ class Result < ActiveRecord::Base
     ResultPB.new(analyst_id: task.analyst_id, task_id: task.id, index: task.index, buckets: bs, exceptions: [])
   end
 
-  def to_client
+  # Convert result with buckets to the format appropriate for usage by clients, such as API consumers.
+  def to_client_hash
     {
       :published_at => created_at.utc.to_i * 1000,
       :id => id,

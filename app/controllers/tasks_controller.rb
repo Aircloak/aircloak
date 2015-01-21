@@ -183,7 +183,7 @@ private
 
   # converts the results to a hashmap that will be converted to JSON and rendered client-side
   def convert_results_for_client_side_rendering results_raw
-    results_raw.map {|result| result.to_client}
+    results_raw.map {|result| result.to_client_hash}
   end
 
   def results_csv

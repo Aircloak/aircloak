@@ -15,7 +15,7 @@ class TaskResultsController < ApplicationController
           items:
               @task.results.order("created_at desc").
                   paginate(page: page, per_page: per_page).
-                  map {|result| result.to_client}
+                  map {|result| result.to_client_hash}
         )
   end
 
