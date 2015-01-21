@@ -18,5 +18,13 @@ Repeated answers detected for analyst <%= @report.analyst.name %>
 
   <%= task_code.prefetch %>
 
+  <% task_code.repeated_answer_library_codes.each do |library_code| %>
+
+    <%= "Library: #{library_code.name}" %>
+
+    <%= library_code.code %>
+
+  <% end %>
+
   <%= task_code.code %>
 <% end %>
