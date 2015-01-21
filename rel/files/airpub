@@ -40,6 +40,9 @@ fi
 # Identify the script name
 SCRIPT=`basename $0`
 
+# make epmd listen on loopback only
+export ERL_EPMD_ADDRESS="127.0.0.1"
+
 # Parse out release and erts info
 START_ERL=`cat $RUNNER_BASE_DIR/releases/start_erl.data`
 ERTS_VSN=${START_ERL% *}
