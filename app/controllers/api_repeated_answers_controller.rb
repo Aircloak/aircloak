@@ -28,6 +28,15 @@ private
         prefetch: task_code["prefetch"],
         code: task_code["code"]
       )
+      unless task_code["libraries"].nil?
+        task_code["libraries"].each do |library|
+          library_code = RepeatedAnswerLibraryCode.new(
+            name: library["name"],
+            code: library["code"]
+          )
+          code.repeated_answer_library_codes << library_code
+        end
+      end
       answer.repeated_answer_task_codes << code
     end
     raise "cannot save" unless answer.save

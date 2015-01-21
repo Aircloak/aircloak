@@ -10,6 +10,7 @@ describe "ApiRepeatedAnswersController" do
     before(:each) do
       RepeatedAnswer.delete_all
       RepeatedAnswerTaskCode.delete_all
+      RepeatedAnswerLibraryCode.delete_all
     end
 
     let (:request) {
@@ -88,6 +89,24 @@ describe "ApiRepeatedAnswersController" do
 
     it "requires .task_codes[].code" do
       request[:task_codes][0].delete(:code)
+      post "/api/repeated_answers", request.to_json
+      response.status.should eq(403)
+    end
+
+    it "accepts .task_codes[].libraries[] with name and code" do
+      request[:task_codes][0]["libraries"] = [{ :name => "foo", :code => "bar" }]
+      post "/api/repeated_answers", request.to_json
+      response.status.should eq(200)
+    end
+
+    it "requires .task_codes[].libraries[].name" do
+      request[:task_codes][0]["libraries"] = [{ :code => "bar" }]
+      post "/api/repeated_answers", request.to_json
+      response.status.should eq(403)
+    end
+
+    it "requires .task_codes[].libraries[].code" do
+      request[:task_codes][0]["libraries"] = [{ :name => "foo" }]
       post "/api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
