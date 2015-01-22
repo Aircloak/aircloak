@@ -1,0 +1,110 @@
+= help_link 'managing-data'
+
+= content_for(:javascript_include) {javascript_include_tag "migrations/main", "data-turbolinks-track" => true}
+= content_for :javascript do
+  :coffeescript
+    $(document).ready ->
+      table_data = JSON.parse '#{@table_data}'
+      migration = JSON.parse '#{@previous_migration}'
+      window.columns.setup
+        is_creation: #{@creating_new_table}
+        raw_data: table_data
+        raw_previous_migration: migration
+
+- if @creating_new_table == true
+  %h1 Create a table
+- else
+  %h1= "Change #{@table.table_name}"
+
+= form_tag({controller: "user_tables", action: @creating_new_table ? "create" : "update"},
+    method: (@creating_new_table ? :post : :put), class: "form-horizontal", id: "table-form") do |f|
+
+  - if @table.errors.any?
+    .well.alert-error
+      %h3= "#{pluralize(@table.errors.count, "error")} prohibited this table from being saved:"
+      %ul
+        - @table.errors.full_messages.each do |msg|
+          %li= msg
+
+  .control-group
+    = control_label "Table name"
+    .controls
+      - if @creating_new_table
+        = text_field_tag :table_name, @table.table_name
+      - else
+        %input#table_name.disabled{type: :text, value: @table.table_name, disabled: true}
+
+  .control-group{:style => "#{"display:none" if current_user.ready_clusters.length < 2}"}
+    = control_label "In cluster", tooltip: "in_cluster"
+    .controls
+      - if @creating_new_table
+        = select_tag :cluster_id, options_for_select(current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id,
+                {'data-text-type-capability' => cluster.capable_of?(:postgres_text_column_support)}]})
+      - else
+        %input#cluster_id.disabled{data: {test: "hehe"}, type: :text, value: @table.cluster.name, disabled: true, data: {text_type_capability: "#{@table.cluster.capable_of?(:postgres_text_column_support)}"}}
+
+  %textarea#table_json.hidden{name: :table_json}
+  %textarea#migration.hidden{name: :migration}
+
+  %h2 Columns
+
+  %p The cloak stores data in database tables.
+  %p The tables store data in rows where each row has a pre-defined set of columns.
+  %p Please specify the columns and their types below.
+
+  %hr
+
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Column name
+        %th Type
+        %th Constraints
+        %th
+        %th
+    %tbody#columns
+
+  %div#newColumns
+
+    %h3 Add a column
+
+    .control-group
+      = control_label "Column name"
+      .controls
+        %input.clickToAddRowable#column_name{type: :text}
+
+    .control-group
+      = control_label "Data type"
+      .controls
+        %select.clickToAddRowable#type
+          %option{value: "integer"} integer
+          %option{value: "bigint"} bigint
+          %option{value: "float"} float
+          %option{value: "double"} double
+          %option{value: "varchar"} varchar
+          %option{value: "boolean"} boolean
+          %option{value: "text"} text
+
+        %span#size-span.hidden
+          (
+          %input.clickToAddRowable#size.input-mini{type: :text}
+          )
+
+    .control-group
+      = control_label "Constraints", tooltip: "column_form_constraints"
+      .controls
+        %label.checkbox
+          %input.clickToAddRowable#not_null{type: :checkbox} not null
+
+    .control-group
+      .controls
+        %a.addRow.btn Add row
+
+
+  .control-group
+    .controls
+      - if @creating_new_table
+        = submit_tag 'Create database table', :class => "btn btn-success submit-btn disabled"
+      - else
+        = submit_tag 'Alter database table', :class => "btn btn-success submit-btn disabled"
+      = link_to "Cancel", user_tables_path, class: "btn"
