@@ -99,7 +99,7 @@ ColumnView = Backbone.View.extend
   tagName: "tr"
   template: HandlebarsTemplates['migrations/column']
 
-  events: "click .button-remove": "remove"
+  events: "click a.button-remove": "remove"
 
   remove: ->
     if Columns.isCreation() || @model.wasJustCreated()
@@ -135,17 +135,17 @@ MigrationView = Backbone.View.extend
     @submitButton = $ ".submit-btn"
     @columnsView = $ "tbody#columns"
 
-    @listenTo Columns, 'add', @addOne
-    @listenTo Columns, 'reset', @addAll
-    @listenTo Columns, 'all', @render
-    @listenTo Columns, "add remove reset", @modelChanged
+    @listenTo @model, 'add', @addOne
+    @listenTo @model, 'reset', @addAll
+    @listenTo @model, 'all', @render
+    @listenTo @model, "add remove reset", @modelChanged
+    @takeClusterCapabilityIntoAccount()
 
-  events: ->
+  events:
     "keypress #newColumns": "createOnReturn"
-    "click .addRow": "createNewColumn"
-    "change #type": "typeSelected"
-    "submit #dummy-form": "dummyFormSubmit"
-    "submit #table-form": "mainFormSubmit"
+    "click a.addRow.btn": "createNewColumn"
+    "change select#type": "typeSelected"
+    "submit form#table-form": "mainFormSubmit"
 
     # We need the table name to be reflected in the
     # generated migrations, and therefore need to listen
@@ -156,6 +156,7 @@ MigrationView = Backbone.View.extend
     "keypress input#table_name": "modelChanged"
     "paste input#table_name": "modelChanged"
     "blur input#table_name": "modelChanged"
+    "change #cluster_id": "takeClusterCapabilityIntoAccount"
 
   typeSelected: ->
     val = @selectType.val()
@@ -167,7 +168,9 @@ MigrationView = Backbone.View.extend
       @inputSize.val ""
 
   createOnReturn: (e) ->
+    e.stopPropagation()
     return unless e.keyCode == 13
+    e.preventDefault()
     @createNewColumn()
 
   createNewColumn: ->
@@ -232,6 +235,25 @@ MigrationView = Backbone.View.extend
       migration.drop_columns = droppedColumnNames if droppedColumnNames.length > 0
     $("#migration").val(JSON.stringify migration)
 
+  takeClusterCapabilityIntoAccount: ->
+    clusterId = parseInt $('#cluster_id').val()
+    chosenClusterOption = $("#cluster_id option[value=\"#{clusterId}\"]")
+    capability = if chosenClusterOption.length == 0
+      # The user only has a single cluster, and the cluster streaming capability
+      # is provided through a hidden input field
+      $("#cluster_id").data("text-type-capability")
+    else
+      chosenClusterOption.data("text-type-capability")
+    dataTypeSelectTextOption = $("select#type option[value='text']")
+    if capability
+      # Make sure the text option is in the datatype list
+      if dataTypeSelectTextOption.length == 0
+        $("select#type").append(new Option("text", "text"))
+    else
+      # If the text option is in the datatype list, we should remove it
+      unless dataTypeSelectTextOption.length == 0
+        dataTypeSelectTextOption.remove()
+
   formHasValidChanges: ->
     @inputTableName.val() != "" and
         (@model.addedColumns().length != 0 or @model.droppedColumnNames().length != 0)
@@ -246,11 +268,6 @@ MigrationView = Backbone.View.extend
   # changes to submit.
   mainFormSubmit: ->
     @formHasValidChanges()
-
-  # In order to get proper styling for the form elements
-  # used to add columns, we have them placed inside a form element.
-  # This form should never be submitted, so we always cancel submissions.
-  dummyFormSubmit: -> false
 
 
 ## ------------------------------------------------------------------

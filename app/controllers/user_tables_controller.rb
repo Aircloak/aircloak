@@ -4,6 +4,7 @@ class UserTablesController < ApplicationController
   before_action :set_previous_migration
   before_action :load_table, only: [:new, :create, :edit, :update, :destroy, :retry_migration]
   before_action :validate_no_pending_migrations, only: [:edit, :update, :destroy]
+  before_action :set_create_or_edit
 
   def index
     @clusters = current_user.ready_clusters
@@ -21,6 +22,12 @@ class UserTablesController < ApplicationController
 
   def new
     describe_activity "Creating new user table"
+    render :table_editor
+  end
+
+  def edit
+    describe_activity "Viewing edit table page"
+    render :table_editor
   end
 
   def create
@@ -33,7 +40,7 @@ class UserTablesController < ApplicationController
     else
       describe_failed_activity "Failed at creating user table"
       set_view_params migration.table_json
-      render :new
+      render :table_editor
     end
   rescue
     describe_failed_activity "Created user table, but couldn't migrate it"
@@ -55,7 +62,7 @@ class UserTablesController < ApplicationController
       new_table_data = JSON.parse migration.table_json
       full_table_data = original_table_data | new_table_data
       set_view_params full_table_data.to_json
-      render :edit
+      render :table_editor
     end
 
   rescue
@@ -116,11 +123,8 @@ class UserTablesController < ApplicationController
         # Depending on if this is a new table creation
         # or a failed table edit, we need to show the
         # corresponding form
-        if original_table_data.length == 0
-          render :new
-        else
-          render :edit
-        end
+        @creating_new_table = original_table_data.length == 0
+        render :table_editor
       end
     else
       describe_activity "Retried migration which had already been applied"
@@ -151,6 +155,11 @@ private
   def set_view_params full_data
     @previous_migration = params[:migration]
     @table_data = full_data
+  end
+
+  def set_create_or_edit
+    current_action = params[:action]
+    @creating_new_table = current_action == "new" or current_action == "create"
   end
 
   def validate_no_pending_migrations
