@@ -55,9 +55,7 @@ Web::Application.routes.draw do
       get 'setup_info', on: :collection
     end
 
-    resources :api_tasks, path: "tasks", only: [:show] do
-      get "latest_result_id", on: :member, action: 'get_latest_result_id'
-      get "results/:result", on: :member, action: 'get_result'
+    resources :api_tasks, path: "tasks" do
       post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
     end
 

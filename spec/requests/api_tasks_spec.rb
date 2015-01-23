@@ -26,6 +26,31 @@ describe "ApiTasksController" do
   end
 
   let (:analyst) { Analyst.create name: "test-analyst" }
+  let (:token) { AnalystToken.create_api_token(analyst) }
+
+  describe "GET /api/tasks" do
+    it "returns task list" do
+      tasks = (1..10).map {|i| create_task(i)}
+      get "/api/tasks", {format: :json}, {'HTTP_ANALYST_TOKEN' => token.token}
+      response.code.should eq "200"
+
+      json = JSON.parse(response.body)
+      json["success"].should eq true
+      json["tasks"].each_with_index do |t, i|
+        t["token"].should eq tasks[i].token
+        t["name"].should eq tasks[i].name
+        t["cluster_name"].should eq tasks[i].cluster.name
+      end
+    end
+
+    it "should require analyst" do
+      get("/api/tasks", format: :json)
+      response.code.should eq "401"
+
+      get("/api/tasks", {format: :json}, {'HTTP_ANALYST_TOKEN' => "foobar"})
+      response.code.should eq "401"
+    end
+  end
 
   describe "POST /api/tasks/:id/execute_as_batch_task" do
     it "should execute the task" do
@@ -41,4 +66,18 @@ describe "ApiTasksController" do
       response.code.should eq "422"
     end
   end
+
+  private
+    def create_task(i)
+      Task.create(
+        name: "task_#{i}",
+        cluster: cluster,
+        prefetch: "{\"bar\": \"baz\"}",
+        code: "foo",
+        update_task: false,
+        stored_task: false,
+        sandbox_type: "sandbox",
+        analyst: analyst
+      )
+    end
 end
