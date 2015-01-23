@@ -15,7 +15,12 @@ search: true
 
 # Introduction
 
-This is the guide for Aircloak REST API. You can use this API to access resources such as task results. To use the API, you first need to obtain the REST API key on the analyst web site. Then you can use this key to authenticate yourself while accessing various endpoints.
+This is the guide for the Aircloak cloak and web REST APIs. You can use these APIs to perform actions such as executing tasks against a cloak cluster, or access results of previous task executions.
+
+All API access is authenticated. Please have a look at the authentication section for details.
+
+The examples in this guide are given in ruby. If it is not clear how this applies to your own environment,
+please reach out to us on [solutions@aircloak.com](mailto:solutions@aircloak.com), and we will be happy to assist.
 
 # Task results
 
