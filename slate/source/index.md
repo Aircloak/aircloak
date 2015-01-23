@@ -62,10 +62,11 @@ less control over the key material.
 These keys are generated through an authenticated API. Please contact us on
 [solutions@aircloak.com](mailto:solutions@aircloak.com) should you be interested.
 
+# Web REST API
 
-# Task results
+## Task results
 
-## Get results for a specific task
+### Get results for a specific task
 
 ```ruby
 require 'net/http'
@@ -121,7 +122,7 @@ response = http_get("https://hello.aircloak.com/api/task_results/1", api_key)
 
 This endpoint retrieves results for the given task. Retrieved results are ordered (newest come first) and paginated.
 
-### HTTP Request
+#### HTTP Request
 
 `GET /api/task_results/task_id`
 
@@ -129,9 +130,12 @@ This endpoint retrieves results for the given task. Retrieved results are ordere
 In the path, you must replace `task_id` with the real id of the task.
 </aside>
 
-### Query Parameters
+#### Query Parameters
 
 Parameter | Default | Description
 --------- | ------- | -----------
 page      | 1       | Page number
 per_page  | 10      | The number of items per page
+
+
+# Cloak APIs
