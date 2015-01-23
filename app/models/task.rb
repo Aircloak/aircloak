@@ -18,6 +18,8 @@ class Task < ActiveRecord::Base
   validate :prefetch_correct
   validate :streaming_task
 
+  before_create :generate_token
+
   after_save :upload_stored_task
   after_destroy :remove_task_from_cloak
 
@@ -141,6 +143,15 @@ class Task < ActiveRecord::Base
 
   def latest_exceptions
     results.last.exception_results
+  end
+
+  def generate_token
+    return unless self.token.nil?
+
+    begin
+      new_token = TokenGenerator.generate_random_string_of_at_least_length 30
+    end while self.class.where(token: new_token).count != 0
+    self.token = new_token
   end
 
 private

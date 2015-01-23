@@ -79,6 +79,11 @@ describe Task do
     )
   end
 
+  it "generates token" do
+    task = create_task
+    task.token.should_not be_nil
+  end
+
   it "efficiently deletes relationships" do
     task = create_task
     p = PendingResult.create task: task
