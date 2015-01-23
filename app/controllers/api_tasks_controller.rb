@@ -3,7 +3,8 @@ require './lib/proto/air/aggregate_results.pb'
 class ApiTasksController < ApplicationController
   filter_access_to [:execute_as_batch_task], require: :anon_write
   skip_before_action :verify_authenticity_token
-  before_filter :assign_task, only: [:execute_as_batch_task]
+  before_filter :load_task, only: [:execute_as_batch_task]
+  respond_to :json
 
   def set_layout
     self.class.layout false
@@ -12,15 +13,12 @@ class ApiTasksController < ApplicationController
   # POST /api/tasks/:id/execute_as_batch_task
   def execute_as_batch_task
     @task.execute_batch_task
-    render text: "Either it succeeds or not, nobody knows!"
+    respond_with({success: true}, {status: :created, location: nil})
   end
 
 private
-  def assign_task
-    id = params[:id]
-    @task = id.to_i == 0 ? Task.find_by_name(id) : Task.find(id)
-  rescue ActiveRecord::RecordNotFound
-  ensure
-    render text: "Unknown task!", status: 404 unless @task
+  def load_task
+    @task = Task.find_by_token params[:id]
+    respond_with({success: false, error: "Task not found."}, {status: :unprocessable_entity, location: nil}) if @task.nil?
   end
 end
