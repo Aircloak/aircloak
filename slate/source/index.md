@@ -106,9 +106,36 @@ These keys are generated through an authenticated API. Please contact us on
 
 # Web REST API
 
-## Task results
+## Get list of all tasks
 
-### Get results for a specific task
+```ruby
+# Using AircloakAPI from example in the Authentication section
+
+api_key = Aircloak.key_from_file "my_api_key.pfx", "my_password"
+url = "https://hello.aircloak.com/api/tasks"
+response = AircloakAPI.get(url, api_key)
+```
+
+> The above command returns JSON structured like this:
+
+```json
+{
+  "success": true,
+  "tasks": [
+    {"token": "token_1", "name": "task_1", "cluster_name": "cluster 1"},
+    {"token": "token_2", "name": "task_2", "cluster_name": "cluster 1"},
+    {"token": "token_3", "name": "task_3", "cluster_name": "cluster 2"}
+  ]
+}
+```
+
+This endpoint retrieves all tasks for the authenticated analyst.
+
+### HTTP Request
+
+`GET /api/tasks`
+
+## Get results for a specific task
 
 ```ruby
 # Using AircloakAPI from example in the Authentication section
@@ -126,7 +153,7 @@ response = AircloakAPI.get(url, api_key)
   "count":30,
   "page":1,
   "per_page":10,
-  "items":[
+  "results":[
     {
       "published_at":1421660484000,
       "buckets":[
@@ -149,15 +176,15 @@ response = AircloakAPI.get(url, api_key)
 
 This endpoint retrieves results for the given task. Retrieved results are ordered (newest come first) and paginated.
 
-#### HTTP Request
+### HTTP Request
 
-`GET /api/task_results/task_id`
+`GET /api/tasks/task_token/results`
 
 <aside class="notice">
-In the path, you must replace `task_id` with the real id of the task.
+In the path, you must replace `task_token` with the real token of the task. You can obtain this token when <a href="#get-list-of-all-tasks">retrieving the list of all tasks</a>.
 </aside>
 
-#### Query Parameters
+### Query Parameters
 
 Parameter | Default | Description
 --------- | ------- | -----------
