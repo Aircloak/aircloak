@@ -66,6 +66,8 @@
 
             %h4= link_to "Documentation", help_index_path
 
+            %h4= link_to "API reference", "/apidocs/index.html"
+
             - if current_user.analyst.has_clusters?
               %hr
 
