@@ -1,7 +1,10 @@
 class RepeatedAnswer < ActiveRecord::Base
   belongs_to :analyst
+  has_many :ra_task_code_repeated_answers, dependent: :destroy
+
+  has_many :ra_task_codes, through: :ra_task_code_repeated_answers
+
   validates_presence_of :bucket_label, :bucket_count, :timestamp, :source_ip, :noise_sd
-  has_many :repeated_answer_task_codes, dependent: :destroy
 
   def timestamp_in_UTC
     Time.at(timestamp).utc.strftime('%Y-%m-%d %H:%M')
@@ -13,6 +16,47 @@ class RepeatedAnswer < ActiveRecord::Base
     else
       bucket_label
     end
+  end
+
+  def all_codes_trustworthy?
+    return ra_task_codes.all? { |task_code| task_code.trustworthy }
+  end
+
+  def mark_resolved
+    self.resolved = true
+    raise "cannot save" unless self.save
+    ra_task_codes.each { |task_code| task_code.conditionally_mark_answers_resolved }
+  end
+
+  def mark_resolved_if_trustworthy
+    mark_resolved if all_codes_trustworthy?
+  end
+
+  def auto_resolve?
+    if not self.resolved and all_codes_trustworthy?
+      self.resolved = true
+      raise "cannot save" unless self.save
+    end
+    return self.resolved
+  end
+
+  def self.from_json raw_json
+    answer = RepeatedAnswer.new(
+      resolved: false,
+      analyst_id: Analyst.find(raw_json["analyst"]).id,
+      bucket_label: raw_json["bucket_label"],
+      bucket_value: raw_json["bucket_value"],
+      bucket_count: raw_json["bucket_count"],
+      timestamp: raw_json["timestamp"],
+      source_ip: raw_json["source_ip"],
+      noise_sd: raw_json["noise_sd"]
+    )
+    raw_json["task_codes"].each do |task_json|
+      code = RaTaskCode.from_json task_json
+      answer.ra_task_codes << code
+    end
+    raise "cannot save" unless answer.save
+    return answer
   end
 
   # Removes all repeated answer for which there is no longer

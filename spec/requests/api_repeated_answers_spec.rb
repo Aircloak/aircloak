@@ -9,8 +9,10 @@ describe "ApiRepeatedAnswersController" do
   describe "POST /api/repeated_answers" do
     before(:each) do
       RepeatedAnswer.delete_all
-      RepeatedAnswerTaskCode.delete_all
-      RepeatedAnswerLibraryCode.delete_all
+      RaTaskCode.delete_all
+      RaTaskCodeRepeatedAnswer.delete_all
+      RaLibraryCode.delete_all
+      RaLibraryCodeRaTaskCode.delete_all
     end
 
     let (:request) {
@@ -94,21 +96,57 @@ describe "ApiRepeatedAnswersController" do
     end
 
     it "accepts .task_codes[].libraries[] with name and code" do
-      request[:task_codes][0]["libraries"] = [{ :name => "foo", :code => "bar" }]
+      request[:task_codes][0][:libraries] = [{ :name => "foo", :code => "bar" }]
       post "/api/repeated_answers", request.to_json
       response.status.should eq(200)
     end
 
     it "requires .task_codes[].libraries[].name" do
-      request[:task_codes][0]["libraries"] = [{ :code => "bar" }]
+      request[:task_codes][0][:libraries] = [{ :code => "bar" }]
       post "/api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
 
     it "requires .task_codes[].libraries[].code" do
-      request[:task_codes][0]["libraries"] = [{ :name => "foo" }]
+      request[:task_codes][0][:libraries] = [{ :name => "foo" }]
       post "/api/repeated_answers", request.to_json
       response.status.should eq(403)
+    end
+
+    it "auto-resolves if all code is trusted" do
+      # first generate a new repeated answer report with code inserted
+      request[:task_codes][0][:libraries] = [{ :name => "foo", :code => "bar" }]
+      post "/api/repeated_answers", request.to_json
+      response.status.should eq(200)
+      RepeatedAnswer.all.each { |ra| ra.resolved.should eq(false) }
+
+      # second mark all codes as trusted (should autoresolve the report)
+      RaTaskCode.all.each { |task_code| task_code.mark_trustworthy }
+      RepeatedAnswer.all.each { |ra| ra.resolved.should eq(true) }
+
+      # add a new slightly different report which should be autoresolved
+      request[:task_codes][0][:libraries][0][:name] = "foo2"
+      post "/api/repeated_answers", request.to_json
+      response.status.should eq(200)
+      RepeatedAnswer.all.each { |ra| ra.resolved.should eq(true) }
+    end
+
+    it "does not auto-resolve if one code is not trusted" do
+      # first generate a new repeated answer report with code inserted
+      request[:task_codes][0][:libraries] = [{ :name => "foo", :code => "bar" }]
+      post "/api/repeated_answers", request.to_json
+      response.status.should eq(200)
+      RepeatedAnswer.all.each { |ra| ra.resolved.should eq(false) }
+
+      # second mark the first code as trustworthy
+      RaTaskCode.first.mark_trustworthy
+      RepeatedAnswer.all.each { |ra| ra.resolved.should eq(false) }
+
+      # add a new slightly different report which should not be autoresolved
+      request[:task_codes][0][:libraries][0][:name] = "foo2"
+      post "/api/repeated_answers", request.to_json
+      response.status.should eq(200)
+      RepeatedAnswer.all.each { |ra| ra.resolved.should eq(false) }
     end
   end
 end
