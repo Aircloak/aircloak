@@ -31,19 +31,17 @@ def http_get(path, api_key)
   uri = URI.parse(path)
   http = Net::HTTP.new(uri.host, uri.port)
   http.read_timeout = 300
-  if uri.scheme == "https"
-    http.use_ssl = true
-    http.key = api_key.key
-    http.cert = api_key.certificate
-    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-  end
+  http.use_ssl = true
+  http.key = api_key.key
+  http.cert = api_key.certificate
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
   http.get(uri.request_uri)
 end
 
 key_file_name = "my_api_key.pfx"
 key_password = "my_password"
 api_key = OpenSSL::PKCS12.new(File.read(key_file_name), key_password)
-res = http_get("https://hello.aircloak.com/api/task_results/1", api_key)
+response = http_get("https://hello.aircloak.com/api/task_results/1", api_key)
 ```
 
 > The above command returns JSON structured like this:
