@@ -12,7 +12,7 @@ class ApiTaskResultsController < ApplicationController
           count: @task.results.count,
           page: page,
           per_page: per_page,
-          items:
+          results:
               @task.results.order("created_at desc").
                   paginate(page: page, per_page: per_page).
                   map {|result| result.to_client_hash}

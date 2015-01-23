@@ -47,7 +47,7 @@ describe "ApiTaskResultsController" do
       json["count"].should eq 100
       json["page"].should eq 1
       json["per_page"].should eq 10
-      verify_data((91..100).to_a.reverse, json["items"])
+      verify_data((91..100).to_a.reverse, json["results"])
     end
 
     it "paginates" do
@@ -59,7 +59,7 @@ describe "ApiTaskResultsController" do
       json["count"].should eq 100
       json["page"].should eq 50
       json["per_page"].should eq 2
-      verify_data([2, 1], json["items"])
+      verify_data([2, 1], json["results"])
     end
 
     it "should require analyst" do
