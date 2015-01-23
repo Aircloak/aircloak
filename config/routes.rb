@@ -56,14 +56,13 @@ Web::Application.routes.draw do
     end
 
     resources :api_tasks, path: "tasks" do
+      resources :task_results, path: "results"
       post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
     end
 
     resources :api_test_results, path: "test_results", only: [:create]
 
     resources :api_repeated_answers, path: "repeated_answers", only: [:create]
-
-    resources :task_results
   end
 
   get "/api/clusters", to: "cluster_lists#index"
