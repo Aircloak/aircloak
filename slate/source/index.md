@@ -17,111 +17,77 @@ search: true
 
 This is the guide for Aircloak REST API. You can use this API to access resources such as task results. To use the API, you first need to obtain the REST API key on the analyst web site. Then you can use this key to authenticate yourself while accessing various endpoints.
 
-# Kittens
+# Task results
 
-## Get All Kittens
-
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.get
-```
-
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.get()
-```
-
-```shell
-curl "http://example.com/api/kittens"
-  -H "Authorization: meowmeowmeow"
-```
-
-> The above command returns JSON structured like this:
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Fluffums",
-    "breed": "calico",
-    "fluffiness": 6,
-    "cuteness": 7
-  },
-  {
-    "id": 2,
-    "name": "Isis",
-    "breed": "unknown",
-    "fluffiness": 5,
-    "cuteness": 10
-  }
-]
-```
-
-This endpoint retrieves all kittens.
-
-### HTTP Request
-
-`GET http://example.com/kittens`
-
-### Query Parameters
-
-Parameter | Default | Description
---------- | ------- | -----------
-include_cats | false | If set to true, the result will also include cats.
-available | true | If set to false, the result will include kittens that have already been adopted.
-
-<aside class="success">
-Remember — a happy kitten is an authenticated kitten!
-</aside>
-
-## Get a Specific Kitten
+## Get results for a specific task
 
 ```ruby
-require 'kittn'
+require 'net/http'
+require 'uri'
+require 'openssl'
+require 'json'
 
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.get(2)
-```
+def http_get(path, api_key)
+  uri = URI.parse(path)
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.read_timeout = 300
+  if uri.scheme == "https"
+    http.use_ssl = true
+    http.key = api_key.key
+    http.cert = api_key.certificate
+    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+  end
+  http.get(uri.request_uri)
+end
 
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.get(2)
-```
-
-```shell
-curl "http://example.com/api/kittens/3"
-  -H "Authorization: meowmeowmeow"
+key_file_name = "my_api_key.pfx"
+key_password = "my_password"
+api_key = OpenSSL::PKCS12.new(File.read(key_file_name), key_password)
+res = http_get("https://hello.aircloak.com/api/task_results/1", api_key)
 ```
 
 > The above command returns JSON structured like this:
 
 ```json
 {
-  "id": 2,
-  "name": "Isis",
-  "breed": "unknown",
-  "fluffiness": 5,
-  "cuteness": 10
+  "success":true,
+  "count":30,
+  "page":1,
+  "per_page":10,
+  "items":[
+    {
+      "published_at":1421660484000,
+      "buckets":[
+        {"name":"height: 140","value":20},
+        {"name":"height: 160","value":35}
+      ],
+      "exceptions":[]
+    },
+    {
+      "published_at":1421660484000,
+      "buckets":[
+        {"name":"height: 180","value":25},
+        {"name":"height: 200","value":25}
+      ],
+      "exceptions":[]
+    }
+  ]
 }
 ```
 
-This endpoint retrieves a specific kitten.
-
-<aside class="warning">If you're not using an administrator API key, note that some kittens will return 403 Forbidden if they are hidden for admins only.</aside>
+This endpoint retrieves results for the given task. Retrieved results are ordered (newest come first) and paginated.
 
 ### HTTP Request
 
-`GET http://example.com/kittens/<ID>`
+`GET /api/task_results/task_id`
 
-### URL Parameters
+<aside class="notice">
+In the path, you must replace `task_id` with the real id of the task.
+</aside>
 
-Parameter | Description
---------- | -----------
-ID | The ID of the cat to retrieve
+### Query Parameters
 
+Parameter | Default | Description
+--------- | ------- | -----------
+page      | 1       | Page number
+per_page  | 10      | The number of items per page
