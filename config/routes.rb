@@ -56,7 +56,7 @@ Web::Application.routes.draw do
     end
 
     resources :api_tasks, path: "tasks" do
-      resources :task_results, path: "results"
+      resources :api_task_results, path: "results"
       post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
     end
 

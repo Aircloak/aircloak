@@ -1,4 +1,4 @@
-class TaskResultsController < ApplicationController
+class ApiTaskResultsController < ApplicationController
   filter_access_to :index, require: :anon_read
   before_action :authenticate_api_analyst
   before_action :load_task, only: [:index]

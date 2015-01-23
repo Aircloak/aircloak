@@ -1,7 +1,7 @@
 require 'spec_helper'
 require './lib/build_manager'
 
-describe "TaskResultsController" do
+describe "ApiTaskResultsController" do
   before(:each) do
     Task.destroy_all
     Analyst.destroy_all
