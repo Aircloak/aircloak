@@ -276,8 +276,7 @@ json_payload = <<-EOJSON
         {"x": 2, "y": 2}
       ]
     },
-    "user2":
-    {
+    "user2": {
       "locations": [{"x": 2, "y": 2}],
       "purchases": [
         {"product": "washing machine", "price": 10000}
