@@ -53,21 +53,6 @@ describe "ApiTasksController" do
     end
   end
 
-  describe "POST /api/tasks/:id/execute_as_batch_task" do
-    it "should execute the task" do
-      t = double
-      Task.should_receive(:find_by_token).with("foobar").and_return(t)
-      t.should_receive(:execute_batch_task)
-      post "/api/tasks/foobar/execute_as_batch_task", {format: :json}
-      response.code.should eq "201"
-    end
-
-    it "should error when task not found" do
-      post "/api/tasks/unkown_token/execute_as_batch_task", {format: :json}
-      response.code.should eq "422"
-    end
-  end
-
   private
     def create_task(i)
       Task.create(
