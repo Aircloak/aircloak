@@ -87,7 +87,7 @@ against our cloaks.
 
 The data upload key comes in two varieties. One which allows bulk uploading of data for __any user__, and one which only allows data upload for a __particular, specified user__.
 
-The key which can be used for __any user__ is best suited for environments where the key can be strongly protect. Such environments include your own secure server systems.
+The key which can be used for __any user__ is best suited for environments where the key can be strongly protected. Such environments include your own secure server systems.
 
 Should this key get exposed, the adversary could irreversibly corrupt your database by uploading significant
 amounts of bogus information. As you never see raw data once it has been uploaded, the extent to which your
@@ -292,7 +292,7 @@ AircloakAPI.post url, json_payload, api_key
 ```
 
 The bulk insert API is useful when uploading data from a system where you have access to data for
-multiple users at the same time. It is higher performance than the single user insert API, and
+multiple users at the same time. It performs better than the single user insert API, and
 highly recommended if you want to upload large amounts of data.
 
 If you want to upload data for a single user from a client device, have a look at the [single user insert API](#singel-user-data-insert)
@@ -318,7 +318,7 @@ The API accepts gzipped payloads.
 
 ### Authentication
 
-A `Data upload key` with privileges to upload data for _any_ user must be used.
+A Data upload key with privileges to upload data for _any_ user must be used.
 See the [authentication](#authentication) section for details.
 
 ### Response

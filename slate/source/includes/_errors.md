@@ -10,7 +10,7 @@ Error Code | Meaning
 404        | Not Found -- Invalid URL
 422        | Unprocessable entity - the request could not be processed. The response body contains a detailed error description.
 500        | Internal Server Error -- We had a problem with our server. Try again later.
-503        | Service Unavailable -- We're temporarially offline for maintanance. Please try again later.
+503        | Service Unavailable -- We're temporarily offline for maintenance. Please try again later.
 
 
 ## Cloak API
