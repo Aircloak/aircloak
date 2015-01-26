@@ -154,6 +154,13 @@ class Task < ActiveRecord::Base
     self.token = new_token
   end
 
+  def type_string
+    self.class.types.
+        find {|type_rec| type_rec.id == self.task_type}.
+        name.
+        downcase
+  end
+
 private
 
   def prefetch_correct

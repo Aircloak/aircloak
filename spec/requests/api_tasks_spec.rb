@@ -40,6 +40,7 @@ describe "ApiTasksController" do
         t["token"].should eq tasks[i].token
         t["name"].should eq tasks[i].name
         t["cluster_name"].should eq tasks[i].cluster.name
+        t["type"].should eq "batch"
       end
     end
 

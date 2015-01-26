@@ -122,9 +122,9 @@ response = AircloakAPI.get(url, api_key)
 {
   "success": true,
   "tasks": [
-    {"token": "token_1", "name": "task_1", "cluster_name": "cluster 1"},
-    {"token": "token_2", "name": "task_2", "cluster_name": "cluster 1"},
-    {"token": "token_3", "name": "task_3", "cluster_name": "cluster 2"}
+    {"token": "token_1", "type": "batch", "name": "task_1", "cluster_name": "cluster 1"},
+    {"token": "token_2", "type": "streaming", "name": "task_2", "cluster_name": "cluster 1"},
+    {"token": "token_3", "type": "batch", "name": "task_3", "cluster_name": "cluster 2"}
   ]
 }
 ```

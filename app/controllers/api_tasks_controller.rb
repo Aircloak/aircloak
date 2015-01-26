@@ -21,7 +21,7 @@ class ApiTasksController < ApplicationController
   # GET /api/tasks
   def index
     tasks = @analyst.tasks.order(:created_at).map do |task|
-      {token: task.token, name: task.name, cluster_name: task.cluster.name}
+      {token: task.token, name: task.name, cluster_name: task.cluster.name, type: task.type_string}
     end
 
     respond_with({success: true, tasks: tasks}, status: :ok)
