@@ -24,21 +24,29 @@
     %tbody
       - @not_trustworthies.each do |task_code|
         %tr
-          %td Task:
+          %td
+            %span.label.label-default Task:
           %td
             %table.table.table-striped
               %tr
-                %td Prefetch
+                %td
+                  %span.label.label-important Prefetch
                 %td
                   %pre= task_code.prefetch
               - task_code.ra_library_code_ra_task_codes.each do |library_connector|
                 - library_code = library_connector.ra_library_code
                 %tr
-                  %td= "Library: #{library_connector.name}"
+                  %td
+                    - if library_code.belongs_to_trustworthy_code
+                      %span.label.label-warning Library:
+                    - else
+                      %span.label.label-important Library:
+                    = library_connector.name
                   %td
                     %pre= library_code.code
               %tr
-                %td Code
+                %td
+                  %span.label.label-important Code
                 %td
                   %pre= task_code.code
               %tr
@@ -56,21 +64,26 @@
     %tbody
       - @trustworthies.each do |task_code|
         %tr
-          %td Task:
+          %td
+            %span.label.label-default Task:
           %td
             %table.table.table-striped
               %tr
-                %td Prefetch
+                %td
+                  %span.label.label-success Prefetch
                 %td
                   %pre= task_code.prefetch
               - task_code.ra_library_code_ra_task_codes.each do |library_connector|
                 - library_code = library_connector.ra_library_code
                 %tr
-                  %td= "Library: #{library_connector.name}"
+                  %td
+                    %span.label.label-success Library:
+                    = library_connector.name
                   %td
                     %pre= library_code.code
               %tr
-                %td Code
+                %td
+                  %span.label.label-success Code
                 %td
                   %pre= task_code.code
 

@@ -5,4 +5,8 @@ class RaLibraryCode < ActiveRecord::Base
 
   validates_presence_of :code
   validates_uniqueness_of :code
+
+  def belongs_to_trustworthy_code
+    self.ra_task_codes.where(trustworthy: true).count > 0
+  end
 end
