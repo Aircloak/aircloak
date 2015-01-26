@@ -80,6 +80,7 @@ Web::Application.routes.draw do
   resources :test_item_vms, only: [:show]
 
   resources :repeated_answers, only: [:index, :show, :update]
+  resources :ra_task_codes, only: [:update]
 
   resources :tasks do
     post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'

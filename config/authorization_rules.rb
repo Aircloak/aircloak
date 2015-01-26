@@ -70,6 +70,8 @@ authorization do
     has_permission_on [:impersonation], to: [:impersonate, :stop_it]
     has_permission_on [:test_results, :test_vms, :test_items, :test_item_vms], :to => :read
     has_permission_on [:repeated_answers], :to => [:read, :update]
+    has_permission_on [:repeated_answers], :to => [:update]
+    has_permission_on [:ra_task_codes], :to => [:update]
     has_permission_on :audit_logs, :to => [:cluster, :cloak]
   end
 end
