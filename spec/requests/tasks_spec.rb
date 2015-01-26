@@ -19,22 +19,22 @@ describe "TasksController" do
     log_in user
   end
 
-  let! (:cloak) { Cloak.create(name: "cloak", ip: "1.1.1.1") }
-  let! (:build) { Build.create(name: "build") }
-  let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak]) }
+  let!(:cloak) { Cloak.create(name: "cloak", ip: "1.1.1.1") }
+  let!(:build) { Build.create(name: "build") }
+  let!(:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak]) }
 
   before(:each) do
     cloak.cluster_cloak.set_state :belongs_to
     cloak.cluster_cloak.save.should eq true
   end
 
-  let (:analyst) { Analyst.create name: "test-analyst" }
+  let(:analyst) { Analyst.create name: "test-analyst" }
   let(:admin_permission) { Permission.create name: "admin", description: "" }
   let(:user) {
     User.create login: "test", email: "test@example.com", password: "1234",
         password_confirmation: "1234", analyst_id: analyst.id, permissions: [admin_permission]
   }
-  let (:token) { AnalystToken.create_api_token(analyst) }
+  let(:token) { AnalystToken.create_api_token(analyst) }
 
   describe "POST /tasks/:id/execute_as_batch_task" do
     it "should execute the task" do
