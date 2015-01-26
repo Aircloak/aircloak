@@ -141,7 +141,8 @@ This endpoint retrieves all tasks for the authenticated analyst.
 # Using AircloakAPI from example in the Authentication section
 
 api_key = Aircloak.key_from_file "my_api_key.pfx", "my_password"
-url = "https://hello.aircloak.com/api/task_results/1"
+task_token = "my_task_token"
+url = "https://hello.aircloak.com/api/tasks/#{task_token}/results"
 response = AircloakAPI.get(url, api_key)
 ```
 
@@ -178,10 +179,10 @@ This endpoint retrieves results for the given task. Retrieved results are ordere
 
 ### HTTP Request
 
-`GET /api/tasks/task_token/results`
+`GET /api/tasks/<task-token>/results`
 
 <aside class="notice">
-In the path, you must replace `task_token` with the real token of the task. You can obtain this token when <a href="#get-list-of-all-tasks">retrieving the list of all tasks</a>.
+In the path, you must replace &lt;task-token&gt; with the real token of the task. You can obtain this token when <a href="#get-list-of-all-tasks">retrieving the list of all tasks</a>.
 </aside>
 
 ### Query Parameters
