@@ -116,7 +116,17 @@ url = "https://hello.aircloak.com/api/tasks"
 response = AircloakAPI.get(url, api_key)
 ```
 
-> The above command returns JSON structured like this:
+This endpoint retrieves all tasks for the authenticated analyst.
+
+### HTTP Request
+
+`GET /api/tasks`
+
+### Authentication
+
+You need a REST API key to access this API endpoint. See the [authentication](#authentication) section for details.
+
+### Response
 
 ```json
 {
@@ -129,11 +139,9 @@ response = AircloakAPI.get(url, api_key)
 }
 ```
 
-This endpoint retrieves all tasks for the authenticated analyst.
+The API return value is a list of all tasks for the authenticated analyst.
 
-### HTTP Request
-
-`GET /api/tasks`
+For the use of error codes in the Cloak API, please consult the [Errors](#errors) section.
 
 ## Get results for a specific task
 
@@ -146,7 +154,28 @@ url = "https://hello.aircloak.com/api/tasks/#{task_token}/results"
 response = AircloakAPI.get(url, api_key)
 ```
 
-> The above command returns JSON structured like this:
+This endpoint retrieves results for the given task. Retrieved results are ordered (newest come first) and paginated.
+
+### HTTP Request
+
+`GET /api/tasks/<task-token>/results`
+
+<aside class="notice">
+In the path, you must replace &lt;task-token&gt; with the real token of the task. You can obtain this token when <a href="#get-list-of-all-tasks">retrieving the list of all tasks</a>.
+</aside>
+
+### Query Parameters
+
+Parameter | Required | Default | Description
+--------- | -------- | ------- | -----------
+page      | false    | 1       | Page number
+per_page  | true     | 10      | The number of items per page
+
+### Authentication
+
+You need a REST API key to access this API endpoint. See the [authentication](#authentication) section for details.
+
+### Response
 
 ```json
 {
@@ -174,23 +203,8 @@ response = AircloakAPI.get(url, api_key)
   ]
 }
 ```
+The API return value is a list of results on the given page. Furthermore, information about the current page, and count of all results are included, in case you want to display a pagination user interface.
 
-This endpoint retrieves results for the given task. Retrieved results are ordered (newest come first) and paginated.
-
-### HTTP Request
-
-`GET /api/tasks/<task-token>/results`
-
-<aside class="notice">
-In the path, you must replace &lt;task-token&gt; with the real token of the task. You can obtain this token when <a href="#get-list-of-all-tasks">retrieving the list of all tasks</a>.
-</aside>
-
-### Query Parameters
-
-Parameter | Default | Description
---------- | ------- | -----------
-page      | 1       | Page number
-per_page  | 10      | The number of items per page
 
 
 # Cloak APIs
