@@ -149,7 +149,11 @@ class Task < ActiveRecord::Base
     return unless self.token.nil?
 
     begin
-      new_token = TokenGenerator.generate_random_string_of_at_least_length 30
+      # We use the size 4, which should usually amount to 6 Base64 chars, or
+      # approximately 16 millions of different combinations. This gives us
+      # enough of space, and at the same time keeps tokens manageable for
+      # humans.
+      new_token = TokenGenerator.generate_random_string_of_at_least_length 4
     end while self.class.where(token: new_token).count != 0
     self.token = new_token
   end
