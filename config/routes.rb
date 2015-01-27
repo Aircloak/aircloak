@@ -72,7 +72,7 @@ Web::Application.routes.draw do
   get "/api/clusters/:id", to: "cluster_lists#show"
   post "/api/clusters/:id/status", to: "api_clusters#status"
 
-  resources :clusters, :except => :destroy
+  resources :clusters
 
   resources :test_results, only: [:index, :show]
   resources :test_vms, only: [:show]

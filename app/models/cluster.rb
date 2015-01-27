@@ -96,6 +96,10 @@ class Cluster < ActiveRecord::Base
     cloaks.count == 0
   end
 
+  def can_delete?
+    cluster_cloaks.any? { |cluster_cloak| cluster_cloak.state != :to_be_removed }
+  end
+
   def status= raw_status
     self.status_value = status_mappings[raw_status]
     if raw_status == :active then
