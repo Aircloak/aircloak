@@ -169,7 +169,7 @@ In the path, you must replace &lt;task-token&gt; with the real token of the task
 Parameter | Required | Default | Description
 --------- | -------- | ------- | -----------
 page      | false    | 1       | Page number
-per_page  | true     | 10      | The number of items per page
+per_page  | false    | 10      | The number of items per page
 
 ### Authentication
 
