@@ -55,17 +55,14 @@ Web::Application.routes.draw do
       get 'setup_info', on: :collection
     end
 
-    resources :api_tasks, path: "tasks", only: [:show] do
-      get "latest_result_id", on: :member, action: 'get_latest_result_id'
-      get "results/:result", on: :member, action: 'get_result'
+    resources :api_tasks, path: "tasks" do
+      resources :api_task_results, path: "results"
       post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
     end
 
     resources :api_test_results, path: "test_results", only: [:create]
 
     resources :api_repeated_answers, path: "repeated_answers", only: [:create]
-
-    resources :task_results
   end
 
   get "/api/clusters", to: "cluster_lists#index"

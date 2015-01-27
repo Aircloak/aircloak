@@ -23,7 +23,7 @@ describe HelpController do
   let (:help_utils) { HelpUtils.new user, double(:controller) }
 
   describe "GET /help" do
-    it "should get the page of help articles" do
+    it "should get the page of help guides" do
       get '/help'
       response.status.should be(200)
     end

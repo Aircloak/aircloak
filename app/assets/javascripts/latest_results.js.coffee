@@ -25,7 +25,7 @@ Task.execute = (id) ->
     clearTimeout Task.hideTimeout
     delete Task.hideTimeout
   # invoke task execution
-  $.ajax "/api/tasks/#{id}/execute_as_batch_task",
+  $.ajax "/tasks/#{id}/execute_as_batch_task",
         type: 'POST'
         error: (jqXHR, textStatus, errorThrown) ->
             show_task_error()

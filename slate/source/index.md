@@ -35,7 +35,7 @@ require 'uri'
 require 'openssl'
 require 'json'
 
-class AircloakAPI
+class RestClient
   def self.key_from_file path, password
     OpenSSL::PKCS12.new File.read(path), password
   end
@@ -106,19 +106,76 @@ These keys are generated through an authenticated API. Please contact us on
 
 # Web REST API
 
-## Task results
-
-### Get results for a specific task
+## Get list of all tasks
 
 ```ruby
-# Using AircloakAPI from example in the Authentication section
+# Using RestClient from example in the Authentication section
 
-api_key = Aircloak.key_from_file "my_api_key.pfx", "my_password"
-url = "https://hello.aircloak.com/api/task_results/1"
-response = AircloakAPI.get(url, api_key)
+api_key = RestClient.key_from_file "my_api_key.pfx", "my_password"
+url = "https://hello.aircloak.com/api/tasks"
+response = RestClient.get(url, api_key)
 ```
 
-> The above command returns JSON structured like this:
+This endpoint retrieves all tasks for the authenticated analyst.
+
+### HTTP Request
+
+`GET /api/tasks`
+
+### Authentication
+
+You need a REST API key to access this API endpoint. See the [authentication](#authentication) section for details.
+
+### Response
+
+```json
+{
+  "success": true,
+  "tasks": [
+    {"token": "token_1", "type": "batch", "name": "task_1", "cluster_name": "cluster 1"},
+    {"token": "token_2", "type": "streaming", "name": "task_2", "cluster_name": "cluster 1"},
+    {"token": "token_3", "type": "batch", "name": "task_3", "cluster_name": "cluster 2"}
+  ]
+}
+```
+
+The API return value is a list of all tasks for the authenticated analyst.
+
+For the use of error codes in the Cloak API, please consult the [Errors](#errors) section.
+
+## Get results for a specific task
+
+```ruby
+# Using RestClient from example in the Authentication section
+
+api_key = RestClient.key_from_file "my_api_key.pfx", "my_password"
+task_token = "my_task_token"
+url = "https://hello.aircloak.com/api/tasks/#{task_token}/results"
+response = RestClient.get(url, api_key)
+```
+
+This endpoint retrieves results for the given task. Retrieved results are ordered (newest come first) and paginated.
+
+### HTTP Request
+
+`GET /api/tasks/<task-token>/results`
+
+<aside class="notice">
+In the path, you must replace &lt;task-token&gt; with the real token of the task. You can obtain this token when <a href="#get-list-of-all-tasks">retrieving the list of all tasks</a>.
+</aside>
+
+### Query Parameters
+
+Parameter | Required | Default | Description
+--------- | -------- | ------- | -----------
+page      | false    | 1       | Page number
+per_page  | false    | 10      | The number of items per page
+
+### Authentication
+
+You need a REST API key to access this API endpoint. See the [authentication](#authentication) section for details.
+
+### Response
 
 ```json
 {
@@ -126,7 +183,7 @@ response = AircloakAPI.get(url, api_key)
   "count":30,
   "page":1,
   "per_page":10,
-  "items":[
+  "results":[
     {
       "published_at":1421660484000,
       "buckets":[
@@ -146,23 +203,8 @@ response = AircloakAPI.get(url, api_key)
   ]
 }
 ```
+The API return value is a list of results on the given page. Furthermore, information about the current page, and count of all results are included, in case you want to display a pagination user interface.
 
-This endpoint retrieves results for the given task. Retrieved results are ordered (newest come first) and paginated.
-
-#### HTTP Request
-
-`GET /api/task_results/task_id`
-
-<aside class="notice">
-In the path, you must replace `task_id` with the real id of the task.
-</aside>
-
-#### Query Parameters
-
-Parameter | Default | Description
---------- | ------- | -----------
-page      | 1       | Page number
-per_page  | 10      | The number of items per page
 
 
 # Cloak APIs
@@ -193,9 +235,9 @@ json_payload = <<-EOJSON
   }
 EOJSON
 
-api_key = AircloakAPI.key_from_file "insert-key", "password"
+api_key = RestClient.key_from_file "insert-key", "password"
 url = "https://<MACHINE-NAME>.cloak.aircloak.net/insert"
-AircloakAPI.post url, json_payload, api_key
+RestClient.post url, json_payload, api_key
 ```
 
 The single user API endpoint is useful if you want to upload data directly from a single users device.
@@ -285,9 +327,9 @@ json_payload = <<-EOJSON
   }
 EOJSON
 
-api_key = AircloakAPI.key_from_file "bulk-insert-key", "password"
+api_key = RestClient.key_from_file "bulk-insert-key", "password"
 url = "https://<MACHINE-NAME>.cloak.aircloak.net/bulk_insert"
-AircloakAPI.post url, json_payload, api_key
+RestClient.post url, json_payload, api_key
 ```
 
 The bulk insert API is useful when uploading data from a system where you have access to data for
@@ -365,9 +407,9 @@ headers = {
   task_id: "my-task"
 }
 
-api_key = AircloakAPI.key_from_file "task-running-key", "password"
+api_key = RestClient.key_from_file "task-running-key", "password"
 url = "https://<MACHINE-NAME>.cloak.aircloak.net/task/run"
-AircloakAPI.post url, json_payload, api_key, headers
+RestClient.post url, json_payload, api_key, headers
 ```
 
 This API endpoint allows execution of batch tasks against a cloak cluster.

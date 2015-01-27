@@ -18,6 +18,8 @@ class Task < ActiveRecord::Base
   validate :prefetch_correct
   validate :streaming_task
 
+  before_create :generate_token
+
   after_save :upload_stored_task
   after_destroy :remove_task_from_cloak
 
@@ -141,6 +143,26 @@ class Task < ActiveRecord::Base
 
   def latest_exceptions
     results.last.exception_results
+  end
+
+  def generate_token
+    return unless self.token.nil?
+
+    begin
+      # We use the size 4, which should usually amount to 6 Base64 chars, or
+      # approximately 16 millions of different combinations. This gives us
+      # enough of space, and at the same time keeps tokens manageable for
+      # humans.
+      new_token = TokenGenerator.generate_random_string_of_at_least_length 4
+    end while self.class.where(token: new_token).count != 0
+    self.token = new_token
+  end
+
+  def type_string
+    self.class.types.
+        find {|type_rec| type_rec.id == self.task_type}.
+        name.
+        downcase
   end
 
 private
