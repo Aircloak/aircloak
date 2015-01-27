@@ -64,7 +64,10 @@
 
             %hr
 
-            %h4= link_to "Documentation", help_index_path
+            %h4 Documentation
+            = link_to "Help guides", help_index_path, :target => '_blank'
+            |
+            = link_to "API docs", "/apidocs/index.html", :target => '_blank'
 
             - if current_user.analyst.has_clusters?
               %hr
