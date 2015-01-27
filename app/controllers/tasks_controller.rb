@@ -92,15 +92,15 @@ class TasksController < ApplicationController
     else
       @task.execute_batch_task
       describe_activity "Scheduled a batch run of task #{@task.name}"
-      redirect_to latest_results_task_path(@task), notice: "Run of #{@task.name} has been initiated"
+      redirect_to latest_results_task_path(@task.token), notice: "Run of #{@task.name} has been initiated"
     end
   end
 
   # GET /tasks/:id/all_results
   def all_results
     @results = convert_results_for_client_side_rendering @task.results
-    @results_path = all_results_task_path(@task)
-    describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task)
+    @results_path = all_results_task_path(@task.token)
+    describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task.token)
 
     respond_to do |format|
       format.html
@@ -116,15 +116,16 @@ class TasksController < ApplicationController
   # GET /tasks/:id/latest_results
   def latest_results
     @results = convert_results_for_client_side_rendering @task.results.order('created_at DESC').limit(5).reverse
-    @results_path = latest_results_task_path(@task)
+    @results_path = latest_results_task_path(@task.token)
     @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.id}"
     @server_url = Rails.configuration.airpub_ws_subscribe
-    describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task)
+    describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task.token)
   end
 
 private
   def load_task
-    @task = current_user.analyst.tasks.find params[:id]
+    @task = current_user.analyst.tasks.find_by_token(params[:id])
+    redirect_to tasks_path, flash: {error: 'Task not found!'} if @task.nil?
   end
 
   def set_tables_json

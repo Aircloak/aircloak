@@ -38,8 +38,8 @@ describe "TasksController" do
 
   describe "POST /tasks/:id/execute_as_batch_task" do
     it "should execute the task" do
-      t = double(cluster: cluster, name: "foo")
-      analyst.tasks.class.any_instance.stub(:find).and_return(t)
+      t = double(cluster: cluster, name: "foo", token: "bar")
+      analyst.tasks.class.any_instance.stub(:find_by_token).and_return(t)
       t.should_receive(:execute_batch_task)
       post "/tasks/foobar/execute_as_batch_task", {format: :json}
     end

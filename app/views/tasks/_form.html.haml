@@ -13,7 +13,7 @@
 
 #taskEditor
   .form-container
-    = form_for @task, :html => {:class => "form-horizontal new_query"} do |f|
+    = form_for @task, url: (@task.new_record? ? tasks_path : task_path(@task.token)), :html => {:class => "form-horizontal new_query"} do |f|
       - if @task.errors.any?
         .well.alert-error
           %h3= "#{pluralize(@task.errors.count, "error")} prohibited this task from being saved:"

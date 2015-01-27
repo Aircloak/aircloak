@@ -149,7 +149,7 @@
                       %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
                       - if exception_tasks.count == 1
                         - task = exception_tasks.first
-                        %a{href: edit_task_path(task)}
+                        %a{href: edit_task_path(task.token)}
                           The
                           %strong= task.name
                           task threw an exception. Click here to get to the task editor.
@@ -159,7 +159,7 @@
                         %ul
                           - exception_tasks.each do |task|
                             %li
-                              %a{href: edit_task_path(task)}= task.name
+                              %a{href: edit_task_path(task.token)}= task.name
 
             = yield
 

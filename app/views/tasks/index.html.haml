@@ -26,11 +26,11 @@
             %td= task.cluster.name
           - else
             %td NO CLUSTER ASSIGNED
-        %td= link_to task.results.count, latest_results_task_path(task.id)
+        %td= link_to task.results.count, latest_results_task_path(task.token)
         %td
-          = link_to 'Latest results', latest_results_task_path(task.id), class: "btn btn-mini"
-          = link_to 'Edit task', edit_task_path(task), class: "btn btn-mini"
-          = link_to task.results.count > 0 ? "Delete results" : "Destroy task", task, :method => :delete,
+          = link_to 'Latest results', latest_results_task_path(task.token), class: "btn btn-mini"
+          = link_to 'Edit task', edit_task_path(task.token), class: "btn btn-mini"
+          = link_to task.results.count > 0 ? "Delete results" : "Destroy task", task_path(task.token), :method => :delete,
             :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
 
 = link_to 'Add a new task', new_task_path, class: "btn"
