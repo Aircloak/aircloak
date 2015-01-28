@@ -12,7 +12,6 @@ authorization do
     has_permission_on [
       :results,
       :audit_logs,
-      :register_version,
       :build_progress,
       :machines,
       :tasks,

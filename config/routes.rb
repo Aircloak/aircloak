@@ -5,14 +5,6 @@ Web::Application.routes.draw do
     end
   end
 
-  # This action is for receiving information about
-  # successful builds from Travis-CI.
-  # We no longer use this information.
-  # Remove this route and the corresponding controller
-  # as soon as we have removed the callback from
-  # the respective repositories.
-  post 'register_version' => "register_version#create"
-
   # Resource for builds of cloak software.
   # A build in this context is a set of
   # deployable entities that together make
