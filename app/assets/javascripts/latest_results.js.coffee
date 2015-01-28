@@ -6,15 +6,20 @@
 window.Task = {}
 Task.statusVisible = false
 
-show_task_success = () ->
+show_task_success = ->
+  return if Task.resultsHaveArrived
   $('#task_status').html "> Execution of task has been initiated."
   Task.statusVisible = true
 
-show_task_error = () ->
+show_task_progress = ->
+  $('#task_status').html "> Initiating execution of task."
+  Task.statusVisible = true
+
+show_task_error = ->
   $('#task_status').html "> Failed to initiate task execution."
   Task.statusVisible = true
 
-hide_task_status = () ->
+hide_task_status = ->
   $('#task_status').html ">"
   Task.statusVisible = false
 
@@ -25,12 +30,14 @@ Task.execute = (id) ->
     clearTimeout Task.hideTimeout
     delete Task.hideTimeout
   # invoke task execution
-  $.ajax "/tasks/#{id}/execute_as_batch_task",
-        type: 'POST'
-        error: (jqXHR, textStatus, errorThrown) ->
-            show_task_error()
-        success: (data, textStatus, jqXHR) ->
-            show_task_success()
+  Task.resultsHaveArrived = false
+  show_task_progress()
+  $.ajax "/tasks/#{id}/execute_as_batch_task.json",
+    type: 'POST'
+    error: (jqXHR, textStatus, errorThrown) ->
+      show_task_error()
+    success: (data, textStatus, jqXHR) ->
+      show_task_success()
 
 convert_article_to_result = (timestamp, article) ->
   result = {published_at: timestamp}
@@ -42,7 +49,7 @@ convert_article_to_result = (timestamp, article) ->
     result.buckets.push {name: name, value: bucket.count}
   result.exceptions = []
   for exception in article.exceptions
-    result.exception.push {count: exception.count}
+    result.exceptions.push {count: exception.count}
   result
 
 $ ->
@@ -51,6 +58,7 @@ $ ->
   # callback for processing listen events
   airpub_callback = (object) ->
     if object.type == "article" && Results.last_article_update < object.published_at
+      Task.resultsHaveArrived = true
       if Task.statusVisible
         # hide status after 4 seconds from the arrival of the result
         Task.hideTimeout = setTimeout hide_task_status, 3000
