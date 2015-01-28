@@ -6,6 +6,7 @@
     $(document).ready ->
       table_data = JSON.parse '#{@table_data}'
       migration = JSON.parse '#{@previous_migration}'
+      window.setupEditorView()
       window.columns.setup
         is_creation: #{@creating_new_table}
         raw_data: table_data
@@ -60,7 +61,6 @@
         %th Column name
         %th Type
         %th Constraints
-        %th
         %th
     %tbody#columns
 

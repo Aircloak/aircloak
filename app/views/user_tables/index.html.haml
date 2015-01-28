@@ -25,6 +25,7 @@
                   pending migration
                   = link_to 'Retry', retry_migration_user_table_path(table), method: :post, class: "btn btn-mini"
                 - else
+                  = link_to 'Show', user_table_path(table), class: "btn btn-mini"
                   = link_to 'Edit', edit_user_table_path(table), class: "btn btn-mini"
                   = link_to 'Drop table', user_table_path(table), :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
         - else

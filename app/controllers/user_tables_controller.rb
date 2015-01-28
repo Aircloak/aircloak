@@ -2,7 +2,7 @@ require './lib/migrator'
 
 class UserTablesController < ApplicationController
   before_action :set_previous_migration
-  before_action :load_table, only: [:new, :create, :edit, :update, :destroy, :retry_migration]
+  before_action :load_table, only: [:new, :create, :edit, :update, :destroy, :retry_migration, :show]
   before_action :validate_no_pending_migrations, only: [:edit, :update, :destroy]
   before_action :set_create_or_edit
 
@@ -23,6 +23,10 @@ class UserTablesController < ApplicationController
   def new
     describe_activity "Creating new user table"
     render :table_editor
+  end
+
+  def show
+    describe_activity "Viewing user table #{@table.table_name}"
   end
 
   def edit

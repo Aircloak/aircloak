@@ -98,6 +98,22 @@ ColumnList = Backbone.Collection.extend
 ColumnView = Backbone.View.extend
   tagName: "tr"
   template: HandlebarsTemplates['migrations/column']
+  deletable: false
+
+  initialize: ->
+    @listenTo @model, 'change', @render
+    @listenTo @model, 'destroy', @remove
+
+  render: ->
+    columnData = @model.toJSON()
+    columnData.isDeletable = @deletable
+    columnData.isDeleted = @model.isDeleted()
+    @$el.html (@template columnData)
+    @$el.addClass 'success' if @model.wasJustCreated()
+    @
+
+EditableColumnView = ColumnView.extend
+  deletable: true
 
   events: "click a.button-remove": "remove"
 
@@ -110,17 +126,6 @@ ColumnView = Backbone.View.extend
       @model.toggleDeleted()
       @render()
       @trigger 'pendingDelete'
-
-  initialize: ->
-    @listenTo @model, 'change', @render
-    @listenTo @model, 'destroy', @remove
-
-  render: ->
-    columnData = @model.toJSON()
-    columnData.isDeleted = @model.isDeleted()
-    @$el.html (@template columnData)
-    @$el.addClass 'success' if @model.wasJustCreated()
-    @
 
 
 MigrationView = Backbone.View.extend
@@ -200,7 +205,7 @@ MigrationView = Backbone.View.extend
     @inputColumnName.focus()
 
   addOne: (column) ->
-    view = new ColumnView model: column
+    view = new EditableColumnView model: column
     @listenTo view, 'pendingDelete', @modelChanged
     @columnsView.append view.render().el
 
@@ -269,6 +274,27 @@ MigrationView = Backbone.View.extend
   mainFormSubmit: ->
     @formHasValidChanges()
 
+# Used to show a non-editable view of the table
+NonEditableEditorView = Backbone.View.extend
+  el: 'div'
+
+  initialize: ->
+    @columnsView = $ "tbody#columns"
+    @listenTo @model, 'add', @addOne
+    @listenTo @model, 'reset', @addAll
+    @listenTo @model, 'all', @render
+
+  addOne: (column) ->
+    view = new ColumnView model: column
+    @listenTo view, 'pendingDelete', @modelChanged
+    @columnsView.append view.render().el
+
+  addAll: ->
+    @model.each(this.addOne, this);
+
+  render: ->
+    @
+
 
 ## ------------------------------------------------------------------
 ## Setup
@@ -277,5 +303,10 @@ MigrationView = Backbone.View.extend
 Columns = new ColumnList
 window.columns = Columns
 
-new MigrationView
-  model: Columns
+window.setupEditorView = ->
+  new MigrationView
+    model: window.columns
+
+window.setupNonEditableView = ->
+  new NonEditableEditorView
+    model: window.columns
