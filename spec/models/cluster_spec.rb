@@ -280,4 +280,36 @@ describe Cluster do
       expect { base_cluster.capable_of?(:snorkling_in_the_rain) }.to raise_error UnknownCapability
     end
   end
+
+  context "can_delete?" do
+    let! (:cloak1) { Cloak.create(name: "foo", ip: "1.1.1.1") }
+    let! (:cloak2) { Cloak.create(name: "bar", ip: "2.2.2.2") }
+    let! (:build) { Build.create(name: "build") }
+    let! (:cluster) { base_cluster name: "cluster", build: build }
+
+    before(:each) do
+      initial_cloaks = [cloak1, cloak2]
+      cluster.assign_cloaks initial_cloaks
+      cluster.save.should eq true
+      initial_cloaks.each { |cloak| cloak.reload.cluster_cloak.state.should eq :to_be_added }
+    end
+
+    it "should be deletable if there is a cloak that is not marked for removal" do
+      # all cloak are not :to_be_removed
+      cluster.can_delete?.should eq true
+
+      # only one cloak is not :to_be_removed
+      cloak1.reload.cluster_cloak.set_state :to_be_removed
+      cloak1.cluster_cloak.save.should eq true
+      cluster.can_delete?.should eq true
+    end
+
+    it "should not be deletable if there is no cloak that is not marked for removal" do
+      [cloak1, cloak2].each do |cloak|
+        cloak.reload.cluster_cloak.set_state :to_be_removed
+        cloak.cluster_cloak.save.should eq true
+      end
+      cluster.can_delete?.should eq false
+    end
+  end
 end
