@@ -30,7 +30,7 @@
           %td
             = link_to 'Show', cluster, class: "btn btn-mini"
             = link_to 'Edit', edit_cluster_path(cluster), class: "btn btn-mini"
-            - unless cluster.can_delete?
+            - if cluster.can_delete?
               = link_to 'Destroy', cluster, method: :delete, data: { :confirm => 'Are you sure?' },
                   class: "btn btn-mini btn-danger"
             - else
