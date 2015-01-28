@@ -22,9 +22,9 @@ describe MachinePacker do
 
   context "packaging multiple cloaks" do
     it "should package a list of cloaks into a MachinesPB" do
-      cloak1 = double(id: 1, internal_domain: "test", tpm: false, good: true)
-      cloak2 = double(id: 2, internal_domain: "test", tpm: false, good: true)
-      cloak3 = double(id: 3, internal_domain: "test", tpm: false, good: true)
+      cloak1 = double(id: 1, name: "cloak1", internal_domain: "test", tpm: false, good: true)
+      cloak2 = double(id: 2, name: "cloak2", internal_domain: "test", tpm: false, good: true)
+      cloak3 = double(id: 3, name: "cloak3", internal_domain: "test", tpm: false, good: true)
       cloaks = [cloak1, cloak2, cloak3]
       machines = MachinePacker.package_cloaks cloaks
 

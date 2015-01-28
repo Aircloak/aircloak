@@ -19,7 +19,8 @@ class ClusterPacker
 
 private
   def self.package_members cluster
-    cluster.cluster_cloaks.map do |cluster_cloak|
+    cluster.cluster_cloaks.sort{|a,b| a.cloak.name <=> b.cloak.name}.uniq{|a| a.cloak.name}.
+        map do |cluster_cloak|
       ClusterPB::MemberPB.new(
         machine_id: cluster_cloak.cloak.id,
         state: cluster_cloak.proto_state

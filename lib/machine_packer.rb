@@ -11,6 +11,6 @@ class MachinePacker
   end
 
   def self.package_cloaks cloaks
-    MachinesPB.new(machines: cloaks.map {|m| package_cloak m})
+    MachinesPB.new(machines: cloaks.sort{|a,b| a.name <=> b.name}.uniq{|a| a.name}.map {|m| package_cloak m})
   end
 end
