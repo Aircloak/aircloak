@@ -6,40 +6,40 @@
 window.Task = {}
 Task.statusVisible = false
 
-show_task_success = ->
+showTaskSuccess = ->
   return if Task.resultsHaveArrived
   $('#task_status').html "> Execution of task has been initiated."
   Task.statusVisible = true
 
-show_task_progress = ->
+showTaskProgress = ->
   $('#task_status').html "> Initiating execution of task."
   Task.statusVisible = true
 
-show_task_error = ->
+showTaskError = ->
   $('#task_status').html "> Failed to initiate task execution."
   Task.statusVisible = true
 
-hide_task_status = ->
+hideTaskStatus = ->
   $('#task_status').html ">"
   Task.statusVisible = false
 
 Task.execute = (id) ->
   # reset task status and timeout
-  hide_task_status()
+  hideTaskStatus()
   if Task.hideTimeout?
     clearTimeout Task.hideTimeout
     delete Task.hideTimeout
-  # invoke task execution
   Task.resultsHaveArrived = false
-  show_task_progress()
+  # invoke task execution
+  showTaskProgress()
   $.ajax "/tasks/#{id}/execute_as_batch_task.json",
     type: 'POST'
     error: (jqXHR, textStatus, errorThrown) ->
-      show_task_error()
+      showTaskError()
     success: (data, textStatus, jqXHR) ->
-      show_task_success()
+      showTaskSuccess()
 
-convert_article_to_result = (timestamp, article) ->
+convertArticleToResult = (timestamp, article) ->
   result = {published_at: timestamp}
   article = JSON.parse article
   result.buckets = []
@@ -56,12 +56,12 @@ $ ->
   Results.resultsTableLimit = 10 # show maximum 10 results in the table
 
   # callback for processing listen events
-  airpub_callback = (object) ->
+  airpubCallback = (object) ->
     if object.type == "article" && Results.last_article_update < object.published_at
       Task.resultsHaveArrived = true
       if Task.statusVisible
         # hide status after 4 seconds from the arrival of the result
-        Task.hideTimeout = setTimeout hide_task_status, 3000
-      Results.display convert_article_to_result object.published_at, object.content
+        Task.hideTimeout = setTimeout hideTaskStatus, 3000
+      Results.display convertArticleToResult object.published_at, object.content
 
-  Results.ws = airpub_listen $('.listen_params').data('server-url'), $('.listen_params').data('request'), airpub_callback
+  Results.ws = airpub_listen $('.listen_params').data('server-url'), $('.listen_params').data('request'), airpubCallback
