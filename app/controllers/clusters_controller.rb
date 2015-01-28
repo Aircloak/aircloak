@@ -21,6 +21,8 @@ class ClustersController < ApplicationController
 
   def destroy
     @cluster.assign_cloaks []
+    @cluster.mark_as_changed
+    @cluster.save # save that the state has changed
     describe_successful_activity "Successfully marked cluster to get destroyed."
     redirect_to clusters_path, notice: 'Cluster is marked to get destroyed.'
   end
