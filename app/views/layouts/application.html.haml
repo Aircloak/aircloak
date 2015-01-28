@@ -12,7 +12,7 @@
     = render partial: "layouts/popup"
     .container
       .content
-        = render partial: "layouts/navbar", locals: {imposter: false}
+        = render partial: "layouts/navbar", locals: {imposter: false} unless current_user.nil?
 
         .row
           .span12

@@ -11,6 +11,11 @@ class TasksController < ApplicationController
   before_action :set_auto_completions, only: [:edit, :new, :create]
   before_action :set_task_exceptions, only: [:edit, :new, :create]
 
+  # When spawning a task from the web interface through an AJAX
+  # call, this reduces the overall rendering time in rails by
+  # nearly two orders of magnitude.
+  respond_to :html, :json, only: :execute_as_batch_task
+
   # GET /tasks
   def index
     @tasks = current_user.analyst.tasks
@@ -86,13 +91,26 @@ class TasksController < ApplicationController
 
   # POST /tasks/:id/execute_as_batch_task
   def execute_as_batch_task
-    if @task.cluster.nil? then
-      describe_failed_activity "Tried executing task #{@task.name} which doesn't have a cluster"
-      redirect_to tasks_path, error: "Task #{@task.name} needs a cluster to run on. Execution aborted"
-    else
-      @task.execute_batch_task
-      describe_activity "Scheduled a batch run of task #{@task.name}"
-      redirect_to latest_results_task_path(@task.token), notice: "Run of #{@task.name} has been initiated"
+    respond_to do |format|
+      if @task.cluster.nil? then
+        describe_failed_activity "Tried executing task #{@task.name} which doesn't have a cluster"
+        error_description = "Task #{@task.name} needs a cluster to run on. Execution aborted"
+        format.html do
+          redirect_to tasks_path, error: error_description
+        end
+        format.json do
+          render json: {success: false, error: error_description}
+        end
+      else
+        @task.execute_batch_task
+        describe_activity "Scheduled a batch run of task #{@task.name}"
+        format.html do
+          redirect_to latest_results_task_path(@task.token), notice: "Run of #{@task.name} has been initiated"
+        end
+        format.json do
+          render json: {success: true}
+        end
+      end
     end
   end
 

@@ -10,6 +10,30 @@ class User < ActiveRecord::Base
     crypto_provider = Authlogic::CryptoProviders::BCrypt
   end
 
+  def needs_onboarding?
+    not (has_tables? and has_tasks? and has_keys?)
+  end
+
+  def tables_count
+    analyst.user_tables.count
+  end
+
+  def has_tables?
+    tables_count != 0
+  end
+
+  def tasks_count
+    analyst.tasks.count
+  end
+
+  def has_tasks?
+    tasks_count != 0
+  end
+
+  def has_keys?
+    analyst.key_materials.count != 0
+  end
+
   def roles
     role_symbols.map(&:to_s).map(&:humanize).join(", ")
   end

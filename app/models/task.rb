@@ -165,6 +165,10 @@ class Task < ActiveRecord::Base
         downcase
   end
 
+  def batch_task?
+    task_type == BATCH_TASK
+  end
+
 private
 
   def prefetch_correct

@@ -1,0 +1,25 @@
+= help_link 'managing-data'
+
+= content_for(:javascript_include) {javascript_include_tag "migrations/main", "data-turbolinks-track" => true}
+= content_for :javascript do
+  :coffeescript
+    $(document).ready ->
+      table_data = JSON.parse '#{@table_data}'
+      window.setupNonEditableView()
+      window.columns.setup
+        is_creation: false
+        raw_data: table_data
+        raw_previous_migration: ""
+
+%h1
+  = @table.table_name
+  = link_to "Edit", edit_user_table_path(@table), class: "btn"
+
+
+%table.table.table-striped
+  %thead
+    %tr
+      %th Column name
+      %th Type
+      %th Constraints
+  %tbody#columns
