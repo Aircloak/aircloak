@@ -7,12 +7,15 @@
 %p
   Below are the latest results for
   = "#{@task.name}."
-  To get more results, execute the task again.
-  %div#task_status
-    >
 
-%button{class: "btn", onClick: "Task.execute('#{@task.token}');"}
-  Run task
+- if @task.batch_task?
+  %p
+    To get more results, execute the task again.
+    %div#task_status
+      >
+
+  %button{class: "btn", onClick: "Task.execute('#{@task.token}');"} Run task
+
 = link_to 'Edit task', edit_task_path(@task.token), class: "btn"
 
 -# set listen parameters
