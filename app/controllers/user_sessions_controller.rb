@@ -10,13 +10,16 @@ class UserSessionsController < ApplicationController
     @user_session = UserSession.new(create_params)
     if @user_session.save
       flash[:notice] = "Login successful"
+      describe_successful_activity "Logged in successfully"
       redirect_back_or_default root_url
     else
+      describe_failed_activity "Failed login attempt for #{params[:login]}"
       render action: 'new'
     end
   end
 
   def destroy
+    describe_successful_activity "Logged out"
     current_user_session.destroy
     flash[:notice] = "Logout successful"
     redirect_back_or_default root_url
