@@ -44,6 +44,17 @@ module ApplicationHelper
   end
 
   def help_link articles
+    help_section = <<EOF
+    <div class="suggested-reading">
+      <span class="label label-info">Consider reading</span>
+      #{raw_help_link articles}
+    </div>
+    <hr>
+EOF
+    help_section.html_safe
+  end
+
+  def raw_help_link articles
     help_util = HelpUtils.new current_user, nil
     links = ""
     if articles.instance_of?(Array) then
@@ -55,14 +66,7 @@ module ApplicationHelper
       article = articles
       links = help_util.help_link(article)
     end
-    help_section = <<EOF
-    <div class="suggested-reading">
-      <span class="label label-info">Consider reading</span>
-      #{links}
-    </div>
-    <hr>
-EOF
-    help_section.html_safe
+    links.html_safe
   end
 
   # Auxiliary function to display durations
