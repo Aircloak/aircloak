@@ -20,7 +20,7 @@ This is the guide for the Aircloak cloak and web REST APIs. You can use these AP
 All API access is authenticated. Please have a look at the authentication section for details.
 
 The examples in this guide are given in ruby. If it is not clear how this applies to your own environment,
-please reach out to us on [solutions@aircloak.com](mailto:solutions@aircloak.com), and we will be happy to assist.
+please reach out to us on [support@aircloak.com](mailto:support@aircloak.com), and we will be happy to assist.
 
 
 # Authentication
@@ -102,7 +102,7 @@ These keys are well suited for deployments where you are uploading data from dep
 less control over the key material.
 
 These keys are generated through an authenticated API. Please contact us on
-[solutions@aircloak.com](mailto:solutions@aircloak.com) should you be interested.
+[support@aircloak.com](mailto:support@aircloak.com) should you be interested.
 
 # Web REST API
 
@@ -286,7 +286,7 @@ The examples used assume you have two tables defined with the following table st
 ### Authentication
 
 You need a single user API key to access this API endpoint.
-Please contact us on [solutions@aircloak.com](mailto:solutions@aircloak.com) if you are interested in getting
+Please contact us on [support@aircloak.com](mailto:support@aircloak.com) if you are interested in getting
 keys for single users and want to learn more about the integration required.
 
 ### Response
