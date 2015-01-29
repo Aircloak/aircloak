@@ -46,11 +46,24 @@ content: |
   For example only __<%= sample_user_table_name %>__ where __<%= sample_constraint %>__.
 
   You can also specify that you only want the last __N__ results per user, or
-  only results more recent than a certain number of minutes. The more you can
+  only results that arrived at the cloak within a certain number of minutes. The more you can
   restrict the dataset over which the queries run, the faster the queries will
   be able to finish. This is especially important if you write queries that
   will execute frequently, for example to provide a real-time view of the
   state of some system.
+
+  When you limit the number of results returned per user, the limit is applied __after__
+  other filters are applied. The order of the results is as it was when the data was
+  inserted into the cloak by the user.
+
+  The filter that allows you to limit the results to data from the last __N__ minutes,
+  performs filtering based on __the time at which the data arrived at the cloak__.
+  Any timestamp field or other field with semantic value in the data itself is ignored.
+  Therefore if you upload data that was recorded an hour ago, have a query that operates
+  on data from the last five minutes, and the query runs a minute after the data was uploaded,
+  it will receive the hour old data. Therefore you additionally need to consider semantic
+  timestamp values in your query code itself, and there make decisions as to how you
+  handle old data.
 
   ### Queries
 

@@ -461,7 +461,7 @@ Key        | Required | Default  | Description
 ---------- | -------  | -------- | -------------
 table      | true     |          | The name of the table to fetch data from. This name corresponds to the name used to define the table in the web interface
 user_rows  | false    | all rows | Limits the number of rows returned per user. If not specified, all matching rows per user are returned
-time_limit | false    | from beginning of time | If specified, restricts the data to rows created within the last `time_limit` seconds
+time_limit | false    | from beginning of time | If specified, restricts the data to rows uploaded within the last `time_limit` seconds. It does not take any semantic timestamp columns that might be present in the data into account
 where      | false    | no filter | If specified, returns only database rows for which the filter is true
 
 ##### Where clause
@@ -511,6 +511,12 @@ lt       | True if the specified column is less than the operand
 lte      | True if the specified column is less than or equal to the operand
 
 Please have a look at the examples for further details.
+
+##### Order of filters
+
+When you supply a combination of `time_limit`, `user_rows` and `where`-conditions, the `where` and
+`time_limit` clauses are applied first. The `user_rows` limit is applied per user in the resulting
+dataset.
 
 
 ### Authentication

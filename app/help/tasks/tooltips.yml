@@ -11,20 +11,21 @@
 
 data:
   content: |
-    Each task computes over some data in order to determine
-    what values should be reported.
-
     The data that is made available to the task needs to
     be specified in advance.
 
-    You can also specify conditions that need to hold for the
-    data. Assuming you had a `location`'s table with an `x` and
+    The data can be limited in scope by specifying conditions
+    that should hold for it.
+    Assuming you had a `location`s table with an `x` and
     a `y` column, you could specify that you only want locations
     where the `x`-parameter is between 100 and 200.
 
-    Limiting the data selected as much as you possibly can
-    will make the tasks faster to execute. This is especially
-    important if the task is going to be frequently run.
+    You can also specify how many database rows to maximally
+    include per user, or that only database rows that were
+    uploaded to the cloak within the last minutes should be used.
+
+    Reducing the amount of data used will make the tasks execute faster.
+    This is important if the task is going to be run frequently.
   markdown: true
 code:
   content: |
@@ -71,4 +72,31 @@ report_interval:
 user_expire_interval:
   content: |
     Specifies the time period (in seconds) after which a reported bucket is removed from the result.
+  markdown: true
+max_num_rows:
+  content: |
+    Limits the number of rows returned per user.
+    The limit is applied after the other filters.
+
+    The rows returned are the last rows inserted for the user
+    that also satisfy the other filter criterias.
+    The ordering of the rows is as it was specified when data was uploaded.
+
+    If combined with the time limit filter, the number of
+    rows returned might be less than the specified limit.
+
+    The number of rows might also be less if a particular user
+    does not have enough rows in the database.
+  markdown: true
+time_limit:
+  content: |
+    Limits the rows to those that _arrived at the cloak_
+    within the last N minutes.
+
+    The filter does not take into account any timestamp value
+    that might be part of the uploaded data, or any other
+    semantic value of the data.
+
+    If combined with the _maximum number of rows per user_-filter,
+    the subset of rows is returned that satisfies both criteria.
   markdown: true
