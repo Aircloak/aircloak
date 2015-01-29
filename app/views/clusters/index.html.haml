@@ -33,6 +33,8 @@
             - if cluster.can_delete?
               = link_to 'Destroy', cluster, method: :delete, data: { :confirm => 'Are you sure?' },
                   class: "btn btn-mini btn-danger"
+            - else
+              = link_to 'Destroy', "#", class: "btn btn-mini btn-danger disabled"
             = link_to 'Statistics', metrics_path(:cluster => cluster.name), class: "btn btn-mini"
             = link_to 'Audit-log', "/audit_logs/cluster/#{cluster.id}", class: "btn btn-mini"
 
