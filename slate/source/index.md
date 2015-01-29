@@ -112,7 +112,7 @@ These keys are generated through an authenticated API. Please contact us on
 # Using RestClient from example in the Authentication section
 
 api_key = RestClient.key_from_file "my_api_key.pfx", "my_password"
-url = "https://hello.aircloak.com/api/tasks"
+url = "https://api.aircloak.com/tasks"
 response = RestClient.get(url, api_key)
 ```
 
@@ -120,7 +120,7 @@ This endpoint retrieves all tasks for the authenticated analyst.
 
 ### HTTP Request
 
-`GET /api/tasks`
+`GET /tasks`
 
 ### Authentication
 
@@ -150,7 +150,7 @@ For the use of error codes in the Cloak API, please consult the [Errors](#errors
 
 api_key = RestClient.key_from_file "my_api_key.pfx", "my_password"
 task_token = "my_task_token"
-url = "https://hello.aircloak.com/api/tasks/#{task_token}/results"
+url = "https://api.aircloak.com/tasks/#{task_token}/results"
 response = RestClient.get(url, api_key)
 ```
 
@@ -158,7 +158,7 @@ This endpoint retrieves results for the given task. Retrieved results are ordere
 
 ### HTTP Request
 
-`GET /api/tasks/<task-token>/results`
+`GET /tasks/<task-token>/results`
 
 <aside class="notice">
 In the path, you must replace &lt;task-token&gt; with the real token of the task. You can obtain this token when <a href="#get-list-of-all-tasks">retrieving the list of all tasks</a>.
