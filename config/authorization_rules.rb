@@ -1,21 +1,36 @@
 authorization do
   role :guest do
+    ## ------------------------------------------------------------------
+    ## Rules for human users
+    ## ------------------------------------------------------------------
+
     has_permission_on :welcome, to: :index
-    has_permission_on :get_latest, to: :show
     has_permission_on :user_sessions, to: [:new, :create, :destroy]
+
+
+    ## ------------------------------------------------------------------
+    ## Rules for public APIs which are authenticated through nginx
+    ## ------------------------------------------------------------------
+
     has_permission_on [
-      :machines,
-      :cluster_lists,
       :api_tasks,
       :api_task_results
+    ], to: :anon_read
+
+
+    ## ------------------------------------------------------------------
+    ## Rules for infrastructure APIs which are authenticated through nginx
+    ## ------------------------------------------------------------------
+
+    has_permission_on [
+      :machines,
+      :cluster_lists
     ], to: :anon_read
     has_permission_on [
       :results,
       :audit_logs,
       :build_progress,
       :machines,
-      :tasks,
-      :api_tasks,
       :api_clusters
     ], to: :anon_write
     has_permission_on :api_test_results, to: :create
