@@ -1,4 +1,8 @@
 Web::Application.routes.draw do
+  ## ------------------------------------------------------------------
+  ## Web frontend for human clients. Everything not an API
+  ## ------------------------------------------------------------------
+
   resources :deployable_entities do
     resources :deployable_entity_versions do
       post 'reset', on: :member
@@ -14,14 +18,6 @@ Web::Application.routes.draw do
     get 'branch_info', on: :collection
   end
 
-  # We track the progress of both individual
-  # deployable entities being built (and
-  # collect the log output for better trouble
-  # shooting), and the progress of complete
-  # builds.
-  post 'register_build_progress' => "build_progress#build_progress"
-  post 'register_version_progress' => "build_progress#version_progress"
-
   get 'login' => 'user_sessions#new'
   get 'logout' => 'user_sessions#destroy'
   resources :user_sessions
@@ -36,30 +32,6 @@ Web::Application.routes.draw do
   # Allows aircloak employees to inspect activities performed by
   # users on the web system
   resources :activities
-
-  # Resource that very much mimicks the cloaks resource,
-  # but makes cloaked machines available in a format
-  # consumable by manny-air
-  scope "/api" do
-    resources :machines, only: [:index] do
-      post 'broken', on: :member
-      post 'synchronize', on: :member
-      get 'setup_info', on: :collection
-    end
-
-    resources :api_tasks, path: "tasks" do
-      resources :api_task_results, path: "results"
-      post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
-    end
-
-    resources :api_test_results, path: "test_results", only: [:create]
-
-    resources :api_repeated_answers, path: "repeated_answers", only: [:create]
-  end
-
-  get "/api/clusters", to: "cluster_lists#index"
-  get "/api/clusters/:id", to: "cluster_lists#show"
-  post "/api/clusters/:id/status", to: "api_clusters#status"
 
   resources :clusters
 
@@ -104,4 +76,47 @@ Web::Application.routes.draw do
   end
 
   root to: 'welcome#index'
+
+
+  ## ------------------------------------------------------------------
+  ## Client API's /api (served from api.aircloak.com)
+  ## ------------------------------------------------------------------
+
+  # Resource that very much mimicks the cloaks resource,
+  # but makes cloaked machines available in a format
+  # consumable by manny-air
+  scope "/api" do
+    resources :machines, only: [:index] do
+      post 'broken', on: :member
+      post 'synchronize', on: :member
+      get 'setup_info', on: :collection
+    end
+
+    resources :api_tasks, path: "tasks" do
+      resources :api_task_results, path: "results"
+      post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
+    end
+
+    resources :api_test_results, path: "test_results", only: [:create]
+
+    resources :api_repeated_answers, path: "repeated_answers", only: [:create]
+  end
+
+
+  ## ------------------------------------------------------------------
+  ## Infrastructure API's /infrastructure-api
+  ## (served from infrastructure-api.aircloak.com)
+  ## ------------------------------------------------------------------
+
+  # We track the progress of both individual
+  # deployable entities being built (and
+  # collect the log output for better trouble
+  # shooting), and the progress of complete
+  # builds.
+  post 'register_build_progress' => "build_progress#build_progress"
+  post 'register_version_progress' => "build_progress#version_progress"
+
+  get "/api/clusters", to: "cluster_lists#index"
+  get "/api/clusters/:id", to: "cluster_lists#show"
+  post "/api/clusters/:id/status", to: "api_clusters#status"
 end
