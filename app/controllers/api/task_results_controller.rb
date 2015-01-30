@@ -1,4 +1,4 @@
-class ApiTaskResultsController < ApplicationController
+class Api::TaskResultsController < ApplicationController
   filter_access_to :index, require: :anon_read
   before_action :authenticate_api_analyst
   before_action :load_task, only: [:index]
@@ -21,7 +21,7 @@ class ApiTaskResultsController < ApplicationController
 
   private
     def load_task
-      @task = @analyst.tasks.find_by_token params[:api_task_id]
+      @task = @analyst.tasks.find_by_token params[:task_id]
       respond_with({success: false, error: "Task not found."}, {status: :unprocessable_entity}) if @task.nil?
     end
 end

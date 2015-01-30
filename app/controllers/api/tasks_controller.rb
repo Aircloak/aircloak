@@ -1,6 +1,6 @@
 require './lib/proto/air/aggregate_results.pb'
 
-class ApiTasksController < ApplicationController
+class Api::TasksController < ApplicationController
   filter_access_to [:index], require: :anon_read
   skip_before_action :verify_authenticity_token
   before_action :authenticate_api_analyst

@@ -81,9 +81,9 @@ Web::Application.routes.draw do
   # Resource that very much mimicks the cloaks resource,
   # but makes cloaked machines available in a format
   # consumable by manny-air
-  scope "/api" do
-    resources :api_tasks, path: "tasks" do
-      resources :api_task_results, path: "results"
+  scope "/api", module: :api do
+    resources :tasks, path: "tasks" do
+      resources :task_results, path: "results"
     end
   end
 
