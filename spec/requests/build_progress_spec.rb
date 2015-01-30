@@ -15,7 +15,7 @@ describe BuildProgressController do
   let (:de) { double(:deployable_entity) }
   let (:dev) { double(:deployment_entity_version, deployable_entity: de, build_success: nil, save: true) }
 
-  describe "POST /register_build_progress" do
+  describe "POST /infrastructure-api/register_build_progress" do
     it "should fail gracefully for missing builds" do
       build_id = 123
       Build.should_receive(:find).with(build_id) { raise ActiveRecord::RecordNotFound.new }
@@ -23,7 +23,7 @@ describe BuildProgressController do
         build_id: build_id,
         status: BuildResponseProto::Status::OK,
       )
-      post '/register_build_progress', brp.encode.buf
+      post '/infrastructure-api/register_build_progress', brp.encode.buf
       response.status.should be(200)
     end
 
@@ -36,7 +36,7 @@ describe BuildProgressController do
         build_id: build_id,
         status: BuildResponseProto::Status::OK,
       )
-      post '/register_build_progress', brp.encode.buf
+      post '/infrastructure-api/register_build_progress', brp.encode.buf
       response.status.should be(200)
     end
 
@@ -49,12 +49,12 @@ describe BuildProgressController do
         build_id: build_id,
         status: BuildResponseProto::Status::ERROR,
       )
-      post '/register_build_progress', brp.encode.buf
+      post '/infrastructure-api/register_build_progress', brp.encode.buf
       response.status.should be(200)
     end
   end
 
-  describe "POST /register_version_progress" do
+  describe "POST /infrastructure-api/register_version_progress" do
     it "should fail gracefully for missing versions" do
       DeployableEntityVersion.should_receive(:find_by_commit_id).with("commit_id").and_return(nil)
       vbrp = VersionBuildResponseProto.new(
@@ -63,7 +63,7 @@ describe BuildProgressController do
         environment: "standard",
         log_output: "all iz well"
       )
-      post '/register_version_progress', vbrp.encode.buf
+      post '/infrastructure-api/register_version_progress', vbrp.encode.buf
       response.status.should be(200)
     end
 
@@ -80,7 +80,7 @@ describe BuildProgressController do
       expect(dev).to receive(:build_completed=).with(true)
       expect(dev).to receive(:build_success=).with(true)
 
-      post '/register_version_progress', vbrp.encode.buf
+      post '/infrastructure-api/register_version_progress', vbrp.encode.buf
       response.status.should be(200)
     end
   end

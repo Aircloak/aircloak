@@ -19,7 +19,7 @@ describe "ApiClustersController" do
         status: args.delete(:status) || ClusterStatusPB::Status::ACTIVE,
         description: args.delete(:description) || "Default description"
       )
-      post "/api/clusters/#{cluster.id}/status", cs.encode.buf
+      post "/infrastructure-api/clusters/#{cluster.id}/status", cs.encode.buf
       response.status.should eq 200
     end
 

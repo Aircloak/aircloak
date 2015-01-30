@@ -82,17 +82,9 @@ Web::Application.routes.draw do
   # but makes cloaked machines available in a format
   # consumable by manny-air
   scope "/api" do
-    resources :machines, only: [:index] do
-      post 'broken', on: :member
-      post 'synchronize', on: :member
-      get 'setup_info', on: :collection
-    end
     resources :api_tasks, path: "tasks" do
       resources :api_task_results, path: "results"
-      post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
     end
-    resources :api_test_results, path: "test_results", only: [:create]
-    resources :api_repeated_answers, path: "repeated_answers", only: [:create]
   end
 
 
@@ -106,9 +98,18 @@ Web::Application.routes.draw do
   # collect the log output for better trouble
   # shooting), and the progress of complete
   # builds.
-  post 'register_build_progress' => "build_progress#build_progress"
-  post 'register_version_progress' => "build_progress#version_progress"
-  get "/api/clusters", to: "cluster_lists#index"
-  get "/api/clusters/:id", to: "cluster_lists#show"
-  post "/api/clusters/:id/status", to: "api_clusters#status"
+  scope "/infrastructure-api" do
+    resources :api_repeated_answers, path: "repeated_answers", only: [:create] # Used by cloak's
+    resources :api_test_results, path: "test_results", only: [:create] # Used by TestServer
+    post 'register_build_progress' => "build_progress#build_progress" # Used by BuildServer
+    post 'register_version_progress' => "build_progress#version_progress" # Used by BuildServer
+    get "clusters", to: "cluster_lists#index" # Used by manny-air
+    get "clusters/:id", to: "cluster_lists#show" # Used by manny-air
+    post "clusters/:id/status", to: "api_clusters#status" # Used by manny-air
+    resources :machines, only: [:index] do
+      post 'broken', on: :member # Used by manny-air
+      post 'synchronize', on: :member # Used by manny-air
+      get 'setup_info', on: :collection # Used by install.sh on cloakinst
+    end
+  end
 end

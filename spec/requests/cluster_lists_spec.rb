@@ -3,7 +3,7 @@ require './lib/proto/air/management_messages.pb'
 require './lib/cluster_packer.rb'
 
 describe ClusterListsController do
-  describe "GET /api/clusters" do
+  describe "GET /infrastructure-api/clusters" do
     it "should provide a list of clusters" do
       machine = ClusterPB::MemberPB.new(
         machine_id: 1024,
@@ -23,7 +23,7 @@ describe ClusterListsController do
       Cluster.stub(:all).and_return(clusters)
       ClusterPacker.stub(:package_clusters).with(clusters).and_return(proto)
 
-      get "/api/clusters"
+      get "/infrastructure-api/clusters"
 
       response.status.should be(200)
       response_proto = ClustersPB.decode(response.body)
@@ -31,7 +31,7 @@ describe ClusterListsController do
     end
   end
 
-  describe "GET /api/clusters/:id" do
+  describe "GET /infrastructure-api/clusters/:id" do
     it "should provide the cluster if it is there" do
       machine = ClusterPB::MemberPB.new(
         id: 1024,
@@ -50,7 +50,7 @@ describe ClusterListsController do
       Cluster.stub(:find).with("1").and_return(cluster)
       ClusterPacker.stub(:package_cluster).with(cluster).and_return(proto)
 
-      get "/api/clusters/1"
+      get "/infrastructure-api/clusters/1"
 
       response.status.should be(200)
       response_proto = ClusterPB.decode(response.body)
@@ -58,7 +58,7 @@ describe ClusterListsController do
     end
 
     it "should return an error if the cluster is not there" do
-      get "/api/clusters/1"
+      get "/infrastructure-api/clusters/1"
       response.status.should be(404)
     end
   end
