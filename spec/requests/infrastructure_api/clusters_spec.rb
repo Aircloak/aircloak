@@ -1,7 +1,7 @@
 require 'spec_helper'
 require './lib/build_manager.rb'
 
-describe "ApiClustersController" do
+describe InfrastructureApi::ClustersController do
   before(:each) do
     BuildManager.stub(:send_build_request)
     Cluster.delete_all

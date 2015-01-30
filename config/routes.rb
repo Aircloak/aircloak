@@ -46,7 +46,7 @@ Web::Application.routes.draw do
   get "impersonate/:analyst_id", to: "impersonation#impersonate"
   get "i_dont_want_to_be_an_imposter", to: "impersonation#stop_it"
   resources :capabilities
-  resources :audit_logs do
+  resources :audit_logs, except: [:create, :destroy] do
     collection do
       get 'cluster/:cluster_id', to: :cluster
       get 'cloak/:cloak_id', to: :cloak
@@ -98,14 +98,16 @@ Web::Application.routes.draw do
   # collect the log output for better trouble
   # shooting), and the progress of complete
   # builds.
-  scope "/infrastructure-api" do
-    resources :api_repeated_answers, path: "repeated_answers", only: [:create] # Used by cloak's
-    resources :api_test_results, path: "test_results", only: [:create] # Used by TestServer
+  scope "/infrastructure-api", module: :infrastructure_api do
+    resources :repeated_answers, only: [:create] # Used by cloak's
+    resources :results, only: [:create] # Used by cloak's
+    resources :audit_logs, only: [:create] # Used by cloak's
+    resources :test_results, only: [:create] # Used by TestServer
     post 'register_build_progress' => "build_progress#build_progress" # Used by BuildServer
     post 'register_version_progress' => "build_progress#version_progress" # Used by BuildServer
     get "clusters", to: "cluster_lists#index" # Used by manny-air
     get "clusters/:id", to: "cluster_lists#show" # Used by manny-air
-    post "clusters/:id/status", to: "api_clusters#status" # Used by manny-air
+    post "clusters/:id/status", to: "clusters#status" # Used by manny-air
     resources :machines, only: [:index] do
       post 'broken', on: :member # Used by manny-air
       post 'synchronize', on: :member # Used by manny-air

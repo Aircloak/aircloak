@@ -3,7 +3,7 @@ require './lib/proto/air/build_messages.pb.rb'
 require './lib/build_manager'
 require './lib/protobuf_sender'
 
-describe BuildProgressController do
+describe InfrastructureApi::BuildProgressController do
   before(:each) do
     BuildManager.stub(:send_build_request).and_return(true)
     ProtobufSender.stub(:send_delete)

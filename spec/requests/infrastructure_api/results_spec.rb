@@ -2,7 +2,7 @@ require 'spec_helper'
 require './lib/proto/air/aggregate_results.pb'
 require 'json'
 
-describe "ResultsController" do
+describe InfrastructureApi::ResultsController do
   setup :activate_authlogic
 
   before(:each) do
@@ -22,7 +22,7 @@ describe "ResultsController" do
     )
   end
 
-  describe "POST /results" do
+  describe "POST /infrastructure-api/results" do
     it "should persist new properties upon receiving them from the cloak" do
       t = user.analyst.tasks.new
       t.stub(:upload_stored_task)
@@ -57,13 +57,13 @@ describe "ResultsController" do
       )
 
       with_user user do
-        post "/results", rp.encode.buf, { 'Content-Type' => "application/x-protobuf" }
+        post "/infrastructure-api/results", rp.encode.buf, { 'Content-Type' => "application/x-protobuf" }
         json = rp.to_json
         # the fields in the json format have different names compared with the ones in the protobuffs format
         # we need to manually adjust the generated json field names so they will be accepted by the endpoint
         json.gsub! '"accumulated_count"', '"count"'
         json.gsub! '"string"', '"value"'
-        post "/results", json, { 'Content-Type' => "application/json" }
+        post "/infrastructure-api/results", json, { 'Content-Type' => "application/json" }
       end
 
       Result.count.should eq(2)

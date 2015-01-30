@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe "ApiTestResultsController" do
+describe InfrastructureApi::TestResultsController do
   describe "POST /infrastructure-api/test_results" do
     before(:each) do
       TestResult.delete_all

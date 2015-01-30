@@ -3,7 +3,7 @@ require './lib/proto/air/management_messages.pb'
 require './lib/machine_packer.rb'
 require './lib/protobuf_sender'
 
-describe MachinesController do
+describe InfrastructureApi::MachinesController do
   describe "GET /api/machines" do
     it "should provide a list of machines" do
       machine = MachinePB.new(

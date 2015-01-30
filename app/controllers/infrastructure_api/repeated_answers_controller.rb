@@ -1,4 +1,4 @@
-class ApiRepeatedAnswersController < ApplicationController
+class InfrastructureApi::RepeatedAnswersController < ApplicationController
   protect_from_forgery except: :create
 
   def create
