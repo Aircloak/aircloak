@@ -19,9 +19,13 @@ class InfrastructureApi::AuditLogsController < ApplicationController
 
 private
   def ensure_valid_cloak
-    Base64.decode64(request.headers["PATH"]) =~ /audit_log\/(.*)/
-    host = $1
-    @cloak = Cloak.find_by_name host
-    render text: "Unkown host", status: 404, layout: false unless @cloak
+    unless request.headers["PATH"]
+      render text: "Missing PATH header", status: 422, layout: false
+    else
+      Base64.decode64(request.headers["PATH"]) =~ /audit_log\/(.*)/
+      host = $1
+      @cloak = Cloak.find_by_name host
+      render text: "Unkown host", status: 404, layout: false unless @cloak
+    end
   end
 end
