@@ -6,7 +6,7 @@ describe "ApiRepeatedAnswersController" do
     Analyst.create(name: "test")
   end
 
-  describe "POST /api/repeated_answers" do
+  describe "POST /infrastructure-api/repeated_answers" do
     before(:each) do
       RepeatedAnswer.delete_all
       RaTaskCode.delete_all
@@ -38,85 +38,85 @@ describe "ApiRepeatedAnswersController" do
     }
 
     it "should take a valid request" do
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(200)
     end
 
     it "requires a JSON" do
-      post "/api/repeated_answers", "foo"
+      post "/infrastructure-api/repeated_answers", "foo"
       response.status.should eq(403)
     end
 
     it "requires .analyst" do
       request.delete(:analyst)
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
 
     it "requires .bucket_label" do
       request.delete(:bucket_label)
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
 
     it "requires .bucket_count" do
       request.delete(:bucket_count)
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
 
     it "requires .timestamp" do
       request.delete(:timestamp)
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
 
     it "requires .source_ip" do
       request.delete(:source_ip)
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
 
     it "requires .noise_sd" do
       request.delete(:noise_sd)
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
 
     it "requires .task_codes[].prefetch" do
       request[:task_codes][0].delete(:prefetch)
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
 
     it "requires .task_codes[].code" do
       request[:task_codes][0].delete(:code)
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
 
     it "accepts .task_codes[].libraries[] with name and code" do
       request[:task_codes][0][:libraries] = [{ :name => "foo", :code => "bar" }]
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(200)
     end
 
     it "requires .task_codes[].libraries[].name" do
       request[:task_codes][0][:libraries] = [{ :code => "bar" }]
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
 
     it "requires .task_codes[].libraries[].code" do
       request[:task_codes][0][:libraries] = [{ :name => "foo" }]
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(403)
     end
 
     it "auto-resolves if all code is trusted" do
       # first generate a new repeated answer report with code inserted
       request[:task_codes][0][:libraries] = [{ :name => "foo", :code => "bar" }]
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(200)
       RepeatedAnswer.all.each { |ra| ra.resolved.should eq(false) }
 
@@ -126,7 +126,7 @@ describe "ApiRepeatedAnswersController" do
 
       # add a new slightly different report which should be autoresolved
       request[:task_codes][0][:libraries][0][:name] = "foo2"
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(200)
       RepeatedAnswer.all.each { |ra| ra.resolved.should eq(true) }
     end
@@ -134,7 +134,7 @@ describe "ApiRepeatedAnswersController" do
     it "does not auto-resolve if one code is not trusted" do
       # first generate a new repeated answer report with code inserted
       request[:task_codes][0][:libraries] = [{ :name => "foo", :code => "bar" }]
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(200)
       RepeatedAnswer.all.each { |ra| ra.resolved.should eq(false) }
 
@@ -144,7 +144,7 @@ describe "ApiRepeatedAnswersController" do
 
       # add a new slightly different report which should not be autoresolved
       request[:task_codes][0][:libraries][0][:name] = "foo2"
-      post "/api/repeated_answers", request.to_json
+      post "/infrastructure-api/repeated_answers", request.to_json
       response.status.should eq(200)
       RepeatedAnswer.all.each { |ra| ra.resolved.should eq(false) }
     end

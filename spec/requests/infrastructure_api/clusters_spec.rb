@@ -1,7 +1,7 @@
 require 'spec_helper'
 require './lib/build_manager.rb'
 
-describe "ApiClustersController" do
+describe InfrastructureApi::ClustersController do
   before(:each) do
     BuildManager.stub(:send_build_request)
     Cluster.delete_all
@@ -19,7 +19,7 @@ describe "ApiClustersController" do
         status: args.delete(:status) || ClusterStatusPB::Status::ACTIVE,
         description: args.delete(:description) || "Default description"
       )
-      post "/api/clusters/#{cluster.id}/status", cs.encode.buf
+      post "/infrastructure-api/clusters/#{cluster.id}/status", cs.encode.buf
       response.status.should eq 200
     end
 

@@ -1,7 +1,7 @@
 require './lib/proto/air/management_messages.pb'
 require './lib/cluster_packer'
 
-class ClusterListsController < ApplicationController
+class InfrastructureApi::ClusterListsController < ApplicationController
   filter_access_to :index, require: :anon_read
   filter_access_to :show, require: :anon_read
 

@@ -1,7 +1,7 @@
 require './lib/proto/air/management_messages.pb'
 require './lib/machine_packer'
 
-class MachinesController < ApplicationController
+class InfrastructureApi::MachinesController < ApplicationController
   filter_access_to [:index, :setup_info], require: :anon_read
   filter_access_to [:broken, :synchronize], require: :anon_write
   skip_before_action :verify_authenticity_token

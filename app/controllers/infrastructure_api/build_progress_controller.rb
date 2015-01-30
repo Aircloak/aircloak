@@ -1,4 +1,4 @@
-class BuildProgressController < ApplicationController
+class InfrastructureApi::BuildProgressController < ApplicationController
   filter_access_to [:version_progress, :build_progress], require: :anon_write
   protect_from_forgery :except => [:version_progress, :build_progress]
 
@@ -19,7 +19,7 @@ class BuildProgressController < ApplicationController
   def build_progress
     r = BuildResponseProto.decode(request.raw_post)
     build = Build.find(r.build_id)
-    success = case r.status 
+    success = case r.status
       when BuildResponseProto::Status::OK then true
       when BuildResponseProto::Status::ERROR then false
     end

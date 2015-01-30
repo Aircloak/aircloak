@@ -1,9 +1,9 @@
-class ApiTestResultsController < ApplicationController
+class InfrastructureApi::TestResultsController < ApplicationController
   protect_from_forgery :except => :create
 
   def create
     raw_result = JSON.parse request.raw_post
-    ApiTestResultsController.create_test_result raw_result
+    InfrastructureApi::TestResultsController.create_test_result raw_result
     render json: {success: true}, status: 200
   rescue Exception => e
     render json: {success: false, error: e.to_s}, status: 403
