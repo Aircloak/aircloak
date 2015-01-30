@@ -31,6 +31,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       else
         HandlebarsTemplates["tasks/task_exceptions"](count: taskExceptions.length, exceptions: taskExceptions)
     $("#taskExceptions").html(html)
+    window.rebindAllPopuplinks()
 
   saveInfo = ->
     if changed

@@ -1,7 +1,7 @@
 $(document).ready ->
   activeTip = undefined
 
-  $("body .container").popover
+  $("body .container, div#popup.popup").popover
     animation: true
     html: true
     selector: ".tip"
@@ -26,14 +26,17 @@ $(document).ready ->
   # remove it first. Otherwise we ensure the activeTip is
   # set to the tip that was clicked, and let the bootstrap
   # js popover handler deal with displaying the new popover
-  $(".tip").click (e) =>
-    tip = e.target
-    if tip == activeTip
-      activeTip = undefined
-    else
-      removeActiveTip activeTip
-      activeTip = tip
+  window.rebindAllPopuplinks = =>
+    $(".tip").unbind("click").click (e) =>
+      tip = e.target
+      if tip == activeTip
+        activeTip = undefined
+      else
+        removeActiveTip activeTip
+        activeTip = tip
 
   removeActiveTip = (tip) ->
     $(tip).popover("hide").removeClass("active")
     activeTip = undefined
+
+  window.rebindAllPopuplinks()

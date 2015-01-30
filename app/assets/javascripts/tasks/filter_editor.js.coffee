@@ -29,6 +29,7 @@ Tasks.FilterEditor = (inOptions) ->
     view.setElement("#editFilter")
     filterToControls()
     $("#newFilter [data-field=column]").focus()
+    window.rebindAllPopuplinks()
     self
 
   save = ->
