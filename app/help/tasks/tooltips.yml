@@ -105,7 +105,7 @@ save_and_sandbox_buttons:
     The __save__ button will create a new task if the task does not yet
     exist, or otherwise update an existing task.
 
-    The __Execute in sandbox__ button __does not__ run you task in
+    The __Execute in sandbox__ button __does not__ run your task in
     a real cloak. Instead it runs the task in a sandbox environment
     which is identical to that used in the cloak.
     You can thereby verify that the results of executing over the data
