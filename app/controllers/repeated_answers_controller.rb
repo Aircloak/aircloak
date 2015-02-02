@@ -13,6 +13,7 @@ class RepeatedAnswersController < ApplicationController
   def update
     answer = RepeatedAnswer.find(params[:id])
     answer.mark_resolved
+    redirect_to repeated_answers_path, notice: "Repeated answer resolved"
   rescue Exception => e
     render action: 'show'
   end
