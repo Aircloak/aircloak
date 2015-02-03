@@ -1,4 +1,5 @@
 require './lib/cluster_packer.rb'
+require 'rest-client'
 
 class Cluster < ActiveRecord::Base
   has_many :cluster_cloaks
@@ -161,6 +162,41 @@ class Cluster < ActiveRecord::Base
     self.last_modified = Time.now
     self.status = :changes_pending
     self.status_description = ""
+  end
+
+  # Performs a check against the cloak, requesting it to list
+  # it's capabilities. This way the web interface will automatically
+  # show the right interfaces that are supported.
+  def check_capabilities
+    url = if Rails.configuration.installation.global
+      "https://#{random_cloak_ip}/capabilities"
+    else
+      # We are running in local mode
+      protocol = Rails.configuration.cloak.protocol
+      port = Rails.configuration.cloak.port
+      "#{protocol}://#{random_cloak_ip}:#{port}/capabilities"
+    end
+    RestClient::Request.execute(method: :get, url: url, timeout: 0.3, open_timeout: 0.2) do |response, request, result, &block|
+      case response.code
+      when 200
+        json = JSON.parse response
+        if json["success"]
+          json["capabilities"].each do |capability_identifier|
+            capability = Capability.find_by_identifier capability_identifier
+            capabilities << capability unless capabilities.include? capability
+          end
+        end
+      when 404
+        # The cluster hasn't implemented the /capabilities
+        # interface. It is most likely a version 1.0.1 cloak
+        # which does not support any additional functionalities
+        logger.info "Cluster #{name} does not support capabilities"
+      end
+    end
+  rescue Errno::ECONNREFUSED => e
+    logger.error "Unable to connect to cluster #{name} to establish capabilities"
+  rescue RestClient::RequestTimeout => e
+    logger.error "Request to establish capabilities of cluster #{name} timed out"
   end
 
 private
