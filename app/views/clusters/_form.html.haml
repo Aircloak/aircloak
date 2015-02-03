@@ -38,15 +38,6 @@
           = analyst.name
 
   .control-group
-    = control_label "Capabilities"
-    .controls
-      - Capability.all.each do |capability|
-        %label.checkbox
-          = check_box_tag "capabilities_selections[]", capability.id,
-              @cluster.capabilities.include?(capability)
-          = capability.name
-
-  .control-group
     .controls
       - if controller.action_name == "edit"
         = f.submit 'Update cluster', class: "btn btn-success"
