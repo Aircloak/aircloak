@@ -100,3 +100,16 @@ time_limit:
     If combined with the _maximum number of rows per user_-filter,
     the subset of rows is returned that satisfies both criteria.
   markdown: true
+save_and_sandbox_buttons:
+  content: |
+    The __save__ button will create a new task if the task does not yet
+    exist, or otherwise update an existing task.
+
+    The __Execute in sandbox__ button __does not__ run your task in
+    a real cloak. Instead it runs the task in a sandbox environment
+    which is identical to that used in the cloak.
+    You can thereby verify that the results of executing over the data
+    of a single user is as expected. By controlling the input data
+    you can verify that the outputs produced by the task match what
+    you would expect.
+  markdown: true

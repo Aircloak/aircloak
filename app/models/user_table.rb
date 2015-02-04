@@ -89,10 +89,15 @@ private
     elsif type == "float"
       rand(2) + rand
     elsif type =~ /varchar\((\d*)\)/
-      num = $2.to_i
-      (0...(num)).map { (65 + rand(26)).chr }.join
+      string_of_size $1.to_i
+    elsif type == "text"
+      string_of_size rand(100).to_i
     elsif type == "boolean"
       rand(2) == 0
     end
+  end
+
+  def string_of_size size
+    (0...(size)).map { (65 + rand(26)).chr }.join
   end
 end
