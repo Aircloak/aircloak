@@ -5,11 +5,10 @@ class TasksControllerException < Exception; end
 
 class TasksController < ApplicationController
   filter_access_to [:execute_as_batch_task, :all_results, :latest_results], require: :manage
-  before_action :load_task, only: [:edit, :update, :destroy, :execute_as_batch_task, :all_results,
-      :latest_results, :delete_results]
-  before_action :set_tables_json, only: [:edit, :new]
-  before_action :set_auto_completions, only: [:edit, :new, :create]
-  before_action :set_task_exceptions, only: [:edit, :new, :create]
+  before_action :load_task, except: [:index, :new, :create]
+  before_action :set_tables_json, only: [:new, :edit, :update, :create]
+  before_action :set_auto_completions, only: [:new, :edit, :update, :create]
+  before_action :set_task_exceptions, only: [:new, :edit, :update, :create]
 
   # When spawning a task from the web interface through an AJAX
   # call, this reduces the overall rendering time in rails by
@@ -25,6 +24,12 @@ class TasksController < ApplicationController
   # GET /tasks/:id/edit
   def edit
     describe_activity "Editing #{@task.name}"
+  end
+
+  # # GET /tasks/:id
+  def show
+    # describe_activity "Wanted to see task #{@task.name}. Showing edit form"
+    redirect_to edit_task_path(@task.token)
   end
 
   # GET /tasks/new
@@ -52,11 +57,12 @@ class TasksController < ApplicationController
     @task.stored_task = (@task.task_type == Task::STREAMING_TASK)
     if @task.save
       describe_successful_activity "Successfully created a new task"
-      redirect_to tasks_path, notice: 'Task was successfully created.'
+      # If we don't redirect, the flash messages get stuck
+      flash[:notice] = "Task #{@task.name} was successfully created."
+      redirect_to edit_task_path @task.token
     else
-      set_tables_json
       describe_failed_activity "Failed at creating a task"
-      render action: 'new'
+      render action: :new
     end
   end
 
@@ -65,11 +71,13 @@ class TasksController < ApplicationController
     @task.sandbox_type = "lua"
     if @task.update(task_params)
       describe_successful_activity "Successfully changed task #{@task.name}"
-      redirect_to tasks_path, notice: 'Task was successfully updated.'
+      # If we don't redirect, the flash messages get stuck
+      flash[:notice] = 'Task was successfully saved.'
+      redirect_to edit_task_path @task.token
     else
-      set_tables_json
       describe_failed_activity "Failed at editing task #{@task.name}"
-      render action: 'edit'
+      flash[:error] = "Could not save task #{@task.name}"
+      render action: :edit
     end
   end
 
