@@ -4,9 +4,6 @@ title: Aircloak REST API Reference
 language_tabs:
   - ruby
 
-toc_footers:
-  - <a href='#'>Sign Up for an API Key</a>
-
 includes:
   - errors
 
