@@ -10,6 +10,10 @@ class User < ActiveRecord::Base
     crypto_provider = Authlogic::CryptoProviders::BCrypt
   end
 
+  def attempt_to_make_a_human_name_from_login
+    login.split(".").map(&:capitalize).join(" ")
+  end
+
   def needs_onboarding?
     not (has_tables? and has_tasks? and has_keys?)
   end

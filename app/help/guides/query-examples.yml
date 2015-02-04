@@ -124,12 +124,13 @@ content: |
 
   When writing a query like the one above, you need to consider how the result anonymization works.
   Properties that are reported by queries are filtered out if there are not enough users who reported
-  the exact same property name and value pair! If for example only two people had a __min_purchase__ of
+  the exact same __name-value__ pair. If for example only two people had a __min_purchase__ of
   10, you would never be informed of this as the value would be removed by the cloak.
   The cloak removes values that only hold true for very few users in order to protect their privacy.
 
-  If you are unlucky your dataset might be such that the values are spread out evenly, and nothing at all
-  gets reported if your report the values directly like in the example above.
+  If your report the values directly like in the example above, and your dataset
+  is such that the values are spread out evenly with very few users per value,
+  then nothing at all gets reported by your query.
   You can solve this by grouping the values into buckets. We have an example of this below.
 
 

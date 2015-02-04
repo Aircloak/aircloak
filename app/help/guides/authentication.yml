@@ -4,7 +4,7 @@ content: |
 
   # Authentication
 
-  The cloak APIs rely on client certificates for authenticating access.
+  The <%= site_link "/apidocs/index.html", "Cloak APIs" %> rely on client certificates for authenticating access.
   The client certificates are provided both in PEM and PKCS12 format, and can be managed
   on the <%= site_link controller.keys_path, "keys page" %>.
 
@@ -34,7 +34,7 @@ content: |
   but using [curl](http://curl.haxx.se/), you would use the `--cert CertificateFile.pfx` flag.
 
   Taking the API for uploading user data in bulk as an example:
-  Assuming you had data for the __<%= sample_user_table_name %>__ stored in a file in your current directory
+  Assuming you had data for the __<%= sample_user_table_name %>__ table stored in a file in your current directory
   called __<%= sample_user_table_name %>.json__, and a key named <%= sample_data_key_name %>, you could issue the following
   [curl](http://curl.haxx.se/) command to upload the data:
 

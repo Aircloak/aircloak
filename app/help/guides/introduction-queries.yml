@@ -4,27 +4,26 @@ content: |
 
   # An introduction to writing queries
 
-  Due to the mechanisms we have put in place to provide our strong guarantees
-  for privacy, the way in which you write your queries to our system
+  Due to the mechanisms put in place to provide a high levels of user anonymity
+  and privacy, the way in which you write queries against our system
   most likely differs quite significantly from how you today query your
   other database systems.
 
-  The most significant thing to note is that the queries you write have
-  to be of the kind that return an aggregate count. For example _how many
-  users were at a location at a given time_, the answer to
+  The queries you write have to be of the kind that return an aggregate count.
+  For example _how many users were at a location at a given time_, the answer to
   which might be 50.
 
   Instead of writing queries that have access to all the data in the
-  database system at the same time, you write queries that individually
-  deal with a single user at a time.
+  database _at the same time_, you write queries that deal with the data of
+  users _individually_.
 
-  The queries are completely stateless. That means that when a query
+  The queries are stateless. This means that when a query
   runs over user _Bob_ it has no notion of what it might previously
   have seen and computed about _Dylan_.
 
-  When a query is executed, it therefore has to make local decisions
-  based on a single users data, regarding whether the user's should be
-  counted and included in an answer, or not.
+  When a query is executed, it has to make local decisions
+  based on the data of the individual user about whether
+  the user should be included in the resulting count, or not.
 
   For a more in-depth explanation of how to think about the query model,
   take a look at <%= help_link "understanding-the-query-model" %>.
@@ -33,27 +32,25 @@ content: |
   ## Queries are executed in three steps:
 
   1. The data needed by the query is collected by the cloak
-  2. The query code is run once per user and is given the data from the data
-    collection phase for a particular user at a time. The query needs to make
-    a per user decision if something should be reported or not.
-  3. The results of the query run across all users is aggregated and
-    anonymized and returned from the cloak
+  2. The query code is run once per user and is given the data of the user it is executing over.
+    The query needs to make a per user decision if something should be reported or not.
+  3. The results of the query run over all users is aggregated, anonymized, and returned from the cloak
 
   ### Data pre-selection
 
   In the query interface you select which database tables you want to have access
-  to in your query. You can also limit the data returned for a table by specifying constraints.
+  to in your query. You can also filter the data returned for a table by specifying constraints.
   For example only __<%= sample_user_table_name %>__ where __<%= sample_constraint %>__.
 
   You can also specify that you only want the last __N__ results per user, or
   only results that arrived at the cloak within a certain number of minutes. The more you can
-  restrict the dataset over which the queries run, the faster the queries will
+  restrict the dataset over which the query runs, the faster the query will
   be able to finish. This is especially important if you write queries that
-  will execute frequently, for example to provide a real-time view of the
-  state of some system.
+  execute frequently, for example to provide a real-time input for a dashboard,
+  or decision making system.
 
-  When you limit the number of results returned per user, the limit is applied __after__
-  other filters are applied. The order of the results is as it was when the data was
+  When you limit the number of results returned per user, the limit is applied last, __after__
+  other filters have been applied. The order of the results is as it was when the data was
   inserted into the cloak by the user.
 
   The filter that allows you to limit the results to data from the last __N__ minutes,
@@ -68,18 +65,19 @@ content: |
   ### Queries
 
   The queries are written in __Lua__.
-  Basic familiarity with __Lua__ will be very helpful.
+  Basic familiarity with __Lua__ will be helpful.
   For a lightning quick introduction, or refresher, to Lua, you can check out this
   15 minute introduction: http://tylerneylon.com/a/learn-lua/
 
   #### Accessing data
 
   In your queries you access the data from the pre-selection queries using the
-  `tables.` command.
+  `tables` lua table.
   For example to get access to the data from the __<%= sample_user_table_name %>__
   table, you would issue the command `tables.<%= sample_user_table_name %>`.
 
-  Very often you will receive a set of rows of data.
+  The data returned is in an array. Even when there is only a single row of data returned.
+
   Looping through these can easily be done as follows:
 
   ```Lua
@@ -90,22 +88,19 @@ content: |
   end
   ```
 
-  Reading through the code sample above, you might have noticed
-  that the we index into the data array starting at 1, rather than 0.
-  This is because Lua, contrary to most other programming languages,
-  indices arrays from 1 rather than 0.
+  You might have noticed that the we index into the array starting at 1, rather than 0.
+  This is because Lua, contrary to most other programming languages, indices arrays from 1 rather than 0.
 
   You can also query a lookup table (see <%= help_link "lookup-tables" %>),
   by calling `lookup(table_name, key)` which will return the corresponding value.
 
-  It's also worth mentioning that there is a global `user_id` variable available containing the id of the
-  user being processed. This is most often needed if you maintain lookup tables, where the
-  key is the user's id. An example could be a mapping of individual university members to particular disciplines.
-  Relying on `user_id` and the `lookup` function allows you to determine the user's discipline in Lua code.
+  It is worth mentioning that there is a global `user_id` variable available containing the id of the
+  user being processed.
 
-  #### Dealing with times
 
-  The best way to deal with times is to use the [epoch time](http://en.wikipedia.org/wiki/Unix_time) (number of seconds passed since
+  #### Working with times
+
+  The best way to deal with times is to use [epoch time](http://en.wikipedia.org/wiki/Unix_time) (number of seconds passed since
   00:00:00, January 1st, 1970.). It is advised you use a `varchar(10)` as the corresponding data type.
 
   You can deal with epoch time in Lua scripts using the `to_date` provided function. The result of a call to
@@ -121,33 +116,33 @@ content: |
   Whenever you want to report a value for a given user, you can use the `report_property` function.
   It takes two parameters: a __name__ and a __value__.
 
-  You can think of it as follows: The cloak counts how many users report the exact same __name__, __value__ pair.
-  What you get returned from the cloak are effectively __name__, __value__, __count__ triplets.
+  You can think of it as follows: The cloak counts how many users report the exact same __name-value__ pair.
+  What you get returned from the cloak are effectively __(name, value, count)__-triplets.
 
   ##### Example
 
-  If you have a users age, you could for example report "age" as the name, and the age value as the value.
-  You would then get reported how many users you have at distinct ages.
+  If you have the age of a user, you could report _"age"_ as the name, and the _age value_ as the value.
+  You would then get reported triplets showing how many users have the distinct age values.
 
   In Lua, this would look like `report_property("age", age)`, assuming you have the users age stored in
   a variable called `age`.
 
   Alternatively, for a user of age 29, you could also report the name "age" and the value "between 20 and 30".
   The benefit of the latter approach can be hard to get an intuition for, but is quite important.
-  Consider how the cloak cluster anonnymises data: __name__, __value__ pairs that have a too low count
-  are not reported at all. They will silently be dropped by the cloak. If there are particular ages
-  where you don't have very many users, they would therefore not be reported at all. As an analyst
-  you would not know if the fact that a certain age was not reported is due to there not being any
-  users in this age range, or only being very few users.
+  The cloaks filter results where the count is too low. If there are particular age ranges
+  where you only have very few users, they would therefore not be reported at all. As an analyst
+  you would not know if this was due to there being no users in these age ranges, or only very few.
   By grouping ages together into larger age segments, the chances of there being enough users within
   an age group, and hence the group being reported, increases.
-  If you find it hard to get an intuition for this, please get in touch with us at support@aircloak.com,
+  If you find it hard to get an intuition for this, feel free to send us an email at support@aircloak.com,
   and we will do our best to explain it in terms of your particular user case!
 
 
   #### Results
 
-  Currently the primary way to run a query is by executing it from the web interface.
+  The primary way to run a query is by executing it from the web interface.
   The web interface also shows the latest results.
   You can download the complete result set as a CSV file if you want to perform post processing
   of the data on your own computer.
+
+  For programmatic access to task execution results, please consult the <%= site_link "/apidocs/index.html", "API Docs" %>.
