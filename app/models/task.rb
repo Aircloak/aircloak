@@ -6,9 +6,9 @@ require './lib/task_code'
 class Task < ActiveRecord::Base
   has_many :pending_results, dependent: :destroy, counter_cache: true
 
-  has_many :results, dependent: :destroy
-  has_many :buckets, through: :results
-  has_many :exception_results, through: :results
+  has_many :results, dependent: :destroy, dependent: :destroy
+  has_many :buckets, through: :results, dependent: :destroy
+  has_many :exception_results, through: :results, dependent: :destroy
 
   belongs_to :cluster
   belongs_to :analyst
@@ -49,7 +49,7 @@ class Task < ActiveRecord::Base
 
   # This does an efficient SQL delete, rather than loading all the data,
   # running all the validations and callbacks, etc
-  def efficient_delete
+  def efficiently_delete_results
     Result.delete_for_task self
     PendingResult.delete_for_task self
     ExceptionResult.delete_for_task self
@@ -59,7 +59,7 @@ class Task < ActiveRecord::Base
   # running all the validations and callbacks, etc
   def efficient_destroy
     ActiveRecord::Base.transaction do
-      efficient_delete
+      efficiently_delete_results
       destroy
     end
   end

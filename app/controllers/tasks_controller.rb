@@ -6,7 +6,7 @@ class TasksControllerException < Exception; end
 class TasksController < ApplicationController
   filter_access_to [:execute_as_batch_task, :all_results, :latest_results], require: :manage
   before_action :load_task, only: [:edit, :update, :destroy, :execute_as_batch_task, :all_results,
-      :latest_results]
+      :latest_results, :delete_results]
   before_action :set_tables_json, only: [:edit, :new]
   before_action :set_auto_completions, only: [:edit, :new, :create]
   before_action :set_task_exceptions, only: [:edit, :new, :create]
@@ -75,18 +75,25 @@ class TasksController < ApplicationController
 
   # DELETE /tasks/:id
   def destroy
-    if @task.results.count > 0 then
-      @task.efficient_delete
-      describe_activity "Delete results for #{@task.name}"
+    if @task.efficient_destroy
+      describe_successful_activity "Destroyed task #{@task.name}"
+      flash[:notice] = "Destroyed task #{@task.name}"
     else
-      @task.efficient_destroy
-      describe_activity "Destroyed task #{@task.name}"
+      describe_failed_activity "Could not destroy task #{@task.name}"
+      flash[:error] = "Could not destroy task #{@task.name}. If this persists, please contact support"
     end
   rescue Task::RemoveError => e
     describe_failed_activity "Failed at removing task #{@task.name}"
     flash[:error] = e.message
   ensure
     redirect_to tasks_path
+  end
+
+  # POST /tasks/:id/delete_results
+  def delete_results
+    @task.efficiently_delete_results
+    describe_activity "Deleted results for #{@task.name}"
+    redirect_to tasks_path, notice: "Removed results for #{@task.name}"
   end
 
   # POST /tasks/:id/execute_as_batch_task
