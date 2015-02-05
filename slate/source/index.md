@@ -261,7 +261,8 @@ rows to be inserted in the database.
 Each row is a JSON object with key-value pairs, where the key is the column name, and the value,
 a JSON encoded value.
 
-The API accepts gzipped payloads.
+The API accepts gzipped payloads. The `Content-Encoding` header should be set to `gzip` if the data is
+compressed.
 
 The examples used assume you have two tables defined with the following table structures:
 
