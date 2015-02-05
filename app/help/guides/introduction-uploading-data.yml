@@ -43,63 +43,11 @@ content: |
 
   Once you have created database tables to hold your data, you can start uploading data into your cluster.
 
-  The data is uploaded through an HTTP API endpoint that accepts the data encoded as JSON.
-  For technical information about the HTTP API, please have a look at
-  the <%= site_link "/apidocs/index.html#bulk-insert", "API Docs" %>.
+  The data is uploaded through an HTTP API that accepts data encoded as JSON.
+  There are two end-points available. One accepts data for
+  <%= site_link "/apidocs/index.html#single-user-data-insert", "individual users" %>,
+  whereas the other allows for <%= site_link "/apidocs/index.html#bulk-insert", "bulk upload" %> of data
+  for multiple users.
 
-
-  ### Data format
-
-  #### Format
-
-  The payload should be a JSON object with the user ids at the highest level. For each user you can pass in
-  a JSON object containing an entry per table, where the table entry in turn can be an array of rows.
-
-  #### Example
-
-  <% if has_user_tables? -%>
-
-  If you wanted to upload data from your __<%= sample_user_table_name %>__ table for the two users __user1__ and __user2__,
-  you could upload a JSON payload with the following format
-
-  ```json
-  <%= sample_user_table_json_data %>
-  ```
-
-  <% else -%>
-
-  Say you wanted to upload data for the users __user1__ and __user2__ to a table called __<%= sample_user_table_name %>__ which has an
-  __x__ and a __y__ column, you would format the data as
-
-  ```json
-  <%= sample_user_table_json_data %>
-  ```
-
-  <% end -%>
-
-
-  ### Authentication
-
-  The API requires the uploader to be authenticated. Authentication is done through client certificates.
-  <% if data_key_count == 0 -%>
-  You can create these certificates for your team on the <%= site_link controller.keys_path, "keys page" %>.
-  <% else -%>
-  Your team already has <%= data_key_count %> keys. You can
-  administer and download these from the <%= site_link controller.keys_path, "keys page" %>.
-  <% end -%>
-
-  How you use client certificates differs from language to language, but if using [wget](https://www.gnu.org/software/wget/),
-  you would use the `--certificate=CertificateFile.pfx` flag.
-
-  ### Example
-
-  Assuming you had data for the __<%= sample_user_table_name %>__ stored in a file in your current directory
-  called __<%= sample_user_table_name %>.json__, and a key named <%= sample_data_key_name %>, you could issue the following
-  [wget](https://www.gnu.org/software/wget/) command to upload data:
-
-  ```bash
-  wget --content-on-error --output-document - --method=POST --certificate=<%= sample_data_key_name %> --body-file=<%= sample_user_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
-  ```
-
-  JSON, being pure text, can easily be compressed.
-  The cloaks supported gzipped JSON. When sending gzipped data, the `Content-Encoding` header should be set to `gzip`.
+  Please consult the <%= site_link "/apidocs/index.html#cloak-apis", "API Docs" %> for the
+  specifics.

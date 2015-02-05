@@ -12,12 +12,13 @@
  *= require_tree .
  */
 
-div.suggested-reading a {
+a.suggested-reading {
   z-index: 99999999999;
   color: black;
   background-color: rgba(254,251,0,0.2);
 }
 
-div.suggested-reading a:hover {
+a.suggested-reading:hover {
   background-color: yellow;
+  color: black;
 }

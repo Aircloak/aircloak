@@ -80,7 +80,7 @@ class HelpUtils
 
   def help_link page
     guide = guide_for_id page
-    "<a href=\"/help/#{page}\" target=\"_blank\">#{guide["title"]}</a>"
+    "<a href=\"/help/#{page}\" target=\"_blank\" class=\"suggested-reading\">#{guide["title"]}</a>"
   end
 
   def site_link url, name

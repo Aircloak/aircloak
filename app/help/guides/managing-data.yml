@@ -75,11 +75,10 @@ content: |
   It is not important which of your cloak server you upload data to.
   A full URL for the _bulk insert_ API might therefore look like `https://<%= sample_cloak_name %>/bulk_insert`.
 
-  The cloak supports gzipped uploads.
-
   It is authenticated using
   client certificates. For more information about authentication, please have a look
-  at the <%= help_link "authentication" %> page.
+  at the <%= site_link "/apidocs/index.html#authentication", "authentication" %> section
+  of our API docs
 
   <% unless has_user_tables? -%>
 
@@ -87,62 +86,3 @@ content: |
   In order to be able to upload data to your cloak, you will need to create some database tables first.
   You can do this at the <% site_link controller.user_tables_path, "tables page" %>.
   <% end %>
-
-
-  ### Data format
-
-  The JSON data uploaded to a cloak should correspond to the table and column names you have defined
-  for your cluster.
-
-  Each payload can contain data for multiple users, and there is _no need to create a user in a cloak
-  before uploading data_ for that user for the first time.
-
-  The JSON object per user should have one entry per database table you want to upload for. The entry
-  for each database table can contain an array of one or more database rows, where each row need
-  to contain all the columns required in the table.
-  The data upload will fail if column names are miss-spelled, missing, or the datatype is wrong.
-
-  More concretely, the format should have the following structure
-
-  ```
-  {
-    "user-id": {
-      "table1_name": [
-        {"column_name": value, ...},
-        ...
-      ]
-    },
-    ...
-  }
-  ```
-
-  #### Example
-  <% if has_user_tables? -%>
-
-  If you wanted to upload data from your __<%= sample_user_table_name %>__ table for the two users __user1__ and __user2__,
-  you could upload a JSON payload with the following format
-
-  ```json
-  <%= sample_user_table_json_data %>
-  ```
-
-  <% else -%>
-
-  Say you wanted to upload data for the users __user1__ and __user2__ to a table called __<%= sample_user_table_name %>__ which has an
-  __x__ and a __y__ column, you would format the data as
-
-  ```json
-  <%= sample_user_table_json_data %>
-  ```
-
-  <% end -%>
-
-  ### Restrictions
-
-  The individual payloads should not exceed _10mb_ in size. The dataset you upload most likely exceeds this, in which case you want
-  to upload it in parts. Feel free to perform multiple uploads in parallel<%
-  if current_user.analyst.clusters.select {|cluster| cluster.cloaks.count > 1 }.count > 0 -%>, either to the same cloak or to multiple distinct cloaks within the same cluster.
-  <% else %> to the same cloak.
-  <% end -%>
-
-  The cloaks supported gzipped JSON. When sending gzipped data, the `Content-Encoding` header should be set to `gzip`.
