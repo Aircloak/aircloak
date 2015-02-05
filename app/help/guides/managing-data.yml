@@ -145,9 +145,4 @@ content: |
   <% else %> to the same cloak.
   <% end -%>
 
-  The cloaks also accept uploads that have been gzip compressed.
-  With [curl](http://curl.haxx.se/), uploading gzipped data could be done as follows:
-
-  ```bash
-  cat <%= sample_user_table_name %>.json | gzip -c | curl -XPOST -k --cert <%= sample_data_key_name %> --header "Content-Encoding: gzip" --header "Content-Type: application/json" https://<%= sample_cloak_name %>/bulk_insert --data-binary @-
-  ```
+  The cloaks supported gzipped JSON. When sending gzipped data, the `Content-Encoding` header should be set to `gzip`.

@@ -31,13 +31,13 @@ content: |
   ## Authentication example
 
   How you perform authentication with client certificates differs from language to language,
-  but using [curl](http://curl.haxx.se/), you would use the `--cert CertificateFile.pfx` flag.
+  but using [wget](https://www.gnu.org/software/wget/), you would use the `--certificate=CertificateFile.pfx` flag.
 
   Taking the API for uploading user data in bulk as an example:
   Assuming you had data for the __<%= sample_user_table_name %>__ table stored in a file in your current directory
   called __<%= sample_user_table_name %>.json__, and a key named <%= sample_data_key_name %>, you could issue the following
-  [curl](http://curl.haxx.se/) command to upload the data:
+  [wget](https://www.gnu.org/software/wget/) command to upload the data:
 
   ```bash
-  curl -XPOST -k --cert <%= sample_data_key_name %> --date @<%= sample_user_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
+  wget --content-on-error --output-document - --method=POST --certificate=<%= sample_data_key_name %> --body-file=<%= sample_user_table_name %>.json https://<%= sample_cloak_name %>/bulk_insert
   ```
