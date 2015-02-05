@@ -116,6 +116,9 @@ content: |
   - `wday` (day of the week, 1=Sunday, 2=Monday, ...)
   - `yday` (day of the year in range of 1-366)
 
+  Some helper functions exist that can help you manipulate such tables. For more details, see
+  <%= help_link "query-library" %>.
+
   #### Reporting values
 
   Whenever you want to report a value for a given user, you can use the `report_property` function.
