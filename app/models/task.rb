@@ -6,7 +6,7 @@ require './lib/task_code'
 class Task < ActiveRecord::Base
   has_many :pending_results, dependent: :destroy, counter_cache: true
 
-  has_many :results, dependent: :destroy, dependent: :destroy
+  has_many :results, dependent: :destroy
   has_many :buckets, through: :results, dependent: :destroy
   has_many :exception_results, through: :results, dependent: :destroy
 
