@@ -128,7 +128,7 @@ content: |
   10, you would never be informed of this as the value would be removed by the cloak.
   The cloak removes values that only hold true for very few users in order to protect their privacy.
 
-  If your report the values directly like in the example above, and your dataset
+  If you report the values directly like in the example above, and your dataset
   is such that the values are spread out evenly with very few users per value,
   then nothing at all gets reported by your query.
   You can solve this by grouping the values into buckets. We have an example of this below.

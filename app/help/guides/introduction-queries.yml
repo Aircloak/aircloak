@@ -88,7 +88,7 @@ content: |
   end
   ```
 
-  You might have noticed that the we index into the array starting at 1, rather than 0.
+  You might have noticed that the we index the array starting at 1, rather than 0.
   This is because Lua, contrary to most other programming languages, indices arrays from 1 rather than 0.
 
   You can also query a lookup table (see <%= help_link "lookup-tables" %>),
