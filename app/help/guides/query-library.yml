@@ -4,7 +4,7 @@ content: |
 
   # Query library
 
-  When writing queries, some utility functions are provided in the form of standard library.
+  When writing queries, some utility functions are provided in the form of a standard library.
 
   ## Aircloak.Utils functions
 
@@ -24,6 +24,8 @@ content: |
   #### Computing the length of a table
 
   `Aircloak.Utils.length(table)` returns the number of elements in a Lua table.
+  Unlike the built-in `#table` syntax, which works correctly only for arrays,
+  this function works properly for any kind of Lua table.
 
   #### Sorting table keys
 
@@ -36,7 +38,7 @@ content: |
   - the second key
 
   This function should return true if the first key should come before the second
-  one. If `order` function is not provided, keys are sorted alphabetically in the
+  one. If `order` function is not provided, keys are sorted alphabetically in
   ascending order.
 
   Examples:
@@ -80,7 +82,7 @@ content: |
   Some helper functions for dealing with [Lua date and time tables](http://www.lua.org/pil/22.1.html) are provided.
   As explained in <%= help_link "introduction-queries" %>, the best way to deal with dates and times is to
   store them as `varchar(10)` epoch times. Then in your script, you can convert such time to a Lua date table
-  using provided `to_date` function. You can then use following helper functions:
+  using the `to_date` function. You can then use following helper functions:
 
   - `Aircloak.DateTime.date(time)` - converts the time to the YYYYMMDD string.
   - `Aircloak.DateTime.day(time)` - returns an English name of the week day represented by the given time.
