@@ -103,7 +103,7 @@ describe Task do
     Bucket.count.should == 1
     ExceptionResult.count.should == 1
     PendingResult.count.should == 1
-    task.efficient_delete
+    task.efficiently_delete_results
     Result.count.should == 0
     Bucket.count.should == 0
     ExceptionResult.count.should == 0

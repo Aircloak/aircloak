@@ -44,7 +44,7 @@ content: |
   is to remove answers which would allow the analyst to single out individuals or very small groups.
   Answers where the returned count is too low are therefore withheld completely.
   It therefore might happen that the answer to a query is no answer at all.
-  Therefore it is usually helpful to ask for information at multiple levels
+  It is usually helpful to ask for information at multiple levels
   of granularity if your dataset is small.
   Instead of only asking: _how many users are of age 10?_, _how many users
   are of age 11?_ etc, you might additionally want to
@@ -55,16 +55,16 @@ content: |
 
   ### Queries are run over individual users, one at a time
 
-  When a query is run, it for privacy reasons only has access to the data of a
-  single user at a time. It has no memory across multiple executions.
-  A query can therefore do complex calculations based on a single user at a time.
+  When a query is run, it only has access to the data of a
+  single user. It has no memory across multiple executions, or executions over
+  the data of different users.
+  A query can do arbitrarily complex calculations based on a single user at a time.
   For example it could determine the average amount of time a user spends at a given location,
   waiting for a bus, or on what weekdays a user most frequently visits a parks.
 
-  While executing on a single user, the query has to determine if the user
+  While executing over a single user, the query has to determine if the user
   should be applied towards the count of some property.
-  For example _users who spent more than an hour a week in
-  a park_.
+  For example _users who spend more than one hour a week in parks_.
 
   It is possible to report multiple properties per user. For example, one could report:
 

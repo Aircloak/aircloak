@@ -17,6 +17,8 @@
   %button{class: "btn", onClick: "Task.execute('#{@task.token}');"} Run task
 
 = link_to 'Edit task', edit_task_path(@task.token), class: "btn"
+= link_to "Delete results", delete_results_task_path(@task.token), :method => :post,
+  :data => { :confirm => 'Are you sure?' }, class: "btn btn-danger"
 
 -# set listen parameters
 .listen_params{data: {server_url: @server_url, request: @request}}

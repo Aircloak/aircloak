@@ -3,9 +3,7 @@ title: Aircloak REST API Reference
 
 language_tabs:
   - ruby
-
-toc_footers:
-  - <a href='#'>Sign Up for an API Key</a>
+  - shell
 
 includes:
   - errors
@@ -26,8 +24,6 @@ please reach out to us on [support@aircloak.com](mailto:support@aircloak.com), a
 # Authentication
 
 All APIs, whether on the cloak or in the Aircloak web interface, are authenticated using client certificates.
-
-> An example of how perform a HTTP GET request in ruby using client certificates
 
 ```ruby
 require 'net/http'
@@ -67,6 +63,15 @@ class RestClient
     JSON.parse response.body
   end
 end
+```
+
+```shell
+wget --content-on-error \
+     --output-document - \
+     --method=<GET|POST|PUT|DELETE> \
+     --certificate=<path-to-PEM-certificate> %> \
+     --body-file=<file-to-upload-if-post-or-put> \
+     https://<cloak-server>.cloak.aircloak.net/bulk_insert
 ```
 
 To manage your keys, please visit the [keys](/keys) section in our web interface.
@@ -116,6 +121,13 @@ url = "https://api.aircloak.com/tasks"
 response = RestClient.get(url, api_key)
 ```
 
+```shell
+wget --content-on-error \
+     --output-document - \
+     --certificate=<path-to-PEM-certificate> \
+     https://api.aircloak.com/tasks
+```
+
 This endpoint retrieves all tasks for the authenticated analyst.
 
 ### HTTP Request
@@ -152,6 +164,13 @@ api_key = RestClient.key_from_file "my_api_key.pfx", "my_password"
 task_token = "my_task_token"
 url = "https://api.aircloak.com/tasks/#{task_token}/results"
 response = RestClient.get(url, api_key)
+```
+
+```shell
+wget --content-on-error \
+     --output-document - \
+     --certificate=<path-to-PEM-certificate> \
+     https://api.aircloak.com/tasks/#{task_token}/results
 ```
 
 This endpoint retrieves results for the given task. Retrieved results are ordered (newest come first) and paginated.
@@ -240,6 +259,28 @@ url = "https://<MACHINE-NAME>.cloak.aircloak.net/insert"
 RestClient.post url, json_payload, api_key
 ```
 
+```shell
+cat > locations.json <<EOJSON
+  {
+    "locations": [
+      {"x": 1, "y": 1},
+      {"x": 2, "y": 2}
+    ],
+    "purchases": [
+      {"product": "washing machine", "price": 10000}
+    ]
+  }
+EOJSON
+
+wget --content-on-error \
+     --output-document - \
+     --method=POST \
+     --certificate=<path-to-PEM-certificate> \
+     --body-file=locations.json \
+     --no-check-certificate \
+     https://<cloak-server>.cloak.aircloak.net/insert
+```
+
 The single user API endpoint is useful if you want to upload data directly from a single users device.
 For example a mobile application that only deals with the data of that particular user.
 
@@ -264,7 +305,8 @@ rows to be inserted in the database.
 Each row is a JSON object with key-value pairs, where the key is the column name, and the value,
 a JSON encoded value.
 
-The API accepts gzipped payloads.
+The API accepts gzipped payloads. The `Content-Encoding` header should be set to `gzip` if the data is
+compressed.
 
 The examples used assume you have two tables defined with the following table structures:
 
@@ -330,6 +372,34 @@ EOJSON
 api_key = RestClient.key_from_file "bulk-insert-key", "password"
 url = "https://<MACHINE-NAME>.cloak.aircloak.net/bulk_insert"
 RestClient.post url, json_payload, api_key
+```
+
+```shell
+cat > locations.json <<EOJSON
+  {
+    "user1": {
+      "locations": [
+        {"x": 1, "y": 1},
+        {"x": 2, "y": 2}
+      ]
+    },
+    "user2": {
+      "locations": [{"x": 2, "y": 2}],
+      "purchases": [
+        {"product": "washing machine", "price": 10000}
+      ]
+    }
+  }
+EOJSON
+
+wget --content-on-error \
+     --output-document - \
+     --method=POST \
+     --quiet \
+     --certificate=<path-to-PEM-certificate> \
+     --body-file=locations.json \
+     --no-check-certificate \
+     https://<cloak-server>.cloak.aircloak.net/bulk_insert
 ```
 
 The bulk insert API is useful when uploading data from a system where you have access to data for
@@ -410,6 +480,40 @@ headers = {
 api_key = RestClient.key_from_file "task-running-key", "password"
 url = "https://<MACHINE-NAME>.cloak.aircloak.net/task/run"
 RestClient.post url, json_payload, api_key, headers
+```
+
+```shell
+cat > task.json <<EOJSON
+  {
+    "prefetch": [
+      {"table": "locations"},
+      {
+        "table": "purchases",
+        "user_rows": 10,
+        "time_limit": 10,
+        "where": [
+          {"$$price": {"$gt": 100}}
+        ]
+      }
+    ],
+    "post_processing": {
+      "code": "report_property('user with', 'expensive purchase')"
+    }
+  }
+EOJSON
+
+wget --content-on-error \
+     --output-document - \
+     --method=POST \
+     --quiet \
+     --certificate=<path-to-PEM-certificate> \
+     --body-file=task.json \
+     --header='async_query: true' \
+     --header='auth_token: ABCDEFGH' \
+     --header='return_url: aHR0cHM6Ly9lbmQtcG9pbnQuZXhhbXBsZS5jb20v' \
+     --header='task_id: my-task' \
+     --no-check-certificate \
+     https://<cloak-server>.cloak.aircloak.net/task/run
 ```
 
 This API endpoint allows execution of batch tasks against a cloak cluster.

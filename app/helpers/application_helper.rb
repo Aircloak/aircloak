@@ -44,14 +44,7 @@ module ApplicationHelper
   end
 
   def help_link articles
-    help_section = <<EOF
-    <div class="suggested-reading">
-      <span class="label label-info">Consider reading</span>
-      #{raw_help_link articles}
-    </div>
-    <hr>
-EOF
-    help_section.html_safe
+    help_section (raw_help_link articles)
   end
 
   def raw_help_link articles
@@ -67,6 +60,25 @@ EOF
       links = help_util.help_link(article)
     end
     links.html_safe
+  end
+
+  def raw_api_docs_link title, section
+    "<a href=\"/apidocs/index.html##{section}\" target=\"_blank\" class=\"suggested-reading\">#{title}</a>".html_safe
+  end
+
+  def api_docs_help_link title, section
+    help_section (raw_api_docs_link title, section)
+  end
+
+  def help_section link_html
+    help_section = <<EOF
+    <div class="suggested-reading">
+      <span class="label label-info">Consider reading</span>
+      #{link_html}
+    </div>
+    <hr>
+EOF
+    help_section.html_safe
   end
 
   # Auxiliary function to display durations

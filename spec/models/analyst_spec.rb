@@ -61,4 +61,58 @@ describe Analyst do
       end
     end
   end
+
+  context "destruction" do
+    before(:each) do
+      Cloak.delete_all
+      Cluster.delete_all
+      Task.delete_all
+      Build.delete_all
+      UserTable.delete_all
+      Result.delete_all
+      LookupTable.delete_all
+    end
+
+    it "should destroy dependents" do
+      expect {Cloak.create(name: "test cloak", ip: "127.0.1.9")}.to change { Cloak.count }.from(0).to(1)
+      expect {Build.create(name: "test", manual: true)}.to change {Build.count}.from(0).to(1)
+      expect {analyst.clusters << Cluster.create(name: "test cluster", cloaks: [Cloak.first], build: Build.first)}.to change {
+          Cluster.count }.from(0).to(1)
+      expect {analyst.user_tables << UserTable.create(table_name: "test_table", cluster: Cluster.first)}.to change {
+          UserTable.count }.from(0).to(1)
+      expect {
+        prefetch_data = '{"table":"test1","where":{"\$\$priority": {"$lt": 3}}}'
+        PrefetchFilter.should_receive(:data_to_prefetch).and_return(prefetch_data)
+        Task.create(
+          name: "test-task",
+          code: "lua code",
+          data: prefetch_data,
+          cluster: analyst.clusters.first,
+          stored_task: false,
+          analyst: analyst
+        )}.to change { Task.count }.from(0).to(1)
+        expect {
+          lt = LookupTable.new(
+            table_name: "test",
+            cluster: analyst.clusters.first,
+            analyst: analyst,
+            deleted: false,
+          )
+          lt.upload_data = StringIO.new("[[\"hello\", \"world\"]]")
+          lt.save.should eq true
+        }.to change {LookupTable.count}.from(0).to(1)
+        expect {Result.create(task: analyst.tasks.first, analyst: analyst)}.to change {Result.count}.from(0).to(1)
+
+        # All the crap above, just for this tiny test...
+        analyst.destroy.should eq false
+        # Can destroy once cluster is gone
+        analyst.clusters.delete_all
+        Analyst.where(id: analyst.id).destroy_all
+        Task.count.should eq 0
+        UserTable.count.should eq 0
+        LookupTable.count.should eq 0
+        Result.count.should eq 0
+        Analyst.count.should eq 0
+    end
+  end
 end

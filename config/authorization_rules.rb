@@ -54,6 +54,7 @@ authorization do
       :help
     ], to: :read
     has_permission_on [:sandbox], to: :run
+    has_permission_on :tasks, to: :delete_results
   end
 
   role :admin do

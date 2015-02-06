@@ -30,7 +30,7 @@
         %td
           = link_to 'Latest results', latest_results_task_path(task.token), class: "btn btn-mini"
           = link_to 'Edit task', edit_task_path(task.token), class: "btn btn-mini"
-          = link_to task.results.count > 0 ? "Delete results" : "Destroy task", task_path(task.token), :method => :delete,
+          = link_to "Destroy task", task_path(task.token), :method => :delete,
             :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
 
 = link_to 'Add a new task', new_task_path, class: "btn"

@@ -240,9 +240,7 @@ private
   end
 
   def remove_state
-    tasks.each do |task|
-      task.efficient_delete
-    end
+    # We keep tasks and task results so the analyst can inspect them later
     AuditLog.where(cloak_id: cloaks.map(&:id)).delete_all
   end
 end

@@ -1,24 +1,21 @@
 require './lib/token_generator'
 
 class Analyst < ActiveRecord::Base
-  has_and_belongs_to_many :clusters
-  has_many :tasks
-  has_many :user_tables
-  has_many :lookup_tables
-  has_many :results
-  has_many :users
-  has_many :key_materials
-  has_many :analyst_tokens
-
   has_many :analysts_clusters
   has_and_belongs_to_many :clusters
-
+  has_many :tasks, dependent: :destroy
+  has_many :user_tables, dependent: :destroy
+  has_many :lookup_tables, dependent: :destroy
+  has_many :results, dependent: :destroy
+  has_many :users, dependent: :destroy
+  has_many :key_materials, dependent: :destroy
+  has_many :analyst_tokens, dependent: :destroy
   has_many :repeated_answers, dependent: :destroy
 
   validates_presence_of :name
 
   after_create :create_token, :unless => :key
-  before_destroy :can_destroy
+  before_destroy :pre_destroy_cleanup
 
   def self.analyst_options
     [["None", "none"]] + Analyst.all.map {|a| [a.name, a.id]}
@@ -55,6 +52,10 @@ class Analyst < ActiveRecord::Base
     clusters.count > 0
   end
 
+  def can_destroy?
+    not has_clusters?
+  end
+
 private
   def create_token
     create_analyst_token
@@ -83,10 +84,14 @@ private
         TokenGenerator.generate_leaf_token self.key, self.certificate, "task_runner", 0
   end
 
-  def can_destroy
-    if clusters.count > 0
+  def pre_destroy_cleanup
+    unless can_destroy?
       self.errors.add(:analyst, "Cannot destroy an analyst that is assigned to a cluster.")
-      false
+      return false
+    end
+    # To speed up the destruction, we clear all task results before destroying the tasks
+    tasks.each do |task|
+      task.efficiently_delete_results
     end
   end
 end

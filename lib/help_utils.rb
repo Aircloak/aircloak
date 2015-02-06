@@ -80,7 +80,7 @@ class HelpUtils
 
   def help_link page
     guide = guide_for_id page
-    "<a href=\"/help/#{page}\" target=\"_blank\">#{guide["title"]}</a>"
+    "<a href=\"/help/#{page}\" target=\"_blank\" class=\"suggested-reading\">#{guide["title"]}</a>"
   end
 
   def site_link url, name
@@ -149,9 +149,9 @@ class HelpUtils
 
   def sample_data_key_name
     if data_key_count == 0
-      "MyKey.pfx"
+      "MyKey.pem"
     else
-      @current_user.analyst.key_materials.where(key_type: "data_upload_all").first.name "pfx"
+      @current_user.analyst.key_materials.where(key_type: "data_upload_all").first.name "pem"
     end
   end
 
