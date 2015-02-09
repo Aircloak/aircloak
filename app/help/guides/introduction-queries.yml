@@ -27,6 +27,8 @@ content: |
   based on the data of the individual user about whether
   the user should be included in the resulting count, or not.
 
+  For explanation of different task execution models see <%= help_link "task-execution"%>
+
   For a more in-depth explanation of how to think about the query model,
   take a look at <%= help_link "understanding-the-query-model" %>.
 
