@@ -4,6 +4,8 @@ content: |
 
   # An introduction to writing queries
 
+  A query is a task that generates reports based on user data residing in the database.
+
   Due to the mechanisms put in place to provide a high levels of user anonymity
   and privacy, the way in which you write queries against our system
   most likely differs quite significantly from how you today query your
