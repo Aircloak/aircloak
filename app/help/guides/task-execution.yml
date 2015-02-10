@@ -1,0 +1,85 @@
+title: Task execution models
+order: 1
+content: |
+
+  # Task execution models
+
+  There are two types of execution models: __batch__ and __streaming__. Note: Streaming tasks are a new
+  feature which may not be supported in older versions of clusters.
+
+  ## Batch tasks
+
+  A batch task is executed on demand. Once defined, a task can be manually scheduled to run, either via the
+  user interface or via the REST API. The task will then execute in the cluster and once the execution is over,
+  the reports will be generated and sent to the desired endpoint.
+
+  ## Streaming tasks
+
+  A streaming task is executed whenever a new data for related tables is inserted. Related tables can be
+  specified in the prefetch part of the task definition.
+
+  As explained in <%= help_link "introduction-queries" %>, a task is always executed over an individual user.
+  During execution, a task may generate values which will be included in the final report.
+
+  When it comes to streaming tasks, values reported by streaming tasks do not immediately leave the cloak.
+  Instead, the process of anonymization and aggregation (as explained in
+  <%= help_link "understanding-the-query-model" %>) is performed periodically. You can configure this period
+  as a part of the task.
+
+  Values reported for a single user will be included in the next generated result. In fact,
+  those values will be included in all future results until one of following conditions is met:
+
+  1. The task is executed for that same user. This happens when new data for that user is inserted. This
+  will cause all previously generated values for that user to be deleted.
+  2. The generated values have expired. The expiry time of generated values can be configured when defining the
+  task.
+
+  ### Stateful tasks
+
+  It is also possible to maintain a user-specific state. This can be useful if you want to track and report
+  changes, rather than absolute values. This can be done through the `accumulator` variable. When a task
+  is invoked for the first time for some user, the `accumulator` will have the value of `nil`. During the
+  task execution, you can set the `accumulator` variable to an arbitrary value. Next time the task is invoked
+  for that same user, the `accumulator` variable will have the previously set value.
+
+  __Note__: accumulators are only supported in streaming tasks. The accumulator value will not be preserved in a
+  batch task.
+
+  For example, when tracking user locations, you might be interested in reporting moving vs. stationary people.
+  To do this, you can store the observed location in the user-specific state. Next time the task is invoked
+  for that same user, you can use this state to detect if a user has moved or not:
+
+  ```lua
+  local location = tables.locations[1]
+
+  if (accumulator ~= nil) then
+    -- report something only if not the first run
+    local moving_status
+
+    -- use accumulator to detect the moving status
+    if (accumulator.x == location.x and accumulator.y == location.y) then
+      moving_status = "stationary"
+    else
+      moving_status = "moving"
+    end
+
+    report_property("moving_status", moving_status)
+  end
+
+  -- set the accumulator to the observed location
+  accumulator = location
+  ```
+
+  Accumulator can be arbitrarily complex. If you need to keep multiple values in the state, you can just use
+  a Lua table:
+
+  ```lua
+  -- initialize the table on the first run
+  accumulator = accumulator or {}
+
+  if (accumulator.location ~= nil) then
+    -- ...
+  end
+
+  accumulator.location = tables.locations[1]
+  ```

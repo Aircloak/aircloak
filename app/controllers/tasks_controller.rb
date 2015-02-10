@@ -186,7 +186,8 @@ private
       {text: "tables"},
       {text: "lookup", displayText: "lookup(table_name, key)"},
       {text: "to_date", displayText: "to_date(timestamp)"},
-      {text: "user_id"}
+      {text: "user_id"},
+      {text: "accumulator"}
     ]
 
     # Functions declared in all library scripts
