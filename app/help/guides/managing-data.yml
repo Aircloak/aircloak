@@ -84,5 +84,5 @@ content: |
 
   __Please note:__
   In order to be able to upload data to your cloak, you will need to create some database tables first.
-  You can do this at the <% site_link controller.user_tables_path, "tables page" %>.
+  You can do this at the <%= site_link controller.user_tables_path, "tables page" %>.
   <% end %>
