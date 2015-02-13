@@ -57,8 +57,12 @@ handle_publish_request(<<"POST">>, Path, true, ContentType, Req) ->
       cowboy_req:reply(200, [], <<>>, Req2);
     {ForwardUrl, ForwardHeadersNames} ->
       lager:notice("Forwarding article published on ~s to ~s", [Path, ForwardUrl]),
-      ForwardHeaders = get_forward_headers(Path, ForwardHeadersNames, Req2),
-      StatusCode = forward_article(ForwardUrl, ForwardHeaders, ContentType, Body),
+      % convert published timestamp to miliseconds and forward it to the final endpoint
+      {MegaSecs, Secs, MicroSecs} = Article#article.published_at,
+      PublishedAtMillis = (MegaSecs * 1000 * 1000 + Secs) * 1000 + MicroSecs div 1000,
+      MetadataHeaders = [{"Path", base64:encode_to_string(Path)}, {"PublishedAt", integer_to_list(PublishedAtMillis)}],
+      ForwardHeaders = get_forward_headers(ForwardHeadersNames, Req2),
+      StatusCode = forward_article(ForwardUrl, MetadataHeaders ++ ForwardHeaders, ContentType, Body),
       cowboy_req:reply(StatusCode, [], <<>>, Req2)
   end;
 handle_publish_request(<<"POST">>, _Path, false, _ContentType, Req) ->
@@ -80,15 +84,14 @@ get_forward_info(Path) ->
     end, {0, undefined}, Routes),
   Match.
 
-% Computes the header list to forward with the article content.
--spec get_forward_headers(string(), [string()], term()) -> [tuple(string(), string())].
-get_forward_headers(Path, Headers, Req) ->
+% Builds the headers list, from the original request, to forward along with the article content.
+-spec get_forward_headers([string()], term()) -> [tuple(string(), string())].
+get_forward_headers(Headers, Req) ->
   GetHeaderValue = fun(HeaderName) ->
     PreppedHeaderName = list_to_binary(string:to_lower(HeaderName)),
     header_to_string(cowboy_req:header(PreppedHeaderName, Req))
   end,
-  HeadersToForward = [{HeaderName, GetHeaderValue(HeaderName)} || HeaderName <- Headers],
-  [{"Path", base64:encode_to_string(Path)} | HeadersToForward].
+  [{HeaderName, GetHeaderValue(HeaderName)} || HeaderName <- Headers].
 
 % Forwards the published article to another endpoint for further processing.
 -spec forward_article(string(), [tuple(string(), string())], string(), binary()) -> pos_integer().
