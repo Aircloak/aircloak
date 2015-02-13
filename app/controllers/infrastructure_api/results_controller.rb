@@ -20,7 +20,9 @@ class InfrastructureApi::ResultsController < ApplicationController
     end
     task_id = Task.decode_id(r.task_id)
     if task_id == @pending_result.task_id then
-      ResultHandler.store_results Task.find(task_id), r
+      published_at = request.headers["PublishedAt"]
+      published_at = published_at.to_i unless published_at.nil?
+      ResultHandler.store_results Task.find(task_id), r, published_at
     end
     render text: "Got it buddy, thanks", layout: false
   end
