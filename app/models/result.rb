@@ -29,7 +29,7 @@ class Result < ActiveRecord::Base
   # Convert result with buckets to the format appropriate for usage by clients, such as API consumers.
   def to_client_hash
     {
-      :published_at => created_at.utc.to_i * 1000,
+      :published_at => created_at.utc.to_i * 1000 + created_at.utc.usec / 1000,
       :id => id,
       :buckets => buckets.map { |bucket|
         {
