@@ -2,10 +2,11 @@ require './lib/proto/air/aggregate_results.pb'
 
 class ResultHandler
   # Store the new sets of results
-  def self.store_results task, proto
+  def self.store_results task, proto, published_at
     # create a new result
     new_result = Result.create(task: task)
     new_result.analyst = task.analyst
+    new_result.created_at = published_at
     # copy all properties as buckets
     create_buckets proto.buckets, new_result.id unless proto.buckets.blank?
     # copy all exceptions as exception_results
