@@ -43,7 +43,12 @@ class UserTablesController < ApplicationController
       redirect_to user_tables_path
     else
       describe_failed_activity "Failed at creating user table"
-      set_view_params migration.table_json
+      @creating_new_table = true
+      @previous_migration = migration.migration
+      original_table_data = JSON.parse @table.table_data
+      new_table_data = JSON.parse migration.table_json
+      full_table_data = original_table_data | new_table_data
+      set_view_params full_table_data.to_json
       render :table_editor
     end
   rescue
@@ -68,7 +73,6 @@ class UserTablesController < ApplicationController
       set_view_params full_table_data.to_json
       render :table_editor
     end
-
   rescue
     describe_failed_activity "Edited user table, but couldn't migrate it"
     flash[:error] = "We could not apply the table changes at this time. Please try again later"
@@ -135,7 +139,6 @@ class UserTablesController < ApplicationController
       flash[:notice] = "Already fully migrated"
       redirect_to user_tables_path
     end
-
   rescue Exception => error
     describe_failed_activity "Tried to apply a migration failed to broken cluster, but it still failed"
     flash[:error] = "We still failed at applying the migration. Please retry later"

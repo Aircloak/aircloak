@@ -14,7 +14,7 @@ class Task < ActiveRecord::Base
   belongs_to :analyst
 
   validates_presence_of :name, :sandbox_type, :code, :cluster
-  validates_uniqueness_of :name
+  validates_uniqueness_of :name, scope: [:analyst_id]
   validate :prefetch_correct
   validate :streaming_task
 
