@@ -53,6 +53,48 @@ describe "ApiTasksController" do
     end
   end
 
+  describe "POST /api/tasks/<TOKEN>/run" do
+    it "should require analyst" do
+      post "/api/tasks/token/run"
+      response.code.should eq "401"
+
+      post "/api/tasks/token/run", "", {'HTTP_ANALYST_TOKEN' => "foobar"}
+      response.code.should eq "401"
+    end
+
+    it "should require that the task is present" do
+      task_token = "missing"
+      Task.find_by_token(task_token).should eq nil
+      post "/api/tasks/#{task_token}/run", "", {'HTTP_ANALYST_TOKEN' => token.token}
+      response.code.should eq "404"
+    end
+
+    it "should schedule a task for running" do
+      task_token = "token"
+      association = double
+      analyst_double = double(:analyst, tasks: association)
+      AnalystToken.should_receive(:api_analyst).and_return(analyst_double)
+      task = double
+      association.should_receive(:find_by_token).and_return(task)
+      task.should_receive(:execute_as_batch_task)
+      task.should_receive(:batch_task?).and_return(true)
+      post "/api/tasks/#{task_token}/run", "", {'HTTP_ANALYST_TOKEN' => token.token}
+      response.code.should eq "200"
+    end
+
+    it "should not schedule a streaming task for running" do
+      task_token = "token"
+      association = double
+      analyst_double = double(:analyst, tasks: association)
+      AnalystToken.should_receive(:api_analyst).and_return(analyst_double)
+      task = double
+      association.should_receive(:find_by_token).and_return(task)
+      task.should_receive(:batch_task?).and_return(false)
+      post "/api/tasks/#{task_token}/run", "", {'HTTP_ANALYST_TOKEN' => token.token}
+      response.code.should eq "400"
+    end
+  end
+
   private
     def create_task(i)
       Task.create(

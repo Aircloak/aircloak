@@ -85,6 +85,7 @@ Web::Application.routes.draw do
   scope "/api", module: :api do
     resources :tasks, path: "tasks" do
       resources :task_results, path: "results"
+      post :run, on: :member
     end
   end
 

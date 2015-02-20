@@ -2,6 +2,7 @@ require './lib/proto/air/aggregate_results.pb'
 
 class Api::TasksController < ApplicationController
   filter_access_to [:index], require: :anon_read
+  filter_access_to [:run], require: :anon_write
   skip_before_action :verify_authenticity_token
   before_action :authenticate_api_analyst
   respond_to :json
@@ -17,5 +18,24 @@ class Api::TasksController < ApplicationController
     end
 
     respond_with({success: true, tasks: tasks}, status: :ok)
+  end
+
+  # POST /api/tasks/<TASK-TOKEN>/run
+  # Note(sebastian): This is an undocumented API endpoint created for Michal at Telefonica.
+  # I am not yet sure if this is something we want to support long term, so I don't
+  # want to make it publicly known and used.
+  def run
+    task = @analyst.tasks.find_by_token params[:token]
+    if task
+      if task.batch_task?
+        task.execute_as_batch_task
+        render json: {success: true}, status: :ok
+      else
+        render json: {success: false, description: "Only batch queries can be schedule for execution"},
+            status: :bad_request
+      end
+    else
+      render json: {success: false, description: "Unknown task"}, status: :not_found
+    end
   end
 end
