@@ -6,6 +6,9 @@ content: |
 
   When writing queries, some utility functions are provided in the form of a standard library.
 
+  __Note__: these utility functions can only be used when running tasks from the web user interface. When you
+  issue queries via the Cloak API, these functions will not be available to the task code.
+
   ## Aircloak.Utils functions
 
   ### Quantizing a number
