@@ -76,8 +76,8 @@ describe "ApiTasksController" do
       AnalystToken.should_receive(:api_analyst).and_return(analyst_double)
       task = double
       association.should_receive(:find_by_token).and_return(task)
-      task.should_receive(:execute_as_batch_task)
       task.should_receive(:batch_task?).and_return(true)
+      task.should_receive(:execute_batch_task)
       post "/api/tasks/#{task_token}/run", "", {'HTTP_ANALYST_TOKEN' => token.token}
       response.code.should eq "200"
     end
