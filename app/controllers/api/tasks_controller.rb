@@ -25,10 +25,10 @@ class Api::TasksController < ApplicationController
   # I am not yet sure if this is something we want to support long term, so I don't
   # want to make it publicly known and used.
   def run
-    task = @analyst.tasks.find_by_token params[:token]
+    task = @analyst.tasks.find_by_token params[:id]
     if task
       if task.batch_task?
-        task.execute_as_batch_task
+        task.execute_batch_task
         render json: {success: true}, status: :ok
       else
         render json: {success: false, description: "Only batch queries can be schedule for execution"},
