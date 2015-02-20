@@ -60,10 +60,10 @@ protected
 
   def authenticate_api_analyst
     if request.headers["HTTP_ANALYST_TOKEN"].nil?
-        respond_with({success: false, error: "Missing authentication key."}, {status: :unauthorized})
+      render json: {success: false, error: "Missing authentication key."}, status: :unauthorized
     else
       @analyst = AnalystToken.api_analyst(request.headers["HTTP_ANALYST_TOKEN"])
-      respond_with({success: false, error: "Not authenticated."}, {status: :unauthorized}) if @analyst.nil?
+      render json: {success: false, error: "Not authenticated."}, status: :unauthorized if @analyst.nil?
     end
   end
 

@@ -17,6 +17,10 @@ authorization do
       :api_task_results
     ], to: :anon_read
 
+    has_permission_on [
+      :api_tasks
+    ], to: :anon_write
+
 
     ## ------------------------------------------------------------------
     ## Rules for infrastructure APIs which are authenticated through nginx
