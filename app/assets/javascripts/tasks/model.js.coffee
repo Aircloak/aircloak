@@ -179,7 +179,7 @@ Tasks.Data = (tables) ->
             targetTable.data[testUser.user_id] ||= []
             targetTable.data[testUser.user_id].push(userRow)
           )
-      usersData
+      [usersData]
 
     simplifyPrefetch: ->
       _.each(tableFilters, (tableFilter) -> tableFilter.simplify())

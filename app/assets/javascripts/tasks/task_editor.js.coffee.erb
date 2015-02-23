@@ -247,19 +247,22 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       if (response.status != 200)
         [{message: "HTTP error #{response.status}", count: 1}]
       else
-        (JSON.parse(response.responseText).errors || [])
+        (lastResponse(response).errors || [])
     renderExceptions()
 
   renderSandboxResults = (response) ->
     if (response.status == 200)
       results =
-        _.chain(JSON.parse(response.responseText).reported_properties).
+        _.chain(lastResponse(response).reported_properties).
           pairs().
           map(([user, properties]) -> _.map(properties, (property) -> user: user, property: property)).
           flatten(true).
           sortBy((result) -> "#{result.user}_#{result.property.label}_#{result.property.value}").
           value()
     $("#sandboxResult").html(HandlebarsTemplates["tasks/sandbox_results"](results || []))
+
+  lastResponse = (response) ->
+    _.last(JSON.parse(response.responseText))
 
   anotherUserEntry = (e) ->
     handleEventAndCancel(e,
