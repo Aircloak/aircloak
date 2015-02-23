@@ -2,7 +2,10 @@
   User needs login
 
 - else
-  - if current_user.needs_onboarding?
+  - if current_user.analyst.nil?
+    %h2 Welcome
+
+  - elsif current_user.needs_onboarding?
     %h2 Welcome
 
     %p
