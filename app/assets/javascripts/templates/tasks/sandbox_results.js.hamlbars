@@ -1,10 +1,17 @@
-%table.table.table-striped
-  %thead
-    %tr
-      %th User
-      %th Bucket
-  %tbody
-    = hb "each ." do
-      %tr
-        %td= hb "user"
-        %td= "#{hb "property.label"} #{hb "property.value"}"
+= hb("each data") do
+  = hb("if ../multiRun") do
+    %hr
+    %h5= "Run #{hb("inc @index")}"
+  = hb("if ./length") do
+    %table.table.table-striped
+      %thead
+        %tr
+          %th User
+          %th Bucket
+      %tbody
+        = hb "each ." do
+          %tr
+            %td= hb "user"
+            %td= "#{hb "property.label"} #{hb "property.value"}"
+    = hb("else")
+    No properties reported

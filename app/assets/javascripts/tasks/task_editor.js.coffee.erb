@@ -13,6 +13,9 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
   codeEditor = null
   changed = false
 
+  isStreaming = ->
+    taskType == <%= Task::STREAMING_TASK %>
+
   render = ->
     data.selectClusterId(selectedClusterId())
     $("#prefetchTables").html(HandlebarsTemplates["tasks/prefetch_tables"](data))
@@ -131,7 +134,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       $("#addTable").hide()
 
   showHideStreamingTaskControls = ->
-    if (taskType == <%= Task::STREAMING_TASK %> and selectedClusterCapableOfStreaming())
+    if (isStreaming() and selectedClusterCapableOfStreaming())
       $("#streamingTaskParams").show()
     else
       $("#streamingTaskParams").hide()
@@ -183,7 +186,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
 
   onTaskTypeChanged = (e) ->
     taskType = parseInt($('#task_task_type').val())
-    data.simplifyPrefetch() if (taskType == <%= Task::STREAMING_TASK %>)
+    data.simplifyPrefetch() if (isStreaming())
     enableDisableExtendedFilters()
     render()
 
@@ -204,18 +207,12 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
     data.fromJson(json)
 
   renderSandboxEditor = () ->
-    $("#sandboxRunner").html(HandlebarsTemplates["tasks/sandbox_runner"](data))
+    $("#sandboxRunner").html(HandlebarsTemplates["tasks/sandbox_runner"](data: data, multiRun: isStreaming()))
 
   addSandboxUser = (e) ->
     handleEventAndCancel(e,
           ->
-            userId = data.newTestUserId()
-            _.each(
-                  data.selectedTables(),
-                  (table) ->
-                    testUser = data.sampleTestUser(table, userId)
-                    data.addTestUser(testUser)
-                )
+            data.addTestUser($(e.target).data("run-id"))
             renderSandboxEditor()
         )
 
@@ -247,35 +244,42 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       if (response.status != 200)
         [{message: "HTTP error #{response.status}", count: 1}]
       else
-        (lastResponse(response).errors || [])
+        _.chain(results(response)).
+          map((result) -> result.errors || []).
+          flatten(true).
+          value()
     renderExceptions()
 
   renderSandboxResults = (response) ->
     if (response.status == 200)
-      results =
-        _.chain(lastResponse(response).reported_properties).
-          pairs().
-          map(([user, properties]) -> _.map(properties, (property) -> user: user, property: property)).
-          flatten(true).
-          sortBy((result) -> "#{result.user}_#{result.property.label}_#{result.property.value}").
-          value()
-    $("#sandboxResult").html(HandlebarsTemplates["tasks/sandbox_results"](results || []))
+      reports = _.map(results(response), transformReportedProperties)
 
-  lastResponse = (response) ->
-    _.last(JSON.parse(response.responseText))
+    $("#sandboxResult").html(HandlebarsTemplates["tasks/sandbox_results"](
+          multiRun: isStreaming(), data: reports || []
+        ))
+
+  results = (response) ->
+    JSON.parse(response.responseText)
+
+  transformReportedProperties = (result) ->
+    _.chain(result.reported_properties).
+      pairs().
+      map(([user, properties]) -> _.map(properties, (property) -> user: user, property: property)).
+      flatten(true).
+      sortBy((result) -> "#{result.user}_#{result.property.label}_#{result.property.value}").
+      value()
 
   anotherUserEntry = (e) ->
-    handleEventAndCancel(e,
-          ->
-            userId = $(e.target).data("user-id")
-            testUser = data.sampleTestUser(data.selectedTableForName($(e.target).data("table")), userId)
-            data.addTestUser(testUser)
-            renderSandboxEditor()
+    handleEventAndCancel(e, ->
+          target = $(e.target)
+          data.anotherUserEntry(target.data("run-id"), target.data("user-id"), target.data("table"))
+          renderSandboxEditor()
         )
 
   removeTestUser = (e) ->
     handleEventAndCancel(e, ->
-          data.removeTestUser($(e.target).data("userRowId"))
+          target = $(e.target)
+          data.removeTestUser(target.data("run-id"), $(e.target).data("userRowId"))
           renderSandboxEditor()
         )
 
@@ -283,25 +287,25 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
     handleEventAndCancel(e, ->
           target = $(e.target)
           fields =
-            _.chain(data.findTestUser(target.data("user-row-id"))).
+            _.chain(data.findTestUser(target.data("run-id"), target.data("user-row-id"))).
               pairs().
               reduce(
                     (memo, [field, value]) -> memo.push(name: field, value: value.toString()); memo
                     []
                   )
               .value()
-          showSandboxUserEditor(target.data("table"), target.data("user-row-id"), fields)
+          showSandboxUserEditor(target.data("run-id"), target.data("table"), target.data("user-row-id"), fields)
         )
 
-  showSandboxUserEditor = (tableName, userRowId, fields) ->
+  showSandboxUserEditor = (runId, tableName, userRowId, fields) ->
     Popup.show(HandlebarsTemplates["tasks/sandbox_user"](fields: fields))
     $("[data-sandbox-field]").focus()
     $('#updateSandboxUser').on(
           'click',
-          (e) -> handleEventAndCancel(e, -> updateSandboxUser(tableName, userRowId))
+          (e) -> handleEventAndCancel(e, -> updateSandboxUser(runId, tableName, userRowId))
         )
 
-  updateSandboxUser = (tableName, userRowId) ->
+  updateSandboxUser = (runId, tableName, userRowId) ->
     userData =
       _.reduce(
             $("[data-sandbox-field]"),
@@ -325,8 +329,20 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
           )
     $('#updateSandboxUser').off('click')
     Popup.close()
-    data.updateTestUser(tableName, userRowId, userData)
+    data.updateTestUser(runId, tableName, userRowId, userData)
     renderSandboxEditor()
+
+  addTestRun = (e) ->
+    handleEventAndCancel(e, ->
+          data.addTestRun()
+          renderSandboxEditor()
+        )
+
+  removeTestRun = (e) ->
+    handleEventAndCancel(e, ->
+          data.removeTestRun($(e.target).data("run-id"))
+          renderSandboxEditor()
+        )
 
 
   # ------------------------------------
@@ -341,13 +357,15 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       "change #newTableName": showHideAddTable
       "change #task_task_type": onTaskTypeChanged
       "click #addTable": addTable
-      "click #addSandboxUser": addSandboxUser
+      "click [data-add-test-user]": addSandboxUser
       "click #runInSandbox": runInSandbox
       "click [data-remove-table]": removeTable
       "click [data-edit-filter]": editFilter
       "click [data-remove-test-user]": removeTestUser
       "click [data-another-user-entry]": anotherUserEntry
       "click [data-edit-sandbox-user]": editSandboxUser
+      "click #addTestRun": addTestRun
+      "click [data-remove-test-run]": removeTestRun
       "submit": submit
   })
 
