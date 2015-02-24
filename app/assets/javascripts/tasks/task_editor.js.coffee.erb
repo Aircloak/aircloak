@@ -200,14 +200,8 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
     editor.render()
 
   submit = (e) ->
+    $("#task_test_data").val(JSON.stringify(data.exportTestData()))
     $("#task_data").val(JSON.stringify(data))
-
-  decodePrefetch = (tables) ->
-    data = new Tasks.Data(tables)
-    data.selectClusterId(selectedClusterId())
-    json = $("#task_data").val()
-    return if json == ""
-    data.fromJson(json)
 
   renderSandboxEditor = () ->
     $("#sandboxRunner").html(HandlebarsTemplates["tasks/sandbox_runner"](data: data, multiRun: isStreaming()))
@@ -373,7 +367,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
   })
 
   Tasks.Operators = operators
-  decodePrefetch(tables)
+  data = new Tasks.Data(tables, selectedClusterId(), $("#task_data").val(), $("#task_test_data").val())
   enableDisableExtendedFilters()
   initCodeEditor()
   render()

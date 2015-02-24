@@ -3,7 +3,7 @@ window.Tasks or= {}
 
 # Represents the data, as seen by UI and users. Data consists of list of tables
 # each table having an optional filter.
-Tasks.Data = (tables) ->
+Tasks.Data = (tables, initialClusterId, filterData, testData) ->
   self = this
 
   # ------------------------------------
@@ -73,12 +73,6 @@ Tasks.Data = (tables) ->
 
     toJSON: -> tableFilters
 
-    fromJson: (json) ->
-      self.clear()
-      _.each(JSON.parse(json), (tableFilterDescriptor) ->
-            self.newTableFilter(tableFilterDescriptor.tableId, tableFilterDescriptor, true)
-          )
-
     removeTableFilter: (index) ->
       removed = tableFilters.splice(index, 1)
       if removed[0]
@@ -127,14 +121,31 @@ Tasks.Data = (tables) ->
       if (!lastRun)
         _.each(selectedTables(), (selectedTable) -> newRun.addTableForTestUsers(selectedTable))
       else
-        newRun.cloneFrom(lastRun)
+        newRun.import(lastRun.export())
 
     removeTestRun: (runId) ->
       testRuns = _.filter(testRuns, (testRun) -> testRun.id != runId)
 
     testJson: ->
       _.map(testRuns, (testRun) -> testRun.testJson())
+
+    exportTestData: ->
+      _.map(testRuns, (testRun) -> testRun.export())
   })
+
+  self.selectClusterId(initialClusterId)
+
+  if filterData && filterData != ""
+    self.clear()
+    _.each(JSON.parse(filterData), (tableFilterDescriptor) ->
+          self.newTableFilter(tableFilterDescriptor.tableId, tableFilterDescriptor, true)
+        )
+
+  if testData && testData != ""
+    testRuns = []
+    _.each(JSON.parse(testData), (testRun) -> testRuns.push(newTestRun().import(testRun)))
+
+  self
 
 
 # Represents the data for a single test run
@@ -194,9 +205,14 @@ TestRun = (id) ->
   _.extend(self, {
     id: id
 
-    internalData: ->
+    export: ->
       testUsers: testUsers
       userRowId: userRowId
+
+    import: (from) ->
+      testUsers = _.map(from.testUsers, (testUser) -> _.clone(testUser))
+      userRowId = from.userRowId
+      self
 
     addTestUser: addTestUser
 
@@ -210,10 +226,6 @@ TestRun = (id) ->
             )
       else
         addTestUser(table)
-
-    cloneFrom: (testRun) ->
-      testUsers = _.map(testRun.internalData().testUsers, (testUser) -> _.clone(testUser))
-      userRowId = testRun.internalData().userRowId
 
     removeTestUser: (userRowId) ->
       testUsers = _.filter(testUsers, (testUser) -> testUser.userRowId != userRowId)
