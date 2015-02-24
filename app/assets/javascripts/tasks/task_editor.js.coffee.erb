@@ -186,7 +186,10 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
 
   onTaskTypeChanged = (e) ->
     taskType = parseInt($('#task_task_type').val())
-    data.simplifyPrefetch() if (isStreaming())
+    if (isStreaming())
+      data.simplifyPrefetch()
+    else
+      data.simplifyRuns()
     enableDisableExtendedFilters()
     render()
 
