@@ -212,7 +212,7 @@ private
 
   def task_params
     params.require(:task).permit(
-          :name, :cluster_id, :data, :code, :task_type, :report_interval, :user_expire_interval
+          :name, :cluster_id, :data, :code, :task_type, :report_interval, :user_expire_interval, :test_data
         )
   end
 

@@ -197,6 +197,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
     editor.render()
 
   submit = (e) ->
+    $("#task_test_data").val(JSON.stringify(data.exportTestData()))
     $("#task_data").val(JSON.stringify(data))
 
   decodePrefetch = (tables) ->

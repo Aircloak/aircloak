@@ -121,13 +121,16 @@ Tasks.Data = (tables) ->
       if (!lastRun)
         _.each(selectedTables(), (selectedTable) -> newRun.addTableForTestUsers(selectedTable))
       else
-        newRun.cloneFrom(lastRun)
+        newRun.import(lastRun.export())
 
     removeTestRun: (runId) ->
       testRuns = _.filter(testRuns, (testRun) -> testRun.id != runId)
 
     testJson: ->
       _.map(testRuns, (testRun) -> testRun.testJson())
+
+    exportTestData: ->
+      _.map(testRuns, (testRun) -> testRun.export())
   })
 
 
@@ -188,9 +191,14 @@ TestRun = (id) ->
   _.extend(self, {
     id: id
 
-    internalData: ->
+    export: ->
       testUsers: testUsers
       userRowId: userRowId
+
+    import: (from) ->
+      testUsers = _.map(from.testUsers, (testUser) -> _.clone(testUser))
+      userRowId = from.userRowId
+      self
 
     addTestUser: addTestUser
 
@@ -204,10 +212,6 @@ TestRun = (id) ->
             )
       else
         addTestUser(table)
-
-    cloneFrom: (testRun) ->
-      testUsers = _.map(testRun.internalData().testUsers, (testUser) -> _.clone(testUser))
-      userRowId = testRun.internalData().userRowId
 
     removeTestUser: (userRowId) ->
       testUsers = _.filter(testUsers, (testUser) -> testUser.userRowId != userRowId)
