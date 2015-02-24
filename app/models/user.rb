@@ -4,6 +4,8 @@ class User < ActiveRecord::Base
   has_many :activities
   belongs_to :analyst
 
+  validate :only_aircloakers_can_be_admin
+
   before_destroy :remove_tracked_activity
 
   acts_as_authentic do |c|
@@ -107,5 +109,12 @@ class User < ActiveRecord::Base
 
   def remove_tracked_activity
     Activity.where(user_id: self.id).delete_all
+  end
+
+private
+  def only_aircloakers_can_be_admin
+    unless email =~ /aircloak\.com/
+      errors[:base] = "Non-aircloakers are not allow to be administrators" if permissions.where(name: "admin")
+    end
   end
 end
