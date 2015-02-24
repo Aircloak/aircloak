@@ -31,6 +31,17 @@
           = f.select :analyst_id, Analyst.analyst_options
 
     - if permitted_to? :manage, :user_permissions
+      .alert
+        %button.close{type: "button", data: {dismiss: "alert"}} &times;
+        %strong Notice!
+        %p
+          Only Aircloak employees should be given administrator privileges.
+          The
+          %strong administrator
+          privilege is not the same as an
+          %strong analyst account administrator.
+          If a user is given administrator privileges, he or she can create clusters
+          and impersonate any other analyst.
       .control-group
         = control_label "Permissisions"
         .controls
