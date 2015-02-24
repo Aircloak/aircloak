@@ -91,6 +91,12 @@ class User < ActiveRecord::Base
       new_user.analyst = Analyst.find analyst_id if analyst_id != "none"
       new_user
     else
+      # To prevent privilege escalation from non-admin to
+      # admin users, and likewise to prevent a non-admin user
+      # from guessing permission ids and assigning a new user
+      # random permissions, we outright prevent a non-admin user
+      # from creating users with permissions.
+      params.delete "permission_ids"
       analyst.users.new params
     end
   end
