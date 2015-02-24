@@ -97,6 +97,12 @@ Tasks.Data = (tables) ->
     simplifyPrefetch: ->
       _.each(tableFilters, (tableFilter) -> tableFilter.simplify())
 
+    simplifyRuns: ->
+      if testRuns.length == 0
+        self.addTestRun()
+      else
+        testRuns = [testRuns[0]]
+
     testRuns: -> testRuns,
 
     addTestUser: (runId) ->

@@ -107,12 +107,13 @@ describe Analyst do
         analyst.destroy.should eq false
         # Can destroy once cluster is gone
         analyst.clusters.delete_all
+        analysts_count = Analyst.count
         Analyst.where(id: analyst.id).destroy_all
         Task.count.should eq 0
         UserTable.count.should eq 0
         LookupTable.count.should eq 0
         Result.count.should eq 0
-        Analyst.count.should eq 0
+        Analyst.count.should eq analysts_count -1
     end
   end
 end
