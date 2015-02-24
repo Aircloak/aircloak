@@ -119,7 +119,7 @@ class User < ActiveRecord::Base
 
 private
   def only_aircloakers_can_be_admin
-    unless email =~ /aircloak\.com/
+    unless email =~ /aircloak\.com$/
       errors[:base] = "Non-aircloakers are not allow to be administrators" if permissions.where(name: "admin")
     end
   end
