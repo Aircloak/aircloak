@@ -12,8 +12,14 @@ Tasks.Data = (tables) ->
 
   tableFilters = []
   clusterId = null
-  testUsers = []
-  userRowId = 1
+  nextTestRunId = 1
+  testRuns = []
+
+  newTestRun = ->
+    new TestRun(nextTestRunId++)
+
+  findTestRun = (runId) ->
+    _.find(testRuns, (testRun) -> testRun.id == runId)
 
   selectedTablesMap = ->
     _.reduce(
@@ -38,27 +44,12 @@ Tasks.Data = (tables) ->
         )
     _.sortBy(result, "name")
 
-  removeTestUsersForTable = (tableName) ->
-    testUsers = _.filter(testUsers, (testUser) -> testUser.table != tableName)
-
-  addTableForTestUsers = (selectedTable) ->
-    if testUsers.length > 0
-      uniqueUsers = {}
-      _.each(testUsers, (testUser) -> uniqueUsers[testUser.user_id] = true)
-      _.each(
-            _.keys(uniqueUsers),
-            (userId) ->
-              self.addTestUser(_.extend(self.sampleTestUser(selectedTable), user_id: userId))
-          )
-    else
-      self.addTestUser(self.sampleTestUser(selectedTable))
-
-  newUserRowId = -> userRowId++
-
 
   # ------------------------------------
   # Constructor
   # ------------------------------------
+
+  testRuns = [newTestRun()]
 
   _.extend(self, {
     clear: -> tableFilters = []
@@ -74,7 +65,7 @@ Tasks.Data = (tables) ->
         throw(new Error("invalid table")) unless noThrow
         return
 
-      addTableForTestUsers(selectedTable)
+      _.each(testRuns, (testRun) -> testRun.addTableForTestUsers(selectedTable))
 
       tableFilter = new TableFilter(self, selectedTable, tableFilterDescriptor)
       tableFilters.push(tableFilter)
@@ -91,7 +82,7 @@ Tasks.Data = (tables) ->
     removeTableFilter: (index) ->
       removed = tableFilters.splice(index, 1)
       if removed[0]
-        removeTestUsersForTable(removed[0].table().name)
+        _.each(testRuns, (testRun) -> testRun.removeTestUsersForTable(removed[0].table().name))
 
     selectClusterId: (newClusterId) ->
       clusterId = newClusterId
@@ -103,21 +94,57 @@ Tasks.Data = (tables) ->
     selectedTableForName: (name) ->
       _.find(selectedTables(), (table) -> table.name == name)
 
-    addTestUser: (testUser) -> testUsers.push(_.extend({userRowId: newUserRowId()}, testUser))
-    removeTestUser: (userRowId) ->
-      testUsers = _.filter(testUsers, (testUser) -> testUser.userRowId != userRowId)
+    simplifyPrefetch: ->
+      _.each(tableFilters, (tableFilter) -> tableFilter.simplify())
 
-    updateTestUser: (tableName, userRowId, userData) ->
-      testUsers = _.map(
-            testUsers,
-            (testUser) ->
-              if testUser.table == tableName && testUser.userRowId == userRowId
-                _.extend(testUser, userData)
-              else
-                testUser
-          )
+    testRuns: -> testRuns,
 
-    newTestUserId: () =>
+    addTestUser: (runId) ->
+      findTestRun(runId).addTestUser(selectedTables())
+
+    anotherUserEntry: (runId, userId, tableName) ->
+      findTestRun(runId).addTestUser(self.selectedTableForName(tableName), userId)
+
+    removeTestUser: (runId, userRowId) ->
+      findTestRun(runId).removeTestUser(userRowId)
+
+    findTestUser: (runId, userRowId) ->
+      findTestRun(runId).findTestUser(userRowId)
+
+    updateTestUser: (runId, tableName, userRowId, userData) ->
+      findTestRun(runId).updateTestUser(tableName, userRowId, userData)
+
+    addTestRun: ->
+      lastRun = _.last(testRuns)
+      newRun = newTestRun()
+      testRuns.push(newRun)
+      if (!lastRun)
+        _.each(selectedTables(), (selectedTable) -> newRun.addTableForTestUsers(selectedTable))
+      else
+        newRun.cloneFrom(lastRun)
+
+    removeTestRun: (runId) ->
+      testRuns = _.filter(testRuns, (testRun) -> testRun.id != runId)
+
+    testJson: ->
+      _.map(testRuns, (testRun) -> testRun.testJson())
+  })
+
+
+# Represents the data for a single test run
+TestRun = (id) ->
+  self = this
+
+  # ------------------------------------
+  # Private members
+  # ------------------------------------
+
+  testUsers = []
+  userRowId = 1
+
+  newUserRowId = -> userRowId++
+
+  newTestUserId = ->
       nextId = 1 + _.reduce(
             testUsers,
             (memo, testUser) ->
@@ -127,8 +154,15 @@ Tasks.Data = (tables) ->
           )
       "user_#{nextId}"
 
-    sampleTestUser: (table, userId) ->
-      userId ||= self.newTestUserId()
+  addTestUser = (tables, userId) ->
+    userId ||= newTestUserId()
+    _.each(_.flatten([tables]),
+          (table) ->
+            testUser = sampleTestUser(table, userId)
+            testUsers.push(_.extend({userRowId: newUserRowId()}, testUser))
+        )
+
+  sampleTestUser = (table, userId) ->
       _.reduce(
             table.columns,
             (memo, column) ->
@@ -144,6 +178,51 @@ Tasks.Data = (tables) ->
               memo[column.name] = val
               memo
             {table: table.name, user_id: userId}
+          )
+
+
+  # ------------------------------------
+  # Constructor
+  # ------------------------------------
+
+  _.extend(self, {
+    id: id
+
+    internalData: ->
+      testUsers: testUsers
+      userRowId: userRowId
+
+    addTestUser: addTestUser
+
+    addTableForTestUsers: (table) ->
+      if testUsers.length > 0
+        uniqueUsers = {}
+        _.each(testUsers, (testUser) -> uniqueUsers[testUser.user_id] = true)
+        _.each(
+              _.keys(uniqueUsers),
+              (userId) -> addTestUser(table, userId)
+            )
+      else
+        addTestUser(table)
+
+    cloneFrom: (testRun) ->
+      testUsers = _.map(testRun.internalData().testUsers, (testUser) -> _.clone(testUser))
+      userRowId = testRun.internalData().userRowId
+
+    removeTestUser: (userRowId) ->
+      testUsers = _.filter(testUsers, (testUser) -> testUser.userRowId != userRowId)
+
+    removeTestUsersForTable: (tableName) ->
+      testUsers = _.filter(testUsers, (testUser) -> testUser.table != tableName)
+
+    updateTestUser: (tableName, userRowId, userData) ->
+      testUsers = _.map(
+            testUsers,
+            (testUser) ->
+              if testUser.table == tableName && testUser.userRowId == userRowId
+                _.extend(testUser, userData)
+              else
+                testUser
           )
 
     testUsers: ->
@@ -180,9 +259,6 @@ Tasks.Data = (tables) ->
             targetTable.data[testUser.user_id].push(userRow)
           )
       usersData
-
-    simplifyPrefetch: ->
-      _.each(tableFilters, (tableFilter) -> tableFilter.simplify())
   })
 
 
