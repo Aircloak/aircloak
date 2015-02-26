@@ -2,7 +2,8 @@
   .span12
     .navbar.navbar-fixed-top{class: (imposter ? "navbar-inverse" : "")}
       .navbar-inner
-        .brand &nbsp;Aircloak admin
+        .brand &nbsp;
+        .brand= link_to " Aircloak admin", root_path
         - if current_user && current_user.admin?
           %ul.nav.navbar-nav
             -# Related to managing cloak machines and their deployment

@@ -2,7 +2,8 @@
   = form_for @user_session, html: {class: "form-horizontal"} do |f|
     .control-group
       .controls
-        %img{src: "/images/aircloak_web_200.png"}
+        %a.aircloak-logo{href: root_path}
+          %img{src: "/images/aircloak_web_200.png"}
 
     - if @user_session.errors.any?
       #error_explanation

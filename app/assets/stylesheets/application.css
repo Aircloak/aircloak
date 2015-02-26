@@ -22,3 +22,8 @@ a.suggested-reading:hover {
   background-color: yellow;
   color: black;
 }
+
+a.aircloak-logo, a.aircloak-logo:hover {
+  background-color: rgba(0, 0, 0, 0);
+  color: rgba(0, 0, 0, 0);
+}
