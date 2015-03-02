@@ -30,8 +30,9 @@ private
       record_success
       true
     else
-      @table.errors.add :migration, result["error"]
       record_failure
+      result["error"] = "An unknown error was encountered." unless result["error"]
+      @table.errors[:base] << result["error"]
       false
     end
   end
