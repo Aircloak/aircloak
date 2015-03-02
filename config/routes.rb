@@ -67,6 +67,7 @@ Web::Application.routes.draw do
   resources :results
   resources :user_tables do
     post "retry_migration", on: :member, action: "retry_migration"
+    post "clear", on: :member, action: "clear"
   end
   resources :lookup_tables
   resources :keys

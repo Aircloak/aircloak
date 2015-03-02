@@ -27,7 +27,10 @@
                 - else
                   = link_to 'Show', user_table_path(table), class: "btn btn-mini"
                   = link_to 'Edit', edit_user_table_path(table), class: "btn btn-mini"
-                  = link_to 'Drop table', user_table_path(table), :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
+                  = link_to 'Clear data', clear_user_table_path(table),  :method => :post,  class: "btn btn-mini btn-danger",
+                      :data => { :confirm => 'Are you sure you want to clear all uploaded user data? This operation cannot be reversed' }
+                  = link_to 'Drop table', user_table_path(table), :method => :delete, class: "btn btn-mini btn-danger",
+                      :data => { :confirm => 'Are you sure you want to drop this table? This operation cannot be reversed' }
         - else
           %tr
             %td{colspan: 2}= "No tables in #{cluster.name} cluster"
