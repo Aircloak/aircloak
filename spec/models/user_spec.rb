@@ -27,19 +27,19 @@ describe User do
 
   it "should prevent non-aircloakers from being admin" do
     u = user email: "example@example.com"
-    u.permission_ids << Permission.find_by_name("admin").id
+    u.permission_ids = [Permission.find_by_name("admin").id]
     u.save.should eq false
     u.errors[:base].count.should_not eq 0
 
     u = user email: "example@aircloak.com.foobar.com"
-    u.permission_ids << Permission.find_by_name("admin").id
+    u.permission_ids = [Permission.find_by_name("admin").id]
     u.save.should eq false
     u.errors[:base].count.should_not eq 0
   end
 
   it "should allow aircloakers to be admins" do
     u = user email: "user@aircloak.com"
-    u.permission_ids << Permission.find_by_name("admin").id
+    u.permission_ids = [Permission.find_by_name("admin").id]
     u.save.should eq true
   end
 
