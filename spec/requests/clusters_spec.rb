@@ -11,7 +11,7 @@ describe ClustersController do
     Build.delete_all
     Permission.delete_all
     BuildManager.stub(:send_build_request)
-    log_in user
+    log_in(create_user admin: true, email: "user@aircloak.com")
   end
 
   let(:analyst) { Analyst.create name: "test analyst" }
@@ -22,11 +22,6 @@ describe ClustersController do
     build = Build.new name: "build2"
     build.save validate: false
     build
-  }
-  let(:admin_permission) { Permission.create name: "admin", description: "" }
-  let(:user) {
-    User.create login: "test", email: "test@example.com", password: "1234",
-        password_confirmation: "1234", analyst_id: analyst.id, permissions: [admin_permission]
   }
   let(:cluster) {
     cluster = Cluster.new name: "test cluster", build_id: build.id

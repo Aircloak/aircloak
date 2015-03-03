@@ -16,7 +16,7 @@ describe "TasksController" do
     Result.destroy_all
     Bucket.destroy_all
     Analyst.destroy_all
-    log_in user
+    log_in(create_user admin: true, email: "user@aircloak.com", analyst: analyst)
   end
 
   let!(:cloak) { Cloak.create(name: "cloak", ip: "1.1.1.1") }
@@ -29,11 +29,6 @@ describe "TasksController" do
   end
 
   let(:analyst) { Analyst.create name: "test-analyst" }
-  let(:admin_permission) { Permission.create name: "admin", description: "" }
-  let(:user) {
-    User.create login: "test", email: "test@example.com", password: "1234",
-        password_confirmation: "1234", analyst_id: analyst.id, permissions: [admin_permission]
-  }
   let(:token) { AnalystToken.create_api_token(analyst) }
 
   describe "POST /tasks/:id/execute_as_batch_task" do

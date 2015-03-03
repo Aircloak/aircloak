@@ -5,21 +5,10 @@ describe HelpController do
   setup :activate_authlogic
 
   before(:each) do
-    Analyst.destroy_all
-    User.destroy_all
-    log_in user
+    log_in(create_user)
   end
 
-  let (:analyst) { Analyst.create name: "TestAnalyst" }
-  let (:user) do
-    User.create(
-      password: "password",
-      password_confirmation: "password",
-      login: "test-user",
-      email: "test@example.com",
-      analyst: analyst
-    )
-  end
+  let (:user) { create_user }
   let (:help_utils) { HelpUtils.new user, double(:controller) }
 
   describe "GET /help" do
