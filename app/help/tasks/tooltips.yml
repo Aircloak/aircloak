@@ -69,6 +69,10 @@ report_interval:
   content: |
     Specifies the interval (in seconds) in which results of this task are reported back.
   markdown: true
+task_period:
+  content: |
+    Specifies the regular period of task execution.
+  markdown: true
 user_expire_interval:
   content: |
     Specifies the time period (in seconds) after which a reported bucket is removed from the result.

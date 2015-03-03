@@ -17,6 +17,7 @@ class Task < ActiveRecord::Base
   validates_uniqueness_of :name, scope: [:analyst_id]
   validate :prefetch_correct
   validate :streaming_task
+  validate :periodic_task
 
   before_create :generate_token
 
@@ -27,10 +28,17 @@ class Task < ActiveRecord::Base
 
   BATCH_TASK = 1
   STREAMING_TASK = 2
+  PERIODIC_TASK = 3
+
+  JSON_TYPES = {
+    STREAMING_TASK => "streaming",
+    PERIODIC_TASK => "periodic"
+  }
 
   def self.types
     [
       OpenStruct.new({id: BATCH_TASK, name: "Batch"}),
+      OpenStruct.new({id: PERIODIC_TASK, name: "Periodic"}),
       OpenStruct.new({id: STREAMING_TASK, name: "Streaming"})
     ]
   end
@@ -185,6 +193,11 @@ private
     self.errors.add :user_expire_interval, "can't be blank" if user_expire_interval.nil?
   end
 
+  def periodic_task
+    return if task_type != PERIODIC_TASK
+    self.errors.add :period, "can't be blank" if period.nil? || period.empty?
+  end
+
   def upload_stored_task
     return unless self.stored_task && cloak
 
@@ -203,15 +216,26 @@ private
           "task/#{self.class.encode_id(id)}",
           headers,
           {
-            type: "streaming",
-            report_interval: report_interval,
-            user_expire_interval: user_expire_interval,
+            type: JSON_TYPES[task_type],
+            report_interval: nilify(report_interval),
+            user_expire_interval: nilify(user_expire_interval),
+            period: nilify(period) {JSON.parse(period)},
             prefetch: JSON.parse(prefetch),
             post_processing: post_processing_spec
-          }.to_json,
+          }.
+            select {|key, value| !value.nil?}.
+            to_json
         )
     unless response["success"] == true then
       # TODO: LOG
+    end
+  end
+
+  def nilify(value)
+    if value && !value.empty?
+      block_given? ? yield : value
+    else
+      nil
     end
   end
 

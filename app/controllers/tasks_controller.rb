@@ -54,7 +54,7 @@ class TasksController < ApplicationController
 
     @task.sandbox_type = "lua"
     @task.update_task = false
-    @task.stored_task = (@task.task_type == Task::STREAMING_TASK)
+    @task.stored_task = ([Task::STREAMING_TASK, Task::PERIODIC_TASK].include?(@task.task_type))
     if @task.save
       describe_successful_activity "Successfully created a new task"
       # If we don't redirect, the flash messages get stuck
@@ -212,7 +212,8 @@ private
 
   def task_params
     params.require(:task).permit(
-          :name, :cluster_id, :data, :code, :task_type, :report_interval, :user_expire_interval, :test_data
+          :name, :cluster_id, :data, :code, :task_type, :report_interval, :user_expire_interval, :test_data,
+          :period
         )
   end
 
