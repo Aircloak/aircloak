@@ -63,6 +63,7 @@ sandbox_table:
 task_type:
   content: |
     - __Batch task__: This type of task must be invoked manually.
+    - __Periodic task__: Just like batch task, but runs in regular intervals.
     - __Streaming task__: Runs every time new data is inserted. Reports collected results periodically.
   markdown: true
 report_interval:

@@ -4,14 +4,30 @@ content: |
 
   # Task execution models
 
-  There are two types of execution models: __batch__ and __streaming__. Note: Streaming tasks are a new
-  feature which may not be supported in older versions of clusters.
+  There are three types of execution models: __batch__, __periodic__, __streaming__. Note: Streaming and
+  periodic tasks are a new feature which may not be supported in older versions of clusters.
+
+  Differences between different execution models are summarized in the following table:
+
+  | Batch task | Periodic task | Streaming task |
+  |------------|---------------|----------------|
+  | Executed on demand | Executed in regular periods | Executed when data is inserted |
+  | Reports are sent after the task is executed | Reports are sent after the task is executed | Reports are sent in regular periods |
+  | Runs on all users specified in prefetch | Runs on all users specified in prefetch | Runs only on users inserted in prefetch tables |
+  | Allows rich filters in prefetch | Allows rich filters in prefetch | Doesn't allow filters in prefetch |
+  | Doesn't support stateful tasks | Doesn't support stateful tasks | Supports stateful tasks |
 
   ## Batch tasks
 
   A batch task is executed on demand. Once defined, a task can be manually scheduled to run, either via the
   user interface or via the REST API. The task will then execute in the cluster and once the execution is over,
   the reports will be generated and sent to the desired endpoint.
+
+  ## Periodic tasks
+
+  A periodic task is similar to batch tasks, but it is executed in regular intervals, rather than on demand.
+  Just like with batch tasks, reports are sent to the desired endpoint immediately after the task is
+  executed.
 
   ## Streaming tasks
 
