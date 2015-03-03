@@ -1,0 +1,31 @@
+:ruby
+  ::Rails.application.assets.context_class.class_eval do
+    include ApplicationHelper
+    include ActionView::Helpers::FormTagHelper
+  end
+
+%div
+  %select{name: "period", style: "width:90px;"}
+    %option{value: "every"} every
+    %option{value: "daily"} daily
+    %option{value: "weekly"} weekly
+    %option{value: "monthly"} monthly
+
+  %span{name: "interval_container"}
+    %input{name: "interval", type: "number", min: 1, max: 720, value:1, style: "width:70px;"}
+    min
+
+  %select{name: "hour", style: "width:70px;"}
+    - (0..23).each do |hour|
+      %option{value: hour, selected: (hour == 12) ? "selected" : nil}
+        = "#{hour}:00"
+
+  %select{name: "wday", style: "width:120px;"}
+    - %w(Monday Tuesday Wednesday Thursday Friday Saturday Sunday).each do |wday|
+      %option{value: wday.downcase}
+        = wday
+
+  %select{name: "mday", style: "width:60px;"}
+    - (1..28).each do |mday|
+      %option{value: mday}
+        = "#{mday}."
