@@ -81,7 +81,9 @@ class User < ActiveRecord::Base
     if admin?
       User.all
     else
-      analyst.users
+      analyst.users.select do |user|
+        not user.admin?
+      end
     end
   end
 
@@ -105,7 +107,12 @@ class User < ActiveRecord::Base
     if admin?
       User.find id
     else
-      analyst.users.find id
+      user = analyst.users.find id
+      if user.admin? then
+        raise ActiveRecord::RecordNotFound.new
+      else
+        user
+      end
     end
   end
 
