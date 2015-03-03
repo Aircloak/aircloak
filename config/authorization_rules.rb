@@ -81,7 +81,7 @@ authorization do
       :capabilities
     ], to: :manage
     has_permission_on [:airpub], to: [:index, :subscribe]
-    has_permission_on [:user_tables], to: :retry_migration
+    has_permission_on [:user_tables], to: [:retry_migration, :clear]
     has_permission_on [:authorization_rules,
                        :authorization_usages], :to => :read
     has_permission_on [:deployable_entity_versions,

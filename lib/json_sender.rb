@@ -29,7 +29,7 @@ class JsonSender
     JSON.parse raw_result
   rescue Exception => e
     Rails.logger.error "Cloak request error: #{e.message}\n#{e.backtrace.join("\n")}"
-    {}
+    {"error" => "Cloak request error: #{e.message}"}
   end
 
   def self.cert_and_key(auth_type, analyst)
