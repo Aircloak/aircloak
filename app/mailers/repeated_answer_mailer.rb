@@ -3,10 +3,7 @@ class RepeatedAnswerMailer < ActionMailer::Base
 
   def new_report report
     @report = report
-    @trustworthies = @report.cluster.ra_task_codes.where(trustworthy: true)
-    @not_trustworthies = @report.cluster.ra_task_codes.where(trustworthy: false)
-    @task_codes = @trustworthies + @not_trustworthies
     mail to: "everyone-dev@aircloak.com",
-        subject: "Repeated answers detected for analyst: #{report.analyst.name}"
+        subject: "Repeated answers detected for analyst #{report.analyst.name} on cluster #{report.cluster.name}"
   end
 end
