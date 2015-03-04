@@ -3,7 +3,7 @@
   %head
     %meta{'content' => 'text/html; charset=UTF-8', 'http-equiv' => 'Content-Type'}
   %body
-    %h1= "Repeated answers detected for analyst #{@report.analyst.name}"
+    %h1= "Repeated answers detected for analyst #{@report.analyst.name} on cluster #{@report.cluster.name}"
 
     %ul
       %li= "task started from #{@report.source_ip} at #{@report.timestamp_in_UTC}"
