@@ -2,22 +2,37 @@ require 'spec_helper'
 
 describe "ApiRepeatedAnswersController" do
   before(:each) do
-    Analyst.destroy_all
-    Analyst.create(name: "test")
+    Cluster.delete_all
+    Analyst.delete_all
+    Cloak.delete_all
+    Build.delete_all
+    Permission.delete_all
+    User.delete_all
+    BuildManager.stub(:send_build_request)
   end
+
+  let!(:analyst) { Analyst.create name: "test analyst" }
+  let!(:cloak) { Cloak.create name: "cloak", ip: "127.0.0.1" }
+  let!(:build) { Build.create name: "build" }
+  let!(:cluster) {
+    cluster = Cluster.new name: "test cluster", build_id: build.id
+    cluster.assign_cloaks [cloak]
+    cluster.save.should eq true
+    cluster
+  }
 
   describe "POST /infrastructure-api/repeated_answers" do
     before(:each) do
       RepeatedAnswer.delete_all
       RaTaskCode.delete_all
-      RaTaskCodeRepeatedAnswer.delete_all
+      RaTaskCodeCluster.delete_all
       RaLibraryCode.delete_all
       RaLibraryCodeRaTaskCode.delete_all
     end
 
     let (:request) {
       {
-        analyst: Analyst.where(name: "test").first.id,
+        analyst: analyst.id,
         bucket_label: "foo",
         bucket_value: "bar",
         bucket_count: 1234567,

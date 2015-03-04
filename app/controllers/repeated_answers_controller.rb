@@ -6,14 +6,22 @@ class RepeatedAnswersController < ApplicationController
 
   def show
     @answer = RepeatedAnswer.find(params[:id])
-    @trustworthies = @answer.ra_task_codes.where(trustworthy: true)
-    @not_trustworthies = @answer.ra_task_codes.where(trustworthy: false)
+    @trustworthies = @answer.cluster.ra_task_codes.where(trustworthy: true)
+    @not_trustworthies = @answer.cluster.ra_task_codes.where(trustworthy: false)
   end
 
   def update
     answer = RepeatedAnswer.find(params[:id])
     answer.mark_resolved
-    redirect_to repeated_answers_path, notice: "Repeated answer resolved"
+    if RepeatedAnswer.where(resolved: false, cluster: answer.cluster).count > 0
+      next_answer = RepeatedAnswer.where(resolved: false, cluster: answer.cluster).first
+      redirect_to repeated_answer_path(next_answer), notice: "Repeated answer resolved"
+    elsif RepeatedAnswer.where(resolved: false).count > 0
+      next_answer = RepeatedAnswer.where(resolved: false).first
+      redirect_to repeated_answer_path(next_answer), notice: "Repeated answer resolved"
+    else
+      redirect_to repeated_answers_path, notice: "Repeated answer resolved"
+    end
   rescue Exception => e
     render action: 'show'
   end

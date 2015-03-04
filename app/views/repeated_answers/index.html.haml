@@ -6,6 +6,7 @@
       %tr
         %th Time (UTC)
         %th Analyst
+        %th Cluster
         %th Source-IP
         %th Bucket Label and Value
         %th Bucket Count
@@ -16,6 +17,7 @@
       %tr
         %td= link_to answer.timestamp_in_UTC, repeated_answer_path(answer.id)
         %td= answer.analyst.name
+        %td= answer.cluster.name
         %td= answer.source_ip
         %td= answer.bucket_label_and_value
         %td= answer.bucket_count
@@ -33,6 +35,7 @@
       %tr
         %th Time (UTC)
         %th Analyst
+        %th Cluster
         %th Source-IP
         %th Bucket Label and Value
         %th Bucket Count
@@ -43,6 +46,7 @@
       %tr
         %td= link_to answer.timestamp_in_UTC, repeated_answer_path(answer.id)
         %td= answer.analyst.name
+        %td= answer.cluster.name
         %td= answer.source_ip
         %td= answer.bucket_label_and_value
         %td= answer.bucket_count
