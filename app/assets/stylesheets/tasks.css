@@ -22,3 +22,7 @@
 .table-filter-link .btn {
   width: 90%;
 }
+
+.CodeMirror-line-error {
+  background: #FFE0E0;
+}

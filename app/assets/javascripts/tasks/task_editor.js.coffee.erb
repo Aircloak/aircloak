@@ -35,6 +35,23 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
         HandlebarsTemplates["tasks/task_exceptions"](count: taskExceptions.length, exceptions: taskExceptions)
     $("#taskExceptions").html(html)
     window.rebindAllPopuplinks()
+    showCodeErrors()
+
+  # this is called after the task is executed in the sandbox and it will highlight the code lines containing errors
+  showCodeErrors = ->
+    # clear all previous errors
+    index = 0
+    while index < codeEditor.lineCount()
+      codeEditor.removeLineClass(index++, "background", "CodeMirror-line-error")
+    # process exceptions returned after executing the task in the sandbox
+    for exception in taskExceptions
+      # look for task code error messages
+      lineErrorMatch = exception.message.match /\[string \\"task_code\\"\]:(\d*)/
+      if lineErrorMatch # if we have a match
+        # extract line number from the exception message
+        lineNumber = Number(lineErrorMatch[1]) - 1
+        # highlight lines with errors
+        codeEditor.addLineClass(lineNumber, "background", "CodeMirror-line-error")
 
   saveInfo = ->
     if changed
