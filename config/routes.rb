@@ -103,6 +103,7 @@ Web::Application.routes.draw do
   # builds.
   scope "/infrastructure-api", module: :infrastructure_api do
     resources :repeated_answers, only: [:create] # Used by cloak's
+    resources :task_codes, only: [:create] # Used by cloak's
     resources :results, only: [:create] # Used by cloak's
     resources :audit_logs, only: [:create] # Used by cloak's
     resources :test_results, only: [:create] # Used by TestServer

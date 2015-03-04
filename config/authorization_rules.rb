@@ -39,6 +39,7 @@ authorization do
     ], to: :anon_write
     has_permission_on :infrastructure_api_test_results, to: :create
     has_permission_on :infrastructure_api_repeated_answers, to: :create
+    has_permission_on :infrastructure_api_task_codes, to: :create
   end
 
   role :user_manager do
