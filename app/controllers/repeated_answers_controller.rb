@@ -6,8 +6,8 @@ class RepeatedAnswersController < ApplicationController
 
   def show
     @answer = RepeatedAnswer.find(params[:id])
-    @trustworthies = @answer.ra_task_codes.where(trustworthy: true)
-    @not_trustworthies = @answer.ra_task_codes.where(trustworthy: false)
+    @trustworthies = @answer.cluster.ra_task_codes.where(trustworthy: true)
+    @not_trustworthies = @answer.cluster.ra_task_codes.where(trustworthy: false)
   end
 
   def update

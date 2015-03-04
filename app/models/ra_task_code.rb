@@ -1,8 +1,8 @@
 class RaTaskCode < ActiveRecord::Base
-  has_many :ra_task_code_repeated_answers
+  has_many :ra_task_code_clusters
   has_many :ra_library_code_ra_task_codes, dependent: :destroy
 
-  has_many :repeated_answers, through: :ra_task_code_repeated_answers
+  has_many :clusters, through: :ra_task_code_clusters
   has_many :ra_library_codes, through: :ra_library_code_ra_task_codes
 
   validates_presence_of :prefetch, :code
@@ -15,14 +15,21 @@ class RaTaskCode < ActiveRecord::Base
 
   def conditionally_mark_answers_resolved
     return unless self.trustworthy
-    self.repeated_answers.where(resolved: false).each do |answer|
-      answer.mark_resolved_if_trustworthy
+    # Each cluster this code belongs to may have unresolved answers which we now can mark resolved as all task
+    # codes are trustworthy.  Instead of checking for each task code that all codes are trustworthy, we check
+    # that first and then mark the answer as resolved.
+    self.clusters.each do |cluster|
+      if cluster.ra_task_codes.all? {|task_code| task_code.trustworthy}
+        cluster.repeated_answers.where(resolved: false).each {|answer| answer.mark_resolved}
+      end
     end
   end
 
   def self.from_json raw_json
     # first get all libraries and their IDs
     libraries = raw_json["libraries"].to_a.map do |library_json|
+      raise "library without a name" if library_json["name"].nil?
+      raise "library #{library_json["name"]} without code" if library_json["code"].nil?
       library_code = RaLibraryCode.where(code: library_json["code"]).first
       library_code = RaLibraryCode.create(code: library_json["code"]) unless library_code
       RaLibraryCodeRaTaskCode.create(
