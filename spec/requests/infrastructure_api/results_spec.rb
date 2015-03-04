@@ -11,16 +11,7 @@ describe InfrastructureApi::ResultsController do
     User.destroy_all
   end
 
-  let (:analyst) { Analyst.create name: "TestAnalyst" }
-  let (:user) do
-    User.create(
-      password: "password",
-      password_confirmation: "password",
-      login: "test-user",
-      email: "test@example.com",
-      analyst: analyst
-    )
-  end
+  let (:user) { create_user }
 
   describe "POST /infrastructure-api/results" do
     it "should persist new properties upon receiving them from the cloak" do

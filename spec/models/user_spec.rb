@@ -10,6 +10,10 @@ describe User do
   end
 
   def user params = {}
+    # We are NOT using the create_user helper method in order to
+    # be able to validate the behaviour that only aircloakers can
+    # be administrators, which the spec helper attempts to hide
+    # from other tests.
     u = User.new(
       login: (params.delete(:login) || "test"),
       email: (params.delete(:email) || "example@example.com"),
