@@ -13,7 +13,15 @@ class RepeatedAnswersController < ApplicationController
   def update
     answer = RepeatedAnswer.find(params[:id])
     answer.mark_resolved
-    redirect_to repeated_answers_path, notice: "Repeated answer resolved"
+    if RepeatedAnswer.where(resolved: false, cluster: answer.cluster).count > 0
+      next_answer = RepeatedAnswer.where(resolved: false, cluster: answer.cluster).first
+      redirect_to repeated_answer_path(next_answer), notice: "Repeated answer resolved"
+    elsif RepeatedAnswer.where(resolved: false).count > 0
+      next_answer = RepeatedAnswer.where(resolved: false).first
+      redirect_to repeated_answer_path(next_answer), notice: "Repeated answer resolved"
+    else
+      redirect_to repeated_answers_path, notice: "Repeated answer resolved"
+    end
   rescue Exception => e
     render action: 'show'
   end
