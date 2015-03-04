@@ -37,6 +37,11 @@ describe Task do
         should eq ["can't be blank"]
   end
 
+  it "validates periodic task" do
+    try_invalid_save(base_attrs.merge(task_type: Task::PERIODIC_TASK))[:period].
+        should eq ["can't be blank"]
+  end
+
   it "converts data" do
     prefetch_conversions.each do |data, prefetch|
       task = Task.new

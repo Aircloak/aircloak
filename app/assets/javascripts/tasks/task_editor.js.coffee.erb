@@ -13,8 +13,13 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
   codeEditor = null
   changed = false
 
+  taskTypeMap = <%= Task::JSON_TYPES.to_json %>
+
   isStreaming = ->
     taskType == <%= Task::STREAMING_TASK %>
+
+  isPeriodic = ->
+    taskType == <%= Task::PERIODIC_TASK %>
 
   render = ->
     data.selectClusterId(selectedClusterId())
@@ -24,7 +29,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
     renderSaveInfo()
     showHideAddTable()
     showHideTaskTypeControls()
-    showHideStreamingTaskControls()
+    showHideTaskSpecificControls()
     self
 
   renderExceptions = ->
@@ -74,14 +79,14 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
   selectedClusterId = ->
     parseInt($('#task_cluster_id').val())
 
-  selectedClusterCapableOfStreaming = ->
+  selectedClusterCapableOf = (capability) ->
     chosenClusterOption = $("#task_cluster_id option[value=\"#{selectedClusterId()}\"]")
     if chosenClusterOption.length == 0
       # The user only has a single cluster, and the cluster streaming capability
       # is provided through a hidden input field
-      $("#task_cluster_id").data("streaming-capability")
+      $("#task_cluster_id").data("#{capability}-capability")
     else
-      chosenClusterOption.data("streaming-capability")
+      chosenClusterOption.data("#{capability}-capability")
 
   # Custom hint function. It determines the word at the cursor, and
   # returns the completion list.
@@ -150,14 +155,28 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
     else
       $("#addTable").hide()
 
-  showHideStreamingTaskControls = ->
-    if (isStreaming() and selectedClusterCapableOfStreaming())
+  showHideTaskSpecificControls = ->
+    $("#streamingTaskParams").hide()
+    $("#periodicTaskParams").hide()
+
+    if (isStreaming() and selectedClusterCapableOf("streaming"))
       $("#streamingTaskParams").show()
-    else
-      $("#streamingTaskParams").hide()
+
+    if (isPeriodic() and selectedClusterCapableOf("periodic"))
+      $("#periodicTaskParams").show()
 
   showHideTaskTypeControls = ->
-    if selectedClusterCapableOfStreaming()
+    visible = 1
+
+    for option in $("select#task_task_type option")
+      continue if (parseInt($(option).val()) == <%= Task::BATCH_TASK %>)
+      if selectedClusterCapableOf(taskTypeMap[$(option).val()])
+        $(option).show()
+        visible++
+      else
+        $(option).hide()
+
+    if (visible > 1)
       $("#taskTypeParams").show()
     else
       $("#taskTypeParams").hide()
@@ -169,7 +188,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       # batch query, yet at the same time also show the
       # streaming query options.
       for option in $("select#task_task_type option")
-        if option.text == "Batch" and not option.selected
+        if (parseInt($(option).val()) == <%= Task::BATCH_TASK %>) and not option.selected
           option.selected = true
           onTaskTypeChanged()
 
@@ -199,7 +218,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
         )
 
   enableDisableExtendedFilters = ->
-    data.supportExtendedFilters = (taskType == <%= Task::BATCH_TASK %>)
+    data.supportExtendedFilters = (taskType == <%= Task::BATCH_TASK %> || taskType == <%= Task::PERIODIC_TASK %>)
 
   onTaskTypeChanged = (e) ->
     taskType = parseInt($('#task_task_type').val())
