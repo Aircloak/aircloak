@@ -10,9 +10,9 @@ class RepeatedAnswer < ActiveRecord::Base
 
   def cluster_name
     if cluster.nil?
-      cluster.name
-    else
       "<removed cluster>"
+    else
+      cluster.name
     end
   end
 
