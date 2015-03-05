@@ -43,16 +43,16 @@ class Task < ActiveRecord::Base
     ]
   end
 
-  def self.decode_id(encoded_task_id)
-    parts = encoded_task_id.split(/^task\-/)
+  def self.decode_token(encoded_task_token)
+    parts = encoded_task_token.split(/^task\-/)
     if parts.length != 2 || parts[1].empty?
       raise InvalidTaskId.new(message: "#{task_id}")
     end
-    parts[1].to_i
+    parts[1]
   end
 
-  def self.encode_id(task_id)
-    "task-#{task_id}"
+  def encode_token
+    "task-#{token}"
   end
 
   # This does an efficient SQL delete, rather than loading all the data,
@@ -87,7 +87,7 @@ class Task < ActiveRecord::Base
     if url
       pr = PendingResult.create(task: self)
       headers = {
-        "task_id" => self.class.encode_id(id),
+        "task_id" => encode_token,
         "async_query" => "true",
         "auth_token" => pr.auth_token
       }
@@ -213,7 +213,7 @@ private
           :task_runner,
           analyst,
           cluster,
-          "task/#{self.class.encode_id(id)}",
+          "task/#{encode_token}",
           headers,
           {
             type: JSON_TYPES[task_type],
@@ -245,7 +245,7 @@ private
     return unless self.stored_task && cloak
 
     response = JsonSender.request(:delete, :task_runner, analyst, cluster,
-        "task/#{self.class.encode_id(id)}", {})
+        "task/#{encode_token}", {})
 
     unless response["success"] == true then
       raise RemoveError.new("Failed removing the task from the cluster.")
