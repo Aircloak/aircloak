@@ -8,6 +8,14 @@ class RepeatedAnswer < ActiveRecord::Base
     Time.at(timestamp).utc.strftime('%Y-%m-%d %H:%M')
   end
 
+  def cluster_name
+    if cluster.nil?
+      cluster.name
+    else
+      "<removed cluster>"
+    end
+  end
+
   def bucket_label_and_value
     if bucket_value
       "#{bucket_label}: #{bucket_value}"
