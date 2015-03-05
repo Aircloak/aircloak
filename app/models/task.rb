@@ -232,7 +232,7 @@ private
   end
 
   def nilify(value)
-    if value && !value.empty?
+    if value && value != ""
       block_given? ? yield : value
     else
       nil
