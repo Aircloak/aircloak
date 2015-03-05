@@ -44,7 +44,7 @@ describe InfrastructureApi::ResultsController do
                      accumulated_count: 30)
       ]
       rp = ResultPB.new(
-        analyst_id: user.analyst.id, task_id: Task.encode_id(t.id), index: "index", buckets: buckets
+        analyst_id: user.analyst.id, task_id: t.encode_token, index: "index", buckets: buckets
       )
 
       with_user user do

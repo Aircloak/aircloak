@@ -18,14 +18,14 @@ class InfrastructureApi::ResultsController < ApplicationController
       render text: "Content-type not supported!", status: 501, layout: false
       return
     end
-    task_id = Task.decode_id(r.task_id)
-    if task_id == @pending_result.task_id then
+    task = Task.find_by_token(Task.decode_token(r.task_id))
+    if task.id == @pending_result.task_id then
       published_at = request.headers["PublishedAt"]
       if published_at
         published_at = published_at.to_i # convert to integer
         published_at = Time.at(published_at / 1000, (published_at % 1000) * 1000).utc # convert to time object
       end
-      ResultHandler.store_results Task.find(task_id), r, published_at
+      ResultHandler.store_results task, r, published_at
     end
     render text: "Got it buddy, thanks", layout: false
   end
