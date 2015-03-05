@@ -108,18 +108,6 @@ describe "ApiTasksController" do
       post "/api/tasks/#{task_token}/subscribe_request", "", {'HTTP_ANALYST_TOKEN' => token.token}
       response.code.should eq "200"
     end
-
-    it "should not schedule a streaming task for running" do
-      task_token = "token"
-      association = double
-      analyst_double = double(:analyst, tasks: association)
-      AnalystToken.should_receive(:api_analyst).and_return(analyst_double)
-      task = double
-      association.should_receive(:find_by_token).and_return(task)
-      task.should_receive(:batch_task?).and_return(false)
-      post "/api/tasks/#{task_token}/run", "", {'HTTP_ANALYST_TOKEN' => token.token}
-      response.code.should eq "400"
-    end
   end
 
   private
