@@ -87,6 +87,7 @@ Web::Application.routes.draw do
     resources :tasks, path: "tasks" do
       resources :task_results, path: "results"
       post :run, on: :member
+      post :subscribe_request, on: :member
     end
   end
 
