@@ -8,6 +8,7 @@ class Cluster < ActiveRecord::Base
   has_many :lookup_tables, dependent: :destroy
   has_many :tasks
   has_many :analysts_clusters
+  has_many :alterations, as: :target, dependent: :destroy
   has_and_belongs_to_many :analysts
   belongs_to :build
   has_many :capability_clusters
@@ -62,9 +63,34 @@ class Cluster < ActiveRecord::Base
       return false
     end
     old_cloaks = self.cloaks.to_a
-    (new_cloaks - old_cloaks).each {|cloak| cloaks << cloak }
-    (new_cloaks & old_cloaks).each {|cloak| keep_cloak cloak }
-    (old_cloaks - new_cloaks).each {|cloak| cloak.cluster_cloak.set_state :to_be_removed }
+    added_cloaks = new_cloaks - old_cloaks
+    removed_cloaks = old_cloaks - new_cloaks
+    kept_cloaks = new_cloaks & old_cloaks
+
+    added_cloaks.each {|cloak| cloaks << cloak }
+    kept_cloaks.each {|cloak| keep_cloak cloak }
+    removed_cloaks.each {|cloak| cloak.cluster_cloak.set_state :to_be_removed }
+
+    # log changes to cluster
+    added_cloaks_list = added_cloaks.map {|cloak| cloak.name}.join(",")
+    removed_cloaks_list = removed_cloaks.map {|cloak| cloak.name}.join(",")
+    log_alteration "Added cloak(s): '#{added_cloaks_list}'." unless added_cloaks_list.empty?
+    log_alteration "Removed cloak(s): '#{removed_cloaks_list}'." unless removed_cloaks_list.empty?
+
+    return true
+  end
+
+  def assign_analysts new_analysts
+    # log cluster changes
+    old_analysts = self.analysts.to_a
+    added_analysts = new_analysts - old_analysts
+    removed_analysts = old_analysts - new_analysts
+    added_analysts_list = added_analysts.map {|analyst| analyst.name}.join(",")
+    removed_analysts_list = removed_analysts.map {|analyst| analyst.name}.join(",")
+    log_alteration "Added analyst(s): '#{added_analysts_list}'." unless added_analysts_list.empty?
+    log_alteration "Removed analyst(s): '#{removed_analysts_list}'." unless removed_analysts_list.empty?
+
+    self.analysts = new_analysts
     return true
   end
 
@@ -163,6 +189,11 @@ class Cluster < ActiveRecord::Base
           cluster_cloak.set_state(:to_be_upgraded)
         end
       end
+      build = Build.find(params[:build_id].to_i)
+      log_alteration "Build upgraded to '#{build.name}'"
+    end
+    if params[:name] != self.name then
+      log_alteration "Name changed to '#{params[:name]}'."
     end
     update(params)
   end
@@ -206,6 +237,11 @@ class Cluster < ActiveRecord::Base
     logger.error "Unable to connect to cluster #{name} to establish capabilities"
   rescue RestClient::RequestTimeout => e
     logger.error "Request to establish capabilities of cluster #{name} timed out"
+  end
+
+  def log_alteration description
+    alteration = Alteration.new description: description, user: Authorization.current_user
+    self.alterations << alteration
   end
 
 private

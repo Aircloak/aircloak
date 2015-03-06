@@ -34,6 +34,7 @@ Web::Application.routes.draw do
   # users on the web system
   resources :activities
   resources :clusters
+  resources :alterations
   resources :test_results, only: [:index, :show]
   resources :test_vms, only: [:show]
   resources :test_items, only: [:show]

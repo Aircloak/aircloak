@@ -37,6 +37,7 @@ class Analyst < ActiveRecord::Base
       key.save
       # mark all assigned clusters as needing to be updated with the new revocation list
       self.clusters.each do |cluster|
+        cluster.log_alteration "Revoked key '#{key.description}' for analyst '#{name}'."
         cluster.mark_as_changed
         cluster.save
       end
