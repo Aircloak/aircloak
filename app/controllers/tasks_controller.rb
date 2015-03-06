@@ -150,7 +150,7 @@ class TasksController < ApplicationController
   def latest_results
     @results = convert_results_for_client_side_rendering @task.results.order('created_at DESC').limit(5).reverse
     @results_path = latest_results_task_path(@task.token)
-    @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.id}"
+    @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.token}"
     @server_url = Rails.configuration.airpub_ws_subscribe
     describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task.token)
   end

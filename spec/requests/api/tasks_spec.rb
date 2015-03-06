@@ -119,7 +119,7 @@ describe "ApiTasksController" do
       task = double
       association.should_receive(:find_by_token).and_return(task)
       task.should_receive(:analyst).and_return(analyst)
-      task.should_receive(:id).and_return(43)
+      task.should_receive(:token).and_return(43)
       post "/api/tasks/#{task_token}/subscribe_request", "", {'HTTP_ANALYST_TOKEN' => token.token}
       response.code.should eq "200"
     end
