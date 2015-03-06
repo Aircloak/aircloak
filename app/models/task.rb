@@ -90,13 +90,7 @@ class Task < ActiveRecord::Base
         "task_id" => encode_token,
         "async_query" => "true",
         "auth_token" => pr.auth_token
-      }
-      publish_url = Rails.configuration.publish_url
-      if publish_url.present? then
-        # publish to "/results/analyst_id/task_id/cluster_id/token"
-        publish_path = "/results/#{analyst.id}/#{self.id}/#{cluster.id}/#{pr.auth_token}"
-        headers.merge!({"return_url" => Base64.strict_encode64(publish_url + publish_path)})
-      end
+      }.merge(publish_header(pr))
       response = JsonSender.request(
         :post,
         :task_runner,
@@ -178,7 +172,6 @@ class Task < ActiveRecord::Base
   end
 
 private
-
   def prefetch_correct
     if @prefetch_error.nil?
       self.errors.add :data, "can't be blank" if prefetch.nil? || prefetch.empty?
@@ -202,12 +195,7 @@ private
     return unless self.stored_task && cloak
 
     pr = PendingResult.where(task: self).first || PendingResult.create(task: self, standing: true)
-    headers = {"auth_token" => pr.auth_token}
-    publish_url = Rails.configuration.publish_url
-    if publish_url.present? then
-      publish_path = "/results/#{analyst.id}/#{self.id}/#{cluster.id}/#{pr.auth_token}"
-      headers.merge!({"return_url" => Base64.strict_encode64(publish_url + publish_path)})
-    end
+    headers = {"auth_token" => pr.auth_token}.merge(publish_header(pr))
     response = JsonSender.request(
           :put,
           :task_runner,
@@ -228,6 +216,17 @@ private
         )
     unless response["success"] == true then
       # TODO: LOG
+    end
+  end
+
+  def publish_header(pending_result)
+    publish_url = Rails.configuration.publish_url
+    if publish_url.present? then
+      # publish to "/results/analyst_id/task_token/cluster_id/token"
+      publish_path = "/results/#{analyst.id}/#{self.token}/#{cluster.id}/#{pending_result.auth_token}"
+      {"return_url" => Base64.strict_encode64(publish_url + publish_path)}
+    else
+      {}
     end
   end
 

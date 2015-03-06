@@ -40,7 +40,7 @@ class Api::TasksController < ApplicationController
   def subscribe_request
     render json: {
           success: true,
-          token: AirpubApi.generate_subscribe_request("/results/#{@task.analyst.id}/#{@task.id}")
+          token: AirpubApi.generate_subscribe_request("/results/#{@task.analyst.id}/#{@task.token}")
         }
   end
 
