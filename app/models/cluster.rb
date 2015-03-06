@@ -140,6 +140,7 @@ class Cluster < ActiveRecord::Base
     self.status_value = status_mappings[raw_status]
     if raw_status == :active then
       self.status_description = ""
+      self.last_active = Time.now
     end
   end
 

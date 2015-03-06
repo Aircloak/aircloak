@@ -7,6 +7,17 @@ manny-air reports the following status:
 <%= @description %>
 ------------
 
+"Changes since cluster was last active:"
+<%- if @alterations.size > 0 then %>
+------------------------------------------
+<%- @alterations.each do |alteration| %>
+Time ago: <%= time_ago_in_words alteration.created_at %>
+Author: <%= alteration.user.login %>
+Change: <%= alteration.description %>
+------------------------------------------
+<% end %>
+<% end %>
+
 Check out the cluster page for more information on
 <%= cluster_url @cluster, host: 'hello.aircloak.com' %>
 

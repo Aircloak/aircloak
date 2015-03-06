@@ -8,6 +8,22 @@
     %pre= @description
 
     %p
+      %h2= "Changes since cluster was last active:"
+      - if @alterations.size > 0 then
+        %table.table.table-striped
+          %thead
+            %tr
+              %th Time ago
+              %th Author
+              %th Change
+
+          %tbody
+            - @alterations.each do |alteration|
+              %tr
+                %td= time_ago_in_words alteration.created_at
+                %td= alteration.user.login
+                %td= alteration.description
+    %p
       Check out the cluster page for more information on
       = cluster_url(@cluster, host: 'hello.aircloak.com')
 
