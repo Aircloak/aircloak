@@ -12,6 +12,7 @@ class ClustersController < ApplicationController
 
   def create
     @cluster = Cluster.new(cluster_params)
+    @cluster.log_alteration "Created with name '#{@cluster.name}' and build '#{@cluster.build.name}'."
     update_cluster 'Cluster was successfully created.', 'new'
   end
 
@@ -21,6 +22,7 @@ class ClustersController < ApplicationController
 
   def destroy
     @cluster.assign_cloaks []
+    @cluster.log_alteration "Destroyed."
     @cluster.mark_as_changed
     @cluster.save # save that the state has changed
     describe_successful_activity "Successfully marked cluster to get destroyed."
@@ -36,9 +38,9 @@ class ClustersController < ApplicationController
 private
   def update_cluster msg, action
     cloaks = cloaks_from_params
-    @cluster.analysts = analysts_from_params
+    analysts = analysts_from_params
     @cluster.mark_as_changed
-    if @cluster.assign_cloaks(cloaks) && @cluster.update_params(cluster_params) then
+    if @cluster.assign_analysts(analysts) && @cluster.assign_cloaks(cloaks) && @cluster.update_params(cluster_params) then
       redirect_to clusters_path, notice: msg
     else
       render action: action

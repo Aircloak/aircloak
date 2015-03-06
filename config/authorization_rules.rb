@@ -71,6 +71,7 @@ authorization do
       :deployable_entity_versions,
       :builds,
       :clusters,
+      :alterations,
       :cloaks,
       :analysts,
       :permissions,

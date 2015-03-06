@@ -31,6 +31,8 @@
     - @cluster.capabilities.each do |capability|
       %li= capability.name
 
+= link_to "View history", alterations_path(target_type: "Cluster", target_id: @cluster.id)
+\|
 = link_to 'Edit', edit_cluster_path(@cluster)
 \|
 - if @cluster.can_delete?
