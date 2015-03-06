@@ -44,7 +44,7 @@
                     %td
                       %a{"href" => "#", "data-edit-sandbox-user" => true, :"data-run-id" => hb("../id"), "data-user-row-id" => hb("userRowId"), "data-table" => hb("table")}
                         = hb "fields"
-        = hb "if multiRun" do
+        = hb "if ../multiRun" do
           .controls
             %a#addTestRun.btn{:href => "#"}
               Add test run
