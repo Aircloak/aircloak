@@ -241,7 +241,9 @@ class Cluster < ActiveRecord::Base
   end
 
   def log_alteration description
-    alteration = Alteration.new description: description, user: Authorization.current_user
+    user = Authorization.current_user
+    user = nil if user.class.name != "User" # nil for anonymous users
+    alteration = Alteration.new description: description, user: user
     self.alterations << alteration
   end
 
