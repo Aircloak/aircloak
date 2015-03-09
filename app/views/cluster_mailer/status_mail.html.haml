@@ -4,8 +4,9 @@
     %meta{'content' => 'text/html; charset=UTF-8', 'http-equiv' => 'Content-Type'}
   %body
     %h1= "#{@cluster.name} is #{@cluster.status.to_s.humanize.downcase}."
-    %p manny-air reports the following status:
-    %pre= @description
+    - if @description.present? then
+      %p manny-air reports the following status:
+      %pre= @description
 
     %p
       %h2= "Changes since cluster was last active:"

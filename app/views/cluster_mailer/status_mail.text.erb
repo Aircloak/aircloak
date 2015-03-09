@@ -1,11 +1,13 @@
 <%= @cluster.name %> is <%= @cluster.status.to_s.humanize.downcase %>
 =================================
 
+<%- if @description.present? then %>
 manny-air reports the following status:
 
 ------------
 <%= @description %>
 ------------
+<% end %>
 
 "Changes since cluster was last active:"
 <%- if @alterations.size > 0 then %>
