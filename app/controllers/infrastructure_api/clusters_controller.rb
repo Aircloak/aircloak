@@ -16,9 +16,12 @@ class InfrastructureApi::ClustersController < ApplicationController
       when ClusterStatusPB::Status::INACTIVE
         :inactive
     end
-    cluster.check_capabilities if cs.status == ClusterStatusPB::Status::ACTIVE
-    cluster.save
     ClusterMailer.status_mail(cluster, cs).deliver unless cluster.name =~ /^test-/
+    if cs.status == ClusterStatusPB::Status::ACTIVE
+      cluster.check_capabilities 
+      cluster.last_active = Time.now
+    end
+    cluster.save
     render :text => "thanks", layout: false
   end
 end

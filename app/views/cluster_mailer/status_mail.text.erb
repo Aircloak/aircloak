@@ -12,7 +12,7 @@ manny-air reports the following status:
 ------------------------------------------
 <%- @alterations.each do |alteration| %>
 Time ago: <%= time_ago_in_words alteration.created_at %>
-Author: <%= alteration.user.login %>
+Author: <%= alteration.user.login unless alteration.user.nil? %>
 Change: <%= alteration.description %>
 ------------------------------------------
 <% end %>

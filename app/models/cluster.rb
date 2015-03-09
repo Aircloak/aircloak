@@ -72,8 +72,8 @@ class Cluster < ActiveRecord::Base
     removed_cloaks.each {|cloak| cloak.cluster_cloak.set_state :to_be_removed }
 
     # log changes to cluster
-    added_cloaks_list = added_cloaks.map {|cloak| cloak.name}.join(",")
-    removed_cloaks_list = removed_cloaks.map {|cloak| cloak.name}.join(",")
+    added_cloaks_list = added_cloaks.map {|cloak| cloak.name}.join(", ")
+    removed_cloaks_list = removed_cloaks.map {|cloak| cloak.name}.join(", ")
     log_alteration "Added cloak(s): '#{added_cloaks_list}'." unless added_cloaks_list.empty?
     log_alteration "Removed cloak(s): '#{removed_cloaks_list}'." unless removed_cloaks_list.empty?
 
@@ -85,8 +85,8 @@ class Cluster < ActiveRecord::Base
     old_analysts = self.analysts.to_a
     added_analysts = new_analysts - old_analysts
     removed_analysts = old_analysts - new_analysts
-    added_analysts_list = added_analysts.map {|analyst| analyst.name}.join(",")
-    removed_analysts_list = removed_analysts.map {|analyst| analyst.name}.join(",")
+    added_analysts_list = added_analysts.map {|analyst| analyst.name}.join(", ")
+    removed_analysts_list = removed_analysts.map {|analyst| analyst.name}.join(", ")
     log_alteration "Added analyst(s): '#{added_analysts_list}'." unless added_analysts_list.empty?
     log_alteration "Removed analyst(s): '#{removed_analysts_list}'." unless removed_analysts_list.empty?
 
@@ -138,10 +138,7 @@ class Cluster < ActiveRecord::Base
 
   def status= raw_status
     self.status_value = status_mappings[raw_status]
-    if raw_status == :active then
-      self.status_description = ""
-      self.last_active = Time.now
-    end
+    self.status_description = "" if raw_status == :active
   end
 
   def status
