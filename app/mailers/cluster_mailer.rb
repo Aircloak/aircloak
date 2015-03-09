@@ -10,6 +10,6 @@ class ClusterMailer < ActionMailer::Base
         target_id: cluster.id,
         last_active: cluster.last_active
       ).order(created_at: :desc)
-    mail to: "everyone-dev@aircloak.com", subject: "#{cluster.status}: #{cluster.name}"
+    mail to: "everyone-dev@aircloak.com", subject: "#{cluster.status.to_s.humanize}: #{cluster.name}"
   end
 end
