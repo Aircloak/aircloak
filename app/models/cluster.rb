@@ -72,8 +72,8 @@ class Cluster < ActiveRecord::Base
     removed_cloaks.each {|cloak| cloak.cluster_cloak.set_state :to_be_removed }
 
     # log changes to cluster
-    added_cloaks_list = added_cloaks.map {|cloak| cloak.name}.join(",")
-    removed_cloaks_list = removed_cloaks.map {|cloak| cloak.name}.join(",")
+    added_cloaks_list = added_cloaks.map {|cloak| cloak.name}.join(", ")
+    removed_cloaks_list = removed_cloaks.map {|cloak| cloak.name}.join(", ")
     log_alteration "Added cloak(s): '#{added_cloaks_list}'." unless added_cloaks_list.empty?
     log_alteration "Removed cloak(s): '#{removed_cloaks_list}'." unless removed_cloaks_list.empty?
 
@@ -85,8 +85,8 @@ class Cluster < ActiveRecord::Base
     old_analysts = self.analysts.to_a
     added_analysts = new_analysts - old_analysts
     removed_analysts = old_analysts - new_analysts
-    added_analysts_list = added_analysts.map {|analyst| analyst.name}.join(",")
-    removed_analysts_list = removed_analysts.map {|analyst| analyst.name}.join(",")
+    added_analysts_list = added_analysts.map {|analyst| analyst.name}.join(", ")
+    removed_analysts_list = removed_analysts.map {|analyst| analyst.name}.join(", ")
     log_alteration "Added analyst(s): '#{added_analysts_list}'." unless added_analysts_list.empty?
     log_alteration "Removed analyst(s): '#{removed_analysts_list}'." unless removed_analysts_list.empty?
 
