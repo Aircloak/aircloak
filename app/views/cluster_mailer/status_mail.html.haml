@@ -21,7 +21,7 @@
             - @alterations.each do |alteration|
               %tr
                 %td= time_ago_in_words alteration.created_at
-                %td= alteration.user.login
+                %td= alteration.user.login unless alteration.user.nil?
                 %td= alteration.description
     %p
       Check out the cluster page for more information on
