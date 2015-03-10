@@ -7,6 +7,7 @@
 %div
   %select{name: "period", style: "width:90px;"}
     %option{value: "every"} every
+    %option{value: "hourly"} hourly
     %option{value: "daily"} daily
     %option{value: "weekly"} weekly
     %option{value: "monthly"} monthly
@@ -14,6 +15,11 @@
   %span{name: "interval_container"}
     %input{name: "interval", type: "number", min: 1, max: 720, value:1, style: "width:70px;"}
     min
+
+  %select{name: "minute", style: "width:70px;"}
+    - (0..59).each do |minute|
+      %option{value: minute, selected: (minute == 0) ? "selected" : nil}
+        = ":#{sprintf("%02d", minute)}"
 
   %select{name: "hour", style: "width:70px;"}
     - (0..23).each do |hour|
