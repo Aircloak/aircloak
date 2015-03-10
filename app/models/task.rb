@@ -108,12 +108,6 @@ class Task < ActiveRecord::Base
     end
   end
 
-  # The name of whom this query runs on behalf of
-  def on_behalf_of
-    # TODO(#110): Change to real id of analyst when we start introducing that
-    "Aircloak"
-  end
-
   # This is a pseudo-attribute which is used to set/retrieve prefetch query.
   #
   # We differ between two terms: prefetch and data:
