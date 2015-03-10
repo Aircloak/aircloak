@@ -113,6 +113,8 @@ describe Cloak do
   context "destruction" do
     before(:each) do
       AuditLog.delete_all
+      ClusterCloak.destroy_all
+      Cloak.destroy_all
     end
 
     it "should remove audit logs when being deleted" do
