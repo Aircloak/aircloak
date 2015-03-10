@@ -19,10 +19,14 @@ create_column = (name) ->
     $('#results_table thead tr:first').append column
 
 
+name_from_bucket = (bucket) ->
+  "#{bucket.label}: #{bucket.value}"
+
+
 # makes sure all columns needed for showing the result are created
 create_columns = (result) ->
   for bucket in result.buckets
-    create_column bucket.name
+    create_column (name_from_bucket bucket)
 
 
 format_date = (timestamp) ->
@@ -61,8 +65,8 @@ Results.display = (result) ->
   cells = _.map [1..Results.columns.count], (index) -> row.insertCell index + 1
 
   for bucket in result.buckets
-    index = Results.columns[bucket.name]
-    cells[index-1].innerHTML = bucket.value
+    index = Results.columns[name_from_bucket bucket]
+    cells[index-1].innerHTML = bucket.count
 
 
 $ ->

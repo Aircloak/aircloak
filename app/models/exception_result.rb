@@ -7,11 +7,11 @@ class ExceptionResult < ActiveRecord::Base
     ExceptionResult.joins(:result).where(results: {task_id: task.id}).delete_all
   end
 
-  def self.create_from_proto result, exception
+  def self.create_from_json result, exception
     create(
       result_id: result.id,
-      stacktrace: exception.stackEntry,
-      count: exception.accumulated_count.blank? ? 0 : exception.accumulated_count
+      stacktrace: exception["error"],
+      count: exception["count"]
     )
   end
 end

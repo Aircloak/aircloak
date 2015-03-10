@@ -1,4 +1,3 @@
-require './lib/proto/cloak/task.pb.rb'
 require './lib/json_sender'
 require './lib/prefetch_filter'
 require './lib/task_code'
