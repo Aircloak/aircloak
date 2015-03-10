@@ -4,7 +4,7 @@
 %hr
 
 -# set rendering parameters
-.render_params{data: {results: @results.to_json, task_last_update: @task.updated_at.to_i * 1000}}
+.render_params{data: {results: @results.to_json, task_last_update: @task.code_timestamp.to_i * 1000}}
 
 %table.table.table-striped#results_table
   %thead

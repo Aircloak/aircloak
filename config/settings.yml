@@ -18,7 +18,7 @@ defaults: &defaults
 development:
   <<: *defaults
   # empty means send to default cloak-core URL
-  publish_url: "" # http://127.0.0.1:1080/publish
+  publish_url: http://127.0.0.1:1080/publish
   airpub_shared_secret: "well-known secret"
   airpub_ws_subscribe: ws://127.0.0.1:1080/subscribe/ws
 

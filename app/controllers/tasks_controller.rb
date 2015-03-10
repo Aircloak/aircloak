@@ -55,6 +55,7 @@ class TasksController < ApplicationController
     @task.sandbox_type = "lua"
     @task.update_task = false
     @task.stored_task = ([Task::STREAMING_TASK, Task::PERIODIC_TASK].include?(@task.task_type))
+    @task.code_timestamp = Time.now
     if @task.save
       describe_successful_activity "Successfully created a new task"
       # If we don't redirect, the flash messages get stuck
@@ -73,6 +74,7 @@ class TasksController < ApplicationController
   # PATCH/PUT /tasks/:id
   def update
     @task.sandbox_type = "lua"
+    @task.code_timestamp = Time.now if @task.code != task_params[:code]
     if @task.update(task_params)
       describe_successful_activity "Successfully changed task #{@task.name}"
       # If we don't redirect, the flash messages get stuck
