@@ -101,8 +101,8 @@ describe Task do
     Bucket.create(
       result_id: result.id,
       label: "label",
-      str_answer: "answer",
-      accumulated_count: 1
+      value: "answer",
+      count: 1
     )
     Result.count.should == 1
     Bucket.count.should == 1

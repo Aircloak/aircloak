@@ -32,7 +32,7 @@ describe "Api::TaskResultsController" do
     )
 
     (1..100).each do |i|
-      t.results.create(buckets: [Bucket.new(label: "label_#{i}", str_answer: "answer_#{i}", accumulated_count: i)])
+      t.results.create(buckets: [Bucket.new(label: "label_#{i}", value: "answer_#{i}", count: i)])
     end
     t
   end

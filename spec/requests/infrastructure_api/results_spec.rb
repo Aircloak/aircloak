@@ -1,5 +1,4 @@
 require 'spec_helper'
-require './lib/proto/air/aggregate_results.pb'
 require 'json'
 
 describe InfrastructureApi::ResultsController do
@@ -24,10 +23,7 @@ describe InfrastructureApi::ResultsController do
       # the security checks of the controller
       pr = double("pending result")
       PendingResult.should_receive(:where).and_return([pr])
-      PendingResult.should_receive(:where).and_return([pr])
       pr.should_receive(:task_id).and_return(t.id)
-      pr.should_receive(:task_id).and_return(t.id)
-      pr.should_receive(:standing).and_return(false)
       pr.should_receive(:standing).and_return(false)
       pr.stub(:destroy)
 
@@ -35,32 +31,30 @@ describe InfrastructureApi::ResultsController do
       # what to expect after the test.
       Result.destroy_all
       Result.count.should eq(0)
-      buckets = [
-        BucketPB.new(label: "installed_apps",
-                     string: "Chrome",
-                     accumulated_count: 2),
-        BucketPB.new(label: "installed_apps",
-                     string: "Safari",
-                     accumulated_count: 30)
-      ]
-      rp = ResultPB.new(
-        analyst_id: user.analyst.id, task_id: t.encode_token, index: "index", buckets: buckets
-      )
 
-      with_user user do
-        post "/infrastructure-api/results", rp.encode.buf, { 'Content-Type' => "application/x-protobuf" }
-        json = rp.to_json
-        # the fields in the json format have different names compared with the ones in the protobuffs format
-        # we need to manually adjust the generated json field names so they will be accepted by the endpoint
-        json.gsub! '"accumulated_count"', '"count"'
-        json.gsub! '"string"', '"value"'
-        post "/infrastructure-api/results", json, { 'Content-Type' => "application/json" }
-      end
+      results = {
+        analyst_id: user.analyst_id,
+        task_id: t.encode_token,
+        buckets: [
+          {
+            label: "installed_apps",
+            value: "Chrome",
+            count: 2
+          },
+          {
+            label: "installed_apps",
+            value: "Safari",
+            count: 30
+          }
+        ]
+      }
 
-      Result.count.should eq(2)
-      Bucket.count.should eq(4)
-      Bucket.all.map(&:str_answer).sort.should eq(["Chrome", "Chrome", "Safari", "Safari"])
-      Bucket.all.map(&:accumulated_count).should eq([2,30,2,30])
+      post "/infrastructure-api/results", results.to_json, { 'Content-Type' => "application/json" }
+
+      Result.count.should eq(1)
+      Bucket.count.should eq(2)
+      Bucket.all.map(&:value).sort.should eq(["Chrome", "Safari"])
+      Bucket.all.map(&:count).should eq([2,30])
 
       response.status.should be(200)
     end
