@@ -33,8 +33,9 @@ class Result < ActiveRecord::Base
       :id => id,
       :buckets => buckets.map { |bucket|
         {
-          :name => bucket.display_name,
-          :value => bucket.display_result
+          label: bucket.label,
+          value: bucket.str_answer,
+          count: bucket.accumulated_count
         }
       },
       :exceptions => exception_results.map { |exception|
