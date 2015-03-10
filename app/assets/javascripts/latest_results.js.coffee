@@ -43,13 +43,9 @@ convertArticleToResult = (timestamp, article) ->
   result = {published_at: timestamp}
   article = JSON.parse article
   result.buckets = []
-  for bucket in article.buckets
-    name = bucket.label
-    name += ": #{bucket.value}" if bucket.value
-    result.buckets.push {name: name, value: bucket.count}
+  result.buckets.push {label: bucket.label, value: bucket.value, count: bucket.count} for bucket in article.buckets
   result.exceptions = []
-  for exception in article.exceptions
-    result.exceptions.push {count: exception.count}
+  result.exceptions.push {count: exception.count} for exception in article.exceptions
   result
 
 $ ->

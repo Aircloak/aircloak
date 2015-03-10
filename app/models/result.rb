@@ -21,11 +21,6 @@ class Result < ActiveRecord::Base
     Result.where(task_id: task.id).delete_all
   end
 
-  def to_result_proto
-    bs = buckets.map(&:to_bucket_proto)
-    ResultPB.new(analyst_id: task.analyst_id, task_id: task.id, index: task.index, buckets: bs, exceptions: [])
-  end
-
   # Convert result with buckets to the format appropriate for usage by clients, such as API consumers.
   def to_client_hash
     {
@@ -33,8 +28,9 @@ class Result < ActiveRecord::Base
       :id => id,
       :buckets => buckets.map { |bucket|
         {
-          :name => bucket.display_name,
-          :value => bucket.display_result
+          label: bucket.label,
+          value: bucket.value,
+          count: bucket.count
         }
       },
       :exceptions => exception_results.map { |exception|

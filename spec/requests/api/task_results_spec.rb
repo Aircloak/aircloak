@@ -32,7 +32,7 @@ describe "Api::TaskResultsController" do
     )
 
     (1..100).each do |i|
-      t.results.create(buckets: [Bucket.new(label: "label_#{i}", accumulated_count: i)])
+      t.results.create(buckets: [Bucket.new(label: "label_#{i}", value: "answer_#{i}", count: i)])
     end
     t
   end
@@ -80,8 +80,9 @@ describe "Api::TaskResultsController" do
     def verify_data(values, items)
       items.length.should eq values.length
       values.each_with_index do |value, index|
-        items[index]["buckets"][0]["name"].should eq("label_#{value}")
-        items[index]["buckets"][0]["value"].should eq(value)
+        items[index]["buckets"][0]["label"].should eq("label_#{value}")
+        items[index]["buckets"][0]["value"].should eq("answer_#{value}")
+        items[index]["buckets"][0]["count"].should eq(value)
       end
     end
 end

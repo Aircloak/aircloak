@@ -206,16 +206,16 @@ You need a REST API key to access this API endpoint. See the [authentication](#a
     {
       "published_at":1421660484000,
       "buckets":[
-        {"name":"height: 140","value":20},
-        {"name":"height: 160","value":35}
+        {"label": "height", "value": "140", "count": 20},
+        {"label": "height", "value": "160", "count": 35}
       ],
       "exceptions":[]
     },
     {
       "published_at":1421660484000,
       "buckets":[
-        {"name":"height: 180","value":25},
-        {"name":"height: 200","value":25}
+        {"label": "height", "value": "180", "count": 25},
+        {"label": "height", "value": "200", "count": 25}
       ],
       "exceptions":[]
     }
@@ -224,6 +224,10 @@ You need a REST API key to access this API endpoint. See the [authentication](#a
 ```
 The API return value is a list of results on the given page. Furthermore, information about the current page, and count of all results are included, in case you want to display a pagination user interface.
 
+The format of the results corresponds to the format in which they were reported from the query. If you have
+`report_property("gender", "male")` in your query, you will see a row `{"label": "gender",
+"value": "male", "count": 5000}` in your results, where the count corresponds to how many distinct users
+reported the particular property.
 
 
 # Cloak APIs

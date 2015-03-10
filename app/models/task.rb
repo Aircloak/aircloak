@@ -1,4 +1,3 @@
-require './lib/proto/cloak/task.pb.rb'
 require './lib/json_sender'
 require './lib/prefetch_filter'
 require './lib/task_code'
@@ -108,12 +107,6 @@ class Task < ActiveRecord::Base
         # TODO: LOG
       end
     end
-  end
-
-  # The name of whom this query runs on behalf of
-  def on_behalf_of
-    # TODO(#110): Change to real id of analyst when we start introducing that
-    "Aircloak"
   end
 
   # This is a pseudo-attribute which is used to set/retrieve prefetch query.
