@@ -249,7 +249,8 @@ private
     response = JsonSender.request(:delete, :task_runner, analyst, cluster,
         "task/#{encode_token}", {})
 
-    unless response["success"] == true then
+    #TODO: remove "Task not found." test after cloak-core is updated not to fail in this case.
+    unless response["success"] == true or response["error"] == "Task not found." then
       raise RemoveError.new("Failed removing task #{name} from the cluster.")
     end
   end
