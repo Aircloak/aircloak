@@ -15,6 +15,17 @@
       >
 
   %button{class: "btn", onClick: "Task.execute('#{@task.token}');"} Run task
+- else
+  - if @task.active then
+    %p
+      Task is
+      %b active.
+    = link_to 'Suspend', suspend_task_path(@task.token), :method => :post, class: "btn"
+  - else
+    %p
+      Task is
+      %b suspended.
+    = link_to 'Resume', resume_task_path(@task.token), :method => :post, class: "btn"
 
 = link_to 'Edit task', edit_task_path(@task.token), class: "btn"
 = link_to "Delete results", delete_results_task_path(@task.token), :method => :post,

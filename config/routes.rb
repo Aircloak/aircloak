@@ -64,6 +64,8 @@ Web::Application.routes.draw do
     get "latest_results", on: :member, action: 'latest_results'
     get "all_results", on: :member, action: 'all_results'
     post "delete_results", on: :member
+    post "resume", on: :member, action: 'resume'
+    post "suspend", on: :member, action: 'suspend'
   end
   resources :results
   resources :user_tables do
