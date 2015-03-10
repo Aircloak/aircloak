@@ -4,7 +4,7 @@ require 'airpub_api'
 class TasksControllerException < Exception; end
 
 class TasksController < ApplicationController
-  filter_access_to [:execute_as_batch_task, :all_results, :latest_results], require: :manage
+  filter_access_to [:execute_as_batch_task, :all_results, :latest_results, :suspend, :resume], require: :manage
   before_action :load_task, except: [:index, :new, :create]
   before_action :set_tables_json, only: [:new, :edit, :update, :create]
   before_action :set_auto_completions, only: [:new, :edit, :update, :create]
@@ -64,6 +64,10 @@ class TasksController < ApplicationController
       describe_failed_activity "Failed at creating a task"
       render action: :new
     end
+  rescue Exception => e
+    describe_failed_activity "Failed at creating a task"
+    flash[:error] = e.message
+    render action: :new
   end
 
   # PATCH/PUT /tasks/:id
@@ -79,6 +83,10 @@ class TasksController < ApplicationController
       flash[:error] = "Could not save task #{@task.name}"
       render action: :edit
     end
+  rescue Exception => e
+    describe_failed_activity "Failed at editing task #{@task.name}"
+    flash[:error] = e.message
+    render action: :edit
   end
 
   # DELETE /tasks/:id
@@ -153,6 +161,32 @@ class TasksController < ApplicationController
     @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.token}"
     @server_url = Rails.configuration.airpub_ws_subscribe
     describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task.token)
+  end
+
+  # POST /tasks/:id/suspend
+  def suspend
+    @task.active = false
+    @task.save
+    describe_activity "Suspended task #{@task.name}", suspend_task_path(@task.token)
+    flash[:notice] = "Task #{@task.name} suspended."
+  rescue Exception => e
+    describe_failed_activity "Failed at suspending task #{@task.name}"
+    flash[:error] = e.message
+  ensure
+    redirect_to :back
+  end
+
+  # POST /tasks/:id/resume
+  def resume
+    @task.active = true
+    @task.save
+    describe_activity "Resumed task #{@task.name}", resume_task_path(@task.token)
+    flash[:notice] = "Task #{@task.name} resumed."
+  rescue Exception => e
+    describe_failed_activity "Failed at resuming task #{@task.name}"
+    flash[:error] = e.message
+  ensure
+    redirect_to :back
   end
 
 private

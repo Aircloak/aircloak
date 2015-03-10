@@ -21,8 +21,9 @@ class Task < ActiveRecord::Base
 
   before_create :generate_token
 
-  after_save :upload_stored_task
-  after_destroy :remove_task_from_cloak
+  after_save :upload_stored_task, if: :active
+  after_save :remove_task_from_cloak, unless: :active
+  after_destroy :remove_task_from_cloak, if: :active
 
   class InvalidTaskId < Exception; end
 
@@ -191,6 +192,8 @@ private
     self.errors.add :period, "can't be blank" if period.nil? || period.empty?
   end
 
+  class UploadError < Exception; end
+
   def upload_stored_task
     return unless self.stored_task && cloak
 
@@ -215,7 +218,7 @@ private
             to_json
         )
     unless response["success"] == true then
-      # TODO: LOG
+      raise UploadError.new("Failed uploading task #{name} into the cluster.")
     end
   end
 
@@ -247,7 +250,7 @@ private
         "task/#{encode_token}", {})
 
     unless response["success"] == true then
-      raise RemoveError.new("Failed removing the task from the cluster.")
+      raise RemoveError.new("Failed removing task #{name} from the cluster.")
     end
   end
 

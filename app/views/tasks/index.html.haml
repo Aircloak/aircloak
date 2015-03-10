@@ -16,6 +16,8 @@
         - if current_user.has_multiple_clusters?
           %th Cluster
         %th Results
+        %th Type
+        %th State
         %th
     %tbody
     - @tasks.each do |task|
@@ -27,6 +29,18 @@
           - else
             %td NO CLUSTER ASSIGNED
         %td= link_to task.results.count, latest_results_task_path(task.token)
+        %td= task.type_string
+        - if task.batch_task? then
+          %td N / A
+        - else
+          - if task.active then
+            %td
+              Active
+              = link_to 'Suspend', suspend_task_path(task.token), :method => :post, class: "btn btn-mini"
+          - else
+            %td
+              Suspended
+              = link_to 'Resume', resume_task_path(task.token), :method => :post, class: "btn btn-mini"
         %td
           = link_to 'Latest results', latest_results_task_path(task.token), class: "btn btn-mini"
           = link_to 'Edit task', edit_task_path(task.token), class: "btn btn-mini"
