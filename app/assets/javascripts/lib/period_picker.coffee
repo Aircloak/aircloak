@@ -25,12 +25,14 @@ window.PeriodPicker = (inputControl) ->
 
   periodContainers = ->
     every: "interval_container"
+    hourly: "minute"
     daily: "hour"
     weekly: "wday"
     monthly: "mday"
 
   periodControls = ->
     every: "interval"
+    hourly: "minute"
     daily: "hour"
     weekly: "wday"
     monthly: "mday"
