@@ -141,7 +141,9 @@ class TasksController < ApplicationController
 
   # GET /tasks/:id/all_results
   def all_results
-    @results = convert_results_for_client_side_rendering @task.results
+    @raw_results = @task.results.paginate(page: params[:page], per_page: 15).order(created_at: :desc)
+    @results = convert_results_for_client_side_rendering @raw_results # convert to json
+    @results.reverse! # results are rendered in reverse order, reverse here to show actual order
     @results_path = all_results_task_path(@task.token)
     describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task.token)
 
