@@ -39,7 +39,7 @@ class AuditLog < ActiveRecord::Base
   end
 
   def message
-    message_parts[5..(message_parts.size)].join(";")
+    message_parts[5..(message_parts.size)].join(";").gsub("\\n", "\n")
   end
 
   # Removes all repeated answer for which there is no longer
