@@ -6,7 +6,7 @@
   .control-group
     = control_label "Path:"
     .controls
-      = text_field_tag :path, "/results"
+      = text_field_tag :path, "/results/#{@analyst_id}"
   .control-group
     .controls
       = submit_tag 'Subscribe', :class => "btn btn-success submit-btn"

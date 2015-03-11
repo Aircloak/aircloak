@@ -4,6 +4,7 @@ class AirpubController < ApplicationController
   protect_from_forgery :except => :event
 
   def index
+    @analyst_id = current_user.analyst.id unless current_user.analyst.nil?
   end
 
   def subscribe
