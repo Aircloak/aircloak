@@ -15,8 +15,11 @@ create_column = (name) ->
   if not Results.columns[name]?
     Results.columns[name] = Results.columns.count
     Results.columns.count++
-    column = $('<th/>').html name
-    $('#results_table thead tr:first').append column
+    cell = $('<th/>').html name
+    cb = () ->
+        $(@).append cell
+        cell = $('<td/>')
+    $('#results_table tr').each cb
 
 
 name_from_bucket = (bucket) ->
@@ -43,6 +46,8 @@ Results.display = (result) ->
     if Results.resultsTableLimit < table.rows.length
       table.deleteRow table.rows.length - 1
 
+  create_columns result
+
   row = table.insertRow 1
   date = row.insertCell 0
 
@@ -61,7 +66,6 @@ Results.display = (result) ->
   else
     errors.innerHTML = "none"
 
-  create_columns result
   cells = _.map [1..Results.columns.count], (index) -> row.insertCell index + 1
 
   for bucket in result.buckets
