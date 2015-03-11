@@ -223,7 +223,8 @@ private
       {text: "lookup", displayText: "lookup(table_name, key)"},
       {text: "to_date", displayText: "to_date(timestamp)"},
       {text: "user_id"},
-      {text: "accumulator"}
+      {text: "accumulator"},
+      {text: "task_time"}
     ]
 
     # Functions declared in all library scripts
