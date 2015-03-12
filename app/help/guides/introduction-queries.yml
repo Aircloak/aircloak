@@ -115,9 +115,9 @@ content: |
   - `wday` (day of the week, 1=Sunday, 2=Monday, ...)
   - `yday` (day of the year in range of 1-366)
 
-  There is also a public variable called `task_time`, available only in batch and periodic tasks, which can be
-  used to determined the epoch time the task execution has been scheduled. The time is rounded to a minute
-  resolution, but it is still represented as the seconds epoch timestamp, so it can be used with other
+  In batch and periodic tasks there is a public variable called `task_time` available. It can be
+  used to determine the current epoch in the task. The time is rounded to a minute
+  resolution, but is represented in seconds as an epoch timestamp, and can therefore be used with other
   functions, such as `to_date`. This time should be close to the current time, but some small deviation is
   possible, since the code may be executed a bit later than the task has been scheduled.
   __Note__: For security reasons, `task_time` is not available in streaming tasks.
