@@ -7,13 +7,24 @@ class Api::TaskResultsController < ApplicationController
   def index
     page = (params[:page] || 1).to_i
     per_page = (params[:per_page] || 10).to_i
+
+    query = Result.includes(:buckets).where(task: @task)
+
+    if (params[:from])
+      query = query.where("created_at >= ?", DateTime.parse(params[:from]))
+    end
+
+    if (params[:to])
+      query = query.where("created_at <= ?", DateTime.parse(params[:to]))
+    end
+
     respond_with(
           success: true,
-          count: @task.results.count,
+          count: query.count,
           page: page,
           per_page: per_page,
           results:
-              @task.results.order("created_at desc").
+              query.order("created_at desc").
                   paginate(page: page, per_page: per_page).
                   map {|result| result.to_client_hash}
         )
