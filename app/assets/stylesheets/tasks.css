@@ -26,3 +26,7 @@
 .CodeMirror-line-error {
   background: #FFE0E0;
 }
+
+.right-aligned {
+  float: right;
+}

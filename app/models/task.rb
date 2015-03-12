@@ -20,9 +20,7 @@ class Task < ActiveRecord::Base
 
   before_create :generate_token
 
-  after_save :upload_stored_task, if: :active
-  after_save :remove_task_from_cloak, unless: :active
-  after_destroy :remove_task_from_cloak, if: :active
+  after_save :synchronize_stored_task
 
   class InvalidTaskId < Exception; end
 
@@ -165,7 +163,7 @@ class Task < ActiveRecord::Base
     task_type == BATCH_TASK
   end
 
-private
+
   def prefetch_correct
     if @prefetch_error.nil?
       self.errors.add :data, "can't be blank" if prefetch.nil? || prefetch.empty?
@@ -174,6 +172,7 @@ private
     end
   end
 
+private
   def streaming_task
     return if task_type != STREAMING_TASK
     self.errors.add :report_interval, "can't be blank" if report_interval.nil?
@@ -185,11 +184,18 @@ private
     self.errors.add :period, "can't be blank" if period.nil? || period.empty?
   end
 
+  def synchronize_stored_task
+    return unless self.stored_task && cloak
+    if active && !deleted then
+      upload_stored_task
+    else
+      remove_task_from_cloak
+    end
+  end
+
   class UploadError < Exception; end
 
   def upload_stored_task
-    return unless self.stored_task && cloak
-
     pr = PendingResult.where(task: self).first || PendingResult.create(task: self, standing: true)
     headers = {"auth_token" => pr.auth_token}.merge(publish_header(pr))
     response = JsonSender.request(
@@ -237,8 +243,6 @@ private
   class RemoveError < Exception; end
 
   def remove_task_from_cloak
-    return unless self.stored_task && cloak
-
     response = JsonSender.request(:delete, :task_runner, analyst, cluster,
         "task/#{encode_token}", {})
 

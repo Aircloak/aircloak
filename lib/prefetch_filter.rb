@@ -17,7 +17,7 @@ class PrefetchFilter
     return "" if prefetch.nil? || prefetch.empty?
 
     data = JSON.parse(prefetch).map do |prefetch_table|
-      table = UserTable.where(cluster_id: cluster_id, table_name: prefetch_table["table"]).first
+      table = UserTable.where(cluster_id: cluster_id, table_name: prefetch_table["table"], deleted: false).first
 
       {
         tableId: table.id,
