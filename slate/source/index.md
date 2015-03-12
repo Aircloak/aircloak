@@ -189,6 +189,8 @@ Parameter | Required | Default | Description
 --------- | -------- | ------- | -----------
 page      | false    | 1       | Page number
 per_page  | false    | 10      | The number of items per page
+from      | false    | none    | Lowest report time to include in results. Should be provided as YYYYMMDD HH:MM
+to        | false    | none    | Highest report time to include in results. Should be provided as YYYYMMDD HH:MM
 
 ### Authentication
 
@@ -202,6 +204,8 @@ You need a REST API key to access this API endpoint. See the [authentication](#a
   "count":30,
   "page":1,
   "per_page":10,
+  "from": "20150119 09:00",
+  "to": "20150119 11:00",
   "results":[
     {
       "published_at":1421660484000,
