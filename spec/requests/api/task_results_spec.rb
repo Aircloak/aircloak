@@ -31,8 +31,12 @@ describe "Api::TaskResultsController" do
       analyst: analyst
     )
 
+    initial_date = Date.today - 100.days
     (1..100).each do |i|
-      t.results.create(buckets: [Bucket.new(label: "label_#{i}", value: "answer_#{i}", count: i)])
+      t.results.create(
+            created_at: initial_date + i.days,
+            buckets: [Bucket.new(label: "label_#{i}", value: "answer_#{i}", count: i)]
+          )
     end
     t
   end
@@ -60,6 +64,23 @@ describe "Api::TaskResultsController" do
       json["page"].should eq 50
       json["per_page"].should eq 2
       verify_data([2, 1], json["results"])
+    end
+
+    it "filters dates" do
+      params = {
+        from: (Date.today - 20.days).strftime("%Y%m%d %H:%M"),
+        to: (Date.today - 15.days).strftime("%Y%m%d %H:%M")
+      }
+      get("/api/tasks/#{task.token}/results?#{params.to_query}",
+          {format: :json}, {'HTTP_ANALYST_TOKEN' => token.token})
+      response.code.should eq "200"
+
+      json = JSON.parse(response.body)
+      json["success"].should eq true
+      json["count"].should eq 6
+      json["page"].should eq 1
+      json["per_page"].should eq 10
+      verify_data((80..85).to_a.reverse, json["results"])
     end
 
     it "should require analyst" do
