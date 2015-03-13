@@ -47,7 +47,7 @@ describe PrefetchFilter do
     end
 
     def prefetch_to_data(prefetch)
-      UserTable.should_receive(:where).with(table_name: "age", cluster_id: 1).and_return([age_table_double])
+      UserTable.should_receive(:where).with(table_name: "age", cluster_id: 1, deleted: false).and_return([age_table_double])
       PrefetchFilter.prefetch_to_data(prefetch, 1)
     end
 end

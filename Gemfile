@@ -85,3 +85,6 @@ gem 'underscore-rails', '~> 1.6.0'
 gem 'handlebars_assets'
 gem 'hamlbars', '~> 2.1'
 gem 'codemirror-rails', '~> 4.5'
+
+# for running periodic tasks
+gem 'whenever'

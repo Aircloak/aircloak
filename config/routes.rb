@@ -66,6 +66,9 @@ Web::Application.routes.draw do
     post "delete_results", on: :member
     post "resume", on: :member, action: 'resume'
     post "suspend", on: :member, action: 'suspend'
+    post "delete", on: :member, action: 'delete'
+    get "deleted", on: :collection, action: 'deleted'
+    post "recover", on: :member, action: 'recover'
   end
   resources :results
   resources :user_tables do

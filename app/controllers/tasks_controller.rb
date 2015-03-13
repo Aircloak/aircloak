@@ -4,8 +4,9 @@ require 'airpub_api'
 class TasksControllerException < Exception; end
 
 class TasksController < ApplicationController
-  filter_access_to [:execute_as_batch_task, :all_results, :latest_results, :suspend, :resume], require: :manage
-  before_action :load_task, except: [:index, :new, :create]
+  filter_access_to [:execute_as_batch_task, :all_results, :latest_results,
+                    :suspend, :resume, :delete, :deleted, :recover], require: :manage
+  before_action :load_task, except: [:index, :new, :create, :deleted]
   before_action :set_tables_json, only: [:new, :edit, :update, :create]
   before_action :set_auto_completions, only: [:new, :edit, :update, :create]
   before_action :set_task_exceptions, only: [:new, :edit, :update, :create]
@@ -17,7 +18,7 @@ class TasksController < ApplicationController
 
   # GET /tasks
   def index
-    @tasks = current_user.analyst.tasks
+    @tasks = current_user.analyst.tasks.where(:deleted => false)
     describe_activity "Browsing all tasks for #{current_user.analyst.name}"
   end
 
@@ -74,12 +75,22 @@ class TasksController < ApplicationController
   # PATCH/PUT /tasks/:id
   def update
     @task.sandbox_type = "lua"
+    if @task.deleted then
+      recovering = true
+      @task.deleted = false
+    end
     @task.code_timestamp = Time.now if @task.code != task_params[:code]
     if @task.update(task_params)
-      describe_successful_activity "Successfully changed task #{@task.name}"
-      # If we don't redirect, the flash messages get stuck
-      flash[:notice] = 'Task was successfully saved.'
-      redirect_to edit_task_path @task.token
+      if recovering then
+        describe_successful_activity "Successfully changed and recovered task #{@task.name}"
+        flash[:notice] = "Task #{@task.name} was successfully recovered"
+        redirect_to tasks_path
+      else
+        describe_successful_activity "Successfully changed task #{@task.name}"
+        flash[:notice] = 'Task was successfully saved'
+        # If we don't redirect, the flash messages get stuck
+        redirect_to edit_task_path @task.token
+      end
     else
       describe_failed_activity "Failed at editing task #{@task.name}"
       flash[:error] = "Could not save task #{@task.name}"
@@ -100,11 +111,7 @@ class TasksController < ApplicationController
       describe_failed_activity "Could not destroy task #{@task.name}"
       flash[:error] = "Could not destroy task #{@task.name}. If this persists, please contact support"
     end
-  rescue Task::RemoveError => e
-    describe_failed_activity "Failed at removing task #{@task.name}"
-    flash[:error] = e.message
-  ensure
-    redirect_to tasks_path
+    redirect_to :back
   end
 
   # POST /tasks/:id/delete_results
@@ -191,6 +198,49 @@ class TasksController < ApplicationController
     flash[:error] = e.message
   ensure
     redirect_to :back
+  end
+
+  # GET /tasks/deleted
+  def deleted
+    @tasks = current_user.analyst.tasks.where(:deleted => true)
+    describe_activity "Browsing deleted tasks for #{current_user.analyst.name}"
+  end
+
+  # POST /tasks/:id/recover
+  def recover
+    if @task.data.blank? then
+      flash[:error] = "This task is no longer valid. It needs to be fixed before it can be recovered"
+      redirect_to edit_task_path(@task.token)
+      return
+    end
+
+    @task.deleted = false
+    @task.save
+    describe_successful_activity "Recovered task #{@task.name}", recover_task_path(@task.token)
+    flash[:notice] = "Task #{@task.name} was recovered."
+    redirect_to tasks_path
+  rescue Exception => e
+    describe_failed_activity "Failed at recovering task #{@task.name}"
+    flash[:error] = e.message
+    redirect_to tasks_path
+  end
+
+  # POST /tasks/:id/delete
+  def delete
+    @task.deleted = true
+    @task.purged = false
+    if @task.save
+      describe_successful_activity "Deleted task #{@task.name}"
+      flash[:notice] = "Deleted task #{@task.name}"
+    else
+      describe_failed_activity "Could not delete task #{@task.name}"
+      flash[:error] = "Could not delete task #{@task.name}. If this persists, please contact support"
+    end
+  rescue Exception => e
+    describe_failed_activity "Failed at deleting task #{@task.name}"
+    flash[:error] = e.message
+  ensure
+    redirect_to tasks_path
   end
 
 private
