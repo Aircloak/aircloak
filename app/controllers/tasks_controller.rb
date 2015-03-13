@@ -228,6 +228,7 @@ class TasksController < ApplicationController
   # POST /tasks/:id/delete
   def delete
     @task.deleted = true
+    @task.purged = false
     if @task.save
       describe_successful_activity "Deleted task #{@task.name}"
       flash[:notice] = "Deleted task #{@task.name}"

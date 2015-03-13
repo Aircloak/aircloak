@@ -30,3 +30,7 @@
 .right-aligned {
   float: right;
 }
+
+.error-text {
+  color: red;
+}

@@ -69,3 +69,6 @@ ssh_options[:forward_agent] = false
 
 # Cleans up old deploys, leaving only 5
 after "deploy:restart", "deploy:cleanup"
+
+set :whenever_command, "bundle exec whenever"
+require "whenever/capistrano"

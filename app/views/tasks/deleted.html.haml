@@ -19,7 +19,10 @@
             %td= task.cluster.name
           - else
             %td NO CLUSTER ASSIGNED
-        %td= task.results.count
+        -if task.purged
+          %td{class: "error-text"} purged
+        -else
+          %td= "#{pluralize(task.results.count, 'result')} will be purged #{task.days_until_purging}"
         %td= task.type_string
         %td
           = link_to 'Recover task', recover_task_path(task.token), :method => :post, class: "btn btn-mini"
