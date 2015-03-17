@@ -10,12 +10,12 @@
 
   %body
     = render partial: "layouts/popup"
-    .container
+    .container-fluid
       .content
         - if current_user && current_user.admin?
           = render partial: "layouts/navbar", locals: {imposter: true}
 
-        .row
+        .row-fluid
           .span12
             .div
               .alert.alert-error
@@ -25,7 +25,7 @@
                 Please do not at this time load sensitive data into your cluster,
                 and be aware that data might be lost during system upgrades.
 
-        .row
+        .row-fluid
           .span3
             %br
 
@@ -133,7 +133,7 @@
             %br
 
           .span9
-            .row
+            .row-fluid
               .span9
                 .div
                   - if flash[:error]
