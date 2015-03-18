@@ -10,11 +10,11 @@
 
   %body
     = render partial: "layouts/popup"
-    .container
+    .container-fluid
       .content
         = render partial: "layouts/navbar", locals: {imposter: false} unless current_user.nil?
 
-        .row
+        .row-fluid
           .span12
             - if flash[:error]
               .alert.alert-error
@@ -25,7 +25,7 @@
                 %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
                 = flash[:notice]
 
-        .row
+        .row-fluid
           .span12
             .div
               = yield
