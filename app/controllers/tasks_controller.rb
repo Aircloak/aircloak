@@ -281,7 +281,8 @@ private
       {text: "to_date", displayText: "to_date(timestamp)"},
       {text: "user_id"},
       {text: "accumulator"},
-      {text: "task_time"}
+      {text: "task_time"},
+      {text: "insert_row", displayText: "insert_row(tableName, rowTable)"}
     ]
 
     # Functions declared in all library scripts
