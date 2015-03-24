@@ -112,6 +112,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       start--
 
     curWord = curLine.slice(start, end)
+    fuzzyMatcher = new RegExp(curWord.replace(/(.)/g, "$1.*"), "i")
 
     list =
       _.chain([]).
@@ -120,7 +121,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
               _.map(data.selectedTables(), (table) -> text: "tables.#{table.name}"),
               _.map(CodeMirror.hint.anyword(cm, word: /[a-zA-Z_](\w)*/).list, (word) -> text: word)
             ).
-        filter((candidate) -> candidate.text.indexOf(curWord) == 0).
+        filter((candidate) -> candidate.text.match(fuzzyMatcher)).
         uniq((el) -> el.text).
         sortBy((el) -> el.text.toUpperCase()).
         value()
