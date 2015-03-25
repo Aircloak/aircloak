@@ -319,9 +319,10 @@ private
       # create columns from labels and map them to header index
       @results.each do |result|
         result[:buckets].each do |bucket|
-          if not columnIndexMap.has_key? bucket[:name]
-            columnIndexMap[bucket[:name]] = columns.length
-            columns.push bucket[:name]
+          bucket["name"] = [bucket["label"], bucket["value"]].compact.join(": ")
+          if not columnIndexMap.has_key? bucket["name"]
+            columnIndexMap[bucket["name"]] = columns.length
+            columns.push bucket["name"]
           end
         end
       end
@@ -331,11 +332,11 @@ private
       @results.each do |result|
         date = Time.at(result[:published_at]/1000).strftime("%Y-%m-%d %H:%M:%S")
         errors = result[:exceptions].length > 0 ? "true" : "false"
-        cells = [date, errors] + Array.new(columns.length, "")
+        cells = [date, errors] + Array.new(columns.length - 2, "")
         # iterate over buckets and fill the correct cell
         result[:buckets].each do |bucket|
-          index = columnIndexMap[bucket[:name]]
-          cells[index] = bucket[:value]
+          index = columnIndexMap[bucket["name"]]
+          cells[index] = bucket["count"]
         end
         csv << cells # write row
       end
