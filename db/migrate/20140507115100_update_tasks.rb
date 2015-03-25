@@ -2,7 +2,7 @@ class UpdateTasks < ActiveRecord::Migration
   def change
     reversible do |dir|
       dir.up do
-        Bucket.delete_all
+        ActiveRecord::Base.connection.execute("DELETE FROM buckets")
         Result.delete_all
         Query.delete_all if Object.const_defined?('Query')
         Task.delete_all
@@ -29,7 +29,7 @@ class UpdateTasks < ActiveRecord::Migration
         add_belongs_to :pending_results, :task, index: true
       end
       dir.down do
-        Bucket.delete_all
+        ActiveRecord::Base.connection.execute("DELETE FROM buckets")
         Result.delete_all
         Query.delete_all if Object.const_defined?('Query')
         Task.delete_all
