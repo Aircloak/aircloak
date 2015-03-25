@@ -9,13 +9,11 @@ class Result < ActiveRecord::Base
   # loading all the data, running all the validations
   # and callbacks, etc
   def efficient_delete
-    Bucket.where(result_id: self.id).delete_all
     ExceptionResult.where(result_id: self.id).delete_all
     destroy
   end
 
   def self.delete_for_task task
-    Bucket.delete_for_task task
     ExceptionResult.delete_for_task task
     Result.where(task_id: task.id).delete_all
   end

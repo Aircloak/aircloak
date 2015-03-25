@@ -6,7 +6,6 @@ describe "Api::TaskResultsController" do
     Task.destroy_all
     Analyst.destroy_all
     Result.destroy_all
-    Bucket.destroy_all
     ClusterCloak.destroy_all
     Cluster.destroy_all
     Cloak.destroy_all
