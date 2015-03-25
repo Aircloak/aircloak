@@ -34,7 +34,7 @@ describe "Api::TaskResultsController" do
     (1..100).each do |i|
       t.results.create(
             created_at: initial_date + i.days,
-            buckets: [Bucket.new(label: "label_#{i}", value: "answer_#{i}", count: i)]
+            buckets_json: [{label: "label_#{i}", value: "answer_#{i}", count: i}].to_json
           )
     end
     t
