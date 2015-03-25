@@ -26,13 +26,7 @@ class Result < ActiveRecord::Base
     {
       :published_at => created_at.utc.to_i * 1000 + created_at.utc.usec / 1000,
       :id => id,
-      :buckets => buckets.map { |bucket|
-        {
-          label: bucket.label,
-          value: bucket.value,
-          count: bucket.count
-        }
-      },
+      :buckets => buckets,
       :exceptions => exception_results.map { |exception|
         {
           :id => exception.id,
@@ -40,5 +34,11 @@ class Result < ActiveRecord::Base
         }
       }
     }
+  end
+
+  def buckets
+    buckets_json.to_s.empty? ? [] : JSON.parse(buckets_json)
+  rescue
+    []
   end
 end
