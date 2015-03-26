@@ -294,10 +294,17 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
 
   renderSandboxResults = (response) ->
     if (response.status == 200)
-      reports = _.map(results(response), transformReportedProperties)
+      response = results(response)
+      reports = _.map(response, transformReportedProperties)
+      insertActions = _.map(response, transformInsertActions)
+
+    responseData = _.map(
+          _.zip(reports || [], insertActions || []),
+          ([properties, insertActions]) -> properties: properties, insertActions: insertActions
+        )
 
     $("#sandboxResult").html(HandlebarsTemplates["tasks/sandbox_results"](
-          multiRun: isStreaming(), data: reports || []
+          multiRun: isStreaming(), data: responseData
         ))
 
   results = (response) ->
@@ -310,6 +317,37 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       flatten(true).
       sortBy((result) -> "#{result.user}_#{result.property.label}_#{result.property.value}").
       value()
+
+  changeDetector = () ->
+    lastValue = null
+
+    value: (newValue) ->
+      res = if (newValue != lastValue) then newValue else ""
+      lastValue = newValue
+      res
+
+  transformInsertActions = (result) ->
+    # We flatten the hierarchy of insert actions into array of (user, table, row)
+    # entries. To aid the UI, user and table will contain non-empty strings only
+    # when the values are changed comparing to the previous row.
+    res = []
+    _.each(_.pairs(result.insert_actions),
+          ([user, data]) ->
+            userChangeDetector = new changeDetector()
+            _.each(_.pairs(data),
+                  ([tableName, rows]) ->
+                    tableChangeDetector = new changeDetector()
+                    _.each(rows,
+                          (row) ->
+                            res.push(
+                                  user: userChangeDetector.value(user),
+                                  table: tableChangeDetector.value(tableName),
+                                  row: JSON.stringify(row)
+                                )
+                        )
+                )
+        )
+    res
 
   anotherUserEntry = (e) ->
     handleEventAndCancel(e, ->
