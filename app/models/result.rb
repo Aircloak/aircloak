@@ -3,20 +3,17 @@ require './lib/proto/air/aggregate_results.pb'
 class Result < ActiveRecord::Base
   belongs_to :task
   belongs_to :analyst
-  has_many :buckets, dependent: :destroy
   has_many :exception_results, dependent: :destroy
 
   # This does an efficient SQL delete, rather than
   # loading all the data, running all the validations
   # and callbacks, etc
   def efficient_delete
-    Bucket.where(result_id: self.id).delete_all
     ExceptionResult.where(result_id: self.id).delete_all
     destroy
   end
 
   def self.delete_for_task task
-    Bucket.delete_for_task task
     ExceptionResult.delete_for_task task
     Result.where(task_id: task.id).delete_all
   end
@@ -26,13 +23,7 @@ class Result < ActiveRecord::Base
     {
       :published_at => created_at.utc.to_i * 1000 + created_at.utc.usec / 1000,
       :id => id,
-      :buckets => buckets.map { |bucket|
-        {
-          label: bucket.label,
-          value: bucket.value,
-          count: bucket.count
-        }
-      },
+      :buckets => buckets,
       :exceptions => exception_results.map { |exception|
         {
           :id => exception.id,
@@ -40,5 +31,11 @@ class Result < ActiveRecord::Base
         }
       }
     }
+  end
+
+  def buckets
+    buckets_json.to_s.empty? ? [] : JSON.parse(buckets_json)
+  rescue
+    []
   end
 end

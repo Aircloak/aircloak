@@ -10,7 +10,6 @@ describe Task do
     Cloak.delete_all
     Task.delete_all
     Result.delete_all
-    Bucket.delete_all
     ExceptionResult.delete_all
     PendingResult.delete_all
   end
@@ -98,19 +97,11 @@ describe Task do
       stacktrace: "trace",
       count: 1
     )
-    Bucket.create(
-      result_id: result.id,
-      label: "label",
-      value: "answer",
-      count: 1
-    )
     Result.count.should == 1
-    Bucket.count.should == 1
     ExceptionResult.count.should == 1
     PendingResult.count.should == 1
     task.efficiently_delete_results
     Result.count.should == 0
-    Bucket.count.should == 0
     ExceptionResult.count.should == 0
     PendingResult.count.should == 0
   end

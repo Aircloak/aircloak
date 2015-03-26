@@ -8,7 +8,7 @@ class Api::TaskResultsController < ApplicationController
     page = (params[:page] || 1).to_i
     per_page = (params[:per_page] || 10).to_i
 
-    query = Result.includes(:buckets).where(task: @task)
+    query = Result.where(task: @task)
 
     if (params[:from])
       query = query.where("created_at >= ?", DateTime.parse(params[:from]))

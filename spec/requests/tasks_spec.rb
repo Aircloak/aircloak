@@ -14,7 +14,6 @@ describe "TasksController" do
     Build.destroy_all
     BuildManager.stub(:send_build_request)
     Result.destroy_all
-    Bucket.destroy_all
     Analyst.destroy_all
     log_in(create_user admin: true, email: "user@aircloak.com", analyst: analyst)
   end

@@ -2,7 +2,8 @@ class RemoveJoinersLeavers < ActiveRecord::Migration
   def change
     reversible do |dir|
       dir.up do
-        Bucket.delete_all
+        ActiveRecord::Base.connection.execute("DELETE FROM buckets")
+
         Result.delete_all
 
         remove_column :buckets, :joiners

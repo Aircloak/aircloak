@@ -26,7 +26,18 @@ class Analyst < ActiveRecord::Base
   end
 
   def tasks_with_exceptions
-    tasks.select {|t| t.has_exceptions? }
+    Task
+        .where([
+              "
+                tasks.id IN (
+                  select task_id from results
+                  inner join exception_results on result_id=results.id
+                  where tasks.analyst_id=?
+                )
+              ",
+              [self.id]
+            ])
+        .select {|t| t.has_exceptions?}
   end
 
   def revoke_key key

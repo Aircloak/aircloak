@@ -12,7 +12,6 @@ describe "ApiTasksController" do
     Build.destroy_all
     BuildManager.stub(:send_build_request)
     Result.destroy_all
-    Bucket.destroy_all
     Analyst.destroy_all
   end
 

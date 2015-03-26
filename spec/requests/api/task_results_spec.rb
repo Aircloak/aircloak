@@ -6,7 +6,6 @@ describe "Api::TaskResultsController" do
     Task.destroy_all
     Analyst.destroy_all
     Result.destroy_all
-    Bucket.destroy_all
     ClusterCloak.destroy_all
     Cluster.destroy_all
     Cloak.destroy_all
@@ -35,7 +34,7 @@ describe "Api::TaskResultsController" do
     (1..100).each do |i|
       t.results.create(
             created_at: initial_date + i.days,
-            buckets: [Bucket.new(label: "label_#{i}", value: "answer_#{i}", count: i)]
+            buckets_json: [{label: "label_#{i}", value: "answer_#{i}", count: i}].to_json
           )
     end
     t
