@@ -282,7 +282,7 @@ private
       {text: "user_id"},
       {text: "accumulator"},
       {text: "task_time"},
-      {text: "insert_row", displayText: "insert_row(tableName, rowTable)"}
+      {text: "insert_row", displayText: "insert_row(table_name, row_data)"}
     ]
 
     # Functions declared in all library scripts
