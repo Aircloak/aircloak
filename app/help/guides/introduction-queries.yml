@@ -164,8 +164,8 @@ content: |
 
   #### Inserting additional data
 
-  It is possible to insert additional user-specific data from the Lua code. This can be useful if you
-  want to peform some additional processing and custom aggregation of the data.
+  It is possible to insert data from the Lua code. The data is inserted for the user the task is running over.
+  This is useful when you want to avoid expensive repeated processing or need to aggregate data.
 
   Additional data can be inserted with `insert_row(table_name, row_data)`:
 
@@ -173,11 +173,11 @@ content: |
   insert_row("some_table", {col1 = value1, col2 = value2})
   ```
 
-  This will insert a single row into the given table. The new row will be related to the same user for which
+  This will insert a single row into the given table. The new row will be inserted for the same user for which
   the task was executed.
 
   The second argument to `insert_row` is a Lua table where keys are column names and values are
-  corresponding values to be inserted. You can use numbers, strings, booleans, or `nil` for values.
+  the values to be inserted. You can use numbers, strings, booleans, or `nil` for values.
 
   You can invoke `insert_row` multiple times per single task execution. A task is allowed to insert at most 100
   rows per distinct table. If this limit is exceeded, the task will fail with a corresponding error. Rows are
