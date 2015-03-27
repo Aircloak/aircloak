@@ -295,23 +295,21 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
   renderSandboxResults = (response) ->
     if (response.status == 200)
       response = results(response)
-      reports = _.map(response, transformReportedProperties)
-      insertActions = _.map(response, transformInsertActions)
-
-    responseData = _.map(
-          _.zip(reports || [], insertActions || []),
-          ([properties, insertActions]) -> properties: properties, insertActions: insertActions
-        )
+      runResults = _.map(response, transformRun)
 
     $("#sandboxResult").html(HandlebarsTemplates["tasks/sandbox_results"](
-          multiRun: isStreaming(), data: responseData
+          multiRun: isStreaming(), data: runResults || []
         ))
 
   results = (response) ->
     JSON.parse(response.responseText)
 
-  transformReportedProperties = (result) ->
-    _.chain(result.reported_properties).
+  transformRun = (runResult) ->
+    properties: transformReportedProperties(runResult.reported_properties)
+    insertActions: transformInsertActions(runResult.insert_actions)
+
+  transformReportedProperties = (reportedProperties) ->
+    _.chain(reportedProperties).
       pairs().
       map(([user, properties]) -> _.map(properties, (property) -> user: user, property: property)).
       flatten(true).
@@ -326,12 +324,12 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       lastValue = newValue
       res
 
-  transformInsertActions = (result) ->
+  transformInsertActions = (insertActions) ->
     # We flatten the hierarchy of insert actions into array of (user, table, row)
     # entries. To aid the UI, user and table will contain non-empty strings only
     # when the values are changed comparing to the previous row.
     res = []
-    _.each(_.pairs(result.insert_actions),
+    _.each(_.pairs(insertActions),
           ([user, data]) ->
             userChangeDetector = new changeDetector()
             _.each(_.pairs(data),
