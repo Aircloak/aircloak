@@ -112,6 +112,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       start--
 
     curWord = curLine.slice(start, end)
+    fuzzyMatcher = new RegExp(curWord.replace(/(.)/g, "$1.*"), "i")
 
     list =
       _.chain([]).
@@ -120,7 +121,7 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
               _.map(data.selectedTables(), (table) -> text: "tables.#{table.name}"),
               _.map(CodeMirror.hint.anyword(cm, word: /[a-zA-Z_](\w)*/).list, (word) -> text: word)
             ).
-        filter((candidate) -> candidate.text.indexOf(curWord) == 0).
+        filter((candidate) -> candidate.text.match(fuzzyMatcher)).
         uniq((el) -> el.text).
         sortBy((el) -> el.text.toUpperCase()).
         value()
@@ -293,22 +294,58 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
 
   renderSandboxResults = (response) ->
     if (response.status == 200)
-      reports = _.map(results(response), transformReportedProperties)
+      response = results(response)
+      runResults = _.map(response, transformRun)
 
     $("#sandboxResult").html(HandlebarsTemplates["tasks/sandbox_results"](
-          multiRun: isStreaming(), data: reports || []
+          multiRun: isStreaming(), data: runResults || []
         ))
 
   results = (response) ->
     JSON.parse(response.responseText)
 
-  transformReportedProperties = (result) ->
-    _.chain(result.reported_properties).
+  transformRun = (runResult) ->
+    properties: transformReportedProperties(runResult.reported_properties)
+    insertActions: transformInsertActions(runResult.insert_actions)
+
+  transformReportedProperties = (reportedProperties) ->
+    _.chain(reportedProperties).
       pairs().
       map(([user, properties]) -> _.map(properties, (property) -> user: user, property: property)).
       flatten(true).
       sortBy((result) -> "#{result.user}_#{result.property.label}_#{result.property.value}").
       value()
+
+  changeDetector = () ->
+    lastValue = null
+
+    value: (newValue) ->
+      res = if (newValue != lastValue) then newValue else ""
+      lastValue = newValue
+      res
+
+  transformInsertActions = (insertActions) ->
+    # We flatten the hierarchy of insert actions into array of (user, table, row)
+    # entries. To aid the UI, user and table will contain non-empty strings only
+    # when the values are changed comparing to the previous row.
+    res = []
+    _.each(_.pairs(insertActions),
+          ([user, data]) ->
+            userChangeDetector = new changeDetector()
+            _.each(_.pairs(data),
+                  ([tableName, rows]) ->
+                    tableChangeDetector = new changeDetector()
+                    _.each(rows,
+                          (row) ->
+                            res.push(
+                                  user: userChangeDetector.value(user),
+                                  table: tableChangeDetector.value(tableName),
+                                  row: JSON.stringify(row)
+                                )
+                        )
+                )
+        )
+    res
 
   anotherUserEntry = (e) ->
     handleEventAndCancel(e, ->
