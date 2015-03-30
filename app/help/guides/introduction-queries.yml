@@ -105,7 +105,7 @@ content: |
   #### Working with times
 
   The best way to deal with times is to use [epoch time](http://en.wikipedia.org/wiki/Unix_time) (number of seconds passed since
-  00:00:00, January 1st, 1970.). It is advised you use a `varchar(10)` as the corresponding data type.
+  00:00:00, January 1st, 1970.). It is advised you use a `bigint` as the corresponding data type.
 
   You can deal with epoch time in Lua scripts using the `to_date` provided function. The result of a call to
   `to_date` is a Lua table with following fields:

@@ -84,7 +84,7 @@ content: |
 
   Some helper functions for dealing with [Lua date and time tables](http://www.lua.org/pil/22.1.html) are provided.
   As explained in <%= help_link "introduction-queries" %>, the best way to deal with dates and times is to
-  store them as `varchar(10)` epoch times. Then in your script, you can convert such time to a Lua date table
+  store them as `bigint` epoch times. Then in your script, you can convert such time to a Lua date table
   using the `to_date` function. You can then use following helper functions:
 
   - `Aircloak.DateTime.date(time)` - converts the time to the YYYYMMDD string.
