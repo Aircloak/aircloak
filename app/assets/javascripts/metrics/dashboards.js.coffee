@@ -38,7 +38,7 @@ Metrics.Dashboards =
 
   "User insertion": (controller) ->
     stackHistograms(controller, "Duration of user insertion phases", "us", [
-          "insert_user.decode_json", "insert_user.parse_tables",
+          "insert_user.decode", "insert_user.parse_tables",
           "insert_user.validate_data", "insert_user.add_users_data",
         ], "userInsertionGroup")
 
