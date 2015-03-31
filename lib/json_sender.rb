@@ -28,6 +28,7 @@ class JsonSender
     end
     result = JSON.parse raw_result.body
     result["code"] = raw_result.code
+    result
   rescue Exception => e
     Rails.logger.error "Cloak request error: #{e.message}\n#{e.backtrace.join("\n")}"
     {"error" => "Cloak request error: #{e.message}"}
