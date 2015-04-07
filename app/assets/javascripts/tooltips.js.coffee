@@ -1,7 +1,7 @@
 $(document).ready ->
   activeTip = undefined
 
-  $("body .container, div#popup.popup").popover
+  $("body .container-fluid, div#popup.popup").popover
     animation: true
     html: true
     selector: ".tip"
