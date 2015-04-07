@@ -33,7 +33,7 @@ ColumnList = Backbone.Collection.extend
 
   setup: (params) ->
     @whetherCreation = params.is_creation
-    @reset params.raw_data unless params.raw_data.length == 0
+    @reset params.raw_data, silent: true unless params.raw_data.length == 0
     @setPreviousMigration params.raw_previous_migration
 
   isCreation: -> @whetherCreation
@@ -134,11 +134,14 @@ MigrationView = Backbone.View.extend
   initialize: ->
     @inputTableName = $ "input#table_name"
     @inputColumnName = $ "input#column_name"
+    @rowExpiry = $ "input#row_expiry"
     @selectType = $ "select#type"
     @inputSize = $ "input#size"
     @inputSpan = $ "span#size-span"
     @submitButton = $ ".submit-btn"
     @columnsView = $ "tbody#columns"
+
+    @changed = false
 
     @listenTo @model, 'add', @addOne
     @listenTo @model, 'reset', @addAll
@@ -161,6 +164,7 @@ MigrationView = Backbone.View.extend
     "keypress input#table_name": "modelChanged"
     "paste input#table_name": "modelChanged"
     "blur input#table_name": "modelChanged"
+    "change input#row_expiry": "modelChanged"
     "change #cluster_id": "takeClusterCapabilityIntoAccount"
 
   typeSelected: ->
@@ -223,12 +227,18 @@ MigrationView = Backbone.View.extend
   # This representation can later be used elsewhere
   # in the application, for example in the data
   # query selection interface.
-  modelChanged: ->
+  modelChanged: (e) ->
     @updateSubmitButton()
     return unless @formHasValidChanges()
+    @changed = true
+    @updateSubmitButton()
     $("#table_json").val(JSON.stringify Columns.allLiveColumnsAsJSON())
     migration =
       table_name: @inputTableName.val()
+
+    rowExpiry = parseInt(@rowExpiry.val()) || null
+    migration.row_expiry = rowExpiry if rowExpiry
+
     if @model.isCreation()
       migration.action = "create"
       migration.columns = @model.addedColumns()
@@ -243,14 +253,15 @@ MigrationView = Backbone.View.extend
   takeClusterCapabilityIntoAccount: ->
     clusterId = parseInt $('#cluster_id').val()
     chosenClusterOption = $("#cluster_id option[value=\"#{clusterId}\"]")
-    capability = if chosenClusterOption.length == 0
+    clusterOptionElement = if chosenClusterOption.length == 0
       # The user only has a single cluster, and the cluster streaming capability
       # is provided through a hidden input field
-      $("#cluster_id").data("text-type-capability")
+      $("#cluster_id")
     else
-      chosenClusterOption.data("text-type-capability")
+      chosenClusterOption
     dataTypeSelectTextOption = $("select#type option[value='text']")
-    if capability
+
+    if clusterOptionElement.data("text-type-capability")
       # Make sure the text option is in the datatype list
       if dataTypeSelectTextOption.length == 0
         $("select#type").append(new Option("text", "text"))
@@ -259,12 +270,27 @@ MigrationView = Backbone.View.extend
       unless dataTypeSelectTextOption.length == 0
         dataTypeSelectTextOption.remove()
 
+    if clusterOptionElement.data("user-row-expiry-capability")
+      $("#row_expiry_ui").show()
+      $("#row_expiry").val("")
+    else
+      $("#row_expiry_ui").hide()
+      $("#row_expiry").val("")
+
+  validRowExpiry: ->
+    @rowExpiry.val() == "" or parseInt(@rowExpiry.val()) > 0
+
   formHasValidChanges: ->
     @inputTableName.val() != "" and
-        (@model.addedColumns().length != 0 or @model.droppedColumnNames().length != 0)
+        @validRowExpiry() and
+        (
+          @model.addedColumns().length != 0 or
+          @model.droppedColumnNames().length != 0 or
+          (not @model.isCreation())
+        )
 
   updateSubmitButton: ->
-    if @formHasValidChanges()
+    if @changed and @formHasValidChanges()
       @submitButton.removeClass 'disabled'
     else
       @submitButton.addClass 'disabled'
@@ -272,7 +298,7 @@ MigrationView = Backbone.View.extend
   # We want to prevent the main form from submitting unless there are
   # changes to submit.
   mainFormSubmit: ->
-    @formHasValidChanges()
+    @changed and @formHasValidChanges()
 
 # Used to show a non-editable view of the table
 NonEditableEditorView = Backbone.View.extend

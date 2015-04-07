@@ -18,6 +18,9 @@ in_cluster:
     will have access to the data in it.
     It is __not possible to migrate__ a table from one cluster to another.
   markdown: true
+row_expiry:
+  content: Number of days after which an inserted row will be removed from the table.
+  markdown: true
 column_form_constraints:
   content: |
     When set, the `NOT NULL`-constraint will have a cloak cluster
