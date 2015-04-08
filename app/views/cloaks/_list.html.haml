@@ -1,5 +1,5 @@
 - if cloaks.size > 0 then
-  %h1= render_assigned ? "Assigned cloaks" : "Unassigned cloaks"
+  %h3= render_assigned ? "Assigned cloaks" : "Unassigned cloaks"
 
   %table.table.table-striped
     %thead
@@ -25,9 +25,12 @@
               - if cloak.cluster_cloak.state != :belongs_to
                 = " (#{cloak.cluster_cloak.state})"
           %td
-            = link_to 'Show', cloak, class: "btn btn-mini"
-            = link_to 'Edit', edit_cloak_path(cloak), class: "btn btn-mini"
+            = link_to 'Show', cloak
+            \|
+            = link_to 'Audit-log', "/audit_logs/cloak/#{cloak.id}"
+            \|
+            = link_to 'Edit', edit_cloak_path(cloak)
             - if not render_assigned
+              \|
               = link_to 'Destroy', cloak, :method => :delete, :data => { :confirm => 'Are you sure?' },
                   class: "btn btn-mini btn-danger"
-            = link_to 'Audit-log', "/audit_logs/cloak/#{cloak.id}", class: "btn btn-mini"

@@ -1,4 +1,4 @@
-%h1
+%h3
   = "#{@target_type} history"
 
 - if @alterations.size > 0 then
@@ -16,3 +16,4 @@
           %td= alteration.user.login
           %td= alteration.description
 
+= link_to 'Back', :back

@@ -1,6 +1,6 @@
 = help_link 'lookup-tables'
 
-%h1 Upload table data
+%h3 Upload table data
 
 = form_tag({controller: "lookup_tables", action: "update"}, method: :put, multipart: true,
     class: "form-horizontal", id: "table-form") do |f|
@@ -33,4 +33,4 @@
     .controls
       = submit_tag 'Upload', :class => "btn btn-success submit-btn"
 
-= link_to "Back", lookup_tables_path, class: "btn"
+= link_to 'Lookup tables overview', lookup_tables_path

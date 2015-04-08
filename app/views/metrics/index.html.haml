@@ -4,7 +4,7 @@
 -# Includes additional, page-specific javascripts
 = content_for(:javascript_include) {javascript_include_tag "metrics/controller", "data-turbolinks-track" => true}
 
-%h1 Select metrics
+%h3 Select metrics
 %br
 %form{:id => "dashboardParams", :style=>"display:none;"}
   %table{:id => "clusterParams"}
@@ -35,3 +35,5 @@
 %br
 %br
 #graphs
+
+= link_to 'Back', :back

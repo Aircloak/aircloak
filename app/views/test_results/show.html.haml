@@ -1,6 +1,6 @@
-%h1= "Test Result at #{@result.testtime_in_UTC} (UTC)"
+%h3= "Test Result at #{@result.testtime_in_UTC} (UTC)"
 
-%h2 Overview
+%h4 Overview
 
 %table.table.table-striped
   %tbody
@@ -20,7 +20,7 @@
       %td Number of VMs created
       %td= @result.test_vms.count
 
-%h2 Benchmark
+%h4 Benchmark
 
 %table.table.table-striped
   - if @old_result
@@ -31,7 +31,7 @@
         %th
           = link_to "Change from #{@old_result.testtime_in_UTC} (UTC)", test_result_path(@old_result.id)
           = " / "
-          = link_to 'View old', test_result_path(@old_result.id), class: "btn btn-mini"
+          = link_to 'View old', test_result_path(@old_result.id)
   %tbody
     - if @old_result && @old_result.test_server_version != @result.test_server_version
       %tr.info
@@ -62,7 +62,7 @@
         %td= "%+d MB" % [@result.benchmark_memory_usage - @old_result.benchmark_memory_usage]
 
 -if @result.test_items.count > 0
-  %h2 Tests
+  %h4 Tests
 
   %table.table.table-striped
     %thead
@@ -79,10 +79,10 @@
           %td= test.success
           %td= display_duration test.duration
           %td= test.test_item_vms.count
-          %td= link_to 'View', test_item_path(test.id), class: "btn btn-mini"
+          %td= link_to 'View', test_item_path(test.id)
 
 - if @result.test_vms.count > 0
-  %h2 Virtual Machines
+  %h4 Virtual Machines
 
   %table.table.table-striped
     %thead
@@ -101,4 +101,6 @@
           %td= display_duration vm.duration
           %td= "#{vm.disk_usage} MB/#{vm.disk_size} MB"
           %td= vm.test_item_vms.count
-          %td= link_to 'View', test_vm_path(vm.id), class: "btn btn-mini"
+          %td= link_to 'View', test_vm_path(vm.id)
+
+= link_to 'Test results overview', test_results_path

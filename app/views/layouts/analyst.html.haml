@@ -75,12 +75,6 @@
 
         %hr
 
-        = link_to "Logged in as #{current_user.login}", user_path(current_user)
-        |
-        = link_to "Logout", logout_path
-
-        %hr
-
         - unless current_user.nil?
           %strong Monitoring
           - if current_user.activity_monitoring_opt_out

@@ -1,8 +1,9 @@
-%h1= "#{@task.name}: all results"
+%h3= "#{@task.name}: all results"
 
-= link_to "Download results", "#{@results_path}.csv", class: "btn"
+= link_to "Download results", "#{@results_path}.csv"
+\|
 = link_to "Delete results", delete_results_task_path(@task.token), :method => :post,
-  :data => { :confirm => 'Are you sure?' }, class: "btn btn-danger"
+  :data => { :confirm => 'Are you sure?' }, class: "btn btn-danger btn-mini"
 
 - if @results.count > 0
   = will_paginate @raw_results
@@ -13,5 +14,5 @@
   %p No results stored for this task.
   %hr
 
-= link_to 'Latest results', latest_results_task_path(@task.token), class: "btn"
-= link_to 'Back', tasks_path, class: "btn"
+= link_to 'Tasks overview', tasks_path
+= link_to 'Latest results', latest_results_task_path(@task.token), class: "right-aligned"

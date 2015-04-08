@@ -1,4 +1,4 @@
-%h1 Permissions available in the system
+%h3 Permissions available in the system
 
 %table.table.table-striped
   %thead
@@ -14,11 +14,11 @@
         %td= permission.description
         %td
           - if permitted_to? :update, :permissions
-            = link_to 'Edit', edit_permission_path(permission), class: "btn btn-mini"
+            = link_to 'Edit', edit_permission_path(permission)
           - if permitted_to? :delete, :permissions
             %td= link_to 'Remove', permission, :method => :delete, :data => { :confirm => 'Are you sure?' },
                 class: "btn btn-mini btn-danger"
 
 %br
 
-= link_to 'New Permission', new_permission_path, class: "btn" if permitted_to? :create, :permissions
+= link_to 'Create a new permission', new_permission_path if permitted_to? :create, :permissions
