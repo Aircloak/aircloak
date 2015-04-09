@@ -8,6 +8,7 @@
       migration = JSON.parse '#{@previous_migration}'
       window.setupEditorView()
       window.columns.setup
+        silent: true
         is_creation: #{@creating_new_table}
         raw_data: table_data
         raw_previous_migration: migration
@@ -35,14 +36,23 @@
       - else
         %input#table_name.disabled{type: :text, value: @table.table_name, disabled: true}
 
+  #row_expiry_ui.control-group{:style => "display:none"}
+    = control_label "Row expiry", tooltip: "row_expiry"
+    .controls
+      %div
+        = number_field_tag :row_expiry, @table.row_expiry
+        days
+      %div
+        %em (if left blank, data never expires)
+
   .control-group{:style => "#{"display:none" if current_user.ready_clusters.length < 2}"}
     = control_label "In cluster", tooltip: "in_cluster"
     .controls
       - if @creating_new_table
         = select_tag :cluster_id, options_for_select(current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id,
-                {'data-text-type-capability' => cluster.capable_of?(:postgres_text_column_support)}]})
+                {'data-text-type-capability' => cluster.capable_of?(:postgres_text_column_support), 'data-user-row-expiry-capability' => cluster.capable_of?(:user_row_expiry)}]})
       - else
-        %input#cluster_id.disabled{data: {test: "hehe"}, type: :text, value: @table.cluster.name, disabled: true, data: {text_type_capability: "#{@table.cluster.capable_of?(:postgres_text_column_support)}"}}
+        %input#cluster_id.disabled{data: {test: "hehe"}, type: :text, value: @table.cluster.name, disabled: true, data: {text_type_capability: "#{@table.cluster.capable_of?(:postgres_text_column_support)}", user_row_expiry_capability: "#{@table.cluster.capable_of?(:user_row_expiry)}"}}
 
   %textarea#table_json.hidden{name: :table_json}
   %textarea#migration.hidden{name: :migration}

@@ -145,9 +145,30 @@ class UserTablesController < ApplicationController
     redirect_to user_tables_path
   end
 
-  # this is a hack: we don't support data deletion on the cloaks yet,
-  # so we will delete the data by dropping the tables and re-creating them them
   def clear
+    success = if @table.cluster.capable_of?(:user_row_expiry)
+      result = JsonSender.request :delete, :admin, @table.analyst, @table.cluster,
+          "user_tables/#{@table.table_name}"
+      result["success"]
+    else
+      clear_table_with_migrations
+    end
+
+    if success
+      describe_successful_activity "Cleared user table #{@table.table_name}"
+      flash[:notice] = "Table #{@table.table_name} was cleared"
+    else
+      describe_failed_activity "Clearing user table #{@table.table_name} failed"
+      flash[:error] = "Table #{@table.table_name} could not be cleared at this time. Please try again later"
+    end
+  ensure
+    redirect_to user_tables_path
+  end
+
+private
+  # Legacy hack: we don't support data deletion on the current cluster,
+  # so we will delete the data by dropping the tables and re-creating them them
+  def clear_table_with_migrations
     # get current table data, needs to be done before applying the drop migration
     table_data_json = @table.table_data
     drop_migration = UserTableMigration.drop_migration @table.table_name
@@ -162,29 +183,18 @@ class UserTablesController < ApplicationController
         columns: columns
       }.to_json
       # apply table creation migration on the cloaks
-      if Migrator.migrate @table, create_migration
-        describe_successful_activity "Cleared user table #{@table.table_name}"
-        flash[:notice] = "Table #{@table.table_name} was cleared"
-      else
-        describe_failed_activity "Clearing user table #{@table.table_name} failed"
-        flash[:error] = "Table #{@table.table_name} could not be cleared at this time. Please try again later"
-      end
+      Migrator.migrate @table, create_migration
     else
       # we don't want to save the drop migration if it fails, let the user retry the operation instead
       drop_migration.destroy
-      describe_failed_activity "Clearing user table #{@table.table_name} failed"
-      flash[:error] = "Table #{@table.table_name} could not be cleared at this time. Please try again later"
+      false
     end
   rescue
     # we don't want to save the drop migration if it fails, let the user retry the operation instead
     drop_migration.destroy
-    describe_failed_activity "Clearing user table #{@table.table_name} failed"
-    flash[:error] = "Table #{@table.table_name} could not be cleared at this time. Please try again later"
-  ensure
-    redirect_to user_tables_path
+    false
   end
 
-private
   def set_previous_migration
     @previous_migration = "{}"
   end

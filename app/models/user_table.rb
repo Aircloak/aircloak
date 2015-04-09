@@ -53,6 +53,19 @@ class UserTable < ActiveRecord::Base
     user_table_migrations.where(migrated: false).count > 0
   end
 
+  def row_expiry
+    last_migration = user_table_migrations
+        .order(created_at: :desc)
+        .limit(1)
+        .first
+
+    if last_migration
+      JSON.parse(last_migration.migration)["row_expiry"]
+    else
+      nil
+    end
+  end
+
   # Used to create example in help guides
   def generate_sample_json
     columns = JSON.parse(table_data)

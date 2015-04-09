@@ -13,6 +13,11 @@
 
 %h3 User table info
 %h4= "Name: #{@table.table_name}"
+%h5
+  - if @table.row_expiry.to_s.empty?
+    Rows are never deleted
+  - else
+    ="Rows are deleted after #{@table.row_expiry} days"
 
 %table.table.table-striped
   %thead
