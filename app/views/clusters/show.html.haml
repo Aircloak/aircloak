@@ -35,7 +35,11 @@
 
 = link_to 'Clusters overview', clusters_path
 \|
-= link_to "View history", alterations_path(target_type: "Cluster", target_id: @cluster.id)
+= link_to "History", alterations_path(target_type: "Cluster", target_id: @cluster.id)
+\|
+= link_to 'Statistics', metrics_path(:cluster => @cluster.name)
+\|
+= link_to 'Audit-log', "/audit_logs/cluster/#{@cluster.id}"
 \|
 = link_to 'Edit', edit_cluster_path(@cluster)
 \|
