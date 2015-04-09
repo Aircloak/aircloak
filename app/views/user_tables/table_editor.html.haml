@@ -8,6 +8,7 @@
       migration = JSON.parse '#{@previous_migration}'
       window.setupEditorView()
       window.columns.setup
+        silent: true
         is_creation: #{@creating_new_table}
         raw_data: table_data
         raw_previous_migration: migration

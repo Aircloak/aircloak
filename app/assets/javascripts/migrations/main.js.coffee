@@ -33,7 +33,9 @@ ColumnList = Backbone.Collection.extend
 
   setup: (params) ->
     @whetherCreation = params.is_creation
-    @reset params.raw_data, silent: true unless params.raw_data.length == 0
+    reset_options = {}
+    reset_options.silent = true if params.silent == true
+    @reset params.raw_data, reset_options unless params.raw_data.length == 0
     @setPreviousMigration params.raw_previous_migration
 
   isCreation: -> @whetherCreation
