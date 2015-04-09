@@ -38,8 +38,11 @@
   #row_expiry_ui.control-group{:style => "display:none"}
     = control_label "Row expiry", tooltip: "row_expiry"
     .controls
-      = number_field_tag :row_expiry, @table.row_expiry
-      days
+      %div
+        = number_field_tag :row_expiry, @table.row_expiry
+        days
+      %div
+        %em (if left blank, data never expires)
 
   .control-group{:style => "#{"display:none" if current_user.ready_clusters.length < 2}"}
     = control_label "In cluster", tooltip: "in_cluster"

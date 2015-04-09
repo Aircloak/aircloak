@@ -19,7 +19,9 @@ in_cluster:
     It is __not possible to migrate__ a table from one cluster to another.
   markdown: true
 row_expiry:
-  content: Number of days after which an inserted row will be removed from the table.
+  content: |
+    Number of days after which an inserted row will be removed from the table.
+    If left empty, rows will never be removed.
   markdown: true
 column_form_constraints:
   content: |
