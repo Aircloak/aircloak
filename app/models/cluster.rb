@@ -221,7 +221,7 @@ class Cluster < ActiveRecord::Base
         if json["success"]
           json["capabilities"].each do |capability_identifier|
             capability = Capability.find_by_identifier capability_identifier
-            capabilities << capability unless capabilities.include? capability
+            capabilities << capability unless capability.nil? or capabilities.include? capability
           end
         end
       when 404

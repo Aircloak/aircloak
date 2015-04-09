@@ -9,7 +9,6 @@
         %th Name
         %th Description
         %th Created at
-        %th
     %tbody
     - @capabilities.each do |capability|
       %tr
@@ -17,33 +16,8 @@
         %td= capability.name
         %td= capability.description
         %td= time_ago_in_words capability.created_at
-        %td= link_to "Destroy", capability, :method => :delete,
-            :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
 
 - else
   %p No existing capabilities. Please add some
 
-
 %hr
-
-%h4 Add capability
-
-= form_for @capability, html: {class: "form-horizontal new_query"} do |f|
-  .control-group
-    = control_label "Idenfitier"
-    .controls
-      = f.text_field :identifier
-
-  .control-group
-    = control_label "Name"
-    .controls
-      = f.text_field :name
-
-  .control-group
-    = control_label "Description"
-    .controls
-      = f.text_field :description
-
-  .control-group
-    .controls
-      = f.submit 'Create capability', :class => "btn btn-success"

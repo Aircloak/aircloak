@@ -29,13 +29,9 @@
           %td= cluster.status_for_display
           %td
             = link_to 'Show', cluster
-            |
-            = link_to 'Statistics', metrics_path(:cluster => cluster.name)
-            |
-            = link_to 'Audit-log', "/audit_logs/cluster/#{cluster.id}"
-            |
+            \|
             = link_to 'Edit', edit_cluster_path(cluster)
-            |
+            \|
             - if cluster.can_delete?
               = link_to 'Destroy', cluster, method: :delete, data: { :confirm => 'Are you sure?' },
                   class: "btn btn-mini btn-danger"
