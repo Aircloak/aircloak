@@ -1,10 +1,8 @@
 -# Includes additional, page-specific javascripts
 = content_for(:javascript_include) {javascript_include_tag "clusters", "data-turbolinks-track" => true}
 
-%h1 Editing a cluster
+%h3 Editing cluster
 
 = render 'form'
 
-= link_to 'Show', @cluster
-\|
-= link_to 'Back', clusters_path
+= link_to 'Clusters overview', clusters_path

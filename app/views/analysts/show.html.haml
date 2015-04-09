@@ -1,5 +1,7 @@
 %p#notice= notice
 
+%h3 Analyst info
+
 %p
   %b Name:
   = @analyst.name
@@ -10,6 +12,6 @@
       %li
         = link_to cluster.name, cluster_path(cluster.id)
 
-= link_to 'Edit', edit_analyst_path(@analyst)
+= link_to 'Analysts overview', analysts_path
 \|
-= link_to 'Back', analysts_path
+= link_to 'Edit', edit_analyst_path(@analyst)

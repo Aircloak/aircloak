@@ -1,5 +1,7 @@
 %p#notice= notice
 
+%h3 Cloak info
+
 %p
   %b Name:
   = @cloak.name
@@ -21,6 +23,8 @@
   - else
     %b available
 
-= link_to 'Edit', edit_cloak_path(@cloak)
+= link_to 'Cloaks overview', cloaks_path
 \|
-= link_to 'Back', cloaks_path
+= link_to 'Audit-log', "/audit_logs/cloak/#{@cloak.id}"
+\|
+= link_to 'Edit', edit_cloak_path(@cloak)

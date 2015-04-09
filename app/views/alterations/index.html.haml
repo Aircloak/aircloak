@@ -1,5 +1,4 @@
-%h1
-  = "#{@target_type} history"
+%h3= "#{@target_type} history"
 
 - if @alterations.size > 0 then
   %table.table.table-striped
@@ -16,3 +15,4 @@
           %td= alteration.user.login
           %td= alteration.description
 
+= link_to 'Back', :back

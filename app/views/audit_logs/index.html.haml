@@ -1,4 +1,4 @@
-%h1 Audit logs
+%h3 Audit logs
 
 %p Select a cluster to browse the audit log for:
 
@@ -7,7 +7,7 @@
     %li= link_to cluster.name, "/audit_logs/cluster/#{cluster.id}?except=#{params[:except]}"
 
 - if @latest_entries.size > 0
-  %h2 Latest log entries
+  %h4 Latest log entries
 
   - unless params[:except] == "tick tock"
     = link_to "Hide timestamp messages", "?except=tick tock"
@@ -31,7 +31,7 @@
           %td= log_entry.timestamp
           %td= log_entry.source
           %td= log_entry.message
-          %td= link_to 'Raw entry', audit_log_path(log_entry), class: "btn btn-mini"
+          %td= link_to 'View raw entry', audit_log_path(log_entry)
 
   = will_paginate @latest_entries
 

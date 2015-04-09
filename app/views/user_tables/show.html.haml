@@ -11,10 +11,8 @@
         raw_data: table_data
         raw_previous_migration: ""
 
-%h1
-  = @table.table_name
-  = link_to "Edit", edit_user_table_path(@table), class: "btn"
-
+%h3 User table info
+%h4= "Name: #{@table.table_name}"
 
 %table.table.table-striped
   %thead
@@ -23,3 +21,7 @@
       %th Type
       %th Constraints
   %tbody#columns
+
+= link_to "User tables overview", user_tables_path
+\|
+= link_to "Edit", edit_user_table_path(@table)
