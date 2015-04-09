@@ -1,4 +1,4 @@
-%h1
+%h3
   Build
   = @build.name
 
@@ -17,3 +17,5 @@
         %td= dev.deployable_entity.repo
         %td= dev.commit_id
         %td= link_to dev.status, deployable_entity_deployable_entity_version_path(dev.deployable_entity, dev)
+
+= link_to 'Builds overview', builds_path

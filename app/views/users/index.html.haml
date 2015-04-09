@@ -1,4 +1,4 @@
-%h1 Users
+%h3 Users
 
 %table.table.table-striped
   %thead
@@ -31,8 +31,9 @@
         %td= time_ago_in_words user.created_at
         %td= time_ago_in_words user.updated_at
         %td
-          = link_to 'Edit', edit_user_path(user), class: "btn btn-mini" if permitted_to? :update, :users
+          = link_to 'Edit', edit_user_path(user) if permitted_to? :update, :users
+          \|
           = link_to 'Remove', user, :method => :delete, :data => { :confirm => 'Are you sure?' },
               class: "btn btn-mini btn-danger" if permitted_to? :delete, :users
 
-= link_to "Add user", new_user_path, class: "btn" if permitted_to? :create, :users
+= link_to "Create a new user", new_user_path if permitted_to? :create, :users

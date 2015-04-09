@@ -1,5 +1,5 @@
 - if @unresolved.count > 0
-  %h1 Reported Unresolved Repeated Answers
+  %h3 Reported Unresolved Repeated Answers
 
   %table.table.table-striped
     %thead
@@ -22,13 +22,13 @@
         %td= answer.bucket_label_and_value
         %td= answer.bucket_count
         %td= answer.noise_sd
-        %td= link_to 'View', repeated_answer_path(answer.id), class: "btn btn-mini"
+        %td= link_to 'View', repeated_answer_path(answer.id)
 - else
-  No unresolved repeated answers stored in the database.
+  %h3 No unresolved repeated answers stored in the database.
 
 
 - if @resolved.count > 0
-  %h1 Reported Resolved Repeated Answers
+  %h3 Reported Resolved Repeated Answers
 
   %table.table.table-striped
     %thead
@@ -51,4 +51,4 @@
         %td= answer.bucket_label_and_value
         %td= answer.bucket_count
         %td= answer.noise_sd
-        %td= link_to 'View', repeated_answer_path(answer.id), class: "btn btn-mini"
+        %td= link_to 'View', repeated_answer_path(answer.id)

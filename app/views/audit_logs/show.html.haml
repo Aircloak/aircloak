@@ -1,4 +1,4 @@
-%h1= "Audit log entry #{@log_entry.log_id}"
+%h3= "Audit log entry #{@log_entry.log_id}"
 
 %table.table.table-striped
   %thead
@@ -30,3 +30,5 @@
     %tr
       %td Raw
       %td= @log_entry.log_message
+
+= link_to 'Back', :back

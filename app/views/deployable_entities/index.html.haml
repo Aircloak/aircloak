@@ -1,4 +1,4 @@
-%h1 Current deployable entities
+%h3 Current deployable entities
 %p These are the applications and configuration entities that we deploy as part of cloak clusters.
 
 %table.table.table-striped
@@ -21,7 +21,7 @@
         %td= link_to deployable_entity.commits.count, deployable_entity_deployable_entity_versions_path(deployable_entity)
         %td= deployable_entity.status
         %td
-          = link_to 'Edit', edit_deployable_entity_path(deployable_entity), class: "btn btn-mini"
+          = link_to 'Edit', edit_deployable_entity_path(deployable_entity)
           - if deployable_entity.can_destroy?
             = link_to 'Destroy', deployable_entity, :method => :delete, :data => { :confirm => 'Are you sure?' },
                 class: "btn btn-mini btn-danger"
@@ -30,4 +30,4 @@
 
 %br
 
-= link_to 'Add a new entity', new_deployable_entity_path, class: "btn"
+= link_to 'Create a new entity', new_deployable_entity_path

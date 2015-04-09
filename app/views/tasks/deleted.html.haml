@@ -1,5 +1,5 @@
 - if @tasks.count > 0
-  %h1 Deleted tasks
+  %h3 Deleted tasks
 
   %table.table.table-striped
     %thead
@@ -25,11 +25,12 @@
           %td= "#{pluralize(task.results.count, 'result')} will be purged #{task.days_until_purging}"
         %td= task.type_string
         %td
-          = link_to 'Recover task', recover_task_path(task.token), :method => :post, class: "btn btn-mini"
-          = link_to "Destroy task", task_path(task.token), :method => :delete,
+          = link_to 'Recover', recover_task_path(task.token), :method => :post, class: "btn btn-mini"
+          \|
+          = link_to "Destroy", task_path(task.token), :method => :delete,
             :data => { :confirm => "Are you sure you want to destroy task #{task.name}? This operation can NOT be undone!" }, class: "btn btn-mini btn-danger"
 - else
-  %h1 No deleted tasks found!
+  %h3 No deleted tasks found!
 
 %br
-= link_to 'Back', tasks_path
+= link_to 'Tasks overview', tasks_path

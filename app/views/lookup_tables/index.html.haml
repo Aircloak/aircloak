@@ -1,6 +1,6 @@
 = help_link 'lookup-tables'
 
-%h1 Lookup tables
+%h3 Lookup tables
 
 %hr
 
@@ -21,10 +21,11 @@
             %tr
               %td= table.table_name
               %td
-                = link_to 'Upload new data', edit_lookup_table_path(table), class: "btn btn-mini"
+                = link_to 'Upload new data', edit_lookup_table_path(table)
                 = link_to 'Drop table', lookup_table_path(table), :method => :delete, :data => { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
         - else
           %tr
             %td{colspan: 2}= "No tables in #{cluster.name} cluster"
 
-= link_to "Create table", new_lookup_table_path, class: "btn"
+%p
+  = link_to "Create a new lookup table", new_lookup_table_path

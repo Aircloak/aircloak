@@ -1,5 +1,5 @@
 - if @results.count > 0
-  %h1 Test Results
+  %h3 Test Results
 
   %table.table.table-striped
     %thead
@@ -22,6 +22,6 @@
         %td= result.test_items.count
         %td= result.benchmark_success ? (display_duration result.benchmark_duration) : "--"
         %td= result.benchmark_success ? ("%.1f%%" % [result.benchmark_coverage * 100]) : "--"
-        %td= link_to 'View', test_result_path(result.id), class: "btn btn-mini"
+        %td= link_to 'View', test_result_path(result.id)
 - else
-  No test results stored in the database.
+  %h3 No test results stored in the database.

@@ -26,11 +26,10 @@
                 Monitoring
                 %b.caret
               %ul.dropdown-menu
+                %li= link_to "Activities", activities_path
                 %li= link_to "Metrics", metrics_path
                 %li= link_to "AirPub", airpub_path
                 %li= link_to "Audit-log", audit_logs_path
-            - # Shows all user activity
-            %li= link_to "Activity monitor", activities_path
             -# Related to user administration
             %li.dropdown
               %a.dropdown-toggle{href: "#", :'data-toggle' => "dropdown"}

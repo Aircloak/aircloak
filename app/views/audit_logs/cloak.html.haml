@@ -1,4 +1,4 @@
-%h1= "Audit log for #{@cloak.name}"
+%h3= "Audit log for #{@cloak.name}"
 
 = link_to "See log entries for the #{@cloak.cluster.name} cluster, which #{@cloak.name} is part of",
     "/audit_logs/cluster/#{@cloak.cluster.id}?except=#{params[:except]}" if @cloak.cluster
@@ -26,8 +26,10 @@
           %td= log_entry.timestamp
           %td= log_entry.source
           %td= log_entry.message
-          %td= link_to 'Raw entry', audit_log_path(log_entry), class: "btn btn-mini"
+          %td= link_to 'View raw entry', audit_log_path(log_entry)
   = will_paginate @entries
 
 - else
   %h4 No audit-log entries as of yet
+
+= link_to 'Cloaks overview', cloaks_path

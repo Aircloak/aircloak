@@ -1,5 +1,7 @@
 %p#notice= notice
 
+%h4 Cluster info
+
 %p
   %b Name:
   = @cluster.name
@@ -31,11 +33,11 @@
     - @cluster.capabilities.each do |capability|
       %li= capability.name
 
+= link_to 'Clusters overview', clusters_path
+\|
 = link_to "View history", alterations_path(target_type: "Cluster", target_id: @cluster.id)
 \|
 = link_to 'Edit', edit_cluster_path(@cluster)
 \|
 - if @cluster.can_delete?
-  = link_to 'Destroy', @cluster, method: :delete, data: { :confirm => 'Are you sure?' }
-  \|
-= link_to 'Back', clusters_path
+  = link_to 'Destroy', @cluster, method: :delete, data: { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"

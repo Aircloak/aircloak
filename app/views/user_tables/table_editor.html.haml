@@ -13,9 +13,9 @@
         raw_previous_migration: migration
 
 - if @creating_new_table == true
-  %h1 Create a table
+  %h3 Create a new table
 - else
-  %h1= "Change #{@table.table_name}"
+  %h3 Editing table
 
 = form_tag({controller: "user_tables", action: @creating_new_table ? "create" : "update"},
     method: (@creating_new_table ? :post : :put), class: "form-horizontal", id: "table-form") do |f|
@@ -47,7 +47,7 @@
   %textarea#table_json.hidden{name: :table_json}
   %textarea#migration.hidden{name: :migration}
 
-  %h2 Columns
+  %h3 Columns
 
   %p The cloak stores data in database tables.
   %p The tables store data in rows where each row has a pre-defined set of columns.
@@ -66,7 +66,7 @@
 
   %div#newColumns
 
-    %h3 Add a column
+    %h4 Add a column
 
     .control-group
       = control_label "Column name"
@@ -104,7 +104,8 @@
   .control-group
     .controls
       - if @creating_new_table
-        = submit_tag 'Create database table', :class => "btn btn-success submit-btn disabled"
+        = submit_tag 'Create table', :class => "btn btn-success submit-btn disabled"
       - else
-        = submit_tag 'Alter database table', :class => "btn btn-success submit-btn disabled"
-      = link_to "Cancel", user_tables_path, class: "btn"
+        = submit_tag 'Alter table', :class => "btn btn-success submit-btn disabled"
+
+  = link_to 'User tables overview', user_tables_path

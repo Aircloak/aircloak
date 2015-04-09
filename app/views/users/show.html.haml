@@ -1,3 +1,5 @@
+%h3 User info
+
 %table.table.table-striped
   %tbody
     %tr
@@ -22,4 +24,6 @@
       %td Current login ip
       %td= @user.current_login_ip
 
-= link_to 'Edit', edit_user_path(@user), class: "btn"
+= link_to 'Users overview', users_path
+\|
+= link_to 'Edit', edit_user_path(@user)
