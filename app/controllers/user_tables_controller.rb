@@ -2,9 +2,10 @@ require './lib/migrator'
 
 class UserTablesController < ApplicationController
   before_action :set_previous_migration
-  before_action :load_table, only: [:new, :create, :edit, :update, :destroy, :retry_migration, :clear, :show]
+  before_action :load_table, only: [:new, :create, :edit, :update, :destroy, :retry_migration, :clear, :show, :confirm_destroy]
   before_action :validate_no_pending_migrations, only: [:edit, :update, :destroy]
   before_action :set_create_or_edit
+  filter_access_to [:confirm_destroy, :clear], require: :manage
 
   def index
     @clusters = current_user.ready_clusters
@@ -93,6 +94,11 @@ class UserTablesController < ApplicationController
   #    table, it will then continue using the previously dropped
   #    tables history.
   def destroy
+     if params["table_name"] != @table.table_name then
+      flash[:error] = "Entered name does not match table name!"
+      redirect_to confirm_destroy_user_table_path
+      return
+    end
     migration = UserTableMigration.drop_migration @table.table_name
     @table.pending_delete = true
     if Migrator.migrate @table, migration
@@ -102,11 +108,16 @@ class UserTablesController < ApplicationController
       describe_failed_activity "Dropping user table #{@table.table_name} failed"
       flash[:error] = "Table #{@table.table_name} could not be dropped"
     end
+    redirect_to user_tables_path
   rescue
     describe_failed_activity "Dropping user table migration failed for table #{@table.table_name}"
     flash[:error] = "We could not drop the table at this time. Please try again later"
-  ensure
     redirect_to user_tables_path
+  end
+
+  def confirm_destroy
+    # we don't have a real relation tasks and user_tables so we need to search the prefetch column for the table
+    @tasks = Task.all.where("prefetch LIKE ?", "%{\"table\":\"#{@table.table_name}\"%")
   end
 
   # This method is required for the odd circumstances where a cluster is down
