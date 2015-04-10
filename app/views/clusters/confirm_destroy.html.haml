@@ -1,0 +1,46 @@
+
+%h4 Are you sure you want to destroy this cluster?
+%b This operation can not be reversed.
+
+%br
+%br
+
+%p
+  %b Name:
+  = @cluster.name
+%p
+  %b Using build:
+  = link_to @cluster.build.name, build_path(@cluster.build.id)
+%p
+  %b Health:
+  = @cluster.health
+%p
+  %b Cloaks composing the cluster:
+  %ul
+    - @cluster.cloaks.each do |cloak|
+      %li
+        = link_to cloak.name, cloak_path(cloak.id)
+        %em= "(#{cloak.health})"
+%p
+  %b Analysts using the cluster:
+  %ul
+    - @cluster.analysts.each do |analyst|
+      %li
+        = link_to analyst.name, analyst_path(analyst.id)
+%p
+  %b Tasks active on the cluster:
+  %ul
+    - @cluster.tasks.each do |task|
+      %li
+        = "#{task.name} - #{task.type_string}"
+%p
+  %b Enter cluster name to confirm operation:
+  = form_tag cluster_path(@cluster), method: :delete, html: { class: "form-horizontal" } do
+    .control-group
+      .controls
+        = text_field_tag "cluster_name"
+      .controls
+        = submit_tag 'Destroy', class: "btn btn-danger"
+
+%p
+  = link_to 'Clusters overview', clusters_path

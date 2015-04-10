@@ -1,0 +1,30 @@
+
+%h4 Are you sure you want to destroy this user table and all the data in it?
+%b This operation can not be reversed.
+
+%br
+%br
+
+%p
+  %b Name:
+  = @table.table_name
+%p
+  - if @tasks.count > 0
+    %b Tasks using the table and which will no longer function properly afterwards:
+    %ul
+      - @tasks.each do |task|
+        %li
+          = "#{task.name} - #{task.type_string}"
+  - else
+    %b No tasks are using this table.
+%p
+  %b Enter table name to confirm operation:
+  = form_tag user_table_path(@table), method: :delete, html: { class: "form-horizontal" } do
+    .control-group
+      .controls
+        = text_field_tag "table_name"
+      .controls
+        = submit_tag 'Destroy', class: "btn btn-danger"
+
+%p
+  = link_to 'User tables overview', user_tables_path

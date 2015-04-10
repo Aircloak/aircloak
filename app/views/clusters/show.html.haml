@@ -44,4 +44,4 @@
 = link_to 'Edit', edit_cluster_path(@cluster)
 \|
 - if @cluster.can_delete?
-  = link_to 'Destroy', @cluster, method: :delete, data: { :confirm => 'Are you sure?' }, class: "btn btn-mini btn-danger"
+  = link_to 'Destroy', confirm_destroy_cluster_path(@cluster)
