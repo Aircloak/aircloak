@@ -1,5 +1,6 @@
 class ClustersController < ApplicationController
-  before_action :set_cluster, only: [:show, :edit, :update, :destroy]
+  before_action :set_cluster, only: [:show, :edit, :update, :destroy, :confirm_destroy]
+  filter_access_to [:confirm_destroy], require: :manage
 
   def index
     @clusters = Cluster.all
@@ -21,12 +22,20 @@ class ClustersController < ApplicationController
   end
 
   def destroy
+    if params["cluster_name"] != @cluster.name then
+      flash[:error] = "Entered name does not match cluster name!"
+      redirect_to confirm_destroy_cluster_path
+      return
+    end
     @cluster.assign_cloaks []
     @cluster.log_alteration "Destroyed."
     @cluster.mark_as_changed
     @cluster.save # save that the state has changed
-    describe_successful_activity "Successfully marked cluster to get destroyed."
-    redirect_to clusters_path, notice: 'Cluster is marked to get destroyed.'
+    describe_successful_activity "Successfully marked cluster to be destroyed."
+    redirect_to clusters_path, notice: 'Cluster was marked to be destroyed.'
+  end
+
+  def confirm_destroy
   end
 
   def show

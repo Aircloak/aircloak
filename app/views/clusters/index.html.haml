@@ -31,12 +31,9 @@
             = link_to 'Show', cluster
             \|
             = link_to 'Edit', edit_cluster_path(cluster)
-            \|
             - if cluster.can_delete?
-              = link_to 'Destroy', cluster, method: :delete, data: { :confirm => 'Are you sure?' },
-                  class: "btn btn-mini btn-danger"
-            - else
-              = link_to 'Destroy', "#", class: "btn btn-mini btn-danger disabled"
+              \|
+              = link_to 'Destroy', confirm_destroy_cluster_path(cluster)
 
 %h4 Add a new cluster
 = render 'form'

@@ -33,7 +33,9 @@ Web::Application.routes.draw do
   # Allows aircloak employees to inspect activities performed by
   # users on the web system
   resources :activities
-  resources :clusters
+  resources :clusters do
+    get "confirm_destroy", on: :member, action: "confirm_destroy"
+  end
   resources :alterations
   resources :test_results, only: [:index, :show]
   resources :test_vms, only: [:show]
