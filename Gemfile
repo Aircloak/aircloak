@@ -5,6 +5,7 @@ ruby '2.0.0'
 gem 'rails', '~> 4.0.3' #, github: 'rails/rails'
 
 gem "haml", github: "haml/haml", branch: "stable"
+gem 'haml-rails', github: 'indirect/haml-rails'
 
 # Ruby protobuf compiler
 gem 'beefcake'
@@ -42,14 +43,13 @@ group :development do
   gem 'better_errors'
   gem 'binding_of_caller'
   gem 'meta_request'
-  gem 'haml-rails', github: 'indirect/haml-rails'
   gem 'ruby_parser'
   gem 'quiet_assets' # quiet down assets from the log
 end
 
 group :production do
-  gem 'SyslogLogger'
   gem 'pg'
+  gem 'unicorn'
 end
 
 # Gems used only for assets and not required
@@ -58,24 +58,20 @@ group :assets do
   gem 'sprockets-rails', github: 'rails/sprockets-rails'
   gem 'sass-rails',   github: 'rails/sass-rails'
   gem 'coffee-rails', github: 'rails/coffee-rails'
-  gem 'twitter-bootstrap-rails'
-  gem 'less-rails'
-
-  # See https://github.com/sstephenson/execjs#readme for more supported runtimes
-  gem 'therubyracer', platforms: :ruby
   gem 'uglifier', '>= 1.0.3'
 end
 
+gem 'twitter-bootstrap-rails'
+gem 'less-rails'
+# See https://github.com/sstephenson/execjs#readme for more supported runtimes
+gem 'therubyracer', platforms: :ruby
 gem 'jquery-rails'
-# gem 'turbolinks', github: 'rails/turbolinks'
 
 # To use ActiveModel has_secure_password
 gem 'bcrypt-ruby', '~> 3.0.0'
 
 # Deploy with Capistrano
 gem 'capistrano', '2.13.5', group: :development
-
-gem 'unicorn'
 
 gem 'authlogic'
 gem 'declarative_authorization'
