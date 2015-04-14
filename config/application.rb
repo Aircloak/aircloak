@@ -22,25 +22,5 @@ module Web
     # config.i18n.load_path += Dir[Rails.root.join('my', 'locales', '*.{rb,yml}').to_s]
     # config.i18n.default_locale = :de
     config.i18n.enforce_available_locales = true
-
-    # Validate that all the secret tokens that we expect to be present in
-    # settings.local.yml have also been set.
-    # This way we prevent the booting process of rails unless all the required
-    # settings are in place. Checking at the time the token is needed is not ideal
-    # as the tokens are often needed as a result of an API call performed by some
-    # other service, in which case the error would be swallowed and hidden in some
-    # log.
-    config.after_initialize do
-      [
-        :secret_key_base,
-        :github_oauth_token,
-        :private_key_password,
-        :airpub_shared_secret
-      ].each do |required_param|
-        if not Rails.configuration.respond_to? required_param or eval("Rails.configuration.#{required_param}") == nil
-          raise "#{required_param} is missing from settings.local.yml"
-        end
-      end
-    end
   end
 end
