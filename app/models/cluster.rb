@@ -1,5 +1,6 @@
 require './lib/cluster_packer.rb'
 require 'rest-client'
+require './lib/aircloak_config.rb'
 
 class Cluster < ActiveRecord::Base
   has_many :cluster_cloaks
@@ -206,12 +207,12 @@ class Cluster < ActiveRecord::Base
   # it's capabilities. This way the web interface will automatically
   # show the right interfaces that are supported.
   def check_capabilities
-    url = if Rails.configuration.installation.global
+    url = if Conf.get("/settings/rails/global")
       "https://#{random_cloak_ip}/capabilities"
     else
       # We are running in local mode
-      protocol = Rails.configuration.cloak.protocol
-      port = Rails.configuration.cloak.port
+      protocol = Conf.get("/service/cloak/protocol")
+      port = Conf.get("/service/cloak/port")
       "#{protocol}://#{random_cloak_ip}:#{port}/capabilities"
     end
     RestClient::Request.execute(method: :get, url: url, timeout: 0.3, open_timeout: 0.2) do |response, request, result, &block|
@@ -254,7 +255,7 @@ private
   end
 
   def synchronize_in_local_mode
-    unless Rails.configuration.installation.global
+    unless Conf.get("/settings/rails/global")
       self.status = :active
       cluster_cloaks.each {|cluster_cloak| cluster_cloak.synchronize }
     end

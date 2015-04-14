@@ -1,4 +1,5 @@
 require './lib/gh.rb'
+require './lib/aircloak_config'
 
 class DeployableEntity < ActiveRecord::Base
   # This before_destroy callback needs to be called
@@ -44,7 +45,7 @@ class DeployableEntity < ActiveRecord::Base
   def can_destroy?
     deployable_entity_versions.each do |version|
       unless version.can_destroy?
-        self.errors.add(:deployable_entity_version, 
+        self.errors.add(:deployable_entity_version,
             "cannot delete a deployable entity with version that are part of a build")
         return false
       end
@@ -54,7 +55,7 @@ class DeployableEntity < ActiveRecord::Base
 
 private
   def set_description
-    if Rails.configuration.installation.global
+    if Conf.get("/settings/rails/global")
       self.description = Gh.description_for repo
     else
       self.description = "I'm a description!"
@@ -62,7 +63,7 @@ private
   end
 
   def repo_exists
-    not Rails.configuration.installation.global or Gh.description_for repo
+    not Conf.get("/settings/rails/global") or Gh.description_for repo
   rescue UnknownRepository
     errors.add(:repo, "does not exist")
   end

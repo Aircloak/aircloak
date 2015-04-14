@@ -1,6 +1,4 @@
-class RepeatedAnswerMailer < ActionMailer::Base
-  default from: "no-reply@aircloak.com"
-
+class RepeatedAnswerMailer < AircloakMailer
   def new_report report
     @report = report
     mail to: "everyone-dev@aircloak.com",

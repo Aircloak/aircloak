@@ -1,4 +1,4 @@
-class ClusterMailer < ActionMailer::Base
+class ClusterMailer < AircloakMailer
   default from: "no-reply@aircloak.com"
 
   def status_mail cluster, status_proto

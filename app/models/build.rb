@@ -1,5 +1,6 @@
 require './lib/finger_print_creator.rb'
 require './lib/build_manager.rb'
+require './lib/aircloak_config.rb'
 
 class Build < ActiveRecord::Base
   # This before_destroy callback needs to be called
@@ -83,11 +84,11 @@ private
   end
 
   def send_request_for_building
-    BuildManager.send_build_request self if Rails.configuration.installation.global
+    BuildManager.send_build_request self if Conf.get("/settings/rails/global")
   end
 
   def remove_from_buildserver
-    url = "http://#{Rails.configuration.build_server.host}/build/#{self.id}"
-    ProtobufSender.send_delete url if Rails.configuration.installation.global
+    url = "http://#{Conf.get("/service/build_server/host")}/build/#{self.id}"
+    ProtobufSender.send_delete url if Conf.get("settings/rails/global")
   end
 end

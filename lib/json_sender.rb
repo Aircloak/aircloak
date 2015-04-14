@@ -1,4 +1,5 @@
 require './lib/token_generator'
+require './lib/aircloak_config'
 
 class JsonSender
   def self.request method, auth_type, analyst, cluster, path, headers = {}, body = nil
@@ -8,8 +9,8 @@ class JsonSender
 
     ssl_cert, ssl_key = cert_and_key(auth_type, analyst)
 
-    protocol = Rails.configuration.cloak.protocol
-    port = Rails.configuration.cloak.port
+    protocol = Conf.get("/service/cloak/protocol")
+    port = Conf.get("/service/cloak/port")
     url = "#{protocol}://#{cluster.random_cloak_ip}:#{port}/#{path}"
     headers = {analyst: analyst.id, :content_type => 'application/json'}.merge(headers)
 

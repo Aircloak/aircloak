@@ -16,9 +16,6 @@ gem 'rest-client'
 gem "github_api"
 gem 'excon'
 
-# Configuration management
-gem "choices"
-
 # Use to paginate the activities on the activities page
 gem 'will_paginate', '~> 3.0'
 
@@ -47,10 +44,8 @@ group :development do
   gem 'quiet_assets' # quiet down assets from the log
 end
 
-group :production do
-  gem 'pg'
-  gem 'unicorn'
-end
+# We use postgres both in production and development
+gem 'pg'
 
 # Gems used only for assets and not required
 # in production environments by default.
@@ -82,5 +77,8 @@ gem 'handlebars_assets'
 gem 'hamlbars', '~> 2.1'
 gem 'codemirror-rails', '~> 4.5'
 
-# for running periodic tasks
-gem 'whenever'
+# Load configurations out of etcd
+gem "etcd"
+
+# We are running with unicorn in both production and development
+gem 'unicorn', '~> 4.8'

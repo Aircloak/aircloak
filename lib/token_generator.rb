@@ -1,6 +1,7 @@
 require 'securerandom'
 require 'openssl'
 require 'socket'
+require './lib/aircloak_config'
 
 # Methods for generating authentication tokens. A token is comprised of a private key and a signed certificate.
 
@@ -44,14 +45,14 @@ module TokenGenerator
 
   def self.export_key(key)
     # This is used as a small protection against database leaks without access to server files.
-    privateKeyPassword = Rails.configuration.private_key_password
+    privateKeyPassword = Conf.get("settings/rails/secrets/private_key_password")
     abort "private_key_password field is not set in the settings.local.yml file." unless privateKeyPassword
     return key.export(OpenSSL::Cipher.new('AES-256-CBC'), privateKeyPassword)
   end
 
   def self.import_key(keyText)
     # This is used as a small protection against database leaks without access to server files.
-    privateKeyPassword = Rails.configuration.private_key_password
+    privateKeyPassword = Conf.get("settings/rails/secrets/private_key_password")
     abort "private_key_password field is not set in the settings.local.yml file." unless privateKeyPassword
     return OpenSSL::PKey.read(keyText, privateKeyPassword)
   end
