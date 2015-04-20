@@ -279,7 +279,6 @@ private
       {text: "tables"},
       {text: "lookup", displayText: "lookup(table_name, key)"},
       {text: "to_date", displayText: "to_date(timestamp)"},
-      {text: "user_id"},
       {text: "accumulator"},
       {text: "task_time"},
       {text: "insert_row", displayText: "insert_row(table_name, row_data)"}

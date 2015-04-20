@@ -98,9 +98,6 @@ content: |
   You can also query a lookup table (see <%= help_link "lookup-tables" %>),
   by calling `lookup(table_name, key)` which will return the corresponding value.
 
-  It is worth mentioning that there is a global `user_id` variable available containing the id of the
-  user being processed.
-
 
   #### Working with times
 
