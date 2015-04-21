@@ -478,10 +478,20 @@ json_payload = <<-EOJSON
   }
 EOJSON
 
+# The following headers are required when
+# executing a task asynchronously.
+# You can also execute the task synchronously
+# by leaving the headers blank.
+# PLEASE NOTE: asynchronous queries only work
+# when run against a cloak you host within your
+# own firewall perimeter where the cloak can
+# reach the endpoint. When run agaist an
+# Aircloak hosted cloak, manually issued
+# asynchronous tasks will not work!
 headers = {
   async_query: true,
-  auth_token: "ABCDEFGH",
-  return_url: "aHR0cHM6Ly9lbmQtcG9pbnQuZXhhbXBsZS5jb20v",
+  auth_token: "<Auth token understood by your endpoint",
+  return_url: "<Base64-encoded endpoint URL>",
   task_id: "my-task"
 }
 
@@ -510,6 +520,16 @@ cat > task.json <<EOJSON
   }
 EOJSON
 
+# The below headers are required when
+# executing a task asynchronously.
+# You can also execute the task synchronously
+# by leaving out the headers.
+# PLEASE NOTE: asynchronous queries only work
+# when run against a cloak you host within your
+# own firewall perimeter where the cloak can
+# reach the endpoint. When run agaist an
+# Aircloak hosted cloak, manually issued
+# asynchronous tasks will not work!
 wget --content-on-error \
      --output-document - \
      --method=POST \
@@ -517,8 +537,8 @@ wget --content-on-error \
      --certificate=<path-to-PEM-certificate> \
      --body-file=task.json \
      --header='async_query: true' \
-     --header='auth_token: ABCDEFGH' \
-     --header='return_url: aHR0cHM6Ly9lbmQtcG9pbnQuZXhhbXBsZS5jb20v' \
+     --header='auth_token: <Auth-token understood by your endpoint>' \
+     --header='return_url: <Base64-encoded endpoint URL>' \
      --header='task_id: my-task' \
      --no-check-certificate \
      https://<cloak-server>.cloak.aircloak.net/task/run
@@ -530,9 +550,16 @@ Tasks can either be run asynchronously or synchronously.
 Calls to run tasks asynchronously immediately return. Once available, the results are sent to an HTTP endpoint which was specified along with the task.
 Calls to run tasks synchronously block until the results are available, or until they time out.
 
-<aside class="notice">
-Asynchronous tasks can only use the Aircloak HTTP endpoint at this time. This is due to how our networks are
-secured.
+<aside class="warning">
+<strong>Please note</strong>:
+Asynchronous tasks only work when executed on a cloak you have within your own organization's firewall
+perimeter! When using a cloak hosted by Aircloak, the firewall configuration prevents the results from
+reaching any endpoint you might configure as part of the task metadata, other than the Aircloak Web HTTP API.
+This Web HTTP API issues its own auth-tokens, and will not accept ones you generate yourself.
+If you need to run asynchronous queries against a cloak hosted by Aircloak, please either consider using the
+web interface on <a href="https://hello.aircloak.com">hello.aircloak.com</a>,
+or alternatively reach out to Aircloak on <a href="mailto:support@aircloak.com">support@aircloak.com</a>
+to establish a workaround.
 </aside>
 
 The API assumes you are familiar with writing queries against the Aircloak platform. If not, please have
