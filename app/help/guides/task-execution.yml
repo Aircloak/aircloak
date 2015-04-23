@@ -5,17 +5,17 @@ content: |
   # Task execution models
 
   There are three types of execution models: __batch__, __periodic__, __streaming__. Note: Streaming and
-  periodic tasks are a new feature which may not be supported in older versions of clusters.
+  periodic tasks are a new feature which are not supported by older clusters.
 
-  Differences between different execution models are summarized in the following table:
+  Differences between the execution models are summarized in the following table:
 
   | Batch task | Periodic task | Streaming task |
   |------------|---------------|----------------|
   | Executed on demand | Executed in regular periods | Executed when data is inserted |
-  | Reports are sent after the task is executed | Reports are sent after the task is executed | Reports are sent in regular periods |
-  | Runs on all users specified in prefetch | Runs on all users specified in prefetch | Runs only on users inserted in prefetch tables |
-  | Allows rich filters in prefetch | Allows rich filters in prefetch | Doesn't allow filters in prefetch |
-  | Doesn't support stateful tasks | Doesn't support stateful tasks | Supports stateful tasks |
+  | Reports are sent after the task has finished executing | Reports are sent after the task has finished executing | Reports are sent back in regular intervals |
+  | Executes over all users specified in prefetch | Executes over all users specified in prefetch | Only executes over users who had data inserted into the prefetch tables |
+  | Allows rich filters in prefetch | Allows rich filters in prefetch | Does not allow filters in prefetch |
+  | Does not support stateful tasks | Does not support stateful tasks | Supports stateful tasks |
 
   ## Batch tasks
 
@@ -25,41 +25,39 @@ content: |
 
   ## Periodic tasks
 
-  A periodic task is similar to batch tasks, but it is executed in regular intervals, rather than on demand.
-  Just like with batch tasks, reports are sent to the desired endpoint immediately after the task is
-  executed.
+  A periodic task is similar to a batch task, but is executed periodically, rather than on demand.
+  Just like for batch tasks, reports are sent to the desired endpoint immediately after the task has finished
+  executing.
 
   ## Streaming tasks
 
-  A streaming task is executed whenever a new data for related tables is inserted. Related tables can be
-  specified in the prefetch part of the task definition.
+  A streaming task is executed whenever new data is inserted into tables relevant to the task.
+  The relevant tables are specified in the prefetch part of the task definition.
 
-  As explained in <%= help_link "introduction-queries" %>, a task is always executed over an individual user.
-  During execution, a task may generate values which will be included in the final report.
+  As explained in <%= help_link "introduction-queries" %>, a task is always executed over individual users.
+  During execution, a task may generate values which are included in the final report.
 
-  When it comes to streaming tasks, values reported by streaming tasks do not immediately leave the cloak.
+  Values reported by streaming tasks do not immediately leave the cloak.
   Instead, the process of anonymization and aggregation (as explained in
   <%= help_link "understanding-the-query-model" %>) is performed periodically. You can configure this period
   as a part of the task.
 
-  Values reported for a single user will be included in the next generated result. In fact,
+  Values reported for individual users are included in the next generated result. In fact,
   those values will be included in all future results until one of following conditions is met:
 
-  1. The task is executed for that same user. This happens when new data for that user is inserted. This
-  will cause all previously generated values for that user to be deleted.
+  1. The task is executed for that same user. This happens when new data is inserted for that particular user. This
+  will cause all previously reported values for that user to be deleted.
   2. The generated values have expired. The expiry time of generated values can be configured when defining the
   task.
 
   ### Stateful tasks
 
-  It is also possible to maintain a user-specific state. This can be useful if you want to track and report
-  changes, rather than absolute values. This can be done through the `accumulator` variable. When a task
-  is invoked for the first time for some user, the `accumulator` will have the value of `nil`. During the
-  task execution, you can set the `accumulator` variable to an arbitrary value. Next time the task is invoked
-  for that same user, the `accumulator` variable will have the previously set value.
+  Streaming tasks can maintain user-specific state between executions. This is useful if you want to track and report
+  changes, rather than absolute values. The state is kept in the `accumulator` variable. When a task
+  is invoked for the first time for a user, the `accumulator` will have the value `nil`. The value given to
+  the `accumulator` is kept for future streaming task executions, until the task changes it.
 
-  __Note__: accumulators are only supported in streaming tasks. The accumulator value will not be preserved in a
-  batch task.
+  __Note__: accumulators are only supported in streaming tasks. The accumulator is not preserved for batch and periodic tasks.
 
   For example, when tracking user locations, you might be interested in reporting moving vs. stationary people.
   To do this, you can store the observed location in the user-specific state. Next time the task is invoked
