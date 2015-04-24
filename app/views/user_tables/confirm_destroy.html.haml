@@ -14,7 +14,10 @@
     %ul
       - @tasks.each do |task|
         %li
-          = "#{task.name} - #{task.type_string}"
+          - if task.deleted
+            %i= "#{task.name} - #{task.type_string} - deleted"
+          - else
+            = "#{task.name} - #{task.type_string}"
   - else
     %b No tasks are using this table.
 %p
