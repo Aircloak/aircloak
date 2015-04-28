@@ -122,15 +122,15 @@ class PrefetchFilter
     type = type.gsub(/\(.*\)/, "")  # remove (length) from type
 
     transformed = case type
-      when "integer" then value.to_i
-      when "float" then value.to_f
+      when "integer" then Integer(value)
+      when "float" then Float(value)
       when "boolean" then value.to_s.downcase == "true"
       when "varchar" then value
     end
 
-    # verify we didn't lose anything in conversion
-    filter_error("invalid value #{value} for column #{column_name}") if transformed.to_s != value
     transformed
+  rescue ArgumentError
+    filter_error("invalid value #{value} for column #{column_name}")
   end
 
   def self.filter_error(message)
