@@ -33,5 +33,6 @@ init([]) ->
   {ok, {{one_for_one, 5, 10}, [
     ?SUP(global_service_sup),
     ?SUP(job_runner_sup),
-    ?CHILD(cron_manager, worker)
+    ?CHILD(cron_manager, worker),
+    ?SUP(cloak_db_pool_sup)
   ]}}.
