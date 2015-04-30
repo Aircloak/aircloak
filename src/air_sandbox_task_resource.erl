@@ -147,220 +147,207 @@ is_task_execution_ok() ->
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
+-include("test_helper.hrl").
 
-resource_test_() ->
-  {setup,
-    fun() ->
-      ?LOAD_CONFIG,
-      gproc:start_link(),
-      {ok, Apps} = application:ensure_all_started(webmachine),
-      cloak_services_sup:start_link(),
-      air_sandbox_sup:start_link(),
-      air_sandbox_web:setup_routes(),
-      Apps
-    end,
-    fun(Apps) ->
-      error_logger:tty(false),
-      unlink(whereis(air_sandbox_sup)),
-      exit(whereis(air_sandbox_sup), shutdown),
-      unlink(whereis(cloak_services_sup)),
-      exit(whereis(cloak_services_sup), shutdown),
-      unlink(whereis(gproc)),
-      exit(whereis(gproc), shutdown),
-      [application:stop(App) || App <- Apps],
-      error_logger:tty(true)
-    end,
-    [
-      {"Validate that monitoring check works", fun() ->
-        ?assertEqual(true, is_task_execution_ok())
-      end},
-      {"Reporting a single property", fun() ->
-        verifyHttp200(
-              "[{\"insert_actions\":[],\"reported_properties\":{\"u1\":[{\"label\":\"p1\",\"value\":\"105\"}]},\"errors\":[]}]",
-              request_task_run(
-                    "{"
-                      "\"users_data\": [{"
-                        "\"t1\": {"
-                          "\"columns\": [\"c1\"],"
-                          "\"data\": {\"u1\": [[105]]}"
-                        "}"
-                      "}],"
-                      "\"code\": \"report_property('p1', tables.t1[1].c1);\""
-                    "}"
-                  )
-            )
-      end},
-      {"Reporting multiple values for the same property", fun() ->
-        verifyHttp200(
-              "[{\"insert_actions\":[],\"reported_properties\":"
-                "{\"u1\":[{\"label\":\"p1\",\"value\":\"2\"},{\"label\":\"p1\",\"value\":\"1\"}]},"
-                "\"errors\":[]"
-              "}]",
-              request_task_run(
-                    "{"
-                      "\"users_data\": [{"
-                        "\"t1\": {"
-                          "\"columns\": [\"c1\"],"
-                          "\"data\": {\"u1\": [[105]]}"
-                        "}"
-                      "}],"
-                      "\"code\": \"report_property('p1', 1); report_property('p1', 2);\""
-                    "}"
-                  )
-            )
-      end},
-      {"Libraries", fun() ->
-        verifyHttp200(
-              "[{\"insert_actions\":[],\"reported_properties\":{\"u1\":[{\"label\":\"p1\",\"value\":\"10\"}]},\"errors\":[]}]",
-              request_task_run(
-                    "{"
-                      "\"users_data\": [{"
-                        "\"t1\": {"
-                          "\"columns\": [\"c1\"],"
-                          "\"data\": {\"u1\": [[100]]}"
-                        "}"
-                      "}],"
-                      "\"code\": \"report_property('p1', tenth(tables.t1[1].c1));\","
-                      "\"libraries\": ["
-                        "{\"name\": \"foo\", \"code\": \"function tenth(x) return x/10 end\"}"
-                      "]"
-                    "}"
-                  )
-            )
-      end},
-      {"Accumulator", fun() ->
-        verifyHttp200(
-              "["
-                "{\"insert_actions\":[],\"reported_properties\":{"
-                  "\"u1\":[{\"label\":\"acc\",\"value\":\"1\"}],"
-                  "\"u2\":[{\"label\":\"acc\",\"value\":\"2\"}]},"
-                  "\"errors\":[]"
-                "},"
-                "{\"insert_actions\":[],\"reported_properties\":{"
-                  "\"u1\":[{\"label\":\"acc\",\"value\":\"4\"}],"
-                  "\"u2\":[{\"label\":\"acc\",\"value\":\"6\"}]},"
-                  "\"errors\":[]"
-                "}"
-              "]",
-              request_task_run(
-                    "{"
-                      "\"users_data\": [{"
-                        "\"t1\": {"
-                          "\"columns\": [\"c1\"],"
-                          "\"data\": {\"u1\": [[1]], \"u2\": [[2]]}"
-                        "}"
-                      "},"
+?test_suite(resource_test_,
+      setup,
+      [
+        ?load_conf,
+        ?with_applications([gproc, webmachine]),
+        ?with_processes([cloak_services_sup, air_sandbox_sup]),
+        ?sanbox_web_server
+      ],
+      [
+        {"Validate that monitoring check works", fun() ->
+          ?assertEqual(true, is_task_execution_ok())
+        end},
+        {"Reporting a single property", fun() ->
+          verifyHttp200(
+                "[{\"insert_actions\":[],\"reported_properties\":{\"u1\":[{\"label\":\"p1\",\"value\":\"105\"}]},\"errors\":[]}]",
+                request_task_run(
                       "{"
-                        "\"t1\": {"
-                          "\"columns\": [\"c1\"],"
-                          "\"data\": {\"u1\": [[3]], \"u2\": [[4]]}"
-                        "}"
+                        "\"users_data\": [{"
+                          "\"t1\": {"
+                            "\"columns\": [\"c1\"],"
+                            "\"data\": {\"u1\": [[105]]}"
+                          "}"
+                        "}],"
+                        "\"code\": \"report_property('p1', tables.t1[1].c1);\""
                       "}"
-                      "],"
-                      "\"code\": \"
-                        if accumulator == nil then accumulator = 0 end
-                        report_property('acc', accumulator + tables.t1[1].c1)
-                        accumulator = accumulator + tables.t1[1].c1
-                      \""
-                    "}"
-                  )
-            )
-      end},
-      {"Insert users", fun() ->
-        verifyHttp200(
-              "[{\"insert_actions\":{"
-                  "\"u1\":{\"foo\":[{\"a\":1}],\"bar\":[{\"b\":\"2\"}]},"
-                  "\"u2\":{\"foo\":[{\"a\":1}],\"bar\":[{\"b\":\"2\"}]},"
-                  "\"u3\":{\"foo\":[{\"a\":1}],\"bar\":[{\"b\":\"2\"}]}"
-                "},"
-                "\"reported_properties\":{\"u1\":[],\"u2\":[],\"u3\":[]},"
-                "\"errors\":[]"
-              "}]",
-              request_task_run(
-                    "{"
-                      "\"users_data\": [{"
-                        "\"t1\": {"
-                          "\"columns\": [\"c1\"],"
-                          "\"data\": {\"u1\": [[105]], \"u2\": [[110]], \"u3\":[[115], [120]]}"
+                    )
+              )
+        end},
+        {"Reporting multiple values for the same property", fun() ->
+          verifyHttp200(
+                "[{\"insert_actions\":[],\"reported_properties\":"
+                  "{\"u1\":[{\"label\":\"p1\",\"value\":\"2\"},{\"label\":\"p1\",\"value\":\"1\"}]},"
+                  "\"errors\":[]"
+                "}]",
+                request_task_run(
+                      "{"
+                        "\"users_data\": [{"
+                          "\"t1\": {"
+                            "\"columns\": [\"c1\"],"
+                            "\"data\": {\"u1\": [[105]]}"
+                          "}"
+                        "}],"
+                        "\"code\": \"report_property('p1', 1); report_property('p1', 2);\""
+                      "}"
+                    )
+              )
+        end},
+        {"Libraries", fun() ->
+          verifyHttp200(
+                "[{\"insert_actions\":[],\"reported_properties\":{\"u1\":[{\"label\":\"p1\",\"value\":\"10\"}]},\"errors\":[]}]",
+                request_task_run(
+                      "{"
+                        "\"users_data\": [{"
+                          "\"t1\": {"
+                            "\"columns\": [\"c1\"],"
+                            "\"data\": {\"u1\": [[100]]}"
+                          "}"
+                        "}],"
+                        "\"code\": \"report_property('p1', tenth(tables.t1[1].c1));\","
+                        "\"libraries\": ["
+                          "{\"name\": \"foo\", \"code\": \"function tenth(x) return x/10 end\"}"
+                        "]"
+                      "}"
+                    )
+              )
+        end},
+        {"Accumulator", fun() ->
+          verifyHttp200(
+                "["
+                  "{\"insert_actions\":[],\"reported_properties\":{"
+                    "\"u1\":[{\"label\":\"acc\",\"value\":\"1\"}],"
+                    "\"u2\":[{\"label\":\"acc\",\"value\":\"2\"}]},"
+                    "\"errors\":[]"
+                  "},"
+                  "{\"insert_actions\":[],\"reported_properties\":{"
+                    "\"u1\":[{\"label\":\"acc\",\"value\":\"4\"}],"
+                    "\"u2\":[{\"label\":\"acc\",\"value\":\"6\"}]},"
+                    "\"errors\":[]"
+                  "}"
+                "]",
+                request_task_run(
+                      "{"
+                        "\"users_data\": [{"
+                          "\"t1\": {"
+                            "\"columns\": [\"c1\"],"
+                            "\"data\": {\"u1\": [[1]], \"u2\": [[2]]}"
+                          "}"
+                        "},"
+                        "{"
+                          "\"t1\": {"
+                            "\"columns\": [\"c1\"],"
+                            "\"data\": {\"u1\": [[3]], \"u2\": [[4]]}"
+                          "}"
                         "}"
-                      "}],"
-                      "\"code\": \""
-                        "insert_row('foo', {a=1})\n"
-                        "insert_row('bar', {b='2'})\n"
-                      "\""
-                    "}"
-                  )
-            )
-      end},
-      {"Reporting errors", fun() ->
-        verifyHttp200(
-              "[{\"insert_actions\":[],\"reported_properties\":{\"u1\":[]},"
-                "\"errors\":[{"
-                  "\"message\":\"{sandbox_error,\\\"[string \\\\\\\"task_code\\\\\\\"]:1: attempt to index field '?' (a nil value)\\\"}\","
-                  "\"count\":1"
-                "}]"
-              "}]",
-              request_task_run(
-                    "{"
-                      "\"users_data\": [{"
-                        "\"t1\": {"
-                          "\"columns\": [\"c1\"],"
-                          "\"data\": {\"u1\": [[105]]}"
-                        "}"
-                      "}],"
-                      "\"code\": \"report_property('p1', tables.t1[2].c1);\""
-                    "}"
-                  )
-            )
-      end},
-      {"Reporting properties and errors", fun() ->
-        verifyHttp200(
-              "[{\"insert_actions\":[],\"reported_properties\":{\"u1\":[],\"u2\":[],\"u3\":[{\"label\":\"p1\",\"value\":\"120\"}]},"
-                "\"errors\":[{"
-                  "\"message\":\"{sandbox_error,\\\"[string \\\\\\\"task_code\\\\\\\"]:1: attempt to index field '?' (a nil value)\\\"}\","
-                  "\"count\":2"
-                "}]"
-              "}]",
-              request_task_run(
-                    "{"
-                      "\"users_data\": [{"
-                        "\"t1\": {"
-                          "\"columns\": [\"c1\"],"
-                          "\"data\": {\"u1\": [[105]], \"u2\": [[110]], \"u3\":[[115], [120]]}"
-                        "}"
-                      "}],"
-                      "\"code\": \"report_property('p1', tables.t1[2].c1);\""
-                    "}"
-                  )
-            )
-      end},
-      {"Inserting users and errors", fun() ->
-        verifyHttp200(
-              "[{\"insert_actions\":{"
-                  "\"u2\":{\"foo\":[{\"a\":1}]},"
-                  "\"u3\":{\"foo\":[{\"a\":1}]}"
-                "},"
-                "\"reported_properties\":{\"u1\":[],\"u2\":[],\"u3\":[]},"
-                "\"errors\":[{\"message\":\"{sandbox_error,\\\"[string \\\\\\\"task_code\\\\\\\"]:2: foo\\\"}\",\"count\":1}]"
-              "}]",
-              request_task_run(
-                    "{"
-                      "\"users_data\": [{"
-                        "\"t1\": {"
-                          "\"columns\": [\"c1\"],"
-                          "\"data\": {\"u1\": [[105]], \"u2\": [[110]], \"u3\":[[115], [120]]}"
-                        "}"
-                      "}],"
-                      "\"code\": \""
-                        "insert_row('foo', {a=1})\n"
-                        "if user_id=='u1' then error('foo') end"
-                      "\""
-                    "}"
-                  )
-            )
-      end}
-    ]
-  }.
+                        "],"
+                        "\"code\": \"
+                          if accumulator == nil then accumulator = 0 end
+                          report_property('acc', accumulator + tables.t1[1].c1)
+                          accumulator = accumulator + tables.t1[1].c1
+                        \""
+                      "}"
+                    )
+              )
+        end},
+        {"Insert users", fun() ->
+          verifyHttp200(
+                "[{\"insert_actions\":{"
+                    "\"u1\":{\"foo\":[{\"a\":1}],\"bar\":[{\"b\":\"2\"}]},"
+                    "\"u2\":{\"foo\":[{\"a\":1}],\"bar\":[{\"b\":\"2\"}]},"
+                    "\"u3\":{\"foo\":[{\"a\":1}],\"bar\":[{\"b\":\"2\"}]}"
+                  "},"
+                  "\"reported_properties\":{\"u1\":[],\"u2\":[],\"u3\":[]},"
+                  "\"errors\":[]"
+                "}]",
+                request_task_run(
+                      "{"
+                        "\"users_data\": [{"
+                          "\"t1\": {"
+                            "\"columns\": [\"c1\"],"
+                            "\"data\": {\"u1\": [[105]], \"u2\": [[110]], \"u3\":[[115], [120]]}"
+                          "}"
+                        "}],"
+                        "\"code\": \""
+                          "insert_row('foo', {a=1})\n"
+                          "insert_row('bar', {b='2'})\n"
+                        "\""
+                      "}"
+                    )
+              )
+        end},
+        {"Reporting errors", fun() ->
+          verifyHttp200(
+                "[{\"insert_actions\":[],\"reported_properties\":{\"u1\":[]},"
+                  "\"errors\":[{"
+                    "\"message\":\"{sandbox_error,\\\"[string \\\\\\\"task_code\\\\\\\"]:1: attempt to index field '?' (a nil value)\\\"}\","
+                    "\"count\":1"
+                  "}]"
+                "}]",
+                request_task_run(
+                      "{"
+                        "\"users_data\": [{"
+                          "\"t1\": {"
+                            "\"columns\": [\"c1\"],"
+                            "\"data\": {\"u1\": [[105]]}"
+                          "}"
+                        "}],"
+                        "\"code\": \"report_property('p1', tables.t1[2].c1);\""
+                      "}"
+                    )
+              )
+        end},
+        {"Reporting properties and errors", fun() ->
+          verifyHttp200(
+                "[{\"insert_actions\":[],\"reported_properties\":{\"u1\":[],\"u2\":[],\"u3\":[{\"label\":\"p1\",\"value\":\"120\"}]},"
+                  "\"errors\":[{"
+                    "\"message\":\"{sandbox_error,\\\"[string \\\\\\\"task_code\\\\\\\"]:1: attempt to index field '?' (a nil value)\\\"}\","
+                    "\"count\":2"
+                  "}]"
+                "}]",
+                request_task_run(
+                      "{"
+                        "\"users_data\": [{"
+                          "\"t1\": {"
+                            "\"columns\": [\"c1\"],"
+                            "\"data\": {\"u1\": [[105]], \"u2\": [[110]], \"u3\":[[115], [120]]}"
+                          "}"
+                        "}],"
+                        "\"code\": \"report_property('p1', tables.t1[2].c1);\""
+                      "}"
+                    )
+              )
+        end},
+        {"Inserting users and errors", fun() ->
+          verifyHttp200(
+                "[{\"insert_actions\":{"
+                    "\"u2\":{\"foo\":[{\"a\":1}]},"
+                    "\"u3\":{\"foo\":[{\"a\":1}]}"
+                  "},"
+                  "\"reported_properties\":{\"u1\":[],\"u2\":[],\"u3\":[]},"
+                  "\"errors\":[{\"message\":\"{sandbox_error,\\\"[string \\\\\\\"task_code\\\\\\\"]:2: foo\\\"}\",\"count\":1}]"
+                "}]",
+                request_task_run(
+                      "{"
+                        "\"users_data\": [{"
+                          "\"t1\": {"
+                            "\"columns\": [\"c1\"],"
+                            "\"data\": {\"u1\": [[105]], \"u2\": [[110]], \"u3\":[[115], [120]]}"
+                          "}"
+                        "}],"
+                        "\"code\": \""
+                          "insert_row('foo', {a=1})\n"
+                          "if user_id=='u1' then error('foo') end"
+                        "\""
+                      "}"
+                    )
+              )
+        end}
+      ]
+    ).
 
 verifyHttp200(ExpectedBody, HttpResponse) ->
   ?assertMatch({ok, {{_, 200, "OK"}, _, _}}, HttpResponse),

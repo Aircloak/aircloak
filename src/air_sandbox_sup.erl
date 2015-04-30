@@ -22,7 +22,6 @@
 %% @doc Starts the supervisor.
 -spec start_link() -> {ok, pid()} | {error, term()}.
 start_link() ->
-  air_sandbox_state:init(),
   case supervisor:start_link({local, ?MODULE}, ?MODULE, []) of
     {ok, Pid} ->
       air_sandbox_web:setup_routes(),
@@ -37,6 +36,7 @@ start_link() ->
 
 %% @hidden
 init([]) ->
+  air_sandbox_state:init(),
   {ok, {{one_for_one, 5, 10}, [
     air_sandbox_web:child_spec()
   ]}}.

@@ -144,6 +144,7 @@ translate_user({User, Rows}) -> [{[User], Row} || Row <- Rows].
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
+-include("test_helper.hrl").
 
 -define(PROP(L, V), #property{label = L, value = V}).
 
@@ -156,151 +157,71 @@ run_task(PreviousJobResponses, TaskSpec) ->
   R1 = lists:keyreplace(responses, 1, Result, {responses, lists:sort(proplists:get_value(responses, Result))}),
   lists:keyreplace(insert_actions, 1, R1, {insert_actions, lists:sort(proplists:get_value(insert_actions, R1))}).
 
-standard_test_() ->
-  {setup,
-    fun() ->
-      ?LOAD_CONFIG,
-      gproc:start_link(),
-      air_sandbox_state:init(),
-      job_runner_sup:start_link()
-    end,
-    fun(_) ->
-      ets:delete(air_sandbox),
-      unlink(whereis(job_runner_sup)),
-      exit(whereis(job_runner_sup), shutdown),
-      unlink(whereis(gproc)),
-      exit(whereis(gproc), shutdown)
-    end,
-    [
-      {"Single user", ?_assertMatch(
-            [{status, ok}, {responses, [#job_response{properties=[?PROP(<<"p1">>, <<"42">>)]}]}, {insert_actions, []}],
-            run_task([
-                  {<<"users_data">>,
-                    [{<<"t1">>,
-                      [{<<"columns">>, [<<"c1">>]},
-                       {<<"data">>, [{<<"u1">>, [[42]]}]}]
-                    }]
-                  },
-                  {<<"code">>, <<"report_property('p1', tables.t1[1].c1)">>}
-                ])
-          )},
-      {"Library", ?_assertMatch(
-            [{status, ok}, {responses, [#job_response{properties=[?PROP(<<"p1">>, <<"bar">>)]}]}, {insert_actions, []}],
-            run_task([
-                  {<<"users_data">>,
-                    [{<<"t1">>,
-                      [{<<"columns">>, [<<"c1">>]},
-                       {<<"data">>, [{<<"u1">>, [[42]]}]}]
-                    }]
-                  },
-                  {<<"code">>, <<"report_property('p1', foo())">>},
-                  {<<"libraries">>, [
-                    [{<<"name">>, <<"lib1">>}, {<<"code">>, <<"function foo() return 'bar' end">>}]
-                  ]}
-                ])
-          )},
-      {"Two rows", ?_assertMatch(
-            [{status, ok}, {responses, [#job_response{properties=[?PROP(<<"p1">>, <<"45.14">>)]}]}, {insert_actions, []}],
-            run_task([
-                  {<<"users_data">>,
-                    [{<<"t1">>,
-                      [{<<"columns">>, [<<"c1">>]},
-                       {<<"data">>, [{<<"u1">>, [[42], [3.14]]}]}]
-                    }]
-                  },
-                  {<<"code">>, <<"report_property('p1', tables.t1[1].c1 + tables.t1[2].c1)">>}
-                ])
-          )},
-      {"Two tables", ?_assertMatch(
-            [{status, ok}, {responses, [#job_response{properties=[?PROP(<<"p1">>, <<"45.14">>)]}]}, {insert_actions, []}],
-            run_task([
-                  {<<"users_data">>,
-                    [
-                      {<<"t1">>, [{<<"columns">>, [<<"c1">>]}, {<<"data">>, [{<<"u1">>, [[42]]}]}]},
-                      {<<"t2">>, [{<<"columns">>, [<<"c2">>]}, {<<"data">>, [{<<"u1">>, [[3.14]]}]}]}
-                    ]
-                  },
-                  {<<"code">>, <<"report_property('p1', tables.t1[1].c1 + tables.t2[1].c2)">>}
-                ])
-          )},
-      {"Multiple users", ?_assertMatch(
-            [{status, ok}, {responses, [
-              #job_response{properties=[?PROP(<<"p1">>, <<"42">>)]},
-              #job_response{properties=[?PROP(<<"p1">>, <<"3.14">>)]}
-            ]}, {insert_actions, []}],
-            run_task([
-                  {<<"users_data">>,
-                    [{<<"t1">>,
-                      [{<<"columns">>, [<<"c1">>]},
-                       {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
-                    }]
-                  },
-                  {<<"code">>, <<"report_property('p1', tables.t1[1].c1)">>}
-                ])
-          )},
-      {"Accumulator", fun() ->
-        JobResponses = proplists:get_value(responses,
+?test_suite(standard_test_,
+      setup,
+      [
+        ?load_conf,
+        ?with_applications([gproc, webmachine]),
+        ?with_processes([cloak_services_sup, air_sandbox_sup])
+      ],
+      [
+        {"Single user", ?_assertMatch(
+              [{status, ok}, {responses, [#job_response{properties=[?PROP(<<"p1">>, <<"42">>)]}]}, {insert_actions, []}],
               run_task([
-                  {<<"users_data">>,
-                    [{<<"t1">>,
-                      [{<<"columns">>, [<<"c1">>]},
-                       {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
-                    }]
-                  },
-                  {<<"code">>, <<"if acucmulator == nil then accumulator = user_id end">>}
-                ])
-            ),
-        ?assertMatch(
-            [{status, ok}, {responses, [
-              #job_response{properties=[?PROP(<<"u1">>, <<"u1">>)]},
-              #job_response{properties=[?PROP(<<"u2">>, <<"u2">>)]}
-            ]}, {insert_actions, []}],
-            run_task(JobResponses, [
-                  {<<"users_data">>,
-                    [{<<"t1">>,
-                      [{<<"columns">>, [<<"c1">>]},
-                       {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
-                    }]
-                  },
-                  {<<"code">>, <<"report_property(user_id, accumulator)">>}
-                ])
-          )
-      end},
-      {"Inserting data", ?_assertMatch(
-            [{status, ok}, {responses, _},
-              {insert_actions,
-                [
-                  {<<"u1">>,
-                    [{<<"foo">>, [
-                      {columns, [<<"a">>, <<"b">>, <<"c">>]},
-                      {data, [[1, "2", null], [3, null, false]]}]}]
-                  },
-                  {<<"u2">>,
-                    [{<<"foo">>, [
-                      {columns, [<<"a">>, <<"b">>, <<"c">>]},
-                      {data, [[1, "2", null], [3, null, false]]}]}]
-                  }
-                ]
-              }
-            ],
-            run_task([
-                  {<<"users_data">>,
-                    [{<<"t1">>,
-                      [{<<"columns">>, [<<"c1">>]},
-                       {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
-                    }]
-                  },
-                  {<<"code">>, <<"
-                    insert_row('foo', {a=1, b='2'})
-                    insert_row('foo', {a=3, c=false})
-                  ">>}
-                ])
-          )},
-      {"Full timeout", ?_assertMatch(
-            [{status,timeout}, {responses,[]}, {insert_actions, []}],
-            do_run(
-                  [],
-                  [
+                    {<<"users_data">>,
+                      [{<<"t1">>,
+                        [{<<"columns">>, [<<"c1">>]},
+                         {<<"data">>, [{<<"u1">>, [[42]]}]}]
+                      }]
+                    },
+                    {<<"code">>, <<"report_property('p1', tables.t1[1].c1)">>}
+                  ])
+            )},
+        {"Library", ?_assertMatch(
+              [{status, ok}, {responses, [#job_response{properties=[?PROP(<<"p1">>, <<"bar">>)]}]}, {insert_actions, []}],
+              run_task([
+                    {<<"users_data">>,
+                      [{<<"t1">>,
+                        [{<<"columns">>, [<<"c1">>]},
+                         {<<"data">>, [{<<"u1">>, [[42]]}]}]
+                      }]
+                    },
+                    {<<"code">>, <<"report_property('p1', foo())">>},
+                    {<<"libraries">>, [
+                      [{<<"name">>, <<"lib1">>}, {<<"code">>, <<"function foo() return 'bar' end">>}]
+                    ]}
+                  ])
+            )},
+        {"Two rows", ?_assertMatch(
+              [{status, ok}, {responses, [#job_response{properties=[?PROP(<<"p1">>, <<"45.14">>)]}]}, {insert_actions, []}],
+              run_task([
+                    {<<"users_data">>,
+                      [{<<"t1">>,
+                        [{<<"columns">>, [<<"c1">>]},
+                         {<<"data">>, [{<<"u1">>, [[42], [3.14]]}]}]
+                      }]
+                    },
+                    {<<"code">>, <<"report_property('p1', tables.t1[1].c1 + tables.t1[2].c1)">>}
+                  ])
+            )},
+        {"Two tables", ?_assertMatch(
+              [{status, ok}, {responses, [#job_response{properties=[?PROP(<<"p1">>, <<"45.14">>)]}]}, {insert_actions, []}],
+              run_task([
+                    {<<"users_data">>,
+                      [
+                        {<<"t1">>, [{<<"columns">>, [<<"c1">>]}, {<<"data">>, [{<<"u1">>, [[42]]}]}]},
+                        {<<"t2">>, [{<<"columns">>, [<<"c2">>]}, {<<"data">>, [{<<"u1">>, [[3.14]]}]}]}
+                      ]
+                    },
+                    {<<"code">>, <<"report_property('p1', tables.t1[1].c1 + tables.t2[1].c2)">>}
+                  ])
+            )},
+        {"Multiple users", ?_assertMatch(
+              [{status, ok}, {responses, [
+                #job_response{properties=[?PROP(<<"p1">>, <<"42">>)]},
+                #job_response{properties=[?PROP(<<"p1">>, <<"3.14">>)]}
+              ]}, {insert_actions, []}],
+              run_task([
                     {<<"users_data">>,
                       [{<<"t1">>,
                         [{<<"columns">>, [<<"c1">>]},
@@ -308,35 +229,107 @@ standard_test_() ->
                       }]
                     },
                     {<<"code">>, <<"report_property('p1', tables.t1[1].c1)">>}
-                  ],
-                  1,
-                  fun(_, _, _) -> ok end
-                )
-          )},
-      {"Partial timeout", ?_assertMatch(
-            [{status, timeout}, {responses, [
-              #job_response{properties=[?PROP(<<"p1">>, <<"42">>)]}
-            ]}, {insert_actions, []}],
-            do_run(
-                  [],
-                  [
+                  ])
+            )},
+        {"Accumulator", fun() ->
+          JobResponses = proplists:get_value(responses,
+                run_task([
                     {<<"users_data">>,
                       [{<<"t1">>,
                         [{<<"columns">>, [<<"c1">>]},
                          {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
                       }]
                     },
-                    {<<"code">>, <<"report_property('p1', tables.t1[1].c1)">>}
-                  ],
-                  100,
-                  fun
-                    (Caller, ReqId, {_, #job_response{properties=[?PROP(<<"p1">>, <<"42">>)]}} = Response) ->
-                      handle_response(Caller, ReqId, Response);
-                    (_, _, _) -> ok
-                  end
-                )
-          )}
-    ]
-  }.
+                    {<<"code">>, <<"if acucmulator == nil then accumulator = user_id end">>}
+                  ])
+              ),
+          ?assertMatch(
+              [{status, ok}, {responses, [
+                #job_response{properties=[?PROP(<<"u1">>, <<"u1">>)]},
+                #job_response{properties=[?PROP(<<"u2">>, <<"u2">>)]}
+              ]}, {insert_actions, []}],
+              run_task(JobResponses, [
+                    {<<"users_data">>,
+                      [{<<"t1">>,
+                        [{<<"columns">>, [<<"c1">>]},
+                         {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
+                      }]
+                    },
+                    {<<"code">>, <<"report_property(user_id, accumulator)">>}
+                  ])
+            )
+        end},
+        {"Inserting data", ?_assertMatch(
+              [{status, ok}, {responses, _},
+                {insert_actions,
+                  [
+                    {<<"u1">>,
+                      [{<<"foo">>, [
+                        {columns, [<<"a">>, <<"b">>, <<"c">>]},
+                        {data, [[1, "2", null], [3, null, false]]}]}]
+                    },
+                    {<<"u2">>,
+                      [{<<"foo">>, [
+                        {columns, [<<"a">>, <<"b">>, <<"c">>]},
+                        {data, [[1, "2", null], [3, null, false]]}]}]
+                    }
+                  ]
+                }
+              ],
+              run_task([
+                    {<<"users_data">>,
+                      [{<<"t1">>,
+                        [{<<"columns">>, [<<"c1">>]},
+                         {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
+                      }]
+                    },
+                    {<<"code">>, <<"
+                      insert_row('foo', {a=1, b='2'})
+                      insert_row('foo', {a=3, c=false})
+                    ">>}
+                  ])
+            )},
+        {"Full timeout", ?_assertMatch(
+              [{status,timeout}, {responses,[]}, {insert_actions, []}],
+              do_run(
+                    [],
+                    [
+                      {<<"users_data">>,
+                        [{<<"t1">>,
+                          [{<<"columns">>, [<<"c1">>]},
+                           {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
+                        }]
+                      },
+                      {<<"code">>, <<"report_property('p1', tables.t1[1].c1)">>}
+                    ],
+                    1,
+                    fun(_, _, _) -> ok end
+                  )
+            )},
+        {"Partial timeout", ?_assertMatch(
+              [{status, timeout}, {responses, [
+                #job_response{properties=[?PROP(<<"p1">>, <<"42">>)]}
+              ]}, {insert_actions, []}],
+              do_run(
+                    [],
+                    [
+                      {<<"users_data">>,
+                        [{<<"t1">>,
+                          [{<<"columns">>, [<<"c1">>]},
+                           {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
+                        }]
+                      },
+                      {<<"code">>, <<"report_property('p1', tables.t1[1].c1)">>}
+                    ],
+                    100,
+                    fun
+                      (Caller, ReqId, {_, #job_response{properties=[?PROP(<<"p1">>, <<"42">>)]}} = Response) ->
+                        handle_response(Caller, ReqId, Response);
+                      (_, _, _) -> ok
+                    end
+                  )
+            )}
+      ]
+    ).
 
 -endif.
