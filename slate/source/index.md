@@ -179,8 +179,12 @@ If you try to schedule a periodic or streaming task, it will fail. Periodic and 
 scheduled on the cloaks upon creation.
 
 The alternative to this API is to directly [run a task using the API's on the cloaks themselves](#task-execution). The benefit this API
-has over the former is that you get the to develop and test your task using the online sandbox functionality,
+has over the former is that you are then able to develop and test your task using the online sandbox functionality,
 as well as full access to the Aircloak provided standard library of helper functions.
+Additionally, when using this API, the tasks are executed asynchronously on the cloaks. They are then not subject
+to the strict execution time limits that synchronous tasks executed through the [cloak task execution
+API](#task-execution) are subject to.
+
 
 ### HTTP Request
 
@@ -601,6 +605,11 @@ web interface.
 Tasks can either be run asynchronously or synchronously.
 Calls to run tasks asynchronously immediately return. Once available, the results are sent to an HTTP endpoint which was specified along with the task.
 Calls to run tasks synchronously block until the results are available, or until they time out.
+
+If you have problems with synchronous tasks timing out, and are using a cloak hosted by Aircloak,
+consider using the [task execution API in the Web REST API](#execute-a-task) instead. Tasks executed through
+the Web REST API are run asynchronously, and are therefore not subject to the strict
+timelimits imposed on synchronous tasks executed directly on the cloaks.
 
 <aside class="warning">
 <strong>Please note</strong>:
