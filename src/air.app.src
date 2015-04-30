@@ -1,0 +1,13 @@
+{application, air, [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+    kernel,
+    stdlib,
+    erlang_common,
+    webmachine
+  ]},
+  {mod, { air_app, []}},
+  {env, []}
+ ]}.

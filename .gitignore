@@ -1,0 +1,17 @@
+.eunit
+deps
+*.o
+*.beam
+*.plt
+erl_crash.dump
+ebin
+rel/example_project
+.concrete/DEV_MODE
+.rebar
+/.data/
+/apps/
+/doc/
+/log/
+*.depsolver_plt
+/sandbox_makefile.local
+include/*_pb.hrl

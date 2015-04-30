@@ -1,0 +1,1 @@
+role :app, %w{air@air1.mpi-sws.org}

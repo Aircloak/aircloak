@@ -1,0 +1,1 @@
+./rebar skip_deps=true eunit suites=$1
