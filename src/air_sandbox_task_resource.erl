@@ -154,19 +154,20 @@ resource_test_() ->
       ?LOAD_CONFIG,
       gproc:start_link(),
       {ok, Apps} = application:ensure_all_started(webmachine),
-      air_sandbox_state:init(),
+      cloak_services_sup:start_link(),
       air_sandbox_sup:start_link(),
       air_sandbox_web:setup_routes(),
       Apps
     end,
     fun(Apps) ->
       error_logger:tty(false),
-      unlink(whereis(job_runner_sup)),
-      exit(whereis(job_runner_sup), shutdown),
+      unlink(whereis(air_sandbox_sup)),
+      exit(whereis(air_sandbox_sup), shutdown),
+      unlink(whereis(cloak_services_sup)),
+      exit(whereis(cloak_services_sup), shutdown),
       unlink(whereis(gproc)),
       exit(whereis(gproc), shutdown),
       [application:stop(App) || App <- Apps],
-      ets:delete(air_sandbox),
       error_logger:tty(true)
     end,
     [

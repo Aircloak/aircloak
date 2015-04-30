@@ -16,13 +16,7 @@
 %% @hidden
 start(_StartType, _StartArgs) ->
   air:load_cloak_config(),
-  air_sandbox_state:init(),
-  case air_sandbox_sup:start_link() of
-    {ok, Pid} ->
-      air_sandbox_web:setup_routes(),
-      {ok, Pid};
-    Other -> Other
-  end.
+  air_sup:start_link().
 
 %% @hidden
 stop(_State) ->
