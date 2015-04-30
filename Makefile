@@ -5,7 +5,7 @@ all: deps compile sandbox
 compile: src/air_cloak_conf.erl
 	./rebar compile
 
-src/air_cloak_conf.erl:
+src/air_cloak_conf.erl: rel/files/sys.config deps/cloak/rel/files/app.config
 	./generate_cloak_conf.escript
 
 sandbox:

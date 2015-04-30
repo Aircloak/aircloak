@@ -7,6 +7,15 @@
 main(_Args) ->
   {ok, [CloakConf]} = file:consult("deps/cloak/rel/files/app.config"),
   CloakSettings = proplists:get_value(cloak, CloakConf),
+  {ok, [AirConf]} = file:consult("rel/files/sys.config"),
+  CloakOverrides = proplists:get_value(cloak_overrides, AirConf, []),
+  OverriddenCloakSettings = lists:foldl(
+        fun({Prop, Val}, Acc) ->
+          lists:keystore(Prop, 1, Acc, {Prop, Val})
+        end,
+        CloakSettings,
+        CloakOverrides
+      ),
   CloakConfCode = io_lib:format(
         string:join(
               [
@@ -18,6 +27,6 @@ main(_Args) ->
               ],
               "\n"
             ),
-        [CloakSettings]
+        [OverriddenCloakSettings]
       ),
   ok = file:write_file("src/air_cloak_conf.erl", CloakConfCode).
