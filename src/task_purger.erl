@@ -88,3 +88,39 @@ purge_deleted() ->
   {{delete, _}, []} = air_db:call(fun(Connection) ->
         pgsql_connection:simple_query("DELETE FROM tasks WHERE deleted=true and purged=true", Connection)
       end).
+
+
+%% -------------------------------------------------------------------
+%% Tests
+%% -------------------------------------------------------------------
+
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+-include("test_helper.hrl").
+
+?test_suite(purger_test_,
+      setup,
+      [?with_db],
+      [
+        fun() ->
+          ?db_simple_query("TRUNCATE TABLE tasks"),
+          ?db_insert_rows("tasks",
+                ["name", "token", "deleted", "purged"],
+                [
+                  ["task1", "token1", false, false],
+                  ["task2", "token2", false, true],
+                  ["task3", "token3", true, false],
+                  ["task4", "token4", true, true]
+                ]
+              ),
+          ?assertMatch({{delete, 1}, _}, purge_deleted()),
+          ?assertEqual(
+                {{select, 3}, [{<<"task1">>}, {<<"task2">>}, {<<"task3">>}]},
+                ?db_simple_query("SELECT name FROM tasks")
+              )
+        end
+      ]
+    ).
+
+-endif.
