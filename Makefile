@@ -64,8 +64,7 @@ app: src/air_cloak_conf.erl sandbox
 test: app test-eunit
 
 test/sys.config: rel/files/sys.config
-	mkdir -p test/
-	cp -rp rel/files/sys.config test/
+	./make_test_config.sh
 
 test-eunit: test/sys.config
 	mkdir -p ./.eunit
