@@ -17,8 +17,7 @@
 %% @doc Makes the child specification which can be inserted into the supervisor tree.
 -spec child_spec() -> supervisor:child_spec().
 child_spec() ->
-  {ok, WebServerConfig} = application:get_env(air, web_server),
-  WebConfig = [{dispatch, []} | WebServerConfig],
+  WebConfig = [{dispatch, []} | air_conf:get_val(air_sandbox, web_server)],
   {webmachine_mochiweb,
     {webmachine_mochiweb, start, [WebConfig]},
     permanent, 5000, worker, [mochiweb_socket_server]

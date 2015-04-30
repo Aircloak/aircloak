@@ -16,8 +16,7 @@
 %% @doc Runs the specified task in the sandbox and returns job responses.
 -spec run([#job_response{}], [{binary(), term()}]) -> [{status, ok | timeout} | {responses, [#job_response{}]}].
 run(PreviousJobResponses, TaskSpec) ->
-  {ok, TaskTimeout} = application:get_env(air, task_timeout),
-  do_run(PreviousJobResponses, TaskSpec, TaskTimeout, fun handle_response/3).
+  do_run(PreviousJobResponses, TaskSpec, air_conf:get_val(air_sandbox, task_timeout), fun handle_response/3).
 
 
 %% -------------------------------------------------------------------
