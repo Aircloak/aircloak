@@ -153,7 +153,57 @@ You need a REST API key to access this API endpoint. See the [authentication](#a
 
 The API return value is a list of all tasks for the authenticated analyst.
 
-For the use of error codes in the Cloak API, please consult the [Errors](#errors) section.
+For the use of error codes in the Web REST API, please consult the [Errors](#errors) section.
+
+## Execute a task
+
+```ruby
+# Using RestClient from example in the Authentication section
+
+api_key = RestClient.key_from_file "my_api_key.pfx", "my_password"
+url = "https://api.aircloak.com/tasks/<task-token>/run"
+response = RestClient.post(url, nil, api_key)
+```
+
+```shell
+wget --content-on-error \
+     --output-document - \
+     --method=POST \
+     --certificate=<path-to-PEM-certificate> \
+     --no-check-certificate \
+     https://api.aircloak.com/tasks/<task-token>/run
+```
+
+This endpoint allows you to asynchronously run a _batch task_ that have been defined in the web interface.
+If you try to schedule a periodic or streaming task, it will fail. Periodic and streaming tasks are automatically
+scheduled on the cloaks upon creation.
+
+The alternative to this API is to directly [run a task using the API's on the cloaks themselves](#task-execution). The benefit this API
+has over the former is that you get the to develop and test your task using the online sandbox functionality,
+as well as full access to the Aircloak provided standard library of helper functions.
+
+### HTTP Request
+
+`POST /tasks/<task-token>/run`
+
+### Authentication
+
+You need a REST API key to access this API endpoint. See the [authentication](#authentication) section for details.
+
+### Response
+
+```json
+{
+  "success": true
+}
+```
+
+The API returns a confirmation that the task was scheduled. __Please note__ that this does not mean that the
+task has already finished executing.
+
+If the task cannot be scheduled, the response contains a description of the problem.
+
+For the use of error codes used in the Web REST API, please consult the [Errors](#errors) section.
 
 ## Get results for a specific task
 
@@ -544,7 +594,9 @@ wget --content-on-error \
      https://<cloak-server>.cloak.aircloak.net/task/run
 ```
 
-This API endpoint allows execution of batch tasks against a cloak cluster.
+This API endpoint allows execution of batch tasks against a cloak cluster. Please note that there is also [an
+API in the Web REST API](#execute-a-task) which allows you to programatically run tasks defined in the
+web interface.
 
 Tasks can either be run asynchronously or synchronously.
 Calls to run tasks asynchronously immediately return. Once available, the results are sent to an HTTP endpoint which was specified along with the task.
