@@ -29,9 +29,6 @@ class Api::TasksController < ApplicationController
   end
 
   # POST /api/tasks/<TASK-TOKEN>/run
-  # Note(sebastian): This is an undocumented API endpoint created for Michal at Telefonica.
-  # I am not yet sure if this is something we want to support long term, so I don't
-  # want to make it publicly known and used.
   def run
     if @task.batch_task?
       @task.execute_batch_task
