@@ -1,0 +1,45 @@
+FROM debian:jessie
+MAINTAINER Sebastian Probst Eide <sebastian@aircloak.com>
+
+## ------------------------------------------------------------------
+## Some basic setup of the image
+## ------------------------------------------------------------------
+
+RUN apt-get update
+RUN apt-get install openssl -y
+
+# Lua is needed by the sandbox in cloak-core
+RUN apt-get install liblua5.1-0-dev -y
+# We also need the proto binaries for the sandbox
+# communication.
+RUN apt-get install libprotobuf-c-dev -y
+
+
+## ------------------------------------------------------------------
+## Create user and copy in app
+## ------------------------------------------------------------------
+
+# The erlang app listens to 11000
+EXPOSE 11000
+
+# Listening on port 9000 for node connections
+EXPOSE 9000
+
+# User under which the app will run.
+# Confd will also run as the same user
+RUN useradd --shell /bin/bash deployer
+RUN mkdir -p /aircloak/app
+
+# Pidder stores the pid here
+RUN mkdir -p /var/run/aircloak/
+
+WORKDIR /aircloak/app
+
+COPY artifacts/cache/rel/air /aircloak/app
+
+RUN chown -R deployer:deployer /aircloak/app
+RUN chown -R deployer:deployer /var/run/
+
+USER deployer
+
+CMD /aircloak/app/bin/air start && touch log/test.log && tail -f log/*.log

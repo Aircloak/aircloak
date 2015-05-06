@@ -11,7 +11,6 @@ air
 - [Getting started](#getting-started)
     - [Sandbox API](#sandbox-api)
     - [Building, running and testing](#building-running-and-testing)
-- [What it is made up of](#what-it-is-made-up-of)
 
 ----------------------
 
@@ -92,3 +91,24 @@ You can use following commands:
 - `make start` - starts the local HTTP server
 - `make test` - runs all tests
 - `make dialyzer` - runs the dialyzer
+
+## Running the docker container
+
+To start `air` component as a docker container, you first need to build the release image with `./build.sh`. This will produce an image which you can then run with `./run.sh`.
+
+### OS X specifics
+
+If you're working from a folder which is not situated under your home folder, you need to map it in `boot2docker`. For example, let's say that you're working from the folder `/projects/aircloak/air`. The procedure is following:
+
+1. Add `projects` as the shared folder in VirtualBox under some name (e.g. CODE)
+2. Make sure boot2docker VM is started. Run `boot2docker ssh` and create the file `/var/lib/boot2docker/bootlocal.sh` with the following contents:
+```
+sudo mkdir -p /projects
+sudo mount -t vboxsf -o uid=1000,gid=50 CODE /projects
+```
+3. `chmod +x /var/lib/boot2docker/bootlocal.sh`
+4. Exit the machine and do `boot2docker restart`
+
+After the VM is restarted, the `/projects` folder inside the VM should correspond to your own `/projects` folder.
+
+**Note**: this is not needed if the folder is situated under the home folder

@@ -10,7 +10,7 @@
 {edoc_opts,[{dir,"doc"},{preprocess,true}]}.
 {deps,[{cloak,".*",
                  {git,"git@github.com:Aircloak/cloak-core.git",
-                      "82c24c7fe220675341a7a25f98e85f7b74d4f9aa"}},
+                      "f3f1bdfb99fed7292f27c7751ab74af7870a37b0"}},
        {goldrush,".*",
                  {git,"git://github.com/DeadZen/goldrush.git",
                       "71e63212f12c25827e0c1b4198d37d5d018a7fec"}},

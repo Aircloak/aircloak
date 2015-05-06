@@ -5,7 +5,7 @@ deps
 *.plt
 erl_crash.dump
 ebin
-rel/example_project
+rel/air
 .concrete/DEV_MODE
 .rebar
 /.data/
@@ -15,3 +15,9 @@ rel/example_project
 *.depsolver_plt
 /sandbox_makefile.local
 include/*_pb.hrl
+
+# This folder (and subfolders) are used by the
+# docker build system. They should not live in
+# the git repo, although no sensitive data is
+# kept there. They do take up a lot of space...
+artifacts
