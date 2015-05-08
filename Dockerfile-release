@@ -30,9 +30,6 @@ EXPOSE 9000
 RUN useradd --shell /bin/bash deployer
 RUN mkdir -p /aircloak/app
 
-# Pidder stores the pid here
-RUN mkdir -p /var/run/aircloak/
-
 WORKDIR /aircloak/app
 
 COPY artifacts/cache/rel/air /aircloak/app
