@@ -3,6 +3,10 @@ require './lib/proto/air/management_messages.pb'
 require './lib/cluster_packer.rb'
 
 describe InfrastructureApi::ClusterListsController do
+  before(:all) do
+    Cluster.delete_all
+  end
+
   describe "GET /infrastructure-api/clusters" do
     it "should provide a list of clusters" do
       machine = ClusterPB::MemberPB.new(
