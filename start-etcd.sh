@@ -30,23 +30,15 @@ export ETCD=$HOST_IP:$ETCD_PORT
 
 
 # -------------------------------------------------------------------
-# Environment cleanup
-# -------------------------------------------------------------------
-
-function remove_etcd {
-  log "Removing etcd container"
-  docker kill etcd
-}
-trap remove_etcd EXIT
-
-
-# -------------------------------------------------------------------
 # etcd
 # -------------------------------------------------------------------
 
+docker stop etcd_air || true
+docker rm etcd_air || true
+
 # Start etcd for configuration management
 log "Starting etcd"
-docker run --rm -i -p 4001:4001 -p 2380:2380 -p 2379:2379 \
+docker run --name etcd_air -d -p 4001:4001 -p 2380:2380 -p 2379:2379 \
   quay.io/coreos/etcd:v2.0.6 \
   -name etcd0 \
   -advertise-client-urls http://${ETCD_DEFAULT_IP}:2379,http://${ETCD_DEFAULT_IP}:4001 \
@@ -55,8 +47,7 @@ docker run --rm -i -p 4001:4001 -p 2380:2380 -p 2379:2379 \
   -listen-peer-urls http://0.0.0.0:2380 \
   -initial-cluster-token etcd-cluster-1 \
   -initial-cluster etcd0=http://${ETCD_DEFAULT_IP}:2380 \
-  -initial-cluster-state new \
-  &
+  -initial-cluster-state new
 
 function etcd_is_up {
   curl --silent http://$ETCD/version > /dev/null
