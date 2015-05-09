@@ -5,6 +5,7 @@ ruby '2.0.0'
 gem 'rails', '~> 4.0.3' #, github: 'rails/rails'
 
 gem "haml", github: "haml/haml", branch: "stable"
+gem 'haml-rails', github: 'indirect/haml-rails'
 
 # Ruby protobuf compiler
 gem 'beefcake'
@@ -14,9 +15,6 @@ gem 'rest-client'
 # We use this for interacting with the github api
 gem "github_api"
 gem 'excon'
-
-# Configuration management
-gem "choices"
 
 # Use to paginate the activities on the activities page
 gem 'will_paginate', '~> 3.0'
@@ -42,15 +40,12 @@ group :development do
   gem 'better_errors'
   gem 'binding_of_caller'
   gem 'meta_request'
-  gem 'haml-rails', github: 'indirect/haml-rails'
   gem 'ruby_parser'
   gem 'quiet_assets' # quiet down assets from the log
 end
 
-group :production do
-  gem 'SyslogLogger'
-  gem 'pg'
-end
+# We use postgres both in production and development
+gem 'pg'
 
 # Gems used only for assets and not required
 # in production environments by default.
@@ -58,24 +53,20 @@ group :assets do
   gem 'sprockets-rails', github: 'rails/sprockets-rails'
   gem 'sass-rails',   github: 'rails/sass-rails'
   gem 'coffee-rails', github: 'rails/coffee-rails'
-  gem 'twitter-bootstrap-rails'
-  gem 'less-rails'
-
-  # See https://github.com/sstephenson/execjs#readme for more supported runtimes
-  gem 'therubyracer', platforms: :ruby
   gem 'uglifier', '>= 1.0.3'
 end
 
+gem 'twitter-bootstrap-rails'
+gem 'less-rails'
+# See https://github.com/sstephenson/execjs#readme for more supported runtimes
+gem 'therubyracer', platforms: :ruby
 gem 'jquery-rails'
-# gem 'turbolinks', github: 'rails/turbolinks'
 
 # To use ActiveModel has_secure_password
 gem 'bcrypt-ruby', '~> 3.0.0'
 
 # Deploy with Capistrano
 gem 'capistrano', '2.13.5', group: :development
-
-gem 'unicorn'
 
 gem 'authlogic'
 gem 'declarative_authorization'
@@ -86,5 +77,8 @@ gem 'handlebars_assets'
 gem 'hamlbars', '~> 2.1'
 gem 'codemirror-rails', '~> 4.5'
 
-# for running periodic tasks
-gem 'whenever'
+# Load configurations out of etcd
+gem "etcd"
+
+# We are running with unicorn in both production and development
+gem 'unicorn', '~> 4.8'

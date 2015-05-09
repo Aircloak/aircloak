@@ -78,7 +78,6 @@ GIT
 GEM
   remote: https://rubygems.org/
   specs:
-    SyslogLogger (2.0)
     actionmailer (4.0.3)
       actionpack (= 4.0.3)
       mail (~> 2.5.4)
@@ -124,9 +123,6 @@ GEM
       net-sftp (>= 2.0.0)
       net-ssh (>= 2.0.14)
       net-ssh-gateway (>= 1.1.0)
-    choices (0.4.0)
-      hashie (>= 0.4.0)
-    chronic (0.10.2)
     codemirror-rails (4.5)
       railties (>= 3.0, < 5)
     coffee-script (2.2.0)
@@ -139,6 +135,8 @@ GEM
     diff-lcs (1.2.4)
     ejs (1.1.1)
     erubis (2.7.0)
+    etcd (0.3.0)
+      mixlib-log
     excon (0.25.3)
     execjs (2.0.2)
     faraday (0.8.8)
@@ -171,7 +169,7 @@ GEM
     json (1.8.1)
     jwt (0.1.8)
       multi_json (>= 1.5)
-    kgio (2.8.1)
+    kgio (2.9.3)
     less (2.4.0)
       commonjs (~> 0.2.7)
     less-rails (2.4.2)
@@ -189,6 +187,7 @@ GEM
     mime-types (1.25.1)
     mini_portile (0.5.2)
     minitest (4.7.5)
+    mixlib-log (1.6.0)
     multi_json (1.8.4)
     multi_xml (0.5.5)
     multipart-post (1.2.0)
@@ -230,7 +229,7 @@ GEM
       activesupport (= 4.0.3)
       rake (>= 0.8.7)
       thor (>= 0.18.1, < 2.0)
-    raindrops (0.12.0)
+    raindrops (0.13.0)
     rake (10.1.1)
     redcarpet (2.3.0)
     ref (1.0.5)
@@ -278,32 +277,28 @@ GEM
       execjs (>= 0.3.0)
       json (>= 1.8.0)
     underscore-rails (1.6.0)
-    unicorn (4.6.3)
+    unicorn (4.8.3)
       kgio (~> 2.6)
       rack
       raindrops (~> 0.7)
     vcr (2.6.0)
-    whenever (0.9.0)
-      activesupport (>= 2.3.4)
-      chronic (>= 0.6.3)
     will_paginate (3.0.7)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  SyslogLogger
   authlogic
   bcrypt-ruby (~> 3.0.0)
   beefcake
   better_errors
   binding_of_caller
   capistrano (= 2.13.5)
-  choices
   codemirror-rails (~> 4.5)
   coderay!
   coffee-rails!
   declarative_authorization
+  etcd
   excon
   github_api
   haml!
@@ -331,7 +326,6 @@ DEPENDENCIES
   twitter-bootstrap-rails
   uglifier (>= 1.0.3)
   underscore-rails (~> 1.6.0)
-  unicorn
+  unicorn (~> 4.8)
   vcr
-  whenever
   will_paginate (~> 3.0)

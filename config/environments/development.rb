@@ -25,7 +25,7 @@ Web::Application.configure do
   config.active_record.migration_error = :page_load
 
   # Debug mode disables concatenation and preprocessing of assets.
-  config.assets.debug = true
+  config.assets.debug = true # Otherwise loading assets takes nearly 30 sec!
   config.assets.enabled = true
 
   console do

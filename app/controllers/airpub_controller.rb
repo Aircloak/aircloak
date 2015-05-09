@@ -1,4 +1,5 @@
 require 'airpub_api'
+require './lib/aircloak_config'
 
 class AirpubController < ApplicationController
   protect_from_forgery :except => :event
@@ -10,6 +11,6 @@ class AirpubController < ApplicationController
   def subscribe
     @path = params['path']
     @request = AirpubApi.generate_subscribe_request @path
-    @server_url = Rails.configuration.airpub_ws_subscribe
+    @server_url = Conf.get("/settings/rails/secrets/airpub_ws_subscribe")
   end
 end

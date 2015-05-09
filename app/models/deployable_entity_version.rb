@@ -1,4 +1,5 @@
 require './lib/protobuf_sender'
+require './lib/aircloak_config'
 
 class DeployableEntityVersion < ActiveRecord::Base
   # This before_destroy callback needs to be called
@@ -50,13 +51,13 @@ class DeployableEntityVersion < ActiveRecord::Base
     self.build_success = true
     self.build_log = ""
     save
-    url = "http://#{Rails.configuration.build_server.host}/entity/#{self.commit_id}"
-    ProtobufSender.send_delete url if Rails.configuration.installation.global
+    url = "http://#{Conf.get("/service/builder_server/host")}/entity/#{self.commit_id}"
+    ProtobufSender.send_delete url if Conf.get("/settings/rails/global")
   end
 
 private
   def set_message_and_author
     return if self.message and self.author
-    Gh.add_message_and_author self if Rails.configuration.installation.global
+    Gh.add_message_and_author self if Conf.get("/settings/rails/global")
   end
 end

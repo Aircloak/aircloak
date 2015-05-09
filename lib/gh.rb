@@ -1,4 +1,5 @@
 require 'github_api'
+require './lib/aircloak_config'
 
 class Gh
   def self.description_for repo
@@ -58,7 +59,7 @@ class Gh
 
   def self.github
     @github ||= Github.new do |config|
-      config.oauth_token = Rails.configuration.github_oauth_token
+      config.oauth_token = Conf.get("/settings/rails/secrets/github_oauth_token")
       config.adapter     = :excon
       config.ssl         = {:verify => true}
     end

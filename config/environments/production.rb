@@ -40,10 +40,7 @@ Web::Application.configure do
 
   # Specifies the header that your server uses for sending files.
   # config.action_dispatch.x_sendfile_header = "X-Sendfile" # for apache
-  # config.action_dispatch.x_sendfile_header = 'X-Accel-Redirect' # for nginx
-
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  # config.force_ssl = true
+  config.action_dispatch.x_sendfile_header = 'X-Accel-Redirect' # for nginx
 
   # Set to :debug to see everything in the log.
   config.log_level = :info
@@ -52,7 +49,8 @@ Web::Application.configure do
   config.log_tags = [ :subdomain, :uuid ]
 
   # Use a different logger for distributed setups.
-  config.logger = ActiveSupport::TaggedLogging.new(Syslog::Logger.new "web")
+  # config.logger = ActiveSupport::TaggedLogging.new(Syslog::Logger.new "web")
+  config.logger = ActiveSupport::Logger.new("/aircloak/website/log/rails.log")
 
   # Use a different cache store in production.
   # config.cache_store = :mem_cache_store
@@ -67,23 +65,8 @@ Web::Application.configure do
   config.action_mailer.raise_delivery_errors = true
   config.action_mailer.default_options from: "no-reply@aircloak.com"
   config.action_mailer.delivery_method = :smtp
-
-  # We cannot use the "choices" configuration gem for reading the
-  # values needed by the email settings, as the configuration is loaded
-  # earlier than the configuration library.
-  # In this case we should be fine as the Mandrill password has been
-  # restricted to only be valid when used from the following host:
-  # - 139.19.208.225
-  # When adding new hosts, please add the IP of the host to
-  # the key in the mandrillapp.com interface.
-  config.action_mailer.smtp_settings = {
-    address: "smtp.mandrillapp.com",
-    port: 587,
-    user_name: "sebastian@aircloak.com",
-    password: "jScKj_mqhGXaI_SPhUMBeg",
-    domain: "aircloak.com",
-    authentication: :plain
-  }
+  # The actual smtp_settings are dynamically loaded from etcd and
+  # set when the send operation takes place.
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation can not be found).

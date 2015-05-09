@@ -1,4 +1,5 @@
 require './lib/proto/air/build_messages.pb.rb'
+require './lib/aircloak_config'
 
 class BuildManager
   def self.create_build_request build
@@ -18,7 +19,7 @@ class BuildManager
 
   def self.send_build_request build
     build_request = create_build_request build
-    url = URI.parse("http://#{Rails.configuration.build_server.host}/build")
+    url = URI.parse("http://#{Conf.get("/service/build_server/host")}/build")
     https = Net::HTTP.new(url.host, url.port)
     request = Net::HTTP::Post.new(url.path)
     request.content_type = "application/x-protobuf"

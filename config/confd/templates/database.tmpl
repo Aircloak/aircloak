@@ -1,0 +1,13 @@
+params: &params
+  adapter: postgresql
+  host: {{ getv "/host" }}
+  encoding: unicode
+  database: {{ getv "/database" }}
+  pool: 5
+  username: {{ getv "/username" }}
+
+development:
+  <<: *params
+
+production:
+  <<: *params

@@ -1,6 +1,7 @@
 require './lib/json_sender'
 require './lib/prefetch_filter'
 require './lib/task_code'
+require './lib/aircloak_config'
 
 class Task < ActiveRecord::Base
   has_many :pending_results, dependent: :destroy, counter_cache: true
@@ -246,7 +247,7 @@ private
   end
 
   def publish_header(pending_result)
-    publish_url = Rails.configuration.publish_url
+    publish_url = Conf.get("/settings/rails/task/publish_url")
     if publish_url.present? then
       # publish to "/results/analyst_id/task_token/cluster_id/token"
       publish_path = "/results/#{analyst.id}/#{self.token}/#{cluster.id}/#{pending_result.auth_token}"
@@ -277,8 +278,8 @@ private
 
   def cloak_url path
     raise "No cloak in cluster" unless cloak
-    prot = Rails.configuration.cloak.protocol
-    port = Rails.configuration.cloak.port
+    prot = Conf.get("/service/cloak/protocol")
+    port = Conf.get("/service/cloak/port")
     return "#{prot}://#{cloak.ip}:#{port}/#{path}"
   end
 

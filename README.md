@@ -43,191 +43,53 @@ This API is under flux. The best resource is the code. To get an overview, pleas
 [routes](https://github.com/Aircloak/web/blob/master/config/routes.rb#L57) file.
 
 
-## Running
+## Running during development and building for production
 
-We use Ruby 2.0 for development and deployment.
-I recommend installing your ruby using the [Ruby Version Manager](https://rvm.io).
+Running a development version of our rails application in a docker container
+that very much resembles the production docker containers, can be done by
+running the `./dev.sh` script.
+The container that is spawned mounts the working directory as the app directory,
+and thereby picks up changes made to the codebase, without having to re-create
+and re-launch the container.
 
-Next, please install the `bundler gem`:
+Some start differences between the development container and the production container
+is that the production container pre-compiles assets and also compiles the API documentation.
+As a result the nginx configuration also differs slightly between the two.
 
-    gem install bundler
+[etcd](https://github.com/coreos/etcd) is used for configuration of the app,
+and all configuration values with the exception of the database connection
+can be dynamically changed at runtime.
+To configure the application for local development, you need to make a copy of
+`etcd_values.sample` called `etcd_values`, and changing the values to ones that
+make sense for your local environment.
+These values will be picked up by `dev.sh` script and fed into `etcd`.
 
-To get the dependencies of the aircloak web app, run the following
-command in the root of the repository:
+__GOTCHA__:
+There are a few values that are __NOT__ dynamically updated while the app runs.
+If you change the following values, which are only read when the app boots, you need to restart the
+container:
 
-    bundle install
+- /settings/rails/secrets/secret_key_base - read in an initializer
+- /settings/rails/db/{host, username, database}
 
-Before being able to run the application, you need to create and migrate the database:
+### Building release
 
-    bundle exec rake db:create
-    bundle exec rake db:migrate
+You can build a release container using `./build.sh`.
+If you want to run the image locally (for a test), or run commands inside it,
+use `./run-prod.sh <ID> [<COMMANDS>]`
 
-You can run the application with `rails s`, but I recommend using zeus. Please see the [good to
-know](#goot-to-know) section below.
-
-
-## Deploying
-
-We use [Capistrano](https://github.com/capistrano/capistrano) for deployment. You already get it installed
-automatically when running `bundle install`.
-We could have used any number of other fancy approaches for deploying the website, but capistrano has been
-setup, and it works well, so I suggest we leave it like this until we find a compelling reason to switch to
-a more superior system.
-
-In order to deploy the website, you need to be able to log into the web servers as the `deployer` user.
-I recommend you add the following to your ~/.ssh/config:
-
-    Host graphite
-      User deployer
-      ProxyCommand ssh [YOUR MPI USERNAME]@contact.mpi-sws.org nc %h %p 2> /dev/null
-
-If you are not able to log into the web servers, please ask someone who is able to do so, to add your public
-key to the __deployer__ user's __authorized_keys__ file.
 
 ### Migrating the schema
 
-To migrate the schema on the production database, please run:
-
-    bundle exec cap deploy:migrate
-
-### Deploy website
-
-To deploy the website, run
-
-    bundle exec cap deploy
-
-If you want to both deploy and migrate with a single command, you can run
-
-    cap deploy:migrations
-
-Please note that doing a `cap deploy`, while restarting the unicorn workers, does not always have them reload
-the classes in the __lib__ directory. I haven't investigated why this is. If it happens to you, stop and start
-the unicorns like this:
-
-    bundle exec cap unicorn:stop
-    bundle exec cap unicorn:start
-
-Happy deploying!
+To migrate the database schema for local development, run the `./migrate.sh` command.
+It will boot up the development container and perform the migration inside it.
 
 
-## Setting up new servers
+### Commands in the container
 
-Setting up new web servers unfortunately is still a bit of a manual process.
-Currently there are a set of commands that need to be run manually, and then
-the rest can be done automatically.
-
-### Step 1: Manual install
-
-Please log onto the machine as root, and do the following steps:
-
-```bash
-apt-get update && apt-get -y upgrade
-apt-get install -y autoconf nginx curl git-core
-
-# Dependencies needed for ruby
-apt-get -y install build-essential libssl-dev
-# Packages required for compilation of some stdlib modules
-apt-get -y install tklib
-# Extras for RubyGems and Rails:
-apt-get -y install zlib1g-dev libssl-dev
-# Readline Dev on Ubuntu 12.04 LTS:
-apt-get -y install libreadline-gplv2-dev
-# Install some nokogiri dependencies:
-apt-get -y install libxml2 libxml2-dev libxslt1-dev
-# Needed for pg gem
-apt-get -y install libpq-dev
-
-# Add deployment user
-adduser --disabled-password --gecos "" deployer
-mkdir /websites
-chown -R deployer:deployer /websites
-
-touch /etc/init.d/unicorn_aircloak
-chown deployer:deployer /etc/init.d/unicorn_aircloak
-chmod +x /etc/init.d/unicorn_aircloak
-update-rc.d -f unicorn_aircloak defaults
-
-su - deployer
-curl -L https://raw.github.com/fesplugas/rbenv-installer/master/bin/rbenv-installer | bash
-
-touch ~/.bashrc
-echo "export RBENV_ROOT=\"\${HOME}/.rbenv\"
-if [ -d \"\${RBENV_ROOT}\" ]; then
-  export PATH=\"\${RBENV_ROOT}/bin:\${PATH}\"
-  eval \"\$(rbenv init -)\"
-fi" >> ~/.bashrc
-source ~/.bashrc
-
-rbenv install 2.0.0-p247
-rbenv global 2.0.0-p247
-
-gem install bundler --no-ri --no-rdoc
-rbenv rehash
-
-```
-
-### Step 2: Configure nginx
-
-Please manually copy
-[config/nginx.conf](https://github.com/Aircloak/web/blob/master/config/nginx.conf) to __/etc/nginx/nginx.conf__ and then run `/etc/init.d/nginx
-restart`.
-
-You also need to copy over the SSL certificate we use. The __nginx.conf__ expects to find it at
-`/root/certs/aircloak.com.chain.pem`.
-Please make sure it is only readable by the root user.
-
-Sebastian has the cert stored in a safe place, so ask him for a copy, or better yet ask him to upload it.
-
-### Step 3: Configure ~/.ssh/config
-
-From now on you want to log onto the machine as the __deployer__ user when you push changes.
-Please adapt your __~/.ssh/config__ file such that when logging into the host, you are the __deployer__ user.
-
-Example ~/.ssh/config
-
-
-    ## ------------------------------------------------------------------
-    ## Web hosts
-    ## ------------------------------------------------------------------
-
-    Host air1-root
-      User root
-      HostName air1
-      ProxyCommand ssh [USER-NAME]@contact.mpi-sws.org nc %h %p 2> /dev/null
-
-    Host air1
-      User deployer
-      ProxyCommand ssh [USER-NAME]@contact.mpi-sws.org nc %h %p 2> /dev/null
-
-You also need to have you public key added to the __~/.ssh/authorized_keys__ file for the deployer user for
-this to work.
-
-### Step 4: Setup and deploy
-
-Now run `bundle exec cap deploy:setup` to setup the infrastructure.
-For the initial deployment, the application is also going to want to download all the ruby gems. The server
-itself is sitting in a restricted network, without access to outside resources. Therefore you need to enable
-an http proxy for the server for the duration of the install. For instructions, please follow this
-[guide](https://github.com/Aircloak/org/wiki/admin::Useful-tips-and-tricks#wiki-getting-web-access-from-a-system-within-the-dmz).
-Once the proxy has been setup, run `bundle exec cap deploy:cold`, and you should be good to go!
-
-### Step 5: Adding secrets to the server
-
-After the supporting folders have been setup on the server, we need to supply the server with passwords and tokens
-not present in the source code repository, but needed by the server.
-
-We require the following secrets:
-
-- the password used to unlock the private keys of analysts
-- an github OAuth token used by the web app to read meta data from github
-- a secret key base used for cookies
-
-All secrets need to be configured in `shared/config/settings.yml.local`
-
-### Step 6: Add host to mandrillapp.com
-
-We are using mandrill to send notification emails.
-The API-key has restricted access. After having setup a host you need to add it's IP address to the key.
+There is a `./run.sh` script which allows you to execute commands inside the development container.
+For example you could do `./run.sh /bin/bash` to get a bash shell inside the container,
+or `./run.sh bundle exec rake db:rollback` to undo a migration.
 
 
 #### Analyst private key password
@@ -235,14 +97,14 @@ The API-key has restricted access. After having setup a host you need to add it'
 For background, please have a look at the [authentication](#authentication) section of this readme.
 The password is kept safe by @sebastian, but copies are also held by others on the team. If you don't hold a copy yourself for safe-keeping, please contact one of your team-members and ask for a copy, or ask them to upload it to the server.
 
+
 #### Github OAuth token
 
-The github OAuth tokens are generated for the user `aircloak-web`.
-It is a github user that has read-only access to the repositories needed when deploying a cloak.
-Please generate a fresh OAuth token per infrastructure machine, so we can invalidate them when needed, and don't need to store copies for safe-keeping.
-@sebastian controls the `aircloak-web` user, so please confer with him.
+The github OAuth token are generated for the user `aircloak-web`. @sebastian controls the user, please contact
+him if a new token is needed.
 
 OAuth tokens can be generated on Github on the __settings__ > __applications__ page.
+
 
 #### Secret key base
 

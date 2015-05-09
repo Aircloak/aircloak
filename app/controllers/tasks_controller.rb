@@ -1,5 +1,6 @@
 require 'csv'
 require 'airpub_api'
+require './lib/aircloak_config'
 
 class TasksControllerException < Exception; end
 
@@ -175,7 +176,7 @@ class TasksController < ApplicationController
         )
     @results_path = latest_results_task_path(@task.token)
     @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.token}"
-    @server_url = Rails.configuration.airpub_ws_subscribe
+    @server_url = Conf.get("/service/airpub/subscribe_endpoint")
     describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task.token)
   end
 

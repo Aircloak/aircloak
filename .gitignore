@@ -23,3 +23,32 @@
 /config/database.yml
 
 config/settings.local.yml
+
+# There is a corresponding sample file checked into
+# the repository, but we don't want to include the
+# main one as it might contain sensitive secrets
+etcd_values
+
+# These are cached values used when creating a local dev environment docker.
+# They are dependent on local state, and should not be made part of the repo
+docker/Gemfile.lock.sha
+docker/dev-build.id
+
+# We use distinct Dockerfile's and .dockerignore files for release
+# production and for producing local development containers.
+# These are to be found in Dockerfile-XXX and .dockerignore-XXX
+# respectively, where XXX denotes the environment.
+# These are dynamically symlinked to Dockerfile and .dockerignore
+# on demand.
+Dockerfile
+.dockerignore
+
+# We make a copy of the database.yml when
+# starting the dev versions of the app as
+# the original file is overwritten.
+# When terminating the setup, we restore
+# the original. The one written by docker
+# which is replaced is moved to
+# config/database.yml-docker in case the launch
+# failed, and this is in fact the original one.
+config/database.yml-docker
