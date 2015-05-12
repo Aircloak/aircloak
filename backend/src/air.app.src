@@ -8,7 +8,8 @@
     erlang_common,
     pgsql,
     webmachine,
-    erlcron
+    erlcron,
+    etcd
   ]},
   {mod, { air_app, []}},
   {env, []}
