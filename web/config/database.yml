@@ -1,0 +1,25 @@
+<% require './lib/aircloak_config' %>
+
+development:
+  adapter: postgresql
+  encoding: unicode
+  host: <%= Conf.get("/settings/rails/db/host") %>
+  username: <%= Conf.get("/settings/rails/db/username") %>
+  password: <%= Conf.get("/settings/rails/db/password") %>
+  database: <%= Conf.get("/settings/rails/db/database") %>
+  pool: 5
+
+production:
+  adapter: postgresql
+  encoding: unicode
+  host: <%= Conf.get("/settings/rails/db/host") %>
+  username: <%= Conf.get("/settings/rails/db/username") %>
+  password: <%= Conf.get("/settings/rails/db/password") %>
+  database: <%= Conf.get("/settings/rails/db/database") %>
+  pool: 8
+
+test:
+  adapter: sqlite3
+  database: db/test.sqlite3
+  pool: 5
+  timeout: 5000

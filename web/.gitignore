@@ -20,8 +20,6 @@
 
 .DS_Store
 
-/config/database.yml
-
 config/settings.local.yml
 
 # There is a corresponding sample file checked into
