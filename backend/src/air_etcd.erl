@@ -37,7 +37,7 @@ start_link() ->
 %%      given key is not present.
 -spec get(string() | binary()) -> binary().
 get(Key) ->
-  {ok, #get{value=Value}} = etcd:get(air_conf:get_val(etcd, url), Key, 5000),
+  {ok, #get{value=Value}} = etcd:get(etcd_url(), Key, 5000),
   Value.
 
 %% @doc Retrieves the cached value under given key. If the value is not present
@@ -86,6 +86,12 @@ code_change(_, State, _) -> {ok, State}.
 %% -------------------------------------------------------------------
 %% Internal functions
 %% -------------------------------------------------------------------
+
+-ifdef(TEST).
+  etcd_url() -> "http://127.0.0.1:4002".
+-else.
+  etcd_url() -> air_conf:get_val(etcd, url).
+-endif.
 
 cached_value(Key) ->
   case ets:lookup(?MODULE, Key) of

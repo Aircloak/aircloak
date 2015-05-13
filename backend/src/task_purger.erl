@@ -101,7 +101,10 @@ purge_deleted() ->
 
 ?test_suite(purger_test_,
       setup,
-      [?with_db],
+      [
+        ?load_conf,
+        ?with_db
+      ],
       [
         fun() ->
           ?db_simple_query("TRUNCATE TABLE tasks"),
