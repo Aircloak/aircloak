@@ -25,9 +25,9 @@ call(Fun) ->
 
 db_config() ->
   [
-    {host, binary_to_list(air_etcd:get_cached("/settings/rails/db/host"))},
-    {user, binary_to_list(air_etcd:get_cached("/settings/rails/db/username"))},
-    {password, binary_to_list(air_etcd:get_cached("/settings/rails/db/password"))},
-    {database, binary_to_list(air_etcd:get_cached("/settings/rails/db/database"))},
+    {host, binary_to_list(air_etcd:get_cached("/settings/air/db/host"))},
+    {user, binary_to_list(air_etcd:get_cached("/settings/air/db/username"))},
+    {password, binary_to_list(air_etcd:get_cached("/settings/air/db/password"))},
+    {database, binary_to_list(air_etcd:get_cached("/settings/air/db/database"))},
     {port, 5432}
   ].

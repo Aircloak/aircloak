@@ -3,19 +3,19 @@
 development:
   adapter: postgresql
   encoding: unicode
-  host: <%= Conf.get("/settings/rails/db/host") %>
-  username: <%= Conf.get("/settings/rails/db/username") %>
-  password: <%= Conf.get("/settings/rails/db/password") %>
-  database: <%= Conf.get("/settings/rails/db/database") %>
+  host: <%= Conf.get("/settings/air/db/host") %>
+  username: <%= Conf.get("/settings/air/db/username") %>
+  password: <%= Conf.get("/settings/air/db/password") %>
+  database: <%= Conf.get("/settings/air/db/database") %>
   pool: 5
 
 production:
   adapter: postgresql
   encoding: unicode
-  host: <%= Conf.get("/settings/rails/db/host") %>
-  username: <%= Conf.get("/settings/rails/db/username") %>
-  password: <%= Conf.get("/settings/rails/db/password") %>
-  database: <%= Conf.get("/settings/rails/db/database") %>
+  host: <%= Conf.get("/settings/air/db/host") %>
+  username: <%= Conf.get("/settings/air/db/username") %>
+  password: <%= Conf.get("/settings/air/db/password") %>
+  database: <%= Conf.get("/settings/air/db/database") %>
   pool: 8
 
 test:
