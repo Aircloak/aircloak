@@ -17,13 +17,6 @@ log "Booting container. Expecting etcd at $ETCD."
 
 config="database"
 
-log "One time setup of database.yml"
-# Try to make initial configuration every 5 seconds until successful
-until confd -onetime -node $ETCD -config-file /etc/confd/conf.d/database.toml; do
-  log "Waiting for confd to create initial database.yml configuration."
-  sleep 5
-done
-
 log "Starting unicorn"
 bundle exec unicorn -c config/unicorn.rb -D -E production
 
