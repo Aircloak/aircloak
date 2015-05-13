@@ -2,9 +2,10 @@
 
 set -e
 
-. ./deps/cloak/prepare_db.funcs.sh
+. backend/deps/cloak/prepare_db.funcs.sh
 
 conditionally_create_user "airtest"
-regenerate_database "air_test_database" "airtest"
+psql -U postgres -c "ALTER USER airtest CREATEDB"
 
-cat test/db_structure.sql | psql -U airtest air_test_database
+regenerate_database "air_test_database" "airtest"
+psql -U postgres -c "ALTER DATABASE air_test_database OWNER TO airtest"

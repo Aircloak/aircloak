@@ -19,7 +19,10 @@ production:
   pool: 8
 
 test:
-  adapter: sqlite3
-  database: db/test.sqlite3
+  adapter: postgresql
+  encoding: unicode
+  host: <%= Conf.get("/settings/air/db/host") %>
+  username: <%= Conf.get("/settings/air/db/username") %>
+  password: <%= Conf.get("/settings/air/db/password") %>
+  database: <%= Conf.get("/settings/air/db/database") %>
   pool: 5
-  timeout: 5000
