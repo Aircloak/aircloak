@@ -7,7 +7,7 @@ development:
   username: <%= Conf.get("/settings/air/db/username") %>
   password: <%= Conf.get("/settings/air/db/password") %>
   database: <%= Conf.get("/settings/air/db/database") %>
-  pool: 5
+  pool: 4
 
 production:
   adapter: postgresql
@@ -16,7 +16,7 @@ production:
   username: <%= Conf.get("/settings/air/db/username") %>
   password: <%= Conf.get("/settings/air/db/password") %>
   database: <%= Conf.get("/settings/air/db/database") %>
-  pool: 8
+  pool: 4
 
 test:
   adapter: postgresql
@@ -25,4 +25,4 @@ test:
   username: <%= Conf.get("/settings/air/db/username") %>
   password: <%= Conf.get("/settings/air/db/password") %>
   database: <%= Conf.get("/settings/air/db/database") %>
-  pool: 5
+  pool: 4
