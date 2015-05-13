@@ -55,7 +55,7 @@ class DeployableEntity < ActiveRecord::Base
 
 private
   def set_description
-    if Conf.get("/settings/rails/global")
+    if Conf.get("/settings/rails/global") == "true"
       self.description = Gh.description_for repo
     else
       self.description = "I'm a description!"
@@ -63,7 +63,7 @@ private
   end
 
   def repo_exists
-    not Conf.get("/settings/rails/global") or Gh.description_for repo
+    Conf.get("/settings/rails/global") == "false" or Gh.description_for repo
   rescue UnknownRepository
     errors.add(:repo, "does not exist")
   end

@@ -84,11 +84,11 @@ private
   end
 
   def send_request_for_building
-    BuildManager.send_build_request self if Conf.get("/settings/rails/global")
+    BuildManager.send_build_request self if Conf.get("/settings/rails/global")=="true"
   end
 
   def remove_from_buildserver
     url = "http://#{Conf.get("/service/build_server/host")}/build/#{self.id}"
-    ProtobufSender.send_delete url if Conf.get("settings/rails/global")
+    ProtobufSender.send_delete url if Conf.get("/settings/rails/global")
   end
 end

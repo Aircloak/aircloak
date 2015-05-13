@@ -51,7 +51,7 @@ class DeployableEntityVersion < ActiveRecord::Base
     self.build_success = true
     self.build_log = ""
     save
-    url = "http://#{Conf.get("/service/builder_server/host")}/entity/#{self.commit_id}"
+    url = "http://#{Conf.get("/service/build_server/host")}/entity/#{self.commit_id}"
     ProtobufSender.send_delete url if Conf.get("/settings/rails/global")
   end
 
