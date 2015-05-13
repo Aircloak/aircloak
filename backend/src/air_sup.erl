@@ -32,6 +32,7 @@ start_link() ->
 %% @hidden
 init([]) ->
   {ok, {{one_for_one, 5, 10}, [
+    ?CHILD(air_etcd, worker),
     ?SUP(cloak_services_sup),
     ?SUP(air_sandbox_sup)
   ]}}.
