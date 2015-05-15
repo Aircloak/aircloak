@@ -129,6 +129,8 @@ COPY config.ru $site_path/config.ru
 COPY Rakefile $site_path/Rakefile
 
 # Create static assets that can be cached and served
+ENV ETCD_HOST 172.17.42.1
+ENV ETCD_PORT 4001
 RUN bundle exec rake assets:precompile
 RUN rm -rf tmp/cache
 

@@ -15,10 +15,4 @@ function log {
 # Run command in image
 # -------------------------------------------------------------------
 
-if [ -z "$args" ]; then
-  log "Launching container $container_id"
-  docker run -p 8080:8080 -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log --rm -it $container_id
-else
-  log "Executing command \"$args\" in container $container_id"
-  docker run -p 8080:8080 -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log --rm -it $container_id $args
-fi
+docker run -p 8080:8080 -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log --rm -it $args $container_id

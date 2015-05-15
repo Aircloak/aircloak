@@ -9,11 +9,10 @@ function log {
   echo "[aircloak] $msg"
 }
 
-export ETCD_PORT=${ETCD_PORT:-2379}
-export HOST_IP=${HOST_IP:-172.17.42.1}
-export ETCD=http://$HOST_IP:$ETCD_PORT
+export ETCD_HOST=${ETCD_HOST:-172.17.42.1}
+export ETCD_PORT=${ETCD_PORT:-4001}
 
-log "Booting container. Expecting etcd at $ETCD."
+log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."
 
 config="database"
 

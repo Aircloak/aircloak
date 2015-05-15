@@ -33,10 +33,11 @@ RUN mkdir -p /aircloak/app
 WORKDIR /aircloak/app
 
 COPY artifacts/cache/rel/air /aircloak/app
+COPY docker/start.sh /aircloak/
 
 RUN chown -R deployer:deployer /aircloak/app
 RUN chown -R deployer:deployer /var/run/
 
 USER deployer
 
-CMD /aircloak/app/bin/air start && echo "Starting the air service" && sleep 5 && touch log/test.log && tail -f log/*.log
+CMD /aircloak/start.sh

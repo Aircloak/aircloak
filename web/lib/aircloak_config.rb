@@ -14,9 +14,8 @@ private
   def self.setup
     return if @@setup
     unless Rails.env == "test"
-      config = YAML.load_file('config/etcd_config.yml')
-      host = config["connection"]["host"]
-      port = config["connection"]["port"]
+      host = ENV['ETCD_HOST'] || "127.0.0.1"
+      port = ENV['ETCD_PORT'] || 4001
     else
       host = "127.0.0.1"
       port = "4002"

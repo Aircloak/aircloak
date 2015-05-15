@@ -90,7 +90,14 @@ code_change(_, State, _) -> {ok, State}.
 -ifdef(TEST).
   etcd_url() -> "http://127.0.0.1:4002".
 -else.
-  etcd_url() -> air_conf:get_val(etcd, url).
+  etcd_url() ->
+    lists:flatten(io_lib:format("http://~s:~s", [env("ETCD_HOST", "127.0.0.1"), env("ETCD_PORT", "4001")])).
+
+  env(VarName, Default) ->
+    case os:getenv(VarName) of
+      false -> Default;
+      Value -> Value
+    end.
 -endif.
 
 cached_value(Key) ->
