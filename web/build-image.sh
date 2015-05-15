@@ -15,4 +15,4 @@ function log {
 # -------------------------------------------------------------------
 
 log "Building release container of rails app"
-docker build .
+docker build -t aircloak/air_web:latest .
