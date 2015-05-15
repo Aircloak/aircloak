@@ -22,12 +22,11 @@
 call(Fun) ->
   cloak_db:call(undefined, db_config(), Fun).
 
-
 db_config() ->
   [
     {host, binary_to_list(air_etcd:get_cached("/settings/air/db/host"))},
+    {port, binary_to_integer(air_etcd:get_cached("/settings/air/db/port"))},
     {user, binary_to_list(air_etcd:get_cached("/settings/air/db/username"))},
     {password, binary_to_list(air_etcd:get_cached("/settings/air/db/password"))},
-    {database, binary_to_list(air_etcd:get_cached("/settings/air/db/database"))},
-    {port, 5432}
+    {database, binary_to_list(air_etcd:get_cached("/settings/air/db/database"))}
   ].

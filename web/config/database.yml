@@ -4,6 +4,7 @@ development:
   adapter: postgresql
   encoding: unicode
   host: <%= Conf.get("/settings/air/db/host") %>
+  port: <%= Conf.get("/settings/air/db/port") %>
   username: <%= Conf.get("/settings/air/db/username") %>
   password: <%= Conf.get("/settings/air/db/password") %>
   database: <%= Conf.get("/settings/air/db/database") %>
@@ -13,6 +14,7 @@ production:
   adapter: postgresql
   encoding: unicode
   host: <%= Conf.get("/settings/air/db/host") %>
+  port: <%= Conf.get("/settings/air/db/port") %>
   username: <%= Conf.get("/settings/air/db/username") %>
   password: <%= Conf.get("/settings/air/db/password") %>
   database: <%= Conf.get("/settings/air/db/database") %>
@@ -22,6 +24,7 @@ test:
   adapter: postgresql
   encoding: unicode
   host: <%= Conf.get("/settings/air/db/host") %>
+  port: <%= Conf.get("/settings/air/db/port") %>
   username: <%= Conf.get("/settings/air/db/username") %>
   password: <%= Conf.get("/settings/air/db/password") %>
   database: <%= Conf.get("/settings/air/db/database") %>
