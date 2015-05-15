@@ -39,4 +39,4 @@ RUN chown -R deployer:deployer /var/run/
 
 USER deployer
 
-CMD /aircloak/app/bin/air start && touch log/test.log && tail -f log/*.log
+CMD /aircloak/app/bin/air start && echo "Starting the air service" && sleep 5 && touch log/test.log && tail -f log/*.log
