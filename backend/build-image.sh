@@ -2,6 +2,8 @@
 
 set -e
 
+cd $(dirname $0)
+
 # This will build a dockerized version of the air-sandbox app.
 # It has one major nasty caveat. Since we don't want to inlcude
 # the SSH keys required to get at the private github repositories
@@ -57,4 +59,4 @@ docker run -v $PWD:/aircloak/source --rm -i aircloak/air_build:latest
 activate_stage "release"
 log "Creating release docker container"
 docker build -t aircloak/air:latest .
-log "Release created. Run with ./run.sh"
+log "Release created."

@@ -2,6 +2,8 @@
 
 set -eo pipefail
 
+cd $(dirname $0)
+
 function log {
   msg=$1
   echo "[aircloak] $msg"
