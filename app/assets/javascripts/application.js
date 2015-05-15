@@ -17,6 +17,8 @@
 //= require twitter/bootstrap/bootstrap-popover
 //= require twitter/bootstrap/bootstrap-button
 //= require underscore
+//= require d3
+//= require nv.d3
 //= require view_state
 //= require popup
 //= require tooltips
