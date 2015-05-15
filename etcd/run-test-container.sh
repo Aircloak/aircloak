@@ -2,6 +2,9 @@
 
 set -eo pipefail
 
+cd $(dirname $0)
+. ./etcd_lib.sh
+
 function log {
   msg=$1
   echo "[aircloak] $msg"
@@ -68,4 +71,4 @@ done
 log "Etcd is running"
 
 log "Creating required ETCD values for development"
-. etcd_test_values
+. etcd_values_test
