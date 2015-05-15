@@ -35,6 +35,10 @@ WORKDIR /aircloak/app
 COPY artifacts/cache/rel/air /aircloak/app
 COPY docker/start.sh /aircloak/
 
+# We need this for distributed Erlang
+RUN mkdir /home/deployer
+RUN chown deployer:deployer /home/deployer
+
 RUN chown -R deployer:deployer /aircloak/app
 RUN chown -R deployer:deployer /var/run/
 
