@@ -1,14 +1,5 @@
 #!/bin/bash
 
-# Migrating the localhost database contents to the docker:
-#
-# 1. Start this container
-# 2. OS X users: make sure port 5433 is mapped from boot2docker to your Mac
-# 3. Make sure that both docker and your local databases are migrated
-# 4. On your machine (outside of any VMs) execute
-#      pg_dump -C -h localhost -U postgres aircloakdatabase | psql -h 127.0.0.1 -p 5433 -U postgres aircloakdatabase
-#    (there will be various errors, but you can ignore them)
-
 set -e
 
 cd $(dirname $0)
@@ -19,7 +10,7 @@ docker rm air_db || true
 docker build -t aircloak/air_db:latest .
 
 if [ -n "$(env | grep boot2docker)" ]; then
-  # boot2docker: Create persistend folder and symlink
+  # boot2docker: Create persistent folder and symlink
   B2D_IP=$(boot2docker ip &> /dev/null)
   if [ "$?" != "0" ]
   then
