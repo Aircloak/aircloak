@@ -5,7 +5,8 @@ class TasksControllerException < Exception; end
 
 class TasksController < ApplicationController
   filter_access_to [:execute_as_batch_task, :all_results, :latest_results,
-                    :suspend, :resume, :delete, :deleted, :recover], require: :manage
+                    :suspend, :resume, :delete, :deleted, :recover,
+                    :particular_result], require: :manage
   before_action :load_task, except: [:index, :new, :create, :deleted]
   before_action :set_tables_json, only: [:new, :edit, :update, :create]
   before_action :set_auto_completions, only: [:new, :edit, :update, :create]
@@ -176,7 +177,27 @@ class TasksController < ApplicationController
     @results_path = latest_results_task_path(@task.token)
     @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.token}"
     @server_url = Rails.configuration.airpub_ws_subscribe
+    @task_token = @task.token
     describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task.token)
+  end
+
+  # GET /tasks/:id/particular_result/:timestamp
+  def particular_result
+    attempts = 0
+    timestamp = params[:timestamp].to_i
+    created_at = Time.at(timestamp / 1000, (timestamp % 1000) * 1000).utc # convert to time object
+    while attempts < 5 do
+      task = @task.results.where("created_at >= ?", created_at).includes(:exception_results)
+      if task.size > 0
+        renderable_results = convert_results_for_client_side_rendering(task)
+        render json: {success: true, results: renderable_results}
+        return
+      else
+        attempts += 1
+        sleep(0.5)
+      end
+    end
+    render json: {success: false, description: "Could not find results"}
   end
 
   # POST /tasks/:id/suspend
