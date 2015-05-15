@@ -62,7 +62,6 @@ cd $CACHE_DIR
 copy src
 copy include
 copy rel
-copy apps
 copy generate_cloak_conf.escript
 
 log "Making release"
