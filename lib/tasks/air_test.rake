@@ -7,11 +7,52 @@ namespace :air do
     TestTables = {
       age: {
         columns: [{name: "age", constraints: [], type: "integer"}],
-        generate: lambda {|user_id| {age: rand(50) + 20}}
+        generate: lambda {|user_num, num_users| {age: rand(50) + 20}}
       },
       height: {
         columns: [{name: "height", constraints: [], type: "integer"}],
-        generate: lambda {|user_id| {height: rand(60) + 150}}
+        generate: lambda {|user_num, num_users| {height: rand(60) + 150}}
+      },
+      # For testing distributions and our ability to report them,
+      # we create a set of tables and corresponding distributions
+      # of values in them.
+      #
+      # Age even: evenly distributed ages. All ages are included from 0 to 100
+      # and the frequency of ages is uniform
+      age_even: {
+        columns: [{name: "age", constraints: [], type: "integer"}],
+        generate: lambda {|user_num, num_users| {age: ((100 * user_num) / num_users)}}
+      },
+      # Age spread out: evenly distributed ages, but only every 10th age is included.
+      # The frequency of ages is uniform
+      age_with_gaps: {
+        columns: [{name: "age", constraints: [], type: "integer"}],
+        generate: lambda {|user_num, num_users|
+          age = (((100 * user_num) / num_users) / 10).to_i * 10
+          {age: age}
+        }
+      },
+      # Age gauss: ages from 0 to 100. Age frequency follows a gaussian
+      # distribution with mean 50 and SD = 13. Values below 0 and above 100
+      # are forced to 0 and 100 respectively.
+      age_gauss: {
+        columns: [{name: "age", constraints: [], type: "integer"}],
+        generate: lambda {|user_num, num_users|
+          $gauss ||= Distributions::RandomGaussian.new(50, 13)
+          age = $gauss.rand.to_i
+          age = 0 if age < 0
+          age = 100 if age > 100
+          {age: age}
+        }
+      },
+      # Age long tail: ages from 0 to 100. Age frequency are a long tail
+      # distribution following a powerlaw. It quickly peters out, and then
+      # has a long tail with low frequency counts.
+      age_powerlaw: {
+        columns: [{name: "age", constraints: [], type: "integer"}],
+        generate: lambda {|user_num, num_users|
+          {age: Distributions::powerlaw(0, 100, 30).to_i}
+        }
       }
     }
 
@@ -116,11 +157,58 @@ namespace :air do
 
           user_id = "user_#{index}"
           insert_data = TestTables.keys.inject({}) do |memo, table_name|
-            memo.merge(table_name => [TestTables[table_name][:generate].call(user_id)])
+            memo.merge(table_name => [TestTables[table_name][:generate].call(index, num_users)])
           end
           JsonSender.request :post, :no_auth, analyst, cluster, "insert", {user: user_id}, insert_data.to_json
         end
         puts "\nDone!\n\n"
       end
+  end
+end
+
+module Distributions
+  # Power law (log tail) distribution
+  # Copyright(C) 2010 Salvatore Sanfilippo
+  # this code is under the public domain
+
+  # min and max are both inclusive
+  # n is the distribution power: the higher, the more biased
+  def self.powerlaw(min,max,n)
+    max += 1
+    pl = ((max**(n+1) - min**(n+1))*rand() + min**(n+1))**(1.0/(n+1))
+    (max-1-pl.to_i)+min
+  end
+
+  # Taken from http://stackoverflow.com/questions/5825680/code-to-generate-gaussian-normally-distributed-random-numbers-in-ruby
+  class RandomGaussian
+    def initialize(mean, stddev, rand_helper = lambda { Kernel.rand })
+      @rand_helper = rand_helper
+      @mean = mean
+      @stddev = stddev
+      @valid = false
+      @next = 0
+    end
+
+    def rand
+      if @valid then
+        @valid = false
+        return @next
+      else
+        @valid = true
+        x, y = self.class.gaussian(@mean, @stddev, @rand_helper)
+        @next = y
+        return x
+      end
+    end
+
+    private
+    def self.gaussian(mean, stddev, rand)
+      theta = 2 * Math::PI * rand.call
+      rho = Math.sqrt(-2 * Math.log(1 - rand.call))
+      scale = stddev * rho
+      x = mean + scale * Math.cos(theta)
+      y = mean + scale * Math.sin(theta)
+      return x, y
+    end
   end
 end
