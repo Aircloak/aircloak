@@ -28,6 +28,9 @@ group :development, :test do
   gem 'pry', github: "pry/pry"
   gem 'pry-nav', github: "nixme/pry-nav"
   gem 'rspec-rails', '~> 2.0'
+end
+
+group :precompile do
   gem 'sqlite3'
 end
 

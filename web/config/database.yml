@@ -29,3 +29,9 @@ test:
   password: <%= Conf.get("/settings/air/db/password") %>
   database: <%= Conf.get("/settings/air/db/database") %>
   pool: 4
+
+precompile:
+  adapter: sqlite3
+  database: db/precompile.sqlite3
+  pool: 5
+  timeout: 5000

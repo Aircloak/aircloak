@@ -129,9 +129,11 @@ COPY config.ru $site_path/config.ru
 COPY Rakefile $site_path/Rakefile
 
 # Create static assets that can be cached and served
-ENV ETCD_HOST 172.17.42.1
-ENV ETCD_PORT 4001
-RUN bundle exec rake assets:precompile
+# Note: Rails 4 always initializes the database, even when precompiling assets. To avoid this, we hack a bit:
+#   - We use a distinct precompile env which is for all intents and purposes the same as production
+#   - In aircloak_config.rb we don't attempt to read from ETCD store if in precompile env
+RUN cp -rp config/environments/production.rb config/environments/precompile.rb
+RUN RAILS_ENV=precompile bundle exec rake assets:precompile
 RUN rm -rf tmp/cache
 
 # At this point we can copy in the apidocs we previously compiled.
