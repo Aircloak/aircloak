@@ -17,7 +17,7 @@ function air_is_up {
 }
 
 export ETCD_HOST=${ETCD_HOST:-172.17.42.1}
-export ETCD_PORT=${ETCD_PORT:-4001}
+export ETCD_PORT=${ETCD_PORT:-4002}
 
 log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."
 

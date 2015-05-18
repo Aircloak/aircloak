@@ -11,7 +11,7 @@ function init_env {
     ETCD_DEFAULT_IP="127.0.0.1"
   fi
 
-  export ETCD_PORT=${AIR_ETCD_PORT:-4001}
+  export ETCD_PORT=${AIR_ETCD_PORT:-4002}
   export HOST_IP=${ETCD_HOST_IP:-$ETCD_DEFAULT_IP}
   export ETCD=$HOST_IP:$ETCD_PORT
 }
