@@ -5,15 +5,6 @@ set -eo pipefail
 cd $(dirname $0)
 . ./etcd_lib.sh
 
-# -------------------------------------------------------------------
-# Setup
-# -------------------------------------------------------------------
-
-if [ ! -f "etcd_values" ]; then
-  log "Please copy etcd_values.sample to etcd_values and edit as you see fit"
-  exit 1
-fi
-
 init_env
 
 
