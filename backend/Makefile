@@ -8,7 +8,7 @@ compile: src/air_cloak_conf.erl
 src/air_cloak_conf.erl: rel/files/sys.config deps/cloak/rel/files/app.config
 	./generate_cloak_conf.escript
 
-sandbox:
+sandbox: copy-sandbox-makefile-local
 	$(MAKE) -C deps/cloak sandbox
 	mkdir -p priv
 	cp -rp deps/cloak/priv/* ./priv
@@ -23,6 +23,8 @@ deps/.make:
 deps-dev:
 	./rebar -C rebar.config.lock get-deps
 	(cd deps/cloak && git submodule update --init --recursive)
+
+copy-sandbox-makefile-local:
 	if [ -f sandbox_makefile.local ]; then cp -rp sandbox_makefile.local deps/cloak/lua_sandbox/Makefile.local; fi;
 
 update-deps:
