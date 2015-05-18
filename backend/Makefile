@@ -38,7 +38,7 @@ clean:
 	rm -rf test-gen
 	rm -rf priv/sandbox
 
-distclean: clean devclean relclean
+distclean: clean relclean
 	./rebar delete-deps
 
 apps/air:
@@ -151,6 +151,3 @@ dev% : all
 stagedev% : dev%
 		$(foreach dep,$(wildcard deps/*), rm -rf dev/$^/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) dev/$^/lib;)
 		$(foreach app,$(wildcard apps/*), rm -rf dev/$^/lib/$(shell basename $(app))* && ln -sf $(abspath $(app)) dev/$^/lib;)
-
-devclean: clean
-	rm -rf dev
