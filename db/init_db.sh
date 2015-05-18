@@ -33,6 +33,20 @@ conditionally_create_database()
   fi
 }
 
+server_is_up() {
+  running=$(gosu postgres pg_ctl -D /var/lib/postgresql/data/ status | grep "is running")
+  if [ -z "$running" ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+until server_is_up; do
+  echo "Postgresql server not yet running..."
+  sleep 1
+done
+
 conditionally_create_user "air"
 conditionally_create_database "aircloakdatabase" "air"
 
