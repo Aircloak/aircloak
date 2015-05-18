@@ -4,11 +4,7 @@ set -eo pipefail
 
 cd $(dirname $0)
 . ./etcd_lib.sh
-
-function log {
-  msg=$1
-  echo "[aircloak] $msg"
-}
+. ../common/docker_helper.sh
 
 
 # -------------------------------------------------------------------
@@ -31,11 +27,10 @@ export ETCD=$HOST_IP:$ETCD_PORT
 # etcd
 # -------------------------------------------------------------------
 
-docker stop etcd_air_test || true
-docker rm etcd_air_test || true
+stop_named_container etcd_air_test
 
 # Start etcd for configuration management
-log "Starting etcd"
+log "Starting etcd_air_test"
 docker run --name etcd_air_test -d -p ${ETCD_PORT}:${ETCD_PORT} \
   quay.io/coreos/etcd:v2.0.6 \
   -name etcd0 \

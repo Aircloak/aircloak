@@ -4,6 +4,7 @@ set -eo pipefail
 
 cd $(dirname $0)
 . ./etcd_lib.sh
+. ../common/docker_helper.sh
 
 init_env
 
@@ -12,11 +13,11 @@ init_env
 # etcd
 # -------------------------------------------------------------------
 
-docker stop etcd_air || true
-docker rm etcd_air || true
+stop_named_container etcd_air_test
+stop_named_container etcd_air
 
 # Start etcd for configuration management
-log "Starting etcd"
+log "Starting etcd_air"
 docker run --name etcd_air -d -p ${ETCD_PORT}:${ETCD_PORT} -p 2380:2380 -p 2379:2379 \
   quay.io/coreos/etcd:v2.0.6 \
   -name etcd0 \

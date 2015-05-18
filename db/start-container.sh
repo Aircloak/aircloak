@@ -3,9 +3,9 @@
 set -e
 
 cd $(dirname $0)
+. ../common/docker_helper.sh
 
-docker stop air_db || true
-docker rm air_db || true
+stop_named_container air_db
 
 docker build -t aircloak/air_db:latest .
 
