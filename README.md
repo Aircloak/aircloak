@@ -97,7 +97,7 @@ In the new setup, the database runs inside the docker container, and listens on 
 2. OS X users: make sure port 5433 is forwarded from your localhost to boot2docker
 3. Make sure that both docker and your local databases are migrated. Migrations are done from the `frontend` folder by running `bundle exec rake db:migrate`. You can migrate your local database by temporary hardcoding settings in `database.yml` and running the migration. Then revert back `database.yml` and run migration once more to migrate the docker database. Finally, make sure to run `RAILS_ENV=test bundle exec rake db:migrate` to migrate the test database.
 4. On your localhost (outside of any VM) run
-   `pg_dump -C -h localhost -U postgres aircloakdatabase | psql -h 127.0.0.1 -p 5433 -U postgres aircloakdatabase`
+   `pg_dump --data-only --no-owner --no-acl -h localhost -U postgres aircloakdatabase | psql -h 127.0.0.1 -p 5433 -U postgres aircloakdatabase`
    This assumes that your old database is called `aircloakdatabase`. If that's not the case, change the name in the left part of the command (before the `|` character), leaving the right part untouched. You'll see various errors, but data should be migrated. You can check that manually by inspecting the content of some table on `localhost:5433` database server.
 
 ** OS X devs**: Keep in mind that your database data is stored inside boot2docker VM in
