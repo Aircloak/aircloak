@@ -99,6 +99,8 @@ Web::Application.routes.draw do
       post :run, on: :member
       post :subscribe_request, on: :member
     end
+
+    resources :clusters, only: :index
   end
 
 
