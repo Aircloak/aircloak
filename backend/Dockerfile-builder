@@ -1,0 +1,56 @@
+FROM debian:jessie
+MAINTAINER Sebastian Probst Eide <sebastian@aircloak.com>
+
+
+## ------------------------------------------------------------------
+## Get dependencies needed on the build system
+## ------------------------------------------------------------------
+
+RUN \
+  apt-get update && \
+  apt-get install \
+    build-essential libssl-dev git curl libncurses5-dev libprotobuf-c-dev protobuf-c-compiler \
+    liblua5.1-0-dev \
+    -y
+
+## ------------------------------------------------------------------
+## Get erlang installed
+## ------------------------------------------------------------------
+
+RUN \
+  curl -L -O http://www.erlang.org/download/otp_src_17.5.tar.gz && \
+  mkdir -p /tmp/download && \
+  mv /otp_src_17.5.tar.gz /tmp/download/otp.tar.gz
+
+WORKDIR /tmp/download
+RUN tar -zxvf otp.tar.gz && rm otp.tar.gz
+
+WORKDIR /tmp/download/otp_src_17.5
+RUN \
+  ./configure --disable-hipe && \
+  make && \
+  make install
+
+
+## ------------------------------------------------------------------
+## Configure user and get app in place
+## ------------------------------------------------------------------
+
+# User under which the app will run.
+# Confd will also run as the same user
+RUN useradd --create-home --shell /bin/bash deployer
+
+RUN mkdir -p /aircloak/utils && chown deployer:deployer /aircloak/utils
+
+USER deployer
+
+# In order to clone from Github inside the docker image,
+# we unfortunately need to relax our host checking...
+RUN mkdir -p /home/deployer/.ssh
+
+COPY docker /aircloak/utils
+
+# The source to build
+VOLUME /aircloak/source
+
+CMD /aircloak/utils/build.sh

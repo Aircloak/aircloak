@@ -1,0 +1,23 @@
+.eunit
+deps
+*.o
+*.beam
+*.plt
+erl_crash.dump
+ebin
+rel/air
+.concrete/DEV_MODE
+.rebar
+/.data/
+/apps/
+/doc/
+/log/
+*.depsolver_plt
+/sandbox_makefile.local
+include/*_pb.hrl
+
+# This folder (and subfolders) are used by the
+# docker build system. They should not live in
+# the git repo, although no sensitive data is
+# kept there. They do take up a lot of space...
+artifacts

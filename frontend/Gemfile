@@ -1,0 +1,87 @@
+source 'https://rubygems.org'
+
+ruby '2.0.0'
+
+gem 'rails', '~> 4.0.3' #, github: 'rails/rails'
+
+gem "haml", github: "haml/haml", branch: "stable"
+gem 'haml-rails', github: 'indirect/haml-rails'
+
+# Ruby protobuf compiler
+gem 'beefcake'
+
+gem 'rest-client'
+
+# We use this for interacting with the github api
+gem "github_api"
+gem 'excon'
+
+# Use to paginate the activities on the activities page
+gem 'will_paginate', '~> 3.0'
+
+# We need redcarpet for rendering markdown for our
+# help sections
+gem "redcarpet"
+gem "coderay", github: "rubychan/coderay"
+
+group :development, :test do
+  gem 'pry', github: "pry/pry"
+  gem 'pry-nav', github: "nixme/pry-nav"
+  gem 'rspec-rails', '~> 2.0'
+end
+
+group :precompile do
+  gem 'sqlite3'
+end
+
+group :test do
+  gem 'rake'
+  gem 'vcr'
+end
+
+group :development do
+  gem 'better_errors'
+  gem 'binding_of_caller'
+  gem 'meta_request'
+  gem 'ruby_parser'
+  gem 'quiet_assets' # quiet down assets from the log
+end
+
+# We use postgres both in production and development
+gem 'pg'
+
+# Gems used only for assets and not required
+# in production environments by default.
+group :assets do
+  gem 'sprockets-rails', github: 'rails/sprockets-rails'
+  gem 'sass-rails',   github: 'rails/sass-rails'
+  gem 'coffee-rails', github: 'rails/coffee-rails'
+  gem 'uglifier', '>= 1.0.3'
+end
+
+gem 'twitter-bootstrap-rails'
+gem 'less-rails'
+# See https://github.com/sstephenson/execjs#readme for more supported runtimes
+gem 'therubyracer', platforms: :ruby
+gem 'jquery-rails'
+
+# To use ActiveModel has_secure_password
+gem 'bcrypt-ruby', '~> 3.0.0'
+
+# Deploy with Capistrano
+gem 'capistrano', '2.13.5', group: :development
+
+gem 'authlogic'
+gem 'declarative_authorization'
+
+gem "rails-backbone", :github => "codebrew/backbone-rails", tag: "v1.1.0"
+gem 'underscore-rails', '~> 1.6.0'
+gem 'handlebars_assets'
+gem 'hamlbars', '~> 2.1'
+gem 'codemirror-rails', '~> 4.5'
+
+# Load configurations out of etcd
+gem "etcd"
+
+# We are running with unicorn in both production and development
+gem 'unicorn', '~> 4.8'
