@@ -24,9 +24,9 @@ call(Fun) ->
 
 db_config() ->
   [
-    {host, binary_to_list(air_etcd:get_cached("/settings/air/db/host"))},
-    {port, binary_to_integer(air_etcd:get_cached("/settings/air/db/port"))},
-    {user, binary_to_list(air_etcd:get_cached("/settings/air/db/username"))},
-    {password, binary_to_list(air_etcd:get_cached("/settings/air/db/password"))},
-    {database, binary_to_list(air_etcd:get_cached("/settings/air/db/database"))}
+    {host, binary_to_list(air_etcd:get("/settings/air/db/host"))},
+    {port, binary_to_integer(air_etcd:get("/settings/air/db/port"))},
+    {user, binary_to_list(air_etcd:get("/settings/air/db/username"))},
+    {password, binary_to_list(air_etcd:get("/settings/air/db/password"))},
+    {database, binary_to_list(air_etcd:get("/settings/air/db/database"))}
   ].

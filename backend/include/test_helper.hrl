@@ -87,7 +87,7 @@
 
 -define(load_conf, [{fun() -> air_conf:load_test_config() end, fun(_) -> ok end}]).
 
--define(with_db, [?with_applications([gproc, pgsql, etcd]), ?with_processes([air_etcd, cloak_db_pool_sup])]).
+-define(with_db, [?with_applications([gproc, pgsql, etcd]), ?with_processes([cloak_db_pool_sup])]).
 
 -define(sanbox_web_server, [{fun() -> air_sandbox_web:setup_routes() end, fun(_) -> ok end}]).
 
