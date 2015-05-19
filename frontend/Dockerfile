@@ -28,7 +28,6 @@ VOLUME /var/log
 EXPOSE 8080
 
 # User under which the app will run.
-# Confd will also run as the same user
 RUN useradd --no-create-home --shell /bin/bash deployer
 RUN chown -R deployer:deployer /usr/local/bundle
 

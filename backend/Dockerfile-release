@@ -5,15 +5,7 @@ MAINTAINER Sebastian Probst Eide <sebastian@aircloak.com>
 ## Some basic setup of the image
 ## ------------------------------------------------------------------
 
-RUN apt-get update
-RUN apt-get install openssl -y
-
-# Lua is needed by the sandbox in cloak-core
-RUN apt-get install liblua5.1-0-dev -y
-# We also need the proto binaries for the sandbox
-# communication.
-RUN apt-get install libprotobuf-c-dev -y
-
+RUN apt-get update && apt-get install openssl liblua5.1-0 libprotobuf-c1 -y
 
 ## ------------------------------------------------------------------
 ## Create user and copy in app
@@ -26,21 +18,14 @@ EXPOSE 11000
 EXPOSE 9000
 
 # User under which the app will run.
-# Confd will also run as the same user
-RUN useradd --shell /bin/bash deployer
-RUN mkdir -p /aircloak/app
+RUN useradd --create-home --shell /bin/bash deployer && mkdir -p /aircloak/app
 
 WORKDIR /aircloak/app
 
 COPY artifacts/cache/rel/air /aircloak/app
 COPY docker/start.sh /aircloak/
 
-# We need this for distributed Erlang
-RUN mkdir /home/deployer
-RUN chown deployer:deployer /home/deployer
-
-RUN chown -R deployer:deployer /aircloak/app
-RUN chown -R deployer:deployer /var/run/
+RUN chown -R deployer:deployer /aircloak/app && chown -R deployer:deployer /var/run/
 
 USER deployer
 
