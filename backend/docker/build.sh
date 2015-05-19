@@ -7,7 +7,7 @@ set -e
 #
 # We use the folder `artifacts` under the source directory to cache builds,
 # so we avoid repeatedly performing dependency fetching and compiling.
-# This should spead up subsequent builds.
+# This should speed up subsequent builds.
 # The finished release will be present in `artifacts/cache/rel`
 
 function same_file {
