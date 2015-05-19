@@ -33,24 +33,6 @@ RUN chown -R deployer:deployer /usr/local/bundle
 
 
 ## ------------------------------------------------------------------
-## Get confd
-## ------------------------------------------------------------------
-
-WORKDIR /
-RUN curl -O -L https://github.com/kelseyhightower/confd/releases/download/v0.9.0/confd-0.9.0-linux-amd64
-RUN mv /confd-0.9.0-linux-amd64 /usr/local/bin/confd
-RUN chmod +x /usr/local/bin/confd
-RUN chown deployer:deployer /usr/local/bin/confd
-
-# Setup confd so we can get the config for the cloak right
-RUN mkdir -p /etc/confd/conf.d
-RUN mkdir -p /etc/confd/templates
-COPY config/confd/conf.d /etc/confd/conf.d/
-COPY config/confd/templates /etc/confd/templates/
-RUN chown -R deployer:deployer /etc/confd
-
-
-## ------------------------------------------------------------------
 ## Setup nginx
 ## ------------------------------------------------------------------
 
