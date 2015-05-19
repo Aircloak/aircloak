@@ -4,6 +4,11 @@ renderGraphs = (buckets) ->
       .filter((bucket) -> bucket.label == label)
       .map((bucket) -> bucket.value)
       .value()
+  return unless _.contains(findValue("ac_query"), "ecdf")
+  # The graph element is hidden by default, but now
+  # that we know there exists data to render one, we
+  # should show the graph.
+  $("#chart").removeClass("hidden")
   x_label = findValue("ac_ecdf_x_label")
   y_label = findValue("ac_ecdf_y_label")
   legend = findValue("ac_ecdf_legend")
@@ -55,5 +60,4 @@ $ ->
   if existingResults.length > 0
     # We render the graph from the most recent result
     buckets = existingResults[existingResults.length - 1].buckets
-    $("#chart").removeClass("hidden")
     renderGraphs(buckets)
