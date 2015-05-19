@@ -58,7 +58,6 @@
           exit(Pid, kill)
         end || Pid <- lists:reverse(Pids)
       ],
-      timer:sleep(200),
       error_logger:tty(true)
     end
   }).
@@ -79,6 +78,8 @@
     fun(StartedApps) ->
       error_logger:tty(false),
       [application:stop(App) || App <- StartedApps],
+      % It seems that when application:stop returns, some processes might still
+      % linger for awhile. Therefore, we introduce a magical sleep here.
       timer:sleep(200),
       error_logger:tty(true)
     end
