@@ -125,11 +125,11 @@ class Api::TasksController < ApplicationController
         }
   end
 
-  private
-    def load_task
-      @task = @analyst.tasks.find_by_token params[:id]
-      if !@task
-        render json: {success: false, description: "Unknown task"}, status: :not_found
-      end
+private
+  def load_task
+    @task = @analyst.tasks.find_by_token params[:id]
+    if !@task
+      render json: {success: false, description: "Unknown task"}, status: :not_found
     end
+  end
 end
