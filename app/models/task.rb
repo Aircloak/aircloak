@@ -103,6 +103,7 @@ class Task < ActiveRecord::Base
       unless response["success"] == true then
         # TODO: LOG
       end
+      pr
     end
   end
 
