@@ -31,6 +31,7 @@ group :development, :test do
   gem 'pry-nav', github: "nixme/pry-nav"
   gem 'rspec-rails', '~> 2.0'
   gem 'sqlite3'
+  gem "unicorn-rails"
 end
 
 group :test do
