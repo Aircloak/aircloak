@@ -21,7 +21,7 @@ describe InfrastructureApi::ResultsController do
 
       # We need a valid pending result in order to get through
       # the security checks of the controller
-      pr = double("pending result")
+      pr = double("pending result", signal_result: true)
       PendingResult.should_receive(:where).and_return([pr])
       pr.should_receive(:task_id).and_return(t.id)
       pr.should_receive(:standing).and_return(false)

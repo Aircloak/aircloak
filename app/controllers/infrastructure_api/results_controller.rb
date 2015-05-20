@@ -21,7 +21,8 @@ class InfrastructureApi::ResultsController < ApplicationController
         published_at = published_at.to_i # convert to integer
         published_at = Time.at(published_at / 1000, (published_at % 1000) * 1000).utc # convert to time object
       end
-      ResultHandler.store_results task, json, published_at
+      result = ResultHandler.store_results task, json, published_at
+      @pending_result.signal_result result
     end
     render text: "Got it buddy, thanks", layout: false
   end

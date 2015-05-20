@@ -95,8 +95,9 @@ class Api::TasksController < ApplicationController
     )
 
     if task.save
-      task.execute_batch_task
-      render json: {success: true}
+      pending_result = task.execute_batch_task
+      result = pending_result.await_result
+      render json: {success: true, result: result.to_client_hash}
     else
       description = "Could not execute the task. It failed validation. " +
         "The errors include: #{task.errors.to_a.join(", ")}"

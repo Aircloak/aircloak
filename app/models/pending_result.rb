@@ -14,4 +14,25 @@ class PendingResult < ActiveRecord::Base
   def self.delete_for_task task
     PendingResult.where(task_id: task.id).delete_all
   end
+
+  def signal_result result
+    result_id = connection.quote result.id.to_s
+    connection.execute "NOTIFY #{channel_name}, #{result_id}"
+  end
+
+  def await_result
+    connection.execute "LISTEN #{channel_name}"
+    result = nil
+    connection.raw_connection.wait_for_notify do |channel, pid, result_id|
+      result = Result.find(result_id)
+    end
+    result
+  ensure
+    connection.execute "UNLISTEN *"
+  end
+
+private
+  def channel_name
+    "query_result_#{auth_token.gsub("-", "")}"
+  end
 end

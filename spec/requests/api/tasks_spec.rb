@@ -188,11 +188,14 @@ describe "ApiTasksController" do
       task = double(:task)
       Task.should_receive(:new).and_return(task)
       task.should_receive(:save).and_return(true)
-      task.should_receive(:execute_batch_task)
+      result = double(:result, to_client_hash: {buckets: "and stuff"})
+      pending_result = double(:pending_result, await_result: result)
+      task.should_receive(:execute_batch_task).and_return(pending_result)
       post "/api/tasks/run", payload.to_json, {'HTTP_ANALYST_TOKEN' => token.token}
       response.code.should eq "200"
       body = JSON.parse(response.body)
       body["success"].should eq true
+      body["result"].should_not eq nil
     end
   end
 

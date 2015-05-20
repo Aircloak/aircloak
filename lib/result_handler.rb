@@ -14,6 +14,8 @@ class ResultHandler
     if json["exceptions"] and json["exceptions"].size > 0
       json["exceptions"].each {|ex| ExceptionResult.create_from_json new_result, ex}
     end
+
+    new_result
   end
 
   def self.post_processing_types buckets
