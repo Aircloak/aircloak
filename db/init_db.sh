@@ -34,11 +34,10 @@ conditionally_create_database()
 }
 
 server_is_up() {
-  running=$(gosu postgres pg_ctl -D /var/lib/postgresql/data/ status | grep "is running")
-  if [ -z "$running" ]; then
-    return 1
-  else
+  if eval "echo 'select 1' | psql -U postgres > /dev/null 2>&1"; then
     return 0
+  else
+    return 1
   fi
 }
 
