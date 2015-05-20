@@ -96,8 +96,18 @@ Web::Application.routes.draw do
   scope "/api", module: :api do
     resources :tasks, path: "tasks" do
       resources :task_results, path: "results"
-      post :run, on: :member
       post :subscribe_request, on: :member
+
+      # There are two run methods in the
+      # public API. One is used against
+      # tasks already defined in the web
+      # interface, and then executes them against
+      # the cluster they were defined for,
+      # the other takes a new task definition,
+      # and executes it synchronously (from
+      # the callers perspective) against a cluster.
+      post :run, on: :collection, action: "run_anon_task" # anonymous task
+      post :run, on: :member, action: "run_existing_task" # known task
     end
 
     resources :clusters, only: :index
