@@ -29,8 +29,13 @@ The second approach allows you to build docker containers for each component, al
 In order to run the system you need the following components:
 
 - Docker 1.6 (+ boot2docker if on OS X)
-- ruby 2.0
+- Ruby 2.0
 - Erlang 17.5
+- Any other package needed to build and run specific components (e.g. liblua, libprotobuf, ...)
+
+__Linux developers__: Scripts in this project use docker in the context of the logged in user (without root
+privileges). To enable this, you need to add yourself to the `docker` group. See
+[here](http://askubuntu.com/a/477554) for explanation.
 
 ### OS X and boot2docker
 
@@ -77,7 +82,7 @@ Alternatively, you can setup an NFS mount. You can use a helper script in the ro
 2. Run `./osx_mount_nfs /projects`
 3. Verify that `/projects` is available on your boot2docker machine.
 
-**Note**: if using NFS approach, you need to mount folders after each restart of boot2docker VM.
+__Note__: if using NFS approach, you need to mount folders after each restart of boot2docker VM.
 
 
 ## Starting etcd and database
@@ -100,7 +105,7 @@ In the new setup, the database runs inside the docker container, and listens on 
    `pg_dump --data-only --no-owner --no-acl -h localhost -U postgres aircloakdatabase | psql -h 127.0.0.1 -p 5433 -U postgres aircloakdatabase`
    This assumes that your old database is called `aircloakdatabase`. If that's not the case, change the name in the left part of the command (before the `|` character), leaving the right part untouched. You'll see various errors, but data should be migrated. You can check that manually by inspecting the content of some table on `localhost:5433` database server.
 
-** OS X devs**: Keep in mind that your database data is stored inside boot2docker VM in
+__OS X devs__: Keep in mind that your database data is stored inside boot2docker VM in
 `/mnt/sda1/docker_volumes/air_db` folder. __If you delete boot2docker VM, this data will be lost.__
 
 ## Running the system on the localhost
