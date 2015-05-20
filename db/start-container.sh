@@ -40,15 +40,11 @@ docker run \
   -p 5433:5432 \
   aircloak/air_db:latest
 
-pg_status=$(docker exec air_db gosu postgres pg_ctl status | grep 'is running')
-if [ -n pg_status ]; then
-  docker exec air_db /init_db.sh
+echo "Container started"
 
-  echo
-  echo "Database server is running and listening on port 5433."
-  echo "If you're running on OS X, make sure map the boot2docker port 5433 to your localhost."
-  echo
-else
-  echo "Container has not been started successfully."
-  exit 1
-fi
+docker exec air_db /init_db.sh
+
+echo
+echo "Database server is running and listening on port 5433."
+echo "If you're running on OS X, make sure map the boot2docker port 5433 to your localhost."
+echo
