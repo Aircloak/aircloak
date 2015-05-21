@@ -131,7 +131,7 @@ This endpoint allows you to asynchronously run a _batch task_ that has been defi
 If you try to schedule a periodic or streaming task, it will fail. Periodic and streaming tasks are automatically
 scheduled on the cloaks upon creation.
 
-The alternatives to this API is to directly run one-off tasks using the [dynamic one-off task API](#execute-a-dynamic-one-off-task) or the equivalent API on the [cloaks themselves](#task-execution). The benefit this API
+The alternatives to this API are to directly run one-off tasks using the [dynamic one-off task API](#execute-a-dynamic-one-off-task) or the equivalent API on the [cloaks themselves](#task-execution). The benefit this API
 has over the former two is that you are able to develop and test your task using the online sandbox
 functionality and that you have full access to the Aircloak provided standard library of helper functions.
 
@@ -227,9 +227,7 @@ wget --content-on-error \
 This API endpoint allows execution of batch tasks against a cloak cluster. The primary use case of this API is
 when you programmatically want to run dynamically generated queries against the cloak.
 
-Aircloak provided standard library functions can be used in the tasks executed against this API. The
-corresponding Lua implementation will be added to the task definition by the API before the tasks are executed
-on the cloaks.
+Aircloak provided standard library functions can be used in the tasks executed against this API.
 
 The API is synchronous and blocks while waiting for the cloak to perform the cloaked computations.
 
@@ -261,7 +259,7 @@ clusters can be gotten through the [/clusters](#get-list-of-all-clusters) API en
 The prefetch clause is used to select data from the database. The post processing clause is executed once per
 user over the data returned by the prefetch clause.
 
-The post processing clause must contain a `code` section containing the lua task to execute.
+The post processing clause must contain a `code` section containing the Lua task to execute.
 
 #### Prefetch
 

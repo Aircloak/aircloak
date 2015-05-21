@@ -121,7 +121,7 @@ describe "ApiTasksController" do
       (body["description"] =~ /cluster/i).should_not eq nil
     end
 
-    it "requires a cluster" do
+    it "requires a cluster that belongs to the analyst in question" do
       # The cluster doesn't belong to the analyst
       post "/api/tasks/run", payload.to_json, {'HTTP_ANALYST_TOKEN' => token.token}
       response.code.should eq "422"
