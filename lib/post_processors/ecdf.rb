@@ -59,6 +59,24 @@ class ECDF
       result_buckets << {x: bucket["value"].to_i, y: percentage}
     end
 
+    result_buckets.sort_by! {|bucket| bucket[:x]}
+    begin
+      did_adjustment = false
+      result_buckets.each_index do |index|
+        next if index == 0
+        prev = result_buckets[index-1][:y]
+        current = result_buckets[index][:y]
+        if prev > current
+          # We are seeing effects of noise.
+          # Let's fake it by averaging them out
+          average = (prev + current) / 2
+          result_buckets[index-1][:y] = average
+          result_buckets[index][:y] = average
+          did_adjustment = true
+        end
+      end
+    end while(did_adjustment)
+
     ecdf_data["data"] = result_buckets
 
     result["value"] = ecdf_data.to_json
