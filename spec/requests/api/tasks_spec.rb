@@ -94,6 +94,111 @@ describe "ApiTasksController" do
     end
   end
 
+  describe "POST /api/tasks/run" do
+    it "should require analyst" do
+      post "/api/tasks/run"
+      response.code.should eq "401"
+
+      post "/api/tasks/run", "", {'HTTP_ANALYST_TOKEN' => "foobar"}
+      response.code.should eq "401"
+    end
+
+    def payload
+      {
+        prefetch: {},
+        post_processing: {code: "business logic"},
+        cluster: cluster.id
+      }
+    end
+
+    it "requires a cluster" do
+      payload_without_cluster = payload
+      payload_without_cluster.delete(:cluster)
+      post "/api/tasks/run", payload_without_cluster.to_json, {'HTTP_ANALYST_TOKEN' => token.token}
+      response.code.should eq "422"
+      body = JSON.parse(response.body)
+      body["success"].should eq false
+      (body["description"] =~ /cluster/i).should_not eq nil
+    end
+
+    it "requires a cluster that belongs to the analyst in question" do
+      # The cluster doesn't belong to the analyst
+      post "/api/tasks/run", payload.to_json, {'HTTP_ANALYST_TOKEN' => token.token}
+      response.code.should eq "422"
+      body = JSON.parse(response.body)
+      body["success"].should eq false
+      (body["description"] =~ /cluster/i).should_not eq nil
+      (body["description"] =~ /does not exist/i).should_not eq nil
+    end
+
+    it "requires content payload" do
+      post "/api/tasks/run", "", {'HTTP_ANALYST_TOKEN' => token.token}
+      response.code.should eq "422"
+      body = JSON.parse(response.body)
+      body["success"].should eq false
+      (body["description"] =~ /payload/i).should_not eq nil
+    end
+
+    it "requires a code segment" do
+      cluster.analysts << analyst
+      payload_without_code = payload
+      payload_without_code[:post_processing].delete(:code)
+      post "/api/tasks/run", payload_without_code.to_json, {'HTTP_ANALYST_TOKEN' => token.token}
+      response.code.should eq "422"
+      body = JSON.parse(response.body)
+      body["success"].should eq false
+      (body["description"] =~ /code/i).should_not eq nil
+
+      payload_without_code.delete(:post_processing)
+      post "/api/tasks/run", payload_without_code.to_json, {'HTTP_ANALYST_TOKEN' => token.token}
+      response.code.should eq "422"
+      body = JSON.parse(response.body)
+      body["success"].should eq false
+      (body["description"] =~ /code/i).should_not eq nil
+    end
+
+    it "requires a prefetch clause" do
+      cluster.analysts << analyst
+      payload_without_prefetch = payload
+      payload_without_prefetch.delete(:prefetch)
+      post "/api/tasks/run", payload_without_prefetch.to_json, {'HTTP_ANALYST_TOKEN' => token.token}
+      response.code.should eq "422"
+      body = JSON.parse(response.body)
+      body["success"].should eq false
+      (body["description"] =~ /prefetch/i).should_not eq nil
+    end
+
+    it "should return validation errors" do
+      cluster.analysts << analyst
+      task = double(:task)
+      Task.should_receive(:new).and_return(task)
+      task.should_receive(:save).and_return(false)
+      errors = double(to_a: ["Validation failed"])
+      task.should_receive(:errors).and_return(errors)
+
+      post "/api/tasks/run", payload.to_json, {'HTTP_ANALYST_TOKEN' => token.token}
+      response.code.should eq "422"
+      body = JSON.parse(response.body)
+      body["success"].should eq false
+      (body["description"] =~ /validation failed/i).should_not eq nil
+    end
+
+    it "creates and runs a task and returns the results" do
+      cluster.analysts << analyst
+      task = double(:task)
+      Task.should_receive(:new).and_return(task)
+      task.should_receive(:save).and_return(true)
+      result = double(:result, to_client_hash: {buckets: "and stuff"})
+      pending_result = double(:pending_result, await_result: result)
+      task.should_receive(:execute_batch_task).and_return(pending_result)
+      post "/api/tasks/run", payload.to_json, {'HTTP_ANALYST_TOKEN' => token.token}
+      response.code.should eq "200"
+      body = JSON.parse(response.body)
+      body["success"].should eq true
+      body["result"].should_not eq nil
+    end
+  end
+
   describe "POST /api/tasks/<TOKEN>/subscribe_request" do
     it "should require analyst" do
       post "/api/tasks/token/subscribe_request"

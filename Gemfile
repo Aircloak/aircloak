@@ -31,6 +31,7 @@ group :development, :test do
   gem 'pry-nav', github: "nixme/pry-nav"
   gem 'rspec-rails', '~> 2.0'
   gem 'sqlite3'
+  gem "unicorn-rails"
 end
 
 group :test do
@@ -49,7 +50,6 @@ end
 
 group :production do
   gem 'SyslogLogger'
-  gem 'pg'
 end
 
 # Gems used only for assets and not required
@@ -88,3 +88,9 @@ gem 'codemirror-rails', '~> 4.5'
 
 # for running periodic tasks
 gem 'whenever'
+
+# We use Postgres for both production, development and test.
+# This is required due to the use of the Postgres NOTIFY/LISTEN
+# feature, used for synchronously run tasks in the Web API:
+# /api/tasks/run
+gem 'pg'
