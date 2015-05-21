@@ -109,7 +109,52 @@ less control over the key material.
 These keys are generated through an authenticated API. Please contact us on
 [support@aircloak.com](mailto:support@aircloak.com) should you be interested.
 
+
 # Web REST API
+
+## Get list of all clusters
+
+```ruby
+# Using RestClient from example in the Authentication section
+
+api_key = RestClient.key_from_file "my_api_key.pfx", "my_password"
+url = "https://api.aircloak.com/clusters"
+response = RestClient.get(url, api_key)
+```
+
+```shell
+wget --content-on-error \
+     --output-document - \
+     --certificate=<path-to-PEM-certificate> \
+     https://api.aircloak.com/clusters
+```
+
+This endpoint retrieves all available clusters for the authenticated analyst.
+
+### HTTP Request
+
+`GET /clusters`
+
+### Authentication
+
+You need a REST API key to access this API endpoint. See the [authentication](#authentication) section for details.
+
+### Response
+
+```json
+{
+  "success": true,
+  "clusters": [
+    {"id":1, "name": "Artemis"},
+    {"id":2, "name": "Zeus"}
+  ]
+}
+```
+
+The API return value is a list of all clusters for the authenticated analyst.
+
+For the use of error codes in the Web REST API, please consult the [Errors](#errors) section.
+
 
 ## Get list of all tasks
 
