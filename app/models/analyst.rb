@@ -21,6 +21,10 @@ class Analyst < ActiveRecord::Base
     [["None", "none"]] + Analyst.all.map {|a| [a.name, a.id]}
   end
 
+  def persistent_tasks
+    tasks.where(one_off: false)
+  end
+
   def undeleted_user_tables
     user_tables.where(deleted: false)
   end

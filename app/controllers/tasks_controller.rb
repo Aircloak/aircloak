@@ -19,7 +19,7 @@ class TasksController < ApplicationController
 
   # GET /tasks
   def index
-    @tasks = current_user.analyst.tasks.where(:deleted => false)
+    @tasks = current_user.analyst.persistent_tasks.where(:deleted => false)
     describe_activity "Browsing all tasks for #{current_user.analyst.name}"
   end
 

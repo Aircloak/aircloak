@@ -4,9 +4,15 @@ describe Analyst do
   before(:each) do
     Analyst.destroy_all
     RepeatedAnswer.delete_all
+    Cloak.delete_all
+    Build.delete_all
+    Cluster.delete_all
   end
 
-  let(:analyst) { Analyst.create name: "test analyst" }
+  let(:cloak) {Cloak.create(name: "test cloak", ip: "127.0.1.2")}
+  let(:build) {Build.create(name: "test", manual: true)}
+  let(:cluster) {Cluster.create(name: "test cluster: #{analyst.id}", cloaks: [cloak], build: build)}
+  let(:analyst) {Analyst.create name: "test analyst"}
 
   it "should have a name" do
     Analyst.create.errors.should include(:name)
@@ -60,6 +66,20 @@ describe Analyst do
         AnalystToken.find_by_token(token.token).should eq nil
       end
     end
+  end
+
+  it "should know the difference between one-off and persistent tasks" do
+    task = Task.create(
+      analyst: analyst,
+      name: "test-task",
+      code: "lua code",
+      prefetch: "prefetch",
+      cluster: cluster
+    )
+    analyst.persistent_tasks.size.should eq 1
+    task.one_off = true
+    task.save.should eq true
+    analyst.reload.persistent_tasks.size.should eq 0
   end
 
   context "destruction" do

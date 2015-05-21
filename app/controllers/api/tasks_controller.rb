@@ -15,7 +15,7 @@ class Api::TasksController < ApplicationController
 
   # GET /api/tasks
   def index
-    tasks = @analyst.tasks.order(:created_at).map do |task|
+    tasks = @analyst.persistent_tasks.order(:created_at).map do |task|
       {
         token: task.token,
         name: task.name,
@@ -91,7 +91,8 @@ class Api::TasksController < ApplicationController
       update_task: false,
       code_timestamp: Time.now,
       code: payload["post_processing"]["code"],
-      prefetch: payload["prefetch"].to_json
+      prefetch: payload["prefetch"].to_json,
+      one_off: true
     )
 
     if task.save
