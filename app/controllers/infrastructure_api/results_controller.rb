@@ -24,6 +24,12 @@ class InfrastructureApi::ResultsController < ApplicationController
       result = ResultHandler.store_results task, json, published_at
       @pending_result.signal_result result
     end
+    # One-off tasks need to be deleted after completion.
+    # As we still need the results in order to send them
+    # back to the client, we don't explicitly destroy the
+    # task (which would remove the results), but mark it
+    # as deleted to have it garbage collected down the road.
+    task.update_attribute(:deleted, true) if task.one_off
     render text: "Got it buddy, thanks", layout: false
   end
 
