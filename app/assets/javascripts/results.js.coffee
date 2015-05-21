@@ -40,6 +40,18 @@ format_date = (timestamp) ->
 
 # adds a row to the results table representing the specified result
 Results.display = (result) ->
+  # We perform post-processing of graphable results in the air,
+  # and the result is quite a hefty chunk of JSON which doesn't
+  # render well. For display purposes, we only show that there
+  # is graph data there, rather than displaying the full JSON.
+  result.buckets = _.map(result.buckets, (bucket) ->
+        if bucket.label == "ac_graph"
+          bucket.label = "Graph"
+          data = JSON.parse(bucket["value"])
+          bucket.value = data.title
+        bucket
+      )
+
   table = document.getElementById 'results_table'
 
   if Results.resultsTableLimit?
