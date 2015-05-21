@@ -13,6 +13,9 @@ cache:
 addons:
   postgresql: "9.4"
 before_install:
+  # Check last 100 commits for valid signatures. Number 100 is chosen in a hacky
+  # manner, assuming no reasonable PR will be that large.
+  - git log --pretty="format:%H$t%aN$t%s$t%G?" -n 100 | grep -v "${t}G$"
   - sudo hostname "$(hostname).local"
   - sudo apt-get update -qq
   - sudo apt-get install -y protobuf-c-compiler liblua5.1-0-dev libprotobuf-c0-dev protobuf-compiler
