@@ -155,7 +155,7 @@ is_task_execution_ok() ->
         ?load_conf,
         ?with_applications([gproc, webmachine]),
         ?with_processes([cloak_services_sup, air_sandbox_sup]),
-        ?sanbox_web_server
+        ?sandbox_web_server
       ],
       [
         {"Validate that monitoring check works", fun() ->
