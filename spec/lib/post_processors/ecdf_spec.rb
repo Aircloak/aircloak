@@ -55,5 +55,36 @@ describe ECDF do
     value = JSON.parse(result["value"])
     data = value["data"].sort_by {|v| v["x"]}
     data.inject(0) {|min,v| y = v["y"]; (min <= y).should eq true; y}
+
+    # -----
+
+    buckets = base_buckets
+    buckets << cdf_value(1, 1)
+    buckets << cdf_value(2, 2)
+    buckets << cdf_value(3, 3)
+    buckets << cdf_value(4, 4)
+
+    results = ECDF.process(buckets)
+    result = results.first
+    value = JSON.parse(result["value"])
+    data = value["data"].sort_by {|v| v["x"]}
+    data.map! {|v| v["y"]}
+    data.should eq [100, 100, 100, 100]
+
+    # -----
+
+    buckets = base_buckets
+    buckets << cdf_value(1, 2)
+    buckets << cdf_value(2, 1)
+    buckets << cdf_value(3, 0)
+    buckets << cdf_value(4, 1)
+    buckets << cdf_value(5, 2)
+
+    results = ECDF.process(buckets)
+    result = results.first
+    value = JSON.parse(result["value"])
+    data = value["data"].sort_by {|v| v["x"]}
+    data.map! {|v| v["y"].to_i}
+    data.should eq [0, 66, 100, 100, 100]
   end
 end

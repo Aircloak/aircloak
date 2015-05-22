@@ -46,15 +46,17 @@ class ECDF
     data_buckets = buckets.select {|bucket| bucket["label"] =~ /ac_ecdf_val/}
 
     max_count = data_buckets.first["count"]
+    min_count = max_count
     # Find boundaries
     data_buckets.each do |bucket|
       val = bucket["count"]
       max_count = val if val > max_count
+      min_count = val if val < min_count
     end
 
     result_buckets = []
     data_buckets.each do |bucket|
-      from_min = max_count - bucket["count"]
+      from_min = max_count - bucket["count"] + min_count
       percentage = (100 * from_min) / max_count
       result_buckets << {x: bucket["value"].to_i, y: percentage}
     end
@@ -109,6 +111,16 @@ class ECDF
       prev = result_buckets[index-1][:y]
       current = result_buckets[index][:y]
       result_buckets[index][:y] = prev if prev > current
+    end
+
+    # The averaging and shifting of the values might have changed the scale
+    # of the values, such that the maximum value no longer is at 100%
+    # We need to re-scale in order to ensure we end up with a total of 100%
+    current_max_val = result_buckets.last[:y]
+    ratio_to_hundred = 100.0 / current_max_val
+    result_buckets.map! do |bucket|
+      bucket[:y] *= ratio_to_hundred
+      bucket
     end
 
     ecdf_data["data"] = result_buckets
