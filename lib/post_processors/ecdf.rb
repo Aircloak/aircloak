@@ -78,16 +78,29 @@ class ECDF
     # with step 2 instead.
 
     # Phase 1: average
+    # We average based on the original values.
+    # This means that the sequence
+    #   4, 3, 2, 1
+    # becomes:
+    #   3.5, 2.5, 1.5, 1.5
+    # and:
+    #   1, 0, 1, 2
+    # becomes:
+    #   0.5, 0.5, 0.5, 2
+    orig_prev = nil
     result_buckets.each_index do |index|
-      next if index == 0
-      prev = result_buckets[index-1][:y]
-      current = result_buckets[index][:y]
-      if prev > current
-        # We are seeing effects of noise.
-        # Let's fake it by averaging them out
-        average = (prev + current) / 2
-        result_buckets[index-1][:y] = average
-        result_buckets[index][:y] = average
+      if index == 0
+        orig_prev = result_buckets[index][:y]
+      else
+        current = result_buckets[index][:y]
+        if orig_prev > current
+          # We are seeing effects of noise.
+          # Let's fake it by averaging them out
+          average = (orig_prev + current) / 2
+          result_buckets[index-1][:y] = average
+          result_buckets[index][:y] = average
+        end
+        orig_prev = current
       end
     end
     # Phase 2: force monotonicity
