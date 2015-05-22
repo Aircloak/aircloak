@@ -11,6 +11,6 @@ class AirpubController < ApplicationController
   def subscribe
     @path = params['path']
     @request = AirpubApi.generate_subscribe_request @path
-    @server_url = Conf.get("/settings/rails/secrets/airpub_ws_subscribe")
+    @server_url = Conf.get("/service/airpub/subscribe_endpoint")
   end
 end
