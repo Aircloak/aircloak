@@ -60,22 +60,46 @@ class ECDF
     end
 
     result_buckets.sort_by! {|bucket| bucket[:x]}
-    begin
-      did_adjustment = false
-      result_buckets.each_index do |index|
-        next if index == 0
-        prev = result_buckets[index-1][:y]
-        current = result_buckets[index][:y]
-        if prev > current
-          # We are seeing effects of noise.
-          # Let's fake it by averaging them out
-          average = (prev + current) / 2
-          result_buckets[index-1][:y] = average
-          result_buckets[index][:y] = average
-          did_adjustment = true
+    # Due to the noise in the buckets reported from the cloak,
+    # we end up with ECDF artefacts where the supposedly monotonically
+    # increasing curve all of a sudden dips down.
+    # We counteract this in two steps:
+    # 1. we average out the values around the dips
+    #    to account for the noise
+    # 2. we force each subsequent
+    #    value to be as great or greater than
+    #    the value preceding it.
+    #
+    # While one could manage with step 1 alone
+    # by repeatedly performing it until the
+    # curve is monotonic, it is hard to predict
+    # how long it will actually take to complete.
+    # To limit runtime we therefore approximate it
+    # with step 2 instead.
+    result_buckets.each_index do |index|
+      next if index == 0
+      prev = result_buckets[index-1][:y]
+      current = result_buckets[index][:y]
+      if prev > current
+        # We are seeing effects of noise.
+        # Let's fake it by averaging them out
+        average = (prev + current) / 2
+        result_buckets[index-1][:y] = average
+        result_buckets[index][:y] = average
+        # Now we need to ensure that the averaging,
+        # didn't cause the previous value to dip
+        # below the value preceding it. If it did,
+        # then we need to force it up to at least
+        # the preceding values level
+        if index > 1
+          prev_prev = result_buckets[index-2][:y]
+          if prev_prev > average
+            result_buckets[index-1][:y] = prev_prev
+            result_buckets[index][:y] = prev_prev
+          end
         end
       end
-    end while(did_adjustment)
+    end
 
     ecdf_data["data"] = result_buckets
 

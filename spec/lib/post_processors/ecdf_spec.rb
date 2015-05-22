@@ -1,5 +1,4 @@
 require './lib/post_processors/ecdf'
-require 'pry'
 
 describe ECDF do
   def bucket label, value
@@ -48,7 +47,8 @@ describe ECDF do
     buckets << cdf_value(1, 100)
     buckets << cdf_value(2, 50)
     buckets << cdf_value(3, 75)
-    buckets << cdf_value(4, 0)
+    buckets << cdf_value(4, 76.3)
+    buckets << cdf_value(5, 0)
 
     results = ECDF.process(buckets)
     result = results.first
