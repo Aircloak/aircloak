@@ -64,7 +64,8 @@ content: |
   for that same user, you can use this state to detect if a user has moved or not:
 
   ```lua
-  local location = tables.locations[1]
+  local locations = load_user_table("locations")
+  local location = locations[1]
 
   if (accumulator ~= nil) then
     -- report something only if not the first run

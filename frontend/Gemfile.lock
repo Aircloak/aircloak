@@ -207,7 +207,7 @@ GEM
       multi_json (~> 1.0)
       multi_xml (~> 0.5)
       rack (~> 1.2)
-    pg (0.17.0)
+    pg (0.18.2)
     polyglot (0.3.4)
     quiet_assets (1.0.2)
       railties (>= 3.1, < 5.0)
@@ -281,6 +281,9 @@ GEM
       kgio (~> 2.6)
       rack
       raindrops (~> 0.7)
+    unicorn-rails (2.2.0)
+      rack
+      unicorn
     vcr (2.6.0)
     will_paginate (3.0.7)
 
@@ -327,5 +330,6 @@ DEPENDENCIES
   uglifier (>= 1.0.3)
   underscore-rails (~> 1.6.0)
   unicorn (~> 4.8)
+  unicorn-rails
   vcr
   will_paginate (~> 3.0)

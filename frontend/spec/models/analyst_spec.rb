@@ -4,9 +4,15 @@ describe Analyst do
   before(:each) do
     Analyst.destroy_all
     RepeatedAnswer.delete_all
+    Cloak.delete_all
+    Build.delete_all
+    Cluster.delete_all
   end
 
-  let(:analyst) { Analyst.create name: "test analyst" }
+  let(:cloak) {Cloak.create(name: "test cloak", ip: "127.0.1.2")}
+  let(:build) {Build.create(name: "test", manual: true)}
+  let(:cluster) {Cluster.create(name: "test cluster: #{analyst.id}", cloaks: [cloak], build: build)}
+  let(:analyst) {Analyst.create name: "test analyst"}
 
   it "should have a name" do
     Analyst.create.errors.should include(:name)
@@ -62,6 +68,20 @@ describe Analyst do
     end
   end
 
+  it "should know the difference between one-off and persistent tasks" do
+    task = Task.create(
+      analyst: analyst,
+      name: "test-task",
+      code: "lua code",
+      prefetch: "prefetch",
+      cluster: cluster
+    )
+    analyst.persistent_tasks.size.should eq 1
+    task.one_off = true
+    task.save.should eq true
+    analyst.reload.persistent_tasks.size.should eq 0
+  end
+
   context "destruction" do
     before(:each) do
       Cloak.delete_all
@@ -71,6 +91,8 @@ describe Analyst do
       UserTable.delete_all
       Result.delete_all
       LookupTable.delete_all
+      User.delete_all
+      Permission.delete_all
     end
 
     it "should destroy dependents" do
@@ -91,7 +113,7 @@ describe Analyst do
           stored_task: false,
           analyst: analyst
         )}.to change { Task.count }.from(0).to(1)
-        expect {
+      expect {
           lt = LookupTable.new(
             table_name: "test",
             cluster: analyst.clusters.first,
@@ -101,7 +123,7 @@ describe Analyst do
           lt.upload_data = StringIO.new("[[\"hello\", \"world\"]]")
           lt.save.should eq true
         }.to change {LookupTable.count}.from(0).to(1)
-        expect {Result.create(task: analyst.tasks.first, analyst: analyst)}.to change {Result.count}.from(0).to(1)
+      expect {Result.create(task: analyst.tasks.first, analyst: analyst)}.to change {Result.count}.from(0).to(1)
 
         # All the crap above, just for this tiny test...
         analyst.destroy.should eq false
@@ -114,6 +136,30 @@ describe Analyst do
         LookupTable.count.should eq 0
         Result.count.should eq 0
         Analyst.count.should eq analysts_count -1
+    end
+
+    def add_user username
+      user = User.new(
+        password: "abcd",
+        password_confirmation: "abcd",
+        login: username,
+        email: "#{username.gsub(" ", "")}@aircloak.com"
+      )
+      user.save.should eq true
+      analyst.users << user
+      user
+    end
+
+    it "should remove users" do
+      add_user "test"
+      expect {analyst.destroy}.to change {User.count}.from(1).to(0)
+    end
+
+    it "should not remove admin users who impersonate the analyst" do
+      user = add_user "test"
+      user.permissions << Permission.create(name: "admin")
+      user.reload.admin?.should eq true
+      expect {analyst.destroy}.to_not change {User.count}.from(1).to(0)
     end
   end
 end
