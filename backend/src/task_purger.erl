@@ -1,4 +1,4 @@
-%% @doc Global (cluster-wide) service which purges deleted tasks.
+%% @doc Global (cluster-wide) service which purges results of deleted tasks.
 -module(task_purger).
 -behaviour(gen_server).
 
@@ -64,7 +64,7 @@ handle_call(Message, From, _State) ->
 
 %% @hidden
 handle_cast(run, State) ->
-  purge_tasks(),
+  purge_tasks_results(),
   {noreply, State};
 handle_cast(Message, _State) ->
   throw({unexpected_cast, Message, to, ?MODULE}).
@@ -84,17 +84,17 @@ code_change(_, State, _) -> {ok, State}.
 %% Internal functions
 %% -------------------------------------------------------------------
 
-purge_tasks() ->
+purge_tasks_results() ->
   air_db:call({fun(Connection) ->
         {{select, _}, TaskIds} = pgsql_connection:simple_query(
               "SELECT id FROM tasks WHERE deleted=true AND purged=false AND updated_at <= now() - INTERVAL '7 days'",
               Connection
             ),
-        [purge_task(TaskId, Connection) || {TaskId} <- TaskIds],
+        [purge_task_results(TaskId, Connection) || {TaskId} <- TaskIds],
         ok
       end, timer:minutes(1)}).
 
-purge_task(TaskId, Connection) ->
+purge_task_results(TaskId, Connection) ->
   {{delete, _}, _} = pgsql_connection:extended_query(
         "DELETE FROM exception_results USING results "
         "WHERE exception_results.result_id=results.id AND results.task_id=$1",
@@ -157,7 +157,7 @@ days_ago(Days) ->
           add_task(3, true, false, days_ago(6)),
           add_task(4, true, false, days_ago(7)),
           add_task(5, true, true, days_ago(7)),
-          purge_tasks(),
+          purge_tasks_results(),
           ?assertEqual(
                 {{select, 2}, [{<<"task2">>}, {<<"task3">>}]},
                 db_test_helpers:simple_query(
