@@ -87,4 +87,24 @@ describe ECDF do
     data.map! {|v| v["y"].to_i}
     data.should eq [0, 66, 100, 100, 100]
   end
+
+  it "should cut of long tails of 0%" do
+    buckets = base_buckets
+    buckets << cdf_value(1, 100)
+    buckets << cdf_value(2, 100)
+    buckets << cdf_value(3, 100)
+    buckets << cdf_value(4, 50)
+    buckets << cdf_value(5, 0)
+
+    results = ECDF.process(buckets)
+    result = results.first
+    value = JSON.parse(result["value"])
+    data = value["data"].sort_by {|v| v["x"]}
+    y_axis = data.map {|v| v["y"].to_i}
+    y_axis.should eq [0, 50, 100]
+    x_axis = data.map {|v| v["x"]}
+    first_x_axis = x_axis.shift
+    # We want to make sure only the last 0 is included
+    x_axis.inject(first_x_axis) {|prev,curr| (prev + 1).should eq curr; curr}
+  end
 end

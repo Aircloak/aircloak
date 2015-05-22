@@ -123,7 +123,21 @@ class ECDF
       bucket
     end
 
-    ecdf_data["data"] = result_buckets
+    # Due to the way we export ECDFs, we might get
+    # a long range of 0%ers up front.
+    # These don't bring any value, and should be removed!
+    # We need the last one of them though, as it actually
+    # is a valid data-point.
+    usable_results = []
+    result_buckets.each_index do |index|
+      next if index == 0
+      first = result_buckets[index-1][:y]
+      second = result_buckets[index][:y]
+      usable_results << result_buckets[index-1] unless (first == 0.0 and first == second)
+    end
+    usable_results << result_buckets.last
+
+    ecdf_data["data"] = usable_results
 
     result["value"] = ecdf_data.to_json
     # There might be other post-processors in line here as well
