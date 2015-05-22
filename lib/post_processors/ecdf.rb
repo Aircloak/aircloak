@@ -76,6 +76,8 @@ class ECDF
     # how long it will actually take to complete.
     # To limit runtime we therefore approximate it
     # with step 2 instead.
+
+    # Phase 1: average
     result_buckets.each_index do |index|
       next if index == 0
       prev = result_buckets[index-1][:y]
@@ -86,19 +88,14 @@ class ECDF
         average = (prev + current) / 2
         result_buckets[index-1][:y] = average
         result_buckets[index][:y] = average
-        # Now we need to ensure that the averaging,
-        # didn't cause the previous value to dip
-        # below the value preceding it. If it did,
-        # then we need to force it up to at least
-        # the preceding values level
-        if index > 1
-          prev_prev = result_buckets[index-2][:y]
-          if prev_prev > average
-            result_buckets[index-1][:y] = prev_prev
-            result_buckets[index][:y] = prev_prev
-          end
-        end
       end
+    end
+    # Phase 2: force monotonicity
+    result_buckets.each_index do |index|
+      next if index == 0
+      prev = result_buckets[index-1][:y]
+      current = result_buckets[index][:y]
+      result_buckets[index][:y] = prev if prev > current
     end
 
     ecdf_data["data"] = result_buckets
