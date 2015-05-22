@@ -165,6 +165,9 @@ days_ago(Days) ->
                       "ORDER BY name"
                     )
               ),
+          % Note: task5 will appear in following results even though it is purged and deleted.
+          % The reason is that it was already marked as purged and deleted before purging,
+          % so the purging code doesn't even take it into account.
           ?assertEqual(
                 {{select, 4}, [{<<"task1">>}, {<<"task2">>}, {<<"task3">>}, {<<"task5">>}]},
                 db_test_helpers:simple_query(
