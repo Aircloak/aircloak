@@ -10,7 +10,7 @@
 {edoc_opts,[{dir,"doc"},{preprocess,true}]}.
 {deps,[{cloak,".*",
                  {git,"git@github.com:Aircloak/cloak-core.git",
-                      "f3f1bdfb99fed7292f27c7751ab74af7870a37b0"}},
+                      "ba71ac169307c80f5324226b14fa95822e7f990c"}},
        {goldrush,".*",
                  {git,"git://github.com/DeadZen/goldrush.git",
                       "71e63212f12c25827e0c1b4198d37d5d018a7fec"}},
@@ -40,7 +40,7 @@
                               "2c73eb6e46b0863f19507857b386a48a53aaf141"}},
        {erlang_common,".*",
                       {git,"git@github.com:Aircloak/erlang_common.git",
-                           "65c99ee257019eaa756c9439bd6cac3d2affcd82"}},
+                           "bd4bc6fb9cfeb746a3c205aa85fd0c681191664a"}},
        {cloak_metrics,".*",
                       {git,"git@github.com:Aircloak/cloak-metrics.git",
                            "101e7c2a84fb15952f88d541587cd913b187da88"}},
