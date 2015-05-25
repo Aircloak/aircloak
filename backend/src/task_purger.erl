@@ -138,7 +138,7 @@ add_task(TaskNum, Deleted, Purged, UpdatedAt) ->
 
 days_ago(Days) ->
   TargetEpoch = cloak_util:timestamp_to_epoch(os:timestamp()) - Days*24*60*60 - 10, % 10 seconds buffer
-  cloak_util:timestamp_to_sql(cloak_util:epoch_to_timestamp(TargetEpoch)).
+  cloak_util:timestamp_to_datetime(cloak_util:epoch_to_timestamp(TargetEpoch)).
 
 ?test_suite(purger_test_,
       setup,
