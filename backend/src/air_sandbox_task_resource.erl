@@ -123,7 +123,7 @@ is_task_execution_ok() ->
             "\"data\": {\"u1\": [[105]]}"
           "}"
         "}],"
-        "\"code\": \"report_property('p1', tables.t1[1].c1);\""
+        "\"code\": \"report_property('p1', load_user_table('t1')[1].c1);\""
       "}",
   ExpectedResult = [
     [
@@ -172,7 +172,7 @@ is_task_execution_ok() ->
                             "\"data\": {\"u1\": [[105]]}"
                           "}"
                         "}],"
-                        "\"code\": \"report_property('p1', tables.t1[1].c1);\""
+                        "\"code\": \"report_property('p1', load_user_table('t1')[1].c1);\""
                       "}"
                     )
               )
@@ -207,7 +207,7 @@ is_task_execution_ok() ->
                             "\"data\": {\"u1\": [[100]]}"
                           "}"
                         "}],"
-                        "\"code\": \"report_property('p1', tenth(tables.t1[1].c1));\","
+                        "\"code\": \"report_property('p1', tenth(load_user_table('t1')[1].c1));\","
                         "\"libraries\": ["
                           "{\"name\": \"foo\", \"code\": \"function tenth(x) return x/10 end\"}"
                         "]"
@@ -246,8 +246,8 @@ is_task_execution_ok() ->
                         "],"
                         "\"code\": \"
                           if accumulator == nil then accumulator = 0 end
-                          report_property('acc', accumulator + tables.t1[1].c1)
-                          accumulator = accumulator + tables.t1[1].c1
+                          report_property('acc', accumulator + load_user_table('t1')[1].c1)
+                          accumulator = accumulator + load_user_table('t1')[1].c1
                         \""
                       "}"
                     )
@@ -295,7 +295,7 @@ is_task_execution_ok() ->
                             "\"data\": {\"u1\": [[105]]}"
                           "}"
                         "}],"
-                        "\"code\": \"report_property('p1', tables.t1[2].c1);\""
+                        "\"code\": \"report_property('p1', load_user_table('t1')[2].c1);\""
                       "}"
                     )
               )
@@ -316,7 +316,7 @@ is_task_execution_ok() ->
                             "\"data\": {\"u1\": [[105]], \"u2\": [[110]], \"u3\":[[115], [120]]}"
                           "}"
                         "}],"
-                        "\"code\": \"report_property('p1', tables.t1[2].c1);\""
+                        "\"code\": \"report_property('p1', load_user_table('t1')[2].c1);\""
                       "}"
                     )
               )
@@ -340,7 +340,7 @@ is_task_execution_ok() ->
                         "}],"
                         "\"code\": \""
                           "insert_row('foo', {a=1})\n"
-                          "if user_id=='u1' then error('foo') end"
+                          "if load_user_table('t1')[1].c1 == 105 then error('foo') end"
                         "\""
                       "}"
                     )
