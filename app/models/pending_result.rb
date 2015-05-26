@@ -41,7 +41,7 @@ class PendingResult < ActiveRecord::Base
           URI.encode("task/#{progress_handle}"), {}, nil)
       if response["success"] == true then
         {
-          time: self.created_at,
+          time: Time.at(self.created_at).utc.strftime('%Y-%m-%d %H:%M'),
           progress: response["progress"]
         }
       else

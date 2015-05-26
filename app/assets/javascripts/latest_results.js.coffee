@@ -6,7 +6,7 @@
 showPendingExecutions = (data) ->
   if data?.success is true
     progress_string = ""
-    progress_string += "<li>#{progress.time}: finished ~#{progress.progress}%</li>" for progress in data.progress
+    progress_string += "<li>started at #{progress.time}: ~#{progress.progress}% finished</li>" for progress in data.progress
     if progress_string != ""
       $('#progress_indicator').html "<h4>Pending task executions</h4><ul>#{progress_string}</ul>"
     else
