@@ -3,6 +3,8 @@
 set -eo pipefail
 
 cd $(dirname $0)
+. ../common/docker_helper.sh
+stop_named_container air_frontend
 
 function log {
   msg=$1
@@ -14,4 +16,6 @@ function log {
 # Run command in image
 # -------------------------------------------------------------------
 
-docker run -p 8080:8080 -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log --rm -it "$@" aircloak/air_web:latest
+docker run --rm -it \
+  --name air_frontend -p 8080:8080 -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log \
+  "$@" aircloak/air_web:latest

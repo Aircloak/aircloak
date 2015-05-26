@@ -7,7 +7,7 @@ class Analyst < ActiveRecord::Base
   has_many :user_tables, dependent: :destroy
   has_many :lookup_tables, dependent: :destroy
   has_many :results, dependent: :destroy
-  has_many :users, dependent: :destroy
+  has_many :users
   has_many :key_materials, dependent: :destroy
   has_many :analyst_tokens, dependent: :destroy
   has_many :repeated_answers, dependent: :destroy
@@ -19,6 +19,10 @@ class Analyst < ActiveRecord::Base
 
   def self.analyst_options
     [["None", "none"]] + Analyst.all.map {|a| [a.name, a.id]}
+  end
+
+  def persistent_tasks
+    tasks.where(one_off: false)
   end
 
   def undeleted_user_tables
@@ -104,6 +108,11 @@ private
     # To speed up the destruction, we clear all task results before destroying the tasks
     tasks.each do |task|
       task.efficiently_delete_results
+    end
+    # We remove all users who are non-admins. Admin users would be Aircloak
+    # users who impersonate an analyst. They should not be removed.
+    users.each do |user|
+      user.destroy unless user.admin?
     end
   end
 end

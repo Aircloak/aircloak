@@ -14,7 +14,8 @@ authorization do
 
     has_permission_on [
       :api_tasks,
-      :api_task_results
+      :api_task_results,
+      :api_clusters
     ], to: :anon_read
 
     has_permission_on [

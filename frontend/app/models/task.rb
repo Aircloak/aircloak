@@ -104,6 +104,7 @@ class Task < ActiveRecord::Base
       unless response["success"] == true then
         # TODO: LOG
       end
+      pr
     end
   end
 
@@ -172,28 +173,12 @@ class Task < ActiveRecord::Base
     end
   end
 
-  def purge_results
-    ActiveRecord::Base.transaction do
-      efficiently_delete_results
-      self.purged = true
-      save
-    end
-  end
-
   def days_until_purging
     days = 7 - (Time.now - self.updated_at).to_i / 1.day
     case days
       when 0 then "today"
       when 1 then "tomorrow"
       else "in #{days} days"
-    end
-  end
-
-  def self.purge_deleted_tasks
-    Task.all.where(deleted: true, purged: false).each do |task|
-      if (Time.now - task.updated_at).to_i > 7.days then
-        task.purge_results
-      end
     end
   end
 

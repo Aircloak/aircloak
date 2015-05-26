@@ -28,6 +28,7 @@ group :development, :test do
   gem 'pry', github: "pry/pry"
   gem 'pry-nav', github: "nixme/pry-nav"
   gem 'rspec-rails', '~> 2.0'
+  gem "unicorn-rails"
 end
 
 group :precompile do
@@ -46,9 +47,6 @@ group :development do
   gem 'ruby_parser'
   gem 'quiet_assets' # quiet down assets from the log
 end
-
-# We use postgres both in production and development
-gem 'pg'
 
 # Gems used only for assets and not required
 # in production environments by default.
@@ -79,6 +77,12 @@ gem 'underscore-rails', '~> 1.6.0'
 gem 'handlebars_assets'
 gem 'hamlbars', '~> 2.1'
 gem 'codemirror-rails', '~> 4.5'
+
+# We use Postgres for both production, development and test.
+# This is required due to the use of the Postgres NOTIFY/LISTEN
+# feature, used for synchronously run tasks in the Web API:
+# /api/tasks/run
+gem 'pg'
 
 # Load configurations out of etcd
 gem "etcd"
