@@ -31,8 +31,38 @@ class PendingResult < ActiveRecord::Base
     connection.execute "UNLISTEN *"
   end
 
+  def progress_status
+    return nil if progress_handle.nil?
+
+    url = URI.encode(cloak_url("/task/#{progress_handle}"))
+    if url
+      response = JsonSender.request(:get, :task_runner, task.analyst, task.cluster,
+          URI.encode("task/#{progress_handle}"), {}, nil)
+      if response["success"] == true then
+        {
+          time: self.created_at,
+          progress: response["progress"]
+        }
+      else
+        nil
+      end
+    end
+  end
+
 private
   def channel_name
     "query_result_#{auth_token.gsub("-", "")}"
+  end
+
+  def cloak_url path
+    raise "No cloak in cluster" unless cloak
+    prot = Rails.configuration.cloak.protocol
+    port = Rails.configuration.cloak.port
+    return "#{prot}://#{cloak.ip}:#{port}/#{path}"
+  end
+
+  def cloak
+    cluster_cloak = ClusterCloak.where(cluster_id: task.cluster_id, raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).limit(1).first
+    cluster_cloak.cloak if cluster_cloak
   end
 end

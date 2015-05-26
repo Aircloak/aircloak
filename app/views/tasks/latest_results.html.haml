@@ -14,6 +14,7 @@
     %button{class: "btn btn-mini", onClick: "Task.execute('#{@task.token}');"} Run task
     %div#task_status
       >
+    %div#progress_indicator
 - else
   - if @task.active then
     %p
