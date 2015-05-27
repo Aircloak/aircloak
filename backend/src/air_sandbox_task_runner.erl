@@ -77,10 +77,10 @@ users_with_success_responses(JobResponses) ->
         )
   ].
 
-run_job(ReqId, {UserId, Accumulator, Task}, ResponseHandler) ->
+run_job(ReqId, {UserId, Accumulator, Task, JobInput}, ResponseHandler) ->
   Caller = self(),
   Timestamp = cloak_util:timestamp_to_epoch(os:timestamp()),
-  job_runner:execute(1, Task#task{timestamp=Timestamp}, UserId, Accumulator, ReqId,
+  job_runner:execute(1, Task#task{timestamp=Timestamp}, UserId, JobInput, Accumulator, ReqId,
       fun(JobReqId, Response) -> ResponseHandler(Caller, JobReqId, Response) end).
 
 handle_response(Caller, ReqId, {_, JobResponse}) ->
@@ -95,8 +95,8 @@ jobs(PreviousJobResponses, TaskSpec) ->
     } || LibDef <- proplists:get_value(<<"libraries">>, TaskSpec, [])
   ],
   Analyst = proplists:get_value(analyst, TaskSpec),
-  [{UserId, accumulator(UserId, PreviousJobResponses), make_task(Analyst, Libraries, Code, Tables)}
-    || {UserId, Tables} <- tables_data(TaskSpec)].
+  [{UserId, accumulator(UserId, PreviousJobResponses), make_task(Analyst, Libraries, Code), JobInput}
+    || {UserId, JobInput} <- tables_data(TaskSpec)].
 
 accumulator(UserId, PreviousJobResponses) ->
   case [
@@ -108,17 +108,44 @@ accumulator(UserId, PreviousJobResponses) ->
     [Accumulator] -> Accumulator
   end.
 
-make_task(Analyst, Libraries, Code, Tables) ->
+make_task(Analyst, Libraries, Code) ->
   #task{
     task_id = <<"dummy_task">>,
     analyst_id = Analyst,
-    tables_data = Tables,
     libraries = Libraries,
     code = Code
   }.
 
 tables_data(TaskSpec) ->
-  user_tables_grouper:group(to_prefetch_form(proplists:get_value(<<"users_data">>, TaskSpec))).
+  AllData = [transform_table_data(TableName, TableData) ||
+    {TableName, TableData} <- proplists:get_value(<<"users_data">>, TaskSpec)],
+  dict:to_list(lists:foldl(
+        fun({TableName, Columns, Rows}, Acc) ->
+          lists:foldl(
+                fun({UserId, JobInput}, InnerAcc) ->
+                  dict:update(
+                        UserId,
+                        fun(ExistingInputs) -> JobInput ++ ExistingInputs end,
+                        JobInput,
+                        InnerAcc
+                      )
+                end,
+                Acc,
+                job_data_streamer:map_table_data_to_job_inputs(TableName, Columns, Rows)
+              )
+        end,
+        dict:new(),
+        AllData
+      )).
+
+transform_table_data(TableName, TableData) ->
+  {
+    TableName,
+    proplists:get_value(<<"columns">>, TableData),
+    [[UserId, undefined | Row] ||
+      {UserId, Rows} <- proplists:get_value(<<"data">>, TableData),
+      Row <- Rows]
+  }.
 
 to_prefetch_form(TableSpecs) ->
   [translate_table_spec(TableSpec) || TableSpec <- TableSpecs].
@@ -174,7 +201,9 @@ run_task(PreviousJobResponses, TaskSpec) ->
                          {<<"data">>, [{<<"u1">>, [[42]]}]}]
                       }]
                     },
-                    {<<"code">>, <<"report_property('p1', tables.t1[1].c1)">>}
+                    {<<"code">>, <<
+                      "report_property('p1', load_user_table('t1')[1].c1)"
+                    >>}
                   ])
             )},
         {"Library", ?_assertMatch(
@@ -201,7 +230,7 @@ run_task(PreviousJobResponses, TaskSpec) ->
                          {<<"data">>, [{<<"u1">>, [[42], [3.14]]}]}]
                       }]
                     },
-                    {<<"code">>, <<"report_property('p1', tables.t1[1].c1 + tables.t1[2].c1)">>}
+                    {<<"code">>, <<"report_property('p1', load_user_table('t1')[1].c1 + load_user_table('t1')[2].c1)">>}
                   ])
             )},
         {"Two tables", ?_assertMatch(
@@ -213,7 +242,7 @@ run_task(PreviousJobResponses, TaskSpec) ->
                         {<<"t2">>, [{<<"columns">>, [<<"c2">>]}, {<<"data">>, [{<<"u1">>, [[3.14]]}]}]}
                       ]
                     },
-                    {<<"code">>, <<"report_property('p1', tables.t1[1].c1 + tables.t2[1].c2)">>}
+                    {<<"code">>, <<"report_property('p1', load_user_table('t1')[1].c1 + load_user_table('t2')[1].c2)">>}
                   ])
             )},
         {"Multiple users", ?_assertMatch(
@@ -228,7 +257,7 @@ run_task(PreviousJobResponses, TaskSpec) ->
                          {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
                       }]
                     },
-                    {<<"code">>, <<"report_property('p1', tables.t1[1].c1)">>}
+                    {<<"code">>, <<"report_property('p1', load_user_table('t1')[1].c1)">>}
                   ])
             )},
         {"Accumulator", fun() ->
@@ -240,13 +269,13 @@ run_task(PreviousJobResponses, TaskSpec) ->
                          {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
                       }]
                     },
-                    {<<"code">>, <<"if acucmulator == nil then accumulator = user_id end">>}
+                    {<<"code">>, <<"if accumulator == nil then accumulator = load_user_table('t1')[1].c1 end">>}
                   ])
               ),
           ?assertMatch(
               [{status, ok}, {responses, [
-                #job_response{properties=[?PROP(<<"u1">>, <<"u1">>)]},
-                #job_response{properties=[?PROP(<<"u2">>, <<"u2">>)]}
+                #job_response{user_id= <<"u1">>, properties=[?PROP(<<"acc">>, <<"42">>)]},
+                #job_response{user_id= <<"u2">>, properties=[?PROP(<<"acc">>, <<"3.14">>)]}
               ]}, {insert_actions, []}],
               run_task(JobResponses, [
                     {<<"users_data">>,
@@ -255,7 +284,7 @@ run_task(PreviousJobResponses, TaskSpec) ->
                          {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
                       }]
                     },
-                    {<<"code">>, <<"report_property(user_id, accumulator)">>}
+                    {<<"code">>, <<"report_property('acc', accumulator)">>}
                   ])
             )
         end},
@@ -300,7 +329,7 @@ run_task(PreviousJobResponses, TaskSpec) ->
                            {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
                         }]
                       },
-                      {<<"code">>, <<"report_property('p1', tables.t1[1].c1)">>}
+                      {<<"code">>, <<"report_property('p1', load_user_table('t1')[1].c1)">>}
                     ],
                     1,
                     fun(_, _, _) -> ok end
@@ -319,7 +348,7 @@ run_task(PreviousJobResponses, TaskSpec) ->
                            {<<"data">>, [{<<"u1">>, [[42]]}, {<<"u2">>, [[3.14]]}]}]
                         }]
                       },
-                      {<<"code">>, <<"report_property('p1', tables.t1[1].c1)">>}
+                      {<<"code">>, <<"report_property('p1', load_user_table('t1')[1].c1)">>}
                     ],
                     100,
                     fun

@@ -55,7 +55,13 @@
       [
         begin
           unlink(Pid),
-          exit(Pid, kill)
+          monitor(process, Pid),
+          exit(Pid, shutdown),
+          receive
+            {'DOWN', _MRef, process, Pid, _} -> ok
+          after 1000 ->
+            exit(Pid, kill)
+          end
         end || Pid <- lists:reverse(Pids)
       ],
       error_logger:tty(true)
