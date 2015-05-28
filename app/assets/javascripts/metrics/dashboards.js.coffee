@@ -12,8 +12,7 @@ Metrics.Dashboards =
             rateSpec(controller, "task.{started,successful,timeout}", "Task rates"),
             histogramSpec(controller, "task.total", "Task duration", "ms", "taskDurationGroup"),
             stackHistograms(controller, "Duration of batch task phases", "ms", [
-                  "task.parse_json", "task.prefetch", "task.group_users_tables", "task.jobs",
-                  "task.aggregation", "task.anonymization", "task.send_result"
+                  "task.parse_json", "task.prefetch", "task.jobs", "task.anonymization", "task.send_result"
                 ], "batchTaskPhasesGroup")
           ],
           true
@@ -22,19 +21,14 @@ Metrics.Dashboards =
   "Job": (controller) ->
     _.flatten(
           [
-            rateSpec(controller, "job.{started,successful,fail,timeout}", "Job rates"),
+            rateSpec(controller, "job.{started,successful,failed,timeout}", "Job rates"),
             histogramSpec(controller, "job.duration", "Job duration", "ms", "jobDurationGroup")
             stackHistograms(controller, "Duration of job execution phases", "ms", [
-                  "job.queued", "job.duration", "job.data_insertion", "job.run_next"
+                  "job.queued", "job.duration", "job.read_data", "job.data_insertion", "job.run_next"
                 ], "jobPhasesGroup")
           ],
           true
         )
-
-  "Prefetch phases": (controller) ->
-    stackHistograms(controller, "Duration of prefetch phases", "ms", [
-          "prefetch.prepare", "prefetch.execute", "prefetch.return_result"
-        ], "prefetchPhasesGroup")
 
   "User insertion": (controller) ->
     stackHistograms(controller, "Duration of user insertion phases", "us", [
