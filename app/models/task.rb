@@ -1,6 +1,7 @@
 require './lib/json_sender'
 require './lib/prefetch_filter'
 require './lib/task_code'
+require './lib/cloak_helpers'
 
 class Task < ActiveRecord::Base
   has_many :pending_results, dependent: :destroy, counter_cache: true
@@ -80,7 +81,7 @@ class Task < ActiveRecord::Base
     if stored_task
       raise NotABatchTaskException.new("Task #{self.id} is a stream task, not a batch task")
     end
-    url = cloak_url("/task/run")
+    url = CloakHelpers.cloak_url(self, "/task/run")
     if url
       pr = PendingResult.create(task: self)
       headers = {
@@ -100,7 +101,10 @@ class Task < ActiveRecord::Base
           post_processing: post_processing_spec
         }.to_json
       )
-      unless response["success"] == true then
+      if response["success"] == true then
+        pr.progress_handle = response["progress_handle"]
+        pr.save
+      else
         # TODO: LOG
       end
       pr
@@ -210,7 +214,7 @@ private
   end
 
   def synchronize_stored_task
-    return unless self.stored_task && cloak
+    return unless self.stored_task && CloakHelpers.some_cloak(self)
     if active && !deleted then
       upload_stored_task
     else
@@ -274,18 +278,6 @@ private
     unless response["success"] == true or response["code"] == 404 then # unless true or task not present
       raise RemoveError.new("Failed removing task #{name} from the cluster.")
     end
-  end
-
-  def cloak_url path
-    raise "No cloak in cluster" unless cloak
-    prot = Rails.configuration.cloak.protocol
-    port = Rails.configuration.cloak.port
-    return "#{prot}://#{cloak.ip}:#{port}/#{path}"
-  end
-
-  def cloak
-    cluster_cloak = ClusterCloak.where(cluster_id: cluster_id, raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).limit(1).first
-    cluster_cloak.cloak if cluster_cloak
   end
 
   def post_processing_spec

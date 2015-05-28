@@ -6,7 +6,7 @@ class TasksControllerException < Exception; end
 class TasksController < ApplicationController
   filter_access_to [:execute_as_batch_task, :all_results, :latest_results,
                     :suspend, :resume, :delete, :deleted, :recover,
-                    :particular_result], require: :manage
+                    :particular_result, :pending_executions], require: :manage
   before_action :load_task, except: [:index, :new, :create, :deleted]
   before_action :set_tables_json, only: [:new, :edit, :update, :create]
   before_action :set_auto_completions, only: [:new, :edit, :update, :create]
@@ -179,6 +179,17 @@ class TasksController < ApplicationController
     @server_url = Rails.configuration.airpub_ws_subscribe
     @task_token = @task.token
     describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task.token)
+  end
+
+  # GET /tasks/:id/pending_executions
+  # Return as a JSON the list of pending task executions for the particular task.
+  def pending_executions
+    progress = @task.pending_results.all.inject([]) do |acc, pr|
+      status = pr.progress_status
+      acc.push(status) unless status.nil?
+      acc
+    end
+    render json: {success: true, progress: progress}
   end
 
   # GET /tasks/:id/particular_result/:timestamp

@@ -2,6 +2,23 @@
 # All this logic will automatically be available in application.js.
 # You can use CoffeeScript in this file: http://coffeescript.org/
 
+# pending executions handling
+showPendingExecutions = (data) ->
+  if data?.success is true
+    progress_string = ""
+    progress_string += "<li>started at #{progress.time}: ~#{progress.progress}% finished</li>" for progress in data.progress
+    if progress_string != ""
+      $('#progress_indicator').html "<h4>Pending task executions</h4><ul>#{progress_string}</ul>"
+    else
+      $('#progress_indicator').html ""
+  else
+    $('#progress_indicator').html ""
+
+pendingCallback = =>
+  jQuery.getJSON "/tasks/#{$('.task_params').data('task-token')}/pending_executions", showPendingExecutions
+
+setInterval pendingCallback, 1000
+
 # create namespace for task-related shared variables
 window.Task = {}
 Task.statusVisible = false
