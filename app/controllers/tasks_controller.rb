@@ -161,6 +161,7 @@ class TasksController < ApplicationController
       format.csv do
         filename = "task_results_#{@task.id}_#{Time.now.strftime("%Y%m%d%H%M")}.csv"
         response.headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
+        response.headers['Content-Type'] = 'text/csv'
         render :text => results_csv
       end
     end
@@ -349,9 +350,9 @@ private
   end
 
   def results_csv
-    CSV.generate(col_sep: ";") do |csv|
+    file = CSV.generate(col_sep: ",") do |csv|
       # generate column names
-      columns = ["time / label", "errors"] # pre-set meta-column names
+      columns = ["time", "errors"] # pre-set meta-column names
       columnIndexMap = {}
       # create columns from labels and map them to header index
       @results.each do |result|
@@ -377,7 +378,12 @@ private
         end
         csv << cells # write row
       end
-
     end
+    # European versions of Excel default to semicolon as a separator instead of comma
+    # (because comma is used for numbers) so we need to specify the separator explicitly
+    # if we want to import the resulting file into Excel without any changes
+    # this is non-standard and could break some CSV processing tools,
+    # but users using other tools should be smart enough to fix this by themselves
+    "sep=,\n" + file
   end
 end

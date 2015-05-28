@@ -1,6 +1,6 @@
 %h3= "#{@task.name}: all results"
 
-= link_to "Download results", "#{@results_path}.csv"
+= link_to "Export as CSV", "#{@results_path}.csv"
 \|
 = link_to "Delete results", delete_results_task_path(@task.token), :method => :post,
   :data => { :confirm => 'Are you sure?' }, class: "btn btn-danger btn-mini"
