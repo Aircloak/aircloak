@@ -36,7 +36,13 @@ until etcd_is_up; do
 done
 log "Etcd is running"
 
-log "Creating required ETCD values for local development"
-. etcd_values_dev
+if [ "$AIR_ENV" = "prod" ]; then
+  log "Configuring ETCD for production"
+  . etcd_values_prod
+else
+  log "Creating required ETCD values for local development"
+  . etcd_values_dev
 
-./run-test-container.sh
+  log "Starting test container"
+  ./run-test-container.sh
+fi
