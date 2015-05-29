@@ -6,6 +6,7 @@ class PendingResult < ActiveRecord::Base
   before_validation :generate_auth_token
 
   def generate_auth_token
+    return unless self.auth_token.nil?
     begin
       token = TokenGenerator.generate_random_string_of_at_least_length 30
     end while PendingResult.where(auth_token: token).count != 0

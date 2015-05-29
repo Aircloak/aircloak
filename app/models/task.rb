@@ -102,8 +102,10 @@ class Task < ActiveRecord::Base
         }.to_json
       )
       if response["success"] == true then
-        pr.progress_handle = response["progress_handle"]
-        pr.save
+        if response["progress_handle"] != nil
+          pr.progress_handle = response["progress_handle"]
+          pr.save
+        end
       else
         # TODO: LOG
       end
