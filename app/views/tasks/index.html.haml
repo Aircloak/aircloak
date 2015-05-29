@@ -28,7 +28,7 @@
             %td= task.cluster.name
           - else
             %td NO CLUSTER ASSIGNED
-        %td= link_to task.results.count, latest_results_task_path(task.token)
+        %td= link_to task.results.count, all_results_task_path(task.token)
         %td= task.type_string
         - if task.batch_task? then
           %td N / A
