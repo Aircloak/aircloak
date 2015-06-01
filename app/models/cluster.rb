@@ -191,7 +191,7 @@ class Cluster < ActiveRecord::Base
       log_alteration "Build upgraded to '#{build.name}'"
     end
     if params[:name] != self.name then
-      log_alteration "Name changed to '#{params[:name]}'."
+      log_alteration "Name changed from '#{self.name}' to '#{params[:name]}'."
     end
     update(params)
   end
