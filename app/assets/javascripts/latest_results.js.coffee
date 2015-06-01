@@ -61,8 +61,7 @@ convertArticleToResult = (timestamp, article) ->
   article = JSON.parse article
   result.buckets = []
   result.buckets.push {label: bucket.label, value: bucket.value, count: bucket.count} for bucket in article.buckets
-  result.exceptions = []
-  result.exceptions.push {count: exception.count} for exception in article.exceptions
+  result.exceptions = article.exceptions
   result
 
 requiresPostprocessing = (results) ->

@@ -27,6 +27,7 @@ class Result < ActiveRecord::Base
       :exceptions => exception_results.map { |exception|
         {
           :id => exception.id,
+          :error => exception.stacktrace,
           :count => exception.count
         }
       }
