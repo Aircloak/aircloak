@@ -114,16 +114,26 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
     curWord = curLine.slice(start, end)
     fuzzyMatcher = new RegExp(curWord.replace(/(.)/g, "$1.*"), "i")
 
+    sortOrder = (text) ->
+      # Place items that start with the given word at the top of the completion list.
+      prefix =
+        if text.startsWith(curWord)
+          "0"
+        else
+          "1"
+      "#{prefix}#{text}"
+
     list =
       _.chain([]).
         union(
               completions,
-              _.map(data.selectedTables(), (table) -> text: "tables.#{table.name}"),
+              _.map(data.selectedTables(), (table) -> text: "load_user_table(\"#{table.name}\")"),
+              _.map(data.selectedTables(), (table) -> text: "user_table(\"#{table.name}\")"),
               _.map(CodeMirror.hint.anyword(cm, word: /[a-zA-Z_](\w)*/).list, (word) -> text: word)
             ).
         filter((candidate) -> candidate.text.match(fuzzyMatcher)).
         uniq((el) -> el.text).
-        sortBy((el) -> el.text.toUpperCase()).
+        sortBy((el) -> sortOrder(el.text)).
         value()
 
     return {

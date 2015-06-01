@@ -309,7 +309,7 @@ private
     # hard-coded list of built-in functions
     completions = [
       {text: "report_property", displayText: "report_property(label, string)"},
-      {text: "tables"},
+      {text: "get_user_tables()"},
       {text: "lookup", displayText: "lookup(table_name, key)"},
       {text: "to_date", displayText: "to_date(timestamp)"},
       {text: "accumulator"},
