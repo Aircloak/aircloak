@@ -149,19 +149,24 @@ class TasksController < ApplicationController
 
   # GET /tasks/:id/all_results
   def all_results
-    @raw_results = @task.results.paginate(page: params[:page], per_page: 15).order(created_at: :desc)
-    @results = convert_results_for_client_side_rendering @raw_results # convert to json
-    @results.reverse! # results are rendered in reverse order, reverse here to show actual order
-    @results_path = all_results_task_path(@task.token)
-    describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task.token)
-
     respond_to do |format|
-      format.html
+      format.html do
+        @raw_results = @task.results.paginate(page: params[:page], per_page: 15).order(created_at: :desc)
+        @results = convert_results_for_client_side_rendering @raw_results # convert to json
+        @results.reverse! # results are rendered in reverse order, reverse batch here to show actual order
+        @results_path = all_results_task_path(@task.token)
+        describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task.token)
+      end
 
       format.csv do
-        filename = "task_results_#{@task.id}_#{Time.now.strftime("%Y%m%d%H%M")}.csv"
+        @raw_results = @task.results.order(created_at: :asc)
+        @results = convert_results_for_client_side_rendering @raw_results # convert to json
+        beginDate = @raw_results.last.created_at.utc.strftime("%Y-%m-%d_%H-%M")
+        endDate = @raw_results.first.created_at.utc.strftime("%Y-%m-%d_%H-%M")
+        filename = "#{@task.name}_from_#{beginDate}_to_#{endDate}.csv"
         response.headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
         response.headers['Content-Type'] = 'text/csv'
+        describe_activity "Exported all results of task #{@task.name}", all_results_task_path(@task.token)
         render :text => results_csv
       end
     end
