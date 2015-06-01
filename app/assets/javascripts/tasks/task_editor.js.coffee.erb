@@ -118,7 +118,8 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
       _.chain([]).
         union(
               completions,
-              _.map(data.selectedTables(), (table) -> text: "tables.#{table.name}"),
+              _.map(data.selectedTables(), (table) -> text: "load_user_table(\"#{table.name}\")"),
+              _.map(data.selectedTables(), (table) -> text: "user_table(\"#{table.name}\")"),
               _.map(CodeMirror.hint.anyword(cm, word: /[a-zA-Z_](\w)*/).list, (word) -> text: word)
             ).
         filter((candidate) -> candidate.text.match(fuzzyMatcher)).
