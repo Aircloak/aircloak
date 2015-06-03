@@ -190,12 +190,16 @@ class TasksController < ApplicationController
   # GET /tasks/:id/pending_executions
   # Return as a JSON the list of pending task executions for the particular task.
   def pending_executions
-    progress = @task.pending_results.all.inject([]) do |acc, pr|
-      status = pr.progress_status
-      acc.push(status) unless status.nil?
-      acc
+    if @task.cluster.capable_of? :task_progress_reports
+      progress = @task.pending_results.all.inject([]) do |acc, pr|
+        status = pr.progress_status
+        acc.push(status) unless status.nil?
+        acc
+      end
+      render json: {success: true, progress: progress}
+    else
+      render json: {success: false}
     end
-    render json: {success: true, progress: progress}
   end
 
   # GET /tasks/:id/particular_result/:timestamp

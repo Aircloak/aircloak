@@ -2,15 +2,18 @@
 # All this logic will automatically be available in application.js.
 # You can use CoffeeScript in this file: http://coffeescript.org/
 
+# generate a progress bar
+createProgressBarString = (text, progress) ->
+  "<div><div style=\"float: none;\"><div style=\"float: left; width: 13em;\">#{text}</div><div class=\"progress\" style=\"margin-right: 1em; width: 200px; float: none;\"><div class=\"bar\" style=\"width: #{progress}%;\"></div></div></div><div style=\"float: none;\"></div></div>"
+
 # pending executions handling
 showPendingExecutions = (data) ->
   if data?.success is true
     progress_string = ""
-    progress_string += "<li>started at #{progress.time}: ~#{progress.progress}% finished</li>" for progress in data.progress
-    if progress_string != ""
-      $('#progress_indicator').html "<h4>Pending task executions</h4><ul>#{progress_string}</ul>"
-    else
-      $('#progress_indicator').html ""
+    progress_string += createProgressBarString "started at #{progress.time}", progress.progress for progress in data.progress
+    if progress_string == ""
+      progress_string = createProgressBarString "No pending execution", 0
+    $('#progress_indicator').html "<h4>Pending task execution(s)</h4>#{progress_string}"
   else
     $('#progress_indicator').html ""
 
