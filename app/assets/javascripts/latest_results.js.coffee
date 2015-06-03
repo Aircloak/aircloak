@@ -16,11 +16,12 @@ showPendingExecutions = (data) ->
     $('#progress_indicator').html "<h4>Pending task execution(s)</h4>#{progress_string}"
   else
     $('#progress_indicator').html ""
+    clearInterval pendingCallbackInterval
 
 pendingCallback = =>
   jQuery.getJSON "/tasks/#{$('.task_params').data('task-token')}/pending_executions", showPendingExecutions
 
-setInterval pendingCallback, 1000
+pendingCallbackInterval = setInterval pendingCallback, 1000
 
 # create namespace for task-related shared variables
 window.Task = {}
