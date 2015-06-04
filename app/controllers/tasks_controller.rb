@@ -117,9 +117,12 @@ class TasksController < ApplicationController
 
   # POST /tasks/:id/delete_results
   def delete_results
-    @task.efficiently_delete_results
-    describe_activity "Deleted results for #{@task.name}"
-    redirect_to tasks_path, notice: "Removed results for #{@task.name}"
+    begin_date = DateTime.parse(params[:begin_date])
+    end_date = DateTime.parse(params[:end_date])
+    @task.efficiently_delete_results begin_date, end_date
+    describe_activity "Deleted #{@task.name}'s results between #{params[:begin_date]} and #{params[:end_date]}"
+    flash[:notice] = "Deleted #{@task.name}'s results between #{params[:begin_date]} and #{params[:end_date]}"
+    redirect_to :back
   end
 
   # POST /tasks/:id/execute_as_batch_task
@@ -149,21 +152,38 @@ class TasksController < ApplicationController
 
   # GET /tasks/:id/all_results
   def all_results
+    if params[:begin_date].present? && params[:end_date].present? then
+      begin_date = DateTime.parse(params[:begin_date])
+      end_date = DateTime.parse(params[:end_date])
+    else
+      if @task.results.first then
+        begin_date = @task.results.first.created_at
+        end_date = @task.results.last.created_at
+      else
+        begin_date = @task.created_at
+        end_date = DateTime.now.utc
+      end
+    end
     respond_to do |format|
       format.html do
-        @raw_results = @task.results.paginate(page: params[:page], per_page: 15).order(created_at: :desc)
+        @raw_results = @task.results.where(:created_at => begin_date..end_date).order(created_at: :desc).
+            paginate(page: params[:page], per_page: 15)
         @results = convert_results_for_client_side_rendering @raw_results # convert to json
         @results.reverse! # results are rendered in reverse order, reverse batch here to show actual order
         @results_path = all_results_task_path(@task.token)
         describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task.token)
+        # format begin/end datetimes for results filtering
+        @begin_date_str = begin_date.strftime("%d/%m/%Y %H:%M:%S")
+        @end_date_str = end_date.strftime("%d/%m/%Y %H:%M:%S")
       end
 
       format.csv do
-        @raw_results = @task.results.order(created_at: :asc)
+        @raw_results = @task.results.where(:created_at => begin_date..end_date).order(created_at: :asc)
         @results = convert_results_for_client_side_rendering @raw_results # convert to json
-        beginDate = @raw_results.last.created_at.utc.strftime("%Y-%m-%d_%H-%M")
-        endDate = @raw_results.first.created_at.utc.strftime("%Y-%m-%d_%H-%M")
-        filename = "#{@task.name}_from_#{beginDate}_to_#{endDate}.csv"
+        # format begin/end datetimes for filename creation
+        begin_date_str = begin_date.strftime("%d-%m-%Y_%H-%M-%S")
+        end_date_str = end_date.strftime("%d-%m-%Y_%H-%M-%S")
+        filename = "#{@task.name}_from_#{begin_date_str}_to_#{end_date_str}.csv"
         response.headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
         response.headers['Content-Type'] = 'text/csv'
         describe_activity "Exported all results of task #{@task.name}", all_results_task_path(@task.token)

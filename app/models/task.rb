@@ -55,10 +55,9 @@ class Task < ActiveRecord::Base
 
   # This does an efficient SQL delete, rather than loading all the data,
   # running all the validations and callbacks, etc
-  def efficiently_delete_results
-    Result.delete_for_task self
-    PendingResult.delete_for_task self
-    ExceptionResult.delete_for_task self
+  def efficiently_delete_results begin_date = nil, end_date = nil
+    Result.delete_for_task self, begin_date, end_date
+    PendingResult.delete_for_task self, begin_date, end_date
   end
 
   # This does an efficient SQL delete, rather than loading all the data,
