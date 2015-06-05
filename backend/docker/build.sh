@@ -66,3 +66,4 @@ copy generate_cloak_conf.escript
 
 log "Making release"
 make rel
+echo "Release generated"

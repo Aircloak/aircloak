@@ -56,5 +56,3 @@ COPY docker /aircloak/utils
 
 # The source to build
 VOLUME /aircloak/source
-
-CMD /aircloak/utils/build.sh

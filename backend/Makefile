@@ -48,7 +48,7 @@ apps/air:
 	(cd apps/air && ln -s ../../ebin ebin && ln -s ../../deps/cloak/include include)
 
 rel: all apps/air
-	./rebar generate skip_deps=true
+	(cd rel && ../rebar generate skip_deps=true)
 
 start: app
 	./run_local_node.sh 1
