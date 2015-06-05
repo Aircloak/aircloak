@@ -3,6 +3,7 @@
 set -e
 
 cd $(dirname $0)
+. ../common/docker_helper.sh
 
 # This will build a dockerized version of the air-sandbox app.
 # It has one major nasty caveat. Since we don't want to inlcude
@@ -48,6 +49,7 @@ make deps
 cd $CWD/artifacts/cache/deps/cloak && git submodule update --init --recursive
 cd $CWD
 
+setup_env_init
 
 log "Creating build image"
 activate_stage "builder"

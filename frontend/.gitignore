@@ -50,3 +50,4 @@ Dockerfile
 # config/database.yml-docker in case the launch
 # failed, and this is in fact the original one.
 config/database.yml-docker
+/image_shell_init.sh

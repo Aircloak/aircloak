@@ -1,6 +1,10 @@
 FROM ruby:2.0.0-p643
 MAINTAINER Sebastian Probst Eide <sebastian@aircloak.com>
 
+RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
+COPY image_shell_init.sh /tmp/build_config/
+RUN . /tmp/build_config/image_shell_init.sh
+
 # throw errors if Gemfile has been modified since Gemfile.lock
 RUN bundle config --global frozen 1
 
@@ -63,14 +67,14 @@ RUN mkdir $site_path/slate
 COPY slate/Gemfile $site_path/slate/
 COPY slate/Gemfile.lock $site_path/slate/
 WORKDIR $site_path/slate
-RUN bundle install \
+RUN . /tmp/build_config/proxies.sh && bundle install \
     --path vendor/bundle
 
 # -----> rails gems
 WORKDIR $site_path
 COPY Gemfile $site_path/
 COPY Gemfile.lock $site_path/
-RUN bundle install \
+RUN . /tmp/build_config/proxies.sh && bundle install \
     --without development:test \
     --path vendor/bundle \
     --binstubs vendor/bundle/bin \
@@ -85,7 +89,7 @@ RUN bundle install \
 
 WORKDIR $site_path/slate
 COPY slate $site_path/slate
-RUN bundle exec middleman build
+RUN . /tmp/build_config/proxies.sh && bundle exec middleman build
 
 
 ## ------------------------------------------------------------------
