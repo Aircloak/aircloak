@@ -5,7 +5,7 @@ class TasksControllerException < Exception; end
 
 class TasksController < ApplicationController
   filter_access_to [:execute_as_batch_task, :all_results, :latest_results,
-                    :suspend, :resume, :delete, :deleted, :recover,
+                    :suspend, :resume, :delete, :deleted, :recover, :share, :acquire,
                     :particular_result, :pending_executions], require: :manage
   before_action :load_task, except: [:index, :new, :create, :deleted]
   before_action :set_tables_json, only: [:new, :edit, :update, :create]
@@ -19,7 +19,8 @@ class TasksController < ApplicationController
 
   # GET /tasks
   def index
-    @tasks = current_user.analyst.persistent_tasks.where(:deleted => false)
+    @private_tasks = current_user.analyst.persistent_tasks.where(deleted: false, shared: false, user_id: current_user.id)
+    @shared_tasks = current_user.analyst.persistent_tasks.where(deleted: false, shared: true)
     describe_activity "Browsing all tasks for #{current_user.analyst.name}"
   end
 
@@ -41,17 +42,17 @@ class TasksController < ApplicationController
       redirect_to tasks_path, flash: {error: 'Cannot create a task without having a cluster'}
     else
       @task = current_user.analyst.tasks.new
+      @task.user = current_user
       describe_activity "Creating new task"
     end
   end
 
   # POST /tasks
   def create
-    # We need to create the empty task first, so it is connected to
-    # the analyst...
+    # We need to create the empty task first, so it is connected to the analyst...
     @task = current_user.analyst.tasks.new
-    # ...only then can we validate some values (e.g. data), so we use
-    # manual mass assignment here.
+    @task.user = current_user
+    # ...only then can we validate some values (e.g. data), so we use manual mass assignment here.
     @task.attributes = task_params
 
     @task.sandbox_type = "lua"
@@ -304,6 +305,27 @@ class TasksController < ApplicationController
     flash[:error] = e.message
   ensure
     redirect_to tasks_path
+  end
+
+  # POST /tasks/:id/share
+  def share
+    @task.shared = true
+    @task.save
+    describe_activity "Shared task #{@task.name}", share_task_path(@task.token)
+    flash[:notice] = "Task #{@task.name} is now shared."
+  ensure
+    redirect_to :back
+  end
+
+  # POST /tasks/:id/acquire
+  def acquire
+    @task.shared = false
+    @task.user = current_user
+    @task.save
+    describe_activity "Took ownership of task #{@task.name}", acquire_task_path(@task.token)
+    flash[:notice] = "Task #{@task.name} is now private."
+  ensure
+    redirect_to :back
   end
 
 private

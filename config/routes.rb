@@ -73,6 +73,8 @@ Web::Application.routes.draw do
     post "delete", on: :member, action: 'delete'
     get "deleted", on: :collection, action: 'deleted'
     post "recover", on: :member, action: 'recover'
+    post "share", on: :member, action: 'share'
+    post "acquire", on: :member, action: 'acquire'
   end
   resources :results
   resources :user_tables do

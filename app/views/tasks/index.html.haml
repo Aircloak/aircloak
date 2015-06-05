@@ -1,53 +1,22 @@
 = help_link 'understanding-the-query-model'
 
-- if @tasks.count > 0
-  %h3 Tasks
+%h3 Private tasks
+- if @private_tasks.count > 0
+  - @tasks = @private_tasks
+  = render 'tasks'
+-else
+  %p No private tasks available.
 
-  - if @tasks.any? {|task| task.cluster.nil?}
-    .alert
-      %button.close{type: "button", data: {dismiss: "alert"}} &times;
-      %strong Warning!
-      One or more of your tasks are not assigned to a cluster. They cannot be run
+%hr
 
-  %table.table.table-striped
-    %thead
-      %tr
-        %th Name
-        - if current_user.has_multiple_clusters?
-          %th Cluster
-        %th Results
-        %th Type
-        %th State
-        %th
-    %tbody
-    - @tasks.each do |task|
-      %tr{class: ("error" if task.cluster.nil?)}
-        %td= task.name
-        - if current_user.has_multiple_clusters?
-          - if task.cluster
-            %td= task.cluster.name
-          - else
-            %td NO CLUSTER ASSIGNED
-        %td= link_to task.results.count, all_results_task_path(task.token)
-        %td= task.type_string
-        - if task.batch_task? then
-          %td N / A
-        - else
-          - if task.active then
-            %td
-              Active
-              = link_to 'Suspend', suspend_task_path(task.token), :method => :post, class: "btn btn-mini"
-          - else
-            %td
-              Suspended
-              = link_to 'Resume', resume_task_path(task.token), :method => :post, class: "btn btn-mini"
-        %td
-          = link_to 'Latest results', latest_results_task_path(task.token)
-          \|
-          = link_to 'Edit', edit_task_path(task.token)
-          \|
-          = link_to "Delete", delete_task_path(task.token), :method => :post,
-            :data => { :confirm => "Are you sure you want to delete task #{task.name}?" }, class: "btn btn-mini btn-danger"
+%h3 Shared tasks
+- if @shared_tasks.count > 0
+  - @tasks = @shared_tasks
+  = render 'tasks'
+-else
+  %p No shared tasks available.
+
+%hr
 
 = link_to 'Create a new task', new_task_path
 = link_to 'Deleted tasks', deleted_tasks_path, class: "right-aligned"

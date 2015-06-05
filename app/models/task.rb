@@ -11,6 +11,7 @@ class Task < ActiveRecord::Base
 
   belongs_to :cluster
   belongs_to :analyst
+  belongs_to :user
 
   validates_presence_of :name, :sandbox_type, :code, :cluster
   validates_uniqueness_of :name, scope: [:analyst_id]
