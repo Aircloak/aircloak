@@ -4,33 +4,28 @@
 
 %h3= "#{@task.name}: latest results"
 
-%p
-  Below are the latest results for
-  = "#{@task.name}."
+%p= "Below are the latest results for task '#{@task.name}':"
 
-- if @task.batch_task?
-  %p
+%p
+  - if @task.batch_task?
     To get more results, execute the task again.
     %button{class: "btn btn-mini", onClick: "Task.execute('#{@task.token}');"} Run task
+    \|
+    = link_to 'Edit task', edit_task_path(@task.token)
     %div#task_status
       >
     %div#progress_indicator
-- else
-  - if @task.active then
-    %p
+  - else
+    - if @task.active then
       Task is
       %b active.
       = link_to 'Suspend', suspend_task_path(@task.token), :method => :post, class: "btn btn-mini"
-  - else
-    %p
+    - else
       Task is
       %b suspended.
       = link_to 'Resume', resume_task_path(@task.token), :method => :post, class: "btn btn-mini"
-
-= link_to 'Edit task', edit_task_path(@task.token)
-\|
-= link_to "Delete results", delete_results_task_path(@task.token), :method => :post,
-  :data => { :confirm => 'Are you sure?' }, class: "btn btn-danger btn-mini"
+    \|
+    = link_to 'Edit task', edit_task_path(@task.token)
 
 -# set listen parameters
 .listen_params{data: {server_url: @server_url, request: @request}}
