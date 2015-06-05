@@ -53,12 +53,12 @@ setup_env_init
 
 log "Creating build image"
 activate_stage "builder"
-docker build -t aircloak/air_build:latest .
+docker build -t aircloak/air_backend_build:latest .
 log "Performing build inside build container"
-docker run -v $PWD:/aircloak/source --rm -i aircloak/air_build:latest
+docker run -v $PWD:/aircloak/source --rm -i aircloak/air_backend_build:latest
 
 # Now we should have a build in the artifacts/cache folder
 activate_stage "release"
 log "Creating release docker container"
-docker build -t aircloak/air:latest .
+docker build -t aircloak/air_backend:latest .
 log "Release created."

@@ -18,4 +18,4 @@ function log {
 
 docker run --rm -it \
   --name air_frontend -p 8080:8080 -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log \
-  "$@" aircloak/air_web:latest
+  "$@" aircloak/air_frontend:latest

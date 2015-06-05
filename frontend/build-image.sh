@@ -17,4 +17,4 @@ function log {
 
 log "Building release container of rails app"
 setup_env_init
-docker build -t aircloak/air_web:latest .
+docker build -t aircloak/air_frontend:latest .
