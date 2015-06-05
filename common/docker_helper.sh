@@ -52,3 +52,39 @@ EOF
     echo "$content" > ./image_shell_init.sh
   fi
 }
+
+function container_ctl {
+  container_name=$1
+  shift
+
+  command=$1
+  shift
+
+  case "$command" in
+    start)
+      stop_named_container $container_name
+      echo "Starting container $container_name"
+      docker run -d --restart on-failure --name $container_name "$@"
+      ;;
+
+    console)
+      stop_named_container $container_name
+      docker run --rm -it --name $container_name "$@"
+      ;;
+
+    remsh)
+      docker exec -i -t $container_name /bin/bash
+      ;;
+
+    stop)
+      stop_named_container $container_name
+      exit 0
+      ;;
+
+    *)
+      echo "$(basename $0) start|stop|remsh|console docker-args"
+      exit 1
+      ;;
+
+  esac
+}

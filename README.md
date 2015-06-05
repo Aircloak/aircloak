@@ -87,11 +87,19 @@ __Note__: if using NFS approach, you need to mount folders after each restart of
 
 ## Starting etcd and database
 
-These two containers are always needed for the rest of the system. To start them, simply run:
+These two containers are always needed for the rest of the system.
+
+First, you need to invoke one-time building of the database image:
 
 ```
-$ etcd/start-container.sh
-$ db/start-container.sh
+$ db/build-image.sh
+```
+
+To start the containers, simply run:
+
+```
+$ etcd/container.sh start
+$ db/container.sh start
 ```
 
 ### One-time database migration
@@ -113,8 +121,8 @@ __OS X devs__: Keep in mind that your database data is stored inside boot2docker
 Start `etcd` and `db` containers and configure the system to run locally:
 
 ```
-$ etcd/start-container.sh
-$ db/start-container.sh
+$ etcd/container.sh start
+$ db/container.sh start
 $ etcd/config_local.sh
 ```
 
@@ -134,19 +142,19 @@ If all is well, you should be able to access the web via `localhost:3000`. If al
 Start `etcd` and `db` containers and configure the system to run on docker containers:
 
 ```
-$ etcd/start-container.sh
-$ db/start-container.sh
+$ etcd/container.sh start
+$ db/container.sh start
 $ etcd/config_docker.sh
 ```
 
-Build images and start containers:
+Build images and start containers in the foreground:
 
 ```
 $ backend/build-image.sh
-$ backend/start-container.sh
+$ backend/container.sh console
 
 $ frontend/build-image.sh
-$ frontend/start-container.sh
+$ frontend/container.sh console
 ```
 
-If everything is fine, you chould be able to access the web via `localhost:8080`.
+If everything is fine, you should be able to access the web via `localhost:8080`.
