@@ -3,8 +3,9 @@
 # You can use CoffeeScript in this file: http://coffeescript.org/
 
 # generate a progress bar
+progressBarTemplate = HandlebarsTemplates['latest_results/progress_bar']
 createProgressBarString = (text, progress) ->
-  "<div><div style=\"float: none;\"><div style=\"float: left; width: 13em;\">#{text}</div><div class=\"progress\" style=\"margin-right: 1em; width: 200px; float: none;\"><div class=\"bar\" style=\"width: #{progress}%;\"></div></div></div><div style=\"float: none;\"></div></div>"
+  progressBarTemplate {label: text, progress: progress}
 
 # pending executions handling
 showPendingExecutions = (data) ->
