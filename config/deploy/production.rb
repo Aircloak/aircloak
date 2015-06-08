@@ -1,0 +1,1 @@
+role :app, %w{deployer@acdocker1.mpi-sws.org}

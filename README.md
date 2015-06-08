@@ -158,3 +158,7 @@ $ frontend/container.sh console
 ```
 
 If everything is fine, you should be able to access the web via `localhost:8080`.
+
+# Deploying
+
+Simply run `bundle exec cap production deploy`, which should deploy the entire air system and migrate the database.
