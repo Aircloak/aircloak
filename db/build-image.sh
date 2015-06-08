@@ -33,18 +33,6 @@ else
   fi
 fi
 
-echo "Starting container..."
-docker run \
-  --name air_db -d -i \
-  -v /docker_volumes/air_db:/var/lib/postgresql/data \
-  -p 5433:5432 \
-  aircloak/air_db:latest
-
-echo "Container started"
-
+./container.sh start
 docker exec air_db /init_db.sh
-
-echo
-echo "Database server is running and listening on port 5433."
-echo "If you're running on OS X, make sure map the boot2docker port 5433 to your localhost."
-echo
+./container.sh stop

@@ -21,3 +21,4 @@ include/*_pb.hrl
 # the git repo, although no sensitive data is
 # kept there. They do take up a lot of space...
 artifacts
+/image_shell_init.sh

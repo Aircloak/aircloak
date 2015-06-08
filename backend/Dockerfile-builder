@@ -1,6 +1,10 @@
 FROM debian:jessie
 MAINTAINER Sebastian Probst Eide <sebastian@aircloak.com>
 
+RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
+COPY image_shell_init.sh /tmp/build_config/
+RUN . /tmp/build_config/image_shell_init.sh
+
 
 ## ------------------------------------------------------------------
 ## Get dependencies needed on the build system
@@ -17,7 +21,7 @@ RUN \
 ## Get erlang installed
 ## ------------------------------------------------------------------
 
-RUN \
+RUN . /tmp/build_config/proxies.sh && \
   curl -L -O http://www.erlang.org/download/otp_src_17.5.tar.gz && \
   mkdir -p /tmp/download && \
   mv /otp_src_17.5.tar.gz /tmp/download/otp.tar.gz
@@ -37,8 +41,8 @@ RUN \
 ## ------------------------------------------------------------------
 
 # User under which the app will run.
-# Confd will also run as the same user
-RUN useradd --create-home --shell /bin/bash deployer
+RUN . /tmp/build_config/setuid.sh && \
+  useradd -u $new_user_id --create-home --shell /bin/bash deployer
 
 RUN mkdir -p /aircloak/utils && chown deployer:deployer /aircloak/utils
 
@@ -52,5 +56,3 @@ COPY docker /aircloak/utils
 
 # The source to build
 VOLUME /aircloak/source
-
-CMD /aircloak/utils/build.sh

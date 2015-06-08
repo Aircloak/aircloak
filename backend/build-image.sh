@@ -3,6 +3,7 @@
 set -e
 
 cd $(dirname $0)
+. ../common/docker_helper.sh
 
 # This will build a dockerized version of the air-sandbox app.
 # It has one major nasty caveat. Since we don't want to inlcude
@@ -48,15 +49,15 @@ make deps
 cd $CWD/artifacts/cache/deps/cloak && git submodule update --init --recursive
 cd $CWD
 
+setup_env_init
 
 log "Creating build image"
 activate_stage "builder"
-docker build -t aircloak/air_build:latest .
+docker build -t aircloak/air_backend_build:latest .
 log "Performing build inside build container"
-docker run -v $PWD:/aircloak/source --rm -i aircloak/air_build:latest
+docker run -v $PWD:/aircloak/source --rm aircloak/air_backend_build:latest /aircloak/utils/build.sh
 
 # Now we should have a build in the artifacts/cache folder
 activate_stage "release"
 log "Creating release docker container"
-docker build -t aircloak/air:latest .
-log "Release created."
+docker build -t aircloak/air_backend:latest .
