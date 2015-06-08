@@ -38,7 +38,8 @@ class Cluster < ActiveRecord::Base
   end
 
   def random_cloak_ip
-    cloaks.sample.ip
+    some_cluster_cloak = cluster_cloaks.where(raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).sample
+    some_cluster_cloak.nil? ? nil : some_cluster_cloak.cloak.ip
   end
 
   def num_broken
@@ -206,13 +207,18 @@ class Cluster < ActiveRecord::Base
   # it's capabilities. This way the web interface will automatically
   # show the right interfaces that are supported.
   def check_capabilities
+    some_cloak_ip = random_cloak_ip
+    if some_cloak_ip.nil?
+      logger.error "No cloak available for cluster #{name}"
+      return
+    end
     url = if Rails.configuration.installation.global
-      "https://#{random_cloak_ip}/capabilities"
+      "https://#{some_cloak_ip}/capabilities"
     else
       # We are running in local mode
       protocol = Rails.configuration.cloak.protocol
       port = Rails.configuration.cloak.port
-      "#{protocol}://#{random_cloak_ip}:#{port}/capabilities"
+      "#{protocol}://#{some_cloak_ip}:#{port}/capabilities"
     end
     RestClient::Request.execute(method: :get, url: url, timeout: 0.3, open_timeout: 0.2) do |response, request, result, &block|
       case response.code

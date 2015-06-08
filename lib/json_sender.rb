@@ -10,7 +10,9 @@ class JsonSender
 
     protocol = Rails.configuration.cloak.protocol
     port = Rails.configuration.cloak.port
-    url = "#{protocol}://#{cluster.random_cloak_ip}:#{port}/#{path}"
+    some_cloak_ip = cluster.random_cloak_ip
+    return {"error" => "No cloak available for cluster #{cluster.name}"} if some_cloak_ip.nil?
+    url = "#{protocol}://#{some_cloak_ip}:#{port}/#{path}"
     headers = {analyst: analyst.id, :content_type => 'application/json'}.merge(headers)
 
     args = []
