@@ -39,7 +39,7 @@ namespace :aircloak do
   end
 
   task :update_code do
-    on roles(:app), in: :sequence do
+    on roles(:build), in: :sequence do
       exec_ml "
             cd #{fetch(:deploy_to)} &&
             git checkout #{fetch(:branch)} &&
@@ -67,7 +67,7 @@ namespace :aircloak do
 
   namespace :backend do
     task :build do
-      on roles(:app), in: :sequence do
+      on roles(:build), in: :sequence do
         execute "rm -rf #{fetch(:deploy_to)}/backend/artifacts"
         execute "AIR_ENV=prod #{fetch(:deploy_to)}/backend/build-image.sh"
       end
@@ -76,7 +76,7 @@ namespace :aircloak do
 
   namespace :frontend do
     task :build do
-      on roles(:app), in: :sequence do
+      on roles(:build), in: :sequence do
         execute "AIR_ENV=prod #{fetch(:deploy_to)}/frontend/build-image.sh"
       end
     end
