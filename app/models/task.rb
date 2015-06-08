@@ -79,7 +79,7 @@ class Task < ActiveRecord::Base
     if stored_task
       raise NotABatchTaskException.new("Task #{self.id} is a stream task, not a batch task")
     end
-    unless cluster.random_cloak_ip.nil?
+    unless cluster.has_ready_cloak?
       pr = PendingResult.create(task: self)
       headers = {
         "task_id" => encode_token,
@@ -216,7 +216,7 @@ private
   end
 
   def synchronize_stored_task
-    return unless self.stored_task && cluster.random_cloak_ip
+    return unless self.stored_task && (not cluster.has_ready_cloak?)
     if active && !deleted then
       upload_stored_task
     else

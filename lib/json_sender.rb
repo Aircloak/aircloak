@@ -2,6 +2,10 @@ require './lib/token_generator'
 
 class JsonSender
   def self.request method, auth_type, analyst, cluster, path, headers = {}, body = nil
+    unless cluster.has_ready_cloak?
+      return {"success" => false, "description" => "No cloak available for cluster #{cluster.name}"}
+    end
+
     unless [:get, :post, :put, :delete, :head].include?(method)
       raise ArgumentError.new("Unsupported REST method #{method}")
     end
@@ -10,9 +14,7 @@ class JsonSender
 
     protocol = Rails.configuration.cloak.protocol
     port = Rails.configuration.cloak.port
-    some_cloak_ip = cluster.random_cloak_ip
-    return {"error" => "No cloak available for cluster #{cluster.name}"} if some_cloak_ip.nil?
-    url = "#{protocol}://#{some_cloak_ip}:#{port}/#{path}"
+    url = "#{protocol}://#{cluster.ip_of_a_ready_cloak}:#{port}/#{path}"
     headers = {analyst: analyst.id, :content_type => 'application/json'}.merge(headers)
 
     args = []
@@ -33,7 +35,7 @@ class JsonSender
     result
   rescue Exception => e
     Rails.logger.error "Cloak request error: #{e.message}\n#{e.backtrace.join("\n")}"
-    {"error" => "Cloak request error: #{e.message}"}
+    {"success" => false, "description" => "Cloak request error: #{e.message}"}
   end
 
   def self.cert_and_key(auth_type, analyst)

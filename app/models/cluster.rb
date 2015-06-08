@@ -37,9 +37,17 @@ class Cluster < ActiveRecord::Base
     @has_tpm ||= cloaks.first.tpm
   end
 
-  def random_cloak_ip
-    some_cluster_cloak = cluster_cloaks.where(raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).sample
+  def ip_of_a_ready_cloak
+    some_cluster_cloak = ready_cluster_cloak
     some_cluster_cloak.nil? ? nil : some_cluster_cloak.cloak.ip
+  end
+
+  def ready_cluster_cloak
+    cluster_cloaks.where(raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).first
+  end
+
+  def has_ready_cloak?
+    not ready_cluster_cloak.nil?
   end
 
   def num_broken
@@ -207,7 +215,7 @@ class Cluster < ActiveRecord::Base
   # it's capabilities. This way the web interface will automatically
   # show the right interfaces that are supported.
   def check_capabilities
-    some_cloak_ip = random_cloak_ip
+    some_cloak_ip = ip_of_a_ready_cloak
     if some_cloak_ip.nil?
       logger.error "No cloak available for cluster #{name}"
       return
