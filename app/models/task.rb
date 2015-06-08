@@ -216,7 +216,7 @@ private
   end
 
   def synchronize_stored_task
-    return unless self.stored_task && (not cluster.has_ready_cloak?)
+    return unless self.stored_task && cluster.has_ready_cloak?
     if active && !deleted then
       upload_stored_task
     else

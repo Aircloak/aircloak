@@ -215,18 +215,17 @@ class Cluster < ActiveRecord::Base
   # it's capabilities. This way the web interface will automatically
   # show the right interfaces that are supported.
   def check_capabilities
-    some_cloak_ip = ip_of_a_ready_cloak
-    if some_cloak_ip.nil?
+    unless has_ready_cloak?
       logger.error "No cloak available for cluster #{name}"
       return
     end
     url = if Rails.configuration.installation.global
-      "https://#{some_cloak_ip}/capabilities"
+      "https://#{ip_of_a_ready_cloak}/capabilities"
     else
       # We are running in local mode
       protocol = Rails.configuration.cloak.protocol
       port = Rails.configuration.cloak.port
-      "#{protocol}://#{some_cloak_ip}:#{port}/capabilities"
+      "#{protocol}://#{ip_of_a_ready_cloak}:#{port}/capabilities"
     end
     RestClient::Request.execute(method: :get, url: url, timeout: 0.3, open_timeout: 0.2) do |response, request, result, &block|
       case response.code
