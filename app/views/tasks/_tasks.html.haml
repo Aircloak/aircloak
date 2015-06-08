@@ -1,4 +1,4 @@
-- if @tasks.any? {|task| task.cluster.nil?}
+- if tasks.any? {|task| task.cluster.nil?}
   .alert
     %button.close{type: "button", data: {dismiss: "alert"}} &times;
     %strong Warning!
@@ -15,7 +15,7 @@
       %th State
       %th
   %tbody
-  - @tasks.each do |task|
+  - tasks.each do |task|
     %tr{class: ("error" if task.cluster.nil?)}
       %td= task.name
       - if current_user.has_multiple_clusters?

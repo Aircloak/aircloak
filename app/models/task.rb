@@ -21,8 +21,6 @@ class Task < ActiveRecord::Base
 
   before_create :generate_token
 
-  after_save :synchronize_stored_task
-
   class InvalidTaskId < Exception; end
 
   BATCH_TASK = 1
@@ -203,6 +201,17 @@ class Task < ActiveRecord::Base
     end
   end
 
+  # saves the task into the database and, in case it is a stored task, updates the task's state on the cloak
+  def save_and_synchronize!
+    save!
+    return unless self.stored_task && CloakHelpers.some_cloak(self)
+    if active && !deleted then
+      upload_stored_task
+    else
+      remove_task_from_cloak
+    end
+  end
+
 private
   def streaming_task
     return if task_type != STREAMING_TASK
@@ -213,15 +222,6 @@ private
   def periodic_task
     return if task_type != PERIODIC_TASK
     self.errors.add :period, "can't be blank" if period.nil? || period.empty?
-  end
-
-  def synchronize_stored_task
-    return unless self.stored_task && CloakHelpers.some_cloak(self)
-    if active && !deleted then
-      upload_stored_task
-    else
-      remove_task_from_cloak
-    end
   end
 
   class UploadError < Exception; end
