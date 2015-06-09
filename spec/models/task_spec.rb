@@ -106,6 +106,47 @@ describe Task do
     PendingResult.count.should == 0
   end
 
+  def add_ready_cloak(cluster)
+    newCloak = Cloak.create(
+      name: "localhost",
+      ip: "127.0.0.1"
+    )
+    cluster.cloaks << newCloak
+    newCloak.save
+    cluster.save
+    newCloak.cluster_cloak.raw_state = ClusterCloak.state_to_raw_state(:belongs_to)
+    newCloak.cluster_cloak.save
+  end
+
+  it "should upload stored tasks" do
+    task = create_task
+    task.should_receive(:upload_stored_task)
+    task.should_not_receive(:remove_task_from_cloak)
+    add_ready_cloak(task.cluster)
+    task.stored_task = true
+    task.save
+  end
+
+  it "should not upload stored tasks if no cloak is ready" do
+    task = create_task
+    task.should_not_receive(:upload_stored_task)
+    task.should_not_receive(:remove_task_from_cloak)
+    task.cluster.cloaks << Cloak.create(name: "localhost", ip: "127.0.0.1")
+    task.cluster.save
+    task.stored_task = true
+    task.save
+  end
+
+  it "should not upload stored tasks if the task is not active" do
+    task = create_task
+    task.should_not_receive(:upload_stored_task)
+    task.should_receive(:remove_task_from_cloak)
+    add_ready_cloak(task.cluster)
+    task.stored_task = true
+    task.active = false
+    task.save
+  end
+
   private
     def base_attrs
       {name: "name", sandbox_type: "lua", code: "code", cluster: Cluster.new}

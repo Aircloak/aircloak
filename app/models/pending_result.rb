@@ -1,5 +1,4 @@
 require './lib/token_generator'
-require './lib/cloak_helpers'
 
 class PendingResult < ActiveRecord::Base
   belongs_to :task
@@ -40,18 +39,15 @@ class PendingResult < ActiveRecord::Base
   def progress_status
     return nil if progress_handle.nil?
 
-    url = URI.encode(CloakHelpers.cloak_url(task, "/task/#{progress_handle}"))
-    if url
-      response = JsonSender.request(:get, :task_runner, task.analyst, task.cluster,
-          URI.encode("task/#{progress_handle}"), {}, nil)
-      if response["success"] == true then
-        {
-          time: Time.at(self.created_at).utc.strftime('%Y-%m-%d %H:%M'),
-          progress: response["progress"]
-        }
-      else
-        nil
-      end
+    response = JsonSender.request(:get, :task_runner, task.analyst, task.cluster,
+        URI.encode("task/#{progress_handle}"), {}, nil)
+    if response["success"] == true then
+      {
+        time: Time.at(self.created_at).utc.strftime('%Y-%m-%d %H:%M'),
+        progress: response["progress"]
+      }
+    else
+      nil
     end
   end
 
