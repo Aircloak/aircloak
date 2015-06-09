@@ -274,7 +274,6 @@ MigrationView = Backbone.View.extend
 
     if clusterOptionElement.data("user-row-expiry-capability")
       $("#row_expiry_ui").show()
-      $("#row_expiry").val("")
     else
       $("#row_expiry_ui").hide()
       $("#row_expiry").val("")
