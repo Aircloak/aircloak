@@ -124,7 +124,7 @@ describe Task do
     task.should_not_receive(:remove_task_from_cloak)
     add_ready_cloak(task.cluster)
     task.stored_task = true
-    task.save
+    task.save_and_synchronize!
   end
 
   it "should not upload stored tasks if no cloak is ready" do
@@ -134,7 +134,7 @@ describe Task do
     task.cluster.cloaks << Cloak.create(name: "localhost", ip: "127.0.0.1")
     task.cluster.save
     task.stored_task = true
-    task.save
+    task.save_and_synchronize!
   end
 
   it "should not upload stored tasks if the task is not active" do
@@ -144,7 +144,7 @@ describe Task do
     add_ready_cloak(task.cluster)
     task.stored_task = true
     task.active = false
-    task.save
+    task.save_and_synchronize!
   end
 
   private
