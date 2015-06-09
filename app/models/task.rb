@@ -78,7 +78,7 @@ class Task < ActiveRecord::Base
     if stored_task
       raise NotABatchTaskException.new("Task #{self.id} is a stream task, not a batch task")
     end
-    unless cluster.has_ready_cloak?
+    if cluster.has_ready_cloak?
       pr = PendingResult.create(task: self)
       headers = {
         "task_id" => encode_token,

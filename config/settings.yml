@@ -38,6 +38,8 @@ test: &testing
   build_server:
     host: localhost
   private_key_password: test_password
+  # empty means send to default cloak-core URL
+  publish_url: "" # http://127.0.0.1:1080/publish
   github_oauth_token: "273c13ccc918a992618a503df7dadfe06f70b3f5"
   secret_key_base: 'random-secret'
   airpub_shared_secret: "well-known secret"
