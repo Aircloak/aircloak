@@ -42,7 +42,7 @@ class PendingResult < ActiveRecord::Base
           URI.encode("task/#{progress_handle}"), {}, nil)
       if response["success"] == true then
         {
-          time: Time.at(self.created_at).utc.strftime('%Y-%m-%d %H:%M'),
+          label: "started at #{Time.at(self.created_at).utc.strftime('%Y-%m-%d %H:%M')}",
           progress: response["progress"]
         }
       else

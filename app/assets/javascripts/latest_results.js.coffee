@@ -2,19 +2,20 @@
 # All this logic will automatically be available in application.js.
 # You can use CoffeeScript in this file: http://coffeescript.org/
 
-# generate a progress bar
+# load the progress bar template
 progressBarTemplate = HandlebarsTemplates['latest_results/progress_bar']
-createProgressBarString = (text, progress) ->
-  progressBarTemplate {label: text, progress: progress}
 
 # pending executions handling
 showPendingExecutions = (data) ->
   if data?.success is true
-    progress_string = ""
-    progress_string += createProgressBarString "started at #{progress.time}", progress.progress for progress in data.progress
-    if progress_string == ""
-      progress_string = createProgressBarString "No pending execution", 0
-    $('#progress_indicator').html "<h4>Pending task execution(s)</h4>#{progress_string}"
+    if data.reports.length isnt 0
+      $('#progress_indicator').html progressBarTemplate data
+    else
+      $('#progress_indicator').html progressBarTemplate
+        reports: [
+          label: "No pending execution"
+          progress: 0
+        ]
   else
     $('#progress_indicator').html ""
     clearInterval pendingCallbackInterval
@@ -23,6 +24,7 @@ pendingCallback = =>
   jQuery.getJSON "/tasks/#{$('.task_params').data('task-token')}/pending_executions", showPendingExecutions
 
 pendingCallbackInterval = setInterval pendingCallback, 1000
+showPendingExecutions { success: true, reports: [] } # to display pending executions directly
 
 # create namespace for task-related shared variables
 window.Task = {}
