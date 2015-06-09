@@ -5,7 +5,7 @@ class TasksControllerException < Exception; end
 
 class TasksController < ApplicationController
   filter_access_to [:execute_as_batch_task, :all_results, :latest_results,
-                    :suspend, :resume, :delete, :deleted, :recover,
+                    :suspend, :resume, :delete, :deleted, :recover, :share, :acquire,
                     :particular_result, :pending_executions], require: :manage
   before_action :load_task, except: [:index, :new, :create, :deleted]
   before_action :set_tables_json, only: [:new, :edit, :update, :create]
@@ -19,7 +19,8 @@ class TasksController < ApplicationController
 
   # GET /tasks
   def index
-    @tasks = current_user.analyst.persistent_tasks.where(:deleted => false)
+    @private_tasks = current_user.analyst.private_tasks current_user
+    @shared_tasks = current_user.analyst.shared_tasks
     describe_activity "Browsing all tasks for #{current_user.analyst.name}"
   end
 
@@ -41,32 +42,28 @@ class TasksController < ApplicationController
       redirect_to tasks_path, flash: {error: 'Cannot create a task without having a cluster'}
     else
       @task = current_user.analyst.tasks.new
+      @task.user = current_user
       describe_activity "Creating new task"
     end
   end
 
   # POST /tasks
   def create
-    # We need to create the empty task first, so it is connected to
-    # the analyst...
+    # We need to create the empty task first, so it is connected to the analyst...
     @task = current_user.analyst.tasks.new
-    # ...only then can we validate some values (e.g. data), so we use
-    # manual mass assignment here.
+    @task.user = current_user
+    # ...only then can we validate some values (e.g. data), so we use manual mass assignment here.
     @task.attributes = task_params
 
     @task.sandbox_type = "lua"
     @task.update_task = false
     @task.stored_task = ([Task::STREAMING_TASK, Task::PERIODIC_TASK].include?(@task.task_type))
     @task.code_timestamp = Time.now
-    if @task.save
-      describe_successful_activity "Successfully created a new task"
-      # If we don't redirect, the flash messages get stuck
-      flash[:notice] = "Task #{@task.name} was successfully created."
-      redirect_to edit_task_path @task.token
-    else
-      describe_failed_activity "Failed at creating a task"
-      render action: :new
-    end
+    @task.save_and_synchronize!
+    describe_successful_activity "Successfully created a new task"
+    # If we don't redirect, the flash messages get stuck
+    flash[:notice] = "Task #{@task.name} was successfully created."
+    redirect_to edit_task_path @task.token
   rescue Exception => e
     describe_failed_activity "Failed at creating a task"
     flash[:error] = e.message
@@ -81,7 +78,8 @@ class TasksController < ApplicationController
       @task.deleted = false
     end
     @task.code_timestamp = Time.now if @task.code != task_params[:code]
-    if @task.update(task_params)
+    if @task.update(task_params) then
+      @task.save_and_synchronize!
       if recovering then
         describe_successful_activity "Successfully changed and recovered task #{@task.name}"
         flash[:notice] = "Task #{@task.name} was successfully recovered"
@@ -240,7 +238,7 @@ class TasksController < ApplicationController
   # POST /tasks/:id/suspend
   def suspend
     @task.active = false
-    @task.save
+    @task.save_and_synchronize!
     describe_activity "Suspended task #{@task.name}", suspend_task_path(@task.token)
     flash[:notice] = "Task #{@task.name} suspended."
   rescue Exception => e
@@ -253,7 +251,7 @@ class TasksController < ApplicationController
   # POST /tasks/:id/resume
   def resume
     @task.active = true
-    @task.save
+    @task.save_and_synchronize!
     describe_activity "Resumed task #{@task.name}", resume_task_path(@task.token)
     flash[:notice] = "Task #{@task.name} resumed."
   rescue Exception => e
@@ -278,7 +276,7 @@ class TasksController < ApplicationController
     end
 
     @task.deleted = false
-    @task.save
+    @task.save_and_synchronize!
     describe_successful_activity "Recovered task #{@task.name}", recover_task_path(@task.token)
     flash[:notice] = "Task #{@task.name} was recovered."
     redirect_to tasks_path
@@ -292,18 +290,35 @@ class TasksController < ApplicationController
   def delete
     @task.deleted = true
     @task.purged = false
-    if @task.save
-      describe_successful_activity "Deleted task #{@task.name}"
-      flash[:notice] = "Deleted task #{@task.name}"
-    else
-      describe_failed_activity "Could not delete task #{@task.name}"
-      flash[:error] = "Could not delete task #{@task.name}. If this persists, please contact support"
-    end
+    @task.save_and_synchronize!
+    describe_successful_activity "Deleted task #{@task.name}"
+    flash[:notice] = "Deleted task #{@task.name}"
   rescue Exception => e
     describe_failed_activity "Failed at deleting task #{@task.name}"
-    flash[:error] = e.message
+    flash[:error] = "Could not delete task #{@task.name}. If this issue persists, please contact support\nError: #{e.message}"
   ensure
     redirect_to tasks_path
+  end
+
+  # POST /tasks/:id/share
+  def share
+    @task.shared = true
+    @task.save
+    describe_activity "Shared task #{@task.name}", share_task_path(@task.token)
+    flash[:notice] = "Task #{@task.name} is now shared."
+  ensure
+    redirect_to :back
+  end
+
+  # POST /tasks/:id/acquire
+  def acquire
+    @task.shared = false
+    @task.user = current_user
+    @task.save
+    describe_activity "Took ownership of task #{@task.name}", acquire_task_path(@task.token)
+    flash[:notice] = "Task #{@task.name} is now private."
+  ensure
+    redirect_to :back
   end
 
 private

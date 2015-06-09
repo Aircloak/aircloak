@@ -3,6 +3,7 @@ class User < ActiveRecord::Base
   has_many :permissions, through: :user_permissions
   has_many :activities
   belongs_to :analyst
+  has_many :tasks, dependent: :destroy
 
   validate :only_aircloakers_can_be_admin
 
