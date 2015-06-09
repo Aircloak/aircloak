@@ -1,7 +1,6 @@
 require './lib/json_sender'
 require './lib/prefetch_filter'
 require './lib/task_code'
-require './lib/cloak_helpers'
 
 class Task < ActiveRecord::Base
   has_many :pending_results, dependent: :destroy, counter_cache: true
@@ -80,8 +79,7 @@ class Task < ActiveRecord::Base
     if stored_task
       raise NotABatchTaskException.new("Task #{self.id} is a stream task, not a batch task")
     end
-    url = CloakHelpers.cloak_url(self, "/task/run")
-    if url
+    unless cluster.has_ready_cloak?
       pr = PendingResult.create(task: self)
       headers = {
         "task_id" => encode_token,
@@ -105,10 +103,13 @@ class Task < ActiveRecord::Base
           pr.progress_handle = response["progress_handle"]
           pr.save
         end
+        pr
       else
         # TODO: LOG
+        # Remove the pending request entry as the task was never run.
+        pr.delete
+        nil
       end
-      pr
     end
   end
 
@@ -215,7 +216,7 @@ private
   end
 
   def synchronize_stored_task
-    return unless self.stored_task && CloakHelpers.some_cloak(self)
+    return unless self.stored_task && cluster.has_ready_cloak?
     if active && !deleted then
       upload_stored_task
     else
