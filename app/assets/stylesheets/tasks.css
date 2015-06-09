@@ -1,5 +1,6 @@
 //= require codemirror
 //= require codemirror/addons/hint/show-hint
+//= require bootstrap-datetimepicker.min
 
 /* Increases the completion width */
 .CodeMirror-hint {

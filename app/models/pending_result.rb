@@ -1,5 +1,4 @@
 require './lib/token_generator'
-require './lib/cloak_helpers'
 
 class PendingResult < ActiveRecord::Base
   belongs_to :task
@@ -13,8 +12,12 @@ class PendingResult < ActiveRecord::Base
     self.auth_token = token
   end
 
-  def self.delete_for_task task
-    PendingResult.where(task_id: task.id).delete_all
+  def self.delete_for_task task, begin_date = nil, end_date = nil
+    if begin_date.nil? or end_date.nil? then
+      PendingResult.where(task_id: task.id).delete_all
+    else
+      PendingResult.where(task_id: task.id).where(:created_at => begin_date..end_date).delete_all
+    end
   end
 
   def signal_result result
@@ -36,18 +39,15 @@ class PendingResult < ActiveRecord::Base
   def progress_status
     return nil if progress_handle.nil?
 
-    url = URI.encode(CloakHelpers.cloak_url(task, "/task/#{progress_handle}"))
-    if url
-      response = JsonSender.request(:get, :task_runner, task.analyst, task.cluster,
-          URI.encode("task/#{progress_handle}"), {}, nil)
-      if response["success"] == true then
-        {
-          label: "started at #{Time.at(self.created_at).utc.strftime('%Y-%m-%d %H:%M')}",
-          progress: response["progress"]
-        }
-      else
-        nil
-      end
+    response = JsonSender.request(:get, :task_runner, task.analyst, task.cluster,
+        URI.encode("task/#{progress_handle}"), {}, nil)
+    if response["success"] == true then
+      {
+        label: "started at #{Time.at(self.created_at).utc.strftime('%Y-%m-%d %H:%M')}",
+        progress: response["progress"]
+      }
+    else
+      nil
     end
   end
 
