@@ -2,7 +2,7 @@
 lock '3.2.1'
 
 set :application, 'air'
-set :branch, "develop"
+set :branch, ENV["AIR_DEPLOY_BRANCH"] || "develop"
 set :deploy_to, '/aircloak/air'
 
 # Prevents key hijacking.
