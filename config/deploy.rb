@@ -42,8 +42,8 @@ namespace :aircloak do
     on roles(:build), in: :sequence do
       exec_ml "
             cd #{fetch(:deploy_to)} &&
-            git checkout #{fetch(:branch)} &&
             git fetch &&
+            git checkout #{fetch(:branch)} &&
             git reset --hard origin/#{fetch(:branch)}
           "
 
