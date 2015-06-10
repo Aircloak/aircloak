@@ -5,7 +5,9 @@ class UsersController < ApplicationController
 
   def index
     describe_activity "Listing all users"
-    @users = current_user.managed_users
+    @users = current_user.managed_users.sort_by do |user|
+      "#{user.on_behalf_of} - #{user.login}"
+    end
   end
 
   def new
