@@ -6,8 +6,8 @@ class TasksControllerException < Exception; end
 
 class TasksController < ApplicationController
   filter_access_to [:execute_as_batch_task, :all_results, :latest_results,
-                    :suspend, :resume, :delete, :deleted, :recover,
-                    :particular_result], require: :manage
+                    :suspend, :resume, :delete, :deleted, :recover, :share, :acquire,
+                    :particular_result, :pending_executions], require: :manage
   before_action :load_task, except: [:index, :new, :create, :deleted]
   before_action :set_tables_json, only: [:new, :edit, :update, :create]
   before_action :set_auto_completions, only: [:new, :edit, :update, :create]
@@ -20,7 +20,8 @@ class TasksController < ApplicationController
 
   # GET /tasks
   def index
-    @tasks = current_user.analyst.persistent_tasks.where(:deleted => false)
+    @private_tasks = current_user.analyst.private_tasks current_user
+    @shared_tasks = current_user.analyst.shared_tasks
     describe_activity "Browsing all tasks for #{current_user.analyst.name}"
   end
 
@@ -42,32 +43,28 @@ class TasksController < ApplicationController
       redirect_to tasks_path, flash: {error: 'Cannot create a task without having a cluster'}
     else
       @task = current_user.analyst.tasks.new
+      @task.user = current_user
       describe_activity "Creating new task"
     end
   end
 
   # POST /tasks
   def create
-    # We need to create the empty task first, so it is connected to
-    # the analyst...
+    # We need to create the empty task first, so it is connected to the analyst...
     @task = current_user.analyst.tasks.new
-    # ...only then can we validate some values (e.g. data), so we use
-    # manual mass assignment here.
+    @task.user = current_user
+    # ...only then can we validate some values (e.g. data), so we use manual mass assignment here.
     @task.attributes = task_params
 
     @task.sandbox_type = "lua"
     @task.update_task = false
     @task.stored_task = ([Task::STREAMING_TASK, Task::PERIODIC_TASK].include?(@task.task_type))
     @task.code_timestamp = Time.now
-    if @task.save
-      describe_successful_activity "Successfully created a new task"
-      # If we don't redirect, the flash messages get stuck
-      flash[:notice] = "Task #{@task.name} was successfully created."
-      redirect_to edit_task_path @task.token
-    else
-      describe_failed_activity "Failed at creating a task"
-      render action: :new
-    end
+    @task.save_and_synchronize!
+    describe_successful_activity "Successfully created a new task"
+    # If we don't redirect, the flash messages get stuck
+    flash[:notice] = "Task #{@task.name} was successfully created."
+    redirect_to edit_task_path @task.token
   rescue Exception => e
     describe_failed_activity "Failed at creating a task"
     flash[:error] = e.message
@@ -82,7 +79,8 @@ class TasksController < ApplicationController
       @task.deleted = false
     end
     @task.code_timestamp = Time.now if @task.code != task_params[:code]
-    if @task.update(task_params)
+    if @task.update(task_params) then
+      @task.save_and_synchronize!
       if recovering then
         describe_successful_activity "Successfully changed and recovered task #{@task.name}"
         flash[:notice] = "Task #{@task.name} was successfully recovered"
@@ -118,9 +116,12 @@ class TasksController < ApplicationController
 
   # POST /tasks/:id/delete_results
   def delete_results
-    @task.efficiently_delete_results
-    describe_activity "Deleted results for #{@task.name}"
-    redirect_to tasks_path, notice: "Removed results for #{@task.name}"
+    begin_date = DateTime.parse(params[:begin_date])
+    end_date = DateTime.parse(params[:end_date])
+    @task.efficiently_delete_results begin_date, end_date
+    describe_activity "Deleted #{@task.name}'s results between #{params[:begin_date]} and #{params[:end_date]}"
+    flash[:notice] = "Deleted #{@task.name}'s results between #{params[:begin_date]} and #{params[:end_date]}"
+    redirect_to :back
   end
 
   # POST /tasks/:id/execute_as_batch_task
@@ -150,18 +151,41 @@ class TasksController < ApplicationController
 
   # GET /tasks/:id/all_results
   def all_results
-    @raw_results = @task.results.paginate(page: params[:page], per_page: 15).order(created_at: :desc)
-    @results = convert_results_for_client_side_rendering @raw_results # convert to json
-    @results.reverse! # results are rendered in reverse order, reverse here to show actual order
-    @results_path = all_results_task_path(@task.token)
-    describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task.token)
-
+    if params[:begin_date].present? && params[:end_date].present? then
+      begin_date = DateTime.parse(params[:begin_date])
+      end_date = DateTime.parse(params[:end_date])
+    else
+      if @task.results.first then
+        begin_date = @task.results.first.created_at
+        end_date = @task.results.last.created_at
+      else
+        begin_date = @task.created_at
+        end_date = DateTime.now.utc
+      end
+    end
     respond_to do |format|
-      format.html
+      format.html do
+        @raw_results = @task.results.where(:created_at => begin_date..end_date).order(created_at: :desc).
+            paginate(page: params[:page], per_page: 15)
+        @results = convert_results_for_client_side_rendering @raw_results # convert to json
+        @results.reverse! # results are rendered in reverse order, reverse batch here to show actual order
+        @results_path = all_results_task_path(@task.token)
+        describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task.token)
+        # format begin/end datetimes for results filtering
+        @begin_date_str = begin_date.strftime("%d/%m/%Y %H:%M:%S")
+        @end_date_str = end_date.strftime("%d/%m/%Y %H:%M:%S")
+      end
 
       format.csv do
-        filename = "task_results_#{@task.id}_#{Time.now.strftime("%Y%m%d%H%M")}.csv"
+        @raw_results = @task.results.where(:created_at => begin_date..end_date).order(created_at: :asc)
+        @results = convert_results_for_client_side_rendering @raw_results # convert to json
+        # format begin/end datetimes for filename creation
+        begin_date_str = begin_date.strftime("%d-%m-%Y_%H-%M-%S")
+        end_date_str = end_date.strftime("%d-%m-%Y_%H-%M-%S")
+        filename = "#{@task.name}_from_#{begin_date_str}_to_#{end_date_str}.csv"
         response.headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
+        response.headers['Content-Type'] = 'text/csv'
+        describe_activity "Exported all results of task #{@task.name}", all_results_task_path(@task.token)
         render :text => results_csv
       end
     end
@@ -180,6 +204,21 @@ class TasksController < ApplicationController
     @server_url = Conf.get("/service/airpub/subscribe_endpoint")
     @task_token = @task.token
     describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task.token)
+  end
+
+  # GET /tasks/:id/pending_executions
+  # Return as a JSON the list of pending task executions for the particular task.
+  def pending_executions
+    if @task.cluster.capable_of? :task_progress_reports
+      reports = @task.pending_results.all.inject([]) do |acc, pr|
+        status = pr.progress_status
+        acc.push(status) unless status.nil?
+        acc
+      end
+      render json: {success: true, reports: reports}
+    else
+      render json: {success: false}
+    end
   end
 
   # GET /tasks/:id/particular_result/:timestamp
@@ -204,7 +243,7 @@ class TasksController < ApplicationController
   # POST /tasks/:id/suspend
   def suspend
     @task.active = false
-    @task.save
+    @task.save_and_synchronize!
     describe_activity "Suspended task #{@task.name}", suspend_task_path(@task.token)
     flash[:notice] = "Task #{@task.name} suspended."
   rescue Exception => e
@@ -217,7 +256,7 @@ class TasksController < ApplicationController
   # POST /tasks/:id/resume
   def resume
     @task.active = true
-    @task.save
+    @task.save_and_synchronize!
     describe_activity "Resumed task #{@task.name}", resume_task_path(@task.token)
     flash[:notice] = "Task #{@task.name} resumed."
   rescue Exception => e
@@ -242,7 +281,7 @@ class TasksController < ApplicationController
     end
 
     @task.deleted = false
-    @task.save
+    @task.save_and_synchronize!
     describe_successful_activity "Recovered task #{@task.name}", recover_task_path(@task.token)
     flash[:notice] = "Task #{@task.name} was recovered."
     redirect_to tasks_path
@@ -256,18 +295,35 @@ class TasksController < ApplicationController
   def delete
     @task.deleted = true
     @task.purged = false
-    if @task.save
-      describe_successful_activity "Deleted task #{@task.name}"
-      flash[:notice] = "Deleted task #{@task.name}"
-    else
-      describe_failed_activity "Could not delete task #{@task.name}"
-      flash[:error] = "Could not delete task #{@task.name}. If this persists, please contact support"
-    end
+    @task.save_and_synchronize!
+    describe_successful_activity "Deleted task #{@task.name}"
+    flash[:notice] = "Deleted task #{@task.name}"
   rescue Exception => e
     describe_failed_activity "Failed at deleting task #{@task.name}"
-    flash[:error] = e.message
+    flash[:error] = "Could not delete task #{@task.name}. If this issue persists, please contact support\nError: #{e.message}"
   ensure
     redirect_to tasks_path
+  end
+
+  # POST /tasks/:id/share
+  def share
+    @task.shared = true
+    @task.save
+    describe_activity "Shared task #{@task.name}", share_task_path(@task.token)
+    flash[:notice] = "Task #{@task.name} is now shared."
+  ensure
+    redirect_to :back
+  end
+
+  # POST /tasks/:id/acquire
+  def acquire
+    @task.shared = false
+    @task.user = current_user
+    @task.save
+    describe_activity "Took ownership of task #{@task.name}", acquire_task_path(@task.token)
+    flash[:notice] = "Task #{@task.name} is now private."
+  ensure
+    redirect_to :back
   end
 
 private
@@ -298,7 +354,7 @@ private
     # hard-coded list of built-in functions
     completions = [
       {text: "report_property", displayText: "report_property(label, string)"},
-      {text: "tables"},
+      {text: "get_user_tables()"},
       {text: "lookup", displayText: "lookup(table_name, key)"},
       {text: "to_date", displayText: "to_date(timestamp)"},
       {text: "accumulator"},
@@ -339,9 +395,9 @@ private
   end
 
   def results_csv
-    CSV.generate(col_sep: ";") do |csv|
+    file = CSV.generate(col_sep: ",") do |csv|
       # generate column names
-      columns = ["time / label", "errors"] # pre-set meta-column names
+      columns = ["time", "errors"] # pre-set meta-column names
       columnIndexMap = {}
       # create columns from labels and map them to header index
       @results.each do |result|
@@ -367,7 +423,12 @@ private
         end
         csv << cells # write row
       end
-
     end
+    # European versions of Excel default to semicolon as a separator instead of comma
+    # (because comma is used for numbers) so we need to specify the separator explicitly
+    # if we want to import the resulting file into Excel without any changes
+    # this is non-standard and could break some CSV processing tools,
+    # but users using other tools should be smart enough to fix this by themselves
+    "sep=,\n" + file
   end
 end

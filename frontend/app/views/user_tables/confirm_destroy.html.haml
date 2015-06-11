@@ -6,27 +6,26 @@
 %br
 
 %p
-  %b Name:
-  = @table.table_name
+  Name:
+  %b= @table.table_name
 %p
   - if @tasks.count > 0
-    %b Tasks using the table and which will no longer function properly afterwards:
+    Tasks using the table and which will no longer function properly afterwards:
     %ul
       - @tasks.each do |task|
         %li
           - if task.deleted
             %i= "#{task.name} - #{task.type_string} - deleted"
           - else
-            = "#{task.name} - #{task.type_string}"
+            %b= "#{task.name} - #{task.type_string}"
   - else
-    %b No tasks are using this table.
+    No tasks are using this table.
 %p
-  %b Enter table name to confirm operation:
-  = form_tag user_table_path(@table), method: :delete, html: { class: "form-horizontal" } do
+  Enter table name to confirm operation:
+  = form_tag user_table_path(@table), method: :delete, class: "form-inline" do
     .control-group
       .controls
         = text_field_tag "table_name"
-      .controls
         = submit_tag 'Destroy', class: "btn btn-danger"
 
 %p

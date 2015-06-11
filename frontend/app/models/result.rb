@@ -13,9 +13,13 @@ class Result < ActiveRecord::Base
     destroy
   end
 
-  def self.delete_for_task task
-    ExceptionResult.delete_for_task task
-    Result.where(task_id: task.id).delete_all
+  def self.delete_for_task task, begin_date = nil, end_date = nil
+    ExceptionResult.delete_for_task task, begin_date, end_date
+    if begin_date.nil? or end_date.nil? then
+      Result.where(task_id: task.id).delete_all
+    else
+      Result.where(task_id: task.id).where(:created_at => begin_date..end_date).delete_all
+    end
   end
 
   # Convert result with buckets to the format appropriate for usage by clients, such as API consumers.
@@ -27,6 +31,7 @@ class Result < ActiveRecord::Base
       :exceptions => exception_results.map { |exception|
         {
           :id => exception.id,
+          :error => exception.stacktrace,
           :count => exception.count
         }
       }

@@ -33,9 +33,8 @@ ColumnList = Backbone.Collection.extend
 
   setup: (params) ->
     @whetherCreation = params.is_creation
-    reset_options = {}
-    reset_options.silent = true if params.silent == true
-    @reset params.raw_data, reset_options unless params.raw_data.length == 0
+    @reset params.raw_data, {silent: true} unless params.raw_data.length == 0
+    this.trigger('columns_setup')
     @setPreviousMigration params.raw_previous_migration
 
   isCreation: -> @whetherCreation
@@ -146,7 +145,7 @@ MigrationView = Backbone.View.extend
     @changed = false
 
     @listenTo @model, 'add', @addOne
-    @listenTo @model, 'reset', @addAll
+    @listenTo @model, 'columns_setup', @addAll
     @listenTo @model, 'all', @render
     @listenTo @model, "add remove reset", @modelChanged
     @takeClusterCapabilityIntoAccount()
@@ -274,7 +273,6 @@ MigrationView = Backbone.View.extend
 
     if clusterOptionElement.data("user-row-expiry-capability")
       $("#row_expiry_ui").show()
-      $("#row_expiry").val("")
     else
       $("#row_expiry_ui").hide()
       $("#row_expiry").val("")
@@ -309,7 +307,7 @@ NonEditableEditorView = Backbone.View.extend
   initialize: ->
     @columnsView = $ "tbody#columns"
     @listenTo @model, 'add', @addOne
-    @listenTo @model, 'reset', @addAll
+    @listenTo @model, 'columns_setup', @addAll
     @listenTo @model, 'all', @render
 
   addOne: (column) ->

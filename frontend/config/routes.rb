@@ -64,6 +64,7 @@ Web::Application.routes.draw do
   resources :tasks do
     post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
     get "latest_results", on: :member, action: 'latest_results'
+    get "pending_executions", on: :member, action: 'pending_executions'
     get "particular_result/:timestamp", on: :member, action: 'particular_result'
     get "all_results", on: :member, action: 'all_results'
     post "delete_results", on: :member
@@ -72,6 +73,8 @@ Web::Application.routes.draw do
     post "delete", on: :member, action: 'delete'
     get "deleted", on: :collection, action: 'deleted'
     post "recover", on: :member, action: 'recover'
+    post "share", on: :member, action: 'share'
+    post "acquire", on: :member, action: 'acquire'
   end
   resources :results
   resources :user_tables do

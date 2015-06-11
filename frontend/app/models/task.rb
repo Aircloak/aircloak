@@ -11,6 +11,7 @@ class Task < ActiveRecord::Base
 
   belongs_to :cluster
   belongs_to :analyst
+  belongs_to :user
 
   validates_presence_of :name, :sandbox_type, :code, :cluster
   validates_uniqueness_of :name, scope: [:analyst_id]
@@ -19,8 +20,6 @@ class Task < ActiveRecord::Base
   validate :periodic_task
 
   before_create :generate_token
-
-  after_save :synchronize_stored_task
 
   class InvalidTaskId < Exception; end
 
@@ -55,10 +54,9 @@ class Task < ActiveRecord::Base
 
   # This does an efficient SQL delete, rather than loading all the data,
   # running all the validations and callbacks, etc
-  def efficiently_delete_results
-    Result.delete_for_task self
-    PendingResult.delete_for_task self
-    ExceptionResult.delete_for_task self
+  def efficiently_delete_results begin_date = nil, end_date = nil
+    Result.delete_for_task self, begin_date, end_date
+    PendingResult.delete_for_task self, begin_date, end_date
   end
 
   # This does an efficient SQL delete, rather than loading all the data,
@@ -81,8 +79,7 @@ class Task < ActiveRecord::Base
     if stored_task
       raise NotABatchTaskException.new("Task #{self.id} is a stream task, not a batch task")
     end
-    url = cloak_url("/task/run")
-    if url
+    if cluster.has_ready_cloak?
       pr = PendingResult.create(task: self)
       headers = {
         "task_id" => encode_token,
@@ -101,10 +98,18 @@ class Task < ActiveRecord::Base
           post_processing: post_processing_spec
         }.to_json
       )
-      unless response["success"] == true then
+      if response["success"] == true then
+        if response["progress_handle"] != nil
+          pr.progress_handle = response["progress_handle"]
+          pr.save
+        end
+        pr
+      else
         # TODO: LOG
+        # Remove the pending request entry as the task was never run.
+        pr.delete
+        nil
       end
-      pr
     end
   end
 
@@ -182,6 +187,17 @@ class Task < ActiveRecord::Base
     end
   end
 
+  # saves the task into the database and, in case it is a stored task, updates the task's state on the cloak
+  def save_and_synchronize!
+    save!
+    return unless self.stored_task && cluster.has_ready_cloak?
+    if active && !deleted then
+      upload_stored_task
+    else
+      remove_task_from_cloak
+    end
+  end
+
 private
   def streaming_task
     return if task_type != STREAMING_TASK
@@ -192,15 +208,6 @@ private
   def periodic_task
     return if task_type != PERIODIC_TASK
     self.errors.add :period, "can't be blank" if period.nil? || period.empty?
-  end
-
-  def synchronize_stored_task
-    return unless self.stored_task && cloak
-    if active && !deleted then
-      upload_stored_task
-    else
-      remove_task_from_cloak
-    end
   end
 
   class UploadError < Exception; end
@@ -259,18 +266,6 @@ private
     unless response["success"] == true or response["code"] == 404 then # unless true or task not present
       raise RemoveError.new("Failed removing task #{name} from the cluster.")
     end
-  end
-
-  def cloak_url path
-    raise "No cloak in cluster" unless cloak
-    prot = Conf.get("/service/cloak/protocol")
-    port = Conf.get("/service/cloak/port")
-    return "#{prot}://#{cloak.ip}:#{port}/#{path}"
-  end
-
-  def cloak
-    cluster_cloak = ClusterCloak.where(cluster_id: cluster_id, raw_state: ClusterCloak.state_to_raw_state(:belongs_to)).limit(1).first
-    cluster_cloak.cloak if cluster_cloak
   end
 
   def post_processing_spec

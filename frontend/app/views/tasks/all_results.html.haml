@@ -1,9 +1,33 @@
+= content_for(:javascript_include) {javascript_include_tag "bootstrap-datetimepicker.min", "data-turbolinks-track" => true}
 %h3= "#{@task.name}: all results"
 
-= link_to "Download results", "#{@results_path}.csv"
+%p= "Below are the all results for task '#{@task.name}':"
+
+= link_to "Export as CSV", "#{@results_path}.csv?" + {begin_date: @begin_date_str, end_date: @end_date_str}.to_param
 \|
-= link_to "Delete results", delete_results_task_path(@task.token), :method => :post,
-  :data => { :confirm => 'Are you sure?' }, class: "btn btn-danger btn-mini"
+= link_to "Delete results", delete_results_task_path(@task.token, begin_date: @begin_date_str, end_date: @end_date_str),
+    :method => :post, class: "btn btn-danger btn-mini",
+    :data => { :confirm => "Are you sure you want to delete all results created between #{@begin_date_str} and #{@end_date_str}?" }
+
+= content_for :javascript do
+  :coffeescript
+    $(document).ready ->
+      $('#pick_begin').datetimepicker()
+      $('#pick_end').datetimepicker()
+
+%p
+  = form_tag all_results_task_path(@task.token), method: :get, class: "form-inline" do
+    = label_tag 'From:'
+    .input-append.date#pick_begin
+      = text_field_tag :begin_date, @begin_date_str, "data-format" => "dd/MM/yyyy hh:mm:ss"
+      %span.add-on
+        %i.icon-calendar
+    = label_tag 'To:'
+    .input-append.date#pick_end
+      = text_field_tag :end_date, @end_date_str, "data-format" => "dd/MM/yyyy hh:mm:ss"
+      %span.add-on
+        %i.icon-calendar
+    = submit_tag 'Update', class: "btn btn-small"
 
 - if @results.count > 0
   = will_paginate @raw_results
@@ -11,7 +35,7 @@
   = will_paginate @raw_results
 - else
   %hr
-  %p No results stored for this task.
+  %p No results stored for this task during the selected period.
   %hr
 
 = link_to 'Tasks overview', tasks_path
