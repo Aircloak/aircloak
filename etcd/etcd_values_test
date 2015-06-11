@@ -34,7 +34,7 @@ etcd_set /settings/rails/global true
 etcd_set /settings/rails/task/return_protocol http
 etcd_set /settings/rails/task/return_host localhost
 etcd_set /settings/rails/task/return_port 3000
-etcd_set /settings/rails/task/publish_url http://127.0.0.1:1080/publish
+etcd_set /settings/rails/task/publish_url ""
 
 etcd_set /settings/rails/secrets/private_key_password "a not so secret key"
 etcd_set /settings/rails/secrets/github_oauth_token "273c13ccc918a992618a503df7dadfe06f70b3f5"
@@ -42,9 +42,9 @@ etcd_set /settings/rails/secrets/secret_key_base "random-secret"
 
 # Exernal services
 etcd_set /service/airpub/shared_secret "well-known secret"
-etcd_set /service/airpub/subscribe_endpoint "wss://127.0.0.1:1080/subscribe/ws"
-etcd_set /service/air-sandbox/endpoint "http://127.0.0.1:11000"
-etcd_set /service/build_server/host localhost
+etcd_set /service/airpub/subscribe_endpoint ""
+etcd_set /service/air-sandbox/endpoint ""
+etcd_set /service/build_server/host ""
 etcd_set /service/cloak/port 8098
 etcd_set /service/cloak/protocol http
-etcd_set /service/manny_air/host localhost
+etcd_set /service/manny_air/host ""
