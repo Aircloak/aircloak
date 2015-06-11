@@ -18,16 +18,15 @@ then
 fi
 
 # Run command as non root http://stackoverflow.com/a/10220200/96855
-B2D_IP=$(sudo -u ${SUDO_USER} boot2docker ip &> /dev/null)
+B2D_IP=$(sudo -u ${SUDO_USER} boot2docker ip)
 
 if [ "$?" != "0" ]
 then
   sudo -u ${SUDO_USER} boot2docker up
   $(sudo -u ${SUDO_USER} boot2docker shellinit)
-  B2D_IP=$(sudo -u ${SUDO_USER} boot2docker ip &> /dev/null)
+  B2D_IP=$(sudo -u ${SUDO_USER} boot2docker ip)
 fi
 
-OSX_IP=$(ifconfig en0 | grep --word-regexp inet | awk '{print $2}')
 MAP_USER=${SUDO_USER}
 MAP_GROUP=$(sudo -u ${SUDO_USER} id -n -g)
 
@@ -37,8 +36,7 @@ for FOLDER in "$@"; do
   grep -v '^'$FOLDER' ' /etc/exports.old > /etc/exports
   rm /etc/exports.old
 
-  # We are using the OS X IP because the b2d VM is behind NAT
-  echo ""$FOLDER" -mapall=${MAP_USER}:${MAP_GROUP} ${OSX_IP}" >> /etc/exports
+  echo ""$FOLDER" -mapall=${MAP_USER}:${MAP_GROUP} ${B2D_IP}" >> /etc/exports
 done
 
 nfsd restart
@@ -63,7 +61,9 @@ for FOLDER in "$@"; do
   sudo -u ${SUDO_USER} boot2docker ssh << EOF
     echo "Mounting "$FOLDER""
     sudo mkdir -p $FOLDER
-    sudo mount $OSX_IP:$FOLDER $FOLDER -o rw,async,noatime,rsize=32768,wsize=32768,proto=tcp,nfsvers=3
+
+    # 192.168.59.3 is the address of the host as seen from boot2docker machine
+    sudo mount 192.168.59.3:$FOLDER $FOLDER -o rw,async,noatime,rsize=32768,wsize=32768,proto=tcp,nfsvers=3
     echo "Mounted "$FOLDER
     exit
 EOF

@@ -2,8 +2,7 @@ class KeyMaterial < ActiveRecord::Base
   belongs_to :analyst
   belongs_to :analyst_token
 
-  CA_PATH = Rails.root.join("config", "ca")
-  FileUtils.mkdir_p(CA_PATH)
+  CA_PATH = "/aircloak/ca"
 
   def self.ca_key_file(type)
     File.join(CA_PATH, "#{type}.key")

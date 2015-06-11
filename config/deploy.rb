@@ -2,7 +2,7 @@
 lock '3.2.1'
 
 set :application, 'air'
-set :branch, "develop"
+set :branch, ENV["AIR_DEPLOY_BRANCH"] || "develop"
 set :deploy_to, '/aircloak/air'
 
 # Prevents key hijacking.
@@ -42,8 +42,8 @@ namespace :aircloak do
     on roles(:build), in: :sequence do
       exec_ml "
             cd #{fetch(:deploy_to)} &&
-            git checkout #{fetch(:branch)} &&
             git fetch &&
+            git checkout #{fetch(:branch)} &&
             git reset --hard origin/#{fetch(:branch)}
           "
 
