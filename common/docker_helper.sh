@@ -32,14 +32,30 @@ function setup_env_init {
 
       echo 'export https_proxy=http://acmirror.mpi-sws.org:3128' > /tmp/build_config/proxies.sh
       echo 'export http_proxy=http://acmirror.mpi-sws.org:3128' >> /tmp/build_config/proxies.sh
-      echo 'export new_user_id=$UID' >> /tmp/build_config/setuid.sh
+
+      echo '#!/usr/bin/env bash' > /tmp/build_config/useradd.sh
+      echo 'useradd -u $UID "\$@"' >> /tmp/build_config/useradd.sh
+      chmod +x /tmp/build_config/useradd.sh
 EOF
     )
   else
-    content=$(cat <<-EOF
-      echo 'export new_user_id=$UID' >> /tmp/build_config/setuid.sh
+    if [ -n "$(which boot2docker)" ]; then
+      # Don't use host's $UID, since boot2docker ensures proper permissions
+      content=$(cat <<-EOF
+        echo '#!/usr/bin/env bash' > /tmp/build_config/useradd.sh
+        echo 'useradd "\$@"' >> /tmp/build_config/useradd.sh
+        chmod +x /tmp/build_config/useradd.sh
 EOF
-    )
+      )
+    else
+      # No boot2docker -> use host's $UID to ensure proper permissions
+      content=$(cat <<-EOF
+        echo '#!/usr/bin/env bash' > /tmp/build_config/useradd.sh
+        echo 'useradd -u $UID "\$@"' >> /tmp/build_config/useradd.sh
+        chmod +x /tmp/build_config/useradd.sh
+EOF
+      )
+    fi
   fi
 
   if [ -f ./image_shell_init.sh ]; then
