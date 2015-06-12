@@ -15,7 +15,7 @@ sandbox: copy-sandbox-makefile-local
 
 deps: deps/.make
 
-deps/.make:
+deps/.make: rebar.config.lock
 	rm -rf ./deps
 	$(MAKE) deps-dev
 	touch deps/.make

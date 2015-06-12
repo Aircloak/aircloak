@@ -68,7 +68,6 @@ namespace :aircloak do
   namespace :backend do
     task :build do
       on roles(:build), in: :sequence do
-        execute "rm -rf #{fetch(:deploy_to)}/backend/artifacts"
         execute "AIR_ENV=prod #{fetch(:deploy_to)}/backend/build-image.sh"
       end
     end
