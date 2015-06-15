@@ -41,8 +41,7 @@ RUN \
 ## ------------------------------------------------------------------
 
 # User under which the app will run.
-RUN . /tmp/build_config/setuid.sh && \
-  useradd -u $new_user_id --create-home --shell /bin/bash deployer
+RUN /tmp/build_config/useradd.sh --create-home --shell /bin/bash deployer
 
 RUN mkdir -p /aircloak/utils && chown deployer:deployer /aircloak/utils
 
