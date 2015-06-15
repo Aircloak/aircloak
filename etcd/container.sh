@@ -26,7 +26,7 @@ container_ctl etcd_air "$@" -p ${ETCD_PORT}:${ETCD_PORT} -p 2380:2380 -p 2379:23
   -initial-cluster etcd0=http://${ETCD_DEFAULT_IP}:2380 \
   -initial-cluster-state new
 
-if [ "$1" = "start" ]; then
+if [ "$1" = "start" ] || [ "$1" = "ensure_started" ] || [ "$1" = "console" ]; then
   # Crudely spin-lock, waiting for etcd to become available
   until etcd_is_up; do
     log "etcd not yet running..."
