@@ -29,6 +29,7 @@ namespace :aircloak do
   task :db_migrate do
     on roles(:app), in: :sequence do
       exec_ml "
+            AIR_ENV=prod /aircloak/air/etcd/container.sh ensure_started &&
             cd #{fetch(:deploy_to)}/frontend &&
             docker run -t --rm
               -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log
