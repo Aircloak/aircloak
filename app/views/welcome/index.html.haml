@@ -19,7 +19,7 @@
     %h4 Database tables
     - if current_user.has_tables?
       %p
-        You currently have
+        Your organization currently has
         = pluralize current_user.tables_count, "database table"
         = "."
       %p
@@ -51,7 +51,7 @@
     %h4 Tasks
     - if current_user.has_tasks?
       %p
-        You have already created
+        Your organization has already created
         = "#{pluralize current_user.tasks_count, "task"}."
 
       - unless current_user.has_keys?
@@ -110,7 +110,7 @@
   - else
     %h1 Welcome back
     %p
-      You have already defined
+      Your organization has already defined
       = link_to pluralize(current_user.tables_count, "database table"), user_tables_path
       and written
       = link_to "#{pluralize current_user.tasks_count, "tasks"}.", tasks_path

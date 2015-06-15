@@ -43,29 +43,32 @@ authorization do
     has_permission_on :infrastructure_api_task_codes, to: :create
   end
 
-  role :user_manager do
-    has_permission_on [:users], to: :manage
+  role :cluster_manager do
+    has_permission_on [
+      :user_tables,
+      :lookup_tables,
+      :users
+    ], to: :manage
+    has_permission_on [:user_tables], to: [:retry_migration, :clear]
   end
 
   role :inquirer do
-    includes [:guest, :user_manager]
+    includes [:guest]
     has_permission_on [
       :tasks,
       :results,
-      :user_tables,
-      :keys,
-      :lookup_tables
+      :keys
     ], to: :manage
     has_permission_on [
+      :user_tables,
       :help
     ], to: :read
     has_permission_on [:sandbox], to: :run
     has_permission_on :tasks, to: :delete_results
-    has_permission_on [:user_tables], to: [:retry_migration, :clear]
   end
 
   role :admin do
-    includes [:guest, :inquirer, :user_manager]
+    includes [:guest, :inquirer, :cluster_manager]
     has_permission_on [
       :tasks,
       :results,

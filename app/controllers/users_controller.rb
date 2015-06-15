@@ -37,7 +37,7 @@ class UsersController < ApplicationController
   end
 
   def update
-    if @user.update_attributes(user_params)
+    if (current_user.admin? or not @user.cluster_manager?) and @user.update_attributes(user_params)
       describe_successful_activity "Updated user: #{@user.login}", user_path(@user)
       flash[:notice] = "Account updated"
       if permitted_to? :read, :users
@@ -47,14 +47,20 @@ class UsersController < ApplicationController
       end
     else
       describe_failed_activity "Failed at updating user #{@user.login}", user_path(@user)
+      flash[:error] = "Failed at updating user #{@user.login}"
       render action: 'edit'
     end
   end
 
   def destroy
-    @user.destroy
-    describe_successful_activity "Destroyed user #{@user.login}"
-    redirect_to users_path, notice: "User #{@user.login} was removed from the system"
+    if (current_user.admin? or not @user.cluster_manager?) and @user.destroy
+      describe_successful_activity "Destroyed user #{@user.login}"
+      redirect_to users_path, notice: "User #{@user.login} was removed from the system"
+    else
+      describe_failed_activity "Failed at destroying user #{@user.login}", user_path(@user)
+      flash[:error] = "User #{@user.login} could not be removed from the system"
+      redirect_to users_path
+    end
   end
 
   # We track user activity by recording which pages they visit.

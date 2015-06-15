@@ -29,20 +29,21 @@
         %hr
 
         %h4= link_to "User tables", user_tables_path
-        = link_to "All tables", user_tables_path
-        |
-        = link_to "Add table", new_user_table_path
+        - if current_user.cluster_manager?
+          = link_to "All tables", user_tables_path
+          |
+          = link_to "Add table", new_user_table_path
 
-        %hr
+          %hr
 
-        %h4= link_to "Lookup tables", lookup_tables_path
+          %h4= link_to "Lookup tables", lookup_tables_path
 
-        %hr
+          %hr
 
-        %h4= link_to "Users", users_path
-        = link_to "All users", users_path
-        |
-        = link_to "Add user", new_user_path
+          %h4= link_to "Users", users_path
+          = link_to "All users", users_path
+          |
+          = link_to "Add user", new_user_path
 
         %hr
 
@@ -72,6 +73,10 @@
               %ul
                 - cluster.cloaks. each do |cloak|
                   %li= "#{cloak.aircloak_domain} (#{cloak.health})"
+
+        %hr
+
+        %h5= link_to "Logout", logout_path
 
         %hr
 

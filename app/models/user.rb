@@ -2,6 +2,7 @@ class User < ActiveRecord::Base
   has_many :user_permissions
   has_many :permissions, through: :user_permissions
   has_many :activities
+  has_many :key_materials, dependent: :destroy
   belongs_to :analyst
   has_many :tasks, dependent: :destroy
 
@@ -38,15 +39,17 @@ class User < ActiveRecord::Base
   end
 
   def has_keys?
-    analyst.key_materials.count != 0
+    key_materials.count != 0
   end
 
   def roles
-    role_symbols.map(&:to_s).map(&:humanize).join(", ")
+    role_symbols.map(&:to_s).map(&:titleize).join(", ")
   end
 
   def role_symbols
-    permission_symbols = permissions.map(&:name).map(&:to_sym)
+    permission_symbols = permissions.map(&:name).map do |permission|
+      permission.parameterize.underscore.to_sym
+    end
     permission_symbols << :inquirer if analyst
     permission_symbols
   end
@@ -57,6 +60,11 @@ class User < ActiveRecord::Base
 
   def inquirer?
     role_symbols.include? :inquirer
+  end
+
+  def cluster_manager?
+    roles = role_symbols
+    roles.include? :cluster_manager or roles.include? :admin
   end
 
   def has_permissions?
