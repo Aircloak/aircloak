@@ -23,7 +23,7 @@ create_column = (name) ->
 
 
 name_from_bucket = (bucket) ->
-  "#{bucket.label}: #{bucket.value}"
+  _.compact([bucket.label, bucket.value]).join(": ")
 
 
 # makes sure all columns needed for showing the result are created
@@ -44,13 +44,17 @@ Results.display = (result) ->
   # and the result is quite a hefty chunk of JSON which doesn't
   # render well. For display purposes, we only show that there
   # is graph data there, rather than displaying the full JSON.
-  result.buckets = _.map(result.buckets, (bucket) ->
-        if bucket.label == "ac_graph"
-          bucket.label = "Graph"
-          data = JSON.parse(bucket["value"])
-          bucket.value = data.title
-        bucket
-      )
+  result.buckets =
+    if result.buckets.length <= 100
+      _.map(result.buckets, (bucket) ->
+            if bucket.label == "ac_graph"
+              bucket.label = "Graph"
+              data = JSON.parse(bucket["value"])
+              bucket.value = data.title
+            bucket
+          )
+    else
+      [{label: "info", count: "Too many buckets, results are accessible via REST API or CSV export."}]
 
   table = document.getElementById 'results_table'
 
