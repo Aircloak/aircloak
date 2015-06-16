@@ -49,7 +49,8 @@ extract_path("/publish" ++ Path) ->
 handle_publish_request(<<"POST">>, "", true, _ContentType, Req) ->
   cowboy_req:reply(400, [], <<"Invalid path provided.">>, Req); % Bad request.
 handle_publish_request(<<"POST">>, Path, true, ContentType, Req) ->
-  {ok, Body, Req2} = cowboy_req:body(Req),
+  {ok, MaxArticleSize} = application:get_env(airpub, max_article_size),
+  {ok, Body, Req2} = cowboy_req:body(Req, [{length, MaxArticleSize}]),
   Article = #article{path = Path, content_type = ContentType, content = Body},
   router:publish(Article),
   case get_forward_info(Path) of
