@@ -66,7 +66,7 @@ class KeyMaterial < ActiveRecord::Base
     when "web_api"
       key_description = "#{description}. Allows issuing REST API calls to web"
       api_key, api_cert = api_ca
-      analyst_token = AnalystToken.create_api_token(key_material.analyst)
+      analyst_token = AnalystToken.create_api_token(key_material.user)
       raw_key, raw_cert = TokenGenerator.generate_leaf_token api_key, api_cert, "analyst_token", analyst_token.token
     end
 

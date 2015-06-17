@@ -58,12 +58,12 @@ protected
     Authorization.current_user = current_user
   end
 
-  def authenticate_api_analyst
+  def authenticate_api_user
     if request.headers["HTTP_ANALYST_TOKEN"].nil?
       render json: {success: false, error: "Missing authentication key."}, status: :unauthorized
     else
-      @analyst = AnalystToken.api_analyst(request.headers["HTTP_ANALYST_TOKEN"])
-      render json: {success: false, error: "Not authenticated."}, status: :unauthorized if @analyst.nil?
+      @current_user = AnalystToken.api_user(request.headers["HTTP_ANALYST_TOKEN"])
+      render json: {success: false, error: "Not authenticated."}, status: :unauthorized if @current_user.nil?
     end
   end
 

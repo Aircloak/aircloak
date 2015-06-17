@@ -13,6 +13,7 @@ describe "ApiTasksController" do
     BuildManager.stub(:send_build_request)
     Result.destroy_all
     Analyst.destroy_all
+    User.destroy_all
   end
 
   let! (:cloak) { Cloak.create(name: "cloak", ip: "1.1.1.1") }
@@ -25,7 +26,8 @@ describe "ApiTasksController" do
   end
 
   let (:analyst) { Analyst.create name: "test-analyst" }
-  let (:token) { AnalystToken.create_api_token(analyst) }
+  let (:user) { User.create login: "test", email: "test@aircloak.com", analyst: analyst, password: "1234", password_confirmation: "1234" }
+  let (:token) { AnalystToken.create_api_token(user) }
 
   describe "GET /api/tasks" do
     it "returns task list" do
@@ -71,8 +73,9 @@ describe "ApiTasksController" do
     it "should schedule a task for running" do
       task_token = "token"
       association = double
-      analyst_double = double(:analyst, tasks: association)
-      AnalystToken.should_receive(:api_analyst).and_return(analyst_double)
+      analyst_double = double(:analyst, id: 42, shared_tasks: association, private_tasks: association)
+      user_double = double(:user, analyst: analyst_double)
+      AnalystToken.should_receive(:api_user).and_return(user_double)
       task = double
       association.should_receive(:find_by_token).and_return(task)
       task.should_receive(:batch_task?).and_return(true)
@@ -84,8 +87,9 @@ describe "ApiTasksController" do
     it "should not schedule a streaming task for running" do
       task_token = "token"
       association = double
-      analyst_double = double(:analyst, tasks: association)
-      AnalystToken.should_receive(:api_analyst).and_return(analyst_double)
+      analyst_double = double(:analyst, id: 42, shared_tasks: association, private_tasks: association)
+      user_double = double(:user, analyst: analyst_double)
+      AnalystToken.should_receive(:api_user).and_return(user_double)
       task = double
       association.should_receive(:find_by_token).and_return(task)
       task.should_receive(:batch_task?).and_return(false)
@@ -218,8 +222,9 @@ describe "ApiTasksController" do
     it "should return a token" do
       task_token = "token"
       association = double
-      analyst_double = double(:analyst, id: 42, tasks: association)
-      AnalystToken.should_receive(:api_analyst).and_return(analyst_double)
+      analyst_double = double(:analyst, id: 42, shared_tasks: association, private_tasks: association)
+      user_double = double(:user, analyst: analyst_double)
+      AnalystToken.should_receive(:api_user).and_return(user_double)
       task = double
       association.should_receive(:find_by_token).and_return(task)
       task.should_receive(:analyst).and_return(analyst)
