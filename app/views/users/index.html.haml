@@ -31,9 +31,11 @@
         %td= time_ago_in_words user.created_at
         %td= time_ago_in_words user.updated_at
         %td
-          = link_to 'Edit', edit_user_path(user) if permitted_to? :update, :users
-          \|
-          = link_to 'Remove', user, :method => :delete, :data => { :confirm => 'Are you sure?' },
+          - if current_user.admin? or not user.cluster_manager?
+            = link_to 'Edit', edit_user_path(user) if permitted_to? :update, :users
+            \|
+            = link_to 'Remove', user, :method => :delete,
+              :data => { :confirm => 'Are you sure you want to remove this user? The operation can NOT be reverted.' },
               class: "btn btn-mini btn-danger" if permitted_to? :delete, :users
 
 = link_to "Create a new user", new_user_path if permitted_to? :create, :users

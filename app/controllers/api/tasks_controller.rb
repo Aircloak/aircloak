@@ -5,7 +5,7 @@ class Api::TasksController < ApplicationController
   filter_access_to [:index, :subscribe_request], require: :anon_read
   filter_access_to [:run_existing_task, :run_anon_task], require: :anon_write
   skip_before_action :verify_authenticity_token
-  before_action :authenticate_api_analyst
+  before_action :authenticate_api_user
   before_action :load_task, only: [:run_existing_task, :subscribe_request]
   respond_to :json
 
@@ -15,7 +15,8 @@ class Api::TasksController < ApplicationController
 
   # GET /api/tasks
   def index
-    tasks = @analyst.persistent_tasks.order(:created_at).map do |task|
+    tasks = current_user.analyst.private_tasks(current_user) + current_user.analyst.shared_tasks
+    api_tasks = tasks.sort_by {|task| task.created_at}.map do |task|
       {
         token: task.token,
         name: task.name,
@@ -25,7 +26,7 @@ class Api::TasksController < ApplicationController
       }
     end
 
-    respond_with({success: true, tasks: tasks}, status: :ok)
+    respond_with({success: true, tasks: api_tasks}, status: :ok)
   end
 
   # Allows users to post tasks against the web API
@@ -57,7 +58,7 @@ class Api::TasksController < ApplicationController
 
     cluster_id = payload["cluster"]
     cluster = begin
-      @analyst.clusters.find(cluster_id)
+      current_user.analyst.clusters.find(cluster_id)
     rescue ActiveRecord::RecordNotFound => e
       description = "The cluster with ID #{cluster_id} does not exist." +
         "You can consult the cluster API for valid cluster ids on /clusters"
@@ -79,12 +80,12 @@ class Api::TasksController < ApplicationController
       return
     end
 
-    task = @analyst.tasks.new(
+    task = current_user.tasks.new(
       # NOTE(sebastian): This naming scheme gives us quite a decent number of concurrent
       # tasks without naming conflicts. I think it is safe to assume that we are not
       # going to get name collisions under this implementation, with the current scale
       # and usage of the system.
-      name: "Anon API task - #{Time.now.to_i}+#{rand(1000)}-#{@analyst.id}",
+      name: "Anon API task - #{Time.now.to_i}+#{rand(1000)}-#{current_user.id}",
       cluster: cluster,
       sandbox_type: "lua",
       stored_task: false, # true for streaming or periodic tasks
@@ -129,9 +130,8 @@ class Api::TasksController < ApplicationController
 
 private
   def load_task
-    @task = @analyst.tasks.find_by_token params[:id]
-    if !@task
-      render json: {success: false, description: "Unknown task"}, status: :not_found
-    end
+    @task = current_user.analyst.shared_tasks.find_by_token(params[:id])
+    @task = current_user.analyst.private_tasks(current_user).find_by_token(params[:id]) unless @task
+    render json: {success: false, description: "Unknown task"}, status: :not_found if !@task
   end
 end

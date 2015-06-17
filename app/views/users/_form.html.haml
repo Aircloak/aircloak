@@ -48,14 +48,14 @@
           - Permission.all.each do |permission|
             %label.checkbox
               = check_box_tag "user[permission_ids][]", permission.id, @user.permissions.include?(permission)
-              = permission.name.humanize
+              = permission.name.titleize
               %span.help-block= permission.description
             %hr
             %label.checkbox
-              %span.help-block
-                A user automatically becomes an
-                %strong inquirer
-                if the analyst option is set
+          %span.help-block
+            A user automatically becomes an
+            %strong inquirer
+            if the analyst option is set
 
     .control-group
       .controls

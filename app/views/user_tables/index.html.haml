@@ -23,15 +23,18 @@
               %td
                 - if table.pending_migrations?
                   pending migration
-                  = link_to 'Retry', retry_migration_user_table_path(table), method: :post, class: "btn btn-mini"
+                  - if current_user.cluster_manager?
+                    = link_to 'Retry', retry_migration_user_table_path(table), method: :post, class: "btn btn-mini"
                 - else
                   = link_to 'Show', user_table_path(table)
-                  \|
-                  = link_to 'Edit', edit_user_table_path(table)
-                  \|
-                  = link_to 'Destroy', confirm_destroy_user_table_path(table)
+                  - if current_user.cluster_manager?
+                    \|
+                    = link_to 'Edit', edit_user_table_path(table)
+                    \|
+                    = link_to 'Destroy', confirm_destroy_user_table_path(table)
         - else
           %tr
             %td{colspan: 2}= "No tables in #{cluster.name} cluster"
 
-= link_to "Create a new table", new_user_table_path
+- if current_user.cluster_manager?
+  = link_to "Create a new table", new_user_table_path

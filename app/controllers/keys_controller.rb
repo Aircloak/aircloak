@@ -1,12 +1,20 @@
 class KeysController < ApplicationController
   def index
     describe_activity "Listing all keys"
-    keys = current_user.analyst.key_materials.order("revoked ASC, created_at DESC")
+    if current_user.cluster_manager?
+      keys = current_user.analyst.key_materials.order("revoked ASC, created_at DESC")
+    else
+      keys = current_user.key_materials.order("revoked ASC, created_at DESC")
+    end
     @keys_by_type = keys.group_by &:key_type
   end
 
   def show
-    key = current_user.analyst.key_materials.find params[:id]
+    if current_user.cluster_manager?
+      key = current_user.analyst.key_materials.find params[:id]
+    else
+      key = current_user.key_materials.find params[:id]
+    end
     describe_activity "Downloaded key #{key.description}"
     respond_to do |format|
       format.pfx { send_data Base64.decode64(key.pkcs12), type: "application/x-pkcs12", filename: key.name("pfx") }
@@ -17,7 +25,11 @@ class KeysController < ApplicationController
 
   def destroy
     analyst = current_user.analyst
-    key = analyst.key_materials.find params[:id]
+    if current_user.cluster_manager?
+      key = analyst.key_materials.find params[:id]
+    else
+      key = user.key_materials.find params[:id]
+    end
     describe_activity "Revoked key #{key.description}"
     analyst.revoke_key key
     redirect_to keys_path, notice: "Key revoked"
@@ -28,7 +40,12 @@ class KeysController < ApplicationController
     if password.length < 4 then
       redirect_to keys_path, flash: {error: "The password must be at least 4 characters long"}
     else
-      KeyMaterial.create_from_analyst current_user.analyst, password, params[:description], params[:key_type]
+      if current_user.cluster_manager?
+        key_type = params[:key_type]
+      else
+        key_type = "web_api"
+      end
+      KeyMaterial.create_from_user current_user, password, params[:description], key_type
       describe_successful_activity "Created key new key with description #{params[:description]}"
       redirect_to keys_path, notice: "New key created"
     end

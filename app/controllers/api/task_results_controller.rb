@@ -1,6 +1,6 @@
 class Api::TaskResultsController < ApplicationController
   filter_access_to :index, require: :anon_read
-  before_action :authenticate_api_analyst
+  before_action :authenticate_api_user
   before_action :load_task, only: [:index]
   respond_to :json
 
@@ -32,7 +32,8 @@ class Api::TaskResultsController < ApplicationController
 
   private
     def load_task
-      @task = @analyst.tasks.find_by_token params[:task_id]
-      respond_with({success: false, error: "Task not found."}, {status: :unprocessable_entity}) if @task.nil?
+      @task = current_user.analyst.shared_tasks.find_by_token(params[:task_id])
+      @task = current_user.analyst.private_tasks(current_user).find_by_token(params[:task_id]) unless @task
+      respond_with({success: false, error: "Task not found."}, {status: :unprocessable_entity}) if !@task
     end
 end

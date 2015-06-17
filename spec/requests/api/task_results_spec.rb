@@ -5,6 +5,7 @@ describe "Api::TaskResultsController" do
   before(:each) do
     Task.destroy_all
     Analyst.destroy_all
+    User.destroy_all
     Result.destroy_all
     ClusterCloak.destroy_all
     Cluster.destroy_all
@@ -17,7 +18,8 @@ describe "Api::TaskResultsController" do
   let! (:cluster) { Cluster.create(name: "cluster", build: build, cloaks: [cloak]) }
 
   let (:analyst) { Analyst.create name: "TestAnalyst" }
-  let (:token) { AnalystToken.create_api_token(analyst) }
+  let (:user) { User.create login: "test", email: "test@aircloak.com", analyst: analyst, password: "1234", password_confirmation: "1234" }
+  let (:token) { AnalystToken.create_api_token(user) }
   let (:task) do
     t = Task.create(
       name: "task",
@@ -27,7 +29,9 @@ describe "Api::TaskResultsController" do
       update_task: false,
       stored_task: false,
       sandbox_type: "sandbox",
-      analyst: analyst
+      analyst: analyst,
+      shared: false,
+      user: user
     )
 
     initial_date = Date.today - 100.days
