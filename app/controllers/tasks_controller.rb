@@ -156,7 +156,11 @@ class TasksController < ApplicationController
     else
       if @task.results.first then
         begin_date = @task.results.first.created_at
-        end_date = @task.results.last.created_at
+        # Add 1 second, to make sure last result is included. Otherwise, when
+        # this data goes to the web page and back here (e.g. when a user wants
+        # to download csv), we'll lose milliseconds precision, and won't include
+        # the last result.
+        end_date = @task.results.last.created_at + 1.second
       else
         begin_date = @task.created_at
         end_date = DateTime.now.utc
