@@ -176,3 +176,10 @@ If everything is fine, you should be able to access the web via `localhost:8080`
 Simply run `bundle exec cap production deploy`, which should deploy the entire air system and migrate the database.
 
 To deploy from a specific branch, you can run `AIR_DEPLOY_BRANCH=another_branch bundle exec cap production deploy`.
+If you want to deploy current branch, assuming you're not in the detached head state, you can run:
+
+```
+AIR_DEPLOY_BRANCH=$(git symbolic-ref --short HEAD) bundle exec cap production deploy
+```
+
+Note that this will work only if the current branch is pushed to the origin.
