@@ -36,10 +36,9 @@ if [ "$1" = "start" ] || [ "$1" = "ensure_started" ] || [ "$1" = "console" ]; th
 
   if [ "$AIR_ENV" = "prod" ]; then
     log "Configuring ETCD for production"
-    . etcd_values_prod
+    ./config_prod.sh
   else
-    log "Creating required ETCD values for local development"
-    . etcd_values_dev
+    ./config_local.sh
 
     log "Starting test container"
     ./run-test-container.sh

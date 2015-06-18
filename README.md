@@ -118,12 +118,17 @@ __OS X devs__: Keep in mind that your database data is stored inside boot2docker
 
 ## Running the system on the localhost
 
+Default development settings are stored in `etcd/etcd_values_dev` file. If you need to
+override some of those settings (for example analyst key password), create the new file
+`etcd/local_settings/dev`, then copy and modify needed settings from `etcd/etcd_values_dev`.
+You can also add files `test`, `docker`, and `prod` to `etcd/local_settings` folder to
+override settings for other environments.
+
 Start `etcd` and `db` containers and configure the system to run locally:
 
 ```
 $ etcd/container.sh start
 $ db/container.sh start
-$ etcd/config_local.sh
 ```
 
 Make sure that all dependencies have been fetched, and that needed components (e.g. backend) have been built.
@@ -139,13 +144,20 @@ If all is well, you should be able to access the web via `localhost:3000`. If al
 
 ## Running the system on docker containers
 
-Start `etcd` and `db` containers and configure the system to run on docker containers:
+Start `etcd` and `db` containers:
 
 ```
 $ etcd/container.sh start
 $ db/container.sh start
+```
+
+Make sure that docker specific settings are configured:
+
+```
 $ etcd/config_docker.sh
 ```
+
+__Hint:__ you can revert back to localhost settings by calling `etcd/config_local.sh`.
 
 Build images and start containers in the foreground:
 
@@ -164,3 +176,10 @@ If everything is fine, you should be able to access the web via `localhost:8080`
 Simply run `bundle exec cap production deploy`, which should deploy the entire air system and migrate the database.
 
 To deploy from a specific branch, you can run `AIR_DEPLOY_BRANCH=another_branch bundle exec cap production deploy`.
+If you want to deploy current branch, assuming you're not in the detached head state, you can run:
+
+```
+AIR_DEPLOY_BRANCH=$(git symbolic-ref --short HEAD) bundle exec cap production deploy
+```
+
+Note that this will work only if the current branch is pushed to the origin.
