@@ -7,3 +7,6 @@ cd $(dirname $0)
 
 init_env
 . etcd_values_dev
+if [ -f local_settings/dev ]; then
+  . ./local_settings/dev
+fi

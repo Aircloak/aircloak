@@ -49,3 +49,6 @@ log "Etcd is running"
 
 log "Creating required ETCD values for development"
 . etcd_values_test
+if [ -f local_settings/test ]; then
+  . ./local_settings/test
+fi
