@@ -40,7 +40,7 @@ etcd_set /settings/rails/secrets/private_key_password ""
 etcd_set /settings/rails/secrets/github_oauth_token ""
 etcd_set /settings/rails/secrets/secret_key_base ""
 
-# Exernal services
+# External services
 etcd_set /service/airpub/shared_secret ""
 etcd_set /service/airpub/subscribe_endpoint "wss://pub.aircloak.com/subscribe/ws"
 etcd_set /service/air-sandbox/endpoint "http://172.17.42.1:11000"
