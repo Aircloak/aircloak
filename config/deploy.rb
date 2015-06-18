@@ -19,6 +19,14 @@ end
 
 namespace :aircloak do
   task :deploy do
+    current_branch = `git symbolic-ref --short HEAD`.strip
+    if current_branch != fetch(:branch)
+      puts "Warning: your current branch is:\n  #{current_branch}\n\n"
+      puts "But you're deploying the branch:\n  #{fetch(:branch)}\n\n"
+      puts "Continue (y/N)?"
+      input = $stdin.readline.strip
+      exit 1 unless input.upcase == "Y"
+    end
     Rake::Task["aircloak:update_code"].invoke
     Rake::Task["aircloak:backend:build"].invoke
     Rake::Task["aircloak:frontend:build"].invoke
