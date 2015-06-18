@@ -37,21 +37,6 @@ RUN chown -R deployer:deployer /usr/local/bundle
 
 
 ## ------------------------------------------------------------------
-## Setup nginx
-## ------------------------------------------------------------------
-
-COPY config/nginx.conf /etc/nginx/nginx.conf
-
-# Nginx logs at /var/log/nginx
-# We want to tail that, so make it accessible to us
-RUN mkdir -p /var/log/nginx
-RUN chown -R deployer:deployer /var/log/nginx
-
-# This is needed by nginx
-RUN chown -R deployer:deployer /var/lib/nginx
-
-
-## ------------------------------------------------------------------
 ## Compile APIdocs
 ## ------------------------------------------------------------------
 
@@ -90,6 +75,21 @@ RUN . /tmp/build_config/proxies.sh && bundle install \
 WORKDIR $site_path/slate
 COPY slate $site_path/slate
 RUN . /tmp/build_config/proxies.sh && bundle exec middleman build
+
+
+## ------------------------------------------------------------------
+## Setup nginx
+## ------------------------------------------------------------------
+
+COPY config/nginx.conf /etc/nginx/nginx.conf
+
+# Nginx logs at /var/log/nginx
+# We want to tail that, so make it accessible to us
+RUN mkdir -p /var/log/nginx
+RUN chown -R deployer:deployer /var/log/nginx
+
+# This is needed by nginx
+RUN chown -R deployer:deployer /var/lib/nginx
 
 
 ## ------------------------------------------------------------------
