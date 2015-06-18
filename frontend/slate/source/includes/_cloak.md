@@ -107,12 +107,22 @@ keys for single users and want to learn more about the integration required.
 
 ```json
 {"success": true}
+{"success": false, "errors": "malformed json"}
+{"success": false, "errors": {"user-id": ["locations: id: invalid value [1] for type int4"]}}
 ```
 
 The API return value is a JSON object with a boolean field called success. If it is set to false, the returned
 object also contains an error field describing the reason why the operation failed.
 
 For the use of error codes in the Cloak API, please consult the [Errors](#errors) section.
+
+### Options
+
+Validation mode: you can change the validation mode of the uploaded data, from `strict` to `permissive`,
+by setting the `validation_mode` header in the HTTP request. In `strict` mode, which is the default,
+the data is inserted only if all the rows passed the validation procedure. In `permissive` mode all valid
+rows will be inserted, regardless of if validation errors are present in other parts of the data or not.
+In case of a partial data upload, a 202 HTTP status code will be returned.
 
 ### Restrictions
 
@@ -208,6 +218,8 @@ See the [authentication](#authentication) section for details.
 
 ```json
 {"success": true}
+{"success": false, "errors": "malformed json"}
+{"success": false, "errors": {"user-id": ["locations: id: invalid value [1] for type int4"]}}
 ```
 
 The API return value is a JSON object with a boolean field called success. If it is set to false, the returned
@@ -215,9 +227,23 @@ object also contains an error field describing the reason why the operation fail
 
 For the use of error codes in the Cloak API, please consult the [Errors](#errors) section.
 
+### Options
+
+Validation mode: you can change the validation mode of the uploaded data, from `strict` to `permissive`,
+by setting the `validation_mode` header in the HTTP request. In `strict` mode, which is the default,
+the data is inserted only if all the rows passed the validation procedure. In `permissive` mode all valid
+rows will be inserted, regardless of if validation errors are present in other parts of the data or not.
+In case of a partial data upload, a 202 HTTP status code will be returned.
+
 ### Restrictions
 
 Payloads exceeding 10mb in size will be rejected.
+
+Data is atomically inserted per-user. So for a single user, you either get all the uploaded data inserted or nothing.
+When issuing a bulk insert request for multiple users, there is no way to have everything inserted or nothing,
+as the data will end up in different nodes in the cluster.
+If you need to know which user's data failed to be uploaded, you need to either split the data into multiple
+single-user batches or parse the returned output for errors.
 
 
 ## Task execution

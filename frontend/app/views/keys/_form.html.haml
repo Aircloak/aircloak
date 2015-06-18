@@ -17,9 +17,12 @@
     .control-group
       = control_label "Key type", tooltip: "key_type"
       .controls
-        = select_tag "key_type", options_for_select([["Data upload key", "data_upload_all"],
-          ["Admin key", "admin"], ["Key for running tasks", "task_runner"],
-          ["Key for issuing REST API calls to web", "web_api"]], "Data upload key")
+        - if current_user.cluster_manager?
+          = select_tag "key_type", options_for_select([["Data upload key", "data_upload_all"],
+            ["Administrative key", "admin"], ["Task execution key", "task_runner"],
+            ["Web API call key", "web_api"]], "Data upload key")
+        - else
+          = text_field_tag :key_type, "Web API call key", readonly: true
 
     .control-group
       .controls

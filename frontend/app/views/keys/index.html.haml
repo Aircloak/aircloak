@@ -9,6 +9,7 @@
       %tr
         %th Description
         %th Created at
+        %th Created by
         %th
         %th
     %tbody
@@ -16,6 +17,7 @@
       %tr
         %td= key.description
         %td= key.created_at
+        %td= key.user.login if key.user
         - if key.revoked
           %td{:colspan => "2", :style => "text-align:center; color:red;"}= "Revoked on #{key.updated_at}"
         - else

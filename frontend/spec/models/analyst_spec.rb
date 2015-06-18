@@ -43,9 +43,11 @@ describe Analyst do
   end
 
   it "creates and revokes key materials" do
+    user = User.new(login: "test", email: "test@aircloak.com", analyst: analyst)
     KeyMaterial.should_receive(:api_ca).and_return(TokenGenerator.generate_root_token("air_web_api", -1))
     ["data_upload_all", "admin", "task_runner", "web_api"].each do |key_type|
-      km = KeyMaterial.create_from_analyst analyst, "foobar", "desc", key_type
+      km = KeyMaterial.create_from_user user, "foobar", "desc", key_type
+      km.user.should eq user
       km.analyst.should eq analyst
       km.description.should eq "desc"
       km.key_type.should eq key_type

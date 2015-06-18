@@ -1,6 +1,6 @@
 class Api::ClustersController < ApplicationController
   filter_access_to [:index], require: :anon_read
-  before_action :authenticate_api_analyst
+  before_action :authenticate_api_user
   respond_to :json
 
   def set_layout
@@ -9,7 +9,7 @@ class Api::ClustersController < ApplicationController
 
   # GET /api/clusters
   def index
-    clusters = @analyst.clusters.map do |cluster|
+    clusters = @current_user.analyst.clusters.map do |cluster|
       {
         id: cluster.id,
         name: cluster.name

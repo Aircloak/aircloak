@@ -9,6 +9,7 @@ describe "ClustersController" do
     BuildManager.stub(:send_build_request)
     Result.delete_all
     Analyst.delete_all
+    User.delete_all
   end
 
   let! (:cloak) { Cloak.create(name: "cloak", ip: "1.1.1.1") }
@@ -21,7 +22,8 @@ describe "ClustersController" do
   end
 
   let (:analyst) { Analyst.create name: "test-analyst" }
-  let (:token) { AnalystToken.create_api_token(analyst) }
+  let (:user) { User.create login: "test", email: "test@aircloak.com", analyst: analyst, password: "1234", password_confirmation: "1234" }
+  let (:token) { AnalystToken.create_api_token(user) }
 
   describe "GET /api/clusters" do
     it "returns empty cluster list if no clusters" do

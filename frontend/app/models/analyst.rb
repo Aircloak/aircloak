@@ -9,7 +9,6 @@ class Analyst < ActiveRecord::Base
   has_many :results, dependent: :destroy
   has_many :users
   has_many :key_materials, dependent: :destroy
-  has_many :analyst_tokens, dependent: :destroy
   has_many :repeated_answers, dependent: :destroy
 
   validates_presence_of :name
