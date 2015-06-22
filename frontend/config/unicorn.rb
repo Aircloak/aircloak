@@ -12,7 +12,7 @@ stdout_path "#{app_dir}/log/unicorn.stdout.log"
 # The local nginx forwards request to this socket
 listen "/tmp/air-rails.sock"
 
-timeout 30
+timeout 40
 
 worker_processes 8
 preload_app true
