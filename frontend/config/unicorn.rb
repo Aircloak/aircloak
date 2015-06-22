@@ -7,12 +7,11 @@ pid "#{app_dir}/tmp/unicorn.pid"
 
 # This directory should be mounted on the docker host
 stderr_path "#{app_dir}/log/unicorn.stderr.log"
-stdout_path "#{app_dir}/log/unicorn.stdout.log"
 
 # The local nginx forwards request to this socket
 listen "/tmp/air-rails.sock"
 
-timeout 30
+timeout 40
 
 worker_processes 8
 preload_app true

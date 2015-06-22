@@ -16,12 +16,8 @@ log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."
 
 config="database"
 
-log "Starting unicorn"
-bundle exec unicorn -c config/unicorn.rb -D -E production
-
 log "Starting nginx"
 /usr/sbin/nginx -c /etc/nginx/nginx.conf
 
-log "Started."
-
-tail -f log/*
+log "Starting unicorn"
+bundle exec unicorn -c config/unicorn.rb -E production

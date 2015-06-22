@@ -32,6 +32,7 @@ namespace :aircloak do
     Rake::Task["aircloak:frontend:build"].invoke
     Rake::Task["aircloak:db_migrate"].invoke
     Rake::Task["aircloak:restart"].invoke
+    Rake::Task["aircloak:cleanup_docker_images"].invoke
   end
 
   task :db_migrate do
@@ -71,6 +72,12 @@ namespace :aircloak do
   task :restart do
     on roles(:app), in: :sequence do
       execute "/etc/init.d/air start"
+    end
+  end
+
+  task :cleanup_docker_images do
+    on roles(:build), in: :sequence do
+      execute "docker rmi $(docker images -q -f dangling=true) || exit 0"
     end
   end
 
