@@ -49,8 +49,7 @@ Web::Application.configure do
   config.log_tags = [ :subdomain, :uuid ]
 
   # Use a different logger for distributed setups.
-  # config.logger = ActiveSupport::TaggedLogging.new(Syslog::Logger.new "web")
-  config.logger = ActiveSupport::Logger.new("/aircloak/website/log/rails.log")
+  config.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new("/aircloak/website/log/rails.log"))
 
   # Use a different cache store in production.
   # config.cache_store = :mem_cache_store
