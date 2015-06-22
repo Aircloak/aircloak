@@ -28,7 +28,6 @@ describe "TasksController" do
   end
 
   let(:analyst) { Analyst.create name: "test-analyst" }
-  let(:token) { AnalystToken.create_api_token(analyst) }
 
   describe "POST /tasks/:id/execute_as_batch_task" do
     it "should execute the task" do

@@ -23,7 +23,11 @@ class User < ActiveRecord::Base
   end
 
   def tables_count
-    analyst.user_tables.count
+    if analyst then
+      analyst.user_tables.count
+    else
+      0
+    end
   end
 
   def has_tables?
@@ -31,7 +35,11 @@ class User < ActiveRecord::Base
   end
 
   def tasks_count
-    analyst.tasks.count
+    if analyst then
+      analyst.tasks.count
+    else
+      0
+    end
   end
 
   def has_tasks?
@@ -51,6 +59,7 @@ class User < ActiveRecord::Base
       permission.parameterize.underscore.to_sym
     end
     permission_symbols << :inquirer if analyst
+    permission_symbols << :guest
     permission_symbols
   end
 
@@ -72,7 +81,11 @@ class User < ActiveRecord::Base
   end
 
   def has_multiple_clusters?
-    analyst.clusters.count > 1
+    if analyst then
+      analyst.clusters.count > 1
+    else
+      false
+    end
   end
 
   def on_behalf_of
@@ -89,10 +102,12 @@ class User < ActiveRecord::Base
   def managed_users
     if admin?
       User.all
-    else
+    elsif analyst
       analyst.users.select do |user|
         not user.admin?
       end
+    else
+      []
     end
   end
 
@@ -112,16 +127,19 @@ class User < ActiveRecord::Base
     end
   end
 
-  def scoped_find id
+  def scoped_find user_id
+    return self if id == user_id.to_i
     if admin?
-      User.find id
-    else
-      user = analyst.users.find id
+      User.find user_id
+    elsif cluster_manager?
+      user = analyst.users.find user_id
       if user.admin? then
         raise ActiveRecord::RecordNotFound.new
       else
         user
       end
+    else
+      raise ActiveRecord::RecordNotFound.new
     end
   end
 

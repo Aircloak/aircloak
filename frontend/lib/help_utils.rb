@@ -88,11 +88,19 @@ class HelpUtils
   end
 
   def data_key_count
-    @current_user.analyst.key_materials.where(key_type: 'data_upload_all', revoked: false).count
+    if @current_user.analyst
+      @current_user.analyst.key_materials.where(key_type: 'data_upload_all', revoked: false).count
+    else
+      0
+    end
   end
 
   def has_user_tables?
-    current_user.analyst.undeleted_user_tables.count != 0
+    if @current_user.analyst
+      @current_user.analyst.undeleted_user_tables.count != 0
+    else
+      false
+    end
   end
 
   def sample_user_table_name
@@ -104,7 +112,9 @@ class HelpUtils
   end
 
   def sample_user_table_json_data
-    table = @current_user.analyst.undeleted_user_tables.where(table_name: sample_user_table_name).first
+    if @current_user.analyst
+      table = @current_user.analyst.undeleted_user_tables.where(table_name: sample_user_table_name).first
+    end
     json = if table then
       table.generate_sample_json
     else
@@ -136,7 +146,11 @@ class HelpUtils
   end
 
   def has_cluster?
-    @current_user.analyst.clusters.count != 0
+    if @current_user.analyst
+      @current_user.analyst.clusters.count != 0
+    else
+      false
+    end
   end
 
   def sample_cloak_name
@@ -166,6 +180,10 @@ class HelpUtils
   end
 
   def has_multiple_clusters?
-    @current_user.analyst.clusters.count > 0
+    if @current_user.analyst
+      @current_user.analyst.clusters.count > 0
+    else
+      false
+    end
   end
 end

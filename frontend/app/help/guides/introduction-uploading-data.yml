@@ -15,7 +15,7 @@ content: |
   user who already has data in a cloak, the identifying name used, has to be the same as the one previously used.
 
   Before being able to upload data to a cluster, you need to prepare tables into which the data will be stored<%
-    if current_user.analyst.undeleted_user_tables.count > 0 -%>
+    if has_user_tables? -%>
   , but that you already have done.
   <% else -%>
   .
