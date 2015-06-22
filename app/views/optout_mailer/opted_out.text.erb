@@ -1,6 +1,6 @@
 <%= @user.login %> opted out from web monitoring.
 
-<% unless @user.admin? %>
+<% unless @user.admin? or @user.analyst.nil? %>
 <%= @user.login %> is a user of <%= @user.analyst.name %>.
 <% end %>
 
