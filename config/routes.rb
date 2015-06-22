@@ -25,7 +25,8 @@ Web::Application.routes.draw do
   get 'logout' => 'user_sessions#destroy'
   resources :user_sessions
   resources :users do
-    post "toggle_monitoring", on: :member, action: "toggle_monitoring"
+    post "toggle_monitoring", on: :collection, action: "toggle_monitoring"
+    get "show_current", on: :collection, action: "show_current"
   end
   resources :permissions
   resources :cloaks

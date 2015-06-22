@@ -1,7 +1,6 @@
 class UsersController < ApplicationController
   before_filter :require_user, only: [:index, :show, :edit, :update, :toggle_monitoring]
-  before_filter :load_user, only: [:show, :edit, :update, :destroy, :toggle_monitoring]
-  filter_access_to :toggle_monitoring, require: :manage
+  before_filter :load_user, only: [:show, :edit, :update, :destroy]
 
   def index
     describe_activity "Listing all users"
@@ -63,13 +62,20 @@ class UsersController < ApplicationController
   # We track user activity by recording which pages they visit.
   # To be decent, we allow users to disable it.
   def toggle_monitoring
-    @user.activity_monitoring_opt_out = !!! @user.activity_monitoring_opt_out
-    @user.save
-    if @user.activity_monitoring_opt_out
-      @user.remove_tracked_activity
-      OptoutMailer.opted_out(@user).deliver
+    @current_user.activity_monitoring_opt_out = !!! @current_user.activity_monitoring_opt_out
+    describe_activity "Monitoring set to #{@current_user.activity_monitoring_opt_out}"
+    @current_user.save
+    if @current_user.activity_monitoring_opt_out
+      @current_user.remove_tracked_activity
+      OptoutMailer.opted_out(@current_user).deliver
     end
     return_back
+  end
+
+  def show_current
+    @user = @current_user
+    @supress_links = true
+    render action: 'show'
   end
 
 private

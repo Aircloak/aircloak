@@ -21,42 +21,44 @@
         %br
         %br
 
-        %h4= link_to "Tasks", tasks_path
-        = link_to "All tasks", tasks_path
-        |
-        = link_to "Add task", new_task_path
+        - if current_user.inquirer?
 
-        %hr
-
-        %h4= link_to "User tables", user_tables_path
-        - if current_user.cluster_manager?
-          = link_to "All tables", user_tables_path
+          %h4= link_to "Tasks", tasks_path
+          = link_to "All tasks", tasks_path
           |
-          = link_to "Add table", new_user_table_path
+          = link_to "Add task", new_task_path
 
           %hr
 
-          %h4= link_to "Lookup tables", lookup_tables_path
+          %h4= link_to "User tables", user_tables_path
+          - if current_user.cluster_manager?
+            = link_to "All tables", user_tables_path
+            |
+            = link_to "Add table", new_user_table_path
+
+            %hr
+
+            %h4= link_to "Lookup tables", lookup_tables_path
+
+            %hr
+
+            %h4= link_to "Users", users_path
+            = link_to "All users", users_path
+            |
+            = link_to "Add user", new_user_path
 
           %hr
 
-          %h4= link_to "Users", users_path
-          = link_to "All users", users_path
-          |
-          = link_to "Add user", new_user_path
+          %h4= link_to "Keys", keys_path
 
-        %hr
-
-        %h4= link_to "Keys", keys_path
-
-        %hr
+          %hr
 
         %h4 Documentation
         = link_to "Help guides", help_index_path, :target => '_blank'
         |
         = link_to "API docs", "/apidocs/index.html", :target => '_blank'
 
-        - if current_user.analyst.has_clusters?
+        - if current_user.analyst and current_user.analyst.has_clusters?
           %hr
 
           .machines
@@ -75,7 +77,8 @@
                   %li= "#{cloak.aircloak_domain} (#{cloak.health})"
 
         %hr
-
+        Logged in as
+        = link_to current_user.login, show_current_users_path
         %h5= link_to "Logout", logout_path
 
         %hr
@@ -91,7 +94,7 @@
             %p
               Monitoring is disabled for your account
               but you can enable it at any time you like
-            = button_to "Enable monitoring", with_return_path(toggle_monitoring_user_path(current_user)), class: "btn btn-mini"
+            = button_to "Enable monitoring", with_return_path(toggle_monitoring_users_path), class: "btn btn-mini"
           - else
             %p
               We monitor which parts of our website you visit.
@@ -101,7 +104,7 @@
             %p
               %strong Monitoring is enabled for your account
               but you can disable it at any time you like
-            = button_to "Disable monitoring", with_return_path(toggle_monitoring_user_path(current_user)), class: "btn btn-mini"
+            = button_to "Disable monitoring", with_return_path(toggle_monitoring_users_path), class: "btn btn-mini"
 
           = help_link 'web-monitoring'
 
@@ -146,7 +149,7 @@
 
                       -# Show notifications on exceptions, unless we are
                       -# editing a task
-                      - if should_show_exception_notification?
+                      - if current_user.analyst and should_show_exception_notification?
                         - exception_tasks = current_user.analyst.tasks_with_exceptions
                         .alert.alert-error
                           %button.close{type:"button", :'data-dismiss'=>"alert"} &times;

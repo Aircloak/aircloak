@@ -24,6 +24,7 @@
       %td Current login ip
       %td= @user.current_login_ip
 
-= link_to 'Users overview', users_path
-\|
-= link_to 'Edit', edit_user_path(@user)
+- if @supress_links != true
+  = link_to 'Users overview', users_path
+  \|
+  = link_to 'Edit', edit_user_path(@user)

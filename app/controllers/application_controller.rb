@@ -110,7 +110,7 @@ private
   end
 
   def set_layout
-    if current_user && current_user.analyst != nil
+    if current_user
       self.class.layout "analyst"
     else
       self.class.layout "application"

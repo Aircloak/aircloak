@@ -6,6 +6,8 @@ authorization do
 
     has_permission_on :welcome, to: :index
     has_permission_on :user_sessions, to: [:new, :create, :destroy]
+    has_permission_on :users, to: [:toggle_monitoring, :show_current]
+    has_permission_on :help, to: :read
 
 
     ## ------------------------------------------------------------------
