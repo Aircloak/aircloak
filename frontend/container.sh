@@ -10,4 +10,5 @@ container_ctl air_frontend \
   -v $PWD/var-log:/var/log \
   -v $PWD/log:/aircloak/website/log \
   -v /aircloak/ca:/aircloak/ca \
-  aircloak/air_frontend:latest
+  aircloak/air_frontend:latest \
+  /aircloak/website/docker/start.sh
