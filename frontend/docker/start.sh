@@ -20,4 +20,7 @@ log "Starting nginx"
 /usr/sbin/nginx -c /etc/nginx/nginx.conf
 
 log "Starting unicorn"
-bundle exec unicorn -c config/unicorn.rb -E production
+# Exec ensures that unicorn replaces this process. This allows us to use
+# docker to send signals to the unicorn process, and ultimately enables
+# graceful termination of the process
+exec bundle exec unicorn -c config/unicorn.rb -E production

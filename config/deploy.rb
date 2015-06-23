@@ -77,7 +77,7 @@ namespace :aircloak do
 
   task :cleanup_docker_images do
     on roles(:build), in: :sequence do
-      execute "docker rmi $(docker images -q -f dangling=true) || exit 0"
+      execute "docker rmi $(docker images -q -f dangling=true) > /dev/null 2>&1 || exit 0"
     end
   end
 

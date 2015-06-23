@@ -135,5 +135,3 @@ COPY docker $site_path/docker
 RUN chown -R deployer:deployer $site_path
 
 USER deployer
-
-CMD /aircloak/website/docker/start.sh

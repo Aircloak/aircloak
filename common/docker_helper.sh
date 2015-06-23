@@ -1,10 +1,37 @@
 #!/usr/bin/env bash
 
+function named_container_running {
+  if [ -z "$(docker ps --filter=name=$1 | grep -v CONTAINER)" ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+function gracefully_stop_container {
+  STOP_SIGNAL=${STOP_SIGNAL:-SIGTERM}
+  echo "Sending $STOP_SIGNAL to container $1 for graceful shutdown"
+  docker kill -s $STOP_SIGNAL $1 > /dev/null
+}
 
 function stop_named_container {
-  if [ ! -z "$(docker ps --filter=name=$1 | grep -v CONTAINER)" ]; then
-    echo "Stopping container $1"
-    docker stop $1 > /dev/null
+  if named_container_running $1; then
+    gracefully_stop_container $1
+
+    STOP_TIMEOUT=${STOP_TIMEOUT:-10}
+    echo "Waiting max $STOP_TIMEOUT sec for container $1 to stop"
+    retry=1
+    while named_container_running $1 && [ $retry -lt $STOP_TIMEOUT ]; do
+      retry=$((retry+1))
+      sleep 1
+    done
+
+    if named_container_running $1; then
+      echo "Forcefully terminating container $1"
+      docker kill $1 > /dev/null
+    else
+      echo "Container $1 stopped gracefully"
+    fi
   fi
 
   if [ ! -z "$(docker ps -a --filter=name=$1 | grep -v CONTAINER)" ]; then
