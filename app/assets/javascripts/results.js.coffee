@@ -28,7 +28,7 @@ name_from_bucket = (bucket) ->
 
 # makes sure all columns needed for showing the result are created
 create_columns = (result) ->
-  for bucket in result.buckets
+  for bucket in _.sortBy(result.buckets, name_from_bucket)
     create_column (name_from_bucket bucket)
 
 

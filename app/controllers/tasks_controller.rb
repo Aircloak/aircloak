@@ -399,32 +399,35 @@ private
 
   def results_csv
     file = CSV.generate(col_sep: ",") do |csv|
-      # generate column names
-      columns = ["time", "errors"] # pre-set meta-column names
-      columnIndexMap = {}
-      # create columns from labels and map them to header index
+      # generate column names from labels
+      columns = Set.new
       @results.each do |result|
         result[:buckets].each do |bucket|
           bucket["name"] = [bucket["label"], bucket["value"]].compact.join(": ")
-          if not columnIndexMap.has_key? bucket["name"]
-            columnIndexMap[bucket["name"]] = columns.length
-            columns.push bucket["name"]
-          end
+          columns << bucket["name"]
         end
       end
-      csv << columns # write header
+      columns = columns.to_a.sort
+
+      csv << ["time", "errors"] + columns # write file header
+
+      # generate column index map
+      columnIndexMap = {}
+      columns.each_with_index do |name, index|
+        columnIndexMap[name] = index
+      end
 
       # generate one row for each result
       @results.each do |result|
         date = Time.at(result[:published_at]/1000).strftime("%Y-%m-%d %H:%M:%S")
         errors = result[:exceptions].length > 0 ? "true" : "false"
-        cells = [date, errors] + Array.new(columns.length - 2, "")
+        cells = Array.new(columns.length, "")
         # iterate over buckets and fill the correct cell
         result[:buckets].each do |bucket|
           index = columnIndexMap[bucket["name"]]
           cells[index] = bucket["count"]
         end
-        csv << cells # write row
+        csv << [date, errors] + cells # write row
       end
     end
     # European versions of Excel default to semicolon as a separator instead of comma
