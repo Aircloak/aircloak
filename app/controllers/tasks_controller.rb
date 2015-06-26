@@ -170,7 +170,8 @@ class TasksController < ApplicationController
       format.html do
         @raw_results = @task.results.where(:created_at => begin_date..end_date).order(created_at: :desc).
             paginate(page: params[:page], per_page: 15)
-        @results = convert_results_for_client_side_rendering @raw_results # convert to json
+        # convert to json, 2 MB limit for buckets
+        @results = convert_results_for_client_side_rendering @raw_results, 2 * 1024 * 1024
         @results.reverse! # results are rendered in reverse order, reverse batch here to show actual order
         @results_path = all_results_task_path(@task.token)
         describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task.token)
@@ -181,7 +182,8 @@ class TasksController < ApplicationController
 
       format.csv do
         @raw_results = @task.results.where(:created_at => begin_date..end_date).order(created_at: :asc)
-        @results = convert_results_for_client_side_rendering @raw_results # convert to json
+        # convert to json, 32 MB limit for buckets
+        @results = convert_results_for_client_side_rendering @raw_results, 32 * 1024 * 1024
         # format begin/end datetimes for filename creation
         begin_date_str = begin_date.strftime("%d-%m-%Y_%H-%M-%S")
         end_date_str = end_date.strftime("%d-%m-%Y_%H-%M-%S")
@@ -196,12 +198,9 @@ class TasksController < ApplicationController
 
   # GET /tasks/:id/latest_results
   def latest_results
-    @results = convert_results_for_client_side_rendering(
-          @task.results.includes(:exception_results)
-            .order('created_at DESC')
-            .limit(5)
-            .reverse
-        )
+    @raw_results = @task.results.includes(:exception_results).order('created_at DESC').limit(5).reverse
+    # convert to json, 2 MB limit for buckets
+    @results = convert_results_for_client_side_rendering @raw_results, 2 * 1024 * 1024
     @results_path = latest_results_task_path(@task.token)
     @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.token}"
     @server_url = Rails.configuration.airpub_ws_subscribe
@@ -230,9 +229,10 @@ class TasksController < ApplicationController
     timestamp = params[:timestamp].to_i
     created_at = Time.at(timestamp / 1000, (timestamp % 1000) * 1000).utc # convert to time object
     while attempts < 5 do
-      task = @task.results.where("created_at >= ?", created_at).includes(:exception_results)
+      raw_results = @task.results.where("created_at >= ?", created_at).includes(:exception_results)
       if task.size > 0
-        renderable_results = convert_results_for_client_side_rendering(task)
+        # convert to json, 16 MB limit for buckets
+        renderable_results = convert_results_for_client_side_rendering raw_results, 16 * 1024 * 1024
         render json: {success: true, results: renderable_results}
         return
       else
@@ -393,8 +393,8 @@ private
   end
 
   # converts the results to a hashmap that will be converted to JSON and rendered client-side
-  def convert_results_for_client_side_rendering results_raw
-    results_raw.map {|result| result.to_client_hash}
+  def convert_results_for_client_side_rendering raw_results, max_bucket_size
+    raw_results.map {|result| result.to_client_hash max_bucket_size }
   end
 
   def results_csv
