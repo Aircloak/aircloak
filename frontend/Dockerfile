@@ -9,7 +9,7 @@ RUN . /tmp/build_config/image_shell_init.sh
 RUN bundle config --global frozen 1
 
 RUN apt-get update
-RUN apt-get install nginx-light -y
+RUN apt-get install nginx-light vim nano -y
 
 
 ## ------------------------------------------------------------------
