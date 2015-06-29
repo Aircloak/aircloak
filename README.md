@@ -92,17 +92,13 @@ $ etcd/container.sh start
 $ db/container.sh start
 ```
 
+__Note__: some sane default settings are provided. If you need to override them, see [here](etcd/README.md#overriding-settings).
+
 You can migrate the database with `cd frontend && bundle exec rake db:migrate`.
 
 If you want to transfer your previous data from the localhost database to the docker one, see [here](database_migration.md) for instructions.
 
 ### Running the system on the localhost
-
-Default development settings are stored in `etcd/etcd_values_dev` file. If you need to
-override some of those settings (for example analyst key password), create the new file
-`etcd/local_settings/dev`, then copy and modify needed settings from `etcd/etcd_values_dev`.
-You can also add files `test`, `docker`, and `prod` to `etcd/local_settings` folder to
-override settings for other environments.
 
 Start `etcd` and `db` containers:
 
@@ -136,8 +132,6 @@ Make sure that docker specific settings are configured:
 ```
 $ etcd/config_docker.sh
 ```
-
-__Hint:__ you can revert back to localhost settings by calling `etcd/config_local.sh`.
 
 Build images and start containers in the foreground:
 
