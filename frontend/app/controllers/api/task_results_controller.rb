@@ -26,7 +26,7 @@ class Api::TaskResultsController < ApplicationController
           results:
               query.order("created_at desc").
                   paginate(page: page, per_page: per_page).
-                  map {|result| result.to_client_hash}
+                  map {|result| result.to_client_hash 32 * 1024 * 1024}
         )
   end
 

@@ -65,10 +65,14 @@ Task.execute = (id) ->
 
 convertArticleToResult = (timestamp, article) ->
   result = {published_at: timestamp}
-  article = JSON.parse article
-  result.buckets = []
-  result.buckets.push {label: bucket.label, value: bucket.value, count: bucket.count} for bucket in article.buckets
-  result.exceptions = article.exceptions
+  if article.length > 2 * 1024 * 1024 # 2 MB size limit
+    result.buckets = [{label: "notice", value: "result too big", count: "buckets size limit exceeded"}]
+    result.exceptions = []
+  else
+    article = JSON.parse article
+    result.buckets = []
+    result.buckets.push {label: bucket.label, value: bucket.value, count: bucket.count} for bucket in article.buckets
+    result.exceptions = article.exceptions
   result
 
 requiresPostprocessing = (results) ->

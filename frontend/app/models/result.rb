@@ -23,11 +23,11 @@ class Result < ActiveRecord::Base
   end
 
   # Convert result with buckets to the format appropriate for usage by clients, such as API consumers.
-  def to_client_hash
+  def to_client_hash max_bucket_size
     {
       :published_at => created_at.utc.to_i * 1000 + created_at.utc.usec / 1000,
       :id => id,
-      :buckets => buckets,
+      :buckets => buckets(max_bucket_size),
       :exceptions => exception_results.map { |exception|
         {
           :id => exception.id,
@@ -38,8 +38,10 @@ class Result < ActiveRecord::Base
     }
   end
 
-  def buckets
-    buckets_json.to_s.empty? ? [] : JSON.parse(buckets_json)
+  def buckets max_bucket_size
+    return [] if buckets_json.to_s.empty?
+    return JSON.parse(buckets_json) if buckets_json.size <= max_bucket_size
+    return [{label: "notice", value: "result too big", count: "buckets size limit exceeded"}]
   rescue
     []
   end

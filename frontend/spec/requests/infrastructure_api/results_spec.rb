@@ -60,9 +60,10 @@ describe InfrastructureApi::ResultsController do
       post "/infrastructure-api/results", results(t).to_json, { 'Content-Type' => "application/json" }
 
       Result.count.should eq(1)
-      Result.first.buckets.length.should eq(2)
-      Result.first.buckets.map{|bucket| bucket["value"]}.sort.should eq(["Chrome", "Safari"])
-      Result.first.buckets.map{|bucket| bucket["count"]}.should eq([2,30])
+      buckets = Result.first.buckets 1 * 1024 * 1024
+      buckets.length.should eq(2)
+      buckets.map{|bucket| bucket["value"]}.sort.should eq(["Chrome", "Safari"])
+      buckets.map{|bucket| bucket["count"]}.should eq([2,30])
 
       response.status.should be(200)
     end
