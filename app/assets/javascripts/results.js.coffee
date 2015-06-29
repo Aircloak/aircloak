@@ -44,17 +44,16 @@ Results.display = (result) ->
   # and the result is quite a hefty chunk of JSON which doesn't
   # render well. For display purposes, we only show that there
   # is graph data there, rather than displaying the full JSON.
-  result.buckets =
-    if result.buckets.length <= 100
-      _.map(result.buckets, (bucket) ->
+  result.buckets = if result.buckets.length <= 100
+        _.map result.buckets, (bucket) ->
             if bucket.label == "ac_graph"
               bucket.label = "Graph"
               data = JSON.parse(bucket["value"])
               bucket.value = data.title
             bucket
-          )
-    else
-      [{label: "info", count: "Too many buckets, results are accessible via REST API or CSV export."}]
+      else
+        [{label: "notice", value: "result too big", \
+          count: "buckets count limit exceeded, use REST API or CSV export to view result"}]
 
   table = document.getElementById 'results_table'
 
