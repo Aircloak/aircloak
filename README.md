@@ -96,7 +96,7 @@ __Note__: some sane default settings are provided. If you need to override them,
 
 You can migrate the database with `cd frontend && bundle exec rake db:migrate`.
 
-If you want to transfer your previous data from the localhost database to the docker one, see [here](database_migration.md) for instructions.
+If you want to transfer your previous data from the localhost database to the docker one, see [here](db/README.md#migrating-data) for instructions.
 
 ### Running the system on the localhost
 
