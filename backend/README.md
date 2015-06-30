@@ -11,10 +11,7 @@ Air backend
 
 # What it does
 
-This component implements various background services needed in the Air system:
-
-- An HTTP interface (used by the frontend component) for sandboxed task execution.
-- A periodical job that purges results of deleted tasks from the database.
+This component exposes internal REST endpoint that is used by the frontend component to perform various long running tasks. In addition, the backend component is responsible for periodic (cron-like) execution of air-related tasks.
 
 # Getting started
 

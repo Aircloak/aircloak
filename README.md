@@ -7,7 +7,7 @@ Status](https://magnum.travis-ci.com/Aircloak/web.svg?token=aFqD8qTNFV1Li4zdKtZw
 ----------------------
 
 - [What it does](#what-it-does)
-- [What it is made up of](#what-it-is-made-up-of)
+- [What is it made up of](#what-is-it-made-up-of)
 - [Getting started](#getting-started)
     - [Running](#running)
     - [Deploying](#deploying)
@@ -26,7 +26,7 @@ This repository contains the Air system, which provides HTTPS endpoints that all
 - Write, test, and execute queries
 - Generate private keys
 
-These features are provided through following endpoints:
+These features are provided through the following endpoints:
 
 - Web user interface (hello.aircloak.com)
 - Internal infrastructure API (infrastructure-api.aircloak.com)
@@ -194,10 +194,9 @@ On the target server, the architecture of the system is as follows:
 |    +--------------+     |
 |                         |
 +-------------------------+
-
 ```
 
-Nginx sites and rules are reside at `/etc/nginx/sites-enabled/*`.
+Nginx sites and rules reside at `/etc/nginx/sites-enabled/*`.
 For various configuration settings, see [here](etcd/README.md#production-settings).
 
 ### Logs
@@ -210,7 +209,7 @@ For various configuration settings, see [here](etcd/README.md#production-setting
 ### Typical tasks
 
 - Stop the system: `/etc/init.d/air stop`
-- Start the system: `/etc/init.d/air start` (stops it if needed)
+- Start the system: `/etc/init.d/air start` (stops it first, if needed)
 - Shell to the running container:
     - `/aircloak/air/frontend/container.sh remsh`
     - `/aircloak/air/backend/container.sh remsh`
