@@ -11,7 +11,7 @@ stderr_path "#{app_dir}/log/unicorn.stderr.log"
 # The local nginx forwards request to this socket
 listen "/tmp/air-rails.sock"
 
-timeout 40
+timeout 180
 
 worker_processes 8
 preload_app true
