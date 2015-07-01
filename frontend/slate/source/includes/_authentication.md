@@ -48,7 +48,7 @@ wget --content-on-error \
      --method=<GET|POST|PUT|DELETE> \
      --certificate=<path-to-PEM-certificate> %> \
      --body-file=<file-to-upload-if-post-or-put> \
-     https://<cloak-server>.cloak.aircloak.net/bulk_insert
+     https://<cloak-server>.cloak.aircloak.com/bulk_insert
 ```
 
 To manage your keys, please visit the [keys](/keys) section in our web interface.
