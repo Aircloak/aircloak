@@ -43,19 +43,8 @@ format_date = (timestamp) ->
 Results.display = (result) ->
   result.buckets = _.sortBy(result.buckets, name_from_bucket)
   result.buckets = Results.aggregate_quantized_buckets result.buckets
-  result.buckets = if result.buckets.length <= 100
-        _.map result.buckets, (bucket) ->
-            if bucket.label == "ac_graph"
-              # We perform post-processing of graphable results in the air,
-              # and the result is quite a hefty chunk of JSON which doesn't
-              # render well. For display purposes, we only show that there
-              # is graph data there, rather than displaying the full JSON.
-              bucket.label = "Graph"
-              data = JSON.parse(bucket["value"])
-              bucket.value = data.title
-            bucket
-      else
-        [{label: "notice", value: "result too big", \
+  if result.buckets.length > 100
+    result.buckets = [{label: "notice", value: "result too big", \
           count: "buckets count limit exceeded, use REST API or CSV export to view result"}]
 
   table = document.getElementById 'results_table'

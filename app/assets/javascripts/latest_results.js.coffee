@@ -71,11 +71,6 @@ convertArticleToResult = (timestamp, article) ->
     result.exceptions = article.exceptions
   result
 
-requiresPostprocessing = (results) ->
-  _.chain(results.buckets)
-    .filter((bucket) -> bucket.label == "ac_postprocessing")
-    .value()
-    .length > 0
 
 $ ->
   Results.resultsTableLimit = 10 # show maximum 10 results in the table
@@ -88,9 +83,6 @@ $ ->
         # hide status after 4 seconds from the arrival of the result
         Task.hideTimeout = setTimeout hideTaskStatus, 3000
       results = convertArticleToResult object.published_at, object.content
-      if requiresPostprocessing(results)
-        window.refreshGraphsFromServer(object.published_at, Results.display)
-      else
-        Results.display results
+      Results.display results
 
   Results.ws = airpub_listen $('.listen_params').data('server-url'), $('.listen_params').data('request'), airpubCallback
