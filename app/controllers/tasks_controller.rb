@@ -204,6 +204,7 @@ class TasksController < ApplicationController
     @results_path = latest_results_task_path(@task.token)
     @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.token}"
     @server_url = Rails.configuration.airpub_ws_subscribe
+    @task_token = @task.token
     describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task.token)
   end
 
