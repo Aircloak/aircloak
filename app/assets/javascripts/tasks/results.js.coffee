@@ -1,5 +1,5 @@
 # include buckets aggregation functionality
-//= require results_aggregation
+//= require tasks/results_aggregation
 
 # create namespace for results-related shared variables
 window.Results = window.Results or {}
