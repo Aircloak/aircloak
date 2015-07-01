@@ -31,7 +31,25 @@ describe "ApiTasksController" do
 
   describe "GET /api/tasks" do
     it "returns task list" do
-      tasks = (1..10).map {|i| create_task(i)}
+      start_time = Time.now.to_i
+      tasks = (1..10).map do |i|
+        # The API returns the tasks sorted by their created_at
+        # timestamp, so we need to ensure that they are in fact
+        # also created with monotonically increasing, and unique,
+        # timestamps, in order for this test to pass.
+        time = Time.at(start_time + i)
+        Task.create(
+          name: "task_#{i}",
+          cluster: cluster,
+          prefetch: "{\"bar\": \"baz\"}",
+          code: "foo",
+          update_task: false,
+          stored_task: false,
+          sandbox_type: "sandbox",
+          analyst: analyst,
+          created_at: time
+        )
+      end
       get "/api/tasks", {format: :json}, {'HTTP_ANALYST_TOKEN' => token.token}
       response.code.should eq "200"
 
@@ -233,18 +251,4 @@ describe "ApiTasksController" do
       response.code.should eq "200"
     end
   end
-
-  private
-    def create_task(i)
-      Task.create(
-        name: "task_#{i}",
-        cluster: cluster,
-        prefetch: "{\"bar\": \"baz\"}",
-        code: "foo",
-        update_task: false,
-        stored_task: false,
-        sandbox_type: "sandbox",
-        analyst: analyst
-      )
-    end
 end
