@@ -106,7 +106,7 @@ describe Cloak do
     it "should construct domain names from name" do
       c = Cloak.new name: "test"
       c.internal_domain.should eq "test.mpi-sws.org"
-      c.aircloak_domain.should eq "test.cloak.aircloak.net"
+      c.aircloak_domain.should eq "test.cloak.aircloak.com"
     end
   end
 
