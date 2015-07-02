@@ -19,6 +19,7 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
     else if bucket.value[0] == '<'
       value = parseInt(bucket.value.substring(1, bucket.value.length))
       data[value] = bucket.count
+  data[max] = in_range
 
   countBucket = {label: name, value: "values in range", count: in_range}
 
@@ -28,7 +29,7 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
 
   sum = 0
   count = -1
-  for i in [min+step..max-step] by step
+  for i in [min+step..max] by step
     diff = (data[i] ? 0) - (data[i - step] ? 0)
     count = count + diff
     sum = sum + diff * (i - step / 2)
@@ -37,14 +38,14 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
   averageBucket = {label: name, value: "average", count: format_number(average)}
 
   median = 0
-  for i in [min+step..max-step] by step
+  for i in [min+step..max] by step
     if (data[i] ? 0) >= total / 2
       median = i - step / 2
       break
   medianBucket = {label: name, value: "median", count: format_number(median)}
 
   sum = 0
-  for i in [min+step..max-step] by step
+  for i in [min+step..max] by step
     diff = (data[i] ? 0) - (data[i - step] ? 0)
     variance = i - step / 2 - average
     sum = sum + diff * variance * variance
