@@ -20,11 +20,11 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
       value = parseInt(bucket.value.substring(1, bucket.value.length))
       data[value] = bucket.count
 
-  countBucket = {label: "data", value: "in range", count: in_range}
+  countBucket = {label: name, value: "values in range", count: in_range}
 
   percentOfTotal = Math.round((in_range / total) * 20) * 5
   percentOfTotal = Math.min(Math.max(percentOfTotal, 0), 100)
-  percentBucket = {label: "data", value: "% of total", count: "~ " + percentOfTotal + "%"}
+  percentBucket = {label: name, value: "% of total values", count: "~ " + percentOfTotal + "%"}
 
   sum = 0
   count = -1
@@ -34,14 +34,14 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
     sum = sum + diff * (i - step / 2)
   count = 1 if count < 1
   average = sum / count
-  averageBucket = {label: "data", value: "average", count: format_number(average)}
+  averageBucket = {label: name, value: "average", count: format_number(average)}
 
   median = 0
   for i in [min+step..max-step] by step
     if (data[i] ? 0) >= total / 2
       median = i - step / 2
       break
-  medianBucket = {label: "data", value: "median", count: format_number(median)}
+  medianBucket = {label: name, value: "median", count: format_number(median)}
 
   sum = 0
   for i in [min+step..max-step] by step
@@ -49,7 +49,7 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
     variance = i - step / 2 - average
     sum = sum + diff * variance * variance
   stdDev = Math.sqrt(sum / count)
-  stdDevBucket = {label: "data", value: "stdev.S", count: format_number(stdDev)}
+  stdDevBucket = {label: name, value: "stdev.S", count: format_number(stdDev)}
 
   [countBucket, percentBucket, averageBucket, medianBucket, stdDevBucket]
 
