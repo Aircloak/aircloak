@@ -39,7 +39,7 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
 
   median = 0
   for i in [min+step..max] by step
-    if (data[i] ? 0) >= total / 2
+    if (data[i] ? 0) >= in_range / 2
       median = i - step / 2
       break
   medianBucket = {label: name, value: "median", count: format_number(median)}
