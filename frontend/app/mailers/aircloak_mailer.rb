@@ -19,6 +19,6 @@ private
       domain: Conf.get("/settings/mail/smtp/domain"),
       authentication: :plain
     }
-    mail.delivery_method.settings.merge!(settings)
+    message.delivery_method.settings.merge!(settings)
   end
 end
