@@ -5,8 +5,8 @@ class TasksControllerException < Exception; end
 
 class TasksController < ApplicationController
   filter_access_to [:execute_as_batch_task, :all_results, :latest_results,
-                    :suspend, :resume, :delete, :deleted, :recover, :share, :acquire,
-                    :particular_result, :pending_executions], require: :manage
+                    :suspend, :resume, :delete, :deleted, :recover, :share,
+                    :acquire, :pending_executions], require: :manage
   before_action :load_task, except: [:index, :new, :create, :deleted]
   before_action :set_tables_json, only: [:new, :edit, :update, :create]
   before_action :set_auto_completions, only: [:new, :edit, :update, :create]
@@ -223,26 +223,6 @@ class TasksController < ApplicationController
     end
   end
 
-  # GET /tasks/:id/particular_result/:timestamp
-  def particular_result
-    attempts = 0
-    timestamp = params[:timestamp].to_i
-    created_at = Time.at(timestamp / 1000, (timestamp % 1000) * 1000).utc # convert to time object
-    while attempts < 5 do
-      raw_results = @task.results.where("created_at >= ?", created_at).includes(:exception_results)
-      if task.size > 0
-        # convert to json, 16 MB limit for buckets
-        renderable_results = convert_results_for_client_side_rendering raw_results, 16 * 1024 * 1024
-        render json: {success: true, results: renderable_results}
-        return
-      else
-        attempts += 1
-        sleep(0.5)
-      end
-    end
-    render json: {success: false, description: "Could not find results"}
-  end
-
   # POST /tasks/:id/suspend
   def suspend
     @task.active = false
@@ -399,32 +379,35 @@ private
 
   def results_csv
     file = CSV.generate(col_sep: ",") do |csv|
-      # generate column names
-      columns = ["time", "errors"] # pre-set meta-column names
-      columnIndexMap = {}
-      # create columns from labels and map them to header index
+      # generate column names from labels
+      columns = Set.new
       @results.each do |result|
         result[:buckets].each do |bucket|
           bucket["name"] = [bucket["label"], bucket["value"]].compact.join(": ")
-          if not columnIndexMap.has_key? bucket["name"]
-            columnIndexMap[bucket["name"]] = columns.length
-            columns.push bucket["name"]
-          end
+          columns << bucket["name"]
         end
       end
-      csv << columns # write header
+      columns = columns.to_a.sort
+
+      csv << ["time", "errors"] + columns # write file header
+
+      # generate column index map
+      columnIndexMap = {}
+      columns.each_with_index do |name, index|
+        columnIndexMap[name] = index
+      end
 
       # generate one row for each result
       @results.each do |result|
         date = Time.at(result[:published_at]/1000).strftime("%Y-%m-%d %H:%M:%S")
         errors = result[:exceptions].length > 0 ? "true" : "false"
-        cells = [date, errors] + Array.new(columns.length - 2, "")
+        cells = Array.new(columns.length, "")
         # iterate over buckets and fill the correct cell
         result[:buckets].each do |bucket|
           index = columnIndexMap[bucket["name"]]
           cells[index] = bucket["count"]
         end
-        csv << cells # write row
+        csv << [date, errors] + cells # write row
       end
     end
     # European versions of Excel default to semicolon as a separator instead of comma

@@ -1,14 +1,15 @@
-# Place all the behaviors and hooks related to the matching controller here.
-# All this logic will automatically be available in application.js.
-# You can use CoffeeScript in this file: http://coffeescript.org/
+# include buckets aggregation functionality
+//= require tasks/results_aggregation
 
 # create namespace for results-related shared variables
-window.Results = {}
+window.Results = window.Results or {}
+
 # the time when last article was published
 Results.last_article_update = 0
 # holds existing results table columns and maps them to indices
 Results.columns = {}
 Results.columns.count = 1
+
 
 # creates a column if doesn't exists already
 create_column = (name) ->
@@ -40,19 +41,10 @@ format_date = (timestamp) ->
 
 # adds a row to the results table representing the specified result
 Results.display = (result) ->
-  # We perform post-processing of graphable results in the air,
-  # and the result is quite a hefty chunk of JSON which doesn't
-  # render well. For display purposes, we only show that there
-  # is graph data there, rather than displaying the full JSON.
-  result.buckets = if result.buckets.length <= 100
-        _.map result.buckets, (bucket) ->
-            if bucket.label == "ac_graph"
-              bucket.label = "Graph"
-              data = JSON.parse(bucket["value"])
-              bucket.value = data.title
-            bucket
-      else
-        [{label: "notice", value: "result too big", \
+  result.buckets = _.sortBy(result.buckets, name_from_bucket)
+  result.buckets = Results.aggregate_quantized_buckets result.buckets
+  if result.buckets.length > 100
+    result.buckets = [{label: "notice", value: "result too big", \
           count: "buckets count limit exceeded, use REST API or CSV export to view result"}]
 
   table = document.getElementById 'results_table'

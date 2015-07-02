@@ -66,7 +66,6 @@ Web::Application.routes.draw do
     post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
     get "latest_results", on: :member, action: 'latest_results'
     get "pending_executions", on: :member, action: 'pending_executions'
-    get "particular_result/:timestamp", on: :member, action: 'particular_result'
     get "all_results", on: :member, action: 'all_results'
     post "delete_results", on: :member
     post "resume", on: :member, action: 'resume'
