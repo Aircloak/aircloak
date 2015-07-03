@@ -1,14 +1,10 @@
 -# Includes additional, page-specific javascripts
-= content_for(:javascript_include) {javascript_include_tag "graphed_results", "data-turbolinks-track" => true}
-= content_for(:javascript_include) {javascript_include_tag "results", "data-turbolinks-track" => true}
+= content_for(:javascript_include) {javascript_include_tag "tasks/results", "data-turbolinks-track" => true}
 
 %hr
 
 -# set rendering parameters
 .render_params{data: {results: @results.to_json, task_last_update: @task.code_timestamp.to_i * 1000}}
-
-#chart.hidden
-  %svg{height: "500"}
 
 %table.table.table-striped#results_table
   %thead
