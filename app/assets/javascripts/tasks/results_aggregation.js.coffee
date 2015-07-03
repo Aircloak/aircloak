@@ -19,6 +19,8 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
     else if bucket.value[0] == '<'
       value = parseInt(bucket.value.substring(1, bucket.value.length))
       data[value] = bucket.count
+  return [] if min >= max
+  step = Math.min(max - min, step)
   data[max] = in_range
 
   countBucket = {label: name, value: "values in range", count: in_range}
@@ -34,6 +36,7 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
     count = count + diff
     sum = sum + diff * (i - step / 2)
   count = 1 if count < 1
+  sum = 0 if sum < 0
   average = sum / count
   averageBucket = {label: name, value: "average", count: format_number(average)}
 
@@ -49,6 +52,7 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
     diff = (data[i] ? 0) - (data[i - step] ? 0)
     variance = i - step / 2 - average
     sum = sum + diff * variance * variance
+  sum = 0 if sum < 0
   stdDev = Math.sqrt(sum / count)
   stdDevBucket = {label: name, value: "stdev.S", count: format_number(stdDev)}
 
