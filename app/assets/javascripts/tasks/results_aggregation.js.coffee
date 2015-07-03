@@ -5,6 +5,9 @@ window.Results = window.Results or {}
 format_number = (number) ->
   (Math.round(number * 100) / 100).toString()
 
+number_to_key = (number) ->
+  # keep only 4 decimal places
+  Math.round(number * 10000)
 
 # for a single quantized datum, compute the aggregated values
 compute_aggregate_buckets = (dataBuckets, name, total) ->
@@ -12,16 +15,16 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
   for bucket in dataBuckets
     if bucket.value[0] == '['
       params = bucket.value.substring(1, bucket.value.length - 1).split(',')
-      min = parseInt(params[0])
-      max = parseInt(params[1])
-      step = parseInt(params[2])
+      min = parseFloat(params[0])
+      max = parseFloat(params[1])
+      step = parseFloat(params[2])
       in_range = bucket.count
     else if bucket.value[0] == '<'
-      value = parseInt(bucket.value.substring(1, bucket.value.length))
-      data[value] = bucket.count
+      value = parseFloat(bucket.value.substring(1, bucket.value.length))
+      data[number_to_key(value)] = bucket.count
   return [] if min >= max
   step = Math.min(max - min, step)
-  data[max] = in_range
+  data[number_to_key(max)] = in_range
 
   countBucket = {label: name, value: "values in range", count: in_range}
 
@@ -32,7 +35,7 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
   sum = 0
   count = -1
   for i in [min+step..max] by step
-    diff = (data[i] ? 0) - (data[i - step] ? 0)
+    diff = (data[number_to_key(i)] ? 0) - (data[number_to_key(i - step)] ? 0)
     count = count + diff
     sum = sum + diff * (i - step / 2)
   count = 1 if count < 1
@@ -42,14 +45,14 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
 
   median = 0
   for i in [min+step..max] by step
-    if (data[i] ? 0) >= in_range / 2
+    if (data[number_to_key(i)] ? 0) >= in_range / 2
       median = i - step / 2
       break
   medianBucket = {label: name, value: "median", count: format_number(median)}
 
   sum = 0
   for i in [min+step..max] by step
-    diff = (data[i] ? 0) - (data[i - step] ? 0)
+    diff = (data[number_to_key(i)] ? 0) - (data[number_to_key(i - step)] ? 0)
     variance = i - step / 2 - average
     sum = sum + diff * variance * variance
   sum = 0 if sum < 0
