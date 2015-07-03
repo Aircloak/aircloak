@@ -11,7 +11,7 @@ number_to_key = (number) ->
 
 # for a single quantized datum, compute the aggregated values
 compute_aggregate_buckets = (dataBuckets, name, total) ->
-  data = {}
+  cdfs = {}
   for bucket in dataBuckets
     if bucket.value[0] == '['
       params = bucket.value.substring(1, bucket.value.length - 1).split(',')
@@ -21,10 +21,10 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
       in_range = bucket.count
     else if bucket.value[0] == '<'
       value = parseFloat(bucket.value.substring(1, bucket.value.length))
-      data[number_to_key(value)] = bucket.count
+      cdfs[number_to_key(value)] = bucket.count
   return [] if min >= max
   step = Math.min(max - min, step)
-  data[number_to_key(max)] = in_range
+  cdfs[number_to_key(max)] = in_range
 
   countBucket = {label: name, value: "values in range", count: in_range}
 
@@ -35,7 +35,7 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
   sum = 0
   count = -1
   for i in [min+step..max] by step
-    diff = (data[number_to_key(i)] ? 0) - (data[number_to_key(i - step)] ? 0)
+    diff = (cdfs[number_to_key(i)] ? 0) - (cdfs[number_to_key(i - step)] ? 0)
     count = count + diff
     sum = sum + diff * (i - step / 2)
   count = 1 if count < 1
@@ -45,14 +45,14 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
 
   median = 0
   for i in [min+step..max] by step
-    if (data[number_to_key(i)] ? 0) >= in_range / 2
+    if (cdfs[number_to_key(i)] ? 0) >= in_range / 2
       median = i - step / 2
       break
   medianBucket = {label: name, value: "median", count: format_number(median)}
 
   sum = 0
   for i in [min+step..max] by step
-    diff = (data[number_to_key(i)] ? 0) - (data[number_to_key(i - step)] ? 0)
+    diff = (cdfs[number_to_key(i)] ? 0) - (cdfs[number_to_key(i - step)] ? 0)
     variance = i - step / 2 - average
     sum = sum + diff * variance * variance
   sum = 0 if sum < 0
