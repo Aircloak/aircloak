@@ -25,7 +25,7 @@ process_cdfs = (cdfs, min, max, step) ->
     cdfs[number_to_key(i)] = average
     prev = current
 
-  # now we make sure the values are monotonic
+  # now we make sure the values are monotonically increasing
   i = min + step
   prev = 0
   while i <= max
