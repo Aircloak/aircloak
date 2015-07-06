@@ -13,11 +13,13 @@ class PrefetchFilter
   OperatorCloakToSql = OperatorSqlToCloak.invert
 
   # See Task.data for explanation
-  def self.prefetch_to_data(prefetch, cluster_id)
+  def self.prefetch_to_data(task, prefetch, cluster_id)
     return "" if prefetch.nil? || prefetch.empty?
 
     data = JSON.parse(prefetch).map do |prefetch_table|
-      table = UserTable.where(cluster_id: cluster_id, table_name: prefetch_table["table"], deleted: false).first
+      table = task.analyst.user_tables.where(
+            cluster_id: cluster_id, table_name: prefetch_table["table"], deleted: false
+          ).first
 
       {
         tableId: table.id,

@@ -7,13 +7,13 @@ describe PrefetchFilter do
   it "converts both ways" do
     prefetch_conversions.each do |data, prefetch|
       data_to_prefetch(data).should eq prefetch
-      prefetch_to_data(prefetch).should eq data
+      prefetch_to_data(prefetch, [age_table_double]).should eq data
     end
   end
 
   it "returns empty data string on invalid prefetch" do
-    PrefetchFilter.prefetch_to_data("[{\"table\":\"non-existing\"}]", 1).should eq ""
-    PrefetchFilter.prefetch_to_data("invalid json", 1).should eq ""
+    prefetch_to_data("[{\"table\":\"non-existing\"}]", []).should eq ""
+    prefetch_to_data("invalid json", []).should eq ""
   end
 
   it "fails on invalid table" do
@@ -46,8 +46,10 @@ describe PrefetchFilter do
       PrefetchFilter.data_to_prefetch(task, data)
     end
 
-    def prefetch_to_data(prefetch)
-      UserTable.should_receive(:where).with(table_name: "age", cluster_id: 1, deleted: false).and_return([age_table_double])
-      PrefetchFilter.prefetch_to_data(prefetch, 1)
+    def prefetch_to_data(prefetch, expected_tables)
+      user_tables = double
+      allow(user_tables).to receive(:where).and_return(expected_tables)
+      task = double(analyst: double(user_tables: user_tables))
+      PrefetchFilter.prefetch_to_data(task, prefetch, 1)
     end
 end
