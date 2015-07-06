@@ -131,7 +131,7 @@ class Task < ActiveRecord::Base
   end
 
   def data
-    PrefetchFilter.prefetch_to_data(prefetch, cluster_id)
+    PrefetchFilter.prefetch_to_data(self, prefetch, cluster_id)
   end
 
   # Returns true if and only if the latest

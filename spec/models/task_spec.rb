@@ -48,8 +48,9 @@ describe Task do
       task.attributes = base_attrs.merge(data: data)
       task.prefetch.should eq prefetch
 
-      UserTable.should_receive(:where).with(cluster_id: nil, table_name: "age", deleted: false).and_return([age_table_double])
-      Task.new(base_attrs.merge(prefetch: prefetch)).data.should eq data
+      task2 = Task.new(base_attrs.merge(prefetch: prefetch))
+      task2.stub(:analyst) {analyst_double([age_table_double])}
+      task2.data.should eq data
     end
   end
 
