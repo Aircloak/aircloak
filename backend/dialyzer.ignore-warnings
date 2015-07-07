@@ -1,0 +1,2 @@
+## This file contains regular expressions that will be used to filter out dialyzer output.
+## Each line of the dialyzer output matching any line from this file will be removed from the final output.

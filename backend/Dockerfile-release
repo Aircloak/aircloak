@@ -1,0 +1,35 @@
+FROM debian:jessie
+MAINTAINER Sebastian Probst Eide <sebastian@aircloak.com>
+
+## ------------------------------------------------------------------
+## Some basic setup of the image
+## ------------------------------------------------------------------
+
+RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
+COPY image_shell_init.sh /tmp/build_config/
+RUN . /tmp/build_config/image_shell_init.sh
+RUN apt-get update && apt-get install openssl liblua5.1-0 libprotobuf-c1 vim nano -y
+
+## ------------------------------------------------------------------
+## Create user and copy in app
+## ------------------------------------------------------------------
+
+# The erlang app listens to 11000
+EXPOSE 11000
+
+# Listening on port 9000 for node connections
+EXPOSE 9000
+
+# User under which the app will run.
+RUN useradd --create-home --shell /bin/bash deployer && mkdir -p /aircloak/app
+
+WORKDIR /aircloak/app
+
+COPY artifacts/cache/rel/air /aircloak/app
+COPY docker/start.sh /aircloak/
+
+RUN chown -R deployer:deployer /aircloak/app && chown -R deployer:deployer /var/run/
+
+USER deployer
+
+CMD /aircloak/start.sh

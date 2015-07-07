@@ -1,74 +1,113 @@
-require "bundler/capistrano"
+# config valid only for Capistrano 3.2.1
+lock '3.2.1'
 
-load "config/recipes/base"
-load "config/recipes/nginx"
-load "config/recipes/postgresql"
-load "config/recipes/unicorn"
-load "config/recipes/check"
-load "config/recipes/settings"
-load "config/recipes/ca"
-load "config/recipes/apidocs"
-load "config/recipes/maintenance"
+set :application, 'air'
+set :branch, ENV["AIR_DEPLOY_BRANCH"] || "develop"
+set :deploy_to, '/aircloak/air'
 
-# We need to fudge the path a little to ensure capistrano
-# finds the bundler gem and ruby while deploying.
-set :default_environment, {
-  # When gems should be downloaded, we need to enable an http proxy.
-  # For normal deployments, where the list of gems haven't changed,
-  # nothing needs to be done.
-  # When there are new or changed gems introduced, one needs to
-  # enable the proxy for 12 hours at tintenfisch.mpi-klsb.mpg.de.
-  # Please note that you can only get access to this proxy if you
-  # are on the MPI network (meaning you either need to be physically
-  # there, or using the VPN).
-  # This flag cannot be set when deploying the web application
-  # when there are no gem changes needed. The reason is that
-  # the web application will attempt to do all inter
-  # application communication over the proxy, and fail.
-  # An example is when communicating with the buildserver.
-  # Please also note that when doing a deploy that requires
-  # an update to the gems (i.e. the proxy is enabled),
-  # then one needs to run a `bundle exec cap unicorn:stop`
-  # followed by `bundle exec cap unicorn:start` afterwards,
-  # to ensure the web application runs without the proxy
-  # environment variable afterwards.
-  # 'http_proxy' => "http://dmz-gw.mpi-klsb.mpg.de:3128/",
+# Prevents key hijacking.
+set :ssh_options, {:forward_agent => false}
 
-  'PATH' => "/home/deployer/.rbenv/shims:/home/deployer/.rbenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games"
-}
+# We override the standard deploy workflow, since we're building containers here.
+# Thus, we perform deploy always in the same folder. We update the code, build
+# images, and then restart docker containers.
+Rake::Task["deploy"].clear_actions
 
+task :deploy do
+  Rake::Task["aircloak:deploy"].invoke
+end
 
-# This requires something along the lines of this
-# in your ~/.ssh/config
-#
-#   Host air1
-#     User deployer
-#     ProxyCommand ssh [USERNAME]@contact.mpi-sws.org nc %h %p 2> /dev/null
-#
-server "air1", :web, :app, :db, primary: true
+namespace :aircloak do
+  task :deploy do
+    current_branch = `git symbolic-ref --short HEAD`.strip
+    if current_branch != fetch(:branch)
+      puts "Warning: your current branch is:\n  #{current_branch}\n\n"
+      puts "But you're deploying the branch:\n  #{fetch(:branch)}\n\n"
+      puts "Continue (y/N)?"
+      input = $stdin.readline.strip
+      exit 1 unless input.upcase == "Y"
+    end
+    Rake::Task["aircloak:update_code"].invoke
+    Rake::Task["aircloak:backend:build"].invoke
+    Rake::Task["aircloak:frontend:build"].invoke
+    Rake::Task["aircloak:db_migrate"].invoke
+    Rake::Task["aircloak:restart"].invoke
+    Rake::Task["aircloak:cleanup_docker_images"].invoke
+  end
 
-set :application, "aircloak"
+  task :db_migrate do
+    on roles(:app), in: :sequence do
+      exec_ml "
+            AIR_ENV=prod /aircloak/air/etcd/container.sh ensure_started &&
+            cd #{fetch(:deploy_to)}/frontend &&
+            docker run -t --rm
+              -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log
+              aircloak/air_frontend:latest
+              bash -c 'ETCD_HOST=172.17.42.1 ETCD_PORT=4002 RAILS_ENV=production bundle exec rake db:migrate'
+          "
+    end
+  end
 
-# You need to run the capistrano setup and install tasks as root.
-# Please adjust the user line for the very first run.
-set :user, "deployer"
+  task :update_code do
+    on roles(:build), in: :sequence do
+      exec_ml "
+            cd #{fetch(:deploy_to)} &&
+            git fetch &&
+            git checkout #{fetch(:branch)} &&
+            git reset --hard origin/#{fetch(:branch)}
+          "
 
-set :deploy_to, "/websites/#{application}"
-set :deploy_via, :remote_cache
+      exec_ml "
+            mkdir -p #{fetch(:deploy_to)}/frontend/log &&
+            chmod 777 #{fetch(:deploy_to)}/frontend/log
+          "
 
-# We want to do all actions as the deployment user
-set :use_sudo, false
+      exec_ml "
+            mkdir -p #{fetch(:deploy_to)}/frontend/var-log &&
+            chmod 777 #{fetch(:deploy_to)}/frontend/var-log
+          "
+    end
+  end
 
-set :scm, :git
-set :repository,  "git@github.com:Aircloak/web.git"
-set :branch, "develop"
-set :git_enable_submodules, 1
+  task :restart do
+    on roles(:app), in: :sequence do
+      execute "/etc/init.d/air start"
+    end
+  end
 
-default_run_options[:pty]
-ssh_options[:forward_agent] = false
+  task :cleanup_docker_images do
+    on roles(:build), in: :sequence do
+      execute "docker rmi $(docker images -q -f dangling=true) > /dev/null 2>&1 || exit 0"
+    end
+  end
 
-# Cleans up old deploys, leaving only 5
-after "deploy:restart", "deploy:cleanup"
+  namespace :backend do
+    task :build do
+      on roles(:build), in: :sequence do
+        execute "AIR_ENV=prod #{fetch(:deploy_to)}/backend/build-image.sh"
+      end
+    end
+  end
 
-set :whenever_command, "bundle exec whenever"
-require "whenever/capistrano"
+  namespace :frontend do
+    task :build do
+      on roles(:build), in: :sequence do
+        execute "AIR_ENV=prod #{fetch(:deploy_to)}/frontend/build-image.sh"
+      end
+    end
+  end
+
+  private
+    # Capistrano execute replaces new-lines with a semicolon. In this wrapper,
+    # we simply insert blanks instead, thus allowing a multi-line command, e.g.:
+    #
+    #   exec_ml "
+    #         docker run -t --rm
+    #           -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log
+    #           aircloak/air_frontend:latest
+    #           bash -c 'ETCD_HOST=172.17.42.1 ETCD_PORT=4002 RAILS_ENV=production bundle exec rake db:migrate'
+    #       "
+    def exec_ml(cmd)
+      execute cmd.gsub("\n", " ")
+    end
+end

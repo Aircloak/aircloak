@@ -1,0 +1,50 @@
+# This is a sample file with values that should
+# be stored in etcd when running the rails app
+# with docker locally.
+#
+# To use it, please set the values appropriately,
+# and rename it to etcd_values.
+#
+# It is ignored by git, so you can change values
+# at will without leaking local state.
+#
+# The only primitive supported is:
+#
+#   etcd_set <path> <value>
+
+etcd_set /settings/mail/smtp/address smtp.mandrillapp.com
+etcd_set /settings/mail/smtp/port 587
+etcd_set /settings/mail/smtp/username "sebastian@aircloak.com"
+etcd_set /settings/mail/smtp/password "_EFioVwohF4p6bHBbdaAGw" # This is a valid mandrill test key. API works, but no emails sent
+etcd_set /settings/mail/smtp/domain "aircloak.com"
+
+# The database settings are set once when the app launches
+# and cannot be changed without relaunching the container.
+etcd_set /settings/air/db/host 127.0.0.1
+etcd_set /settings/air/db/port 5433
+etcd_set /settings/air/db/username air
+etcd_set /settings/air/db/password ''
+etcd_set /settings/air/db/database aircloakdatabase
+
+# Whether it is a global installation, or whether it should
+# ignore costly operations involving infrastructure.
+# true is usually a good choice for local development.
+etcd_set /settings/rails/global true
+
+etcd_set /settings/rails/task/return_protocol http
+etcd_set /settings/rails/task/return_host localhost
+etcd_set /settings/rails/task/return_port 3000
+etcd_set /settings/rails/task/publish_url http://127.0.0.1:1080/publish
+
+etcd_set /settings/rails/secrets/private_key_password "a not so secret key"
+etcd_set /settings/rails/secrets/github_oauth_token "7514ff11de609919ab6dadb2f43724cec10df436"
+etcd_set /settings/rails/secrets/secret_key_base "random-secret"
+
+# External services
+etcd_set /service/airpub/shared_secret "well-known secret"
+etcd_set /service/airpub/subscribe_endpoint "ws://127.0.0.1:1080/subscribe/ws"
+etcd_set /service/air-sandbox/endpoint "http://127.0.0.1:11000"
+etcd_set /service/build_server/host localhost
+etcd_set /service/cloak/port 8098
+etcd_set /service/cloak/protocol http
+etcd_set /service/manny_air/host localhost
