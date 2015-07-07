@@ -3,6 +3,10 @@ function log {
   echo "[aircloak] $msg"
 }
 
+function silence_etcd_set {
+  export SILENT_ETCD_SET="true"
+}
+
 function init_env {
   if [ -n "$(env | grep boot2docker)" ]; then
     log "Assuming using boot2docker due to environment variables"
@@ -28,6 +32,10 @@ function etcd_is_up {
 function etcd_set {
   path=$1
   value=$2
-  log "Setting etcd: $path = $value"
+  if [ -z "$SILENT_ETCD_SET" ]; then
+    log "Setting etcd: $path = $value"
+  else
+    log "Setting etcd: $path = XXXX"
+  fi
   curl -XPUT -L --silent http://$ETCD/v2/keys$path -d value="$value" > /dev/null
 }
