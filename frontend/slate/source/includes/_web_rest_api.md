@@ -394,12 +394,33 @@ In the path, you must replace &lt;task-token&gt; with the real token of the task
 
 ### Query Parameters
 
+```ruby
+# Using RestClient from example in the Authentication section
+
+api_key = RestClient.key_from_file "my_api_key.pfx", "my_password"
+task_token = "my_task_token"
+url = "https://api.aircloak.com/tasks/#{task_token}/results?page=1&per_page=1"
+response = RestClient.get(url, api_key)
+```
+
+```shell
+wget --content-on-error \
+     --output-document - \
+     --certificate=<path-to-PEM-certificate> \
+     https://api.aircloak.com/tasks/#{task_token}/results?page=1&per_page=1
+```
+
 Parameter | Required | Default | Description
 --------- | -------- | ------- | -----------
 page      | false    | 1       | Page number
 per_page  | false    | 10      | The number of items per page
 from      | false    | none    | Lowest report time to include in results. Should be provided as YYYYMMDD HH:MM
 to        | false    | none    | Highest report time to include in results. Should be provided as YYYYMMDD HH:MM
+
+Parameters are set in the URL as in any HTTP GET request.
+
+For example, because the results are returned in descending order, to get only the latest result for a task
+you need to set `page=1` and `per_page=1` in the query string.
 
 ### Authentication
 
