@@ -60,6 +60,7 @@ class TasksController < ApplicationController
     @task.update_task = false
     @task.stored_task = ([Task::STREAMING_TASK, Task::PERIODIC_TASK].include?(@task.task_type))
     @task.code_timestamp = Time.now
+    @task.shared = false
     @task.save_and_synchronize!
     describe_successful_activity "Successfully created a new task"
     # If we don't redirect, the flash messages get stuck
