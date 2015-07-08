@@ -96,6 +96,17 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
   # we need smoother CDFs to reliably compute aggregate values
   process_cdfs cdfs, min, max, step
 
+  # reduce range
+  for i in [min+step..max] by step
+    if cdfs[number_to_key(i)] > 0
+      min = i - step
+      break
+  max_value = cdfs[number_to_key(max)]
+  for i in [max-step..min] by -step
+    if cdfs[number_to_key(i)] < max_value
+      max = i + step
+      break
+
   sum = 0
   count = -1
   for i in [min+step..max] by step
@@ -129,7 +140,10 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
   stdDev = Math.sqrt(sum / count)
   stdDevBucket = {label: name, value: "stdev.S", count: format_number(stdDev)}
 
-  [countBucket, percentBucket, averageBucket, medianBucket, stdDevBucket]
+  minBucket = {label: name, value: "min", count: "< " + format_number(min)}
+  maxBucket = {label: name, value: "max", count: "> " + format_number(max)}
+
+  [countBucket, percentBucket, averageBucket, medianBucket, stdDevBucket, minBucket, maxBucket]
 
 
 # aggregate buckets for a single quantized datum
