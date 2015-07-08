@@ -1,6 +1,8 @@
 # config valid only for Capistrano 3.2.1
 lock '3.2.1'
 
+load "config/check.rb"
+
 set :application, 'air'
 set :branch, ENV["AIR_DEPLOY_BRANCH"] || "develop"
 set :deploy_to, '/aircloak/air'
