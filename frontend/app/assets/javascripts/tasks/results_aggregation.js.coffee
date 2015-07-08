@@ -34,24 +34,20 @@ process_cdfs = (cdfs, min, max, step) ->
       local_max = prev
 
       # find slope ending (where values are bigger than the local maximum) and local minimum
-      end = i + step
       local_min = current
-      while end <= max
+      for end in [i+step..max] by step
         current = cdfs[number_to_key(end)]
         if current < local_min
           local_min = current
         else if current > local_max
           break
-        end = end + step
       end = end - step
 
       # find slope start (where values are smaller than local minimum)
-      start = i - 2 * step
-      while start >= min
+      for start in [i-2*step..min] by -step
         current = cdfs[number_to_key(start)]
         if current < local_min
           break
-        start = start - step
       start = start + step
 
       # straighten slope
