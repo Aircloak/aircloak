@@ -41,10 +41,10 @@ class Analyst < ActiveRecord::Base
         .where([
               "
                 tasks.id IN (
-                  select task_id from results
-                  inner join exception_results on result_id=results.id
-                  where tasks.analyst_id=?
-                )
+                  SELECT task_id FROM results
+                  INNER JOIN exception_results ON result_id=results.id
+                  WHERE tasks.analyst_id=?
+                ) AND deleted = false
               ",
               [self.id]
             ])

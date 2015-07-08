@@ -60,6 +60,7 @@ class TasksController < ApplicationController
     @task.update_task = false
     @task.stored_task = ([Task::STREAMING_TASK, Task::PERIODIC_TASK].include?(@task.task_type))
     @task.code_timestamp = Time.now
+    @task.shared = false
     @task.save_and_synchronize!
     describe_successful_activity "Successfully created a new task"
     # If we don't redirect, the flash messages get stuck
@@ -177,8 +178,8 @@ class TasksController < ApplicationController
         @results_path = all_results_task_path(@task.token)
         describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task.token)
         # format begin/end datetimes for results filtering
-        @begin_date_str = begin_date.strftime("%d/%m/%Y %H:%M:%S")
-        @end_date_str = end_date.strftime("%d/%m/%Y %H:%M:%S")
+        @begin_date_str = begin_date.strftime("%Y/%m/%d %H:%M:%S")
+        @end_date_str = end_date.strftime("%Y/%m/%d %H:%M:%S")
       end
 
       format.csv do
@@ -186,8 +187,8 @@ class TasksController < ApplicationController
         # convert to json, 32 MB limit for buckets
         @results = convert_results_for_client_side_rendering @raw_results, 32 * 1024 * 1024
         # format begin/end datetimes for filename creation
-        begin_date_str = begin_date.strftime("%d-%m-%Y_%H-%M-%S")
-        end_date_str = end_date.strftime("%d-%m-%Y_%H-%M-%S")
+        begin_date_str = begin_date.strftime("%Y-%m-%d_%H-%M-%S")
+        end_date_str = end_date.strftime("%Y-%m-%d_%H-%M-%S")
         filename = "#{@task.name}_from_#{begin_date_str}_to_#{end_date_str}.csv"
         response.headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
         response.headers['Content-Type'] = 'text/csv'
