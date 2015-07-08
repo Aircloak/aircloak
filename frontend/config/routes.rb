@@ -133,6 +133,7 @@ Web::Application.routes.draw do
     resources :results, only: [:create] # Used by cloak's
     resources :audit_logs, only: [:create] # Used by cloak's
     resources :test_results, only: [:create] # Used by TestServer
+    resources :authenticated, only: [:index]
     post 'register_build_progress' => "build_progress#build_progress" # Used by BuildServer
     post 'register_version_progress' => "build_progress#version_progress" # Used by BuildServer
     get "clusters", to: "cluster_lists#index" # Used by manny-air
