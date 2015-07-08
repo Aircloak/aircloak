@@ -128,7 +128,8 @@ function container_ctl {
       ;;
 
     remsh)
-      docker exec -i -t $container_name /bin/bash
+      docker exec -i -t $container_name \
+        /bin/bash -c "ETCD_HOST=${ETCD_HOST:-172.17.42.1} ETCD_PORT=${ETCD_PORT:-4002} TERM=xterm /bin/bash"
       ;;
 
     stop)
