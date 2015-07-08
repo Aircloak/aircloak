@@ -41,6 +41,8 @@ The air system consists of following components:
 - `db` - Dockerized database server (used only for development and testing)
 - `backend` - Erlang system which implements various processes in the air system, such as background and periodic jobs.
 - `frontend` - Web user interface
+- `docker_registry` - Containerized Docker registry (needed for CoreOS)
+- `coreos` - Vagrant powered CoreOS system that runs `backend` and `frontend` docker containers.
 
 Specific details of each component are describe in `README.md` in their corresponding folders. This document provides general instructions on starting the entire system and deploying.
 
@@ -144,6 +146,10 @@ $ frontend/container.sh console
 ```
 
 If everything is fine, you should be able to access the web via `localhost:8080`.
+
+### Running the system on CoreOS (experimental)
+
+It is also possible to start the system inside a Vagrant powered CoreOS system. See [here](./coreos/README.md) for details.
 
 ## Deploying
 
