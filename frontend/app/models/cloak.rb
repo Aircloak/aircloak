@@ -57,7 +57,7 @@ class Cloak < ActiveRecord::Base
   end
 
   def aircloak_domain
-    "#{name}.cloak.aircloak.net"
+    "#{name}.cloak.aircloak.com"
   end
 
 private

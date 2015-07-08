@@ -189,7 +189,7 @@ json_payload = <<-EOJSON
 EOJSON
 
 api_key = RestClient.key_from_file "task-running-key", "password"
-url = "https://api.aircloak.net/task/run"
+url = "https://api.aircloak.com/task/run"
 RestClient.post url, json_payload, api_key
 ```
 
@@ -221,7 +221,7 @@ wget --content-on-error \
      --certificate=<path-to-PEM-certificate> \
      --body-file=task.json \
      --no-check-certificate \
-     https://api.aircloak.net/task/run
+     https://api.aircloak.com/task/run
 ```
 
 This API endpoint allows execution of batch tasks against a cloak cluster. The primary use case of this API is

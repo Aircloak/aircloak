@@ -3,9 +3,9 @@
 All cloak APIs are authenticated. Please see the [authentication section](#authentication) for more information.
 
 The paths given below are all absolute paths. In the web interface you get the fully qualified names of the
-cloaks in your cluster. These are of the form `machineName.cloak.aircloak.net`. Given the path `/PATH` in an
+cloaks in your cluster. These are of the form `machineName.cloak.aircloak.com`. Given the path `/PATH` in an
 API description, you are expected that you make a request to
-`https://machineName.cloak.aircloak.net/PATH`.
+`https://machineName.cloak.aircloak.com/PATH`.
 
 If you have multiple machines available in your cluster, the particular machine endpoint you use does not
 matter.
@@ -27,7 +27,7 @@ json_payload = <<-EOJSON
 EOJSON
 
 api_key = RestClient.key_from_file "insert-key", "password"
-url = "https://<MACHINE-NAME>.cloak.aircloak.net/insert"
+url = "https://<MACHINE-NAME>.cloak.aircloak.com/insert"
 RestClient.post url, json_payload, api_key
 ```
 
@@ -50,7 +50,7 @@ wget --content-on-error \
      --certificate=<path-to-PEM-certificate> \
      --body-file=locations.json \
      --no-check-certificate \
-     https://<cloak-server>.cloak.aircloak.net/insert
+     https://<cloak-server>.cloak.aircloak.com/insert
 ```
 
 The single user API endpoint is useful if you want to upload data directly from a single users device.
@@ -152,7 +152,7 @@ json_payload = <<-EOJSON
 EOJSON
 
 api_key = RestClient.key_from_file "bulk-insert-key", "password"
-url = "https://<MACHINE-NAME>.cloak.aircloak.net/bulk_insert"
+url = "https://<MACHINE-NAME>.cloak.aircloak.com/bulk_insert"
 RestClient.post url, json_payload, api_key
 ```
 
@@ -181,7 +181,7 @@ wget --content-on-error \
      --certificate=<path-to-PEM-certificate> \
      --body-file=locations.json \
      --no-check-certificate \
-     https://<cloak-server>.cloak.aircloak.net/bulk_insert
+     https://<cloak-server>.cloak.aircloak.com/bulk_insert
 ```
 
 The bulk insert API is useful when uploading data from a system where you have access to data for
@@ -286,7 +286,7 @@ headers = {
 }
 
 api_key = RestClient.key_from_file "task-running-key", "password"
-url = "https://<MACHINE-NAME>.cloak.aircloak.net/task/run"
+url = "https://<MACHINE-NAME>.cloak.aircloak.com/task/run"
 RestClient.post url, json_payload, api_key, headers
 ```
 
@@ -331,7 +331,7 @@ wget --content-on-error \
      --header='return_url: <Base64-encoded endpoint URL>' \
      --header='task_id: my-task' \
      --no-check-certificate \
-     https://<cloak-server>.cloak.aircloak.net/task/run
+     https://<cloak-server>.cloak.aircloak.com/task/run
 ```
 
 This API endpoint allows execution of batch tasks against a cloak cluster. Please note that there is also [an
