@@ -15,7 +15,7 @@ init_env
 
 stop_named_container etcd_air_test
 
-container_ctl etcd_air "$@" -p ${ETCD_PORT}:${ETCD_PORT} -p 2380:2380 -p 2379:2379 \
+DOCKER_START_ARGS="-p ${ETCD_PORT}:${ETCD_PORT} -p 2380:2380 -p 2379:2379 \
   quay.io/coreos/etcd:v2.0.6 \
   -name etcd0 \
   -advertise-client-urls http://${ETCD_DEFAULT_IP}:2379,http://${ETCD_DEFAULT_IP}:${ETCD_PORT} \
@@ -24,7 +24,9 @@ container_ctl etcd_air "$@" -p ${ETCD_PORT}:${ETCD_PORT} -p 2380:2380 -p 2379:23
   -listen-peer-urls http://0.0.0.0:2380 \
   -initial-cluster-token etcd-cluster-1 \
   -initial-cluster etcd0=http://${ETCD_DEFAULT_IP}:2380 \
-  -initial-cluster-state new
+  -initial-cluster-state new"
+
+container_ctl etcd_air $@
 
 if [ "$1" = "start" ] || [ "$1" = "ensure_started" ] || [ "$1" = "console" ]; then
   # Crudely spin-lock, waiting for etcd to become available

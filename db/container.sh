@@ -7,7 +7,8 @@ cd $(dirname $0)
 
 ./ensure_persistent_volume.sh
 
-container_ctl air_db "$@" \
-  -v /docker_volumes/air_db:/var/lib/postgresql/data \
+DOCKER_START_ARGS="-v /docker_volumes/air_db:/var/lib/postgresql/data \
   -p 5433:5432 \
-  aircloak/air_db:latest
+  aircloak/air_db:latest"
+
+container_ctl air_db $@

@@ -111,20 +111,20 @@ function container_ctl {
     start)
       stop_named_container $container_name
       echo "Starting container $container_name"
-      docker run -d $driver_arg --restart on-failure --name $container_name "$@"
+      docker run -d $driver_arg --restart on-failure --name $container_name $DOCKER_START_ARGS
       ;;
 
     ensure_started)
       RUNNING=$(docker inspect --format="{{ .State.Running }}" $container_name || echo false)
       if [ "$RUNNING" != "true" ]; then
         echo "Starting container $container_name"
-        docker run -d $driver_arg --restart on-failure --name $container_name "$@"
+        docker run -d $driver_arg --restart on-failure --name $container_name $DOCKER_START_ARGS
       fi
       ;;
 
     console)
       stop_named_container $container_name
-      docker run --rm -it --name $container_name "$@"
+      docker run --rm -it --name $container_name $DOCKER_START_ARGS
       ;;
 
     remsh)
