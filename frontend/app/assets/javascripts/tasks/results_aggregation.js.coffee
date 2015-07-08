@@ -9,7 +9,7 @@ format_number = (number) ->
 
 number_to_key = (number) ->
   # keep only 4 decimal places
-  Math.round(number * 10000)
+  Math.round(number * 10000).toString()
 
 
 # this procedure significantly reduces the effect of the noise on the analysis of the CDFs, at the cost
@@ -86,8 +86,6 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
   for i in [min..max] by step
     if !cdfs[number_to_key(i)]
       cdfs[number_to_key(i)] = 0
-    else
-      break
 
   countBucket = {label: name, value: "values in range", count: in_range}
 
