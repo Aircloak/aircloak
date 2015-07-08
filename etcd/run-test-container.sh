@@ -29,7 +29,8 @@ export ETCD=$HOST_IP:$ETCD_PORT
 
 # Start etcd for configuration management
 log "Starting etcd_air_test"
-container_ctl etcd_air_test start -p ${ETCD_PORT}:${ETCD_PORT} \
+
+DOCKER_START_ARGS="-p ${ETCD_PORT}:${ETCD_PORT} \
   quay.io/coreos/etcd:v2.0.6 \
   -name etcd0 \
   -advertise-client-urls http://${ETCD_DEFAULT_IP}:2379,http://${ETCD_DEFAULT_IP}:${ETCD_PORT} \
@@ -38,7 +39,9 @@ container_ctl etcd_air_test start -p ${ETCD_PORT}:${ETCD_PORT} \
   -listen-peer-urls http://0.0.0.0:2380 \
   -initial-cluster-token etcd-cluster-1 \
   -initial-cluster etcd0=http://${ETCD_DEFAULT_IP}:2380 \
-  -initial-cluster-state new
+  -initial-cluster-state new"
+
+container_ctl etcd_air_test start
 
 # Crudely spin-lock, waiting for etcd to become available
 until etcd_is_up; do

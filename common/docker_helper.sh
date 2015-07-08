@@ -111,24 +111,30 @@ function container_ctl {
     start)
       stop_named_container $container_name
       echo "Starting container $container_name"
-      docker run -d $driver_arg --restart on-failure --name $container_name "$@"
+      docker run -d $driver_arg --restart on-failure --name $container_name $DOCKER_START_ARGS
       ;;
 
     ensure_started)
       RUNNING=$(docker inspect --format="{{ .State.Running }}" $container_name || echo false)
       if [ "$RUNNING" != "true" ]; then
         echo "Starting container $container_name"
-        docker run -d $driver_arg --restart on-failure --name $container_name "$@"
+        docker run -d $driver_arg --restart on-failure --name $container_name $DOCKER_START_ARGS
       fi
       ;;
 
     console)
       stop_named_container $container_name
-      docker run --rm -it --name $container_name "$@"
+      docker run --rm -it --name $container_name $DOCKER_START_ARGS
       ;;
 
     remsh)
-      docker exec -i -t $container_name /bin/bash
+      docker exec -i -t $container_name \
+        /bin/bash -c "ETCD_HOST=${ETCD_HOST:-172.17.42.1} ETCD_PORT=${ETCD_PORT:-4002} TERM=xterm /bin/bash"
+      ;;
+
+    remote_console)
+      docker exec -i -t $container_name \
+        /bin/bash -c "ETCD_HOST=${ETCD_HOST:-172.17.42.1} ETCD_PORT=${ETCD_PORT:-4002} TERM=xterm $REMOTE_CONSOLE_COMMAND"
       ;;
 
     stop)
@@ -137,7 +143,7 @@ function container_ctl {
       ;;
 
     *)
-      echo "$(basename $0) start|stop|ensure_started|remsh|console docker-args"
+      echo "$(basename $0) start|stop|ensure_started|remsh|remote_console|console docker-args"
       exit 1
       ;;
 

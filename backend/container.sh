@@ -10,4 +10,6 @@ function gracefully_stop_container {
   docker exec -d air_backend /bin/bash -c "/aircloak/app/bin/air stop"
 }
 
-container_ctl air_backend "$@" -p 11000:11000 -p 9000:9000 aircloak/air_backend:latest
+DOCKER_START_ARGS="-p 11000:11000 -p 9000:9000 aircloak/air_backend:latest"
+REMOTE_CONSOLE_COMMAND="bin/air remote_console"
+container_ctl air_backend $@

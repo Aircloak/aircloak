@@ -213,3 +213,6 @@ For various configuration settings, see [here](etcd/README.md#production-setting
 - Shell to the running container:
     - `/aircloak/air/frontend/container.sh remsh`
     - `/aircloak/air/backend/container.sh remsh`
+- Shell to Rails/Erlang console:
+    - `/aircloak/air/frontend/container.sh remote_console`
+    - `/aircloak/air/backend/container.sh remote_console`
