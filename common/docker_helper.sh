@@ -132,13 +132,18 @@ function container_ctl {
         /bin/bash -c "ETCD_HOST=${ETCD_HOST:-172.17.42.1} ETCD_PORT=${ETCD_PORT:-4002} TERM=xterm /bin/bash"
       ;;
 
+    remote_console)
+      docker exec -i -t $container_name \
+        /bin/bash -c "ETCD_HOST=${ETCD_HOST:-172.17.42.1} ETCD_PORT=${ETCD_PORT:-4002} TERM=xterm $REMOTE_CONSOLE_COMMAND"
+      ;;
+
     stop)
       stop_named_container $container_name
       exit 0
       ;;
 
     *)
-      echo "$(basename $0) start|stop|ensure_started|remsh|console docker-args"
+      echo "$(basename $0) start|stop|ensure_started|remsh|remote_console|console docker-args"
       exit 1
       ;;
 

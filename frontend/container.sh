@@ -15,4 +15,6 @@ DOCKER_START_ARGS="-p 8080:8080 \
   aircloak/air_frontend:latest \
   /aircloak/website/docker/start.sh"
 
+REMOTE_CONSOLE_COMMAND="bundle exec rails c"
+
 container_ctl air_frontend $@

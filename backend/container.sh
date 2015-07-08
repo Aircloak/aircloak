@@ -11,4 +11,5 @@ function gracefully_stop_container {
 }
 
 DOCKER_START_ARGS="-p 11000:11000 -p 9000:9000 aircloak/air_backend:latest"
+REMOTE_CONSOLE_COMMAND="bin/air remote_console"
 container_ctl air_backend $@
