@@ -22,5 +22,5 @@ log "Starting nginx"
 log "Starting unicorn"
 # Exec ensures that unicorn replaces this process. This allows us to use
 # docker to send signals to the unicorn process, and ultimately enables
-# graceful termination of the process
-exec bundle exec unicorn -c config/unicorn.rb -E production
+# graceful termination of the process.
+exec gosu deployer bundle exec unicorn -c config/unicorn.rb -E production
