@@ -154,7 +154,7 @@ is_task_execution_ok() ->
       [
         ?load_conf,
         ?with_applications([gproc, webmachine]),
-        ?with_processes([cloak_services_sup, air_sandbox_sup]),
+        ?with_processes([cloak_services_sup, air_api_sup]),
         ?sandbox_web_server
       ],
       [
