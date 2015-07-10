@@ -11,7 +11,7 @@ RUN bundle config --global frozen 1
 RUN apt-get update
 RUN apt-get install nginx-light vim nano curl -y
 
-# According to many advices, we'll use gosu instead of sude to step-down from root
+# According to many advices, we'll use gosu instead of sudo to step-down from root
 # Apparently, there are some issues with sudo inside the docker container.
 RUN . /tmp/build_config/proxies.sh && \
   curl -o /usr/local/bin/gosu -sSL "https://github.com/tianon/gosu/releases/download/1.4/gosu-$(dpkg --print-architecture)" && \
