@@ -8,7 +8,8 @@ window.Results = window.Results or {}
 Results.last_article_update = 0
 # holds existing results table columns and maps them to indices
 Results.columns = {}
-Results.columns.count = 1
+Results.columns.count = 0
+Results.columns.start = 0
 
 
 # creates a column if doesn't exists already
@@ -63,10 +64,12 @@ Results.display = (result) ->
 
   timestamp = parseInt result.published_at
   date.innerHTML = format_date timestamp
+  date.style.textAlign = 'center'
   if timestamp < Results.task_last_update
     date.innerHTML += "*"
 
   errors = row.insertCell 1
+  errors.style.textAlign = 'center'
   if result.exceptions.length > 0
     errors.innerHTML = "present"
     errors.style.color = "red"
@@ -88,15 +91,22 @@ Results.display = (result) ->
   else
     errors.innerHTML = "none"
 
-  cells = _.map [1..Results.columns.count], (index) -> row.insertCell index + 1
+  if Results.columns.start >= 2
+    details = row.insertCell 2
+    details.innerHTML = "<a href='#{result.details_url}'>view</a>"
+    details.style.textAlign = 'center'
+
+  cells = _.map [1..Results.columns.count], (index) -> row.insertCell index + Results.columns.start
 
   for bucket in result.buckets
     index = Results.columns[name_from_bucket bucket]
-    cells[index-1].innerHTML = bucket.count
+    cells[index].innerHTML = bucket.count
+    cells[index].style.textAlign = 'center'
 
 
 $ ->
   Results.task_last_update = $('.render_params').data('task-last-update')
+  Results.columns.start = $('#results_table th').length - 1
   oldResults = $('.render_params').data('results')
   for result in oldResults
     Results.display result

@@ -5,7 +5,7 @@ require './lib/aircloak_config'
 class TasksControllerException < Exception; end
 
 class TasksController < ApplicationController
-  filter_access_to [:execute_as_batch_task, :all_results, :latest_results,
+  filter_access_to [:execute_as_batch_task, :all_results, :latest_results, :single_result,
                     :suspend, :resume, :delete, :deleted, :recover, :share,
                     :acquire, :pending_executions], require: :manage
   before_action :load_task, except: [:index, :new, :create, :deleted]
@@ -180,6 +180,13 @@ class TasksController < ApplicationController
         @results_path = all_results_task_path(@task.token)
         describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task.token)
         # format begin/end datetimes for results filtering
+        @begin_date_str = begin_date.strftime("%Y/%m/%d %H:%M:%S")
+        @end_date_str = end_date.strftime("%Y/%m/%d %H:%M:%S")
+        # show details links
+        @show_details = true
+        @results.each do |result|
+          result["details_url"] = single_result_task_path(@task.token, :result => result[:id])
+        end
       end
 
       # This is a request from the erlang frontend
@@ -199,6 +206,15 @@ class TasksController < ApplicationController
     @server_url = Conf.get("/service/airpub/subscribe_endpoint")
     @task_token = @task.token
     describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task.token)
+  end
+
+  # GET /tasks/:id/single_result?result=:result_id
+  def single_result
+    result_id = params[:result]
+    @raw_result = @task.results.find(result_id)
+    # convert to json, 16 MB limit for buckets
+    @result = @raw_result.to_client_hash 16 * 1024 * 1024
+    describe_activity "Requested specific result of task #{@task.name}", single_result_task_path(@task.token, :result => result_id)
   end
 
   # GET /tasks/:id/pending_executions
