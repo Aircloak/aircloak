@@ -95,4 +95,4 @@
 
 -define(with_db, [?with_applications([gproc, pgsql, etcd]), ?with_processes([cloak_db_pool_sup])]).
 
--define(sandbox_web_server, [{fun() -> air_api_sup:setup_routes() end, fun(_) -> ok end}]).
+-define(api_web_server, [{fun() -> air_api_sup:setup_routes() end, fun(_) -> ok end}]).

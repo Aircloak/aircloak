@@ -181,20 +181,6 @@ class TasksController < ApplicationController
         @begin_date_str = begin_date.strftime("%Y/%m/%d %H:%M:%S")
         @end_date_str = end_date.strftime("%Y/%m/%d %H:%M:%S")
       end
-
-      format.csv do
-        @raw_results = @task.results.where(:created_at => begin_date..end_date).order(created_at: :asc)
-        # convert to json, 32 MB limit for buckets
-        @results = convert_results_for_client_side_rendering @raw_results, 32 * 1024 * 1024
-        # format begin/end datetimes for filename creation
-        begin_date_str = begin_date.strftime("%Y-%m-%d_%H-%M-%S")
-        end_date_str = end_date.strftime("%Y-%m-%d_%H-%M-%S")
-        filename = "#{@task.name}_from_#{begin_date_str}_to_#{end_date_str}.csv"
-        response.headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
-        response.headers['Content-Type'] = 'text/csv'
-        describe_activity "Exported all results of task #{@task.name}", all_results_task_path(@task.token)
-        render :text => results_csv
-      end
     end
   end
 
@@ -377,46 +363,5 @@ private
   # converts the results to a hashmap that will be converted to JSON and rendered client-side
   def convert_results_for_client_side_rendering raw_results, max_bucket_size
     raw_results.map {|result| result.to_client_hash max_bucket_size }
-  end
-
-  def results_csv
-    file = CSV.generate(col_sep: ",") do |csv|
-      # generate column names from labels
-      columns = Set.new
-      @results.each do |result|
-        result[:buckets].each do |bucket|
-          bucket["name"] = [bucket["label"], bucket["value"]].compact.join(": ")
-          columns << bucket["name"]
-        end
-      end
-      columns = columns.to_a.sort
-
-      csv << ["time", "errors"] + columns # write file header
-
-      # generate column index map
-      columnIndexMap = {}
-      columns.each_with_index do |name, index|
-        columnIndexMap[name] = index
-      end
-
-      # generate one row for each result
-      @results.each do |result|
-        date = Time.at(result[:published_at]/1000).strftime("%Y-%m-%d %H:%M:%S")
-        errors = result[:exceptions].length > 0 ? "true" : "false"
-        cells = Array.new(columns.length, "")
-        # iterate over buckets and fill the correct cell
-        result[:buckets].each do |bucket|
-          index = columnIndexMap[bucket["name"]]
-          cells[index] = bucket["count"]
-        end
-        csv << [date, errors] + cells # write row
-      end
-    end
-    # European versions of Excel default to semicolon as a separator instead of comma
-    # (because comma is used for numbers) so we need to specify the separator explicitly
-    # if we want to import the resulting file into Excel without any changes
-    # this is non-standard and could break some CSV processing tools,
-    # but users using other tools should be smart enough to fix this by themselves
-    "sep=,\n" + file
   end
 end

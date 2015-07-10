@@ -3,7 +3,7 @@
 
 %p= "Below are the all results for task '#{@task.name}':"
 
-= link_to "Export as CSV", "#{@results_path}.csv?" + {begin_date: @begin_date_str, end_date: @end_date_str}.to_param
+= link_to "Export as CSV", "/_/tasks/#{@task.token}/results.csv?" + {begin_date: @begin_date_str, end_date: @end_date_str}.to_param
 \|
 = link_to "Delete results", delete_results_task_path(@task.token, begin_date: @begin_date_str, end_date: @end_date_str),
     :method => :post, class: "btn btn-danger btn-mini",

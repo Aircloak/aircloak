@@ -35,7 +35,12 @@ start_link() ->
 setup_routes() ->
   Routes = [
     % Internal endpoints not accessible to the web
-    {["task", action], air_sandbox_task_resource, []}
+    {["task", action], air_sandbox_task_resource, []},
+
+    % All endpoints accessible to external users need to
+    % be authenticated. They are kept separate from internal
+    % APIs by all being prefixed with _ in their path
+    {["_", "tasks", task_token, "results.csv"], csv_resource, []}
   ],
   [webmachine_router:add_route(Route) || Route <- Routes],
   ok.
