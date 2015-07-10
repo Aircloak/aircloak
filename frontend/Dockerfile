@@ -9,7 +9,13 @@ RUN . /tmp/build_config/image_shell_init.sh
 RUN bundle config --global frozen 1
 
 RUN apt-get update
-RUN apt-get install nginx-light vim nano -y
+RUN apt-get install nginx-light vim nano curl -y
+
+# According to many advices, we'll use gosu instead of sudo to step-down from root
+# Apparently, there are some issues with sudo inside the docker container.
+RUN . /tmp/build_config/proxies.sh && \
+  curl -o /usr/local/bin/gosu -sSL "https://github.com/tianon/gosu/releases/download/1.4/gosu-$(dpkg --print-architecture)" && \
+  chmod +x /usr/local/bin/gosu
 
 
 ## ------------------------------------------------------------------
@@ -134,4 +140,5 @@ COPY docker $site_path/docker
 # Needed so nginx and unicorn can access the site
 RUN chown -R deployer:deployer $site_path
 
-USER deployer
+# We'll run as root, but step-down in the init script to the non-privileged user
+USER root

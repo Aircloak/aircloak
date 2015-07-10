@@ -63,7 +63,7 @@ In the second approach you run docker containers for each component, which allow
 
 In order to run the system you need the following components:
 
-- Docker 1.6 (+ boot2docker if on OS X)
+- Docker 1.7 (+ boot2docker if on OS X)
 - Ruby 2.0
 - Erlang 17.5
 - Any other package needed to build and run specific components (e.g. liblua, libprotobuf, ...)
