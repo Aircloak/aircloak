@@ -40,7 +40,7 @@ setup_routes() ->
     % All endpoints accessible to external users need to
     % be authenticated. They are kept separate from internal
     % APIs by all being prefixed with _ in their path
-    {["_", "tasks", task_token, "results.csv"], csv_resource, []}
+    {["backend", "tasks", task_token, "results.csv"], csv_resource, []}
   ],
   [webmachine_router:add_route(Route) || Route <- Routes],
   ok.
