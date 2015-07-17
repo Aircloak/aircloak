@@ -65,8 +65,7 @@ get_csv_results(ReturnPid, Arguments) ->
     TaskParams = get_params(Arguments, Connection),
     Headers = get_headers(TaskParams),
     HeadersForShow = cloak_util:join([<<"time">>, <<"errors">>] ++ Headers, ","),
-    ReturnPid ! {data, HeadersForShow},
-    ReturnPid ! {data, "\n"},
+    ReturnPid ! {data, HeadersForShow ++ "\n"},
     get_data(TaskParams, Headers, ReturnPid),
     ReturnPid ! done
   end,
@@ -139,8 +138,7 @@ get_data(#task_params{tasks_with_error=ErrorSet, connection=Connection}=TaskPara
             end
           end, Headers),
     ReturnableRow = cloak_util:join([format_time(CreatedAt), HasError] ++ Row, ","),
-    ReturnPid ! {data, ReturnableRow},
-    ReturnPid ! {data, "\n"}
+    ReturnPid ! {data, ReturnableRow ++ "\n"}
   end,
   {SQL, Params} = sql_for_task(TaskParams),
   pgsql_connection:foreach(EachFun,  SQL, Params, Connection).
