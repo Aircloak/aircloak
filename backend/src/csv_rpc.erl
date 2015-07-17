@@ -37,7 +37,15 @@ execute(Arguments, Request, State) ->
 stream_csv(Arguments) ->
   Self = self(),
   spawn_link(fun() -> get_csv_results(Self, Arguments) end),
-  receive_incoming_results().
+  % European versions of Excel default to semicolon as a separator instead of comma
+  % (because comma is used for numbers) so we need to specify the separator explicitly
+  % if we want to import the resulting file into Excel without any changes
+  % this is non-standard and could break some CSV processing tools,
+  % but users using other tools should be smart enough to fix this by themselves.
+  % NOTICE: We send the first bit of data immediately, rather than waiting for the
+  % first line to complete. This the timeout in nginx is reset, and we have more
+  % time to gather the complete set of headers.
+  {"sep=,\n", fun() -> receive_incoming_results() end}.
 
 receive_incoming_results() ->
   receive
@@ -219,7 +227,7 @@ create_cells_json([Count|Rem]) ->
           {{select, 1}, [{ResultId}]} = db_test_helpers:extended_query(SqlException, [Time1]),
           db_test_helpers:insert_rows("exception_results", ["result_id"], [[ResultId]]),
           ExpectedResponse = lists:flatten([
-            "time,errors,label1: value1,label2: value2\n"
+            "sep=,\ntime,errors,label1: value1,label2: value2\n"
             "" ++ format_time(Time1) ++ ",true,1,\n" ++
             "" ++ format_time(Time2) ++ ",false,,2\n"
           ]),
@@ -241,7 +249,7 @@ create_cells_json([Count|Rem]) ->
           ],
           db_test_helpers:insert_rows("results", ["task_id", "created_at", "analyst_id", "buckets_json"], Results),
           ExpectedResponse = lists:flatten([
-            "time,errors,label2: value2,label3: value3\n"
+            "sep=,\ntime,errors,label2: value2,label3: value3\n"
             "" ++ format_time(Time2) ++ ",false,2,3\n"
           ]),
           Args = [Token, "1957/01/01 12:00:00", "1959/01/01 12:00:00"],
