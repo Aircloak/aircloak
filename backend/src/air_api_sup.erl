@@ -40,7 +40,12 @@ setup_routes() ->
     % All endpoints accessible to external users need to
     % be authenticated. They are kept separate from internal
     % APIs by all being prefixed with _ in their path
-    {["backend", "tasks", task_token, "results.csv"], csv_resource, []}
+    {["backend", "tasks", task_token, "results.csv"], csv_resource, []},
+
+    % Generic API handler that forwards all backend requests to
+    % the rails app for authentication, and to decide what
+    % the erlang application should in fact do with them
+    {["backend", '*'], rails_rpc_resource, []}
   ],
   [webmachine_router:add_route(Route) || Route <- Routes],
   ok.
