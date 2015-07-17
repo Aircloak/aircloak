@@ -46,13 +46,12 @@
 -export([execute/3]).
 -endif.
 
--include_lib("webmachine/include/webmachine.hrl").
-
 -record(request, {
   rpc_payload
 }).
 
--include_lib("eunit/include/eunit.hrl").
+-include_lib("webmachine/include/webmachine.hrl").
+
 
 %% -------------------------------------------------------------------
 %% webmachine callbacks
@@ -87,8 +86,7 @@ to_html(Request, #request{rpc_payload=RPCPayload}=State) ->
         undefined -> [];
         Args -> Args
       end,
-      try
-        Module:execute(Arguments, Request, State)
+      try Module:execute(Arguments, Request, State)
       catch
         Some:Problem ->
           io:format("Attempted requested RPC call: ~p:execute/3" ++

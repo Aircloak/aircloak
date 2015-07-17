@@ -11,96 +11,32 @@
 %% Example (assuming nginx in front):
 %%   curl http://localhost:5500/_/tasks/[TASK-ID]/results.csv
 %%
--module(csv_resource).
+-module(csv_rpc).
 
 %% webmachine callbacks
 -export([
-  init/1,
-  allowed_methods/2,
-  is_authorized/2,
-  service_available/2,
-  content_types_provided/2,
-  to_csv/2
+  execute/3
 ]).
 
--include_lib("webmachine/include/webmachine.hrl").
-
--record(request, {
-  user_id :: string(),
-  analyst_id :: string(),
-  is_authorized = false :: boolean()
-}).
-
 
 %% -------------------------------------------------------------------
-%% webmachine callbacks
+%% API
 %% -------------------------------------------------------------------
 
-%% @hidden
-init([]) -> {ok, #request{}}.
-
-%% @hidden
-allowed_methods(Req, State) -> {['GET'], Req, State}.
-
-% We have to validate here already since the validation
-% uses the external service, which we don't know whether
-% is available or not
-service_available(Req, State) ->
-  case authentication:validate(Req) of
-    false ->
-      {true, Req, State};
-    {true, UserId, AnalystId} ->
-      {true, Req, State#request{user_id = UserId, analyst_id = AnalystId, is_authorized = true}};
-    {error, failed_connect} ->
-      {false, resource_common:respond_error("Authentication service unavailable. Please try again later", Req), State}
-  end.
-
-is_authorized(Req, #request{is_authorized=false}=State) ->
-  {"Not authorized", resource_common:respond_error("Not authenticated, please login", Req), State};
-is_authorized(Req, #request{is_authorized=true}=State) ->
-  case validate_user_can_access_task(Req, State) of
-    true -> {true, Req, State};
-    false -> {"Not authorized", resource_common:respond_error("Not permitted to access this task", Req), State}
-  end.
-
-content_types_provided(Req, State) ->
-  {[{"text/csv", to_csv}], Req, State}.
-
-to_csv(Req, State) ->
-  {{halt, 200}, wrq:set_resp_body({stream, stream_csv(Req, State)}, Req), State}.
-
-
-%% -------------------------------------------------------------------
-%% Authentication
-%% -------------------------------------------------------------------
-
-%% Ensures that the analyst the user is attached to in the web,
-%% also owns this particular task for which results are being downloaded.
-%% @hidden
-validate_user_can_access_task(Request, #request{analyst_id=AnalystId}) ->
-  TaskToken = wrq:path_info(task_token, Request),
-  ReturnedAnalystId = air_db:call(fun(Connection) ->
-        Result = pgsql_connection:extended_query(
-              "SELECT analyst_id FROM tasks WHERE token = $1",
-              [TaskToken],
-              Connection
-            ),
-        case Result of
-          {{select, _}, [{TaskAnalystId}]} -> TaskAnalystId;
-          _ -> none
-        end
-      end),
-  AnalystId =:= ReturnedAnalystId.
+%% @doc Exports the requested time frame as CSV to the client.
+execute(Arguments, Request, State) ->
+  CSVRequest = wrq:set_resp_header("Content-Type", "text/csv", Request),
+  StreamingRequest = wrq:set_resp_body({stream, stream_csv(Arguments)}, CSVRequest),
+  {{halt, 200}, StreamingRequest, State}.
 
 
 %% -------------------------------------------------------------------
 %% Internal functions
 %% -------------------------------------------------------------------
 
-stream_csv(Request, _State) ->
+stream_csv(Arguments) ->
   Self = self(),
-  TaskToken = wrq:path_info(task_token, Request),
-  spawn_link(fun() -> get_csv_results(Self, TaskToken, Request) end),
+  spawn_link(fun() -> get_csv_results(Self, Arguments) end),
   receive_incoming_results().
 
 receive_incoming_results() ->
@@ -124,9 +60,9 @@ receive_incoming_results() ->
   tasks_with_error :: sets:set()
 }).
 
-get_csv_results(ReturnPid, TaskToken, Request) ->
+get_csv_results(ReturnPid, Arguments) ->
   DbFun = fun(Connection) ->
-    TaskParams = get_params(TaskToken, Request, Connection),
+    TaskParams = get_params(Arguments, Connection),
     Headers = get_headers(TaskParams),
     HeadersForShow = cloak_util:join([<<"time">>, <<"errors">>] ++ Headers, ","),
     ReturnPid ! {data, HeadersForShow},
@@ -136,11 +72,11 @@ get_csv_results(ReturnPid, TaskToken, Request) ->
   end,
   air_db:call({DbFun, infinity}).
 
-get_params(TaskToken, Request, Connection) ->
+get_params([TaskToken, StartTime, EndTime], Connection) ->
   TaskParams = #task_params{
     task_token = TaskToken,
-    start_time = start_time(TaskToken, Request, Connection),
-    end_time = end_time(TaskToken, Request, Connection),
+    start_time = binary_to_list(StartTime),
+    end_time = binary_to_list(EndTime),
     connection = Connection
   },
   TaskParams#task_params{tasks_with_error = get_result_errors(TaskParams)}.
@@ -161,66 +97,6 @@ get_result_errors(#task_params{task_token=Token, start_time=Start, end_time=End,
   ],
   {{select, _}, ErrorTasks} = pgsql_connection:extended_query(SQL, [Token, Start, End], Connection),
   lists:foldl(fun({TaskId}, AccSet) -> sets:add_element(TaskId, AccSet) end, sets:new(), ErrorTasks).
-
-% If the start_time is provided, then we use it.
-% If it isn't, then we looks for the time of the
-% first result for the task. If there is no result
-% yet, we choose the created_at time of the task itself.
-start_time(TaskToken, Request, Connection) ->
-  case wrq:get_qs_value("begin_date", Request) of
-    undefined ->
-      SQL = ["
-        SELECT results.created_at
-        FROM results, tasks
-        WHERE results.task_id = tasks.id and
-              tasks.token = $1
-        ORDER BY results.created_at ASC
-        LIMIT 1"
-      ],
-      Result = pgsql_connection:extended_query(SQL, [TaskToken], Connection),
-      case Result of
-        {{select, 0}, _} ->
-          % There is no existing result...
-          task_created_at_time(TaskToken, Connection);
-        {{select, 1}, [{Time}]} -> Time
-      end;
-    Time -> Time
-  end.
-
-% If the end_date is provided, then we use it.
-% If it isn't, then we choose the time of the
-% very last result for the task. If there are
-% no results for the task, we choose the current
-% system time.
-end_time(TaskToken, Request, Connection) ->
-  case wrq:get_qs_value("end_date", Request) of
-    undefined ->
-      SQL = ["
-        SELECT results.created_at
-        FROM results, tasks
-        WHERE results.task_id = tasks.id and
-              tasks.token = $1
-        ORDER BY results.created_at DESC
-        LIMIT 1"
-      ],
-      Result = pgsql_connection:extended_query(SQL, [TaskToken], Connection),
-      case Result of
-        {{select, 0}, _} ->
-          % There is no existing result...
-          calendar:now_to_datetime(now());
-        {{select, 1}, [{Time}]} -> Time
-      end;
-    Time -> Time
-  end.
-
-task_created_at_time(TaskToken, Connection) ->
-  SQL = ["
-    SELECT created_at
-    FROM tasks
-    WHERE tasks.token = $1"
-  ],
-  {{select, 1}, [{Time}]} = pgsql_connection:extended_query(SQL, [TaskToken], Connection),
-  Time.
 
 sql_for_task(#task_params{task_token=TaskToken, start_time=StartTime, end_time=EndTime}) ->
   SQL = ["
@@ -324,29 +200,8 @@ create_cells_json([Count|Rem]) ->
         ?with_processes([air_api_sup])
       ],
       [
-        {"Validate 401 when not logged in", fun() ->
-          ExpectedMessage = "{\"success\":false,\"error\":\"Not authenticated, please login\"}",
-          mecked_auth(false, fun() -> verifyHttp(401, ExpectedMessage, get_result("TaskToken")) end)
-        end},
-
-        {"Validate 503 when cannot connect to auth server", fun() ->
-          ExpectedMessage = "{\"success\":false,\"error\":\"Authentication service unavailable. "
-              "Please try again later\"}",
-          mecked_auth({error, failed_connect}, fun() -> verifyHttp(503, ExpectedMessage, get_result("TaskToken")) end)
-        end},
-
-        {"Validate 401 when task under different analyst", fun() ->
-          clear_tables(),
-          UserId = 1,
-          Token = "Test-Token",
-          {AnalystId, _TaskId} = add_task_and_analyst(Token),
-          ExpectedMessage = "{\"success\":false,\"error\":\"Not permitted to access this task\"}",
-          mecked_auth({true, UserId, AnalystId + 1}, fun() -> verifyHttp(401, ExpectedMessage, get_result(Token)) end)
-        end},
-
         {"Should have valid CSV output with empty lines where needed and errors", fun() ->
           clear_tables(),
-          UserId = 1,
           Token = "Test-Token",
           Time1 = {{1951, 12, 12}, {10, 10, 10}},
           Time2 = {{1958, 9, 28}, {10, 10, 10}},
@@ -370,12 +225,12 @@ create_cells_json([Count|Rem]) ->
             "" ++ format_time(Time1) ++ ",true,1,\n" ++
             "" ++ format_time(Time2) ++ ",false,,2\n"
           ]),
-          mecked_auth({true, UserId, AnalystId}, fun() -> verifyHttp200(ExpectedResponse, get_result(Token)) end)
+          Args = [Token, "1900/01/01 12:00:00", "2050/01/01 12:00:00"],
+          mecked_backend(Args, fun() -> verifyHttp(ExpectedResponse, get_result(Token)) end)
         end},
 
         {"Should return CSV in a time range", fun() ->
           clear_tables(),
-          UserId = 1,
           Token = "Test-Token",
           Time1 = {{1951, 12, 12}, {10, 10, 10}},
           Time2 = {{1958, 9, 28}, {10, 10, 10}},
@@ -391,33 +246,34 @@ create_cells_json([Count|Rem]) ->
             "time,errors,label2: value2,label3: value3\n"
             "" ++ format_time(Time2) ++ ",false,2,3\n"
           ]),
-          mecked_auth({true, UserId, AnalystId}, fun() ->
-                verifyHttp200(ExpectedResponse, get_result(Token,
+          Args = [Token, "1957/01/01 12:00:00", "1959/01/01 12:00:00"],
+          mecked_backend(Args, fun() ->
+                verifyHttp(ExpectedResponse, get_result(Token,
                     "begin_date=1957%2F01%2F01+12%3A00%3A00&end_date=1959%2F01%2F01+12%3A00%3A00"))
               end)
         end}
       ]
     ).
 
-mecked_auth(AuthResponse, Fun) ->
-  meck:new(authentication),
-  meck:expect(authentication, validate, fun(_) -> AuthResponse end),
+mecked_backend(Args, Fun) ->
+  meck:new(request_proxy),
+  RPCPayload = {ok, {struct, [
+    {<<"rpc">>, <<"csv_rpc">>},
+    {<<"arguments">>, lists:map(fun cloak_util:binarify/1, Args)}
+  ]}},
+  meck:expect(request_proxy, forward_request, fun(_) -> RPCPayload end),
   Fun(),
-  meck:unload().
+  meck:unload(request_proxy).
 
-verifyHttp(ExpectedStatusCode, ExpectedBody, HttpResponse) ->
-  ?assertMatch({ok, {{_, _, _}, _, _}}, HttpResponse),
-  {ok, {{_, StatusCode, _}, _, Body}} = HttpResponse,
-  ?assertEqual(ExpectedStatusCode, StatusCode),
+verifyHttp(ExpectedBody, HttpResponse) ->
+  ?assertMatch({ok, {{_, 200, _}, _, _}}, HttpResponse),
+  {ok, {_, _, Body}} = HttpResponse,
   ?assertEqual(ExpectedBody, Body).
-
-verifyHttp200(ExpectedBody, HttpResponse) ->
-  verifyHttp(200, ExpectedBody, HttpResponse).
 
 get_result(TaskToken) ->
   get_result(TaskToken, "").
 
 get_result(TaskToken, QueryString) ->
-  httpc:request(get, {"http://127.0.0.1:11000/_/tasks/" ++ TaskToken ++ "/results.csv?" ++ QueryString, []}, [], []).
+  httpc:request(get, {"http://127.0.0.1:11000/backend/tasks/" ++ TaskToken ++ "/results.csv?" ++ QueryString, []}, [], []).
 
 -endif.

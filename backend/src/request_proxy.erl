@@ -11,7 +11,8 @@
 
 forward_request(IncomingRequest) ->
   RequestPath = wrq:disp_path(IncomingRequest),
-  Url = binary_to_list(air_etcd:get("/service/frontend/endpoint")) ++ "/" ++ RequestPath,
+  Url = binary_to_list(air_etcd:get("/service/frontend/endpoint")) ++ "/" ++
+      RequestPath ++ query_string(IncomingRequest),
   ProxyRequest = {Url, [{"Cookie", cookie_string(IncomingRequest)}]},
   case httpc:request(get, ProxyRequest, [], []) of
     {ok, {_, _Headers, RawBody}} ->
@@ -31,3 +32,6 @@ cookie_string(Request) ->
   FoldlFun = fun({Name, Value}, Cookies) -> [Name ++ "=" ++ Value | Cookies] end,
   CookieList = lists:foldl(FoldlFun, [], CookieProps),
   lists:flatten(cloak_util:join(CookieList, "; ")).
+
+query_string(Request) ->
+  "?" ++ mochiweb_util:urlencode(wrq:req_qs(Request)).

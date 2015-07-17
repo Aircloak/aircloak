@@ -53,6 +53,14 @@ class ApplicationController < ActionController::Base
     @activity.success = true
   end
 
+  def rpc_response rpc, arguments
+    response = {
+      rpc: rpc,
+      arguments: arguments
+    }
+    render json: response.to_json
+  end
+
 protected
   def set_current_user
     Authorization.current_user = current_user

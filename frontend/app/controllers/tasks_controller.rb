@@ -168,6 +168,8 @@ class TasksController < ApplicationController
         end_date = DateTime.now.utc
       end
     end
+    @begin_date_str = begin_date.strftime("%Y/%m/%d %H:%M:%S")
+    @end_date_str = end_date.strftime("%Y/%m/%d %H:%M:%S")
     respond_to do |format|
       format.html do
         @raw_results = @task.results.where(:created_at => begin_date..end_date).order(created_at: :desc).
@@ -178,8 +180,11 @@ class TasksController < ApplicationController
         @results_path = all_results_task_path(@task.token)
         describe_activity "Viewed all results of task #{@task.name}", all_results_task_path(@task.token)
         # format begin/end datetimes for results filtering
-        @begin_date_str = begin_date.strftime("%Y/%m/%d %H:%M:%S")
-        @end_date_str = end_date.strftime("%Y/%m/%d %H:%M:%S")
+      end
+
+      # This is a request from the erlang frontend
+      format.csv do
+        rpc_response :csv_rpc, [@task.token, @begin_date_str, @end_date_str]
       end
     end
   end
