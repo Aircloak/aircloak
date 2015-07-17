@@ -45,12 +45,20 @@ stream_csv(Arguments) ->
   % NOTICE: We send the first bit of data immediately, rather than waiting for the
   % first line to complete. This the timeout in nginx is reset, and we have more
   % time to gather the complete set of headers.
-  {"sep=,\n", fun() -> receive_incoming_results() end}.
+  {"sep=,\n", fun() -> receive_metadata() end}.
 
-receive_incoming_results() ->
+receive_metadata() ->
   receive
-    {data, Result} ->
-      {Result, fun() -> receive_incoming_results() end};
+    {metadata, Headers, ErrorSet} ->
+      HeadersForShow = cloak_util:join([<<"time">>, <<"errors">>] ++ Headers, ","),
+      {HeadersForShow ++ "\n", fun() -> receive_incoming_results(Headers, ErrorSet) end}
+  end.
+
+receive_incoming_results(Headers, ErrorSet) ->
+  receive
+    {data, RawResult} ->
+      Result = process_raw_rows(Headers, ErrorSet, RawResult),
+      {Result ++ "\n", fun() -> receive_incoming_results(Headers, ErrorSet) end};
     done ->
       {"", done}
   end.
@@ -64,29 +72,25 @@ receive_incoming_results() ->
   task_token,
   start_time,
   end_time,
-  connection,
-  tasks_with_error :: sets:set()
+  connection
 }).
 
 get_csv_results(ReturnPid, Arguments) ->
   DbFun = fun(Connection) ->
     TaskParams = get_params(Arguments, Connection),
-    Headers = get_headers(TaskParams),
-    HeadersForShow = cloak_util:join([<<"time">>, <<"errors">>] ++ Headers, ","),
-    ReturnPid ! {data, HeadersForShow ++ "\n"},
-    get_data(TaskParams, Headers, ReturnPid),
+    ReturnPid ! {metadata, get_headers(TaskParams), get_result_errors(TaskParams)},
+    get_data(TaskParams, ReturnPid),
     ReturnPid ! done
   end,
   air_db:call({DbFun, infinity}).
 
 get_params([TaskToken, StartTime, EndTime], Connection) ->
-  TaskParams = #task_params{
+  #task_params{
     task_token = TaskToken,
     start_time = binary_to_list(StartTime),
     end_time = binary_to_list(EndTime),
     connection = Connection
-  },
-  TaskParams#task_params{tasks_with_error = get_result_errors(TaskParams)}.
+  }.
 
 %% We find which results have errors in one call to avoid having
 %% to make N additional calls when collecting the data for rendering.
@@ -126,30 +130,30 @@ get_headers(#task_params{connection=Connection}=TaskParams) ->
   {ok, ResultSet} = pgsql_connection:fold(FoldFun, sets:new(), SQL, Params, Connection),
   lists:sort(sets:to_list(ResultSet)).
 
-get_data(#task_params{tasks_with_error=ErrorSet, connection=Connection}=TaskParams, Headers, ReturnPid) ->
-  EachFun = fun({Id, CreatedAt, Val}) ->
-    Props = mochijson2:decode(Val),
-    HasError = case sets:is_element(Id, ErrorSet) of
-      true -> "true";
-      false -> "false"
-    end,
-    Props = mochijson2:decode(Val),
-    ValDict = lists:foldl(fun(Struct, AccDict) ->
-          Title = title_from_bucket(Struct),
-          Count = ej:get({"count"}, Struct),
-          dict:store(Title, Count, AccDict)
-        end, dict:new(), Props),
-    Row = lists:map(fun(Header) ->
-            case dict:find(Header, ValDict) of
-              error -> "";
-              {ok, Count} -> integer_to_list(Count)
-            end
-          end, Headers),
-    ReturnableRow = cloak_util:join([format_time(CreatedAt), HasError] ++ Row, ","),
-    ReturnPid ! {data, ReturnableRow ++ "\n"}
-  end,
+get_data(#task_params{connection=Connection}=TaskParams, ReturnPid) ->
+  EachFun = fun(Row) -> ReturnPid ! {data, Row} end,
   {SQL, Params} = sql_for_task(TaskParams),
   pgsql_connection:foreach(EachFun,  SQL, Params, Connection).
+
+process_raw_rows(Headers, ErrorSet, {Id, CreatedAt, Val}) ->
+  Props = mochijson2:decode(Val),
+  HasError = case sets:is_element(Id, ErrorSet) of
+    true -> "true";
+    false -> "false"
+  end,
+  Props = mochijson2:decode(Val),
+  ValDict = lists:foldl(fun(Struct, AccDict) ->
+        Title = title_from_bucket(Struct),
+        Count = ej:get({"count"}, Struct),
+        dict:store(Title, Count, AccDict)
+      end, dict:new(), Props),
+  Row = lists:map(fun(Header) ->
+          case dict:find(Header, ValDict) of
+            error -> "";
+            {ok, Count} -> integer_to_list(Count)
+          end
+        end, Headers),
+  cloak_util:join([format_time(CreatedAt), HasError] ++ Row, ",").
 
 format_time({{Year, Month, Day}, {Hour, Minute, Second}}) when is_integer(Second) ->
   io_lib:format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~p", [Year, Month, Day, Hour, Minute, Second]);
