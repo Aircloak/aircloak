@@ -82,7 +82,7 @@ $ ->
       if Task.statusVisible
         # hide status after 4 seconds from the arrival of the result
         Task.hideTimeout = setTimeout hideTaskStatus, 3000
-      results = convertArticleToResult object.published_at, object.content
-      Results.display results
+      result = convertArticleToResult object.published_at, object.content
+      Results.display result
 
   Results.ws = airpub_listen $('.listen_params').data('server-url'), $('.listen_params').data('request'), airpubCallback

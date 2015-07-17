@@ -2,19 +2,13 @@
 = content_for(:javascript_include) {javascript_include_tag "tasks/latest_results", "data-turbolinks-track" => true}
 = content_for(:javascript_include) {javascript_include_tag "airpub_api", "data-turbolinks-track" => true}
 
-%h3= "#{@task.name}: latest results"
 
-%p= "Below are the latest results for task '#{@task.name}':"
+%h3= "#{@task.name}: view latest result" + (@singular_view ? "" :"s")
 
 %p
-  - if @task.batch_task?
-    To get more results, execute the task again.
+  - if @task.batch_task? then
+    = "To get " + (@singular_view ? "a more up-to-date result" : "more results") + ", execute the task again."
     %button{class: "btn btn-mini", onClick: "Task.execute('#{@task.token}');"} Run task
-    \|
-    = link_to 'Edit task', edit_task_path(@task.token)
-    %div#task_status
-      >
-    %div#progress_indicator
   - else
     - if @task.active then
       Task is
@@ -24,14 +18,28 @@
       Task is
       %b suspended.
       = link_to 'Resume', resume_task_path(@task.token), :method => :post, class: "btn btn-mini"
-    \|
-    = link_to 'Edit task', edit_task_path(@task.token)
+  \|
+  = link_to 'Edit task', edit_task_path(@task.token)
+  \|
+  - if @singular_view then
+    = link_to 'List view', latest_results_task_path(@task.token, :singular_view => false)
+  - else
+    = link_to 'Singular view', latest_results_task_path(@task.token, :singular_view => true)
+  - if @task.batch_task? then
+    %div#task_status
+    >
+    %div#progress_indicator
 
 -# set listen parameters
 .listen_params{data: {server_url: @server_url, request: @request}}
 .task_params{data: {task_token: @task_token}}
 
-= render 'results'
+- if @singular_view then
+  %p= "Below is the latest result for task '#{@task.name}':"
+  = render 'result'
+- else
+  %p= "Below are the latest results for task '#{@task.name}':"
+  = render 'results'
 
 = link_to 'Tasks overview', tasks_path
 = link_to 'All results', all_results_task_path(@task.token), class: "right-aligned"

@@ -1,0 +1,23 @@
+-# Includes additional, page-specific javascripts
+= content_for(:javascript_include) {javascript_include_tag "tasks/result", "data-turbolinks-track" => true}
+
+%hr
+
+-# set rendering parameters
+.render_params{data: {result: @result.to_json, task_last_update: @task.code_timestamp.to_i * 1000}}
+
+%p
+  %b time:
+  %span#time
+%p
+  %b errors:
+  %span#errors
+
+%p
+  %b properties:
+
+%table.table.table-striped.table-centered#result_table
+  %thead
+  %tbody
+
+%hr

@@ -5,8 +5,8 @@ require './lib/aircloak_config'
 class TasksControllerException < Exception; end
 
 class TasksController < ApplicationController
-  filter_access_to [:execute_as_batch_task, :all_results, :latest_results, :single_result,
-                    :suspend, :resume, :delete, :deleted, :recover, :share,
+  filter_access_to [:execute_as_batch_task, :all_results, :latest_results,
+                    :single_result, :suspend, :resume, :delete, :deleted, :recover, :share,
                     :acquire, :pending_executions], require: :manage
   before_action :load_task, except: [:index, :new, :create, :deleted]
   before_action :set_tables_json, only: [:new, :edit, :update, :create]
@@ -198,14 +198,20 @@ class TasksController < ApplicationController
 
   # GET /tasks/:id/latest_results
   def latest_results
-    @raw_results = @task.results.includes(:exception_results).order('created_at DESC').limit(5).reverse
-    # convert to json, 2 MB limit for buckets
-    @results = convert_results_for_client_side_rendering @raw_results, 2 * 1024 * 1024
-    @results_path = latest_results_task_path(@task.token)
+    @singular_view = params[:singular_view] == "true"
+    if @singular_view then
+      @raw_result = @task.results.includes(:exception_results).order('created_at DESC').limit(1).first
+      # convert to json, 16 MB limit for bucket
+      @result = @raw_result.to_client_hash 16 * 1024 * 1024 if @raw_result
+    else
+      @raw_results = @task.results.includes(:exception_results).order('created_at DESC').limit(5).reverse
+      # convert to json, 4 MB limit for buckets
+      @results = convert_results_for_client_side_rendering @raw_results, 4 * 1024 * 1024
+    end
     @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.token}"
     @server_url = Conf.get("/service/airpub/subscribe_endpoint")
     @task_token = @task.token
-    describe_activity "Requested latest result of task #{@task.name}", latest_results_task_path(@task.token)
+    describe_activity "Requested latest results of task #{@task.name}", latest_results_task_path(@task.token)
   end
 
   # GET /tasks/:id/single_result?result=:result_id
