@@ -7,10 +7,12 @@
 %%
 %%      The general flow is as follows:
 %%
+%%      ```
 %%      client ---> rails_rpc_resourcec ---> rails
 %%             (request)                (forwarded request)
 %%      client <--- rails_rpc_resourcec <--- rails
 %%             (response)               (rpc specification)
+%%      '''
 %%
 %%      Any request sent to /backend/* will be forwarded to
 %%      rails under /*.
@@ -21,14 +23,16 @@
 %%
 %%      The RPC response from the rails backend should be a JSON blob:
 %%
+%%      ```
 %%      {
 %%        "rpc": <dispatch-name>,
 %%        "arguments": [<argument1>, <argument2>, ...]
 %%      }
+%%      '''
 %%
 %%      This resource will in turn call:
 %%
-%%      rpc_dispatch:<dispatch-name>([list of arguments], Request, State).
+%%      `rpc_dispatch:<dispatch-name>([list of arguments], Request, State)'
 %%
 %%      The resource is responsible for producing a valid response
 %%      as per the webmachine requirements.
