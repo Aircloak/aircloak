@@ -137,10 +137,7 @@ get_data(#task_params{connection=Connection}=TaskParams, ReturnPid) ->
 
 process_raw_rows(Headers, ErrorSet, {Id, CreatedAt, Val}) ->
   Props = mochijson2:decode(Val),
-  HasError = case sets:is_element(Id, ErrorSet) of
-    true -> "true";
-    false -> "false"
-  end,
+  HasError = atom_to_list(sets:is_element(Id, ErrorSet)),
   Props = mochijson2:decode(Val),
   ValDict = lists:foldl(fun(Struct, AccDict) ->
         Title = title_from_bucket(Struct),
