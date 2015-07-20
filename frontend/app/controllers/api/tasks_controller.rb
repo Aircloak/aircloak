@@ -132,6 +132,6 @@ private
   def load_task
     @task = current_user.analyst.shared_tasks.find_by_token(params[:id])
     @task = current_user.analyst.private_tasks(current_user).find_by_token(params[:id]) unless @task
-    render json: {success: false, description: "Unknown task"}, status: :not_found if !@task
+    rpc_error {success: false, description: "Unknown task"}, status_code: 404 if !@task
   end
 end

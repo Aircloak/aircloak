@@ -2,7 +2,8 @@
 
 %% Dispatch functions
 -export([
-  csv_row_based/3
+  csv_row_based/3,
+  error/3
 ]).
 
 %% Test dispatch functions
@@ -19,6 +20,12 @@
 %%      as rows, where each reported property is its own row.
 csv_row_based(Arguments, Request, State) ->
   csv_rpc:row_based_export(Arguments, Request, State).
+
+%% @doc Re-reports a rails error message verbatim to the user
+error([ErrorJson, StatusCode], Request, State) ->
+  RequestWithHeader = wrq:set_resp_header("Content-Type", "application/json", Request),
+  RequestWithBody = wrq:set_resp_body(ErrorJson, RequestWithHeader),
+  {{halt, StatusCode}, RequestWithBody, State}.
 
 
 %% -------------------------------------------------------------------

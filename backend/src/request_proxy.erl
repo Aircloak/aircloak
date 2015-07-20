@@ -13,7 +13,11 @@ forward_request(IncomingRequest) ->
   RequestPath = wrq:disp_path(IncomingRequest),
   Url = binary_to_list(air_etcd:get("/service/frontend/endpoint")) ++ "/" ++
       RequestPath ++ query_string(IncomingRequest),
-  ProxyRequest = {Url, [{"Cookie", cookie_string(IncomingRequest)}]},
+  Headers = [
+    {"request-endpoint", "backend"},
+    {"Cookie", cookie_string(IncomingRequest)}
+  ],
+  ProxyRequest = {Url, Headers},
   case httpc:request(get, ProxyRequest, [], []) of
     {ok, {_, _Headers, RawBody}} ->
       try {ok, mochijson2:decode(RawBody)} catch error:_Reason -> {error, decoding_error} end;
