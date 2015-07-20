@@ -82,7 +82,8 @@ to_html(Request, #request{rpc_payload=RPCPayload}=State) ->
         undefined -> [];
         Args -> Args
       end,
-      try rpc_dispatch:DispatchName(Arguments, Request, State)
+      try
+        rpc_dispatch:DispatchName(Arguments, Request, State)
       catch
         ErrorType:ErrorReason ->
           io:format("Attempted requested RPC call: rpc_dispatch:~p/3" ++
