@@ -1,16 +1,16 @@
+require './lib/aircloak_config.rb'
+
 class KeyMaterial < ActiveRecord::Base
   belongs_to :analyst
   belongs_to :user
   belongs_to :analyst_token
 
-  CA_PATH = "/aircloak/ca"
-
   def self.ca_key_file(type)
-    File.join(CA_PATH, "#{type}.key")
+    File.join(Conf.get("/settings/rails/secrets/ca_path"), "#{type}.key")
   end
 
   def self.ca_cert_file(type)
-    File.join(CA_PATH, "#{type}.cert")
+    File.join(Conf.get("/settings/rails/secrets/ca_path"), "#{type}.cert")
   end
 
   def self.api_ca

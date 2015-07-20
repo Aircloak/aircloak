@@ -15,7 +15,7 @@ log "Starting ECDF"
 etcd/container.sh start
 
 nginx/stop_nginx.sh
-log "Starting nginx (on port 5500)"
+log "Starting nginx (http on port 5500 (hello), https on port 5600 (api))"
 nginx -c $PWD/nginx/nginx.conf &
 
 log "OK. Ready set go! Use ./nginx/stop-nginx.sh to stop nginx"
