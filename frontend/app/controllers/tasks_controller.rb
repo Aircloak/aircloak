@@ -184,7 +184,7 @@ class TasksController < ApplicationController
 
       # This is a request from the erlang frontend
       format.csv do
-        rpc_response :csv_rpc, [@task.token, @begin_date_str, @end_date_str]
+        rpc_response :csv_row_based, [@task.token, @begin_date_str, @end_date_str]
       end
     end
   end

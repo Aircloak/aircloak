@@ -22,13 +22,13 @@
 %%      The RPC response from the rails backend should be a JSON blob:
 %%
 %%      {
-%%        "rpc": <RPC-module-name>,
+%%        "rpc": <dispatch-name>,
 %%        "arguments": [<argument1>, <argument2>, ...]
 %%      }
 %%
 %%      This resource will in turn call:
 %%
-%%      <RPC-module-name>:execute([list of arguments], Request, State).
+%%      rpc_dispatch:<dispatch-name>([list of arguments], Request, State).
 %%
 %%      The resource is responsible for producing a valid response
 %%      as per the webmachine requirements.
@@ -41,10 +41,6 @@
   service_available/2,
   to_html/2
 ]).
-
--ifdef(TEST).
--export([execute/3]).
--endif.
 
 -record(request, {
   rpc_payload
@@ -80,17 +76,18 @@ to_html(Request, #request{rpc_payload=RPCPayload}=State) ->
   case ej:get({"rpc"}, RPCPayload) of
     undefined ->
       {{halt, 500}, resource_common:respond_error(invalid_rpc_failure_description(), Request), State};
-    BinaryModuleName ->
-      Module = binary_to_atom(BinaryModuleName, utf8),
+    BinaryDispatchName ->
+      DispatchName = binary_to_atom(BinaryDispatchName, utf8),
       Arguments = case ej:get({"arguments"}, RPCPayload) of
         undefined -> [];
         Args -> Args
       end,
-      try Module:execute(Arguments, Request, State)
+      try rpc_dispatch:DispatchName(Arguments, Request, State)
       catch
         Some:Problem ->
-          io:format("Attempted requested RPC call: ~p:execute/3" ++
-              " with arguments ~p. Failed with ~p:~p~n", [Module, Arguments, Some, Problem]),
+          io:format("Attempted requested RPC call: rpc_dispatch:~p/3" ++
+              " with arguments ~p. Failed with ~p:~p~n",
+              [DispatchName, Arguments, Some, Problem]),
           {{halt, 500}, resource_common:respond_error(invalid_rpc_failure_description(), Request), State}
       end
   end.
@@ -117,10 +114,6 @@ invalid_rpc_failure_description() ->
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -include("test_helper.hrl").
-
-execute(Arguments, Request, State) ->
-  Response = cloak_util:join(Arguments, ", "),
-  {Response, Request, State}.
 
 ?test_suite(resource_test_,
       setup,
@@ -154,7 +147,7 @@ execute(Arguments, Request, State) ->
           ExpectedResponse = "{\"success\":false,\"error\":\"" ++ invalid_rpc_failure_description() ++ "\"}",
           RPCPayload = {ok, mochijson2:decode("
                 {
-                  \"rpc\": \"bogus_module_name\",
+                  \"rpc\": \"bogus_dispatch_name\",
                   \"arguments\": []
                 }
               ")},
@@ -165,7 +158,7 @@ execute(Arguments, Request, State) ->
           ExpectedResponse = "hello, world",
           RPCPayload = {ok, mochijson2:decode("
                 {
-                  \"rpc\": \"rails_rpc_resource\",
+                  \"rpc\": \"test\",
                   \"arguments\": [\"hello\", \"world\"]
                 }
               ")},
@@ -176,7 +169,7 @@ execute(Arguments, Request, State) ->
           ExpectedResponse = "",
           RPCPayload = {ok, mochijson2:decode("
                 {
-                  \"rpc\": \"rails_rpc_resource\"
+                  \"rpc\": \"test\"
                 }
               ")},
           mecked_auth(RPCPayload, fun() -> verifyHttp(200, ExpectedResponse, get_path("some/path")) end)

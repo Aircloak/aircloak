@@ -13,9 +13,9 @@
 %%
 -module(csv_rpc).
 
-%% webmachine callbacks
+%% Dispatch API
 -export([
-  execute/3
+  row_based_export/3
 ]).
 
 
@@ -24,7 +24,7 @@
 %% -------------------------------------------------------------------
 
 %% @doc Exports the requested time frame as CSV to the client.
-execute(Arguments, Request, State) ->
+row_based_export(Arguments, Request, State) ->
   CSVRequest = wrq:set_resp_header("Content-Type", "text/csv", Request),
   StreamingRequest = wrq:set_resp_body({stream, stream_csv(Arguments)}, CSVRequest),
   {{halt, 200}, StreamingRequest, State}.
@@ -268,7 +268,7 @@ create_cells_json([Count|Rem]) ->
 mecked_backend(Args, Fun) ->
   meck:new(request_proxy),
   RPCPayload = {ok, {struct, [
-    {<<"rpc">>, <<"csv_rpc">>},
+    {<<"rpc">>, <<"csv_row_based">>},
     {<<"arguments">>, lists:map(fun cloak_util:binarify/1, Args)}
   ]}},
   meck:expect(request_proxy, forward_request, fun(_) -> RPCPayload end),
