@@ -84,10 +84,10 @@ to_html(Request, #request{rpc_payload=RPCPayload}=State) ->
       end,
       try rpc_dispatch:DispatchName(Arguments, Request, State)
       catch
-        Some:Problem ->
+        ErrorType:ErrorReason ->
           io:format("Attempted requested RPC call: rpc_dispatch:~p/3" ++
               " with arguments ~p. Failed with ~p:~p~n",
-              [DispatchName, Arguments, Some, Problem]),
+              [DispatchName, Arguments, ErrorType, ErrorReason]),
           {{halt, 500}, resource_common:respond_error(invalid_rpc_failure_description(), Request), State}
       end
   end.
