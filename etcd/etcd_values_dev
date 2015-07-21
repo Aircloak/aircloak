@@ -25,6 +25,7 @@ etcd_set /settings/air/db/port 5433
 etcd_set /settings/air/db/username air
 etcd_set /settings/air/db/password ''
 etcd_set /settings/air/db/database aircloakdatabase
+etcd_set /settings/air/db/ssl false
 
 # Whether it is a global installation, or whether it should
 # ignore costly operations involving infrastructure.
