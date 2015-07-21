@@ -171,7 +171,7 @@ class TasksController < ApplicationController
     respond_to do |format|
       format.html do
         @raw_results = @task.results.where(:created_at => begin_date..end_date).order(created_at: :desc).
-            paginate(page: params[:page], per_page: 15)
+            paginate(page: params[:page], per_page: 15).includes(:exception_results)
         # convert to json, 2 MB limit for buckets
         @results = convert_results_for_client_side_rendering @raw_results, 2 * 1024 * 1024
         @results.reverse! # results are rendered in reverse order, reverse batch here to show actual order
