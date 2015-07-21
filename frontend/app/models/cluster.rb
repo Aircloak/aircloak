@@ -91,10 +91,13 @@ class Cluster < ActiveRecord::Base
   end
 
   def assign_analysts new_analysts
-    # log cluster changes
+    # compute analyst changes
     old_analysts = self.analysts.to_a
     added_analysts = new_analysts - old_analysts
     removed_analysts = old_analysts - new_analysts
+    # cleanup after removed analysts
+    removed_analysts.each {|analyst| analyst.cleanup_cluster self}
+    # log cluster changes
     added_analysts_list = added_analysts.map {|analyst| analyst.name}.join(", ")
     removed_analysts_list = removed_analysts.map {|analyst| analyst.name}.join(", ")
     log_alteration "Added analyst(s): '#{added_analysts_list}'." unless added_analysts_list.empty?

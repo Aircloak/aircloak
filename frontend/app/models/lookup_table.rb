@@ -1,3 +1,5 @@
+require './lib/json_sender'
+
 class LookupTable < ActiveRecord::Base
   belongs_to :cluster
   belongs_to :analyst
@@ -10,6 +12,14 @@ class LookupTable < ActiveRecord::Base
 
   def upload_data=(stream)
     @upload_data = stream.read if stream
+  end
+
+  def upload
+    JsonSender.request :post, :admin, current_user.analyst, cluster, "lookup/upload", {table: table_name}, upload_data
+  end
+
+  def remove
+    JsonSender.request :post, :admin, current_user.analyst, cluster, "lookup/remove", {table: table_name}, ''
   end
 
 private

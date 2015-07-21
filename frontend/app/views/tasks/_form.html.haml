@@ -32,7 +32,7 @@
             = f.select :cluster_id, current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id,
                 {'data-streaming-capability' => cluster.capable_of?(:streaming_queries),
                  'data-periodic-capability' => cluster.capable_of?(:periodic_queries)}]}
-      - else
+      - elsif current_user.ready_clusters.first
         = hidden_field_tag "task[cluster_id]", current_user.ready_clusters.first.id,
             "data-streaming-capability" => current_user.ready_clusters.first.capable_of?(:streaming_queries),
             "data-periodic-capability" => current_user.ready_clusters.first.capable_of?(:periodic_queries)

@@ -48,12 +48,15 @@ private
   def update_cluster msg, action
     cloaks = cloaks_from_params
     analysts = analysts_from_params
-    @cluster.mark_as_changed
     if @cluster.assign_analysts(analysts) && @cluster.assign_cloaks(cloaks) && @cluster.update_params(cluster_params) then
+      @cluster.mark_as_changed
       redirect_to clusters_path, notice: msg
     else
       render action: action
     end
+  rescue Exception => error
+    flash[:error] = error
+    render action: action
   end
 
   def set_cluster

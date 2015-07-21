@@ -1,4 +1,5 @@
 require './lib/token_generator'
+require './lib/migrator'
 
 class Analyst < ActiveRecord::Base
   has_many :analysts_clusters
@@ -77,6 +78,32 @@ class Analyst < ActiveRecord::Base
 
   def can_destroy?
     not has_clusters?
+  end
+
+  def cleanup_cluster cluster
+    # delete all tasks
+    persistent_tasks.where(cluster_id: cluster.id, deleted: false).each do |task|
+      task.active = false
+      task.deleted = true
+      task.save_and_synchronize!
+    end
+    # delete user tables from cluster
+    undeleted_user_tables.where(cluster_id: cluster.id).each do |table|
+      migration = UserTableMigration.drop_migration table.table_name
+      table.pending_delete = true
+      if not Migrator.migrate table, migration
+        raise "Could not drop user table #{table.table_name} on cluster #{cluster.name}"
+      end
+    end
+    # remove lookup tables from clusters
+    lookup_tables.where(cluster_id: cluster.id).each do |table|
+      result = table.remove
+      if not result["success"]
+        raise "Could not drop lookup table #{table.table_name} on cluster #{cluster.name}\n"
+      end
+      table.update! deleted: true
+    end
+    return true
   end
 
 private
