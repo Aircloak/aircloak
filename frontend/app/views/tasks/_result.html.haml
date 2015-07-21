@@ -15,9 +15,18 @@
 
 %p
   %b properties:
-
-%table.table.table-striped.table-centered#result_table
-  %thead
-  %tbody
+  %table
+    %tr
+      %td
+        %table.table.table-striped.table-centered#result_table
+          %thead
+          %tbody
+      %td
+        %div#controls.hidden
+          %input{:type => "radio", :name => "chart_type", :checked => "checked", :value => "bar", :style => "margin-left: 50px;"}
+          %b Bar chart
+          %input{:type => "radio", :name => "chart_type", :value => "line", :style => "margin-left: 50px;"}
+          %b Line chart
+        %div#charts
 
 %hr

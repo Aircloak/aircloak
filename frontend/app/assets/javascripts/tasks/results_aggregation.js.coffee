@@ -62,7 +62,7 @@ process_cdfs = (cdfs, min, max, step) ->
       prev = current
 
 # for a single quantized datum, compute the aggregated values
-compute_aggregate_buckets = (dataBuckets, name, total) ->
+compute_aggregate_buckets = (dataBuckets, name, total, plot_data_callback) ->
   cdfs = {}
   for bucket in dataBuckets
     if bucket.value[0] == '['
@@ -91,6 +91,16 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
 
   # we need smoother CDFs to reliably compute aggregate values
   process_cdfs cdfs, min, max, step
+
+  # invoke plot data callback, if any supplied
+  if plot_data_callback
+    data = [{x: min, y: 0}]
+    plot_step = 10 * step
+    for i in [min+plot_step..max] by plot_step
+      diff = cdfs[number_to_key(i)] - cdfs[number_to_key(i - plot_step)]
+      data.push {x: i - plot_step / 2, y: diff}
+    data.push {x: max, y: 0}
+    plot_data_callback name, data
 
   # reduce range
   for i in [min+step..max] by step
@@ -143,20 +153,20 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
 
 
 # aggregate buckets for a single quantized datum
-aggregate_quantized_bucket = (buckets, quantized_bucket) ->
+aggregate_quantized_bucket = (buckets, quantized_bucket, plot_data_callback) ->
   name = quantized_bucket.value
   total = quantized_bucket.count
   parts = _.partition buckets, (bucket) ->
         bucket.label == name
   data = parts[0]
   buckets = parts[1]
-  aggregate_buckets = compute_aggregate_buckets data, name, total
+  aggregate_buckets = compute_aggregate_buckets data, name, total, plot_data_callback
   _.union buckets, aggregate_buckets
 
 
 # this function will remove the quantized buckets from the result and
 # replace them with the computed aggregated buckets
-Results.aggregate_quantized_buckets = (buckets) ->
+Results.aggregate_quantized_buckets = (buckets, plot_data_callback) ->
   # find quantized data
   parts = _.partition buckets, (bucket) ->
         bucket.label == "quantized"
@@ -164,5 +174,5 @@ Results.aggregate_quantized_buckets = (buckets) ->
   buckets = parts[1]
   # compute aggregated buckets for each datum
   for quantized_bucket in quantized_buckets
-    buckets = aggregate_quantized_bucket buckets, quantized_bucket
+    buckets = aggregate_quantized_bucket buckets, quantized_bucket, plot_data_callback
   buckets
