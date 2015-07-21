@@ -44,9 +44,9 @@ format_date = (timestamp) ->
 Results.display = (result) ->
   result.buckets = _.sortBy(result.buckets, name_from_bucket)
   result.buckets = Results.aggregate_quantized_buckets result.buckets
-  if result.buckets.length > 100
-    result.buckets = [{label: "notice", value: "result too big", \
-          count: "buckets count limit exceeded, use REST API or CSV export to view result"}]
+  if result.buckets.length > 25
+    result.buckets = [{label: "notice", value: "too many buckets", \
+          count: "buckets count (#{result.buckets.length}) exceeds column limit (25), view single result for details"}]
 
   table = document.getElementById 'results_table'
 

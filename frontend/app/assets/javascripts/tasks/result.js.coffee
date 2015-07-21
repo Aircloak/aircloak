@@ -21,8 +21,8 @@ Results.display = (result) ->
   result.buckets = _.sortBy(result.buckets, name_from_bucket)
   result.buckets = Results.aggregate_quantized_buckets result.buckets
   if result.buckets.length > 100
-    result.buckets = [{label: "notice", value: "result too big", \
-          count: "buckets count limit exceeded, use REST API or CSV export to view result"}]
+    result.buckets = [{label: "notice", value: "too many buckets", \
+          count: "buckets count (#{result.buckets.length}) exceeds row limit (100), use REST API or CSV export to view result"}]
 
   timestamp = parseInt result.published_at
   text = format_date timestamp

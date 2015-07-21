@@ -61,8 +61,10 @@ Task.execute = (id) ->
 
 convertArticleToResult = (timestamp, article) ->
   result = {published_at: timestamp}
-  if article.length > 2 * 1024 * 1024 # 2 MB size limit
-    result.buckets = [{label: "notice", value: "result too big", count: "buckets size limit exceeded"}]
+  limit = 8 * 1024 * 1024 # 8 MB size limit
+  if article.length > limit
+    result.buckets = [{label: "notice", value: "result too big", \
+                       count: "result size (#{article.length} bytes) exceededs limit (#{limit} bytes)"}]
     result.exceptions = []
   else
     article = JSON.parse article
