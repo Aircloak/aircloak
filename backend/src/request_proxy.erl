@@ -23,9 +23,10 @@ forward_request(IncomingRequest) ->
     StringifiedExisitingHeaders
   ],
   ProxyRequest = {Url, Headers},
-  lager:info("Proxying requst: ~p", [ProxyRequest]),
+  lager:info("Proxying requst: ~p", [Url]),
   case httpc:request(get, ProxyRequest, [], []) of
     {ok, {_, _Headers, RawBody}} ->
+      lager:debug("Received proxy response: ~p", [RawBody]),
       try {ok, mochijson2:decode(RawBody)} catch error:_Reason -> {error, decoding_error} end;
     {error, Reason} ->
       lager:error("Backend proxy failed with reason: ~p", [Reason]),

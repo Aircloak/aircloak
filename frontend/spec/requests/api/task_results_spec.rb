@@ -33,80 +33,53 @@ describe "Api::TaskResultsController" do
       shared: false,
       user: user
     )
-
-    initial_date = Date.today - 100.days
-    (1..100).each do |i|
-      t.results.create(
-            created_at: initial_date + i.days,
-            buckets_json: [{label: "label_#{i}", value: "answer_#{i}", count: i}].to_json
-          )
-    end
     t
   end
 
   describe "GET /api/tasks/:id/results" do
-    it "retrieves results" do
-      get("/api/tasks/#{task.token}/results", {format: :json}, {'HTTP_ANALYST_TOKEN' => token.token})
+    it "returns an RPC specification to the backend" do
+      get("/api/tasks/#{task.token}/results?from=19000101%2001:01&to=19010101%2001:01&page=2&per_page=1",
+          {format: :json}, {'HTTP_ANALYST_TOKEN' => token.token, 'request-endpoint' => "backend"})
 
       response.code.should eq "200"
       json = JSON.parse(response.body)
-      json["success"].should eq true
-      json["count"].should eq 100
-      json["page"].should eq 1
-      json["per_page"].should eq 10
-      verify_data((91..100).to_a.reverse, json["results"])
+      json["rpc"].should eq "task_results_json"
+      json["arguments"].should eq [task.id, 2, 1, "1900/01/01 01:01", "1901/01/01 01:01"]
     end
 
-    it "paginates" do
-      get("/api/tasks/#{task.token}/results?page=50&per_page=2", {format: :json}, {'HTTP_ANALYST_TOKEN' => token.token})
+    it "returns an RPC specification with sane defaults" do
+      get("/api/tasks/#{task.token}/results",
+          {format: :json}, {'HTTP_ANALYST_TOKEN' => token.token, 'request-endpoint' => "backend"})
+
+      now = Time.now
+      Time.stub(:now).and_return(now)
+      default_end_time = now.strftime("%Y/%m/%d %H:%M")
+
       response.code.should eq "200"
-
       json = JSON.parse(response.body)
-      json["success"].should eq true
-      json["count"].should eq 100
-      json["page"].should eq 50
-      json["per_page"].should eq 2
-      verify_data([2, 1], json["results"])
-    end
-
-    it "filters dates" do
-      params = {
-        from: (Date.today - 20.days).strftime("%Y%m%d %H:%M"),
-        to: (Date.today - 15.days).strftime("%Y%m%d %H:%M")
-      }
-      get("/api/tasks/#{task.token}/results?#{params.to_query}",
-          {format: :json}, {'HTTP_ANALYST_TOKEN' => token.token})
-      response.code.should eq "200"
-
-      json = JSON.parse(response.body)
-      json["success"].should eq true
-      json["count"].should eq 6
-      json["page"].should eq 1
-      json["per_page"].should eq 10
-      verify_data((80..85).to_a.reverse, json["results"])
+      json["rpc"].should eq "task_results_json"
+      json["arguments"].should eq [task.id, 1, 10, "1970/01/01 00:01", default_end_time]
     end
 
     it "should require analyst" do
-      get("/api/tasks/#{task.token}/results", format: :json)
-      response.code.should eq "401"
+      get("/api/tasks/#{task.token}/results", {format: :json}, {'request-endpoint' => "backend"})
+      validate_rpc_status_code 401
 
-      get("/api/tasks/#{task.token}/results", {format: :json}, {'HTTP_ANALYST_TOKEN' => "foobar"})
-      response.code.should eq "401"
+      get("/api/tasks/#{task.token}/results", {format: :json},
+          {'HTTP_ANALYST_TOKEN' => "foobar", 'request-endpoint' => "backend"})
+      validate_rpc_status_code 401
     end
 
     it "should require task" do
-      get("/api/tasks/foobar/results", {format: :json}, {'HTTP_ANALYST_TOKEN' => token.token})
-      response.code.should eq "422"
+      get("/api/tasks/foobar/results", {format: :json},
+          {'HTTP_ANALYST_TOKEN' => token.token, 'request-endpoint' => "backend"})
+      validate_rpc_status_code 422
     end
   end
 
-  private
-    def verify_data(values, items)
-      items.length.should eq values.length
-      values.each_with_index do |value, index|
-        items[index]["buckets"][0]["label"].should eq("label_#{value}")
-        items[index]["buckets"][0]["value"].should eq("answer_#{value}")
-        items[index]["buckets"][0]["count"].should eq(value)
-      end
-    end
+private
+  def validate_rpc_status_code code
+    json = JSON.parse(response.body)
+    json["arguments"][1].should eq code
+  end
 end

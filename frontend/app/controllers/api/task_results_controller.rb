@@ -7,33 +7,18 @@ class Api::TaskResultsController < ApplicationController
   def index
     page = (params[:page] || 1).to_i
     per_page = (params[:per_page] || 10).to_i
-
-    query = Result.where(task: @task)
-
-    if (params[:from])
-      query = query.where("created_at >= ?", DateTime.parse(params[:from]))
-    end
-
-    if (params[:to])
-      query = query.where("created_at <= ?", DateTime.parse(params[:to]))
-    end
-
-    respond_with(
-          success: true,
-          count: query.count,
-          page: page,
-          per_page: per_page,
-          results:
-              query.order("created_at desc").
-                  paginate(page: page, per_page: per_page).
-                  map {|result| result.to_client_hash 32 * 1024 * 1024}
-        )
+    begin_date_str = params[:from] || "19700101 00:01"
+    end_date_str = params[:to] || Time.now.strftime("%Y%m%d %H:%M")
+    formatted_begin_date_str = DateTime.parse(begin_date_str).strftime("%Y/%m/%d %H:%M")
+    formatted_end_date_str = DateTime.parse(end_date_str).strftime("%Y/%m/%d %H:%M")
+    rpc_response "task_results_json",
+        [@task.id, page, per_page, formatted_begin_date_str, formatted_end_date_str]
   end
 
   private
     def load_task
       @task = current_user.analyst.shared_tasks.find_by_token(params[:task_id])
       @task = current_user.analyst.private_tasks(current_user).find_by_token(params[:task_id]) unless @task
-      respond_with({success: false, error: "Task not found."}, {status: :unprocessable_entity}) if !@task
+      rpc_error({success: false, error: "Task not found."}, status: :unprocessable_entity) if !@task
     end
 end
