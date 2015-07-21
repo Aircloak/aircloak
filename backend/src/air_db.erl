@@ -28,5 +28,6 @@ db_config() ->
     {port, binary_to_integer(air_etcd:get("/settings/air/db/port"))},
     {user, binary_to_list(air_etcd:get("/settings/air/db/username"))},
     {password, binary_to_list(air_etcd:get("/settings/air/db/password"))},
-    {database, binary_to_list(air_etcd:get("/settings/air/db/database"))}
+    {database, binary_to_list(air_etcd:get("/settings/air/db/database"))},
+    {ssl, true}
   ].
