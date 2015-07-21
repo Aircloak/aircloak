@@ -137,8 +137,12 @@ add_task(TaskNum, Deleted, Purged, UpdatedAt) ->
   db_test_helpers:insert_rows("pending_results", ["task_id"], [[db_test_helpers:last_id("tasks")]]).
 
 days_ago(Days) ->
-  TargetEpoch = cloak_util:timestamp_to_epoch(os:timestamp()) - Days*24*60*60 - 10, % 10 seconds buffer
-  cloak_util:timestamp_to_datetime(cloak_util:epoch_to_timestamp(TargetEpoch)).
+  % We use the DB time, rather than local time here, since the DB time is
+  % what is used when purging tasks. Therefore if the timezones are not in sync
+  % between the test host and the db host, tests fail.
+  Sql = "SELECT now() - INTERVAL '" ++ integer_to_list(Days) ++ " days'",
+  {{select, 1}, [{DbTimeWithOffset}]} = db_test_helpers:simple_query(Sql),
+  DbTimeWithOffset.
 
 ?test_suite(purger_test_,
       setup,

@@ -44,6 +44,7 @@ etcd_set /settings/rails/secrets/secret_key_base "random-secret"
 etcd_set /service/airpub/shared_secret "well-known secret"
 etcd_set /service/airpub/subscribe_endpoint "ws://127.0.0.1:1080/subscribe/ws"
 etcd_set /service/air-sandbox/endpoint "http://127.0.0.1:11000"
+etcd_set /service/frontend/endpoint "http://127.0.0.1:3000"
 etcd_set /service/build_server/host localhost
 etcd_set /service/cloak/port 8098
 etcd_set /service/cloak/protocol http

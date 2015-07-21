@@ -3,7 +3,8 @@
 
 %% API
 -export([
-  get_val/2
+  get_val/2,
+  get_section/1
 ]).
 
 -ifdef(TEST).
@@ -21,15 +22,29 @@
   -spec get_val(atom(), atom()) -> any().
   get_val(SectionName, Name) ->
     do_get_val(SectionName, Name).
+
+  -spec get_section(atom()) -> any().
+  get_section(Name) ->
+    do_get_section(Name).
 -else.
   % While testing, we have to lazily load app environment
   get_val(SectionName, Name) ->
     test_get_val(SectionName, Name).
+
+  get_section(Section) ->
+    test_get_section(Section).
 -endif.
+
 
 %% -------------------------------------------------------------------
 %% Internal functions
 %% -------------------------------------------------------------------
+
+do_get_section(SectionName) ->
+  case application:get_env(air, SectionName) of
+    {ok, V} -> V;
+    _ -> error
+  end.
 
 do_get_val(SectionName, Name) ->
   case get_section(SectionName) of
@@ -41,13 +56,6 @@ do_get_val(SectionName, Name) ->
       end
   end.
 
--spec get_section(atom()) -> any().
-get_section(Name) ->
-  case application:get_env(air, Name) of
-    {ok, V} -> V;
-    _ -> error
-  end.
-
 %% Needed for test purposes. Loads test configuration on first access.
 -ifdef(TEST).
   test_get_val(SectionName, Name) ->
@@ -57,8 +65,14 @@ get_section(Name) ->
     end,
     do_get_val(SectionName, Name).
 
+  test_get_section(SectionName) ->
+    case application:get_env(air, config_loaded, false) of
+      true -> ok;
+      _ -> load_test_config()
+    end,
+    do_get_section(SectionName).
+
   load_test_config() ->
-    {ok, WorkingDir} = file:get_cwd(),
     {ok, [ConfigsToLoadForTest]} = case filelib:is_file("../test/sys.config") of
       true -> file:consult("../test/sys.config")
     end,

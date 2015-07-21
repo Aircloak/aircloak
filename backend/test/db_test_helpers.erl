@@ -5,6 +5,9 @@
 simple_query(Query) ->
   air_db:call(fun(Connection) -> pgsql_connection:simple_query(Query, Connection) end).
 
+extended_query(Query, Params) ->
+  air_db:call(fun(Connection) -> pgsql_connection:extended_query(Query, Params, Connection) end).
+
 batch_query(Query, Params) ->
   air_db:call(fun(Connection) -> pgsql_connection:batch_query(Query, Params, Connection) end).
 
