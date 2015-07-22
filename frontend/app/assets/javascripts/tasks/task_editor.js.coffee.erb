@@ -1,3 +1,6 @@
+# include result exception handling functionality
+//= require tasks/result_exception
+
 # Setup the global namespace
 window.Tasks or= {}
 
@@ -33,38 +36,30 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
     self
 
   renderExceptions = ->
-    showCodeErrors()
+    error_texts = processExceptions()
     html =
-      if taskExceptions.length == 0
+      if error_texts.length == 0
         ""
       else
-        HandlebarsTemplates["tasks/task_exceptions"](count: taskExceptions.length, exceptions: taskExceptions)
+        HandlebarsTemplates["tasks/task_exceptions"](exceptions: error_texts)
     $("#taskExceptions").html(html)
     window.rebindAllPopuplinks()
 
   # this is called after the task is executed in the sandbox and it will highlight the code lines containing errors
-  showCodeErrors = ->
+  processExceptions = ->
     # clear all previous errors
     index = 0
     while index < codeEditor.lineCount()
       codeEditor.removeLineClass(index++, "background", "CodeMirror-line-error")
     # process exceptions returned after executing the task in the sandbox
     processException = (exception) ->
-      # cleanup sandbox error messages
-      sandboxErrorMatch = exception.message.match /^{sandbox_error,"(.*)"}$/
-      if sandboxErrorMatch
-        exception.message = sandboxErrorMatch[1]
-      # look for task code error messages
-      lineErrorMatch = exception.message.match /^\[string \\"task_code\\"\]:(\d*)(.*)/
-      if lineErrorMatch # if we have a match
-        # cleanup error string
-        exception.message = "error in task code at line " + lineErrorMatch[1] + lineErrorMatch[2]
-        # extract line number from the exception message
-        lineNumber = Number(lineErrorMatch[1]) - 1
+      error = ResultException.parse_to_error exception
+      if error.module == "task_code"
         # highlight lines with errors
-        codeEditor.addLineClass(lineNumber, "background", "CodeMirror-line-error")
-      exception
-    taskExceptions = (processException exception for exception in taskExceptions)
+        codeEditor.addLineClass(error.line - 1, "background", "CodeMirror-line-error")
+      # format error text
+      ResultException.format_error error
+    (processException exception for exception in taskExceptions)
 
   saveInfo = ->
     if changed

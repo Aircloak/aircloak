@@ -1,5 +1,5 @@
 # create namespace for results-related shared variables
-window.Results = window.Results or {}
+window.Results or= {}
 
 
 # converts a number to string with at most 2 decimal places

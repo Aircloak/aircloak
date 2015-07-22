@@ -373,7 +373,7 @@ private
   def set_task_exceptions
     if @task && @task.has_exceptions?
       @task_exceptions = @task.latest_exceptions.
-          map {|e| {message: e.stacktrace, count: e.count}}.
+          map {|e| {error: e.stacktrace, count: e.count}}.
           to_json
     else
       @task_exceptions = [].to_json
