@@ -84,8 +84,7 @@ get_results_count([TaskId, _PageNum, _PerPage, BeginTime, EndTime], Connection) 
     FROM results
     WHERE
       results.task_id = $1 and
-      results.created_at >= $2 and
-      results.created_at <= $3"
+      results.created_at BETWEEN $2 and $3"
   ],
   Params = [TaskId, BeginTime, EndTime],
   {{select, 1}, [{Count}]} = pgsql_connection:extended_query(SQL, Params, Connection),
@@ -97,8 +96,7 @@ get_results(ReturnPid, [TaskId, PageNum, PerPage, BeginTime, EndTime], Connectio
     FROM results
     WHERE
       results.task_id = $1 and
-      results.created_at >= $2 and
-      results.created_at <= $3
+      results.created_at BETWEEN $2 and $3
     ORDER BY results.created_at ASC
     LIMIT $4
     OFFSET $5"
