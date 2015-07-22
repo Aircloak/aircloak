@@ -34,7 +34,10 @@
     .controls
       - Analyst.all.each do |analyst|
         %label.checkbox
-          = check_box_tag "analyst_selections[]", analyst.id, @cluster.analysts.include?(analyst)
+          - if @cluster.analysts.include?(analyst)
+            = check_box_tag "analyst_selections[]", analyst.id, true, {:onClick => "analyst_change(this);"}
+          - else
+            = check_box_tag "analyst_selections[]", analyst.id, false
           = analyst.name
 
   .control-group

@@ -1,5 +1,3 @@
-require './lib/json_sender'
-
 class LookupTablesController < ApplicationController
   def index
     @clusters = current_user.ready_clusters
@@ -30,7 +28,7 @@ class LookupTablesController < ApplicationController
         )
     @table.upload_data = params[:upload_data]
     if @table.valid?
-      result = upload_table
+      result = @table.upload_table
       if result["success"]
         @table.save
         describe_successful_activity "Created lookup table", lookup_table_path(@table)
@@ -51,7 +49,7 @@ class LookupTablesController < ApplicationController
     @table = current_user.analyst.lookup_tables.find params[:id]
     @table.upload_data = params[:upload_data]
     if @table.valid?
-      result = upload_table
+      result = @table.upload
       if result["success"]
         @table.save
         describe_successful_activity "Updated lookup table", lookup_table_path(@table)
@@ -70,7 +68,7 @@ class LookupTablesController < ApplicationController
 
   def destroy
     @table = current_user.analyst.lookup_tables.find params[:id]
-    result = remove_table
+    result = @table.remove
     if result["success"]
       @table.update deleted: true
       describe_successful_activity "Removed lookup table", lookup_table_path(@table)
@@ -81,16 +79,5 @@ class LookupTablesController < ApplicationController
       flash[:error] = result["error"] || "Table removal failed. The previous table data is still available."
       redirect_to lookup_tables_path
     end
-  end
-
-private
-  def upload_table
-    JsonSender.request :post, :admin, current_user.analyst, @table.cluster, "lookup/upload",
-        {table: @table.table_name}, @table.upload_data
-  end
-
-  def remove_table
-    JsonSender.request :post, :admin, current_user.analyst, @table.cluster, "lookup/remove",
-        {table: @table.table_name}, ''
   end
 end
