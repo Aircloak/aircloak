@@ -7,10 +7,10 @@ class Api::TaskResultsController < ApplicationController
   def index
     page = (params[:page] || 1).to_i
     per_page = (params[:per_page] || 10).to_i
-    begin_date_str = params[:from] || "19700101 00:01"
+    begin_date_str = params[:from] || "19700101 00:01:00"
     end_date_str = params[:to] || Time.now.strftime("%Y%m%d %H:%M")
-    formatted_begin_date_str = DateTime.parse(begin_date_str).strftime("%Y/%m/%d %H:%M")
-    formatted_end_date_str = DateTime.parse(end_date_str).strftime("%Y/%m/%d %H:%M")
+    formatted_begin_date_str = DateTime.parse(begin_date_str).strftime("%Y/%m/%d %H:%M:%S")
+    formatted_end_date_str = DateTime.parse(end_date_str).strftime("%Y/%m/%d %H:%M:%S")
     rpc_response "task_results_json",
         [@task.id, page, per_page, formatted_begin_date_str, formatted_end_date_str]
   end

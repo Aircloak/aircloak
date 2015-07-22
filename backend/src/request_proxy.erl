@@ -18,8 +18,7 @@ forward_request(IncomingRequest) ->
         {cloak_util:stringify(Key), cloak_util:stringify(Value)}
       end, ExistingHeaders),
   Headers = [
-    {"request-endpoint", "backend"},
-    {"Cookie", cookie_string(IncomingRequest)} |
+    {"request-endpoint", "backend"} |
     StringifiedExisitingHeaders
   ],
   ProxyRequest = {Url, Headers},
@@ -37,14 +36,6 @@ forward_request(IncomingRequest) ->
 %% -------------------------------------------------------------------
 %% Internal functions
 %% -------------------------------------------------------------------
-
-% The cookie string is supposed to look like:
-% name=value; name2=value2; name3=value3
-cookie_string(Request) ->
-  CookieProps = wrq:req_cookie(Request),
-  FoldlFun = fun({Name, Value}, Cookies) -> [Name ++ "=" ++ Value | Cookies] end,
-  CookieList = lists:foldl(FoldlFun, [], CookieProps),
-  lists:flatten(cloak_util:join(CookieList, "; ")).
 
 query_string(Request) ->
   "?" ++ mochiweb_util:urlencode(wrq:req_qs(Request)).

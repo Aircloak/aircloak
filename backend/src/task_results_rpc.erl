@@ -203,7 +203,7 @@ create_cells_json([Count|Rem]) ->
                 {<<"count">>, 0},
                 {<<"results">>, []}
               ]}),
-          Args = [TaskId, 1, 100, <<"19000101 12:00">>, <<"20500101 12:00">>],
+          Args = [TaskId, 1, 100, <<"19000101 12:00:00">>, <<"20500101 12:00:00">>],
           mecked_backend(Args, fun() -> verifyHttp(ExpectedResponse, get_result()) end)
         end},
 
@@ -227,7 +227,7 @@ create_cells_json([Count|Rem]) ->
                   ]}
                 ]}
               ]}),
-          Args = [TaskId, 1, 100, <<"1900/01/01 12:00">>, <<"2050/01/01 12:00">>],
+          Args = [TaskId, 1, 100, <<"1900/01/01 12:00:00">>, <<"2050/01/01 12:00:00">>],
           mecked_backend(Args, fun() -> verifyHttp(ExpectedResponse, get_result()) end)
         end},
 
@@ -264,9 +264,9 @@ create_cells_json([Count|Rem]) ->
                   ]}
                 ]}
               ]}),
-          Args1 = [TaskId, 1, 1, <<"1900/01/01 12:00">>, <<"2050/01/01 12:00">>],
+          Args1 = [TaskId, 1, 1, <<"1900/01/01 12:00:00">>, <<"2050/01/01 12:00:00">>],
           mecked_backend(Args1, fun() -> verifyHttp(ExpectedResponse1, get_result()) end),
-          Args2 = [TaskId, 2, 1, <<"1900/01/01 12:00">>, <<"2050/01/01 12:00">>],
+          Args2 = [TaskId, 2, 1, <<"1900/01/01 12:00:00">>, <<"2050/01/01 12:00:00">>],
           mecked_backend(Args2, fun() -> verifyHttp(ExpectedResponse2, get_result()) end)
         end},
 
@@ -292,7 +292,7 @@ create_cells_json([Count|Rem]) ->
                   ]}
                 ]}
               ]}),
-          Args = [TaskId, 1, 1, <<"1985/03/11 04:00">>, <<"1985/03/11 06:00">>],
+          Args = [TaskId, 1, 1, <<"1985/03/11 04:00:00">>, <<"1985/03/11 06:00:00">>],
           mecked_backend(Args, fun() -> verifyHttp(ExpectedResponse, get_result()) end)
         end}
       ]
