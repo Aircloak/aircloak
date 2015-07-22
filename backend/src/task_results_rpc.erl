@@ -97,7 +97,7 @@ get_results(ReturnPid, [TaskId, PageNum, PerPage, BeginTime, EndTime], Connectio
     WHERE
       results.task_id = $1 AND
       results.created_at BETWEEN $2 AND $3
-    ORDER BY results.created_at ASC
+    ORDER BY results.created_at DESC
     LIMIT $4
     OFFSET $5"
   ],
@@ -245,8 +245,8 @@ create_cells_json([Count|Rem]) ->
                 {<<"count">>, 2},
                 {<<"results">>, [
                   {struct, [
-                    {<<"published_at">>, list_to_integer(date_time_to_epoch(Time1))},
-                    {<<"buckets">>, mochijson2:decode(cells_json([1]))},
+                    {<<"published_at">>, list_to_integer(date_time_to_epoch(Time2))}, % Results are sorted DESC
+                    {<<"buckets">>, mochijson2:decode(cells_json([2]))},
                     {<<"exceptions">>, []}
                   ]}
                 ]}
@@ -258,8 +258,8 @@ create_cells_json([Count|Rem]) ->
                 {<<"count">>, 2},
                 {<<"results">>, [
                   {struct, [
-                    {<<"published_at">>, list_to_integer(date_time_to_epoch(Time2))},
-                    {<<"buckets">>, mochijson2:decode(cells_json([2]))},
+                    {<<"published_at">>, list_to_integer(date_time_to_epoch(Time1))}, % Results are sorted DESC
+                    {<<"buckets">>, mochijson2:decode(cells_json([1]))},
                     {<<"exceptions">>, []}
                   ]}
                 ]}
