@@ -49,7 +49,7 @@ class LookupTablesController < ApplicationController
     @table = current_user.analyst.lookup_tables.find params[:id]
     @table.upload_data = params[:upload_data]
     if @table.valid?
-      result = upload
+      result = @table.upload
       if result["success"]
         @table.save
         describe_successful_activity "Updated lookup table", lookup_table_path(@table)
@@ -80,5 +80,4 @@ class LookupTablesController < ApplicationController
       redirect_to lookup_tables_path
     end
   end
-
 end
