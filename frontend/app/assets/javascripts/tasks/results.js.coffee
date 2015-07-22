@@ -70,7 +70,7 @@ Results.display = (result) ->
   errors = row.insertCell 1
   if result.exceptions.length > 0
     errors.innerHTML = "present"
-    errors.style.color = "red"
+    errors.classList.add "error-text"
     title = ""
     for exception in result.exceptions
      # look for sandbox error messages
