@@ -168,7 +168,7 @@ aggregate_quantized_bucket = (buckets, quantized_bucket, plot_data_callback) ->
   data = parts[0]
   buckets = parts[1]
   aggregate_buckets = compute_aggregate_buckets data, name, total, plot_data_callback
-  _.union buckets, aggregate_buckets
+  _.union aggregate_buckets, buckets
 
 
 # this function will remove the quantized buckets from the result and

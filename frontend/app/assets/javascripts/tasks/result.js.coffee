@@ -30,10 +30,17 @@ plot_data_callback = (name, data) ->
 
   # create chart canvas
   svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  svg.setAttribute 'width', '840'
-  svg.setAttribute 'height', '270'
+  svg.setAttribute 'width', '840px'
+  svg.setAttribute 'height', '260px'
   svg.setAttributeNS 'http://www.w3.org/2000/xmlns/', 'xmlns:xlink', 'http://www.w3.org/1999/xlink'
-  $("#charts").append svg
+
+  # insert chart canvas into page
+  # Chrome and IE ignore SVG size, we need to create a parent container with the proper size
+  div = document.createElement('div')
+  div.style.width = '840px'
+  div.style.height = '260px'
+  div.appendChild svg
+  $("#charts").append div
 
   # build chart
   nv.addGraph ->
@@ -60,7 +67,6 @@ plot_data_callback = (name, data) ->
         .datum([{values: data, key: name, color: '#7777ff', area: true}])
         .transition().duration(500)
         .call(chart)
-    nv.utils.windowResize(chart.update);
     chart
 
 
@@ -69,7 +75,7 @@ Results.display = (result) ->
   # keep a shallow object copy in case we need to redraw charts later
   Results.last_result = jQuery.extend {}, result
   # remove old charts, if any
-  d3.selectAll("#charts svg").remove()
+  $("#charts").empty()
   # hide chart controls by default
   $('#controls').addClass('hidden')
 

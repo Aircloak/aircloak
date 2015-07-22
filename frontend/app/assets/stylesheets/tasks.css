@@ -40,10 +40,10 @@
   width: auto;
 }
 
-.table-centered td {
+.table-centered th td {
   text-align: center;
 }
 
-.table-centered th {
-  text-align: center;
+.align-top {
+  vertical-align: top;
 }
