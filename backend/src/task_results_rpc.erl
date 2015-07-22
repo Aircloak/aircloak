@@ -83,8 +83,8 @@ get_results_count([TaskId, _PageNum, _PerPage, BeginTime, EndTime], Connection) 
     SELECT count(*)
     FROM results
     WHERE
-      results.task_id = $1 and
-      results.created_at BETWEEN $2 and $3"
+      results.task_id = $1 AND
+      results.created_at BETWEEN $2 AND $3"
   ],
   Params = [TaskId, BeginTime, EndTime],
   {{select, 1}, [{Count}]} = pgsql_connection:extended_query(SQL, Params, Connection),
@@ -95,8 +95,8 @@ get_results(ReturnPid, [TaskId, PageNum, PerPage, BeginTime, EndTime], Connectio
     SELECT id, created_at, buckets_json
     FROM results
     WHERE
-      results.task_id = $1 and
-      results.created_at BETWEEN $2 and $3
+      results.task_id = $1 AND
+      results.created_at BETWEEN $2 AND $3
     ORDER BY results.created_at ASC
     LIMIT $4
     OFFSET $5"
@@ -157,7 +157,7 @@ create_result(TaskId, CreatedAt, Labels) ->
   BucketsJson = cells_json(Labels),
   Params = [TaskId, CreatedAt, BucketsJson],
   db_test_helpers:insert_rows("results", ["task_id", "created_at", "buckets_json"], [Params]),
-  FindIdSql = "SELECT id FROM results where buckets_json = $1 and created_at = $2",
+  FindIdSql = "SELECT id FROM results where buckets_json = $1 AND created_at = $2",
   FindIdParams = [BucketsJson, CreatedAt],
   air_db:call(fun(C) ->
         {{select, 1}, [{ResultId}]} = pgsql_connection:extended_query(FindIdSql, FindIdParams, C),
@@ -167,7 +167,7 @@ create_result(TaskId, CreatedAt, Labels) ->
 create_exception(ResultId, Count, StackTrace) ->
   Params = [Count, ResultId, StackTrace],
   db_test_helpers:insert_rows("exception_results", ["count", "result_id", "stacktrace"], [Params]),
-  FindIdSql = "SELECT id FROM exception_results where stacktrace = $1 and result_id = $2",
+  FindIdSql = "SELECT id FROM exception_results where stacktrace = $1 AND result_id = $2",
   FindIdParams = [StackTrace, ResultId],
   air_db:call(fun(C) ->
         {{select, 1}, [{ExceptionId}]} = pgsql_connection:extended_query(FindIdSql, FindIdParams, C),

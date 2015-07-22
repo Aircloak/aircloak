@@ -99,10 +99,10 @@ get_result_errors(#task_params{task_token=Token, start_time=Start, end_time=End,
     SELECT results.id
     FROM results, tasks, exception_results
     WHERE
-      tasks.token = $1 and
-      results.task_id = tasks.id and
-      exception_results.result_id = results.id and
-      results.created_at >= $2 and
+      tasks.token = $1 AND
+      results.task_id = tasks.id AND
+      exception_results.result_id = results.id AND
+      results.created_at >= $2 AND
       results.created_at <= $3
     GROUP BY results.id, COUNT(exception_results)"
   ],
@@ -113,9 +113,9 @@ sql_for_task(#task_params{task_token=TaskToken, start_time=StartTime, end_time=E
   SQL = ["
     SELECT results.id, results.created_at, results.buckets_json
     FROM results, tasks
-    WHERE results.task_id = tasks.id and
-          tasks.token = $1 and
-          results.created_at >= $2 and
+    WHERE results.task_id = tasks.id AND
+          tasks.token = $1 AND
+          results.created_at >= $2 AND
           results.created_at <= $3
     ORDER BY results.created_at ASC"
   ],
