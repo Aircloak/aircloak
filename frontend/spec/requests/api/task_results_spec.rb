@@ -44,7 +44,7 @@ describe "Api::TaskResultsController" do
       response.code.should eq "200"
       json = JSON.parse(response.body)
       json["rpc"].should eq "task_results_json"
-      json["arguments"].should eq [task.id, 2, 1, "1900/01/01 01:01", "1901/01/01 01:01"]
+      json["arguments"].should eq [task.id, 2, 1, "1900/01/01 01:01:00", "1901/01/01 01:01:00"]
     end
 
     it "returns an RPC specification with sane defaults" do
@@ -53,12 +53,12 @@ describe "Api::TaskResultsController" do
 
       now = Time.now
       Time.stub(:now).and_return(now)
-      default_end_time = now.strftime("%Y/%m/%d %H:%M")
+      default_end_time = now.strftime("%Y/%m/%d %H:%M:%S")
 
       response.code.should eq "200"
       json = JSON.parse(response.body)
       json["rpc"].should eq "task_results_json"
-      json["arguments"].should eq [task.id, 1, 10, "1970/01/01 00:01", default_end_time]
+      json["arguments"].should eq [task.id, 1, 10, "1970/01/01 00:01:00", default_end_time]
     end
 
     it "should require analyst" do
