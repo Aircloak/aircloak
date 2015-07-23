@@ -8,10 +8,6 @@ window.Results or= {}
 
 # the time when last article was published
 Results.last_article_update = 0
-# selected chart type
-Results.chart_type = "bar"
-# location to save last rendered result
-Results.last_result = null
 
 
 name_from_bucket = (bucket) ->
@@ -24,10 +20,7 @@ format_date = (timestamp) ->
   date.substring(0, date.length - 5).replace('T', ' ')
 
 
-plot_data_callback = (name, data) ->
-  # make sure chart controls are visible
-  $('#controls').removeClass('hidden')
-
+plot_data_callback = (name, data, plot_step) ->
   # create chart canvas
   svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute 'width', '840px'
@@ -45,38 +38,29 @@ plot_data_callback = (name, data) ->
   # build chart
   nv.addGraph ->
     # create chart
-    if Results.chart_type == "bar"
-      chart = nv.models.multiBarChart()
-          .margin({left: 90})
-          .showControls(false)
-          .tooltips(false)
-          .reduceXTicks(false)
-    else
-      chart = nv.models.lineChart()
-          .useInteractiveGuideline(true)
-          .interpolate("basis")
-          .margin({left: 90})
-          .showLegend(false)
+    chart = nv.models.multiBarChart()
+        .margin({left: 40})
+        .showControls(false)
+        .tooltips(false)
+        .reduceXTicks(false)
 
     # configure chart
     format_value = (value) ->
       Math.round(value * 100) / 100
-    chart.xAxis.axisLabel(name).tickFormat(format_value)
-    chart.yAxis.axisLabel("count").tickFormat(d3.format(',.0f'))
+    chart.xAxis.tickFormat(format_value)
+    chart.yAxis.tickFormat(d3.format(',.0f'))
+    plot_step = format_value(plot_step)
+    legend = "#{name} (bar width = #{plot_step})"
     d3.select(svg)
-        .datum([{values: data, key: name, color: '#7777ff', area: true}])
+        .datum([{values: data, key: legend, color: '#7777ff', area: true}])
         .transition().duration(500)
         .call(chart)
     chart
 
 # adds a row to the results table representing the specified result
 Results.display = (result) ->
-  # keep a shallow object copy in case we need to redraw charts later
-  Results.last_result = jQuery.extend {}, result
   # remove old charts, if any
   $("#charts").empty()
-  # hide chart controls by default
-  $('#controls').addClass('hidden')
 
   # call page new result callback if any registered
   Results.new_result_callback(result) if Results.new_result_callback
@@ -119,13 +103,6 @@ Results.display = (result) ->
 
 
 $ ->
-  # register for "chart type" control changes and redraw charts on change
-  $('input[name="chart_type"]').change () ->
-      Results.chart_type = this.value
-      Results.display Results.last_result if Results.last_result
-  # save chart type
-  Results.chart_type = $('input[name="chart_type"]:checked').val()
-
   Results.task_last_update = $('.render_params').data('task-last-update')
   result = $('.render_params').data('result')
   Results.display result if result

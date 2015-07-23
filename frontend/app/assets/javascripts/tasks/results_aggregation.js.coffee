@@ -94,7 +94,7 @@ compute_aggregate_buckets = (dataBuckets, name, total, plot_data_callback) ->
 
   # invoke plot data callback, if any supplied
   if plot_data_callback
-    data = [{x: min, y: 0}]
+    data = []
     steps = (max - min) / step
     # set bigger plot step to avoid congestion of data on graph and to reduce jitter
     plot_step = step *
@@ -106,8 +106,7 @@ compute_aggregate_buckets = (dataBuckets, name, total, plot_data_callback) ->
     for i in [min+plot_step..max] by plot_step
       diff = cdfs[number_to_key(i)] - cdfs[number_to_key(i - plot_step)]
       data.push {x: i - plot_step / 2, y: diff}
-    data.push {x: max, y: 0}
-    plot_data_callback name, data
+    plot_data_callback name, data, plot_step
 
   # reduce range
   for i in [min+step..max] by step
