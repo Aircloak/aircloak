@@ -40,7 +40,7 @@ etcd_set /settings/rails/task/publish_url https://pub.aircloak.com/publish
 etcd_set /settings/rails/secrets/private_key_password ""
 etcd_set /settings/rails/secrets/github_oauth_token ""
 etcd_set /settings/rails/secrets/secret_key_base ""
-etcd_set /settings/rails/secrets/cap_path "/aircloak/ca"
+etcd_set /settings/rails/secrets/ca_path "/aircloak/ca"
 
 # External services
 etcd_set /service/airpub/shared_secret ""
