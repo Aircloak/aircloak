@@ -100,3 +100,5 @@ $ ->
   oldResults = $('.render_params').data('results')
   for result in oldResults
     Results.display result
+  # table does not show properly if we don't create an initial row, which we now delete here
+  $('#results_table tr:last').remove()
