@@ -2,9 +2,12 @@
 
 %% Dispatch functions
 -export([
-  csv_row_based/3
+  csv_row_based/3,
+  task_results_json/3,
+  error/3
 ]).
 
+%% Test dispatch functions
 -export([
   test/3
 ]).
@@ -18,6 +21,19 @@
 %%      as rows, where each reported property is its own row.
 csv_row_based(Arguments, Request, State) ->
   csv_rpc:row_based_export(Arguments, Request, State).
+
+%% @doc Exports the results from a single task as JSON.
+%%      The result are streamed to the user, to allow
+%%      for the export of results for tasks with very
+%%      many results.
+task_results_json(Arguments, Request, State) ->
+  task_results_rpc:as_json(Arguments, Request, State).
+
+%% @doc Re-reports a rails error message verbatim to the user
+error([ErrorJson, StatusCode], Request, State) ->
+  RequestWithHeader = wrq:set_resp_header("Content-Type", "application/json", Request),
+  RequestWithBody = wrq:set_resp_body(ErrorJson, RequestWithHeader),
+  {{halt, StatusCode}, RequestWithBody, State}.
 
 
 %% -------------------------------------------------------------------

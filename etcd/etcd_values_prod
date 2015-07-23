@@ -25,6 +25,7 @@ etcd_set /settings/air/db/port 5432
 etcd_set /settings/air/db/username aircloak
 etcd_set /settings/air/db/password ""
 etcd_set /settings/air/db/database aircloakdatabase
+etcd_set /settings/air/db/ssl true
 
 # Whether it is a global installation, or whether it should
 # ignore costly operations involving infrastructure.
@@ -39,6 +40,7 @@ etcd_set /settings/rails/task/publish_url https://pub.aircloak.com/publish
 etcd_set /settings/rails/secrets/private_key_password ""
 etcd_set /settings/rails/secrets/github_oauth_token ""
 etcd_set /settings/rails/secrets/secret_key_base ""
+etcd_set /settings/rails/secrets/cap_path "/aircloak/ca"
 
 # External services
 etcd_set /service/airpub/shared_secret ""

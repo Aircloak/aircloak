@@ -61,17 +61,44 @@ class ApplicationController < ActionController::Base
     render json: response.to_json
   end
 
+  def rpc_error error, options = {}
+    status = options.delete(:status) || :not_found
+    response = {
+      rpc: "error",
+      arguments: [error.to_json, Rack::Utils::SYMBOL_TO_STATUS_CODE[status]]
+    }
+    render json: response.to_json
+  end
+
 protected
   def set_current_user
     Authorization.current_user = current_user
   end
 
+  def from_backend?
+    request.headers["request-endpoint"] == "backend"
+  end
+
   def authenticate_api_user
     if request.headers["HTTP_ANALYST_TOKEN"].nil?
-      render json: {success: false, error: "Missing authentication key."}, status: :unauthorized
+      error = {success: false, error: "Missing authentication key."}
+      status = :unauthorized
+      if from_backend?
+        rpc_error error, status: status
+      else
+        render json: error, status: :unauthorized
+      end
     else
       @current_user = AnalystToken.api_user(request.headers["HTTP_ANALYST_TOKEN"])
-      render json: {success: false, error: "Not authenticated."}, status: :unauthorized if @current_user.nil?
+      if @current_user.nil?
+        error = {success: false, error: "Not authenticated."}
+        status = :unauthorized
+        if from_backend?
+          rpc_error error, status: status
+        else
+          render json: error, status: status
+        end
+      end
     end
   end
 

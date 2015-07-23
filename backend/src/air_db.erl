@@ -29,5 +29,5 @@ db_config() ->
     {user, binary_to_list(air_etcd:get("/settings/air/db/username"))},
     {password, binary_to_list(air_etcd:get("/settings/air/db/password"))},
     {database, binary_to_list(air_etcd:get("/settings/air/db/database"))},
-    {ssl, true}
+    {ssl, binary_to_atom(air_etcd:get("/settings/air/db/ssl"), utf8)}
   ].
