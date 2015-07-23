@@ -44,7 +44,6 @@ format_date = (timestamp) ->
 
 # adds a row to the results table representing the specified result
 Results.display = (result) ->
-  result.buckets = _.sortBy(result.buckets, name_from_bucket)
   result.buckets = Results.aggregate_quantized_buckets result.buckets
 
   if result.buckets.length > 25

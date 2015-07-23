@@ -69,7 +69,6 @@ plot_data_callback = (name, data) ->
         .call(chart)
     chart
 
-
 # adds a row to the results table representing the specified result
 Results.display = (result) ->
   # keep a shallow object copy in case we need to redraw charts later
@@ -79,10 +78,9 @@ Results.display = (result) ->
   # hide chart controls by default
   $('#controls').addClass('hidden')
 
-  # sort buckets
-  result.buckets = _.sortBy(result.buckets, name_from_bucket)
   # aggregate and plot quantized data
   result.buckets = Results.aggregate_quantized_buckets result.buckets, plot_data_callback
+
   if result.buckets.length > 100
     result.buckets = [{label: "notice", value: "too many buckets", \
           count: "buckets count (#{result.buckets.length}) exceeds row limit (100), use REST API or CSV export to view result"}]

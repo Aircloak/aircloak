@@ -174,6 +174,17 @@ aggregate_quantized_bucket = (buckets, quantized_bucket, plot_data_callback) ->
 # this function will remove the quantized buckets from the result and
 # replace them with the computed aggregated buckets
 Results.aggregate_quantized_buckets = (buckets, plot_data_callback) ->
+  # sort buckets
+  bucketComparator = (bucket1, bucket2) ->
+      labelComparison = bucket1.label.localeCompare(bucket2.label)
+      return labelComparison if labelComparison != 0
+      value1 = Number(bucket1.value)
+      value2 = Number(bucket2.value)
+      if isNaN(value1) or isNaN(value2)
+        return bucket1.value.localeCompare(bucket2.value)
+      else
+        return value1 - value2
+  buckets.sort bucketComparator
   # find quantized data
   parts = _.partition buckets, (bucket) ->
         bucket.label == "quantized"
