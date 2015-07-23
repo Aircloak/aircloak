@@ -37,6 +37,10 @@ setup_routes() ->
     % Internal endpoints not accessible to the web
     {["task", action], air_sandbox_task_resource, []},
 
+    % End-point allowing monitoring to perform checks from
+    % the perspective of the erlang backend
+    {["monitoring", action], monitoring_resource, []},
+
     % Generic API handler that forwards all backend requests to
     % the rails app for authentication, and to decide what
     % the erlang application should in fact do with them
