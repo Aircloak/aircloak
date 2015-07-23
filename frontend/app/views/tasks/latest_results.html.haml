@@ -7,7 +7,7 @@
 
 %p
   - if @task.batch_task? then
-    = "To get " + (@singular_view ? "a more up-to-date result" : "more results") + ", execute the task again."
+    = "Execute the task to get " + (@singular_view ? "a new result." : "more results.")
     %button{class: "btn btn-mini", onClick: "Task.execute('#{@task.token}');"} Run task
   - else
     - if @task.active then
@@ -34,12 +34,14 @@
 .listen_params{data: {server_url: @server_url, request: @request}}
 .task_params{data: {task_token: @task_token}}
 
-- if @singular_view then
-  %p= "Below is the latest result for task '#{@task.name}':"
-  = render 'result'
-- else
-  %p= "Below are the latest results for task '#{@task.name}':"
-  = render 'results'
+%label#no_results_notice No result exists for this task yet.
+%div#results_view.hidden
+  - if @singular_view then
+    %p= "Below is the latest result for task '#{@task.name}':"
+    = render 'result'
+  - else
+    %p= "Below are the latest results for task '#{@task.name}':"
+    = render 'results'
 
 = link_to 'Tasks overview', tasks_path
 = link_to 'All results', all_results_task_path(@task.token), class: "right-aligned"

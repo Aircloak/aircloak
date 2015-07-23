@@ -44,6 +44,9 @@ format_date = (timestamp) ->
 
 # adds a row to the results table representing the specified result
 Results.display = (result) ->
+  # call page new result callback if any registered
+  Results.new_result_callback(result) if Results.new_result_callback
+  # extract aggregated data from result
   result.buckets = Results.aggregate_quantized_buckets result.buckets
 
   if result.buckets.length > 25

@@ -78,6 +78,8 @@ Results.display = (result) ->
   # hide chart controls by default
   $('#controls').addClass('hidden')
 
+  # call page new result callback if any registered
+  Results.new_result_callback(result) if Results.new_result_callback
   # aggregate and plot quantized data
   result.buckets = Results.aggregate_quantized_buckets result.buckets, plot_data_callback
 

@@ -76,6 +76,9 @@ convertArticleToResult = (timestamp, article) ->
 
 $ ->
   Results.resultsTableLimit = 10 # show maximum 10 results in the table
+  Results.new_result_callback = (result) ->
+    $('#no_results_notice').addClass 'hidden'
+    $('#results_view').removeClass 'hidden'
 
   # callback for processing listen events
   airpubCallback = (object) ->
