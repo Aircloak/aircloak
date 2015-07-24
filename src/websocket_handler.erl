@@ -33,12 +33,16 @@ websocket_handle({text, RequestText}, Req, State) ->
   end.
 
 websocket_info({notify, #article{
-      path = Path, content_type = ContentType, content = Content, published_at = PublishedAt
+      path = Path,
+      content_type = ContentType,
+      content_encoding = ContentEncoding,
+      content = Content,
+      published_at = PublishedAt
     }}, Req, State) ->
   {MegaSecs, Secs, MicroSecs} = PublishedAt,
   PublishedAtMillis = (MegaSecs * 1000 * 1000 + Secs) * 1000 + MicroSecs div 1000,
   Header = "article path=" ++ Path ++ " content_type=" ++ ContentType ++
-      " published_at=" ++ integer_to_list(PublishedAtMillis),
+      " content_encoding=" ++ ContentEncoding ++ " published_at=" ++ integer_to_list(PublishedAtMillis),
   {reply, [{text, Header}, {binary, Content}], Req, State};
 websocket_info(_Info, Req, State) ->
   {ok, Req, State}.
