@@ -1,6 +1,8 @@
 require 'csv'
 require 'json'
 require './lib/result_handler'
+require 'zlib'
+require 'stringio'
 
 class InfrastructureApi::ResultsController < ApplicationController
   filter_access_to :create, require: :anon_write
@@ -8,8 +10,12 @@ class InfrastructureApi::ResultsController < ApplicationController
   around_action :validate_auth_token, only: :create
 
   def create
+    body = request.raw_post
+    if request.headers['Content-encoding'] == "gzip" then
+      body = gunzip(body)
+    end
     if request.content_type == "application/json" then
-      json = JSON.parse(request.raw_post)
+      json = JSON.parse(body)
     else
       render text: "Content-type not supported!", status: 501, layout: false
       return
@@ -34,6 +40,12 @@ class InfrastructureApi::ResultsController < ApplicationController
   end
 
 private
+  def gunzip(data)
+    io = StringIO.new(data, "rb")
+    gz = Zlib::GzipReader.new(io)
+    decompressed = gz.read
+  end
+
   def validate_auth_token
     auth_token = request.headers["QueryAuthToken"]
     @pending_result = PendingResult.where(auth_token: auth_token).first
