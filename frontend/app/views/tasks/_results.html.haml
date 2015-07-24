@@ -6,12 +6,20 @@
 -# set rendering parameters
 .render_params{data: {results: @results.to_json, task_last_update: @task.code_timestamp.to_i * 1000}}
 
-%table.table.table-striped#results_table
+%table.table.table-striped.table-centered#results_table
   %thead
     %tr
       %th time
       %th errors
+      - if @show_details
+        %th details
   %tbody
+    - # rows are not rendered properly if we don't create an initial row here (bootstrap bug maybe?)
+    %tr
+      %td
+      %td
+      - if @show_details
+        %td
 
 %p
   * = Outdated code

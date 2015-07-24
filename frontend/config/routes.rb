@@ -65,6 +65,7 @@ Web::Application.routes.draw do
   resources :tasks do
     post "execute_as_batch_task", on: :member, action: 'execute_as_batch_task'
     get "latest_results", on: :member, action: 'latest_results'
+    get "single_result", on: :member, action: 'single_result'
     get "pending_executions", on: :member, action: 'pending_executions'
     get "all_results", on: :member, action: 'all_results'
     post "delete_results", on: :member

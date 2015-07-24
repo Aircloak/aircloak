@@ -61,8 +61,10 @@ Task.execute = (id) ->
 
 convertArticleToResult = (timestamp, article) ->
   result = {published_at: timestamp}
-  if article.length > 2 * 1024 * 1024 # 2 MB size limit
-    result.buckets = [{label: "notice", value: "result too big", count: "buckets size limit exceeded"}]
+  limit = 8 * 1024 * 1024 # 8 MB size limit
+  if article.length > limit
+    result.buckets = [{label: "notice", value: "result too big", \
+                       count: "result size (#{article.length} bytes) exceededs limit (#{limit} bytes)"}]
     result.exceptions = []
   else
     article = JSON.parse article
@@ -74,6 +76,9 @@ convertArticleToResult = (timestamp, article) ->
 
 $ ->
   Results.resultsTableLimit = 10 # show maximum 10 results in the table
+  Results.new_result_callback = (result) ->
+    $('#no_results_notice').addClass 'hidden'
+    $('#results_view').removeClass 'hidden'
 
   # callback for processing listen events
   airpubCallback = (object) ->
@@ -82,7 +87,7 @@ $ ->
       if Task.statusVisible
         # hide status after 4 seconds from the arrival of the result
         Task.hideTimeout = setTimeout hideTaskStatus, 3000
-      results = convertArticleToResult object.published_at, object.content
-      Results.display results
+      result = convertArticleToResult object.published_at, object.content
+      Results.display result
 
   Results.ws = airpub_listen $('.listen_params').data('server-url'), $('.listen_params').data('request'), airpubCallback

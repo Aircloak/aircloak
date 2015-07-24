@@ -41,7 +41,8 @@ class Result < ActiveRecord::Base
   def buckets max_bucket_size
     return [] if buckets_json.to_s.empty?
     return JSON.parse(buckets_json) if buckets_json.size <= max_bucket_size
-    return [{label: "notice", value: "result too big", count: "buckets size limit exceeded"}]
+    return [{label: "notice", value: "result too big", \
+             count: "result size (#{buckets_json.size} bytes) exceeds limit (#{max_bucket_size} bytes)"}]
   rescue
     []
   end

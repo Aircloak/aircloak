@@ -11,5 +11,4 @@
     %ul
       =hb "each exceptions" do
         %li
-          = "#{hb "count"} occurrances of"
-          %strong= hb "message"
+          %text.error-text=hb "this"

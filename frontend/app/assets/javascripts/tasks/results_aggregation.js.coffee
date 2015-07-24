@@ -1,5 +1,5 @@
 # create namespace for results-related shared variables
-window.Results = window.Results or {}
+window.Results or= {}
 
 
 # converts a number to string with at most 2 decimal places
@@ -9,7 +9,7 @@ format_number = (number) ->
 
 number_to_key = (number) ->
   # keep only 4 decimal places
-  Math.round(number * 10000)
+  Math.round(number * 10000).toString()
 
 
 # this procedure significantly reduces the effect of the noise on the analysis of the CDFs, at the cost
@@ -34,24 +34,20 @@ process_cdfs = (cdfs, min, max, step) ->
       local_max = prev
 
       # find slope ending (where values are bigger than the local maximum) and local minimum
-      end = i + step
       local_min = current
-      while end <= max
+      for end in [i+step..max] by step
         current = cdfs[number_to_key(end)]
         if current < local_min
           local_min = current
         else if current > local_max
           break
-        end = end + step
       end = end - step
 
       # find slope start (where values are smaller than local minimum)
-      start = i - 2 * step
-      while start >= min
+      for start in [i-2*step..min] by -step
         current = cdfs[number_to_key(start)]
         if current < local_min
           break
-        start = start - step
       start = start + step
 
       # straighten slope
@@ -66,7 +62,7 @@ process_cdfs = (cdfs, min, max, step) ->
       prev = current
 
 # for a single quantized datum, compute the aggregated values
-compute_aggregate_buckets = (dataBuckets, name, total) ->
+compute_aggregate_buckets = (dataBuckets, name, total, plot_data_callback) ->
   cdfs = {}
   for bucket in dataBuckets
     if bucket.value[0] == '['
@@ -86,8 +82,6 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
   for i in [min..max] by step
     if !cdfs[number_to_key(i)]
       cdfs[number_to_key(i)] = 0
-    else
-      break
 
   countBucket = {label: name, value: "values in range", count: in_range}
 
@@ -97,6 +91,33 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
 
   # we need smoother CDFs to reliably compute aggregate values
   process_cdfs cdfs, min, max, step
+
+  # invoke plot data callback, if any supplied
+  if plot_data_callback
+    data = []
+    steps = (max - min) / step
+    # set bigger plot step to avoid congestion of data on graph and to reduce jitter
+    plot_step = step *
+        if steps >= 500 then 20
+        else if steps >= 200 then 10
+        else if steps >= 100 then 5
+        else if steps >= 50 then 2
+        else 1
+    for i in [min+plot_step..max] by plot_step
+      diff = cdfs[number_to_key(i)] - cdfs[number_to_key(i - plot_step)]
+      data.push {x: i - plot_step / 2, y: diff}
+    plot_data_callback name, data, plot_step
+
+  # reduce range
+  for i in [min+step..max] by step
+    if cdfs[number_to_key(i)] > 0
+      min = i - step
+      break
+  max_value = cdfs[number_to_key(max)]
+  for i in [max-step..min] by -step
+    if cdfs[number_to_key(i)] < max_value
+      max = i + step
+      break
 
   sum = 0
   count = -1
@@ -131,24 +152,38 @@ compute_aggregate_buckets = (dataBuckets, name, total) ->
   stdDev = Math.sqrt(sum / count)
   stdDevBucket = {label: name, value: "stdev.S", count: format_number(stdDev)}
 
-  [countBucket, percentBucket, averageBucket, medianBucket, stdDevBucket]
+  minBucket = {label: name, value: "min", count: "< " + format_number(min)}
+  maxBucket = {label: name, value: "max", count: "> " + format_number(max)}
+
+  [countBucket, percentBucket, averageBucket, medianBucket, stdDevBucket, minBucket, maxBucket]
 
 
 # aggregate buckets for a single quantized datum
-aggregate_quantized_bucket = (buckets, quantized_bucket) ->
+aggregate_quantized_bucket = (buckets, quantized_bucket, plot_data_callback) ->
   name = quantized_bucket.value
   total = quantized_bucket.count
   parts = _.partition buckets, (bucket) ->
         bucket.label == name
   data = parts[0]
   buckets = parts[1]
-  aggregate_buckets = compute_aggregate_buckets data, name, total
-  _.union buckets, aggregate_buckets
+  aggregate_buckets = compute_aggregate_buckets data, name, total, plot_data_callback
+  _.union aggregate_buckets, buckets
 
 
 # this function will remove the quantized buckets from the result and
 # replace them with the computed aggregated buckets
-Results.aggregate_quantized_buckets = (buckets) ->
+Results.aggregate_quantized_buckets = (buckets, plot_data_callback) ->
+  # sort buckets
+  bucketComparator = (bucket1, bucket2) ->
+      labelComparison = bucket1.label.localeCompare(bucket2.label)
+      return labelComparison if labelComparison != 0
+      value1 = Number(bucket1.value)
+      value2 = Number(bucket2.value)
+      if isNaN(value1) or isNaN(value2)
+        return bucket1.value.localeCompare(bucket2.value)
+      else
+        return value1 - value2
+  buckets.sort bucketComparator
   # find quantized data
   parts = _.partition buckets, (bucket) ->
         bucket.label == "quantized"
@@ -156,5 +191,5 @@ Results.aggregate_quantized_buckets = (buckets) ->
   buckets = parts[1]
   # compute aggregated buckets for each datum
   for quantized_bucket in quantized_buckets
-    buckets = aggregate_quantized_bucket buckets, quantized_bucket
+    buckets = aggregate_quantized_bucket buckets, quantized_bucket, plot_data_callback
   buckets

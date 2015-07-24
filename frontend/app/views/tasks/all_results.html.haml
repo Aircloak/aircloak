@@ -19,12 +19,12 @@
   = form_tag all_results_task_path(@task.token), method: :get, class: "form-inline" do
     = label_tag 'From:'
     .input-append.date#pick_begin
-      = text_field_tag :begin_date, @begin_date_str, "data-format" => "yyyy/MM/dd HH:mm:ss"
+      = text_field_tag :begin_date, @begin_date_str, "data-format" => "yyyy/MM/dd hh:mm:ss"
       %span.add-on
         %i.icon-calendar
     = label_tag 'To:'
     .input-append.date#pick_end
-      = text_field_tag :end_date, @end_date_str, "data-format" => "yyyy/MM/dd HH:mm:ss"
+      = text_field_tag :end_date, @end_date_str, "data-format" => "yyyy/MM/dd hh:mm:ss"
       %span.add-on
         %i.icon-calendar
     = submit_tag 'Update', class: "btn btn-small"

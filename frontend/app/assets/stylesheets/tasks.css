@@ -35,3 +35,15 @@
 .error-text {
   color: red;
 }
+
+.table-centered {
+  width: auto;
+}
+
+.table-centered th td {
+  text-align: center;
+}
+
+.align-top {
+  vertical-align: top;
+}
