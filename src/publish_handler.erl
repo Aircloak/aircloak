@@ -19,8 +19,9 @@ init(Req, Opts) ->
   Method = cowboy_req:method(Req),
   HasBody = cowboy_req:has_body(Req),
   ContentType = header_to_string(cowboy_req:header(<<"content-type">>, Req)),
+  ContentEncoding = header_to_string(cowboy_req:header(<<"content-encoding">>, Req)),
   Path = extract_path(binary_to_list(cowboy_req:path(Req))),
-  Req2 = handle_publish_request(Method, Path, HasBody, ContentType, Req),
+  Req2 = handle_publish_request(Method, Path, HasBody, ContentType, ContentEncoding, Req),
   {ok, Req2, Opts}.
 
 
@@ -45,13 +46,13 @@ extract_path("/publish" ++ Path) ->
   end.
 
 % Validates the publish request and sends it to the router.
--spec handle_publish_request(binary(), string(), boolean(), string(), term()) -> term().
-handle_publish_request(<<"POST">>, "", true, _ContentType, Req) ->
+-spec handle_publish_request(binary(), string(), boolean(), string(), string(), term()) -> term().
+handle_publish_request(<<"POST">>, "", true, _ContentType, _ContentEcoding, Req) ->
   cowboy_req:reply(400, [], <<"Invalid path provided.">>, Req); % Bad request.
-handle_publish_request(<<"POST">>, Path, true, ContentType, Req) ->
+handle_publish_request(<<"POST">>, Path, true, ContentType, ContentEncoding, Req) ->
   {ok, MaxArticleSize} = application:get_env(airpub, max_article_size),
   {ok, Body, Req2} = cowboy_req:body(Req, [{length, MaxArticleSize}]),
-  Article = #article{path = Path, content_type = ContentType, content = Body},
+  Article = #article{path = Path, content_type = ContentType, content_encoding = ContentEncoding, content = Body},
   router:publish(Article),
   case get_forward_info(Path) of
     undefined ->
@@ -62,13 +63,13 @@ handle_publish_request(<<"POST">>, Path, true, ContentType, Req) ->
       {MegaSecs, Secs, MicroSecs} = Article#article.published_at,
       PublishedAtMillis = (MegaSecs * 1000 * 1000 + Secs) * 1000 + MicroSecs div 1000,
       MetadataHeaders = [{"Path", base64:encode_to_string(Path)}, {"PublishedAt", integer_to_list(PublishedAtMillis)}],
-      ForwardHeaders = get_forward_headers(ForwardHeadersNames, Req2),
+      ForwardHeaders = get_forward_headers(["Content-Encoding" | ForwardHeadersNames], Req2),
       StatusCode = forward_article(ForwardUrl, MetadataHeaders ++ ForwardHeaders, ContentType, Body),
       cowboy_req:reply(StatusCode, [], <<>>, Req2)
   end;
-handle_publish_request(<<"POST">>, _Path, false, _ContentType, Req) ->
+handle_publish_request(<<"POST">>, _Path, false, _ContentType, _ContentEncoding, Req) ->
   cowboy_req:reply(400, [], <<"Missing body.">>, Req); % Bad request.
-handle_publish_request(_Method, _Path, _HasBody, _ContentType, Req) ->
+handle_publish_request(_Method, _Path, _HasBody, _ContentType, _ContentEncoding, Req) ->
   cowboy_req:reply(405, Req). % Method not allowed
 
 % Returns the forward destination for the longest matching route.
