@@ -18,7 +18,8 @@ $ ->
       log "New event: " + object.event_type
     else if (object.type == "article")
       published_at = new Date(parseInt(object.published_at))
-      log "Info: path=" + object.path + " content_type=" + object.content_type + " published_at=" + published_at.toLocaleString()
+      log "Info: path=" + object.path + " content_type=" + object.content_type +
+          " content_encoding=" + object.content_encoding + " published_at=" + published_at.toLocaleString()
       log "Content: '" + object.content + "'"
 
   window.ws = airpub_listen $('.params').data('server-url'), $('.params').data('request'), airpub_callback

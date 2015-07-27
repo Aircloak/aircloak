@@ -1,3 +1,5 @@
+//= require pako_inflate.min
+
 window.airpub_listen = (server, request, callback) ->
   unless "WebSocket" of window
     alert "This browser does not support WebSockets"
@@ -58,7 +60,12 @@ window.airpub_listen = (server, request, callback) ->
       # add content and invoke callback
       object = @object
       delete @object
-      object.content = readUTF8String(new Uint8Array event.data)
+      content = new Uint8Array(event.data)
+      if object.content_encoding == "gzip"
+        # we have a compressed object, decompress before invoking callback
+        content = pako.ungzip(content)
+        object.content_encoding = "identity"
+      object.content = readUTF8String(content)
       callback object
 
   ws.onclose = (event) ->
