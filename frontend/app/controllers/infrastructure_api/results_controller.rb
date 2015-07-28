@@ -11,7 +11,7 @@ class InfrastructureApi::ResultsController < ApplicationController
 
   def create
     body = request.raw_post
-    if request.headers['Content-encoding'] == "gzip" then
+    if request.headers['Content-Encoding'] == "gzip" then
       body = gunzip(body)
     end
     if request.content_type == "application/json" then
