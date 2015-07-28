@@ -266,7 +266,7 @@ class TasksController < ApplicationController
 
   # GET /tasks/deleted
   def deleted
-    @tasks = current_user.analyst.tasks.where(:deleted => true)
+    @tasks = current_user.analyst.tasks.where(:deleted => true).where("shared = true OR user_id = ?", current_user.id)
     describe_activity "Browsing deleted tasks for #{current_user.analyst.name}"
   end
 
