@@ -49,9 +49,11 @@
     .controls
       - if @creating_new_table
         = select_tag :cluster_id, options_for_select(current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id,
-                {'data-text-type-capability' => cluster.capable_of?(:postgres_text_column_support), 'data-user-row-expiry-capability' => cluster.capable_of?(:user_row_expiry)}]})
+                {'data-text-type-capability' => cluster.capable_of?(:postgres_text_column_support),
+                'data-user-row-expiry-capability' => cluster.capable_of?(:user_row_expiry)}]},
+                @table.cluster ? @table.cluster.id : '')
       - else
-        %input#cluster_id.disabled{data: {test: "hehe"}, type: :text, value: @table.cluster.name, disabled: true, data: {text_type_capability: "#{@table.cluster.capable_of?(:postgres_text_column_support)}", user_row_expiry_capability: "#{@table.cluster.capable_of?(:user_row_expiry)}"}}
+        %input#cluster_id.disabled{type: :text, value: @table.cluster.name, disabled: true, data: {text_type_capability: "#{@table.cluster.capable_of?(:postgres_text_column_support)}", user_row_expiry_capability: "#{@table.cluster.capable_of?(:user_row_expiry)}"}}
 
   %textarea#table_json.hidden{name: :table_json}
   %textarea#migration.hidden{name: :migration}
@@ -113,7 +115,7 @@
   .control-group
     .controls
       - if @creating_new_table
-        = submit_tag 'Create table', :class => "btn btn-success submit-btn disabled"
+        = submit_tag 'Create table', :class => "btn btn-success submit-btn #{@table.cluster ? '' : 'disabled'}"
       - else
         = submit_tag 'Alter table', :class => "btn btn-success submit-btn disabled"
 
