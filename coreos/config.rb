@@ -78,5 +78,6 @@ $update_channel='stable'
 # $shared_folders = Hash[*['/home/foo/app1', '/home/foo/app2'].map{|d| [d, d]}.flatten]
 #$shared_folders = {}
 
-# Enable port forwarding from guest(s) to host machine, syntax is: { 80 => 8080 }, auto correction is enabled by default.
-$forwarded_ports = {8080 => 8080}
+# Open up the port for web. We use the port 8081 on the host to avoid possible collisions with the Docker
+# container running on the host (or mapped through boot2docker).
+$forwarded_ports = {8080 => 8081}
