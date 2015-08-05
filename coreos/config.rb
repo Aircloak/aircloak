@@ -36,7 +36,7 @@ end
 # Change basename of the VM
 # The default value is "core", which results in VMs named starting with
 # "core-01" through to "core-${num_instances}".
-#$instance_name_prefix="core"
+$instance_name_prefix="air"
 
 # Change the version of CoreOS to be installed
 # To deploy a specific version, simply set $image_version accordingly.
