@@ -19,3 +19,13 @@ fi
 
 vagrant halt || true
 vagrant up --provision
+
+echo "Pulling docker images, this may take a while..."
+for machine in $(vagrant status | grep 'air-' | grep running | awk '{print $1}'); do
+  vagrant ssh $machine -c "/aircloak/air/pull_images.sh" &
+done
+wait
+
+# We need to start the system on a single machine only. This will cause the services to be started in the
+# entire cluster.
+vagrant ssh air-01 -c "/aircloak/air/start_system.sh"

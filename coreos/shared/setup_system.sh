@@ -26,8 +26,13 @@ function setup_folder_structure {
   chmod +x /aircloak/air/frontend_stop.sh
 }
 
+setup_folder_structure
+
+
+cat <<EOF > /aircloak/air/pull_images.sh
+
 function pull_docker_image {
-  echo "Pulling image $1..."
+  echo "\$(hostname): pulling image \$1..."
 
   # This monstrosity takes care of some inexplicable timeouts that occur while pulling from
   # the docker registry. Here, we simply retry for some magical number of times. Since pulling
@@ -35,20 +40,43 @@ function pull_docker_image {
   #
   # The output is suppressed, because it's very noisy. Notice how only in the last attempt
   # the stderr output is let through. This allows us to print the error if pulling failed.
-  docker pull $1 > /dev/null 2>&1 ||
-  docker pull $1 > /dev/null 2>&1 ||
-  docker pull $1 > /dev/null 2>&1 ||
-  docker pull $1 > /dev/null 2>&1 ||
-  docker pull $1 > /dev/null
+  docker pull \$1 > /dev/null 2>&1 ||
+  docker pull \$1 > /dev/null 2>&1 ||
+  docker pull \$1 > /dev/null 2>&1 ||
+  docker pull \$1 > /dev/null 2>&1 ||
+  docker pull \$1 > /dev/null
+
+  echo "\$(hostname): pulled image \$1"
 }
 
-function pull_images {
-  echo "Pulling docker images, this may take a while..."
-  pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_backend:latest
-  pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_frontend:latest
+pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_backend:latest
+pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_frontend:latest
+EOF
+
+chmod +x /aircloak/air/pull_images.sh
+
+cat <<EOF > /aircloak/air/start_system.sh
+#!/bin/bash
+
+set -eo pipefail
+
+function start_air_service {
+  fleetctl destroy \$1
+  fleetctl load /aircloak/air/\$1
+  fleetctl start \$1
 }
 
-setup_folder_structure
-pull_images
+export DB_SERVER_URL='$DB_SERVER_URL'
+export AIRPUB_URL='$AIRPUB_URL'
+
 /aircloak/air/etcd/config_coreos.sh
-/aircloak/air/start_system.sh
+
+start_air_service backend.service
+start_air_service backend-discovery.service
+
+start_air_service frontend.service
+start_air_service frontend-discovery.service
+
+EOF
+
+chmod +x /aircloak/air/start_system.sh
