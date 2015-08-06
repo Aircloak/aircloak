@@ -53,6 +53,12 @@ rel: all apps/air
 start: app
 	./run_local_node.sh 1
 
+start2: app
+	./run_local_node.sh 2
+
+start3: app
+	./run_local_node.sh 3
+
 relclean:
 	rm -rf rel/air
 

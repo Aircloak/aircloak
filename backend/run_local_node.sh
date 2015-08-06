@@ -17,9 +17,11 @@ else
 fi
 
 ((http=11000+num-1))
+((inet_dist=20000+num-1))
 
 cat "$config_base/sys.config" | \
     sed "s,.data/1,.data/$num," | \
+    sed "s,20000,$inet_dist," | \
     sed "s,11000,$http," > "$config_dest/app$num.config"
 
 cat "$config_base/vm.args" | \
