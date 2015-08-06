@@ -9,4 +9,4 @@ ExecStop=/usr/bin/etcdctl rm /service/frontends/$COREOS_PUBLIC_IPV4
 EnvironmentFile=/etc/environment
 
 [X-Fleet]
-MachineOf=frontend.service
+Global=true
