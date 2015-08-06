@@ -11,7 +11,7 @@ function setup_folder_structure {
   rsync -arp /tmp/shared/air /aircloak/
 
   # Create start/stop scripts
-  env="REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001"
+  env="REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001 AIR_HOST_NAME=$COREOS_PUBLIC_IPV4 EXPORT_BEAM_PORTS=true"
   echo "$env /aircloak/air/backend/container.sh foreground" > /aircloak/air/backend_start.sh
   chmod +x /aircloak/air/backend_start.sh
 
@@ -26,6 +26,7 @@ function setup_folder_structure {
   chmod +x /aircloak/air/frontend_stop.sh
 }
 
+. /etc/environment
 setup_folder_structure
 
 
