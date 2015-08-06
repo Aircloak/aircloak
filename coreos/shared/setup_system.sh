@@ -62,7 +62,6 @@ cat <<EOF > /aircloak/air/start_system.sh
 set -eo pipefail
 
 function start_air_service {
-  fleetctl destroy \$1
   fleetctl load /aircloak/air/\$1
   fleetctl start \$1
 }

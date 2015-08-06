@@ -26,6 +26,18 @@ for machine in $(vagrant status | grep 'air-' | grep running | awk '{print $1}')
 done
 wait
 
+# Stop all services on all machines.
+for machine in $(vagrant status | grep 'air-' | grep running | awk '{print $1}'); do
+  vagrant ssh $machine -c "fleetctl stop backend.service || true"
+  vagrant ssh $machine -c "fleetctl destroy backend.service || true"
+
+  vagrant ssh $machine -c "fleetctl stop frontend.service || true"
+  vagrant ssh $machine -c "fleetctl destroy frontend.service || true"
+
+  vagrant ssh $machine -c "fleetctl stop frontend-discovery.service || true"
+  vagrant ssh $machine -c "fleetctl destroy frontend-discovery.service || true"
+done
+
 # We need to start the system on a single machine only. This will cause the services to be started in the
 # entire cluster.
 vagrant ssh air-01 -c "/aircloak/air/start_system.sh"
