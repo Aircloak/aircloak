@@ -73,7 +73,6 @@ export AIRPUB_URL='$AIRPUB_URL'
 /aircloak/air/etcd/config_coreos.sh
 
 start_air_service backend.service
-start_air_service backend-discovery.service
 
 start_air_service frontend.service
 start_air_service frontend-discovery.service
