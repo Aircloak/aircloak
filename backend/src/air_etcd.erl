@@ -4,8 +4,9 @@
 
 %% API
 -export([
-  get/1
-  set/3
+  get/1,
+  set/3,
+  ls/1
 ]).
 
 -include("air.hrl").
@@ -32,6 +33,15 @@ set(Key, Value) ->
 -spec set(string() | binary(), string() | binary(), pos_integer()) -> {ok, term()} | {error, term()}.
 set(Key, Value, Ttl) ->
   etcd:set(etcd_url(), Key, Value, Ttl, 5000).
+
+%% @doc Retrieves all keys which reside immediately under the given key.
+-spec ls(string() | binary()) -> [binary()].
+ls(Key) ->
+  case etcd:get(etcd_url(), Key, 5000) of
+    {ok, #get{nodes=Nodes}} ->
+      [SubKey || #node{key=SubKey} <- Nodes];
+    _ -> []
+  end.
 
 
 %% -------------------------------------------------------------------
