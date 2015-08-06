@@ -12,7 +12,7 @@ if [ "$REGISTRY_URL" != "" ]; then
 fi
 
 if [ "$ETCD_PORT" != "" ]; then
-  docker_env="-e ETCD_PORT=$ETCD_PORT"
+  DOCKER_START_ARGS="$DOCKER_START_ARGS -e ETCD_PORT=$ETCD_PORT"
 fi
 
 # Override the generic function, since we need to perform special handling
@@ -21,7 +21,7 @@ function gracefully_stop_container {
 }
 
 if [ "$AIR_HOST_NAME" != "" ]; then
-  DOCKER_START_ARGS="-e AIR_HOST_NAME=$AIR_HOST_NAME"
+  DOCKER_START_ARGS="$DOCKER_START_ARGS -e AIR_HOST_NAME=$AIR_HOST_NAME"
 fi
 
 if [ "$EXPORT_BEAM_PORTS" == "true" ]; then
