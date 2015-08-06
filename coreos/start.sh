@@ -17,7 +17,7 @@ fi
 
 ./create_user_data.sh
 
-vagrant halt || true
+vagrant halt --force || true
 vagrant up --provision
 
 echo "Pulling docker images, this may take a while..."
