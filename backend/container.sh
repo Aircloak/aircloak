@@ -20,6 +20,10 @@ function gracefully_stop_container {
   docker exec -d air_backend /bin/bash -c "/aircloak/app/bin/air stop"
 }
 
-DOCKER_START_ARGS="-p 11000:11000 -p 9000:9000 "$REGISTRY_URL"aircloak/air_backend:latest"
+if [ "$AIR_HOST_NAME" != "" ]; then
+  DOCKER_START_ARGS="-e AIR_HOST_NAME='$AIR_HOST_NAME'"
+fi
+
+DOCKER_START_ARGS="$DOCKER_START_ARGS -p 11000:11000 -p 9000:9000 "$REGISTRY_URL"aircloak/air_backend:latest"
 REMOTE_CONSOLE_COMMAND="bin/air remote_console"
 container_ctl air_backend $@
