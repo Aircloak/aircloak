@@ -5,6 +5,7 @@
 %% API
 -export([
   get/1,
+  set/2,
   set/3,
   ls/1
 ]).
@@ -25,12 +26,12 @@ get(Key) ->
   Value.
 
 %% @doc Just like {@link set/3} but the item never expires.
--spec set(string() | binary(), string() | binary()) -> {ok, term()} | {error, term()}.
+-spec set(string() | binary(), string() | binary()) -> result().
 set(Key, Value) ->
   etcd:set(etcd_url(), Key, Value, 5000).
 
 %% @doc Sets the value under a given key, with the given ttl (in seconds).
--spec set(string() | binary(), string() | binary(), pos_integer()) -> {ok, term()} | {error, term()}.
+-spec set(string() | binary(), string() | binary(), pos_integer()) -> result().
 set(Key, Value, Ttl) ->
   etcd:set(etcd_url(), Key, Value, Ttl, 5000).
 

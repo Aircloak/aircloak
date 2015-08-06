@@ -54,6 +54,7 @@ handle_call(Message, From, _State) ->
   throw({unexpected_call, Message, from, From, to, ?MODULE}).
 
 %% @hidden
+-spec handle_cast(any(), any()) -> no_return().
 handle_cast(Message, _State) ->
   throw({unexpected_cast, Message, to, ?MODULE}).
 
