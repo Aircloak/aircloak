@@ -40,10 +40,18 @@ start_link() ->
 
 %% @hidden
 init(_) ->
-  % Need to replace @ because it's not allowed in etcd key name
-  NodeNameStr = iolist_to_binary(re:replace(atom_to_list(node()), "@", "__at__", [global])),
-  renew_registration(NodeNameStr),
-  {ok, NodeNameStr, ?RENEW_INTERVAL}.
+  Node = atom_to_list(node()),
+  [_, Host] = re:split(Node, "@", [{return, list}, {parts, 2}]),
+  HttpPort = proplists:get_value(port, air_conf:get_section(web_server)),
+  HttpEndPoint = iolist_to_binary(io_lib:format("http://~s:~p", [Host, HttpPort])),
+  Data = iolist_to_binary(mochijson2:encode([
+        {http_endpoint, HttpEndPoint},
+        {erlang_node, iolist_to_binary(Node)}
+      ])),
+  Key = iolist_to_binary(io_lib:format("/services/backends/~s_~p", [Host, HttpPort])),
+  State = {Key, Data},
+  renew_registration(State),
+  {ok, State, ?RENEW_INTERVAL}.
 
 %% @hidden
 -spec handle_call(any(), any(), any()) -> no_return().
@@ -56,9 +64,9 @@ handle_cast(Message, _State) ->
   throw({unexpected_cast, Message, to, ?MODULE}).
 
 %% @hidden
-handle_info(timeout, NodeNameStr) ->
-  renew_registration(NodeNameStr),
-  {noreply, NodeNameStr, ?RENEW_INTERVAL};
+handle_info(timeout, State) ->
+  renew_registration(State),
+  {noreply, State, ?RENEW_INTERVAL};
 handle_info(_, State) -> {noreply, State, ?RENEW_INTERVAL}.
 
 %% @hidden
@@ -73,6 +81,5 @@ code_change(_, State, _) -> {ok, State}.
 %% Internal functions
 %% -------------------------------------------------------------------
 
-renew_registration(NodeNameStr) ->
-  Key = iolist_to_binary(io_lib:format("/services/backends/~s", [NodeNameStr])),
-  {ok, #set{}} = air_etcd:set(Key, NodeNameStr, ?REGISTRATION_EXPIRY_SEC).
+renew_registration({Key, Data}) ->
+  {ok, #set{}} = air_etcd:set(Key, Data, ?REGISTRATION_EXPIRY_SEC).

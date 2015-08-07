@@ -4,8 +4,8 @@ BindsTo=frontend.service
 
 [Service]
 EnvironmentFile=/etc/environment
-ExecStart=/bin/bash -c "while true; do etcdctl set /service/frontends/$COREOS_PUBLIC_IPV4 '$COREOS_PUBLIC_IPV4' --ttl 60;sleep 45;done"
-ExecStop=/usr/bin/etcdctl rm /service/frontends/$COREOS_PUBLIC_IPV4
+ExecStart=/bin/bash -c "while true; do etcdctl set /services/frontends/${COREOS_PUBLIC_IPV4}_8080 '{\"http_endpoint\":\"http://'$COREOS_PUBLIC_IPV4':8080\"}' --ttl 60;sleep 45;done"
+ExecStop=/usr/bin/etcdctl rm /service/frontends/${COREOS_PUBLIC_IPV4}_8080
 EnvironmentFile=/etc/environment
 
 [X-Fleet]

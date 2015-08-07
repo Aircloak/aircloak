@@ -89,10 +89,10 @@ code_change(_, State, _) -> {ok, State}.
 
 poll_peers(Caller) ->
   Peers = [Peer ||
-    Path <- air_etcd:ls("/services/backends"),
-    PeerName <- [lists:last(re:split(Path, <<"/">>))],
-    DesanitizedName <- [iolist_to_binary(re:replace(PeerName, "__at__", "@", [global]))],
-    Peer <- [binary_to_atom(DesanitizedName, latin1)],
+    {_Sha, Json} <- air_etcd:ls("/services/backends"),
+    {struct, Data} <- [mochijson2:decode(Json)],
+    {<<"erlang_node">>, NodeStr} <- Data,
+    Peer <- [binary_to_atom(NodeStr, latin1)],
     not lists:any(fun(X) -> X =:= Peer end, nodes([this, visible]))
   ],
   Caller ! {peers, Peers}.

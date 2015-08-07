@@ -35,12 +35,12 @@ set(Key, Value) ->
 set(Key, Value, Ttl) ->
   etcd:set(etcd_url(), Key, Value, Ttl, 5000).
 
-%% @doc Retrieves all keys which reside immediately under the given key.
--spec ls(string() | binary()) -> [binary()].
+%% @doc Retrieves all key-value pairs which reside immediately under the given key.
+-spec ls(string() | binary()) -> [{binary(), binary()}].
 ls(Key) ->
   case etcd:get(etcd_url(), Key, 5000) of
     {ok, #get{nodes=Nodes}} ->
-      [SubKey || #node{key=SubKey} <- Nodes];
+      [{SubKey, Value} || #node{key=SubKey, value=Value} <- Nodes];
     _ -> []
   end.
 
