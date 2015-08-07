@@ -1,3 +1,5 @@
+# Adds support for compressed requests.
+# Taken from: http://arnab.ch/blog/2012/09/android-how-to-send-gzipped-json-in-http-request/
 class CompressedRequests
   def initialize(app)
     @app = app
