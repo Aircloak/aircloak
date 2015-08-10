@@ -6,7 +6,8 @@ class FingerPrintCreator
   end
 
   def self.fingerprint build
-    versions = build.deployable_entity_versions.sort do |a, b|
+    versions = build.deployable_entity_versions
+    versions.sort! do |a,b|
       a.commit_id <=> b.commit_id
     end
     create_sha "#{versions.map(&:commit_id).join("-")}"
