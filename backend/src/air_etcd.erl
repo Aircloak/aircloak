@@ -13,6 +13,8 @@
 -include("air.hrl").
 -include_lib("etcd/include/etcd_types.hrl").
 
+-define(ETCD_TIMEOUT, 5000).
+
 
 %% -------------------------------------------------------------------
 %% API functions
@@ -22,23 +24,23 @@
 %%      given key is not present.
 -spec get(string() | binary()) -> binary().
 get(Key) ->
-  {ok, #get{value=Value}} = etcd:get(etcd_url(), Key, 5000),
+  {ok, #get{value=Value}} = etcd:get(etcd_url(), Key, ?ETCD_TIMEOUT),
   Value.
 
 %% @doc Just like {@link set/3} but the item never expires.
 -spec set(string() | binary(), string() | binary()) -> result().
 set(Key, Value) ->
-  etcd:set(etcd_url(), Key, Value, 5000).
+  etcd:set(etcd_url(), Key, Value, ?ETCD_TIMEOUT).
 
 %% @doc Sets the value under a given key, with the given ttl (in seconds).
 -spec set(string() | binary(), string() | binary(), pos_integer()) -> result().
 set(Key, Value, Ttl) ->
-  etcd:set(etcd_url(), Key, Value, Ttl, 5000).
+  etcd:set(etcd_url(), Key, Value, Ttl, ?ETCD_TIMEOUT).
 
 %% @doc Retrieves all key-value pairs which reside immediately under the given key.
 -spec ls(string() | binary()) -> [{binary(), binary()}].
 ls(Key) ->
-  case etcd:get(etcd_url(), Key, 5000) of
+  case etcd:get(etcd_url(), Key, ?ETCD_TIMEOUT) of
     {ok, #get{nodes=Nodes}} ->
       [{SubKey, Value} || #node{key=SubKey, value=Value} <- Nodes];
     _ -> []
