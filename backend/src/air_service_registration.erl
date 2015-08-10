@@ -40,6 +40,7 @@ start_link() ->
 
 %% @hidden
 init(_) ->
+  process_flag(trap_exit, true),
   Node = atom_to_list(node()),
   [_, Host] = re:split(Node, "@", [{return, list}, {parts, 2}]),
   HttpPort = proplists:get_value(port, air_conf:get_section(web_server)),
@@ -70,7 +71,8 @@ handle_info(timeout, State) ->
 handle_info(_, State) -> {noreply, State, ?RENEW_INTERVAL}.
 
 %% @hidden
-terminate(_Reason, _State) ->
+terminate(_Reason, {Key, _Data}) ->
+  air_etcd:delete(Key),
   ok.
 
 %% @hidden

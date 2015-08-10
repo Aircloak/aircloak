@@ -7,6 +7,7 @@
   get/1,
   set/2,
   set/3,
+  delete/1,
   ls/1
 ]).
 
@@ -36,6 +37,11 @@ set(Key, Value) ->
 -spec set(string() | binary(), string() | binary(), pos_integer()) -> result().
 set(Key, Value, Ttl) ->
   etcd:set(etcd_url(), Key, Value, Ttl, ?ETCD_TIMEOUT).
+
+%% @doc Sets the value under a given key, with the given ttl (in seconds).
+-spec delete(string() | binary()) -> result().
+delete(Key) ->
+  etcd:delete(etcd_url(), Key, ?ETCD_TIMEOUT).
 
 %% @doc Retrieves all key-value pairs which reside immediately under the given key.
 -spec ls(string() | binary()) -> [{binary(), binary()}].
