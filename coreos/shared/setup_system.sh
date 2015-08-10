@@ -55,27 +55,3 @@ pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_frontend:latest
 EOF
 
 chmod +x /aircloak/air/pull_images.sh
-
-cat <<EOF > /aircloak/air/start_system.sh
-#!/bin/bash
-
-set -eo pipefail
-
-function start_air_service {
-  fleetctl load /aircloak/air/\$1
-  fleetctl start \$1
-}
-
-export DB_SERVER_URL='$DB_SERVER_URL'
-export AIRPUB_URL='$AIRPUB_URL'
-
-/aircloak/air/etcd/config_coreos.sh
-
-start_air_service backend.service
-
-start_air_service frontend.service
-start_air_service frontend-discovery.service
-
-EOF
-
-chmod +x /aircloak/air/start_system.sh

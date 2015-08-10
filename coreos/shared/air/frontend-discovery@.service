@@ -1,6 +1,6 @@
 [Unit]
 Description=Frontend discovery service
-BindsTo=frontend.service
+BindsTo=frontend@%i.service
 
 [Service]
 EnvironmentFile=/etc/environment
@@ -9,4 +9,4 @@ ExecStop=/usr/bin/etcdctl rm /service/frontends/${COREOS_PUBLIC_IPV4}_8080
 EnvironmentFile=/etc/environment
 
 [X-Fleet]
-Global=true
+MachineOf=frontend@%i.service
