@@ -192,7 +192,7 @@ describe "ApiTasksController" do
 
     it "should return validation errors" do
       cluster.analysts << analyst
-      task = Task.new
+      task = double(:task)
       Task.should_receive(:new).and_return(task)
       task.should_receive(:save).and_return(false)
       errors = double(to_a: ["Validation failed"])
@@ -207,7 +207,7 @@ describe "ApiTasksController" do
 
     it "creates and runs a task and returns the results" do
       cluster.analysts << analyst
-      task = Task.new
+      task = double(:task)
       Task.should_receive(:new).and_return(task)
       task.should_receive(:save).and_return(true)
       result = double(:result, to_client_hash: {buckets: "and stuff"})
