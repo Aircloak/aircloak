@@ -161,7 +161,9 @@ describe Analyst do
       user = add_user "test"
       user.permissions << Permission.create(name: "admin")
       user.reload.admin?.should eq true
-      expect {analyst.destroy}.to_not change {User.count}.from(1).to(0)
+      user_count_before = User.count
+      analyst.destroy
+      User.count.should eq user_count_before
     end
   end
 end
