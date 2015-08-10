@@ -13,6 +13,7 @@ module Web
 
     # Custom directories with classes and modules you want to be autoloadable.
     # config.autoload_paths += %W(#{config.root}/extras)
+    config.autoload_paths += %W(#{config.root}/lib/middleware)
 
     # Set Time.zone default to the specified zone and make Active Record auto-convert to this zone.
     # Run "rake -D time" for a list of tasks for finding time zone names. Default is UTC.
@@ -22,5 +23,8 @@ module Web
     # config.i18n.load_path += Dir[Rails.root.join('my', 'locales', '*.{rb,yml}').to_s]
     # config.i18n.default_locale = :de
     config.i18n.enforce_available_locales = true
+
+    # Handle Compressed Requests, this makes compressed content handling transparent to the Rails stack
+    config.middleware.insert_before ActionDispatch::ParamsParser, "CompressedRequests"
   end
 end
