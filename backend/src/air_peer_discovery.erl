@@ -92,7 +92,7 @@ poll_peers(Caller) ->
     {_Key, Json} <- air_etcd:ls("/services/backends"),
     {struct, Data} <- [mochijson2:decode(Json)],
     {<<"erlang_node">>, NodeStr} <- Data,
-    Peer <- [binary_to_atom(NodeStr, latin1)],
+    Peer <- [binary_to_atom(NodeStr, utf8)],
     not lists:any(fun(X) -> X =:= Peer end, nodes([this, visible]))
   ],
   Caller ! {peers, Peers}.
