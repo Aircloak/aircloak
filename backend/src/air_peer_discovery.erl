@@ -22,7 +22,6 @@
 -define(POLL_INTERVAL, timer:seconds(10)).
 
 -record(state, {
-  peers=sets:new() :: sets:set(),
   poller=undefined
 }).
 
@@ -66,7 +65,7 @@ handle_info({'EXIT', Poller, _}, #state{poller=Poller} = State) ->
   erlang:send_after(?POLL_INTERVAL, self(), poll_peers),
   {noreply, State#state{poller=undefined}};
 handle_info({peers, Peers}, State) ->
-  {noreply, process_peers(Peers, State)};
+  {noreply, process_peers(Peers)};
 handle_info({nodeup, Node}, State) ->
   ?INFO("Connected to ~p", [Node]),
   {noreply, State};
@@ -97,13 +96,9 @@ poll_peers(Caller) ->
   ],
   Caller ! {peers, Peers}.
 
-process_peers(Peers, #state{peers=ExistingPeers}=State) ->
-  NewPeers = [Peer ||
-    Peer <- Peers,
-    not sets:is_element(Peer, ExistingPeers),
-    join(Peer)
-  ],
-  State#state{peers=sets:union(ExistingPeers, sets:from_list(NewPeers))}.
+process_peers(Peers) ->
+  [join(Peer) || Peer <- Peers],
+  ok.
 
 join(Peer) ->
   case net_adm:ping(Peer) of
