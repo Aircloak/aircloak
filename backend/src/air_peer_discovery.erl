@@ -59,13 +59,10 @@ handle_cast(Message, _State) ->
 
 %% @hidden
 handle_info(poll_peers, State) ->
-  Me = self(),
-  {noreply, State#state{poller=spawn_link(fun() -> poll_peers(Me) end)}};
+  {noreply, State#state{poller=spawn_link(fun() -> poll_peers() end)}};
 handle_info({'EXIT', Poller, _}, #state{poller=Poller} = State) ->
   erlang:send_after(?POLL_INTERVAL, self(), poll_peers),
   {noreply, State#state{poller=undefined}};
-handle_info({peers, Peers}, State) ->
-  {noreply, process_peers(Peers)};
 handle_info({nodeup, Node}, State) ->
   ?INFO("Connected to ~p", [Node]),
   {noreply, State};
@@ -86,18 +83,14 @@ code_change(_, State, _) -> {ok, State}.
 %% Internal functions
 %% -------------------------------------------------------------------
 
-poll_peers(Caller) ->
-  Peers = [Peer ||
+poll_peers() ->
+  [join(Peer) ||
     {_Key, Json} <- air_etcd:ls("/services/backends"),
     {struct, Data} <- [catch mochijson2:decode(Json)],
     {<<"erlang_node">>, NodeStr} <- Data,
     Peer <- [binary_to_atom(NodeStr, utf8)],
     not lists:any(fun(X) -> X =:= Peer end, nodes([this, visible]))
   ],
-  Caller ! {peers, Peers}.
-
-process_peers(Peers) ->
-  [join(Peer) || Peer <- Peers],
   ok.
 
 join(Peer) ->
