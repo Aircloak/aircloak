@@ -2,7 +2,7 @@ source 'https://rubygems.org'
 
 ruby '2.0.0'
 
-gem 'rails', '~> 4.0.3' #, github: 'rails/rails'
+gem 'rails', '~> 4.1.0'
 
 gem "haml", github: "haml/haml", branch: "stable"
 gem 'haml-rails', github: 'indirect/haml-rails'
@@ -27,7 +27,7 @@ gem "coderay", github: "rubychan/coderay"
 group :development, :test do
   gem 'pry', github: "pry/pry"
   gem 'pry-nav', github: "nixme/pry-nav"
-  gem 'rspec-rails', '~> 2.0'
+  gem 'rspec-rails', '~> 2.14.0'
   gem "unicorn-rails"
 end
 
@@ -51,20 +51,17 @@ end
 # Gems used only for assets and not required
 # in production environments by default.
 group :assets do
-  gem 'sprockets-rails', github: 'rails/sprockets-rails'
-  gem 'sass-rails',   github: 'rails/sass-rails'
+  gem 'sprockets-rails', '~> 2.0.0'
+  gem 'sass-rails'
   gem 'coffee-rails', github: 'rails/coffee-rails'
   gem 'uglifier', '>= 1.0.3'
 end
 
-gem 'twitter-bootstrap-rails'
+gem 'twitter-bootstrap-rails', '~> 2.0'
 gem 'less-rails'
 # See https://github.com/sstephenson/execjs#readme for more supported runtimes
-gem 'therubyracer', platforms: :ruby
+gem 'therubyracer', '~> 0.12.0', platforms: :ruby
 gem 'jquery-rails'
-
-# To use ActiveModel has_secure_password
-gem 'bcrypt-ruby', '~> 3.0.0'
 
 # Deploy with Capistrano
 gem 'capistrano', '2.13.5', group: :development
