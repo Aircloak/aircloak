@@ -84,11 +84,24 @@ private
   end
 
   def send_request_for_building
-    BuildManager.send_build_request self if Conf.get("/settings/rails/global") == "true"
+    if Conf.get("/settings/rails/global") == "true"
+      BuildManager.send_build_request self
+    else
+      # When we develop, we fake the creation of the build,
+      # since we don't have the build server running locally
+      mark_complete(success: true)
+      deployable_entity_versions.each do |dev|
+        dev.build_completed = true
+        dev.build_success = true
+        dev.save
+      end
+    end
   end
 
   def remove_from_buildserver
-    url = "http://#{Conf.get("/service/build_server/host")}/build/#{self.id}"
-    ProtobufSender.send_delete url if Conf.get("/settings/rails/global") == "true"
+    unless Rails.env.development?
+      url = "http://#{Conf.get("/service/build_server/host")}/build/#{self.id}"
+      ProtobufSender.send_delete url if Conf.get("/settings/rails/global") == "true"
+    end
   end
 end
