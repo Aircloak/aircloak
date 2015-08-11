@@ -27,6 +27,11 @@ etcd_set /settings/air/db/password ''
 etcd_set /settings/air/db/database aircloakdatabase
 etcd_set /settings/air/db/ssl false
 
+# Integration test settings
+etcd_set /settings/air/integration_test/cluster_size 1
+etcd_set /settings/air/integration_test/data/num_users 100
+etcd_set /settings/air/integration_test/data/mean_rows_per_user 10
+
 # Whether it is a global installation, or whether it should
 # ignore costly operations involving infrastructure.
 # false is a good choice for local development.
