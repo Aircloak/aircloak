@@ -50,6 +50,7 @@ class Build < ActiveRecord::Base
   def mark_complete args={}
     self.build_completed = true
     self.build_success = args[:success] || false
+    connection.execute "NOTIFY build, '#{self.id}'"
     save
   end
 

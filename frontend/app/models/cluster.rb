@@ -24,7 +24,7 @@ class Cluster < ActiveRecord::Base
   validate :must_have_at_least_one_cloak
   validate :must_match_tpm_configuration
 
-  before_save :synchronize_in_local_mode
+  after_save :synchronize_in_local_mode
   before_destroy :verify_can_destroy
   after_destroy :remove_state
 
@@ -163,7 +163,10 @@ class Cluster < ActiveRecord::Base
 
   def status= raw_status
     self.status_value = status_mappings[raw_status]
-    self.status_description = "" if raw_status == :active
+    if raw_status == :active
+      self.status_description = ""
+      connection.execute "NOTIFY cluster_active, '#{id}'"
+    end
   end
 
   def status
