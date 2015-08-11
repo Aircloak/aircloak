@@ -39,7 +39,8 @@ authorization do
       :infrastructure_api_audit_logs,
       :infrastructure_api_build_progress,
       :infrastructure_api_machines,
-      :infrastructure_api_clusters
+      :infrastructure_api_clusters,
+      :infrastructure_api_integration_tests
     ], to: :anon_write
     has_permission_on :infrastructure_api_test_results, to: :create
     has_permission_on :infrastructure_api_repeated_answers, to: :create
