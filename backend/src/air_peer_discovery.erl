@@ -89,7 +89,7 @@ code_change(_, State, _) -> {ok, State}.
 
 poll_peers(Caller) ->
   Peers = [Peer ||
-    {_Sha, Json} <- air_etcd:ls("/services/backends"),
+    {_Key, Json} <- air_etcd:ls("/services/backends"),
     {struct, Data} <- [mochijson2:decode(Json)],
     {<<"erlang_node">>, NodeStr} <- Data,
     Peer <- [binary_to_atom(NodeStr, latin1)],
