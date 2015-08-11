@@ -73,6 +73,13 @@ class Cluster < ActiveRecord::Base
     cloaks.map(&:id)
   end
 
+  def initiate_destroy!
+    assign_cloaks []
+    log_alteration "Destroyed."
+    mark_as_changed
+    save
+  end
+
   def assign_cloaks new_cloaks
     if ! verify_cloaks_match new_cloaks then
       return false
