@@ -147,22 +147,6 @@ transform_table_data(TableName, TableData) ->
       Row <- Rows]
   }.
 
-to_prefetch_form(TableSpecs) ->
-  [translate_table_spec(TableSpec) || TableSpec <- TableSpecs].
-
-translate_table_spec({TableName, TableSpec}) ->
-  {
-    TableName,
-    [<<"ac_user_id">>],
-    proplists:get_value(<<"columns">>, TableSpec),
-    translate_data(proplists:get_value(<<"data">>, TableSpec))
-  }.
-
-translate_data(Users) ->
-  lists:flatten([translate_user(User) || User <- Users]).
-
-translate_user({User, Rows}) -> [{[User], Row} || Row <- Rows].
-
 
 %% -------------------------------------------------------------------
 %% Tests

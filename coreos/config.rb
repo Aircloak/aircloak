@@ -1,5 +1,5 @@
 # Size of the CoreOS cluster created by Vagrant
-$num_instances=1
+$num_instances=3
 
 # Used to fetch a new discovery token for a cluster of size $num_instances
 $new_discovery_url="https://discovery.etcd.io/new?size=#{$num_instances}"
@@ -36,7 +36,7 @@ end
 # Change basename of the VM
 # The default value is "core", which results in VMs named starting with
 # "core-01" through to "core-${num_instances}".
-#$instance_name_prefix="core"
+$instance_name_prefix="air"
 
 # Change the version of CoreOS to be installed
 # To deploy a specific version, simply set $image_version accordingly.
@@ -68,7 +68,7 @@ $update_channel='stable'
 
 # Customize VMs
 #$vm_gui = false
-#$vm_memory = 1024
+$vm_memory = 768
 #$vm_cpus = 1
 
 # Share additional folders to the CoreOS VMs

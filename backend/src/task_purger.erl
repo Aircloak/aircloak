@@ -64,6 +64,7 @@ handle_call(Message, From, _State) ->
 
 %% @hidden
 handle_cast(run, State) ->
+  ?INFO("Purging results of deleted tasks"),
   purge_tasks_results(),
   {noreply, State};
 handle_cast(Message, _State) ->

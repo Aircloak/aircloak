@@ -1,5 +1,7 @@
 -module(request_proxy).
 
+-include("air.hrl").
+
 -export([
   forward_request/1
 ]).
@@ -22,13 +24,13 @@ forward_request(IncomingRequest) ->
     StringifiedExisitingHeaders
   ],
   ProxyRequest = {Url, Headers},
-  lager:info("Proxying requst: ~p", [Url]),
+  ?INFO("Proxying requst: ~p", [Url]),
   case httpc:request(get, ProxyRequest, [], []) of
     {ok, {_, _Headers, RawBody}} ->
-      lager:debug("Received proxy response: ~p", [RawBody]),
+      ?DEBUG("Received proxy response: ~p", [RawBody]),
       try {ok, mochijson2:decode(RawBody)} catch error:_Reason -> {error, decoding_error} end;
     {error, Reason} ->
-      lager:error("Backend proxy failed with reason: ~p", [Reason]),
+      ?ERROR("Backend proxy failed with reason: ~p", [Reason]),
       {error, failed_connect}
   end.
 

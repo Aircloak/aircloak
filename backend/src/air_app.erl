@@ -17,6 +17,7 @@
 
 %% @hidden
 start(_StartType, _StartArgs) ->
+  ?INFO("Starting ~p", [node()]),
   air:load_cloak_config(),
   case air_sup:start_link() of
     {ok, Pid} ->

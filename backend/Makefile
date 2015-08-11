@@ -53,6 +53,12 @@ rel: all apps/air
 start: app
 	./run_local_node.sh 1
 
+start2: app
+	./run_local_node.sh 2
+
+start3: app
+	./run_local_node.sh 3
+
 relclean:
 	rm -rf rel/air
 
@@ -110,7 +116,7 @@ rebuild-plt:
 	$(MAKE) $(DEPSOLVER_PLT)
 
 dialyzer: $(DEPSOLVER_PLT)
-	@if [ ! -f $(BASE_PLT) ]; then dialyzer --build_plt --apps erts kernel stdlib --output_plt $(BASE_PLT); fi
+	@if [ ! -f $(BASE_PLT) ]; then dialyzer --build_plt --apps erts kernel stdlib inets --output_plt $(BASE_PLT); fi
 	@if [ -z "$$REBAR_PLT_DIR" ]; then echo "no kerl?  panic!"; exit 1; fi
 	@echo "WARNING: protobuf output included in PLT!"
 	dialyzer \

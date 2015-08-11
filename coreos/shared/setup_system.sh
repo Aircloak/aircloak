@@ -11,7 +11,7 @@ function setup_folder_structure {
   rsync -arp /tmp/shared/air /aircloak/
 
   # Create start/stop scripts
-  env="REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001"
+  env="REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001 AIR_HOST_NAME=$COREOS_PUBLIC_IPV4 EXPORT_BEAM_PORTS=true"
   echo "$env /aircloak/air/backend/container.sh foreground" > /aircloak/air/backend_start.sh
   chmod +x /aircloak/air/backend_start.sh
 
@@ -26,8 +26,14 @@ function setup_folder_structure {
   chmod +x /aircloak/air/frontend_stop.sh
 }
 
+. /etc/environment
+setup_folder_structure
+
+
+cat <<EOF > /aircloak/air/pull_images.sh
+
 function pull_docker_image {
-  echo "Pulling image $1..."
+  echo "\$(hostname): pulling image \$1..."
 
   # This monstrosity takes care of some inexplicable timeouts that occur while pulling from
   # the docker registry. Here, we simply retry for some magical number of times. Since pulling
@@ -35,20 +41,17 @@ function pull_docker_image {
   #
   # The output is suppressed, because it's very noisy. Notice how only in the last attempt
   # the stderr output is let through. This allows us to print the error if pulling failed.
-  docker pull $1 > /dev/null 2>&1 ||
-  docker pull $1 > /dev/null 2>&1 ||
-  docker pull $1 > /dev/null 2>&1 ||
-  docker pull $1 > /dev/null 2>&1 ||
-  docker pull $1 > /dev/null
+  docker pull \$1 > /dev/null 2>&1 ||
+  docker pull \$1 > /dev/null 2>&1 ||
+  docker pull \$1 > /dev/null 2>&1 ||
+  docker pull \$1 > /dev/null 2>&1 ||
+  docker pull \$1 > /dev/null
+
+  echo "\$(hostname): pulled image \$1"
 }
 
-function pull_images {
-  echo "Pulling docker images, this may take a while..."
-  pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_backend:latest
-  pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_frontend:latest
-}
+pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_backend:latest
+pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_frontend:latest
+EOF
 
-setup_folder_structure
-pull_images
-/aircloak/air/etcd/config_coreos.sh
-/aircloak/air/start_system.sh
+chmod +x /aircloak/air/pull_images.sh

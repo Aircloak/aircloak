@@ -60,6 +60,17 @@ else
     fi
 fi
 
+if [ ! -e "/tmp/air_vm.args" ]; then
+    if [ -z "$AIR_HOST_NAME" ]; then
+        AIR_HOST_NAME="127.0.0.1"
+    fi
+    echo "Host name: $AIR_HOST_NAME"
+    cat "$VMARGS_PATH" | sed "s/127.0.0.1/$AIR_HOST_NAME/g" > /tmp/air_vm.args
+else
+    echo "Using existing /tmp/air_vm.args"
+fi
+VMARGS_PATH=/tmp/air_vm.args
+
 RUNNER_LOG_DIR=$USE_DIR/log
 # Make sure log directory exists
 mkdir -p $RUNNER_LOG_DIR

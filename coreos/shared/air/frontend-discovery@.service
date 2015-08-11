@@ -1,0 +1,12 @@
+[Unit]
+Description=Frontend discovery service
+BindsTo=frontend@%i.service
+
+[Service]
+EnvironmentFile=/etc/environment
+ExecStart=/bin/bash -c "while true; do etcdctl set /services/frontends/${COREOS_PUBLIC_IPV4}_8080 '{\"http_endpoint\":\"http://'$COREOS_PUBLIC_IPV4':8080\"}' --ttl 60;sleep 45;done"
+ExecStop=/usr/bin/etcdctl rm /services/frontends/${COREOS_PUBLIC_IPV4}_8080
+EnvironmentFile=/etc/environment
+
+[X-Fleet]
+MachineOf=frontend@%i.service

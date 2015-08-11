@@ -20,6 +20,7 @@
   to_html/2
 ]).
 
+-include("air.hrl").
 -include_lib("webmachine/include/webmachine.hrl").
 
 
@@ -56,10 +57,10 @@ db_check_output() ->
   try air_db:call(fun(C) -> pgsql_connection:simple_query("SELECT true", C) end) of
     {{select, 1}, [{true}]} -> true;
     Response ->
-      lager:error("DB check FAILED. Got unexpected response: ~p", [Response]),
+      ?ERROR("DB check FAILED. Got unexpected response: ~p", [Response]),
       false
   catch
     ProblemType:Reason ->
-      lager:critical("DB check FAILED critically. Problem:: ~p:~p", [ProblemType, Reason]),
+      ?CRITICAL("DB check FAILED critically. Problem:: ~p:~p", [ProblemType, Reason]),
       false
   end.

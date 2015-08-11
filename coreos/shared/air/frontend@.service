@@ -10,4 +10,4 @@ ExecStop=/aircloak/air/frontend_stop.sh
 EnvironmentFile=/etc/environment
 
 [X-Fleet]
-Global=true
+Conflicts=frontend@*.service
