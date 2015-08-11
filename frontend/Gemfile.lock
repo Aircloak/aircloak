@@ -94,7 +94,6 @@ GEM
       activesupport (>= 3.2)
       request_store (~> 1.0)
       scrypt (>= 1.2, < 3.0)
-    bcrypt-ruby (3.0.1)
     beefcake (1.1.0)
     better_errors (2.1.1)
       coderay (>= 1.0.0)
@@ -314,7 +313,6 @@ PLATFORMS
 
 DEPENDENCIES
   authlogic
-  bcrypt-ruby (~> 3.0.0)
   beefcake
   better_errors
   binding_of_caller

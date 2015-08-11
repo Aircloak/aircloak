@@ -11,7 +11,11 @@ class User < ActiveRecord::Base
   before_destroy :remove_tracked_activity
 
   acts_as_authentic do |c|
-    crypto_provider = Authlogic::CryptoProviders::BCrypt
+    # The crypto provider was previously misconfigured, and therefore
+    # defaulted to Sha512. We now migrate to SCrypt, which is the new
+    # standard hashing provider coming with authlogic
+    c.transition_from_crypto_providers = [Authlogic::CryptoProviders::Sha512]
+    c.crypto_provider = Authlogic::CryptoProviders::SCrypt
   end
 
   def attempt_to_make_a_human_name_from_login
