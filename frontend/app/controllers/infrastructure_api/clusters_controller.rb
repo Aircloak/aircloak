@@ -18,7 +18,7 @@ class InfrastructureApi::ClustersController < ApplicationController
     end
     ClusterMailer.status_mail(cluster, cs).deliver unless cluster.name =~ /^test-/
     if cs.status == ClusterStatusPB::Status::ACTIVE
-      cluster.check_capabilities 
+      cluster.check_capabilities
       cluster.last_active = Time.now
     end
     cluster.save
