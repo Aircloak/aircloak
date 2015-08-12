@@ -38,4 +38,5 @@ stop(_State) ->
 start_cron_jobs() ->
   cluster_cron:init(),
   task_purger:setup_cron(),
+  integration_tests:setup_cron(),
   ok.
