@@ -42,7 +42,7 @@ class Cluster < ActiveRecord::Base
     some_cluster_cloak = ready_cluster_cloak
     return nil if some_cluster_cloak.nil?
     if Conf.get("/settings/rails/global") == "true"
-      some_cluster_cloak.cloak.aircloak_domain
+      some_cluster_cloak.cloak.internal_domain
     else
       some_cluster_cloak.cloak.ip
     end
