@@ -11,17 +11,18 @@ class UserTable < ActiveRecord::Base
   end
 
   def self.from_params analyst_id, params
-    existing_table = UserTable.where(table_name: params[:table_name], deleted: true, analyst_id: analyst_id).first
+    existing_table = UserTable.where(table_name: params[:table_name], deleted: true,
+                                     analyst_id: analyst_id, cluster_id: params[:cluster_id]).first
     table = if existing_table
       existing_table.deleted = false
       existing_table.pending_delete = false
       existing_table
     else
-      UserTable.new(analyst_id: analyst_id)
+      new_table = UserTable.new(analyst_id: analyst_id)
+      new_table.cluster = Cluster.find params[:cluster_id]
+      new_table.table_name = params[:table_name]
+      new_table
     end
-
-    table.cluster = Cluster.find params[:cluster_id] unless table.cluster
-    table.table_name = params[:table_name] unless table.table_name
 
     table
   end
