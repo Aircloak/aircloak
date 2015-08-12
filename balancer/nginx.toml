@@ -8,7 +8,7 @@ dest = "/etc/nginx/conf.d/balancer.conf"
 
 # The etcd keys or directory to watch.  This is where the information to fill in
 # the template will come from.
-keys = [ "/services/frontends" ]
+keys = [ "/services/frontends", "/services/backends" ]
 
 # File ownership and mode information
 owner = "root"
