@@ -1,0 +1,4 @@
+= content_for(:javascript_include) {javascript_include_tag "integration_test_results", "data-turbolinks-track" => true}
+
+%h3= test.name
+%svg#integration_test{data: {results: test.results}, width: "800px", height: "400px"}

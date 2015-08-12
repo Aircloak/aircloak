@@ -7,6 +7,6 @@ class IntegrationTest < ActiveRecord::Base
   end
 
   def results
-    integration_test_results
+    integration_test_results.map(&:json_result).to_json
   end
 end
