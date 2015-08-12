@@ -50,6 +50,7 @@ private
     analysts = analysts_from_params
     if @cluster.assign_analysts(analysts) && @cluster.assign_cloaks(cloaks) && @cluster.update_params(cluster_params) then
       @cluster.mark_as_changed
+      @cluster.save!
       redirect_to clusters_path, notice: msg
     else
       render action: action
