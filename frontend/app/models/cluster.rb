@@ -234,8 +234,8 @@ class Cluster < ActiveRecord::Base
     arguments = {
       method: :get,
       url: url,
-      timeout: 0.3,
-      open_timeout: 0.2
+      timeout: 2,
+      open_timeout: 1
     }
     if Conf.get("/settings/rails/global") == "true"
       arguments.merge!({
