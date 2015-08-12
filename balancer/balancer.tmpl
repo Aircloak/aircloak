@@ -22,4 +22,8 @@ server {
   location /backend {
     proxy_pass http://backend/backend/;
   }
+
+  location /air_sandbox {
+    proxy_pass http://backend/;
+  }
 }

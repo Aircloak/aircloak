@@ -85,7 +85,7 @@ cluster_exec "fleetctl destroy balancer@.service frontend-discovery@.service fro
 
 # configure etcd
 cluster_exec "
-      export DB_SERVER_URL=\"$COREOS_HOST_IP\" AIRPUB_URL=\"$COREOS_HOST_IP:1080\" &&
+      export DB_SERVER_URL=\"$COREOS_HOST_IP\" AIRPUB_URL=\"$COREOS_HOST_IP:1080\" AIR_ENDPOINT=\"$COREOS_HOST_IP:8999\" &&
       /aircloak/air/etcd/config_coreos.sh
     "
 
