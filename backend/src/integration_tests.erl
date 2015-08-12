@@ -82,7 +82,7 @@
 -spec test_full_cluster() -> ok | error.
 test_full_cluster() ->
   lager:info("Starting full cluster integration test"),
-  {TestResult, _FinalState} = while_ok(init_state(), [
+  {TestResult, FinalState} = while_ok(init_state(), [
         get_analyst_id,
         create_build,
         create_cluster,
@@ -91,7 +91,30 @@ test_full_cluster() ->
         run_task
       ]),
   flush_messages(),
-  TestResult.
+  %% Send test results to rails for performance recordings
+  TestIdentifier = <<"full_cluster_integration_test">>,
+  RailsRequest = [
+    {<<"action">>, <<"add_test_result">>},
+    {<<"identifier">>, TestIdentifier}
+  ],
+  Success = TestResult == ok,
+  ResultStructure = [
+    {<<"timings">>, [
+      [{cloak_util:binarify(Step), Time} || {Step, Time} <- FinalState#state.timings]
+    ]},
+    {<<"success">>, Success}
+  ],
+  FinalRailsRequest = [
+    {<<"result">>, list_to_binary(mochijson2:encode(ResultStructure))} |
+    RailsRequest
+  ],
+  flush_messages(),
+  case rails_request(FinalRailsRequest, FinalState) of
+    {ok, _Response} -> ok;
+    {error, Reason, _State} ->
+      lager:error("Failed at sending test results to frontend: ~p", [Reason]),
+      error
+  end.
 
 
 %% -------------------------------------------------------------------
