@@ -29,7 +29,9 @@ class ClusterCloak < ActiveRecord::Base
       destroy
       if temp_cluster.cloaks.count == 0
         # This is used by the integration tests to know when to move on
-        connection.execute "NOTIFY cluster_destroyed, '#{temp_cluster.id}'"
+        ActiveRecord::Base.connection_pool.with_connection do |connection|
+          connection.execute "NOTIFY cluster_destroyed, '#{temp_cluster.id}'"
+        end
         temp_cluster.destroy
       end
     end

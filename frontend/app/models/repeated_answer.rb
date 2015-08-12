@@ -75,6 +75,8 @@ class RepeatedAnswer < ActiveRecord::Base
   # before we destroyed reports along with the analysts.
   def self.remove_orphaned_reports
     sql = "DELETE FROM repeated_answers WHERE analyst_id not in (SELECT id from analysts)"
-    ActiveRecord::Base.connection.execute(sql)
+    ActiveRecord::Base.connection_pool.with_connection do |connection|
+      connection.execute(sql)
+    end
   end
 end

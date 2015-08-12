@@ -165,7 +165,9 @@ class Cluster < ActiveRecord::Base
     self.status_value = status_mappings[raw_status]
     if raw_status == :active
       self.status_description = ""
-      connection.execute "NOTIFY cluster_active, '#{id}'"
+      ActiveRecord::Base.connection_pool.with_connection do |connection|
+        connection.execute "NOTIFY cluster_active, '#{id}'"
+      end
     end
   end
 
