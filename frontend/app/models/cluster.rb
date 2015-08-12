@@ -231,8 +231,18 @@ class Cluster < ActiveRecord::Base
     protocol = Conf.get("/service/cloak/protocol")
     port = Conf.get("/service/cloak/port")
     url = "#{protocol}://#{address_of_a_ready_cloak}:#{port}/capabilities"
-    RestClient::Request.execute(method: :get, url: url, timeout: 0.3,
-        open_timeout: 0.2, ssl_ca_file: "/aircloak/ca/cloaks_root.crt") do |response, request, result, &block|
+    arguments = {
+      method: :get,
+      url: url,
+      timeout: 0.3,
+      open_timeout: 0.2
+    }
+    if Conf.get("/settings/rails/global") == "true"
+      arguments.merge!({
+            ssl_ca_file: "/aircloak/ca/cloaks_root.crt"
+          })
+    end
+    RestClient::Request.execute(arguments) do |response, request, result, &block|
       case response.code
       when 200
         json = JSON.parse response

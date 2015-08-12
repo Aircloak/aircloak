@@ -22,13 +22,20 @@ class JsonSender
     args << body if [:post, :put].include?(method)
     args << headers
 
+    parameters = {}
+    if Conf.get("/settings/rails/global") == "true"
+      parameters.merge!({
+            ssl_client_cert: ssl_cert,
+            ssl_client_key: ssl_key,
+            ssl_ca_file: "/aircloak/ca/cloaks_root.crt"
+          })
+    end
+
     # The &block suppresses errors thrown when non-successful status codes
     # are returned by the cloak to indicate that the migration failed.
     raw_result = RestClient::Resource.new(
       url,
-      ssl_client_cert: ssl_cert,
-      ssl_client_key: ssl_key,
-      ssl_ca_file: "/aircloak/ca/cloaks_root.crt"
+      parameters
     ).public_send(method, *args) do |resp, req, result, &block|
       resp
     end
