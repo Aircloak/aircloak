@@ -44,7 +44,7 @@ init(_) ->
   Node = atom_to_list(node()),
   [_, Host] = re:split(Node, "@", [{return, list}, {parts, 2}]),
   HttpPort = proplists:get_value(port, air_conf:get_section(web_server)),
-  HttpEndPoint = iolist_to_binary(io_lib:format("http://~s:~p", [Host, HttpPort])),
+  HttpEndPoint = iolist_to_binary(io_lib:format("~s:~p", [Host, HttpPort])),
   Data = iolist_to_binary(mochijson2:encode([
         {http_endpoint, HttpEndPoint},
         {erlang_node, iolist_to_binary(Node)}
