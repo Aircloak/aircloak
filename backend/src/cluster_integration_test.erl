@@ -10,11 +10,11 @@
 %%      These performance metrics allow us to evaluate what our system
 %%      performance is like, and to what extent it improves or worsens
 %%      over time.
--module(integration_tests).
+-module(cluster_integration_test).
 
 %% API
 -export([
-  test_full_cluster/0
+  run/0
 ]).
 
 %% Internal API needed by the maybe-monad style
@@ -79,8 +79,8 @@
 %%
 %%  This is quite an exhaustive and slow test. It is therefore
 %%  only scheduled to run once a week during the weekend.
--spec test_full_cluster() -> ok | error.
-test_full_cluster() ->
+-spec run() -> ok | error.
+run() ->
   lager:info("Starting full cluster integration test"),
   {TestResult, FinalState} = while_ok(init_state(), [
         get_analyst_id,
