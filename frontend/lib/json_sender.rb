@@ -15,7 +15,7 @@ class JsonSender
 
     protocol = Conf.get("/service/cloak/protocol")
     port = Conf.get("/service/cloak/port")
-    url = "#{protocol}://#{cluster.ip_of_a_ready_cloak}:#{port}/#{path}"
+    url = "#{protocol}://#{cluster.address_of_a_ready_cloak}:#{port}/#{path}"
     headers = {analyst: analyst.id, :content_type => 'application/json'}.merge(headers)
 
     args = []
