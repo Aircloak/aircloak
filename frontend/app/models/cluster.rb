@@ -237,11 +237,7 @@ class Cluster < ActiveRecord::Base
       timeout: 2,
       open_timeout: 1
     }
-    if Conf.get("/settings/rails/global") == "true"
-      arguments.merge!({
-            ssl_ca_file: "/aircloak/ca/cloaks_root.crt"
-          })
-    end
+    arguments[:ssl_ca_file] = "/aircloak/ca/cloaks_root.crt" if Conf.get("/settings/rails/global") == "true"
     RestClient::Request.execute(arguments) do |response, request, result, &block|
       case response.code
       when 200
