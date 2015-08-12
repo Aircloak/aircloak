@@ -27,7 +27,8 @@ class JsonSender
     raw_result = RestClient::Resource.new(
       url,
       ssl_client_cert: ssl_cert,
-      ssl_client_key: ssl_key
+      ssl_client_key: ssl_key,
+      ssl_ca_file: "/aircloak/ca/cloak_ca.pem"
     ).public_send(method, *args) do |resp, req, result, &block|
       resp
     end

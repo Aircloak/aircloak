@@ -231,7 +231,8 @@ class Cluster < ActiveRecord::Base
       port = Conf.get("/service/cloak/port")
       "#{protocol}://#{ip_of_a_ready_cloak}:#{port}/capabilities"
     end
-    RestClient::Request.execute(method: :get, url: url, timeout: 0.3, open_timeout: 0.2) do |response, request, result, &block|
+    RestClient::Request.execute(method: :get, url: url, timeout: 0.3,
+        open_timeout: 0.2, ssl_ca_file: "/aircloak/ca/cloak_ca.pem") do |response, request, result, &block|
       case response.code
       when 200
         json = JSON.parse response
