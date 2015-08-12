@@ -232,7 +232,7 @@ class Cluster < ActiveRecord::Base
       "#{protocol}://#{ip_of_a_ready_cloak}:#{port}/capabilities"
     end
     RestClient::Request.execute(method: :get, url: url, timeout: 0.3,
-        open_timeout: 0.2, ssl_ca_file: "/aircloak/ca/cloak_ca.pem") do |response, request, result, &block|
+        open_timeout: 0.2, ssl_ca_file: "/aircloak/ca/cloaks_root.crt") do |response, request, result, &block|
       case response.code
       when 200
         json = JSON.parse response
