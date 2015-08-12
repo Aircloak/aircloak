@@ -18,6 +18,37 @@ function destroy_service {
   cluster_exec "fleetctl stop $1 || true; fleetctl destroy $1 || true"
 }
 
+function create_local_balancer_nginx_config {
+  echo "
+worker_processes  1;
+daemon off;
+error_log /dev/stdout info;
+
+events {
+  worker_connections 1024;
+}
+
+http {
+  access_log /dev/stdout;
+  upstream air_balancer {"
+
+  for machine_num in $(seq 1 $1); do
+    # IP addresses are predetermined in the Vagrantfile
+    ip_address="172.17.8.$((100 + $machine_num))"
+    echo "    server $ip_address:8200;"
+  done
+
+  echo "  }
+  server {
+    listen 8999;
+
+    location / {
+      proxy_pass http://air_balancer;
+    }
+  }
+}"
+}
+
 
 if [ -z $COREOS_HOST_IP ]; then
   echo "
@@ -64,3 +95,8 @@ cluster_exec "fleetctl start backend@$service_indices"
 cluster_exec "fleetctl start frontend@$service_indices"
 cluster_exec "fleetctl start frontend-discovery@$service_indices"
 cluster_exec "fleetctl start balancer@$service_indices"
+
+# start local nginx
+create_local_balancer_nginx_config $machines_num > ./local_balancer.conf
+echo "Starting local balancer. You can access the site via http://127.0.0.1:8999"
+nginx -c "$(pwd)/local_balancer.conf"
