@@ -10,7 +10,8 @@ module Aircloak
       "../etcd/etcd_lib.sh",
       "../common/docker_helper.sh",
       "../frontend/container.sh",
-      "../backend/container.sh"
+      "../backend/container.sh",
+      "../balancer/container.sh"
     ].each do |file|
       target = File.dirname(File.expand_path(file).gsub(root_path, "./shared/air"))
       FileUtils.mkdir_p(target)

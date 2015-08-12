@@ -1,0 +1,13 @@
+[Unit]
+Description=Air balancer
+After=etcd.service
+After=docker.service
+
+[Service]
+TimeoutStartSec=0
+ExecStart=/bin/bash -c /aircloak/air/balancer_start.sh
+ExecStop=/aircloak/air/balancer_stop.sh
+EnvironmentFile=/etc/environment
+
+[X-Fleet]
+Conflicts=balancer@*.service

@@ -2,6 +2,14 @@
 
 set -eo pipefail
 
+function create_helper_scripts {
+  echo "${2} /aircloak/air/${1}/container.sh foreground" > /aircloak/air/${1}_start.sh
+  chmod +x /aircloak/air/${1}_start.sh
+
+  echo "${2} /aircloak/air/${1}/container.sh stop" > /aircloak/air/${1}_stop.sh
+  chmod +x /aircloak/air/${1}_stop.sh
+}
+
 function setup_folder_structure {
   sudo mkdir -p /aircloak/air
   sudo mkdir -p /aircloak/air/frontend/log
@@ -11,19 +19,11 @@ function setup_folder_structure {
   rsync -arp /tmp/shared/air /aircloak/
 
   # Create start/stop scripts
-  env="REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001 AIR_HOST_NAME=$COREOS_PUBLIC_IPV4 EXPORT_BEAM_PORTS=true"
-  echo "$env /aircloak/air/backend/container.sh foreground" > /aircloak/air/backend_start.sh
-  chmod +x /aircloak/air/backend_start.sh
+  create_helper_scripts backend \
+    "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001 AIR_HOST_NAME=$COREOS_PUBLIC_IPV4 EXPORT_BEAM_PORTS=true"
 
-  echo "$env /aircloak/air/backend/container.sh stop" > /aircloak/air/backend_stop.sh
-  chmod +x /aircloak/air/backend_stop.sh
-
-  env="REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001"
-  echo "$env /aircloak/air/frontend/container.sh foreground" > /aircloak/air/frontend_start.sh
-  chmod +x /aircloak/air/frontend_start.sh
-
-  echo "$env /aircloak/air/frontend/container.sh stop" > /aircloak/air/frontend_stop.sh
-  chmod +x /aircloak/air/frontend_stop.sh
+  create_helper_scripts frontend "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001"
+  create_helper_scripts balancer "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001"
 }
 
 . /etc/environment
@@ -52,6 +52,7 @@ function pull_docker_image {
 
 pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_backend:latest
 pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_frontend:latest
+pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_balancer:latest
 EOF
 
 chmod +x /aircloak/air/pull_images.sh

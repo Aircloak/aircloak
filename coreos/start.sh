@@ -48,8 +48,8 @@ done
 wait
 
 # destroy all services
-destroy_service "frontend-discovery@$service_indices frontend@$service_indices backend@$service_indices"
-cluster_exec "fleetctl destroy frontend-discovery@.service frontend@.service backend@.service"
+destroy_service "balancer@$service_indices frontend-discovery@$service_indices frontend@$service_indices backend@$service_indices"
+cluster_exec "fleetctl destroy balancer@.service frontend-discovery@.service frontend@.service backend@.service"
 
 
 # configure etcd
@@ -59,7 +59,8 @@ cluster_exec "
     "
 
 # start services
-cluster_exec "fleetctl submit /aircloak/air/backend@.service /aircloak/air/frontend@.service /aircloak/air/frontend-discovery@.service"
+cluster_exec "fleetctl submit /aircloak/air/backend@.service /aircloak/air/frontend@.service /aircloak/air/frontend-discovery@.service /aircloak/air/balancer@.service"
 cluster_exec "fleetctl start backend@$service_indices"
 cluster_exec "fleetctl start frontend@$service_indices"
 cluster_exec "fleetctl start frontend-discovery@$service_indices"
+cluster_exec "fleetctl start balancer@$service_indices"
