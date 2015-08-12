@@ -12,6 +12,8 @@
 #
 #   etcd_set <path> <value>
 
+GATEWAY="127.0.0.1"
+
 etcd_set /settings/mail/smtp/address smtp.mandrillapp.com
 etcd_set /settings/mail/smtp/port 587
 etcd_set /settings/mail/smtp/username "sebastian@aircloak.com"
@@ -20,7 +22,7 @@ etcd_set /settings/mail/smtp/domain "aircloak.com"
 
 # The database settings are set once when the app launches
 # and cannot be changed without relaunching the container.
-etcd_set /settings/air/db/host 127.0.0.1
+etcd_set /settings/air/db/host ${GATEWAY}
 etcd_set /settings/air/db/port 5433
 etcd_set /settings/air/db/username air
 etcd_set /settings/air/db/password ''
@@ -43,7 +45,7 @@ etcd_set /settings/rails/global false
 etcd_set /settings/rails/task/return_protocol http
 etcd_set /settings/rails/task/return_host localhost
 etcd_set /settings/rails/task/return_port 3000
-etcd_set /settings/rails/task/publish_url http://127.0.0.1:1080/publish
+etcd_set /settings/rails/task/publish_url http://${GATEWAY}:1080/publish
 
 etcd_set /settings/rails/secrets/private_key_password "a not so secret key"
 etcd_set /settings/rails/secrets/github_oauth_token "7514ff11de609919ab6dadb2f43724cec10df436"
@@ -52,10 +54,12 @@ etcd_set /settings/rails/secrets/ca_path "../nginx"
 
 # External services
 etcd_set /service/airpub/shared_secret "well-known secret"
-etcd_set /service/airpub/subscribe_endpoint "ws://127.0.0.1:1080/subscribe/ws"
-etcd_set /service/air-sandbox/endpoint "http://127.0.0.1:11000"
-etcd_set /service/frontend/endpoint "http://127.0.0.1:3000"
+etcd_set /service/airpub/subscribe_endpoint "ws://${GATEWAY}:1080/subscribe/ws"
+etcd_set /service/air-sandbox/endpoint "http://${GATEWAY}:11000"
+etcd_set /service/frontend/endpoint "http://${GATEWAY}:3000"
 etcd_set /service/build_server/host localhost
 etcd_set /service/cloak/port 8098
 etcd_set /service/cloak/protocol http
 etcd_set /service/manny_air/host localhost
+
+etcd_set /services/frontends/${GATEWAY}_8080 "{\"http_endpoint\": \"${GATEWAY}:8080\"}"

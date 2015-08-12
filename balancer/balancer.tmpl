@@ -1,0 +1,14 @@
+upstream frontend {
+  {{ range gets "/services/frontends/*" }}
+    {{ $data := json .Value }}
+    server {{ $data.http_endpoint }};
+  {{ end }}
+}
+
+server {
+  listen 8200;
+
+  location / {
+    proxy_pass http://frontend;
+  }
+}
