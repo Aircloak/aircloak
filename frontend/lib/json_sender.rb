@@ -15,19 +15,33 @@ class JsonSender
 
     protocol = Conf.get("/service/cloak/protocol")
     port = Conf.get("/service/cloak/port")
-    url = "#{protocol}://#{cluster.ip_of_a_ready_cloak}:#{port}/#{path}"
+    url = "#{protocol}://#{cluster.address_of_a_ready_cloak}:#{port}/#{path}"
     headers = {analyst: analyst.id, :content_type => 'application/json'}.merge(headers)
 
     args = []
     args << body if [:post, :put].include?(method)
     args << headers
 
+    parameters = {}
+    if Conf.get("/settings/rails/global") == "true"
+      parameters.merge!({
+            ssl_client_cert: ssl_cert,
+            ssl_client_key: ssl_key,
+            verify_ssl: OpenSSL::SSL::VERIFY_NONE
+            # FIXME: Once we have dropped the Artemis cluster we should start
+            # doing certification validation. The Artemis cluster still has
+            # the old aircloak.net domain name in its certs.
+            # For details:
+            # https://trello.com/c/XHgYKmru/5630-enable-ssl-cert-verification-once-legacy-clusters-are-gone
+            # ssl_ca_file: "/aircloak/ca/cloaks_root.crt"
+          })
+    end
+
     # The &block suppresses errors thrown when non-successful status codes
     # are returned by the cloak to indicate that the migration failed.
     raw_result = RestClient::Resource.new(
       url,
-      ssl_client_cert: ssl_cert,
-      ssl_client_key: ssl_key
+      parameters
     ).public_send(method, *args) do |resp, req, result, &block|
       resp
     end

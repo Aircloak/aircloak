@@ -38,9 +38,14 @@ class Cluster < ActiveRecord::Base
     @has_tpm ||= cloaks.first.tpm
   end
 
-  def ip_of_a_ready_cloak
+  def address_of_a_ready_cloak
     some_cluster_cloak = ready_cluster_cloak
-    some_cluster_cloak.nil? ? nil : some_cluster_cloak.cloak.ip
+    return nil if some_cluster_cloak.nil?
+    if Conf.get("/settings/rails/global") == "true"
+      some_cluster_cloak.cloak.internal_domain
+    else
+      some_cluster_cloak.cloak.ip
+    end
   end
 
   def ready_cluster_cloak
@@ -223,15 +228,23 @@ class Cluster < ActiveRecord::Base
       logger.error "No cloak available for cluster #{name}"
       return
     end
-    url = if Conf.get("/settings/rails/global")
-      "https://#{ip_of_a_ready_cloak}/capabilities"
-    else
-      # We are running in local mode
-      protocol = Conf.get("/service/cloak/protocol")
-      port = Conf.get("/service/cloak/port")
-      "#{protocol}://#{ip_of_a_ready_cloak}:#{port}/capabilities"
-    end
-    RestClient::Request.execute(method: :get, url: url, timeout: 0.3, open_timeout: 0.2) do |response, request, result, &block|
+    protocol = Conf.get("/service/cloak/protocol")
+    port = Conf.get("/service/cloak/port")
+    url = "#{protocol}://#{address_of_a_ready_cloak}:#{port}/capabilities"
+    arguments = {
+      method: :get,
+      url: url,
+      timeout: 2,
+      open_timeout: 1
+    }
+    # FIXME: Once we have dropped the Artemis cluster we should start
+    # doing certification validation. The Artemis cluster still has
+    # the old aircloak.net domain name in its certs.
+    # For details:
+    # https://trello.com/c/XHgYKmru/5630-enable-ssl-cert-verification-once-legacy-clusters-are-gone
+    # arguments[:ssl_ca_file] = "/aircloak/ca/cloaks_root.crt" if Conf.get("/settings/rails/global") == "true"
+    arguments[:verify_ssl] = OpenSSL::SSL::VERIFY_NONE if Conf.get("/settings/rails/global") == "true"
+    RestClient::Request.execute(arguments) do |response, request, result, &block|
       case response.code
       when 200
         json = JSON.parse response
