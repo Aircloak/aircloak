@@ -30,8 +30,8 @@ etcd_set /settings/air/db/database aircloakdatabase
 
 # Whether it is a global installation, or whether it should
 # ignore costly operations involving infrastructure.
-# true is usually a good choice for local development.
-etcd_set /settings/rails/global true
+# false is a good choice for local development.
+etcd_set /settings/rails/global false
 
 etcd_set /settings/rails/task/return_protocol http
 etcd_set /settings/rails/task/return_host localhost
