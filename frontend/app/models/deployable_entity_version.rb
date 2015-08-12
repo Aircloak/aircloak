@@ -52,12 +52,12 @@ class DeployableEntityVersion < ActiveRecord::Base
     self.build_log = ""
     save
     url = "http://#{Conf.get("/service/build_server/host")}/entity/#{self.commit_id}"
-    ProtobufSender.send_delete url if Conf.get("/settings/rails/global")
+    ProtobufSender.send_delete url if Conf.get("/settings/rails/global") == "true"
   end
 
 private
   def set_message_and_author
     return if self.message and self.author
-    Gh.add_message_and_author self if Conf.get("/settings/rails/global")
+    Gh.add_message_and_author self if Conf.get("/settings/rails/global") == "true"
   end
 end
