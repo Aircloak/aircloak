@@ -271,7 +271,7 @@ private
   end
 
   def synchronize_in_local_mode
-    unless Conf.get("/settings/rails/global")
+    unless Conf.get("/settings/rails/global") == "true"
       self.status = :active
       cluster_cloaks.each {|cluster_cloak| cluster_cloak.synchronize }
     end
