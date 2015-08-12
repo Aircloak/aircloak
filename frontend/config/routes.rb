@@ -56,6 +56,7 @@ Web::Application.routes.draw do
       get 'cloak/:cloak_id', to: :cloak
     end
   end
+  resources :integration_tests
 
 
   ## ------------------------------------------------------------------

@@ -1,0 +1,8 @@
+%h1 Integration tests
+
+- if @tests.size == 0
+  %p No integration tests exist
+- else
+  %ul
+    - @tests.each do |test|
+      %li= test.name
