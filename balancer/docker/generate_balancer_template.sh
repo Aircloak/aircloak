@@ -1,14 +1,20 @@
+#!/bin/bash
+
+set -eo pipefail
+cat <<EOF > /etc/confd/templates/balancer.tmpl
 upstream frontend {
+  server $HOST_IP:8080 weight=100;
   {{ range gets "/service_instances/frontends/*" }}
-    {{ $data := json .Value }}
-    server {{ $data.http_endpoint }};
+    {{ \$data := json .Value }}
+    server {{ \$data.http_endpoint }};
   {{ end }}
 }
 
 upstream backend {
+  server $HOST_IP:11000 weight=100;
   {{ range gets "/service_instances/backends/*" }}
-    {{ $data := json .Value }}
-    server {{ $data.http_endpoint }};
+    {{ \$data := json .Value }}
+    server {{ \$data.http_endpoint }};
   {{ end }}
 }
 
@@ -27,3 +33,4 @@ server {
     proxy_pass http://backend/;
   }
 }
+EOF

@@ -14,6 +14,8 @@ HOST_IP=$(ip route get 8.8.8.8 | grep via | awk '{print $3}')
 export ETCD_HOST=${ETCD_HOST:-$HOST_IP}
 export ETCD_PORT=${ETCD_PORT:-4002}
 
+. /aircloak/balancer/docker/generate_balancer_template.sh
+
 log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."
 
 # Try to make initial configuration every 5 seconds until successful
