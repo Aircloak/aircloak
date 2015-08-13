@@ -28,9 +28,12 @@ etcd_set /settings/air/db/database aircloakdatabase
 etcd_set /settings/air/db/ssl false
 
 # Integration test settings
+# Each row we upload is 504 bytes of data.
+# With a total of roughly 10000 uploaded rows, our test
+# dataset for local development is 5MB
 etcd_set /settings/air/integration_test/cluster_size 1
 etcd_set /settings/air/integration_test/data/num_users 100
-etcd_set /settings/air/integration_test/data/mean_rows_per_user 10
+etcd_set /settings/air/integration_test/data/mean_rows_per_user 100
 
 # Whether it is a global installation, or whether it should
 # ignore costly operations involving infrastructure.
