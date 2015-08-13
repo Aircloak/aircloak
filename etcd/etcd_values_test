@@ -34,8 +34,11 @@ etcd_set /settings/air/integration_test/data/mean_rows_per_user 10
 
 # Whether it is a global installation, or whether it should
 # ignore costly operations involving infrastructure.
-# false is a good choice for local development.
-etcd_set /settings/rails/global false
+# false is a good choice for local development, whereas
+# we want it to be true for tests. The reason is that
+# we want to explicitly test the paths we are also
+# exercising in production
+etcd_set /settings/rails/global true
 
 etcd_set /settings/rails/task/return_protocol http
 etcd_set /settings/rails/task/return_host localhost
