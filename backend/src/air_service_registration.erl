@@ -49,7 +49,7 @@ init(_) ->
         {http_endpoint, HttpEndPoint},
         {erlang_node, iolist_to_binary(Node)}
       ])),
-  Key = iolist_to_binary(io_lib:format("/services/backends/~s_~p", [Host, HttpPort])),
+  Key = iolist_to_binary(io_lib:format("/service_instances/backends/~s_~p", [Host, HttpPort])),
   State = {Key, Data},
   renew_registration(State),
   {ok, State, ?RENEW_INTERVAL}.

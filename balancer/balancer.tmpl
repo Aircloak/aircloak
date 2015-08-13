@@ -1,12 +1,12 @@
 upstream frontend {
-  {{ range gets "/services/frontends/*" }}
+  {{ range gets "/service_instances/frontends/*" }}
     {{ $data := json .Value }}
     server {{ $data.http_endpoint }};
   {{ end }}
 }
 
 upstream backend {
-  {{ range gets "/services/backends/*" }}
+  {{ range gets "/service_instances/backends/*" }}
     {{ $data := json .Value }}
     server {{ $data.http_endpoint }};
   {{ end }}
