@@ -349,7 +349,7 @@ create_and_upload_data(CertData, #state{table_name=TableName}=State) ->
   NumberOfUsers = binary_to_integer(air_etcd:get("/settings/air/integration_test/data/num_users")),
   MeanRowsPerUser = binary_to_integer(air_etcd:get("/settings/air/integration_test/data/mean_rows_per_user")),
   lager:info("Number of users: ~p, mean rows per user: ~p", [NumberOfUsers, MeanRowsPerUser]),
-  UploadState = #upload_state{
+  GenericUploadState = #upload_state{
     mean_rows_per_user = MeanRowsPerUser,
     table_name = TableName,
     ssl_options = ssl_options(CertData),
@@ -361,10 +361,11 @@ create_and_upload_data(CertData, #state{table_name=TableName}=State) ->
   % for reproducible tests.
   _ = random_util:uniform(),
   random:seed({0,0,0}),
-  UploadStates = cloak_urls_and_headers(UploadState, State),
+  UploadStates = cloak_urls_and_headers(GenericUploadState, State),
+  NumberOfUsersPerUploader = round(NumberOfUsers / length(UploadStates)),
   [spawn_link(fun() ->
-        upload_data_for_user(NumberOfUsers, US, 0)
-      end) || US <- UploadStates],
+        upload_data_for_user(NumberOfUsersPerUploader, UploadState, 0)
+      end) || UploadState <- UploadStates],
   {ok, UsersUploaded} = wait_for_uploads_to_finish(length(UploadStates), 0),
   lager:info("Uploaded data for ~p users", [UsersUploaded]),
   {ok, State#state{users_uploaded=UsersUploaded}}.
