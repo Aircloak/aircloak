@@ -30,7 +30,7 @@ etcd_set /settings/air/db/ssl false
 # Whether it is a global installation, or whether it should
 # ignore costly operations involving infrastructure.
 # false is a good choice for local development.
-etcd_set /settings/rails/global false
+etcd_set /settings/rails/global true
 
 etcd_set /settings/rails/task/return_protocol http
 etcd_set /settings/rails/task/return_host localhost
