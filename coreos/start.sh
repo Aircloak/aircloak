@@ -91,10 +91,12 @@ cluster_exec "
 
 # start services
 cluster_exec "fleetctl submit /aircloak/air/backend@.service /aircloak/air/frontend@.service /aircloak/air/frontend-discovery@.service /aircloak/air/balancer@.service"
-cluster_exec "fleetctl start backend@$service_indices"
-cluster_exec "fleetctl start frontend@$service_indices"
-cluster_exec "fleetctl start frontend-discovery@$service_indices"
-cluster_exec "fleetctl start balancer@$service_indices"
+cluster_exec "fleetctl start \
+      backend@$service_indices \
+      frontend@$service_indices \
+      frontend-discovery@$service_indices \
+      balancer@$service_indices
+    "
 
 # start local nginx
 create_local_balancer_nginx_config $machines_num > ./local_balancer.conf

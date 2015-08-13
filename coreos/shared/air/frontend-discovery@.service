@@ -1,6 +1,8 @@
 [Unit]
 Description=Frontend discovery service
 BindsTo=frontend@%i.service
+After=frontend@%i.service
+Requires=frontend@%i.service
 
 [Service]
 EnvironmentFile=/etc/environment

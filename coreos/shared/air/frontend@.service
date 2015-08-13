@@ -2,6 +2,8 @@
 Description=Air frontend
 After=etcd.service
 After=docker.service
+After=backend@%i.service
+Wants=backend@%i.service
 
 [Service]
 TimeoutStartSec=0
@@ -11,3 +13,4 @@ EnvironmentFile=/etc/environment
 
 [X-Fleet]
 Conflicts=frontend@*.service
+MachineOf=backend@%i.service
