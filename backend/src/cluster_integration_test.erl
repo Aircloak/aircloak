@@ -399,10 +399,11 @@ wait_for_uploads_to_finish(N, Acc) ->
 upload_data_for_user(0, UploadState, Acc) -> UploadState#upload_state.return_pid ! {done, Acc};
 upload_data_for_user(RemainingUsers, UploadState, Acc) ->
   % Our table has the following columns:
-  % - int1 : bigint
-  % - int2 : bigint
-  % - double : double
+  % - int1 : bigint (64bit)
+  % - int2 : bigint (64bit)
+  % - double : double (64bit)
   % - text : text (480 bytes)
+  % Each row weighs in at 504 bytes
   RowsForUser = rows_for_user(UploadState#upload_state.mean_rows_per_user),
   OneIfUploaded = case RowsForUser > 0 of
     true ->

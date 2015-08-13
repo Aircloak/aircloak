@@ -28,9 +28,14 @@ etcd_set /settings/air/db/database aircloakdatabase
 etcd_set /settings/air/db/ssl true
 
 # Integration test settings
+# Each row we upload is 504 bytes of data.
+# We want a total of 100GB worth (100000000000 bytes).
+# We therefore need at the very least 198,412,699 records.
+# With an average of 800 records per user we are just above 100GB
+# in total of data.
 etcd_set /settings/air/integration_test/cluster_size 3
 etcd_set /settings/air/integration_test/data/num_users 250000
-etcd_set /settings/air/integration_test/data/mean_rows_per_user 10000
+etcd_set /settings/air/integration_test/data/mean_rows_per_user 800
 
 # Whether it is a global installation, or whether it should
 # ignore costly operations involving infrastructure.
