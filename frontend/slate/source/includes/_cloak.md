@@ -204,7 +204,6 @@ EOJSON
 wget --content-on-error \
      --output-document - \
      --method=POST \
-     --quiet \
      --certificate=<path-to-PEM-certificate> \
      --body-file=locations.json \
      --no-check-certificate \
@@ -364,7 +363,6 @@ EOJSON
 wget --content-on-error \
      --output-document - \
      --method=POST \
-     --quiet \
      --certificate=<path-to-PEM-certificate> \
      --body-file=task.json \
      --header='async_query: true' \
