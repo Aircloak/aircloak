@@ -12,7 +12,7 @@ matter.
 
 When sending a payload to a cloak, explicitly state its content-type. The cloaks will reject payloads where
 the content-type is not specified, or the type is one not supported.
-All APIs support the payload encoded as JSON. The accepted content-type for JSON is: `Content-Type: application/json`.
+All APIs support the payload encoded as JSON. The accepted content-type for JSON is `application/json`.
 
 
 ## Single user data insert
@@ -85,7 +85,7 @@ naming conventions and restrictions.
 Header           | Required | Default | Description
 ---------------- | -------- | ------- | -----------
 Content-Type     | true     |         | Both `application/json` and `application/msgpack` are supported
-Content-Encoding | false    | unzipped | Can be set to `gzip` if the payload is gzipped
+Content-Encoding | false    | raw     | Can be set to `gzip` if the payload is gzipped
 
 
 ### Payload
@@ -232,7 +232,7 @@ naming conventions and restrictions.
 Header           | Required | Default | Description
 ---------------- | -------- | ------- | -----------
 Content-Type     | true     |         | Both `application/json` and `application/msgpack` are supported
-Content-Encoding | false    | unzipped | Can be set to `gzip` if the payload is gzipped
+Content-Encoding | false    | raw     | Can be set to `gzip` if the payload is gzipped
 
 
 ### Payload
