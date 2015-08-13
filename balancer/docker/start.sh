@@ -18,6 +18,12 @@ export ETCD_PORT=${ETCD_PORT:-4002}
 
 log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."
 
+# Ensure root keys exist (equivalent of mkdir -p)
+curl -L http://$ETCD_HOST:$ETCD_PORT/v2/keys/service_instances/frontends -XPUT -d dir="true"
+curl -L http://$ETCD_HOST:$ETCD_PORT/v2/keys/service_instances/backends -XPUT -d dir="true"
+
+cp -rp /aircloak/balancer/docker/nginx.toml /etc/confd/conf.d/
+
 # Try to make initial configuration every 5 seconds until successful
 until confd -onetime -node $ETCD_HOST:$ETCD_PORT -config-file /etc/confd/conf.d/nginx.toml; do
   echo "[nginx] waiting for confd to create initial nginx configuration"

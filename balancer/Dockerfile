@@ -20,7 +20,6 @@ RUN apt-get update && apt-get install -y vim nano curl && \
 EXPOSE 8200
 
 RUN mkdir -p /etc/confd/conf.d && mkdir -p /etc/confd/templates
-COPY nginx.toml /etc/confd/conf.d/
 COPY docker $site_path/docker
 
 USER root
