@@ -18,7 +18,7 @@
 ]).
 
 %% Internal API needed by the maybe-monad style
-%% `while-ok' function.
+%% `while_ok' function.
 -export([
   get_analyst_id/1,
   create_build/1,
@@ -29,34 +29,36 @@
 ]).
 
 -record(state, {
-  db_connection,
+  db_connection :: pgsql_connection:pgsql_connection(),
 
-  analyst_id :: pos_integer(),
+  analyst_id :: undefined | pos_integer(),
 
   %% We keep a list of functions that are called
   %% at the end of the test, or when a test fails,
   %% in order to perform cleanup operations.
-  cleanup_functions = [] :: [fun(() -> ok)],
+  cleanup_functions = [] :: [fun(() -> any())],
 
   % State for build
-  build_id :: pos_integer(),
+  build_id :: undefined | pos_integer(),
 
   % State for cluster
-  cluster_id :: pos_integer(),
+  cluster_id :: undefined | pos_integer(),
   cloaks = [] :: [binary()],
 
   % State for table
-  table_id :: pos_integer(),
-  table_name :: string(),
+  table_id :: undefined | pos_integer(),
+  table_name :: undefined | string(),
 
   % State for data
-  users_uploaded :: non_neg_integer(),
+  users_uploaded :: undefined | non_neg_integer(),
 
   % Timing data
   timings = [] :: [{atom(), Seconds :: non_neg_integer()}]
 }).
 
 -type step_response() :: {ok, #state{}} | {error, any(), #state{}}.
+
+-compile([{parse_transform, lager_transform}]).
 
 
 %% -------------------------------------------------------------------
@@ -555,7 +557,6 @@ rails_request(RequestPayload, State) ->
       {error, failed_connect, State}
   end.
 
--spec listen_for(string(), #state{}) -> #state{}.
 listen_for(What, #state{db_connection=Connection}) ->
   {listen, []} = pgsql_connection:simple_query("LISTEN " ++ What, Connection),
   ok.
@@ -599,6 +600,7 @@ flush_messages() ->
       ok
   end.
 
+-spec while_ok(#state{}, [atom()]) -> {ok | error, #state{}}.
 while_ok(State, []) ->
   {ok, cleanup(State)};
 while_ok(#state{timings=Timings}=State, [Function|Functions]) ->
@@ -620,18 +622,23 @@ while_ok(#state{timings=Timings}=State, [Function|Functions]) ->
       {error, cleanup(State)}
   end.
 
+db_params() ->
+  [{async, self()} | air_db:db_config()].
+
+-spec init_state() -> #state{}.
 init_state() ->
-  DbConnectionParams = [{async, self()} | air_db:db_config()],
-  Connection = pgsql_connection:open(DbConnectionParams),
+  Connection = pgsql_connection:open(db_params()),
   Cleanup = fun() ->
-    {unlisten, []} = pgsql_connection:simple_query("UNLISTEN *", Connection),
+    pgsql_connection:simple_query("UNLISTEN *", Connection),
     pgsql_connection:close(Connection)
   end,
   add_cleanup_step(Cleanup, #state{db_connection = Connection}).
 
+-spec cleanup(#state{}) -> #state{}.
 cleanup(#state{cleanup_functions=CleanupFunctions}=State) ->
   [catch Function() || Function <- CleanupFunctions],
   State#state{cleanup_functions=[]}.
 
+-spec add_cleanup_step(fun(() -> any()), #state{}) -> #state{}.
 add_cleanup_step(Fun, #state{cleanup_functions=CleanupFunctions}=State) ->
   State#state{cleanup_functions=[Fun|CleanupFunctions]}.

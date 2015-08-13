@@ -24,6 +24,8 @@
   test :: {ModuleName :: atom(), FunctionName :: atom()}
 }).
 
+-compile([{parse_transform, lager_transform}]).
+
 
 %% -------------------------------------------------------------------
 %% API
