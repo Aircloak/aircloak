@@ -61,4 +61,4 @@ with a build from the `develop` branch, uploads 100GB of data to it, and runs a 
 In local mode the parameters are somewhat different. See `../etcd/etcd_values_dev` for details.
 
 The test is scheduled once a week for Saturday mornings.
-To manually start it manually, call `cluster_integration_test:run()` from the console.
+To start it manually, call `cluster_integration_test:run()` from the console.
