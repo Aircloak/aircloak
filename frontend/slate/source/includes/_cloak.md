@@ -10,6 +10,10 @@ API description, you are expected that you make a request to
 If you have multiple machines available in your cluster, the particular machine endpoint you use does not
 matter.
 
+When sending a payload to a cloak, explicitly state its content-type. The cloaks will reject payloads where
+the content-type is not specified, or the type is one not supported.
+All APIs support the payload encoded as JSON. The accepted content-type for JSON is `application/json`.
+
 
 ## Single user data insert
 
@@ -26,9 +30,15 @@ json_payload = <<-EOJSON
   }
 EOJSON
 
+# The cloak requires the content type of the
+# uploaded data to be explicitly stated.
+headers = {
+  "Content-Type" => "application/json"
+}
+
 api_key = RestClient.key_from_file "insert-key", "password"
 url = "https://<MACHINE-NAME>.cloak.aircloak.com/insert"
-RestClient.post url, json_payload, api_key
+RestClient.post url, json_payload, api_key, headers
 ```
 
 ```shell
@@ -50,6 +60,7 @@ wget --content-on-error \
      --certificate=<path-to-PEM-certificate> \
      --body-file=locations.json \
      --no-check-certificate \
+     --header="Content-Type: application/json" \
      https://<cloak-server>.cloak.aircloak.com/insert
 ```
 
@@ -69,16 +80,25 @@ naming conventions and restrictions.
 
 `POST /insert`
 
+#### HTTP headers
+
+Header           | Required | Default | Description
+---------------- | -------- | ------- | -----------
+Content-Type     | true     |         | Both `application/json` and `application/msgpack` are supported
+Content-Encoding | false    | raw     | Can be set to `gzip` if the payload is gzipped
+
+
 ### Payload
 
-The API endpoint expects data to be a JSON object.
+The API endpoint expects data to be a JSON object and expects the header `Content-Type: application/json` to
+be set.
 The data is expected to contain the table name as a key. The value of the key is a list of
 rows to be inserted in the database.
 Each row is a JSON object with key-value pairs, where the key is the column name, and the value,
 a JSON encoded value.
 
 The API accepts gzipped payloads. The `Content-Encoding` header should be set to `gzip` if the data is
-compressed.
+compressed (`Content-Encoding: gzip`).
 
 The examples used assume you have two tables defined with the following table structures:
 
@@ -107,6 +127,7 @@ keys for single users and want to learn more about the integration required.
 
 ```json
 {"success": true}
+{"success": false, "errors": "unknown content type"}
 {"success": false, "errors": "malformed json"}
 {"success": false, "errors": {"user-id": ["locations: id: invalid value [1] for type int4"]}}
 ```
@@ -151,9 +172,15 @@ json_payload = <<-EOJSON
   }
 EOJSON
 
+# The cloak requires the content type of the
+# uploaded data to be explicitly stated.
+headers = {
+  "Content-Type" => "application/json"
+}
+
 api_key = RestClient.key_from_file "bulk-insert-key", "password"
 url = "https://<MACHINE-NAME>.cloak.aircloak.com/bulk_insert"
-RestClient.post url, json_payload, api_key
+RestClient.post url, json_payload, api_key, headers
 ```
 
 ```shell
@@ -177,10 +204,10 @@ EOJSON
 wget --content-on-error \
      --output-document - \
      --method=POST \
-     --quiet \
      --certificate=<path-to-PEM-certificate> \
      --body-file=locations.json \
      --no-check-certificate \
+     --header="Content-Type: application/json" \
      https://<cloak-server>.cloak.aircloak.com/bulk_insert
 ```
 
@@ -200,13 +227,24 @@ naming conventions and restrictions.
 
 `POST /bulk_insert`
 
+#### HTTP headers
+
+Header           | Required | Default | Description
+---------------- | -------- | ------- | -----------
+Content-Type     | true     |         | Both `application/json` and `application/msgpack` are supported
+Content-Encoding | false    | raw     | Can be set to `gzip` if the payload is gzipped
+
+
 ### Payload
 
 When uploading data for multiple users, you upload a JSON object, where each key corresponds to the user id of
 the user you are uploading data for. The value for the user is the users data, formatted like it is described
 in the section above on how to format data for individual users.
 
-The API accepts gzipped payloads.
+The cloak expects the header `Content-Type: application/json` to be set.
+
+The API accepts gzipped payloads as well. If you gzip your payload, you also have to add the
+`Content-Encoding: gzip` header.
 
 
 ### Authentication
@@ -218,6 +256,7 @@ See the [authentication](#authentication) section for details.
 
 ```json
 {"success": true}
+{"success": false, "errors": "unknown content type"}
 {"success": false, "errors": "malformed json"}
 {"success": false, "errors": {"user-id": ["locations: id: invalid value [1] for type int4"]}}
 ```
@@ -279,10 +318,11 @@ EOJSON
 # Aircloak hosted cloak, manually issued
 # asynchronous tasks will not work!
 headers = {
-  async_query: true,
-  auth_token: "<Auth token understood by your endpoint",
-  return_url: "<Base64-encoded endpoint URL>",
-  task_id: "my-task"
+  "async_query" => true,
+  "auth_token" => "<Auth token understood by your endpoint",
+  "return_url" => "<Base64-encoded endpoint URL>",
+  "task_id" => "my-task",
+  "Content-Type" => "application/json"
 }
 
 api_key = RestClient.key_from_file "task-running-key", "password"
@@ -323,13 +363,13 @@ EOJSON
 wget --content-on-error \
      --output-document - \
      --method=POST \
-     --quiet \
      --certificate=<path-to-PEM-certificate> \
      --body-file=task.json \
      --header='async_query: true' \
      --header='auth_token: <Auth-token understood by your endpoint>' \
      --header='return_url: <Base64-encoded endpoint URL>' \
      --header='task_id: my-task' \
+     --header="Content-Type: application/json" \
      --no-check-certificate \
      https://<cloak-server>.cloak.aircloak.com/task/run
 ```
@@ -379,6 +419,7 @@ async_query      | false   | If true, the call returns immediately, and the resu
 auth_token       |         | __Required for asynchronous tasks__. The results are sent back with the HTTP header `QueryAuthToken` set to the value of the `auth_token` header
 return_url       |         | __Required for asynchronous tasks__. The url that the results are sent to. For the time being non-aircloak return urls will silently fail. __The `return_url` must be a base64 encoded string__.
 task_id          |         | __Required for asynchronous tasks__. The `task_id` is returned as part of the result payload
+Content-Type     |         | Should be set to `application/json`
 
 
 ### Payload
@@ -391,6 +432,8 @@ The post processing clause should contain a `code` section containing the lua ta
 The Lua code must be completely self-contained, and cannot rely on external function definitions
 not part of the standard Lua language. Furthermore Aircloak standard libraries as accessible when
 defining tasks in the web interface are not known to the cloak, and their usage will result in errors.
+
+The content type should be set to `application/json` with the header `Content-Type: application/json`.
 
 #### Prefetch
 
