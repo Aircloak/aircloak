@@ -120,23 +120,7 @@ private
   end
 
   def format_errors object
-    description = "Problem: #{format_hash object.errors.messages}"
-  end
-
-  def format_hash object
-    final_result = object.keys.inject([]) do |memo,key|
-      result += "#{key}: "
-      val = object[key]
-      if val.class == Hash then
-        result += format_hash val
-      elsif val.class == Array
-        result += val.join(", ")
-      else
-        result += val
-      end
-      memo.push(result)
-    end
-    final_result.join(", ")
+    description = "Problem: #{object.errors.full_messages.join(", ")}"
   end
 
   def create_table payload
