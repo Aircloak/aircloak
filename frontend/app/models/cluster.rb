@@ -41,7 +41,7 @@ class Cluster < ActiveRecord::Base
   def address_of_a_ready_cloak
     some_cluster_cloak = ready_cluster_cloak
     return nil if some_cluster_cloak.nil?
-    if Conf.get("/settings/rails/global") == "true"
+    if Conf.production_mode?
       some_cluster_cloak.cloak.internal_domain
     else
       some_cluster_cloak.cloak.ip
@@ -254,8 +254,8 @@ class Cluster < ActiveRecord::Base
     # the old aircloak.net domain name in its certs.
     # For details:
     # https://trello.com/c/XHgYKmru/5630-enable-ssl-cert-verification-once-legacy-clusters-are-gone
-    # arguments[:ssl_ca_file] = "/aircloak/ca/cloaks_root.crt" if Conf.get("/settings/rails/global") == "true"
-    arguments[:verify_ssl] = OpenSSL::SSL::VERIFY_NONE if Conf.get("/settings/rails/global") == "true"
+    # arguments[:ssl_ca_file] = "/aircloak/ca/cloaks_root.crt" if Conf.production_mode?
+    arguments[:verify_ssl] = OpenSSL::SSL::VERIFY_NONE if Conf.production_mode?
     RestClient::Request.execute(arguments) do |response, request, result, &block|
       case response.code
       when 200
@@ -296,7 +296,7 @@ private
   end
 
   def synchronize_in_local_mode
-    unless Conf.get("/settings/rails/global") == "true"
+    unless Conf.production_mode?
       self.status = :active
       cluster_cloaks.each {|cluster_cloak| cluster_cloak.synchronize }
     end

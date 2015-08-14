@@ -23,7 +23,7 @@ class JsonSender
     args << headers
 
     parameters = {}
-    if Conf.get("/settings/rails/global") == "true"
+    if Conf.production_mode?
       parameters.merge!({
             ssl_client_cert: ssl_cert,
             ssl_client_key: ssl_key,

@@ -87,7 +87,7 @@ private
   end
 
   def send_request_for_building
-    if Conf.get("/settings/rails/global") == "true"
+    if Conf.production_mode?
       BuildManager.send_build_request self
     else
       # When we develop, we fake the creation of the build,
@@ -102,9 +102,9 @@ private
   end
 
   def remove_from_buildserver
-    unless Rails.env.development?
+    if Conf.production_mode?
       url = "http://#{Conf.get("/service/build_server/host")}/build/#{self.id}"
-      ProtobufSender.send_delete url if Conf.get("/settings/rails/global") == "true"
+      ProtobufSender.send_delete(url)
     end
   end
 end
