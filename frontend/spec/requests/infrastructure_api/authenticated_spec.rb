@@ -4,6 +4,14 @@ require 'json'
 describe InfrastructureApi::AuthenticatedController do
   setup :activate_authlogic
 
+  before(:each) do
+    Analyst.delete_all
+  end
+
+  after(:all) do
+    Analyst.delete_all
+  end
+
   it "should know if user not logged in" do
     get "/infrastructure-api/authenticated"
     response.status.should eq 200
