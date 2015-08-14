@@ -53,3 +53,12 @@ When running the integration tests locally, make sure the following holds true:
 - you have `cloak-core` and `airpub` running and setup correctly
 - the frontend is running
 - you have exactly one unused local cloak that points to the locally running `cloak-core` instance
+
+### Tests
+
+Currently the only test available is the `cluster_integration_test`. It creates a 3-node cluster
+with a build from the `develop` branch, uploads 100GB of data to it, and runs a task.
+In local mode the parameters are somewhat different. See `../etcd/etcd_values_dev` for details.
+
+The test is scheduled once a week for Saturday mornings.
+To manually start it manually, call `cluster_integration_test:run()` from the console.
