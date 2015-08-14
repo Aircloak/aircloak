@@ -624,6 +624,13 @@ while_ok(#state{timings=Timings}=State, [Function|Functions]) ->
       {error, cleanup(State)}
   end.
 
+%% @hidden
+%% This function is only here to trick dialyzer.
+%% If the database connection parameters are given directly
+%% to the `pgsql_connection:open/1' command, it fails.
+%% The cause of the failure is the `{async, pid()}` option.
+%% It is unclear what is causing the problem, hence this
+%% nasty workaround.
 db_params() ->
   [{async, self()} | air_db:db_config()].
 
