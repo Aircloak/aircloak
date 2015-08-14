@@ -84,4 +84,7 @@ code_change(_, State, _) -> {ok, State}.
 %% -------------------------------------------------------------------
 
 renew_registration({Key, Data}) ->
-  {ok, #set{}} = air_etcd:set(Key, Data, ?REGISTRATION_EXPIRY_SEC).
+  case air_etcd:set(Key, Data, ?REGISTRATION_EXPIRY_SEC) of
+    {ok, #set{}} -> ok;
+    Error -> ?ERROR("Error registering the service ~p", [Error])
+  end.
