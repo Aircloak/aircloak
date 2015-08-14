@@ -209,9 +209,9 @@ create_cluster(#state{build_id=BuildId}=State) ->
       Cleanup = fun() -> destroy_cluster(StateWithCluster) end,
       CleanedState = add_cleanup_step(Cleanup, StateWithCluster),
       lager:info("Waiting for cluster ~p to be setup", [ClusterId]),
-      %% After 5 hours we give up (5 * 60 * 60s)
+      %% After 2 hours we give up (2 * 60 * 60s)
       BinaryClusterId = cloak_util:binarify(ClusterId),
-      wait_for(ListenString, 18000, fun(ReportedClusterId) ->
+      wait_for(ListenString, 7200, fun(ReportedClusterId) ->
             case ReportedClusterId =:= BinaryClusterId of
               true ->
                 lager:info("Setup of cluster ~p has completed", [ClusterId]),
