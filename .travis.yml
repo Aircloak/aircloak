@@ -1,12 +1,7 @@
 sudo: false # a requirement to get the dockerized builds
 language: erlang
 otp_release:
-   - 17.4
-   # Travis doesn't yet support 17.5.
-   # Support will land with their June update,
-   # at which point we should test using 17.5
-   # instead of 17.4
-   # - 17.5
+   - 17.5
 cache:
   directories:
   - frontend/vendor/bundle
