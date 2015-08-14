@@ -171,10 +171,13 @@ title_from_bucket(Bucket) ->
 -include("test_helper.hrl").
 
 clear_tables() ->
-  db_test_helpers:simple_query("TRUNCATE TABLE tasks"),
-  db_test_helpers:simple_query("TRUNCATE TABLE results"),
-  db_test_helpers:simple_query("TRUNCATE TABLE exception_results"),
-  db_test_helpers:simple_query("TRUNCATE TABLE analysts").
+  SQL = ["
+        TRUNCATE TABLE tasks;
+        TRUNCATE TABLE results;
+        TRUNCATE TABLE exception_results;
+        TRUNCATE TABLE analysts;
+      "],
+  db_test_helpers:simple_query(SQL).
 
 add_task_and_analyst(Token) ->
   db_test_helpers:insert_rows("analysts", ["name"], [["Test analyst"]]),
@@ -205,7 +208,7 @@ create_cells_json([Count|Rem]) ->
         ?with_processes([air_api_sup])
       ],
       [
-        {"Should have valid CSV output with empty lines where needed and errors", fun() ->
+        {timeout, 30, {"Should have valid CSV output with empty lines where needed and errors", fun() ->
           clear_tables(),
           Token = "Test-Token",
           Time1 = {{1951, 12, 12}, {10, 10, 10}},
@@ -232,9 +235,9 @@ create_cells_json([Count|Rem]) ->
           ]),
           Args = [Token, "1900/01/01 12:00:00", "2050/01/01 12:00:00"],
           mecked_backend(Args, fun() -> verifyHttp(ExpectedResponse, get_result(Token)) end)
-        end},
+        end}},
 
-        {"Should return CSV in a time range", fun() ->
+        {timeout, 30, {"Should return CSV in a time range", fun() ->
           clear_tables(),
           Token = "Test-Token",
           Time1 = {{1951, 12, 12}, {10, 10, 10}},
@@ -256,7 +259,7 @@ create_cells_json([Count|Rem]) ->
                 verifyHttp(ExpectedResponse, get_result(Token,
                     "begin_date=1957%2F01%2F01+12%3A00%3A00&end_date=1959%2F01%2F01+12%3A00%3A00"))
               end)
-        end}
+        end}}
       ]
     ).
 

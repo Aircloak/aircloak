@@ -1,24 +1,23 @@
+sudo: false # a requirement to get the dockerized builds
 language: erlang
 otp_release:
-   - 17.4
-   # Travis doesn't yet support 17.5.
-   # Support will land with their June update,
-   # at which point we should test using 17.5
-   # instead of 17.4
-   # - 17.5
+   - 17.5
 cache:
   directories:
   - frontend/vendor/bundle
   - $HOME/air-plt
 addons:
   postgresql: "9.4"
+  apt:
+    packages:
+    - protobuf-c-compiler
+    - liblua5.1-0-dev
+    - libprotobuf-c0-dev
+    - protobuf-compiler
 before_install:
   # Check last 100 commits for valid signatures. Number 100 is chosen in a hacky
   # manner, assuming no reasonable PR will be that large.
   - git log --pretty="format:%H$t%aN$t%s$t%G?" -n 100 | grep -v "${t}G$"
-  - sudo hostname "$(hostname).local"
-  - sudo apt-get update -qq
-  - sudo apt-get install -y protobuf-c-compiler liblua5.1-0-dev libprotobuf-c0-dev protobuf-compiler
   - rvm install 2.0.0
   - curl -L  https://github.com/coreos/etcd/releases/download/v2.0.11/etcd-v2.0.11-linux-amd64.tar.gz -o etcd-v2.0.11-linux-amd64.tar.gz && tar xzvf etcd-v2.0.11-linux-amd64.tar.gz
   - etcd-v2.0.11-linux-amd64/etcd -addr 127.0.0.1:4003 &
