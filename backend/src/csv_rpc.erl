@@ -171,10 +171,13 @@ title_from_bucket(Bucket) ->
 -include("test_helper.hrl").
 
 clear_tables() ->
-  db_test_helpers:simple_query("TRUNCATE TABLE tasks"),
-  db_test_helpers:simple_query("TRUNCATE TABLE results"),
-  db_test_helpers:simple_query("TRUNCATE TABLE exception_results"),
-  db_test_helpers:simple_query("TRUNCATE TABLE analysts").
+  SQL = ["
+        TRUNCATE TABLE tasks;
+        TRUNCATE TABLE results;
+        TRUNCATE TABLE exception_results;
+        TRUNCATE TABLE analysts;
+      "],
+  db_test_helpers:simple_query(SQL).
 
 add_task_and_analyst(Token) ->
   db_test_helpers:insert_rows("analysts", ["name"], [["Test analyst"]]),
