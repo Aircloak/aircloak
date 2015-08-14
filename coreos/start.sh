@@ -42,6 +42,13 @@ http {
   server {
     listen 8999;
 
+    gzip  on;
+    gzip_disable \"MSIE [1-6]\.(?!.*SV1)\";
+    gzip_comp_level 6;
+    gzip_min_length 4096;
+    gzip_proxied any;
+    gzip_types text/plain application/json text/xml application/xml text/csv application/javascript text/css;
+
     location / {
       proxy_pass http://air_balancer;
     }
