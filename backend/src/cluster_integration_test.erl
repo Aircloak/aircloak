@@ -215,12 +215,28 @@ create_cluster(#state{build_id=BuildId}=State) ->
             case ReportedClusterId =:= BinaryClusterId of
               true ->
                 lager:info("Setup of cluster ~p has completed", [ClusterId]),
+                wait_for_ring_migration(),
                 {ok, CleanedState};
               false -> next
             end
           end, CleanedState);
     Other -> Other
   end.
+
+wait_for_ring_migration() ->
+  lager:info("Waiting for clusters to migrate"),
+  case air_etcd:get("/settings/rails/global") of
+    <<"true">> ->
+      %% The clusters wait a time (15 minutes) before checking whether
+      %% they should migrate, and then another 5 minutes to validate
+      %% that no extra node was added. We wait 30 minutes here to ensure
+      %% the cluster is in fact online and has migrated.
+      timer:sleep(timer:minutes(30));
+    _ ->
+      % Local clusters are ready immediately
+      ok
+  end,
+  lager:info("Assuming cluster has migrated successfully. Moving on").
 
 destroy_cluster(#state{cluster_id=ClusterId}=State) ->
   lager:info("Destroying test cluster ~p", [ClusterId]),
