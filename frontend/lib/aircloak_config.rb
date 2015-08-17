@@ -14,6 +14,12 @@ class Conf
     @@client.get(path).value
   end
 
+  # Utility function to avoid false negatives/positives around the
+  # /settings/rails/global key
+  def self.production_mode?
+    get("/settings/rails/global") == "true"
+  end
+
 private
   def self.setup
     return if @@setup

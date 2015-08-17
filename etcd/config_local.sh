@@ -10,3 +10,6 @@ init_env
 if [ -f local_settings/dev ]; then
   . ./local_settings/dev
 fi
+
+# The test environment values might also have changed
+./run-test-container.sh

@@ -21,19 +21,25 @@ class PendingResult < ActiveRecord::Base
   end
 
   def signal_result result
-    result_id = connection.quote result.id.to_s
-    connection.execute "NOTIFY #{channel_name}, #{result_id}"
+    ActiveRecord::Base.connection_pool.with_connection do |connection|
+      result_id = connection.quote result.id.to_s
+      connection.execute "NOTIFY #{channel_name}, #{result_id}"
+    end
   end
 
   def await_result
-    connection.execute "LISTEN #{channel_name}"
-    result = nil
-    connection.raw_connection.wait_for_notify do |channel, pid, result_id|
-      result = Result.find(result_id)
+    ActiveRecord::Base.connection_pool.with_connection do |connection|
+      begin
+        connection.execute "LISTEN #{channel_name}"
+        result = nil
+        connection.raw_connection.wait_for_notify do |channel, pid, result_id|
+          result = Result.find(result_id)
+        end
+        result
+      ensure
+        connection.execute "UNLISTEN *"
+      end
     end
-    result
-  ensure
-    connection.execute "UNLISTEN *"
   end
 
   def progress_status
@@ -51,8 +57,7 @@ class PendingResult < ActiveRecord::Base
     end
   end
 
-private
   def channel_name
-    "query_result_#{auth_token.gsub("-", "")}"
+    "query_result_#{auth_token.gsub("-", "")}".downcase
   end
 end

@@ -47,7 +47,9 @@ class AuditLog < ActiveRecord::Base
   # before we destroyed reports along with the analysts.
   def self.remove_orphaned_logs
     sql = "DELETE FROM audit_logs WHERE cloak_id not in (SELECT id from cloaks)"
-    ActiveRecord::Base.connection.execute(sql)
+    ActiveRecord::Base.connection_pool.with_connection do |connection|
+      connection.execute(sql)
+    end
   end
 
 private

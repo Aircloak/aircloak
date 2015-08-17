@@ -56,6 +56,7 @@ Web::Application.routes.draw do
       get 'cloak/:cloak_id', to: :cloak
     end
   end
+  resources :integration_tests
 
 
   ## ------------------------------------------------------------------
@@ -129,6 +130,7 @@ Web::Application.routes.draw do
   # shooting), and the progress of complete
   # builds.
   scope "/infrastructure-api", module: :infrastructure_api do
+    resources :integration_tests, only: [:create] # multiplexing all test actions
     resources :repeated_answers, only: [:create] # Used by cloak's
     resources :task_codes, only: [:create] # Used by cloak's
     resources :results, only: [:create] # Used by cloak's

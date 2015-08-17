@@ -39,7 +39,8 @@ authorization do
       :infrastructure_api_audit_logs,
       :infrastructure_api_build_progress,
       :infrastructure_api_machines,
-      :infrastructure_api_clusters
+      :infrastructure_api_clusters,
+      :infrastructure_api_integration_tests
     ], to: :anon_write
     has_permission_on :infrastructure_api_test_results, to: :create
     has_permission_on :infrastructure_api_repeated_answers, to: :create
@@ -93,7 +94,8 @@ authorization do
     has_permission_on [:airpub], to: [:index, :subscribe]
     has_permission_on [:user_tables], to: [:retry_migration, :clear]
     has_permission_on [:authorization_rules,
-                       :authorization_usages], :to => :read
+                       :authorization_usages,
+                       :integration_tests], :to => :read
     has_permission_on [:deployable_entity_versions,
                        :builds], to: [:reset, :branch_info]
     has_permission_on [:impersonation], to: [:impersonate, :stop_it]

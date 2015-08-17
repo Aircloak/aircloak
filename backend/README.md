@@ -6,6 +6,7 @@ Air backend
 - [What it does](#what-it-does)
 - [Getting started](#getting-started)
     - [Building, running and testing](#building-running-and-testing)
+    - [Integration tests](#integration-tests)
 
 ----------------------
 
@@ -41,3 +42,23 @@ LUAINCPATH=
 ```
 
 See [here](https://github.com/aircloak/cloak-core/#building-the-sandbox) for more info.
+
+## Integration tests
+
+The backend provides integration tests that are run against our full infrastructure to validate correct
+behaviour. These tests are initiated and run by `integration_tests.erl`.
+
+When running the integration tests locally, make sure the following holds true:
+
+- you have `cloak-core` and `airpub` running and setup correctly
+- the frontend is running
+- you have exactly one unused local cloak that points to the locally running `cloak-core` instance
+
+### Tests
+
+Currently the only test available is the `cluster_integration_test`. It creates a 3-node cluster
+with a build from the `develop` branch, uploads 100GB of data to it, and runs a task.
+In local mode the parameters are somewhat different. See `../etcd/etcd_values_dev` for details.
+
+The test is scheduled once a week for Saturday mornings.
+To start it manually, call `cluster_integration_test:run()` from the console.

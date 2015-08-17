@@ -2,6 +2,10 @@
   User needs login
 
 - else
+  - if current_user.admin?
+    = render partial: 'integration_tests/result', locals: {test: @main_test}
+    %hr
+
   - if current_user.analyst.nil?
     %h2 Welcome
 

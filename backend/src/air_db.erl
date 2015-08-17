@@ -3,7 +3,8 @@
 
 %% API
 -export([
-  call/1
+  call/1,
+  db_config/0
 ]).
 
 -include("air.hrl").
