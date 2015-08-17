@@ -13,7 +13,7 @@
 
 forward_request(IncomingRequest) ->
   RequestPath = wrq:disp_path(IncomingRequest),
-  Url = binary_to_list(air_etcd:get("/service/frontend/endpoint")) ++ "/" ++
+  Url = binary_to_list(air_etcd:get("/service/frontend_local")) ++ "/" ++
       RequestPath ++ query_string(IncomingRequest),
   ExistingHeaders = mochiweb_headers:to_list(wrq:req_headers(IncomingRequest)),
   StringifiedExisitingHeaders = lists:map(fun({Key, Value}) ->

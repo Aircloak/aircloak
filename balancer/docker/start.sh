@@ -7,6 +7,10 @@ function log {
   echo "[aircloak] $msg"
 }
 
+function generate_file {
+  cat $1 | sed "s/\$HOST_IP/$HOST_IP/g;" > $2
+}
+
 # Get the IP of the host. See:
 #   https://groups.google.com/forum/#!msg/coreos-dev/fnMeC4B0pSc/adYRzDDoK1wJ
 #   http://blog.famzah.net/2011/09/06/get-default-outgoing-ip-address-and-interface-on-linux/
@@ -14,7 +18,7 @@ HOST_IP=$(ip route get 8.8.8.8 | grep via | awk '{print $3}')
 export ETCD_HOST=${ETCD_HOST:-$HOST_IP}
 export ETCD_PORT=${ETCD_PORT:-4002}
 
-. /aircloak/balancer/docker/generate_balancer_template.sh
+generate_file /aircloak/balancer/docker/upstreams.tmpl /etc/confd/templates/upstreams.tmpl
 
 log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."
 
@@ -34,6 +38,10 @@ done
 # for changes every 10 seconds
 confd -interval 10 -node $ETCD_HOST:$ETCD_PORT -config-file /etc/confd/conf.d/nginx.toml &
 log "confd is now monitoring etcd for changes..."
+
+generate_file /aircloak/balancer/docker/default.conf /etc/nginx/conf.d/default.conf
+generate_file /aircloak/balancer/docker/frontend.conf /etc/nginx/conf.d/frontend.conf
+generate_file /aircloak/balancer/docker/backend.conf /etc/nginx/conf.d/backend.conf
 
 log "Starting nginx"
 exec nginx -g "daemon off;"

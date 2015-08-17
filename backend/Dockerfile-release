@@ -8,7 +8,13 @@ MAINTAINER Sebastian Probst Eide <sebastian@aircloak.com>
 RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
 COPY image_shell_init.sh /tmp/build_config/
 RUN . /tmp/build_config/image_shell_init.sh
-RUN apt-get update && apt-get install openssl liblua5.1-0 libprotobuf-c1 vim nano telnet -y
+RUN apt-get update && apt-get install openssl liblua5.1-0 libprotobuf-c1 vim nano telnet curl -y
+
+# According to many advices, we'll use gosu instead of sudo to step-down from root
+# Apparently, there are some issues with sudo inside the docker container.
+RUN . /tmp/build_config/proxies.sh && \
+  curl -o /usr/local/bin/gosu -sSL "https://github.com/tianon/gosu/releases/download/1.4/gosu-$(dpkg --print-architecture)" && \
+  chmod +x /usr/local/bin/gosu
 
 ## ------------------------------------------------------------------
 ## Create user and copy in app
@@ -30,6 +36,7 @@ COPY docker/start.sh /aircloak/
 
 RUN chown -R deployer:deployer /aircloak/app && chown -R deployer:deployer /var/run/
 
-USER deployer
+# We'll run as root, but step down in the init script to the non-privileged user
+USER root
 
 CMD /aircloak/start.sh

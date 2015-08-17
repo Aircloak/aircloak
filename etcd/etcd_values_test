@@ -51,10 +51,10 @@ etcd_set /settings/rails/secrets/secret_key_base "random-secret"
 etcd_set /settings/rails/secrets/ca_path "../nginx"
 
 # External services
+etcd_set /service/frontend_local http://frontend.local:8201
+etcd_set /service/backend_local http://backend.local:8201
 etcd_set /service/airpub/shared_secret "well-known secret"
 etcd_set /service/airpub/subscribe_endpoint ""
-etcd_set /service/air-sandbox/endpoint ""
-etcd_set /service/frontend/endpoint ""
 etcd_set /service/build_server/host ""
 etcd_set /service/cloak/port 8098
 etcd_set /service/cloak/protocol http
