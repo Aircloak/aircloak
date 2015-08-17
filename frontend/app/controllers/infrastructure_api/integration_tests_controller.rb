@@ -99,7 +99,7 @@ private
 
   def create_cluster build_id
     cluster = Cluster.new(
-      name: "integration-test-cluster. Build #{build_id}, created at #{Time.now}",
+      name: "test-integration-test-cluster. Build #{build_id}, created at #{Time.now}",
       build_id: build_id
     )
     # We need three cloaks for the test cluster
