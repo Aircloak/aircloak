@@ -11,7 +11,7 @@ function log {
 log "Starting DB"
 db/container.sh start
 
-log "Starting ECDF"
+log "Starting etcd"
 etcd/container.sh start
 
 nginx/stop_nginx.sh
