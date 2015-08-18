@@ -50,7 +50,7 @@ etcd_set /settings/rails/task/publish_url http://${GATEWAY}:1080/publish
 etcd_set /settings/rails/secrets/private_key_password "a not so secret key"
 etcd_set /settings/rails/secrets/github_oauth_token "7514ff11de609919ab6dadb2f43724cec10df436"
 etcd_set /settings/rails/secrets/secret_key_base "random-secret"
-etcd_set /settings/rails/secrets/ca_path "../nginx"
+etcd_set /settings/rails/secrets/ca_path "../balancer/dev_cert"
 
 # External services
 etcd_set /service/frontend_local http://frontend.local:8203

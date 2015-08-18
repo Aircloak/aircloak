@@ -12,7 +12,9 @@ module Aircloak
       "../frontend/container.sh",
       "../backend/container.sh",
       "../balancer/container.sh",
-      "../balancer/dev_cert/aircloak.com.chain.pem"
+      "../balancer/dev_cert/aircloak.com.chain.pem",
+      "../balancer/dev_cert/api.cert",
+      "../balancer/dev_cert/api.key"
     ].each do |file|
       target = File.dirname(File.expand_path(file).gsub(root_path, "./shared/air"))
       FileUtils.mkdir_p(target)

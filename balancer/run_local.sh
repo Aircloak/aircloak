@@ -28,13 +28,13 @@ function generate_nginx_conf {
 
   for config in $(ls -1 docker/nginx/support/*.conf); do
     cat $config \
-    | sed "s#/etc/nginx/support#$(pwd)/nginx_local/support#; s#/root/cert#$(pwd)/dev_cert#" \
+    | sed "s#/etc/nginx/support#$(pwd)/nginx_local/support#; s#/aircloak/ca#$(pwd)/dev_cert#" \
     > nginx_local/support/$(basename $config)
   done
 
   for config in $(ls -1 docker/nginx/sites/*.conf); do
     cat $config \
-    | sed "s#*:8200#*:8202#; s#*:8201#*:8203#; s#/etc/nginx/support#$(pwd)/nginx_local/support#; s#/root/cert#$(pwd)/dev_cert#" \
+    | sed "s#*:8200#*:8202#; s#*:8201#*:8203#; s#/etc/nginx/support#$(pwd)/nginx_local/support#; s#/aircloak/ca#$(pwd)/dev_cert#" \
     > nginx_local/sites/$(basename $config)
   done
 
@@ -72,6 +72,11 @@ check_etc_hosts
 nginx -c $(pwd)/nginx_local/nginx.conf
 
 echo "You can access the site at:
-  http://frontend.local:8203
-  https://frontend.local:8202
+  Frontend:
+    http://frontend.local:8203
+    https://frontend.local:8202
+
+  API:
+    http://api.local:8203
+    https://api.local:8202
 "

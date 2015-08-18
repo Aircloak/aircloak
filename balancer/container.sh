@@ -19,14 +19,14 @@ if [ "$ETCD_PORT" != "" ]; then
 fi
 
 if [ "$AIR_ENV" = "prod" ]; then
-  cert_folder="/root/cert"
+  cert_folder="/aircloak/ca"
 else
   cert_folder="$(pwd)/dev_cert"
 fi
 
 DOCKER_START_ARGS="-p 8200:8200 -p 8201:8201 \
   $docker_env \
-  -v $cert_folder:/root/cert \
+  -v $cert_folder:/aircloak/ca \
   "$REGISTRY_URL"aircloak/air_balancer:latest \
   /aircloak/balancer/docker/start.sh"
 
