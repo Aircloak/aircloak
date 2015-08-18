@@ -53,8 +53,8 @@ etcd_set /settings/rails/secrets/secret_key_base "random-secret"
 etcd_set /settings/rails/secrets/ca_path "../nginx"
 
 # External services
-etcd_set /service/frontend_local http://frontend.local:8201
-etcd_set /service/backend_local http://backend.local:8201
+etcd_set /service/frontend_local http://frontend.local:8203
+etcd_set /service/backend_local http://backend.local:8203
 etcd_set /service/airpub/shared_secret "well-known secret"
 etcd_set /service/airpub/subscribe_endpoint "ws://${GATEWAY}:1080/subscribe/ws"
 etcd_set /service/build_server/host localhost

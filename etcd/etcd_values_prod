@@ -53,8 +53,8 @@ etcd_set /settings/rails/secrets/secret_key_base ""
 etcd_set /settings/rails/secrets/ca_path "/aircloak/ca"
 
 # External services
-etcd_set /service/frontend_local http://hello.aircloak.com:8200
-etcd_set /service/backend_local http://backend.aircloak.com:8200
+etcd_set /service/frontend_local http://frontend.local:8201
+etcd_set /service/backend_local http://backend.local:8201
 etcd_set /service/airpub/shared_secret ""
 etcd_set /service/airpub/subscribe_endpoint "wss://pub.aircloak.com/subscribe/ws"
 etcd_set /service/build_server/host build.aircloak.com

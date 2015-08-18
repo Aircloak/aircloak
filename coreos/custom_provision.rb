@@ -11,7 +11,8 @@ module Aircloak
       "../common/docker_helper.sh",
       "../frontend/container.sh",
       "../backend/container.sh",
-      "../balancer/container.sh"
+      "../balancer/container.sh",
+      "../balancer/dev_cert/aircloak.com.chain.pem"
     ].each do |file|
       target = File.dirname(File.expand_path(file).gsub(root_path, "./shared/air"))
       FileUtils.mkdir_p(target)

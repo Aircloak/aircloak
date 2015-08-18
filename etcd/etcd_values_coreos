@@ -49,8 +49,8 @@ etcd_set /settings/rails/secrets/github_oauth_token "7514ff11de609919ab6dadb2f43
 etcd_set /settings/rails/secrets/secret_key_base "random-secret"
 
 # External services
-etcd_set /service/frontend_local http://frontend.local:8200
-etcd_set /service/backend_local http://backend.local:8200
+etcd_set /service/frontend_local http://frontend.local:8201
+etcd_set /service/backend_local http://backend.local:8201
 etcd_set /service/airpub/shared_secret "well-known secret"
 etcd_set /service/airpub/subscribe_endpoint "wss://$AIRPUB_URL/subscribe/ws"
 etcd_set /service/build_server/host localhost

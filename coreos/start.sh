@@ -29,7 +29,7 @@ events {
 }
 
 stream {
-  upstream air_balancer {"
+  upstream air_balancer_https {"
 
   for machine_num in $(seq 1 $1); do
     # IP addresses are predetermined in the Vagrantfile
@@ -38,9 +38,25 @@ stream {
   done
 
   echo "  }
+
+  upstream air_balancer_http {"
+
+  for machine_num in $(seq 1 $1); do
+    # IP addresses are predetermined in the Vagrantfile
+    ip_address="172.17.8.$((100 + $machine_num))"
+    echo "    server $ip_address:8201;"
+  done
+
+  echo "  }
+
+  server {
+    listen 8998;
+    proxy_pass air_balancer_https;
+  }
+
   server {
     listen 8999;
-    proxy_pass air_balancer;
+    proxy_pass air_balancer_http;
   }
 }"
 }
@@ -96,5 +112,5 @@ cluster_exec "fleetctl start \
 
 # start local nginx
 create_local_balancer_nginx_config $machines_num > ./local_balancer.conf
-echo "Starting local balancer. You can access the site via http://127.0.0.1:8999"
+echo "Starting local balancer. You can access the site via http://127.0.0.1:8999 (or 8998 for https)"
 nginx -c "$(pwd)/local_balancer.conf"

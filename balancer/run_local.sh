@@ -24,9 +24,17 @@ function generate_nginx_conf {
   rm -rf nginx_local/*
 
   mkdir -p nginx_local/sites
+  mkdir -p nginx_local/support
+
+  for config in $(ls -1 docker/nginx/support/*.conf); do
+    cat $config \
+    | sed "s#/etc/nginx/support#$(pwd)/nginx_local/support#; s#/root/cert#$(pwd)/dev_cert#" \
+    > nginx_local/support/$(basename $config)
+  done
+
   for config in $(ls -1 docker/nginx/sites/*.conf); do
     cat $config \
-    | sed 's/listen \*:8200;/listen \*:8201;/' \
+    | sed "s#*:8200#*:8202#; s#*:8201#*:8203#; s#/etc/nginx/support#$(pwd)/nginx_local/support#; s#/root/cert#$(pwd)/dev_cert#" \
     > nginx_local/sites/$(basename $config)
   done
 
@@ -63,4 +71,7 @@ check_etc_hosts
 
 nginx -c $(pwd)/nginx_local/nginx.conf
 
-echo "You can access the site at http://frontend.local:8201"
+echo "You can access the site at:
+  http://frontend.local:8203
+  https://frontend.local:8202
+"
