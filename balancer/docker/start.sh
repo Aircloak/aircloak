@@ -8,7 +8,7 @@ function log {
 }
 
 function generate_file {
-  cat $1 | sed "s/\$HOST_IP/$HOST_IP/g;" > $2
+  cat $1 |  > $2
 }
 
 # Get the IP of the host. See:
@@ -18,7 +18,9 @@ HOST_IP=$(ip route get 8.8.8.8 | grep via | awk '{print $3}')
 export ETCD_HOST=${ETCD_HOST:-$HOST_IP}
 export ETCD_PORT=${ETCD_PORT:-4002}
 
-generate_file /aircloak/balancer/docker/upstreams.tmpl /etc/confd/templates/upstreams.tmpl
+cat /aircloak/balancer/docker/nginx/sites/upstreams.tmpl \
+  | sed "s/\$HOST_IP/$HOST_IP/g;" \
+  > /etc/confd/templates/upstreams.tmpl
 
 log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."
 
@@ -39,9 +41,9 @@ done
 confd -interval 10 -node $ETCD_HOST:$ETCD_PORT -config-file /etc/confd/conf.d/nginx.toml &
 log "confd is now monitoring etcd for changes..."
 
-generate_file /aircloak/balancer/docker/default.conf /etc/nginx/conf.d/default.conf
-generate_file /aircloak/balancer/docker/frontend.conf /etc/nginx/conf.d/frontend.conf
-generate_file /aircloak/balancer/docker/backend.conf /etc/nginx/conf.d/backend.conf
+mkdir -p /etc/nginx/support
+cp -rp /aircloak/balancer/docker/nginx/support/* /etc/nginx/support
+cp -rp /aircloak/balancer/docker/nginx/sites/*.conf /etc/nginx/conf.d/
 
 log "Starting nginx"
 exec nginx -g "daemon off;"

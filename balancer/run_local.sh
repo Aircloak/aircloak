@@ -6,8 +6,8 @@ cd $(dirname $0)
 
 function upstream_contents {
   paste -d " " \
-    <(cat docker/upstreams.tmpl | grep upstream | awk '{print $2}') \
-    <(cat docker/upstreams.tmpl | grep 'server $HOST_IP:' | awk '{print $2}' | sed s/\$HOST_IP://) \
+    <(cat docker/nginx/sites/upstreams.tmpl | grep upstream | awk '{print $2}') \
+    <(cat docker/nginx/sites/upstreams.tmpl | grep 'server $HOST_IP:' | awk '{print $2}' | sed s/\$HOST_IP://) \
     | while read upstream; do
         upstream_name=$(echo $upstream | awk '{print $1}')
         forward_port=$(echo $upstream | awk '{print $2}')
@@ -19,20 +19,16 @@ EOF
       done
 }
 
-function make_site_config {
-  mkdir -p nginx_local/sites
-  cat docker/$1.conf \
-  | sed 's/listen \*:8200;/listen \*:8201;/; s/$AIR_DOMAIN/local/' \
-  > nginx_local/sites/$1.conf
-}
-
 function generate_nginx_conf {
   mkdir -p nginx_local
   rm -rf nginx_local/*
 
-  make_site_config default
-  make_site_config frontend
-  make_site_config backend
+  mkdir -p nginx_local/sites
+  for config in $(ls -1 docker/nginx/sites/*.conf); do
+    cat $config \
+    | sed 's/listen \*:8200;/listen \*:8201;/' \
+    > nginx_local/sites/$(basename $config)
+  done
 
   cat <<EOF > ./nginx_local/nginx.conf
     worker_processes  1;
