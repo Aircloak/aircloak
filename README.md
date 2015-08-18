@@ -68,7 +68,7 @@ In order to run the system you need the following components:
 - Docker 1.7 (+ boot2docker if on OS X)
 - Ruby 2.0
 - Erlang 17.5
-- Nginx
+- Nginx 1.9 built with `--with-stream` option
 - Any other package needed to build and run specific components (e.g. liblua, libprotobuf, ...)
 
 You will also need to add following to your `/etc/hosts`:

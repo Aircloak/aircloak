@@ -28,8 +28,7 @@ events {
   worker_connections 1024;
 }
 
-http {
-  access_log /dev/stdout;
+stream {
   upstream air_balancer {"
 
   for machine_num in $(seq 1 $1); do
@@ -41,17 +40,7 @@ http {
   echo "  }
   server {
     listen 8999;
-
-    gzip  on;
-    gzip_disable \"MSIE [1-6]\.(?!.*SV1)\";
-    gzip_comp_level 6;
-    gzip_min_length 4096;
-    gzip_proxied any;
-    gzip_types text/plain application/json text/xml application/xml text/csv application/javascript text/css;
-
-    location / {
-      proxy_pass http://air_balancer;
-    }
+    proxy_pass air_balancer;
   }
 }"
 }
