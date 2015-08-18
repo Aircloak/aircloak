@@ -55,7 +55,7 @@ There are two ways of running the system:
 1. Run most of the components on a localhost.
 2. Run each component inside a docker container.
 
-Regardless of the approach you take, etcd and database server are always running as docker containers.
+Regardless of the approach you take, etcd, database server, and nginx balancer are always running as docker containers.
 
 The first approach is the one you should usually use for standard development. Here you run almost everything locally (save etcd and db), which makes it simpler to develop, experiment, and test.
 
@@ -68,7 +68,15 @@ In order to run the system you need the following components:
 - Docker 1.7 (+ boot2docker if on OS X)
 - Ruby 2.0
 - Erlang 17.5
+- Nginx
 - Any other package needed to build and run specific components (e.g. liblua, libprotobuf, ...)
+
+You will also need to add following to your `/etc/hosts`:
+
+```
+127.0.0.1 backend.local
+127.0.0.1 frontend.local
+```
 
 __Linux developers__: Scripts in this project use docker in the context of the logged in user (without root
 privileges). To enable this, you need to add yourself to the `docker` group. See
@@ -76,22 +84,19 @@ privileges). To enable this, you need to add yourself to the `docker` group. See
 
 __OS X Users__: please see [here](osx_setup.md) for additional instructions.
 
+### Starting the required components
 
-### Starting etcd and database
-
-These two containers are always needed for the rest of the system.
-
-First, you need to invoke one-time building of the database image:
+First, you need to build the required docker images with following commands:
 
 ```
 $ db/build-image.sh
+$ balancer/build-image.sh
 ```
 
-To start the containers, simply run:
+Then, you can start all required components with:
 
 ```
-$ etcd/container.sh start
-$ db/container.sh start
+$ ./start_dependencies.sh
 ```
 
 __Note__: some sane default settings are provided. If you need to override them, see [here](etcd/README.md#overriding-settings).
@@ -102,14 +107,7 @@ If you want to transfer your previous data from the localhost database to the do
 
 ### Running the system on the localhost
 
-Start `etcd` and `db` containers:
-
-```
-$ etcd/container.sh start
-$ db/container.sh start
-```
-
-Make sure that all dependencies have been fetched, and that needed components (e.g. backend) have been built.
+Make sure that all dependencies have been fetched, that needed components (e.g. backend) have been built, and the required components are started (see above).
 
 Now you can start frontend and backend in the usual way:
 
@@ -118,22 +116,11 @@ web/frontend $ bundle exec rails s
 web/backend $ make start
 ```
 
-If all is well, you should be able to access the web via `localhost:3000`. If all data is migrated, you should see all clusters/cloaks (make sure to impersonate the analyst), and run tasks in the sandbox.
+If all is well, you should be able to access the web via `frontend.local:8201`. If all data is migrated, you should see all clusters/cloaks (make sure to impersonate the analyst), and run tasks in the sandbox.
 
 ### Running the system on docker containers
 
-Start `etcd` and `db` containers:
-
-```
-$ etcd/container.sh start
-$ db/container.sh start
-```
-
-Make sure that docker specific settings are configured:
-
-```
-$ etcd/config_docker.sh
-```
+Make sure that the required components are started (see above).
 
 Build images and start containers in the foreground:
 
@@ -143,9 +130,12 @@ $ backend/container.sh console
 
 $ frontend/build-image.sh
 $ frontend/container.sh console
+
+$ balancer/build-image.sh
+$ balancer/container.sh console
 ```
 
-If everything is fine, you should be able to access the web via `localhost:8080`.
+If everything is fine, you should be able to access the web via `frontend.local:8200`.
 
 ### Running the system on CoreOS (experimental)
 
