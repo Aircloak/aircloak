@@ -36,7 +36,7 @@ private
     else
       # Hardcoded test ETCD endpoint
       host = "127.0.0.1"
-      port = "4003"
+      port = "4004"
     end
 
     @@client = Etcd.client(host: host, port: port)

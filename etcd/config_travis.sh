@@ -5,7 +5,7 @@ set -e
 cd $(dirname $0)
 . ./etcd_lib.sh
 
-export ETCD_PORT=4003
+export ETCD_PORT=4004
 export HOST_IP="127.0.0.1"
 export ETCD=$HOST_IP:$ETCD_PORT
 
