@@ -134,12 +134,12 @@ function container_ctl {
 
     remsh)
       docker exec -i -t $container_name \
-        /bin/bash -c "ETCD_HOST=${ETCD_HOST:-172.17.42.1} ETCD_PORT=${ETCD_PORT:-4002} TERM=xterm /bin/bash"
+        /bin/bash -c 'ETCD_HOST=$(ip route get 8.8.8.8 | grep via | awk '"'"'{print $3}'"'"') ETCD_PORT=${ETCD_PORT:-4002} TERM=xterm /bin/bash'
       ;;
 
     remote_console)
       docker exec -i -t $container_name \
-        /bin/bash -c "ETCD_HOST=${ETCD_HOST:-172.17.42.1} ETCD_PORT=${ETCD_PORT:-4002} TERM=xterm $REMOTE_CONSOLE_COMMAND"
+        /bin/bash -c 'ETCD_HOST=$(ip route get 8.8.8.8 | grep via | awk '"'"'{print $3}'"'"') ETCD_PORT=${ETCD_PORT:-4002} TERM=xterm '"$REMOTE_CONSOLE_COMMAND"
       ;;
 
     stop)

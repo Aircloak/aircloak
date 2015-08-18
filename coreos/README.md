@@ -46,7 +46,7 @@ To get shells to the running container, you can invoke:
 
 - `/aircloak/air/frontend/container.sh remsh`
 - `/aircloak/air/backend/container.sh remsh`
-- `/aircloak/air/frontend/container.sh remote_console`
+- `ETCD_PORT=4001 /aircloak/air/frontend/container.sh remote_console`
 - `/aircloak/air/backend/container.sh remote_console`
 
 
