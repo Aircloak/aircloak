@@ -42,7 +42,7 @@ function etcd_set {
   path=$1
   value=$2
   if [ -z "$SILENT_ETCD_SET" ]; then
-    log "Setting etcd: $path = $value"
+    log "$ETCD: setting etcd: $path = $value"
   else
     log "Setting etcd: $path = XXXX"
   fi

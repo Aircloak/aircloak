@@ -19,9 +19,7 @@ This component powers the registry with Air settings, such as various urls, shar
 
 ## Running
 
-In most cases, you'll want to power your local components. In this case, simply call `etcd/container.sh start` (make sure Docker is started). This will cause previous instances of etcd to stop, and restart them again (in background). The environment will be configured for local components and locally based cloak. Moreover, another `etcd` instance will be started, which listens on port 4004 and is used by tests.
-
-If you need to run your components in docker containers, then start etcd as just described, and then call `etcd/config_docker.sh` which will change some values, so docker containers can talk to each other. If you want to revert back to local settings, just run `etcd/config_local.sh`.
+In most cases, you'll want to power your local components. In this case, simply call `etcd/container.sh start` (make sure Docker is started). This will cause previous instances of etcd to stop, and restart them again (in background). All the necessary environments will be configured. If you change some etcd values and want to reload new settings, just invoke `etcd/container.sh start` again.
 
 ## Overriding settings
 
