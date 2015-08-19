@@ -17,3 +17,13 @@ upstream backend {
 
   keepalive 16;
 }
+
+upstream aircloak {
+  server $HOST_IP:10000;
+  keepalive 16;
+}
+
+upstream aircloak_stage {
+  server $HOST_IP:10001;
+  keepalive 16;
+}
