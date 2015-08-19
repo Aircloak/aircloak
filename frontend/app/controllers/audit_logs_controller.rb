@@ -3,8 +3,8 @@ class AuditLogsController < ApplicationController
 
   def index
     @clusters = Cluster.all
-    @latest_entries = AuditLog.paginate(page: params[:page], per_page: 30, conditions: @conditions).
-        order(created_at: :desc).limit(30)
+    @latest_entries = AuditLog.where(@conditions).order(created_at: :desc).
+        paginate(page: params[:page], per_page: 30)
   end
 
   def show
@@ -13,14 +13,14 @@ class AuditLogsController < ApplicationController
 
   def cloak
     @cloak = Cloak.find params["cloak_id"]
-    @entries = @cloak.audit_logs.
-      paginate(page: params[:page], per_page: 30, conditions: @conditions).order(log_id: :desc)
+    @entries = @cloak.audit_logs.where(@conditions).order(log_id: :desc).
+        paginate(page: params[:page], per_page: 30)
   end
 
   def cluster
     @cluster = Cluster.find params["cluster_id"]
-    @entries = AuditLog.paginate(page: params[:page], per_page: 30, conditions: @conditions).
-        where(cloak_id: @cluster.cloaks.map(&:id)).order(created_at: :desc)
+    @entries = AuditLog.where(cloak_id: @cluster.cloaks.map(&:id)).where(@conditions).order(created_at: :desc).
+        paginate(page: params[:page], per_page: 30)
   end
 
 private
