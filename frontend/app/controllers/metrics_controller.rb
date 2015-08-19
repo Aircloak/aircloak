@@ -3,7 +3,7 @@ class MetricsController < ApplicationController
   protect_from_forgery :except => :event
 
   def index
-    @clusters = Cluster.all(:include => :cloaks) # eager loading to minimize number of DB queries
+    @clusters = Cluster.all.includes(:cloaks) # eager loading to minimize number of DB queries
 
     # Creates a cluster -> cloaks mapping, that will ultimately be used on the client side
     @cluster_cloaks =
