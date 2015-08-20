@@ -74,8 +74,8 @@ In order to run the system you need the following components:
 You will also need to add following to your `/etc/hosts`:
 
 ```
-127.0.0.1 backend.local
-127.0.0.1 frontend.local
+127.0.0.1 backend.air-local
+127.0.0.1 frontend.air-local
 ```
 
 __Linux developers__: Scripts in this project use docker in the context of the logged in user (without root
@@ -116,7 +116,7 @@ web/frontend $ bundle exec rails s
 web/backend $ make start
 ```
 
-If all is well, you should be able to access the web via `frontend.local:8203` (or port 8202 for https). If all data is migrated, you should see all clusters/cloaks (make sure to impersonate the analyst), and run tasks in the sandbox.
+If all is well, you should be able to access the web via `frontend.air-local:8203` (or port 8202 for https). If all data is migrated, you should see all clusters/cloaks (make sure to impersonate the analyst), and run tasks in the sandbox.
 
 ### Running the system on docker containers
 
@@ -135,7 +135,7 @@ $ balancer/build-image.sh
 $ balancer/container.sh console
 ```
 
-If everything is fine, you should be able to access the web via `frontend.local:8201` (8200 for https).
+If everything is fine, you should be able to access the web via `frontend.air-local:8201` (8200 for https).
 
 ### Running the system on CoreOS (experimental)
 

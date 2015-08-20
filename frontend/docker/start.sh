@@ -16,7 +16,7 @@ export HOST_IP=$(ip route get 8.8.8.8 | grep via | awk '{print $3}')
 export ETCD_HOST=${ETCD_HOST:-$HOST_IP}
 export ETCD_PORT=${ETCD_PORT:-4002}
 
-echo "$HOST_IP backend.local" >> /etc/hosts
+echo "$HOST_IP backend.air-local" >> /etc/hosts
 
 log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."
 

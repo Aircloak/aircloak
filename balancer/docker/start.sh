@@ -13,7 +13,7 @@ function generate_file {
 
 function generate_local_http_allows {
   if [ "$AIR_ENV" = "prod" ]; then
-    # If in production, we allow http access via *.local only to peer containers
+    # If in production, we allow http access via *.air-local only to peer containers
     # on the same host, and to localhost.
     mask=$(echo $1 | sed "s/\./ /g" | awk '{print $1"."$2"."0"."0}')
     cat <<EOF > /etc/nginx/support/local_http_allows.conf
