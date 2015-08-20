@@ -308,7 +308,7 @@ private
   end
 
   def must_have_at_least_one_cloak
-    self.errors.add :cloaks, "must have at least one cloak" unless cloaks.size > 0
+    self.errors.add :cluster, "must have at least one cloak" unless cloaks.size > 0
   end
 
   def verify_can_destroy
