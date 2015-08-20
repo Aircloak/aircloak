@@ -19,7 +19,7 @@ This component powers the registry with Air settings, such as various urls, shar
 
 ## Running
 
-In most cases, you'll want to power your local components. In this case, simply call `etcd/container.sh start` (make sure Docker is started). This will cause previous instances of etcd to stop, and restart them again (in background). All the necessary environments will be configured. If you change some etcd values and want to reload new settings, just invoke `etcd/container.sh start` again.
+All etcd instances are started automatically from `start_dependencies.sh`. If you need to apply some new settings, you can simply restart the container with `etcd/container.sh start`. This will cause previous instances of etcd to stop, and restart them again (in background).
 
 ## Overriding settings
 
@@ -35,7 +35,7 @@ If you want to override some of those settings, you can do following:
 1. Create `etcd/local_settings` folder.
 2. Depending on which environment are you configuring, in that folder create `dev`, `test`, `docker`, or `prod` file
 3. Copy whichever settings you want to override from `etcd_values_*` to corresponding file in `etcd/local_settings` and set new values.
-4. Force reload configuration (by running `etcd/config_*.sh`)
+4. Force reload configuration (by running `etcd/container.sh start`)
 
 ## Production settings
 

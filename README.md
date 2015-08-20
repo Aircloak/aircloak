@@ -39,6 +39,7 @@ The air system consists of following components:
 
 - `etcd` - Dockerized KV registry where system configuration is stored. All other components retrieve their settings from here (e.g. database settings, or addresses of other services)
 - `db` - Dockerized database server (used only for development and testing)
+- `router` - http(s) interface that routes all requests.
 - `backend` - Erlang system which implements various processes in the air system, such as background and periodic jobs.
 - `frontend` - Web user interface
 - `docker_registry` - Containerized Docker registry (needed for CoreOS)
@@ -55,7 +56,7 @@ There are two ways of running the system:
 1. Run most of the components on a localhost.
 2. Run each component inside a docker container.
 
-Regardless of the approach you take, etcd, database server, and nginx balancer are always running as docker containers.
+Regardless of the approach you take, etcd, database server, and router are always running as docker containers.
 
 The first approach is the one you should usually use for standard development. Here you run almost everything locally (save etcd and db), which makes it simpler to develop, experiment, and test.
 
@@ -68,15 +69,8 @@ In order to run the system you need the following components:
 - Docker 1.7 (+ boot2docker if on OS X)
 - Ruby 2.0
 - Erlang 17.5
-- Nginx 1.9 built with `--with-stream` option
+- Nginx 1.9.3 built with `--with-stream` option (the last requirement is needed only for CoreOS)
 - Any other package needed to build and run specific components (e.g. liblua, libprotobuf, ...)
-
-You will also need to add following to your `/etc/hosts`:
-
-```
-127.0.0.1 backend.air-local
-127.0.0.1 frontend.air-local
-```
 
 __Linux developers__: Scripts in this project use docker in the context of the logged in user (without root
 privileges). To enable this, you need to add yourself to the `docker` group. See
@@ -90,7 +84,6 @@ First, you need to build the required docker images with following commands:
 
 ```
 $ db/build-image.sh
-$ balancer/build-image.sh
 ```
 
 Then, you can start all required components with:
@@ -98,6 +91,8 @@ Then, you can start all required components with:
 ```
 $ ./start_dependencies.sh
 ```
+
+You'll need to one-time add some entries to your `/etc/hosts`. Watch the end of the output from the script for information.
 
 __Note__: some sane default settings are provided. If you need to override them, see [here](etcd/README.md#overriding-settings).
 
@@ -118,6 +113,8 @@ web/backend $ make start
 
 If all is well, you should be able to access the web via `frontend.air-local:8203` (or port 8202 for https). If all data is migrated, you should see all clusters/cloaks (make sure to impersonate the analyst), and run tasks in the sandbox.
 
+__NOTE__: the https site uses self-signed key, so you'll likely get an error in your browser, in which case you need to explicitly permit access in the browser.
+
 ### Running the system on docker containers
 
 Make sure that the required components are started (see above).
@@ -131,8 +128,8 @@ $ backend/container.sh console
 $ frontend/build-image.sh
 $ frontend/container.sh console
 
-$ balancer/build-image.sh
-$ balancer/container.sh console
+$ router/build-image.sh
+$ router/container.sh console
 ```
 
 If everything is fine, you should be able to access the web via `frontend.air-local:8201` (8200 for https).
@@ -156,43 +153,44 @@ Note that this will work only if the current branch is pushed to the origin.
 
 ## Production
 
-On the target server, the architecture of the system is as follows:
+From a standpoint, the architecture of the system is as follows:
 
 <!--- ASCII diagram made with http://asciiflow.com/ -->
 ```
-       +-----------+
-       |local nginx|
-       +-----+-----+
-             |
-             |
-             |
-+------------v------------+
-| air_frontend container  |
-|                         |
-|         +-----+         |
-|         |nginx|         |
-|         +--+--+         |
-|            |            |
-|            |            |
-|         +--v--+         |
-|         |rails+----------------------------+
-|         +--+--+         |                  |
-|            |            |                  |
-+-------------------------+                  |
-             |                     +---------v--------+
-             |                     |etcd_air container|
-             |                     +---------^--------+
-+------------v------------+                  |
-|  air_backend container  |                  |
-|                         |                  |
-|    +--------------+     |                  |
-|    |erlang release+------------------------+
-|    +--------------+     |
-|                         |
-+-------------------------+
+ http(s) requests  +------------+         +----------------------+
++------------------>TCP balancer|         |   router container   |
+                   +-----+------+         |                      |
+                         |                |       +-----+        |
+                         +------------------------>nginx|        |
+                                          |       +^-+-^+        |
+                                          |        | | |         |
+                                          +----------------------+
+                                                   | | |
+                                                   | | |
+                                                   | | |
+                   +-------------------------+     | | |     +-------------------------+
+                   | air_frontend container  |     | | |     |  air_backend container  |
+                   |                         |     | | |     |                         |
+                   |         +-----+         |     | | |     |    +--------------+     |
+                   |         |nginx<---------------+ | +---------->erlang release|     |
+                   |         +--+--+         |       |       |    +------+-------+     |
+                   |            |            |       |       |           |             |
+                   |            |            |       |       |           |             |
+                   |         +--v--+         |       |       |           |             |
+                   |         |rails|         |       |       |           |             |
+                   |         +--+--+         |       |       |           |             |
+                   |            |            |       |       |           |             |
+                   +-------------------------+       |       +-------------------------+
+                                |                    |                   |
+                                |                    |                   |
+                                |          +---------v--------+          |
+                                +---------->etcd_air container<----------+
+                                           +------------------+
+
 ```
 
-Nginx sites and rules reside at `/etc/nginx/sites-enabled/*`.
+In a cluster setting (e.g. CoreOS), TCP balancer will run outside of machines and balance the traffic between them. Until we reach that point, we are running the TCP balancer locally on the single production machine.
+
 For various configuration settings, see [here](etcd/README.md#production-settings).
 
 ### Logs
@@ -207,8 +205,8 @@ For various configuration settings, see [here](etcd/README.md#production-setting
 - Stop the system: `/etc/init.d/air stop`
 - Start the system: `/etc/init.d/air start` (stops it first, if needed)
 - Shell to the running container:
-    - `/aircloak/air/frontend/container.sh remsh`
-    - `/aircloak/air/backend/container.sh remsh`
+    - `/aircloak/air/frontend/container.sh ssh`
+    - `/aircloak/air/backend/container.sh ssh`
 - Shell to Rails/Erlang console:
     - `/aircloak/air/frontend/container.sh remote_console`
     - `/aircloak/air/backend/container.sh remote_console`
