@@ -4,16 +4,29 @@
     include ERB::Util
   end
 
-#editFilter{style: "width:750px; height: 500px"}
+#editFilter{style: "width:780px; height: 500px; overflow:auto;"}
   %div{style: "text-align:center"}
     %h3 Filter for table {{table.name}}
+
+  %div
+    %b
+      .text-error#filterError
   %br
 
-  .text-error#filterError
-
   .form-horizontal
+    =hb "if columnSelection" do
+      .control-group
+        = control_label "Selected columns", tooltip: "selected_columns", controller: "tasks"
+        .controls
+          %select#columns{multiple: true, size: 4, required: true}
+            =hb "each columns" do
+              =hb "if selected" do
+                %option{value: "{{name}}", selected: true} {{name}}
+                =hb "else"
+                %option{value: "{{name}}"} {{name}}
+
     .control-group
-      = control_label "Max number of rows per user", tooltip: "max_num_rows", controller: "tasks"
+      = control_label "Max rows per user", tooltip: "max_num_rows", controller: "tasks"
       .controls
         %input#userRows{type: "number", value: "{{userRows}}"}
 

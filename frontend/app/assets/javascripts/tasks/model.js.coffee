@@ -292,6 +292,7 @@ TableFilter = (task, inTable, tableFilterDescriptor) ->
   filter = new Filter()
   userRows = null
   timeLimit = null
+  columns = [] # empty means no filtering, select all columns
 
   # ------------------------------------
   # Constructor
@@ -301,15 +302,23 @@ TableFilter = (task, inTable, tableFilterDescriptor) ->
     filter = Filter.fromRawGroups(tableFilterDescriptor.filter.groups)
     userRows = tableFilterDescriptor.user_rows
     timeLimit = tableFilterDescriptor.time_limit
+    columns = tableFilterDescriptor.columns or []
 
   _.extend(self, {
     toJSON: ->
       filter.compact()
-      {tableId: table.id, user_rows: userRows, time_limit: timeLimit, filter: filter}
+      {tableId: table.id, user_rows: userRows, time_limit: timeLimit, filter: filter, columns: columns}
 
     filterString: ->
       res = []
-      res.push(table.name)
+      tableName = table.name
+      if columns.length == 0
+        tableName += ".*"
+      else
+        columnsFilter = columns.join(",")
+        columnsFilter = "..." if columnsFilter.length > 12
+        tableName += ".(#{columnsFilter})"
+      res.push(tableName)
       res.push("last #{self.minLimit()} min") if self.minLimit()
       res.push("max #{userRows}") if userRows
       res.push("(#{filter.string()})") unless filter.empty()
@@ -323,6 +332,10 @@ TableFilter = (task, inTable, tableFilterDescriptor) ->
     userRows: ->
       userRows = arguments[0] if arguments.length == 1
       userRows
+
+    columns: ->
+      columns = arguments[0] if arguments.length == 1
+      columns
 
     minLimit: ->
       if arguments.length == 1

@@ -43,14 +43,12 @@ describe Task do
 
   it "converts data" do
     prefetch_conversions.each do |data, prefetch|
-      task = Task.new
-      task.stub(:analyst) {analyst_double([age_table_double])}
-      task.attributes = base_attrs.merge(data: data)
-      task.prefetch.should eq prefetch
-
-      task2 = Task.new(base_attrs.merge(prefetch: prefetch))
+      task1 = Task.new(base_attrs.merge(prefetch: prefetch))
+      task1.stub(:analyst) {analyst_double([age_table_double])}
+      task2 = Task.new
       task2.stub(:analyst) {analyst_double([age_table_double])}
-      task2.data.should eq data
+      task2.attributes = base_attrs.merge(data: task1.data)
+      task2.prefetch.should eq prefetch
     end
   end
 
