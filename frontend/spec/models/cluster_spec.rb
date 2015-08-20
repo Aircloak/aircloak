@@ -45,7 +45,7 @@ describe Cluster do
   it "should have at least a cloak" do
     c = base_cluster
     c.save.should eq false
-    c.errors.messages[:cloaks].should_not eq nil
+    c.errors.messages[:cluster].should_not eq nil
   end
 
   it "should require a unique name" do

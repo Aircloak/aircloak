@@ -13,7 +13,6 @@ class ClustersController < ApplicationController
 
   def create
     @cluster = Cluster.new(cluster_params)
-    @cluster.log_alteration "Created with name '#{@cluster.name}' and build '#{@cluster.build.name}'."
     update_cluster 'Cluster was successfully created.', 'new'
   end
 
@@ -53,7 +52,7 @@ private
       render action: action
     end
   rescue Exception => error
-    flash[:error] = error
+    flash[:error] = error.message
     render action: action
   end
 
