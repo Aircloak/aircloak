@@ -112,5 +112,5 @@ cluster_exec "fleetctl start \
 
 # start local nginx
 create_local_balancer_nginx_config $machines_num > ./local_balancer.conf
-echo "Starting local balancer. You can access the site via http://127.0.0.1:8999 (or 8998 for https)"
+echo "Starting local balancer. You can access the site via http://frontend.air-local:8999 (or 8998 for https)"
 nginx -c "$(pwd)/local_balancer.conf"
