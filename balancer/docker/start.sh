@@ -11,6 +11,19 @@ function generate_file {
   cat $1 |  > $2
 }
 
+function generate_local_http_allows {
+  if [ "$AIR_ENV" = "prod" ]; then
+    # If in production, we allow http access via *.local only to peer containers
+    # on the same host, and to localhost.
+    mask=$(echo $1 | sed "s/\./ /g" | awk '{print $1"."$2"."0"."0}')
+    cat <<EOF > /etc/nginx/support/local_http_allows.conf
+      allow $mask/16;
+      allow 127.0.0.1;
+      deny all;
+EOF
+  fi
+}
+
 # Get the IP of the host. See:
 #   https://groups.google.com/forum/#!msg/coreos-dev/fnMeC4B0pSc/adYRzDDoK1wJ
 #   http://blog.famzah.net/2011/09/06/get-default-outgoing-ip-address-and-interface-on-linux/
@@ -44,6 +57,8 @@ log "confd is now monitoring etcd for changes..."
 mkdir -p /etc/nginx/support
 cp -rp /aircloak/balancer/docker/nginx/support/* /etc/nginx/support
 cp -rp /aircloak/balancer/docker/nginx/sites/*.conf /etc/nginx/conf.d/
+
+generate_local_http_allows $HOST_IP
 
 log "Starting nginx"
 exec nginx -g "daemon off;"

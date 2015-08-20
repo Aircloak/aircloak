@@ -105,31 +105,32 @@ function container_ctl {
 
   if [ "$AIR_ENV" = "prod" ]; then
     driver_arg="--log-driver=syslog"
+    container_env="-e AIR_ENV=prod"
   fi
 
   case "$command" in
     start)
       stop_named_container $container_name
       echo "Starting container $container_name"
-      docker run -d $driver_arg --restart on-failure --name $container_name $DOCKER_START_ARGS
+      docker run -d $driver_arg $container_env --restart on-failure --name $container_name $DOCKER_START_ARGS
       ;;
 
     ensure_started)
       RUNNING=$(docker inspect --format="{{ .State.Running }}" $container_name || echo false)
       if [ "$RUNNING" != "true" ]; then
         echo "Starting container $container_name"
-        docker run -d $driver_arg --restart on-failure --name $container_name $DOCKER_START_ARGS
+        docker run -d $driver_arg $container_env --restart on-failure --name $container_name $DOCKER_START_ARGS
       fi
       ;;
 
     console)
       stop_named_container $container_name
-      docker run --rm -it --name $container_name $DOCKER_START_ARGS
+      docker run --rm -it $container_env --name $container_name $DOCKER_START_ARGS
       ;;
 
     foreground)
       stop_named_container $container_name
-      docker run --rm -i --name $container_name $DOCKER_START_ARGS
+      docker run --rm -i $container_env --name $container_name $DOCKER_START_ARGS
       ;;
 
     remsh)
