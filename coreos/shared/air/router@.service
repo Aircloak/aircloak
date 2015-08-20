@@ -2,8 +2,6 @@
 Description=Air router
 After=etcd.service
 After=docker.service
-After=frontend-discovery@%i.service
-Wants=frontend-discovery@%i.service
 
 [Service]
 TimeoutStartSec=0
@@ -13,4 +11,3 @@ EnvironmentFile=/etc/environment
 
 [X-Fleet]
 Conflicts=router@*.service
-MachineOf=frontend-discovery@%i.service
