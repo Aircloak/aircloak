@@ -1,5 +1,5 @@
 [Unit]
-Description=Air balancer
+Description=Air router
 After=etcd.service
 After=docker.service
 After=frontend-discovery@%i.service
@@ -7,10 +7,10 @@ Wants=frontend-discovery@%i.service
 
 [Service]
 TimeoutStartSec=0
-ExecStart=/bin/bash -c /aircloak/air/balancer_start.sh
-ExecStop=/aircloak/air/balancer_stop.sh
+ExecStart=/bin/bash -c /aircloak/air/router_start.sh
+ExecStop=/aircloak/air/router_stop.sh
 EnvironmentFile=/etc/environment
 
 [X-Fleet]
-Conflicts=balancer@*.service
+Conflicts=router@*.service
 MachineOf=frontend-discovery@%i.service

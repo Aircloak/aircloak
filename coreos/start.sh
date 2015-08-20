@@ -29,7 +29,7 @@ events {
 }
 
 stream {
-  upstream air_balancer_https {"
+  upstream air_router_https {"
 
   for machine_num in $(seq 1 $1); do
     # IP addresses are predetermined in the Vagrantfile
@@ -39,7 +39,7 @@ stream {
 
   echo "  }
 
-  upstream air_balancer_http {"
+  upstream air_router_http {"
 
   for machine_num in $(seq 1 $1); do
     # IP addresses are predetermined in the Vagrantfile
@@ -51,12 +51,12 @@ stream {
 
   server {
     listen 8998;
-    proxy_pass air_balancer_https;
+    proxy_pass air_router_https;
   }
 
   server {
     listen 8999;
-    proxy_pass air_balancer_http;
+    proxy_pass air_router_http;
   }
 }"
 }
@@ -91,8 +91,8 @@ done
 wait
 
 # destroy all services
-destroy_service "balancer@$service_indices frontend-discovery@$service_indices frontend@$service_indices backend@$service_indices"
-cluster_exec "fleetctl destroy balancer@.service frontend-discovery@.service frontend@.service backend@.service"
+destroy_service "router@$service_indices frontend-discovery@$service_indices frontend@$service_indices backend@$service_indices"
+cluster_exec "fleetctl destroy router@.service frontend-discovery@.service frontend@.service backend@.service"
 
 
 # configure etcd
@@ -102,12 +102,12 @@ cluster_exec "
     "
 
 # start services
-cluster_exec "fleetctl submit /aircloak/air/backend@.service /aircloak/air/frontend@.service /aircloak/air/frontend-discovery@.service /aircloak/air/balancer@.service"
+cluster_exec "fleetctl submit /aircloak/air/backend@.service /aircloak/air/frontend@.service /aircloak/air/frontend-discovery@.service /aircloak/air/router@.service"
 cluster_exec "fleetctl start \
       backend@$service_indices \
       frontend@$service_indices \
       frontend-discovery@$service_indices \
-      balancer@$service_indices
+      router@$service_indices
     "
 
 # start local nginx

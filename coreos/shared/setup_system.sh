@@ -23,7 +23,7 @@ function setup_folder_structure {
     "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001 AIR_HOST_NAME=$COREOS_PUBLIC_IPV4 EXPORT_BEAM_PORTS=true"
 
   create_helper_scripts frontend "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001"
-  create_helper_scripts balancer "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001"
+  create_helper_scripts router "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001"
 }
 
 . /etc/environment
@@ -52,7 +52,7 @@ function pull_docker_image {
 
 pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_backend:latest
 pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_frontend:latest
-pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_balancer:latest
+pull_docker_image $DOCKER_REGISTRY_URL/aircloak/air_router:latest
 EOF
 
 chmod +x /aircloak/air/pull_images.sh

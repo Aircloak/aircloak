@@ -31,7 +31,7 @@ HOST_IP=$(ip route get 8.8.8.8 | grep via | awk '{print $3}')
 export ETCD_HOST=${ETCD_HOST:-$HOST_IP}
 export ETCD_PORT=${ETCD_PORT:-4002}
 
-cat /aircloak/balancer/docker/nginx/sites/upstreams.tmpl \
+cat /aircloak/router/docker/nginx/sites/upstreams.tmpl \
   | sed "s/\$HOST_IP/$HOST_IP/g;" \
   > /etc/confd/templates/upstreams.tmpl
 
@@ -41,7 +41,7 @@ log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."
 curl -L http://$ETCD_HOST:$ETCD_PORT/v2/keys/service_instances/frontends -XPUT -d dir="true"
 curl -L http://$ETCD_HOST:$ETCD_PORT/v2/keys/service_instances/backends -XPUT -d dir="true"
 
-cp -rp /aircloak/balancer/docker/nginx.toml /etc/confd/conf.d/
+cp -rp /aircloak/router/docker/nginx.toml /etc/confd/conf.d/
 
 # Try to make initial configuration every 5 seconds until successful
 until confd -onetime -node $ETCD_HOST:$ETCD_PORT -config-file /etc/confd/conf.d/nginx.toml; do
@@ -55,8 +55,8 @@ confd -interval 10 -node $ETCD_HOST:$ETCD_PORT -config-file /etc/confd/conf.d/ng
 log "confd is now monitoring etcd for changes..."
 
 mkdir -p /etc/nginx/support
-cp -rp /aircloak/balancer/docker/nginx/support/* /etc/nginx/support
-cp -rp /aircloak/balancer/docker/nginx/sites/*.conf /etc/nginx/conf.d/
+cp -rp /aircloak/router/docker/nginx/support/* /etc/nginx/support
+cp -rp /aircloak/router/docker/nginx/sites/*.conf /etc/nginx/conf.d/
 
 generate_local_http_allows $HOST_IP
 

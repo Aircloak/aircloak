@@ -27,9 +27,9 @@ fi
 DOCKER_START_ARGS="-p 8200:8200 -p 8201:8201 \
   $docker_env \
   -v $cert_folder:/aircloak/ca \
-  "$REGISTRY_URL"aircloak/air_balancer:latest \
-  /aircloak/balancer/docker/start.sh"
+  "$REGISTRY_URL"aircloak/air_router:latest \
+  /aircloak/router/docker/start.sh"
 
 REMOTE_CONSOLE_COMMAND="/bin/bash"
 
-container_ctl air_balancer $@
+container_ctl air_router $@

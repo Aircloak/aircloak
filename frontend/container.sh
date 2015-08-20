@@ -21,7 +21,7 @@ fi
 if [ "$AIR_ENV" = "prod" ]; then
   cert_folder="/aircloak/ca"
 else
-  cert_folder="$(pwd)/../balancer/dev_cert"
+  cert_folder="$(pwd)/../router/dev_cert"
 fi
 
 DOCKER_START_ARGS="-p 8080:8080 \

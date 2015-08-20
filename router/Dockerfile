@@ -1,7 +1,7 @@
 FROM nginx:1.9.3
 MAINTAINER Sebastian Probst Eide <sebastian@aircloak.com>
 
-ENV site_path /aircloak/balancer
+ENV site_path /aircloak/router
 
 RUN mkdir -p $site_path
 

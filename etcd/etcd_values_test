@@ -48,7 +48,7 @@ etcd_set /settings/rails/task/publish_url ""
 etcd_set /settings/rails/secrets/private_key_password "a not so secret key"
 etcd_set /settings/rails/secrets/github_oauth_token "273c13ccc918a992618a503df7dadfe06f70b3f5"
 etcd_set /settings/rails/secrets/secret_key_base "random-secret"
-etcd_set /settings/rails/secrets/ca_path "../balancer/dev_cert"
+etcd_set /settings/rails/secrets/ca_path "../router/dev_cert"
 
 # External services
 etcd_set /service/frontend_local http://frontend.air-local:8201
