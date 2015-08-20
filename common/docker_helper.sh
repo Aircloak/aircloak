@@ -116,8 +116,9 @@ function container_ctl {
       ;;
 
     ensure_started)
-      RUNNING=$(docker inspect --format="{{ .State.Running }}" $container_name || echo false)
-      if [ "$RUNNING" != "true" ]; then
+      if ! named_container_running $container_name ; then
+        # Still invoking stop, since we might need to remove the container
+        stop_named_container $container_name
         echo "Starting container $container_name"
         docker run -d $driver_arg $container_env --restart on-failure --name $container_name $DOCKER_START_ARGS
       fi
