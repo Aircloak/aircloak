@@ -133,7 +133,7 @@ function container_ctl {
       docker run --rm -i $container_env --name $container_name $DOCKER_START_ARGS
       ;;
 
-    remsh)
+    ssh)
       docker exec -i -t $container_name \
         /bin/bash -c 'ETCD_HOST=$(ip route get 8.8.8.8 | grep via | awk '"'"'{print $3}'"'"') ETCD_PORT=${ETCD_PORT:-4002} TERM=xterm /bin/bash'
       ;;
@@ -149,7 +149,7 @@ function container_ctl {
       ;;
 
     *)
-      echo "$(basename $0) start|stop|ensure_started|remsh|remote_console|console|foreground docker-args"
+      echo "$(basename $0) start|stop|ensure_started|ssh|remote_console|console|foreground docker-args"
       exit 1
       ;;
 
