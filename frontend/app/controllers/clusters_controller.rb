@@ -52,7 +52,7 @@ private
       render action: action
     end
   rescue Exception => error
-    flash[:error] = error
+    flash[:error] = error.message
     render action: action
   end
 
