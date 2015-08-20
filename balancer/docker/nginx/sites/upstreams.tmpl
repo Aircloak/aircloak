@@ -18,6 +18,12 @@ upstream backend {
   keepalive 16;
 }
 
+# References just the local backend. Needed for monitoring purposes.
+upstream local_backend {
+  server $HOST_IP:11000 weight=100;
+  keepalive 16;
+}
+
 upstream aircloak {
   server $HOST_IP:10000;
   keepalive 16;
