@@ -13,6 +13,7 @@ module Aircloak
       "../backend/container.sh",
       "../balancer/container.sh",
       "../balancer/dev_cert/aircloak.com.chain.pem",
+      "../balancer/dev_cert/acinfra.aircloak.com.pem",
       "../balancer/dev_cert/api.cert",
       "../balancer/dev_cert/api.key"
     ].each do |file|

@@ -55,7 +55,7 @@ EOF
 
 function check_etc_hosts {
   missing_sites=$(
-    grep -nr server_name ./nginx_local | egrep -o '[a-zA-Z0-9]+\.local' | sort | uniq |
+    grep -nr server_name ./nginx_local | egrep -o '[a-zA-Z0-9\-]+\.local' | sort | uniq |
       while read alias; do
         if [ $(cat /etc/hosts | egrep -c "^127.0.0.1.*$alias$" || true) == "0" ]; then
           sites="$sites  127.0.0.1 $alias\n"
@@ -81,6 +81,7 @@ nginx -c $(pwd)/nginx_local/nginx.conf
 echo "You can access following sites:
   http://frontend.local:8203
   http://api.local:8203
+  http://infrastructure-api.local:8203
   http://aircloak.local:8203
 
 You can also access these sites via https at the port 8202
