@@ -1,6 +1,7 @@
+sudo: false
 language: erlang
 otp_release:
-   - 17.3
+   - 17.5
 before_install:
 script:
   - make rel
