@@ -10,4 +10,4 @@ This document serves to describe breaking changes and provide upgrade hints when
 - Routing rules are now a part of this repository. You can find them [here](router/docker/nginx). If you need to change some rules, do it there, rather than on the server.
 - `container.sh remsh` is replaced with `container.sh ssh`
 - To locally run CoreOS cluster, you'll need `nginx 1.9.3`, Vagrant (at least 1.6.3) and VirtualBox.
-- OS X users: previous port forward rules for boot2docker need to be changed. Following ports need to be forwared: 4002, 4003, 4004, 5000, 8200, 10000. In addition, standard ssh rule should be preserved. All other forwarding rules should be removed to avoid collisions with components running on localhost.
+- OS X users: previous port forward rules for boot2docker need to be changed. Following ports need to be forwared: 4002, 4003, 4004, 5000, 5433, 8200, 8201, 10000 (see [here](README.md#exposed-container-ports) for meaning of these ports). In addition, standard ssh rule should be preserved. All other forwarding rules should be removed to avoid collisions with components running on localhost.

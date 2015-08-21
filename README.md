@@ -14,6 +14,7 @@ Status](https://magnum.travis-ci.com/Aircloak/web.svg?token=aFqD8qTNFV1Li4zdKtZw
     - [Production](#production)
       - [Logs](#logs)
       - [Typical tasks](#typical-tasks)
+    - [Exposed container ports](#exposed-container-ports)
 
 ----------------------
 
@@ -210,3 +211,20 @@ For various configuration settings, see [here](etcd/README.md#production-setting
 - Shell to Rails/Erlang console:
     - `/aircloak/air/frontend/container.sh remote_console`
     - `/aircloak/air/backend/container.sh remote_console`
+
+## Exposed container ports
+
+Following ports are used by various containers in the system:
+
+|  port  | explanation                        |
+|--------|------------------------------------|
+|  4002  | ETCD used by docker instances      |
+|  4003  | ETCD used by local services        |
+|  4004  | ETCD used for tests                |
+|  5000  | Local docker registry              |
+|  5433  | Containerized postgresql           |
+|  8200  | router HTTPS interface             |
+|  8201  | router HTTP interface              |
+| 10000  | static web site (www.aircloak.com) |
+
+__OS X developers__: These ports need to be forwarded to boot2docker in VirtualBox.
