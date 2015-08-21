@@ -31,8 +31,10 @@ HOST_IP=$(ip route get 8.8.8.8 | grep via | awk '{print $3}')
 export ETCD_HOST=${ETCD_HOST:-$HOST_IP}
 export ETCD_PORT=${ETCD_PORT:-4002}
 
+AIR_HOST_NAME=${AIR_HOST_NAME:-$HOST_IP}
+
 cat /aircloak/router/docker/nginx/sites/upstreams.tmpl \
-  | sed "s/\$HOST_IP/$HOST_IP/g;" \
+  | sed "s/\$HOST_IP/$HOST_IP/g; s/\$AIR_HOST_NAME/$AIR_HOST_NAME/g;" \
   > /etc/confd/templates/upstreams.tmpl
 
 log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."

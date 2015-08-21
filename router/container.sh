@@ -18,6 +18,10 @@ if [ "$ETCD_PORT" != "" ]; then
   docker_env="-e ETCD_PORT=$ETCD_PORT"
 fi
 
+if [ "$AIR_HOST_NAME" != "" ]; then
+  docker_env="$docker_env -e AIR_HOST_NAME=$AIR_HOST_NAME"
+fi
+
 if [ "$AIR_ENV" = "prod" ]; then
   cert_folder="/aircloak/ca"
 else

@@ -1,18 +1,54 @@
 upstream frontend {
-  server $HOST_IP:8080 weight=100;
-  {{ range gets "/service_instances/frontends/*" }}
-    {{ $data := json .Value }}
-    server {{ $data.http_endpoint }};
+  {{ if ls "/service_instances/frontends" }}
+    {{ if exists "/service_instances/frontends/$AIR_HOST_NAME_8080"}}
+      {{/* Set local service as primary, others as backup */}}
+      {{ range gets "/service_instances/frontends/*" }}
+        {{ $data := json .Value }}
+        {{ if eq .Key "/service_instances/frontends/$AIR_HOST_NAME_8080"}}
+          {{/* Use the known address of the host instead of the public ip */}}
+          server $HOST_IP:8080;
+        {{ else }}
+          server {{ $data.http_endpoint }} backup;
+        {{ end }}
+      {{ end }}
+    {{ else }}
+      {{/* No local service -> make all upstreams primary */}}
+      {{ range gets "/service_instances/frontends/*" }}
+        {{ $data := json .Value }}
+        server {{ $data.http_endpoint }};
+      {{ end }}
+    {{ end }}
+  {{ else }}
+    {{/* No registered service -> hardcode one required upstream to the local service */}}
+    server $HOST_IP:8080;
   {{ end }}
 
   keepalive 16;
 }
 
 upstream backend {
-  server $HOST_IP:11000 weight=100;
-  {{ range gets "/service_instances/backends/*" }}
-    {{ $data := json .Value }}
-    server {{ $data.http_endpoint }};
+  {{ if ls "/service_instances/backends" }}
+    {{ if exists "/service_instances/backends/$AIR_HOST_NAME_11000"}}
+      {{/* Set local service as primary, others as backup */}}
+      {{ range gets "/service_instances/backends/*" }}
+        {{ $data := json .Value }}
+        {{ if eq .Key "/service_instances/backends/$AIR_HOST_NAME_11000"}}
+          {{/* Use the known address of the host instead of the public ip */}}
+          server $HOST_IP:11000;
+        {{ else }}
+          server {{ $data.http_endpoint }} backup;
+        {{ end }}
+      {{ end }}
+    {{ else }}
+      {{/* No local service -> make all upstreams primary */}}
+      {{ range gets "/service_instances/backends/*" }}
+        {{ $data := json .Value }}
+        server {{ $data.http_endpoint }};
+      {{ end }}
+    {{ end }}
+  {{ else }}
+    {{/* No registered service -> hardcode one required upstream to the local service */}}
+    server $HOST_IP:11000;
   {{ end }}
 
   keepalive 16;
@@ -20,16 +56,16 @@ upstream backend {
 
 # References just the local backend. Needed for monitoring purposes.
 upstream local_backend {
-  server $HOST_IP:11000 weight=100;
+  server $AIR_HOST_NAME:11000 weight=100;
   keepalive 16;
 }
 
 upstream aircloak {
-  server $HOST_IP:10000;
+  server $AIR_HOST_NAME:10000;
   keepalive 16;
 }
 
 upstream aircloak_stage {
-  server $HOST_IP:10001;
+  server $AIR_HOST_NAME:10001;
   keepalive 16;
 }

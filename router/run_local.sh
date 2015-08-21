@@ -5,18 +5,23 @@ set -eo pipefail
 cd $(dirname $0)
 
 function upstream_contents {
-  paste -d " " \
-    <(cat docker/nginx/sites/upstreams.tmpl | grep upstream | awk '{print $2}') \
-    <(cat docker/nginx/sites/upstreams.tmpl | grep 'server $HOST_IP:' | awk '{print $2}' | sed "s/\$HOST_IP://; s/;//") \
-    | while read upstream; do
-        upstream_name=$(echo $upstream | awk '{print $1}')
-        forward_port=$(echo $upstream | awk '{print $2}')
-        cat <<EOF
-          upstream $upstream_name {
-            server 127.0.0.1:${forward_port};
-          }
+  cat <<EOF
+    upstream frontend {
+      server 127.0.0.1:8080;
+    }
+    upstream backend {
+      server 127.0.0.1:11000;
+    }
+    upstream local_backend {
+      server 127.0.0.1:11000;
+    }
+    upstream aircloak {
+      server 127.0.0.1:10000;
+    }
+    upstream aircloak_stage {
+      server 127.0.0.1:10001;
+    }
 EOF
-      done
 }
 
 function generate_nginx_conf {
