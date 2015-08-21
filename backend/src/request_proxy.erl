@@ -31,20 +31,11 @@ forward_request(IncomingRequest) ->
   ProxyRequest = {Url, Headers},
   ?INFO("Proxying requst: ~p", [Url]),
   case httpc:request(get, ProxyRequest, [], []) of
-    {ok, {_, ResponseHeaders, RawBody}} ->
-      DecodedBody = case proplists:get_value("content-encoding", ResponseHeaders) of
-        "gzip" -> zlib:gunzip(RawBody);
-        undefined -> RawBody;
-        OtherEncoding ->
-          ?ERROR("Unknown encoding ~p", [OtherEncoding]),
-          undefined
-      end,
-      case DecodedBody of
-        undefined -> {error, decoding_error};
-        _ ->
-          ?DEBUG("Received proxy response: ~p", [DecodedBody]),
-          try {ok, mochijson2:decode(DecodedBody)} catch error:_Reason -> {error, decoding_error} end
-      end;
+    {ok, {_, ResponseHeaders, undefined}} ->
+      {error, decoding_error};
+    {ok, {_, ResponseHeaders, DecodedBody}} ->
+      ?DEBUG("Received proxy response: ~p", [DecodedBody]),
+      try {ok, mochijson2:decode(DecodedBody)} catch error:_Reason -> {error, decoding_error} end;
     {error, Reason} ->
       ?ERROR("Backend proxy failed with reason: ~p", [Reason]),
       {error, failed_connect}
