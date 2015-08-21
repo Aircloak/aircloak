@@ -1,5 +1,5 @@
 FROM ruby:2.0.0-p643
-MAINTAINER Sebastian Probst Eide <sebastian@aircloak.com>
+MAINTAINER Aircloak
 
 RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
 COPY image_shell_init.sh /tmp/build_config/

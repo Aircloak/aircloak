@@ -1,5 +1,5 @@
 FROM nginx:1.9.3
-MAINTAINER Sebastian Probst Eide <sebastian@aircloak.com>
+MAINTAINER Aircloak
 
 ENV site_path /aircloak/router
 

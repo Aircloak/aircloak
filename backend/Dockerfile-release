@@ -1,5 +1,5 @@
 FROM debian:jessie
-MAINTAINER Sebastian Probst Eide <sebastian@aircloak.com>
+MAINTAINER Aircloak
 
 ## ------------------------------------------------------------------
 ## Some basic setup of the image
