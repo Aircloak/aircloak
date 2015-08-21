@@ -19,9 +19,14 @@ forward_request(IncomingRequest) ->
   StringifiedExisitingHeaders = lists:map(fun({Key, Value}) ->
         {cloak_util:stringify(Key), cloak_util:stringify(Value)}
       end, ExistingHeaders),
+  % These headers may have been set by the client but we don't want them in the proxied request.
+  % For example, if the Host is not dropped, we won't access the desired site.
+  FilteredHeaders = [{Key, Value} ||
+    {Key, Value} <- StringifiedExisitingHeaders,
+    not lists:member(Key, ["Accept-Encoding", "Host", "X-Forwarded-For", "X-Forwarded-Proto", "User-Agent"])],
   Headers = [
     {"request-endpoint", "backend"} |
-    StringifiedExisitingHeaders
+    FilteredHeaders
   ],
   ProxyRequest = {Url, Headers},
   ?INFO("Proxying requst: ~p", [Url]),
