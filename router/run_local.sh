@@ -74,7 +74,7 @@ function check_etc_hosts {
   fi
 }
 
-nginx -c $(pwd)/nginx_local/nginx.conf -s stop > /dev/null 2>&1 || true
+kill -2 $(ps aux | grep nginx | grep master | grep $(pwd)/nginx_local/nginx.conf | awk '{print $2}') > /dev/null 2>&1 || true
 
 generate_nginx_conf
 

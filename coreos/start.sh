@@ -116,4 +116,6 @@ echo "
 Starting local balancer.
 You can access the site via https://frontend.air-local:8998
 "
+
+kill -2 $(ps aux | grep nginx | grep master | grep $(pwd)/local_balancer.conf | awk '{print $2}') > /dev/null 2>&1 || true
 nginx -c "$(pwd)/local_balancer.conf"
