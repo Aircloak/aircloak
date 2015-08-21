@@ -112,9 +112,9 @@ web/frontend $ bundle exec rails s
 web/backend $ make start
 ```
 
-If all is well, you should be able to access the web via `frontend.air-local:8203` (or port 8202 for https). If all data is migrated, you should see all clusters/cloaks (make sure to impersonate the analyst), and run tasks in the sandbox.
+If all is well, you should be able to access the web via https://frontend.air-local:8202. Note that we use self-signed certificate, so you'll likely get an error in your browser. You need to import the certificate (located in `router/dev_certs/aircloak.com.chain.pem`) to your browser.
 
-__NOTE__: the https site uses self-signed key, so you'll likely get an error in your browser, in which case you need to explicitly permit access in the browser.
+If all data is migrated, you should see all clusters/cloaks (make sure to impersonate the analyst), and run tasks in the sandbox.
 
 ### Running the system on docker containers
 
@@ -133,7 +133,7 @@ $ router/build-image.sh
 $ router/container.sh console
 ```
 
-If everything is fine, you should be able to access the web via `frontend.air-local:8201` (8200 for https).
+If everything is fine, you should be able to access the web via https://frontend.air-local:8200.
 
 ### Running the system on CoreOS (experimental)
 

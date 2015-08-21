@@ -84,10 +84,8 @@ check_etc_hosts
 nginx -c $(pwd)/nginx_local/nginx.conf
 
 echo "You can access following sites:
-  http://frontend.air-local:8203
-  http://api.air-local:8203
-  http://infrastructure-api.air-local:8203
-  http://aircloak.air-local:8203
-
-You can also access these sites via https at the port 8202
+  https://frontend.air-local:8202
+  https://api.air-local:8202
+  https://infrastructure-api.air-local:8202
+  https://aircloak.air-local:8202
 "

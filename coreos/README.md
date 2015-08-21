@@ -34,7 +34,7 @@ __OS X__: Make sure that ports 5000 and 5433 are forwarded to your `boot2docker`
 
 To start the system, simply invoke `COREOS_HOST_IP=x.y.z coreos/start.sh`, where `COREOS_HOST_IP` should be set to the IP address of your machine. This address will be used by the VM and Docker containers to access the Docker registry and the database on your machine.
 
-If everything succeeded, you should be able to access the web server on `http://frontend.local:8999` (or 8998 for ssl).
+If everything succeeded, you should be able to access the web server on https://frontend.air-local:8999.
 
 ### Interacting with the machines
 
