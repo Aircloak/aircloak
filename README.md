@@ -190,7 +190,7 @@ From a standpoint, the architecture of the system is as follows:
 
 ```
 
-In a cluster setting (e.g. CoreOS), TCP balancer will run outside of machines and balance the traffic between them. Until we reach that point, we are running the TCP balancer locally on the single production machine.
+In a cluster setting (e.g. CoreOS), the TCP balancer will run outside of the CoreOS machines and balance the traffic between them. Until we implement the full CoreOS support in production, we are running the TCP balancer locally on the single production machine.
 
 For various configuration settings, see [here](etcd/README.md#production-settings).
 
