@@ -57,7 +57,6 @@ upstream backend {
 # References just the local backend. Needed for monitoring purposes.
 upstream local_backend {
   server $AIR_HOST_NAME:11000 weight=100;
-  keepalive 16;
 }
 
 upstream aircloak {
