@@ -9,4 +9,5 @@ cd $(dirname $0)
 ./etcd/container.sh start
 ./db/container.sh ensure_started
 ./docker_registry/container.sh ensure_started
+./router/build-image.sh
 ./router/run_local.sh
