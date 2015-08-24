@@ -26,8 +26,6 @@ fi
 
 DOCKER_START_ARGS="-p 8080:8080 \
   $docker_env \
-  -v $PWD/var-log:/var/log \
-  -v $PWD/log:/aircloak/website/log \
   -v $cert_folder:/aircloak/ca \
   "$REGISTRY_URL"aircloak/air_frontend:latest \
   /aircloak/website/docker/start.sh"

@@ -42,9 +42,6 @@ If you want to ssh to a machine, you can run `vagrant ssh air-0x` from the `core
 
 Service log can be dumped with `journalctl -u service@x --no-pager` where `service` is the service name (e.g. `backend`, `router`), and `x` is an integer representing the instance number. You can fetch logs of the instance running on the machine you're running this command. To see which instance runs on on which machine, just invoke `fleetctl list-units`.
 
-Frontend logs are located in `/aircloak/air/frontend/log`.
-
-
 To get shells to the running container, you can invoke:
 
 - `/aircloak/air/frontend/container.sh ssh`

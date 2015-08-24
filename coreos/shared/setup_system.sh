@@ -12,8 +12,6 @@ function create_helper_scripts {
 
 function setup_folder_structure {
   sudo mkdir -p /aircloak/air
-  sudo mkdir -p /aircloak/air/frontend/log
-  sudo chmod 777 /aircloak/air/frontend/log
   sudo chown core:core /aircloak/air
 
   rsync -arp /tmp/shared/air /aircloak/

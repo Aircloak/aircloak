@@ -196,10 +196,7 @@ For various configuration settings, see [here](etcd/README.md#production-setting
 
 ### Logs
 
-- Etcd, unicorn stdout, rails, erlang logs: `/var/log/syslog`
-- Localhost nginx: `/var/log/nginx/*.log`
-- Frontend nginx: `/aircloak/air/frontend/log/nginx-*.log`
-- Frontend unicorn stderr: `/aircloak/air/frontend/log/unicorn.stderr.log`
+Logs of all services can be found at `/var/log/syslog`.
 
 ### Typical tasks
 
