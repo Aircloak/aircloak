@@ -9,7 +9,7 @@ class AddTaskSelectColumnsCapability < ActiveRecord::Migration
         )
       end
       dir.down do
-        Capability.where(identifier: "task_select_columns").destroy
+        Capability.where(identifier: "task_select_columns").destroy_all
       end
     end
   end
