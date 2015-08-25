@@ -119,7 +119,9 @@ If all data is migrated, you should see all clusters/cloaks (make sure to impers
 
 ### Running the system on docker containers
 
-Make sure that the required components are started (see above).
+You can simply invoke `./dockerized_air.sh start` which will rebuild all images and start required containers in background.
+
+If you want to start each container separately in a foreground, make sure that the required components are started with `./start_dependencies.sh`.
 
 Build images and start containers in the foreground:
 
