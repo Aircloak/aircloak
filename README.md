@@ -38,14 +38,14 @@ These features are provided through the following endpoints:
 
 The air system consists of following components:
 
-- `etcd` - Dockerized KV registry where system configuration is stored. All other components retrieve their settings from here (e.g. database settings, or addresses of other services)
-- `db` - Dockerized database server (used only for development and testing)
-- `router` - http(s) interface that routes all requests.
-- `balancer` - TCP balancer that forwards requests to multiple routers.
 - `backend` - Erlang system which implements various processes in the air system, such as background and periodic jobs.
-- `frontend` - Web user interface
-- `docker_registry` - Containerized Docker registry (needed for CoreOS)
+- `balancer` - TCP balancer that forwards requests to multiple routers.
 - `coreos` - Vagrant powered CoreOS system that runs cluster of air machines.
+- `db` - Dockerized database server (used only for development and testing)
+- `docker_registry` - Containerized Docker registry (needed for CoreOS)
+- `etcd` - Dockerized KV registry where system configuration is stored. All other components retrieve their settings from here (e.g. database settings, or addresses of other services)
+- `frontend` - Web user interface
+- `router` - http(s) interface that routes all requests.
 
 Specific details of each component are describe in `README.md` in their corresponding folders. This document provides general instructions on starting the entire system and deploying.
 
