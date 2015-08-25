@@ -22,7 +22,6 @@ Finally, when running locally, a local TCP balancer is started which serves as t
 ## Prerequisites
 
 - Vagrant (at least 1.6.3) and VirtualBox
-- Nginx 1.9.3 built with `--with-stream` option
 - Docker containers for [database](../db/README.md) and [registry](../docker_registry/README.md) must be started.
 - Frontend and backend images must be rebuilt after the docker registry is started.
 
@@ -34,7 +33,7 @@ __OS X__: Make sure that ports 5000 and 5433 are forwarded to your `boot2docker`
 
 To start the system, simply invoke `COREOS_HOST_IP=x.y.z coreos/start.sh`, where `COREOS_HOST_IP` should be set to the IP address of your machine. This address will be used by the VM and Docker containers to access the Docker registry and the database on your machine.
 
-If everything succeeded, you should be able to access the web server on https://frontend.air-local:8999.
+If everything succeeded, you should be able to access the web server on https://frontend.air-local:8300.
 
 ### Interacting with the machines
 

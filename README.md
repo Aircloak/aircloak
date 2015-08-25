@@ -41,10 +41,11 @@ The air system consists of following components:
 - `etcd` - Dockerized KV registry where system configuration is stored. All other components retrieve their settings from here (e.g. database settings, or addresses of other services)
 - `db` - Dockerized database server (used only for development and testing)
 - `router` - http(s) interface that routes all requests.
+- `balancer` - TCP balancer that forwards requests to multiple routers.
 - `backend` - Erlang system which implements various processes in the air system, such as background and periodic jobs.
 - `frontend` - Web user interface
 - `docker_registry` - Containerized Docker registry (needed for CoreOS)
-- `coreos` - Vagrant powered CoreOS system that runs `backend` and `frontend` docker containers.
+- `coreos` - Vagrant powered CoreOS system that runs cluster of air machines.
 
 Specific details of each component are describe in `README.md` in their corresponding folders. This document provides general instructions on starting the entire system and deploying.
 
@@ -70,7 +71,7 @@ In order to run the system you need the following components:
 - Docker 1.7 (+ boot2docker if on OS X)
 - Ruby 2.0
 - Erlang 17.5
-- Nginx 1.9.3 built with `--with-stream` option (the last requirement is needed only for CoreOS)
+- Nginx (preferably 1.9.3)
 - Any other package needed to build and run specific components (e.g. liblua, libprotobuf, ...)
 
 __Linux developers__: Scripts in this project use docker in the context of the logged in user (without root
@@ -190,7 +191,7 @@ From a standpoint, the architecture of the system is as follows:
 
 ```
 
-In a cluster setting (e.g. CoreOS), the TCP balancer will run outside of the CoreOS machines and balance the traffic between them. Until we implement the full CoreOS support in production, we are running the TCP balancer locally on the single production machine.
+In a cluster setting (e.g. CoreOS), the TCP balancer will run outside of the CoreOS machines and balance the traffic between them. Until we implement the full CoreOS support in production, we are running the TCP balancer container on the single production machine.
 
 For various configuration settings, see [here](etcd/README.md#production-settings).
 
@@ -222,6 +223,10 @@ Following ports are used by various containers in the system:
 |  5433  | Containerized postgresql           |
 |  8200  | router HTTPS interface             |
 |  8201  | router HTTP interface              |
+|  8300 *| balancer HTTPS interface           |
+|  8301 *| balancer HTTP interface            |
 | 10000  | static web site (www.aircloak.com) |
+
+__*__ balancer ports are in production mapped to ports 443 and 80
 
 __OS X developers__: These ports need to be forwarded to boot2docker in VirtualBox.

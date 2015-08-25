@@ -29,7 +29,6 @@ module Aircloak
         DOCKER_REGISTRY_URL='#{ENV['COREOS_HOST_IP']}:5000' \
         DB_SERVER_URL='#{ENV['COREOS_HOST_IP']}' \
         AIRPUB_URL='#{ENV['COREOS_HOST_IP']}:1080' \
-        AIR_ENDPOINT='#{ENV['COREOS_HOST_IP']}:8999' \
         /tmp/shared/setup_system.sh
 EOF
   end

@@ -1,0 +1,27 @@
+worker_processes  1;
+daemon off;
+error_log /dev/stdout info;
+
+events {
+  worker_connections 1024;
+}
+
+stream {
+  upstream air_router_https {
+    $HTTPS_UPSTREAMS
+  }
+
+  upstream air_router_http {
+    $HTTP_UPSTREAMS
+  }
+
+  server {
+    listen 8300;
+    proxy_pass air_router_https;
+  }
+
+  server {
+    listen 8301;
+    proxy_pass air_router_http;
+  }
+}
