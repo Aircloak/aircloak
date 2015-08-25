@@ -20,13 +20,13 @@ class PrefetchFilter
       table = task.analyst.user_tables.where(
             cluster_id: cluster_id, table_name: prefetch_table["table"], deleted: false
           ).first
-
       {
         tableId: table.id,
         time_limit: prefetch_table["time_limit"],
         user_rows: prefetch_table["user_rows"],
+        columns: prefetch_table["columns"] || [],
         filter: parse_where(prefetch_table["where"] || {})
-      }
+      }.delete_if {|key, value| value.blank?} # compact filter by removing empty fields
     end
 
     data.to_json
@@ -39,27 +39,21 @@ class PrefetchFilter
   end
 
   def self.parse_where(where)
-    # In case we don't have or, we just include one, to simplify further
-    # query parsing.
-    return parse_where({"$or" => [where]}) unless where.has_key?("$or")
+    groups = where.map do |where_group|
+      filter_group = []
 
-    {groups:
-      where["$or"].map do |where_group|
-        filter_group = []
-
-        where_group.each do |field, filter|
-          column = field.gsub(/^\$\$/, "")
-          filter.each do |comparisons|
-            comparisons.each do |operator, value|
-              filter_group << {column: column, operator: OperatorCloakToSql[operator], value: value.to_s}
-            end
+      where_group.each do |field, filter|
+        column = field.gsub(/^\$\$/, "")
+        filter.each do |comparisons|
+          comparisons.each do |operator, value|
+            filter_group << {column: column, operator: OperatorCloakToSql[operator], value: value.to_s}
           end
         end
+      end
 
-        {filters: filter_group}
-      end.
-          select {|group| group[:filters].length > 0}
-    }
+      {filters: filter_group}
+    end.select {|group| group[:filters].length > 0}
+    {groups: groups}
   end
 
   # See Task.data for explanation
@@ -81,8 +75,10 @@ class PrefetchFilter
         {
           table: table.table_name,
           time_limit: prefetch_table["time_limit"],
-          user_rows: prefetch_table["user_rows"]
-        }.merge(convert_filter(table, prefetch_table["filter"]))
+          user_rows: prefetch_table["user_rows"],
+          columns: prefetch_table["columns"],
+          where: convert_filter(table, prefetch_table["filter"])
+        }.delete_if {|key, value| value.blank?} # compact filter by removing empty fields
       end
 
     prefetch.to_json
@@ -93,22 +89,14 @@ class PrefetchFilter
       memo.merge(column["name"] => column["type"])
     end
 
-    groups = filter["groups"].
-        select {|filter_group| filter_group && !filter_group.empty?}.
-        map do |filter_group|
-          filter_group["filters"].inject({}) do |memo, filter|
-            column_name = filter["column"]
-            converted_value = value_for_cloak(filter["value"], column_name, table_columns[column_name])
-            column_filters = (memo["$$#{column_name}"] ||= [])
-            column_filters << {operator_for_cloak(filter["operator"]) => converted_value}
-
-            memo
-          end
-        end
-    if groups.empty?
-      {}
-    else
-      {where: {"$or" => groups}}
+    filter["groups"].select {|filter_group| filter_group && !filter_group.empty?}.map do |filter_group|
+      filter_group["filters"].inject({}) do |memo, filter|
+        column_name = filter["column"]
+        converted_value = value_for_cloak(filter["value"], column_name, table_columns[column_name])
+        column_filters = (memo["$$#{column_name}"] ||= [])
+        column_filters << {operator_for_cloak(filter["operator"]) => converted_value}
+        memo
+      end
     end
   end
 

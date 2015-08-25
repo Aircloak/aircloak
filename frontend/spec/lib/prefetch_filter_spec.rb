@@ -6,8 +6,7 @@ describe PrefetchFilter do
   include PrefetchHelper
   it "converts both ways" do
     prefetch_conversions.each do |data, prefetch|
-      data_to_prefetch(data).should eq prefetch
-      prefetch_to_data(prefetch, [age_table_double]).should eq data
+      data_to_prefetch(prefetch_to_data(prefetch, [age_table_double])).should eq prefetch
     end
   end
 
