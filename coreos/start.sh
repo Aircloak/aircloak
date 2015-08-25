@@ -33,7 +33,7 @@ stream {
 
   for machine_num in $(seq 1 $1); do
     # IP addresses are predetermined in the Vagrantfile
-    ip_address="172.17.8.$((100 + $machine_num))"
+    ip_address="192.168.55.$((100 + $machine_num))"
     echo "    server $ip_address:8200;"
   done
 
@@ -43,7 +43,7 @@ stream {
 
   for machine_num in $(seq 1 $1); do
     # IP addresses are predetermined in the Vagrantfile
-    ip_address="172.17.8.$((100 + $machine_num))"
+    ip_address="192.168.55.$((100 + $machine_num))"
     echo "    server $ip_address:8201;"
   done
 
