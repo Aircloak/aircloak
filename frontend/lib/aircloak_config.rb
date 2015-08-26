@@ -24,22 +24,15 @@ private
   def self.setup
     return if @@setup
 
-    unless Rails.env == "test"
-      host = ENV['ETCD_HOST']
-      port = ENV['ETCD_PORT']
-
-      # In dev, we don't require env vars. If they're not present, we just use local ETCD
-      if Rails.env == "development"
-        host ||= "127.0.0.1"
-        port ||= "4003"
-      end
-    else
-      # Hardcoded test ETCD endpoint
-      host = "127.0.0.1"
-      port = "4004"
-    end
-
-    @@client = Etcd.client(host: host, port: port)
+    @@client = Etcd.client(host: "127.0.0.1", port: port)
     @@setup = true
+  end
+
+  def self.port
+    case Rails.env
+      when "development" then "4003"
+      when "test" then "4004"
+      else ENV['ETCD_PORT']
+    end
   end
 end

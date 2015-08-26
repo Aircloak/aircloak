@@ -11,7 +11,7 @@ function log {
 
 function add_local_hosts {
   for host in $(
-    curl -s -L http://$ETCD_HOST:$ETCD_PORT/v2/keys/service/local_names |
+    curl -s -L http://127.0.0.1:$ETCD_PORT/v2/keys/service/local_names |
     jq '.node.value' |
     sed s/\"//g |
     tr " " "\n"
@@ -20,12 +20,11 @@ function add_local_hosts {
   done
 }
 
-export ETCD_HOST=${ETCD_HOST:-"127.0.0.1"}
 export ETCD_PORT=${ETCD_PORT:-4002}
 
 add_local_hosts
 
-log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."
+log "Booting container. Expecting etcd at http://127.0.0.1:$ETCD_PORT."
 
 config="database"
 
