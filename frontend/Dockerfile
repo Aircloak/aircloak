@@ -9,7 +9,7 @@ RUN . /tmp/build_config/image_shell_init.sh
 RUN bundle config --global frozen 1
 
 RUN apt-get update
-RUN apt-get install nginx-light vim nano curl -y
+RUN apt-get install nginx-light vim nano curl jq -y
 
 # According to many advices, we'll use gosu instead of sudo to step-down from root
 # Apparently, there are some issues with sudo inside the docker container.

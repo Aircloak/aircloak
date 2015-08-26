@@ -20,8 +20,21 @@ function generate_local_http_allows {
 EOF
 }
 
+function add_local_hosts {
+  for host in $(
+    curl -s -L http://$ETCD_HOST:$ETCD_PORT/v2/keys/service/local_names |
+    jq '.node.value' |
+    sed s/\"//g |
+    tr " " "\n"
+  ); do
+    echo "127.0.0.1 $host.air-local" >> /etc/hosts
+  done
+}
+
 export ETCD_HOST=${ETCD_HOST:-"127.0.0.1"}
 export ETCD_PORT=${ETCD_PORT:-4002}
+
+add_local_hosts
 
 AIR_HOST_NAME=${AIR_HOST_NAME:-"127.0.0.1"}
 

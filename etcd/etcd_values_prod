@@ -62,3 +62,6 @@ etcd_set /service/build_server/host build.aircloak.com
 etcd_set /service/cloak/port 443
 etcd_set /service/cloak/protocol https
 etcd_set /service/manny_air/host localhost
+
+# Registered local symbolic names
+etcd_set /service/local_names "frontend backend api infrastructure-api aircloak"
