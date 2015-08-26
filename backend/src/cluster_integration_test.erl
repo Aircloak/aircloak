@@ -556,8 +556,8 @@ validate_result(ResultId, #state{users_uploaded=UserCount}=State) ->
 
 rails_request(RequestPayload, State) ->
   JsonPayload = list_to_binary(mochijson2:encode(RequestPayload)),
-  Url = binary_to_list(air_etcd:get("/service/frontend_local")) ++
-      "/infrastructure-api/integration_tests",
+  Url = binary_to_list(air_etcd:get("/service/infrastructure_api_local")) ++
+      "/integration_tests",
   RailsRequest = {Url, [], "application/json", JsonPayload},
   case httpc:request(post, RailsRequest, [], []) of
     {ok, {_, _Headers, RawBody}} ->

@@ -51,8 +51,9 @@ etcd_set /settings/rails/secrets/secret_key_base "random-secret"
 etcd_set /settings/rails/secrets/ca_path "../router/dev_cert"
 
 # External services
-etcd_set /service/frontend_local http://frontend.air-local:8201
-etcd_set /service/backend_local http://backend.air-local:8201
+etcd_set /service/frontend_local http://frontend.air-local:8203
+etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:8203
+etcd_set /service/backend_local http://backend.air-local:8203
 etcd_set /service/airpub/shared_secret "well-known secret"
 etcd_set /service/airpub/subscribe_endpoint ""
 etcd_set /service/build_server/host ""
