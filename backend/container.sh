@@ -28,6 +28,10 @@ if [ "$EXPORT_BEAM_PORTS" == "true" ]; then
   DOCKER_START_ARGS="$DOCKER_START_ARGS -p 4369:4369 -p 20000:20000"
 fi
 
-DOCKER_START_ARGS="$DOCKER_START_ARGS -p 11000:11000 -p 9000:9000 "$REGISTRY_URL"aircloak/air_backend:latest"
+DOCKER_START_ARGS="$DOCKER_START_ARGS \
+  -p 11000:11000 -p 9000:9000 \
+  --net=host \
+  "$REGISTRY_URL"aircloak/air_backend:latest
+"
 REMOTE_CONSOLE_COMMAND="bin/air remote_console"
 container_ctl air_backend $@

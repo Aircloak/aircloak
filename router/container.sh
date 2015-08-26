@@ -31,6 +31,7 @@ fi
 DOCKER_START_ARGS="-p 8200:8200 -p 8201:8201 \
   $docker_env \
   -v $cert_folder:/aircloak/ca \
+  --net=host \
   "$REGISTRY_URL"aircloak/air_router:latest \
   /aircloak/router/docker/start.sh"
 
