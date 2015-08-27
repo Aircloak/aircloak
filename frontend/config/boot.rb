@@ -4,12 +4,13 @@ ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../../Gemfile', __FILE__)
 require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
 
 # Set default port in dev env to resemble the containerized env.
+require './lib/aircloak_config'
 require 'rails/commands/server'
 if Rails.env == "development"
   module Rails
     class Server
       def default_options
-        super.merge(Port: 8080)
+        super.merge(Port: Conf.get("/tcp_ports/air_frontend/http").to_i)
       end
     end
   end

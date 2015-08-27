@@ -24,8 +24,7 @@ else
   cert_folder="$(pwd)/../router/dev_cert"
 fi
 
-DOCKER_START_ARGS="-p 8080:8080 \
-  $docker_env \
+DOCKER_START_ARGS="$docker_env \
   -v $cert_folder:/aircloak/ca \
   --net=host \
   "$REGISTRY_URL"aircloak/air_frontend:latest \

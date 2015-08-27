@@ -20,6 +20,12 @@ function add_local_hosts {
   done
 }
 
+function tcp_port {
+  curl -s -L http://127.0.0.1:$ETCD_PORT/v2/keys/tcp_ports/$1 \
+      | jq ".node.value" \
+      | sed s/\"//g
+}
+
 export ETCD_PORT=${ETCD_PORT:-4002}
 
 add_local_hosts
@@ -28,8 +34,12 @@ log "Booting container. Expecting etcd at http://127.0.0.1:$ETCD_PORT."
 
 config="database"
 
+cat /tmp/nginx.conf \
+  | sed "s/\$AIR_FRONTEND_HTTP_PORT/$(tcp_port 'air_frontend/http')/" \
+  > /aircloak/nginx.conf
+
 log "Starting nginx"
-/usr/sbin/nginx -c /etc/nginx/nginx.conf
+/usr/sbin/nginx -c /aircloak/nginx.conf
 
 log "Starting unicorn"
 # Exec ensures that unicorn replaces this process. This allows us to use

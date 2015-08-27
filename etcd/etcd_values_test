@@ -69,3 +69,4 @@ etcd_set /tcp_ports/air_backend/epmd 4369
 etcd_set /tcp_ports/air_backend/http 11002
 etcd_set /tcp_ports/air_backend/inet_dist_listen_min 20200
 etcd_set /tcp_ports/air_backend/inet_dist_listen_max 20210
+etcd_set /tcp_ports/air_frontend/http 8082

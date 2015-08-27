@@ -40,9 +40,6 @@ RUN mkdir -p $site_path/log
 VOLUME $site_path/log
 VOLUME /var/log
 
-# nginx will be listening on 8080
-EXPOSE 8080
-
 # User under which the app will run.
 RUN useradd --no-create-home --shell /bin/bash deployer
 RUN chown -R deployer:deployer /usr/local/bundle
@@ -93,7 +90,7 @@ RUN . /tmp/build_config/proxies.sh && bundle exec middleman build
 ## Setup nginx
 ## ------------------------------------------------------------------
 
-COPY config/nginx.conf /etc/nginx/nginx.conf
+COPY config/nginx.conf /tmp/nginx.conf
 
 # Nginx logs at /var/log/nginx
 # We want to tail that, so make it accessible to us

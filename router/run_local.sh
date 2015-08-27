@@ -10,7 +10,7 @@ export ETCD="127.0.0.1:4003"
 function upstream_contents {
   cat <<EOF
     upstream frontend {
-      server 127.0.0.1:8080;
+      server 127.0.0.1:$(etcd_get /tcp_ports/air_frontend/http);
     }
     upstream backend {
       server 127.0.0.1:$(etcd_get /tcp_ports/air_backend/http);
