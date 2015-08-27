@@ -172,7 +172,7 @@ run_task(PreviousJobResponses, TaskSpec) ->
       setup,
       [
         ?load_conf,
-        ?with_applications([gproc, webmachine]),
+        ?with_applications([gproc, webmachine, etcd]),
         ?with_processes([cloak_services_sup, air_api_sup])
       ],
       [

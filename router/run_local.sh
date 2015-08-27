@@ -4,16 +4,19 @@ set -eo pipefail
 
 cd $(dirname $0)
 
+. ../etcd/etcd_lib.sh
+export ETCD="127.0.0.1:4003"
+
 function upstream_contents {
   cat <<EOF
     upstream frontend {
       server 127.0.0.1:8080;
     }
     upstream backend {
-      server 127.0.0.1:11000;
+      server 127.0.0.1:$(etcd_get /tcp_ports/air_backend/http);
     }
     upstream local_backend {
-      server 127.0.0.1:11000;
+      server 127.0.0.1:$(etcd_get /tcp_ports/air_backend/http);
     }
     upstream aircloak {
       server 127.0.0.1:10000;

@@ -72,6 +72,7 @@ In order to run the system you need the following components:
 - Ruby 2.0
 - Erlang 17.5
 - Nginx (preferably 1.9.3)
+- [jq](https://stedolan.github.io/jq/)
 - Any other package needed to build and run specific components (e.g. liblua, libprotobuf, ...)
 
 __Linux developers__: Scripts in this project use docker in the context of the logged in user (without root

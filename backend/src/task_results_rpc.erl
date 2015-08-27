@@ -188,7 +188,7 @@ create_cells_json([Count|Rem]) ->
       setup,
       [
         ?load_conf,
-        ?with_applications([webmachine]),
+        ?with_applications([webmachine, etcd]),
         ?with_db,
         ?with_processes([air_api_sup])
       ],
@@ -320,6 +320,6 @@ get_result() ->
   get_result("").
 
 get_result(QueryString) ->
-  httpc:request(get, {"http://127.0.0.1:11000/backend/api/tasks/token/results?" ++ QueryString, []}, [], []).
+  httpc:request(get, {db_test_helpers:http_url("/backend/api/tasks/token/results?" ++ QueryString), []}, [], []).
 
 -endif.

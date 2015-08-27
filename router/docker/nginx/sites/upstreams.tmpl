@@ -28,13 +28,13 @@ upstream frontend {
 
 upstream backend {
   {{ if ls "/service_instances/backends" }}
-    {{ if exists "/service_instances/backends/$AIR_HOST_NAME_11000"}}
+    {{ if exists "/service_instances/backends/$AIR_HOST_NAME_$AIR_BACKEND_HTTP_PORT"}}
       {{/* Set local service as primary, others as backup */}}
       {{ range gets "/service_instances/backends/*" }}
         {{ $data := json .Value }}
-        {{ if eq .Key "/service_instances/backends/$AIR_HOST_NAME_11000"}}
+        {{ if eq .Key "/service_instances/backends/$AIR_HOST_NAME_$AIR_BACKEND_HTTP_PORT"}}
           {{/* Use the known address of the host instead of the public ip */}}
-          server 127.0.0.1:11000;
+          server 127.0.0.1:$AIR_BACKEND_HTTP_PORT;
         {{ else }}
           server {{ $data.http_endpoint }} backup;
         {{ end }}
@@ -48,7 +48,7 @@ upstream backend {
     {{ end }}
   {{ else }}
     {{/* No registered service -> hardcode one required upstream to the local service */}}
-    server 127.0.0.1:11000;
+    server 127.0.0.1:$AIR_BACKEND_HTTP_PORT;
   {{ end }}
 
   keepalive 16;
@@ -56,7 +56,7 @@ upstream backend {
 
 # References just the local backend. Needed for monitoring purposes.
 upstream local_backend {
-  server 127.0.0.1:11000;
+  server 127.0.0.1:$AIR_BACKEND_HTTP_PORT;
 }
 
 upstream aircloak {

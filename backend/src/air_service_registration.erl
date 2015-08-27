@@ -46,7 +46,7 @@ init(_) ->
     false -> "127.0.0.1";
     Value -> Value
   end,
-  HttpPort = proplists:get_value(port, air_conf:get_section(web_server)),
+  HttpPort = binary_to_integer(air_etcd:get("/tcp_ports/air_backend/http")),
   HttpEndPoint = iolist_to_binary(io_lib:format("~s:~p", [HttpHost, HttpPort])),
   Data = iolist_to_binary(mochijson2:encode([
         {http_endpoint, HttpEndPoint},

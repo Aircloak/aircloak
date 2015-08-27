@@ -49,6 +49,14 @@ function etcd_set {
   curl -XPUT -L --silent http://$ETCD/v2/keys$path -d value="$value" > /dev/null
 }
 
+function etcd_get {
+    echo $(
+      curl -s -L http://$ETCD/v2/keys$1 \
+        | jq '.node.value' \
+        | sed s/\"//g
+    )
+}
+
 function docker_start_args {
   echo "-p ${ETCD_PORT}:${ETCD_PORT} $1 \
       quay.io/coreos/etcd:v2.0.6 \

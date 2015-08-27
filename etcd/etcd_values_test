@@ -63,3 +63,9 @@ etcd_set /service/manny_air/host ""
 
 # Registered local symbolic names
 etcd_set /service/local_names "frontend backend api infrastructure-api aircloak"
+
+# TCP ports used by various air services
+etcd_set /tcp_ports/air_backend/epmd 4369
+etcd_set /tcp_ports/air_backend/http 11002
+etcd_set /tcp_ports/air_backend/inet_dist_listen_min 20200
+etcd_set /tcp_ports/air_backend/inet_dist_listen_max 20210

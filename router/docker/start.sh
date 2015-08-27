@@ -31,6 +31,13 @@ function add_local_hosts {
   done
 }
 
+function tcp_port {
+  curl -s -L http://127.0.0.1:$ETCD_PORT/v2/keys/tcp_ports/$1 \
+      | jq ".node.value" \
+      | sed s/\"//g
+}
+
+
 export ETCD_PORT=${ETCD_PORT:-4002}
 
 add_local_hosts
@@ -38,7 +45,8 @@ add_local_hosts
 AIR_HOST_NAME=${AIR_HOST_NAME:-"127.0.0.1"}
 
 cat /aircloak/router/docker/nginx/sites/upstreams.tmpl \
-  | sed "s/\$AIR_HOST_NAME/$AIR_HOST_NAME/g;" \
+  | sed "s/\$AIR_HOST_NAME/$AIR_HOST_NAME/g; " \
+  | sed "s/\$AIR_BACKEND_HTTP_PORT/$(tcp_port 'air_backend/http')/" \
   > /etc/confd/templates/upstreams.tmpl
 
 log "Booting container. Expecting etcd at http://127.0.0.1:$ETCD_PORT."

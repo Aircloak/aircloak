@@ -1,6 +1,14 @@
-#!/bin/sh
+#!/bin/bash
 # -*- tab-width:4;indent-tabs-mode:nil -*-
 # ex: ts=4 sw=4 et
+
+function etcd_value {
+    echo $(
+      curl -s -L http://127.0.0.1:${ETCD_PORT:-4003}/v2/keys$1 \
+        | jq '.node.value' \
+        | sed s/\"//g
+    )
+}
 
 # /bin/sh on Solaris is not a POSIX compatible shell, but /usr/bin/ksh is.
 if [ `uname -s` = 'SunOS' -a "${POSIX_SHELL}" != "true" ]; then
@@ -26,6 +34,10 @@ RUNNER_ETC_DIR=$RUNNER_BASE_DIR/etc
 PIPE_DIR=/tmp/$RUNNER_BASE_DIR/
 RUNNER_USER=
 WHOAMI=$(whoami)
+
+# fetch EPMD port from ETCD
+export ERL_EPMD_PORT=$(etcd_value /tcp_ports/air_backend/epmd)
+echo "Using EPMD port $ERL_EPMD_PORT"
 
 # Make sure this script is running as the appropriate user
 if ([ "$RUNNER_USER" ] && [ "x$WHOAMI" != "x$RUNNER_USER" ]); then
@@ -60,15 +72,15 @@ else
     fi
 fi
 
-if [ ! -e "/tmp/air_vm.args" ]; then
-    if [ -z "$AIR_HOST_NAME" ]; then
-        AIR_HOST_NAME="127.0.0.1"
-    fi
-    echo "Host name: $AIR_HOST_NAME"
-    cat "$VMARGS_PATH" | sed "s/127.0.0.1/$AIR_HOST_NAME/g" > /tmp/air_vm.args
-else
-    echo "Using existing /tmp/air_vm.args"
+if [ -z "$AIR_HOST_NAME" ]; then
+    AIR_HOST_NAME="127.0.0.1"
 fi
+echo "Host name: $AIR_HOST_NAME"
+cat "$VMARGS_PATH" | \
+    sed "s/127.0.0.1/$AIR_HOST_NAME/g" | \
+    sed "s/\$INET_DIST_LISTEN_MIN/$(etcd_value /tcp_ports/air_backend/inet_dist_listen_min)/g" | \
+    sed "s/\$INET_DIST_LISTEN_MAX/$(etcd_value /tcp_ports/air_backend/inet_dist_listen_max)/g" \
+    > /tmp/air_vm.args
 VMARGS_PATH=/tmp/air_vm.args
 
 RUNNER_LOG_DIR=$USE_DIR/log

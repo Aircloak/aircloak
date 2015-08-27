@@ -24,12 +24,7 @@ if [ "$AIR_HOST_NAME" != "" ]; then
   DOCKER_START_ARGS="$DOCKER_START_ARGS -e AIR_HOST_NAME=$AIR_HOST_NAME"
 fi
 
-if [ "$EXPORT_BEAM_PORTS" == "true" ]; then
-  DOCKER_START_ARGS="$DOCKER_START_ARGS -p 4369:4369 -p 20000:20000"
-fi
-
 DOCKER_START_ARGS="$DOCKER_START_ARGS \
-  -p 11000:11000 -p 9000:9000 \
   --net=host \
   "$REGISTRY_URL"aircloak/air_backend:latest
 "

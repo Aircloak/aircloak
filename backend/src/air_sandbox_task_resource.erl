@@ -153,7 +153,7 @@ is_task_execution_ok() ->
       setup,
       [
         ?load_conf,
-        ?with_applications([gproc, webmachine]),
+        ?with_applications([gproc, webmachine, etcd]),
         ?with_processes([cloak_services_sup, air_api_sup]),
         ?api_web_server
       ],
@@ -356,7 +356,7 @@ verifyHttp200(ExpectedBody, HttpResponse) ->
 
 request_task_run(TaskSpec) ->
   httpc:request(post,
-        {"http://127.0.0.1:11000/task/run", [], "text/html", TaskSpec},
+        {db_test_helpers:http_url("/task/run"), [], "text/html", TaskSpec},
         [],
         []
       ).

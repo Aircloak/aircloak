@@ -57,7 +57,9 @@ setup_routes() ->
 %% @hidden
 init([]) ->
   air_sandbox_state:init(),
-  WebConfig = [{dispatch, []} | air_conf:get_section(web_server)],
+  HttpPort = binary_to_integer(air_etcd:get("/tcp_ports/air_backend/http")),
+  ?INFO("Starting HTTP server on port ~p", [HttpPort]),
+  WebConfig = [{dispatch, []}, {port, HttpPort} | air_conf:get_section(web_server)],
   WebChildSpec = {webmachine_mochiweb,
     {webmachine_mochiweb, start, [WebConfig]},
     permanent, 5000, worker, [mochiweb_socket_server]

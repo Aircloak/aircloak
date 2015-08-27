@@ -26,3 +26,7 @@ last_id(Table) ->
   {{select, 1}, [{Id}]} = db_test_helpers:simple_query(
       ["SELECT currval(pg_get_serial_sequence('", Table, "','id'));"]),
   Id.
+
+http_url(Url) ->
+  lists:flatten(io_lib:format("http://127.0.0.1:~s~s", [
+      air_etcd:get("/tcp_ports/air_backend/http"), Url])).

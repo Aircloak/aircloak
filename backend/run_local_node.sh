@@ -1,5 +1,13 @@
 #!/bin/bash
 
+function etcd_dev_value {
+  echo $(
+      cat ../etcd/etcd_values_dev |
+        grep "etcd_set $1" |
+        sed "s,etcd_set $1,,"
+    )
+}
+
 mkdir -p .data
 
 config_base="./rel/files/"
@@ -16,16 +24,18 @@ else
   node_name="air$num"
 fi
 
-((http=11000+num-1))
-((inet_dist=20000+num-1))
+((http_port=$(etcd_dev_value /tcp_ports/air_backend/http)+num-1))
+curl -L http://127.0.0.1:4003/v2/keys/tcp_ports/air_backend/http -XPUT -d value=$http_port
 
 cat "$config_base/sys.config" | \
-    sed "s,.data/1,.data/$num," | \
-    sed "s,20000,$inet_dist," | \
-    sed "s,11000,$http," > "$config_dest/app$num.config"
+    sed "s,.data/1,.data/$num," \
+    > "$config_dest/app$num.config"
 
 cat "$config_base/vm.args" | \
-    sed "s,name air,name $node_name,"  > "$config_dest/vm$num.args"
+    sed "s,name air,name $node_name," | \
+    sed "s,\$INET_DIST_LISTEN_MIN,$(etcd_dev_value /tcp_ports/air_backend/inet_dist_listen_min)," | \
+    sed "s,\$INET_DIST_LISTEN_MAX,$(etcd_dev_value /tcp_ports/air_backend/inet_dist_listen_max)," \
+    > "$config_dest/vm$num.args"
 
 echo "Created $config_dest/app$num.config and $config_dest/vm$num.args"
 echo "Setting ulimit to 5000"
