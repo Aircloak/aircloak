@@ -1,0 +1,24 @@
+// Ports used in the air system.
+// The port used by a particular service in a particular environment is calculated as:
+//   environment_offset + service_offset
+{
+  // Base ports used in various environments.
+  "environment_offsets": {
+    "dev": 20000,
+    "prod": 20100,
+    "test": 20200
+  },
+
+  // Port offsets for each service
+  "service_offsets": {
+    "air_frontend/http": 0,
+    "air_backend/epmd": 1,
+
+    // Ports 10-19 are reserved for HTTP of the backend node.
+    // Ports 20-29 are reserved for inet_dist of the backend node.
+    // We use multiple ports to support multiple instances on the same machine.
+    "air_backend/http": 10,
+    "air_backend/inet_dist_listen_min": 20,
+    "air_backend/inet_dist_listen_max": 29
+  }
+}

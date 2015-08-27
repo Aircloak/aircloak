@@ -69,3 +69,38 @@ function docker_start_args {
       -initial-cluster etcd0=http://${ETCD_DEFAULT_IP}:2380 \
       -initial-cluster-state new"
 }
+
+function tcp_ports {
+  environment_offset=$(
+        cat "$(dirname ${BASH_SOURCE[0]})/tcp_ports.json" |
+            egrep -v '//' |
+            jq --raw-output '.environment_offsets.'$1
+      )
+
+  if [ "$environment_offset" = "null" ]; then
+    echo "Invalid env provided: $1" >&2
+    exit 1
+  fi
+
+  service_offsets=$(
+        cat "$(dirname ${BASH_SOURCE[0]})/tcp_ports.json" |
+            egrep -v '//' |
+            jq --raw-output '.service_offsets | to_entries | map("\(.key) \(.value)")|.[]'
+      )
+
+  while read line; do
+    IFS=" " read service_name service_offset < <(echo "$line")
+    echo "$service_name $(($environment_offset + $service_offset))"
+  done < <(echo "$service_offsets")
+}
+
+function set_tcp_ports {
+  while read line; do
+    IFS=" " read service port < <(echo "$line")
+    etcd_set "/tcp_ports/$service" $port
+  done < <(echo "$(tcp_ports $1)")
+}
+
+function get_tcp_port {
+  tcp_ports $1 | egrep "^$2" | awk '{print $2}'
+}
