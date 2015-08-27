@@ -42,7 +42,9 @@ function generate_nginx_conf {
 
   for config in $(ls -1 docker/nginx/sites/*.conf); do
     cat $config \
-    | sed "s#*:8200#*:8202#; s#*:8201#*:8203#; s#/etc/nginx/support#$(pwd)/nginx_local/support#; s#/aircloak/ca#$(pwd)/dev_cert#" \
+    | sed "s#\$ROUTER_HTTPS_PORT#$(etcd_get /tcp_ports/router/https)#" \
+    | sed "s#\$ROUTER_HTTP_PORT#$(etcd_get /tcp_ports/router/http)#" \
+    | sed "s#/etc/nginx/support#$(pwd)/nginx_local/support#; s#/aircloak/ca#$(pwd)/dev_cert#" \
     > nginx_local/sites/$(basename $config)
   done
 
@@ -87,8 +89,8 @@ check_etc_hosts
 nginx -c $(pwd)/nginx_local/nginx.conf
 
 echo "You can access following sites:
-  https://frontend.air-local:8202
-  https://api.air-local:8202
-  https://infrastructure-api.air-local:8202
-  https://aircloak.air-local:8202
+  https://frontend.air-local:$(etcd_get /tcp_ports/router/https)
+  https://api.air-local:$(etcd_get /tcp_ports/router/https)
+  https://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/https)
+  https://aircloak.air-local:$(etcd_get /tcp_ports/router/https)
 "

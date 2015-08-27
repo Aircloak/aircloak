@@ -71,7 +71,13 @@ log "confd is now monitoring etcd for changes..."
 
 mkdir -p /etc/nginx/support
 cp -rp /aircloak/router/docker/nginx/support/* /etc/nginx/support
-cp -rp /aircloak/router/docker/nginx/sites/*.conf /etc/nginx/conf.d/
+
+for config in $(ls -1 /aircloak/router/docker/nginx/sites/*.conf); do
+  cat $config \
+  | sed "s#\$ROUTER_HTTPS_PORT#$(tcp_port router/https)#" \
+  | sed "s#\$ROUTER_HTTP_PORT#$(tcp_port router/http)#" \
+  > /etc/nginx/conf.d/$(basename $config)
+done
 
 generate_local_http_allows
 

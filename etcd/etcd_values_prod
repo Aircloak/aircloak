@@ -55,9 +55,9 @@ etcd_set /settings/rails/secrets/secret_key_base ""
 etcd_set /settings/rails/secrets/ca_path "/aircloak/ca"
 
 # External services
-etcd_set /service/frontend_local http://frontend.air-local:8201
-etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:8201
-etcd_set /service/backend_local http://backend.air-local:8201
+etcd_set /service/frontend_local http://frontend.air-local:$(etcd_get /tcp_ports/router/http)
+etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/http)
+etcd_set /service/backend_local http://backend.air-local:$(etcd_get /tcp_ports/router/http)
 etcd_set /service/airpub/shared_secret ""
 etcd_set /service/airpub/subscribe_endpoint "wss://pub.aircloak.com/subscribe/ws"
 etcd_set /service/build_server/host build.aircloak.com

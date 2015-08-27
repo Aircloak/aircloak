@@ -45,8 +45,8 @@ etcd_set /settings/air/integration_test/data/mean_rows_per_user 100
 etcd_set /settings/rails/global false
 
 etcd_set /settings/rails/task/return_protocol http
-etcd_set /settings/rails/task/return_host localhost
-etcd_set /settings/rails/task/return_port 8080
+etcd_set /settings/rails/task/return_host frontend.air-local
+etcd_set /settings/rails/task/return_port $(etcd_get /tcp_ports/router/http)
 etcd_set /settings/rails/task/publish_url http://${GATEWAY}:1080/publish
 
 etcd_set /settings/rails/secrets/private_key_password "a not so secret key"
@@ -55,9 +55,9 @@ etcd_set /settings/rails/secrets/secret_key_base "random-secret"
 etcd_set /settings/rails/secrets/ca_path "../router/dev_cert"
 
 # External services
-etcd_set /service/frontend_local http://frontend.air-local:8203
-etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:8203
-etcd_set /service/backend_local http://backend.air-local:8203
+etcd_set /service/frontend_local http://frontend.air-local:$(etcd_get /tcp_ports/router/http)
+etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/http)
+etcd_set /service/backend_local http://backend.air-local:$(etcd_get /tcp_ports/router/http)
 etcd_set /service/airpub/shared_secret "well-known secret"
 etcd_set /service/airpub/subscribe_endpoint "ws://${GATEWAY}:1080/subscribe/ws"
 etcd_set /service/build_server/host localhost
