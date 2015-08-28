@@ -22,6 +22,7 @@ class TasksController < ApplicationController
   def index
     @private_tasks = @current_user.analyst.private_tasks current_user
     @shared_tasks = @current_user.analyst.shared_tasks
+    @other_private_tasks = @current_user.analyst.all_private_tasks - @private_tasks if current_user.admin?
     describe_activity "Browsing all tasks for #{current_user.analyst.name}"
   end
 

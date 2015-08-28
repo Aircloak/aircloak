@@ -33,6 +33,10 @@ class Analyst < ActiveRecord::Base
     persistent_tasks.where(deleted: false, shared: false, user_id: user.id)
   end
 
+  def all_private_tasks
+    persistent_tasks.where(deleted: false, shared: false)
+  end
+
   def undeleted_user_tables
     user_tables.where(deleted: false)
   end
