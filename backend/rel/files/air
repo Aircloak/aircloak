@@ -4,7 +4,7 @@
 
 function etcd_value {
     echo $(
-      curl -s -L http://127.0.0.1:${ETCD_PORT:-4003}/v2/keys$1 \
+      curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys$1 \
         | jq '.node.value' \
         | sed s/\"//g
     )
@@ -34,6 +34,9 @@ RUNNER_ETC_DIR=$RUNNER_BASE_DIR/etc
 PIPE_DIR=/tmp/$RUNNER_BASE_DIR/
 RUNNER_USER=
 WHOAMI=$(whoami)
+
+. $RUNNER_SCRIPT_DIR/set_etcd_port.sh ${AIR_BACKEND_ENV:-"dev"}
+echo "Expecting ETCD at port $ETCD_CLIENT_PORT"
 
 # fetch EPMD port from ETCD
 export ERL_EPMD_PORT=$(etcd_value /tcp_ports/air_backend/epmd)

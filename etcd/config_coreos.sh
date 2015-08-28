@@ -8,8 +8,6 @@ cd $(dirname $0)
 AIR_ETCD_PORT=4001
 ETCD_HOST_IP=127.0.0.1
 
-init_env
-
 . etcd_values_coreos
 if [ -f local_settings/coreos ]; then
   . ./local_settings/coreos

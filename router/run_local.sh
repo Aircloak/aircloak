@@ -5,7 +5,7 @@ set -eo pipefail
 cd $(dirname $0)
 
 . ../etcd/etcd_lib.sh
-export ETCD="127.0.0.1:4003"
+init_env "dev"
 
 function upstream_contents {
   cat <<EOF

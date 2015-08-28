@@ -11,7 +11,7 @@ function log {
 
 function add_local_hosts {
   for host in $(
-    curl -s -L http://127.0.0.1:$ETCD_PORT/v2/keys/service/local_names |
+    curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service/local_names |
     jq '.node.value' |
     sed s/\"//g |
     tr " " "\n"
@@ -21,18 +21,16 @@ function add_local_hosts {
 }
 
 function tcp_port {
-  curl -s -L http://127.0.0.1:$ETCD_PORT/v2/keys/tcp_ports/$1 \
+  curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/tcp_ports/$1 \
       | jq ".node.value" \
       | sed s/\"//g
 }
 
-export ETCD_PORT=${ETCD_PORT:-4002}
+. $(dirname ${BASH_SOURCE[0]})/config.sh
+export ETCD_CLIENT_PORT=$(get_tcp_port prod etcd/client)
+log "Booting container. Expecting etcd at http://127.0.0.1:$ETCD_CLIENT_PORT."
 
 add_local_hosts
-
-log "Booting container. Expecting etcd at http://127.0.0.1:$ETCD_PORT."
-
-config="database"
 
 cat /tmp/nginx.conf \
   | sed "s/\$AIR_FRONTEND_HTTP_PORT/$(tcp_port 'air_frontend/http')/" \

@@ -30,9 +30,9 @@ private
 
   def self.port
     case Rails.env
-      when "development" then "4003"
-      when "test" then "4004"
-      else ENV['ETCD_PORT']
+      when "development" then `./etcd_client_port.sh dev`
+      when "test" then `./etcd_client_port.sh test`
+      else ENV['ETCD_CLIENT_PORT']
     end
   end
 end

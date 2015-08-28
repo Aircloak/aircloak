@@ -58,17 +58,17 @@ ls(Key) ->
 %% -------------------------------------------------------------------
 
 etcd_url() ->
-  lists:flatten(io_lib:format("http://127.0.0.1:~s", [etcd_port()])).
+  case application:get_env(air, etcd_url) of
+    {ok, EtcdUrl} -> EtcdUrl;
+    undefined ->
+      EtcdUrl = lists:flatten(io_lib:format("http://127.0.0.1:~p",
+          [list_to_integer(env("ETCD_CLIENT_PORT", undefined))])),
+      application:set_env(air, etcd_url, EtcdUrl, [{persistent, true}]),
+      EtcdUrl
+  end.
 
--ifdef(TEST).
-  etcd_port() -> "4004".
--else.
-  etcd_port() ->
-    env("ETCD_PORT", "4003").
-
-  env(VarName, Default) ->
-    case os:getenv(VarName) of
-      false -> Default;
-      Value -> Value
-    end.
--endif.
+env(VarName, Default) ->
+  case os:getenv(VarName) of
+    false -> Default;
+    Value -> Value
+  end.

@@ -39,6 +39,7 @@ function activate_stage {
 
 
 CWD=$(pwd)
+./copy_configs.sh
 mkdir -p artifacts/cache
 cp -rp Makefile artifacts/cache
 cp -rp rebar artifacts/cache

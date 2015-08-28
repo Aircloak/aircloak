@@ -10,20 +10,12 @@ function silence_etcd_set {
 }
 
 function init_env {
-  if [ -n "$(env | grep boot2docker)" ]; then
-    log "Assuming using boot2docker due to environment variables"
-    ETCD_DEFAULT_IP=$(boot2docker ip)
-  else
-    ETCD_DEFAULT_IP="127.0.0.1"
-  fi
-
-  export ETCD_PORT=${AIR_ETCD_PORT:-4002}
-  export HOST_IP=${ETCD_HOST_IP:-$ETCD_DEFAULT_IP}
-  export ETCD=$HOST_IP:$ETCD_PORT
+  export ETCD_CLIENT_PORT=$(get_tcp_port $1 etcd/client)
+  export ETCD_PEER_PORT=$(get_tcp_port $1 etcd/peer)
 }
 
 function etcd_is_up {
-  curl --silent http://$ETCD/version > /dev/null
+  curl --silent http://127.0.0.1:$ETCD_CLIENT_PORT/version > /dev/null
   if [ $? -ne 0 ]; then
     return 1
   else
@@ -44,31 +36,32 @@ function etcd_set {
   path=$1
   value=$2
   if [ -z "$SILENT_ETCD_SET" ]; then
-    log "$ETCD: setting etcd: $path = $value"
+    log "127.0.0.1:$ETCD_CLIENT_PORT: setting etcd: $path = $value"
   else
     log "Setting etcd: $path = XXXX"
   fi
-  curl -XPUT -L --silent http://$ETCD/v2/keys$path -d value="$value" > /dev/null
+  curl -XPUT -L --silent http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys$path -d value="$value" > /dev/null
 }
 
 function etcd_get {
     echo $(
-      curl -s -L http://$ETCD/v2/keys$1 \
+      curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys$1 \
         | jq '.node.value' \
         | sed s/\"//g
     )
 }
 
 function docker_start_args {
-  echo "-p ${ETCD_PORT}:${ETCD_PORT} $1 \
-      quay.io/coreos/etcd:v2.0.6 \
+  echo "
+    --net=host \
+    quay.io/coreos/etcd:v2.0.6 \
       -name etcd0 \
-      -advertise-client-urls http://${ETCD_DEFAULT_IP}:2379,http://${ETCD_DEFAULT_IP}:${ETCD_PORT} \
-      -listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:${ETCD_PORT} \
-      -initial-advertise-peer-urls http://${ETCD_DEFAULT_IP}:2380 \
-      -listen-peer-urls http://0.0.0.0:2380 \
+      -advertise-client-urls http://127.0.0.1:$ETCD_CLIENT_PORT \
+      -listen-client-urls http://0.0.0.0:$ETCD_CLIENT_PORT \
+      -initial-advertise-peer-urls http://127.0.0.1:$ETCD_PEER_PORT \
+      -listen-peer-urls http://0.0.0.0:$ETCD_PEER_PORT \
       -initial-cluster-token etcd-cluster-1 \
-      -initial-cluster etcd0=http://${ETCD_DEFAULT_IP}:2380 \
+      -initial-cluster etcd0=http://127.0.0.1:$ETCD_PEER_PORT \
       -initial-cluster-state new"
 }
 

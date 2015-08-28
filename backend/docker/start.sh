@@ -8,8 +8,10 @@ function log {
 }
 
 function add_local_hosts {
+  . /aircloak/app/bin/set_etcd_port.sh prod
+
   for host in $(
-    curl -s -L http://127.0.0.1:$ETCD_PORT/v2/keys/service/local_names |
+    curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service/local_names |
     jq '.node.value' |
     sed s/\"//g |
     tr " " "\n"
@@ -19,10 +21,10 @@ function add_local_hosts {
 }
 
 export HTTP_HOST_IP=${AIR_HOST_NAME:-"127.0.0.1"}
-export ETCD_PORT=${ETCD_PORT:-4002}
+export AIR_BACKEND_ENV="prod"
 
 add_local_hosts
 
-log "Booting container. Expecting etcd at http://127.0.0.1:$ETCD_PORT."
+log "Booting container."
 
 exec gosu deployer /aircloak/app/bin/air foreground

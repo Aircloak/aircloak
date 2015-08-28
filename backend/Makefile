@@ -77,7 +77,8 @@ test/sys.config: rel/files/sys.config
 test-eunit: test/sys.config
 	mkdir -p ./.eunit
 	cp -rp priv ./.eunit
-	./rebar skip_deps=true eunit
+	./copy_configs.sh
+	bash -c ". rel/files/set_etcd_port.sh test && ./rebar skip_deps=true eunit"
 
 regenerate_db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"

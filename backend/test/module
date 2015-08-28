@@ -1,1 +1,3 @@
+./copy_configs.sh
+. rel/files/set_etcd_port.sh test
 ./rebar skip_deps=true eunit suites=$1

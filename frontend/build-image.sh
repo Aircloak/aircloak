@@ -10,6 +10,8 @@ function log {
   echo "[aircloak] $msg"
 }
 
+cp -rp ../config/config.sh docker
+cp -rp ../config/tcp_ports.json docker
 
 # -------------------------------------------------------------------
 # Docker release image build

@@ -14,22 +14,18 @@ if [ "$REGISTRY_URL" != "" ]; then
   REGISTRY_URL="$REGISTRY_URL""/"
 fi
 
-if [ "$ETCD_PORT" != "" ]; then
-  docker_env="-e ETCD_PORT=$ETCD_PORT"
-fi
-
 if [ "$AIR_ENV" = "prod" ]; then
   cert_folder="/aircloak/ca"
 else
   cert_folder="$(pwd)/../router/dev_cert"
 fi
 
-DOCKER_START_ARGS="$docker_env \
+DOCKER_START_ARGS="
   -v $cert_folder:/aircloak/ca \
   --net=host \
   "$REGISTRY_URL"aircloak/air_frontend:latest \
   /aircloak/website/docker/start.sh"
 
-REMOTE_CONSOLE_COMMAND="bundle exec rails c"
+REMOTE_CONSOLE_COMMAND='. docker/config.sh && ETCD_CLIENT_PORT=$(get_tcp_port prod etcd/client) bundle exec rails c'
 
 container_ctl air_frontend $@

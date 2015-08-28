@@ -11,10 +11,6 @@ if [ "$REGISTRY_URL" != "" ]; then
   REGISTRY_URL="$REGISTRY_URL""/"
 fi
 
-if [ "$ETCD_PORT" != "" ]; then
-  DOCKER_START_ARGS="$DOCKER_START_ARGS -e ETCD_PORT=$ETCD_PORT"
-fi
-
 # Override the generic function, since we need to perform special handling
 function gracefully_stop_container {
   docker exec -d air_backend /bin/bash -c "/aircloak/app/bin/air stop"
@@ -28,5 +24,5 @@ DOCKER_START_ARGS="$DOCKER_START_ARGS \
   --net=host \
   "$REGISTRY_URL"aircloak/air_backend:latest
 "
-REMOTE_CONSOLE_COMMAND="bin/air remote_console"
+REMOTE_CONSOLE_COMMAND="AIR_BACKEND_ENV='prod' bin/air remote_console"
 container_ctl air_backend $@
