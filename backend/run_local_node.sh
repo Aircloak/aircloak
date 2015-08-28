@@ -4,8 +4,7 @@ set -eo pipefail
 
 cd $(dirname $0)
 
-. ../etcd/etcd_lib.sh
-export ETCD="127.0.0.1:4003"
+. ../config/config.sh
 
 mkdir -p .data
 
