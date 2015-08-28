@@ -46,7 +46,7 @@ namespace :aircloak do
               -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log
               --net=host
               aircloak/air_frontend:latest
-              bash -c 'ETCD_PORT=4002 RAILS_ENV=production bundle exec rake db:migrate'
+              bash -c 'RAILS_ENV=production bundle exec rake db:migrate'
           "
     end
   end
@@ -108,7 +108,7 @@ namespace :aircloak do
     #         docker run -t --rm
     #           -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log
     #           aircloak/air_frontend:latest
-    #           bash -c 'ETCD_PORT=4002 RAILS_ENV=production bundle exec rake db:migrate'
+    #           bash -c 'RAILS_ENV=production bundle exec rake db:migrate'
     #       "
     def exec_ml(cmd)
       execute cmd.gsub("\n", " ")
