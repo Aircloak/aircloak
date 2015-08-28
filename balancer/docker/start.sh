@@ -10,12 +10,7 @@ function log {
   echo "[aircloak] $msg"
 }
 
-# Get the IP of the host. See:
-#   https://groups.google.com/forum/#!msg/coreos-dev/fnMeC4B0pSc/adYRzDDoK1wJ
-#   http://blog.famzah.net/2011/09/06/get-default-outgoing-ip-address-and-interface-on-linux/
-HOST_IP=$(ip route get 8.8.8.8 | grep via | awk '{print $3}')
-
-AIR_ROUTERS=${AIR_ROUTERS:-$HOST_IP}
+AIR_ROUTERS=${AIR_ROUTERS:-"127.0.0.1"}
 
 function upstreams {
   for server in $(echo $AIR_ROUTERS | tr ";" "\n"); do
