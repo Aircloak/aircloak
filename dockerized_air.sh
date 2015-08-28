@@ -4,12 +4,13 @@ set -eo pipefail
 
 cd $(dirname $0)
 
-. ./etcd/etcd_lib.sh
+. ./config/config.sh
 
 function stop_docker_services {
   frontend/container.sh stop&
   backend/container.sh stop&
   router/container.sh stop&
+  balancer/container.sh stop&
   wait
 }
 
@@ -29,9 +30,9 @@ case "$1" in
     start_docker_service frontend &
     start_docker_service backend &
     start_docker_service router &
+    start_docker_service balancer &
     wait
-    export ETCD="127.0.0.1:4002"
-    printf "\nYou can access the site at https://frontend.air-local:$(etcd_get /tcp_ports/router/https)\n\n"
+    printf "\nYou can access the site at https://frontend.air-local:$(get_tcp_port prod balancer/https)\n\n"
     ;;
 
   *)

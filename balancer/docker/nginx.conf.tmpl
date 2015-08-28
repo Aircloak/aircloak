@@ -16,12 +16,12 @@ stream {
   }
 
   server {
-    listen 8300;
+    listen $BALANCER_HTTPS_PORT;
     proxy_pass air_router_https;
   }
 
   server {
-    listen 8301;
+    listen $BALANCER_HTTP_PORT;
     proxy_pass air_router_http;
   }
 }

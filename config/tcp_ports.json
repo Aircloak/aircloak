@@ -11,10 +11,12 @@
 
   // Port offsets for each service
   "service_offsets": {
-    "router/https": 0,
-    "router/http": 1,
-    "air_frontend/http": 2,
-    "air_backend/epmd": 3,
+    "balancer/https": 0,
+    "balancer/http": 1,
+    "router/https": 2,
+    "router/http": 3,
+    "air_frontend/http": 4,
+    "air_backend/epmd": 5,
 
     // Ports 10-19 are reserved for HTTP of the backend node.
     // Ports 20-29 are reserved for inet_dist of the backend node.

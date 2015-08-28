@@ -4,6 +4,8 @@ set -eo pipefail
 
 cd $(dirname $0)
 
+. ../config/config.sh
+
 function machine_exec {
   # Suppress stderr, since it's just a "connection closed" message from `vagrant ssh`
   vagrant ssh $1 -c "$2" 2>/dev/null
@@ -73,11 +75,12 @@ cluster_exec "fleetctl start \
       router@$service_indices
     "
 
+../balancer/build-image.sh
+
 # start the balancer
 echo "
 Starting the balancer.
-You can access the site via https://frontend.air-local:8300
+You can access the site via https://frontend.air-local:$(get_tcp_port prod balancer/https)
 "
 
-../balancer/build-image.sh
 AIR_ROUTERS=$(air_routers $machines_num) ../balancer/container.sh console

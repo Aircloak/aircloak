@@ -2,6 +2,9 @@
 
 set -eo pipefail
 
+cd $(dirname $0)
+. ./config.sh
+
 function log {
   msg=$1
   echo "[aircloak] $msg"
@@ -21,7 +24,10 @@ function upstreams {
 }
 
 cat /aircloak/balancer/nginx.conf.tmpl \
-  | sed "s#\$HTTPS_UPSTREAMS#$(upstreams 8200)#; s#\$HTTP_UPSTREAMS#$(upstreams 8201)#;" \
+  | sed "s#\$BALANCER_HTTPS_PORT#$(get_tcp_port prod balancer/https)#" \
+  | sed "s#\$BALANCER_HTTP_PORT#$(get_tcp_port prod balancer/http)#" \
+  | sed "s#\$HTTPS_UPSTREAMS#$(upstreams $(get_tcp_port prod router/https))#" \
+  | sed "s#\$HTTP_UPSTREAMS#$(upstreams $(get_tcp_port prod router/http))#" \
   > /aircloak/balancer/nginx.conf
 
 log "Starting nginx"
