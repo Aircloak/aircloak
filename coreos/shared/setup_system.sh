@@ -18,10 +18,10 @@ function setup_folder_structure {
 
   # Create start/stop scripts
   create_helper_scripts backend \
-    "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001 AIR_HOST_NAME=$COREOS_PUBLIC_IPV4"
+    "REGISTRY_URL=$DOCKER_REGISTRY_URL AIR_HOST_NAME=$COREOS_PUBLIC_IPV4"
 
-  create_helper_scripts frontend "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001 AIR_HOST_NAME=$COREOS_PUBLIC_IPV4"
-  create_helper_scripts router "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001 AIR_HOST_NAME=$COREOS_PUBLIC_IPV4"
+  create_helper_scripts frontend "REGISTRY_URL=$DOCKER_REGISTRY_URL AIR_HOST_NAME=$COREOS_PUBLIC_IPV4"
+  create_helper_scripts router "REGISTRY_URL=$DOCKER_REGISTRY_URL AIR_HOST_NAME=$COREOS_PUBLIC_IPV4"
 }
 
 . /etc/environment

@@ -15,7 +15,9 @@ module Aircloak
       "../router/dev_cert/aircloak.com.chain.pem",
       "../router/dev_cert/acinfra.aircloak.com.pem",
       "../router/dev_cert/api.cert",
-      "../router/dev_cert/api.key"
+      "../router/dev_cert/api.key",
+      "../config/config.sh",
+      "../config/tcp_ports.json",
     ].each do |file|
       target = File.dirname(File.expand_path(file).gsub(root_path, "./shared/air"))
       FileUtils.mkdir_p(target)
