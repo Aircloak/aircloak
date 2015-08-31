@@ -27,13 +27,13 @@ Finally, when running locally, a local TCP balancer is started which serves as t
 
 __Network__: CoreOS and Docker containers will communicate with your own machine. For this to work, you need to either disable firewall on your machine or open necessary ports.
 
-__OS X__: Make sure that ports 5000 and 5433 are forwarded to your `boot2docker` VM. The _Host IP_ value in VirtualBox settings should be left empty.
+__OS X__: Make sure that [required ports](../osx_setup.md#port-forwarding) are forwarded to your `boot2docker` VM. The _Host IP_ value in VirtualBox settings should be left empty.
 
 ## Running
 
 To start the system, simply invoke `COREOS_HOST_IP=x.y.z coreos/start.sh`, where `COREOS_HOST_IP` should be set to the IP address of your machine. This address will be used by the VM and Docker containers to access the Docker registry and the database on your machine.
 
-If everything succeeded, you should be able to access the web server on https://frontend.air-local:8300.
+If everything succeeded, you should be able to access the web server on https://frontend.air-local:20102.
 
 ### Interacting with the machines
 
@@ -46,7 +46,7 @@ To get shells to the running container, you can invoke:
 - `/aircloak/air/frontend/container.sh ssh`
 - `/aircloak/air/backend/container.sh ssh`
 - `/aircloak/air/router/container.sh ssh`
-- `ETCD_PORT=4001 /aircloak/air/frontend/container.sh remote_console`
+- `/aircloak/air/frontend/container.sh remote_console`
 - `/aircloak/air/backend/container.sh remote_console`
 
 
