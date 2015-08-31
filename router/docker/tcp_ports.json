@@ -19,6 +19,7 @@
     "router/http": 5,
     "air_frontend/http": 6,
     "air_backend/epmd": 7,
+    "registry/http": 8,
 
     // Ports 10-19 are reserved for HTTP of the backend node.
     // Ports 20-29 are reserved for inet_dist of the backend node.

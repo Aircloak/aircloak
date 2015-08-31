@@ -28,7 +28,7 @@ module Aircloak
     config.vm.provision :shell,
       privileged: true,
       inline: <<-EOF
-        DOCKER_REGISTRY_URL='#{ENV['COREOS_HOST_IP']}:5000' \
+        DOCKER_REGISTRY_IP='#{ENV['COREOS_HOST_IP']}' \
         DB_SERVER_URL='#{ENV['COREOS_HOST_IP']}' \
         AIRPUB_URL='#{ENV['COREOS_HOST_IP']}:1080' \
         /tmp/shared/setup_system.sh

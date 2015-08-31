@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 
+. $(dirname ${BASH_SOURCE[0]})/../config/config.sh
+
+function push_to_registry {
+  if named_container_running air_docker_registry; then
+    REGISTRY_URL="127.0.0.1:$(get_tcp_port prod registry/http)"
+    echo "Pushing $1 to local registry"
+    docker tag -f aircloak/$1:latest $REGISTRY_URL/aircloak/$1:latest
+    docker push $REGISTRY_URL/aircloak/$1:latest
+  else
+    echo "Warning: local registry is not running, image not pushed."
+  fi
+}
+
 function named_container_running {
   if [ -z "$(docker ps --filter=name=$1 | grep -v CONTAINER)" ]; then
     return 1

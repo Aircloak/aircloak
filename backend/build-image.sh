@@ -62,11 +62,4 @@ docker run -v $PWD:/aircloak/source --rm aircloak/air_backend_build:latest /airc
 activate_stage "release"
 log "Creating release docker container"
 docker build -t aircloak/air_backend:latest .
-
-if named_container_running air_docker_registry; then
-  log "Pushing to local registry"
-  docker tag -f aircloak/air_backend:latest localhost:5000/aircloak/air_backend:latest
-  docker push localhost:5000/aircloak/air_backend:latest
-else
-  echo "Warning: local registry is not running, image not pushed."
-fi
+push_to_registry air_backend

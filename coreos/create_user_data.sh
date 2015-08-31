@@ -4,6 +4,7 @@
 
 ETCD_CLIENT_PORT=$(get_tcp_port prod etcd/client)
 ETCD_PEER_PORT=$(get_tcp_port prod etcd/peer)
+REGISTRY_PORT=$(get_tcp_port prod registry/http)
 
 cat <<-EOF > user-data
 #cloud-config
@@ -25,7 +26,7 @@ coreos:
     - name: 50-insecure-registry.conf
       content: |
         [Service]
-        Environment=DOCKER_OPTS='--insecure-registry="$COREOS_HOST_IP:5000"'
+        Environment=DOCKER_OPTS='--insecure-registry="$COREOS_HOST_IP:$REGISTRY_PORT"'
   - name: etcd2.service
     command: start
   - name: fleet.service
