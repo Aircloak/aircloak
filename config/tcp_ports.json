@@ -21,6 +21,9 @@
     "air_backend/epmd": 7,
     "registry/http": 8,
 
+    // used only on the local machine
+    "database/tcp": 9,
+
     // Ports 10-19 are reserved for HTTP of the backend node.
     // Ports 20-29 are reserved for inet_dist of the backend node.
     // We use multiple ports to support multiple instances on the same machine.
