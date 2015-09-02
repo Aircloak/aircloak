@@ -30,8 +30,15 @@ private
 
   def self.port
     case Rails.env
+      # In dev/test, we get the port via bash script. This is a convenience
+      # hack which allows us to normally use `rake`, `rails`, and friends, without
+      # needing to set env variable ourselves.
       when "development" then `./etcd_client_port.sh dev`
       when "test" then `./etcd_client_port.sh test`
+
+      # In production the port is always provided via OS env. This is an
+      # implementation detail that allows us to reuse the code from
+      # `config/config.sh` without needing to run bash script from Rails.
       else ENV['ETCD_CLIENT_PORT']
     end
   end

@@ -61,6 +61,9 @@ etcd_url() ->
   case application:get_env(air, etcd_url) of
     {ok, EtcdUrl} -> EtcdUrl;
     undefined ->
+      % Note: etcd port is always provided through OS env. This is an implementation
+      % detail that allows us to reuse the code from `config/config.sh` without
+      % needing to run bash script from Erlang.
       EtcdUrl = lists:flatten(io_lib:format("http://127.0.0.1:~p",
           [list_to_integer(env("ETCD_CLIENT_PORT", undefined))])),
       application:set_env(air, etcd_url, EtcdUrl, [{persistent, true}]),
