@@ -14,13 +14,13 @@ You can consider putting these statements inside `~/.bash_profile`
 
 You need to forward following ports from your localhost to boot2docker VM:
 
-- 20000 (etcd for local dev)
-- 20100 (etcd for docker containers)
-- 20102 (balancer container https)
-- 20104 (router container https)
-- 20108 (registry container)
-- 20109 (database container)
-- 20200 (etcd for tests)
+- 20002 (database container)
+- 20020 (etcd for local dev)
+- 20100 (router container https)
+- 20101 (balancer container https)
+- 20120 (etcd for docker containers)
+- 20126 (docker registry container)
+- 20220 (etcd for tests)
 
 ## Mounting non-home folders
 

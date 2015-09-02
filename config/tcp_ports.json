@@ -11,24 +11,38 @@
 
   // Port offsets for each service
   "service_offsets": {
-    "etcd/client": 0,
-    "etcd/peer": 1,
-    "balancer/https": 2,
-    "balancer/http": 3,
-    "router/https": 4,
-    "router/http": 5,
-    "air_frontend/http": 6,
-    "air_backend/epmd": 7,
-    "registry/http": 8,
+    ////////////////////////////////////////////////////////////////////////////
+    // Ports 0-19 are reserved for the services which developers use directly,
+    // for example from browsers or some other client apps (e.g. database client tool).
+    // If you're introducing such service, please add it to this range.
+    // The reason for this rule is developer's convenience. Keeping frequently used
+    // ports together, makes it easier for us to remember them.
 
-    // used only on the local machine
-    "database/tcp": 9,
+    "router/https" : 0,
+    "balancer/https": 1,
 
-    // Ports 10-19 are reserved for HTTP of the backend node.
-    // Ports 20-29 are reserved for inet_dist of the backend node.
+    // Note: database is used only in the development env on local development machines.
+    // In production, the database server is running on a dedicated host and listens on
+    // the standard port (5432).
+    "database/tcp": 2,
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Internal endpoints, which are used only by other services in the system.
+
+    "etcd/client": 20,
+    "etcd/peer": 21,
+    "balancer/http": 22,
+    "router/http": 23,
+    "air_frontend/http": 24,
+    "air_backend/epmd": 25,
+    "registry/http": 26,
+
+    // Ports 30-34 are reserved for HTTP of the backend node.
+    // Ports 35-39 are reserved for inet_dist of the backend node.
     // We use multiple ports to support multiple instances on the same machine.
-    "air_backend/http": 10,
-    "air_backend/inet_dist_listen_min": 20,
-    "air_backend/inet_dist_listen_max": 29
+    "air_backend/http": 30,
+    "air_backend/inet_dist_listen_min": 35,
+    "air_backend/inet_dist_listen_max": 39
   }
 }

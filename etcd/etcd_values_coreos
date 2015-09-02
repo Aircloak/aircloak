@@ -25,7 +25,7 @@ etcd_set /settings/mail/smtp/domain "aircloak.com"
 # The database settings are set once when the app launches
 # and cannot be changed without relaunching the container.
 etcd_set /settings/air/db/host $DB_SERVER_URL
-etcd_set /settings/air/db/port $(get_tcp_port prod database/tcp)
+etcd_set /settings/air/db/port $(get_tcp_port dev database/tcp)
 etcd_set /settings/air/db/username air
 etcd_set /settings/air/db/password ''
 etcd_set /settings/air/db/database aircloakdatabase

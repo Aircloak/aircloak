@@ -5,8 +5,8 @@ This document serves to describe breaking changes and provide upgrade hints when
 - You need to have `nginx` and [jq](https://stedolan.github.io/jq/) on your machine.
 - To start required components, you can now run `./start_dependencies.sh` from the root folder. This will start dockerized etcd instances, database container, and local nginx. __OS X users__: prior to running, make sure your folders are shared on boot2docker (e.g. via calling `./osx_mount_nfs.sh folder_to_share`).
 - To access the site via nginx, you need to add some entries to your `/etc/hosts`. Just watch the end of the output of `./start_dependencies.sh` for instructions.
-- The `frontend` server now listens on port 20006 by default. However, you're advised to access the site via the router (https://frontend.air-local:20004). You'll need to import the certificate from `router/dev_certs/aircloak.com.chain.pem` to your browser to prevent security errors.
-- Ports used for etcd and database have changed. Local etcd listes on ports 20000 (local dev), 20100 (dockerized components), and 20200 (tests), while database server listens on port 20109.
+- The `frontend` rails server now listens on port 20024 by default. However, you're advised to access the site via the router (https://frontend.air-local:20000). You'll need to import the certificate from `router/dev_certs/aircloak.com.chain.pem` to your browser to prevent security errors.
+- Ports used for etcd and database have changed. Local etcd listens on ports 20020 (local dev), 20120 (dockerized components), and 20220 (tests), while database server listens on port 20002.
 - There's no need to apply different etcd settings when switching from localhost to local docker containers. Different etcd instances are used for different contexts.
 - There's no `etcd/config_local.sh` anymore. If you need to apply changed settings, just start the etcd container again (`etcd/container.sh start`).
 - Routing rules are now a part of this repository. You can find them [here](router/docker/nginx). If you need to change some rules, do it there, rather than on the server.

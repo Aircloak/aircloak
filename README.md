@@ -114,7 +114,7 @@ web/frontend $ bundle exec rails s
 web/backend $ make start
 ```
 
-If all is well, you should be able to access the web via https://frontend.air-local:20004. Note that we use self-signed certificate, so you'll likely get an error in your browser. You need to import the certificate (located in `router/dev_certs/aircloak.com.chain.pem`) to your browser.
+If all is well, you should be able to access the web via https://frontend.air-local:20000. Note that we use self-signed certificate, so you'll likely get an error in your browser. You need to import the certificate (located in `router/dev_certs/aircloak.com.chain.pem`) to your browser.
 
 If all data is migrated, you should see all clusters/cloaks (make sure to impersonate the analyst), and run tasks in the sandbox.
 
@@ -122,7 +122,7 @@ If all data is migrated, you should see all clusters/cloaks (make sure to impers
 
 You can start the entire system as docker containers. This gives you an environment very similar to the real production. In particular, each component is running in production mode. Moreover, each request goes balancer and router services.
 
-To start the system, you can invoke `./dockerized_air.sh start` which will rebuild all images and start required containers in background. If everything is fine, you should be able to access the web via https://frontend.air-local:20102.
+To start the system, you can invoke `./dockerized_air.sh start` which will rebuild all images and start required containers in background. If everything is fine, you should be able to access the web via https://frontend.air-local:20100 (router endpoint) and https://frontend.air-local:20101 (balancer endpoint).
 
 If you want to start each container separately in a foreground, make sure that the required components are started with `./start_dependencies.sh`.
 
