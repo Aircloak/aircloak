@@ -37,6 +37,19 @@ function tcp_port {
       | sed s/\"//g
 }
 
+function airpub_publish_allows {
+  allows=$(
+        curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service/airpub/allow_publish \
+            | jq ".node.value" \
+            | sed s/\"//g
+      )
+  while read -d " " allow; do
+    if [ "$allow" != "" ]; then
+      echo "allow $allow;"
+    fi
+  done < <(echo "$allows ")
+}
+
 
 . $(dirname ${BASH_SOURCE[0]})/config.sh
 export ETCD_CLIENT_PORT=$(get_tcp_port prod etcd/client)
@@ -49,6 +62,7 @@ AIR_HOST_NAME=${AIR_HOST_NAME:-"127.0.0.1"}
 cat /aircloak/router/docker/nginx/sites/upstreams.tmpl \
   | sed "s/\$AIR_HOST_NAME/$AIR_HOST_NAME/g; " \
   | sed "s/\$AIR_BACKEND_HTTP_PORT/$(tcp_port 'air_backend/http')/" \
+  | sed "s/\$AIRPUB_HTTP_PORT/$(tcp_port 'airpub/http')/" \
   | sed "s/\$AIR_FRONTEND_HTTP_PORT/$(tcp_port 'air_frontend/http')/" \
   > /etc/confd/templates/upstreams.tmpl
 
@@ -80,6 +94,7 @@ for config in $(ls -1 /aircloak/router/docker/nginx/sites/*.conf); do
 done
 
 generate_local_http_allows
+echo "$(airpub_publish_allows)" > /etc/nginx/support/airpub_publish_allows.conf
 
 log "Starting nginx"
 exec nginx -g "daemon off;"

@@ -59,7 +59,6 @@ mkdir -p $CACHE_DIR
 
 log "Copying source files"
 cd $CACHE_DIR
-copy airpub_shared_secret
 copy apps
 copy include
 copy rel

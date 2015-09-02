@@ -22,10 +22,16 @@ else
   node_name="air$num"
 fi
 
+function adapt_port {
+  ((tcp_port=$(get_tcp_port dev $1)+$2-1))
+  curl -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/tcp_ports/$1 -XPUT -d value=$tcp_port
+}
+
 ./copy_configs.sh
 . rel/files/set_etcd_port.sh dev
-((http_port=$(get_tcp_port dev air_backend/http)+num-1))
-curl -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/tcp_ports/air_backend/http -XPUT -d value=$http_port
+
+adapt_port air_backend/http $num
+adapt_port airpub/http $num
 
 cat "$config_base/sys.config" | \
     sed "s,.data/1,.data/$num," \

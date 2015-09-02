@@ -15,6 +15,9 @@ function upstream_contents {
     upstream backend {
       server 127.0.0.1:$(etcd_get /tcp_ports/air_backend/http);
     }
+    upstream airpub {
+      server 127.0.0.1:$(etcd_get /tcp_ports/airpub/http);
+    }
     upstream local_backend {
       server 127.0.0.1:$(etcd_get /tcp_ports/air_backend/http);
     }
@@ -93,4 +96,5 @@ echo "You can access following sites:
   https://api.air-local:$(etcd_get /tcp_ports/router/https)
   https://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/https)
   https://aircloak.air-local:$(etcd_get /tcp_ports/router/https)
+  https://airpub.air-local:$(etcd_get /tcp_ports/router/https)
 "

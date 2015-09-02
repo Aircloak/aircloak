@@ -6,7 +6,8 @@
     kernel,
     stdlib,
     erlang_common,
-    cowboy
+    cowboy,
+    etcd
   ]},
   {mod, {airpub_app, []}},
   {env, []}

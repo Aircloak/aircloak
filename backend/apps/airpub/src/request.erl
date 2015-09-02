@@ -53,7 +53,7 @@ sha256_to_string(<<Value:256/big-unsigned-integer>>) ->
 % Validates the HMAC-SHA2 of a string.
 -spec validate_hash(string(), string()) -> boolean().
 validate_hash(Hash, Text) ->
-  {ok, SharedSecret} = application:get_env(airpub, shared_secret),
+  SharedSecret = air_etcd:get("/service/airpub/shared_secret"),
   Hash == sha256_to_string(crypto:hmac(sha256, SharedSecret, Text)).
 
 % Validates the subscription path.
