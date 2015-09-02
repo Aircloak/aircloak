@@ -9,7 +9,6 @@ rel/air
 .concrete/DEV_MODE
 .rebar
 /.data/
-/apps/
 /doc/
 /log/
 *.depsolver_plt

@@ -1,6 +1,9 @@
 %% THIS FILE IS GENERATED. DO NOT EDIT IT MANUALLY %%
 
-{sub_dirs,["rel"]}.
+{sub_dirs, [
+  "apps/air",
+  "rel"
+]}.
 {cover_enabled,true}.
 {clean_files,["*.eunit","ebin/*.beam"]}.
 {eunit_opts,[no_tty,

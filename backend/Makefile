@@ -2,10 +2,10 @@
 
 all: deps compile sandbox
 
-compile: src/air_cloak_conf.erl
+compile: apps/air/src/air_cloak_conf.erl
 	./rebar compile
 
-src/air_cloak_conf.erl: rel/files/sys.config deps/cloak/rel/files/app.config
+apps/air/src/air_cloak_conf.erl: rel/files/sys.config deps/cloak/rel/files/app.config
 	./generate_cloak_conf.escript
 
 sandbox: copy-sandbox-makefile-local
@@ -66,7 +66,7 @@ stage: rel
 	$(foreach dep,$(wildcard deps/*), rm -rf rel/air/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) rel/air/lib;)
 	$(foreach app,$(wildcard apps/*), rm -rf rel/air/lib/$(shell basename $(app))-* && ln -sf $(abspath $(app)) rel/air/lib;)
 
-app: src/air_cloak_conf.erl sandbox
+app: apps/air/src/air_cloak_conf.erl sandbox
 	./rebar compile skip_deps=true
 
 test: app test-eunit
@@ -74,11 +74,13 @@ test: app test-eunit
 test/sys.config: rel/files/sys.config
 	./make_test_config.sh
 
-test-eunit: test/sys.config
-	mkdir -p ./.eunit
-	cp -rp priv ./.eunit
+test-eunit: test/sys.config test-eunit-air
+
+test-eunit-air:
+	mkdir -p apps/air/.eunit
+	cp -rp priv apps/air/.eunit/
 	./copy_configs.sh
-	bash -c ". rel/files/set_etcd_port.sh test && ./rebar skip_deps=true eunit"
+	bash -c ". rel/files/set_etcd_port.sh test && cd apps/air && ../../rebar skip_deps=true eunit"
 
 regenerate_db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
@@ -104,7 +106,7 @@ DEPS_DIALYZER_LIST=$(shell ls deps | grep -v rebar)
 
 $(DEPSOLVER_PLT):
 	@if [ -z "$$REBAR_PLT_DIR" ]; then echo "no kerl?  panic!"; exit 1; fi
-	dialyzer --output_plt $(DEPSOLVER_PLT) --build_plt -c ${DEPS_DIALYZER_LIST:%=deps/%/ebin} ebin/*.beam
+	dialyzer --output_plt $(DEPSOLVER_PLT) --build_plt -c ${DEPS_DIALYZER_LIST:%=deps/%/ebin} apps/*/ebin/*.beam
 
 rebuild-plt:
 	@if [ -z "$$REBAR_PLT_DIR" ]; then echo "no kerl?  panic!"; exit 1; fi
@@ -123,7 +125,7 @@ dialyzer: $(DEPSOLVER_PLT)
 	dialyzer \
 				--no_native -Werror_handling -Wunderspecs -Wrace_conditions \
 				-pa deps/lager/ebin -I deps -I deps/cloak/include \
-				-I src --src src --plts $(BASE_PLT) $(DEPSOLVER_PLT) | \
+				-I apps/air/src --src apps/air/src --plts $(BASE_PLT) $(DEPSOLVER_PLT) | \
 			grep -E -v -f ./dialyzer.ignore-warnings
 
 typer: $(DEPSOLVER_PLT)
