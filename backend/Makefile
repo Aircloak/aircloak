@@ -43,11 +43,12 @@ clean:
 distclean: clean relclean
 	./rebar delete-deps
 
-apps/air:
+prepare_includes:
 	mkdir -p apps/air
-	(cd apps/air && ln -s ../../ebin ebin && ln -s ../../deps/cloak/include include)
+	(cd apps/air && mkdir -p include && cp -rp ../../deps/cloak/include/*.hrl ./include)
+	(cd apps/airpub && mkdir -p include && cp -rp ../../deps/cloak/include/*.hrl ./include)
 
-rel: all apps/air
+rel: all prepare_includes
 	(cd rel && ../rebar generate skip_deps=true)
 
 start: app
@@ -91,11 +92,10 @@ regenerate_db:
 
 # Notice that the rebar-edoc-plugin fails if not both the doc or ebin
 # directories are present
-doc:
+doc: prepare_includes
 	cp -rp deps/cloak/include/*_pb.hrl ./include/
-	mkdir -p doc
-	mkdir -p ebin
-	./rebar skip_deps=true doc
+	bash -c "cd apps/air && ../../rebar skip_deps=true doc"
+	bash -c "cd apps/airpub && ../../rebar skip_deps=true doc"
 
 
 ## DIALYZER
