@@ -11,13 +11,11 @@ RUN . /tmp/build_config/image_shell_init.sh
 
 RUN rm /etc/nginx/conf.d/default.conf
 
-RUN apt-get update && apt-get install -y vim nano curl && \
+RUN apt-get update && apt-get install -y vim nano curl jq && \
   curl -L \
     https://github.com/kelseyhightower/confd/releases/download/v0.10.0/confd-0.10.0-linux-amd64 \
     -o /usr/local/bin/confd && \
   chmod +x /usr/local/bin/confd
-
-EXPOSE 8200
 
 RUN mkdir -p /etc/confd/conf.d && mkdir -p /etc/confd/templates
 COPY docker $site_path/docker

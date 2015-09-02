@@ -4,10 +4,13 @@ set -eo pipefail
 
 cd $(dirname $0)
 
+. ./config/config.sh
+
 function stop_docker_services {
   frontend/container.sh stop&
   backend/container.sh stop&
   router/container.sh stop&
+  balancer/container.sh stop&
   wait
 }
 
@@ -27,8 +30,11 @@ case "$1" in
     start_docker_service frontend &
     start_docker_service backend &
     start_docker_service router &
+    start_docker_service balancer &
     wait
-    printf "\nYou can access the site at https://frontend.air-local:8200\n\n"
+    printf "\nYou can access the site at:\n"
+    printf "  https://frontend.air-local:$(get_tcp_port prod router/https) (router endpoint)\n"
+    printf "  https://frontend.air-local:$(get_tcp_port prod balancer/https) (balancer endpoint)\n\n"
     ;;
 
   *)

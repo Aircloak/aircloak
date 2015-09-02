@@ -2,19 +2,15 @@
 
 set -eo pipefail
 
+cd $(dirname $0)
+. ./config.sh
+
 function log {
   msg=$1
   echo "[aircloak] $msg"
 }
 
-# Get the IP of the host. See:
-#   https://groups.google.com/forum/#!msg/coreos-dev/fnMeC4B0pSc/adYRzDDoK1wJ
-#   http://blog.famzah.net/2011/09/06/get-default-outgoing-ip-address-and-interface-on-linux/
-HOST_IP=$(ip route get 8.8.8.8 | grep via | awk '{print $3}')
-export ETCD_HOST=${ETCD_HOST:-$HOST_IP}
-export ETCD_PORT=${ETCD_PORT:-4002}
-
-AIR_ROUTERS=${AIR_ROUTERS:-$HOST_IP}
+AIR_ROUTERS=${AIR_ROUTERS:-"127.0.0.1"}
 
 function upstreams {
   for server in $(echo $AIR_ROUTERS | tr ";" "\n"); do
@@ -23,7 +19,10 @@ function upstreams {
 }
 
 cat /aircloak/balancer/nginx.conf.tmpl \
-  | sed "s#\$HTTPS_UPSTREAMS#$(upstreams 8200)#; s#\$HTTP_UPSTREAMS#$(upstreams 8201)#;" \
+  | sed "s#\$BALANCER_HTTPS_PORT#$(get_tcp_port prod balancer/https)#" \
+  | sed "s#\$BALANCER_HTTP_PORT#$(get_tcp_port prod balancer/http)#" \
+  | sed "s#\$HTTPS_UPSTREAMS#$(upstreams $(get_tcp_port prod router/https))#" \
+  | sed "s#\$HTTP_UPSTREAMS#$(upstreams $(get_tcp_port prod router/http))#" \
   > /aircloak/balancer/nginx.conf
 
 log "Starting nginx"

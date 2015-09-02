@@ -7,16 +7,24 @@ function log {
   echo "[aircloak] $msg"
 }
 
-# Get the IP of the host. See:
-#   https://groups.google.com/forum/#!msg/coreos-dev/fnMeC4B0pSc/adYRzDDoK1wJ
-#   http://blog.famzah.net/2011/09/06/get-default-outgoing-ip-address-and-interface-on-linux/
-export HOST_IP=$(ip route get 8.8.8.8 | grep via | awk '{print $3}')
-export HTTP_HOST_IP=${AIR_HOST_NAME:-$HOST_IP}
-export ETCD_HOST=${ETCD_HOST:-$HOST_IP}
-export ETCD_PORT=${ETCD_PORT:-4002}
+function add_local_hosts {
+  . /aircloak/app/bin/set_etcd_port.sh prod
 
-echo "$HOST_IP frontend.air-local" >> /etc/hosts
+  for host in $(
+    curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service/local_names |
+    jq '.node.value' |
+    sed s/\"//g |
+    tr " " "\n"
+  ); do
+    echo "127.0.0.1 $host.air-local" >> /etc/hosts
+  done
+}
 
-log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."
+export HTTP_HOST_IP=${AIR_HOST_NAME:-"127.0.0.1"}
+export AIR_BACKEND_ENV="prod"
+
+add_local_hosts
+
+log "Booting container."
 
 exec gosu deployer /aircloak/app/bin/air foreground

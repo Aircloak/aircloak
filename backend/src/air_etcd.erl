@@ -57,15 +57,21 @@ ls(Key) ->
 %% Internal functions
 %% -------------------------------------------------------------------
 
--ifdef(TEST).
-  etcd_url() -> "http://127.0.0.1:4004".
--else.
-  etcd_url() ->
-    lists:flatten(io_lib:format("http://~s:~s", [env("ETCD_HOST", "127.0.0.1"), env("ETCD_PORT", "4003")])).
+etcd_url() ->
+  case application:get_env(air, etcd_url) of
+    {ok, EtcdUrl} -> EtcdUrl;
+    undefined ->
+      % Note: etcd port is always provided through OS env. This is an implementation
+      % detail that allows us to reuse the code from `config/config.sh` without
+      % needing to run bash script from Erlang.
+      EtcdUrl = lists:flatten(io_lib:format("http://127.0.0.1:~p",
+          [list_to_integer(env("ETCD_CLIENT_PORT", undefined))])),
+      application:set_env(air, etcd_url, EtcdUrl, [{persistent, true}]),
+      EtcdUrl
+  end.
 
-  env(VarName, Default) ->
-    case os:getenv(VarName) of
-      false -> Default;
-      Value -> Value
-    end.
--endif.
+env(VarName, Default) ->
+  case os:getenv(VarName) of
+    false -> Default;
+    Value -> Value
+  end.

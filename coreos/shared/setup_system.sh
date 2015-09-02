@@ -16,12 +16,15 @@ function setup_folder_structure {
 
   rsync -arp /tmp/shared/air /aircloak/
 
+  . /aircloak/air/config/config.sh
+  export DOCKER_REGISTRY_URL="$DOCKER_REGISTRY_IP:$(get_tcp_port prod registry/http)"
+
   # Create start/stop scripts
   create_helper_scripts backend \
-    "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001 AIR_HOST_NAME=$COREOS_PUBLIC_IPV4 EXPORT_BEAM_PORTS=true"
+    "REGISTRY_URL=$DOCKER_REGISTRY_URL AIR_HOST_NAME=$COREOS_PUBLIC_IPV4"
 
-  create_helper_scripts frontend "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001 AIR_HOST_NAME=$COREOS_PUBLIC_IPV4"
-  create_helper_scripts router "REGISTRY_URL=$DOCKER_REGISTRY_URL ETCD_PORT=4001 AIR_HOST_NAME=$COREOS_PUBLIC_IPV4"
+  create_helper_scripts frontend "REGISTRY_URL=$DOCKER_REGISTRY_URL AIR_HOST_NAME=$COREOS_PUBLIC_IPV4"
+  create_helper_scripts router "REGISTRY_URL=$DOCKER_REGISTRY_URL AIR_HOST_NAME=$COREOS_PUBLIC_IPV4"
 }
 
 . /etc/environment

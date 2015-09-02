@@ -9,21 +9,35 @@ function log {
   echo "[aircloak] $msg"
 }
 
-# Get the IP of the host. See:
-#   https://groups.google.com/forum/#!msg/coreos-dev/fnMeC4B0pSc/adYRzDDoK1wJ
-#   http://blog.famzah.net/2011/09/06/get-default-outgoing-ip-address-and-interface-on-linux/
-export HOST_IP=$(ip route get 8.8.8.8 | grep via | awk '{print $3}')
-export ETCD_HOST=${ETCD_HOST:-$HOST_IP}
-export ETCD_PORT=${ETCD_PORT:-4002}
+function add_local_hosts {
+  for host in $(
+    curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service/local_names |
+    jq '.node.value' |
+    sed s/\"//g |
+    tr " " "\n"
+  ); do
+    echo "127.0.0.1 $host.air-local" >> /etc/hosts
+  done
+}
 
-echo "$HOST_IP backend.air-local" >> /etc/hosts
+function tcp_port {
+  curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/tcp_ports/$1 \
+      | jq ".node.value" \
+      | sed s/\"//g
+}
 
-log "Booting container. Expecting etcd at http://$ETCD_HOST:$ETCD_PORT."
+. $(dirname ${BASH_SOURCE[0]})/config.sh
+export ETCD_CLIENT_PORT=$(get_tcp_port prod etcd/client)
+log "Booting container. Expecting etcd at http://127.0.0.1:$ETCD_CLIENT_PORT."
 
-config="database"
+add_local_hosts
+
+cat /tmp/nginx.conf \
+  | sed "s/\$AIR_FRONTEND_HTTP_PORT/$(tcp_port 'air_frontend/http')/" \
+  > /aircloak/nginx.conf
 
 log "Starting nginx"
-/usr/sbin/nginx -c /etc/nginx/nginx.conf
+/usr/sbin/nginx -c /aircloak/nginx.conf
 
 log "Starting unicorn"
 # Exec ensures that unicorn replaces this process. This allows us to use

@@ -18,16 +18,8 @@ if [ "$AIR_ROUTERS" != "" ]; then
   DOCKER_START_ARGS="-e AIR_ROUTERS=$AIR_ROUTERS"
 fi
 
-if [ "$AIR_ENV" = "prod" ]; then
-  https_port="443"
-  http_port="80"
-else
-  https_port="8300"
-  http_port="8301"
-fi
-
-DOCKER_START_ARGS="$DOCKER_START_ARGS -p $https_port:8300 -p $http_port:8301 \
-  $docker_env \
+DOCKER_START_ARGS="$DOCKER_START_ARGS \
+  --net=host \
   "$REGISTRY_URL"aircloak/air_balancer:latest \
   /aircloak/balancer/start.sh"
 

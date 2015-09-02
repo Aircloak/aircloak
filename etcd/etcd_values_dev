@@ -14,6 +14,8 @@
 
 GATEWAY="127.0.0.1"
 
+set_tcp_ports dev
+
 etcd_set /settings/mail/smtp/address smtp.mandrillapp.com
 etcd_set /settings/mail/smtp/port 587
 etcd_set /settings/mail/smtp/username "sebastian@aircloak.com"
@@ -23,7 +25,7 @@ etcd_set /settings/mail/smtp/domain "aircloak.com"
 # The database settings are set once when the app launches
 # and cannot be changed without relaunching the container.
 etcd_set /settings/air/db/host ${GATEWAY}
-etcd_set /settings/air/db/port 5433
+etcd_set /settings/air/db/port $(get_tcp_port dev database/tcp)
 etcd_set /settings/air/db/username air
 etcd_set /settings/air/db/password ''
 etcd_set /settings/air/db/database aircloakdatabase
@@ -43,8 +45,8 @@ etcd_set /settings/air/integration_test/data/mean_rows_per_user 100
 etcd_set /settings/rails/global false
 
 etcd_set /settings/rails/task/return_protocol http
-etcd_set /settings/rails/task/return_host localhost
-etcd_set /settings/rails/task/return_port 8080
+etcd_set /settings/rails/task/return_host frontend.air-local
+etcd_set /settings/rails/task/return_port $(etcd_get /tcp_ports/router/http)
 etcd_set /settings/rails/task/publish_url http://${GATEWAY}:1080/publish
 
 etcd_set /settings/rails/secrets/private_key_password "a not so secret key"
@@ -53,12 +55,15 @@ etcd_set /settings/rails/secrets/secret_key_base "random-secret"
 etcd_set /settings/rails/secrets/ca_path "../router/dev_cert"
 
 # External services
-etcd_set /service/frontend_local http://frontend.air-local:8203
-etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:8203
-etcd_set /service/backend_local http://backend.air-local:8203
+etcd_set /service/frontend_local http://frontend.air-local:$(etcd_get /tcp_ports/router/http)
+etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/http)
+etcd_set /service/backend_local http://backend.air-local:$(etcd_get /tcp_ports/router/http)
 etcd_set /service/airpub/shared_secret "well-known secret"
 etcd_set /service/airpub/subscribe_endpoint "ws://${GATEWAY}:1080/subscribe/ws"
 etcd_set /service/build_server/host localhost
 etcd_set /service/cloak/port 8098
 etcd_set /service/cloak/protocol http
 etcd_set /service/manny_air/host localhost
+
+# Registered local symbolic names
+etcd_set /service/local_names "frontend backend api infrastructure-api aircloak"

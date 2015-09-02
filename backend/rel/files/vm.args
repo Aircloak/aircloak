@@ -1,6 +1,8 @@
 ## Name of the node
 -name air@127.0.0.1
 
+-kernel inet_dist_listen_min $INET_DIST_LISTEN_MIN inet_dist_listen_max $INET_DIST_LISTEN_MAX
+
 ## Cookie for distributed erlang
 -setcookie air
 

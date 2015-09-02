@@ -14,10 +14,6 @@ if [ "$REGISTRY_URL" != "" ]; then
   REGISTRY_URL="$REGISTRY_URL""/"
 fi
 
-if [ "$ETCD_PORT" != "" ]; then
-  docker_env="-e ETCD_PORT=$ETCD_PORT"
-fi
-
 if [ "$AIR_HOST_NAME" != "" ]; then
   docker_env="$docker_env -e AIR_HOST_NAME=$AIR_HOST_NAME"
 fi
@@ -28,9 +24,9 @@ else
   cert_folder="$(pwd)/dev_cert"
 fi
 
-DOCKER_START_ARGS="-p 8200:8200 -p 8201:8201 \
-  $docker_env \
+DOCKER_START_ARGS=" $docker_env \
   -v $cert_folder:/aircloak/ca \
+  --net=host \
   "$REGISTRY_URL"aircloak/air_router:latest \
   /aircloak/router/docker/start.sh"
 

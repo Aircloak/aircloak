@@ -9,7 +9,7 @@ RUN . /tmp/build_config/image_shell_init.sh
 RUN bundle config --global frozen 1
 
 RUN apt-get update
-RUN apt-get install nginx-light vim nano curl -y
+RUN apt-get install nginx-light vim nano curl jq -y
 
 # According to many advices, we'll use gosu instead of sudo to step-down from root
 # Apparently, there are some issues with sudo inside the docker container.
@@ -39,9 +39,6 @@ RUN mkdir -p $site_path/log
 # the container
 VOLUME $site_path/log
 VOLUME /var/log
-
-# nginx will be listening on 8080
-EXPOSE 8080
 
 # User under which the app will run.
 RUN useradd --no-create-home --shell /bin/bash deployer
@@ -93,7 +90,7 @@ RUN . /tmp/build_config/proxies.sh && bundle exec middleman build
 ## Setup nginx
 ## ------------------------------------------------------------------
 
-COPY config/nginx.conf /etc/nginx/nginx.conf
+COPY config/nginx.conf /tmp/nginx.conf
 
 # Nginx logs at /var/log/nginx
 # We want to tail that, so make it accessible to us

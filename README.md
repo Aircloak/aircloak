@@ -72,6 +72,7 @@ In order to run the system you need the following components:
 - Ruby 2.0
 - Erlang 17.5
 - Nginx (preferably 1.9.3)
+- [jq](https://stedolan.github.io/jq/)
 - Any other package needed to build and run specific components (e.g. liblua, libprotobuf, ...)
 
 __Linux developers__: Scripts in this project use docker in the context of the logged in user (without root
@@ -113,13 +114,15 @@ web/frontend $ bundle exec rails s
 web/backend $ make start
 ```
 
-If all is well, you should be able to access the web via https://frontend.air-local:8202. Note that we use self-signed certificate, so you'll likely get an error in your browser. You need to import the certificate (located in `router/dev_certs/aircloak.com.chain.pem`) to your browser.
+If all is well, you should be able to access the web via https://frontend.air-local:20000. Note that we use self-signed certificate, so you'll likely get an error in your browser. You need to import the certificate (located in `router/dev_certs/aircloak.com.chain.pem`) to your browser.
 
 If all data is migrated, you should see all clusters/cloaks (make sure to impersonate the analyst), and run tasks in the sandbox.
 
 ### Running the system on docker containers
 
-You can simply invoke `./dockerized_air.sh start` which will rebuild all images and start required containers in background.
+You can start the entire system as docker containers. This gives you an environment very similar to the real production. In particular, each component is running in production mode. Moreover, the balancer container is started, which allows you to test the complete production request path (`balancer -> router -> service`).
+
+To start the system, you can invoke `./dockerized_air.sh start` which will rebuild all images and start required containers in background. If everything is fine, you should be able to access the web via https://frontend.air-local:20100 (router endpoint) and https://frontend.air-local:20101 (balancer endpoint).
 
 If you want to start each container separately in a foreground, make sure that the required components are started with `./start_dependencies.sh`.
 
@@ -134,9 +137,10 @@ $ frontend/container.sh console
 
 $ router/build-image.sh
 $ router/container.sh console
-```
 
-If everything is fine, you should be able to access the web via https://frontend.air-local:8200.
+$ balancer/build-image.sh
+$ balancer/container.sh console
+```
 
 ### Running the system on CoreOS (experimental)
 
@@ -214,21 +218,14 @@ Logs of all services can be found at `/var/log/syslog`.
 
 ## Exposed container ports
 
-Following ports are used by various containers in the system:
+Various services listen on different ports. In addition, a port used by each service depends on the environment. We distinguish between three environments:
 
-|  port  | explanation                        |
-|--------|------------------------------------|
-|  4002  | ETCD used by docker instances      |
-|  4003  | ETCD used by local services        |
-|  4004  | ETCD used for tests                |
-|  5000  | Local docker registry              |
-|  5433  | Containerized postgresql           |
-|  8200  | router HTTPS interface             |
-|  8201  | router HTTP interface              |
-|  8300 *| balancer HTTPS interface           |
-|  8301 *| balancer HTTP interface            |
-| 10000  | static web site (www.aircloak.com) |
+- dev - Used by components which run locally. Ports are in range 20000-20099.
+- prod - Used by docker containers. Ports are in range 20100-20199.
+- test - Used in tests. Ports are in range 20200-20299.
 
-__*__ balancer ports are in production mapped to ports 443 and 80
+A consistent rule is applied for ports in different environments. For example, if a service uses the port 20005 in dev, then it will use ports 20105 and 20205 in other environments.
+
+List of all services and used ports is specified [here](./config/tcp_ports.json).
 
 __OS X developers__: These ports need to be forwarded to boot2docker in VirtualBox.

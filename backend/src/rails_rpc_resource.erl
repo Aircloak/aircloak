@@ -127,7 +127,7 @@ invalid_rpc_failure_description() ->
       setup,
       [
         ?load_conf,
-        ?with_applications([webmachine]),
+        ?with_applications([webmachine, etcd]),
         ?with_processes([air_api_sup])
       ],
       [
@@ -198,6 +198,6 @@ verifyHttp(ExpectedStatusCode, ExpectedBody, HttpResponse) ->
   ?assertEqual(ExpectedBody, Body).
 
 get_path(Path) ->
-  httpc:request(get, {"http://127.0.0.1:11000/backend/" ++ Path, []}, [], []).
+  httpc:request(get, {db_test_helpers:http_url("/backend/" ++ Path), []}, [], []).
 
 -endif.
