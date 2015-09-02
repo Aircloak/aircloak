@@ -26,7 +26,7 @@ bundle exec rake db:migrate
 bundle exec rails s
 ```
 
-The server is listening at the port 3000
+The server is listening at the port 8080
 
 ## Testing
 

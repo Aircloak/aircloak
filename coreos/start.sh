@@ -18,14 +18,20 @@ function destroy_service {
   cluster_exec "fleetctl stop $1 || true; fleetctl destroy $1 || true"
 }
 
+function air_routers {
+  for machine_num in $(seq 1 $1); do
+    printf "192.168.55.$((100 + $machine_num));"
+  done
+}
+
 
 if [ -z $COREOS_HOST_IP ]; then
   echo "
 COREOS_HOST_IP not set. Please run with:
 
-  COREOS_HOST_IP=x.y.z $0
+  COREOS_HOST_IP=w.x.y.z $0
 
-where x.y.z is the IP of your host on your local network.
+where w.x.y.z is the IP of your host on your local network.
 "
 exit 1
 fi
@@ -48,8 +54,8 @@ done
 wait
 
 # destroy all services
-destroy_service "frontend-discovery@$service_indices frontend@$service_indices backend@$service_indices"
-cluster_exec "fleetctl destroy frontend-discovery@.service frontend@.service backend@.service"
+destroy_service "router@$service_indices frontend-discovery@$service_indices frontend@$service_indices backend@$service_indices"
+cluster_exec "fleetctl destroy router@.service frontend-discovery@.service frontend@.service backend@.service"
 
 
 # configure etcd
@@ -59,7 +65,19 @@ cluster_exec "
     "
 
 # start services
-cluster_exec "fleetctl submit /aircloak/air/backend@.service /aircloak/air/frontend@.service /aircloak/air/frontend-discovery@.service"
-cluster_exec "fleetctl start backend@$service_indices"
-cluster_exec "fleetctl start frontend@$service_indices"
-cluster_exec "fleetctl start frontend-discovery@$service_indices"
+cluster_exec "fleetctl submit /aircloak/air/backend@.service /aircloak/air/frontend@.service /aircloak/air/frontend-discovery@.service /aircloak/air/router@.service"
+cluster_exec "fleetctl start \
+      backend@$service_indices \
+      frontend@$service_indices \
+      frontend-discovery@$service_indices \
+      router@$service_indices
+    "
+
+# start the balancer
+echo "
+Starting the balancer.
+You can access the site via https://frontend.air-local:8300
+"
+
+../balancer/build-image.sh
+AIR_ROUTERS=$(air_routers $machines_num) ../balancer/container.sh console

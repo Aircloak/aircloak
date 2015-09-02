@@ -10,7 +10,12 @@ module Aircloak
       "../etcd/etcd_lib.sh",
       "../common/docker_helper.sh",
       "../frontend/container.sh",
-      "../backend/container.sh"
+      "../backend/container.sh",
+      "../router/container.sh",
+      "../router/dev_cert/aircloak.com.chain.pem",
+      "../router/dev_cert/acinfra.aircloak.com.pem",
+      "../router/dev_cert/api.cert",
+      "../router/dev_cert/api.key"
     ].each do |file|
       target = File.dirname(File.expand_path(file).gsub(root_path, "./shared/air"))
       FileUtils.mkdir_p(target)

@@ -58,10 +58,10 @@ ls(Key) ->
 %% -------------------------------------------------------------------
 
 -ifdef(TEST).
-  etcd_url() -> "http://127.0.0.1:4003".
+  etcd_url() -> "http://127.0.0.1:4004".
 -else.
   etcd_url() ->
-    lists:flatten(io_lib:format("http://~s:~s", [env("ETCD_HOST", "127.0.0.1"), env("ETCD_PORT", "4002")])).
+    lists:flatten(io_lib:format("http://~s:~s", [env("ETCD_HOST", "127.0.0.1"), env("ETCD_PORT", "4003")])).
 
   env(VarName, Default) ->
     case os:getenv(VarName) of

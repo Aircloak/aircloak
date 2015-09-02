@@ -105,41 +105,43 @@ function container_ctl {
 
   if [ "$AIR_ENV" = "prod" ]; then
     driver_arg="--log-driver=syslog"
+    container_env="-e AIR_ENV=prod"
   fi
 
   case "$command" in
     start)
       stop_named_container $container_name
       echo "Starting container $container_name"
-      docker run -d $driver_arg --restart on-failure --name $container_name $DOCKER_START_ARGS
+      docker run -d $driver_arg $container_env --restart on-failure --name $container_name $DOCKER_START_ARGS
       ;;
 
     ensure_started)
-      RUNNING=$(docker inspect --format="{{ .State.Running }}" $container_name || echo false)
-      if [ "$RUNNING" != "true" ]; then
+      if ! named_container_running $container_name ; then
+        # Still invoking stop, since we might need to remove the container
+        stop_named_container $container_name
         echo "Starting container $container_name"
-        docker run -d $driver_arg --restart on-failure --name $container_name $DOCKER_START_ARGS
+        docker run -d $driver_arg $container_env --restart on-failure --name $container_name $DOCKER_START_ARGS
       fi
       ;;
 
     console)
       stop_named_container $container_name
-      docker run --rm -it --name $container_name $DOCKER_START_ARGS
+      docker run --rm -it $container_env --name $container_name $DOCKER_START_ARGS
       ;;
 
     foreground)
       stop_named_container $container_name
-      docker run --rm -i --name $container_name $DOCKER_START_ARGS
+      docker run --rm -i $container_env --name $container_name $DOCKER_START_ARGS
       ;;
 
-    remsh)
+    ssh)
       docker exec -i -t $container_name \
-        /bin/bash -c "ETCD_HOST=${ETCD_HOST:-172.17.42.1} ETCD_PORT=${ETCD_PORT:-4002} TERM=xterm /bin/bash"
+        /bin/bash -c "ETCD_HOST=\$(ip route get 8.8.8.8 | grep via | awk '{print \$3}') ETCD_PORT=\${ETCD_PORT:-4002} TERM=xterm /bin/bash"
       ;;
 
     remote_console)
       docker exec -i -t $container_name \
-        /bin/bash -c "ETCD_HOST=${ETCD_HOST:-172.17.42.1} ETCD_PORT=${ETCD_PORT:-4002} TERM=xterm $REMOTE_CONSOLE_COMMAND"
+        /bin/bash -c "ETCD_HOST=\$(ip route get 8.8.8.8 | grep via | awk '{print \$3}') ETCD_PORT=\${ETCD_PORT:-4002} TERM=xterm $REMOTE_CONSOLE_COMMAND"
       ;;
 
     stop)
@@ -148,7 +150,7 @@ function container_ctl {
       ;;
 
     *)
-      echo "$(basename $0) start|stop|ensure_started|remsh|remote_console|console|foreground docker-args"
+      echo "$(basename $0) start|stop|ensure_started|ssh|remote_console|console|foreground docker-args"
       exit 1
       ;;
 

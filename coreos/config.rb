@@ -78,6 +78,4 @@ $vm_memory = 768
 # $shared_folders = Hash[*['/home/foo/app1', '/home/foo/app2'].map{|d| [d, d]}.flatten]
 #$shared_folders = {}
 
-# Open up the port for web. We use the port 8081 on the host to avoid possible collisions with the Docker
-# container running on the host (or mapped through boot2docker).
-$forwarded_ports = {8080 => 8081}
+#$forwarded_ports = {}

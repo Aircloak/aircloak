@@ -31,12 +31,12 @@ private
       # In dev, we don't require env vars. If they're not present, we just use local ETCD
       if Rails.env == "development"
         host ||= "127.0.0.1"
-        port ||= "4002"
+        port ||= "4003"
       end
     else
       # Hardcoded test ETCD endpoint
       host = "127.0.0.1"
-      port = "4003"
+      port = "4004"
     end
 
     @@client = Etcd.client(host: host, port: port)

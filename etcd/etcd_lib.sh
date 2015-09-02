@@ -29,13 +29,35 @@ function etcd_is_up {
   fi
 }
 
+function wait_for_etcd {
+  # Crudely spin-lock, waiting for etcd to become available
+  until etcd_is_up; do
+    log "etcd not yet running..."
+    sleep 0.1
+  done
+  log "Etcd is running"
+}
+
 function etcd_set {
   path=$1
   value=$2
   if [ -z "$SILENT_ETCD_SET" ]; then
-    log "Setting etcd: $path = $value"
+    log "$ETCD: setting etcd: $path = $value"
   else
     log "Setting etcd: $path = XXXX"
   fi
   curl -XPUT -L --silent http://$ETCD/v2/keys$path -d value="$value" > /dev/null
+}
+
+function docker_start_args {
+  echo "-p ${ETCD_PORT}:${ETCD_PORT} $1 \
+      quay.io/coreos/etcd:v2.0.6 \
+      -name etcd0 \
+      -advertise-client-urls http://${ETCD_DEFAULT_IP}:2379,http://${ETCD_DEFAULT_IP}:${ETCD_PORT} \
+      -listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:${ETCD_PORT} \
+      -initial-advertise-peer-urls http://${ETCD_DEFAULT_IP}:2380 \
+      -listen-peer-urls http://0.0.0.0:2380 \
+      -initial-cluster-token etcd-cluster-1 \
+      -initial-cluster etcd0=http://${ETCD_DEFAULT_IP}:2380 \
+      -initial-cluster-state new"
 }

@@ -42,14 +42,17 @@ start_link() ->
 init(_) ->
   process_flag(trap_exit, true),
   Node = atom_to_list(node()),
-  [_, Host] = re:split(Node, "@", [{return, list}, {parts, 2}]),
+  HttpHost = case os:getenv("HTTP_HOST_IP") of
+    false -> "127.0.0.1";
+    Value -> Value
+  end,
   HttpPort = proplists:get_value(port, air_conf:get_section(web_server)),
-  HttpEndPoint = iolist_to_binary(io_lib:format("http://~s:~p", [Host, HttpPort])),
+  HttpEndPoint = iolist_to_binary(io_lib:format("~s:~p", [HttpHost, HttpPort])),
   Data = iolist_to_binary(mochijson2:encode([
         {http_endpoint, HttpEndPoint},
         {erlang_node, iolist_to_binary(Node)}
       ])),
-  Key = iolist_to_binary(io_lib:format("/services/backends/~s_~p", [Host, HttpPort])),
+  Key = iolist_to_binary(io_lib:format("/service_instances/backends/~s_~p", [HttpHost, HttpPort])),
   State = {Key, Data},
   renew_registration(State),
   {ok, State, ?RENEW_INTERVAL}.
@@ -84,4 +87,7 @@ code_change(_, State, _) -> {ok, State}.
 %% -------------------------------------------------------------------
 
 renew_registration({Key, Data}) ->
-  {ok, #set{}} = air_etcd:set(Key, Data, ?REGISTRATION_EXPIRY_SEC).
+  case air_etcd:set(Key, Data, ?REGISTRATION_EXPIRY_SEC) of
+    {ok, #set{}} -> ok;
+    Error -> ?ERROR("Error registering the service ~p", [Error])
+  end.
