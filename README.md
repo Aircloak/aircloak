@@ -120,7 +120,7 @@ If all data is migrated, you should see all clusters/cloaks (make sure to impers
 
 ### Running the system on docker containers
 
-You can start the entire system as docker containers. This gives you an environment very similar to the real production. In particular, each component is running in production mode. Moreover, each request goes balancer and router services.
+You can start the entire system as docker containers. This gives you an environment very similar to the real production. In particular, each component is running in production mode. Moreover, the balancer container is started, which allows you to test the complete production request path (`balancer -> router -> service`).
 
 To start the system, you can invoke `./dockerized_air.sh start` which will rebuild all images and start required containers in background. If everything is fine, you should be able to access the web via https://frontend.air-local:20100 (router endpoint) and https://frontend.air-local:20101 (balancer endpoint).
 
