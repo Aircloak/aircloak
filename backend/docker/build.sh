@@ -59,7 +59,8 @@ mkdir -p $CACHE_DIR
 
 log "Copying source files"
 cd $CACHE_DIR
-copy src
+copy airpub_shared_secret
+copy apps
 copy include
 copy rel
 copy generate_cloak_conf.escript

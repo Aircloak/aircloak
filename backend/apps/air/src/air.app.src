@@ -9,7 +9,8 @@
     pgsql,
     webmachine,
     erlcron,
-    etcd
+    etcd,
+    airpub
   ]},
   {mod, { air_app, []}},
   {env, []}

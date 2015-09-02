@@ -74,7 +74,10 @@ test: app test-eunit
 test/sys.config: rel/files/sys.config
 	./make_test_config.sh
 
-test-eunit: test/sys.config test-eunit-air
+test-eunit: test/sys.config test-eunit-air test-eunit-airpub
+
+test-eunit-airpub:
+	bash -c ". rel/files/set_etcd_port.sh test && cd apps/airpub && ../../rebar skip_deps=true eunit"
 
 test-eunit-air:
 	mkdir -p apps/air/.eunit
