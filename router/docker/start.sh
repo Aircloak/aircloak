@@ -84,6 +84,7 @@ confd -interval 10 -node 127.0.0.1:$ETCD_CLIENT_PORT -config-file /etc/confd/con
 log "confd is now monitoring etcd for changes..."
 
 mkdir -p /etc/nginx/support
+cp -rp /aircloak/router/docker/nginx.conf /etc/nginx
 cp -rp /aircloak/router/docker/nginx/support/* /etc/nginx/support
 
 for config in $(ls -1 /aircloak/router/docker/nginx/sites/*.conf); do
