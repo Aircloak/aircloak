@@ -1,16 +1,11 @@
-airpub
+airpub application
 ==========
-
-| Branch      | Build status |
-|-------------|--------------|
-| develop     | [![Build Status](https://magnum.travis-ci.com/Aircloak/airpub.png?token=aFqD8qTNFV1Li4zdKtZw&branch=develop)](https://magnum.travis-ci.com/Aircloak/airpub) |
 
 ----------------------
 
 - [What it does](#what-it-does)
 - [Design](#design)
 - [Getting started](#getting-started)
-- [Deploying](#deploying)
 
 ----------------------
 
@@ -65,21 +60,3 @@ A notification will come in two frames: a text one with the article header and a
   - <content_type> is the type of the article supplied by the publisher.
 
 You can use the [test/index.html](test/index.html) page to test the subscription mechanism. You need to set the secret value to the predefined value in the page ("well-known secret").
-
-## Deploying
-
-Airpub expects all external configuration data to be present in __../config/__, relative to the airpub release folder.
-Right now, only the __airpub_shared_secret__ file is needed.
-
-To run locally, execute ```make start```.
-
-To create a release, execute the ```make rel``` command. You can find the release files in the __rel/airpub__ folder.
-To deploy the component on the airpub server, first pack the release in a tar archive (from the __rel__ folder execute ```tar -czf airpub.tar.gz airpub/*```) and then copy it to __airpub.mpi-sws.org__ in the __/root__ folder. Log in the server and execute:
-```
-cd /aircloak
-airpub/bin/airpub stop
-mv airpub airpub.old
-tar -zxf /root/airpub.tar.gz
-airpub/bin/airpub start
-```
-or, alternatively, the __update_airpub.sh__ script found in __/aircloak__.
