@@ -71,7 +71,10 @@ stage: rel
 app: apps/air/src/air_cloak_conf.erl sandbox
 	./rebar compile skip_deps=true
 
-test: app test-eunit
+test: app copy-configs test-eunit
+
+copy-configs:
+	./copy_configs.sh
 
 test/sys.config: rel/files/sys.config
 	./make_test_config.sh
