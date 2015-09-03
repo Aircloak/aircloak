@@ -24,7 +24,7 @@ fi
 
 function adapt_port {
   ((tcp_port=$(get_tcp_port dev $1)+$2-1))
-  curl -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/tcp_ports/$1 -XPUT -d value=$tcp_port
+  curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/tcp_ports/$1 -XPUT -d value=$tcp_port > /dev/null
 }
 
 ./copy_configs.sh
