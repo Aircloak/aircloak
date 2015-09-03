@@ -64,4 +64,23 @@ init([]) ->
     {webmachine_mochiweb, start, [WebConfig]},
     permanent, 5000, worker, [mochiweb_socket_server]
   },
-  {ok, {{one_for_one, 5, 10}, [WebChildSpec]}}.
+  %% We start web and registrator under rest_for_one. That way, if web crashes,
+  %% the registrator will remove the registration and crash as well.
+  {ok, {{rest_for_one, 5, 10}, [
+    WebChildSpec,
+    ?CHILD(gen_air_service_registration, worker, [http_server_registration_data()])
+  ]}}.
+
+
+%% -------------------------------------------------------------------
+%% Internal functions
+%% -------------------------------------------------------------------
+
+http_server_registration_data() ->
+  HttpHost = air_utils:env("HTTP_HOST_IP", "127.0.0.1"),
+  HttpPort = binary_to_integer(air_etcd:get("/tcp_ports/air_backend/http")),
+  HttpEndPoint = iolist_to_binary(io_lib:format("~s:~p", [HttpHost, HttpPort])),
+  {
+    iolist_to_binary(io_lib:format("/service_instances/backends/~s_~p", [HttpHost, HttpPort])),
+    iolist_to_binary(mochijson2:encode([{http_endpoint, HttpEndPoint}]))
+  }.

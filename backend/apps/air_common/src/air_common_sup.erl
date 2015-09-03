@@ -1,5 +1,5 @@
-%% @doc Top-level supervisor
--module(air_sup).
+-module(air_common_sup).
+
 -behaviour(supervisor).
 
 %% API
@@ -22,16 +22,28 @@
 %% @doc Starts the supervisor.
 -spec start_link() -> {ok, pid()} | {error, term()}.
 start_link() ->
-  supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 
 %% -------------------------------------------------------------------
 %% Supervisor callbacks
 %% -------------------------------------------------------------------
 
-%% @hidden
 init([]) ->
   {ok, {{one_for_one, 5, 10}, [
-    ?SUP(cloak_services_sup),
-    ?SUP(air_api_sup)
+    ?CHILD(air_peer_discovery, worker),
+    ?CHILD(gen_air_service_registration, worker, [node_registration_data()])
   ]}}.
+
+
+%% -------------------------------------------------------------------
+%% Internal functions
+%% -------------------------------------------------------------------
+
+node_registration_data() ->
+  Node = atom_to_list(node()),
+  {
+    iolist_to_binary(io_lib:format("/service_instances/backend_erlang_nodes/~s", [
+        re:replace(Node, "@", "_", [{return, binary}])])),
+    Node
+  }.

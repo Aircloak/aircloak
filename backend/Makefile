@@ -45,8 +45,9 @@ distclean: clean relclean
 
 prepare_includes:
 	mkdir -p apps/air
-	(cd apps/air && mkdir -p include && cp -rp ../../deps/cloak/include/*.hrl ./include)
-	(cd apps/airpub && mkdir -p include && cp -rp ../../deps/cloak/include/*.hrl ./include)
+	(cd apps/air_common && mkdir -p include && cp -rp ../../deps/cloak/include/*.hrl ./include && cp -rp ../../include/*.hrl ./include)
+	(cd apps/air && mkdir -p include && cp -rp ../../deps/cloak/include/*.hrl ./include && cp -rp ../../include/*.hrl ./include)
+	(cd apps/airpub && mkdir -p include && cp -rp ../../deps/cloak/include/*.hrl ./include && cp -rp ../../include/*.hrl ./include)
 
 rel: all prepare_includes
 	(cd rel && ../rebar generate skip_deps=true)
@@ -75,7 +76,10 @@ test: app test-eunit
 test/sys.config: rel/files/sys.config
 	./make_test_config.sh
 
-test-eunit: test/sys.config test-eunit-air test-eunit-airpub
+test-eunit: test/sys.config test-eunit-air_common test-eunit-air test-eunit-airpub
+
+test-eunit-air_common:
+	bash -c ". rel/files/set_etcd_port.sh test && cd apps/air_common && ../../rebar skip_deps=true eunit"
 
 test-eunit-airpub:
 	bash -c ". rel/files/set_etcd_port.sh test && cd apps/airpub && ../../rebar skip_deps=true eunit"
@@ -94,6 +98,7 @@ regenerate_db:
 # directories are present
 doc: prepare_includes
 	cp -rp deps/cloak/include/*_pb.hrl ./include/
+	bash -c "cd apps/air_common && ../../rebar skip_deps=true doc"
 	bash -c "cd apps/air && ../../rebar skip_deps=true doc"
 	bash -c "cd apps/airpub && ../../rebar skip_deps=true doc"
 
@@ -121,7 +126,7 @@ rebuild-plt:
 	rm -f $(DEPSOLVER_PLT)
 	$(MAKE) $(DEPSOLVER_PLT)
 
-dialyzer: $(DEPSOLVER_PLT)
+dialyzer: $(DEPSOLVER_PLT) prepare_includes
 	@if [ ! -f $(BASE_PLT) ]; then dialyzer --build_plt --apps erts kernel stdlib inets --output_plt $(BASE_PLT); fi
 	@if [ -z "$$REBAR_PLT_DIR" ]; then echo "no kerl?  panic!"; exit 1; fi
 	@echo "WARNING: protobuf output included in PLT!"

@@ -5,11 +5,8 @@
   {applications, [
     kernel,
     stdlib,
-    erlang_common,
-    pgsql,
     webmachine,
-    erlcron,
-    etcd,
+    air_common,
     airpub
   ]},
   {mod, { air_app, []}},
