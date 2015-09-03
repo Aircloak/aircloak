@@ -8,3 +8,4 @@
 /sandbox_pb.hrl
 /status_pb.hrl
 /task_pb.hrl
+/test_helper.hrl
