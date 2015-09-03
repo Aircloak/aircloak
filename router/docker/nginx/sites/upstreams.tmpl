@@ -23,13 +23,14 @@ upstream frontend {
     server 127.0.0.1:$AIR_FRONTEND_HTTP_PORT;
   {{ end }}
 
-  keepalive 16;
+  include /etc/nginx/support/upstream_keepalive.conf;
 }
 
 upstream airpub {
   # Temporarily hardcoded to delegate to local service. This will be improved
   # once we introduce leader election.
   server 127.0.0.1:$AIRPUB_HTTP_PORT;
+  include /etc/nginx/support/upstream_keepalive.conf;
 }
 
 upstream backend {
@@ -57,20 +58,23 @@ upstream backend {
     server 127.0.0.1:$AIR_BACKEND_HTTP_PORT;
   {{ end }}
 
-  keepalive 16;
+  include /etc/nginx/support/upstream_keepalive.conf;
 }
 
 # References just the local backend. Needed for monitoring purposes.
+# Note that we deliberately don't include upstream_keepalive.conf here, since this
+# is needed only for periodic monitor pings, so we don't want to keep connections
+# open.
 upstream local_backend {
   server 127.0.0.1:$AIR_BACKEND_HTTP_PORT;
 }
 
 upstream aircloak {
   server 127.0.0.1:10000;
-  keepalive 16;
+  include /etc/nginx/support/upstream_keepalive.conf;
 }
 
 upstream aircloak_stage {
   server 127.0.0.1:10001;
-  keepalive 16;
+  include /etc/nginx/support/upstream_keepalive.conf;
 }

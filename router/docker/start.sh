@@ -64,6 +64,7 @@ cat /aircloak/router/docker/nginx/sites/upstreams.tmpl \
   | sed "s/\$AIR_BACKEND_HTTP_PORT/$(tcp_port 'air_backend/http')/" \
   | sed "s/\$AIRPUB_HTTP_PORT/$(tcp_port 'airpub/http')/" \
   | sed "s/\$AIR_FRONTEND_HTTP_PORT/$(tcp_port 'air_frontend/http')/" \
+  | sed "s#include /etc/nginx/support/upstream_keepalive.conf;#$(cat /aircloak/router/docker/nginx/support/upstream_keepalive.conf)#" \
   > /etc/confd/templates/upstreams.tmpl
 
 # Ensure root keys exist (equivalent of mkdir -p)

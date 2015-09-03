@@ -11,21 +11,26 @@ function upstream_contents {
   cat <<EOF
     upstream frontend {
       server 127.0.0.1:$(etcd_get /tcp_ports/air_frontend/http);
+      $(cat ./docker/nginx/support/upstream_keepalive.conf)
     }
     upstream backend {
       server 127.0.0.1:$(etcd_get /tcp_ports/air_backend/http);
+      $(cat ./docker/nginx/support/upstream_keepalive.conf)
     }
     upstream airpub {
       server 127.0.0.1:$(etcd_get /tcp_ports/airpub/http);
+      $(cat ./docker/nginx/support/upstream_keepalive.conf)
     }
     upstream local_backend {
       server 127.0.0.1:$(etcd_get /tcp_ports/air_backend/http);
     }
     upstream aircloak {
       server 127.0.0.1:10000;
+      $(cat ./docker/nginx/support/upstream_keepalive.conf)
     }
     upstream aircloak_stage {
       server 127.0.0.1:10001;
+      $(cat ./docker/nginx/support/upstream_keepalive.conf)
     }
 EOF
 }
