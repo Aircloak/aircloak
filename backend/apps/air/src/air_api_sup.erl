@@ -64,8 +64,10 @@ init([]) ->
     {webmachine_mochiweb, start, [WebConfig]},
     permanent, 5000, worker, [mochiweb_socket_server]
   },
-  %% We start web and registrator under rest_for_one. That way, if web crashes,
-  %% the registrator will remove the registration and crash as well.
+  %% We start web and the "registrator" process under rest_for_one.
+  %% The registrator process will periodically renew etcd registration for this http
+  %% server. If http server crashes, the registrator will remove the registration
+  %% and then terminate as well.
   {ok, {{rest_for_one, 5, 10}, [
     WebChildSpec,
     ?CHILD(gen_air_service_registration, worker, [http_server_registration_data()])
