@@ -1,3 +1,4 @@
+%% @doc Top level supervisor for the air_common application.
 -module(air_common_sup).
 
 -behaviour(supervisor).
@@ -22,7 +23,7 @@
 %% @doc Starts the supervisor.
 -spec start_link() -> {ok, pid()} | {error, term()}.
 start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+  supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 
 %% -------------------------------------------------------------------
