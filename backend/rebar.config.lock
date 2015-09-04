@@ -1,6 +1,9 @@
 %% THIS FILE IS GENERATED. DO NOT EDIT IT MANUALLY %%
 
-{sub_dirs,["rel"]}.
+{sub_dirs, [
+  "apps/air",
+  "rel"
+]}.
 {cover_enabled,true}.
 {clean_files,["*.eunit","ebin/*.beam"]}.
 {eunit_opts,[no_tty,
@@ -28,7 +31,7 @@
                     "744a21669905665f07ce93000f4819cb78bd6d02"}},
        {meck,".*",
              {git,"git://github.com/eproxus/meck",
-                  "dde759050eff19a1a80fd854d7375174b191665d"}},
+                  "04d67d2aad5e0268f2fcfcc715fce7ad87249b3f"}},
        {protobuffs,".*",
                    {git,"git://github.com/basho/erlang_protobuffs",
                         "f90e025518bdfbe48d6303c6aa5101297c56fb7b"}},
@@ -77,6 +80,15 @@
        {etcd,".*",
            {git,"git@github.com:spilgames/etcd.erl.git",
                 "79d04a775e4488b0eb6e5e07a8c0bf4803adb997"}},
+       {cowlib,".*",
+               {git,"git://github.com/ninenines/cowlib.git",
+                    "d544a494af4dbc810fc9c15eaf5cc050cced1501"}},
+       {ranch,".*",
+              {git,"git://github.com/ninenines/ranch.git",
+                   "adf1822defc2b7cfdc7aca112adabfa1d614043c"}},
+       {cowboy,".*",
+               {git,"git@github.com:ninenines/cowboy.git",
+                    "b87150c713fe16601b314451b2fe25b62bd820bb"}},
        {rebar_lock_deps_plugin,".*",
                                {git,"git://github.com/seth/rebar_lock_deps_plugin.git",
                                     "9711549b8a84b065eb2edc22f8eb6ff85e3c94e8"}},

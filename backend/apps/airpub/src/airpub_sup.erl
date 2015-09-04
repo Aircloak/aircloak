@@ -1,5 +1,4 @@
-%% @doc Top-level supervisor
--module(air_sup).
+-module(airpub_sup).
 -behaviour(supervisor).
 
 %% API
@@ -12,15 +11,14 @@
   init/1
 ]).
 
--include("air.hrl").
+%% Helper macro for declaring children of supervisor
+-define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 
 
 %% -------------------------------------------------------------------
 %% API functions
 %% -------------------------------------------------------------------
 
-%% @doc Starts the supervisor.
--spec start_link() -> {ok, pid()} | {error, term()}.
 start_link() ->
   supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
@@ -29,11 +27,5 @@ start_link() ->
 %% Supervisor callbacks
 %% -------------------------------------------------------------------
 
-%% @hidden
 init([]) ->
-  {ok, {{one_for_one, 5, 10}, [
-    ?SUP(cloak_services_sup),
-    ?SUP(air_api_sup),
-    ?CHILD(air_peer_discovery, worker),
-    ?CHILD(air_service_registration, worker)
-  ]}}.
+  {ok, {{one_for_one, 5, 10}, [?CHILD(history, worker)]}}.

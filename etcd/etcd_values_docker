@@ -47,7 +47,7 @@ etcd_set /settings/rails/global false
 etcd_set /settings/rails/task/return_protocol http
 etcd_set /settings/rails/task/return_host frontend.air-local
 etcd_set /settings/rails/task/return_port $(etcd_get /tcp_ports/router/http)
-etcd_set /settings/rails/task/publish_url http://${GATEWAY}:1080/publish
+etcd_set /settings/rails/task/publish_url https://airpub.air-local:$(etcd_get /tcp_ports/router/https)/publish
 
 etcd_set /settings/rails/secrets/private_key_password "a not so secret key"
 etcd_set /settings/rails/secrets/github_oauth_token "7514ff11de609919ab6dadb2f43724cec10df436"
@@ -59,11 +59,12 @@ etcd_set /service/frontend_local http://frontend.air-local:$(etcd_get /tcp_ports
 etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/http)
 etcd_set /service/backend_local http://backend.air-local:$(etcd_get /tcp_ports/router/http)
 etcd_set /service/airpub/shared_secret "well-known secret"
-etcd_set /service/airpub/subscribe_endpoint "ws://${GATEWAY}:1080/subscribe/ws"
+etcd_set /service/airpub/subscribe_endpoint "wss://airpub.air-local:$(etcd_get /tcp_ports/router/https)/subscribe/ws"
 etcd_set /service/build_server/host localhost
 etcd_set /service/cloak/port 8098
 etcd_set /service/cloak/protocol http
 etcd_set /service/manny_air/host localhost
+etcd_set /service/airpub/allow_publish "all"
 
 # Registered local symbolic names
 etcd_set /service/local_names "frontend backend api infrastructure-api aircloak"

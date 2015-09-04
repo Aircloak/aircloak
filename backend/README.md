@@ -12,7 +12,12 @@ Air backend
 
 # What it does
 
-This component exposes internal REST endpoint that is used by the frontend component to perform various long running tasks. In addition, the backend component is responsible for periodic (cron-like) execution of air-related tasks.
+This component performs various services:
+
+- Runs a distribution center for task results ([airpub application](apps/airpub))
+- Exposes internal REST endpoint which is used by the frontend component ([air application](apps/air))
+
+Some base functionalities, such as establishing of cluster are provided in [air_common application](apps/air_common).
 
 # Getting started
 

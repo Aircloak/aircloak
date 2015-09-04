@@ -85,9 +85,7 @@ code_change(_, State, _) -> {ok, State}.
 
 poll_peers() ->
   [join(Peer) ||
-    {_Key, Json} <- air_etcd:ls("/service_instances/backends"),
-    {struct, Data} <- [catch mochijson2:decode(Json)],
-    {<<"erlang_node">>, NodeStr} <- Data,
+    {_Key, NodeStr} <- air_etcd:ls("/service_instances/backend_erlang_nodes"),
     Peer <- [binary_to_atom(NodeStr, utf8)],
     not lists:any(fun(X) -> X =:= Peer end, nodes([this, visible]))
   ],

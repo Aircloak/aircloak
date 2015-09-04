@@ -7,22 +7,30 @@ cd $(dirname $0)
 . ../etcd/etcd_lib.sh
 init_env "dev"
 
-function upstream_contents {
-  cat <<EOF
+function generate_upstreams_conf {
+  cat <<EOF > ./nginx_local/sites/upstreams.conf
     upstream frontend {
       server 127.0.0.1:$(etcd_get /tcp_ports/air_frontend/http);
+      $(cat ./docker/nginx/support/upstream_keepalive.conf)
     }
     upstream backend {
       server 127.0.0.1:$(etcd_get /tcp_ports/air_backend/http);
+      $(cat ./docker/nginx/support/upstream_keepalive.conf)
+    }
+    upstream airpub {
+      server 127.0.0.1:$(etcd_get /tcp_ports/airpub/http);
+      $(cat ./docker/nginx/support/upstream_keepalive.conf)
     }
     upstream local_backend {
       server 127.0.0.1:$(etcd_get /tcp_ports/air_backend/http);
     }
     upstream aircloak {
       server 127.0.0.1:10000;
+      $(cat ./docker/nginx/support/upstream_keepalive.conf)
     }
     upstream aircloak_stage {
       server 127.0.0.1:10001;
+      $(cat ./docker/nginx/support/upstream_keepalive.conf)
     }
 EOF
 }
@@ -48,19 +56,17 @@ function generate_nginx_conf {
     > nginx_local/sites/$(basename $config)
   done
 
-  cat <<EOF > ./nginx_local/nginx.conf
-    worker_processes  1;
+  # We use most of our base configuration, removing some production specifics which
+  # won't work on a typical dev machine.
+  cat docker/nginx.conf \
+  | sed "s#user nginx;##" \
+  | sed "s#pid /var/run/nginx\.pid;##" \
+  | sed "s#include /etc/nginx/mime\.types;##" \
+  | sed "s#include /etc/nginx/conf\.d/\*\.conf;#include $(pwd)/nginx_local/sites/*.conf;#" \
+  | sed "s#use epoll;##" \
+  > ./nginx_local/nginx.conf
 
-    events {
-      worker_connections  1024;
-      multi_accept on;
-    }
-
-    http {
-      $(upstream_contents)
-      include $(pwd)/nginx_local/sites/*;
-    }
-EOF
+  generate_upstreams_conf
 }
 
 function check_etc_hosts {
@@ -93,4 +99,5 @@ echo "You can access following sites:
   https://api.air-local:$(etcd_get /tcp_ports/router/https)
   https://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/https)
   https://aircloak.air-local:$(etcd_get /tcp_ports/router/https)
+  https://airpub.air-local:$(etcd_get /tcp_ports/router/https)
 "

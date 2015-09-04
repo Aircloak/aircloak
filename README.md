@@ -38,7 +38,7 @@ These features are provided through the following endpoints:
 
 The air system consists of following components:
 
-- `backend` - Erlang system which implements various processes in the air system, such as background and periodic jobs.
+- `backend` - Erlang system which implements various processes in the air system, such as publishing of task results (airpub), or background and periodic jobs.
 - `balancer` - TCP balancer that forwards requests to multiple routers.
 - `coreos` - Vagrant powered CoreOS system that runs cluster of air machines.
 - `db` - Dockerized database server (used only for development and testing)
