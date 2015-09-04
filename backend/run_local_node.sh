@@ -44,8 +44,6 @@ cat "$config_base/vm.args" | \
     > "$config_dest/vm$num.args"
 
 echo "Created $config_dest/app$num.config and $config_dest/vm$num.args"
-echo "Setting ulimit to 5000"
-ulimit -n 5000
 echo "Starting node '$node_name'"
 
 eval "erl -pa apps/*/ebin -pa deps/*/ebin -s air -s reloader -config $config_dest/app$num.config -setcookie air -cloak in_development true -args_file $config_dest/vm$num.args $BEAM_ARGS"

@@ -49,11 +49,14 @@ function generate_nginx_conf {
   done
 
   for config in $(ls -1 docker/nginx/sites/*.conf); do
-    cat $config \
-    | sed "s#\$ROUTER_HTTPS_PORT#$(etcd_get /tcp_ports/router/https)#" \
-    | sed "s#\$ROUTER_HTTP_PORT#$(etcd_get /tcp_ports/router/http)#" \
-    | sed "s#/etc/nginx/support#$(pwd)/nginx_local/support#; s#/aircloak/ca#$(pwd)/dev_cert#" \
-    > nginx_local/sites/$(basename $config)
+    # don't run monitoring locally, to avoid port clashes
+    if [ "$(basename $config)" != "monitoring.conf" ]; then
+      cat $config \
+      | sed "s#\$ROUTER_HTTPS_PORT#$(etcd_get /tcp_ports/router/https)#" \
+      | sed "s#\$ROUTER_HTTP_PORT#$(etcd_get /tcp_ports/router/http)#" \
+      | sed "s#/etc/nginx/support#$(pwd)/nginx_local/support#; s#/aircloak/ca#$(pwd)/dev_cert#" \
+      > nginx_local/sites/$(basename $config)
+    fi
   done
 
   # We use most of our base configuration, removing some production specifics which
