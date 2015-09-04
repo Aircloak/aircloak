@@ -21,7 +21,7 @@ function log {
 
 function remove_dockerfile {
   log "Cleaning up Dockerfile"
-  (rm Dockerfile .dockerignore) &> /dev/null
+  (rm .dockerignore) &> /dev/null
 }
 trap remove_dockerfile EXIT
 
@@ -34,7 +34,6 @@ function activate_stage {
   if [ -L Dockerfile ]; then
     rm Dockerfile
   fi
-  ln -s "Dockerfile-$stage" Dockerfile
 }
 
 
@@ -54,12 +53,12 @@ setup_env_init
 
 log "Creating build image"
 activate_stage "builder"
-docker build -t aircloak/air_backend_build:latest .
+docker build -t aircloak/air_backend_build:latest -f builder.dockerfile .
 log "Performing build inside build container"
 docker run -v $PWD:/aircloak/source --rm aircloak/air_backend_build:latest /aircloak/utils/build.sh
 
 # Now we should have a build in the artifacts/cache folder
 activate_stage "release"
 log "Creating release docker container"
-docker build -t aircloak/air_backend:latest .
+docker build -t aircloak/air_backend:latest -f release.dockerfile .
 push_to_registry air_backend
