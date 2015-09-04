@@ -28,6 +28,8 @@
   run_task/1
 ]).
 
+-include("air.hrl").
+
 -record(state, {
   db_connection :: pgsql_connection:pgsql_connection(),
 
@@ -58,7 +60,6 @@
 
 -type step_response() :: {ok, #state{}} | {error, any(), #state{}}.
 
--compile([{parse_transform, lager_transform}]).
 
 
 %% -------------------------------------------------------------------
@@ -83,7 +84,7 @@
 %%  only scheduled to run once a week during the weekend.
 -spec run() -> ok | error.
 run() ->
-  lager:info("Starting full cluster integration test"),
+  ?INFO("Starting full cluster integration test"),
   {TestResult, FinalState} = while_ok(init_state(), [
         get_analyst_id,
         create_build,
@@ -114,7 +115,7 @@ run() ->
   case rails_request(FinalRailsRequest, FinalState) of
     {ok, _Response} -> ok;
     {error, Reason, _State} ->
-      lager:error("Failed at sending test results to frontend: ~p", [Reason]),
+      ?ERROR("Failed at sending test results to frontend: ~p", [Reason]),
       error
   end.
 
@@ -142,7 +143,7 @@ get_analyst_id(State) ->
 create_build(State) ->
   ListenString = "build",
   listen_for(ListenString, State),
-  lager:info("Requesting build creation"),
+  ?INFO("Requesting build creation"),
   case rails_request([{<<"action">>, <<"create_build">>}], State) of
     {ok, Response} ->
       BuildId = ej:get({"id"}, Response),
@@ -158,16 +159,16 @@ create_build(State) ->
       end,
       case ej:get({"build_completed"}, Response) of
         true ->
-          lager:info("Build was already complete."),
+          ?INFO("Build was already complete."),
           {ok, CleanedState};
         false ->
-          lager:info("Waiting for build ~p to complete", [BuildId]),
+          ?INFO("Waiting for build ~p to complete", [BuildId]),
           %% After 2 hours we give up (2 * 60 * 60s)
           BinaryBuildId = cloak_util:binarify(BuildId),
           wait_for(ListenString, 7200, fun(ReportedBuildId) ->
                 case ReportedBuildId =:= BinaryBuildId of
                   true ->
-                    lager:info("Build ~p has completed", [BuildId]),
+                    ?INFO("Build ~p has completed", [BuildId]),
                     {ok, CleanedState};
                   false -> next
                 end
@@ -177,11 +178,11 @@ create_build(State) ->
   end.
 
 destroy_build(BuildId, State) ->
-  lager:info("Destroying build ~p", [BuildId]),
+  ?INFO("Destroying build ~p", [BuildId]),
   Request = [{<<"action">>, <<"destroy_build">>},{<<"build_id">>, BuildId}],
   case rails_request(Request, State) of
     {error, Reason, _State} ->
-      lager:warning("Cleaning the build failed with ~p", [Reason]);
+      ?WARNING("Cleaning the build failed with ~p", [Reason]);
     _ -> ok
   end.
 
@@ -192,7 +193,7 @@ destroy_build(BuildId, State) ->
 
 -spec create_cluster(#state{}) -> step_response().
 create_cluster(#state{build_id=BuildId}=State) ->
-  lager:info("Creating a cluster"),
+  ?INFO("Creating a cluster"),
   ListenString = "cluster_active",
   listen_for(ListenString, State),
   RailsRequest = [
@@ -203,20 +204,20 @@ create_cluster(#state{build_id=BuildId}=State) ->
     {ok, Response} ->
       ClusterId = ej:get({"cluster_id"}, Response),
       Cloaks = ej:get({"cloaks"}, Response),
-      lager:info("Cluster has the following cloaks: ~p", [Cloaks]),
+      ?INFO("Cluster has the following cloaks: ~p", [Cloaks]),
       StateWithCluster = State#state{
         cluster_id = ClusterId,
         cloaks = Cloaks
       },
       Cleanup = fun() -> destroy_cluster(StateWithCluster) end,
       CleanedState = add_cleanup_step(Cleanup, StateWithCluster),
-      lager:info("Waiting for cluster ~p to be setup", [ClusterId]),
+      ?INFO("Waiting for cluster ~p to be setup", [ClusterId]),
       %% After 2 hours we give up (2 * 60 * 60s)
       BinaryClusterId = cloak_util:binarify(ClusterId),
       wait_for(ListenString, 7200, fun(ReportedClusterId) ->
             case ReportedClusterId =:= BinaryClusterId of
               true ->
-                lager:info("Setup of cluster ~p has completed", [ClusterId]),
+                ?INFO("Setup of cluster ~p has completed", [ClusterId]),
                 {ok, CleanedState};
               false -> next
             end
@@ -225,21 +226,21 @@ create_cluster(#state{build_id=BuildId}=State) ->
   end.
 
 destroy_cluster(#state{cluster_id=ClusterId}=State) ->
-  lager:info("Destroying test cluster ~p", [ClusterId]),
+  ?INFO("Destroying test cluster ~p", [ClusterId]),
   ListenString = "cluster_destroyed",
   listen_for(ListenString, State),
   Request = [{<<"action">>, <<"destroy_cluster">>},{<<"cluster_id">>, ClusterId}],
   case rails_request(Request, State) of
     {error, Reason, _State} ->
-      lager:warning("Cleaning the build failed with ~p", [Reason]);
+      ?WARNING("Cleaning the build failed with ~p", [Reason]);
     _ ->
       %% After 2 hours we give up (2 * 60 * 60s)
       BinaryClusterId = cloak_util:binarify(ClusterId),
-      lager:info("Waiting for cluster ~p to be destroyed", [ClusterId]),
+      ?INFO("Waiting for cluster ~p to be destroyed", [ClusterId]),
       wait_for(ListenString, 7200, fun(ReportedClusterId) ->
             case ReportedClusterId =:= BinaryClusterId of
               true ->
-                lager:info("Cluster ~p was destroyed", [ClusterId]),
+                ?INFO("Cluster ~p was destroyed", [ClusterId]),
                 ok;
               false -> next
             end
@@ -253,7 +254,7 @@ destroy_cluster(#state{cluster_id=ClusterId}=State) ->
 
 -spec create_table(#state{}) -> step_response().
 create_table(#state{cluster_id=ClusterId}=State) ->
-  lager:info("Creating database tables for test"),
+  ?INFO("Creating database tables for test"),
   %% The TableJson and Migration is copied and pasted
   %% from what the web interface generates when you migrate a table
   TableName = "integration_test_table_" ++ integer_to_list(cloak_util:timestamp_to_int(now())),
@@ -281,18 +282,18 @@ create_table(#state{cluster_id=ClusterId}=State) ->
         table_id = ej:get({"table_id"}, Response),
         table_name = TableName
       },
-      lager:info("Database tables created"),
+      ?INFO("Database tables created"),
       Cleanup = fun() -> destroy_table(StateWithTable) end,
       {ok, add_cleanup_step(Cleanup, StateWithTable)};
     Other -> Other
   end.
 
 destroy_table(#state{table_id=TableId}=State) ->
-  lager:info("Removing database table"),
+  ?INFO("Removing database table"),
   Request = [{<<"action">>, <<"destroy_table">>},{<<"table_id">>, TableId}],
   case rails_request(Request, State) of
     {error, Reason, _State} ->
-      lager:warning("Removing test table ~p failed with ~p", [TableId, Reason]);
+      ?WARNING("Removing test table ~p failed with ~p", [TableId, Reason]);
     _ -> ok
   end.
 
@@ -303,20 +304,20 @@ destroy_table(#state{table_id=TableId}=State) ->
 
 -spec upload_data(#state{}) -> step_response().
 upload_data(State) ->
-  lager:info("Creating key for data uploading"),
+  ?INFO("Creating key for data uploading"),
   RailsRequest = [
     {<<"action">>, <<"create_upload_key">>}
   ],
   case rails_request(RailsRequest, State) of
     {ok, Response} ->
-      lager:info("Key created"),
+      ?INFO("Key created"),
       KeyId = ej:get({"key_id"}, Response),
       Cleanup = fun() -> revoke_key(KeyId, State) end,
       CleanedState = add_cleanup_step(Cleanup, State),
       RawPem = ej:get({"key_pem"}, Response),
       Password = ej:get({"password"}, Response),
       CertData = prepare_auth_material(RawPem, Password),
-      lager:info("Uploading user data"),
+      ?INFO("Uploading user data"),
       create_and_upload_data(CertData, CleanedState);
     Other -> Other
   end.
@@ -332,18 +333,18 @@ prepare_auth_material(RawPem, Password) ->
   % files to make it easier to use with httpc
   ExportKeyCommand = "openssl ec -inform PEM -outform PEM -in " ++ RawPath ++ " -passin pass:" ++ PasswordAsString ++ " -out " ++ KeyPath,
   ExportCertCommand = "openssl x509 -inform PEM -outform PEM -in " ++ RawPath ++ " -out " ++ CertPath,
-  lager:info("KeyPrep: ~p", [ExportKeyCommand]),
-  lager:info("CertPrep: ~p", [ExportCertCommand]),
-  lager:info("Key export result: ~p", [os:cmd(ExportKeyCommand)]),
-  lager:info("Certificate export: ~p", [os:cmd(ExportCertCommand)]),
+  ?INFO("KeyPrep: ~p", [ExportKeyCommand]),
+  ?INFO("CertPrep: ~p", [ExportCertCommand]),
+  ?INFO("Key export result: ~p", [os:cmd(ExportKeyCommand)]),
+  ?INFO("Certificate export: ~p", [os:cmd(ExportCertCommand)]),
   {KeyPath, CertPath}.
 
 revoke_key(KeyId, State) ->
-  lager:info("Revoking test upload key"),
+  ?INFO("Revoking test upload key"),
   Request = [{<<"action">>, <<"revoke_key">>},{<<"key_id">>, KeyId}],
   case rails_request(Request, State) of
     {error, Reason, _State} ->
-      lager:warning("Revoking upload key with id ~p failed with ~p", [KeyId, Reason]);
+      ?WARNING("Revoking upload key with id ~p failed with ~p", [KeyId, Reason]);
     _ -> ok
   end.
 
@@ -366,7 +367,7 @@ revoke_key(KeyId, State) ->
 create_and_upload_data(CertData, #state{table_name=TableName}=State) ->
   NumberOfUsers = binary_to_integer(air_etcd:get("/settings/air/integration_test/data/num_users")),
   MeanRowsPerUser = binary_to_integer(air_etcd:get("/settings/air/integration_test/data/mean_rows_per_user")),
-  lager:info("Number of users: ~p, mean rows per user: ~p", [NumberOfUsers, MeanRowsPerUser]),
+  ?INFO("Number of users: ~p, mean rows per user: ~p", [NumberOfUsers, MeanRowsPerUser]),
   GenericUploadState = #upload_state{
     mean_rows_per_user = MeanRowsPerUser,
     table_name = TableName,
@@ -391,7 +392,7 @@ create_and_upload_data(CertData, #state{table_name=TableName}=State) ->
       end) || {UploadState, SeedInteger} <- UploadersPlusSeed, UploadNum <- NumUploadersPerCloakSeq],
   case wait_for_uploads_to_finish(NumUploaders, 0, UploadPids) of
     {ok, UsersUploaded} ->
-      lager:info("Successfully uploaded data for ~p users", [UsersUploaded]),
+      ?INFO("Successfully uploaded data for ~p users", [UsersUploaded]),
       case (NumUploaders * NumberOfUsersPerUploader) =:= UsersUploaded of
         true -> {ok, State#state{users_uploaded=UsersUploaded}};
         false -> {error, upload_failed, State}
@@ -404,7 +405,7 @@ tally_uploaded_rows(NumSuccessful, NumFailed, NumPerMille) ->
   case TotalSoFar rem NumPerMille == 0 of
     true ->
       Percentage = round(TotalSoFar / NumPerMille) / 10,
-      lager:info("Uploaded ~.1f%. ~p successfully and ~p failed", [Percentage, NumSuccessful, NumFailed]);
+      ?INFO("Uploaded ~.1f%. ~p successfully and ~p failed", [Percentage, NumSuccessful, NumFailed]);
     false ->
       ok
   end,
@@ -412,7 +413,7 @@ tally_uploaded_rows(NumSuccessful, NumFailed, NumPerMille) ->
     good -> tally_uploaded_rows(NumSuccessful+1, NumFailed, NumPerMille);
     bad -> tally_uploaded_rows(NumSuccessful, NumFailed+1, NumPerMille)
   after timer:minutes(10) ->
-      lager:info("Not received further tallies. Assuming data upload complete")
+      ?INFO("Not received further tallies. Assuming data upload complete")
   end.
 
 cloak_urls_and_headers(UploadState, #state{cloaks=Cloaks, analyst_id=AnalystId}) ->
@@ -420,7 +421,7 @@ cloak_urls_and_headers(UploadState, #state{cloaks=Cloaks, analyst_id=AnalystId})
     <<"true">> ->
       fun(Cloak) ->
         CloakUrl = "https://" ++ binary_to_list(Cloak) ++ "/bulk_insert",
-        lager:info("Using prod cloak at url ~p", [CloakUrl]),
+        ?INFO("Using prod cloak at url ~p", [CloakUrl]),
         UploadState#upload_state{
           cloak_url = CloakUrl,
           headers = []
@@ -429,7 +430,7 @@ cloak_urls_and_headers(UploadState, #state{cloaks=Cloaks, analyst_id=AnalystId})
     <<"false">> ->
       fun(Cloak) ->
         CloakUrl = "http://" ++ binary_to_list(Cloak) ++ ":8098/bulk_insert",
-        lager:info("Using dev cloak at url ~p", [CloakUrl]),
+        ?INFO("Using dev cloak at url ~p", [CloakUrl]),
         UploadState#upload_state{
           cloak_url = CloakUrl,
           headers = [{"analyst", integer_to_list(AnalystId)}]
@@ -447,7 +448,7 @@ wait_for_uploads_to_finish(N, Acc, UploadPids) ->
     {done, UserCount} -> wait_for_uploads_to_finish(N-1, Acc+UserCount, UploadPids);
     heartbeat -> wait_for_uploads_to_finish(N, Acc, UploadPids)
   after timer:minutes(10) ->
-    lager:error("Data upload timed out"),
+    ?ERROR("Data upload timed out"),
     abort_uploads(UploadPids),
     {error, timeout}
   end.
@@ -457,7 +458,7 @@ wait_for_uploads_to_finish(N, Acc, UploadPids) ->
 % a failure, then letting the other uploaders continue is
 % a waste of time.
 abort_uploads(Pids) ->
-  lager:info("Upload of user data failed. Aborting"),
+  ?INFO("Upload of user data failed. Aborting"),
   [Pid ! abort || Pid <- Pids].
 
 upload_data_for_user(0, UploadState, Acc, _TallyPid) -> UploadState#upload_state.return_pid ! {done, Acc};
@@ -494,7 +495,7 @@ upload_data_for_user(RemainingUsers, UploadState, Acc, TallyPid) ->
   % of the other uploaders.
   receive
     abort ->
-      lager:info("Uploading worker aborting"),
+      ?INFO("Uploading worker aborting"),
       aborted
   after 0 ->
     UploadState#upload_state.return_pid ! heartbeat,
@@ -524,12 +525,12 @@ upload_to_server(UploadState, Json, TallyPid) ->
         true -> TallyPid ! good;
         _Other ->
           UploadState#upload_state.return_pid ! {error, upload_failed},
-          lager:warning("Received unexpected upload response: ~p", [Reply]),
+          ?WARNING("Received unexpected upload response: ~p", [Reply]),
           TallyPid ! bad
       end;
     Response ->
       UploadState#upload_state.return_pid ! {error, upload_failed},
-      lager:warning("Received unexpected upload response: ~p", [Response]),
+      ?WARNING("Received unexpected upload response: ~p", [Response]),
       TallyPid ! bad
   end.
 
@@ -547,7 +548,7 @@ ssl_options({PrivateKeyPath, CertificatePath}) ->
 
 -spec run_task(#state{}) -> step_response().
 run_task(#state{cluster_id=ClusterId, table_name=TableName}=State) ->
-  lager:info("Running task against cluster"),
+  ?INFO("Running task against cluster"),
   TaskCode = ["
     -- We loop through all rows of data,
     -- to stress the streaming mechanism
@@ -570,15 +571,15 @@ run_task(#state{cluster_id=ClusterId, table_name=TableName}=State) ->
   ],
   case rails_request(RailsRequest, State) of
     {ok, Response} ->
-      lager:info("Task has been initiated. Waiting for results"),
+      ?INFO("Task has been initiated. Waiting for results"),
       ChannelName = binary_to_list(ej:get({"channel_name"}, Response)),
       listen_for(ChannelName, State),
-      lager:info("Waiting for results on channel: ~p", [ChannelName]),
+      ?INFO("Waiting for results on channel: ~p", [ChannelName]),
       %% We give the task 30 minutes to complete (30 * 60s)
       case wait_for(ChannelName, 1800, fun(R) -> {ok, R} end, State) of
         {ok, BinaryResultId} ->
           ResultId = binary_to_integer(BinaryResultId),
-          lager:info("Task finished. Result id: ~p", [ResultId]),
+          ?INFO("Task finished. Result id: ~p", [ResultId]),
           validate_result(ResultId, State);
         {error, timeout} -> {error, timeout, State}
       end;
@@ -586,7 +587,7 @@ run_task(#state{cluster_id=ClusterId, table_name=TableName}=State) ->
   end.
 
 validate_result(ResultId, #state{users_uploaded=UserCount}=State) ->
-  lager:info("Validating results"),
+  ?INFO("Validating results"),
   JSONSQLResult = air_db:call(fun(Connection) ->
         SQL = ["
           SELECT buckets_json
@@ -608,18 +609,18 @@ validate_result(ResultId, #state{users_uploaded=UserCount}=State) ->
           end, 0, Result),
       AllowedLowerBound = UserCount - 40, % 4SD of roughly SD=10
       AllowedUpperBound = UserCount + 40, % 4SD of roughly SD=10
-      lager:info("Received noisy count of ~p. Expect it to lie within ~p and ~p. Real count: ~p",
+      ?INFO("Received noisy count of ~p. Expect it to lie within ~p and ~p. Real count: ~p",
           [NoisyUserCount, AllowedLowerBound, AllowedUpperBound, UserCount]),
       case (NoisyUserCount >= AllowedLowerBound) and (NoisyUserCount =< AllowedUpperBound) of
         true ->
-          lager:info("Result is ok"),
+          ?INFO("Result is ok"),
           {ok, State};
         false ->
-          lager:error("Integration test failed because the returned count was invalid"),
+          ?ERROR("Integration test failed because the returned count was invalid"),
           {error, unexpected_task_result, State}
       end;
     Other ->
-      lager:error("Couldn't load task results from DB: ~p", [Other]),
+      ?ERROR("Couldn't load task results from DB: ~p", [Other]),
       {error, no_task_result, State}
   end.
 
@@ -645,7 +646,7 @@ rails_request(RequestPayload, State) ->
           {error, decoding_error, State}
       end;
     {error, Reason} ->
-      lager:error("Rails integration tests backend failed with reason: ~p", [Reason]),
+      ?ERROR("Rails integration tests backend failed with reason: ~p", [Reason]),
       {error, failed_connect, State}
   end.
 
@@ -669,7 +670,7 @@ perform_wait_for(WhatBinary, WaitUntil, Fun, Connection) ->
       Result = receive
         {pgsql, Connection, {notification, _, WhatBinary, Data}} -> Fun(Data);
         Other ->
-          lager:info("Received unexpected notification: ~p. Keeping on waiting", [Other]),
+          ?INFO("Received unexpected notification: ~p. Keeping on waiting", [Other]),
           next
       after TimeDiffInMs ->
         {error, timeout}
@@ -688,7 +689,7 @@ perform_wait_for(WhatBinary, WaitUntil, Fun, Connection) ->
 flush_messages() ->
   receive
     Message ->
-      lager:info("- ~p", [Message]),
+      ?INFO("- ~p", [Message]),
       flush_messages()
   after 10 ->
       ok
@@ -698,21 +699,21 @@ flush_messages() ->
 while_ok(State, []) ->
   {ok, cleanup(State)};
 while_ok(#state{timings=Timings}=State, [Function|Functions]) ->
-  lager:info("Performing step: ~p", [Function]),
+  ?INFO("Performing step: ~p", [Function]),
   StartTimeSeconds = cloak_util:timestamp_to_epoch(now()),
   try ?MODULE:Function(State) of
     {ok, NewState} ->
       EndTimeSeconds = cloak_util:timestamp_to_epoch(now()),
       Duration = EndTimeSeconds - StartTimeSeconds,
       NewStateWithTiming = NewState#state{timings=[{Function, Duration}|Timings]},
-      lager:info("- ~p succeeded", [Function]),
+      ?INFO("- ~p succeeded", [Function]),
       while_ok(NewStateWithTiming, Functions);
     {error, Reason, NewState} ->
-      lager:warning("Test failed in step ~p with reason: ~p", [Function, Reason]),
+      ?WARNING("Test failed in step ~p with reason: ~p", [Function, Reason]),
       {error, cleanup(NewState)}
   catch
     ProblemType:ProblemReason ->
-      lager:error("Test failed with ~p:~p", [ProblemType, ProblemReason]),
+      ?ERROR("Test failed with ~p:~p", [ProblemType, ProblemReason]),
       {error, cleanup(State)}
   end.
 
