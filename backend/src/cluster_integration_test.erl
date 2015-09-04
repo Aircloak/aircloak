@@ -365,6 +365,11 @@ revoke_key(KeyId, State) ->
 % We upload a random number of rows per user, but use a fixed
 % random seed to get repeatable and reproducible tests.
 create_and_upload_data(CertData, #state{table_name=TableName}=State) ->
+  % The goal of this stage is to upload a certain amount of data to our cloak cluster (n GB).
+  % Given a fixed average number of rows per user, we need to upload a certain amount of users
+  % to achieve our target data volume.
+  % See `/etcd/etcd_values_prod` for the math behind the choice of number of
+  % users and row per user.
   NumberOfUsers = binary_to_integer(air_etcd:get("/settings/air/integration_test/data/num_users")),
   MeanRowsPerUser = binary_to_integer(air_etcd:get("/settings/air/integration_test/data/mean_rows_per_user")),
   ?INFO("Number of users: ~p, mean rows per user: ~p", [NumberOfUsers, MeanRowsPerUser]),
@@ -375,10 +380,27 @@ create_and_upload_data(CertData, #state{table_name=TableName}=State) ->
     return_pid = self()
   },
   UploadStates = cloak_urls_and_headers(GenericUploadState, State),
+  % We create 50 parallel uploading sessions per cloak.
+  % Experimentation has shown that, for the given upload sizes,
+  % this yields near optimal upload speed for the current cloaks.
   NumUploadersPerCloak = 50,
   NumUploaders = length(UploadStates) * NumUploadersPerCloak,
+  % We want to upload a fixed number of users (to reach our data volume goal),
+  % and given the number of uploaders we have, the total number of users
+  % to upload per uploader has to be adjusted.
   NumberOfUsersPerUploader = round(NumberOfUsers / NumUploaders),
-  UploadTallyPid = spawn(fun() -> tally_uploaded_rows(0, 0, max(round(NumberOfUsers / 1000), 1)) end),
+  % In order to make debugging easier, we output progress markers
+  % to the console as we go along. This way we know how far along
+  % in the upload process we are, and whether we are still progressing.
+  % The progress marker creates output for every 0.1% of the upload.
+  % The max(?, 1) is dealing with the edge condition where a test uploads,
+  % data for less than a 1000 users. The output results then end up
+  % not being correct, but at the very least nothing crashes :)
+  PerMille = max(round(NumberOfUsers / 1000), 1),
+  UploadTallyPid = spawn(fun() -> tally_uploaded_rows(0, 0, PerMille) end),
+  % We need each upload process to have a seeded random number generator.
+  % We want the seed to be fixed in order to generate repeatable tests,
+  % but we also want the seed to be unique per uploader.
   UploadersPlusSeed = lists:zip(UploadStates, lists:seq(1, length(UploadStates))),
   NumUploadersPerCloakSeq = lists:seq(1, NumUploadersPerCloak),
   UploadPids = [spawn_link(fun() ->
@@ -400,8 +422,13 @@ create_and_upload_data(CertData, #state{table_name=TableName}=State) ->
     {error, Reason} -> {error, Reason, State}
   end.
 
+%% This has no effect on the tests, other than ensuring that we get some output
+%% in the logs indicating how far along the data upload has progressed, or whether
+%% it is still ongoing.
 tally_uploaded_rows(NumSuccessful, NumFailed, NumPerMille) ->
   TotalSoFar = NumSuccessful + NumFailed,
+  % If we have reached a new 0.X% of the upload, we output some state to the log,
+  % otherwise we wait for more uploads to take place.
   case TotalSoFar rem NumPerMille == 0 of
     true ->
       Percentage = round(TotalSoFar / NumPerMille) / 10,
@@ -439,9 +466,13 @@ cloak_urls_and_headers(UploadState, #state{cloaks=Cloaks, analyst_id=AnalystId})
   end,
   [StateGen(Cloak) || Cloak <- Cloaks].
 
+% Provides a barrier so the test doesn't proceed before
+% the data has been uploaded, or we know that the data upload has failed.
 wait_for_uploads_to_finish(0, Acc, _UploadPids) -> {ok, Acc};
 wait_for_uploads_to_finish(N, Acc, UploadPids) ->
   receive
+    % If one of the uplaoders fails, we want to abort the test outright.
+    % This should not happen during normal operations!
     {error, upload_failed} ->
       abort_uploads(UploadPids),
       {error, upload_failed};
