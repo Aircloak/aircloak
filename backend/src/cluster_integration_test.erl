@@ -28,6 +28,8 @@
   run_task/1
 ]).
 
+-include("air.hrl").
+
 -record(state, {
   db_connection :: pgsql_connection:pgsql_connection(),
 
@@ -58,7 +60,6 @@
 
 -type step_response() :: {ok, #state{}} | {error, any(), #state{}}.
 
--compile([{parse_transform, lager_transform}]).
 
 
 %% -------------------------------------------------------------------
@@ -83,7 +84,7 @@
 %%  only scheduled to run once a week during the weekend.
 -spec run() -> ok | error.
 run() ->
-  lager:info("Starting full cluster integration test"),
+  ?INFO("Starting full cluster integration test"),
   {TestResult, FinalState} = while_ok(init_state(), [
         get_analyst_id,
         create_build,
@@ -114,7 +115,7 @@ run() ->
   case rails_request(FinalRailsRequest, FinalState) of
     {ok, _Response} -> ok;
     {error, Reason, _State} ->
-      lager:error("Failed at sending test results to frontend: ~p", [Reason]),
+      ?ERROR("Failed at sending test results to frontend: ~p", [Reason]),
       error
   end.
 
@@ -142,7 +143,7 @@ get_analyst_id(State) ->
 create_build(State) ->
   ListenString = "build",
   listen_for(ListenString, State),
-  lager:info("Requesting build creation"),
+  ?INFO("Requesting build creation"),
   case rails_request([{<<"action">>, <<"create_build">>}], State) of
     {ok, Response} ->
       BuildId = ej:get({"id"}, Response),
@@ -158,16 +159,16 @@ create_build(State) ->
       end,
       case ej:get({"build_completed"}, Response) of
         true ->
-          lager:info("Build was already complete."),
+          ?INFO("Build was already complete."),
           {ok, CleanedState};
         false ->
-          lager:info("Waiting for build ~p to complete", [BuildId]),
+          ?INFO("Waiting for build ~p to complete", [BuildId]),
           %% After 2 hours we give up (2 * 60 * 60s)
           BinaryBuildId = cloak_util:binarify(BuildId),
           wait_for(ListenString, 7200, fun(ReportedBuildId) ->
                 case ReportedBuildId =:= BinaryBuildId of
                   true ->
-                    lager:info("Build ~p has completed", [BuildId]),
+                    ?INFO("Build ~p has completed", [BuildId]),
                     {ok, CleanedState};
                   false -> next
                 end
@@ -177,11 +178,11 @@ create_build(State) ->
   end.
 
 destroy_build(BuildId, State) ->
-  lager:info("Destroying build ~p", [BuildId]),
+  ?INFO("Destroying build ~p", [BuildId]),
   Request = [{<<"action">>, <<"destroy_build">>},{<<"build_id">>, BuildId}],
   case rails_request(Request, State) of
     {error, Reason, _State} ->
-      lager:warning("Cleaning the build failed with ~p", [Reason]);
+      ?WARNING("Cleaning the build failed with ~p", [Reason]);
     _ -> ok
   end.
 
@@ -192,7 +193,7 @@ destroy_build(BuildId, State) ->
 
 -spec create_cluster(#state{}) -> step_response().
 create_cluster(#state{build_id=BuildId}=State) ->
-  lager:info("Creating a cluster"),
+  ?INFO("Creating a cluster"),
   ListenString = "cluster_active",
   listen_for(ListenString, State),
   RailsRequest = [
@@ -202,20 +203,21 @@ create_cluster(#state{build_id=BuildId}=State) ->
   case rails_request(RailsRequest, State) of
     {ok, Response} ->
       ClusterId = ej:get({"cluster_id"}, Response),
+      Cloaks = ej:get({"cloaks"}, Response),
+      ?INFO("Cluster has the following cloaks: ~p", [Cloaks]),
       StateWithCluster = State#state{
         cluster_id = ClusterId,
-        cloaks = ej:get({"cloaks"}, Response)
+        cloaks = Cloaks
       },
       Cleanup = fun() -> destroy_cluster(StateWithCluster) end,
       CleanedState = add_cleanup_step(Cleanup, StateWithCluster),
-      lager:info("Waiting for cluster ~p to be setup", [ClusterId]),
+      ?INFO("Waiting for cluster ~p to be setup", [ClusterId]),
       %% After 2 hours we give up (2 * 60 * 60s)
       BinaryClusterId = cloak_util:binarify(ClusterId),
       wait_for(ListenString, 7200, fun(ReportedClusterId) ->
             case ReportedClusterId =:= BinaryClusterId of
               true ->
-                lager:info("Setup of cluster ~p has completed", [ClusterId]),
-                wait_for_ring_migration(),
+                ?INFO("Setup of cluster ~p has completed", [ClusterId]),
                 {ok, CleanedState};
               false -> next
             end
@@ -223,37 +225,22 @@ create_cluster(#state{build_id=BuildId}=State) ->
     Other -> Other
   end.
 
-wait_for_ring_migration() ->
-  lager:info("Waiting for clusters to migrate"),
-  case air_etcd:get("/settings/rails/global") of
-    <<"true">> ->
-      %% The clusters wait a time (15 minutes) before checking whether
-      %% they should migrate, and then another 5 minutes to validate
-      %% that no extra node was added. We wait 30 minutes here to ensure
-      %% the cluster is in fact online and has migrated.
-      timer:sleep(timer:minutes(30));
-    _ ->
-      % Local clusters are ready immediately
-      ok
-  end,
-  lager:info("Assuming cluster has migrated successfully. Moving on").
-
 destroy_cluster(#state{cluster_id=ClusterId}=State) ->
-  lager:info("Destroying test cluster ~p", [ClusterId]),
+  ?INFO("Destroying test cluster ~p", [ClusterId]),
   ListenString = "cluster_destroyed",
   listen_for(ListenString, State),
   Request = [{<<"action">>, <<"destroy_cluster">>},{<<"cluster_id">>, ClusterId}],
   case rails_request(Request, State) of
     {error, Reason, _State} ->
-      lager:warning("Cleaning the build failed with ~p", [Reason]);
+      ?WARNING("Cleaning the build failed with ~p", [Reason]);
     _ ->
       %% After 2 hours we give up (2 * 60 * 60s)
       BinaryClusterId = cloak_util:binarify(ClusterId),
-      lager:info("Waiting for cluster ~p to be destroyed", [ClusterId]),
+      ?INFO("Waiting for cluster ~p to be destroyed", [ClusterId]),
       wait_for(ListenString, 7200, fun(ReportedClusterId) ->
             case ReportedClusterId =:= BinaryClusterId of
               true ->
-                lager:info("Cluster ~p was destroyed", [ClusterId]),
+                ?INFO("Cluster ~p was destroyed", [ClusterId]),
                 ok;
               false -> next
             end
@@ -262,12 +249,12 @@ destroy_cluster(#state{cluster_id=ClusterId}=State) ->
 
 
 %% -------------------------------------------------------------------
-%% Creating task
+%% Creating table
 %% -------------------------------------------------------------------
 
 -spec create_table(#state{}) -> step_response().
 create_table(#state{cluster_id=ClusterId}=State) ->
-  lager:info("Creating database tables for test"),
+  ?INFO("Creating database tables for test"),
   %% The TableJson and Migration is copied and pasted
   %% from what the web interface generates when you migrate a table
   TableName = "integration_test_table_" ++ integer_to_list(cloak_util:timestamp_to_int(now())),
@@ -295,18 +282,18 @@ create_table(#state{cluster_id=ClusterId}=State) ->
         table_id = ej:get({"table_id"}, Response),
         table_name = TableName
       },
-      lager:info("Database tables created"),
+      ?INFO("Database tables created"),
       Cleanup = fun() -> destroy_table(StateWithTable) end,
       {ok, add_cleanup_step(Cleanup, StateWithTable)};
     Other -> Other
   end.
 
 destroy_table(#state{table_id=TableId}=State) ->
-  lager:info("Removing database table"),
+  ?INFO("Removing database table"),
   Request = [{<<"action">>, <<"destroy_table">>},{<<"table_id">>, TableId}],
   case rails_request(Request, State) of
     {error, Reason, _State} ->
-      lager:warning("Removing test table ~p failed with ~p", [TableId, Reason]);
+      ?WARNING("Removing test table ~p failed with ~p", [TableId, Reason]);
     _ -> ok
   end.
 
@@ -317,31 +304,47 @@ destroy_table(#state{table_id=TableId}=State) ->
 
 -spec upload_data(#state{}) -> step_response().
 upload_data(State) ->
-  lager:info("Creating key for data uploading"),
+  ?INFO("Creating key for data uploading"),
   RailsRequest = [
     {<<"action">>, <<"create_upload_key">>}
   ],
   case rails_request(RailsRequest, State) of
     {ok, Response} ->
-      lager:info("Key created"),
+      ?INFO("Key created"),
       KeyId = ej:get({"key_id"}, Response),
       Cleanup = fun() -> revoke_key(KeyId, State) end,
       CleanedState = add_cleanup_step(Cleanup, State),
       RawPem = ej:get({"key_pem"}, Response),
-      [PrivateKey, Certificate] = public_key:pem_decode(RawPem),
       Password = ej:get({"password"}, Response),
-      CertData = {PrivateKey, Certificate, Password},
-      lager:info("Uploading user data"),
+      CertData = prepare_auth_material(RawPem, Password),
+      ?INFO("Uploading user data"),
       create_and_upload_data(CertData, CleanedState);
     Other -> Other
   end.
 
+prepare_auth_material(RawPem, Password) ->
+  PasswordAsString = binary_to_list(Password),
+  BaseName = "/tmp/upload_" ++ integer_to_list(cloak_util:timestamp_to_epoch(now())),
+  RawPath = BaseName ++ ".raw",
+  CertPath = BaseName ++ ".crt",
+  KeyPath = BaseName ++ ".key",
+  file:write_file(RawPath, RawPem),
+  % We export the cert and passwordless key to individual
+  % files to make it easier to use with httpc
+  ExportKeyCommand = "openssl ec -inform PEM -outform PEM -in " ++ RawPath ++ " -passin pass:" ++ PasswordAsString ++ " -out " ++ KeyPath,
+  ExportCertCommand = "openssl x509 -inform PEM -outform PEM -in " ++ RawPath ++ " -out " ++ CertPath,
+  ?INFO("KeyPrep: ~p", [ExportKeyCommand]),
+  ?INFO("CertPrep: ~p", [ExportCertCommand]),
+  ?INFO("Key export result: ~p", [os:cmd(ExportKeyCommand)]),
+  ?INFO("Certificate export: ~p", [os:cmd(ExportCertCommand)]),
+  {KeyPath, CertPath}.
+
 revoke_key(KeyId, State) ->
-  lager:info("Revoking test upload key"),
+  ?INFO("Revoking test upload key"),
   Request = [{<<"action">>, <<"revoke_key">>},{<<"key_id">>, KeyId}],
   case rails_request(Request, State) of
     {error, Reason, _State} ->
-      lager:warning("Revoking upload key with id ~p failed with ~p", [KeyId, Reason]);
+      ?WARNING("Revoking upload key with id ~p failed with ~p", [KeyId, Reason]);
     _ -> ok
   end.
 
@@ -362,58 +365,135 @@ revoke_key(KeyId, State) ->
 % We upload a random number of rows per user, but use a fixed
 % random seed to get repeatable and reproducible tests.
 create_and_upload_data(CertData, #state{table_name=TableName}=State) ->
+  % The goal of this stage is to upload a certain amount of data to our cloak cluster (n GB).
+  % Given a fixed average number of rows per user, we need to upload a certain amount of users
+  % to achieve our target data volume.
+  % See `/etcd/etcd_values_prod` for the math behind the choice of number of
+  % users and row per user.
   NumberOfUsers = binary_to_integer(air_etcd:get("/settings/air/integration_test/data/num_users")),
   MeanRowsPerUser = binary_to_integer(air_etcd:get("/settings/air/integration_test/data/mean_rows_per_user")),
-  lager:info("Number of users: ~p, mean rows per user: ~p", [NumberOfUsers, MeanRowsPerUser]),
+  ?INFO("Number of users: ~p, mean rows per user: ~p", [NumberOfUsers, MeanRowsPerUser]),
   GenericUploadState = #upload_state{
     mean_rows_per_user = MeanRowsPerUser,
     table_name = TableName,
     ssl_options = ssl_options(CertData),
     return_pid = self()
   },
-  % We trick our random utility to seed itself and then reset the seed.
-  % This way we ensure we don't fuck up our non-random seed by using
-  % other aircloak functions, while at the same time controlling the seed
-  % for reproducible tests.
-  _ = random_util:uniform(),
-  random:seed({0,0,0}),
   UploadStates = cloak_urls_and_headers(GenericUploadState, State),
-  NumberOfUsersPerUploader = round(NumberOfUsers / length(UploadStates)),
-  [spawn_link(fun() ->
-        upload_data_for_user(NumberOfUsersPerUploader, UploadState, 0)
-      end) || UploadState <- UploadStates],
-  {ok, UsersUploaded} = wait_for_uploads_to_finish(length(UploadStates), 0),
-  lager:info("Uploaded data for ~p users", [UsersUploaded]),
-  {ok, State#state{users_uploaded=UsersUploaded}}.
+  % We create 50 parallel uploading sessions per cloak.
+  % Experimentation has shown that, for the given upload sizes,
+  % this yields near optimal upload speed for the current cloaks.
+  NumUploadersPerCloak = 50,
+  NumUploaders = length(UploadStates) * NumUploadersPerCloak,
+  % We want to upload a fixed number of users (to reach our data volume goal),
+  % and given the number of uploaders we have, the total number of users
+  % to upload per uploader has to be adjusted.
+  NumberOfUsersPerUploader = round(NumberOfUsers / NumUploaders),
+  % In order to make debugging easier, we output progress markers
+  % to the console as we go along. This way we know how far along
+  % in the upload process we are, and whether we are still progressing.
+  % The progress marker creates output for every 0.1% of the upload.
+  % The max(?, 1) is dealing with the edge condition where a test uploads,
+  % data for less than a 1000 users. The output results then end up
+  % not being correct, but at the very least nothing crashes :)
+  PerMille = max(round(NumberOfUsers / 1000), 1),
+  UploadTallyPid = spawn(fun() -> tally_uploaded_rows(0, 0, PerMille) end),
+  % We need each upload process to have a seeded random number generator.
+  % We want the seed to be fixed in order to generate repeatable tests,
+  % but we also want the seed to be unique per uploader.
+  UploadersPlusSeed = lists:zip(UploadStates, lists:seq(1, length(UploadStates))),
+  NumUploadersPerCloakSeq = lists:seq(1, NumUploadersPerCloak),
+  UploadPids = [spawn_link(fun() ->
+        % We trick our random utility to seed itself and then reset the seed.
+        % This way we ensure we don't fuck up our non-random seed by using
+        % other aircloak functions, while at the same time controlling the seed
+        % for reproducible tests.
+        _ = random_util:uniform(),
+        random:seed({0,UploadNum,SeedInteger}),
+        upload_data_for_user(NumberOfUsersPerUploader, UploadState, 0, UploadTallyPid)
+      end) || {UploadState, SeedInteger} <- UploadersPlusSeed, UploadNum <- NumUploadersPerCloakSeq],
+  case wait_for_uploads_to_finish(NumUploaders, 0, UploadPids) of
+    {ok, UsersUploaded} ->
+      ?INFO("Successfully uploaded data for ~p users", [UsersUploaded]),
+      case (NumUploaders * NumberOfUsersPerUploader) =:= UsersUploaded of
+        true -> {ok, State#state{users_uploaded=UsersUploaded}};
+        false -> {error, upload_failed, State}
+      end;
+    {error, Reason} -> {error, Reason, State}
+  end.
+
+%% This has no effect on the tests, other than ensuring that we get some output
+%% in the logs indicating how far along the data upload has progressed, or whether
+%% it is still ongoing.
+tally_uploaded_rows(NumSuccessful, NumFailed, NumPerMille) ->
+  TotalSoFar = NumSuccessful + NumFailed,
+  % If we have reached a new 0.X% of the upload, we output some state to the log,
+  % otherwise we wait for more uploads to take place.
+  case TotalSoFar rem NumPerMille == 0 of
+    true ->
+      Percentage = round(TotalSoFar / NumPerMille) / 10,
+      ?INFO("Uploaded ~.1f%. ~p successfully and ~p failed", [Percentage, NumSuccessful, NumFailed]);
+    false ->
+      ok
+  end,
+  receive
+    good -> tally_uploaded_rows(NumSuccessful+1, NumFailed, NumPerMille);
+    bad -> tally_uploaded_rows(NumSuccessful, NumFailed+1, NumPerMille)
+  after timer:minutes(10) ->
+      ?INFO("Not received further tallies. Assuming data upload complete")
+  end.
 
 cloak_urls_and_headers(UploadState, #state{cloaks=Cloaks, analyst_id=AnalystId}) ->
-  case air_etcd:get("/settings/rails/global") of
+  StateGen = case air_etcd:get("/settings/rails/global") of
     <<"true">> ->
-      StateGen = fun(Cloak) ->
+      fun(Cloak) ->
+        CloakUrl = "https://" ++ binary_to_list(Cloak) ++ "/bulk_insert",
+        ?INFO("Using prod cloak at url ~p", [CloakUrl]),
         UploadState#upload_state{
-          cloak_url = "https://" ++ binary_to_list(Cloak) ++ "/bulk_insert",
+          cloak_url = CloakUrl,
           headers = []
         }
-      end,
-      [StateGen(Cloak) || Cloak <- Cloaks];
+      end;
     <<"false">> ->
-      StateGen = fun(Cloak) ->
+      fun(Cloak) ->
+        CloakUrl = "http://" ++ binary_to_list(Cloak) ++ ":8098/bulk_insert",
+        ?INFO("Using dev cloak at url ~p", [CloakUrl]),
         UploadState#upload_state{
-          cloak_url = "http://" ++ binary_to_list(Cloak) ++ ":8098/bulk_insert",
+          cloak_url = CloakUrl,
           headers = [{"analyst", integer_to_list(AnalystId)}]
         }
-      end,
-      [StateGen(Cloak) || Cloak <- Cloaks]
-  end.
+      end
+  end,
+  [StateGen(Cloak) || Cloak <- Cloaks].
 
-wait_for_uploads_to_finish(0, Acc) -> {ok, Acc};
-wait_for_uploads_to_finish(N, Acc) ->
+% Provides a barrier so the test doesn't proceed before
+% the data has been uploaded, or we know that the data upload has failed.
+wait_for_uploads_to_finish(0, Acc, _UploadPids) -> {ok, Acc};
+wait_for_uploads_to_finish(N, Acc, UploadPids) ->
   receive
-    {done, UserCount} -> wait_for_uploads_to_finish(N-1, Acc+UserCount)
+    % If one of the uplaoders fails, we want to abort the test outright.
+    % This should not happen during normal operations!
+    {error, upload_failed} ->
+      abort_uploads(UploadPids),
+      {error, upload_failed};
+    {done, UserCount} -> wait_for_uploads_to_finish(N-1, Acc+UserCount, UploadPids);
+    heartbeat -> wait_for_uploads_to_finish(N, Acc, UploadPids)
+  after timer:minutes(10) ->
+    ?ERROR("Data upload timed out"),
+    abort_uploads(UploadPids),
+    {error, timeout}
   end.
 
-upload_data_for_user(0, UploadState, Acc) -> UploadState#upload_state.return_pid ! {done, Acc};
-upload_data_for_user(RemainingUsers, UploadState, Acc) ->
+% We want to ability to stop uploads before they are complete.
+% For example if one of the uploaders records that there is
+% a failure, then letting the other uploaders continue is
+% a waste of time.
+abort_uploads(Pids) ->
+  ?INFO("Upload of user data failed. Aborting"),
+  [Pid ! abort || Pid <- Pids].
+
+upload_data_for_user(0, UploadState, Acc, _TallyPid) -> UploadState#upload_state.return_pid ! {done, Acc};
+upload_data_for_user(RemainingUsers, UploadState, Acc, TallyPid) ->
   % Our table has the following columns:
   % - int1 : bigint (64bit)
   % - int2 : bigint (64bit)
@@ -421,9 +501,9 @@ upload_data_for_user(RemainingUsers, UploadState, Acc) ->
   % - text : text (480 bytes)
   % Each row weighs in at 504 bytes
   RowsForUser = rows_for_user(UploadState#upload_state.mean_rows_per_user),
-  OneIfUploaded = case RowsForUser > 0 of
+  OneIfUpload = case RowsForUser > 0 of
     true ->
-      UserNumStr = integer_to_binary(RemainingUsers),
+      UserNumStr = list_to_binary(integer_to_list(RemainingUsers) ++ pid_to_list(self())),
       UserId = <<"integration-test-", UserNumStr/binary>>,
       TextForUser = base64:encode(crypto:rand_bytes(361)), % Roughly 480 after base64 encoding
       TableName = list_to_binary(UploadState#upload_state.table_name),
@@ -438,40 +518,58 @@ upload_data_for_user(RemainingUsers, UploadState, Acc) ->
           {TableName, [Row || _ <- lists:seq(1, RowsForUser)]}
         ]}
       ],
-      upload_to_server(UploadState, list_to_binary(mochijson2:encode(Payload))),
+      upload_to_server(UploadState, list_to_binary(mochijson2:encode(Payload)), TallyPid),
       1;
-    false ->
-      0
+    false -> 0
   end,
-  upload_data_for_user(RemainingUsers - 1, UploadState, Acc+OneIfUploaded).
+  % We allow aborting uploads in case a failure has happened in one
+  % of the other uploaders.
+  receive
+    abort ->
+      ?INFO("Uploading worker aborting"),
+      aborted
+  after 0 ->
+    UploadState#upload_state.return_pid ! heartbeat,
+    upload_data_for_user(RemainingUsers - 1, UploadState, Acc+OneIfUpload, TallyPid)
+  end.
 
 rows_for_user(MeanRowsPerUser) ->
   Rand1 = random_util:uniform(),
   Rand2 = random_util:uniform(),
   cloak_distributions:gauss(MeanRowsPerUser/4, MeanRowsPerUser, Rand1, Rand2).
 
-upload_to_server(UploadState, Json) ->
+upload_to_server(UploadState, Json, TallyPid) ->
   Request = {
     UploadState#upload_state.cloak_url,
     UploadState#upload_state.headers,
     "application/json",
     Json
   },
-  {ok, {{_Version, Status, _StatusPhrase}, _Headers, Reply}} =
-      httpc:request(post, Request, [{ssl, UploadState#upload_state.ssl_options}], []),
-  case Status of
-    200 -> ok;
-    _ ->
-      lager:info("Upload to ~p failed (~p): ~p",
-          [UploadState#upload_state.cloak_url, Status, Reply])
+  HttpOptions = [
+    {ssl, UploadState#upload_state.ssl_options},
+    {timeout, timer:minutes(2)}
+  ],
+  case httpc:request(post, Request, HttpOptions, []) of
+    {ok, {{_Version, 200, _StatusPhrase}, _Headers, Reply}} ->
+      JsonResponse = mochijson2:decode(Reply),
+      case ej:get({"success"}, JsonResponse) of
+        true -> TallyPid ! good;
+        _Other ->
+          UploadState#upload_state.return_pid ! {error, upload_failed},
+          ?WARNING("Received unexpected upload response: ~p", [Reply]),
+          TallyPid ! bad
+      end;
+    Response ->
+      UploadState#upload_state.return_pid ! {error, upload_failed},
+      ?WARNING("Received unexpected upload response: ~p", [Response]),
+      TallyPid ! bad
   end.
 
-ssl_options({PrivateKey, Certificate, Password}) ->
+ssl_options({PrivateKeyPath, CertificatePath}) ->
   [
     {verify, verify_none},
-    {key, PrivateKey},
-    {cert, Certificate},
-    {password, Password}
+    {keyfile, PrivateKeyPath},
+    {certfile, CertificatePath}
   ].
 
 
@@ -481,7 +579,7 @@ ssl_options({PrivateKey, Certificate, Password}) ->
 
 -spec run_task(#state{}) -> step_response().
 run_task(#state{cluster_id=ClusterId, table_name=TableName}=State) ->
-  lager:info("Running task against cluster"),
+  ?INFO("Running task against cluster"),
   TaskCode = ["
     -- We loop through all rows of data,
     -- to stress the streaming mechanism
@@ -490,7 +588,9 @@ run_task(#state{cluster_id=ClusterId, table_name=TableName}=State) ->
       row_count = row_count + 1
     end
     report_property(\"Users\", \"count\")
-    quantize_props = {min = 0, max = 10000, step=1}
+    -- While the max value really should be something like 10000,
+    -- the cloak crashes when this is the case.
+    quantize_props = {min = 0, max = 10, step=1}
     Aircloak.Distributions.quantize_property(\"Row count\", row_count, quantize_props)"
   ],
   Prefetch = "[{\"table\": \"" ++ TableName ++ "\"}]",
@@ -502,14 +602,15 @@ run_task(#state{cluster_id=ClusterId, table_name=TableName}=State) ->
   ],
   case rails_request(RailsRequest, State) of
     {ok, Response} ->
-      lager:info("Task has been initiated. Waiting for results"),
+      ?INFO("Task has been initiated. Waiting for results"),
       ChannelName = binary_to_list(ej:get({"channel_name"}, Response)),
       listen_for(ChannelName, State),
-      %% We give the task 3 hours to complete (3 * 60 * 60s)
-      case wait_for(ChannelName, 10800, fun(R) -> {ok, R} end, State) of
+      ?INFO("Waiting for results on channel: ~p", [ChannelName]),
+      %% We give the task 30 minutes to complete (30 * 60s)
+      case wait_for(ChannelName, 1800, fun(R) -> {ok, R} end, State) of
         {ok, BinaryResultId} ->
           ResultId = binary_to_integer(BinaryResultId),
-          lager:info("Task finished. Result id: ~p", [ResultId]),
+          ?INFO("Task finished. Result id: ~p", [ResultId]),
           validate_result(ResultId, State);
         {error, timeout} -> {error, timeout, State}
       end;
@@ -517,36 +618,41 @@ run_task(#state{cluster_id=ClusterId, table_name=TableName}=State) ->
   end.
 
 validate_result(ResultId, #state{users_uploaded=UserCount}=State) ->
-  lager:info("Validating results"),
-  JSONResult = air_db:call(fun(Connection) ->
+  ?INFO("Validating results"),
+  JSONSQLResult = air_db:call(fun(Connection) ->
         SQL = ["
           SELECT buckets_json
           FROM results
           WHERE results.id = $1"
         ],
-        {{select, 1}, [{JSON}]} = pgsql_connection:extended_query(SQL, [ResultId], Connection),
-        JSON
+        pgsql_connection:extended_query(SQL, [ResultId], Connection)
       end),
-  Result = mochijson2:decode(JSONResult),
-  NoisyUserCount = lists:foldl(fun(Row, Acc) ->
-        Label = ej:get({"label"}, Row),
-        Value = ej:get({"value"}, Row),
-        case (Label =:= <<"Users">>) and (Value =:= <<"count">>) of
-          true -> ej:get({"count"}, Row);
-          false -> Acc
-        end
-      end, 0, Result),
-  AllowedLowerBound = UserCount - 40, % 4SD of roughly SD=10
-  AllowedUpperBound = UserCount + 40, % 4SD of roughly SD=10
-  lager:info("Received noisy count of ~p. Expect it to lie within ~p and ~p. Real count: ~p",
-      [NoisyUserCount, AllowedLowerBound, AllowedUpperBound, UserCount]),
-  case (NoisyUserCount >= AllowedLowerBound) and (NoisyUserCount =< AllowedUpperBound) of
-    true ->
-      lager:info("Result is ok"),
-      {ok, State};
-    false ->
-      lager:error("Integration test failed because the returned count was invalid"),
-      {error, unexpected_task_result, State}
+  case JSONSQLResult of
+    {{select, 1}, [{JSONResult}]} ->
+      Result = mochijson2:decode(JSONResult),
+      NoisyUserCount = lists:foldl(fun(Row, Acc) ->
+            Label = ej:get({"label"}, Row),
+            Value = ej:get({"value"}, Row),
+            case (Label =:= <<"Users">>) and (Value =:= <<"count">>) of
+              true -> ej:get({"count"}, Row);
+              false -> Acc
+            end
+          end, 0, Result),
+      AllowedLowerBound = UserCount - 40, % 4SD of roughly SD=10
+      AllowedUpperBound = UserCount + 40, % 4SD of roughly SD=10
+      ?INFO("Received noisy count of ~p. Expect it to lie within ~p and ~p. Real count: ~p",
+          [NoisyUserCount, AllowedLowerBound, AllowedUpperBound, UserCount]),
+      case (NoisyUserCount >= AllowedLowerBound) and (NoisyUserCount =< AllowedUpperBound) of
+        true ->
+          ?INFO("Result is ok"),
+          {ok, State};
+        false ->
+          ?ERROR("Integration test failed because the returned count was invalid"),
+          {error, unexpected_task_result, State}
+      end;
+    Other ->
+      ?ERROR("Couldn't load task results from DB: ~p", [Other]),
+      {error, no_task_result, State}
   end.
 
 
@@ -571,7 +677,7 @@ rails_request(RequestPayload, State) ->
           {error, decoding_error, State}
       end;
     {error, Reason} ->
-      lager:error("Rails integration tests backend failed with reason: ~p", [Reason]),
+      ?ERROR("Rails integration tests backend failed with reason: ~p", [Reason]),
       {error, failed_connect, State}
   end.
 
@@ -594,7 +700,9 @@ perform_wait_for(WhatBinary, WaitUntil, Fun, Connection) ->
       TimeDiffInMs = (WaitUntil - Now) * 1000,
       Result = receive
         {pgsql, Connection, {notification, _, WhatBinary, Data}} -> Fun(Data);
-        _Other -> next
+        Other ->
+          ?INFO("Received unexpected notification: ~p. Keeping on waiting", [Other]),
+          next
       after TimeDiffInMs ->
         {error, timeout}
       end,
@@ -612,7 +720,7 @@ perform_wait_for(WhatBinary, WaitUntil, Fun, Connection) ->
 flush_messages() ->
   receive
     Message ->
-      lager:info("- ~p", [Message]),
+      ?INFO("- ~p", [Message]),
       flush_messages()
   after 10 ->
       ok
@@ -622,21 +730,21 @@ flush_messages() ->
 while_ok(State, []) ->
   {ok, cleanup(State)};
 while_ok(#state{timings=Timings}=State, [Function|Functions]) ->
-  lager:info("Performing step: ~p", [Function]),
+  ?INFO("Performing step: ~p", [Function]),
   StartTimeSeconds = cloak_util:timestamp_to_epoch(now()),
   try ?MODULE:Function(State) of
     {ok, NewState} ->
       EndTimeSeconds = cloak_util:timestamp_to_epoch(now()),
       Duration = EndTimeSeconds - StartTimeSeconds,
       NewStateWithTiming = NewState#state{timings=[{Function, Duration}|Timings]},
-      lager:info("- ~p succeeded", [Function]),
+      ?INFO("- ~p succeeded", [Function]),
       while_ok(NewStateWithTiming, Functions);
     {error, Reason, NewState} ->
-      lager:warning("Test failed in step ~p with reason: ~p", [Function, Reason]),
+      ?WARNING("Test failed in step ~p with reason: ~p", [Function, Reason]),
       {error, cleanup(NewState)}
   catch
     ProblemType:ProblemReason ->
-      lager:error("Test failed with ~p:~p", [ProblemType, ProblemReason]),
+      ?ERROR("Test failed with ~p:~p", [ProblemType, ProblemReason]),
       {error, cleanup(State)}
   end.
 

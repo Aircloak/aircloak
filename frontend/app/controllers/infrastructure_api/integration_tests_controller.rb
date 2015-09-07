@@ -11,6 +11,7 @@ class InfrastructureApi::IntegrationTestsController < ApplicationController
   def create
     payload = JSON.parse(request.raw_post)
     action = payload["action"]
+    logger.info("Integration-test performing action #{action}")
     response = case action
     when "get_analyst_id"
       {success: true, analyst_id: test_analyst.id}
@@ -37,6 +38,11 @@ class InfrastructureApi::IntegrationTestsController < ApplicationController
     else
       {success: false, description: "Unknown action"}
     end
+    if response[:success] then
+      logger.info("#{action} succeeded")
+    else
+      logger.error("#{action} failed with #{response[:description]}")
+    end
     render json: response
   end
 
@@ -47,6 +53,7 @@ private
   # then we use that instead.
   def create_build
     name = "integration-test-#{Time.now.to_s}"
+    logger.info("Creating a build named #{name}")
     build = Build.new(name: name, manual: false)
     BuildVersionsAssigner.assign_from_params build, {"from_develop" => "true"}
     if build.save
@@ -64,6 +71,7 @@ private
         usable_build = nil
         Build.all.each do |existing_build|
           if existing_build.fingerprint == build.fingerprint then
+            logger.info("There already exists a build we can use")
             usable_build = existing_build
             break
           end
@@ -89,6 +97,7 @@ private
   end
 
   def destroy_build build_id
+    logger.info("About to destroy build from build server")
     build = Build.find(build_id)
     if build.destroy then
       {success: true}
@@ -98,15 +107,20 @@ private
   end
 
   def create_cluster build_id
+    logger.info("Creating cluster for build #{build_id}")
     cluster = Cluster.new(
-      name: "test-integration-test-cluster. Build #{build_id}, created at #{Time.now}",
+      name: "test-integration-test-cluster-build-#{build_id}-#{Time.now.to_i}",
       build_id: build_id
     )
+    cluster.log_alteration("Created integration test cluster")
     # We need three cloaks for the test cluster
     num_cloaks = Conf.get("/settings/air/integration_test/cluster_size").to_i
     cloaks = Cloak.all_available[0...num_cloaks]
     return {success: false, description: "Not enough cloaks to create cluster"} unless cloaks.size == num_cloaks
-    if cluster.assign_analysts([test_analyst]) and cluster.assign_cloaks(cloaks) && cluster.save then
+    if cluster.assign_analysts([test_analyst]) and cluster.assign_cloaks(cloaks) then
+      cluster.mark_as_changed
+      cluster.save!
+      logger.info("The following cloaks will be used: #{cloaks.map(&:ip)}")
       {success: true, cluster_id: cluster.id, cloaks: cloaks.map(&:ip)}
     else
       {success: false, description: "#{format_errors cluster}"}
@@ -114,16 +128,18 @@ private
   end
 
   def destroy_cluster cluster_id
+    logger.info("Destroying cluster #{cluster_id}")
     cluster = Cluster.find(cluster_id)
     cluster.initiate_destroy!
     {success: true}
   end
 
   def format_errors object
-    description = "Problem: #{object.errors.full_messages.join(", ")}"
+    "Problem: #{object.errors.full_messages.join(", ")}"
   end
 
   def create_table payload
+    logger.info("Creating a table with migration payload: #{payload}")
     params = {
       table_name: payload["name"],
       cluster_id: payload["cluster_id"],
@@ -131,6 +147,10 @@ private
       table_json: payload["table_json"]
     }
     table = UserTable.from_params(test_analyst.id, params)
+    table.save
+    if table.errors then
+      logger.error("Table save failed: #{format_errors table}")
+    end
     migration = UserTableMigration.from_params(params)
     if Migrator.migrate(table, migration) then
       {success: true, table_id: table.id}
@@ -140,6 +160,7 @@ private
   end
 
   def destroy_table table_id
+    logger.info("Destroying table #{table_id}")
     table = test_analyst.user_tables.find(table_id)
     migration = UserTableMigration.drop_migration table.table_name
     table.pending_delete = true
@@ -151,20 +172,23 @@ private
   end
 
   def create_upload_key
+    logger.info("Creating upload key")
     user = test_analyst.users.first
     password = TokenGenerator.generate_random_string_of_at_least_length(10)
-    key_name = "integration-test upload key – #{TokenGenerator.generate_random_string_of_at_least_length(10)}"
+    key_name = "integration test upload key (#{TokenGenerator.generate_random_string_of_at_least_length(10)})"
     key = KeyMaterial.create_from_user user, password, key_name, "data_upload_all"
     {success: true, key_pem: key.pem, password: password, key_id: key.id}
   end
 
   def revoke_key key_id
+    logger.info("Revoking upload key")
     key = KeyMaterial.find key_id
     test_analyst.revoke_key key
     {success: true}
   end
 
   def run_task payload
+    logger.info("Running task against test cluster")
     cluster = test_analyst.clusters.find(payload["cluster_id"])
     task = test_user.tasks.new(
       name: "Integration-test - #{Time.now.to_i}+#{rand(1000)}",
@@ -183,11 +207,13 @@ private
       pending_result = task.execute_batch_task
       {success: true, channel_name: pending_result.channel_name}
     else
+      logger.error("Could not save task: #{format_errors task}")
       {success: false, description: "Could not save task"}
     end
   end
 
   def add_test_result payload
+    logger.info("Test complete. Logging result: #{payload}")
     IntegrationTest.add_result_for_test(payload["identifier"], payload["result"])
     {success: true}
   end

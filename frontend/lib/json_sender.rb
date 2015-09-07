@@ -8,6 +8,7 @@ class JsonSender
     end
 
     unless [:get, :post, :put, :delete, :head].include?(method)
+      logger.error("Tried to perform request of unknown type: #{method}")
       raise ArgumentError.new("Unsupported REST method #{method}")
     end
 
