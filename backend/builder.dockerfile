@@ -45,13 +45,22 @@ RUN /tmp/build_config/useradd.sh --create-home --shell /bin/bash deployer
 
 RUN mkdir -p /aircloak/utils && chown deployer:deployer /aircloak/utils
 
-USER deployer
+USER root
 
 # In order to clone from Github inside the docker image,
 # we unfortunately need to relax our host checking...
-RUN mkdir -p /home/deployer/.ssh
+RUN mkdir -p /home/deployer/.ssh && mkdir -p /tmp/build
 
-COPY docker /aircloak/utils
+# First build dependencies. This ensures that a code change won't result in
+# full rebuilding of dependencies.
+COPY artifacts/cache/deps /tmp/build/deps
+COPY rebar rebar.config rebar.config.lock /tmp/build/
+RUN cd /tmp/build && ./rebar compile
 
-# The source to build
-VOLUME /aircloak/source
+# Then copy required sources and build the release
+COPY apps /tmp/build/apps
+COPY include /tmp/build/include
+COPY rel /tmp/build/rel
+COPY generate_cloak_conf.escript /tmp/build/
+COPY Makefile /tmp/build/
+RUN cd /tmp/build/ && make rel

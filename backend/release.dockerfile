@@ -31,7 +31,7 @@ RUN useradd --create-home --shell /bin/bash deployer && mkdir -p /aircloak/app
 
 WORKDIR /aircloak/app
 
-COPY artifacts/cache/rel/air /aircloak/app
+COPY artifacts/rel/air /aircloak/app
 COPY docker/start.sh /aircloak/
 
 RUN chown -R deployer:deployer /aircloak/app && chown -R deployer:deployer /var/run/

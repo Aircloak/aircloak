@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -eo pipefail
 
 cd $(dirname $0)
 . ../common/docker_helper.sh
@@ -51,13 +51,19 @@ cd $CWD
 
 setup_env_init
 
-log "Creating build image"
+log "Building the release"
 activate_stage "builder"
 docker build -t aircloak/air_backend_build:latest -f builder.dockerfile .
-log "Performing build inside build container"
-docker run -v $PWD:/aircloak/source --rm aircloak/air_backend_build:latest /aircloak/utils/build.sh
 
-# Now we should have a build in the artifacts/cache folder
+# Start the instance of the builder image and copy generated release back to the disk
+builder_container_id=$(docker create aircloak/air_backend_build:latest)
+mkdir -p artifacts/rel
+rm -rf artifacts/rel/*
+docker cp $builder_container_id:/tmp/build/rel/air - > ./artifacts/rel/air.tar.gz
+docker stop $builder_container_id > /dev/null
+docker rm -v $builder_container_id > /dev/null
+cd artifacts/rel && tar -xzf air.tar.gz && cd ../..
+
 activate_stage "release"
 log "Creating release docker container"
 docker build -t aircloak/air_backend:latest -f release.dockerfile .
