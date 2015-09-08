@@ -58,6 +58,6 @@ class PendingResult < ActiveRecord::Base
   end
 
   def channel_name
-    "query_result_#{auth_token.gsub("-", "")}".downcase
+    "queryresult#{auth_token.gsub("-", "").gsub("_", "")}".downcase
   end
 end

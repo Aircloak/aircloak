@@ -10,6 +10,8 @@
       %th Name
       - if current_user.has_multiple_clusters?
         %th Cluster
+      - if show_user
+        %th User
       %th Results
       %th Type
       %th State
@@ -23,6 +25,8 @@
           %td= task.cluster.name
         - else
           %td NO CLUSTER ASSIGNED
+      - if show_user
+        %td= link_to task.user.login, user_path(task.user)
       %td= link_to task.results.count, all_results_task_path(task.token)
       %td= task.type_string
       - if task.batch_task? then

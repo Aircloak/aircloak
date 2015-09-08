@@ -78,6 +78,12 @@ user_expire_interval:
   content: |
     Specifies the time period (in seconds) after which a reported bucket is removed from the result.
   markdown: true
+selected_columns:
+  content: |
+    Specifies which columns in the table are available in the task code for processing.
+
+    The total task execution duration can be reduced by specifying here only the fields that are actually needed.
+  markdown: true
 max_num_rows:
   content: |
     Limits the number of rows returned per user.

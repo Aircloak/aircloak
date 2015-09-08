@@ -27,9 +27,11 @@ private
     result = JsonSender.request :post, :admin, @table.analyst, @table.cluster,
         "migrate/#{@migration.version}", {}, @migration.migration
     if result["success"]
+      Rails.logger.info("Table migration successful for table: #{@table.table_name} (id: #{@table.id})")
       record_success
       true
     else
+      Rails.logger.info("Table migration failed. The response was #{result}")
       record_failure
       result["error"] = "An unknown error was encountered." unless result["error"]
       @table.errors[:base] << result["error"]

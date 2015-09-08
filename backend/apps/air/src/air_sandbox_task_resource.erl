@@ -94,7 +94,7 @@ map_insert_row([Other | Rest]) -> [Other | map_insert_row(Rest)].
 
 map_responses(JobResponses) ->
   {Successes, Errors} = lists:foldl(fun map_response/2, {[], dict:new()}, JobResponses),
-  FinalErrors = [[{message, Error}, {count, Count}] || {Error, Count} <- dict:to_list(Errors)],
+  FinalErrors = [[{error, Error}, {count, Count}] || {Error, Count} <- dict:to_list(Errors)],
   [{reported_properties, lists:sort(Successes)}, {errors, FinalErrors}].
 
 map_response(#job_response{user_id=UserId, properties=Properties}, {Successes, Errors}) ->
@@ -283,7 +283,7 @@ is_task_execution_ok() ->
           verifyHttp200(
                 "[{\"insert_actions\":[],\"reported_properties\":{\"u1\":[]},"
                   "\"errors\":[{"
-                    "\"message\":\"{sandbox_error,\\\"[string \\\\\\\"task_code\\\\\\\"]:1: attempt to index field '?' (a nil value)\\\"}\","
+                    "\"error\":\"{sandbox_error,\\\"[string \\\\\\\"task_code\\\\\\\"]:1: attempt to index field '?' (a nil value)\\\"}\","
                     "\"count\":1"
                   "}]"
                 "}]",
@@ -304,7 +304,7 @@ is_task_execution_ok() ->
           verifyHttp200(
                 "[{\"insert_actions\":[],\"reported_properties\":{\"u1\":[],\"u2\":[],\"u3\":[{\"label\":\"p1\",\"value\":\"120\"}]},"
                   "\"errors\":[{"
-                    "\"message\":\"{sandbox_error,\\\"[string \\\\\\\"task_code\\\\\\\"]:1: attempt to index field '?' (a nil value)\\\"}\","
+                    "\"error\":\"{sandbox_error,\\\"[string \\\\\\\"task_code\\\\\\\"]:1: attempt to index field '?' (a nil value)\\\"}\","
                     "\"count\":2"
                   "}]"
                 "}]",
@@ -328,7 +328,7 @@ is_task_execution_ok() ->
                     "\"u3\":{\"foo\":[{\"a\":1}]}"
                   "},"
                   "\"reported_properties\":{\"u1\":[],\"u2\":[],\"u3\":[]},"
-                  "\"errors\":[{\"message\":\"{sandbox_error,\\\"[string \\\\\\\"task_code\\\\\\\"]:2: foo\\\"}\",\"count\":1}]"
+                  "\"errors\":[{\"error\":\"{sandbox_error,\\\"[string \\\\\\\"task_code\\\\\\\"]:2: foo\\\"}\",\"count\":1}]"
                 "}]",
                 request_task_run(
                       "{"

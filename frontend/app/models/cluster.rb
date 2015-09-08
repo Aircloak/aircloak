@@ -27,6 +27,7 @@ class Cluster < ActiveRecord::Base
   after_save :synchronize_in_local_mode
   before_destroy :verify_can_destroy
   after_destroy :remove_state
+  after_create :log_creation
 
   # Only add the task code if it does not already belongs to the cluster.
   def add_task_code code
@@ -307,7 +308,7 @@ private
   end
 
   def must_have_at_least_one_cloak
-    self.errors.add :cloaks, "must have at least one cloak" unless cloaks.size > 0
+    self.errors.add :cluster, "must have at least one cloak" unless cloaks.size > 0
   end
 
   def verify_can_destroy
@@ -329,6 +330,10 @@ private
   def remove_state
     # We keep tasks and task results so the analyst can inspect them later
     AuditLog.where(cloak_id: cloaks.map(&:id)).delete_all
+  end
+
+  def log_creation
+    log_alteration "Created with name '#{name}' and build '#{build.name}'."
   end
 end
 

@@ -13,17 +13,25 @@ Tasks.FilterEditor = (inOptions) ->
   options = inOptions
   minLimit = options.tableFilter.minLimit()
   userRows = options.tableFilter.userRows()
+  columns = options.tableFilter.columns()
   filter = options.tableFilter.filter().clone()
   view = null
   dirty = false
 
   render = ->
+    table = options.tableFilter.table()
+    selectedColumns = table.columns.map (column) ->
+                          selected = columns.length == 0 or column.name in columns
+                          {name: column.name, selected: selected}
+    columns = (column.name for column in table.columns) unless columns
     Popup.show(HandlebarsTemplates["tasks/edit_filter"](
-          table: options.tableFilter.table()
-          minLimit: minLimit
-          userRows: userRows
+          table: table,
+          minLimit: minLimit,
+          userRows: userRows,
+          columns: selectedColumns,
+          columnSelection: options.columnSelection,
           filter: filter,
-          operators: _.keys(Tasks.Operators)
+          operators: _.keys(Tasks.Operators),
           newTemplate: {}
         ))
     view.setElement("#editFilter")
@@ -38,11 +46,24 @@ Tasks.FilterEditor = (inOptions) ->
     options.tableFilter.setFilter(filter)
     options.tableFilter.minLimit(minLimit)
     options.tableFilter.userRows(userRows)
+    options.tableFilter.columns(columns)
     dirty = false
     closeWindow()
     options.onSaved()
 
   dataValid = ->
+    if $('#columns').val() == null
+      $("#filterError").html("Please select at least one column")
+      $('#columns').focus()
+      return false
+    if parseInt($("#userRows").val()) < 1
+      $("#filterError").html("Please specify a positive row limit or none")
+      $('#userRows').focus()
+      return false
+    if parseInt($("#minLimit").val()) < 1
+      $("#filterError").html("Please specify a positive time limit or none")
+      $('#minLimit').focus()
+      return false
     errorElement = _.find($("[data-filter-input]"), (el) -> $(el).val() == "" || $(el).val() == null)
     if !errorElement
       true
@@ -88,8 +109,12 @@ Tasks.FilterEditor = (inOptions) ->
 
   controlsToFilter = ->
     # Ensure that values are either positive, or null
-    userRows = Math.max(parseInt($("#userRows").val()), 0) || null
-    minLimit = Math.max(parseInt($("#minLimit").val()), 0) || null
+    userRows = Math.max(parseInt($("#userRows").val()), 1) || null
+    minLimit = Math.max(parseInt($("#minLimit").val()), 1) || null
+
+    if options.columnSelection
+      columns = $('#columns').val()
+      columns = [] if columns.length == options.tableFilter.table().columns.length
 
     filter.clear()
     _.each(
@@ -151,6 +176,7 @@ Tasks.FilterEditor = (inOptions) ->
       "change #filterControls [data-filter-input]": setDirty
       "change #userRows": setDirty
       "change #minLimit": setDirty
+      "change #columns": setDirty
       "change [data-field=column]": onColumnChanged
   )
 
