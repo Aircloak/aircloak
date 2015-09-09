@@ -2,7 +2,7 @@ FROM debian:jessie
 MAINTAINER Aircloak
 
 RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
-COPY image_shell_init.sh /tmp/build_config/
+COPY tmp/image_shell_init.sh /tmp/build_config/
 RUN . /tmp/build_config/image_shell_init.sh
 
 
@@ -49,18 +49,19 @@ USER root
 
 # In order to clone from Github inside the docker image,
 # we unfortunately need to relax our host checking...
-RUN mkdir -p /home/deployer/.ssh && mkdir -p /tmp/build
+RUN mkdir -p /home/deployer/.ssh && mkdir -p /tmp/web/backend
 
 # First build dependencies. This ensures that a code change won't result in
 # full rebuilding of dependencies.
-COPY artifacts/cache/deps /tmp/build/deps
-COPY rebar rebar.config rebar.config.lock /tmp/build/
-RUN cd /tmp/build && ./rebar compile
+COPY backend/artifacts/cache/deps /tmp/web/backend/deps
+COPY backend/rebar backend/rebar.config backend/rebar.config.lock /tmp/web/backend/
+RUN cd /tmp/web/backend && ./rebar compile
 
 # Then copy required sources and build the release
-COPY apps /tmp/build/apps
-COPY include /tmp/build/include
-COPY rel /tmp/build/rel
-COPY generate_cloak_conf.escript /tmp/build/
-COPY Makefile /tmp/build/
-RUN cd /tmp/build/ && make rel
+COPY config /tmp/web/config
+COPY backend/apps /tmp/web/backend/apps
+COPY backend/include /tmp/web/backend/include
+COPY backend/rel /tmp/web/backend/rel
+COPY backend/generate_cloak_conf.escript /tmp/web/backend/
+COPY backend/Makefile backend/copy_configs.sh /tmp/web/backend/
+RUN cd /tmp/web/backend/ && make rel

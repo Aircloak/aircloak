@@ -1,5 +1,17 @@
-log
-.git
-deps
-ebin
-rel/air/
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!tmp/image_shell_init.sh
+!config
+!backend/artifacts/cache/deps
+!backend/apps
+!backend/include
+!backend/rel/files
+!backend/rel/reltool.config
+!backend/rebar
+!backend/rebar.config
+!backend/rebar.config.lock
+!backend/Makefile
+!backend/generate_cloak_conf.escript
+!backend/copy_configs.sh

@@ -1,2 +1,4 @@
 /etcd_values
 /image_shell_init.sh
+/tmp/
+/.dockerignore

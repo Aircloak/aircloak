@@ -4,4 +4,4 @@
 # whitelist only needed folders
 !tmp/image_shell_init.sh
 !config
-!frontend
+!router

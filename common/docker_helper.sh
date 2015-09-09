@@ -98,14 +98,15 @@ EOF
     fi
   fi
 
-  if [ -f ./image_shell_init.sh ]; then
-    current_content=$(cat ./image_shell_init.sh)
+  mkdir -p tmp
+  if [ -f tmp/image_shell_init.sh ]; then
+    current_content=$(cat tmp/image_shell_init.sh)
   fi
 
   # Replace the file only if the content has changed. Otherwise, we leave the file as
   # it is, which will allow the docker to reuse the intermediate image layer.
   if [ "$content" != "$current_content" ]; then
-    echo "$content" > ./image_shell_init.sh
+    echo "$content" > tmp/image_shell_init.sh
   fi
 }
 
@@ -168,4 +169,40 @@ function container_ctl {
       ;;
 
   esac
+}
+
+# Syntax:
+#   build_aircloak_image image_tag dockerfile_path [dockerfileignore_path]
+# Note: image build is always running in the repo top folder. Provided paths
+# must therefore be relative to the top folder.
+function build_aircloak_image {
+  curdir=$(pwd)
+  cd "$(dirname ${BASH_SOURCE[0]})/.."
+
+  dockerfile="$2"
+  if [ -d $dockerfile ]; then
+    dockerfile="$dockerfile/Dockerfile"
+  fi
+
+  dockerignore_file=${3:-"$(dirname $dockerfile)/.dockerignore"}
+  if [ -f $dockerignore_file ]; then
+    cp -rp $dockerignore_file .dockerignore
+  else
+    if [ -f .dockerignore ]; then rm .dockerignore; fi
+  fi
+
+  {
+    echo "[aircloak] building aircloak/$1"
+    setup_env_init
+    docker build -t aircloak/$1:latest -f "$dockerfile" .
+  } || {
+    # called in the case of an error
+    exit_code=$?
+    if [ -f .dockerignore ]; then rm .dockerignore; fi
+    cd $curdir
+    exit $exit_code
+  }
+
+  if [ -f .dockerignore ]; then rm .dockerignore; fi
+  cd $curdir
 }

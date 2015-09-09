@@ -49,7 +49,7 @@ prepare_includes:
 	(cd apps/air && mkdir -p include && cp -rp ../../deps/cloak/include/*.hrl ./include && cp -rp ../../include/*.hrl ./include)
 	(cd apps/airpub && mkdir -p include && cp -rp ../../deps/cloak/include/*.hrl ./include && cp -rp ../../include/*.hrl ./include)
 
-rel: all prepare_includes
+rel: all prepare_includes copy-configs
 	(cd rel && ../rebar generate skip_deps=true)
 
 start: app

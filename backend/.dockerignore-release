@@ -1,8 +1,8 @@
-log
-deps
-src
-ebin
-apps
-Makefile
-log
-test
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!config
+!backend/artifacts/rel/air
+!backend/docker
+!tmp/image_shell_init.sh
