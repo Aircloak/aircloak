@@ -58,8 +58,8 @@ RUN chown -R deployer:deployer /usr/local/bundle
 RUN mkdir $site_path/slate
 COPY frontend/slate/Gemfile frontend/slate/Gemfile.lock $site_path/slate/
 WORKDIR $site_path/slate
-RUN . /tmp/build_config/proxies.sh && bundle install \
-    --path vendor/bundle
+RUN . /tmp/build_config/proxies.sh && bundle install --path vendor/bundle && \
+  rm -rf /aircloak/website/vendor/bundle/ruby/2.0.0/cache
 
 # -----> rails gems
 WORKDIR $site_path
@@ -70,7 +70,8 @@ RUN . /tmp/build_config/proxies.sh && bundle install \
     --binstubs vendor/bundle/bin \
     -j4 \
     --deployment \
-    --no-clean
+    --no-clean && \
+    rm -rf /aircloak/website/vendor/bundle/ruby/2.0.0/cache
 
 
 ## ------------------------------------------------------------------
