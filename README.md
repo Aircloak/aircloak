@@ -10,6 +10,7 @@ Status](https://magnum.travis-ci.com/Aircloak/web.svg?token=aFqD8qTNFV1Li4zdKtZw
 - [What is it made up of](#what-is-it-made-up-of)
 - [Getting started](#getting-started)
     - [Running](#running)
+    - [Versioning](#versioning)
     - [Deploying](#deploying)
     - [Production](#production)
       - [Logs](#logs)
@@ -145,6 +146,25 @@ $ balancer/container.sh console
 ### Running the system on CoreOS (experimental)
 
 It is also possible to start the system inside a Vagrant powered CoreOS system. See [here](./coreos/README.md) for details.
+
+## Versioning
+
+Production docker images are versioned as `major.minor.patch`. The `major.minor` version is defined in the [version file](./VERSION). If you introduce some breaking changes, just adapt this file accordingly.
+
+The `patch` part is appended automatically when building images during the deploy process according to following rules:
+
+- If `major.minor` has changed, then `patch` will have the value of 0.
+- If `major.minor` hasn't changed, but the image contents is different, then the patch version is increased by 1.
+- If there's no change in the `major.minor` and the image contents is the same, then there's effectively no change in the image, and we keep the same version.
+
+This means that with time, different images will have different `patch` versions. However, `major.minor` part will always be the same.
+
+This versioning scheme allows us to:
+
+- Restart only changed services during the deploy.
+- Restart all containers for breaking changes.
+- Keep a couple of previous versions for each image, so we can rollback if needed.
+- Remove older images to preserve disk space.
 
 ## Deploying
 

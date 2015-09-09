@@ -12,5 +12,6 @@ This document serves to describe breaking changes and provide upgrade hints when
 - There's no `etcd/config_local.sh` anymore. If you need to apply changed settings, just start the etcd container again (`etcd/container.sh start`).
 - Routing rules are now a part of this repository. You can find them [here](router/docker/nginx). If you need to change some rules, do it there, rather than on the server.
 - `container.sh remsh` is replaced with `container.sh ssh`
+- Semi-automatic versioning scheme is introduced as described [here](./README.md#versioning).
 - To locally run CoreOS cluster, you'll need Vagrant (at least 1.6.3) and VirtualBox.
 - OS X users: previous port forward rules for boot2docker need to be changed. The complete list of forwarded ports can be seen [here](./osx_setup.md#port-forwarding). In addition, standard ssh forwarding rule, as setup by boot2docker, should be preserved.

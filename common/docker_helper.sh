@@ -131,10 +131,28 @@ function container_ctl {
 
     ensure_started)
       if ! named_container_running $container_name ; then
-        # Still invoking stop, since we might need to remove the container
-        stop_named_container $container_name
-        echo "Starting container $container_name"
-        docker run -d $driver_arg $container_env --restart on-failure --name $container_name $DOCKER_START_ARGS
+        container_ctl $container_name start "$@"
+      fi
+      ;;
+
+    ensure_latest_version_started)
+      if ! named_container_running $container_name ; then
+        container_ctl $container_name start "$@"
+      else
+        image_id=$(docker inspect -f="{{.Image}}" $container_name)
+        image_name=$(docker images --no-trunc |
+              awk "{if (\$3 == \"$image_id\" && \$1 ~ /^aircloak\/.+$/) print \$1}" |
+              sort |
+              uniq
+            )
+        most_recent_image_id=$(find_images $image_name ^latest$)
+
+        if [ "$image_id" == "$most_recent_image_id" ]; then
+          echo "$container_name already on the latest image version"
+        else
+          echo "Restarting $container_name to ensure that the latest version is running."
+          container_ctl $container_name start "$@"
+        fi
       fi
       ;;
 
@@ -164,11 +182,19 @@ function container_ctl {
       ;;
 
     *)
-      echo "$(basename $0) start|stop|ensure_started|ssh|remote_console|console|foreground docker-args"
+      echo "$(basename $0) start|stop|ensure_started|ensure_latest_version_started|ssh|remote_console|console|foreground docker-args"
       exit 1
       ;;
 
   esac
+}
+
+# Just like build_aircloak_image, but also versions the image and pushes it to the
+# registry.
+function build_production_image {
+  build_aircloak_image "$@"
+  push_to_registry $1
+  version_latest_image $1
 }
 
 # Syntax:
@@ -205,4 +231,90 @@ function build_aircloak_image {
 
   if [ -f .dockerignore ]; then rm .dockerignore; fi
   cd $curdir
+}
+
+function version_latest_image {
+  image_name="aircloak/$1"
+  latest_image_id=$(find_images $image_name ^latest$)
+  if [ "$latest_image_id" == "" ]; then
+    echo "Can't find latest image for $image_name"
+    return 1
+  fi
+
+  major_minor=$(cat $(dirname ${BASH_SOURCE[0]})/../VERSION)
+
+  last_patch_version=$(
+        find_images $image_name ^$major_minor.[0-9]+$ version |
+            sed "s/$major_minor\.//" |
+            sort -r -n |
+            head -n 1
+      )
+  latest_version_image_id=$(find_images $image_name ^$major_minor.$last_patch_version$)
+
+  if [ "$latest_version_image_id" == "$latest_image_id" ]; then
+    echo "No changes for $image_name"
+    return 0
+  fi
+
+  # Tag with major.minor.last_patch+1
+  # If there's no patch version for current major.minor (as defined in VERSION file),
+  # we'll tag with major.minor.0
+  patch_version=$((${last_patch_version:-"-1"} + 1))
+  tag="$image_name:$major_minor.$patch_version"
+  echo "Tagging $latest_image_id with $tag"
+  docker tag $latest_image_id $tag
+
+  # Keep only last 5 versions.
+  for old_version in $(
+      find_images $image_name "^[0-9]+\.[0-9]+\.[0-9]+$" version |
+          # sort by version descending (using numeric comparison for each field)
+          sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
+          # skip 5 most recent versions
+          tail -n+6
+      )
+  do
+    docker rmi "$image_name:$old_version"
+  done
+}
+
+function find_images {
+  case "$3" in
+    "" | id) print_column='$3' ;; # print image id by default
+    version) print_column='$2' ;;
+    *)
+      echo "Invalid column specifier $3" >&2
+      return 1
+    ;;
+  esac
+
+  all_images=${ALL_IMAGES:-"$(docker images --no-trunc)"}
+
+  echo "$all_images" | \
+      awk "{if (\$1 == \"$1\" && \$2 ~ /${2:-".*"}/) print $print_column}" | \
+      sort | \
+      uniq
+}
+
+function print_most_recent_versions {
+  all_images=$(docker images --no-trunc)
+  aircloak_images=$(
+        echo "$all_images" |
+            awk '{if ($1 ~ /^aircloak\/.+/) print $1}' |
+            sort |
+            uniq
+      )
+  printf "\nLatest images versions:\n"
+  for aircloak_image in $aircloak_images; do
+    latest_version=$(
+        ALL_IMAGES="$all_images" find_images $aircloak_image '^[0-9]+\.[0-9]+\.[0-9]+$' version |
+            sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
+            head -n 1
+      )
+
+      if [ "$latest_version" != "" ]; then
+        echo "$all_images" | \
+            awk "{if (\$1 == \"$aircloak_image\" && \$2 == \"$latest_version\") {\$3=\"\"; print;}}"
+      fi
+  done
+  printf "\n"
 }
