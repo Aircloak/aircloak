@@ -32,6 +32,10 @@ log "Booting container. Expecting etcd at http://127.0.0.1:$ETCD_CLIENT_PORT."
 
 add_local_hosts
 
+log "Migrating database"
+RAILS_ENV=production gosu deployer bundle exec rake db:migrate
+RAILS_ENV=production gosu deployer bundle exec rake db:version
+
 cat /tmp/nginx.conf \
   | sed "s/\$AIR_FRONTEND_HTTP_PORT/$(tcp_port 'air_frontend/http')/" \
   > /aircloak/nginx.conf
