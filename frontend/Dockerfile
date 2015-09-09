@@ -1,9 +1,7 @@
 FROM ruby:2.0.0-p643
 MAINTAINER Aircloak
 
-RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
-COPY tmp/image_shell_init.sh /tmp/build_config/
-RUN . /tmp/build_config/image_shell_init.sh
+RUN air_init
 
 # throw errors if Gemfile has been modified since Gemfile.lock
 RUN bundle config --global frozen 1

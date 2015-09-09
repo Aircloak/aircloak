@@ -1,14 +1,10 @@
 FROM nginx:1.9.3
 MAINTAINER Aircloak
 
+RUN air_init
+
 ENV site_path /aircloak/router
-
 RUN mkdir -p $site_path
-
-RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
-COPY tmp/image_shell_init.sh /tmp/build_config/
-RUN . /tmp/build_config/image_shell_init.sh
-
 RUN rm /etc/nginx/conf.d/default.conf
 
 RUN apt-get update && apt-get install -y vim nano curl jq && \

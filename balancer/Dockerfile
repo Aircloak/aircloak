@@ -1,9 +1,7 @@
 FROM debian:jessie
 MAINTAINER Aircloak
 
-RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
-COPY tmp/image_shell_init.sh /tmp/build_config/
-RUN . /tmp/build_config/image_shell_init.sh
+RUN air_init
 
 RUN apt-get update && \
   apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev libbz2-dev libssl-dev \

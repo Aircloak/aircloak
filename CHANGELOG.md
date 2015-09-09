@@ -2,7 +2,7 @@ This document serves to describe breaking changes and provide upgrade hints when
 
 ## Air router and CoreOS cluster
 
-- You need to have `nginx` and [jq](https://stedolan.github.io/jq/) on your machine.
+- You need to have `nginx`, [jq](https://stedolan.github.io/jq/), and `uuid-runtime` (provided out of the box on OS X) on your machine.
 - To start required components, you can now run `./start_dependencies.sh` from the root folder. This will start dockerized etcd instances, database container, and local nginx. __OS X users__: prior to running, make sure your folders are shared on boot2docker (e.g. via calling `./osx_mount_nfs.sh folder_to_share`).
 - To access the site via nginx, you need to add some entries to your `/etc/hosts`. Just watch the end of the output of `./start_dependencies.sh` for instructions.
 - The `frontend` rails server now listens on port 20024 by default. However, you're advised to access the site via the router (https://frontend.air-local:20000). You'll need to import the certificate from `router/dev_certs/aircloak.com.chain.pem` to your browser to prevent security errors.

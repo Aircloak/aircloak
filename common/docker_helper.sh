@@ -53,63 +53,6 @@ function stop_named_container {
   fi
 }
 
-function setup_env_init {
-  # This function sets up some production specific initialization, such as
-  # http proxies, and package mirrors.
-  # In addition, we export UID of the current host user to the image. While
-  # building the image, we'll create the new user with the same id.
-  # Note that this is needed only when we're using a "build" container to
-  # produce some artifacts in the mounted volume. In such cases, the container
-  # needs to have write permissions on a mounted volume, which may not happen
-  # if the docker user id is different from the id of the user running the
-  # docker on the host system.
-
-  if [ "$AIR_ENV" = "prod" ]; then
-    content=$(cat <<-EOF
-      echo "deb http://acmirror.mpi-sws.org/debian jessie main" > /etc/apt/sources.list
-      echo "deb http://acmirror.mpi-sws.org/debian jessie-updates main" >> /etc/apt/sources.list
-      echo "deb http://acmirror.mpi-sws.org/debian-security jessie/updates main" >> /etc/apt/sources.list
-
-      echo 'export https_proxy=http://acmirror.mpi-sws.org:3128' > /tmp/build_config/proxies.sh
-      echo 'export http_proxy=http://acmirror.mpi-sws.org:3128' >> /tmp/build_config/proxies.sh
-
-      echo '#!/usr/bin/env bash' > /tmp/build_config/useradd.sh
-      echo 'useradd -u $UID "\$@"' >> /tmp/build_config/useradd.sh
-      chmod +x /tmp/build_config/useradd.sh
-EOF
-    )
-  else
-    if [ -n "$(which boot2docker)" ]; then
-      # Don't use host's $UID, since boot2docker ensures proper permissions
-      content=$(cat <<-EOF
-        echo '#!/usr/bin/env bash' > /tmp/build_config/useradd.sh
-        echo 'useradd "\$@"' >> /tmp/build_config/useradd.sh
-        chmod +x /tmp/build_config/useradd.sh
-EOF
-      )
-    else
-      # No boot2docker -> use host's $UID to ensure proper permissions
-      content=$(cat <<-EOF
-        echo '#!/usr/bin/env bash' > /tmp/build_config/useradd.sh
-        echo 'useradd -u $UID "\$@"' >> /tmp/build_config/useradd.sh
-        chmod +x /tmp/build_config/useradd.sh
-EOF
-      )
-    fi
-  fi
-
-  mkdir -p tmp
-  if [ -f tmp/image_shell_init.sh ]; then
-    current_content=$(cat tmp/image_shell_init.sh)
-  fi
-
-  # Replace the file only if the content has changed. Otherwise, we leave the file as
-  # it is, which will allow the docker to reuse the intermediate image layer.
-  if [ "$content" != "$current_content" ]; then
-    echo "$content" > tmp/image_shell_init.sh
-  fi
-}
-
 function container_ctl {
   container_name=$1
   shift
@@ -217,20 +160,78 @@ function build_aircloak_image {
     if [ -f .dockerignore ]; then rm .dockerignore; fi
   fi
 
+  temp_docker_file="tmp/$(uuidgen).dockerfile"
   {
     echo "[aircloak] building aircloak/$1"
-    setup_env_init
-    docker build -t aircloak/$1:latest -f "$dockerfile" .
+    cat $dockerfile | dockerfile_content > "$temp_docker_file"
+    docker build -t aircloak/$1:latest -f "$temp_docker_file" .
   } || {
     # called in the case of an error
     exit_code=$?
+    if [ -f "$temp_docker_file" ]; then rm "$temp_docker_file"; fi
     if [ -f .dockerignore ]; then rm .dockerignore; fi
     cd $curdir
     exit $exit_code
   }
 
+  if [ -f "$temp_docker_file" ]; then rm "$temp_docker_file"; fi
   if [ -f .dockerignore ]; then rm .dockerignore; fi
   cd $curdir
+}
+
+# Produces the final dockerfile contents.
+# We use some custom templating, where RUN air_init is replaced with
+# context specific RUN command. See implementation of `air_init`
+# for more details.
+function dockerfile_content {
+  while read line; do
+    if [ "$(echo "$line" | xargs -0)" == "RUN air_init" ]; then
+      echo "$(air_init)"
+    else
+      echo $line
+    fi
+  done
+}
+
+function air_init {
+  # This function generates the RUN command which sets up some production specific
+  # initialization, such as http proxies, and package mirrors.
+  # In addition, we export UID of the current host user to the image. While
+  # building the image, we'll create the new user with the same id.
+  # Note that this is needed only when we're using a "build" container to
+  # produce some artifacts in the mounted volume. In such cases, the container
+  # needs to have write permissions on a mounted volume, which may not happen
+  # if the docker user id is different from the id of the user running the
+  # docker on the host system.
+
+  # Start the RUN command
+  echo "RUN mkdir -p /tmp/build_config && \\"
+
+  if [ "$AIR_ENV" = "prod" ]; then
+    # set mpi repos & proxies
+    cat <<-EOF
+      echo "deb http://acmirror.mpi-sws.org/debian jessie main" > /etc/apt/sources.list && \\
+      echo "deb http://acmirror.mpi-sws.org/debian jessie-updates main" >> /etc/apt/sources.list && \\
+      echo "deb http://acmirror.mpi-sws.org/debian-security jessie/updates main" >> /etc/apt/sources.list && \\
+      echo 'export https_proxy=http://acmirror.mpi-sws.org:3128' > /tmp/build_config/proxies.sh && \\
+      echo 'export http_proxy=http://acmirror.mpi-sws.org:3128' >> /tmp/build_config/proxies.sh && \\
+EOF
+  else
+    # local development -> generate dummy proxies.sh
+    echo "touch /tmp/build_config/proxies.sh && \\"
+  fi
+
+  # Generate special useradd helper which ensures proper UID on Linux hosts
+  if [ "$(which boot2docker)" == "" ]; then
+    # No boot2docker -> use host's $UID to ensure proper permissions
+    uid_arg="-u $UID"
+  fi
+
+  cat <<-EOF
+    echo '#!/usr/bin/env bash' > /tmp/build_config/useradd.sh && \\
+    echo 'useradd $uid_arg "\$@"' >> /tmp/build_config/useradd.sh && \\
+    chmod +x /tmp/build_config/useradd.sh
+EOF
 }
 
 function version_latest_image {

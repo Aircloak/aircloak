@@ -5,9 +5,8 @@ MAINTAINER Aircloak
 ## Some basic setup of the image
 ## ------------------------------------------------------------------
 
-RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
-COPY tmp/image_shell_init.sh /tmp/build_config/
-RUN . /tmp/build_config/image_shell_init.sh
+RUN air_init
+
 RUN apt-get update && apt-get install openssl liblua5.1-0 libprotobuf-c1 vim nano telnet curl jq -y
 
 # According to many advices, we'll use gosu instead of sudo to step-down from root
