@@ -319,3 +319,11 @@ function print_most_recent_versions {
   done
   printf "\n"
 }
+
+function cleanup_unused_images {
+  stopped_containers=$(docker ps -a | grep -v Up | awk '{print $1}' | tail -n+2)
+  if [ "$stopped_containers" != "" ]; then docker rm $(echo "$stopped_containers"); fi
+
+  unused_images=$(docker images -q -f dangling=true)
+  if [ "$unused_images" != "" ]; then docker rmi $(echo "$unused_images"); fi
+}
