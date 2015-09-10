@@ -13,7 +13,7 @@ fi
 
 # Override the generic function, since we need to perform special handling
 function gracefully_stop_container {
-  docker exec -d air_backend /bin/bash -c "/aircloak/app/bin/air stop"
+  docker exec -d air_backend /bin/bash -c "AIR_BACKEND_ENV='prod' /aircloak/app/bin/air stop"
 }
 
 if [ "$AIR_HOST_NAME" != "" ]; then
