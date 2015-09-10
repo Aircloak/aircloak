@@ -61,7 +61,7 @@ function container_ctl {
   shift
 
   if [ "$AIR_ENV" = "prod" ]; then
-    driver_arg="--log-driver=syslog"
+    driver_arg="--log-driver=syslog --log-opt syslog-tag=$container_name"
     container_env="-e AIR_ENV=prod"
   fi
 

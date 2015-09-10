@@ -226,6 +226,7 @@ For various configuration settings, see [here](etcd/README.md#production-setting
 ### Logs
 
 Logs of all services can be found at `/var/log/syslog`.
+Each log-line is tagged with the name of the container, so you can use this for easier filtering. To see the list of container names, you can run `docker ps | awk '{print $NF}'`.
 
 ### Typical tasks
 
