@@ -111,7 +111,7 @@ function container_ctl {
 
     ssh)
       docker exec -i -t $container_name \
-        /bin/bash -c "TERM=xterm /bin/bash"
+        /bin/bash -c "TERM=xterm CONTAINER_NAME='$container_name' /bin/bash -l"
       ;;
 
     remote_console)
@@ -230,7 +230,15 @@ EOF
   cat <<-EOF
     echo '#!/usr/bin/env bash' > /tmp/build_config/useradd.sh && \\
     echo 'useradd $uid_arg "\$@"' >> /tmp/build_config/useradd.sh && \\
-    chmod +x /tmp/build_config/useradd.sh
+    chmod +x /tmp/build_config/useradd.sh && \\
+EOF
+
+  # Support for setting custom prompt through CONTAINER_NAME env. This allows us
+  # to inject the container name into the ssh session. Without this, the name of the
+  # real host machine will be used, since containers run in the shared networking mode.
+  cat <<-EOF
+    echo 'PS1="\${debian_chroot:+(\$debian_chroot)}\\\\u@\${CONTAINER_NAME:-\\\\h}:\\\\w# "' \\
+      >> /etc/profile.d/custom_prompt.sh
 EOF
 }
 
