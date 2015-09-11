@@ -63,12 +63,9 @@ namespace :aircloak do
 
   task :provision do
     on roles(:app_admin), in: :sequence do
-      exec_ml "
-            cp -rp /aircloak/air/remote_files/air /etc/init.d/air &&
-            chown root:root /etc/init.d/air &&
-            chmod 755 /etc/init.d/air &&
-            update-rc.d air defaults
-          "
+      exec_ml(install_init_script_cmd("air"))
+      exec_ml(install_init_script_cmd("iptables_rules"))
+      execute "/etc/init.d/iptables_rules"
     end
   end
 
@@ -90,5 +87,14 @@ namespace :aircloak do
     #       "
     def exec_ml(cmd)
       execute cmd.gsub("\n", " ")
+    end
+
+    def install_init_script_cmd(name)
+      "
+        cp -rp /aircloak/air/remote_files/#{name} /etc/init.d/#{name} &&
+            chown root:root /etc/init.d/#{name} &&
+            chmod 755 /etc/init.d/#{name} &&
+            update-rc.d #{name} defaults
+      "
     end
 end
