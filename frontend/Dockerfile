@@ -58,13 +58,17 @@ RUN chown -R deployer:deployer /usr/local/bundle
 RUN mkdir $site_path/slate
 COPY frontend/slate/Gemfile frontend/slate/Gemfile.lock $site_path/slate/
 WORKDIR $site_path/slate
-RUN . /tmp/build_config/proxies.sh && bundle install --path vendor/bundle && \
+
+# Setup bundle_with_retry script which retries in case of failures, such as network timeouts
+RUN echo 'bundle "$@" || bundle "$@" || bundle "$@" || bundle "$@" || bundle "$@"' \
+  > /tmp/bundle_with_retry && chmod +x /tmp/bundle_with_retry
+RUN . /tmp/build_config/proxies.sh && /tmp/bundle_with_retry install --path vendor/bundle && \
   rm -rf /aircloak/website/vendor/bundle/ruby/2.0.0/cache
 
 # -----> rails gems
 WORKDIR $site_path
 COPY frontend/Gemfile frontend/Gemfile.lock $site_path/
-RUN . /tmp/build_config/proxies.sh && bundle install \
+RUN . /tmp/build_config/proxies.sh && /tmp/bundle_with_retry install \
     --without development:test \
     --path vendor/bundle \
     --binstubs vendor/bundle/bin \
