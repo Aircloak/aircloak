@@ -94,8 +94,18 @@ etcd_url() ->
         {"timeout", fun() ->
           set("/tests/key2", "value2", 1),
           ?assertMatch(<<"value2">>, get("/tests/key2")),
-          timer:sleep(1500),
-          ?assertError(_, get("/tests/key2"))
+          WaitFun =
+            fun
+              ThisFun (0) -> ?assert(false);
+              ThisFun (N) ->
+                case catch get("/tests/key2") of
+                  {'EXIT', _} -> ok;
+                  _ ->
+                    timer:sleep(100),
+                    ThisFun(N-1)
+                end
+            end,
+          WaitFun(50)
         end},
         {"ls", fun() ->
           [set("/tests/folder/" ++ Is, Is) || I <- lists:seq(1, 3), Is <- [integer_to_list(I)]],
