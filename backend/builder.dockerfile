@@ -55,7 +55,8 @@ COPY backend/rebar backend/rebar.config backend/rebar.config.lock /tmp/web/backe
 RUN cd /tmp/web/backend && ./rebar compile
 
 # Then copy required sources and build the release
-COPY config /tmp/web/config
+COPY config/config.sh /tmp/web/config/config.sh
+COPY config/tcp_ports.json /tmp/web/config/tcp_ports.json
 COPY backend/apps /tmp/web/backend/apps
 COPY backend/include /tmp/web/backend/include
 COPY backend/rel /tmp/web/backend/rel

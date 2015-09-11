@@ -3,7 +3,8 @@
 
 # whitelist only needed folders
 !tmp/image_shell_init.sh
-!config
+!config/config.sh
+!config/tcp_ports.json
 !backend/artifacts/cache/deps
 !backend/apps
 !backend/include

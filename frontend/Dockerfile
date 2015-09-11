@@ -140,7 +140,8 @@ RUN rm -rf $site_path/slate
 # as it isn't needed in any of the compilation steps,
 # and changes to it therefore shouldn't invalidate the cache
 COPY frontend/docker $site_path/docker
-COPY config/* $site_path/docker/
+COPY config/config.sh $site_path/docker/config.sh
+COPY config/tcp_ports.json $site_path/docker/tcp_ports.json
 
 # Needed so nginx and unicorn can access the site
 RUN chown -R deployer:deployer $site_path

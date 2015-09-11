@@ -15,5 +15,6 @@ RUN . /tmp/build_config/proxies.sh && wget http://nginx.org/download/nginx-1.9.4
   make install
 
 COPY balancer/docker /aircloak/balancer
-COPY config/* /aircloak/balancer/
+COPY config/config.sh /aircloak/balancer/config.sh
+COPY config/tcp_ports.json /aircloak/balancer/tcp_ports.json
 USER root
