@@ -75,7 +75,10 @@ handle_publish_request(_Method, _Path, _HasBody, _ContentType, _ContentEncoding,
 % Returns the forward destination for the longest matching route.
 -spec get_forward_info(string()) -> undefined | {string(), [string()]}.
 get_forward_info(Path) ->
-  {ok, Routes} = application:get_env(airpub, publishing_forward_routes),
+  Routes = [
+    {"/results/", infrastructure_url("results"), ["QueryAuthToken"]},
+    {"/audit_log/", infrastructure_url("audit_logs"), []}
+  ],
   {_Length, Match} = lists:foldl(fun({SubPath, Url, Headers}, {MatchLength, Match}) ->
       case lists:prefix(SubPath, Path) andalso string:len(SubPath) > MatchLength of
         true ->
@@ -85,6 +88,12 @@ get_forward_info(Path) ->
       end
     end, {0, undefined}, Routes),
   Match.
+
+infrastructure_url(Path) ->
+  lists:flatten(io_lib:format("~s/~s", [
+        air_etcd:get("/service/infrastructure_api_local"),
+        Path
+      ])).
 
 % Builds the headers list, from the original request, to forward along with the article content.
 -spec get_forward_headers([string()], term()) -> [tuple(string(), string())].
