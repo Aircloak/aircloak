@@ -111,7 +111,7 @@ Make sure that all dependencies have been fetched, that needed components (e.g. 
 Now you can start frontend and backend in the usual way:
 
 ```
-web/frontend $ bundle exec rails s
+web/frontend $ make start
 web/backend $ make start
 ```
 
@@ -183,43 +183,40 @@ Note that this will work only if the current branch is pushed to the origin.
 
 ## Production
 
-From a standpoint, the architecture of the system is as follows:
+The architecture of the system on the production machine is as follows:
 
 <!--- ASCII diagram made with http://asciiflow.com/ -->
 ```
- http(s) requests  +------------+         +----------------------+
-+------------------>TCP balancer|         |   router container   |
-                   +-----+------+         |                      |
-                         |                |       +-----+        |
-                         +------------------------>nginx|        |
-                                          |       +^-+-^+        |
-                                          |        | | |         |
-                                          +----------------------+
-                                                   | | |
-                                                   | | |
-                                                   | | |
-                   +-------------------------+     | | |     +-------------------------+
-                   | air_frontend container  |     | | |     |  air_backend container  |
-                   |                         |     | | |     |                         |
-                   |         +-----+         |     | | |     |    +--------------+     |
-                   |         |nginx<---------------+ | +---------->erlang release|     |
-                   |         +--+--+         |       |       |    +------+-------+     |
-                   |            |            |       |       |           |             |
-                   |            |            |       |       |           |             |
-                   |         +--v--+         |       |       |           |             |
-                   |         |rails|         |       |       |           |             |
-                   |         +--+--+         |       |       |           |             |
-                   |            |            |       |       |           |             |
-                   +-------------------------+       |       +-------------------------+
-                                |                    |                   |
-                                |                    |                   |
-                                |          +---------v--------+          |
-                                +---------->etcd_air container<----------+
-                                           +------------------+
-
+                       +----------------------+
+                       |   router container   |
+                       |                      |
+ http(s) requests      |       +-----+        |
++------------------------------>nginx|        |
+                       |       +^-+-^+        |
+                       |        | | |         |
+                       +----------------------+
+                                | | |
+                                | | |
+                                | | |
++-------------------------+     | | |     +-------------------------+
+| air_frontend container  |     | | |     |  air_backend container  |
+|                         |     | | |     |                         |
+|         +-----+         |     | | |     |    +--------------+     |
+|         |nginx<---------------+ | +---------->erlang release|     |
+|         +--+--+         |       |       |    +------+-------+     |
+|            |            |       |       |           |             |
+|            |            |       |       |           |             |
+|         +--v--+         |       |       |           |             |
+|         |rails|         |       |       |           |             |
+|         +--+--+         |       |       |           |             |
+|            |            |       |       |           |             |
++-------------------------+       |       +-------------------------+
+             |                    |                   |
+             |                    |                   |
+             |          +---------v--------+          |
+             +---------->etcd_air container<----------+
+                        +------------------+
 ```
-
-In a cluster setting (e.g. CoreOS), the TCP balancer will run outside of the CoreOS machines and balance the traffic between them. Until we implement the full CoreOS support in production, we are running the TCP balancer container on the single production machine.
 
 For various configuration settings, see [here](etcd/README.md#production-settings).
 
@@ -231,10 +228,12 @@ Each log-line is tagged with the name of the container, so you can use this for 
 ### Typical tasks
 
 - Stop the system: `/etc/init.d/air stop`
-- Start the system: `/etc/init.d/air start` (stops it first, if needed)
+- Start the system: `/etc/init.d/air start` (restarts only changed containers)
+- Hard restart: `/etc/init.d/air stop && /etc/init.d/air start`
 - Shell to the running container:
     - `/aircloak/air/frontend/container.sh ssh`
     - `/aircloak/air/backend/container.sh ssh`
+    - `/aircloak/air/router/container.sh ssh`
 - Shell to Rails/Erlang console:
     - `/aircloak/air/frontend/container.sh remote_console`
     - `/aircloak/air/backend/container.sh remote_console`
