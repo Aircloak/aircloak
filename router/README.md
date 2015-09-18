@@ -18,4 +18,4 @@ Furthermore, the router balances requests over multiple machines in the cluster 
 
 # Running
 
-To run the router locally, you need to have nginx installed. The router is started when running `./start_dependencies.sh`. If you need to (re)start just the router, you can invoke `router/run_local.sh`.
+To run the router locally, you need to have nginx installed. The router is started when running `./start_dependencies.sh`. If you need to (re)start just the router, you can invoke `router/run_local.sh`. If you want to start the router in foreground, you can invoke `cd router && make start`.
