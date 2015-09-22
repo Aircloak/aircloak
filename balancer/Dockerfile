@@ -18,3 +18,5 @@ COPY balancer/docker /aircloak/balancer
 COPY config/config.sh /aircloak/balancer/config.sh
 COPY config/tcp_ports.json /aircloak/balancer/tcp_ports.json
 USER root
+
+AIR_TAG_VERSION

@@ -20,3 +20,5 @@ COPY config/config.sh $site_path/docker/config.sh
 COPY config/tcp_ports.json $site_path/docker/tcp_ports.json
 
 USER root
+
+AIR_TAG_VERSION

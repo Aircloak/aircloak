@@ -148,3 +148,5 @@ RUN chown -R deployer:deployer $site_path
 
 # We'll run as root, but step-down in the init script to the non-privileged user
 USER root
+
+AIR_TAG_VERSION

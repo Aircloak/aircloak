@@ -39,3 +39,5 @@ RUN chown -R deployer:deployer /aircloak/app && chown -R deployer:deployer /var/
 USER root
 
 CMD /aircloak/start.sh
+
+AIR_TAG_VERSION

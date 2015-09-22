@@ -181,16 +181,27 @@ function build_aircloak_image {
 }
 
 # Produces the final dockerfile contents.
-# We use some custom templating, where AIR_INIT pseudocommand is replaced with
-# context specific RUN command. See implementation of `air_init`
-# for more details.
+# We use some custom templating, where some of our pseudo-commands are replaced
+# with actual docker commands.
 function dockerfile_content {
   while read line; do
-    if [ "$(echo "$line" | xargs -0)" == "AIR_INIT" ]; then
-      echo "$(air_init)"
-    else
-      echo $line
-    fi
+    case "$(echo "$line" | xargs -0)" in
+      # production specific initialization of proxies and user ids
+      AIR_INIT)
+        echo "$(air_init)"
+        ;;
+
+      # Version tagging. When a version is bumped, this will cause a new image
+      # to be rebuilt. Usually, this instruction should be included at the end
+      # of the Dockerfile to reduce the amount of rebuilt layers.
+      AIR_TAG_VERSION)
+        echo "COPY VERSION /tmp/"
+        ;;
+
+      *)
+        echo $line
+        ;;
+    esac
   done
 }
 
