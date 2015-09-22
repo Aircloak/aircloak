@@ -1,7 +1,7 @@
 FROM debian:jessie
 MAINTAINER Aircloak
 
-RUN air_init
+AIR_INIT
 
 RUN apt-get update && \
   apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev libbz2-dev libssl-dev \

@@ -1,7 +1,7 @@
 FROM debian:jessie
 MAINTAINER Aircloak
 
-RUN air_init
+AIR_INIT
 
 ## ------------------------------------------------------------------
 ## Get dependencies needed on the build system

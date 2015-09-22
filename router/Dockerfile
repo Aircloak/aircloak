@@ -1,7 +1,7 @@
 FROM nginx:1.9.3
 MAINTAINER Aircloak
 
-RUN air_init
+AIR_INIT
 
 ENV site_path /aircloak/router
 RUN mkdir -p $site_path

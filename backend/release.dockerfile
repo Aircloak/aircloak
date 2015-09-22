@@ -5,7 +5,7 @@ MAINTAINER Aircloak
 ## Some basic setup of the image
 ## ------------------------------------------------------------------
 
-RUN air_init
+AIR_INIT
 
 RUN apt-get update && apt-get install openssl liblua5.1-0 libprotobuf-c1 vim nano telnet curl jq -y
 

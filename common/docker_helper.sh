@@ -181,12 +181,12 @@ function build_aircloak_image {
 }
 
 # Produces the final dockerfile contents.
-# We use some custom templating, where RUN air_init is replaced with
+# We use some custom templating, where AIR_INIT pseudocommand is replaced with
 # context specific RUN command. See implementation of `air_init`
 # for more details.
 function dockerfile_content {
   while read line; do
-    if [ "$(echo "$line" | xargs -0)" == "RUN air_init" ]; then
+    if [ "$(echo "$line" | xargs -0)" == "AIR_INIT" ]; then
       echo "$(air_init)"
     else
       echo $line
