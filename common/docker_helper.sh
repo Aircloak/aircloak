@@ -162,6 +162,7 @@ function build_aircloak_image {
 
   temp_docker_file="tmp/$(uuidgen).dockerfile"
   {
+    mkdir -p tmp
     echo "[aircloak] building aircloak/$1"
     cat $dockerfile | dockerfile_content > "$temp_docker_file"
     docker build -t aircloak/$1:latest -f "$temp_docker_file" .
