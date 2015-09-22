@@ -46,7 +46,7 @@ Web::Application.configure do
   config.log_level = :info
 
   # Prepend all log lines with the following tags.
-  config.log_tags = [ "air_frontend", "rails", :subdomain, :uuid ]
+  config.log_tags = [ "rails", :subdomain, :uuid ]
 
   # Use a different logger for distributed setups.
   config.logger = ActiveSupport::TaggedLogging.new(Logger.new(STDOUT))
