@@ -25,7 +25,7 @@ case "$1" in
     ;;
 
   start)
-    ./start_dependencies.sh
+    ./start_dependencies.sh --no-router
     start_docker_service frontend
     start_docker_service backend
     start_docker_service router

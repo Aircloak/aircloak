@@ -10,4 +10,7 @@ cd $(dirname $0)
 ./db/container.sh ensure_started
 ./docker_registry/container.sh ensure_started
 ./router/build-image.sh
-cd router && make start
+
+if [ "$1" != "--no-router" ]; then
+  cd router && make start
+fi
