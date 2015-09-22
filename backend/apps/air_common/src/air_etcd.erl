@@ -96,16 +96,17 @@ etcd_url() ->
           ?assertMatch(<<"value2">>, get("/tests/key2")),
           WaitFun =
             fun
-              ThisFun (0) -> ?assert(false);
-              ThisFun (N) ->
+              ThisFun (RemainingTime) when RemainingTime > 0 ->
                 case catch get("/tests/key2") of
                   {'EXIT', _} -> ok;
                   _ ->
                     timer:sleep(100),
-                    ThisFun(N-1)
-                end
+                    ThisFun(RemainingTime - 100)
+                end;
+
+              ThisFun (_) -> ?assert(false)
             end,
-          WaitFun(50)
+          WaitFun(timer:seconds(5))
         end},
         {"ls", fun() ->
           [set("/tests/folder/" ++ Is, Is) || I <- lists:seq(1, 3), Is <- [integer_to_list(I)]],
