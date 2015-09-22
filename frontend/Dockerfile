@@ -1,9 +1,7 @@
 FROM ruby:2.0.0-p643
 MAINTAINER Aircloak
 
-RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
-COPY image_shell_init.sh /tmp/build_config/
-RUN . /tmp/build_config/image_shell_init.sh
+AIR_INIT
 
 # throw errors if Gemfile has been modified since Gemfile.lock
 RUN bundle config --global frozen 1
@@ -58,23 +56,26 @@ RUN chown -R deployer:deployer /usr/local/bundle
 
 # -----> slate gems
 RUN mkdir $site_path/slate
-COPY slate/Gemfile $site_path/slate/
-COPY slate/Gemfile.lock $site_path/slate/
+COPY frontend/slate/Gemfile frontend/slate/Gemfile.lock $site_path/slate/
 WORKDIR $site_path/slate
-RUN . /tmp/build_config/proxies.sh && bundle install \
-    --path vendor/bundle
+
+# Setup bundle_with_retry script which retries in case of failures, such as network timeouts
+RUN echo 'bundle "$@" || bundle "$@" || bundle "$@" || bundle "$@" || bundle "$@"' \
+  > /tmp/bundle_with_retry && chmod +x /tmp/bundle_with_retry
+RUN . /tmp/build_config/proxies.sh && /tmp/bundle_with_retry install --path vendor/bundle && \
+  rm -rf /aircloak/website/vendor/bundle/ruby/2.0.0/cache
 
 # -----> rails gems
 WORKDIR $site_path
-COPY Gemfile $site_path/
-COPY Gemfile.lock $site_path/
-RUN . /tmp/build_config/proxies.sh && bundle install \
+COPY frontend/Gemfile frontend/Gemfile.lock $site_path/
+RUN . /tmp/build_config/proxies.sh && /tmp/bundle_with_retry install \
     --without development:test \
     --path vendor/bundle \
     --binstubs vendor/bundle/bin \
     -j4 \
     --deployment \
-    --no-clean
+    --no-clean && \
+    rm -rf /aircloak/website/vendor/bundle/ruby/2.0.0/cache
 
 
 ## ------------------------------------------------------------------
@@ -82,7 +83,7 @@ RUN . /tmp/build_config/proxies.sh && bundle install \
 ## ------------------------------------------------------------------
 
 WORKDIR $site_path/slate
-COPY slate $site_path/slate
+COPY frontend/slate $site_path/slate
 RUN . /tmp/build_config/proxies.sh && bundle exec middleman build
 
 
@@ -90,7 +91,7 @@ RUN . /tmp/build_config/proxies.sh && bundle exec middleman build
 ## Setup nginx
 ## ------------------------------------------------------------------
 
-COPY config/nginx.conf /tmp/nginx.conf
+COPY frontend/config/nginx.conf /tmp/nginx.conf
 
 # Nginx logs at /var/log/nginx
 # We want to tail that, so make it accessible to us
@@ -112,15 +113,15 @@ WORKDIR $site_path
 # and would result in having to spend time on
 # docker builds (which, let me tell you(!!!) are
 # a waste of your previous time!).
-COPY app $site_path/app
-COPY bin $site_path/bin
-COPY config $site_path/config
-COPY db $site_path/db
-COPY lib $site_path/lib
-COPY public $site_path/public
-COPY vendor $site_path/vendor
-COPY config.ru $site_path/config.ru
-COPY Rakefile $site_path/Rakefile
+COPY frontend/app $site_path/app
+COPY frontend/bin $site_path/bin
+COPY frontend/config $site_path/config
+COPY frontend/db $site_path/db
+COPY frontend/lib $site_path/lib
+COPY frontend/public $site_path/public
+COPY frontend/vendor $site_path/vendor
+COPY frontend/config.ru $site_path/config.ru
+COPY frontend/Rakefile $site_path/Rakefile
 
 # Create static assets that can be cached and served
 # Note: Rails 4 always initializes the database, even when precompiling assets. To avoid this, we hack a bit:
@@ -138,10 +139,14 @@ RUN rm -rf $site_path/slate
 # we use when running the app. We copy this as a late step
 # as it isn't needed in any of the compilation steps,
 # and changes to it therefore shouldn't invalidate the cache
-COPY docker $site_path/docker
+COPY frontend/docker $site_path/docker
+COPY config/config.sh $site_path/docker/config.sh
+COPY config/tcp_ports.json $site_path/docker/tcp_ports.json
 
 # Needed so nginx and unicorn can access the site
 RUN chown -R deployer:deployer $site_path
 
 # We'll run as root, but step-down in the init script to the non-privileged user
 USER root
+
+AIR_TAG_VERSION

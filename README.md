@@ -10,6 +10,7 @@ Status](https://magnum.travis-ci.com/Aircloak/web.svg?token=aFqD8qTNFV1Li4zdKtZw
 - [What is it made up of](#what-is-it-made-up-of)
 - [Getting started](#getting-started)
     - [Running](#running)
+    - [Versioning](#versioning)
     - [Deploying](#deploying)
     - [Production](#production)
       - [Logs](#logs)
@@ -110,7 +111,7 @@ Make sure that all dependencies have been fetched, that needed components (e.g. 
 Now you can start frontend and backend in the usual way:
 
 ```
-web/frontend $ bundle exec rails s
+web/frontend $ make start
 web/backend $ make start
 ```
 
@@ -146,9 +147,30 @@ $ balancer/container.sh console
 
 It is also possible to start the system inside a Vagrant powered CoreOS system. See [here](./coreos/README.md) for details.
 
+## Versioning
+
+Production docker images are versioned as `major.minor.patch`. The `major.minor` version is defined in the [version file](./VERSION). If you introduce some breaking changes, just adapt this file accordingly.
+
+The `patch` part is appended automatically when building images during the deploy process according to following rules:
+
+- If `major.minor` has changed, then `patch` will have the value of 0.
+- If `major.minor` hasn't changed, but the image contents is different, then the patch version is increased by 1.
+- If there's no change in the `major.minor` and the image contents is the same, then there's effectively no change in the image, and we keep the same version.
+
+This means that with time, different images will have different `patch` versions. However, `major.minor` part will always be the same.
+
+This versioning scheme allows us to:
+
+- Restart only changed services during the deploy.
+- Restart all containers for breaking changes.
+- Keep a couple of previous versions for each image, so we can rollback if needed.
+- Remove older images to preserve disk space.
+
 ## Deploying
 
-Simply run `bundle exec cap production deploy`, which should deploy the entire air system and migrate the database.
+Simply run `bundle exec cap production deploy`, which should deploy the entire air system and migrate the database. Note that only modified services will be restarted. If the docker image is not changed during the deploy build, the container will not be restarted.
+
+If for some reasons you still need to restart a particular service, you can log on to the production machine and run `/aircloak/air/service/container.sh start` (which will implicitly stop the running container).
 
 To deploy from a specific branch, you can run `AIR_DEPLOY_BRANCH=another_branch bundle exec cap production deploy`.
 If you want to deploy current branch, assuming you're not in the detached head state, you can run:
@@ -161,57 +183,57 @@ Note that this will work only if the current branch is pushed to the origin.
 
 ## Production
 
-From a standpoint, the architecture of the system is as follows:
+The architecture of the system on the production machine is as follows:
 
 <!--- ASCII diagram made with http://asciiflow.com/ -->
 ```
- http(s) requests  +------------+         +----------------------+
-+------------------>TCP balancer|         |   router container   |
-                   +-----+------+         |                      |
-                         |                |       +-----+        |
-                         +------------------------>nginx|        |
-                                          |       +^-+-^+        |
-                                          |        | | |         |
-                                          +----------------------+
-                                                   | | |
-                                                   | | |
-                                                   | | |
-                   +-------------------------+     | | |     +-------------------------+
-                   | air_frontend container  |     | | |     |  air_backend container  |
-                   |                         |     | | |     |                         |
-                   |         +-----+         |     | | |     |    +--------------+     |
-                   |         |nginx<---------------+ | +---------->erlang release|     |
-                   |         +--+--+         |       |       |    +------+-------+     |
-                   |            |            |       |       |           |             |
-                   |            |            |       |       |           |             |
-                   |         +--v--+         |       |       |           |             |
-                   |         |rails|         |       |       |           |             |
-                   |         +--+--+         |       |       |           |             |
-                   |            |            |       |       |           |             |
-                   +-------------------------+       |       +-------------------------+
-                                |                    |                   |
-                                |                    |                   |
-                                |          +---------v--------+          |
-                                +---------->etcd_air container<----------+
-                                           +------------------+
-
+                       +----------------------+
+                       |   router container   |
+                       |                      |
+ http(s) requests      |       +-----+        |
++------------------------------>nginx|        |
+                       |       +^-+-^+        |
+                       |        | | |         |
+                       +----------------------+
+                                | | |
+                                | | |
+                                | | |
++-------------------------+     | | |     +-------------------------+
+| air_frontend container  |     | | |     |  air_backend container  |
+|                         |     | | |     |                         |
+|         +-----+         |     | | |     |    +--------------+     |
+|         |nginx<---------------+ | +---------->erlang release|     |
+|         +--+--+         |       |       |    +------+-------+     |
+|            |            |       |       |           |             |
+|            |            |       |       |           |             |
+|         +--v--+         |       |       |           |             |
+|         |rails|         |       |       |           |             |
+|         +--+--+         |       |       |           |             |
+|            |            |       |       |           |             |
++-------------------------+       |       +-------------------------+
+             |                    |                   |
+             |                    |                   |
+             |          +---------v--------+          |
+             +---------->etcd_air container<----------+
+                        +------------------+
 ```
-
-In a cluster setting (e.g. CoreOS), the TCP balancer will run outside of the CoreOS machines and balance the traffic between them. Until we implement the full CoreOS support in production, we are running the TCP balancer container on the single production machine.
 
 For various configuration settings, see [here](etcd/README.md#production-settings).
 
 ### Logs
 
 Logs of all services can be found at `/var/log/syslog`.
+Each log-line is tagged with the name of the container, so you can use this for easier filtering. To see the list of container names, you can run `docker ps | awk '{print $NF}'`.
 
 ### Typical tasks
 
 - Stop the system: `/etc/init.d/air stop`
-- Start the system: `/etc/init.d/air start` (stops it first, if needed)
+- Start the system: `/etc/init.d/air start` (restarts only changed containers)
+- Hard restart: `/etc/init.d/air stop && /etc/init.d/air start`
 - Shell to the running container:
     - `/aircloak/air/frontend/container.sh ssh`
     - `/aircloak/air/backend/container.sh ssh`
+    - `/aircloak/air/router/container.sh ssh`
 - Shell to Rails/Erlang console:
     - `/aircloak/air/frontend/container.sh remote_console`
     - `/aircloak/air/backend/container.sh remote_console`

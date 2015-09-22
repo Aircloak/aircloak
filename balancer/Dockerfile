@@ -1,9 +1,7 @@
 FROM debian:jessie
 MAINTAINER Aircloak
 
-RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
-COPY image_shell_init.sh /tmp/build_config/
-RUN . /tmp/build_config/image_shell_init.sh
+AIR_INIT
 
 RUN apt-get update && \
   apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev libbz2-dev libssl-dev \
@@ -16,5 +14,9 @@ RUN . /tmp/build_config/proxies.sh && wget http://nginx.org/download/nginx-1.9.4
   make && \
   make install
 
-COPY docker /aircloak/balancer
+COPY balancer/docker /aircloak/balancer
+COPY config/config.sh /aircloak/balancer/config.sh
+COPY config/tcp_ports.json /aircloak/balancer/tcp_ports.json
 USER root
+
+AIR_TAG_VERSION

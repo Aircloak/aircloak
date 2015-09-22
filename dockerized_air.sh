@@ -16,7 +16,7 @@ function stop_docker_services {
 
 function start_docker_service {
   $1/build-image.sh
-  $1/container.sh start
+  $1/container.sh ensure_latest_version_started
 }
 
 case "$1" in
@@ -25,13 +25,12 @@ case "$1" in
     ;;
 
   start)
-    stop_docker_services
-    ./start_dependencies.sh
-    start_docker_service frontend &
-    start_docker_service backend &
-    start_docker_service router &
-    start_docker_service balancer &
-    wait
+    ./start_dependencies.sh --no-router
+    start_docker_service frontend
+    start_docker_service backend
+    start_docker_service router
+    start_docker_service balancer
+
     printf "\nYou can access the site at:\n"
     printf "  https://frontend.air-local:$(get_tcp_port prod router/https) (router endpoint)\n"
     printf "  https://frontend.air-local:$(get_tcp_port prod balancer/https) (balancer endpoint)\n\n"

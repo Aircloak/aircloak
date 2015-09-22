@@ -5,9 +5,8 @@ MAINTAINER Aircloak
 ## Some basic setup of the image
 ## ------------------------------------------------------------------
 
-RUN mkdir -p /tmp/build_config && echo '' > /tmp/build_config/proxies.sh
-COPY image_shell_init.sh /tmp/build_config/
-RUN . /tmp/build_config/image_shell_init.sh
+AIR_INIT
+
 RUN apt-get update && apt-get install openssl liblua5.1-0 libprotobuf-c1 vim nano telnet curl jq -y
 
 # According to many advices, we'll use gosu instead of sudo to step-down from root
@@ -31,8 +30,8 @@ RUN useradd --create-home --shell /bin/bash deployer && mkdir -p /aircloak/app
 
 WORKDIR /aircloak/app
 
-COPY artifacts/cache/rel/air /aircloak/app
-COPY docker/start.sh /aircloak/
+COPY backend/artifacts/rel/air /aircloak/app
+COPY backend/docker/start.sh /aircloak/
 
 RUN chown -R deployer:deployer /aircloak/app && chown -R deployer:deployer /var/run/
 
@@ -40,3 +39,5 @@ RUN chown -R deployer:deployer /aircloak/app && chown -R deployer:deployer /var/
 USER root
 
 CMD /aircloak/start.sh
+
+AIR_TAG_VERSION

@@ -3,8 +3,7 @@
 
 # whitelist only needed folders
 !VERSION
+!tmp/image_shell_init.sh
 !config/config.sh
 !config/tcp_ports.json
-!backend/artifacts/rel/air
-!backend/docker
-!tmp/image_shell_init.sh
+!router

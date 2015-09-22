@@ -95,8 +95,6 @@ generate_nginx_conf
 echo
 check_etc_hosts
 
-nginx -c $(pwd)/nginx_local/nginx.conf
-
 echo "You can access following sites:
   https://frontend.air-local:$(etcd_get /tcp_ports/router/https)
   https://api.air-local:$(etcd_get /tcp_ports/router/https)
@@ -104,3 +102,9 @@ echo "You can access following sites:
   https://aircloak.air-local:$(etcd_get /tcp_ports/router/https)
   https://airpub.air-local:$(etcd_get /tcp_ports/router/https)
 "
+
+if [ "$1" == "console" ]; then
+  nginx -g "daemon off;" -c $(pwd)/nginx_local/nginx.conf
+else
+  nginx -c $(pwd)/nginx_local/nginx.conf
+fi
