@@ -89,6 +89,9 @@
        {cowboy,".*",
                {git,"git@github.com:ninenines/cowboy.git",
                     "b87150c713fe16601b314451b2fe25b62bd820bb"}},
+       {hackney,".*",
+               {git,"git://github.com/benoitc/hackney.git",
+                    "b29a643c572bb83f8089bd57c373e7aaf1e86608"}},
        {rebar_lock_deps_plugin,".*",
                                {git,"git://github.com/seth/rebar_lock_deps_plugin.git",
                                     "9711549b8a84b065eb2edc22f8eb6ff85e3c94e8"}},
@@ -100,4 +103,3 @@
                                  "d30e9c69f49066f7ee813a990b7a791c34287626"}}]}.
 {plugins,[rebar_proper_plugin,rebar_lock_deps_plugin]}.
 {proper_check_spec,[query_vnode_scheduler_batchreaders]}.
-
