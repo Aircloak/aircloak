@@ -184,6 +184,17 @@ etcd_url() ->
     end)(ExpectedExpiryTime + timer:seconds(3))
   )).
 
+-define(keyTest(Fun),
+    fun() ->
+      Fun(
+            iolist_to_binary([
+                  "/tests/",
+                  lists:flatten([[io_lib:format("~2.16.0B",[X]) || <<X:8>> <= crypto:rand_bytes(20)]])
+                ])
+          )
+    end
+  ).
+
 ?test_suite(standard_test_,
       setup,
       [
@@ -195,51 +206,52 @@ etcd_url() ->
       ],
       [
         {"get non-existent", ?_assertError(_, get("/tests/non-existent key"))},
-        {"set, get, delete", fun() ->
-          ?assertMatch({ok, #set{key= <<"/tests/key1">>, value= <<"value1">>}}, set("/tests/key1", "value1")),
-          ?assertMatch(<<"value1">>, get("/tests/key1")),
-          ?assertMatch({ok,#delete{key= <<"/tests/key1">>, prevValue= <<"value1">>}}, delete("/tests/key1")),
-          ?assertError(_, get("/tests/key1"))
-        end},
-        {"set timeout", fun() ->
-          set("/tests/key2", "value2", 1),
-          ?assertMatch(<<"value2">>, get("/tests/key2")),
-          ?assertExpiry("/tests/key2", timer:seconds(1))
-        end},
-        {"ls", fun() ->
-          [set("/tests/folder/" ++ Is, Is) || I <- lists:seq(1, 3), Is <- [integer_to_list(I)]],
+        {"set, get, delete", ?keyTest(fun(Key) ->
+          ?assertMatch({ok, #set{key=Key, value= <<"value">>}}, set(Key, "value")),
+          ?assertMatch(<<"value">>, get(Key)),
+          ?assertMatch({ok,#delete{key= Key, prevValue= <<"value">>}}, delete(Key)),
+          ?assertError(_, get(Key))
+        end)},
+        {"set timeout", ?keyTest(fun(Key) ->
+          set(Key, "value", 1),
+          ?assertMatch(<<"value">>, get(Key)),
+          ?assertExpiry(Key, timer:seconds(1))
+        end)},
+        {"ls", ?keyTest(fun(Folder) ->
+          FolderSize = byte_size(Folder),
+          [set(binary_to_list(Folder) ++ "/" ++ Is, Is) || I <- lists:seq(1, 3), Is <- [integer_to_list(I)]],
           ?assertMatch(
                 [
-                  {<<"/tests/folder/1">>, <<"1">>},
-                  {<<"/tests/folder/2">>, <<"2">>},
-                  {<<"/tests/folder/3">>, <<"3">>}
+                  {<<Folder:FolderSize/binary, "/1" >>, <<"1">>},
+                  {<<Folder:FolderSize/binary, "/2" >>, <<"2">>},
+                  {<<Folder:FolderSize/binary, "/3" >>, <<"3">>}
                 ],
-                lists:sort(ls("/tests/folder"))
+                lists:sort(ls(Folder))
               )
-        end},
-        {"rmdir", fun() ->
-          [set("/tests/folder2/" ++ Is, Is) || I <- lists:seq(1, 3), Is <- [integer_to_list(I)]],
-          ?assertMatch({ok, #delete{key= <<"/tests/folder2">>}}, rmdir("/tests/folder2")),
-          ?assertMatch([], ls("/tests/folder2"))
-        end},
-        {"create_new", fun() ->
-          ?assertEqual(ok, create_new(<<"/tests/key3">>, <<"value3">>)),
-          ?assertEqual(<<"value3">>, get("/tests/key3"))
-        end},
-        {"create_new timeout", fun() ->
-          ?assertEqual(ok, create_new(<<"/tests/key4">>, <<"value4">>, 1)),
-          ?assertExpiry("/tests/key4", timer:seconds(1))
-        end},
-        {"get_or_create", fun() ->
-          ?assertEqual(<<"value5">>, get_or_create(<<"/tests/key5">>, <<"value5">>)),
-          ?assertEqual(<<"value5">>, get("/tests/key5")),
-          ?assertEqual(<<"value5">>, get_or_create(<<"/tests/key5">>, <<"value5">>)),
-          ?assertEqual(<<"value5">>, get("/tests/key5"))
-        end},
-        {"get_or_create timeout", fun() ->
-          ?assertEqual(<<"value6">>, get_or_create(<<"/tests/key6">>, <<"value6">>, 1)),
-          ?assertExpiry("/tests/key6", timer:seconds(1))
-        end}
+        end)},
+        {"rmdir", ?keyTest(fun(Folder) ->
+          [set(binary_to_list(Folder) ++ "/" ++ Is, Is) || I <- lists:seq(1, 3), Is <- [integer_to_list(I)]],
+          ?assertMatch({ok, #delete{key=Folder}}, rmdir(Folder)),
+          ?assertMatch([], ls(Folder))
+        end)},
+        {"create_new", ?keyTest(fun(Key) ->
+          ?assertEqual(ok, create_new(Key, <<"value">>)),
+          ?assertEqual(<<"value">>, get(Key))
+        end)},
+        {"create_new timeout", ?keyTest(fun(Key) ->
+          ?assertEqual(ok, create_new(Key, <<"value">>, 1)),
+          ?assertExpiry(Key, timer:seconds(1))
+        end)},
+        {"get_or_create", ?keyTest(fun(Key) ->
+          ?assertEqual(<<"value">>, get_or_create(Key, <<"value">>)),
+          ?assertEqual(<<"value">>, get(Key)),
+          ?assertEqual(<<"value">>, get_or_create(Key, <<"value">>)),
+          ?assertEqual(<<"value">>, get(Key))
+        end)},
+        {"get_or_create timeout", ?keyTest(fun(Key) ->
+          ?assertEqual(<<"value">>, get_or_create(Key, <<"value">>, 1)),
+          ?assertExpiry(Key, timer:seconds(1))
+        end)}
       ]
     ).
 
