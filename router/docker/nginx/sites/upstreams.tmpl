@@ -27,9 +27,13 @@ upstream frontend {
 }
 
 upstream airpub {
-  # Temporarily hardcoded to delegate to local service. This will be improved
-  # once we introduce leader election.
-  server 127.0.0.1:$AIRPUB_HTTP_PORT;
+  {{ if exists "/service/airpub_leader" }}
+    server {{ getv "/service/airpub_leader" }};
+  {{ else }}
+    {{/* No registered service -> hardcode one required upstream to the local service */}}
+    server 127.0.0.1:$AIRPUB_HTTP_PORT;
+  {{ end }}
+
   include /etc/nginx/support/upstream_keepalive.conf;
 }
 
