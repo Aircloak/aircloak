@@ -4,6 +4,7 @@
 
 %% API
 -export([
+  url/0,
   get/1,
   set/2,
   set/3,
@@ -19,6 +20,10 @@
 -include("air.hrl").
 -include_lib("etcd/include/etcd_types.hrl").
 
+-export_type([
+  key/0
+]).
+
 -define(ETCD_TIMEOUT, 5000).
 
 % Taken from https://github.com/coreos/etcd/blob/master/Documentation/errorcode.md
@@ -29,37 +34,52 @@
 %% API functions
 %% -------------------------------------------------------------------
 
+%% @doc Returns the url of the etcd endpoint
+-spec url() -> string().
+url() ->
+  case application:get_env(air_common, etcd_url) of
+    {ok, EtcdUrl} -> EtcdUrl;
+    undefined ->
+      % Note: etcd port is always provided through OS env. This is an implementation
+      % detail that allows us to reuse the code from `config/config.sh` without
+      % needing to run bash script from Erlang.
+      EtcdUrl = lists:flatten(io_lib:format("http://127.0.0.1:~p",
+          [list_to_integer(air_utils:env("ETCD_CLIENT_PORT", undefined))])),
+      application:set_env(air_common, etcd_url, EtcdUrl, [{persistent, true}]),
+      EtcdUrl
+  end.
+
 %% @doc Retrieves the value under given key. Raises an error if the value under
 %%      given key is not present.
 -spec get(key()) -> binary().
 get(Key) ->
-  {ok, #get{value=Value}} = etcd:get(etcd_url(), Key, ?ETCD_TIMEOUT),
+  {ok, #get{value=Value}} = etcd:get(url(), Key, ?ETCD_TIMEOUT),
   Value.
 
 %% @doc Just like {@link set/3} but the item never expires.
 -spec set(key(), value()) -> result().
 set(Key, Value) ->
-  etcd:set(etcd_url(), Key, Value, ?ETCD_TIMEOUT).
+  etcd:set(url(), Key, Value, ?ETCD_TIMEOUT).
 
 %% @doc Sets the value under a given key, with the given ttl (in seconds).
 -spec set(key(), value(), pos_integer()) -> result().
 set(Key, Value, Ttl) ->
-  etcd:set(etcd_url(), Key, Value, Ttl, ?ETCD_TIMEOUT).
+  etcd:set(url(), Key, Value, Ttl, ?ETCD_TIMEOUT).
 
 %% @doc Sets the value under a given key, with the given ttl (in seconds).
 -spec delete(key()) -> result().
 delete(Key) ->
-  etcd:delete(etcd_url(), Key, ?ETCD_TIMEOUT).
+  etcd:delete(url(), Key, ?ETCD_TIMEOUT).
 
 %% @doc Removes a directory folder.
 -spec rmdir(key()) -> result().
 rmdir(Key) ->
-  etcd:delete(etcd_url(), [Key, "?recursive=true"], ?ETCD_TIMEOUT).
+  etcd:delete(url(), [Key, "?recursive=true"], ?ETCD_TIMEOUT).
 
 %% @doc Retrieves all key-value pairs which reside immediately under the given key.
 -spec ls(key()) -> [{binary(), binary()}].
 ls(Key) ->
-  case etcd:get(etcd_url(), Key, ?ETCD_TIMEOUT) of
+  case etcd:get(url(), Key, ?ETCD_TIMEOUT) of
     {ok, #get{nodes=Nodes}} ->
       [{SubKey, Value} || #node{key=SubKey, value=Value} <- Nodes];
     _ -> []
@@ -106,7 +126,7 @@ etcd_req(Method, Path) -> etcd_req(Method, Path, "").
 etcd_req(Method, Path, Body) ->
   Res = hackney:request(
         Method,
-        iolist_to_binary([etcd_url(), "/v2/keys", Path]),
+        iolist_to_binary([url(), "/v2/keys", Path]),
         [],
         Body,
         [
@@ -124,40 +144,14 @@ decode_response({ok, _Status, _Headers, ClientRef}) ->
 
 do_create_new(Key, Value, AdditionalParams) ->
   AllParams = [{prevExist, false}, {value, Value} | AdditionalParams],
-  {ok, Response} = etcd_req(put, [Key, url_params(AllParams)]),
+  {ok, Response} = etcd_req(put, [Key, air_utils:url_params(AllParams)]),
   case proplists:get_value(<<"errorCode">>, Response) of
     undefined -> ok;
     ?ETCD_KEY_ALREADY_EXISTS -> {error, already_exists}
   end.
 
-url_params([]) -> [];
-url_params(Params) ->
-  List = [
-    http_uri:encode(to_string(Key)) ++ "=" ++ http_uri:encode(to_string(Value))
-      || {Key, Value} <- Params
-  ],
-  binary:list_to_bin([$? | string:join(List, "&")]).
-
-to_string(Value) when is_integer(Value) -> integer_to_list(Value);
-to_string(Value) when is_binary(Value) -> binary_to_list(Value);
-to_string(Value) when is_atom(Value) -> atom_to_list(Value);
-to_string(Value) when is_list(Value) -> Value.
-
 handle_create_new(ok, _Key, Value) -> cloak_util:binarify(Value);
 handle_create_new({error, already_exists}, Key, _Value) -> get(Key).
-
-etcd_url() ->
-  case application:get_env(air_common, etcd_url) of
-    {ok, EtcdUrl} -> EtcdUrl;
-    undefined ->
-      % Note: etcd port is always provided through OS env. This is an implementation
-      % detail that allows us to reuse the code from `config/config.sh` without
-      % needing to run bash script from Erlang.
-      EtcdUrl = lists:flatten(io_lib:format("http://127.0.0.1:~p",
-          [list_to_integer(air_utils:env("ETCD_CLIENT_PORT", undefined))])),
-      application:set_env(air_common, etcd_url, EtcdUrl, [{persistent, true}]),
-      EtcdUrl
-  end.
 
 
 %% -------------------------------------------------------------------
@@ -184,16 +178,7 @@ etcd_url() ->
     end)(ExpectedExpiryTime + timer:seconds(3))
   )).
 
--define(keyTest(Fun),
-    fun() ->
-      Fun(
-            iolist_to_binary([
-                  "/tests/",
-                  lists:flatten([[io_lib:format("~2.16.0B",[X]) || <<X:8>> <= crypto:rand_bytes(20)]])
-                ])
-          )
-    end
-  ).
+-define(keyTest(Fun), fun() -> Fun(etcd_test_helper:unique_key()) end).
 
 ?test_suite(standard_test_,
       setup,
