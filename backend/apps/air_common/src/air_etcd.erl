@@ -5,6 +5,7 @@
 %% API
 -export([
   url/0,
+  fetch/1,
   get/1,
   set/2,
   set/3,
@@ -27,6 +28,7 @@
 -define(ETCD_TIMEOUT, 5000).
 
 % Taken from https://github.com/coreos/etcd/blob/master/Documentation/errorcode.md
+-define(ETCD_KEY_NOT_FOUND, 100).
 -define(ETCD_KEY_ALREADY_EXISTS, 105).
 
 
@@ -49,11 +51,19 @@ url() ->
       EtcdUrl
   end.
 
+%% @doc Looks up the value under given key.
+-spec fetch(key()) -> {ok, binary()} | error.
+fetch(Key) ->
+  case etcd:get(url(), Key, ?ETCD_TIMEOUT) of
+    {ok, #get{value=Value}} -> {ok, Value};
+    {ok, #error{errorCode=?ETCD_KEY_NOT_FOUND}} -> error
+  end.
+
 %% @doc Retrieves the value under given key. Raises an error if the value under
 %%      given key is not present.
 -spec get(key()) -> binary().
 get(Key) ->
-  {ok, #get{value=Value}} = etcd:get(url(), Key, ?ETCD_TIMEOUT),
+  {ok, Value} = fetch(Key),
   Value.
 
 %% @doc Just like {@link set/3} but the item never expires.
@@ -167,8 +177,8 @@ handle_create_new({error, already_exists}, Key, _Value) -> get(Key).
   (
     (fun
       ThisFun (RemainingTime) when RemainingTime > 0 ->
-        case catch get(Key) of
-          {'EXIT', _} -> ok;
+        case fetch(Key) of
+          error -> ok;
           _ ->
             timer:sleep(100),
             ThisFun(RemainingTime - 100)
@@ -190,11 +200,12 @@ handle_create_new({error, already_exists}, Key, _Value) -> get(Key).
         }
       ],
       [
-        {"get non-existent", ?_assertError(_, get("/tests/non-existent key"))},
-        {"set, get, delete", ?keyTest(fun(Key) ->
+        {"set, fetch, get, delete", ?keyTest(fun(Key) ->
           ?assertMatch({ok, #set{key=Key, value= <<"value">>}}, set(Key, "value")),
-          ?assertMatch(<<"value">>, get(Key)),
+          ?assertEqual({ok, <<"value">>}, fetch(Key)),
+          ?assertEqual(<<"value">>, get(Key)),
           ?assertMatch({ok,#delete{key= Key, prevValue= <<"value">>}}, delete(Key)),
+          ?assertEqual(error, fetch(Key)),
           ?assertError(_, get(Key))
         end)},
         {"set timeout", ?keyTest(fun(Key) ->
