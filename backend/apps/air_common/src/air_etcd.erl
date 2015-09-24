@@ -14,8 +14,9 @@
   ls/1,
   create_new/2,
   create_new/3,
-  get_or_create/2,
-  get_or_create/3
+  compare_and_swap/3,
+  compare_and_swap/4,
+  compare_and_delete/2
 ]).
 
 -include("air.hrl").
@@ -29,6 +30,7 @@
 
 % Taken from https://github.com/coreos/etcd/blob/master/Documentation/errorcode.md
 -define(ETCD_KEY_NOT_FOUND, 100).
+-define(ETCD_COMPARE_FAILED, 101).
 -define(ETCD_KEY_ALREADY_EXISTS, 105).
 
 
@@ -96,30 +98,31 @@ ls(Key) ->
   end.
 
 %% @doc Same as {@link create_new/3} without TTL.
--spec create_new(key(), value()) -> ok | {error, already_exists}.
+-spec create_new(key(), value()) -> ok | error.
 create_new(Key, Value) ->
-  do_create_new(Key, Value, []).
+  etcd_put_request(Key, Value, [{prevExist, false}]).
 
 %% @doc Creates a key, but only if it doesn't already exist.
 %%      This operation is atomic. If multiple clients invoke it at the same time,
 %%      only one of them will succeed.
--spec create_new(key(), value(), pos_integer()) -> ok | {error, already_exists}.
+-spec create_new(key(), value(), pos_integer()) -> ok | error.
 create_new(Key, Value, Ttl) ->
-  do_create_new(Key, Value, [{ttl, Ttl}]).
+  etcd_put_request(Key, Value, [{prevExist, false}, {ttl, Ttl}]).
 
-%% @doc Same as {@link get_or_create/3} without TTL.
--spec get_or_create(key(), value()) -> binary().
-get_or_create(Key, Value) ->
-  handle_create_new(create_new(Key, Value), Key, Value).
+%% @doc Same as {@link compare_and_swap/3} without TTL.
+-spec compare_and_swap(key(), value(), value()) -> ok | error.
+compare_and_swap(Key, Value, PrevValue) ->
+  etcd_put_request(Key, Value, [{prevValue, PrevValue}]).
 
-%% @doc Retrieves the existing value of the key, or sets a given value if the
-%%      key doesn't exist. Returns the etcd value of the key.
-%%      This operation is atomic. If multiple clients invoke it at the same time,
-%%      only one of them will set the value, while others will obtain that value.
--spec get_or_create(key(), value(), pos_integer()) -> binary().
-get_or_create(Key, Value, Ttl) ->
-  handle_create_new(create_new(Key, Value, Ttl), Key, Value).
+%% @doc Updates a key, but only if its value matches the given previous value.
+-spec compare_and_swap(key(), value(), value(), pos_integer()) -> ok | error.
+compare_and_swap(Key, Value, PrevValue, Ttl) ->
+  etcd_put_request(Key, Value, [{prevValue, PrevValue}, {ttl, Ttl}]).
 
+%% @doc Deletes the key if it has the given value.
+-spec compare_and_delete(key(), value()) -> ok | error.
+compare_and_delete(Key, PrevValue) ->
+  etcd_delete_request(Key, [{prevValue, PrevValue}]).
 
 %% -------------------------------------------------------------------
 %% Internal functions
@@ -152,17 +155,21 @@ decode_response({ok, _Status, _Headers, ClientRef}) ->
   {struct, Response} = mochijson2:decode(ResponseBody),
   {ok, Response}.
 
-do_create_new(Key, Value, AdditionalParams) ->
-  AllParams = [{prevExist, false}, {value, Value} | AdditionalParams],
+etcd_put_request(Key, Value, Params) ->
+  AllParams = [{value, Value} | Params],
   {ok, Response} = etcd_req(put, [Key, air_utils:url_params(AllParams)]),
+  handle_etcd_response(Response).
+
+etcd_delete_request(Key, Params) ->
+  {ok, Response} = etcd_req(delete, [Key, air_utils:url_params(Params)]),
+  handle_etcd_response(Response).
+
+handle_etcd_response(Response) ->
   case proplists:get_value(<<"errorCode">>, Response) of
     undefined -> ok;
-    ?ETCD_KEY_ALREADY_EXISTS -> {error, already_exists}
+    ?ETCD_COMPARE_FAILED -> error;
+    ?ETCD_KEY_ALREADY_EXISTS -> error
   end.
-
-handle_create_new(ok, _Key, Value) -> cloak_util:binarify(Value);
-handle_create_new({error, already_exists}, Key, _Value) -> get(Key).
-
 
 %% -------------------------------------------------------------------
 %% Tests
@@ -238,15 +245,22 @@ handle_create_new({error, already_exists}, Key, _Value) -> get(Key).
           ?assertEqual(ok, create_new(Key, <<"value">>, 1)),
           ?assertExpiry(Key, timer:seconds(1))
         end)},
-        {"get_or_create", ?keyTest(fun(Key) ->
-          ?assertEqual(<<"value">>, get_or_create(Key, <<"value">>)),
-          ?assertEqual(<<"value">>, get(Key)),
-          ?assertEqual(<<"value">>, get_or_create(Key, <<"value">>)),
-          ?assertEqual(<<"value">>, get(Key))
+        {"compare and swap", ?keyTest(fun(Key) ->
+          ?assertEqual(ok, create_new(Key, <<"value">>)),
+          ?assertEqual(ok, compare_and_swap(Key, <<"another_value">>, <<"value">>)),
+          ?assertEqual(error, compare_and_swap(Key, <<"another_value">>, <<"value">>)),
+          ?assertEqual(<<"another_value">>, get(Key))
         end)},
-        {"get_or_create timeout", ?keyTest(fun(Key) ->
-          ?assertEqual(<<"value">>, get_or_create(Key, <<"value">>, 1)),
+        {"compare and swap timeout", ?keyTest(fun(Key) ->
+          ?assertEqual(ok, create_new(Key, <<"value">>)),
+          ?assertEqual(ok, compare_and_swap(Key, <<"another_value">>, <<"value">>, 1)),
           ?assertExpiry(Key, timer:seconds(1))
+        end)},
+        {"compare and delete", ?keyTest(fun(Key) ->
+          ?assertEqual(ok, create_new(Key, <<"value">>)),
+          ?assertEqual(error, compare_and_delete(Key, <<"another_value">>)),
+          ?assertEqual(ok, compare_and_delete(Key, <<"value">>)),
+          ?assertEqual(error, fetch(Key))
         end)}
       ]
     ).
