@@ -2,6 +2,8 @@
 Description=Air backend
 After=etcd.service
 After=docker.service
+After=router@%i.service
+BindsTo=router@%i.service
 
 [Service]
 TimeoutStartSec=0
@@ -11,3 +13,4 @@ EnvironmentFile=/etc/environment
 
 [X-Fleet]
 Conflicts=backend@*.service
+MachineOf=router@%i.service

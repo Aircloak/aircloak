@@ -29,24 +29,14 @@ namespace :aircloak do
       input = $stdin.readline.strip
       exit 1 unless input.upcase == "Y"
     end
-    Rake::Task["aircloak:update_code"].invoke
-    Rake::Task["aircloak:backend:build"].invoke
-    Rake::Task["aircloak:frontend:build"].invoke
-    Rake::Task["aircloak:db_migrate"].invoke
-    Rake::Task["aircloak:restart"].invoke
-    Rake::Task["aircloak:cleanup_docker_images"].invoke
-  end
 
-  task :db_migrate do
-    on roles(:app), in: :sequence do
-      exec_ml "
-            AIR_ENV=prod /aircloak/air/etcd/container.sh ensure_started &&
-            cd #{fetch(:deploy_to)}/frontend &&
-            docker run -t --rm
-              -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log
-              aircloak/air_frontend:latest
-              bash -c 'ETCD_HOST=172.17.42.1 ETCD_PORT=4002 RAILS_ENV=production bundle exec rake db:migrate'
-          "
+    [
+      "update_code",
+      "build_images",
+      "provision",
+      "update_running_system"
+    ].each do |task|
+      Rake::Task["aircloak:#{task}"].invoke
     end
   end
 
@@ -58,44 +48,30 @@ namespace :aircloak do
             git checkout #{fetch(:branch)} &&
             git reset --hard origin/#{fetch(:branch)}
           "
-
-      exec_ml "
-            mkdir -p #{fetch(:deploy_to)}/frontend/log &&
-            chmod 777 #{fetch(:deploy_to)}/frontend/log
-          "
-
-      exec_ml "
-            mkdir -p #{fetch(:deploy_to)}/frontend/var-log &&
-            chmod 777 #{fetch(:deploy_to)}/frontend/var-log
-          "
     end
   end
 
-  task :restart do
+  task :build_images do
+    on roles(:build), in: :sequence do
+      [:balancer, :router, :backend, :frontend].each do |service|
+        execute "AIR_ENV=prod #{fetch(:deploy_to)}/#{service}/build-image.sh"
+      end
+      execute ". #{fetch(:deploy_to)}/common/docker_helper.sh && cleanup_unused_images || true"
+      execute ". #{fetch(:deploy_to)}/common/docker_helper.sh && print_most_recent_versions"
+    end
+  end
+
+  task :provision do
+    on roles(:app_admin), in: :sequence do
+      exec_ml(install_init_script_cmd("air"))
+      exec_ml(install_init_script_cmd("iptables_rules"))
+      execute "/etc/init.d/iptables_rules"
+    end
+  end
+
+  task :update_running_system do
     on roles(:app), in: :sequence do
       execute "/etc/init.d/air start"
-    end
-  end
-
-  task :cleanup_docker_images do
-    on roles(:build), in: :sequence do
-      execute "docker rmi $(docker images -q -f dangling=true) > /dev/null 2>&1 || exit 0"
-    end
-  end
-
-  namespace :backend do
-    task :build do
-      on roles(:build), in: :sequence do
-        execute "AIR_ENV=prod #{fetch(:deploy_to)}/backend/build-image.sh"
-      end
-    end
-  end
-
-  namespace :frontend do
-    task :build do
-      on roles(:build), in: :sequence do
-        execute "AIR_ENV=prod #{fetch(:deploy_to)}/frontend/build-image.sh"
-      end
     end
   end
 
@@ -107,9 +83,18 @@ namespace :aircloak do
     #         docker run -t --rm
     #           -v $PWD/var-log:/var/log -v $PWD/log:/aircloak/website/log
     #           aircloak/air_frontend:latest
-    #           bash -c 'ETCD_HOST=172.17.42.1 ETCD_PORT=4002 RAILS_ENV=production bundle exec rake db:migrate'
+    #           bash -c 'RAILS_ENV=production bundle exec rake db:migrate'
     #       "
     def exec_ml(cmd)
       execute cmd.gsub("\n", " ")
+    end
+
+    def install_init_script_cmd(name)
+      "
+        cp -rp /aircloak/air/remote_files/#{name} /etc/init.d/#{name} &&
+            chown root:root /etc/init.d/#{name} &&
+            chmod 755 /etc/init.d/#{name} &&
+            update-rc.d #{name} defaults
+      "
     end
 end

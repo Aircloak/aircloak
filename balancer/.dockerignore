@@ -1,0 +1,9 @@
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!VERSION
+!tmp/image_shell_init.sh
+!config/config.sh
+!config/tcp_ports.json
+!balancer

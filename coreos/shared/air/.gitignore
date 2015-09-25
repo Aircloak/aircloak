@@ -2,3 +2,5 @@
 /common/
 /frontend/
 /etcd/
+/router/
+/config/

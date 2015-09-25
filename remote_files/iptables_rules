@@ -1,0 +1,14 @@
+#!/bin/bash
+
+function setup_port_forward {
+  dest_port=$1
+  to_port=$2
+
+  if [ "$(iptables-save | egrep '$dest_port 443.*to\-ports $to_port' || echo '')" == "" ]; then
+    echo "Setting up forward rule from $dest_port to $to_port"
+    iptables -t nat -A PREROUTING -p tcp --dport $dest_port -j REDIRECT --to-port $to_port
+  fi
+}
+
+setup_port_forward 80 20123
+setup_port_forward 443 20100

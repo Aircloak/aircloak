@@ -29,4 +29,4 @@ main(_Args) ->
             ),
         [OverriddenCloakSettings]
       ),
-  ok = file:write_file("src/air_cloak_conf.erl", CloakConfCode).
+  ok = file:write_file("apps/air/src/air_cloak_conf.erl", CloakConfCode).

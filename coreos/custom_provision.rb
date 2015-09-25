@@ -10,7 +10,14 @@ module Aircloak
       "../etcd/etcd_lib.sh",
       "../common/docker_helper.sh",
       "../frontend/container.sh",
-      "../backend/container.sh"
+      "../backend/container.sh",
+      "../router/container.sh",
+      "../router/dev_cert/aircloak.com.chain.pem",
+      "../router/dev_cert/acinfra.aircloak.com.pem",
+      "../router/dev_cert/api.cert",
+      "../router/dev_cert/api.key",
+      "../config/config.sh",
+      "../config/tcp_ports.json",
     ].each do |file|
       target = File.dirname(File.expand_path(file).gsub(root_path, "./shared/air"))
       FileUtils.mkdir_p(target)
@@ -21,7 +28,7 @@ module Aircloak
     config.vm.provision :shell,
       privileged: true,
       inline: <<-EOF
-        DOCKER_REGISTRY_URL='#{ENV['COREOS_HOST_IP']}:5000' \
+        DOCKER_REGISTRY_IP='#{ENV['COREOS_HOST_IP']}' \
         DB_SERVER_URL='#{ENV['COREOS_HOST_IP']}' \
         AIRPUB_URL='#{ENV['COREOS_HOST_IP']}:1080' \
         /tmp/shared/setup_system.sh
