@@ -63,7 +63,7 @@ function generate_nginx_conf {
   # won't work on a typical dev machine.
   cat docker/nginx.conf \
   | sed "s#user nginx;##" \
-  | sed "s#pid /var/run/nginx\.pid;##" \
+  | sed "s#pid /var/run/nginx\.pid;#pid /tmp/air_router.pid;#" \
   | sed "s#include /etc/nginx/mime\.types;##" \
   | sed "s#include /etc/nginx/conf\.d/\*\.conf;#include $(pwd)/nginx_local/sites/*.conf;#" \
   | sed "s#use epoll;##" \

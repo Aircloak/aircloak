@@ -72,7 +72,7 @@ In order to run the system you need the following components:
 - Docker 1.7 (+ boot2docker if on OS X)
 - Ruby 2.0
 - Erlang 17.5
-- Nginx (preferably 1.9.3)
+- Nginx (preferably 1.9.3) (it needs to be in the execution path for the non-root user)
 - [jq](https://stedolan.github.io/jq/)
 - Any other package needed to build and run specific components (e.g. liblua, libprotobuf, ...)
 
@@ -96,6 +96,8 @@ Then, you can start all required components with:
 $ ./start_dependencies.sh
 ```
 
+__Note__: nginx might complain that it has no permissions on `/var/log`. You can safely ignore this message, since all logs go to standard output.
+
 You'll need to one-time add some entries to your `/etc/hosts`. Watch the end of the output from the script for information.
 
 __Note__: some sane default settings are provided. If you need to override them, see [here](etcd/README.md#overriding-settings).
@@ -106,7 +108,7 @@ If you want to transfer your previous data from the localhost database to the do
 
 ### Running the system on the localhost
 
-Make sure that all dependencies have been fetched, that needed components (e.g. backend) have been built, and the required components are started (see above).
+Make sure that all dependencies have been fetched, that backend is built (`cd backend && make`), and the required components are started (see above).
 
 Now you can start frontend and backend in the usual way:
 
