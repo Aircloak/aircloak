@@ -8,6 +8,7 @@
     erlang_common,
     pgsql,
     erlcron,
+    hackney,
     etcd
   ]},
   {mod, { air_common_app, []}},

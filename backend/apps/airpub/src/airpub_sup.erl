@@ -28,4 +28,9 @@ start_link() ->
 %% -------------------------------------------------------------------
 
 init([]) ->
-  {ok, {{one_for_one, 5, 10}, [?CHILD(history, worker)]}}.
+  {ok, {{one_for_one, 5, 10}, [
+    ?CHILD(history, worker),
+    % This worker must be started at the end, when all other airpub
+    % processes are initialized.
+    ?CHILD(airpub_leader, worker)
+  ]}}.

@@ -15,19 +15,7 @@
 %% -------------------------------------------------------------------
 
 start(_StartType, _StartArgs) ->
-  {ok, Sup} = airpub_sup:start_link(),
-  Dispatch = cowboy_router:compile([
-    {'_', [
-      {"/test", cowboy_static, {file, io_lib:format("~s/test.html", [code:priv_dir(airpub)])}},
-      {"/subscribe/ws", websocket_handler, []},
-      {"/publish/[...]", publish_handler, []}
-    ]}
-  ]),
-  HttpPort = binary_to_integer(air_etcd:get("/tcp_ports/airpub/http")),
-  {ok, HttpIp} = application:get_env(airpub, http_ip),
-  {ok, _} = cowboy:start_http(http, 100, [{port, HttpPort}, {ip, HttpIp}], [{env, [{dispatch, Dispatch}]}]),
-  ?INFO("Airpub listening on port ~p", [HttpPort]),
-  {ok, Sup}.
+  airpub_sup:start_link().
 
 stop(_State) ->
   ok.

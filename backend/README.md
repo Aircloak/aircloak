@@ -33,6 +33,8 @@ You can use following commands:
 - `make app` - builds the main project only
 - `make start` - builds the main project only and starts the backend component
 - `make test` - runs all tests
+- `./test-suite some_app` - runs tests for particular app
+- `./test-suite some_app some_module` - runs tests for particular module inside an app
 - `make dialyzer` - runs the dialyzer
 
 ### OS X specifics

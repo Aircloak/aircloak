@@ -82,16 +82,16 @@ test/sys.config: rel/files/sys.config
 test-eunit: test/sys.config test-eunit-air_common test-eunit-air test-eunit-airpub
 
 test-eunit-air_common:
-	bash -c ". rel/files/set_etcd_port.sh test && cd apps/air_common && ../../rebar skip_deps=true eunit"
+	bash -c ". rel/files/set_etcd_port.sh test && cd apps/air_common && ../../rebar skip_deps=true eunit ${EUNIT_ARGS}"
 
 test-eunit-airpub:
-	bash -c ". rel/files/set_etcd_port.sh test && cd apps/airpub && ../../rebar skip_deps=true eunit"
+	bash -c ". rel/files/set_etcd_port.sh test && cd apps/airpub && ../../rebar skip_deps=true eunit ${EUNIT_ARGS}"
 
 test-eunit-air:
 	mkdir -p apps/air/.eunit
 	cp -rp priv apps/air/.eunit/
 	./copy_configs.sh
-	bash -c ". rel/files/set_etcd_port.sh test && cd apps/air && ../../rebar skip_deps=true eunit"
+	bash -c ". rel/files/set_etcd_port.sh test && cd apps/air && ../../rebar skip_deps=true eunit ${EUNIT_ARGS}"
 
 regenerate_db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
