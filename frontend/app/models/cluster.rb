@@ -24,6 +24,7 @@ class Cluster < ActiveRecord::Base
   validate :must_have_at_least_one_cloak
   validate :must_match_tpm_configuration
 
+  before_save :set_active_in_local_mode
   after_save :synchronize_in_local_mode
   before_destroy :verify_can_destroy
   after_destroy :remove_state
@@ -244,6 +245,7 @@ class Cluster < ActiveRecord::Base
     protocol = Conf.get("/service/cloak/protocol")
     port = Conf.get("/service/cloak/port")
     url = "#{protocol}://#{address_of_a_ready_cloak}:#{port}/capabilities"
+    logger.info "Checking capabilities of #{name} at #{url}"
     arguments = {
       method: :get,
       url: url,
@@ -296,10 +298,14 @@ private
     return true
   end
 
+  def set_active_in_local_mode
+    self.status = :active unless Conf.production_mode?
+  end
+
   def synchronize_in_local_mode
     unless Conf.production_mode?
-      self.status = :active
       cluster_cloaks.each {|cluster_cloak| cluster_cloak.synchronize }
+      check_capabilities
     end
   end
 
