@@ -11,7 +11,7 @@ dest = "/etc/nginx/conf.d/upstreams.conf"
 keys = [
   "/service_instances/frontends",
   "/service_instances/backends",
-  "/service/airpub_leader"
+  "/service/"
 ]
 
 # File ownership and mode information
