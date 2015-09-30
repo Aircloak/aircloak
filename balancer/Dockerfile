@@ -3,20 +3,9 @@ MAINTAINER Aircloak
 
 AIR_INIT
 
-RUN apt-get update && \
-  apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev libbz2-dev libssl-dev \
-  vim nano curl wget jq
-
-RUN . /tmp/build_config/proxies.sh && wget http://nginx.org/download/nginx-1.9.4.tar.gz && \
-  tar -vxzf nginx-1.9.4.tar.gz && \
-  cd nginx-1.9.4 && \
-  ./configure --with-stream && \
-  make && \
-  make install
-
-COPY balancer/docker /aircloak/balancer
-COPY config/config.sh /aircloak/balancer/config.sh
-COPY config/tcp_ports.json /aircloak/balancer/tcp_ports.json
+RUN apt-get update && apt-get install -y haproxy=1.5.8-3+deb8u2 rsyslog vim nano curl jq
+COPY balancer/docker config/config.sh config/tcp_ports.json /aircloak/balancer/
+COPY balancer/docker/49-haproxy.conf /etc/rsyslog.d/
 USER root
 
 AIR_TAG_VERSION

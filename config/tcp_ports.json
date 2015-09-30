@@ -46,6 +46,11 @@
     "air_backend/inet_dist_listen_max": 39,
 
     // Ports 40-44 are reserved for airpub HTTP of the backend node.
-    "airpub/http": 40
+    "airpub/http": 40,
+
+    // We use proxy protocol to listen on these ports. This allows us to use
+    // haproxy balancer and forward IP addresses of clients.
+    "router/proxy_https": 45,
+    "router/proxy_http": 46
   }
 }
