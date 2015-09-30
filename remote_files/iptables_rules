@@ -10,5 +10,5 @@ function setup_port_forward {
   fi
 }
 
-setup_port_forward 80 20123
-setup_port_forward 443 20100
+setup_port_forward 80 20122     # balancer http
+setup_port_forward 443 20100    # balancer https
