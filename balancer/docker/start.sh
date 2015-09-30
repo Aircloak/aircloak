@@ -10,13 +10,58 @@ function log {
   echo "[aircloak] $msg"
 }
 
-AIR_ROUTERS=${AIR_ROUTERS:-"127.0.0.1"}
+function generate_haproxy_config {
+  haproxy_config > /aircloak/balancer/haproxy.cfg
+}
+
+function haproxy_config {
+  routers=$(routers)
+
+  cat /aircloak/balancer/haproxy.cfg.tmpl \
+  | sed "s#\$BALANCER_HTTPS_PORT#$(get_tcp_port prod balancer/https)#" \
+  | sed "s#\$BALANCER_HTTP_PORT#$(get_tcp_port prod balancer/http)#" \
+  | sed "s#\$HTTPS_UPSTREAMS#$(upstreams "$routers" $(get_tcp_port prod router/proxy_https))#" \
+  | sed "s#\$HTTP_UPSTREAMS#$(upstreams "$routers" $(get_tcp_port prod router/proxy_http))#"
+}
+
+function routers {
+  if [ -f /aircloak/balancer/config/routers ]; then
+    cat /aircloak/balancer/config/routers
+  else
+    echo "127.0.0.1"
+  fi
+}
 
 function upstreams {
   index=1
-  for server in $(echo $AIR_ROUTERS | tr ";" "\n"); do
-    printf "server router_$index $server:$1 check send-proxy\\\n"
-    index=$(($index+1))
+  while read router; do
+    if [ "$router" != "" ]; then
+      printf "server router_$index $router:$2 check send-proxy\\\n"
+      index=$(($index+1))
+    fi
+  done < <(echo "$1")
+}
+
+function haproxy_config_reloader {
+  while true; do
+    current_config=$(cat /aircloak/balancer/haproxy.cfg)
+    new_config=$(haproxy_config)
+
+    if [ "$new_config" != "$current_config" ]; then
+      echo "regenerating haproxy configuration"
+      generate_haproxy_config
+
+      {
+        haproxy -c -f /aircloak/balancer/haproxy.cfg && \
+            haproxy -f /aircloak/balancer/haproxy.cfg -sf $(pgrep haproxy)
+      } ||
+      {
+        echo "Error in haproxy configuration -> skipping reload"
+      }
+
+    fi
+
+    sleep 5
   done
 }
 
@@ -47,19 +92,17 @@ function soft_stop_haproxy {
 }
 trap soft_stop_haproxy SIGQUIT
 
+
 # need syslog for logs
 rsyslogd
 
-cat /aircloak/balancer/haproxy.cfg.tmpl \
-  | sed "s#\$BALANCER_HTTPS_PORT#$(get_tcp_port prod balancer/https)#" \
-  | sed "s#\$BALANCER_HTTP_PORT#$(get_tcp_port prod balancer/http)#" \
-  | sed "s#\$HTTPS_UPSTREAMS#$(upstreams $(get_tcp_port prod router/proxy_https))#" \
-  | sed "s#\$HTTP_UPSTREAMS#$(upstreams $(get_tcp_port prod router/proxy_http))#" \
-  > /aircloak/balancer/haproxy.cfg
+generate_haproxy_config
 
 haproxy -f /aircloak/balancer/haproxy.cfg
 wait_for_haproxy
 log "haproxy started"
+
+haproxy_config_reloader&
 
 while haproxy_running; do
   sleep 5
