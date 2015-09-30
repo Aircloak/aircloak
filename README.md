@@ -125,7 +125,7 @@ If all data is migrated, you should see all clusters/cloaks (make sure to impers
 
 You can start the entire system as docker containers. This gives you an environment very similar to the real production. In particular, each component is running in production mode. Moreover, the balancer container is started, which allows you to test the complete production request path (`balancer -> router -> service`).
 
-To start the system, you can invoke `./dockerized_air.sh start` which will rebuild all images and start required containers in background. If everything is fine, you should be able to access the web via https://frontend.air-local:20100 (router endpoint) and https://frontend.air-local:20101 (balancer endpoint).
+To start the system, you can invoke `./dockerized_air.sh start` which will rebuild all images and start required containers in background. If everything is fine, you should be able to access the web via https://frontend.air-local:20100.
 
 If you want to start each container separately in a foreground, make sure that the required components are started with `./start_dependencies.sh`.
 
@@ -189,35 +189,35 @@ The architecture of the system on the production machine is as follows:
 
 <!--- ASCII diagram made with http://asciiflow.com/ -->
 ```
-                       +----------------------+
-                       |   router container   |
-                       |                      |
- http(s) requests      |       +-----+        |
-+------------------------------>nginx|        |
-                       |       +^-+-^+        |
-                       |        | | |         |
-                       +----------------------+
-                                | | |
-                                | | |
-                                | | |
-+-------------------------+     | | |     +-------------------------+
-| air_frontend container  |     | | |     |  air_backend container  |
-|                         |     | | |     |                         |
-|         +-----+         |     | | |     |    +--------------+     |
-|         |nginx<---------------+ | +---------->erlang release|     |
-|         +--+--+         |       |       |    +------+-------+     |
-|            |            |       |       |           |             |
-|            |            |       |       |           |             |
-|         +--v--+         |       |       |           |             |
-|         |rails|         |       |       |           |             |
-|         +--+--+         |       |       |           |             |
-|            |            |       |       |           |             |
-+-------------------------+       |       +-------------------------+
-             |                    |                   |
-             |                    |                   |
-             |          +---------v--------+          |
-             +---------->etcd_air container<----------+
-                        +------------------+
+ http(s) requests  +------------+         +----------------------+
++------------------>TCP balancer|         |   router container   |
+                   +-----+------+         |                      |
+                         |                |       +-----+        |
+                         +------------------------>nginx|        |
+                                          |       +^-+-^+        |
+                                          |        | | |         |
+                                          +----------------------+
+                                                   | | |
+                                                   | | |
+                                                   | | |
+                   +-------------------------+     | | |     +-------------------------+
+                   | air_frontend container  |     | | |     |  air_backend container  |
+                   |                         |     | | |     |                         |
+                   |         +-----+         |     | | |     |    +--------------+     |
+                   |         |nginx<---------------+ | +---------->erlang release|     |
+                   |         +--+--+         |       |       |    +------+-------+     |
+                   |            |            |       |       |           |             |
+                   |            |            |       |       |           |             |
+                   |         +--v--+         |       |       |           |             |
+                   |         |rails|         |       |       |           |             |
+                   |         +--+--+         |       |       |           |             |
+                   |            |            |       |       |           |             |
+                   +-------------------------+       |       +-------------------------+
+                                |                    |                   |
+                                |                    |                   |
+                                |          +---------v--------+          |
+                                +---------->etcd_air container<----------+
+                                           +------------------+
 ```
 
 For various configuration settings, see [here](etcd/README.md#production-settings).
