@@ -52,6 +52,11 @@ function generate_nginx_conf {
     # don't run monitoring locally, to avoid port clashes
     if [ "$(basename $config)" != "monitoring.conf" ]; then
       cat $config \
+      | sed "s#\$FRONTEND_SITE#$(etcd_get /site/frontend)#" \
+      | sed "s#\$API_SITE#$(etcd_get /site/api)#" \
+      | sed "s#\$INFRASTRUCTURE_API_SITE#$(etcd_get /site/infrastructure_api)#" \
+      | sed "s#\$AIRPUB_SITE#$(etcd_get /site/airpub)#" \
+      | sed "s#\$AIRCLOAK_SITE#$(etcd_get /site/aircloak)#" \
       | sed "s#\$ROUTER_HTTPS_PORT#$(etcd_get /tcp_ports/router/https)#" \
       | sed "s#\$ROUTER_HTTP_PORT#$(etcd_get /tcp_ports/router/http)#" \
       | sed "s#/etc/nginx/support#$(pwd)/nginx_local/support#; s#/aircloak/ca#$(pwd)/dev_cert#" \
