@@ -38,8 +38,8 @@ function tcp_port {
   etcd_get "tcp_ports/$1"
 }
 
-function airpub_publish_allows {
-  allows=$(etcd_get service/airpub/allow_publish)
+function allows {
+  allows=$(etcd_get $1)
   while read -d " " allow; do
     if [ "$allow" != "" ] && [ "$allow" != "null" ]; then
       echo "allow $allow;"
@@ -100,7 +100,8 @@ for config in $(ls -1 /aircloak/router/docker/nginx/sites/*.conf); do
 done
 
 generate_local_http_allows
-echo "$(airpub_publish_allows)" > /etc/nginx/support/airpub_publish_allows.conf
+echo "$(allows service/airpub/allow_publish)" > /etc/nginx/support/airpub_publish_allows.conf
+echo "$(allows service/infrastructure_api/allow)" > /etc/nginx/support/infrastructure_api_allows.conf
 
 log "Starting nginx"
 exec nginx -g "daemon off;"

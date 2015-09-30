@@ -69,6 +69,7 @@ etcd_set /service/cloak/port 8098
 etcd_set /service/cloak/protocol http
 etcd_set /service/manny_air/host localhost
 etcd_set /service/airpub/allow_publish "all"
+etcd_set /service/infrastructure_api/allow "all"
 
 # Registered local symbolic names
 etcd_set /service/local_names "frontend backend api infrastructure-api aircloak airpub"
