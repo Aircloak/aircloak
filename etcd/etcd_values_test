@@ -64,4 +64,4 @@ etcd_set /service/cloak/protocol http
 etcd_set /service/manny_air/host ""
 
 # Registered local symbolic names
-etcd_set /service/local_names "frontend backend api infrastructure-api aircloak"
+etcd_set /service/local_names "frontend backend api infrastructure-api aircloak airpub"
