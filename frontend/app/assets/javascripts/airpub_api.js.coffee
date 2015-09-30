@@ -73,6 +73,8 @@ window.airpub_listen = (server, request, callback) ->
     callback
       type : "event"
       event_type : "closed"
+    # Reconnect on close
+    setTimeout((() -> airpub_listen(server, request, callback)), 1000)
 
   ws.onerror = (event) ->
     console.log "Connection error: " + event.reason
