@@ -92,6 +92,8 @@ for config in $(ls -1 /aircloak/router/docker/nginx/sites/*.conf); do
   cat $config \
   | sed "s#\$ROUTER_HTTPS_PORT#$(tcp_port router/https)#" \
   | sed "s#\$ROUTER_HTTP_PORT#$(tcp_port router/http)#" \
+  | sed "s#\$ROUTER_PROXY_HTTPS_PORT#$(tcp_port router/proxy_https)#" \
+  | sed "s#\$ROUTER_PROXY_HTTP_PORT#$(tcp_port router/proxy_http)#" \
   > /etc/nginx/conf.d/$(basename $config)
 done
 

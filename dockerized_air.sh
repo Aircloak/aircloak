@@ -32,8 +32,7 @@ case "$1" in
     start_docker_service balancer
 
     printf "\nYou can access the site at:\n"
-    printf "  https://frontend.air-local:$(get_tcp_port prod router/https) (router endpoint)\n"
-    printf "  https://frontend.air-local:$(get_tcp_port prod balancer/https) (balancer endpoint)\n\n"
+    printf "  https://frontend.air-local:$(get_tcp_port prod balancer/https)\n\n"
     ;;
 
   *)
