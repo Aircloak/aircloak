@@ -86,25 +86,43 @@ function wait_for_haproxy {
   done
 }
 
+function monitor_haproxy {
+  while haproxy_running; do
+    sleep 5
+  done
+  log "Haproxy not running"
+  kill -SIGTERM $1
+}
+
 function soft_stop_haproxy {
   echo "Sending SIGUSR1 to haproxy"
   kill -SIGUSR1 $(pgrep haproxy)
+
+  # resume normal mode of operation, if sigusr kills haproxy,
+  # the background haproxy monitor will terminate this process
+  wait $udp_server
 }
 trap soft_stop_haproxy SIGQUIT
 
-
-# need syslog for logs
-rsyslogd
+function stop {
+  log "Exiting the container."
+  exit 1
+}
+trap stop SIGTERM
 
 generate_haproxy_config
+
+# ad-hoc UDP server on port 514 which outputs haproxy logs to stdout
+# We start it before haproxy, so we can catch startup logs
+nc -l -u -p 514 &
+udp_server=$!
 
 haproxy -f /aircloak/balancer/haproxy.cfg
 wait_for_haproxy
 log "haproxy started"
 
 haproxy_config_reloader&
+monitor_haproxy $$&
 
-while haproxy_running; do
-  sleep 5
-done
-log "Haproxy not running -> stopping the container"
+# Bring UDP server to foreground
+wait $udp_server
