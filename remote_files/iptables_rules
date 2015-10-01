@@ -6,7 +6,7 @@ function setup_port_forward {
 
   if [ "$(iptables-save | egrep '$dest_port 443.*to\-ports $to_port' || echo '')" == "" ]; then
     echo "Setting up forward rule from $dest_port to $to_port"
-    iptables -t nat -A PREROUTING -p tcp --dport $dest_port -j REDIRECT --to-port $to_port
+    iptables -t nat -i eth0 -A PREROUTING -p tcp --dport $dest_port -j REDIRECT --to-port $to_port
   fi
 }
 
