@@ -40,7 +40,7 @@ backend router_https
   $HTTPS_UPSTREAMS
 
 backend router_http
-  balance roundrobin
+  balance leastconn
   retries 3
   timeout connect 5s
   timeout queue 5s
