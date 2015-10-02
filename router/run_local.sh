@@ -51,9 +51,24 @@ function generate_nginx_conf {
   for config in $(ls -1 docker/nginx/sites/*.conf); do
     # don't run monitoring locally, to avoid port clashes
     if [ "$(basename $config)" != "monitoring.conf" ]; then
+      # On dev machines we tweak the configuration a bit:
+      #   - Set proper host names
+      #   - Set proper ports
+      #   - Use balancer ports instead of the proxy protocol ones.
+      #   - Don't use proxy protocol and http_real_ip module.
+      #   - Replace absolute /etc/... path with the path in this folder
       cat $config \
+      | sed "s#\$FRONTEND_SITE#$(etcd_get /site/frontend)#" \
+      | sed "s#\$API_SITE#$(etcd_get /site/api)#" \
+      | sed "s#\$INFRASTRUCTURE_API_SITE#$(etcd_get /site/infrastructure_api)#" \
+      | sed "s#\$AIRPUB_SITE#$(etcd_get /site/airpub)#" \
+      | sed "s#\$AIRCLOAK_SITE#$(etcd_get /site/aircloak)#" \
       | sed "s#\$ROUTER_HTTPS_PORT#$(etcd_get /tcp_ports/router/https)#" \
       | sed "s#\$ROUTER_HTTP_PORT#$(etcd_get /tcp_ports/router/http)#" \
+      | sed "s#\$ROUTER_PROXY_HTTPS_PORT#$(etcd_get /tcp_ports/balancer/https)#" \
+      | sed "s#\$ROUTER_PROXY_HTTP_PORT#$(etcd_get /tcp_ports/balancer/http)#" \
+      | sed "s#proxy_protocol##" \
+      | sed "s#include /etc/nginx/support/realip.conf;##" \
       | sed "s#/etc/nginx/support#$(pwd)/nginx_local/support#; s#/aircloak/ca#$(pwd)/dev_cert#" \
       > nginx_local/sites/$(basename $config)
     fi
@@ -96,11 +111,11 @@ echo
 check_etc_hosts
 
 echo "You can access following sites:
-  https://frontend.air-local:$(etcd_get /tcp_ports/router/https)
-  https://api.air-local:$(etcd_get /tcp_ports/router/https)
-  https://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/https)
-  https://aircloak.air-local:$(etcd_get /tcp_ports/router/https)
-  https://airpub.air-local:$(etcd_get /tcp_ports/router/https)
+  https://frontend.air-local:$(etcd_get /tcp_ports/balancer/https)
+  https://api.air-local:$(etcd_get /tcp_ports/balancer/https)
+  https://infrastructure-api.air-local:$(etcd_get /tcp_ports/balancer/https)
+  https://aircloak.air-local:$(etcd_get /tcp_ports/balancer/https)
+  https://airpub.air-local:$(etcd_get /tcp_ports/balancer/https)
 "
 
 if [ "$1" == "console" ]; then

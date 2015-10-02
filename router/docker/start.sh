@@ -20,11 +20,14 @@ function generate_local_http_allows {
 EOF
 }
 
+function etcd_get {
+  curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/$1 \
+      | jq --raw-output ".node.value"
+}
+
 function add_local_hosts {
   for host in $(
-    curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service/local_names |
-    jq '.node.value' |
-    sed s/\"//g |
+    etcd_get service/local_names |
     tr " " "\n"
   ); do
     echo "127.0.0.1 $host.air-local" >> /etc/hosts
@@ -32,19 +35,13 @@ function add_local_hosts {
 }
 
 function tcp_port {
-  curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/tcp_ports/$1 \
-      | jq ".node.value" \
-      | sed s/\"//g
+  etcd_get "tcp_ports/$1"
 }
 
-function airpub_publish_allows {
-  allows=$(
-        curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service/airpub/allow_publish \
-            | jq ".node.value" \
-            | sed s/\"//g
-      )
+function allows {
+  allows=$(etcd_get $1)
   while read -d " " allow; do
-    if [ "$allow" != "" ]; then
+    if [ "$allow" != "" ] && [ "$allow" != "null" ]; then
       echo "allow $allow;"
     fi
   done < <(echo "$allows ")
@@ -90,13 +87,21 @@ cp -rp /aircloak/router/docker/nginx/support/* /etc/nginx/support
 
 for config in $(ls -1 /aircloak/router/docker/nginx/sites/*.conf); do
   cat $config \
+  | sed "s#\$FRONTEND_SITE#$(etcd_get /site/frontend)#" \
+  | sed "s#\$API_SITE#$(etcd_get /site/api)#" \
+  | sed "s#\$INFRASTRUCTURE_API_SITE#$(etcd_get /site/infrastructure_api)#" \
+  | sed "s#\$AIRPUB_SITE#$(etcd_get /site/airpub)#" \
+  | sed "s#\$AIRCLOAK_SITE#$(etcd_get /site/aircloak)#" \
   | sed "s#\$ROUTER_HTTPS_PORT#$(tcp_port router/https)#" \
   | sed "s#\$ROUTER_HTTP_PORT#$(tcp_port router/http)#" \
+  | sed "s#\$ROUTER_PROXY_HTTPS_PORT#$(tcp_port router/proxy_https)#" \
+  | sed "s#\$ROUTER_PROXY_HTTP_PORT#$(tcp_port router/proxy_http)#" \
   > /etc/nginx/conf.d/$(basename $config)
 done
 
 generate_local_http_allows
-echo "$(airpub_publish_allows)" > /etc/nginx/support/airpub_publish_allows.conf
+echo "$(allows service/airpub/allow_publish)" > /etc/nginx/support/airpub_publish_allows.conf
+echo "$(allows service/infrastructure_api/allow)" > /etc/nginx/support/infrastructure_api_allows.conf
 
 log "Starting nginx"
 exec nginx -g "daemon off;"

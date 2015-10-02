@@ -79,23 +79,11 @@ function container_ctl {
       ;;
 
     ensure_latest_version_started)
-      if ! named_container_running $container_name ; then
-        container_ctl $container_name start "$@"
+      if latest_version_running $container_name; then
+        echo "$container_name already on the latest image version"
       else
-        image_id=$(docker inspect -f="{{.Image}}" $container_name)
-        image_name=$(docker images --no-trunc |
-              awk "{if (\$3 == \"$image_id\" && \$1 ~ /^aircloak\/.+$/) print \$1}" |
-              sort |
-              uniq
-            )
-        most_recent_image_id=$(find_images $image_name ^latest$)
-
-        if [ "$image_id" == "$most_recent_image_id" ]; then
-          echo "$container_name already on the latest image version"
-        else
-          echo "Restarting $container_name to ensure that the latest version is running."
-          container_ctl $container_name start "$@"
-        fi
+        echo "Restarting $container_name to ensure that the latest version is running."
+        container_ctl $container_name start "$@"
       fi
       ;;
 
@@ -338,6 +326,22 @@ function print_most_recent_versions {
       fi
   done
   printf "\n"
+}
+
+function latest_version_running {
+  if named_container_running $1; then
+    image_id=$(docker inspect -f="{{.Image}}" $1)
+    image_name=$(docker images --no-trunc |
+          awk "{if (\$3 == \"$image_id\" && \$1 ~ /^aircloak\/.+$/) print \$1}" |
+          sort |
+          uniq
+        )
+    most_recent_image_id=$(find_images $image_name ^latest$)
+
+    if [ "$image_id" == "$most_recent_image_id" ]; then return 0; fi
+  fi
+
+  return 1
 }
 
 function cleanup_unused_images {

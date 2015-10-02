@@ -14,6 +14,13 @@
 
 set_tcp_ports test
 
+# Site names
+etcd_set /site/frontend "frontend.air-local"
+etcd_set /site/api "api.air-local"
+etcd_set /site/infrastructure_api "infrastructure-api.air-local"
+etcd_set /site/airpub "airpub.air-local"
+etcd_set /site/aircloak "aircloak.air-local"
+
 etcd_set /settings/mail/smtp/address smtp.mandrillapp.com
 etcd_set /settings/mail/smtp/port 587
 etcd_set /settings/mail/smtp/username "sebastian@aircloak.com"
@@ -42,9 +49,6 @@ etcd_set /settings/air/integration_test/data/mean_rows_per_user 10
 # exercising in production.
 etcd_set /settings/rails/global true
 
-etcd_set /settings/rails/task/return_protocol http
-etcd_set /settings/rails/task/return_host localhost
-etcd_set /settings/rails/task/return_port 3000
 etcd_set /settings/rails/task/publish_url ""
 
 etcd_set /settings/rails/secrets/private_key_password "a not so secret key"
@@ -64,4 +68,4 @@ etcd_set /service/cloak/protocol http
 etcd_set /service/manny_air/host ""
 
 # Registered local symbolic names
-etcd_set /service/local_names "frontend backend api infrastructure-api aircloak"
+etcd_set /service/local_names "frontend backend api infrastructure-api aircloak airpub"

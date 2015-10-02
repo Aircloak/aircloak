@@ -121,7 +121,10 @@ sql_for_task(#task_params{task_token=TaskToken, start_time=StartTime, end_time=E
 
 get_headers(#task_params{connection=Connection}=TaskParams) ->
   FoldFun = fun({_Id, _CreatedAt, Val}, Acc) ->
-    Props = mochijson2:decode(Val),
+    Props = case mochijson2:decode(Val) of
+      null -> [];
+      Other -> Other
+    end,
     lists:foldl(fun(Struct, TitleAcc) -> sets:add_element(title_from_bucket(Struct), TitleAcc) end, Acc, Props)
   end,
   {SQL, Params} = sql_for_task(TaskParams),
@@ -134,9 +137,11 @@ get_data(#task_params{connection=Connection}=TaskParams, ReturnPid) ->
   pgsql_connection:foreach(EachFun,  SQL, Params, Connection).
 
 process_raw_rows(Headers, ErrorSet, {Id, CreatedAt, Val}) ->
-  Props = mochijson2:decode(Val),
   HasError = atom_to_list(sets:is_element(Id, ErrorSet)),
-  Props = mochijson2:decode(Val),
+  Props = case mochijson2:decode(Val) of
+    null -> [];
+    Other -> Other
+  end,
   ValDict = lists:foldl(fun(Struct, AccDict) ->
         Title = title_from_bucket(Struct),
         Count = ej:get({"count"}, Struct),

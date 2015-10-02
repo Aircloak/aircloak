@@ -18,8 +18,8 @@
     // The reason for this rule is developer's convenience. Keeping frequently used
     // ports together, makes it easier for us to remember them.
 
-    "router/https" : 0,
-    "balancer/https": 1,
+    "balancer/https": 0,
+    "router/https": 1,
 
     // Note: database is used only in the development env on local development machines.
     // In production, the database server is running on a dedicated host and listens on
@@ -46,6 +46,11 @@
     "air_backend/inet_dist_listen_max": 39,
 
     // Ports 40-44 are reserved for airpub HTTP of the backend node.
-    "airpub/http": 40
+    "airpub/http": 40,
+
+    // We use proxy protocol to listen on these ports. This allows us to use
+    // haproxy balancer and forward IP addresses of clients.
+    "router/proxy_https": 45,
+    "router/proxy_http": 46
   }
 }

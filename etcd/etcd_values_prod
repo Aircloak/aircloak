@@ -14,6 +14,13 @@
 
 set_tcp_ports prod
 
+# Site names
+etcd_set /site/frontend "hello.aircloak.com"
+etcd_set /site/api "api.aircloak.com"
+etcd_set /site/infrastructure_api "infrastructure-api.aircloak.com"
+etcd_set /site/airpub "pub.aircloak.com"
+etcd_set /site/aircloak "www.aircloak.com aircloak.com"
+
 etcd_set /settings/mail/smtp/address smtp.mandrillapp.com
 etcd_set /settings/mail/smtp/port 587
 etcd_set /settings/mail/smtp/username "sebastian@aircloak.com"
@@ -44,10 +51,7 @@ etcd_set /settings/air/integration_test/data/mean_rows_per_user 800
 # false is a good choice for local development.
 etcd_set /settings/rails/global true
 
-etcd_set /settings/rails/task/return_protocol https
-etcd_set /settings/rails/task/return_host hello.aircloak.com
-etcd_set /settings/rails/task/return_port 443
-etcd_set /settings/rails/task/publish_url https://pub.aircloak.com/publish
+etcd_set /settings/rails/task/publish_url https://$(etcd_get /site/airpub)/publish
 
 etcd_set /settings/rails/secrets/private_key_password ""
 etcd_set /settings/rails/secrets/github_oauth_token ""
@@ -59,12 +63,14 @@ etcd_set /service/frontend_local http://frontend.air-local:$(etcd_get /tcp_ports
 etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/http)
 etcd_set /service/backend_local http://backend.air-local:$(etcd_get /tcp_ports/router/http)
 etcd_set /service/airpub/shared_secret ""
-etcd_set /service/airpub/subscribe_endpoint "wss://pub.aircloak.com/subscribe/ws"
+etcd_set /service/airpub/subscribe_endpoint "wss://$(etcd_get /site/airpub)/subscribe/ws"
 etcd_set /service/build_server/host build.aircloak.com
 etcd_set /service/cloak/port 443
 etcd_set /service/cloak/protocol https
 etcd_set /service/manny_air/host localhost
 etcd_set /service/airpub/allow_publish "127.0.0.0/8 139.19.208.0/24"
+# Frontier (139.19.208.0/24), Sanctuary (139.19.209.0/26)
+etcd_set /service/infrastructure_api/allow "139.19.208.0/24 139.19.209.0/26"
 
 # Registered local symbolic names
-etcd_set /service/local_names "frontend backend api infrastructure-api aircloak"
+etcd_set /service/local_names "frontend backend api infrastructure-api aircloak airpub"
