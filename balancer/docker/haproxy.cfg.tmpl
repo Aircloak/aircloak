@@ -31,7 +31,7 @@ frontend http
 
 backend router_https
   option srvtcpka
-  balance leastconn
+  balance roundrobin
   retries 3
   timeout connect 5s
   timeout queue 5s
@@ -42,7 +42,7 @@ backend router_https
 
 backend router_http
   option srvtcpka
-  balance leastconn
+  balance roundrobin
   retries 3
   timeout connect 5s
   timeout queue 5s
