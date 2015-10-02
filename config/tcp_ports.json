@@ -19,7 +19,7 @@
     // ports together, makes it easier for us to remember them.
 
     "balancer/https": 0,
-    "router/https" : 1,
+    "router/https": 1,
 
     // Note: database is used only in the development env on local development machines.
     // In production, the database server is running on a dedicated host and listens on
