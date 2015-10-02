@@ -7,6 +7,7 @@ Air frontend
 - [Getting started](#getting-started)
     - [Running](#running)
     - [Testing](#testing)
+- [Licenses](#licenses)
 
 ----------------------
 
@@ -54,3 +55,9 @@ If you need to make a change to an existing test which invalidates a pre-recorde
 
 The order in which tests are run is randomized by rpsec. This helps uncover ordering dependencies between tests which sometimes camouflage real issues.
 When you have found a order that breaks your tests, you can lock it in by setting the random seed used in `spec/spec_helper.rb`.
+
+# Licenses
+
+To get a list of the licenses in use by our project, we use the `gem-licenses` gem and the `rake gem:licenses`
+rake task it provides. Check out the [documentation](http://www.rubydoc.info/gems/gem-licenses/0.2.0) for more
+information. You can also have the licenses written to a file with `rake gem:licenses:csv['licenses.csv']`.

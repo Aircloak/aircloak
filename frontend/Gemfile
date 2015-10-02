@@ -29,6 +29,10 @@ group :development, :test do
   gem 'pry-nav', github: "nixme/pry-nav"
   gem 'rspec-rails', '~> 2.14.0'
   gem "unicorn-rails"
+
+  # Allows us to produce a list of the licenses of our gems
+  # needed for our bill of material
+  gem 'gem-licenses'
 end
 
 group :precompile do
