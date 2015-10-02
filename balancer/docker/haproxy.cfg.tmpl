@@ -13,7 +13,7 @@ frontend https
   bind *:$BALANCER_HTTPS_PORT
   mode tcp
   option tcplog
-  option tcpka
+  option clitcpka
   maxconn 10000
   timeout client 5s
   timeout client-fin 5s
@@ -23,13 +23,14 @@ frontend http
   bind *:$BALANCER_HTTP_PORT
   mode tcp
   option tcplog
-  option tcpka
+  option clitcpka
   maxconn 10000
   timeout client 5s
   timeout client-fin 5s
   default_backend router_http
 
 backend router_https
+  option srvtcpka
   balance leastconn
   retries 3
   timeout connect 5s
@@ -40,6 +41,7 @@ backend router_https
   $HTTPS_UPSTREAMS
 
 backend router_http
+  option srvtcpka
   balance leastconn
   retries 3
   timeout connect 5s
