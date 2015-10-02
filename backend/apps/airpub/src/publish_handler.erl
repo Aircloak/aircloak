@@ -72,28 +72,24 @@ handle_publish_request(<<"POST">>, _Path, false, _ContentType, _ContentEncoding,
 handle_publish_request(_Method, _Path, _HasBody, _ContentType, _ContentEncoding, Req) ->
   cowboy_req:reply(405, Req). % Method not allowed
 
-% Returns the forward destination for the longest matching route.
+% Returns the forward destination for the longest matching route, if any.
 -spec get_forward_info(string()) -> undefined | {string(), [string()]}.
 get_forward_info(Path) ->
-  Routes = [
-    {"/results/", infrastructure_url("results"), ["QueryAuthToken"]},
-    {"/audit_log/", infrastructure_url("audit_logs"), []}
-  ],
-  {_Length, Match} = lists:foldl(fun({SubPath, Url, Headers}, {MatchLength, Match}) ->
-      case lists:prefix(SubPath, Path) andalso string:len(SubPath) > MatchLength of
+  {ok, ForwardRules} = application:get_env(airpub, publishing_forward_rules),
+  {_Length, Match} = lists:foldl(fun({PathPrefix, UrlSuffix, Headers}, {MatchLength, Match}) ->
+      PathPrefixLen = string:len(PathPrefix),
+      case lists:prefix(PathPrefix, Path) andalso PathPrefixLen > MatchLength of
         true ->
-          {string:len(SubPath), {Url, Headers}};
+          {PathPrefixLen, {infrastructure_url() ++ UrlSuffix, Headers}};
         false ->
           {MatchLength, Match}
       end
-    end, {0, undefined}, Routes),
+    end, {0, undefined}, ForwardRules),
   Match.
 
-infrastructure_url(Path) ->
-  lists:flatten(io_lib:format("~s/~s", [
-        air_etcd:get("/service/infrastructure_api_local"),
-        Path
-      ])).
+-spec infrastructure_url() -> string().
+infrastructure_url() ->
+  binary_to_list(air_etcd:get("/service/infrastructure_api_local")).
 
 % Builds the headers list, from the original request, to forward along with the article content.
 -spec get_forward_headers([string()], term()) -> [tuple(string(), string())].
