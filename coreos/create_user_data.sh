@@ -2,11 +2,11 @@
 
 . ../config/config.sh
 
-if [ -z $REGISTRY_URL ] || [ -z $DB_SERVER_URL ]; then
+if [ -z $INITIAL_CLUSTER_SIZE ] || [ -z $REGISTRY_URL ] || [ -z $DB_SERVER_URL ]; then
   echo "
 Run with:
 
-  REGISTRY_URL=registry.example.com:port DB_SERVER_URL=db.example.com:port $0
+  INITIAL_CLUSTER_SIZE=x REGISTRY_URL=registry.example.com:port DB_SERVER_URL=db.example.com:port $0
 "
 exit 1
 fi
@@ -54,7 +54,7 @@ cat <<-EOF > user-data
 ---
 coreos:
   etcd2:
-    discovery: https://discovery.etcd.io/df692a97fdfa404321ab3040a5c67f0e
+    discovery: $(curl -s https://discovery.etcd.io/new?size=$INITIAL_CLUSTER_SIZE)
     advertise-client-urls: http://\$public_ipv4:$ETCD_CLIENT_PORT
     initial-advertise-peer-urls: http://\$public_ipv4:$ETCD_PEER_PORT
     listen-client-urls: http://0.0.0.0:$ETCD_CLIENT_PORT

@@ -42,6 +42,8 @@ where w.x.y.z is the IP of your host on your local network.
 exit 1
 fi
 
+export INITIAL_CLUSTER_SIZE=${INITIAL_CLUSTER_SIZE:-1}
+
 REGISTRY_URL="$COREOS_HOST_IP:$(get_tcp_port prod registry/http)" \
 DB_SERVER_URL=$COREOS_HOST_IP \
 ./create_user_data.sh
