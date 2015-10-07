@@ -26,6 +26,10 @@ function air_routers {
   done
 }
 
+function upload {
+  scp_options=`vagrant ssh-config | awk -v ORS=' ' '{print "-o " $1 "=" $2}'`
+  scp ${scp_options} "$@" > /dev/null
+}
 
 if [ -z $COREOS_HOST_IP ]; then
   echo "
@@ -38,49 +42,16 @@ where w.x.y.z is the IP of your host on your local network.
 exit 1
 fi
 
+REGISTRY_URL="$COREOS_HOST_IP:$(get_tcp_port prod registry/http)" \
+DB_SERVER_URL=$COREOS_HOST_IP \
 ./create_user_data.sh
 
 vagrant halt --force || true
 vagrant up --provision
 
-# Generate string in form of {1,2,...,n}. Such string can be used with various fleetctl commands to
-# collectively start/stop particular instances.
-machines_num=$(vagrant status | grep 'air-' | grep -c running)
-service_indices="{$(seq 1 $machines_num | paste -sd "," -)}"
-
-# pull images
-echo "Pulling docker images, this may take a while..."
+# Upload keys
+echo "Uploading keys"
 for machine in $(vagrant status | grep 'air-' | grep running | awk '{print $1}'); do
-  machine_exec $machine "/aircloak/air/pull_images.sh" &
+  machine_exec $machine "sudo mkdir -p /aircloak/ca && sudo chown core:core /aircloak/ca"
+  upload ../router/dev_cert/* $machine:/aircloak/ca
 done
-wait
-
-# destroy all services
-destroy_service "router@$service_indices frontend-discovery@$service_indices frontend@$service_indices backend@$service_indices"
-cluster_exec "fleetctl destroy router@.service frontend-discovery@.service frontend@.service backend@.service"
-
-
-# configure etcd
-cluster_exec "
-      export DB_SERVER_URL=\"$COREOS_HOST_IP\" AIRPUB_URL=\"$COREOS_HOST_IP:1080\" &&
-      /aircloak/air/etcd/config_coreos.sh
-    "
-
-# start services
-cluster_exec "fleetctl submit /aircloak/air/backend@.service /aircloak/air/frontend@.service /aircloak/air/frontend-discovery@.service /aircloak/air/router@.service"
-cluster_exec "fleetctl start \
-      backend@$service_indices \
-      frontend@$service_indices \
-      frontend-discovery@$service_indices \
-      router@$service_indices
-    "
-
-../balancer/build-image.sh
-
-# start the balancer
-echo "
-Starting the balancer.
-You can access the site via https://frontend.air-local:$(get_tcp_port prod balancer/https)
-"
-
-AIR_ROUTERS=$(air_routers $machines_num) ../balancer/container.sh console

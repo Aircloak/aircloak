@@ -1,0 +1,15 @@
+[Unit]
+Description=Air router
+After=etcd2.service
+After=docker.service
+After=air_config.service
+After=air_keys.service
+
+[Service]
+TimeoutStartSec=0
+ExecStart=/aircloak/air/air_service_ctl.sh router foreground
+ExecStop=/aircloak/air/air_service_ctl.sh router stop
+EnvironmentFile=/aircloak/air/environment
+
+[X-Fleet]
+Conflicts=router@*.service
