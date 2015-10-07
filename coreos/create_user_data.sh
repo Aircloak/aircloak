@@ -75,6 +75,29 @@ coreos:
   - name: fleet.service
     command: start
 
+  - name: swap.service
+    command: start
+    content: |
+      [Unit]
+      Description=Turn on swap
+
+      [Service]
+      Type=oneshot
+      Environment="SWAPFILE=/2GiB.swap"
+      RemainAfterExit=true
+      ExecStartPre=/bin/bash -c "\
+        fallocate -l 2G \$SWAPFILE && \
+        chmod 600 \$SWAPFILE && \
+        chattr +C \$SWAPFILE && \
+        mkswap \$SWAPFILE && \
+        losetup -f \$SWAPFILE"
+      ExecStart=/usr/bin/sh -c "/sbin/swapon \$(/usr/sbin/losetup -j \${SWAPFILE} | /usr/bin/cut -d : -f 1)"
+      ExecStop=/usr/bin/sh -c "/sbin/swapoff \$(/usr/sbin/losetup -j \${SWAPFILE} | /usr/bin/cut -d : -f 1)"
+      ExecStopPost=/usr/bin/sh -c "/usr/sbin/losetup -d \$(/usr/sbin/losetup -j \${SWAPFILE} | /usr/bin/cut -d : -f 1)"
+
+      [Install]
+      WantedBy=local.target
+
   - name: air_installer.service
     command: start
     content: |
