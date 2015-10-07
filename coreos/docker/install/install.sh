@@ -13,11 +13,11 @@ function pull_docker_image {
   #
   # The output is suppressed, because it's very noisy. Notice how only in the last attempt
   # the stderr output is let through. This allows us to print the error if pulling failed.
-  docker pull $REGISTRY_URL/$1 > /dev/null 2>&1 ||
-  docker pull $REGISTRY_URL/$1 > /dev/null 2>&1 ||
-  docker pull $REGISTRY_URL/$1 > /dev/null 2>&1 ||
-  docker pull $REGISTRY_URL/$1 > /dev/null 2>&1 ||
-  docker pull $REGISTRY_URL/$1 > /dev/null
+  docker pull $REGISTRY_URL/$1 ||
+  docker pull $REGISTRY_URL/$1 ||
+  docker pull $REGISTRY_URL/$1 ||
+  docker pull $REGISTRY_URL/$1 ||
+  docker pull $REGISTRY_URL/$1
 
   echo "$(hostname): pulled image $1"
 }
