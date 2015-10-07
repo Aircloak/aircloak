@@ -60,11 +60,6 @@ function container_ctl {
   command=$1
   shift || true
 
-  if [ "$AIR_ENV" = "prod" ]; then
-    driver_arg="--log-driver=syslog --log-opt syslog-tag=$container_name"
-    container_env="-e AIR_ENV=prod"
-  fi
-
   case "$command" in
     start)
       stop_named_container $container_name
