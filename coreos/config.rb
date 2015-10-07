@@ -10,7 +10,7 @@ $update_channel='stable'
 
 $vm_memory = 768
 
-$image_version = "current"
+$image_version = "766.4.0"
 $enable_serial_logging = false
 $share_home = false
 $vm_gui = false
