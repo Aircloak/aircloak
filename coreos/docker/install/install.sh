@@ -21,6 +21,7 @@ function pull_docker_image {
 
 # Pull images concurrently
 pull_docker_image aircloak/air_router:latest
+pull_docker_image aircloak/air_backend:latest
 pull_docker_image aircloak/air_frontend:latest
 
 cat /etc/environment >> /aircloak/air/environment

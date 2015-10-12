@@ -9,10 +9,12 @@ if [ $machines_num -gt 1 ]; then service_indices="{$service_indices}"; fi
 
 fleetctl submit \
   /aircloak/air/router@.service \
+  /aircloak/air/backend@.service \
   /aircloak/air/frontend@.service \
   /aircloak/air/frontend-discovery@.service
 
 fleetctl start \
   "router@$service_indices" \
+  "backend@$service_indices" \
   "frontend@$service_indices" \
   "frontend-discovery@$service_indices"
