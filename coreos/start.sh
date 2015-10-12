@@ -48,8 +48,8 @@ REGISTRY_URL="$COREOS_HOST_IP:$(get_tcp_port prod registry/http)" \
 DB_SERVER_URL=$COREOS_HOST_IP \
 ./create_user_data.sh
 
-vagrant halt --force || true
-vagrant up --provision
+vagrant destroy --force || true
+vagrant up
 
 # Upload keys
 echo "Uploading keys"
