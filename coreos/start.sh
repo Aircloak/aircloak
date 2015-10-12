@@ -11,15 +11,6 @@ function machine_exec {
   vagrant ssh $1 -c "$2" 2>/dev/null
 }
 
-function cluster_exec {
-  # Useful for commands that have effects in the entire cluster.
-  machine_exec air-01 "$1"
-}
-
-function destroy_service {
-  cluster_exec "fleetctl stop $1 || true; fleetctl destroy $1 || true"
-}
-
 function air_routers {
   for machine_num in $(seq 1 $1); do
     echo "192.168.55.$((100 + $machine_num))"
