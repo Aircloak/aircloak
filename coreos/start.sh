@@ -84,3 +84,14 @@ echo "Waiting for at least one machine to fully initialize... (this may take a w
 # Tail logs in background so we can see some progress
 vagrant ssh air-01 -c "journalctl -f -u air_installer -u air_config -u air_keys -u air_fleet" &
 until machine_available; do sleep 1; done
+
+# Start the local balancer
+echo "Starting the local balancer"
+
+function cleanup_routers {
+  rm ../balancer/config/routers
+}
+trap cleanup_routers EXIT
+
+air_routers > ../balancer/config/routers
+../balancer/container.sh console
