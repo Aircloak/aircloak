@@ -7,5 +7,12 @@ machines_num=$(($(fleetctl list-machines | wc -l) - 1))
 service_indices="$(seq 1 $machines_num | paste -sd "," -)"
 if [ $machines_num -gt 1 ]; then service_indices="{$service_indices}"; fi
 
-fleetctl submit /aircloak/air/router@.service
-fleetctl start "router@$service_indices"
+fleetctl submit \
+  /aircloak/air/router@.service \
+  /aircloak/air/frontend@.service \
+  /aircloak/air/frontend-discovery@.service
+
+fleetctl start \
+  "router@$service_indices" \
+  "frontend@$service_indices" \
+  "frontend-discovery@$service_indices"
