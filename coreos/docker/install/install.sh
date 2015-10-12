@@ -36,16 +36,16 @@ if [ $machines_num -gt 1 ]; then service_indices="{$service_indices}"; fi
 
 # Submit unit files
 fleetctl submit \
-  /aircloak/air/router@.service \
-  /aircloak/air/backend@.service \
-  /aircloak/air/frontend@.service \
-  /aircloak/air/frontend-discovery@.service
+  /aircloak/air/air-router@.service \
+  /aircloak/air/air-backend@.service \
+  /aircloak/air/air-frontend@.service \
+  /aircloak/air/air-frontend-discovery@.service
 
 # Start units
 fleetctl start \
-  "router@$service_indices" \
-  "backend@$service_indices" \
-  "frontend@$service_indices" \
-  "frontend-discovery@$service_indices"
+  "air-router@$service_indices" \
+  "air-backend@$service_indices" \
+  "air-frontend@$service_indices" \
+  "air-frontend-discovery@$service_indices"
 
 echo "air system installed"

@@ -1,8 +1,8 @@
 [Unit]
 Description=Air frontend discovery service
-BindsTo=frontend@%i.service
-After=frontend@%i.service
-Requires=frontend@%i.service
+BindsTo=air-frontend@%i.service
+After=air-frontend@%i.service
+Requires=air-frontend@%i.service
 
 [Service]
 EnvironmentFile=/etc/environment
@@ -11,4 +11,4 @@ ExecStop=/usr/bin/etcdctl rm /service_instances/frontends/$AIR_HOST_NAME
 EnvironmentFile=/aircloak/air/environment
 
 [X-Fleet]
-MachineOf=frontend@%i.service
+MachineOf=air-frontend@%i.service

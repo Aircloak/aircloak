@@ -53,7 +53,7 @@ function upload_keys {
 function wait_for_available_machine {
   echo "Waiting for at least one machine to fully initialize... (this may take a while)"
   # Tail installer log in background so we can see some progress
-  vagrant ssh air-01 -c "journalctl -f -u air_installer" &
+  vagrant ssh air-01 -c "journalctl -f -u air-installer" &
   until machine_available; do sleep 1; done
 }
 

@@ -2,11 +2,11 @@
 Description=Air backend
 After=etcd2.service
 After=docker.service
-After=router@%i.service
-BindsTo=router@%i.service
+After=air-router@%i.service
+BindsTo=air-router@%i.service
 Requires=etcd2.service
 Requires=docker.service
-Requires=router@%i.service
+Requires=air-router@%i.service
 
 [Service]
 TimeoutStartSec=0
@@ -15,5 +15,5 @@ ExecStop=/aircloak/air/air_service_ctl.sh backend stop
 EnvironmentFile=/aircloak/air/environment
 
 [X-Fleet]
-Conflicts=backend@*.service
-MachineOf=router@%i.service
+Conflicts=air-backend@*.service
+MachineOf=air-router@%i.service

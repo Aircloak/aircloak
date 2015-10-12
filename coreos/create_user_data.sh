@@ -22,7 +22,7 @@ function run_command {
 function install_command {
   run_command '
         if [ ! -e /aircloak/air/install/.installed ]; then
-          installer_id=$(docker create $REGISTRY_URL/aircloak/air_installer) &&
+          installer_id=$(docker create $REGISTRY_URL/aircloak/air-installer) &&
           docker cp $installer_id:aircloak - > /tmp/aircloak.tar &&
           docker stop $installer_id &&
           docker rm -v $installer_id &&
@@ -99,7 +99,7 @@ coreos:
       [Install]
       WantedBy=local.target
 
-  - name: air_installer.service
+  - name: air-installer.service
     command: start
     content: |
       [Unit]
@@ -117,7 +117,7 @@ coreos:
       Environment="REGISTRY_URL=$REGISTRY_URL"
       ExecStart=$(install_command)
 
-  - name: air_keys.service
+  - name: air-keys.service
     command: start
     content: |
       [Unit]

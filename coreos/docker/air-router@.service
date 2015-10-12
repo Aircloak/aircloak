@@ -2,7 +2,7 @@
 Description=Air router
 After=etcd2.service
 After=docker.service
-After=air_keys.service
+After=air-keys.service
 Requires=etcd2.service
 Requires=docker.service
 
@@ -13,4 +13,4 @@ ExecStop=/aircloak/air/air_service_ctl.sh router stop
 EnvironmentFile=/aircloak/air/environment
 
 [X-Fleet]
-Conflicts=router@*.service
+Conflicts=air-router@*.service
