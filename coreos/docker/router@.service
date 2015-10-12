@@ -2,7 +2,6 @@
 Description=Air router
 After=etcd2.service
 After=docker.service
-After=air_config.service
 After=air_keys.service
 Requires=etcd2.service
 Requires=docker.service

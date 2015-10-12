@@ -2,11 +2,11 @@
 
 . ../config/config.sh
 
-if [ -z $INITIAL_CLUSTER_SIZE ] || [ -z $REGISTRY_URL ] || [ -z $DB_SERVER_URL ]; then
+if [ -z $INITIAL_CLUSTER_SIZE ] || [ -z $REGISTRY_URL ]; then
   echo "
 Run with:
 
-  INITIAL_CLUSTER_SIZE=x REGISTRY_URL=registry.example.com:port DB_SERVER_URL=db.example.com:port $0
+  INITIAL_CLUSTER_SIZE=x REGISTRY_URL=registry.example.com:port $0
 "
 exit 1
 fi
@@ -27,6 +27,7 @@ function install_command {
           docker stop $installer_id &&
           docker rm -v $installer_id &&
           cd /tmp/ && tar -xf aircloak.tar -C / && rm aircloak.tar &&
+          touch /aircloak/air/install/.unpacked &&
           /aircloak/air/install/install.sh &&
           touch /aircloak/air/install/.installed;
         else
@@ -112,22 +113,6 @@ coreos:
       Environment="REGISTRY_URL=$REGISTRY_URL"
       ExecStart=$(install_command)
 
-  - name: air_config.service
-    command: start
-    content: |
-      [Unit]
-      Description=Air etcd configuration
-      After=air_installer.service
-      Requires=air_installer.service
-      After=etcd2.service
-      Requires=etcd2.service
-
-      [Service]
-      Type=oneshot
-      RemainAfterExit=yes
-      Environment="REGISTRY_URL=$REGISTRY_URL" "DB_SERVER_URL=$DB_SERVER_URL"
-      ExecStart=/aircloak/air/etcd/config_coreos.sh
-
   - name: air_keys.service
     command: start
     content: |
@@ -148,7 +133,6 @@ coreos:
       After=docker.service
       After=fleet.service
       After=air_installer.service
-      After=air_config.service
       After=air_keys.service
 
       [Service]

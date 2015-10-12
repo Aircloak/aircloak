@@ -22,6 +22,41 @@ function upload {
   scp ${scp_options} "$@" > /dev/null
 }
 
+function setup_etcd {
+  echo "Waiting for etcd..."
+  until etcd_setup_possible; do sleep 1; done
+  vagrant ssh air-01 -c "
+      export REGISTRY_URL='$COREOS_HOST_IP:$(get_tcp_port prod registry/http)' &&
+      export DB_SERVER_URL='$COREOS_HOST_IP' &&
+      /aircloak/air/etcd/config_coreos.sh" 2>/dev/null
+}
+
+function etcd_setup_possible {
+  result=$(
+        vagrant ssh air-01 -c '
+          if [ -e /aircloak/air/install/.unpacked ] && [ $(systemctl is-active etcd2) == "active" ]; then
+            printf yes;
+          else printf no;
+          fi' 2>/dev/null
+      )
+  if [ "$result" == "yes" ]; then return 0; else return 1; fi
+}
+
+function upload_keys {
+  echo "Uploading keys"
+  for machine in $(vagrant status | grep 'air-' | grep running | awk '{print $1}'); do
+    machine_exec $machine "sudo mkdir -p /aircloak/ca && sudo chown core:core /aircloak/ca"
+    upload ../router/dev_cert/* $machine:/aircloak/ca
+  done
+}
+
+function wait_for_available_machine {
+  echo "Waiting for at least one machine to fully initialize... (this may take a while)"
+  # Tail logs in background so we can see some progress
+  vagrant ssh air-01 -c "journalctl -f -u air_installer -u air_config -u air_keys -u air_fleet" &
+  until machine_available; do sleep 1; done
+}
+
 function machine_available {
   port=$(get_tcp_port prod air_frontend/http)
   for machine in $(air_routers); do
@@ -41,6 +76,18 @@ function machine_available {
   return 1
 }
 
+function start_local_balancer {
+  echo "Starting the local balancer"
+  trap cleanup_routers EXIT
+
+  air_routers > ../balancer/config/routers
+  ../balancer/container.sh console
+}
+
+function cleanup_routers {
+  rm ../balancer/config/routers
+}
+
 
 if [ -z $COREOS_HOST_IP ]; then
   echo "
@@ -56,33 +103,12 @@ fi
 # Create CoreOS machines
 export INITIAL_CLUSTER_SIZE=${INITIAL_CLUSTER_SIZE:-1}
 
-REGISTRY_URL="$COREOS_HOST_IP:$(get_tcp_port prod registry/http)" \
-DB_SERVER_URL=$COREOS_HOST_IP \
-./create_user_data.sh
+REGISTRY_URL="$COREOS_HOST_IP:$(get_tcp_port prod registry/http)" ./create_user_data.sh
 
 vagrant destroy --force || true
 vagrant up
 
-# Upload keys
-echo "Uploading keys"
-for machine in $(vagrant status | grep 'air-' | grep running | awk '{print $1}'); do
-  machine_exec $machine "sudo mkdir -p /aircloak/ca && sudo chown core:core /aircloak/ca"
-  upload ../router/dev_cert/* $machine:/aircloak/ca
-done
-
-# Wait for machines to boot
-echo "Waiting for at least one machine to fully initialize... (this may take a while)"
-# Tail logs in background so we can see some progress
-vagrant ssh air-01 -c "journalctl -f -u air_installer -u air_config -u air_keys -u air_fleet" &
-until machine_available; do sleep 1; done
-
-# Start the local balancer
-echo "Starting the local balancer"
-
-function cleanup_routers {
-  rm ../balancer/config/routers
-}
-trap cleanup_routers EXIT
-
-air_routers > ../balancer/config/routers
-../balancer/container.sh console
+setup_etcd
+upload_keys
+wait_for_available_machine
+start_local_balancer
