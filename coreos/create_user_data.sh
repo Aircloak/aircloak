@@ -105,7 +105,11 @@ coreos:
       [Unit]
       Description=Air machine install
       After=docker.service
+      After=etcd2.service
+      After=fleet.service
       Requires=docker.service
+      Requires=etcd2.service
+      Requires=fleet.service
 
       [Service]
       Type=oneshot
@@ -123,20 +127,4 @@ coreos:
       Type=oneshot
       RemainAfterExit=yes
       ExecStart=$(air_key_command)
-
-  - name: air_fleet.service
-    command: start
-    content: |
-      [Unit]
-      Description=Air fleet units
-      After=etcd2.service
-      After=docker.service
-      After=fleet.service
-      After=air_installer.service
-      After=air_keys.service
-
-      [Service]
-      Type=oneshot
-      RemainAfterExit=yes
-      ExecStart=/aircloak/air/install/install_fleet_units.sh
 EOF

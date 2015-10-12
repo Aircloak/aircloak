@@ -2,6 +2,7 @@
 Description=Air frontend
 After=etcd2.service
 After=docker.service
+After=air_keys.service
 After=router@%i.service
 BindsTo=router@%i.service
 Requires=etcd2.service
