@@ -239,6 +239,10 @@ Each log-line is tagged with the name of the container, so you can use this for 
 - Shell to Rails/Erlang console:
     - `/aircloak/air/frontend/container.sh remote_console`
     - `/aircloak/air/backend/container.sh remote_console`
+- Maintenance mode:
+    - `/aircloak/air/router/container.sh maintenance_on`
+    - `/aircloak/air/router/container.sh maintenance_off`
+  __Note__: in a cluster of machines, it's enough to set maintenance on one router only. This will affect the entire cluster.
 
 ## Exposed container ports
 
