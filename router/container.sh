@@ -42,7 +42,10 @@ case "$1" in
     ;;
 
   *)
-    container_ctl air_router $@
+    CUSTOM_COMMANDS="
+      maintenance_on - turns on the maintenance mode
+      maintenance_off - turns off the maintenance mode
+    " container_ctl air_router $@
     ;;
 
 esac
