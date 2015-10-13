@@ -74,6 +74,8 @@ function generate_nginx_conf {
     fi
   done
 
+  cp -rp docker/nginx/static nginx_local/
+
   # We use most of our base configuration, removing some production specifics which
   # won't work on a typical dev machine.
   cat docker/nginx.conf \
@@ -81,6 +83,7 @@ function generate_nginx_conf {
   | sed "s#pid /var/run/nginx\.pid;#pid /tmp/air_router.pid;#" \
   | sed "s#include /etc/nginx/mime\.types;##" \
   | sed "s#include /etc/nginx/conf\.d/\*\.conf;#include $(pwd)/nginx_local/sites/*.conf;#" \
+  | sed "s#/etc/nginx/static#$(pwd)/nginx_local/static#" \
   | sed "s#use epoll;##" \
   > ./nginx_local/nginx.conf
 
