@@ -29,7 +29,7 @@ etcd_set /settings/mail/smtp/domain "aircloak.com"
 
 # The database settings are set once when the app launches
 # and cannot be changed without relaunching the container.
-etcd_set /settings/air/db/host cloakdb.mpi-sws.org
+etcd_set /settings/air/db/host airdb.aircloak.com
 etcd_set /settings/air/db/port 5432
 etcd_set /settings/air/db/username aircloak
 etcd_set /settings/air/db/password ""
