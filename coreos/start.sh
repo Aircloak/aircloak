@@ -17,6 +17,23 @@ function air_routers {
   done
 }
 
+function update_docker_registry {
+  ../docker_registry/container.sh ensure_started
+  ../db/container.sh ensure_started
+
+  ./build-image.sh
+  ../router/build-image.sh
+  ../backend/build-image.sh
+  ../frontend/build-image.sh
+}
+
+function start_cluster {
+  export INITIAL_CLUSTER_SIZE=${INITIAL_CLUSTER_SIZE:-1}
+  REGISTRY_URL="$COREOS_HOST_IP:$(get_tcp_port prod registry/http)" ./create_user_data.sh
+  vagrant destroy --force || true
+  vagrant up
+}
+
 function upload {
   scp_options=`vagrant ssh-config | awk -v ORS=' ' '{print "-o " $1 "=" $2}'`
   scp ${scp_options} "$@" > /dev/null
@@ -81,7 +98,7 @@ function start_local_balancer {
   trap cleanup_routers EXIT
 
   air_routers > ../balancer/config/routers
-  ../balancer/container.sh console
+  ../balancer/build-image.sh && ../balancer/container.sh console
 }
 
 function cleanup_routers {
@@ -100,14 +117,8 @@ where w.x.y.z is the IP of your host on your local network.
 exit 1
 fi
 
-# Create CoreOS machines
-export INITIAL_CLUSTER_SIZE=${INITIAL_CLUSTER_SIZE:-1}
-
-REGISTRY_URL="$COREOS_HOST_IP:$(get_tcp_port prod registry/http)" ./create_user_data.sh
-
-vagrant destroy --force || true
-vagrant up
-
+update_docker_registry
+start_cluster
 setup_etcd
 upload_keys
 wait_for_available_machine
