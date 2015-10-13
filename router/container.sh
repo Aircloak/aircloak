@@ -32,4 +32,20 @@ DOCKER_START_ARGS=" $docker_env \
 
 REMOTE_CONSOLE_COMMAND="/bin/bash"
 
-container_ctl air_router $@
+case "$1" in
+  maintenance_on)
+    curl -XPUT -L http://127.0.0.1:$(get_tcp_port prod etcd/client)/v2/keys/maintenance/down -d value=true
+    ;;
+
+  maintenance_off)
+    curl -L http://127.0.0.1:$(get_tcp_port prod etcd/client)/v2/keys/maintenance/down -XDELETE
+    ;;
+
+  *)
+    CUSTOM_COMMANDS="
+      maintenance_on - turns on the maintenance mode
+      maintenance_off - turns off the maintenance mode
+    " container_ctl air_router $@
+    ;;
+
+esac

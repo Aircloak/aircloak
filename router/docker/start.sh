@@ -64,26 +64,37 @@ cat /aircloak/router/docker/nginx/sites/upstreams.tmpl \
   | sed "s#include /etc/nginx/support/upstream_keepalive.conf;#$(cat /aircloak/router/docker/nginx/support/upstream_keepalive.conf)#" \
   > /etc/confd/templates/upstreams.tmpl
 
+cp -rp /aircloak/router/docker/nginx/support/maintenance.tmpl /etc/confd/templates/
+
 # Ensure root keys exist (equivalent of mkdir -p)
 curl -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service_instances/frontends -XPUT -d dir="true"
 curl -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service_instances/backends -XPUT -d dir="true"
+curl -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/maintenance -XPUT -d dir="true"
 
-cp -rp /aircloak/router/docker/nginx.toml /etc/confd/conf.d/
+cp -rp /aircloak/router/docker/conf.d/*.toml /etc/confd/conf.d/
+
+mkdir -p /etc/nginx/support
 
 # Try to make initial configuration every 5 seconds until successful
-until confd -onetime -node 127.0.0.1:$ETCD_CLIENT_PORT -config-file /etc/confd/conf.d/nginx.toml; do
-  echo "[nginx] waiting for confd to create initial nginx configuration"
+until confd -onetime -node 127.0.0.1:$ETCD_CLIENT_PORT -config-file /etc/confd/conf.d/upstreams.toml; do
+  echo "[nginx] waiting for confd to create initial upstreams configuration"
   sleep 5
 done
 
-# Put a continual polling `confd` process into the background to watch
-# for changes every 10 seconds
-confd -interval 10 -node 127.0.0.1:$ETCD_CLIENT_PORT -config-file /etc/confd/conf.d/nginx.toml &
+# Try to make initial configuration every 5 seconds until successful
+until confd -onetime -node 127.0.0.1:$ETCD_CLIENT_PORT -config-file /etc/confd/conf.d/maintenance.toml; do
+  echo "[nginx] waiting for confd to create initial maintenance configuration"
+  sleep 5
+done
+
+# Put a continual polling `confd` process into the background to watch for changes
+confd -interval 5 -node 127.0.0.1:$ETCD_CLIENT_PORT -config-file /etc/confd/conf.d/upstreams.toml &
+confd -interval 2 -node 127.0.0.1:$ETCD_CLIENT_PORT -config-file /etc/confd/conf.d/maintenance.toml &
 log "confd is now monitoring etcd for changes..."
 
-mkdir -p /etc/nginx/support
 cp -rp /aircloak/router/docker/nginx.conf /etc/nginx
-cp -rp /aircloak/router/docker/nginx/support/* /etc/nginx/support
+mv /aircloak/router/docker/nginx/support/* /etc/nginx/support/
+mv /aircloak/router/docker/nginx/static /etc/nginx/
 
 for config in $(ls -1 /aircloak/router/docker/nginx/sites/*.conf); do
   cat $config \

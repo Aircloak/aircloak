@@ -55,10 +55,10 @@ function stop_named_container {
 
 function container_ctl {
   container_name=$1
-  shift
+  shift || true
 
   command=$1
-  shift
+  shift || true
 
   if [ "$AIR_ENV" = "prod" ]; then
     driver_arg="--log-driver=syslog --log-opt syslog-tag=$container_name"
@@ -113,7 +113,25 @@ function container_ctl {
       ;;
 
     *)
-      echo "$(basename $0) start|stop|ensure_started|ensure_latest_version_started|ssh|remote_console|console|foreground docker-args"
+      commands="
+        start - starts the container in background (restarts the running container)
+        stop - stops the container if it is running
+        ensure_started - starts the container in background if it is not running
+        ensure_latest_version_started - starts the container in background if it is not running the latest version
+        ssh - opens a terminal session in the running container
+        remote_console - opens an application session (e.g. Erlang or Rails console) in the running container
+        console - starts the container in foreground (interactive)
+        foreground - starts the container in foreground (non-interactive)
+        $CUSTOM_COMMANDS
+      "
+
+      printf "\nUsage: $0 command\n\n"
+      while read line; do
+        if [ "$line" != "" ]; then
+          echo $line | awk -F ' - ' '{printf "%-35s%s\n", $1, $2}'
+        fi
+      done < <(echo "$commands" | sort)
+      echo
       exit 1
       ;;
 
