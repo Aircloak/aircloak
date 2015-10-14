@@ -32,7 +32,8 @@ authorization do
     has_permission_on [
       :infrastructure_api_machines,
       :infrastructure_api_cluster_lists,
-      :infrastructure_api_authenticated
+      :infrastructure_api_authenticated,
+      :infrastructure_api_cloaks
     ], to: :anon_read
     has_permission_on [
       :infrastructure_api_results,

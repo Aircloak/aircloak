@@ -141,6 +141,7 @@ Web::Application.routes.draw do
     post 'register_version_progress' => "build_progress#version_progress" # Used by BuildServer
     get "clusters", to: "cluster_lists#index" # Used by manny-air
     get "clusters/:id", to: "cluster_lists#show" # Used by manny-air
+    resources :cloaks, only: :index
     post "clusters/:id/status", to: "clusters#status" # Used by manny-air
     resources :machines, only: [:index] do
       post 'broken', on: :member # Used by manny-air
