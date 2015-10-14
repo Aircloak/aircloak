@@ -4,12 +4,14 @@ require './lib/help_utils'
 describe HelpController do
   setup :activate_authlogic
 
-  before(:each) do
-    log_in(create_user)
-  end
-
   let (:user) { create_user }
   let (:help_utils) { HelpUtils.new user, double(:controller) }
+
+  before(:each) do
+    Analyst.delete_all
+    User.delete_all
+    log_in(user)
+  end
 
   describe "GET /help" do
     it "should get the page of help guides" do
