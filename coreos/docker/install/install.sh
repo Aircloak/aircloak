@@ -22,31 +22,10 @@ pull_docker_image aircloak/air_router:latest
 pull_docker_image aircloak/air_backend:latest
 pull_docker_image aircloak/air_frontend:latest
 
-# Purge memory, because it seems to affect starting of Docker containers
-sync && echo 3 > /proc/sys/vm/drop_caches
-
 # Setup common environment
 cat /etc/environment >> /aircloak/air/environment
 echo "REGISTRY_URL=$REGISTRY_URL" >> /aircloak/air/environment
 echo "AIR_HOST_NAME=$COREOS_PUBLIC_IPV4" >> /aircloak/air/environment
 
-# Compute machines suffix in form of {1,2,...} or just 1 (for a single machine cluster)
-machines_num=$(($(fleetctl list-machines | wc -l) - 1))
-service_indices="$(seq 1 $machines_num | paste -sd "," -)"
-if [ $machines_num -gt 1 ]; then service_indices="{$service_indices}"; fi
-
-# Submit unit files
-fleetctl submit \
-  /aircloak/air/air-router@.service \
-  /aircloak/air/air-backend@.service \
-  /aircloak/air/air-frontend@.service \
-  /aircloak/air/air-frontend-discovery@.service
-
-# Start units
-fleetctl start \
-  "air-router@$service_indices" \
-  "air-backend@$service_indices" \
-  "air-frontend@$service_indices" \
-  "air-frontend-discovery@$service_indices"
-
-echo "air system installed"
+# Purge memory, because it seems to affect starting of Docker containers
+sync && echo 3 > /proc/sys/vm/drop_caches

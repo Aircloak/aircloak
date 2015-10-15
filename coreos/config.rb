@@ -1,4 +1,5 @@
-$num_instances=(ENV['INITIAL_CLUSTER_SIZE'] || "1").to_i
+# Hardcoded number of maximum instances. We'll start them on-demand one by one.
+$num_instances=5
 
 # Change basename of the VM
 # The default value is "core", which results in VMs named starting with

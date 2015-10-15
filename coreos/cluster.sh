@@ -5,121 +5,158 @@ set -eo pipefail
 cd $(dirname $0)
 
 . ../config/config.sh
+. ./cloud-config.sh
 
-function machine_exec {
-  # Suppress stderr, since it's just a "connection closed" message from `vagrant ssh`
-  vagrant ssh $1 -c "$2" 2>/dev/null
-}
-
-function air_routers {
-  for machine_num in $(seq 1 $1); do
-    echo "192.168.55.$((100 + $machine_num))"
-  done
-}
-
-function update_docker_registry {
-  ../docker_registry/container.sh ensure_started
-  ../db/container.sh ensure_started
-
-  ./build-image.sh
-  ../router/build-image.sh
-  ../backend/build-image.sh
-  ../frontend/build-image.sh
-}
-
-function start_cluster {
-  export INITIAL_CLUSTER_SIZE=${INITIAL_CLUSTER_SIZE:-1}
-  REGISTRY_URL="$COREOS_HOST_IP:$(get_tcp_port prod registry/http)" ./create_user_data.sh
-  vagrant destroy --force || true
-  vagrant up
-}
-
-function upload {
-  scp_options=`vagrant ssh-config | awk -v ORS=' ' '{print "-o " $1 "=" $2}'`
-  scp ${scp_options} "$@" > /dev/null
-}
-
-function setup_etcd {
-  echo "Waiting for etcd..."
-  until etcd_setup_possible; do sleep 1; done
-  vagrant ssh air-01 -c "
-      export REGISTRY_URL='$COREOS_HOST_IP:$(get_tcp_port prod registry/http)' &&
-      export DB_SERVER_URL='$COREOS_HOST_IP' &&
-      /aircloak/air/etcd/config_coreos.sh" 2>/dev/null
-}
-
-function etcd_setup_possible {
-  result=$(
-        vagrant ssh air-01 -c '
-          if [ -e /aircloak/air/install/.unpacked ] && [ $(systemctl is-active etcd2) == "active" ]; then
-            printf yes;
-          else printf no;
-          fi' 2>/dev/null
-      )
-  if [ "$result" == "yes" ]; then return 0; else return 1; fi
-}
-
-function upload_keys {
-  echo "Uploading keys"
-  for machine in $(vagrant status | grep 'air-' | grep running | awk '{print $1}'); do
-    machine_exec $machine "sudo mkdir -p /aircloak/ca && sudo chown core:core /aircloak/ca"
-    upload ../router/dev_cert/* $machine:/aircloak/ca
-  done
-}
-
-function wait_for_available_machine {
-  echo "Waiting for at least one machine to fully initialize... (this may take a while)"
-  # Tail installer log in background so we can see some progress
-  vagrant ssh air-01 -c "journalctl -f -u air-installer" &
-  until machine_available; do sleep 1; done
-}
-
-function machine_available {
-  port=$(get_tcp_port prod air_frontend/http)
-  for machine in $(air_routers); do
-    code=$(curl \
-          -s -o /dev/null \
-          --header 'Host: frontend.air-local' \
-          --connect-timeout 2 \
-          -w "%{http_code}" \
-          "http://$machine:$port"
-        )
-    if [ "$code" == "302" ]; then
-      echo "$machine available"
-      return 0;
+function init_cluster {
+  # Check that prerequisites are met
+  for required_file in $(echo "acinfra.aircloak.com.pem aircloak.com.chain.pem api.cert api.key"); do
+    if [ ! -e "./ca/$required_file" ]; then
+      echo "missing required local file $pwd/ca/$required_file"
+      exit 1
     fi
   done
 
-  return 1
+  echo "Checking machines for prerequisites..."
+  for ip in "$@"; do check_machine $ip; done
+
+  # generate cloud-config
+  machines=$(
+        for ip in "$@"; do
+          echo "$ip,$(ssh $ip "cat /etc/machine-id")"
+        done
+      )
+  mkdir -p tmp
+  MACHINES="$machines" cloud_config > tmp/cloud-config
+
+  # setup machines in parallel
+  for ip in "$@"; do
+    setup_machine $ip &
+  done
+
+  wait
+
+  # At this point, all machines are installed and we should have the etcd cluster, so we can
+  # do all subsequent actions on the first machine only, and it should affect the entire cluster.
+
+  configure_etcd $1
+
+  # submit services
+  ssh $1 "fleetctl submit \
+        /aircloak/air/air-backend@.service \
+        /aircloak/air/air-frontend@.service \
+        /aircloak/air/air-frontend-discovery@.service \
+        /aircloak/air/air-router@.service
+      "
+
+  # start all service instances (as many as there are machines in the cluster)
+  num_machines=$(echo "$@" | wc -w)
+  service_indices="$(seq 1 $num_machines | paste -sd "," -)"
+  if [ "$num_machines" -gt 1 ]; then service_indices="{$service_indices}"; fi
+  ssh $1 "fleetctl start \
+        air-backend@$service_indices \
+        air-frontend@$service_indices \
+        air-frontend-discovery@$service_indices \
+        air-router@$service_indices
+      "
 }
 
-function start_local_balancer {
-  echo "Starting the local balancer"
-  trap cleanup_routers EXIT
+function check_machine {
+  ssh $1 "pwd" > /dev/null || {
+    echo "Can't ssh to $1"
+    exit 1
+  }
+  check $1 'whoami' "core" 'Invalid user, default SSH session must run as the `core` user'
+  check $1 'sudo whoami' "root" 'No sudo permissions'
+  check $1 '. /etc/os-release && echo "$NAME $VERSION"' "CoreOS 833.0.0" "Wrong CoreOS version, 833.0.0 required"
+  check $1 '. /etc/environment && echo "$COREOS_PUBLIC_IPV4"' "$1" "Invalid public CoreOS IP address, expected $1"
+  check $1 ' if [ ! -e /aircloak ]; then echo ok; fi' "ok" "Air system is already installed."
 
-  air_routers > ../balancer/config/routers
-  ../balancer/build-image.sh && ../balancer/container.sh console
+  echo "$1 ok"
 }
 
-function cleanup_routers {
-  rm ../balancer/config/routers
+function check {
+  if [ "$(ssh $1 "$2")" != "$3" ]; then
+    log_machine $1 "$4"
+    exit 1
+  fi
 }
 
+function setup_machine {
+  start_installation $1
+  upload_keys $1
+  wait_for_install $1
+}
 
-if [ -z $COREOS_HOST_IP ]; then
-  echo "
-COREOS_HOST_IP not set. Please run with:
+function start_installation {
+  scp tmp/cloud-config $1:/tmp/
+  ssh $1 "
+    sudo sh -c '
+      mkdir -p /var/lib/coreos-install &&
+      mv /tmp/cloud-config /var/lib/coreos-install/user_data &&
+      coreos-cloudinit --from-file=/var/lib/coreos-install/user_data &
+    '
+  "
+}
 
-  COREOS_HOST_IP=w.x.y.z $0
+function upload_keys {
+  log_machine $1 "uploading keys"
+  ssh $1 "sudo mkdir -p /aircloak/ca && sudo chown core:core /aircloak/ca"
+  scp ./ca/* $1:/aircloak/ca
+}
 
-where w.x.y.z is the IP of your host on your local network.
-"
-exit 1
-fi
+function wait_for_install {
+  log_machine $1 "waiting for the machine installation to finish (this may take a while)..."
+  until machine_installed $1; do sleep 1; done
+}
 
-update_docker_registry
-start_cluster
-setup_etcd
-upload_keys
-wait_for_available_machine
-start_local_balancer
+function machine_installed {
+  result=$(ssh $1 'if [ -e /aircloak/air/install/.installed ]; then printf yes; else printf no; fi')
+  if [ "$result" == "yes" ]; then return 0; else return 1; fi
+}
+
+function configure_etcd {
+  log_machine $1 "waiting for etcd"
+  until etcd_active $1; do sleep 1; done
+
+  log_machine $1 "configuring etcd"
+  ssh $1 "REGISTRY_URL='$REGISTRY_URL' DB_SERVER_URL='$DB_SERVER_URL' /aircloak/air/etcd/config_coreos.sh"
+}
+
+function etcd_active {
+  result=$(ssh $1 'if [ $(systemctl is-active etcd2) == "active" ]; then printf yes; else printf no; fi')
+  if [ "$result" == "yes" ]; then return 0; else return 1; fi
+}
+
+function log_machine {
+  machine=$1
+  shift
+  echo "$machine: $@"
+}
+
+function kill_background_jobs {
+  for child in $(jobs -p); do kill -9 "$child" || true; done
+}
+trap kill_background_jobs EXIT
+
+
+case "$1" in
+  init)
+    shift
+    if [ "$REGISTRY_URL" == "" ] || [ "DB_SERVER_URL" == "" ] || [ $# -eq 0 ]; then
+      echo
+      echo "Usage:"
+      echo
+      echo '  REGISTRY_URL=registry_ip[:registry_port] \'
+      echo '  DB_SERVER_URL=db_server_ip \'
+      echo "  $0 init machine1_ip machine2_ip ..."
+      echo
+      exit 1
+    fi
+
+    init_cluster $@
+    ;;
+
+  *)
+    printf "\nUsage:\n  $0 init\n\n"
+    ;;
+esac
