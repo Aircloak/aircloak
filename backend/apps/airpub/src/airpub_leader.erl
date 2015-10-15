@@ -71,8 +71,7 @@ start_airpub_server() ->
     ]}
   ]),
   HttpPort = binary_to_integer(air_etcd:get("/tcp_ports/airpub/http")),
-  {ok, HttpIp} = application:get_env(airpub, http_ip),
-  {ok, _} = cowboy:start_http(airpub_http_server, 100, [{port, HttpPort}, {ip, HttpIp}], [{env, [{dispatch, Dispatch}]}]),
+  {ok, _} = cowboy:start_http(airpub_http_server, 100, [{port, HttpPort}, {ip, {0,0,0,0}}], [{env, [{dispatch, Dispatch}]}]),
   ?INFO("Airpub listening on port ~p", [HttpPort]),
   register_server().
 
