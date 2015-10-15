@@ -22,6 +22,7 @@ function run_command {
 function install_command {
   run_command '
         if [ ! -e /aircloak/air/install/.installed ]; then
+          until docker pull $REGISTRY_URL/aircloak/air-installer; do sleep 1; done &&
           installer_id=$(docker create $REGISTRY_URL/aircloak/air-installer) &&
           docker cp $installer_id:aircloak - > /tmp/aircloak.tar &&
           docker stop $installer_id &&

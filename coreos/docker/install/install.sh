@@ -8,13 +8,11 @@ function pull_docker_image {
   echo "$(hostname): pulling image $1..."
 
   # This monstrosity takes care of some inexplicable timeouts that occur while pulling from
-  # the docker registry. Here, we simply retry for some magical number of times. Since pulling
+  # the docker registry. Here, we simply retry until pulling succeeds. Since pulling
   # is layered, the next attempt will resume where the last one stopped.
-  docker pull $REGISTRY_URL/$1 ||
-  docker pull $REGISTRY_URL/$1 ||
-  docker pull $REGISTRY_URL/$1 ||
-  docker pull $REGISTRY_URL/$1 ||
-  docker pull $REGISTRY_URL/$1
+  until docker pull $REGISTRY_URL/$1; do
+    sleep 1
+  done
 
   echo "$(hostname): pulled image $1"
 }
