@@ -22,6 +22,9 @@ pull_docker_image aircloak/air_router:latest
 pull_docker_image aircloak/air_backend:latest
 pull_docker_image aircloak/air_frontend:latest
 
+# Purge memory, because it seems to affect starting of Docker containers
+sync && echo 3 > /proc/sys/vm/drop_caches
+
 # Setup common environment
 cat /etc/environment >> /aircloak/air/environment
 echo "REGISTRY_URL=$REGISTRY_URL" >> /aircloak/air/environment

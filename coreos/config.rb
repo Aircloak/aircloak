@@ -6,11 +6,11 @@ $num_instances=(ENV['INITIAL_CLUSTER_SIZE'] || "1").to_i
 $instance_name_prefix="air"
 
 # Official CoreOS channel from which updates should be downloaded
-$update_channel='stable'
+$update_channel='alpha'
 
 $vm_memory = 768
 
-$image_version = "766.4.0"
+$image_version = "833.0.0"
 $enable_serial_logging = false
 $share_home = false
 $vm_gui = false
