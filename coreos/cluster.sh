@@ -22,7 +22,7 @@ function init_cluster {
   # generate cloud-config
   machines=$(
         for ip in "$@"; do
-          echo "$ip,$(ssh $ip "cat /etc/machine-id")"
+          echo "$ip,$(machine_id $ip)"
         done
       )
   mkdir -p tmp
@@ -48,16 +48,14 @@ function init_cluster {
         /aircloak/air/air-router@.service
       "
 
-  # start all service instances (as many as there are machines in the cluster)
-  num_machines=$(echo "$@" | wc -w)
-  service_indices="$(seq 1 $num_machines | paste -sd "," -)"
-  if [ "$num_machines" -gt 1 ]; then service_indices="{$service_indices}"; fi
-  ssh $1 "fleetctl start \
-        air-backend@$service_indices \
-        air-frontend@$service_indices \
-        air-frontend-discovery@$service_indices \
-        air-router@$service_indices
-      "
+  # start services on each machine
+  for ip in "$@"; do
+    start_new_instance $ip air-router &
+    start_new_instance $ip air-backend &
+    start_new_instance $ip air-frontend &
+    start_new_instance $ip air-frontend-discovery &
+    wait
+  done
 }
 
 function check_machine {
@@ -79,6 +77,10 @@ function check {
     log_machine $1 "$4"
     exit 1
   fi
+}
+
+function machine_id {
+  ssh $1 "cat /etc/machine-id"
 }
 
 function setup_machine {
@@ -133,6 +135,61 @@ function log_machine {
   echo "$machine: $@"
 }
 
+function add_machine {
+  cluster_machine=$1
+  new_machine=$2
+
+  check_machine $new_machine
+
+  current_cluster="$(etcd_cluster $cluster_machine)"
+
+  etcd_client_port=$(get_tcp_port prod etcd/client)
+  etcd_peer_port=$(get_tcp_port prod etcd/peer)
+
+  # add new machine to the cluster
+  machine_id=$(machine_id $new_machine)
+  ssh $1 "etcdctl --endpoint 'http://127.0.0.1:$etcd_client_port' member add $machine_id http://$new_machine:$etcd_peer_port"
+
+  # generate cloud-config
+  mkdir -p tmp
+
+  MACHINES="$(echo "$current_cluster" && echo "$new_machine,$machine_id")" \
+  INITIAL_CLUSTER_STATE=existing \
+  cloud_config > tmp/cloud-config
+
+  # setup the new machine
+  setup_machine $new_machine
+
+  # start new instances of air services
+  start_new_instance $new_machine air-router
+  start_new_instance $new_machine air-backend
+  start_new_instance $new_machine air-frontend
+  start_new_instance $new_machine air-frontend-discovery
+}
+
+function start_new_instance {
+  max_id=$(ssh $1 "
+        fleetctl list-units |
+        grep '$2@' |
+        awk '{print \$1}' |
+        sed 's/$2@//; s/\.service//' |
+        tail -n 1
+      ")
+  max_id=${max_id:-0}
+  next_id=$((max_id + 1))
+  ssh $1 "fleetctl start $2@$next_id"
+}
+
+function etcd_cluster {
+  etcd_client_port=$(get_tcp_port prod etcd/client)
+
+  ssh $1 "etcdctl --endpoint 'http://127.0.0.1:$etcd_client_port' member list" | \
+  awk '{print $3 "," $2}' | \
+  sed "s#peerURLs=http://##; s#name=##; s#:[0-9]*##" | \
+  sort |
+  uniq
+}
+
 function kill_background_jobs {
   for child in $(jobs -p); do kill -9 "$child" || true; done
 }
@@ -156,7 +213,23 @@ case "$1" in
     init_cluster $@
     ;;
 
+  add_machine)
+      shift
+      if [ "$REGISTRY_URL" == "" ] || [ "DB_SERVER_URL" == "" ] || [ $# -ne 2 ]; then
+        echo
+        echo "Usage:"
+        echo
+        echo '  REGISTRY_URL=registry_ip[:registry_port] \'
+        echo '  DB_SERVER_URL=db_server_ip \'
+        echo "  $0 add_machine cluster_machine_ip new_machine_ip ..."
+        echo
+        exit 1
+      fi
+
+      add_machine $1 $2
+    ;;
+
   *)
-    printf "\nUsage:\n  $0 init\n\n"
+    printf "\nUsage:\n  $0 init | add_machine\n\n"
     ;;
 esac

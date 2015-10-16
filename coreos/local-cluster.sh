@@ -33,6 +33,10 @@ function kill_cluster {
   vagrant destroy -f
   ../balancer/container.sh stop
   rm ../balancer/config/routers || true
+  cleanup_background_processes
+}
+
+function cleanup_background_processes {
   for child in $(jobs -p); do kill -9 "$child" || true; done
 }
 
@@ -110,6 +114,42 @@ function ssh_config {
   printf "\n\nAdd following to your ~/.ssh/config:\n\n$config\n"
 }
 
+function add_machine {
+  trap cleanup_background_processes EXIT
+
+  all_machines=$(vagrant status)
+
+  cluster_machine=$(echo "$all_machines" | grep "running" | awk '{print $1}' | head -n 1 || true)
+  if [ "$cluster_machine" == "" ]; then
+    echo "Error: cluster is not running!"
+    exit 1
+  fi
+
+  new_machine=$(echo "$all_machines" | grep "not created" | awk '{print $1}' | head -n 1 || true)
+  if [ "$new_machine" == "" ]; then
+    echo "Error: all available machines are running!"
+    exit 1
+  fi
+
+  vagrant up $new_machine
+  cluster_machine_ip="$(machine_ip $cluster_machine)"
+  new_machine_ip="$(machine_ip $new_machine)"
+
+  # log installation
+  ssh "$new_machine_ip" "journalctl -f -u air-installer"&
+
+  # add machine to the cluster
+  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
+  DB_SERVER_URL=$COREOS_HOST_IP \
+  ./cluster.sh add_machine $cluster_machine_ip $new_machine_ip
+
+  # update balancer configuration
+  echo "$new_machine_ip" >> ../balancer/config/routers
+
+  # tail logs
+  ssh "$new_machine_ip" "journalctl -f -u air-*"
+}
+
 
 case "$1" in
   start)
@@ -122,11 +162,19 @@ case "$1" in
     start_local_cluster $@
     ;;
 
+  add_machine)
+    if [ -z $COREOS_HOST_IP ]; then
+      printf "\nUsage:\n  COREOS_HOST_IP=w.x.y.z $0 add_machine\n\n"
+      exit 1
+    fi
+    add_machine
+    ;;
+
   ssh-config)
     ssh_config
     ;;
 
   *)
-    printf "\nUsage:\n  $0 start | ssh-config\n\n"
+    printf "\nUsage:\n  $0 start | add_machine | ssh-config\n\n"
     ;;
 esac

@@ -12,7 +12,7 @@ function cloud_config {
         listen-client-urls: http://0.0.0.0:$ETCD_CLIENT_PORT
         listen-peer-urls: http://\$public_ipv4:$ETCD_PEER_PORT
         initial-cluster: $(initial_cluster)
-        initial-cluster-state: new
+        initial-cluster-state: ${INITIAL_CLUSTER_STATE:-new}
       fleet:
         public-ip: \$public_ipv4
         etcd_servers: http://127.0.0.1:$ETCD_CLIENT_PORT
