@@ -20,7 +20,11 @@ else
   cert_folder="$(pwd)/../router/dev_cert"
 fi
 
-DOCKER_START_ARGS="
+if [ "$AIR_HOST_NAME" != "" ]; then
+  DOCKER_START_ARGS="-e AIR_HOST_NAME=$AIR_HOST_NAME"
+fi
+
+DOCKER_START_ARGS="$DOCKER_START_ARGS \
   -v $cert_folder:/aircloak/ca \
   --net=host \
   "$REGISTRY_URL"aircloak/air_frontend:latest \

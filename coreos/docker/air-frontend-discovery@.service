@@ -7,8 +7,9 @@ Requires=air-frontend@%i.service
 [Service]
 EnvironmentFile=/etc/environment
 ExecStart=/bin/sh -c "sleep infinity"
-ExecStop=/usr/bin/etcdctl rm /service_instances/frontends/$AIR_HOST_NAME
+ExecStop=/bin/bash -c "/usr/bin/etcdctl --endpoint $ETCD_CLIENT rm /service_instances/frontends/${AIR_HOST_NAME} || true"
 EnvironmentFile=/aircloak/air/environment
 
 [X-Fleet]
+Conflicts=air-frontend-discovery@*.service
 MachineOf=air-frontend@%i.service
