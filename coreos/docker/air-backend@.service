@@ -10,9 +10,8 @@ Requires=air-router@%i.service
 
 [Service]
 TimeoutStartSec=0
-ExecStart=/aircloak/air/air_service_ctl.sh backend foreground
-ExecStop=/aircloak/air/air_service_ctl.sh backend stop
-EnvironmentFile=/aircloak/air/environment
+ExecStart=/aircloak/air/air_service_ctl.sh start_service backend
+ExecStop=/aircloak/air/air_service_ctl.sh stop_service backend
 
 [X-Fleet]
 Conflicts=air-backend@*.service

@@ -50,11 +50,9 @@ function init_cluster {
 
   # start services on each machine
   for ip in "$@"; do
-    start_new_instance $ip air-router &
-    start_new_instance $ip air-backend &
-    start_new_instance $ip air-frontend &
-    start_new_instance $ip air-frontend-discovery &
-    wait
+    # We always run the command on the same machine. Fleet will make sure to
+    # start services on different machines.
+    ssh $1 "/aircloak/air/air_service_ctl.sh start_system"
   done
 }
 
@@ -146,7 +144,7 @@ function add_machine {
   etcd_peer_port=$(get_tcp_port prod etcd/peer)
 
   # Remove extra units (possible leftovers from previous machines)
-  remove_inactive_units $1
+  ssh $1 "/aircloak/air/air_service_ctl.sh remove_inactive_units"
 
   # add new machine to the cluster
   machine_id=$(machine_id $new_machine)
@@ -163,23 +161,7 @@ function add_machine {
   setup_machine $new_machine
 
   # start new instances of air services
-  start_new_instance $new_machine air-router
-  start_new_instance $new_machine air-backend
-  start_new_instance $new_machine air-frontend
-  start_new_instance $new_machine air-frontend-discovery
-}
-
-function start_new_instance {
-  max_id=$(ssh $1 "
-        fleetctl list-units |
-        grep '$2@' |
-        awk '{print \$1}' |
-        sed 's/$2@//; s/\.service//' |
-        tail -n 1
-      ")
-  max_id=${max_id:-0}
-  next_id=$((max_id + 1))
-  ssh $1 "fleetctl start $2@$next_id"
+  ssh $new_machine "/aircloak/air/air_service_ctl.sh start_system"
 }
 
 function etcd_cluster {
@@ -198,7 +180,7 @@ function remove_machine {
 
   if [ "$etcd_machine_id" != "" ]; then
     cluster_etcdctl $1 member remove $etcd_machine_id
-    remove_inactive_units $1
+    ssh $1 "/aircloak/air/air_service_ctl.sh remove_inactive_units"
   else
     echo "$2 is not a member of the cluster on $1"
     exit 1
@@ -217,15 +199,6 @@ function cluster_etcdctl {
   cluster_machine="$1"
   shift
   ssh $cluster_machine "etcdctl --endpoint 'http://127.0.0.1:$etcd_client_port' $@"
-}
-
-function remove_inactive_units {
-  for unit in $(
-        ssh $1 "fleetctl list-unit-files | egrep 'air\-.*@[0-9]+' | grep inactive | awk '{print \$1}'"
-      ); do
-    echo "$unit"
-    ssh $1 "fleetctl destroy $unit"
-  done
 }
 
 

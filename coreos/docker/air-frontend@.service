@@ -11,9 +11,8 @@ Requires=air-router@%i.service
 
 [Service]
 TimeoutStartSec=0
-ExecStart=/aircloak/air/air_service_ctl.sh frontend foreground
-ExecStop=/aircloak/air/air_service_ctl.sh frontend stop
-EnvironmentFile=/aircloak/air/environment
+ExecStart=/aircloak/air/air_service_ctl.sh start_service frontend
+ExecStop=/aircloak/air/air_service_ctl.sh stop_service frontend
 
 [X-Fleet]
 Conflicts=air-frontend@*.service
