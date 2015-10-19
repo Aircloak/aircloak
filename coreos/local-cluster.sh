@@ -150,6 +150,38 @@ function add_machine {
   ssh "$new_machine_ip" "journalctl -f -u air-*"
 }
 
+function remove_machine {
+  trap cleanup_background_processes EXIT
+
+  all_machines=$(vagrant status)
+
+  cluster_machine=$(echo "$all_machines" | grep "running" | awk '{print $1}' | head -n 1 || true)
+  if [ "$cluster_machine" == "" ]; then
+    echo "Error: cluster is not running!"
+    exit 1
+  fi
+
+  machine_to_remove=$(echo "$all_machines" | grep "running" | awk '{print $1}' | tail -n 1 || true)
+  if [ "$machine_to_remove" == "$cluster_machine" ]; then
+    echo "Last machine in the cluster -> destroying the cluster"
+    vagrant destroy -f
+    return 0
+  fi
+
+  cluster_machine_ip="$(machine_ip $cluster_machine)"
+  machine_to_remove_ip="$(machine_ip $machine_to_remove)"
+
+  # remove the machine from the balancer first
+  new_routers=$(cat ../balancer/config/routers | grep -v "$machine_to_remove_ip")
+  echo "$new_routers" > ../balancer/config/routers
+
+  # remove the machine from the cluster
+  ./cluster.sh remove_machine $cluster_machine_ip $machine_to_remove_ip || true
+
+  # stop the machine
+  vagrant destroy -f $machine_to_remove
+}
+
 
 case "$1" in
   start)
@@ -170,11 +202,15 @@ case "$1" in
     add_machine
     ;;
 
+  remove_machine)
+    remove_machine
+    ;;
+
   ssh-config)
     ssh_config
     ;;
 
   *)
-    printf "\nUsage:\n  $0 start | add_machine | ssh-config\n\n"
+    printf "\nUsage:\n  $0 start | add_machine | remove_machine | ssh-config\n\n"
     ;;
 esac

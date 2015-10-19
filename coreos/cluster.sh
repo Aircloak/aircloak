@@ -143,12 +143,14 @@ function add_machine {
 
   current_cluster="$(etcd_cluster $cluster_machine)"
 
-  etcd_client_port=$(get_tcp_port prod etcd/client)
   etcd_peer_port=$(get_tcp_port prod etcd/peer)
+
+  # Remove extra units (possible leftovers from previous machines)
+  remove_inactive_units $1
 
   # add new machine to the cluster
   machine_id=$(machine_id $new_machine)
-  ssh $1 "etcdctl --endpoint 'http://127.0.0.1:$etcd_client_port' member add $machine_id http://$new_machine:$etcd_peer_port"
+  cluster_etcdctl $1 member add $machine_id "http://$new_machine:$etcd_peer_port"
 
   # generate cloud-config
   mkdir -p tmp
@@ -181,14 +183,51 @@ function start_new_instance {
 }
 
 function etcd_cluster {
-  etcd_client_port=$(get_tcp_port prod etcd/client)
-
-  ssh $1 "etcdctl --endpoint 'http://127.0.0.1:$etcd_client_port' member list" | \
+  cluster_etcdctl $1 member list | \
   awk '{print $3 "," $2}' | \
   sed "s#peerURLs=http://##; s#name=##; s#:[0-9]*##" | \
   sort |
   uniq
 }
+
+function remove_machine {
+  cluster_machine=$1
+  machine_to_remove=$2
+
+  etcd_machine_id="$(etcd_machine_id $1 $2)"
+
+  if [ "$etcd_machine_id" != "" ]; then
+    cluster_etcdctl $1 member remove $etcd_machine_id
+    remove_inactive_units $1
+  else
+    echo "$2 is not a member of the cluster on $1"
+    exit 1
+  fi
+}
+
+function etcd_machine_id {
+  cluster_etcdctl $1 "member list" | \
+  awk '{print $3 " " $1}' | \
+  sed 's#peerURLs=http://##; s#:[0-9]*##; s#:$##' | \
+  awk "{if (\$1 == \"$2\") print \$2}"
+}
+
+function cluster_etcdctl {
+  etcd_client_port=$(get_tcp_port prod etcd/client)
+  cluster_machine="$1"
+  shift
+  ssh $cluster_machine "etcdctl --endpoint 'http://127.0.0.1:$etcd_client_port' $@"
+}
+
+function remove_inactive_units {
+  for unit in $(
+        ssh $1 "fleetctl list-unit-files | egrep 'air\-.*@[0-9]+' | grep inactive | awk '{print \$1}'"
+      ); do
+    echo "$unit"
+    ssh $1 "fleetctl destroy $unit"
+  done
+}
+
 
 function kill_background_jobs {
   for child in $(jobs -p); do kill -9 "$child" || true; done
@@ -227,6 +266,20 @@ case "$1" in
       fi
 
       add_machine $1 $2
+    ;;
+
+  remove_machine)
+      shift
+      if [ $# -ne 2 ]; then
+        echo
+        echo "Usage:"
+        echo
+        echo "  $0 remove_machine cluster_machine_ip machine_to_remove_ip ..."
+        echo
+        exit 1
+      fi
+
+      remove_machine $1 $2
     ;;
 
   *)
