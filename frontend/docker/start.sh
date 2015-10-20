@@ -51,13 +51,13 @@ cat /tmp/nginx.conf \
   | sed "s/\$AIR_FRONTEND_HTTP_PORT/$(tcp_port 'air_frontend/http')/" \
   > /aircloak/nginx.conf
 
-log "Starting nginx"
-/usr/sbin/nginx -c /aircloak/nginx.conf
+
+# Start unicorn in the background (but not as daemon). This ensures that its output
+# still goes to stdout, while not blocking the main process.
+log "Starting unicorn"
+gosu deployer bundle exec unicorn -c config/unicorn.rb -E production &
 
 register_frontend&
 
-log "Starting unicorn"
-# Exec ensures that unicorn replaces this process. This allows us to use
-# docker to send signals to the unicorn process, and ultimately enables
-# graceful termination of the process.
-exec gosu deployer bundle exec unicorn -c config/unicorn.rb -E production
+log "Starting nginx"
+exec /usr/sbin/nginx -c /aircloak/nginx.conf
