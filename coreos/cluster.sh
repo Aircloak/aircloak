@@ -84,7 +84,7 @@ function machine_id {
 function setup_machine {
   start_installation $1
   upload_keys $1
-  wait_for_install $1
+  follow_installation $1
 }
 
 function start_installation {
@@ -104,14 +104,11 @@ function upload_keys {
   scp ./ca/* $1:/aircloak/ca
 }
 
-function wait_for_install {
-  log_machine $1 "waiting for the machine installation to finish (this may take a while)..."
-  until machine_installed $1; do sleep 1; done
-}
-
-function machine_installed {
-  result=$(ssh $1 'if [ -e /aircloak/air/install/.installed ]; then printf yes; else printf no; fi')
-  if [ "$result" == "yes" ]; then return 0; else return 1; fi
+function follow_installation {
+  ssh $1 "
+        while [ ! -e /aircloak/air/.installation_started ]; do sleep 1; done &&
+        /aircloak/air/air_service_ctl.sh follow_installation
+      "
 }
 
 function configure_etcd {
@@ -176,13 +173,16 @@ function remove_machine {
   cluster_machine=$1
   machine_to_remove=$2
 
-  etcd_machine_id="$(etcd_machine_id $1 $2)"
+  etcd_machine_id="$(etcd_machine_id $cluster_machine $machine_to_remove)"
 
   if [ "$etcd_machine_id" != "" ]; then
-    cluster_etcdctl $1 member remove $etcd_machine_id
-    ssh $1 "/aircloak/air/air_service_ctl.sh remove_inactive_units"
+    # Attempt to gracefully stop local services (in the case of running machine)
+    ssh $machine_to_remove "/aircloak/air/air_service_ctl.sh stop_system" || true
+
+    # Remove the machine from the cluster.
+    cluster_etcdctl $cluster_machine member remove $etcd_machine_id
   else
-    echo "$2 is not a member of the cluster on $1"
+    echo "$machine_to_remove is not a member of the cluster on $cluster_machine"
     exit 1
   fi
 }
@@ -201,9 +201,50 @@ function cluster_etcdctl {
   ssh $cluster_machine "etcdctl --endpoint 'http://127.0.0.1:$etcd_client_port' $@"
 }
 
+function upgrade_machine {
+  ssh $1 "sudo /aircloak/air/air_service_ctl.sh upgrade_system"
+
+  echo "Waiting for services to start..."
+  retry=0
+  while ! check_system $1; do
+    retry=$((retry + 1))
+    if [ $retry -gt 10 ]; then
+      echo "Machine $1 services are not running! Please check the machine status, and reinstall if needed."
+      exit 1
+    fi
+
+    sleep 5
+  done
+
+  echo "Machine $1 upgraded."
+}
+
+function check_system {
+  system_ok=$(ssh $1 "/aircloak/air/air_service_ctl.sh check_system")
+  if [ "$system_ok" == "yes" ]; then return 0; else return 1; fi
+}
+
+function rolling_upgrade {
+  # Get all machines in the cluster
+  current_cluster=$(etcd_cluster $1 | sed "s/,.*$//" | sort | uniq)
+
+  for machine in $current_cluster; do
+    echo "Upgrading $machine ..."
+    upgrade_machine $machine || {
+      echo "Upgrade of $machine failed, skipping other machines."
+      exit 1
+    }
+    echo "$machine upgraded."
+  done
+}
+
 
 function kill_background_jobs {
-  for child in $(jobs -p); do kill -9 "$child" || true; done
+  for child in $(jobs -p); do
+    {
+      kill -9 $child > /dev/null 2>&1 && wait $child 2>/dev/null
+    } || true
+  done
 }
 trap kill_background_jobs EXIT
 
@@ -233,7 +274,7 @@ case "$1" in
         echo
         echo '  REGISTRY_URL=registry_ip[:registry_port] \'
         echo '  DB_SERVER_URL=db_server_ip \'
-        echo "  $0 add_machine cluster_machine_ip new_machine_ip ..."
+        echo "  $0 add_machine cluster_machine_ip new_machine_ip"
         echo
         exit 1
       fi
@@ -247,7 +288,7 @@ case "$1" in
         echo
         echo "Usage:"
         echo
-        echo "  $0 remove_machine cluster_machine_ip machine_to_remove_ip ..."
+        echo "  $0 remove_machine cluster_machine_ip machine_to_remove_ip"
         echo
         exit 1
       fi
@@ -255,7 +296,35 @@ case "$1" in
       remove_machine $1 $2
     ;;
 
+  upgrade_machine)
+      shift
+      if [ $# -ne 1 ]; then
+        echo
+        echo "Usage:"
+        echo
+        echo "  $0 upgrade_machine cluster_machine_ip"
+        echo
+        exit 1
+      fi
+
+      upgrade_machine $1
+    ;;
+
+  rolling_upgrade)
+      shift
+      if [ $# -ne 1 ]; then
+        echo
+        echo "Usage:"
+        echo
+        echo "  $0 upgrade_machine cluster_machine_ip ..."
+        echo
+        exit 1
+      fi
+
+      rolling_upgrade $@
+    ;;
+
   *)
-    printf "\nUsage:\n  $0 init | add_machine\n\n"
+    printf "\nUsage:\n  $0 init | add_machine | remove_machine | upgrade_machine | rolling_upgrade\n\n"
     ;;
 esac

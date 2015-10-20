@@ -15,7 +15,6 @@ function start_local_cluster {
   num_machines=${1:-1}
 
   start_machines $num_machines
-  start_install_logs $num_machines
   setup_machines $num_machines
   log_air_services $num_machines
   start_local_balancer $num_machines
@@ -37,18 +36,16 @@ function kill_cluster {
 }
 
 function cleanup_background_processes {
-  for child in $(jobs -p); do kill -9 "$child" || true; done
+  for child in $(jobs -p); do
+    {
+      kill -9 $child > /dev/null 2>&1 && wait $child 2>/dev/null
+    } || true
+  done
 }
 
 function start_machines {
   vagrant destroy -f
   vagrant up $(vagrant_names $1)
-}
-
-function start_install_logs {
-  for machine_num in $(seq 1 $1); do
-    ssh "$(machine_ip $machine_num)" "journalctl -f -u air-installer"&
-  done
 }
 
 function update_docker_registry {
@@ -135,9 +132,6 @@ function add_machine {
   cluster_machine_ip="$(machine_ip $cluster_machine)"
   new_machine_ip="$(machine_ip $new_machine)"
 
-  # log installation
-  ssh "$new_machine_ip" "journalctl -f -u air-installer"&
-
   # add machine to the cluster
   REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
   DB_SERVER_URL=$COREOS_HOST_IP \
@@ -182,6 +176,18 @@ function remove_machine {
   vagrant destroy -f $machine_to_remove
 }
 
+function rolling_upgrade {
+  all_machines=$(vagrant status)
+
+  cluster_machine=$(echo "$all_machines" | grep "running" | awk '{print $1}' | head -n 1 || true)
+  if [ "$cluster_machine" == "" ]; then
+    echo "Error: cluster is not running!"
+    exit 1
+  fi
+
+  ./cluster.sh rolling_upgrade $(machine_ip $cluster_machine)
+}
+
 
 case "$1" in
   start)
@@ -206,11 +212,24 @@ case "$1" in
     remove_machine
     ;;
 
+  upgrade_machine)
+    shift
+    if [ $# -ne 1 ]; then
+      printf "\nUsage:\n  $0 upgrade_machine machine_name\n\n"
+      exit 1
+    fi
+    ./cluster.sh upgrade_machine $(machine_ip $1) || true
+    ;;
+
+  rolling_upgrade)
+    rolling_upgrade
+    ;;
+
   ssh-config)
     ssh_config
     ;;
 
   *)
-    printf "\nUsage:\n  $0 start | add_machine | remove_machine | ssh-config\n\n"
+    printf "\nUsage:\n  $0 start | add_machine | remove_machine | upgrade_machine | rolling_upgrade | ssh-config\n\n"
     ;;
 esac
