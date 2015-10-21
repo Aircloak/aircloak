@@ -14,7 +14,7 @@ fi
 STOP_SIGNAL=SIGQUIT
 STOP_TIMEOUT=30
 
-DOCKER_IMAGE="aircloak/air_balancer:latest"
+DOCKER_IMAGE="aircloak/air_balancer"
 DOCKER_START_ARGS="--net=host -v $(pwd)/config:/aircloak/balancer/config"
 CONTAINER_NAME="air_balancer"
 CONTAINER_ARGS="/aircloak/balancer/start.sh"

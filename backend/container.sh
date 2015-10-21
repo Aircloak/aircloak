@@ -10,7 +10,7 @@ function gracefully_stop_container {
   docker exec -d air_backend /bin/bash -c "AIR_BACKEND_ENV='prod' /aircloak/app/bin/air stop"
 }
 
-DOCKER_IMAGE="aircloak/air_backend:latest"
+DOCKER_IMAGE="aircloak/air_backend"
 
 DOCKER_START_ARGS="--net=host"
 if [ "$AIR_HOST_NAME" != "" ]; then DOCKER_START_ARGS="$DOCKER_START_ARGS -e AIR_HOST_NAME=$AIR_HOST_NAME"; fi

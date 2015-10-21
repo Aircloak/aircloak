@@ -18,7 +18,8 @@ if [ "$AIR_ENV" != "prod" ]; then
 fi
 
 init_env prod
-DOCKER_IMAGE="quay.io/coreos/etcd:v2.0.6"
+DOCKER_IMAGE="quay.io/coreos/etcd"
+DOCKER_IMAGE_VERSION="v2.0.6"
 DOCKER_START_ARGS="--net=host"
 CONTAINER_NAME="etcd_air"
 CONTAINER_ARGS=$(etcd_container_args)

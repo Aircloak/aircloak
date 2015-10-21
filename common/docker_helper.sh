@@ -55,6 +55,7 @@ function stop_named_container {
 
 function container_ctl {
   command=$1
+  shift || true
 
   case "$command" in
     start)
@@ -74,7 +75,7 @@ function container_ctl {
 
     ensure_started)
       if ! named_container_running $CONTAINER_NAME ; then
-        container_ctl $CONTAINER_NAME start "$@"
+        container_ctl start $@
       fi
       ;;
 
@@ -83,7 +84,7 @@ function container_ctl {
         echo "$CONTAINER_NAME already on the latest image version"
       else
         echo "Restarting $CONTAINER_NAME to ensure that the latest version is running."
-        container_ctl $CONTAINER_NAME start "$@"
+        container_ctl start $@
       fi
       ;;
 
@@ -130,8 +131,25 @@ function container_ctl {
 
 function start_container {
   if [ "$REGISTRY_URL" != "" ]; then DOCKER_IMAGE="$REGISTRY_URL/$DOCKER_IMAGE"; fi
+
+  if [ "$DOCKER_IMAGE_VERSION" == "" ]; then
+    DOCKER_IMAGE_VERSION=$(
+          find_images "$DOCKER_IMAGE" "" version |
+          grep -v latest |
+          sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
+          head -n 1 || true
+        )
+
+    if [ "$DOCKER_IMAGE_VERSION" == "" ]; then
+      echo "Can't find local image for $DOCKER_IMAGE."
+      exit 1
+    fi
+  fi
+
+  DOCKER_IMAGE="$DOCKER_IMAGE:$DOCKER_IMAGE_VERSION"
+
   stop_named_container $CONTAINER_NAME
-  echo "Starting container $CONTAINER_NAME"
+  echo "Starting container $CONTAINER_NAME from $DOCKER_IMAGE"
   docker run $DOCKER_START_ARGS --name $CONTAINER_NAME $DOCKER_IMAGE $CONTAINER_ARGS
 }
 

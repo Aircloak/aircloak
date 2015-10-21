@@ -9,7 +9,8 @@ cd $(dirname $0)
 log "Starting etcd_air_dev"
 
 init_env dev
-DOCKER_IMAGE="quay.io/coreos/etcd:v2.0.6"
+DOCKER_IMAGE="quay.io/coreos/etcd"
+DOCKER_IMAGE_VERSION="v2.0.6"
 DOCKER_START_ARGS="--net=host"
 CONTAINER_NAME="etcd_air_dev"
 CONTAINER_ARGS=$(etcd_container_args)
