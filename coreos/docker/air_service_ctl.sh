@@ -74,12 +74,6 @@ set -eo pipefail
     # stop local services
     stop_system
 
-    # remove local images
-    docker rmi $REGISTRY_URL/aircloak/air-installer || true
-    docker rmi $REGISTRY_URL/aircloak/air_backend || true
-    docker rmi $REGISTRY_URL/aircloak/air_router || true
-    docker rmi $REGISTRY_URL/aircloak/air_frontend || true
-
     # remove air files
     rm -rf /aircloak/air
 

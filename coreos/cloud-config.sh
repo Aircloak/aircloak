@@ -98,8 +98,14 @@ function run_command {
 function install_command {
   run_command '
         if [ ! -e /aircloak/air/install/.installed ]; then
-          until docker pull $REGISTRY_URL/aircloak/air-installer; do sleep 1; done &&
-          installer_id=$(docker create $REGISTRY_URL/aircloak/air-installer) &&
+          latest_version=$(
+                curl -s "$REGISTRY_URL/v2/aircloak/air-installer/tags/list" |
+                jq --raw-output ".tags | select(. != null) | .[]" |
+                sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
+                head -n 1
+              ) &&
+          until docker pull $REGISTRY_URL/aircloak/air-installer:$latest_version; do sleep 1; done &&
+          installer_id=$(docker create $REGISTRY_URL/aircloak/air-installer:$latest_version) &&
           docker cp $installer_id:aircloak - > /tmp/aircloak.tar &&
           docker stop $installer_id &&
           docker rm -v $installer_id &&

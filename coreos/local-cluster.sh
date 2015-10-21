@@ -10,7 +10,7 @@ function start_local_cluster {
   trap kill_cluster EXIT
 
   ../db/container.sh ensure_started
-  update_docker_registry
+  package_system
 
   num_machines=${1:-1}
 
@@ -25,6 +25,11 @@ function start_local_cluster {
   printf "To stop the system press Ctrl-C (only once)\n\n"
 
   wait
+}
+
+function package_system {
+  ../docker_registry/container.sh ensure_started
+  REGISTRY_URL="127.0.0.1:$(get_tcp_port prod registry/http)" ../package.sh
 }
 
 function kill_cluster {
@@ -46,14 +51,6 @@ function cleanup_background_processes {
 function start_machines {
   vagrant destroy -f
   vagrant up $(vagrant_names $1)
-}
-
-function update_docker_registry {
-  ../docker_registry/container.sh ensure_started
-  ./build-image.sh
-  ../router/build-image.sh
-  ../backend/build-image.sh
-  ../frontend/build-image.sh
 }
 
 function setup_machines {
@@ -177,6 +174,7 @@ function remove_machine {
 }
 
 function rolling_upgrade {
+  package_system
   all_machines=$(vagrant status)
 
   cluster_machine=$(echo "$all_machines" | grep "running" | awk '{print $1}' | head -n 1 || true)
@@ -218,6 +216,7 @@ case "$1" in
       printf "\nUsage:\n  $0 upgrade_machine machine_name\n\n"
       exit 1
     fi
+    package_system
     ./cluster.sh upgrade_machine $(machine_ip $1) || true
     ;;
 

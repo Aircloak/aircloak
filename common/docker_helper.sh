@@ -2,17 +2,6 @@
 
 . $(dirname ${BASH_SOURCE[0]})/../config/config.sh
 
-function push_to_registry {
-  if named_container_running air_docker_registry; then
-    REGISTRY_URL="127.0.0.1:$(get_tcp_port prod registry/http)"
-    echo "Pushing $1 to local registry"
-    docker tag -f aircloak/$1:latest $REGISTRY_URL/aircloak/$1:latest
-    docker push $REGISTRY_URL/aircloak/$1:latest
-  else
-    echo "Warning: local registry is not running, image not pushed."
-  fi
-}
-
 function named_container_running {
   if [ -z "$(docker ps --filter=name=$1 | grep -v CONTAINER)" ]; then
     return 1
@@ -103,6 +92,10 @@ function container_ctl {
       exit 0
       ;;
 
+    image_name)
+      echo "$DOCKER_IMAGE"
+      ;;
+
     *)
       commands="
         start - starts the container in background (restarts the running container)
@@ -113,6 +106,7 @@ function container_ctl {
         remote_console - opens an application session (e.g. Erlang or Rails console) in the running container
         console - starts the container in foreground (interactive)
         foreground - starts the container in foreground (non-interactive)
+        image_name - prints the image name
         $CUSTOM_COMMANDS
       "
 
@@ -133,12 +127,7 @@ function start_container {
   if [ "$REGISTRY_URL" != "" ]; then DOCKER_IMAGE="$REGISTRY_URL/$DOCKER_IMAGE"; fi
 
   if [ "$DOCKER_IMAGE_VERSION" == "" ]; then
-    DOCKER_IMAGE_VERSION=$(
-          find_images "$DOCKER_IMAGE" "" version |
-          grep -v latest |
-          sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
-          head -n 1 || true
-        )
+    DOCKER_IMAGE_VERSION=$(latest_version "$DOCKER_IMAGE")
 
     if [ "$DOCKER_IMAGE_VERSION" == "" ]; then
       echo "Can't find local image for $DOCKER_IMAGE."
@@ -153,11 +142,19 @@ function start_container {
   docker run $DOCKER_START_ARGS --name $CONTAINER_NAME $DOCKER_IMAGE $CONTAINER_ARGS
 }
 
+function latest_version {
+  echo "$(
+        find_images "$1" "" version |
+        grep -v latest |
+        sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
+        head -n 1 || true
+      )"
+}
+
 # Just like build_aircloak_image, but also versions the image and pushes it to the
 # registry.
 function build_production_image {
   build_aircloak_image "$@"
-  push_to_registry $1
   version_latest_image $1
 }
 
