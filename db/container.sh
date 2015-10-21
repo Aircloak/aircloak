@@ -8,8 +8,11 @@ cd $(dirname $0)
 
 ./ensure_persistent_volume.sh
 
-DOCKER_START_ARGS="-v /docker_volumes/air_db:/var/lib/postgresql/data \
-  -p $(get_tcp_port dev database/tcp):5432 \
-  aircloak/air_db:latest"
+DOCKER_IMAGE="aircloak/air_db:latest"
+DOCKER_START_ARGS="
+  -v /docker_volumes/air_db:/var/lib/postgresql/data
+  -p $(get_tcp_port dev database/tcp):5432
+"
+CONTAINER_NAME="air_db"
 
-container_ctl air_db $@
+container_ctl $@

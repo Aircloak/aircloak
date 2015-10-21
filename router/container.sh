@@ -8,15 +8,7 @@ cd $(dirname $0)
 STOP_SIGNAL=SIGQUIT
 STOP_TIMEOUT=30
 
-REGISTRY_URL=${REGISTRY_URL:-""}
-
-if [ "$REGISTRY_URL" != "" ]; then
-  REGISTRY_URL="$REGISTRY_URL""/"
-fi
-
-if [ "$AIR_HOST_NAME" != "" ]; then
-  docker_env="$docker_env -e AIR_HOST_NAME=$AIR_HOST_NAME"
-fi
+DOCKER_IMAGE="aircloak/air_router:latest"
 
 if [ "$AIR_ENV" = "prod" ]; then
   cert_folder="/aircloak/ca"
@@ -24,13 +16,11 @@ else
   cert_folder="$(pwd)/dev_cert"
 fi
 
-DOCKER_START_ARGS=" $docker_env \
-  -v $cert_folder:/aircloak/ca \
-  --net=host \
-  "$REGISTRY_URL"aircloak/air_router:latest \
-  /aircloak/router/docker/start.sh"
+DOCKER_START_ARGS="--net=host -v $cert_folder:/aircloak/ca"
+if [ "$AIR_HOST_NAME" != "" ]; then DOCKER_START_ARGS="$DOCKER_START_ARGS -e AIR_HOST_NAME=$AIR_HOST_NAME"; fi
 
-REMOTE_CONSOLE_COMMAND="/bin/bash"
+CONTAINER_NAME="air_router"
+CONTAINER_ARGS="/aircloak/router/docker/start.sh"
 
 case "$1" in
   maintenance_on)
@@ -45,7 +35,9 @@ case "$1" in
     CUSTOM_COMMANDS="
       maintenance_on - turns on the maintenance mode
       maintenance_off - turns off the maintenance mode
-    " container_ctl air_router $@
+    "
+
+    container_ctl $@
     ;;
 
 esac

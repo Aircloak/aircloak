@@ -6,13 +6,15 @@ cd $(dirname $0)
 . ./etcd_lib.sh
 . ../common/docker_helper.sh
 
-init_env test
-
-# Start etcd for configuration management
 log "Starting etcd_air_test"
 
-DOCKER_START_ARGS=$(docker_start_args)
-container_ctl etcd_air_test start
+init_env test
+DOCKER_IMAGE="quay.io/coreos/etcd:v2.0.6"
+DOCKER_START_ARGS="--net=host"
+CONTAINER_NAME="etcd_air_test"
+CONTAINER_ARGS=$(etcd_container_args)
+container_ctl start
+
 wait_for_etcd
 
 log "Creating required ETCD values for development"

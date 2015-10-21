@@ -51,17 +51,15 @@ function etcd_get {
     )
 }
 
-function docker_start_args {
+function etcd_container_args {
   echo "
-    --net=host \
-    quay.io/coreos/etcd:v2.0.6 \
-      -name etcd0 \
-      -advertise-client-urls http://127.0.0.1:$ETCD_CLIENT_PORT \
-      -listen-client-urls http://0.0.0.0:$ETCD_CLIENT_PORT \
-      -initial-advertise-peer-urls http://127.0.0.1:$ETCD_PEER_PORT \
-      -listen-peer-urls http://0.0.0.0:$ETCD_PEER_PORT \
-      -initial-cluster-token etcd-cluster-1 \
-      -initial-cluster etcd0=http://127.0.0.1:$ETCD_PEER_PORT \
+      -name etcd0
+      -advertise-client-urls http://127.0.0.1:$ETCD_CLIENT_PORT
+      -listen-client-urls http://0.0.0.0:$ETCD_CLIENT_PORT
+      -initial-advertise-peer-urls http://127.0.0.1:$ETCD_PEER_PORT
+      -listen-peer-urls http://0.0.0.0:$ETCD_PEER_PORT
+      -initial-cluster-token etcd-cluster-1
+      -initial-cluster etcd0=http://127.0.0.1:$ETCD_PEER_PORT
       -initial-cluster-state new"
 }
 

@@ -54,56 +54,51 @@ function stop_named_container {
 }
 
 function container_ctl {
-  container_name=$1
-  shift || true
-
   command=$1
-  shift || true
 
   case "$command" in
     start)
-      stop_named_container $container_name
-      echo "Starting container $container_name"
-      docker run -d $driver_arg $container_env --restart on-failure --name $container_name $DOCKER_START_ARGS
+      DOCKER_START_ARGS="$DOCKER_START_ARGS -d $driver_arg --restart on-failure"
+      start_container
+      ;;
+
+    console)
+      DOCKER_START_ARGS="--rm -it $DOCKER_START_ARGS"
+      start_container
+      ;;
+
+    foreground)
+      DOCKER_START_ARGS="--rm -i $DOCKER_START_ARGS"
+      start_container
       ;;
 
     ensure_started)
-      if ! named_container_running $container_name ; then
-        container_ctl $container_name start "$@"
+      if ! named_container_running $CONTAINER_NAME ; then
+        container_ctl $CONTAINER_NAME start "$@"
       fi
       ;;
 
     ensure_latest_version_started)
-      if latest_version_running $container_name; then
-        echo "$container_name already on the latest image version"
+      if latest_version_running $CONTAINER_NAME; then
+        echo "$CONTAINER_NAME already on the latest image version"
       else
-        echo "Restarting $container_name to ensure that the latest version is running."
-        container_ctl $container_name start "$@"
+        echo "Restarting $CONTAINER_NAME to ensure that the latest version is running."
+        container_ctl $CONTAINER_NAME start "$@"
       fi
       ;;
 
-    console)
-      stop_named_container $container_name
-      docker run --rm -it $container_env --name $container_name $DOCKER_START_ARGS
-      ;;
-
-    foreground)
-      stop_named_container $container_name
-      docker run --rm -i $container_env --name $container_name $DOCKER_START_ARGS
-      ;;
-
     ssh)
-      docker exec -i -t $container_name \
-        /bin/bash -c "TERM=xterm CONTAINER_NAME='$container_name' /bin/bash -l"
+      docker exec -i -t $CONTAINER_NAME \
+        /bin/bash -c "TERM=xterm CONTAINER_NAME='$CONTAINER_NAME' /bin/bash -l"
       ;;
 
     remote_console)
-      docker exec -i -t $container_name \
-        /bin/bash -c "TERM=xterm $REMOTE_CONSOLE_COMMAND"
+      docker exec -i -t $CONTAINER_NAME \
+        /bin/bash -c "TERM=xterm ${REMOTE_CONSOLE_COMMAND:-"/bin/bash"}"
       ;;
 
     stop)
-      stop_named_container $container_name
+      stop_named_container $CONTAINER_NAME
       exit 0
       ;;
 
@@ -131,6 +126,13 @@ function container_ctl {
       ;;
 
   esac
+}
+
+function start_container {
+  if [ "$REGISTRY_URL" != "" ]; then DOCKER_IMAGE="$REGISTRY_URL/$DOCKER_IMAGE"; fi
+  stop_named_container $CONTAINER_NAME
+  echo "Starting container $CONTAINER_NAME"
+  docker run $DOCKER_START_ARGS --name $CONTAINER_NAME $DOCKER_IMAGE $CONTAINER_ARGS
 }
 
 # Just like build_aircloak_image, but also versions the image and pushes it to the
