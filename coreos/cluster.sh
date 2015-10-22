@@ -38,8 +38,6 @@ function init_cluster {
   # At this point, all machines are installed and we should have the etcd cluster, so we can
   # do all subsequent actions on the first machine only, and it should affect the entire cluster.
 
-  configure_etcd $1
-
   # submit services
   ssh $1 "fleetctl submit \
         /aircloak/air/air-backend@.service \
@@ -83,7 +81,7 @@ function machine_id {
 
 function setup_machine {
   start_installation $1
-  upload_keys $1
+  upload_secrets $1
   follow_installation $1
 }
 
@@ -98,9 +96,16 @@ function start_installation {
   "
 }
 
-function upload_keys {
-  log_machine $1 "uploading keys"
-  ssh $1 "sudo mkdir -p /aircloak/ca && sudo chown core:core /aircloak/ca"
+function upload_secrets {
+  log_machine $1 "uploading secrets"
+
+  ssh $1 "
+    sudo mkdir -p /aircloak/etcd &&
+    sudo chown core:core /aircloak/etcd &&
+    sudo mkdir -p /aircloak/ca &&
+    sudo chown core:core /aircloak/ca
+  "
+  scp coreos_etcd $1:/aircloak/etcd/coreos
   scp ./ca/* $1:/aircloak/ca
 }
 
@@ -109,14 +114,6 @@ function follow_installation {
         while [ ! -e /aircloak/air/.installation_started ]; do sleep 1; done &&
         /aircloak/air/air_service_ctl.sh follow_installation
       "
-}
-
-function configure_etcd {
-  log_machine $1 "waiting for etcd"
-  until etcd_active $1; do sleep 1; done
-
-  log_machine $1 "configuring etcd"
-  ssh $1 "REGISTRY_URL='$REGISTRY_URL' DB_SERVER_URL='$DB_SERVER_URL' /aircloak/air/etcd/config_coreos.sh"
 }
 
 function etcd_active {
@@ -252,12 +249,11 @@ trap kill_background_jobs EXIT
 case "$1" in
   init)
     shift
-    if [ "$REGISTRY_URL" == "" ] || [ "DB_SERVER_URL" == "" ] || [ $# -eq 0 ]; then
+    if [ "$REGISTRY_URL" == "" ] || [ $# -eq 0 ]; then
       echo
       echo "Usage:"
       echo
       echo '  REGISTRY_URL=registry_ip[:registry_port] \'
-      echo '  DB_SERVER_URL=db_server_ip \'
       echo "  $0 init machine1_ip machine2_ip ..."
       echo
       exit 1
@@ -268,12 +264,11 @@ case "$1" in
 
   add_machine)
       shift
-      if [ "$REGISTRY_URL" == "" ] || [ "DB_SERVER_URL" == "" ] || [ $# -ne 2 ]; then
+      if [ "$REGISTRY_URL" == "" ] || [ $# -ne 2 ]; then
         echo
         echo "Usage:"
         echo
         echo '  REGISTRY_URL=registry_ip[:registry_port] \'
-        echo '  DB_SERVER_URL=db_server_ip \'
         echo "  $0 add_machine cluster_machine_ip new_machine_ip"
         echo
         exit 1

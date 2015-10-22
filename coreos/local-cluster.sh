@@ -57,9 +57,10 @@ function setup_machines {
   mkdir -p ./ca
   cp -rp ../router/dev_cert/* ca/
 
-  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
-  DB_SERVER_URL=$COREOS_HOST_IP \
-  ./cluster.sh init $(machine_ips $1)
+  # generate setting for local air_db
+  echo "etcd_set /settings/air/db/host $COREOS_HOST_IP" > ./coreos_etcd
+
+  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) ./cluster.sh init $(machine_ips $1)
 }
 
 function machine_ips {
@@ -130,9 +131,7 @@ function add_machine {
   new_machine_ip="$(machine_ip $new_machine)"
 
   # add machine to the cluster
-  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
-  DB_SERVER_URL=$COREOS_HOST_IP \
-  ./cluster.sh add_machine $cluster_machine_ip $new_machine_ip
+  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) ./cluster.sh add_machine $cluster_machine_ip $new_machine_ip
 
   # update balancer configuration
   echo "$new_machine_ip" >> ../balancer/config/routers

@@ -3,3 +3,4 @@
 /local_balancer.conf
 /ca/
 /tmp/
+/coreos_etcd
