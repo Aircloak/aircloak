@@ -69,17 +69,6 @@ function cloud_config {
           RemainAfterExit=yes
           Environment="REGISTRY_URL=$REGISTRY_URL"
           ExecStart=$(install_command)
-
-      - name: air-keys.service
-        command: start
-        content: |
-          [Unit]
-          Description=Air key checker
-
-          [Service]
-          Type=oneshot
-          RemainAfterExit=yes
-          ExecStart=$(air_key_command)
 EOF
 }
 
@@ -115,17 +104,5 @@ function install_command {
         else
           echo "air already installed";
         fi
-      '
-}
-
-function air_key_command {
-  run_command '
-        while
-          [ ! -e /aircloak/ca/acinfra.aircloak.com.pem ] ||
-          [ ! -e /aircloak/ca/aircloak.com.chain.pem ] ||
-          [ ! -e /aircloak/ca/api.cert ] ||
-          [ ! -e /aircloak/ca/api.key ]; do
-            echo "waiting for air keys" && sleep 5;
-        done && echo "got air keys"
       '
 }

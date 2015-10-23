@@ -1,19 +1,20 @@
 [Unit]
 Description=Air frontend
-After=etcd2.service
-After=docker.service
-After=air-keys.service
-After=air-router@%i.service
-BindsTo=air-router@%i.service
-Requires=etcd2.service
-Requires=docker.service
-Requires=air-router@%i.service
+
+After=air-prerequisites.service
+Wants=air-prerequisites.service
+Requires=air-prerequisites.service
+BindsTo=air-prerequisites.service
 
 [Service]
 TimeoutStartSec=0
 ExecStart=/aircloak/air/air_service_ctl.sh start_service frontend
 ExecStop=/aircloak/air/air_service_ctl.sh stop_service frontend
+Restart=on-failure
 
 [X-Fleet]
 Conflicts=air-frontend@*.service
-MachineOf=air-router@%i.service
+MachineOf=air-system@%i.service
+
+[Install]
+WantedBy=multi-user.target

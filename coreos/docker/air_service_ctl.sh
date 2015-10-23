@@ -9,70 +9,33 @@ set -eo pipefail
   # export air environment vars
   export $(cat /aircloak/air/environment | xargs)
 
-  function start_system {
-    remove_inactive_units
-
-    start_local_service air-router
-    start_local_service air-backend
-    start_local_service air-frontend
-    start_local_service air-frontend-discovery
-  }
-
   function stop_system {
-    stop_local_service air-frontend-discovery
-    stop_local_service air-frontend
-    stop_local_service air-backend
-    stop_local_service air-router
+    systemctl stop air-prerequisites
   }
 
   function check_system {
     active_services=$(
           systemctl list-units |
-          egrep 'air\-.*@' |
-          grep 'active' |
-          awk '{print $1}' |
-          sed "s/@[0-9]*.service//" |
+          grep 'air\-' |
+          awk '{ if ($2 == "loaded" && $3 == "active") print $1}' |
+          sed "s/.service//" |
           sort |
           tr '\n' ' ' |
           sed 's/\s*$//' || true
         )
-    if [ "$active_services" == "air-backend air-frontend air-frontend-discovery air-router" ]; then
+    if [ "$active_services" == "air-backend air-frontend air-frontend-sidekick air-installer air-prerequisites air-router" ]; then
       echo "yes"
     else
       echo "no"
     fi
   }
 
-  function start_local_service {
-    # determine the next id
-    max_id=$(
-          fleetctl list-units |
-            grep "$1@" |
-            awk '{print $1}' |
-            sed "s/$1@//; s/\.service//" |
-            sort |
-            tail -n 1 || true
-        )
-    max_id=${max_id:-0}
-    next_id=$((max_id + 1))
-
-    echo "Starting $1@$next_id..."
-    fleetctl start $1@$next_id
-  }
-
-  function stop_local_service {
-    service=$(systemctl list-units | egrep "$1@.*\.service" | awk '{print $1}' || true)
-
-    if [ "$service" != "" ]; then
-      echo "Stopping $service"
-      fleetctl stop "$service" || true
-      fleetctl destroy "$service" || true
-    fi
-  }
-
   function upgrade_system {
     # stop local services
     stop_system
+
+    # remove old service files if they exist
+    rm `ls -1 /etc/systemd/system/air-* | grep -v 'air-installer'` || true
 
     # remove air files
     rm -rf /aircloak/air
@@ -91,9 +54,6 @@ set -eo pipefail
       echo "Installation not yet finished"
       sleep 2
     done
-
-    # start the newly installed system
-    start_system
   }
 
   function follow_installation {
@@ -107,19 +67,6 @@ set -eo pipefail
     {
       kill -9 $pid && wait $pid 2>/dev/null
     } || true
-  }
-
-  function remove_inactive_units {
-    for unit in $(inactive_units); do
-      fleetctl destroy $unit
-    done
-  }
-
-  function inactive_units {
-    fleetctl list-unit-files | \
-    egrep 'air\-.*@[0-9]+' | \
-    grep inactive | \
-    awk '{print $1}' || true
   }
 
 
@@ -140,10 +87,6 @@ set -eo pipefail
 
     stop_system)
       stop_system
-      ;;
-
-    remove_inactive_units)
-      remove_inactive_units
       ;;
 
     upgrade_system)

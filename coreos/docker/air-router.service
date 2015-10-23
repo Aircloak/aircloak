@@ -1,0 +1,16 @@
+[Unit]
+Description=Air router
+
+After=air-prerequisites.service
+Wants=air-prerequisites.service
+Requires=air-prerequisites.service
+BindsTo=air-prerequisites.service
+
+[Service]
+TimeoutStartSec=0
+ExecStart=/aircloak/air/air_service_ctl.sh start_service router
+ExecStop=/aircloak/air/air_service_ctl.sh stop_service router
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

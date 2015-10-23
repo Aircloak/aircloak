@@ -1,8 +1,10 @@
 [Unit]
-Description=Air frontend discovery service
-BindsTo=air-frontend@%i.service
-After=air-frontend@%i.service
-Requires=air-frontend@%i.service
+Description=Air frontend sidekick service
+
+After=air-frontend.service
+Wants=air-frontend.service
+BindsTo=air-frontend.service
+Requires=air-frontend.service
 
 [Service]
 EnvironmentFile=/etc/environment
@@ -10,6 +12,5 @@ ExecStart=/bin/sh -c "sleep infinity"
 ExecStop=/bin/bash -c "/usr/bin/etcdctl --endpoint $ETCD_CLIENT rm /service_instances/frontends/${AIR_HOST_NAME} || true"
 EnvironmentFile=/aircloak/air/environment
 
-[X-Fleet]
-Conflicts=air-frontend-discovery@*.service
-MachineOf=air-frontend@%i.service
+[Install]
+WantedBy=multi-user.target

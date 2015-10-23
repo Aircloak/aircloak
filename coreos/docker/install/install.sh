@@ -41,6 +41,13 @@ function configure_etcd {
   /aircloak/air/etcd/config_coreos.sh
 }
 
+function install_air_service {
+  cp -rp /aircloak/air/$1.service /etc/systemd/system/
+  systemctl enable /etc/systemd/system/$1.service
+  systemctl start $1.service
+}
+
+
 # Setup common environment
 cat /etc/environment >> /aircloak/air/environment
 echo "REGISTRY_URL=$REGISTRY_URL" >> /aircloak/air/environment
@@ -58,3 +65,10 @@ pull_docker_image aircloak/air_frontend
 
 # Purge memory, because it seems to affect starting of Docker containers
 sync && echo 3 > /proc/sys/vm/drop_caches
+
+# Install air services
+install_air_service air-prerequisites
+install_air_service air-router
+install_air_service air-backend
+install_air_service air-frontend
+install_air_service air-frontend-sidekick

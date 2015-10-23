@@ -1,0 +1,20 @@
+[Unit]
+Description=Air prerequisites
+
+After=air-install.service
+
+After=etcd2.service
+Requires=etcd2.service
+BindsTo=etcd2.service
+
+After=docker.service
+Requires=docker.service
+BindsTo=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/aircloak/air/prerequisites.sh
+
+[Install]
+WantedBy=multi-user.target

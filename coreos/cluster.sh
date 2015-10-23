@@ -34,24 +34,6 @@ function init_cluster {
   done
 
   wait
-
-  # At this point, all machines are installed and we should have the etcd cluster, so we can
-  # do all subsequent actions on the first machine only, and it should affect the entire cluster.
-
-  # submit services
-  ssh $1 "fleetctl submit \
-        /aircloak/air/air-backend@.service \
-        /aircloak/air/air-frontend@.service \
-        /aircloak/air/air-frontend-discovery@.service \
-        /aircloak/air/air-router@.service
-      "
-
-  # start services on each machine
-  for ip in "$@"; do
-    # We always run the command on the same machine. Fleet will make sure to
-    # start services on different machines.
-    ssh $1 "/aircloak/air/air_service_ctl.sh start_system"
-  done
 }
 
 function check_machine {
@@ -136,9 +118,6 @@ function add_machine {
   current_cluster="$(etcd_cluster $cluster_machine)"
 
   etcd_peer_port=$(get_tcp_port prod etcd/peer)
-
-  # Remove extra units (possible leftovers from previous machines)
-  ssh $1 "/aircloak/air/air_service_ctl.sh remove_inactive_units"
 
   # add new machine to the cluster
   machine_id=$(machine_id $new_machine)
