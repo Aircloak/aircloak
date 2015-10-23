@@ -45,7 +45,7 @@ function remove_machine {
 
   if [ "$etcd_machine_id" != "" ]; then
     # Attempt to gracefully stop local services (in the case of running machine)
-    ssh $machine_to_remove "/aircloak/air/air_service_ctl.sh stop_system" || true
+    ssh $machine_to_remove "sudo /aircloak/air/air_service_ctl.sh stop_system" || true
 
     # Remove the machine from the cluster.
     cluster_etcdctl $cluster_machine member remove $etcd_machine_id
