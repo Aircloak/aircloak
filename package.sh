@@ -36,3 +36,10 @@ build_and_push coreos
 build_and_push router
 build_and_push backend
 build_and_push frontend
+
+# Remove all local repo tags. We don't need those, since the image is tagged
+# anyway, and this allows us proper local cleanup of older images.
+repo_tags=$(docker images | grep "$REGISTRY_URL" | awk '{print $1":"$2}')
+if [ "$repo_tags" != "" ]; then
+  docker rmi $repo_tags
+fi
