@@ -117,6 +117,7 @@ function machine_ip {
 
 function ssh_config {
   trap kill_cluster EXIT
+  rm -rf tmp/cloud-config > /dev/null 2>&1 || true
   vagrant up
 
   all_machines=$(vagrant status | grep running | awk '{print $1}')
@@ -253,11 +254,11 @@ case "$1" in
     rolling_upgrade
     ;;
 
-  ssh-config)
+  ssh_config)
     ssh_config
     ;;
 
   *)
-    printf "\nUsage:\n  $0 start | add_machine | remove_machine | upgrade_machine | rolling_upgrade | ssh-config\n\n"
+    printf "\nUsage:\n  $0 start | add_machine | remove_machine | upgrade_machine | rolling_upgrade | ssh_config\n\n"
     ;;
 esac
