@@ -6,6 +6,9 @@ set -eo pipefail
 # parse the whole code. This allows the script to remove itself while uninstalling
 # the system, and bash can still execute the code.
 {
+  . /etc/environment
+  . /aircloak/air/common/docker_helper.sh
+
   # export air environment vars
   export $(cat /aircloak/air/environment | xargs)
 
@@ -23,11 +26,26 @@ set -eo pipefail
           tr '\n' ' ' |
           sed 's/\s*$//' || true
         )
-    if [ "$active_services" == "air-backend air-frontend air-frontend-sidekick air-installer air-prerequisites air-router" ]; then
-      echo "yes"
+    if
+      [ "$active_services" == "air-backend air-frontend air-frontend-sidekick air-installer air-prerequisites air-router" ] &&
+      [ "$(http_code $(get_tcp_port prod router/http))" == "403" ] &&
+      [ "$(http_code $(get_tcp_port prod air_frontend/http))" == "302" ] &&
+      [ "$(http_code $(get_tcp_port prod air_backend/http))" == "404" ]
+    then
+      return 0
     else
-      echo "no"
+      return 1
     fi
+  }
+
+  function http_code {
+    curl -s -w %{http_code} --output /dev/null http://127.0.0.1:$1 || true
+  }
+
+  function wait_until_system_is_up {
+    while ! check_system; do
+      sleep 1
+    done
   }
 
   function upgrade_system {
@@ -54,6 +72,11 @@ set -eo pipefail
       echo "Installation not yet finished"
       sleep 2
     done
+
+    echo "Waiting for services to start ..."
+
+    # Invoke the new version of the script
+    /aircloak/air/air_service_ctl.sh wait_until_system_is_up
   }
 
   function follow_installation {
@@ -81,10 +104,6 @@ set -eo pipefail
       AIR_ENV=prod /aircloak/air/$1/container.sh stop
       ;;
 
-    start_system)
-      start_system
-      ;;
-
     stop_system)
       stop_system
       ;;
@@ -97,8 +116,8 @@ set -eo pipefail
       follow_installation
       ;;
 
-    check_system)
-      check_system
+    wait_until_system_is_up)
+      wait_until_system_is_up
       ;;
 
     *)

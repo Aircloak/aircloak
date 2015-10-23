@@ -71,25 +71,7 @@ function cluster_etcdctl {
 
 function upgrade_machine {
   ssh $1 "sudo /aircloak/air/air_service_ctl.sh upgrade_system"
-
-  echo "Waiting for services to start..."
-  retry=0
-  while ! check_system $1; do
-    retry=$((retry + 1))
-    if [ $retry -gt 10 ]; then
-      echo "Machine $1 services are not running! Please check the machine status, and reinstall if needed."
-      exit 1
-    fi
-
-    sleep 5
-  done
-
   echo "Machine $1 upgraded."
-}
-
-function check_system {
-  system_ok=$(ssh $1 "/aircloak/air/air_service_ctl.sh check_system")
-  if [ "$system_ok" == "yes" ]; then return 0; else return 1; fi
 }
 
 function rolling_upgrade {

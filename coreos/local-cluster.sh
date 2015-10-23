@@ -86,6 +86,9 @@ function follow_installation {
         while [ ! -e /aircloak/air/.installation_started ]; do sleep 1; done &&
         /aircloak/air/air_service_ctl.sh follow_installation
       "
+
+  echo "Waiting for services to start ..."
+  ssh $1 "/aircloak/air/air_service_ctl.sh wait_until_system_is_up"
 }
 
 function machine_ips {
