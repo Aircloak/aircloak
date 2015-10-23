@@ -145,12 +145,20 @@ function add_machine {
     exit 1
   fi
 
-  vagrant up $new_machine
   cluster_machine_ip="$(machine_ip $cluster_machine)"
   new_machine_ip="$(machine_ip $new_machine)"
 
   # add machine to the cluster
-  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) ./cluster.sh add_machine $cluster_machine_ip $new_machine_ip
+  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
+  ./cluster.sh add_machine $cluster_machine_ip $new_machine_ip
+
+  # start the new machine
+  vagrant up $new_machine
+
+  # upload secrets and wait for the installation to finish
+  follow_installation $new_machine_ip &
+  upload_secrets $new_machine_ip &
+  wait
 
   # update balancer configuration
   echo "$new_machine_ip" >> ../balancer/config/routers

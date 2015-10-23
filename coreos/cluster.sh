@@ -9,40 +9,29 @@ cd $(dirname $0)
 
 function generate_cloud_config {
   mkdir -p tmp
-  MACHINES="$@" cloud_config > tmp/cloud-config
+
+  MACHINES="$@" INITIAL_CLUSTER_STATE=${INITIAL_CLUSTER_STATE:-"new"} \
+  cloud_config > tmp/cloud-config
 }
 
 function add_machine {
   cluster_machine=$1
   new_machine=$2
 
-  check_machine $new_machine
-
   current_cluster="$(etcd_cluster $cluster_machine)"
-
   etcd_peer_port=$(get_tcp_port prod etcd/peer)
 
   # add new machine to the cluster
-  machine_id=$(machine_id $new_machine)
-  cluster_etcdctl $1 member add $machine_id "http://$new_machine:$etcd_peer_port"
+  cluster_etcdctl $1 member add $new_machine "http://$new_machine:$etcd_peer_port" >&2
 
-  # generate cloud-config
-  mkdir -p tmp
-
-  MACHINES="$(echo "$current_cluster" && echo "$new_machine,$machine_id")" \
-  INITIAL_CLUSTER_STATE=existing \
-  cloud_config > tmp/cloud-config
-
-  # setup the new machine
-  setup_machine $new_machine
-
-  # start new instances of air services
-  ssh $new_machine "/aircloak/air/air_service_ctl.sh start_system"
+  # generate cloud-config for the new machine
+  cluster_machines=$(printf "$current_cluster\n$new_machine\n" | paste -sd " " -)
+  INITIAL_CLUSTER_STATE=existing generate_cloud_config $cluster_machines
 }
 
 function etcd_cluster {
   cluster_etcdctl $1 member list | \
-  awk '{print $3 "," $2}' | \
+  awk '{print $3}' | \
   sed "s#peerURLs=http://##; s#name=##; s#:[0-9]*##" | \
   sort |
   uniq
