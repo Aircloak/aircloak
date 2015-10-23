@@ -6,7 +6,7 @@ function cloud_config {
 #cloud-config
     coreos:
       etcd2:
-        name: "%m"
+        name: "\$public_ipv4"
         advertise-client-urls: http://\$public_ipv4:$ETCD_CLIENT_PORT
         initial-advertise-peer-urls: http://\$public_ipv4:$ETCD_PEER_PORT
         listen-client-urls: http://0.0.0.0:$ETCD_CLIENT_PORT
@@ -73,9 +73,8 @@ EOF
 }
 
 function initial_cluster {
-  for machine in $MACHINES; do
-    IFS="," read ip id <<< "$machine"
-    echo "$id=http://$ip:$ETCD_PEER_PORT"
+  for ip in $MACHINES; do
+    echo "$ip=http://$ip:$ETCD_PEER_PORT"
   done | paste -sd "," -
 }
 

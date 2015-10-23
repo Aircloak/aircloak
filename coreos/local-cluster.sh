@@ -14,12 +14,27 @@ function start_local_cluster {
 
   num_machines=${1:-1}
 
+  # generate setting for local air_db
+  echo "etcd_set /settings/air/db/host $COREOS_HOST_IP" > ./coreos_etcd
+
+  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
+  ./cluster.sh generate_cloud_config $(machine_ips $num_machines)
+
   start_machines $num_machines
-  setup_machines $num_machines
-  log_air_services $num_machines
+
+  for machine_ip in $(machine_ips $num_machines); do
+    follow_installation $machine_ip &
+    upload_secrets $machine_ip &
+  done
+  wait
+
+  for machine_ip in $(machine_ips $num_machines); do
+    ssh $machine_ip "journalctl -f -u air-*" &
+  done
+
   start_local_balancer $num_machines
 
-  sleep 5
+  sleep 10
   printf "\nCluster started!\n"
   printf "You can access the site at https://frontend.air-local:$(get_tcp_port prod balancer/https)\n"
   printf "To stop the system press Ctrl-C (only once)\n\n"
@@ -53,14 +68,24 @@ function start_machines {
   vagrant up $(vagrant_names $1)
 }
 
-function setup_machines {
-  mkdir -p ./ca
-  cp -rp ../router/dev_cert/* ca/
+function upload_secrets {
+  echo "$1 uploading secrets"
 
-  # generate setting for local air_db
-  echo "etcd_set /settings/air/db/host $COREOS_HOST_IP" > ./coreos_etcd
+  ssh $1 "
+    sudo mkdir -p /aircloak/etcd &&
+    sudo chown core:core /aircloak/etcd &&
+    sudo mkdir -p /aircloak/ca &&
+    sudo chown core:core /aircloak/ca
+  "
+  scp coreos_etcd $1:/aircloak/etcd/coreos
+  scp ./ca/* $1:/aircloak/ca
+}
 
-  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) ./cluster.sh init $(machine_ips $1)
+function follow_installation {
+  ssh $1 "
+        while [ ! -e /aircloak/air/.installation_started ]; do sleep 1; done &&
+        /aircloak/air/air_service_ctl.sh follow_installation
+      "
 }
 
 function machine_ips {
@@ -85,12 +110,6 @@ function start_local_balancer {
 function machine_ip {
   machine_num=$(echo $1 | sed s/air-\0//)
   echo "192.168.55.$((100 + $machine_num))"
-}
-
-function log_air_services {
-  for machine_num in $(seq 1 $1); do
-    ssh "$(machine_ip $machine_num)" "journalctl -f -u air-*"&
-  done
 }
 
 function ssh_config {
