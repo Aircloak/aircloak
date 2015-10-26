@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# This is the installer script that runs on the CoreOS machine on first boot.
+# The installer pulls required images, populates local etcd instance, and sets
+# up local systemd services.
+
 set -eo pipefail
 
 . /etc/environment

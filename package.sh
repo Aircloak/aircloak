@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+# This is a package script meant to be run on the "build server". Its purpose is
+# to create most recent images of our services, version them, and push them to the
+# docker registry.
+#
+# Usage: REGISTRY_URL=registry_url ./package.sh
+# where REGISTRY_URL is in format registry_ip:tcp_port
+
 set -eo pipefail
 
 cd $(dirname $0)

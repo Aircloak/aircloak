@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# This is a helper script for manipulation of the local Vagrant powered CoreOS
+# cluster. Internally, it relies on `./cluster.sh` script, but adds some more
+# functionality, such as booting/shutting down of Vagrant machines, uploading
+# secrets, tailing logs, and starting local Docker dependencies (registry,
+# database, balancer).
+#
+# See `README.md` for usage description.
+
 set -eo pipefail
 
 cd $(dirname $0)

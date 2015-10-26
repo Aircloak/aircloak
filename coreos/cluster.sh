@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# This is a helper script meant to be run on the "provisioning server". The script
+# can be used to:
+#
+#   - create initial cloud configuration
+#   - reconfigure the cluster (add/remove members)
+#   - upgrade individual machines or the entire cluster
+#
+# See `README.md` for usage description.
+
 set -eo pipefail
 
 cd $(dirname $0)
