@@ -106,9 +106,10 @@ function install_command {
           docker rm -v $installer_id &&
           cd /tmp/ && tar -xf aircloak.tar -C / && rm aircloak.tar &&
           /aircloak/air/install/install.sh &&
-          touch /aircloak/air/install/.installed;
+          touch /aircloak/air/install/.installed &&
+          echo "Air system successfully installed!"
         else
-          echo "air already installed";
+          echo "Air system already installed.";
         fi
       '
 }
