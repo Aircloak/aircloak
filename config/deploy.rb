@@ -66,7 +66,9 @@ namespace :aircloak do
       exec_ml(install_init_script_cmd("air"))
       exec_ml(install_init_script_cmd("iptables_rules"))
       execute "/etc/init.d/iptables_rules"
-      exec_ml(set_stage_names)
+
+      # Override site names in stage environment
+      exec_ml(set_stage_names) if fetch(:stage) == :stage
     end
   end
 
