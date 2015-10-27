@@ -1,8 +1,13 @@
+# This is the "base" unit where we specify requirements for the Air system. All
+# other air units will depend on this unit.
+#
+# For description of unit options, such as After, Requires, BindsTo, see
+# http://www.freedesktop.org/software/systemd/man/systemd.unit.html
+
 [Unit]
 Description=Air prerequisites
 
 After=air-install.service
-
 After=etcd2.service
 Requires=etcd2.service
 BindsTo=etcd2.service

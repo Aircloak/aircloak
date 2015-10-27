@@ -55,6 +55,9 @@ function cloud_config {
       - name: air-installer.service
         command: start
         content: |
+          # For description of unit options, such as After, Requires, BindsTo, see
+          # http://www.freedesktop.org/software/systemd/man/systemd.unit.html
+
           [Unit]
           Description=Air machine install
           After=docker.service
@@ -65,6 +68,10 @@ function cloud_config {
           Requires=fleet.service
 
           [Service]
+          # This is a oneshot service (a script that does the job and then finishes).
+          # We use RemainAfterExit to have the systemd unit in status running, even after the script finished.
+          # This allows subsequent air services to depend on this service, so they are executed only after
+          # the installation has finished.
           Type=oneshot
           RemainAfterExit=yes
           Environment="REGISTRY_URL=$REGISTRY_URL"
