@@ -170,16 +170,28 @@ This versioning scheme allows us to:
 
 ## Deploying
 
-Simply run `bundle exec cap production deploy`, which should deploy the entire air system and migrate the database. Note that only modified services will be restarted. If the docker image is not changed during the deploy build, the container will not be restarted.
+Depending on where you want to deploy (production or stage), you can use following commands:
 
-If for some reasons you still need to restart a particular service, you can log on to the production machine and run `/aircloak/air/service/container.sh start` (which will implicitly stop the running container).
+```
+# deploy to production
+bundle exec cap production deploy
 
-To deploy from a specific branch, you can run `AIR_DEPLOY_BRANCH=another_branch bundle exec cap production deploy`.
+# deploy to stage
+bundle exec cap stage deploy
+```
+
+This will deploy the entire air system and migrate the database. Note that only modified services will be restarted. If the docker image is not changed during the deploy build, the container will not be restarted.
+
+If for some reasons you still need to restart a particular service, you can log on to the production machine and run `AIR_ENV=prod /aircloak/air/service/container.sh start` (which will implicitly stop the running container).
+
+To deploy from a specific branch, you can run `AIR_DEPLOY_BRANCH=another_branch bundle exec cap target deploy`.
 If you want to deploy current branch, assuming you're not in the detached head state, you can run:
 
 ```
-AIR_DEPLOY_BRANCH=$(git symbolic-ref --short HEAD) bundle exec cap production deploy
+AIR_DEPLOY_BRANCH=$(git symbolic-ref --short HEAD) bundle exec cap target deploy
 ```
+
+Where `target` is `production` or `stage`.
 
 Note that this will work only if the current branch is pushed to the origin.
 
