@@ -45,12 +45,6 @@ function configure_etcd {
   /aircloak/air/etcd/config_coreos.sh
 }
 
-function install_air_service {
-  cp -rp /aircloak/air/$1.service /etc/systemd/system/
-  systemctl enable /etc/systemd/system/$1.service
-  systemctl start $1.service
-}
-
 
 # Setup common environment
 cat /etc/environment >> /aircloak/air/environment
@@ -70,9 +64,56 @@ pull_docker_image aircloak/air_frontend
 # Purge memory, because it seems to affect starting of Docker containers
 sync && echo 3 > /proc/sys/vm/drop_caches
 
-# Install air services
-install_air_service air-prerequisites
-install_air_service air-router
-install_air_service air-backend
-install_air_service air-frontend
-install_air_service air-frontend-sidekick
+# Copy service files
+for service in air-prerequisites air-router air-backend air-frontend air-frontend-sidekick; do
+  cp -rp /aircloak/air/$service.service /etc/systemd/system/
+done
+
+
+# Get the initial cloud config contents without the installer service
+initial_cloud_config_without_installer=$(
+      cat /var/lib/coreos-install/user_data |
+      sed '/- name: air-installer.service/q' |
+      sed '$d'
+    )
+
+# Get installer service contents, omitting the `command` directive, which effectively makes this service
+# disabled. In other words, we'll keep the service but won't start it automatically again.
+# The main reason for this is that we're reinitializing the cloud below. If this service was designated to be
+# started, then we'll end up in a deadlock, with installer service trying to start itself. Thus, we
+# simply disable the service, but still keep it in cloud config, so we can use it for subsequent updates.
+disabled_installer=$(
+      cat /var/lib/coreos-install/user_data |
+      sed -n '/- name: air-installer.service/,$p' |
+      grep -v 'command: start'
+    )
+
+final_cloud_config=$(
+  cat <<EOF
+$initial_cloud_config_without_installer
+$disabled_installer
+
+      - name: air-prerequisites.service
+        command: start
+
+      - name: air-router.service
+        command: start
+
+      - name: air-backend.service
+        command: start
+
+      - name: air-frontend.service
+        command: start
+
+      - name: air-frontend-sidekick.service
+        command: start
+EOF
+)
+
+echo "$final_cloud_config" > /var/lib/coreos-install/user_data
+
+echo "Applying the new cloud-config..."
+coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
+
+touch /aircloak/air/install/.installed
+echo "Air system successfully installed!"

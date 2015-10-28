@@ -27,7 +27,7 @@ set -eo pipefail
           sed 's/\s*$//' || true
         )
     if
-      [ "$active_services" == "air-backend air-frontend air-frontend-sidekick air-installer air-prerequisites air-router" ] &&
+      [ "$active_services" == "air-backend air-frontend air-frontend-sidekick air-prerequisites air-router" ] &&
       [ "$(http_code $(get_tcp_port prod router/http))" == "403" ] &&
       [ "$(http_code $(get_tcp_port prod air_frontend/http))" == "302" ] &&
       [ "$(http_code $(get_tcp_port prod air_backend/http))" == "404" ]

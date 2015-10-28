@@ -62,18 +62,9 @@ function cloud_config {
           Description=Air machine install
           After=docker.service
           After=etcd2.service
-          After=fleet.service
-          Requires=docker.service
-          Requires=etcd2.service
-          Requires=fleet.service
 
           [Service]
-          # This is a oneshot service (a script that does the job and then finishes).
-          # We use RemainAfterExit to have the systemd unit in status running, even after the script finished.
-          # This allows subsequent air services to depend on this service, so they are executed only after
-          # the installation has finished.
           Type=oneshot
-          RemainAfterExit=yes
           Environment="REGISTRY_URL=$REGISTRY_URL"
           ExecStart=$(install_command)
 EOF
@@ -92,24 +83,18 @@ function run_command {
 
 function install_command {
   run_command '
-        if [ ! -e /aircloak/air/install/.installed ]; then
-          latest_version=$(
-                curl -s "$REGISTRY_URL/v2/aircloak/air-installer/tags/list" |
-                jq --raw-output ".tags | select(. != null) | .[]" |
-                sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
-                head -n 1
-              ) &&
-          until docker pull $REGISTRY_URL/aircloak/air-installer:$latest_version; do sleep 1; done &&
-          installer_id=$(docker create $REGISTRY_URL/aircloak/air-installer:$latest_version) &&
-          docker cp $installer_id:aircloak - > /tmp/aircloak.tar &&
-          docker stop $installer_id &&
-          docker rm -v $installer_id &&
-          cd /tmp/ && tar -xf aircloak.tar -C / && rm aircloak.tar &&
-          /aircloak/air/install/install.sh &&
-          touch /aircloak/air/install/.installed &&
-          echo "Air system successfully installed!"
-        else
-          echo "Air system already installed.";
-        fi
+        latest_version=$(
+              curl -s "$REGISTRY_URL/v2/aircloak/air-installer/tags/list" |
+              jq --raw-output ".tags | select(. != null) | .[]" |
+              sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
+              head -n 1
+            ) &&
+        until docker pull $REGISTRY_URL/aircloak/air-installer:$latest_version; do sleep 1; done &&
+        installer_id=$(docker create $REGISTRY_URL/aircloak/air-installer:$latest_version) &&
+        docker cp $installer_id:aircloak - > /tmp/aircloak.tar &&
+        docker stop $installer_id &&
+        docker rm -v $installer_id &&
+        cd /tmp/ && tar -xf aircloak.tar -C / && rm aircloak.tar &&
+        /aircloak/air/install/install.sh
       '
 }
