@@ -19,7 +19,7 @@ most_recent_version =
 puts "Starting with CoreOS #{most_recent_version}" if ARGV[0] == "up"
 
 $vm_memory = 768
-$image_version = $most_recent_version
+$image_version = most_recent_version
 $enable_serial_logging = false
 $share_home = false
 $vm_gui = false
