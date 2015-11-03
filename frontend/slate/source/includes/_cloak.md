@@ -60,8 +60,16 @@ wget --content-on-error \
      --certificate=<path-to-PEM-certificate> \
      --body-file=locations.json \
      --no-check-certificate \
-     --header="Content-Type: application/json" \
+     --header='Content-Type: application/json' \
      https://<cloak-server>.cloak.aircloak.com/insert
+
+  OR
+
+curl -k -X POST
+    --data-binary @locations.json \
+    --cert <path-to-PEM-certificate> \
+    -H 'Content-Type: application/json' \
+    https://<cloak-server>.cloak.aircloak.com/insert
 ```
 
 The single user API endpoint is useful if you want to upload data directly from a single users device.
@@ -207,8 +215,16 @@ wget --content-on-error \
      --certificate=<path-to-PEM-certificate> \
      --body-file=locations.json \
      --no-check-certificate \
-     --header="Content-Type: application/json" \
+     --header='Content-Type: application/json' \
      https://<cloak-server>.cloak.aircloak.com/bulk_insert
+
+  OR
+
+curl -k -X POST
+    --data-binary @locations.json \
+    --cert <path-to-PEM-certificate> \
+    -H 'Content-Type: application/json' \
+    https://<cloak-server>.cloak.aircloak.com/bulk_insert
 ```
 
 The bulk insert API is useful when uploading data from a system where you have access to data for
@@ -350,16 +366,13 @@ cat > task.json <<EOJSON
   }
 EOJSON
 
-# The below headers are required when
-# executing a task asynchronously.
-# You can also execute the task synchronously
-# by leaving out the headers.
-# PLEASE NOTE: asynchronous queries only work
-# when run against a cloak you host within your
-# own firewall perimeter where the cloak can
-# reach the endpoint. When run agaist an
-# Aircloak hosted cloak, manually issued
+# The below headers are required when executing a task asynchronously.
+# You can also execute the task synchronously by leaving out the headers.
+# PLEASE NOTE: asynchronous queries only work when run against a cloak
+# you host within your own firewall perimeter where the cloak can reach
+# the endpoint. When run agaist an Aircloak hosted cloak, manually issued
 # asynchronous tasks will not work!
+
 wget --content-on-error \
      --output-document - \
      --method=POST \
@@ -369,9 +382,21 @@ wget --content-on-error \
      --header='auth_token: <Auth-token understood by your endpoint>' \
      --header='return_url: <Base64-encoded endpoint URL>' \
      --header='task_id: my-task' \
-     --header="Content-Type: application/json" \
+     --header='Content-Type: application/json' \
      --no-check-certificate \
      https://<cloak-server>.cloak.aircloak.com/task/run
+
+  OR
+
+curl -k -X POST
+    --data-binary @task.json \
+    --cert <path-to-PEM-certificate> \
+    -H 'async_query: true' \
+    -H 'auth_token: <Auth-token understood by your endpoint>' \
+    -H 'return_url: <Base64-encoded endpoint URL>' \
+    -H 'task_id: my-task' \
+    -H 'Content-Type: application/json' \
+    https://<cloak-server>.cloak.aircloak.com/task/run
 ```
 
 This API endpoint allows execution of batch tasks against a cloak cluster. Please note that there is also [an
