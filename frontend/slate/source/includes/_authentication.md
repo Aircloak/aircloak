@@ -49,9 +49,9 @@ wget --content-on-error \
      --certificate=<path-to-PEM-certificate> \
      --body-file=<file-to-upload-if-post-or-put> \
      https://<cloak-server>.cloak.aircloak.com/bulk_insert
+```
 
-  OR
-
+```plaintext
 curl -k -X <GET|POST|PUT|DELETE> \
     --data-binary @<file-to-upload-if-post-or-put> \
     --cert <path-to-PEM-certificate> \

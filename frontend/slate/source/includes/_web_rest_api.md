@@ -15,9 +15,9 @@ wget --content-on-error \
      --output-document - \
      --certificate=<path-to-PEM-certificate> \
      https://api.aircloak.com/clusters
+```
 
-  OR
-
+```plaintext
 curl --cert <path-to-PEM-certificate> \
     https://api.aircloak.com/clusters
 ```
@@ -64,9 +64,9 @@ wget --content-on-error \
      --output-document - \
      --certificate=<path-to-PEM-certificate> \
      https://api.aircloak.com/tasks
+```
 
-  OR
-
+```plaintext
 curl --cert <path-to-PEM-certificate> \
     https://api.aircloak.com/tasks
 ```
@@ -134,13 +134,12 @@ wget --content-on-error \
      --method=POST \
      --certificate=<path-to-PEM-certificate> \
      https://api.aircloak.com/tasks/<task-token>/run
+```
 
-  OR
-
+```plaintext
 curl -X POST
     --cert <path-to-PEM-certificate> \
     https://api.aircloak.com/tasks/<task-token>/run
-     
 ```
 
 This endpoint allows you to asynchronously run a _batch task_ that has been defined in the web interface.
@@ -237,8 +236,28 @@ wget --content-on-error \
      --certificate=<path-to-PEM-certificate> \
      --body-file=task.json \
      https://api.aircloak.com/task/run
+```
 
-  OR
+```plaintext
+cat > task.json <<EOJSON
+  {
+    "cluster": <cluster-id>,
+    "prefetch": [
+      {"table": "locations"},
+      {
+        "table": "measurements",
+        "user_rows": 10,
+        "time_limit": 10,
+        "where": [
+          {"$$height": {"$gt": 100}}
+        ]
+      }
+    ],
+    "post_processing": {
+      "code": "height = Aircloak.Utils.quantize(tables.measurements[1].height, 30)\nreport_property('height', height)"
+    }
+  }
+EOJSON
 
 curl -X POST
     --data-binary @task.json \
@@ -402,9 +421,9 @@ wget --content-on-error \
      --output-document - \
      --certificate=<path-to-PEM-certificate> \
      https://api.aircloak.com/tasks/<task-token>/results
+```
 
-  OR
-
+```plaintext
 curl --cert <path-to-PEM-certificate> \
     https://api.aircloak.com/tasks/<task-token>/results
 ```
@@ -435,9 +454,9 @@ wget --content-on-error \
      --output-document - \
      --certificate=<path-to-PEM-certificate> \
      https://api.aircloak.com/tasks/<task-token>/results?page=1&per_page=1
+```
 
-  OR
-
+```plaintext
 curl --cert <path-to-PEM-certificate> \
     https://api.aircloak.com/tasks/<task-token>/results?page=1&per_page=1
 ```

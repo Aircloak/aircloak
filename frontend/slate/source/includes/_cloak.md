@@ -62,8 +62,20 @@ wget --content-on-error \
      --no-check-certificate \
      --header='Content-Type: application/json' \
      https://<cloak-server>.cloak.aircloak.com/insert
+```
 
-  OR
+```plaintext
+cat > locations.json <<EOJSON
+  {
+    "locations": [
+      {"x": 1, "y": 1},
+      {"x": 2, "y": 2}
+    ],
+    "purchases": [
+      {"product": "washing machine", "price": 10000}
+    ]
+  }
+EOJSON
 
 curl -k -X POST
     --data-binary @locations.json \
@@ -217,8 +229,25 @@ wget --content-on-error \
      --no-check-certificate \
      --header='Content-Type: application/json' \
      https://<cloak-server>.cloak.aircloak.com/bulk_insert
+```
 
-  OR
+```plaintext
+cat > locations.json <<EOJSON
+  {
+    "user1": {
+      "locations": [
+        {"x": 1, "y": 1},
+        {"x": 2, "y": 2}
+      ]
+    },
+    "user2": {
+      "locations": [{"x": 2, "y": 2}],
+      "purchases": [
+        {"product": "washing machine", "price": 10000}
+      ]
+    }
+  }
+EOJSON
 
 curl -k -X POST
     --data-binary @locations.json \
@@ -372,7 +401,6 @@ EOJSON
 # you host within your own firewall perimeter where the cloak can reach
 # the endpoint. When run agaist an Aircloak hosted cloak, manually issued
 # asynchronous tasks will not work!
-
 wget --content-on-error \
      --output-document - \
      --method=POST \
@@ -385,9 +413,34 @@ wget --content-on-error \
      --header='Content-Type: application/json' \
      --no-check-certificate \
      https://<cloak-server>.cloak.aircloak.com/task/run
+```
 
-  OR
+```plaintext
+cat > task.json <<EOJSON
+  {
+    "prefetch": [
+      {"table": "locations"},
+      {
+        "table": "purchases",
+        "user_rows": 10,
+        "time_limit": 10,
+        "where": [
+          {"$$price": {"$gt": 100}}
+        ]
+      }
+    ],
+    "post_processing": {
+      "code": "report_property('user with', 'expensive purchase')"
+    }
+  }
+EOJSON
 
+# The below headers are required when executing a task asynchronously.
+# You can also execute the task synchronously by leaving out the headers.
+# PLEASE NOTE: asynchronous queries only work when run against a cloak
+# you host within your own firewall perimeter where the cloak can reach
+# the endpoint. When run agaist an Aircloak hosted cloak, manually issued
+# asynchronous tasks will not work!
 curl -k -X POST
     --data-binary @task.json \
     --cert <path-to-PEM-certificate> \

@@ -3,7 +3,8 @@ title: Aircloak REST API Reference
 
 language_tabs:
   - ruby
-  - shell
+  - shell: wget
+  - plaintext: curl
 
 includes:
   - authentication
