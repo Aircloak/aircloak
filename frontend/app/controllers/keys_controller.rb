@@ -28,10 +28,10 @@ class KeysController < ApplicationController
     if current_user.cluster_manager?
       key = analyst.key_materials.find params[:id]
     else
-      key = user.key_materials.find params[:id]
+      key = current_user.key_materials.find params[:id]
     end
-    describe_activity "Revoked key #{key.description}"
     analyst.revoke_key key
+    describe_activity "Revoked key '#{key.description}' of '#{key.user.login}@#{analyst.name}'"
     redirect_to keys_path, notice: "Key revoked"
   end
 

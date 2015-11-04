@@ -27,7 +27,7 @@ describe "ApiTasksController" do
 
   let (:analyst) { Analyst.create name: "test-analyst" }
   let (:user) { User.create login: "test", email: "test@aircloak.com", analyst: analyst, password: "1234", password_confirmation: "1234" }
-  let (:token) { AnalystToken.create_api_token(user) }
+  let (:token) { UserToken.create_api_token(user) }
 
   describe "GET /api/tasks" do
     it "returns task list" do
@@ -93,7 +93,7 @@ describe "ApiTasksController" do
       association = double
       analyst_double = double(:analyst, id: 42, shared_tasks: association, private_tasks: association)
       user_double = double(:user, analyst: analyst_double)
-      AnalystToken.should_receive(:api_user).and_return(user_double)
+      UserToken.should_receive(:api_user).and_return(user_double)
       task = double
       association.should_receive(:find_by_token).and_return(task)
       task.should_receive(:batch_task?).and_return(true)
@@ -107,7 +107,7 @@ describe "ApiTasksController" do
       association = double
       analyst_double = double(:analyst, id: 42, shared_tasks: association, private_tasks: association)
       user_double = double(:user, analyst: analyst_double)
-      AnalystToken.should_receive(:api_user).and_return(user_double)
+      UserToken.should_receive(:api_user).and_return(user_double)
       task = double
       association.should_receive(:find_by_token).and_return(task)
       task.should_receive(:batch_task?).and_return(false)
@@ -242,7 +242,7 @@ describe "ApiTasksController" do
       association = double
       analyst_double = double(:analyst, id: 42, shared_tasks: association, private_tasks: association)
       user_double = double(:user, analyst: analyst_double)
-      AnalystToken.should_receive(:api_user).and_return(user_double)
+      UserToken.should_receive(:api_user).and_return(user_double)
       task = double
       association.should_receive(:find_by_token).and_return(task)
       task.should_receive(:analyst).and_return(analyst)

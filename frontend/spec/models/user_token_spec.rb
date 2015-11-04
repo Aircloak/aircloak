@@ -1,10 +1,10 @@
 require 'spec_helper'
 
-describe AnalystToken do
+describe UserToken do
   before(:each) do
     Analyst.destroy_all
     User.destroy_all
-    AnalystToken.destroy_all
+    UserToken.destroy_all
     RepeatedAnswer.delete_all
   end
 
@@ -14,8 +14,8 @@ describe AnalystToken do
   }
 
   it "generates and retrieves a token" do
-    token = AnalystToken.create_api_token(user)
-    AnalystToken.api_user(token.token).should eq user
-    AnalystToken.user(token.token, 2).should eq nil
+    token = UserToken.create_api_token(user)
+    UserToken.api_user(token.token).should eq user
+    UserToken.user(token.token, 2).should eq nil
   end
 end

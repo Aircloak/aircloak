@@ -89,7 +89,7 @@ protected
         render json: error, status: :unauthorized
       end
     else
-      @current_user = AnalystToken.api_user(request.headers["HTTP_ANALYST_TOKEN"])
+      @current_user = UserToken.api_user(request.headers["HTTP_ANALYST_TOKEN"])
       if @current_user.nil?
         error = {success: false, error: "Not authenticated."}
         status = :unauthorized
