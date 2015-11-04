@@ -3,7 +3,7 @@ require './lib/aircloak_config.rb'
 class KeyMaterial < ActiveRecord::Base
   belongs_to :analyst
   belongs_to :user
-  belongs_to :analyst_token
+  belongs_to :user_token
 
   def self.ca_key_file(type)
     File.join(Conf.get("/settings/rails/secrets/ca_path"), "#{type}.key")
@@ -40,9 +40,10 @@ class KeyMaterial < ActiveRecord::Base
   # A corresponding pkcs12 protected by a password specified by the
   # analyst is also generated.
   def self.create_from_user user, password, description, key_type
-    analyst_token = nil
+    user_token = nil
+    analyst = user.analyst
     key_material = KeyMaterial.new
-    key_material.analyst = user.analyst
+    key_material.analyst = analyst
     key_material.user = user
     key_material.key_type = key_type
 
@@ -51,22 +52,22 @@ class KeyMaterial < ActiveRecord::Base
     # that 0 signifies that the key can be used to uplad data for any user.
     case key_material.key_type
     when "data_upload_all"
-      key_description = "#{description}. Allows uploading data for any user to any of #{key_material.analyst.name}'s clusters"
-      raw_key, raw_cert = TokenGenerator.generate_leaf_token key_material.analyst.key, key_material.analyst.certificate, "any_user", 0
+      key_description = "#{description}. Allows uploading data for any user to any of #{analyst.name}'s clusters"
+      raw_key, raw_cert = TokenGenerator.generate_leaf_token analyst.key, analyst.certificate, "any_user", 0
 
     when "admin"
-      key_description = "#{description}. Allows performing administrative tasks against any of #{key_material.analyst.name}'s clusters"
-      raw_key, raw_cert = TokenGenerator.generate_leaf_token key_material.analyst.key, key_material.analyst.certificate, "admin", 1
+      key_description = "#{description}. Allows performing administrative tasks against any of #{analyst.name}'s clusters"
+      raw_key, raw_cert = TokenGenerator.generate_leaf_token analyst.key, analyst.certificate, "admin", 1
 
     when "task_runner"
-      key_description = "#{description}. Allows executing tasks against any of #{key_material.analyst.name}'s clusters"
-      raw_key, raw_cert = TokenGenerator.generate_leaf_token key_material.analyst.key, key_material.analyst.certificate, "task_runner", 1
+      key_description = "#{description}. Allows executing tasks against any of #{analyst.name}'s clusters"
+      raw_key, raw_cert = TokenGenerator.generate_leaf_token analyst.key, analyst.certificate, "task_runner", 1
 
     when "web_api"
       key_description = "#{description}. Allows issuing REST API calls to web"
       api_key, api_cert = api_ca
-      analyst_token = AnalystToken.create_api_token(key_material.user)
-      raw_key, raw_cert = TokenGenerator.generate_leaf_token api_key, api_cert, "analyst_token", analyst_token.token
+      user_token = UserToken.create_api_token(key_material.user)
+      raw_key, raw_cert = TokenGenerator.generate_leaf_token api_key, api_cert, "analyst_token", user_token.token
     end
 
     key = TokenGenerator.import_key raw_key
@@ -84,7 +85,7 @@ class KeyMaterial < ActiveRecord::Base
     key_material.certificate = raw_cert
     key_material.description = description
     key_material.revoked = false
-    key_material.analyst_token = analyst_token unless analyst_token.nil?
+    key_material.user_token = user_token unless user_token.nil?
     key_material.save
     key_material
   end

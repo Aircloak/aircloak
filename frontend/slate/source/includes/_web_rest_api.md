@@ -17,6 +17,11 @@ wget --content-on-error \
      https://api.aircloak.com/clusters
 ```
 
+```plaintext
+curl --cert <path-to-PEM-certificate> \
+    https://api.aircloak.com/clusters
+```
+
 This endpoint retrieves all available clusters for the authenticated analyst.
 
 ### HTTP Request
@@ -59,6 +64,11 @@ wget --content-on-error \
      --output-document - \
      --certificate=<path-to-PEM-certificate> \
      https://api.aircloak.com/tasks
+```
+
+```plaintext
+curl --cert <path-to-PEM-certificate> \
+    https://api.aircloak.com/tasks
 ```
 
 This endpoint retrieves all tasks for the authenticated analyst.
@@ -123,8 +133,13 @@ wget --content-on-error \
      --output-document - \
      --method=POST \
      --certificate=<path-to-PEM-certificate> \
-     --no-check-certificate \
      https://api.aircloak.com/tasks/<task-token>/run
+```
+
+```plaintext
+curl -X POST
+    --cert <path-to-PEM-certificate> \
+    https://api.aircloak.com/tasks/<task-token>/run
 ```
 
 This endpoint allows you to asynchronously run a _batch task_ that has been defined in the web interface.
@@ -220,8 +235,34 @@ wget --content-on-error \
      --quiet \
      --certificate=<path-to-PEM-certificate> \
      --body-file=task.json \
-     --no-check-certificate \
      https://api.aircloak.com/task/run
+```
+
+```plaintext
+cat > task.json <<EOJSON
+  {
+    "cluster": <cluster-id>,
+    "prefetch": [
+      {"table": "locations"},
+      {
+        "table": "measurements",
+        "user_rows": 10,
+        "time_limit": 10,
+        "where": [
+          {"$$height": {"$gt": 100}}
+        ]
+      }
+    ],
+    "post_processing": {
+      "code": "height = Aircloak.Utils.quantize(tables.measurements[1].height, 30)\nreport_property('height', height)"
+    }
+  }
+EOJSON
+
+curl -X POST
+    --data-binary @task.json \
+    --cert <path-to-PEM-certificate> \
+    https://api.aircloak.com/task/run
 ```
 
 This API endpoint allows execution of batch tasks against a cloak cluster. The primary use case of this API is
@@ -379,7 +420,12 @@ response = RestClient.get(url, api_key)
 wget --content-on-error \
      --output-document - \
      --certificate=<path-to-PEM-certificate> \
-     https://api.aircloak.com/tasks/#{task_token}/results
+     https://api.aircloak.com/tasks/<task-token>/results
+```
+
+```plaintext
+curl --cert <path-to-PEM-certificate> \
+    https://api.aircloak.com/tasks/<task-token>/results
 ```
 
 This endpoint retrieves results for the given task. Retrieved results are ordered (newest come first) and paginated.
@@ -407,7 +453,12 @@ response = RestClient.get(url, api_key)
 wget --content-on-error \
      --output-document - \
      --certificate=<path-to-PEM-certificate> \
-     https://api.aircloak.com/tasks/#{task_token}/results?page=1&per_page=1
+     https://api.aircloak.com/tasks/<task-token>/results?page=1&per_page=1
+```
+
+```plaintext
+curl --cert <path-to-PEM-certificate> \
+    https://api.aircloak.com/tasks/<task-token>/results?page=1&per_page=1
 ```
 
 Parameter | Required | Default | Description

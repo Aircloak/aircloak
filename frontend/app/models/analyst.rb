@@ -57,20 +57,20 @@ class Analyst < ActiveRecord::Base
   end
 
   def revoke_key key
-    if key.analyst_token.nil?
+    if key.user_token.nil?
       self.revocation_list = TokenGenerator.revoke_certificate self.key, self.revocation_list, key.certificate
       save
       key.revoked = true
       key.save
       # mark all assigned clusters as needing to be updated with the new revocation list
       self.clusters.each do |cluster|
-        cluster.log_alteration "Revoked key '#{key.description}' for analyst '#{name}'."
+        cluster.log_alteration "Revoked key '#{key.description}' created by '#{key.user.login}@#{name}'."
         cluster.mark_as_changed
         cluster.save
       end
     else
-      key.analyst_token.destroy
-      key.analyst_token = nil
+      key.user_token.destroy
+      key.user_token = nil
       key.revoked = true
       key.save
     end

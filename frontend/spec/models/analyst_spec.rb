@@ -48,24 +48,23 @@ describe Analyst do
     ["data_upload_all", "admin", "task_runner", "web_api"].each do |key_type|
       km = KeyMaterial.create_from_user user, "foobar", "desc", key_type
       km.user.should eq user
-      km.analyst.should eq analyst
       km.description.should eq "desc"
       km.key_type.should eq key_type
       km.revoked.should eq false
       token = nil
       if key_type == "web_api"
-        km.analyst_token.should_not eq nil
-        token = km.analyst_token
+        km.user_token.should_not eq nil
+        token = km.user_token
       else
-        km.analyst_token.should eq nil
+        km.user_token.should eq nil
       end
 
       analyst.revoke_key(km)
       km.revoked.should eq true
-      km.analyst_token.should eq nil
+      km.user_token.should eq nil
       if token
-        AnalystToken.find_by_id(token.id).should eq nil
-        AnalystToken.find_by_token(token.token).should eq nil
+        UserToken.find_by_id(token.id).should eq nil
+        UserToken.find_by_token(token.token).should eq nil
       end
     end
   end

@@ -19,7 +19,7 @@ describe "Api::TaskResultsController" do
 
   let (:analyst) { Analyst.create name: "TestAnalyst" }
   let (:user) { User.create login: "test", email: "test@aircloak.com", analyst: analyst, password: "1234", password_confirmation: "1234" }
-  let (:token) { AnalystToken.create_api_token(user) }
+  let (:token) { UserToken.create_api_token(user) }
   let (:task) do
     t = Task.create(
       name: "task",

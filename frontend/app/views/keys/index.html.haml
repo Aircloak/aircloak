@@ -8,6 +8,7 @@
     %thead
       %tr
         %th Description
+        %th Type
         %th Created at
         %th Created by
         %th
@@ -16,8 +17,9 @@
     - keys.each do |key|
       %tr
         %td= key.description
+        %td= key.key_type
         %td= key.created_at
-        %td= key.user.login if key.user
+        %td= link_to key.user.login, user_path(key.user) if key.user
         - if key.revoked
           %td{:colspan => "2", :style => "text-align:center; color:red;"}= "Revoked on #{key.updated_at}"
         - else

@@ -1,9 +1,7 @@
 require './lib/token_generator'
 
-class AnalystToken < ActiveRecord::Base
+class UserToken < ActiveRecord::Base
   belongs_to :user
-  # TODO (#673): remove the reference to analyst and rename the model to UserToken
-  belongs_to :analyst
 
   TOKEN_PURPOSES = {
     api: 1
@@ -21,8 +19,8 @@ class AnalystToken < ActiveRecord::Base
   def self.create_new(user, purpose)
     begin
       token = TokenGenerator.generate_random_string_of_at_least_length 30
-    end while AnalystToken.where(token: token).count != 0
-    self.create(user: user, analyst: user.analyst, purpose: purpose, token: token)
+    end while UserToken.where(token: token).count != 0
+    self.create(user: user, purpose: purpose, token: token)
   end
 
   def self.user(token, purpose)
