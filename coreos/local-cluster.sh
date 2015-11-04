@@ -86,7 +86,7 @@ function upload_secrets {
     sudo chown core:core /aircloak/ca
   "
   scp coreos_etcd $1:/aircloak/etcd/coreos
-  scp ./ca/* $1:/aircloak/ca
+  scp ../router/dev_cert/* $1:/aircloak/ca
 }
 
 function follow_installation {
