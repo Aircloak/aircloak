@@ -1,3 +1,5 @@
 /.vagrant/
 /user-data
 /local_balancer.conf
+/tmp/
+/coreos_etcd

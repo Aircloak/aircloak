@@ -18,8 +18,12 @@ if [ "$AIR_ENV" != "prod" ]; then
 fi
 
 init_env prod
-DOCKER_START_ARGS=$(docker_start_args)
-container_ctl etcd_air $@
+DOCKER_IMAGE="quay.io/coreos/etcd"
+DOCKER_IMAGE_VERSION="v2.0.6"
+DOCKER_START_ARGS="--net=host"
+CONTAINER_NAME="etcd_air"
+CONTAINER_ARGS=$(etcd_container_args)
+container_ctl $@
 
 if [ "$1" = "start" ] || [ "$1" = "ensure_started" ] || [ "$1" = "console" ]; then
   wait_for_etcd prod

@@ -2,17 +2,6 @@
 
 . $(dirname ${BASH_SOURCE[0]})/../config/config.sh
 
-function push_to_registry {
-  if named_container_running air_docker_registry; then
-    REGISTRY_URL="127.0.0.1:$(get_tcp_port prod registry/http)"
-    echo "Pushing $1 to local registry"
-    docker tag -f aircloak/$1:latest $REGISTRY_URL/aircloak/$1:latest
-    docker push $REGISTRY_URL/aircloak/$1:latest
-  else
-    echo "Warning: local registry is not running, image not pushed."
-  fi
-}
-
 function named_container_running {
   if [ -z "$(docker ps --filter=name=$1 | grep -v CONTAINER)" ]; then
     return 1
@@ -54,62 +43,57 @@ function stop_named_container {
 }
 
 function container_ctl {
-  container_name=$1
-  shift || true
-
   command=$1
   shift || true
 
-  if [ "$AIR_ENV" = "prod" ]; then
-    driver_arg="--log-driver=syslog --log-opt syslog-tag=$container_name"
-    container_env="-e AIR_ENV=prod"
-  fi
-
   case "$command" in
     start)
-      stop_named_container $container_name
-      echo "Starting container $container_name"
-      docker run -d $driver_arg $container_env --restart on-failure --name $container_name $DOCKER_START_ARGS
+      DOCKER_START_ARGS="$DOCKER_START_ARGS -d $driver_arg --restart on-failure"
+      start_container
+      ;;
+
+    console)
+      DOCKER_START_ARGS="--rm -it $DOCKER_START_ARGS"
+      start_container
+      ;;
+
+    foreground)
+      DOCKER_START_ARGS="--rm -i $DOCKER_START_ARGS"
+      start_container
       ;;
 
     ensure_started)
-      if ! named_container_running $container_name ; then
-        container_ctl $container_name start "$@"
+      if ! named_container_running $CONTAINER_NAME ; then
+        container_ctl start $@
       fi
       ;;
 
     ensure_latest_version_started)
-      if latest_version_running $container_name; then
-        echo "$container_name already on the latest image version"
+      if latest_version_running $CONTAINER_NAME; then
+        echo "$CONTAINER_NAME already on the latest image version"
       else
-        echo "Restarting $container_name to ensure that the latest version is running."
-        container_ctl $container_name start "$@"
+        echo "Restarting $CONTAINER_NAME to ensure that the latest version is running."
+        container_ctl start $@
       fi
       ;;
 
-    console)
-      stop_named_container $container_name
-      docker run --rm -it $container_env --name $container_name $DOCKER_START_ARGS
-      ;;
-
-    foreground)
-      stop_named_container $container_name
-      docker run --rm -i $container_env --name $container_name $DOCKER_START_ARGS
-      ;;
-
     ssh)
-      docker exec -i -t $container_name \
-        /bin/bash -c "TERM=xterm CONTAINER_NAME='$container_name' /bin/bash -l"
+      docker exec -i -t $CONTAINER_NAME \
+        /bin/bash -c "TERM=xterm CONTAINER_NAME='$CONTAINER_NAME' /bin/bash -l"
       ;;
 
     remote_console)
-      docker exec -i -t $container_name \
-        /bin/bash -c "TERM=xterm $REMOTE_CONSOLE_COMMAND"
+      docker exec -i -t $CONTAINER_NAME \
+        /bin/bash -c "TERM=xterm ${REMOTE_CONSOLE_COMMAND:-"/bin/bash"}"
       ;;
 
     stop)
-      stop_named_container $container_name
+      stop_named_container $CONTAINER_NAME
       exit 0
+      ;;
+
+    image_name)
+      echo "$DOCKER_IMAGE"
       ;;
 
     *)
@@ -122,6 +106,7 @@ function container_ctl {
         remote_console - opens an application session (e.g. Erlang or Rails console) in the running container
         console - starts the container in foreground (interactive)
         foreground - starts the container in foreground (non-interactive)
+        image_name - prints the image name
         $CUSTOM_COMMANDS
       "
 
@@ -138,11 +123,38 @@ function container_ctl {
   esac
 }
 
+function start_container {
+  if [ "$REGISTRY_URL" != "" ]; then DOCKER_IMAGE="$REGISTRY_URL/$DOCKER_IMAGE"; fi
+
+  if [ "$DOCKER_IMAGE_VERSION" == "" ]; then
+    DOCKER_IMAGE_VERSION=$(latest_version "$DOCKER_IMAGE")
+
+    if [ "$DOCKER_IMAGE_VERSION" == "" ]; then
+      echo "Can't find local image for $DOCKER_IMAGE."
+      exit 1
+    fi
+  fi
+
+  DOCKER_IMAGE="$DOCKER_IMAGE:$DOCKER_IMAGE_VERSION"
+
+  stop_named_container $CONTAINER_NAME
+  echo "Starting container $CONTAINER_NAME from $DOCKER_IMAGE"
+  docker run $DOCKER_START_ARGS --name $CONTAINER_NAME $DOCKER_IMAGE $CONTAINER_ARGS
+}
+
+function latest_version {
+  echo "$(
+        find_images "$1" "" version |
+        grep -v latest |
+        sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
+        head -n 1 || true
+      )"
+}
+
 # Just like build_aircloak_image, but also versions the image and pushes it to the
 # registry.
 function build_production_image {
   build_aircloak_image "$@"
-  push_to_registry $1
   version_latest_image $1
 }
 
