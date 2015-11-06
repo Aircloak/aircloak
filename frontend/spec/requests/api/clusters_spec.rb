@@ -23,7 +23,7 @@ describe "ClustersController" do
 
   let (:analyst) { Analyst.create name: "test-analyst" }
   let (:user) { User.create login: "test", email: "test@aircloak.com", analyst: analyst, password: "1234", password_confirmation: "1234" }
-  let (:token) { AnalystToken.create_api_token(user) }
+  let (:token) { UserToken.create_api_token(user) }
 
   describe "GET /api/clusters" do
     it "returns empty cluster list if no clusters" do

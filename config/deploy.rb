@@ -66,6 +66,9 @@ namespace :aircloak do
       exec_ml(install_init_script_cmd("air"))
       exec_ml(install_init_script_cmd("iptables_rules"))
       execute "/etc/init.d/iptables_rules"
+
+      # Override site names in stage environment
+      exec_ml(set_stage_names) if fetch(:stage) == :stage
     end
   end
 
@@ -96,5 +99,18 @@ namespace :aircloak do
             chmod 755 /etc/init.d/#{name} &&
             update-rc.d #{name} defaults
       "
+    end
+
+    def set_stage_names
+      # Adds site name overrides, first removing previous ones if they exist
+      '
+        prod_contents=$(cat /aircloak/air/etcd/local_settings/prod | grep -v "etcd_set /site") &&
+        echo "$prod_contents" > /aircloak/air/etcd/local_settings/prod &&
+        echo "etcd_set /site/frontend \'hello.stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod &&
+        echo "etcd_set /site/api \'api.stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod &&
+        echo "etcd_set /site/infrastructure_api \'infrastructure-api.stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod &&
+        echo "etcd_set /site/airpub \'pub.stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod &&
+        echo "etcd_set /site/aircloak \'www.stage.aircloak.com stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod
+      '
     end
 end

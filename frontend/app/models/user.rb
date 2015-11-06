@@ -2,13 +2,14 @@ class User < ActiveRecord::Base
   has_many :user_permissions
   has_many :permissions, through: :user_permissions
   has_many :activities
-  has_many :key_materials, dependent: :destroy
+  has_many :key_materials # as long as the analyst CA is still valid, we need to keep the keys
   belongs_to :analyst
   has_many :tasks, dependent: :destroy
 
   validate :only_aircloakers_can_be_admin
 
   before_destroy :remove_tracked_activity
+  before_destroy :revoke_keys
 
   acts_as_authentic do |c|
     # The crypto provider was previously misconfigured, and therefore
@@ -153,6 +154,14 @@ class User < ActiveRecord::Base
 
   def remove_tracked_activity
     Activity.where(user_id: self.id).delete_all
+  end
+
+  def revoke_keys
+    key_materials.each do |key|
+      analyst.revoke_key key unless key.revoked
+      key.description = "#{key.description} [created by: #{login}]" # record user in description
+      key.save
+    end
   end
 
 private
