@@ -24,7 +24,7 @@ function build_and_push {
   fi
 
   registry_version=$(
-        curl -s "$REGISTRY_URL/v2/$image_name/tags/list" |
+        registry_v2_req $REGISTRY_URL $image_name/tags/list |
         jq --raw-output ".tags | select(. != null) | .[]" |
         sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
         head -n 1
@@ -37,6 +37,22 @@ function build_and_push {
     docker tag -f "$image_name:$version" "$REGISTRY_URL/$image_name:$version"
     docker push "$REGISTRY_URL/$image_name:$version"
   fi
+}
+
+function registry_v2_req {
+  protocol="http"
+  if [ -e "$HOME/.docker/config.json" ]; then
+    token=$(
+          cat $HOME/.docker/config.json |
+          jq --raw-output ".auths[\"https://$1/v2/\"] | select(. != null) | .auth"
+        )
+    if [ "$token" != "" ]; then
+      protocol="https"
+      auth_header="-H 'Authorization: Basic $token'"
+    fi
+  fi
+
+  curl -s "$auth_header" "$protocol://$1/v2/$2"
 }
 
 build_and_push coreos
