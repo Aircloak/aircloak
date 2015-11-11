@@ -37,17 +37,6 @@ RUN \
 ## Configure user and get app in place
 ## ------------------------------------------------------------------
 
-# User under which the app will run.
-RUN /tmp/build_config/useradd.sh --create-home --shell /bin/bash deployer
-
-RUN mkdir -p /aircloak/utils && chown deployer:deployer /aircloak/utils
-
-USER root
-
-# In order to clone from Github inside the docker image,
-# we unfortunately need to relax our host checking...
-RUN mkdir -p /home/deployer/.ssh && mkdir -p /tmp/web/backend
-
 # First build dependencies. This ensures that a code change won't result in
 # full rebuilding of dependencies.
 COPY backend/artifacts/cache/deps /tmp/web/backend/deps

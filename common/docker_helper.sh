@@ -257,18 +257,6 @@ EOF
     echo "touch /tmp/build_config/proxies.sh && \\"
   fi
 
-  # Generate special useradd helper which ensures proper UID on Linux hosts
-  if [ "$(which boot2docker)" == "" ]; then
-    # No boot2docker -> use host's $UID to ensure proper permissions
-    uid_arg="-u $UID"
-  fi
-
-  cat <<-EOF
-    echo '#!/usr/bin/env bash' > /tmp/build_config/useradd.sh && \\
-    echo 'useradd $uid_arg "\$@"' >> /tmp/build_config/useradd.sh && \\
-    chmod +x /tmp/build_config/useradd.sh && \\
-EOF
-
   # Support for setting custom prompt through CONTAINER_NAME env. This allows us
   # to inject the container name into the ssh session. Without this, the name of the
   # real host machine will be used, since containers run in the shared networking mode.
