@@ -44,4 +44,4 @@ docker rm -v $builder_container_id > /dev/null
 cd backend/artifacts/rel && tar -xf air.tar && rm air.tar && cd $ROOT_DIR
 
 # Build the release image
-build_production_image air_backend backend/release.dockerfile backend/.dockerignore-release
+build_aircloak_image air_backend backend/release.dockerfile backend/.dockerignore-release

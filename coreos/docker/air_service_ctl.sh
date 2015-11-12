@@ -92,11 +92,23 @@ set -eo pipefail
     } || true
   }
 
+  function latest_local_version {
+    echo "$(
+          find_images "$1" "" version |
+          grep -v latest |
+          sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
+          head -n 1 || true
+        )"
+  }
+
+
 
   case "$1" in
     start_service)
       shift
-      AIR_ENV=prod /aircloak/air/$1/container.sh foreground
+      image_name=$(/aircloak/air/$1/container.sh image_name)
+      latest_local_version=$(latest_local_version $REGISTRY_URL/$image_name)
+      DOCKER_IMAGE_VERSION="$latest_local_version" AIR_ENV=prod /aircloak/air/$1/container.sh foreground
       ;;
 
     stop_service)
