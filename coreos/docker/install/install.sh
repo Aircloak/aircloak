@@ -57,6 +57,7 @@ configure_etcd
 touch /aircloak/air/.installation_started
 
 # Pull images
+pull_docker_image aircloak/static_website
 pull_docker_image aircloak/air_router
 pull_docker_image aircloak/air_backend
 pull_docker_image aircloak/air_frontend
@@ -65,7 +66,7 @@ pull_docker_image aircloak/air_frontend
 sync && echo 3 > /proc/sys/vm/drop_caches
 
 # Copy service files
-for service in air-prerequisites air-router air-backend air-frontend air-frontend-sidekick; do
+for service in air-prerequisites air-router air-backend air-frontend air-frontend-sidekick air-static-site; do
   cp -rp /aircloak/air/$service.service /etc/systemd/system/
 done
 
@@ -92,6 +93,9 @@ final_cloud_config=$(
   cat <<EOF
 $initial_cloud_config_without_installer
 $disabled_installer
+
+      - name: air-static-site.service
+        command: start
 
       - name: air-prerequisites.service
         command: start

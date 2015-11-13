@@ -34,7 +34,7 @@ cd $(dirname $0)
 #     you need to force the new version to be pushed, you can delete the local
 #     image.
 function build_and_push {
-  image_name=$($1/container.sh image_name)
+  image_name=$1
 
   latest_registry_version=$(
         registry_v2_req $REGISTRY_URL $image_name/tags/list |
@@ -45,7 +45,7 @@ function build_and_push {
 
   # build new image
   last_built_image_id=$(find_images $image_name ^latest$)
-  $1/build-image.sh
+  eval "$2"
   new_image_id=$(find_images $image_name ^latest$)
 
   # determine the next version
@@ -86,6 +86,24 @@ function registry_v2_req {
   eval "curl -s $auth_header $protocol://$1/v2/$2"
 }
 
+function push_air_image {
+  build_and_push $($1/container.sh image_name) "$1/build-image.sh"
+}
+
+function push_static_site_image {
+  if [ ! -e "../static-website" ]; then
+    echo "Static website repo not found in $(pwd)/../static-website"
+    exit 1
+  fi
+
+  curdir=$(pwd)
+  if [ "AIR_ENV" == "prod" ]; then site_build_env="production"; fi
+
+  build_and_push \
+      "aircloak/static_website" \
+      "cd ../static-website && BUILD_ENV='$site_build_env' ./build.sh && cd $(pwd)"
+}
+
 function check_registry {
   response=$(registry_v2_req $REGISTRY_URL "")
 
@@ -98,10 +116,11 @@ function check_registry {
 
 check_registry
 
-build_and_push coreos
-build_and_push router
-build_and_push backend
-build_and_push frontend
+push_static_site_image
+push_air_image coreos
+push_air_image router
+push_air_image backend
+push_air_image frontend
 
 # Remove all local repo tags. We don't need those, since the image is tagged
 # anyway, and this allows us proper local cleanup of older images.
