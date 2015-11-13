@@ -86,6 +86,17 @@ function registry_v2_req {
   eval "curl -s $auth_header $protocol://$1/v2/$2"
 }
 
+function check_registry {
+  response=$(registry_v2_req $REGISTRY_URL "")
+
+  if [ "$response" != "{}" ]; then
+    printf "\nCan't connect to registry ($REGISTRY_URL): $response\n\n"
+    exit 1
+  fi
+}
+
+
+check_registry
 
 build_and_push coreos
 build_and_push router
