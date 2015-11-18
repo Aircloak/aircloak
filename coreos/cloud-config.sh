@@ -3,70 +3,88 @@ function cloud_config {
   export ETCD_PEER_PORT=$(get_tcp_port prod etcd/peer)
 
   cat <<EOF
-#cloud-config
-    coreos:
-      etcd2:
-        name: "\$public_ipv4"
-        advertise-client-urls: http://\$public_ipv4:$ETCD_CLIENT_PORT
-        initial-advertise-peer-urls: http://\$public_ipv4:$ETCD_PEER_PORT
-        listen-client-urls: http://0.0.0.0:$ETCD_CLIENT_PORT
-        listen-peer-urls: http://\$public_ipv4:$ETCD_PEER_PORT
-        initial-cluster: $(initial_cluster)
-        initial-cluster-state: ${INITIAL_CLUSTER_STATE:-new}
-      fleet:
-        public-ip: \$public_ipv4
-        etcd_servers: http://127.0.0.1:$ETCD_CLIENT_PORT
-      units:
-      - name: docker.service
-        drop-ins:
-        - name: 50-insecure-registry.conf
-          content: |
-            [Service]
-            Environment=DOCKER_OPTS='--insecure-registry="$REGISTRY_URL"'
+write_files:
+  - path: /aircloak/registry_v2_req
+    permissions: 0755
+    owner: root:root
+    content: |
+      protocol="http"
+      if [ -e "\$HOME/.docker/config.json" ]; then
+        token=\$(
+              cat \$HOME/.docker/config.json |
+              jq --raw-output ".auths[\"https://$REGISTRY_URL/v2/\"] | select(. != null) | .auth"
+            )
+        if [ "\$token" != "" ]; then
+          protocol="https"
+          auth_header="-H 'Authorization: Basic \$token'"
+        fi
+      fi
 
-      - name: etcd2.service
-        command: start
-      - name: fleet.service
-        command: start
+      eval "curl -s \$auth_header \$protocol://$REGISTRY_URL/v2/\$1"
 
-      - name: swap.service
-        command: start
-        content: |
-          [Unit]
-          Description=Turn on swap
+coreos:
+  etcd2:
+    name: "\$public_ipv4"
+    advertise-client-urls: http://\$public_ipv4:$ETCD_CLIENT_PORT
+    initial-advertise-peer-urls: http://\$public_ipv4:$ETCD_PEER_PORT
+    listen-client-urls: http://0.0.0.0:$ETCD_CLIENT_PORT
+    listen-peer-urls: http://\$public_ipv4:$ETCD_PEER_PORT
+    initial-cluster: $(initial_cluster)
+    initial-cluster-state: ${INITIAL_CLUSTER_STATE:-new}
+  fleet:
+    public-ip: \$public_ipv4
+    etcd_servers: http://127.0.0.1:$ETCD_CLIENT_PORT
+  units:
+  - name: docker.service
+    drop-ins:
+    - name: 50-insecure-registry.conf
+      content: |
+        [Service]
+        Environment=DOCKER_OPTS='--insecure-registry="$REGISTRY_URL"'
 
-          [Service]
-          Type=oneshot
-          Environment="SWAPFILE=/2GiB.swap"
-          RemainAfterExit=true
-          ExecStartPre=/bin/bash -c "\
-            fallocate -l 2G \$SWAPFILE && \
-            chmod 600 \$SWAPFILE && \
-            chattr +C \$SWAPFILE && \
-            mkswap \$SWAPFILE && \
-            losetup -f \$SWAPFILE"
-          ExecStart=/usr/bin/sh -c "/sbin/swapon \$(/usr/sbin/losetup -j \${SWAPFILE} | /usr/bin/cut -d : -f 1)"
-          ExecStop=/usr/bin/sh -c "/sbin/swapoff \$(/usr/sbin/losetup -j \${SWAPFILE} | /usr/bin/cut -d : -f 1)"
-          ExecStopPost=/usr/bin/sh -c "/usr/sbin/losetup -d \$(/usr/sbin/losetup -j \${SWAPFILE} | /usr/bin/cut -d : -f 1)"
+  - name: etcd2.service
+    command: start
+  - name: fleet.service
+    command: start
 
-          [Install]
-          WantedBy=local.target
+  - name: swap.service
+    command: start
+    content: |
+      [Unit]
+      Description=Turn on swap
 
-      - name: air-installer.service
-        command: start
-        content: |
-          # For description of unit options, such as After, Requires, BindsTo, see
-          # http://www.freedesktop.org/software/systemd/man/systemd.unit.html
+      [Service]
+      Type=oneshot
+      Environment="SWAPFILE=/2GiB.swap"
+      RemainAfterExit=true
+      ExecStartPre=/bin/bash -c "\
+        fallocate -l 2G \$SWAPFILE && \
+        chmod 600 \$SWAPFILE && \
+        chattr +C \$SWAPFILE && \
+        mkswap \$SWAPFILE && \
+        losetup -f \$SWAPFILE"
+      ExecStart=/usr/bin/sh -c "/sbin/swapon \$(/usr/sbin/losetup -j \${SWAPFILE} | /usr/bin/cut -d : -f 1)"
+      ExecStop=/usr/bin/sh -c "/sbin/swapoff \$(/usr/sbin/losetup -j \${SWAPFILE} | /usr/bin/cut -d : -f 1)"
+      ExecStopPost=/usr/bin/sh -c "/usr/sbin/losetup -d \$(/usr/sbin/losetup -j \${SWAPFILE} | /usr/bin/cut -d : -f 1)"
 
-          [Unit]
-          Description=Air machine install
-          After=docker.service
-          After=etcd2.service
+      [Install]
+      WantedBy=local.target
 
-          [Service]
-          Type=oneshot
-          Environment="REGISTRY_URL=$REGISTRY_URL"
-          ExecStart=$(install_command)
+  - name: air-installer.service
+    command: start
+    content: |
+      # For description of unit options, such as After, Requires, BindsTo, see
+      # http://www.freedesktop.org/software/systemd/man/systemd.unit.html
+
+      [Unit]
+      Description=Air machine install
+      After=docker.service
+      After=etcd2.service
+
+      [Service]
+      Type=oneshot
+      Environment="REGISTRY_URL=$REGISTRY_URL"
+      ExecStart=$(install_command)
 EOF
 }
 
@@ -84,7 +102,7 @@ function run_command {
 function install_command {
   run_command '
         latest_version=$(
-              curl -s "$REGISTRY_URL/v2/aircloak/air_installer/tags/list" |
+              /aircloak/registry_v2_req aircloak/air_installer/tags/list |
               jq --raw-output ".tags | select(. != null) | .[]" |
               sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
               head -n 1

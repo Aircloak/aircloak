@@ -25,16 +25,15 @@ function start_local_cluster {
   # generate setting for local air_db
   echo "etcd_set /settings/air/db/host $COREOS_HOST_IP" > ./coreos_etcd
 
-  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
-  ./cluster.sh generate_cloud_config $(machine_ips $num_machines)
+  ips=$(machine_ips $num_machines)
+
+  mkdir -p tmp
+  cp -rp dev_cloud_config_base tmp/cloud_config_base
 
   start_machines $num_machines
 
-  for machine_ip in $(machine_ips $num_machines); do
-    follow_installation $machine_ip &
-    upload_secrets $machine_ip &
-  done
-  wait
+  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
+  ./cluster.sh setup_cluster coreos_etcd ../router/dev_cert "$ips"
 
   for machine_ip in $(machine_ips $num_machines); do
     ssh $machine_ip "journalctl -f -u air-*" &
@@ -74,29 +73,6 @@ function cleanup_background_processes {
 function start_machines {
   vagrant destroy -f
   vagrant up $(vagrant_names $1)
-}
-
-function upload_secrets {
-  echo "$1 uploading secrets"
-
-  ssh $1 "
-    sudo mkdir -p /aircloak/etcd &&
-    sudo chown core:core /aircloak/etcd &&
-    sudo mkdir -p /aircloak/ca &&
-    sudo chown core:core /aircloak/ca
-  "
-  scp coreos_etcd $1:/aircloak/etcd/coreos
-  scp ../router/dev_cert/* $1:/aircloak/ca
-}
-
-function follow_installation {
-  ssh $1 "
-        while [ ! -e /aircloak/air/.installation_started ]; do sleep 1; done &&
-        /aircloak/air/air_service_ctl.sh follow_installation
-      "
-
-  echo "Waiting for services to start ..."
-  ssh $1 "/aircloak/air/air_service_ctl.sh wait_until_system_is_up"
 }
 
 function machine_ips {
@@ -160,17 +136,12 @@ function add_machine {
   cluster_machine_ip="$(machine_ip $cluster_machine)"
   new_machine_ip="$(machine_ip $new_machine)"
 
-  # add machine to the cluster
-  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
-  ./cluster.sh add_machine $cluster_machine_ip $new_machine_ip
-
   # start the new machine
   vagrant up $new_machine
 
-  # upload secrets and wait for the installation to finish
-  follow_installation $new_machine_ip &
-  upload_secrets $new_machine_ip &
-  wait
+  # add machine to the cluster and install it
+  REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
+  ./cluster.sh add_machine $cluster_machine_ip $new_machine_ip coreos_etcd ../router/dev_cert
 
   # update balancer configuration
   echo "$new_machine_ip" >> ../balancer/config/routers

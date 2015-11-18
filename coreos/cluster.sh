@@ -16,11 +16,78 @@ cd $(dirname $0)
 . ../config/config.sh
 . ./cloud-config.sh
 
-function generate_cloud_config {
-  mkdir -p tmp
+function setup_cluster {
+  for machine_ip in $3; do
+    check=$(ssh $machine_ip "sudo whoami")
+    if [ "$check" != "root" ]; then
+      echo "Can't ssh as root on $machine_ip"
+      exit 1
+    fi
+  done
 
-  MACHINES="$@" INITIAL_CLUSTER_STATE=${INITIAL_CLUSTER_STATE:-"new"} \
-  cloud_config > tmp/cloud-config
+  cloud_config_install_part=$(cloud_config_install_part "$3")
+
+  for machine_ip in $3; do
+    install_machine $machine_ip $1 $2 "$cloud_config_install_part"&
+  done
+  wait
+}
+
+function cloud_config_install_part {
+  MACHINES="$@" INITIAL_CLUSTER_STATE=${INITIAL_CLUSTER_STATE:-"new"} cloud_config
+}
+
+function install_machine {
+  # Take base cloud-config from the target machine, and append our custom stuff
+  mkdir -p tmp
+  cloud_config_file="tmp/cloud_config_$1_$((`date +%s`*1000+`date +%-N`/1000000))_$RANDOM"
+
+  cat <<EOF > $cloud_config_file
+$(ssh $1 "cat /var/lib/coreos-install/user_data")
+
+$4
+EOF
+
+  # cloud-config
+  upload_to_machine $1 root $cloud_config_file /var/lib/coreos-install/user_data
+  rm $cloud_config_file
+
+  # etcd config
+  upload_to_machine $1 default $2 /aircloak/etcd/coreos
+
+  # keys
+  upload_to_machine $1 default $3 /aircloak/ca
+
+  ssh $1 "sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data" &
+  follow_installation $1
+}
+
+function upload_to_machine {
+  target_dir=$(dirname $4)
+  std_user=$(ssh $1 "whoami")
+
+  if [ "$2" == "default" ]; then
+    owner=$std_user
+  else
+    owner=$2
+  fi
+
+  ssh $1 "
+    sudo mkdir -p $target_dir &&
+    sudo chown $std_user:$std_user $target_dir
+  "
+  scp -r $3 $1:$4
+  ssh $1 "sudo chown $owner:$owner $target_dir && sudo chown $owner:$owner $4"
+}
+
+function follow_installation {
+  ssh $1 "
+        while [ ! -e /aircloak/air/.installation_started ]; do sleep 1; done &&
+        /aircloak/air/air_service_ctl.sh follow_installation
+      "
+
+  echo "Waiting for services to start ..."
+  ssh $1 "/aircloak/air/air_service_ctl.sh wait_until_system_is_up"
 }
 
 function add_machine {
@@ -31,11 +98,14 @@ function add_machine {
   etcd_peer_port=$(get_tcp_port prod etcd/peer)
 
   # add new machine to the cluster
-  cluster_etcdctl $1 member add $new_machine "http://$new_machine:$etcd_peer_port" >&2
+  cluster_etcdctl $cluster_machine member add $new_machine "http://$new_machine:$etcd_peer_port" >&2
 
   # generate cloud-config for the new machine
   cluster_machines=$(printf "$current_cluster\n$new_machine\n" | paste -sd " " -)
-  INITIAL_CLUSTER_STATE=existing generate_cloud_config $cluster_machines
+  cloud_config_install_part=$(INITIAL_CLUSTER_STATE=existing cloud_config_install_part "$cluster_machines")
+
+  # install the new machine
+  install_machine $new_machine $3 $4 "$cloud_config_install_part"
 }
 
 function etcd_cluster {
@@ -109,34 +179,34 @@ trap kill_background_jobs EXIT
 
 
 case "$1" in
-  generate_cloud_config)
+  setup_cluster)
     shift
-    if [ "$REGISTRY_URL" == "" ] || [ $# -eq 0 ]; then
+    if [ "$REGISTRY_URL" == "" ] || [ $# -lt 3 ]; then
       echo
       echo "Usage:"
       echo
       echo '  REGISTRY_URL=registry_ip[:registry_port] \'
-      echo "  $0 generate_cloud_config machine1_ip machine2_ip ..."
+      echo "  $0 setup_cluster etcd_config key_folder machine1_ip machine2_ip ..."
       echo
       exit 1
     fi
 
-    generate_cloud_config $@
+    setup_cluster "$@"
     ;;
 
   add_machine)
       shift
-      if [ "$REGISTRY_URL" == "" ] || [ $# -ne 2 ]; then
+      if [ "$REGISTRY_URL" == "" ] || [ $# -ne 4 ]; then
         echo
         echo "Usage:"
         echo
         echo '  REGISTRY_URL=registry_ip[:registry_port] \'
-        echo "  $0 add_machine cluster_machine_ip new_machine_ip"
+        echo "  $0 add_machine cluster_machine_ip new_machine_ip etcd_config key_folder"
         echo
         exit 1
       fi
 
-      add_machine $1 $2
+      add_machine $1 $2 $3 $4
     ;;
 
   remove_machine)
@@ -182,6 +252,6 @@ case "$1" in
     ;;
 
   *)
-    printf "\nUsage:\n  $0 generate_cloud_config | add_machine | remove_machine | upgrade_machine | rolling_upgrade\n\n"
+    printf "\nUsage:\n  $0 setup_cluster | add_machine | remove_machine | upgrade_machine | rolling_upgrade\n\n"
     ;;
 esac

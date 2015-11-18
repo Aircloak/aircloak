@@ -11,7 +11,7 @@ set -eo pipefail
 
 function pull_docker_image {
   latest_version=$(
-        curl -s "$REGISTRY_URL/v2/$1/tags/list" |
+        /aircloak/registry_v2_req $1/tags/list |
         jq --raw-output ".tags | select(. != null) | .[]" |
         sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
         head -n 1
@@ -94,23 +94,25 @@ final_cloud_config=$(
 $initial_cloud_config_without_installer
 $disabled_installer
 
-      - name: air-static-site.service
-        command: start
+coreos:
+  units:
+  - name: air-static-site.service
+    command: start
 
-      - name: air-prerequisites.service
-        command: start
+  - name: air-prerequisites.service
+    command: start
 
-      - name: air-router.service
-        command: start
+  - name: air-router.service
+    command: start
 
-      - name: air-backend.service
-        command: start
+  - name: air-backend.service
+    command: start
 
-      - name: air-frontend.service
-        command: start
+  - name: air-frontend.service
+    command: start
 
-      - name: air-frontend-sidekick.service
-        command: start
+  - name: air-frontend-sidekick.service
+    command: start
 EOF
 )
 
