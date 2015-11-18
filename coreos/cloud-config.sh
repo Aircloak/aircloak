@@ -4,6 +4,13 @@ function cloud_config {
 
   cat <<EOF
 write_files:
+  - path: /etc/environment
+    permissions: 0644
+    owner: root:root
+    content: |
+      COREOS_PUBLIC_IPV4=\$public_ipv4
+      COREOS_PRIVATE_IPV4=\$private_ipv4
+
   - path: /aircloak/registry_v2_req
     permissions: 0755
     owner: root:root
