@@ -259,7 +259,7 @@ case "$1" in
         echo
         echo "Usage:"
         echo
-        echo "  $0 upgrade_machine cluster_machine_ip ..."
+        echo "  $0 rolling_upgrade cluster_machine_ip"
         echo
         exit 1
       fi
