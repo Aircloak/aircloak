@@ -1,4 +1,8 @@
-%% @doc 
+%% @doc Module for post-processing published articles.
+%%      For each article, the post-processing rules, defined in the sys.config file,
+%%      are checked and, in case of a match, the article is unpacked, the corresponding
+%%      JavaScript function is invoked to handle the article and the new content is
+%%      re-packed and sent to subscribers.
 -module(post_processor).
 
 -export([
@@ -12,6 +16,7 @@
 %% API
 %% -------------------------------------------------------------------
 
+%% @doc The single entry point into the module. It will check and apply the post-processing rules.
 -spec edit(#article{}) -> #article{}.
 edit(#article{path = Path} = Article) ->
   {ok, PostProcessingRules} = application:get_env(airpub, post_processing_rules),
@@ -28,6 +33,8 @@ edit(#article{path = Path} = Article) ->
 %% Internal functions
 %% -------------------------------------------------------------------
 
+% Helper function for returning the first item in a list for which the specified predicate is true.
+-spec first(fun(), [term()]) -> term().
 first(_Predicate, []) ->
   undefined;
 first(Predicate, [Item | Rest]) ->
@@ -36,6 +43,8 @@ first(Predicate, [Item | Rest]) ->
     false -> first(Rest, Predicate)
   end.
 
+% The post-processing rule handler. It will unpack the content of the article, apply
+% the given JavaScript function over it and repack the result.
 -spec edit(#article{}, string()) -> #article{}.
 edit(Article = #article{content_encoding = ContentEncoding}, JSFunction) ->
   try
@@ -47,7 +56,7 @@ edit(Article = #article{content_encoding = ContentEncoding}, JSFunction) ->
       {ok, NewContent} ->
         NewContentPacked = pack_content(ContentEncoding, NewContent),
         Duration = timer:now_diff(os:timestamp(), StartTime) / 1000.0,
-        lager:info("Post-processed article published on ~s in ~p ms", [Article#article.path, Duration]),
+        lager:info("Article published at ~s was post-processed in ~p ms", [Article#article.path, Duration]),
         Article#article{content = NewContentPacked};
       {error, Error} ->
         lager:error("An error occurred during article post-processing: ~p", [Error]),
