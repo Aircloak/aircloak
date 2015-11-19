@@ -92,7 +92,7 @@ function upload_to_machine {
 function follow_installation {
   ssh $1 "
         while [ ! -e /aircloak/air/.installation_started ]; do sleep 1; done &&
-        /aircloak/air/air_service_ctl.sh follow_installation
+        sudo /aircloak/air/air_service_ctl.sh follow_installation
       "
 
   echo "Waiting for services to start ..."
