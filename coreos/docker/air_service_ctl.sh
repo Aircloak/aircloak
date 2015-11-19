@@ -74,6 +74,10 @@ set -eo pipefail
       sleep 2
     done
 
+    echo 'Applying the new cloud-config...'
+    sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
+    echo 'Air system successfully installed!'
+
     echo "Waiting for services to start ..."
 
     # Invoke the new version of the script

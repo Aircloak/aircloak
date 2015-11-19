@@ -117,9 +117,5 @@ EOF
 )
 
 echo "$final_cloud_config" > /var/lib/coreos-install/user_data
-
-echo "Applying the new cloud-config..."
-coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
-
+echo "Images retrieved, and new cloud-config generated."
 touch /aircloak/air/install/.installed
-echo "Air system successfully installed!"

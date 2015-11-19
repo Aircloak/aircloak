@@ -67,8 +67,25 @@ EOF
   # keys
   upload_to_machine $1 default $3 /aircloak/ca
 
-  ssh $1 "sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data" &
-  follow_installation $1
+  # Note that we're running cloudinit twice. The first one will start
+  # the installation which will generate new cloud-config. Then,
+  # we start the installation for the second time to start the installed
+  # services. We're not doing it from the installer script, because that would
+  # cause an endless recursion (trying to apply cloud-config while applying cloud-config).
+  ssh $1 "
+    sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data &&
+    echo '$1: Applying the new cloud-config...' &&
+    sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data &&
+    echo '$1: Air system successfully installed!'
+  " &
+
+  ssh $1 "
+        while [ ! -e /aircloak/air/.installation_started ]; do sleep 1; done &&
+        sudo /aircloak/air/air_service_ctl.sh follow_installation
+      "
+
+  echo "$1: Waiting for services to start ..."
+  ssh $1 "/aircloak/air/air_service_ctl.sh wait_until_system_is_up"
 }
 
 function upload_to_machine {
@@ -87,16 +104,6 @@ function upload_to_machine {
     sudo chown $owner:$owner $target_dir &&
     sudo chown $owner:$owner $4
   "
-}
-
-function follow_installation {
-  ssh $1 "
-        while [ ! -e /aircloak/air/.installation_started ]; do sleep 1; done &&
-        sudo /aircloak/air/air_service_ctl.sh follow_installation
-      "
-
-  echo "Waiting for services to start ..."
-  ssh $1 "/aircloak/air/air_service_ctl.sh wait_until_system_is_up"
 }
 
 function add_machine {
