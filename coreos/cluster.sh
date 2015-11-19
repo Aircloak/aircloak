@@ -43,7 +43,7 @@ function install_machine {
   cloud_config_file="tmp/cloud_config_$1_$((`date +%s`*1000+`date +%-N`/1000000))_$RANDOM"
 
   cat <<EOF > $cloud_config_file
-$(ssh $1 "cat /var/lib/coreos-install/user_data")
+$(ssh $1 "sudo cat /var/lib/coreos-install/user_data")
 
 $4
 EOF
@@ -63,21 +63,21 @@ EOF
 }
 
 function upload_to_machine {
-  target_dir=$(dirname $4)
-  std_user=$(ssh $1 "whoami")
-
   if [ "$2" == "default" ]; then
-    owner=$std_user
+    owner=$(ssh $1 "whoami")
   else
     owner=$2
   fi
 
+  scp -r $3 $1:/tmp/
+
+  target_dir=$(dirname $4)
   ssh $1 "
-    sudo mkdir -p $target_dir &&
-    sudo chown $std_user:$std_user $target_dir
+    sudo mkdir -p $(dirname $4) &&
+    sudo mv /tmp/$(basename $3) $4 &&
+    sudo chown $owner:$owner $target_dir &&
+    sudo chown $owner:$owner $4
   "
-  scp -r $3 $1:$4
-  ssh $1 "sudo chown $owner:$owner $target_dir && sudo chown $owner:$owner $4"
 }
 
 function follow_installation {
