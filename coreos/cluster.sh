@@ -42,11 +42,20 @@ function install_machine {
   mkdir -p tmp
   cloud_config_file="tmp/cloud_config_$1_$((`date +%s`*1000+`date +%-N`/1000000))_$RANDOM"
 
-  cat <<EOF > $cloud_config_file
+  full_content=$(
+    cat <<EOF
 $(ssh $1 "sudo cat /var/lib/coreos-install/user_data")
 
 $4
 EOF
+    )
+
+  # Cloud-config vars (e.g. $public_ipv4) are not available to all installations
+  # (see https://coreos.com/os/docs/latest/cloud-config.html), so we replace them
+  # with hardcoded ip of the machine.
+  echo "$full_content" | \
+      sed "s/\$public_ipv4/$1/; s/\$private_ipv4/$1/" \
+      > $cloud_config_file
 
   # cloud-config
   upload_to_machine $1 root $cloud_config_file /var/lib/coreos-install/user_data

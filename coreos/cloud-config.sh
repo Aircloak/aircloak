@@ -31,7 +31,7 @@ write_files:
 
 coreos:
   etcd2:
-    name: "\$public_ipv4"
+    name: \$public_ipv4
     advertise-client-urls: http://\$public_ipv4:$ETCD_CLIENT_PORT
     initial-advertise-peer-urls: http://\$public_ipv4:$ETCD_PEER_PORT
     listen-client-urls: http://0.0.0.0:$ETCD_CLIENT_PORT
