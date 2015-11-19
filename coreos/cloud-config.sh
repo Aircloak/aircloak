@@ -16,9 +16,9 @@ write_files:
     owner: root:root
     content: |
       protocol="http"
-      if [ -e "\$HOME/.docker/config.json" ]; then
+      if [ -e "/aircloak/docker_config.json" ]; then
         token=\$(
-              cat \$HOME/.docker/config.json |
+              cat /aircloak/docker_config.json |
               jq --raw-output ".auths[\"https://$REGISTRY_URL/v2/\"] | select(. != null) | .auth"
             )
         if [ "\$token" != "" ]; then
