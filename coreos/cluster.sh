@@ -20,7 +20,7 @@ function setup_cluster {
   activate_cluster_plugin $1
 
   for machine_ip in $2; do
-    check=$(machine_ssh $machine_ip "sudo whoami")
+    check=$(machine_ssh $machine_ip "sudo whoami" || true)
     if [ "$check" != "root" ]; then
       echo "Can't ssh as root on $machine_ip"
       exit 1
