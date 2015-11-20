@@ -23,7 +23,11 @@ function start_local_cluster {
   num_machines=${1:-1}
 
   # generate setting for local air_db
-  echo "etcd_set /settings/air/db/host $COREOS_HOST_IP" > ./coreos_etcd
+  mkdir -p clusters/local_vagrant/secrets
+  echo "etcd_set /settings/air/db/host $COREOS_HOST_IP" > clusters/local_vagrant/secrets/etcd
+
+  # copy dev certs
+  cp -rp ../router/dev_cert clusters/local_vagrant/secrets/ca
 
   ips=$(machine_ips $num_machines)
 
@@ -33,7 +37,7 @@ function start_local_cluster {
   start_machines $num_machines
 
   REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
-  ./cluster.sh setup_cluster coreos_etcd ../router/dev_cert "$ips"
+  ./cluster.sh setup_cluster local_vagrant "$ips"
 
   for machine_ip in $(machine_ips $num_machines); do
     ssh $machine_ip "journalctl -f -u air-*" &
@@ -141,7 +145,7 @@ function add_machine {
 
   # add machine to the cluster and install it
   REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
-  ./cluster.sh add_machine $cluster_machine_ip $new_machine_ip coreos_etcd ../router/dev_cert
+  ./cluster.sh add_machine $cluster_machine_ip $new_machine_ip
 
   # update balancer configuration
   echo "$new_machine_ip" >> ../balancer/config/routers

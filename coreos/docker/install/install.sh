@@ -34,17 +34,6 @@ function pull_docker_image {
   echo "$(hostname): pulled image $REGISTRY_URL/$1:$latest_version"
 }
 
-function configure_etcd {
-  echo "Waiting for etcd settings overrides ..."
-  while [ ! -e /aircloak/etcd/coreos ]; do sleep 1; done
-
-  # Copy settings to appropriate place
-  mkdir -p /aircloak/air/etcd/local_settings
-  cp -rp /aircloak/etcd/coreos /aircloak/air/etcd/local_settings/
-
-  /aircloak/air/etcd/config_coreos.sh
-}
-
 
 # Setup common environment
 cat /etc/environment >> /aircloak/air/environment
@@ -52,7 +41,8 @@ echo "REGISTRY_URL=$REGISTRY_URL" >> /aircloak/air/environment
 echo "AIR_HOST_NAME=$COREOS_PUBLIC_IPV4" >> /aircloak/air/environment
 echo "ETCD_CLIENT=http://127.0.0.1:$(get_tcp_port prod etcd/client)" >> /aircloak/air/environment
 
-configure_etcd
+mv /tmp/etcd_values_coreos /aircloak/air/etcd/
+/aircloak/air/etcd/config_coreos.sh
 
 touch /aircloak/air/.installation_started
 

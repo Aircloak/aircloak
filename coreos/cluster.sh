@@ -17,7 +17,9 @@ cd $(dirname $0)
 . ./cloud-config.sh
 
 function setup_cluster {
-  for machine_ip in $3; do
+  activate_cluster_plugin $1
+
+  for machine_ip in $2; do
     check=$(ssh $machine_ip "sudo whoami")
     if [ "$check" != "root" ]; then
       echo "Can't ssh as root on $machine_ip"
@@ -25,12 +27,23 @@ function setup_cluster {
     fi
   done
 
-  cloud_config_install_part=$(cloud_config_install_part "$3")
+  cloud_config_install_part=$(cloud_config_install_part "$2")
 
-  for machine_ip in $3; do
-    install_machine $machine_ip $1 $2 "$cloud_config_install_part"&
+  for machine_ip in $2; do
+    install_machine $machine_ip "$cloud_config_install_part"&
   done
   wait
+}
+
+function activate_cluster_plugin {
+  export CLUSTER_TYPE=$1
+  plugin_file="clusters/$1/plugin.sh"
+  if [ ! -e "$plugin_file" ]; then
+    echo "Missing $(pwd)/$plugin_file"
+    exit 1
+  fi
+
+  . $plugin_file
 }
 
 function cloud_config_install_part {
@@ -38,34 +51,26 @@ function cloud_config_install_part {
 }
 
 function install_machine {
-  # Take base cloud-config from the target machine, and append our custom stuff
   mkdir -p tmp
-  cloud_config_file="tmp/cloud_config_$1_$((`date +%s`*1000+`date +%-N`/1000000))_$RANDOM"
-
-  full_content=$(
-    cat <<EOF
-$(ssh $1 "sudo cat /var/lib/coreos-install/user_data")
-
-$4
-EOF
-    )
-
-  # Cloud-config vars (e.g. $public_ipv4) are not available to all installations
-  # (see https://coreos.com/os/docs/latest/cloud-config.html), so we replace them
-  # with hardcoded ip of the machine.
-  echo "$full_content" | \
-      sed "s/\$public_ipv4/$1/; s/\$private_ipv4/$1/" \
-      > $cloud_config_file
 
   # cloud-config
+  cloud_config_file="$(generate_cloud_config_file $1 "$2")"
   upload_to_machine $1 root $cloud_config_file /var/lib/coreos-install/user_data
   rm $cloud_config_file
 
   # etcd config
-  upload_to_machine $1 default $2 /aircloak/etcd/coreos
+  etcd_file="$(generate_etcd_settings $1)"
+  upload_to_machine $1 default $etcd_file /tmp/etcd_values_coreos
+  rm $etcd_file
 
   # keys
-  upload_to_machine $1 default $3 /aircloak/ca
+  upload_to_machine $1 default clusters/$CLUSTER_TYPE/secrets/ca /aircloak/ca
+
+  # store cluster type on the machine
+  ssh $1 "echo '$CLUSTER_TYPE' > /aircloak/cluster_type"
+
+  # allow plugin to perform some custom actions on the machine
+  if [ $(type -t prepare_machine) ]; then prepare_machine $1; fi
 
   # Note that we're running cloudinit twice. The first one will start
   # the installation which will generate new cloud-config. Then,
@@ -86,6 +91,39 @@ EOF
 
   echo "$1: Waiting for services to start ..."
   ssh $1 "/aircloak/air/air_service_ctl.sh wait_until_system_is_up"
+}
+
+function generate_cloud_config_file {
+  # Take base cloud-config from the target machine, and append our custom stuff
+  full_content=$(
+    cat <<EOF
+$(ssh $1 "sudo cat /var/lib/coreos-install/user_data")
+
+$2
+EOF
+    )
+
+  # generate unique name
+  cloud_config_file="tmp/cloud_config_$1_$((`date +%s`*1000+`date +%-N`/1000000))_$RANDOM"
+
+  # Cloud-config vars (e.g. $public_ipv4) are not available to all installations
+  # (see https://coreos.com/os/docs/latest/cloud-config.html), so we replace them
+  # with hardcoded ip of the machine.
+  echo "$full_content" | \
+      sed "s/\$public_ipv4/$1/; s/\$private_ipv4/$1/" \
+      > $cloud_config_file
+
+  echo "$cloud_config_file"
+}
+
+function generate_etcd_settings {
+  etcd_file="tmp/etcd_$1_$((`date +%s`*1000+`date +%-N`/1000000))_$RANDOM"
+  cat <<EOF > $etcd_file
+$(etcd_settings)
+
+$(if [ -e clusters/$CLUSTER_TYPE/secrets/etcd ]; then cat clusters/$CLUSTER_TYPE/secrets/etcd; fi)
+EOF
+  echo "$etcd_file"
 }
 
 function upload_to_machine {
@@ -110,6 +148,8 @@ function add_machine {
   cluster_machine=$1
   new_machine=$2
 
+  activate_cluster_plugin "$(ssh $cluster_machine "cat /aircloak/cluster_type")"
+
   current_cluster="$(etcd_cluster $cluster_machine)"
   etcd_peer_port=$(get_tcp_port prod etcd/peer)
 
@@ -121,7 +161,7 @@ function add_machine {
   cloud_config_install_part=$(INITIAL_CLUSTER_STATE=existing cloud_config_install_part "$cluster_machines")
 
   # install the new machine
-  install_machine $new_machine $3 $4 "$cloud_config_install_part"
+  install_machine $new_machine "$cloud_config_install_part"
 }
 
 function etcd_cluster {
@@ -197,12 +237,12 @@ trap kill_background_jobs EXIT
 case "$1" in
   setup_cluster)
     shift
-    if [ "$REGISTRY_URL" == "" ] || [ $# -lt 3 ]; then
+    if [ "$REGISTRY_URL" == "" ] || [ $# -lt 2 ]; then
       echo
       echo "Usage:"
       echo
       echo '  REGISTRY_URL=registry_ip[:registry_port] \'
-      echo "  $0 setup_cluster etcd_config key_folder machine1_ip machine2_ip ..."
+      echo "  $0 setup_cluster cluster_type machine1_ip machine2_ip ..."
       echo
       exit 1
     fi
@@ -212,12 +252,12 @@ case "$1" in
 
   add_machine)
       shift
-      if [ "$REGISTRY_URL" == "" ] || [ $# -ne 4 ]; then
+      if [ "$REGISTRY_URL" == "" ] || [ $# -ne 2 ]; then
         echo
         echo "Usage:"
         echo
         echo '  REGISTRY_URL=registry_ip[:registry_port] \'
-        echo "  $0 add_machine cluster_machine_ip new_machine_ip etcd_config key_folder"
+        echo "  $0 add_machine cluster_machine_ip new_machine_ip"
         echo
         exit 1
       fi
