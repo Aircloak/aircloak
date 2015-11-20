@@ -88,3 +88,41 @@ pack_content("gzip", Content) ->
   zlib:gzip(Content);
 pack_content("deflate", Content) ->
   zlib:compress(Content).
+
+
+%% -------------------------------------------------------------------
+%% Tests
+%% -------------------------------------------------------------------
+
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+
+stop_process(Pid) ->
+  Ref = monitor(process, Pid),
+  exit(Pid, normal),
+  receive
+      {'DOWN', Ref, process, Pid, _Reason} -> ok
+  after 1000 ->
+    error(exit_timeout)
+  end.
+
+test_post_processor(Path, Data) ->
+  RawArticle = #article{path = Path, content_encoding = "gzip", content = pack_content("gzip", Data)},
+  PPArticle = edit(RawArticle),
+  unpack_content("gzip", PPArticle#article.content).
+
+integration_test() ->
+  % test setup
+  application:set_env(airpub, js_folder, "../test"),
+  application:set_env(airpub, post_processing_rules, [{"/processed/", "processor_test"}]),
+  erlang_js:start(),
+  {ok, JSSupPid} = js_vm_sup:start_link(),
+  % test run
+  <<"processed-data">> = test_post_processor("/processed/1", <<"data">>),
+  <<"data">> = test_post_processor("/unprocessed/1", <<"data">>),
+  % test cleanup
+  stop_process(JSSupPid),
+  application:stop(erlang_js).
+
+-endif.
