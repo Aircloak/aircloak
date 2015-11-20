@@ -40,7 +40,7 @@ first(_Predicate, []) ->
 first(Predicate, [Item | Rest]) ->
   case Predicate(Item) of
     true -> Item;
-    false -> first(Rest, Predicate)
+    false -> first(Predicate, Rest)
   end.
 
 % The post-processing rule handler. It will unpack the content of the article, apply
