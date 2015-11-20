@@ -1,3 +1,10 @@
+SSH_OPTS="
+  -o PasswordAuthentication=no
+  -o IdentitiesOnly=yes
+  -o User=core
+  -i ~/.vagrant.d/insecure_private_key
+"
+
 function etcd_settings {
   cat ../etcd/etcd_values_dev | sed 's/set_tcp_ports dev/set_tcp_ports prod/'
 

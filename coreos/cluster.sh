@@ -20,7 +20,7 @@ function setup_cluster {
   activate_cluster_plugin $1
 
   for machine_ip in $2; do
-    check=$(ssh $machine_ip "sudo whoami")
+    check=$(machine_ssh $machine_ip "sudo whoami")
     if [ "$check" != "root" ]; then
       echo "Can't ssh as root on $machine_ip"
       exit 1
@@ -35,6 +35,11 @@ function setup_cluster {
   wait
 }
 
+function machine_ssh {
+  eval "ssh $SSH_OPTS $1 \"$2\""
+}
+
+
 function activate_cluster_plugin {
   export CLUSTER_TYPE=$1
   plugin_file="clusters/$1/plugin.sh"
@@ -44,6 +49,17 @@ function activate_cluster_plugin {
   fi
 
   . $plugin_file
+
+  # form full ssh_opts
+  SSH_OPTS="
+    -o LogLevel=FATAL
+    -o StrictHostKeyChecking=no
+    -o UserKnownHostsFile=/dev/null
+    $SSH_OPTS
+  "
+
+  # convert newlines to spaces in SSH_OPTS
+  SSH_OPTS=$(tr '\n' ' ' < <(echo "$SSH_OPTS"))
 }
 
 function cloud_config_install_part {
@@ -67,7 +83,7 @@ function install_machine {
   upload_to_machine $1 default clusters/$CLUSTER_TYPE/secrets/ca /aircloak/ca
 
   # store cluster type on the machine
-  ssh $1 "echo '$CLUSTER_TYPE' > /aircloak/cluster_type"
+  machine_ssh $1 "echo '$CLUSTER_TYPE' > /aircloak/cluster_type"
 
   # allow plugin to perform some custom actions on the machine
   if [ $(type -t prepare_machine) ]; then prepare_machine $1; fi
@@ -77,27 +93,27 @@ function install_machine {
   # we start the installation for the second time to start the installed
   # services. We're not doing it from the installer script, because that would
   # cause an endless recursion (trying to apply cloud-config while applying cloud-config).
-  ssh $1 "
+  machine_ssh $1 "
     sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data &&
     echo '$1: Applying the new cloud-config...' &&
     sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data &&
     echo '$1: Air system successfully installed!'
   " &
 
-  ssh $1 "
+  machine_ssh $1 "
         while [ ! -e /aircloak/air/.installation_started ]; do sleep 1; done &&
         sudo /aircloak/air/air_service_ctl.sh follow_installation
       "
 
   echo "$1: Waiting for services to start ..."
-  ssh $1 "/aircloak/air/air_service_ctl.sh wait_until_system_is_up"
+  machine_ssh $1 "/aircloak/air/air_service_ctl.sh wait_until_system_is_up"
 }
 
 function generate_cloud_config_file {
   # Take base cloud-config from the target machine, and append our custom stuff
   full_content=$(
     cat <<EOF
-$(ssh $1 "sudo cat /var/lib/coreos-install/user_data")
+$(machine_ssh $1 "sudo cat /var/lib/coreos-install/user_data")
 
 $2
 EOF
@@ -128,15 +144,15 @@ EOF
 
 function upload_to_machine {
   if [ "$2" == "default" ]; then
-    owner=$(ssh $1 "whoami")
+    owner=$(machine_ssh $1 "whoami")
   else
     owner=$2
   fi
 
-  scp -r $3 $1:/tmp/
+  eval "scp -r $SSH_OPTS $3 $1:/tmp/"
 
   target_dir=$(dirname $4)
-  ssh $1 "
+  machine_ssh $1 "
     sudo mkdir -p $(dirname $4) &&
     sudo mv /tmp/$(basename $3) $4 &&
     sudo chown $owner:$owner $target_dir &&
@@ -148,7 +164,7 @@ function add_machine {
   cluster_machine=$1
   new_machine=$2
 
-  activate_cluster_plugin "$(ssh $cluster_machine "cat /aircloak/cluster_type")"
+  activate_cluster_plugin "$(machine_ssh $cluster_machine "cat /aircloak/cluster_type")"
 
   current_cluster="$(etcd_cluster $cluster_machine)"
   etcd_peer_port=$(get_tcp_port prod etcd/peer)
@@ -180,7 +196,7 @@ function remove_machine {
 
   if [ "$etcd_machine_id" != "" ]; then
     # Attempt to gracefully stop local services (in the case of running machine)
-    ssh $machine_to_remove "sudo /aircloak/air/air_service_ctl.sh stop_system" || true
+    machine_ssh $machine_to_remove "sudo /aircloak/air/air_service_ctl.sh stop_system" || true
 
     # Remove the machine from the cluster.
     cluster_etcdctl $cluster_machine member remove $etcd_machine_id
@@ -201,11 +217,11 @@ function cluster_etcdctl {
   etcd_client_port=$(get_tcp_port prod etcd/client)
   cluster_machine="$1"
   shift
-  ssh $cluster_machine "etcdctl --endpoint 'http://127.0.0.1:$etcd_client_port' $@"
+  machine_ssh $cluster_machine "etcdctl --endpoint 'http://127.0.0.1:$etcd_client_port' $@"
 }
 
 function upgrade_machine {
-  ssh $1 "sudo /aircloak/air/air_service_ctl.sh upgrade_system"
+  machine_ssh $1 "sudo /aircloak/air/air_service_ctl.sh upgrade_system"
   echo "Machine $1 upgraded."
 }
 
