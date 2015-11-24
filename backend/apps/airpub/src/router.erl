@@ -37,21 +37,26 @@ remove_subscriber() ->
 
 %% @doc Publish an article to all interested subscribers.
 -spec publish(#article{}) -> ok.
-publish(#article{path = Path} = Article) ->
-  lager:info("Publishing article to ~s~n", [Path]),
-  Nodes = string:tokens(Path, "/"),
+publish(Article) ->
   history:append(Article),
+  deliver(Article).
+
+
+%% -------------------------------------------------------------------
+%% Internal functions
+%% -------------------------------------------------------------------
+
+% Delivers the specified article to the interested subscribers.
+-spec deliver(#article{}) -> ok.
+deliver(#article{path = Path} = Article) ->
+  lager:info("Delivering article at ~s~n", [Path]),
+  Nodes = string:tokens(Path, "/"),
   lists:foldl(fun (Node, ParentPath) ->
       CurrentPath = ParentPath ++ "/" ++ Node,
       gproc:send({p, l, {subscriber, CurrentPath}}, {notify, Article}),
       CurrentPath
     end, "", Nodes),
   ok.
-
-
-%% -------------------------------------------------------------------
-%% Internal functions
-%% -------------------------------------------------------------------
 
 % Send the interesting articles from history to the new subscriber.
 -spec send_history(string()) -> ok.

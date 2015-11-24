@@ -52,19 +52,21 @@ handle_publish_request(<<"POST">>, "", true, _ContentType, _ContentEcoding, Req)
 handle_publish_request(<<"POST">>, Path, true, ContentType, ContentEncoding, Req) ->
   {ok, MaxArticleSize} = application:get_env(airpub, max_article_size),
   {ok, Body, Req2} = cowboy_req:body(Req, [{length, MaxArticleSize}]),
-  Article = #article{path = Path, content_type = ContentType, content_encoding = ContentEncoding, content = Body},
-  router:publish(Article),
+  RawArticle = #article{path = Path, content_type = ContentType, content_encoding = ContentEncoding, content = Body},
+  ProcessedArticle = post_processor:edit(RawArticle),
+  router:publish(ProcessedArticle),
   case get_forward_info(Path) of
     undefined ->
       cowboy_req:reply(200, [], <<>>, Req2);
     {ForwardUrl, ForwardHeadersNames} ->
-      lager:notice("Forwarding article published on ~s to ~s", [Path, ForwardUrl]),
+      lager:info("Forwarding article published on ~s to ~s", [Path, ForwardUrl]),
       % convert published timestamp to miliseconds and forward it to the final endpoint
-      {MegaSecs, Secs, MicroSecs} = Article#article.published_at,
+      {MegaSecs, Secs, MicroSecs} = ProcessedArticle#article.published_at,
       PublishedAtMillis = (MegaSecs * 1000 * 1000 + Secs) * 1000 + MicroSecs div 1000,
       MetadataHeaders = [{"Path", base64:encode_to_string(Path)}, {"PublishedAt", integer_to_list(PublishedAtMillis)}],
       ForwardHeaders = get_forward_headers(["Content-Encoding" | ForwardHeadersNames], Req2),
-      StatusCode = forward_article(ForwardUrl, MetadataHeaders ++ ForwardHeaders, ContentType, Body),
+      ProcessedContent = ProcessedArticle#article.content,
+      StatusCode = forward_article(ForwardUrl, MetadataHeaders ++ ForwardHeaders, ContentType, ProcessedContent),
       cowboy_req:reply(StatusCode, [], <<>>, Req2)
   end;
 handle_publish_request(<<"POST">>, _Path, false, _ContentType, _ContentEncoding, Req) ->
@@ -114,7 +116,7 @@ forward_article(Url, Headers, ContentType, Body) ->
     end
   catch
     error:ErrorReason ->
-      lager:error("Failed to forward article to ~s, Reason: ~p:~p.",
+      lager:error("Failed to forward article to ~s. Reason: ~p:~p.",
         [Url, ErrorReason, erlang:get_stacktrace()]),
       500 % internal server error
   end.

@@ -2,7 +2,10 @@ class ResultHandler
   # Store the new sets of results
   def self.store_results task, json, published_at
     # create a new result
-    new_result = Result.create(task: task, buckets_json: json["buckets"].to_json)
+    new_result = Result.create
+    new_result.task = task
+    new_result.buckets_json = json["buckets"].to_json
+    new_result.histograms_json = json["histograms"].to_json
     new_result.analyst = task.analyst
     new_result.created_at = published_at
     new_result.save
