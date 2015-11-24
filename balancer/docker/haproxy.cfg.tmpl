@@ -10,7 +10,7 @@ defaults
   option logasap
 
 frontend https
-  bind *:$BALANCER_HTTPS_PORT
+  bind $BIND_IF:$BALANCER_HTTPS_PORT
   mode tcp
   option tcplog
   option clitcpka
@@ -20,7 +20,7 @@ frontend https
   default_backend router_https
 
 frontend http
-  bind *:$BALANCER_HTTP_PORT
+  bind $BIND_IF:$BALANCER_HTTP_PORT
   mode tcp
   option tcplog
   option clitcpka

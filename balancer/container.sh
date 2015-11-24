@@ -13,10 +13,20 @@ fi
 
 STOP_SIGNAL=SIGQUIT
 STOP_TIMEOUT=30
+BIND_IF=${BIND_IF:-"*"}
 
 DOCKER_IMAGE="aircloak/air_balancer"
-DOCKER_START_ARGS="--net=host -v $(pwd)/config:/aircloak/balancer/config"
-CONTAINER_NAME="air_balancer"
+DOCKER_START_ARGS="
+  --net=host
+  -v $(pwd)/config:/aircloak/balancer/config
+  -e BIND_IF=$BIND_IF
+"
+
+if [ "$BIND_IF" != "*" ]; then
+  CONTAINER_NAME="air_balancer_$BIND_IF"
+else
+  CONTAINER_NAME="air_balancer"
+fi
 CONTAINER_ARGS="/aircloak/balancer/start.sh"
 
 container_ctl $@
