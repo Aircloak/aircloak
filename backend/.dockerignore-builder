@@ -17,3 +17,4 @@
 !backend/Makefile
 !backend/generate_cloak_conf.escript
 !backend/copy_configs.sh
+!backend/priv/js
