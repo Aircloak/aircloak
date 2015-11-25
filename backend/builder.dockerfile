@@ -61,6 +61,7 @@ COPY backend/include /tmp/web/backend/include
 COPY backend/rel /tmp/web/backend/rel
 COPY backend/generate_cloak_conf.escript /tmp/web/backend/
 COPY backend/Makefile backend/copy_configs.sh /tmp/web/backend/
+COPY backend/priv/js /tmp/web/backend/priv/js
 RUN cd /tmp/web/backend/ && make rel
 
 AIR_TAG_VERSION

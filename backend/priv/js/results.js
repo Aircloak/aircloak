@@ -93,12 +93,12 @@ function aggregate_data_values(dataBuckets, name, total)
       cdfs[number_to_key(value)] = bucket.count;
     }
   }
-  if (min >= max) return [];
+  if (min >= max) throw "invalid data values (min >= max)";
   step = Math.min(max - min, step);
 
   // fill missing values
   cdfs[number_to_key(max)] = in_range;
-  for (var i = min; i <= max; i++)
+  for (var i = min; i <= max; i += step)
     cdfs[number_to_key(i)] = valid(cdfs[number_to_key(i)], 0);
 
   var countBucket = {label: name, value: "values in range", count: in_range};
