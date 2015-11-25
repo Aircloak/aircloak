@@ -107,20 +107,33 @@ stop_process(Pid) ->
     error(exit_timeout)
   end.
 
-test_post_processor(Path, Data) ->
-  RawArticle = #article{path = Path, content_encoding = "gzip", content = pack_content("gzip", Data)},
+test_post_processor(Path, RawData) ->
+  RawArticle = #article{path = Path, content_encoding = "gzip", content = pack_content("gzip", RawData)},
   PPArticle = edit(RawArticle),
-  unpack_content("gzip", PPArticle#article.content).
+  PPData = unpack_content("gzip", PPArticle#article.content),
+  jiffy:decode(PPData).
 
 integration_test() ->
   % test setup
-  application:set_env(airpub, js_folder, "../test"),
-  application:set_env(airpub, post_processing_rules, [{"/processed/", "processor_test"}]),
+  application:set_env(airpub, js_folder, "../../../priv/js"),
+  application:set_env(airpub, post_processing_rules, [{"/processed/", "process_result"}]),
   erlang_js:start(),
   {ok, JSSupPid} = js_vm_sup:start_link(),
   % test run
-  <<"processed-data">> = test_post_processor("/processed/1", <<"data">>),
-  <<"data">> = test_post_processor("/unprocessed/1", <<"data">>),
+  {ok, Data} = file:read_file("../test/result.json"),
+  {[{
+    <<"analyst_id">>, 1},
+    {<<"task_id">>, <<"1">>},
+    {<<"buckets">>, _},
+    {<<"exceptions">>, []},
+    {<<"histograms">>, [_]}
+  ]} = test_post_processor("/processed/1", Data),
+  {[{
+    <<"analyst_id">>, 1},
+    {<<"task_id">>, <<"1">>},
+    {<<"buckets">>, _},
+    {<<"exceptions">>, []}
+  ]} = test_post_processor("/unprocessed/1", Data),
   % test cleanup
   stop_process(JSSupPid),
   application:stop(erlang_js).
