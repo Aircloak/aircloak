@@ -6,7 +6,7 @@ SSH_OPTS="
 "
 
 function etcd_settings {
-  cat ../etcd/etcd_values_prod
+  cat ../etcd/etcd_values_stage
 }
 
 function prepare_machine {
