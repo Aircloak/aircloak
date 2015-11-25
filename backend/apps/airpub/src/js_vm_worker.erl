@@ -71,9 +71,12 @@ code_change(_OldVsn, State, _Extra) ->
 js_call(VM, FunctionName, Args) ->
     ArgList = build_arg_list(Args, []),
     EscapedFunctionName = binary:replace(FunctionName, <<"\"">>, <<"\\\"">>, [global]),
-    JS = iolist_to_binary([<<"function() { if (">>, FunctionName, <<" === undefined) { throw(\"">>,
-          EscapedFunctionName, <<" not defined\"); } ">>, <<"return ">>,
-          FunctionName, <<"(">>, ArgList, <<");">>, <<"}();">>]),
+    JS = iolist_to_binary([
+          <<"function() {
+            if (">>, FunctionName, <<" === undefined) { throw(\"">>, EscapedFunctionName, <<" not defined\"); }
+            return ">>, FunctionName, <<"(">>, ArgList, <<");
+          }();">>
+        ]),
     js_driver:eval_js(VM, JS, infinity).
 
 % Converts arguments to JSON.
