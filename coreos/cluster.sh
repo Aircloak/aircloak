@@ -36,7 +36,9 @@ function setup_cluster {
 }
 
 function machine_ssh {
-  eval "ssh $SSH_OPTS $1 \"$2\""
+  machine=$1
+  shift
+  eval "ssh $SSH_OPTS $machine \"$@\""
 }
 
 
@@ -161,10 +163,15 @@ function upload_to_machine {
 }
 
 function add_machine {
-  cluster_machine=$1
-  new_machine=$2
+  cluster_machine=$2
+  new_machine=$3
 
-  activate_cluster_plugin "$(machine_ssh $cluster_machine "cat /aircloak/cluster_type")"
+  activate_cluster_plugin $1
+  existing_plugin=$(machine_ssh $cluster_machine "cat /aircloak/cluster_type")
+  if [ "$existing_plugin" != "$1" ]; then
+    echo "Machine $2 is installed with $existing_plugin config, but you specified $1!"
+    exit 1
+  fi
 
   current_cluster="$(etcd_cluster $cluster_machine)"
   etcd_peer_port=$(get_tcp_port prod etcd/peer)
@@ -268,17 +275,17 @@ case "$1" in
 
   add_machine)
       shift
-      if [ "$REGISTRY_URL" == "" ] || [ $# -ne 2 ]; then
+      if [ "$REGISTRY_URL" == "" ] || [ $# -ne 3 ]; then
         echo
         echo "Usage:"
         echo
         echo '  REGISTRY_URL=registry_ip[:registry_port] \'
-        echo "  $0 add_machine cluster_machine_ip new_machine_ip"
+        echo "  $0 add_machine cluster_type cluster_machine_ip new_machine_ip"
         echo
         exit 1
       fi
 
-      add_machine $1 $2 $3 $4
+      add_machine $1 $2 $3
     ;;
 
   remove_machine)

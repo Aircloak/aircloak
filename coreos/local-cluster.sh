@@ -145,7 +145,7 @@ function add_machine {
 
   # add machine to the cluster and install it
   REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
-  ./cluster.sh add_machine $cluster_machine_ip $new_machine_ip
+  ./cluster.sh add_machine local_vagrant $cluster_machine_ip $new_machine_ip
 
   # update balancer configuration
   echo "$new_machine_ip" >> ../balancer/config/routers
