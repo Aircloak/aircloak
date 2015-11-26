@@ -150,7 +150,7 @@ process_raw_rows(Headers, ErrorSet, {Id, CreatedAt, Val}) ->
   Row = lists:map(fun(Header) ->
           case dict:find(Header, ValDict) of
             error -> "";
-            {ok, Count} -> integer_to_list(Count)
+            {ok, Count} -> cloak_util:stringify(Count)
           end
         end, Headers),
   cloak_util:join([format_time(CreatedAt), HasError] ++ Row, ",").
