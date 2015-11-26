@@ -34,6 +34,10 @@ function pull_docker_image {
   echo "$(hostname): pulled image $REGISTRY_URL/$1:$latest_version"
 }
 
+if [ -e /aircloak/air/install/.installed ]; then
+  echo "Air system is already installed"
+fi
+
 
 # Setup common environment
 cat /etc/environment >> /aircloak/air/environment
@@ -41,7 +45,16 @@ echo "REGISTRY_URL=$REGISTRY_URL" >> /aircloak/air/environment
 echo "AIR_HOST_NAME=$COREOS_PUBLIC_IPV4" >> /aircloak/air/environment
 echo "ETCD_CLIENT=http://127.0.0.1:$(get_tcp_port prod etcd/client)" >> /aircloak/air/environment
 
-mv /tmp/etcd_values_coreos /aircloak/air/etcd/
+# Copy new etcd config if it exists
+if [ -e /tmp/etcd_values_coreos ]; then
+  # When upgrading, /aircloak/air folder is removed. Therefore, we first move
+  # the file to /aircloak location, to ensure it is preserved on upgrade.
+  # In contrast,  will be deleted and reinstalled, so we need
+  mv /tmp/etcd_values_coreos /aircloak/
+fi
+
+# Configure etcd
+cp -rp /aircloak/etcd_values_coreos /aircloak/air/etcd/
 /aircloak/air/etcd/config_coreos.sh
 
 touch /aircloak/air/.installation_started
