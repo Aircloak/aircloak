@@ -60,17 +60,13 @@ Task.execute = (id) ->
       showTaskSuccess()
 
 convertArticleToResult = (timestamp, article) ->
-  result = {published_at: timestamp}
   limit = 8 * 1024 * 1024 # 8 MB size limit
-  if article.length > limit
-    result.buckets = [{label: "notice", value: "result too big", \
-                       count: "result size (#{article.length} bytes) exceededs limit (#{limit} bytes)"}]
-    result.exceptions = []
+  result = if article.length > limit
+    {exceptions: [], histograms: [], buckets: [{label: "notice", value: "result too big", \
+                       count: "result size (#{article.length} bytes) exceededs limit (#{limit} bytes)"}]}
   else
-    article = JSON.parse article
-    result.buckets = []
-    result.buckets.push {label: bucket.label, value: bucket.value, count: bucket.count} for bucket in article.buckets
-    result.exceptions = article.exceptions
+    JSON.parse article
+  result.published_at = timestamp
   result
 
 

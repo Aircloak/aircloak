@@ -11,8 +11,7 @@ RUN \
   apt-get update && \
   apt-get install \
     build-essential libssl-dev git curl libncurses5-dev libprotobuf-c-dev protobuf-c-compiler \
-    liblua5.1-0-dev \
-    -y
+    liblua5.1-0-dev python zip -y
 
 ## ------------------------------------------------------------------
 ## Get erlang installed
@@ -62,6 +61,7 @@ COPY backend/include /tmp/web/backend/include
 COPY backend/rel /tmp/web/backend/rel
 COPY backend/generate_cloak_conf.escript /tmp/web/backend/
 COPY backend/Makefile backend/copy_configs.sh /tmp/web/backend/
+COPY backend/priv/js /tmp/web/backend/priv/js
 RUN cd /tmp/web/backend/ && make rel
 
 AIR_TAG_VERSION

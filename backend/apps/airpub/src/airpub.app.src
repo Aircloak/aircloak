@@ -6,6 +6,8 @@
     kernel,
     stdlib,
     cowboy,
+    sasl,
+    erlang_js,
     air_common
   ]},
   {mod, {airpub_app, []}},

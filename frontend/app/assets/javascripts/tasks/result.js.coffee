@@ -1,5 +1,3 @@
-# include buckets aggregation functionality
-//= require tasks/results_aggregation
 # include result exception handling functionality
 //= require tasks/result_exception
 
@@ -20,7 +18,7 @@ format_date = (timestamp) ->
   date.substring(0, date.length - 5).replace('T', ' ')
 
 
-plot_data_callback = (name, data, plot_step) ->
+plot_data = (histogram) ->
   # create chart canvas
   svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute 'width', '840px'
@@ -34,6 +32,27 @@ plot_data_callback = (name, data, plot_step) ->
   div.style.height = '260px'
   div.appendChild svg
   $("#charts").append div
+
+  if histogram.values.length > 25
+    # to get a pretty chart, we need to reduce the number of values displayed
+    accumulator = 0
+    last_index = 0
+    reduced_values = []
+    step = histogram.values.length / 20.0
+    for value, index in histogram.values
+      if index - last_index > step
+        reduced_values.push accumulator
+        last_index = index
+        accumulator = value
+      else
+        accumulator += value
+    reduced_values.push accumulator
+    histogram.values = reduced_values
+
+  name = histogram.name
+  plot_step = (histogram.max - histogram.min) / histogram.values.length
+  # convert histogram plot values to chart format
+  values = ({x: histogram.min + (index + 0.5) * plot_step, y: value} for value, index in histogram.values)
 
   # build chart
   nv.addGraph ->
@@ -52,7 +71,7 @@ plot_data_callback = (name, data, plot_step) ->
     plot_step = format_value(plot_step)
     legend = "#{name} (bar width = #{plot_step})"
     d3.select(svg)
-        .datum([{values: data, key: legend, color: '#7777ff', area: true}])
+        .datum([{values: values, key: legend, color: '#7777ff', area: true}])
         .transition().duration(500)
         .call(chart)
     chart
@@ -64,12 +83,18 @@ Results.display = (result) ->
 
   # call page new result callback if any registered
   Results.new_result_callback(result) if Results.new_result_callback
-  # aggregate and plot quantized data
-  result.buckets = Results.aggregate_quantized_buckets result.buckets, plot_data_callback
 
   if result.buckets.length > 100
     result.buckets = [{label: "notice", value: "too many buckets", \
           count: "buckets count (#{result.buckets.length}) exceeds row limit (100), use REST API or CSV export to view result"}]
+
+  result.histograms = [] if !result.histograms
+  if result.histograms.length > 10
+    result.buckets.push {label: "notice", value: "too many histograms", \
+          count: "histograms count (#{result.histograms.length}) exceeds display limit (10), use REST API export to view result"}
+  else
+    for histogram in result.histograms
+      plot_data histogram
 
   timestamp = parseInt result.published_at
   text = format_date timestamp
