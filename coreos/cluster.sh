@@ -81,9 +81,7 @@ function install_machine {
   rm $cloud_config_file
 
   # etcd config
-  etcd_file="$(generate_etcd_settings $1)"
-  upload_to_machine $1 default $etcd_file /tmp/etcd_values_coreos
-  rm $etcd_file
+  upload_etcd_config $1
 
   # keys
   upload_to_machine $1 default clusters/$CLUSTER_TYPE/secrets/ca /aircloak/ca
@@ -138,14 +136,17 @@ EOF
   echo "$cloud_config_file"
 }
 
-function generate_etcd_settings {
+function upload_etcd_config {
   etcd_file="tmp/etcd_$1_$((`date +%s`*1000+`date +%-N`/1000000))_$RANDOM"
+
   cat <<EOF > $etcd_file
 $(etcd_settings)
 
 $(if [ -e clusters/$CLUSTER_TYPE/secrets/etcd ]; then cat clusters/$CLUSTER_TYPE/secrets/etcd; fi)
 EOF
-  echo "$etcd_file"
+
+  upload_to_machine $1 default $etcd_file /tmp/etcd_values_coreos
+  rm $etcd_file
 }
 
 function upload_to_machine {
@@ -242,6 +243,7 @@ function cluster_etcdctl {
 function upgrade_machine {
   activate_cluster_plugin $1
   assert_machine_cluster_type $1 $2
+  upload_etcd_config $1
   machine_ssh $2 "sudo /aircloak/air/air_service_ctl.sh upgrade_system"
   echo "Machine $2 upgraded."
 }
