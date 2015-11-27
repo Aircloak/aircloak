@@ -180,7 +180,7 @@ function remove_machine {
   echo "$new_routers" > ../balancer/config/routers
 
   # remove the machine from the cluster
-  ./cluster.sh remove_machine $cluster_machine_ip $machine_to_remove_ip || true
+  ./cluster.sh remove_machine local_vagrant $cluster_machine_ip $machine_to_remove_ip || true
 
   # stop the machine
   vagrant destroy -f $machine_to_remove
@@ -196,7 +196,7 @@ function rolling_upgrade {
     exit 1
   fi
 
-  ./cluster.sh rolling_upgrade $(machine_ip $cluster_machine)
+  ./cluster.sh rolling_upgrade local_vagrant $(machine_ip $cluster_machine)
 }
 
 
@@ -230,7 +230,7 @@ case "$1" in
       exit 1
     fi
     package_system
-    ./cluster.sh upgrade_machine $(machine_ip $1) || true
+    ./cluster.sh upgrade_machine local_vagrant $(machine_ip $1) || true
     ;;
 
   rolling_upgrade)

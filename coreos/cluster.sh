@@ -20,11 +20,7 @@ function setup_cluster {
   activate_cluster_plugin $1
 
   for machine_ip in $2; do
-    check=$(machine_ssh $machine_ip "sudo whoami" || true)
-    if [ "$check" != "root" ]; then
-      echo "Can't ssh as root on $machine_ip"
-      exit 1
-    fi
+    check_ssh $machine_ip
   done
 
   cloud_config_install_part=$(cloud_config_install_part "$2")
@@ -33,6 +29,14 @@ function setup_cluster {
     install_machine $machine_ip "$cloud_config_install_part"&
   done
   wait
+}
+
+function check_ssh {
+  check=$(machine_ssh $1 "sudo whoami" || true)
+  if [ "$check" != "root" ]; then
+    echo "Can't ssh as root on $1"
+    exit 1
+  fi
 }
 
 function machine_ssh {
@@ -167,11 +171,8 @@ function add_machine {
   new_machine=$3
 
   activate_cluster_plugin $1
-  existing_plugin=$(machine_ssh $cluster_machine "cat /aircloak/cluster_type")
-  if [ "$existing_plugin" != "$1" ]; then
-    echo "Machine $2 is installed with $existing_plugin config, but you specified $1!"
-    exit 1
-  fi
+  assert_machine_cluster_type $1 $cluster_machine
+  check_ssh $new_machine
 
   current_cluster="$(etcd_cluster $cluster_machine)"
   etcd_peer_port=$(get_tcp_port prod etcd/peer)
@@ -187,6 +188,14 @@ function add_machine {
   install_machine $new_machine "$cloud_config_install_part"
 }
 
+function assert_machine_cluster_type {
+  existing_plugin=$(machine_ssh $2 "cat /aircloak/cluster_type")
+  if [ "$existing_plugin" != "$1" ]; then
+    echo "Machine $2 is installed with $existing_plugin config, but you specified $1!"
+    exit 1
+  fi
+}
+
 function etcd_cluster {
   cluster_etcdctl $1 member list | \
   awk '{print $3}' | \
@@ -196,8 +205,11 @@ function etcd_cluster {
 }
 
 function remove_machine {
-  cluster_machine=$1
-  machine_to_remove=$2
+  cluster_machine=$2
+  machine_to_remove=$3
+
+  activate_cluster_plugin $1
+  assert_machine_cluster_type $1 $cluster_machine
 
   etcd_machine_id="$(etcd_machine_id $cluster_machine $machine_to_remove)"
 
@@ -228,17 +240,28 @@ function cluster_etcdctl {
 }
 
 function upgrade_machine {
-  machine_ssh $1 "sudo /aircloak/air/air_service_ctl.sh upgrade_system"
-  echo "Machine $1 upgraded."
+  activate_cluster_plugin $1
+  assert_machine_cluster_type $1 $2
+  machine_ssh $2 "sudo /aircloak/air/air_service_ctl.sh upgrade_system"
+  echo "Machine $2 upgraded."
 }
 
 function rolling_upgrade {
-  # Get all machines in the cluster
-  current_cluster=$(etcd_cluster $1 | sed "s/,.*$//" | sort | uniq)
+  activate_cluster_plugin $1
+  assert_machine_cluster_type $1 $2
 
+  # Get all machines in the cluster
+  current_cluster=$(etcd_cluster $2 | sed "s/,.*$//" | sort | uniq)
+
+  # verify we can ssh to each machine
+  for machine in $current_cluster; do
+    check_ssh $machine
+  done
+
+  # upgrade each machine
   for machine in $current_cluster; do
     echo "Upgrading $machine ..."
-    upgrade_machine $machine || {
+    upgrade_machine $1 $machine || {
       echo "Upgrade of $machine failed, skipping other machines."
       exit 1
     }
@@ -290,25 +313,25 @@ case "$1" in
 
   remove_machine)
       shift
-      if [ $# -ne 2 ]; then
+      if [ $# -ne 3 ]; then
         echo
         echo "Usage:"
         echo
-        echo "  $0 remove_machine cluster_machine_ip machine_to_remove_ip"
+        echo "  $0 remove_machine cluster_type cluster_machine_ip machine_to_remove_ip"
         echo
         exit 1
       fi
 
-      remove_machine $1 $2
+      remove_machine $1 $2 $3
     ;;
 
   upgrade_machine)
       shift
-      if [ $# -ne 1 ]; then
+      if [ $# -ne 2 ]; then
         echo
         echo "Usage:"
         echo
-        echo "  $0 upgrade_machine cluster_machine_ip"
+        echo "  $0 upgrade_machine cluster_type cluster_machine_ip"
         echo
         exit 1
       fi
@@ -318,11 +341,11 @@ case "$1" in
 
   rolling_upgrade)
       shift
-      if [ $# -ne 1 ]; then
+      if [ $# -ne 2 ]; then
         echo
         echo "Usage:"
         echo
-        echo "  $0 rolling_upgrade cluster_machine_ip"
+        echo "  $0 rolling_upgrade cluster_type cluster_machine_ip"
         echo
         exit 1
       fi
