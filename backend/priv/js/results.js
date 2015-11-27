@@ -195,7 +195,7 @@ function aggregate_quantized_bucket(result, quantizedBucket)
   var data = parts[0];
   var remainingBuckets = parts[1];
   var aggregatedData = aggregate_data_values(data, name, total);
-  result.buckets = _.union(aggregatedData.buckets, remainingBuckets);
+  result.buckets = _.union(remainingBuckets, aggregatedData.buckets);
   result.histograms.push(aggregatedData.histogram);
 }
 
