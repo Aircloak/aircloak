@@ -75,11 +75,10 @@
         .controls
           = f.text_area :code
       .control-group
-        = control_label "", tooltip: "save_and_sandbox_buttons"
+        = control_label "", tooltip: "save_button"
         .controls
           #taskStatus.well.hidden
           = f.submit 'Save', :class => "btn btn-success"
-          %a#runInSandbox.btn{:href => "#"} Execute in sandbox
   %hr
   %h3= "Testing"
   #sandboxRunner

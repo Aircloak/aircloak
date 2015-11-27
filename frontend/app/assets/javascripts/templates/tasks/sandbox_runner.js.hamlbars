@@ -8,13 +8,6 @@
   %form.form-horizontal.new_query{"accept-charset" => "UTF-8"}
     = hb "each data.testRuns" do
       .control-group
-        = control_label "Output", controller: "tasks", tooltip: "sandbox_output"
-        .controls
-          #sandboxResult
-      .control-group
-        .controls
-          %a.btn{:href => "#", :"data-add-test-user" => true, :"data-run-id" => hb("id")} Add test user
-      .control-group
         = control_label "Input", controller: "tasks", tooltip: "sandbox_data"
         .control-group
           .controls
@@ -44,9 +37,20 @@
                     %td
                       %a{"href" => "#", "data-edit-sandbox-user" => true, :"data-run-id" => hb("../id"), "data-user-row-id" => hb("userRowId"), "data-table" => hb("table")}
                         = hb "fields"
+          .controls
+            %a.btn{:href => "#", :"data-add-test-user" => true, :"data-run-id" => hb("id")} Add test user
         = hb "if ../multiRun" do
           .controls
             %a#addTestRun.btn{:href => "#"}
               Add test run
+      .control-group
+        = control_label "Output", controller: "tasks", tooltip: "sandbox_output"
+        .controls
+          #sandboxResult
+      .control-group
+        = control_label "", controller: "tasks", tooltip: "sandbox_button"
+        .control-group
+          .controls
+            %a#runInSandbox.btn{:href => "#"} Execute in sandbox
     %div{"style" => "margin-left:73px;"}
       #userEntryControls
