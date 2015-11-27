@@ -160,6 +160,14 @@ describe Task do
     task.save_and_synchronize!
   end
 
+  it "should not require unique task names" do
+    task1 = create_task name: "task name"
+    task2 = create_task name: "task name"
+    task1.should_not eq(task2)
+    task1.valid?.should eq true
+    task2.valid?.should eq true
+  end
+
   private
     def base_attrs
       {name: "name", sandbox_type: "lua", code: "code", cluster: Cluster.new}
