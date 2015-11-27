@@ -7,3 +7,5 @@ etcd_set /site/airpub "pub-stage.aircloak.com"
 etcd_set /site/aircloak "www-stage.aircloak.com stage.aircloak.com"
 
 etcd_set /settings/air/db/host airdb-stage.aircloak.com
+
+etcd_set /settings/air_backend/integration_test false
