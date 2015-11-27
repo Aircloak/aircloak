@@ -243,7 +243,7 @@ function cluster_etcdctl {
 function upgrade_machine {
   activate_cluster_plugin $1
   assert_machine_cluster_type $1 $2
-  upload_etcd_config $1
+  upload_etcd_config $2
   machine_ssh $2 "sudo /aircloak/air/air_service_ctl.sh upgrade_system"
   echo "Machine $2 upgraded."
 }
@@ -338,7 +338,7 @@ case "$1" in
         exit 1
       fi
 
-      upgrade_machine $1
+      upgrade_machine $1 $2
     ;;
 
   rolling_upgrade)
