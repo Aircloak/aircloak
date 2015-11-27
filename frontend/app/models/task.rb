@@ -15,7 +15,6 @@ class Task < ActiveRecord::Base
 
   validates_presence_of :name, :sandbox_type, :code
   validates_presence_of :cluster, unless: :deleted
-  validates_uniqueness_of :name, scope: [:analyst_id]
   validate :prefetch_correct
   validate :streaming_task
   validate :periodic_task

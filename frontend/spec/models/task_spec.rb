@@ -52,10 +52,6 @@ describe Task do
     end
   end
 
-  def valid_prefetch
-    prefetch =  '{"table":"test1","where":{"\$\$priority": {"$lt": 3}}}'
-  end
-
   def cloak
     Cloak.create
   end
@@ -89,7 +85,7 @@ describe Task do
 
   it "efficiently deletes relationships" do
     task = create_task
-    p = PendingResult.create task: task
+    PendingResult.create task: task
     result = Result.create task: task
     ExceptionResult.create(
       result_id: result.id,
@@ -162,6 +158,14 @@ describe Task do
     task.stored_task = true
     task.active = false
     task.save_and_synchronize!
+  end
+
+  it "should not require unique task names" do
+    task1 = create_task name: "task name"
+    task2 = create_task name: "task name"
+    task1.should_not eq(task2)
+    task1.valid?.should eq true
+    task2.valid?.should eq true
   end
 
   private
