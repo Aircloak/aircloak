@@ -52,10 +52,6 @@ describe Task do
     end
   end
 
-  def valid_prefetch
-    prefetch =  '{"table":"test1","where":{"\$\$priority": {"$lt": 3}}}'
-  end
-
   def cloak
     Cloak.create
   end
@@ -89,7 +85,7 @@ describe Task do
 
   it "efficiently deletes relationships" do
     task = create_task
-    p = PendingResult.create task: task
+    PendingResult.create task: task
     result = Result.create task: task
     ExceptionResult.create(
       result_id: result.id,
