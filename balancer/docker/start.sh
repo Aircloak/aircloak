@@ -26,8 +26,8 @@ function haproxy_config {
 }
 
 function routers {
-  if [ -f /aircloak/balancer/config/routers ]; then
-    cat /aircloak/balancer/config/routers
+  if [ -f /aircloak/balancer/config/$ROUTERS_FILE ]; then
+    cat /aircloak/balancer/config/$ROUTERS_FILE
   else
     echo "127.0.0.1"
   fi
