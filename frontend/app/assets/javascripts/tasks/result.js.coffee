@@ -88,12 +88,12 @@ Results.display = (result) ->
     result.buckets = [{label: "notice", value: "too many buckets", \
           count: "buckets count (#{result.buckets.length}) exceeds row limit (100), use REST API or CSV export to view result"}]
 
-  result.histograms = [] if !result.histograms
-  if result.histograms.length > 10
+  histograms = result.post_processed.histograms || []
+  if histograms.length > 10
     result.buckets.push {label: "notice", value: "too many histograms", \
-          count: "histograms count (#{result.histograms.length}) exceeds display limit (10), use REST API export to view result"}
+          count: "histograms count (#{histograms.length}) exceeds display limit (10), use REST API export to view result"}
   else
-    for histogram in result.histograms
+    for histogram in histograms
       plot_data histogram
 
   timestamp = parseInt result.published_at

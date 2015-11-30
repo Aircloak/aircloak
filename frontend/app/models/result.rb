@@ -23,12 +23,12 @@ class Result < ActiveRecord::Base
   end
 
   # Convert result with buckets to the format appropriate for usage by clients, such as API consumers.
-  def to_client_hash max_size
+  def to_client_hash buckets_max_size, post_processed_max_size
     {
       :published_at => created_at.utc.to_i * 1000 + created_at.utc.usec / 1000,
       :id => id,
-      :buckets => buckets(max_size),
-      :histograms => histograms(max_size),
+      :buckets => buckets(buckets_max_size),
+      :post_processed => post_processed(post_processed_max_size),
       :exceptions => exception_results.map { |exception|
         {
           :id => exception.id,
@@ -40,19 +40,19 @@ class Result < ActiveRecord::Base
   end
 
   def buckets max_size
-    return [] if buckets_json.to_s.empty?
+    return [] if buckets_json.to_s.empty? or max_size == 0
     return JSON.parse(buckets_json) if buckets_json.size <= max_size
     return [{label: "notice", value: "result too big", \
-             count: "result size (#{buckets_json.size} bytes) exceeds limit (#{max_size} bytes)"}]
+             count: "buckets size (#{buckets_json.size} bytes) exceeds limit (#{max_size} bytes)"}]
   rescue
-    []
+    [] # in case field is missing or null
   end
 
-  def histograms max_size
-    return [] if histograms_json.to_s.empty?
-    return JSON.parse(histograms_json) if histograms_json.size <= max_size
-    return []
+  def post_processed max_size
+    return {} if post_processed_json.to_s.empty? or max_size == 0
+    return JSON.parse(post_processed_json) if post_processed_json.size <= max_size
+    return {notice: "post_processed data size (#{post_processed_json.size} bytes) exceeds limit (#{max_size} bytes)"}
   rescue
-    []
+      {} # in case field is missing or null
   end
 end

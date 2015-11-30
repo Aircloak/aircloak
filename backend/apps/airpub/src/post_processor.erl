@@ -126,7 +126,7 @@ integration_test() ->
     {<<"task_id">>, <<"1">>},
     {<<"buckets">>, _},
     {<<"exceptions">>, []},
-    {<<"histograms">>, [_]}
+    {<<"post_processed">>, {[{<<"histograms">>, [_]}]}}
   ]} = test_post_processor("/processed/1", Data),
   {[{
     <<"analyst_id">>, 1},

@@ -203,7 +203,7 @@ class TasksController < ApplicationController
     if @singular_view then
       @raw_result = @task.results.includes(:exception_results).order('created_at DESC').limit(1).first
       # convert to json, 16 MB limit for bucket
-      @result = @raw_result.to_client_hash 16 * 1024 * 1024 if @raw_result
+      @result = @raw_result.to_client_hash 16 * 1024 * 1024, 0 if @raw_result
     else
       @raw_results = @task.results.includes(:exception_results).order('created_at DESC').limit(5).reverse
       # convert to json, 4 MB limit for buckets
@@ -220,7 +220,7 @@ class TasksController < ApplicationController
     result_id = params[:result]
     @raw_result = @task.results.find(result_id)
     # convert to json, 16 MB limit for buckets
-    @result = @raw_result.to_client_hash 16 * 1024 * 1024
+    @result = @raw_result.to_client_hash 16 * 1024 * 1024, 16 * 1024 * 1024
     describe_activity "Requested specific result of task #{@task.name}", single_result_task_path(@task.token, :result => result_id)
   end
 
@@ -390,6 +390,6 @@ private
 
   # converts the results to a hashmap that will be converted to JSON and rendered client-side
   def convert_results_for_client_side_rendering raw_results, max_bucket_size
-    raw_results.map {|result| result.to_client_hash max_bucket_size }
+    raw_results.map {|result| result.to_client_hash max_bucket_size, 0 }
   end
 end
