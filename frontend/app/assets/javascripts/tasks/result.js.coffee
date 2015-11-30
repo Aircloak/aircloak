@@ -33,6 +33,7 @@ plot_data = (histogram) ->
   div.appendChild svg
   $("#charts").append div
 
+  accuracy = (histogram.max - histogram.min) / histogram.values.length
   if histogram.values.length > 25
     # to get a pretty chart, we need to reduce the number of values displayed
     accumulator = 0
@@ -50,9 +51,9 @@ plot_data = (histogram) ->
     histogram.values = reduced_values
 
   name = histogram.name
-  plot_step = (histogram.max - histogram.min) / histogram.values.length
+  resolution = (histogram.max - histogram.min) / histogram.values.length
   # convert histogram plot values to chart format
-  values = ({x: histogram.min + (index + 0.5) * plot_step, y: value} for value, index in histogram.values)
+  values = ({x: histogram.min + (index + 0.5) * resolution, y: value} for value, index in histogram.values)
 
   # build chart
   nv.addGraph ->
@@ -68,8 +69,8 @@ plot_data = (histogram) ->
       Math.round(value * 100) / 100
     chart.xAxis.tickFormat(format_value)
     chart.yAxis.tickFormat(d3.format(',.0f'))
-    plot_step = format_value(plot_step)
-    legend = "#{name} (bar width = #{plot_step})"
+    resolution = format_value(resolution)
+    legend = "#{name} (range: [#{histogram.min}, #{histogram.max}]; resolution: #{resolution}; accuracy: #{accuracy})"
     d3.select(svg)
         .datum([{values: values, key: legend, color: '#7777ff', area: true}])
         .transition().duration(500)
