@@ -105,7 +105,7 @@ function aggregate_data_values(dataBuckets, name, total)
 
   var percentOfTotal = Math.round((in_range / total) * 20) * 5;
   percentOfTotal = Math.min(Math.max(percentOfTotal, 0), 100);
-  var percentBucket = {label: name, value: "% of total values", count: "~ " + percentOfTotal + "%"};
+  var percentBucket = {label: name, value: "~% of total values", count: percentOfTotal};
 
   // we need smoother CDFs to reliably compute aggregate values
   process_cdfs(cdfs, min, max, step)
@@ -148,7 +148,7 @@ function aggregate_data_values(dataBuckets, name, total)
   if (count < 1) count = 1;
   if (sum < 0) sum = 0;
   var average = sum / count;
-  var averageBucket = {label: name, value: "average", count: format_number(average)};
+  var averageBucket = {label: name, value: "~average", count: format_number(average)};
 
   var median = 0;
   for(var i = min + step; i <= max; i += step)
@@ -165,7 +165,7 @@ function aggregate_data_values(dataBuckets, name, total)
       break;
     }
   }
-  var medianBucket = {label: name, value: "median", count: format_number(median)};
+  var medianBucket = {label: name, value: "~median", count: format_number(median)};
 
   var sum = 0;
   for(var i = min + step; i <= max; i += step)
@@ -176,10 +176,10 @@ function aggregate_data_values(dataBuckets, name, total)
   }
   if (sum < 0) sum = 0;
   var stdDev = Math.sqrt(sum / count);
-  var stdDevBucket = {label: name, value: "stdev.S", count: format_number(stdDev)};
+  var stdDevBucket = {label: name, value: "~stdev.S", count: format_number(stdDev)};
 
-  var minBucket = {label: name, value: "min", count: "< " + format_number(min)};
-  var maxBucket = {label: name, value: "max", count: "> " + format_number(max)};
+  var minBucket = {label: name, value: "min <", count: format_number(min)};
+  var maxBucket = {label: name, value: "max >", count: format_number(max)};
 
   var buckets = [countBucket, percentBucket, averageBucket, medianBucket, stdDevBucket, minBucket, maxBucket];
 
