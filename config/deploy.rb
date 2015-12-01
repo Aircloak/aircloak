@@ -17,25 +17,16 @@ task :deploy do
   Rake::Task["aircloak:deploy"].invoke
 end
 
+task :upgrade_balancer do
+  Rake::Task["aircloak:upgrade_balancer"].invoke
+end
+
 namespace :aircloak do
   task :deploy do
-    current_branch = `git symbolic-ref --short HEAD`.strip
-    if current_branch != fetch(:branch)
-      puts "Warning: your current branch is:\n  #{current_branch}\n\n"
-      puts "But you're deploying the branch:\n  #{fetch(:branch)}\n\n"
-      puts "Continue (y/N)?"
-      input = $stdin.readline.strip
-      exit 1 unless input.upcase == "Y"
-    end
+    check_current_branch
 
     on roles(:build), in: :sequence do
-      # update code on the build server
-      exec_ml "
-            cd #{fetch(:deploy_to)} &&
-            git fetch &&
-            git checkout #{fetch(:branch)} &&
-            git reset --hard origin/#{fetch(:branch)}
-          "
+      update_server_code
 
       # package docker images
       execute "AIR_ENV=prod REGISTRY_URL=registry.aircloak.com #{fetch(:deploy_to)}/package.sh"
@@ -49,7 +40,41 @@ namespace :aircloak do
     end
   end
 
+  task :upgrade_balancer do
+    check_current_branch
+
+    on roles(:balancer), in: :sequence do
+      update_server_code
+
+      # build the balancer image
+      execute "AIR_ENV=prod #{fetch(:deploy_to)}/balancer/build-image.sh"
+
+      # restart the systemd service
+      execute "systemctl restart #{fetch(:balancer_service)}"
+    end
+  end
+
   private
+    def check_current_branch
+      current_branch = `git symbolic-ref --short HEAD`.strip
+      if current_branch != fetch(:branch)
+        puts "Warning: your current branch is:\n  #{current_branch}\n\n"
+        puts "But you're deploying the branch:\n  #{fetch(:branch)}\n\n"
+        puts "Continue (y/N)?"
+        input = $stdin.readline.strip
+        exit 1 unless input.upcase == "Y"
+      end
+    end
+
+    def update_server_code
+      exec_ml "
+            cd #{fetch(:deploy_to)} &&
+            git fetch &&
+            git checkout #{fetch(:branch)} &&
+            git reset --hard origin/#{fetch(:branch)}
+          "
+    end
+
     # Capistrano execute replaces new-lines with a semicolon. In this wrapper,
     # we simply insert blanks instead, thus allowing a multi-line command, e.g.:
     #
