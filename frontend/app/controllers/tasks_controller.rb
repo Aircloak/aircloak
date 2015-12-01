@@ -203,7 +203,7 @@ class TasksController < ApplicationController
     if @singular_view then
       @raw_result = @task.results.includes(:exception_results).order('created_at DESC').limit(1).first
       # convert to json, 16 MB limit for bucket
-      @result = @raw_result.to_client_hash 16 * 1024 * 1024, 0 if @raw_result
+      @result = @raw_result.to_client_hash 16 * 1024 * 1024, 16 * 1024 * 1024  if @raw_result
     else
       @raw_results = @task.results.includes(:exception_results).order('created_at DESC').limit(5).reverse
       # convert to json, 4 MB limit for buckets
