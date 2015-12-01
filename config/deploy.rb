@@ -1,8 +1,6 @@
 # config valid only for Capistrano 3.2.1
 lock '3.2.1'
 
-load "config/check.rb"
-
 set :application, 'air'
 set :branch, ENV["AIR_DEPLOY_BRANCH"] || "develop"
 set :deploy_to, '/aircloak/air'
@@ -30,51 +28,24 @@ namespace :aircloak do
       exit 1 unless input.upcase == "Y"
     end
 
-    [
-      "update_code",
-      "build_images",
-      "provision",
-      "update_running_system"
-    ].each do |task|
-      Rake::Task["aircloak:#{task}"].invoke
-    end
-  end
-
-  task :update_code do
     on roles(:build), in: :sequence do
+      # update code on the build server
       exec_ml "
             cd #{fetch(:deploy_to)} &&
             git fetch &&
             git checkout #{fetch(:branch)} &&
             git reset --hard origin/#{fetch(:branch)}
           "
-    end
-  end
 
-  task :build_images do
-    on roles(:build), in: :sequence do
-      [:balancer, :router, :backend, :frontend].each do |service|
-        execute "AIR_ENV=prod #{fetch(:deploy_to)}/#{service}/build-image.sh"
-      end
-      execute ". #{fetch(:deploy_to)}/common/docker_helper.sh && cleanup_unused_images || true"
-      execute ". #{fetch(:deploy_to)}/common/docker_helper.sh && print_most_recent_versions"
-    end
-  end
+      # package docker images
+      execute "AIR_ENV=prod REGISTRY_URL=registry.aircloak.com #{fetch(:deploy_to)}/package.sh"
 
-  task :provision do
-    on roles(:app_admin), in: :sequence do
-      exec_ml(install_init_script_cmd("air"))
-      exec_ml(install_init_script_cmd("iptables_rules"))
-      execute "/etc/init.d/iptables_rules"
-
-      # Override site names in stage environment
-      exec_ml(set_stage_names) if fetch(:stage) == :stage
-    end
-  end
-
-  task :update_running_system do
-    on roles(:app), in: :sequence do
-      execute "/etc/init.d/air start"
+      # rolling upgrade of the cluster
+      exec_ml "
+            #{fetch(:deploy_to)}/coreos/cluster.sh rolling_upgrade
+              #{fetch(:cluster_plugin)}
+              #{fetch(:machine_ip)}
+          "
     end
   end
 
@@ -90,27 +61,5 @@ namespace :aircloak do
     #       "
     def exec_ml(cmd)
       execute cmd.gsub("\n", " ")
-    end
-
-    def install_init_script_cmd(name)
-      "
-        cp -rp /aircloak/air/remote_files/#{name} /etc/init.d/#{name} &&
-            chown root:root /etc/init.d/#{name} &&
-            chmod 755 /etc/init.d/#{name} &&
-            update-rc.d #{name} defaults
-      "
-    end
-
-    def set_stage_names
-      # Adds site name overrides, first removing previous ones if they exist
-      '
-        prod_contents=$(cat /aircloak/air/etcd/local_settings/prod | grep -v "etcd_set /site") &&
-        echo "$prod_contents" > /aircloak/air/etcd/local_settings/prod &&
-        echo "etcd_set /site/frontend \'hello.stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod &&
-        echo "etcd_set /site/api \'api.stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod &&
-        echo "etcd_set /site/infrastructure_api \'infrastructure-api.stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod &&
-        echo "etcd_set /site/airpub \'pub.stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod &&
-        echo "etcd_set /site/aircloak \'www.stage.aircloak.com stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod
-      '
     end
 end

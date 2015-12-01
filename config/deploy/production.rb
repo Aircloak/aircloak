@@ -1,3 +1,3 @@
-role :app, %w{deployer@acdocker2.mpi-sws.org}
-role :app_admin, %w{root@acdocker2.mpi-sws.org}
-role :build, %w{deployer@acdocker2.mpi-sws.org}
+role :build, %w{root@acdbuild.mpi-sws.org}
+set :cluster_plugin, "air_prod"
+set :machine_ip, "139.19.208.133"
