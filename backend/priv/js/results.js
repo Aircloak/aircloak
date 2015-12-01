@@ -25,7 +25,7 @@ function process_cdfs(cdfs, min, max, step)
   {
     var current = cdfs[number_to_key(i)];
     var next = valid(cdfs[number_to_key(i + step)], current);
-    var average = (current + prev + next) / 3;
+    var average = (prev + next + 2 * current) / 4;
     cdfs[number_to_key(i)] = average
     prev = current
   }
