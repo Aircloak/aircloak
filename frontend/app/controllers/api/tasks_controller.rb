@@ -99,7 +99,7 @@ class Api::TasksController < ApplicationController
     if task.save
       pending_result = task.execute_batch_task
       result = pending_result.await_result
-      render json: {success: true, result: result.to_client_hash(32 * 1024 * 1024)}
+      render json: {success: true, result: result.to_client_hash(24 * 1024 * 1024, 24 * 1024 * 1024)}
     else
       description = "Could not execute the task. It failed validation. " +
         "The errors include: #{task.errors.to_a.join(", ")}"

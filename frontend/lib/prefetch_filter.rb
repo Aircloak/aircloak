@@ -112,10 +112,10 @@ class PrefetchFilter
     type = type.gsub(/\(.*\)/, "")  # remove (length) from type
 
     transformed = case type
-      when "integer" then Integer(value)
-      when "float" then Float(value)
+      when "integer", "bigint" then Integer(value)
+      when "float", "double" then Float(value)
       when "boolean" then value.to_s.downcase == "true"
-      when "varchar" then value
+      when "varchar", "text" then value
     end
 
     transformed

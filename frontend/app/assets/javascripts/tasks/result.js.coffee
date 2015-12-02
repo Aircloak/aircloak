@@ -33,6 +33,7 @@ plot_data = (histogram) ->
   div.appendChild svg
   $("#charts").append div
 
+  accuracy = (histogram.max - histogram.min) / histogram.values.length
   if histogram.values.length > 25
     # to get a pretty chart, we need to reduce the number of values displayed
     accumulator = 0
@@ -48,11 +49,11 @@ plot_data = (histogram) ->
         accumulator += value
     reduced_values.push accumulator
     histogram.values = reduced_values
+  resolution = (histogram.max - histogram.min) / histogram.values.length
 
   name = histogram.name
-  plot_step = (histogram.max - histogram.min) / histogram.values.length
   # convert histogram plot values to chart format
-  values = ({x: histogram.min + (index + 0.5) * plot_step, y: value} for value, index in histogram.values)
+  values = ({x: histogram.min + (index + 0.5) * resolution, y: value} for value, index in histogram.values)
 
   # build chart
   nv.addGraph ->
@@ -68,8 +69,9 @@ plot_data = (histogram) ->
       Math.round(value * 100) / 100
     chart.xAxis.tickFormat(format_value)
     chart.yAxis.tickFormat(d3.format(',.0f'))
-    plot_step = format_value(plot_step)
-    legend = "#{name} (bar width = #{plot_step})"
+    resolution = format_value(resolution)
+    accuracy = format_value(accuracy)
+    legend = "#{name} (range: [#{histogram.min}, #{histogram.max}]; plotting step: #{resolution}; sampling step: #{accuracy})"
     d3.select(svg)
         .datum([{values: values, key: legend, color: '#7777ff', area: true}])
         .transition().duration(500)
@@ -88,12 +90,12 @@ Results.display = (result) ->
     result.buckets = [{label: "notice", value: "too many buckets", \
           count: "buckets count (#{result.buckets.length}) exceeds row limit (100), use REST API or CSV export to view result"}]
 
-  result.histograms = [] if !result.histograms
-  if result.histograms.length > 10
+  histograms = result.post_processed.histograms || []
+  if histograms.length > 10
     result.buckets.push {label: "notice", value: "too many histograms", \
-          count: "histograms count (#{result.histograms.length}) exceeds display limit (10), use REST API export to view result"}
+          count: "histograms count (#{histograms.length}) exceeds display limit (10), use REST API export to view result"}
   else
-    for histogram in result.histograms
+    for histogram in histograms
       plot_data histogram
 
   timestamp = parseInt result.published_at

@@ -5,7 +5,7 @@ class ResultHandler
     new_result = Result.create
     new_result.task = task
     new_result.buckets_json = json["buckets"].to_json
-    new_result.histograms_json = json["histograms"].to_json
+    new_result.post_processed_json = json["post_processed"].to_json
     new_result.analyst = task.analyst
     new_result.created_at = published_at
     new_result.save
