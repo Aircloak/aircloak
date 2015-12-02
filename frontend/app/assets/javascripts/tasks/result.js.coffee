@@ -49,9 +49,9 @@ plot_data = (histogram) ->
         accumulator += value
     reduced_values.push accumulator
     histogram.values = reduced_values
+  resolution = (histogram.max - histogram.min) / histogram.values.length
 
   name = histogram.name
-  resolution = (histogram.max - histogram.min) / histogram.values.length
   # convert histogram plot values to chart format
   values = ({x: histogram.min + (index + 0.5) * resolution, y: value} for value, index in histogram.values)
 
@@ -71,7 +71,7 @@ plot_data = (histogram) ->
     chart.yAxis.tickFormat(d3.format(',.0f'))
     resolution = format_value(resolution)
     accuracy = format_value(accuracy)
-    legend = "#{name} (range: [#{histogram.min}, #{histogram.max}]; resolution: #{resolution}; accuracy: #{accuracy})"
+    legend = "#{name} (range: [#{histogram.min}, #{histogram.max}]; plotting step: #{resolution}; sampling step: #{accuracy})"
     d3.select(svg)
         .datum([{values: values, key: legend, color: '#7777ff', area: true}])
         .transition().duration(500)
