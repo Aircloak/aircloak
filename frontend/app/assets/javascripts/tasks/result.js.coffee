@@ -70,6 +70,7 @@ plot_data = (histogram) ->
     chart.xAxis.tickFormat(format_value)
     chart.yAxis.tickFormat(d3.format(',.0f'))
     resolution = format_value(resolution)
+    accuracy = format_value(accuracy)
     legend = "#{name} (range: [#{histogram.min}, #{histogram.max}]; resolution: #{resolution}; accuracy: #{accuracy})"
     d3.select(svg)
         .datum([{values: values, key: legend, color: '#7777ff', area: true}])
