@@ -13,6 +13,10 @@ set -eo pipefail
   export $(cat /aircloak/air/environment | xargs)
 
   function stop_system {
+    # Explicitly stop main services
+    systemctl stop air-frontend-sidekick air-frontend air-backend air-router air-static-site
+
+    # Then stop the prerequisites service
     systemctl stop air-prerequisites
   }
 
