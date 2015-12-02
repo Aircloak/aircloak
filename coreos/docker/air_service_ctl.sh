@@ -86,6 +86,21 @@ set -eo pipefail
 
     # Invoke the new version of the script
     /aircloak/air/air_service_ctl.sh wait_until_system_is_up
+
+    # remove images not used by running containers
+    remove_unused_images
+  }
+
+  function remove_unused_images {
+    all_images=$(docker images | awk '{print $1":"$2}' | tail -n +2 | sed "s/:latest\$//")
+    used_images=$(docker ps --format "{{.Image}}")
+
+    for image in $all_images; do
+      if [[ ! "$used_images" =~ ^.*"$image".*$ ]]; then
+        echo "Removing unused image $image"
+        docker rmi "$image"
+      fi
+    done
   }
 
   function follow_installation {
