@@ -18,6 +18,24 @@ set -eo pipefail
 
     # Then stop the prerequisites service
     systemctl stop air-prerequisites
+
+    cleanup_dead_containers
+  }
+
+  function cleanup_dead_containers {
+    # Workaround for a nasty Docker bug where a dead container can be left dangling and can't be removed
+    # with `docker rm` (https://github.com/docker/docker/issues/14474).
+    # It has been shown experimentally that this can be resolved by removing the container folder,
+    # then recreating an empty folder, and finally issuing docker stop and docker rm.
+    # This is a known bug that is supposed to be fixed in Docker 1.9, but until then we're doing this
+    # ugly hack.
+    for dead_container_id in $(docker ps -a --filter 'status=dead' --format "{{.ID}}" --no-trunc); do
+      echo "Cleaning up dead container $dead_container_id"
+      rm -rf /var/lib/docker/overlay/$dead_container_id || true
+      mkdir -p /var/lib/docker/overlay/$dead_container_id
+      docker stop $dead_container_id || true
+      docker rm $dead_container_id
+    done
   }
 
   function check_system {
@@ -77,6 +95,8 @@ set -eo pipefail
       echo "Installation not yet finished"
       sleep 2
     done
+
+    cleanup_dead_containers
 
     echo 'Applying the new cloud-config...'
     sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
