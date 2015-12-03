@@ -106,9 +106,6 @@ set -eo pipefail
 
     # Invoke the new version of the script
     /aircloak/air/air_service_ctl.sh wait_until_system_is_up
-
-    # remove images not used by running containers
-    remove_unused_images
   }
 
   function remove_unused_images {
@@ -174,6 +171,10 @@ set -eo pipefail
 
     wait_until_system_is_up)
       wait_until_system_is_up
+      ;;
+
+    remove_unused_images)
+      remove_unused_images
       ;;
 
     *)

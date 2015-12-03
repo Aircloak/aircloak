@@ -269,6 +269,17 @@ function rolling_upgrade {
     }
     echo "$machine upgraded."
   done
+
+  echo "The cluster is successfully upgraded!"
+
+  # Post-upgrade cleanup of old images. We do this after the cluster has been upgraded
+  # as it can take awhile to delete larger images. Moreover, we perform cleanup in parallel
+  # to save some time.
+  echo "Cleaning up old images..."
+  for machine in $current_cluster; do
+    machine_ssh $machine "sudo /aircloak/air/air_service_ctl.sh remove_unused_images" &
+  done
+  wait
 }
 
 
