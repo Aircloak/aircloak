@@ -3,7 +3,6 @@ lock '3.2.1'
 
 set :application, 'air'
 set :branch, ENV["AIR_DEPLOY_BRANCH"] || "develop"
-set :deploy_to, '/aircloak/air'
 
 # Prevents key hijacking.
 set :ssh_options, {:forward_agent => false}
@@ -29,11 +28,11 @@ namespace :aircloak do
       update_server_code
 
       # package docker images
-      execute "AIR_ENV=prod REGISTRY_URL=registry.aircloak.com #{fetch(:deploy_to)}/package.sh"
+      execute "AIR_ENV=prod REGISTRY_URL=registry.aircloak.com #{build_folder}/package.sh"
 
       # rolling upgrade of the cluster
       exec_ml "
-            #{fetch(:deploy_to)}/coreos/cluster.sh rolling_upgrade
+            #{build_folder}/coreos/cluster.sh rolling_upgrade
               #{fetch(:cluster_plugin)}
               #{fetch(:machine_ip)}
           "
@@ -47,7 +46,7 @@ namespace :aircloak do
       update_server_code
 
       # build the balancer image
-      execute "AIR_ENV=prod #{fetch(:deploy_to)}/balancer/build-image.sh"
+      execute "AIR_ENV=prod #{build_folder}/balancer/build-image.sh"
 
       # restart the systemd service
       execute "systemctl restart #{fetch(:balancer_service)}"
@@ -55,6 +54,10 @@ namespace :aircloak do
   end
 
   private
+    def build_folder
+      "/aircloak/#{fetch(:stage)}/air"
+    end
+
     def check_current_branch
       current_branch = `git symbolic-ref --short HEAD`.strip
       if current_branch != fetch(:branch)
@@ -68,7 +71,7 @@ namespace :aircloak do
 
     def update_server_code
       exec_ml "
-            cd #{fetch(:deploy_to)} &&
+            cd #{build_folder} &&
             git fetch &&
             git checkout #{fetch(:branch)} &&
             git reset --hard origin/#{fetch(:branch)}
