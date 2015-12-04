@@ -42,7 +42,7 @@ function check_ssh {
 function machine_ssh {
   machine=$1
   shift
-  eval "ssh $SSH_OPTS $machine \"$@\""
+  eval "ssh $SSH_OPTS $machine '$@'"
 }
 
 
@@ -243,9 +243,37 @@ function cluster_etcdctl {
 function upgrade_machine {
   activate_cluster_plugin $1
   assert_machine_cluster_type $1 $2
+  update_cloud_config $1 $2
   upload_etcd_config $2
   machine_ssh $2 "sudo /aircloak/air/air_service_ctl.sh upgrade_system"
   echo "Machine $2 upgraded."
+}
+
+function update_cloud_config {
+  # Regenerates the installer command, so we can apply future changes to the installer
+
+  # Take the base config from the machine
+  REGISTRY_URL=$(machine_ssh $2 'export $(cat /aircloak/air/environment | xargs) && echo $REGISTRY_URL')
+  machine_cloud_config_base=$(
+        machine_ssh $2 'sudo cat /var/lib/coreos-install/user_data' |
+        sed '/- name: air-installer.service/q' |
+        sed '$d'
+      )
+
+  # generate the new install command
+  cloud_config_install_command=$(air_install_command)
+
+  # combine both parts to the single file and replace machine's cloud-config
+  cloud_config_file="tmp/cloud_config_$1_$((`date +%s`*1000+`date +%-N`/1000000))_$RANDOM"
+
+  cat <<EOF > $cloud_config_file
+$machine_cloud_config_base
+
+$cloud_config_install_command
+EOF
+
+  upload_to_machine $2 root $cloud_config_file /var/lib/coreos-install/user_data
+  rm $cloud_config_file
 }
 
 function rolling_upgrade {

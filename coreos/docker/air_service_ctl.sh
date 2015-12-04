@@ -72,6 +72,9 @@ set -eo pipefail
   }
 
   function upgrade_system {
+    # make sure cloud-config is good
+    sudo coreos-cloudinit --validate --from-file=/var/lib/coreos-install/user_data
+
     # stop local services
     stop_system
 
@@ -86,7 +89,7 @@ set -eo pipefail
 
     # force reinstallation
     echo "Reinstalling system. This may take a while ..."
-    systemctl restart air-installer.service
+    sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
 
     # Make sure not to process until the installation has finished. In principle,
     # this shouldn't happen since restart is synchronous, but we do it just to be on the

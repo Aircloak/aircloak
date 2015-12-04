@@ -77,6 +77,23 @@ coreos:
       [Install]
       WantedBy=local.target
 
+$(air_install_command)
+EOF
+}
+
+function initial_cluster {
+  for ip in $MACHINES; do
+    echo "$ip=http://$ip:$ETCD_PEER_PORT"
+  done | paste -sd "," -
+}
+
+function run_command {
+  cmd=$(tr '\n' ' ' < <(echo "$1"))
+  echo "/bin/sh -c '$cmd'"
+}
+
+function air_install_command {
+  cat <<EOF
   - name: air-installer.service
     command: start
     content: |
@@ -93,17 +110,6 @@ coreos:
       Environment="REGISTRY_URL=$REGISTRY_URL"
       ExecStart=$(install_command)
 EOF
-}
-
-function initial_cluster {
-  for ip in $MACHINES; do
-    echo "$ip=http://$ip:$ETCD_PEER_PORT"
-  done | paste -sd "," -
-}
-
-function run_command {
-  cmd=$(tr '\n' ' ' < <(echo "$1"))
-  echo "/bin/sh -c '$cmd'"
 }
 
 function install_command {
