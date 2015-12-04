@@ -28,7 +28,12 @@ namespace :aircloak do
       update_server_code
 
       # package docker images
-      execute "AIR_ENV=prod REGISTRY_URL=registry.aircloak.com #{build_folder}/package.sh"
+      exec_ml "
+            AIR_ENV=prod
+            REGISTRY_URL=registry.aircloak.com
+            IMAGE_CATEGORY=#{fetch(:cluster_plugin)}
+            #{build_folder}/package.sh
+          "
 
       # rolling upgrade of the cluster
       exec_ml "

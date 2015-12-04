@@ -4,8 +4,11 @@
 # to create most recent images of our services, version them, and push them to the
 # docker registry.
 #
-# Usage: REGISTRY_URL=registry_url ./package.sh
-# where REGISTRY_URL is in format registry_ip:tcp_port
+# Usage: REGISTRY_URL=registry_url IMAGE_CATEGORY=some_env ./package.sh
+# where
+#   REGISTRY_URL is in format registry_ip:tcp_port
+#   IMAGE_CATEGORY is arbitrary string which will added as the prefix of the image name.
+#   This allows us to maintain different images for different environments (stage, prod).
 
 set -eo pipefail
 
@@ -113,6 +116,10 @@ function check_registry {
   fi
 }
 
+if [ "$IMAGE_CATEGORY" == "" ]; then
+  echo "Please specify some deploy environment through IMAGE_CATEGORY variable."
+  exit 1
+fi
 
 check_registry
 

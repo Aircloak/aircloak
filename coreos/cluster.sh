@@ -48,6 +48,7 @@ function machine_ssh {
 
 function activate_cluster_plugin {
   export CLUSTER_TYPE=$1
+  export IMAGE_CATEGORY=$1
   plugin_file="clusters/$1/plugin.sh"
   if [ ! -e "$plugin_file" ]; then
     echo "Missing $(pwd)/$plugin_file"

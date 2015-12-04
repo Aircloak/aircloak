@@ -108,6 +108,7 @@ function air_install_command {
       [Service]
       Type=oneshot
       Environment="REGISTRY_URL=$REGISTRY_URL"
+      Environment="IMAGE_CATEGORY=$IMAGE_CATEGORY"
       ExecStart=$(install_command)
 EOF
 }
@@ -115,13 +116,13 @@ EOF
 function install_command {
   run_command '
         latest_version=$(
-              /aircloak/registry_v2_req aircloak/air_installer/tags/list |
+              /aircloak/registry_v2_req aircloak/${IMAGE_CATEGORY}_air_installer/tags/list |
               jq --raw-output ".tags | select(. != null) | .[]" |
               sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
               head -n 1
             ) &&
-        until docker pull $REGISTRY_URL/aircloak/air_installer:$latest_version; do sleep 1; done &&
-        installer_id=$(docker create $REGISTRY_URL/aircloak/air_installer:$latest_version) &&
+        until docker pull $REGISTRY_URL/aircloak/${IMAGE_CATEGORY}_air_installer:$latest_version; do sleep 1; done &&
+        installer_id=$(docker create $REGISTRY_URL/aircloak/${IMAGE_CATEGORY}_air_installer:$latest_version) &&
         docker cp $installer_id:aircloak - > /tmp/aircloak.tar &&
         docker stop $installer_id &&
         docker rm -v $installer_id &&

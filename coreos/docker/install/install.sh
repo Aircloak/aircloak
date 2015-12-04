@@ -41,6 +41,7 @@ fi
 
 # Setup common environment
 cat /etc/environment >> /aircloak/air/environment
+echo "IMAGE_CATEGORY=${IMAGE_CATEGORY}" >> /aircloak/air/environment
 echo "REGISTRY_URL=$REGISTRY_URL" >> /aircloak/air/environment
 echo "AIR_HOST_NAME=$COREOS_PUBLIC_IPV4" >> /aircloak/air/environment
 echo "ETCD_CLIENT=http://127.0.0.1:$(get_tcp_port prod etcd/client)" >> /aircloak/air/environment
@@ -61,9 +62,9 @@ touch /aircloak/air/.installation_started
 
 # Pull images
 pull_docker_image aircloak/static_website
-pull_docker_image aircloak/air_router
-pull_docker_image aircloak/air_backend
-pull_docker_image aircloak/air_frontend
+pull_docker_image $(aircloak_image_name air_router)
+pull_docker_image $(aircloak_image_name air_backend)
+pull_docker_image $(aircloak_image_name air_frontend)
 
 # Purge memory, because it seems to affect starting of Docker containers
 sync && echo 3 > /proc/sys/vm/drop_caches

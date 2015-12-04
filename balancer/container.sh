@@ -17,7 +17,7 @@ if [ ! -f config/$ROUTERS_FILE ]; then
   echo "127.0.0.1" > config/$ROUTERS_FILE
 fi
 
-DOCKER_IMAGE="aircloak/air_balancer"
+DOCKER_IMAGE=$(aircloak_image_name air_balancer)
 DOCKER_START_ARGS="
   --net=host
   -v $(pwd)/config:/aircloak/balancer/config

@@ -55,7 +55,7 @@ function start_local_cluster {
 
 function package_system {
   ../docker_registry/container.sh ensure_started
-  REGISTRY_URL="127.0.0.1:$(get_tcp_port prod registry/http)" ../package.sh
+  REGISTRY_URL="127.0.0.1:$(get_tcp_port prod registry/http)" IMAGE_CATEGORY=local_vagrant ../package.sh
 }
 
 function kill_cluster {

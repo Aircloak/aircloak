@@ -146,12 +146,14 @@ function build_aircloak_image {
     if [ -f .dockerignore ]; then rm .dockerignore; fi
   fi
 
+  full_image_name=$(aircloak_image_name $1)
+
   temp_docker_file="tmp/$(uuidgen).dockerfile"
   {
     mkdir -p tmp
-    echo "[aircloak] building aircloak/$1"
+    echo "[aircloak] building $full_image_name"
     cat $dockerfile | dockerfile_content > "$temp_docker_file"
-    docker build -t aircloak/$1:latest -f "$temp_docker_file" .
+    docker build -t $full_image_name:latest -f "$temp_docker_file" .
   } || {
     # called in the case of an error
     exit_code=$?
@@ -169,7 +171,7 @@ function build_aircloak_image {
   if [ "$exited_containers" != "" ]; then docker rm $exited_containers || true; fi
 
   # remove local version tags (obsolete in the new version of the build system)
-  local_version_tags=$(docker images | awk "{if (\$1 == \"aircloak/$1\" && \$2 != \"latest\") print \$1\":\"\$2}")
+  local_version_tags=$(docker images | awk "{if (\$1 == \"$full_image_name\" && \$2 != \"latest\") print \$1\":\"\$2}")
   if [ "$local_version_tags" != "" ]; then docker rmi $local_version_tags || true; fi
 
   # remove dangling images
@@ -177,6 +179,16 @@ function build_aircloak_image {
   if [ "$dangling_images" != "" ]; then docker rmi $dangling_images || true; fi
 
   cd $curdir
+}
+
+function aircloak_image_name {
+  if [ "$IMAGE_CATEGORY" == "" ]; then
+    image_name="$1"
+  else
+    image_name="${IMAGE_CATEGORY}_$1"
+  fi
+
+  echo "aircloak/$image_name"
 }
 
 # Produces the final dockerfile contents.
