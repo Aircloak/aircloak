@@ -141,6 +141,7 @@ function upload_etcd_config {
   etcd_file="tmp/etcd_$1_$((`date +%s`*1000+`date +%-N`/1000000))_$RANDOM"
 
   cat <<EOF > $etcd_file
+silence_etcd_set
 $(etcd_settings)
 
 $(if [ -e clusters/$CLUSTER_TYPE/secrets/etcd ]; then cat clusters/$CLUSTER_TYPE/secrets/etcd; fi)
