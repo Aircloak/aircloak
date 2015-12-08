@@ -222,6 +222,12 @@ function air_init {
   # if the docker user id is different from the id of the user running the
   # docker on the host system.
 
+  # Support for rebuilding of all images. Change this date if you want to
+  # force the rebuild of all images. Usually you want to do this if you
+  # want to upgrade Debian packages on all images.
+  upgrade_date="20151208"
+  echo "RUN echo '$upgrade_date' > /dev/null"
+
   # Start the RUN command
   echo "RUN mkdir -p /tmp/build_config && \\"
 
