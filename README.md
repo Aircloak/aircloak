@@ -195,6 +195,14 @@ Where `target` is `production` or `stage`.
 
 Note that this will work only if the current branch is pushed to the origin.
 
+### Force rebuilding images
+
+Sometimes you may want to rebuild all the images, for example to upgrade Debian packages. To achieve this, open the `common/docker_helper.sh` file, find the function `air_init` and update the `upgrade_date` variable.
+
+In addition, prior to deploy on the production and stage servers you can perform `docker pull` of all base images which are used (e.g. `debian:jessie`). This step is optional, but it's advised you do this when forcing rebuild of all images.
+
+Once the changes are merged, the next deploy will trigger the full rebuild of all images.
+
 ## Production
 
 The architecture of the system on the production machine is as follows:

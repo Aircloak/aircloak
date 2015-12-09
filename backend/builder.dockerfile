@@ -11,7 +11,8 @@ RUN \
   apt-get update && \
   apt-get install \
     build-essential libssl-dev git curl libncurses5-dev libprotobuf-c-dev protobuf-c-compiler \
-    liblua5.1-0-dev python zip -y
+    liblua5.1-0-dev python zip -y && \
+  apt-get -y upgrade
 
 ## ------------------------------------------------------------------
 ## Get erlang installed
