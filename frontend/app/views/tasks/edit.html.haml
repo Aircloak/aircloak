@@ -5,3 +5,4 @@
 = render 'form'
 
 = link_to 'Tasks overview', tasks_path
+= link_to 'Latest results', latest_results_task_path(@task.token), class: "right-aligned" if @task.token

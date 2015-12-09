@@ -18,6 +18,8 @@
   row_based_export/3
 ]).
 
+-include_lib("air.hrl").
+
 
 %% -------------------------------------------------------------------
 %% API
@@ -51,14 +53,26 @@ receive_metadata() ->
   receive
     {metadata, Headers, ErrorSet} ->
       HeadersForShow = cloak_util:join([<<"time">>, <<"errors">>] ++ Headers, ","),
-      {HeadersForShow ++ "\n", fun() -> receive_incoming_results(Headers, ErrorSet) end}
+      {HeadersForShow ++ "\n", fun() -> receive_incoming_results(Headers, ErrorSet) end};
+    {error, {Error, Reason}} ->
+      ?ERROR("CSV export failed gathering headers and errors: ~p:~p", [Error, Reason]),
+      {"Error, true, Aircloak: Due to an internal error we were unable to export your CSV. Sorry!", done}
   end.
 
 receive_incoming_results(Headers, ErrorSet) ->
   receive
     {data, RawResult} ->
-      Result = process_raw_rows(Headers, ErrorSet, RawResult),
+      Result = try
+        process_raw_rows(Headers, ErrorSet, RawResult)
+      catch
+        Error:Reason ->
+          ?ERROR("Processing raw result failed: ~p. Reason: ~p:~p", [RawResult, Error, Reason]),
+          "Error, true, Aircloak: Error processing this row. Sorry!"
+      end,
       {Result ++ "\n", fun() -> receive_incoming_results(Headers, ErrorSet) end};
+    {error, {Error, Reason}} ->
+      ?ERROR("CSV export failed while trying to collect data: ~p:~p", [Error, Reason]),
+      {"Error, true, Aircloak: Due to an internal error we were unable to export your CSV. Sorry!", done};
     done ->
       {"", done}
   end.
@@ -77,10 +91,14 @@ receive_incoming_results(Headers, ErrorSet) ->
 
 get_csv_results(ReturnPid, Arguments) ->
   DbFun = fun(Connection) ->
-    TaskParams = get_params(Arguments, Connection),
-    ReturnPid ! {metadata, get_headers(TaskParams), get_result_errors(TaskParams)},
-    get_data(TaskParams, ReturnPid),
-    ReturnPid ! done
+    try
+      TaskParams = get_params(Arguments, Connection),
+      ReturnPid ! {metadata, get_headers(TaskParams), get_result_errors(TaskParams)},
+      get_data(TaskParams, ReturnPid),
+      ReturnPid ! done
+    catch Error:Reason ->
+      ReturnPid ! {error, {Error, Reason}}
+    end
   end,
   air_db:call({DbFun, infinity}).
 
@@ -150,7 +168,7 @@ process_raw_rows(Headers, ErrorSet, {Id, CreatedAt, Val}) ->
   Row = lists:map(fun(Header) ->
           case dict:find(Header, ValDict) of
             error -> "";
-            {ok, Count} -> integer_to_list(Count)
+            {ok, Count} -> cloak_util:stringify(Count)
           end
         end, Headers),
   cloak_util:join([format_time(CreatedAt), HasError] ++ Row, ",").

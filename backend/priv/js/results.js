@@ -25,7 +25,7 @@ function process_cdfs(cdfs, min, max, step)
   {
     var current = cdfs[number_to_key(i)];
     var next = valid(cdfs[number_to_key(i + step)], current);
-    var average = (current + prev + next) / 3;
+    var average = (prev + next + 2 * current) / 4;
     cdfs[number_to_key(i)] = average
     prev = current
   }
@@ -105,7 +105,7 @@ function aggregate_data_values(dataBuckets, name, total)
 
   var percentOfTotal = Math.round((in_range / total) * 20) * 5;
   percentOfTotal = Math.min(Math.max(percentOfTotal, 0), 100);
-  var percentBucket = {label: name, value: "% of total values", count: "~ " + percentOfTotal + "%"};
+  var percentBucket = {label: name, value: "~% of total values", count: percentOfTotal};
 
   // we need smoother CDFs to reliably compute aggregate values
   process_cdfs(cdfs, min, max, step)
@@ -148,7 +148,7 @@ function aggregate_data_values(dataBuckets, name, total)
   if (count < 1) count = 1;
   if (sum < 0) sum = 0;
   var average = sum / count;
-  var averageBucket = {label: name, value: "average", count: format_number(average)};
+  var averageBucket = {label: name, value: "~average", count: format_number(average)};
 
   var median = 0;
   for(var i = min + step; i <= max; i += step)
@@ -165,7 +165,7 @@ function aggregate_data_values(dataBuckets, name, total)
       break;
     }
   }
-  var medianBucket = {label: name, value: "median", count: format_number(median)};
+  var medianBucket = {label: name, value: "~median", count: format_number(median)};
 
   var sum = 0;
   for(var i = min + step; i <= max; i += step)
@@ -176,10 +176,10 @@ function aggregate_data_values(dataBuckets, name, total)
   }
   if (sum < 0) sum = 0;
   var stdDev = Math.sqrt(sum / count);
-  var stdDevBucket = {label: name, value: "stdev.S", count: format_number(stdDev)};
+  var stdDevBucket = {label: name, value: "~stdev.S", count: format_number(stdDev)};
 
-  var minBucket = {label: name, value: "min", count: "< " + format_number(min)};
-  var maxBucket = {label: name, value: "max", count: "> " + format_number(max)};
+  var minBucket = {label: name, value: "min <", count: format_number(min)};
+  var maxBucket = {label: name, value: "max >", count: format_number(max)};
 
   var buckets = [countBucket, percentBucket, averageBucket, medianBucket, stdDevBucket, minBucket, maxBucket];
 
@@ -195,8 +195,8 @@ function aggregate_quantized_bucket(result, quantizedBucket)
   var data = parts[0];
   var remainingBuckets = parts[1];
   var aggregatedData = aggregate_data_values(data, name, total);
-  result.buckets = _.union(aggregatedData.buckets, remainingBuckets);
-  result.histograms.push(aggregatedData.histogram);
+  result.buckets = _.union(remainingBuckets, aggregatedData.buckets);
+  result.post_processed.histograms.push(aggregatedData.histogram);
 }
 
 // this function will remove the quantized buckets from the result and replace them with the computed aggregated buckets
@@ -217,8 +217,8 @@ function aggregate_quantized_buckets(result)
   };
   result.buckets.sort(bucketComparator);
 
-  // create histograms container
-  result.histograms = [];
+  // create post-processed data container
+  result.post_processed = {};
 
   // find quantized data
   parts = _.partition(result.buckets, function (bucket) { return bucket.label === "quantized"; });
@@ -226,6 +226,9 @@ function aggregate_quantized_buckets(result)
   if(quantizedBuckets.length === 0)
       return; // nothing to compute
   result.buckets = parts[1];
+
+  // we have quantized data, create histograms container
+  result.post_processed.histograms = [];
 
   // compute aggregated buckets for each datum
   for (var i = 0; i < quantizedBuckets.length; i++)

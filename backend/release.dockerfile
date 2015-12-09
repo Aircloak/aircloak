@@ -7,7 +7,9 @@ MAINTAINER Aircloak
 
 AIR_INIT
 
-RUN apt-get update && apt-get install openssl liblua5.1-0 libprotobuf-c1 vim nano telnet curl jq -y
+RUN apt-get update && \
+    apt-get install openssl liblua5.1-0 libprotobuf-c1 vim nano telnet curl jq -y && \
+    apt-get -y upgrade
 
 # According to many advices, we'll use gosu instead of sudo to step-down from root
 # Apparently, there are some issues with sudo inside the docker container.

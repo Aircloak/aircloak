@@ -6,8 +6,7 @@ AIR_INIT
 # throw errors if Gemfile has been modified since Gemfile.lock
 RUN bundle config --global frozen 1
 
-RUN apt-get update
-RUN apt-get install nginx-light vim nano curl jq -y
+RUN apt-get update && apt-get install nginx-light vim nano curl jq -y && apt-get -y upgrade
 
 # According to many advices, we'll use gosu instead of sudo to step-down from root
 # Apparently, there are some issues with sudo inside the docker container.

@@ -62,7 +62,7 @@ Task.execute = (id) ->
 convertArticleToResult = (timestamp, article) ->
   limit = 8 * 1024 * 1024 # 8 MB size limit
   result = if article.length > limit
-    {exceptions: [], histograms: [], buckets: [{label: "notice", value: "result too big", \
+    {exceptions: [], post_processed: {}, buckets: [{label: "notice", value: "result too big", \
                        count: "result size (#{article.length} bytes) exceededs limit (#{limit} bytes)"}]}
   else
     JSON.parse article
