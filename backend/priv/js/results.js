@@ -27,6 +27,7 @@ function process_result(JSONResult)
   // create post-processed data container
   result.post_processed = {};
 
+  aggregate_accumulator_buckets(result);
   aggregate_quantized_buckets(result);
 
   return JSON.stringify(result);
