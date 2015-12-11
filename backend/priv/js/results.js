@@ -5,6 +5,27 @@ function valid(value, fallback)
   return (typeof value !== 'undefined') ? value : fallback;
 }
 
+// Notice: result buckets have to be sorted by label for this to work properly
+function extract_buckets(result, name)
+{
+  var buckets = result.buckets;
+  var start = 0;
+  while(start < buckets.length && buckets[start].label !== name)
+    start++;
+  if (start === buckets.length)
+    return [];
+  var end = start + 1;
+  while (end < buckets.length && buckets[end].label === name)
+    end++;
+  return buckets.splice(start, end - start);
+}
+
+
+function insert_buckets(result, newBuckets)
+{
+  result.buckets.unshift.apply(result.buckets, newBuckets);
+}
+
 function process_result(JSONResult)
 {
   var result = JSON.parse(JSONResult);

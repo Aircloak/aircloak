@@ -24,11 +24,9 @@ function fast_accumulate_data_values(dataBuckets, name)
 function aggregate_fast_accumulator_bucket(result, accumulatedBucket)
 {
   var name = accumulatedBucket.value;
-  var parts = _.partition(result.buckets, function(bucket) { return bucket.label === name; });
-  var data = parts[0];
-  var remainingBuckets = parts[1];
+  var data = extract_buckets(result, name);
   var accumulatedBuckets = fast_accumulate_data_values(data, name);
-  result.buckets = _.union(remainingBuckets, accumulatedBuckets);
+  insert_buckets(result, accumulatedBuckets);
 }
 
 // aggregate data buckets into a single sum bucket using the "cdf" method
@@ -71,32 +69,26 @@ function cdf_accumulate_data_values(dataBuckets, name)
 function aggregate_cdf_accumulator_bucket(result, accumulatedBucket)
 {
   var name = accumulatedBucket.value;
-  var parts = _.partition(result.buckets, function(bucket) { return bucket.label === name; });
-  var data = parts[0];
-  var remainingBuckets = parts[1];
+  var data = extract_buckets(result, name);
   var accumulatedBuckets = cdf_accumulate_data_values(data, name);
-  result.buckets = _.union(remainingBuckets, accumulatedBuckets);
+  insert_buckets(result, accumulatedBuckets);
 }
 
 // this function will remove the accumulated buckets from the result and replace them with the computed sum buckets
 function aggregate_accumulator_buckets(result)
 {
   // find fast accumulated data
-  parts = _.partition(result.buckets, function (bucket) { return bucket.label === "fast_accumulator"; });
-  accumulatedBuckets = parts[0];
+  var accumulatedBuckets = extract_buckets(result, "fast_accumulator");
   if(accumulatedBuckets.length !== 0)
   {
-    result.buckets = parts[1];
     // compute accumulator bucket for each datum
     for (var i = 0; i < accumulatedBuckets.length; i++)
       aggregate_fast_accumulator_bucket(result, accumulatedBuckets[i]);
   }
   // find CDF accumulated data
-  parts = _.partition(result.buckets, function (bucket) { return bucket.label === "cdf_accumulator"; });
-  accumulatedBuckets = parts[0];
+  var accumulatedBuckets = extract_buckets(result, "cdf_accumulator");
   if(accumulatedBuckets.length !== 0)
   {
-    result.buckets = parts[1];
     // compute accumulator bucket for each datum
     for (var i = 0; i < accumulatedBuckets.length; i++)
       aggregate_cdf_accumulator_bucket(result, accumulatedBuckets[i]);
