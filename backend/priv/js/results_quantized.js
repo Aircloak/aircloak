@@ -191,11 +191,9 @@ function aggregate_quantized_bucket(result, quantizedBucket)
 {
   var name = quantizedBucket.value;
   var total = quantizedBucket.count;
-  var parts = _.partition(result.buckets, function(bucket) { return bucket.label === name; });
-  var data = parts[0];
-  var remainingBuckets = parts[1];
+  var data = extract_buckets(result, name);
   var aggregatedData = aggregate_data_values(data, name, total);
-  result.buckets = _.union(remainingBuckets, aggregatedData.buckets);
+  insert_buckets(result, aggregatedData.buckets);
   result.post_processed.histograms.push(aggregatedData.histogram);
 }
 
@@ -203,11 +201,9 @@ function aggregate_quantized_bucket(result, quantizedBucket)
 function aggregate_quantized_buckets(result)
 {
   // find quantized data
-  parts = _.partition(result.buckets, function (bucket) { return bucket.label === "quantized"; });
-  quantizedBuckets = parts[0];
+  var quantizedBuckets = extract_buckets(result, "quantized");
   if(quantizedBuckets.length === 0)
       return; // nothing to compute
-  result.buckets = parts[1];
 
   // we have quantized data, create histograms container
   result.post_processed.histograms = [];
