@@ -31,14 +31,14 @@ namespace :aircloak do
       exec_ml "
             AIR_ENV=prod
             REGISTRY_URL=registry.aircloak.com
-            IMAGE_CATEGORY=#{fetch(:cluster_plugin)}
+            IMAGE_CATEGORY=#{fetch(:stage)}
             #{build_folder}/package.sh
           "
 
       # rolling upgrade of the cluster
       exec_ml "
             #{build_folder}/coreos/cluster.sh rolling_upgrade
-              #{fetch(:cluster_plugin)}
+              #{fetch(:stage)}
               #{fetch(:machine_ip)}
           "
     end
