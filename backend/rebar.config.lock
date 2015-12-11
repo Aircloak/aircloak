@@ -11,7 +11,11 @@
              {report,{eunit_surefire,[{dir,"."}]}}]}.
 {erl_opts,[debug_info]}.
 {edoc_opts,[{dir,"doc"},{preprocess,true}]}.
-{deps,[{cloak,".*",
+{deps,[
+       {msgpack,".*",
+                {git,"git://github.com/msgpack/msgpack-erlang.git",
+                     "42bd13a9e4588590cb4736513be1c8673b9ba46b"}},
+       {cloak,".*",
                  {git,"git@github.com:Aircloak/cloak-core.git",
                       "ba71ac169307c80f5324226b14fa95822e7f990c"}},
        {goldrush,".*",

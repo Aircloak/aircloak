@@ -34,7 +34,7 @@ start_link(Args) ->
     gen_server:start_link(?MODULE, Args, []).
 
 init(JSModules) when is_list(JSModules) ->
-  {ok, VM} = js_driver:new(),
+  {ok, VM} = js_driver:new(256, 64), % 256 MB max heap, 64 MB max stack
   lists:foreach(fun (JSModule) ->
         ok = js_driver:define_js(VM, {file, JSModule}, infinity)
       end, JSModules),
