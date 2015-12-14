@@ -212,7 +212,14 @@ format_time({{Year, Month, Day}, {Hour, Minute, Second}}) when is_float(Second) 
 title_from_bucket(Bucket) ->
   Label = ej:get({"label"}, Bucket),
   Value = ej:get({"value"}, Bucket),
-  <<Label/binary, ": ", Value/binary>>.
+  Title = <<Label/binary, ": ", Value/binary>>,
+  case binary:match(Title, <<$,>>) of
+    nomatch ->
+      Title;
+    _ ->
+      EscapedTitle = binary:replace(Title, <<$">>, <<$",$">>, [global]),
+      <<$", EscapedTitle/binary, $">>
+  end.
 
 format_errors(true) ->
   <<"present">>;
