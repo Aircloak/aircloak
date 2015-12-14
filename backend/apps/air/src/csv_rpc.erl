@@ -293,14 +293,14 @@ create_cells_json([Count|Rem]) ->
             WHERE results.created_at = $1"
           ],
           {{select, 1}, [{ResultId}]} = db_test_helpers:extended_query(SqlException, [Time1]),
-          db_test_helpers:insert_rows("exception_results", ["result_id"], [[ResultId]]),
+          ok = db_test_helpers:insert_rows("exception_results", ["result_id"], [[ResultId]]),
           ExpectedResponse = lists:flatten([
             "sep=,\nTime,Errors,label1: value1,label2: value2\n"
             "" ++ format_time(Time1) ++ ",present,1,\n" ++
             "" ++ format_time(Time2) ++ ",none,,2\n"
           ]),
-          Args = [Token, "1900/01/01 12:00:00", "2050/01/01 12:00:00"],
-          mecked_backend(Args, fun() -> verifyHttp(ExpectedResponse, get_result(Token)) end)
+          Args = [list_to_binary(Token), <<"1900/01/01 12:00:00">>, <<"2050/01/01 12:00:00">>],
+          mecked_backend(<<"csv_row_based">>, Args, fun() -> verifyHttp(ExpectedResponse, get_results(Token)) end)
         end}},
 
         {timeout, 30, {"Should return CSV in a time range", fun() ->
@@ -315,25 +315,39 @@ create_cells_json([Count|Rem]) ->
             [TaskId, Time2, AnalystId, cells_json([2,3])],
             [TaskId, Time3, AnalystId, cells_json([3,4])]
           ],
-          db_test_helpers:insert_rows("results", ["task_id", "created_at", "analyst_id", "buckets_json"], Results),
+          ok = db_test_helpers:insert_rows("results", ["task_id", "created_at", "analyst_id", "buckets_json"], Results),
           ExpectedResponse = lists:flatten([
             "sep=,\nTime,Errors,label2: value2,label3: value3\n"
             "" ++ format_time(Time2) ++ ",none,2,3\n"
           ]),
-          Args = [Token, "1957/01/01 12:00:00", "1959/01/01 12:00:00"],
-          mecked_backend(Args, fun() ->
-                verifyHttp(ExpectedResponse, get_result(Token,
+          Args = [list_to_binary(Token), <<"1957/01/01 12:00:00">>, <<"1959/01/01 12:00:00">>],
+          mecked_backend(<<"csv_row_based">>, Args, fun() ->
+                verifyHttp(ExpectedResponse, get_results(Token,
                     "begin_date=1957%2F01%2F01+12%3A00%3A00&end_date=1959%2F01%2F01+12%3A00%3A00"))
               end)
+        end}},
+
+        {timeout, 30, {"Should return a single result as CSV", fun() ->
+          clear_tables(),
+          Token = "Test-Token",
+          {AnalystId, TaskId} = add_task_and_analyst(Token),
+          Time1 = {{1951, 12, 12}, {10, 10, 10}},
+          Results = [[TaskId, Time1, AnalystId, cells_json([1, 2])]],
+          ok = db_test_helpers:insert_rows("results", ["task_id", "created_at", "analyst_id", "buckets_json"], Results),
+          {{select, 1}, [{ResultId}]} = db_test_helpers:simple_query("SELECT id FROM results"),
+          ExpectedResponse = lists:flatten([
+            "sep=,\nTime," ++ format_time(Time1) ++ "\nErrors,none\nlabel1: value1,1\nlabel2: value2,2"
+          ]),
+          mecked_backend(<<"csv_single">>, [list_to_binary(Token), ResultId], fun() -> verifyHttp(ExpectedResponse, get_result(Token, ResultId)) end)
         end}}
       ]
     ).
 
-mecked_backend(Args, Fun) ->
+mecked_backend(API, Args, Fun) ->
   meck:new(request_proxy),
   RPCPayload = {ok, {struct, [
-    {<<"rpc">>, <<"csv_row_based">>},
-    {<<"arguments">>, lists:map(fun cloak_util:binarify/1, Args)}
+    {<<"rpc">>, API},
+    {<<"arguments">>, Args}
   ]}},
   meck:expect(request_proxy, forward_request, fun(_) -> RPCPayload end),
   Fun(),
@@ -344,10 +358,15 @@ verifyHttp(ExpectedBody, HttpResponse) ->
   {ok, {_, _, Body}} = HttpResponse,
   ?assertEqual(ExpectedBody, Body).
 
-get_result(TaskToken) ->
-  get_result(TaskToken, "").
+get_results(TaskToken) ->
+  get_results(TaskToken, "").
 
-get_result(TaskToken, QueryString) ->
-  httpc:request(get, {db_test_helpers:http_url("/backend/tasks/" ++ TaskToken ++ "/results.csv?" ++ QueryString), []}, [], []).
+get_results(TaskToken, QueryString) ->
+  URL = "/backend/tasks/" ++ TaskToken ++ "/results.csv?" ++ QueryString,
+  httpc:request(get, {db_test_helpers:http_url(URL), []}, [], []).
+
+get_result(TaskToken, ResultId) ->
+  URL = "/backend/tasks/" ++ TaskToken ++ "/single_result.csv?result=" ++ integer_to_list(ResultId),
+  httpc:request(get, {db_test_helpers:http_url(URL), []}, [], []).
 
 -endif.
