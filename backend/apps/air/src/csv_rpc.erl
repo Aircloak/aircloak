@@ -10,12 +10,14 @@
 %%
 %% Example (assuming nginx in front):
 %%   curl http://localhost:5500/_/tasks/[TASK-ID]/results.csv
+%%   curl http://localhost:5500/_/tasks/[TASK-ID]/single_result.csv?result_id=[RESULT_ID]
 %%
 -module(csv_rpc).
 
 %% Dispatch API
 -export([
-  row_based_export/3
+  row_based_export/3,
+  single_export/3
 ]).
 
 -include_lib("air.hrl").
@@ -30,6 +32,18 @@ row_based_export(Arguments, Request, State) ->
   CSVRequest = wrq:set_resp_header("Content-Type", "text/csv", Request),
   StreamingRequest = wrq:set_resp_body({stream, stream_csv(Arguments)}, CSVRequest),
   {{halt, 200}, StreamingRequest, State}.
+
+%% @doc Exports the requested result as CSV to the client.
+single_export(Arguments, Request, State) ->
+  HeaderRequest = wrq:set_resp_header("Content-Type", "text/csv", Request),
+  {TimeStamp, HasErrors, Buckets} = get_single_result(Arguments),
+  % format buckets into CSV rows
+  Rows = [[$\n, title_from_bucket(Bucket), $,, integer_to_list(ej:get({"count"}, Bucket))] || Bucket <- Buckets],
+  % append buckets to result metadata
+  Body = [<<"sep=,\nTime,">>, TimeStamp, <<"\nErrors,">>, atom_to_list(HasErrors), Rows],
+  % write body
+  BodyRequest = wrq:set_resp_body(Body, HeaderRequest),
+  {{halt,200}, BodyRequest, State}.
 
 
 %% -------------------------------------------------------------------
@@ -76,6 +90,23 @@ receive_incoming_results(Headers, ErrorSet) ->
     done ->
       {"", done}
   end.
+
+get_single_result([TaskToken, ResultId]) ->
+  DbFun = fun(Connection) ->
+    SQL = ["
+      SELECT results.created_at, EXISTS(SELECT TRUE FROM exception_results WHERE result_id = $2), results.buckets_json
+      FROM results, tasks
+      WHERE tasks.token = $1 AND results.task_id = tasks.id AND results.id = $2"
+    ],
+    {{select, _}, [Result]} = pgsql_connection:extended_query(SQL, [TaskToken, ResultId], Connection),
+    Result
+  end,
+  {TimeStamp, HasErrors, BucketsJSON} = air_db:call({DbFun, infinity}),
+  Buckets = case mochijson2:decode(BucketsJSON) of
+    null -> [];
+    Other -> Other
+  end,
+  {format_time(TimeStamp), HasErrors, Buckets}.
 
 
 %% -------------------------------------------------------------------
