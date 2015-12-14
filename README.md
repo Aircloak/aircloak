@@ -189,7 +189,7 @@ If you want to deploy current branch, assuming you're not in the detached head s
 AIR_DEPLOY_BRANCH=$(git symbolic-ref --short HEAD) bundle exec cap target deploy
 ```
 
-Where `target` is `production` or `stage`.
+Where `target` is `air_prod` or `air_stage`.
 
 Note that this will work only if the current branch is pushed to the origin.
 
