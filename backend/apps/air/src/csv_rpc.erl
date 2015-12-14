@@ -40,7 +40,7 @@ single_export(Arguments, Request, State) ->
   % format buckets into CSV rows
   Rows = [[$\n, title_from_bucket(Bucket), $,, integer_to_list(ej:get({"count"}, Bucket))] || Bucket <- Buckets],
   % append buckets to result metadata
-  Body = [<<"sep=,\nTime,">>, TimeStamp, <<"\nErrors,">>, atom_to_list(HasErrors), Rows],
+  Body = [<<"sep=,\nTime,">>, TimeStamp, <<"\nErrors,">>, format_errors(HasErrors), Rows],
   % write body
   BodyRequest = wrq:set_resp_body(Body, HeaderRequest),
   {{halt,200}, BodyRequest, State}.
@@ -66,7 +66,7 @@ stream_csv(Arguments) ->
 receive_metadata() ->
   receive
     {metadata, Headers, ErrorSet} ->
-      HeadersForShow = cloak_util:join([<<"time">>, <<"errors">>] ++ Headers, ","),
+      HeadersForShow = cloak_util:join([<<"Time">>, <<"Errors">>] ++ Headers, ","),
       {HeadersForShow ++ "\n", fun() -> receive_incoming_results(Headers, ErrorSet) end};
     {error, {Error, Reason}} ->
       ?ERROR("CSV export failed gathering headers and errors: ~p:~p", [Error, Reason]),
@@ -186,7 +186,7 @@ get_data(#task_params{connection=Connection}=TaskParams, ReturnPid) ->
   pgsql_connection:foreach(EachFun,  SQL, Params, Connection).
 
 process_raw_rows(Headers, ErrorSet, {Id, CreatedAt, Val}) ->
-  HasError = atom_to_list(sets:is_element(Id, ErrorSet)),
+  Errors = format_errors(sets:is_element(Id, ErrorSet)),
   Props = case mochijson2:decode(Val) of
     null -> [];
     Other -> Other
@@ -202,17 +202,22 @@ process_raw_rows(Headers, ErrorSet, {Id, CreatedAt, Val}) ->
             {ok, Count} -> cloak_util:stringify(Count)
           end
         end, Headers),
-  cloak_util:join([format_time(CreatedAt), HasError] ++ Row, ",").
+  cloak_util:join([format_time(CreatedAt), Errors] ++ Row, ",").
 
 format_time({{Year, Month, Day}, {Hour, Minute, Second}}) when is_integer(Second) ->
-  io_lib:format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~p", [Year, Month, Day, Hour, Minute, Second]);
+  io_lib:format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [Year, Month, Day, Hour, Minute, Second]);
 format_time({{Year, Month, Day}, {Hour, Minute, Second}}) when is_float(Second) ->
-  io_lib:format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~.2f", [Year, Month, Day, Hour, Minute, Second]).
+  io_lib:format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~5.2.0f", [Year, Month, Day, Hour, Minute, Second]).
 
 title_from_bucket(Bucket) ->
   Label = ej:get({"label"}, Bucket),
   Value = ej:get({"value"}, Bucket),
   <<Label/binary, ": ", Value/binary>>.
+
+format_errors(true) ->
+  <<"present">>;
+format_errors(false) ->
+  <<"none">>.
 
 
 %% -------------------------------------------------------------------
@@ -283,9 +288,9 @@ create_cells_json([Count|Rem]) ->
           {{select, 1}, [{ResultId}]} = db_test_helpers:extended_query(SqlException, [Time1]),
           db_test_helpers:insert_rows("exception_results", ["result_id"], [[ResultId]]),
           ExpectedResponse = lists:flatten([
-            "sep=,\ntime,errors,label1: value1,label2: value2\n"
-            "" ++ format_time(Time1) ++ ",true,1,\n" ++
-            "" ++ format_time(Time2) ++ ",false,,2\n"
+            "sep=,\nTime,Errors,label1: value1,label2: value2\n"
+            "" ++ format_time(Time1) ++ ",present,1,\n" ++
+            "" ++ format_time(Time2) ++ ",none,,2\n"
           ]),
           Args = [Token, "1900/01/01 12:00:00", "2050/01/01 12:00:00"],
           mecked_backend(Args, fun() -> verifyHttp(ExpectedResponse, get_result(Token)) end)
@@ -305,8 +310,8 @@ create_cells_json([Count|Rem]) ->
           ],
           db_test_helpers:insert_rows("results", ["task_id", "created_at", "analyst_id", "buckets_json"], Results),
           ExpectedResponse = lists:flatten([
-            "sep=,\ntime,errors,label2: value2,label3: value3\n"
-            "" ++ format_time(Time2) ++ ",false,2,3\n"
+            "sep=,\nTime,Errors,label2: value2,label3: value3\n"
+            "" ++ format_time(Time2) ++ ",none,2,3\n"
           ]),
           Args = [Token, "1957/01/01 12:00:00", "1959/01/01 12:00:00"],
           mecked_backend(Args, fun() ->
