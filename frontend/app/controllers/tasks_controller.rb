@@ -217,11 +217,20 @@ class TasksController < ApplicationController
 
   # GET /tasks/:id/single_result?result=:result_id
   def single_result
-    result_id = params[:result]
-    @raw_result = @task.results.find(result_id)
-    # convert to json, 16 MB limit for buckets
-    @result = @raw_result.to_client_hash 12 * 1024 * 1024, 12 * 1024 * 1024
-    describe_activity "Requested specific result of task #{@task.name}", single_result_task_path(@task.token, :result => result_id)
+    result_id = params[:result].to_i
+    respond_to do |format|
+      format.html do
+        @raw_result = @task.results.find(result_id)
+        # convert to json, 16 MB limit for buckets
+        @result = @raw_result.to_client_hash 12 * 1024 * 1024, 12 * 1024 * 1024
+        describe_activity "Requested specific result of task #{@task.name}", single_result_task_path(@task.token, :result => result_id)
+      end
+
+      # This is a request from the erlang frontend
+      format.csv do
+        rpc_response :csv_single, [@task.token, result_id]
+      end
+    end
   end
 
   # GET /tasks/:id/pending_executions
