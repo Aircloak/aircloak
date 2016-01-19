@@ -61,7 +61,7 @@ handle_info(timeout, State) ->
 handle_info(_, State) -> {noreply, State, ?RENEW_INTERVAL}.
 
 %% @hidden
-terminate(Reason, {{Key, _Data}, PreviouslyRegistered}) ->
+terminate(Reason, {{Key, _Data}, _PreviouslyRegistered}) ->
   ?INFO("Deregistering ~s due to ~p", [Key, Reason]),
   air_etcd:delete(Key),
   ok.

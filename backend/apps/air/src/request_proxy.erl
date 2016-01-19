@@ -31,9 +31,9 @@ forward_request(IncomingRequest) ->
   ProxyRequest = {Url, Headers},
   ?INFO("Proxying requst: ~p", [Url]),
   case httpc:request(get, ProxyRequest, [], []) of
-    {ok, {_, ResponseHeaders, undefined}} ->
+    {ok, {_, _ResponseHeaders, undefined}} ->
       {error, decoding_error};
-    {ok, {_, ResponseHeaders, DecodedBody}} ->
+    {ok, {_, _ResponseHeaders, DecodedBody}} ->
       ?DEBUG("Received proxy response: ~p", [DecodedBody]),
       try {ok, mochijson2:decode(DecodedBody)} catch error:_Reason -> {error, decoding_error} end;
     {error, Reason} ->
