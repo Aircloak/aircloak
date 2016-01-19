@@ -21,7 +21,8 @@
     {"label":"data","value":"<0","count":30},
     {"label":"data","value":"<50","count":85},
     {"label":"data","value":"<90","count":80},
-    {"label":"id","value":"14","count":5}
+    {"label":"id","value":"14","count":5},
+    {"label":"aircloak","value":"lcf_tail","count":42}
   ],
   "exceptions":[]
 }

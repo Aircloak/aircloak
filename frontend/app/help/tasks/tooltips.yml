@@ -126,3 +126,10 @@ sandbox_button:
     you can verify that the outputs produced by the task match what
     you would expect.
   markdown: true
+lcf_tail:
+  content: |
+    The number of users for which one or more reported properties were
+    excluded from the final result because of low count. See [here]
+    (/help/understanding-the-query-model#the-cloak-suppresses-answers-unless-the-count-is-high-enough)
+    for more details.
+  markdown: true

@@ -104,6 +104,12 @@ Results.display = (result) ->
     text += " (outdated code)"
   $('#time').text text
 
+  result.post_processed.aircloak ||= {}
+  if (result.post_processed.aircloak.lcf_tail)
+    $('#lcf_tail_size').text result.post_processed.aircloak.lcf_tail
+  else
+    $('#lcf_tail').hide()
+
   if result.exceptions.length > 0
     error_texts = _.map result.exceptions, (exception) ->
         ResultException.format_error(ResultException.parse_to_error exception)

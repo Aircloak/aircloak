@@ -20,6 +20,16 @@ function extract_buckets(result, name)
   return buckets.splice(start, end - start);
 }
 
+function extract_aircloak_buckets(result)
+{
+  var aircloak_buckets = extract_buckets(result, "aircloak");
+
+  for (var i = 0; i < aircloak_buckets.length; i++)
+  {
+    var bucket = aircloak_buckets[i];
+    result.post_processed.aircloak[bucket.value] = bucket.count;
+  }
+}
 
 function insert_buckets(result, newBuckets)
 {
@@ -47,7 +57,9 @@ function process_result(JSONResult)
 
   // create post-processed data container
   result.post_processed = {};
+  result.post_processed.aircloak = {};
 
+  extract_aircloak_buckets(result)
   aggregate_accumulator_buckets(result);
   aggregate_quantized_buckets(result);
 

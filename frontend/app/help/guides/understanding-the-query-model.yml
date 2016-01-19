@@ -52,6 +52,25 @@ content: |
   are between the ages of 15 and 20?_,
   ... _how many users are between the ages of 10 and 20?_, ...
 
+  You can get some notion of how many properties are filtered out if you go to
+  the _Singular View_ of the task results. Under the label
+  __number of filtered users__ you should see the number of users for which
+  one or more reported properties were suppressed due to low counts.
+
+  If this number is unusually high, then you have a lot of properties which are
+  not reported. In this case, consider rephrasing the task according to tips in
+  this guide.
+
+  Keep in mind that the number of filtered users doesn't necessarily corresponds
+  to the number of suppressed properties. For example, let's say that ten properties
+  were suppressed for one user, while twenty properties were suppressed for another
+  user. The total reported count will be two, meaning two users with at least one
+  suppressed property.
+
+  Finally, to preserve anonymization guarantees, the number of suppressed users
+  is itself anonymized just like any other reported property. The reported number
+  will therefore not be exact, and if it's low enough it might not even be reported.
+
 
   ### Queries are run over individual users, one at a time
 
