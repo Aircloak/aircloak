@@ -76,7 +76,7 @@ get_json_results(ReturnPid, Arguments) ->
     get_results(ReturnPid, Arguments, Connection),
     ReturnPid ! done
   end,
-  air_db:call({DbFun, infinity}).
+  air_db:call(DbFun).
 
 get_results_count([TaskId, _PageNum, _PerPage, BeginTime, EndTime], Connection) ->
   SQL = ["
@@ -87,7 +87,7 @@ get_results_count([TaskId, _PageNum, _PerPage, BeginTime, EndTime], Connection) 
       results.created_at BETWEEN $2 AND $3"
   ],
   Params = [TaskId, BeginTime, EndTime],
-  {{select, 1}, [{Count}]} = pgsql_connection:extended_query(SQL, Params, Connection),
+  {{select, 1}, [{Count}]} = sql_conn:extended_query(SQL, Params, Connection),
   Count.
 
 get_results(ReturnPid, [TaskId, PageNum, PerPage, BeginTime, EndTime], Connection) ->
@@ -108,14 +108,14 @@ get_results(ReturnPid, [TaskId, PageNum, PerPage, BeginTime, EndTime], Connectio
       result_id = $1"
   ],
   ResultParams = [TaskId, BeginTime, EndTime, PerPage, ((PageNum-1) * PerPage)],
-  air_db:call({fun(ExceptionConn) ->
+  air_db:call(fun(ExceptionConn) ->
         EachFun = fun({ResultId, _CreatedAt, _BucketsJson}=Result) ->
-              {{select, _}, Exceptions} = pgsql_connection:extended_query(ExceptionSQL,
+              {{select, _}, Exceptions} = sql_conn:extended_query(ExceptionSQL,
                   [ResultId], ExceptionConn),
               ReturnPid ! {data, Result, Exceptions}
             end,
-        pgsql_connection:foreach(EachFun, ResultSQL, ResultParams, Connection)
-      end, infinity}).
+        sql_conn:foreach(EachFun, ResultSQL, ResultParams, Connection)
+      end).
 
 process_raw_result({_ResultId, CreatedAt, BucketsJson}, Exceptions) ->
   "{
@@ -160,7 +160,7 @@ create_result(TaskId, CreatedAt, Labels) ->
   FindIdSql = "SELECT id FROM results WHERE buckets_json = $1 AND created_at = $2",
   FindIdParams = [BucketsJson, CreatedAt],
   air_db:call(fun(C) ->
-        {{select, 1}, [{ResultId}]} = pgsql_connection:extended_query(FindIdSql, FindIdParams, C),
+        {{select, 1}, [{ResultId}]} = sql_conn:extended_query(FindIdSql, FindIdParams, C),
         ResultId
       end).
 
@@ -170,7 +170,7 @@ create_exception(ResultId, Count, StackTrace) ->
   FindIdSql = "SELECT id FROM exception_results WHERE stacktrace = $1 AND result_id = $2",
   FindIdParams = [StackTrace, ResultId],
   air_db:call(fun(C) ->
-        {{select, 1}, [{ExceptionId}]} = pgsql_connection:extended_query(FindIdSql, FindIdParams, C),
+        {{select, 1}, [{ExceptionId}]} = sql_conn:extended_query(FindIdSql, FindIdParams, C),
         ExceptionId
       end).
 

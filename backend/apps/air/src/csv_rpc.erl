@@ -98,10 +98,10 @@ get_single_result([TaskToken, ResultId]) ->
       FROM results, tasks
       WHERE tasks.token = $1 AND results.task_id = tasks.id AND results.id = $2"
     ],
-    {{select, _}, [Result]} = pgsql_connection:extended_query(SQL, [TaskToken, ResultId], Connection),
+    {{select, _}, [Result]} = sql_conn:extended_query(SQL, [TaskToken, ResultId], Connection),
     Result
   end,
-  {TimeStamp, HasErrors, BucketsJSON} = air_db:call({DbFun, infinity}),
+  {TimeStamp, HasErrors, BucketsJSON} = air_db:call(DbFun),
   Buckets = case mochijson2:decode(BucketsJSON) of
     null -> [];
     Other -> Other
@@ -131,7 +131,7 @@ get_csv_results(ReturnPid, Arguments) ->
       ReturnPid ! {error, {Error, Reason}}
     end
   end,
-  air_db:call({DbFun, infinity}).
+  air_db:call(DbFun).
 
 get_params([TaskToken, StartTime, EndTime], Connection) ->
   #task_params{
@@ -154,7 +154,7 @@ get_result_errors(#task_params{task_token=Token, start_time=Start, end_time=End,
       results.created_at BETWEEN $2 AND $3
     GROUP BY results.id, COUNT(exception_results)"
   ],
-  {{select, _}, ErrorTasks} = pgsql_connection:extended_query(SQL, [Token, Start, End], Connection),
+  {{select, _}, ErrorTasks} = sql_conn:extended_query(SQL, [Token, Start, End], Connection),
   lists:foldl(fun({TaskId}, AccSet) -> sets:add_element(TaskId, AccSet) end, sets:new(), ErrorTasks).
 
 sql_for_task(#task_params{task_token=TaskToken, start_time=StartTime, end_time=EndTime}) ->
@@ -177,13 +177,13 @@ get_headers(#task_params{connection=Connection}=TaskParams) ->
     lists:foldl(fun(Struct, TitleAcc) -> sets:add_element(title_from_bucket(Struct), TitleAcc) end, Acc, Props)
   end,
   {SQL, Params} = sql_for_task(TaskParams),
-  {ok, ResultSet} = pgsql_connection:fold(FoldFun, sets:new(), SQL, Params, Connection),
+  {ok, ResultSet} = sql_conn:fold(FoldFun, sets:new(), SQL, Params, Connection),
   lists:sort(sets:to_list(ResultSet)).
 
 get_data(#task_params{connection=Connection}=TaskParams, ReturnPid) ->
   EachFun = fun(Row) -> ReturnPid ! {data, Row} end,
   {SQL, Params} = sql_for_task(TaskParams),
-  pgsql_connection:foreach(EachFun,  SQL, Params, Connection).
+  sql_conn:foreach(EachFun,  SQL, Params, Connection).
 
 process_raw_rows(Headers, ErrorSet, {Id, CreatedAt, Val}) ->
   Errors = format_errors(sets:is_element(Id, ErrorSet)),

@@ -10,7 +10,7 @@
 -include("air.hrl").
 -include_lib("etcd/include/etcd_types.hrl").
 
--type request_fun() :: fun((pgsql_connection:pgsql_connection()) -> any()).
+-type request_fun() :: fun((sql_conn:connection()) -> any()).
 -type request_fun_spec() :: request_fun() | {request_fun(), non_neg_integer() | infinity}.
 
 
