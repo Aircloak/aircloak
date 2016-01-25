@@ -3,13 +3,13 @@
 -compile(export_all).
 
 simple_query(Query) ->
-  air_db:call(fun(Connection) -> pgsql_connection:simple_query(Query, Connection) end).
+  air_db:call(fun(Connection) -> sql_conn:simple_query(Query, Connection) end).
 
 extended_query(Query, Params) ->
-  air_db:call(fun(Connection) -> pgsql_connection:extended_query(Query, Params, Connection) end).
+  air_db:call(fun(Connection) -> sql_conn:extended_query(Query, Params, Connection) end).
 
 batch_query(Query, Params) ->
-  air_db:call(fun(Connection) -> pgsql_connection:batch_query(Query, Params, Connection) end).
+  air_db:call(fun(Connection) -> sql_conn:batch_query(Query, Params, Connection) end).
 
 insert_rows(Table, Fields, Rows) ->
   {Params, _} = lists:foldl(

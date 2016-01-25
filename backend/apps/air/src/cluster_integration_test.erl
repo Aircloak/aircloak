@@ -625,7 +625,7 @@ validate_result(ResultId, #state{users_uploaded=UserCount}=State) ->
           FROM results
           WHERE results.id = $1"
         ],
-        pgsql_connection:extended_query(SQL, [ResultId], Connection)
+        sql_conn:extended_query(SQL, [ResultId], Connection)
       end),
   case JSONSQLResult of
     {{select, 1}, [{JSONResult}]} ->
@@ -744,7 +744,7 @@ while_ok(#state{timings=Timings}=State, [Function|Functions]) ->
       {error, cleanup(NewState)}
   catch
     ProblemType:ProblemReason ->
-      ?ERROR("Test failed with ~p:~p", [ProblemType, ProblemReason]),
+      ?ERROR("Test failed with ~p:~p ~p", [ProblemType, ProblemReason, erlang:get_stacktrace()]),
       {error, cleanup(State)}
   end.
 

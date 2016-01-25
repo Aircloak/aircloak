@@ -10,6 +10,7 @@
 ]).
 
 -include("types.hrl").
+-include("air.hrl").
 
 
 %% -------------------------------------------------------------------
@@ -126,8 +127,10 @@ integration_test() ->
     {<<"task_id">>, <<"1">>},
     {<<"buckets">>, _},
     {<<"exceptions">>, []},
-    {<<"post_processed">>, {[{<<"histograms">>, [_]}]}}
+    {<<"post_processed">>, {PostProcessed}}
   ]} = test_post_processor("/processed/1", Data),
+  ?assertNotEqual(undefined, proplists:get_value(<<"histograms">>, PostProcessed)),
+  ?assertEqual({[{<<"lcf_tail">>, 42}]}, proplists:get_value(<<"aircloak">>, PostProcessed)),
   {[{
     <<"analyst_id">>, 1},
     {<<"task_id">>, <<"1">>},

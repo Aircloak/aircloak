@@ -54,7 +54,7 @@ to_html(Request, State) ->
 %% -------------------------------------------------------------------
 
 db_check_output() ->
-  try air_db:call(fun(C) -> pgsql_connection:simple_query("SELECT true", C) end) of
+  try air_db:call(fun(C) -> sql_conn:simple_query("SELECT true", C) end) of
     {{select, 1}, [{true}]} -> true;
     Response ->
       ?ERROR("DB check FAILED. Got unexpected response: ~p", [Response]),
