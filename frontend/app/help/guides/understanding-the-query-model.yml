@@ -65,7 +65,7 @@ content: |
   to the number of suppressed properties. For example, let's say that ten properties
   were suppressed for one user, while twenty properties were suppressed for another
   user. The total reported count will be two, meaning two users with at least one
-  suppressed property.
+  suppressed property each.
 
   Finally, to preserve anonymization guarantees, the number of suppressed users
   is itself anonymized just like any other reported property. The reported number

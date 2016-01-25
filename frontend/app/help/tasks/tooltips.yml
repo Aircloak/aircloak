@@ -129,7 +129,7 @@ sandbox_button:
 lcf_tail:
   content: |
     The number of users for which one or more reported properties were
-    excluded from the final result because of low count. See [here]
+    excluded from the final result because of low count. See [this help guide]
     (/help/understanding-the-query-model#the-cloak-suppresses-answers-unless-the-count-is-high-enough)
     for more details.
   markdown: true
