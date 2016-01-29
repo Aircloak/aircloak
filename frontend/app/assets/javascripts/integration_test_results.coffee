@@ -11,31 +11,29 @@ $ ->
       category_values = _.chain(data)
         .map((row) ->
           timings = row.timings[0]
-          # The javascript date object expects times in ms
-          [row.created_at * 1000, timings[category]])
+          returnable_row =
+            # The javascript date object expects times in ms
+            x: row.created_at * 1000
+            y: if timings[category] then timings[category] else 0
+          )
         .filter((row) -> row != null)
         .value()
       renderable_categories.push({key: category, values: category_values})
 
     nv.addGraph ->
-      chart = nv.models.lineWithFocusChart()
-          .x((d) -> d[0])
-          .y((d) -> d[1])
+      chart = nv.models.multiBarChart()
+          .reduceXTicks(true)
+          .showControls(true)
+          .stacked(true)
 
       chart.xAxis
           .axisLabel('Date')
           .tickFormat((d) -> d3.time.format('%b %d %H:%M')(new Date(d)))
-      chart.xScale(d3.time.scale.utc())
-      chart.yAxis.axisLabel('Phase duration /s')
 
-      chart.x2Axis
-          .axisLabel('Date')
-          .tickFormat((d) -> d3.time.format('%b %d')(new Date(d)))
-      chart.y2Axis.axisLabel('Phase duration /s')
+      chart.yAxis.axisLabel('Duration /s')
 
       d3.select(svg)
         .datum(renderable_categories)
-        .transition().duration(500)
         .call(chart)
 
       nv.utils.windowResize(chart.update)
