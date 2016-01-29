@@ -211,17 +211,28 @@ create_cluster(#state{build_id=BuildId}=State) ->
       },
       Cleanup = fun() -> destroy_cluster(StateWithCluster) end,
       CleanedState = add_cleanup_step(Cleanup, StateWithCluster),
-      ?INFO("Waiting for cluster ~p to be setup", [ClusterId]),
-      %% After 2 hours we give up (2 * 60 * 60s)
-      BinaryClusterId = cloak_util:binarify(ClusterId),
-      wait_for(ListenString, 7200, fun(ReportedClusterId) ->
-            case ReportedClusterId =:= BinaryClusterId of
-              true ->
-                ?INFO("Setup of cluster ~p has completed", [ClusterId]),
-                {ok, CleanedState};
-              false -> next
-            end
-          end, CleanedState);
+      % If we are running in a local environment, the cluster creation
+      % will have succeeded immediately, and therefore already be done.
+      % If we wait for the notification from Postgres, we'll timeout
+      % because it has already been sent.
+      % In a production environment, the cluster creation takes time,
+      % and we have to wait for it to complete
+      case air_etcd:get("/settings/rails/global") of
+        <<"true">> ->
+          ?INFO("Waiting for cluster ~p to be setup", [ClusterId]),
+          %% After 2 hours we give up (2 * 60 * 60s)
+          BinaryClusterId = cloak_util:binarify(ClusterId),
+          wait_for(ListenString, 7200, fun(ReportedClusterId) ->
+                case ReportedClusterId =:= BinaryClusterId of
+                  true ->
+                    ?INFO("Setup of cluster ~p has completed", [ClusterId]),
+                    {ok, CleanedState};
+                  false -> next
+                end
+              end, CleanedState);
+        <<"false">> ->
+          {ok, CleanedState}
+      end;
     Other -> Other
   end.
 
