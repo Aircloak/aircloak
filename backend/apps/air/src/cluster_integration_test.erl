@@ -105,7 +105,8 @@ run() ->
     {<<"timings">>, [
       [{cloak_util:binarify(Step), Time} || {Step, Time} <- FinalState#state.timings]
     ]},
-    {<<"success">>, Success}
+    {<<"success">>, Success},
+    {<<"cloaks">>, FinalState#state.cloaks}
   ],
   FinalRailsRequest = [
     {<<"result">>, list_to_binary(mochijson2:encode(ResultStructure))} |
