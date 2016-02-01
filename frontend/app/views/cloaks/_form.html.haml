@@ -28,5 +28,10 @@
         In a good state
       %span.help-block Whether the cloak is in a good, consistent and usable state, or not
   .control-group
+    = control_label "Comment"
+    .controls
+      = f.text_field :comment
+      %span.help-block This comment will be shown on the cloak page. This is useful for example when you want to add a note about why a cloak has been marked as bad.
+  .control-group
     .controls
       = f.submit 'Save', class: "btn btn-success"
