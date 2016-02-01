@@ -2,6 +2,7 @@ class UserTable < ActiveRecord::Base
   belongs_to :cluster
   belongs_to :analyst
   has_many :user_table_migrations, dependent: :destroy
+  has_many :user_table_stats
 
   validates_presence_of :table_name, :cluster
   validates_uniqueness_of :table_name, scope: [:cluster_id, :analyst_id]
