@@ -95,22 +95,17 @@ run() ->
       ]),
   flush_messages(),
   %% Send test results to rails for performance recordings
-  TestIdentifier = <<"full_cluster_integration_test">>,
-  RailsRequest = [
-    {<<"action">>, <<"add_test_result">>},
-    {<<"identifier">>, TestIdentifier}
-  ],
-  Success = TestResult == ok,
   ResultStructure = [
     {<<"timings">>, [
       [{cloak_util:binarify(Step), Time} || {Step, Time} <- FinalState#state.timings]
     ]},
-    {<<"success">>, Success},
+    {<<"success">>, TestResult == ok},
     {<<"cloaks">>, FinalState#state.cloaks}
   ],
   FinalRailsRequest = [
-    {<<"result">>, list_to_binary(mochijson2:encode(ResultStructure))} |
-    RailsRequest
+    {<<"result">>, list_to_binary(mochijson2:encode(ResultStructure))},
+    {<<"action">>, <<"add_test_result">>},
+    {<<"identifier">>, <<"full_cluster_integration_test">>}
   ],
   flush_messages(),
   case rails_request(FinalRailsRequest, FinalState) of
