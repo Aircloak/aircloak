@@ -29,6 +29,16 @@ class IntegrationTestResult < ActiveRecord::Base
     json_result["cloaks"].join(", ")
   end
 
+  def last_stage
+    return "" if json_result["last_stage"].nil?
+    json_result["last_stage"].humanize
+  end
+
+  def description
+    return "" if json_result["result_description"].nil?
+    json_result["result_description"]
+  end
+
   def test_duration
     total_time_s = 0
     json_result["timings"].first.each_pair do |test, time|

@@ -10,6 +10,8 @@
       %th Success
       %th Total time
       %th Cloaks
+      %th Last attempted stage
+      %th Output
   %tbody
     -# Show the last weeks worth of results in more detail
     - test.integration_test_results.order("created_at DESC").limit(7).each do |result|
@@ -18,3 +20,5 @@
         %td= result.success
         %td= result.test_duration
         %td= result.cloaks
+        %td= result.last_stage
+        %td= result.description

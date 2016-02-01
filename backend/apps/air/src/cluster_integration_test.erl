@@ -85,7 +85,7 @@
 -spec run() -> ok | error.
 run() ->
   ?INFO("Starting full cluster integration test"),
-  {TestResult, FinalState} = while_ok(init_state(), [
+  {TestResult, FinalState, {StageAtom, TestResultDescription}} = while_ok(init_state(), [
         get_analyst_id,
         create_build,
         create_cluster,
@@ -100,7 +100,9 @@ run() ->
       [{cloak_util:binarify(Step), Time} || {Step, Time} <- FinalState#state.timings]
     ]},
     {<<"success">>, TestResult == ok},
-    {<<"cloaks">>, FinalState#state.cloaks}
+    {<<"cloaks">>, FinalState#state.cloaks},
+    {<<"last_stage">>, atom_to_binary(StageAtom, utf8)},
+    {<<"result_description">>, TestResultDescription}
   ],
   FinalRailsRequest = [
     {<<"result">>, list_to_binary(mochijson2:encode(ResultStructure))},
@@ -735,7 +737,7 @@ flush_messages() ->
 
 -spec while_ok(#state{}, [atom()]) -> {ok | error, #state{}}.
 while_ok(State, []) ->
-  {ok, cleanup(State)};
+  {ok, cleanup(State), {test_completed, <<"Everything OK">>}};
 while_ok(#state{timings=Timings}=State, [Function|Functions]) ->
   ?INFO("Performing step: ~p", [Function]),
   StartTimeSeconds = cloak_util:timestamp_to_epoch(now()),
@@ -748,11 +750,12 @@ while_ok(#state{timings=Timings}=State, [Function|Functions]) ->
       while_ok(NewStateWithTiming, Functions);
     {error, Reason, NewState} ->
       ?WARNING("Test failed in step ~p with reason: ~p", [Function, Reason]),
-      {error, cleanup(NewState)}
+      {error, cleanup(NewState), {Function, Reason}}
   catch
     ProblemType:ProblemReason ->
-      ?ERROR("Test failed with ~p:~p ~p", [ProblemType, ProblemReason, erlang:get_stacktrace()]),
-      {error, cleanup(State)}
+      ProblemDescription = atom_to_list(ProblemType) ++ ":" ++ atom_to_list(ProblemReason),
+      ?ERROR("Test failed with ~p ~p", [ProblemDescription, erlang:get_stacktrace()]),
+      {error, cleanup(State), {Function, list_to_binary(ProblemDescription)}}
   end.
 
 %% @hidden
