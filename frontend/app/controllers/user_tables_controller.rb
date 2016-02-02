@@ -94,7 +94,7 @@ class UserTablesController < ApplicationController
   #    table, it will then continue using the previously dropped
   #    tables history.
   def destroy
-     if params["table_name"] != @table.table_name then
+    if params["table_name"] != @table.table_name then
       flash[:error] = "Entered name does not match table name!"
       redirect_to confirm_destroy_user_table_path
       return
