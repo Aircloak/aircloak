@@ -286,7 +286,7 @@ private
             repeat
               -- Report buckets as average quantized value. For example, if the
               -- count is 58, the step is 10, and we report 55 (average between
-              -- 40 and 50), 45, 35, ...
+              -- 50 and 60), 45, 35, ...
               -- This allows us to avoid sending ranges back, and simplifies the
               -- final post-processing phase.
               count = math.floor(math.floor(count/step)*step + step/2)
