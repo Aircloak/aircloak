@@ -260,16 +260,6 @@ MigrationView = Backbone.View.extend
       $("#cluster_id")
     else
       chosenClusterOption
-    dataTypeSelectTextOption = $("select#type option[value='text']")
-
-    if clusterOptionElement.data("text-type-capability")
-      # Make sure the text option is in the datatype list
-      if dataTypeSelectTextOption.length == 0
-        $("select#type").append(new Option("text", "text"))
-    else
-      # If the text option is in the datatype list, we should remove it
-      unless dataTypeSelectTextOption.length == 0
-        dataTypeSelectTextOption.remove()
 
     if clusterOptionElement.data("user-row-expiry-capability")
       $("#row_expiry_ui").show()
