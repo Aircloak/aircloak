@@ -164,7 +164,7 @@ run_task(Analyst, CloakUrl, TaskSpec) ->
         mochijson2:encode(TaskSpec),
         [
           {connect_timeout, timer:seconds(10)},
-          {recv_timeout, timer:minutes(2)}
+          {recv_timeout, timer:minutes(10)}
         ]
       ),
   case Res of
