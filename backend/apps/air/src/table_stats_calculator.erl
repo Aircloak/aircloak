@@ -236,22 +236,11 @@ estimated_num_rows(SortedRowCounts) ->
   EstimatedRowCount.
 
 publish_to_airpub(Analyst, TableId, Content) ->
-  % We need to push on the node where the airpub leader is running
-  case airpub_leader:leader() of
-    undefined ->
-      ?ERROR("No airpub leader, can't push the message");
-    Pid ->
-      rpc:cast(
-            node(Pid),
-            router,
-            publish,
-            [#article{
-              path=binary_to_list(iolist_to_binary(io_lib:format("/table_stats/~p/~p", [Analyst, TableId]))),
-              content=iolist_to_binary(mochijson2:encode(Content)),
-              published_at=os:timestamp()
-            }]
-          )
-  end.
+  airpub_leader:publish(#article{
+        path=binary_to_list(iolist_to_binary(io_lib:format("/table_stats/~p/~p", [Analyst, TableId]))),
+        content=iolist_to_binary(mochijson2:encode(Content)),
+        published_at=os:timestamp()
+      }).
 
 
 %% -------------------------------------------------------------------

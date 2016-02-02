@@ -11,7 +11,7 @@
 %% API functions
 -export([
   start_link/0,
-  leader/0
+  publish/1
 ]).
 
 %% gen_etcd_leader callbacks
@@ -24,6 +24,7 @@
 ]).
 
 -include("air.hrl").
+-include("types.hrl").
 -include_lib("etcd/include/etcd_types.hrl").
 
 
@@ -36,10 +37,18 @@
 start_link() ->
   gen_etcd_leader:start_link(?MODULE, "airpub_leader", undefined).
 
-%% @doc Returns the pid of the airpub leader
--spec leader() -> undefined | pid().
-leader() ->
-  gen_etcd_leader:leader("airpub_leader").
+
+%% @doc Publishes the article on the airpub leader's node (if the leader exists).
+-spec publish(#article{}) -> error | ok.
+publish(Article) ->
+  case gen_etcd_leader:leader("airpub_leader") of
+    undefined ->
+      ?ERROR("No airpub leader, can't publish the article ~p", [Article]),
+      error;
+    Pid ->
+      rpc:cast(node(Pid), router, publish, [Article]),
+      ok
+  end.
 
 
 %% -------------------------------------------------------------------
