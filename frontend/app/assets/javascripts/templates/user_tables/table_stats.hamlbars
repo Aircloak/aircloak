@@ -5,6 +5,8 @@
     %a{href: hb("refresh_link"), class: "btn btn-mini", id: "refresh_table_stats"}
       refresh
 
+  #stats_message
+
   %div
     %b
       Users:

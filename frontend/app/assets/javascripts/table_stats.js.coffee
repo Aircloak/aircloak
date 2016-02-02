@@ -2,7 +2,6 @@
 window.TableStats = (server_url, request, table_stats) ->
   self = this
 
-
   # ------------------------------------
   # Private members
   # ------------------------------------
@@ -11,6 +10,17 @@ window.TableStats = (server_url, request, table_stats) ->
 
   render = () ->
     $("#stats_element").html(HandlebarsTemplates['user_tables/table_stats'](table_stats))
+
+    if table_stats.calculating
+      $("#refresh_table_stats").addClass("disabled")
+      $("#refresh_table_stats").text("calculating statistics")
+    else
+      if table_stats.success == true
+        $("#stats_message").removeClass("error-text").html("")
+      else
+        $("#stats_message").
+          addClass("error-text").
+          html("An error occurred while computing table statistics. The presented information is possibly incorrect.")
 
   refreshTableStats = (e) ->
     e.preventDefault()
@@ -28,12 +38,16 @@ window.TableStats = (server_url, request, table_stats) ->
         when "table_stats"
           table_stats = message.data
           table_stats.refresh_link = refreshLink
+          table_stats.calculating = false
+          table_stats.success = true
           table_stats.stats = true
           render()
         when "calculating"
-          $("#refresh_table_stats").addClass("disabled")
-          $("#refresh_table_stats").text("calculating statistics")
-        when "calculated"
+          table_stats.calculating = true
+          render()
+        when "error"
+          table_stats.calculating = false
+          table_stats.success = false
           render()
 
 

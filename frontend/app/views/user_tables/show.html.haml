@@ -11,6 +11,7 @@
   table_stats = if last_computed_stats
     {
       stats: true,
+      success: last_computed_stats.success,
       num_users: last_computed_stats.num_users,
       num_rows: last_computed_stats.num_rows,
       refresh_link: "/backend#{compute_stats_user_table_path(@table)}",

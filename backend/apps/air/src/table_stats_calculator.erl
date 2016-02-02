@@ -101,7 +101,23 @@ handle_cast(Message, _State) ->
 
 %% @hidden
 handle_info({'DOWN', MRef, process, _Pid, Reason}, #state{runner_mref=MRef} = State) ->
-  publish_to_airpub(State#state.analyst, State#state.table_id, [{type, <<"calculated">>}]),
+  case Reason of
+    normal -> ok;
+    _Other ->
+      publish_to_airpub(State#state.analyst, State#state.table_id, [{type, <<"error">>}]),
+      air_db:call(
+            fun(Conn) ->
+              sql_conn:extended_query(
+                    [
+                      "UPDATE user_table_stats SET success=false ",
+                      "WHERE id = (SELECT max(id) FROM user_table_stats WHERE user_table_id=$1)"
+                    ],
+                    [State#state.table_id],
+                    Conn
+                  )
+            end
+          )
+  end,
   {stop, Reason, State};
 handle_info(timeout, State) ->
   publish_to_airpub(State#state.analyst, State#state.table_id, [{type, <<"calculating">>}]),
@@ -135,8 +151,8 @@ compute_stats(Analyst, TableId, CloakUrl, TaskSpec) ->
   air_db:call(fun(Conn) ->
         {{insert,0,1}, [{RowId}]} = sql_conn:extended_query(
               [
-                "INSERT INTO user_table_stats(user_table_id, num_users, num_rows, created_at, updated_at)",
-                " VALUES($1, $2, $3, $4, $4) RETURNING id"
+                "INSERT INTO user_table_stats(user_table_id, num_users, num_rows, success, created_at, updated_at)",
+                " VALUES($1, $2, $3, true, $4, $4) RETURNING id"
               ],
               [
                 TableId,
