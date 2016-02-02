@@ -13,13 +13,13 @@
       stats: true,
       num_users: last_computed_stats.num_users,
       num_rows: last_computed_stats.num_rows,
-      refresh_link: compute_stats_user_table_path(@table),
+      refresh_link: "/backend#{compute_stats_user_table_path(@table)}",
       created_at: "#{last_computed_stats.created_at.strftime("%Y/%m/%d %H:%M")}"
     }
   else
     {
       stats: false,
-      refresh_link: compute_stats_user_table_path(@table)
+      refresh_link: "/backend#{compute_stats_user_table_path(@table)}"
     }
   end
 

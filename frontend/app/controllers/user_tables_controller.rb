@@ -186,17 +186,12 @@ class UserTablesController < ApplicationController
   end
 
   def compute_stats
-    url = URI.parse("#{Conf.get("/service/backend_local")}/table_stats/compute")
-    sock = Net::HTTP.new(url.host, url.port)
-    request = Net::HTTP::Post.new(url.path)
-    request.body = {
+    rpc_response(:compute_stats,
           analyst: @table.analyst.id,
           table_id: @table.id,
           cloak_url: cloak_url(@table.cluster),
           task_spec: task_spec(@table.table_name)
-        }.to_json
-    res = sock.request(request)
-    render text: res.body, status: res.code
+        )
   end
 
 private

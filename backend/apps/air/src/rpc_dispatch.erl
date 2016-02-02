@@ -5,6 +5,7 @@
   csv_row_based/3,
   csv_single/3,
   task_results_json/3,
+  compute_stats/3,
   error/3
 ]).
 
@@ -33,6 +34,15 @@ csv_single(Arguments, Request, State) ->
 %%      many results.
 task_results_json(Arguments, Request, State) ->
   task_results_rpc:as_json(Arguments, Request, State).
+
+compute_stats(Arguments, Request, State) ->
+  Status = table_stats_calculator:run(
+        ej:get({"analyst"}, Arguments),
+        ej:get({"table_id"}, Arguments),
+        ej:get({"cloak_url"}, Arguments),
+        ej:get({"task_spec"}, Arguments)
+      ),
+  {{halt, 200}, resource_common:respond_json([{status, Status}], Request), State}.
 
 %% @doc Re-reports a rails error message verbatim to the user
 error([ErrorJson, StatusCode], Request, State) ->
