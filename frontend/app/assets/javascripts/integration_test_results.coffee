@@ -14,7 +14,7 @@ $ ->
           returnable_row =
             # The javascript date object expects times in ms
             x: row.created_at * 1000
-            y: if timings[category] then timings[category] else 0
+            y: timings[category] || 0
           )
         .filter((row) -> row != null)
         .value()
