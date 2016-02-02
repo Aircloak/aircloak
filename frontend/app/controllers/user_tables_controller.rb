@@ -150,22 +150,16 @@ class UserTablesController < ApplicationController
       flash[:notice] = "Already fully migrated"
       redirect_to user_tables_path
     end
-  rescue Exception => error
+  rescue Exception
     describe_failed_activity "Tried to apply a migration failed to broken cluster, but it still failed"
     flash[:error] = "We still failed at applying the migration. Please retry later"
     redirect_to user_tables_path
   end
 
   def clear
-    success = if @table.cluster.capable_of?(:user_row_expiry)
-      result = JsonSender.request :delete, :admin, @table.analyst, @table.cluster,
-          "user_tables/#{@table.table_name}"
-      result["success"]
-    else
-      clear_table_with_migrations
-    end
+    result = JsonSender.request(:delete, :admin, @table.analyst, @table.cluster, "user_tables/#{@table.table_name}")
 
-    if success
+    if result["success"]
       describe_successful_activity "Cleared user table #{@table.table_name}"
       flash[:notice] = "Table #{@table.table_name} was cleared"
     else
@@ -177,35 +171,6 @@ class UserTablesController < ApplicationController
   end
 
 private
-  # Legacy hack: we don't support data deletion on the current cluster,
-  # so we will delete the data by dropping the tables and re-creating them them
-  def clear_table_with_migrations
-    # get current table data, needs to be done before applying the drop migration
-    table_data_json = @table.table_data
-    drop_migration = UserTableMigration.drop_migration @table.table_name
-    if Migrator.migrate @table, drop_migration
-      # create another migration that will fully re-create the table (last migration could just partially alter the table)
-      create_migration = UserTableMigration.new
-      create_migration.table_json = table_data_json
-      columns = JSON.parse table_data_json
-      create_migration.migration = {
-        table_name: @table.table_name,
-        action: "create",
-        columns: columns
-      }.to_json
-      # apply table creation migration on the cloaks
-      Migrator.migrate @table, create_migration
-    else
-      # we don't want to save the drop migration if it fails, let the user retry the operation instead
-      drop_migration.destroy
-      false
-    end
-  rescue
-    # we don't want to save the drop migration if it fails, let the user retry the operation instead
-    drop_migration.destroy
-    false
-  end
-
   def set_previous_migration
     @previous_migration = "{}"
   end

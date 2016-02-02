@@ -148,7 +148,6 @@ MigrationView = Backbone.View.extend
     @listenTo @model, 'columns_setup', @addAll
     @listenTo @model, 'all', @render
     @listenTo @model, "add remove reset", @modelChanged
-    @takeClusterCapabilityIntoAccount()
 
   events:
     "keypress #newColumns": "createOnReturn"
@@ -166,7 +165,6 @@ MigrationView = Backbone.View.extend
     "paste input#table_name": "modelChanged"
     "blur input#table_name": "modelChanged"
     "change input#row_expiry": "modelChanged"
-    "change #cluster_id": "takeClusterCapabilityIntoAccount"
 
   typeSelected: ->
     val = @selectType.val()
@@ -250,22 +248,6 @@ MigrationView = Backbone.View.extend
       droppedColumnNames = @model.droppedColumnNames()
       migration.drop_columns = droppedColumnNames if droppedColumnNames.length > 0
     $("#migration").val(JSON.stringify migration)
-
-  takeClusterCapabilityIntoAccount: ->
-    clusterId = parseInt $('#cluster_id').val()
-    chosenClusterOption = $("#cluster_id option[value=\"#{clusterId}\"]")
-    clusterOptionElement = if chosenClusterOption.length == 0
-      # The user only has a single cluster, and the cluster streaming capability
-      # is provided through a hidden input field
-      $("#cluster_id")
-    else
-      chosenClusterOption
-
-    if clusterOptionElement.data("user-row-expiry-capability")
-      $("#row_expiry_ui").show()
-    else
-      $("#row_expiry_ui").hide()
-      $("#row_expiry").val("")
 
   validRowExpiry: ->
     @rowExpiry.val() == "" or parseInt(@rowExpiry.val()) > 0
