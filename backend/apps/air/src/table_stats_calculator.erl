@@ -132,11 +132,11 @@ compute_stats(Analyst, TableId, CloakUrl, TaskSpec) ->
     table_stats(TaskResponse)
   ],
   publish_to_airpub(Analyst, TableId, [{type, <<"table_stats">>}, {data, TableStats}]),
-  {{insert, 0, 1}, _} = air_db:call(fun(Conn) ->
-        sql_conn:extended_query(
+  air_db:call(fun(Conn) ->
+        {{insert,0,1}, [{RowId}]} = sql_conn:extended_query(
               [
                 "INSERT INTO user_table_stats(user_table_id, num_users, num_rows, created_at, updated_at)",
-                " VALUES($1, $2, $3, $4, $4)"
+                " VALUES($1, $2, $3, $4, $4) RETURNING id"
               ],
               [
                 TableId,
@@ -144,6 +144,11 @@ compute_stats(Analyst, TableId, CloakUrl, TaskSpec) ->
                 proplists:get_value(num_rows, TableStats, 0),
                 cloak_util:timestamp_to_datetime(StartedAt)
               ],
+              Conn
+            ),
+        {{delete, _}, []} = sql_conn:extended_query(
+              "DELETE FROM user_table_stats WHERE user_table_id=$1 and id < $2",
+              [TableId, RowId],
               Conn
             )
       end).
