@@ -10,7 +10,8 @@
 
 %% API functions
 -export([
-  start_link/0
+  start_link/0,
+  leader/0
 ]).
 
 %% gen_etcd_leader callbacks
@@ -34,6 +35,11 @@
 -spec start_link() -> {ok, pid()} | {error, term()}.
 start_link() ->
   gen_etcd_leader:start_link(?MODULE, "airpub_leader", undefined).
+
+%% @doc Returns the pid of the airpub leader
+-spec leader() -> undefined | pid().
+leader() ->
+  gen_etcd_leader:leader("airpub_leader").
 
 
 %% -------------------------------------------------------------------

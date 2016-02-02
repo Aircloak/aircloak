@@ -136,7 +136,7 @@ dialyzer: $(DEPSOLVER_PLT) prepare_includes
 	dialyzer \
 				--no_native -Werror_handling -Wunderspecs -Wrace_conditions \
 				-pa deps/lager/ebin -I deps -I deps/cloak/include \
-				-I apps/air/src --src apps/air/src --plts $(BASE_PLT) $(DEPSOLVER_PLT) | \
+				-I apps/air/src -I apps --src apps/air/src --plts $(BASE_PLT) $(DEPSOLVER_PLT) | \
 			grep -E -v -f ./dialyzer.ignore-warnings
 
 typer: $(DEPSOLVER_PLT)
