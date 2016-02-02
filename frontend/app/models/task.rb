@@ -269,14 +269,6 @@ private
   end
 
   def post_processing_spec
-    if cluster.capable_of? :lua_library_support then
-      {code: code, libraries: TaskCode.dependencies(code)}
-    else
-      code_parts = TaskCode.dependencies(code).inject([]) do |memo, library|
-        memo.push(library[:code])
-      end
-      code_parts.push(code)
-      {code: code_parts.join("\n")}
-    end
+    {code: code, libraries: TaskCode.dependencies(code)}
   end
 end
