@@ -14,16 +14,15 @@
   %br
 
   .form-horizontal
-    =hb "if columnSelection" do
-      .control-group
-        = control_label "Selected columns", tooltip: "selected_columns", controller: "tasks"
-        .controls
-          %select#columns{multiple: true, size: 4, required: true}
-            =hb "each columns" do
-              =hb "if selected" do
-                %option{value: "{{name}}", selected: true} {{name}}
-                =hb "else"
-                %option{value: "{{name}}"} {{name}}
+    .control-group
+      = control_label "Selected columns", tooltip: "selected_columns", controller: "tasks"
+      .controls
+        %select#columns{multiple: true, size: 4, required: true}
+          =hb "each columns" do
+            =hb "if selected" do
+              %option{value: "{{name}}", selected: true} {{name}}
+              =hb "else"
+              %option{value: "{{name}}"} {{name}}
 
     .control-group
       = control_label "Max rows per user", tooltip: "max_num_rows", controller: "tasks"
