@@ -83,6 +83,7 @@ Web::Application.routes.draw do
     post "retry_migration", on: :member, action: "retry_migration"
     post "clear", on: :member, action: "clear"
     get "confirm_destroy", on: :member, action: "confirm_destroy"
+    post "compute_stats", on: :member, action: "compute_stats"
   end
   resources :lookup_tables
   resources :keys

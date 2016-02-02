@@ -1,11 +1,20 @@
 require './lib/migrator'
+require 'net/http'
+require 'net/https'
+require 'uri'
+require 'json'
+require 'airpub_api'
 
 class UserTablesController < ApplicationController
   before_action :set_previous_migration
-  before_action :load_table, only: [:new, :create, :edit, :update, :destroy, :retry_migration, :clear, :show, :confirm_destroy]
+  before_action :load_table, only: [
+        :new, :create, :edit, :update, :destroy, :retry_migration, :clear, :show, :confirm_destroy,
+        :compute_stats
+      ]
   before_action :validate_no_pending_migrations, only: [:edit, :update, :destroy]
   before_action :set_create_or_edit
   filter_access_to [:confirm_destroy, :clear], require: :manage
+  filter_access_to [:compute_stats], require: :read
 
   def index
     @clusters = current_user.ready_clusters
@@ -176,6 +185,20 @@ class UserTablesController < ApplicationController
     redirect_to user_tables_path
   end
 
+  def compute_stats
+    url = URI.parse("#{Conf.get("/service/backend_local")}/table_stats/compute")
+    sock = Net::HTTP.new(url.host, url.port)
+    request = Net::HTTP::Post.new(url.path)
+    request.body = {
+          analyst: @table.analyst.id,
+          table_id: @table.id,
+          cloak_url: cloak_url(@table.cluster),
+          task_spec: task_spec(@table.table_name)
+        }.to_json
+    res = sock.request(request)
+    render text: res.body, status: res.code
+  end
+
 private
   # Legacy hack: we don't support data deletion on the current cluster,
   # so we will delete the data by dropping the tables and re-creating them them
@@ -234,5 +257,57 @@ private
       flash[:error] = "Cannot #{params[:action]} a table with pending migrations"
       redirect_to user_tables_path
     end
+  end
+
+  def cloak_url(cluster)
+    protocol = Conf.get("/service/cloak/protocol")
+    port = Conf.get("/service/cloak/port")
+    url = "#{protocol}://#{cluster.address_of_a_ready_cloak}:#{port}"
+  end
+
+  def task_spec(table_name)
+    {
+      prefetch: [{table: table_name}],
+      post_processing: {
+        code:
+          <<-EOF
+            -- Manually count by going through each row. This should prevent
+            -- loading the whole table in memory at once.
+            local count = 0
+            for row in user_table('#{table_name}') do
+              count = count + 1
+            end
+
+            -- We'll report a CDF-ed count with adaptive quantization step.
+            -- The bigger the value, the bigger the quantization step.
+            -- This prevents too many buckets, but also reduces the noise
+            -- factor, since smaller counts are more refined.
+
+            -- We start with a step which is the same order of magnitude as
+            -- the count. For example, if the count is a four digit number the
+            -- initial step is 1000.
+            local step = math.max(1, math.pow(10, math.floor(math.log10(count))))
+
+            repeat
+              -- Report buckets as average quantized value. For example, if the
+              -- count is 58, the step is 10, and we report 55 (average between
+              -- 40 and 50), 45, 35, ...
+              -- This allows us to avoid sending ranges back, and simplifies the
+              -- final post-processing phase.
+              count = math.floor(math.floor(count/step)*step + step/2)
+              while count >= step do
+                report_property('num_rows', count)
+                count = count - step
+              end
+
+              -- We CDF-ed this order of magnitude, so we refine the step.
+              -- For example, if the count was 543, we reported 550, 450, 350, 250, 150
+              -- Now we set the count to 99 and step to 10, and repeat.
+              count = step - 1
+              step = step/10
+            until count == 0
+          EOF
+      }
+    }
   end
 end
