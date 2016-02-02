@@ -226,7 +226,7 @@ estimated_num_rows(SortedRowCounts) ->
   {EstimatedRowCount, _} = lists:foldr(
         fun({Count, NumRows}, {TotalAcc, PreviousBucketCount}) ->
           {
-            TotalAcc + lists:max([NumRows - PreviousBucketCount, 0]) * Count,
+            TotalAcc + max(NumRows - PreviousBucketCount, 0) * Count,
             NumRows
           }
         end,
