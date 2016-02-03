@@ -151,8 +151,8 @@ class UserTablesController < ApplicationController
       redirect_to user_tables_path
     end
   rescue Exception
-    describe_failed_activity "Tried to apply a migration failed to broken cluster, but it still failed"
-    flash[:error] = "We still failed at applying the migration. Please retry later"
+    describe_failed_activity "Re-attempted applying a migration that previously failed. It failed again."
+    flash[:error] = "Creating or changing the database table still did not work.. This might be a temporary issue. If the problem continues, please contact support."
     redirect_to user_tables_path
   end
 
