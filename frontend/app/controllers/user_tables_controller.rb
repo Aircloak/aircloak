@@ -4,6 +4,7 @@ require 'net/https'
 require 'uri'
 require 'json'
 require 'airpub_api'
+require 'task_code'
 
 class UserTablesController < ApplicationController
   before_action :set_previous_migration
@@ -190,7 +191,8 @@ class UserTablesController < ApplicationController
           analyst: @table.analyst.id,
           table_id: @table.id,
           cloak_url: cloak_url(@table.cluster),
-          task_spec: task_spec(@table.table_name)
+          task_spec: table_stats_task_spec(@table),
+          return_url: table_stats_return_url(@table)
         )
   end
 
@@ -260,49 +262,30 @@ private
     url = "#{protocol}://#{cluster.address_of_a_ready_cloak}:#{port}"
   end
 
-  def task_spec(table_name)
+  def table_stats_task_spec(table)
+    code = <<-EOF
+      report_property('num_users')
+
+      -- Manually count by going through each row. This should prevent
+      -- loading the whole table in memory at once.
+      local count = 0
+      for row in user_table('#{table.table_name}') do
+        count = count + 1
+      end
+
+      Aircloak.Aggregation.fast_accumulate_property('num_rows', count)
+    EOF
+
     {
-      prefetch: [{table: table_name}],
-      post_processing: {
-        code:
-          <<-EOF
-            -- Manually count by going through each row. This should prevent
-            -- loading the whole table in memory at once.
-            local count = 0
-            for row in user_table('#{table_name}') do
-              count = count + 1
-            end
-
-            -- We'll report a CDF-ed count with adaptive quantization step.
-            -- The bigger the value, the bigger the quantization step.
-            -- This prevents too many buckets, but also reduces the noise
-            -- factor, since smaller counts are more refined.
-
-            -- We start with a step which is the same order of magnitude as
-            -- the count. For example, if the count is a four digit number the
-            -- initial step is 1000.
-            local step = math.max(1, math.pow(10, math.floor(math.log10(count))))
-
-            repeat
-              -- Report buckets as average quantized value. For example, if the
-              -- count is 58, the step is 10, and we report 55 (average between
-              -- 50 and 60), 45, 35, ...
-              -- This allows us to avoid sending ranges back, and simplifies the
-              -- final post-processing phase.
-              count = math.floor(math.floor(count/step)*step + step/2)
-              while count >= step do
-                report_property('num_rows', count)
-                count = count - step
-              end
-
-              -- We CDF-ed this order of magnitude, so we refine the step.
-              -- For example, if the count was 543, we reported 550, 450, 350, 250, 150
-              -- Now we set the count to 99 and step to 10, and repeat.
-              count = step - 1
-              step = step/10
-            until count == 0
-          EOF
-      }
+      prefetch: [{table: table.table_name}],
+      post_processing: TaskCode.post_processing_spec(code, table.cluster)
     }
+  end
+
+  def table_stats_return_url(table)
+    publish_url = Conf.get("/settings/rails/task/publish_url")
+    raise ArgumentError.new("No publish url present") unless publish_url.present?
+    publish_path = "/table_stats/backend/#{table.analyst.id}/#{table.id}"
+    Base64.strict_encode64(publish_url + publish_path)
   end
 end

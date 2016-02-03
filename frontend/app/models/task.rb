@@ -95,7 +95,7 @@ class Task < ActiveRecord::Base
         headers,
         {
           prefetch: JSON.parse(prefetch),
-          post_processing: post_processing_spec
+          post_processing: TaskCode.post_processing_spec(self.code, self.cluster)
         }.to_json
       )
       if response["success"] == true then
@@ -228,7 +228,7 @@ private
             user_expire_interval: nilify(user_expire_interval),
             period: nilify(period) {JSON.parse(period)},
             prefetch: JSON.parse(prefetch),
-            post_processing: post_processing_spec
+            post_processing: TaskCode.post_processing_spec(self.code, self.cluster)
           }.
             select {|key, value| !value.nil?}.
             to_json
@@ -265,18 +265,6 @@ private
 
     unless response["success"] == true or response["code"] == 404 then # unless true or task not present
       raise RemoveError.new("Failed removing task #{name} from the cluster.")
-    end
-  end
-
-  def post_processing_spec
-    if cluster.capable_of? :lua_library_support then
-      {code: code, libraries: TaskCode.dependencies(code)}
-    else
-      code_parts = TaskCode.dependencies(code).inject([]) do |memo, library|
-        memo.push(library[:code])
-      end
-      code_parts.push(code)
-      {code: code_parts.join("\n")}
     end
   end
 end

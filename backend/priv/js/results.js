@@ -39,7 +39,11 @@ function insert_buckets(result, newBuckets)
 function process_result(JSONResult)
 {
   var result = JSON.parse(JSONResult);
+  do_process_result(result);
+  return JSON.stringify(result);
+}
 
+function do_process_result(result) {
   // sort buckets
   bucketComparator = function(bucket1, bucket2)
   {
@@ -62,6 +66,27 @@ function process_result(JSONResult)
   extract_aircloak_buckets(result)
   aggregate_accumulator_buckets(result);
   aggregate_quantized_buckets(result);
+}
 
-  return JSON.stringify(result);
+function process_stats(JSONResult)
+{
+  var result = JSON.parse(JSONResult), num_rows = 0, num_users = 0;
+
+  // There were errors, so report failure
+  if (result.exceptions.length > 0)
+    return JSON.stringify({success: false, exceptions: result.exceptions});
+
+  // Run standard task postprocessing to handle special columns
+  do_process_result(result);
+
+  // Extract data and return
+  num_users_buckets = extract_buckets(result, "num_users");
+  if (num_users_buckets.length == 1)
+    num_users = num_users_buckets[0].count;
+
+  num_rows_buckets = extract_buckets(result, "num_rows");
+  if (num_rows_buckets.length == 1)
+    num_rows = num_rows_buckets[0].count;
+
+  return JSON.stringify({success: true, num_rows: num_rows, num_users: num_users});
 }

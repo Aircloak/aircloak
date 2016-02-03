@@ -2,17 +2,21 @@
 %%      This calculation is implemented as a globally registered gen_server
 %%      with key being `{Analyst, TableId}'. This prevents multiple parallel
 %%      stats calculations for the same table.
+%%
+%%      The statistics are calculated by running an async task on the cloak.
+%%      This process registers on airpub and waits for the task results. Then
+%%      it shapes the final result and pushes it via airpub to connected clients.
 -module(table_stats_calculator).
 -behaviour(gen_server).
 
 %% Internal API
 -export([
-  run/4
+  run/1
 ]).
 
 %% Internal API
 -export([
-  start_link/5
+  start_link/6
 ]).
 
 %% Callbacks
@@ -33,7 +37,8 @@
   table_id :: integer(),
   cloak_url :: binary(),
   task_spec :: binary(),
-  runner_mref :: undefined | reference()
+  return_url :: binary(),
+  started_at = os:timestamp() :: erlang:timestamp()
 }).
 
 -define(PROGRESS_NOTIFICATION_INTERVAL, timer:seconds(10)).
@@ -44,13 +49,18 @@
 %% -------------------------------------------------------------------
 
 %% @doc Starts the calculation concurrently.
--spec run(integer(), integer(), binary(), binary()) -> ok | already_running.
-run(Analyst, TableId, CloakUrl, TaskSpec) ->
-  Pid = global_service:get_or_create(
+-spec run({struct, [{binary(), any()}]}) -> ok.
+run(Arguments) ->
+  Analyst = ej:get({"analyst"}, Arguments),
+  TableId = ej:get({"table_id"}, Arguments),
+  CloakUrl = ej:get({"cloak_url"}, Arguments),
+  TaskSpec = ej:get({"task_spec"}, Arguments),
+  ReturnUrl = ej:get({"return_url"}, Arguments),
+  global_service:get_or_create(
         {?MODULE, Analyst, TableId},
-        {?MODULE, start_link, [Analyst, TableId, CloakUrl, TaskSpec]}
+        {?MODULE, start_link, [Analyst, TableId, CloakUrl, TaskSpec, ReturnUrl]}
       ),
-  gen_server:call(Pid, run).
+  ok.
 
 
 %% -------------------------------------------------------------------
@@ -58,11 +68,11 @@ run(Analyst, TableId, CloakUrl, TaskSpec) ->
 %% -------------------------------------------------------------------
 
 %% @hidden
-start_link(GlobalServiceKey, Analyst, TableId, CloakUrl, TaskSpec) ->
+start_link(GlobalServiceKey, Analyst, TableId, CloakUrl, TaskSpec, ReturnUrl) ->
   gen_server:start_link(
         {via, global_service, GlobalServiceKey},
         ?MODULE,
-        #state{analyst=Analyst, table_id=TableId, cloak_url=CloakUrl, task_spec=TaskSpec},
+        {Analyst, TableId, CloakUrl, TaskSpec, ReturnUrl},
         []
       ).
 
@@ -72,25 +82,13 @@ start_link(GlobalServiceKey, Analyst, TableId, CloakUrl, TaskSpec) ->
 %% -------------------------------------------------------------------
 
 %% @hidden
-init(Params) ->
-  {ok, Params}.
+init({Analyst, TableId, CloakUrl, TaskSpec, ReturnUrl}) ->
+  % Start the task later, so we don't block the supervisor
+  self() ! start_task,
+  {ok, #state{analyst=Analyst, table_id=TableId, cloak_url=CloakUrl, task_spec=TaskSpec, return_url=ReturnUrl}}.
 
 %% @hidden
-handle_call(run, _From, #state{runner_mref=undefined} = State) ->
-  {_Pid, MRef} = erlang:spawn_monitor(
-        fun() ->
-          compute_stats(
-              State#state.analyst,
-              State#state.table_id,
-              State#state.cloak_url,
-              State#state.task_spec
-            )
-        end
-      ),
-  publish_to_airpub(State#state.analyst, State#state.table_id, [{type, <<"calculating">>}]),
-  {reply, ok, State#state{runner_mref=MRef}, ?PROGRESS_NOTIFICATION_INTERVAL};
-handle_call(run, _From, State) ->
-  {reply, already_running, State, ?PROGRESS_NOTIFICATION_INTERVAL};
+-spec handle_call(any(), any(), any()) -> no_return().
 handle_call(Message, From, _State) ->
   throw({unexpected_call, Message, from, From, to, ?MODULE}).
 
@@ -100,29 +98,32 @@ handle_cast(Message, _State) ->
   throw({unexpected_cast, Message, to, ?MODULE}).
 
 %% @hidden
-handle_info({'DOWN', MRef, process, _Pid, Reason}, #state{runner_mref=MRef} = State) ->
-  case Reason of
-    normal -> ok;
-    _Other ->
-      publish_to_airpub(State#state.analyst, State#state.table_id, [{type, <<"error">>}]),
-      air_db:call(
-            fun(Conn) ->
-              sql_conn:extended_query(
-                    [
-                      "UPDATE user_table_stats SET success=false ",
-                      "WHERE id = (SELECT max(id) FROM user_table_stats WHERE user_table_id=$1)"
-                    ],
-                    [State#state.table_id],
-                    Conn
-                  )
-            end
-          )
-  end,
-  {stop, Reason, State};
+handle_info(start_task, State) ->
+  notify_calculating(State),
+  router:add_subscriber(airpub_path("/table_stats/backend/~p/~p", [State#state.analyst, State#state.table_id])),
+  case start_task(State) of
+    ok ->
+      % Task execution timeout is set to 30 minutes. Hopefully this should be long enough to fetch statistics
+      % even for larger tables.
+      erlang:send_after(timer:minutes(30), self(), task_timeout),
+      {noreply, State, ?PROGRESS_NOTIFICATION_INTERVAL};
+    error ->
+      notify_and_store_error(State),
+      {stop, normal, State}
+  end;
+handle_info({notify, Article}, State) ->
+  handle_task_result(mochijson2:decode(post_processor:unpack_content(Article)), State),
+  {stop, normal, State};
+handle_info(task_timeout, State) ->
+  % Task timed out
+  notify_and_store_error(State),
+  {stop, normal, State};
 handle_info(timeout, State) ->
-  publish_to_airpub(State#state.analyst, State#state.table_id, [{type, <<"calculating">>}]),
+  % Regular heartbeat messages so we can notify clients we're processing
+  notify_calculating(State),
   {noreply, State, ?PROGRESS_NOTIFICATION_INTERVAL};
-handle_info(_, State) -> {noreply, State, ?PROGRESS_NOTIFICATION_INTERVAL}.
+handle_info(_, State) ->
+  {noreply, State, ?PROGRESS_NOTIFICATION_INTERVAL}.
 
 %% @hidden
 terminate(_Reason, _State) ->
@@ -136,140 +137,97 @@ code_change(_, State, _) -> {ok, State}.
 %% Internal functions
 %% -------------------------------------------------------------------
 
-compute_stats(Analyst, TableId, CloakUrl, TaskSpec) ->
-  StartedAt = os:timestamp(),
-  {ok, TaskResponse} = run_task(Analyst, CloakUrl, TaskSpec),
-  {{Year, Month, Day}, {Hour, Minute, _Sec}} = cloak_util:timestamp_to_datetime(StartedAt),
-  TableStats = [
-    {created_at, iolist_to_binary(io_lib:format(
-          "~B/~2.10.0B/~2.10.0B ~2.10.0B:~2.10.0B",
-          [Year, Month, Day, Hour, Minute]
-        ))} |
-    table_stats(TaskResponse)
-  ],
-  publish_to_airpub(Analyst, TableId, [{type, <<"table_stats">>}, {data, TableStats}]),
+airpub_path(Format, Args) ->
+  binary_to_list(iolist_to_binary(io_lib:format(Format, Args))).
+
+notify_calculating(State) ->
+  publish_to_airpub(State#state.analyst, State#state.table_id, [{type, <<"calculating">>}]).
+
+publish_to_airpub(Analyst, TableId, Content) ->
+  airpub_leader:publish(#article{
+        path=airpub_path("/table_stats/~p/~p", [Analyst, TableId]),
+        content=iolist_to_binary(mochijson2:encode(Content)),
+        published_at=os:timestamp()
+      }).
+
+start_task(State) ->
+  TaskId = iolist_to_binary(io_lib:format("ac_table_state-~p-~p", [State#state.analyst, State#state.table_id])),
+  case hackney:request(
+        post,
+        iolist_to_binary([State#state.cloak_url, "/task/run"]),
+        [
+          {"async_query", "true"},
+          {"task_id", TaskId},
+          {"auth_token", base64:encode(crypto:rand_bytes(100))},
+          {"return_url", State#state.return_url},
+          {"analyst", integer_to_binary(State#state.analyst)}
+        ],
+        mochijson2:encode(State#state.task_spec),
+        [
+          {connect_timeout, timer:seconds(10)},
+          {recv_timeout, timer:seconds(30)}
+        ]
+      ) of
+    {ok, 200, _Headers, _ClientRef} -> ok;
+    Error ->
+      ?ERROR("Error running the task on cloak ~p", [Error]),
+      error
+  end.
+
+handle_task_result(Data, State) ->
+  case ej:get({"success"}, Data) of
+    true ->
+      notify_and_store_success(Data, State);
+    false ->
+      ?ERROR("Error computing table stats: ~p", [ej:get({"exceptions"}, Data)]),
+      notify_and_store_error(State)
+  end.
+
+notify_and_store_success(Data, State) ->
+  {{Year, Month, Day}, {Hour, Minute, _Sec}} = cloak_util:timestamp_to_datetime(State#state.started_at),
+  CreatedAtString = iolist_to_binary(io_lib:format("~B/~2.10.0B/~2.10.0B ~2.10.0B:~2.10.0B",
+      [Year, Month, Day, Hour, Minute])),
+  publish_to_airpub(State#state.analyst, State#state.table_id, [
+        {type, <<"table_stats">>},
+        {data, [
+          {created_at, CreatedAtString},
+          {num_users, ej:get({"num_users"}, Data)},
+          {num_rows, ej:get({"num_rows"}, Data)}
+        ]}
+      ]),
   air_db:call(fun(Conn) ->
         {{insert,0,1}, [{RowId}]} = sql_conn:extended_query(
               [
-                "INSERT INTO user_table_stats(user_table_id, num_users, num_rows, success, created_at, updated_at)",
-                " VALUES($1, $2, $3, true, $4, $4) RETURNING id"
+                "INSERT INTO ",
+                "user_table_stats(user_table_id, num_users, num_rows, success, created_at, updated_at) ",
+                "VALUES($1, $2, $3, true, $4, $4) RETURNING id"
               ],
               [
-                TableId,
-                proplists:get_value(num_users, TableStats, 0),
-                proplists:get_value(num_rows, TableStats, 0),
-                cloak_util:timestamp_to_datetime(StartedAt)
+                State#state.table_id,
+                ej:get({"num_users"}, Data),
+                ej:get({"num_rows"}, Data),
+                cloak_util:timestamp_to_datetime(State#state.started_at)
               ],
               Conn
             ),
         {{delete, _}, []} = sql_conn:extended_query(
               "DELETE FROM user_table_stats WHERE user_table_id=$1 and id < $2",
-              [TableId, RowId],
+              [State#state.table_id, RowId],
               Conn
             )
       end).
 
-run_task(Analyst, CloakUrl, TaskSpec) ->
-  Res = hackney:request(
-        post,
-        iolist_to_binary([CloakUrl, "/task/run"]),
-        [
-          {"async_query", "false"},
-          {"analyst", integer_to_binary(Analyst)}
-        ],
-        mochijson2:encode(TaskSpec),
-        [
-          {connect_timeout, timer:seconds(10)},
-          {recv_timeout, timer:minutes(10)}
-        ]
-      ),
-  case Res of
-    {ok, 200, _Headers, ClientRef} ->
-      {ok, Body} = hackney:body(ClientRef),
-      {ok, mochijson2:decode(Body)};
-    Error ->
-      ?ERROR("Error fetching data from cloak ~p", [Error]),
-      error
-  end.
-
-table_stats(TaskResponse) ->
-  Buckets = ej:get({"buckets", {select, {"label", "num_rows"}}}, TaskResponse),
-  SortedRowCounts = lists:sort([
-    {
-      binary_to_integer(proplists:get_value(<<"value">>, Bucket)),
-      proplists:get_value(<<"count">>, Bucket)
-    } || {struct, Bucket} <- Buckets
-  ]),
-  [
-    {num_users, num_users(SortedRowCounts)},
-    {num_rows, estimated_num_rows(SortedRowCounts)}
-  ].
-
-num_users([]) ->
-  % No buckets -> user count is 0 (or small enough)
-  0;
-num_users(RowCounts) ->
-  lists:max([Count || {_Value, Count} <- RowCounts]).
-
-estimated_num_rows(SortedRowCounts) ->
-  % Sum weighted counts to get the total row count. We must keep in mind
-  % that buckets are in CDF style, so we need to account the difference
-  % of counts between two adjacent columns to get the correct result.
-  %
-  % For example, let's say we have:
-  %   20 users with at least 1 row
-  %   15 users with at least 2 rows
-  %    7 users with at least 3 rows
-  %
-  % Then, the total count is computed as:
-  %     7 * 3 + (15 - 7) * 2 + (20 - 15) * 1
-  {EstimatedRowCount, _} = lists:foldr(
-        fun({Count, NumRows}, {TotalAcc, PreviousBucketCount}) ->
-          {
-            TotalAcc + max(NumRows - PreviousBucketCount, 0) * Count,
-            NumRows
-          }
-        end,
-        {0, 0},
-        SortedRowCounts
-      ),
-  EstimatedRowCount.
-
-publish_to_airpub(Analyst, TableId, Content) ->
-  airpub_leader:publish(#article{
-        path=binary_to_list(iolist_to_binary(io_lib:format("/table_stats/~p/~p", [Analyst, TableId]))),
-        content=iolist_to_binary(mochijson2:encode(Content)),
-        published_at=os:timestamp()
-      }).
-
-
-%% -------------------------------------------------------------------
-%% Tests
-%% -------------------------------------------------------------------
-
--ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
-
-num_users_test_() ->
-  [
-    ?_assertEqual(0, num_users([])),
-    ?_assertEqual(10, num_users([{1, 10}])),
-    ?_assertEqual(10, num_users([{1, 10}, {2, 5}])),
-    ?_assertEqual(15, num_users([{1, 10}, {2, 15}]))
-  ].
-
-estimated_num_rows_test_() ->
-  [
-    ?_assertEqual(0, estimated_num_rows([])),
-    ?_assertEqual(10, estimated_num_rows([{1, 10}])),
-    % 2*4 + 1*(10 - 4)
-    ?_assertEqual(14, estimated_num_rows([{1, 10}, {2, 4}])),
-    % All 1-rows users are also 2-rows users
-    ?_assertEqual(20, estimated_num_rows([{1, 10}, {2, 10}])),
-    % There are more 2-rows users than 1-row users (possible because of anonymization)
-    ?_assertEqual(20, estimated_num_rows([{1, 5}, {2, 10}])),
-    % 4*1 + 3*(5-1) + 2*(5-5) + 1*(10-5)
-    ?_assertEqual(21, estimated_num_rows([{1, 10}, {2, 5}, {3, 5}, {4, 1}]))
-  ].
-
--endif.
+notify_and_store_error(State) ->
+  publish_to_airpub(State#state.analyst, State#state.table_id, [{type, <<"error">>}]),
+  air_db:call(
+        fun(Conn) ->
+          sql_conn:extended_query(
+                [
+                  "UPDATE user_table_stats SET success=false ",
+                  "WHERE id = (SELECT max(id) FROM user_table_stats WHERE user_table_id=$1)"
+                ],
+                [State#state.table_id],
+                Conn
+              )
+        end
+      ).
