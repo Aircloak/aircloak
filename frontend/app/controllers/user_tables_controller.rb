@@ -188,6 +188,8 @@ class UserTablesController < ApplicationController
           task_spec: table_stats_task_spec(@table),
           return_url: table_stats_return_url(@table)
         )
+
+    describe_activity "Requested table statistics for the table '#{@table.table_name}'"
   end
 
 private
