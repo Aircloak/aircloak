@@ -22,4 +22,7 @@ $ ->
           " content_encoding=" + object.content_encoding + " published_at=" + published_at.toLocaleString()
       log "Content: '" + object.content + "'"
 
-  window.ws = airpub_listen $('.params').data('path'), airpub_callback
+  window.ws = airpub_listen(
+        {resource_type: 'path', path: $('.params').data('path')},
+        airpub_callback
+      )

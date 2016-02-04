@@ -1,6 +1,6 @@
 //= require pako_inflate.min
 
-window.airpub_listen = (requestPath, callback) ->
+window.airpub_listen = (requestParams, callback) ->
   unless "WebSocket" of window
     alert "This browser does not support WebSockets"
     return null
@@ -88,8 +88,12 @@ window.airpub_listen = (requestPath, callback) ->
     response = $.ajax(
       type: "POST",
       url: "/airpub/request_parameters",
-      data: {path: requestPath},
-      error: () -> setTimeout(connect, 1000)
+      data: requestParams,
+      error: (result) ->
+        # We retry except for 404 which is explicit denial by the server, presumably
+        # because the analyst doesn't have permissions. Retrying in this case won't help,
+        # so we just stop trying.
+        setTimeout(connect, 1000) unless result.status == 404
       success: (connectData) ->
         console.log "Connecting to " + connectData.server
         request = connectData.request

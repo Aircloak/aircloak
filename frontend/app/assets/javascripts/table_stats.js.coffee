@@ -1,5 +1,5 @@
 # Setup the global namespace
-window.TableStats = (statsPublishPath, table_stats) ->
+window.TableStats = (table_id, table_stats) ->
   self = this
 
   # ------------------------------------
@@ -64,6 +64,6 @@ window.TableStats = (statsPublishPath, table_stats) ->
       "click #refresh_table_stats": refreshTableStats
   })
 
-  airpub_listen(statsPublishPath, onStatsPublished)
+  airpub_listen({resource_type: "table_stats", table_id: table_id}, onStatsPublished)
 
   _.extend(self, {})

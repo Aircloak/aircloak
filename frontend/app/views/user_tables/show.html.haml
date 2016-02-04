@@ -26,7 +26,7 @@
 = content_for :javascript do
   :coffeescript
     $(document).ready ->
-      new TableStats("/table_stats/#{@table.analyst.id}/#{@table.id}", #{table_stats.to_json})
+      new TableStats(#{@table.id.to_json}, #{table_stats.to_json})
       table_data = JSON.parse '#{@table_data}'
       window.setupNonEditableView()
       window.columns.setup

@@ -86,4 +86,7 @@ $ ->
       result = convertArticleToResult object.published_at, object.content
       Results.display result
 
-  Results.ws = airpub_listen $('.listen_params').data('results-publish-path'), airpubCallback
+  Results.ws = airpub_listen(
+        {resource_type: "task_results", task_token: $('.listen_params').data('task-token')},
+        airpubCallback
+      )
