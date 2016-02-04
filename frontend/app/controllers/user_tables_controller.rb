@@ -152,7 +152,7 @@ class UserTablesController < ApplicationController
     end
   rescue Exception
     describe_failed_activity "Re-attempted applying a migration that previously failed. It failed again."
-    flash[:error] = "Creating or changing the database table still did not work.. This might be a temporary issue. If the problem continues, please contact support."
+    flash[:error] = "Creating or changing the database table still did not work. If the problem continues, please contact support."
     redirect_to user_tables_path
   end
 
