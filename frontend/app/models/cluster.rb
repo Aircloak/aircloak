@@ -15,10 +15,6 @@ class Cluster < ActiveRecord::Base
   has_many :capability_clusters
   has_many :capabilities, through: :capability_clusters
 
-  has_many :repeated_answers
-  has_many :ra_task_code_clusters, dependent: :destroy
-  has_many :ra_task_codes, through: :ra_task_code_clusters
-
   validates :name, presence: true, uniqueness: true
   validates_presence_of :build
   validate :must_have_at_least_one_cloak
