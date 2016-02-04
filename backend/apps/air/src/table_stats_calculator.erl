@@ -211,7 +211,7 @@ notify_and_store_success(Data, State) ->
               Conn
             ),
         {{delete, _}, []} = sql_conn:extended_query(
-              "DELETE FROM user_table_stats WHERE user_table_id=$1 and id < $2",
+              "DELETE FROM user_table_stats WHERE user_table_id=$1 and id <> $2",
               [State#state.table_id, RowId],
               Conn
             )
