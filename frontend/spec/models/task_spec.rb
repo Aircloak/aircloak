@@ -117,7 +117,6 @@ describe Task do
     task = create_task
     JsonSender.should_receive(:request).and_return({success: true})
     add_ready_cloak(task.cluster)
-    task.cluster.should_receive(:capable_of?).and_return(true)
     task.save_and_synchronize!
     task.execute_batch_task
   end

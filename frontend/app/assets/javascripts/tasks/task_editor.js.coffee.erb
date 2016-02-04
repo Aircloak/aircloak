@@ -246,7 +246,6 @@ Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
   openFilterEditor = (tableFilter) ->
     editor = new Tasks.FilterEditor
       tableFilter: tableFilter
-      columnSelection: selectedClusterCapableOf("column_selection")
       onSaved: render
     editor.render()
 
