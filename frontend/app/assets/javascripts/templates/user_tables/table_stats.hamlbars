@@ -18,3 +18,4 @@
   = hb "else"
   %a{href: hb("refresh_link"), class: "btn btn-mini", id: "refresh_table_stats"}
     calculate table statistics
+  #stats_message
