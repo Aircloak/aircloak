@@ -63,9 +63,25 @@ function do_process_result(result) {
   result.post_processed = {};
   result.post_processed.aircloak = {};
 
-  extract_aircloak_buckets(result)
-  aggregate_accumulator_buckets(result);
-  aggregate_quantized_buckets(result);
+  try
+  {
+    extract_aircloak_buckets(result)
+    aggregate_accumulator_buckets(result);
+    aggregate_quantized_buckets(result);
+  }
+  catch(error)
+  {
+    if (typeof error === "string")
+    {
+      result.exceptions.push({error: "result post-processing failed; please contact technical support", count: 1});
+      result.exceptions.push({error: "post-processor: " + error, count: 1});
+    }
+    else
+    {
+      //unknown exception, propagate it upwards
+      throw error;
+    }
+  }
 }
 
 function process_stats(JSONResult)

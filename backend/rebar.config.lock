@@ -17,7 +17,7 @@
                      "42bd13a9e4588590cb4736513be1c8673b9ba46b"}},
        {cloak,".*",
                  {git,"git@github.com:Aircloak/cloak-core.git",
-                      "ca5d3a64b9f1a8477d44316c6348ea40f21e1e3c"}},
+                      "dcd6c9ab7530f661ad803222911428c8d05269c6"}},
        {goldrush,".*",
                  {git,"git://github.com/DeadZen/goldrush.git",
                       "71e63212f12c25827e0c1b4198d37d5d018a7fec"}},

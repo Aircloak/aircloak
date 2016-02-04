@@ -22,6 +22,12 @@
       = " (#{@cloak.cluster_cloak.state})"
   - else
     %b available
+%p
+  %b Comment:
+  - if @cloak.comment == ""
+    No comment
+  - else
+    = @cloak.comment
 
 = link_to 'Cloaks overview', cloaks_path
 \|
