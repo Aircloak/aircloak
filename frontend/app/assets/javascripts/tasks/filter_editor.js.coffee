@@ -29,7 +29,6 @@ Tasks.FilterEditor = (inOptions) ->
           minLimit: minLimit,
           userRows: userRows,
           columns: selectedColumns,
-          columnSelection: options.columnSelection,
           filter: filter,
           operators: _.keys(Tasks.Operators),
           newTemplate: {}
@@ -112,9 +111,8 @@ Tasks.FilterEditor = (inOptions) ->
     userRows = Math.max(parseInt($("#userRows").val()), 1) || null
     minLimit = Math.max(parseInt($("#minLimit").val()), 1) || null
 
-    if options.columnSelection
-      columns = $('#columns').val()
-      columns = [] if columns.length == options.tableFilter.table().columns.length
+    columns = $('#columns').val()
+    columns = [] if columns.length == options.tableFilter.table().columns.length
 
     filter.clear()
     _.each(

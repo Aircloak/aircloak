@@ -35,7 +35,7 @@
       - else
         %input#table_name.disabled{type: :text, value: @table.table_name, disabled: true}
 
-  #row_expiry_ui.control-group{:style => "display:none"}
+  #row_expiry_ui.control-group
     = control_label "Row expiry", tooltip: "row_expiry"
     .controls
       %div
@@ -48,12 +48,10 @@
     = control_label "In cluster", tooltip: "in_cluster"
     .controls
       - if @creating_new_table
-        = select_tag :cluster_id, options_for_select(current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id,
-                {'data-text-type-capability' => cluster.capable_of?(:postgres_text_column_support),
-                'data-user-row-expiry-capability' => cluster.capable_of?(:user_row_expiry)}]},
+        = select_tag :cluster_id, options_for_select(current_user.ready_clusters.map {|cluster| [cluster.name, cluster.id]},
                 @table.cluster ? @table.cluster.id : '')
       - else
-        %input#cluster_id.disabled{type: :text, value: @table.cluster.name, disabled: true, data: {text_type_capability: "#{@table.cluster.capable_of?(:postgres_text_column_support)}", user_row_expiry_capability: "#{@table.cluster.capable_of?(:user_row_expiry)}"}}
+        %input#cluster_id.disabled{type: :text, value: @table.cluster.name, disabled: true}
 
   %textarea#table_json.hidden{name: :table_json}
   %textarea#migration.hidden{name: :migration}

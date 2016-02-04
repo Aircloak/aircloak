@@ -95,7 +95,7 @@ class Task < ActiveRecord::Base
         headers,
         {
           prefetch: JSON.parse(prefetch),
-          post_processing: TaskCode.post_processing_spec(self.code, self.cluster)
+          post_processing: TaskCode.post_processing_spec(self.code)
         }.to_json
       )
       if response["success"] == true then
@@ -228,7 +228,7 @@ private
             user_expire_interval: nilify(user_expire_interval),
             period: nilify(period) {JSON.parse(period)},
             prefetch: JSON.parse(prefetch),
-            post_processing: TaskCode.post_processing_spec(self.code, self.cluster)
+            post_processing: TaskCode.post_processing_spec(self.code)
           }.
             select {|key, value| !value.nil?}.
             to_json

@@ -9,16 +9,8 @@ class TaskCode
     end
   end
 
-  def self.post_processing_spec(code, cluster)
-    if cluster.capable_of? :lua_library_support then
-      {code: code, libraries: dependencies(code)}
-    else
-      code_parts = dependencies(code).inject([]) do |memo, library|
-        memo.push(library[:code])
-      end
-      code_parts.push(code)
-      {code: code_parts.join("\n")}
-    end
+  def self.post_processing_spec(code)
+    {code: code, libraries: TaskCode.dependencies(code)}
   end
 
 private
