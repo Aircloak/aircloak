@@ -13,7 +13,7 @@ window.TableStats = (statsPublishPath, table_stats) ->
 
     if table_stats.calculating
       $("#refresh_table_stats").addClass("disabled")
-      $("#refresh_table_stats").text("calculating statistics")
+      $("#refresh_table_stats").text("Calculating statistics")
     else
       if table_stats.success == true
         $("#stats_message").removeClass("error-text").html("")

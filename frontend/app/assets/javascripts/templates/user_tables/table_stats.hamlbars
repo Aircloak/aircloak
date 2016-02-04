@@ -3,7 +3,7 @@
     %b
       Table statistics (#{hb "created_at"} UTC)
     %a{href: hb("refresh_link"), class: "btn btn-mini", id: "refresh_table_stats"}
-      refresh
+      Refresh
 
   #stats_message
 
@@ -17,5 +17,5 @@
       = hb "num_rows"
   = hb "else"
   %a{href: hb("refresh_link"), class: "btn btn-mini", id: "refresh_table_stats"}
-    calculate table statistics
+    Calculate table statistics
   #stats_message
