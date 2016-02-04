@@ -30,11 +30,6 @@ class Cluster < ActiveRecord::Base
   after_destroy :remove_state
   after_create :log_creation
 
-  # Only add the task code if it does not already belongs to the cluster.
-  def add_task_code code
-    ra_task_codes << code unless RaTaskCodeCluster.where(cluster: self, ra_task_code: code).count > 0
-  end
-
   def tpm
     raise "Cluster has no cloaks. Unsure if TPM cluster or not" unless cloaks.size > 0
     @has_tpm ||= cloaks.first.tpm
