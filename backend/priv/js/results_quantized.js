@@ -93,6 +93,13 @@ function aggregate_data_values(dataBuckets, name, total)
       cdfs[number_to_key(value)] = bucket.count;
     }
   }
+
+  if (in_range == -1) // if the parameters bucket was not reported it means we have nothing to aggregate
+  {
+    var countBucket = {label: name, value: "values in range", count: 0};
+    return {buckets: [countBucket], histogram: null};
+  }
+
   if (min >= max) throw "invalid data values (min >= max)";
   step = Math.min(max - min, step);
 
@@ -194,7 +201,8 @@ function aggregate_quantized_bucket(result, quantizedBucket)
   var data = extract_buckets(result, name);
   var aggregatedData = aggregate_data_values(data, name, total);
   insert_buckets(result, aggregatedData.buckets);
-  result.post_processed.histograms.push(aggregatedData.histogram);
+  if (aggregatedData.histogram)
+    result.post_processed.histograms.push(aggregatedData.histogram);
 }
 
 // this function will remove the quantized buckets from the result and replace them with the computed aggregated buckets
