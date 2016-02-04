@@ -1,9 +1,13 @@
 //= require pako_inflate.min
 
-window.airpub_listen = (server, request, callback) ->
+window.airpub_listen = (requestPath, callback) ->
   unless "WebSocket" of window
     alert "This browser does not support WebSockets"
     return null
+
+  ws = null
+  request = null
+  connect = null
 
   # Code from: http://snipplr.com/view/31206/
   readUTF8String = (bytes) ->
@@ -36,10 +40,8 @@ window.airpub_listen = (server, request, callback) ->
       ix++
     string
 
-  console.log "Connecting to " + server
-  ws = new WebSocket(server)
 
-  ws.onopen = () ->
+  onSocketOpen = () ->
     console.log 'Connected. Sending request: ' + request
     callback
       type : "event"
@@ -47,7 +49,7 @@ window.airpub_listen = (server, request, callback) ->
     ws.binaryType = "arraybuffer"
     ws.send request
 
-  ws.onmessage = (event) ->
+  onSocketMessage = (event) ->
     if typeof event.data is "string"
       # parse object header
       @object = {}
@@ -68,18 +70,35 @@ window.airpub_listen = (server, request, callback) ->
       object.content = readUTF8String(content)
       callback object
 
-  ws.onclose = (event) ->
+  onSocketClose = (event) ->
     console.log 'Connection closed!'
     callback
       type : "event"
       event_type : "closed"
     # Reconnect on close
-    setTimeout((() -> airpub_listen(server, request, callback)), 1000)
+    setTimeout(connect, 1000)
 
-  ws.onerror = (event) ->
+  onSocketError = (event) ->
     console.log "Connection error: " + event.reason
     callback
       type : "event"
       event_type : "error"
 
-  return ws
+  connect = () ->
+    response = $.ajax(
+      type: "POST",
+      url: "/airpub/request_parameters",
+      data: {path: requestPath},
+      error: () -> setTimeout(connect, 1000)
+      success: (connectData) ->
+        console.log "Connecting to " + connectData.server
+        request = connectData.request
+
+        ws = new WebSocket(connectData.server)
+        ws.onopen = onSocketOpen
+        ws.onclose = onSocketClose
+        ws.onmessage = onSocketMessage
+        ws.onerror = onSocketError
+    )
+
+  connect()

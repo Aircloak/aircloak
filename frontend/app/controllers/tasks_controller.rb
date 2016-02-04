@@ -209,8 +209,7 @@ class TasksController < ApplicationController
       # convert to json, 4 MB limit for buckets
       @results = convert_results_for_client_side_rendering @raw_results, 4 * 1024 * 1024
     end
-    @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.token}"
-    @server_url = Conf.get("/service/airpub/subscribe_endpoint")
+    @results_publish_path = "/results/#{@task.analyst.id}/#{@task.token}"
     @task_token = @task.token
     describe_activity "Requested latest results of task #{@task.name}", latest_results_task_path(@task.token)
   end

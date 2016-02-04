@@ -5,8 +5,6 @@
 = content_for(:javascript_include) {javascript_include_tag "table_stats", "data-turbolinks-track" => true}
 
 :ruby
-  request = AirpubApi.generate_subscribe_request "/table_stats/#{@table.analyst.id}/#{@table.id}"
-  server_url = Conf.get("/service/airpub/subscribe_endpoint")
   last_computed_stats = @table.user_table_stats.last
   table_stats = if last_computed_stats
     {
@@ -27,7 +25,7 @@
 = content_for :javascript do
   :coffeescript
     $(document).ready ->
-      new TableStats(#{server_url.to_json}, #{request.to_json}, #{table_stats.to_json})
+      new TableStats("/table_stats/#{@table.analyst.id}/#{@table.id}", #{table_stats.to_json})
       table_data = JSON.parse '#{@table_data}'
       window.setupNonEditableView()
       window.columns.setup

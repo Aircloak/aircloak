@@ -10,7 +10,13 @@ class AirpubController < ApplicationController
 
   def subscribe
     @path = params['path']
+  end
+
+  def request_parameters
+    @path = params['path']
     @request = AirpubApi.generate_subscribe_request @path
     @server_url = Conf.get("/service/airpub/subscribe_endpoint")
+
+    render json: {server: @server_url, request: @request}
   end
 end
