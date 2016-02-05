@@ -15,10 +15,6 @@ class Cluster < ActiveRecord::Base
   has_many :capability_clusters
   has_many :capabilities, through: :capability_clusters
 
-  has_many :repeated_answers
-  has_many :ra_task_code_clusters, dependent: :destroy
-  has_many :ra_task_codes, through: :ra_task_code_clusters
-
   validates :name, presence: true, uniqueness: true
   validates_presence_of :build
   validate :must_have_at_least_one_cloak
@@ -29,11 +25,6 @@ class Cluster < ActiveRecord::Base
   before_destroy :verify_can_destroy
   after_destroy :remove_state
   after_create :log_creation
-
-  # Only add the task code if it does not already belongs to the cluster.
-  def add_task_code code
-    ra_task_codes << code unless RaTaskCodeCluster.where(cluster: self, ra_task_code: code).count > 0
-  end
 
   def tpm
     raise "Cluster has no cloaks. Unsure if TPM cluster or not" unless cloaks.size > 0

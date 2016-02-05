@@ -42,8 +42,6 @@ Web::Application.routes.draw do
   resources :test_vms, only: [:show]
   resources :test_items, only: [:show]
   resources :test_item_vms, only: [:show]
-  resources :repeated_answers, only: [:index, :show, :update]
-  resources :ra_task_codes, only: [:update]
   resources :metrics
   get '/airpub', to: 'airpub#index', as: 'airpub'
   post '/airpub', to: 'airpub#subscribe'
