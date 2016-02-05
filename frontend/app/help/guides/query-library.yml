@@ -122,6 +122,7 @@ content: |
   over the entire population in the specified range. The estimated attributes are min, max, median,
   average and standard deviation. When viewing the result individually, a histogram showing the distribution
   will also be displayed. The `params` parameter must be a Lua table specifying the quantization range and step:
-  `min` - begining of range, `max` - end of range, one of `step` or `steps` (default value 100) - the aggregation step.
-  Use a smaller `step` to increase accuracy at the cost of more computing resources.
-  Example: {min = 0, max = 100, steps = 200}
+  `min` - begining of range, `max` - end of range, one of `step` or `steps` - the aggregation step.
+  In case neither `step` or `steps` is specified, the `step` value is auto-generated using the formula:
+  `step = (max - min) / 100`. Use a smaller `step` to increase accuracy at the cost of more computation time
+  being needed. Example: {min = 0, max = 100, steps = 200}
