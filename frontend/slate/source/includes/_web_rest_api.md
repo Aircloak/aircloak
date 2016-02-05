@@ -112,7 +112,6 @@ and tools for generating valid data prefetch statements.
 Additionally the results of task executions can be inspected in the web-interface itself.
 
 The [second API](#execute-a-dynamic-one-off-task) allows you to pass the task definition along with the request itself.
-This is much the same way one would go about directly querying a cloak.
 This low-level approach to querying the system has the
 benefits that you can dynamically create the task definition to suit your needs.
 Results from dynamic one-off tasks are not stored or visible in the web-interface,
@@ -146,8 +145,8 @@ This endpoint allows you to asynchronously run a _batch task_ that has been defi
 If you try to schedule a periodic or streaming task, it will fail. Periodic and streaming tasks are automatically
 scheduled on the cloaks upon creation.
 
-The alternatives to this API are to directly run one-off tasks using the [dynamic one-off task API](#execute-a-dynamic-one-off-task) or the equivalent API on the [cloaks themselves](#task-execution). The benefit this API
-has over the former two is that you are able to develop and test your task using the online sandbox
+The alternatives to this API are to directly run one-off tasks using the [dynamic one-off task API](#execute-a-dynamic-one-off-task). The benefit this API
+has over the former is that you are able to develop and test your task using the online sandbox
 functionality and that you have full access to the Aircloak provided standard library of helper functions.
 
 When using this API, the tasks are executed asynchronously on the cloaks. They are not subject
