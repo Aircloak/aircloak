@@ -11,12 +11,12 @@
 
 %% Internal API
 -export([
-  run/1
+  run/2
 ]).
 
 %% Internal API
 -export([
-  start_link/6
+  start_link/2
 ]).
 
 %% Callbacks
@@ -35,9 +35,7 @@
 -record(state, {
   analyst :: integer(),
   table_id :: integer(),
-  cloak_url :: binary(),
-  task_spec :: binary(),
-  return_url :: binary(),
+  request_headers :: [{string(), string()}],
   started_at = os:timestamp() :: erlang:timestamp()
 }).
 
@@ -49,16 +47,13 @@
 %% -------------------------------------------------------------------
 
 %% @doc Starts the calculation concurrently.
--spec run({struct, [{binary(), any()}]}) -> ok.
-run(Arguments) ->
+-spec run({struct, [{binary(), any()}]}, any()) -> ok.
+run(Arguments, RequestHeaders) ->
   Analyst = ej:get({"analyst"}, Arguments),
   TableId = ej:get({"table_id"}, Arguments),
-  CloakUrl = ej:get({"cloak_url"}, Arguments),
-  TaskSpec = ej:get({"task_spec"}, Arguments),
-  ReturnUrl = ej:get({"return_url"}, Arguments),
   global_service:get_or_create(
         {?MODULE, Analyst, TableId},
-        {?MODULE, start_link, [Analyst, TableId, CloakUrl, TaskSpec, ReturnUrl]}
+        {?MODULE, start_link, [{Analyst, TableId, RequestHeaders}]}
       ),
   ok.
 
@@ -68,11 +63,11 @@ run(Arguments) ->
 %% -------------------------------------------------------------------
 
 %% @hidden
-start_link(GlobalServiceKey, Analyst, TableId, CloakUrl, TaskSpec, ReturnUrl) ->
+start_link(GlobalServiceKey, Arg) ->
   gen_server:start_link(
         {via, global_service, GlobalServiceKey},
         ?MODULE,
-        {Analyst, TableId, CloakUrl, TaskSpec, ReturnUrl},
+        Arg,
         []
       ).
 
@@ -82,10 +77,10 @@ start_link(GlobalServiceKey, Analyst, TableId, CloakUrl, TaskSpec, ReturnUrl) ->
 %% -------------------------------------------------------------------
 
 %% @hidden
-init({Analyst, TableId, CloakUrl, TaskSpec, ReturnUrl}) ->
+init({Analyst, TableId, RequestHeaders}) ->
   % Start the task later, so we don't block the supervisor
   self() ! start_task,
-  {ok, #state{analyst=Analyst, table_id=TableId, cloak_url=CloakUrl, task_spec=TaskSpec, return_url=ReturnUrl}}.
+  {ok, #state{analyst=Analyst, table_id=TableId, request_headers=RequestHeaders}}.
 
 %% @hidden
 -spec handle_call(any(), any(), any()) -> no_return().
@@ -151,18 +146,11 @@ publish_to_airpub(Analyst, TableId, Content) ->
       }).
 
 start_task(State) ->
-  TaskId = iolist_to_binary(io_lib:format("ac_table_state-~p-~p", [State#state.analyst, State#state.table_id])),
-  case hackney:request(
+  case request_proxy:frontend_request(
         post,
-        iolist_to_binary([State#state.cloak_url, "/task/run"]),
-        [
-          {"async_query", "true"},
-          {"task_id", TaskId},
-          {"auth_token", base64:encode(crypto:rand_bytes(100))},
-          {"return_url", State#state.return_url},
-          {"analyst", integer_to_binary(State#state.analyst)}
-        ],
-        mochijson2:encode(State#state.task_spec),
+        iolist_to_binary(io_lib:format("user_tables/~p/run_stats_task", [State#state.table_id])),
+        State#state.request_headers,
+        [],
         [
           {connect_timeout, timer:seconds(10)},
           {recv_timeout, timer:seconds(30)}
@@ -170,7 +158,7 @@ start_task(State) ->
       ) of
     {ok, 200, _Headers, _ClientRef} -> ok;
     Error ->
-      ?ERROR("Error running the task on cloak ~p", [Error]),
+      ?ERROR("Error running stats task: ~p", [Error]),
       error
   end.
 
