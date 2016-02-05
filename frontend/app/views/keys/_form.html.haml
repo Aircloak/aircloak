@@ -18,9 +18,9 @@
       = control_label "Key type", tooltip: "key_type"
       .controls
         - if current_user.cluster_manager?
-          = select_tag "key_type", options_for_select([["Data upload key", "data_upload_all"],
-            ["Administrative key", "admin"], ["Task execution key", "task_runner"],
-            ["Web API call key", "web_api"]], "Data upload key")
+          - key_options = [["Data upload key (any user)", "data_upload_all"], ["Web API call key", "web_api"]]
+          - key_options.push(["Administrative key", "admin"]) if current_user.admin?
+          = select_tag "key_type", options_for_select(key_options, "Data upload key")
         - else
           = text_field_tag :key_type, "Web API call key", readonly: true
 

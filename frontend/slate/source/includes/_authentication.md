@@ -60,12 +60,11 @@ curl -k -X <GET|POST|PUT|DELETE> \
 
 To manage your keys, please visit the [keys](/keys) section in our web interface.
 
-There are four types of key supported by our system. They differ in the scope of permissions they allow. The
+There are three types of key supported by our system. They differ in the scope of permissions they allow. The
 keys are:
 
 - data upload keys
 - admin key
-- key for running tasks
 - key for issuing REST API calls against the web
 
 With the exception of the _key for issuing REST API calls against the web_, all the keys above are used
