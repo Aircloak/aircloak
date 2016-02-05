@@ -37,7 +37,7 @@ task_results_json(Arguments, Request, State) ->
 
 %% @doc Computes table statistics
 compute_stats(Arguments, Request, State) ->
-  table_stats_calculator:run(Arguments),
+  table_stats_calculator:run(Arguments, request_proxy:forward_headers(Request)),
   {{halt, 200}, resource_common:respond_json([{status, ok}], Request), State}.
 
 %% @doc Re-reports a rails error message verbatim to the user

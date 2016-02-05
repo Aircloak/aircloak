@@ -3,7 +3,9 @@
 -include("air.hrl").
 
 -export([
-  forward_request/1
+  forward_request/1,
+  frontend_request/5,
+  forward_headers/1
 ]).
 
 
@@ -33,11 +35,6 @@ forward_request(IncomingRequest) ->
     error ->
       {error, failed_connect}
   end.
-
-
-%% -------------------------------------------------------------------
-%% Internal functions
-%% -------------------------------------------------------------------
 
 frontend_request(Method, Path, Headers, Body, Options) ->
   Url = iolist_to_binary([air_etcd:get("/service/frontend_local"), $/, Path]),

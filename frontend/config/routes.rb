@@ -83,6 +83,7 @@ Web::Application.routes.draw do
     post "clear", on: :member, action: "clear"
     get "confirm_destroy", on: :member, action: "confirm_destroy"
     post "compute_stats", on: :member, action: "compute_stats"
+    post "run_stats_task", on: :member, action: "run_stats_task"
   end
   resources :lookup_tables
   resources :keys

@@ -5,17 +5,19 @@ require 'uri'
 require 'json'
 require 'airpub_api'
 require 'task_code'
+require 'token_generator'
+require 'json_sender'
 
 class UserTablesController < ApplicationController
   before_action :set_previous_migration
   before_action :load_table, only: [
         :new, :create, :edit, :update, :destroy, :retry_migration, :clear, :show, :confirm_destroy,
-        :compute_stats
+        :compute_stats, :run_stats_task
       ]
   before_action :validate_no_pending_migrations, only: [:edit, :update, :destroy]
   before_action :set_create_or_edit
   filter_access_to [:confirm_destroy, :clear], require: :manage
-  filter_access_to [:compute_stats], require: :read
+  filter_access_to [:compute_stats, :run_stats_task], require: :read
 
   def index
     @clusters = current_user.ready_clusters
@@ -183,13 +185,32 @@ class UserTablesController < ApplicationController
   def compute_stats
     rpc_response(:compute_stats,
           analyst: @table.analyst.id,
-          table_id: @table.id,
-          cloak_url: cloak_url(@table.cluster),
-          task_spec: table_stats_task_spec(@table),
-          return_url: table_stats_return_url(@table)
+          table_id: @table.id
         )
 
     describe_activity "Requested table statistics for the table '#{@table.table_name}'"
+  end
+
+  def run_stats_task
+    response = JsonSender.request(
+        :post,
+        :task_runner,
+        @table.analyst,
+        @table.cluster,
+        "task/run",
+        {
+          "async_query" => true,
+          "task_id" => "ac_table_stats-#{@table.analyst.id}-#{@table.id}",
+          "auth_token" => TokenGenerator.generate_random_string_of_at_least_length(30),
+          "return_url" => table_stats_return_url(@table)
+        },
+        table_stats_task_spec(@table).to_json
+      )
+    if response["success"] == true then
+      render json: {success: true}
+    else
+      raise ArgumentError.new("Error starting task")
+    end
   end
 
 private
