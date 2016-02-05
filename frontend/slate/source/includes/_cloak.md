@@ -173,8 +173,7 @@ Payloads exceeding 10 MB in size will be rejected.
 ## Bulk insert
 
 ```ruby
-# Assumes the cloak has table structures like in the
-# single user insert example
+# Assumes the cloak has table structures like in the single user insert example.
 json_payload = <<-EOJSON
   {
     "user1": {
@@ -192,8 +191,7 @@ json_payload = <<-EOJSON
   }
 EOJSON
 
-# The cloak requires the content type of the
-# uploaded data to be explicitly stated.
+# The cloak requires the content type of the uploaded data to be explicitly stated.
 headers = {
   "Content-Type" => "application/json"
 }
@@ -204,6 +202,7 @@ RestClient.post url, json_payload, api_key, headers
 ```
 
 ```shell
+# Assumes the cloak has table structures like in the single user insert example.
 cat > locations.json <<EOJSON
   {
     "user1": {
@@ -232,6 +231,7 @@ wget --content-on-error \
 ```
 
 ```plaintext
+# Assumes the cloak has table structures like in the single user insert example.
 cat > locations.json <<EOJSON
   {
     "user1": {
@@ -333,8 +333,7 @@ single-user batches or parse the returned output for errors.
 ## Stream insert
 
 ```ruby
-# Assumes the cloak has table structures like in the
-# single user insert example
+# Assumes the cloak has table structures like in the single user insert example.
 csv_payload = <<-EOCSV
 user_id,product,price
 user1,"Washing Machine",1000
@@ -354,6 +353,7 @@ RestClient.post url, json_payload, api_key, headers
 ```
 
 ```shell
+# Assumes the cloak has table structures like in the single user insert example.
 cat > purchases.csv <<EOCSV
 user_id,product,price
 user1,"Washing Machine",1000
@@ -372,6 +372,7 @@ wget --content-on-error \
 ```
 
 ```plaintext
+# Assumes the cloak has table structures like in the single user insert example.
 cat > purchases.csv <<EOCSV
 user_id,product,price
 user1,"Washing Machine",1000
