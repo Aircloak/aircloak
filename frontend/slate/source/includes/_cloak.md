@@ -439,10 +439,11 @@ See the [authentication](#authentication) section for details.
 ```
 
 The API return value is a JSON object with an integer field called `inserted_rows` that specifies
-the count of successfully stored data rows. In case of success, the return HTTP status code will be
-`200 OK`, otherwise a non-2XX status code is set and the returned JSON object also contains
-information about the error that occurred. After fixing the error, the upload request can be re-issued
-after removing the already stored rows.
+the count of successfully stored data rows. Row order is preserved, so this value refers to the first
+rows following the columns definition. In case of success, the return HTTP status code will be `200 OK`,
+otherwise a non-2XX status code is set and the returned JSON object also contains information about the
+error that occurred. After fixing the error, the upload request can be re-issued after removing the
+already stored rows.
 
 For the use of error codes in the Cloak API, please consult the [Errors](#errors) section.
 
