@@ -416,7 +416,8 @@ Content-Encoding | false    | identity | Can be set to `gzip` if the payload is 
 The cloak expects a payload with the CSV format, where the first row specifies the columns
 which are to be inserted. All the mandatory columns in the table have to be referenced.
 The first column is considered the user ID and can have any name.
-Text values containing commas have to be quoted. Quotes must be escaped using double-quotes.
+Text values containing commas or quotes have to be quoted. Quotes must be escaped using double-quotes.
+For example, the string `Say "hello","bye" or nothing!` would become `"Say ""hello"",""bye"" or nothing!"`
 
 The cloak expects the header `Content-Type: text/csv` to be set.
 
