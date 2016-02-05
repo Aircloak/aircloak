@@ -73,16 +73,13 @@ content: |
   <%= site_link "/apidocs/index.html", "API docs" %>.
 
   It is not important which of your cloak server you upload data to.
-  A full URL for the _bulk insert_ API might therefore look like `https://<%= sample_cloak_name %>/bulk_insert`.
+  A full URL for the _bulk insert_ API might therefore look like `https://cloak-id.cloak.aircloak.com/bulk_insert`.
 
   It is authenticated using
   client certificates. For more information about authentication, please have a look
   at the <%= site_link "/apidocs/index.html#authentication", "authentication" %> section
   of our API docs
 
-  <% unless has_user_tables? -%>
-
   __Please note:__
   In order to be able to upload data to your cloak, you will need to create some database tables first.
   You can do this at the <%= site_link controller.user_tables_path, "tables page" %>.
-  <% end %>

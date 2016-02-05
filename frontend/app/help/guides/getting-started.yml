@@ -3,7 +3,7 @@ order: 0
 content: |
 
   # Getting started
-  Hello <%= current_user.attempt_to_make_a_human_name_from_login %>.
+
   In these help guides you will find a short set of guides to
   help you get started with the Aircloak analytics system.
   The guides cover the main aspects of our system, and what you need
