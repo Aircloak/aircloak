@@ -6,7 +6,8 @@
 -module(post_processor).
 
 -export([
-  edit/1
+  edit/1,
+  unpack_content/1
 ]).
 
 -include("types.hrl").
@@ -28,6 +29,11 @@ edit(#article{path = Path} = Article) ->
     {_PathPrefix, JSFunction} -> edit(Article, JSFunction);
     undefined -> Article
   end.
+
+%% @doc Unpacks the article content
+-spec unpack_content(#article{}) -> binary().
+unpack_content(#article{content_encoding=ContentEncoding, content=Content}) ->
+  unpack_content(ContentEncoding, Content).
 
 
 %% -------------------------------------------------------------------

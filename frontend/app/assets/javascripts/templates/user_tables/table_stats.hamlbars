@@ -1,0 +1,21 @@
+=hb "if stats" do
+  %div
+    %b
+      Table statistics (#{hb "created_at"} UTC)
+    %a{href: hb("refresh_link"), class: "btn btn-mini", id: "refresh_table_stats"}
+      Refresh
+
+  #stats_message
+
+  %div
+    %b
+      Users:
+      = hb "num_users"
+  %div
+    %b
+      Rows:
+      = hb "num_rows"
+  = hb "else"
+  %a{href: hb("refresh_link"), class: "btn btn-mini", id: "refresh_table_stats"}
+    Calculate table statistics
+  #stats_message

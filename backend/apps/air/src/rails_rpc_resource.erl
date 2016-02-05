@@ -17,9 +17,8 @@
 %%      Any request sent to /backend/* will be forwarded to
 %%      rails under /*.
 %%
-%%      The resource only handles GET requests at the moment,
-%%      but will be extended to support POST, and DELETE requests
-%%      as needed.
+%%      The resource only handles GET and POST requests at the moment,
+%%      but will be extended to support other types of requests as needed.
 %%
 %%      The RPC response from the rails backend should be a JSON blob:
 %%
@@ -43,7 +42,8 @@
   init/1,
   allowed_methods/2,
   service_available/2,
-  to_html/2
+  to_html/2,
+  process_post/2
 ]).
 
 -record(request, {
@@ -62,7 +62,7 @@
 init([]) -> {ok, #request{}}.
 
 %% @hidden
-allowed_methods(Request, State) -> {['GET'], Request, State}.
+allowed_methods(Request, State) -> {['GET', 'POST'], Request, State}.
 
 % We have to validate here already since the validation
 % uses the external service, which we don't know whether
@@ -77,7 +77,15 @@ service_available(Request, State) ->
       {false, resource_common:respond_error(decoding_failure_description(), Request), State}
   end.
 
-to_html(Request, #request{rpc_payload=RPCPayload}=State) ->
+process_post(Request, State) -> dispatch_request(Request, State).
+to_html(Request, State) -> dispatch_request(Request, State).
+
+
+%% -------------------------------------------------------------------
+%% Internal functions
+%% -------------------------------------------------------------------
+
+dispatch_request(Request, #request{rpc_payload=RPCPayload}=State) ->
   case ej:get({"rpc"}, RPCPayload) of
     undefined ->
       {{halt, 500}, resource_common:respond_error(invalid_rpc_failure_description(), Request), State};
@@ -94,16 +102,11 @@ to_html(Request, #request{rpc_payload=RPCPayload}=State) ->
       catch
         ErrorType:ErrorReason ->
           ?ERROR("Attempted requested RPC call: rpc_dispatch:~p/3" ++
-              " with arguments ~p. Failed with ~p:~p~n",
-              [DispatchName, Arguments, ErrorType, ErrorReason]),
+              " with arguments ~p. ~n~nFailed with~p:~p ~p~n",
+              [DispatchName, Arguments, ErrorType, ErrorReason, erlang:get_stacktrace()]),
           {{halt, 500}, resource_common:respond_error(invalid_rpc_failure_description(), Request), State}
       end
   end.
-
-
-%% -------------------------------------------------------------------
-%% Internal functions
-%% -------------------------------------------------------------------
 
 backend_failure_description() ->
   "Temporary problems due to internal system failure. Please try again later".

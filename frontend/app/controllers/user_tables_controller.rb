@@ -1,11 +1,21 @@
 require './lib/migrator'
+require 'net/http'
+require 'net/https'
+require 'uri'
+require 'json'
+require 'airpub_api'
+require 'task_code'
 
 class UserTablesController < ApplicationController
   before_action :set_previous_migration
-  before_action :load_table, only: [:new, :create, :edit, :update, :destroy, :retry_migration, :clear, :show, :confirm_destroy]
+  before_action :load_table, only: [
+        :new, :create, :edit, :update, :destroy, :retry_migration, :clear, :show, :confirm_destroy,
+        :compute_stats
+      ]
   before_action :validate_no_pending_migrations, only: [:edit, :update, :destroy]
   before_action :set_create_or_edit
   filter_access_to [:confirm_destroy, :clear], require: :manage
+  filter_access_to [:compute_stats], require: :read
 
   def index
     @clusters = current_user.ready_clusters
@@ -170,6 +180,18 @@ class UserTablesController < ApplicationController
     redirect_to user_tables_path
   end
 
+  def compute_stats
+    rpc_response(:compute_stats,
+          analyst: @table.analyst.id,
+          table_id: @table.id,
+          cloak_url: cloak_url(@table.cluster),
+          task_spec: table_stats_task_spec(@table),
+          return_url: table_stats_return_url(@table)
+        )
+
+    describe_activity "Requested table statistics for the table '#{@table.table_name}'"
+  end
+
 private
   def set_previous_migration
     @previous_migration = "{}"
@@ -199,5 +221,38 @@ private
       flash[:error] = "Cannot #{params[:action]} a table with pending migrations"
       redirect_to user_tables_path
     end
+  end
+
+  def cloak_url(cluster)
+    protocol = Conf.get("/service/cloak/protocol")
+    port = Conf.get("/service/cloak/port")
+    url = "#{protocol}://#{cluster.address_of_a_ready_cloak}:#{port}"
+  end
+
+  def table_stats_task_spec(table)
+    code = <<-EOF
+      report_property('num_users')
+
+      -- Manually count by going through each row. This should prevent
+      -- loading the whole table in memory at once.
+      local count = 0
+      for row in user_table('#{table.table_name}') do
+        count = count + 1
+      end
+
+      Aircloak.Aggregation.fast_accumulate_property('num_rows', count)
+    EOF
+
+    {
+      prefetch: [{table: table.table_name}],
+      post_processing: TaskCode.post_processing_spec(code)
+    }
+  end
+
+  def table_stats_return_url(table)
+    publish_url = Conf.get("/settings/rails/task/publish_url")
+    raise ArgumentError.new("No publish url present") unless publish_url.present?
+    publish_path = "/table_stats/backend/#{table.analyst.id}/#{table.id}"
+    Base64.strict_encode64(publish_url + publish_path)
   end
 end

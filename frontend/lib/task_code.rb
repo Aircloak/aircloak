@@ -9,6 +9,10 @@ class TaskCode
     end
   end
 
+  def self.post_processing_spec(code)
+    {code: code, libraries: TaskCode.dependencies(code)}
+  end
+
 private
   def dep_names(code)
     libs =

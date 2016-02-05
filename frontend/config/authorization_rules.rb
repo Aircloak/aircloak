@@ -70,6 +70,7 @@ authorization do
     ], to: :read
     has_permission_on [:sandbox], to: :run
     has_permission_on :tasks, to: :delete_results
+    has_permission_on [:airpub], to: :request_parameters
   end
 
   role :admin do

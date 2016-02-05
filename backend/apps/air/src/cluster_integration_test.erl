@@ -735,7 +735,7 @@ flush_messages() ->
       ok
   end.
 
--spec while_ok(#state{}, [atom()]) -> {ok | error, #state{}}.
+-spec while_ok(#state{}, [atom()]) -> {ok | error, #state{}, any()}.
 while_ok(State, []) ->
   {ok, cleanup(State), {test_completed, <<"Everything OK">>}};
 while_ok(#state{timings=Timings}=State, [Function|Functions]) ->

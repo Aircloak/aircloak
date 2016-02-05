@@ -12,9 +12,45 @@
 %% -------------------------------------------------------------------
 
 forward_request(IncomingRequest) ->
-  RequestPath = wrq:disp_path(IncomingRequest),
-  Url = binary_to_list(air_etcd:get("/service/frontend_local")) ++ "/" ++
-      RequestPath ++ query_string(IncomingRequest),
+  case frontend_request(
+        method(wrq:method(IncomingRequest)),
+        wrq:disp_path(IncomingRequest) ++ query_string(IncomingRequest),
+        forward_headers(IncomingRequest),
+        [],
+        [
+          {connect_timeout, timer:seconds(10)},
+          {recv_timeout, infinity}
+        ]
+      ) of
+    {ok, _Status, _Headers, ClientRef} ->
+      case hackney:body(ClientRef) of
+        {ok, Body} ->
+          ?DEBUG("Received proxy response: ~p", [Body]),
+          try {ok, mochijson2:decode(Body)} catch error:_Reason -> {error, decoding_error} end;
+        _ ->
+          {error, decoding_error}
+      end;
+    error ->
+      {error, failed_connect}
+  end.
+
+
+%% -------------------------------------------------------------------
+%% Internal functions
+%% -------------------------------------------------------------------
+
+frontend_request(Method, Path, Headers, Body, Options) ->
+  Url = iolist_to_binary([air_etcd:get("/service/frontend_local"), $/, Path]),
+  ?INFO("Requesting from frontend: ~s", [Url]),
+  Res = hackney:request(Method, Url, Headers, Body, Options),
+  case Res of
+    {error, Reason} ->
+      ?ERROR("Error proxying to ~s: ~p", [Url, Reason]),
+      error;
+    _Success -> Res
+  end.
+
+forward_headers(IncomingRequest) ->
   ExistingHeaders = mochiweb_headers:to_list(wrq:req_headers(IncomingRequest)),
   StringifiedExisitingHeaders = lists:map(fun({Key, Value}) ->
         {cloak_util:stringify(Key), cloak_util:stringify(Value)}
@@ -24,27 +60,13 @@ forward_request(IncomingRequest) ->
   FilteredHeaders = [{Key, Value} ||
     {Key, Value} <- StringifiedExisitingHeaders,
     not lists:member(Key, ["Accept-Encoding", "Host", "X-Forwarded-For", "X-Forwarded-Proto", "User-Agent"])],
-  Headers = [
+  [
     {"request-endpoint", "backend"} |
     FilteredHeaders
-  ],
-  ProxyRequest = {Url, Headers},
-  ?INFO("Proxying requst: ~p", [Url]),
-  case httpc:request(get, ProxyRequest, [], []) of
-    {ok, {_, _ResponseHeaders, undefined}} ->
-      {error, decoding_error};
-    {ok, {_, _ResponseHeaders, DecodedBody}} ->
-      ?DEBUG("Received proxy response: ~p", [DecodedBody]),
-      try {ok, mochijson2:decode(DecodedBody)} catch error:_Reason -> {error, decoding_error} end;
-    {error, Reason} ->
-      ?ERROR("Backend proxy failed with reason: ~p", [Reason]),
-      {error, failed_connect}
-  end.
+  ].
 
-
-%% -------------------------------------------------------------------
-%% Internal functions
-%% -------------------------------------------------------------------
+method('GET') -> get;
+method('POST') -> post.
 
 query_string(Request) ->
   "?" ++ mochiweb_util:urlencode(wrq:req_qs(Request)).

@@ -21,7 +21,8 @@
 
 %% API functions
 -export([
-  start_link/3
+  start_link/3,
+  leader/1
 ]).
 
 %% gen_etcd_watcher callbacks
@@ -84,6 +85,15 @@
 start_link(CallbackModule, ServiceName, Arg) ->
   gen_etcd_watcher:start_link(?MODULE, election_key(ServiceName), {CallbackModule, ServiceName, Arg}).
 
+%% @doc Returns the pid of the leader for the given service
+-spec leader(string() | binary()) -> undefined | pid().
+leader(ServiceName) ->
+  case air_etcd:fetch(election_key(ServiceName)) of
+    error -> undefined;
+    {ok, Data} ->
+      {_Node, Pid, _RandBytes} = erlang:binary_to_term(base64:decode(Data)),
+      Pid
+  end.
 
 %% -------------------------------------------------------------------
 %% gen_etcd_watcher callbacks

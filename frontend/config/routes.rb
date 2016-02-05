@@ -47,6 +47,7 @@ Web::Application.routes.draw do
   resources :metrics
   get '/airpub', to: 'airpub#index', as: 'airpub'
   post '/airpub', to: 'airpub#subscribe'
+  post '/airpub/request_parameters', to: 'airpub#request_parameters'
   get "impersonate/:analyst_id", to: "impersonation#impersonate"
   get "i_dont_want_to_be_an_imposter", to: "impersonation#stop_it"
   resources :capabilities
@@ -83,6 +84,7 @@ Web::Application.routes.draw do
     post "retry_migration", on: :member, action: "retry_migration"
     post "clear", on: :member, action: "clear"
     get "confirm_destroy", on: :member, action: "confirm_destroy"
+    post "compute_stats", on: :member, action: "compute_stats"
   end
   resources :lookup_tables
   resources :keys

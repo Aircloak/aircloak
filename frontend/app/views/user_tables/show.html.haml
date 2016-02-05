@@ -1,9 +1,32 @@
 = help_link 'managing-data'
 
 = content_for(:javascript_include) {javascript_include_tag "migrations/main", "data-turbolinks-track" => true}
+= content_for(:javascript_include) {javascript_include_tag "airpub_api", "data-turbolinks-track" => true}
+= content_for(:javascript_include) {javascript_include_tag "table_stats", "data-turbolinks-track" => true}
+
+:ruby
+  last_computed_stats = @table.user_table_stats.last
+  table_stats = if last_computed_stats
+    {
+      stats: true,
+      success: last_computed_stats.success,
+      num_users: last_computed_stats.num_users,
+      num_rows: last_computed_stats.num_rows,
+      refresh_link: "/backend#{compute_stats_user_table_path(@table)}",
+      created_at: "#{last_computed_stats.created_at.strftime("%Y/%m/%d %H:%M")}"
+    }
+  else
+    {
+      stats: false,
+      success: true,
+      refresh_link: "/backend#{compute_stats_user_table_path(@table)}"
+    }
+  end
+
 = content_for :javascript do
   :coffeescript
     $(document).ready ->
+      new TableStats(#{@table.id.to_json}, #{table_stats.to_json})
       table_data = JSON.parse '#{@table_data}'
       window.setupNonEditableView()
       window.columns.setup
@@ -36,3 +59,6 @@
       :data => { :confirm => 'Are you sure you want to clear all uploaded user data? This operation can not be reversed' }
   \|
   = link_to 'Destroy', confirm_destroy_user_table_path(@table)
+
+%hr
+#stats_element
