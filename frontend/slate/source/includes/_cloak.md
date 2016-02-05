@@ -102,10 +102,10 @@ naming conventions and restrictions.
 
 #### HTTP headers
 
-Header           | Required | Default | Description
----------------- | -------- | ------- | -----------
-Content-Type     | true     |         | Both `application/json` and `application/msgpack` are supported
-Content-Encoding | false    | raw     | Can be set to `gzip` if the payload is gzipped
+Header           | Required | Default  | Description
+---------------- | -------- | -------- | -----------
+Content-Type     | true     |          | Both `application/json` and `application/msgpack` are supported
+Content-Encoding | false    | identity | Can be set to `gzip` if the payload is gzipped
 
 
 ### Payload
@@ -167,14 +167,13 @@ In case of a partial data upload, a 202 HTTP status code will be returned.
 
 ### Restrictions
 
-Payloads exceeding 10mb in size will be rejected.
+Payloads exceeding 10 MB in size will be rejected.
 
 
 ## Bulk insert
 
 ```ruby
-# Assumes the cloak has table structures like in the
-# single user insert example
+# Assumes the cloak has table structures like in the single user insert example.
 json_payload = <<-EOJSON
   {
     "user1": {
@@ -192,8 +191,7 @@ json_payload = <<-EOJSON
   }
 EOJSON
 
-# The cloak requires the content type of the
-# uploaded data to be explicitly stated.
+# The cloak requires the content type of the uploaded data to be explicitly stated.
 headers = {
   "Content-Type" => "application/json"
 }
@@ -204,6 +202,7 @@ RestClient.post url, json_payload, api_key, headers
 ```
 
 ```shell
+# Assumes the cloak has table structures like in the single user insert example.
 cat > locations.json <<EOJSON
   {
     "user1": {
@@ -232,6 +231,7 @@ wget --content-on-error \
 ```
 
 ```plaintext
+# Assumes the cloak has table structures like in the single user insert example.
 cat > locations.json <<EOJSON
   {
     "user1": {
@@ -260,7 +260,7 @@ The bulk insert API is useful when uploading data from a system where you have a
 multiple users at the same time. It performs better than the single user insert API, and
 highly recommended if you want to upload large amounts of data.
 
-If you want to upload data for a single user from a client device, have a look at the [single user insert API](#singel-user-data-insert)
+If you want to upload data for a single user from a client device, have a look at the [single user insert API](#single-user-data-insert)
 API.
 
 Also consider having a look at the [data upload](/help/introduction-uploading-data) and the [managing
@@ -274,10 +274,10 @@ naming conventions and restrictions.
 
 #### HTTP headers
 
-Header           | Required | Default | Description
----------------- | -------- | ------- | -----------
-Content-Type     | true     |         | Both `application/json` and `application/msgpack` are supported
-Content-Encoding | false    | raw     | Can be set to `gzip` if the payload is gzipped
+Header           | Required | Default  | Description
+---------------- | -------- | -------- | -----------
+Content-Type     | true     |          | Both `application/json` and `application/msgpack` are supported
+Content-Encoding | false    | identity | Can be set to `gzip` if the payload is gzipped
 
 
 ### Payload
@@ -321,10 +321,136 @@ In case of a partial data upload, a 202 HTTP status code will be returned.
 
 ### Restrictions
 
-Payloads exceeding 10mb in size will be rejected.
+Payloads exceeding 10 MB in size will be rejected.
 
 Data is atomically inserted per-user. So for a single user, you either get all the uploaded data inserted or nothing.
 When issuing a bulk insert request for multiple users, there is no way to have everything inserted or nothing,
 as the data will end up in different nodes in the cluster.
 If you need to know which user's data failed to be uploaded, you need to either split the data into multiple
 single-user batches or parse the returned output for errors.
+
+
+## Stream insert
+
+```ruby
+# Assumes the cloak has table structures like in the single user insert example.
+csv_payload = <<-EOCSV
+user_id,product,price
+user1,"Washing Machine",1000
+user1,"Smart TV",600
+user2,"Microwave oven",200
+EOCSV
+
+# The cloak requires the content type of the
+# uploaded data to be explicitly stated.
+headers = {
+  "Content-Type" => "text/csv"
+}
+
+api_key = RestClient.key_from_file "bulk-insert-key", "password"
+url = "https://<MACHINE-NAME>.cloak.aircloak.com/stream_insert/purchases"
+RestClient.post url, json_payload, api_key, headers
+```
+
+```shell
+# Assumes the cloak has table structures like in the single user insert example.
+cat > purchases.csv <<EOCSV
+user_id,product,price
+user1,"Washing Machine",1000
+user1,"Smart TV",600
+user2,"Microwave oven",200
+EOCSV
+
+wget --content-on-error \
+     --output-document - \
+     --method=POST \
+     --certificate=<path-to-PEM-certificate> \
+     --body-file=purchases.csv \
+     --no-check-certificate \
+     --header='Content-Type: text/csv' \
+     https://<cloak-server>.cloak.aircloak.com/stream_insert/purchases
+```
+
+```plaintext
+# Assumes the cloak has table structures like in the single user insert example.
+cat > purchases.csv <<EOCSV
+user_id,product,price
+user1,"Washing Machine",1000
+user1,"Smart TV",600
+user2,"Microwave oven",200
+EOCSV
+
+curl -k -X POST
+    --data-binary purchases.csv \
+    --cert <path-to-PEM-certificate> \
+    -H 'Content-Type: text/csv' \
+    https://<cloak-server>.cloak.aircloak.com/stream_insert/purchases
+```
+
+The stream insert API is useful when uploading very large amounts of data into a single table.
+Because the data is inserted as it is received, this endpoint will be faster and it will handle
+larger requests than the [bulk insert](#bulk-insert) endpoint.
+
+If you want to upload data into multiple tables at the same time, have a look at the
+[single user insert API](#single-user-data-insert) and [bulk insert](#bulk-insert) APIs.
+
+Also consider having a look at the [data upload](/help/introduction-uploading-data) and the
+[managing data](/help/managing-data) help pages for a more in-depth guide to how tables are created,
+data formatted, and naming conventions and restrictions.
+
+
+### HTTP Request
+
+`POST /stream_insert/<table_name>`
+
+#### HTTP headers
+
+Header           | Required | Default  | Description
+---------------- | -------- | -------- | -----------
+Content-Type     | true     |          | Only `text/csv` is supported
+Content-Encoding | false    | identity | Can be set to `gzip` if the payload is gzipped
+
+
+### Payload
+
+The cloak expects a payload with the CSV format, where the first row specifies the columns
+which are to be inserted. All the mandatory columns in the table have to be referenced.
+The first column is considered the user ID and can have any name.
+Text values containing commas or quotes have to be quoted. Quotes must be escaped using double-quotes.
+For example, the string `Say "hello","bye" or nothing!` would become `"Say ""hello"",""bye"" or nothing!"`
+
+The cloak expects the header `Content-Type: text/csv` to be set.
+
+The API accepts gzipped payloads as well. If you gzip your payload, you also have to add the
+`Content-Encoding: gzip` header.
+
+
+### Authentication
+
+A Data upload key with privileges to upload data for _any_ user must be used.
+See the [authentication](#authentication) section for details.
+
+### Response
+
+```json
+{"inserted_rows":3}
+{"inserted_rows":0,"error":"table does not exist"}
+{"inserted_rows":1245,"error":"failed to parse value 'abc' as 'int4' for column 'price'"}
+```
+
+The API return value is a JSON object with an integer field called `inserted_rows` that specifies
+the count of successfully stored data rows. Row order is preserved, so this value refers to the first
+rows following the columns definition. In case of success, the return HTTP status code will be `200 OK`,
+otherwise a non-2XX status code is set and the returned JSON object also contains information about the
+error that occurred. After fixing the error, the upload request can be re-issued after removing the
+already stored rows.
+
+For the use of error codes in the Cloak API, please consult the [Errors](#errors) section.
+
+
+### Restrictions
+
+Payloads exceeding 50 GB in size will be rejected. An 24 hours processing timeout also applies.
+
+This API can accept very large requests, as the data is inserted as it arrives.
+Regardless, to improve reliability, we recommend splitting the upload into chunks smaller than 1 GB.
