@@ -48,7 +48,7 @@ module ApplicationHelper
   end
 
   def raw_help_link articles
-    help_util = HelpUtils.new current_user, nil
+    help_util = HelpUtils.new nil
     links = ""
     if articles.instance_of?(Array) then
       article_links = articles.map do |article|

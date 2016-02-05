@@ -6,8 +6,7 @@ class CodeRayify < Redcarpet::Render::HTML
 end
 
 class HelpUtils
-  def initialize user, controller
-    @current_user = user
+  def initialize controller
     @controller = controller
   end
 
@@ -17,10 +16,6 @@ class HelpUtils
 
   def controller
     @controller
-  end
-
-  def current_user
-    @current_user
   end
 
   def guide_for_id id
@@ -85,105 +80,5 @@ class HelpUtils
 
   def site_link url, name
     "<a href=\"#{url}\">#{name}</a>"
-  end
-
-  def data_key_count
-    if @current_user.analyst
-      @current_user.analyst.key_materials.where(key_type: 'data_upload_all', revoked: false).count
-    else
-      0
-    end
-  end
-
-  def has_user_tables?
-    if @current_user.analyst
-      @current_user.analyst.undeleted_user_tables.count != 0
-    else
-      false
-    end
-  end
-
-  def sample_user_table_name
-    unless has_user_tables?
-      "locations"
-    else
-      @current_user.analyst.undeleted_user_tables.first.table_name
-    end
-  end
-
-  def sample_user_table_json_data
-    if @current_user.analyst
-      table = @current_user.analyst.undeleted_user_tables.where(table_name: sample_user_table_name).first
-    end
-    json = if table then
-      table.generate_sample_json
-    else
-      # We invent some json for a fictive location table
-      {
-        user1: {
-          locations: [
-            {
-              x: 1,
-              y: 2
-            },
-            {
-              x: 42,
-              y: 40
-            }
-          ]
-        },
-        user2: {
-          locations: [
-            {
-              x: 100,
-              y: 200
-            }
-          ]
-        }
-      }
-    end
-    JSON.pretty_generate(json)
-  end
-
-  def has_cluster?
-    if @current_user.analyst
-      @current_user.analyst.clusters.count != 0
-    else
-      false
-    end
-  end
-
-  def sample_cloak_name
-    if has_cluster?
-      @current_user.analyst.clusters.first.cloaks.first.aircloak_domain
-    else
-      "cloak-id.cloak.example.com"
-    end
-  end
-
-  def sample_data_key_name
-    if data_key_count == 0
-      "MyKey.pem"
-    else
-      @current_user.analyst.key_materials.where(key_type: "data_upload_all").first.name "pem"
-    end
-  end
-
-  def sample_constraint
-    if has_user_tables?
-      table = @current_user.analyst.undeleted_user_tables.where(table_name: sample_user_table_name).first
-      column = JSON.parse(table.table_data).first
-      UserTable.sample_constraint column
-    else
-      "x > 10"
-    end
-  end
-
-  def has_multiple_clusters?
-    if @current_user.analyst
-      @current_user.analyst.clusters.count > 0
-    else
-      false
-    end
   end
 end
