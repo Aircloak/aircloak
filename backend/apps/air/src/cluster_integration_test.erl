@@ -60,6 +60,9 @@
 
 -type step_response() :: {ok, #state{}} | {error, any(), #state{}}.
 
+% How many times the upload of a single users data should be
+% retried before we abort the whole test.
+-define(UPLOAD_ATTEMPTS, 5).
 
 
 %% -------------------------------------------------------------------
@@ -527,7 +530,7 @@ upload_data_for_user(RemainingUsers, UploadState, Acc, TallyPid) ->
           {TableName, [Row || _ <- lists:seq(1, RowsForUser)]}
         ]}
       ],
-      upload_to_server(UploadState, list_to_binary(mochijson2:encode(Payload)), TallyPid),
+      upload_to_server(UploadState, list_to_binary(mochijson2:encode(Payload)), TallyPid, ?UPLOAD_ATTEMPTS),
       1;
     false -> 0
   end,
@@ -547,7 +550,10 @@ rows_for_user(MeanRowsPerUser) ->
   Rand2 = random_util:uniform(),
   cloak_distributions:gauss(MeanRowsPerUser/4, MeanRowsPerUser, Rand1, Rand2).
 
-upload_to_server(UploadState, Json, TallyPid) ->
+upload_to_server(UploadState, _Json, TallyPid, 0) ->
+  UploadState#upload_state.return_pid ! {error, upload_failed},
+  TallyPid ! bad;
+upload_to_server(UploadState, Json, TallyPid, Attempts) ->
   Request = {
     UploadState#upload_state.cloak_url,
     UploadState#upload_state.headers,
@@ -569,9 +575,11 @@ upload_to_server(UploadState, Json, TallyPid) ->
           TallyPid ! bad
       end;
     Response ->
-      UploadState#upload_state.return_pid ! {error, upload_failed},
       ?WARNING("Received unexpected upload response: ~p", [Response]),
-      TallyPid ! bad
+      % If the cloak is overloaded, give it some time to recover,
+      % before trying again.
+      timer:sleep(timer:seconds((?UPLOAD_ATTEMPTS - (Attempts-1)) * 10)),
+      upload_to_server(UploadState, Json, TallyPid, Attempts - 1)
   end.
 
 ssl_options({PrivateKeyPath, CertificatePath}) ->
