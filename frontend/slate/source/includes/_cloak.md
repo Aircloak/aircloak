@@ -407,7 +407,7 @@ data formatted, and naming conventions and restrictions.
 
 Header           | Required | Default  | Description
 ---------------- | -------- | -------- | -----------
-Content-Type     | true     |          | Only `text/csv` is supported for now
+Content-Type     | true     |          | Only `text/csv` is supported
 Content-Encoding | false    | identity | Can be set to `gzip` if the payload is gzipped
 
 
