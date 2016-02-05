@@ -93,3 +93,36 @@ content: |
   - `Aircloak.DateTime.hour_range(time)` - returns a one hour range containing the given time. The result is
   returned in a printable form `HH:00 - HH:00`. For example, if the provided time is `13:42`, the result will
   be `13:00 - 14:00`.
+
+  ## Aircloak.Aggregate functions
+
+  Because tasks are executed independently over each user, exporting data aggregated over all users
+  in the cloak is not straight-forward. Aircloak supplies some helper functions to ease this process.
+  These APIs use custom algorithms to export the individual per-user properties, which are then
+  post-processed on the backend to estimate the global aggregated property.
+
+  - `Aircloak.Aggregate.accumulate_property(property_name, value)` - given a property name and an integer value,
+  this API will estimate the total sum over all users for the property. One could also accumulate real values
+  by translating their range into an integer range and then converting the result back. Because this might
+  generate a large number of intermediate buckets, prefer this method only for values inside the
+  [-10000, 10000] interval.
+  - `Aircloak.Aggregate.fast_accumulate_property(property_name, value)` - this is a variant of the
+  `accumulate_property` API which is faster and better handles large values at the cost of slightly
+  reduced accuracy. Use this method when processing many values outside the [-10000, 10000] interval.
+
+  ## Aircloak.Distributions functions
+
+  Because tasks are executed independently over each user, computing the distribution of a value over
+  all users in the cloak is not straight-forward. Aircloak supplies a helper function to ease this process.
+  This API uses a cumulative distribution function to export the individual per-user properties, which are then
+  post-processed on the backend to estimate the distribution of properties over the entire population.
+
+  - `Aircloak.Distributions.quantize_property(propety_name, value, params)` - given the property name and
+  value, this API will estimate various attributes of the property describing the distribution of values
+  over the entire population in the specified range. The estimated attributes are min, max, median,
+  average and standard deviation. When viewing the result individually, a histogram showing the distribution
+  will also be displayed. The `params` parameter must be a Lua table specifying the quantization range and step:
+  `min` - begining of range, `max` - end of range, one of `step` or `steps` - the aggregation step.
+  In case neither `step` or `steps` is specified, the `step` value is auto-generated using the formula:
+  `step = (max - min) / 100`. Use a smaller `step` to increase accuracy at the cost of more computation time
+  being needed. Example: {min = 0, max = 100, steps = 200}
