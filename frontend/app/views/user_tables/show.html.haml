@@ -3,6 +3,7 @@
 = content_for(:javascript_include) {javascript_include_tag "migrations/main", "data-turbolinks-track" => true}
 = content_for(:javascript_include) {javascript_include_tag "airpub_api", "data-turbolinks-track" => true}
 = content_for(:javascript_include) {javascript_include_tag "table_stats", "data-turbolinks-track" => true}
+= content_for(:javascript_include) {javascript_include_tag "humanized_time_span", "data-turbolinks-track" => true}
 
 :ruby
   last_computed_stats = @table.user_table_stats.last
@@ -13,7 +14,7 @@
       num_users: last_computed_stats.num_users,
       num_rows: last_computed_stats.num_rows,
       refresh_link: "/backend#{compute_stats_user_table_path(@table)}",
-      created_at: "#{last_computed_stats.created_at.strftime("%Y/%m/%d %H:%M")}"
+      created_at: "#{last_computed_stats.created_at.strftime("%Y/%m/%d %H:%M:%S")}"
     }
   else
     {
@@ -50,6 +51,8 @@
       %th Constraints
   %tbody#columns
 
+#stats_element
+
 = link_to "User tables overview", user_tables_path
 - if current_user.cluster_manager?
   \|
@@ -60,5 +63,3 @@
   \|
   = link_to 'Destroy', confirm_destroy_user_table_path(@table)
 
-%hr
-#stats_element

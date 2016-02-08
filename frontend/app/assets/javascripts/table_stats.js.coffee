@@ -9,6 +9,12 @@ window.TableStats = (table_id, table_stats) ->
   refreshLink = table_stats.refresh_link
 
   render = () ->
+
+    # compute relative creation time
+    now = new Date()
+    now_utc = new Date(now.getTime() + now.getTimezoneOffset() * 60000)
+    table_stats.created_at_relative = humanized_time_span(table_stats.created_at, now_utc)
+
     $("#stats_element").html(HandlebarsTemplates['user_tables/table_stats'](table_stats))
 
     if table_stats.calculating

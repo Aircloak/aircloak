@@ -24,7 +24,7 @@ class PrefetchFilter
         tableId: table.id,
         time_limit: prefetch_table["time_limit"],
         user_rows: prefetch_table["user_rows"],
-        columns: prefetch_table["columns"] || [],
+        columns: prefetch_table["columns"],
         filter: parse_where(prefetch_table["where"] || {})
       }.delete_if {|key, value| value.blank?} # compact filter by removing empty fields
     end

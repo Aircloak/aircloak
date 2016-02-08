@@ -172,9 +172,9 @@ handle_task_result(Data, State) ->
   end.
 
 notify_and_store_success(Data, State) ->
-  {{Year, Month, Day}, {Hour, Minute, _Sec}} = cloak_util:timestamp_to_datetime(State#state.started_at),
-  CreatedAtString = iolist_to_binary(io_lib:format("~B/~2.10.0B/~2.10.0B ~2.10.0B:~2.10.0B",
-      [Year, Month, Day, Hour, Minute])),
+  {{Year, Month, Day}, {Hour, Minute, Second}} = cloak_util:timestamp_to_datetime(State#state.started_at),
+  CreatedAtString = iolist_to_binary(io_lib:format("~B/~2.10.0B/~2.10.0B ~2.10.0B:~2.10.0B:~2.10.0B",
+      [Year, Month, Day, Hour, Minute, trunc(Second)])),
   publish_to_airpub(State#state.analyst, State#state.table_id, [
         {type, <<"table_stats">>},
         {data, [

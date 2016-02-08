@@ -265,7 +265,7 @@ private
     EOF
 
     {
-      prefetch: [{table: table.table_name}],
+      prefetch: [{table: table.table_name, columns: []}],
       post_processing: TaskCode.post_processing_spec(code)
     }
   end
