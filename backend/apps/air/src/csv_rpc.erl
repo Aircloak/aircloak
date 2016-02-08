@@ -269,7 +269,7 @@ create_cells_json([Count|Rem]) ->
       setup,
       [
         ?load_conf,
-        ?with_applications([webmachine, etcd]),
+        ?with_applications([webmachine, etcd, hackney]),
         ?with_db,
         ?with_processes([air_api_sup])
       ],
@@ -353,20 +353,20 @@ mecked_backend(API, Args, Fun) ->
   Fun(),
   meck:unload(request_proxy).
 
-verifyHttp(ExpectedBody, HttpResponse) ->
-  ?assertMatch({ok, {{_, 200, _}, _, _}}, HttpResponse),
-  {ok, {_, _, Body}} = HttpResponse,
-  ?assertEqual(ExpectedBody, Body).
+verifyHttp(ExpectedBody, {ok, StatusCode, _RespHeaders, ClientRef}) ->
+  ?assertEqual(200, StatusCode),
+  {ok, Body} = hackney:body(ClientRef),
+  ?assertEqual(list_to_binary(ExpectedBody), Body).
 
 get_results(TaskToken) ->
   get_results(TaskToken, "").
 
 get_results(TaskToken, QueryString) ->
   URL = "/backend/tasks/" ++ TaskToken ++ "/results.csv?" ++ QueryString,
-  httpc:request(get, {db_test_helpers:http_url(URL), []}, [], []).
+  hackney:request(get, db_test_helpers:http_url(URL), [], <<>>, []).
 
 get_result(TaskToken, ResultId) ->
   URL = "/backend/tasks/" ++ TaskToken ++ "/single_result.csv?result=" ++ integer_to_list(ResultId),
-  httpc:request(get, {db_test_helpers:http_url(URL), []}, [], []).
+  hackney:request(get, db_test_helpers:http_url(URL), [], <<>>, []).
 
 -endif.
