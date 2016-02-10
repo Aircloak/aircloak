@@ -50,7 +50,6 @@ echo "ETCD_CLIENT=http://127.0.0.1:$(get_tcp_port prod etcd/client)" >> /aircloa
 if [ -e /tmp/etcd_values_coreos ]; then
   # When upgrading, /aircloak/air folder is removed. Therefore, we first move
   # the file to /aircloak location, to ensure it is preserved on upgrade.
-  # In contrast,  will be deleted and reinstalled, so we need
   mv /tmp/etcd_values_coreos /aircloak/
 fi
 
