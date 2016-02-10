@@ -17,7 +17,7 @@ cd $(dirname $0)
 
 # This function builds a docker image and pushes it if needed. The build machine
 # keeps the last built image, which allows it to determine whether the image has
-# been changed and do we need to push the new version after the build.
+# been changed and whether we need to push the new version after the build.
 #
 # The versioning algorithm is as follows:
 #   1. The last version number is determined by the registry
