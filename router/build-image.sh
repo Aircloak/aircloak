@@ -4,4 +4,4 @@ set -eo pipefail
 
 . $(dirname ${BASH_SOURCE[0]})/../common/docker_helper.sh
 
-build_production_image air_router router
+build_aircloak_image air_router router

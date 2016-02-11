@@ -58,6 +58,8 @@ etcd_set /settings/rails/secrets/github_oauth_token ""
 etcd_set /settings/rails/secrets/secret_key_base ""
 etcd_set /settings/rails/secrets/ca_path "/aircloak/ca"
 
+etcd_set /settings/air_backend/integration_test true
+
 # External services
 etcd_set /service/frontend_local http://frontend.air-local:$(etcd_get /tcp_ports/router/http)
 etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/http)

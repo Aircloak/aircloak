@@ -37,15 +37,31 @@ function register_frontend {
   done
 }
 
+function migrate_db_if_needed {
+  last_performed_migration=$(
+        curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service/frontend/last_performed_migration |
+        jq --raw-output '.node.value'
+      )
+  most_recent_migration=$(ls -t1 db/migrate/ | tail -n 1)
+
+  if [ "$last_performed_migration" != "$most_recent_migration" ]; then
+    log "Migrating database"
+    RAILS_ENV=production gosu deployer bundle exec rake db:migrate
+
+    # Cache in etcd that the database has been migrated
+    curl -XPUT -L \
+        http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service/frontend/last_performed_migration \
+        -d value="$most_recent_migration"
+  fi
+}
+
 . $(dirname ${BASH_SOURCE[0]})/config.sh
 export ETCD_CLIENT_PORT=$(get_tcp_port prod etcd/client)
 log "Booting container. Expecting etcd at http://127.0.0.1:$ETCD_CLIENT_PORT."
 
 add_local_hosts
 
-log "Migrating database"
-RAILS_ENV=production gosu deployer bundle exec rake db:migrate
-RAILS_ENV=production gosu deployer bundle exec rake db:version
+migrate_db_if_needed
 
 cat /tmp/nginx.conf \
   | sed "s/\$AIR_FRONTEND_HTTP_PORT/$(tcp_port 'air_frontend/http')/" \

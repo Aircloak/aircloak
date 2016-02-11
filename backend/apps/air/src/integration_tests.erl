@@ -3,6 +3,8 @@
 
 -behaviour(gen_server).
 
+-include("air.hrl").
+
 %% API
 -export([
   setup_cron/0,
@@ -34,11 +36,17 @@
 %% @doc Sets up the cluster cron job.
 -spec setup_cron() -> ok.
 setup_cron() ->
-  lager:info("Setting up regularly scheduled integration tests"),
-  % Full fledged cluster integration test
-  Id = {cluster_integration_test, run},
-  Conf = air_conf:get_val(tasks, full_cluster_test),
-  cluster_cron:install(Conf, ?MODULE, Id).
+  case air_etcd:get("/settings/air_backend/integration_test") of
+    <<"false">> ->
+      ?INFO("Skipping integration tests");
+    <<"true">> ->
+      ?INFO("Setting up regularly scheduled integration tests"),
+      % Full fledged cluster integration test
+      Id = {cluster_integration_test, run},
+      Conf = air_conf:get_val(tasks, full_cluster_test),
+      cluster_cron:install(Conf, ?MODULE, Id)
+  end,
+  ok.
 
 start_link(GlobalServiceKey, Test) ->
   gen_server:start_link({via, global_service, GlobalServiceKey}, ?MODULE, Test, []).

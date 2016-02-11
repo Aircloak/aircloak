@@ -68,15 +68,6 @@ function container_ctl {
       fi
       ;;
 
-    ensure_latest_version_started)
-      if latest_version_running $CONTAINER_NAME; then
-        echo "$CONTAINER_NAME already on the latest image version"
-      else
-        echo "Restarting $CONTAINER_NAME to ensure that the latest version is running."
-        container_ctl start $@
-      fi
-      ;;
-
     ssh)
       docker exec -i -t $CONTAINER_NAME \
         /bin/bash -c "TERM=xterm CONTAINER_NAME='$CONTAINER_NAME' /bin/bash -l"
@@ -126,36 +117,13 @@ function container_ctl {
 function start_container {
   if [ "$REGISTRY_URL" != "" ]; then DOCKER_IMAGE="$REGISTRY_URL/$DOCKER_IMAGE"; fi
 
-  if [ "$DOCKER_IMAGE_VERSION" == "" ]; then
-    DOCKER_IMAGE_VERSION=$(latest_version "$DOCKER_IMAGE")
-
-    if [ "$DOCKER_IMAGE_VERSION" == "" ]; then
-      echo "Can't find local image for $DOCKER_IMAGE."
-      exit 1
-    fi
+  if [ "$DOCKER_IMAGE_VERSION" != "" ]; then
+    DOCKER_IMAGE="$DOCKER_IMAGE:$DOCKER_IMAGE_VERSION"
   fi
-
-  DOCKER_IMAGE="$DOCKER_IMAGE:$DOCKER_IMAGE_VERSION"
 
   stop_named_container $CONTAINER_NAME
   echo "Starting container $CONTAINER_NAME from $DOCKER_IMAGE"
   docker run $DOCKER_START_ARGS --name $CONTAINER_NAME $DOCKER_IMAGE $CONTAINER_ARGS
-}
-
-function latest_version {
-  echo "$(
-        find_images "$1" "" version |
-        grep -v latest |
-        sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
-        head -n 1 || true
-      )"
-}
-
-# Just like build_aircloak_image, but also versions the image and pushes it to the
-# registry.
-function build_production_image {
-  build_aircloak_image "$@"
-  version_latest_image $1
 }
 
 # Syntax:
@@ -178,12 +146,14 @@ function build_aircloak_image {
     if [ -f .dockerignore ]; then rm .dockerignore; fi
   fi
 
+  full_image_name=$(aircloak_image_name $1)
+
   temp_docker_file="tmp/$(uuidgen).dockerfile"
   {
     mkdir -p tmp
-    echo "[aircloak] building aircloak/$1"
+    echo "[aircloak] building $full_image_name"
     cat $dockerfile | dockerfile_content > "$temp_docker_file"
-    docker build -t aircloak/$1:latest -f "$temp_docker_file" .
+    docker build -t $full_image_name:latest -f "$temp_docker_file" .
   } || {
     # called in the case of an error
     exit_code=$?
@@ -195,7 +165,30 @@ function build_aircloak_image {
 
   if [ -f "$temp_docker_file" ]; then rm "$temp_docker_file"; fi
   if [ -f .dockerignore ]; then rm .dockerignore; fi
+
+  # remove exited containers
+  exited_containers=$(docker ps --quiet -f status=exited)
+  if [ "$exited_containers" != "" ]; then docker rm $exited_containers || true; fi
+
+  # remove local version tags (obsolete in the new version of the build system)
+  local_version_tags=$(docker images | awk "{if (\$1 == \"$full_image_name\" && \$2 != \"latest\") print \$1\":\"\$2}")
+  if [ "$local_version_tags" != "" ]; then docker rmi $local_version_tags || true; fi
+
+  # remove dangling images
+  dangling_images=$(docker images --quiet --filter "dangling=true")
+  if [ "$dangling_images" != "" ]; then docker rmi $dangling_images || true; fi
+
   cd $curdir
+}
+
+function aircloak_image_name {
+  if [ "$IMAGE_CATEGORY" == "" ]; then
+    image_name="$1"
+  else
+    image_name="${IMAGE_CATEGORY}_$1"
+  fi
+
+  echo "aircloak/$image_name"
 }
 
 # Produces the final dockerfile contents.
@@ -257,18 +250,6 @@ EOF
     echo "touch /tmp/build_config/proxies.sh && \\"
   fi
 
-  # Generate special useradd helper which ensures proper UID on Linux hosts
-  if [ "$(which boot2docker)" == "" ]; then
-    # No boot2docker -> use host's $UID to ensure proper permissions
-    uid_arg="-u $UID"
-  fi
-
-  cat <<-EOF
-    echo '#!/usr/bin/env bash' > /tmp/build_config/useradd.sh && \\
-    echo 'useradd $uid_arg "\$@"' >> /tmp/build_config/useradd.sh && \\
-    chmod +x /tmp/build_config/useradd.sh && \\
-EOF
-
   # Support for setting custom prompt through CONTAINER_NAME env. This allows us
   # to inject the container name into the ssh session. Without this, the name of the
   # real host machine will be used, since containers run in the shared networking mode.
@@ -276,50 +257,6 @@ EOF
     echo 'PS1="\${debian_chroot:+(\$debian_chroot)}\\\\u@\${CONTAINER_NAME:-\\\\h}:\\\\w# "' \\
       >> /etc/profile.d/custom_prompt.sh
 EOF
-}
-
-function version_latest_image {
-  image_name="aircloak/$1"
-  latest_image_id=$(find_images $image_name ^latest$)
-  if [ "$latest_image_id" == "" ]; then
-    echo "Can't find latest image for $image_name"
-    return 1
-  fi
-
-  major_minor=$(cat $(dirname ${BASH_SOURCE[0]})/../VERSION)
-
-  last_patch_version=$(
-        find_images $image_name ^$major_minor.[0-9]+$ version |
-            sed "s/$major_minor\.//" |
-            sort -r -n |
-            head -n 1
-      )
-  latest_version_image_id=$(find_images $image_name ^$major_minor.$last_patch_version$)
-
-  if [ "$latest_version_image_id" == "$latest_image_id" ]; then
-    echo "No changes for $image_name"
-    return 0
-  fi
-
-  # Tag with major.minor.last_patch+1
-  # If there's no patch version for current major.minor (as defined in VERSION file),
-  # we'll tag with major.minor.0
-  patch_version=$((${last_patch_version:-"-1"} + 1))
-  tag="$image_name:$major_minor.$patch_version"
-  echo "Tagging $latest_image_id with $tag"
-  docker tag $latest_image_id $tag
-
-  # Keep only last 5 versions.
-  for old_version in $(
-      find_images $image_name "^[0-9]+\.[0-9]+\.[0-9]+$" version |
-          # sort by version descending (using numeric comparison for each field)
-          sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
-          # skip 5 most recent versions
-          tail -n+6
-      )
-  do
-    docker rmi "$image_name:$old_version"
-  done
 }
 
 function find_images {
@@ -338,30 +275,6 @@ function find_images {
       awk "{if (\$1 == \"$1\" && \$2 ~ /${2:-".*"}/) print $print_column}" | \
       sort | \
       uniq
-}
-
-function print_most_recent_versions {
-  all_images=$(docker images --no-trunc)
-  aircloak_images=$(
-        echo "$all_images" |
-            awk '{if ($1 ~ /^aircloak\/.+/) print $1}' |
-            sort |
-            uniq
-      )
-  printf "\nLatest images versions:\n"
-  for aircloak_image in $aircloak_images; do
-    latest_version=$(
-        ALL_IMAGES="$all_images" find_images $aircloak_image '^[0-9]+\.[0-9]+\.[0-9]+$' version |
-            sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
-            head -n 1
-      )
-
-      if [ "$latest_version" != "" ]; then
-        echo "$all_images" | \
-            awk "{if (\$1 == \"$aircloak_image\" && \$2 == \"$latest_version\") {\$3=\"\"; print;}}"
-      fi
-  done
-  printf "\n"
 }
 
 function latest_version_running {

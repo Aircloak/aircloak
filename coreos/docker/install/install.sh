@@ -11,7 +11,7 @@ set -eo pipefail
 
 function pull_docker_image {
   latest_version=$(
-        curl -s "$REGISTRY_URL/v2/$1/tags/list" |
+        /aircloak/registry_v2_req $1/tags/list |
         jq --raw-output ".tags | select(. != null) | .[]" |
         sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
         head -n 1
@@ -34,38 +34,42 @@ function pull_docker_image {
   echo "$(hostname): pulled image $REGISTRY_URL/$1:$latest_version"
 }
 
-function configure_etcd {
-  echo "Waiting for etcd settings overrides ..."
-  while [ ! -e /aircloak/etcd/coreos ]; do sleep 1; done
-
-  # Copy settings to appropriate place
-  mkdir -p /aircloak/air/etcd/local_settings
-  cp -rp /aircloak/etcd/coreos /aircloak/air/etcd/local_settings/
-
-  /aircloak/air/etcd/config_coreos.sh
-}
+if [ -e /aircloak/air/install/.installed ]; then
+  echo "Air system is already installed"
+fi
 
 
 # Setup common environment
 cat /etc/environment >> /aircloak/air/environment
+echo "IMAGE_CATEGORY=${IMAGE_CATEGORY}" >> /aircloak/air/environment
 echo "REGISTRY_URL=$REGISTRY_URL" >> /aircloak/air/environment
 echo "AIR_HOST_NAME=$COREOS_PUBLIC_IPV4" >> /aircloak/air/environment
 echo "ETCD_CLIENT=http://127.0.0.1:$(get_tcp_port prod etcd/client)" >> /aircloak/air/environment
 
-configure_etcd
+# Copy new etcd config if it exists
+if [ -e /tmp/etcd_values_coreos ]; then
+  # When upgrading, /aircloak/air folder is removed. Therefore, we first move
+  # the file to /aircloak location, to ensure it is preserved on upgrade.
+  mv /tmp/etcd_values_coreos /aircloak/
+fi
+
+# Configure etcd
+cp -rp /aircloak/etcd_values_coreos /aircloak/air/etcd/
+/aircloak/air/etcd/config_coreos.sh
 
 touch /aircloak/air/.installation_started
 
 # Pull images
-pull_docker_image aircloak/air_router
-pull_docker_image aircloak/air_backend
-pull_docker_image aircloak/air_frontend
+pull_docker_image aircloak/static_website
+pull_docker_image $(aircloak_image_name air_router)
+pull_docker_image $(aircloak_image_name air_backend)
+pull_docker_image $(aircloak_image_name air_frontend)
 
 # Purge memory, because it seems to affect starting of Docker containers
 sync && echo 3 > /proc/sys/vm/drop_caches
 
 # Copy service files
-for service in air-prerequisites air-router air-backend air-frontend air-frontend-sidekick; do
+for service in air-prerequisites air-router air-backend air-frontend air-frontend-sidekick air-static-site; do
   cp -rp /aircloak/air/$service.service /etc/systemd/system/
 done
 
@@ -93,27 +97,28 @@ final_cloud_config=$(
 $initial_cloud_config_without_installer
 $disabled_installer
 
-      - name: air-prerequisites.service
-        command: start
+coreos:
+  units:
+  - name: air-static-site.service
+    command: start
 
-      - name: air-router.service
-        command: start
+  - name: air-prerequisites.service
+    command: start
 
-      - name: air-backend.service
-        command: start
+  - name: air-router.service
+    command: start
 
-      - name: air-frontend.service
-        command: start
+  - name: air-backend.service
+    command: start
 
-      - name: air-frontend-sidekick.service
-        command: start
+  - name: air-frontend.service
+    command: start
+
+  - name: air-frontend-sidekick.service
+    command: start
 EOF
 )
 
 echo "$final_cloud_config" > /var/lib/coreos-install/user_data
-
-echo "Applying the new cloud-config..."
-coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
-
+echo "Images retrieved, and new cloud-config generated."
 touch /aircloak/air/install/.installed
-echo "Air system successfully installed!"

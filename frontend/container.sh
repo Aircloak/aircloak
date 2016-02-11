@@ -8,7 +8,7 @@ cd $(dirname $0)
 STOP_SIGNAL=SIGQUIT
 STOP_TIMEOUT=30
 
-DOCKER_IMAGE="aircloak/air_frontend"
+DOCKER_IMAGE=$(aircloak_image_name air_frontend)
 
 if [ "$AIR_ENV" = "prod" ]; then
   cert_folder="/aircloak/ca"
