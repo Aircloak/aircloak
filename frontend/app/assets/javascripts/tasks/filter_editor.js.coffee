@@ -21,7 +21,7 @@ Tasks.FilterEditor = (inOptions) ->
   render = ->
     table = options.tableFilter.table()
     selectedColumns = table.columns.map (column) ->
-                          selected = columns.length == 0 or column.name in columns
+                          selected = not columns? or column.name in columns
                           {name: column.name, selected: selected}
     columns = (column.name for column in table.columns) unless columns
     Popup.show(HandlebarsTemplates["tasks/edit_filter"](
@@ -29,7 +29,6 @@ Tasks.FilterEditor = (inOptions) ->
           minLimit: minLimit,
           userRows: userRows,
           columns: selectedColumns,
-          columnSelection: options.columnSelection,
           filter: filter,
           operators: _.keys(Tasks.Operators),
           newTemplate: {}
@@ -112,9 +111,8 @@ Tasks.FilterEditor = (inOptions) ->
     userRows = Math.max(parseInt($("#userRows").val()), 1) || null
     minLimit = Math.max(parseInt($("#minLimit").val()), 1) || null
 
-    if options.columnSelection
-      columns = $('#columns').val()
-      columns = [] if columns.length == options.tableFilter.table().columns.length
+    columns = $('#columns').val()
+    columns = null if columns.length == options.tableFilter.table().columns.length
 
     filter.clear()
     _.each(

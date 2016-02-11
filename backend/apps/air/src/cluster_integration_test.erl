@@ -60,6 +60,9 @@
 
 -type step_response() :: {ok, #state{}} | {error, any(), #state{}}.
 
+% How many times the upload of a single users data should be
+% retried before we abort the whole test.
+-define(UPLOAD_ATTEMPTS, 5).
 
 
 %% -------------------------------------------------------------------
@@ -85,7 +88,7 @@
 -spec run() -> ok | error.
 run() ->
   ?INFO("Starting full cluster integration test"),
-  {TestResult, FinalState} = while_ok(init_state(), [
+  {TestResult, FinalState, {StageAtom, TestResultDescription}} = while_ok(init_state(), [
         get_analyst_id,
         create_build,
         create_cluster,
@@ -95,21 +98,19 @@ run() ->
       ]),
   flush_messages(),
   %% Send test results to rails for performance recordings
-  TestIdentifier = <<"full_cluster_integration_test">>,
-  RailsRequest = [
-    {<<"action">>, <<"add_test_result">>},
-    {<<"identifier">>, TestIdentifier}
-  ],
-  Success = TestResult == ok,
   ResultStructure = [
     {<<"timings">>, [
       [{cloak_util:binarify(Step), Time} || {Step, Time} <- FinalState#state.timings]
     ]},
-    {<<"success">>, Success}
+    {<<"success">>, TestResult == ok},
+    {<<"cloaks">>, FinalState#state.cloaks},
+    {<<"last_stage">>, atom_to_binary(StageAtom, utf8)},
+    {<<"result_description">>, TestResultDescription}
   ],
   FinalRailsRequest = [
-    {<<"result">>, list_to_binary(mochijson2:encode(ResultStructure))} |
-    RailsRequest
+    {<<"result">>, list_to_binary(mochijson2:encode(ResultStructure))},
+    {<<"action">>, <<"add_test_result">>},
+    {<<"identifier">>, <<"full_cluster_integration_test">>}
   ],
   flush_messages(),
   case rails_request(FinalRailsRequest, FinalState) of
@@ -211,17 +212,28 @@ create_cluster(#state{build_id=BuildId}=State) ->
       },
       Cleanup = fun() -> destroy_cluster(StateWithCluster) end,
       CleanedState = add_cleanup_step(Cleanup, StateWithCluster),
-      ?INFO("Waiting for cluster ~p to be setup", [ClusterId]),
-      %% After 2 hours we give up (2 * 60 * 60s)
-      BinaryClusterId = cloak_util:binarify(ClusterId),
-      wait_for(ListenString, 7200, fun(ReportedClusterId) ->
-            case ReportedClusterId =:= BinaryClusterId of
-              true ->
-                ?INFO("Setup of cluster ~p has completed", [ClusterId]),
-                {ok, CleanedState};
-              false -> next
-            end
-          end, CleanedState);
+      % If we are running in a local environment, the cluster creation
+      % will have succeeded immediately, and therefore already be done.
+      % If we wait for the notification from Postgres, we'll timeout
+      % because it has already been sent.
+      % In a production environment, the cluster creation takes time,
+      % and we have to wait for it to complete
+      case air_etcd:get("/settings/rails/global") of
+        <<"true">> ->
+          ?INFO("Waiting for cluster ~p to be setup", [ClusterId]),
+          %% After 2 hours we give up (2 * 60 * 60s)
+          BinaryClusterId = cloak_util:binarify(ClusterId),
+          wait_for(ListenString, 7200, fun(ReportedClusterId) ->
+                case ReportedClusterId =:= BinaryClusterId of
+                  true ->
+                    ?INFO("Setup of cluster ~p has completed", [ClusterId]),
+                    {ok, CleanedState};
+                  false -> next
+                end
+              end, CleanedState);
+        <<"false">> ->
+          {ok, CleanedState}
+      end;
     Other -> Other
   end.
 
@@ -518,7 +530,7 @@ upload_data_for_user(RemainingUsers, UploadState, Acc, TallyPid) ->
           {TableName, [Row || _ <- lists:seq(1, RowsForUser)]}
         ]}
       ],
-      upload_to_server(UploadState, list_to_binary(mochijson2:encode(Payload)), TallyPid),
+      upload_to_server(UploadState, list_to_binary(mochijson2:encode(Payload)), TallyPid, ?UPLOAD_ATTEMPTS),
       1;
     false -> 0
   end,
@@ -538,7 +550,10 @@ rows_for_user(MeanRowsPerUser) ->
   Rand2 = random_util:uniform(),
   cloak_distributions:gauss(MeanRowsPerUser/4, MeanRowsPerUser, Rand1, Rand2).
 
-upload_to_server(UploadState, Json, TallyPid) ->
+upload_to_server(UploadState, _Json, TallyPid, 0) ->
+  UploadState#upload_state.return_pid ! {error, upload_failed},
+  TallyPid ! bad;
+upload_to_server(UploadState, Json, TallyPid, Attempts) ->
   Request = {
     UploadState#upload_state.cloak_url,
     UploadState#upload_state.headers,
@@ -560,9 +575,11 @@ upload_to_server(UploadState, Json, TallyPid) ->
           TallyPid ! bad
       end;
     Response ->
-      UploadState#upload_state.return_pid ! {error, upload_failed},
       ?WARNING("Received unexpected upload response: ~p", [Response]),
-      TallyPid ! bad
+      % If the cloak is overloaded, give it some time to recover,
+      % before trying again.
+      timer:sleep(timer:seconds((?UPLOAD_ATTEMPTS - (Attempts-1)) * 10)),
+      upload_to_server(UploadState, Json, TallyPid, Attempts - 1)
   end.
 
 ssl_options({PrivateKeyPath, CertificatePath}) ->
@@ -625,7 +642,7 @@ validate_result(ResultId, #state{users_uploaded=UserCount}=State) ->
           FROM results
           WHERE results.id = $1"
         ],
-        pgsql_connection:extended_query(SQL, [ResultId], Connection)
+        sql_conn:extended_query(SQL, [ResultId], Connection)
       end),
   case JSONSQLResult of
     {{select, 1}, [{JSONResult}]} ->
@@ -726,9 +743,9 @@ flush_messages() ->
       ok
   end.
 
--spec while_ok(#state{}, [atom()]) -> {ok | error, #state{}}.
+-spec while_ok(#state{}, [atom()]) -> {ok | error, #state{}, any()}.
 while_ok(State, []) ->
-  {ok, cleanup(State)};
+  {ok, cleanup(State), {test_completed, <<"Everything OK">>}};
 while_ok(#state{timings=Timings}=State, [Function|Functions]) ->
   ?INFO("Performing step: ~p", [Function]),
   StartTimeSeconds = cloak_util:timestamp_to_epoch(now()),
@@ -741,11 +758,12 @@ while_ok(#state{timings=Timings}=State, [Function|Functions]) ->
       while_ok(NewStateWithTiming, Functions);
     {error, Reason, NewState} ->
       ?WARNING("Test failed in step ~p with reason: ~p", [Function, Reason]),
-      {error, cleanup(NewState)}
+      {error, cleanup(NewState), {Function, Reason}}
   catch
     ProblemType:ProblemReason ->
-      ?ERROR("Test failed with ~p:~p", [ProblemType, ProblemReason]),
-      {error, cleanup(State)}
+      ProblemDescription = atom_to_list(ProblemType) ++ ":" ++ atom_to_list(ProblemReason),
+      ?ERROR("Test failed with ~p ~p", [ProblemDescription, erlang:get_stacktrace()]),
+      {error, cleanup(State), {Function, list_to_binary(ProblemDescription)}}
   end.
 
 %% @hidden

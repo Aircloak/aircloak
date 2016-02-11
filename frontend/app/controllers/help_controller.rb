@@ -18,7 +18,7 @@ class HelpController < ApplicationController
 
 private
   def load_guides
-    @help_utils = HelpUtils.new current_user, self
+    @help_utils = HelpUtils.new self
     @guides = @help_utils.load_guides
   end
 end

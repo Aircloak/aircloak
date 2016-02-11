@@ -1,11 +1,23 @@
 require './lib/migrator'
+require 'net/http'
+require 'net/https'
+require 'uri'
+require 'json'
+require 'airpub_api'
+require 'task_code'
+require 'token_generator'
+require 'json_sender'
 
 class UserTablesController < ApplicationController
   before_action :set_previous_migration
-  before_action :load_table, only: [:new, :create, :edit, :update, :destroy, :retry_migration, :clear, :show, :confirm_destroy]
+  before_action :load_table, only: [
+        :new, :create, :edit, :update, :destroy, :retry_migration, :clear, :show, :confirm_destroy,
+        :compute_stats, :run_stats_task
+      ]
   before_action :validate_no_pending_migrations, only: [:edit, :update, :destroy]
   before_action :set_create_or_edit
   filter_access_to [:confirm_destroy, :clear], require: :manage
+  filter_access_to [:compute_stats, :run_stats_task], require: :read
 
   def index
     @clusters = current_user.ready_clusters
@@ -94,7 +106,7 @@ class UserTablesController < ApplicationController
   #    table, it will then continue using the previously dropped
   #    tables history.
   def destroy
-     if params["table_name"] != @table.table_name then
+    if params["table_name"] != @table.table_name then
       flash[:error] = "Entered name does not match table name!"
       redirect_to confirm_destroy_user_table_path
       return
@@ -150,22 +162,16 @@ class UserTablesController < ApplicationController
       flash[:notice] = "Already fully migrated"
       redirect_to user_tables_path
     end
-  rescue Exception => error
-    describe_failed_activity "Tried to apply a migration failed to broken cluster, but it still failed"
-    flash[:error] = "We still failed at applying the migration. Please retry later"
+  rescue Exception
+    describe_failed_activity "Re-attempted applying a migration that previously failed. It failed again."
+    flash[:error] = "Creating or changing the database table still did not work. If the problem continues, please contact support."
     redirect_to user_tables_path
   end
 
   def clear
-    success = if @table.cluster.capable_of?(:user_row_expiry)
-      result = JsonSender.request :delete, :admin, @table.analyst, @table.cluster,
-          "user_tables/#{@table.table_name}"
-      result["success"]
-    else
-      clear_table_with_migrations
-    end
+    result = JsonSender.request(:delete, :admin, @table.analyst, @table.cluster, "user_tables/#{@table.table_name}")
 
-    if success
+    if result["success"]
       describe_successful_activity "Cleared user table #{@table.table_name}"
       flash[:notice] = "Table #{@table.table_name} was cleared"
     else
@@ -176,36 +182,38 @@ class UserTablesController < ApplicationController
     redirect_to user_tables_path
   end
 
-private
-  # Legacy hack: we don't support data deletion on the current cluster,
-  # so we will delete the data by dropping the tables and re-creating them them
-  def clear_table_with_migrations
-    # get current table data, needs to be done before applying the drop migration
-    table_data_json = @table.table_data
-    drop_migration = UserTableMigration.drop_migration @table.table_name
-    if Migrator.migrate @table, drop_migration
-      # create another migration that will fully re-create the table (last migration could just partially alter the table)
-      create_migration = UserTableMigration.new
-      create_migration.table_json = table_data_json
-      columns = JSON.parse table_data_json
-      create_migration.migration = {
-        table_name: @table.table_name,
-        action: "create",
-        columns: columns
-      }.to_json
-      # apply table creation migration on the cloaks
-      Migrator.migrate @table, create_migration
-    else
-      # we don't want to save the drop migration if it fails, let the user retry the operation instead
-      drop_migration.destroy
-      false
-    end
-  rescue
-    # we don't want to save the drop migration if it fails, let the user retry the operation instead
-    drop_migration.destroy
-    false
+  def compute_stats
+    rpc_response(:compute_stats,
+          analyst: @table.analyst.id,
+          table_id: @table.id
+        )
+
+    describe_activity "Requested table statistics for the table '#{@table.table_name}'"
   end
 
+  def run_stats_task
+    response = JsonSender.request(
+        :post,
+        :task_runner,
+        @table.analyst,
+        @table.cluster,
+        "task/run",
+        {
+          "async_query" => true,
+          "task_id" => "ac_table_stats-#{@table.analyst.id}-#{@table.id}",
+          "auth_token" => TokenGenerator.generate_random_string_of_at_least_length(30),
+          "return_url" => table_stats_return_url(@table)
+        },
+        table_stats_task_spec(@table).to_json
+      )
+    if response["success"] == true then
+      render json: {success: true}
+    else
+      raise ArgumentError.new("Error starting task")
+    end
+  end
+
+private
   def set_previous_migration
     @previous_migration = "{}"
   end
@@ -234,5 +242,38 @@ private
       flash[:error] = "Cannot #{params[:action]} a table with pending migrations"
       redirect_to user_tables_path
     end
+  end
+
+  def cloak_url(cluster)
+    protocol = Conf.get("/service/cloak/protocol")
+    port = Conf.get("/service/cloak/port")
+    url = "#{protocol}://#{cluster.address_of_a_ready_cloak}:#{port}"
+  end
+
+  def table_stats_task_spec(table)
+    code = <<-EOF
+      report_property('num_users')
+
+      -- Manually count by going through each row. This should prevent
+      -- loading the whole table in memory at once.
+      local count = 0
+      for row in user_table('#{table.table_name}') do
+        count = count + 1
+      end
+
+      Aircloak.Aggregation.fast_accumulate_property('num_rows', count)
+    EOF
+
+    {
+      prefetch: [{table: table.table_name, columns: []}],
+      post_processing: TaskCode.post_processing_spec(code)
+    }
+  end
+
+  def table_stats_return_url(table)
+    publish_url = Conf.get("/settings/rails/task/publish_url")
+    raise ArgumentError.new("No publish url present") unless publish_url.present?
+    publish_path = "/table_stats/backend/#{table.analyst.id}/#{table.id}"
+    Base64.strict_encode64(publish_url + publish_path)
   end
 end

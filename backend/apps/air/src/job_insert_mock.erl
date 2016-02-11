@@ -16,7 +16,7 @@
 
 %% @hidden
 validate(_Analyst, _UserData) ->
-  ok.
+  {[], []}.
 
 %% @hidden
 queue_inserts(Analyst, User, UserData) ->

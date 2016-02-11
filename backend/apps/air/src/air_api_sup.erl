@@ -37,6 +37,9 @@ setup_routes() ->
     % Internal endpoints not accessible to the web
     {["task", action], air_sandbox_task_resource, []},
 
+    % Table statistics endpoint
+    {["table_stats", action], table_stats_resource, []},
+
     % End-point allowing monitoring to perform checks from
     % the perspective of the erlang backend
     {["monitoring", action], monitoring_resource, []},

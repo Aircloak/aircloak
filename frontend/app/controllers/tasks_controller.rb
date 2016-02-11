@@ -209,34 +209,38 @@ class TasksController < ApplicationController
       # convert to json, 4 MB limit for buckets
       @results = convert_results_for_client_side_rendering @raw_results, 4 * 1024 * 1024
     end
-    @request = AirpubApi.generate_subscribe_request "/results/#{@task.analyst.id}/#{@task.token}"
-    @server_url = Conf.get("/service/airpub/subscribe_endpoint")
+    @results_publish_path = "/results/#{@task.analyst.id}/#{@task.token}"
     @task_token = @task.token
     describe_activity "Requested latest results of task #{@task.name}", latest_results_task_path(@task.token)
   end
 
   # GET /tasks/:id/single_result?result=:result_id
   def single_result
-    result_id = params[:result]
-    @raw_result = @task.results.find(result_id)
-    # convert to json, 16 MB limit for buckets
-    @result = @raw_result.to_client_hash 12 * 1024 * 1024, 12 * 1024 * 1024
-    describe_activity "Requested specific result of task #{@task.name}", single_result_task_path(@task.token, :result => result_id)
+    result_id = params[:result].to_i
+    respond_to do |format|
+      format.html do
+        @raw_result = @task.results.find(result_id)
+        # convert to json, 16 MB limit for buckets
+        @result = @raw_result.to_client_hash 12 * 1024 * 1024, 12 * 1024 * 1024
+        describe_activity "Requested specific result of task #{@task.name}", single_result_task_path(@task.token, :result => result_id)
+      end
+
+      # This is a request from the erlang frontend
+      format.csv do
+        rpc_response :csv_single, [@task.token, result_id]
+      end
+    end
   end
 
   # GET /tasks/:id/pending_executions
   # Return as a JSON the list of pending task executions for the particular task.
   def pending_executions
-    if @task.cluster.capable_of? :task_progress_reports
-      reports = @task.pending_results.all.inject([]) do |acc, pr|
-        status = pr.progress_status
-        acc.push(status) unless status.nil?
-        acc
-      end
-      render json: {success: true, reports: reports}
-    else
-      render json: {success: false}
+    reports = @task.pending_results.all.inject([]) do |acc, pr|
+      status = pr.progress_status
+      acc.push(status) unless status.nil?
+      acc
     end
+    render json: {success: true, reports: reports}
   end
 
   # POST /tasks/:id/suspend

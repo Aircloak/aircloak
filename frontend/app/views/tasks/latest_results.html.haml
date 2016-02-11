@@ -31,7 +31,7 @@
     %div#progress_indicator
 
 -# set listen parameters
-.listen_params{data: {server_url: @server_url, request: @request}}
+.listen_params{data: {task_token: @task.token}}
 .task_params{data: {task_token: @task_token}}
 
 %label#no_results_notice No result exists for this task yet.

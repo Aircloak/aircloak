@@ -292,7 +292,7 @@ TableFilter = (task, inTable, tableFilterDescriptor) ->
   filter = new Filter()
   userRows = null
   timeLimit = null
-  columns = [] # empty means no filtering, select all columns
+  columns = null # null means no filtering, select all columns
 
   # ------------------------------------
   # Constructor
@@ -302,7 +302,7 @@ TableFilter = (task, inTable, tableFilterDescriptor) ->
     filter = Filter.fromRawGroups(tableFilterDescriptor.filter.groups)
     userRows = tableFilterDescriptor.user_rows
     timeLimit = tableFilterDescriptor.time_limit
-    columns = tableFilterDescriptor.columns or []
+    columns = tableFilterDescriptor.columns or null
 
   _.extend(self, {
     toJSON: ->
@@ -312,7 +312,7 @@ TableFilter = (task, inTable, tableFilterDescriptor) ->
     filterString: ->
       res = []
       tableName = table.name
-      if columns.length == 0
+      if not columns? # no columns filter defined
         tableName += ".*"
       else
         columnsFilter = columns.join(",")

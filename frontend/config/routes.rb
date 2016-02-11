@@ -42,11 +42,10 @@ Web::Application.routes.draw do
   resources :test_vms, only: [:show]
   resources :test_items, only: [:show]
   resources :test_item_vms, only: [:show]
-  resources :repeated_answers, only: [:index, :show, :update]
-  resources :ra_task_codes, only: [:update]
   resources :metrics
   get '/airpub', to: 'airpub#index', as: 'airpub'
   post '/airpub', to: 'airpub#subscribe'
+  post '/airpub/request_parameters', to: 'airpub#request_parameters'
   get "impersonate/:analyst_id", to: "impersonation#impersonate"
   get "i_dont_want_to_be_an_imposter", to: "impersonation#stop_it"
   resources :capabilities
@@ -83,6 +82,8 @@ Web::Application.routes.draw do
     post "retry_migration", on: :member, action: "retry_migration"
     post "clear", on: :member, action: "clear"
     get "confirm_destroy", on: :member, action: "confirm_destroy"
+    post "compute_stats", on: :member, action: "compute_stats"
+    post "run_stats_task", on: :member, action: "run_stats_task"
   end
   resources :lookup_tables
   resources :keys

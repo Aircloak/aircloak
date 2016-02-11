@@ -53,7 +53,8 @@ deliver(#article{path = Path} = Article) ->
   Nodes = string:tokens(Path, "/"),
   lists:foldl(fun (Node, ParentPath) ->
       CurrentPath = ParentPath ++ "/" ++ Node,
-      gproc:send({p, l, {subscriber, CurrentPath}}, {notify, Article}),
+      % Notify all subscribers on all nodes
+      rpc:eval_everywhere(gproc, send, [{p, l, {subscriber, CurrentPath}}, {notify, Article}]),
       CurrentPath
     end, "", Nodes),
   ok.

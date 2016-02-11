@@ -14,14 +14,9 @@ content: |
   The cloak does not impose any restrictions on how you name your users, but if you want to upload more data for a
   user who already has data in a cloak, the identifying name used, has to be the same as the one previously used.
 
-  Before being able to upload data to a cluster, you need to prepare tables into which the data will be stored<%
-    if has_user_tables? -%>
-  , but that you already have done.
-  <% else -%>
-  .
-  <% end -%>
+  Before uploading data to a cluster, you need to prepare tables into which the data will be stored.
   These tables dictate the format the cluster expects the data you upload to be in.
-
+  
 
   ## Creating database tables
 

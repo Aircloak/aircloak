@@ -3,7 +3,9 @@
 %% Dispatch functions
 -export([
   csv_row_based/3,
+  csv_single/3,
   task_results_json/3,
+  compute_stats/3,
   error/3
 ]).
 
@@ -18,9 +20,13 @@
 %% -------------------------------------------------------------------
 
 %% @doc Exports a task results for a set period of time
-%%      as rows, where each reported property is its own row.
+%%      as CSV, where each reported property is its own row.
 csv_row_based(Arguments, Request, State) ->
   csv_rpc:row_based_export(Arguments, Request, State).
+
+%% @doc Exports a single task result as CSV, where each reported property is its own row.
+csv_single(Arguments, Request, State) ->
+  csv_rpc:single_export(Arguments, Request, State).
 
 %% @doc Exports the results from a single task as JSON.
 %%      The result are streamed to the user, to allow
@@ -28,6 +34,11 @@ csv_row_based(Arguments, Request, State) ->
 %%      many results.
 task_results_json(Arguments, Request, State) ->
   task_results_rpc:as_json(Arguments, Request, State).
+
+%% @doc Computes table statistics
+compute_stats(Arguments, Request, State) ->
+  table_stats_calculator:run(Arguments, request_proxy:forward_headers(Request)),
+  {{halt, 200}, resource_common:respond_json([{status, ok}], Request), State}.
 
 %% @doc Re-reports a rails error message verbatim to the user
 error([ErrorJson, StatusCode], Request, State) ->

@@ -86,33 +86,33 @@ code_change(_, State, _) -> {ok, State}.
 %% -------------------------------------------------------------------
 
 purge_tasks_results() ->
-  air_db:call({fun(Connection) ->
-        {{select, _}, TaskIds} = pgsql_connection:simple_query(
+  air_db:call(fun(Connection) ->
+        {{select, _}, TaskIds} = sql_conn:simple_query(
               "SELECT id FROM tasks WHERE deleted=true AND purged=false AND updated_at <= now() - INTERVAL '7 days'",
               Connection
             ),
         [purge_task_results(TaskId, Connection) || {TaskId} <- TaskIds],
         ok
-      end, timer:minutes(1)}).
+      end).
 
 purge_task_results(TaskId, Connection) ->
-  {{delete, _}, _} = pgsql_connection:extended_query(
+  {{delete, _}, _} = sql_conn:extended_query(
         "DELETE FROM exception_results USING results "
         "WHERE exception_results.result_id=results.id AND results.task_id=$1",
         [TaskId],
         Connection
       ),
-  {{delete, _}, _} = pgsql_connection:extended_query(
+  {{delete, _}, _} = sql_conn:extended_query(
         "DELETE FROM results WHERE task_id=$1",
         [TaskId],
         Connection
       ),
-  {{delete, _}, _} = pgsql_connection:extended_query(
+  {{delete, _}, _} = sql_conn:extended_query(
         "DELETE FROM pending_results WHERE task_id=$1",
         [TaskId],
         Connection
       ),
-  {{update, 1}, _} = pgsql_connection:extended_query(
+  {{update, 1}, _} = sql_conn:extended_query(
         "UPDATE tasks SET purged=true WHERE id=$1",
         [TaskId],
         Connection

@@ -10,12 +10,14 @@
 %%
 %% Example (assuming nginx in front):
 %%   curl http://localhost:5500/_/tasks/[TASK-ID]/results.csv
+%%   curl http://localhost:5500/_/tasks/[TASK-ID]/single_result.csv?result_id=[RESULT_ID]
 %%
 -module(csv_rpc).
 
 %% Dispatch API
 -export([
-  row_based_export/3
+  row_based_export/3,
+  single_export/3
 ]).
 
 -include_lib("air.hrl").
@@ -30,6 +32,18 @@ row_based_export(Arguments, Request, State) ->
   CSVRequest = wrq:set_resp_header("Content-Type", "text/csv", Request),
   StreamingRequest = wrq:set_resp_body({stream, stream_csv(Arguments)}, CSVRequest),
   {{halt, 200}, StreamingRequest, State}.
+
+%% @doc Exports the requested result as CSV to the client.
+single_export(Arguments, Request, State) ->
+  HeaderRequest = wrq:set_resp_header("Content-Type", "text/csv", Request),
+  {TimeStamp, HasErrors, Buckets} = get_single_result(Arguments),
+  % format buckets into CSV rows
+  Rows = [[$\n, title_from_bucket(Bucket), $,, integer_to_list(ej:get({"count"}, Bucket))] || Bucket <- Buckets],
+  % append buckets to result metadata
+  Body = [<<"sep=,\nTime,">>, TimeStamp, <<"\nErrors,">>, format_errors(HasErrors), Rows],
+  % write body
+  BodyRequest = wrq:set_resp_body(Body, HeaderRequest),
+  {{halt,200}, BodyRequest, State}.
 
 
 %% -------------------------------------------------------------------
@@ -52,7 +66,7 @@ stream_csv(Arguments) ->
 receive_metadata() ->
   receive
     {metadata, Headers, ErrorSet} ->
-      HeadersForShow = cloak_util:join([<<"time">>, <<"errors">>] ++ Headers, ","),
+      HeadersForShow = cloak_util:join([<<"Time">>, <<"Errors">>] ++ Headers, ","),
       {HeadersForShow ++ "\n", fun() -> receive_incoming_results(Headers, ErrorSet) end};
     {error, {Error, Reason}} ->
       ?ERROR("CSV export failed gathering headers and errors: ~p:~p", [Error, Reason]),
@@ -77,6 +91,23 @@ receive_incoming_results(Headers, ErrorSet) ->
       {"", done}
   end.
 
+get_single_result([TaskToken, ResultId]) ->
+  DbFun = fun(Connection) ->
+    SQL = ["
+      SELECT results.created_at, EXISTS(SELECT TRUE FROM exception_results WHERE result_id = $2), results.buckets_json
+      FROM results, tasks
+      WHERE tasks.token = $1 AND results.task_id = tasks.id AND results.id = $2"
+    ],
+    {{select, _}, [Result]} = sql_conn:extended_query(SQL, [TaskToken, ResultId], Connection),
+    Result
+  end,
+  {TimeStamp, HasErrors, BucketsJSON} = air_db:call(DbFun),
+  Buckets = case mochijson2:decode(BucketsJSON) of
+    null -> [];
+    Other -> Other
+  end,
+  {format_time(TimeStamp), HasErrors, Buckets}.
+
 
 %% -------------------------------------------------------------------
 %% Processing CSV
@@ -100,7 +131,7 @@ get_csv_results(ReturnPid, Arguments) ->
       ReturnPid ! {error, {Error, Reason}}
     end
   end,
-  air_db:call({DbFun, infinity}).
+  air_db:call(DbFun).
 
 get_params([TaskToken, StartTime, EndTime], Connection) ->
   #task_params{
@@ -123,7 +154,7 @@ get_result_errors(#task_params{task_token=Token, start_time=Start, end_time=End,
       results.created_at BETWEEN $2 AND $3
     GROUP BY results.id, COUNT(exception_results)"
   ],
-  {{select, _}, ErrorTasks} = pgsql_connection:extended_query(SQL, [Token, Start, End], Connection),
+  {{select, _}, ErrorTasks} = sql_conn:extended_query(SQL, [Token, Start, End], Connection),
   lists:foldl(fun({TaskId}, AccSet) -> sets:add_element(TaskId, AccSet) end, sets:new(), ErrorTasks).
 
 sql_for_task(#task_params{task_token=TaskToken, start_time=StartTime, end_time=EndTime}) ->
@@ -146,16 +177,16 @@ get_headers(#task_params{connection=Connection}=TaskParams) ->
     lists:foldl(fun(Struct, TitleAcc) -> sets:add_element(title_from_bucket(Struct), TitleAcc) end, Acc, Props)
   end,
   {SQL, Params} = sql_for_task(TaskParams),
-  {ok, ResultSet} = pgsql_connection:fold(FoldFun, sets:new(), SQL, Params, Connection),
+  {ok, ResultSet} = sql_conn:fold(FoldFun, sets:new(), SQL, Params, Connection),
   lists:sort(sets:to_list(ResultSet)).
 
 get_data(#task_params{connection=Connection}=TaskParams, ReturnPid) ->
   EachFun = fun(Row) -> ReturnPid ! {data, Row} end,
   {SQL, Params} = sql_for_task(TaskParams),
-  pgsql_connection:foreach(EachFun,  SQL, Params, Connection).
+  sql_conn:foreach(EachFun,  SQL, Params, Connection).
 
 process_raw_rows(Headers, ErrorSet, {Id, CreatedAt, Val}) ->
-  HasError = atom_to_list(sets:is_element(Id, ErrorSet)),
+  Errors = format_errors(sets:is_element(Id, ErrorSet)),
   Props = case mochijson2:decode(Val) of
     null -> [];
     Other -> Other
@@ -171,17 +202,29 @@ process_raw_rows(Headers, ErrorSet, {Id, CreatedAt, Val}) ->
             {ok, Count} -> cloak_util:stringify(Count)
           end
         end, Headers),
-  cloak_util:join([format_time(CreatedAt), HasError] ++ Row, ",").
+  cloak_util:join([format_time(CreatedAt), Errors] ++ Row, ",").
 
 format_time({{Year, Month, Day}, {Hour, Minute, Second}}) when is_integer(Second) ->
-  io_lib:format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~p", [Year, Month, Day, Hour, Minute, Second]);
+  io_lib:format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [Year, Month, Day, Hour, Minute, Second]);
 format_time({{Year, Month, Day}, {Hour, Minute, Second}}) when is_float(Second) ->
-  io_lib:format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~.2f", [Year, Month, Day, Hour, Minute, Second]).
+  io_lib:format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~5.2.0f", [Year, Month, Day, Hour, Minute, Second]).
 
 title_from_bucket(Bucket) ->
   Label = ej:get({"label"}, Bucket),
   Value = ej:get({"value"}, Bucket),
-  <<Label/binary, ": ", Value/binary>>.
+  Title = <<Label/binary, ": ", Value/binary>>,
+  case binary:match(Title, <<$,>>) of
+    nomatch ->
+      Title;
+    _ ->
+      EscapedTitle = binary:replace(Title, <<$">>, <<$",$">>, [global]),
+      <<$", EscapedTitle/binary, $">>
+  end.
+
+format_errors(true) ->
+  <<"present">>;
+format_errors(false) ->
+  <<"none">>.
 
 
 %% -------------------------------------------------------------------
@@ -226,7 +269,7 @@ create_cells_json([Count|Rem]) ->
       setup,
       [
         ?load_conf,
-        ?with_applications([webmachine, etcd]),
+        ?with_applications([webmachine, etcd, hackney]),
         ?with_db,
         ?with_processes([air_api_sup])
       ],
@@ -250,14 +293,14 @@ create_cells_json([Count|Rem]) ->
             WHERE results.created_at = $1"
           ],
           {{select, 1}, [{ResultId}]} = db_test_helpers:extended_query(SqlException, [Time1]),
-          db_test_helpers:insert_rows("exception_results", ["result_id"], [[ResultId]]),
+          ok = db_test_helpers:insert_rows("exception_results", ["result_id"], [[ResultId]]),
           ExpectedResponse = lists:flatten([
-            "sep=,\ntime,errors,label1: value1,label2: value2\n"
-            "" ++ format_time(Time1) ++ ",true,1,\n" ++
-            "" ++ format_time(Time2) ++ ",false,,2\n"
+            "sep=,\nTime,Errors,label1: value1,label2: value2\n"
+            "" ++ format_time(Time1) ++ ",present,1,\n" ++
+            "" ++ format_time(Time2) ++ ",none,,2\n"
           ]),
-          Args = [Token, "1900/01/01 12:00:00", "2050/01/01 12:00:00"],
-          mecked_backend(Args, fun() -> verifyHttp(ExpectedResponse, get_result(Token)) end)
+          Args = [list_to_binary(Token), <<"1900/01/01 12:00:00">>, <<"2050/01/01 12:00:00">>],
+          mecked_backend(<<"csv_row_based">>, Args, fun() -> verifyHttp(ExpectedResponse, get_results(Token)) end)
         end}},
 
         {timeout, 30, {"Should return CSV in a time range", fun() ->
@@ -272,39 +315,58 @@ create_cells_json([Count|Rem]) ->
             [TaskId, Time2, AnalystId, cells_json([2,3])],
             [TaskId, Time3, AnalystId, cells_json([3,4])]
           ],
-          db_test_helpers:insert_rows("results", ["task_id", "created_at", "analyst_id", "buckets_json"], Results),
+          ok = db_test_helpers:insert_rows("results", ["task_id", "created_at", "analyst_id", "buckets_json"], Results),
           ExpectedResponse = lists:flatten([
-            "sep=,\ntime,errors,label2: value2,label3: value3\n"
-            "" ++ format_time(Time2) ++ ",false,2,3\n"
+            "sep=,\nTime,Errors,label2: value2,label3: value3\n"
+            "" ++ format_time(Time2) ++ ",none,2,3\n"
           ]),
-          Args = [Token, "1957/01/01 12:00:00", "1959/01/01 12:00:00"],
-          mecked_backend(Args, fun() ->
-                verifyHttp(ExpectedResponse, get_result(Token,
+          Args = [list_to_binary(Token), <<"1957/01/01 12:00:00">>, <<"1959/01/01 12:00:00">>],
+          mecked_backend(<<"csv_row_based">>, Args, fun() ->
+                verifyHttp(ExpectedResponse, get_results(Token,
                     "begin_date=1957%2F01%2F01+12%3A00%3A00&end_date=1959%2F01%2F01+12%3A00%3A00"))
               end)
+        end}},
+
+        {timeout, 30, {"Should return a single result as CSV", fun() ->
+          clear_tables(),
+          Token = "Test-Token",
+          {AnalystId, TaskId} = add_task_and_analyst(Token),
+          Time1 = {{1951, 12, 12}, {10, 10, 10}},
+          Results = [[TaskId, Time1, AnalystId, cells_json([1, 2])]],
+          ok = db_test_helpers:insert_rows("results", ["task_id", "created_at", "analyst_id", "buckets_json"], Results),
+          {{select, 1}, [{ResultId}]} = db_test_helpers:simple_query("SELECT id FROM results"),
+          ExpectedResponse = lists:flatten([
+            "sep=,\nTime," ++ format_time(Time1) ++ "\nErrors,none\nlabel1: value1,1\nlabel2: value2,2"
+          ]),
+          mecked_backend(<<"csv_single">>, [list_to_binary(Token), ResultId], fun() -> verifyHttp(ExpectedResponse, get_result(Token, ResultId)) end)
         end}}
       ]
     ).
 
-mecked_backend(Args, Fun) ->
+mecked_backend(API, Args, Fun) ->
   meck:new(request_proxy),
   RPCPayload = {ok, {struct, [
-    {<<"rpc">>, <<"csv_row_based">>},
-    {<<"arguments">>, lists:map(fun cloak_util:binarify/1, Args)}
+    {<<"rpc">>, API},
+    {<<"arguments">>, Args}
   ]}},
   meck:expect(request_proxy, forward_request, fun(_) -> RPCPayload end),
   Fun(),
   meck:unload(request_proxy).
 
-verifyHttp(ExpectedBody, HttpResponse) ->
-  ?assertMatch({ok, {{_, 200, _}, _, _}}, HttpResponse),
-  {ok, {_, _, Body}} = HttpResponse,
-  ?assertEqual(ExpectedBody, Body).
+verifyHttp(ExpectedBody, {ok, StatusCode, _RespHeaders, ClientRef}) ->
+  ?assertEqual(200, StatusCode),
+  {ok, Body} = hackney:body(ClientRef),
+  ?assertEqual(list_to_binary(ExpectedBody), Body).
 
-get_result(TaskToken) ->
-  get_result(TaskToken, "").
+get_results(TaskToken) ->
+  get_results(TaskToken, "").
 
-get_result(TaskToken, QueryString) ->
-  httpc:request(get, {db_test_helpers:http_url("/backend/tasks/" ++ TaskToken ++ "/results.csv?" ++ QueryString), []}, [], []).
+get_results(TaskToken, QueryString) ->
+  URL = "/backend/tasks/" ++ TaskToken ++ "/results.csv?" ++ QueryString,
+  hackney:request(get, db_test_helpers:http_url(URL), [], <<>>, []).
+
+get_result(TaskToken, ResultId) ->
+  URL = "/backend/tasks/" ++ TaskToken ++ "/single_result.csv?result=" ++ integer_to_list(ResultId),
+  hackney:request(get, db_test_helpers:http_url(URL), [], <<>>, []).
 
 -endif.

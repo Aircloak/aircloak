@@ -10,6 +10,7 @@
         %th Good
         - if render_assigned
           %th Cluster
+        %th Comment
         %td
 
     %tbody
@@ -24,6 +25,7 @@
               = cloak.cluster.name
               - if cloak.cluster_cloak.state != :belongs_to
                 = " (#{cloak.cluster_cloak.state})"
+          %td= cloak.comment
           %td
             = link_to 'Show', cloak
             \|

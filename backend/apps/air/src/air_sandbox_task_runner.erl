@@ -80,7 +80,7 @@ users_with_success_responses(JobResponses) ->
 run_job(ReqId, {UserId, Accumulator, Task, JobInput}, ResponseHandler) ->
   Caller = self(),
   Timestamp = cloak_util:timestamp_to_epoch(os:timestamp()),
-  job_runner:execute(1, Task#task{timestamp=Timestamp}, UserId, JobInput, Accumulator, ReqId,
+  job_runner:execute(1, Task#task{timestamp=Timestamp}, {UserId, JobInput}, Accumulator, ReqId,
       fun(JobReqId, Response) -> ResponseHandler(Caller, JobReqId, Response) end).
 
 handle_response(Caller, ReqId, {_, JobResponse}) ->

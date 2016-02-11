@@ -18,6 +18,7 @@ class InfrastructureApi::MachinesController < ApplicationController
     cloak = Cloak.find_by_id(params[:id])
     if cloak
       if cloak.set_broken
+        cloak.update_attribute(:comment, "Marked as broken by manny-air")
         CloakMailer.broken_cloak(cloak).deliver
         render text: "*Sniff*, another one left the world of the living!"
       else

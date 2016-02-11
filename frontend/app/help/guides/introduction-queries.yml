@@ -44,7 +44,7 @@ content: |
 
   In the query interface you select which database tables you want to have access
   to in your query. You can also filter the data returned for a table by specifying constraints.
-  For example only __<%= sample_user_table_name %>__ where __<%= sample_constraint %>__.
+  For example only __locations__ where __x > 10__.
 
   You can also specify that you only want the last __N__ results per user, or
   only results that arrived at the cloak within a certain number of minutes. The more you can
@@ -80,11 +80,11 @@ content: |
   #### Accessing data
 
   In your queries, you access the data from the selection queries by iterating over each resulting row.
-  For example, if you have a query referring the table `<%= sample_user_table_name %>`, you can process
+  For example, if you have a query referring the table `locations`, you can process
   the results of that query as follows:
 
   ```Lua
-  for row in user_table("<%= sample_user_table_name %>") do
+  for row in user_table("locations") do
     process(row) -- `row` is a Lua table containing one result and `process` is a function implemented by you
   end
   ```
@@ -100,9 +100,9 @@ content: |
   a single row available. This can be easily done as follows:
 
   ```Lua
-  local <%= sample_user_table_name %> = load_user_table("<%= sample_user_table_name %>")
-  for i = 1, #<%= sample_user_table_name %> do
-    row = <%= sample_user_table_name %>[i]
+  local locations = load_user_table("locations")
+  for i = 1, #locations do
+    row = locations[i]
     process(row) -- `row` is a Lua table containing one result and `process` is a function implemented by you
   end
   ```

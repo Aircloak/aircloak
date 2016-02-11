@@ -5,7 +5,6 @@ describe UserToken do
     Analyst.destroy_all
     User.destroy_all
     UserToken.destroy_all
-    RepeatedAnswer.delete_all
   end
 
   let(:user) {
