@@ -28,13 +28,8 @@ class JsonSender
       parameters.merge!({
             ssl_client_cert: ssl_cert,
             ssl_client_key: ssl_key,
-            verify_ssl: OpenSSL::SSL::VERIFY_NONE
-            # FIXME: Once we have dropped the Artemis cluster we should start
-            # doing certification validation. The Artemis cluster still has
-            # the old aircloak.net domain name in its certs.
-            # For details:
-            # https://trello.com/c/XHgYKmru/5630-enable-ssl-cert-verification-once-legacy-clusters-are-gone
-            # ssl_ca_file: "/aircloak/ca/cloaks_root.crt"
+            verify_ssl: OpenSSL::SSL::VERIFY_PEER,
+            ssl_ca_file: "/aircloak/ca/cloaks_root.crt"
           })
     end
 

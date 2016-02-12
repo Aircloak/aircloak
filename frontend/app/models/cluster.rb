@@ -243,13 +243,10 @@ class Cluster < ActiveRecord::Base
       timeout: 2,
       open_timeout: 1
     }
-    # FIXME: Once we have dropped the Artemis cluster we should start
-    # doing certification validation. The Artemis cluster still has
-    # the old aircloak.net domain name in its certs.
-    # For details:
-    # https://trello.com/c/XHgYKmru/5630-enable-ssl-cert-verification-once-legacy-clusters-are-gone
-    # arguments[:ssl_ca_file] = "/aircloak/ca/cloaks_root.crt" if Conf.production_mode?
-    arguments[:verify_ssl] = OpenSSL::SSL::VERIFY_NONE if Conf.production_mode?
+    if Conf.production_mode?
+      arguments[:ssl_ca_file] = "/aircloak/ca/cloaks_root.crt"
+      arguments[:verify_ssl] = OpenSSL::SSL::VERIFY_PEER
+    end
     RestClient::Request.execute(arguments) do |response, request, result, &block|
       case response.code
       when 200
