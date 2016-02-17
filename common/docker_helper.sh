@@ -249,8 +249,8 @@ EOF
   echo "apt-get update && apt-get upgrade -y && \\ "
 
   # Generate special useradd helper which ensures proper UID on Linux hosts
-  if [ "$(which boot2docker)" == "" ]; then
-    # No boot2docker -> use host's $UID to ensure proper permissions
+  if [ "$(which docker-machine)" == "" ]; then
+    # No docker-machine -> use host's $UID to ensure proper permissions
     uid_arg="-u $UID"
   fi
 
