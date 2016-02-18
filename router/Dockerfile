@@ -1,4 +1,4 @@
-FROM nginx:1.9.7
+FROM nginx:1.9.11
 MAINTAINER Aircloak
 
 AIR_INIT
