@@ -230,7 +230,7 @@ function air_init {
   # Support for rebuilding of all images. Change this date if you want to
   # force the rebuild of all images. Usually you want to do this if you
   # want to upgrade Debian packages on all images.
-  upgrade_date="20151208"
+  upgrade_date="20160218"
   echo "RUN echo '$upgrade_date' > /dev/null"
 
   # Start the RUN command
@@ -249,6 +249,9 @@ EOF
     # local development -> generate dummy proxies.sh
     echo "touch /tmp/build_config/proxies.sh && \\"
   fi
+
+  # Upgrade existing packages
+  echo "apt-get update && apt-get upgrade -y && \\ "
 
   # Support for setting custom prompt through CONTAINER_NAME env. This allows us
   # to inject the container name into the ssh session. Without this, the name of the
