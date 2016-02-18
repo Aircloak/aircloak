@@ -1,4 +1,4 @@
-FROM ruby:2.0.0-p643
+FROM ruby:2.0.0-p648
 MAINTAINER Aircloak
 
 AIR_INIT
