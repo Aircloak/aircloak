@@ -225,7 +225,7 @@ function air_init {
   # Support for rebuilding of all images. Change this date if you want to
   # force the rebuild of all images. Usually you want to do this if you
   # want to upgrade Debian packages on all images.
-  upgrade_date="20151208"
+  upgrade_date="20160218"
   echo "RUN echo '$upgrade_date' > /dev/null"
 
   # Start the RUN command
@@ -244,6 +244,9 @@ EOF
     # local development -> generate dummy proxies.sh
     echo "touch /tmp/build_config/proxies.sh && \\"
   fi
+
+  # Upgrade existing packages
+  echo "apt-get update && apt-get upgrade -y && \\ "
 
   # Generate special useradd helper which ensures proper UID on Linux hosts
   if [ "$(which boot2docker)" == "" ]; then
