@@ -27,7 +27,7 @@ Finally, when running locally, a local TCP balancer is started which serves as t
 
 __Network__: CoreOS and Docker containers will communicate with your own machine. For this to work, you need to either disable firewall on your machine or open necessary ports.
 
-__OS X__: Make sure that [required ports](../osx_setup.md#port-forwarding) are forwarded to your `boot2docker` VM. The _Host IP_ value in VirtualBox settings should be left empty.
+__OS X__: Make sure that [required ports](../osx_setup.md#port-forwarding) are forwarded to your docker-machine VM. The _Host IP_ value in VirtualBox settings should be left empty.
 
 ## Running
 

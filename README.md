@@ -69,7 +69,7 @@ In the second approach you run docker containers for each component, which allow
 
 In order to run the system you need the following components:
 
-- Docker 1.7 (+ boot2docker if on OS X)
+- Docker 1.8.3 (+ docker-machine if on OS X)
 - Ruby 2.0
 - Erlang 17.5
 - Nginx (preferably 1.9.3) (it needs to be in the execution path for the non-root user)
@@ -276,4 +276,4 @@ A consistent rule is applied for ports in different environments. For example, i
 
 List of all services and used ports is specified [here](./config/tcp_ports.json).
 
-__OS X developers__: These ports need to be forwarded to boot2docker in VirtualBox.
+__OS X developers__: Some ports need to be forwarded to docker-machine in VirtualBox, see [here](osx_setup.md#port-forwarding) for additional instructions.
