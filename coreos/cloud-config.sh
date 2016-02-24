@@ -44,6 +44,10 @@ coreos:
   locksmith:
     endpoint: http://127.0.0.1:$ETCD_CLIENT_PORT
   units:
+  - name: update-engine.service
+    command: stop
+  - name: locksmithd.service
+    command: stop
   - name: docker.service
     drop-ins:
     - name: 50-insecure-registry.conf
