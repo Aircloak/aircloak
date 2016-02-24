@@ -170,7 +170,7 @@ It is also essential that machines have fixed static IP addresses. This is imper
 Assuming CoreOS machines are properly prepared, on the build server you can simply invoke :
 
 ```
-REGISTRY_URL=registry.aircloak.com /aircloak/target_cluster/coreos/cluster.sh \
+REGISTRY_URL=registry.aircloak.com /aircloak/target_cluster/air/coreos/cluster.sh \
       setup_cluster \
       target_cluster \
       machine_ip1 machine_ip2 ...
@@ -198,7 +198,7 @@ First, you need to prepare an empty CoreOS machine (as explained [earlier](#prep
 Now you can run the following command:
 
 ```
-REGISTRY_URL=registry.aircloak.com /aircloak/target_cluster/coreos/cluster.sh \
+REGISTRY_URL=registry.aircloak.com /aircloak/target_cluster/air/coreos/cluster.sh \
     add_machine \
     target_cluster \
     machine_from_the_cluster_ip \
@@ -216,7 +216,7 @@ Once the machine is added, you need to go to the load balancer server and modify
 To remove the machine, you can simply invoke:
 
 ```
-/aircloak/target_cluster/coreos/cluster.sh \
+/aircloak/target_cluster/air/coreos/cluster.sh \
     remove_machine \
     target_cluster \
     machine_from_the_cluster_ip \
@@ -236,7 +236,7 @@ First make sure you have [rebuilt and pushed the latest images](#manually-buildi
 Then, you can invoke:
 
 ```
-/aircloak/target_cluster/coreos/cluster.sh \
+/aircloak/target_cluster/air/coreos/cluster.sh \
     upgrade_machine \
     target_cluster \
     machine_to_upgrade_ip
@@ -251,7 +251,7 @@ During the upgrade, the machine is still a part of the etcd cluster, but none of
 The rolling upgrade is usually invoked via [Capistrano deploy](#capistrano-deploy), but if you want to do it manually on the build server, you can run:
 
 ```
-/aircloak/target_cluster/coreos/cluster.sh \
+/aircloak/target_cluster/air/coreos/cluster.sh \
     upgrade_machine \
     target_cluster
     cluster_machine_ip
