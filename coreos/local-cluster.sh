@@ -37,7 +37,7 @@ function start_local_cluster {
   start_machines $num_machines
 
   REGISTRY_URL=$COREOS_HOST_IP:$(get_tcp_port prod registry/http) \
-  ./cluster.sh setup_cluster local_vagrant "$ips"
+  ./cluster.sh setup_cluster local_vagrant $ips
 
   for machine_ip in $(machine_ips $num_machines); do
     ssh $machine_ip "journalctl -f -u air-*" &

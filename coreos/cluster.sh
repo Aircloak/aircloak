@@ -18,14 +18,15 @@ cd $(dirname $0)
 
 function setup_cluster {
   activate_cluster_plugin $1
+  shift
 
-  for machine_ip in $2; do
+  for machine_ip in "$@"; do
     check_ssh $machine_ip
   done
 
-  cloud_config_install_part=$(cloud_config_install_part "$2")
+  cloud_config_install_part=$(cloud_config_install_part "$@")
 
-  for machine_ip in $2; do
+  for machine_ip in "$@"; do
     install_machine $machine_ip "$cloud_config_install_part"&
   done
   wait
