@@ -110,8 +110,17 @@ function install_machine {
         sudo /aircloak/air/air_service_ctl.sh follow_installation
       "
 
+  wait_for_services $1
+}
+
+function wait_for_services {
   echo "$1: Waiting for services to start ..."
-  machine_ssh $1 "/aircloak/air/air_service_ctl.sh wait_until_system_is_up"
+  result=$(machine_ssh $1 "/aircloak/air/air_service_ctl.sh wait_until_system_is_up")
+  if [ "$result" != "ok" ]; then
+    echo "Timeouted waiting for services on $1" >&2
+    echo "$result" >&2
+    exit 1
+  fi
 }
 
 function generate_cloud_config_file {
@@ -248,6 +257,7 @@ function upgrade_machine {
   update_cloud_config $1 $2
   upload_etcd_config $2
   machine_ssh $2 "sudo /aircloak/air/air_service_ctl.sh upgrade_system"
+  wait_for_services $2
   echo "Machine $2 upgraded."
 }
 
