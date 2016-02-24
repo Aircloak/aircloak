@@ -41,6 +41,8 @@ coreos:
   fleet:
     public-ip: \$public_ipv4
     etcd_servers: http://127.0.0.1:$ETCD_CLIENT_PORT
+  locksmith:
+    endpoint: http://127.0.0.1:$ETCD_CLIENT_PORT
   units:
   - name: docker.service
     drop-ins:
