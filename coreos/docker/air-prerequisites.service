@@ -16,6 +16,7 @@ Requires=docker.service
 BindsTo=docker.service
 
 [Service]
+SyslogIdentifier=air-prerequisites
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/aircloak/air/prerequisites.sh

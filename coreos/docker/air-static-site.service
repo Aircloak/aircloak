@@ -10,6 +10,7 @@ Requires=air-prerequisites.service
 BindsTo=air-prerequisites.service
 
 [Service]
+SyslogIdentifier=air-static-site
 ExecStart=/aircloak/air/air_service_ctl.sh start_service static_website
 ExecStop=/aircloak/air/air_service_ctl.sh stop_service static_website
 Restart=on-failure

@@ -17,6 +17,7 @@ BindsTo=air-frontend.service
 Requires=air-frontend.service
 
 [Service]
+SyslogIdentifier=air-frontend-sidekick
 EnvironmentFile=/etc/environment
 
 # The service does nothing (see comment at the top).

@@ -112,6 +112,7 @@ function air_install_command {
       After=etcd2.service
 
       [Service]
+      SyslogIdentifier=air-installer
       Type=oneshot
       Environment="REGISTRY_URL=$REGISTRY_URL"
       Environment="IMAGE_CATEGORY=$IMAGE_CATEGORY"
