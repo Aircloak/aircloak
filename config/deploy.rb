@@ -54,7 +54,7 @@ namespace :aircloak do
       execute "AIR_ENV=prod #{build_folder}/balancer/build-image.sh"
 
       # restart the systemd service
-      execute "systemctl restart #{fetch(:balancer_service)}"
+      execute "systemctl daemon-reload && systemctl restart #{fetch(:balancer_service)}"
     end
   end
 
