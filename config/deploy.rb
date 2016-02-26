@@ -27,6 +27,14 @@ namespace :aircloak do
     on roles(:build), in: :sequence do
       update_server_code
 
+      # pull the latest version of the static website.
+      exec_ml "
+            cd #{build_folder}/../static-website &&
+            git fetch &&
+            git checkout develop &&
+            git reset --hard origin/develop
+          "
+
       # package docker images
       exec_ml "
             AIR_ENV=prod
