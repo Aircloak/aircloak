@@ -124,7 +124,6 @@ integration_test() ->
   % test setup
   application:set_env(airpub, js_folder, "../../../priv/js"),
   application:set_env(airpub, post_processing_rules, [{"/processed/", "process_result"}]),
-  erlang_js:start(),
   {ok, JSSupPid} = js_vm_sup:start_link(),
   % test run
   {ok, Data} = file:read_file("../test/result.json"),
@@ -144,7 +143,6 @@ integration_test() ->
     {<<"exceptions">>, []}
   ]} = test_post_processor("/unprocessed/1", Data),
   % test cleanup
-  stop_process(JSSupPid),
-  application:stop(erlang_js).
+  stop_process(JSSupPid).
 
 -endif.
