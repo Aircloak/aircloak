@@ -46,7 +46,7 @@ init([]) ->
     Count -> Count
   end,
   {ok, JSFolder} = application:get_env(airpub, js_folder),
-  JSModules = filelib:wildcard(JSFolder ++ "/*.js"),
+  JSModules = filelib:wildcard(JSFolder ++ "/src/*.js"),
   lager:info("Starting JS VM pool with size ~p and code modules ~p.~n", [PoolSize, JSModules]),
   PoolArgs = [{name, {local, ?POOL_NAME}}, {worker_module, js_vm_worker}, {size, PoolSize}, {max_overflow, 0}],
   Pool = poolboy:child_spec(?POOL_NAME, PoolArgs, JSModules),
