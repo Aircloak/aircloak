@@ -93,7 +93,7 @@ set -eo pipefail
     while [ "$result" != "ok" ]; do
       if [ "$attempt" == "60" ]; then
         echo "$result"
-        exit 0
+        exit 1
       fi
 
       sleep 1
