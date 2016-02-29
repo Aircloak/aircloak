@@ -14,6 +14,7 @@ rel/air
 *.depsolver_plt
 /sandbox_makefile.local
 include/*_pb.hrl
+priv/js/bin
 
 # This folder (and subfolders) are used by the
 # docker build system. They should not live in
