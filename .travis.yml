@@ -9,7 +9,11 @@ cache:
 addons:
   postgresql: "9.4"
   apt:
+    sources:
+    - ubuntu-toolchain-r-test
     packages:
+    - gcc-4.8
+    - g++-4.8
     - protobuf-c-compiler
     - liblua5.1-0-dev
     - libprotobuf-c0-dev
@@ -22,6 +26,8 @@ before_install:
   - rvm install 2.0.0
   - curl -L  https://github.com/coreos/etcd/releases/download/v2.0.11/etcd-v2.0.11-linux-amd64.tar.gz -o etcd-v2.0.11-linux-amd64.tar.gz && tar xzvf etcd-v2.0.11-linux-amd64.tar.gz
   - etcd-v2.0.11-linux-amd64/etcd -addr 127.0.0.1:$(. ./config/config.sh && get_tcp_port test etcd/client) &
+install:
+  - export CXX="g++-4.8" CC="gcc-4.8"
 before_script:
   - etcd/config_travis.sh
   - db/init_db.sh
