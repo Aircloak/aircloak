@@ -10,6 +10,7 @@ Requires=air-prerequisites.service
 BindsTo=air-prerequisites.service
 
 [Service]
+SyslogIdentifier=air-frontend
 TimeoutStartSec=0
 ExecStart=/aircloak/air/air_service_ctl.sh start_service frontend
 ExecStop=/aircloak/air/air_service_ctl.sh stop_service frontend

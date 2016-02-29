@@ -41,7 +41,13 @@ coreos:
   fleet:
     public-ip: \$public_ipv4
     etcd_servers: http://127.0.0.1:$ETCD_CLIENT_PORT
+  locksmith:
+    endpoint: http://127.0.0.1:$ETCD_CLIENT_PORT
   units:
+  - name: update-engine.service
+    command: stop
+  - name: locksmithd.service
+    command: stop
   - name: docker.service
     drop-ins:
     - name: 50-insecure-registry.conf
@@ -106,6 +112,7 @@ function air_install_command {
       After=etcd2.service
 
       [Service]
+      SyslogIdentifier=air-installer
       Type=oneshot
       Environment="REGISTRY_URL=$REGISTRY_URL"
       Environment="IMAGE_CATEGORY=$IMAGE_CATEGORY"

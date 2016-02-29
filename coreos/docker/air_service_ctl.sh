@@ -39,6 +39,7 @@ set -eo pipefail
   }
 
   function check_system {
+    wanted_services="air-backend air-frontend air-frontend-sidekick air-prerequisites air-router air-static-site"
     active_services=$(
           systemctl list-units |
           grep 'air\-' |
@@ -48,17 +49,37 @@ set -eo pipefail
           tr '\n' ' ' |
           sed 's/\s*$//' || true
         )
-    if
-      [ "$active_services" == "air-backend air-frontend air-frontend-sidekick air-prerequisites air-router air-static-site" ] &&
-      [ "$(http_code $(get_tcp_port prod router/http))" == "403" ] &&
-      [ "$(http_code $(get_tcp_port prod air_frontend/http))" == "302" ] &&
-      [ "$(http_code $(get_tcp_port prod air_backend/http))" == "404" ] &&
-      [ "$(http_code 10000)" == "200" ]
-    then
+    if [ "$active_services" != "$wanted_services" ]; then
+      echo "Wanted services: $wanted_services"
+      echo "Active services: $active_services"
       return 0
-    else
-      return 1
     fi
+
+    router_code=$(http_code $(get_tcp_port prod router/http))
+    if [ "$router_code" != "403" ]; then
+      echo "router http request returned $router_code (expected 403)"
+      return 0
+    fi
+
+    air_frontend_code=$(http_code $(get_tcp_port prod air_frontend/http))
+    if [ "$air_frontend_code" != "302" ]; then
+      echo "air_frontend http request returned $air_frontend_code (expected 302)"
+      return 0
+    fi
+
+    air_backend_code=$(http_code $(get_tcp_port prod air_backend/http))
+    if [ "$air_backend_code" != "404" ]; then
+      echo "air_backend http request returned $air_backend_code (expected 404)"
+      return 0
+    fi
+
+    www_code=$(http_code 10000)
+    if [ "$www_code" != "200" ]; then
+      echo "www http request returned $www_code (expected 200)"
+      return 0
+    fi
+
+    echo "ok"
   }
 
   function http_code {
@@ -66,9 +87,21 @@ set -eo pipefail
   }
 
   function wait_until_system_is_up {
-    while ! check_system; do
+    attempt=1
+    result=$(check_system)
+
+    while [ "$result" != "ok" ]; do
+      if [ "$attempt" == "60" ]; then
+        echo "$result"
+        exit 1
+      fi
+
       sleep 1
+      result=$(check_system)
+      attempt=$(($attempt + 1))
     done
+
+    echo "ok"
   }
 
   function upgrade_system {
@@ -106,9 +139,6 @@ set -eo pipefail
     echo 'Air system successfully installed!'
 
     echo "Waiting for services to start ..."
-
-    # Invoke the new version of the script
-    /aircloak/air/air_service_ctl.sh wait_until_system_is_up
   }
 
   function remove_unused_images {

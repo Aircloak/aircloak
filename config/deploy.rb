@@ -27,6 +27,14 @@ namespace :aircloak do
     on roles(:build), in: :sequence do
       update_server_code
 
+      # pull the latest version of the static website.
+      exec_ml "
+            cd #{build_folder}/../static-website &&
+            git fetch &&
+            git checkout develop &&
+            git reset --hard origin/develop
+          "
+
       # package docker images
       exec_ml "
             AIR_ENV=prod
@@ -54,7 +62,7 @@ namespace :aircloak do
       execute "AIR_ENV=prod #{build_folder}/balancer/build-image.sh"
 
       # restart the systemd service
-      execute "systemctl restart #{fetch(:balancer_service)}"
+      execute "systemctl daemon-reload && systemctl restart #{fetch(:balancer_service)}"
     end
   end
 

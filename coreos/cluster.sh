@@ -18,14 +18,15 @@ cd $(dirname $0)
 
 function setup_cluster {
   activate_cluster_plugin $1
+  shift
 
-  for machine_ip in $2; do
+  for machine_ip in "$@"; do
     check_ssh $machine_ip
   done
 
-  cloud_config_install_part=$(cloud_config_install_part "$2")
+  cloud_config_install_part=$(cloud_config_install_part "$@")
 
-  for machine_ip in $2; do
+  for machine_ip in "$@"; do
     install_machine $machine_ip "$cloud_config_install_part"&
   done
   wait
@@ -110,8 +111,19 @@ function install_machine {
         sudo /aircloak/air/air_service_ctl.sh follow_installation
       "
 
+  wait_for_services $1
+}
+
+function wait_for_services {
   echo "$1: Waiting for services to start ..."
-  machine_ssh $1 "/aircloak/air/air_service_ctl.sh wait_until_system_is_up"
+  result=$(machine_ssh $1 "/aircloak/air/air_service_ctl.sh wait_until_system_is_up")
+  if [ "$result" != "ok" ]; then
+    RED='\033[0;31m'
+    RESET='\033[0m'
+    printf "\n\n${RED}ERROR: timeouted waiting for services on $1:\n\n$result\n\n" >&2
+    printf "The machine $1 is not fully installed, and you need to verify its status.\n\n${RESET}"
+    exit 1
+  fi
 }
 
 function generate_cloud_config_file {
@@ -248,6 +260,7 @@ function upgrade_machine {
   update_cloud_config $1 $2
   upload_etcd_config $2
   machine_ssh $2 "sudo /aircloak/air/air_service_ctl.sh upgrade_system"
+  wait_for_services $2
   echo "Machine $2 upgraded."
 }
 

@@ -7,7 +7,7 @@ $num_instances=5
 $instance_name_prefix="air"
 
 # CoreOS channel from which updates should be downloaded
-$update_channel='beta'
+$update_channel='stable'
 
 # Determine latest CoreOS version from the specified channel
 require 'open-uri'

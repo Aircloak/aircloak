@@ -207,9 +207,19 @@ For detailed explanation of the production and staging system see [here](./coreo
 
 ### Services and logs
 
-All services are running as `systemd` units and are logged through `journald`. You can use [journalctl](http://www.freedesktop.org/software/systemd/man/systemctl.html) to see the logs of each units, and [systemctl](http://www.freedesktop.org/software/systemd/man/systemctl.html) to list all units.
+All services are running as `systemd` units and are logged through `journald`. All logs are forwarded to `aclog1`. To view logs of all Air services, you can ssh to `aclog1` and run following:
 
-Here are some typical commands (you need to run those on each CoreOS machine):
+```
+# tail production logs
+tail -f /var/log/syslog | egrep 'accos.. air\-'
+
+# tail staging logs
+tail -f /var/log/syslog | egrep 'stage-accos.. air\-'
+```
+
+If you want to analyze a single machine in the cluster, you can ssh to that machine and use [journalctl](http://www.freedesktop.org/software/systemd/man/systemctl.html) to see the logs of each units, and [systemctl](http://www.freedesktop.org/software/systemd/man/systemctl.html) to list all units.
+
+Here are some typical commands (you need to run those on a CoreOS machine):
 
 - List all Air units: `systemctl list-units | grep air`
 - See the status of a unit: `systemctl status unit_name` (e.g. `air-frontend`)
@@ -235,6 +245,8 @@ __Note:__ These need to be executed on a CoreOS machine.
     - `/aircloak/air/router/container.sh maintenance_on`
     - `/aircloak/air/router/container.sh maintenance_off`
   __Note__: in a cluster of machines, it's enough to set maintenance on one router only. This will affect the entire cluster.
+- To see the status of the etcd cluster you can use [etcdctl](https://github.com/coreos/etcd/tree/master/etcdctl). For example:
+    - `sudo etcdctl --endpoint http://127.0.0.1:20120 cluster-health`
 
 ## Exposed container ports
 
