@@ -57,7 +57,7 @@ edit(Article = #article{content_encoding = ContentEncoding}, JSFunction) ->
   try
     StartTime = os:timestamp(),
     Content = unpack_content(ContentEncoding, Article#article.content),
-    case js_vm_sup:call(list_to_binary(JSFunction), [Content]) of
+    case js_vm_sup:call(JSFunction, [Content]) of
       {ok, null} ->
         Article; % post_processing function ignored this article
       {ok, NewContent} ->

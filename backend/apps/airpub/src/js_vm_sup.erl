@@ -26,7 +26,7 @@ start_link() ->
 
 %% @doc Executes the specified function with the supplied arguments on one of the
 %%      virtual machines in the pool and returns the result.
--spec call(binary(), [term()]) -> {ok, term()} | {error, term()}.
+-spec call(binary() | string(), [term()]) -> {ok, term()} | {error, term()}.
 call(Function, Arguments) ->
   Worker = poolboy:checkout(?POOL_NAME, true, infinity),
   try
