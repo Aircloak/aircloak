@@ -98,6 +98,9 @@ $initial_cloud_config_without_installer
 $disabled_installer
 
 coreos:
+  update:
+    reboot-strategy: best-effort
+
   units:
   - name: air-static-site.service
     command: start
@@ -115,6 +118,13 @@ coreos:
     command: start
 
   - name: air-frontend-sidekick.service
+    command: start
+
+  # start update services
+  - name: update-engine.service
+    command: start
+
+  - name: locksmithd.service
     command: start
 EOF
 )

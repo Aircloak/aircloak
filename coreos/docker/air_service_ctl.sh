@@ -105,6 +105,10 @@ set -eo pipefail
   }
 
   function upgrade_system {
+    # We'll stop update services to avoid restart during an upgrade
+    sudo systemctl stop locksmithd
+    sudo systemctl stop update-engine
+
     # make sure cloud-config is good
     sudo coreos-cloudinit --validate --from-file=/var/lib/coreos-install/user_data
 
@@ -138,7 +142,9 @@ set -eo pipefail
     sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
     echo 'Air system successfully installed!'
 
-    echo "Waiting for services to start ..."
+    # start update services again
+    sudo systemctl start locksmithd
+    sudo systemctl start update-engine
   }
 
   function remove_unused_images {

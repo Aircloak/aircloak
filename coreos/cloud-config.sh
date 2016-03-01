@@ -29,6 +29,8 @@ write_files:
 
       eval "curl -s \$auth_header \$protocol://$REGISTRY_URL/v2/\$1"
 
+$(cloud_config_addon)
+
 coreos:
   etcd2:
     name: \$public_ipv4
@@ -44,10 +46,12 @@ coreos:
   locksmith:
     endpoint: http://127.0.0.1:$ETCD_CLIENT_PORT
   units:
+  # we first stop update services so nothing is updated during the installation
   - name: update-engine.service
     command: stop
   - name: locksmithd.service
     command: stop
+
   - name: docker.service
     drop-ins:
     - name: 50-insecure-registry.conf
