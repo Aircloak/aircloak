@@ -12,3 +12,7 @@ function etcd_settings {
     cat ../etcd/local_settings/dev
   fi
 }
+
+function cloud_config_addon {
+  echo ''
+}
