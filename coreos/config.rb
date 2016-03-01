@@ -12,9 +12,9 @@ $update_channel='stable'
 # Determine latest CoreOS version from the specified channel
 require 'open-uri'
 most_recent_version =
-  open("http://#{$update_channel}.release.core-os.net/amd64-usr/").
+  open("http://#{$update_channel}.release.core-os.net/amd64-usr/current/version.txt").
       read.
-      scan(/href="(.*?)\/"/)[-2][0]
+      scan(/^COREOS_VERSION=(.*?)$/)[0][0]
 
 puts "Starting with CoreOS #{most_recent_version}" if ARGV[0] == "up"
 
