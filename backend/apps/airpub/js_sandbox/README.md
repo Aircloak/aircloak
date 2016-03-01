@@ -18,8 +18,8 @@ cd mozjs-38.0.0/js/src
 ./configure
 make
 strip dist/lib/libmozjs-.so
-cp dist/lib/libmozjs-.so <repository_path>/backend/apps/airpub/js_sandbox/js_engine/bin
-cp -R dist/include <repository_path>/backend/apps/airpub/js_sandbox/js_engine/include
+cp dist/lib/libmozjs-.so <repository_path>/backend/apps/airpub/js_sandbox/js_engine/bin/
+cp -R dist/include <repository_path>/backend/apps/airpub/js_sandbox/js_engine/
 ```
 The `temp` folder can be safely deleted afterwards.
 
