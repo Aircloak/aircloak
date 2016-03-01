@@ -3,9 +3,14 @@ HEADERS = $(wildcard *.h)
 OUT_DIR = ../../../priv/js/bin
 OUT_BIN = jsport
 JS_LIB  = mozjs-
+ifeq ($(shell uname),Darwin)
+JS_LIB_EXT = dylib
+else
+JS_LIB_EXT = so
+endif
 LIBS    = -l$(JS_LIB) -lz -lpthread -ldl
 
-all: $(OUT_DIR) $(OUT_DIR)/$(OUT_BIN) $(OUT_DIR)/lib$(JS_LIB).so
+all: $(OUT_DIR) $(OUT_DIR)/$(OUT_BIN) $(OUT_DIR)/lib$(JS_LIB).$(JS_LIB_EXT)
 
 $(OUT_DIR):
 	mkdir $@
@@ -14,9 +19,9 @@ $(OUT_DIR)/$(OUT_BIN): $(SOURCES) $(HEADERS)
 	$(CXX) -std=c++11 -Wall -Werror -fPIC -O3 -I./js_engine/include -L./js_engine/bin -Wno-invalid-offsetof \
 		-o $(OUT_DIR)/$(OUT_BIN) $(SOURCES) $(LIBS) -Wl,-rpath '-Wl,$$ORIGIN'
 
-$(OUT_DIR)/lib$(JS_LIB).so:
-	ln ../../../apps/airpub/js_sandbox/js_engine/bin/lib$(JS_LIB).so $@
+$(OUT_DIR)/lib$(JS_LIB).$(JS_LIB_EXT):
+	ln ../../../apps/airpub/js_sandbox/js_engine/bin/lib$(JS_LIB).$(JS_LIB_EXT) $@
 
 clean:
 	rm -f $(OUT_DIR)/$(OUT_BIN)
-	rm -f $(OUT_DIR)/lib$(JS_LIB).so
+	rm -f $(OUT_DIR)/lib$(JS_LIB).$(JS_LIB_EXT)

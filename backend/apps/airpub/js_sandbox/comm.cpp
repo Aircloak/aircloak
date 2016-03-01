@@ -3,7 +3,16 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <byteswap.h>
+
+#if defined(__APPLE__)
+  #include <libkern/OSByteOrder.h>
+  #define bswap_16 OSSwapInt16
+  #define bswap_32 OSSwapInt32
+  #define bswap_64 OSSwapInt64
+#else
+  #include <byteswap.h>
+#endif
+
 
 // Internal method for reading a fixed amount of data from the input stream.
 static void read_data(void* buffer, uint32_t size)
