@@ -1,6 +1,6 @@
 .PHONY: sandbox deps doc test test-eunit clean distclean rel relclean stage app all compile
 
-all: deps compile sandbox
+all: deps compile sandbox js_sandbox
 
 compile: apps/air/src/air_cloak_conf.erl
 	./rebar compile
@@ -12,6 +12,9 @@ sandbox: copy-sandbox-makefile-local
 	$(MAKE) -C deps/cloak sandbox
 	mkdir -p priv
 	cp -rp deps/cloak/priv/* ./priv
+
+js_sandbox:
+	$(MAKE) -C apps/airpub/js_sandbox
 
 deps: deps/.make
 
@@ -39,6 +42,7 @@ clean:
 	./rebar clean
 	rm -rf test-gen
 	rm -rf priv/sandbox
+	$(MAKE) -C apps/airpub/js_sandbox clean
 
 distclean: clean relclean
 	./rebar delete-deps
@@ -68,7 +72,7 @@ stage: rel
 	$(foreach dep,$(wildcard deps/*), rm -rf rel/air/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) rel/air/lib;)
 	$(foreach app,$(wildcard apps/*), rm -rf rel/air/lib/$(shell basename $(app))-* && ln -sf $(abspath $(app)) rel/air/lib;)
 
-app: apps/air/src/air_cloak_conf.erl sandbox
+app: apps/air/src/air_cloak_conf.erl sandbox js_sandbox
 	./rebar compile skip_deps=true
 
 test: app copy-configs test-eunit

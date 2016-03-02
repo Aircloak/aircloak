@@ -26,7 +26,7 @@ start_link() ->
 
 %% @doc Executes the specified function with the supplied arguments on one of the
 %%      virtual machines in the pool and returns the result.
--spec call(binary(), [term()]) -> {ok, term()} | {error, term()}.
+-spec call(binary() | string(), [term()]) -> {ok, term()} | {error, term()}.
 call(Function, Arguments) ->
   Worker = poolboy:checkout(?POOL_NAME, true, infinity),
   try
@@ -46,7 +46,7 @@ init([]) ->
     Count -> Count
   end,
   {ok, JSFolder} = application:get_env(airpub, js_folder),
-  JSModules = filelib:wildcard(JSFolder ++ "/*.js"),
+  JSModules = filelib:wildcard(JSFolder ++ "/src/*.js"),
   lager:info("Starting JS VM pool with size ~p and code modules ~p.~n", [PoolSize, JSModules]),
   PoolArgs = [{name, {local, ?POOL_NAME}}, {worker_module, js_vm_worker}, {size, PoolSize}, {max_overflow, 0}],
   Pool = poolboy:child_spec(?POOL_NAME, PoolArgs, JSModules),
