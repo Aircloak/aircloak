@@ -14,11 +14,17 @@
   <body>
     <div class="container">
       <header class="header">
-        <!-- <nav role="navigation">
+        <nav role="navigation">
           <ul class="nav nav-pills pull-right">
-            <li><a href="http://www.phoenixframework.org/docs">Get Started</a></li>
+            <li>
+            <%= if Guardian.Plug.authenticated?(@conn) do %>
+              <%= link "Sign out", to: session_path(@conn, :delete), method: :post %>
+            <% else %>
+              <%= link "Sign in", to: session_path(@conn, :new) %>
+            <% end %>
+            </li>
           </ul>
-        </nav> -->
+        </nav>
         <span class="logo"></span>
       </header>
 

@@ -9,8 +9,15 @@ defmodule Air.Router do
     plug :put_secure_browser_headers
   end
 
+  pipeline :browser_auth do
+    plug Guardian.Plug.VerifySession
+    plug Guardian.Plug.EnsureAuthenticated, handler: Air.SessionController
+    plug Guardian.Plug.LoadResource
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
+    plug Guardian.Plug.VerifyHeader
   end
 
   scope "/auth", Air do
@@ -22,11 +29,10 @@ defmodule Air.Router do
   end
 
   scope "/", Air do
-    pipe_through :browser # Use the default browser stack
-
-    resources "/users", UserController
+    pipe_through [:browser, :browser_auth]
 
     get "/", PageController, :index
+    resources "/users", UserController
   end
 
   # Other scopes may use custom stacks.
