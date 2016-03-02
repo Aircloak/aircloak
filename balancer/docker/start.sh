@@ -18,6 +18,7 @@ function haproxy_config {
   routers=$(routers)
 
   cat /aircloak/balancer/haproxy.cfg.tmpl \
+  | sed "s#\$BIND_IF#$BIND_IF#" \
   | sed "s#\$BALANCER_HTTPS_PORT#$(get_tcp_port prod balancer/https)#" \
   | sed "s#\$BALANCER_HTTP_PORT#$(get_tcp_port prod balancer/http)#" \
   | sed "s#\$HTTPS_UPSTREAMS#$(upstreams "$routers" $(get_tcp_port prod router/proxy_https))#" \
@@ -25,8 +26,8 @@ function haproxy_config {
 }
 
 function routers {
-  if [ -f /aircloak/balancer/config/routers ]; then
-    cat /aircloak/balancer/config/routers
+  if [ -f /aircloak/balancer/config/$ROUTERS_FILE ]; then
+    cat /aircloak/balancer/config/$ROUTERS_FILE
   else
     echo "127.0.0.1"
   fi

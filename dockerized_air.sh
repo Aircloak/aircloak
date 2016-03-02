@@ -16,7 +16,7 @@ function stop_docker_services {
 
 function start_docker_service {
   $1/build-image.sh
-  $1/container.sh ensure_latest_version_started
+  $1/container.sh ensure_started
 }
 
 case "$1" in

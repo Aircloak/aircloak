@@ -1,5 +1,12 @@
 This document serves to describe breaking changes and provide upgrade hints when major changes are introduced. When you're creating a pull with some major changes, please add brief upgrade instructions here.
 
+## CoreOS cluster in production
+
+- The deploy commands have been slightly changed. Instead of `production` and `stage`, we now use `air_prod` and `air_stage` targets. See [here](./README.md#deploying) for more details.
+- The deploy process now performs a rolling upgrade. We update one machine at the time, taking down all services, then installing the most recent versions, and starting the services.
+- Images are build on the build server and pushed to the Docker registry server.
+- In production, `etcd` is running directly on the CoreOS machines.
+
 ## Air router and CoreOS cluster
 
 - You need to have `nginx`, [jq](https://stedolan.github.io/jq/), and `uuid-runtime` (provided out of the box on OS X) on your machine.

@@ -145,7 +145,7 @@ $ balancer/build-image.sh
 $ balancer/container.sh console
 ```
 
-### Running the system on CoreOS (experimental)
+### Running the system on CoreOS
 
 It is also possible to start the system inside a Vagrant powered CoreOS system. See [here](./coreos/README.md) for details.
 
@@ -174,15 +174,13 @@ Depending on where you want to deploy (production or stage), you can use followi
 
 ```
 # deploy to production
-bundle exec cap production deploy
+bundle exec cap air_prod deploy
 
 # deploy to stage
-bundle exec cap stage deploy
+bundle exec cap air_stage deploy
 ```
 
-This will deploy the entire air system and migrate the database. Note that only modified services will be restarted. If the docker image is not changed during the deploy build, the container will not be restarted.
-
-If for some reasons you still need to restart a particular service, you can log on to the production machine and run `AIR_ENV=prod /aircloak/air/service/container.sh start` (which will implicitly stop the running container).
+This will trigger the rebuild of all images on the build server. Then, the rolling upgrade is performed, updating one machine at the time.
 
 To deploy from a specific branch, you can run `AIR_DEPLOY_BRANCH=another_branch bundle exec cap target deploy`.
 If you want to deploy current branch, assuming you're not in the detached head state, you can run:
@@ -191,7 +189,7 @@ If you want to deploy current branch, assuming you're not in the detached head s
 AIR_DEPLOY_BRANCH=$(git symbolic-ref --short HEAD) bundle exec cap target deploy
 ```
 
-Where `target` is `production` or `stage`.
+Where `target` is `air_prod` or `air_stage`.
 
 Note that this will work only if the current branch is pushed to the origin.
 
@@ -205,53 +203,37 @@ Once the changes are merged, the next deploy will trigger the full rebuild of al
 
 ## Production
 
-The architecture of the system on the production machine is as follows:
+For detailed explanation of the production and staging system see [here](./coreos_cluster.md).
 
-<!--- ASCII diagram made with http://asciiflow.com/ -->
+### Services and logs
+
+All services are running as `systemd` units and are logged through `journald`. All logs are forwarded to `aclog1`. To view logs of all Air services, you can ssh to `aclog1` and run following:
+
 ```
- http(s) requests  +------------+         +----------------------+
-+------------------>TCP balancer|         |   router container   |
-                   +-----+------+         |                      |
-                         |                |       +-----+        |
-                         +------------------------>nginx|        |
-                                          |       +^-+-^+        |
-                                          |        | | |         |
-                                          +----------------------+
-                                                   | | |
-                                                   | | |
-                                                   | | |
-                   +-------------------------+     | | |     +-------------------------+
-                   | air_frontend container  |     | | |     |  air_backend container  |
-                   |                         |     | | |     |                         |
-                   |         +-----+         |     | | |     |    +--------------+     |
-                   |         |nginx<---------------+ | +---------->erlang release|     |
-                   |         +--+--+         |       |       |    +------+-------+     |
-                   |            |            |       |       |           |             |
-                   |            |            |       |       |           |             |
-                   |         +--v--+         |       |       |           |             |
-                   |         |rails|         |       |       |           |             |
-                   |         +--+--+         |       |       |           |             |
-                   |            |            |       |       |           |             |
-                   +-------------------------+       |       +-------------------------+
-                                |                    |                   |
-                                |                    |                   |
-                                |          +---------v--------+          |
-                                +---------->etcd_air container<----------+
-                                           +------------------+
+# tail production logs
+tail -f /var/log/syslog | egrep 'accos.. air\-'
+
+# tail staging logs
+tail -f /var/log/syslog | egrep 'stage-accos.. air\-'
 ```
 
-For various configuration settings, see [here](etcd/README.md#production-settings).
+If you want to analyze a single machine in the cluster, you can ssh to that machine and use [journalctl](http://www.freedesktop.org/software/systemd/man/systemctl.html) to see the logs of each units, and [systemctl](http://www.freedesktop.org/software/systemd/man/systemctl.html) to list all units.
 
-### Logs
+Here are some typical commands (you need to run those on a CoreOS machine):
 
-Logs of all services can be found at `/var/log/syslog`.
-Each log-line is tagged with the name of the container, so you can use this for easier filtering. To see the list of container names, you can run `docker ps | awk '{print $NF}'`.
+- List all Air units: `systemctl list-units | grep air`
+- See the status of a unit: `systemctl status unit_name` (e.g. `air-frontend`)
+- Dump unit log: `sudo journalctl -u unit_name --no-pager`
+- Tail unit log: `sudo journalctl -u unit_name -f`
+
+You can also use the asterisk wildcard in the `unit_name` (e.g. `sudo journalctl -u air* -f` to tail logs for all Air units).
 
 ### Typical tasks
 
-- Stop the system: `/etc/init.d/air stop`
-- Start the system: `/etc/init.d/air start` (restarts only changed containers)
-- Hard restart: `/etc/init.d/air stop && /etc/init.d/air start`
+__Note:__ These need to be executed on a CoreOS machine.
+
+- Stop Air units: `sudo /aircloak/air/air_service_ctl.sh stop_system`
+- Start the system: `sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data`
 - Shell to the running container:
     - `/aircloak/air/frontend/container.sh ssh`
     - `/aircloak/air/backend/container.sh ssh`
@@ -263,6 +245,8 @@ Each log-line is tagged with the name of the container, so you can use this for 
     - `/aircloak/air/router/container.sh maintenance_on`
     - `/aircloak/air/router/container.sh maintenance_off`
   __Note__: in a cluster of machines, it's enough to set maintenance on one router only. This will affect the entire cluster.
+- To see the status of the etcd cluster you can use [etcdctl](https://github.com/coreos/etcd/tree/master/etcdctl). For example:
+    - `sudo etcdctl --endpoint http://127.0.0.1:20120 cluster-health`
 
 ## Exposed container ports
 

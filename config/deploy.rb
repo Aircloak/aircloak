@@ -1,11 +1,8 @@
 # config valid only for Capistrano 3.2.1
 lock '3.2.1'
 
-load "config/check.rb"
-
 set :application, 'air'
 set :branch, ENV["AIR_DEPLOY_BRANCH"] || "develop"
-set :deploy_to, '/aircloak/air'
 
 # Prevents key hijacking.
 set :ssh_options, {:forward_agent => false}
@@ -19,66 +16,81 @@ task :deploy do
   Rake::Task["aircloak:deploy"].invoke
 end
 
+task :upgrade_balancer do
+  Rake::Task["aircloak:upgrade_balancer"].invoke
+end
+
 namespace :aircloak do
   task :deploy do
-    current_branch = `git symbolic-ref --short HEAD`.strip
-    if current_branch != fetch(:branch)
-      puts "Warning: your current branch is:\n  #{current_branch}\n\n"
-      puts "But you're deploying the branch:\n  #{fetch(:branch)}\n\n"
-      puts "Continue (y/N)?"
-      input = $stdin.readline.strip
-      exit 1 unless input.upcase == "Y"
-    end
+    check_current_branch
 
-    [
-      "update_code",
-      "build_images",
-      "provision",
-      "update_running_system"
-    ].each do |task|
-      Rake::Task["aircloak:#{task}"].invoke
+    on roles(:build), in: :sequence do
+      update_server_code
+
+      # pull the latest version of the static website.
+      exec_ml "
+            cd #{build_folder}/../static-website &&
+            git fetch &&
+            git checkout develop &&
+            git reset --hard origin/develop
+          "
+
+      # package docker images
+      exec_ml "
+            AIR_ENV=prod
+            REGISTRY_URL=registry.aircloak.com
+            IMAGE_CATEGORY=#{fetch(:stage)}
+            #{build_folder}/package.sh
+          "
+
+      # rolling upgrade of the cluster
+      exec_ml "
+            #{build_folder}/coreos/cluster.sh rolling_upgrade
+              #{fetch(:stage)}
+              #{fetch(:machine_ip)}
+          "
     end
   end
 
-  task :update_code do
-    on roles(:build), in: :sequence do
+  task :upgrade_balancer do
+    check_current_branch
+
+    on roles(:balancer), in: :sequence do
+      update_server_code
+
+      # build the balancer image
+      execute "AIR_ENV=prod #{build_folder}/balancer/build-image.sh"
+
+      # restart the systemd service
+      execute "systemctl daemon-reload && systemctl restart #{fetch(:balancer_service)}"
+    end
+  end
+
+  private
+    def build_folder
+      "/aircloak/#{fetch(:stage)}/air"
+    end
+
+    def check_current_branch
+      current_branch = `git symbolic-ref --short HEAD`.strip
+      if current_branch != fetch(:branch)
+        puts "Warning: your current branch is:\n  #{current_branch}\n\n"
+        puts "But you're deploying the branch:\n  #{fetch(:branch)}\n\n"
+        puts "Continue (y/N)?"
+        input = $stdin.readline.strip
+        exit 1 unless input.upcase == "Y"
+      end
+    end
+
+    def update_server_code
       exec_ml "
-            cd #{fetch(:deploy_to)} &&
+            cd #{build_folder} &&
             git fetch &&
             git checkout #{fetch(:branch)} &&
             git reset --hard origin/#{fetch(:branch)}
           "
     end
-  end
 
-  task :build_images do
-    on roles(:build), in: :sequence do
-      [:balancer, :router, :backend, :frontend].each do |service|
-        execute "AIR_ENV=prod #{fetch(:deploy_to)}/#{service}/build-image.sh"
-      end
-      execute ". #{fetch(:deploy_to)}/common/docker_helper.sh && cleanup_unused_images || true"
-      execute ". #{fetch(:deploy_to)}/common/docker_helper.sh && print_most_recent_versions"
-    end
-  end
-
-  task :provision do
-    on roles(:app_admin), in: :sequence do
-      exec_ml(install_init_script_cmd("air"))
-      exec_ml(install_init_script_cmd("iptables_rules"))
-      execute "/etc/init.d/iptables_rules"
-
-      # Override site names in stage environment
-      exec_ml(set_stage_names) if fetch(:stage) == :stage
-    end
-  end
-
-  task :update_running_system do
-    on roles(:app), in: :sequence do
-      execute "/etc/init.d/air start"
-    end
-  end
-
-  private
     # Capistrano execute replaces new-lines with a semicolon. In this wrapper,
     # we simply insert blanks instead, thus allowing a multi-line command, e.g.:
     #
@@ -90,27 +102,5 @@ namespace :aircloak do
     #       "
     def exec_ml(cmd)
       execute cmd.gsub("\n", " ")
-    end
-
-    def install_init_script_cmd(name)
-      "
-        cp -rp /aircloak/air/remote_files/#{name} /etc/init.d/#{name} &&
-            chown root:root /etc/init.d/#{name} &&
-            chmod 755 /etc/init.d/#{name} &&
-            update-rc.d #{name} defaults
-      "
-    end
-
-    def set_stage_names
-      # Adds site name overrides, first removing previous ones if they exist
-      '
-        prod_contents=$(cat /aircloak/air/etcd/local_settings/prod | grep -v "etcd_set /site") &&
-        echo "$prod_contents" > /aircloak/air/etcd/local_settings/prod &&
-        echo "etcd_set /site/frontend \'hello.stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod &&
-        echo "etcd_set /site/api \'api.stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod &&
-        echo "etcd_set /site/infrastructure_api \'infrastructure-api.stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod &&
-        echo "etcd_set /site/airpub \'pub.stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod &&
-        echo "etcd_set /site/aircloak \'www.stage.aircloak.com stage.aircloak.com\'" >> /aircloak/air/etcd/local_settings/prod
-      '
     end
 end

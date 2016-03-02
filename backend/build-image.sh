@@ -37,11 +37,11 @@ build_aircloak_image air_backend_build backend/builder.dockerfile backend/.docke
 cd $ROOT_DIR
 mkdir -p backend/artifacts/rel
 rm -rf backend/artifacts/rel/*
-builder_container_id=$(docker create aircloak/air_backend_build:latest)
+builder_container_id=$(docker create $(aircloak_image_name air_backend_build):latest)
 docker cp $builder_container_id:/tmp/web/backend/rel/air - > backend/artifacts/rel/air.tar
 docker stop $builder_container_id > /dev/null
 docker rm -v $builder_container_id > /dev/null
 cd backend/artifacts/rel && tar -xf air.tar && rm air.tar && cd $ROOT_DIR
 
 # Build the release image
-build_production_image air_backend backend/release.dockerfile backend/.dockerignore-release
+build_aircloak_image air_backend backend/release.dockerfile backend/.dockerignore-release

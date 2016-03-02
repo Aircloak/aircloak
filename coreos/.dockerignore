@@ -1,0 +1,14 @@
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!VERSION
+!tmp/image_shell_init.sh
+!config/config.sh
+!config/tcp_ports.json
+!etcd
+!common
+!frontend/container.sh
+!backend/container.sh
+!router/container.sh
+!coreos/docker
