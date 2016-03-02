@@ -17,3 +17,6 @@ config :air, Air.Repo,
   database: "air_test",
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
+
+# Make tests related to hashing run faster
+config :comeonin, :pbkdf2_rounds, 1

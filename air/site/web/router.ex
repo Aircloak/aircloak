@@ -13,8 +13,18 @@ defmodule Air.Router do
     plug :accepts, ["json"]
   end
 
+  scope "/auth", Air do
+    pipe_through :browser # Use the default browser stack
+
+    get "/", SessionController, :new
+    post "/", SessionController, :create
+    post "/logout", SessionController, :delete
+  end
+
   scope "/", Air do
     pipe_through :browser # Use the default browser stack
+
+    resources "/users", UserController
 
     get "/", PageController, :index
   end
