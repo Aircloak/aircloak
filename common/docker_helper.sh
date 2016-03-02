@@ -230,7 +230,7 @@ function air_init {
   # Support for rebuilding of all images. Change this date if you want to
   # force the rebuild of all images. Usually you want to do this if you
   # want to upgrade Debian packages on all images.
-  upgrade_date="20160218"
+  upgrade_date="20160302"
   echo "RUN echo '$upgrade_date' > /dev/null"
 
   # Start the RUN command
