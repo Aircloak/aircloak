@@ -1,20 +1,62 @@
-# Air
+Air
+===
 
-To start your Phoenix app:
+The `air` is the entity through which our users interact with their cloaks.
+It contains the interfaces for adding and administering users to those
+needed to create, update and run tasks.
 
-  * Install dependencies with `mix deps.get`
-  * Create and migrate your database with `mix ecto.create && mix ecto.migrate`
-  * Install Node.js dependencies with `npm install`
-  * Start Phoenix endpoint with `mix phoenix.server`
+----------------------
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+- [What it does](#what-it-does)
+- [What is it made up of](#what-is-it-made-up-of)
+- [Getting started](#getting-started)
+    - [Running](#running)
 
-Ready to run in production? Please [check our deployment guides](http://www.phoenixframework.org/docs/deployment).
+----------------------
 
-## Learn more
+# What it does
 
-  * Official website: http://www.phoenixframework.org/
-  * Guides: http://phoenixframework.org/docs/overview
-  * Docs: http://hexdocs.pm/phoenix
-  * Mailing list: http://groups.google.com/group/phoenix-talk
-  * Source: https://github.com/phoenixframework/phoenix
+This repository contains the Air system, which provides HTTPS endpoints that allows end-users, such as analysts and cluster maintainers, to perform various tasks, such as:
+
+- Manage cloaks and data sources
+- Manage users and their permissions
+- Write, test, and execute queries
+
+This application will also provide API endpoints that can be used by analysts to programmatically interact with
+the system, as well as the end-points used by the cloaks when they communicate with the `air`.
+
+
+# What is it made up of
+
+The air is written as a single [elixir](elixir-lang.org/) [phoenix](www.phoenixframework.org) website. It
+contains both the front end facing as well as the backend services needed to operate the system.
+
+Additionally to run it relies on `etcd` for configuration and `Postgres` for datastorage.
+
+
+# Getting started
+
+## Running
+
+The very first time you run the application, you need to create and migrate the database.
+You do this with `mix ecto.create && mix ecto.migrate`. The latter of the two commands is also what you use to
+migrate the database as it evolves over time.
+
+To start the development server, you run: `mix phoenix.server` which makes the website available on
+`http://localhost:4000`.
+
+
+### Prerequisites
+
+In order to run the system you need the following components:
+
+- Node.js 5 or newer
+- Elixir 1.2 or newer
+
+#### Getting dependencies
+
+You need Elixir and Node installed to run the application. Node is a development time dependency as it is used
+to compile our javascript and css dependencies.
+
+- `mix deps.get` installs our elixir and erlang dependencies
+- `npm install` installs our node dependencies
