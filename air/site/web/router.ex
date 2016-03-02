@@ -15,11 +15,6 @@ defmodule Air.Router do
     plug Guardian.Plug.LoadResource
   end
 
-  pipeline :api do
-    plug :accepts, ["json"]
-    plug Guardian.Plug.VerifyHeader
-  end
-
   scope "/auth", Air do
     pipe_through :browser # Use the default browser stack
 
@@ -34,9 +29,4 @@ defmodule Air.Router do
     get "/", PageController, :index
     resources "/users", UserController
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", Air do
-  #   pipe_through :api
-  # end
 end
