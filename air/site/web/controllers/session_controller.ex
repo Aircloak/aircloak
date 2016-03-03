@@ -16,7 +16,7 @@ defmodule Air.SessionController do
         conn
         |> Guardian.Plug.sign_in(user)
         |> put_session(:return_path, nil)
-        |> put_flash(:info, "Logged inn successfully. Welcome back")
+        |> put_flash(:info, "Logged in successfully. Welcome back")
         |> redirect(to: return_path)
       false ->
         render(conn, "new.html")
