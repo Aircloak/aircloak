@@ -44,7 +44,7 @@ defmodule Air.User do
   end
   defp possibly_update_password_hash(changeset), do: changeset
 
-  def validate_password(nil, password), do: Hash.dummy_checkpw
+  def validate_password(nil, _password), do: Hash.dummy_checkpw
   def validate_password(user, password) do
     Hash.checkpw(password, user.hashed_password)
   end
