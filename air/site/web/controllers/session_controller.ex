@@ -9,7 +9,7 @@ defmodule Air.SessionController do
   end
 
   def create(conn, params) do
-    user = User |> Repo.get_by(email: params["email"])
+    user = Repo.get_by(User, email: params["email"])
     case User.validate_password(user, params["password"]) do
       true ->
         return_path = get_session(conn, :return_path) || page_path(conn, :index)
