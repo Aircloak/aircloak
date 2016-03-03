@@ -1,0 +1,29 @@
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Organisation</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  <%= if length(@users) == 0 do %>
+    <tr>
+      <td colspan=4>There are currently no users</td>
+    </tr>
+  <% else %>
+    <%= for user <- @users do %>
+      <tr>
+        <td><%= user.name %></td>
+        <td><%= user.email %></td>
+        <td><%= organisation_name(user) %></td>
+        <td>
+          <%= link "Edit", to: user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %>
+          <%= link "Delete", to: user_path(@conn, :delete, user), method: :delete, class: "btn btn-danger btn-xs" %>
+        </td>
+      </tr>
+    <% end %>
+  <% end %>
+  </tbody>
+</table>

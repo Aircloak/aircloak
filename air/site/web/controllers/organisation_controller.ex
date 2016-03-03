@@ -29,7 +29,7 @@ defmodule Air.OrganisationController do
   end
 
   def show(conn, %{"id" => id}) do
-    organisation = Repo.get!(Organisation, id)
+    organisation = Repo.get!(Organisation, id) |> Repo.preload([users: :organisation])
     render(conn, "show.html", organisation: organisation)
   end
 
