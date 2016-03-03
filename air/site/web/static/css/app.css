@@ -77,3 +77,11 @@ form.link, form.button {
     border-bottom: 0;
   }
 }
+
+.signout-btn {
+  padding: 10px;
+  display: block;
+}
+.signout-btn:hover {
+  text-decoration: none;
+}

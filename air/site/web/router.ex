@@ -20,7 +20,7 @@ defmodule Air.Router do
 
     get "/", SessionController, :new
     post "/", SessionController, :create
-    get "/logout", SessionController, :delete
+    delete "/logout", SessionController, :delete
   end
 
   scope "/", Air do
