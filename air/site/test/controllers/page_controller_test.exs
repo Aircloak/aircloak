@@ -1,8 +1,8 @@
 defmodule Air.PageControllerTest do
-  use Air.ConnCase
+  use Air.ConnCase, async: true
 
-  test "GET /", %{conn: conn} do
+  test "GET / redirects for auth", %{conn: conn} do
     conn = get conn, "/"
-    assert html_response(conn, 200) =~ "Welcome to Phoenix!"
+    assert redirected_to(conn) =~ "/auth"
   end
 end

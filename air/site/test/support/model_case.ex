@@ -58,4 +58,26 @@ defmodule Air.ModelCase do
   def errors_on(model, data) do
     model.__struct__.changeset(model, data).errors
   end
+
+  @doc """
+  Helper for validating that there is an error on a particular field.
+  The error itself doesn't matter that much, as it is too implementation
+  dependent. Instead, all we care about is that there is in fact an error.
+
+  ## Examples
+
+  Given a User model that lists `:name` as a required field of more than
+  5 characters, the following would validate that an error is in the changeset.
+
+      iex> errors_on(%User{}, :name, %{name: "short"})
+      true
+
+  You could then write your assertion like:
+
+      assert errors_on(%User{}, :name, %{name: "short"})
+  """
+  def errors_on(model, field, data) do
+    errors = errors_on(model, data)
+    Keyword.has_key?(errors, field)
+  end
 end
