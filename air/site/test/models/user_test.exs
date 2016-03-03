@@ -3,7 +3,8 @@ defmodule Air.UserTest do
 
   alias Air.User
 
-  @valid_attrs %{email: "admin@aircloak.com", password: "1234", password_confirmation: "1234", name: "Admin"}
+  @valid_attrs %{email: "admin@aircloak.com", password: "1234", password_confirmation: "1234",
+      name: "Admin", organisation_id: 1}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do
@@ -29,6 +30,11 @@ defmodule Air.UserTest do
   test "requires name to be two or more characters" do
     attributes = %{@valid_attrs | name: ""}
     assert errors_on(%User{}, :name, attributes)
+  end
+
+  test "requires an organisation" do
+    attributes = %{@valid_attrs | organisation_id: ""}
+    assert errors_on(%User{}, :organisation_id, attributes)
   end
 
   test "only update hashed password on password change" do

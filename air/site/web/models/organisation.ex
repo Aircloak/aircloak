@@ -1,8 +1,12 @@
 defmodule Air.Organisation do
   use Air.Web, :model
 
+  alias Air.User
+
   schema "organisations" do
     field :name, :string
+
+    has_many :users, User
 
     timestamps
   end
