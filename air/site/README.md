@@ -10,6 +10,7 @@ needed to create, update and run tasks.
 - [What it does](#what-it-does)
 - [What is it made up of](#what-is-it-made-up-of)
 - [Getting started](#getting-started)
+    - [Prerequisites](#prerequisites)
     - [Running](#running)
 
 ----------------------
@@ -36,27 +37,27 @@ Additionally to run it relies on `etcd` for configuration and `Postgres` for dat
 
 # Getting started
 
-## Running
-
-The very first time you run the application, you need to create and migrate the database.
-You do this with `mix ecto.create && mix ecto.migrate`. The latter of the two commands is also what you use to
-migrate the database as it evolves over time.
-
-To start the development server, you run: `mix phoenix.server` which makes the website available on
-`http://localhost:4000`.
-
-
-### Prerequisites
+## Prerequisites
 
 In order to run the system you need the following components:
 
 - Node.js 5 or newer
 - Elixir 1.2 or newer
+- Erlang 18
 
-#### Getting dependencies
-
-You need Elixir and Node installed to run the application. Node is a development time dependency as it is used
-to compile our javascript and css dependencies.
+Once you have all the main components, you also need the elixir and node.js dependencies required by our
+application. Node.js is included to compile our javascript and css dependencies.
 
 - `mix deps.get` installs our elixir and erlang dependencies
 - `npm install` installs our node dependencies
+
+Before you run the application for the first time, you also need to make sure you create and migrate the
+database. You can do this with `mix ecto.create && mix ecto.migrate`. For later migrations you can also use
+the convenience method `make migrate`.
+
+
+## Running
+
+To start the development server, you run: `make start` which makes the website available on
+`http://localhost:4000`. Additionally it starts the website in the interactive `iex` console, which allows
+you to interact with the running application.
