@@ -38,7 +38,7 @@ defmodule Air.UserTest do
       Map.has_key?(changes, :hashed_password)
     end
     # We are simulating the user not editing the password text input boxes
-    without_password_change = List.foldl([:password, :password_confirmation], @valid_attrs, fn(item, acc) -> Map.put(acc, item, "") end)
+    without_password_change = Map.drop(@valid_attrs, [:password, :password_confirmation])
     refute has_change_fn.(without_password_change)
     changed_password = %{@valid_attrs | password: "abcd", password_confirmation: "abcd"}
     assert has_change_fn.(changed_password)
