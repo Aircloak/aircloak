@@ -19,10 +19,6 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-# Import environment specific config. This must remain at the bottom
-# of this file so it overrides the configuration defined above.
-import_config "#{Mix.env}.exs"
-
 # Configure phoenix generators
 config :phoenix, :generators,
   migration: true,
@@ -34,6 +30,9 @@ config :guardian, Guardian,
   issuer: "Aircloak Air",
   ttl: { 30, :days },
   verify_issuer: true,
-  # The secret needs to be loaded from etcd for production
   secret_key: "6MvtANFkxCr3VaDY/C8oCooF6Pg1uqFzOWNYVMry/V5acmSPuQydPeU5X5Jh",
   serializer: Air.GuardianSerializer
+
+# Import environment specific config. This must remain at the bottom
+# of this file so it overrides the configuration defined above.
+import_config "#{Mix.env}.exs"

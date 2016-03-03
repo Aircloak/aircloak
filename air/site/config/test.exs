@@ -20,3 +20,6 @@ config :air, Air.Repo,
 
 # Make tests related to hashing run faster
 config :comeonin, :pbkdf2_rounds, 1
+
+config :guardian, Guardian,
+  secret_key: "6MvtANFkxCr3VaDY/C8oCooF6Pg1uqFzOWNYVMry/V5acmSPuQydPeU5X5Jh"
