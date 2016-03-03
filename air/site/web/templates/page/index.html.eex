@@ -1,4 +1,4 @@
 <div class="jumbotron">
-  <h2><%= gettext "Welcome to %{name}", name: "Aircloak" %></h2>
+  <h2>Welcome to Aircloak</h2>
   <p class="lead">Your query engine for anonymous and compliant data processing – ready for your analytics needs.</p>
 </div>
