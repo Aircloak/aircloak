@@ -16,13 +16,12 @@
       <header class="header">
         <nav role="navigation">
           <ul class="nav nav-pills pull-right">
-            <li>
             <%= if Guardian.Plug.authenticated?(@conn) do %>
-              <%= link "Sign out", to: session_path(@conn, :delete), method: :post %>
+            <li><%= link "Users", to: user_path(@conn, :index) %></li>
+            <li><%= link "Sign out", to: session_path(@conn, :delete)  %></li>
             <% else %>
-              <%= link "Sign in", to: session_path(@conn, :new) %>
+            <li><%= link "Sign in", to: session_path(@conn, :new) %></li>
             <% end %>
-            </li>
           </ul>
         </nav>
         <span class="logo"></span>
