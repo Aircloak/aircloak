@@ -5,11 +5,14 @@ defmodule Air.User do
 
   alias Ecto.Changeset
   alias Comeonin.Pbkdf2, as: Hash
+  alias Air.Organisation
 
   schema "users" do
     field :email, :string
     field :hashed_password, :string
     field :name, :string
+
+    belongs_to :organisation, Organisation
 
     timestamps
 
@@ -19,7 +22,7 @@ defmodule Air.User do
     field :password_confirmation, :string, virtual: true
   end
 
-  @required_fields ~w(email name)
+  @required_fields ~w(email name organisation_id)
   @optional_fields ~w(password password_confirmation)
 
   @doc """

@@ -18,6 +18,7 @@
           <ul class="nav nav-pills pull-right">
             <%= if Guardian.Plug.authenticated?(@conn) do %>
             <li><%= link "Users", to: user_path(@conn, :index) %></li>
+            <li><%= link "Organisations", to: organisation_path(@conn, :index) %></li>
             <li><%= link "Sign out", to: session_path(@conn, :delete), method: :delete, class: "signout-btn" %></li>
             <% else %>
             <li><%= link "Sign in", to: session_path(@conn, :new) %></li>

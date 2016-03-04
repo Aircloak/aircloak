@@ -27,6 +27,8 @@ defmodule Air.Router do
     pipe_through [:browser, :browser_auth]
 
     get "/", PageController, :index
+
     resources "/users", UserController
+    resources "/organisations", OrganisationController
   end
 end

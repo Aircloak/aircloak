@@ -1,29 +1,5 @@
 <h1>Users</h1>
 
-<%= if length(@users) == 0 do %>
-<p>There are currently no users registered</p>
-<% else %>
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Email</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-  <%= for user <- @users do %>
-    <tr>
-      <td><%= user.name %></td>
-      <td><%= user.email %></td>
-      <td>
-        <%= link "Edit", to: user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %>
-        <%= link "Delete", to: user_path(@conn, :delete, user), method: :delete, class: "btn btn-danger btn-xs" %>
-      </td>
-    </tr>
-  <% end %>
-  </tbody>
-</table>
-<% end %>
+<%= render "_users.html", users: @users, conn: @conn %>
 
 <a href="<%= user_path(@conn, :new) %>">Add user</a>

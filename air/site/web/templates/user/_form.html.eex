@@ -30,6 +30,13 @@
 </div>
 
 <div class="form-group">
+  <label>Organisation</label>
+  <%= select f, :organisation_id, select_org_values(@conn),
+      select_org_options(@changeset, class: "form-control") %>
+  <%= error_tag f, :organisation_id %>
+</div>
+
+<div class="form-group">
   <%= submit "Register", class: "btn btn-primary" %>
 </div>
 <% end %>

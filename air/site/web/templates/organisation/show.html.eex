@@ -1,0 +1,7 @@
+<h2><%= @organisation.name %></h2>
+
+<%= render Air.UserView, "_users.html",
+    users: @organisation.users, conn: @conn %>
+
+<%= link "Edit", to: organisation_path(@conn, :edit, @organisation) %>
+<%= link "Back", to: organisation_path(@conn, :index) %>

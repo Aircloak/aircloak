@@ -1,10 +1,12 @@
 defmodule Air.UserController do
   use Air.Web, :controller
 
-  alias Air.User
+  alias Air.{User, Organisation}
+
+  plug :preload_organisations, except: [:index, :delete]
 
   def index(conn, _params) do
-    users = Repo.all(User)
+    users = Repo.all(User) |> Repo.preload([:organisation])
     render(conn, "index.html", users: users)
   end
 
@@ -15,7 +17,7 @@ defmodule Air.UserController do
 
   def edit(conn, %{"id" => id}) do
     user = Repo.get!(User, id)
-    render(conn, "edit.html", changeset: User.changeset(user), user: user)
+    render(conn, "edit.html", changeset: User.changeset(user))
   end
 
   def create(conn, params) do
@@ -37,7 +39,7 @@ defmodule Air.UserController do
         conn
         |> put_flash(:info, "User updated")
         |> redirect(to: user_path(conn, :index))
-      {:error, changeset} -> render(conn, "edit.html", changeset: changeset, user: user)
+      {:error, changeset} -> render(conn, "edit.html", changeset: changeset)
     end
   end
 
@@ -47,5 +49,9 @@ defmodule Air.UserController do
     conn
     |> put_flash(:info, "User deleted")
     |> redirect(to: user_path(conn, :index))
+  end
+
+  defp preload_organisations(conn, _params) do
+    assign(conn, :organisations, Repo.all(Organisation))
   end
 end
