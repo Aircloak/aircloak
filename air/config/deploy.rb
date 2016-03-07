@@ -40,12 +40,12 @@ namespace :aircloak do
             AIR_ENV=prod
             REGISTRY_URL=registry.aircloak.com
             IMAGE_CATEGORY=#{fetch(:stage)}
-            #{build_folder}/package.sh
+            #{build_folder}/air/package.sh
           "
 
       # rolling upgrade of the cluster
       exec_ml "
-            #{build_folder}/coreos/cluster.sh rolling_upgrade
+            #{build_folder}/air/coreos/cluster.sh rolling_upgrade
               #{fetch(:stage)}
               #{fetch(:machine_ip)}
           "
@@ -59,7 +59,7 @@ namespace :aircloak do
       update_server_code
 
       # build the balancer image
-      execute "AIR_ENV=prod #{build_folder}/balancer/build-image.sh"
+      execute "AIR_ENV=prod #{build_folder}/air/balancer/build-image.sh"
 
       # restart the systemd service
       execute "systemctl daemon-reload && systemctl restart #{fetch(:balancer_service)}"
@@ -68,7 +68,7 @@ namespace :aircloak do
 
   private
     def build_folder
-      "/aircloak/#{fetch(:stage)}/air"
+      "/aircloak/#{fetch(:stage)}/aircloak"
     end
 
     def check_current_branch
