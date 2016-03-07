@@ -1,0 +1,135 @@
+# The tooltips are structured in the following way:
+#
+#   tool_tip_name1:
+#     content: tooltip
+#   tool_tip_name2:
+#     content: |
+#       Multiline markdown
+#       ==hurray==
+#     placement: top | bottom | left | right (default: bottom)
+#     markdown: true (default: false)
+
+data:
+  content: |
+    The data that is made available to the task needs to
+    be specified in advance.
+
+    The data can be limited in scope by specifying conditions
+    that should hold for it.
+    Assuming you had a `location`s table with an `x` and
+    a `y` column, you could specify that you only want locations
+    where the `x`-parameter is between 100 and 200.
+
+    You can also specify how many database rows to maximally
+    include per user, or that only database rows that were
+    uploaded to the cloak within the last minutes should be used.
+
+    Reducing the amount of data used will make the tasks execute faster.
+    This is important if the task is going to be run frequently.
+  markdown: true
+code:
+  content: |
+    The code is written in Lua and is executed over a single user
+    at a time.
+
+    You have access to the user data under `tables.TableName`
+    and can report values using `report_property(PropertyName, Value)`.
+
+    Some useful hotkeys:
+    - __Ctrl-Space__: autocompletion
+    - __Ctrl-R__: runs the task in the test sandbox
+    - __Ctrl-S__: saves the task
+  markdown: true
+exceptions:
+  content: |
+    We show how many times an exception occurred. If the exception
+    only occurrs for a subset of your userbase, it might be due
+    to an error in a part of your task that is only conditionally
+    executed.
+  markdown: true
+sandbox_output:
+  content: |
+    Output of the test sandbox execution.
+  markdown: true
+sandbox_data:
+  content: |
+    Test data which will be provided to the sandbox task. You can edit
+    the data by clicking the __fields__ column of each row.
+  markdown: true
+sandbox_table:
+  content: |
+    Select the table for which you want to insert the test data.
+  markdown: true
+task_type:
+  content: |
+    - __Batch task__: This type of task must be invoked manually.
+    - __Periodic task__: Just like batch task, but runs in regular intervals.
+    - __Streaming task__: Runs every time new data is inserted. Reports collected results periodically.
+  markdown: true
+report_interval:
+  content: |
+    Specifies the interval (in seconds) in which results of this task are reported back.
+  markdown: true
+task_period:
+  content: |
+    Specifies the regular period of task execution.
+  markdown: true
+user_expire_interval:
+  content: |
+    Specifies the time period (in seconds) after which a reported bucket is removed from the result.
+  markdown: true
+selected_columns:
+  content: |
+    Specifies which columns in the table are available in the task code for processing.
+
+    The total task execution duration can be reduced by specifying here only the fields that are actually needed.
+  markdown: true
+max_num_rows:
+  content: |
+    Limits the number of rows returned per user.
+    The limit is applied after the other filters.
+
+    The rows returned are the last rows inserted for the user
+    that also satisfy the other filter criterias.
+    The ordering of the rows is as it was specified when data was uploaded.
+
+    If combined with the time limit filter, the number of
+    rows returned might be less than the specified limit.
+
+    The number of rows might also be less if a particular user
+    does not have enough rows in the database.
+  markdown: true
+time_limit:
+  content: |
+    Limits the rows to those that _arrived at the cloak_
+    within the last N minutes.
+
+    The filter does not take into account any timestamp value
+    that might be part of the uploaded data, or any other
+    semantic value of the data.
+
+    If combined with the _maximum number of rows per user_-filter,
+    the subset of rows is returned that satisfies both criteria.
+  markdown: true
+save_button:
+  content: |
+    The __save__ button will create a new task if the task does not yet
+    exist, or otherwise update an existing task.
+  markdown: true
+sandbox_button:
+  content: |
+    The __Execute in sandbox__ button __does not__ run your task in
+    a real cloak. Instead it runs the task in a sandbox environment
+    which is identical to that used in the cloak.
+    You can thereby verify that the results of executing over the data
+    of a single user is as expected. By controlling the input data
+    you can verify that the outputs produced by the task match what
+    you would expect.
+  markdown: true
+lcf_tail:
+  content: |
+    The number of users for which one or more reported properties were
+    excluded from the final result because of low count. See [this help guide]
+    (/help/understanding-the-query-model#the-cloak-suppresses-answers-unless-the-count-is-high-enough)
+    for more details.
+  markdown: true

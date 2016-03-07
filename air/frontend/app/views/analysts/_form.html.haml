@@ -1,0 +1,15 @@
+= form_for @analyst, html: { class: "form-horizontal" } do |f|
+  - if @analyst.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(@analyst.errors.count, "error")} prohibited this analyst from being saved:"
+      %ul
+        - @analyst.errors.full_messages.each do |msg|
+          %li= msg
+
+  .control-group
+    = control_label "Name"
+    .controls
+      = f.text_field :name
+  .control-group
+    .controls
+      = f.submit 'Save', class: "btn btn-success"

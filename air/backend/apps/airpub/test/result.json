@@ -1,0 +1,28 @@
+{
+  "analyst_id":1,
+  "task_id":"1",
+  "buckets":[
+    {"label":"data","value":"<10","count":30},
+    {"label":"data","value":"[-100,100,10]","count":80},
+    {"label":"data","value":"<80","count":80},
+    {"label":"quantized","value":"data","count":80},
+    {"label":"data","value":"<30","count":60},
+    {"label":"data","value":"<20","count":45},
+    {"label":"id","value":"12","count":5},
+    {"label":"data","value":"<60","count":80},
+    {"label":"data","value":"<70","count":80},
+    {"label":"data","value":"<-10","count":25},
+    {"label":"id","value":"1","count":10},
+    {"label":"data","value":"<-20","count":15},
+    {"label":"id","value":"13","count":10},
+    {"label":"id","value":"7","count":10},
+    {"label":"id","value":"10","count":5},
+    {"label":"data","value":"<40","count":75},
+    {"label":"data","value":"<0","count":30},
+    {"label":"data","value":"<50","count":85},
+    {"label":"data","value":"<90","count":80},
+    {"label":"id","value":"14","count":5},
+    {"label":"aircloak","value":"lcf_tail","count":42}
+  ],
+  "exceptions":[]
+}

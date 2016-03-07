@@ -1,0 +1,36 @@
+- if cloaks.size > 0 then
+  %h3= render_assigned ? "Assigned cloaks" : "Unassigned cloaks"
+
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Name
+        %th Ip
+        %th Type
+        %th Good
+        - if render_assigned
+          %th Cluster
+        %th Comment
+        %td
+
+    %tbody
+      - cloaks.each do |cloak|
+        %tr
+          %td= cloak.name
+          %td= cloak.ip
+          %td= cloak.tpm_display
+          %td= cloak.good
+          - if render_assigned
+            %td
+              = cloak.cluster.name
+              - if cloak.cluster_cloak.state != :belongs_to
+                = " (#{cloak.cluster_cloak.state})"
+          %td= cloak.comment
+          %td
+            = link_to 'Show', cloak
+            \|
+            = link_to 'Edit', edit_cloak_path(cloak)
+            - if not render_assigned
+              \|
+              = link_to 'Destroy', cloak, :method => :delete, :data => { :confirm => 'Are you sure?' },
+                  class: "btn btn-mini btn-danger"

@@ -1,0 +1,14 @@
+{application, air, [
+  {description, "Backend services for air system"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+    kernel,
+    stdlib,
+    webmachine,
+    air_common,
+    airpub
+  ]},
+  {mod, { air_app, []}},
+  {env, []}
+ ]}.

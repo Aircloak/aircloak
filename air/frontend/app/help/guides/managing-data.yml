@@ -1,0 +1,85 @@
+title: Managing data
+order: 2
+content: |
+
+  # Managing data
+
+  Inside a cloak cluster, your data is stored in a distributed and replicated Postgres database instance.
+  Before uploading data to a cluster, you need to create tables to hold the data.
+
+  To provide the highest level of privacy, entities of your tables should always correspond to the data you are
+  trying to protect. Most often, this data will be about real people whose private data should not leak outside
+  of the cloak system. Each row of all your tables correspond directly to a single user, and the id
+  of this row identifies that particular user. Of course, it is perfectly fine to have multiple rows for
+  the same users.
+
+  Moreover, the data in your table should not be related to another user. Otherwise, a malicious query writer
+  has an option of reporting multiple counts per individual user, and can in this way obtain some knowledge
+  about the individual user.
+
+  For example, let us say you track geolocations of people at a university, and want to record meetings between
+  various university disciplines. One way to approach this problem is to introduce a table `meetings` where
+  you would keep a column `other_user` which contains an id of the user that participated in the meeting.
+  This introduces a potential privacy vulnerability, because now it is possible to report multiple counts per
+  that "other" user. For example, if a malicious query writer knows some part of the meeting schedule of a
+  certain person, he could construct a query which filters such meetings and reports a user id. This makes it
+  possible to obtain the id of the user. Having an id, the query writer could then easily filter out the rest
+  of the user's meeting schedule.
+
+  As a remedy for this problem, instead of storing other user's id, you could just store the user's discipline.
+  Note though that this is not 100% safe either. If there are "small" disciplines, with only a few people, the
+  discipline column can be almost as revealing as the user id.
+
+  So as a general rule, you should try to keep the table rows focused on a single user, with each column
+  describing some property of that particular user. In case you need to break this rule, try to use as few
+  columns as possible, make sure you fully understand the privacy implications of your design, and be sure
+  that those other columns (which correspond to other users) cannot be misused to reveal particular individuals.
+
+
+  ## Tables and clusters
+
+  Database tables only live in a single cluster and cannot be migrated from one cluster to another.
+  This applies both to the database definitions themselves, as well as the data in the tables.
+
+
+  ## Naming
+
+  Most any table and column name that is allowed by Postgres is also allowed in a cloak.
+  More concretely, the following restrictions are enforced:
+
+  - a table name can contain the characters `a` through `z` (in upper as well as lower case), and the numbers `0`
+    through `9` as well as contain underscores (`_`)
+  - a table name has to start with a character
+  - a table or column name cannot start with `ac_`. This prefix is reserved for Aircloak internal tables and columns.
+
+
+  ## Data types
+
+  We support the following Postgres datatypes:
+
+  - integer: signed 4 byte integer which can range from -2147483648 to +2147483647
+  - bigint: signed 8 byte integer which can range from -9223372036854775808 to +9223372036854775807
+  - float: 4 byte single precision floating-point number
+  - double: 8 byte double precision floating-point number
+  - boolean: logical true or false
+  - varchar: variable length bounded character string
+  - text: variable length unbounded character string (availability depends on the version of your cluster)
+
+
+  ## Uploading data
+
+  We provide HTTPS APIs for uploading data into cloaks.
+  For more specifics about the APIs, please consult the
+  <%= site_link "/apidocs/index.html", "API docs" %>.
+
+  It is not important which of your cloak server you upload data to.
+  A full URL for the _bulk insert_ API might therefore look like `https://cloak-id.cloak.aircloak.com/bulk_insert`.
+
+  It is authenticated using
+  client certificates. For more information about authentication, please have a look
+  at the <%= site_link "/apidocs/index.html#authentication", "authentication" %> section
+  of our API docs
+
+  __Please note:__
+  In order to be able to upload data to your cloak, you will need to create some database tables first.
+  You can do this at the <%= site_link controller.user_tables_path, "tables page" %>.

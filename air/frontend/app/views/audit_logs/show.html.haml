@@ -1,0 +1,34 @@
+%h3= "Audit log entry #{@log_entry.log_id}"
+
+%table.table.table-striped
+  %thead
+    %tr
+      %th Name
+      %th Value
+  %tbody
+    %tr
+      %td Log id
+      %td= @log_entry.log_id
+    %tr
+      %td Timestamp
+      %td= @log_entry.timestamp
+    %tr
+      %td Hash
+      %td= @log_entry.hash
+    %tr
+      %td Parent hash
+      %td= @log_entry.parent_hash
+    %tr
+      %td Signature
+      %td= @log_entry.signature
+    %tr
+      %td Source
+      %td= @log_entry.source
+    %tr
+      %td Message
+      %td= @log_entry.message
+    %tr
+      %td Raw
+      %td= @log_entry.log_message
+
+= link_to 'Back', :back

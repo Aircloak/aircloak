@@ -1,0 +1,22 @@
+:ruby
+  ::Rails.application.assets.context_class.class_eval do
+    include ApplicationHelper
+    include ActionView::Helpers::FormTagHelper
+  end
+
+#sandboxDataEditor{"style" => "width:500px;"}
+  %div{:style => "text-align:center"}
+    %h3 Test user data
+  %br/
+
+  .form-container
+    %form.form-horizontal.new_query{"accept-charset" => "UTF-8"}
+      = hb "each fields" do
+        .control-group
+          %label.control-label= hb "name"
+          .controls
+            %input{"data-sandbox-field" => hb("name"), :type => "text", :value => hb("value")}
+      .control-group
+        .control-label
+          .controls
+            = submit_tag 'Update', :id => "updateSandboxUser", :class => "btn btn-success submit-btn"

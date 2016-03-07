@@ -1,0 +1,174 @@
+!!!
+%html
+  %head
+    %meta{charset: "utf-8"}
+    %meta{:'http-equiv' => "X-UA-Compatible", content:"IE=Edge,chrome=1"}
+    %meta{name: "viewport", content: "width=device-width, initial-scale=1.0"}
+    %title= content_for?(:title) ? yield(:title) : "Aircloak"
+    = stylesheet_link_tag "application", media: "all", "data-turbolinks-track" => true
+    = csrf_meta_tags
+
+  %body
+    = render partial: "layouts/popup"
+    .outer-container
+      .side-menu
+        %br
+
+        %a.aircloak-logo{href: root_path}
+          %img{src: "/images/aircloak_web_200.png"}
+
+        %br
+        %br
+        %br
+
+        - if current_user.inquirer?
+
+          %h4= link_to "Tasks", tasks_path
+          = link_to "All tasks", tasks_path
+          |
+          = link_to "Add task", new_task_path
+
+          %hr
+
+          %h4= link_to "User tables", user_tables_path
+          - if current_user.cluster_manager?
+            = link_to "All tables", user_tables_path
+            |
+            = link_to "Add table", new_user_table_path
+
+            %hr
+
+            %h4= link_to "Lookup tables", lookup_tables_path
+
+            %hr
+
+            %h4= link_to "Users", users_path
+            = link_to "All users", users_path
+            |
+            = link_to "Add user", new_user_path
+
+          %hr
+
+          %h4= link_to "Keys", keys_path
+
+          %hr
+
+        %h4 Documentation
+        = link_to "Help guides", help_index_path, :target => '_blank'
+        |
+        = link_to "API docs", "/apidocs/index.html", :target => '_blank'
+
+        - if current_user.analyst and current_user.analyst.has_clusters?
+          %hr
+
+          .machines
+            - if current_user.analyst.clusters.count > 1
+              %h4 My clusters
+            - else
+              %h4 My machines
+
+            - current_user.analyst.clusters.each do |cluster|
+
+              - if current_user.analyst.clusters.count > 1
+                %h6= "#{cluster.name} cluster"
+
+              %ul
+                - cluster.cloaks. each do |cloak|
+                  %li= "#{cloak.aircloak_domain} (#{cloak.health})"
+
+        %hr
+        Logged in as
+        = link_to current_user.login, show_current_users_path
+        %h5= link_to "Logout", logout_path
+
+        %hr
+
+        - unless current_user.nil?
+          %strong Monitoring
+          - if current_user.activity_monitoring_opt_out
+            %p
+              We would like to monitor which parts of our website you visit.
+              This would allow us to help you debug problems should you
+              get stuck.
+
+            %p
+              Monitoring is disabled for your account
+              but you can enable it at any time you like
+            = button_to "Enable monitoring", with_return_path(toggle_monitoring_users_path), class: "btn btn-mini"
+          - else
+            %p
+              We monitor which parts of our website you visit.
+              This allows us to help you debug problems should you
+              get stuck.
+
+            %p
+              %strong Monitoring is enabled for your account
+              but you can disable it at any time you like
+            = button_to "Disable monitoring", with_return_path(toggle_monitoring_users_path), class: "btn btn-mini"
+
+          = help_link 'web-monitoring'
+
+        %a{href: "mailto:support@aircloak.com"}
+          %strong Need help?
+          Please send us an email at support@aircloak.com.
+
+        %br
+        %br
+        %br
+
+
+      .main
+        .container-fluid
+          .content
+            - if current_user && current_user.admin?
+              = render partial: "layouts/navbar", locals: {imposter: true}
+
+            .row-fluid
+              .span12
+                .div
+                  .alert.alert-error
+                    %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
+                    %strong Note:
+                    You are running a development version of our software.
+                    Please do not at this time load sensitive data into your cluster,
+                    and be aware that data might be lost during system upgrades.
+
+            .row-fluid
+              .span12
+                .row-fluid
+                  .span9
+                    .div
+                      - if flash[:error]
+                        .alert.alert-error
+                          %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
+                          = flash[:error]
+                      - if flash[:notice]
+                        .alert.alert-success
+                          %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
+                          = flash[:notice]
+
+                      -# Show notifications on exceptions, unless we are
+                      -# editing a task
+                      - if current_user.analyst and should_show_exception_notification?
+                        - exception_tasks = current_user.analyst.tasks_with_exceptions
+                        .alert.alert-error
+                          %button.close{type:"button", :'data-dismiss'=>"alert"} &times;
+                          - if exception_tasks.count == 1
+                            - task = exception_tasks.first
+                            %a{href: edit_task_path(task.token)}
+                              The
+                              %strong= task.name
+                              task threw an exception. Click here to get to the task editor.
+                          - else
+                            %strong= "You have #{pluralize(exception_tasks.count, "task")} with exceptions."
+                            %p Click on one of the tasks to edit it.
+                            %ul
+                              - exception_tasks.each do |task|
+                                %li
+                                  %a{href: edit_task_path(task.token)}= task.name
+
+                = yield
+
+    = javascript_include_tag "application", "data-turbolinks-track" => true
+    = yield(:javascript_include)
+    = yield(:javascript)

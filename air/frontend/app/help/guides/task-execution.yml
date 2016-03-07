@@ -1,0 +1,100 @@
+title: Task execution models
+order: 1
+content: |
+
+  # Task execution models
+
+  There are three types of execution models: __batch__, __periodic__, __streaming__. Note: Streaming and
+  periodic tasks are a new feature which are not supported by older clusters.
+
+  Differences between the execution models are summarized in the following table:
+
+  | Batch task | Periodic task | Streaming task |
+  |------------|---------------|----------------|
+  | Executed on demand | Executed in regular periods | Executed when data is inserted |
+  | Reports are sent after the task has finished executing | Reports are sent after the task has finished executing | Reports are sent back in regular intervals |
+  | Executes over all users specified in prefetch | Executes over all users specified in prefetch | Only executes over users who had data inserted into the prefetch tables |
+  | Allows rich filters in prefetch | Allows rich filters in prefetch | Does not allow filters in prefetch |
+  | Does not support stateful tasks | Does not support stateful tasks | Supports stateful tasks |
+
+  ## Batch tasks
+
+  A batch task is executed on demand. Once defined, a task can be manually scheduled to run, either via the
+  user interface or via the REST API. The task will then execute in the cluster and once the execution is over,
+  the reports will be generated and sent to the desired endpoint.
+
+  ## Periodic tasks
+
+  A periodic task is similar to a batch task, but is executed periodically, rather than on demand.
+  Just like for batch tasks, reports are sent to the desired endpoint immediately after the task has finished
+  executing.
+
+  ## Streaming tasks
+
+  A streaming task is executed whenever new data is inserted into tables relevant to the task.
+  The relevant tables are specified in the prefetch part of the task definition.
+
+  As explained in <%= help_link "introduction-queries" %>, a task is always executed over individual users.
+  During execution, a task may generate values which are included in the final report.
+
+  Values reported by streaming tasks do not immediately leave the cloak.
+  Instead, the process of anonymization and aggregation (as explained in
+  <%= help_link "understanding-the-query-model" %>) is performed periodically. You can configure this period
+  as a part of the task.
+
+  Values reported for individual users are included in the next generated result. In fact,
+  those values will be included in all future results until one of following conditions is met:
+
+  1. The task is executed for that same user. This happens when new data is inserted for that particular user. This
+  will cause all previously reported values for that user to be deleted.
+  2. The generated values have expired. The expiry time of generated values can be configured when defining the
+  task.
+
+  ### Stateful tasks
+
+  Streaming tasks can maintain user-specific state between executions. This is useful if you want to track and report
+  changes, rather than absolute values. The state is kept in the `accumulator` variable. When a task
+  is invoked for the first time for a user, the `accumulator` will have the value `nil`. The value given to
+  the `accumulator` is kept for future streaming task executions, until the task changes it.
+
+  __Note__: accumulators are only supported in streaming tasks. The accumulator is not preserved for batch and periodic tasks.
+
+  For example, when tracking user locations, you might be interested in reporting moving vs. stationary people.
+  To do this, you can store the observed location in the user-specific state. Next time the task is invoked
+  for that same user, you can use this state to detect if a user has moved or not:
+
+  ```lua
+  local locations = load_user_table("locations")
+  local location = locations[1]
+
+  if (accumulator ~= nil) then
+    -- report something only if not the first run
+    local moving_status
+
+    -- use accumulator to detect the moving status
+    if (accumulator.x == location.x and accumulator.y == location.y) then
+      moving_status = "stationary"
+    else
+      moving_status = "moving"
+    end
+
+    report_property("moving_status", moving_status)
+  end
+
+  -- set the accumulator to the observed location
+  accumulator = location
+  ```
+
+  Accumulator can be arbitrarily complex. If you need to keep multiple values in the state, you can just use
+  a Lua table:
+
+  ```lua
+  -- initialize the table on the first run
+  accumulator = accumulator or {}
+
+  if (accumulator.location ~= nil) then
+    -- ...
+  end
+
+  accumulator.location = tables.locations[1]
+  ```

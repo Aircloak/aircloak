@@ -1,0 +1,29 @@
+- if current_user.nil?
+  User needs login
+
+- else
+  - if current_user.admin?
+    = render partial: 'integration_tests/result', locals: {test: @main_test}
+    %hr
+
+  - if current_user.analyst.nil?
+    %h2 Welcome
+
+  - elsif current_user.needs_onboarding?
+    = render partial: 'onboarding', locals: {test: @main_test}
+
+  - else
+    %h1 Welcome back
+    %p
+      Your organization has already defined
+      = link_to pluralize(current_user.tables_count, "database table"), user_tables_path
+      and written
+      = link_to "#{pluralize current_user.tasks_count, "tasks"}.", tasks_path
+      Excellent work.
+
+    %hr
+    %p
+      Please never hesitate to reach out to us at
+      = link_to "support@aircloak.com", "mailto:support@aircloak.com"
+      if you have any questions, comments, or want inspiration in finding
+      new ways to answer your questions in the framework of cloaked computing.

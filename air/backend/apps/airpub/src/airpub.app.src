@@ -1,0 +1,14 @@
+{application, airpub, [
+  {description, "Low latency result publishing hub"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+    kernel,
+    stdlib,
+    cowboy,
+    sasl,
+    air_common
+  ]},
+  {mod, {airpub_app, []}},
+  {env, []}
+ ]}.

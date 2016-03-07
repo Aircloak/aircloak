@@ -1,0 +1,15 @@
+<% if @cloak.cluster -%>
+  <% if @cloak.cluster.build.manual -%>
+image="<%=@cloak.cluster.build.name%>"
+  <% else -%>
+image="base"
+build_url="http://build.aircloak.com/releases/<%=@cloak.cluster.build.id%>.tar.gz"
+  <% end -%>
+tpm=<%=@cloak.cluster.tpm%>
+<% @crts, @crls = Cluster.get_client_credentials %>
+client_crts="<%=@crts%>"
+client_crls="<%=@crls%>"
+keep_data="<%=@cloak.cluster_cloak.state == :to_be_upgraded%>"
+<% else -%>
+image="base"
+<% end -%>

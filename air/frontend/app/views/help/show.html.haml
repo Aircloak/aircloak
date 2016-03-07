@@ -1,0 +1,18 @@
+.container-fluid
+  .content
+    .row-fluid
+      .span10
+        -# This makes the HTML look incredibly ugly,
+        -# but unfortunately it is neccessary in order
+        -# to get code blocks in the help text to render
+        -# properly
+        .help-content
+          = preserve do
+            = raw @content
+      .span2
+        %h4 Content
+        = raw @toc
+        %h4 Other guides
+        - @guides.each do |guide|
+          - unless guide["path"] == @current_guide
+            %li= link_to guide["title"], "/help/#{guide["path"]}"

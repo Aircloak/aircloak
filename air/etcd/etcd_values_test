@@ -1,0 +1,73 @@
+# This is a sample file with values that should
+# be stored in etcd when running the rails app
+# with docker locally.
+#
+# To use it, please set the values appropriately,
+# and rename it to etcd_values.
+#
+# It is ignored by git, so you can change values
+# at will without leaking local state.
+#
+# The only primitive supported is:
+#
+#   etcd_set <path> <value>
+
+set_tcp_ports test
+
+# Site names
+etcd_set /site/frontend "frontend.air-local"
+etcd_set /site/api "api.air-local"
+etcd_set /site/infrastructure_api "infrastructure-api.air-local"
+etcd_set /site/airpub "airpub.air-local"
+etcd_set /site/aircloak "aircloak.air-local"
+
+etcd_set /settings/mail/smtp/address smtp.mandrillapp.com
+etcd_set /settings/mail/smtp/port 587
+etcd_set /settings/mail/smtp/username "sebastian@aircloak.com"
+etcd_set /settings/mail/smtp/password "_EFioVwohF4p6bHBbdaAGw" # This is a valid mandrill test key. API works, but no emails sent
+etcd_set /settings/mail/smtp/domain "aircloak.com"
+
+# The database settings are set once when the app launches
+# and cannot be changed without relaunching the container.
+etcd_set /settings/air/db/host 127.0.0.1
+etcd_set /settings/air/db/port $(get_tcp_port dev database/tcp)
+etcd_set /settings/air/db/username airtest
+etcd_set /settings/air/db/password ''
+etcd_set /settings/air/db/database air_test_database
+etcd_set /settings/air/db/ssl false
+
+# Integration test settings
+etcd_set /settings/air/integration_test/cluster_size 1
+etcd_set /settings/air/integration_test/data/num_users 100
+etcd_set /settings/air/integration_test/data/mean_rows_per_user 10
+
+# Whether it is a global installation, or whether it should
+# ignore costly operations involving infrastructure.
+# false is a good choice for local development, whereas
+# we want it to be true for tests. The reason is that
+# we want to explicitly test the paths we are also
+# exercising in production.
+etcd_set /settings/rails/global true
+
+etcd_set /settings/rails/task/publish_url ""
+
+etcd_set /settings/rails/secrets/private_key_password "a not so secret key"
+etcd_set /settings/rails/secrets/github_oauth_token "273c13ccc918a992618a503df7dadfe06f70b3f5"
+etcd_set /settings/rails/secrets/secret_key_base "random-secret"
+etcd_set /settings/rails/secrets/ca_path "../router/dev_cert"
+
+etcd_set /settings/air_backend/integration_test false
+
+# External services
+etcd_set /service/frontend_local http://frontend.air-local:$(etcd_get /tcp_ports/router/http)
+etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/http)
+etcd_set /service/backend_local http://backend.air-local:$(etcd_get /tcp_ports/router/http)
+etcd_set /service/airpub/shared_secret "well-known secret"
+etcd_set /service/airpub/subscribe_endpoint ""
+etcd_set /service/build_server/host ""
+etcd_set /service/cloak/port 8098
+etcd_set /service/cloak/protocol http
+etcd_set /service/manny_air/host ""
+
+# Registered local symbolic names
+etcd_set /service/local_names "frontend backend api infrastructure-api aircloak airpub"

@@ -1,0 +1,20 @@
+%h1= "Virtual Machine #{@item_vm.name} of Test #{@item_vm.test_item.name} (Testrun #{@item_vm.test_item.test_result.testtime_in_UTC} (UTC)"
+
+%h2 Overview
+
+%table.table.table-striped
+  %tbody
+    %tr
+      %td Type
+      %td= @item_vm.test_vm.name
+    %tr
+      %td Memory usage/size
+      %td= "#{@item_vm.memory_usage} MB/#{@item_vm.memory_size} MB"
+    %tr
+      %td Disk usage/size
+      %td= "#{@item_vm.disk_usage} MB/#{@item_vm.test_vm.disk_size} MB"
+
+- unless @item_vm.log.nil?
+  %h2 Log
+
+  %pre= @item_vm.log

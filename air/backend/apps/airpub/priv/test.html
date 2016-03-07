@@ -1,0 +1,105 @@
+<!--
+  This webpage can be used for testing the websocket subscribe endpoint of the airpub system.
+  To use it, move this page in the root folder of the airpub release and set the shared secret to
+  "well-known secret" (don't forget to restart airpub) or update the shared secret value used here.
+-->
+<!DOCTYPE HTML>
+<html>
+<head>
+<script src="//crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/hmac-sha256.js"></script>
+<script type="text/javascript">
+function listen(server, path, callback)
+{
+  if (!("WebSocket" in window)) {
+    alert("This browser does not support WebSockets");
+    return;
+  } 
+  log("Connecting ...");
+  ws = new WebSocket(server + "/subscribe/ws");
+  ws.onopen = function()
+  {
+    log('Connected. Subscribing to ' + path);
+    ws.binaryType = "arraybuffer";
+    var request = "subscribe path=" + path + " timestamp=" + Date.now().toString();
+    var hash = CryptoJS.HmacSHA256(request, "well-known secret");
+    ws.send(hash.toString() + " " + request);
+  };
+  ws.onmessage = function (event)  
+  {
+    if (typeof event.data === "string")
+    {
+      // parse object header
+      this.object = {};
+      var tokens = event.data.split(' ');
+      this.object.type = tokens[0];
+      for(var i = 1; i < tokens.length; i++)
+      {
+        var attribute = tokens[i].split('=');
+        this.object[attribute[0]] = attribute[1];
+      }
+    }
+    else
+    {
+      // add content and invoke callback
+      var object = this.object;
+      delete this.object;
+      object.content = String.fromCharCode.apply(null, new Uint8Array(event.data)); // onvert to string
+      callback(object);
+    }
+  };
+  ws.onclose = function(event)
+  {
+    log('Connection closed!');
+  };
+  ws.onerror = function(event)
+  {
+    log("Connection error: " + event.message);
+  };
+}
+
+// adds a message to the console element
+function log(message)
+{
+  var time = (new Date()).toLocaleTimeString();
+  var text = document.createTextNode(time + ":> " + message);
+  var console = document.getElementById('console');
+  console.appendChild(text);
+  var br = document.createElement("br");
+  console.appendChild(br);
+}
+
+// called to process objects coming in from the server
+function object_callback(object)
+{
+  if (object.type != "article")
+    return;
+  var published_at = new Date(parseInt(object.published_at));
+  log("Article info: path=" + object.path + " content_type=" + object.content_type + " published_at=" + published_at.toLocaleString());
+  log("Article content: '" + object.content + "'");
+}
+
+function on_subscribe()
+{
+  document.getElementById('params').style.display = 'none';
+  document.getElementById('console').style.display = 'block';
+  var path = document.getElementById('path').value;
+  var server = "ws" + document.location.origin.substr(4);
+  listen(server, path, object_callback);
+}
+</script>
+</head>
+
+<body>
+  <center>
+    <div id="params">
+      Path: <input id="path"/>
+      <button onClick="on_subscribe(); return false;">Subscribe</button><br/>
+    </div>
+    <br/>
+    <br/>
+    <div id="console" align="left" style="width:80%; min-height:200px; border:2px solid black; display:none">
+    </div>
+  </center>
+  </body>
+</html>
+
