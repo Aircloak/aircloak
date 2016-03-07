@@ -1,0 +1,61 @@
+title: Lookup tables
+order: 6
+content: |
+
+  # Lookup tables
+
+  Lookup tables is a feature which allows uploading data that is not sensitive.
+  This data can be correlated to users' data when writing queries (see <%= help_link "introduction-queries" %>).
+
+  For example, let's say that you are tracking geolocation of people in a
+  university building, and in your queries you need to obtain the discipline
+  of each particular user, which allows you to report per-discipline statistics
+  (e.g. working time of day per each discipline). Assuming that geotracking
+  device stays with the same user, you could set-up a lookup table called `disciplines`
+  where mappings of device id to discipline are stored. You can then upload
+  mapping data to the Aircloak system, and perform lookups from your queries.
+  Furthermore, you can freely re-upload mapping data when something changes.
+
+  You can create a lookup table on the <%= site_link controller.lookup_tables_path, "lookup tables page" %>.
+  Creating the table amounts to giving a name to the table and providing data.
+  Lookup table's data is a series of rows, each row having two fields: a key and a
+  value. While creating the table, you will have to provide a file containing this
+  data. The file must always be a plain text json file that has a list of rows,
+  each row having exactly two elements (a key and a value). For example, to
+  provide device id to discipline mapping, you can have following file:
+
+  ```json
+  [
+    [123, "Chemistry"],
+    [111, "Medicine"],
+    [678, "Biology"]
+    ...
+  ]
+  ```
+
+  Let's say that you upload this table under the name `disciplines`. You can now
+  retrieve the tables in the Lua part of your tasks, using the `lookup` function.
+  For example, calling `lookup("discipline", 123)` will return the string
+  `"Chemistry"`. You will usually use this string as a bucket name or value with
+  `report_property` function.
+
+  ## Rules and limitations
+
+  The allowed types for keys are integer numbers and strings. Values can in addition
+  be floats. Regardless of the data type, the function `lookup` always returns a
+  string. If you need to convert values to numbers, you can use Lua function
+  `tonumber`.
+
+  The only way to modify a lookup table's contents is to re-upload the complete data
+  of the table, which will overwrite any previous contents. Moreover, renaming tables
+  is not supported. If for some reason you need to change a lookup table's name you
+  can perform it in following steps:
+
+  1. Create the new table with a desired name
+  1. Modify existing queries to use the new table
+  1. Delete the old table
+
+  It's also worth mentioning that a lookup table can have the same name as a user
+  table, so there is no need to provide some special prefix to a table based on
+  its usage. It is of course not possible to have two lookup tables of the same
+  name.

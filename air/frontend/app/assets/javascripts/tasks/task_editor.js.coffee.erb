@@ -1,0 +1,461 @@
+# include result exception handling functionality
+//= require tasks/result_exception
+
+# Setup the global namespace
+window.Tasks or= {}
+
+Tasks.Editor = (taskType, taskExceptions, completions, tables, operators) ->
+  self = this
+
+  # ------------------------------------
+  # Private members
+  # ------------------------------------
+
+  data = null
+  view = null
+  codeEditor = null
+  changed = false
+
+  taskTypeMap = <%= Task::JSON_TYPES.to_json %>
+
+  isStreaming = ->
+    taskType == <%= Task::STREAMING_TASK %>
+
+  isPeriodic = ->
+    taskType == <%= Task::PERIODIC_TASK %>
+
+  render = ->
+    data.selectClusterId(selectedClusterId())
+    $("#prefetchTables").html(HandlebarsTemplates["tasks/prefetch_tables"](data))
+    renderSandboxEditor()
+    renderExceptions()
+    renderSaveInfo()
+    showHideAddTable()
+    showHideTaskTypeControls()
+    showHideTaskSpecificControls()
+    self
+
+  renderExceptions = ->
+    error_texts = processExceptions()
+    html =
+      if error_texts.length == 0
+        ""
+      else
+        HandlebarsTemplates["tasks/task_exceptions"](exceptions: error_texts)
+    $("#taskExceptions").html(html)
+    window.rebindAllPopuplinks()
+
+  # this is called after the task is executed in the sandbox and it will highlight the code lines containing errors
+  processExceptions = ->
+    # clear all previous errors
+    index = 0
+    while index < codeEditor.lineCount()
+      codeEditor.removeLineClass(index++, "background", "CodeMirror-line-error")
+    # process exceptions returned after executing the task in the sandbox
+    processException = (exception) ->
+      error = ResultException.parse_to_error exception
+      if error.module == "task_code"
+        # highlight lines with errors
+        codeEditor.addLineClass(error.line - 1, "background", "CodeMirror-line-error")
+      # format error text
+      ResultException.format_error error
+    (processException exception for exception in taskExceptions)
+
+  saveInfo = ->
+    if changed
+      class: "alert-info",
+      message: "You didn't test the task since last changes were done. The task may not work properly."
+    else if taskExceptions.length > 0
+      class: "alert-error",
+      message: "Last run produced some errors. The task can be saved, but it will not work properly."
+    else
+      class: "hidden",
+      message: ""
+
+  renderSaveInfo = ->
+    si = saveInfo()
+    $("#taskStatus").
+          removeClass("hidden alert-error alert-info").
+          addClass(si.class).
+          html(si.message)
+
+  selectedClusterId = ->
+    parseInt($('#task_cluster_id').val())
+
+  selectedClusterCapableOf = (capability) ->
+    chosenClusterOption = $("#task_cluster_id option[value=\"#{selectedClusterId()}\"]")
+    if chosenClusterOption.length == 0
+      # The user only has a single cluster, and the cluster streaming capability
+      # is provided through a hidden input field
+      $("#task_cluster_id").data("#{capability}-capability")
+    else
+      chosenClusterOption.data("#{capability}-capability")
+
+  # Custom hint function. It determines the word at the cursor, and
+  # returns the completion list.
+  completionList = (cm, editor, options) ->
+    regex = /(\w|\.)/
+    cur = editor.getCursor()
+    curLine = editor.getLine(cur.line)
+    start = cur.ch
+    end = start
+
+    # find start and end of the word
+    while (end < curLine.length && regex.test(curLine.charAt(end)))
+      end++
+    while (start > 0 && regex.test(curLine.charAt(start - 1)))
+      start--
+
+    curWord = curLine.slice(start, end)
+    fuzzyMatcher = new RegExp(curWord.replace(/(.)/g, "$1.*"), "i")
+
+    sortOrder = (text) ->
+      # Place items that start with the given word at the top of the completion list.
+      prefix =
+        if text.startsWith(curWord)
+          "0"
+        else
+          "1"
+      "#{prefix}#{text}"
+
+    list =
+      _.chain([]).
+        union(
+              completions,
+              _.map(data.selectedTables(), (table) -> text: "load_user_table(\"#{table.name}\")"),
+              _.map(data.selectedTables(), (table) -> text: "user_table(\"#{table.name}\")"),
+              _.map(CodeMirror.hint.anyword(cm, word: /[a-zA-Z_](\w)*/).list, (word) -> text: word)
+            ).
+        filter((candidate) -> candidate.text.match(fuzzyMatcher)).
+        uniq((el) -> el.text).
+        sortBy((el) -> sortOrder(el.text)).
+        value()
+
+    return {
+      list: list,
+      from: CodeMirror.Pos(cur.line, start),
+      to: CodeMirror.Pos(cur.line, end)
+    }
+
+  initCodeEditor = ->
+    CodeMirror.commands.autocomplete = (cm) ->
+      cm.showHint(hint: _.bind(completionList, null, cm))
+
+    CodeMirror.commands.runInSandbox = doRunInSandbox
+
+    CodeMirror.commands.save = (cm) ->
+      unless saveInfo().message.length == 0 || window.confirm("#{saveInfo().message}\n\nSave anyway?")
+        return
+      $("#task_code").closest('form').submit()
+
+    codeEditor = CodeMirror.fromTextArea(document.getElementById("task_code"), {
+      lineNumbers: true, mode: "lua", vimMode: false, matchBrackets: true, showCursorWhenSelecting: true, viewportMargin: Infinity
+      extraKeys: {
+        "Ctrl-Space": "autocomplete",
+        "Ctrl-R": "runInSandbox"
+        "Ctrl-S": "save"
+      }
+    })
+
+    codeEditor.on("change", () ->
+          if !changed
+            changed = true
+            renderSaveInfo()
+        )
+
+  showHideAddTable = ->
+    if (parseInt($("#newTableName").val()) > 0)
+      $("#addTable").show()
+    else
+      $("#addTable").hide()
+
+  showHideTaskSpecificControls = ->
+    $("#streamingTaskParams").hide()
+    $("#periodicTaskParams").hide()
+
+    if (isStreaming() and selectedClusterCapableOf("streaming"))
+      $("#streamingTaskParams").show()
+
+    if (isPeriodic() and selectedClusterCapableOf("periodic"))
+      $("#periodicTaskParams").show()
+
+  showHideTaskTypeControls = ->
+    visible = 1
+
+    for option in $("select#task_task_type option")
+      continue if (parseInt($(option).val()) == <%= Task::BATCH_TASK %>)
+      if selectedClusterCapableOf(taskTypeMap[$(option).val()])
+        $(option).show()
+        visible++
+      else
+        $(option).hide()
+
+    if (visible > 1)
+      $("#taskTypeParams").show()
+    else
+      $("#taskTypeParams").hide()
+      # We need to set the task type to batch query, since
+      # that is supported by all clusters. We also need to
+      # re-render the form in case we had to make a change.
+      # Otherwise changing back to a cluster which does support
+      # the streaming query task will show the task type as
+      # batch query, yet at the same time also show the
+      # streaming query options.
+      for option in $("select#task_task_type option")
+        if (parseInt($(option).val()) == <%= Task::BATCH_TASK %>) and not option.selected
+          option.selected = true
+          onTaskTypeChanged()
+
+  handleEventAndCancel = (e, fun) ->
+    e.stopPropagation()
+    e.preventDefault()
+    fun()
+    false
+
+  addTable = (e) ->
+    handleEventAndCancel(e, ->
+          data.newTableFilter(parseInt($("#newTableName").val()))
+          render()
+        )
+
+  removeTable = (e) ->
+    handleEventAndCancel(e, ->
+          data.removeTableFilter(parseInt($(e.target).data("table-index")))
+          render()
+        )
+
+  editFilter = (e) ->
+    handleEventAndCancel(e, ->
+          return if $(e.target).data("disabled")
+          openFilterEditor(data.tableFilter(parseInt($(e.target).data("table-index"))))
+          render()
+        )
+
+  enableDisableExtendedFilters = ->
+    data.supportExtendedFilters = (taskType == <%= Task::BATCH_TASK %> || taskType == <%= Task::PERIODIC_TASK %>)
+
+  onTaskTypeChanged = (e) ->
+    taskType = parseInt($('#task_task_type').val())
+    if (isStreaming())
+      data.simplifyPrefetch()
+    else
+      data.simplifyRuns()
+    enableDisableExtendedFilters()
+    render()
+
+  openFilterEditor = (tableFilter) ->
+    editor = new Tasks.FilterEditor
+      tableFilter: tableFilter
+      onSaved: render
+    editor.render()
+
+  submit = (e) ->
+    $("#task_test_data").val(JSON.stringify(data.exportTestData()))
+    $("#task_data").val(JSON.stringify(data))
+
+  renderSandboxEditor = () ->
+    $("#sandboxRunner").html(HandlebarsTemplates["tasks/sandbox_runner"](data: data, multiRun: isStreaming()))
+
+  addSandboxUser = (e) ->
+    handleEventAndCancel(e,
+          ->
+            data.addTestUser($(e.target).data("run-id"))
+            renderSandboxEditor()
+        )
+
+  runInSandbox = (e) ->
+    handleEventAndCancel(e, doRunInSandbox)
+
+  doRunInSandbox = () ->
+    codeEditor.save()
+    response = $.ajax(
+      type: "POST",
+      url: "/sandbox/run",
+      async: false,
+      processData: false,
+      dataType: "json",
+      contentType: "application/json; charset=utf-8",
+      data: JSON.stringify({
+            task_spec:
+              users_data: data.testJson(),
+              code: $("#task_code").val()
+          })
+    )
+    changed = false
+    reportSandboxErrors(response)
+    renderSaveInfo()
+    renderSandboxResults(response)
+
+  reportSandboxErrors = (response) ->
+    taskExceptions =
+      if (response.status != 200)
+        [{message: "HTTP error #{response.status}", count: 1}]
+      else
+        _.chain(results(response)).
+          map((result) -> result.errors || []).
+          flatten(true).
+          value()
+    renderExceptions()
+
+  renderSandboxResults = (response) ->
+    if (response.status == 200)
+      response = results(response)
+      runResults = _.map(response, transformRun)
+
+    $("#sandboxResult").html(HandlebarsTemplates["tasks/sandbox_results"](
+          multiRun: isStreaming(), data: runResults || []
+        ))
+
+  results = (response) ->
+    JSON.parse(response.responseText)
+
+  transformRun = (runResult) ->
+    properties: transformReportedProperties(runResult.reported_properties)
+    insertActions: transformInsertActions(runResult.insert_actions)
+
+  transformReportedProperties = (reportedProperties) ->
+    _.chain(reportedProperties).
+      pairs().
+      map(([user, properties]) -> _.map(properties, (property) -> user: user, property: property)).
+      flatten(true).
+      sortBy((result) -> "#{result.user}_#{result.property.label}_#{result.property.value}").
+      value()
+
+  changeDetector = () ->
+    lastValue = null
+
+    value: (newValue) ->
+      res = if (newValue != lastValue) then newValue else ""
+      lastValue = newValue
+      res
+
+  transformInsertActions = (insertActions) ->
+    # We flatten the hierarchy of insert actions into array of (user, table, row)
+    # entries. To aid the UI, user and table will contain non-empty strings only
+    # when the values are changed comparing to the previous row.
+    res = []
+    _.each(_.pairs(insertActions),
+          ([user, data]) ->
+            userChangeDetector = new changeDetector()
+            _.each(_.pairs(data),
+                  ([tableName, rows]) ->
+                    tableChangeDetector = new changeDetector()
+                    _.each(rows,
+                          (row) ->
+                            res.push(
+                                  user: userChangeDetector.value(user),
+                                  table: tableChangeDetector.value(tableName),
+                                  row: JSON.stringify(row)
+                                )
+                        )
+                )
+        )
+    res
+
+  anotherUserEntry = (e) ->
+    handleEventAndCancel(e, ->
+          target = $(e.target)
+          data.anotherUserEntry(target.data("run-id"), target.data("user-id"), target.data("table"))
+          renderSandboxEditor()
+        )
+
+  removeTestUser = (e) ->
+    handleEventAndCancel(e, ->
+          target = $(e.target)
+          data.removeTestUser(target.data("run-id"), $(e.target).data("userRowId"))
+          renderSandboxEditor()
+        )
+
+  editSandboxUser = (e) ->
+    handleEventAndCancel(e, ->
+          target = $(e.target)
+          fields =
+            _.chain(data.findTestUser(target.data("run-id"), target.data("user-row-id"))).
+              pairs().
+              reduce(
+                    (memo, [field, value]) -> memo.push(name: field, value: value.toString()); memo
+                    []
+                  )
+              .value()
+          showSandboxUserEditor(target.data("run-id"), target.data("table"), target.data("user-row-id"), fields)
+        )
+
+  showSandboxUserEditor = (runId, tableName, userRowId, fields) ->
+    Popup.show(HandlebarsTemplates["tasks/sandbox_user"](fields: fields))
+    $("[data-sandbox-field]").focus()
+    $('#updateSandboxUser').on(
+          'click',
+          (e) -> handleEventAndCancel(e, -> updateSandboxUser(runId, tableName, userRowId))
+        )
+
+  updateSandboxUser = (runId, tableName, userRowId) ->
+    userData =
+      _.reduce(
+            $("[data-sandbox-field]"),
+            (memo, control) ->
+              control = $(control)
+              columnName = control.data("sandbox-field")
+              table = data.selectedTableForName(tableName)
+              columnType = _.find(table.columns, (c) -> c.name == columnName).type
+
+              memo[columnName] =
+                if columnType == "integer" || columnType == "bigint"
+                  parseInt(control.val())
+                else if columnType == "float" || columnType == "double"
+                  parseFloat(control.val())
+                else if columnType == "boolean"
+                  control.val().toLowerCase() == "true"
+                else
+                  control.val()
+              memo
+            {}
+          )
+    $('#updateSandboxUser').off('click')
+    Popup.close()
+    data.updateTestUser(runId, tableName, userRowId, userData)
+    renderSandboxEditor()
+
+  addTestRun = (e) ->
+    handleEventAndCancel(e, ->
+          data.addTestRun()
+          renderSandboxEditor()
+        )
+
+  removeTestRun = (e) ->
+    handleEventAndCancel(e, ->
+          data.removeTestRun($(e.target).data("run-id"))
+          renderSandboxEditor()
+        )
+
+
+  # ------------------------------------
+  # Constructor
+  # ------------------------------------
+
+  view = new Backbone.View({
+    el: "#taskEditor",
+    render: render,
+    events:
+      "change #task_cluster_id": render
+      "change #newTableName": showHideAddTable
+      "change #task_task_type": onTaskTypeChanged
+      "click #addTable": addTable
+      "click [data-add-test-user]": addSandboxUser
+      "click #runInSandbox": runInSandbox
+      "click [data-remove-table]": removeTable
+      "click [data-edit-filter]": editFilter
+      "click [data-remove-test-user]": removeTestUser
+      "click [data-another-user-entry]": anotherUserEntry
+      "click [data-edit-sandbox-user]": editSandboxUser
+      "click #addTestRun": addTestRun
+      "click [data-remove-test-run]": removeTestRun
+      "submit": submit
+  })
+
+  Tasks.Operators = operators
+  data = new Tasks.Data(tables, selectedClusterId(), $("#task_data").val(), $("#task_test_data").val())
+  enableDisableExtendedFilters()
+  initCodeEditor()
+  render()
+
+  _.extend(self, {})

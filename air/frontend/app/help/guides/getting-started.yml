@@ -1,0 +1,35 @@
+title: Getting started
+order: 0
+content: |
+
+  # Getting started
+
+  In these help guides you will find a short set of guides to
+  help you get started with the Aircloak analytics system.
+  The guides cover the main aspects of our system, and what you need
+  to know to get started using our system.
+
+
+  ## Please ask for help
+
+  The cloaked analytics system is a quite complex machinery.
+  It can be a daunting task to get started. Please do not
+  hesitate to reach out to the Airclaok team
+  (support@aircloak.com) if you get stuck,
+  or want ideas for how to solve problems in the context
+  of our system, please let us know.
+
+
+  ## How to read
+
+  The guides cover everything from how you put sensitive data into a cloak, to how you
+  write queries in order to get anonymized results back out.
+
+  I recommend you start by reading the <%= help_link "introduction-uploading-data" %>, and follow
+  that with reading the <%= help_link "introduction-queries" %>.
+
+  Once you have a general understanding of how the components fit together, you can
+  read the more detailed guides as you need them.
+
+  The <%= site_link "/apidocs/index.html", "API Docs" %> will also be useful
+  when you start uploading data of your own.

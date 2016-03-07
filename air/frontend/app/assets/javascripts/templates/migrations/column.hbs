@@ -1,0 +1,12 @@
+<td>{{ name }}</td>
+<td>{{ type }}</td>
+<td>{{ constraints }}</td>
+{{#if isDeletable }}
+  <td>
+    {{#if isDeleted }}
+      <a href="#" class="button-remove btn btn-small">Restore</a>
+    {{else}}
+      <a href="#" class="button-remove btn btn-small">Remove</a>
+    {{/if}}
+  </td>
+{{/if}}

@@ -1,0 +1,13 @@
+-# Includes additional, page-specific javascripts
+= content_for(:javascript_include) {javascript_include_tag "airpub", "data-turbolinks-track" => true}
+= content_for(:javascript_include) {javascript_include_tag "airpub_api", "data-turbolinks-track" => true}
+
+%h3 Listening on #{@path}
+
+%br
+%br
+
+%div#event_console
+
+-# set listen parameters
+.params{data: {path: @path}}

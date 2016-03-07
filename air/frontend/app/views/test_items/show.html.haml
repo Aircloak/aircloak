@@ -1,0 +1,46 @@
+%h1= "Test #{@test.name} of Testrun at #{@test.test_result.testtime_in_UTC} (UTC)"
+
+%h2 Overview
+
+%table.table.table-striped
+  %tbody
+    %tr{class: @test.success_class}
+      %td Success
+      %td= @test.success
+    %tr
+      %td Duration
+      %td= display_duration @test.duration
+    %tr
+      %td Number of VMs
+      %td= @test.test_item_vms.count
+
+- if @test.test_item_vms.count > 0
+  %h2 Virtual Machines
+
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Name
+        %th Type
+        %th Successful creation
+        %th CPUs
+        %th Memory usage/size
+        %th Disk usage/size
+        %th
+    %tbody
+      - @test.test_item_vms.each do |item_vm|
+        %tr{class: item_vm.test_vm.success_class}
+          %td= link_to item_vm.name, test_item_vm_path(item_vm.id)
+          %td= link_to item_vm.test_vm.name, test_vm_path(item_vm.test_vm.id)
+          %td= item_vm.test_vm.success
+          %td= item_vm.cpus
+          %td= "#{item_vm.memory_usage} MB/#{item_vm.memory_size} MB"
+          %td= "#{item_vm.disk_usage} MB/#{item_vm.test_vm.disk_size} MB"
+          %td
+            = link_to 'View Instance', test_item_vm_path(item_vm.id), class: "btn btn-mini"
+            = link_to 'View VM Type', test_vm_path(item_vm.test_vm.id), class: "btn btn-mini"
+
+- unless @test.log.nil?
+  %h2 Log
+
+  %pre= @test.log

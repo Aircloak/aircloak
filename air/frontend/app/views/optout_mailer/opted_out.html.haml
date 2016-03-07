@@ -1,0 +1,19 @@
+!!!
+%html
+  %head
+    %meta{'content' => 'text/html; charset=UTF-8', 'http-equiv' => 'Content-Type'}
+  %body
+    %h1= "#{@user.login} opted out from web monitoring."
+
+    - unless @user.admin? or @user.analyst.nil?
+      %p= "#{@user.login} is a user of #{@user.analyst.name}."
+    %p
+      Please contact the user and explain why we are performing
+      this monitoring, how it helps us, and why we encourage
+      our users to opt back in.
+    %p= "The user's email address is #{@user.email}."
+
+    %p
+      Sad greetings from your good friend,
+      %br
+      The web

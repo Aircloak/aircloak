@@ -1,0 +1,7 @@
+= content_for(:javascript_include) {javascript_include_tag "bootstrap-datetimepicker.min", "data-turbolinks-track" => true}
+%h3= "#{@task.name}: view result details"
+= link_to "Export as CSV", "/backend#{single_result_task_path(@task.token)}.csv?" + {result: @raw_result.id}.to_param
+
+= render 'result'
+
+= link_to 'Back', :back

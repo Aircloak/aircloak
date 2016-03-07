@@ -1,0 +1,26 @@
+=hb "if stats" do
+  %table.table.table-striped
+    %thead
+      %tr
+        %td
+          %b
+            Statistics
+          %br
+          updated #{hb "created_at_relative"}
+          %a{href: hb("refresh_link"), class: "btn btn-mini", id: "refresh_table_stats"}
+            Refresh
+          #stats_message
+    %tbody
+      %tr
+        %td
+          Users:
+          = hb "num_users"
+      %tr
+        %td
+          Rows:
+          = hb "num_rows"
+  = hb "else"
+  %a{href: hb("refresh_link"), class: "btn btn-mini", id: "refresh_table_stats"}
+    Calculate table statistics
+  #stats_message
+  %br

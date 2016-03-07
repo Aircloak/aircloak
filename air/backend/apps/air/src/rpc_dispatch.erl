@@ -1,0 +1,59 @@
+-module(rpc_dispatch).
+
+%% Dispatch functions
+-export([
+  csv_row_based/3,
+  csv_single/3,
+  task_results_json/3,
+  compute_stats/3,
+  error/3
+]).
+
+%% Test dispatch functions
+-export([
+  test/3
+]).
+
+
+%% -------------------------------------------------------------------
+%% Dispatch functions
+%% -------------------------------------------------------------------
+
+%% @doc Exports a task results for a set period of time
+%%      as CSV, where each reported property is its own row.
+csv_row_based(Arguments, Request, State) ->
+  csv_rpc:row_based_export(Arguments, Request, State).
+
+%% @doc Exports a single task result as CSV, where each reported property is its own row.
+csv_single(Arguments, Request, State) ->
+  csv_rpc:single_export(Arguments, Request, State).
+
+%% @doc Exports the results from a single task as JSON.
+%%      The result are streamed to the user, to allow
+%%      for the export of results for tasks with very
+%%      many results.
+task_results_json(Arguments, Request, State) ->
+  task_results_rpc:as_json(Arguments, Request, State).
+
+%% @doc Computes table statistics
+compute_stats(Arguments, Request, State) ->
+  table_stats_calculator:run(Arguments, request_proxy:forward_headers(Request)),
+  {{halt, 200}, resource_common:respond_json([{status, ok}], Request), State}.
+
+%% @doc Re-reports a rails error message verbatim to the user
+error([ErrorJson, StatusCode], Request, State) ->
+  RequestWithHeader = wrq:set_resp_header("Content-Type", "application/json", Request),
+  RequestWithBody = wrq:set_resp_body(ErrorJson, RequestWithHeader),
+  {{halt, StatusCode}, RequestWithBody, State}.
+
+
+%% -------------------------------------------------------------------
+%% Test dispatch functions
+%% -------------------------------------------------------------------
+
+%% @doc Function used in testing dispatching from the rails rpc resource.
+%%      We need an actual function here, as meck doesn't allow mocking
+%%      functions that don't exist.
+test(Arguments, Request, State) ->
+  Response = cloak_util:join(Arguments, ", "),
+  {Response, Request, State}.

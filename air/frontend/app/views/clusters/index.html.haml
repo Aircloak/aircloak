@@ -1,0 +1,39 @@
+%h3 Listing clusters
+
+- if @clusters.size > 0 then
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Name
+        %th TPM
+        %th Build
+        %th Analysts
+        %th Cloaks
+        %th Capabilities
+        %th Broken cloaks
+        %th Health
+        %th Status
+        %th
+
+    %tbody
+      - @clusters.each do |cluster|
+        %tr
+          %td= cluster.name
+          %td= cluster.tpm
+          %td= cluster.build.name
+          %td= cluster.analysts.count
+          %td= cluster.cloaks.count
+          %td= cluster.capabilities.count
+          %td= cluster.num_broken
+          %td= cluster.health
+          %td= cluster.status_for_display
+          %td
+            = link_to 'Show', cluster
+            \|
+            = link_to 'Edit', edit_cluster_path(cluster)
+            - if cluster.can_delete?
+              \|
+              = link_to 'Destroy', confirm_destroy_cluster_path(cluster)
+
+%h4 Add a new cluster
+= render 'form'

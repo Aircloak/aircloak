@@ -1,0 +1,34 @@
+#!/bin/bash
+# /etc/init.d/air
+#
+
+function start_air {
+  AIR_ENV=prod /aircloak/air/etcd/container.sh ensure_started
+  AIR_ENV=prod /aircloak/air/backend/container.sh ensure_latest_version_started
+  AIR_ENV=prod /aircloak/air/frontend/container.sh ensure_latest_version_started
+  AIR_ENV=prod /aircloak/air/router/container.sh ensure_latest_version_started
+  AIR_ENV=prod /aircloak/air/balancer/container.sh ensure_latest_version_started
+}
+
+function stop_air {
+  AIR_ENV=prod /aircloak/air/balancer/container.sh stop
+  AIR_ENV=prod /aircloak/air/router/container.sh stop
+  AIR_ENV=prod /aircloak/air/frontend/container.sh stop
+  AIR_ENV=prod /aircloak/air/backend/container.sh stop
+  AIR_ENV=prod /aircloak/air/etcd/container.sh stop
+}
+
+case "$1" in
+  start)
+    start_air
+    ;;
+  stop)
+    stop_air
+    ;;
+  *)
+    echo "Usage: ${BASH_SOURCE[0]} {start|stop}"
+    exit 1
+    ;;
+esac
+
+exit 0

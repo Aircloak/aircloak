@@ -1,0 +1,37 @@
+= form_for @cloak, html: {class: "form-horizontal"} do |f|
+  - if @cloak.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(@cloak.errors.count, "error")} prohibited this cloak from being saved:"
+      %ul
+        - @cloak.errors.full_messages.each do |msg|
+          %li= msg
+
+  .control-group
+    = control_label "Hostname"
+    .controls
+      = f.text_field :name
+      %span.help-block The hostname, amongst other things, is used for configuring logging. If you can help it, please don't change it.
+  .control-group
+    = control_label "IP"
+    .controls
+      = f.text_field :ip
+  .control-group
+    .controls
+      %label.checkbox
+        = f.check_box :tpm
+        Has a TPM
+      %span.help-block All cloaks used in production clusters are required to have a TPM
+  .control-group
+    .controls
+      %label.checkbox
+        = f.check_box :good
+        In a good state
+      %span.help-block Whether the cloak is in a good, consistent and usable state, or not
+  .control-group
+    = control_label "Comment"
+    .controls
+      = f.text_field :comment
+      %span.help-block This comment will be shown on the cloak page. This is useful for example when you want to add a note about why a cloak has been marked as bad.
+  .control-group
+    .controls
+      = f.submit 'Save', class: "btn btn-success"

@@ -1,0 +1,16 @@
+{application, air_common, [
+  {description, "Common functionality for air backend"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+    kernel,
+    stdlib,
+    erlang_common,
+    pgsql,
+    erlcron,
+    hackney,
+    etcd
+  ]},
+  {mod, { air_common_app, []}},
+  {env, []}
+ ]}.

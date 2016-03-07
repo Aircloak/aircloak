@@ -1,0 +1,34 @@
+= api_docs_help_link "API Authentication", "authentication"
+
+- @keys_by_type.sort.map do |key_type, keys|
+
+  %h3= KeyMaterial.type_description(key_type)
+
+  %table.table.table-striped
+    %thead
+      %tr
+        %th Description
+        %th Type
+        %th Created at
+        %th Created by
+        %th
+        %th
+    %tbody
+    - keys.each do |key|
+      %tr
+        %td= key.description
+        %td= key.key_type
+        %td= key.created_at
+        %td= link_to key.user.login, user_path(key.user) if key.user
+        - if key.revoked
+          %td{:colspan => "2", :style => "text-align:center; color:red;"}= "Revoked on #{key.updated_at}"
+        - else
+          %td
+            = link_to "Download PKCS12", key_path(key, :pfx), class: "btn"
+            = link_to "Download PEM", key_path(key, :pem), class: "btn" if key.pem
+          %td= link_to "Revoke", key_path(key), method: :delete, class: "btn", data: { confirm: "Are you sure? This can't be reverted." }
+
+- if @keys_by_type.size > 0
+  %hr
+
+= render 'form'

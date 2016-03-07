@@ -1,0 +1,128 @@
+title: Query library
+order: 6
+content: |
+
+  # Query library
+
+  When writing queries, some utility functions are provided in the form of a standard library.
+
+  __Note__: these utility functions can only be used when running tasks from the web user interface. When you
+  issue queries via the Cloak API, these functions will not be available to the task code.
+
+  ## Aircloak.Utils functions
+
+  ### Quantizing a number
+
+  `Aircloak.Utils.quantize(count, quant)` rounds the count to the largest
+  integer divisible by `quant` that is less than or equal to `count`:
+
+  ```Lua
+  Aircloak.Utils.quantize(2, 10)       -- 0
+  Aircloak.Utils.quantize(22, 10)      -- 20
+  Aircloak.Utils.quantize(37, 10)      -- 30
+  ```
+
+  ### Tables and arrays utilities
+
+  #### Computing the length of a table
+
+  `Aircloak.Utils.length(table)` returns the number of elements in a Lua table.
+  Unlike the built-in `#table` syntax, which works correctly only for arrays,
+  this function works properly for any kind of Lua table.
+
+  #### Sorting table keys
+
+  `Aircloak.Utils.sorted_keys(table, order)` - returns the array containing
+  sorted keys of a Lua table. The optional `order` argument is a function that
+  receives three arguments:
+
+  - the input table
+  - the first key
+  - the second key
+
+  This function should return true if the first key should come before the second
+  one. If `order` function is not provided, keys are sorted alphabetically in
+  ascending order.
+
+  Examples:
+
+  ```Lua
+  -- returns the array containing sorted keys
+  Aircloak.Utils.sorted_keys(my_table)
+
+  -- Custom ordering by values.
+  Aircloak.Utils.sorted_keys(my_table, function(my_table, a, b)
+    return (my_table[a] < my_table[b])
+  end)
+  ```
+
+  #### Iterating a sorted table
+
+  `Aircloak.Utils.sorted_pairs(table, order)` work similarly to `Aircloak.Utils.sorted_keys`. However,
+  this function can be used to immediately iterate the entire table in the desired order:
+
+  ```Lua
+    for key, value in Aircloak.Utils.sorted_pairs(my_table) do
+      -- key-value pairs are visited in the sort order
+    end
+  ```
+
+  The `order` function works same as in `Aircloak.Utils.sorted_keys`
+
+  #### Comparing arrays
+
+  `Aircloak.Utils.same_arrays(a, b)` assumes that both arguments are Lua arrays, and returns true if
+  both arrays have the same values:
+
+  ```Lua
+  Aircloak.Utils.same_arrays({1, 2, 3}, {1, 2, 3})    -- true
+  Aircloak.Utils.same_arrays({1, 2, 3}, {3, 2, 1})    -- false
+  Aircloak.Utils.same_arrays({1, 2, 3}, {1, 2})       -- false
+  ```
+
+  ## Aircloak.DateTime functions
+
+  Some helper functions for dealing with [Lua date and time tables](http://www.lua.org/pil/22.1.html) are provided.
+  As explained in <%= help_link "introduction-queries" %>, the best way to deal with dates and times is to
+  store them as `bigint` epoch times. Then in your script, you can convert such time to a Lua date table
+  using the `to_date` function. You can then use following helper functions:
+
+  - `Aircloak.DateTime.date(time)` - converts the time to the YYYYMMDD string.
+  - `Aircloak.DateTime.day(time)` - returns an English name of the week day represented by the given time.
+  - `Aircloak.DateTime.week(time)` - returns the week number of the year represented by the given time.
+  - `Aircloak.DateTime.hour_range(time)` - returns a one hour range containing the given time. The result is
+  returned in a printable form `HH:00 - HH:00`. For example, if the provided time is `13:42`, the result will
+  be `13:00 - 14:00`.
+
+  ## Aircloak.Aggregate functions
+
+  Because tasks are executed independently over each user, exporting data aggregated over all users
+  in the cloak is not straight-forward. Aircloak supplies some helper functions to ease this process.
+  These APIs use custom algorithms to export the individual per-user properties, which are then
+  post-processed on the backend to estimate the global aggregated property.
+
+  - `Aircloak.Aggregate.accumulate_property(property_name, value)` - given a property name and an integer value,
+  this API will estimate the total sum over all users for the property. One could also accumulate real values
+  by translating their range into an integer range and then converting the result back. Because this might
+  generate a large number of intermediate buckets, prefer this method only for values inside the
+  [-10000, 10000] interval.
+  - `Aircloak.Aggregate.fast_accumulate_property(property_name, value)` - this is a variant of the
+  `accumulate_property` API which is faster and better handles large values at the cost of slightly
+  reduced accuracy. Use this method when processing many values outside the [-10000, 10000] interval.
+
+  ## Aircloak.Distributions functions
+
+  Because tasks are executed independently over each user, computing the distribution of a value over
+  all users in the cloak is not straight-forward. Aircloak supplies a helper function to ease this process.
+  This API uses a cumulative distribution function to export the individual per-user properties, which are then
+  post-processed on the backend to estimate the distribution of properties over the entire population.
+
+  - `Aircloak.Distributions.quantize_property(propety_name, value, params)` - given the property name and
+  value, this API will estimate various attributes of the property describing the distribution of values
+  over the entire population in the specified range. The estimated attributes are min, max, median,
+  average and standard deviation. When viewing the result individually, a histogram showing the distribution
+  will also be displayed. The `params` parameter must be a Lua table specifying the quantization range and step:
+  `min` - begining of range, `max` - end of range, one of `step` or `steps` - the aggregation step.
+  In case neither `step` or `steps` is specified, the `step` value is auto-generated using the formula:
+  `step = (max - min) / 100`. Use a smaller `step` to increase accuracy at the cost of more computation time
+  being needed. Example: {min = 0, max = 100, steps = 200}

@@ -1,0 +1,170 @@
+class User < ActiveRecord::Base
+  has_many :user_permissions
+  has_many :permissions, through: :user_permissions
+  has_many :activities
+  has_many :key_materials # as long as the analyst CA is still valid, we need to keep the keys
+  belongs_to :analyst
+  has_many :tasks, dependent: :destroy
+
+  validate :only_aircloakers_can_be_admin
+
+  before_destroy :remove_tracked_activity
+  before_destroy :revoke_keys
+
+  acts_as_authentic do |c|
+    # The crypto provider was previously misconfigured, and therefore
+    # defaulted to Sha512. We now migrate to SCrypt, which is the new
+    # standard hashing provider coming with authlogic
+    c.transition_from_crypto_providers = [Authlogic::CryptoProviders::Sha512]
+    c.crypto_provider = Authlogic::CryptoProviders::SCrypt
+  end
+
+  def needs_onboarding?
+    not (has_tables? and has_tasks? and has_keys?)
+  end
+
+  def tables_count
+    if analyst then
+      analyst.user_tables.count
+    else
+      0
+    end
+  end
+
+  def has_tables?
+    tables_count != 0
+  end
+
+  def tasks_count
+    if analyst then
+      analyst.tasks.count
+    else
+      0
+    end
+  end
+
+  def has_tasks?
+    tasks_count != 0
+  end
+
+  def has_keys?
+    key_materials.count != 0
+  end
+
+  def roles
+    role_symbols.map(&:to_s).map(&:titleize).join(", ")
+  end
+
+  def role_symbols
+    permission_symbols = permissions.map(&:name).map do |permission|
+      permission.parameterize.underscore.to_sym
+    end
+    permission_symbols << :inquirer if analyst
+    permission_symbols << :guest
+    permission_symbols
+  end
+
+  def admin?
+    role_symbols.include? :admin
+  end
+
+  def inquirer?
+    role_symbols.include? :inquirer
+  end
+
+  def cluster_manager?
+    roles = role_symbols
+    roles.include? :cluster_manager or roles.include? :admin
+  end
+
+  def has_permissions?
+    role_symbols.count != 0
+  end
+
+  def has_multiple_clusters?
+    if analyst then
+      analyst.clusters.count > 1
+    else
+      false
+    end
+  end
+
+  def on_behalf_of
+    entities = []
+    entities << "Aircloak" if role_symbols.include? :admin
+    entities << analyst.name if analyst
+    if entities == []
+      "No affiliation"
+    else
+      entities.join ", "
+    end
+  end
+
+  def managed_users
+    if admin?
+      User.all
+    elsif analyst
+      analyst.users.select do |user|
+        not user.admin?
+      end
+    else
+      []
+    end
+  end
+
+  def new_user_from_params params, analyst_id
+    if admin?
+      new_user = User.new params
+      new_user.analyst = Analyst.find analyst_id if analyst_id != "none"
+      new_user
+    else
+      # To prevent privilege escalation from non-admin to
+      # admin users, and likewise to prevent a non-admin user
+      # from guessing permission ids and assigning a new user
+      # random permissions, we outright prevent a non-admin user
+      # from creating users with permissions.
+      params.delete "permission_ids"
+      analyst.users.new params
+    end
+  end
+
+  def scoped_find user_id
+    return self if id == user_id.to_i
+    if admin?
+      User.find user_id
+    elsif cluster_manager?
+      user = analyst.users.find user_id
+      if user.admin? then
+        raise ActiveRecord::RecordNotFound.new
+      else
+        user
+      end
+    else
+      raise ActiveRecord::RecordNotFound.new
+    end
+  end
+
+  def ready_clusters
+    Cluster.ready_clusters(self.analyst)
+  end
+
+  def remove_tracked_activity
+    Activity.where(user_id: self.id).delete_all
+  end
+
+  def revoke_keys
+    key_materials.each do |key|
+      analyst.revoke_key key unless key.revoked
+      key.description = "#{key.description} [created by: #{login}]" # record user in description
+      key.save
+    end
+  end
+
+private
+  def only_aircloakers_can_be_admin
+    unless email =~ /aircloak\.com$/
+      admin_permission = Permission.find_by_name "admin"
+      errors[:base] << "Non-aircloakers are not allow to be administrators" if permission_ids.include? admin_permission.id
+    end
+  end
+end
