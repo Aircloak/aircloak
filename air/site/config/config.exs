@@ -5,6 +5,8 @@
 # is restricted to this project.
 use Mix.Config
 
+Code.require_file("config/etcd_config.exs")
+
 # Configures the endpoint
 config :air, Air.Endpoint,
   url: [host: "localhost"],
@@ -32,6 +34,18 @@ config :guardian, Guardian,
   verify_issuer: true,
   secret_key: "6MvtANFkxCr3VaDY/C8oCooF6Pg1uqFzOWNYVMry/V5acmSPuQydPeU5X5Jh",
   serializer: Air.GuardianSerializer
+
+config :air, :etcd_port, Air.EtcdConfig.tcp_port("etcd/client")
+
+config :air, Air.Repo,
+  adapter: Ecto.Adapters.Postgres,
+  hostname: Air.EtcdConfig.etcd_get("/settings/air/db/host"),
+  port: Air.EtcdConfig.etcd_get("/settings/air/db/port"),
+  ssl: String.to_existing_atom(Air.EtcdConfig.etcd_get("/settings/air/db/ssl")),
+  database: "air_#{Mix.env}",
+  username: Air.EtcdConfig.etcd_get("/settings/air/db/username"),
+  password: Air.EtcdConfig.etcd_get("/settings/air/db/password"),
+  pool_size: 10
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
