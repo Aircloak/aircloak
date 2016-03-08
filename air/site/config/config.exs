@@ -5,6 +5,8 @@
 # is restricted to this project.
 use Mix.Config
 
+Code.require_file("config/etcd_config.exs")
+
 # Configures the endpoint
 config :air, Air.Endpoint,
   url: [host: "localhost"],
@@ -33,10 +35,7 @@ config :guardian, Guardian,
   secret_key: "6MvtANFkxCr3VaDY/C8oCooF6Pg1uqFzOWNYVMry/V5acmSPuQydPeU5X5Jh",
   serializer: Air.GuardianSerializer
 
-# Use general project settings from air/config to determine the etcd port
-{etcd_port, 0} = System.cmd("bash", ["-c", ". ../config/config.sh && echo $(get_tcp_port #{Mix.env} etcd/client)"])
-{etcd_port, "\n"} = Integer.parse(etcd_port)
-config :air, :etcd_port, etcd_port
+config :air, :etcd_port, Air.EtcdConfig.tcp_port("etcd/client")
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
