@@ -52,9 +52,8 @@ application. Node.js is included to compile our javascript and css dependencies.
 - `mix deps.get` installs our elixir and erlang dependencies
 - `npm install` installs our node dependencies
 
-Before you run the application for the first time, you also need to make sure you create and migrate the
-database. You can do this with `mix ecto.create && mix ecto.migrate`. For later migrations you can also use
-the convenience method `make migrate`.
+Before you run the application for the first time, you also need to make sure you migrate the database
+with `make migrate`.
 
 
 ## Running

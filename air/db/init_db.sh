@@ -53,3 +53,8 @@ conditionally_create_user "airtest"
 psql -U postgres -c "ALTER USER airtest CREATEDB"
 conditionally_create_database "air_test_database" "airtest"
 psql -U postgres -c "ALTER DATABASE air_test_database OWNER TO airtest"
+
+# Databases for the new air system
+conditionally_create_database "air_dev" "air"
+conditionally_create_database "air_test" "airtest"
+psql -U postgres -c "ALTER DATABASE air_test OWNER TO airtest"
