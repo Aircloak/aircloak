@@ -18,7 +18,7 @@ defmodule Air.Mixfile do
         :no_tty,
         {:report, {:eunit_progress, [:colored]}}
       ],
-      preferred_cli_env: [eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev],
+      preferred_cli_env: [eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod],
       test_coverage: [tool: ExCoveralls],
       docs: [
         extras: ["README.md"]
@@ -34,7 +34,7 @@ defmodule Air.Mixfile do
       mod: {Air, []},
       applications: [
         :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-        :lhttpc, :etcd, :hackney
+        :lhttpc, :etcd, :hackney, :guardian
       ]
     ]
   end
@@ -60,6 +60,7 @@ defmodule Air.Mixfile do
       {:lhttpc, github: "esl/lhttpc", override: true},
       {:etcd, github: "spilgames/etcd.erl", ref: "79d04a775e4488b0eb6e5e07a8c0bf4803adb997"},
       {:hackney, "~> 1.5.0"},
+      {:exrm, "~> 1.0"},
       {:dialyze, "~> 0.2.0", only: :dev},
       {:earmark, "~> 0.2", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},

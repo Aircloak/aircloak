@@ -25,3 +25,9 @@ dialyze:
 
 docs:
 	mix docs
+
+release:
+	MIX_ENV=prod mix do deps.get, compile
+	brunch build --production
+	mix phoenix.digest
+	mix release

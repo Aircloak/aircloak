@@ -60,6 +60,8 @@ config :logger, level: :info
 #
 #     config :air, Air.Endpoint, root: "."
 
+config :phoenix, :serve_endpoints, true
+
 # Finally import the config/prod.secret.exs
 # which should be versioned separately.
 import_config "prod.secret.exs"

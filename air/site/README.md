@@ -68,3 +68,7 @@ access the site at https://insights.air-local:20000/.
 - tests coverage: `make test-coverage`
 - dialyzer: `make dialyzer`
 - documentation: `make docs`
+- building a release: `make release`
+  __Note__: If you need to build a local release, you need to copy `config/prod.secret.example.exs` to
+  `config/prod.secret.exs`. Then you can build and start the release on your machine. The system will
+  run in the `:prod` environment, but the local development database will be used.
