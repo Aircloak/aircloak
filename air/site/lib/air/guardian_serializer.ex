@@ -1,4 +1,5 @@
 defmodule Air.GuardianSerializer do
+  @moduledoc false
   @behaviour Guardian.Serializer
 
   alias Air.Repo

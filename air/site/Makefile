@@ -8,10 +8,20 @@ test: test-eunit
 
 test-eunit:
 	MIX_ENV=test mix compile
-	MIX_ENV=test mix eunit
+	mix eunit
+
+test-coverage:
+	mix coveralls.html
+	@printf "\e[33;32mReport is stored in cover/excoveralls.html\e[0m\n"
 
 migrate:
 	mix ecto.migrate
 
 rollback:
 	mix ecto.rollback
+
+dialyze:
+	scripts/dialyze.sh
+
+docs:
+	mix docs

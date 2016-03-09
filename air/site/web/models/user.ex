@@ -1,4 +1,5 @@
 defmodule Air.User do
+  @moduledoc "The user model"
   require Logger
 
   use Air.Web, :model
@@ -6,6 +7,8 @@ defmodule Air.User do
   alias Ecto.Changeset
   alias Comeonin.Pbkdf2, as: Hash
   alias Air.Organisation
+
+  @type t :: %__MODULE__{}
 
   schema "users" do
     field :email, :string
@@ -31,6 +34,7 @@ defmodule Air.User do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
+  @spec changeset(t, %{binary => term} | %{atom => term} | :empty) :: Changeset.t
   def changeset(model, params \\ :empty) do
     model
     |> cast(params, @required_fields, @optional_fields)
@@ -47,6 +51,8 @@ defmodule Air.User do
   end
   defp possibly_update_password_hash(changeset), do: changeset
 
+  @doc "Validates the user password"
+  @spec validate_password(nil | t, String.t) :: boolean
   def validate_password(nil, _password), do: Hash.dummy_checkpw
   def validate_password(user, password) do
     Hash.checkpw(password, user.hashed_password)

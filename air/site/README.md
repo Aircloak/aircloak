@@ -1,5 +1,4 @@
-Air
-===
+# Air
 
 The `air` is the entity through which our users interact with their cloaks.
 It contains the interfaces for adding and administering users to those
@@ -12,11 +11,11 @@ needed to create, update and run tasks.
 - [Getting started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Running](#running)
-    - [Testing](#testing)
+    - [Other common tasks](#other-common-tasks)
 
 ----------------------
 
-# What it does
+## What it does
 
 This repository contains the Air system, which provides HTTPS endpoints that allows end-users, such as analysts and cluster maintainers, to perform various tasks, such as:
 
@@ -28,7 +27,7 @@ This application will also provide API endpoints that can be used by analysts to
 the system, as well as the end-points used by the cloaks when they communicate with the `air`.
 
 
-# What is it made up of
+## What is it made up of
 
 The air is written as a single [elixir](elixir-lang.org/) [phoenix](www.phoenixframework.org) website. It
 contains both the front end facing as well as the backend services needed to operate the system.
@@ -36,9 +35,9 @@ contains both the front end facing as well as the backend services needed to ope
 Additionally to run it relies on `etcd` for configuration and `Postgres` for datastorage.
 
 
-# Getting started
+## Getting started
 
-## Prerequisites
+### Prerequisites
 
 In order to run the system you need the following components:
 
@@ -56,13 +55,16 @@ Before you run the application for the first time, you also need to make sure yo
 with `make migrate`.
 
 
-## Running
+### Running
 
 To start the development server, you run: `make start` which makes the website available on
 `http://localhost:4000`. Additionally it starts the website in the interactive `iex` console, which allows
 you to interact with the running application.
 
 
-## Testing
+### Other common tasks
 
-You can run tests with `make test`
+- tests: `make test`
+- tests coverage: `make test-coverage`
+- dialyzer: `make dialyzer`
+- documentation: `make docs`

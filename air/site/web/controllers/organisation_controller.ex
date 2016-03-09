@@ -1,4 +1,5 @@
 defmodule Air.OrganisationController do
+  @moduledoc false
   use Air.Web, :controller
 
   alias Air.Organisation
