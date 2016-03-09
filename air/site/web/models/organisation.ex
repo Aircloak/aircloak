@@ -1,4 +1,5 @@
 defmodule Air.Organisation do
+  @moduledoc "The organisation model"
   use Air.Web, :model
 
   alias Air.User

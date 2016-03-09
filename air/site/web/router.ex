@@ -1,4 +1,5 @@
 defmodule Air.Router do
+  @moduledoc false
   use Air.Web, :router
 
   pipeline :browser do

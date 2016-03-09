@@ -1,4 +1,5 @@
 defmodule Air.PageController do
+  @moduledoc false
   use Air.Web, :controller
 
   def index(conn, _params) do

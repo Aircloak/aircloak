@@ -1,4 +1,5 @@
 defmodule Air.User do
+  @moduledoc "The user model"
   require Logger
 
   use Air.Web, :model
@@ -47,6 +48,7 @@ defmodule Air.User do
   end
   defp possibly_update_password_hash(changeset), do: changeset
 
+  @doc "Validates the user password"
   def validate_password(nil, _password), do: Hash.dummy_checkpw
   def validate_password(user, password) do
     Hash.checkpw(password, user.hashed_password)

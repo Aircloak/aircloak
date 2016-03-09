@@ -1,4 +1,5 @@
 defmodule Air.ErrorView do
+  @moduledoc false
   use Air.Web, :view
 
   def render("404.html", _assigns) do

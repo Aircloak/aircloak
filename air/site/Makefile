@@ -18,3 +18,6 @@ rollback:
 
 dialyze:
 	MIX_ENV=dev scripts/dialyze.sh
+
+docs:
+	MIX_ENV=dev mix docs

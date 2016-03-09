@@ -17,6 +17,9 @@ defmodule Air.Mixfile do
       eunit_options: [
         :no_tty,
         {:report, {:eunit_progress, [:colored]}}
+      ],
+      docs: [
+        extras: ["README.md"]
       ]
     ]
   end
@@ -56,6 +59,8 @@ defmodule Air.Mixfile do
       {:etcd, github: "spilgames/etcd.erl", ref: "79d04a775e4488b0eb6e5e07a8c0bf4803adb997"},
       {:hackney, "~> 1.5.0"},
       {:dialyze, "~> 0.2.0", only: :dev},
+      {:earmark, "~> 0.2", only: :dev},
+      {:ex_doc, "~> 0.11", only: :dev},
       {:eunit_formatters, "~> 0.3.0", only: :test}
     ]
   end
