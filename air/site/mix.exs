@@ -18,6 +18,7 @@ defmodule Air.Mixfile do
         :no_tty,
         {:report, {:eunit_progress, [:colored]}}
       ],
+      preferred_cli_env: [eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev],
       test_coverage: [tool: ExCoveralls],
       docs: [
         extras: ["README.md"]
