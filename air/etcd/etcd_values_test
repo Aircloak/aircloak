@@ -35,6 +35,7 @@ etcd_set /settings/air/db/port $(get_tcp_port dev database/tcp)
 etcd_set /settings/air/db/username airtest
 etcd_set /settings/air/db/password ''
 etcd_set /settings/air/db/database air_test_database
+etcd_set /settings/air/db/insights_database air_test
 etcd_set /settings/air/db/ssl false
 
 # Integration test settings

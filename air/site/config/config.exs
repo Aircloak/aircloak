@@ -42,7 +42,7 @@ config :air, Air.Repo,
   hostname: Air.EtcdConfig.etcd_get("/settings/air/db/host"),
   port: Air.EtcdConfig.etcd_get("/settings/air/db/port"),
   ssl: String.to_existing_atom(Air.EtcdConfig.etcd_get("/settings/air/db/ssl")),
-  database: "air_#{Mix.env}",
+  database: Air.EtcdConfig.etcd_get("/settings/air/db/insights_database"),
   username: Air.EtcdConfig.etcd_get("/settings/air/db/username"),
   password: Air.EtcdConfig.etcd_get("/settings/air/db/password"),
   pool_size: 10
