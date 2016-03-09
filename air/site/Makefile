@@ -17,4 +17,4 @@ rollback:
 	mix ecto.rollback
 
 dialyze:
-	scripts/dialyze.sh
+	MIX_ENV=dev scripts/dialyze.sh

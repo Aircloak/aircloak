@@ -2,8 +2,6 @@
 
 set -e -o pipefail
 
-# Always run dialyze in dev environment
-export MIX_ENV=dev
 mix compile
 
 echo "Running dialyzer..."
