@@ -7,6 +7,7 @@
   "cowlib": {:hex, :cowlib, "1.0.2"},
   "db_connection": {:hex, :db_connection, "0.2.4"},
   "decimal": {:hex, :decimal, "1.1.1"},
+  "dialyze": {:hex, :dialyze, "0.2.0"},
   "ecto": {:hex, :ecto, "1.1.4"},
   "etcd": {:git, "https://github.com/spilgames/etcd.erl.git", "79d04a775e4488b0eb6e5e07a8c0bf4803adb997", [ref: "79d04a775e4488b0eb6e5e07a8c0bf4803adb997"]},
   "eunit_formatters": {:hex, :eunit_formatters, "0.3.1"},

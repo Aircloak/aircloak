@@ -1,5 +1,7 @@
 defmodule Air.UserView do
   use Air.Web, :view
+  # bug in the current Phoenix
+  @dialyzer :no_match
 
   def select_org_values(conn) do
     organisations = conn.assigns[:organisations]

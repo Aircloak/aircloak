@@ -15,3 +15,6 @@ migrate:
 
 rollback:
 	mix ecto.rollback
+
+dialyze:
+	scripts/dialyze.sh

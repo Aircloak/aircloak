@@ -1,6 +1,9 @@
 defmodule Air.Endpoint do
   use Phoenix.Endpoint, otp_app: :air
 
+  # bug in the current Phoenix -> should be fixed with the next version
+  @dialyzer :no_unused
+
   socket "/socket", Air.UserSocket
 
   # Serve at "/" the static files from "priv/static" directory.

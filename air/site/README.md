@@ -65,4 +65,4 @@ you to interact with the running application.
 
 ## Testing
 
-You can run tests with `make test`
+You can run tests with `make test`. Dialyzer can be started with `make dialyzer` (you need at least Elixir 1.2.3 for it to work).
