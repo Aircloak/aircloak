@@ -11,7 +11,7 @@ needed to create, update and run tasks.
 - [Getting started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Running](#running)
-    - [Testing](#testing)
+    - [Other common tasks](#other-common-tasks)
 
 ----------------------
 
@@ -62,6 +62,9 @@ To start the development server, you run: `make start` which makes the website a
 you to interact with the running application.
 
 
-### Testing
+### Other common tasks
 
-You can run tests with `make test`. Dialyzer can be started with `make dialyzer` (you need at least Elixir 1.2.3 for it to work). You can generate documentation with `make docs`
+- tests: `make test`
+- tests coverage: `make test-coverage`
+- dialyzer: `make dialyzer`
+- documentation: `make docs`

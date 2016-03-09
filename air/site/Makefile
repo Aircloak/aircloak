@@ -10,6 +10,10 @@ test-eunit:
 	MIX_ENV=test mix compile
 	MIX_ENV=test mix eunit
 
+test-coverage:
+	MIX_ENV=test mix coveralls.html
+	@printf "\e[33;32mReport is stored in cover/excoveralls.html\e[0m\n"
+
 migrate:
 	mix ecto.migrate
 

@@ -18,6 +18,7 @@ defmodule Air.Mixfile do
         :no_tty,
         {:report, {:eunit_progress, [:colored]}}
       ],
+      test_coverage: [tool: ExCoveralls],
       docs: [
         extras: ["README.md"]
       ]
@@ -61,6 +62,7 @@ defmodule Air.Mixfile do
       {:dialyze, "~> 0.2.0", only: :dev},
       {:earmark, "~> 0.2", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
+      {:excoveralls, "~> 0.5", only: :test},
       {:eunit_formatters, "~> 0.3.0", only: :test}
     ]
   end
