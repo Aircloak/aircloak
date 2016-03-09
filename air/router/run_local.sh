@@ -24,6 +24,10 @@ function generate_upstreams_conf {
     upstream local_backend {
       server 127.0.0.1:$(etcd_get /tcp_ports/air_backend/http);
     }
+    upstream insights {
+      server 127.0.0.1:$(etcd_get /tcp_ports/insights/http);
+      $(cat ./docker/nginx/support/upstream_keepalive.conf)
+    }
     upstream aircloak {
       server 127.0.0.1:10000;
       $(cat ./docker/nginx/support/upstream_keepalive.conf)
@@ -59,6 +63,7 @@ function generate_nginx_conf {
       #   - Replace absolute /etc/... path with the path in this folder
       cat $config \
       | sed "s#\$FRONTEND_SITE#$(etcd_get /site/frontend)#" \
+      | sed "s#\$INSIGHTS_SITE#$(etcd_get /site/insights)#" \
       | sed "s#\$API_SITE#$(etcd_get /site/api)#" \
       | sed "s#\$INFRASTRUCTURE_API_SITE#$(etcd_get /site/infrastructure_api)#" \
       | sed "s#\$AIRPUB_SITE#$(etcd_get /site/airpub)#" \
@@ -114,6 +119,7 @@ echo
 check_etc_hosts
 
 echo "You can access following sites:
+  https://insights.air-local:$(etcd_get /tcp_ports/balancer/https)
   https://frontend.air-local:$(etcd_get /tcp_ports/balancer/https)
   https://api.air-local:$(etcd_get /tcp_ports/balancer/https)
   https://infrastructure-api.air-local:$(etcd_get /tcp_ports/balancer/https)

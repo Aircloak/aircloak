@@ -20,6 +20,7 @@ etcd_set /site/api "api.aircloak.com"
 etcd_set /site/infrastructure_api "infrastructure-api.aircloak.com"
 etcd_set /site/airpub "pub.aircloak.com"
 etcd_set /site/aircloak "www.aircloak.com aircloak.com"
+etcd_set /site/insights "insights.aircloak.com"
 
 etcd_set /settings/mail/smtp/address smtp.mandrillapp.com
 etcd_set /settings/mail/smtp/port 587
