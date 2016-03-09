@@ -82,7 +82,7 @@ delete(Key) ->
 %% @doc Removes a directory folder.
 -spec rmdir(key()) -> result().
 rmdir(Key) ->
-  etcd:delete(url(), [Key, "?recursive=true"], ?ETCD_TIMEOUT).
+  etcd:delete(url(), iolist_to_binary([Key, "?recursive=true"]), ?ETCD_TIMEOUT).
 
 %% @doc Retrieves all key-value pairs which reside immediately under the given key.
 -spec ls(key()) -> [{binary(), binary()}].
