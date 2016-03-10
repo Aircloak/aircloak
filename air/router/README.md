@@ -32,5 +32,6 @@ When a new site is added, you must recreate public key. You can use the followin
 1. Replace the certificate in `aircloak.com.chain.pem` with the contents of `aircloak.com.chain.crt` (be sure to keep the key in the pem file)
 1. Import the new pem, assign trust on SSL, restart the browser and verify it works.
 1. Commit changed files and delete temporary files (csr, crt, and cert_extensions)
+1. Add the notice in the changelog about the changed certificate to let other developers know they need to import it. Once the code is merged you could also send a notification mail to everyone.
 
 More details can be found [here](http://aionica.computerlink.ro/2011/08/multiple-domain-selfsigned-ssltls-certificates-for-apache-namebased-ssltls-vhosts/).
