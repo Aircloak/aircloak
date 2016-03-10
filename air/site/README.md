@@ -52,14 +52,14 @@ application. Node.js is included to compile our javascript and css dependencies.
 - `npm install` installs our node dependencies
 
 Before you run the application for the first time, you also need to make sure you migrate the database
-with `make migrate`.
+with `make migrate`
+(make sure that [required common components are started](../README.md#starting-the-required-components)).
 
 
 ### Running
 
-To start the development server, you run: `make start` which makes the website available on
-`http://localhost:4000`. Additionally it starts the website in the interactive `iex` console, which allows
-you to interact with the running application.
+To start the development server, you run: `make start`. Assuming common components are started, you can
+access the site at https://insights.air-local:20000/.
 
 
 ### Other common tasks
@@ -68,3 +68,7 @@ you to interact with the running application.
 - tests coverage: `make test-coverage`
 - dialyzer: `make dialyzer`
 - documentation: `make docs`
+- building a release: `make release`
+  __Note__: If you need to build a local release, you need to copy `config/prod.secret.example.exs` to
+  `config/prod.secret.exs`. Then you can build and start the release on your machine. The system will
+  run in the `:prod` environment, but the local development database will be used.

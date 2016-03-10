@@ -5,6 +5,9 @@ defmodule Air.GuardianSerializer do
   alias Air.Repo
   alias Air.User
 
+  # Temporarily suppress dialyzer due to typespec error in Guardian
+  @dialyzer {:nowarn_function, for_token: 1}
+
   def for_token(user = %User{}), do: { :ok, "User:#{user.id}" }
   def for_token(_), do: { :error, "Unknown resource type" }
 

@@ -37,6 +37,7 @@
     "air_frontend/http": 24,
     "air_backend/epmd": 25,
     "registry/http": 26,
+    "insights/http": 27,
 
     // Ports 30-34 are reserved for HTTP of the backend node.
     // Ports 35-39 are reserved for inet_dist of the backend node.

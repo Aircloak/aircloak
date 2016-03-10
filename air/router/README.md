@@ -5,6 +5,7 @@ Air router
 
 - [What it does](#what-it-does)
 - [Running](#running)
+- [Development site certificates](#development-site-certificates)
 
 ----------------------
 
@@ -19,3 +20,18 @@ Furthermore, the router balances requests over multiple machines in the cluster 
 # Running
 
 To run the router locally, you need to have nginx installed and available in the execution path of the non-root user. The router is started when running `./start_dependencies.sh`. If you need to (re)start just the router, you can invoke `router/run_local.sh`. If you want to start the router in foreground, you can invoke `cd router && make start`.
+
+# Development site certificates
+
+When a new site is added, you must recreate public key. You can use the following procedure:
+
+1. `cd dev_cert`
+1. `openssl req -new -key aircloak.com.chain.pem -out multidomain-server.csr` (when asked about Common Name, enter `aircloak.air-local`, leave other fields as default)
+1. `echo 'subjectAltName=DNS:api.air-local,DNS:backend.air-local,DNS:frontend.air-local,DNS:infrastructure-api.air-local,DNS:airpub.air-local,DNS:insights.air-local' > cert_extensions` (make sure to add the new site to this line, and update this readme)
+1. `openssl x509 -req -in multidomain-server.csr -signkey aircloak.com.chain.pem -extfile cert_extensions -out aircloak.com.chain.crt -days 36500`
+1. Replace the certificate in `aircloak.com.chain.pem` with the contents of `aircloak.com.chain.crt` (be sure to keep the key in the pem file)
+1. Import the new pem, assign trust on SSL, restart the browser and verify it works.
+1. Commit changed files and delete temporary files (csr, crt, and cert_extensions)
+1. Add the notice in the changelog about the changed certificate to let other developers know they need to import it. Once the code is merged you could also send a notification mail to everyone.
+
+More details can be found [here](http://aionica.computerlink.ro/2011/08/multiple-domain-selfsigned-ssltls-certificates-for-apache-namebased-ssltls-vhosts/).

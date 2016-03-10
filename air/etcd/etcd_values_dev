@@ -22,6 +22,7 @@ etcd_set /site/api "api.air-local"
 etcd_set /site/infrastructure_api "infrastructure-api.air-local"
 etcd_set /site/airpub "airpub.air-local"
 etcd_set /site/aircloak "aircloak.air-local"
+etcd_set /site/insights "insights.air-local"
 
 etcd_set /settings/mail/smtp/address smtp.mandrillapp.com
 etcd_set /settings/mail/smtp/port 587
@@ -36,6 +37,7 @@ etcd_set /settings/air/db/port $(get_tcp_port dev database/tcp)
 etcd_set /settings/air/db/username air
 etcd_set /settings/air/db/password ''
 etcd_set /settings/air/db/database aircloakdatabase
+etcd_set /settings/air/db/insights_database air_dev
 etcd_set /settings/air/db/ssl false
 
 # Integration test settings

@@ -20,6 +20,7 @@ etcd_set /site/api "api.aircloak.com"
 etcd_set /site/infrastructure_api "infrastructure-api.aircloak.com"
 etcd_set /site/airpub "pub.aircloak.com"
 etcd_set /site/aircloak "www.aircloak.com aircloak.com"
+etcd_set /site/insights "insights.aircloak.com"
 
 etcd_set /settings/mail/smtp/address smtp.mandrillapp.com
 etcd_set /settings/mail/smtp/port 587
@@ -34,6 +35,7 @@ etcd_set /settings/air/db/port 5432
 etcd_set /settings/air/db/username aircloak
 etcd_set /settings/air/db/password ""
 etcd_set /settings/air/db/database aircloakdatabase
+etcd_set /settings/air/db/insights_database air_prod
 etcd_set /settings/air/db/ssl true
 
 # Integration test settings
