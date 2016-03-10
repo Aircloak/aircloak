@@ -1,0 +1,22 @@
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!VERSION
+!tmp/image_shell_init.sh
+!etcd
+!config/config.sh
+!config/tcp_ports.json
+!site/artifacts/cache/deps
+!site/brunch-config.js
+!site/package.json
+!site/priv/repo
+!site/Makefile
+!site/mix.exs
+!site/mix.lock
+!site/config
+!site/lib
+!site/web
+!site/src
+!site/include
+!site/scripts

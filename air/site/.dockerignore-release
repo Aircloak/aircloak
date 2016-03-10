@@ -1,0 +1,9 @@
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!VERSION
+!config/config.sh
+!config/tcp_ports.json
+!site/artifacts/rel
+!site/docker
