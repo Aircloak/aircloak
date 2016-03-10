@@ -28,7 +28,7 @@ install:
 before_script:
   - air/etcd/config_travis.sh
   - air/db/init_db.sh
-  - cd air/site && mix deps.get && mix clean && MIX_ENV=test mix ecto.migrate --only test && cd ../..
+  - cd air/site && mix deps.get && mix clean && cd ../..
 script:
   - cd air/site
   - make dialyze

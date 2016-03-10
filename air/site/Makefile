@@ -15,10 +15,10 @@ test-coverage:
 	@printf "\e[33;32mReport is stored in cover/excoveralls.html\e[0m\n"
 
 migrate:
-	mix ecto.migrate
+	mix do app.start, ecto.migrate
 
 rollback:
-	mix ecto.rollback
+	mix do app.start, ecto.rollback
 
 dialyze:
 	scripts/dialyze.sh

@@ -10,13 +10,7 @@ config :air, Air.Endpoint,
 config :logger, level: :warn
 
 # Configure your database
-config :air, Air.Repo,
-  adapter: Ecto.Adapters.Postgres,
-  username: "postgres",
-  password: "postgres",
-  database: "air_test",
-  hostname: "localhost",
-  pool: Ecto.Adapters.SQL.Sandbox
+config :air, Air.Repo, pool: Ecto.Adapters.SQL.Sandbox
 
 # Make tests related to hashing run faster
 config :comeonin, :pbkdf2_rounds, 1
