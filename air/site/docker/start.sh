@@ -8,7 +8,7 @@ function log {
 }
 
 function add_local_hosts {
-  . /aircloak/site/bin/set_etcd_port.sh prod
+  . /aircloak/insights/bin/set_etcd_port.sh prod
 
   for host in $(
     curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service/local_names |
@@ -21,10 +21,10 @@ function add_local_hosts {
 }
 
 export HTTP_HOST_IP=${AIR_HOST_NAME:-"127.0.0.1"}
-export AIR_SITE_ENV="prod"
+export AIR_INSIGHTS_ENV="prod"
 
 # add_local_hosts
 
 log "Booting container."
 
-exec gosu deployer /aircloak/site/bin/air foreground
+exec gosu deployer /aircloak/insights/bin/air foreground

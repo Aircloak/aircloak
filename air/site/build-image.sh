@@ -28,13 +28,13 @@ cd site/artifacts/cache
 mix deps.get
 
 # Build the builder image.
-build_aircloak_image air_site_build site/builder.dockerfile site/.dockerignore-builder
+build_aircloak_image air_insights_build site/builder.dockerfile site/.dockerignore-builder
 
 # Start the instance of the builder image and copy the generated release back to the disk
 cd $ROOT_DIR
 mkdir -p site/artifacts/rel
 rm -rf site/artifacts/rel/*
-builder_container_id=$(docker create $(aircloak_image_name air_site_build):latest)
+builder_container_id=$(docker create $(aircloak_image_name air_insights_build):latest)
 docker cp $builder_container_id:/aircloak/air/site/rel/air/releases/0.0.1/air.tar.gz site/artifacts/rel/
 docker stop $builder_container_id > /dev/null
 docker rm -v $builder_container_id > /dev/null
@@ -45,4 +45,4 @@ cd site/artifacts/rel && \
   cd $ROOT_DIR
 
 # Build the release image
-build_aircloak_image air_site site/release.dockerfile site/.dockerignore-release
+build_aircloak_image air_insights site/release.dockerfile site/.dockerignore-release
