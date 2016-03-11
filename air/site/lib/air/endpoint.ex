@@ -5,6 +5,20 @@ defmodule Air.Endpoint do
   # bug in the current Phoenix -> should be fixed with the next version
   @dialyzer :no_unused
 
+  @doc """
+    Adapts the endpoint configuration to runtime conditions.
+    This is basically needed to support running multiple instances of the app on the dev machine.
+  """
+  def configure do
+    endpoint_config = Application.get_env(:air, Air.Endpoint, [])
+    port_offset = String.to_integer(System.get_env("INSIGHTS_PORT_OFFSET") || "0")
+    if port_offset > 0 do
+      runtime_endpoint_config = update_in(endpoint_config, [:http, :port],
+          fn(port_base) -> port_base + port_offset end)
+      Application.put_env(:air, Air.Endpoint, runtime_endpoint_config)
+    end
+  end
+
   socket "/socket", Air.UserSocket
 
   # Serve at "/" the static files from "priv/static" directory.
