@@ -7,27 +7,16 @@ ROOT_DIR=$(cd $(dirname ${BASH_SOURCE[0]})/.. && pwd)
 . $ROOT_DIR/common/docker_helper.sh
 
 # This will build a dockerized version of the air site.
-# It has one major nasty caveat. Since we don't want to include
-# the SSH keys required to get at the private github repositories
-# inside the docker containers (or any of the file system layers),
-# we need to fetch dependencies locally.
 #
-# Moreover, to reduce the final image size, we build in two steps:
+# To reduce the final image size, we build in two steps:
 # 1. First, we produce the "builder" container. Here, we'll setup the full
-#    Erlang environment, copy source, and create the release.
+#    Elixir environment, copy source, and create the release.
 # 2. Then, we briefly start the builder container, fetch the release locally,
 #    and create the release container. Here, we just copy the release, without
 #    the need to install Erlang.
 
 # Build deps locally
 cd $ROOT_DIR
-mkdir -p site/artifacts/cache
-cp -rp site/mix.exs site/artifacts/cache
-cp -rp site/mix.lock site/artifacts/cache
-cd site/artifacts/cache
-mix deps.get
-
-# Build the builder image.
 build_aircloak_image air_insights_build site/builder.dockerfile site/.dockerignore-builder
 
 # Start the instance of the builder image and copy the generated release back to the disk

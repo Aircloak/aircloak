@@ -26,13 +26,12 @@ ENV PATH=/usr/local/node/bin:$PATH LANG=C.UTF-8 LANGUAGE=C.UTF-8 LC_ALL=C.UTF-8
 COPY config/config.sh config/tcp_ports.json /aircloak/air/config/
 COPY etcd /aircloak/air/etcd
 COPY site/mix.exs site/mix.lock site/package.json /aircloak/air/site/
-COPY site/artifacts/cache/deps /aircloak/air/site/deps
 COPY site/config /aircloak/air/site/config
 
 RUN \
   . /tmp/build_config/proxies.sh && \
   cd /aircloak/air/site && \
-  mix hex.registry fetch && \
+  mix deps.get --only prod && \
   MIX_ENV=prod mix deps.compile && \
   echo "Fetching npm packages..." && \
   npm install
