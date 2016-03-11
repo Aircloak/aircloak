@@ -2,14 +2,12 @@ defmodule Air do
   @moduledoc false
   use Application
 
-  @build_env Mix.env
-
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
     configure_database()
     configure_endpoint()
-    Supervisor.start_link(children(@build_env), strategy: :one_for_one, name: Air.Supervisor)
+    Supervisor.start_link(children(), strategy: :one_for_one, name: Air.Supervisor)
   end
 
   # Tell Phoenix to update the endpoint configuration
@@ -19,9 +17,13 @@ defmodule Air do
     :ok
   end
 
-  defp children(:test), do: common_processes()
-  defp children(:dev), do: common_processes() ++ system_processes()
-  defp children(:prod), do: common_processes() ++ system_processes()
+  # Conditional definition of top-level processes, since we don't want to run
+  # all of them in test environment
+  case Mix.env do
+    :test -> defp children, do: common_processes()
+    :dev -> defp children, do: common_processes() ++ system_processes()
+    :prod -> defp children, do: common_processes() ++ system_processes()
+  end
 
   # Processes which need to run in all environments (including :test)
   defp common_processes do
@@ -34,13 +36,15 @@ defmodule Air do
     ]
   end
 
-  # Processes which need to run only when the system is started (i.e. all envs except :test)
-  defp system_processes do
-    import Supervisor.Spec, warn: false
+  unless Mix.env == :test do
+    # Processes which need to run only when the system is started
+    defp system_processes do
+      import Supervisor.Spec, warn: false
 
-    [
-      Air.PeerDiscovery.supervisor_spec()
-    ]
+      [
+        Air.PeerDiscovery.supervisor_spec()
+      ]
+    end
   end
 
   # This function reads database settings from etcd and merges them into the
