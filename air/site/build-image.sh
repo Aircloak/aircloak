@@ -24,7 +24,7 @@ cd $ROOT_DIR
 mkdir -p site/artifacts/rel
 rm -rf site/artifacts/rel/*
 builder_container_id=$(docker create $(aircloak_image_name air_insights_build):latest)
-docker cp $builder_container_id:/aircloak/air/site/rel/air/releases/0.0.1/air.tar.gz site/artifacts/rel/
+docker cp $builder_container_id:/aircloak/insights/site/rel/air/releases/0.0.1/air.tar.gz site/artifacts/rel/
 docker stop $builder_container_id > /dev/null
 docker rm -v $builder_container_id > /dev/null
 cd site/artifacts/rel && \
