@@ -34,6 +34,7 @@ RUN \
   cd /aircloak/air/site && \
   mix hex.registry fetch && \
   MIX_ENV=prod mix deps.compile && \
+  echo "Fetching npm packages..." && \
   npm install
 
 # Now we copy the rest of the site and build the release.

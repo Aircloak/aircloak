@@ -37,7 +37,7 @@ defmodule Air.Mixfile do
       mod: {Air, []},
       applications: [
         :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-        :lhttpc, :etcd, :hackney, :guardian
+        :lhttpc, :etcd, :hackney, :guardian, :inets
       ]
     ]
   end

@@ -33,7 +33,8 @@ docs:
 	mix docs
 
 release:
-	MIX_ENV=prod mix do deps.get, compile
+	rm -rf rel/air
+	MIX_ENV=prod mix compile
 	brunch build --production
 	mix phoenix.digest
 	mix release
