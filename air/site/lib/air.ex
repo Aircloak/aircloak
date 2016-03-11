@@ -2,23 +2,14 @@ defmodule Air do
   @moduledoc false
   use Application
 
+  @build_env Mix.env
+
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
-    import Supervisor.Spec, warn: false
-
     configure_database()
-
-    children = [
-      supervisor(Air.Endpoint, []),
-      supervisor(Air.Repo, []),
-      worker(Air.Repo.Migrator, [], restart: :transient)
-    ]
-
-    # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
-    # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: Air.Supervisor]
-    Supervisor.start_link(children, opts)
+    configure_endpoint()
+    Supervisor.start_link(children(@build_env), strategy: :one_for_one, name: Air.Supervisor)
   end
 
   # Tell Phoenix to update the endpoint configuration
@@ -28,11 +19,35 @@ defmodule Air do
     :ok
   end
 
+  defp children(:test), do: common_processes()
+  defp children(:dev), do: common_processes() ++ system_processes()
+  defp children(:prod), do: common_processes() ++ system_processes()
+
+  # Processes which need to run in all environments (including :test)
+  defp common_processes do
+    import Supervisor.Spec, warn: false
+
+    [
+      supervisor(Air.Repo, []),
+      worker(Air.Repo.Migrator, [], restart: :transient),
+      supervisor(Air.Endpoint, [])
+    ]
+  end
+
+  # Processes which need to run only when the system is started (i.e. all envs except :test)
+  defp system_processes do
+    import Supervisor.Spec, warn: false
+
+    [
+      Air.PeerDiscovery.supervisor_spec()
+    ]
+  end
+
   # This function reads database settings from etcd and merges them into the
   # existing repo configuration as specified in `config.exs`. This allows us
   # to change database settings via etcd without needing to bake them into the
   # release.
-  defp configure_database() do
+  defp configure_database do
     static_repo_config = Application.get_env(:air, Air.Repo, [])
     runtime_repo_config = Keyword.merge(static_repo_config,
           hostname: :air_etcd.get("/settings/air/db/host"),
@@ -43,5 +58,17 @@ defmodule Air do
           password: :air_etcd.get("/settings/air/db/password"),
         )
     Application.put_env(:air, Air.Repo, runtime_repo_config)
+  end
+
+  # Adapts the endpoint configuration to runtime conditions. This is basically needed
+  # to support running multiple instances of the app on the dev machine.
+  defp configure_endpoint do
+    endpoint_config = Application.get_env(:air, Air.Endpoint, [])
+    port_offset = String.to_integer(System.get_env("INSIGHTS_PORT_OFFSET") || "0")
+    if port_offset > 0 do
+      runtime_endpoint_config = update_in(endpoint_config, [:http, :port],
+          fn(port_base) -> port_base + port_offset end)
+      Application.put_env(:air, Air.Endpoint, runtime_endpoint_config)
+    end
   end
 end

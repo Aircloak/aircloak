@@ -1,7 +1,13 @@
 .PHONY: start test migrate rollback
 
 start:
-	iex -S mix phoenix.server
+	iex --sname insights1@localhost -S mix phoenix.server
+
+start2:
+	INSIGHTS_PORT_OFFSET=1 iex --sname insights2@localhost -S mix phoenix.server
+
+start3:
+	INSIGHTS_PORT_OFFSET=2 iex --sname insights3@localhost -S mix phoenix.server
 
 test: test-eunit
 	mix test
