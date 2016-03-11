@@ -1,14 +1,21 @@
 defmodule Air.Endpoint do
-  @moduledoc false
+  @moduledoc "Implements the HTTP server for insights.aircloak.com"
+
   use Phoenix.Endpoint, otp_app: :air
 
   # bug in the current Phoenix -> should be fixed with the next version
   @dialyzer :no_unused
 
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
   @doc """
     Adapts the endpoint configuration to runtime conditions.
     This is basically needed to support running multiple instances of the app on the dev machine.
   """
+  @spec configure() :: :ok
   def configure do
     endpoint_config = Application.get_env(:air, Air.Endpoint, [])
     port_offset = String.to_integer(System.get_env("INSIGHTS_PORT_OFFSET") || "0")
@@ -17,7 +24,36 @@ defmodule Air.Endpoint do
           fn(port_base) -> port_base + port_offset end)
       Application.put_env(:air, Air.Endpoint, runtime_endpoint_config)
     end
+    :ok
   end
+
+  @doc """
+  Returns the supervisor specification for this endpoint.
+
+  The specification lists processes required to run this endpoint. This includes
+  the endpoint process as well as auxiliary processes which register the endpoint
+  to etcd.
+  """
+  @spec supervisor_spec() :: Supervisor.Spec.spec
+  def supervisor_spec do
+    import Supervisor.Spec, warn: false
+
+    http_host = System.get_env("HTTP_HOST_IP") || "127.0.0.1"
+    http_port = Application.get_env(:air, Air.Endpoint, [])[:http][:port]
+    key = "/service_instances/insights/#{http_host}_#{http_port}"
+    value = "#{http_host}:#{http_port}"
+
+    children = [
+      worker(__MODULE__, []),
+      worker(Air.ServiceRegistration, [key, value], id: Air.Endpoint.ServiceRegistration)
+    ]
+    supervisor(Supervisor, [children, [strategy: :one_for_all]], id: Module.concat(__MODULE__, Supervisor))
+  end
+
+
+  # -------------------------------------------------------------------
+  # Endpoint HTTP specification
+  # -------------------------------------------------------------------
 
   socket "/socket", Air.UserSocket
 
