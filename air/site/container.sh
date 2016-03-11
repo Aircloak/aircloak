@@ -7,7 +7,7 @@ cd $(dirname $0)
 
 # Override the generic function, since we need to perform special handling
 function gracefully_stop_container {
-  docker exec -d air_backend /bin/bash -c "AIR_INSIGHTS_ENV='prod' /aircloak/app/bin/air stop"
+  docker exec -d air_insights /bin/bash -c "AIR_INSIGHTS_ENV='prod' bin/air stop"
 }
 
 DOCKER_IMAGE=$(aircloak_image_name air_insights)
