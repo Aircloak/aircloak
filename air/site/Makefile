@@ -1,7 +1,13 @@
 .PHONY: start test migrate rollback
 
 start:
-	iex -S mix phoenix.server
+	iex --sname insights1@localhost -S mix phoenix.server
+
+start2:
+	INSIGHTS_PORT_OFFSET=1 iex --sname insights2@localhost -S mix phoenix.server
+
+start3:
+	INSIGHTS_PORT_OFFSET=2 iex --sname insights3@localhost -S mix phoenix.server
 
 test: test-eunit
 	mix test
@@ -15,10 +21,10 @@ test-coverage:
 	@printf "\e[33;32mReport is stored in cover/excoveralls.html\e[0m\n"
 
 migrate:
-	mix ecto.migrate
+	mix do app.start, ecto.migrate
 
 rollback:
-	mix ecto.rollback
+	mix do app.start, ecto.rollback
 
 dialyze:
 	scripts/dialyze.sh
@@ -27,7 +33,8 @@ docs:
 	mix docs
 
 release:
-	MIX_ENV=prod mix do deps.get, compile
+	rm -rf rel/air
+	MIX_ENV=prod mix compile
 	brunch build --production
 	mix phoenix.digest
 	mix release

@@ -39,6 +39,7 @@ These features are provided through the following endpoints:
 
 The air system consists of following components:
 
+- `site` - The new Air system (insights) which unifies `frontend` and `backend` roles.
 - `backend` - Erlang system which implements various processes in the air system, such as publishing of task results (airpub), or background and periodic jobs.
 - `balancer` - TCP balancer that forwards requests to multiple routers.
 - `coreos` - Vagrant powered CoreOS system that runs cluster of air machines.
@@ -110,14 +111,13 @@ If you want to transfer your previous data from the localhost database to the do
 
 Make sure that all dependencies have been fetched, that backend is built (`cd backend && make`), and the required components are started (see above).
 
-Now you can start frontend and backend in the usual way:
+Now you can start components in the usual way:
 
 ```
-web/frontend $ make start
-web/backend $ make start
+air/site $ make start
 ```
 
-If all is well, you should be able to access the web via https://frontend.air-local:20000. Note that we use self-signed certificate, so you'll likely get an error in your browser. You need to import the certificate (located in `router/dev_certs/aircloak.com.chain.pem`) to your browser.
+If all is well, you should be able to access the web via https://insights.air-local:20000. Note that we use self-signed certificate, so you'll likely get an error in your browser. You need to import the certificate (located in `router/dev_certs/aircloak.com.chain.pem`) to your browser.
 
 If all data is migrated, you should see all clusters/cloaks (make sure to impersonate the analyst), and run tasks in the sandbox.
 
@@ -132,11 +132,8 @@ If you want to start each container separately in a foreground, make sure that t
 Build images and start containers in the foreground:
 
 ```
-$ backend/build-image.sh
-$ backend/container.sh console
-
-$ frontend/build-image.sh
-$ frontend/container.sh console
+$ site/build-image.sh
+$ site/container.sh console
 
 $ router/build-image.sh
 $ router/container.sh console
