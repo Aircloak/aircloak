@@ -20,7 +20,7 @@ defmodule Air.Mixfile do
       ],
       preferred_cli_env: [
         eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
-        "phoenix.digest": :prod, site_release: :prod
+        "phoenix.digest": :prod, site_release: :prod, "test.cover": :test
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [
@@ -90,7 +90,11 @@ defmodule Air.Mixfile do
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       "migrate": ["app.start", "ecto.migrate"],
-      "rollback": ["app.start", "ecto.rollback"]
+      "rollback": ["app.start", "ecto.rollback"],
+      "test.cover": [
+        "coveralls.html",
+        ~s[run -e 'IO.puts("#{IO.ANSI.green()}Report is stored in cover/excoveralls.html#{IO.ANSI.reset()}")']
+      ]
     ]
   end
 

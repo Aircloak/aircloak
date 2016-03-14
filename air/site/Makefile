@@ -16,9 +16,8 @@ test-eunit:
 	MIX_ENV=test mix compile
 	mix eunit
 
-test-coverage:
-	mix coveralls.html
-	@printf "\e[33;32mReport is stored in cover/excoveralls.html\e[0m\n"
+test.cover:
+	mix test.cover
 
 migrate:
 	mix migrate
