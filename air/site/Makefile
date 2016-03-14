@@ -7,7 +7,7 @@ start2:
 	mix start 2
 
 start3:
-	mix start 2
+	mix start 3
 
 test:
 	# For some reason, we need to compile before starting the test. Otherwise, eunit test won't pick up the
