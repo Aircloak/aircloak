@@ -20,7 +20,7 @@ defmodule Air.Mixfile do
       ],
       preferred_cli_env: [
         eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
-        "phoenix.digest": :prod
+        "phoenix.digest": :prod, site_release: :prod
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [

@@ -33,8 +33,4 @@ docs:
 	mix docs
 
 release:
-	rm -rf rel/air
-	MIX_ENV=prod mix compile
-	brunch build --production
-	mix phoenix.digest
-	mix release
+	MIX_ENV=prod mix do compile, site_release
