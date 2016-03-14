@@ -27,7 +27,7 @@ rollback:
 	mix do app.start, ecto.rollback
 
 dialyze:
-	scripts/dialyze.sh
+	mix dialyze
 
 docs:
 	mix docs
