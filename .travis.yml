@@ -31,6 +31,7 @@ before_script:
   - cd air/site && mix deps.get && mix clean && cd ../..
 script:
   - cd air/site
+  - make lint
   - make dialyze
   - make test
   - make docs

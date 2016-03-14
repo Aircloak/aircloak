@@ -33,3 +33,7 @@ docs:
 
 release:
 	MIX_ENV=prod mix do compile, site_release
+
+lint:
+	MIX_ENV=dev mix lint
+	MIX_ENV=test mix lint

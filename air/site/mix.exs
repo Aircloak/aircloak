@@ -75,6 +75,7 @@ defmodule Air.Mixfile do
       {:dialyze, "~> 0.2.1", only: :dev},
       {:earmark, "~> 0.2", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
+      {:credo, "~> 0.3.0", only: [:dev, :test]},
       {:excoveralls, "~> 0.5", only: :test},
       {:eunit_formatters, "~> 0.3.0", only: :test}
     ]
@@ -96,7 +97,8 @@ defmodule Air.Mixfile do
         "coveralls.html",
         ~s[run -e 'IO.puts("#{IO.ANSI.green()}Report is stored in cover/excoveralls.html#{IO.ANSI.reset()}")']
       ],
-      "test.full": ["test", "eunit"]
+      "test.full": ["test", "eunit"],
+      "lint": ["credo --strict"]
     ]
   end
 
