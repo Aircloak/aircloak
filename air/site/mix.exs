@@ -38,9 +38,16 @@ defmodule Air.Mixfile do
       applications: [
         :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
         :lhttpc, :etcd, :hackney, :guardian, :inets
-      ]
+      ] ++ dialyzer_required_deps()
     ]
   end
+
+  # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
+  # By adding them explicitly to the applications list, we make sure that they are included in the PLT.
+  # This is usually not needed, but in some cases it's required if our code directly relies on
+  # types and behaviours from indirect dependencies. In such case, simply add the needed application to
+  # this list.
+  defp dialyzer_required_deps, do: [:plug]
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "web", "test/support"]

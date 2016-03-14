@@ -2,6 +2,9 @@ defmodule Air.Repo do
   @moduledoc false
   use Ecto.Repo, otp_app: :air
 
+  # Need to disable due to error in old Ecto. Should be revised once we upgrade Ecto to 2.0
+  @dialyzer :no_undefined_callbacks
+
   @doc """
   Reads database settings from etcd and merges them into the existing repo
   configuration as specified in `config.exs`.
