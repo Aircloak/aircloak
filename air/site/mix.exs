@@ -86,8 +86,12 @@ defmodule Air.Mixfile do
   #
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
-    ["ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
-     "ecto.reset": ["ecto.drop", "ecto.setup"]]
+    [
+      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
+      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      "migrate": ["app.start", "ecto.migrate"],
+      "rollback": ["app.start", "ecto.rollback"]
+    ]
   end
 
   defp erlc_paths(:test), do: ["test/erlang"] ++ erlc_paths(:common)
