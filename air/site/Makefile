@@ -9,12 +9,12 @@ start2:
 start3:
 	mix start 2
 
-test: test-eunit
-	mix test
-
-test-eunit:
+test:
+	# For some reason, we need to compile before starting the test. Otherwise, eunit test won't pick up the
+	# latest  compiled binaries. This needs to be investigated further, but for now, we're just manually
+	# invoking the compile task as a hacky workaround
 	MIX_ENV=test mix compile
-	mix eunit
+	mix test.full
 
 test.cover:
 	mix test.cover

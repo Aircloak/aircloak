@@ -20,7 +20,8 @@ defmodule Air.Mixfile do
       ],
       preferred_cli_env: [
         eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
-        "phoenix.digest": :prod, site_release: :prod, "test.cover": :test
+        "phoenix.digest": :prod, site_release: :prod, "test.cover": :test,
+        "test.full": :test
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [
@@ -94,7 +95,8 @@ defmodule Air.Mixfile do
       "test.cover": [
         "coveralls.html",
         ~s[run -e 'IO.puts("#{IO.ANSI.green()}Report is stored in cover/excoveralls.html#{IO.ANSI.reset()}")']
-      ]
+      ],
+      "test.full": ["test", "eunit"]
     ]
   end
 
