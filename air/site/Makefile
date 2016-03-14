@@ -1,40 +1,39 @@
 .PHONY: start test migrate rollback
 
 start:
-	iex --sname insights1@localhost -S mix phoenix.server
+	mix start
 
 start2:
-	INSIGHTS_PORT_OFFSET=1 iex --sname insights2@localhost -S mix phoenix.server
+	mix start 2
 
 start3:
-	INSIGHTS_PORT_OFFSET=2 iex --sname insights3@localhost -S mix phoenix.server
+	mix start 3
 
-test: test-eunit
-	mix test
-
-test-eunit:
+test:
+	# For some reason, we need to compile before starting the test. Otherwise, eunit test won't pick up the
+	# latest  compiled binaries. This needs to be investigated further, but for now, we're just manually
+	# invoking the compile task as a hacky workaround
 	MIX_ENV=test mix compile
-	mix eunit
+	mix test.full
 
-test-coverage:
-	mix coveralls.html
-	@printf "\e[33;32mReport is stored in cover/excoveralls.html\e[0m\n"
+test.cover:
+	mix test.cover
 
 migrate:
-	mix do app.start, ecto.migrate
+	mix migrate
 
 rollback:
-	mix do app.start, ecto.rollback
+	mix rollback
 
 dialyze:
-	scripts/dialyze.sh
+	mix dialyze
 
 docs:
 	mix docs
 
 release:
-	rm -rf rel/air
-	MIX_ENV=prod mix compile
-	brunch build --production
-	mix phoenix.digest
-	mix release
+	MIX_ENV=prod mix do compile, site_release
+
+lint:
+	MIX_ENV=dev mix lint
+	MIX_ENV=test mix lint

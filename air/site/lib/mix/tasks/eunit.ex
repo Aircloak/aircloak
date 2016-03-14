@@ -1,4 +1,5 @@
 defmodule Mix.Tasks.Eunit do
+  @shortdoc "Runs eunit tests"
   @moduledoc """
   Mix task for running EUnit tests.
 
@@ -6,7 +7,9 @@ defmodule Mix.Tasks.Eunit do
   """
   use Mix.Task
 
-  @shortdoc "Runs eunit tests"
+  # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
+  @dialyzer :no_undefined_callbacks
+
   @recursive true
 
   @doc false

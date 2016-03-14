@@ -20,7 +20,8 @@ defmodule Air.Mixfile do
       ],
       preferred_cli_env: [
         eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
-        "phoenix.digest": :prod
+        "phoenix.digest": :prod, site_release: :prod, "test.cover": :test,
+        "test.full": :test
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [
@@ -38,9 +39,16 @@ defmodule Air.Mixfile do
       applications: [
         :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
         :lhttpc, :etcd, :hackney, :guardian, :inets
-      ]
+      ] ++ dialyzer_required_deps()
     ]
   end
+
+  # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
+  # By adding them explicitly to the applications list, we make sure that they are included in the PLT.
+  # This is usually not needed, but in some cases it's required if our code directly relies on
+  # types and behaviours from indirect dependencies. In such case, simply add the needed application to
+  # this list.
+  defp dialyzer_required_deps, do: [:plug]
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "web", "test/support"]
@@ -64,9 +72,10 @@ defmodule Air.Mixfile do
       {:etcd, github: "spilgames/etcd.erl", ref: "79d04a775e4488b0eb6e5e07a8c0bf4803adb997"},
       {:hackney, "~> 1.5.0"},
       {:exrm, "~> 1.0"},
-      {:dialyze, "~> 0.2.0", only: :dev},
+      {:dialyze, "~> 0.2.1", only: :dev},
       {:earmark, "~> 0.2", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
+      {:credo, "~> 0.3.0", only: [:dev, :test]},
       {:excoveralls, "~> 0.5", only: :test},
       {:eunit_formatters, "~> 0.3.0", only: :test}
     ]
@@ -79,8 +88,18 @@ defmodule Air.Mixfile do
   #
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
-    ["ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
-     "ecto.reset": ["ecto.drop", "ecto.setup"]]
+    [
+      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
+      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      "migrate": ["app.start", "ecto.migrate"],
+      "rollback": ["app.start", "ecto.rollback"],
+      "test.cover": [
+        "coveralls.html",
+        ~s[run -e 'IO.puts("#{IO.ANSI.green()}Report is stored in cover/excoveralls.html#{IO.ANSI.reset()}")']
+      ],
+      "test.full": ["test", "eunit"],
+      "lint": ["credo --strict"]
+    ]
   end
 
   defp erlc_paths(:test), do: ["test/erlang"] ++ erlc_paths(:common)

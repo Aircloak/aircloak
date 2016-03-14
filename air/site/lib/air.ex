@@ -6,7 +6,6 @@ defmodule Air do
   # for more information on OTP Applications
   def start(_type, _args) do
     Air.Repo.configure()
-    Air.Endpoint.configure()
     Air.Supervisor.start_link()
   end
 
