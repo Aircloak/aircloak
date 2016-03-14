@@ -12,22 +12,6 @@ defmodule Air.Endpoint do
   # -------------------------------------------------------------------
 
   @doc """
-    Adapts the endpoint configuration to runtime conditions.
-    This is basically needed to support running multiple instances of the app on the dev machine.
-  """
-  @spec configure() :: :ok
-  def configure do
-    endpoint_config = Application.get_env(:air, Air.Endpoint, [])
-    port_offset = String.to_integer(System.get_env("INSIGHTS_PORT_OFFSET") || "0")
-    if port_offset > 0 do
-      runtime_endpoint_config = update_in(endpoint_config, [:http, :port],
-          fn(port_base) -> port_base + port_offset end)
-      Application.put_env(:air, Air.Endpoint, runtime_endpoint_config)
-    end
-    :ok
-  end
-
-  @doc """
   Returns the supervisor specification for this endpoint.
 
   The specification lists processes required to run this endpoint. This includes
