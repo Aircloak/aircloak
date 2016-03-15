@@ -31,6 +31,3 @@ config :logger, :console, format: "[$level] $message\n"
 # Do not configure such in production as keeping
 # and calculating stacktraces is usually expensive.
 config :phoenix, :stacktrace_depth, 20
-
-config :guardian, Guardian,
-  secret_key: "6MvtANFkxCr3VaDY/C8oCooF6Pg1uqFzOWNYVMry/V5acmSPuQydPeU5X5Jh"

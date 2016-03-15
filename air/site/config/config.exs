@@ -11,7 +11,6 @@ Code.require_file("config/env_settings.exs")
 config :air, Air.Endpoint,
   url: [host: "localhost"],
   root: Path.dirname(__DIR__),
-  secret_key_base: "7nOn9WDwUZLjXnQah8+ocSF0r/YhYpDp0hSw4FE6Zq+Ic2TVYcDCQe+2MT8wqD/R",
   render_errors: [accepts: ~w(html json)],
   pubsub: [name: Air.PubSub,
            adapter: Phoenix.PubSub.PG2]
@@ -32,7 +31,6 @@ config :guardian, Guardian,
   issuer: "Aircloak Air",
   ttl: { 30, :days },
   verify_issuer: true,
-  secret_key: "6MvtANFkxCr3VaDY/C8oCooF6Pg1uqFzOWNYVMry/V5acmSPuQydPeU5X5Jh",
   serializer: Air.GuardianSerializer
 
 config :air, :etcd_port, Air.EnvSettings.tcp_port("etcd/client")
