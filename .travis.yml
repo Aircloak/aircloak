@@ -37,13 +37,13 @@ install:
 before_script:
   - air/etcd/config_travis.sh
   - air/db/init_db.sh
-  - cd air/site && mix deps.get && mix clean && cd ../..
+  - cd air/site && mix deps.get && mix clean && mix compile && MIX_ENV=test mix compile && cd ../..
 script:
   - cd air/site
-  - make lint
-  - make dialyze
-  - make test
   - make docs
+  - make lint
+  - make test
+  - make dialyze
   - cd ../..
   - cd cloak
   - make all
