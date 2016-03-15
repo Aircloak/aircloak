@@ -43,7 +43,6 @@ defmodule Mix.Tasks.Start do
   end
 
   defp configure_port(port_offset) do
-    endpoint_config = Application.get_env(:air, Air.Endpoint, [])
     if port_offset > 0 do
       Air.Utils.update_app_env(:air, Air.Endpoint, [persistent: true],
           &update_in(&1, [:http, :port], fn(port_base) -> port_base + port_offset end))

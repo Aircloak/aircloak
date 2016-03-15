@@ -12,6 +12,7 @@ defmodule Air.Mixfile do
       start_permanent: Mix.env == :prod,
       aliases: aliases,
       deps: deps,
+      elixirc_options: elixirc_options(Mix.env),
       erlc_paths: erlc_paths(Mix.env),
       erlc_options: erlc_options(Mix.env),
       eunit_options: [
@@ -102,10 +103,17 @@ defmodule Air.Mixfile do
     ]
   end
 
-  defp erlc_paths(:test), do: ["test/erlang"] ++ erlc_paths(:common)
-  defp erlc_paths(_), do: ["src"]
+  defp elixirc_options(:test), do: [debug_info: true, docs: true] ++ common_elixirc_options
+  defp elixirc_options(:dev), do: [debug_info: true, docs: true] ++ common_elixirc_options
+  defp elixirc_options(:prod), do: common_elixirc_options
 
-  defp erlc_options(:test), do: [{:d, :TEST}]
+  defp common_elixirc_options, do: [ignore_module_conflict: true, warnings_as_errors: true]
+
+  defp erlc_paths(:test), do: ["test/erlang", "src"]
+  defp erlc_paths(:dev), do: ["src"]
+  defp erlc_paths(:prod), do: ["src"]
+
+  defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]
   defp erlc_options(:dev), do: [:debug_info]
-  defp erlc_options(_), do: []
+  defp erlc_options(:prod), do: []
 end
