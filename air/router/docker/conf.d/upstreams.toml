@@ -11,6 +11,7 @@ dest = "/etc/nginx/conf.d/upstreams.conf"
 keys = [
   "/service_instances/frontends",
   "/service_instances/backends",
+  "/service_instances/insights",
   "/service/"
 ]
 
