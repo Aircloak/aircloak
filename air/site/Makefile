@@ -19,6 +19,9 @@ test:
 test.cover:
 	mix test.cover
 
+recreate_db:
+	mix recreate_db
+
 migrate:
 	mix migrate
 

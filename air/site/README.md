@@ -51,8 +51,8 @@ application. Node.js is included to compile our javascript and css dependencies.
 - `mix deps.get` installs our elixir and erlang dependencies
 - `npm install` installs our node dependencies
 
-Before you run the application for the first time, you also need to make sure you migrate the database
-with `make migrate`
+Before you run the application for the first time, you also need to make sure you initialize the database
+with `make recreate_db`
 (make sure that [required common components are started](../README.md#starting-the-required-components)).
 
 
@@ -67,6 +67,9 @@ It is possible to start additional nodes with `make start2` and `make start3`.
 Note that there's no need to migrate the database. This will happen automatically when the application starts.
 However, if you do need to manually migrate/rollback (for example while creating a new migration), you can do
 it with `make migrate` and `make rollback` respectively.
+
+If you need to repopulate the database, you can run `make recreate_db`. Keep in mind that this will erase all
+of your existing data, so use with caution. To recreate the test database, you can run `MIX_ENV=test make recreate_db`
 
 
 ### Other common tasks

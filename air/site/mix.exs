@@ -10,7 +10,7 @@ defmodule Air.Mixfile do
       compilers: [:phoenix, :gettext] ++ Mix.compilers,
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
-      aliases: aliases,
+      aliases: aliases(Mix.env),
       deps: deps,
       elixirc_options: elixirc_options(Mix.env),
       erlc_paths: erlc_paths(Mix.env),
@@ -88,10 +88,9 @@ defmodule Air.Mixfile do
   #     $ mix ecto.setup
   #
   # See the documentation for `Mix` for more info on aliases.
-  defp aliases do
+  defp aliases(env) when env in [:dev, :test] do
     [
-      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      "recreate_db": ["app.start", "ecto.rollback --all", "ecto.migrate", "run priv/repo/seeds.exs"],
       "migrate": ["app.start", "ecto.migrate"],
       "rollback": ["app.start", "ecto.rollback"],
       "test.cover": [
@@ -102,6 +101,7 @@ defmodule Air.Mixfile do
       "lint": ["credo --strict"]
     ]
   end
+  defp aliases(:prod), do: []
 
   defp elixirc_options(:test), do: [debug_info: true, docs: true] ++ common_elixirc_options
   defp elixirc_options(:dev), do: [debug_info: true, docs: true] ++ common_elixirc_options

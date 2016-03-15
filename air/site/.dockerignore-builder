@@ -21,3 +21,6 @@
 !site/include
 !site/scripts
 !site/rel
+
+# blacklist some stuff
+site/priv/repo/seeds.exs
