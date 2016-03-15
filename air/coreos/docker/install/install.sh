@@ -64,12 +64,13 @@ pull_docker_image aircloak/static_website
 pull_docker_image $(aircloak_image_name air_router)
 pull_docker_image $(aircloak_image_name air_backend)
 pull_docker_image $(aircloak_image_name air_frontend)
+pull_docker_image $(aircloak_image_name air_insights)
 
 # Purge memory, because it seems to affect starting of Docker containers
 sync && echo 3 > /proc/sys/vm/drop_caches
 
 # Copy service files
-for service in air-prerequisites air-router air-backend air-frontend air-frontend-sidekick air-static-site; do
+for service in air-prerequisites air-router air-backend air-frontend air-frontend-sidekick air-insights air-static-site; do
   cp -rp /aircloak/air/$service.service /etc/systemd/system/
 done
 
@@ -118,6 +119,9 @@ coreos:
     command: start
 
   - name: air-frontend-sidekick.service
+    command: start
+
+  - name: air-insights.service
     command: start
 
   # start update services

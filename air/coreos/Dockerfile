@@ -9,6 +9,7 @@ COPY etcd /aircloak/air/etcd/
 COPY common/docker_helper.sh /aircloak/air/common/
 COPY frontend/container.sh /aircloak/air/frontend/
 COPY backend/container.sh /aircloak/air/backend/
+COPY site/container.sh /aircloak/air/site/
 COPY router/container.sh /aircloak/air/router/
 
 AIR_TAG_VERSION

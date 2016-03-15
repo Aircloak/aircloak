@@ -94,8 +94,8 @@ function push_air_image {
 }
 
 function push_static_site_image {
-  if [ ! -e "../static-website" ]; then
-    echo "Static website repo not found in $(pwd)/../static-website"
+  if [ ! -e "$(pwd)/../../static-website" ]; then
+    echo "Static website repo not found in $(pwd)/../../static-website"
     exit 1
   fi
 
@@ -104,7 +104,7 @@ function push_static_site_image {
 
   build_and_push \
       "aircloak/static_website" \
-      "cd ../static-website && BUILD_ENV='$site_build_env' ./build.sh && cd $(pwd)"
+      "cd ../../static-website && BUILD_ENV='$site_build_env' ./build.sh && cd $(pwd)"
 }
 
 function check_registry {
@@ -128,6 +128,7 @@ push_air_image coreos
 push_air_image router
 push_air_image backend
 push_air_image frontend
+push_air_image site
 
 # Remove all local repo tags. We don't need those, since the image is tagged
 # anyway, and this allows us proper local cleanup of older images.
