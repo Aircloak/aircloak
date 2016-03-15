@@ -5,9 +5,9 @@ AIR_INIT
 
 # Install dependencies (packages, hex, rebar, npm, brunch) and configure UTF-8
 RUN \
-  . /tmp/build_config/proxies.sh && \
   apt-get update && \
   apt-get install locales wget curl git build-essential jq -y && \
+  . /tmp/build_config/proxies.sh && \
   mkdir -p $HOME && \
   mix local.hex --force && \
   mix local.rebar --force && \
