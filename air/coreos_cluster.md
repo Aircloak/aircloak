@@ -153,7 +153,7 @@ To manually build the latest images and push them to the Docker registry, you ca
 
 1. `cd` to the `/aircloak/target_cluster/air`
 2. Perform `git pull` and checkout the desired branch
-3. Run `AIR_ENV=prod REGISTRY_URL=registry.aircloak.com IMAGE_CATEGORY=target_cluster             /aircloak/target_cluster/air/package.sh`
+3. Run `AIR_ENV=prod REGISTRY_URL=registry.aircloak.com IMAGE_CATEGORY=target_cluster             /aircloak/target_cluster/aircloak/air/package.sh`
 
 In the commands above, `AIR_ENV` must always be set to `prod` (indicating we're building on MPI servers), while `target_cluster` must be replaced with `air_stage` or `air_prod`.
 
@@ -170,7 +170,7 @@ It is also essential that machines have fixed static IP addresses. This is imper
 Assuming CoreOS machines are properly prepared, on the build server you can simply invoke :
 
 ```
-REGISTRY_URL=registry.aircloak.com /aircloak/target_cluster/air/coreos/cluster.sh \
+REGISTRY_URL=registry.aircloak.com /aircloak/target_cluster/aircloak/air/coreos/cluster.sh \
       setup_cluster \
       target_cluster \
       machine_ip1 machine_ip2 ...
@@ -178,7 +178,7 @@ REGISTRY_URL=registry.aircloak.com /aircloak/target_cluster/air/coreos/cluster.s
 
 This will setup each machine. Once the installation is finished, the cluster is ready to be used.
 
-The installation process is orchestrated from the build server. You can find the implementation [here](./coreos/cluster.sh). This script will upload the necessary files to the CoreOS machine, such as cluster specific `etcd` configuration, and secrets (which reside on the build server in `/aircloak/target_cluster/air/coreos/clusters/target_cluster/secrets/` folder).
+The installation process is orchestrated from the build server. You can find the implementation [here](./coreos/cluster.sh). This script will upload the necessary files to the CoreOS machine, such as cluster specific `etcd` configuration, and secrets (which reside on the build server in `/aircloak/target_cluster/aircloak/air/coreos/clusters/target_cluster/secrets/` folder).
 
 Then the installer service is started on the machine. This service is a "oneshot" SystemD unit which runs [the installation script](./coreos/docker/install/install.sh). The installation script will fetch the latest Air images, populate `etcd`, and generate the final cloud config.
 
@@ -186,7 +186,32 @@ Once the installer script is done, the installation process on the build server 
 
 #### Configuring the load balancer
 
-Once the Air system is installed, on the balancer machine, in the `/aircloak/target_cluster/air/balancer/config/` folder you'll find the routers file which needs to be edited. In this file you need to list all the CoreOS machines belonging to the cluster. As soon as you save the file, the balancer will use these machines.
+Once the Air system is installed, on the balancer machine, in the `/aircloak/target_cluster/aircloak/air/balancer/config/` folder you'll find the routers file which needs to be edited. In this file you need to list all the CoreOS machines belonging to the cluster. As soon as you save the file, the balancer will use these machines.
+
+#### Creating the first user
+
+In case your cluster starts on the fresh database, you won't be able to log in, because there won't be any users in the database. You need to manually insert the user through the remote console. You can enter the console by running `/aircloak/air/insights/container.sh remote_console` on some CoreOS machine.
+
+Now you can add the organisation and the admin login:
+
+```
+iex(1)> organisation =
+          %Air.Organisation{} |>
+          Air.Organisation.changeset(%{name: "Administrators"}) |>
+          Air.Repo.insert!
+
+iex(2)> organisation |>
+          Ecto.build_assoc(:users) |>
+          Air.User.changeset(%{
+                email: "admin@aircloak.com",
+                password: "admin",
+                password_confirmation: "admin",
+                name: "administrator"
+              }) |>
+          Air.Repo.insert!
+```
+
+At this point, you can login to the system as administrator and add additional users and organisations. Make sure to change the administrator password.
 
 
 ### Changing the cluster
@@ -198,7 +223,7 @@ First, you need to prepare an empty CoreOS machine (as explained [earlier](#prep
 Now you can run the following command:
 
 ```
-REGISTRY_URL=registry.aircloak.com /aircloak/target_cluster/air/coreos/cluster.sh \
+REGISTRY_URL=registry.aircloak.com /aircloak/target_cluster/aircloak/air/coreos/cluster.sh \
     add_machine \
     target_cluster \
     machine_from_the_cluster_ip \
@@ -216,7 +241,7 @@ Once the machine is added, you need to go to the load balancer server and modify
 To remove the machine, you can simply invoke:
 
 ```
-/aircloak/target_cluster/air/coreos/cluster.sh \
+/aircloak/target_cluster/aircloak/air/coreos/cluster.sh \
     remove_machine \
     target_cluster \
     machine_from_the_cluster_ip \
@@ -236,7 +261,7 @@ First make sure you have [rebuilt and pushed the latest images](#manually-buildi
 Then, you can invoke:
 
 ```
-/aircloak/target_cluster/air/coreos/cluster.sh \
+/aircloak/target_cluster/aircloak/air/coreos/cluster.sh \
     upgrade_machine \
     target_cluster \
     machine_to_upgrade_ip
@@ -251,7 +276,7 @@ During the upgrade, the machine is still a part of the etcd cluster, but none of
 The rolling upgrade is usually invoked via [Capistrano deploy](#capistrano-deploy), but if you want to do it manually on the build server, you can run:
 
 ```
-/aircloak/target_cluster/air/coreos/cluster.sh \
+/aircloak/target_cluster/aircloak/air/coreos/cluster.sh \
     upgrade_machine \
     target_cluster
     cluster_machine_ip
