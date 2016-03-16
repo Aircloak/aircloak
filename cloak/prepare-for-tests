@@ -1,0 +1,16 @@
+#!/bin/sh -ex
+
+# This script is used to setup the current checkout of cloak-core for testing.  It is used by TestServer as an
+# initialization step after performing a clone/checkout of cloak-core when generating the "cloak*-dev" VM
+# kind.
+
+old_pwd="$(pwd)"
+trap "cd \"$old_pwd\"" EXIT
+base_dir="$(dirname "$0")"
+cd "$base_dir"
+
+git submodule init
+git submodule update
+make deps
+make regenerate_db
+make all

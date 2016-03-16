@@ -1,0 +1,22 @@
+%% -*- erlang -*-
+{application, cloak, [
+  {description, ""},
+  {vsn, "v1.0.0"},
+  {registered, []},
+  {applications, [
+    kernel,
+    stdlib,
+    lager,
+    gproc,
+    cloak_metrics,
+    pgsql,
+    webmachine,
+    sasl,
+    os_mon,
+    ssl,
+    mnesia,
+    erlcron
+  ]},
+  {mod, { cloak_app, []}},
+  {env, []}
+]}.

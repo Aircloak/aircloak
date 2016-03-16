@@ -1,0 +1,7 @@
+run_test() ->
+  try
+    true = proper:quickcheck(full_migration_test:prop_migration(50, 2, 2, 1, 1), [{numtests, 2}, {max_size, 15}])
+  after
+    proper_cloak_instance:stop_instance(1),
+    proper_cloak_instance:stop_instance(2)
+  end.

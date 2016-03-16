@@ -1,0 +1,4 @@
+Makefile.local
+Makefile.depend
+obj
+src-gen

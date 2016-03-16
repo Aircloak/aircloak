@@ -1,0 +1,11 @@
+{build, [
+  {config, [
+    {name, "standard"},
+    {command, "make rel"},
+    {target, "rel/cloak"}
+  ]}
+]}.
+
+{install, [
+  {path, "/aircloak/cloak"}
+]}.

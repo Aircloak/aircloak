@@ -1,0 +1,48 @@
+#!/bin/sh -e
+
+if [ $# -eq 5 ]
+then
+  cloakname="$1"
+  port="$2"
+  portlisten="$3"
+  dbname="$4"
+  cleardb="$5"
+elif [ $# -eq 0 ]
+then
+  cloakname=cloak@localhost
+  port=8098
+  portlisten=34423
+  dbname="cloaktest1"
+  cleardb="true"
+else
+  echo "usage: $(basename "$0") [<nodename> <http-port> <listen-port> <db-name> <cleardb>]"
+  exit 1
+fi
+
+old_pwd="$(pwd)"
+base_dir="$(dirname "$0")"
+cd "$base_dir"
+
+if [ "X$cleardb" = "Xtrue" ]
+then
+  rm -rf ".proper/data/$cloakname"
+  while true
+  do
+    sh proper_prepare_db.sh "$dbname" && break
+    sleep 5
+  done
+fi
+
+cat "test/app.config" | \
+    sed "s,\.proper/data,.proper/data/$cloakname," | \
+    sed "s/{max_random_wait_for_failed_jobs, .*}/{max_random_wait_for_failed_jobs, 1}/" | \
+    sed "s/{min_random_wait_for_failed_jobs, .*}/{min_random_wait_for_failed_jobs, 0}/" | \
+    sed "s,cloaktest1,$dbname," | \
+    sed "s,8098,$port," | \
+    sed "s,34423,$portlisten," > \
+    "test/app-$cloakname.config"
+
+env PROPER_NODE_APPCONFIG="test/app-$cloakname.config" \
+    erl +P 1048576 -sname "$cloakname" -config "test/app-$cloakname.config" -pa deps/*/ebin .proper
+
+cd "$old_pwd"
