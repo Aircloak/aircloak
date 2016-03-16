@@ -128,11 +128,9 @@ function start_container {
 
 # Syntax:
 #   build_aircloak_image image_tag dockerfile_path [dockerfileignore_path]
-# Note: image build is always running in the repo top folder. Provided paths
-# must therefore be relative to the top folder.
+# Note: It is the responsibility of the caller to properly set the current folder.
 function build_aircloak_image {
   curdir=$(pwd)
-  cd "$(dirname ${BASH_SOURCE[0]})/.."
 
   dockerfile="$2"
   if [ -d $dockerfile ]; then

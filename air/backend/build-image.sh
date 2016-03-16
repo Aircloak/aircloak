@@ -31,6 +31,7 @@ make deps
 cd deps/cloak && git submodule update --init --recursive
 
 # Build the builder image.
+cd $ROOT_DIR
 build_aircloak_image air_backend_build backend/builder.dockerfile backend/.dockerignore-builder
 
 # Start the instance of the builder image and copy the generated release back to the disk
