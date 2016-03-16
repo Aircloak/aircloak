@@ -27,6 +27,8 @@ defmodule AircloakMixTasks.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    []
+    [
+      {:protobuffs, github: "basho/erlang_protobuffs", tag: "0.8.2"}
+    ]
   end
 end
