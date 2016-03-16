@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Start do
-  @shortdoc "Starts the site for local development inside an iex session"
+  @shortdoc "Starts the site for local development"
   @moduledoc """
-  Starts the site for local development inside an iex session.
+  Starts the site for local development.
 
   Usage:
 
@@ -30,16 +30,9 @@ defmodule Mix.Tasks.Start do
     # Turn the instance into a node
     {:ok, _} = :net_kernel.start([:"insights#{node_suffix}@127.0.0.1", :longnames])
 
-    # start iex
-    Application.ensure_all_started(:iex)
-    IEx.start
-
     # start the site
     configure_port(node_suffix - 1)
     Mix.Task.run("phoenix.server")
-
-    # need to sleep forever to keep the shell running
-    :timer.sleep(:infinity)
   end
 
   defp configure_port(port_offset) do
