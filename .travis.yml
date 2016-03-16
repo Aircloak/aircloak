@@ -37,7 +37,15 @@ install:
 before_script:
   - air/etcd/config_travis.sh
   - air/db/init_db.sh
-  - cd air/site && mix deps.get && mix clean && mix compile && MIX_ENV=test mix compile && MIX_ENV=test mix recreate_db && cd ../..
+  - cd air/site
+  - mix deps.get
+  - mix clean
+  - mix deps.compile
+  - mix compile --warnings-as-errors
+  - MIX_ENV=test mix deps.compile
+  - MIX_ENV=test mix compile --warnings-as-errors
+  - MIX_ENV=test mix recreate_db
+  - cd ../..
 script:
   - cd air/site
   - make docs

@@ -107,7 +107,7 @@ defmodule Air.Mixfile do
   defp elixirc_options(:dev), do: [debug_info: true, docs: true] ++ common_elixirc_options
   defp elixirc_options(:prod), do: common_elixirc_options
 
-  defp common_elixirc_options, do: [ignore_module_conflict: true, warnings_as_errors: true]
+  defp common_elixirc_options, do: [ignore_module_conflict: true]
 
   defp erlc_paths(:test), do: ["test/erlang", "src"]
   defp erlc_paths(:dev), do: ["src"]
