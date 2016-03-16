@@ -7,7 +7,7 @@
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("erlang_common/include/eunit_helpers.hrl").
+-include("eunit_helpers.hrl").
 
 run_task_test_() ->
   {setup,

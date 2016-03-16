@@ -4,7 +4,7 @@
 
 -include("src/cloak.hrl").
 -include_lib("eunit/include/eunit.hrl").
--include_lib("erlang_common/include/eunit_helpers.hrl").
+-include("eunit_helpers.hrl").
 
 -define(verifyAsync(Code, Expected), (fun() ->
       task_coordinator:run_task(test_task(Code)),

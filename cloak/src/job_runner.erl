@@ -426,7 +426,7 @@ add_job_runtime_metric(#state{start_time=StartTime}) ->
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
--include_lib("erlang_common/include/eunit_helpers.hrl").
+-include("eunit_helpers.hrl").
 
 create_insertdatapb(TableName, Rows) ->
   #insertdatapb{table=TableName, rows=[create_insertdatapb_row(Row) || Row <- Rows]}.

@@ -305,7 +305,7 @@ create_input_table_data_field(Boolean) when is_boolean(Boolean) ->
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("erlang_common/include/eunit_helpers.hrl").
+-include("eunit_helpers.hrl").
 
 create_row(Number) ->
   #tabledatapb_row{fields = [#tabledatapb_field{number = Number}]}.

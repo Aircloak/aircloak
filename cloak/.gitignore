@@ -1,6 +1,5 @@
 *.beam
 .eunit
-deps/*
 ebin/*
 rel/cloak
 dev
@@ -33,3 +32,8 @@ erl_crash.dump
 priv/sandbox
 priv/helpers.lua
 priv/serialization.lua
+
+/_build
+/cover
+/deps
+*.ez

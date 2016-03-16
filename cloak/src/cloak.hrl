@@ -2,7 +2,7 @@
 -include("user_data.hrl").
 -include("cloak_logging.hrl").
 
--include_lib("erlang_common/include/debug_helpers.hrl").
+-include("debug_helpers.hrl").
 
 -define(JOB_EXECUTION_ERROR, <<"__AC_INTERNAL_ERROR__">>).
 
