@@ -39,13 +39,15 @@ before_script:
   - air/db/init_db.sh
   - cd air/site
   - mix deps.get
-  - mix clean
   - mix deps.compile
   - mix compile --warnings-as-errors
   - MIX_ENV=test mix deps.compile
   - MIX_ENV=test mix compile --warnings-as-errors
   - MIX_ENV=test mix recreate_db
   - cd ../..
+  - cd cloak
+  - make all
+  - cd ..
 script:
   - cd air/site
   - make docs
@@ -54,7 +56,6 @@ script:
   - make dialyze
   - cd ../..
   - cd cloak
-  - make all
   - bash ./run-dialyzer.sh
   - make test-eunit
   - make proper
