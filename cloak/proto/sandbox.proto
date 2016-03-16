@@ -1,0 +1,171 @@
+package aircloak;
+
+// TableDataPB represents arbitrary data from a single table.
+// It is used to transfer user's data from the database to the sandbox.
+//
+// The table data consists of the list of column names and the rows holding the data.
+// Each row is an array of data values of type Field.
+//
+//  type Field = number as double | string as string | boolean as bool
+//
+// The first defined type field determines the type of the Field. So if a number is defined, the Field
+// message represents a number regardless of the contents of the string field.
+//
+// Example: the following message
+//
+//  TableDataPB {
+//    columns : [ "name", "age" ],
+//    rows : [
+//      Row {
+//        fields: [
+//          Field { string: "fred" },
+//          Field { number: 10.2 }
+//        ]
+//      },
+//      Row {
+//        fields: [
+//          Field { string: "hans" },
+//          Field { number: 2.3 }
+//        ]
+//      }
+//    ]
+//  }
+//
+// represents the following two rows from a table with the columns "name" and "age":
+//
+//     name |  age
+//    ------+------
+//     fred | 10.2
+//     hans |  2.3
+message TableDataPB {
+  repeated string columns = 1;
+
+  message Field {
+    optional double number = 1;
+    optional string string = 2;
+    optional bool boolean = 3;
+  }
+  message Row {
+    repeated Field fields = 1;
+  }
+  repeated Row rows = 2;
+  required bool complete = 3;
+}
+
+// InsertDataPB represents arbitrary data from a single row in a table.
+// It is used to transfer user's data from the sandbox into the database.
+//
+// The table data consists of the target table name and the rows holding the data values to be inserted.
+//
+//  type Field = column_name as string, number as double | string as string | boolean as bool
+//
+// The first defined type field determines the type of the Field. So if a number is defined, the Field
+// message represents a number regardless of the contents of the string field.
+//
+// Example: the following message
+//
+//  InsertDataPB {
+//    table : "foo",
+//    rows : [
+//      Row {
+//        fields: [
+//          Field { name : "name", string : "fred" },
+//          Field { name : "age", number : 10.2 }
+//        ]
+//      },
+//      Row {
+//        fields: [
+//          Field { name : "name", string : "hans" },
+//          Field { name : "age", number : 2.3 }
+//        ]
+//      }
+//    ]
+//  }
+//
+// represents the following two rows to be inserted into table "foo":
+//
+//     name |  age
+//    ------+------
+//     fred | 10.2
+//     hans |  2.3
+message InsertDataPB {
+  required string table = 1;
+
+  message Field {
+    required string name = 1;
+    optional double number = 2;
+    optional string string = 3;
+    optional bool boolean = 4;
+  }
+  message Row {
+    repeated Field fields = 1;
+  }
+  repeated Row rows = 2;
+}
+
+// Messages from cloak-core to the sandbox.
+message JobInputMessagePB {
+  optional JobRequestPB job_request = 1;
+  optional DataPB data = 2;
+  optional TableDataPB table_data = 3;
+}
+
+// An execution request containing the code and the data we got from the database.
+message JobRequestPB {
+  required bytes code = 1;
+  repeated LibraryDataPB libraries = 2;
+  optional string accumulator = 3;
+  optional uint64 task_time = 4;
+}
+
+message LibraryDataPB {
+  required string name = 1;
+  required bytes code = 2;
+}
+
+// Messages from sandbox to cloak-core.
+message JobOutputMessagePB {
+  optional JobResponsePB job_response = 1;
+  optional FunctionCallPB function_call = 2;
+  optional GetNextBatchPB get_next_batch = 3;
+}
+
+// Messages from the sandbox to cloak-core have this form.
+message JobResponsePB {
+  enum Status {
+    OK = 0;
+    ERROR = 1;
+  }
+  required Status status = 1;
+  optional string error = 2;
+
+  message Property {
+    required string label = 1;
+    optional string value = 2;
+  }
+  repeated Property properties = 3;
+
+  repeated InsertDataPB table_insert_actions = 4;
+  optional string accumulator = 5;
+}
+
+message FunctionCallPB {
+  required string name = 1;
+  required DataPBArray args = 2;
+}
+
+message GetNextBatchPB {
+  required string table_name = 1;
+  required bool reset_stream = 2;
+}
+
+message DataPB {
+  optional string string_val = 1;
+  optional bool bool_val = 2;
+  optional double double_val = 3;
+  optional DataPBArray arr_val = 4;
+}
+
+message DataPBArray {
+  repeated DataPB elements = 1;
+}

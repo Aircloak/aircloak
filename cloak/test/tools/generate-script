@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+if [ $# -ne 1 ]
+then
+  echo "usage: `basename $0` <test-name>"
+  exit 1
+fi
+
+base="`dirname $0`/../.."
+test="$base/test"
+testgen="$base/test-gen"
+tools="`dirname $0`"
+
+cp $testgen/prefix $testgen/$1 || exit 1
+echo "test_name() -> \"$1\"." >> $testgen/$1 || exit 1
+echo >> $testgen/$1 || exit 1
+cat "$tools/test-common" >> $testgen/$1 || exit 1
+echo >> $testgen/$1 || exit 1
+cat $test/$1 >> $testgen/$1 || exit 1
+
+chmod u+x $testgen/$1 || exit 1

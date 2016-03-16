@@ -1,0 +1,10 @@
+run_test() ->
+  try
+    true = proper:quickcheck(full_batch_test:prop_batch(100, 4, 3, 3, 10), [{numtests, 3}, {max_size, 42}])
+  catch _:Error ->
+    io:format(standard_error, "Error; ~p~n", [Error]),
+    io:format(standard_error, "Stack trace; ~p~n", [erlang:get_stacktrace()]),
+    throw(Error)
+  after
+    proper_cloak_instance:stop_instance()
+  end.

@@ -1,0 +1,12 @@
+# WARNING:
+# We require protobuf version 2.4.1.
+# The version of protobuf-c that is available in homebrew requires a protobuf version of 2.6 or newer,
+# and there is no older version of protobuf-c on tap.
+# Please install protobuf-c version 1.0.0 from source: https://github.com/protobuf-c/protobuf-c
+
+CC=clang
+# Potentially you want only lua.5.1, rather than lua
+LUALIB=lua
+LUAINCPATH=/usr/local/include
+CPPFLAGS=-I /usr/local/include
+LDFLAGS=-L /usr/local/lib
