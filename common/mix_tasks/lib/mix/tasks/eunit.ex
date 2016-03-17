@@ -4,6 +4,7 @@ defmodule Mix.Tasks.Eunit do
   Mix task for running EUnit tests.
 
   You can start the task from the command line with `mix eunit`
+  To test a single module, you can run `mix eunit --module target_module`
   """
   use Mix.Task
 
@@ -29,7 +30,13 @@ defmodule Mix.Tasks.Eunit do
     Mix.Task.run("loadpaths", args)
     Mix.Task.run("app.start", args)
 
+    {options, _, _} = OptionParser.parse(args)
+    test_target = case options[:module] do
+      nil -> {:application, project_config[:app]}
+      module -> {:module, String.to_atom(module)}
+    end
+
     Application.ensure_all_started(:eunit)
-    :eunit.test({:application, project_config[:app]}, project_config[:eunit_options] || [])
+    :eunit.test(test_target, project_config[:eunit_options] || [])
   end
 end
