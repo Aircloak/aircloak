@@ -2,6 +2,13 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
+# Redirect lager to Elixir's logger
+config :lager,
+  error_logger_redirect: false,
+  error_logger_whitelist: [Logger.ErrorHandler],
+  crash_log: false,
+  handlers: [{LagerLogger, []}]
+
 config :kernel,
   # The portnumber the cloak erlang vm listens
   # to for communication from other nodes.

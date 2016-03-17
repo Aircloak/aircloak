@@ -255,10 +255,13 @@ global_service_test_() ->
       },
       {"Process must register",
         fun() ->
+          'Elixir.Logger':remove_backend(console),
           ?assertError(
                 {global_service_start, not_registered},
                 get_or_create(key4, [node()], {?MODULE, dont_register_test_service, []})
-              )
+              ),
+          timer:sleep(100),
+          'Elixir.Logger':add_backend(console, [{flush, true}])
         end
       },
       {"Resolve kills both processes",

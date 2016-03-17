@@ -24,7 +24,7 @@ defmodule Cloak.Mixfile do
 
   def application do
     [
-      applications: [:logger, :lager, :webmachine, :ej, :gproc, :pgsql],
+      applications: [:logger, :lager_logger, :lager, :webmachine, :ej, :gproc, :pgsql],
       mod: {Cloak, []}
     ]
   end
@@ -33,6 +33,7 @@ defmodule Cloak.Mixfile do
     [
       {:aircloak_mix_tasks, path: "../common/mix_tasks"},
       {:lager, "~> 3.0"},
+      {:lager_logger, "~> 1.0"},
       {:webmachine, github: "basho/webmachine", tag: "1.10.6"},
       {:ej, github: "seth/ej"},
       {:gproc, "~> 0.5.0"},

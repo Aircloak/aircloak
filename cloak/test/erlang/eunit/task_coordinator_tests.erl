@@ -46,6 +46,7 @@ task_test_() ->
       {QueuedWorker, JobRunnerSup, ResultSenderSup}
     end,
     fun({QueuedWorker, JobRunnerSup, ResultSenderSup}) ->
+      'Elixir.Logger':remove_backend(console),
       error_logger:tty(false),
       unlink(QueuedWorker),
       exit(QueuedWorker, kill),
@@ -55,7 +56,8 @@ task_test_() ->
       exit(ResultSenderSup, kill),
       timer:sleep(200),
       db_test:teardown(),
-      error_logger:tty(true)
+      error_logger:tty(true),
+      'Elixir.Logger':add_backend(console, [{flush, true}])
     end,
     [
       {"no rows", fun() ->
