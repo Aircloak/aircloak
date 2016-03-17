@@ -12,3 +12,5 @@ config :cloak, :cloak_db,
     port: 5432
   ],
   idle_timeout: 100
+
+config :cloak, :alarm_handler, install: false

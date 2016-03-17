@@ -2,6 +2,9 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
+# turn off sasl error logger
+config :sasl, :sasl_error_logger, false
+
 # Redirect lager to Elixir's logger
 config :lager,
   error_logger_redirect: false,
@@ -125,6 +128,8 @@ config :cloak, :sandbox,
 
   # Number of ms a job is allowed to execute in the sandbox before being terminated
   max_time: 120000 # 2 minutes
+
+config :cloak, :alarm_handler, install: true
 
 
 import_config "#{Mix.env}.exs"

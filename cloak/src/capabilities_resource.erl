@@ -60,8 +60,6 @@ capabilities() ->
 -include_lib("eunit/include/eunit.hrl").
 
 capabilities_test() ->
-  Pid = server_tester:start(),
-  ?assertMatch({_, {{_, 200, _}, _, _}}, server_tester:get("capabilities")),
-  server_tester:stop(Pid).
+  ?assertMatch({_, {{_, 200, _}, _, _}}, server_tester:get("capabilities")).
 
 -endif.

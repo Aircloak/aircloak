@@ -26,8 +26,6 @@
 -ifdef(TEST).
 
 -export([
-  start/0,
-  stop/1,
   get/1,
   get/2,
   get/3,
@@ -50,22 +48,6 @@
 
 -define(TEST_SERVER_PORT, 18098).
 -define(TEST_SERVER_IP, "127.0.0.1").
-
-start() ->
-  with_tty_off(fun() -> {ok, _} = application:ensure_all_started(webmachine) end),
-  WebConfig = [
-    {name, test_server},
-    {ip, "127.0.0.1"},
-    {port, ?TEST_SERVER_PORT},
-    {dispatch, []}
-  ],
-  {ok, Pid} = webmachine_mochiweb:start(WebConfig),
-  cloak_app:add_webmachine_routes(),
-  Pid.
-
-stop(Pid) ->
-  unlink(Pid),
-  exit(Pid, kill).
 
 get(Path) -> get(Path, []).
 get(Path, Headers) -> get(Path, Headers, []).
@@ -100,18 +82,7 @@ req(get, Path, Headers, _Body, _ContentType) -> {url(Path), Headers};
 req(_, Path, Headers, Body, ContentType) -> {url(Path), Headers, ContentType, iolist_to_binary(Body)}.
 
 url(Path) ->
-  lists:concat(["http://", ?TEST_SERVER_IP, ":", integer_to_list(?TEST_SERVER_PORT), "/", Path]).
-
-with_tty_off(Fun) ->
-  Tty = case [Handler || Handler <- gen_event:which_handlers(error_logger), Handler =:= error_logger_tty_h] of
-    [] -> false;
-    _ -> true
-  end,
-  error_logger:tty(false),
-  try
-    Fun()
-  after
-    error_logger:tty(Tty)
-  end.
+  lists:concat(["http://", cloak_conf:get_val(api, address), ":",
+      integer_to_list(cloak_conf:get_val(api, port)), "/", Path]).
 
 -endif.

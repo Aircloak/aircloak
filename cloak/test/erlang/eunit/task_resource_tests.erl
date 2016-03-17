@@ -13,11 +13,9 @@ run_task_test_() ->
   {setup,
     fun() ->
       meck:new(progress_handler, [passthrough]),
-      meck:expect(progress_handler, register_task, 2, fun(Task, undefined) -> Task end),
-      server_tester:start()
+      meck:expect(progress_handler, register_task, 2, fun(Task, undefined) -> Task end)
     end,
     fun(Pid) ->
-      server_tester:stop(Pid),
       meck:unload()
     end,
     [

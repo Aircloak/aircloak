@@ -24,7 +24,7 @@ defmodule Cloak.Mixfile do
 
   def application do
     [
-      applications: [:logger, :lager_logger, :lager, :webmachine, :ej, :gproc, :pgsql],
+      applications: [:logger, :lager_logger, :lager, :webmachine, :ej, :gproc, :pgsql, :os_mon],
       mod: {Cloak, []}
     ]
   end
