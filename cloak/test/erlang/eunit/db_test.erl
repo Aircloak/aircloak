@@ -32,8 +32,6 @@ conn_params() ->
 %% @doc Sets up a database dependent test by creating required processes and mocks.
 setup() ->
   error_logger:tty(false),
-  gproc:start_link(),
-  application:ensure_all_started(pgsql),
   cloak_db_pool_sup:start_link(),
   cloak_db_def:start_link(),
   meck:new(cloak_db, [passthrough]),
@@ -48,7 +46,6 @@ teardown() ->
   exit(whereis(cloak_db_def), kill),
   unlink(whereis(cloak_db_pool_sup)),
   exit(whereis(cloak_db_pool_sup), kill),
-  application:stop(pgsql),
   meck:unload(),
   error_logger:tty(true).
 
