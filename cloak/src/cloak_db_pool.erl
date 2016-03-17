@@ -217,17 +217,8 @@ normalize_conn_params(Params) -> Params.
 
 pool_test_() ->
   {setup,
-    fun() ->
-      gproc:start_link(),
-      cloak_db_pool_sup:start_link()
-    end,
-    fun(_) ->
-      'Elixir.Logger':remove_backend(console),
-      unlink(whereis(cloak_db_pool_sup)),
-      exit(whereis(cloak_db_pool_sup), kill),
-      timer:sleep(100),
-      'Elixir.Logger':add_backend(console, [{flush, true}])
-    end,
+    fun() -> ok end,
+    fun(_) -> ok end,
     [
       {"basic acquire and release",
         fun() ->
@@ -276,6 +267,7 @@ pool_test_() ->
           PoolPid = pool(),
           Me = self(),
           'Elixir.Logger':remove_backend(console),
+          error_logger:tty(false),
           %% A client which takes the connection, then exits with some reason.
           Pid = spawn(fun() ->
                 receive go_on -> ok end,
@@ -294,6 +286,7 @@ pool_test_() ->
           ?assertReceived({'DOWN', MRefConn, process, ConnectionPid, shutdown}, 1000),
           %% Subsequent acquire should return a different connection.
           ?assertNotEqual({ok, Conn}, acquire_test_connection()),
+          error_logger:tty(true),
           'Elixir.Logger':add_backend(console, [{flush, true}]),
           %% Verify that the pool is still alive
           ?assertEqual(PoolPid, pool()),

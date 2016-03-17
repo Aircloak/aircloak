@@ -238,11 +238,8 @@ global_service_test_() ->
   StartMfa = {?MODULE, start_test_service, [undefined]},
   {
     setup,
-    fun() -> global_service_sup:start_link() end,
-    fun({ok, GlobalServiceSupPid}) ->
-      unlink(GlobalServiceSupPid),
-      exit(GlobalServiceSupPid, kill)
-    end,
+    fun() -> ok end,
+    fun(_) -> ok end,
     [
       {"Basic discovery behavior",
         fun() ->

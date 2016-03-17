@@ -14,7 +14,6 @@
 -export([
   conn_params/0,
   setup/0,
-  teardown/0,
   create_analyst_schema/1,
   create_analyst_table/3,
   add_users_data/3
@@ -31,26 +30,7 @@ conn_params() ->
 
 %% @doc Sets up a database dependent test by creating required processes and mocks.
 setup() ->
-  error_logger:tty(false),
-  'Elixir.Logger':remove_backend(console),
-  cloak_db_pool_sup:start_link(),
-  cloak_db_def:start_link(),
-  meck:new(cloak_db, [passthrough]),
-  meck:expect(cloak_db, call, 2, fun(Type, Fun) -> cloak_db:call(Type, conn_params(), Fun) end),
-  clean_db(),
-  error_logger:tty(true),
-  'Elixir.Logger':add_backend(console, [{flush, true}]).
-
-%% @doc Tears down a database dependent test.
-teardown() ->
-  error_logger:tty(false),
-  'Elixir.Logger':remove_backend(console),
-  unlink(whereis(cloak_db_def)),
-  exit(whereis(cloak_db_def), kill),
-  unlink(whereis(cloak_db_pool_sup)),
-  exit(whereis(cloak_db_pool_sup), kill),
-  meck:unload(),
-  'Elixir.Logger':add_backend(console, [{flush, true}]).
+  clean_db().
 
 %% @doc Creates the analyst schema.
 create_analyst_schema(Analyst) ->

@@ -498,18 +498,8 @@ convert_insert_actions_test() ->
 
 run_sandbox_test_() ->
 {setup,
-  fun() ->
-    gproc:start_link(),
-    job_runner:start_link(1)
-  end,
-  fun({ok, JobRunnerPid}) ->
-    meck:unload(),
-    error_logger:tty(false),
-    unlink(JobRunnerPid),
-    exit(JobRunnerPid, kill),
-    error_logger:tty(true),
-    ok
-  end,
+  fun() -> ok end,
+  fun(_) -> ok end,
   [
     {"job runs", fun() ->
       {ok, ?job_response(Properties, _)} = ?run_sandbox_test("

@@ -381,7 +381,7 @@ test_data_streaming() ->
 integration_test_() ->
   {setup,
     fun() -> db_test:setup() end,
-    fun(_) -> db_test:teardown() end,
+    fun(_) -> ok end,
     [
       fun test_data_mapping/0,
       fun test_data_streaming/0

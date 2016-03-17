@@ -34,31 +34,15 @@ task_test_() ->
   {setup,
     fun() ->
       db_test:setup(),
-      {ok, QueuedWorker} = queued_worker:start_link(task_coordinator, task_coordinator, 10),
-      {ok, JobRunnerSup} = job_runner_sup:start_link(),
-      {ok, ResultSenderSup} = result_sender_sup:start_link(),
       db_test:create_analyst_schema(1),
       db_test:create_analyst_table(1, "user_heights",
           "height integer, ac_user_id varchar(40), ac_created_at timestamp"),
       meck:new(cloak_distributions),
       meck:expect(cloak_distributions, gauss, fun(_Sigma, N) -> round(N) end),
       meck:expect(cloak_distributions, gauss_s, fun(_Sigma, N, _Seed) -> round(N) end),
-      {QueuedWorker, JobRunnerSup, ResultSenderSup}
+      ok
     end,
-    fun({QueuedWorker, JobRunnerSup, ResultSenderSup}) ->
-      'Elixir.Logger':remove_backend(console),
-      error_logger:tty(false),
-      unlink(QueuedWorker),
-      exit(QueuedWorker, kill),
-      unlink(JobRunnerSup),
-      exit(JobRunnerSup, kill),
-      unlink(ResultSenderSup),
-      exit(ResultSenderSup, kill),
-      timer:sleep(200),
-      db_test:teardown(),
-      error_logger:tty(true),
-      'Elixir.Logger':add_backend(console, [{flush, true}])
-    end,
+    fun(_) -> meck:unload() end,
     [
       {"no rows", fun() ->
         ?verifyAsync(
