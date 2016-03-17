@@ -12,6 +12,13 @@ config :lager,
   crash_log: false,
   handlers: [{LagerLogger, []}]
 
+config :logger,
+  level: :info,
+  console: [
+    format: "$time $metadata[$level] $message\n",
+    metadata: [:request_id]
+  ]
+
 config :kernel,
   # The portnumber the cloak erlang vm listens
   # to for communication from other nodes.

@@ -14,21 +14,26 @@ defmodule Mix.Tasks.Compile.Protobuf.Erlang do
 
   @doc false
   def run(_args) do
-    Logger.configure(level: :warn)
-    config = Mix.Project.config()
+    old_logger_level = Logger.level
+    try do
+      Logger.configure(level: :warn)
+      config = Mix.Project.config()
 
-    for proto_src <- Path.wildcard("proto/**/*.proto"),
-        compile_path = Mix.Project.compile_path(config),
-        stale?(proto_src, compile_path)
-    do
-      :protobuffs_compile.scan_file(to_char_list(proto_src),
-            output_include_dir: 'include',
-            output_ebin_dir: to_char_list(compile_path)
-          )
-      Mix.shell.info("Compiled #{proto_src}")
+      for proto_src <- Path.wildcard("proto/**/*.proto"),
+          compile_path = Mix.Project.compile_path(config),
+          stale?(proto_src, compile_path)
+      do
+        :protobuffs_compile.scan_file(to_char_list(proto_src),
+              output_include_dir: 'include',
+              output_ebin_dir: to_char_list(compile_path)
+            )
+        Mix.shell.info("Compiled #{proto_src}")
+      end
+
+      :ok
+    after
+      Logger.configure(level: old_logger_level)
     end
-
-    :ok
   end
 
   defp stale?(proto_src, ebin_folder) do
