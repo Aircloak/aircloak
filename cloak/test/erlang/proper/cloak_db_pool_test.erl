@@ -1,10 +1,11 @@
 %% @doc Testing the {@link anonymizer}.
 %% @end
 -module(cloak_db_pool_test).
+-proper(simple).
 
 -include("deps/proper/include/proper.hrl").
 -include("src/cloak.hrl").
--include("test/prop_tracer.hrl").
+-include("prop_tracer.hrl").
 
 %% Proper callbacks
 -export([
@@ -47,21 +48,7 @@ proper_spec(Commands, CommandRunner) ->
         Commands,
         ?TRACEFAIL(
               Commands,
-              begin
-                {ok, PoolSupervisorPid} = cloak_db_pool_sup:start_link(),
-                try
-                  CommandRunner(?MODULE, Cmds)
-                after
-                  MRef = monitor(process, PoolSupervisorPid),
-                  unlink(PoolSupervisorPid),
-                  exit(PoolSupervisorPid, shutdown),
-                  receive
-                    {'DOWN', MRef, process, _, _} -> ok
-                  after 1000 ->
-                    exit(PoolSupervisorPid, kill)
-                  end
-                end
-              end,
+              CommandRunner(?MODULE, Cmds),
               Result =:= ok
             )
       ).

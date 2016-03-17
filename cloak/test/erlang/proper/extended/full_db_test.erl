@@ -4,8 +4,8 @@
 -module(full_db_test).
 
 -include("deps/proper/include/proper.hrl").
--include("test/full_test.hrl").
--include("test/prop_tracer.hrl").
+-include("full_test.hrl").
+-include("../prop_tracer.hrl").
 
 %% API
 -export([

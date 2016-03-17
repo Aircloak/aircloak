@@ -1,6 +1,7 @@
 %% @doc Testing the {@link anonymizer}.
 %% @end
 -module(anonymizer_test).
+-proper(simple).
 
 -include("deps/proper/include/proper.hrl").
 -include("src/cloak.hrl").
@@ -14,7 +15,6 @@
 %% ---------------------------------------------------------------------
 
 prop_anonymizer() ->
-  ok = application:load(cloak),
   random:seed(),
   ?FORALL(InputList0, g_bucket_reports(),
       ?TRAPEXIT(

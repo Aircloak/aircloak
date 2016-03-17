@@ -1,6 +1,7 @@
 %% @doc Testing the {@link queued_worker} queued computation implementation.
 -module(queued_worker_test).
 -behavour(queued_worker).
+-proper(extended).
 
 -include("deps/proper/include/proper.hrl").
 

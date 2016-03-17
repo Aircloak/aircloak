@@ -22,7 +22,7 @@
 
 -include("deps/proper/include/proper.hrl").
 -include("src/cloak.hrl").
--include("test/prop_tracer.hrl").
+-include("../prop_tracer.hrl").
 
 %% API
 -export([

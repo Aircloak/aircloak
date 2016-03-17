@@ -13,7 +13,7 @@
 
 -include("deps/proper/include/proper.hrl").
 -include("src/user_data.hrl").
--include("test/full_test.hrl").
+-include("full_test.hrl").
 
 %% API
 -export([

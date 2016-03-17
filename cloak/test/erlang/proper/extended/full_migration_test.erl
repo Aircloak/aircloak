@@ -4,8 +4,8 @@
 -module(full_migration_test).
 
 -include("deps/proper/include/proper.hrl").
--include("test/full_test.hrl").
--include("deps/erlang_common/include/debug_helpers.hrl").
+-include("full_test.hrl").
+-include("debug_helpers.hrl").
 
 %% API
 -export([
