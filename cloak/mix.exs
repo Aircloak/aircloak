@@ -9,7 +9,7 @@ defmodule Cloak.Mixfile do
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       deps: deps,
-      compilers: [:"protobuf.erlang", :yecc, :leex, :erlang, :elixir, :app],
+      compilers: [:"protobuf.erlang", :yecc, :leex, :erlang, :elixir, :sandbox, :app],
       erlc_options: erlc_options(Mix.env),
       erlc_paths: erlc_paths(Mix.env),
       preferred_cli_env: [
