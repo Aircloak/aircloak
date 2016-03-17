@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+### BEGIN INIT INFO
+# Provides: graphite_web
+# Required-Start:
+# Required-Stop:
+# Should-Start:
+# Should-Stop:
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Graphite web interface
+# Description: Graphite web interface
+### END INIT INFO
+
+prog=graphite_web
+RETVAL=0
+
+start() {
+  echo -n "Starting graphite_web: "
+
+  su graphite_runner -c '/usr/bin/python /opt/graphite/webapp/graphite/manage.py runfcgi host=127.0.0.1 port=8080'
+  RETVAL=$?
+
+  return $RETVAL
+}
+
+stop() {
+  echo -n "Stopping graphite_web: "
+
+  kill -2 `ps aux | grep graphite | grep manage.py | grep -v grep | awk '{print $2}'` > /dev/null 2>&1
+  RETVAL=$?
+
+  return $RETVAL
+}
+
+# See how we were called.
+case "$1" in
+  start)
+  start
+  ;;
+  stop)
+  stop
+  ;;
+  restart)
+  stop
+  start
+  ;;
+  *)
+  echo "Usage: graphite_web {start|stop|restart}"
+  exit 1
+esac
+
+exit $RETVAL

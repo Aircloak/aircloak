@@ -10,6 +10,7 @@ defmodule Cloak do
     case Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor) do
       {:ok, pid} ->
         add_webmachine_routes()
+        :cloak_metrics_adapter.start_metrics_server()
         {:ok, pid}
       error -> error
     end
@@ -56,6 +57,7 @@ defmodule Cloak do
       import Supervisor.Spec, warn: false
 
       [
+        supervisor(:cloak_metrics_sup, []),
         worker(:resource_monitor, []),
         worker(:cron_manager, [])
       ]

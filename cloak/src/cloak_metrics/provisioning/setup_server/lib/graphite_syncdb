@@ -1,0 +1,31 @@
+#!/usr/bin/env expect
+
+# This is an expect script that provides some defaults for Django superuser.
+# Superuser credentials can be used to access admin page located on
+# http://graphite_server/admin/
+
+set timeout -1
+spawn python /opt/graphite/webapp/graphite/manage.py syncdb
+set superuser_password [lindex $argv 0]
+
+expect "Would you like to create one now" {
+  send "yes\r"
+}
+
+expect "Username *:" {
+  send "root\r"
+}
+
+expect "E-mail address:" {
+  send "dummy@noserver.xyz\r"
+}
+
+expect "Password:" {
+  send "root\r"
+}
+
+expect "Password *:" {
+  send "root\r"
+}
+
+expect "Superuser created successfully"

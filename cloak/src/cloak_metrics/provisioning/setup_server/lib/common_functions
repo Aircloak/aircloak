@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+function copy_asset {
+  cp $(dirname $0)/assets/$1 $2
+
+  case "$3" in
+    +x)
+      chmod +x $2/$(basename $1)
+      ;;
+    *)
+      ;;
+  esac
+}
+
+function install_init_script {
+  copy_asset init_scripts/$1 /etc/init.d/ +x
+  update-rc.d $(basename $1) defaults
+}
