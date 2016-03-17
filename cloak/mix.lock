@@ -1,4 +1,5 @@
-%{"ej": {:git, "https://github.com/seth/ej.git", "132a9a3c0662a2377eaf7ebee694a496a0957160", []},
+%{"dialyze": {:hex, :dialyze, "0.2.1"},
+  "ej": {:git, "https://github.com/seth/ej.git", "132a9a3c0662a2377eaf7ebee694a496a0957160", []},
   "eunit_formatters": {:hex, :eunit_formatters, "0.3.1"},
   "goldrush": {:hex, :goldrush, "0.1.7"},
   "gproc": {:hex, :gproc, "0.5.0"},

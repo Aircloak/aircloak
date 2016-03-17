@@ -11,6 +11,8 @@
 
 -include("cloak.hrl").
 
+%% Temporary until we migrate metrics.
+-dialyzer(no_missing_calls).
 
 %% -------------------------------------------------------------------
 %% API functions

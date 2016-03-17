@@ -13,7 +13,7 @@ defmodule Cloak.Mixfile do
       erlc_options: erlc_options(Mix.env),
       erlc_paths: erlc_paths(Mix.env),
       preferred_cli_env: [
-        eunit: :test, proper: :test, "test.standard": :test
+        eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev
       ],
       eunit_options: [
         :no_tty,
@@ -40,7 +40,8 @@ defmodule Cloak.Mixfile do
       {:gproc, "~> 0.5.0"},
       {:pgsql, github: "semiocast/pgsql"},
       {:eunit_formatters, "~> 0.3.0", only: :test},
-      {:proper, github: "matthiaskr/proper", only: :test, ref: "164663a7de18b0ce8d037b617afed0f97cac3de9"}
+      {:proper, github: "matthiaskr/proper", only: :test, ref: "164663a7de18b0ce8d037b617afed0f97cac3de9"},
+      {:dialyze, "~> 0.2.1", only: :dev}
     ]
   end
 
