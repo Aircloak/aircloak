@@ -81,7 +81,7 @@ check_delete_result(_) ->
 
 handle_event_in_development(Event) ->
   % Somewhat hacky way to log through lager's default error logger handler.
-  {ok, LagerState} = error_logger_lager_h:init([undefined]),
+  {ok, LagerState} = error_logger_lager_h:init([undefined, undefined]),
   error_logger_lager_h:handle_event(Event, LagerState).
 
 handle_event_in_production({error, _Gleader, {_Pid, _Format, _Data}}) ->

@@ -37,12 +37,7 @@ config :webmachine,
   error_handler: :cloak_webmachine_error_handler,
   server_name: 'Cloak API'
 
-config :cloak, :api,
-  # The HTTP API provided by cloak-core
-  # should bind to
-  address: '127.0.0.1',
-  # on port
-  port: 8098
+config :cloak, :api, port: 8098
 
 config :cloak, :air,
   # The URL that results from asynchronous queries are sent to
@@ -137,6 +132,8 @@ config :cloak, :sandbox,
   max_time: 120000 # 2 minutes
 
 config :cloak, :alarm_handler, install: true
+
+config :cloak, :in_development, false
 
 
 import_config "#{Mix.env}.exs"

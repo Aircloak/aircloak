@@ -5,6 +5,7 @@ defmodule Cloak do
   # for more information on OTP Applications
   def start(_type, _args) do
     :cluster_cron.init()
+    :ok = :cloak_error_logger_handler.start()
     :ok = :cloak_alarm_handler.install()
 
     case Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor) do

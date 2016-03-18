@@ -14,3 +14,5 @@ config :cloak, :cloak_db,
   idle_timeout: 100
 
 config :cloak, :alarm_handler, install: false
+
+config :cloak, :api, address: '0.0.0.0'
