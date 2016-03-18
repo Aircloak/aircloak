@@ -1,6 +1,6 @@
 SHELL=/bin/bash -o pipefail
 
-.PHONY: sandbox deps doc proper proper-std proper-extended test clean all compile regenerate_db dialyze lint
+.PHONY: sandbox deps doc proper proper-std proper-extended test clean all compile regenerate_db dialyze lint release
 
 all: deps compile
 
@@ -50,3 +50,7 @@ dialyze:
 lint:
 	MIX_ENV=dev mix lint
 	MIX_ENV=test mix lint
+
+release:
+	rm -rf rel/cloak
+	MIX_ENV=prod mix do compile, release --no-confirm-missing

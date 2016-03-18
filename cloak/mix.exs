@@ -40,6 +40,7 @@ defmodule Cloak.Mixfile do
       {:gproc, "~> 0.5.0"},
       {:pgsql, github: "semiocast/pgsql"},
       {:erlcron, github: "erlware/erlcron"},
+      {:exrm, "~> 1.0"},
       {:meck, github: "eproxus/meck", tag: "0.8.2", override: true},
       {:eunit_formatters, "~> 0.3.0", only: :test},
       {:proper, github: "matthiaskr/proper", only: :test, ref: "164663a7de18b0ce8d037b617afed0f97cac3de9"},

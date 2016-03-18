@@ -51,10 +51,16 @@ defmodule Mix.Tasks.Compile.Protobuf.Erlang do
 
   # Inserts the no_match dialyzer attribute to the generated beam to suppress dialyzer warnings
   defp add_dialyze_attribute(beam, compile_flags) do
-    {:ok, {_, [{:abstract_code, {_, forms}}]}} = :beam_lib.chunks(to_char_list(beam), [:abstract_code])
-    new_forms = insert_dialyzer_attr(forms)
-    {:ok, _, bytes, _warnings} = :protobuffs_file.compile_forms(new_forms, compile_flags)
-    :protobuffs_file.write_file(to_char_list(beam), bytes)
+    case :beam_lib.chunks(to_char_list(beam), [:abstract_code]) do
+      {:ok, {_, [abstract_code: :no_abstract_code]}} ->
+        # No abstract code, so we can't do anything. Luckily dialyzer can't also run on such beam
+        # so we're safe
+        :ok
+      {:ok, {_, [abstract_code: {_, forms}]}} ->
+        new_forms = insert_dialyzer_attr(forms)
+        {:ok, _, bytes, _warnings} = :protobuffs_file.compile_forms(new_forms, compile_flags)
+        :protobuffs_file.write_file(to_char_list(beam), bytes)
+    end
   end
 
   defp insert_dialyzer_attr([]), do: []
