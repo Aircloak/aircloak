@@ -25,7 +25,7 @@ defmodule Cloak.Mixfile do
 
   def application do
     [
-      applications: [:logger, :lager_logger, :lager, :webmachine, :ej, :gproc, :pgsql, :os_mon],
+      applications: applications(Mix.env),
       mod: {Cloak, []}
     ]
   end
@@ -43,6 +43,14 @@ defmodule Cloak.Mixfile do
       {:proper, github: "matthiaskr/proper", only: :test, ref: "164663a7de18b0ce8d037b617afed0f97cac3de9"},
       {:dialyze, "~> 0.2.1", only: :dev}
     ]
+  end
+
+  defp applications(:test), do: common_applications()
+  defp applications(:dev), do: [:os_mon | common_applications()]
+  defp applications(:prod), do: [:os_mon | common_applications()]
+
+  defp common_applications do
+    [:logger, :lager_logger, :lager, :webmachine, :ej, :gproc, :pgsql]
   end
 
   defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]
