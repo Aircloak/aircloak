@@ -40,6 +40,11 @@ defmodule Mix.Tasks.Eunit do
     end
 
     Application.ensure_all_started(:eunit)
-    :eunit.test(test_target, project_config[:eunit_options] || [])
+    eunit_result = :eunit.test(test_target, project_config[:eunit_options] || [])
+
+    # Exit hook which exits with non-zero status on errors
+    System.at_exit(fn(_) -> if eunit_result == :error, do: exit({:shutdown, 1}) end)
+
+    :ok
   end
 end

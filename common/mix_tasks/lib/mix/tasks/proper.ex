@@ -39,12 +39,13 @@ defmodule Mix.Tasks.Proper do
       module -> [:"#{module}_test"]
     end
 
-    for module <- modules do
-      case :proper.module(module) do
-        [] -> :ok
-        _ -> Mix.raise("PropEr error")
-      end
-    end
+    errors =
+      for module <- modules,
+          proper_result = :proper.module(module),
+          proper_result != [],
+          do: module
+
+    System.at_exit(fn(_) -> if errors != [], do: exit({:shutdown, 1}) end)
 
     :ok
   end
