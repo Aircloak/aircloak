@@ -1,6 +1,6 @@
 SHELL=/bin/bash -o pipefail
 
-.PHONY: sandbox deps doc proper proper-std proper-extended test clean all compile regenerate_db dialyze lint release
+.PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile regenerate_db dialyze lint release
 
 all: deps compile
 
@@ -26,12 +26,8 @@ regenerate_db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
 	./regenerate_db.sh
 
-# Notice that the rebar-edoc-plugin fails if not both the doc or ebin
-# directories are present
-doc:
-	mkdir -p doc
-	mkdir -p ebin
-	./rebar skip_deps=true doc
+docs:
+	mix docs.all
 
 # a proper run may take some time...
 # Note: proper-full is temporarily removed because of big changes in the code.

@@ -45,7 +45,9 @@ defmodule Cloak.Mixfile do
       {:eunit_formatters, "~> 0.3.0", only: :test},
       {:proper, github: "matthiaskr/proper", only: :test, ref: "164663a7de18b0ce8d037b617afed0f97cac3de9"},
       {:dialyze, "~> 0.2.1", only: :dev},
-      {:credo, "~> 0.3.0", only: [:dev, :test]}
+      {:credo, "~> 0.3.0", only: [:dev, :test]},
+      {:ex_doc, "~> 0.11", only: :dev},
+      {:earmark, "~> 0.2", only: :dev}
     ]
   end
 
