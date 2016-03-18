@@ -17,6 +17,9 @@ defmodule Mix.Tasks.Eunit do
   def run(args) do
     project_config = Mix.Project.config
 
+    Mix.Task.reenable("compile")
+    Mix.Task.run("compile")
+
     # It seems that modules are already loaded at this point, so eunit doesn't pick up new versions if the
     # code is changed. To fix this, we're reloading all modules of this app.
     for {module, path} <- :code.all_loaded,
