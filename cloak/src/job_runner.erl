@@ -186,7 +186,7 @@ code_change(_, _, _) ->
 %% -------------------------------------------------------------------
 
 open_sandbox_port() ->
-  PortProgram = cloak_conf:get_val(sandbox, binary),
+  PortProgram = filename:join(code:priv_dir(cloak), "sandbox"),
   open_port({spawn_executable, PortProgram}, [{packet, 4}, use_stdio, binary, exit_status]).
 
 kill_sandbox_port(Port) ->

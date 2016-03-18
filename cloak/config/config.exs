@@ -125,9 +125,6 @@ config :cloak, :cloak_db,
   idle_timeout: 60000 # 1 minute
 
 config :cloak, :sandbox,
-  # The sandbox executable executing tasks in the lua
-  binary: 'priv/sandbox',
-
   # Number of ms a job is allowed to execute in the sandbox before being terminated
   max_time: 120000 # 2 minutes
 
