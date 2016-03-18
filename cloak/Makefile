@@ -1,6 +1,6 @@
 SHELL=/bin/bash -o pipefail
 
-.PHONY: sandbox deps doc proper proper-std proper-extended test clean all compile regenerate_db dialyze
+.PHONY: sandbox deps doc proper proper-std proper-extended test clean all compile regenerate_db dialyze lint
 
 all: deps compile
 
@@ -46,3 +46,7 @@ proper-extended:
 
 dialyze:
 	mix dialyze
+
+lint:
+	MIX_ENV=dev mix lint
+	MIX_ENV=test mix lint

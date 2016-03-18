@@ -43,7 +43,8 @@ defmodule Cloak.Mixfile do
       {:meck, github: "eproxus/meck", tag: "0.8.2", override: true},
       {:eunit_formatters, "~> 0.3.0", only: :test},
       {:proper, github: "matthiaskr/proper", only: :test, ref: "164663a7de18b0ce8d037b617afed0f97cac3de9"},
-      {:dialyze, "~> 0.2.1", only: :dev}
+      {:dialyze, "~> 0.2.1", only: :dev},
+      {:credo, "~> 0.3.0", only: [:dev, :test]}
     ]
   end
 
@@ -71,7 +72,8 @@ defmodule Cloak.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      "test.standard": ["test", "eunit", "proper --level simple"]
+      "test.standard": ["test", "eunit", "proper --level simple"],
+      "lint": ["credo --strict"]
     ]
   end
   defp aliases(:prod), do: []

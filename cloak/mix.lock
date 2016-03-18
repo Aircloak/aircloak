@@ -1,4 +1,6 @@
-%{"dialyze": {:hex, :dialyze, "0.2.1"},
+%{"bunt": {:hex, :bunt, "0.1.5"},
+  "credo": {:hex, :credo, "0.3.7"},
+  "dialyze": {:hex, :dialyze, "0.2.1"},
   "ej": {:git, "https://github.com/seth/ej.git", "132a9a3c0662a2377eaf7ebee694a496a0957160", []},
   "erlcron": {:git, "https://github.com/erlware/erlcron.git", "9a3b5cc6c93d556e74075391d4d40aa2aa2c7ea1", []},
   "eunit_formatters": {:hex, :eunit_formatters, "0.3.1"},

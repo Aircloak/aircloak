@@ -57,6 +57,7 @@ script:
   - make dialyze
   - cd ../..
   - cd cloak
+  - make lint
   - make test
   - make dialyze
   - make proper-extended
