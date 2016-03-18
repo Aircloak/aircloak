@@ -39,6 +39,8 @@ defmodule Cloak.Mixfile do
       {:ej, github: "seth/ej"},
       {:gproc, "~> 0.5.0"},
       {:pgsql, github: "semiocast/pgsql"},
+      {:erlcron, github: "erlware/erlcron"},
+      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true},
       {:eunit_formatters, "~> 0.3.0", only: :test},
       {:proper, github: "matthiaskr/proper", only: :test, ref: "164663a7de18b0ce8d037b617afed0f97cac3de9"},
       {:dialyze, "~> 0.2.1", only: :dev}
@@ -50,7 +52,7 @@ defmodule Cloak.Mixfile do
   defp applications(:prod), do: [:os_mon | common_applications()]
 
   defp common_applications do
-    [:logger, :lager_logger, :lager, :webmachine, :ej, :gproc, :pgsql]
+    [:logger, :lager_logger, :lager, :webmachine, :ej, :gproc, :pgsql, :erlcron]
   end
 
   defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]
