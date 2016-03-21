@@ -13,16 +13,17 @@ defmodule Air.Repo do
   release.
   """
   def configure do
-    static_repo_config = Application.get_env(:air, Air.Repo, [])
-    runtime_repo_config = Keyword.merge(static_repo_config,
-          hostname: :air_etcd.get("/settings/air/db/host"),
-          port: String.to_integer(:air_etcd.get("/settings/air/db/port")),
-          ssl: String.to_existing_atom(:air_etcd.get("/settings/air/db/ssl")),
-          database: :air_etcd.get("/settings/air/db/insights_database"),
-          username: :air_etcd.get("/settings/air/db/username"),
-          password: :air_etcd.get("/settings/air/db/password"),
+    Air.Utils.update_app_env(
+          :air, Air.Repo,
+          &Keyword.merge(&1,
+                hostname: :air_etcd.get("/settings/air/db/host"),
+                port: String.to_integer(:air_etcd.get("/settings/air/db/port")),
+                ssl: String.to_existing_atom(:air_etcd.get("/settings/air/db/ssl")),
+                database: :air_etcd.get("/settings/air/db/insights_database"),
+                username: :air_etcd.get("/settings/air/db/username"),
+                password: :air_etcd.get("/settings/air/db/password"),
+              )
         )
-    Application.put_env(:air, Air.Repo, runtime_repo_config)
   end
 
   defmodule Migrator do

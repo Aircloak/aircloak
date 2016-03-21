@@ -51,8 +51,8 @@ application. Node.js is included to compile our javascript and css dependencies.
 - `mix deps.get` installs our elixir and erlang dependencies
 - `npm install` installs our node dependencies
 
-Before you run the application for the first time, you also need to make sure you migrate the database
-with `make migrate`
+Before you run the application for the first time, you also need to make sure you initialize the database
+with `make recreate_db`
 (make sure that [required common components are started](../README.md#starting-the-required-components)).
 
 
@@ -68,6 +68,9 @@ Note that there's no need to migrate the database. This will happen automaticall
 However, if you do need to manually migrate/rollback (for example while creating a new migration), you can do
 it with `make migrate` and `make rollback` respectively.
 
+If you need to repopulate the database, you can run `make recreate_db`. Keep in mind that this will erase all
+of your existing data, so use with caution. To recreate the test database, you can run `MIX_ENV=test make recreate_db`
+
 
 ### Other common tasks
 
@@ -77,6 +80,3 @@ it with `make migrate` and `make rollback` respectively.
 - documentation: `make docs`
 - lint: `make lint`
 - building a release: `make release`
-  __Note__: If you need to build a local release, you need to copy `config/prod.secret.example.exs` to
-  `config/prod.secret.exs`. Then you can build and start the release on your machine. The system will
-  run in the `:prod` environment, but the local development database will be used.

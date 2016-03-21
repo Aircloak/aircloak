@@ -15,4 +15,17 @@ defmodule Air.OrganisationTest do
     changeset = Organisation.changeset(%Organisation{}, @invalid_attrs)
     refute changeset.valid?
   end
+
+  test "unique organisation name" do
+    %Organisation{}
+    |> Organisation.changeset(%{name: "Test organisation"})
+    |> Air.Repo.insert!
+
+    assert {:error, changeset} =
+      %Organisation{}
+      |> Organisation.changeset(%{name: "Test organisation"})
+      |> Air.Repo.insert
+
+    assert [name: "has already been taken"] = changeset.errors
+  end
 end

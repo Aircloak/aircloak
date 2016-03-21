@@ -25,7 +25,7 @@ defmodule Air.Endpoint do
     http_host = System.get_env("HTTP_HOST_IP") || "127.0.0.1"
     http_port = Application.get_env(:air, Air.Endpoint, [])[:http][:port]
     key = "/service_instances/insights/#{http_host}_#{http_port}"
-    value = "#{http_host}:#{http_port}"
+    value = Poison.encode!(%{http_endpoint: "#{http_host}:#{http_port}"})
 
     children = [
       worker(__MODULE__, []),
