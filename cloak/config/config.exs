@@ -5,19 +5,9 @@ use Mix.Config
 # turn off sasl error logger
 config :sasl, :sasl_error_logger, false
 
-# Redirect lager to Elixir's logger
-config :lager,
-  error_logger_redirect: false,
-  error_logger_whitelist: [Logger.ErrorHandler],
-  crash_log: false,
-  handlers: [{LagerLogger, []}]
-
 config :logger,
   level: :info,
-  console: [
-    format: "$time $metadata[$level] $message\n",
-    metadata: [:request_id]
-  ]
+  backends: [:console]
 
 config :kernel,
   # The portnumber the cloak erlang vm listens

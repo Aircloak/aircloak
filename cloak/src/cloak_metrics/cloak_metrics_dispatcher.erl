@@ -3,8 +3,6 @@
 -module(cloak_metrics_dispatcher).
 -behaviour(gen_server).
 
--compile({parse_transform, lager_transform}).
-
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
@@ -14,6 +12,8 @@
   start_link/1, send/2,
   init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3
 ]).
+
+-include("../cloak.hrl").
 
 %% Internal
 -record(state, {
@@ -53,13 +53,13 @@ init(ReporterDef) ->
 
 %% @hidden
 handle_call(Unknown, _, State) ->
-  lager:error("Unknown call in ~p: ~p", [{?MODULE, Unknown}]),
+  ?ERROR("Unknown call in ~p: ~p", [{?MODULE, Unknown}]),
   {reply, error, State}.
 
 %% @hidden
 handle_cast({send, Data}, State) -> {noreply, do_send(Data, State)};
 handle_cast(Unknown, State) ->
-  lager:error("Unknown cast in ~p: ~p", [{?MODULE, Unknown}]),
+  ?ERROR("Unknown cast in ~p: ~p", [{?MODULE, Unknown}]),
   {noreply, State}.
 
 %% @hidden
@@ -135,7 +135,7 @@ safe_call(Fun, Args) ->
   try
     {success, apply(Fun, Args)}
   catch Type:Error ->
-    lager:error("error: ~p:~p at ~p", [Type, Error, erlang:get_stacktrace()]),
+    ?ERROR("error: ~p:~p at ~p", [Type, Error, erlang:get_stacktrace()]),
     {fail, {Type, Error}}
   end.
 
@@ -143,14 +143,14 @@ handle_transport_response({success, ok}, State) -> State;
 handle_transport_response({success, {ok, TransportState}}, State) ->
   State#state{transport_state=TransportState};
 handle_transport_response({success, {error, Reason}}, State) ->
-  lager:error("transport error ~p", [Reason]),
+  ?ERROR("transport error ~p", [Reason]),
   queue_reconnect(State);
 handle_transport_response({fail, _}, State) ->
   queue_reconnect(State).
 
 queue_reconnect(#state{reconnect_queued=true} = State) -> State;
 queue_reconnect(State) ->
-  lager:info("queued reconnect in ~p seconds.", [round(State#state.reconnect_interval / 1000)]),
+  ?INFO("queued reconnect in ~p seconds.", [round(State#state.reconnect_interval / 1000)]),
   erlang:send_after(State#state.reconnect_interval, self(), reconnect),
   State#state{reconnect_queued=true}.
 

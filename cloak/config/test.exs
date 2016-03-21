@@ -1,8 +1,12 @@
 use Mix.Config
 
 # Print only errors during test
-config :logger, level: :error
-config :lager, handlers: [{LagerLogger, [level: :error]}]
+config :logger,
+  level: :error,
+  console: [
+    format: {Cloak.Logger.DevFormatter, :format},
+    metadata: [:file_name, :line_no, :log_level]
+  ]
 
 config :cloak, :cloak_db,
   connection: [

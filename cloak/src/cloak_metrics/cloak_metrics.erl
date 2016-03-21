@@ -4,8 +4,6 @@
 -module(cloak_metrics).
 -behaviour(gen_server).
 
--compile({parse_transform, lager_transform}).
-
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
@@ -33,6 +31,8 @@
   terminate/2,
   code_change/3
 ]).
+
+-include("../cloak.hrl").
 
 %% Types
 -export_type([
@@ -180,7 +180,7 @@ start_dispatchers(ReportersDef) ->
 
 %% @hidden
 handle_call(Unknown, _, State) ->
-  lager:error("Unknown call in ~p: ~p", [{?MODULE, Unknown}]),
+  ?ERROR("Unknown call in ~p: ~p", [{?MODULE, Unknown}]),
   {reply, error, State}.
 
 %% @hidden
@@ -188,7 +188,7 @@ handle_cast({push, Operation, Key, Value}, State) ->
   NewCollected = cloak_metrics_data:Operation(Key, Value, State#state.collected),
   {noreply, State#state{collected=NewCollected}};
 handle_cast(Unknown, State) ->
-  lager:error("Unknown cast in ~p: ~p", [{?MODULE, Unknown}]),
+  ?ERROR("Unknown cast in ~p: ~p", [{?MODULE, Unknown}]),
   {noreply, State}.
 
 

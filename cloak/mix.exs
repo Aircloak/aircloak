@@ -33,8 +33,6 @@ defmodule Cloak.Mixfile do
   defp deps do
     [
       {:aircloak_mix_tasks, path: "../common/mix_tasks"},
-      {:lager, "~> 3.0"},
-      {:lager_logger, "~> 1.0"},
       {:webmachine, github: "basho/webmachine", tag: "1.10.6"},
       {:ej, github: "seth/ej"},
       {:gproc, "~> 0.5.0"},
@@ -56,7 +54,7 @@ defmodule Cloak.Mixfile do
   defp applications(:prod), do: [:os_mon | common_applications()]
 
   defp common_applications do
-    [:logger, :lager_logger, :lager, :webmachine, :ej, :gproc, :pgsql, :erlcron]
+    [:logger, :webmachine, :ej, :gproc, :pgsql, :erlcron]
   end
 
   defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]

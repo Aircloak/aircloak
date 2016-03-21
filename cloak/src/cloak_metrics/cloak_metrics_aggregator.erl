@@ -4,13 +4,13 @@
 -module(cloak_metrics_aggregator).
 -behaviour(gen_server).
 
--compile({parse_transform, lager_transform}).
-
 %% API
 -export([
   start_link/0, aggregate_and_dispatch/4,
   init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3
 ]).
+
+-include("../cloak.hrl").
 
 
 %% -------------------------------------------------------------------
@@ -38,7 +38,7 @@ init(_) ->
 
 %% @hidden
 handle_call(Unknown, _, State) ->
-  lager:error("Unknown call in ~p: ~p", [{?MODULE, Unknown}]),
+  ?ERROR("Unknown call in ~p: ~p", [{?MODULE, Unknown}]),
   {reply, error, State}.
 
 %% @hidden
@@ -51,7 +51,7 @@ handle_cast({aggregate_and_dispatch, Collected, Dispatchers, Timespan}, State) -
   end,
   {noreply, State};
 handle_cast(Unknown, State) ->
-  lager:error("Unknown cast in ~p: ~p", [{?MODULE, Unknown}]),
+  ?ERROR("Unknown cast in ~p: ~p", [{?MODULE, Unknown}]),
   {noreply, State}.
 
 %% @hidden
