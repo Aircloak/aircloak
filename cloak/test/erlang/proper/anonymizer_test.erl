@@ -4,7 +4,7 @@
 -proper(simple).
 
 -include("deps/proper/include/proper.hrl").
--include("src/cloak.hrl").
+-include("cloak.hrl").
 
 -define(MAX_LENGTH, 150).
 -define(MIN_LENGTH_FOR_AVARAGE_NOISE, 10).

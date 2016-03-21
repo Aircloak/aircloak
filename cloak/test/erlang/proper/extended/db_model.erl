@@ -12,7 +12,7 @@
 -module(db_model).
 
 -include("deps/proper/include/proper.hrl").
--include("src/user_data.hrl").
+-include("user_data.hrl").
 -include("full_test.hrl").
 
 %% API

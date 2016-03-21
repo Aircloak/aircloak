@@ -2,7 +2,7 @@
 
 -ifdef(TEST).
 
--include("src/cloak.hrl").
+-include("cloak.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -include("eunit_helpers.hrl").
 

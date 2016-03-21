@@ -8,7 +8,7 @@
 %%      setup the state of the database.
 -module(db_test).
 
--include("src/cloak.hrl").
+-include("cloak.hrl").
 
 %% API functions
 -export([

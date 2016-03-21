@@ -1,7 +1,7 @@
 %% This module contains code to start and handle cloak-core instances for PropEr.
 -module(proper_cloak_instance).
 
--include("src/cloak.hrl").
+-include("cloak.hrl").
 
 %% API
 -export([

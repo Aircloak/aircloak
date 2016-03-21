@@ -21,7 +21,7 @@
 -module(full_test).
 
 -include("deps/proper/include/proper.hrl").
--include("src/cloak.hrl").
+-include("cloak.hrl").
 -include("../prop_tracer.hrl").
 
 %% API

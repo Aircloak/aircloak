@@ -32,7 +32,7 @@
   code_change/3
 ]).
 
--include("../cloak.hrl").
+-include("cloak.hrl").
 
 %% Types
 -export_type([

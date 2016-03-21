@@ -3,7 +3,7 @@
 -module(common_generators).
 
 -include("deps/proper/include/proper.hrl").
--include("src/cloak.hrl").
+-include("cloak.hrl").
 
 -export([
   subset_generic/4,
