@@ -186,11 +186,11 @@ Once the installer script is done, the installation process on the build server 
 
 #### Configuring the load balancer
 
-Once the Air system is installed, on the balancer machine, in the `/aircloak/target_cluster/aircloak/air/balancer/config/` folder you'll find the routers file which needs to be edited. In this file you need to list all the CoreOS machines belonging to the cluster. As soon as you save the file, the balancer will use these machines.
+Once the Air system is installed you'll find the routers file which needs to be edited in the `/aircloak/target_cluster/aircloak/air/balancer/config/` folder on the balancer machine. In this file you need to list all the CoreOS machines belonging to the cluster. As soon as you save the file, the balancer will use these machines.
 
 #### Creating the first user
 
-In case your cluster starts on the fresh database, you won't be able to log in, because there won't be any users in the database. You need to manually insert the user through the remote console. You can enter the console by running `/aircloak/air/insights/container.sh remote_console` on some CoreOS machine.
+You won't be able to log in if your cluster starts with a fresh database. This is because by default no user exists. To manually add a user, enter the remote console on any one of the CoreOS machines using `/aircloak/air/insights/container.sh remote_console`
 
 Now you can add the organisation and the admin login:
 
@@ -294,4 +294,4 @@ The `cap deploy` command does the following:
 - Rebuilds Docker images and pushes them to the registry
 - Invokes the rolling upgrade of the specified cluster
 
-During the deploy there shouldn't be a significant downtime. However, if some long running requests are being handled by the server, these will be terminated.
+During the deploy there shouldn't be a significant downtime. However it is still possible that some operations fail during the upgrade. This can happen because we're stopping currently running services. The stoppage is done in a polite manner, but there is a timeout limit in place, so longer running computation might be terminated abruptly, possibly in the middle of processing.
