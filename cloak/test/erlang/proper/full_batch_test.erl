@@ -71,7 +71,7 @@ prop_batch() ->
             ?IMPLIES(
                   command_list_has_at_least_one_run_batch_task(Commands) andalso
                       db_model:command_list_has_at_least_one_add_data(Commands),
-                  ?TRACEFAIL(Commands,
+                  ?TRACEFAIL(State, Commands,
                         begin
                           db_model:prepare_database(),
                           proper_statem:run_commands(?MODULE, Commands)

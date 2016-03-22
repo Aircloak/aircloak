@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Proper do
 
     errors =
       for module <- modules,
-          proper_result = :proper.module(module),
+          proper_result = :proper.module(module, on_output: &on_output/2),
           proper_result != [],
           do: module
 
@@ -64,4 +64,8 @@ defmodule Mix.Tasks.Proper do
   defp include?(_, :all), do: true
   defp include?([level], level), do: true
   defp include?(_, _), do: false
+
+  # Suppress history term, because it was causing a lot of noise
+  defp on_output('~w~n', _params), do: :ok
+  defp on_output(format, params), do: :io.format(format, params)
 end

@@ -100,9 +100,8 @@ print_detailed_history(TracedCalls) ->
               {ok, X} -> io_lib:format("~p", [X]);
               undefined -> "undefined result"
             end,
-            io:format("State: ~p~n~n", [State]),
-            io:format("Command: ~p~n~n", [Command]),
-            io:format("Result: ~p~n~n", [CommandResult]),
+            io:format("Command: ~P~n", [Command, 5]),
+            io:format("Result: ~p~n", [CommandResult]),
             io:format("Postcondition: ~s~n~n", [PostconditionResult]),
             io:format("~s~n~n", [string:copies("-", 60)]),
             undefined;

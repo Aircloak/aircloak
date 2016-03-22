@@ -47,6 +47,7 @@ proper_spec(Commands, CommandRunner) ->
         Cmds,
         Commands,
         ?TRACEFAIL(
+              _State,
               Commands,
               CommandRunner(?MODULE, Cmds),
               Result =:= ok
