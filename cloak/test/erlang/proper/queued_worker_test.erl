@@ -3,7 +3,7 @@
 -behavour(queued_worker).
 -proper(simple).
 
--include("deps/proper/include/proper.hrl").
+-include_lib("proper/include/proper.hrl").
 
 -export([
   run_job/1

@@ -15,7 +15,7 @@
 ]).
 
 -include("cloak.hrl").
--include("deps/proper/include/proper.hrl").
+-include_lib("proper/include/proper.hrl").
 -include_lib("stdlib/include/ms_transform.hrl").
 
 

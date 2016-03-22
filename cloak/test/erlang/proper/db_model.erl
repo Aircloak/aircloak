@@ -11,7 +11,7 @@
 %%          data from the real table.
 -module(db_model).
 
--include("deps/proper/include/proper.hrl").
+-include_lib("proper/include/proper.hrl").
 -include("full_test.hrl").
 -include("cloak.hrl").
 

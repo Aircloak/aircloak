@@ -4,7 +4,7 @@
 -module(full_batch_test).
 -proper(extended).
 
--include("deps/proper/include/proper.hrl").
+-include_lib("proper/include/proper.hrl").
 -include("cloak.hrl").
 -include("full_test.hrl").
 -include("prop_tracer.hrl").
