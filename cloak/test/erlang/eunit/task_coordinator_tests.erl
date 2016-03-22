@@ -35,7 +35,7 @@ task_test_() ->
     fun() ->
       db_test:setup(),
       db_test:create_analyst_schema(1),
-      db_test:create_analyst_table(1, "user_heights",
+      db_test:create_analyst_table(1, "heights",
           "height integer, ac_user_id varchar(40), ac_created_at timestamp"),
       meck:new(cloak_distributions),
       meck:expect(cloak_distributions, gauss, fun(_Sigma, N) -> round(N) end),
@@ -58,7 +58,7 @@ task_test_() ->
       {"async task", fun() ->
         Data = [{
             iolist_to_binary(io_lib:format("user-~p", [Index])),
-            [{<<"user_heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
+            [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
           } || Index <- lists:seq(1, 100)],
         ok = db_test:add_users_data(1, Data, timer:seconds(5)),
         ?verifyAsync(
@@ -78,7 +78,7 @@ task_test_() ->
       {"sync task", fun() ->
         Data = [{
             iolist_to_binary(io_lib:format("user-~p", [Index])),
-            [{<<"user_heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
+            [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
           } || Index <- lists:seq(1, 100)],
         ok = db_test:add_users_data(1, Data, timer:seconds(5)),
         ?verifySync(
@@ -98,7 +98,7 @@ task_test_() ->
       {"task with errors", fun() ->
         Data = [{
             iolist_to_binary(io_lib:format("user-~p", [Index])),
-            [{<<"user_heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
+            [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
           } || Index <- lists:seq(1, 100)],
         ok = db_test:add_users_data(1, Data, timer:seconds(5)),
         ?verifyAsync(

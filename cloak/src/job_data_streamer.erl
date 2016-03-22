@@ -333,11 +333,11 @@ test_data_mapping() ->
 
 setup_test_table() ->
   db_test:create_analyst_schema(1),
-  db_test:create_analyst_table(1, "user_test",
+  db_test:create_analyst_table(1, "test",
       "\"Data Value\" integer, ac_user_id varchar(40), ac_created_at timestamp").
 
 add_data(Count) ->
-  Data = [{<<"user_test">>, [
+  Data = [{<<"test">>, [
     {columns, [<<"Data Value">>]},
     {data, [[Value rem 4] || Value <- lists:seq(1, Count)]}
   ]}],

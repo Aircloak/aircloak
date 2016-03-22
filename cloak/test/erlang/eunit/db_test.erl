@@ -47,7 +47,7 @@ create_analyst_table(Analyst, TableName, Definition) ->
         {{create, table}, _} = sql_conn:simple_query(
               [
                 "CREATE TABLE ",
-                  sql_util:sanitize_db_object([analyst_tables:schema_for_analyst(Analyst), ".", TableName]),
+                  sql_util:sanitize_db_object([analyst_tables:schema_for_analyst(Analyst), ".", "user_", TableName]),
                 "(", Definition, ")"
               ],
               Connection
@@ -69,7 +69,7 @@ add_users_data(Analyst, Data, Timeout) ->
 %% -------------------------------------------------------------------
 
 insert_rows(Analyst, UserId, TableName, TableData, Timeout, Connection) ->
-  FullTableName = sql_util:sanitize_db_object([analyst_tables:schema_for_analyst(Analyst), ".", TableName]),
+  FullTableName = sql_util:sanitize_db_object([analyst_tables:schema_for_analyst(Analyst), ".", "user_", TableName]),
   Columns = lists:map(fun sql_util:sanitize_db_object/1,
       ["ac_user_id", "ac_created_at"] ++ proplists:get_value(columns, TableData)),
   Rows = lists:map(
