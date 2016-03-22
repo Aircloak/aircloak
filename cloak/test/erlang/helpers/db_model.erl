@@ -11,15 +11,16 @@
 %%          data from the real table.
 -module(db_model).
 
--include("deps/proper/include/proper.hrl").
--include("user_data.hrl").
+-include_lib("proper/include/proper.hrl").
 -include("full_test.hrl").
+-include("cloak.hrl").
 
 %% API
 -export([
+  prepare_database/0,
   create/4,
   has_at_least_one_table/1,
-  command_list/3,
+  command_list/2,
   command_list_has_at_least_one_add_data/1,
   tables/1,
   fold_tables/3,
@@ -28,11 +29,10 @@
 
 %% Command generators
 -export([
-  add_table/2,
-  remove_table/2,
-  clear_table/2,
-  add_column_to_table/2,
-  add_data/2
+  add_table/1,
+  remove_table/1,
+  clear_table/1,
+  add_data/1
 ]).
 
 %% Callbacks for PropEr (these callbacks are designed to be combinable with callbacks of other modules).
@@ -44,18 +44,18 @@
 
 %% Callbacks for adding a table
 -export([
-  callback_add_table/3,
-  next_state_add_table/5,
-  precondition_add_table/4,
-  postcondition_add_table/5
+  callback_add_table/2,
+  next_state_add_table/4,
+  precondition_add_table/3,
+  postcondition_add_table/4
 ]).
 
 %% Callbacks for removing a table
 -export([
-  callback_remove_table/2,
-  next_state_remove_table/4,
-  precondition_remove_table/3,
-  postcondition_remove_table/4
+  callback_remove_table/1,
+  next_state_remove_table/3,
+  precondition_remove_table/2,
+  postcondition_remove_table/3
 ]).
 
 %% Callbacks for clearing a table
@@ -66,20 +66,12 @@
   postcondition_clear_table/3
 ]).
 
-%% Callbacks for adding a column to a table
--export([
-  callback_add_column_to_table/3,
-  next_state_add_column_to_table/5,
-  precondition_add_column_to_table/4,
-  postcondition_add_column_to_table/5
-]).
-
 %% Callbacks for adding data to a table
 -export([
-  callback_add_data/2,
-  next_state_add_data/4,
-  precondition_add_data/3,
-  postcondition_add_data/4
+  callback_add_data/1,
+  next_state_add_data/3,
+  precondition_add_data/2,
+  postcondition_add_data/3
 ]).
 
 
@@ -90,7 +82,6 @@
 -record(table_spec, {
   columns :: [string()], %% The columns represented by name.
   column_num :: non_neg_integer(), %% The number of columns.
-  migration :: non_neg_integer(), %% The current migration number.
   rows = dict:new() :: dict:dict(string(), [integer()]) %% The current set of rows.
 }).
 
@@ -117,6 +108,13 @@
 %% API functions
 %% -------------------------------------------------------------------
 
+%% @doc Prepares the empty database for testing.
+-spec prepare_database() -> ok.
+prepare_database() ->
+  db_test:setup(),
+  db_test:create_analyst_schema(?ANALYST_ID),
+  ok.
+
 %% @doc Create the initial state without any tables.
 -spec create(pos_integer(), pos_integer(), pos_integer(), pos_integer()) -> db_state().
 create(Users, Values, MaxTables, MaxInitialColumns) ->
@@ -133,17 +131,16 @@ has_at_least_one_table(#state{tables=Tables}) ->
   dict:size(Tables) > 0.
 
 %% @doc The command list usable for `frequency/1' generator.
--spec command_list(pos_integer(), node(), db_state()) -> [{integer(), proper_gen:generator()}].
-command_list(Factor, CloakNode, State) ->
+-spec command_list(pos_integer(), db_state()) -> [{integer(), proper_gen:generator()}].
+command_list(Factor, State) ->
   lists:flatten(
         [
-          [{1 * Factor, add_table(CloakNode, State)}]
+          [{1 * Factor, add_table(State)}]
         ] ++ [
           [
-            {1 * Factor, remove_table(CloakNode, State)},
-            {1 * Factor, clear_table(CloakNode, State)},
-            {1 * Factor, add_column_to_table(CloakNode, State)},
-            {20 * Factor, add_data(CloakNode, State)}
+            {1 * Factor, remove_table(State)},
+            {1 * Factor, clear_table(State)},
+            {20 * Factor, add_data(State)}
           ]
         ||
           has_at_least_one_table(State)
@@ -155,7 +152,7 @@ command_list(Factor, CloakNode, State) ->
 command_list_has_at_least_one_add_data(Commands) ->
   lists:any(
         fun
-          ({set, {var, _}, {call, rpc, call, [_Node, ?MODULE, callback_add_data, _]}}) ->
+          ({set, {var, _}, {call, ?MODULE, callback_add_data, _}}) ->
             true;
           (_) ->
             false
@@ -192,7 +189,7 @@ rows_of_table(TableName, #state{tables=Tables}) ->
 %% @doc next_state processing.  This function will return the state unchanged if the call is unrelated
 %%      to insertions.
 -spec next_state(db_state(), any(), any()) -> db_state().
-next_state(State, Res, {call, rpc, call, [_CloakNode, ?MODULE, CallbackFunction, Args]}) ->
+next_state(State, Res, {call, ?MODULE, CallbackFunction, Args}) ->
   Function = function_name(next_state, CallbackFunction),
   apply(?MODULE, Function, [State, Res|Args]);
 next_state(State, _Res, _Call) ->
@@ -200,7 +197,7 @@ next_state(State, _Res, _Call) ->
 
 %% @doc Like next-state this is provided to hook into the property testing facilities.
 -spec precondition(db_state(), any()) -> boolean() | undefined.
-precondition(State, {call, rpc, call, [_CloakNode, ?MODULE, CallbackFunction, Args]}) ->
+precondition(State, {call, ?MODULE, CallbackFunction, Args}) ->
   Function = function_name(precondition, CallbackFunction),
   apply(?MODULE, Function, [State|Args]);
 precondition(_State, _Call) ->
@@ -208,7 +205,7 @@ precondition(_State, _Call) ->
 
 %% @doc Like next-state this is provided to hook into the property testing facilities.
 -spec postcondition(db_state(), any(), any()) -> boolean() | undefined.
-postcondition(State, {call, rpc, call, [_CloakNode, ?MODULE, CallbackFunction, Args]}, Result) ->
+postcondition(State, {call, ?MODULE, CallbackFunction, Args}, Result) ->
   Function = function_name(postcondition, CallbackFunction),
   apply(?MODULE, Function, [State, Result|Args]);
 postcondition(_State, _Call, _Result) ->
@@ -220,58 +217,61 @@ postcondition(_State, _Call, _Result) ->
 %% -------------------------------------------------------------------
 
 %% @doc The PropEr generator to create a new table.
--spec add_table(node(), db_state()) -> proper_gen:generator().
-add_table(CloakNode, State) ->
+-spec add_table(db_state()) -> proper_gen:generator().
+add_table(State) ->
   ?LET(Columns, integer(1, State#state.max_initial_columns),
       begin
-        {NewTableName, MigrationNum} = table_name_and_initial_migration(),
+        NewTableName = unique_table_name(),
         NewColumns = [column_name(I) || I <- lists:seq(1, Columns)],
-        {call, rpc, call, [CloakNode, ?MODULE, callback_add_table,
-            [return(NewTableName), return(MigrationNum), return(NewColumns)]]}
+        {call, ?MODULE, callback_add_table, [return(NewTableName), return(NewColumns)]}
       end).
 
 -spec column_name(non_neg_integer()) -> string().
 column_name(I) ->
   "column_" ++ integer_to_list(I).
 
--spec table_name_and_initial_migration() -> {binary(), non_neg_integer()}.
-table_name_and_initial_migration() ->
-  I = cloak_util:timestamp_to_int(erlang:now()),  %% This is always unique
-  TableName = iolist_to_binary(["table", integer_to_list(I)]),
-  {TableName, 0}.
+-spec unique_table_name() -> binary().
+unique_table_name() ->
+  I = erlang:unique_integer([positive, monotonic]),
+  iolist_to_binary(["table", integer_to_list(I)]).
 
 %% @hidden
--spec callback_add_table(binary(), non_neg_integer(), [string()]) -> ok | {error, any()}.
-callback_add_table(TableName, MigrationNum, Columns) ->
-  Migration = {
+-spec callback_add_table(binary(), [string()]) -> ok | {error, any()}.
+callback_add_table(TableName, Columns) ->
+  Data = {
     iolist_to_binary(TableName),
-    MigrationNum,
     {create, [{iolist_to_binary(ColumnName), integer, []} || ColumnName <- Columns]}
   },
-  user_table_migration:migrate(?ANALYST_ID, Migration).
+  create_table(?ANALYST_ID, Data).
 
 %% @hidden
--spec next_state_add_table(db_state(), any(), binary(), non_neg_integer(), [string()]) -> db_state().
-next_state_add_table(State, _Result, NewTableName, MigrationNum, NewColumns) ->
+-spec next_state_add_table(db_state(), any(), binary(), [string()]) -> db_state().
+next_state_add_table(State, _Result, NewTableName, NewColumns) ->
   error = dict:find(NewTableName, State#state.tables),
   TableSpec = #table_spec{
     columns = NewColumns,
-    column_num = length(NewColumns),
-    migration = MigrationNum
+    column_num = length(NewColumns)
   },
   State#state{tables=dict:store(NewTableName, TableSpec, State#state.tables)}.
 
 %% @hidden
--spec precondition_add_table(db_state(), binary(), non_neg_integer(), [string()]) -> boolean().
-precondition_add_table(#state{max_tables=MaxTables, tables=Tables}, _NewTableName, _MigrationNum,
-    _NewColumns) ->
+-spec precondition_add_table(db_state(), binary(), [string()]) -> boolean().
+precondition_add_table(#state{max_tables=MaxTables, tables=Tables}, _NewTableName, _NewColumns) ->
   dict:size(Tables) < MaxTables.
 
 %% @hidden
--spec postcondition_add_table(db_state(), ok | {error, any()}, binary(), non_neg_integer(), [string()]) ->
+-spec postcondition_add_table(db_state(), ok | {error, any()}, binary(), [string()]) ->
     boolean().
-postcondition_add_table(_State, Result, _NewTableName, _MigrationNum, _NewColumns) ->
+postcondition_add_table(_State, Result, _NewTableName, _NewColumns) ->
   Result == ok.
+
+create_table(Analyst, {Table, {create, Columns}}) ->
+  ColumnDefs = ["ac_user_id varchar(40)", "ac_created_at timestamp" |
+    [[Column, " integer"] || {Column, integer, []} <- Columns]],
+  case db_test:create_analyst_table(Analyst, Table, cloak_util:join(ColumnDefs, ",")) of
+    {{create, table}, _} -> ok;
+    Other -> {error, Other}
+  end.
 
 
 %% -------------------------------------------------------------------
@@ -279,37 +279,34 @@ postcondition_add_table(_State, Result, _NewTableName, _MigrationNum, _NewColumn
 %% -------------------------------------------------------------------
 
 %% @doc The PropEr generator to remove a user table.
--spec remove_table(node(), db_state()) -> proper_gen:generator().
-remove_table(CloakNode, State) ->
+-spec remove_table(db_state()) -> proper_gen:generator().
+remove_table(State) ->
   Tables = dict:to_list(State#state.tables),
-  ?LET({ToRemove, TableSpec}, oneof([return(Table) || Table <- Tables]),
-      {call, rpc, call, [CloakNode, ?MODULE, callback_remove_table,
-          [return(ToRemove), return(TableSpec#table_spec.migration + 1)]]}).
+  ?LET({ToRemove, _TableSpec}, oneof([return(Table) || Table <- Tables]),
+      {call, ?MODULE, callback_remove_table, [return(ToRemove)]}).
 
 %% @hidden
--spec callback_remove_table(binary(), non_neg_integer()) -> ok | {error, any()}.
-callback_remove_table(TableName, MigrationNum) ->
-  Migration = {
-    iolist_to_binary(TableName),
-    MigrationNum,
-    drop
-  },
-  user_table_migration:migrate(?ANALYST_ID, Migration).
+-spec callback_remove_table(binary()) -> ok | {error, any()}.
+callback_remove_table(TableName) ->
+  case db_test:drop_analyst_table(?ANALYST_ID, TableName) of
+    {{drop, table}, _} -> ok;
+    Error -> {error, Error}
+  end.
 
 %% @hidden
--spec next_state_remove_table(db_state(), any(), binary(), non_neg_integer()) -> db_state().
-next_state_remove_table(State, _Result, TableName, _MigrationNum) ->
+-spec next_state_remove_table(db_state(), any(), binary()) -> db_state().
+next_state_remove_table(State, _Result, TableName) ->
   {ok, _OldTableSpec} = dict:find(TableName, State#state.tables),
   State#state{tables=dict:erase(TableName, State#state.tables)}.
 
 %% @hidden
--spec precondition_remove_table(db_state(), binary(), non_neg_integer()) -> boolean().
-precondition_remove_table(#state{tables=Tables}, TableName, _MigrationNum) ->
+-spec precondition_remove_table(db_state(), binary()) -> boolean().
+precondition_remove_table(#state{tables=Tables}, TableName) ->
   dict:is_key(TableName, Tables).
 
 %% @hidden
--spec postcondition_remove_table(db_state(), ok | {error, any()}, binary(), non_neg_integer()) -> boolean().
-postcondition_remove_table(_State, Result, _TableName, _MigrationNum) ->
+-spec postcondition_remove_table(db_state(), ok | {error, any()}, binary()) -> boolean().
+postcondition_remove_table(_State, Result, _TableName) ->
   Result == ok.
 
 
@@ -318,16 +315,19 @@ postcondition_remove_table(_State, Result, _TableName, _MigrationNum) ->
 %% -------------------------------------------------------------------
 
 %% @doc The PropEr generator to clear a user table.
--spec clear_table(node(), db_state()) -> proper_gen:generator().
-clear_table(CloakNode, State) ->
+-spec clear_table(db_state()) -> proper_gen:generator().
+clear_table(State) ->
   Tables = dict:to_list(State#state.tables),
   ?LET({ToClear, _}, oneof([return(Table) || Table <- Tables]),
-      {call, rpc, call, [CloakNode, ?MODULE, callback_clear_table, [return(ToClear)]]}).
+      {call, ?MODULE, callback_clear_table, [return(ToClear)]}).
 
 %% @hidden
 -spec callback_clear_table(binary()) -> ok | {error, any()}.
 callback_clear_table(TableName) ->
-  user_tables:clear_table(?ANALYST_ID, TableName).
+  case db_test:clear_analyst_table(?ANALYST_ID, TableName) of
+    {{truncate, table}, []} -> ok;
+    Error -> {error, Error}
+  end.
 
 %% @hidden
 -spec next_state_clear_table(db_state(), any(), binary()) -> db_state().
@@ -348,75 +348,18 @@ postcondition_clear_table(_State, Result, _TableName) ->
 
 
 %% -------------------------------------------------------------------
-%% Add a new column to a table
-%% -------------------------------------------------------------------
-
-%% @doc The PropEr generator to add a new column to a user table.
--spec add_column_to_table(node(), db_state()) -> proper_gen:generator().
-add_column_to_table(CloakNode, State) ->
-  Tables = dict:to_list(State#state.tables),
-  ?LET({TableName, TableSpec}, oneof([return(Table) || Table <- Tables]),
-      {call, rpc, call, [CloakNode, ?MODULE, callback_add_column_to_table, [
-            return(TableName),
-            return(TableSpec#table_spec.column_num+1),
-            return(TableSpec#table_spec.migration+1)
-          ]]}).
-
-%% @hidden
--spec callback_add_column_to_table(binary(), non_neg_integer(), non_neg_integer()) -> ok | {error, any()}.
-callback_add_column_to_table(TableName, NewColumn, MigrationNum) ->
-  Migration = {
-    iolist_to_binary(TableName),
-    MigrationNum,
-    {alter, [{add, {iolist_to_binary(column_name(NewColumn)), integer, []}}]}
-  },
-  user_table_migration:migrate(?ANALYST_ID, Migration).
-
-%% @hidden
--spec next_state_add_column_to_table(db_state(), any(), binary(), non_neg_integer(), non_neg_integer()) ->
-    db_state().
-next_state_add_column_to_table(State, _Result, TableName, NewColumn, MigrationNum) ->
-  NewColumnName = column_name(NewColumn),
-  OldTableSpec = #table_spec{columns=OldColumns} = dict:fetch(TableName, State#state.tables),
-  TableSpecWithNewColumn = OldTableSpec#table_spec{
-    column_num = NewColumn,
-    columns = OldColumns ++ [NewColumnName],
-    migration = MigrationNum
-  },
-  State#state{tables=dict:store(TableName, TableSpecWithNewColumn, State#state.tables)}.
-
-%% @hidden
--spec precondition_add_column_to_table(db_state(), binary(), non_neg_integer(), non_neg_integer()) ->
-    boolean().
-precondition_add_column_to_table(#state{tables=Tables}, TableName, NewColumn, MigrationNum) ->
-  case dict:find(TableName, Tables) of
-    {ok, #table_spec{column_num=ColumnNum, migration=OldMigrationNum}} ->
-      ColumnNum == NewColumn - 1 andalso OldMigrationNum == MigrationNum - 1;
-    error ->
-      false
-  end.
-
-%% @hidden
--spec postcondition_add_column_to_table(db_state(), ok | {error, any()}, binary, non_neg_integer(),
-    non_neg_integer()) -> boolean().
-postcondition_add_column_to_table(_State, Result, _TableName, _NewColumn, _MigrationNum) ->
-  Result == ok.
-
-
-%% -------------------------------------------------------------------
 %% Add data to a table
 %% -------------------------------------------------------------------
 
 %% @doc The PropEr generator to add data to a user table.
--spec add_data(node(), db_state()) -> proper_gen:generator().
-add_data(CloakNode, State) ->
+-spec add_data(db_state()) -> proper_gen:generator().
+add_data(State) ->
   ?LET(Data, data_generator(State),
-      return({call, rpc, call, [CloakNode, ?MODULE, callback_add_data, [
+      return({call, ?MODULE, callback_add_data, [
             % We need to pack this as a binary as PropEr dislikes state with improper lists and dictionaries
             % may contain improper lists...
-            return(term_to_binary(State#state.tables)),
             return([{User, List} || {User, List} <- Data, List /= []])
-          ]]})).
+          ]})).
 
 -spec data_generator(db_state()) -> proper_gen:generator().
 data_generator(State) ->
@@ -448,57 +391,13 @@ generate_table_data(State, TableName, TableSpec) ->
   ]}.
 
 %% @hidden
--spec callback_add_data(binary(), table_data()) -> {ok, db_contents()} | {error, any()}.
-callback_add_data(Tables, Data) ->
-  [({_, []} = insert_validator:validate(?ANALYST_ID, Rows)) || {_, Rows} <- Data],
-  case inserter:add_users_data(?ANALYST_ID, Data) of
-    ok ->
-      {ok, read_all_user_tables(binary_to_term(Tables))};
-    Error ->
-      Error
-  end.
-
-%% We include in the reply of the insert function a complete list of data from the database.
-%% This is done to check if the data really arrived in the tables.  This way we can check if the raw
-%% data arrived at the tables.
--spec read_all_user_tables(dict:dict(string(), #table_spec{})) -> db_contents().
-read_all_user_tables(Tables) ->
-  % First get all tables.
-  AllTables = [TableName || {?ANALYST_ID, TableName} <- user_tables:tables_that_are_not_dropped()],
-  % Now get all data for each table and create the corresponding dictionary.
-  lists:foldl(
-        fun(TableName, TaDAcc) ->
-          case dict:find(TableName, Tables) of
-            {ok, TableSpec} ->
-              SanitizedTableName = analyst_tables:sanitized_full_name(?ANALYST_ID, user, TableName),
-              SQL = [
-                "SELECT t.ac_user_id", column_names("t", TableSpec), " ",
-                "FROM ("
-                "  SELECT ac_user_id, max(ac_created_at) AS last FROM ", SanitizedTableName,
-                "  GROUP BY ac_user_id",
-                ") AS x ",
-                "INNER JOIN ", SanitizedTableName, " AS t "
-                "ON t.ac_user_id = x.ac_user_id AND t.ac_created_at = x.last;"
-              ],
-              ReadTable = fun(Connection) ->
-                sql_conn:simple_query(SQL, timer:minutes(5), Connection)
-              end,
-              [{TableName, cloak_db:call(db_model, ReadTable)} | TaDAcc];
-            error ->
-              TaDAcc
-          end
-        end,
-        [],
-        AllTables
-      ).
-
--spec column_names(string(), #table_spec{}) -> iolist().
-column_names(Prefix, #table_spec{columns=Columns}) ->
-  [[", ", Prefix, ".", ColumnName] || ColumnName <- Columns].
+-spec callback_add_data(table_data()) -> ok | any().
+callback_add_data(Data) ->
+  db_test:add_users_data(?ANALYST_ID, Data, timer:seconds(30)).
 
 %% @hidden
--spec next_state_add_data(db_state, any(), binary(), table_data()) -> db_state().
-next_state_add_data(#state{tables=OldTables}=State, _Result, _OldTables, Data) ->
+-spec next_state_add_data(db_state, any(), table_data()) -> db_state().
+next_state_add_data(#state{tables=OldTables}=State, _Result, Data) ->
   TablesWithNewData = lists:foldl(
         fun({User, UserRows}, TablesAcc1) ->
           lists:foldl(
@@ -520,8 +419,8 @@ next_state_add_data(#state{tables=OldTables}=State, _Result, _OldTables, Data) -
   State#state{tables=TablesWithNewData}.
 
 %% @hidden
--spec precondition_add_data(db_state(), binary(), table_data()) -> boolean().
-precondition_add_data(#state{tables=Tables}, _Tables, Data) ->
+-spec precondition_add_data(db_state(), table_data()) -> boolean().
+precondition_add_data(#state{tables=Tables}, Data) ->
   lists:all(
         fun({_User, UserRows}) ->
           lists:all(
@@ -538,41 +437,10 @@ precondition_add_data(#state{tables=Tables}, _Tables, Data) ->
       ).
 
 %% @hidden
--spec postcondition_add_data(db_state(), {ok, db_contents()} | {error, any()}, binary(), table_data()) ->
+-spec postcondition_add_data(db_state(), {ok, db_contents()} | {error, any()}, table_data()) ->
     boolean().
-postcondition_add_data(State, Result, Tables, Data) ->
-  case Result of
-    {ok, DataInTables} ->
-      NewState = next_state_add_data(State, Result, Tables, Data),
-      compare_data_in_tables_with_state(DataInTables, NewState#state.tables);
-    _Otherwise ->
-      false
-  end.
-
--spec compare_data_in_tables_with_state(db_contents(), dict:dict(string(), #table_spec{})) -> boolean().
-compare_data_in_tables_with_state(DataInTables, Tables) ->
-  CheckTableData = fun({TableName, {{select, _}, Rows}}) ->
-    case dict:find(TableName, Tables) of
-      {ok, TableSpec} ->
-        CheckRowData = fun(Data) ->
-          [User|RawDataOfUser] = tuple_to_list(Data),
-          DataOfUser = [Item || Item <- RawDataOfUser, Item /= null],
-          case dict:find(User, TableSpec#table_spec.rows) of
-            {ok, RawUserColumns} ->
-              [Value || {_, Value} <- RawUserColumns] =:= DataOfUser;
-            _Otherwise ->
-              false
-          end
-        end,
-        length(Rows) == dict:size(TableSpec#table_spec.rows) andalso
-            lists:all(CheckRowData, Rows);
-      error ->
-        false
-    end
-  end,
-  length(DataInTables) == dict:size(Tables) andalso
-      lists:all(CheckTableData, DataInTables).
-
+postcondition_add_data(_State, Result, _Data) ->
+  Result =:= ok.
 
 
 %% -------------------------------------------------------------------

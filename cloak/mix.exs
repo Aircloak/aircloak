@@ -61,7 +61,7 @@ defmodule Cloak.Mixfile do
   defp erlc_options(:dev), do: [:debug_info]
   defp erlc_options(:prod), do: []
 
-  defp erlc_paths(:test), do: ["test/erlang/eunit", "test/erlang/proper", "src"]
+  defp erlc_paths(:test), do: ["test/erlang/*", "src"]
   defp erlc_paths(:dev), do: ["src"]
   defp erlc_paths(:prod), do: ["src"]
 

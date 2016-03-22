@@ -3,7 +3,7 @@
 -module(anonymizer_test).
 -proper(simple).
 
--include("deps/proper/include/proper.hrl").
+-include_lib("proper/include/proper.hrl").
 -include("cloak.hrl").
 
 -define(MAX_LENGTH, 150).

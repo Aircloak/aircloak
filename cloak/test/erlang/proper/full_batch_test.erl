@@ -2,15 +2,16 @@
 %%      We check correctness by manually inspecting all the tables in the database.
 %% @end
 -module(full_batch_test).
+-proper(extended).
 
--include("deps/proper/include/proper.hrl").
+-include_lib("proper/include/proper.hrl").
 -include("cloak.hrl").
 -include("full_test.hrl").
--include("../prop_tracer.hrl").
+-include("prop_tracer.hrl").
 
 %% API
 -export([
-  prop_batch/5
+  prop_batch/0
 ]).
 
 %% Property state machine callbacks
@@ -37,7 +38,6 @@
 
 -record(state, {
   db_state :: db_model:db_state(),
-  cloak_node :: node(),
   buckets_not_ok = 0 :: non_neg_integer(),
   absolute_bucket_stats = [] :: [non_neg_integer()],
   relative_bucket_stats = [] :: [float()],
@@ -47,8 +47,7 @@
 
 initial_state() ->
   #state{
-    db_state = db_model:create(?USERS, ?VALUES, ?MAX_TABLES, ?MAX_INITIAL_COLUMNS),
-    cloak_node = proper_cloak_instance:default_cloak_node()
+    db_state = db_model:create(?USERS, ?VALUES, ?MAX_TABLES, ?MAX_INITIAL_COLUMNS)
   }.
 
 
@@ -56,37 +55,41 @@ initial_state() ->
 %% Starting PropEr
 %% -------------------------------------------------------------------
 
-prop_batch(Users, Values, MaxTables, MaxInitialColumns, CommandsFactor) ->
+prop_batch() ->
+  Users = 100,
+  Values = 4,
+  MaxTables = 3,
+  MaxInitialColumns = 3,
+  CommandsFactor = 10,
   db_job:start_link(),
-  CloakNode = proper_cloak_instance:default_cloak_node(),
   InitialState = #state{
-    db_state = db_model:create(Users, Values, MaxTables, MaxInitialColumns),
-    cloak_node = CloakNode
+    db_state = db_model:create(Users, Values, MaxTables, MaxInitialColumns)
   },
-  Result = ?FORALL(Commands, more_commands(CommandsFactor, proper_statem:commands(?MODULE, InitialState)),
-      ?IMPLIES(
-            command_list_has_at_least_one_run_batch_task(Commands) andalso
-                db_model:command_list_has_at_least_one_add_data(Commands),
-            ?TRACEFAIL(Commands,
-                  begin
-                    proper_cloak_instance:stop_instance(),
-                    {ok, CloakNode} = proper_cloak_instance:start_instance(),
-                    proper_statem:run_commands(?MODULE, Commands)
-                  end,
-                  measure("Command sequence length", length(Commands),
-                      measure("Outlier buckets", State#state.buckets_not_ok,
-                          use_aggregators(
-                                [
-                                  {fun my_command_names/1, [Commands]},
-                                  {fun absolute_bucket_stats/1, [State]},
-                                  {fun relative_bucket_stats/1, [State]},
-                                  {fun bucket_sizes/1, [State]},
-                                  {fun bucket_list_sizes/1, [State]}
-                                ],
-                                Result =:= ok andalso verify_buckets(State)
-                              )))
-                )
-          )),
+  Result =
+    numtests(3,
+        ?FORALL(Commands, more_commands(CommandsFactor, proper_statem:commands(?MODULE, InitialState)),
+            ?IMPLIES(
+                  command_list_has_at_least_one_run_batch_task(Commands) andalso
+                      db_model:command_list_has_at_least_one_add_data(Commands),
+                  ?TRACEFAIL(State, Commands,
+                        begin
+                          db_model:prepare_database(),
+                          proper_statem:run_commands(?MODULE, Commands)
+                        end,
+                        measure("Command sequence length", length(Commands),
+                            measure("Outlier buckets", State#state.buckets_not_ok,
+                                use_aggregators(
+                                      [
+                                        {fun my_command_names/1, [Commands]},
+                                        {fun absolute_bucket_stats/1, [State]},
+                                        {fun relative_bucket_stats/1, [State]},
+                                        {fun bucket_sizes/1, [State]},
+                                        {fun bucket_list_sizes/1, [State]}
+                                      ],
+                                      Result =:= ok andalso verify_buckets(State)
+                                    )))
+                      )
+                ))),
   error_logger:tty(false),
   case whereis(db_job) of
     undefined -> ok;
@@ -102,7 +105,7 @@ prop_batch(Users, Values, MaxTables, MaxInitialColumns, CommandsFactor) ->
 command_list_has_at_least_one_run_batch_task(Commands) ->
   lists:any(
         fun
-          ({set, {var, _}, {call, rpc, call, [_CloakNode, ?MODULE, callback_run_batch_task, [_Prefetch]]}}) ->
+          ({set, {var, _}, {call, ?MODULE, callback_run_batch_task, _}}) ->
             true;
           (_) ->
             false
@@ -130,7 +133,7 @@ my_command_names(Commands) ->
   [my_command_name(Command) || {set, {var, _}, Command} <- Commands].
 
 -spec my_command_name(any()) -> any().
-my_command_name({call, rpc, call, [_Node, Module, Function, Parameters]}) ->
+my_command_name({call, Module, Function, Parameters}) ->
   {Module, Function, length(Parameters)};
 my_command_name(_) ->
   unknown.
@@ -190,30 +193,29 @@ verify_buckets(State) ->
 %% -------------------------------------------------------------------
 
 -spec command(#state{}) -> proper_gen:generator().
-command(#state{db_state=DbState, cloak_node=CloakNode}) ->
+command(#state{db_state=DbState}) ->
   frequency(lists:flatten([
-    db_model:command_list(1, CloakNode, DbState),
+    db_model:command_list(1, DbState),
     [
-      {20, run_batch_task(CloakNode, DbState)}
+      {20, run_batch_task(DbState)}
     ||
       db_model:has_at_least_one_table(DbState)
     ]
   ])).
 
-next_state(State, Result, {call, rpc, call, [_CloakNode, ?MODULE, callback_run_batch_task, [Prefetch]]}) ->
+next_state(State, Result, {call, ?MODULE, callback_run_batch_task, [Prefetch]}) ->
   next_state_run_batch_task(State, Result, Prefetch);
 next_state(#state{db_state=DbState}=State, Result, Call) ->
   State#state{db_state=db_model:next_state(DbState, Result, Call)}.
 
-precondition(_State, {call, rpc, call, [_CloakNode, ?MODULE, callback_run_batch_task, [_Prefetch]]}) ->
+precondition(_State, {call, ?MODULE, callback_run_batch_task, _}) ->
   true;
 precondition(#state{db_state=DbState}, Call) ->
   true =:= db_model:precondition(DbState, Call).
 
-postcondition(_State, {call, rpc, call, [_CloakNode, ?MODULE, callback_run_batch_task, [_Prefetch]]},
-    _Result) ->
-  %% We do not check here.  We perform the sanity checks when we run all commands at the end of the
-  %% sequence.
+postcondition(_State, {call, ?MODULE, callback_run_batch_task, _}, {error, _}) ->
+  false;
+postcondition(_State, {call, ?MODULE, callback_run_batch_task, _}, _Result) ->
   true;
 postcondition(#state{db_state=DbState}, Call, Result) ->
   true =:= db_model:postcondition(DbState, Call, Result).
@@ -223,14 +225,14 @@ postcondition(#state{db_state=DbState}, Call, Result) ->
 %% Running a batch task
 %% -------------------------------------------------------------------
 
--spec run_batch_task(node(), db_model:db_state()) -> proper_gen:generator().
-run_batch_task(CloakNode, DbState) ->
+-spec run_batch_task(db_model:db_state()) -> proper_gen:generator().
+run_batch_task(DbState) ->
   Prefetch = [
     [{table, iolist_to_binary(TableName)}, {user_rows, 1}]
   ||
     TableName <- db_model:tables(DbState)
   ],
-  return({call, rpc, call, [CloakNode, ?MODULE, callback_run_batch_task, [Prefetch]]}).
+  return({call, ?MODULE, callback_run_batch_task, [Prefetch]}).
 
 -spec callback_run_batch_task(prefetch_spec()) -> batch_task_result().
 callback_run_batch_task(Prefetch) ->
@@ -251,12 +253,36 @@ callback_run_batch_task(Prefetch) ->
         ]),
     return_token = {json, {process, self()}}
   },
-  task_coordinator:run_task(Task),
-  receive
-    {reply, Result} ->
-      transform_json_result(Result)
-  after 60000 ->
-    {error, timeout}
+  gproc:reg({p, l, {task_listener, Task#task.task_id}}),
+  try
+    task_coordinator:run_task(Task),
+    TaskId = Task#task.task_id,
+    receive
+      {task, TaskId, {started, TaskCoordinator}} ->
+        monitor(process, TaskCoordinator),
+        receive
+          {reply, Result} ->
+            transform_json_result(Result);
+          {'DOWN', _, process, TaskCoordinator, ExitReason} ->
+            case ExitReason of
+              normal ->
+                % It's possible that this arrives before the result, so we'll wait a bit more.
+                receive
+                  {reply, Result} -> transform_json_result(Result)
+                after 5000 -> {error, exit_without_result}
+                end;
+              _ ->
+                io:format("~nTask crashed with reason ~p~n", [ExitReason]),
+                {error, ExitReason}
+            end
+        after 60000 ->
+          {error, timeout}
+        end
+    after 5000 ->
+      {error, timeout}
+    end
+  after
+    gproc:unreg({p, l, {task_listener, Task#task.task_id}})
   end.
 
 -spec transform_json_result(binary()) -> [{binary(), binary()|undefined, integer()}].

@@ -2,7 +2,7 @@
 %% @end
 -module(common_generators).
 
--include("deps/proper/include/proper.hrl").
+-include_lib("proper/include/proper.hrl").
 -include("cloak.hrl").
 
 -export([

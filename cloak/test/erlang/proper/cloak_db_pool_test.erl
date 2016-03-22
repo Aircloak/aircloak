@@ -3,7 +3,7 @@
 -module(cloak_db_pool_test).
 -proper(simple).
 
--include("deps/proper/include/proper.hrl").
+-include_lib("proper/include/proper.hrl").
 -include("cloak.hrl").
 -include("prop_tracer.hrl").
 
@@ -47,6 +47,7 @@ proper_spec(Commands, CommandRunner) ->
         Cmds,
         Commands,
         ?TRACEFAIL(
+              _State,
               Commands,
               CommandRunner(?MODULE, Cmds),
               Result =:= ok

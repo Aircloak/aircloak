@@ -1,6 +1,0 @@
-run_test() ->
-  try
-    true = proper:quickcheck(full_test:prop_full(250, 8, 10, 10, 10), [{numtests, 10}, {max_size, 200}])
-  after
-    proper_cloak_instance:stop_instance()
-  end.

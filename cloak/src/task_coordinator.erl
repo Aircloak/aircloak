@@ -90,6 +90,8 @@ run_job({Task, CallerPid, CallerRef}) ->
 init({Task, ReplyPid, ReplyRef}) ->
   init({Task, ReplyPid, ReplyRef, fun job_runner_sup:execute/4});
 init({Task, ReplyPid, ReplyRef, JobRunner}) ->
+  % Notify possible subscribers that this process has started. Used for test purposes.
+  gproc:send({p, l, {task_listener, Task#task.task_id}}, {task, Task#task.task_id, {started, self()}}),
   LcfUsers = lcf_users:new(),
   Aggregator = aggregator:new(LcfUsers),
   State = #state{
