@@ -1,7 +1,7 @@
 %% @doc Testing the {@link queued_worker} queued computation implementation.
 -module(queued_worker_test).
 -behavour(queued_worker).
--proper(extended).
+-proper(simple).
 
 -include("deps/proper/include/proper.hrl").
 
@@ -22,12 +22,13 @@
 %% Test that not more than requested concurrent executions are performed and that all requests are
 %% processed.
 prop_queued_computation() ->
-  ?FORALL({NumberOfItems, MaxConcurrency}, g_parameters(),
-      ?TRAPEXIT(
-          measure("Number of items", NumberOfItems,
-              measure("Maximum concurrency", MaxConcurrency,
-                  measure("Items/Concurrency", NumberOfItems / MaxConcurrency,
-                      process_items(NumberOfItems, MaxConcurrency)))))).
+  numtests(10,
+      ?FORALL({NumberOfItems, MaxConcurrency}, g_parameters(),
+          ?TRAPEXIT(
+              measure("Number of items", NumberOfItems,
+                  measure("Maximum concurrency", MaxConcurrency,
+                      measure("Items/Concurrency", NumberOfItems / MaxConcurrency,
+                          process_items(NumberOfItems, MaxConcurrency))))))).
 
 
 %% ---------------------------------------------------------------------
