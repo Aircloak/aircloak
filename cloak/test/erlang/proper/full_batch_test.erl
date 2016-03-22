@@ -213,10 +213,9 @@ precondition(_State, {call, ?MODULE, callback_run_batch_task, _}) ->
 precondition(#state{db_state=DbState}, Call) ->
   true =:= db_model:precondition(DbState, Call).
 
-postcondition(_State, {call, ?MODULE, callback_run_batch_task, _},
-    _Result) ->
-  %% We do not check here.  We perform the sanity checks when we run all commands at the end of the
-  %% sequence.
+postcondition(_State, {call, ?MODULE, callback_run_batch_task, _}, {error, _}) ->
+  false;
+postcondition(_State, {call, ?MODULE, callback_run_batch_task, _}, _Result) ->
   true;
 postcondition(#state{db_state=DbState}, Call, Result) ->
   true =:= db_model:postcondition(DbState, Call, Result).
@@ -254,12 +253,36 @@ callback_run_batch_task(Prefetch) ->
         ]),
     return_token = {json, {process, self()}}
   },
-  task_coordinator:run_task(Task),
-  receive
-    {reply, Result} ->
-      transform_json_result(Result)
-  after 60000 ->
-    {error, timeout}
+  gproc:reg({p, l, {task_listener, Task#task.task_id}}),
+  try
+    task_coordinator:run_task(Task),
+    TaskId = Task#task.task_id,
+    receive
+      {task, TaskId, {started, TaskCoordinator}} ->
+        monitor(process, TaskCoordinator),
+        receive
+          {reply, Result} ->
+            transform_json_result(Result);
+          {'DOWN', _, process, TaskCoordinator, ExitReason} ->
+            case ExitReason of
+              normal ->
+                % It's possible that this arrives before the result, so we'll wait a bit more.
+                receive
+                  {reply, Result} -> transform_json_result(Result)
+                after 5000 -> {error, exit_without_result}
+                end;
+              _ ->
+                io:format("~nTask crashed with reason ~p~n", [ExitReason]),
+                {error, ExitReason}
+            end
+        after 60000 ->
+          {error, timeout}
+        end
+    after 5000 ->
+      {error, timeout}
+    end
+  after
+    gproc:unreg({p, l, {task_listener, Task#task.task_id}})
   end.
 
 -spec transform_json_result(binary()) -> [{binary(), binary()|undefined, integer()}].
