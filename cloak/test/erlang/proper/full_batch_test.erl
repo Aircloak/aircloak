@@ -2,6 +2,7 @@
 %%      We check correctness by manually inspecting all the tables in the database.
 %% @end
 -module(full_batch_test).
+-proper(extended).
 
 -include("deps/proper/include/proper.hrl").
 -include("cloak.hrl").
