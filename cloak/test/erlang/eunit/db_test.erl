@@ -16,7 +16,9 @@
   setup/0,
   create_analyst_schema/1,
   create_analyst_table/3,
-  add_users_data/3
+  add_users_data/3,
+  drop_analyst_table/2,
+  clear_analyst_table/2
 ]).
 
 
@@ -45,11 +47,7 @@ create_analyst_schema(Analyst) ->
 create_analyst_table(Analyst, TableName, Definition) ->
   cloak_db:call(test, fun(Connection) ->
         {{create, table}, _} = sql_conn:simple_query(
-              [
-                "CREATE TABLE ",
-                  sql_util:sanitize_db_object([analyst_tables:schema_for_analyst(Analyst), ".", "user_", TableName]),
-                "(", Definition, ")"
-              ],
+              ["CREATE TABLE ", sanitized_analyst_table(Analyst, TableName), "(", Definition, ")"],
               Connection
             )
       end).
@@ -63,13 +61,28 @@ add_users_data(Analyst, Data, Timeout) ->
       end),
   ok.
 
+%% @doc Drops the analyst table
+drop_analyst_table(Analyst, TableName) ->
+  cloak_db:call(test, fun(Connection) ->
+        sql_conn:simple_query(["DROP TABLE ", sanitized_analyst_table(Analyst, TableName)], Connection)
+      end).
+
+%% @doc Drops the analyst table
+clear_analyst_table(Analyst, TableName) ->
+  cloak_db:call(test, fun(Connection) ->
+        sql_conn:simple_query(
+              ["TRUNCATE TABLE ", sanitized_analyst_table(Analyst, TableName)],
+              Connection
+            )
+      end).
+
 
 %% -------------------------------------------------------------------
 %% Internal functions
 %% -------------------------------------------------------------------
 
 insert_rows(Analyst, UserId, TableName, TableData, Timeout, Connection) ->
-  FullTableName = sql_util:sanitize_db_object([analyst_tables:schema_for_analyst(Analyst), ".", "user_", TableName]),
+  FullTableName = sanitized_analyst_table(Analyst, TableName),
   Columns = lists:map(fun sql_util:sanitize_db_object/1,
       ["ac_user_id", "ac_created_at"] ++ proplists:get_value(columns, TableData)),
   Rows = lists:map(
@@ -110,3 +123,6 @@ clean_db() ->
             || {Schema} <- Schemas],
           ok
       end).
+
+sanitized_analyst_table(Analyst, TableName) ->
+    sql_util:sanitize_db_object([analyst_tables:schema_for_analyst(Analyst), ".", "user_", TableName]).
