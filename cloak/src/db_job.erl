@@ -355,12 +355,8 @@ enqueue_in_state(generic_queue, From,
 queue_test_() ->
   {
     foreach,
-    fun() ->
-      shutdown_queue(),
-      {ok, _QueuePid} = start_link()
-    end,
-    fun(_) -> shutdown_queue()
-    end,
+    fun() -> ok end,
+    fun(_) -> ok end,
     [
       {"It should allows tasks to execute", fun() ->
           FutureOperations = execute_operations([
@@ -557,17 +553,6 @@ enqueue_in_state_test_() ->
           FinalState#state.streaming_queue_length)
     end}
   ].
-
-shutdown_queue() ->
-  error_logger:tty(false),
-  case whereis(db_job) of
-    undefined -> ok;
-    Pid ->
-      unlink(Pid),
-      exit(Pid, kill)
-  end,
-  timer:sleep(100),
-  error_logger:tty(true).
 
 partition_by(_Num, []) -> [];
 partition_by(Num, Operations) ->

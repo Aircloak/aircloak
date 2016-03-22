@@ -28,7 +28,7 @@ dialyze:
 	mix dialyze
 
 docs:
-	mix docs
+	mix docs.all
 
 release:
 	MIX_ENV=prod mix do compile, site_release

@@ -305,7 +305,7 @@ create_input_table_data_field(Boolean) when is_boolean(Boolean) ->
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("erlang_common/include/eunit_helpers.hrl").
+-include("eunit_helpers.hrl").
 
 create_row(Number) ->
   #tabledatapb_row{fields = [#tabledatapb_field{number = Number}]}.
@@ -381,7 +381,7 @@ test_data_streaming() ->
 integration_test_() ->
   {setup,
     fun() -> db_test:setup() end,
-    fun(_) -> db_test:teardown() end,
+    fun(_) -> ok end,
     [
       fun test_data_mapping/0,
       fun test_data_streaming/0

@@ -2,25 +2,26 @@
 *
 
 # whitelist only needed folders
-!VERSION
-!tmp/image_shell_init.sh
-!etcd
-!config/config.sh
-!config/tcp_ports.json
-!site/artifacts/cache/deps
-!site/brunch-config.js
-!site/package.json
-!site/priv/repo
-!site/Makefile
-!site/mix.exs
-!site/mix.lock
-!site/config
-!site/lib
-!site/web
-!site/src
-!site/include
-!site/scripts
-!site/rel
+!air/VERSION
+!air/tmp/image_shell_init.sh
+!air/etcd
+!air/config/config.sh
+!air/config/tcp_ports.json
+!air/site/artifacts/cache/deps
+!air/site/brunch-config.js
+!air/site/package.json
+!air/site/priv/repo
+!air/site/Makefile
+!air/site/mix.exs
+!air/site/mix.lock
+!air/site/config
+!air/site/lib
+!air/site/web
+!air/site/src
+!air/site/include
+!air/site/scripts
+!air/site/rel
+!common
 
 # blacklist some stuff
-site/priv/repo/seeds.exs
+air/site/priv/repo/seeds.exs

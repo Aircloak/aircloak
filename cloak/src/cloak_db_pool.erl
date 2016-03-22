@@ -213,21 +213,12 @@ normalize_conn_params(Params) -> Params.
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("erlang_common/include/eunit_helpers.hrl").
+-include("eunit_helpers.hrl").
 
 pool_test_() ->
   {setup,
-    fun() ->
-      gproc:start_link(),
-      cloak_db_pool_sup:start_link()
-    end,
-    fun(_) ->
-      error_logger:tty(false),
-      unlink(whereis(cloak_db_pool_sup)),
-      exit(whereis(cloak_db_pool_sup), kill),
-      timer:sleep(100),
-      error_logger:tty(true)
-    end,
+    fun() -> ok end,
+    fun(_) -> ok end,
     [
       {"basic acquire and release",
         fun() ->
@@ -275,6 +266,7 @@ pool_test_() ->
         fun() ->
           PoolPid = pool(),
           Me = self(),
+          'Elixir.Logger':remove_backend(console),
           error_logger:tty(false),
           %% A client which takes the connection, then exits with some reason.
           Pid = spawn(fun() ->
@@ -295,6 +287,7 @@ pool_test_() ->
           %% Subsequent acquire should return a different connection.
           ?assertNotEqual({ok, Conn}, acquire_test_connection()),
           error_logger:tty(true),
+          'Elixir.Logger':add_backend(console, [{flush, true}]),
           %% Verify that the pool is still alive
           ?assertEqual(PoolPid, pool()),
           stop_pool()

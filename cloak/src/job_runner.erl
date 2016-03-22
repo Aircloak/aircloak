@@ -186,7 +186,7 @@ code_change(_, _, _) ->
 %% -------------------------------------------------------------------
 
 open_sandbox_port() ->
-  PortProgram = cloak_conf:get_val(sandbox, binary),
+  PortProgram = filename:join(code:priv_dir(cloak), "sandbox"),
   open_port({spawn_executable, PortProgram}, [{packet, 4}, use_stdio, binary, exit_status]).
 
 kill_sandbox_port(Port) ->
@@ -246,9 +246,8 @@ collect_data_from_port(Data, #state{active_job=Job, port=Port}=State) ->
       State#state{active_job=Job#job{parameters={User, NewInput}}};
     {ok, #joboutputmessagepb{job_response=#jobresponsepb{status='OK'}=JobResponsePB}} ->
       Properties = JobResponsePB#jobresponsepb.properties,
-      InsertActions = JobResponsePB#jobresponsepb.table_insert_actions,
       Accumulator = JobResponsePB#jobresponsepb.accumulator,
-      generate_success_reply(Properties, InsertActions, Accumulator, Job, State);
+      generate_success_reply(Properties, Accumulator, Job, State);
     {ok, #joboutputmessagepb{job_response=#jobresponsepb{status='ERROR', error=Error}}} ->
       generate_error_reply({sandbox_error, Error}, Job, State);
     _ ->
@@ -269,11 +268,9 @@ run_next(#state{job_queue=JQ1}=State) ->
       execute_job(Job, State#state{job_queue=JQ2})
   end.
 
-generate_success_reply(Properties, InsertActions, Accumulator,
-    #job{request=Request, parameters={User, _}, request_id=RequestId, reporter_fun=ReporterFun} = Job, State) ->
+generate_success_reply(Properties, Accumulator,
+    #job{request=Request, parameters={User, _}, request_id=RequestId, reporter_fun=ReporterFun} = _Job, State) ->
   add_job_runtime_metric(State),
-  Analyst = Request#task.analyst_id,
-  UserData = convert_insert_actions(InsertActions),
   JobResponse = #job_response{
     user_id = User,
     analyst_id = Request#task.analyst_id,
@@ -322,69 +319,6 @@ remove_request(RequestId, List) ->
 
 
 %% -------------------------------------------------------------------
-%% Converting insert actions
-%% -------------------------------------------------------------------
-%%
-%% Input: A protocol buffer of type [#insertdatapb{}].
-%%
-%% Problems:
-%%   - Many list items are for the same table.
-%%   - Each table contains rows with different columns.
-%%   - We want each table occur only once in the user_data() list.
-%%
-%% The idea of the algorithm is the following:
-%%   - First collect all rows for a table.  While doing that collect a set of columns that are used for this
-%%     table.
-%%   - We order the columns in each row according to the ordered list of column names.
-%%   - We can scan a single row by apply_row_spec_to_row/3 if the row itself is sorted (which we ensure).
-
-%% This converts the insert actions to user_data().
--spec convert_insert_actions([#insertdatapb{}]) -> user_data().
-convert_insert_actions(InsertActions) ->
-  TableDict = lists:foldl(fun convert_insert_action/2, dict:new(), InsertActions),
-  dict:fold(fun table_dict_to_user_data/3, [], TableDict).
-
-convert_insert_action(#insertdatapb{table=TableName, rows=Rows}, TableDict) ->
-  {RowSpec, SavedRows} = case dict:find(TableName, TableDict) of
-    {ok, RowSpecSavedRows} -> RowSpecSavedRows;
-    error -> {sets:new(), []}
-  end,
-  NewRowSpec = lists:foldl(fun(#insertdatapb_row{fields=Fields}, RS) ->
-        lists:foldl(fun add_to_row_spec/2, RS, Fields)
-      end, RowSpec, Rows),
-  dict:store(TableName, {NewRowSpec, Rows ++ SavedRows}, TableDict).
-
-add_to_row_spec(#insertdatapb_field{name=Name}, RowSpec) ->
-  sets:add_element(Name, RowSpec).
-
-table_dict_to_user_data(TableName, {RowSpecSet, Rows}, Acc) ->
-  RowSpec = lists:sort(sets:to_list(RowSpecSet)),
-  ConvertedRows = [apply_row_spec_to_row(RowSpec, lists:sort(fun field_name_compare/2, Fields), []) ||
-      #insertdatapb_row{fields=Fields} <- Rows],
-  [{cloak_util:binarify(TableName),
-    [{columns, [iolist_to_binary(Column) || Column <- RowSpec]}, {data, ConvertedRows}]
-  }|Acc].
-
-field_name_compare(#insertdatapb_field{name=Name1}, #insertdatapb_field{name=Name2}) ->
-  Name1 =< Name2.
-
-apply_row_spec_to_row([], [], Acc) ->
-  lists:reverse(Acc);
-apply_row_spec_to_row([Name | SpecRest], [#insertdatapb_field{name=Name} = Field | ColRest], Acc) ->
-  apply_row_spec_to_row(SpecRest, ColRest, [convert_field_data(Field) | Acc]);
-apply_row_spec_to_row([_ | SpecRest], ColRest, Acc) ->
-  apply_row_spec_to_row(SpecRest, ColRest, [null | Acc]).
-
-convert_field_data(#insertdatapb_field{number=I}) when I /= undefined andalso trunc(I) == I ->
-  % "integer float" is converted to integer. We need this since lua doesn't distinguish integers from floats
-  trunc(I);
-convert_field_data(#insertdatapb_field{number=I}) when I /= undefined -> I;
-convert_field_data(#insertdatapb_field{string=S}) when S /= undefined -> S;
-convert_field_data(#insertdatapb_field{boolean=B}) when B /= undefined -> B;
-convert_field_data(#insertdatapb_field{}) -> null.
-
-
-%% -------------------------------------------------------------------
 %% Timeout handling
 %% -------------------------------------------------------------------
 
@@ -426,7 +360,7 @@ add_job_runtime_metric(#state{start_time=StartTime}) ->
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
--include_lib("erlang_common/include/eunit_helpers.hrl").
+-include("eunit_helpers.hrl").
 
 create_insertdatapb(TableName, Rows) ->
   #insertdatapb{table=TableName, rows=[create_insertdatapb_row(Row) || Row <- Rows]}.
@@ -438,32 +372,6 @@ create_insertdatapb_field({Name, Number}) when is_number(Number) ->
   #insertdatapb_field{name=Name, number=Number};
 create_insertdatapb_field({Name, Bool}) when is_boolean(Bool) ->
   #insertdatapb_field{name=Name, boolean=Bool}.
-
-convert_insert_actions_test() ->
-  InsertActions = [
-    create_insertdatapb("table1", [
-          [{"foo", 1}, {"bar", 2.0}],
-          [{"foo", 3.14}, {"baz", false}]
-        ]),
-    create_insertdatapb("table2", [[{"foo", 5}, {"bar", 6}, {"baz", true}, {"foobar", 8}]]),
-    create_insertdatapb("table1", [[{"foo", 5}, {"bar", 6}, {"baz", true}, {"foobar", 8}]]),
-    create_insertdatapb("table2", [
-          [{"foo", 1}, {"bar", 2}],
-          [{"foo", 3}, {"baz", false}]
-        ])
-  ],
-  UserData = [
-    {<<"table2">>, [
-      {columns,[<<"bar">>,<<"baz">>,<<"foo">>,<<"foobar">>]},
-      {data,[[2,null,1,null], [null,false,3,null], [6,true,5,8]]}
-    ]},
-    {<<"table1">>, [
-      {columns,[<<"bar">>,<<"baz">>,<<"foo">>,<<"foobar">>]},
-      {data,[[6,true,5,8], [2,null,1,null], [null,false,3.14,null]]}
-    ]}
-  ],
-  ?assertEqual(UserData, convert_insert_actions(InsertActions)).
-
 
 -define(run_sandbox_test(Code), ?run_sandbox_test(Code, [])).
 -define(run_sandbox_test(Code, Libraries), ?run_sandbox_test(Code, Libraries, undefined)).
@@ -498,18 +406,8 @@ convert_insert_actions_test() ->
 
 run_sandbox_test_() ->
 {setup,
-  fun() ->
-    gproc:start_link(),
-    job_runner:start_link(1)
-  end,
-  fun({ok, JobRunnerPid}) ->
-    meck:unload(),
-    error_logger:tty(false),
-    unlink(JobRunnerPid),
-    exit(JobRunnerPid, kill),
-    error_logger:tty(true),
-    ok
-  end,
+  fun() -> ok end,
+  fun(_) -> ok end,
   [
     {"job runs", fun() ->
       {ok, ?job_response(Properties, _)} = ?run_sandbox_test("

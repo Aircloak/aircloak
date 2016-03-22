@@ -78,7 +78,8 @@ defmodule Air.Mixfile do
       {:ex_doc, "~> 0.11", only: :dev},
       {:credo, "~> 0.3.0", only: [:dev, :test]},
       {:excoveralls, "~> 0.5", only: :test},
-      {:eunit_formatters, "~> 0.3.0", only: :test}
+      {:eunit_formatters, "~> 0.3.0", only: :test},
+      {:aircloak_mix_tasks, path: "../../common/mix_tasks"}
     ]
   end
 

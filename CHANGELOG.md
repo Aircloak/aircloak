@@ -1,5 +1,10 @@
 This document serves to describe breaking changes and provide upgrade hints when major changes are introduced. When you're creating a pull with some major changes, please add brief upgrade instructions here.
 
+## Mixification of cloak
+
+- Cloak project is now compiled with `mix` and powered by Elixir. You'll need Erlang 18.x and Elixir >= 1.2.3 to run it. There is the `Makefile` file in the `cloak` folder with typical tasks.
+- Extended proper tests (full, batch) are currently not working, and they are excluded from Travis tests.
+
 ## Dockerization of insights
 
 - The role which accesses the test database has been changed, so your local tests will probably break. To fix this, start the docker database container, drop `air_test` database, and finally restart the database container.

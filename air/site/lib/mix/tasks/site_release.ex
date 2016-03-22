@@ -19,6 +19,6 @@ defmodule Mix.Tasks.SiteRelease do
     File.rm_rf!("rel/air")
     {_, 0} = System.cmd("brunch", ["build", "--production"])
     :ok = Mix.Task.run("phoenix.digest")
-    :ok = Mix.Task.run("release")
+    :ok = Mix.Task.run("release", ["--no-confirm-missing"])
   end
 end

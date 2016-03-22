@@ -1,7 +1,7 @@
 % Various helpers that can be used in EUnit tests.
 %
 % To use these macros, add the following line to your test section:
-%     -include_lib("erlang_common/include/eunit_helpers.hrl").
+%     -include("eunit_helpers.hrl").
 
 % Tests that a message has been sent to this process. On success returns the
 % received message so it can be further analyzed, if needed.

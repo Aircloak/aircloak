@@ -12,8 +12,6 @@
 -module(queued_worker).
 -behaviour(gen_server).
 
--compile({parse_transform, lager_transform}).
-
 %% API
 -export([
   start_link/3,
@@ -30,6 +28,8 @@
   terminate/2,
   code_change/3
 ]).
+
+-include("cloak.hrl").
 
 -record(state, {
   handler :: atom(),
@@ -97,14 +97,14 @@ handle_info({'DOWN', MonitorRef, process, Pid, _Reason},
       },
       {noreply, conditionally_run_job(StateWithoutTerminated)};
     false ->
-      lager:warning("unknown monitored process ~p", [Pid]),
+      ?WARNING("unknown monitored process ~p", [Pid]),
       {noreply, State}
   end.
 
 terminate(normal, _State) ->
   ok;
 terminate(Reason, _State) ->
-  lager:critical("abnormal termination of ~p due to ~p", [?MODULE, Reason]),
+  ?CRITICAL("abnormal termination of ~p due to ~p", [?MODULE, Reason]),
   ok.
 
 code_change(_, _, _) ->

@@ -30,7 +30,12 @@
 %% @doc Replaces default alarm handler with our own.
 -spec install() -> ok.
 install() ->
-  gen_event:swap_handler(alarm_handler, {alarm_handler, swap}, {?MODULE, undefined}).
+  case cloak_conf:get_val(alarm_handler, install) of
+    true ->
+      gen_event:swap_handler(alarm_handler, {alarm_handler, swap}, {?MODULE, undefined});
+    false ->
+      ok
+  end.
 
 
 %% -------------------------------------------------------------------

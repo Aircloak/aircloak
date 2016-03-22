@@ -18,6 +18,9 @@
 
 -spec start_metrics_server() -> {ok, pid()} | {error, {already_started, pid()}}.
 %% @doc Starts the singleton metrics server instance.
+-ifdef(TEST).
+start_metrics_server() -> {ok, self()}.
+-else.
 start_metrics_server() ->
   cloak_metrics:start_server([
         {noise_fun, fun noise_fun/1},
@@ -30,6 +33,7 @@ start_metrics_server() ->
               )
         ]}
       ]).
+-endif.
 
 
 %% -------------------------------------------------------------------

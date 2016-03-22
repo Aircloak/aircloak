@@ -233,7 +233,7 @@ get_node_of_handle(Handle) ->
   end.
 
 create_unique_node_handle(RegisteredTasks) ->
-  Now = cloak_util:timestamp_to_int(erlang:now()),
+  Now = erlang:monotonic_time(),
   Handle = iolist_to_binary([atom_to_list(node()), "#", integer_to_list(Now)]),
   % Due to the semantics of erlang:now/1 we should have generated an unique key.  Just assert this here.
   false = dict:is_key(Handle, RegisteredTasks),

@@ -1,0 +1,24 @@
+# Special configuration in carbon - don't use copy truncate, and use nocreate
+# (see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=733856)
+/var/log/carbon/*.log
+/var/log/carbon/*/*.log
+{
+  daily
+  rotate 30
+  dateext
+  missingok
+  nocreate
+  compress
+}
+
+# In graphite web, we use copytruncate, just in case. It makes rotation possible
+# even when a process won't close the logfile.
+/var/log/graphite/*.log
+{
+  daily
+  rotate 30
+  dateext
+  missingok
+  copytruncate
+  compress
+}

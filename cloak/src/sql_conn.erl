@@ -221,8 +221,8 @@ default_timeout() ->
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("erlang_common/include/eunit_helpers.hrl").
--include_lib("erlang_common/include/debug_helpers.hrl").
+-include("eunit_helpers.hrl").
+-include("debug_helpers.hrl").
 
 -define(assertQueryTimeout(QueryResult),
       (fun() ->

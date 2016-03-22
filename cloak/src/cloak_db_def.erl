@@ -179,9 +179,9 @@ cloak_db_def_test_() ->
     foreach,
     fun() ->
       db_test:setup(),
-      timer:sleep(200) % Makes sure server is started
+      ok = invalidate_cached_def(<<"public">>, <<"test1">>)
     end,
-    fun(_) -> db_test:teardown() end,
+    fun(_) -> ok end,
     [
       {"basic test", fun() ->
         Sql = [
