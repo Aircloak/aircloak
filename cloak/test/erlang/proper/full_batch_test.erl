@@ -6,7 +6,7 @@
 -include("deps/proper/include/proper.hrl").
 -include("cloak.hrl").
 -include("full_test.hrl").
--include("../prop_tracer.hrl").
+-include("prop_tracer.hrl").
 
 %% API
 -export([
