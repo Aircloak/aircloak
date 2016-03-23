@@ -228,7 +228,7 @@ postcondition(#state{db_state=DbState}, Call, Result) ->
 -spec run_batch_task(db_model:db_state()) -> proper_gen:generator().
 run_batch_task(DbState) ->
   Prefetch = [
-    [{table, iolist_to_binary(TableName)}, {user_rows, 1}]
+    [{table, db_test:full_table_name(iolist_to_binary(TableName))}, {user_rows, 1}]
   ||
     TableName <- db_model:tables(DbState)
   ],
@@ -238,7 +238,6 @@ run_batch_task(DbState) ->
 callback_run_batch_task(Prefetch) ->
   Task = #task{
     task_id = <<"task-id">>,
-    analyst_id = ?ANALYST_ID,
     prefetch = Prefetch,
     code = iolist_to_binary([
           "tables = get_user_tables()\n",
@@ -316,7 +315,7 @@ generate_expected_result(DbState) ->
                   lists:foldl(
                       fun({ColumnName, ColumnData}, Buckets2) ->
                         Key = {
-                          iolist_to_binary([TableName, $:, ColumnName]),
+                          iolist_to_binary([db_test:full_table_name(TableName), $:, ColumnName]),
                           iolist_to_binary(integer_to_list(ColumnData))
                         },
                         dict:update_counter(Key, 1, Buckets2)

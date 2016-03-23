@@ -23,8 +23,7 @@
 test_task(Code) ->
   #task{
     task_id = "test_task",
-    analyst_id = 1,
-    prefetch = [[{table,<<"heights">>}]],
+    prefetch = [[{table, db_test:full_table_name(<<"heights">>)}]],
     code = Code,
     libraries = [],
     return_token = {json, {process, self()}}
@@ -34,9 +33,8 @@ task_test_() ->
   {setup,
     fun() ->
       db_test:setup(),
-      db_test:create_analyst_schema(1),
-      db_test:create_analyst_table(1, "heights",
-          "height integer, ac_user_id varchar(40), ac_created_at timestamp"),
+      db_test:create_test_schema(),
+      db_test:create_table("heights", "height integer, ac_user_id varchar(40), ac_created_at timestamp"),
       meck:new(cloak_distributions),
       meck:expect(cloak_distributions, gauss, fun(_Sigma, N) -> round(N) end),
       meck:expect(cloak_distributions, gauss_s, fun(_Sigma, N, _Seed) -> round(N) end),
@@ -46,9 +44,9 @@ task_test_() ->
     [
       {"no rows", fun() ->
         ?verifyAsync(
-              <<"for row in user_table(\"heights\") do report_property(\"height\", row.height) end">>,
+              <<"for row in user_table(\"", (db_test:full_table_name(<<"heights">>))/binary,
+                  "\") do report_property(\"height\", row.height) end">>,
               [
-                {<<"analyst_id">>, 1},
                 {<<"buckets">>, []},
                 {<<"exceptions">>, []},
                 {<<"task_id">>, "test_task"}
@@ -60,11 +58,11 @@ task_test_() ->
             iolist_to_binary(io_lib:format("user-~p", [Index])),
             [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
           } || Index <- lists:seq(1, 100)],
-        ok = db_test:add_users_data(1, Data, timer:seconds(5)),
+        ok = db_test:add_users_data(Data, timer:seconds(5)),
         ?verifyAsync(
-              <<"for row in user_table(\"heights\") do report_property(\"height\", row.height) end">>,
+              <<"for row in user_table(\"", (db_test:full_table_name(<<"heights">>))/binary,
+                  "\") do report_property(\"height\", row.height) end">>,
               [
-                {<<"analyst_id">>,1},
                 {<<"buckets">>, [{struct, [
                   {<<"label">>, <<"height">>},
                   {<<"value">>, <<"180">>},
@@ -80,11 +78,11 @@ task_test_() ->
             iolist_to_binary(io_lib:format("user-~p", [Index])),
             [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
           } || Index <- lists:seq(1, 100)],
-        ok = db_test:add_users_data(1, Data, timer:seconds(5)),
+        ok = db_test:add_users_data(Data, timer:seconds(5)),
         ?verifySync(
-              <<"for row in user_table(\"heights\") do report_property(\"height\", row.height) end">>,
+              <<"for row in user_table(\"", (db_test:full_table_name(<<"heights">>))/binary,
+                  "\") do report_property(\"height\", row.height) end">>,
               [
-                {<<"analyst_id">>,1},
                 {<<"buckets">>, [{struct, [
                   {<<"label">>, <<"height">>},
                   {<<"value">>, <<"180">>},
@@ -100,11 +98,10 @@ task_test_() ->
             iolist_to_binary(io_lib:format("user-~p", [Index])),
             [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
           } || Index <- lists:seq(1, 100)],
-        ok = db_test:add_users_data(1, Data, timer:seconds(5)),
+        ok = db_test:add_users_data(Data, timer:seconds(5)),
         ?verifyAsync(
               <<"error('some_error')">>,
               [
-                {<<"analyst_id">>,1},
                 {<<"buckets">>,[]},
                 {<<"exceptions">>, [{struct, [
                   {<<"error">>, <<"{sandbox_error,\"[string \\\"task_code\\\"]:1: some_error\"}">>},
@@ -120,7 +117,6 @@ task_test_() ->
         {struct, Result} = mochijson2:decode(Json),
         ?assertEqual(
               [
-                {<<"analyst_id">>, 1},
                 {<<"buckets">>, []},
                 {<<"exceptions">>, [{struct,[
                   {<<"error">>, <<"task execution timed out before processing all users">>},

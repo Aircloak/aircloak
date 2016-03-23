@@ -15,27 +15,23 @@ run_task_test_() ->
       meck:new(progress_handler, [passthrough]),
       meck:expect(progress_handler, register_task, 2, fun(Task, undefined) -> Task end)
     end,
-    fun(Pid) ->
+    fun(_) ->
       meck:unload()
     end,
     [
-      ?_assertMatch(
-            {_, {{_, 401, _}, _, <<"{\"success\":false,\"error\":\"Missing analyst HTTP-HEADER\"}">>}},
-            server_tester:post("task/run")
-          ),
       fun() ->
         meck:new(task_coordinator, []),
         meck:expect(task_coordinator, run_task, 1, fun(_) -> self() ! {reply, <<"task_result">>}, ok end),
         ?assertMatch(
               {_, {{_, 200, _}, _, <<"task_result">>}},
-              server_tester:post("task/run", [{"analyst", "1"}], task_body())
+              server_tester:post("task/run", [], task_body())
             ),
         meck:unload(task_coordinator)
       end,
       fun() ->
         ?assertMatch(
               {_, {{_, 422, _}, _, <<"{\"success\":false,\"error\":\"missing required headers: task_id, auth_token\"}">>}},
-              server_tester:post("task/run", [{"analyst", "1"}, {"async_query", "true"}], task_body())
+              server_tester:post("task/run", [{"async_query", "true"}], task_body())
             )
       end,
       fun() ->
@@ -45,7 +41,7 @@ run_task_test_() ->
         ?assertMatch(
               {_, {{_, 200, _}, _, <<"{\"success\":true}">>}},
               server_tester:post("task/run",
-                    [{"analyst", "1"}, {"async_query", "true"}, {"task_id", "foo"}, {"auth_token", "bar"}],
+                    [{"async_query", "true"}, {"task_id", "foo"}, {"auth_token", "bar"}],
                     task_body()
                   )
             ),

@@ -112,7 +112,7 @@
 -spec prepare_database() -> ok.
 prepare_database() ->
   db_test:setup(),
-  db_test:create_analyst_schema(?ANALYST_ID),
+  db_test:create_test_schema(),
   ok.
 
 %% @doc Create the initial state without any tables.
@@ -242,7 +242,7 @@ callback_add_table(TableName, Columns) ->
     iolist_to_binary(TableName),
     {create, [{iolist_to_binary(ColumnName), integer, []} || ColumnName <- Columns]}
   },
-  create_table(?ANALYST_ID, Data).
+  create_table(Data).
 
 %% @hidden
 -spec next_state_add_table(db_state(), any(), binary(), [string()]) -> db_state().
@@ -265,10 +265,10 @@ precondition_add_table(#state{max_tables=MaxTables, tables=Tables}, _NewTableNam
 postcondition_add_table(_State, Result, _NewTableName, _NewColumns) ->
   Result == ok.
 
-create_table(Analyst, {Table, {create, Columns}}) ->
+create_table({Table, {create, Columns}}) ->
   ColumnDefs = ["ac_user_id varchar(40)", "ac_created_at timestamp" |
     [[Column, " integer"] || {Column, integer, []} <- Columns]],
-  case db_test:create_analyst_table(Analyst, Table, cloak_util:join(ColumnDefs, ",")) of
+  case db_test:create_table(Table, cloak_util:join(ColumnDefs, ",")) of
     {{create, table}, _} -> ok;
     Other -> {error, Other}
   end.
@@ -288,7 +288,7 @@ remove_table(State) ->
 %% @hidden
 -spec callback_remove_table(binary()) -> ok | {error, any()}.
 callback_remove_table(TableName) ->
-  case db_test:drop_analyst_table(?ANALYST_ID, TableName) of
+  case db_test:drop_table(TableName) of
     {{drop, table}, _} -> ok;
     Error -> {error, Error}
   end.
@@ -324,7 +324,7 @@ clear_table(State) ->
 %% @hidden
 -spec callback_clear_table(binary()) -> ok | {error, any()}.
 callback_clear_table(TableName) ->
-  case db_test:clear_analyst_table(?ANALYST_ID, TableName) of
+  case db_test:clear_table(TableName) of
     {{truncate, table}, []} -> ok;
     Error -> {error, Error}
   end.
@@ -393,7 +393,7 @@ generate_table_data(State, TableName, TableSpec) ->
 %% @hidden
 -spec callback_add_data(table_data()) -> ok | any().
 callback_add_data(Data) ->
-  db_test:add_users_data(?ANALYST_ID, Data, timer:seconds(30)).
+  db_test:add_users_data(Data, timer:seconds(30)).
 
 %% @hidden
 -spec next_state_add_data(db_state, any(), table_data()) -> db_state().

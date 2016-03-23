@@ -1,7 +1,6 @@
 %% @doc HTTP API endpoint for inserting data.
 %%
-%%      Example asynchronous and synchronous requests (the header analyst should be set automatically by nginx
-%%      in a production environment).
+%%      Example asynchronous and synchronous requests:
 %%
 %%        - synchronous request (the default value of async_query is false, so we can omit the header when
 %%          running a synchronous request):
@@ -9,7 +8,6 @@
 %%        ```
 %%          cat << EOF | \
 %%            curl http://localhost:8098/task/run -v \
-%%                 --header "analyst:1" \
 %%                 --header "async_query:false" \
 %%                 --data @-
 %%            {
@@ -40,7 +38,6 @@
 %%        ```
 %%          cat << EOF | \
 %%            curl http://localhost:8098/task/run -v \
-%%                 --header "analyst:1" \
 %%                 --header "task_id:QWlyY2xvYWsgUm9ja3M=" \
 %%                 --header "async_query:true" \
 %%                 --header "auth_token:vKVEcuMs3pVd2bFZgT0VZA" \
@@ -63,7 +60,7 @@
 %%        - getting progress of an asynchronous batch query (GET request)
 %%
 %%        ```
-%%          curl http://localhost:8098/task/<progress-handle> -v --header "analyst:1"
+%%          curl http://localhost:8098/task/<progress-handle> -v
 %%        '''
 %%
 %%        It should return a JSON object with the element "progress" indicating the progress in percent (as
@@ -100,29 +97,26 @@ content_types_provided(ReqData, State) ->
 
 %% @hidden
 is_authorized(Req, State) ->
-  case resource_common:verify_analyst(Req) of
-    {ok, AnalystId} -> {true, Req, AnalystId};
-    {error, Error} -> {{halt, 401}, resource_common:respond_error(Error, Req), State}
-  end.
+  {true, Req, State}.
 
 %% @hidden
 post_is_create(Req, State) -> {false, Req, State}.
 
 %% @hidden
-process_post(Req, AnalystId) ->
-  handle_action(post, wrq:path_info(action, Req), Req, AnalystId).
+process_post(Req, _State) ->
+  handle_action(post, wrq:path_info(action, Req), Req).
 
 %% @hidden
-process_get(Req, AnalystId) ->
-  handle_action(get, wrq:path_info(action, Req), Req, AnalystId).
+process_get(Req, _State) ->
+  handle_action(get, wrq:path_info(action, Req), Req).
 
 
 %% -------------------------------------------------------------------
 %% Internal functions
 %% -------------------------------------------------------------------
 
-handle_action(post, "run", Req, AnalystId) ->
-  resource_common:stop_on_error(Req, AnalystId, [
+handle_action(post, "run", Req) ->
+  resource_common:stop_on_error(Req, undefined, [
     % first check if we have a asynchronous query (default: false)
     fun([]) ->
       case  wrq:get_req_header("async_query", Req) of
@@ -150,7 +144,7 @@ handle_action(post, "run", Req, AnalystId) ->
 
     % Decode the task.
     fun([ReturnToken, {TaskId, _}, _]) ->
-      {ok, decode_task(TaskId, AnalystId, ReturnToken, Req)}
+      {ok, decode_task(TaskId, ReturnToken, Req)}
     end,
 
     % Add a progress report handler if we have an asynchronous query.
@@ -185,9 +179,9 @@ handle_action(post, "run", Req, AnalystId) ->
         end
     end
   ]);
-handle_action(get, EncodedHandle, Req, AnalystId) ->
+handle_action(get, EncodedHandle, Req) ->
   Handle = http_uri:decode(EncodedHandle),
-  resource_common:stop_on_error(Req, AnalystId, [
+  resource_common:stop_on_error(Req, undefined, [
     % Retrieve progress
     fun([]) ->
       progress_handler:get_progress(list_to_binary(Handle))
@@ -198,8 +192,8 @@ handle_action(get, EncodedHandle, Req, AnalystId) ->
       {ok, {200, resource_common:respond_json([{success, true}, {progress, Progress}], Req)}}
     end
   ]);
-handle_action(_, _, Req, AnalystId) ->
-  {{halt, 404}, resource_common:path_error(Req), AnalystId}.
+handle_action(_, _, Req) ->
+  {{halt, 404}, resource_common:path_error(Req), undefined}.
 
 return_url(Req) ->
   OverriderUrl = decode_base64_header(wrq:get_req_header("return_url", Req)),
@@ -213,7 +207,7 @@ decode_base64_header(undefined) ->
 decode_base64_header(Value) when is_list(Value) ->
   base64:decode_to_string(Value).
 
-decode_task(TaskId, AnalystId, ReturnToken, Req) ->
+decode_task(TaskId, ReturnToken, Req) ->
   SourceIP = case {wrq:get_req_header("X-Real-IP", Req), wrq:get_req_header("X-Forwarded-For", Req)} of
     {undefined, undefined} ->
       ?WARNING("neither X-Real-IP nor X-Forwarded-For headers set;  using peer IP"),
@@ -229,6 +223,6 @@ decode_task(TaskId, AnalystId, ReturnToken, Req) ->
   end,
   Task = ?MEASURE(
         "task.parse_json",
-        task_json_parser:parse(list_to_binary(TaskId), AnalystId, SourceIP, wrq:req_body(Req))
+        task_json_parser:parse(list_to_binary(TaskId), SourceIP, wrq:req_body(Req))
       ),
   Task#task{return_token=ReturnToken}.

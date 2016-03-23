@@ -4,7 +4,7 @@
 
 %% API
 -export([
-  call/4
+  call/3
 ]).
 
 %% Export to trick dialyzer
@@ -23,12 +23,12 @@
 %% -------------------------------------------------------------------
 
 %% @doc Handles external lua call.
--spec call(analyst(), user_id(), job_data_streamer:job_input(), #functioncallpb{}) -> #datapb{}.
-call(AnalystId, UserId, JobInput, FunctionCall) ->
+-spec call(user_id(), job_data_streamer:job_input(), #functioncallpb{}) -> #datapb{}.
+call(UserId, JobInput, FunctionCall) ->
   % We catch exception in external call to prevent job accidentally (or intentionally) crashing
   % entire job runner.
   Result = try
-    do_call(AnalystId, UserId, JobInput, FunctionCall)
+    do_call(UserId, JobInput, FunctionCall)
   catch _T:_E ->
     undefined
   end,
@@ -39,9 +39,9 @@ call(AnalystId, UserId, JobInput, FunctionCall) ->
 %% Internal functions
 %% -------------------------------------------------------------------
 
-do_call(_AnalystId, _UserId, JobInput, #functioncallpb{name="get_user_tables", args=#datapbarray{elements=[]}}) ->
+do_call(_UserId, JobInput, #functioncallpb{name="get_user_tables", args=#datapbarray{elements=[]}}) ->
   [TableName || {TableName, _} <- JobInput];
-do_call(_AnalystId, _UserId, _JobInput, _NotSupported) -> undefined.
+do_call(_UserId, _JobInput, _NotSupported) -> undefined.
 
 encode_result(undefined) -> #datapb{}; % empty datapb corresponds to lua nil
 encode_result(Val) when is_number(Val) -> #datapb{double_val=Val};
