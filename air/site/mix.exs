@@ -21,7 +21,7 @@ defmodule Air.Mixfile do
       ],
       preferred_cli_env: [
         eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
-        "phoenix.digest": :prod, site_release: :prod, "test.full": :test
+        "phoenix.digest": :prod, site_release: :prod, "test.standard": :test
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [
@@ -87,7 +87,7 @@ defmodule Air.Mixfile do
       "recreate_db": ["app.start", "ecto.rollback --all", "ecto.migrate", "run priv/repo/seeds.exs"],
       "migrate": ["app.start", "ecto.migrate"],
       "rollback": ["app.start", "ecto.rollback"],
-      "test.full": ["test", "eunit"],
+      "test.standard": ["test", "eunit"],
       "lint": ["credo --strict"]
     ]
   end
