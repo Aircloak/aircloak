@@ -1,7 +1,5 @@
 # Cloak
 
-----------------------
-
 - [What it does](#what-it-does)
 - [Getting started](#getting-started)
     - [Prerequisites](#prerequisites)
@@ -39,7 +37,7 @@ Prior to first build, you need to copy `lua_sandbox/Makefile.local-example-MacOS
 
 ### First build
 
-Make sure you install hex client and rebar with `mix local.hex` and `mix local.rebar`. At this point, you can simply run `make` to fetch all dependencies and compile the project.
+Make sure you install `hex` and `rebar` with `mix local.hex` and `mix local.rebar`. At this point, you can simply run `make` to fetch all dependencies and compile the project.
 
 
 ### Preparing the database
