@@ -32,7 +32,7 @@ defmodule Cloak.Mixfile do
 
   defp deps do
     [
-      {:aircloak_mix_tasks, path: "../common/mix_tasks"},
+      {:aircloak_elixir_common, path: "../common/elixir_common"},
       {:webmachine, github: "basho/webmachine", tag: "1.10.6"},
       {:ej, github: "seth/ej"},
       {:gproc, "~> 0.5.0"},

@@ -79,7 +79,7 @@ defmodule Air.Mixfile do
       {:credo, "~> 0.3.0", only: [:dev, :test]},
       {:excoveralls, "~> 0.5", only: :test},
       {:eunit_formatters, "~> 0.3.0", only: :test},
-      {:aircloak_mix_tasks, path: "../../common/mix_tasks"}
+      {:aircloak_elixir_common, path: "../../common/elixir_common"}
     ]
   end
 
