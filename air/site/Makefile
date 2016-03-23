@@ -1,4 +1,15 @@
-.PHONY: start test migrate rollback
+.PHONY: all compile deps clean start start2 start3 test recreate_db migrate rollback dialyze docs release lint
+
+all: deps compile
+
+compile:
+	mix compile
+
+deps:
+	mix deps.get
+
+clean:
+	mix clean --deps
 
 start:
 	iex -S mix start
@@ -10,10 +21,7 @@ start3:
 	iex -S mix start 3
 
 test:
-	mix test.full
-
-test.cover:
-	mix test.cover
+	mix test.standard
 
 recreate_db:
 	mix recreate_db

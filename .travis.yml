@@ -9,6 +9,8 @@ env:
     - MIX_HOME=$(pwd)/.mix
 cache:
   directories:
+  - common/elixir_common/deps
+  - common/elixir_common/_build
   - air/site/deps
   - air/site/_build
   - .mix
@@ -35,6 +37,13 @@ install:
   - mkdir -p $MIX_HOME
   - mix local.hex --force
 before_script:
+  # elixir_common
+  - cd common/elixir_common
+  - mix deps.get
+  - mix compile --warnings-as-errors
+  - MIX_ENV=test make all
+  - cd ../..
+  # air and insights
   - air/etcd/config_travis.sh
   - air/db/init_db.sh
   - cd air/site
@@ -43,17 +52,28 @@ before_script:
   - MIX_ENV=test mix compile --warnings-as-errors
   - MIX_ENV=test mix recreate_db
   - cd ../..
+  # cloak
   - cd cloak
-  - make all
+  - mix deps.get
+  - mix compile --warnings-as-errors
   - MIX_ENV=test make all
   - cd ..
 script:
+  # elixir_common
+  - cd common/elixir_common
+  - make docs
+  - make lint
+  - make test
+  - make dialyze
+  - cd ../..
+  # insights
   - cd air/site
   - make docs
   - make lint
   - make test
   - make dialyze
   - cd ../..
+  # cloak
   - cd cloak
   - make docs
   - make lint

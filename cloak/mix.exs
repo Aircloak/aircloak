@@ -13,13 +13,14 @@ defmodule Cloak.Mixfile do
       erlc_options: erlc_options(Mix.env),
       erlc_paths: erlc_paths(Mix.env),
       preferred_cli_env: [
-        eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev
+        eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev, "coveralls.html": :test
       ],
       eunit_options: [
         :no_tty,
         {:report, {:eunit_progress, [:colored]}}
       ],
-      aliases: aliases(Mix.env)
+      aliases: aliases(Mix.env),
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
@@ -32,20 +33,14 @@ defmodule Cloak.Mixfile do
 
   defp deps do
     [
-      {:aircloak_mix_tasks, path: "../common/mix_tasks"},
+      {:aircloak_elixir_common, path: "../common/elixir_common"},
       {:webmachine, github: "basho/webmachine", tag: "1.10.6"},
       {:ej, github: "seth/ej"},
       {:gproc, "~> 0.5.0"},
       {:pgsql, github: "semiocast/pgsql"},
       {:erlcron, github: "erlware/erlcron"},
       {:exrm, "~> 1.0"},
-      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true},
-      {:eunit_formatters, "~> 0.3.0", only: :test},
-      {:proper, github: "matthiaskr/proper", only: :test, ref: "164663a7de18b0ce8d037b617afed0f97cac3de9"},
-      {:dialyze, "~> 0.2.1", only: :dev},
-      {:credo, "~> 0.3.0", only: [:dev, :test]},
-      {:ex_doc, "~> 0.11", only: :dev},
-      {:earmark, "~> 0.2", only: :dev}
+      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true}
     ]
   end
 
