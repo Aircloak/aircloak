@@ -16,6 +16,9 @@ clean:
 test:
 	mix test.standard
 
+test-cover:
+	mix test.cover
+
 docs:
 	mix docs
 

@@ -21,8 +21,7 @@ defmodule Air.Mixfile do
       ],
       preferred_cli_env: [
         eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
-        "phoenix.digest": :prod, site_release: :prod, "test.cover": :test,
-        "test.full": :test
+        "phoenix.digest": :prod, site_release: :prod, "test.full": :test
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [
@@ -73,7 +72,6 @@ defmodule Air.Mixfile do
       {:etcd, github: "spilgames/etcd.erl", ref: "79d04a775e4488b0eb6e5e07a8c0bf4803adb997"},
       {:hackney, "~> 1.5.0"},
       {:exrm, "~> 1.0"},
-      {:excoveralls, "~> 0.5", only: :test},
       {:aircloak_elixir_common, path: "../../common/elixir_common"}
     ]
   end
@@ -89,10 +87,6 @@ defmodule Air.Mixfile do
       "recreate_db": ["app.start", "ecto.rollback --all", "ecto.migrate", "run priv/repo/seeds.exs"],
       "migrate": ["app.start", "ecto.migrate"],
       "rollback": ["app.start", "ecto.rollback"],
-      "test.cover": [
-        "coveralls.html",
-        ~s[run -e 'IO.puts("#{IO.ANSI.green()}Report is stored in cover/excoveralls.html#{IO.ANSI.reset()}")']
-      ],
       "test.full": ["test", "eunit"],
       "lint": ["credo --strict"]
     ]

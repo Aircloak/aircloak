@@ -12,9 +12,6 @@ start3:
 test:
 	mix test.full
 
-test.cover:
-	mix test.cover
-
 recreate_db:
 	mix recreate_db
 

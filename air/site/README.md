@@ -75,7 +75,7 @@ of your existing data, so use with caution. To recreate the test database, you c
 ### Other common tasks
 
 - tests: `make test`
-- tests coverage: `make test.cover`
+- `mix test --cover` - runs ExUnit tests with test coverage (generates an HTML output in the `cover` folder)
 - dialyzer: `make dialyze`
 - documentation: `make docs`
 - lint: `make lint`

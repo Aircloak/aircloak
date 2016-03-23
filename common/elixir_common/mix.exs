@@ -15,7 +15,8 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       ],
       preferred_cli_env: [
         eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev
-      ]
+      ],
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
@@ -32,7 +33,8 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:credo, "~> 0.3.0"},
       {:eunit_formatters, "~> 0.3.0"},
       {:proper, github: "matthiaskr/proper", ref: "164663a7de18b0ce8d037b617afed0f97cac3de9"},
-      {:dialyze, "~> 0.2.1"}
+      {:dialyze, "~> 0.2.1"},
+      {:excoveralls, "~> 0.5"}
     ]
   end
 end

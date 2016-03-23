@@ -19,7 +19,8 @@ defmodule Cloak.Mixfile do
         :no_tty,
         {:report, {:eunit_progress, [:colored]}}
       ],
-      aliases: aliases(Mix.env)
+      aliases: aliases(Mix.env),
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
