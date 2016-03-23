@@ -3,11 +3,20 @@ defmodule Mix.Tasks.Proper do
   @moduledoc """
   Mix task for running PropEr tests.
 
-  You can start the task from the command line with `mix proper`. All modules which
-  export the `proper` attribute will be tested.
+  You can start the task from the command line with `mix proper`. Only the modules which
+  export the `proper` attribute will be tested. In other words, in your module
+  you need to include following:
 
-  To test a single module, you can run `mix proper --module target_module`
-  To test the specific proper level of modules, you can use the `--level target_level` option.
+  ```erlang
+  -proper(some_level).
+  ```
+
+  Where `some_level` is an arbitrary atom specifying the test level. By default, all
+  levels are included in the test run, but you can use the --level target_level` to
+  run tests from the provided level only.
+
+  To test a single module, you can run `mix proper --module target_module`. This
+  will run tests specified in the `target_module_test` module.
   """
   use Mix.Task
 

@@ -5,6 +5,17 @@ defmodule Mix.Tasks.Compile.Protobuf.Erlang do
 
   For all files in the `proto` folder (and subfolders), this task will generate
   `include/*_pb.hrl` and `ebin/*_pb.beam` files.
+
+  Usage: Simply add `:"protobuf.erlang"` to the list of compilers in `mix.exs`. For example:
+
+  ```elixir
+  def project do
+    [
+      compilers: [:"protobuf.erlang", :yecc, :leex, :erlang, :elixir, :app],
+      # ...
+    ]
+  end
+  ```
   """
 
   use Mix.Task
