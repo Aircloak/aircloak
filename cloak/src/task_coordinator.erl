@@ -100,7 +100,7 @@ init({Task, ReplyPid, ReplyRef, JobRunner}) ->
     start_time = os:timestamp(),
     task = Task,
     job_parameters = ?MEASURE("task.prefetch",
-        job_data_streamer:create_job_inputs(Task#task.analyst_id, Task#task.prefetch)),
+        job_data_streamer:create_job_inputs(Task#task.prefetch)),
     reply_pid = ReplyPid,
     reply_ref = ReplyRef
   },
@@ -174,8 +174,8 @@ terminate(Error, State) ->
     noise_sd = 1
   }],
   ?MEASURE("task.send_result", begin
-        #task{analyst_id=Analyst, task_id=TaskId, return_token=ReturnToken} = State#state.task,
-        result_sender:send_results(Analyst, TaskId, ReturnToken, Results)
+        #task{task_id=TaskId, return_token=ReturnToken} = State#state.task,
+        result_sender:send_results(TaskId, ReturnToken, Results)
       end),
   ?REPORT_DURATION("task.total", State#state.start_time).
 
@@ -215,9 +215,9 @@ process_responses(FinishReason, #state{task=#task{type=batch}} = State) ->
   Reports = aggregator:reports(State#state.aggregator),
   Results = ?MEASURE("task.anonymization", anonymizer:anonymize(Reports, State#state.lcf_users)),
   ?MEASURE("task.send_result", begin
-        #task{analyst_id=Analyst, task_id=TaskId, return_token=ReturnToken} = State#state.task,
+        #task{task_id=TaskId, return_token=ReturnToken} = State#state.task,
         FinalResults = Results ++ report_finish_reason(FinishReason),
-        result_sender:send_results(Analyst, TaskId, ReturnToken, FinalResults)
+        result_sender:send_results(TaskId, ReturnToken, FinalResults)
       end),
   case State#state.reply_pid of
     undefined -> ok;

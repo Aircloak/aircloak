@@ -51,7 +51,7 @@ sql_name_regex() ->
   {ok, Regex} = re:compile(Pattern, [caseless]),
   Regex.
 
-%% @doc Returns the compiled regular expression used to validate analyst identifiers
+%% @doc Returns the compiled regular expression used to validate identifiers
 %%      (tables and columns). This works mostly like {@link sql_name_regex/0} but
 %%      it also verifies some special cases, such as `ac_' prefixes.
 -spec user_table_name_regex() -> re:mp().

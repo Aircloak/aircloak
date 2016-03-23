@@ -3,7 +3,6 @@
 
 %% API
 -export([
-  verify_analyst/1,
   respond_json/2,
   respond_error/2,
   error_response/1,
@@ -27,19 +26,6 @@
 %% -------------------------------------------------------------------
 %% API functions
 %% -------------------------------------------------------------------
-
-%% @doc Verifies if the analyst is provided in the header.
--spec verify_analyst(#wm_reqdata{}) -> {ok, analyst()} | {error, binary()}.
-verify_analyst(Req) ->
-  case wrq:get_req_header("analyst", Req) of
-    undefined -> {error, <<"Missing analyst HTTP-HEADER">>};
-    AnalystIdStr ->
-      try
-        {ok, list_to_integer(AnalystIdStr)}
-      catch
-        error:badarg -> {error, <<"Invalid analyst HTTP-HEADER">>}
-      end
-  end.
 
 %% @doc Converts the response to JSON and sets the body of the response
 -spec respond_json(cloak_util:deep_proplist(), #wm_reqdata{}) -> #wm_reqdata{}.

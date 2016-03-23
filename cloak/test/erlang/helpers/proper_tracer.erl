@@ -95,7 +95,7 @@ print_detailed_history(TracedCalls) ->
   io:format("~s~n~n", [string:copies("-", 60)]),
   lists:foldr(
         fun
-          ({postcondition, [State, Command, CommandResult], Result}, _) ->
+          ({postcondition, [_, Command, CommandResult], Result}, _) ->
             PostconditionResult = case Result of
               {ok, X} -> io_lib:format("~p", [X]);
               undefined -> "undefined result"

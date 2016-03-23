@@ -14,11 +14,12 @@
 -export([
   conn_params/0,
   setup/0,
-  create_analyst_schema/1,
-  create_analyst_table/3,
-  add_users_data/3,
-  drop_analyst_table/2,
-  clear_analyst_table/2
+  create_test_schema/0,
+  create_table/2,
+  add_users_data/2,
+  drop_table/1,
+  clear_table/1,
+  full_table_name/1
 ]).
 
 
@@ -34,55 +35,56 @@ conn_params() ->
 setup() ->
   clean_db().
 
-%% @doc Creates the analyst schema.
-create_analyst_schema(Analyst) ->
+%% @doc Creates the test schema.
+create_test_schema() ->
   cloak_db:call(test, fun(Connection) ->
-        {{create, schema}, _} = sql_conn:simple_query(
-              ["CREATE SCHEMA ", sql_util:sanitize_db_object([analyst_tables:schema_for_analyst(Analyst)])],
-              Connection
-            )
+        {{create, schema}, _} = sql_conn:simple_query("CREATE SCHEMA cloak_test", Connection)
     end).
 
-%% @doc Creates the analyst table.
-create_analyst_table(Analyst, TableName, Definition) ->
+%% @doc Creates a test table.
+create_table(TableName, Definition) ->
   cloak_db:call(test, fun(Connection) ->
         {{create, table}, _} = sql_conn:simple_query(
-              ["CREATE TABLE ", sanitized_analyst_table(Analyst, TableName), "(", Definition, ")"],
+              ["CREATE TABLE ", sanitized_table(TableName), "(", Definition, ")"],
               Connection
             )
       end).
 
 %% @doc Adds the data for the given user
-add_users_data(Analyst, Data, Timeout) ->
+add_users_data(Data, Timeout) ->
   cloak_db:call(test, fun(Connection) ->
-        [insert_rows(Analyst, UserId, TableName, TableData, Timeout, Connection) ||
+        [insert_rows(UserId, TableName, TableData, Timeout, Connection) ||
           {UserId, UserData} <- Data,
           {TableName, TableData} <- UserData]
       end),
   ok.
 
-%% @doc Drops the analyst table
-drop_analyst_table(Analyst, TableName) ->
+%% @doc Drops a test table
+drop_table(TableName) ->
   cloak_db:call(test, fun(Connection) ->
-        sql_conn:simple_query(["DROP TABLE ", sanitized_analyst_table(Analyst, TableName)], Connection)
+        sql_conn:simple_query(["DROP TABLE ", sanitized_table(TableName)], Connection)
       end).
 
-%% @doc Drops the analyst table
-clear_analyst_table(Analyst, TableName) ->
+%% @doc Clears a test table
+clear_table(TableName) ->
   cloak_db:call(test, fun(Connection) ->
         sql_conn:simple_query(
-              ["TRUNCATE TABLE ", sanitized_analyst_table(Analyst, TableName)],
+              ["TRUNCATE TABLE ", sanitized_table(TableName)],
               Connection
             )
       end).
+
+%% @doc Returns the full name for a test table
+full_table_name(TableName) ->
+  <<"cloak_test.", TableName/binary>>.
 
 
 %% -------------------------------------------------------------------
 %% Internal functions
 %% -------------------------------------------------------------------
 
-insert_rows(Analyst, UserId, TableName, TableData, Timeout, Connection) ->
-  FullTableName = sanitized_analyst_table(Analyst, TableName),
+insert_rows(UserId, TableName, TableData, Timeout, Connection) ->
+  FullTableName = sanitized_table(TableName),
   Columns = lists:map(fun sql_util:sanitize_db_object/1,
       ["ac_user_id", "ac_created_at"] ++ proplists:get_value(columns, TableData)),
   Rows = lists:map(
@@ -111,18 +113,9 @@ insert_rows(Analyst, UserId, TableName, TableData, Timeout, Connection) ->
 
 clean_db() ->
   cloak_db:call(undefined, fun(Connection) ->
-          sql_conn:simple_query(["DROP SCHEMA IF EXISTS aircloak CASCADE;"], Connection),
-          % Drop all analyst schemas
-          {{select, _}, Schemas} = sql_conn:simple_query(
-                "SELECT schema_name "
-                "FROM information_schema.schemata "
-                "where schema_name like 'analyst_%' ",
-                Connection
-              ),
-          [{{drop, schema}, _} = sql_conn:simple_query(["DROP SCHEMA ", Schema, " CASCADE"], Connection)
-            || {Schema} <- Schemas],
+          sql_conn:simple_query(["DROP SCHEMA IF EXISTS cloak_test CASCADE;"], Connection),
           ok
       end).
 
-sanitized_analyst_table(Analyst, TableName) ->
-    sql_util:sanitize_db_object([analyst_tables:schema_for_analyst(Analyst), ".", "user_", TableName]).
+sanitized_table(TableName) ->
+    sql_util:sanitize_db_object(["cloak_test.", TableName]).

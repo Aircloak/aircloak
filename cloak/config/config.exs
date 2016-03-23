@@ -55,12 +55,6 @@ config :cloak, :queries,
   # soon as a task_coordinator finished processing a task.
   concurrent_executions: 3
 
-config :cloak, :durability,
-  # How many nodes we store data about users on.
-  # This affects how many nodes we can allow to fail
-  # before we loose access to data.
-  users_num_storage_nodes: 3
-
 config :cloak, :noise,
   # The minimum number of users that must be in a bucket to get reported.
   absolute_lower_bound: 2,
@@ -110,8 +104,6 @@ config :cloak, :cloak_db,
   # The static count can also be set relative to the CPU count by specifying
   # a floating-point multiplier before the fixed amount of workers.
   pool_size: {1.5, 3}, # num_cpus * 1.5 + 3
-  # The default timeout for migrations.
-  default_migration_timeout: 3600000, # 1 hour
   idle_timeout: 60000 # 1 minute
 
 config :cloak, :sandbox,

@@ -26,21 +26,9 @@
 -type task_id() :: binary().
 -type task_type() :: batch | streaming | periodic.
 -type index() :: string().
--type analyst() :: pos_integer().
 -type payload_identifier() :: binary().
 -type code_id() :: binary().
 -type code() :: binary().
-
-%% We are currently operating with a ring size of 256 partitions, for which byte() is a good
-%% type. This type does need to be adjusted when we grow the ring though!
--type partition_id() :: byte().
--type analyst_table_type() :: user | lookup | system.
--record(partition_table, {
-  analyst_id :: analyst(),
-  table_type :: analyst_table_type(),
-  table_name :: table_name(),
-  partition_id :: partition_id()
-}).
 
 %% Task specification types
 -type prefetch_table_spec() :: [
@@ -58,7 +46,6 @@
   type = batch :: task_type(),
   report_interval :: non_neg_integer() | undefined,
   period :: erlcron:run_when() | undefined,
-  analyst_id :: analyst(),
   prefetch :: prefetch_spec(),
   code :: binary(),
   libraries = [] :: [{binary(), binary()}],
@@ -85,17 +72,9 @@
 
 -record(job_response, {
   user_id :: user_id(),
-  analyst_id :: analyst(),
   task_id :: task_id(),
   properties :: [#property{}],
   accumulator :: job_accumulator()
-}).
-
--record(index_change, {
-  user_id :: user_id(),
-  analyst_id :: analyst(),
-  index :: index(),
-  change :: add | remove
 }).
 
 -record(bucket_label, {
@@ -155,12 +134,6 @@
 -type sql_date() :: {2014..3000, 1..12, 1..31}.
 -type sql_time() :: {0..24, 0..59, 0..59 | float()}.
 -type sql_timestamp() :: {sql_date(), sql_time()}.
-
--record(user_table, {
-  analyst_id :: analyst(),
-  name :: table_name(),
-  row_expiry :: undefined | pos_integer()
-}).
 
 %% Helper macro for specifying cron intervals
 -define(EVERY_N_SEC(Sec), {daily, {every, {Sec, sec}, {between, {0, 0, 0}, {23, 59, 59}}}}).

@@ -7,7 +7,7 @@
 %% API
 -export([
   start_link/1,
-  send_results/4
+  send_results/3
 ]).
 
 %% gen_fsm callbacks
@@ -25,7 +25,6 @@
 -include("cloak.hrl").
 
 -record(state, {
-  analyst_id :: integer(),
   task_id :: task_id(),
   return_token :: return_token(),
   raw_results = [],
@@ -40,10 +39,9 @@
 %% @doc Takes a set of noised results, and sends
 %%      them to the URL specified in the query as the
 %%      result endpoint.
--spec send_results(analyst(), task_id(), return_token(), [#bucket_report{}]) -> pid().
-send_results(AnalystId, TaskId, ReturnToken, Results) ->
+-spec send_results(task_id(), return_token(), [#bucket_report{}]) -> pid().
+send_results(TaskId, ReturnToken, Results) ->
   Args = [
-    {analyst_id, AnalystId},
     {task_id, TaskId},
     {return_token, ReturnToken},
     {results, Results}
@@ -61,7 +59,6 @@ start_link(Args) ->
 
 init(Args) ->
   State = #state{
-    analyst_id=proplists:get_value(analyst_id, Args),
     task_id=proplists:get_value(task_id, Args),
     return_token=proplists:get_value(return_token, Args),
     raw_results = proplists:get_value(results, Args)
@@ -69,9 +66,8 @@ init(Args) ->
   {ok, create_aggregate_results, State, 0}.
 
 create_aggregate_results(timeout,
-    #state{raw_results=RawResults, analyst_id=AnalystId, task_id=TaskId,
-        return_token={ResultFormat, _}}=S0) ->
-  Reply = convert_results(ResultFormat, AnalystId, TaskId, RawResults),
+    #state{raw_results=RawResults, task_id=TaskId, return_token={ResultFormat, _}}=S0) ->
+  Reply = convert_results(ResultFormat, TaskId, RawResults),
   S1 = S0#state{raw_results=[], reply=Reply},
   {next_state, send_results_state, S1, 0}.
 
@@ -100,7 +96,7 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %% Internal functions
 %% -------------------------------------------------------------------
 
-convert_results(json, AnalystId, TaskId, Results) ->
+convert_results(json, TaskId, Results) ->
   Buckets = [convert_bucket_to_json(Bucket) ||
       #bucket_report{label=#bucket_label{label=Label}}=Bucket <- Results,
       Label =/= ?JOB_EXECUTION_ERROR],
@@ -109,7 +105,6 @@ convert_results(json, AnalystId, TaskId, Results) ->
           noisy_count=Count} <- Results],
   ?INFO("json report: ~p buckets, ~p exceptions", [length(Buckets), length(Exceptions)]),
   mochijson2:encode([
-    {analyst_id, AnalystId},
     {task_id, TaskId},
     {buckets, Buckets},
     {exceptions, Exceptions}
@@ -147,7 +142,6 @@ send_reply(_Format, {process, Pid}, Reply) ->
 -include_lib("eunit/include/eunit.hrl").
 
 convert_results_test() ->
-  AnalystId = 0,
   TaskId = "task",
   Results = [
     #bucket_report{label=#bucket_label{label= <<"foo1">>, value=undefined}, count=1234, noisy_count=1234},
@@ -170,11 +164,10 @@ convert_results_test() ->
     [{error, <<"x2">>}, {count, 2}]
   ],
   JSONResult = mochijson2:encode([
-    {analyst_id, AnalystId},
     {task_id, TaskId},
     {buckets, JSONBuckets},
     {exceptions, JSONExceptions}
   ]),
-  ?assertEqual(JSONResult, convert_results(json, AnalystId, TaskId, Results)).
+  ?assertEqual(JSONResult, convert_results(json, TaskId, Results)).
 
 -endif.

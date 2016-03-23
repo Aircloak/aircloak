@@ -4,7 +4,7 @@
 
 %% API
 -export([
-  create_job_inputs/2,
+  create_job_inputs/1,
   map_table_data_to_job_inputs/3,
   get_next_batch/4,
   batch_size/1
@@ -65,9 +65,9 @@ batch_size(ColumnsCount) when is_integer(ColumnsCount), ColumnsCount >= 0 ->
 
 %% @doc This creates the initial data stream states, from the task prefetch specification,
 %%      for all relevant users.
--spec create_job_inputs(analyst(), prefetch_spec()) -> [{user_id(), job_input()}].
-create_job_inputs(AnalystId, PrefetchSpec) ->
-  UserTableStreams = [create_per_user_table_streams(AnalystId, QuerySpec) || QuerySpec <- PrefetchSpec],
+-spec create_job_inputs(prefetch_spec()) -> [{user_id(), job_input()}].
+create_job_inputs(PrefetchSpec) ->
+  UserTableStreams = [create_per_user_table_streams(QuerySpec) || QuerySpec <- PrefetchSpec],
   group_table_streams(lists:flatten(UserTableStreams)).
 
 %% @doc Handles the get_next_batch sandbox calls.
@@ -196,20 +196,18 @@ remove_last_timestamp_entries(UserId, TableName, Rows) ->
     end.
 
 %% Creates the stream states for a single table prefetch specification.
--spec create_per_user_table_streams(analyst(), prefetch_spec()) ->
+-spec create_per_user_table_streams(prefetch_spec()) ->
     [{user_id(), {binary(), #table_data{} | #table_stream_state{}}}].
-create_per_user_table_streams(AnalystId, QuerySpec) ->
-  {TableName, Columns, RowLimit, MinTimestamp, MaxTimestamp, Filter} = parse_data_query_spec(AnalystId, QuerySpec),
-  FullTableName = analyst_tables:schema_and_table_name(AnalystId, user, TableName),
-  SanitizedFullTableName = sql_util:sanitize_db_object(FullTableName),
-  MetadataQuery = build_results_metadata_query(SanitizedFullTableName,
-      RowLimit, MinTimestamp, MaxTimestamp, Filter),
+create_per_user_table_streams(QuerySpec) ->
+  {TableName, Columns, RowLimit, MinTimestamp, MaxTimestamp, Filter} = parse_data_query_spec(QuerySpec),
+  SanitizedTableName = sql_util:sanitize_db_object(TableName),
+  MetadataQuery = build_results_metadata_query(SanitizedTableName, RowLimit, MinTimestamp, MaxTimestamp, Filter),
   {_Count, ResultsMetadatas} = execute_select_query(MetadataQuery),
-  [parse_results_metadata(TableName, SanitizedFullTableName, Columns, Filter, ResultsMetadata) ||
+  [parse_results_metadata(TableName, SanitizedTableName, Columns, Filter, ResultsMetadata) ||
       ResultsMetadata <- ResultsMetadatas].
 
 %% Parses a data query specification and extract the information needed to create the initial stream state.
-parse_data_query_spec(AnalystId, QuerySpec) ->
+parse_data_query_spec(QuerySpec) ->
   TableName = proplists:get_value(table, QuerySpec, null),
   true = TableName /= null, % this field is required
   RowLimit = proplists:get_value(user_rows, QuerySpec, null),
@@ -219,9 +217,8 @@ parse_data_query_spec(AnalystId, QuerySpec) ->
       TimeLimit when is_integer(TimeLimit) andalso TimeLimit > 0 -> MaxTimestamp - TimeLimit * 1000000
     end,
   Filter = db_query_builder:build_filter(proplists:get_value(where, QuerySpec, [])),
-  MasterTableName = analyst_tables:schema_and_table_name(AnalystId, user, TableName),
   AircloakColumns = [<<"ac_user_id">>, <<"ac_created_at">>],
-  TableColumns = cloak_db_def:table_columns(MasterTableName) -- AircloakColumns,
+  TableColumns = cloak_db_def:table_columns(TableName) -- AircloakColumns,
   Columns = case proplists:get_value(columns, QuerySpec, null) of
         null -> TableColumns; % not specified, select all columns
         SelectedColumns -> TableColumns -- (TableColumns -- SelectedColumns) % protect against SQL injection
@@ -332,16 +329,15 @@ test_data_mapping() ->
       ]).
 
 setup_test_table() ->
-  db_test:create_analyst_schema(1),
-  db_test:create_analyst_table(1, "test",
-      "\"Data Value\" integer, ac_user_id varchar(40), ac_created_at timestamp").
+  db_test:create_test_schema(),
+  db_test:create_table("test", "\"Data Value\" integer, ac_user_id varchar(40), ac_created_at timestamp").
 
 add_data(Count) ->
   Data = [{<<"test">>, [
     {columns, [<<"Data Value">>]},
     {data, [[Value rem 4] || Value <- lists:seq(1, Count)]}
   ]}],
-  ok = db_test:add_users_data(1, [{<<"user-id">>, Data}], timer:seconds(5)).
+  ok = db_test:add_users_data([{<<"user-id">>, Data}], timer:seconds(5)).
 
 fill_table() ->
   BatchSize = batch_size(1),
@@ -358,7 +354,7 @@ compute_rows_sum(_JobInput, true) ->
   0;
 compute_rows_sum(JobInput, false) ->
   {NewJobInput, #tabledatapb{columns = Columns, rows = Rows, complete = Complete}} =
-      get_next_batch(<<"user-id">>, <<"test">>, JobInput, false),
+      get_next_batch(<<"user-id">>, db_test:full_table_name(<<"test">>), JobInput, false),
   ?assertEqual(true, Columns =:= [<<"Data Value">>] orelse Columns =:= []),
   Values = [get_row_value(Row) || Row <- Rows],
   BatchSum = lists:foldl(fun(Value, Sum) -> Value + Sum end, 0, Values),
@@ -367,15 +363,16 @@ compute_rows_sum(JobInput, false) ->
 test_data_streaming() ->
   setup_test_table(),
   fill_table(),
-  PrefetchSpecAll = [[{table, <<"test">>}, {columns, [<<"Data Value">>]}]],
+  TableName = db_test:full_table_name(<<"test">>),
+  PrefetchSpecAll = [[{table, TableName}, {columns, [<<"Data Value">>]}]],
   BatchSize = batch_size(1),
-  [{<<"user-id">>, JobInputAll}] = create_job_inputs(1, PrefetchSpecAll),
+  [{<<"user-id">>, JobInputAll}] = create_job_inputs(PrefetchSpecAll),
   ?assertEqual((0 + 1 + 2 + 3) * BatchSize * 2 div 4, compute_rows_sum(JobInputAll, false)),
-  PrefetchSpecPartial = [[{table, <<"test">>}, {where, [{<<"$$Data Value">>, [{<<"$lte">>, 1}]}]}, {user_rows, BatchSize * 2}]],
-  [{<<"user-id">>, JobInputPartial}] = create_job_inputs(1, PrefetchSpecPartial),
+  PrefetchSpecPartial = [[{table, TableName}, {where, [{<<"$$Data Value">>, [{<<"$lte">>, 1}]}]}, {user_rows, BatchSize * 2}]],
+  [{<<"user-id">>, JobInputPartial}] = create_job_inputs(PrefetchSpecPartial),
   ?assertEqual((0 + 1) * BatchSize * 2 div 4, compute_rows_sum(JobInputPartial, false)),
-  PrefetchSpecEmpty = [[{table, <<"test">>}, {columns, []}]],
-  [{<<"user-id">>, JobInputEmpty}] = create_job_inputs(1, PrefetchSpecEmpty),
+  PrefetchSpecEmpty = [[{table, TableName}, {columns, []}]],
+  [{<<"user-id">>, JobInputEmpty}] = create_job_inputs(PrefetchSpecEmpty),
   ?assertEqual(0, compute_rows_sum(JobInputEmpty, false)).
 
 integration_test_() ->

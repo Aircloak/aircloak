@@ -233,9 +233,8 @@ task_time(Ts) when is_integer(Ts) ->
 collect_data_from_port(Data, #state{active_job=Job, port=Port}=State) ->
   case (catch {ok, sandbox_pb:decode_joboutputmessagepb(Data)}) of
     {ok, #joboutputmessagepb{function_call=#functioncallpb{}=FunctionCall}} ->
-      Task = Job#job.request,
       {User, JobInput} = Job#job.parameters,
-      ReturnData = sandbox_external_call:call(Task#task.analyst_id, User, JobInput, FunctionCall),
+      ReturnData = sandbox_external_call:call(User, JobInput, FunctionCall),
       port_command(Port, sandbox_pb:encode_jobinputmessagepb(#jobinputmessagepb{data=ReturnData})),
       State;
     {ok, #joboutputmessagepb{get_next_batch=#getnextbatchpb{table_name=TableName, reset_stream=ResetStream}}} ->
@@ -273,7 +272,6 @@ generate_success_reply(Properties, Accumulator,
   add_job_runtime_metric(State),
   JobResponse = #job_response{
     user_id = User,
-    analyst_id = Request#task.analyst_id,
     task_id = Request#task.task_id,
     properties = convert_properties(Properties),
     accumulator = case Accumulator of
@@ -296,7 +294,6 @@ generate_error_reply(Reason,
     #job{request=Request, parameters={User, _}, request_id=RequestId, reporter_fun=ReporterFun}, State) ->
   JobResponse = #job_response{
     user_id = User,
-    analyst_id = Request#task.analyst_id,
     task_id = Request#task.task_id,
     properties = [#property{
           label = ?JOB_EXECUTION_ERROR,
@@ -362,17 +359,6 @@ add_job_runtime_metric(#state{start_time=StartTime}) ->
 -include_lib("eunit/include/eunit.hrl").
 -include("eunit_helpers.hrl").
 
-create_insertdatapb(TableName, Rows) ->
-  #insertdatapb{table=TableName, rows=[create_insertdatapb_row(Row) || Row <- Rows]}.
-
-create_insertdatapb_row(Fields) ->
-  #insertdatapb_row{fields=[create_insertdatapb_field(Field) || Field <- Fields]}.
-
-create_insertdatapb_field({Name, Number}) when is_number(Number) ->
-  #insertdatapb_field{name=Name, number=Number};
-create_insertdatapb_field({Name, Bool}) when is_boolean(Bool) ->
-  #insertdatapb_field{name=Name, boolean=Bool}.
-
 -define(run_sandbox_test(Code), ?run_sandbox_test(Code, [])).
 -define(run_sandbox_test(Code, Libraries), ?run_sandbox_test(Code, Libraries, undefined)).
 -define(run_sandbox_test(Code, Libraries, Accumulator), ?run_sandbox_test(Code, Libraries, Accumulator, undefined)).
@@ -383,8 +369,7 @@ create_insertdatapb_field({Name, Bool}) when is_boolean(Bool) ->
         Me = self(),
         job_runner:execute(1,
               #task{
-                task_id=1, analyst_id=1, prefetch=undefined,
-                libraries=Libraries, code=Code, timestamp=Timestamp
+                task_id=1, prefetch=undefined, libraries=Libraries, code=Code, timestamp=Timestamp
               },
               {<<"user-1">>, []}, Accumulator, ReqId,
               fun(RId, Response) when RId =:= ReqId ->
@@ -400,8 +385,7 @@ create_insertdatapb_field({Name, Bool}) when is_boolean(Bool) ->
     )()).
 
 -define(job_response(Properties, Accumulator),
-      #job_response{user_id= <<"user-1">>, analyst_id=1, task_id=1, properties=Properties,
-        accumulator=Accumulator}
+      #job_response{user_id= <<"user-1">>, task_id=1, properties=Properties, accumulator=Accumulator}
     ).
 
 run_sandbox_test_() ->
