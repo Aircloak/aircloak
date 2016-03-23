@@ -57,7 +57,7 @@ If everything is properly installed and setup, standard tests invoked with `make
 - `make lint` - style checking of Elixir code
 - `make doc` - generates the documentation
 - `make release` - creates the OTP release
-- `mix test --cover` - runs ExUnit tests with test coverage (generates an HTML output in the `cover` folder)
+- `mix coveralls.html` - runs ExUnit tests with test coverage (generates an HTML output in the `cover` folder)
 
 
 #### Running partial tests

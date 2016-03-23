@@ -14,7 +14,8 @@ defmodule Aircloak.ElixirCommon.Mixfile do
         "lint": ["credo --strict"]
       ],
       preferred_cli_env: [
-        eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev
+        eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev,
+        "coveralls.html": :test
       ],
       test_coverage: [tool: ExCoveralls]
     ]
