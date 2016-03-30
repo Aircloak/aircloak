@@ -1,5 +1,5 @@
 defmodule Air.User do
-  @moduledoc "The user model"
+  @moduledoc "The user model."
   require Logger
 
   use Air.Web, :model

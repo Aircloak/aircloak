@@ -17,12 +17,12 @@ defmodule Channels.Client.SocketDriver do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Starts the driver process"
+  @doc "Starts the driver process."
   @spec start_link(String.t, Socket.socket_opts) :: GenServer.on_start
   def start_link(url, socket_opts \\ []),
     do: Socket.start_link(__MODULE__, {url, self}, socket_opts)
 
-  @doc "Connect to the server"
+  @doc "Connect to the server."
   @spec connect(GenServer.server, GenServer.timeout) :: :ok | {:error, any}
   def connect(socket, timeout \\ :timer.seconds(5)) do
     send(socket, :connect)
@@ -36,7 +36,7 @@ defmodule Channels.Client.SocketDriver do
     end
   end
 
-  @doc "Joins a topic on the connected socket"
+  @doc "Joins a topic on the connected socket."
   @spec join(GenServer.server, Socket.topic, Socket.payload, GenServer.timeout) ::
     {:ok, {Socket.topic, Socket.payload}} |
     {:error, any}
@@ -51,7 +51,7 @@ defmodule Channels.Client.SocketDriver do
     end
   end
 
-  @doc "Leaves the topic"
+  @doc "Leaves the topic."
   @spec leave(GenServer.server, Socket.topic, Socket.payload, GenServer.timeout) ::
     {:ok, Socket.payload} |
     {:error, any}
@@ -72,7 +72,7 @@ defmodule Channels.Client.SocketDriver do
     end
   end
 
-  @doc "Pushes a message to the topic"
+  @doc "Pushes a message to the topic."
   @spec push(GenServer.server, Socket.topic, Socket.event, Socket.payload, GenServer.timeout) ::
     {:ok, Socket.ref} |
     {:error, any}
@@ -86,7 +86,7 @@ defmodule Channels.Client.SocketDriver do
     end
   end
 
-  @doc "Pushes a message to the topic and awaits the direct response from the server"
+  @doc "Pushes a message to the topic and awaits the direct response from the server."
   @spec push_sync(GenServer.server, Socket.topic, Socket.event, Socket.payload, GenServer.timeout) ::
     {:ok, Socket.payload} |
     {:error, any}
@@ -100,7 +100,7 @@ defmodule Channels.Client.SocketDriver do
     end
   end
 
-  @doc "Awaits a message from the socket"
+  @doc "Awaits a message from the socket."
   @spec await_message(GenServer.server, GenServer.timeout) ::
     {:ok, Socket.topic, Socket.event, Socket.payload} | {:error, :timeout}
   def await_message(socket, timeout \\ 5000) do

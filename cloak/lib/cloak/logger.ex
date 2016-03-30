@@ -52,7 +52,7 @@ defmodule Cloak.Logger do
   for {real_log_level, logger_log_level} <- @all_log_levels do
     # log_* macro for logging from the Elixir code
     macro_name = :"log_#{real_log_level}"
-    @doc "Logs with the #{real_log_level} level"
+    @doc "Logs with the #{real_log_level} level."
     defmacro unquote(macro_name)(chardata_or_fn, metadata \\ []) do
       real_log_level = unquote(real_log_level)
       logger_log_level = unquote(logger_log_level)

@@ -1,5 +1,5 @@
 defmodule Air.Endpoint do
-  @moduledoc "Implements the HTTP server for insights.aircloak.com"
+  @moduledoc "Implements the HTTP server for insights.aircloak.com."
 
   use Phoenix.Endpoint, otp_app: :air
 

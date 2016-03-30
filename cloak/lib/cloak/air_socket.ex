@@ -16,7 +16,7 @@ defmodule Cloak.AirSocket do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Starts the socket client"
+  @doc "Starts the socket client."
   @spec start_link(GenServer.options) :: GenServer.on_start
   def start_link(gen_server_opts \\ []) do
     Socket.start_link(

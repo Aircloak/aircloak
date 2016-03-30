@@ -1,5 +1,5 @@
 defmodule Air.Socket.Cloak.Serializer do
-  @moduledoc "Gzip based socket serializer"
+  @moduledoc "Gzip based socket serializer."
   @behaviour Phoenix.Transports.Serializer
 
   alias Phoenix.Socket.Reply

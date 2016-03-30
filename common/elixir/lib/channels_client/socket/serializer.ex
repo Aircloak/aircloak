@@ -3,15 +3,15 @@ defmodule Channels.Client.Socket.Serializer do
   Describes the serializer interface used in `Channels.Client.Socket` to encode/decode messages.
   """
 
-  @doc "Invoked to decode the raw message"
+  @doc "Invoked to decode the raw message."
   @callback decode_message(Socket.encoded_message) :: Socket.message
 
-  @doc "Invoked to encode a socket message"
+  @doc "Invoked to encode a socket message."
   @callback encode_message(Socket.message) :: {:text | :binary, Socket.encoded_message}
 end
 
 defmodule Channels.Client.Socket.Serializer.Json do
-  @moduledoc "Json serializer for the socket client"
+  @moduledoc "Json serializer for the socket client."
   @behaviour Channels.Client.Socket.Serializer
 
 
@@ -34,7 +34,7 @@ defmodule Channels.Client.Socket.Serializer.Json do
 end
 
 defmodule Channels.Client.Socket.Serializer.GzipJson do
-  @moduledoc "Gzip+Json serializer for the socket client"
+  @moduledoc "Gzip+Json serializer for the socket client."
   @behaviour Channels.Client.Socket.Serializer
 
 

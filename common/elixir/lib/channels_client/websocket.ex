@@ -1,6 +1,6 @@
 defmodule Channels.Client.WebsocketTransport do
   @moduledoc """
-  Websocket adapter for `Channels.Client.Socket`
+  Websocket adapter for `Channels.Client.Socket`.
 
   This modules implements a plain websocket client which runs in a separate
   process. The module exposes the interface required by `Channels.Client.Socket`
@@ -18,7 +18,7 @@ defmodule Channels.Client.WebsocketTransport do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Starts the websocket process"
+  @doc "Starts the websocket process."
   @spec start_link(String.t) :: {:ok, pid} | {:error, any}
   def start_link(url) do
     url

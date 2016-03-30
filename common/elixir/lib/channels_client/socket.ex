@@ -124,23 +124,23 @@ defmodule Channels.Client.Socket do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Starts the socket process"
+  @doc "Starts the socket process."
   @spec start_link(module, any, socket_opts, GenServer.options) :: GenServer.on_start
   def start_link(callback, arg, socket_opts \\ [], gen_server_opts \\ []) do
     GenServer.start_link(__MODULE__, {callback, arg, socket_opts}, gen_server_opts)
   end
 
-  @doc "Joins the topic"
+  @doc "Joins the topic."
   @spec join(transport, topic, payload) :: {:ok, ref} | {:error, reason::any}
   def join(transport, topic, payload \\ %{}),
     do: push(transport, topic, "phx_join", payload)
 
-  @doc "Leaves the topic"
+  @doc "Leaves the topic."
   @spec leave(transport, topic, payload) :: {:ok, ref} | {:error, reason::any}
   def leave(transport, topic, payload \\ %{}),
     do: push(transport, topic, "phx_leave", payload)
 
-  @doc "Pushes a message to the topic"
+  @doc "Pushes a message to the topic."
   @spec push(transport, topic, event, payload) :: {:ok, ref} | {:error, reason::any}
   def push(%{transport_pid: nil}, _topic, _event, _payload), do: {:error, :disconnected}
   def push(transport, topic, event, payload) do
@@ -165,17 +165,17 @@ defmodule Channels.Client.Socket do
   # API for transport (websocket client)
   # -------------------------------------------------------------------
 
-  @doc "Notifies the socket process that the connection has been established"
+  @doc "Notifies the socket process that the connection has been established."
   @spec notify_connected(GenServer.server) :: :ok
   def notify_connected(socket),
     do: GenServer.cast(socket, :notify_connected)
 
-  @doc "Notifies the socket process about a disconnect"
+  @doc "Notifies the socket process about a disconnect."
   @spec notify_disconnected(GenServer.server, any) :: :ok
   def notify_disconnected(socket, reason),
     do: GenServer.cast(socket, {:notify_disconnected, reason})
 
-  @doc "Forwards a received message to the socket process"
+  @doc "Forwards a received message to the socket process."
   @spec notify_message(GenServer.server, binary) :: :ok
   def notify_message(socket, message),
     do: GenServer.cast(socket, {:notify_message, message})
