@@ -4,7 +4,7 @@ defmodule Air.Socket.CloakTest do
   alias Channels.Client.TestSocket
 
   test "invalid authentication" do
-    assert {:ok, socket} = start_link(url(%{shared_secret: "invalid shared secret"}))
+    assert {:ok, socket} = start_link(url(%{}))
     assert {:error, {403, "Forbidden"}} == TestSocket.connect(socket)
   end
 
@@ -26,7 +26,6 @@ defmodule Air.Socket.CloakTest do
   end
 
   defp url(params \\ %{
-        shared_secret: :air_etcd.get("/service/airpub/shared_secret"),
         cloak_token: "cloak_token_1"
       }) do
     "#{Air.Endpoint.url}/cloak/socket/websocket?#{URI.encode_query(params)}"

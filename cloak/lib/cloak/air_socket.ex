@@ -35,7 +35,6 @@ defmodule Cloak.AirSocket do
   @doc false
   def init(_) do
     params = %{
-      shared_secret: :cloak_conf.get_val(:air, :shared_secret),
       cloak_token: "cloak_token"
     }
     url = "#{:cloak_conf.get_val(:air, :socket_url)}?#{URI.encode_query(params)}"

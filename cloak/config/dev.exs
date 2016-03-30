@@ -12,7 +12,6 @@ config :cloak, :air,
   # The URL that results from asynchronous queries are sent to
   return_url: 'https://infrastructure-api.air-local:20000',
   socket_url: "wss://insights.air-local:20000/cloak/socket/websocket",
-  shared_secret: "well-known secret",
   reconnect_interval: :timer.minutes(1),
   rejoin_interval: :timer.minutes(1)
 

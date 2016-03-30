@@ -2,10 +2,7 @@ defmodule Air.Socket.Cloak do
   @moduledoc """
   Implements websocket interface for cloaks.
 
-  A cloak needs to provide following parameters (as request query parameters in URL):
-
-  - shared_secret
-  - cloak_token
+  A cloak needs to provide its token as request query parameters in URL.
 
   The socket supports following topics:
 
@@ -28,11 +25,10 @@ defmodule Air.Socket.Cloak do
 
   @doc false
   def connect(params, socket) do
-    shared_secret = :air_etcd.get("/service/airpub/shared_secret")
-    cond do
-      params["shared_secret"] == shared_secret and params["cloak_token"] != nil ->
-        {:ok, assign(socket, :cloak_token, params["cloak_token"])}
-      true -> :error
+    if params["cloak_token"] != nil do
+      {:ok, assign(socket, :cloak_token, params["cloak_token"])}
+    else
+      :error
     end
   end
 
