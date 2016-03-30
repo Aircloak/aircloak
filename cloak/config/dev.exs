@@ -3,7 +3,7 @@ use Mix.Config
 config :logger,
   console: [
     format: {Cloak.Logger.DevFormatter, :format},
-    metadata: [:file_name, :line_no, :log_level]
+    metadata: [:file_name, :line_no, :log_level, :file, :line]
   ]
 
 config :cloak, :api, address: '0.0.0.0'

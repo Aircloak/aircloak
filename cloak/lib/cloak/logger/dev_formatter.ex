@@ -7,10 +7,11 @@ if Mix.env != :prod do
 
     def format(level, msg, ts, metadata) do
       full_message = [
-        case metadata[:file_name] do
+        case metadata[:file_name] || metadata[:file] do
           nil -> []
           file_name ->
-            [Path.basename(file_name), ?:, Integer.to_string(metadata[:line_no]), ?\s]
+            line = metadata[:line_no] || metadata[:line]
+            [Path.basename(file_name), ?:, Integer.to_string(line), ?\s]
         end,
         msg
       ]
