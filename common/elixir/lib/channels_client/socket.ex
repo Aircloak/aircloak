@@ -204,17 +204,14 @@ defmodule Channels.Client.Socket do
 
   @doc false
   def handle_cast(:notify_connected, state) do
-    state.callback.handle_connected(transport(state), state.callback_state)
-    |> handle_callback_response(state)
+    invoke_callback(state, :handle_connected, [transport(state)])
   end
   def handle_cast({:notify_disconnected, reason}, state) do
-    state.callback.handle_disconnected(reason, state.callback_state)
-    |> handle_callback_response(reinit(state))
+    invoke_callback(reinit(state), :handle_disconnected, [reason])
   end
   def handle_cast({:notify_message, encoded_message}, state) do
-    encoded_message
-    |> state.serializer.decode_message()
-    |> handle_message(state)
+    decoded_message = state.serializer.decode_message(encoded_message)
+    handle_message(decoded_message, state)
   end
 
   @doc false
@@ -222,12 +219,10 @@ defmodule Channels.Client.Socket do
         {:DOWN, transport_mref, :process, _, reason},
         %{transport_mref: transport_mref} = state
       ) do
-    state.callback.handle_disconnected({:transport_down, reason}, state.callback_state)
-    |> handle_callback_response(reinit(state))
+    invoke_callback(reinit(state), :handle_disconnected, [{:transport_down, reason}])
   end
   def handle_info(message, state) do
-    state.callback.handle_info(message, transport(state), state.callback_state)
-    |> handle_callback_response(state)
+    invoke_callback(state, :handle_info, [message, transport(state)])
   end
 
 
@@ -239,29 +234,25 @@ defmodule Channels.Client.Socket do
   defp handle_message(%{event: "phx_reply", ref: 1, payload: payload, topic: topic}, state) do
     case payload["status"] do
       "ok" ->
-        state.callback.handle_joined(topic, payload["response"], transport(state), state.callback_state)
+        invoke_callback(state, :handle_joined, [topic, payload["response"], transport(state)])
       "error" ->
         :ets.delete(state.message_refs, topic)
-        state.callback.handle_join_error(topic, payload["response"], transport(state), state.callback_state)
+        invoke_callback(state, :handle_join_error, [topic, payload["response"], transport(state)])
     end
-    |> handle_callback_response(state)
   end
   # server replied to a non-join message
   defp handle_message(%{event: "phx_reply", ref: ref, payload: payload, topic: topic}, state) do
-    state.callback.handle_reply(topic, ref, payload, transport(state), state.callback_state)
-    |> handle_callback_response(state)
+    invoke_callback(state, :handle_reply, [topic, ref, payload, transport(state)])
   end
   # channel has been closed (phx_close) or crashed (phx_error) on the server
   defp handle_message(%{event: event, payload: payload, topic: topic}, state)
       when event in ["phx_close", "phx_error"] do
     :ets.delete(state.message_refs, topic)
-    state.callback.handle_channel_closed(topic, payload, transport(state), state.callback_state)
-    |> handle_callback_response(state)
+    invoke_callback(state, :handle_channel_closed, [topic, payload, transport(state)])
   end
   # other messages from the server
   defp handle_message(%{event: event, payload: payload, topic: topic}, state) do
-    state.callback.handle_message(topic, event, payload, transport(state), state.callback_state)
-    |> handle_callback_response(state)
+    invoke_callback(state, :handle_message, [topic, event, payload, transport(state)])
   end
 
 
@@ -286,6 +277,11 @@ defmodule Channels.Client.Socket do
 
   defp next_ref(topic, message_refs),
     do: :ets.update_counter(message_refs, topic, 1, {topic, 0})
+
+  defp invoke_callback(state, function, args) do
+    callback_response = apply(state.callback, function, args ++ [state.callback_state])
+    handle_callback_response(callback_response, state)
+  end
 
   defp handle_callback_response({:ok, callback_state}, state),
     do: {:noreply, %{state | callback_state: callback_state}}
