@@ -1,13 +1,16 @@
-defmodule Channels.Client.SocketDriver do
+defmodule Channels.Client.TestSocket do
   @moduledoc """
   A simple synchronous Phoenix Channels client.
 
   This module implements the `Channels.Client.Socket` behaviour to provide
   a controllable API for channel clients. The implementation is very basic,
-  and is useful mostly in tests. It's not advised to use this module in
+  and is useful for tests only. It's not advised to use this module in
   production, because there are various edge cases which can cause subtle
   bugs. You're instead advised to implement your own callback for the
   `Channels.Client.Socket` behaviour.
+
+  Notice that the module is defined in the lib (and not in the test), which
+  allows us to reuse it in tests of other projects (such as air).
   """
   alias Channels.Client.Socket
   @behaviour Socket

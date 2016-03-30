@@ -1,28 +1,28 @@
 defmodule Air.Socket.CloakTest do
   use ExUnit.Case, async: true
 
-  alias Channels.Client.SocketDriver
+  alias Channels.Client.TestSocket
 
   test "invalid authentication" do
     assert {:ok, socket} = start_link(url(%{shared_secret: "invalid shared secret"}))
-    assert {:error, {403, "Forbidden"}} == SocketDriver.connect(socket)
+    assert {:error, {403, "Forbidden"}} == TestSocket.connect(socket)
   end
 
   test "unmatched topic" do
     assert {:ok, socket} = start_link(url())
-    assert :ok == SocketDriver.connect(socket)
-    assert {:error, reason} = SocketDriver.join(socket, "invalid_channel")
+    assert :ok == TestSocket.connect(socket)
+    assert {:error, reason} = TestSocket.join(socket, "invalid_channel")
     assert {:server_rejected, "invalid_channel", %{"reason" => "unmatched topic"}} == reason
   end
 
   test "main topic" do
     assert {:ok, socket} = start_link(url())
-    assert :ok == SocketDriver.connect(socket)
-    assert {:ok, {"main", %{}}} == SocketDriver.join(socket, "main")
+    assert :ok == TestSocket.connect(socket)
+    assert {:ok, {"main", %{}}} == TestSocket.join(socket, "main")
   end
 
   defp start_link(url) do
-    SocketDriver.start_link(url, serializer: Channels.Client.Socket.Serializer.GzipJson)
+    TestSocket.start_link(url, serializer: Channels.Client.Socket.Serializer.GzipJson)
   end
 
   defp url(params \\ %{
