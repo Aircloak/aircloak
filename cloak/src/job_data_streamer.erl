@@ -5,7 +5,6 @@
 %% API
 -export([
   create_job_inputs/1,
-  map_table_data_to_job_inputs/3,
   get_next_batch/4,
   batch_size/1
 ]).
@@ -35,16 +34,8 @@
   columns :: [binary()] % the table columns we send to the jobs
 }).
 
-%% This record holds the table data for a job. We use this when we already have the data loaded
-%% in memory and we want to send it all at once to the job.
--record(table_data, {
-  columns :: [binary()],
-  rows :: [#tabledatapb_row{}]
-}).
-
-%% The input for a job is a list of pairs consisting of the table name and either a #table_data{} (when
-%% we have all the data loaded in memory) or a #table_stream_state{} (when we stream the data batch by batch).
--type job_input() :: [{binary(), #table_data{} | #table_stream_state{}}]. % {table name, table data or table stream}
+%% The input for a job is a list of pairs consisting of the table name and a #table_stream_state{} record
+-type job_input() :: [{binary(), #table_stream_state{}}]. % {table name, table stream}
 
 -export_type([
   job_input/0
@@ -87,36 +78,13 @@ get_next_batch(UserId, TableName, JobInput, ResetStream) ->
       {NewJobInput, Batch}
   end.
 
-%% @doc Maps in memory table data to the inputs for a task's jobs.
-%%      The table data rows need to have the following format: {ac_user_id, ac_created_at, column fields ...}.
--spec map_table_data_to_job_inputs(binary(), [binary()], [{}]) -> [{user_id(), job_input()}].
-map_table_data_to_job_inputs(TableName, TableColumns, TableData) ->
-  % we use foldr here in order to preserve rows order
-  UserDataMap = lists:foldr(fun (TableRow, UserDataMap) ->
-        [UserId, _AcCreatedAt | Fields] = TableRow,
-        NewUserRow = create_input_table_data_row(Fields),
-        dict:update(UserId, fun(OldUserRows) ->
-              [NewUserRow | OldUserRows]
-            end, [NewUserRow], UserDataMap)
-      end, dict:new(), TableData),
-  [{UserId, [{TableName, #table_data{columns = TableColumns, rows = Rows}}]} ||
-      {UserId, Rows} <- dict:to_list(UserDataMap)].
-
 
 %% -------------------------------------------------------------------
 %% Internal functions
 %% -------------------------------------------------------------------
 
 %% Reads data from a prefetch table and returns the next batch.
--spec read_from_table(user_id(), #table_data{} | #table_stream_state{}, boolean()) ->
-    {#table_data{} | #table_stream_state{}, #tabledatapb{}}.
-read_from_table(_UserId, #table_data{} = TableData, false) ->
-  % this should never happen in normal circumstances (all data is returned in the first batch)
-  EmptyBatch = #tabledatapb{columns = [], rows = [], complete = true},
-  {TableData, EmptyBatch};
-read_from_table(_UserId, #table_data{columns = Columns, rows = Rows} = TableData, true) ->
-  Batch = #tabledatapb{columns = Columns, rows = Rows, complete = true},
-  {TableData, Batch};
+-spec read_from_table(user_id(), #table_stream_state{}, boolean()) -> {#table_stream_state{}, #tabledatapb{}}.
 read_from_table(_UserId, #table_stream_state{last_timestamp = LastTimestamp,
       max_timestamp = MaxTimestamp} = TableStream, false) when LastTimestamp > MaxTimestamp ->
   % this should never happen in normal circumstances (data streaming has finished, needs to be reset)
@@ -196,8 +164,7 @@ remove_last_timestamp_entries(UserId, TableName, Rows) ->
     end.
 
 %% Creates the stream states for a single table prefetch specification.
--spec create_per_user_table_streams(prefetch_spec()) ->
-    [{user_id(), {binary(), #table_data{} | #table_stream_state{}}}].
+-spec create_per_user_table_streams(prefetch_spec()) -> [{user_id(), {binary(), #table_stream_state{}}}].
 create_per_user_table_streams(QuerySpec) ->
   {TableName, Columns, RowLimit, MinTimestamp, MaxTimestamp, Filter} = parse_data_query_spec(QuerySpec),
   SanitizedTableName = sql_util:sanitize_db_object(TableName),
@@ -304,30 +271,6 @@ create_input_table_data_field(Boolean) when is_boolean(Boolean) ->
 -include_lib("eunit/include/eunit.hrl").
 -include("eunit_helpers.hrl").
 
-create_row(Number) ->
-  #tabledatapb_row{fields = [#tabledatapb_field{number = Number}]}.
-
-test_data_mapping() ->
-  Data = [
-    [<<"user_1">>, <<0:64/integer>>, 1],
-    [<<"user_2">>, <<0:64/integer>>, 2],
-    [<<"user_1">>, <<0:64/integer>>, 3]
-  ],
-  JobInput = job_data_streamer:map_table_data_to_job_inputs(<<"foo">>, [<<"col">>], Data),
-  ?assertEqual(JobInput, [
-        {<<"user_2">>, [{<<"foo">>, #table_data{rows = [
-            create_row(2)
-          ], columns = [
-            <<"col">>
-          ]}}]},
-        {<<"user_1">>, [{<<"foo">>, #table_data{rows = [
-            create_row(1),
-            create_row(3)
-          ], columns = [
-            <<"col">>
-          ]}}]}
-      ]).
-
 setup_test_table() ->
   db_test:create_test_schema(),
   db_test:create_table("test", "\"Data Value\" integer, ac_user_id varchar(40), ac_created_at timestamp").
@@ -379,10 +322,7 @@ integration_test_() ->
   {setup,
     fun() -> db_test:setup() end,
     fun(_) -> ok end,
-    [
-      fun test_data_mapping/0,
-      fun test_data_streaming/0
-    ]
+    fun test_data_streaming/0
   }.
 
 -endif.
