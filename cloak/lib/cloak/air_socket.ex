@@ -18,8 +18,14 @@ defmodule Cloak.AirSocket do
 
   @doc "Starts the socket client"
   @spec start_link(GenServer.options) :: GenServer.on_start
-  def start_link(gen_server_opts \\ []),
-    do: Socket.start_link(__MODULE__, nil, gen_server_opts)
+  def start_link(gen_server_opts \\ []) do
+    Socket.start_link(
+          __MODULE__,
+          nil,
+          [serializer: Channels.Client.Socket.Serializer.GzipJson],
+          gen_server_opts
+        )
+  end
 
 
   # -------------------------------------------------------------------

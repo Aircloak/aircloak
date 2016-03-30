@@ -16,7 +16,7 @@ defmodule Air.Socket.Cloak do
   """
   use Phoenix.Socket
 
-  transport :websocket, Phoenix.Transports.WebSocket
+  transport :websocket, Phoenix.Transports.WebSocket, serializer: Air.Socket.Cloak.Serializer
 
   # List of exposed channels
   channel "main", Air.Socket.Cloak.MainChannel

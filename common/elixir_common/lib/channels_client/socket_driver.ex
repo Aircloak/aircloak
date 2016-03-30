@@ -18,9 +18,9 @@ defmodule Channels.Client.SocketDriver do
   # -------------------------------------------------------------------
 
   @doc "Starts the driver process"
-  @spec start_link(String.t) :: GenServer.on_start
-  def start_link(url),
-    do: Socket.start_link(__MODULE__, {url, self})
+  @spec start_link(String.t, Socket.socket_opts) :: GenServer.on_start
+  def start_link(url, socket_opts \\ []),
+    do: Socket.start_link(__MODULE__, {url, self}, socket_opts)
 
   @doc "Connect to the server"
   @spec connect(GenServer.server, GenServer.timeout) :: :ok | {:error, any}

@@ -70,12 +70,15 @@ defmodule Channels.Client.Socket do
   use GenServer
   alias Channels.Client.WebsocketTransport
 
+  @type socket_opts :: [{:serializer, module}]
   @type callback_state :: any
-  @type transport :: %{transport: pid | nil, message_refs: :ets.tab}
+  @type transport :: %{transport: pid | nil, message_refs: :ets.tab, serializer: module}
   @type topic :: String.t
   @type event :: String.t
   @type payload :: %{String.t => any}
   @type ref :: pos_integer
+  @type message :: %{topic: topic, event: event, payload: payload, ref: ref}
+  @type encoded_message :: binary
   @type handler_response ::
     {:ok, callback_state} |
     {:connect, callback_state} |
@@ -122,9 +125,9 @@ defmodule Channels.Client.Socket do
   # -------------------------------------------------------------------
 
   @doc "Starts the socket process"
-  @spec start_link(module, any, GenServer.options) :: GenServer.on_start
-  def start_link(callback, arg, gen_server_opts \\ []) do
-    GenServer.start_link(__MODULE__, {callback, arg}, gen_server_opts)
+  @spec start_link(module, any, socket_opts, GenServer.options) :: GenServer.on_start
+  def start_link(callback, arg, socket_opts \\ [], gen_server_opts \\ []) do
+    GenServer.start_link(__MODULE__, {callback, arg, socket_opts}, gen_server_opts)
   end
 
   @doc "Joins the topic"
@@ -151,7 +154,7 @@ defmodule Channels.Client.Socket do
       event == "phx_join" and ref > 1 ->
         {:error, :already_joined}
       true ->
-        frame = encode_message(topic, event, payload, ref)
+        frame = transport.serializer.encode_message(%{topic: topic, event: event, payload: payload, ref: ref})
         WebsocketTransport.push(transport.transport_pid, frame)
         {:ok, ref}
     end
@@ -183,11 +186,12 @@ defmodule Channels.Client.Socket do
   # -------------------------------------------------------------------
 
   @doc false
-  def init({callback, arg}) do
+  def init({callback, arg, socket_opts}) do
     case callback.init(arg) do
       {:ok, url, callback_state} ->
         {:ok, %{
           url: url,
+          serializer: Keyword.get(socket_opts, :serializer, Channels.Client.Socket.Serializer.Json),
           callback: callback,
           callback_state: callback_state,
           transport_pid: nil,
@@ -209,7 +213,7 @@ defmodule Channels.Client.Socket do
   end
   def handle_cast({:notify_message, encoded_message}, state) do
     encoded_message
-    |> decode_message()
+    |> state.serializer.decode_message()
     |> handle_message(state)
   end
 
@@ -278,18 +282,7 @@ defmodule Channels.Client.Socket do
   end
 
   defp transport(state),
-    do: %{transport_pid: state.transport_pid, message_refs: state.message_refs}
-
-  defp decode_message(encoded_message) do
-    %{"topic" => topic, "event" => event, "payload" => payload, "ref" => ref} =
-      Poison.decode!(encoded_message)
-
-    %{topic: topic, event: event, payload: payload, ref: ref}
-  end
-
-  defp encode_message(topic, event, payload, ref) do
-    {:binary, Poison.encode!(%{topic: topic, event: event, payload: payload, ref: ref})}
-  end
+    do: Map.take(state, [:transport_pid, :message_refs, :serializer])
 
   defp next_ref(topic, message_refs),
     do: :ets.update_counter(message_refs, topic, 1, {topic, 0})
