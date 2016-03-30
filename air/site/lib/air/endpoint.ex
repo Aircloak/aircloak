@@ -39,7 +39,7 @@ defmodule Air.Endpoint do
   # Endpoint HTTP specification
   # -------------------------------------------------------------------
 
-  socket "/socket", Air.UserSocket
+  socket "/cloak/socket", Air.Socket.Cloak
 
   # Serve at "/" the static files from "priv/static" directory.
   #

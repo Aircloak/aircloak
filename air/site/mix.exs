@@ -38,7 +38,7 @@ defmodule Air.Mixfile do
       mod: {Air, []},
       applications: [
         :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-        :lhttpc, :etcd, :hackney, :guardian, :inets
+        :lhttpc, :etcd, :hackney, :guardian, :inets, :aircloak_elixir_common
       ] ++ dialyzer_required_deps()
     ]
   end
