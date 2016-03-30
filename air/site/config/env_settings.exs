@@ -7,7 +7,7 @@ defmodule Air.EnvSettings do
 
   @mix_env Mix.env
 
-  @doc "Returns the tcp port for the given air service"
+  @doc "Returns the tcp port for the given air service."
   def tcp_port(service) do
     bash_exec(". ../config/config.sh && echo $(get_tcp_port #{@mix_env} #{service})")
     |> String.to_integer

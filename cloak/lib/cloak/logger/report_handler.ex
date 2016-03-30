@@ -1,6 +1,6 @@
 defmodule Cloak.Logger.ReportHandler do
   @moduledoc """
-  Cloak report handler
+  Cloak report handler.
 
   This module acts as the production only report handler. If a crash report is
   generated, it will log the module and function where the crash occurred.

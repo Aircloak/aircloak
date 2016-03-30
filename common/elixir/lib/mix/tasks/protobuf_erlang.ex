@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Compile.Protobuf.Erlang do
   @shortdoc "Erlang compilation of protobuf files in the `proto` folder"
   @moduledoc """
-  Erlang compilation of protobuf files in the `proto` folder
+  Erlang compilation of protobuf files in the `proto` folder.
 
   For all files in the `proto` folder (and subfolders), this task will generate
   `include/*_pb.hrl` and `ebin/*_pb.beam` files.

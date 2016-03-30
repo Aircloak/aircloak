@@ -38,7 +38,7 @@ defmodule Air.Mixfile do
       mod: {Air, []},
       applications: [
         :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-        :lhttpc, :etcd, :hackney, :guardian, :inets
+        :lhttpc, :etcd, :hackney, :guardian, :inets, :aircloak_common
       ] ++ dialyzer_required_deps()
     ]
   end
@@ -72,7 +72,7 @@ defmodule Air.Mixfile do
       {:etcd, github: "spilgames/etcd.erl", ref: "79d04a775e4488b0eb6e5e07a8c0bf4803adb997"},
       {:hackney, "~> 1.5.0"},
       {:exrm, "~> 1.0"},
-      {:aircloak_elixir_common, path: "../../common/elixir_common"}
+      {:aircloak_common, path: "../../common/elixir"}
     ]
   end
 

@@ -1,5 +1,5 @@
 defmodule Air.Endpoint do
-  @moduledoc "Implements the HTTP server for insights.aircloak.com"
+  @moduledoc "Implements the HTTP server for insights.aircloak.com."
 
   use Phoenix.Endpoint, otp_app: :air
 
@@ -39,7 +39,7 @@ defmodule Air.Endpoint do
   # Endpoint HTTP specification
   # -------------------------------------------------------------------
 
-  socket "/socket", Air.UserSocket
+  socket "/cloak/socket", Air.Socket.Cloak
 
   # Serve at "/" the static files from "priv/static" directory.
   #
