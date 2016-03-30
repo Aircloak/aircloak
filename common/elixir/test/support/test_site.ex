@@ -1,12 +1,12 @@
 defmodule TestSite do
   defmodule Endpoint do
-    use Phoenix.Endpoint, otp_app: :elixir_common
+    use Phoenix.Endpoint, otp_app: :aircloak_common
 
     socket "/test_socket", TestSite.Socket
 
     defoverridable start_link: 0
     def start_link do
-      Application.put_env(:elixir_common, __MODULE__, [
+      Application.put_env(:aircloak_common, __MODULE__, [
             https: false,
             http: [port: 29876],
             secret_key_base: String.duplicate("abcdefgh", 8),

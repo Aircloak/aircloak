@@ -33,7 +33,7 @@ defmodule Cloak.Mixfile do
 
   defp deps do
     [
-      {:aircloak_elixir_common, path: "../common/elixir"},
+      {:aircloak_common, path: "../common/elixir"},
       {:webmachine, github: "basho/webmachine", tag: "1.10.6"},
       {:ej, github: "seth/ej"},
       {:gproc, "~> 0.5.0"},
@@ -49,7 +49,7 @@ defmodule Cloak.Mixfile do
   defp applications(:prod), do: [:os_mon | common_applications()]
 
   defp common_applications do
-    [:logger, :webmachine, :ej, :gproc, :pgsql, :erlcron, :aircloak_elixir_common]
+    [:logger, :webmachine, :ej, :gproc, :pgsql, :erlcron, :aircloak_common]
   end
 
   defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]

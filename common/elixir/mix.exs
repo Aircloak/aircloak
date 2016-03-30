@@ -3,7 +3,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
 
   def project do
     [
-      app: :aircloak_elixir_common,
+      app: :aircloak_common,
       version: "0.0.1",
       elixir: "~> 1.2",
       elixirc_paths: elixirc_paths(Mix.env),
