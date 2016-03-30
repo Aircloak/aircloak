@@ -61,7 +61,8 @@ defmodule Cloak do
       [
         supervisor(:cloak_metrics_sup, []),
         worker(:resource_monitor, []),
-        worker(:cron_manager, [])
+        worker(:cron_manager, []),
+        worker(Cloak.AirSocket, [])
       ]
     end
   end

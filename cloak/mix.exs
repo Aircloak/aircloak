@@ -49,7 +49,7 @@ defmodule Cloak.Mixfile do
   defp applications(:prod), do: [:os_mon | common_applications()]
 
   defp common_applications do
-    [:logger, :webmachine, :ej, :gproc, :pgsql, :erlcron]
+    [:logger, :webmachine, :ej, :gproc, :pgsql, :erlcron, :aircloak_elixir_common]
   end
 
   defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]
