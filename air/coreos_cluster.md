@@ -190,7 +190,7 @@ Once the Air system is installed you'll find the routers file which needs to be 
 
 #### Creating the first user
 
-You won't be able to log in if your cluster starts with a fresh database. This is because by default no user exists. To manually add a user, enter the remote console on any one of the CoreOS machines using `/aircloak/air/insights/container.sh remote_console`
+You won't be able to log in if your cluster starts with a fresh database. This is because by default no user exists. To manually add a user, enter the remote console on any one of the CoreOS machines using `/aircloak/air/site/container.sh remote_console`
 
 Now you can add the organisation and the admin login:
 
