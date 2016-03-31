@@ -8,6 +8,8 @@
     <meta name="author" content="">
 
     <title>Aircloak – Air control</title>
+    <link rel="shortcut icon" href="<%= static_path(@conn, "/images/favicon.ico") %>" type="image/x-icon">
+    <link rel="stylesheet" href="<%= static_path(@conn, "/css/vendor.css") %>">
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
   </head>
 

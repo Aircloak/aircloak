@@ -17,10 +17,12 @@ defmodule Air.SessionController do
         conn
         |> Guardian.Plug.sign_in(user)
         |> put_session(:return_path, nil)
-        |> put_flash(:info, "Logged in successfully. Welcome back")
+        |> put_flash(:info, "Logged in successfully. Welcome back!")
         |> redirect(to: return_path)
       false ->
-        render(conn, "new.html")
+        conn
+        |> put_flash(:error, "Invalid e-mail or password.")
+        |> render("new.html")
     end
   end
 
