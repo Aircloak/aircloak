@@ -232,12 +232,12 @@ __Note:__ These need to be executed on a CoreOS machine.
 - Stop Air units: `sudo /aircloak/air/air_service_ctl.sh stop_system`
 - Start the system: `sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data`
 - Shell to the running container:
-    - `/aircloak/air/insights/container.sh ssh`
+    - `/aircloak/air/site/container.sh ssh`
     - `/aircloak/air/frontend/container.sh ssh`
     - `/aircloak/air/backend/container.sh ssh`
     - `/aircloak/air/router/container.sh ssh`
 - Shell to Rails/Erlang console:
-    - `/aircloak/air/insights/container.sh remote_console`
+    - `/aircloak/air/site/container.sh remote_console`
     - `/aircloak/air/frontend/container.sh remote_console`
     - `/aircloak/air/backend/container.sh remote_console`
 - Maintenance mode:
