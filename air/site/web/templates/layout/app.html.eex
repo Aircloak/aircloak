@@ -18,12 +18,18 @@
       <header class="header">
         <nav role="navigation">
           <ul class="nav nav-pills pull-right">
+            <%= if permitted?(@conn, Air.UserController, :index) do %>
+              <li><%= link "Users", to: user_path(@conn, :index) %></li>
+            <% end %>
+            <%= if permitted?(@conn, Air.OrganisationController, :index) do %>
+              <li><%= link "Organisations", to: organisation_path(@conn, :index) %></li>
+            <% end %>
             <%= if Guardian.Plug.authenticated?(@conn) do %>
-            <li><%= link "Users", to: user_path(@conn, :index) %></li>
-            <li><%= link "Organisations", to: organisation_path(@conn, :index) %></li>
-            <li><%= link "Sign out", to: session_path(@conn, :delete), method: :delete, class: "signout-btn" %></li>
+              <li>
+                <%= link "Sign out", to: session_path(@conn, :delete), method: :delete, class: "signout-btn" %>
+              </li>
             <% else %>
-            <li><%= link "Sign in", to: session_path(@conn, :new) %></li>
+              <li><%= link "Sign in", to: session_path(@conn, :new) %></li>
             <% end %>
           </ul>
         </nav>

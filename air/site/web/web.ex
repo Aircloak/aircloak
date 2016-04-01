@@ -55,6 +55,7 @@ defmodule Air.Web do
 
       import Air.Router.Helpers
       import Air.ErrorHelpers
+      import Air.ViewHelpers
       import Air.Gettext
     end
   end

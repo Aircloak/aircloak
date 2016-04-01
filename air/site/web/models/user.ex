@@ -12,7 +12,7 @@ defmodule Air.User do
   @type user :: t | Changeset.t
   @type role_id :: non_neg_integer
   @type role_key :: :anonymous | :user | :org_admin | :admin
-  @type operation :: any
+  @type operation :: atom
   @type permissions :: %{role_key => [operation] | :all}
 
   schema "users" do

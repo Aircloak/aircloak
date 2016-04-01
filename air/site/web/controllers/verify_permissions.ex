@@ -28,22 +28,31 @@ defmodule Air.VerifyPermissions do
   @doc "Called to retrieve the permissions for the current controller"
   @callback permissions :: Air.User.permissions
 
+  @doc "Verifies if the currently logged-in user has permissions on the given action."
+  @spec check_permission(Plug.Conn.t, module, atom) :: :ok | {:error, formatted_error::String.t}
+  def check_permission(conn, controller, action) do
+    user = Guardian.Plug.current_resource(conn)
+    if Air.User.permitted?(user, action, permissions(controller)) do
+      :ok
+    else
+      {:error, "action #{controller}.#{action} not permitted for #{inspect user || :anonymous}"}
+    end
+  end
+
   @doc false
   def init(opts), do: opts
 
   @doc false
   def call(conn, opts) do
-    user = Guardian.Plug.current_resource(conn)
-    action = Phoenix.Controller.action_name(conn)
-    controller = opts[:controller]
-    if Air.User.permitted?(user, action, permissions(controller)) do
-      conn
-    else
-      Logger.info(fn -> "action #{controller}.#{action} not permitted for #{inspect user}" end)
+    case check_permission(conn, opts[:controller], Phoenix.Controller.action_name(conn)) do
+      :ok ->
+        conn
+      {:error, formatted_error} ->
+        Logger.info(formatted_error)
 
-      conn
-      |> Phoenix.Controller.redirect(to: "/")
-      |> Plug.Conn.halt()
+        conn
+        |> Phoenix.Controller.redirect(to: "/")
+        |> Plug.Conn.halt()
     end
   end
 
