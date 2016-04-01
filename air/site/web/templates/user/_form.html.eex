@@ -6,6 +6,12 @@
 <% end %>
 
 <div class="form-group">
+  <%= label f, :role_id, class: "control-label" %>
+  <%= select f, :role_id, Enum.map(Air.User.all_roles(), fn({id, {_key, desc}}) -> {desc, id} end) %>
+  <%= error_tag f, :role_id %>
+</div>
+
+<div class="form-group">
   <label>Email address</label>
   <%= text_input f, :email, class: "form-control" %>
   <%= error_tag f, :email %>

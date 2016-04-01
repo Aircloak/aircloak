@@ -3,8 +3,14 @@ defmodule Air.UserTest do
 
   alias Air.User
 
-  @valid_attrs %{email: "admin@aircloak.com", password: "1234", password_confirmation: "1234",
-      name: "Admin", organisation_id: 1}
+  @valid_attrs %{
+    email: "admin@aircloak.com",
+    password: "1234",
+    password_confirmation: "1234",
+    name: "Admin",
+    organisation_id: 1,
+    role_id: 0
+  }
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do
@@ -37,6 +43,16 @@ defmodule Air.UserTest do
     assert errors_on(%User{}, :organisation_id, attributes)
   end
 
+  test "requires the role id" do
+    attributes = %{@valid_attrs | role_id: nil}
+    assert errors_on(%User{}, :role_id, attributes)
+  end
+
+  test "requires the valid id" do
+    attributes = %{@valid_attrs | role_id: 314159}
+    assert errors_on(%User{}, :role_id, attributes)
+  end
+
   test "only update hashed password on password change" do
     initial_changeset = Map.merge(%User{}, @valid_attrs)
     has_change_fn = fn(attr) ->
@@ -48,5 +64,11 @@ defmodule Air.UserTest do
     refute has_change_fn.(without_password_change)
     changed_password = %{@valid_attrs | password: "abcd", password_confirmation: "abcd"}
     assert has_change_fn.(changed_password)
+  end
+
+  test "role expansion" do
+    assert [:user] == User.roles(%User{role_id: User.role_id(:user)})
+    assert [:org_admin, :user] == User.roles(%User{role_id: User.role_id(:org_admin)})
+    assert [:admin, :org_admin, :user] == User.roles(%User{role_id: User.role_id(:admin)})
   end
 end

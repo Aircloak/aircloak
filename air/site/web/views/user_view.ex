@@ -25,4 +25,7 @@ defmodule Air.UserView do
       org -> org.name
     end
   end
+
+  defp role(user),
+    do: Air.User.role_description(user)
 end

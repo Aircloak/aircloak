@@ -28,6 +28,7 @@ aircloak_organisation
       email: "admin@aircloak.com",
       password: "1234",
       password_confirmation: "1234",
-      name: "Aircloak test user"
+      name: "Aircloak test user",
+      role_id: 1
     })
 |> Air.Repo.insert!
