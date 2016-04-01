@@ -9,8 +9,11 @@ defmodule Air.User do
   alias Air.Organisation
 
   @type t :: %__MODULE__{}
+  @type user :: t | Changeset.t
   @type role_id :: non_neg_integer
-  @type role_key :: atom
+  @type role_key :: :anonymous | :user | :org_admin | :admin
+  @type operation :: any
+  @type permissions :: %{role_key => [operation] | :all}
 
   schema "users" do
     field :email, :string
@@ -38,9 +41,9 @@ defmodule Air.User do
   }
 
   @included_roles %{
-    user: [],
-    org_admin: [:user],
-    admin: [:org_admin, :user]
+    user: [:anonymous],
+    org_admin: [:user, :anonymous],
+    admin: [:org_admin, :user, :anonymous]
   }
 
 
@@ -53,10 +56,11 @@ defmodule Air.User do
   def all_roles, do: @roles
 
   @doc "Returns all user's roles."
-  @spec roles(t | Changeset.t) :: [role_key]
-  def roles(user) do
-    expand_role(role_key(user.role_id))
-  end
+  @spec roles(nil | user) :: [role_key]
+  def roles(nil),
+    do: [:anonymous]
+  def roles(user),
+    do: expand_role(role_key(user.role_id))
 
   @doc "Returns the role id for the given role key."
   @spec role_id(role_key) :: role_id
@@ -65,10 +69,24 @@ defmodule Air.User do
   end
 
   @doc "Returns the role description of the given user."
-  @spec role_description(t | Changeset.t) :: String.t
+  @spec role_description(user) :: String.t
   def role_description(user) do
     {_key, desc} = Map.fetch!(all_roles(), user.role_id)
     desc
+  end
+
+  @doc "Verifies whether the provided user has permission for the given operation"
+  @spec permitted?(nil | user, operation, permissions) :: boolean
+  def permitted?(user, operation, permissions) do
+    user
+    |> roles
+    |> Stream.map(&Map.get(permissions, &1, []))
+    |> Enum.any?(
+            fn
+              :all -> true
+              allowed -> Enum.member?(allowed, operation)
+            end
+          )
   end
 
   @doc """
@@ -77,7 +95,7 @@ defmodule Air.User do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
-  @spec changeset(t, %{binary => term} | %{atom => term} | :empty) :: Changeset.t
+  @spec changeset(user, %{binary => term} | %{atom => term} | :empty) :: Changeset.t
   def changeset(model, params \\ :empty) do
     model
     |> cast(params, @required_fields, @optional_fields)
@@ -116,12 +134,24 @@ defmodule Air.User do
   end
 
   for {_id, {key, _desc}} <- @roles do
-    all_roles = [key | Map.fetch!(@included_roles, key)]
+    all_roles = [key | Map.get(@included_roles, key, [])]
     defp expand_role(unquote(key)), do: unquote(all_roles)
   end
 
   defp role_key(role_id) do
     {key, _desc} = Map.fetch!(all_roles(), role_id)
     key
+  end
+
+  defimpl Inspect do
+    @moduledoc """
+    Custom inspection of the user record, where we only present non-sensitive fields.
+
+    This allows us to safely inspect user anywhere in log expressions without
+    worrying we'll leek some sensitive data.
+    """
+    def inspect(user, opts) do
+      Inspect.Map.inspect(Map.take(user, [:id]), Inspect.Atom.inspect(user.__struct__), opts)
+    end
   end
 end

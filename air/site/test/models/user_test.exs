@@ -67,8 +67,51 @@ defmodule Air.UserTest do
   end
 
   test "role expansion" do
-    assert [:user] == User.roles(%User{role_id: User.role_id(:user)})
-    assert [:org_admin, :user] == User.roles(%User{role_id: User.role_id(:org_admin)})
-    assert [:admin, :org_admin, :user] == User.roles(%User{role_id: User.role_id(:admin)})
+    assert [:user, :anonymous] == User.roles(user(:user))
+    assert [:org_admin, :user, :anonymous] == User.roles(user(:org_admin))
+    assert [:admin, :org_admin, :user, :anonymous] == User.roles(user(:admin))
   end
+
+  test "permissions" do
+    permissions = %{
+      user: [:user_op],
+      org_admin: [:org_admin_op],
+      admin: [:admin_op]
+    }
+
+    assert true == User.permitted?(user(:user), :user_op, permissions)
+    assert false == User.permitted?(user(:user), :org_admin_op, permissions)
+    assert false == User.permitted?(user(:user), :admin_op, permissions)
+
+    assert true == User.permitted?(user(:org_admin), :user_op, permissions)
+    assert true == User.permitted?(user(:org_admin), :org_admin_op, permissions)
+    assert false == User.permitted?(user(:org_admin), :admin_op, permissions)
+
+    assert true == User.permitted?(user(:admin), :user_op, permissions)
+    assert true == User.permitted?(user(:admin), :org_admin_op, permissions)
+    assert true == User.permitted?(user(:admin), :admin_op, permissions)
+  end
+
+  test "correct verification of non-listed permissions" do
+    assert false == User.permitted?(user(:user), :user_op, %{org_admin: [:user_op]})
+    assert true == User.permitted?(user(:admin), :user_op, %{org_admin: [:user_op]})
+  end
+
+  test "all permissions" do
+    assert true == User.permitted?(user(:admin), :foo, %{admin: :all})
+    assert true == User.permitted?(user(:admin), :bar, %{admin: :all})
+    assert false == User.permitted?(user(:org_admin), :foo, %{admin: :all})
+    assert false == User.permitted?(user(:user), :foo, %{admin: :all})
+  end
+
+  test "anonymous permissions" do
+    assert false == User.permitted?(nil, :foo, %{anonymous: [:anon_op], user: :all})
+    assert true == User.permitted?(nil, :anon_op, %{anonymous: [:anon_op], user: :all})
+    assert true == User.permitted?(user(:user), :anon_op, %{anonymous: [:anon_op], user: :all})
+    assert true == User.permitted?(user(:org_admin), :anon_op, %{anonymous: [:anon_op], user: :all})
+    assert true == User.permitted?(user(:admin), :anon_op, %{anonymous: [:anon_op], user: :all})
+  end
+
+  defp user(role_key),
+    do: %User{role_id: User.role_id(role_key)}
 end
