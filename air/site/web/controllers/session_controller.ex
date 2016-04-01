@@ -5,6 +5,22 @@ defmodule Air.SessionController do
   alias Air.User
   alias Plug.Conn
 
+  # -------------------------------------------------------------------
+  # Air.VerifyPermissions callback
+  # -------------------------------------------------------------------
+
+  def permissions do
+    %{
+      anonymous: [:new, :create],
+      user: :all
+    }
+  end
+
+
+  # -------------------------------------------------------------------
+  # Actions
+  # -------------------------------------------------------------------
+
   def new(conn, _params) do
     render(conn, "new.html")
   end

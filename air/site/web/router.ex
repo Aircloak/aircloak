@@ -21,13 +21,13 @@ defmodule Air.Router do
 
     get "/", SessionController, :new
     post "/", SessionController, :create
-    delete "/logout", SessionController, :delete
   end
 
   scope "/", Air do
     pipe_through [:browser, :browser_auth]
 
     get "/", PageController, :index
+    delete "/logout", SessionController, :delete
 
     resources "/users", UserController
     resources "/organisations", OrganisationController

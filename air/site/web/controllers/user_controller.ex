@@ -6,6 +6,22 @@ defmodule Air.UserController do
 
   plug :preload_organisations, except: [:index, :delete]
 
+
+  # -------------------------------------------------------------------
+  # Air.VerifyPermissions callback
+  # -------------------------------------------------------------------
+
+  def permissions do
+    %{
+      org_admin: :all
+    }
+  end
+
+
+  # -------------------------------------------------------------------
+  # Actions
+  # -------------------------------------------------------------------
+
   def index(conn, _params) do
     users = Repo.all(User) |> Repo.preload([:organisation])
     render(conn, "index.html", users: users)

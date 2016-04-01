@@ -6,6 +6,22 @@ defmodule Air.OrganisationController do
 
   plug :scrub_params, "organisation" when action in [:create, :update]
 
+
+  # -------------------------------------------------------------------
+  # Air.VerifyPermissions callback
+  # -------------------------------------------------------------------
+
+  def permissions do
+    %{
+      user: [],
+      admin: :all
+    }
+  end
+
+  # -------------------------------------------------------------------
+  # Actions
+  # -------------------------------------------------------------------
+
   def index(conn, _params) do
     organisations = Repo.all(Organisation)
     render(conn, "index.html", organisations: organisations)

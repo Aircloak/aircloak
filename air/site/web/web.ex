@@ -36,6 +36,10 @@ defmodule Air.Web do
 
       import Air.Router.Helpers
       import Air.Gettext
+
+      # Each controller must verify permissions
+      @behaviour Air.VerifyPermissions
+      plug Air.VerifyPermissions, controller: __MODULE__
     end
   end
 
