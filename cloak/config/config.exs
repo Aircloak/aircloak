@@ -90,22 +90,6 @@ config :cloak, :metrics,
   graphite_server: 'cloakmetrics.mpi-sws.org',
   graphite_port: 2004
 
-config :cloak, :cloak_db,
-  # Default cloak database parameters (server is excluded)
-  connection: [
-    user: "cloak",
-    database: "cloak",
-    port: 5432
-  ],
-  # Default server-side timeout. The client-side timeout is 5 seconds longer.
-  default_query_timeout: 20000,
-  # Per-server connection pool sizes. Each tuple defines number of static (started immediately and
-  # persisted) workers in the pool
-  # The static count can also be set relative to the CPU count by specifying
-  # a floating-point multiplier before the fixed amount of workers.
-  pool_size: {1.5, 3}, # num_cpus * 1.5 + 3
-  idle_timeout: 60000 # 1 minute
-
 config :cloak, :sandbox,
   # Number of ms a job is allowed to execute in the sandbox before being terminated
   max_time: 120000 # 2 minutes

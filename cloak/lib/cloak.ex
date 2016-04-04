@@ -30,11 +30,8 @@ defmodule Cloak do
     import Supervisor.Spec, warn: false
 
     [
-      worker(:db_job, []),
       worker(:progress_handler, []),
       supervisor(:global_service_sup, []),
-      supervisor(:cloak_db_pool_sup, []),
-      worker(:cloak_db_def, []),
       supervisor(:result_sender_sup, []),
       supervisor(:job_runner_sup, []),
       supervisor(DataSource, []),

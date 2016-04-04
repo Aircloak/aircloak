@@ -85,4 +85,18 @@ defmodule DataSource.PostgreSQL do
         "(SELECT #{user_id}, #{row_id}, ROW_NUMBER() OVER (PARTITION BY #{user_id} ORDER BY #{row_id} DESC) " <>
         "AS index FROM #{table_name} WHERE #{filter}) numbered WHERE index <= #{row_limit} GROUP BY #{user_id}"
   end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Test functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  if Mix.env == :test do
+    @doc false
+    def execute(statement, parameters \\ []) do
+      connection = Process.whereis(:local)
+      options = [timeout: 2*60*1000, pool_timeout: 10*1000, pool: DBConnection.Poolboy]
+      Postgrex.query(connection, statement, parameters, options)
+    end
+  end
 end

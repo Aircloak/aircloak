@@ -200,14 +200,14 @@ create_input_table_data_field(Boolean) when is_boolean(Boolean) ->
 
 setup_test_table() ->
   db_test:create_test_schema(),
-  db_test:create_table("test", "\"Data Value\" INTEGER").
+  db_test:create_table(<<"test">>, <<"\"Data Value\" INTEGER">>).
 
 add_data(Count) ->
   Data = [{<<"test">>, [
     {columns, [<<"Data Value">>]},
     {data, [[Value rem 4] || Value <- lists:seq(1, Count)]}
   ]}],
-  ok = db_test:add_users_data([{<<"user-id">>, Data}], timer:seconds(5)).
+  ok = db_test:add_users_data([{<<"user-id">>, Data}]).
 
 fill_table() ->
   BatchSize = batch_size(1),
