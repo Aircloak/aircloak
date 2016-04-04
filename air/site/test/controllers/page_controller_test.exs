@@ -6,6 +6,7 @@ defmodule Air.PageControllerTest do
   test "GET / redirects for auth", %{conn: conn} do
     conn = get(conn, "/")
     assert redirected_to(conn) =~ "/auth"
+    assert get_flash(conn)["error"] =~ "You must be authenticated to view this page"
   end
 
   test "normal user visible links" do
