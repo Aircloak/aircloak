@@ -62,6 +62,11 @@ defmodule Air.User do
   def roles(user),
     do: expand_role(role_key(user.role_id))
 
+  @doc "Returns true if the user belongs to the administrator role."
+  @spec admin?(nil | user) :: boolean
+  def admin?(user),
+    do: Enum.member?(roles(user), :admin)
+
   @doc "Returns the role id for the given role key."
   @spec role_id(role_key) :: role_id
   for {id, {key, _desc}} <- @roles do

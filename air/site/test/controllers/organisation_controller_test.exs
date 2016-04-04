@@ -15,6 +15,10 @@ defmodule Air.OrganisationControllerTest do
       assert "/" == login(user) |> post("/organisations") |> redirected_to()
       assert "/" == login(user) |> put("/organisations/#{user.id}") |> redirected_to()
       assert "/" == login(user) |> delete("/organisations/#{user.id}") |> redirected_to()
+
+      if role == :user do
+        assert "/" == login(user) |> get("/organisations/#{org.id}") |> redirected_to()
+      end
     end
   end
 
@@ -37,10 +41,31 @@ defmodule Air.OrganisationControllerTest do
 
   test "viewing the organisation" do
     org = TestRepoHelper.create_organisation!()
+    another_org = TestRepoHelper.create_organisation!()
     admin = TestRepoHelper.create_user!(org, :admin)
+    user_from_another_org = TestRepoHelper.create_user!(another_org, :admin)
 
     html = login(admin) |> get("/organisations/#{org.id}") |> response(200)
     assert html =~ admin.email
+    refute html =~ user_from_another_org.email
+  end
+
+  test "org admin can view its own organisation" do
+    org = TestRepoHelper.create_organisation!()
+    org_admin = TestRepoHelper.create_user!(org, :org_admin)
+    another_org = TestRepoHelper.create_organisation!()
+
+    login(org_admin) |> get("/organisations/#{org.id}") |> response(200)
+    assert "/" == login(org_admin) |> get("/organisations/#{another_org.id}") |> redirected_to()
+  end
+
+  test "admin can view all organisations" do
+    org = TestRepoHelper.create_organisation!()
+    admin = TestRepoHelper.create_user!(org, :admin)
+    another_org = TestRepoHelper.create_organisation!()
+
+    login(admin) |> get("/organisations/#{org.id}") |> response(200)
+    login(admin) |> get("/organisations/#{another_org.id}") |> response(200)
   end
 
   test "creating an organisation" do
