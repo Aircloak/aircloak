@@ -18,7 +18,7 @@
 %%   the sandboxed task.
 %%
 
--type supported_sql_data() :: binary() | number() | boolean() | null.
+-type data_value() :: binary() | number() | boolean() | nil.
 
 -type schema_name() :: binary().
 -type table_name() :: binary().
@@ -26,12 +26,12 @@
 -type column_name() :: binary().
 -type column_spec() :: {columns, [column_name()]}.
 
--type row_data() :: [supported_sql_data()].
+-type row_data() :: [data_value()].
 -type column_data() :: {data, [row_data()]}.
 
 -type table_data() :: {table_name(), [column_spec() | column_data()]}.
 
 -type user_data() :: [table_data()].
 
-%% type for the ac_created_at field
+%% type for the timestamp field
 -type datetime() :: {calendar:date(), {0..23, 0..59, 0..59 | float()}}.

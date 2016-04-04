@@ -22,7 +22,7 @@
 -define(QUEUED_STREAMING(Q), db_job:streaming(?WRAP(Q))).
 -endif.
 
--type user_id() :: string().
+-type user_id() :: binary() | integer().
 -type task_id() :: binary().
 -type task_type() :: batch | streaming | periodic.
 -type index() :: string().
@@ -32,14 +32,13 @@
 
 %% Task specification types
 -type prefetch_table_spec() :: [
-  {table, binary()} |
+  {table_id, binary()} |
   {user_rows, pos_integer() | undefined | null} |
-  {time_limit, pos_integer() | undefined | null} |
   {where, db_query_builder:filter_spec()} |
   {columns, [binary()]}
 ].
 -type prefetch_spec() :: [prefetch_table_spec()].
--type task_data() :: [{table_name(), [column_name()], [column_name()], [{supported_sql_data(), supported_sql_data()}]}].
+-type task_data() :: [{table_name(), [column_name()], [column_name()], [{data_value(), data_value()}]}].
 
 -record(task, {
   task_id :: task_id(),

@@ -40,7 +40,9 @@ defmodule Cloak.Mixfile do
       {:pgsql, github: "semiocast/pgsql"},
       {:erlcron, github: "erlware/erlcron"},
       {:exrm, "~> 1.0"},
-      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true}
+      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true},
+      {:postgrex, "~> 0.11"},
+      {:poolboy, "~> 1.5"}
     ]
   end
 
@@ -49,7 +51,7 @@ defmodule Cloak.Mixfile do
   defp applications(:prod), do: [:os_mon | common_applications()]
 
   defp common_applications do
-    [:logger, :webmachine, :ej, :gproc, :pgsql, :erlcron, :aircloak_common]
+    [:logger, :webmachine, :ej, :gproc, :pgsql, :erlcron, :aircloak_common,  :postgrex, :poolboy]
   end
 
   defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]

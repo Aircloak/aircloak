@@ -266,8 +266,7 @@ postcondition_add_table(_State, Result, _NewTableName, _NewColumns) ->
   Result == ok.
 
 create_table({Table, {create, Columns}}) ->
-  ColumnDefs = ["ac_user_id varchar(40)", "ac_created_at timestamp" |
-    [[Column, " integer"] || {Column, integer, []} <- Columns]],
+  ColumnDefs = [[Column, " INTEGER"] || {Column, integer, []} <- Columns],
   case db_test:create_table(Table, cloak_util:join(ColumnDefs, ",")) of
     {{create, table}, _} -> ok;
     Other -> {error, Other}

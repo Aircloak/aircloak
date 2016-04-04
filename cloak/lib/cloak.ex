@@ -37,6 +37,7 @@ defmodule Cloak do
       worker(:cloak_db_def, []),
       supervisor(:result_sender_sup, []),
       supervisor(:job_runner_sup, []),
+      supervisor(DataSource, []),
       worker(:queued_worker,
             [:task_coordinator, :task_coordinator, :cloak_conf.get_val(:queries, :concurrent_executions)],
             id: :task_coordinator_queue

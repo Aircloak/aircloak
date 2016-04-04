@@ -43,12 +43,18 @@ create_test_schema() ->
 
 %% @doc Creates a test table.
 create_table(TableName, Definition) ->
-  cloak_db:call(test, fun(Connection) ->
+  Result = cloak_db:call(test, fun(Connection) ->
         {{create, table}, _} = sql_conn:simple_query(
-              ["CREATE TABLE ", sanitized_table(TableName), "(", Definition, ")"],
+              ["CREATE TABLE ", sanitized_table(TableName), " (row_id SERIAL, user_id VARCHAR(64), ", Definition, ")"],
               Connection
             )
-      end).
+      end),
+  case Result of
+    {{create, table}, _} ->
+      'Elixir.DataSource':register_test_table(full_table_name(TableName), <<"user_id">>, <<"row_id">>),
+      Result;
+    _ -> Result
+  end.
 
 %% @doc Adds the data for the given user
 add_users_data(Data, Timeout) ->
@@ -61,6 +67,7 @@ add_users_data(Data, Timeout) ->
 
 %% @doc Drops a test table
 drop_table(TableName) ->
+  'Elixir.DataSource':unregister_test_table(full_table_name(TableName)),
   cloak_db:call(test, fun(Connection) ->
         sql_conn:simple_query(["DROP TABLE ", sanitized_table(TableName)], Connection)
       end).
@@ -75,7 +82,9 @@ clear_table(TableName) ->
       end).
 
 %% @doc Returns the full name for a test table
-full_table_name(TableName) ->
+full_table_name(TableName) when is_list(TableName) ->
+  full_table_name(list_to_binary(TableName));
+full_table_name(TableName) when is_binary(TableName) ->
   <<"cloak_test.", TableName/binary>>.
 
 
@@ -86,9 +95,9 @@ full_table_name(TableName) ->
 insert_rows(UserId, TableName, TableData, Timeout, Connection) ->
   FullTableName = sanitized_table(TableName),
   Columns = lists:map(fun sql_util:sanitize_db_object/1,
-      ["ac_user_id", "ac_created_at"] ++ proplists:get_value(columns, TableData)),
+      ["user_id"] ++ proplists:get_value(columns, TableData)),
   Rows = lists:map(
-        fun(Row) -> [UserId, cloak_util:timestamp_to_datetime(os:timestamp()) | Row] end,
+        fun(Row) -> [UserId | Row] end,
         proplists:get_value(data, TableData)
       ),
   {PlaceHolders, _} = lists:foldr(
@@ -112,6 +121,7 @@ insert_rows(UserId, TableName, TableData, Timeout, Connection) ->
   ok.
 
 clean_db() ->
+  'Elixir.DataSource':clear_test_tables(),
   cloak_db:call(undefined, fun(Connection) ->
           sql_conn:simple_query(["DROP SCHEMA IF EXISTS cloak_test CASCADE;"], Connection),
           ok

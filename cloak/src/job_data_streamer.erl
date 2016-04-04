@@ -12,9 +12,6 @@
 -include("cloak.hrl").
 -include("sandbox_pb.hrl").
 
-%% The type of the data fields received from or sent to the database.
--type field_type() :: supported_sql_data() | datetime().
-
 %% This record holds information required to stream data from a table.
 %% The record is created before the job is scheduled by querying the database for aggregate information
 %% and then, during job processing, the data is loaded batch by batch.
@@ -25,12 +22,13 @@
 %% We specify a timestamp range when loading each batch so that we speed the row lookup by using
 %% the index and reducing the amount of sorted data.
 -record(table_stream_state, {
-  table_name :: binary(), % the table name that holds the data
-  last_timestamp :: non_neg_integer(), % the timestamp of data from which the next batch starts
-  min_timestamp :: non_neg_integer(), % the minimum timestamp of the data in the stream
-  max_timestamp :: non_neg_integer(), % the maximum timestamp of the data in the stream
-  timestamp_step :: pos_integer(), % the timestamp inteval size used when loading a batch
-  filter :: {iodata(), [field_type()]}, % the SQL query filter for the table data
+  source_id :: atom(),
+  table_id :: atom(), % the table id that holds the data
+  last_row_id :: integer(), % the timestamp of data from which the next batch starts
+  min_row_id :: integer(), % the minimum timestamp of the data in the stream
+  max_row_id :: integer(), % the maximum timestamp of the data in the stream
+  row_id_step :: pos_integer(), % the timestamp inteval size used when loading a batch
+  filter :: db_query_builder:query(), % the SQL query filter for the table data
   columns :: [binary()] % the table columns we send to the jobs
 }).
 
@@ -85,160 +83,89 @@ get_next_batch(UserId, TableName, JobInput, ResetStream) ->
 
 %% Reads data from a prefetch table and returns the next batch.
 -spec read_from_table(user_id(), #table_stream_state{}, boolean()) -> {#table_stream_state{}, #tabledatapb{}}.
-read_from_table(_UserId, #table_stream_state{last_timestamp = LastTimestamp,
-      max_timestamp = MaxTimestamp} = TableStream, false) when LastTimestamp > MaxTimestamp ->
+read_from_table(_UserId, #table_stream_state{last_row_id = LastRowId,
+      max_row_id = MaxRowId} = TableStream, false) when LastRowId > MaxRowId ->
   % this should never happen in normal circumstances (data streaming has finished, needs to be reset)
   EmptyBatch = #tabledatapb{columns = [], rows = [], complete = true},
   {TableStream, EmptyBatch};
-read_from_table(UserId, #table_stream_state{min_timestamp = MinTimestamp} = TableStream, true) ->
-  read_from_table(UserId, TableStream#table_stream_state{last_timestamp = MinTimestamp}, false);
+read_from_table(UserId, #table_stream_state{min_row_id = MinRowId} = TableStream, true) ->
+  read_from_table(UserId, TableStream#table_stream_state{last_row_id = MinRowId}, false);
 read_from_table(UserId, TableStream, false) ->
   % unpack the stream state
   Columns = TableStream#table_stream_state.columns,
-  {FilterQuery, FilterParams} = TableStream#table_stream_state.filter,
-  TableName = TableStream#table_stream_state.table_name,
-  LastTimestamp = TableStream#table_stream_state.last_timestamp,
-  TimestampStep = TableStream#table_stream_state.timestamp_step,
-  MaxTimestamp = TableStream#table_stream_state.max_timestamp,
-  ParamCount = length(FilterParams),
+  Filter = TableStream#table_stream_state.filter,
+  SourceId = TableStream#table_stream_state.source_id,
+  TableId = TableStream#table_stream_state.table_id,
+  LastRowId = TableStream#table_stream_state.last_row_id,
+  RowIdStep = TableStream#table_stream_state.row_id_step,
+  MaxRowId = TableStream#table_stream_state.max_row_id,
   BatchSize = batch_size(length(Columns)),
   % create the query for the next batch
-  QuotedColumns = [[$,, $", Column, $"] || Column <- Columns],
-  BatchQuery = [<<"SELECT ac_created_at">>, QuotedColumns, <<" FROM ">>, TableName,
-      <<" WHERE (">>, FilterQuery, <<") AND ac_user_id = ">>, sql_util:param_placeholder(ParamCount + 1),
-      <<" AND ac_created_at BETWEEN ">>, sql_util:param_placeholder(ParamCount + 2), <<" AND ">>,
-      sql_util:param_placeholder(ParamCount + 3), <<" ORDER BY ac_created_at ASC LIMIT ">>,
-      list_to_binary(integer_to_list(BatchSize))],
-  % read next batch from database
-  {Count, SelectedRows, SelectedMaxTimestamp} = load_next_batch(BatchQuery, UserId, LastTimestamp, TimestampStep, FilterParams),
-  % if we got a full batch, we need to strip last timestamp as it might be truncated
-  {Rows, NewLastTimestamp} = case Count of
-    BatchSize -> remove_last_timestamp_entries(UserId, TableName, SelectedRows);
-    _ -> {SelectedRows, SelectedMaxTimestamp}
-  end,
+  {DataRows, NewLastRowId} = load_next_batch(SourceId, TableId, UserId,
+      LastRowId, RowIdStep, BatchSize, Columns, Filter),
   % convert the rows to the job input format
-  InputRows = [begin
-        [_AcCreatedAt | InputFields] = tuple_to_list(Row),
-        create_input_table_data_row(InputFields)
-      end || Row <- Rows],
+  InputRows = [create_input_table_data_row(DataRow) || DataRow <- DataRows],
   % update stream state and return data
-  Complete = NewLastTimestamp >= MaxTimestamp,
+  Complete = NewLastRowId >= MaxRowId,
   Batch = #tabledatapb{columns = Columns, rows = InputRows, complete = Complete},
-  {TableStream#table_stream_state{last_timestamp = NewLastTimestamp + 1}, Batch}.
+  {TableStream#table_stream_state{last_row_id = NewLastRowId + 1}, Batch}.
 
-%% Loads the next batch from the database and returns the data and the last timestamp of the loaded data.
--spec load_next_batch(iodata(), user_id(), non_neg_integer(), pos_integer(), [field_type()]) ->
-    {non_neg_integer(), [{field_type()}], pos_integer()}.
-load_next_batch(Query, UserId, StartTimestamp, TimestampStep, FilterParams) ->
-  EndTimestamp = StartTimestamp + TimestampStep,
-  Params = FilterParams ++ [UserId, cloak_util:int_to_datetime(StartTimestamp),
-      cloak_util:int_to_datetime(EndTimestamp)],
-  case execute_select_query({Query, Params}) of
+%% Loads the next batch from the database and returns the data and the last row id of the loaded data.
+-spec load_next_batch(atom(), atom(), user_id(), integer(),
+      pos_integer(), pos_integer(), [binary()], db_query_builder:query()) -> {[[data_value()]], integer()}.
+load_next_batch(SourceId, TableId, UserId, StartRowId, RowIdStep, BatchSize, Columns, Filter) ->
+  EndRowId = StartRowId + RowIdStep,
+  case 'Elixir.DataSource':get_data_batch(SourceId, TableId, UserId,
+      StartRowId, EndRowId, BatchSize, Columns, Filter) of
     {0, []} -> % no results found in this range, go to the next one
-      load_next_batch(Query, UserId, EndTimestamp, TimestampStep, FilterParams);
-    {Count, Data} ->
-      {Count, Data, EndTimestamp}
+      load_next_batch(SourceId, TableId, UserId, EndRowId, RowIdStep, BatchSize, Columns, Filter);
+    {BatchSize, DataRows} ->
+        [LastRowId | _LastRowFields] = lists:last(DataRows),
+        {DataRows, LastRowId};
+    {_Count, DataRows} ->
+      {DataRows, EndRowId}
   end.
-
-%% Because we limit the returned data to "batch_size()" rows, we might get truncated data when we have multiple
-%% rows with the same timestamp and they can't all fit in the batch. Because of this, we remove the rows with
-%% the same last timestamp from the batch when it is full. If we have more than "batch_size()" rows with the
-% same timestamp, we ignore the ones that can't fit in a batch.
--spec remove_last_timestamp_entries(user_id(), binary(), [{field_type()}]) ->
-    {[{field_type()}], pos_integer()}.
-remove_last_timestamp_entries(UserId, TableName, Rows) ->
-  FirstCreatedAt = element(1, hd(Rows)),
-  LastCreatedAt = element(1, lists:last(Rows)),
-  LastTimestamp = cloak_util:datetime_to_int(LastCreatedAt),
-  case FirstCreatedAt == LastCreatedAt of
-    true ->
-      % oops, this should not have happened, we inserted more than "batch_size()" rows with the same timestamp,
-      % we issue a warning about this, we process only "batch_size" entries and ignore the rest
-      ?WARNING("Selected rows do not fit in a single batch: Table ~p, User ~p, Timestamp ~p.",
-          [TableName, UserId, FirstCreatedAt]),
-      {Rows, LastTimestamp};
-    false ->
-      % we remove the rows with the same timestamp as the last one because we might have gotten
-      % an incomplete upload batch in the selection
-      {[Row || Row <- Rows, element(1, Row) /= LastCreatedAt], LastTimestamp - 1}
-    end.
 
 %% Creates the stream states for a single table prefetch specification.
 -spec create_per_user_table_streams(prefetch_spec()) -> [{user_id(), {binary(), #table_stream_state{}}}].
 create_per_user_table_streams(QuerySpec) ->
-  {TableName, Columns, RowLimit, MinTimestamp, MaxTimestamp, Filter} = parse_data_query_spec(QuerySpec),
-  SanitizedTableName = sql_util:sanitize_db_object(TableName),
-  MetadataQuery = build_results_metadata_query(SanitizedTableName, RowLimit, MinTimestamp, MaxTimestamp, Filter),
-  {_Count, ResultsMetadatas} = execute_select_query(MetadataQuery),
-  [parse_results_metadata(TableName, SanitizedTableName, Columns, Filter, ResultsMetadata) ||
-      ResultsMetadata <- ResultsMetadatas].
+  {TableName, SourceId, TableId, Columns, RowLimit, Filter} = parse_data_query_spec(QuerySpec),
+  MetadataRows = 'Elixir.DataSource':get_metadata(SourceId, TableId, Filter, RowLimit),
+  [parse_metadata(TableName, SourceId, TableId, Columns, Filter, Metadata) || Metadata <- MetadataRows].
 
 %% Parses a data query specification and extract the information needed to create the initial stream state.
+-spec parse_data_query_spec(prefetch_table_spec()) ->
+    {binary(), atom(), atom(), [binary()], non_neg_integer(), db_query_builder:query()}.
 parse_data_query_spec(QuerySpec) ->
   TableName = proplists:get_value(table, QuerySpec, null),
   true = TableName /= null, % this field is required
-  RowLimit = proplists:get_value(user_rows, QuerySpec, null),
-  MaxTimestamp = cloak_util:timestamp_to_int(os:timestamp()),
-  MinTimestamp = case proplists:get_value(time_limit, QuerySpec, null) of
-      null -> 0;
-      TimeLimit when is_integer(TimeLimit) andalso TimeLimit > 0 -> MaxTimestamp - TimeLimit * 1000000
-    end,
+  %% TODO: add support for multiple data sources (notice: table names can conflict across multiple sources)
+  SourceId = local, % hardcoded for now
+  TableId = binary_to_existing_atom(TableName, utf8),
+  RowLimit = proplists:get_value(user_rows, QuerySpec, 0),
   Filter = db_query_builder:build_filter(proplists:get_value(where, QuerySpec, [])),
-  AircloakColumns = [<<"ac_user_id">>, <<"ac_created_at">>],
-  TableColumns = cloak_db_def:table_columns(TableName) -- AircloakColumns,
-  Columns = case proplists:get_value(columns, QuerySpec, null) of
-        null -> TableColumns; % not specified, select all columns
-        SelectedColumns -> TableColumns -- (TableColumns -- SelectedColumns) % protect against SQL injection
+  TableColumns = 'Elixir.DataSource':columns(SourceId, TableId),
+  ColumnNames = [ColumnName || {ColumnName, _Type} <- TableColumns],
+  SelectedColumns = case proplists:get_value(columns, QuerySpec, null) of
+        null -> ColumnNames; % not specified, select all columns
+        QueryColumns -> ColumnNames -- (ColumnNames -- QueryColumns) % protect against SQL injection
       end,
-  {TableName, Columns, RowLimit, MinTimestamp, MaxTimestamp, Filter}.
-
-%% Builds the SQL query that will return aggregate information about the data in a table and
-%% which is needed for streaming that data into batches.
-build_results_metadata_query(TableName, null, MinTimestamp, MaxTimestamp, {FilterSQL, FilterParams}) ->
-  ParamCount = length(FilterParams),
-  MetadataSQL = [<<"SELECT ac_user_id, MIN(ac_created_at), MAX(ac_created_at), COUNT(ac_created_at) FROM ">>,
-      TableName, <<" WHERE (">>, FilterSQL, <<") AND ac_created_at BETWEEN ">>,
-      sql_util:param_placeholder(ParamCount + 1), <<" AND ">>, sql_util:param_placeholder(ParamCount + 2),
-      <<" GROUP BY ac_user_id">>],
-  MetadataParams = FilterParams ++ [cloak_util:int_to_datetime(MinTimestamp), cloak_util:int_to_datetime(MaxTimestamp)],
-  {MetadataSQL, MetadataParams};
-build_results_metadata_query(TableName, RowLimit, MinTimestamp, MaxTimestamp, {FilterSQL, FilterParams})
-    when is_integer(RowLimit) andalso RowLimit > 0 ->
-  % when a row limit is specified in the table prefetch, we need to partition the data so that
-  %% we only get information about the interesting rows
-  ParamCount = length(FilterParams),
-  MetadataSQL = [<<"SELECT ac_user_id, MIN(ac_created_at), MAX(ac_created_at), COUNT(ac_created_at) FROM ("
-      "SELECT ac_user_id, ac_created_at, ROW_NUMBER() OVER "
-      "(PARTITION BY ac_user_id ORDER BY ac_created_at DESC) AS index FROM ">>, TableName, <<" WHERE (">>,
-      FilterSQL, <<") AND ac_created_at BETWEEN ">>, sql_util:param_placeholder(ParamCount + 1), <<" AND ">>,
-      sql_util:param_placeholder(ParamCount + 2), <<") numbered WHERE index <= ">>,
-      sql_util:param_placeholder(ParamCount + 3), <<" GROUP BY ac_user_id">>],
-  MetadataParams = FilterParams ++ [cloak_util:int_to_datetime(MinTimestamp),
-      cloak_util:int_to_datetime(MaxTimestamp), RowLimit],
-  {MetadataSQL, MetadataParams}.
-
-%% Executes a SQL SELECT query with parameters and returns the resulting data.
-execute_select_query({Query, Params}) ->
-  {{select, Count}, Rows} = ?QUEUED_GENERIC(cloak_db:call(task_data_streamer,
-        fun(Connection) ->
-          sql_conn:extended_query(Query, Params, timer:minutes(15), Connection)
-        end
-      )),
-  {Count, Rows}.
+  {TableName, SourceId, TableId, SelectedColumns, RowLimit, Filter}.
 
 %% Creates the initial stream state from the metadata information about the streamed table data.
-parse_results_metadata(TableName, SanitizedFullTableName, Columns, Filter, {UserId, MinDateTime, MaxDateTime, Count}) ->
-  MinTimestamp = cloak_util:datetime_to_int(MinDateTime),
-  MaxTimestamp = cloak_util:datetime_to_int(MaxDateTime),
-  TimestampRange = MaxTimestamp - MinTimestamp,
+-spec parse_metadata(binary(), atom(), atom(), [binary()], db_query_builder:query(),
+    {user_id(), integer(), integer(), non_neg_integer()}) -> {user_id(), {binary(), #table_stream_state{}}}.
+parse_metadata(TableName, SourceId, TableId, Columns, Filter, {UserId, MinRowId, MaxRowId, Count}) ->
+  RowIdRange = MaxRowId - MinRowId,
   BatchSize = batch_size(length(Columns)),
   BatchCount = (Count div (BatchSize * 4 div 5)) + 1,
-  TimestampStep = TimestampRange div BatchCount + 1,
-  TableStream = #table_stream_state{table_name = SanitizedFullTableName, last_timestamp = MinTimestamp, min_timestamp = MinTimestamp,
-      max_timestamp = MaxTimestamp, timestamp_step = TimestampStep, filter = Filter, columns = Columns},
+  RowIdStep = RowIdRange div BatchCount + 1,
+  TableStream = #table_stream_state{source_id = SourceId, table_id = TableId, last_row_id = MinRowId,
+      min_row_id = MinRowId, max_row_id = MaxRowId, row_id_step = RowIdStep, filter = Filter, columns = Columns},
   {UserId, {TableName, TableStream}}.
 
 %% Groups the user - table_stream_state pairs into job_input structures.
+-spec group_table_streams([{user_id(), {binary(), #table_stream_state{}}}]) -> [{user_id(), job_input()}].
 group_table_streams(UserTableStreams) ->
   UserStreamsMap = lists:foldr(fun({UserId, TableStream}, UserStreamsMap) ->
         dict:update(UserId, fun(Streams) -> [TableStream | Streams] end, [TableStream], UserStreamsMap)
@@ -246,17 +173,17 @@ group_table_streams(UserTableStreams) ->
   dict:to_list(UserStreamsMap).
 
 %% Packs the table row data into an job input row record.
--spec create_input_table_data_row([field_type()]) -> #tabledatapb_row{}.
-create_input_table_data_row(Row) ->
-  #tabledatapb_row{fields = [create_input_table_data_field(Value) || Value <- Row]}.
+-spec create_input_table_data_row([data_value()]) -> #tabledatapb_row{}.
+create_input_table_data_row([_RowId | Fields]) ->
+  #tabledatapb_row{fields = [create_input_table_data_field(Field) || Field <- Fields]}.
 
 %% Packs the table field data into the job input data record.
--spec create_input_table_data_field(field_type()) -> #tabledatapb_field{}.
-create_input_table_data_field(null) ->
+-spec create_input_table_data_field(data_value()) -> #tabledatapb_field{}.
+create_input_table_data_field(nil) -> % data comes from Elixir code, which uses the atom 'nil' for not present
   #tabledatapb_field{};
 create_input_table_data_field(Number) when is_number(Number) ->
   #tabledatapb_field{number = Number};
-create_input_table_data_field(String) when is_binary(String) orelse is_list(String) ->
+create_input_table_data_field(String) when is_binary(String) ->
   #tabledatapb_field{string = String};
 create_input_table_data_field(Boolean) when is_boolean(Boolean) ->
   #tabledatapb_field{boolean = Boolean}.
@@ -273,7 +200,7 @@ create_input_table_data_field(Boolean) when is_boolean(Boolean) ->
 
 setup_test_table() ->
   db_test:create_test_schema(),
-  db_test:create_table("test", "\"Data Value\" integer, ac_user_id varchar(40), ac_created_at timestamp").
+  db_test:create_table("test", "\"Data Value\" INTEGER").
 
 add_data(Count) ->
   Data = [{<<"test">>, [
