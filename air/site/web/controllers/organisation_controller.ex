@@ -13,7 +13,6 @@ defmodule Air.OrganisationController do
 
   def permissions do
     %{
-      user: [],
       admin: :all
     }
   end
