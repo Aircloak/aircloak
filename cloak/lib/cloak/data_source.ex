@@ -209,7 +209,7 @@ defmodule DataSource do
     def unregister_test_table(table_name) do
       source = Application.get_env(:cloak, :data_sources)[:local]
       table_id = String.to_existing_atom(table_name)
-      tables = Keyword.drop(source[:tables], table_id)
+      tables = Keyword.delete(source[:tables], table_id)
       source = Keyword.put(source, :tables, tables)
       Application.put_env(:cloak, :data_sources, [local: source])
     end

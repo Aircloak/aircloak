@@ -53,8 +53,13 @@ add_users_data(Data) ->
 
 %% @doc Drops a test table
 drop_table(TableName) ->
-  'Elixir.DataSource':unregister_test_table(full_table_name(TableName)),
-  'Elixir.DataSource.PostgreSQL':execute(<<"DROP TABLE ", (sanitized_table(TableName))/binary>>, []).
+  case 'Elixir.DataSource.PostgreSQL':execute(<<"DROP TABLE ", (sanitized_table(TableName))/binary>>, []) of
+    {ok, Result} ->
+      'Elixir.DataSource':unregister_test_table(full_table_name(TableName)),
+      {ok, Result};
+    {error, Reason} ->
+      {error, Reason}
+  end.
 
 %% @doc Clears a test table
 clear_table(TableName) ->
