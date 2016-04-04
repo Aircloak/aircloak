@@ -24,10 +24,10 @@ defmodule DataSource.PostgreSQL do
   end
 
   def get_metadata(source_id, table, filter, row_limit) do
-    {filterString, filterParameters} = filter
-    query = build_metadata_query(table, filterString, row_limit)
+    {filter_string, filter_parameters} = filter
+    query = build_metadata_query(table, filter_string, row_limit)
     row_mapper = fn [user_id, min_row_id, max_row_id, row_count] -> {user_id, min_row_id, max_row_id, row_count} end
-    {_count, rows} = run_query(source_id, query, filterParameters, row_mapper)
+    {_count, rows} = run_query(source_id, query, filter_parameters, row_mapper)
     rows
   end
 
@@ -35,13 +35,13 @@ defmodule DataSource.PostgreSQL do
     table_name = table[:name]
     user_id = table[:user_id]
     row_id = table[:row_id]
-    {filterString, filterParameters} = filter
+    {filter_string, filter_parameters} = filter
     quoted_columns = for column <- columns, do: ~s("#{column}")
     columns_string = Enum.join([row_id | quoted_columns], ",")
-    query = "SELECT #{columns_string} FROM #{table_name} WHERE (#{filterString}) " <>
+    query = "SELECT #{columns_string} FROM #{table_name} WHERE (#{filter_string}) " <>
         "AND #{user_id} = '#{user_id_value}' AND #{row_id} BETWEEN '#{min_row_id}' AND '#{max_row_id}' " <>
         "ORDER BY #{row_id} ASC LIMIT #{batch_size}"
-    run_query(source_id, query, filterParameters)
+    run_query(source_id, query, filter_parameters)
   end
 
 
@@ -51,7 +51,8 @@ defmodule DataSource.PostgreSQL do
 
   defp run_query(source_id, statement, parameters, row_mapper \\ fn x -> x end) do
     connection = Process.whereis(source_id)
-    options = [timeout: 15*60*1000, pool_timeout: 2*60*1000, decode_mapper: row_mapper, pool: DBConnection.Poolboy]
+    options = [timeout: 15 * 60 * 1000, pool_timeout: 2 * 60 * 1000,
+        decode_mapper: row_mapper, pool: DBConnection.Poolboy]
     result = Postgrex.query!(connection, statement, parameters, options)
     %Postgrex.Result{command: :select, num_rows: count, rows: rows} = result
     {count, rows}
@@ -95,7 +96,7 @@ defmodule DataSource.PostgreSQL do
     @doc false
     def execute(statement, parameters \\ []) do
       connection = Process.whereis(:local)
-      options = [timeout: 2*60*1000, pool_timeout: 10*1000, pool: DBConnection.Poolboy]
+      options = [timeout: 2 * 60 * 1000, pool_timeout: 10 * 1000, pool: DBConnection.Poolboy]
       Postgrex.query(connection, statement, parameters, options)
     end
   end
