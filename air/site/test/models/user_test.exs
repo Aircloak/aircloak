@@ -72,6 +72,11 @@ defmodule Air.UserTest do
     assert [:admin, :org_admin, :user, :anonymous] == User.roles(user(:admin))
   end
 
+  test "member of 'administrators' is always admin" do
+    assert [:admin, :org_admin, :user, :anonymous] == User.roles(user(:user, "administrators"))
+    assert [:admin, :org_admin, :user, :anonymous] == User.roles(user(:org_admin, "administrators"))
+  end
+
   test "permissions" do
     permissions = %{
       user: [:user_op],
@@ -112,6 +117,6 @@ defmodule Air.UserTest do
     assert true == User.permitted?(user(:admin), :anon_op, %{anonymous: [:anon_op], user: :all})
   end
 
-  defp user(role_key),
-    do: %User{role_id: User.role_id(role_key)}
+  defp user(role_key, org_name \\ ""),
+    do: %User{role_id: User.role_id(role_key), organisation: %Air.Organisation{name: org_name}}
 end

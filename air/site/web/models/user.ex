@@ -59,8 +59,15 @@ defmodule Air.User do
   @spec roles(nil | user) :: [role_key]
   def roles(nil),
     do: [:anonymous]
-  def roles(user),
-    do: expand_role(role_key(user.role_id))
+  def roles(user) do
+    user = Air.Repo.preload(user, :organisation)
+    if user.organisation.name == "administrators" do
+      # user in the administrators group is always the admin
+      expand_role(:admin)
+    else
+      expand_role(role_key(user.role_id))
+    end
+  end
 
   @doc "Returns true if the user belongs to the administrator role."
   @spec admin?(nil | user) :: boolean
@@ -131,10 +138,10 @@ defmodule Air.User do
   defp possibly_update_password_hash(changeset), do: changeset
 
   defp validate_role_id(:role_id, role_id) do
-    if Map.has_key?(all_roles(), role_id) do
+    if role_id != role_id(:admin) and Map.has_key?(all_roles(), role_id) do
       []
     else
-      [role_id: "unknown role specified"]
+      [role_id: "invalid role specified"]
     end
   end
 

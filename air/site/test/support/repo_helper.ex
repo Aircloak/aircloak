@@ -9,9 +9,15 @@ defmodule Air.TestRepoHelper do
     |> Air.Repo.insert!()
   end
 
+  @doc "Retrieves the administrators organisation."
+  @spec admin_organisation :: Air.Organisation.t
+  def admin_organisation do
+    Air.Repo.get_by!(Air.Organisation, name: "administrators")
+  end
+
   @doc "Inserts the new user into the database."
   @spec create_user!(Air.Organisation.t, Air.User.role_key) :: Air.User.t
-  def create_user!(organisation, role_key) do
+  def create_user!(organisation, role_key \\ :user) do
     organisation
     |> Ecto.build_assoc(:users)
     |> Air.User.changeset(%{

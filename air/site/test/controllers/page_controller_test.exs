@@ -21,19 +21,19 @@ defmodule Air.PageControllerTest do
 
   test "org_admin visible links" do
     org = TestRepoHelper.create_organisation!()
-    user = TestRepoHelper.create_user!(org, :org_admin)
+    org_admin = TestRepoHelper.create_user!(org, :org_admin)
 
-    html = login(user) |> get("/") |> response(200)
+    html = login(org_admin) |> get("/") |> response(200)
     assert html =~ ~s(href="/organisations/#{org.id}")
     refute html =~ ~s(href="/organisations")
     assert html =~ ~s(form action="/logout")
   end
 
   test "admin visible links" do
-    org = TestRepoHelper.create_organisation!()
-    user = TestRepoHelper.create_user!(org, :admin)
+    org = TestRepoHelper.admin_organisation()
+    admin = TestRepoHelper.create_user!(org)
 
-    html = login(user) |> get("/") |> response(200)
+    html = login(admin) |> get("/") |> response(200)
     assert html =~ ~s(href="/users")
     assert html =~ ~s(href="/organisations")
     assert html =~ ~s(form action="/logout")

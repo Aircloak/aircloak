@@ -28,4 +28,10 @@ defmodule Air.UserView do
 
   defp role(user),
     do: Air.User.role_description(user)
+
+  defp possible_roles do
+    Air.User.all_roles()
+    |> Stream.filter(&(not match?({_id, {:admin, _}}, &1)))
+    |> Enum.map(fn({id, {_key, desc}}) -> {desc, id} end)
+  end
 end

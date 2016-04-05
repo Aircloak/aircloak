@@ -7,7 +7,7 @@
 
 <div class="form-group">
   <%= label f, :role_id, class: "control-label" %>
-  <%= select f, :role_id, Enum.map(Air.User.all_roles(), fn({id, {_key, desc}}) -> {desc, id} end) %>
+  <%= select f, :role_id, possible_roles() %>
   <%= error_tag f, :role_id %>
 </div>
 
