@@ -15,10 +15,9 @@
 alias Air.User
 alias Air.Organisation
 
-# aircloak organisation
+# admin user
 admin_organisation = Air.Repo.get_by!(Organisation, name: "administrators")
 
-# admin user
 admin_organisation
 |> Ecto.build_assoc(:users)
 |> User.changeset(%{
@@ -27,5 +26,36 @@ admin_organisation
       password_confirmation: "1234",
       name: "Aircloak test administrator",
       role_id: User.role_id(:org_admin)
+    })
+|> Air.Repo.insert!
+
+
+# test client organisation
+client_organisation =
+  %Organisation{}
+  |> Organisation.changeset(%{name: "Client test organisation"})
+  |> Air.Repo.insert!
+
+# org admin
+client_organisation
+|> Ecto.build_assoc(:users)
+|> User.changeset(%{
+      email: "org_admin@aircloak.com",
+      password: "1234",
+      password_confirmation: "1234",
+      name: "Test client org admin",
+      role_id: User.role_id(:org_admin)
+    })
+|> Air.Repo.insert!
+
+# plain user
+client_organisation
+|> Ecto.build_assoc(:users)
+|> User.changeset(%{
+      email: "user@aircloak.com",
+      password: "1234",
+      password_confirmation: "1234",
+      name: "Test client regular user",
+      role_id: User.role_id(:user)
     })
 |> Air.Repo.insert!
