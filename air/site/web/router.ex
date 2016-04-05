@@ -11,6 +11,7 @@ defmodule Air.Router do
   end
 
   pipeline :anonymous_only do
+    plug Guardian.Plug.VerifySession
     plug Guardian.Plug.EnsureNotAuthenticated, handler: Air.SessionController
   end
 
@@ -21,7 +22,7 @@ defmodule Air.Router do
   end
 
   scope "/auth", Air do
-    pipe_through [:anonymous_only, :browser] # Use the default browser stack
+    pipe_through [:browser, :anonymous_only] # Use the default browser stack
 
     get "/", SessionController, :new
     post "/", SessionController, :create

@@ -1,7 +1,8 @@
 defmodule Air.OrganisationControllerTest do
   use Air.ConnCase, async: false
 
-  alias Air.{TestConnHelper, TestRepoHelper}
+  import Air.TestConnHelper
+  alias Air.TestRepoHelper
 
   test "users and admin_orgs have no permissions" do
     org = TestRepoHelper.create_organisation!()
@@ -109,7 +110,4 @@ defmodule Air.OrganisationControllerTest do
     orgs_html = login(admin) |> get("/organisations") |> response(200)
     refute orgs_html =~ another_org.name
   end
-
-  defp login(user),
-    do: TestConnHelper.login(conn(), user)
 end

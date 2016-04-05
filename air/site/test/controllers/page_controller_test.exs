@@ -1,7 +1,8 @@
 defmodule Air.PageControllerTest do
   use Air.ConnCase, async: false
 
-  alias Air.{TestConnHelper, TestRepoHelper}
+  import Air.TestConnHelper
+  alias Air.TestRepoHelper
 
   test "GET / redirects for auth", %{conn: conn} do
     conn = get(conn, "/")
@@ -38,7 +39,4 @@ defmodule Air.PageControllerTest do
     assert html =~ ~s(href="/organisations")
     assert html =~ ~s(form action="/logout")
   end
-
-  defp login(user),
-    do: TestConnHelper.login(conn(), user)
 end

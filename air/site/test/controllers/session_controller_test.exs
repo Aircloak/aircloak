@@ -1,7 +1,8 @@
 defmodule Air.SessionControllerTest do
   use Air.ConnCase, async: false
 
-  alias Air.{TestConnHelper, TestRepoHelper}
+  import Air.TestConnHelper
+  alias Air.TestRepoHelper
 
   test "anonymous user can access the login page", %{conn: conn} do
     conn |> get("/auth") |> response(200)
@@ -48,7 +49,4 @@ defmodule Air.SessionControllerTest do
     assert "/auth" == redirected_to(conn)
     assert get_flash(conn)["error"] =~ "You must be authenticated to view this page"
   end
-
-  defp login(user),
-    do: TestConnHelper.login(conn(), user)
 end

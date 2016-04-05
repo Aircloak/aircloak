@@ -1,7 +1,8 @@
 defmodule Air.UserControllerTest do
   use Air.ConnCase, async: false
 
-  alias Air.{TestConnHelper, TestRepoHelper}
+  import Air.TestConnHelper
+  alias Air.TestRepoHelper
 
   test "regular user can't manage users" do
     org = TestRepoHelper.create_organisation!()
@@ -140,7 +141,7 @@ defmodule Air.UserControllerTest do
           })
 
     assert "/users" == redirected_to(conn)
-    users_html = login(org_admin) |> get("/users") |> response(200)
+    users_html = login(%{email: changed_email}) |> get("/users") |> response(200)
     assert users_html =~ changed_email
     refute users_html =~ org_admin.email
   end
@@ -193,7 +194,4 @@ defmodule Air.UserControllerTest do
     users_html = login(org_admin) |> get("/users") |> response(200)
     refute users_html =~ user.email
   end
-
-  defp login(user),
-    do: TestConnHelper.login(conn(), user)
 end
