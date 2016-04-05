@@ -10,9 +10,11 @@ defmodule DataSource.PostgreSQL do
 
   @behaviour DataSource.Driver
 
+  @pool_name DBConnection.Poolboy
+
   @doc false
   def child_spec(source_id, parameters) do
-    Postgrex.child_spec(parameters ++ [types: true, name: source_id, pool: DBConnection.Poolboy])
+    Postgrex.child_spec(parameters ++ [types: true, name: proc_name(source_id), pool: @pool_name])
   end
 
   @doc false
@@ -54,13 +56,13 @@ defmodule DataSource.PostgreSQL do
   #-----------------------------------------------------------------------------------------------------------
 
   defp run_query(source_id, statement, parameters, row_mapper \\ fn x -> x end) do
-    connection = Process.whereis(source_id)
-    options = [timeout: 15 * 60 * 1000, pool_timeout: 2 * 60 * 1000,
-        decode_mapper: row_mapper, pool: DBConnection.Poolboy]
-    result = Postgrex.query!(connection, statement, parameters, options)
+    options = [timeout: 15 * 60 * 1000, pool_timeout: 2 * 60 * 1000, decode_mapper: row_mapper, pool: @pool_name]
+    result = Postgrex.query!(proc_name(source_id), statement, parameters, options)
     %Postgrex.Result{command: :select, num_rows: count, rows: rows} = result
     {count, rows}
   end
+
+  defp proc_name(source_id), do: {:via, :gproc, {:n, :l, {Cloak.DataSource, source_id}}}
 
   defp parse_type("varchar"), do: :text
   defp parse_type("char"), do: :text
@@ -99,9 +101,8 @@ defmodule DataSource.PostgreSQL do
   if Mix.env == :test do
     @doc false
     def execute(statement, parameters \\ []) do
-      connection = Process.whereis(:local)
-      options = [timeout: 2 * 60 * 1000, pool_timeout: 10 * 1000, pool: DBConnection.Poolboy]
-      Postgrex.query(connection, statement, parameters, options)
+      options = [timeout: 2 * 60 * 1000, pool_timeout: 10 * 1000, pool: @pool_name]
+      Postgrex.query(proc_name(:local), statement, parameters, options)
     end
   end
 end
