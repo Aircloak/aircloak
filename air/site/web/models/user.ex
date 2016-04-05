@@ -9,7 +9,6 @@ defmodule Air.User do
   alias Air.Organisation
 
   @type t :: %__MODULE__{}
-  @type user :: t | Changeset.t
   @type role_id :: non_neg_integer
   @type role_key :: :anonymous | :user | :org_admin | :admin
   @type operation :: atom
@@ -61,7 +60,7 @@ defmodule Air.User do
   Note: You need to preload the organisation association before calling this
   function.
   """
-  @spec roles(nil | user) :: [role_key]
+  @spec roles(nil | t) :: [role_key]
   def roles(nil),
     do: [:anonymous]
   def roles(%{organisation: %Ecto.Association.NotLoaded{}}),
@@ -75,7 +74,7 @@ defmodule Air.User do
   end
 
   @doc "Returns true if the user belongs to the administrator role."
-  @spec admin?(nil | user) :: boolean
+  @spec admin?(nil | t) :: boolean
   def admin?(user),
     do: Enum.member?(roles(user), :admin)
 
@@ -86,14 +85,14 @@ defmodule Air.User do
   end
 
   @doc "Returns the role description of the given user."
-  @spec role_description(user) :: String.t
+  @spec role_description(t) :: String.t
   def role_description(user) do
     {_key, desc} = Map.fetch!(all_roles(), user.role_id)
     desc
   end
 
   @doc "Verifies whether the provided user has permission for the given operation"
-  @spec permitted?(nil | user, operation, permissions) :: boolean
+  @spec permitted?(nil | t, operation, permissions) :: boolean
   def permitted?(user, operation, permissions) do
     user
     |> roles
@@ -112,7 +111,7 @@ defmodule Air.User do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
-  @spec changeset(user, %{binary => term} | %{atom => term} | :empty) :: Changeset.t
+  @spec changeset(t | Changeset.t, %{binary => term} | %{atom => term} | :empty) :: Changeset.t
   def changeset(model, params \\ :empty) do
     model
     |> cast(params, @required_fields, @optional_fields)
