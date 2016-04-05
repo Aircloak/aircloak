@@ -10,6 +10,11 @@ defmodule Air.ViewHelpers do
     end
   end
 
+  @doc "Returns true if the currently logged-in user is an administrator."
+  @spec admin?(Plug.Conn.t) :: boolean
+  def admin?(conn),
+    do: Air.User.admin?(Guardian.Plug.current_resource(conn))
+
   @doc """
   Generates the link for managing users.
 

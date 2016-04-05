@@ -35,12 +35,14 @@
   <%= error_tag f, :password_confirmation %>
 </div>
 
-<div class="form-group">
-  <label>Organisation</label>
-  <%= select f, :organisation_id, select_org_values(@conn),
-      select_org_options(@changeset, class: "form-control") %>
-  <%= error_tag f, :organisation_id %>
-</div>
+<%= if admin?(@conn) do %>
+  <div class="form-group">
+    <label>Organisation</label>
+    <%= select f, :organisation_id, select_org_values(@conn),
+        select_org_options(@changeset, class: "form-control") %>
+    <%= error_tag f, :organisation_id %>
+  </div>
+<% end %>
 
 <div class="form-group">
   <%= submit "Register", class: "btn btn-primary" %>
