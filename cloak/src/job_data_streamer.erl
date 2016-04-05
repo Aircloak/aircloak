@@ -115,7 +115,7 @@ read_from_table(UserId, TableStream, false) ->
       pos_integer(), pos_integer(), [binary()], db_query_builder:query()) -> {[[data_value()]], integer()}.
 load_next_batch(SourceId, TableId, UserId, StartRowId, RowIdStep, BatchSize, Columns, Filter) ->
   EndRowId = StartRowId + RowIdStep,
-  case 'Elixir.DataSource':get_data_batch(SourceId, TableId, UserId,
+  case 'Elixir.Cloak.DataSource':get_data_batch(SourceId, TableId, UserId,
       StartRowId, EndRowId, BatchSize, Columns, Filter) of
     {0, []} -> % no results found in this range, go to the next one
       load_next_batch(SourceId, TableId, UserId, EndRowId, RowIdStep, BatchSize, Columns, Filter);
@@ -130,7 +130,7 @@ load_next_batch(SourceId, TableId, UserId, StartRowId, RowIdStep, BatchSize, Col
 -spec create_per_user_table_streams(prefetch_spec()) -> [{user_id(), {binary(), #table_stream_state{}}}].
 create_per_user_table_streams(QuerySpec) ->
   {TableName, SourceId, TableId, Columns, RowLimit, Filter} = parse_data_query_spec(QuerySpec),
-  MetadataRows = 'Elixir.DataSource':get_metadata(SourceId, TableId, Filter, RowLimit),
+  MetadataRows = 'Elixir.Cloak.DataSource':get_metadata(SourceId, TableId, Filter, RowLimit),
   [parse_metadata(TableName, SourceId, TableId, Columns, Filter, Metadata) || Metadata <- MetadataRows].
 
 %% Parses a data query specification and extract the information needed to create the initial stream state.
@@ -144,7 +144,7 @@ parse_data_query_spec(QuerySpec) ->
   TableId = binary_to_existing_atom(TableName, utf8),
   RowLimit = proplists:get_value(user_rows, QuerySpec, 0),
   Filter = db_query_builder:build_filter(proplists:get_value(where, QuerySpec, [])),
-  TableColumns = 'Elixir.DataSource':columns(SourceId, TableId),
+  TableColumns = 'Elixir.Cloak.DataSource':columns(SourceId, TableId),
   ColumnNames = [ColumnName || {ColumnName, _Type} <- TableColumns],
   SelectedColumns = case proplists:get_value(columns, QuerySpec, null) of
         null -> ColumnNames; % not specified, select all columns

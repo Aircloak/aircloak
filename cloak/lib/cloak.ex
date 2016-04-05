@@ -30,7 +30,7 @@ defmodule Cloak do
     import Supervisor.Spec, warn: false
 
     [
-      supervisor(DataSource, []),
+      supervisor(Cloak.DataSource, []),
       worker(:progress_handler, []),
       supervisor(:global_service_sup, []),
       supervisor(:result_sender_sup, []),

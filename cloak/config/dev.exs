@@ -19,7 +19,7 @@ config :cloak, :in_development, true
 
 config :cloak, data_sources: [
   local: [
-    driver: DataSource.PostgreSQL,
+    driver: Cloak.DataSource.PostgreSQL,
     parameters: [
       host: "localhost",
       username: "cloak",

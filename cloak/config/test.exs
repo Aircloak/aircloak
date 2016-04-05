@@ -14,7 +14,7 @@ config :cloak, :api, address: '0.0.0.0'
 
 config :cloak, data_sources: [
   local: [
-    driver: DataSource.PostgreSQL,
+    driver: Cloak.DataSource.PostgreSQL,
     parameters: [
       host: "127.0.0.1",
       username: "postgres",

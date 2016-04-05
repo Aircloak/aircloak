@@ -32,16 +32,16 @@ setup() ->
 
 %% @doc Creates the test schema.
 create_test_schema() ->
-  'Elixir.DataSource.PostgreSQL':execute(<<"CREATE SCHEMA cloak_test">>, []).
+  'Elixir.Cloak.DataSource.PostgreSQL':execute(<<"CREATE SCHEMA cloak_test">>, []).
 
 %% @doc Creates a test table.
 create_table(TableName, Definition) ->
   Query = iolist_to_binary([<<"CREATE TABLE ">>, sanitized_table(TableName),
       <<" (row_id SERIAL, user_id VARCHAR(64), ">>, Definition, $)]),
-  Result = 'Elixir.DataSource.PostgreSQL':execute(Query, []),
+  Result = 'Elixir.Cloak.DataSource.PostgreSQL':execute(Query, []),
   case Result of
     {ok, _} ->
-      'Elixir.DataSource':register_test_table(full_table_name(TableName), <<"user_id">>, <<"row_id">>),
+      'Elixir.Cloak.DataSource':register_test_table(full_table_name(TableName), <<"user_id">>, <<"row_id">>),
       Result;
     {error, _} -> Result
   end.
@@ -53,9 +53,9 @@ add_users_data(Data) ->
 
 %% @doc Drops a test table
 drop_table(TableName) ->
-  case 'Elixir.DataSource.PostgreSQL':execute(<<"DROP TABLE ", (sanitized_table(TableName))/binary>>, []) of
+  case 'Elixir.Cloak.DataSource.PostgreSQL':execute(<<"DROP TABLE ", (sanitized_table(TableName))/binary>>, []) of
     {ok, Result} ->
-      'Elixir.DataSource':unregister_test_table(full_table_name(TableName)),
+      'Elixir.Cloak.DataSource':unregister_test_table(full_table_name(TableName)),
       {ok, Result};
     {error, Reason} ->
       {error, Reason}
@@ -63,7 +63,7 @@ drop_table(TableName) ->
 
 %% @doc Clears a test table
 clear_table(TableName) ->
-  'Elixir.DataSource.PostgreSQL':execute(<<"TRUNCATE TABLE ", (sanitized_table(TableName))/binary>>, []).
+  'Elixir.Cloak.DataSource.PostgreSQL':execute(<<"TRUNCATE TABLE ", (sanitized_table(TableName))/binary>>, []).
 
 %% @doc Returns the full name for a test table
 full_table_name(TableName) when is_list(TableName) ->
@@ -96,12 +96,12 @@ insert_rows(UserId, TableName, TableData) ->
     $(, cloak_util:join(Columns, $,), $), $\s,
     <<"VALUES(">>, cloak_util:join(PlaceHolders, $,), $)
   ]),
-  [{ok, _} = 'Elixir.DataSource.PostgreSQL':execute(Query, Row) || Row <- Rows],
+  [{ok, _} = 'Elixir.Cloak.DataSource.PostgreSQL':execute(Query, Row) || Row <- Rows],
   ok.
 
 clean_db() ->
-  'Elixir.DataSource.PostgreSQL':execute(<<"DROP SCHEMA IF EXISTS cloak_test CASCADE">>, []),
-  'Elixir.DataSource':clear_test_tables().
+  'Elixir.Cloak.DataSource.PostgreSQL':execute(<<"DROP SCHEMA IF EXISTS cloak_test CASCADE">>, []),
+  'Elixir.Cloak.DataSource':clear_test_tables().
 
 sanitized_table(TableName) ->
     sql_util:sanitize_db_object(<<"cloak_test.", TableName/binary>>).

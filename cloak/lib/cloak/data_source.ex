@@ -1,5 +1,5 @@
 
-defmodule DataSource do
+defmodule Cloak.DataSource do
   @moduledoc """
   This module handles access to user data in the cloak.
   The list of data sources available has to be specified in the configuration file.

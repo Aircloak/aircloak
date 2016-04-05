@@ -1,4 +1,4 @@
-defmodule DataSource.PostgreSQL do
+defmodule Cloak.DataSource.PostgreSQL do
   @moduledoc """
   Implements the DataSource.Driver behaviour for PostgreSQL.
   For more information, see `DataSource`.
@@ -8,7 +8,7 @@ defmodule DataSource.PostgreSQL do
   # DataSource.Driver callbacks
   #-----------------------------------------------------------------------------------------------------------
 
-  @behaviour DataSource.Driver
+  @behaviour Cloak.DataSource.Driver
 
   @pool_name DBConnection.Poolboy
 
