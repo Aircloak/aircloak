@@ -61,7 +61,6 @@ prop_batch() ->
   MaxTables = 3,
   MaxInitialColumns = 3,
   CommandsFactor = 10,
-  db_job:start_link(),
   InitialState = #state{
     db_state = db_model:create(Users, Values, MaxTables, MaxInitialColumns)
   },
@@ -90,15 +89,6 @@ prop_batch() ->
                                     )))
                       )
                 ))),
-  error_logger:tty(false),
-  case whereis(db_job) of
-    undefined -> ok;
-    Pid ->
-      unlink(Pid),
-      exit(Pid, kill)
-  end,
-  timer:sleep(100),
-  error_logger:tty(true),
   Result.
 
 -spec command_list_has_at_least_one_run_batch_task([any()]) -> boolean().

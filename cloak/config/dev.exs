@@ -16,3 +16,23 @@ config :cloak, :air,
   rejoin_interval: :timer.minutes(1)
 
 config :cloak, :in_development, true
+
+config :cloak, data_sources: [
+  local: [
+    driver: Cloak.DataSource.PostgreSQL,
+    parameters: [
+      host: "localhost",
+      username: "cloak",
+      database: "cloak",
+      sync_connect: true,
+      pool_size: 4
+    ],
+    tables: [
+      test: [
+        name: "user_data",
+        user_id: "user_id",
+        row_id: "id"
+      ]
+    ]
+  ]
+]

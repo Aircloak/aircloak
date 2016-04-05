@@ -8,15 +8,21 @@ config :logger,
     metadata: [:file_name, :line_no, :log_level]
   ]
 
-config :cloak, :cloak_db,
-  connection: [
-    host: "127.0.0.1",
-    user: "postgres",
-    database: "cloaktest1",
-    port: 5432
-  ],
-  idle_timeout: 100
-
 config :cloak, :alarm_handler, install: false
 
 config :cloak, :api, address: '0.0.0.0'
+
+config :cloak, data_sources: [
+  local: [
+    driver: Cloak.DataSource.PostgreSQL,
+    parameters: [
+      host: "127.0.0.1",
+      username: "postgres",
+      database: "cloaktest1",
+      sync_connect: true,
+      pool_size: 2
+    ],
+    tables: [
+    ]
+  ]
+]

@@ -266,11 +266,10 @@ postcondition_add_table(_State, Result, _NewTableName, _NewColumns) ->
   Result == ok.
 
 create_table({Table, {create, Columns}}) ->
-  ColumnDefs = ["ac_user_id varchar(40)", "ac_created_at timestamp" |
-    [[Column, " integer"] || {Column, integer, []} <- Columns]],
-  case db_test:create_table(Table, cloak_util:join(ColumnDefs, ",")) of
-    {{create, table}, _} -> ok;
-    Other -> {error, Other}
+  ColumnDefs = [[Column, " INTEGER"] || {Column, integer, []} <- Columns],
+  case db_test:create_table(Table, iolist_to_binary(cloak_util:join(ColumnDefs, ","))) of
+    {ok, _} -> ok;
+    {error, Reason} -> {error, Reason}
   end.
 
 
@@ -289,8 +288,8 @@ remove_table(State) ->
 -spec callback_remove_table(binary()) -> ok | {error, any()}.
 callback_remove_table(TableName) ->
   case db_test:drop_table(TableName) of
-    {{drop, table}, _} -> ok;
-    Error -> {error, Error}
+    {ok, _} -> ok;
+    {error, Reason} -> {error, Reason}
   end.
 
 %% @hidden
@@ -325,8 +324,8 @@ clear_table(State) ->
 -spec callback_clear_table(binary()) -> ok | {error, any()}.
 callback_clear_table(TableName) ->
   case db_test:clear_table(TableName) of
-    {{truncate, table}, []} -> ok;
-    Error -> {error, Error}
+    {ok, _} -> ok;
+    {error, Reason} -> {error, Reason}
   end.
 
 %% @hidden
@@ -393,7 +392,7 @@ generate_table_data(State, TableName, TableSpec) ->
 %% @hidden
 -spec callback_add_data(table_data()) -> ok | any().
 callback_add_data(Data) ->
-  db_test:add_users_data(Data, timer:seconds(30)).
+  db_test:add_users_data(Data).
 
 %% @hidden
 -spec next_state_add_data(db_state, any(), table_data()) -> db_state().

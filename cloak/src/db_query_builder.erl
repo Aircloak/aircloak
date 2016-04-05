@@ -10,21 +10,22 @@
 -include("cloak.hrl").
 
 -export_type([
-  filter_spec/0
+  filter_spec/0,
+  query/0
 ]).
 
 -type comparison_operator() :: binary().
--type comparison() :: {comparison_operator(), column_name() | supported_sql_data()}.
+-type comparison() :: {comparison_operator(), column_name() | data_value()}.
 -type filter_spec() ::
   [filter_spec()] |
   {column_name(), [filter_spec()]} |
   comparison().
--type query() :: {iodata(), [supported_sql_data()]}.
+-type query() :: {binary(), [data_value()]}.
 
 -record(parser_context, {
   param_index=1 :: pos_integer(), % used for generation of params
   field=undefined :: undefined | column_name(), % db field used in filters
-  params=[] :: [supported_sql_data()] % values for database params (in reverse order)
+  params=[] :: [data_value()] % values for database params (in reverse order)
 }).
 
 %% Internal
@@ -70,15 +71,12 @@
 %%            [10, 20, 100, 1, 12]
 %%          }
 %%      '''
-%%
-%%      Note: the output of query string in result is prettified.
-%%            In reality, a deep nested iolist is returned.
 -spec build_filter(filter_spec()) -> query().
 build_filter([]) ->
   {<<"TRUE">>, []};
 build_filter(Filter) ->
   {FilterString, Context} = parse_filter(Filter, #parser_context{}),
-  {FilterString, lists:reverse(Context#parser_context.params)}.
+  {iolist_to_binary(FilterString), lists:reverse(Context#parser_context.params)}.
 
 
 %% -------------------------------------------------------------------

@@ -34,7 +34,7 @@ task_test_() ->
     fun() ->
       db_test:setup(),
       db_test:create_test_schema(),
-      db_test:create_table("heights", "height integer, ac_user_id varchar(40), ac_created_at timestamp"),
+      db_test:create_table(<<"heights">>, <<"height INTEGER">>),
       meck:new(cloak_distributions),
       meck:expect(cloak_distributions, gauss, fun(_Sigma, N) -> round(N) end),
       meck:expect(cloak_distributions, gauss_s, fun(_Sigma, N, _Seed) -> round(N) end),
@@ -58,7 +58,7 @@ task_test_() ->
             iolist_to_binary(io_lib:format("user-~p", [Index])),
             [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
           } || Index <- lists:seq(1, 100)],
-        ok = db_test:add_users_data(Data, timer:seconds(5)),
+        ok = db_test:add_users_data(Data),
         ?verifyAsync(
               <<"for row in user_table(\"", (db_test:full_table_name(<<"heights">>))/binary,
                   "\") do report_property(\"height\", row.height) end">>,
@@ -78,7 +78,7 @@ task_test_() ->
             iolist_to_binary(io_lib:format("user-~p", [Index])),
             [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
           } || Index <- lists:seq(1, 100)],
-        ok = db_test:add_users_data(Data, timer:seconds(5)),
+        ok = db_test:add_users_data(Data),
         ?verifySync(
               <<"for row in user_table(\"", (db_test:full_table_name(<<"heights">>))/binary,
                   "\") do report_property(\"height\", row.height) end">>,
@@ -98,7 +98,7 @@ task_test_() ->
             iolist_to_binary(io_lib:format("user-~p", [Index])),
             [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
           } || Index <- lists:seq(1, 100)],
-        ok = db_test:add_users_data(Data, timer:seconds(5)),
+        ok = db_test:add_users_data(Data),
         ?verifyAsync(
               <<"error('some_error')">>,
               [

@@ -1,0 +1,232 @@
+
+defmodule Cloak.DataSource do
+  @moduledoc """
+  This module handles access to user data in the cloak.
+  The list of data sources available has to be specified in the configuration file.
+
+  Example:
+  config :cloak, data_sources: [
+    data_source_id: [
+      driver: DatabaseSpecificModule,
+      parameters: [
+        ... # database connection parameters
+      ],
+      tables: [
+        table_id: [
+          name: "table name",
+          user_id: "user id column name",
+          row_id: "row id column name"
+        ]
+      ]
+    ]
+
+  A data source is accessed by id. It has to reference a module that implements the database specific access
+  functionality and a parameters list, for connecting to the database server, that will be passed to that module.
+  The database specific module needs to implement the `DataSource.Driver` behaviour.
+
+  The data source must also specify the list of tables containing the data to be queried.
+  A table is accessed by id. It must contain the name of the table in the database, the column
+  identifying the users (text or integer value) and the column that identifies each row (integer).
+  Currently the row id field has to be an unique monotonic integer, but that requirement
+  could be relaxed in the future (to a non-unique monotonic integer, like a timestamp, for example).
+  For fast data retrievals, an index should be created for the user id and row id columns.
+
+  During startup, the list of columns available in all defined tables is loaded and cached for later lookups.
+  The data source schema will also be sent to air, so it can be referenced by incoming tasks.
+  """
+
+  # define returned data types and values
+  @typedoc "The type for the data fields values."
+  @type data_value :: String.t | integer | number | boolean
+  @typedoc "The type for the data columns format."
+  @type data_type :: :text | :integer | :number | :boolean
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Driver behaviour
+  #-----------------------------------------------------------------------------------------------------------
+
+  defmodule Driver do
+    @moduledoc "Specifies the interface for implementing the database specific data access operations."
+
+    @doc "Returns the Supervisor spec for monitoring worker processes for the given data source id and parameters."
+    @callback child_spec(atom, Keyword.t) :: Supervisor.Spec.spec
+
+    @doc "Retrieves the existing columns for the specified table name and data source id."
+    @callback get_columns(atom, String.t) :: [[{String.t, DataSource.data_type}]]
+
+    @doc "Database specific implementation for the `DataSource.get_metadata` functionality."
+    @callback get_metadata(atom, atom, {String.t, [DataSource.data_value]}, integer) ::
+        [{String.t | integer, integer, integer, non_neg_integer}]
+
+    @doc "Database specific implementation for the `DataSource.get_data_batch` functionality."
+    @callback get_data_batch(atom, atom, String.t | integer, integer, integer, pos_integer,
+        [String.t], {String.t, [DataSource.data_value]}) :: {non_neg_integer, [[DataSource.data_value]]}
+  end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Supervisor callbacks
+  #-----------------------------------------------------------------------------------------------------------
+
+  use Supervisor
+
+  @doc false
+  def start_link() do
+    case Supervisor.start_link(__MODULE__, :ok, name: __MODULE__) do
+      {ok, pid} ->
+        load_columns()
+        {ok, pid}
+      error ->
+        error
+    end
+  end
+
+  @doc false
+  def init(:ok) do
+    data_sources = Application.get_env(:cloak, :data_sources)
+    # get the Supervisor spec for all defined data sources
+    children = for {source_id, data_source} <- data_sources do
+      driver = data_source[:driver]
+      parameters = data_source[:parameters]
+      driver.child_spec(source_id, parameters)
+    end
+    supervise(children, strategy: :one_for_one)
+  end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # API
+  #-----------------------------------------------------------------------------------------------------------
+
+  @doc "Returns the list of defined data sources."
+  @spec all() :: [atom]
+  def all() do
+    data_sources = Application.get_env(:cloak, :data_sources)
+    Keyword.keys(data_sources)
+  end
+
+  @doc "Returns the list of defined tables for a specific data source."
+  @spec tables(atom) :: [atom]
+  def tables(source_id) do
+    data_sources = Application.get_env(:cloak, :data_sources)
+    Keyword.keys(data_sources[source_id][:tables])
+  end
+
+  @doc "Returns the list of columns for a specific table."
+  @spec columns(atom, atom) :: [{String.t, data_type}]
+  def columns(source_id, table_id) do
+    data_sources = Application.get_env(:cloak, :data_sources)
+    data_sources[source_id][:tables][table_id][:columns]
+  end
+
+  @doc """
+  Returns the metadata information for a query over the specified table.
+  The `filter` parameter represents the query filter that marks the interesting rows and the `limit`
+  parameter specifies the maximum amount of rows to be returned, starting with the most recent ones.
+  The returned metadata is a list of tuples with the format {user_id, min_row_id, max_row_id, row_count}.
+  """
+  @spec get_metadata(atom, atom, {String.t, [data_value]}, non_neg_integer) ::
+      [{String.t | integer, integer, integer, non_neg_integer}]
+  def get_metadata(source_id, table_id, filter, limit) do
+    data_sources = Application.get_env(:cloak, :data_sources)
+    data_source = data_sources[source_id]
+    driver = data_source[:driver]
+    table = data_source[:tables][table_id]
+    driver.get_metadata(source_id, table, filter, limit)
+  end
+
+  @doc """
+  Returns a batch of data rows for a query over the specified table.
+  The `user_id` parameter specifies the user for which data is queried.
+  The `columns` parameter contains a strings list identifying the selected data fields.
+  The `filter` parameter represents the query filter that marks the interesting rows.
+  The `min_row_id` and `max_row_id` parameters represent the range of rows cotained in the batch.
+  The `batch_size` sets the maximum amount of rows to be returned for this batch.
+  """
+  @spec get_data_batch(atom, atom, String.t | integer, integer, integer, pos_integer,
+      [String.t], {String.t, [data_value]}) :: {non_neg_integer, [[data_value]]}
+  def get_data_batch(source_id, table_name, user_id, min_row_id, max_row_id, batch_size, columns, filter) do
+    data_sources = Application.get_env(:cloak, :data_sources)
+    data_source = data_sources[source_id]
+    driver = data_source[:driver]
+    table = data_source[:tables][table_name]
+    driver.get_data_batch(source_id, table, user_id, min_row_id, max_row_id, batch_size, columns, filter)
+  end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  # load the columns list for all defined tables in all data sources
+  defp load_columns() do
+    data_sources = Application.get_env(:cloak, :data_sources)
+    data_sources = for {id, data_source} <- data_sources, do: {id, load_columns(id, data_source)}
+    Application.put_env(:cloak, :data_sources, data_sources)
+  end
+
+  defp load_columns(source_id, data_source) do
+    driver = data_source[:driver]
+    tables = for {table_id, table} <- data_source[:tables] do
+      # fetch the table's columns list
+      table_name = table[:name]
+      columns = driver.get_columns(source_id, table_name)
+      # verify the format of the columns list
+      columns != [] or raise("Could not load columns for table '#{source_id}/#{table_id}'!")
+      # extract row_id column and verify that it has the expected format
+      row_id = table[:row_id]
+      columns = case List.keytake(columns, row_id, 0) do
+        {{^row_id, :integer}, data_columns} -> data_columns
+        _ -> raise("Invalid row id column specified for table '#{source_id}/#{table_id}'!")
+      end
+      # extract user_id column and verify that it has the expected format
+      user_id = table[:user_id]
+      columns = case List.keytake(columns, user_id, 0) do
+        {{^user_id, :integer}, data_columns} -> data_columns
+        {{^user_id, :text}, data_columns} -> data_columns
+        _ -> raise("Invalid user id column specified for table '#{source_id}/#{table_id}'!")
+      end
+      # check that we still have columns left in the list
+      columns != [] or raise("No data columns found in table '#{source_id}/#{table_id}'!")
+      # save the columns list into the table specification
+      {table_id, Keyword.put(table, :columns, columns)}
+    end
+    # save the new table structure into the data source specification
+    Keyword.put(data_source, :tables, tables)
+  end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Test functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  if Mix.env == :test do
+    @doc false
+    def register_test_table(table_name, user_id, row_id) do
+      source = Application.get_env(:cloak, :data_sources)[:local]
+      table_id = String.to_atom(table_name)
+      table = [name: table_name, user_id: user_id, row_id: row_id]
+      tables = Keyword.put(source[:tables], table_id, table)
+      source = Keyword.put(source, :tables, tables)
+      source = load_columns(:local, source)
+      Application.put_env(:cloak, :data_sources, [local: source])
+    end
+
+    @doc false
+    def unregister_test_table(table_name) do
+      source = Application.get_env(:cloak, :data_sources)[:local]
+      table_id = String.to_existing_atom(table_name)
+      tables = Keyword.delete(source[:tables], table_id)
+      source = Keyword.put(source, :tables, tables)
+      Application.put_env(:cloak, :data_sources, [local: source])
+    end
+
+    @doc false
+    def clear_test_tables() do
+      source = Application.get_env(:cloak, :data_sources)[:local]
+      source = Keyword.put(source, :tables, [])
+      Application.put_env(:cloak, :data_sources, [local: source])
+    end
+  end
+end
