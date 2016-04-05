@@ -10,10 +10,12 @@ defmodule DataSource.PostgreSQL do
 
   @behaviour DataSource.Driver
 
+  @doc false
   def child_spec(source_id, parameters) do
     Postgrex.child_spec(parameters ++ [types: true, name: source_id, pool: DBConnection.Poolboy])
   end
 
+  @doc false
   def get_columns(source_id, full_table_name) do
     [schema_name, table_name] = String.split(full_table_name, ".")
     query = "SELECT column_name, udt_name FROM information_schema.columns " <>
@@ -23,6 +25,7 @@ defmodule DataSource.PostgreSQL do
     columns
   end
 
+  @doc false
   def get_metadata(source_id, table, filter, row_limit) do
     {filter_string, filter_parameters} = filter
     query = build_metadata_query(table, filter_string, row_limit)
@@ -31,6 +34,7 @@ defmodule DataSource.PostgreSQL do
     rows
   end
 
+  @doc false
   def get_data_batch(source_id, table, user_id_value, min_row_id, max_row_id, batch_size, columns, filter) do
     table_name = table[:name]
     user_id = table[:user_id]

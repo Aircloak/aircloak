@@ -48,10 +48,18 @@ defmodule DataSource do
 
   defmodule Driver do
     @moduledoc "Specifies the interface for implementing the database specific data access operations."
+
+    @doc "Returns the Supervisor spec for monitoring worker processes for the given data source id and parameters."
     @callback child_spec(atom, Keyword.t) :: Supervisor.Spec.spec
+
+    @doc "Retrieves the existing columns for the specified table name and data source id."
     @callback get_columns(atom, String.t) :: [[{String.t, DataSource.data_type}]]
+
+    @doc "Database specific implementation for the `DataSource.get_metadata` functionality."
     @callback get_metadata(atom, atom, {String.t, [DataSource.data_value]}, integer) ::
         [{String.t | integer, integer, integer, non_neg_integer}]
+
+    @doc "Database specific implementation for the `DataSource.get_data_batch` functionality."
     @callback get_data_batch(atom, atom, String.t | integer, integer, integer, pos_integer,
         [String.t], {String.t, [DataSource.data_value]}) :: {non_neg_integer, [[DataSource.data_value]]}
   end
