@@ -55,18 +55,23 @@ defmodule Air.User do
   @spec all_roles :: %{role_id => {role_key, description::String.t}}
   def all_roles, do: @roles
 
-  @doc "Returns all user's roles."
+  @doc """
+  Returns all user's roles.
+
+  Note: You need to preload the organisation association before calling this
+  function.
+  """
   @spec roles(nil | user) :: [role_key]
   def roles(nil),
     do: [:anonymous]
-  def roles(user) do
-    user = Air.Repo.preload(user, :organisation)
-    if user.organisation.name == "administrators" do
-      # user in the administrators group is always the admin
-      expand_role(:admin)
-    else
-      expand_role(role_key(user.role_id))
-    end
+  def roles(%{organisation: %Ecto.Association.NotLoaded{}}),
+    do: raise "organisation is not preloaded"
+  def roles(%{organisation: %{name: "administrators"}}) do
+    # user in the administrators group is always the admin
+    expand_role(:admin)
+  end
+  def roles(%{role_id: role_id}) do
+    expand_role(role_key(role_id))
   end
 
   @doc "Returns true if the user belongs to the administrator role."
