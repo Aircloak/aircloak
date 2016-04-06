@@ -119,27 +119,25 @@ defmodule Air.User do
     |> validate_length(:name, min: 2)
     |> validate_confirmation(:password)
     |> validate_change(:role_id, &validate_role_id/2)
-    |> possibly_update_password_hash
+    |> update_password_hash
     |> unique_constraint(:email)
   end
 
-  @doc "Validates the user password"
+  @doc "Validates the user password."
   @spec validate_password(nil | t, String.t) :: boolean
   def validate_password(nil, _password), do: Hash.dummy_checkpw
-  def validate_password(user, password) do
-    Hash.checkpw(password, user.hashed_password)
-  end
+  def validate_password(user, password), do: Hash.checkpw(password, user.hashed_password)
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp possibly_update_password_hash(%Changeset{valid?: true, changes: %{password: password}} = changeset)
+  defp update_password_hash(%Changeset{valid?: true, changes: %{password: password}} = changeset)
       when password != "" do
     put_change(changeset, :hashed_password, Hash.hashpwsalt(password))
   end
-  defp possibly_update_password_hash(changeset), do: changeset
+  defp update_password_hash(changeset), do: changeset
 
   defp validate_role_id(:role_id, role_id) do
     if role_id != role_id(:admin) and Map.has_key?(all_roles(), role_id) do

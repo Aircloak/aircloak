@@ -85,15 +85,12 @@ defmodule Air.OrganisationController do
 
   defp verify_org_permissions(conn, id) do
     user = Guardian.Plug.current_resource(conn)
-    cond do
-      Air.User.admin?(user) ->
-        conn
-      user != nil and String.to_integer(id) == user.organisation_id ->
-        conn
-      true ->
-        conn
-        |> Phoenix.Controller.redirect(to: "/")
-        |> Plug.Conn.halt()
+    if Air.User.admin?(user) or (user != nil and String.to_integer(id) == user.organisation_id) do
+      conn
+    else
+      conn
+      |> Phoenix.Controller.redirect(to: "/")
+      |> Plug.Conn.halt()
     end
   end
 end
