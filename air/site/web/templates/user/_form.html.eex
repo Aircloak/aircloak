@@ -6,6 +6,12 @@
 <% end %>
 
 <div class="form-group">
+  <%= label f, :role_id, class: "control-label" %>
+  <%= select f, :role_id, possible_roles() %>
+  <%= error_tag f, :role_id %>
+</div>
+
+<div class="form-group">
   <label>Email address</label>
   <%= text_input f, :email, class: "form-control" %>
   <%= error_tag f, :email %>
@@ -29,12 +35,14 @@
   <%= error_tag f, :password_confirmation %>
 </div>
 
-<div class="form-group">
-  <label>Organisation</label>
-  <%= select f, :organisation_id, select_org_values(@conn),
-      select_org_options(@changeset, class: "form-control") %>
-  <%= error_tag f, :organisation_id %>
-</div>
+<%= if admin?(@conn) do %>
+  <div class="form-group">
+    <label>Organisation</label>
+    <%= select f, :organisation_id, select_org_values(@conn),
+        select_org_options(@changeset, class: "form-control") %>
+    <%= error_tag f, :organisation_id %>
+  </div>
+<% end %>
 
 <div class="form-group">
   <%= submit "Register", class: "btn btn-primary" %>

@@ -10,6 +10,11 @@ defmodule Air.Router do
     plug :put_secure_browser_headers
   end
 
+  pipeline :anonymous_only do
+    plug Guardian.Plug.VerifySession
+    plug Guardian.Plug.EnsureNotAuthenticated, handler: Air.SessionController
+  end
+
   pipeline :browser_auth do
     plug Guardian.Plug.VerifySession
     plug Guardian.Plug.EnsureAuthenticated, handler: Air.SessionController
@@ -17,17 +22,17 @@ defmodule Air.Router do
   end
 
   scope "/auth", Air do
-    pipe_through :browser # Use the default browser stack
+    pipe_through [:browser, :anonymous_only] # Use the default browser stack
 
     get "/", SessionController, :new
     post "/", SessionController, :create
-    delete "/logout", SessionController, :delete
   end
 
   scope "/", Air do
     pipe_through [:browser, :browser_auth]
 
     get "/", PageController, :index
+    delete "/logout", SessionController, :delete
 
     resources "/users", UserController
     resources "/organisations", OrganisationController

@@ -2,6 +2,7 @@ defmodule Air.GuardianSerializer do
   @moduledoc false
   @behaviour Guardian.Serializer
 
+  import Ecto.Query, only: [from: 2]
   alias Air.Repo
   alias Air.User
 
@@ -11,6 +12,14 @@ defmodule Air.GuardianSerializer do
   def for_token(user = %User{}), do: {:ok, "User:#{user.id}"}
   def for_token(_), do: {:error, "Unknown resource type"}
 
-  def from_token("User:" <> id), do: {:ok, Repo.get(User, id)}
+  def from_token("User:" <> id) do
+    user = Repo.one!(
+          from user in User,
+          join: organisation in assoc(user, :organisation),
+          where: user.id == ^id,
+          preload: [organisation: organisation]
+        )
+    {:ok, user}
+  end
   def from_token(_), do: {:error, "Unknown resource type"}
 end

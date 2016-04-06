@@ -6,6 +6,21 @@ defmodule Air.OrganisationController do
 
   plug :scrub_params, "organisation" when action in [:create, :update]
 
+  # -------------------------------------------------------------------
+  # Air.VerifyPermissions callback
+  # -------------------------------------------------------------------
+
+  def permissions do
+    %{
+      org_admin: [:show],
+      admin: :all
+    }
+  end
+
+  # -------------------------------------------------------------------
+  # Actions
+  # -------------------------------------------------------------------
+
   def index(conn, _params) do
     organisations = Repo.all(Organisation)
     render(conn, "index.html", organisations: organisations)
@@ -30,8 +45,10 @@ defmodule Air.OrganisationController do
   end
 
   def show(conn, %{"id" => id}) do
-    organisation = Repo.get!(Organisation, id) |> Repo.preload([users: :organisation])
-    render(conn, "show.html", organisation: organisation)
+    with %{halted: false} <- verify_org_permissions(conn, id) do
+      organisation = Repo.get!(Organisation, id) |> Repo.preload([users: :organisation])
+      render(conn, "show.html", organisation: organisation)
+    end
   end
 
   def edit(conn, %{"id" => id}) do
@@ -64,5 +81,16 @@ defmodule Air.OrganisationController do
     conn
     |> put_flash(:info, "Organisation deleted successfully.")
     |> redirect(to: organisation_path(conn, :index))
+  end
+
+  defp verify_org_permissions(conn, id) do
+    user = Guardian.Plug.current_resource(conn)
+    if Air.User.admin?(user) or (user != nil and String.to_integer(id) == user.organisation_id) do
+      conn
+    else
+      conn
+      |> Phoenix.Controller.redirect(to: "/")
+      |> Plug.Conn.halt()
+    end
   end
 end
