@@ -19,7 +19,10 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @doc false
   def get_columns(source_id, full_table_name) do
-    [schema_name, table_name] = String.split(full_table_name, ".")
+    {schema_name, table_name} = case String.split(full_table_name, ".") do
+      [full_table_name] -> {"public", full_table_name}
+      [schema_name, table_name] -> {schema_name, table_name}
+    end
     query = "SELECT column_name, udt_name FROM information_schema.columns " <>
         "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
     row_mapper = fn [name, type_name] -> {name, parse_type(type_name)} end
