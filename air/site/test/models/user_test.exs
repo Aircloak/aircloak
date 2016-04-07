@@ -73,8 +73,9 @@ defmodule Air.UserTest do
   end
 
   test "member of 'administrators' is always admin" do
-    assert [:admin, :org_admin, :user, :anonymous] == User.roles(user(:user, "administrators"))
-    assert [:admin, :org_admin, :user, :anonymous] == User.roles(user(:org_admin, "administrators"))
+    admin_group_name = Air.Organisation.admin_group_name()
+    assert [:admin, :org_admin, :user, :anonymous] == User.roles(user(:user, admin_group_name))
+    assert [:admin, :org_admin, :user, :anonymous] == User.roles(user(:org_admin, admin_group_name))
   end
 
   test "permissions" do

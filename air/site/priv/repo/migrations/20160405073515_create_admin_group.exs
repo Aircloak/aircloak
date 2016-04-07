@@ -4,7 +4,11 @@ defmodule Air.Repo.Migrations.CreateAdminGroup do
 
   def up do
     %{command: :select, rows: [[count]]} =
-      Ecto.Adapters.SQL.query!(Air.Repo,"SELECT count(*) FROM organisations WHERE name=$1", ["administrators"])
+      Ecto.Adapters.SQL.query!(
+            Air.Repo,
+            "SELECT count(*) FROM organisations WHERE name=$1",
+            [Air.Organisation.admin_group_name()]
+          )
 
     if count == 0 do
       %{num_rows: 1} = Ecto.Adapters.SQL.query!(
@@ -13,7 +17,7 @@ defmodule Air.Repo.Migrations.CreateAdminGroup do
             INSERT INTO organisations(name, inserted_at, updated_at)
             VALUES($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
           ",
-          ["administrators"]
+          [Air.Organisation.admin_group_name()]
         )
     else
       Logger.info("Administrators group already exists")

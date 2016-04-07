@@ -2,12 +2,14 @@ defmodule Air.Repo.Migrations.PreventAdminGroupNameChange do
   use Ecto.Migration
 
   def up do
+    admin_group_name = Air.Organisation.admin_group_name()
+
     Ecto.Adapters.SQL.query!(
           Air.Repo,
           "
             CREATE FUNCTION no_admin_name_change() RETURNS trigger AS $no_admin_name_change$
             BEGIN
-              IF OLD.name = 'administrators' and NEW.name <> 'administrators' THEN
+              IF OLD.name = '#{admin_group_name}' and NEW.name <> '#{admin_group_name}' THEN
                 RAISE EXCEPTION 'can''t change administrators name';
               END IF;
 

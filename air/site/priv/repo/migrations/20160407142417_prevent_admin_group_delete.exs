@@ -7,7 +7,7 @@ defmodule Air.Repo.Migrations.PreventAdminGroupDelete do
           "
             CREATE FUNCTION no_admin_group_delete() RETURNS trigger AS $no_admin_group_delete$
             BEGIN
-              IF OLD.name = 'administrators' THEN
+              IF OLD.name = '#{Air.Organisation.admin_group_name()}' THEN
                 RAISE EXCEPTION 'can''t delete administrators group';
               END IF;
 

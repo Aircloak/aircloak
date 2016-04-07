@@ -16,7 +16,7 @@ alias Air.User
 alias Air.Organisation
 
 # admin user
-admin_organisation = Air.Repo.get_by!(Organisation, name: "administrators")
+admin_organisation = Air.Repo.get_by!(Organisation, name: Organisation.admin_group_name())
 
 admin_organisation
 |> Ecto.build_assoc(:users)

@@ -110,7 +110,7 @@ defmodule Air.OrganisationControllerTest do
 
     assert %Postgrex.Error{postgres: %{message: message}} = error
     assert "can't change administrators name" == message
-    assert "administrators" == TestRepoHelper.admin_organisation().name
+    assert Air.Organisation.admin_group_name() == TestRepoHelper.admin_organisation().name
   end
 
   test "can't delete admin organisation" do
@@ -121,7 +121,7 @@ defmodule Air.OrganisationControllerTest do
 
     assert %Postgrex.Error{postgres: %{message: message}} = error
     assert "can't delete administrators group" == message
-    assert "administrators" == TestRepoHelper.admin_organisation().name
+    assert Air.Organisation.admin_group_name() == TestRepoHelper.admin_organisation().name
   end
 
   test "deleting an organisation" do

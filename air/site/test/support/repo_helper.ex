@@ -12,7 +12,7 @@ defmodule Air.TestRepoHelper do
   @doc "Retrieves the administrators organisation."
   @spec admin_organisation :: Air.Organisation.t
   def admin_organisation do
-    Air.Repo.get_by!(Air.Organisation, name: "administrators")
+    Air.Repo.get_by!(Air.Organisation, name: Air.Organisation.admin_group_name())
   end
 
   @doc "Inserts the new user into the database."
