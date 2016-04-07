@@ -101,6 +101,29 @@ defmodule Air.OrganisationControllerTest do
     refute orgs_html =~ another_org.name
   end
 
+  test "can't update admin organisation name" do
+    error =
+      TestRepoHelper.admin_organisation()
+      |> Air.Organisation.changeset(%{name: "changed_name"})
+      |> Air.Repo.update()
+      |> catch_error()
+
+    assert %Postgrex.Error{postgres: %{message: message}} = error
+    assert "can't change administrators name" == message
+    assert "administrators" == TestRepoHelper.admin_organisation().name
+  end
+
+  test "can't delete admin organisation" do
+    error =
+      TestRepoHelper.admin_organisation()
+      |> Repo.delete!()
+      |> catch_error()
+
+    assert %Postgrex.Error{postgres: %{message: message}} = error
+    assert "can't delete administrators group" == message
+    assert "administrators" == TestRepoHelper.admin_organisation().name
+  end
+
   test "deleting an organisation" do
     org = TestRepoHelper.admin_organisation()
     admin = TestRepoHelper.create_user!(org)

@@ -17,6 +17,11 @@ defmodule Air.Organisation do
   @required_fields ~w(name)
   @optional_fields ~w()
 
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
   @doc """
   Creates a changeset based on the `model` and `params`.
 
@@ -29,4 +34,8 @@ defmodule Air.Organisation do
     |> cast(params, @required_fields, @optional_fields)
     |> unique_constraint(:name)
   end
+
+  @doc "Returns true if the provided model is the administrators organisation."
+  @spec admins?(t) :: boolean
+  def admins?(%__MODULE__{name: name}), do: name == "administrators"
 end
