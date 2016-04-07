@@ -95,7 +95,7 @@ defmodule Air.User do
   @spec permitted?(nil | t, operation, permissions) :: boolean
   def permitted?(user, operation, permissions) do
     user
-    |> roles
+    |> roles()
     |> Stream.map(&Map.get(permissions, &1, []))
     |> Enum.any?(
             fn
