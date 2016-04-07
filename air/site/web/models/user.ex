@@ -65,12 +65,13 @@ defmodule Air.User do
     do: [:anonymous]
   def roles(%{organisation: %Ecto.Association.NotLoaded{}}),
     do: raise "organisation is not preloaded"
-  def roles(%{organisation: %{name: "administrators"}}) do
-    # user in the administrators group is always the admin
-    expand_role(:admin)
-  end
-  def roles(%{role_id: role_id}) do
-    expand_role(role_key(role_id))
+  def roles(%{organisation: org, role_id: role_id}) do
+    if Organisation.admins?(org) do
+      # user in the administrators group is always the admin
+      expand_role(:admin)
+    else
+      expand_role(role_key(role_id))
+    end
   end
 
   @doc "Returns true if the user belongs to the administrator role."
@@ -95,7 +96,7 @@ defmodule Air.User do
   @spec permitted?(nil | t, operation, permissions) :: boolean
   def permitted?(user, operation, permissions) do
     user
-    |> roles
+    |> roles()
     |> Stream.map(&Map.get(permissions, &1, []))
     |> Enum.any?(
             fn
