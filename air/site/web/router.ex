@@ -36,5 +36,6 @@ defmodule Air.Router do
 
     resources "/users", UserController
     resources "/organisations", OrganisationController
+    resources "/tasks", TaskController
   end
 end

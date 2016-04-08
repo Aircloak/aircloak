@@ -1,0 +1,99 @@
+defmodule Air.TaskControllerTest do
+  use Air.ConnCase
+
+  import Air.TestConnHelper
+  alias Air.TestRepoHelper
+
+  alias Air.Task
+  @valid_attrs %{name: "name", query: "query content"}
+  @invalid_attrs %{name: ""}
+
+  defp create_user do
+    org = TestRepoHelper.create_organisation!()
+    TestRepoHelper.create_user!(org, :user)
+  end
+
+  defp create_task(user, params \\ @valid_attrs) do
+    changeset = build_assoc(user, :tasks)
+    changeset = Task.changeset(changeset, params)
+    Repo.insert!(changeset)
+  end
+
+  test "tasks pages require an authenticated user" do
+    user = create_user()
+    task = create_task(user)
+
+    assert "/auth" == conn() |> get("/tasks") |> redirected_to()
+    assert "/auth" == conn() |> get("/tasks/new") |> redirected_to()
+    assert "/auth" == conn() |> get("/tasks/#{task.id}/edit") |> redirected_to()
+    conn = conn()
+    assert "/auth" == delete(conn, task_path(conn, :delete, task)) |> redirected_to()
+  end
+
+  test "index only shows tasks owned by the user" do
+    user = create_user()
+    user_task = create_task(user)
+    other_user = create_user()
+    other_user_task = create_task(other_user)
+
+    index_html = login(user) |> get("/tasks") |> response(200)
+    assert index_html =~ user_task.id
+    refute index_html =~ other_user_task.id
+  end
+
+  test "editing and deleting tasks of other users is forbidden" do
+    user = create_user()
+    other_user = create_user()
+    other_user_task = create_task(other_user)
+
+    not_found_html = login(user) |> get("/tasks/#{other_user_task.id}/edit") |> response(404)
+    assert not_found_html =~ "not found"
+
+    not_found_html = login(user) |> post("/tasks/#{other_user_task.id}/edit", task: @valid_attrs) |> response(404)
+    assert not_found_html =~ "not found"
+
+    conn = conn()
+    not_found_html = login(user) |> delete(task_path(conn, :delete, other_user_task)) |> response(404)
+    assert not_found_html =~ "not found"
+  end
+
+  test "creates resource and redirects when data is valid", %{conn: conn} do
+    assert "/tasks" == login(create_user()) |> post(task_path(conn, :create), task: @valid_attrs) |> redirected_to()
+    assert Repo.get_by(Task, @valid_attrs)
+  end
+
+  test "does not create resource and renders errors when data is invalid", %{conn: conn} do
+    html_response = login(create_user()) |> post(task_path(conn, :create), task: @invalid_attrs) |> response(200)
+    assert html_response =~ "New task"
+  end
+
+  test "renders form for editing chosen resource", %{conn: conn} do
+    user = create_user()
+    task = create_task(user)
+
+    html_response = login(user) |> get(task_path(conn, :edit, task)) |> response(200)
+    assert html_response =~ "Edit task"
+  end
+
+  test "updates chosen resource and redirects when data is valid", %{conn: conn} do
+    user = create_user()
+    task = create_task(user)
+    assert "/tasks" == login(user) |> put(task_path(conn, :update, task), task: @valid_attrs) |> redirected_to()
+    assert Repo.get_by(Task, @valid_attrs)
+  end
+
+  test "does not update chosen resource and renders errors when data is invalid", %{conn: conn} do
+    user = create_user()
+    task = create_task(user)
+    html_response = login(user) |> put(task_path(conn, :update, task), task: @invalid_attrs) |> response(200)
+    assert html_response =~ "Edit task"
+  end
+
+  test "deletes chosen resource", %{conn: conn} do
+    user = create_user()
+    task = create_task(user)
+
+    assert "/tasks" == login(user, conn) |> delete(task_path(conn, :delete, task)) |> redirected_to()
+    refute Repo.get(Task, task.id)
+  end
+end
