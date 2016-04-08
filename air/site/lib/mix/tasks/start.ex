@@ -27,6 +27,12 @@ defmodule Mix.Tasks.Start do
         _ -> 1
       end
 
+    # Ugly hack to start epmd. Below we're using `:net_kernel` to turn this VM into a node. However, that will
+    # work only if epmd is started. Unfortunately there's no way to start epmd from the Erlang VM, so we're
+    # starting a short-lived Erlang node to ensure epmd is running.
+    # This is only needed for dev convenience and it doesn't affect the production.
+    {_, 0} = System.cmd("elixir", ["--name", "dummy_node@127.0.0.1", "-e", ":ok"])
+
     # Turn the instance into a node
     {:ok, _} = :net_kernel.start([:"insights#{node_suffix}@127.0.0.1", :longnames])
 
