@@ -18,6 +18,9 @@
       <header class="header">
         <nav role="navigation">
           <ul class="nav nav-pills pull-right">
+            <%= if permitted?(@conn, Air.TaskController, :index) do %>
+              <li><%= link "Tasks", to: task_path(@conn, :index) %></li>
+            <% end %>
             <%= if permitted?(@conn, Air.UserController, :index) do %>
               <li><%= link "Users", to: manage_users_link(@conn) %></li>
             <% end %>
