@@ -28,7 +28,6 @@ defmodule Aircloak.ElixirCommon.Mixfile do
 
   defp deps do
     [
-      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
       {:poison, "~> 1.5"},
       {:gproc, "~> 0.5.0"},
       {:protobuffs, github: "basho/erlang_protobuffs", tag: "0.8.2"},
@@ -48,6 +47,6 @@ defmodule Aircloak.ElixirCommon.Mixfile do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp applications(:test), do: [:logger, :gproc, :websocket_client, :phoenix, :cowboy, :poison]
-  defp applications(_), do: [:logger, :gproc, :websocket_client, :poison]
+  defp applications(:test), do: [:logger, :gproc, :phoenix, :cowboy, :poison]
+  defp applications(_), do: [:logger, :gproc, :poison]
 end

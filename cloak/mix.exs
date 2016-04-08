@@ -41,7 +41,9 @@ defmodule Cloak.Mixfile do
       {:exrm, "~> 1.0"},
       {:meck, github: "eproxus/meck", tag: "0.8.2", override: true},
       {:postgrex, "~> 0.11"},
-      {:poolboy, "~> 1.5"}
+      {:poolboy, "~> 1.5"},
+      {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client"},
+      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"}
     ]
   end
 
@@ -50,7 +52,10 @@ defmodule Cloak.Mixfile do
   defp applications(:prod), do: [:os_mon | common_applications()]
 
   defp common_applications do
-    [:logger, :webmachine, :ej, :gproc, :erlcron, :aircloak_common,  :postgrex, :poolboy]
+    [
+      :logger, :webmachine, :ej, :gproc, :erlcron, :aircloak_common,  :postgrex, :poolboy,
+      :phoenix_gen_socket_client, :websocket_client
+    ]
   end
 
   defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]

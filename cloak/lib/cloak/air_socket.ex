@@ -8,8 +8,8 @@ defmodule Cloak.AirSocket do
   configuration file.
   """
   require Logger
-  alias Channels.Client.Socket
-  @behaviour Socket
+  alias Phoenix.Channels.GenSocketClient
+  @behaviour GenSocketClient
 
 
   # -------------------------------------------------------------------
@@ -19,17 +19,18 @@ defmodule Cloak.AirSocket do
   @doc "Starts the socket client."
   @spec start_link(GenServer.options) :: GenServer.on_start
   def start_link(gen_server_opts \\ []) do
-    Socket.start_link(
+    GenSocketClient.start_link(
           __MODULE__,
+          GenSocketClient.Transport.WebSocketClient,
           nil,
-          [serializer: Channels.Client.Socket.Serializer.GzipJson],
+          [serializer: GenSocketClient.Serializer.GzipJson],
           gen_server_opts
         )
   end
 
 
   # -------------------------------------------------------------------
-  # Channels.Client.Socket callbacks
+  # GenSocketClient callbacks
   # -------------------------------------------------------------------
 
   @doc false
@@ -38,8 +39,7 @@ defmodule Cloak.AirSocket do
       cloak_token: "cloak_token"
     }
     url = "#{:cloak_conf.get_val(:air, :socket_url)}?#{URI.encode_query(params)}"
-    send(self(), :connect)
-    {:ok, url, %{}}
+    {:connect, url, %{}}
   end
 
   @doc false
@@ -93,7 +93,7 @@ defmodule Cloak.AirSocket do
     {:connect, state}
   end
   def handle_info({:join, topic}, transport, state) do
-    case Socket.join(transport, topic) do
+    case GenSocketClient.join(transport, topic) do
       {:error, reason} ->
         Logger.error(fn -> "error joining the topic #{topic}: #{inspect reason}" end)
         Process.send_after(self(), {:join, topic}, :cloak_conf.get_val(:air, :rejoin_interval))
