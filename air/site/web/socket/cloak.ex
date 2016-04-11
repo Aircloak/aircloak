@@ -25,8 +25,9 @@ defmodule Air.Socket.Cloak do
 
   @doc false
   def connect(params, socket) do
-    if params["cloak_token"] != nil do
-      {:ok, assign(socket, :cloak_token, params["cloak_token"])}
+    cloak_id = params["cloak_id"]
+    if cloak_id != nil do
+      {:ok, assign(socket, :cloak_id, cloak_id)}
     else
       :error
     end
@@ -34,5 +35,5 @@ defmodule Air.Socket.Cloak do
 
   @doc false
   def id(socket),
-    do: "cloak_socket:#{socket.assigns.cloak_token}"
+    do: "cloak_socket:#{socket.assigns.cloak_id}"
 end
