@@ -31,20 +31,20 @@
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
               <ul class="nav navbar-nav navbar-right">
                 <%= if permitted?(@conn, Air.TaskController, :index) do %>
-                  <li><%= link "Tasks", to: task_path(@conn, :index) %></li>
+                  <%= navbar_link(@conn, "Tasks", task_path(@conn, :index)) %>
                 <% end %>
                 <%= if permitted?(@conn, Air.UserController, :index) do %>
-                  <li><%= link "Users", to: manage_users_link(@conn) %></li>
+                  <%= navbar_link(@conn, "Users", manage_users_link(@conn)) %>
                 <% end %>
                 <%= if permitted?(@conn, Air.OrganisationController, :index) do %>
-                  <li><%= link "Organisations", to: organisation_path(@conn, :index) %></li>
+                  <%= navbar_link(@conn, "Organisations", organisation_path(@conn, :index)) %>
                 <% end %>
                 <%= if Guardian.Plug.authenticated?(@conn) do %>
                   <li>
                     <%= link "Sign out", to: session_path(@conn, :delete), method: :delete %>
                   </li>
                 <% else %>
-                  <li><%= link "Sign in", to: session_path(@conn, :new) %></li>
+                  <%= navbar_link(@conn, "Sign in", session_path(@conn, :new)) %>
                 <% end %>
               </ul>
             </div>
