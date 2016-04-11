@@ -14,29 +14,42 @@
   </head>
 
   <body>
-    <div class="container">
-      <header class="header">
-        <nav role="navigation">
-          <ul class="nav nav-pills pull-right">
-            <%= if permitted?(@conn, Air.TaskController, :index) do %>
-              <li><%= link "Tasks", to: task_path(@conn, :index) %></li>
-            <% end %>
-            <%= if permitted?(@conn, Air.UserController, :index) do %>
-              <li><%= link "Users", to: manage_users_link(@conn) %></li>
-            <% end %>
-            <%= if permitted?(@conn, Air.OrganisationController, :index) do %>
-              <li><%= link "Organisations", to: organisation_path(@conn, :index) %></li>
-            <% end %>
-            <%= if Guardian.Plug.authenticated?(@conn) do %>
-              <li>
-                <%= link "Sign out", to: session_path(@conn, :delete), method: :delete, class: "signout-btn" %>
-              </li>
-            <% else %>
-              <li><%= link "Sign in", to: session_path(@conn, :new) %></li>
-            <% end %>
-          </ul>
+    <div class="container-fluid">
+      <header>
+        <nav role="navigation" class="navbar navbar-default navbar-fixed-top">
+          <div class="container-fluid">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <span class="navbar-brand logo"></span>
+            </div>
+
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              <ul class="nav navbar-nav navbar-right">
+                <%= if permitted?(@conn, Air.TaskController, :index) do %>
+                  <li><%= link "Tasks", to: task_path(@conn, :index) %></li>
+                <% end %>
+                <%= if permitted?(@conn, Air.UserController, :index) do %>
+                  <li><%= link "Users", to: manage_users_link(@conn) %></li>
+                <% end %>
+                <%= if permitted?(@conn, Air.OrganisationController, :index) do %>
+                  <li><%= link "Organisations", to: organisation_path(@conn, :index) %></li>
+                <% end %>
+                <%= if Guardian.Plug.authenticated?(@conn) do %>
+                  <li>
+                    <%= link "Sign out", to: session_path(@conn, :delete), method: :delete %>
+                  </li>
+                <% else %>
+                  <li><%= link "Sign in", to: session_path(@conn, :new) %></li>
+                <% end %>
+              </ul>
+            </div>
+          </div>
         </nav>
-        <span class="logo"></span>
       </header>
 
       <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>

@@ -1,7 +1,7 @@
-/* Space out content a bit */
-body, form, ul, table {
-  margin-top: 20px;
-  margin-bottom: 20px;
+body {
+  /* Because of the static navbar we need padding
+     on top so the content doesn't get hidden */
+  padding-top: 70px;
 }
 
 /* Phoenix flash messages */
@@ -12,22 +12,28 @@ form.link, form.button {
   display: inline;
 }
 
-/* Custom page header */
-.header {
-  border-bottom: 1px solid #e5e5e5;
-}
-.logo {
-  width: 304px;
-  height: 60px;
-  display: inline-block;
-  margin-bottom: 1em;
-  background-image: url("/images/aircloak_web.png");
-  background-repeat: no-repeat;
-  background-size: 304 60;
+ul.nav.navbar-nav.navbar-right li form.link a {
+	position: relative;
+	top: 15px;
+	margin-right: 10px;
+	margin-left: 5px;
+	padding: 10px;
 }
 
-/* Everything but the jumbotron gets side spacing for mobile first views */
-.header,
+ul.nav.navbar-nav.navbar-right li form.link a:hover {
+	text-decoration: none;
+}
+
+.logo {
+  margin: 10px;
+  width: 160px;
+  height: 30px;
+  display: inline-block;
+  background-image: url("/images/aircloak_web.png");
+  background-repeat: no-repeat;
+  background-size: 160 30;
+}
+
 .marketing {
   padding-right: 15px;
   padding-left: 15px;
@@ -57,14 +63,9 @@ form.link, form.button {
 /* Responsive: Portrait tablets and up */
 @media screen and (min-width: 768px) {
   /* Remove the padding we set earlier */
-  .header,
   .marketing {
     padding-right: 0;
     padding-left: 0;
-  }
-  /* Space out the masthead */
-  .header {
-    margin-bottom: 30px;
   }
   /* Remove the bottom border on the jumbotron for visual effect */
   .jumbotron {
