@@ -17,7 +17,14 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
-  def handle_in(event, payload, socket) do
+  def terminate(_reason, socket) do
+    cloak_id = socket.assigns.cloak_id
+    Logger.warn("cloak '#{cloak_id}' left air")
+    {:ok, socket}
+  end
+
+  @doc false
+  def handle_in(event, _payload, socket) do
     cloak_id = socket.assigns.cloak_id
     Logger.warn("unknown event #{event} from '#{cloak_id}'")
     {:noreply, socket}
