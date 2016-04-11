@@ -19,7 +19,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   @doc false
   def terminate(_reason, socket) do
     cloak_id = socket.assigns.cloak_id
-    Logger.warn("cloak '#{cloak_id}' left air")
+    Logger.info("cloak '#{cloak_id}' left air")
     {:ok, socket}
   end
 
