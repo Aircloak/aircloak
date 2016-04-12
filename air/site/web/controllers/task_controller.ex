@@ -27,28 +27,28 @@ defmodule Air.TaskController do
   end
 
   def new(conn, _params) do
-    changeset = Task.changeset(%Task{})
-    render(conn, "new.html", changeset: changeset)
-  end
-
-  def create(conn, %{"task" => task_params}) do
+    # We create a new task immediately, persist it to the database,
+    # and then redirect to the edit page. This way we operate on an
+    # existing task from the get go, and can easily update it in place.
+    task_params = %{
+      query: "-- Add your query code here",
+      name: "Untitled query"
+    }
     changeset = build_assoc(current_user(conn), :tasks)
     changeset = Task.changeset(changeset, task_params)
-
     case Repo.insert(changeset) do
-      {:ok, _task} ->
+      {:ok, task} ->
+        redirect(conn, to: task_path(conn, :edit, task))
+      {:error, _} ->
         conn
-        |> put_flash(:info, "Task created successfully.")
+        |> put_flash(:error, "Unfortunately the task could not be created")
         |> redirect(to: task_path(conn, :index))
-      {:error, changeset} ->
-        render(conn, "new.html", changeset: changeset)
     end
   end
 
   def edit(conn, %{"id" => id}) do
     with_task(conn, id, fn(task) ->
-          changeset = Task.changeset(task)
-          render(conn, "edit.html", task: task, changeset: changeset)
+          render(conn, "edit.html", task_json: task_as_json(task))
         end)
   end
 
@@ -99,5 +99,10 @@ defmodule Air.TaskController do
       |> put_status(:not_found)
       |> render(Air.ErrorView, "404.html")
     end
+  end
+
+  defp task_as_json(%{id: id, name: name, query: query}) do
+    {:ok, json} = Poison.encode(%{id: id, name: name, query: query})
+    {:safe, json}
   end
 end

@@ -57,22 +57,12 @@ defmodule Air.TaskControllerTest do
     assert not_found_html =~ "not found"
   end
 
-  test "creates resource and redirects when data is valid", %{conn: conn} do
-    assert "/tasks" == login(create_user()) |> post(task_path(conn, :create), task: @valid_attrs) |> redirected_to()
-    assert Repo.get_by(Task, @valid_attrs)
-  end
-
-  test "does not create resource and renders errors when data is invalid", %{conn: conn} do
-    html_response = login(create_user()) |> post(task_path(conn, :create), task: @invalid_attrs) |> response(200)
-    assert html_response =~ "New task"
-  end
-
   test "renders form for editing chosen resource", %{conn: conn} do
     user = create_user()
     task = create_task(user)
 
     html_response = login(user) |> get(task_path(conn, :edit, task)) |> response(200)
-    assert html_response =~ "Edit task"
+    assert html_response =~ "editor"
   end
 
   test "updates chosen resource and redirects when data is valid", %{conn: conn} do
@@ -80,13 +70,6 @@ defmodule Air.TaskControllerTest do
     task = create_task(user)
     assert "/tasks" == login(user) |> put(task_path(conn, :update, task), task: @valid_attrs) |> redirected_to()
     assert Repo.get_by(Task, @valid_attrs)
-  end
-
-  test "does not update chosen resource and renders errors when data is invalid", %{conn: conn} do
-    user = create_user()
-    task = create_task(user)
-    html_response = login(user) |> put(task_path(conn, :update, task), task: @invalid_attrs) |> response(200)
-    assert html_response =~ "Edit task"
   end
 
   test "deletes chosen resource", %{conn: conn} do
