@@ -4,6 +4,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
+  require Air.SyncRequester
 
 
   # -------------------------------------------------------------------
@@ -43,6 +44,11 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
+  def handle_in(Air.SyncRequester.response_event(command), encoded_payload, socket) do
+    {request, request_meta, response} = Air.SyncRequester.decode_response!(
+        Air.Endpoint.sync_requester(), encoded_payload)
+    handle_sync_response(command, response, request, request_meta, socket)
+  end
   def handle_in(event, _payload, socket) do
     cloak_id = socket.assigns.cloak_id
     Logger.warn("unknown event #{event} from '#{cloak_id}'")
@@ -65,7 +71,19 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   defp handle_call({:run_task, task}, from, socket) do
     Logger.info("starting task #{task.id} on #{socket.assigns.cloak_id}")
+    payload = Air.SyncRequester.encode_request(Air.Endpoint.sync_requester(), task)
+    push(socket, Air.SyncRequester.request_event("run_task"), payload)
     respond_to_internal_request(from, :ok)
+    {:noreply, socket}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Handling cloak responses
+  # -------------------------------------------------------------------
+
+  defp handle_sync_response("run_task", status, task, _req_meta, socket) do
+    Logger.info("cloak #{socket.assigns.cloak_id}, task #{task.id}: #{inspect status}")
     {:noreply, socket}
   end
 
