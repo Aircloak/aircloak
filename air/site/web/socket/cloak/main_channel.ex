@@ -7,6 +7,17 @@ defmodule Air.Socket.Cloak.MainChannel do
 
 
   # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Runs a task on the given cloak"
+  @spec run_task(String.t, %{}, timeout) :: any
+  def run_task(cloak_id, task, timeout \\ :timer.seconds(5)) do
+    call(cloak_id, {:run_task, task}, timeout)
+  end
+
+
+  # -------------------------------------------------------------------
   # Phoenix.Channel callback functions
   # -------------------------------------------------------------------
 
@@ -39,6 +50,8 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
+  def handle_info({{__MODULE__, :call}, from, message}, socket),
+    do: handle_call(message, from, socket)
   def handle_info(message, socket) do
     cloak_id = socket.assigns.cloak_id
     Logger.info("unhandled info #{message} from '#{cloak_id}'")
@@ -47,8 +60,49 @@ defmodule Air.Socket.Cloak.MainChannel do
 
 
   # -------------------------------------------------------------------
+  # Handling internal requests
+  # -------------------------------------------------------------------
+
+  defp handle_call({:run_task, task}, from, socket) do
+    Logger.info("starting task #{task.id} on #{socket.assigns.cloak_id}")
+    respond_to_internal_request(from, :ok)
+    {:noreply, socket}
+  end
+
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp respond_to_internal_request({client_pid, mref}, response) do
+    send(client_pid, {mref, response})
+  end
+
+  defp call(cloak_id, message, timeout) do
+    case channel_pid(cloak_id) do
+      nil -> exit(:noproc)
+      pid ->
+        mref = Process.monitor(pid)
+        send(pid, {{__MODULE__, :call}, {self(), mref}, message})
+        receive do
+          {^mref, response} ->
+            Process.demonitor(mref, [:flush])
+            response
+          {:DOWN, ^mref, _, _, reason} ->
+            exit(reason)
+        after timeout ->
+          exit(:timeout)
+        end
+    end
+  end
+
+  defp channel_pid(cloak_id) do
+    case :air_etcd.fetch(registration_key(cloak_id)) do
+      :error -> nil
+      {:ok, encoded_pid} ->
+        encoded_pid |> Base.decode64!() |> :erlang.binary_to_term
+    end
+  end
 
   defp registration_key(cloak_id) do
     # base16 is used because the supported character set in the key is limited
