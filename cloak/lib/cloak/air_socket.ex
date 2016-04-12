@@ -8,6 +8,7 @@ defmodule Cloak.AirSocket do
   configuration file.
   """
   require Logger
+  require Air.SyncRequester
   alias Phoenix.Channels.GenSocketClient
   @behaviour GenSocketClient
 
@@ -81,6 +82,11 @@ defmodule Cloak.AirSocket do
   end
 
   @doc false
+  def handle_message(topic, Air.SyncRequester.request_event(command), payload, transport, state) do
+    {request_ref, request} = Air.SyncRequester.decode_request!(payload)
+    handle_sync_request(topic, command, request, request_ref, transport)
+    {:ok, state}
+  end
   def handle_message(topic, event, payload, _transport, state) do
     Logger.warn("unhandled message on topic #{topic}: #{event} #{inspect payload}")
     {:ok, state}
@@ -105,6 +111,18 @@ defmodule Cloak.AirSocket do
       {:ok, _ref} -> :ok
     end
     {:ok, state}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Handling sync requests from Air
+  # -------------------------------------------------------------------
+
+  defp handle_sync_request("main", "run_task", task, request_ref, transport) do
+    Logger.info("starting task #{task.id}")
+    response = :started
+    payload = Air.SyncRequester.encode_response(request_ref, response)
+    GenSocketClient.push(transport, "main", Air.SyncRequester.response_event("run_task"), payload)
   end
 
 

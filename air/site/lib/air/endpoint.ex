@@ -28,11 +28,16 @@ defmodule Air.Endpoint do
     value = Poison.encode!(%{http_endpoint: "#{http_host}:#{http_port}"})
 
     children = [
+      worker(Air.SyncRequester, [sync_requester()]),
       worker(__MODULE__, []),
       worker(Air.ServiceRegistration, [key, value], id: Air.Endpoint.ServiceRegistration)
     ]
     supervisor(Supervisor, [children, [strategy: :one_for_all]], id: Module.concat(__MODULE__, Supervisor))
   end
+
+  @doc "Returns the name of the sync requester used by this endpoint"
+  @spec sync_requester :: atom
+  def sync_requester, do: __MODULE__
 
 
   # -------------------------------------------------------------------
