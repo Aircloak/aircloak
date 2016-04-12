@@ -29,7 +29,7 @@ defmodule Air.Socket.CloakTest do
   end
 
   defp url(params \\ %{
-        cloak_token: "cloak_token_1"
+        cloak_name: "cloak_token_1"
       }) do
     "#{Air.Endpoint.url}/cloak/socket/websocket?#{URI.encode_query(params)}"
     |> String.replace(~r(http://), "ws://")

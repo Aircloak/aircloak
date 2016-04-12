@@ -36,7 +36,7 @@ defmodule Cloak.AirSocket do
   @doc false
   def init(_) do
     params = %{
-      cloak_token: "cloak_token"
+      cloak_name: cloak_name()
     }
     url = "#{:cloak_conf.get_val(:air, :socket_url)}?#{URI.encode_query(params)}"
     {:connect, url, %{}}
@@ -44,62 +44,81 @@ defmodule Cloak.AirSocket do
 
   @doc false
   def handle_connected(_transport, state) do
-    Logger.info(fn -> "connected" end)
+    Logger.info("connected")
     send(self(), {:join, "main"})
     {:ok, state}
   end
 
   @doc false
   def handle_disconnected(reason, state) do
-    Logger.error(fn -> "disconnected: #{inspect reason}" end)
+    Logger.error("disconnected: #{inspect reason}")
     Process.send_after(self(), :connect, :cloak_conf.get_val(:air, :reconnect_interval))
     {:ok, state}
   end
 
   @doc false
   def handle_joined(topic, _payload, _transport, state) do
-    Logger.info(fn -> "joined the topic #{topic}" end)
+    Logger.info("joined the topic #{topic}")
     {:ok, state}
   end
 
   @doc false
   def handle_join_error(topic, payload, _transport, state) do
-    Logger.error(fn -> "join error on the topic #{topic}: #{inspect payload}" end)
+    Logger.error("join error on the topic #{topic}: #{inspect payload}")
     {:ok, state}
   end
 
   @doc false
   def handle_channel_closed(topic, payload, _transport, state) do
-    Logger.error(fn -> "disconnected from the topic #{topic}: #{inspect payload}" end)
+    Logger.error("disconnected from the topic #{topic}: #{inspect payload}")
     Process.send_after(self(), {:join, topic}, :cloak_conf.get_val(:air, :rejoin_interval))
     {:ok, state}
   end
 
   @doc false
   def handle_message(topic, event, payload, _transport, state) do
-    Logger.warn(fn -> "unhandled message on topic #{topic}: #{event} #{inspect payload}" end)
+    Logger.warn("unhandled message on topic #{topic}: #{event} #{inspect payload}")
     {:ok, state}
   end
 
   @doc false
   def handle_reply(topic, _ref, payload, _transport, state) do
-    Logger.warn(fn -> "unhandled reply on topic #{topic}: #{inspect payload}" end)
+    Logger.warn("unhandled reply on topic #{topic}: #{inspect payload}")
     {:ok, state}
   end
 
   @doc false
   def handle_info(:connect, _transport, state) do
-    Logger.info(fn -> "connecting" end)
+    Logger.info("connecting")
     {:connect, state}
   end
   def handle_info({:join, topic}, transport, state) do
-    case GenSocketClient.join(transport, topic) do
+    case GenSocketClient.join(transport, topic, get_join_info()) do
       {:error, reason} ->
-        Logger.error(fn -> "error joining the topic #{topic}: #{inspect reason}" end)
+        Logger.error("error joining the topic #{topic}: #{inspect reason}")
         Process.send_after(self(), {:join, topic}, :cloak_conf.get_val(:air, :rejoin_interval))
       {:ok, _ref} -> :ok
     end
-
     {:ok, state}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp cloak_name(), do: Node.self() |> Atom.to_string()
+
+  defp get_join_info() do
+    data_sources = for data_source <- Cloak.DataSource.all do
+      tables = for table <- Cloak.DataSource.tables(data_source) do
+        columns = for {name, type} <- Cloak.DataSource.columns(data_source, table) do
+          %{name: name, type: type}
+        end
+        %{id: table, columns: columns}
+      end
+      %{id: data_source, tables: tables}
+    end
+    %{name: cloak_name(), data_sources: data_sources}
   end
 end
