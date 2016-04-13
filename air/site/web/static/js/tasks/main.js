@@ -10,7 +10,7 @@ class TaskEditor extends React.Component {
       query: props.query,
       name: props.name,
       running_percent: -1,
-      isSaved: "TRUE"
+      isSaved: true
     }
 
     // Bind the handlers, so we can pass them, and have `this`
@@ -36,7 +36,7 @@ class TaskEditor extends React.Component {
     this.setState({running_percent: 0});
   }
   scheduleUpdate() {
-    this.setState({isSaved: "FALSE"});
+    this.setState({isSaved: false});
     this.pending_save_request = true;
   }
   updateServer() {
@@ -56,9 +56,8 @@ class TaskEditor extends React.Component {
             },
             success: (responseData, textStatus) => {
               if (!this.pending_save_request) {
-                this.setState({isSaved: "TRUE"});
+                this.setState({isSaved: true});
               }
-              console.log(`Success: ${responseData} - ${textStatus}`);
             },
             error: (jqXHR, textStatus) => {
               console.log(`Error: ${textStatus}`);
@@ -68,7 +67,7 @@ class TaskEditor extends React.Component {
   }
   render() {
     return (
-      <div>
+      <div id="task-editor-container">
         <StatusLine
             running_percent={this.state.running_percent}
             name={this.state.name}
@@ -92,13 +91,20 @@ class StatusLine extends React.Component {
     this.props.onNameChange(name);
   }
   render() {
+    var saveState = "";
+    if (this.props.isSaved) {
+      saveState = "Task saved";
+    } else {
+      saveState = "Saving...";
+    }
     return (
-      <div>
-        <h3>
-          Task name:
+      <div id="task-status-bar">
+        <div className="task-status-bar-component">
           <input type="text" onChange={this.handleNameChange} value={this.props.name} />
-        </h3>
-        <p>Task saved: {this.props.isSaved}</p>
+        </div>
+        <div id="save-state">
+          {saveState}
+        </div>
         <RunButton {...this.props} />
       </div>
     );
@@ -109,15 +115,26 @@ class RunButton extends React.Component {
   render() {
     if (this.props.running_percent < 0) {
       return (
-        <p onClick={this.props.onRunTaskClick}>
-          Run task
-        </p>
+        <div id="task-run">
+          <button type="button" className="btn btn-primary" onClick={this.props.onRunTaskClick}>
+            Run task
+          </button>
+        </div>
       );
     } else {
       return (
-        <p>
-          Task running: {this.props.running_percent}
-        </p>
+        <div id="task-run">
+          <button type="button" className="btn btn-primary disabled">
+            Run task
+          </button>
+          <div className="progress">
+            <div className="progress-bar" role="progressbar"
+                aria-valuenow="{this.props.running_percent}" aria-valuemin="0"
+                aria-valuemax="100" style={{width: this.props.running_percent + '%'}}>
+              {this.props.running_percent}%
+            </div>
+          </div>
+        </div>
       );
     }
   }
@@ -126,7 +143,14 @@ class RunButton extends React.Component {
 class SidePane extends React.Component {
   render() {
     return (
-      <h1>This will be the side pane</h1>
+      <div id="task-editor-side-panel">
+        <h1>Results and meta data entry</h1>
+        <p>
+          This side panel will contain two panes.
+          One allowing meta data to be edited,
+          one showing results.
+        </p>
+      </div>
     );
   }
 }
