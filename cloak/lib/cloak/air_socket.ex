@@ -18,8 +18,8 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   @doc "Starts the socket client."
-  @spec start_link(GenServer.options) :: GenServer.on_start
-  def start_link(gen_server_opts \\ []) do
+  @spec start_link() :: GenServer.on_start
+  def start_link() do
     GenSocketClient.start_link(
           __MODULE__,
           GenSocketClient.Transport.WebSocketClient,
@@ -30,9 +30,14 @@ defmodule Cloak.AirSocket do
               keepalive: :timer.seconds(30)
             ]
           ],
-          gen_server_opts
+          name: __MODULE__
         )
   end
+
+  @doc "Sends task results to the Air."
+  @spec send_task_results(any) :: :ok
+  def send_task_results(task_results),
+    do: call({:send_task_results, task_results})
 
 
   # -------------------------------------------------------------------
@@ -112,6 +117,23 @@ defmodule Cloak.AirSocket do
     end
     {:ok, state}
   end
+  def handle_info({{__MODULE__, :call}, from, message}, transport, state),
+    do: handle_call(message, from, transport, state)
+  def handle_info(message, _transport, state) do
+    Logger.warn("unhandled message #{inspect message}")
+    {:ok, state}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Handling internal requests
+  # -------------------------------------------------------------------
+
+  defp handle_call({:send_task_results, task_results}, from, _transport, state) do
+    Logger.info("Sending task results")
+    respond_to_internal_request(from, :ok)
+    {:ok, state}
+  end
 
 
   # -------------------------------------------------------------------
@@ -129,6 +151,24 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp respond_to_internal_request({client_pid, mref}, response) do
+    send(client_pid, {mref, response})
+  end
+
+  defp call(message, timeout \\ :timer.seconds(5)) do
+    mref = Process.monitor(__MODULE__)
+    send(__MODULE__, {{__MODULE__, :call}, {self(), mref}, message})
+    receive do
+      {^mref, response} ->
+        Process.demonitor(mref, [:flush])
+        response
+      {:DOWN, ^mref, _, _, reason} ->
+        exit(reason)
+    after timeout ->
+      exit(:timeout)
+    end
+  end
 
   defp cloak_name(), do: Node.self() |> Atom.to_string()
 
