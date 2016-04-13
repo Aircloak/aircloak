@@ -21,7 +21,7 @@ defmodule Air.Mixfile do
       ],
       preferred_cli_env: [
         eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
-        "phoenix.digest": :prod, site_release: :prod, "test.standard": :test
+        "phoenix.digest": :prod, site_release: :prod, "test.standard": :test, dialyze_retry: :dev
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [

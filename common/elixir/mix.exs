@@ -16,7 +16,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       ],
       preferred_cli_env: [
         eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev,
-        "coveralls.html": :test
+        "coveralls.html": :test, dialyze_retry: :dev
       ],
       test_coverage: [tool: ExCoveralls]
     ]

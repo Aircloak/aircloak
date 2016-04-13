@@ -41,7 +41,7 @@ proper-extended:
 	mix proper --level extended
 
 dialyze:
-	mix dialyze
+	mix dialyze_retry
 
 lint:
 	MIX_ENV=dev mix lint

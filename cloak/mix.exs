@@ -13,7 +13,8 @@ defmodule Cloak.Mixfile do
       erlc_options: erlc_options(Mix.env),
       erlc_paths: erlc_paths(Mix.env),
       preferred_cli_env: [
-        eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev, "coveralls.html": :test
+        eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev, "coveralls.html": :test,
+        dialyze_retry: :dev
       ],
       eunit_options: [
         :no_tty,
