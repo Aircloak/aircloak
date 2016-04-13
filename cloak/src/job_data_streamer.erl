@@ -137,10 +137,10 @@ create_per_user_table_streams(QuerySpec) ->
 -spec parse_data_query_spec(prefetch_table_spec()) ->
     {binary(), atom(), atom(), [binary()], non_neg_integer(), db_query_builder:query()}.
 parse_data_query_spec(QuerySpec) ->
-  TableName = proplists:get_value(table, QuerySpec, null),
-  true = TableName /= null, % this field is required
-  %% TODO: add support for multiple data sources (notice: table names can conflict across multiple sources)
-  SourceId = local, % hardcoded for now
+  TablePath = proplists:get_value(table, QuerySpec, null),
+  true = TablePath /= null, % this field is required
+  [SourceName, TableName] = binary:split(TablePath, <<"/">>, [global]),
+  SourceId = binary_to_existing_atom(SourceName, utf8),
   TableId = binary_to_existing_atom(TableName, utf8),
   RowLimit = proplists:get_value(user_rows, QuerySpec, 0),
   Filter = db_query_builder:build_filter(proplists:get_value(where, QuerySpec, [])),
@@ -150,7 +150,7 @@ parse_data_query_spec(QuerySpec) ->
         null -> ColumnNames; % not specified, select all columns
         QueryColumns -> ColumnNames -- (ColumnNames -- QueryColumns) % protect against SQL injection
       end,
-  {TableName, SourceId, TableId, SelectedColumns, RowLimit, Filter}.
+  {TablePath, SourceId, TableId, SelectedColumns, RowLimit, Filter}.
 
 %% Creates the initial stream state from the metadata information about the streamed table data.
 -spec parse_metadata(binary(), atom(), atom(), [binary()], db_query_builder:query(),
@@ -224,7 +224,7 @@ compute_rows_sum(_JobInput, true) ->
   0;
 compute_rows_sum(JobInput, false) ->
   {NewJobInput, #tabledatapb{columns = Columns, rows = Rows, complete = Complete}} =
-      get_next_batch(<<"user-id">>, db_test:full_table_name(<<"test">>), JobInput, false),
+      get_next_batch(<<"user-id">>, db_test:table_path(<<"test">>), JobInput, false),
   ?assertEqual(true, Columns =:= [<<"Data Value">>] orelse Columns =:= []),
   Values = [get_row_value(Row) || Row <- Rows],
   BatchSum = lists:foldl(fun(Value, Sum) -> Value + Sum end, 0, Values),
@@ -233,15 +233,15 @@ compute_rows_sum(JobInput, false) ->
 test_data_streaming() ->
   setup_test_table(),
   fill_table(),
-  TableName = db_test:full_table_name(<<"test">>),
-  PrefetchSpecAll = [[{table, TableName}, {columns, [<<"Data Value">>]}]],
+  TablePath = db_test:table_path(<<"test">>),
+  PrefetchSpecAll = [[{table, TablePath}, {columns, [<<"Data Value">>]}]],
   BatchSize = batch_size(1),
   [{<<"user-id">>, JobInputAll}] = create_job_inputs(PrefetchSpecAll),
   ?assertEqual((0 + 1 + 2 + 3) * BatchSize * 2 div 4, compute_rows_sum(JobInputAll, false)),
-  PrefetchSpecPartial = [[{table, TableName}, {where, [{<<"$$Data Value">>, [{<<"$lte">>, 1}]}]}, {user_rows, BatchSize * 2}]],
+  PrefetchSpecPartial = [[{table, TablePath}, {where, [{<<"$$Data Value">>, [{<<"$lte">>, 1}]}]}, {user_rows, BatchSize * 2}]],
   [{<<"user-id">>, JobInputPartial}] = create_job_inputs(PrefetchSpecPartial),
   ?assertEqual((0 + 1) * BatchSize * 2 div 4, compute_rows_sum(JobInputPartial, false)),
-  PrefetchSpecEmpty = [[{table, TableName}, {columns, []}]],
+  PrefetchSpecEmpty = [[{table, TablePath}, {columns, []}]],
   [{<<"user-id">>, JobInputEmpty}] = create_job_inputs(PrefetchSpecEmpty),
   ?assertEqual(0, compute_rows_sum(JobInputEmpty, false)).
 

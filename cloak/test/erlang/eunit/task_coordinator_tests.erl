@@ -23,7 +23,7 @@
 test_task(Code) ->
   #task{
     task_id = "test_task",
-    prefetch = [[{table, db_test:full_table_name(<<"heights">>)}]],
+    prefetch = [[{table, db_test:table_path(<<"heights">>)}]],
     code = Code,
     libraries = [],
     return_token = {json, {process, self()}}
@@ -44,7 +44,7 @@ task_test_() ->
     [
       {"no rows", fun() ->
         ?verifyAsync(
-              <<"for row in user_table(\"", (db_test:full_table_name(<<"heights">>))/binary,
+              <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
                   "\") do report_property(\"height\", row.height) end">>,
               [
                 {<<"buckets">>, []},
@@ -60,7 +60,7 @@ task_test_() ->
           } || Index <- lists:seq(1, 100)],
         ok = db_test:add_users_data(Data),
         ?verifyAsync(
-              <<"for row in user_table(\"", (db_test:full_table_name(<<"heights">>))/binary,
+              <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
                   "\") do report_property(\"height\", row.height) end">>,
               [
                 {<<"buckets">>, [{struct, [
@@ -80,7 +80,7 @@ task_test_() ->
           } || Index <- lists:seq(1, 100)],
         ok = db_test:add_users_data(Data),
         ?verifySync(
-              <<"for row in user_table(\"", (db_test:full_table_name(<<"heights">>))/binary,
+              <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
                   "\") do report_property(\"height\", row.height) end">>,
               [
                 {<<"buckets">>, [{struct, [

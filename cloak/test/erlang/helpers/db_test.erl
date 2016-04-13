@@ -18,7 +18,7 @@
   add_users_data/1,
   drop_table/1,
   clear_table/1,
-  full_table_name/1
+  table_path/1
 ]).
 
 
@@ -65,16 +65,20 @@ drop_table(TableName) ->
 clear_table(TableName) ->
   'Elixir.Cloak.DataSource.PostgreSQL':execute(<<"TRUNCATE TABLE ", (sanitized_table(TableName))/binary>>, []).
 
-%% @doc Returns the full name for a test table
-full_table_name(TableName) when is_list(TableName) ->
-  full_table_name(list_to_binary(TableName));
-full_table_name(TableName) when is_binary(TableName) ->
-  <<"cloak_test.", TableName/binary>>.
+%% @doc Returns the full path for a test table
+table_path(TableName) ->
+  <<"local/", (full_table_name(TableName))/binary>>.
 
 
 %% -------------------------------------------------------------------
 %% Internal functions
 %% -------------------------------------------------------------------
+
+%% Returns the full name for a test table
+full_table_name(TableName) when is_list(TableName) ->
+  full_table_name(list_to_binary(TableName));
+full_table_name(TableName) when is_binary(TableName) ->
+  <<"cloak_test.", TableName/binary>>.
 
 insert_rows(UserId, TableName, TableData) ->
   FullTableName = sanitized_table(TableName),

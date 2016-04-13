@@ -23,10 +23,6 @@ config :os_mon,
   disk_space_check_interval: 1,
   disk_almost_full_threshold: 0.8
 
-config :webmachine,
-  error_handler: :cloak_webmachine_error_handler,
-  server_name: 'Cloak API'
-
 config :cloak, :api, port: 8098
 
 config :cloak, :air,
