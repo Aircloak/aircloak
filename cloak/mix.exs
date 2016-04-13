@@ -37,7 +37,6 @@ defmodule Cloak.Mixfile do
       {:webmachine, github: "basho/webmachine", tag: "1.10.6"},
       {:ej, github: "seth/ej"},
       {:gproc, "~> 0.5.0"},
-      {:erlcron, github: "erlware/erlcron"},
       {:exrm, "~> 1.0"},
       {:meck, github: "eproxus/meck", tag: "0.8.2", override: true},
       {:postgrex, "~> 0.11"},
@@ -53,7 +52,7 @@ defmodule Cloak.Mixfile do
 
   defp common_applications do
     [
-      :logger, :webmachine, :ej, :gproc, :erlcron, :aircloak_common,  :postgrex, :poolboy,
+      :logger, :webmachine, :ej, :gproc, :aircloak_common, :postgrex, :poolboy,
       :phoenix_gen_socket_client, :websocket_client
     ]
   end

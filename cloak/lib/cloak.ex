@@ -5,7 +5,6 @@ defmodule Cloak do
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
-    :cluster_cron.init()
     Cloak.Logger.ReportHandler.install()
     :ok = :cloak_alarm_handler.install()
 
@@ -32,7 +31,6 @@ defmodule Cloak do
     [
       supervisor(Cloak.DataSource, []),
       worker(:progress_handler, []),
-      supervisor(:global_service_sup, []),
       supervisor(:result_sender_sup, []),
       supervisor(:job_runner_sup, []),
       worker(:queued_worker,
@@ -59,7 +57,6 @@ defmodule Cloak do
       [
         supervisor(:cloak_metrics_sup, []),
         worker(:resource_monitor, []),
-        worker(:cron_manager, []),
         worker(Cloak.AirSocket, [])
       ]
     end
