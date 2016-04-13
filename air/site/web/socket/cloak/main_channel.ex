@@ -4,8 +4,8 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  require Air.SyncRequester
-  alias Air.SyncRequester
+  require Aircloak.SyncRequester
+  alias Aircloak.SyncRequester
 
 
   # -------------------------------------------------------------------

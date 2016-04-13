@@ -28,7 +28,7 @@ defmodule Air.Endpoint do
     value = Poison.encode!(%{http_endpoint: "#{http_host}:#{http_port}"})
 
     children = [
-      worker(Air.SyncRequester.Backend.Ets, [sync_requester()]),
+      worker(Aircloak.SyncRequester.Backend.Ets, [sync_requester()]),
       worker(__MODULE__, []),
       worker(Air.ServiceRegistration, [key, value], id: Air.Endpoint.ServiceRegistration)
     ]

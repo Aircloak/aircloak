@@ -1,4 +1,4 @@
-defmodule Air.SyncRequester do
+defmodule Aircloak.SyncRequester do
   @moduledoc """
   Helper for issuing synchronous requests over an asynchronous connection (e.g.
   websocket).
@@ -12,7 +12,7 @@ defmodule Air.SyncRequester do
 
   On the client side, you need to provide the backend module which is used to
   store the outgoing requests, and match incoming responses to previous requests.
-  The module `Air.SyncRequester.Backend.Ets` implements an ETS powered backend.
+  The module `Aircloak.SyncRequester.Backend.Ets` implements an ETS powered backend.
 
   The server-side API consists of plain functions and does not require a backend.
   These functions are simply used to decode requests, and later encode

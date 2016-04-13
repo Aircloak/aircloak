@@ -1,12 +1,12 @@
-defmodule Air.SyncRequester.Backend do
+defmodule Aircloak.SyncRequester.Backend do
     @moduledoc """
-    Behaviour for `Air.SyncRequester` backends.
+    Behaviour for `Aircloak.SyncRequester` backends.
 
     A backend is used to store pending requests and later match them to corresponding
     responses.
     """
 
-    alias Air.SyncRequester
+    alias Aircloak.SyncRequester
 
     @doc "Stores the request data to the backend."
     @callback store_request(
@@ -30,19 +30,19 @@ defmodule Air.SyncRequester.Backend do
         {:error, any}
   end
 
-defmodule Air.SyncRequester.Backend.Ets do
+defmodule Aircloak.SyncRequester.Backend.Ets do
   @moduledoc """
-  ETS powered backend for `Air.SyncRequester`.
+  ETS powered backend for `Aircloak.SyncRequester`.
 
   To use this backend, you need to start the owner process with `start_link/1`.
   The function takes the `requester_name`, which is an atom uniquely identifying
   the backend in the system.
 
-  Then, you can use `Air.SyncRequester` functions, passing the `requester_name`
+  Then, you can use `Aircloak.SyncRequester` functions, passing the `requester_name`
   as the backend argument.
   """
 
-  @behaviour Air.SyncRequester.Backend
+  @behaviour Aircloak.SyncRequester.Backend
   use GenServer
 
 
@@ -58,7 +58,7 @@ defmodule Air.SyncRequester.Backend.Ets do
 
 
   # -------------------------------------------------------------------
-  # Air.SyncRequester.Backend callbacks
+  # Aircloak.SyncRequester.Backend callbacks
   # -------------------------------------------------------------------
 
   @doc false

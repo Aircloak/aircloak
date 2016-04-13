@@ -8,7 +8,7 @@ defmodule Cloak.AirSocket do
   configuration file.
   """
   require Logger
-  require Air.SyncRequester
+  require Aircloak.SyncRequester
   alias Phoenix.Channels.GenSocketClient
   @behaviour GenSocketClient
 
@@ -82,8 +82,8 @@ defmodule Cloak.AirSocket do
   end
 
   @doc false
-  def handle_message(topic, Air.SyncRequester.request_event(command), payload, transport, state) do
-    {request_ref, request} = Air.SyncRequester.decode_request!(payload)
+  def handle_message(topic, Aircloak.SyncRequester.request_event(command), payload, transport, state) do
+    {request_ref, request} = Aircloak.SyncRequester.decode_request!(payload)
     handle_sync_request(topic, command, request, request_ref, transport)
     {:ok, state}
   end
@@ -121,8 +121,8 @@ defmodule Cloak.AirSocket do
   defp handle_sync_request("main", "run_task", task, request_ref, transport) do
     Logger.info("starting task #{task.id}")
     response = :started
-    payload = Air.SyncRequester.encode_response(request_ref, response)
-    GenSocketClient.push(transport, "main", Air.SyncRequester.response_event("run_task"), payload)
+    payload = Aircloak.SyncRequester.encode_response(request_ref, response)
+    GenSocketClient.push(transport, "main", Aircloak.SyncRequester.response_event("run_task"), payload)
   end
 
 

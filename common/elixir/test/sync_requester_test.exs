@@ -1,7 +1,7 @@
-defmodule Air.SyncRequesterTest do
+defmodule Aircloak.SyncRequesterTest do
   use ExUnit.Case, async: false
 
-  alias Air.SyncRequester
+  alias Aircloak.SyncRequester
   alias SyncRequester.Backend
 
   test "encoding and decoding" do
