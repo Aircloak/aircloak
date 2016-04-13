@@ -65,18 +65,47 @@ defmodule Air.TaskControllerTest do
     assert html_response =~ "editor"
   end
 
-  test "updates chosen resource and redirects when data is valid", %{conn: conn} do
+  test "updates chosen resource and returns a JSON response", %{conn: conn} do
     user = create_user()
     task = create_task(user)
-    assert "/tasks" == login(user) |> put(task_path(conn, :update, task), task: @valid_attrs) |> redirected_to()
-    assert Repo.get_by(Task, @valid_attrs)
+    response_json = login(user) |> put(task_path(conn, :update, task), task: @valid_attrs) |> response(200)
+    %{"success" => success} = Poison.decode!(response_json)
+    assert success
   end
 
   test "deletes chosen resource", %{conn: conn} do
     user = create_user()
     task = create_task(user)
 
-    assert "/tasks" == login(user, conn) |> delete(task_path(conn, :delete, task)) |> redirected_to()
+    assert "/tasks" == login(user) |> delete(task_path(conn, :delete, task)) |> redirected_to()
     refute Repo.get(Task, task.id)
+  end
+
+  test "running task of other user returns 404 json" do
+    user = create_user()
+    other_user = create_user()
+    other_user_task = create_task(other_user)
+
+    response_json = login(user) |> post("/tasks/#{other_user_task.id}/run") |> response(200)
+    %{"success" => status, "description" => description} = Poison.decode!(response_json)
+    refute status
+    assert description == "Task not found"
+  end
+
+  test "task that doesn't exist returns 404 json" do
+    user = create_user()
+
+    response_json = login(user) |> post("/tasks/b9e1f65f-572e-4f40-be87-1ced8ec5a2b1/run") |> response(200)
+    %{"success" => status, "description" => description} = Poison.decode!(response_json)
+    refute status
+    assert description == "Task not found"
+  end
+
+  test "can run task owned by the user" do
+    user = create_user()
+    task = create_task(user)
+    response_json = login(user) |> post("/tasks/#{task.id}/run") |> response(200)
+    %{"success" => status} = Poison.decode!(response_json)
+    assert status
   end
 end

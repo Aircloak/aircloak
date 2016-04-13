@@ -34,6 +34,16 @@ class TaskEditor extends React.Component {
   }
   handleRunTask() {
     this.setState({running_percent: 0});
+    $.ajax(`/tasks/${this.props.id}/run`, {
+          context: this,
+          method: "POST",
+          headers: {
+            "X-CSRF-TOKEN": this.props.csrf_token
+          },
+          success: (responseData, textStatus) => {
+            console.log("Task run scheduled...");
+          }
+        });
   }
   scheduleUpdate() {
     this.setState({isSaved: false});

@@ -56,10 +56,10 @@ defmodule Air.TaskController do
     with_task(conn, id, fn(task) ->
           changeset = Task.changeset(task, task_params)
           case Repo.update(changeset) do
-            {:ok, task} ->
+            {:ok, _task} ->
               conn
               |> put_flash(:info, "Task updated successfully.")
-              |> json(Poison.encode!(%{success: true}))
+              |> json(%{success: true})
             {:error, changeset} ->
               render(conn, "edit.html", task: task, changeset: changeset)
           end
@@ -78,6 +78,15 @@ defmodule Air.TaskController do
         end)
   end
 
+  def run_task(conn, %{"id" => id}) do
+    with_task(conn, id, fn(_task) ->
+          # TODO: Schedule task running here...
+          json(conn, %{success: true})
+        end, fn() ->
+          json(conn, %{success: false, description: "Task not found"})
+        end)
+  end
+
 
   # -------------------------------------------------------------------
   # Private methods
@@ -87,17 +96,28 @@ defmodule Air.TaskController do
     Guardian.Plug.current_resource(conn)
   end
 
-  defp with_task(conn, id, fun) do
-    task = Repo.get!(Task, id)
-    if task.user_id == current_user(conn).id do
-      fun.(task)
-    else
-      # Raise a 404 if the user isn't the right one.
-      # This way we avoid leaking information if someone
-      # is trying to enumerate all tasks.
-      conn
-      |> put_status(:not_found)
-      |> render(Air.ErrorView, "404.html")
+  defp with_task(conn, id, fun, fun_error \\ :undefined) do
+    error_fun = fn() ->
+      if fun_error == :undefined do
+        # Raise a 404 if the user isn't the right one.
+        # This way we avoid leaking information if someone
+        # is trying to enumerate all tasks.
+        conn
+        |> put_status(:not_found)
+        |> render(Air.ErrorView, "404.html")
+      else
+        fun_error.()
+      end
+    end
+
+    try do
+      task = Repo.get!(Task, id)
+      if task.user_id == current_user(conn).id do
+        fun.(task)
+      else
+        error_fun.()
+      end
+    rescue Ecto.NoResultsError -> error_fun.()
     end
   end
 
