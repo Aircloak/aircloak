@@ -14,16 +14,20 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "schema discovery" do
-    table_id = String.to_existing_atom(:db_test.full_table_name("test"))
-    assert(Cloak.DataSource.tables(:local) == [table_id])
-    assert(Cloak.DataSource.columns(:local, table_id) == [{"value", :integer}])
+    [source_name, table_name] = String.split(:db_test.table_path("test"), "/")
+    table_id = String.to_existing_atom(table_name)
+    source_id = String.to_existing_atom(source_name)
+    assert(Cloak.DataSource.tables(source_id) == [table_id])
+    assert(Cloak.DataSource.columns(source_id, table_id) == [{"value", :integer}])
   end
 
   test "data retrieval" do
-    table_id = String.to_existing_atom(:db_test.full_table_name("test"))
-    assert(Cloak.DataSource.get_metadata(:local, table_id,
+    [source_name, table_name] = String.split(:db_test.table_path("test"), "/")
+    table_id = String.to_existing_atom(table_name)
+    source_id = String.to_existing_atom(source_name)
+    assert(Cloak.DataSource.get_metadata(source_id, table_id,
         {"value != $1", [20]}, 0) == [{"user-id", 1, 3, 2}])
-    assert(Cloak.DataSource.get_data_batch(:local, table_id,
+    assert(Cloak.DataSource.get_data_batch(source_id, table_id,
         "user-id", 1, 3, 10, ["value"], {"value != $1", [20]}) == {2, [[1, 10], [3, 30]]})
   end
 end
