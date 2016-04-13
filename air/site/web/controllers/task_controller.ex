@@ -48,7 +48,7 @@ defmodule Air.TaskController do
 
   def edit(conn, %{"id" => id}) do
     with_task(conn, id, fn(task) ->
-          render(conn, "edit.html", task_json: task_as_json(task))
+          render(conn, "editor.html", task_json: task_as_json(task))
         end)
   end
 
@@ -56,10 +56,10 @@ defmodule Air.TaskController do
     with_task(conn, id, fn(task) ->
           changeset = Task.changeset(task, task_params)
           case Repo.update(changeset) do
-            {:ok, _task} ->
+            {:ok, task} ->
               conn
               |> put_flash(:info, "Task updated successfully.")
-              |> redirect(to: task_path(conn, :index))
+              |> json(Poison.encode!(%{success: true}))
             {:error, changeset} ->
               render(conn, "edit.html", task: task, changeset: changeset)
           end
@@ -102,7 +102,12 @@ defmodule Air.TaskController do
   end
 
   defp task_as_json(%{id: id, name: name, query: query}) do
-    {:ok, json} = Poison.encode(%{id: id, name: name, query: query})
+    object = %{
+      id: id,
+      name: name,
+      query: query
+    }
+    json = Poison.encode!(object, escape: true)
     {:safe, json}
   end
 end
