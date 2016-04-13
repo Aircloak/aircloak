@@ -47,8 +47,8 @@ defmodule Air.Socket.Cloak.MainChannel do
   @doc false
   def handle_in(SyncRequester.response_event(command), encoded_payload, socket) do
     case SyncRequester.decode_response!(
-          SyncRequester.Backend.Ets,
-          Air.Endpoint.sync_requester(),
+          SyncRequester.Backend.Etcd,
+          request_etcd_path(socket),
           encoded_payload
         ) do
       {:matched, {request, request_meta, response}} ->
@@ -79,7 +79,7 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   defp handle_call({:run_task, task}, from, socket) do
     Logger.info("starting task #{task.id} on #{socket.assigns.cloak_id}")
-    payload = SyncRequester.encode_request(SyncRequester.Backend.Ets, Air.Endpoint.sync_requester(), task)
+    payload = SyncRequester.encode_request(SyncRequester.Backend.Etcd, request_etcd_path(socket), task)
     push(socket, SyncRequester.request_event("run_task"), payload)
     respond_to_internal_request(from, :ok)
     {:noreply, socket}
@@ -131,11 +131,16 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   defp registration_key(cloak_id) do
-    # base16 is used because the supported character set in the key is limited
-    "/settings/air/cloaks/#{Base.encode16(cloak_id)}/main"
+    # base32 is used because the supported character set in the etcd key is limited
+    "/settings/air/cloaks/#{Base.encode32(cloak_id)}/main"
   end
 
   defp registration_value do
     self() |> :erlang.term_to_binary() |> Base.encode64()
+  end
+
+  defp request_etcd_path(socket) do
+    # base32 is used because the supported character set in the etcd key is limited
+    "/air/sync_requests/#{Base.encode32(socket.assigns.cloak_id)}"
   end
 end

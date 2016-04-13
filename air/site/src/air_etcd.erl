@@ -74,10 +74,19 @@ set(Key, Value) ->
 set(Key, Value, Ttl) ->
   etcd:set(url(), Key, Value, Ttl, ?ETCD_TIMEOUT).
 
-%% @doc Sets the value under a given key, with the given ttl (in seconds).
--spec delete(key()) -> result().
+%% @doc Deletes the value under the given key.
+%%      If the previous value exists the result will be `{:ok, PreviousValue}'.
+%%      Otherwise, an error is returned.
+-spec delete(key()) -> {ok, binary()} | {error, any()}.
 delete(Key) ->
-  etcd:delete(url(), Key, ?ETCD_TIMEOUT).
+  case etcd:delete(url(), Key, ?ETCD_TIMEOUT) of
+    {ok, #delete{key=Key, prevValue=PrevValue}} ->
+      {ok, PrevValue};
+    {ok, #error{errorCode = ?ETCD_KEY_NOT_FOUND}} ->
+      {error, not_found};
+    {ok, #error{errorCode=ErrorCode, message=Message}} ->
+      {error, {etcd_error, ErrorCode, Message}}
+  end.
 
 %% @doc Removes a directory folder.
 -spec rmdir(key()) -> result().
@@ -208,7 +217,8 @@ handle_etcd_response(Response) ->
           ?assertMatch({ok, #set{key=Key, value= <<"value">>}}, set(Key, "value")),
           ?assertEqual({ok, <<"value">>}, fetch(Key)),
           ?assertEqual(<<"value">>, get(Key)),
-          ?assertMatch({ok,#delete{key= Key, prevValue= <<"value">>}}, delete(Key)),
+          ?assertMatch({ok, <<"value">>}, delete(Key)),
+          ?assertMatch({error, not_found}, delete(Key)),
           ?assertEqual(error, fetch(Key)),
           ?assertError(_, get(Key))
         end)},

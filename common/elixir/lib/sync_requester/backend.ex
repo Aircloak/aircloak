@@ -14,7 +14,7 @@ defmodule Aircloak.SyncRequester.Backend do
           SyncRequester.request_id,
           SyncRequester.request,
           SyncRequester.meta
-        ) :: :ok | {:error, any}
+        ) :: :ok | :error | {:error, any}
 
     @doc """
     Pops the request data from the backend.
