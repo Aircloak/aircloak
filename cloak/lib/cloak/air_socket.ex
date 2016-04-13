@@ -9,6 +9,7 @@ defmodule Cloak.AirSocket do
   """
   require Logger
   require Aircloak.SyncRequester
+  alias Aircloak.SyncRequester
   alias Phoenix.Channels.GenSocketClient
   @behaviour GenSocketClient
 
@@ -87,10 +88,18 @@ defmodule Cloak.AirSocket do
   end
 
   @doc false
-  def handle_message(topic, Aircloak.SyncRequester.request_event(command), payload, transport, state) do
-    {request_ref, request} = Aircloak.SyncRequester.decode_request!(payload)
-    handle_sync_request(topic, command, request, request_ref, transport)
-    {:ok, state}
+  def handle_message(topic, SyncRequester.request_event(command), payload, transport, state) do
+    {request_ref, request} = SyncRequester.decode_request!(payload)
+    handle_sync_request(topic, command, request, request_ref, transport, state)
+  end
+  def handle_message(topic, SyncRequester.response_event(command), payload, transport, state) do
+    case SyncRequester.decode_response!(SyncRequester.Backend.Ets, __MODULE__, payload) do
+      {:matched, {request, request_meta, response}} ->
+        handle_sync_response(topic, command, response, request, request_meta, transport, state)
+      {:not_matched, response} ->
+        Logger.warn("unmatched response #{inspect response}")
+        {:ok, state}
+    end
   end
   def handle_message(topic, event, payload, _transport, state) do
     Logger.warn("unhandled message on topic #{topic}: #{event} #{inspect payload}")
@@ -129,8 +138,10 @@ defmodule Cloak.AirSocket do
   # Handling internal requests
   # -------------------------------------------------------------------
 
-  defp handle_call({:send_task_results, task_results}, from, _transport, state) do
-    Logger.info("Sending task results")
+  defp handle_call({:send_task_results, task_results}, from, transport, state) do
+    Logger.info("sending task results")
+    payload = SyncRequester.encode_request(SyncRequester.Backend.Ets, __MODULE__, task_results)
+    GenSocketClient.push(transport, "main", SyncRequester.request_event("task_results"), payload)
     respond_to_internal_request(from, :ok)
     {:ok, state}
   end
@@ -140,11 +151,21 @@ defmodule Cloak.AirSocket do
   # Handling sync requests from Air
   # -------------------------------------------------------------------
 
-  defp handle_sync_request("main", "run_task", task, request_ref, transport) do
+  defp handle_sync_request("main", "run_task", task, request_ref, transport, state) do
     Logger.info("starting task #{task.id}")
     response = :started
-    payload = Aircloak.SyncRequester.encode_response(request_ref, response)
-    GenSocketClient.push(transport, "main", Aircloak.SyncRequester.response_event("run_task"), payload)
+    payload = SyncRequester.encode_response(request_ref, response)
+    GenSocketClient.push(transport, "main", SyncRequester.response_event("run_task"), payload)
+    {:ok, state}
+  end
+
+  # -------------------------------------------------------------------
+  # Handling sync responses from Air
+  # -------------------------------------------------------------------
+
+  def handle_sync_response("main", "task_results", status, _request, _request_meta, _transport, state) do
+    Logger.info("task results sent to air: #{inspect status}")
+    {:ok, state}
   end
 
 

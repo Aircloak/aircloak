@@ -45,16 +45,21 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
-  def handle_in(SyncRequester.response_event(command), encoded_payload, socket) do
+  def handle_in(SyncRequester.request_event(command), payload, socket) do
+    {request_ref, request} = SyncRequester.decode_request!(payload)
+    handle_sync_request(command, request, request_ref, socket)
+  end
+  def handle_in(SyncRequester.response_event(command), payload, socket) do
     case SyncRequester.decode_response!(
           SyncRequester.Backend.Etcd,
           request_etcd_path(socket),
-          encoded_payload
+          payload
         ) do
       {:matched, {request, request_meta, response}} ->
         handle_sync_response(command, response, request, request_meta, socket)
       {:not_matched, response} ->
         Logger.warn("unmatched response #{inspect response}")
+        {:noreply, socket}
     end
   end
   def handle_in(event, _payload, socket) do
@@ -87,7 +92,20 @@ defmodule Air.Socket.Cloak.MainChannel do
 
 
   # -------------------------------------------------------------------
-  # Handling cloak responses
+  # Handling sync requests from Cloak
+  # -------------------------------------------------------------------
+
+  defp handle_sync_request("task_results", task_results, request_ref, socket) do
+    Logger.info("cloak #{socket.assigns.cloak_id} sent task results #{inspect task_results}")
+    response = :ok
+    payload = SyncRequester.encode_response(request_ref, response)
+    push(socket, SyncRequester.response_event("task_results"), payload)
+    {:noreply, socket}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Handling sync responses from Cloak
   # -------------------------------------------------------------------
 
   defp handle_sync_response("run_task", status, task, _req_meta, socket) do
