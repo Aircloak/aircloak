@@ -59,7 +59,7 @@ defmodule Aircloak.SyncRequester do
   """
   defmacro request_event(command) do
     quote do
-      unquote("#{__MODULE__}.Request") <> unquote(command)
+      unquote("#{__MODULE__}.Request:") <> unquote(command)
     end
   end
 
@@ -117,7 +117,7 @@ defmodule Aircloak.SyncRequester do
   """
   defmacro response_event(command) do
     quote do
-      unquote("#{__MODULE__}.Response") <> unquote(command)
+      unquote("#{__MODULE__}.Response:") <> unquote(command)
     end
   end
 
