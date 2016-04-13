@@ -10,7 +10,6 @@ defmodule Cloak do
 
     case Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor) do
       {:ok, pid} ->
-        add_webmachine_routes()
         :cloak_metrics_adapter.start_metrics_server()
         {:ok, pid}
       error -> error
@@ -36,15 +35,6 @@ defmodule Cloak do
       worker(:queued_worker,
             [:task_coordinator, :task_coordinator, :cloak_conf.get_val(:queries, :concurrent_executions)],
             id: :task_coordinator_queue
-          ),
-      worker(:webmachine_mochiweb,
-            [[
-              ip: :cloak_conf.get_val(:api, :address),
-              port: :cloak_conf.get_val(:api, :port),
-              dispatch: []
-            ]],
-            function: :start,
-            id: :api_endpoint
           )
     ]
   end
@@ -60,15 +50,5 @@ defmodule Cloak do
         worker(Cloak.AirSocket, [])
       ]
     end
-  end
-
-  defp add_webmachine_routes do
-    [
-      # Interface for executing tasks
-      {['task', :action], :task_resource, []},
-      # Capabilities interface
-      {['capabilities'], :capabilities_resource, []}
-    ]
-    |> Enum.each(&:webmachine_router.add_route/1)
   end
 end

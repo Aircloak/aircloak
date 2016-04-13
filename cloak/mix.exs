@@ -34,8 +34,7 @@ defmodule Cloak.Mixfile do
   defp deps do
     [
       {:aircloak_common, path: "../common/elixir"},
-      {:webmachine, github: "basho/webmachine", tag: "1.10.6"},
-      {:ej, github: "seth/ej"},
+      {:mochiweb, "~> 2.12"},
       {:gproc, "~> 0.5.0"},
       {:exrm, "~> 1.0"},
       {:meck, github: "eproxus/meck", tag: "0.8.2", override: true},
@@ -52,7 +51,7 @@ defmodule Cloak.Mixfile do
 
   defp common_applications do
     [
-      :logger, :webmachine, :ej, :gproc, :aircloak_common, :postgrex, :poolboy,
+      :logger, :gproc, :aircloak_common, :postgrex, :poolboy,
       :phoenix_gen_socket_client, :websocket_client
     ]
   end

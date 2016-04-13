@@ -27,7 +27,6 @@
 ]).
 
 -include("user_data.hrl").
--include_lib("ej/include/ej.hrl").
 
 -export_type([
   deep_proplist/0
@@ -99,7 +98,7 @@ node_connection_descriptor(Node) ->
 %% @doc Transforms deep mochijson2 structure into a plain property list.
 %%      Essentially, this transforms `{struct, [...]}' into `[...]' in the
 %%      entire hierarchy.
--spec destructure_parsed_json(json_object()) -> deep_proplist().
+-spec destructure_parsed_json(mochijson2:json_object()) -> deep_proplist().
 destructure_parsed_json({struct, Properties}) -> destructure_parsed_json(Properties);
 destructure_parsed_json({Field, Value}) -> {Field, destructure_parsed_json(Value)};
 destructure_parsed_json(List) when is_list(List) -> [destructure_parsed_json(Element) || Element <- List];
