@@ -5,6 +5,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   use Phoenix.Channel
   require Logger
   require Air.SyncRequester
+  alias Air.SyncRequester
 
 
   # -------------------------------------------------------------------
@@ -44,10 +45,17 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
-  def handle_in(Air.SyncRequester.response_event(command), encoded_payload, socket) do
-    {request, request_meta, response} = Air.SyncRequester.decode_response!(
-        Air.Endpoint.sync_requester(), encoded_payload)
-    handle_sync_response(command, response, request, request_meta, socket)
+  def handle_in(SyncRequester.response_event(command), encoded_payload, socket) do
+    case SyncRequester.decode_response!(
+          SyncRequester.Backend.Ets,
+          Air.Endpoint.sync_requester(),
+          encoded_payload
+        ) do
+      {:matched, {request, request_meta, response}} ->
+        handle_sync_response(command, response, request, request_meta, socket)
+      {:not_matched, response} ->
+        Logger.warn("unmatched response #{inspect response}")
+    end
   end
   def handle_in(event, _payload, socket) do
     cloak_id = socket.assigns.cloak_id
@@ -71,8 +79,8 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   defp handle_call({:run_task, task}, from, socket) do
     Logger.info("starting task #{task.id} on #{socket.assigns.cloak_id}")
-    payload = Air.SyncRequester.encode_request(Air.Endpoint.sync_requester(), task)
-    push(socket, Air.SyncRequester.request_event("run_task"), payload)
+    payload = SyncRequester.encode_request(SyncRequester.Backend.Ets, Air.Endpoint.sync_requester(), task)
+    push(socket, SyncRequester.request_event("run_task"), payload)
     respond_to_internal_request(from, :ok)
     {:noreply, socket}
   end
