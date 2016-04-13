@@ -47,8 +47,13 @@ defmodule Air.TaskController do
   end
 
   def edit(conn, %{"id" => id}) do
-    with_task(conn, id, fn(task) ->
-          render(conn, "editor.html", task_json: task_as_json(task))
+    with_task(conn, id, fn(%{id: id, name: name, query: query}) ->
+          task_map = %{
+            id: id,
+            name: name,
+            query: query
+          }
+          render(conn, "editor.html", task_json: Poison.encode!(task_map))
         end)
   end
 
@@ -119,15 +124,5 @@ defmodule Air.TaskController do
       end
     rescue Ecto.NoResultsError -> error_fun.()
     end
-  end
-
-  defp task_as_json(%{id: id, name: name, query: query}) do
-    object = %{
-      id: id,
-      name: name,
-      query: query
-    }
-    json = Poison.encode!(object, escape: true)
-    {:safe, json}
   end
 end

@@ -1,4 +1,5 @@
 defmodule Air.Task do
+  @moduledoc "The task model."
   use Air.Web, :model
 
   alias Air.User
