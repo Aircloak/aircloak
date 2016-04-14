@@ -4,6 +4,8 @@ defmodule Air.Task do
 
   alias Air.User
 
+  @type t :: %__MODULE__{}
+
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "tasks" do
     field :name, :string
@@ -22,6 +24,7 @@ defmodule Air.Task do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
+  @spec changeset(t, %{binary => term} | %{atom => term} | :empty) :: Ecto.Changeset.t
   def changeset(model, params \\ :empty) do
     model
     |> cast(params, @required_fields, @optional_fields)
