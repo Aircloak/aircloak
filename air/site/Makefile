@@ -7,6 +7,7 @@ compile:
 
 deps:
 	mix deps.get
+	npm install
 
 clean:
 	mix clean --deps
