@@ -40,7 +40,7 @@ docs:
 	mix docs.all
 
 release:
-	MIX_ENV=prod mix do compile, site_release
+	NODE_ENV=production MIX_ENV=prod mix do compile, site_release
 
 lint:
 	MIX_ENV=dev mix lint
