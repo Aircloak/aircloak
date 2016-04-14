@@ -1,19 +1,20 @@
 div#task-view {
   display: table;
   position: absolute;
+  left: 0;
   top: 70px;
   bottom: 0;
   padding: 0;
-  margin: 0 0 0 -5px;
+  margin: 0;
 
   /* Firefox */
-  width: -moz-calc(100vw - 20px);
+  width: -moz-calc(100vw);
   /* WebKit */
-  width: -webkit-calc(100vw - 20px);
+  width: -webkit-calc(100vw);
   /* Opera */
-  width: -o-calc(100vw - 20px);
+  width: -o-calc(100vw);
   /* Standard */
-  width: calc(100vw - 20px);
+  width: calc(100vw);
 
   /* Firefox */
   height: -moz-calc(100vh - 70px);
@@ -30,7 +31,7 @@ div#task-status-bar {
   height: 40px;
   display: block;
   width: 100%;
-  padding: 0px;
+  padding: 0 10px 0 10px;
   font-size: 1.2em;
 }
 
