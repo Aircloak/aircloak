@@ -36,5 +36,7 @@ defmodule Air.Router do
 
     resources "/users", UserController
     resources "/organisations", OrganisationController
+    resources "/tasks", TaskController, except: [:show, :create]
+    post "/tasks/:id/run", TaskController, :run_task
   end
 end

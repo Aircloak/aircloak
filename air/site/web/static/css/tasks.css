@@ -1,0 +1,98 @@
+div#task-view {
+  display: table;
+  position: absolute;
+  left: 0;
+  top: 70px;
+  bottom: 0;
+  padding: 0;
+  margin: 0;
+
+  /* Firefox */
+  width: -moz-calc(100vw);
+  /* WebKit */
+  width: -webkit-calc(100vw);
+  /* Opera */
+  width: -o-calc(100vw);
+  /* Standard */
+  width: calc(100vw);
+
+  /* Firefox */
+  height: -moz-calc(100vh - 70px);
+  /* WebKit */
+  height: -webkit-calc(100vh - 70px);
+  /* Opera */
+  height: -o-calc(100vh - 70px);
+  /* Standard */
+  height: calc(100vh - 70px);
+}
+
+div#task-status-bar {
+  border-bottom: 1px solid gray;
+  height: 40px;
+  display: block;
+  width: 100%;
+  padding: 0 10px 0 10px;
+  font-size: 1.2em;
+}
+
+div.task-status-bar-component {
+  float: left;
+  display: table;
+  font-size: 1em;
+}
+
+div#task-status-bar input {
+  font-size: 22px;
+  overflow: visible;
+  border-style: none;
+  padding: 2px;
+
+  /* Firefox */
+  width: -moz-calc(50vw);
+  /* WebKit */
+  width: -webkit-calc(50vw);
+  /* Opera */
+  width: -o-calc(50vw);
+  /* Standard */
+  width: calc(50vw);
+}
+
+div#task-status-bar input:hover {
+  background-color: #f7fdce;
+}
+
+div#task-status-bar input:focus {
+  border-style: dotted;
+  border-width: 2px;
+  padding: 0px;
+  background-color: #f7fdce;
+}
+
+div#task-editor-container div.ReactCodeMirror {
+  width: 50%;
+  float: left;
+}
+
+div#task-editor-side-panel {
+  float: left;
+  padding: 0 10px 10px;
+}
+
+div.task-status-bar-button-group {
+  float: right;
+  display: table;
+  right: 0;
+  position: relative;
+  margin-left: 10px;
+}
+
+div.task-status-bar-button-group div.progress {
+  float: right;
+  display: block;
+  width: 150px;
+  margin: 7px 10px 10px;
+}
+div.task-status-bar-button-group button {
+  float: right;
+  display: block;
+}

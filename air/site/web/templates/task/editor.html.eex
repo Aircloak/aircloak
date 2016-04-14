@@ -1,0 +1,12 @@
+<!-- Task editor -->
+<div id="task-view" />
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var taskJson = $.parseJSON("<%= {:safe, escape_javascript(@task_json)} %>");
+      taskJson.CSRFToken = "<%= Plug.CSRFProtection.get_csrf_token() %>";
+      App.taskPage(taskJson);
+    }
+  };
+</script>
