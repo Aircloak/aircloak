@@ -16,7 +16,7 @@ class TaskEditor extends React.Component {
       // the task is running. This is used
       // throughout the interface to toggle
       // buttons and show progress bars
-      running_percent: -1,
+      runningPercent: -1,
     }
     // we keep a backup copy of the last saved
     // state of the task, in order to be able to
@@ -64,12 +64,12 @@ class TaskEditor extends React.Component {
     return (JSON.stringify(this.state.savedState) == JSON.stringify(this.queryData()));
   }
   handleRunTask() {
-    this.setState({running_percent: 0});
+    this.setState({runningPercent: 0});
     $.ajax(`/tasks/${this.props.id}/run`, {
           context: this,
           method: "POST",
           headers: {
-            "X-CSRF-TOKEN": this.props.csrf_token
+            "X-CSRF-TOKEN": this.props.CSRFToken
           },
           data: this.queryData(),
           success: (responseData, textStatus) => {
@@ -82,7 +82,7 @@ class TaskEditor extends React.Component {
           context: this,
           method: "PUT",
           headers: {
-            "X-CSRF-TOKEN": this.props.csrf_token
+            "X-CSRF-TOKEN": this.props.CSRFToken
           },
           data: this.queryData(),
           success: this.updateSavedState,
@@ -95,7 +95,7 @@ class TaskEditor extends React.Component {
     return (
       <div id="task-editor-container">
         <StatusLine
-            running_percent={this.state.running_percent}
+            runningPercent={this.state.runningPercent}
             name={this.state.name}
             isSavedCheck={this.isSaved}
             onNameChange={this.handleNameChange}
@@ -156,7 +156,7 @@ class SaveButton extends React.Component {
 }
 class RunButton extends React.Component {
   render() {
-    if (this.props.running_percent < 0) {
+    if (this.props.runningPercent < 0) {
       return (
         <div className="task-status-bar-button-group">
           <button type="button" className="btn btn-primary" onClick={this.props.onRunTaskClick}>
@@ -172,9 +172,9 @@ class RunButton extends React.Component {
           </button>
           <div className="progress">
             <div className="progress-bar" role="progressbar"
-                aria-valuenow="{this.props.running_percent}" aria-valuemin="0"
-                aria-valuemax="100" style={{width: this.props.running_percent + '%'}}>
-              {this.props.running_percent}%
+                aria-valuenow="{this.props.runningPercent}" aria-valuemin="0"
+                aria-valuemax="100" style={{width: this.props.runningPercent + '%'}}>
+              {this.props.runningPercent}%
             </div>
           </div>
         </div>
