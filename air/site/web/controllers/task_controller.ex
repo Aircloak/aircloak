@@ -74,8 +74,6 @@ defmodule Air.TaskController do
 
   def delete(conn, %{"id" => id}) do
     with_task(conn, id, fn(task) ->
-          # Here we use delete! (with a bang) because we expect
-          # it to always work (and if it does not, it will raise).
           Repo.delete!(task)
 
           conn
