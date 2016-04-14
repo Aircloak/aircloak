@@ -1,10 +1,10 @@
 div#task-view {
-	display: table;
-	position: absolute;
-	top: 70px;
-	bottom: 0;
-	padding: 0;
-	margin: 0 0 0 -5px;
+  display: table;
+  position: absolute;
+  top: 70px;
+  bottom: 0;
+  padding: 0;
+  margin: 0 0 0 -5px;
 
   /* Firefox */
   width: -moz-calc(100vw - 20px);
@@ -26,25 +26,25 @@ div#task-view {
 }
 
 div#task-status-bar {
-	border-bottom: 1px solid gray;
-	height: 40px;
-	display: block;
-	width: 100%;
-	padding: 0px;
-	font-size: 1.2em;
+  border-bottom: 1px solid gray;
+  height: 40px;
+  display: block;
+  width: 100%;
+  padding: 0px;
+  font-size: 1.2em;
 }
 
 div.task-status-bar-component {
-	float: left;
-	display: table;
-	font-size: 1em;
+  float: left;
+  display: table;
+  font-size: 1em;
 }
 
 div#task-status-bar input {
-	font-size: 22px;
-	overflow: visible;
-	border-style: none;
-	padding: 2px;
+  font-size: 22px;
+  overflow: visible;
+  border-style: none;
+  padding: 2px;
 
   /* Firefox */
   width: -moz-calc(50vw);
@@ -57,48 +57,48 @@ div#task-status-bar input {
 }
 
 div#task-status-bar input:hover {
-	background-color: #f7fdce;
+  background-color: #f7fdce;
 }
 
 div#task-status-bar input:focus {
-	border-style: dotted;
-	border-width: 2px;
-	padding: 0px;
-	background-color: #f7fdce;
+  border-style: dotted;
+  border-width: 2px;
+  padding: 0px;
+  background-color: #f7fdce;
 }
 
 div#task-editor-container div.ReactCodeMirror {
-	width: 50%;
-	float: left;
+  width: 50%;
+  float: left;
 }
 
 div#task-editor-side-panel {
-	float: left;
-	padding: 0 10px 10px;
+  float: left;
+  padding: 0 10px 10px;
 }
 
 div#task-run {
-	float: right;
-	display: table;
-	right: 0;
-	width: 300px;
-	position: relative;
+  float: right;
+  display: table;
+  right: 0;
+  width: 300px;
+  position: relative;
 }
 
 div#task-run div.progress {
-	float: right;
-	display: block;
-	width: 150px;
-	margin: 7px 10px 10px;
+  float: right;
+  display: block;
+  width: 150px;
+  margin: 7px 10px 10px;
 }
 div#task-run button {
-	float: right;
-	display: block;
+  float: right;
+  display: block;
 }
 
 div#task-status-bar div#save-state {
-	float: right;
-	padding: 5px 0 5px 5px;
-	width: 100px;
-	text-align: right;
+  float: right;
+  padding: 5px 0 5px 5px;
+  width: 100px;
+  text-align: right;
 }
