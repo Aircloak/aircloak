@@ -5,6 +5,7 @@ defmodule Air.TaskController do
   alias Air.Task
 
   plug :scrub_params, "task" when action in [:create, :update]
+  plug :load_task_and_validate_ownership when action in [:edit, :update, :delete, :run_task]
 
 
   # -------------------------------------------------------------------
@@ -47,39 +48,36 @@ defmodule Air.TaskController do
     end
   end
 
-  def edit(conn, %{"id" => id}) do
-    with_task(conn, id, fn(%{id: id, name: name, query: query}) ->
-          task_map = %{
-            id: id,
-            name: name,
-            query: query
-          }
-          render(conn, "editor.html", task_json: Poison.encode!(task_map))
-        end)
+  def edit(conn, _params) do
+    task = conn.assigns.task
+    task_map = %{
+      id: task.id,
+      name: task.name,
+      query: task.query
+    }
+    render(conn, "editor.html", task_json: Poison.encode!(task_map))
   end
 
-  def update(conn, %{"id" => id, "task" => task_params}) do
-    with_task(conn, id, fn(task) ->
-          changeset = Task.changeset(task, task_params)
-          Repo.update!(changeset)
-          json(conn, %{success: true})
-        end)
+  def update(conn, %{"task" => task_params}) do
+    changeset = Task.changeset(conn.assigns.task, task_params)
+    Repo.update!(changeset)
+    json(conn, %{success: true})
   end
 
-  def delete(conn, %{"id" => id}) do
-    with_task(conn, id, fn(task) ->
-          Repo.delete!(task)
-          conn
-          |> put_flash(:info, "Task deleted successfully.")
-          |> redirect(to: task_path(conn, :index))
-        end)
+  def delete(conn, _params) do
+    Repo.delete!(conn.assigns.task)
+    conn
+    |> put_flash(:info, "Task deleted successfully.")
+    |> redirect(to: task_path(conn, :index))
   end
 
-  def run_task(conn, %{"id" => id, "task" => _task_params}) do
-    with_task(conn, id, fn(_task) ->
-          # TODO: Schedule task running here...
-          json(conn, %{success: true})
-        end)
+  def run_task(conn, %{"task" => _task_params}) do
+    # TODO: Schedule task running here...
+    #       But make sure you run the task with the parameters
+    #       passed in with the request, rather than those of
+    #       the `conn.assigns.task` record. This is quite important
+    #       as the task might not have been saved.
+    json(conn, %{success: true})
   end
 
 
@@ -91,17 +89,19 @@ defmodule Air.TaskController do
     Guardian.Plug.current_resource(conn)
   end
 
-  defp with_task(conn, id, fun) do
+  defp load_task_and_validate_ownership(conn, _) do
+    %{"id" => id} = conn.params
     task = Repo.get!(Task, id)
-    if task.user_id == current_user(conn).id do
-      fun.(task)
-    else
+    if task.user_id != current_user(conn).id do
       # Raise a 404 if the user isn't the right one.
       # This way we avoid leaking information if someone
       # is trying to enumerate all tasks.
       conn
       |> put_status(:not_found)
       |> render(Air.ErrorView, "404.html")
+      |> halt
+    else
+      assign(conn, :task, task)
     end
   end
 end
