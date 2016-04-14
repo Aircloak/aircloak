@@ -75,7 +75,7 @@ defmodule Air.TaskController do
         end)
   end
 
-  def run_task(conn, %{"id" => id}) do
+  def run_task(conn, %{"id" => id, "task" => _task_params}) do
     with_task(conn, id, fn(_task) ->
           # TODO: Schedule task running here...
           json(conn, %{success: true})

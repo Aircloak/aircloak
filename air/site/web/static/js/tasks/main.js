@@ -71,6 +71,7 @@ class TaskEditor extends React.Component {
           headers: {
             "X-CSRF-TOKEN": this.props.csrf_token
           },
+          data: this.queryData(),
           success: (responseData, textStatus) => {
             console.log("Task run scheduled...");
           }
