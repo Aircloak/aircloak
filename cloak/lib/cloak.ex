@@ -5,13 +5,11 @@ defmodule Cloak do
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
-    :cluster_cron.init()
     Cloak.Logger.ReportHandler.install()
     :ok = :cloak_alarm_handler.install()
 
     case Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor) do
       {:ok, pid} ->
-        add_webmachine_routes()
         :cloak_metrics_adapter.start_metrics_server()
         {:ok, pid}
       error -> error
@@ -32,21 +30,11 @@ defmodule Cloak do
     [
       supervisor(Cloak.DataSource, []),
       worker(:progress_handler, []),
-      supervisor(:global_service_sup, []),
       supervisor(:result_sender_sup, []),
       supervisor(:job_runner_sup, []),
       worker(:queued_worker,
             [:task_coordinator, :task_coordinator, :cloak_conf.get_val(:queries, :concurrent_executions)],
             id: :task_coordinator_queue
-          ),
-      worker(:webmachine_mochiweb,
-            [[
-              ip: :cloak_conf.get_val(:api, :address),
-              port: :cloak_conf.get_val(:api, :port),
-              dispatch: []
-            ]],
-            function: :start,
-            id: :api_endpoint
           )
     ]
   end
@@ -59,20 +47,9 @@ defmodule Cloak do
       [
         supervisor(:cloak_metrics_sup, []),
         worker(:resource_monitor, []),
-        worker(:cron_manager, []),
         worker(Aircloak.SyncRequester.Backend.Ets, [Cloak.AirSocket]),
         worker(Cloak.AirSocket, [])
       ]
     end
-  end
-
-  defp add_webmachine_routes do
-    [
-      # Interface for executing tasks
-      {['task', :action], :task_resource, []},
-      # Capabilities interface
-      {['capabilities'], :capabilities_resource, []}
-    ]
-    |> Enum.each(&:webmachine_router.add_route/1)
   end
 end
