@@ -78,28 +78,21 @@ div#task-editor-side-panel {
   padding: 0 10px 10px;
 }
 
-div#task-run {
+div.task-status-bar-button-group {
   float: right;
   display: table;
   right: 0;
-  width: 300px;
   position: relative;
+  margin-left: 10px;
 }
 
-div#task-run div.progress {
+div.task-status-bar-button-group div.progress {
   float: right;
   display: block;
   width: 150px;
   margin: 7px 10px 10px;
 }
-div#task-run button {
+div.task-status-bar-button-group button {
   float: right;
   display: block;
-}
-
-div#task-status-bar div#save-state {
-  float: right;
-  padding: 5px 0 5px 5px;
-  width: 100px;
-  text-align: right;
 }
