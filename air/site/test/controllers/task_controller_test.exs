@@ -7,6 +7,7 @@ defmodule Air.TaskControllerTest do
   alias Air.Task
   @valid_attrs %{name: "name", query: "query content"}
   @invalid_attrs %{name: ""}
+  @query_data_params %{task: %{query: "Query code", name: "Query name"}}
 
   defp create_user do
     org = TestRepoHelper.create_organisation!()
@@ -81,30 +82,28 @@ defmodule Air.TaskControllerTest do
     refute Repo.get(Task, task.id)
   end
 
-  test "running task of other user returns 404 json" do
+  test "running task of other user returns a 404" do
     user = create_user()
     other_user = create_user()
     other_user_task = create_task(other_user)
 
-    response_json = login(user) |> post("/tasks/#{other_user_task.id}/run") |> response(200)
-    %{"success" => status, "description" => description} = Poison.decode!(response_json)
-    refute status
-    assert description == "Task not found"
+    response_html = login(user) |> post("/tasks/#{other_user_task.id}/run", @query_data_params) |> response(404)
+    assert response_html =~ "Page not found"
   end
 
   test "task that doesn't exist returns 404 json" do
     user = create_user()
-
-    response_json = login(user) |> post("/tasks/b9e1f65f-572e-4f40-be87-1ced8ec5a2b1/run") |> response(200)
-    %{"success" => status, "description" => description} = Poison.decode!(response_json)
-    refute status
-    assert description == "Task not found"
+    update_sequence = fn() ->
+      login(user)
+      |> post("/tasks/b9e1f65f-572e-4f40-be87-1ced8ec5a2b1/run", @query_data_params)
+    end
+    assert_raise(Ecto.NoResultsError, update_sequence)
   end
 
   test "can run task owned by the user" do
     user = create_user()
     task = create_task(user)
-    response_json = login(user) |> post("/tasks/#{task.id}/run") |> response(200)
+    response_json = login(user) |> post("/tasks/#{task.id}/run", @query_data_params) |> response(200)
     %{"success" => status} = Poison.decode!(response_json)
     assert status
   end
