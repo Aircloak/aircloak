@@ -33,7 +33,7 @@ rollback:
 	mix rollback
 
 dialyze:
-	mix dialyze
+	mix dialyze_retry
 
 docs:
 	mix docs.all

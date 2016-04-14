@@ -4,7 +4,8 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  require Air.SyncRequester
+  require Aircloak.SyncRequester
+  alias Aircloak.SyncRequester
 
 
   # -------------------------------------------------------------------
@@ -44,10 +45,22 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
-  def handle_in(Air.SyncRequester.response_event(command), encoded_payload, socket) do
-    {request, request_meta, response} = Air.SyncRequester.decode_response!(
-        Air.Endpoint.sync_requester(), encoded_payload)
-    handle_sync_response(command, response, request, request_meta, socket)
+  def handle_in(SyncRequester.request_event(command), payload, socket) do
+    {request_ref, request} = SyncRequester.decode_request!(payload)
+    handle_sync_request(command, request, request_ref, socket)
+  end
+  def handle_in(SyncRequester.response_event(command), payload, socket) do
+    case SyncRequester.decode_response!(
+          SyncRequester.Backend.Etcd,
+          request_etcd_path(socket),
+          payload
+        ) do
+      {:matched, {request, request_meta, response}} ->
+        handle_sync_response(command, response, request, request_meta, socket)
+      {:not_matched, response} ->
+        Logger.warn("unmatched response #{inspect response}")
+        {:noreply, socket}
+    end
   end
   def handle_in(event, _payload, socket) do
     cloak_id = socket.assigns.cloak_id
@@ -71,15 +84,28 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   defp handle_call({:run_task, task}, from, socket) do
     Logger.info("starting task #{task.id} on #{socket.assigns.cloak_id}")
-    payload = Air.SyncRequester.encode_request(Air.Endpoint.sync_requester(), task)
-    push(socket, Air.SyncRequester.request_event("run_task"), payload)
+    payload = SyncRequester.encode_request(SyncRequester.Backend.Etcd, request_etcd_path(socket), task)
+    push(socket, SyncRequester.request_event("run_task"), payload)
     respond_to_internal_request(from, :ok)
     {:noreply, socket}
   end
 
 
   # -------------------------------------------------------------------
-  # Handling cloak responses
+  # Handling sync requests from Cloak
+  # -------------------------------------------------------------------
+
+  defp handle_sync_request("task_results", task_results, request_ref, socket) do
+    Logger.info("cloak #{socket.assigns.cloak_id} sent task results #{inspect task_results}")
+    response = :ok
+    payload = SyncRequester.encode_response(request_ref, response)
+    push(socket, SyncRequester.response_event("task_results"), payload)
+    {:noreply, socket}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Handling sync responses from Cloak
   # -------------------------------------------------------------------
 
   defp handle_sync_response("run_task", status, task, _req_meta, socket) do
@@ -123,11 +149,16 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   defp registration_key(cloak_id) do
-    # base16 is used because the supported character set in the key is limited
-    "/settings/air/cloaks/#{Base.encode16(cloak_id)}/main"
+    # base32 is used because the supported character set in the etcd key is limited
+    "/settings/air/cloaks/#{Base.encode32(cloak_id)}/main"
   end
 
   defp registration_value do
     self() |> :erlang.term_to_binary() |> Base.encode64()
+  end
+
+  defp request_etcd_path(socket) do
+    # base32 is used because the supported character set in the etcd key is limited
+    "/air/sync_requests/#{Base.encode32(socket.assigns.cloak_id)}"
   end
 end
