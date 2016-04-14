@@ -13,8 +13,8 @@ defmodule Air.Task do
     timestamps
   end
 
-  @required_fields ~w(name query)
-  @optional_fields ~w()
+  @required_fields ~w()
+  @optional_fields ~w(name query)
 
   @doc """
   Creates a changeset based on the `model` and `params`.
@@ -25,6 +25,13 @@ defmodule Air.Task do
   def changeset(model, params \\ :empty) do
     model
     |> cast(params, @required_fields, @optional_fields)
-    |> validate_length(:name, min: 1)
+  end
+
+  def display_name(task) do
+    if task.name == nil do
+      "Unnamed task"
+    else
+      task.name
+    end
   end
 end

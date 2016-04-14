@@ -6,13 +6,8 @@ defmodule Air.TaskTest do
   @valid_attrs %{id: "7488a646-e31f-11e4-aace-600308960662", name: "some content", query: "some content"}
   @invalid_attrs %{}
 
-  test "changeset with valid attributes" do
-    changeset = Task.changeset(%Task{}, @valid_attrs)
-    assert changeset.valid?
-  end
-
-  test "changeset with invalid attributes" do
-    changeset = Task.changeset(%Task{}, @invalid_attrs)
-    refute changeset.valid?
+  test "has display name if no name is set" do
+    assert Task.display_name(%Task{}) == "Unnamed task"
+    assert Task.display_name(%Task{name: "name"}) == "name"
   end
 end
