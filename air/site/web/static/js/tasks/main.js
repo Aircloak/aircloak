@@ -2,6 +2,9 @@ import React from "react"
 import ReactDOM from "react-dom"
 import Codemirror from "react-codemirror"
 
+// Imported components
+import { SidePane } from "./sidepane"
+
 class TaskEditor extends React.Component {
   constructor(props) {
     super();
@@ -17,6 +20,16 @@ class TaskEditor extends React.Component {
       // throughout the interface to toggle
       // buttons and show progress bars
       runningPercent: -1,
+
+      result: {
+        data: [
+          {label: "Age", value: "10-15", count: 10},
+          {label: "Age", value: "15-20", count: 100},
+          {label: "Age", value: "20-25", count: 16}
+        ],
+        // Assumed to be an ISO 8601 encoded timestamp
+        created_at: "1460674580"
+      }
     }
     // we keep a backup copy of the last saved
     // state of the task, in order to be able to
@@ -102,7 +115,7 @@ class TaskEditor extends React.Component {
             onTaskSaveClick={this.saveTask}
             onRunTaskClick={this.handleRunTask} />
         <CodeEditor query={this.state.query} onChange={this.handleCodeChange} />
-        <SidePane />
+        <SidePane result={this.state.result} />
       </div>
     );
   }
@@ -180,21 +193,6 @@ class RunButton extends React.Component {
         </div>
       );
     }
-  }
-}
-
-class SidePane extends React.Component {
-  render() {
-    return (
-      <div id="task-editor-side-panel">
-        <h1>Results and meta data entry</h1>
-        <p>
-          This side panel will contain two panes.
-          One allowing meta data to be edited,
-          one showing results.
-        </p>
-      </div>
-    );
   }
 }
 
