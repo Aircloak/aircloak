@@ -61,21 +61,14 @@ defmodule Air.TaskController do
   def update(conn, %{"id" => id, "task" => task_params}) do
     with_task(conn, id, fn(task) ->
           changeset = Task.changeset(task, task_params)
-          case Repo.update(changeset) do
-            {:ok, _task} ->
-              conn
-              |> put_flash(:info, "Task updated successfully.")
-              |> json(%{success: true})
-            {:error, changeset} ->
-              render(conn, "edit.html", task: task, changeset: changeset)
-          end
+          Repo.update!(changeset)
+          json(conn, %{success: true})
         end)
   end
 
   def delete(conn, %{"id" => id}) do
     with_task(conn, id, fn(task) ->
           Repo.delete!(task)
-
           conn
           |> put_flash(:info, "Task deleted successfully.")
           |> redirect(to: task_path(conn, :index))
