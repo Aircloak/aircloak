@@ -6,6 +6,7 @@ defmodule Air.TaskController do
 
   plug :scrub_params, "task" when action in [:create, :update]
 
+
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
   # -------------------------------------------------------------------
