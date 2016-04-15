@@ -25,7 +25,7 @@
 
 %% API
 -export([
-  parse/3
+  parse/2
 ]).
 
 -include("cloak.hrl").
@@ -36,8 +36,8 @@
 %% -------------------------------------------------------------------
 
 %% @doc Converts the input json to the task specification.
--spec parse(task_id(), string(), binary()) -> #task{}.
-parse(TaskId, SourceIP, Json) ->
+-spec parse(task_id(), binary()) -> #task{}.
+parse(TaskId, Json) ->
   Proplist = [map_top_level_value(Property) ||
     Property <- cloak_util:destructure_parsed_json(mochijson2:decode(Json))
   ],
@@ -50,7 +50,6 @@ parse(TaskId, SourceIP, Json) ->
     report_interval=proplists:get_value(report_interval, Proplist),
     user_expire_interval=proplists:get_value(user_expire_interval, Proplist),
     period=proplists:get_value(period, Proplist),
-    source_ip=SourceIP,
     timestamp=cloak_util:timestamp_to_epoch(os:timestamp())
   }.
 

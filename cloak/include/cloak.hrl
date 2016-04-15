@@ -48,7 +48,6 @@
   prefetch :: prefetch_spec(),
   code :: binary(),
   libraries = [] :: [{binary(), binary()}],
-  source_ip :: string(),
   timestamp :: integer() | undefined,
   return_token :: return_token(),
   user_expire_interval :: undefined | pos_integer(),
