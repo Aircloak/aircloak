@@ -25,7 +25,7 @@
 
 %% API
 -export([
-  parse/2
+  parse/1
 ]).
 
 -include("cloak.hrl").
@@ -36,13 +36,13 @@
 %% -------------------------------------------------------------------
 
 %% @doc Converts the input json to the task specification.
--spec parse(task_id(), binary()) -> #task{}.
-parse(TaskId, Json) ->
+-spec parse(binary()) -> #task{}.
+parse(Json) ->
   Proplist = [map_top_level_value(Property) ||
     Property <- cloak_util:destructure_parsed_json(mochijson2:decode(Json))
   ],
   #task{
-    task_id=TaskId,
+    task_id=proplists:get_value(task_id, Proplist, batch),
     type=proplists:get_value(type, Proplist, batch),
     prefetch=proplists:get_value(prefetch, Proplist),
     code=strip_comments(proplists:get_value(code, proplists:get_value(post_processing, Proplist))),
@@ -58,6 +58,7 @@ parse(TaskId, Json) ->
 %% Internal functions
 %% -------------------------------------------------------------------
 
+map_top_level_value({<<"task_id">>, TaskId}) -> {task_id, TaskId};
 map_top_level_value({<<"type">>, <<"batch">>}) -> {type, batch};
 map_top_level_value({<<"type">>, <<"streaming">>}) -> {type, streaming};
 map_top_level_value({<<"type">>, <<"periodic">>}) -> {type, periodic};
