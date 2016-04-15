@@ -143,7 +143,7 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   defp handle_call({:send_task_results, task_results}, from, transport, state) do
-    Logger.info("sending task results")
+    Logger.info("sending task results to Air")
     payload = SyncRequester.encode_request(SyncRequester.Backend.Ets, __MODULE__, task_results)
     GenSocketClient.push(transport, "main", SyncRequester.request_event("task_results"), payload)
     respond_to_internal_request(from, :ok)
@@ -157,11 +157,12 @@ defmodule Cloak.AirSocket do
 
   defp handle_sync_request("main", "run_task", task, request_ref, transport, state) do
     Logger.info("starting task #{task.id}")
-    response = :started
+    response = Cloak.RequestHandler.start_task(task)
     payload = SyncRequester.encode_response(request_ref, response)
     GenSocketClient.push(transport, "main", SyncRequester.response_event("run_task"), payload)
     {:ok, state}
   end
+
 
   # -------------------------------------------------------------------
   # Handling sync responses from Air

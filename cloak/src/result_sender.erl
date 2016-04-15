@@ -26,7 +26,7 @@
 
 -record(state, {
   task_id :: task_id(),
-  return_token :: return_token(),
+  result_destination :: result_destination(),
   raw_results = [],
   reply
 }).
@@ -39,11 +39,11 @@
 %% @doc Takes a set of noised results, and sends
 %%      them to the URL specified in the query as the
 %%      result endpoint.
--spec send_results(task_id(), return_token(), [#bucket_report{}]) -> pid().
-send_results(TaskId, ReturnToken, Results) ->
+-spec send_results(task_id(), result_destination(), [#bucket_report{}]) -> pid().
+send_results(TaskId, ResultDestination, Results) ->
   Args = [
     {task_id, TaskId},
-    {return_token, ReturnToken},
+    {result_destination, ResultDestination},
     {results, Results}
   ],
   {ok, Pid} = supervisor:start_child(result_sender_sup, [Args]),
@@ -59,20 +59,19 @@ start_link(Args) ->
 
 init(Args) ->
   State = #state{
-    task_id=proplists:get_value(task_id, Args),
-    return_token=proplists:get_value(return_token, Args),
+    task_id = proplists:get_value(task_id, Args),
+    result_destination = proplists:get_value(result_destination, Args),
     raw_results = proplists:get_value(results, Args)
   },
   {ok, create_aggregate_results, State, 0}.
 
-create_aggregate_results(timeout,
-    #state{raw_results=RawResults, task_id=TaskId, return_token={ResultFormat, _}}=S0) ->
-  Reply = convert_results(ResultFormat, TaskId, RawResults),
-  S1 = S0#state{raw_results=[], reply=Reply},
+create_aggregate_results(timeout, #state{raw_results = RawResults, task_id = TaskId} = S0) ->
+  Reply = convert_results(TaskId, RawResults),
+  S1 = S0#state{raw_results = [], reply = Reply},
   {next_state, send_results_state, S1, 0}.
 
-send_results_state(timeout, #state{reply=Reply, return_token={ResultFormat, ResultDestination}}=State) ->
-  send_reply(ResultFormat, ResultDestination, Reply),
+send_results_state(timeout, #state{reply = Reply, result_destination = ResultDestination} = State) ->
+  send_reply(ResultDestination, Reply),
   {stop, normal, State}.
 
 handle_event(_Event, StateName, State) ->
@@ -96,7 +95,7 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %% Internal functions
 %% -------------------------------------------------------------------
 
-convert_results(json, TaskId, Results) ->
+convert_results(TaskId, Results) ->
   Buckets = [convert_bucket_to_json(Bucket) ||
       #bucket_report{label=#bucket_label{label=Label}}=Bucket <- Results,
       Label =/= ?JOB_EXECUTION_ERROR],
@@ -114,15 +113,13 @@ convert_bucket_to_json(#bucket_report{label=#bucket_label{label=Label, value=Val
   [{label, iolist_to_binary(Label)}] ++ [{value, iolist_to_binary(V)} || V <- [Value], V /= undefined] ++
       [{count, Count}].
 
-send_reply(json, Destination, Reply) ->
-  send_reply("application/json", Destination, Reply);
-send_reply(protobuf, Destination, Reply) ->
-  send_reply("application/x-protobuf", Destination, Reply);
-send_reply(Format, {url, AuthToken, Url}, Reply) when is_list(Format) ->
-  ?INFO("Sending reply for query with auth token: ~p", [AuthToken]),
+send_reply(air_socket, Reply) ->
+  'Elixir.Cloak.AirSocket':send_task_results(iolist_to_binary(Reply));
+send_reply({url, Url}, Reply) ->
+  Format = "application/json",
   CompressedReply = zlib:gzip(Reply),
-  Headers = [{"QueryAuthToken", AuthToken}, {"Content-Encoding", "gzip"}],
-  Request = {Url, Headers, Format, CompressedReply},
+  Headers = [{"Content-Encoding", "gzip"}],
+  Request = {binary_to_list(Url), Headers, Format, CompressedReply},
   ?INFO("Sending results to ~p", [Url]),
   case httpc:request(post, Request, [], []) of
     {ok, _Result} ->
@@ -130,7 +127,7 @@ send_reply(Format, {url, AuthToken, Url}, Reply) when is_list(Format) ->
     {error, Reason} ->
       ?ERROR("Failed to return results. Reason: ~p", [Reason])
   end;
-send_reply(_Format, {process, Pid}, Reply) ->
+send_reply({process, Pid}, Reply) ->
   Pid ! {reply, Reply}.
 
 
@@ -168,6 +165,6 @@ convert_results_test() ->
     {buckets, JSONBuckets},
     {exceptions, JSONExceptions}
   ]),
-  ?assertEqual(JSONResult, convert_results(json, TaskId, Results)).
+  ?assertEqual(JSONResult, convert_results(TaskId, Results)).
 
 -endif.

@@ -49,6 +49,7 @@ parse(Json) ->
     code = strip_comments(proplists:get_value(code, proplists:get_value(post_processing, Proplist))),
     libraries = proplists:get_value(libraries, proplists:get_value(post_processing, Proplist), []),
     report_interval = proplists:get_value(report_interval, Proplist),
+    result_destination = proplists:get_value(result_destination, Proplist, air_socket),
     user_expire_interval = proplists:get_value(user_expire_interval, Proplist),
     period = proplists:get_value(period, Proplist),
     timestamp = cloak_util:timestamp_to_epoch(os:timestamp())
@@ -60,6 +61,7 @@ parse(Json) ->
 %% -------------------------------------------------------------------
 
 map_top_level_value({<<"task_id">>, TaskId}) -> {task_id, TaskId};
+map_top_level_value({<<"return_url">>, Url}) -> {result_destination, {url, Url}};
 map_top_level_value({<<"type">>, <<"batch">>}) -> {type, batch};
 map_top_level_value({<<"type">>, <<"streaming">>}) -> {type, streaming};
 map_top_level_value({<<"type">>, <<"periodic">>}) -> {type, periodic};

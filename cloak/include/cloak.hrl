@@ -49,7 +49,7 @@
   code :: binary(),
   libraries = [] :: [{binary(), binary()}],
   timestamp :: integer() | undefined,
-  return_token :: return_token(),
+  result_destination :: result_destination(),
   user_expire_interval :: undefined | pos_integer(),
   progress_handle :: pos_integer()
 }).
@@ -119,14 +119,7 @@
   constant_noise_sd :: float()
 }).
 
--type do_send() :: false | send_result().
-
--type send_result() :: {true, return_token(), #anonymizer_params{}}.
--type return_token() :: {result_format(), result_destination()}.
--type result_format() :: protobuf | json.
--type result_destination() :: {url, send_auth_token(), send_return_url()} | {process, pid()}.
--type send_auth_token() :: string().
--type send_return_url() :: string().
+-type result_destination() :: {url, binary()} | {process, pid()} | air_socket.
 
 -type sql_date() :: {2014..3000, 1..12, 1..31}.
 -type sql_time() :: {0..24, 0..59, 0..59 | float()}.

@@ -240,7 +240,7 @@ callback_run_batch_task(Prefetch) ->
           "  end\n",
           "end\n"
         ]),
-    return_token = {json, {process, self()}}
+    result_destination = {process, self()}
   },
   gproc:reg({p, l, {task_listener, Task#task.task_id}}),
   try

@@ -26,7 +26,7 @@ test_task(Code) ->
     prefetch = [[{table, db_test:table_path(<<"heights">>)}]],
     code = Code,
     libraries = [],
-    return_token = {json, {process, self()}}
+    result_destination = {process, self()}
   }.
 
 task_test_() ->
