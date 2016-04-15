@@ -67,6 +67,9 @@ defmodule Air.Socket.Cloak.MainChannel do
     pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
     {:noreply, assign(socket, :pending_calls, pending_calls)}
   end
+  def handle_in("cloak_call", request, socket) do
+    handle_cloak_call(request["event"], request["payload"], request["request_id"], socket)
+  end
   def handle_in(event, _payload, socket) do
     cloak_id = socket.assigns.cloak_id
     Logger.warn("unknown event #{event} from '#{cloak_id}'")
@@ -98,8 +101,24 @@ defmodule Air.Socket.Cloak.MainChannel do
 
 
   # -------------------------------------------------------------------
+  # Handling cloak sync calls
+  # -------------------------------------------------------------------
+
+  defp handle_cloak_call("task_results", task_results, request_id, socket) do
+    # TODO: do something with task results
+    Logger.info("received task results #{inspect task_results}")
+    respond_to_cloak(socket, request_id, "ok")
+    {:noreply, socket}
+  end
+
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp respond_to_cloak(socket, request_id, response) do
+    push(socket, "call_response", %{request_id: request_id, response: response})
+  end
 
   defp respond_to_internal_request({client_pid, mref}, response) do
     send(client_pid, {mref, response})

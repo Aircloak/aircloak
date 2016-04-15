@@ -8,8 +8,6 @@ defmodule Cloak.AirSocket do
   configuration file.
   """
   require Logger
-  require Aircloak.SyncRequester
-  alias Aircloak.SyncRequester
   alias Phoenix.Channels.GenSocketClient
   @behaviour GenSocketClient
 
@@ -35,10 +33,19 @@ defmodule Cloak.AirSocket do
         )
   end
 
-  @doc "Sends task results to the Air."
-  @spec send_task_results(any) :: :ok
-  def send_task_results(task_results),
-    do: call({:send_task_results, task_results})
+  @doc """
+  Sends task results to the Air.
+
+  The function returns when the Air responds. If the timeout occurs, it is
+  still possible that the Air has received the request.
+  """
+  @spec send_task_results(any) :: :ok | {:error, any}
+  def send_task_results(task_results) do
+    case call("task_results", task_results, :timer.seconds(5)) do
+      "ok" -> :ok
+      other -> {:error, other}
+    end
+  end
 
 
   # -------------------------------------------------------------------
@@ -51,7 +58,7 @@ defmodule Cloak.AirSocket do
       cloak_name: cloak_name()
     }
     url = "#{:cloak_conf.get_val(:air, :socket_url)}?#{URI.encode_query(params)}"
-    {:connect, url, %{}}
+    {:connect, url, %{pending_calls: %{}}}
   end
 
   @doc false
@@ -91,6 +98,17 @@ defmodule Cloak.AirSocket do
   def handle_message("main", "air_call", request, transport, state) do
     handle_air_call(request["event"], request["payload"], {transport, request["request_id"]}, state)
   end
+  def handle_message("main", "call_response", payload, _transport, state) do
+    request_id = payload["request_id"]
+    case Map.fetch(state.pending_calls, request_id) do
+      {:ok, request_data} ->
+        Process.cancel_timer(request_data.timeout_ref)
+        respond_to_internal_request(request_data.from, payload["response"])
+      :error ->
+        Logger.warn("unknown sync call response: #{inspect payload}")
+    end
+    {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
+  end
   def handle_message(topic, event, payload, _transport, state) do
     Logger.warn("unhandled message on topic #{topic}: #{event} #{inspect payload}")
     {:ok, state}
@@ -116,8 +134,19 @@ defmodule Cloak.AirSocket do
     end
     {:ok, state}
   end
-  def handle_info({{__MODULE__, :call}, from, message}, transport, state),
-    do: handle_call(message, from, transport, state)
+  def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, transport, state) do
+    request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
+    GenSocketClient.push(transport, "main", "cloak_call",
+        %{request_id: request_id, event: event, payload: payload})
+    timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
+    {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
+  end
+  def handle_info({:call_timeout, request_id}, _transport, state) do
+    # We're just removing entries here without responding. It is the responsibility of the
+    # client code to give up at some point.
+    Logger.warn("#{request_id} sync call timeout")
+    {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
+  end
   def handle_info(message, _transport, state) do
     Logger.warn("unhandled message #{inspect message}")
     {:ok, state}
@@ -136,29 +165,6 @@ defmodule Cloak.AirSocket do
 
 
   # -------------------------------------------------------------------
-  # Handling internal requests
-  # -------------------------------------------------------------------
-
-  defp handle_call({:send_task_results, task_results}, from, transport, state) do
-    Logger.info("sending task results")
-    payload = SyncRequester.encode_request(SyncRequester.Backend.Ets, __MODULE__, task_results)
-    GenSocketClient.push(transport, "main", SyncRequester.request_event("task_results"), payload)
-    respond_to_internal_request(from, :ok)
-    {:ok, state}
-  end
-
-
-  # -------------------------------------------------------------------
-  # Handling sync responses from Air
-  # -------------------------------------------------------------------
-
-  def handle_sync_response("main", "task_results", status, _request, _request_meta, _transport, state) do
-    Logger.info("task results sent to air: #{inspect status}")
-    {:ok, state}
-  end
-
-
-  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
@@ -170,9 +176,9 @@ defmodule Cloak.AirSocket do
     send(client_pid, {mref, response})
   end
 
-  defp call(message, timeout \\ :timer.seconds(5)) do
+  defp call(event, payload, timeout) do
     mref = Process.monitor(__MODULE__)
-    send(__MODULE__, {{__MODULE__, :call}, {self(), mref}, message})
+    send(__MODULE__, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
     receive do
       {^mref, response} ->
         Process.demonitor(mref, [:flush])
