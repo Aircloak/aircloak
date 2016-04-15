@@ -3,6 +3,7 @@
 %%      Example of a json describing the task:
 %%        ```
 %%          {
+%%            "task_id": "1234",
 %%            "prefetch": [
 %%              {
 %%                "table": "test1",
@@ -42,7 +43,7 @@ parse(Json) ->
     Property <- cloak_util:destructure_parsed_json(mochijson2:decode(Json))
   ],
   #task{
-    task_id = proplists:get_value(task_id, Proplist, batch),
+    task_id = proplists:get_value(task_id, Proplist),
     type = proplists:get_value(type, Proplist, batch),
     prefetch = proplists:get_value(prefetch, Proplist),
     code = strip_comments(proplists:get_value(code, proplists:get_value(post_processing, Proplist))),
