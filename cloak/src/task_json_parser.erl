@@ -42,15 +42,15 @@ parse(Json) ->
     Property <- cloak_util:destructure_parsed_json(mochijson2:decode(Json))
   ],
   #task{
-    task_id=proplists:get_value(task_id, Proplist, batch),
-    type=proplists:get_value(type, Proplist, batch),
-    prefetch=proplists:get_value(prefetch, Proplist),
-    code=strip_comments(proplists:get_value(code, proplists:get_value(post_processing, Proplist))),
-    libraries=proplists:get_value(libraries, proplists:get_value(post_processing, Proplist), []),
-    report_interval=proplists:get_value(report_interval, Proplist),
-    user_expire_interval=proplists:get_value(user_expire_interval, Proplist),
-    period=proplists:get_value(period, Proplist),
-    timestamp=cloak_util:timestamp_to_epoch(os:timestamp())
+    task_id = proplists:get_value(task_id, Proplist, batch),
+    type = proplists:get_value(type, Proplist, batch),
+    prefetch = proplists:get_value(prefetch, Proplist),
+    code = strip_comments(proplists:get_value(code, proplists:get_value(post_processing, Proplist))),
+    libraries = proplists:get_value(libraries, proplists:get_value(post_processing, Proplist), []),
+    report_interval = proplists:get_value(report_interval, Proplist),
+    user_expire_interval = proplists:get_value(user_expire_interval, Proplist),
+    period = proplists:get_value(period, Proplist),
+    timestamp = cloak_util:timestamp_to_epoch(os:timestamp())
   }.
 
 
