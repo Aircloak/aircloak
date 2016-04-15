@@ -5,6 +5,7 @@ import { ResultSocket } from "./results-socket"
 
 // Imported components
 import { SidePane } from "./sidepane"
+import { StatusLine } from "./status-line"
 
 class TaskEditor extends React.Component {
   constructor(props) {
@@ -51,41 +52,36 @@ class TaskEditor extends React.Component {
         result: this.updateTaskResult
       });
   }
+
+
+  // ----------------------------------------------------------------
+  // Event handlers
+  // ----------------------------------------------------------------
+
+  handleNameChange(name) {
+    this.setState({name: name});
+  }
+
+  handleCodeChange(query) {
+    this.setState({query: query});
+  }
+
   updateTaskRunningProgress(progress) {
     this.setState({runningPercent: progress});
   }
+
   updateTaskResult(result) {
     // We assume that the task is now complete, since we received a
     // result, and therefore update the progress too
     this.updateTaskRunningProgress(-1);
     this.setState({result: result});
   }
-  checkForUnsavedChanges() {
-    if (!this.isSaved()) {
-      return "Your task has unsaved changes!";
-    }
-  }
-  handleNameChange(name) {
-    this.setState({name: name});
-  }
-  handleCodeChange(query) {
-    this.setState({query: query});
-  }
-  updateSavedState() {
-    this.setState({savedState: this.queryData()});
-  };
-  queryData() {
-    return {
-      task: {
-        query: this.state.query,
-        name: this.state.name
-      }
-    };
-  }
-  isSaved() {
-    // Hack to get object comparison in order to see whether or not the object is changed
-    return (JSON.stringify(this.state.savedState) == JSON.stringify(this.queryData()));
-  }
+
+
+  // ----------------------------------------------------------------
+  // Communication with air
+  // ----------------------------------------------------------------
+
   handleRunTask() {
     this.setState({runningPercent: 0});
     $.ajax(`/tasks/${this.props.id}/run`, {
@@ -100,6 +96,7 @@ class TaskEditor extends React.Component {
           }
         });
   }
+
   saveTask() {
     $.ajax(`/tasks/${this.props.id}`, {
           context: this,
@@ -114,6 +111,41 @@ class TaskEditor extends React.Component {
           }
       });
   }
+
+
+  // ----------------------------------------------------------------
+  // Utility functions
+  // ----------------------------------------------------------------
+
+  updateSavedState() {
+    this.setState({savedState: this.queryData()});
+  };
+
+  queryData() {
+    return {
+      task: {
+        query: this.state.query,
+        name: this.state.name
+      }
+    };
+  }
+
+  isSaved() {
+    // Hack to get object comparison in order to see whether or not the object is changed
+    return (JSON.stringify(this.state.savedState) == JSON.stringify(this.queryData()));
+  }
+
+  checkForUnsavedChanges() {
+    if (!this.isSaved()) {
+      return "Your task has unsaved changes!";
+    }
+  }
+
+
+  // ----------------------------------------------------------------
+  // React callbacks
+  // ----------------------------------------------------------------
+
   render() {
     return (
       <div id="task-editor-container">
@@ -128,81 +160,6 @@ class TaskEditor extends React.Component {
         <SidePane result={this.state.result} />
       </div>
     );
-  }
-}
-
-class StatusLine extends React.Component {
-  constructor(props) {
-    super(props);
-    this.handleNameChange = this.handleNameChange.bind(this);
-  }
-  handleNameChange(event) {
-    name = event.target.value;
-    this.props.onNameChange(name);
-  }
-  render() {
-    return (
-      <div id="task-status-bar">
-        <div className="task-status-bar-component">
-          <input type="text" onChange={this.handleNameChange} value={this.props.name} />
-        </div>
-        <SaveButton {...this.props} />
-        <RunButton {...this.props} />
-      </div>
-    );
-  }
-}
-
-class SaveButton extends React.Component {
-  constructor(props) {
-    super(props);
-    this.handleSaveTaskClick = this.handleSaveTaskClick.bind(this);
-  }
-  handleSaveTaskClick() {
-    if (!this.props.isSavedCheck()) {
-      this.props.onTaskSaveClick();
-    }
-  }
-  render() {
-    var classNames = "btn btn-primary";
-    if (this.props.isSavedCheck()) {
-      classNames += " disabled";
-    }
-    return (
-      <div className="task-status-bar-button-group">
-        <button type="button" className={classNames} onClick={this.handleSaveTaskClick}>
-          Save task
-        </button>
-      </div>
-    );
-  }
-}
-class RunButton extends React.Component {
-  render() {
-    if (this.props.runningPercent < 0) {
-      return (
-        <div className="task-status-bar-button-group">
-          <button type="button" className="btn btn-primary" onClick={this.props.onRunTaskClick}>
-            Run task
-          </button>
-        </div>
-      );
-    } else {
-      return (
-        <div className="task-status-bar-button-group">
-          <button type="button" className="btn btn-primary disabled">
-            Run task
-          </button>
-          <div className="progress">
-            <div className="progress-bar" role="progressbar"
-                aria-valuenow="{this.props.runningPercent}" aria-valuemin="0"
-                aria-valuemax="100" style={{width: this.props.runningPercent + '%'}}>
-              {this.props.runningPercent}%
-            </div>
-          </div>
-        </div>
-      );
-    }
   }
 }
 

@@ -1,6 +1,10 @@
 import React from "react"
 
 export class ResultsView extends React.Component {
+  // ----------------------------------------------------------------
+  // Data generating functions
+  // ----------------------------------------------------------------
+
   renderResultRows() {
     var rows = this.props.result.data.map((row) => {
           var key = row.label + "-" + row.value;
@@ -32,6 +36,7 @@ export class ResultsView extends React.Component {
       </div>
     );
   }
+
   renderEmptyResultSet() {
     return (
       <p>
@@ -41,6 +46,12 @@ export class ResultsView extends React.Component {
       </p>
     );
   }
+
+
+  // ----------------------------------------------------------------
+  // React callbacks
+  // ----------------------------------------------------------------
+
   render() {
     if (this.props.result != undefined) {
       return this.renderResultRows();

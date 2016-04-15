@@ -35,16 +35,21 @@ export class SidePane extends React.Component {
       }
     ];
   }
+
   handleTabChange(tabName) {
     this.setState({activeTab: tabName});
   }
+
   activePane() {
     var activePane = this.tabs().find((tab) => tab.name == this.state.activeTab);
     return activePane.component;
   }
+
   render() {
     var tabs = this.tabs().map((tab) => {
-      return <SelectionTab key={tab.name} name={tab.name} activeTab={this.state.activeTab} onClick={this.handleTabChange} />
+      return <SelectionTab key={tab.name}
+          name={tab.name} activeTab={this.state.activeTab}
+          onClick={this.handleTabChange} />
     });
     return (
       <div id="task-editor-side-panel">
@@ -64,9 +69,11 @@ class SelectionTab extends React.Component {
     super(props);
     this.handleClick = this.handleClick.bind(this);
   }
+
   handleClick() {
     this.props.onClick(this.props.name);
   }
+
   render() {
     return (
       <li role="presentation" className={this.props.activeTab == this.props.name ? 'active' : ''}>
