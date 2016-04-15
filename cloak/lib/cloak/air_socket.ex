@@ -24,7 +24,7 @@ defmodule Cloak.AirSocket do
           GenSocketClient.Transport.WebSocketClient,
           nil,
           [
-            serializer: GenSocketClient.Serializer.GzipJson,
+            serializer: :cloak_conf.get_val(:air, :serializer),
             transport_opts: [
               keepalive: :timer.seconds(30)
             ]
