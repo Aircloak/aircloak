@@ -1,6 +1,7 @@
 import React from "react"
 import ReactDOM from "react-dom"
 import Codemirror from "react-codemirror"
+import { ResultSocket } from "./results-socket"
 
 // Imported components
 import { SidePane } from "./sidepane"
@@ -19,17 +20,7 @@ class TaskEditor extends React.Component {
       // the task is running. This is used
       // throughout the interface to toggle
       // buttons and show progress bars
-      runningPercent: -1,
-
-      result: {
-        data: [
-          {label: "Age", value: "10-15", count: 10},
-          {label: "Age", value: "15-20", count: 100},
-          {label: "Age", value: "20-25", count: 16}
-        ],
-        // Assumed to be an ISO 8601 encoded timestamp
-        created_at: "1460674580"
-      }
+      runningPercent: -1
     }
     // we keep a backup copy of the last saved
     // state of the task, in order to be able to
@@ -44,11 +35,30 @@ class TaskEditor extends React.Component {
     this.handleRunTask = this.handleRunTask.bind(this);
     this.isSaved = this.isSaved.bind(this);
     this.saveTask = this.saveTask.bind(this);
+    this.updateTaskRunningProgress = this.updateTaskRunningProgress.bind(this);
+    this.updateTaskResult = this.updateTaskResult.bind(this);
 
     // To prevent the user loosing changes, we ask whether
     // the page should be closed, if changes have been
     // made since the last time the task was saved.
     window.onbeforeunload = this.checkForUnsavedChanges;
+
+    new ResultSocket(props.id, props.guardianToken)
+      .start({
+        joined: (resp) => {console.log("Joined channel for task updates")},
+        failed_join: (resp) => {console.log("Failed to join channel for task updates");},
+        progress: this.updateTaskRunningProgress,
+        result: this.updateTaskResult
+      });
+  }
+  updateTaskRunningProgress(progress) {
+    this.setState({runningPercent: progress});
+  }
+  updateTaskResult(result) {
+    // We assume that the task is now complete, since we received a
+    // result, and therefore update the progress too
+    this.updateTaskRunningProgress(-1);
+    this.setState({result: result});
   }
   checkForUnsavedChanges() {
     if (!this.isSaved()) {

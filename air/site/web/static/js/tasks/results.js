@@ -42,7 +42,7 @@ export class ResultsView extends React.Component {
     );
   }
   render() {
-    if (this.props.result.data.length > 0) {
+    if (this.props.result != undefined) {
       return this.renderResultRows();
     } else {
       return this.renderEmptyResultSet();

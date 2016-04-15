@@ -40,6 +40,7 @@ defmodule Air.Endpoint do
   # -------------------------------------------------------------------
 
   socket "/cloak/socket", Air.Socket.Cloak
+  socket "/frontend/socket", Air.Socket.Frontend
 
   # Serve at "/" the static files from "priv/static" directory.
   #

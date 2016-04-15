@@ -4,9 +4,10 @@
 <script>
   window.pageConfig = {
     onLoad: function(App) {
-      var taskJson = $.parseJSON("<%= {:safe, escape_javascript(@task_json)} %>");
-      taskJson.CSRFToken = "<%= Plug.CSRFProtection.get_csrf_token() %>";
-      App.taskPage(taskJson);
+      var props = $.parseJSON("<%= {:safe, escape_javascript(@task_json)} %>");
+      props.CSRFToken = "<%= Plug.CSRFProtection.get_csrf_token() %>";
+      props.guardianToken = "<%= @token %>";
+      App.taskPage(props);
     }
   };
 </script>

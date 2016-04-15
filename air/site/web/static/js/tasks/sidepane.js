@@ -12,7 +12,7 @@ export class SidePane extends React.Component {
     // well be a new task, in which case the settings
     // pane is more useful.
     var activeTab = undefined;
-    if (this.props.result.data.length > 0) {
+    if (this.props.result != undefined) {
       activeTab = "Task result";
     } else {
       activeTab = "Settings";
