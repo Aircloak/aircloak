@@ -58,11 +58,15 @@ unregister_task(#task{progress_handle = Handle}) ->
 
 %% @doc Set the number of jobs for the given task.
 -spec add_unfinished_jobs(#task{}, non_neg_integer()) -> ok | {error, any()}.
+add_unfinished_jobs(#task{progress_handle = undefined}, _NumOfJobs) ->
+  ok; % No progress handler registered: just ignore.
 add_unfinished_jobs(#task{progress_handle = Handle}, NumOfJobs) ->
   gen_server:cast(?MODULE, {add_unfinished_jobs, Handle, NumOfJobs}).
 
 %% @doc Register that a job of a progress-supervised task finished.
 -spec job_of_task_finished(#task{}) -> ok.
+job_of_task_finished(#task{progress_handle = undefined}) ->
+  ok; % No progress handler registered: just ignore.
 job_of_task_finished(#task{progress_handle = Handle}) ->
   gen_server:cast(?MODULE, {job_of_task_finished, Handle}).
 
@@ -80,7 +84,7 @@ handle_call({register_task, Task}, _From, RegisteredTasks) ->
   {reply, NewTask, NewRegisteredTasks}.
 
 handle_cast({add_unfinished_jobs, Handle, NumOfJobs}, RegisteredTasks) ->
-  case map:find(Handle, RegisteredTasks) of
+  case maps:find(Handle, RegisteredTasks) of
     error ->
       ?ERROR("add_unfinished_jobs called for unknown handle ~p", [Handle]),
       {noreply, RegisteredTasks};
@@ -93,15 +97,15 @@ handle_cast({add_unfinished_jobs, Handle, NumOfJobs}, RegisteredTasks) ->
       {noreply, RegisteredTasks#{Handle := NewTaskProgressWithUpdatedReport}}
   end;
 handle_cast({unregister_task, Handle}, RegisteredTasks) ->
-  case map:is_key(Handle, RegisteredTasks) of
+  case maps:is_key(Handle, RegisteredTasks) of
     true ->
-      {noreply, map:remove(Handle, RegisteredTasks)};
+      {noreply, maps:remove(Handle, RegisteredTasks)};
     false ->
       ?WARNING("Cannot remove unknown handle from progress manager"),
       {noreply, RegisteredTasks}
   end;
 handle_cast({job_of_task_finished, Handle}, RegisteredTasks) ->
-  case map:find(Handle, RegisteredTasks) of
+  case maps:find(Handle, RegisteredTasks) of
     error ->
       ?WARNING("reported progress for a task unknown to the supervisor"),
       {noreply, RegisteredTasks};
