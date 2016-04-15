@@ -40,6 +40,10 @@ defmodule Cloak.AirSocket do
   def send_task_results(task_results),
     do: call({:send_task_results, task_results})
 
+  @doc "Sends task progress report to the Air."
+  @spec send_task_progress_report(any) :: :ok
+  def send_task_progress_report(_progress_report), do: :ok
+
 
   # -------------------------------------------------------------------
   # GenSocketClient callbacks

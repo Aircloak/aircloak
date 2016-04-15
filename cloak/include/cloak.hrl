@@ -51,8 +51,7 @@
   timestamp :: integer() | undefined,
   return_token :: return_token(),
   user_expire_interval :: undefined | pos_integer(),
-  progress_handle :: binary(),
-  progress_manager :: pid()
+  progress_handle :: pos_integer()
 }).
 
 -type noise_function() :: fun((integer()) -> integer()).
