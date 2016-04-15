@@ -4,18 +4,24 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  require Aircloak.SyncRequester
-  alias Aircloak.SyncRequester
 
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Runs a task on the given cloak"
-  @spec run_task(String.t, %{}, timeout) :: any
-  def run_task(cloak_id, task, timeout \\ :timer.seconds(5)) do
-    call(cloak_id, {:run_task, task}, timeout)
+  @doc """
+  Runs a task on the given cloak.
+
+  The function returns when the cloak responds. If the timeout occurs, it is
+  still possible that a cloak has received the request.
+  """
+  @spec run_task(String.t, %{}) :: :ok | {:error, any}
+  def run_task(cloak_id, task) do
+    case Map.fetch!(call(cloak_id, "run_task", task, :timer.seconds(5)), "status") do
+      "started" -> :ok
+      other -> {:error, other}
+    end
   end
 
 
@@ -34,7 +40,11 @@ defmodule Air.Socket.Cloak.MainChannel do
           crash_on_error: true
         )
 
-    {:ok, %{}, assign(socket, :cloak_info, cloak_info)}
+    {:ok, %{},
+      socket
+      |> assign(:cloak_info, cloak_info)
+      |> assign(:pending_calls, %{})
+    }
   end
 
   @doc false
@@ -45,22 +55,17 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
-  def handle_in(SyncRequester.request_event(command), payload, socket) do
-    {request_ref, request} = SyncRequester.decode_request!(payload)
-    handle_sync_request(command, request, request_ref, socket)
-  end
-  def handle_in(SyncRequester.response_event(command), payload, socket) do
-    case SyncRequester.decode_response!(
-          SyncRequester.Backend.Etcd,
-          request_etcd_path(socket),
-          payload
-        ) do
-      {:matched, {request, request_meta, response}} ->
-        handle_sync_response(command, response, request, request_meta, socket)
-      {:not_matched, response} ->
-        Logger.warn("unmatched response #{inspect response}")
-        {:noreply, socket}
+  def handle_in("call_response", payload, socket) do
+    request_id = payload["request_id"]
+    case Map.fetch(socket.assigns.pending_calls, request_id) do
+      {:ok, request_data} ->
+        Process.cancel_timer(request_data.timeout_ref)
+        respond_to_internal_request(request_data.from, payload["response"])
+      :error ->
+        Logger.warn("unknown sync call response: #{inspect payload}")
     end
+    pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
+    {:noreply, assign(socket, :pending_calls, pending_calls)}
   end
   def handle_in(event, _payload, socket) do
     cloak_id = socket.assigns.cloak_id
@@ -69,47 +74,25 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
-  def handle_info({{__MODULE__, :call}, from, message}, socket),
-    do: handle_call(message, from, socket)
+  def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, socket) do
+    request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
+    push(socket, "air_call", %{request_id: request_id, event: event, payload: payload})
+    timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
+    {:noreply,
+      assign(socket, :pending_calls,
+          Map.put(socket.assigns.pending_calls, request_id, %{from: from, timeout_ref: timeout_ref}))
+    }
+  end
+  def handle_info({:call_timeout, request_id}, socket) do
+    # We're just removing entries here without responding. It is the responsibility of the
+    # client code to give up at some point.
+    Logger.warn("#{request_id} sync call timeout on #{socket.assigns.cloak_id}")
+    pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
+    {:noreply, assign(socket, :pending_calls, pending_calls)}
+  end
   def handle_info(message, socket) do
     cloak_id = socket.assigns.cloak_id
     Logger.info("unhandled info #{message} from '#{cloak_id}'")
-    {:noreply, socket}
-  end
-
-
-  # -------------------------------------------------------------------
-  # Handling internal requests
-  # -------------------------------------------------------------------
-
-  defp handle_call({:run_task, task}, from, socket) do
-    Logger.info("starting task #{task.id} on #{socket.assigns.cloak_id}")
-    payload = SyncRequester.encode_request(SyncRequester.Backend.Etcd, request_etcd_path(socket), task)
-    push(socket, SyncRequester.request_event("run_task"), payload)
-    respond_to_internal_request(from, :ok)
-    {:noreply, socket}
-  end
-
-
-  # -------------------------------------------------------------------
-  # Handling sync requests from Cloak
-  # -------------------------------------------------------------------
-
-  defp handle_sync_request("task_results", task_results, request_ref, socket) do
-    Logger.info("cloak #{socket.assigns.cloak_id} sent task results #{inspect task_results}")
-    response = :ok
-    payload = SyncRequester.encode_response(request_ref, response)
-    push(socket, SyncRequester.response_event("task_results"), payload)
-    {:noreply, socket}
-  end
-
-
-  # -------------------------------------------------------------------
-  # Handling sync responses from Cloak
-  # -------------------------------------------------------------------
-
-  defp handle_sync_response("run_task", status, task, _req_meta, socket) do
-    Logger.info("cloak #{socket.assigns.cloak_id}, task #{task.id}: #{inspect status}")
     {:noreply, socket}
   end
 
@@ -122,12 +105,12 @@ defmodule Air.Socket.Cloak.MainChannel do
     send(client_pid, {mref, response})
   end
 
-  defp call(cloak_id, message, timeout) do
+  defp call(cloak_id, event, payload, timeout) do
     case channel_pid(cloak_id) do
       nil -> exit(:noproc)
       pid ->
         mref = Process.monitor(pid)
-        send(pid, {{__MODULE__, :call}, {self(), mref}, message})
+        send(pid, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
         receive do
           {^mref, response} ->
             Process.demonitor(mref, [:flush])
@@ -155,10 +138,5 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   defp registration_value do
     self() |> :erlang.term_to_binary() |> Base.encode64()
-  end
-
-  defp request_etcd_path(socket) do
-    # base32 is used because the supported character set in the etcd key is limited
-    "/air/sync_requests/#{Base.encode32(socket.assigns.cloak_id)}"
   end
 end
