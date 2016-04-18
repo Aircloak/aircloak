@@ -168,7 +168,8 @@ class TaskEditor extends React.Component {
         <CodeEditor
             query={this.state.query}
             onChange={this.handleCodeChange}
-            onSave={this.conditionallySave} />
+            onSave={this.conditionallySave}
+            onRun={this.handleRunTask} />
         <SidePane result={this.state.result} />
       </div>
     );

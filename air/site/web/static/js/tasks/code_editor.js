@@ -61,6 +61,9 @@ export class CodeEditor extends React.Component {
     instance.commands.save = (_cm) => {
       this.props.onSave();
     }
+    instance.commands.run = (_cm) => {
+      this.props.onRun();
+    }
     instance.commands.autoComplete = (cm) => {
       cm.showHint({hint: this.completionList})
     }
@@ -80,6 +83,7 @@ export class CodeEditor extends React.Component {
 
       extraKeys: {
         "Ctrl-S": "save",
+        "Ctrl-R": "run",
         "Ctrl-Space": "autoComplete"
       }
     };
