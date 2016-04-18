@@ -1,9 +1,9 @@
 import React from "react"
 import ReactDOM from "react-dom"
-import Codemirror from "react-codemirror"
-import { ResultSocket } from "./results_socket"
 
 // Imported components
+import { CodeEditor } from "./code_editor"
+import { ResultSocket } from "./results_socket"
 import { SidePane } from "./sidepane"
 import { StatusLine } from "./status_line"
 
@@ -31,13 +31,14 @@ class TaskEditor extends React.Component {
     // Bind the handlers, so we can pass them, and have `this`
     // bound to the right context
     this.checkForUnsavedChanges = this.checkForUnsavedChanges.bind(this);
-    this.handleNameChange = this.handleNameChange.bind(this);
+    this.conditionallySave = this.conditionallySave.bind(this);
     this.handleCodeChange = this.handleCodeChange.bind(this);
+    this.handleNameChange = this.handleNameChange.bind(this);
     this.handleRunTask = this.handleRunTask.bind(this);
     this.isSaved = this.isSaved.bind(this);
     this.saveTask = this.saveTask.bind(this);
-    this.updateTaskRunningProgress = this.updateTaskRunningProgress.bind(this);
     this.updateTaskResult = this.updateTaskResult.bind(this);
+    this.updateTaskRunningProgress = this.updateTaskRunningProgress.bind(this);
 
     // To prevent the user loosing changes, we ask whether
     // the page should be closed, if changes have been
@@ -117,6 +118,12 @@ class TaskEditor extends React.Component {
   // Utility functions
   // ----------------------------------------------------------------
 
+  conditionallySave() {
+    if (!this.isSaved()) {
+      this.saveTask()
+    }
+  }
+
   updateSavedState() {
     this.setState({savedState: this.queryData()});
   };
@@ -156,27 +163,16 @@ class TaskEditor extends React.Component {
             onNameChange={this.handleNameChange}
             onTaskSaveClick={this.saveTask}
             onRunTaskClick={this.handleRunTask} />
-        <CodeEditor query={this.state.query} onChange={this.handleCodeChange} />
+        <CodeEditor
+            query={this.state.query}
+            onChange={this.handleCodeChange}
+            onSave={this.conditionallySave}
+            onRun={this.handleRunTask} />
         <SidePane result={this.state.result} />
       </div>
     );
   }
 }
-
-class CodeEditor extends React.Component {
-  render() {
-    var options = {
-      lineNumbers: true,
-      mode: "lua"
-    };
-    return (
-          <Codemirror
-              value={this.props.query}
-              onChange={this.props.onChange}
-              options={options} />
-        );
-  }
-};
 
 exports.TaskEditor = (data) => {
   ReactDOM.render(

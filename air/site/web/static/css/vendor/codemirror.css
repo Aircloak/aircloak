@@ -344,3 +344,29 @@ div.CodeMirror-dragcursors {
 
 /* Help users use markselection to safely style text background */
 span.CodeMirror-selectedtext { background: none; }
+
+.CodeMirror-hints {
+  display: table;
+  position: absolute;
+  background-color: white;
+  z-index: 10;
+  list-style-type: none;
+  padding: 0;
+  border: 1px solid #ccc;
+  font-family: "Courier New", Courier, mono;
+  font-weight: bold;
+}
+.CodeMirror-hint {
+  padding: 5px;
+  border-bottom: 1px solid rgba(204,204,204,0.5);
+  background-color: rgba(204,204,204,0.2);
+  color: black;
+}
+.CodeMirror-hint:last {
+  padding: 5px;
+  border-style: none;
+}
+
+.CodeMirror-hint-active {
+  background: #ccc;;
+}
