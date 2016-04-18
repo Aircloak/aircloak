@@ -1,6 +1,5 @@
 import React from "react"
 import Codemirror from "react-codemirror"
-import CodeMirror from "codemirror"
 var _ = require("lodash");
 
 require("codemirror/mode/lua/lua");
