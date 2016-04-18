@@ -31,6 +31,7 @@ class TaskEditor extends React.Component {
     this.handleRunTask = this.handleRunTask.bind(this);
     this.isSaved = this.isSaved.bind(this);
     this.saveTask = this.saveTask.bind(this);
+    this.conditionallySave = this.conditionallySave.bind(this);
 
     // To prevent the user loosing changes, we ask whether
     // the page should be closed, if changes have been
@@ -58,6 +59,11 @@ class TaskEditor extends React.Component {
         name: this.state.name
       }
     };
+  }
+  conditionallySave() {
+    if (!this.isSaved()) {
+      this.saveTask()
+    }
   }
   isSaved() {
     // Hack to get object comparison in order to see whether or not the object is changed
@@ -101,7 +107,10 @@ class TaskEditor extends React.Component {
             onNameChange={this.handleNameChange}
             onTaskSaveClick={this.saveTask}
             onRunTaskClick={this.handleRunTask} />
-        <CodeEditor query={this.state.query} onChange={this.handleCodeChange} />
+        <CodeEditor
+            query={this.state.query}
+            onChange={this.handleCodeChange}
+            onSave={this.conditionallySave} />
         <SidePane />
       </div>
     );
