@@ -10,6 +10,7 @@ defmodule Cloak.Mixfile do
       start_permanent: Mix.env == :prod,
       deps: deps,
       compilers: [:"protobuf.erlang", :yecc, :leex, :erlang, :elixir, :sandbox, :app],
+      elixirc_paths: elixirc_paths(Mix.env),
       erlc_options: erlc_options(Mix.env),
       erlc_paths: erlc_paths(Mix.env),
       preferred_cli_env: [
@@ -41,11 +42,13 @@ defmodule Cloak.Mixfile do
       {:postgrex, "~> 0.11"},
       {:poolboy, "~> 1.5"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client"},
-      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"}
+      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
+      {:phoenix, "~> 1.1.4", only: :test},
+      {:cowboy, "~> 1.0", only: :test}
     ]
   end
 
-  defp applications(:test), do: common_applications()
+  defp applications(:test), do: [:phoenix, :cowboy | common_applications()]
   defp applications(:dev), do: [:os_mon | common_applications()]
   defp applications(:prod), do: [:os_mon | common_applications()]
 
@@ -55,6 +58,9 @@ defmodule Cloak.Mixfile do
       :phoenix_gen_socket_client, :websocket_client
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]
   defp erlc_options(:dev), do: [:debug_info]

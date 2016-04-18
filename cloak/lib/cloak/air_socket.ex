@@ -8,8 +8,6 @@ defmodule Cloak.AirSocket do
   configuration file.
   """
   require Logger
-  require Aircloak.SyncRequester
-  alias Aircloak.SyncRequester
   alias Phoenix.Channels.GenSocketClient
   @behaviour GenSocketClient
 
@@ -26,7 +24,7 @@ defmodule Cloak.AirSocket do
           GenSocketClient.Transport.WebSocketClient,
           nil,
           [
-            serializer: GenSocketClient.Serializer.GzipJson,
+            serializer: :cloak_conf.get_val(:air, :serializer),
             transport_opts: [
               keepalive: :timer.seconds(30)
             ]
@@ -35,10 +33,19 @@ defmodule Cloak.AirSocket do
         )
   end
 
-  @doc "Sends task results to the Air."
-  @spec send_task_results(%{}) :: :ok
-  def send_task_results(task_results),
-    do: call({:send_task_results, task_results})
+  @doc """
+  Sends task results to the Air.
+
+  The function returns when the Air responds. If the timeout occurs, it is
+  still possible that the Air has received the request.
+  """
+  @spec send_task_results(%{}) :: :ok | {:error, any}
+  def send_task_results(task_results) do
+    case call("task_results", task_results, :timer.seconds(5)) do
+      {:ok, _} -> :ok
+      error -> error
+    end
+  end
 
   @doc "Sends task progress report to the Air."
   @spec send_task_progress_report(%{}) :: :ok
@@ -55,7 +62,7 @@ defmodule Cloak.AirSocket do
       cloak_name: cloak_name()
     }
     url = "#{:cloak_conf.get_val(:air, :socket_url)}?#{URI.encode_query(params)}"
-    {:connect, url, %{}}
+    {:connect, url, %{pending_calls: %{}}}
   end
 
   @doc false
@@ -92,18 +99,24 @@ defmodule Cloak.AirSocket do
   end
 
   @doc false
-  def handle_message(topic, SyncRequester.request_event(command), payload, transport, state) do
-    {request_ref, request} = SyncRequester.decode_request!(payload)
-    handle_sync_request(topic, command, request, request_ref, transport, state)
+  def handle_message("main", "air_call", request, transport, state) do
+    handle_air_call(request["event"], request["payload"], {transport, request["request_id"]}, state)
   end
-  def handle_message(topic, SyncRequester.response_event(command), payload, transport, state) do
-    case SyncRequester.decode_response!(SyncRequester.Backend.Ets, __MODULE__, payload) do
-      {:matched, {request, request_meta, response}} ->
-        handle_sync_response(topic, command, response, request, request_meta, transport, state)
-      {:not_matched, response} ->
-        Logger.warn("unmatched response #{inspect response}")
-        {:ok, state}
+  def handle_message("main", "call_response", payload, _transport, state) do
+    request_id = payload["request_id"]
+    case Map.fetch(state.pending_calls, request_id) do
+      {:ok, request_data} ->
+        Process.cancel_timer(request_data.timeout_ref)
+        response = case payload["status"] do
+          "ok" -> {:ok, payload["result"]}
+          "error" -> {:error, payload["result"]}
+          _other -> {:error, {:invalid_status, payload}}
+        end
+        respond_to_internal_request(request_data.from, response)
+      :error ->
+        Logger.warn("unknown sync call response: #{inspect payload}")
     end
+    {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
   end
   def handle_message(topic, event, payload, _transport, state) do
     Logger.warn("unhandled message on topic #{topic}: #{event} #{inspect payload}")
@@ -130,8 +143,19 @@ defmodule Cloak.AirSocket do
     end
     {:ok, state}
   end
-  def handle_info({{__MODULE__, :call}, from, message}, transport, state),
-    do: handle_call(message, from, transport, state)
+  def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, transport, state) do
+    request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
+    GenSocketClient.push(transport, "main", "cloak_call",
+        %{request_id: request_id, event: event, payload: payload})
+    timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
+    {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
+  end
+  def handle_info({:call_timeout, request_id}, _transport, state) do
+    # We're just removing entries here without responding. It is the responsibility of the
+    # client code to give up at some point.
+    Logger.warn("#{request_id} sync call timeout")
+    {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
+  end
   def handle_info(message, _transport, state) do
     Logger.warn("unhandled message #{inspect message}")
     {:ok, state}
@@ -139,45 +163,21 @@ defmodule Cloak.AirSocket do
 
 
   # -------------------------------------------------------------------
-  # Handling internal requests
+  # Handling air sync calls
   # -------------------------------------------------------------------
 
-  defp handle_call({:send_task_results, task_results}, from, transport, state) do
-    Logger.info("sending task results to Air")
-    payload = SyncRequester.encode_request(SyncRequester.Backend.Ets, __MODULE__, task_results)
-    GenSocketClient.push(transport, "main", SyncRequester.request_event("task_results"), payload)
-    respond_to_internal_request(from, :ok)
-    {:ok, state}
-  end
-
-
-  # -------------------------------------------------------------------
-  # Handling sync requests from Air
-  # -------------------------------------------------------------------
-
-  defp handle_sync_request("main", "run_task", task, request_ref, transport, state) do
-    Logger.info("starting task #{task.id}")
+  defp handle_air_call("run_task", task, from, state) do
+    Logger.info("starting task #{task["id"]}")
     response =
       try do
           :ok = task |> :task_parser.parse |> :progress_handler.register_task |> :task_coordinator.run_task
           :started
         rescue
           error ->
-            Logger.error("error starting task #{task.id}: #{inspect error}\n#{inspect System.stacktrace}")
+            Logger.error("error starting task #{task["id"]}: #{inspect error}\n#{inspect System.stacktrace}")
             :error
       end
-    payload = SyncRequester.encode_response(request_ref, response)
-    GenSocketClient.push(transport, "main", SyncRequester.response_event("run_task"), payload)
-    {:ok, state}
-  end
-
-
-  # -------------------------------------------------------------------
-  # Handling sync responses from Air
-  # -------------------------------------------------------------------
-
-  def handle_sync_response("main", "task_results", status, _request, _request_meta, _transport, state) do
-    Logger.info("task results sent to air: #{inspect status}")
+    respond_to_air(from, response)
     {:ok, state}
   end
 
@@ -186,13 +186,27 @@ defmodule Cloak.AirSocket do
   # Internal functions
   # -------------------------------------------------------------------
 
+  @spec respond_to_air({GenSocketClient.transport, request_id::String.t}, :ok | :error, any) ::
+      :ok | {:error, any}
+  defp respond_to_air({transport, request_id}, status, result \\ nil) do
+    case GenSocketClient.push(transport, "main", "call_response", %{
+              request_id: request_id,
+              status: status,
+              result: result
+            }) do
+      {:ok, _} -> :ok
+      error -> error
+    end
+  end
+
   defp respond_to_internal_request({client_pid, mref}, response) do
     send(client_pid, {mref, response})
   end
 
-  defp call(message, timeout \\ :timer.seconds(5)) do
+  @spec call(String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
+  defp call(event, payload, timeout) do
     mref = Process.monitor(__MODULE__)
-    send(__MODULE__, {{__MODULE__, :call}, {self(), mref}, message})
+    send(__MODULE__, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
     receive do
       {^mref, response} ->
         Process.demonitor(mref, [:flush])
