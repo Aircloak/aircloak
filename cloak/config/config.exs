@@ -27,7 +27,8 @@ config :cloak, :api, port: 8098
 
 config :cloak, :air,
   # The URL that results from asynchronous queries are sent to
-  return_url: 'https://infrastructure-api.aircloak.com/results'
+  return_url: 'https://infrastructure-api.aircloak.com/results',
+  serializer: Phoenix.Channels.GenSocketClient.Serializer.GzipJson
 
 config :cloak, :queries,
   # The time to wait for the task coordinator to finish

@@ -47,7 +47,6 @@ defmodule Cloak do
       [
         supervisor(:cloak_metrics_sup, []),
         worker(:resource_monitor, []),
-        worker(Aircloak.SyncRequester.Backend.Ets, [Cloak.AirSocket]),
         worker(Cloak.AirSocket, [])
       ]
     end
