@@ -11,6 +11,13 @@ export class CodeEditor extends React.Component {
     super(props);
     this.setupComponent = this.setupComponent.bind(this);
     this.completionList = this.completionList.bind(this);
+
+    // The CodeMirror editor instance.
+    // We need to keep track of it in order to provide
+    // proper code hints, etc.
+    // The variable is initialized in a callback from
+    // the react component.
+    this.editor = undefined;
   }
   completionList(cm) {
     let regex = /(\w|\.)/;
@@ -41,7 +48,7 @@ export class CodeEditor extends React.Component {
 
     let list = _.chain([]).
         union(
-              _.map(CodeMirror.hint.anyword(cm, {word: /[a-zA-Z_](\w)*/}).list,
+              _.map(this.editor.hint.anyword(cm, {word: /[a-zA-Z_](\w)*/}).list,
                 (word) => {return {text: word}})
             ).
         filter((candidate) => {return candidate.text.match(fuzzyMatcher)}).
@@ -49,14 +56,16 @@ export class CodeEditor extends React.Component {
         sortBy((el) => {return sortOrder(el.text)}).
         value();
 
-    return {
+    let returnValue = {
       list: list,
-      from: CodeMirror.Pos(cur.line, start),
-      to: CodeMirror.Pos(cur.line, end)
+      from: this.editor.Pos(cur.line, start),
+      to: this.editor.Pos(cur.line, end)
     };
+    return returnValue;
   }
   setupComponent(codeMirrorComponent) {
     let instance = codeMirrorComponent.getCodeMirrorInstance();
+    this.editor = instance;
     instance.commands.save = (_cm) => {
       this.props.onSave();
     }
@@ -64,7 +73,7 @@ export class CodeEditor extends React.Component {
       this.props.onRun();
     }
     instance.commands.autoComplete = (cm) => {
-      cm.showHint({hint: this.completionList})
+      cm.showHint(cm, {hint: this.completionList});
     }
   }
   render() {
