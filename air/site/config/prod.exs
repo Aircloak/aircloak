@@ -13,7 +13,6 @@ use Mix.Config
 # which you typically run after static files are built.
 config :air, Air.Endpoint,
   http: [port: Air.EnvSettings.tcp_port("insights/http")],
-  url: [host: "example.com", port: 80],
   cache_static_manifest: "priv/static/manifest.json"
 
 # Do not print debug messages in production
