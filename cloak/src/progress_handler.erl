@@ -150,11 +150,7 @@ report_progress(#task_progress{progress = Progress, task = Task,
   % only if more than 4% difference from last report
   case Progress >= LastProgress + 4 andalso Elapsed >= 1 of
     true ->
-      Report = mochijson2:encode([
-        {task_id, Task#task.task_id},
-        {progress, Progress},
-        {timestamp, Task#task.timestamp}
-      ]),
+      Report = #{task_id => Task#task.task_id, progress => Progress, timestamp => Task#task.timestamp},
       'Elixir.Cloak.AirSocket':send_task_progress_report(Report),
       TaskProgress#task_progress{last_report_timestamp = Timestamp, last_reported_progress = Progress};
     false ->

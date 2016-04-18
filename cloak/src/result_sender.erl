@@ -96,28 +96,23 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %% -------------------------------------------------------------------
 
 convert_results(TaskId, Results) ->
-  Buckets = [convert_bucket_to_json(Bucket) ||
-      #bucket_report{label=#bucket_label{label=Label}}=Bucket <- Results,
-      Label =/= ?JOB_EXECUTION_ERROR],
-  Exceptions = [[{error, iolist_to_binary(Error)}, {count, Count}] ||
-      #bucket_report{label=#bucket_label{label=?JOB_EXECUTION_ERROR, value=Error},
-          noisy_count=Count} <- Results],
+  Buckets = [convert_bucket(Bucket) ||
+      #bucket_report{label = #bucket_label{label = Label}} = Bucket <- Results, Label =/= ?JOB_EXECUTION_ERROR],
+  Exceptions = [#{error => iolist_to_binary(Error), count => Count} ||
+      #bucket_report{label = #bucket_label{label = ?JOB_EXECUTION_ERROR, value = Error}, noisy_count = Count} <- Results],
   ?INFO("json report: ~p buckets, ~p exceptions", [length(Buckets), length(Exceptions)]),
-  mochijson2:encode([
-    {task_id, TaskId},
-    {buckets, Buckets},
-    {exceptions, Exceptions}
-  ]).
+  #{task_id => TaskId, buckets => Buckets, exceptions => Exceptions}.
 
-convert_bucket_to_json(#bucket_report{label=#bucket_label{label=Label, value=Value}, noisy_count=Count}) ->
-  [{label, iolist_to_binary(Label)}] ++ [{value, iolist_to_binary(V)} || V <- [Value], V /= undefined] ++
-      [{count, Count}].
+convert_bucket(#bucket_report{label = #bucket_label{label = Label, value = undefined}, noisy_count = Count}) ->
+  #{label => iolist_to_binary(Label), count => Count};
+convert_bucket(#bucket_report{label = #bucket_label{label = Label, value = Value}, noisy_count = Count}) ->
+  #{label => iolist_to_binary(Label), value => iolist_to_binary(Value), count => Count}.
 
 send_reply(air_socket, Reply) ->
-  'Elixir.Cloak.AirSocket':send_task_results(iolist_to_binary(Reply));
+  'Elixir.Cloak.AirSocket':send_task_results(Reply);
 send_reply({url, Url}, Reply) ->
   Format = "application/json",
-  CompressedReply = zlib:gzip(Reply),
+  CompressedReply = zlib:gzip('Elixir.Poison':'encode!'(Reply)),
   Headers = [{"Content-Encoding", "gzip"}],
   Request = {binary_to_list(Url), Headers, Format, CompressedReply},
   ?INFO("Sending results to ~p", [Url]),
@@ -149,22 +144,18 @@ convert_results_test() ->
     #bucket_report{label=#bucket_label{label=?JOB_EXECUTION_ERROR, value="x2"}, count=2, noisy_count=2},
     #bucket_report{label=#bucket_label{label= <<"foo6">>, value=undefined}, count=6789, noisy_count=6789}
   ],
-  JSONBuckets = [
-    [{label, <<"foo1">>}, {count, 1234}],
-    [{label, <<"foo2">>}, {value, <<"bar1">>}, {count, 2345}],
-    [{label, <<"foo3">>}, {value, <<"bar2">>}, {count, 4567}],
-    [{label, <<"foo5">>}, {count, 5678}],
-    [{label, <<"foo6">>}, {count, 6789}]
+  ConvertedBuckets = [
+    #{label => <<"foo1">>, count => 1234},
+    #{label => <<"foo2">>, value => <<"bar1">>, count  => 2345},
+    #{label => <<"foo3">>, value => <<"bar2">>, count  => 4567},
+    #{label => <<"foo5">>, count => 5678},
+    #{label => <<"foo6">>, count => 6789}
   ],
-  JSONExceptions = [
-    [{error, <<"x1">>}, {count, 1}],
-    [{error, <<"x2">>}, {count, 2}]
+  ConvertedExceptions = [
+    #{error => <<"x1">>, count => 1},
+    #{error => <<"x2">>, count => 2}
   ],
-  JSONResult = mochijson2:encode([
-    {task_id, TaskId},
-    {buckets, JSONBuckets},
-    {exceptions, JSONExceptions}
-  ]),
-  ?assertEqual(JSONResult, convert_results(TaskId, Results)).
+  ConvertedResult = #{task_id => TaskId, buckets => ConvertedBuckets, exceptions => ConvertedExceptions},
+  ?assertEqual(ConvertedResult, convert_results(TaskId, Results)).
 
 -endif.

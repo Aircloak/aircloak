@@ -24,7 +24,6 @@
   "meck": {:git, "https://github.com/eproxus/meck.git", "dde759050eff19a1a80fd854d7375174b191665d", [tag: "0.8.2"]},
   "metrics": {:hex, :metrics, "1.0.1"},
   "mimerl": {:hex, :mimerl, "1.0.2"},
-  "mochiweb": {:hex, :mochiweb, "2.12.2"},
   "phoenix_gen_socket_client": {:git, "https://github.com/aircloak/phoenix_gen_socket_client.git", "eeb3f63932fd2eb5df3f722a3ca8ab07abd59612", []},
   "poison": {:hex, :poison, "1.5.2"},
   "poolboy": {:hex, :poolboy, "1.5.1"},
