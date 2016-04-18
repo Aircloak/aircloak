@@ -5,6 +5,8 @@ defmodule Air.Task do
   alias Air.User
 
   @type t :: %__MODULE__{}
+  @type result_row :: %{:label => String.t, :value => String.t, :count => integer}
+  @type result :: %{:data => [result_row], :created_at => integer}
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "tasks" do
