@@ -55,7 +55,8 @@ defmodule Air.TaskController do
       name: task.name,
       query: task.query
     }
-    render(conn, "editor.html", task_json: Poison.encode!(task_map))
+    render(conn, "editor.html", token: Guardian.Plug.current_token(conn),
+        task_json: Poison.encode!(task_map))
   end
 
   def update(conn, %{"task" => task_params}) do
@@ -72,6 +73,7 @@ defmodule Air.TaskController do
   end
 
   def run_task(conn, %{"task" => _task_params}) do
+    spawn(fn -> fake_execution(conn.assigns.task) end)
     # TODO: Schedule task running here...
     #       But make sure you run the task with the parameters
     #       passed in with the request, rather than those of
@@ -103,5 +105,35 @@ defmodule Air.TaskController do
     else
       assign(conn, :task, task)
     end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Temporary methods to simulate task running
+  # -------------------------------------------------------------------
+
+  defp fake_execution(task) do
+    run_fakery(task, 0)
+  end
+
+  defp run_fakery(task, progress) when progress < 100 do
+    :timer.sleep(:random.uniform(100))
+    Air.Socket.Frontend.TaskChannel.broadcast_progress(task, progress)
+    run_fakery(task, progress + :random.uniform(5))
+  end
+  defp run_fakery(task, _) do
+    result = %{
+      data: [
+        %{label: "Age", value: "10-15", count: 10},
+        %{label: "Age", value: "15-20", count: 100},
+        %{label: "Age", value: "20-25", count: 15},
+        %{label: "Age", value: "25-30", count: 100},
+        %{label: "Age", value: "30-35", count: 900},
+        %{label: "Age", value: "35-40", count: 20},
+        %{label: "Age", value: "40-45", count: 15}
+      ],
+      created_at: :os.system_time(:seconds)
+    }
+    Air.Socket.Frontend.TaskChannel.broadcast_result(task, result)
   end
 end
