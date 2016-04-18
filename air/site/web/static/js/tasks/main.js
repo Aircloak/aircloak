@@ -1,11 +1,11 @@
 import React from "react"
 import ReactDOM from "react-dom"
 import Codemirror from "react-codemirror"
-import { ResultSocket } from "./results-socket"
+import { ResultSocket } from "./results_socket"
 
 // Imported components
 import { SidePane } from "./sidepane"
-import { StatusLine } from "./status-line"
+import { StatusLine } from "./status_line"
 
 class TaskEditor extends React.Component {
   constructor(props) {
