@@ -31,7 +31,7 @@
   finished_jobs = 0 :: non_neg_integer(),
   progress = 0 :: non_neg_integer(), % this is the anonymized progress that should be reported
   last_reported_progress = 0 :: non_neg_integer(),
-  last_report_timestamp = 0 :: non_neg_integer()
+  last_report_timestamp = erlang:monotonic_time() :: non_neg_integer()
 }).
 
 -type state() :: #{binary() => #task_progress{}}.
@@ -53,6 +53,8 @@ register_task(Task) ->
 
 %% @doc Unregister a progress-supervised task.
 -spec unregister_task(#task{}) -> ok.
+unregister_task(#task{progress_handle = undefined}) ->
+  ok; % No progress handler registered: just ignore.
 unregister_task(#task{progress_handle = Handle}) ->
   gen_server:cast(?MODULE, {unregister_task, Handle}).
 
@@ -142,10 +144,11 @@ register_task(Task, RegisteredTasks) ->
 
 report_progress(#task_progress{progress = Progress, task = Task,
     last_report_timestamp = LastTimestamp, last_reported_progress = LastProgress} = TaskProgress) ->
-  Timestamp = cloak_util:timestamp_to_int(os:timestamp()),
+  Timestamp = erlang:monotonic_time(),
+  Elapsed = erlang:convert_time_unit(Timestamp - LastTimestamp, native, seconds),
   % avoid spaming the report endpoint by reporting at most once per second and
   % only if more than 4% difference from last report
-  case Progress >= LastProgress + 4 andalso Timestamp - LastTimestamp >= 1 * 1000 * 1000 of
+  case Progress >= LastProgress + 4 andalso Elapsed >= 1 of
     true ->
       Report = mochijson2:encode([
         {task_id, Task#task.task_id},

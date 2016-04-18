@@ -42,7 +42,7 @@ defmodule Cloak.AirSocket do
 
   @doc "Sends task progress report to the Air."
   @spec send_task_progress_report(any) :: :ok
-  def send_task_progress_report(_progress_report), do: :ok
+  def send_task_progress_report(progress_report), do: Logger.info("new task progress report: #{progress_report}")
 
 
   # -------------------------------------------------------------------
