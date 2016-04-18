@@ -37,8 +37,7 @@ defmodule Air.Socket.CloakTest do
     assert {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, 100)
     assert %{"event" => "run_task", "payload" => %{"id" => 42}, "request_id" => request_id} = request
 
-    response = %{request_id: request_id, response: %{status: "started"}}
-    TestSocket.push(socket, "main", "call_response", response)
+    TestSocket.push(socket, "main", "call_response", %{request_id: request_id, status: "ok"})
     assert_receive {:start_task_result, :ok}
   end
 
@@ -50,7 +49,7 @@ defmodule Air.Socket.CloakTest do
     request = %{request_id: "foobar", event: "task_results", payload: [1, 2, 3]}
     TestSocket.push(socket, "main", "cloak_call", request)
     assert {:ok, {"main", "call_response", response}} = TestSocket.await_message(socket, 100)
-    assert %{"request_id" => "foobar", "response" => "ok"} = response
+    assert %{"request_id" => "foobar", "status" => "ok"} = response
   end
 
   defp start_link(url) do

@@ -42,8 +42,8 @@ defmodule Cloak.AirSocket do
   @spec send_task_results(any) :: :ok | {:error, any}
   def send_task_results(task_results) do
     case call("task_results", task_results, :timer.seconds(5)) do
-      "ok" -> :ok
-      other -> {:error, other}
+      {:ok, _} -> :ok
+      error -> error
     end
   end
 
@@ -103,7 +103,12 @@ defmodule Cloak.AirSocket do
     case Map.fetch(state.pending_calls, request_id) do
       {:ok, request_data} ->
         Process.cancel_timer(request_data.timeout_ref)
-        respond_to_internal_request(request_data.from, payload["response"])
+        response = case payload["status"] do
+          "ok" -> {:ok, payload["result"]}
+          "error" -> {:error, payload["result"]}
+          _other -> {:error, {:invalid_status, payload}}
+        end
+        respond_to_internal_request(request_data.from, response)
       :error ->
         Logger.warn("unknown sync call response: #{inspect payload}")
     end
@@ -159,7 +164,7 @@ defmodule Cloak.AirSocket do
 
   defp handle_air_call("run_task", task, from, state) do
     Logger.info("starting task #{task["id"]}")
-    respond_to_air(from, %{status: "started"})
+    respond_to_air(from, :ok)
     {:ok, state}
   end
 
@@ -168,14 +173,24 @@ defmodule Cloak.AirSocket do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp respond_to_air({transport, request_id}, response) do
-    GenSocketClient.push(transport, "main", "call_response", %{request_id: request_id, response: response})
+  @spec respond_to_air({GenSocketClient.transport, request_id::String.t}, :ok | :error, any) ::
+      :ok | {:error, any}
+  defp respond_to_air({transport, request_id}, status, result \\ nil) do
+    case GenSocketClient.push(transport, "main", "call_response", %{
+              request_id: request_id,
+              status: status,
+              result: result
+            }) do
+      {:ok, _} -> :ok
+      error -> error
+    end
   end
 
   defp respond_to_internal_request({client_pid, mref}, response) do
     send(client_pid, {mref, response})
   end
 
+  @spec call(String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
   defp call(event, payload, timeout) do
     mref = Process.monitor(__MODULE__)
     send(__MODULE__, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})

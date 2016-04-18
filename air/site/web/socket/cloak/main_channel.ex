@@ -18,9 +18,9 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   @spec run_task(String.t, %{}) :: :ok | {:error, any}
   def run_task(cloak_id, task) do
-    case Map.fetch!(call(cloak_id, "run_task", task, :timer.seconds(5)), "status") do
-      "started" -> :ok
-      other -> {:error, other}
+    case call(cloak_id, "run_task", task, :timer.seconds(5)) do
+      {:ok, _} -> :ok
+      error -> error
     end
   end
 
@@ -57,10 +57,16 @@ defmodule Air.Socket.Cloak.MainChannel do
   @doc false
   def handle_in("call_response", payload, socket) do
     request_id = payload["request_id"]
+
     case Map.fetch(socket.assigns.pending_calls, request_id) do
       {:ok, request_data} ->
         Process.cancel_timer(request_data.timeout_ref)
-        respond_to_internal_request(request_data.from, payload["response"])
+        response = case payload["status"] do
+          "ok" -> {:ok, payload["result"]}
+          "error" -> {:error, payload["result"]}
+          _other -> {:error, {:invalid_status, payload}}
+        end
+        respond_to_internal_request(request_data.from, response)
       :error ->
         Logger.warn("unknown sync call response: #{inspect payload}")
     end
@@ -107,7 +113,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   defp handle_cloak_call("task_results", task_results, request_id, socket) do
     # TODO: do something with task results
     Logger.info("received task results #{inspect task_results}")
-    respond_to_cloak(socket, request_id, "ok")
+    respond_to_cloak(socket, request_id, :ok)
     {:noreply, socket}
   end
 
@@ -116,14 +122,20 @@ defmodule Air.Socket.Cloak.MainChannel do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp respond_to_cloak(socket, request_id, response) do
-    push(socket, "call_response", %{request_id: request_id, response: response})
+  @spec respond_to_cloak(Socket.t, request_id::String.t, :ok | :error, any) :: :ok
+  defp respond_to_cloak(socket, request_id, status, result \\ nil) do
+    push(socket, "call_response", %{
+          request_id: request_id,
+          status: status,
+          result: result
+        })
   end
 
   defp respond_to_internal_request({client_pid, mref}, response) do
     send(client_pid, {mref, response})
   end
 
+  @spec call(String.t, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
   defp call(cloak_id, event, payload, timeout) do
     case channel_pid(cloak_id) do
       nil -> exit(:noproc)

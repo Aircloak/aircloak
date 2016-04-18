@@ -65,7 +65,7 @@ defmodule Cloak.AirSocketTest do
     request = %{request_id: "foo", event: "run_task", payload: %{id: 42}}
     MainChannel.send_to_cloak(cloak_id(), "air_call", request)
     assert_receive {:in_message, "call_response", response}
-    assert %{"request_id" => "foo", "response" => %{"status" => "started"}} = response
+    assert %{"request_id" => "foo", "status" => "ok"} = response
   end
 
   test "sending a task result" do
@@ -79,7 +79,7 @@ defmodule Cloak.AirSocketTest do
     assert_receive {:in_message, "cloak_call", response}
     assert%{"event" => "task_results", "payload" => [1, 2, 3], "request_id" => request_id} = response
 
-    response = %{request_id: request_id, response: "ok"}
+    response = %{request_id: request_id, status: "ok"}
     MainChannel.send_to_cloak(cloak_id(), "call_response", response)
     assert_receive {:send_task_results, :ok}
   end
