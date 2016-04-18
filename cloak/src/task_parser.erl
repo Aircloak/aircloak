@@ -1,6 +1,6 @@
 %% @doc Decodes the map that describes the task and returns the corresponding task specification.
 %%
-%%      Example of a json describing the task:
+%%      Example of a map describing the task:
 %%        ```
 %%          {
 %%            "task_id": "1234",
@@ -40,15 +40,15 @@
 -spec parse(#{}) -> #task{}.
 parse(Task) ->
   #task{
-    task_id = maps:get(id, Task),
-    type = parse_type(maps:get(type, Task, <<"batch">>)),
-    prefetch = [maps:to_list(TableSpec) || TableSpec <- maps:get(prefetch, Task)],
-    code = strip_comments(maps:get(code, Task)),
-    libraries = [parse_library(Library) || Library <- maps:get(libraries, Task, [])],
-    report_interval = parse_report_interval(maps:get(report_interval, Task, undefined)),
-    result_destination = parse_return_url(maps:get(return_url, Task, undefined)),
-    user_expire_interval = maps:get(user_expire_interval, Task, undefined),
-    period = parse_period(maps:get(period, Task, undefined)),
+    task_id = maps:get(<<"id">>, Task),
+    type = parse_type(maps:get(<<"type">>, Task, <<"batch">>)),
+    prefetch = parse_prefetch(maps:get(<<"prefetch">>, Task)),
+    code = strip_comments(maps:get(<<"code">>, Task)),
+    libraries = [parse_library(Library) || Library <- maps:get(<<"libraries">>, Task, [])],
+    report_interval = parse_report_interval(maps:get(<<"report_interval">>, Task, undefined)),
+    result_destination = parse_return_url(maps:get(<<"return_url">>, Task, undefined)),
+    user_expire_interval = maps:get(<<"user_expire_interval">>, Task, undefined),
+    period = parse_period(maps:get(<<"period">>, Task, undefined)),
     timestamp = cloak_util:timestamp_to_epoch(os:timestamp())
   }.
 
@@ -61,6 +61,12 @@ parse_type(<<"batch">>) -> batch;
 parse_type(<<"streaming">>) -> streaming;
 parse_type(<<"periodic">>) -> periodic.
 
+parse_prefetch(Prefetch) ->
+  [parse_table_spec(maps:to_list(TableSpec)) || TableSpec <- Prefetch].
+
+parse_table_spec(TableSpec) ->
+  [{erlang:binary_to_existing_atom(Name, utf8), Value} || {Name, Value} <- TableSpec].
+
 parse_return_url(undefined) -> air_socket;
 parse_return_url(Url) -> {url, Url}.
 
@@ -68,7 +74,7 @@ parse_report_interval(undefined) -> undefined;
 parse_report_interval(ReportInterval) -> ReportInterval * 1000.
 
 parse_library(Library) ->
-  {maps:get(name, Library), strip_comments(maps:get(code, Library))}.
+  {maps:get(<<"name">>, Library), strip_comments(maps:get(<<"code">>, Library))}.
 
 parse_period(undefined) -> undefined;
 parse_period({<<"every">>, Minutes}) ->

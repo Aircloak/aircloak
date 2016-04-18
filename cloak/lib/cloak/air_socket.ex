@@ -40,8 +40,9 @@ defmodule Cloak.AirSocket do
   still possible that the Air has received the request.
   """
   @spec send_task_results(%{}) :: :ok | {:error, any}
-  def send_task_results(task_results) do
-    case call("task_results", task_results, :timer.seconds(5)) do
+  def send_task_results(results) do
+    Logger.info("sending results for task #{results.task_id} to Air")
+    case call("task_results", results, :timer.seconds(5)) do
       {:ok, _} -> :ok
       error -> error
     end
@@ -170,8 +171,7 @@ defmodule Cloak.AirSocket do
     Logger.info("starting task #{task["id"]}")
     response =
       try do
-          :ok = task |> :task_parser.parse |> :progress_handler.register_task |> :task_coordinator.run_task
-          :started
+          task |> :task_parser.parse |> :progress_handler.register_task |> :task_coordinator.run_task
         rescue
           error ->
             Logger.error("error starting task #{task["id"]}: #{inspect error}\n#{inspect System.stacktrace}")

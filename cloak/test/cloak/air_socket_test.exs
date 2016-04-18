@@ -62,7 +62,7 @@ defmodule Cloak.AirSocketTest do
   test "receiving a task start request" do
     ensure_joined()
     MainChannel.subscribe(cloak_id)
-    request = %{request_id: "foo", event: "run_task", payload: %{id: 42}}
+    request = %{request_id: "foo", event: "run_task", payload: %{id: 42, prefetch: [], code: ""}}
     MainChannel.send_to_cloak(cloak_id(), "air_call", request)
     assert_receive {:in_message, "call_response", response}
     assert %{"request_id" => "foo", "status" => "ok"} = response
@@ -73,11 +73,11 @@ defmodule Cloak.AirSocketTest do
     MainChannel.subscribe(cloak_id)
     me = self()
     spawn(fn ->
-          res = AirSocket.send_task_results([1, 2, 3])
+          res = AirSocket.send_task_results(%{task_id: 1})
           send(me, {:send_task_results, res})
         end)
     assert_receive {:in_message, "cloak_call", response}
-    assert%{"event" => "task_results", "payload" => [1, 2, 3], "request_id" => request_id} = response
+    assert%{"event" => "task_results", "payload" => %{"task_id" => 1}, "request_id" => request_id} = response
 
     response = %{request_id: request_id, status: "ok"}
     MainChannel.send_to_cloak(cloak_id(), "call_response", response)
