@@ -157,7 +157,15 @@ defmodule Cloak.AirSocket do
 
   defp handle_sync_request("main", "run_task", task, request_ref, transport, state) do
     Logger.info("starting task #{task.id}")
-    response = Cloak.RequestHandler.start_task(task)
+    response =
+      try do
+          :ok = task |> :task_parser.parse |> :progress_handler.register_task |> :task_coordinator.run_task
+          :started
+        rescue
+          error ->
+            Logger.error("error starting task #{task.id}: #{inspect error}\n#{inspect System.stacktrace}")
+            :error
+      end
     payload = SyncRequester.encode_response(request_ref, response)
     GenSocketClient.push(transport, "main", SyncRequester.response_event("run_task"), payload)
     {:ok, state}
