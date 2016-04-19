@@ -25,6 +25,8 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   # Temporary example on how to execute a task
+  # TODO: remove this when UI integration is in place
+  @doc false
   def test_run_task() do
     task = %{
       id: "1",

@@ -171,7 +171,10 @@ defmodule Cloak.AirSocket do
     Logger.info("starting task #{task["id"]}")
     response =
       try do
-          task |> :task_parser.parse |> :progress_handler.register_task |> :task_coordinator.run_task
+          task
+          |> :task_parser.parse()
+          |> :progress_handler.register_task()
+          |> :task_coordinator.run_task()
         rescue
           error ->
             Logger.error("error starting task #{task["id"]}: #{inspect error}\n#{inspect System.stacktrace}")
