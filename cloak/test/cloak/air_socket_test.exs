@@ -1,5 +1,6 @@
 defmodule Cloak.AirSocketTest do
-  use ExUnit.Case, async: true
+  # this suite uses a globally registered socket process, so it must run in isolation
+  use ExUnit.Case, async: false
 
   alias Cloak.AirSocket
   alias Cloak.CloakSocketMock
@@ -26,7 +27,7 @@ defmodule Cloak.AirSocketTest do
   test "connection" do
     MainChannel.await(cloak_name())
     cloak_info = MainChannel.cloak_info(cloak_name())
-    assert %{"data_sources" => [%{"id" => "local", "tables" => []}]} = cloak_info
+    assert %{"data_sources" => [%{"id" => "local", "tables" => _}]} = cloak_info
   end
 
   test "disconnect/reconnect" do
