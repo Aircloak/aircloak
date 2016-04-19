@@ -13,10 +13,7 @@ defmodule Cloak.AirSocketTest do
 
   setup do
     # create a unique cloak_name, to avoid name registration clashes
-    cloak_name =
-      :erlang.unique_integer()
-      |> :erlang.term_to_binary()
-      |> Base.encode64()
+    cloak_name = "cloak_#{:erlang.unique_integer()}"
     # we'll keep the cloak_name in the procdict to avoid passing it around
     Process.put(:cloak_name, cloak_name)
     AirSocket.set_cloak_name(cloak_name)
