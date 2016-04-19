@@ -6,6 +6,7 @@ defmodule Air do
   # for more information on OTP Applications
   def start(_type, _args) do
     configure_secrets()
+    configure_endpoint_url()
     Air.Repo.configure()
     Air.Supervisor.start_link()
   end
@@ -23,5 +24,12 @@ defmodule Air do
 
     Air.Utils.update_app_env(:air, Air.Endpoint,
         &[{:secret_key_base, :air_etcd.get("/settings/air/insights/secrets/endpoint_key_base")} | &1])
+  end
+
+  # Configures the url setting of the Air.Endpoint config,
+  # allowing phoenix to reject connections under unexpected urls.
+  defp configure_endpoint_url do
+    url_config = [host: :air_etcd.get("/site/insights")]
+    Air.Utils.update_app_env(:air, Air.Endpoint, &Keyword.merge(&1, url: url_config))
   end
 end
