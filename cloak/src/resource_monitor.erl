@@ -38,7 +38,7 @@
   num_of_cpu_cores = num_of_cpu_cores() :: pos_integer()
 }).
 
--define(DISK_CHECK_INTERVAL, (timer:hours(12))).
+-define(DISK_CHECK_INTERVAL, (timer:hours(3))).
 -define(TREND_CHECK_INTERVAL, (timer:minutes(1))).
 
 
@@ -86,7 +86,6 @@ handle_info(estimate_disk_usage, #state{last_disk_usage=LastDiskUsage} = State) 
             false -> Percentage;
             {Partition, _, Previous} -> Previous
           end,
-          log_when_in_need_of_larger_cluster(Partition, crypt_partition(), Percentage),
           %% Magical 0.01 compensates for zero or negative numbers. Given an interval of 12 hours,
           %% a no change in disk usage will estimate to 5000 days.
           Increase = max(0.01, Percentage - PreviousUsage),
@@ -117,29 +116,6 @@ code_change(_, State, _) -> {ok, State}.
 %% Internal functions
 %% -------------------------------------------------------------------
 
-%% The way migrations are currently handled, machines do not delete
-%% any old data that won't be needed after the migration before the
-%% migration has successfully completed. In some scenarios a machine might,
-%% during a migration, temporarily hold twice the amount of data it normally would.
-%% It is therefore important to perform migrations while there is still
-%% enough space left on the machine.
-%% We warn early so we can avoid having to double clusters in size when we run out of space.
-%% Doubling clusters is arguably quite expensive.
-log_when_in_need_of_larger_cluster(Partition, Partition, Percentage) when Percentage > 60 ->
-  ?CRITICAL("Adding individual machines to the cluster will likely fail migration. Please double cluster in size.");
-log_when_in_need_of_larger_cluster(Partition, Partition, Percentage) when Percentage > 40 ->
-  ?WARNING("Add cloaks to the cluster now. Otherwise migration might not be possible without doubling the number of machines!");
-log_when_in_need_of_larger_cluster(Partition, Partition, Percentage) when Percentage > 20 ->
-  ?NOTICE("Please add an additional machine to the cluster now.");
-log_when_in_need_of_larger_cluster(_, _, _) ->
-  ok.
-
-crypt_partition() ->
-  case cloak_conf:in_development() of
-    true -> "/";
-    false -> "/mnt/crypt"
-  end.
-
 analyze_memory(#state{swap_trend=SwapTrend} = State) ->
   MemoryUsage = memsup:get_system_memory_data(),
   % Convert to MBs
@@ -153,15 +129,15 @@ analyze_memory(#state{swap_trend=SwapTrend} = State) ->
 analyze_disk(#state{disk_usage_trends=DiskUsageTrends} = State) ->
   DiskUsageTrends1 = lists:foldl(
         fun({Partition, _, UsedPercent}, TrendsAcc) ->
-          PartitionTrend1 = case dict:find(Partition, TrendsAcc) of
-            {ok, Existing} -> Existing;
+          PartitionTrend = case dict:find(Partition, TrendsAcc) of
+            {ok, Existing} ->
+              add_to_trend(UsedPercent,
+                  {disk_usage_increase, [{partition, Partition}, {used_percent, UsedPercent}]}, Existing);
             error ->
               % We signal a 10 percent change in disk usage.
               trend_detector:new(10, 0.001)
           end,
-          PartitionTrend2 = add_to_trend(UsedPercent,
-              {disk_usage_increase, [{partition, Partition}, {used_percent, UsedPercent}]}, PartitionTrend1),
-          dict:store(Partition, PartitionTrend2, TrendsAcc)
+          dict:store(Partition, PartitionTrend, TrendsAcc)
         end,
         DiskUsageTrends,
         disksup:get_disk_data()
