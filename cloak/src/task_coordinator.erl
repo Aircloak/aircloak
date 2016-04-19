@@ -200,7 +200,8 @@ on_task_finished(FinishReason, State) ->
       cloak_metrics:count("task.timeout"),
       job_runner_sup:send_request_timeout(self())
   end,
-  process_responses(FinishReason, State).
+  process_responses(FinishReason, State),
+  lcf_users:delete(State#state.lcf_users).
 
 % This is called by the job_runners when they are ready to execute the next job from the current task.
 % It will return the next job parameters if there's any.
