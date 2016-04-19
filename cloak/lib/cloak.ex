@@ -10,7 +10,8 @@ defmodule Cloak do
 
     case Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor) do
       {:ok, pid} ->
-        :cloak_metrics_adapter.start_metrics_server()
+        # TODO: re-enable this once the metrics infrastructure works again
+        #:cloak_metrics_adapter.start_metrics_server()
         {:ok, pid}
       error -> error
     end
