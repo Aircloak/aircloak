@@ -28,17 +28,17 @@ defmodule Cloak.CloakSocketMock do
     # List of exposed channels
     channel "main", Cloak.CloakSocketMock.MainChannel
 
-    def kill(cloak_id) do
-      Process.exit(:gproc.where({:n, :l, {:socket, cloak_id}}), :kill)
+    def kill(cloak_name) do
+      Process.exit(:gproc.where({:n, :l, {:socket, cloak_name}}), :kill)
     end
 
     def connect(params, socket) do
       cloak_name = params["cloak_name"]
       if cloak_name != nil do
         #TODO: get organization's name from the supplied client certificate's subject info
-        cloak_id = "unknown_org/#{cloak_name}"
-        :gproc.reg({:n, :l, {:socket, cloak_id}})
-        {:ok, assign(socket, :cloak_id, cloak_id)}
+        cloak_name = "#{cloak_name}"
+        :gproc.reg({:n, :l, {:socket, cloak_name}})
+        {:ok, assign(socket, :cloak_name, cloak_name)}
       else
         :error
       end
@@ -51,32 +51,32 @@ defmodule Cloak.CloakSocketMock do
     @moduledoc false
     use Phoenix.Channel
 
-    def await(cloak_id, timeout \\ :timer.seconds(1)) do
-      {pid, _} = :gproc.await(reg_name(cloak_id), timeout)
+    def await(cloak_name, timeout \\ :timer.seconds(1)) do
+      {pid, _} = :gproc.await(reg_name(cloak_name), timeout)
       pid
     end
 
-    def reg_name(cloak_id), do: {:n, :l, {:cloak, cloak_id}}
+    def reg_name(cloak_name), do: {:n, :l, {:cloak, cloak_name}}
 
-    def pid(cloak_id), do: :gproc.where(reg_name(cloak_id))
+    def pid(cloak_name), do: :gproc.where(reg_name(cloak_name))
 
-    def subscribe(cloak_id), do: :gproc.reg({:p, :l, pid(cloak_id)})
+    def subscribe(cloak_name), do: :gproc.reg({:p, :l, pid(cloak_name)})
 
-    def cloak_info(cloak_id) do
-      call(cloak_id, :cloak_info)
+    def cloak_info(cloak_name) do
+      call(cloak_name, :cloak_info)
     end
 
-    def leave(cloak_id) do
-      send(pid(cloak_id), :leave)
+    def leave(cloak_name) do
+      send(pid(cloak_name), :leave)
     end
 
-    def send_to_cloak(cloak_id, event, payload) do
-      send(pid(cloak_id), {:send_to_cloak, event, payload})
+    def send_to_cloak(cloak_name, event, payload) do
+      send(pid(cloak_name), {:send_to_cloak, event, payload})
     end
 
-    defp call(cloak_id, request, timeout \\ 100) do
+    defp call(cloak_name, request, timeout \\ 100) do
       ref = make_ref()
-      send(pid(cloak_id), {:call, self(), ref, request})
+      send(pid(cloak_name), {:call, self(), ref, request})
       receive do
         {^ref, response} -> response
       after timeout -> raise :timeout
@@ -84,7 +84,7 @@ defmodule Cloak.CloakSocketMock do
     end
 
     def join("main", cloak_info, socket) do
-      :gproc.reg(reg_name(socket.assigns.cloak_id))
+      :gproc.reg(reg_name(socket.assigns.cloak_name))
       {:ok, %{}, socket |> assign(:cloak_info, cloak_info)}
     end
 

@@ -1,5 +1,6 @@
 defmodule Cloak.AirSocketTest do
-  use ExUnit.Case, async: true
+  # this suite uses a globally registered socket process, so it must run in isolation
+  use ExUnit.Case, async: false
 
   alias Cloak.AirSocket
   alias Cloak.CloakSocketMock
@@ -11,14 +12,19 @@ defmodule Cloak.AirSocketTest do
   end
 
   setup do
+    # create a unique cloak_name, to avoid name registration clashes
+    cloak_name = "cloak_#{:erlang.unique_integer()}"
+    # we'll keep the cloak_name in the procdict to avoid passing it around
+    Process.put(:cloak_name, cloak_name)
+    AirSocket.set_cloak_name(cloak_name)
     {:ok, _pid} = AirSocket.start_link()
     :ok
   end
 
   test "connection" do
-    MainChannel.await(cloak_id())
-    cloak_info = MainChannel.cloak_info(cloak_id())
-    assert %{"data_sources" => [%{"id" => "local", "tables" => []}]} = cloak_info
+    MainChannel.await(cloak_name())
+    cloak_info = MainChannel.cloak_info(cloak_name())
+    assert %{"data_sources" => [%{"id" => "local", "tables" => _}]} = cloak_info
   end
 
   test "disconnect/reconnect" do
@@ -27,11 +33,11 @@ defmodule Cloak.AirSocketTest do
     try do
       ensure_joined()
 
-      reg_name = MainChannel.reg_name(cloak_id())
+      reg_name = MainChannel.reg_name(cloak_name())
       :gproc_monitor.subscribe(reg_name)
 
       ExUnit.CaptureLog.capture_log(fn ->
-            CloakSocketMock.Socket.kill(cloak_id())
+            CloakSocketMock.Socket.kill(cloak_name())
             assert_receive {:gproc_monitor, ^reg_name, :undefined}
             ensure_joined()
           end)
@@ -46,11 +52,11 @@ defmodule Cloak.AirSocketTest do
     try do
       ensure_joined()
 
-      reg_name = MainChannel.reg_name(cloak_id())
+      reg_name = MainChannel.reg_name(cloak_name())
       :gproc_monitor.subscribe(reg_name)
 
       ExUnit.CaptureLog.capture_log(fn ->
-            MainChannel.leave(cloak_id())
+            MainChannel.leave(cloak_name())
             assert_receive {:gproc_monitor, ^reg_name, :undefined}
             ensure_joined()
           end)
@@ -59,18 +65,20 @@ defmodule Cloak.AirSocketTest do
     end
   end
 
-  test "receiving a task start request" do
+  test "starting a task" do
     ensure_joined()
-    MainChannel.subscribe(cloak_id)
+    MainChannel.subscribe(cloak_name)
     request = %{request_id: "foo", event: "run_task", payload: %{id: 42, prefetch: [], code: ""}}
-    MainChannel.send_to_cloak(cloak_id(), "air_call", request)
+    MainChannel.send_to_cloak(cloak_name(), "air_call", request)
     assert_receive {:in_message, "call_response", response}
     assert %{"request_id" => "foo", "status" => "ok"} = response
+    assert_receive {:in_message, "cloak_call", response}
+    assert %{"event" => "task_results", "payload" => %{"task_id" => 42}} = response
   end
 
   test "sending a task result" do
     ensure_joined()
-    MainChannel.subscribe(cloak_id)
+    MainChannel.subscribe(cloak_name)
     me = self()
     spawn(fn ->
           res = AirSocket.send_task_results(%{task_id: 1})
@@ -80,14 +88,14 @@ defmodule Cloak.AirSocketTest do
     assert%{"event" => "task_results", "payload" => %{"task_id" => 1}, "request_id" => request_id} = response
 
     response = %{request_id: request_id, status: "ok"}
-    MainChannel.send_to_cloak(cloak_id(), "call_response", response)
+    MainChannel.send_to_cloak(cloak_name(), "call_response", response)
     assert_receive {:send_task_results, :ok}
   end
 
-  defp cloak_id, do: "unknown_org/nonode@nohost"
+  defp cloak_name, do: Process.get(:cloak_name)
 
   defp ensure_joined do
-    MainChannel.await(cloak_id())
-    assert %{} = MainChannel.cloak_info(cloak_id())
+    MainChannel.await(cloak_name())
+    assert %{} = MainChannel.cloak_info(cloak_name())
   end
 end
