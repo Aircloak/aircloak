@@ -1,8 +1,9 @@
-%% @doc Decodes json that describes the task and returns the corresponding task specification.
+%% @doc Decodes the map that describes the task and returns the corresponding task specification.
 %%
-%%      Example of a json describing the task:
+%%      Example of a map describing the task:
 %%        ```
 %%          {
+%%            "task_id": "1234",
 %%            "prefetch": [
 %%              {
 %%                "table": "test1",
@@ -21,11 +22,11 @@
 %%            }
 %%          }
 %%        '''
--module(task_json_parser).
+-module(task_parser).
 
 %% API
 -export([
-  parse/3
+  parse/1
 ]).
 
 -include("cloak.hrl").
@@ -35,23 +36,20 @@
 %% API
 %% -------------------------------------------------------------------
 
-%% @doc Converts the input json to the task specification.
--spec parse(task_id(), string(), binary()) -> #task{}.
-parse(TaskId, SourceIP, Json) ->
-  Proplist = [map_top_level_value(Property) ||
-    Property <- cloak_util:destructure_parsed_json(mochijson2:decode(Json))
-  ],
+%% @doc Converts the input map to the task specification.
+-spec parse(#{}) -> #task{}.
+parse(Task) ->
   #task{
-    task_id=TaskId,
-    type=proplists:get_value(type, Proplist, batch),
-    prefetch=proplists:get_value(prefetch, Proplist),
-    code=strip_comments(proplists:get_value(code, proplists:get_value(post_processing, Proplist))),
-    libraries=proplists:get_value(libraries, proplists:get_value(post_processing, Proplist), []),
-    report_interval=proplists:get_value(report_interval, Proplist),
-    user_expire_interval=proplists:get_value(user_expire_interval, Proplist),
-    period=proplists:get_value(period, Proplist),
-    source_ip=SourceIP,
-    timestamp=cloak_util:timestamp_to_epoch(os:timestamp())
+    task_id = maps:get(<<"id">>, Task),
+    type = parse_type(maps:get(<<"type">>, Task, <<"batch">>)),
+    prefetch = parse_prefetch(maps:get(<<"prefetch">>, Task)),
+    code = strip_comments(maps:get(<<"code">>, Task)),
+    libraries = [parse_library(Library) || Library <- maps:get(<<"libraries">>, Task, [])],
+    report_interval = parse_report_interval(maps:get(<<"report_interval">>, Task, undefined)),
+    result_destination = parse_return_url(maps:get(<<"return_url">>, Task, undefined)),
+    user_expire_interval = maps:get(<<"user_expire_interval">>, Task, undefined),
+    period = parse_period(maps:get(<<"period">>, Task, undefined)),
+    timestamp = cloak_util:timestamp_to_epoch(os:timestamp())
   }.
 
 
@@ -59,40 +57,26 @@ parse(TaskId, SourceIP, Json) ->
 %% Internal functions
 %% -------------------------------------------------------------------
 
-map_top_level_value({<<"type">>, <<"batch">>}) -> {type, batch};
-map_top_level_value({<<"type">>, <<"streaming">>}) -> {type, streaming};
-map_top_level_value({<<"type">>, <<"periodic">>}) -> {type, periodic};
-map_top_level_value({<<"post_processing">>, PostProcessing}) ->
-  {post_processing, [map_post_processing(PostProcessingElement) || PostProcessingElement <- PostProcessing]};
-map_top_level_value({<<"prefetch">>, Prefetch}) ->
-  {prefetch, [map_table_spec(TableSpec) || TableSpec <- Prefetch]};
-map_top_level_value({<<"report_interval">>, ReportInterval}) ->
-  {report_interval, ReportInterval * 1000};
-map_top_level_value({<<"user_expire_interval">>, UserExpireInterval}) ->
-  {user_expire_interval, UserExpireInterval};
-map_top_level_value({<<"period">>, [Period]}) ->
-  {period, parse_period(Period)}.
+parse_type(<<"batch">>) -> batch;
+parse_type(<<"streaming">>) -> streaming;
+parse_type(<<"periodic">>) -> periodic.
 
-map_post_processing({<<"code">>, Code}) -> {code, Code};
-map_post_processing({<<"libraries">>, Libraries}) ->
-  {libraries, [map_library(Library) || Library <- Libraries]}.
+parse_prefetch(Prefetch) ->
+  [parse_table_spec(maps:to_list(TableSpec)) || TableSpec <- Prefetch].
 
-map_library(Library) ->
-  {
-    proplists:get_value(<<"name">>, Library),
-    strip_comments(proplists:get_value(<<"code">>, Library))
-  }.
+parse_table_spec(TableSpec) ->
+  [{erlang:binary_to_existing_atom(Name, utf8), Value} || {Name, Value} <- TableSpec].
 
-map_table_spec(TableSpec) ->
-  [map_table_spec_property(TableSpecProperty) || TableSpecProperty <- TableSpec].
+parse_return_url(undefined) -> air_socket;
+parse_return_url(Url) -> {url, Url}.
 
-map_table_spec_property({<<"table">>, TableName}) -> {table, TableName};
-map_table_spec_property({<<"user_rows">>, UserRows}) -> {user_rows, UserRows};
-map_table_spec_property({<<"time_limit">>, TimeLimit}) -> {time_limit, TimeLimit};
-map_table_spec_property({<<"where">>, Where}) -> {where, Where};
-map_table_spec_property({<<"columns">>, Columns}) -> {columns, Columns}.
+parse_report_interval(undefined) -> undefined;
+parse_report_interval(ReportInterval) -> ReportInterval * 1000.
 
-parse_period(null) -> undefined;
+parse_library(Library) ->
+  {maps:get(<<"name">>, Library), strip_comments(maps:get(<<"code">>, Library))}.
+
+parse_period(undefined) -> undefined;
 parse_period({<<"every">>, Minutes}) ->
   ?EVERY_N_SEC(binary_to_integer(Minutes) * 60);
 parse_period({<<"hourly">>, Minute}) ->

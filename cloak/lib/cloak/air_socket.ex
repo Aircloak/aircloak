@@ -39,13 +39,18 @@ defmodule Cloak.AirSocket do
   The function returns when the Air responds. If the timeout occurs, it is
   still possible that the Air has received the request.
   """
-  @spec send_task_results(any) :: :ok | {:error, any}
-  def send_task_results(task_results) do
-    case call("task_results", task_results, :timer.seconds(5)) do
+  @spec send_task_results(%{}) :: :ok | {:error, any}
+  def send_task_results(results) do
+    Logger.info("sending results for task #{results.task_id} to Air")
+    case call("task_results", results, :timer.seconds(5)) do
       {:ok, _} -> :ok
       error -> error
     end
   end
+
+  @doc "Sends task progress report to the Air."
+  @spec send_task_progress_report(%{}) :: :ok
+  def send_task_progress_report(progress_report), do: Logger.info("new task progress report: #{inspect progress_report}")
 
 
   # -------------------------------------------------------------------
@@ -164,7 +169,18 @@ defmodule Cloak.AirSocket do
 
   defp handle_air_call("run_task", task, from, state) do
     Logger.info("starting task #{task["id"]}")
-    respond_to_air(from, :ok)
+    response =
+      try do
+          task
+          |> :task_parser.parse()
+          |> :progress_handler.register_task()
+          |> :task_coordinator.run_task()
+        rescue
+          error ->
+            Logger.error("error starting task #{task["id"]}: #{inspect error}\n#{inspect System.stacktrace}")
+            :error
+      end
+    respond_to_air(from, response)
     {:ok, state}
   end
 
@@ -205,7 +221,17 @@ defmodule Cloak.AirSocket do
     end
   end
 
-  defp cloak_name(), do: Node.self() |> Atom.to_string()
+  unless Mix.env() == :test do
+    defp cloak_name(), do: Node.self() |> Atom.to_string()
+  else
+    # we need some dynamic names in tests to support connecting multiple different cloaks
+    defp cloak_name(), do: Application.get_env(:cloak, :test_cloak_name)
+
+    @doc false
+    def set_cloak_name(name) do
+      Application.put_env(:cloak, :test_cloak_name, name)
+    end
+  end
 
   defp get_join_info() do
     data_sources = for data_source <- Cloak.DataSource.all do

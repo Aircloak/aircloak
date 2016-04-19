@@ -174,8 +174,8 @@ terminate(Error, State) ->
     noise_sd = 1
   }],
   ?MEASURE("task.send_result", begin
-        #task{task_id=TaskId, return_token=ReturnToken} = State#state.task,
-        result_sender:send_results(TaskId, ReturnToken, Results)
+        #task{task_id = TaskId, result_destination = ResultDestination} = State#state.task,
+        result_sender:send_results(TaskId, ResultDestination, Results)
       end),
   ?REPORT_DURATION("task.total", State#state.start_time).
 
@@ -215,9 +215,9 @@ process_responses(FinishReason, #state{task=#task{type=batch}} = State) ->
   Reports = aggregator:reports(State#state.aggregator),
   Results = ?MEASURE("task.anonymization", anonymizer:anonymize(Reports, State#state.lcf_users)),
   ?MEASURE("task.send_result", begin
-        #task{task_id=TaskId, return_token=ReturnToken} = State#state.task,
+        #task{task_id = TaskId, result_destination = ResultDestination} = State#state.task,
         FinalResults = Results ++ report_finish_reason(FinishReason),
-        result_sender:send_results(TaskId, ReturnToken, FinalResults)
+        result_sender:send_results(TaskId, ResultDestination, FinalResults)
       end),
   case State#state.reply_pid of
     undefined -> ok;

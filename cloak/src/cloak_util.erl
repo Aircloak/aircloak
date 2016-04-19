@@ -9,7 +9,6 @@
   stringify/1,
   binarify/1,
   node_connection_descriptor/1,
-  destructure_parsed_json/1,
   index_of/2,
   timestamp_to_epoch/1,
   epoch_to_timestamp/1,
@@ -94,15 +93,6 @@ node_connection_descriptor(Node) ->
 node_connection_descriptor(Node) ->
   [{host, host_from_node(Node)}].
 -endif.
-
-%% @doc Transforms deep mochijson2 structure into a plain property list.
-%%      Essentially, this transforms `{struct, [...]}' into `[...]' in the
-%%      entire hierarchy.
--spec destructure_parsed_json(mochijson2:json_object()) -> deep_proplist().
-destructure_parsed_json({struct, Properties}) -> destructure_parsed_json(Properties);
-destructure_parsed_json({Field, Value}) -> {Field, destructure_parsed_json(Value)};
-destructure_parsed_json(List) when is_list(List) -> [destructure_parsed_json(Element) || Element <- List];
-destructure_parsed_json(Value) -> Value.
 
 %% @doc Returns the 1-based position of element in a list, or undefined if element is not found.
 -spec index_of(term(), [term()]) -> pos_integer() | undefined.
@@ -267,18 +257,6 @@ stringify_test_() ->
     ?_assertEqual("hello", stringify(<<"hello">>)),
     ?_assertEqual("hello", stringify("hello")),
     ?_assertEqual("1", stringify(1))
-  ].
-
-
-destructure_test_() ->
-  [
-    ?_assertEqual(1, destructure_parsed_json(1)),
-    ?_assertEqual([1], destructure_parsed_json([1])),
-    ?_assertEqual([{<<"a">>, 1}], destructure_parsed_json({struct, [{<<"a">>, 1}]})),
-    ?_assertEqual(
-          [1, [{<<"a">>, 1}], 2],
-          destructure_parsed_json([1, {struct, [{<<"a">>, 1}]}, 2])
-        )
   ].
 
 index_of_test_() ->

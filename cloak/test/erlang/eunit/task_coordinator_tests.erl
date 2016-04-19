@@ -8,16 +8,14 @@
 
 -define(verifyAsync(Code, Expected), (fun() ->
       task_coordinator:run_task(test_task(Code)),
-      {reply, Json} = ?assertReceived({reply, _}, 1000),
-      {struct, Result} = mochijson2:decode(Json),
-      ?assertEqual(Expected, lists:sort(Result))
+      {reply, Result} = ?assertReceived({reply, _}, 1000),
+      ?assertEqual(Expected, Result)
     end)()).
 
 -define(verifySync(Code, Expected), (fun() ->
       task_coordinator:block_run_task(test_task(Code)),
-      {reply, Json} = ?assertReceived({reply, _}, 1000),
-      {struct, Result} = mochijson2:decode(Json),
-      ?assertEqual(Expected, lists:sort(Result))
+      {reply, Result} = ?assertReceived({reply, _}, 1000),
+      ?assertEqual(Expected, Result)
     end)()).
 
 test_task(Code) ->
@@ -26,7 +24,7 @@ test_task(Code) ->
     prefetch = [[{table, db_test:table_path(<<"heights">>)}]],
     code = Code,
     libraries = [],
-    return_token = {json, {process, self()}}
+    result_destination = {process, self()}
   }.
 
 task_test_() ->
@@ -46,11 +44,7 @@ task_test_() ->
         ?verifyAsync(
               <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
                   "\") do report_property(\"height\", row.height) end">>,
-              [
-                {<<"buckets">>, []},
-                {<<"exceptions">>, []},
-                {<<"task_id">>, "test_task"}
-              ]
+              #{buckets => [], exceptions => [], task_id => "test_task"}
             )
       end},
       {"async task", fun() ->
@@ -62,15 +56,15 @@ task_test_() ->
         ?verifyAsync(
               <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
                   "\") do report_property(\"height\", row.height) end">>,
-              [
-                {<<"buckets">>, [{struct, [
-                  {<<"label">>, <<"height">>},
-                  {<<"value">>, <<"180">>},
-                  {<<"count">>, 100}
-                ]}]},
-                {<<"exceptions">>, []},
-                {<<"task_id">>, "test_task"}
-              ]
+              #{
+                buckets => [#{
+                  label => <<"height">>,
+                  value => <<"180">>,
+                  count => 100
+                }],
+                exceptions => [],
+                task_id => "test_task"
+              }
             )
       end},
       {"sync task", fun() ->
@@ -82,15 +76,15 @@ task_test_() ->
         ?verifySync(
               <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
                   "\") do report_property(\"height\", row.height) end">>,
-              [
-                {<<"buckets">>, [{struct, [
-                  {<<"label">>, <<"height">>},
-                  {<<"value">>, <<"180">>},
-                  {<<"count">>, 100}
-                ]}]},
-                {<<"exceptions">>, []},
-                {<<"task_id">>, "test_task"}
-              ]
+              #{
+                buckets => [#{
+                  label => <<"height">>,
+                  value => <<"180">>,
+                  count => 100
+                }],
+                exceptions => [],
+                task_id => "test_task"
+              }
             )
       end},
       {"task with errors", fun() ->
@@ -101,30 +95,29 @@ task_test_() ->
         ok = db_test:add_users_data(Data),
         ?verifyAsync(
               <<"error('some_error')">>,
-              [
-                {<<"buckets">>,[]},
-                {<<"exceptions">>, [{struct, [
-                  {<<"error">>, <<"{sandbox_error,\"[string \\\"task_code\\\"]:1: some_error\"}">>},
-                  {<<"count">>,100}
-                ]}]},
-                {<<"task_id">>,"test_task"}
-              ]
+              #{
+                buckets => [],
+                exceptions => [#{
+                  error => <<"{sandbox_error,\"[string \\\"task_code\\\"]:1: some_error\"}">>,
+                  count => 100
+                }],
+                task_id => "test_task"
+              }
             )
       end},
       {"timeout", fun() ->
         gen_server:start_link(task_coordinator, {test_task(<<"">>), undefined, undefined, fun timeout_runner/4}, []),
-        {reply, Json} = ?assertReceived({reply, _}, 1000),
-        {struct, Result} = mochijson2:decode(Json),
+        {reply, Result} = ?assertReceived({reply, _}, 1000),
         ?assertEqual(
-              [
-                {<<"buckets">>, []},
-                {<<"exceptions">>, [{struct,[
-                  {<<"error">>, <<"task execution timed out before processing all users">>},
-                  {<<"count">>, 1}
-                ]}]},
-                {<<"task_id">>,"test_task"}
-              ],
-              lists:sort(Result)
+              #{
+                buckets => [],
+                exceptions => [#{
+                  error => <<"task execution timed out before processing all users">>,
+                  count => 1
+                }],
+                task_id => "test_task"
+              },
+              Result
             )
       end}
     ]

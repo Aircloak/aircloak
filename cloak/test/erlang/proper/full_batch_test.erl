@@ -240,7 +240,7 @@ callback_run_batch_task(Prefetch) ->
           "  end\n",
           "end\n"
         ]),
-    return_token = {json, {process, self()}}
+    result_destination = {process, self()}
   },
   gproc:reg({p, l, {task_listener, Task#task.task_id}}),
   try
@@ -251,13 +251,13 @@ callback_run_batch_task(Prefetch) ->
         monitor(process, TaskCoordinator),
         receive
           {reply, Result} ->
-            transform_json_result(Result);
+            transform_result(Result);
           {'DOWN', _, process, TaskCoordinator, ExitReason} ->
             case ExitReason of
               normal ->
                 % It's possible that this arrives before the result, so we'll wait a bit more.
                 receive
-                  {reply, Result} -> transform_json_result(Result)
+                  {reply, Result} -> transform_result(Result)
                 after 5000 -> {error, exit_without_result}
                 end;
               _ ->
@@ -274,18 +274,15 @@ callback_run_batch_task(Prefetch) ->
     gproc:unreg({p, l, {task_listener, Task#task.task_id}})
   end.
 
--spec transform_json_result(binary()) -> [{binary(), binary()|undefined, integer()}].
-transform_json_result(JSONResult) ->
-  {struct, DecodedResult} = mochijson2:decode(JSONResult),
-  JSONBuckets = proplists:get_value(<<"buckets">>, DecodedResult),
-  lists:sort([transform_json_bucket(Bucket) || {struct, Bucket} <- JSONBuckets]).
+-spec transform_result(#{}) -> [{binary(), binary()|undefined, integer()}].
+transform_result(#{buckets := Buckets}) ->
+  lists:sort([transform_bucket(Bucket) || Bucket <- Buckets]).
 
--spec transform_json_bucket([{binary(), any()}]) -> {binary(), binary()|undefined, integer()}.
-transform_json_bucket(Bucket) ->
-  Label = proplists:get_value(<<"label">>, Bucket),
-  Value = proplists:get_value(<<"value">>, Bucket, undefined),
-  Count = proplists:get_value(<<"count">>, Bucket),
-  {Label, Value, Count}.
+-spec transform_bucket(#{}) -> {binary(), binary()|undefined, integer()}.
+transform_bucket(#{label := Label, value := Value, count := Count}) ->
+  {Label, Value, Count};
+  transform_bucket(#{label := Label, count := Count}) ->
+    {Label, undefined, Count}.
 
 -spec next_state_run_batch_task(#state{}, any(), prefetch_spec()) -> #state{}.
 next_state_run_batch_task(State, {var, _}, _Prefetch) ->
