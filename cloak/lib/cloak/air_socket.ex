@@ -221,7 +221,17 @@ defmodule Cloak.AirSocket do
     end
   end
 
-  defp cloak_name(), do: Node.self() |> Atom.to_string()
+  unless Mix.env() == :test do
+    defp cloak_name(), do: Node.self() |> Atom.to_string()
+  else
+    # we need some dynamic names in tests to support connecting multiple different cloaks
+    defp cloak_name(), do: Application.get_env(:cloak, :test_cloak_name)
+
+    @doc false
+    def set_cloak_name(name) do
+      Application.put_env(:cloak, :test_cloak_name, name)
+    end
+  end
 
   defp get_join_info() do
     data_sources = for data_source <- Cloak.DataSource.all do
