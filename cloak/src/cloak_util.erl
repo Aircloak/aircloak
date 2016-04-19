@@ -12,11 +12,6 @@
   index_of/2,
   timestamp_to_epoch/1,
   epoch_to_timestamp/1,
-  timestamp_to_int/1,
-  int_to_timestamp/1,
-  timestamp_to_datetime/1,
-  datetime_to_int/1,
-  int_to_datetime/1,
   dedupe/1,
   all_visible_nodes/0,
   all_other_visible_nodes/0,
@@ -33,10 +28,6 @@
 
 -type deep_proplist_value() :: term() | [term()] | deep_proplist().
 -type deep_proplist() :: [{term(), deep_proplist_value()}].
-
-% We need the relative offset of the current epoch when converting SQL timestamps to integers.
-% This is the value of "calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}})".
--define(OS_TIMESTAMP_EPOCH, 62167219200).
 
 
 %% -------------------------------------------------------------------
@@ -107,38 +98,6 @@ timestamp_to_epoch({MegaSec, Sec, _MicroSecond}) ->
 -spec epoch_to_timestamp(non_neg_integer()) -> erlang:timestamp().
 epoch_to_timestamp(Epoch) ->
   {Epoch div 1000000, Epoch rem 1000000, 0}.
-
-%% @doc Converts Erlang timestamp to integer (number of microseconds since midnight, 1.1.1970.)
--spec timestamp_to_int(erlang:timestamp()) -> non_neg_integer().
-timestamp_to_int({MegaSec, Sec, MicroSecond}) ->
-  (MegaSec * 1000000 + Sec) * 1000000 + MicroSecond.
-
-%% @doc Converts integer to Erlang timestamp
--spec int_to_timestamp(non_neg_integer()) -> erlang:timestamp().
-int_to_timestamp(MicroSeconds) ->
-  {MicroSeconds div 1000000000000, MicroSeconds div 1000000 rem 1000000, MicroSeconds rem 1000000}.
-
-%% @doc Converts Erlang timestamp to format that can be used in SQL queries.
--spec timestamp_to_datetime(erlang:timestamp()) -> datetime().
-timestamp_to_datetime({_, _, MicroSec} = Timestamp) ->
-  {Date, {Hour, Minute, Second}} = calendar:now_to_universal_time(Timestamp),
-  {Date, {Hour, Minute, Second + MicroSec / 1000000}}.
-
-%% @doc Converts a datetime tuple to an integer timestamp.
--spec datetime_to_int(datetime()) -> non_neg_integer().
-datetime_to_int({{Year, Month, Day}, {Hour, Min, Sec}}) when is_float(Sec) ->
-    SecInt = trunc(Sec),
-    MicroSec = round((Sec - SecInt) * 1000000),
-    Seconds = calendar:datetime_to_gregorian_seconds({{Year, Month, Day}, {Hour, Min, SecInt}}),
-    (Seconds - ?OS_TIMESTAMP_EPOCH) * 1000000 + MicroSec;
-datetime_to_int({{Year, Month, Day}, {Hour, Min, Sec}}) ->
-    Seconds = calendar:datetime_to_gregorian_seconds({{Year, Month, Day}, {Hour, Min, Sec}}),
-    (Seconds - ?OS_TIMESTAMP_EPOCH) * 1000000.
-
-%% @doc Converts an integer timestamp to a datetime tuple.
--spec int_to_datetime(non_neg_integer()) -> datetime().
-int_to_datetime(Timestamp) ->
-  timestamp_to_datetime(int_to_timestamp(Timestamp)).
 
 %% @doc Returns a deduplicated version of a list preserving the original
 %%      order of the list
@@ -274,11 +233,6 @@ epoch_conversion_test() ->
   ?assertEqual(timestamp_to_epoch(ZeroTimestamp), 0),
   Now = {MegaSec, Sec, _} = os:timestamp(),
   ?assertEqual({MegaSec, Sec, 0}, epoch_to_timestamp(timestamp_to_epoch(Now))).
-
-timestamp_to_datetime_test() ->
-  ZeroTimestamp = {Mega, Sec, _} = epoch_to_timestamp(0),
-  ?assertEqual({{1970,1,1}, {0,0,0.0}}, timestamp_to_datetime(ZeroTimestamp)),
-  ?assertEqual({{1970,1,1}, {0,0,1.5}}, timestamp_to_datetime({Mega, Sec, 1500000})).
 
 chunk_size_test_() ->
   [
