@@ -126,11 +126,8 @@ div#task-side-content {
   border-left: 1px solid #ddd;
   background-color: white;
 
-  /* We don't want the height of the side
-   * panel to exceed that of the screen.
-   * When it does, it shifts the code editing
-   * box along with it, and renders the page
-   * somewhat useless.
+  /* We don't want the height of the side panel to exceed that of the screen. When it does,
+   * it shifts the code editing box along with it, and renders the page somewhat useless. */
 
   /* Firefox */
   max-height: -moz-calc(100vh - 170px);
