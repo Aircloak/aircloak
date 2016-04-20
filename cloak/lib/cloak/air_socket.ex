@@ -17,19 +17,19 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   @doc "Starts the socket client."
-  @spec start_link() :: GenServer.on_start
-  def start_link() do
+  @spec start_link(String.t, GenServer.options) :: GenServer.on_start
+  def start_link(cloak_name \\ cloak_name(), gen_server_opts \\ [name: __MODULE__]) do
     GenSocketClient.start_link(
           __MODULE__,
           GenSocketClient.Transport.WebSocketClient,
-          nil,
+          cloak_name,
           [
             serializer: :cloak_conf.get_val(:air, :serializer),
             transport_opts: [
               keepalive: :timer.seconds(30)
             ]
           ],
-          name: __MODULE__
+          gen_server_opts
         )
   end
 
@@ -39,18 +39,19 @@ defmodule Cloak.AirSocket do
   The function returns when the Air responds. If the timeout occurs, it is
   still possible that the Air has received the request.
   """
-  @spec send_task_results(%{}) :: :ok | {:error, any}
-  def send_task_results(results) do
+  @spec send_task_results(GenServer.server, %{}) :: :ok | {:error, any}
+  def send_task_results(socket \\ __MODULE__, results) do
     Logger.info("sending results for task #{results.task_id} to Air")
-    case call("task_results", results, :timer.seconds(5)) do
+    case call(socket, "task_results", results, :timer.seconds(5)) do
       {:ok, _} -> :ok
       error -> error
     end
   end
 
   @doc "Sends task progress report to the Air."
-  @spec send_task_progress_report(%{}) :: :ok
-  def send_task_progress_report(progress_report), do: Logger.info("new task progress report: #{inspect progress_report}")
+  @spec send_task_progress_report(GenServer.server, %{}) :: :ok
+  def send_task_progress_report(_socket \\ __MODULE__, progress_report),
+    do: Logger.info("new task progress report: #{inspect progress_report}")
 
 
   # -------------------------------------------------------------------
@@ -58,12 +59,12 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   @doc false
-  def init(_) do
+  def init(cloak_name) do
     params = %{
-      cloak_name: cloak_name()
+      cloak_name: cloak_name
     }
     url = "#{:cloak_conf.get_val(:air, :socket_url)}?#{URI.encode_query(params)}"
-    {:connect, url, %{pending_calls: %{}}}
+    {:connect, url, %{cloak_name: cloak_name, pending_calls: %{}}}
   end
 
   @doc false
@@ -136,7 +137,7 @@ defmodule Cloak.AirSocket do
     {:connect, state}
   end
   def handle_info({:join, topic}, transport, state) do
-    case GenSocketClient.join(transport, topic, get_join_info()) do
+    case GenSocketClient.join(transport, topic, get_join_info(state.cloak_name)) do
       {:error, reason} ->
         Logger.error("error joining the topic #{topic}: #{inspect reason}")
         Process.send_after(self(), {:join, topic}, :cloak_conf.get_val(:air, :rejoin_interval))
@@ -206,10 +207,10 @@ defmodule Cloak.AirSocket do
     send(client_pid, {mref, response})
   end
 
-  @spec call(String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
-  defp call(event, payload, timeout) do
-    mref = Process.monitor(__MODULE__)
-    send(__MODULE__, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
+  @spec call(GenServer.server, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
+  defp call(socket, event, payload, timeout) do
+    mref = Process.monitor(socket)
+    send(socket, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
     receive do
       {^mref, response} ->
         Process.demonitor(mref, [:flush])
@@ -221,19 +222,9 @@ defmodule Cloak.AirSocket do
     end
   end
 
-  unless Mix.env() == :test do
-    defp cloak_name(), do: Node.self() |> Atom.to_string()
-  else
-    # we need some dynamic names in tests to support connecting multiple different cloaks
-    defp cloak_name(), do: Application.get_env(:cloak, :test_cloak_name)
+  defp cloak_name(), do: Node.self() |> Atom.to_string()
 
-    @doc false
-    def set_cloak_name(name) do
-      Application.put_env(:cloak, :test_cloak_name, name)
-    end
-  end
-
-  defp get_join_info() do
+  defp get_join_info(cloak_name) do
     data_sources = for data_source <- Cloak.DataSource.all do
       tables = for table <- Cloak.DataSource.tables(data_source) do
         columns = for {name, type} <- Cloak.DataSource.columns(data_source, table) do
@@ -243,6 +234,6 @@ defmodule Cloak.AirSocket do
       end
       %{id: data_source, tables: tables}
     end
-    %{name: cloak_name(), data_sources: data_sources}
+    %{name: cloak_name, data_sources: data_sources}
   end
 end
