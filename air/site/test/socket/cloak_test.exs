@@ -4,6 +4,7 @@ defmodule Air.Socket.CloakTest do
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
   alias Air.Socket.Cloak.MainChannel
+  alias Air.CloakInfo
 
 
   test "invalid authentication" do
@@ -56,17 +57,17 @@ defmodule Air.Socket.CloakTest do
     assert {:ok, socket1} = start_link(url(%{cloak_name: "cloak_1"}))
     assert :connected == TestSocket.wait_connect_status(socket1)
     assert {:ok, {"main", %{}}} == join_main_channel(socket1, "cloak_1")
-    assert [%Air.CloakInfo{name: "cloak_1"}] = MainChannel.connected
+    assert [%Air.CloakInfo{name: "cloak_1"}] = CloakInfo.connected()
 
     assert {:ok, socket2} = start_link(url(%{cloak_name: "cloak_2"}))
     assert :connected == TestSocket.wait_connect_status(socket2)
     assert {:ok, {"main", %{}}} == join_main_channel(socket2, "cloak_2")
-    assert [%Air.CloakInfo{name: "cloak_1"}, %Air.CloakInfo{name: "cloak_2"}] = MainChannel.connected
+    assert [%Air.CloakInfo{name: "cloak_1"}, %Air.CloakInfo{name: "cloak_2"}] = CloakInfo.connected()
 
-    mref = Process.monitor(MainChannel.channel_pid("unknown_org/cloak_1"))
+    mref = Process.monitor(CloakInfo.main_channel_pid("unknown_org/cloak_1"))
     TestSocket.leave(socket1, "main")
     assert_receive {:DOWN, ^mref, _, _, _}
-    assert [%Air.CloakInfo{name: "cloak_2"}] = MainChannel.connected
+    assert [%Air.CloakInfo{name: "cloak_2"}] = CloakInfo.connected()
   end
 
   defp start_link(url) do
