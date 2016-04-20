@@ -4,6 +4,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
+  alias Air.CloakInfo
 
 
   # -------------------------------------------------------------------
@@ -16,7 +17,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   The function returns when the cloak responds. If the timeout occurs, it is
   still possible that a cloak has received the request.
   """
-  @spec run_task(String.t, %{}) :: :ok | {:error, any}
+  @spec run_task(CloakInfo.cloak_id, %{}) :: :ok | {:error, any}
   def run_task(cloak_id, task) do
     case call(cloak_id, "run_task", task, :timer.seconds(5)) do
       {:ok, _} -> :ok
@@ -43,18 +44,10 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   @doc false
   def join("main", cloak_info, socket) do
-    cloak_id = socket.assigns.cloak_id
-
-    # Using `ServiceRegistration` for strongly consistent discovery of the channel process.
-    {:ok, _} = Air.ServiceRegistration.start_link(
-          registration_key(cloak_id),
-          registration_value(),
-          crash_on_error: true
-        )
+    {:ok, _} = CloakInfo.start_link(cloak_info)
 
     {:ok, %{},
       socket
-      |> assign(:cloak_info, cloak_info)
       |> assign(:pending_calls, %{})
     }
   end
@@ -149,7 +142,7 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   @spec call(String.t, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
   defp call(cloak_id, event, payload, timeout) do
-    case channel_pid(cloak_id) do
+    case CloakInfo.main_channel_pid(cloak_id) do
       nil -> exit(:noproc)
       pid ->
         mref = Process.monitor(pid)
@@ -164,22 +157,5 @@ defmodule Air.Socket.Cloak.MainChannel do
           exit(:timeout)
         end
     end
-  end
-
-  defp channel_pid(cloak_id) do
-    case :air_etcd.fetch(registration_key(cloak_id)) do
-      :error -> nil
-      {:ok, encoded_pid} ->
-        encoded_pid |> Base.decode64!() |> :erlang.binary_to_term
-    end
-  end
-
-  defp registration_key(cloak_id) do
-    # base32 is used because the supported character set in the etcd key is limited
-    "/settings/air/cloaks/#{Base.encode32(cloak_id)}/main"
-  end
-
-  defp registration_value do
-    self() |> :erlang.term_to_binary() |> Base.encode64()
   end
 end
