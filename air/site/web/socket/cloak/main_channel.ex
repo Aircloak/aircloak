@@ -44,8 +44,7 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   @doc false
   def join("main", cloak_info, socket) do
-    cloak_id = socket.assigns.cloak_id
-    {:ok, _} = CloakInfo.start_link(cloak_id, cloak_info)
+    {:ok, _} = CloakInfo.start_link(cloak_info)
 
     {:ok, %{},
       socket

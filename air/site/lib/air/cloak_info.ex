@@ -9,9 +9,10 @@ defmodule Air.CloakInfo do
   ends up in a minority, renewal will fail, and the process will crash, causing
   the channel to be closed.
   """
-  defstruct [:name, :organisation, :data_sources]
+  defstruct [:id, :name, :organisation, :data_sources]
 
   @type t :: %__MODULE__{
+    id: cloak_id,
     name: String.t,
     organisation: String.t,
     data_sources: [data_source]
@@ -29,11 +30,12 @@ defmodule Air.CloakInfo do
   # -------------------------------------------------------------------
 
   @doc "Starts the process."
-  @spec start_link(cloak_id, %{String.t => any}) :: GenServer.server
-  def start_link(cloak_id, cloak_info) do
+  @spec start_link(%{String.t => any}) :: GenServer.server
+  def start_link(raw_cloak_info) do
+    cloak_info = parse_cloak_info(raw_cloak_info)
     Air.ServiceRegistration.start_link(
-          registration_key(cloak_id),
-          registration_value(cloak_info),
+          etcd_path(cloak_info.id),
+          encode_cloak_data(%{pid: self(), cloak_info: cloak_info}),
           crash_on_error: true
         )
   end
@@ -53,15 +55,21 @@ defmodule Air.CloakInfo do
     end
   end
 
+  @doc "Returns the information for the given cloak."
+  @spec get(cloak_id) :: t | nil
+  def get(cloak_id) do
+    case cloak_data(cloak_id) do
+      nil -> nil
+      cloak_data -> cloak_data.cloak_info
+    end
+  end
+
   @doc "Returns the pid of the main channel of the given cloak."
   @spec main_channel_pid(cloak_id) :: pid | nil
   def main_channel_pid(cloak_id) do
-    case :air_etcd.fetch(registration_key(cloak_id)) do
-      :error -> nil
-      {:ok, encoded_value} ->
-        encoded_value
-        |> decode_cloak_data()
-        |> Map.fetch!(:pid)
+    case cloak_data(cloak_id) do
+      nil -> nil
+      cloak_data -> cloak_data.pid
     end
   end
 
@@ -71,22 +79,42 @@ defmodule Air.CloakInfo do
   # -------------------------------------------------------------------
 
   defp connected_cloaks() do
-    for {cloak_id, _} <- :air_etcd.ls(@registration_root_key),
-        cloak_data = cloak_data(cloak_id),
-        # keeps false positives out, i.e. processes which have terminated, but the entry still lingers on
-        Process.alive?(cloak_data.pid)
+    for {etcd_path, _} <- :air_etcd.ls(@registration_root_key),
+        cloak_data = fetch_cloak_data("#{etcd_path}/main"),
+        cloak_data != nil
     do
       cloak_data.cloak_info
     end
   end
 
   defp cloak_data(cloak_id) do
-    case :air_etcd.fetch("#{cloak_id}/main") do
-      {:ok, encoded_cloak_data} ->
-        decode_cloak_data(encoded_cloak_data)
+    fetch_cloak_data(etcd_path(cloak_id))
+  end
+
+  defp fetch_cloak_data(etcd_path) do
+    case :air_etcd.fetch(etcd_path) do
+      {:ok, encoded_cloak_data} when is_binary(encoded_cloak_data) ->
+        cloak_data = decode_cloak_data(encoded_cloak_data)
+        if Process.alive?(cloak_data.pid) do
+          # keeps false positives out, i.e. processes which have terminated, but the entry still lingers on
+          cloak_data
+        else
+          nil
+        end
       _ ->
         nil
     end
+  end
+
+  defp etcd_path(cloak_id) do
+    # base32 is used because the supported character set in the etcd key is limited
+    "#{@registration_root_key}/#{Base.encode32(cloak_id)}/main"
+  end
+
+  defp encode_cloak_data(cloak_data) do
+    cloak_data
+    |> :erlang.term_to_binary()
+    |> Base.encode64()
   end
 
   defp decode_cloak_data(encoded_cloak_data) do
@@ -95,24 +123,13 @@ defmodule Air.CloakInfo do
     |> :erlang.binary_to_term()
   end
 
-  defp registration_key(cloak_id) do
-    # base32 is used because the supported character set in the etcd key is limited
-    "#{@registration_root_key}/#{Base.encode32(cloak_id)}/main"
-  end
-
-  defp registration_value(cloak_info) do
-    %{
-      pid: self(),
-      cloak_info: parse_cloak_info(cloak_info)
-    }
-    |> :erlang.term_to_binary()
-    |> Base.encode64()
-  end
-
   defp parse_cloak_info(cloak_info) do
+    name = Map.fetch!(cloak_info, "name")
+    organisation = "unknown_org" # TODO: fix this when there's org info
     %__MODULE__{
+      id: "#{organisation}/#{name}",
       name: Map.fetch!(cloak_info, "name"),
-      organisation: "unknown_org", # TODO: fix this when there's org info
+      organisation: organisation,
       data_sources: Map.fetch!(cloak_info, "data_sources") |> parse_data_sources()
     }
   end
