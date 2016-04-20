@@ -5,10 +5,27 @@ defmodule Air.Socket.Cloak.MainChannel do
   use Phoenix.Channel
   require Logger
 
+  @registration_root_key "/settings/air/cloaks"
+
+  @type cloak_id :: String.t
+  @type cloak_info :: %{}
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Returns the list of all connected cloaks and the associated metadata"
+  @spec connected :: [Air.CloakInfo.t]
+  def connected do
+    for {key_path, _} <- :air_etcd.ls(@registration_root_key),
+        {:ok, encoded_cloak_data} <- [:air_etcd.fetch("#{key_path}/main")],
+        cloak_data = decode_cloak_data(encoded_cloak_data),
+        # keeps false positives out, i.e. processes which have terminated, but the entry still lingers on
+        Process.alive?(cloak_data.pid)
+    do
+      cloak_data.cloak_info
+    end
+  end
 
   @doc """
   Runs a task on the given cloak.
@@ -16,7 +33,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   The function returns when the cloak responds. If the timeout occurs, it is
   still possible that a cloak has received the request.
   """
-  @spec run_task(String.t, %{}) :: :ok | {:error, any}
+  @spec run_task(cloak_id, %{}) :: :ok | {:error, any}
   def run_task(cloak_id, task) do
     case call(cloak_id, "run_task", task, :timer.seconds(5)) do
       {:ok, _} -> :ok
@@ -42,13 +59,14 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
 
   @doc false
-  def join("main", cloak_info, socket) do
+  def join("main", raw_cloak_info, socket) do
     cloak_id = socket.assigns.cloak_id
+    cloak_info = Air.CloakInfo.new(raw_cloak_info)
 
     # Using `ServiceRegistration` for strongly consistent discovery of the channel process.
     {:ok, _} = Air.ServiceRegistration.start_link(
           registration_key(cloak_id),
-          registration_value(),
+          registration_value(cloak_info),
           crash_on_error: true
         )
 
@@ -166,20 +184,35 @@ defmodule Air.Socket.Cloak.MainChannel do
     end
   end
 
-  defp channel_pid(cloak_id) do
+  @doc false
+  def channel_pid(cloak_id) do
     case :air_etcd.fetch(registration_key(cloak_id)) do
       :error -> nil
-      {:ok, encoded_pid} ->
-        encoded_pid |> Base.decode64!() |> :erlang.binary_to_term
+      {:ok, encoded_value} ->
+        encoded_value
+        |> Base.decode64!()
+        |> :erlang.binary_to_term()
+        |> Map.fetch!(:pid)
     end
   end
 
   defp registration_key(cloak_id) do
     # base32 is used because the supported character set in the etcd key is limited
-    "/settings/air/cloaks/#{Base.encode32(cloak_id)}/main"
+    "#{@registration_root_key}/#{Base.encode32(cloak_id)}/main"
   end
 
-  defp registration_value do
-    self() |> :erlang.term_to_binary() |> Base.encode64()
+  defp registration_value(cloak_info) do
+    %{
+      pid: self(),
+      cloak_info: cloak_info
+    }
+    |> :erlang.term_to_binary()
+    |> Base.encode64()
+  end
+
+  defp decode_cloak_data(encoded_cloak_data) do
+    encoded_cloak_data
+    |> Base.decode64!()
+    |> :erlang.binary_to_term()
   end
 end
