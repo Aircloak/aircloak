@@ -1,5 +1,4 @@
 defmodule Cloak.AirSocketTest do
-  # this suite uses a globally registered socket process, so it must run in isolation
   use ExUnit.Case, async: true
 
   alias Cloak.AirSocket
