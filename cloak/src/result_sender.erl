@@ -100,7 +100,7 @@ convert_results(TaskId, Results) ->
       #bucket_report{label = #bucket_label{label = Label}} = Bucket <- Results, Label =/= ?JOB_EXECUTION_ERROR],
   Exceptions = [#{error => iolist_to_binary(Error), count => Count} ||
       #bucket_report{label = #bucket_label{label = ?JOB_EXECUTION_ERROR, value = Error}, noisy_count = Count} <- Results],
-  ?INFO("json report: ~p buckets, ~p exceptions", [length(Buckets), length(Exceptions)]),
+  ?INFO("result report for task ~s: ~p buckets, ~p exceptions", [TaskId, length(Buckets), length(Exceptions)]),
   #{task_id => TaskId, buckets => Buckets, exceptions => Exceptions}.
 
 convert_bucket(#bucket_report{label = #bucket_label{label = Label, value = undefined}, noisy_count = Count}) ->
