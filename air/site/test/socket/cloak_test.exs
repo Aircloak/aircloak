@@ -54,20 +54,27 @@ defmodule Air.Socket.CloakTest do
   end
 
   test "getting a list of connected cloaks" do
-    assert {:ok, socket1} = start_link(url(%{cloak_name: "cloak_1"}))
+    assert {:ok, socket1} = start_link(url(%{cloak_name: "cloak_3"}))
     assert :connected == TestSocket.wait_connect_status(socket1)
-    assert {:ok, {"main", %{}}} == join_main_channel(socket1, "cloak_1")
-    assert [%Air.CloakInfo{name: "cloak_1"}] = CloakInfo.connected()
+    assert {:ok, {"main", %{}}} == join_main_channel(socket1, "cloak_3")
+    assert [%Air.CloakInfo{name: "cloak_3"}] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
 
-    assert {:ok, socket2} = start_link(url(%{cloak_name: "cloak_2"}))
+    assert {:ok, socket2} = start_link(url(%{cloak_name: "cloak_4"}))
     assert :connected == TestSocket.wait_connect_status(socket2)
-    assert {:ok, {"main", %{}}} == join_main_channel(socket2, "cloak_2")
-    assert [%Air.CloakInfo{name: "cloak_1"}, %Air.CloakInfo{name: "cloak_2"}] = CloakInfo.connected()
+    assert {:ok, {"main", %{}}} == join_main_channel(socket2, "cloak_4")
 
-    mref = Process.monitor(CloakInfo.main_channel_pid("unknown_org/cloak_1"))
+    # admin org fetches all cloaks
+    all_cloaks = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
+    assert [%Air.CloakInfo{name: "cloak_3"}, %Air.CloakInfo{name: "cloak_4"}] = Enum.sort(all_cloaks)
+
+    # owner org fetches all owned cloaks
+    all_cloaks = CloakInfo.all(%Air.Organisation{name: "unknown_org"})
+    assert [%Air.CloakInfo{name: "cloak_3"}, %Air.CloakInfo{name: "cloak_4"}] = Enum.sort(all_cloaks)
+
+    mref = Process.monitor(CloakInfo.main_channel_pid("unknown_org/cloak_3"))
     TestSocket.leave(socket1, "main")
     assert_receive {:DOWN, ^mref, _, _, _}
-    assert [%Air.CloakInfo{name: "cloak_2"}] = CloakInfo.connected()
+    assert [%Air.CloakInfo{name: "cloak_4"}] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
   end
 
   defp start_link(url) do

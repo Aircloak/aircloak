@@ -38,16 +38,18 @@ defmodule Air.CloakInfo do
         )
   end
 
-  @doc "Returns the list of all connected cloaks and the associated metadata"
-  @spec connected :: [t]
-  def connected do
-    for {key_path, _} <- :air_etcd.ls(@registration_root_key),
-        {:ok, encoded_cloak_data} <- [:air_etcd.fetch("#{key_path}/main")],
-        cloak_data = decode_cloak_data(encoded_cloak_data),
-        # keeps false positives out, i.e. processes which have terminated, but the entry still lingers on
-        Process.alive?(cloak_data.pid)
-    do
-      cloak_data.cloak_info
+  @doc """
+  Returns all cloaks belonging to the given organisation.
+
+  If the organisation is the admin org, all cloaks of all organisations are returned.
+  """
+  @spec all(Air.Organisation.t) :: [t]
+  def all(organisation) do
+    all_connected = connected_cloaks()
+    if Air.Organisation.admins?(organisation) do
+      all_connected
+    else
+      Enum.filter(all_connected, &(&1.organisation == organisation.name))
     end
   end
 
@@ -67,6 +69,25 @@ defmodule Air.CloakInfo do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp connected_cloaks() do
+    for {cloak_id, _} <- :air_etcd.ls(@registration_root_key),
+        cloak_data = cloak_data(cloak_id),
+        # keeps false positives out, i.e. processes which have terminated, but the entry still lingers on
+        Process.alive?(cloak_data.pid)
+    do
+      cloak_data.cloak_info
+    end
+  end
+
+  defp cloak_data(cloak_id) do
+    case :air_etcd.fetch("#{cloak_id}/main") do
+      {:ok, encoded_cloak_data} ->
+        decode_cloak_data(encoded_cloak_data)
+      _ ->
+        nil
+    end
+  end
 
   defp decode_cloak_data(encoded_cloak_data) do
     encoded_cloak_data
