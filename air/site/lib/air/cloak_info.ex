@@ -58,8 +58,7 @@ defmodule Air.CloakInfo do
       :error -> nil
       {:ok, encoded_value} ->
         encoded_value
-        |> Base.decode64!()
-        |> :erlang.binary_to_term()
+        |> decode_cloak_data()
         |> Map.fetch!(:pid)
     end
   end
