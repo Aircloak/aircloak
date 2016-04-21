@@ -59,4 +59,24 @@ defmodule Air.Task do
     from t in query,
     where: t.user_id == ^user.id
   end
+
+
+  # -------------------------------------------------------------------
+  # Utility functions
+  # -------------------------------------------------------------------
+
+  @doc """
+  Removes all temporary tasks that are older than a week.
+  In this context, a temporary task is one that was added,
+  but was never marked as permanent. An example of this would
+  be a new task that was never explicitly saved by the user,
+  but which never the less got saved to the database.
+  """
+  def remove_temporary_tasks do
+    Air.Repo.delete_all(
+          from t in Air.Task,
+          where: t.inserted_at < datetime_add(^Ecto.DateTime.utc, -1, "week"),
+          where: t.permanent == false
+        )
+  end
 end
