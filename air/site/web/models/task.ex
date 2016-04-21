@@ -12,13 +12,19 @@ defmodule Air.Task do
   schema "tasks" do
     field :name, :string
     field :query, :string
+    # Tasks start out as temporary until they are explicitly
+    # saved as permanent. A temporary task doesn't show
+    # in the list of tasks, and all temporary tasks are automatically
+    # cleaned up and removed after a period.
+    field :permanent, :boolean
+
     belongs_to :user, User
 
     timestamps
   end
 
   @required_fields ~w()
-  @optional_fields ~w(name query)
+  @optional_fields ~w(name query permanent)
 
   @doc """
   Creates a changeset based on the `model` and `params`.
@@ -38,5 +44,19 @@ defmodule Air.Task do
     else
       task.name
     end
+  end
+
+  # -------------------------------------------------------------------
+  # Task query functions
+  # -------------------------------------------------------------------
+
+  def permanent(query) do
+    from t in query,
+    where: t.permanent == true
+  end
+
+  def for_user(query, user) do
+    from t in query,
+    where: t.user_id == ^user.id
   end
 end

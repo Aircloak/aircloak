@@ -5,7 +5,7 @@ defmodule Air.TaskControllerTest do
   alias Air.TestRepoHelper
 
   alias Air.Task
-  @valid_attrs %{name: "name", query: "query content"}
+  @valid_attrs %{name: "name", query: "query content", permanent: true}
   @invalid_attrs %{name: ""}
   @query_data_params %{task: %{query: "Query code", name: "Query name"}}
 
