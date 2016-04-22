@@ -1,6 +1,7 @@
 defmodule Air.CloaksController do
   @moduledoc false
   use Air.Web, :controller
+  use Timex
 
   alias Air.{Organisation, CloakInfo}
 
@@ -23,6 +24,13 @@ defmodule Air.CloaksController do
   def index(conn, _params) do
     organisation = Repo.get!(Organisation, current_user(conn).organisation_id)
     cloaks = CloakInfo.all(organisation)
+    cloaks = for cloak <- cloaks do
+      # capture time difference since connected, ignoring sub-second values
+      {t1, t2, _} = Time.diff(Time.now(), cloak.created_at)
+      # convert time differece to human readable format
+      conn_uptime = {t1, t2, 0} |> Timex.Format.Time.Formatters.Humanized.format
+      Map.put_new(cloak, :conn_uptime, conn_uptime)
+    end
     render(conn, "index.html", cloaks: cloaks)
   end
 

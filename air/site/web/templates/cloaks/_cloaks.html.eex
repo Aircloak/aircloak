@@ -4,6 +4,7 @@
   <%= for cloak <- @cloaks do %>
     <div>
       <div><big><big><%= cloak.name %></big></big></div>
+      <div><small>Connection uptime: <%= cloak.conn_uptime %></small></div>
       <ul>
       <%= for data_source <- cloak.data_sources do %>
         <li type="square">
