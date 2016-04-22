@@ -39,6 +39,10 @@ ul.nav.navbar-nav.navbar-right li form.link a:hover {
   padding-left: 15px;
 }
 
+.table-small {
+  width: 50%;
+}
+
 /* Customize container */
 @media (min-width: 768px) {
   .container {
