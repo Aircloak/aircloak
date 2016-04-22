@@ -24,10 +24,7 @@ defmodule Air.TaskController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    tasks = Task
-    |> Task.permanent
-    |> Task.for_user(current_user(conn))
-    |> Repo.all
+    tasks = Repo.preload(current_user(conn), :tasks).tasks
     render(conn, "index.html", tasks: tasks)
   end
 
@@ -57,6 +54,9 @@ defmodule Air.TaskController do
       id: task.id,
       name: task.name,
       query: task.query,
+      cloak_id: task.cloak_id,
+      data_source: task.data_source,
+      tables: task.tables,
       cloaks: Air.CloakInfo.all(current_user(conn).organisation)
     }
     render(conn, "editor.html", token: Guardian.Plug.current_token(conn),
@@ -64,10 +64,7 @@ defmodule Air.TaskController do
   end
 
   def update(conn, %{"task" => task_params}) do
-    changeset = Task.changeset(conn.assigns.task,
-        # Tasks are temporary until they are explicitly saved by the user for the first time.
-        # Only tasks that are permanent are shown in the interface.
-        Map.merge(task_params, %{"permanent" => true}))
+    changeset = Task.changeset(conn.assigns.task, task_params)
     Repo.update!(changeset)
     json(conn, %{success: true})
   end

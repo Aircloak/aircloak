@@ -12,6 +12,9 @@ defmodule Air.Task do
   schema "tasks" do
     field :name, :string
     field :query, :string
+    field :cloak_id, :string
+    field :data_source, :string
+    field :tables, {:array, :string}
     # Tasks start out as temporary until they are explicitly
     # saved as permanent. A temporary task doesn't show
     # in the list of tasks, and all temporary tasks are automatically
@@ -24,7 +27,7 @@ defmodule Air.Task do
   end
 
   @required_fields ~w()
-  @optional_fields ~w(name query permanent)
+  @optional_fields ~w(name query cloak_id data_source tables permanent)
 
   @doc """
   Creates a changeset based on the `model` and `params`.
