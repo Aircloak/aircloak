@@ -29,9 +29,11 @@ recreate_db:
 
 migrate:
 	mix migrate
+	MIX_ENV=test mix migrate
 
 rollback:
 	mix rollback
+	MIX_ENV=test mix rollback
 
 dialyze:
 	mix dialyze_retry
