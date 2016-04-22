@@ -12,13 +12,19 @@ defmodule Air.Task do
   schema "tasks" do
     field :name, :string
     field :query, :string
+    # Tasks start out as temporary until they are explicitly
+    # saved as permanent. A temporary task doesn't show
+    # in the list of tasks, and all temporary tasks are automatically
+    # cleaned up and removed after a period.
+    field :permanent, :boolean
+
     belongs_to :user, User
 
     timestamps
   end
 
   @required_fields ~w()
-  @optional_fields ~w(name query)
+  @optional_fields ~w(name query permanent)
 
   @doc """
   Creates a changeset based on the `model` and `params`.
@@ -38,5 +44,39 @@ defmodule Air.Task do
     else
       task.name
     end
+  end
+
+  # -------------------------------------------------------------------
+  # Task query functions
+  # -------------------------------------------------------------------
+
+  def permanent(query) do
+    from t in query,
+    where: t.permanent == true
+  end
+
+  def for_user(query, user) do
+    from t in query,
+    where: t.user_id == ^user.id
+  end
+
+
+  # -------------------------------------------------------------------
+  # Utility functions
+  # -------------------------------------------------------------------
+
+  @doc """
+  Removes all temporary tasks that are older than a week.
+  In this context, a temporary task is one that was added,
+  but was never marked as permanent. An example of this would
+  be a new task that was never explicitly saved by the user,
+  but which never the less got saved to the database.
+  """
+  def remove_temporary_tasks do
+    Air.Repo.delete_all(
+          from t in Air.Task,
+          where: t.inserted_at < datetime_add(^Ecto.DateTime.utc, -1, "week"),
+          where: t.permanent == false
+        )
   end
 end
