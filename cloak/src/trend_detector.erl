@@ -19,6 +19,7 @@
 %% API
 -export([
   new/2,
+  new/3,
   clear/1,
   add/2,
   threshold_reached/1
@@ -31,7 +32,7 @@
 ]).
 
 -record(trend_detector, {
-  last_value = 0 :: number(),
+  last_value :: number(),
   trend = 0 :: number(),
   correction :: number(),
   threshold :: number()
@@ -47,7 +48,12 @@
 %% @doc Creates the new instance.
 -spec new(number(), number()) -> trend_detector().
 new(Threshold, Correction) ->
-  #trend_detector{threshold=Threshold, correction=Correction}.
+  new(0, Threshold, Correction).
+
+%% @doc Creates the new instance.
+-spec new(number(), number(), number()) -> trend_detector().
+new(Start, Threshold, Correction) ->
+  #trend_detector{last_value=Start, threshold=Threshold, correction=Correction}.
 
 %% @doc Clears accumulated trend, without clearing the last value.
 %%      This allows us to avoid over reporting after the threshold has
