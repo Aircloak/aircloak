@@ -16,6 +16,12 @@ class TaskEditor extends React.Component {
       // and task name field
       query: props.query,
       name: props.name,
+      cloaks: props.cloaks,
+      settings: {
+        cloakId: props.cloak_id,
+        dataSource: props.data_source,
+        tables: new Set(props.tables)
+      },
 
       // We keep some stats on whether or not
       // the task is running. This is used
@@ -34,6 +40,7 @@ class TaskEditor extends React.Component {
     this.conditionallySave = this.conditionallySave.bind(this);
     this.handleCodeChange = this.handleCodeChange.bind(this);
     this.handleNameChange = this.handleNameChange.bind(this);
+    this.handleSettingsChange = this.handleSettingsChange.bind(this);
     this.handleRunTask = this.handleRunTask.bind(this);
     this.isSaved = this.isSaved.bind(this);
     this.saveTask = this.saveTask.bind(this);
@@ -65,6 +72,10 @@ class TaskEditor extends React.Component {
 
   handleCodeChange(query) {
     this.setState({query: query});
+  }
+
+  handleSettingsChange(settings) {
+    this.setState({settings: settings});
   }
 
   updateTaskRunningProgress(progress) {
@@ -103,9 +114,10 @@ class TaskEditor extends React.Component {
           context: this,
           method: "PUT",
           headers: {
-            "X-CSRF-TOKEN": this.props.CSRFToken
+            "X-CSRF-TOKEN": this.props.CSRFToken,
+            "Content-Type": "application/json"
           },
-          data: this.queryData(),
+          data: JSON.stringify(this.queryData()),
           success: this.updateSavedState,
           error: (jqXHR, textStatus) => {
             console.log(`Error: ${textStatus}`);
@@ -131,8 +143,11 @@ class TaskEditor extends React.Component {
   queryData() {
     return {
       task: {
+        name: this.state.name,
         query: this.state.query,
-        name: this.state.name
+        cloak_id: this.state.settings.cloakId,
+        data_source: this.state.settings.dataSource,
+        tables: Array.from(this.state.settings.tables)
       }
     };
   }
@@ -168,7 +183,11 @@ class TaskEditor extends React.Component {
             onChange={this.handleCodeChange}
             onSave={this.conditionallySave}
             onRun={this.handleRunTask} />
-        <SidePane result={this.state.result} />
+        <SidePane
+            result={this.state.result}
+            cloaks={this.state.cloaks}
+            settings={this.state.settings}
+            onSettingsChange={this.handleSettingsChange} />
       </div>
     );
   }

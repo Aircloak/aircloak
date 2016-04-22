@@ -56,7 +56,8 @@ defmodule Air.TaskController do
     task_map = %{
       id: task.id,
       name: task.name,
-      query: task.query
+      query: task.query,
+      cloaks: Air.CloakInfo.all(current_user(conn).organisation)
     }
     render(conn, "editor.html", token: Guardian.Plug.current_token(conn),
         task_json: Poison.encode!(task_map))
