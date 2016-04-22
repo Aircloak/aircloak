@@ -14,7 +14,9 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @doc false
   def child_spec(source_id, parameters) do
-    Postgrex.child_spec(parameters ++ [types: true, name: proc_name(source_id), pool: @pool_name])
+    spec = Postgrex.child_spec(parameters ++ [types: true, name: proc_name(source_id), pool: @pool_name])
+    {child_id, start_fun, restart, shutdown, worker, modules} = spec
+    {{__MODULE__, source_id}, start_fun, restart, shutdown, worker, modules}
   end
 
   @doc false
