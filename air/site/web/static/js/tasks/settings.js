@@ -110,7 +110,7 @@ export class SettingsView extends React.Component {
   }
 
   renderEditor() {
-    if (this.cloaks().length == 0 && this.props.settings.cloakId == null)
+    if (this.cloaks().length == 1 && this.props.settings.cloakId == null)
       return this.renderReadOnly("There are no cloaks connected.")
     else if (this.cloakConnected())
       return this.renderForm();
