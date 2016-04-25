@@ -38,7 +38,7 @@
   num_of_cpu_cores = num_of_cpu_cores() :: pos_integer()
 }).
 
--define(DISK_CHECK_INTERVAL, (timer:hours(3))).
+-define(DISK_CHECK_INTERVAL, (timer:hours(6))).
 -define(TREND_CHECK_INTERVAL, (timer:minutes(1))).
 
 
@@ -135,7 +135,7 @@ analyze_disk(#state{disk_usage_trends=DiskUsageTrends} = State) ->
                   {disk_usage_increase, [{partition, Partition}, {used_percent, UsedPercent}]}, Existing);
             error ->
               % We signal a 10 percent change in disk usage.
-              trend_detector:new(10, 0.001)
+              trend_detector:new(UsedPercent, 10, 0.001)
           end,
           dict:store(Partition, PartitionTrend, TrendsAcc)
         end,

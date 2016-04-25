@@ -62,6 +62,7 @@ defmodule Air.Mixfile do
       {:etcd, github: "spilgames/etcd.erl", ref: "79d04a775e4488b0eb6e5e07a8c0bf4803adb997"},
       {:hackney, "~> 1.5.0"},
       {:exrm, "~> 1.0"},
+      {:timex, "~> 2.1"},
       {:aircloak_common, path: "../../common/elixir"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", only: :test},
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0", only: :test},
@@ -93,7 +94,7 @@ defmodule Air.Mixfile do
   defp common_applications do
     [
       :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-      :lhttpc, :etcd, :hackney, :guardian, :inets, :aircloak_common, :quantum
+      :lhttpc, :etcd, :hackney, :guardian, :inets, :timex, :aircloak_common, :quantum
     ]
   end
 

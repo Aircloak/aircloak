@@ -9,13 +9,15 @@ defmodule Air.CloakInfo do
   ends up in a minority, renewal will fail, and the process will crash, causing
   the channel to be closed.
   """
-  defstruct [:id, :name, :organisation, :data_sources]
+
+  defstruct [:id, :name, :organisation, :data_sources, :created_at]
 
   @type t :: %__MODULE__{
     id: cloak_id,
     name: String.t,
     organisation: String.t,
-    data_sources: [data_source]
+    data_sources: [data_source],
+    created_at: integer # connect timestamp, with second-level accuracy
   }
   @type cloak_id :: String.t
   @type data_source :: %{id: String.t, tables: [table]}
@@ -130,7 +132,8 @@ defmodule Air.CloakInfo do
       id: "#{organisation}/#{name}",
       name: Map.fetch!(cloak_info, "name"),
       organisation: organisation,
-      data_sources: Map.fetch!(cloak_info, "data_sources") |> parse_data_sources()
+      data_sources: Map.fetch!(cloak_info, "data_sources") |> parse_data_sources(),
+      created_at: :erlang.monotonic_time(:seconds)
     }
   end
 

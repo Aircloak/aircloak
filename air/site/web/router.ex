@@ -34,6 +34,7 @@ defmodule Air.Router do
     get "/", PageController, :index
     delete "/logout", SessionController, :delete
 
+    resources "/cloaks", CloaksController
     resources "/users", UserController
     resources "/organisations", OrganisationController
     resources "/tasks", TaskController, except: [:show, :create]
