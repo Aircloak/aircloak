@@ -44,6 +44,7 @@ class TaskEditor extends React.Component {
     this.handleSettingsChange = this.handleSettingsChange.bind(this);
     this.handleRunTask = this.handleRunTask.bind(this);
     this.isSaved = this.isSaved.bind(this);
+    this.canRun = this.canRun.bind(this);
     this.saveTask = this.saveTask.bind(this);
     this.updateTaskResult = this.updateTaskResult.bind(this);
     this.updateTaskRunningProgress = this.updateTaskRunningProgress.bind(this);
@@ -158,6 +159,10 @@ class TaskEditor extends React.Component {
     return (this.state.savedState == this.queryData());
   }
 
+  canRun() {
+    return (this.state.settings.dataSourceToken != null && this.state.settings.tables.size > 0);
+  }
+
   checkForUnsavedChanges() {
     if (!this.isSaved()) {
       return "Your task has unsaved changes!";
@@ -176,6 +181,7 @@ class TaskEditor extends React.Component {
             runningPercent={this.state.runningPercent}
             name={this.state.name}
             isSavedCheck={this.isSaved}
+            canRunCheck={this.canRun}
             onNameChange={this.handleNameChange}
             onTaskSaveClick={this.saveTask}
             onRunTaskClick={this.handleRunTask} />
