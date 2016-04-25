@@ -48,6 +48,7 @@
   "proper": {:git, "https://github.com/matthiaskr/proper.git", "164663a7de18b0ce8d037b617afed0f97cac3de9", [ref: "164663a7de18b0ce8d037b617afed0f97cac3de9"]},
   "protobuffs": {:git, "https://github.com/basho/erlang_protobuffs.git", "a1eeee77aef639a33cc5a2dd7abed7e4f4b83f9b", [tag: "0.8.2"]},
   "providers": {:hex, :providers, "1.6.0"},
+  "quantum": {:hex, :quantum, "1.7.1"},
   "ranch": {:hex, :ranch, "1.2.1"},
   "relx": {:hex, :relx, "3.18.0"},
   "ssl_verify_hostname": {:hex, :ssl_verify_hostname, "1.0.6"},

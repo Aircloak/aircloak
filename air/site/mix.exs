@@ -65,7 +65,8 @@ defmodule Air.Mixfile do
       {:timex, "~> 2.1"},
       {:aircloak_common, path: "../../common/elixir"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", only: :test},
-      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0", only: :test}
+      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0", only: :test},
+      {:quantum, ">= 1.7.1"}
     ]
   end
 
@@ -93,7 +94,7 @@ defmodule Air.Mixfile do
   defp common_applications do
     [
       :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-      :lhttpc, :etcd, :hackney, :guardian, :inets, :timex, :aircloak_common
+      :lhttpc, :etcd, :hackney, :guardian, :inets, :timex, :aircloak_common, :quantum
     ]
   end
 
