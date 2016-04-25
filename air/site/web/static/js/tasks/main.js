@@ -6,6 +6,7 @@ import { CodeEditor } from "./code_editor"
 import { ResultSocket } from "./results_socket"
 import { SidePane } from "./sidepane"
 import { StatusLine } from "./status_line"
+import { SettingsModel } from "./settings"
 
 class TaskEditor extends React.Component {
   constructor(props) {
@@ -16,12 +17,12 @@ class TaskEditor extends React.Component {
       // and task name field
       query: props.query,
       name: props.name,
-      settings: {
-        dataSources: props.data_sources,
-        dataSourceToken: props.data_source_token,
-        tables: new Set(props.tables),
-        cloakId: props.cloak_id
-      },
+      settings: new SettingsModel({
+            dataSources: props.data_sources,
+            dataSourceToken: props.data_source_token,
+            tables: new Set(props.tables),
+            cloakId: props.cloak_id
+          }),
 
       // We keep some stats on whether or not
       // the task is running. This is used
