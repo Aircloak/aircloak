@@ -12,12 +12,12 @@ export class SettingsView extends React.Component {
   cloakConnected() {
     let allCloaks = this.cloaks();
     if (this.props.settings.cloakId == null) return true; // no cloak selected, so we're fine
-    return (this.cloaks().find((cloak) => {return cloak.id == this.props.settings.cloakId}))
+    return (this.cloaks().find((cloak) => {return cloak.id == this.props.settings.cloakId}));
   }
 
   selectedCloakDataSources(settings) {
     return [{id: "__select", display: "select a data source", tables: []}].concat(
-        this.selectedCloak(settings).data_sources)
+        this.selectedCloak(settings).data_sources);
   }
 
   selectedCloak(settings) {
@@ -120,7 +120,7 @@ export class SettingsView extends React.Component {
               {this.renderReadOnly(`The cloak ${this.props.settings.cloakId} is not connected.`)}
               {this.renderForm()}
             </div>
-          )
+          );
   }
 
   renderReadOnly(reason) {
@@ -128,7 +128,7 @@ export class SettingsView extends React.Component {
           <div className="alert alert-danger">
             {reason}.
           </div>
-        )
+        );
   }
 
   renderForm() {
@@ -138,7 +138,7 @@ export class SettingsView extends React.Component {
             {this.renderControl("Data source", this.renderDataSourceSelection.bind(this))}
             {this.renderControl("Tables", this.renderTablesSelection.bind(this))}
           </form>
-        )
+        );
   }
 
   renderControl(label, renderFun) {
@@ -193,6 +193,6 @@ export class SettingsView extends React.Component {
                   {table.id}
                 </div>)}
           </div>
-        )
+        );
   }
 }
