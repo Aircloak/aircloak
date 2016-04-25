@@ -43,11 +43,19 @@ defmodule Air.Socket.CloakTest do
   end
 
   test "receiving a task result" do
+    task =
+      Air.TestRepoHelper.create_organisation!()
+      |> Air.TestRepoHelper.create_user!()
+      |> Air.TestRepoHelper.create_task!()
+
     assert {:ok, socket} = start_link(url())
     assert :connected == TestSocket.wait_connect_status(socket)
     assert {:ok, {"main", %{}}} == join_main_channel(socket)
 
-    request = %{request_id: "foobar", event: "task_results", payload: [1, 2, 3]}
+    request = %{
+      request_id: "foobar", event: "task_results",
+      payload: %{task_id: task.id, buckets: [], exceptions: []}
+    }
     TestSocket.push(socket, "main", "cloak_call", request)
     assert {:ok, {"main", "call_response", response}} = TestSocket.await_message(socket, 100)
     assert %{"request_id" => "foobar", "status" => "ok"} = response

@@ -76,13 +76,13 @@ defmodule Air.TaskController do
     |> redirect(to: task_path(conn, :index))
   end
 
-  def run_task(conn, %{"task" => _task_params}) do
-    spawn(fn -> fake_execution(conn.assigns.task) end)
-    # TODO: Schedule task running here...
-    #       But make sure you run the task with the parameters
-    #       passed in with the request, rather than those of
-    #       the `conn.assigns.task` record. This is quite important
-    #       as the task might not have been saved.
+  def run_task(conn, %{"task" => task_params}) do
+    task =
+      Task.changeset(conn.assigns.task, task_params)
+      |> Ecto.Changeset.apply_changes()
+
+    Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task))
+
     json(conn, %{success: true})
   end
 
@@ -109,35 +109,5 @@ defmodule Air.TaskController do
     else
       assign(conn, :task, task)
     end
-  end
-
-
-  # -------------------------------------------------------------------
-  # Temporary methods to simulate task running
-  # -------------------------------------------------------------------
-
-  defp fake_execution(task) do
-    run_fakery(task, 0)
-  end
-
-  defp run_fakery(task, progress) when progress < 100 do
-    :timer.sleep(:random.uniform(100))
-    Air.Socket.Frontend.TaskChannel.broadcast_progress(task, progress)
-    run_fakery(task, progress + :random.uniform(5))
-  end
-  defp run_fakery(task, _) do
-    result = %{
-      data: [
-        %{label: "Age", value: "10-15", count: 10},
-        %{label: "Age", value: "15-20", count: 100},
-        %{label: "Age", value: "20-25", count: 15},
-        %{label: "Age", value: "25-30", count: 100},
-        %{label: "Age", value: "30-35", count: 900},
-        %{label: "Age", value: "35-40", count: 20},
-        %{label: "Age", value: "40-45", count: 15}
-      ],
-      created_at: :os.system_time(:seconds)
-    }
-    Air.Socket.Frontend.TaskChannel.broadcast_result(task, result)
   end
 end

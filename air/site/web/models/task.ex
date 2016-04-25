@@ -6,7 +6,8 @@ defmodule Air.Task do
 
   @type t :: %__MODULE__{}
   @type result_row :: %{:label => String.t, :value => String.t, :count => integer}
-  @type result :: %{:data => [result_row], :created_at => integer}
+  @type result :: %{:buckets => [result_row], :exceptions => [result_row], :created_at => integer}
+  @type cloak_query :: %{id: String.t, prefetch: [%{table: String.t}], code: String.t}
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "tasks" do
@@ -29,6 +30,11 @@ defmodule Air.Task do
   @required_fields ~w()
   @optional_fields ~w(name query cloak_id data_source tables permanent)
 
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
   @doc """
   Creates a changeset based on the `model` and `params`.
 
@@ -41,12 +47,24 @@ defmodule Air.Task do
     |> cast(params, @required_fields, @optional_fields)
   end
 
+  @doc "Returns the task display name."
+  @spec display_name(t) :: String.t
   def display_name(task) do
     if task.name == nil do
       "Unnamed task"
     else
       task.name
     end
+  end
+
+  @doc "Converts the task model to the cloak compliant data."
+  @spec to_cloak_query(t) :: cloak_query
+  def to_cloak_query(model) do
+    %{
+      id: model.id,
+      prefetch: Enum.map(model.tables, &%{table: "#{model.data_source}/#{&1}"}),
+      code: model.query
+    }
   end
 
   # -------------------------------------------------------------------

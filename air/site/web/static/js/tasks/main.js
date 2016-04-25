@@ -85,6 +85,7 @@ class TaskEditor extends React.Component {
   updateTaskResult(result) {
     // We assume that the task is now complete, since we received a
     // result, and therefore update the progress too
+    console.log(result);
     this.updateTaskRunningProgress(-1);
     this.setState({result: result});
   }
@@ -100,9 +101,10 @@ class TaskEditor extends React.Component {
           context: this,
           method: "POST",
           headers: {
-            "X-CSRF-TOKEN": this.props.CSRFToken
+            "X-CSRF-TOKEN": this.props.CSRFToken,
+            "Content-Type": "application/json"
           },
-          data: this.queryData(),
+          data: JSON.stringify(this.queryData()),
           success: (responseData, textStatus) => {
             console.log("Task run scheduled...");
           }
