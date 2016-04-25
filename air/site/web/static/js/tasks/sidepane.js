@@ -40,6 +40,10 @@ export class SidePane extends React.Component {
     this.setState({activeTab: tabName});
   }
 
+  showResultTab() {
+    this.handleTabChange("Task result");
+  }
+
   activePane() {
     var activePane = this.tabs().find((tab) => tab.name == this.state.activeTab);
     return activePane.component;

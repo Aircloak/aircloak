@@ -87,9 +87,9 @@ class TaskEditor extends React.Component {
   updateTaskResult(result) {
     // We assume that the task is now complete, since we received a
     // result, and therefore update the progress too
-    console.log(result);
     this.updateTaskRunningProgress(-1);
     this.setState({result: result});
+    this.refs.SidePane.showResultTab()
   }
 
 
@@ -191,6 +191,7 @@ class TaskEditor extends React.Component {
             onSave={this.conditionallySave}
             onRun={this.handleRunTask} />
         <SidePane
+            ref="SidePane"
             result={this.state.result}
             settings={this.state.settings}
             onSettingsChange={this.handleSettingsChange} />
