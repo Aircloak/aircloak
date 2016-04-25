@@ -8,7 +8,7 @@ defmodule Air.TaskControllerTest do
   alias Air.Task
   @valid_attrs %{name: "name", query: "query content", permanent: true}
   @invalid_attrs %{name: ""}
-  @query_data_params %{task: %{query: "Query code", name: "Query name", cloak_id: "unknown_org/cloak_1"}}
+  @query_data_params %{task: %{query: "Query code", name: "Query name"}}
 
   defp create_user do
     org = TestRepoHelper.create_organisation!()
@@ -112,7 +112,9 @@ defmodule Air.TaskControllerTest do
     # Run the task in parallel since it's blocking on waiting a response from the socket
     me = self()
     spawn_link(fn ->
-          response_json = login(user) |> post("/tasks/#{task.id}/run", @query_data_params) |> response(200)
+          run_params = put_in(@query_data_params, [:task, :data_source_token],
+              Phoenix.Token.sign(Air.Endpoint, "data_source_token",{"unknown_org/cloak_1", nil}))
+          response_json = login(user) |> post("/tasks/#{task.id}/run", run_params) |> response(200)
           send(me, {:response_json, response_json})
         end)
 

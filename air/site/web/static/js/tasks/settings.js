@@ -5,49 +5,24 @@ export class SettingsView extends React.Component {
   // View helpers
   // ----------------------------------------------------------------
 
-  cloaks() {
-    return [{id: "__select", name: "select a cloak", data_sources: []}].concat(this.props.cloaks);
-  }
-
   cloakConnected() {
-    let allCloaks = this.cloaks();
     if (this.props.settings.cloakId == null) return true; // no cloak selected, so we're fine
-    return (this.cloaks().find((cloak) => {return cloak.id == this.props.settings.cloakId}));
+    return (this.props.settings.dataSources.find((dataSource) => {
+        return dataSource.cloak.id == this.props.settings.cloakId}));
   }
 
-  selectedCloakDataSources(settings) {
-    return [{id: "__select", display: "select a data source", tables: []}].concat(
-        this.selectedCloak(settings).data_sources);
-  }
-
-  selectedCloak(settings) {
-    return (
-          this.cloaks().find((cloak) => {return cloak.id == settings.cloakId}) ||
-          this.cloaks()[0]
-        );
+  dataSources(settings) {
+    return [{token: "__select", display: "select a data source", tables: [], cloak: {}}].concat(
+        this.props.settings.dataSources);
   }
 
   selectedDataSource(settings) {
     return (
-          this.selectedCloakDataSources(settings).find(
-                (dataSource) => {return dataSource.id == settings.dataSource}
+          this.dataSources(settings).find(
+                (dataSource) => {return dataSource.token == settings.dataSourceToken}
               ) ||
-          this.selectedCloakDataSources(settings)[0]
+          this.dataSources(settings)[0]
         );
-  }
-
-  // Finds the selected element, or returns the first one if it's the only one in the list.
-  findSelected(elements, id) {
-    if (elements.length == 1 && id == null) return elements[0];
-    return elements.find((el) => {return el.id == id});
-  }
-
-  selectedDataSourceTables(settings) {
-    return this.selectedDataSource(settings).tables;
-  }
-
-  tableSelected(tableId) {
-    return this.props.settings.tables.has(tableId);
   }
 
 
@@ -55,17 +30,9 @@ export class SettingsView extends React.Component {
   // Event handlers
   // ----------------------------------------------------------------
 
-  onCloakSelected(event) {
-    this.fireChange({
-          cloakId: event.target.value,
-          dataSource: null,
-          tables: new Set([])
-        });
-  }
-
   onDataSourceSelected(event) {
     this.fireChange({
-          dataSource: event.target.value,
+          dataSourceToken: event.target.value,
           tables: new Set([])
         });
   }
@@ -82,16 +49,13 @@ export class SettingsView extends React.Component {
 
   fireChange(settingUpdates) {
     let newSettings = Object.assign({}, this.props.settings, settingUpdates),
-        cloak = this.selectedCloak(newSettings),
         dataSource = this.selectedDataSource(newSettings);
 
     _.merge(newSettings, {
-          cloakId: cloak.id,
-          dataSource: dataSource ? dataSource.id : null,
+          dataSourceToken: dataSource ? dataSource.token : null,
         });
 
-    if (newSettings.cloakId == "__select") newSettings.cloakId = null;
-    if (newSettings.dataSource == "__select") newSettings.dataSource = null;
+    if (newSettings.dataSourceToken == "__select") newSettings.dataSourceToken = null;
     this.props.onChange(newSettings);
   }
 
@@ -110,8 +74,8 @@ export class SettingsView extends React.Component {
   }
 
   renderEditor() {
-    if (this.cloaks().length == 1 && this.props.settings.cloakId == null)
-      return this.renderReadOnly("There are no cloaks connected.")
+    if (this.props.settings.dataSources.length == 0 && this.props.settings.cloakId == null)
+      return this.renderReadOnly("There are no cloaks connected.");
     else if (this.cloakConnected())
       return this.renderForm();
     else
@@ -134,7 +98,6 @@ export class SettingsView extends React.Component {
   renderForm() {
     return (
           <form className="form-horizontal">
-            {this.renderControl("Cloak", this.renderCloakSelection.bind(this))}
             {this.renderControl("Data source", this.renderDataSourceSelection.bind(this))}
             {this.renderControl("Tables", this.renderTablesSelection.bind(this))}
           </form>
@@ -150,32 +113,16 @@ export class SettingsView extends React.Component {
         );
   }
 
-  renderCloakSelection() {
-    return(
-          <select
-            className="form-control"
-            value={this.props.settings.cloakId || ""}
-            onChange={this.onCloakSelected.bind(this)}
-          >
-            {this.cloaks().map((cloak) =>
-                <option key={cloak.id} value={cloak.id}>
-                  {cloak.name}
-                </option>
-              )}
-          </select>
-        );
-  }
-
   renderDataSourceSelection() {
     return (
           <select
             className="form-control"
-            value={this.props.settings.dataSource || ""}
+            value={`${this.selectedDataSource(this.props.settings).token}`}
             onChange={this.onDataSourceSelected.bind(this)}
           >
-            {this.selectedCloakDataSources(this.props.settings).map((dataSource) =>
-                <option key={dataSource.id} value={dataSource.id}>
-                  {dataSource.display || dataSource.id}
+            {this.dataSources(this.props.settings).map((dataSource) =>
+                <option key={dataSource.token} value={dataSource.token}>
+                  {dataSource.display}
                 </option>)}
           </select>
         );
@@ -184,11 +131,11 @@ export class SettingsView extends React.Component {
   renderTablesSelection() {
     return (
           <div style={{'paddingTop': '7px'}}>
-            {this.selectedDataSourceTables(this.props.settings).map((table, index) =>
+            {this.selectedDataSource(this.props.settings).tables.map((table, index) =>
                 <div key={table.id}>
                   <input type="checkbox"
                     onChange={this.onTableSelectionChanged.bind(this)}
-                    checked={this.tableSelected(table.id)}
+                    checked={this.props.settings.tables.has(table.id)}
                     value={table.id} />
                   {table.id}
                 </div>)}

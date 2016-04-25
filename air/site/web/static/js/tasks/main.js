@@ -16,11 +16,11 @@ class TaskEditor extends React.Component {
       // and task name field
       query: props.query,
       name: props.name,
-      cloaks: props.cloaks,
       settings: {
-        cloakId: props.cloak_id,
-        dataSource: props.data_source,
-        tables: new Set(props.tables)
+        dataSources: props.data_sources,
+        dataSourceToken: props.data_source_token,
+        tables: new Set(props.tables),
+        cloakId: props.cloak_id
       },
 
       // We keep some stats on whether or not
@@ -147,8 +147,7 @@ class TaskEditor extends React.Component {
           task: {
             name: this.state.name,
             query: this.state.query,
-            cloak_id: this.state.settings.cloakId,
-            data_source: this.state.settings.dataSource,
+            data_source_token: this.state.settings.dataSourceToken,
             tables: Array.from(this.state.settings.tables)
           }
         });
@@ -186,7 +185,6 @@ class TaskEditor extends React.Component {
             onRun={this.handleRunTask} />
         <SidePane
             result={this.state.result}
-            cloaks={this.state.cloaks}
             settings={this.state.settings}
             onSettingsChange={this.handleSettingsChange} />
       </div>
