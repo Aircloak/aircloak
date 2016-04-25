@@ -24,7 +24,11 @@ defmodule Air.TaskController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    tasks = Repo.preload(current_user(conn), :tasks).tasks
+    tasks =
+      Task
+      |> Task.permanent
+      |> Task.for_user(current_user(conn))
+      |> Repo.all
     render(conn, "index.html", tasks: tasks)
   end
 
@@ -64,7 +68,10 @@ defmodule Air.TaskController do
   end
 
   def update(conn, %{"task" => task_params}) do
-    changeset = Task.changeset(conn.assigns.task, task_params)
+    changeset = Task.changeset(conn.assigns.task,
+        # Tasks are temporary until they are explicitly saved by the user for the first time.
+        # Only tasks that are permanent are shown in the interface.
+        Map.merge(task_params, %{"permanent" => true}))
     Repo.update!(changeset)
     json(conn, %{success: true})
   end
