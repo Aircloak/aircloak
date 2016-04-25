@@ -1,4 +1,3 @@
-
 defmodule Cloak.DataSource do
   @moduledoc """
   This module handles access to user data in the cloak.
