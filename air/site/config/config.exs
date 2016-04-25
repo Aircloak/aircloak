@@ -40,7 +40,7 @@ config :air, Air.Repo,
   pool_size: 10
 
 config :quantum,
-  cron: ["@daily": &Air.Task.remove_temporary_tasks/0]
+  cron: ["@daily": {Air.Task, :remove_temporary_tasks}]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
