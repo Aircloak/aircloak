@@ -16,6 +16,7 @@ defmodule Air.Router do
   end
 
   pipeline :browser_auth do
+    plug Air.Plugs.GuardianSessionRestoration
     plug Guardian.Plug.VerifySession
     plug Guardian.Plug.EnsureAuthenticated, handler: Air.SessionController
     plug Guardian.Plug.LoadResource

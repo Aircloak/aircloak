@@ -32,6 +32,7 @@ defmodule Air.SessionController do
         return_path = get_session(conn, :return_path) || page_path(conn, :index)
         conn
         |> Guardian.Plug.sign_in(user)
+        |> conditionally_create_persistent_login(params)
         |> put_session(:return_path, nil)
         |> put_flash(:info, "Logged in successfully. Welcome back!")
         |> redirect(to: return_path)
@@ -45,6 +46,7 @@ defmodule Air.SessionController do
   def delete(conn, _params) do
     conn
     |> Guardian.Plug.sign_out
+    |> Air.Plugs.GuardianSessionRestoration.remove_token
     |> put_flash(:info, "Logged out successfully")
     |> redirect(to: session_path(conn, :new))
   end
@@ -64,4 +66,14 @@ defmodule Air.SessionController do
   def already_authenticated(conn, _params) do
     send_resp(conn, Plug.Conn.Status.code(:bad_request), "already authenticated")
   end
+
+
+  # -------------------------------------------------------------------
+  # Priviate functions
+  # -------------------------------------------------------------------
+
+  defp conditionally_create_persistent_login(conn, %{"remember" => "on"}) do
+    Air.Plugs.GuardianSessionRestoration.persist_token(conn)
+  end
+  defp conditionally_create_persistent_login(conn, _params), do: conn
 end
