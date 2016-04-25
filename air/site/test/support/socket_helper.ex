@@ -9,18 +9,24 @@ defmodule Air.TestSocketHelper do
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
 
-  @doc "Opens a socket and waits for the connection to be established."
-  @spec connect!(%{}) :: GenServer.on_start
-  def connect!(params \\ %{cloak_name: "cloak_1"}) do
+  @doc "Opens a socket and waits for the connection status."
+  @spec connect!(%{}) :: {status::any, GenServer.on_start}
+  def connect(params \\ %{cloak_name: "cloak_1"}) do
     {:ok, socket} = TestSocket.start_link(GenSocketClient.Transport.WebSocketClient, url(params), true,
         serializer: GenSocketClient.Serializer.GzipJson)
-    :connected = TestSocket.wait_connect_status(socket)
+    {TestSocket.wait_connect_status(socket), socket}
+  end
+
+  @doc "Opens a socket and waits for the connection to be successfully established."
+  @spec connect!(%{}) :: GenServer.on_start
+  def connect!(params \\ %{cloak_name: "cloak_1"}) do
+    {:connected, socket} = connect(params)
     socket
   end
 
   @doc "Joins a topic and wait for the successful response."
   @spec join!(pid, String.t, %{}) :: {:ok, %{}}
-  def join!(socket, topic, params) do
+  def join!(socket, topic, params \\ %{}) do
     {:ok, {^topic, response}} = TestSocket.join(socket, topic, params)
     {:ok, response}
   end

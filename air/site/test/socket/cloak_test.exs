@@ -4,31 +4,27 @@ defmodule Air.Socket.CloakTest do
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
   alias Air.Socket.Cloak.MainChannel
-  alias Air.CloakInfo
+  alias Air.{CloakInfo, TestSocketHelper}
 
 
   test "invalid authentication" do
-    assert {:ok, socket} = start_link(url(%{}))
-    assert {:disconnected, {403, "Forbidden"}} == TestSocket.wait_connect_status(socket)
+    assert {{:disconnected, {403, "Forbidden"}}, _} = TestSocketHelper.connect(%{})
   end
 
   test "unmatched topic" do
-    assert {:ok, socket} = start_link(url())
-    assert :connected == TestSocket.wait_connect_status(socket)
+    socket = TestSocketHelper.connect!()
     assert {:error, reason} = TestSocket.join(socket, "invalid_channel")
     assert {:server_rejected, "invalid_channel", %{"reason" => "unmatched topic"}} == reason
   end
 
   test "main topic" do
-    assert {:ok, socket} = start_link(url())
-    assert :connected == TestSocket.wait_connect_status(socket)
-    assert {:ok, {"main", %{}}} == join_main_channel(socket)
+    socket = TestSocketHelper.connect!()
+    assert {:ok, %{}} == join_main_channel(socket)
   end
 
   test "starting a task" do
-    assert {:ok, socket} = start_link(url())
-    assert :connected == TestSocket.wait_connect_status(socket)
-    assert {:ok, {"main", %{}}} == join_main_channel(socket)
+    socket = TestSocketHelper.connect!()
+    assert {:ok, %{}} == join_main_channel(socket)
 
     me = self()
     spawn(fn ->
@@ -48,9 +44,8 @@ defmodule Air.Socket.CloakTest do
       |> Air.TestRepoHelper.create_user!()
       |> Air.TestRepoHelper.create_task!()
 
-    assert {:ok, socket} = start_link(url())
-    assert :connected == TestSocket.wait_connect_status(socket)
-    assert {:ok, {"main", %{}}} == join_main_channel(socket)
+    socket = TestSocketHelper.connect!()
+    assert {:ok, %{}} == join_main_channel(socket)
 
     request = %{
       request_id: "foobar", event: "task_results",
@@ -62,16 +57,14 @@ defmodule Air.Socket.CloakTest do
   end
 
   test "getting data for connected cloaks" do
-    assert {:ok, socket1} = start_link(url(%{cloak_name: "cloak_3"}))
-    assert :connected == TestSocket.wait_connect_status(socket1)
-    assert {:ok, {"main", %{}}} == join_main_channel(socket1, "cloak_3")
+    socket1 = TestSocketHelper.connect!(%{cloak_name: "cloak_3"})
+    assert {:ok, %{}} == join_main_channel(socket1, "cloak_3")
     assert [%Air.CloakInfo{name: "cloak_3"} = cloak_3] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
     assert cloak_3 == CloakInfo.get(cloak_3.id)
     assert nil == CloakInfo.get("non-existing cloak")
 
-    assert {:ok, socket2} = start_link(url(%{cloak_name: "cloak_4"}))
-    assert :connected == TestSocket.wait_connect_status(socket2)
-    assert {:ok, {"main", %{}}} == join_main_channel(socket2, "cloak_4")
+    socket2 = TestSocketHelper.connect!(%{cloak_name: "cloak_4"})
+    assert {:ok, %{}} == join_main_channel(socket2, "cloak_4")
 
     # admin org fetches all cloaks
     all_cloaks = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
@@ -90,20 +83,7 @@ defmodule Air.Socket.CloakTest do
     assert nil == CloakInfo.get(cloak_3.id)
   end
 
-  defp start_link(url) do
-    TestSocket.start_link(GenSocketClient.Transport.WebSocketClient, url, true,
-        serializer: GenSocketClient.Serializer.GzipJson)
-  end
-
-  defp url(params \\ %{
-        cloak_name: "cloak_1"
-      }) do
-    "#{Air.Endpoint.url}/cloak/socket/websocket?#{URI.encode_query(params)}"
-    |> String.replace(~r(http://), "ws://")
-    |> String.replace(~r(https://), "wss://")
-  end
-
   defp join_main_channel(socket, cloak_name \\ "cloak_1", data_sources \\ []) do
-    TestSocket.join(socket, "main", %{name: cloak_name, data_sources: data_sources})
+    TestSocketHelper.join!(socket, "main", %{name: cloak_name, data_sources: data_sources})
   end
 end
