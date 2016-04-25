@@ -104,7 +104,7 @@ class TaskEditor extends React.Component {
             "X-CSRF-TOKEN": this.props.CSRFToken,
             "Content-Type": "application/json"
           },
-          data: JSON.stringify(this.queryData()),
+          data: this.queryData(),
           success: (responseData, textStatus) => {
             console.log("Task run scheduled...");
           }
@@ -119,7 +119,7 @@ class TaskEditor extends React.Component {
             "X-CSRF-TOKEN": this.props.CSRFToken,
             "Content-Type": "application/json"
           },
-          data: JSON.stringify(this.queryData()),
+          data: this.queryData(),
           success: this.updateSavedState,
           error: (jqXHR, textStatus) => {
             console.log(`Error: ${textStatus}`);
@@ -143,20 +143,19 @@ class TaskEditor extends React.Component {
   };
 
   queryData() {
-    return {
-      task: {
-        name: this.state.name,
-        query: this.state.query,
-        cloak_id: this.state.settings.cloakId,
-        data_source: this.state.settings.dataSource,
-        tables: Array.from(this.state.settings.tables)
-      }
-    };
+    return JSON.stringify({
+          task: {
+            name: this.state.name,
+            query: this.state.query,
+            cloak_id: this.state.settings.cloakId,
+            data_source: this.state.settings.dataSource,
+            tables: Array.from(this.state.settings.tables)
+          }
+        });
   }
 
   isSaved() {
-    // Hack to get object comparison in order to see whether or not the object is changed
-    return (JSON.stringify(this.state.savedState) == JSON.stringify(this.queryData()));
+    return (this.state.savedState == this.queryData());
   }
 
   checkForUnsavedChanges() {
