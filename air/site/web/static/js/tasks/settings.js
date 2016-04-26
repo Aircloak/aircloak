@@ -82,13 +82,14 @@ class Error extends React.Component {
 
 class Form extends React.Component {
   render() {
-    if (this.props.settings.dataSources.length > 0)
+    if (this.props.settings.dataSources.length > 0) {
       return (
             <form className="form-horizontal">
               <DataSources {...this.props} />
               <Tables {...this.props} />
             </form>
           );
+    }
     else
       return null;
   }
@@ -116,7 +117,7 @@ class DataSources extends React.Component {
       [{token: "__select", display: "select a data source", tables: [], cloak: {}}].
           concat(this.props.settings.dataSources)
 
-    return(
+    return (
           <Control label="Data source">
             <select
               className="form-control"
@@ -129,7 +130,7 @@ class DataSources extends React.Component {
                   </option>)}
             </select>
           </Control>
-        )
+        );
   }
 }
 
@@ -144,7 +145,7 @@ class Tables extends React.Component {
 
   render() {
     let tables = this.props.settings.selectedDataSourceTables();
-    if (tables.length > 0)
+    if (tables.length > 0) {
       return (
             <Control label="Tables">
               <div style={{paddingTop: '7px'}}>
@@ -159,6 +160,7 @@ class Tables extends React.Component {
               </div>
             </Control>
           );
+    }
     else
       return null;
   }
