@@ -63,7 +63,6 @@ export class SettingsView extends React.Component {
   render() {
     return (
           <div>
-            <h1>Settings view</h1>
             <Error{...this.props} />
             <Form {...this.props} />
           </div>
