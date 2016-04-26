@@ -108,11 +108,14 @@ class TaskEditor extends React.Component {
           },
           data: this.queryData(),
           success: (responseData, textStatus) => {
-            console.log("Task run scheduled...");
+            if (responseData.success)
+              console.log("Task run scheduled...");
+            else
+              this.updateTaskResult({error: responseData.reason || "unknown error"});
           },
           error: (jqXHR, status, errorReason) => {
             console.error("Task run failed: ", errorReason);
-            this.updateTaskResult({error: true});
+            this.updateTaskResult({error: errorReason});
           }
         });
   }

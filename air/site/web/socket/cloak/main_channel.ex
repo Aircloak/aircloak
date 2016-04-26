@@ -19,9 +19,14 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   @spec run_task(CloakInfo.cloak_id, Air.Task.cloak_query) :: :ok | {:error, any}
   def run_task(cloak_id, task) do
-    case call(cloak_id, "run_task", task, :timer.seconds(5)) do
-      {:ok, _} -> :ok
-      error -> error
+    try do
+      case call(cloak_id, "run_task", task, :timer.seconds(5)) do
+        {:ok, _} -> :ok
+        error -> error
+      end
+    catch
+      :exit, :noproc ->
+        {:error, :not_connected}
     end
   end
 

@@ -2,6 +2,7 @@ defmodule Air.TaskController do
   @moduledoc false
   use Air.Web, :controller
 
+  require Logger
   alias Air.Task
 
   plug :scrub_params, "task" when action in [:create, :update]
@@ -89,9 +90,25 @@ defmodule Air.TaskController do
       Task.changeset(conn.assigns.task, parse_task_params(task_params))
       |> Ecto.Changeset.apply_changes()
 
-    success = Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task)) === :ok
+    try do
+      case Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task)) do
+        :ok ->
+          json(conn, %{success: true})
+        {:error, :not_connected} ->
+          json(conn, %{success: false, reason: "the cloak is not connected"})
+        {:error, other} ->
+          Logger.error(fn -> "Task start error: #{other}" end)
+          json(conn, %{success: false, reason: "an error has occurred"})
+      end
+    catch type, error ->
+      # We'll make a nice error log report and return 500
+      Logger.error([
+            "Error starting a task: #{inspect(type)}:#{inspect(error)}\n",
+            Exception.format_stacktrace(System.stacktrace())
+          ])
 
-    json(conn, %{success: success})
+      send_resp(conn, Plug.Conn.Status.code(:internal_server_error), "")
+    end
   end
 
 
