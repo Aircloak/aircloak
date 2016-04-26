@@ -103,8 +103,8 @@ class Control extends React.Component {
   render() {
     return (
           <div className="form-group">
-            <label className="col-sm-2 control-label">{this.props.label}</label>
-            <div className="col-sm-8">{this.props.children}</div>
+            <label className="col-sm-4 control-label">{this.props.label}</label>
+            <div className="col-sm-6">{this.props.children}</div>
           </div>
         );
   }
