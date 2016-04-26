@@ -44,8 +44,8 @@ defmodule Air.SessionController do
 
   def delete(conn, _params) do
     conn
-    |> Guardian.Plug.sign_out
-    |> Air.Plugs.GuardianSessionRestoration.remove_token
+    |> Guardian.Plug.sign_out()
+    |> Air.Plug.Session.Restoration.remove_token()
     |> put_flash(:info, "Logged out successfully")
     |> redirect(to: session_path(conn, :new))
   end
@@ -56,7 +56,7 @@ defmodule Air.SessionController do
   # -------------------------------------------------------------------
 
   defp conditionally_create_persistent_login(conn, %{"remember" => "on"}) do
-    Air.Plugs.GuardianSessionRestoration.persist_token(conn)
+    Air.Plug.Session.Restoration.persist_token(conn)
   end
   defp conditionally_create_persistent_login(conn, _params), do: conn
 end

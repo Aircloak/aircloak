@@ -12,6 +12,77 @@ defmodule Air.Plug.Session do
     end
   end
 
+  defmodule Restoration do
+    @moduledoc """
+    Plug that allows us to provide a "remember me" feature in our login system.
+    The guardian authentication system checks the session store for the authentication token.
+    When a user wants us to remember that he is logged in, we create an additional cookie
+    that allows us to restore the session variable on subsequent visits.
+    """
+    @behaviour Plug
+
+    require Logger
+
+    @cookie_key "auth_remember_me"
+    # 30 days in seconds (30*24*60*60) - the time before a user has to login again.
+    @cookie_max_age_s 2592000
+
+
+    # -------------------------------------------------------------------
+    # Plug callbacks
+    # -------------------------------------------------------------------
+
+    @doc false
+    def init(default), do: default
+
+    @doc false
+    def call(conn, _default) do
+      case Plug.Conn.get_session(conn, session_key()) do
+        nil ->
+          conditionally_restore_session(conn)
+        _ ->
+          # A session already exists, so we don't need to do anything at all
+          conn
+      end
+    end
+
+
+    # -------------------------------------------------------------------
+    # Utility functions
+    # -------------------------------------------------------------------
+
+    @doc "Persists the user session in the cookie."
+    @spec persist_token(Plug.Conn.t) :: Plug.Conn.t
+    def persist_token(conn) do
+      Logger.debug("The user wants us to remember that s/he is logged in")
+      jwt = Plug.Conn.get_session(conn, session_key())
+      Plug.Conn.put_resp_cookie(conn, @cookie_key, jwt, max_age: @cookie_max_age_s)
+    end
+
+    @doc "Removes the persisted session from the cookie."
+    @spec remove_token(Plug.Conn.t) :: Plug.Conn.t
+    def remove_token(conn) do
+      Logger.debug("The user wants us to forget that s/he was logged in")
+      Plug.Conn.delete_resp_cookie(conn, @cookie_key, max_age: @cookie_max_age_s)
+    end
+
+    defp conditionally_restore_session(conn) do
+      %Plug.Conn{req_cookies: req_cookies} = Plug.Conn.fetch_cookies(conn)
+      case req_cookies[@cookie_key] do
+        nil ->
+          # The user isn't logged in, or didn't use the remember-me feature
+          conn
+        jwt ->
+          Logger.debug("Restoring user session from cookie, logging in the user")
+          Plug.Conn.put_session(conn, session_key(), jwt)
+      end
+    end
+
+    defp session_key() do
+      Guardian.Keys.base_key(:default)
+    end
+  end
+
   defmodule Authenticated do
     @moduledoc """
     Authenticates the current user and loads the user data.
@@ -20,7 +91,7 @@ defmodule Air.Plug.Session do
     """
     use Plug.Builder
 
-    plug Air.Plugs.GuardianSessionRestoration
+    plug Air.Plug.Session.Restoration
     plug Guardian.Plug.VerifySession
     plug Guardian.Plug.EnsureAuthenticated, handler: __MODULE__
     plug Guardian.Plug.LoadResource
