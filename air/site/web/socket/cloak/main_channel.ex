@@ -19,22 +19,15 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   @spec run_task(CloakInfo.cloak_id, Air.Task.cloak_query) :: :ok | {:error, any}
   def run_task(cloak_id, task) do
-    case call(cloak_id, "run_task", task, :timer.seconds(5)) do
-      {:ok, _} -> :ok
-      error -> error
+    try do
+      case call(cloak_id, "run_task", task, :timer.seconds(5)) do
+        {:ok, _} -> :ok
+        error -> error
+      end
+    catch
+      :exit, :noproc ->
+        {:error, :not_connected}
     end
-  end
-
-  # Temporary example on how to execute a task
-  # TODO: remove this when UI integration is in place
-  @doc false
-  def test_run_task() do
-    task = %{
-      id: "1",
-      prefetch: [%{table: "local/test"}],
-      code: "report_property(\"test\", 1)"
-    }
-    run_task("unknown_org/nonode@nohost", task)
   end
 
 
