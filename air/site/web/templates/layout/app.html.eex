@@ -42,6 +42,9 @@
                 <%= if permitted?(@conn, Air.OrganisationController, :index) do %>
                   <%= navbar_link(@conn, "Organisations", organisation_path(@conn, :index)) %>
                 <% end %>
+                <%= if permitted?(@conn, Air.ApiTokenController, :index) do %>
+                  <%= navbar_link(@conn, "API Tokens", api_token_path(@conn, :index)) %>
+                <% end %>
                 <%= if Guardian.Plug.authenticated?(@conn) do %>
                   <li>
                     <%= link "Sign out", to: session_path(@conn, :delete), method: :delete %>

@@ -1,0 +1,53 @@
+<%= if get_flash(@conn, :api_token) do %>
+<div class="alert alert-success" role="alert">
+  <p>Your new token has been added. Please copy and paste it into your application:</p>
+  <br />
+  <strong><%= get_flash(@conn, :api_token) %></strong>
+  <!-- TODO: Add link to documentation once it exists -->
+</div>
+<% end %>
+
+<%= if length(@api_tokens) > 0 do %>
+<h1>Existing tokens</h1>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Description</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for api_token <- @api_tokens do %>
+    <tr>
+      <td><%= api_token.description %></td>
+      <td>
+        <%= link "Revoke API token", to: api_token_path(@conn, :delete, api_token),
+            method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+      </td>
+    </tr>
+    <% end %>
+  </tbody>
+</table>
+<% end %>
+
+
+<h2>Add a new token</h2>
+
+<%= form_for @changeset, api_token_path(@conn, :create), fn f -> %>
+<%= if @changeset.action do %>
+  <div class="alert alert-danger">
+    <p>Oops, something went wrong! Please check the errors below.</p>
+  </div>
+<% end %>
+
+<div class="form-group">
+  <label>Token description</label>
+  <%= text_input f, :description, class: "form-control" %>
+  <%= error_tag f, :description %>
+</div>
+
+<div class="form-group">
+  <%= submit "Create token", class: "btn btn-primary" %>
+</div>
+<% end %>
