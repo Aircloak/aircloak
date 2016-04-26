@@ -85,13 +85,8 @@ class Form extends React.Component {
     if (this.props.settings.dataSources.length > 0)
       return (
             <form className="form-horizontal">
-              <Control label="Data source">
-                <DataSources {...this.props} />
-              </Control>
-
-              <Control label="Tables">
-                <Tables {...this.props} />
-              </Control>
+              <DataSources {...this.props} />
+              <Tables {...this.props} />
             </form>
           );
     else
@@ -122,16 +117,18 @@ class DataSources extends React.Component {
           concat(this.props.settings.dataSources)
 
     return(
-          <select
-            className="form-control"
-            value={`${this.props.settings.selectedDataSourceToken()}`}
-            onChange={this.onDataSourceSelected.bind(this)}
-          >
-            {dataSources.map((dataSource) =>
-                <option key={dataSource.token} value={dataSource.token}>
-                  {dataSource.display}
-                </option>)}
-          </select>
+          <Control label="Data source">
+            <select
+              className="form-control"
+              value={`${this.props.settings.selectedDataSourceToken()}`}
+              onChange={this.onDataSourceSelected.bind(this)}
+            >
+              {dataSources.map((dataSource) =>
+                  <option key={dataSource.token} value={dataSource.token}>
+                    {dataSource.display}
+                  </option>)}
+            </select>
+          </Control>
         )
   }
 }
@@ -146,17 +143,23 @@ class Tables extends React.Component {
   }
 
   render() {
-    return (
-          <div style={{'paddingTop': '7px'}}>
-            {this.props.settings.selectedDataSourceTables().map((table) =>
-                <div key={table.id}>
-                  <input type="checkbox"
-                    onChange={this.onTableSelected.bind(this)}
-                    checked={this.props.settings.isTableSelected(table)}
-                    value={table.id} />
-                  {table.id}
-                </div>)}
-          </div>
-        );
+    let tables = this.props.settings.selectedDataSourceTables();
+    if (tables.length > 0)
+      return (
+            <Control label="Tables">
+              <div style={{'paddingTop': '7px'}}>
+                {tables.map((table) =>
+                    <div key={table.id}>
+                      <input type="checkbox"
+                        onChange={this.onTableSelected.bind(this)}
+                        checked={this.props.settings.isTableSelected(table)}
+                        value={table.id} />
+                      {table.id}
+                    </div>)}
+              </div>
+            </Control>
+          );
+    else
+      return null;
   }
 }
