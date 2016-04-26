@@ -47,10 +47,10 @@ export class ResultsView extends React.Component {
     );
   }
 
-  renderTaskRunError() {
+  renderTaskRunError(reason) {
     return (
       <div className="alert alert-danger">
-        Failed to run the task on the cloak!
+        Failed to run the task on the cloak: {reason}!
       </div>
     );
   }
@@ -62,7 +62,7 @@ export class ResultsView extends React.Component {
   render() {
     if (this.props.result != undefined) {
       if (this.props.result.error) {
-        return this.renderTaskRunError();
+        return this.renderTaskRunError(this.props.result.error);
       } else {
         return this.renderResultRows();
       }
