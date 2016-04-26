@@ -86,8 +86,13 @@ class Form extends React.Component {
     if (this.props.settings.dataSources.length > 0)
       return (
             <form className="form-horizontal">
-              <Control label="Data source" component={<DataSources {...this.props} />} />
-              <Control label="Tables" component={<Tables {...this.props} />} />
+              <Control label="Data source">
+                <DataSources {...this.props} />
+              </Control>
+
+              <Control label="Tables">
+                <Tables {...this.props} />
+              </Control>
             </form>
           );
     else
@@ -100,7 +105,7 @@ class Control extends React.Component {
     return (
           <div className="form-group">
             <label className="col-sm-2 control-label">{this.props.label}</label>
-            <div className="col-sm-8">{this.props.component}</div>
+            <div className="col-sm-8">{this.props.children}</div>
           </div>
         );
   }
