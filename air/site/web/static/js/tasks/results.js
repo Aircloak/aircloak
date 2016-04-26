@@ -12,7 +12,7 @@ export class ResultsView extends React.Component {
         <p>
           Generated on <strong>{dateString}</strong>
         </p>
-        <Errors errors={this.props.result.exceptions} />
+        <Exceptions exceptions={this.props.result.exceptions} />
         <Buckets buckets={this.props.result.buckets} />
       </div>
     );
@@ -81,16 +81,16 @@ class Buckets extends React.Component {
   }
 }
 
-class Errors extends React.Component {
+class Exceptions extends React.Component {
   render() {
-    if (this.props.errors.length == 0)
+    if (this.props.exceptions.length == 0)
       return null;
 
     return (
           <div className="alert alert-danger">
-            <p>Following errors were reported:</p>
+            <p>Following exceptions were reported:</p>
             <ul>
-              {this.props.errors.map((item) =>
+              {this.props.exceptions.map((item) =>
                     <li key={item.error}>{item.error} ({item.count})</li>
                   )}
             </ul>
