@@ -89,9 +89,9 @@ defmodule Air.TaskController do
       Task.changeset(conn.assigns.task, parse_task_params(task_params))
       |> Ecto.Changeset.apply_changes()
 
-    Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task))
+    success = Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task)) === :ok
 
-    json(conn, %{success: true})
+    json(conn, %{success: success})
   end
 
 
