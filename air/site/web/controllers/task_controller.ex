@@ -91,19 +91,23 @@ defmodule Air.TaskController do
       |> Ecto.Changeset.apply_changes()
 
     try do
-      Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task))
-      json(conn, %{success: true})
-    catch
-      :exit, :noproc ->
-        json(conn, %{success: false, reason: "the cloak is not connected"})
-      type, error ->
-        # We'll make a nice error log report and return 500
-        Logger.error([
-              "Error starting a task: #{inspect(type)}:#{inspect(error)}\n",
-              Exception.format_stacktrace(System.stacktrace())
-            ])
+      case Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task)) do
+        :ok ->
+          json(conn, %{success: true})
+        {:error, :not_connected} ->
+          json(conn, %{success: false, reason: "the cloak is not connected"})
+        {:error, other} ->
+          Logger.error(fn -> "Task start error: #{other}" end)
+          json(conn, %{success: false, reason: "an error has occurred"})
+      end
+    catch type, error ->
+      # We'll make a nice error log report and return 500
+      Logger.error([
+            "Error starting a task: #{inspect(type)}:#{inspect(error)}\n",
+            Exception.format_stacktrace(System.stacktrace())
+          ])
 
-        send_resp(conn, Plug.Conn.Status.code(:internal_server_error), "")
+      send_resp(conn, Plug.Conn.Status.code(:internal_server_error), "")
     end
   end
 
