@@ -8,7 +8,8 @@ defmodule Air.Plugs.GuardianSessionRestoration do
   require Logger
 
   @cookie_key "auth_remember_me"
-  @cookie_max_age 2592000
+  # 30 days in seconds (30*24*60*60) - the time before a user has to login again.
+  @cookie_max_age_s 2592000
 
 
   # -------------------------------------------------------------------
@@ -35,12 +36,12 @@ defmodule Air.Plugs.GuardianSessionRestoration do
   def persist_token(conn) do
     Logger.debug("The user wants us to remember that s/he is logged in")
     jwt = Plug.Conn.get_session(conn, session_key())
-    Plug.Conn.put_resp_cookie(conn, @cookie_key, jwt, max_age: @cookie_max_age)
+    Plug.Conn.put_resp_cookie(conn, @cookie_key, jwt, max_age: @cookie_max_age_s)
   end
 
   def remove_token(conn) do
     Logger.debug("The user wants us to forget that s/he was logged in")
-    Plug.Conn.delete_resp_cookie(conn, @cookie_key, max_age: @cookie_max_age)
+    Plug.Conn.delete_resp_cookie(conn, @cookie_key, max_age: @cookie_max_age_s)
   end
 
   defp conditionally_restore_session(conn) do
