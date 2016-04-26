@@ -134,6 +134,8 @@ defmodule Air.TaskController do
         }
       end
 
+    # We need to find the token of the task data source. Tokens have some randomness, so here we
+    # ensure that we return the token which exists in the data source list.
     selected_token =
       case Enum.find(
             data_sources,
@@ -141,8 +143,8 @@ defmodule Air.TaskController do
           ) do
         %{} = data_source -> data_source.token
         nil ->
-          # can't find the data source, because the cloak is maybe not connected, so we'll just encode what
-          # we currently have in the task
+          # Can't find the data source because the cloak is not connected, or data source is not
+          # assigned. We'll just encode what we currently have in the task.
           data_source_token(task.cloak_id, task.data_source)
       end
 
