@@ -6,6 +6,7 @@ import { CodeEditor } from "./code_editor"
 import { ResultSocket } from "./results_socket"
 import { SidePane } from "./sidepane"
 import { StatusLine } from "./status_line"
+import { SettingsModel } from "./settings"
 
 class TaskEditor extends React.Component {
   constructor(props) {
@@ -16,6 +17,12 @@ class TaskEditor extends React.Component {
       // and task name field
       query: props.query,
       name: props.name,
+      settings: new SettingsModel({
+            dataSources: props.data_sources,
+            dataSourceToken: props.data_source_token,
+            tables: new Set(props.tables),
+            cloakId: props.cloak_id
+          }),
 
       // We keep some stats on whether or not
       // the task is running. This is used
@@ -34,8 +41,10 @@ class TaskEditor extends React.Component {
     this.conditionallySave = this.conditionallySave.bind(this);
     this.handleCodeChange = this.handleCodeChange.bind(this);
     this.handleNameChange = this.handleNameChange.bind(this);
+    this.handleSettingsChange = this.handleSettingsChange.bind(this);
     this.handleRunTask = this.handleRunTask.bind(this);
     this.isSaved = this.isSaved.bind(this);
+    this.canRun = this.canRun.bind(this);
     this.saveTask = this.saveTask.bind(this);
     this.updateTaskResult = this.updateTaskResult.bind(this);
     this.updateTaskRunningProgress = this.updateTaskRunningProgress.bind(this);
@@ -67,6 +76,10 @@ class TaskEditor extends React.Component {
     this.setState({query: query});
   }
 
+  handleSettingsChange(settings) {
+    this.setState({settings: settings});
+  }
+
   updateTaskRunningProgress(progress) {
     this.setState({runningPercent: progress});
   }
@@ -76,6 +89,7 @@ class TaskEditor extends React.Component {
     // result, and therefore update the progress too
     this.updateTaskRunningProgress(-1);
     this.setState({result: result});
+    this.refs.SidePane.showResultTab()
   }
 
 
@@ -89,7 +103,8 @@ class TaskEditor extends React.Component {
           context: this,
           method: "POST",
           headers: {
-            "X-CSRF-TOKEN": this.props.CSRFToken
+            "X-CSRF-TOKEN": this.props.CSRFToken,
+            "Content-Type": "application/json"
           },
           data: this.queryData(),
           success: (responseData, textStatus) => {
@@ -103,7 +118,8 @@ class TaskEditor extends React.Component {
           context: this,
           method: "PUT",
           headers: {
-            "X-CSRF-TOKEN": this.props.CSRFToken
+            "X-CSRF-TOKEN": this.props.CSRFToken,
+            "Content-Type": "application/json"
           },
           data: this.queryData(),
           success: this.updateSavedState,
@@ -129,17 +145,22 @@ class TaskEditor extends React.Component {
   };
 
   queryData() {
-    return {
-      task: {
-        query: this.state.query,
-        name: this.state.name
-      }
-    };
+    return JSON.stringify({
+          task: {
+            name: this.state.name,
+            query: this.state.query,
+            data_source_token: this.state.settings.dataSourceToken,
+            tables: Array.from(this.state.settings.tables)
+          }
+        });
   }
 
   isSaved() {
-    // Hack to get object comparison in order to see whether or not the object is changed
-    return (JSON.stringify(this.state.savedState) == JSON.stringify(this.queryData()));
+    return (this.state.savedState == this.queryData());
+  }
+
+  canRun() {
+    return (this.state.settings.dataSourceToken != null && this.state.settings.tables.size > 0);
   }
 
   checkForUnsavedChanges() {
@@ -160,6 +181,7 @@ class TaskEditor extends React.Component {
             runningPercent={this.state.runningPercent}
             name={this.state.name}
             isSavedCheck={this.isSaved}
+            canRunCheck={this.canRun}
             onNameChange={this.handleNameChange}
             onTaskSaveClick={this.saveTask}
             onRunTaskClick={this.handleRunTask} />
@@ -168,7 +190,11 @@ class TaskEditor extends React.Component {
             onChange={this.handleCodeChange}
             onSave={this.conditionallySave}
             onRun={this.handleRunTask} />
-        <SidePane result={this.state.result} />
+        <SidePane
+            ref="SidePane"
+            result={this.state.result}
+            settings={this.state.settings}
+            onSettingsChange={this.handleSettingsChange} />
       </div>
     );
   }

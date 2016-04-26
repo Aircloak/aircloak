@@ -24,10 +24,11 @@ defmodule Air.TaskController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    tasks = Task
-    |> Task.permanent
-    |> Task.for_user(current_user(conn))
-    |> Repo.all
+    tasks =
+      Task
+      |> Task.permanent
+      |> Task.for_user(current_user(conn))
+      |> Repo.all
     render(conn, "index.html", tasks: tasks)
   end
 
@@ -53,11 +54,16 @@ defmodule Air.TaskController do
 
   def edit(conn, _params) do
     task = conn.assigns.task
-    task_map = %{
-      id: task.id,
-      name: task.name,
-      query: task.query
-    }
+    task_map = Map.merge(
+          %{
+            id: task.id,
+            name: task.name,
+            query: task.query,
+            cloak_id: task.cloak_id,
+            tables: task.tables
+          },
+          data_sources(conn, task)
+        )
     render(conn, "editor.html", token: Guardian.Plug.current_token(conn),
         task_json: Poison.encode!(task_map))
   end
@@ -66,7 +72,7 @@ defmodule Air.TaskController do
     changeset = Task.changeset(conn.assigns.task,
         # Tasks are temporary until they are explicitly saved by the user for the first time.
         # Only tasks that are permanent are shown in the interface.
-        Map.merge(task_params, %{"permanent" => true}))
+        Map.merge(parse_task_params(task_params), %{"permanent" => true}))
     Repo.update!(changeset)
     json(conn, %{success: true})
   end
@@ -78,19 +84,19 @@ defmodule Air.TaskController do
     |> redirect(to: task_path(conn, :index))
   end
 
-  def run_task(conn, %{"task" => _task_params}) do
-    spawn(fn -> fake_execution(conn.assigns.task) end)
-    # TODO: Schedule task running here...
-    #       But make sure you run the task with the parameters
-    #       passed in with the request, rather than those of
-    #       the `conn.assigns.task` record. This is quite important
-    #       as the task might not have been saved.
+  def run_task(conn, %{"task" => task_params}) do
+    task =
+      Task.changeset(conn.assigns.task, parse_task_params(task_params))
+      |> Ecto.Changeset.apply_changes()
+
+    Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task))
+
     json(conn, %{success: true})
   end
 
 
   # -------------------------------------------------------------------
-  # Private methods
+  # Internal functions
   # -------------------------------------------------------------------
 
   defp current_user(conn) do
@@ -113,33 +119,51 @@ defmodule Air.TaskController do
     end
   end
 
+  defp data_sources(conn, task) do
+    # flatten data sources so it's easier to handle in the task editor
+    data_sources =
+      for cloak <- Air.CloakInfo.all(current_user(conn).organisation),
+          data_source <- cloak.data_sources
+      do
+        %{
+          id: data_source.id,
+          display: "#{data_source.id} (#{cloak.name})",
+          tables: data_source.tables,
+          cloak: cloak,
+          token: data_source_token(cloak.id, data_source.id)
+        }
+      end
 
-  # -------------------------------------------------------------------
-  # Temporary methods to simulate task running
-  # -------------------------------------------------------------------
+    # We need to find the token of the task data source. Tokens have some randomness, so here we
+    # ensure that we return the token which exists in the data source list.
+    selected_token =
+      case Enum.find(
+            data_sources,
+            fn(data_source) -> data_source.id == task.data_source && data_source.cloak.id == task.cloak_id end
+          ) do
+        %{} = data_source -> data_source.token
+        nil ->
+          # Can't find the data source because the cloak is not connected, or data source is not
+          # assigned. We'll just encode what we currently have in the task.
+          data_source_token(task.cloak_id, task.data_source)
+      end
 
-  defp fake_execution(task) do
-    run_fakery(task, 0)
+      %{data_sources: data_sources, data_source_token: selected_token}
   end
 
-  defp run_fakery(task, progress) when progress < 100 do
-    :timer.sleep(:random.uniform(100))
-    Air.Socket.Frontend.TaskChannel.broadcast_progress(task, progress)
-    run_fakery(task, progress + :random.uniform(5))
+  defp parse_task_params(task_params) do
+    {cloak_id, data_source} = decode_data_source_token(task_params["data_source_token"])
+    Map.merge(task_params, %{"cloak_id" => cloak_id, "data_source" => data_source})
   end
-  defp run_fakery(task, _) do
-    result = %{
-      data: [
-        %{label: "Age", value: "10-15", count: 10},
-        %{label: "Age", value: "15-20", count: 100},
-        %{label: "Age", value: "20-25", count: 15},
-        %{label: "Age", value: "25-30", count: 100},
-        %{label: "Age", value: "30-35", count: 900},
-        %{label: "Age", value: "35-40", count: 20},
-        %{label: "Age", value: "40-45", count: 15}
-      ],
-      created_at: :os.system_time(:seconds)
-    }
-    Air.Socket.Frontend.TaskChannel.broadcast_result(task, result)
+
+  defp data_source_token(nil, nil), do: nil
+  defp data_source_token(cloak_id, data_source) do
+    Phoenix.Token.sign(Air.Endpoint, "data_source_token", {cloak_id, data_source})
+  end
+
+  defp decode_data_source_token(nil), do: {nil, nil}
+  defp decode_data_source_token(data_source_token) do
+    {:ok, {cloak_id, data_source}} = Phoenix.Token.verify(Air.Endpoint, "data_source_token", data_source_token)
+    {cloak_id, data_source}
   end
 end

@@ -17,7 +17,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   The function returns when the cloak responds. If the timeout occurs, it is
   still possible that a cloak has received the request.
   """
-  @spec run_task(CloakInfo.cloak_id, %{}) :: :ok | {:error, any}
+  @spec run_task(CloakInfo.cloak_id, Air.Task.cloak_query) :: :ok | {:error, any}
   def run_task(cloak_id, task) do
     case call(cloak_id, "run_task", task, :timer.seconds(5)) do
       {:ok, _} -> :ok
@@ -44,11 +44,13 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   @doc false
   def join("main", cloak_info, socket) do
-    {:ok, _} = CloakInfo.start_link(cloak_info)
+    Process.flag(:trap_exit, true)
+    {:ok, cloak_info_pid} = CloakInfo.start_link(cloak_info)
 
     {:ok, %{},
       socket
       |> assign(:pending_calls, %{})
+      |> assign(:cloak_info_pid, cloak_info_pid)
     }
   end
 
@@ -104,9 +106,17 @@ defmodule Air.Socket.Cloak.MainChannel do
     pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
     {:noreply, assign(socket, :pending_calls, pending_calls)}
   end
+  def handle_info({:EXIT, cloak_info_pid, reason}, %{assigns: %{cloak_info_pid: cloak_info_pid}} = socket) do
+    # cloak registration process terminated, so we need to stop as well
+    {:stop, reason, socket}
+  end
+  def handle_info({:EXIT, _, :normal}, socket) do
+    # probably the linked reporter terminated successfully
+    {:noreply, socket}
+  end
   def handle_info(message, socket) do
     cloak_id = socket.assigns.cloak_id
-    Logger.info("unhandled info #{message} from '#{cloak_id}'")
+    Logger.info("unhandled info #{inspect(message)} from '#{cloak_id}'")
     {:noreply, socket}
   end
 
@@ -116,9 +126,9 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
 
   defp handle_cloak_call("task_results", task_results, request_id, socket) do
-    # TODO: do something with task results
-    Logger.info("received task results #{inspect task_results}")
+    Logger.info("received task results for task #{task_results["task_id"]}")
     respond_to_cloak(socket, request_id, :ok)
+    report_task_results(task_results)
     {:noreply, socket}
   end
 
@@ -157,5 +167,19 @@ defmodule Air.Socket.Cloak.MainChannel do
           exit(:timeout)
         end
     end
+  end
+
+  defp report_task_results(task_results) do
+    # Starting a linked reporter. This ensures that a crash in the reporter won't terminate this channel.
+    # The link ensures that the termination of this channel terminates the reporter as well.
+    Task.start_link(fn ->
+          task = Air.Repo.get!(Air.Task, task_results["task_id"])
+          report_data = %{
+            buckets: task_results["buckets"],
+            exceptions: task_results["exceptions"],
+            created_at: :os.system_time(:seconds)
+          }
+          Air.Socket.Frontend.TaskChannel.broadcast_result(task, report_data)
+        end)
   end
 end

@@ -30,6 +30,15 @@ defmodule Air.TestRepoHelper do
     |> Air.Repo.insert!()
   end
 
+  @doc "Inserts a test task into the database"
+  @spec create_task!(Air.User.t, %{}) :: Air.Task.t
+  def create_task!(user, params \\ %{name: "name", query: "query content", permanent: true}) do
+    user
+    |> Ecto.build_assoc(:tasks)
+    |> Air.Task.changeset(params)
+    |> Air.Repo.insert!()
+  end
+
   defp random_string,
     do: Base.encode16(:crypto.strong_rand_bytes(10))
 end

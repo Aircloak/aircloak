@@ -6,7 +6,7 @@ export class ResultsView extends React.Component {
   // ----------------------------------------------------------------
 
   renderResultRows() {
-    var rows = this.props.result.data.map((row) => {
+    var rows = this.props.result.buckets.map((row) => {
           var key = row.label + "-" + row.value;
           return (
             <ResultItem key={key}

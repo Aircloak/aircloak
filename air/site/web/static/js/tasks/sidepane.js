@@ -31,13 +31,17 @@ export class SidePane extends React.Component {
       },
       {
         name: "Settings",
-        component: <SettingsView {...this.props} />
+        component: <SettingsView {...this.props} onChange={this.props.onSettingsChange} />
       }
     ];
   }
 
   handleTabChange(tabName) {
     this.setState({activeTab: tabName});
+  }
+
+  showResultTab() {
+    this.handleTabChange("Task result");
   }
 
   activePane() {
