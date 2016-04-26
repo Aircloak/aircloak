@@ -69,7 +69,7 @@ defmodule Air.SessionController do
 
 
   # -------------------------------------------------------------------
-  # Priviate functions
+  # Internal functions
   # -------------------------------------------------------------------
 
   defp conditionally_create_persistent_login(conn, %{"remember" => "on"}) do
