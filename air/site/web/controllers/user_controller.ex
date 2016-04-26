@@ -93,24 +93,21 @@ defmodule Air.UserController do
   end
 
   defp create_permitted?(conn, changeset) do
-    current_user = Guardian.Plug.current_resource(conn)
-    org_id = current_user.organisation_id
+    org_id = conn.assigns.current_user.organisation_id
 
     (
       # admin is permitted to do everything
-      User.admin?(current_user) or
+      User.admin?(conn.assigns.current_user) or
       # non-admin can only store to the same organisation
       Ecto.Changeset.get_change(changeset, :organisation_id, org_id) == org_id
     )
   end
 
   defp edit_permitted?(conn, user, user_params) do
-    current_user = Guardian.Plug.current_resource(conn)
-
     # admin is permitted to do everything
-    User.admin?(current_user) or (
+    User.admin?(conn.assigns.current_user) or (
       # non-admin can only change it's own users
-      current_user.organisation_id == user.organisation_id and
+      conn.assigns.current_user.organisation_id == user.organisation_id and
       # non-admin is not allowed to change user's organisation
       user_params["organisation_id"] == nil
     )

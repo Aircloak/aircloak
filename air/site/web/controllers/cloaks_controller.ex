@@ -22,7 +22,7 @@ defmodule Air.CloaksController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    organisation = Repo.get!(Organisation, current_user(conn).organisation_id)
+    organisation = Repo.get!(Organisation, conn.assigns.current_user.organisation_id)
     cloaks = CloakInfo.all(organisation)
     cloaks = for cloak <- cloaks do
       # capture time difference since connected, ignoring sub-minute values
@@ -33,14 +33,5 @@ defmodule Air.CloaksController do
       Map.put_new(cloak, :conn_uptime, conn_uptime)
     end
     render(conn, "index.html", cloaks: cloaks)
-  end
-
-
-  # -------------------------------------------------------------------
-  # Private methods
-  # -------------------------------------------------------------------
-
-  defp current_user(conn) do
-    Guardian.Plug.current_resource(conn)
   end
 end

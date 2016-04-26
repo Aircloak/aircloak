@@ -84,7 +84,7 @@ defmodule Air.OrganisationController do
   end
 
   defp verify_org_permissions(conn, id) do
-    user = Guardian.Plug.current_resource(conn)
+    user = conn.assigns.current_user
     if Air.User.admin?(user) or (user != nil and String.to_integer(id) == user.organisation_id) do
       conn
     else
