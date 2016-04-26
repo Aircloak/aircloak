@@ -23,10 +23,16 @@ export class SettingsModel {
     return this.tables.has(table.id)
   }
 
-  isCloakConnected() {
-    if (this.cloakId == null) return true; // no cloak selected, so we're fine
-    let cloak = (this.dataSources.find((dataSource) => {return dataSource.cloak.id == this.cloakId}));
-    return (cloak != null);
+  errorMessage() {
+    if (this.dataSources.length == 0 && this.cloakId == null)
+      return "There are no cloaks connected.";
+
+    if (this.cloakId == null) return null; // some cloaks are connected, but no cloak is selected
+
+    let selectedCloak = (this.dataSources.find((dataSource) => {return dataSource.cloak.id == this.cloakId}));
+    if (selectedCloak != null) return null;
+
+    return `The cloak ${this.cloakId} is not connected.`;
   }
 
   setDataSourceToken(dataSourceToken) {
@@ -58,40 +64,34 @@ export class SettingsView extends React.Component {
     return (
           <div>
             <h1>Settings view</h1>
-            {this.renderEditor()}
+            <Error{...this.props} />
+            <Form {...this.props} />
           </div>
         );
-  }
-
-  renderEditor() {
-    if (this.props.settings.dataSources.length == 0 && this.props.settings.cloakId == null)
-      return <Error reason="There are no cloaks connected." />;
-    else if (!this.props.settings.isCloakConnected())
-      return (
-            <div>
-              <Error reason={`The cloak ${this.props.settings.cloakId} is not connected.`} />
-              <Form {...this.props} />
-            </div>
-          );
-    else
-      return <Form {...this.props} />;
   }
 }
 
 class Error extends React.Component {
   render() {
-    return <div className="alert alert-danger">{this.props.reason}.</div>;
+    let errorMessage = this.props.settings.errorMessage();
+    if (errorMessage)
+      return <div className="alert alert-danger">{errorMessage}</div>;
+    else
+      return null;
   }
 }
 
 class Form extends React.Component {
   render() {
-    return (
-          <form className="form-horizontal">
-            <Control label="Data source" component={<DataSources {...this.props} />} />
-            <Control label="Tables" component={<Tables {...this.props} />} />
-          </form>
-        );
+    if (this.props.settings.dataSources.length > 0)
+      return (
+            <form className="form-horizontal">
+              <Control label="Data source" component={<DataSources {...this.props} />} />
+              <Control label="Tables" component={<Tables {...this.props} />} />
+            </form>
+          );
+    else
+      return null;
   }
 }
 
