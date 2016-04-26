@@ -147,10 +147,10 @@ class Tables extends React.Component {
     if (tables.length > 0)
       return (
             <Control label="Tables">
-              <div style={{'paddingTop': '7px'}}>
+              <div style={{paddingTop: '7px'}}>
                 {tables.map((table) =>
                     <div key={table.id}>
-                      <input type="checkbox"
+                      <input style={{marginRight: '5px'}} type="checkbox"
                         onChange={this.onTableSelected.bind(this)}
                         checked={this.props.settings.isTableSelected(table)}
                         value={table.id} />
