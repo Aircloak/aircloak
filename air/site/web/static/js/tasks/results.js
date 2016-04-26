@@ -15,11 +15,11 @@ export class ResultsView extends React.Component {
               count={row.count} />
           );
         });
-    var dateString = new Date(this.props.result.created_at * 1000).toUTCString();
+    var dateString = new Date(this.props.result.created_at * 1000).toString();
     return (
       <div>
         <p>
-          Results generated on <strong>{dateString}</strong>
+          Generated on <strong>{dateString}</strong>
         </p>
         <table className="table">
           <thead>
