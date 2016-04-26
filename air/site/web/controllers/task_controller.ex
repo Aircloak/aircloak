@@ -27,7 +27,7 @@ defmodule Air.TaskController do
     tasks =
       Task
       |> Task.permanent
-      |> Task.for_user(current_user(conn))
+      |> Task.for_user(conn.assigns.current_user)
       |> Repo.all
     render(conn, "index.html", tasks: tasks)
   end
@@ -40,7 +40,7 @@ defmodule Air.TaskController do
       query: "-- Add your query code here",
       name: "Untitled query"
     }
-    changeset = build_assoc(current_user(conn), :tasks)
+    changeset = build_assoc(conn.assigns.current_user, :tasks)
     changeset = Task.changeset(changeset, task_params)
     case Repo.insert(changeset) do
       {:ok, task} ->
@@ -99,14 +99,10 @@ defmodule Air.TaskController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp current_user(conn) do
-    Guardian.Plug.current_resource(conn)
-  end
-
   defp load_task_and_validate_ownership(conn, _) do
     %{"id" => id} = conn.params
     task = Repo.get!(Task, id)
-    if task.user_id != current_user(conn).id do
+    if task.user_id != conn.assigns.current_user.id do
       # Raise a 404 if the user isn't the right one.
       # This way we avoid leaking information if someone
       # is trying to enumerate all tasks.
@@ -122,7 +118,7 @@ defmodule Air.TaskController do
   defp data_sources(conn, task) do
     # flatten data sources so it's easier to handle in the task editor
     data_sources =
-      for cloak <- Air.CloakInfo.all(current_user(conn).organisation),
+      for cloak <- Air.CloakInfo.all(conn.assigns.current_user.organisation),
           data_source <- cloak.data_sources
       do
         %{

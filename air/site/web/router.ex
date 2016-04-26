@@ -11,15 +11,11 @@ defmodule Air.Router do
   end
 
   pipeline :anonymous_only do
-    plug Guardian.Plug.VerifySession
-    plug Guardian.Plug.EnsureNotAuthenticated, handler: Air.SessionController
+    plug Air.Plug.Session.Anonymous
   end
 
   pipeline :browser_auth do
-    plug Air.Plugs.GuardianSessionRestoration
-    plug Guardian.Plug.VerifySession
-    plug Guardian.Plug.EnsureAuthenticated, handler: Air.SessionController
-    plug Guardian.Plug.LoadResource
+    plug Air.Plug.Session.Authenticated
   end
 
   scope "/auth", Air do

@@ -3,7 +3,6 @@ defmodule Air.SessionController do
   use Air.Web, :controller
 
   alias Air.User
-  alias Plug.Conn
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -49,22 +48,6 @@ defmodule Air.SessionController do
     |> Air.Plugs.GuardianSessionRestoration.remove_token
     |> put_flash(:info, "Logged out successfully")
     |> redirect(to: session_path(conn, :new))
-  end
-
-
-  # -------------------------------------------------------------------
-  # Callbacks for Guardian.Plug
-  # -------------------------------------------------------------------
-
-  def unauthenticated(%Conn{request_path: path} = conn, _params) do
-    conn
-    |> put_flash(:error, "You must be authenticated to view this page")
-    |> put_session(:return_path, path)
-    |> redirect(to: session_path(conn, :new))
-  end
-
-  def already_authenticated(conn, _params) do
-    send_resp(conn, Plug.Conn.Status.code(:bad_request), "already authenticated")
   end
 
 
