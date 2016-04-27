@@ -28,7 +28,7 @@ defmodule Air.Socket.CloakTest do
 
     me = self()
     spawn(fn ->
-          start_task_result = MainChannel.run_task("unknown_org/cloak_1", %{id: 42})
+          start_task_result = MainChannel.run_task("unknown_org/cloak_1", %{id: 42, code: ""})
           send(me, {:start_task_result, start_task_result})
         end)
     assert {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, 100)

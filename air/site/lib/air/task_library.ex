@@ -56,4 +56,28 @@ defmodule Air.TaskLibrary do
   @doc "Returns all possible completions."
   @spec completions() :: [%{text: String.t, displayText: String.t}]
   def completions(), do: @all_completions
+
+  @all_libraries Enum.map(libraries, &({&1.namespace, &1.code})) |> Enum.into(%{})
+
+  @doc "Returns all Aircloak dependencies required by the given code."
+  @spec dependencies(String.t) :: [%{name: String.t, code: String.t}]
+  def dependencies(code) do
+    deps =
+      for [namespace] <- Regex.scan(~r/(?'namespace'(\w+\.)+)/m, code, capture: ["namespace"]),
+          filtered_namespace <- [String.replace(namespace, ~r/\.$/, "")],
+          code = @all_libraries[filtered_namespace],
+          code != nil do
+        %{
+          name: filtered_namespace,
+          code: code
+        }
+      end
+
+    case deps do
+      [] -> []
+      [_|_] ->
+        # We have some deps, so we also add the code which creates the top-level global table.
+        [%{name: "Aircloak", code: "Aircloak = {}"} | deps]
+    end
+  end
 end
