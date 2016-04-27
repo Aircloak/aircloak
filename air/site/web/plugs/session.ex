@@ -17,8 +17,10 @@ defmodule Air.Plug.Session do
 
     import Plug.Conn
 
+    @doc false
     def init(opts), do: opts
 
+    @doc false
     def call(conn, _opts) do
       case Plug.Conn.get_req_header(conn, "auth-token") do
         [] ->
