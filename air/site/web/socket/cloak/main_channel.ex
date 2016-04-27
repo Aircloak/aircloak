@@ -4,7 +4,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  alias Air.CloakInfo
+  alias Air.{CloakInfo, Result}
 
 
   # -------------------------------------------------------------------
@@ -121,6 +121,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   defp handle_cloak_call("task_results", task_results, request_id, socket) do
     Logger.info("received task results for task #{task_results["task_id"]}")
     respond_to_cloak(socket, request_id, :ok)
+    save_task_results(task_results)
     report_task_results(task_results)
     {:noreply, socket}
   end
@@ -162,17 +163,30 @@ defmodule Air.Socket.Cloak.MainChannel do
     end
   end
 
+  defp save_task_results(task_results) do
+    {:ok, task_id} = Ecto.UUID.cast(task_results["task_id"])
+    result = %Result{
+      task_id: task_id,
+      buckets: Poison.encode!(task_results["buckets"]),
+      exceptions: Poison.encode!(task_results["exceptions"]),
+      post_processed: Poison.encode!([])
+    }
+    case Air.Repo.insert(result) do
+      {:ok, _} ->
+        :ok
+      {:error, _} ->
+        Logger.error("failed to save results for task #{task_id}")
+        :error
+    end
+  end
+
   defp report_task_results(task_results) do
     # Starting a linked reporter. This ensures that a crash in the reporter won't terminate this channel.
     # The link ensures that the termination of this channel terminates the reporter as well.
     Task.start_link(fn ->
           task = Air.Repo.get!(Air.Task, task_results["task_id"])
-          report_data = %{
-            buckets: task_results["buckets"],
-            exceptions: task_results["exceptions"],
-            created_at: :os.system_time(:seconds)
-          }
-          Air.Socket.Frontend.TaskChannel.broadcast_result(task, report_data)
+          task_results = Map.put(task_results, "created_at", :os.system_time(:seconds))
+          Air.Socket.Frontend.TaskChannel.broadcast_result(task, task_results)
         end)
   end
 end

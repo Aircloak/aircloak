@@ -5,8 +5,6 @@ defmodule Air.Task do
   alias Air.User
 
   @type t :: %__MODULE__{}
-  @type result_row :: %{:label => String.t, :value => String.t, :count => integer}
-  @type result :: %{:buckets => [result_row], :exceptions => [result_row], :created_at => integer}
   @type cloak_query :: %{id: String.t, prefetch: [%{table: String.t}], code: String.t}
 
   @primary_key {:id, :binary_id, autogenerate: true}
