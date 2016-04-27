@@ -31,7 +31,7 @@ defmodule Air.VerifyPermissions do
   @doc "Verifies if the currently logged-in user has permissions on the given action."
   @spec check_permission(Plug.Conn.t, module, atom) :: :ok | {:error, formatted_error::String.t}
   def check_permission(conn, controller, action) do
-    user = Guardian.Plug.current_resource(conn)
+    user = conn.assigns.current_user
     if Air.User.permitted?(user, action, permissions(controller)) do
       :ok
     else

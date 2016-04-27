@@ -6,33 +6,14 @@ export class ResultsView extends React.Component {
   // ----------------------------------------------------------------
 
   renderResultRows() {
-    var rows = this.props.result.buckets.map((row) => {
-          var key = row.label + "-" + row.value;
-          return (
-            <ResultItem key={key}
-              label={row.label}
-              value={row.value}
-              count={row.count} />
-          );
-        });
-    var dateString = new Date(this.props.result.created_at * 1000).toUTCString();
+    var dateString = new Date(this.props.result.created_at * 1000).toString();
     return (
       <div>
         <p>
-          Results generated on <strong>{dateString}</strong>
+          Generated on <strong>{dateString}</strong>
         </p>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Label</th>
-              <th>Value</th>
-              <th>Count</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows}
-          </tbody>
-        </table>
+        <Exceptions exceptions={this.props.result.exceptions} />
+        <Buckets buckets={this.props.result.buckets} />
       </div>
     );
   }
@@ -47,6 +28,13 @@ export class ResultsView extends React.Component {
     );
   }
 
+  renderTaskRunError(reason) {
+    return (
+      <div className="alert alert-danger">
+        Failed to run the task on the cloak: {reason}!
+      </div>
+    );
+  }
 
   // ----------------------------------------------------------------
   // React callbacks
@@ -54,21 +42,59 @@ export class ResultsView extends React.Component {
 
   render() {
     if (this.props.result != undefined) {
-      return this.renderResultRows();
+      if (this.props.result.error) {
+        return this.renderTaskRunError(this.props.result.error);
+      } else {
+        return this.renderResultRows();
+      }
     } else {
       return this.renderEmptyResultSet();
     }
   }
 }
 
-class ResultItem extends React.Component {
+class Buckets extends React.Component {
   render() {
+    if (this.props.buckets.length == 0)
+      return (<p>The task returned no results.</p>)
+
     return (
-      <tr>
-        <td>{this.props.label}</td>
-        <td>{this.props.value}</td>
-        <td>{this.props.count}</td>
-      </tr>
-    );
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Label</th>
+                <th>Value</th>
+                <th>Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {this.props.buckets.map((item) =>
+                    <tr key={`${item.label}_${item.value}`}>
+                      <td>{item.label}</td>
+                      <td>{item.value}</td>
+                      <td>{item.count}</td>
+                    </tr>
+                  )}
+            </tbody>
+          </table>
+        )
+  }
+}
+
+class Exceptions extends React.Component {
+  render() {
+    if (this.props.exceptions.length == 0)
+      return null;
+
+    return (
+          <div className="alert alert-danger">
+            <p>Following exceptions were reported:</p>
+            <ul>
+              {this.props.exceptions.map((item) =>
+                    <li key={item.error}>{item.error} ({item.count} times)</li>
+                  )}
+            </ul>
+          </div>
+        )
   }
 }

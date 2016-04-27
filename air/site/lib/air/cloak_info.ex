@@ -3,7 +3,7 @@ defmodule Air.CloakInfo do
   Storing and retrieving information about connected cloaks.
 
   This module powers a process which maintains information about the connected cloak
-  in etcd. The process will stores and periodically renews the cloak data. If the
+  in etcd. The process stores and periodically renews the cloak data. If the
   process is terminated, cloak data is immediately deleted. If the whole node is
   abruptly taken down, data will expire after some timeout. Finally, if this node
   ends up in a minority, renewal will fail, and the process will crash, causing

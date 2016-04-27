@@ -3,7 +3,6 @@ defmodule Air.SessionController do
   use Air.Web, :controller
 
   alias Air.User
-  alias Plug.Conn
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -32,6 +31,7 @@ defmodule Air.SessionController do
         return_path = get_session(conn, :return_path) || page_path(conn, :index)
         conn
         |> Guardian.Plug.sign_in(user)
+        |> conditionally_create_persistent_login(params)
         |> put_session(:return_path, nil)
         |> put_flash(:info, "Logged in successfully. Welcome back!")
         |> redirect(to: return_path)
@@ -44,24 +44,19 @@ defmodule Air.SessionController do
 
   def delete(conn, _params) do
     conn
-    |> Guardian.Plug.sign_out
+    |> Guardian.Plug.sign_out()
+    |> Air.Plug.Session.Restoration.remove_token()
     |> put_flash(:info, "Logged out successfully")
     |> redirect(to: session_path(conn, :new))
   end
 
 
   # -------------------------------------------------------------------
-  # Callbacks for Guardian.Plug
+  # Internal functions
   # -------------------------------------------------------------------
 
-  def unauthenticated(%Conn{request_path: path} = conn, _params) do
-    conn
-    |> put_flash(:error, "You must be authenticated to view this page")
-    |> put_session(:return_path, path)
-    |> redirect(to: session_path(conn, :new))
+  defp conditionally_create_persistent_login(conn, %{"remember" => "on"}) do
+    Air.Plug.Session.Restoration.persist_token(conn)
   end
-
-  def already_authenticated(conn, _params) do
-    send_resp(conn, Plug.Conn.Status.code(:bad_request), "already authenticated")
-  end
+  defp conditionally_create_persistent_login(conn, _params), do: conn
 end

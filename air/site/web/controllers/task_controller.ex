@@ -2,6 +2,7 @@ defmodule Air.TaskController do
   @moduledoc false
   use Air.Web, :controller
 
+  require Logger
   alias Air.Task
 
   plug :scrub_params, "task" when action in [:create, :update]
@@ -27,7 +28,7 @@ defmodule Air.TaskController do
     tasks =
       Task
       |> Task.permanent
-      |> Task.for_user(current_user(conn))
+      |> Task.for_user(conn.assigns.current_user)
       |> Repo.all
     render(conn, "index.html", tasks: tasks)
   end
@@ -40,7 +41,7 @@ defmodule Air.TaskController do
       query: "-- Add your query code here",
       name: "Untitled query"
     }
-    changeset = build_assoc(current_user(conn), :tasks)
+    changeset = build_assoc(conn.assigns.current_user, :tasks)
     changeset = Task.changeset(changeset, task_params)
     case Repo.insert(changeset) do
       {:ok, task} ->
@@ -89,9 +90,25 @@ defmodule Air.TaskController do
       Task.changeset(conn.assigns.task, parse_task_params(task_params))
       |> Ecto.Changeset.apply_changes()
 
-    Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task))
+    try do
+      case Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task)) do
+        :ok ->
+          json(conn, %{success: true})
+        {:error, :not_connected} ->
+          json(conn, %{success: false, reason: "the cloak is not connected"})
+        {:error, other} ->
+          Logger.error(fn -> "Task start error: #{other}" end)
+          json(conn, %{success: false, reason: "an error has occurred"})
+      end
+    catch type, error ->
+      # We'll make a nice error log report and return 500
+      Logger.error([
+            "Error starting a task: #{inspect(type)}:#{inspect(error)}\n",
+            Exception.format_stacktrace(System.stacktrace())
+          ])
 
-    json(conn, %{success: true})
+      send_resp(conn, Plug.Conn.Status.code(:internal_server_error), "")
+    end
   end
 
 
@@ -99,14 +116,10 @@ defmodule Air.TaskController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp current_user(conn) do
-    Guardian.Plug.current_resource(conn)
-  end
-
   defp load_task_and_validate_ownership(conn, _) do
     %{"id" => id} = conn.params
     task = Repo.get!(Task, id)
-    if task.user_id != current_user(conn).id do
+    if task.user_id != conn.assigns.current_user.id do
       # Raise a 404 if the user isn't the right one.
       # This way we avoid leaking information if someone
       # is trying to enumerate all tasks.
@@ -122,7 +135,7 @@ defmodule Air.TaskController do
   defp data_sources(conn, task) do
     # flatten data sources so it's easier to handle in the task editor
     data_sources =
-      for cloak <- Air.CloakInfo.all(current_user(conn).organisation),
+      for cloak <- Air.CloakInfo.all(conn.assigns.current_user.organisation),
           data_source <- cloak.data_sources
       do
         %{

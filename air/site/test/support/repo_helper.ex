@@ -2,10 +2,10 @@ defmodule Air.TestRepoHelper do
   @moduledoc "Helpers for working with the repository."
 
   @doc "Inserts the new organisation into the database."
-  @spec create_organisation! :: Air.Organisation.t
-  def create_organisation! do
+  @spec create_organisation!(String.t) :: Air.Organisation.t
+  def create_organisation!(name \\ random_string()) do
     %Air.Organisation{}
-    |> Air.Organisation.changeset(%{name: random_string()})
+    |> Air.Organisation.changeset(%{name: name})
     |> Air.Repo.insert!()
   end
 

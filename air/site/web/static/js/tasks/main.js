@@ -57,7 +57,7 @@ class TaskEditor extends React.Component {
     new ResultSocket(props.id, props.guardianToken)
       .start({
         joined: (resp) => {console.log("Joined channel for task updates")},
-        failed_join: (resp) => {console.log("Failed to join channel for task updates");},
+        failed_join: (resp) => {console.error("Failed to join channel for task updates");},
         progress: this.updateTaskRunningProgress,
         result: this.updateTaskResult
       });
@@ -98,7 +98,7 @@ class TaskEditor extends React.Component {
   // ----------------------------------------------------------------
 
   handleRunTask() {
-    this.setState({runningPercent: 0});
+    this.updateTaskRunningProgress(0);
     $.ajax(`/tasks/${this.props.id}/run`, {
           context: this,
           method: "POST",
@@ -108,7 +108,14 @@ class TaskEditor extends React.Component {
           },
           data: this.queryData(),
           success: (responseData, textStatus) => {
-            console.log("Task run scheduled...");
+            if (responseData.success)
+              console.log("Task run scheduled...");
+            else
+              this.updateTaskResult({error: responseData.reason || "unknown error"});
+          },
+          error: (jqXHR, status, errorReason) => {
+            console.error("Task run failed: ", errorReason);
+            this.updateTaskResult({error: errorReason});
           }
         });
   }
@@ -123,8 +130,8 @@ class TaskEditor extends React.Component {
           },
           data: this.queryData(),
           success: this.updateSavedState,
-          error: (jqXHR, textStatus) => {
-            console.log(`Error: ${textStatus}`);
+          error: (jqXHR, status, errorStatus) => {
+            console.error("Task saving failed: ", errorReason);
           }
       });
   }

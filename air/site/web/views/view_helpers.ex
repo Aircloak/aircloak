@@ -13,7 +13,7 @@ defmodule Air.ViewHelpers do
   @doc "Returns true if the currently logged-in user is an administrator."
   @spec admin?(Plug.Conn.t) :: boolean
   def admin?(conn),
-    do: Air.User.admin?(Guardian.Plug.current_resource(conn))
+    do: Air.User.admin?(conn.assigns.current_user)
 
   @doc """
   Generates the link for managing users.
@@ -23,11 +23,10 @@ defmodule Air.ViewHelpers do
   """
   @spec manage_users_link(Plug.Conn.t) :: String.t
   def manage_users_link(conn) do
-    user = Guardian.Plug.current_resource(conn)
-    if Air.User.admin?(user) do
+    if Air.User.admin?(conn.assigns.current_user) do
       Air.Router.Helpers.user_path(conn, :index)
     else
-      Air.Router.Helpers.organisation_path(conn, :show, user.organisation_id)
+      Air.Router.Helpers.organisation_path(conn, :show, conn.assigns.current_user.organisation_id)
     end
   end
 
