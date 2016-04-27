@@ -10,6 +10,11 @@ defmodule Air.Router do
     plug :put_secure_browser_headers
   end
 
+  pipeline :api do
+    plug :accepts, ["json"]
+    plug Air.Plug.Session.ApiAuth
+  end
+
   pipeline :anonymous_only do
     plug Air.Plug.Session.Anonymous
   end
@@ -37,5 +42,10 @@ defmodule Air.Router do
     resources "/organisations", OrganisationController
     resources "/tasks", TaskController, except: [:show, :create]
     resources "/users", UserController
+  end
+
+  scope "/api" do
+    pipe_through [:api]
+    post "/task", Air.API.TaskController, :run_task
   end
 end
