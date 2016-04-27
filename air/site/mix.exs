@@ -21,7 +21,8 @@ defmodule Air.Mixfile do
       ],
       preferred_cli_env: [
         eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
-        "phoenix.digest": :prod, site_release: :prod, "test.standard": :test, dialyze_retry: :dev
+        "phoenix.digest": :prod, site_release: :prod, "test.standard": :test, dialyze_retry: :dev,
+        check_dependent_apps: :prod
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [
@@ -61,7 +62,7 @@ defmodule Air.Mixfile do
       {:lhttpc, github: "esl/lhttpc", override: true},
       {:etcd, github: "spilgames/etcd.erl", ref: "79d04a775e4488b0eb6e5e07a8c0bf4803adb997"},
       {:hackney, "~> 1.5.0"},
-      {:exrm, "~> 1.0"},
+      {:exrm, "~> 1.0", warn_missing: false},
       {:timex, "~> 2.1"},
       {:aircloak_common, path: "../../common/elixir"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", only: :test},
