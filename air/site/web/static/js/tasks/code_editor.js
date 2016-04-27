@@ -50,13 +50,14 @@ export class CodeEditor extends React.Component {
         list =
           _.chain([]).
               union(
+                    this.props.completions,
                     _.map(selectedTables, (table) => {return {text: `load_user_table("${table}")`}}),
                     _.map(selectedTables, (table) => {return {text: `user_table("${table}")`}}),
                     _.map(this.editor.hint.anyword(cm, {word: /[a-zA-Z_](\w)*/}).list,
                       (word) => {return {text: word}})
                   ).
               filter((candidate) => {return candidate.text.match(fuzzyMatcher)}).
-              uniq((el) => {return el.text}).
+              uniqBy((el) => {return el.text}).
               sortBy((el) => {return sortOrder(el.text)}).
               value();
 

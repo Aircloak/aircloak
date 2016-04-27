@@ -54,6 +54,13 @@ defmodule Air.TaskController do
   end
 
   def edit(conn, _params) do
+    completions = [
+      %{text: "report_property", displayText: "report_property(label, string)"},
+      %{text: "get_user_tables()"},
+      %{text: "to_date", displayText: "to_date(timestamp)"},
+      %{text: "task_time"}
+    ]
+
     task = conn.assigns.task
     task_map = Map.merge(
           %{
@@ -61,7 +68,8 @@ defmodule Air.TaskController do
             name: task.name,
             query: task.query,
             cloak_id: task.cloak_id,
-            tables: task.tables
+            tables: task.tables,
+            completions: completions
           },
           data_sources(conn, task)
         )
