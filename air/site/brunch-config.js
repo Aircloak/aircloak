@@ -76,7 +76,8 @@ exports.config = {
       "react-dom",
       "codemirror",
       "react-codemirror",
-      "jquery"
+      "jquery",
+      "mousetrap"
     ]
   }
 };
