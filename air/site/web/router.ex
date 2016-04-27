@@ -43,4 +43,9 @@ defmodule Air.Router do
     resources "/tasks", TaskController, except: [:show, :create]
     resources "/users", UserController
   end
+
+  scope "/api" do
+    pipe_through [:api]
+    post "/task", Air.API.TaskController, :run_task
+  end
 end
