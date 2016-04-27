@@ -4,8 +4,7 @@ use Mix.Config
 # you can enable the server option below.
 config :air, Air.Endpoint,
   http: [port: Air.EnvSettings.tcp_port("insights/http")],
-  server: true,
-  secret_key_base: "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234"
+  server: true
 
 # Print only warnings and errors during test
 config :logger, level: :warn

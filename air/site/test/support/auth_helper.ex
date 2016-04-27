@@ -5,7 +5,7 @@ defmodule Air.TestAuthHelper do
 
   defmodule TokenEndpoint do
     @moduledoc false
-    def config(:secret_key_base), do: "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234"
+    def config(:secret_key_base), do: :air_etcd.get("/settings/air/insights/secrets/endpoint_key_base")
   end
 
   @doc "Creates a token that can be used in API calls"
