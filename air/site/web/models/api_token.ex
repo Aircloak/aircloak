@@ -63,7 +63,7 @@ defmodule Air.ApiToken do
             join: u in User, on: u.id == t.user_id,
             where: t.id == ^token_id,
             select: u) do
-          %{} = user -> user
+          %{} = user -> Repo.preload(user, :organisation)
           _ -> :error
         end
       _ -> :error
