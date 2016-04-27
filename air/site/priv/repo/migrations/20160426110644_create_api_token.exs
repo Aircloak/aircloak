@@ -8,6 +8,5 @@ defmodule Air.Repo.Migrations.CreateApiToken do
 
       timestamps
     end
-
   end
 end
