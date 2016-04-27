@@ -47,8 +47,9 @@ defmodule Air.ApiTokenController do
         |> redirect(to: api_token_path(conn, :index))
       false ->
         conn
-        |> put_flash(:info, "The token is unknown and cannot be revoked")
-        |> redirect(to: api_token_path(conn, :index))
+        |> put_status(:not_found)
+        |> render(Air.ErrorView, "404.html")
+        |> halt
     end
   end
 
