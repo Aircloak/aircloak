@@ -30,6 +30,13 @@ defmodule Air.TestRepoHelper do
     |> Air.Repo.insert!()
   end
 
+  @doc "Inserts a new user with default parameters into the database. See create_user!/2 for details"
+  @spec create_user!() :: Air.User.t
+  def create_user!() do
+    org = create_organisation!()
+    create_user!(org, :user)
+  end
+
   @doc "Inserts a test task into the database"
   @spec create_task!(Air.User.t, %{}) :: Air.Task.t
   def create_task!(user, params \\ %{name: "name", query: "query content", permanent: true}) do

@@ -14,6 +14,8 @@ defmodule Air.ApiToken do
 
   alias Air.{ApiToken, User, Repo}
 
+  @type t :: %__MODULE__{}
+
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "api_tokens" do
     field :description, :string
@@ -60,10 +62,12 @@ defmodule Air.ApiToken do
   def user_for_token(conn, token) do
     case Phoenix.Token.verify(conn, @token_type, token) do
       {:ok, token_id} ->
-        case Repo.one(from t in ApiToken,
-            join: u in User, on: u.id == t.user_id,
-            where: t.id == ^token_id,
-            select: u) do
+        case Repo.one(from user in User,
+            join: token in ApiToken, on: token.user_id == user.id,
+            where: token.id == ^token_id,
+            join: organisation in assoc(user, :organisation),
+            preload: [organisation: organisation],
+            select: user) do
           %{} = user -> user
           _ -> :error
         end
