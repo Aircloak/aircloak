@@ -52,7 +52,7 @@
 run_task(Task) ->
   queued_worker:run(?MODULE, {Task, undefined, undefined}).
 
-%% @doc Runs the task, and returns after the task is executed, and results reported back.
+%% @doc Runs the task, and returns after the task is executed, and the result reported back.
 %%      Note: the result is always `ok', regardless of whether the task completed successfully, or some error
 %%      occured.
 -spec block_run_task(#task{}) -> ok | {error, timeout}.
@@ -166,7 +166,7 @@ terminate(Error, State) ->
   end,
   cloak_metrics:count("task.failure"),
   progress_handler:unregister_task(State#state.task),
-  Results = [#bucket_report{
+  Buckets = [#bucket_report{
     label = #bucket_label{label = ?JOB_EXECUTION_ERROR, value = <<"task coordinator crashed">>},
     count = 1,
     noisy_count = 1,
@@ -175,7 +175,7 @@ terminate(Error, State) ->
   }],
   ?MEASURE("task.send_result", begin
         #task{task_id = TaskId, result_destination = ResultDestination} = State#state.task,
-        result_sender:send_results(TaskId, ResultDestination, Results)
+        result_sender:send_result(TaskId, ResultDestination, Buckets)
       end),
   ?REPORT_DURATION("task.total", State#state.start_time).
 
@@ -214,11 +214,11 @@ get_next_job_parameters(State = #state{active_jobs = ActiveJobs,
 
 process_responses(FinishReason, #state{task=#task{type=batch}} = State) ->
   Reports = aggregator:reports(State#state.aggregator),
-  Results = ?MEASURE("task.anonymization", anonymizer:anonymize(Reports, State#state.lcf_users)),
+  Buckets = ?MEASURE("task.anonymization", anonymizer:anonymize(Reports, State#state.lcf_users)),
   ?MEASURE("task.send_result", begin
         #task{task_id = TaskId, result_destination = ResultDestination} = State#state.task,
-        FinalResults = Results ++ report_finish_reason(FinishReason),
-        result_sender:send_results(TaskId, ResultDestination, FinalResults)
+        FinalBuckets = Buckets ++ report_finish_reason(FinishReason),
+        result_sender:send_result(TaskId, ResultDestination, FinalBuckets)
       end),
   case State#state.reply_pid of
     undefined -> ok;

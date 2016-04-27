@@ -35,9 +35,9 @@ defmodule Air.Socket.Frontend.TaskChannel do
   @doc """
   Broadcasts the results of a task execution to all listening clients.
   """
-  @spec broadcast_result(Task.t, Task.result) :: :ok
-  def broadcast_result(task, result) do
-    Air.Endpoint.broadcast_from!(self(), "task:#{task.id}", "result", result)
+  @spec broadcast_result(Task.result) :: :ok
+  def broadcast_result(result) do
+    Air.Endpoint.broadcast_from!(self(), "task:#{result["task_id"]}", "result", result)
     :ok
   end
 

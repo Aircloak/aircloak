@@ -48,7 +48,7 @@ defmodule Air.Socket.CloakTest do
     assert {:ok, %{}} == join_main_channel(socket)
 
     request = %{
-      request_id: "foobar", event: "task_results",
+      request_id: "foobar", event: "task_result",
       payload: %{task_id: task.id, buckets: [], exceptions: []}
     }
     TestSocket.push(socket, "main", "cloak_call", request)

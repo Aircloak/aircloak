@@ -1,4 +1,4 @@
-%% @doc The result sender receives results that have been aggregated,
+%% @doc The result sender receives buckets that have been aggregated,
 %%      noised up and sanitized, and send them to the URL specified
 %%      in the batch task request.
 -module(result_sender).
@@ -7,14 +7,14 @@
 %% API
 -export([
   start_link/1,
-  send_results/3
+  send_result/3
 ]).
 
 %% gen_fsm callbacks
 -export([
   init/1,
-  create_aggregate_results/2,
-  send_results_state/2,
+  aggregate_result/2,
+  send_result_state/2,
   handle_event/3,
   handle_sync_event/4,
   handle_info/3,
@@ -27,7 +27,7 @@
 -record(state, {
   task_id :: task_id(),
   result_destination :: result_destination(),
-  raw_results = [],
+  raw_buckets = [],
   reply
 }).
 
@@ -36,15 +36,15 @@
 %% API
 %% -------------------------------------------------------------------
 
-%% @doc Takes a set of noised results, and sends
+%% @doc Takes a set of noised buckets, and sends
 %%      them to the URL specified in the query as the
 %%      result endpoint.
--spec send_results(task_id(), result_destination(), [#bucket_report{}]) -> pid().
-send_results(TaskId, ResultDestination, Results) ->
+-spec send_result(task_id(), result_destination(), [#bucket_report{}]) -> pid().
+send_result(TaskId, ResultDestination, Buckets) ->
   Args = [
     {task_id, TaskId},
     {result_destination, ResultDestination},
-    {results, Results}
+    {buckets, Buckets}
   ],
   {ok, Pid} = supervisor:start_child(result_sender_sup, [Args]),
   Pid.
@@ -61,16 +61,16 @@ init(Args) ->
   State = #state{
     task_id = proplists:get_value(task_id, Args),
     result_destination = proplists:get_value(result_destination, Args),
-    raw_results = proplists:get_value(results, Args)
+    raw_buckets = proplists:get_value(buckets, Args)
   },
-  {ok, create_aggregate_results, State, 0}.
+  {ok, aggregate_result, State, 0}.
 
-create_aggregate_results(timeout, #state{raw_results = RawResults, task_id = TaskId} = S0) ->
-  Reply = convert_results(TaskId, RawResults),
-  S1 = S0#state{raw_results = [], reply = Reply},
-  {next_state, send_results_state, S1, 0}.
+aggregate_result(timeout, #state{raw_buckets = RawBuckets, task_id = TaskId} = S0) ->
+  Reply = convert_buckets(TaskId, RawBuckets),
+  S1 = S0#state{raw_buckets = [], reply = Reply},
+  {next_state, send_result_state, S1, 0}.
 
-send_results_state(timeout, #state{reply = Reply, result_destination = ResultDestination} = State) ->
+send_result_state(timeout, #state{reply = Reply, result_destination = ResultDestination} = State) ->
   send_reply(ResultDestination, Reply),
   {stop, normal, State}.
 
@@ -95,11 +95,11 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %% Internal functions
 %% -------------------------------------------------------------------
 
-convert_results(TaskId, Results) ->
-  Buckets = [convert_bucket(Bucket) ||
-      #bucket_report{label = #bucket_label{label = Label}} = Bucket <- Results, Label =/= ?JOB_EXECUTION_ERROR],
+convert_buckets(TaskId, RawBuckets) ->
+  Buckets = [convert_bucket(RawBucket) ||
+      #bucket_report{label = #bucket_label{label = Label}} = RawBucket <- RawBuckets, Label =/= ?JOB_EXECUTION_ERROR],
   Exceptions = [#{error => iolist_to_binary(Error), count => Count} ||
-      #bucket_report{label = #bucket_label{label = ?JOB_EXECUTION_ERROR, value = Error}, noisy_count = Count} <- Results],
+      #bucket_report{label = #bucket_label{label = ?JOB_EXECUTION_ERROR, value = Error}, noisy_count = Count} <- RawBuckets],
   ?INFO("result report for task ~s: ~p buckets, ~p exceptions", [TaskId, length(Buckets), length(Exceptions)]),
   #{task_id => TaskId, buckets => Buckets, exceptions => Exceptions}.
 
@@ -109,18 +109,18 @@ convert_bucket(#bucket_report{label = #bucket_label{label = Label, value = Value
   #{label => iolist_to_binary(Label), value => iolist_to_binary(Value), count => Count}.
 
 send_reply(air_socket, Reply) ->
-  'Elixir.Cloak.AirSocket':send_task_results(Reply);
+  'Elixir.Cloak.AirSocket':send_task_result(Reply);
 send_reply({url, Url}, Reply) ->
   Format = "application/json",
   CompressedReply = zlib:gzip('Elixir.Poison':'encode!'(Reply)),
   Headers = [{"Content-Encoding", "gzip"}],
   Request = {binary_to_list(Url), Headers, Format, CompressedReply},
-  ?INFO("Sending results to ~p", [Url]),
+  ?INFO("Sending result to ~p", [Url]),
   case httpc:request(post, Request, [], []) of
     {ok, _Result} ->
       ok;
     {error, Reason} ->
-      ?ERROR("Failed to return results. Reason: ~p", [Reason])
+      ?ERROR("Failed to return result. Reason: ~p", [Reason])
   end;
 send_reply({process, Pid}, Reply) ->
   Pid ! {reply, Reply}.
@@ -133,9 +133,9 @@ send_reply({process, Pid}, Reply) ->
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
-convert_results_test() ->
+convert_buckets_test() ->
   TaskId = "task",
-  Results = [
+  Buckets = [
     #bucket_report{label=#bucket_label{label= <<"foo1">>, value=undefined}, count=1234, noisy_count=1234},
     #bucket_report{label=#bucket_label{label= <<"foo2">>, value="bar1"}, count=2345, noisy_count=2345},
     #bucket_report{label=#bucket_label{label=?JOB_EXECUTION_ERROR, value="x1"}, count=1, noisy_count=1},
@@ -156,6 +156,6 @@ convert_results_test() ->
     #{error => <<"x2">>, count => 2}
   ],
   ConvertedResult = #{task_id => TaskId, buckets => ConvertedBuckets, exceptions => ConvertedExceptions},
-  ?assertEqual(ConvertedResult, convert_results(TaskId, Results)).
+  ?assertEqual(ConvertedResult, convert_buckets(TaskId, Buckets)).
 
 -endif.

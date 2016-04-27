@@ -118,11 +118,11 @@ defmodule Air.Socket.Cloak.MainChannel do
   # Handling cloak sync calls
   # -------------------------------------------------------------------
 
-  defp handle_cloak_call("task_results", task_results, request_id, socket) do
-    Logger.info("received task results for task #{task_results["task_id"]}")
+  defp handle_cloak_call("task_result", task_result, request_id, socket) do
+    Logger.info("received task result for task #{task_result["task_id"]}")
     respond_to_cloak(socket, request_id, :ok)
-    save_task_results(task_results)
-    report_task_results(task_results)
+    save_task_result(task_result)
+    report_task_result(task_result)
     {:noreply, socket}
   end
 
@@ -163,30 +163,29 @@ defmodule Air.Socket.Cloak.MainChannel do
     end
   end
 
-  defp save_task_results(task_results) do
-    {:ok, task_id} = Ecto.UUID.cast(task_results["task_id"])
-    result = %Result{
+  defp save_task_result(result) do
+    {:ok, task_id} = Ecto.UUID.cast(result["task_id"])
+    result_model = %Result{
       task_id: task_id,
-      buckets: Poison.encode!(task_results["buckets"]),
-      exceptions: Poison.encode!(task_results["exceptions"]),
+      buckets: Poison.encode!(result["buckets"]),
+      exceptions: Poison.encode!(result["exceptions"]),
       post_processed: Poison.encode!([])
     }
-    case Air.Repo.insert(result) do
+    case Air.Repo.insert(result_model) do
       {:ok, _} ->
         :ok
       {:error, _} ->
-        Logger.error("failed to save results for task #{task_id}")
+        Logger.error("failed to save result for task #{task_id}")
         :error
     end
   end
 
-  defp report_task_results(task_results) do
+  defp report_task_result(result) do
     # Starting a linked reporter. This ensures that a crash in the reporter won't terminate this channel.
     # The link ensures that the termination of this channel terminates the reporter as well.
     Task.start_link(fn ->
-          task = Air.Repo.get!(Air.Task, task_results["task_id"])
-          task_results = Map.put(task_results, "created_at", :os.system_time(:seconds))
-          Air.Socket.Frontend.TaskChannel.broadcast_result(task, task_results)
+          result = Map.put(result, "created_at", :os.system_time(:seconds))
+          Air.Socket.Frontend.TaskChannel.broadcast_result(result)
         end)
   end
 end
