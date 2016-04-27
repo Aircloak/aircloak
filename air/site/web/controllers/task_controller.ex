@@ -38,8 +38,8 @@ defmodule Air.TaskController do
     # and then redirect to the edit page. This way we operate on an
     # existing task from the get go, and can easily update it in place.
     task_params = %{
-      query: "-- Add your query code here",
-      name: "Untitled query"
+      query: "-- Add your task code here",
+      name: "<untitled task>"
     }
     changeset = build_assoc(conn.assigns.current_user, :tasks)
     changeset = Task.changeset(changeset, task_params)
