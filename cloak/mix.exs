@@ -15,7 +15,7 @@ defmodule Cloak.Mixfile do
       erlc_paths: erlc_paths(Mix.env),
       preferred_cli_env: [
         eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev, "coveralls.html": :test,
-        dialyze_retry: :dev
+        dialyze_retry: :dev, check_dependent_apps: :prod
       ],
       eunit_options: [
         :no_tty,
@@ -37,8 +37,8 @@ defmodule Cloak.Mixfile do
     [
       {:aircloak_common, path: "../common/elixir"},
       {:gproc, "~> 0.5.0"},
-      {:exrm, "~> 1.0"},
-      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true},
+      {:exrm, "~> 1.0", warn_missing: false},
+      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, warn_missing: false},
       {:postgrex, "~> 0.11"},
       {:poolboy, "~> 1.5"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client"},

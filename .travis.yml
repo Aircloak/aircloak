@@ -50,6 +50,7 @@ before_script:
   - mix deps.get
   - mix compile --warnings-as-errors
   - MIX_ENV=test mix compile --warnings-as-errors
+  - MIX_ENV=prod mix compile --warnings-as-errors
   - MIX_ENV=test mix recreate_db
   - cd ../..
   # cloak
@@ -63,6 +64,7 @@ script:
   - cd common/elixir
   - make docs
   - make lint
+  - make check_dependent_apps
   - make test
   - make dialyze
   - cd ../..
@@ -70,6 +72,7 @@ script:
   - cd air/site
   - make docs
   - make lint
+  - make check_dependent_apps
   - make test
   - make dialyze
   - cd ../..
@@ -77,6 +80,7 @@ script:
   - cd cloak
   - make docs
   - make lint
+  - make check_dependent_apps
   - make test
   - make dialyze
   - make proper-extended
