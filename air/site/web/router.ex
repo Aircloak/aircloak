@@ -31,10 +31,11 @@ defmodule Air.Router do
     get "/", PageController, :index
     delete "/logout", SessionController, :delete
 
+    post "/tasks/:id/run", TaskController, :run_task
+    resources "/api_tokens", ApiTokenController
     resources "/cloaks", CloaksController
-    resources "/users", UserController
     resources "/organisations", OrganisationController
     resources "/tasks", TaskController, except: [:show, :create]
-    post "/tasks/:id/run", TaskController, :run_task
+    resources "/users", UserController
   end
 end
