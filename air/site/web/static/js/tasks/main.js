@@ -202,6 +202,7 @@ class TaskEditor extends React.Component {
             onRunTaskClick={this.handleRunTask} />
         <CodeEditor
             query={this.state.query}
+            settings={this.state.settings}
             onChange={this.handleCodeChange}
             onSave={this.conditionallySave}
             onRun={this.handleRunTask} />
