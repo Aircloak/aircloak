@@ -1,6 +1,56 @@
 defmodule Air.Plug.Session do
   @moduledoc false
 
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
+  defmodule ApiAuth do
+    @moduledoc """
+    This plug ensures that callers of our API's supply a valid auth-token header.
+    It is not compatible with, and can not be used in conjunction with, the
+    plugs for the browser pipelines, as these rely heavily on parameters set
+    and validated by Guardian.
+    """
+    @behaviour Plug
+
+    import Plug.Conn
+    alias Phoenix.Controller, as: PC
+
+    def init(opts), do: opts
+
+    def call(conn, _opts) do
+      case Plug.Conn.get_req_header(conn, "auth-token") do
+        [] ->
+          conn
+          |> put_status(Plug.Conn.Status.code(:unauthorized))
+          |> PC.json(%{success: false, description: "The Aircloak API's are authenticated with auth-tokens. \
+You can get create auth-tokens for your account at https://insights.aircloak.com/api_tokens. \
+The token should be sent with your request via the HTTP header 'auth-token'. \
+For example, using curl, you would make your request like this: `curl -H 'auth-token: <token-value>' ...` \
+where <token-value> is your auth token."})
+          |> halt()
+        [token] ->
+          case Air.ApiToken.user_for_token(conn, token) do
+            :error ->
+              conn
+              |> put_status(Plug.Conn.Status.code(:unauthorized))
+              |> PC.json(%{success: false, description: "Invalid auth-token. This could be a result of the auth-token \
+being incorrectly sent to the API backend, or the auth-token having been revoked. \
+You can validate that your auth-token is still valid by visiting https://insights.aircloak.com/api_tokens."})
+              |> halt()
+            user -> assign(conn, :current_user, user)
+          end
+      end
+    end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Browser
+  # -------------------------------------------------------------------
+
   defmodule AssignCurrentUser do
     @moduledoc false
     @behaviour Plug
