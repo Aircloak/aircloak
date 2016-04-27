@@ -14,6 +14,7 @@ defmodule Air.ApiToken do
 
   alias Air.{ApiToken, User, Repo}
 
+  @primary_key {:id, :binary_id, autogenerate: true}
   schema "api_tokens" do
     field :description, :string
     belongs_to :user, User, references: :id
