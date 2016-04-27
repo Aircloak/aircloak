@@ -26,7 +26,7 @@ defmodule Air.ApiTokenController do
   end
 
   def create(conn, %{"api_token" => %{"description" => description}}) do
-    case ApiToken.create_for(conn, current_user(conn), description) do
+    case ApiToken.create_for(conn, conn.assigns.current_user, description) do
       {:error, changeset} ->
         conn
         |> render("index.html", api_tokens: existing_tokens(conn), changeset: changeset)
@@ -39,7 +39,7 @@ defmodule Air.ApiTokenController do
 
   def delete(conn, %{"id" => id}) do
     token = Repo.get(ApiToken, id)
-    case token.user_id == current_user(conn).id do
+    case token.user_id == conn.assigns.current_user.id do
       true ->
         Repo.delete(token)
         conn
@@ -57,11 +57,7 @@ defmodule Air.ApiTokenController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp current_user(conn) do
-    Guardian.Plug.current_resource(conn)
-  end
-
   defp existing_tokens(conn) do
-    Repo.all(from t in ApiToken, where: t.user_id == ^current_user(conn).id, select: t)
+    Repo.all(from t in ApiToken, where: t.user_id == ^conn.assigns.current_user.id, select: t)
   end
 end
