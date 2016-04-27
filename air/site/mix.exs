@@ -65,6 +65,7 @@ defmodule Air.Mixfile do
       {:exrm, "~> 1.0", warn_missing: false},
       {:timex, "~> 2.1"},
       {:aircloak_common, path: "../../common/elixir"},
+      {:inflex, "~> 1.5.0"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", only: :test},
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0", only: :test},
       {:quantum, ">= 1.7.1"}
