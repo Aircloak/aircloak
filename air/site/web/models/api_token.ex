@@ -14,6 +14,8 @@ defmodule Air.ApiToken do
 
   alias Air.{ApiToken, User, Repo}
 
+  @type t :: %__MODULE__{}
+
   schema "api_tokens" do
     field :description, :string
     belongs_to :user, User, references: :id

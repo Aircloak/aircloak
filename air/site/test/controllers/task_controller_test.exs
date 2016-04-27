@@ -1,19 +1,13 @@
 defmodule Air.TaskControllerTest do
   use Air.ConnCase
 
-  import Air.TestConnHelper
-  alias Air.TestRepoHelper
+  import Air.{TestConnHelper, TestRepoHelper}
   alias Air.TestSocketHelper
 
   alias Air.Task
   @valid_attrs %{name: "name", query: "query content", permanent: true}
   @invalid_attrs %{name: ""}
   @query_data_params %{task: %{query: "Query code", name: "Query name"}}
-
-  defp create_user do
-    org = TestRepoHelper.create_organisation!()
-    TestRepoHelper.create_user!(org, :user)
-  end
 
   defp create_task(user, params \\ @valid_attrs) do
     changeset = build_assoc(user, :tasks)
@@ -22,7 +16,7 @@ defmodule Air.TaskControllerTest do
   end
 
   test "tasks pages require an authenticated user" do
-    user = create_user()
+    user = create_user!()
     task = create_task(user)
 
     assert "/auth" == conn() |> get("/tasks") |> redirected_to()
@@ -33,9 +27,9 @@ defmodule Air.TaskControllerTest do
   end
 
   test "index only shows tasks owned by the user" do
-    user = create_user()
+    user = create_user!()
     user_task = create_task(user)
-    other_user = create_user()
+    other_user = create_user!()
     other_user_task = create_task(other_user)
 
     index_html = login(user) |> get("/tasks") |> response(200)
@@ -44,8 +38,8 @@ defmodule Air.TaskControllerTest do
   end
 
   test "editing and deleting tasks of other users is forbidden" do
-    user = create_user()
-    other_user = create_user()
+    user = create_user!()
+    other_user = create_user!()
     other_user_task = create_task(other_user)
 
     not_found_html = login(user) |> get("/tasks/#{other_user_task.id}/edit") |> response(404)
@@ -60,7 +54,7 @@ defmodule Air.TaskControllerTest do
   end
 
   test "renders form for editing chosen resource", %{conn: conn} do
-    user = create_user()
+    user = create_user!()
     task = create_task(user)
 
     html_response = login(user) |> get(task_path(conn, :edit, task)) |> response(200)
@@ -68,7 +62,7 @@ defmodule Air.TaskControllerTest do
   end
 
   test "updates chosen resource and returns a JSON response", %{conn: conn} do
-    user = create_user()
+    user = create_user!()
     task = create_task(user)
     response_json = login(user) |> put(task_path(conn, :update, task), task: @valid_attrs) |> response(200)
     %{"success" => success} = Poison.decode!(response_json)
@@ -76,7 +70,7 @@ defmodule Air.TaskControllerTest do
   end
 
   test "deletes chosen resource", %{conn: conn} do
-    user = create_user()
+    user = create_user!()
     task = create_task(user)
 
     assert "/tasks" == login(user) |> delete(task_path(conn, :delete, task)) |> redirected_to()
@@ -84,8 +78,8 @@ defmodule Air.TaskControllerTest do
   end
 
   test "running task of other user returns a 404" do
-    user = create_user()
-    other_user = create_user()
+    user = create_user!()
+    other_user = create_user!()
     other_user_task = create_task(other_user)
 
     response_html = login(user) |> post("/tasks/#{other_user_task.id}/run", @query_data_params) |> response(404)
@@ -93,7 +87,7 @@ defmodule Air.TaskControllerTest do
   end
 
   test "task that doesn't exist returns 404 json" do
-    user = create_user()
+    user = create_user!()
     update_sequence = fn() ->
       login(user)
       |> post("/tasks/b9e1f65f-572e-4f40-be87-1ced8ec5a2b1/run", @query_data_params)
@@ -102,7 +96,7 @@ defmodule Air.TaskControllerTest do
   end
 
   test "can run task owned by the user" do
-    user = create_user()
+    user = create_user!()
     task = create_task(user)
 
     # Open the cloak mock socket
