@@ -25,6 +25,7 @@ defmodule Air.Result do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
+  @spec changeset(t, %{String.t => term} | %{atom => term} | :empty) :: Ecto.Changeset.t
   def changeset(model, params \\ :empty) do
     model
     |> cast(params, @required_fields, @optional_fields)
