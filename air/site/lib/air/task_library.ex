@@ -28,7 +28,11 @@ defmodule Air.TaskLibrary do
     for library <- Path.wildcard("#{Path.rootname(__ENV__.file)}/*.lua") do
       @external_resource Path.relative_to_cwd(library)
 
-      code = File.read!(library)
+      # Read the code, and replace comments. Note that we're keeping empty lines, to get matching line numbers
+      # in exception reports.
+      code =
+        File.read!(library)
+        |> String.replace(~r/--.*$/m, "")
 
       # Finds all function declarations in the file. Using regex is hacky and not 100% correct, but does
       # the job.
