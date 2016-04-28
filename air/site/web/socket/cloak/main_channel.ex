@@ -120,8 +120,8 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   defp handle_cloak_call("task_result", task_result, request_id, socket) do
     Logger.info("received task result for task #{task_result["task_id"]}")
-    respond_to_cloak(socket, request_id, :ok)
     process_task_result(task_result)
+    respond_to_cloak(socket, request_id, :ok)
     {:noreply, socket}
   end
 
