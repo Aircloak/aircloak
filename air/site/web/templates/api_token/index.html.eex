@@ -2,7 +2,7 @@
 <div class="alert alert-success" role="alert">
   <p>Your new token has been added. Please copy and paste it into your application:</p>
   <br />
-  <strong><%= get_flash(@conn, :api_token) %></strong>
+  <pre><%= get_flash(@conn, :api_token) %></pre>
   <!-- TODO: Add link to documentation once it exists -->
 </div>
 <% end %>
