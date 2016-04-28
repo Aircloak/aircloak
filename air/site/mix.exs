@@ -96,7 +96,7 @@ defmodule Air.Mixfile do
   defp common_applications do
     [
       :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-      :lhttpc, :etcd, :hackney, :guardian, :inets, :timex, :aircloak_common, :quantum
+      :lhttpc, :etcd, :hackney, :guardian, :inets, :timex, :aircloak_common, :quantum, :inflex
     ]
   end
 
