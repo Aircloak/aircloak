@@ -58,9 +58,9 @@ defmodule Mix.Tasks.Compile.LuaLibraries do
         """
 
         @all_completions [
-          %{text: "report_property", displayText: "report_property(label, string)"},
-          %{text: "get_user_tables()"},
-          %{text: "to_date", displayText: "to_date(timestamp)"},
+          %{text: "report_property(label, string)", displayText: "report_property"},
+          %{text: "get_user_tables()", displayText: "get_user_tables"},
+          %{text: "to_date(timestamp)", displayText: "to_date"},
           %{text: "task_time"}
         ] ++ Enum.flat_map(libraries, &(&1.completions))
 
@@ -105,7 +105,7 @@ defmodule Mix.Tasks.Compile.LuaLibraries do
       # Finds all function declarations in the file. Using regex is hacky and not 100% correct, but does
       # the job.
       functions = Regex.scan(
-            ~r/^function (?'displayText'(?'text'(\w|\.)+)\(.*\))/m,
+            ~r/^function (?'text'(?'displayText'(\w|\.)+)\(.*\))/m,
             code,
             capture: ["displayText", "text"]
           )

@@ -57,7 +57,7 @@ export class CodeEditor extends React.Component {
                       (word) => {return {text: word}})
                   ).
               filter((candidate) => {return candidate.text.match(fuzzyMatcher)}).
-              uniqBy((el) => {return el.text}).
+              uniqBy((el) => {return el.displayText || el.text}).
               sortBy((el) => {return sortOrder(el.text)}).
               value();
 
