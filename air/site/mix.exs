@@ -7,7 +7,7 @@ defmodule Air.Mixfile do
       version: "0.0.1",
       elixir: "~> 1.0",
       elixirc_paths: elixirc_paths(Mix.env),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers,
+      compilers: [:phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :lua_libraries, :app],
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       aliases: aliases(Mix.env),
