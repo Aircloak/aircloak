@@ -68,7 +68,7 @@ defmodule Mix.Tasks.Compile.LuaLibraries do
         @spec completions() :: [%{text: String.t, displayText: String.t}]
         def completions(), do: @all_completions
 
-        @all_libraries Enum.map(libraries, &({&1.namespace, &1.code})) |> Enum.into(%{})
+        @all_libraries Enum.map(libraries, &({&1.namespace, {&1.filename, &1.code}})) |> Enum.into(%{})
 
         @doc "Returns all Aircloak dependencies required by the given code."
         @spec dependencies(String.t) :: [%{name: String.t, code: String.t}]
@@ -76,10 +76,9 @@ defmodule Mix.Tasks.Compile.LuaLibraries do
           deps =
             for [namespace] <- Regex.scan(~r/(?'namespace'(\w+\.)+)/m, code, capture: ["namespace"]),
                 filtered_namespace <- [String.replace(namespace, ~r/\.$/, "")],
-                code = @all_libraries[filtered_namespace],
-                code != nil do
+                {filename, code} <- [@all_libraries[filtered_namespace]] do
               %{
-                name: filtered_namespace,
+                name: filename,
                 code: code
               }
             end
@@ -88,7 +87,7 @@ defmodule Mix.Tasks.Compile.LuaLibraries do
             [] -> []
             [_|_] ->
               # We have some deps, so we also add the code which creates the top-level global table.
-              [%{name: "Aircloak", code: "Aircloak = {}"} | deps]
+              [%{name: "aircloak.lua", code: "Aircloak = {}"} | deps]
           end
         end
       end
@@ -111,8 +110,10 @@ defmodule Mix.Tasks.Compile.LuaLibraries do
             capture: ["displayText", "text"]
           )
 
+      filename = Path.basename(library, ".lua")
       %{
-        namespace: "Aircloak." <> (library |> Path.basename(".lua") |> Inflex.camelize()),
+        filename: "#{filename}.lua",
+        namespace: "Aircloak.#{Inflex.camelize(filename)}",
         code: code,
         completions:
           (for [display_text, text] <- functions, do: %{text: text, displayText: display_text})

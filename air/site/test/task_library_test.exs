@@ -12,6 +12,6 @@ defmodule Air.Socket.TaskLibraryTest do
           Foo.Bar.baz()
           Aircloak.FooBar.foobar()
         ")
-    assert [%{name: "Aircloak"}, %{name: "Aircloak.Utils"}] = dependencies
+    assert ["aircloak.lua", "utils.lua"] == Enum.map(dependencies, &(&1.name))
   end
 end
