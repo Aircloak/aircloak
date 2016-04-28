@@ -46,15 +46,22 @@ export class CodeEditor extends React.Component {
       }
     }
 
-    let list = _.chain([]).
-        union(
-              _.map(this.editor.hint.anyword(cm, {word: /[a-zA-Z_](\w)*/}).list,
-                (word) => {return {text: word}})
-            ).
-        filter((candidate) => {return candidate.text.match(fuzzyMatcher)}).
-        uniq((el) => {return el.text}).
-        sortBy((el) => {return sortOrder(el.text)}).
-        value();
+    let
+        dataSource = this.props.settings.selectedDataSource(),
+        selectedTables = Array.from(this.props.settings.tables),
+        list =
+          _.chain([]).
+              union(
+                    this.props.completions,
+                    _.map(selectedTables, (table) => {return {text: `load_user_table("${dataSource.id}/${table}")`}}),
+                    _.map(selectedTables, (table) => {return {text: `user_table("${dataSource.id}/${table}")`}}),
+                    _.map(this.editor.hint.anyword(cm, {word: /[a-zA-Z_](\w)*/}).list,
+                      (word) => {return {text: word}})
+                  ).
+              filter((candidate) => {return candidate.text.match(fuzzyMatcher)}).
+              uniqBy((el) => {return el.displayText || el.text}).
+              sortBy((el) => {return sortOrder(el.text)}).
+              value();
 
     let returnValue = {
       list: list,
@@ -73,7 +80,7 @@ export class CodeEditor extends React.Component {
       this.props.onRun();
     }
     instance.commands.autoComplete = (cm) => {
-      cm.showHint(cm, {hint: this.completionList});
+      cm.showHint({hint: this.completionList});
     }
   }
   render() {

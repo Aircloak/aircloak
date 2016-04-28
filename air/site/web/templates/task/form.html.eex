@@ -1,9 +1,0 @@
-<div id="task-view" />
-
-<script>
-  window.pageConfig = {
-    onLoad: function(App) {
-      App.taskPage(JSON.parse('<%= @task_json %>'));
-    }
-  };
-</script>

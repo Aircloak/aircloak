@@ -16,6 +16,7 @@
 !air/site/mix.lock
 !air/site/config
 !air/site/lib
+!air/site/lua_libraries
 !air/site/web
 !air/site/src
 !air/site/include

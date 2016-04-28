@@ -65,7 +65,8 @@ defmodule Air.TaskController do
             name: task.name,
             query: task.query,
             cloak_id: task.cloak_id,
-            tables: task.tables
+            tables: task.tables,
+            completions: Air.TaskLibrary.completions()
           },
           data_sources(conn, task)
         )

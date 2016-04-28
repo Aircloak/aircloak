@@ -5,17 +5,17 @@ export class SettingsModel {
     Object.assign(this, props);
   }
 
-  selectedDataSourceToken() {
-    let selectedDataSource = this.dataSources.find(
-        (dataSource) => {return dataSource.token == this.dataSourceToken});
+  selectedDataSource() {
+    return this.dataSources.find((dataSource) => {return dataSource.token == this.dataSourceToken});
+  }
 
+  selectedDataSourceToken() {
+    let selectedDataSource = this.selectedDataSource();
     return selectedDataSource ? selectedDataSource.token : null;
   }
 
   selectedDataSourceTables() {
-    let selectedDataSource = this.dataSources.find(
-        (dataSource) => {return dataSource.token == this.dataSourceToken});
-
+    let selectedDataSource = this.selectedDataSource();
     return selectedDataSource ? selectedDataSource.tables : [];
   }
 

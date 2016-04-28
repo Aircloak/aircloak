@@ -7,7 +7,7 @@ defmodule Air.Mixfile do
       version: "0.0.1",
       elixir: "~> 1.0",
       elixirc_paths: elixirc_paths(Mix.env),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers,
+      compilers: [:phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :lua_libraries, :app],
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       aliases: aliases(Mix.env),
@@ -65,6 +65,7 @@ defmodule Air.Mixfile do
       {:exrm, "~> 1.0", warn_missing: false},
       {:timex, "~> 2.1"},
       {:aircloak_common, path: "../../common/elixir"},
+      {:inflex, "~> 1.5.0"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", only: :test},
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0", only: :test},
       {:quantum, ">= 1.7.1"}
@@ -95,7 +96,7 @@ defmodule Air.Mixfile do
   defp common_applications do
     [
       :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-      :lhttpc, :etcd, :hackney, :guardian, :inets, :timex, :aircloak_common, :quantum
+      :lhttpc, :etcd, :hackney, :guardian, :inets, :timex, :aircloak_common, :quantum, :inflex
     ]
   end
 

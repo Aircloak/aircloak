@@ -29,6 +29,7 @@
   "guardian": {:hex, :guardian, "0.10.1"},
   "hackney": {:hex, :hackney, "1.5.1"},
   "idna": {:hex, :idna, "1.1.0"},
+  "inflex": {:hex, :inflex, "1.5.0"},
   "jiffy": {:git, "https://github.com/davisp/jiffy.git", "6303ff98aaa3fce625038c8b7af2aa8b802f4742", [ref: "master"]},
   "jose": {:hex, :jose, "1.7.0"},
   "jsx": {:hex, :jsx, "2.6.2"},
