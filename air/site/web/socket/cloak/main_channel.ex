@@ -174,8 +174,8 @@ defmodule Air.Socket.Cloak.MainChannel do
     case Air.Repo.insert(result_model) do
       {:ok, _} ->
         :ok
-      {:error, _} ->
-        Logger.error("failed to save result for task #{task_id}")
+      {:error, changeset} ->
+        Logger.error("failed to save result for task #{task_id}: #{inspect changeset.errors}")
         :error
     end
   end
