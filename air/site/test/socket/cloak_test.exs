@@ -43,17 +43,20 @@ defmodule Air.Socket.CloakTest do
       Air.TestRepoHelper.create_organisation!()
       |> Air.TestRepoHelper.create_user!()
       |> Air.TestRepoHelper.create_task!()
+    task_id = task.id
 
     socket = TestSocketHelper.connect!()
     assert {:ok, %{}} == join_main_channel(socket)
 
     request = %{
-      request_id: "foobar", event: "task_results",
-      payload: %{task_id: task.id, buckets: [], exceptions: []}
+      request_id: "foobar", event: "task_result",
+      payload: %{task_id: task_id, buckets: [], exceptions: []}
     }
+    assert nil == Air.Repo.one(Air.Result)
     TestSocket.push(socket, "main", "cloak_call", request)
     assert {:ok, {"main", "call_response", response}} = TestSocket.await_message(socket, 100)
     assert %{"request_id" => "foobar", "status" => "ok"} = response
+    assert %Air.Result{task_id: ^task_id} = Air.Repo.one(Air.Result)
   end
 
   test "getting data for connected cloaks" do

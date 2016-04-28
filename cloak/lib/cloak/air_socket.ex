@@ -34,15 +34,15 @@ defmodule Cloak.AirSocket do
   end
 
   @doc """
-  Sends task results to the Air.
+  Sends a task result to the Air.
 
   The function returns when the Air responds. If the timeout occurs, it is
   still possible that the Air has received the request.
   """
-  @spec send_task_results(GenServer.server, %{}) :: :ok | {:error, any}
-  def send_task_results(socket \\ __MODULE__, results) do
-    Logger.info("sending results for task #{results.task_id} to Air")
-    case call(socket, "task_results", results, :timer.seconds(5)) do
+  @spec send_task_result(GenServer.server, %{}) :: :ok | {:error, any}
+  def send_task_result(socket \\ __MODULE__, result) do
+    Logger.info("sending result for task #{result.task_id} to Air")
+    case call(socket, "task_result", result, :timer.seconds(5)) do
       {:ok, _} -> :ok
       error -> error
     end

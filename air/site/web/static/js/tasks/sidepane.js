@@ -13,7 +13,7 @@ export class SidePane extends React.Component {
     // pane is more useful.
     var activeTab = undefined;
     if (this.props.result != undefined) {
-      activeTab = "Task result";
+      activeTab = "Result";
     } else {
       activeTab = "Settings";
     }
@@ -26,7 +26,7 @@ export class SidePane extends React.Component {
   tabs() {
     return [
       {
-        name: "Task result",
+        name: "Result",
         component: <ResultsView {...this.props} result={this.props.result} />
       },
       {
@@ -41,7 +41,7 @@ export class SidePane extends React.Component {
   }
 
   showResultTab() {
-    this.handleTabChange("Task result");
+    this.handleTabChange("Result");
   }
 
   activePane() {

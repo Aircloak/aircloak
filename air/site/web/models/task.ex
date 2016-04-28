@@ -2,11 +2,9 @@ defmodule Air.Task do
   @moduledoc "The task model."
   use Air.Web, :model
 
-  alias Air.User
+  alias Air.{User, Result}
 
   @type t :: %__MODULE__{}
-  @type result_row :: %{:label => String.t, :value => String.t, :count => integer}
-  @type result :: %{:buckets => [result_row], :exceptions => [result_row], :created_at => integer}
   @type cloak_query :: %{id: String.t, prefetch: [%{table: String.t}], code: String.t}
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -23,6 +21,7 @@ defmodule Air.Task do
     field :permanent, :boolean
 
     belongs_to :user, User
+    has_many :results, Result
 
     timestamps
   end

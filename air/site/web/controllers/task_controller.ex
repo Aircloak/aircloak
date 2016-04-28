@@ -3,7 +3,7 @@ defmodule Air.TaskController do
   use Air.Web, :controller
 
   require Logger
-  alias Air.Task
+  alias Air.{Task, Result}
 
   plug :scrub_params, "task" when action in [:create, :update]
   plug :load_task_and_validate_ownership when action in [:edit, :update, :delete, :run_task]
@@ -30,6 +30,10 @@ defmodule Air.TaskController do
       |> Task.permanent
       |> Task.for_user(conn.assigns.current_user)
       |> Repo.all
+    tasks = for task <- tasks do
+      count = Repo.one(from r in Result, where: r.task_id == ^task.id, select: count(r.id))
+      Map.put(task, :results_count, count)
+    end
     render(conn, "index.html", tasks: tasks)
   end
 
@@ -38,8 +42,8 @@ defmodule Air.TaskController do
     # and then redirect to the edit page. This way we operate on an
     # existing task from the get go, and can easily update it in place.
     task_params = %{
-      query: "-- Add your query code here",
-      name: "Untitled query"
+      query: "-- Add your task code here",
+      name: "<untitled task>"
     }
     changeset = build_assoc(conn.assigns.current_user, :tasks)
     changeset = Task.changeset(changeset, task_params)

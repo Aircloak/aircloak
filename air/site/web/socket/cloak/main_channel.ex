@@ -4,7 +4,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  alias Air.CloakInfo
+  alias Air.{CloakInfo, Result}
 
 
   # -------------------------------------------------------------------
@@ -118,10 +118,10 @@ defmodule Air.Socket.Cloak.MainChannel do
   # Handling cloak sync calls
   # -------------------------------------------------------------------
 
-  defp handle_cloak_call("task_results", task_results, request_id, socket) do
-    Logger.info("received task results for task #{task_results["task_id"]}")
+  defp handle_cloak_call("task_result", task_result, request_id, socket) do
+    Logger.info("received task result for task #{task_result["task_id"]}")
+    process_task_result(task_result)
     respond_to_cloak(socket, request_id, :ok)
-    report_task_results(task_results)
     {:noreply, socket}
   end
 
@@ -162,17 +162,32 @@ defmodule Air.Socket.Cloak.MainChannel do
     end
   end
 
-  defp report_task_results(task_results) do
+  defp process_task_result(result) do
+    {:ok, task_id} = Ecto.UUID.cast(result["task_id"])
+    result_model = %Result{
+      task_id: task_id,
+      buckets: Poison.encode!(result["buckets"]),
+      exceptions: Poison.encode!(result["exceptions"]),
+      post_processed: Poison.encode!([])
+    }
+    # Write result to database.
+    case Air.Repo.insert(result_model) do
+      {:ok, db_result} ->
+        result
+          |> Map.put("created_at", :os.system_time(:seconds))
+          |> Map.put("id", db_result.id)
+          |> report_task_result() # Broadcast result to subscribers.
+      {:error, changeset} ->
+        Logger.error("failed to save result for task #{task_id}: #{inspect changeset.errors}")
+        :error
+    end
+  end
+
+  defp report_task_result(result) do
     # Starting a linked reporter. This ensures that a crash in the reporter won't terminate this channel.
     # The link ensures that the termination of this channel terminates the reporter as well.
     Task.start_link(fn ->
-          task = Air.Repo.get!(Air.Task, task_results["task_id"])
-          report_data = %{
-            buckets: task_results["buckets"],
-            exceptions: task_results["exceptions"],
-            created_at: :os.system_time(:seconds)
-          }
-          Air.Socket.Frontend.TaskChannel.broadcast_result(task, report_data)
+          Air.Socket.Frontend.TaskChannel.broadcast_result(result)
         end)
   end
 end
