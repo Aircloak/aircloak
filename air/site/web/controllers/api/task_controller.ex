@@ -98,9 +98,7 @@ defmodule Air.API.TaskController do
       _ ->
         response = %{
           success: false,
-          description: "Your request needs some attention - your task was not executed. Please consult the API " <>
-              "documentation for further information on how to use this API endpoint. " <>
-              "The specific errors are described in more defail in the 'errors' field",
+          description: "Task is invalid. Please consult the API documentation.",
           errors: Enum.map(errors, fn(error) -> "The '#{error.parameter}' parameter #{error.problem}" end)
         }
 
