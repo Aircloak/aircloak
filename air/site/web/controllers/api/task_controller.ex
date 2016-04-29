@@ -31,7 +31,7 @@ defmodule Air.API.TaskController do
   - query: the lua task to be executed
   - cloak_id: the ID of the cloak on which the task should execute.
       No checks are performed to ensure that the cloak belongs to the user's organisation.
-      The cloak_id takes the format `unknown_org/<node-name>`
+      The cloak_id takes the format `<organization-name>/<node-name>`
   - data_source: the name of the data source in the selected cloak
   - tables: a list of tables that should be made available to the task
 
@@ -59,7 +59,7 @@ defmodule Air.API.TaskController do
       %{name: "query", description: "should contain the task code you want to execute, for example: " <>
           "\"query\":\"report_property(\"hello\", \"world\")\""},
       %{name: "cloak_id", description: "should contain the id of the cloak you have installed. " <>
-          "The id usually takes the form '<the name of organisation>/<hostname>', so you could for " <>
+          "The id usually takes the form '<organization-name>/<node-name>', so you could for " <>
           "example include the following statement: \"cloak_id\":\"my-org/hostname\""},
       %{name: "data_source", description: "should contain the name of the data source you want to use. " <>
           "A data source mostly corresponds to a database. Your 'data_source' parameter could for example " <>
