@@ -111,7 +111,7 @@ defmodule Air.API.TaskController do
 
   defp save_and_run_task(conn, params) do
     changeset = build_assoc(conn.assigns.current_user, :tasks)
-    |> Task.changeset(params)
+        |> Task.changeset(params)
 
     case Repo.insert(changeset) do
       {:ok, task} ->
