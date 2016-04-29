@@ -29,7 +29,7 @@ defmodule Air.API.TaskController do
   - query: the lua task to be executed
   - cloak_id: the ID of the cloak on which the task should execute.
       No checks are performed to ensure that the cloak belongs to the user's organisation.
-      The cloak_id takes the format `<node-name>`
+      The cloak_id takes the format `<cloak>`
   - data_source: the name of the data source in the selected cloak
   - tables: a list of tables that should be made available to the task
 
@@ -56,7 +56,7 @@ defmodule Air.API.TaskController do
     [
       %{name: "query", description: "should contain the task code you want to execute, for example: " <>
           "\"query\":\"report_property(\"hello\", \"world\")\""},
-      %{name: "cloak_id", description: "should contain the node-name of the cloak you have installed. " <>
+      %{name: "cloak_id", description: "should contain the node-name of the cloak that will execute the task. " <>
           "Given a cloak with the node-name 'my-cloak', you would include write: \"cloak_id\":\"my-cloak\"",
           check_map: fn(cloak_id) ->
             # FIXME(#76): Once cloak's belong to a particular organisation, we should start attaching the
