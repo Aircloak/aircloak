@@ -23,8 +23,6 @@ defmodule Air.API.TaskController do
 
   @doc """
   Executes a task sent in by the API user, reusing the standard task execution pipeline.
-  The requester will receive an error should the task not finish executing within 10 minutes.
-  This does not mean that the task doesn't infact still run.
 
   The following parameters are required:
 
@@ -136,7 +134,7 @@ defmodule Air.API.TaskController do
       Air.Endpoint.subscribe(self(), "task:#{task.id}")
       case Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task)) do
         :ok ->
-          await_response(send_chunked(conn, 200), task, 0)
+          await_response(send_chunked(conn, 200), task)
         {:error, :not_connected} ->
           json(conn, %{success: false, reason: "the cloak is not connected"})
         {:error, other} ->
@@ -154,33 +152,21 @@ defmodule Air.API.TaskController do
     end
   end
 
-  @ten_minutes_in_ms 600000
-
-  defp await_response(conn, _task, time_waited) when time_waited > @ten_minutes_in_ms do
-    response = %{
-      success: false,
-      description: "The task execution timed out. In the future you will also be able to run " <>
-          "tasks asynchronously using this API end-point. Until then, please run your tasks via " <>
-          "the web interface at https://insights.aircloak.com"
-    }
-    {:ok, conn} = chunk(conn, Poison.encode!(response))
-    conn
-  end
-  defp await_response(conn, task, time_waited) do
+  defp await_response(conn, task) do
     receive do
       %Phoenix.Socket.Broadcast{event: "result", payload: payload} ->
         {:ok, conn} = chunk(conn, Poison.encode!(Map.merge(%{success: true}, payload)))
         conn
       other ->
         Logger.warn("Received unexpected response while waiting for query to complete: #{inspect(other)}")
-        keep_connection_alive(conn, task, time_waited)
+        keep_connection_alive(conn, task)
     after
-      10_000 -> keep_connection_alive(conn, task, time_waited + 10_000)
+      10_000 -> keep_connection_alive(conn, task)
     end
   end
 
-  defp keep_connection_alive(conn, task, time_waited) do
+  defp keep_connection_alive(conn, task) do
     {:ok, conn} = chunk(conn, " ")
-    await_response(conn, task, time_waited)
+    await_response(conn, task)
   end
 end
