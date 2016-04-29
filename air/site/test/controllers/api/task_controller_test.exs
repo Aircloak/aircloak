@@ -27,7 +27,7 @@ defmodule Air.API.TaskControllerTest do
     user = create_user!()
     token = create_token(conn, user)
 
-    # Open the cloak mock socket so we can schedule a task execution against it
+    # Open the cloak mock socket so we can schedule a task execution against it.
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main", %{"data_sources" => [
         %{"id" => "local", "tables" => [%{"columns" => [
@@ -56,10 +56,10 @@ defmodule Air.API.TaskControllerTest do
         end)
 
     # We block waiting for the task to have been created by the request,
-    # otherwise we don't know which ID we should send our fake results to
+    # otherwise we don't know which ID we should send our fake results to.
     task_id = wait_for_task_id(query_params.query)
 
-    # Simulate that the cloak has accepted the task
+    # Simulate that the cloak has accepted the task.
     TestSocketHelper.respond_to_start_task_request!(socket, task_id, "ok")
 
     # Simulate that the cloak broadcasts the response.
