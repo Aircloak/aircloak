@@ -17,7 +17,7 @@ defmodule Air.API.TaskControllerTest do
     assert errors
         |> Enum.map(fn(str) -> Regex.run(~r"The '(\w+)' parameter", str, capture: :all_but_first) end)
         |> Enum.map(&hd(&1))
-        |> Enum.sort == ["cloak_id", "data_source", "query", "tables"]
+        |> Enum.sort == ["cloak", "data_source", "query", "tables"]
 
     refute success
   end
@@ -37,7 +37,7 @@ defmodule Air.API.TaskControllerTest do
 
     query_params = %{
       query: "report_property(\"Hello\", \"world\")",
-      cloak_id: "nonode@nohost",
+      cloak: "nonode@nohost",
       data_source: "local",
       tables: ["test"]
     }

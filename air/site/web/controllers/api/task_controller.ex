@@ -27,14 +27,13 @@ defmodule Air.API.TaskController do
   The following parameters are required:
 
   - query: the lua task to be executed
-  - cloak_id: the ID of the cloak on which the task should execute.
-      No checks are performed to ensure that the cloak belongs to the user's organisation.
-      The cloak_id takes the format `<cloak>`
+  - cloak: the name of the node on which the task should execute. At this time no checks are performed
+      to ensure that the cloak belongs to the user's organisation.
   - data_source: the name of the data source in the selected cloak
   - tables: a list of tables that should be made available to the task
 
   You can test this endpoint in your local development environment using the following curl command:
-  curl --data '{"query":"report_property(\"Hello\", \"world\")", "cloak_id":"nonode@nohost", \
+  curl --data '{"query":"report_property(\"Hello\", \"world\")", "cloak":"nonode@nohost", \
       "data_source":"local", "tables":["test"]}' \
       -H "auth-token: <valid auth token>" \
       -H "content-type: application/json" -k -XPOST \
@@ -55,22 +54,22 @@ defmodule Air.API.TaskController do
   defp param_validations() do
     [
       %{name: "query", description: "should contain the task code you want to execute, for example: " <>
-          "\"query\":\"report_property(\"hello\", \"world\")\""},
-      %{name: "cloak_id", description: "should contain the node-name of the cloak that will execute the task. " <>
-          "Given a cloak with the node-name 'my-cloak', you would include write: \"cloak_id\":\"my-cloak\"",
-          check_map: fn(cloak_id) ->
+          "\"query\":\"report_property(\"hello\", \"world\")\"", check_map: fn(query) -> {:ok, %{query: query}} end},
+      %{name: "cloak", description: "should contain the node-name of the cloak that will execute the task. " <>
+          "Given a cloak with the node-name 'my-cloak', you would write: \"cloak\":\"my-cloak\"",
+          check_map: fn(cloak) ->
             # FIXME(#76): Once cloak's belong to a particular organisation, we should start attaching the
             # current users organisation to the cloak here, along with checking whether the cloak actually
             # exists for the particular user. Until then, all cloak's are hardcoded to `unknown_org`
-            {:ok, "unknown_org/#{cloak_id}"}
+            {:ok, %{cloak_id: "unknown_org/#{cloak}"}}
           end},
       %{name: "data_source", description: "should contain the name of the data source you want to use. " <>
           "A data source mostly corresponds to a database. Your 'data_source' parameter could for example " <>
-          "look like: \"data_source\":\"my-db\""},
+          "look like: \"data_source\":\"my-db\"", check_map: fn(ds) -> {:ok, %{data_source: ds}} end},
       %{name: "tables", description: "should consist of a list the tables contained within your data source " <>
           "that you want made available to your task. For example: \"tables\":[\"my-table\"]", check_map: fn(tables) ->
             case is_list(tables) do
-              true -> {:ok, tables}
+              true -> {:ok, %{tables: tables}}
               false -> {:error, "should be a list of tables declared as strings, for example \"tables\":" <>
                   "[\"my-table1\", \"my-table2\"]"}
             end
@@ -82,16 +81,13 @@ defmodule Air.API.TaskController do
     validation_fun = fn(%{name: name, description: description} = req,
         %{params: params, errors: existing_errors} = acc) ->
           add_error = fn(error) -> %{acc | errors: [%{parameter: name, problem: error} | existing_errors]} end
-          add_value = fn(value) -> %{acc | params: Map.put(params, name, value)} end
+          add_value = fn(value) -> %{acc | params: Map.merge(params, value)} end
           case payload[name] do
             nil -> add_error.(description)
             value ->
-              case req[:check_map] do
-                nil -> add_value.(value)
-                check_map_fn -> case check_map_fn.(value) do
-                  {:ok, updated_value} -> add_value.(updated_value)
-                  {:error, error} -> add_error.(error)
-                end
+              case req[:check_map].(value) do
+                {:ok, updated_value} -> add_value.(updated_value)
+                {:error, error} -> add_error.(error)
               end
           end
         end
