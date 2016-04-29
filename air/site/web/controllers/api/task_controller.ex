@@ -40,9 +40,12 @@ defmodule Air.API.TaskController do
       https://insights.air-local:20000/api/task
   """
   def run_task(conn, task_payload) do
-    case validate_params(conn, task_payload) do
+    case validate_params(task_payload) do
       {:ok, validated_params} -> save_and_run_task(conn, validated_params)
-      {:error, conn} -> conn
+      {:error, response} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(response)
     end
   end
 
@@ -51,62 +54,47 @@ defmodule Air.API.TaskController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp param_validations() do
-    [
-      %{name: "query", description: "should contain the task code you want to execute, for example: " <>
-          "\"query\":\"report_property(\"hello\", \"world\")\"", check_map: fn(query) -> {:ok, %{query: query}} end},
-      %{name: "cloak", description: "should contain the node-name of the cloak that will execute the task. " <>
-          "Given a cloak with the node-name 'my-cloak', you would write: \"cloak\":\"my-cloak\"",
-          check_map: fn(cloak) ->
-            # FIXME(#76): Once cloak's belong to a particular organisation, we should start attaching the
-            # current users organisation to the cloak here, along with checking whether the cloak actually
-            # exists for the particular user. Until then, all cloak's are hardcoded to `unknown_org`
-            {:ok, %{cloak_id: "unknown_org/#{cloak}"}}
-          end},
-      %{name: "data_source", description: "should contain the name of the data source you want to use. " <>
-          "A data source mostly corresponds to a database. Your 'data_source' parameter could for example " <>
-          "look like: \"data_source\":\"my-db\"", check_map: fn(ds) -> {:ok, %{data_source: ds}} end},
-      %{name: "tables", description: "should consist of a list the tables contained within your data source " <>
-          "that you want made available to your task. For example: \"tables\":[\"my-table\"]", check_map: fn(tables) ->
-            case is_list(tables) do
-              true -> {:ok, %{tables: tables}}
-              false -> {:error, "should be a list of tables declared as strings, for example \"tables\":" <>
-                  "[\"my-table1\", \"my-table2\"]"}
-            end
-          end}
-    ]
-  end
+  defp validate_params(payload) do
+    init_data = %{params: %{}, errors: [], payload: payload}
 
-  defp validate_params(conn, payload) do
-    validation_fun = fn(%{name: name, description: description} = req,
-        %{params: params, errors: existing_errors} = acc) ->
-          add_error = fn(error) -> %{acc | errors: [%{parameter: name, problem: error} | existing_errors]} end
-          add_value = fn(value) -> %{acc | params: Map.merge(params, value)} end
-          case payload[name] do
-            nil -> add_error.(description)
-            value ->
-              case req[:check_map].(value) do
-                {:ok, updated_value} -> add_value.(updated_value)
-                {:error, error} -> add_error.(error)
-              end
-          end
-        end
-    %{params: params, errors: errors} = List.foldl(param_validations(), %{params: %{}, errors: []}, validation_fun)
-    case errors do
-      [] -> {:ok, params}
-      _ ->
+    final_data = init_data
+    |> add_if_exists("query", "should contain the task code you want to execute, for example: " <>
+        "\"query\":\"report_property(\"hello\", \"world\")\"")
+    # FIXME(#76): Once cloak's belong to a particular organisation, we should start attaching the
+    # current users organisation to the cloak here, along with checking whether the cloak actually
+    # exists for the particular user. Until then, all cloak's are hardcoded to `unknown_org`
+    |> add_if_exists("cloak", "should contain the node-name of the cloak that will execute the task. " <>
+        "Given a cloak with the node-name 'my-cloak', you would write: \"cloak\":\"my-cloak\"",
+        fn(value) -> %{"cloak_id" => "unknown_org/#{value}"} end)
+    |> add_if_exists("data_source", "should contain the name of the data source you want to use. " <>
+        "A data source mostly corresponds to a database. Your 'data_source' parameter could for example " <>
+        "look like: \"data_source\":\"my-db\"")
+    |> add_if_exists("tables", "should consist of a list the tables contained within your data source " <>
+        "that you want made available to your task. For example: \"tables\":[\"my-table\"]")
+
+    case final_data.errors do
+      [] -> {:ok, final_data.params}
+      errors ->
         response = %{
           success: false,
           description: "Task is invalid. Please consult the API documentation.",
-          errors: Enum.map(errors, fn(error) -> "The '#{error.parameter}' parameter #{error.problem}" end)
+          errors: errors
         }
-
-        {:error, conn
-            |> put_status(:unprocessable_entity)
-            |> json(response)}
+        {:error, response}
     end
   end
 
+  defp add_if_exists(data, what, error_description, success_fn \\ nil) do
+    case data.payload[what] do
+      nil -> %{data | errors: ["The '#{what}' parameter #{error_description}" | data.errors]}
+      value ->
+        success_fn = case success_fn do
+          nil -> fn(value) -> Map.put(%{}, what, value) end
+          _ -> success_fn
+        end
+        %{data | params: Map.merge(data.params, success_fn.(value))}
+    end
+  end
 
   defp save_and_run_task(conn, params) do
     changeset = build_assoc(conn.assigns.current_user, :tasks)
