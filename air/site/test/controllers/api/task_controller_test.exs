@@ -37,7 +37,7 @@ defmodule Air.API.TaskControllerTest do
 
     query_params = %{
       query: "report_property(\"Hello\", \"world\")",
-      cloak_id: "unknown_org/nonode@nohost",
+      cloak_id: "nonode@nohost",
       data_source: "local",
       tables: ["test"]
     }

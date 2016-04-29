@@ -29,12 +29,12 @@ defmodule Air.API.TaskController do
   - query: the lua task to be executed
   - cloak_id: the ID of the cloak on which the task should execute.
       No checks are performed to ensure that the cloak belongs to the user's organisation.
-      The cloak_id takes the format `<organization-name>/<node-name>`
+      The cloak_id takes the format `<node-name>`
   - data_source: the name of the data source in the selected cloak
   - tables: a list of tables that should be made available to the task
 
   You can test this endpoint in your local development environment using the following curl command:
-  curl --data '{"query":"report_property(\"Hello\", \"world\")", "cloak_id":"unknown_org/nonode@nohost", \
+  curl --data '{"query":"report_property(\"Hello\", \"world\")", "cloak_id":"nonode@nohost", \
       "data_source":"local", "tables":["test"]}' \
       -H "auth-token: <valid auth token>" \
       -H "content-type: application/json" -k -XPOST \
@@ -56,16 +56,21 @@ defmodule Air.API.TaskController do
     [
       %{name: "query", description: "should contain the task code you want to execute, for example: " <>
           "\"query\":\"report_property(\"hello\", \"world\")\""},
-      %{name: "cloak_id", description: "should contain the id of the cloak you have installed. " <>
-          "The id usually takes the form '<organization-name>/<node-name>', so you could for " <>
-          "example include the following statement: \"cloak_id\":\"my-org/hostname\""},
+      %{name: "cloak_id", description: "should contain the node-name of the cloak you have installed. " <>
+          "Given a cloak with the node-name 'my-cloak', you would include write: \"cloak_id\":\"my-cloak\"",
+          check_map: fn(cloak_id) ->
+            # FIXME(#76): Once cloak's belong to a particular organisation, we should start attaching the
+            # current users organisation to the cloak here, along with checking whether the cloak actually
+            # exists for the particular user. Until then, all cloak's are hardcoded to `unknown_org`
+            {:ok, "unknown_org/#{cloak_id}"}
+          end},
       %{name: "data_source", description: "should contain the name of the data source you want to use. " <>
           "A data source mostly corresponds to a database. Your 'data_source' parameter could for example " <>
           "look like: \"data_source\":\"my-db\""},
       %{name: "tables", description: "should consist of a list the tables contained within your data source " <>
-          "that you want made available to your task. For example: \"tables\":[\"my-table\"]", validator: fn(tables) ->
+          "that you want made available to your task. For example: \"tables\":[\"my-table\"]", check_map: fn(tables) ->
             case is_list(tables) do
-              true -> :ok
+              true -> {:ok, tables}
               false -> {:error, "should be a list of tables declared as strings, for example \"tables\":" <>
                   "[\"my-table1\", \"my-table2\"]"}
             end
@@ -81,10 +86,10 @@ defmodule Air.API.TaskController do
           case payload[name] do
             nil -> add_error.(description)
             value ->
-              case req[:validator] do
+              case req[:check_map] do
                 nil -> add_value.(value)
-                validator -> case validator.(value) do
-                  :ok -> add_value.(value)
+                check_map_fn -> case check_map_fn.(value) do
+                  {:ok, updated_value} -> add_value.(updated_value)
                   {:error, error} -> add_error.(error)
                 end
               end
