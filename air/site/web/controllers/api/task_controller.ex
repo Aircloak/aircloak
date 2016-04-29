@@ -78,8 +78,8 @@ defmodule Air.API.TaskController do
   defp validate_params(conn, payload) do
     validation_fun = fn(%{name: name, description: description} = req,
         %{params: params, errors: existing_errors} = acc) ->
-          add_error = fn(error) -> %{acc| errors: [%{parameter: name, problem: error}|existing_errors]} end
-          add_value = fn(value) -> %{acc| params: Map.put(params, name, value)} end
+          add_error = fn(error) -> %{acc | errors: [%{parameter: name, problem: error} | existing_errors]} end
+          add_value = fn(value) -> %{acc | params: Map.put(params, name, value)} end
           case payload[name] do
             nil -> add_error.(description)
             value ->
