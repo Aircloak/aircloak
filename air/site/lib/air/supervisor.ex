@@ -19,6 +19,7 @@ defmodule Air.Supervisor do
     [
       supervisor(Air.Repo, []),
       worker(Air.Repo.Migrator, [], restart: :transient),
+      worker(Air.TaskPostProcessor, []),
       Air.Endpoint.supervisor_spec()
     ]
   end

@@ -163,8 +163,10 @@ defmodule Air.Socket.Cloak.MainChannel do
     end
   end
 
-  defp process_task_result(result) do
+  defp process_task_result(original_result) do
+    result = Air.TaskPostProcessor.process(original_result)
     {:ok, task_id} = Ecto.UUID.cast(result["task_id"])
+
     result_model = %Result{
       task_id: task_id,
       buckets: Poison.encode!(result["buckets"]),
