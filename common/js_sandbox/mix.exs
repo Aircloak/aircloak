@@ -14,10 +14,12 @@ defmodule JsSandbox.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+    [applications: [:logger, :poolboy]]
   end
 
   defp deps do
-    []
+    [
+      {:poolboy, "~> 1.5.0"}
+    ]
   end
 end
