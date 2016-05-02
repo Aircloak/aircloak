@@ -1,4 +1,4 @@
-defmodule JsVmWorkerTest do
+defmodule Air.JsSandbox.JsVmWorkerTest do
   use ExUnit.Case, async: true
 
   test "calling an undefined function" do
@@ -8,7 +8,7 @@ defmodule JsVmWorkerTest do
   end
 
   test "calling a function" do
-    assert {:ok, worker} = :js_vm_worker.start_link(["test/js/script.js"])
+    assert {:ok, worker} = :js_vm_worker.start_link(["test/js_sandbox/js/script.js"])
     assert {:ok, 42} == :js_vm_worker.call(worker, "double", [21])
     GenServer.stop(worker)
   end

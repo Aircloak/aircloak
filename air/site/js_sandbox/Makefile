@@ -4,7 +4,7 @@ SPIDER_MONKEY_SOURCE = https://people.mozilla.org/~sstangl/$(SPIDER_MONKEY_BZ2)
 SPIDER_MONKEY_LOCAL_SOURCE = mozjs/$(SPIDER_MONKEY_VERSION)
 SPIDER_MONKEY_JS_SRC = $(SPIDER_MONKEY_LOCAL_SOURCE)/js/src
 OUT_DIR = bin
-OUT_BIN = jsport
+OUT_BIN = js_sandbox
 SOURCES = $(wildcard *.cpp)
 HEADERS = $(wildcard *.h)
 

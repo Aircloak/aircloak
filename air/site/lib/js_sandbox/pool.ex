@@ -1,4 +1,4 @@
-defmodule Aircloak.JsSandbox.Pool do
+defmodule Air.JsSandbox.Pool do
   @moduledoc "Manages a pool of JavaScript sandboxes."
 
 

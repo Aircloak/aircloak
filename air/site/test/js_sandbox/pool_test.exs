@@ -1,9 +1,9 @@
-defmodule PoolTest do
+defmodule Air.JsSandbox.PoolTest do
   use ExUnit.Case, async: true
-  alias Aircloak.JsSandbox.Pool
+  alias Air.JsSandbox.Pool
 
   test "calling an undefined function" do
-    {:ok, pool} = Pool.start_link("test/js")
+    {:ok, pool} = Pool.start_link("test/js_sandbox/js")
 
     # We'll sum consecutive integers in JS and Elixir and compare results.
     test_range = 1..100

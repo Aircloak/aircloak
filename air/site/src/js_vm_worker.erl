@@ -26,7 +26,7 @@
 }).
 
 -define(ERROR(Format, Args),
-    ('Elixir.Aircloak.JsSandbox.Logger':error(io_lib:format(Format, Args)))).
+    ('Elixir.Air.ErlangLogger':error(io_lib:format(Format, Args)))).
 
 %% @doc Starts the worker process.
 -spec start_link([binary()]) -> {ok, pid()} | {error, any()}.
@@ -98,7 +98,7 @@ code_change(_OldVsn, State, _Extra) ->
 -spec open_sandbox() -> port().
 open_sandbox() ->
   process_flag(trap_exit, true),
-  Binary = code:priv_dir(js_sandbox) ++ "/bin/jsport",
+  Binary = code:priv_dir(air) ++ "/js_sandbox/js_sandbox",
   open_port({spawn_executable, Binary}, [{packet, 4}, {args, ["1536"]}, use_stdio, binary]).
 
 -spec close_sandbox(port()) -> ok.

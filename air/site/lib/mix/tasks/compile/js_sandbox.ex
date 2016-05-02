@@ -1,6 +1,6 @@
-defmodule Mix.Tasks.Compile.CSrc do
-  @shortdoc "Compiles SpiderMonkey wrapper."
-  @moduledoc "Compiles SpiderMonkey wrapper."
+defmodule Mix.Tasks.Compile.JsSandbox do
+  @shortdoc "Compiles JavaScript sandbox."
+  @moduledoc "Compiles JavaScript sandbox."
   use Mix.Task
 
   # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
@@ -8,9 +8,9 @@ defmodule Mix.Tasks.Compile.CSrc do
 
   @doc false
   def run(_args) do
-    system_cmd!("make", ["-C", "c_src"])
+    system_cmd!("make", ["-C", "js_sandbox"])
     File.mkdir_p!("priv")
-    File.cp_r!("c_src/bin", "priv/bin")
+    File.cp_r!("js_sandbox/bin", "priv/js_sandbox/")
   end
 
   defp system_cmd!(cmd, args) do

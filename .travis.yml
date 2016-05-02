@@ -48,12 +48,6 @@ before_script:
   - mix compile --warnings-as-errors
   - MIX_ENV=test make all
   - cd ../..
-  # common/js_sandbox
-  - cd common/js_sandbox
-  - mix deps.get
-  - mix compile --warnings-as-errors
-  - MIX_ENV=test make all
-  - cd ../..
   # air and insights
   - air/etcd/config_travis.sh
   - air/db/init_db.sh
@@ -73,14 +67,6 @@ before_script:
 script:
   # common/elixir
   - cd common/elixir
-  - make docs
-  - make lint
-  - make check_dependent_apps
-  - make test
-  - make dialyze
-  - cd ../..
-  # common/js_sandbox
-  - cd common/js_sandbox
   - make docs
   - make lint
   - make check_dependent_apps
