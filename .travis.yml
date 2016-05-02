@@ -7,6 +7,9 @@ otp_release:
 env:
   global:
     - MIX_HOME=$(pwd)/.mix
+    - COMPILER=g++-4.8
+    - CXX="g++-4.8"
+    - CC="gcc-4.8"
 cache:
   directories:
   - common/elixir/deps
@@ -27,6 +30,8 @@ addons:
     - liblua5.1-0-dev
     - libprotobuf-c0-dev
     - jq
+    - gcc-4.8
+    - g++-4.8
   hosts:
     - travis.aircloak.local
 before_install:
@@ -39,6 +44,12 @@ install:
 before_script:
   # common/elixir
   - cd common/elixir
+  - mix deps.get
+  - mix compile --warnings-as-errors
+  - MIX_ENV=test make all
+  - cd ../..
+  # common/js_sandbox
+  - cd common/js_sandbox
   - mix deps.get
   - mix compile --warnings-as-errors
   - MIX_ENV=test make all
@@ -62,6 +73,14 @@ before_script:
 script:
   # common/elixir
   - cd common/elixir
+  - make docs
+  - make lint
+  - make check_dependent_apps
+  - make test
+  - make dialyze
+  - cd ../..
+  # common/js_sandbox
+  - cd common/js_sandbox
   - make docs
   - make lint
   - make check_dependent_apps
