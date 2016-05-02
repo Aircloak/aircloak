@@ -50,7 +50,6 @@ application. Node.js is included to compile our javascript and css dependencies.
 
 - `mix deps.get` installs our elixir and erlang dependencies
 - `npm install` installs our node dependencies
-- `node node_modules/brunch/bin/brunch build` compiles static assets
 
 Before you run the application for the first time, you also need to make sure you initialize the database
 with `make recreate_db`
