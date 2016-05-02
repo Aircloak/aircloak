@@ -10,16 +10,26 @@ defmodule JsSandbox.Mixfile do
       start_permanent: Mix.env == :prod,
       deps: deps,
       compilers: [:erlang, :elixir, :c_src, :app],
+      aliases: [
+        "test.standard": ["test", "eunit"],
+        "lint": ["credo --strict"]
+      ],
+      preferred_cli_env: [
+        "coveralls.html": :test, dialyze: :dev, docs: :dev, "test.standard": :test, dialyze_retry: :dev,
+        check_dependent_apps: :prod
+      ],
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
   def application do
-    [applications: [:logger, :poolboy]]
+    [applications: [:logger, :poolboy, :aircloak_common]]
   end
 
   defp deps do
     [
-      {:poolboy, "~> 1.5.0"}
+      {:poolboy, "~> 1.5.0"},
+      {:aircloak_common, path: "../elixir"}
     ]
   end
 end
