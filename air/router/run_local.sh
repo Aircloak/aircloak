@@ -125,6 +125,8 @@ echo "You can access following sites:
   https://infrastructure-api.air-local:$(etcd_get /tcp_ports/balancer/https)
   https://aircloak.air-local:$(etcd_get /tcp_ports/balancer/https)
   https://airpub.air-local:$(etcd_get /tcp_ports/balancer/https)
+
+  You still need to run 'site' - see site/README.md
 "
 
 if [ "$1" == "console" ]; then
