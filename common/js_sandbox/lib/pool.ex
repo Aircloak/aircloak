@@ -1,8 +1,19 @@
 defmodule Aircloak.JsSandbox.Pool do
+  @moduledoc "Manages a pool of JavaScript sandboxes."
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Starts the pool server."
+  @spec start_link(binary, atom, :proplists.proplist) :: GenServer.on_start
   def start_link(js_folder, name \\ nil, pool_args \\ default_pool_args()) do
     :poolboy.start_link(pool_args_with_name(name, pool_args), js_modules(js_folder))
   end
 
+  @doc "Invokes the function with a given arguments on a worker in the pool."
+  @spec call(pid | atom, binary, [any]) :: {:ok, any} | {:error, any}
   def call(pool, function, arguments) do
     worker = :poolboy.checkout(pool, true, :infinity)
     try do
@@ -11,6 +22,11 @@ defmodule Aircloak.JsSandbox.Pool do
       :poolboy.checkin(pool, worker)
     end
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp js_modules(js_folder) do
     Path.wildcard("#{js_folder}/*.js")

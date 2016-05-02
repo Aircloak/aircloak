@@ -1,20 +1,23 @@
-# JsSandbox
+# js_sandbox
 
-**TODO: Add description**
+----------------------
 
-## Installation
+- [What it does](#what-it-does)
+- [Typical tasks](#typical-tasks)
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+----------------------
 
-  1. Add js_sandbox to your list of dependencies in `mix.exs`:
+## What it does
 
-        def deps do
-          [{:js_sandbox, "~> 0.0.1"}]
-        end
+This component is an OTP application which exposes simple interface for executing JavaScript code on the server. Internally, it uses SpiderMonkey, wrapped as an external Erlang port, to run JavaScript code. The port implementation resides in the `c_src` folder.
 
-  2. Ensure js_sandbox is started before your application:
+## Typical tasks
 
-        def application do
-          [applications: [:js_sandbox]]
-        end
+There are following tasks available:
 
+- `make` - compiles the project
+- `make test` - runs tests
+- `mix coveralls.html` - runs ExUnit tests with test coverage (generates an HTML output in the `cover` folder)
+- `make dialyze` - runs the dialyzer
+- `make lint` - style checks the Elixir code
+- `make docs` - builds the documentation

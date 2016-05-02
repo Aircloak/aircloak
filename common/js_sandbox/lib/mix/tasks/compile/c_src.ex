@@ -1,4 +1,6 @@
 defmodule Mix.Tasks.Compile.CSrc do
+  @shortdoc "Compiles SpiderMonkey wrapper."
+  @moduledoc "Compiles SpiderMonkey wrapper."
   use Mix.Task
 
   # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
