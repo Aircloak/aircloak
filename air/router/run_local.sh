@@ -125,6 +125,9 @@ echo "You can access following sites:
   https://infrastructure-api.air-local:$(etcd_get /tcp_ports/balancer/https)
   https://aircloak.air-local:$(etcd_get /tcp_ports/balancer/https)
   https://airpub.air-local:$(etcd_get /tcp_ports/balancer/https)
+
+  The services must be individually started, for example with 'cd air/site && make start'.
+  See their READMEs (e.g. air/site/README.md) for details
 "
 
 if [ "$1" == "console" ]; then
