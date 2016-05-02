@@ -7,7 +7,7 @@ defmodule PoolTest do
 
     # We'll sum consecutive integers in JS and Elixir and compare results.
     test_range = 1..100
-    expected_sum = test_range |> Enum.map(&(&1*2)) |> Enum.sum
+    expected_sum = test_range |> Enum.map(&(&1 * 2)) |> Enum.sum()
     sum_of_doubles =
       test_range
       # using Task.async to hopefully trigger concurrent executions of multiple workers.
