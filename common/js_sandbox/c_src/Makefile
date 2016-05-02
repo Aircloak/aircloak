@@ -9,9 +9,9 @@ SOURCES = $(wildcard *.cpp)
 HEADERS = $(wildcard *.h)
 
 ifeq ($(shell uname),Darwin)
-MOZJS_LIB = $(SPIDER_MONKEY_JS_SRC)/dist/lib/libmozjs-.dylib
+MOZJS_LIB = libmozjs-.dylib
 else
-MOZJS_LIB = $(SPIDER_MONKEY_JS_SRC)/dist/lib/libmozjs-.so
+MOZJS_LIB = libmozjs-.so
 endif
 
 
@@ -22,17 +22,23 @@ all: $(OUT_DIR)/$(OUT_BIN)
 clean:
 	rm -rf $(OUT_DIR)/*
 
-$(OUT_DIR)/$(OUT_BIN): $(MOZJS_LIB) $(SOURCES) $(HEADERS)
+$(OUT_DIR)/$(OUT_BIN): precompiled/$(SPIDER_MONKEY_VERSION)/bin/$(MOZJS_LIB) $(SOURCES) $(HEADERS)
 	mkdir -p $(OUT_DIR)
-	cp -rp $(MOZJS_LIB) $(OUT_DIR)
+	cp -rp precompiled/$(SPIDER_MONKEY_VERSION)/bin/$(MOZJS_LIB) $(OUT_DIR)
 	$(CXX) -std=c++11 -Wall -Werror -fPIC -O3 \
-		-I$(SPIDER_MONKEY_JS_SRC)/dist/include -L$(SPIDER_MONKEY_JS_SRC)/dist/lib \
+		-Iprecompiled/$(SPIDER_MONKEY_VERSION)/include -L$(OUT_DIR) \
 		-Wno-invalid-offsetof \
-		-o $(OUT_DIR)/$(OUT_BIN) $(SOURCES) -lmozjs- -lz -lpthread -ldl -Wl,-rpath '-Wl,$$ORIGIN'
+		-o $(OUT_DIR)/$(OUT_BIN) $(SOURCES) -lmozjs- -lz -lpthread -ldl \
+		-Wl,-rpath '-Wl,$$ORIGIN'
 
-$(MOZJS_LIB): $(SPIDER_MONKEY_LOCAL_SOURCE)
+precompiled/$(SPIDER_MONKEY_VERSION)/bin/$(MOZJS_LIB):
+	$(MAKE) $(SPIDER_MONKEY_JS_SRC)/dist/lib/$(MOZJS_LIB)
+	mkdir -p precompiled/$(SPIDER_MONKEY_VERSION)
+	cp -rp $(SPIDER_MONKEY_JS_SRC)/dist/lib/$(MOZJS_LIB) precompiled/$(SPIDER_MONKEY_VERSION)/bin/
+
+$(SPIDER_MONKEY_JS_SRC)/dist/lib/$(MOZJS_LIB): $(SPIDER_MONKEY_LOCAL_SOURCE)
 	cd $(SPIDER_MONKEY_JS_SRC) && ./configure && $(MAKE)
-	strip -x $(MOZJS_LIB)
+	strip -x $(SPIDER_MONKEY_JS_SRC)/dist/lib/$(MOZJS_LIB)
 
 $(SPIDER_MONKEY_LOCAL_SOURCE): mozjs/download/$(SPIDER_MONKEY_BZ2)
 	bzcat mozjs/download/$(SPIDER_MONKEY_BZ2) > mozjs/download/mozjs.tar
