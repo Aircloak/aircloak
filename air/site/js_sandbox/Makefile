@@ -21,6 +21,8 @@ all: $(OUT_DIR)/$(OUT_BIN)
 
 clean:
 	rm -rf $(OUT_DIR)/*
+	rm -rf $(SPIDER_MONKEY_LOCAL_SOURCE)
+	rm -rf precompiled/$(SPIDER_MONKEY_VERSION)/bin/$(MOZJS_LIB)
 
 $(OUT_DIR)/$(OUT_BIN): precompiled/$(SPIDER_MONKEY_VERSION)/bin/$(MOZJS_LIB) $(SOURCES) $(HEADERS)
 	mkdir -p $(OUT_DIR)
