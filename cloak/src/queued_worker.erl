@@ -97,14 +97,14 @@ handle_info({'DOWN', MonitorRef, process, Pid, _Reason},
       },
       {noreply, conditionally_run_job(StateWithoutTerminated)};
     false ->
-      ?WARNING("unknown monitored process ~p", [Pid]),
+      ?WARN("unknown monitored process ~p", [Pid]),
       {noreply, State}
   end.
 
 terminate(normal, _State) ->
   ok;
 terminate(Reason, _State) ->
-  ?CRITICAL("abnormal termination of ~p due to ~p", [?MODULE, Reason]),
+  ?ERROR("abnormal termination of ~p due to ~p", [?MODULE, Reason]),
   ok.
 
 code_change(_, _, _) ->

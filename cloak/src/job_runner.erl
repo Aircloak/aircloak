@@ -164,7 +164,7 @@ handle_info({SomePort, {data, _}}, State) when is_port(SomePort) ->
 handle_info({'EXIT', SomePort, _}, State)  when is_port(SomePort) ->
   {noreply, State, infinity};
 handle_info(_Message, State) ->
-  ?WARNING("unknown message to job_runner"),
+  ?WARN("unknown message to job_runner"),
   {noreply, State, infinity}.
 
 terminate(Type, #state{port=Port}=State) when Port /= closed ->
@@ -174,7 +174,7 @@ terminate(Type, #state{port=Port}=State) when Port /= closed ->
 terminate(normal, _) ->
   ok;
 terminate(_Abnormal, _) ->
-  ?CRITICAL("abnormal termination of job_runner"),
+  ?ERROR("abnormal termination of job_runner"),
   ok.
 
 code_change(_, _, _) ->

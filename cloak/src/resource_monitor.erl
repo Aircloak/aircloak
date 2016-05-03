@@ -92,9 +92,9 @@ handle_info(estimate_disk_usage, #state{last_disk_usage=LastDiskUsage} = State) 
           EstimatedOutOfSpace = round((100 / Increase) * (?DISK_CHECK_INTERVAL / timer:hours(24))),
           if
             EstimatedOutOfSpace < 31 ->
-              ?ALERT("Estimated disk expiry for ~s is ~p days", [Partition, EstimatedOutOfSpace]);
+              ?ERROR("Estimated disk expiry for ~s is ~p days", [Partition, EstimatedOutOfSpace]);
             EstimatedOutOfSpace < 365 ->
-              ?WARNING("Estimated disk expiry for ~s is ~p days", [Partition, EstimatedOutOfSpace]);
+              ?WARN("Estimated disk expiry for ~s is ~p days", [Partition, EstimatedOutOfSpace]);
             true ->
               ?INFO("Estimated disk expiry for ~s is ~p days", [Partition, EstimatedOutOfSpace])
           end

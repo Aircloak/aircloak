@@ -149,7 +149,7 @@ handle_cast(job_finished, State = #state{active_jobs = ActiveJobs}) when ActiveJ
 %% @hidden
 handle_info(timeout, State) ->
   % processing timeout reached, cancel jobs and report what we have
-  ?WARNING("task runner timeout"),
+  ?WARN("task runner timeout"),
   on_task_finished(timeout, State),
   {stop, normal, State}.
 
