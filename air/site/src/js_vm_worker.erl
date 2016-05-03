@@ -5,6 +5,8 @@
 -behaviour(gen_server).
 -behaviour(poolboy_worker).
 
+-include_lib("aircloak_common/include/elixir_logger.hrl").
+
 %% poolboy_worker callbacks
 -export([
   start_link/1,
@@ -24,9 +26,6 @@
 -record(state, {
   vm :: port()
 }).
-
--define(ERROR(Format, Args),
-    ('Elixir.Air.ErlangLogger':error(io_lib:format(Format, Args)))).
 
 %% @doc Starts the worker process.
 -spec start_link([binary()]) -> {ok, pid()} | {error, any()}.
