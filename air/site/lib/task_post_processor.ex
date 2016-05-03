@@ -2,7 +2,7 @@ defmodule Air.TaskPostProcessor do
   @moduledoc """
   Post-processing of tasks result.
 
-  Post-processing is performed in JavaScript sandbox which is powered by
+  Post-processing is performed in a JavaScript sandbox which is powered by the
   `JsSandbox.Pool`. The post-processing code resides in the
   `priv/task_post_processor` folder.
   """
