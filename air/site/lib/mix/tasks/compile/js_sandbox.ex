@@ -8,17 +8,16 @@ defmodule Mix.Tasks.Compile.JsSandbox do
 
   @doc false
   def run(_args) do
-    system_cmd!("make", ["-C", "js_sandbox"])
+    case System.cmd("make", ["-C", "js_sandbox"],
+          stderr_to_stdout: true,
+          into: IO.stream(:stdio, :line)
+        ) do
+      {_, 0} -> :ok
+      {_, _} ->
+        Mix.raise("Error compiling js_sandbox")
+    end
     File.mkdir_p!("priv")
     File.cp_r!("js_sandbox/bin", "priv/js_sandbox/")
-  end
-
-  defp system_cmd!(cmd, args) do
-    case System.cmd(cmd, args, stderr_to_stdout: true) do
-      {_, 0} -> :ok
-      {output, _} ->
-        IO.puts "\n#{IO.ANSI.red()}#{output}#{IO.ANSI.reset()}"
-        Mix.raise("Error running #{cmd}")
-    end
+    Mix.Shell.IO.info("Compiled js_sandbox")
   end
 end
