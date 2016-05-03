@@ -1,5 +1,6 @@
 defmodule Air.JsSandbox.Pool do
   @moduledoc "Manages a pool of JavaScript sandboxes."
+  require Logger
 
 
   # -------------------------------------------------------------------
@@ -41,7 +42,9 @@ defmodule Air.JsSandbox.Pool do
 
   defp default_pool_size() do
     case :erlang.system_info(:logical_processors_available) do
-      :unknown -> 2 # if we can't determine CPU count, assume 2
+      :unknown ->
+        Logger.warn("can't determine the number of logical processors, using only two js_sandbox workers")
+        2 # if we can't determine CPU count, assume 2
       count -> count
     end
   end
