@@ -7,6 +7,8 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       version: "0.0.1",
       elixir: "~> 1.2",
       elixirc_paths: elixirc_paths(Mix.env),
+      erlc_paths: erlc_paths(Mix.env),
+      erlc_options: erlc_options(Mix.env),
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       deps: deps,
@@ -18,7 +20,11 @@ defmodule Aircloak.ElixirCommon.Mixfile do
         eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev,
         "coveralls.html": :test, dialyze_retry: :dev
       ],
-      test_coverage: [tool: ExCoveralls]
+      test_coverage: [tool: ExCoveralls],
+      eunit_options: [
+        :no_tty,
+        {:report, {:eunit_progress, [:colored]}}
+      ]
     ]
   end
 
@@ -48,6 +54,14 @@ defmodule Aircloak.ElixirCommon.Mixfile do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp applications(:test), do: [:logger, :gproc, :phoenix, :cowboy, :poison]
+  defp erlc_paths(:test), do: ["test/erlang/", "src"]
+  defp erlc_paths(:dev), do: ["src"]
+  defp erlc_paths(:prod), do: ["src"]
+
+  defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]
+  defp erlc_options(:dev), do: [:debug_info]
+  defp erlc_options(:prod), do: []
+
+  defp applications(:test), do: [:logger, :gproc, :phoenix, :cowboy, :poison, :ex_unit]
   defp applications(_), do: [:logger, :gproc, :poison]
 end

@@ -7,6 +7,9 @@ otp_release:
 env:
   global:
     - MIX_HOME=$(pwd)/.mix
+    - COMPILER=g++-4.8
+    - CXX="g++-4.8"
+    - CC="gcc-4.8"
 cache:
   directories:
   - common/elixir/deps
@@ -27,6 +30,8 @@ addons:
     - liblua5.1-0-dev
     - libprotobuf-c0-dev
     - jq
+    - gcc-4.8
+    - g++-4.8
   hosts:
     - travis.aircloak.local
 before_install:

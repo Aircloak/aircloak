@@ -7,7 +7,7 @@ defmodule Air.Mixfile do
       version: "0.0.1",
       elixir: "~> 1.0",
       elixirc_paths: elixirc_paths(Mix.env),
-      compilers: [:phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :lua_libraries, :app],
+      compilers: [:phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :lua_libraries, :js_sandbox, :app],
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       aliases: aliases(Mix.env),
@@ -105,7 +105,7 @@ defmodule Air.Mixfile do
   # This is usually not needed, but in some cases it's required if our code directly relies on
   # types and behaviours from indirect dependencies. In such case, simply add the needed application to
   # this list.
-  defp dialyzer_required_deps, do: [:plug]
+  defp dialyzer_required_deps, do: [:plug, :poolboy]
 
   defp elixirc_options(:test), do: [debug_info: true, docs: true] ++ common_elixirc_options
   defp elixirc_options(:dev), do: [debug_info: true, docs: true] ++ common_elixirc_options
