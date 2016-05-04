@@ -4,14 +4,13 @@ export class MenuBar extends React.Component {
   render() {
     return (
       <div id="task-status-bar">
-        <SaveButton {...this.props} />
-        <RunButton {...this.props} />
+        {this.props.children}
       </div>
     );
   }
 }
 
-class SaveButton extends React.Component {
+export class SaveButton extends React.Component {
   constructor(props) {
     super(props);
     this.handleSaveTaskClick = this.handleSaveTaskClick.bind(this);
@@ -19,7 +18,7 @@ class SaveButton extends React.Component {
 
   handleSaveTaskClick() {
     if (!this.props.isSavedCheck()) {
-      this.props.onTaskSaveClick();
+      this.props.onClick();
     }
   }
 
@@ -38,7 +37,7 @@ class SaveButton extends React.Component {
   }
 }
 
-class RunButton extends React.Component {
+export class RunButton extends React.Component {
   render() {
     if (this.props.runningPercent < 0) {
       var classNames = "btn btn-primary";
@@ -47,7 +46,7 @@ class RunButton extends React.Component {
       }
       return (
         <div className="task-status-bar-button-group">
-          <button type="button" className={classNames} onClick={this.props.onRunTaskClick}>
+          <button type="button" className={classNames} onClick={this.props.onClick}>
             Run task
           </button>
         </div>
