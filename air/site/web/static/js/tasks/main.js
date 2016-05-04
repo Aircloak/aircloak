@@ -110,6 +110,10 @@ class TaskEditor extends React.Component {
   // ----------------------------------------------------------------
 
   handleRunTask() {
+    // We abort immediately if the task cannot be run
+    if (! this.canRun()) {
+      return;
+    }
     this.updateTaskRunningProgress(0);
     $.ajax(`/tasks/${this.props.id}/run`, {
           context: this,
@@ -179,7 +183,10 @@ class TaskEditor extends React.Component {
   }
 
   canRun() {
-    return (this.state.settings.dataSourceToken != null && this.state.settings.tables.size > 0 &&
+    return (
+        this.state.settings.dataSourceToken != null &&
+        this.state.settings.tables.size > 0 &&
+        // If a task is already running, then we cannot re-run it before it's done
         this.state.runningPercent == -1);
   }
 
