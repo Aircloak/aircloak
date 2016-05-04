@@ -176,6 +176,13 @@ terminate(Type, #state{port=Port}=State) when Port /= closed ->
 terminate(Type, #state{active_job = #job{requester = Requester}} = State) ->
   Requester ! job_runner_died,
   terminate(Type, State#state{active_job = false});
+terminate(Type, #state{job_queue = Queue} = State) when Queue /= empty ->
+  case queue:out(Queue) of
+    {empty, _} -> terminate(Type, State#state{job_queue = empty});
+    {{value, #job{requester = Requester}}, Rest} ->
+      Requester ! job_runner_died,
+      terminate(Type, State#state{job_queue = Rest})
+  end;
 terminate(normal, _) ->
   ok;
 terminate(_Abnormal, _) ->
