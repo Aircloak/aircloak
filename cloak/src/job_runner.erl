@@ -55,7 +55,7 @@
 
 -record(state, {
   runner_num :: non_neg_integer(),
-  job_queue = queue:new() :: queue:queue(),
+  job_queue = queue:new() :: queue:queue() | empty,
   active_job = false :: false | #job{},
   port :: port() | closed,
   timeout = undefined :: undefined | non_neg_integer(), % remaining job time limit in microseconds
