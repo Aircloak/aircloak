@@ -1,6 +1,10 @@
 %% @doc Represents a worker JavaScript virtual machine, implemented as a gen_server wrapper
 %%      over an external Erlang port that implements a JavaScript sandbox. The worker is part
 %%      of a pool managed by the js_vm_sup module and can be used to execute JavaScript code.
+%%
+%%      The current implementation doesn't enforce memory limits on the JavaScript, since we're
+%%      currently not experiencing any problems with memory consumption, and we're not sure which
+%%      limit should be chosen.
 -module(js_vm_worker).
 -behaviour(gen_server).
 -behaviour(poolboy_worker).
@@ -42,7 +46,6 @@ call(Worker, Function, Arguments) ->
 %% -------------------------------------------------------------------
 
 init(JSModules) when is_list(JSModules) ->
-  %TODO: limit sandbox memory consumption
   VM = open_sandbox(),
   lists:foreach(fun (JSModule) ->
         {ok, JSContent} = file:read_file(JSModule),
