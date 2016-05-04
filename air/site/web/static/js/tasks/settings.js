@@ -150,13 +150,13 @@ class Tables extends React.Component {
             <Control label="Tables">
               <div style={{paddingTop: '7px'}}>
                 {tables.map((table) =>
-                    <div key={table.id}>
+                    <label key={table.id}>
                       <input style={{marginRight: '5px'}} type="checkbox"
                         onChange={this.onTableSelected.bind(this)}
                         checked={this.props.settings.isTableSelected(table)}
                         value={table.id} />
                       {table.id}
-                    </div>)}
+                    </label>)}
               </div>
             </Control>
           );
