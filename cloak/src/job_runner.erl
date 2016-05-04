@@ -49,7 +49,8 @@
   parameters :: parameters() | get_parameters_fun(),
   reporter_fun :: undefined | callback_fun(),
   created_at :: erlang:timestamp(),
-  accumulator :: job_accumulator()
+  accumulator :: job_accumulator(),
+  requester :: pid()
 }).
 
 -record(state, {
@@ -93,7 +94,8 @@ execute(JobRunnerNum, Request, Parameters, Accumulator, RequestId, ReporterFun) 
     parameters=Parameters,
     accumulator=Accumulator,
     reporter_fun=ReporterFun,
-    created_at=os:timestamp()
+    created_at=os:timestamp(),
+    requester=self()
   },
   gen_server:cast(gproc:where(name(JobRunnerNum)), {execute, Job}),
   ok.
@@ -171,6 +173,9 @@ terminate(Type, #state{port=Port}=State) when Port /= closed ->
   ?INFO("initiating shutdown of sandbox"),
   catch(port_command(Port, <<>>)),  %% ignore any error here
   terminate(Type, State#state{port=closed});
+terminate(Type, #state{active_job = #job{requester = Requester}} = State) ->
+  Requester ! job_runner_died,
+  terminate(Type, State#state{active_job = false});
 terminate(normal, _) ->
   ok;
 terminate(_Abnormal, _) ->
