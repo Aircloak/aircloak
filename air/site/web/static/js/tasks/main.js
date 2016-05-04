@@ -5,9 +5,10 @@ import Mousetrap from "mousetrap"
 // Imported components
 import { CodeEditor } from "./code_editor"
 import { ResultSocket } from "./results_socket"
-import { SidePane } from "./sidepane"
-import { MenuBar, RunButton, SaveButton } from "./menubar"
-import { SettingsModel } from "./settings"
+import { SidePane, PaneView } from "./sidepane"
+import { MenuBar, MenuButton, TaskProgress, PaneSelectButton } from "./menubar"
+import { SettingsModel, SettingsView } from "./settings"
+import { ResultsView } from "./results"
 
 class TaskEditor extends React.Component {
   constructor(props) {
@@ -24,6 +25,7 @@ class TaskEditor extends React.Component {
             cloakId: props.cloak_id,
             taskName: props.name
           }),
+      activeSidePane: null,
 
       // We keep some stats on whether or not
       // the task is running. This is used
@@ -42,12 +44,15 @@ class TaskEditor extends React.Component {
     this.conditionallySave = this.conditionallySave.bind(this);
     this.handleCodeChange = this.handleCodeChange.bind(this);
     this.handleSettingsChange = this.handleSettingsChange.bind(this);
+    this.handleHideSidePane = this.handleHideSidePane.bind(this);
     this.handleRunTask = this.handleRunTask.bind(this);
-    this.isSaved = this.isSaved.bind(this);
+    this.hasChanges = this.hasChanges.bind(this);
     this.canRun = this.canRun.bind(this);
     this.saveTask = this.saveTask.bind(this);
     this.updateTaskResult = this.updateTaskResult.bind(this);
     this.updateTaskRunningProgress = this.updateTaskRunningProgress.bind(this);
+    this.createActivePaneCheck = this.createActivePaneCheck.bind(this);
+    this.activatePane = this.activatePane.bind(this);
 
     // To prevent the user loosing changes, we ask whether
     // the page should be closed, if changes have been
@@ -83,6 +88,10 @@ class TaskEditor extends React.Component {
     this.setState({settings: settings});
   }
 
+  handleHideSidePane() {
+    this.setState({activeSidePane: null});
+  };
+
   updateTaskRunningProgress(progress) {
     this.setState({runningPercent: progress});
   }
@@ -92,7 +101,7 @@ class TaskEditor extends React.Component {
     // result, and therefore update the progress too
     this.updateTaskRunningProgress(-1);
     this.setState({result: result});
-    this.refs.SidePane.showResultTab()
+    this.setState({activeSidePane: "results"});
   }
 
 
@@ -145,7 +154,7 @@ class TaskEditor extends React.Component {
   // ----------------------------------------------------------------
 
   conditionallySave() {
-    if (!this.isSaved()) {
+    if (this.hasChanges()) {
       this.saveTask()
     }
   }
@@ -165,18 +174,27 @@ class TaskEditor extends React.Component {
         });
   }
 
-  isSaved() {
-    return (this.state.savedState == this.queryData());
+  hasChanges() {
+    return (this.state.savedState != this.queryData());
   }
 
   canRun() {
-    return (this.state.settings.dataSourceToken != null && this.state.settings.tables.size > 0);
+    return (this.state.settings.dataSourceToken != null && this.state.settings.tables.size > 0 &&
+        this.state.runningPercent == -1);
   }
 
   checkForUnsavedChanges() {
-    if (!this.isSaved()) {
+    if (this.hasChanges()) {
       return "Your task has unsaved changes!";
     }
+  }
+
+  createActivePaneCheck(pane) {
+    return (() => {return this.state.activeSidePane == pane});
+  }
+
+  activatePane(pane) {
+    return (() => {this.setState({activeSidePane: pane})});
   }
 
 
@@ -188,39 +206,44 @@ class TaskEditor extends React.Component {
     return (
       <div id="task-editor-container">
         <MenuBar>
-          <SaveButton
-              onClick={this.saveTask}
-              isSavedCheck={this.isSaved} />
-          <RunButton
-              runningPercent={this.state.runningPercent}
-              onClick={this.handleRunTask}
-              canRunCheck={this.canRun} />
+          <PaneSelectButton
+              onClick={this.activatePane("settings")}
+              isActive={this.createActivePaneCheck("settings")}>
+            Settings
+          </PaneSelectButton>
+          <PaneSelectButton
+              onClick={this.activatePane("results")}
+              isActive={this.createActivePaneCheck("results")}>
+            Results
+          </PaneSelectButton>
+          <MenuButton onClick={this.saveTask} isActive={this.hasChanges}>Save task</MenuButton>
+          <div>
+            <MenuButton onClick={this.handleRunTask} isActive={this.canRun}>Run task</MenuButton>
+            <TaskProgress {...this.state} />
+          </div>
         </MenuBar>
-        <MainContent>
+        <div>
           <CodeEditor
+              sidePaneHidden={this.createActivePaneCheck(null)}
               query={this.state.query}
               settings={this.state.settings}
               completions={this.props.completions}
               onChange={this.handleCodeChange}
               onSave={this.conditionallySave}
               onRun={this.handleRunTask} />
-          <SidePane
-              ref="SidePane"
-              {...this.state}
-              result={this.state.result}
-              settings={this.state.settings}
-              onSettingsChange={this.handleSettingsChange} />
-        </MainContent>
-      </div>
-    );
-  }
-}
-
-class MainContent extends React.Component {
-  render() {
-    return (
-      <div id="main-text-editor-pane">
-        {this.props.children}
+          <SidePane sidePaneHidden={this.createActivePaneCheck(null)}>
+            <PaneView
+                onHideClick={this.handleHideSidePane}
+                isActive={this.createActivePaneCheck("results")}>
+              <ResultsView {...this.state} />
+            </PaneView>
+            <PaneView
+                onHideClick={this.handleHideSidePane}
+                isActive={this.createActivePaneCheck("settings")}>
+              <SettingsView {...this.state} onChange={this.handleSettingsChange} />
+            </PaneView>
+          </SidePane>
+        </div>
       </div>
     );
   }
