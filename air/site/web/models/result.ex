@@ -30,4 +30,27 @@ defmodule Air.Result do
     model
     |> cast(params, @required_fields, @optional_fields)
   end
+
+  @doc "Utility method to unpack the result's fields into a map for easier rendering in the UI."
+  @spec unpack(t) :: %{}
+  def unpack(result) do
+    buckets = Poison.decode!(result.buckets)
+    exceptions = Poison.decode!(result.exceptions)
+
+    buckets = for bucket <- buckets do
+      {bucket["label"], bucket["value"], bucket["count"]}
+    end
+
+    errors = for exception <- exceptions do
+          "#{exception["error"]} (#{exception["count"]} times)"
+        end
+        |> Enum.join("\n")
+
+    %{
+      id: result.id,
+      timestamp: result.inserted_at,
+      errors: errors,
+      buckets: buckets
+    }
+  end
 end

@@ -40,7 +40,9 @@ defmodule Air.Router do
     resources "/api_tokens", ApiTokenController
     resources "/cloaks", CloaksController
     resources "/organisations", OrganisationController
-    resources "/tasks", TaskController, except: [:show, :create]
+    resources "/tasks", TaskController, except: [:show, :create] do
+      resources "/results", ResultController, only: [:index, :show]
+    end
     resources "/users", UserController
   end
 

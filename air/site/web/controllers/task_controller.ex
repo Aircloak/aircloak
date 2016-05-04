@@ -116,13 +116,8 @@ defmodule Air.TaskController do
     end
   end
 
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp load_task_and_validate_ownership(conn, _) do
-    %{"id" => id} = conn.params
+  def load_task_and_validate_ownership(conn, _) do
+    id = conn.params["task_id"] || conn.params["id"]
     task = Repo.get!(Task, id)
     if task.user_id != conn.assigns.current_user.id do
       # Raise a 404 if the user isn't the right one.
@@ -136,6 +131,11 @@ defmodule Air.TaskController do
       assign(conn, :task, task)
     end
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp data_sources(conn, task) do
     # flatten data sources so it's easier to handle in the task editor
