@@ -45,7 +45,7 @@ class TaskEditor extends React.Component {
     this.handleSettingsChange = this.handleSettingsChange.bind(this);
     this.handleRunTask = this.handleRunTask.bind(this);
     this.isSaved = this.isSaved.bind(this);
-    this.canRun = this.canRun.bind(this);
+    this.canRunCheck = this.canRunCheck.bind(this);
     this.saveTask = this.saveTask.bind(this);
     this.updateTaskResult = this.updateTaskResult.bind(this);
     this.updateTaskRunningProgress = this.updateTaskRunningProgress.bind(this);
@@ -106,6 +106,10 @@ class TaskEditor extends React.Component {
   // ----------------------------------------------------------------
 
   handleRunTask() {
+    // We abort immediately if the task cannot be run
+    if (! this.canRunCheck().result) {
+      return;
+    }
     this.updateTaskRunningProgress(0);
     $.ajax(`/tasks/${this.props.id}/run`, {
           context: this,
@@ -174,8 +178,18 @@ class TaskEditor extends React.Component {
     return (this.state.savedState == this.queryData());
   }
 
-  canRun() {
-    return (this.state.settings.dataSourceToken != null && this.state.settings.tables.size > 0);
+  canRunCheck() {
+    if (this.state.settings.dataSourceToken == null) {
+      return {result: false, description: "Task can't run without a datasource"};
+    }
+    if (this.state.settings.tables.size == 0) {
+      return {result: false, description: "Task can't run without at least one table"};
+    }
+    if (this.state.runningPercent != -1) {
+      return {result: false, description: ""};
+    }
+
+    return {result: true, description: ""}
   }
 
   checkForUnsavedChanges() {
@@ -196,7 +210,7 @@ class TaskEditor extends React.Component {
             runningPercent={this.state.runningPercent}
             name={this.state.name}
             isSavedCheck={this.isSaved}
-            canRunCheck={this.canRun}
+            canRunCheck={this.canRunCheck}
             onNameChange={this.handleNameChange}
             onTaskSaveClick={this.saveTask}
             onRunTaskClick={this.handleRunTask} />

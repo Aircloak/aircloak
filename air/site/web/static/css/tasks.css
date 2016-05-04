@@ -90,6 +90,13 @@ div.task-status-bar-button-group {
   margin-left: 10px;
 }
 
+span#task-cant-run-description {
+  position: relative;
+  top: 6px;
+  padding: 10px;
+  font-size: 0.9em;
+}
+
 div.task-status-bar-button-group div.progress {
   float: right;
   display: block;
