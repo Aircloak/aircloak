@@ -196,19 +196,31 @@ class TaskEditor extends React.Component {
               onClick={this.handleRunTask}
               canRunCheck={this.canRun} />
         </MenuBar>
-        <CodeEditor
-            query={this.state.query}
-            settings={this.state.settings}
-            completions={this.props.completions}
-            onChange={this.handleCodeChange}
-            onSave={this.conditionallySave}
-            onRun={this.handleRunTask} />
-        <SidePane
-            ref="SidePane"
-            {...this.state}
-            result={this.state.result}
-            settings={this.state.settings}
-            onSettingsChange={this.handleSettingsChange} />
+        <MainContent>
+          <CodeEditor
+              query={this.state.query}
+              settings={this.state.settings}
+              completions={this.props.completions}
+              onChange={this.handleCodeChange}
+              onSave={this.conditionallySave}
+              onRun={this.handleRunTask} />
+          <SidePane
+              ref="SidePane"
+              {...this.state}
+              result={this.state.result}
+              settings={this.state.settings}
+              onSettingsChange={this.handleSettingsChange} />
+        </MainContent>
+      </div>
+    );
+  }
+}
+
+class MainContent extends React.Component {
+  render() {
+    return (
+      <div id="main-text-editor-pane">
+        {this.props.children}
       </div>
     );
   }
