@@ -103,13 +103,13 @@ handle_cast({unregister_task, Handle}, RegisteredTasks) ->
     true ->
       {noreply, maps:remove(Handle, RegisteredTasks)};
     false ->
-      ?WARNING("Cannot remove unknown handle from progress manager"),
+      ?WARN("Cannot remove unknown handle from progress manager"),
       {noreply, RegisteredTasks}
   end;
 handle_cast({job_of_task_finished, Handle}, RegisteredTasks) ->
   case maps:find(Handle, RegisteredTasks) of
     error ->
-      ?WARNING("reported progress for a task unknown to the supervisor"),
+      ?WARN("reported progress for a task unknown to the supervisor"),
       {noreply, RegisteredTasks};
     {ok, #task_progress{finished_jobs = Jobs} = TaskProgress} ->
       NewTaskProgress = TaskProgress#task_progress{finished_jobs = Jobs+1},
@@ -124,7 +124,7 @@ handle_info(_Message, State) ->
 terminate(normal, _State) ->
   ok;
 terminate(Reason, _State) ->
-  ?CRITICAL("abnormal termination of ~p due to ~p", [?MODULE, Reason]),
+  ?ERROR("abnormal termination of ~p due to ~p", [?MODULE, Reason]),
   ok.
 
 code_change(_, _, _) ->

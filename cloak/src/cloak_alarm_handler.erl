@@ -52,12 +52,12 @@ init({undefined, _OldHandler}) ->
 handle_event({set_alarm, Alarm}, State) ->
   case log_level(Alarm) of
     info -> ?REPORT_ALARM(INFO, Alarm);
-    warning -> ?REPORT_ALARM(WARNING, Alarm);
+    warning -> ?REPORT_ALARM(WARN, Alarm);
     % log_level/1 does not produce error/critical at the moment.  The code is commented out as
     % dialyzer dislikes unused clauses/branches.
     %error -> ?REPORT_ALARM(ERROR, Alarm);
     %critical -> ?REPORT_ALARM(CRITICAL, Alarm);
-    alert -> ?REPORT_ALARM(ALERT, Alarm)
+    alert -> ?REPORT_ALARM(ERROR, Alarm)
   end,
   {ok, State};
 handle_event({clear_alarm, Alarm}, State) ->
