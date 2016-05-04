@@ -35,12 +35,6 @@ div#task-status-bar {
   font-size: 1.2em;
 }
 
-div.task-status-bar-component {
-  float: left;
-  display: table;
-  font-size: 1em;
-}
-
 div#task-status-bar input {
   font-size: 22px;
   overflow: visible;

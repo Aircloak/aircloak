@@ -1,22 +1,9 @@
 import React from "react"
 
 export class StatusLine extends React.Component {
-  constructor(props) {
-    super(props);
-    this.handleNameChange = this.handleNameChange.bind(this);
-  }
-
-  handleNameChange(event) {
-    name = event.target.value;
-    this.props.onNameChange(name);
-  }
-
   render() {
     return (
       <div id="task-status-bar">
-        <div className="task-status-bar-component">
-          <input type="text" onChange={this.handleNameChange} value={this.props.name} />
-        </div>
         <SaveButton {...this.props} />
         <RunButton {...this.props} />
       </div>

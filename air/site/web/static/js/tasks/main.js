@@ -17,12 +17,12 @@ class TaskEditor extends React.Component {
       // active state used in the query editor
       // and task name field
       query: props.query,
-      name: props.name,
       settings: new SettingsModel({
             dataSources: props.data_sources,
             dataSourceToken: props.data_source_token,
             tables: new Set(props.tables),
-            cloakId: props.cloak_id
+            cloakId: props.cloak_id,
+            taskName: props.name
           }),
 
       // We keep some stats on whether or not
@@ -41,7 +41,6 @@ class TaskEditor extends React.Component {
     this.checkForUnsavedChanges = this.checkForUnsavedChanges.bind(this);
     this.conditionallySave = this.conditionallySave.bind(this);
     this.handleCodeChange = this.handleCodeChange.bind(this);
-    this.handleNameChange = this.handleNameChange.bind(this);
     this.handleSettingsChange = this.handleSettingsChange.bind(this);
     this.handleRunTask = this.handleRunTask.bind(this);
     this.isSaved = this.isSaved.bind(this);
@@ -75,10 +74,6 @@ class TaskEditor extends React.Component {
   // ----------------------------------------------------------------
   // Event handlers
   // ----------------------------------------------------------------
-
-  handleNameChange(name) {
-    this.setState({name: name});
-  }
 
   handleCodeChange(query) {
     this.setState({query: query});
@@ -162,7 +157,7 @@ class TaskEditor extends React.Component {
   queryData() {
     return JSON.stringify({
           task: {
-            name: this.state.name,
+            name: this.state.settings.taskName,
             query: this.state.query,
             data_source_token: this.state.settings.dataSourceToken,
             tables: Array.from(this.state.settings.tables)
@@ -194,10 +189,8 @@ class TaskEditor extends React.Component {
       <div id="task-editor-container">
         <StatusLine
             runningPercent={this.state.runningPercent}
-            name={this.state.name}
             isSavedCheck={this.isSaved}
             canRunCheck={this.canRun}
-            onNameChange={this.handleNameChange}
             onTaskSaveClick={this.saveTask}
             onRunTaskClick={this.handleRunTask} />
         <CodeEditor
@@ -209,6 +202,7 @@ class TaskEditor extends React.Component {
             onRun={this.handleRunTask} />
         <SidePane
             ref="SidePane"
+            {...this.state}
             result={this.state.result}
             settings={this.state.settings}
             onSettingsChange={this.handleSettingsChange} />

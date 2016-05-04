@@ -52,6 +52,10 @@ export class SettingsModel {
     return this.transform((newSettings) => {newSettings.tables.delete(tableId)});
   }
 
+  changeTaskName(newName) {
+    return this.transform((newSettings) => {newSettings.taskName = newName});
+  }
+
   transform(fun) {
     let newSettings = Object.assign(new SettingsModel(), this);
     fun(newSettings);
@@ -85,6 +89,7 @@ class Form extends React.Component {
     if (this.props.settings.dataSources.length > 0) {
       return (
             <form className="form-horizontal">
+              <TaskNameControl {...this.props} />
               <DataSources {...this.props} />
               <Tables {...this.props} />
             </form>
@@ -92,6 +97,29 @@ class Form extends React.Component {
     }
     else
       return null;
+  }
+}
+
+class TaskNameControl extends React.Component {
+  constructor(props) {
+    super(props);
+    this.handleNameChange = this.handleNameChange.bind(this);
+  }
+
+  handleNameChange(event) {
+    console.log("Trying to change name");
+    this.props.settings.changeTaskName(event.target.value);
+    this.props.onChange(this.props.settings.changeTaskName(event.target.value));
+  }
+
+  render() {
+    return (
+        <Control label="Task name">
+          <input type="text" className="form-control"
+              onChange={this.handleNameChange}
+              value={this.props.settings.taskName} />
+        </Control>
+    );
   }
 }
 
