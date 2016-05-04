@@ -6,7 +6,7 @@ import Mousetrap from "mousetrap"
 import { CodeEditor } from "./code_editor"
 import { ResultSocket } from "./results_socket"
 import { SidePane } from "./sidepane"
-import { StatusLine } from "./status_line"
+import { MenuBar } from "./menubar"
 import { SettingsModel } from "./settings"
 
 class TaskEditor extends React.Component {
@@ -187,7 +187,7 @@ class TaskEditor extends React.Component {
   render() {
     return (
       <div id="task-editor-container">
-        <StatusLine
+        <MenuBar
             runningPercent={this.state.runningPercent}
             isSavedCheck={this.isSaved}
             canRunCheck={this.canRun}

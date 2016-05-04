@@ -1,6 +1,6 @@
 import React from "react"
 
-export class StatusLine extends React.Component {
+export class MenuBar extends React.Component {
   render() {
     return (
       <div id="task-status-bar">
