@@ -54,12 +54,14 @@ class SaveButton extends React.Component {
 class RunButton extends React.Component {
   render() {
     var classNames = "btn btn-primary";
-    if (!this.props.canRunCheck()) {
+    let canRunResult = this.props.canRunCheck();
+    if (!canRunResult.result) {
       classNames += " disabled";
     }
     if (this.props.runningPercent < 0) {
       return (
         <div className="task-status-bar-button-group">
+          <span id="task-cant-run-description">{canRunResult.description}</span>
           <button type="button" className={classNames} onClick={this.props.onRunTaskClick}>
             Run task
           </button>
