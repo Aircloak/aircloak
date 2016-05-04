@@ -23,6 +23,7 @@
 !air/site/include
 !air/site/scripts
 !air/site/rel
+!air/site/fetch_deps.sh
 !common
 
 # blacklist some stuff

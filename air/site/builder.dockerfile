@@ -28,11 +28,12 @@ COPY air/etcd /aircloak/air/etcd
 COPY air/site/mix.exs air/site/mix.lock air/site/package.json /aircloak/air/site/
 COPY air/site/config /aircloak/air/site/config
 COPY common /aircloak/common
+COPY air/site/fetch_deps.sh /aircloak/air/site/
 
 RUN \
   . /tmp/build_config/proxies.sh && \
   cd /aircloak/air/site && \
-  mix deps.get --only prod && \
+  ./fetch_deps.sh --only prod && \
   MIX_ENV=prod mix deps.compile && \
   echo "Fetching npm packages..." && \
   npm install
