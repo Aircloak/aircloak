@@ -56,3 +56,18 @@ export class PaneSelectButton extends React.Component {
     )
   }
 }
+
+export class InfoBox extends React.Component {
+  render() {
+    if (this.props.info == null) {
+      return null;
+    } else {
+      return(
+        <div id="infobox">
+          <span className="label label-default">Notice</span>
+          <span onClick={this.props.info.action} id="infobox-message">{this.props.info.message}</span>
+        </div>
+      );
+    }
+  }
+}

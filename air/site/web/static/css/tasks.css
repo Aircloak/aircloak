@@ -140,3 +140,13 @@ div#side-pane-content {
 div#task-side-content table {
   margin-bottom: 0px;
 }
+
+#infobox {
+  float: right;
+  padding: 7px 15px;
+}
+#infobox-message {
+  margin-left: 5px;
+  font-size: 0.8em;
+  color: gray;
+}

@@ -6,7 +6,7 @@ import Mousetrap from "mousetrap"
 import { CodeEditor } from "./code_editor"
 import { ResultSocket } from "./results_socket"
 import { SidePane, PaneView } from "./sidepane"
-import { MenuBar, MenuButton, TaskProgress, PaneSelectButton } from "./menubar"
+import { MenuBar, MenuButton, TaskProgress, PaneSelectButton, InfoBox } from "./menubar"
 import { SettingsModel, SettingsView } from "./settings"
 import { ResultsView } from "./results"
 
@@ -48,6 +48,7 @@ class TaskEditor extends React.Component {
     this.handleRunTask = this.handleRunTask.bind(this);
     this.hasChanges = this.hasChanges.bind(this);
     this.canRun = this.canRun.bind(this);
+    this.infoBoxContent = this.infoBoxContent.bind(this);
     this.saveTask = this.saveTask.bind(this);
     this.updateTaskResult = this.updateTaskResult.bind(this);
     this.updateTaskRunningProgress = this.updateTaskRunningProgress.bind(this);
@@ -190,6 +191,22 @@ class TaskEditor extends React.Component {
         this.state.runningPercent == -1);
   }
 
+  infoBoxContent() {
+    if (this.state.settings.dataSourceToken == null) {
+      return {
+        message: "Your task needs a datasource before it can be run",
+        action: this.activatePane("settings")
+      }
+    }
+    if (this.state.settings.tables.size == 0) {
+      return {
+        message: "You need to select at least one table to run your task",
+        action: this.activatePane("settings")
+      }
+    }
+    return null;
+  }
+
   checkForUnsavedChanges() {
     if (this.hasChanges()) {
       return "Your task has unsaved changes!";
@@ -227,6 +244,7 @@ class TaskEditor extends React.Component {
           <div>
             <MenuButton onClick={this.handleRunTask} isActive={this.canRun}>Run task</MenuButton>
             <TaskProgress {...this.state} />
+            <InfoBox info={this.infoBoxContent()} />
           </div>
         </MenuBar>
         <div>
