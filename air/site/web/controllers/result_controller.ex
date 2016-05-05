@@ -33,12 +33,10 @@ defmodule Air.ResultController do
     headers = (for %{buckets: buckets} <- results, {label, value, _count} <- buckets, do: {label, value}) |> Enum.uniq
 
     # Map the counts to the unique bucket name list.
-    default_counts = List.duplicate("", length(headers))
     results = for result = %{buckets: buckets} <- results do
-      counts = List.foldl(buckets, default_counts, fn({label, value, count}, counts) ->
-            index = Enum.find_index(headers, &[&1 === {label, value}])
-            List.replace_at(counts, index, count)
-          end)
+      counts = for header <- headers do
+        Enum.find_value(buckets, "", fn ({label, value, count}) -> {label, value} === header && count end)
+      end
       Map.put(result, :counts, counts)
     end
 
