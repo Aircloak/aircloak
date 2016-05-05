@@ -1,0 +1,32 @@
+<h2>Results for '<%= @task.name %>'</h2>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th><center>Generated on</center></th>
+      <th><center>Details</center></th>
+      <th><center>Errors</center></th>
+      <%= for {label, value} <- @headers do %>
+        <th><center><%= "#{label}: #{value}" %></center>
+      <% end %>
+    </tr>
+  </thead>
+  <tbody>
+  <%= for result <- @results do %>
+    <tr align="center">
+      <td><%= result.timestamp %> UTC</td>
+      <td><%= link "view", to: task_result_path(@conn, :show, @task.id, result.id) %></td>
+      <td>
+        <%= if result.errors == "" do %>
+          none
+        <% else %>
+          <div title="<%= result.errors %>" class="error">present</div>
+        <% end %>
+      </td>
+      <%= for count <- result.counts do %>
+        <td><%= count %></td>
+      <% end %>
+    </tr>
+  <% end %>
+  </tbody>
+</table>

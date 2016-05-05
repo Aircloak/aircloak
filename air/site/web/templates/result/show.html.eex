@@ -1,0 +1,30 @@
+<h2>Viewing individual result for '<%= @task.name %>'</h2>
+
+<div>Generated on: <b><%= @result.timestamp %> UTC</b></div>
+<div>Errors: <b>
+  <%= if @result.errors == "" do %>
+    none
+  <% else %>
+    <span class="error"><%= @result.errors %></span>
+  <% end %>
+</b></div>
+<div>Properties:
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Label</th>
+        <th>Value</th>
+        <th>Count</th>
+      </tr>
+    </thead>
+    <tbody>
+    <%= for {label, value, count} <- @result.buckets do %>
+      <tr>
+        <td><%= label %></td>
+        <td><%= value %></td>
+        <td><%= count %></td>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
+</div>
