@@ -30,14 +30,7 @@ defmodule Air.ResultController do
     results = for result <- task.results, do: Result.unpack(result)
 
     # Create the list of unique bucket names.
-    headers =
-        List.foldl(results, [], fn (%{buckets: buckets}, headers) ->
-          List.foldl(buckets, headers, fn ({label, value, _count}, headers) ->
-                [{label, value} | headers]
-              end)
-        end)
-        |> Enum.uniq
-        |> Enum.reverse
+    headers = (for %{buckets: buckets} <- results, {label, value, _count} <- buckets, do: {label, value}) |> Enum.uniq
 
     # Map the counts to the unique bucket name list.
     default_counts = List.duplicate("", length(headers))
