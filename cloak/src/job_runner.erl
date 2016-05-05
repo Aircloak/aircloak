@@ -49,13 +49,12 @@
   parameters :: parameters() | get_parameters_fun(),
   reporter_fun :: undefined | callback_fun(),
   created_at :: erlang:timestamp(),
-  accumulator :: job_accumulator(),
-  requester :: pid()
+  accumulator :: job_accumulator()
 }).
 
 -record(state, {
   runner_num :: non_neg_integer(),
-  job_queue = queue:new() :: queue:queue() | empty,
+  job_queue = queue:new() :: queue:queue(),
   active_job = false :: false | #job{},
   port :: port() | closed,
   timeout = undefined :: undefined | non_neg_integer(), % remaining job time limit in microseconds
@@ -94,10 +93,11 @@ execute(JobRunnerNum, Request, Parameters, Accumulator, RequestId, ReporterFun) 
     parameters=Parameters,
     accumulator=Accumulator,
     reporter_fun=ReporterFun,
-    created_at=os:timestamp(),
-    requester=self()
+    created_at=os:timestamp()
   },
-  gen_server:cast(gproc:where(name(JobRunnerNum)), {execute, Job}),
+  JobRunner = gproc:where(name(JobRunnerNum)),
+  erlang:monitor(process, JobRunner),
+  gen_server:cast(JobRunner, {execute, Job}),
   ok.
 
 %% @doc Inform the job_runner that all jobs with a given request identifier should be cancelled.
@@ -173,16 +173,6 @@ terminate(Type, #state{port=Port}=State) when Port /= closed ->
   ?INFO("initiating shutdown of sandbox"),
   catch(port_command(Port, <<>>)),  %% ignore any error here
   terminate(Type, State#state{port=closed});
-terminate(Type, #state{active_job = #job{requester = Requester}} = State) ->
-  Requester ! job_runner_died,
-  terminate(Type, State#state{active_job = false});
-terminate(Type, #state{job_queue = Queue} = State) when Queue /= empty ->
-  case queue:out(Queue) of
-    {empty, _} -> terminate(Type, State#state{job_queue = empty});
-    {{value, #job{requester = Requester}}, Rest} ->
-      Requester ! job_runner_died,
-      terminate(Type, State#state{job_queue = Rest})
-  end;
 terminate(normal, _) ->
   ok;
 terminate(_Abnormal, _) ->

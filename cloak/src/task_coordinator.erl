@@ -152,9 +152,8 @@ handle_info(timeout, State) ->
   ?WARNING("task runner timeout"),
   on_task_finished(timeout, State),
   {stop, normal, State};
-handle_info(job_runner_died, State) ->
-  % a job runner terminated abnormally
-  {stop, job_runner_died, State}.
+handle_info({'DOWN', _, _, _}, State) ->
+  {stop, job_runner_terminated, State}.
 
 % @hidden
 terminate(normal, _) ->
