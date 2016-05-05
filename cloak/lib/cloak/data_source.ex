@@ -38,7 +38,7 @@ defmodule Cloak.DataSource do
   @typedoc "The type for the data fields values."
   @type data_value :: String.t | integer | number | boolean
   @typedoc "The type for the data columns format."
-  @type data_type :: :text | :integer | :number | :boolean
+  @type data_type :: :text | :integer | :number | :boolean | {:unsupported, String.t}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -166,11 +166,8 @@ defmodule Cloak.DataSource do
   end
 
   defp load_columns(source_id, data_source) do
-    driver = data_source[:driver]
     tables = for {table_id, table} <- data_source[:tables] do
-      # fetch the table's columns list
-      table_name = table[:name]
-      columns = driver.get_columns(source_id, table_name)
+      columns = load_columns(source_id, data_source, table)
       # verify the format of the columns list
       columns != [] or raise("Could not load columns for table '#{source_id}/#{table_id}'!")
       # extract row_id column and verify that it has the expected format
@@ -195,6 +192,20 @@ defmodule Cloak.DataSource do
     Keyword.put(data_source, :tables, tables)
   end
 
+
+  defp load_columns(source_id, data_source, table) do
+    data_source[:driver].get_columns(source_id, table[:name])
+    |> Enum.map(&validate_column/1)
+  end
+
+  defp validate_column({name, type}) do
+    case type do
+      {:unsupported, db_type} -> raise """
+      Column "#{name}" has unsupported type "#{db_type}".
+      """
+      _ -> {name, type}
+    end
+  end
 
   #-----------------------------------------------------------------------------------------------------------
   # Test functions
