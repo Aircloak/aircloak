@@ -6,7 +6,7 @@ defmodule Air.TaskController do
   alias Air.{Task, Result}
 
   plug :scrub_params, "task" when action in [:create, :update]
-  plug :load_task_and_validate_ownership when action in [:edit, :update, :delete, :run_task]
+  plug :load_task_and_validate_ownership, "id" when action in [:edit, :update, :delete, :run_task]
 
 
   # -------------------------------------------------------------------
@@ -116,9 +116,8 @@ defmodule Air.TaskController do
     end
   end
 
-  def load_task_and_validate_ownership(conn, _) do
-    id = conn.params["task_id"] || conn.params["id"]
-    task = Repo.get!(Task, id)
+  def load_task_and_validate_ownership(conn, id_param_name) do
+    task = Repo.get!(Task, conn.params[id_param_name])
     if task.user_id != conn.assigns.current_user.id do
       # Raise a 404 if the user isn't the right one.
       # This way we avoid leaking information if someone

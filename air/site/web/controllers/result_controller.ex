@@ -5,7 +5,8 @@ defmodule Air.ResultController do
   require Logger
   alias Air.Result
 
-  plug :load_task_and_validate_ownership when action in [:index, :show]
+  import Air.TaskController, only: [load_task_and_validate_ownership: 2]
+  plug :load_task_and_validate_ownership, "task_id" when action in [:index, :show]
 
 
   # -------------------------------------------------------------------
@@ -56,11 +57,4 @@ defmodule Air.ResultController do
     result = Result |> Repo.get!(params["id"]) |> Result.unpack()
     render(conn, "show.html", task: task, result: result)
   end
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp load_task_and_validate_ownership(conn, opts), do: Air.TaskController.load_task_and_validate_ownership(conn, opts)
 end
