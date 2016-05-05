@@ -44,6 +44,7 @@ In order to run the system you need the following components:
 - Node.js 5 or newer
 - Elixir 1.2 or newer
 - Erlang 18
+- Ruby 2.x and bundler (for building API docs)
 
 Once you have all the main components, you also need the elixir and node.js dependencies required by our
 application. Node.js is included to compile our javascript and css dependencies.

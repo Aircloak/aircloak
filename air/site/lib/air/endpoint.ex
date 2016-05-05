@@ -42,13 +42,17 @@ defmodule Air.Endpoint do
   socket "/cloak/socket", Air.Socket.Cloak
   socket "/frontend/socket", Air.Socket.Frontend
 
+  plug Air.Plug.Rewrite, rules: %{
+    ["api_docs"] => ["api_docs", "index.html"]
+  }
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phoenix.digest
   # when deploying your static files in production.
   plug Plug.Static,
     at: "/", from: :air, gzip: false,
-    only: ~w(css fonts images js robots.txt)
+    only: ~w(css fonts images js robots.txt api_docs)
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
