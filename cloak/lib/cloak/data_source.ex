@@ -194,7 +194,10 @@ defmodule Cloak.DataSource do
 
 
   defp load_columns(source_id, data_source, table) do
+    ignored = table[:ignore_columns] || []
+
     data_source[:driver].get_columns(source_id, table[:name])
+    |> Enum.reject(fn {name, _} -> Enum.member?(ignored, name) end)
     |> Enum.map(&validate_column/1)
   end
 
@@ -202,6 +205,7 @@ defmodule Cloak.DataSource do
     case type do
       {:unsupported, db_type} -> raise """
       Column "#{name}" has unsupported type "#{db_type}".
+      You can ignore it by adding 'ignore_columns: ["#{name}"]' to your table config.
       """
       _ -> {name, type}
     end
