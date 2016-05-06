@@ -200,18 +200,24 @@ defmodule Cloak.DataSource do
     columns = data_source[:driver].get_columns(source_id, table[:name])
     {supported, unsupported} = Enum.partition(columns, &supported?/1)
 
-    validate_columns(supported, unsupported, table[:ignore_unsupported_types])
+    validate_unsupported_columns(unsupported, source_id, table)
+    supported
   end
 
   defp supported?({_name, {:unsupported, _db_type}}), do: false
   defp supported?({_name, _type}), do: true
 
-  defp validate_columns(supported, _unsupported, _ignore_unsupported = true), do: supported
-  defp validate_columns(supported, _unsupported = [], _ignore_unsupported), do: supported
-  defp validate_columns(_supported, unsupported, _ignore_unsupported) do
-    raise "The following columns have unsupported types: " <>
-        inspect(Enum.map(unsupported, &elem(&1, 0))) <>
-        "\nTo ignore them set 'ignore_unsupported_types: true' in your table settings"
+  defp validate_unsupported_columns(unsupported, source_id, table) do
+    cond do
+      table[:ignore_unsupported_types] -> nil
+      Enum.empty?(unsupported) -> nil
+      true ->
+        raise """
+              The following columns in "#{source_id}/#{table[:name]}" have unsupported types:
+              #{inspect(unsupported)}
+              To ignore them set "ignore_unsupported_types: true" in your table settings
+          """
+    end
   end
 
   #-----------------------------------------------------------------------------------------------------------
