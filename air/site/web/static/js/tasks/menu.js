@@ -1,6 +1,6 @@
 import React from "react"
 
-export class MenuBar extends React.Component {
+export class Menu extends React.Component {
   render() {
     return (
       <div id="task-status-bar">

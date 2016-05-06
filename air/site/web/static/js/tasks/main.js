@@ -6,7 +6,7 @@ import Mousetrap from "mousetrap"
 import { CodeEditor } from "./code_editor"
 import { ResultSocket } from "./results_socket"
 import { SidePane, PaneView } from "./sidepane"
-import { MenuBar, MenuButton, TaskProgress, PaneSelectButton, InfoBox } from "./menubar"
+import { Menu, MenuButton, TaskProgress, PaneSelectButton, InfoBox } from "./menu"
 import { SettingsModel, SettingsView } from "./settings"
 import { ResultsView } from "./results"
 
@@ -229,7 +229,7 @@ class TaskEditor extends React.Component {
   render() {
     return (
       <div id="task-editor-container">
-        <MenuBar>
+        <Menu>
           <PaneSelectButton
               onClick={this.activatePane("settings")}
               isActive={this.createActivePaneCheck("settings")}>
@@ -246,7 +246,7 @@ class TaskEditor extends React.Component {
             <TaskProgress {...this.state} />
             <InfoBox info={this.infoBoxContent()} />
           </div>
-        </MenuBar>
+        </Menu>
         <div>
           <CodeEditor
               sidePaneHidden={this.createActivePaneCheck(null)}
