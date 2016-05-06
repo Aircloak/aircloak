@@ -50,6 +50,7 @@ class TaskEditor extends React.Component {
     this.canRun = this.canRun.bind(this);
     this.infoBoxContent = this.infoBoxContent.bind(this);
     this.saveTask = this.saveTask.bind(this);
+    this.taskIsRunning = this.taskIsRunning.bind(this);
     this.updateTaskResult = this.updateTaskResult.bind(this);
     this.updateTaskRunningProgress = this.updateTaskRunningProgress.bind(this);
     this.createActivePaneCheck = this.createActivePaneCheck.bind(this);
@@ -187,8 +188,11 @@ class TaskEditor extends React.Component {
     return (
         this.state.settings.dataSourceToken != null &&
         this.state.settings.tables.size > 0 &&
-        // If a task is already running, then we cannot re-run it before it's done
-        this.state.runningPercent == -1);
+        ! this.taskIsRunning());
+  }
+
+  taskIsRunning() {
+    return this.state.runningPercent !== -1;
   }
 
   infoBoxContent() {
@@ -243,7 +247,7 @@ class TaskEditor extends React.Component {
           <MenuButton onClick={this.saveTask} isActive={this.hasChanges}>Save task</MenuButton>
           <div>
             <MenuButton onClick={this.handleRunTask} isActive={this.canRun}>Run task</MenuButton>
-            <TaskProgress {...this.state} />
+            <TaskProgress {...this.state} taskIsRunning={this.taskIsRunning} />
             <InfoBox info={this.infoBoxContent()} />
           </div>
         </Menu>

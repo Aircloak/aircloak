@@ -27,9 +27,7 @@ export class MenuButton extends React.Component {
 
 export class TaskProgress extends React.Component {
   render() {
-    if (this.props.runningPercent < 0) {
-      return null;
-    } else {
+    if (this.props.taskIsRunning()) {
       return (
         <div className="progress">
           <div className="progress-bar" role="progressbar"
@@ -39,6 +37,8 @@ export class TaskProgress extends React.Component {
           </div>
         </div>
       );
+    } else {
+      return null;
     }
   }
 }
