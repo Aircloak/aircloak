@@ -21,7 +21,7 @@ export class PaneView extends React.Component {
         <div id="side-pane">
           <div id="side-pane-hide">
             <button onClick={this.props.onHideClick} className="btn">
-              Hide sidepane >
+              Hide sidepane &gt;
             </button>
           </div>
           <div id="side-pane-content">
