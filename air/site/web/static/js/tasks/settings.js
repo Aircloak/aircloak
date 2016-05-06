@@ -107,8 +107,6 @@ class TaskNameControl extends React.Component {
   }
 
   handleNameChange(event) {
-    console.log("Trying to change name");
-    this.props.settings.changeTaskName(event.target.value);
     this.props.onChange(this.props.settings.changeTaskName(event.target.value));
   }
 
