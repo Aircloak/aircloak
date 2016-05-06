@@ -64,7 +64,7 @@ handle_cast(Message, State) ->
   {noreply, State, infinity}.
 
 handle_info({'EXIT', Port, ExitCode}, #state{vm = Port} = State) ->
- {stop, {js_worker_crash, ExitCode}, State};
+  {stop, {js_worker_crash, ExitCode}, State};
 handle_info(Message, State) ->
   ?ERROR("unknown info to js_vm_worker: ~p", [Message]),
   {noreply, State, infinity}.

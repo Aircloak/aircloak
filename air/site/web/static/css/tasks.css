@@ -2,7 +2,7 @@ div#task-view {
   display: table;
   position: absolute;
   left: 0;
-  top: 70px;
+  top: 50px;
   bottom: 0;
   padding: 0;
   margin: 0;
@@ -26,119 +26,129 @@ div#task-view {
   height: calc(100vh - 70px);
 }
 
-div#task-status-bar {
-  border-bottom: 1px solid gray;
-  height: 40px;
+
+/********************************************************************
+ * Menu bar
+ *******************************************************************/
+
+#infobox {
+  float: right;
+  padding: 7px 15px;
+}
+
+#infobox-message {
+  margin-left: 5px;
+  font-size: 0.8em;
+  color: gray;
+}
+
+div#task-menu {
+  border-bottom: 1px solid #ccc;
+  height: 55px;
   display: block;
   width: 100%;
-  padding: 0 10px 0 10px;
+  padding: 10px 0 10px 0;
   font-size: 1.2em;
 }
 
-div.task-status-bar-component {
-  float: left;
-  display: table;
-  font-size: 1em;
+div#task-menu button {
+  float: right;
+  margin: 2px 10px 0 0;
 }
 
-div#task-status-bar input {
-  font-size: 22px;
-  overflow: visible;
-  border-style: none;
-  padding: 2px;
+div#task-menu button.selection {
+  margin: -10px 0 -11px 0;
+  display: block;
+  height: 54px;
+  border: 0;
+  padding: 10px;
+  background-color: white;
+  border-left: 1px solid #ccc;
+}
+
+div#task-menu button.selection:hover {
+  background-color: #F0F0F0;
+}
+
+div#task-menu button.active {
+  height: 55px;
+  background-color: #ccc;
+  color: black;
+}
+
+div#task-menu button.active:hover {
+  background-color: #ccc;
+  color: black;
+}
+
+
+/********************************************************************
+ * Side pane
+ *******************************************************************/
+
+.side-panel-hidden {
+  background-color: blue;
+  width: 100%;
+}
+
+.side-panel-shown {
+  float: left;
 
   /* Firefox */
-  width: -moz-calc(50vw);
+  max-width: -moz-calc(100vw - 600px);
   /* WebKit */
-  width: -webkit-calc(50vw);
+  max-width: -webkit-calc(100vw - 600px);
   /* Opera */
-  width: -o-calc(50vw);
+  max-width: -o-calc(100vw - 600px);
   /* Standard */
-  width: calc(50vw);
+  max-width: calc(100vw - 600px);
 }
 
-div#task-status-bar input:hover {
-  background-color: #f7fdce;
-}
-
-div#task-status-bar input:focus {
-  border-style: dotted;
-  border-width: 2px;
-  padding: 0px;
-  background-color: #f7fdce;
-}
-
-div#task-editor-container div.ReactCodeMirror {
-  width: 100%;
-  float: left;
-  z-index: -2;
-  overflow: auto;
-}
-
-div#task-editor-side-panel {
-  float: right;
-  padding: 10px;
-  position: absolute;
-  right: 10px;
-}
-
-div.task-status-bar-button-group {
-  float: right;
-  display: table;
-  right: 0;
-  position: relative;
-  margin-left: 10px;
-}
-
-div.task-status-bar-button-group div.progress {
+div.progress {
   float: right;
   display: block;
   width: 150px;
   margin: 7px 10px 10px;
 }
 
-div.task-status-bar-button-group button {
-  float: right;
-  display: block;
-}
-
-div#task-status-bar div#save-state {
-  float: right;
-  padding: 5px 0 5px 5px;
-  width: 100px;
-  text-align: right;
-}
-
 div#task-editor-side-panel {
-  display: block;
-  width: 50%;
-  min-width: 400px;
-  max-width: 800px;
+  float: right;
+  right: 10px;
 
-  padding: 10px 0px 0px;
-  z-index: 4;
-}
+  display: table;
+  width: 600px;
 
-div#task-side-content {
   padding: 10px;
-  border-right: 1px solid #ddd;
-  border-bottom: 2px solid #ddd;
-  border-left: 1px solid #ddd;
-  background-color: white;
 
-  /* We don't want the height of the side panel to exceed that of the screen. When it does,
-   * it shifts the code editing box along with it, and renders the page somewhat useless. */
+  border-top: 5px solid #ccc;
+  border-left: 1px solid #ccc;
 
   /* Firefox */
-  max-height: -moz-calc(100vh - 170px);
+  height: -moz-calc(100vh - 105px);
   /* WebKit */
-  max-height: -webkit-calc(100vh - 170px);
+  height: -webkit-calc(100vh - 105px);
   /* Opera */
-  max-height: -o-calc(100vh - 170px);
+  height: -o-calc(100vh - 105px);
   /* Standard */
-  max-height: calc(100vh - 170px);
+  height: calc(100vh - 105px);
+}
+
+div#side-pane-hide {
+  margin-bottom: 20px;
+}
+
+div#side-pane-content {
+  /* Firefox */
+  max-height: -moz-calc(100vh - 180px);
+  /* WebKit */
+  max-height: -webkit-calc(100vh - 180px);
+  /* Opera */
+  max-height: -o-calc(100vh - 180px);
+  /* Standard */
+  max-height: calc(100vh - 180px);
 
   overflow: auto;
+  margin-bottom: -20px;
 }
 
 div#task-side-content table {
@@ -147,4 +157,14 @@ div#task-side-content table {
 
 .error {
   color: red;
+}
+
+
+/********************************************************************
+ * CodeEditor
+ *******************************************************************/
+
+div#task-editor-container div.ReactCodeMirror {
+  width: 100%;
+  overflow: auto;
 }

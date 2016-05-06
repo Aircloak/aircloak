@@ -103,11 +103,13 @@ export class CodeEditor extends React.Component {
       }
     };
     return (
-          <Codemirror
-              ref={this.setupComponent}
-              value={this.props.query}
-              onChange={this.props.onChange}
-              options={options} />
+          <div className={this.props.sidePaneHidden() ? 'side-panel-hidden' : 'side-panel-shown' }>
+            <Codemirror
+                ref={this.setupComponent}
+                value={this.props.query}
+                onChange={this.props.onChange}
+                options={options} />
+          </div>
         );
   }
 };
