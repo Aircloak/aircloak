@@ -7,7 +7,6 @@ apps/cloak/src/*
 .DS_Store
 doc
 apps
-config/dev.exs
 
 test-gen
 

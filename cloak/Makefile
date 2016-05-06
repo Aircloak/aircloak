@@ -4,19 +4,19 @@ SHELL=/bin/bash -o pipefail
 
 all: deps compile
 
-compile: config/dev.exs
+compile:
 	mix compile
 
-sandbox: config/dev.exs
+sandbox:
 	mix compile.sandbox
 
-deps: config/dev.exs
+deps:
 	mix deps.get
 
-clean: config/dev.exs
+clean:
 	mix clean --deps
 
-start: config/dev.exs
+start:
 	iex -S mix
 
 test:
@@ -26,7 +26,7 @@ regenerate_db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
 	./regenerate_db.sh
 
-docs: config/dev.exs
+docs:
 	mix docs.all
 
 # a proper run may take some time...
@@ -34,16 +34,16 @@ docs: config/dev.exs
 # Once full tests are fixed, need to include it again.
 proper: proper-std proper-extended
 
-proper-std: config/dev.exs
+proper-std:
 	mix proper --level simple
 
-proper-extended: config/dev.exs
+proper-extended:
 	mix proper --level extended
 
-dialyze: config/dev.exs
+dialyze:
 	mix dialyze_retry
 
-lint: config/dev.exs
+lint:
 	MIX_ENV=dev mix lint
 	MIX_ENV=test mix lint
 
@@ -53,6 +53,3 @@ release:
 
 check_dependent_apps:
 	mix check_dependent_apps
-
-config/dev.exs:
-	cp config/dev.exs.example config/dev.exs
