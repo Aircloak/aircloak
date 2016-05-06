@@ -14,7 +14,8 @@ defmodule Cloak.DataSource do
         table_id: [
           name: "table name",
           user_id: "user id column name",
-          row_id: "row id column name"
+          row_id: "row id column name",
+          ignore_columns: ["some column"]
         ]
       ]
     ]
@@ -31,6 +32,9 @@ defmodule Cloak.DataSource do
   For fast data retrievals, an index should be created for the user id and row id columns.
 
   During startup, the list of columns available in all defined tables is loaded and cached for later lookups.
+  Any columns specified with the 'ignore_columns' option will be ignored at this point and unavailable for
+  processing. This can be used to access tables containing unsupported data types or hide some columns.
+
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
 
