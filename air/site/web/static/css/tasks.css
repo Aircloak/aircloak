@@ -26,6 +26,22 @@ div#task-view {
   height: calc(100vh - 70px);
 }
 
+
+/********************************************************************
+ * Menu bar
+ *******************************************************************/
+
+#infobox {
+  float: right;
+  padding: 7px 15px;
+}
+
+#infobox-message {
+  margin-left: 5px;
+  font-size: 0.8em;
+  color: gray;
+}
+
 div#task-status-bar {
   border-bottom: 1px solid #ccc;
   height: 55px;
@@ -65,10 +81,10 @@ div#task-status-bar button.active:hover {
   color: black;
 }
 
-div#task-editor-container div.ReactCodeMirror {
-  width: 100%;
-  overflow: auto;
-}
+
+/********************************************************************
+ * Side pane
+ *******************************************************************/
 
 .side-panel-hidden {
   background-color: blue;
@@ -86,6 +102,13 @@ div#task-editor-container div.ReactCodeMirror {
   max-width: -o-calc(100vw - 600px);
   /* Standard */
   max-width: calc(100vw - 600px);
+}
+
+div.progress {
+  float: right;
+  display: block;
+  width: 150px;
+  margin: 7px 10px 10px;
 }
 
 div#task-editor-side-panel {
@@ -114,13 +137,6 @@ div#side-pane-hide {
   margin-bottom: 20px;
 }
 
-div.progress {
-  float: right;
-  display: block;
-  width: 150px;
-  margin: 7px 10px 10px;
-}
-
 div#side-pane-content {
   /* Firefox */
   max-height: -moz-calc(100vh - 180px);
@@ -139,12 +155,12 @@ div#task-side-content table {
   margin-bottom: 0px;
 }
 
-#infobox {
-  float: right;
-  padding: 7px 15px;
-}
-#infobox-message {
-  margin-left: 5px;
-  font-size: 0.8em;
-  color: gray;
+
+/********************************************************************
+ * CodeEditor
+ *******************************************************************/
+
+div#task-editor-container div.ReactCodeMirror {
+  width: 100%;
+  overflow: auto;
 }
