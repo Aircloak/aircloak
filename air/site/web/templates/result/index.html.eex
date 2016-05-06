@@ -1,6 +1,6 @@
 <h2>Results for '<%= @task.name %>'</h2>
 <hr/>
-<table class="table table-striped">
+<table class="table table-striped" id="results">
   <thead>
     <tr>
       <th><center>Generated on</center></th>
@@ -14,7 +14,7 @@
   <tbody>
   <%= for result <- @results do %>
     <tr align="center">
-      <td><%= result.timestamp %> UTC</td>
+      <td><%= Ecto.DateTime.to_iso8601(result.timestamp) %></td>
       <td><%= link "view", to: task_result_path(@conn, :show, @task.id, result.id) %></td>
       <td>
         <%= if result.errors == "" do %>
@@ -30,3 +30,15 @@
   <% end %>
   </tbody>
 </table>
+
+<script>
+  window.pageConfig = {
+    onLoad: function() {
+      $("#results tbody tr").each(function(i, row) {
+        var utcTimeStr = row.cells[0].textContent;
+        var localTime = new Date(Date.parse(utcTimeStr));
+        row.cells[0].textContent = localTime.toLocaleString();
+      });
+    }
+  };
+</script>

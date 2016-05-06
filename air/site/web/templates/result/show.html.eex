@@ -1,6 +1,6 @@
 <h2>Viewing individual result for '<%= @task.name %>'</h2>
 <hr/>
-<div>Generated on: <b><%= @result.timestamp %> UTC</b></div>
+<div>Generated on: <b><span id="timestamp"><%= Ecto.DateTime.to_iso8601(@result.timestamp) %></span></b></div>
 <div>Errors: <b>
   <%= if @result.errors == "" do %>
     none
@@ -28,3 +28,13 @@
     </tbody>
   </table>
 </div>
+
+<script>
+  window.pageConfig = {
+    onLoad: function() {
+      var utcTimeStr = $("#timestamp").text();
+      var localTime = new Date(Date.parse(utcTimeStr));
+      $("#timestamp").text(localTime.toLocaleString());
+    }
+  };
+</script>
