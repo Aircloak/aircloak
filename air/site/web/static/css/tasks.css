@@ -155,6 +155,10 @@ div#task-side-content table {
   margin-bottom: 0px;
 }
 
+.error {
+  color: red;
+}
+
 
 /********************************************************************
  * CodeEditor
