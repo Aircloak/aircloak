@@ -196,13 +196,13 @@ class TaskEditor extends React.Component {
   }
 
   infoBoxContent() {
-    if (this.state.settings.dataSourceToken == null) {
+    if (!this.state.settings.hasAssignedDataSource()) {
       return {
         message: "Your task needs a datasource before it can be run",
         action: this.activatePane("settings")
       }
     }
-    if (this.state.settings.tables.size == 0) {
+    if (!this.state.settings.hasAssignedTables()) {
       return {
         message: "You need to select at least one table to run your task",
         action: this.activatePane("settings")

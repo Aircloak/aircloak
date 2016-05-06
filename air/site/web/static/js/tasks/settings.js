@@ -23,16 +23,36 @@ export class SettingsModel {
     return this.tables.has(table.id)
   }
 
-  errorMessage() {
-    if (this.dataSources.length == 0 && this.cloakId == null)
-      return "There are no cloaks connected.";
+  hasAssignedDataSource() {
+    return this.dataSourceToken !== null;
+  }
 
-    if (this.cloakId == null) return null; // some cloaks are connected, but no cloak is selected
+  hasAssignedTables() {
+    return this.tables.size > 0;
+  }
+
+  // Returns false if and only if the task has been assigned
+  // a cloak, and this cloak is not online. That is, it returns
+  // true if the task has not yet been assigned a cloak.
+  selectedCloakOnline() {
+    // some cloaks are connected, but no cloak is selected
+    if (this.cloakId == null) return true;
 
     let selectedCloak = (this.dataSources.find((dataSource) => {return dataSource.cloak.id == this.cloakId}));
-    if (selectedCloak != null) return null;
+    if (selectedCloak != null) return true;
 
-    return `The cloak ${this.cloakId} is not connected.`;
+    // We have a cloak, but it is not online
+    return false;
+  }
+
+  errorMessage() {
+    if (this.dataSources.length == 0 && this.cloakId == null) {
+      return "There are no cloaks connected.";
+    }
+
+    if (!this.selectedCloakOnline()) {
+      return `The cloak ${this.cloakId} is not connected.`;
+    }
   }
 
   setDataSourceToken(dataSourceToken) {
