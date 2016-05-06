@@ -110,12 +110,6 @@ class Error extends React.Component {
 
 class Form extends React.Component {
   render() {
-    let dataSourceControls = null;
-    if (this.props.settings.dataSources.length > 0) {
-      dataSourceControls = (<div>
-        </div>
-      );
-    }
     return (
         <form className="form-horizontal">
           <TaskNameControl {...this.props} />
