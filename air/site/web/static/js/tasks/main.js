@@ -188,7 +188,8 @@ class TaskEditor extends React.Component {
     return (
         this.state.settings.dataSourceToken != null &&
         this.state.settings.tables.size > 0 &&
-        ! this.taskIsRunning());
+        ! this.taskIsRunning() &&
+        this.state.settings.selectedCloakOnline());
   }
 
   taskIsRunning() {
@@ -205,6 +206,12 @@ class TaskEditor extends React.Component {
     if (!this.state.settings.hasAssignedTables()) {
       return {
         message: "You need to select at least one table to run your task",
+        action: this.activatePane("settings")
+      }
+    }
+    if (!this.state.settings.selectedCloakOnline()) {
+      return {
+        message: "The task cannot be run while the cloak is offline",
         action: this.activatePane("settings")
       }
     }
