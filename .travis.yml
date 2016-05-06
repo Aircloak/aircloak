@@ -60,7 +60,7 @@ before_script:
   - cd ../..
   # cloak
   - cd cloak
-  - mix deps.get
+  - make deps
   - mix compile --warnings-as-errors
   - MIX_ENV=test make all
   - cd ..
