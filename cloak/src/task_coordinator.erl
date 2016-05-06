@@ -151,7 +151,9 @@ handle_info(timeout, State) ->
   % processing timeout reached, cancel jobs and report what we have
   ?WARN("task runner timeout"),
   on_task_finished(timeout, State),
-  {stop, normal, State}.
+  {stop, normal, State};
+handle_info({'DOWN', _, _, _}, State) ->
+  {stop, job_runner_terminated, State}.
 
 % @hidden
 terminate(normal, _) ->

@@ -7,8 +7,6 @@
 -export([
   start_link/0,
   execute/4,
-  execute/5,
-  execute/6,
   send_request_timeout/1
 ]).
 
@@ -26,15 +24,6 @@
 
 start_link() ->
   supervisor:start_link({local, ?MODULE}, ?MODULE, []).
-
--spec execute(#task{}, user_id(), job_data_streamer:job_input(), term(), job_runner:callback_fun()) -> ok.
-execute(Req, User, JobInput, ReqId, SPid) ->
-  execute(Req, User, JobInput, undefined, ReqId, SPid).
-
--spec execute(#task{}, user_id(), job_data_streamer:job_input(), job_accumulator(), term(), job_runner:callback_fun()) -> ok.
-execute(Req, User, JobInput, Accumulator, ReqId, SPid) ->
-  I = crypto:rand_uniform(0, runners_count()),
-  job_runner:execute(I, Req, {User, JobInput}, Accumulator, ReqId, SPid).
 
 -spec execute(#task{}, job_runner:get_parameters_fun(), term(), job_runner:callback_fun()) -> ok.
 execute(Req, GetParametersFun, ReqId, SPid) when is_function(GetParametersFun, 1) ->

@@ -95,7 +95,9 @@ execute(JobRunnerNum, Request, Parameters, Accumulator, RequestId, ReporterFun) 
     reporter_fun=ReporterFun,
     created_at=os:timestamp()
   },
-  gen_server:cast(gproc:where(name(JobRunnerNum)), {execute, Job}),
+  JobRunner = gproc:where(name(JobRunnerNum)),
+  erlang:monitor(process, JobRunner),
+  gen_server:cast(JobRunner, {execute, Job}),
   ok.
 
 %% @doc Inform the job_runner that all jobs with a given request identifier should be cancelled.
