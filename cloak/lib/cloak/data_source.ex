@@ -210,8 +210,8 @@ defmodule Cloak.DataSource do
   defp validate_columns(supported, _unsupported = [], _ignore_unsupported), do: supported
   defp validate_columns(_supported, unsupported, _ignore_unsupported) do
     raise "The following columns have unsupported types: " <>
-      inspect(Enum.map(unsupported, &elem(&1, 0))) <>
-      "\nTo ignore them set 'ignore_unsupported_types: true' in your table settings"
+        inspect(Enum.map(unsupported, &elem(&1, 0))) <>
+        "\nTo ignore them set 'ignore_unsupported_types: true' in your table settings"
   end
 
   #-----------------------------------------------------------------------------------------------------------
