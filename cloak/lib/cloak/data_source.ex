@@ -204,8 +204,8 @@ defmodule Cloak.DataSource do
   defp validate_column({name, type}) do
     case type do
       {:unsupported, db_type} -> raise """
-      Column "#{name}" has unsupported type "#{db_type}".
-      You can ignore it by adding 'ignore_columns: ["#{name}"]' to your table config.
+          Column "#{name}" has unsupported type "#{db_type}".
+          You can ignore it by adding 'ignore_columns: ["#{name}"]' to your table config.
       """
       _ -> {name, type}
     end
