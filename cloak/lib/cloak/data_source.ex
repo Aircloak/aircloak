@@ -15,7 +15,7 @@ defmodule Cloak.DataSource do
           name: "table name",
           user_id: "user id column name",
           row_id: "row id column name",
-          ignore_columns: ["some column"]
+          ignore_unsupported_types: false
         ]
       ]
     ]
@@ -32,8 +32,8 @@ defmodule Cloak.DataSource do
   For fast data retrievals, an index should be created for the user id and row id columns.
 
   During startup, the list of columns available in all defined tables is loaded and cached for later lookups.
-  Any columns specified with the 'ignore_columns' option will be ignored at this point and unavailable for
-  processing. This can be used to access tables containing unsupported data types or hide some columns.
+  If 'ignore_unsupported_types' is set to true then columns with types that aren't supported by the driver
+  will be ignored at this point and unavailable for processing.
 
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
@@ -196,23 +196,22 @@ defmodule Cloak.DataSource do
     Keyword.put(data_source, :tables, tables)
   end
 
-
   defp load_columns(source_id, data_source, table) do
-    ignored = table[:ignore_columns] || []
+    columns = data_source[:driver].get_columns(source_id, table[:name])
+    {supported, unsupported} = Enum.partition(columns, &supported?/1)
 
-    data_source[:driver].get_columns(source_id, table[:name])
-    |> Enum.reject(fn {name, _} -> Enum.member?(ignored, name) end)
-    |> Enum.map(&validate_column/1)
+    validate_columns(supported, unsupported, table[:ignore_unsupported_types])
   end
 
-  defp validate_column({name, type}) do
-    case type do
-      {:unsupported, db_type} -> raise """
-          Column "#{name}" has unsupported type "#{db_type}".
-          You can ignore it by adding 'ignore_columns: ["#{name}"]' to your table config.
-      """
-      _ -> {name, type}
-    end
+  defp supported?({_name, {:unsupported, _db_type}}), do: false
+  defp supported?({_name, _type}), do: true
+
+  defp validate_columns(supported, _unsupported, _ignore_unsupported = true), do: supported
+  defp validate_columns(supported, _unsupported = [], _ignore_unsupported), do: supported
+  defp validate_columns(_supported, unsupported, _ignore_unsupported) do
+    raise "The following columns have unsupported types: " <>
+      inspect(Enum.map(unsupported, &elem(&1, 0))) <>
+      "\nTo ignore them set 'ignore_unsupported_types: true' in your table settings"
   end
 
   #-----------------------------------------------------------------------------------------------------------

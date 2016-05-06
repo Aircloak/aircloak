@@ -32,7 +32,7 @@ config :cloak, data_sources: [
         name: "user_data",
         user_id: "user_id",
         row_id: "id",
-        ignore_columns: []
+        ignore_unsupported_types: false
       ]
     ]
   ]
