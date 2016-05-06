@@ -31,6 +31,10 @@ export class SettingsModel {
     return this.tables.size > 0;
   }
 
+  hasDataSourcesAvailable() {
+    return this.dataSources.length > 0;
+  }
+
   // Returns false if and only if the task has been assigned
   // a cloak, and this cloak is not online. That is, it returns
   // true if the task has not yet been assigned a cloak.
@@ -109,15 +113,14 @@ class Form extends React.Component {
     let dataSourceControls = null;
     if (this.props.settings.dataSources.length > 0) {
       dataSourceControls = (<div>
-          <DataSources {...this.props} />
-          <Tables {...this.props} />
         </div>
       );
     }
     return (
         <form className="form-horizontal">
           <TaskNameControl {...this.props} />
-          {dataSourceControls}
+          <DataSources {...this.props} />
+          <Tables {...this.props} />
         </form>
       );
   }
@@ -162,6 +165,9 @@ class DataSources extends React.Component {
   }
 
   render() {
+    if (! this.props.settings.hasDataSourcesAvailable()) {
+      return null;
+    }
     let dataSources =
       [{token: "__select", display: "select a data source", tables: [], cloak: {}}].
           concat(this.props.settings.dataSources)
@@ -194,7 +200,7 @@ class Tables extends React.Component {
 
   render() {
     let tables = this.props.settings.selectedDataSourceTables();
-    if (tables.length > 0) {
+    if (this.props.settings.hasDataSourcesAvailable() && tables.length > 0) {
       return (
             <Control label="Tables">
               <div style={{paddingTop: '7px'}}>
@@ -209,8 +215,8 @@ class Tables extends React.Component {
               </div>
             </Control>
           );
-    }
-    else
+    } else {
       return null;
+    }
   }
 }
