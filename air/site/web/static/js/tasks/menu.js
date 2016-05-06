@@ -3,7 +3,7 @@ import React from "react"
 export class Menu extends React.Component {
   render() {
     return (
-      <div id="task-status-bar">
+      <div id="task-menu">
         {this.props.children}
       </div>
     );
