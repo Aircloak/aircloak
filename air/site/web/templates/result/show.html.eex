@@ -1,5 +1,5 @@
 <h2>Viewing individual result for '<%= @task.name %>'</h2>
-
+<hr/>
 <div>Generated on: <b><%= @result.timestamp %> UTC</b></div>
 <div>Errors: <b>
   <%= if @result.errors == "" do %>

@@ -1,5 +1,5 @@
 <h2>Results for '<%= @task.name %>'</h2>
-
+<hr/>
 <table class="table table-striped">
   <thead>
     <tr>
