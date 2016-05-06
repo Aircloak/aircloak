@@ -39,6 +39,9 @@ Prior to first build, you need to copy `lua_sandbox/Makefile.local-example-MacOS
 
 Make sure you install `hex` and `rebar` with `mix local.hex` and `mix local.rebar`. At this point, you can simply run `make` to fetch all dependencies and compile the project.
 
+### Local configuration
+
+You can override some of the configuration settings by creating a `config/dev.local.exs` file. The format is the same as `config/dev.exs`.
 
 ### Preparing the database
 
