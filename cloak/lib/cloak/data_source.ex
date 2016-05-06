@@ -14,7 +14,8 @@ defmodule Cloak.DataSource do
         table_id: [
           name: "table name",
           user_id: "user id column name",
-          row_id: "row id column name"
+          row_id: "row id column name",
+          ignore_unsupported_types: false
         ]
       ]
     ]
@@ -31,6 +32,9 @@ defmodule Cloak.DataSource do
   For fast data retrievals, an index should be created for the user id and row id columns.
 
   During startup, the list of columns available in all defined tables is loaded and cached for later lookups.
+  If 'ignore_unsupported_types' is set to true then columns with types that aren't supported by the driver
+  will be ignored at this point and unavailable for processing.
+
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
 
@@ -38,7 +42,7 @@ defmodule Cloak.DataSource do
   @typedoc "The type for the data fields values."
   @type data_value :: String.t | integer | number | boolean
   @typedoc "The type for the data columns format."
-  @type data_type :: :text | :integer | :number | :boolean
+  @type data_type :: :text | :integer | :number | :boolean | {:unsupported, String.t}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -166,11 +170,8 @@ defmodule Cloak.DataSource do
   end
 
   defp load_columns(source_id, data_source) do
-    driver = data_source[:driver]
     tables = for {table_id, table} <- data_source[:tables] do
-      # fetch the table's columns list
-      table_name = table[:name]
-      columns = driver.get_columns(source_id, table_name)
+      columns = load_columns(source_id, data_source, table)
       # verify the format of the columns list
       columns != [] or raise("Could not load columns for table '#{source_id}/#{table_id}'!")
       # extract row_id column and verify that it has the expected format
@@ -195,6 +196,29 @@ defmodule Cloak.DataSource do
     Keyword.put(data_source, :tables, tables)
   end
 
+  defp load_columns(source_id, data_source, table) do
+    columns = data_source[:driver].get_columns(source_id, table[:name])
+    {supported, unsupported} = Enum.partition(columns, &supported?/1)
+
+    validate_unsupported_columns(unsupported, source_id, table)
+    supported
+  end
+
+  defp supported?({_name, {:unsupported, _db_type}}), do: false
+  defp supported?({_name, _type}), do: true
+
+  defp validate_unsupported_columns(unsupported, source_id, table) do
+    cond do
+      table[:ignore_unsupported_types] -> nil
+      Enum.empty?(unsupported) -> nil
+      true ->
+        raise """
+              The following columns in "#{source_id}/#{table[:name]}" have unsupported types:
+              #{inspect(unsupported)}
+              To ignore them set "ignore_unsupported_types: true" in your table settings
+          """
+    end
+  end
 
   #-----------------------------------------------------------------------------------------------------------
   # Test functions
