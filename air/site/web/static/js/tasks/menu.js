@@ -12,12 +12,9 @@ export class Menu extends React.Component {
 
 export class MenuButton extends React.Component {
   render() {
-    var classNames = "btn btn-primary";
-    if (!this.props.isActive()) {
-      classNames += " disabled";
-    }
     return (
-      <button type="button" className={classNames} onClick={this.props.onClick}>
+      <button type="button" className="btn btn-primary" onClick={this.props.onClick}
+          disabled={! this.props.isActive()}>
         {this.props.children}
       </button>
     );
