@@ -17,6 +17,7 @@
 
 %% gen_server callbacks
 -export([
+  start_link/2,
   init/1,
   handle_call/3,
   handle_cast/2,
@@ -73,7 +74,7 @@ block_run_task(Task) ->
 %% @hidden
 run_job({Task, CallerPid, CallerRef}) ->
   TaskRef = make_ref(),
-  gen_server:start_link(?MODULE, {Task, self(), TaskRef}, []),
+  {ok, _} = 'Elixir.Cloak.TaskCoordinatorSupervisor':start_worker({Task, self(), TaskRef}),
   receive
     {finished, TaskRef} -> notify_caller(CallerPid, CallerRef)
   after cloak_conf:get_val(queries, sync_query_timeout) ->
@@ -85,6 +86,10 @@ run_job({Task, CallerPid, CallerRef}) ->
 %% -------------------------------------------------------------------
 %% gen_server callbacks
 %% -------------------------------------------------------------------
+
+%% @hidden
+start_link(Args, Options) ->
+  gen_server:start_link(?MODULE, Args, Options).
 
 %% @hidden
 init({Task, ReplyPid, ReplyRef}) ->

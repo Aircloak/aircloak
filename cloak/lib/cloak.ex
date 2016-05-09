@@ -30,6 +30,7 @@ defmodule Cloak do
 
     [
       supervisor(Cloak.DataSource, []),
+      supervisor(Cloak.TaskCoordinatorSupervisor, []),
       worker(:progress_handler, []),
       supervisor(:result_sender_sup, []),
       supervisor(:job_runner_sup, []),
