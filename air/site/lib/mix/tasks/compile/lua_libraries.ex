@@ -105,10 +105,10 @@ defmodule Mix.Tasks.Compile.LuaLibraries do
       # Finds all function declarations in the file. Using regex is hacky and not 100% correct, but does
       # the job.
       functions = Regex.scan(
-            ~r/^function (?'text'(?'displayText'(\w|\.)+)\(.*\))/m,
-            code,
-            capture: ["displayText", "text"]
-          )
+        ~r/^function (?'text'(?'displayText'(\w|\.)+)\(.*\))/m,
+        code,
+        capture: ["displayText", "text"]
+      )
 
       filename = Path.basename(library, ".lua")
       %{

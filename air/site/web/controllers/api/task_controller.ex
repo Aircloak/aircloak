@@ -56,19 +56,19 @@ defmodule Air.API.TaskController do
 
   defp validate_params(payload) do
     final_data = %{params: %{}, errors: [], payload: payload}
-        |> add_if_exists("query", "should contain the task code you want to execute, for example: " <>
-            "\"query\":\"report_property(\"hello\", \"world\")\"")
-        # FIXME(#76): Once cloak's belong to a particular organisation, we should start attaching the
-        # current users organisation to the cloak here, along with checking whether the cloak actually
-        # exists for the particular user. Until then, all cloak's are hardcoded to `unknown_org`
-        |> add_if_exists("cloak", "should contain the node-name of the cloak that will execute the task. " <>
-            "Given a cloak with the node-name 'my-cloak', you would write: \"cloak\":\"my-cloak\"",
-            fn(value) -> %{"cloak_id" => "unknown_org/#{value}"} end)
-        |> add_if_exists("data_source", "should contain the name of the data source you want to use. " <>
-            "A data source mostly corresponds to a database. Your 'data_source' parameter could for example " <>
-            "look like: \"data_source\":\"my-db\"")
-        |> add_if_exists("tables", "should consist of a list the tables contained within your data source " <>
-            "that you want made available to your task. For example: \"tables\":[\"my-table\"]")
+    |> add_if_exists("query", "should contain the task code you want to execute, for example: " <>
+      "\"query\":\"report_property(\"hello\", \"world\")\"")
+    # FIXME(#76): Once cloak's belong to a particular organisation, we should start attaching the
+    # current users organisation to the cloak here, along with checking whether the cloak actually
+    # exists for the particular user. Until then, all cloak's are hardcoded to `unknown_org`
+    |> add_if_exists("cloak", "should contain the node-name of the cloak that will execute the task. " <>
+      "Given a cloak with the node-name 'my-cloak', you would write: \"cloak\":\"my-cloak\"",
+      fn(value) -> %{"cloak_id" => "unknown_org/#{value}"} end)
+    |> add_if_exists("data_source", "should contain the name of the data source you want to use. " <>
+      "A data source mostly corresponds to a database. Your 'data_source' parameter could for example " <>
+      "look like: \"data_source\":\"my-db\"")
+    |> add_if_exists("tables", "should consist of a list the tables contained within your data source " <>
+      "that you want made available to your task. For example: \"tables\":[\"my-table\"]")
 
     case final_data.errors do
       [] -> {:ok, final_data.params}
@@ -96,7 +96,7 @@ defmodule Air.API.TaskController do
 
   defp save_and_run_task(conn, params) do
     changeset = build_assoc(conn.assigns.current_user, :tasks)
-        |> Task.changeset(params)
+    |> Task.changeset(params)
 
     case Repo.insert(changeset) do
       {:ok, task} ->
@@ -104,9 +104,9 @@ defmodule Air.API.TaskController do
       {:error, changeset} ->
         # The task was validated, but didn't save. Let's crash and report
         Logger.error([
-              "Error saving task: #{inspect(changeset)}\n",
-              Exception.format_stacktrace(System.stacktrace())
-            ])
+          "Error saving task: #{inspect(changeset)}\n",
+          Exception.format_stacktrace(System.stacktrace())
+        ])
 
         send_resp(conn, Plug.Conn.Status.code(:internal_server_error), "")
     end
@@ -131,9 +131,9 @@ defmodule Air.API.TaskController do
     catch type, error ->
       # We'll make a nice error log report and return 500
       Logger.error([
-            "Error starting a task: #{inspect(type)}:#{inspect(error)}\n",
-            Exception.format_stacktrace(System.stacktrace())
-          ])
+        "Error starting a task: #{inspect(type)}:#{inspect(error)}\n",
+        Exception.format_stacktrace(System.stacktrace())
+      ])
 
       send_resp(conn, Plug.Conn.Status.code(:internal_server_error), "")
     end

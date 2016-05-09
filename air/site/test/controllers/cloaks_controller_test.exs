@@ -11,8 +11,8 @@ defmodule Air.CloaksControllerTest do
 
   test "listing connected cloaks" do
     user =
-      TestRepoHelper.create_organisation!("unknown_org")
-      |> TestRepoHelper.create_user!(:user)
+    TestRepoHelper.create_organisation!("unknown_org")
+    |> TestRepoHelper.create_user!(:user)
 
     # connect a mock cloak
     socket = TestSocketHelper.connect!(%{cloak_name: "test_cloak1"})
@@ -34,8 +34,8 @@ defmodule Air.CloaksControllerTest do
 
   test "cloaks from other orgs are not listed" do
     user =
-      TestRepoHelper.create_organisation!("another_org")
-      |> TestRepoHelper.create_user!(:user)
+    TestRepoHelper.create_organisation!("another_org")
+    |> TestRepoHelper.create_user!(:user)
 
     socket = TestSocketHelper.connect!(%{cloak_name: "test_cloak2"})
     TestSocketHelper.join!(socket, "main", %{name: "test_cloak2", data_sources: []})

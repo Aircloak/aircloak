@@ -90,7 +90,7 @@ defmodule Air.Socket.Cloak.MainChannel do
     timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
     {:noreply,
       assign(socket, :pending_calls,
-          Map.put(socket.assigns.pending_calls, request_id, %{from: from, timeout_ref: timeout_ref}))
+        Map.put(socket.assigns.pending_calls, request_id, %{from: from, timeout_ref: timeout_ref}))
     }
   end
   def handle_info({:call_timeout, request_id}, socket) do
@@ -134,10 +134,10 @@ defmodule Air.Socket.Cloak.MainChannel do
   @spec respond_to_cloak(Socket.t, request_id::String.t, :ok | :error, any) :: :ok
   defp respond_to_cloak(socket, request_id, status, result \\ nil) do
     push(socket, "call_response", %{
-          request_id: request_id,
-          status: status,
-          result: result
-        })
+      request_id: request_id,
+      status: status,
+      result: result
+    })
   end
 
   defp respond_to_internal_request({client_pid, mref}, response) do
@@ -177,9 +177,9 @@ defmodule Air.Socket.Cloak.MainChannel do
     case Air.Repo.insert(result_model) do
       {:ok, db_result} ->
         result
-          |> Map.put("created_at", :os.system_time(:seconds))
-          |> Map.put("id", db_result.id)
-          |> report_task_result() # Broadcast result to subscribers.
+        |> Map.put("created_at", :os.system_time(:seconds))
+        |> Map.put("id", db_result.id)
+        |> report_task_result() # Broadcast result to subscribers.
       {:error, changeset} ->
         Logger.error("failed to save result for task #{task_id}: #{inspect changeset.errors}")
         :error
@@ -190,7 +190,7 @@ defmodule Air.Socket.Cloak.MainChannel do
     # Starting a linked reporter. This ensures that a crash in the reporter won't terminate this channel.
     # The link ensures that the termination of this channel terminates the reporter as well.
     Task.start_link(fn ->
-          Air.Socket.Frontend.TaskChannel.broadcast_result(result)
-        end)
+      Air.Socket.Frontend.TaskChannel.broadcast_result(result)
+    end)
   end
 end

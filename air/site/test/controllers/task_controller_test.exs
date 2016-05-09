@@ -106,11 +106,11 @@ defmodule Air.TaskControllerTest do
     # Run the task in parallel since it's blocking on waiting a response from the socket
     me = self()
     spawn_link(fn ->
-          run_params = put_in(@query_data_params, [:task, :data_source_token],
-              Phoenix.Token.sign(Air.Endpoint, "data_source_token",{"unknown_org/cloak_1", nil}))
-          response_json = login(user) |> post("/tasks/#{task.id}/run", run_params) |> response(200)
-          send(me, {:response_json, response_json})
-        end)
+      run_params = put_in(@query_data_params, [:task, :data_source_token],
+          Phoenix.Token.sign(Air.Endpoint, "data_source_token",{"unknown_org/cloak_1", nil}))
+      response_json = login(user) |> post("/tasks/#{task.id}/run", run_params) |> response(200)
+      send(me, {:response_json, response_json})
+    end)
 
     # Cloak responds to the request from the POST controller
     TestSocketHelper.respond_to_start_task_request!(socket, task.id, "ok")

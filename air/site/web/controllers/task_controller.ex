@@ -60,25 +60,25 @@ defmodule Air.TaskController do
   def edit(conn, _params) do
     task = conn.assigns.task
     task_map = Map.merge(
-          %{
-            id: task.id,
-            name: task.name,
-            query: task.query,
-            cloak_id: task.cloak_id,
-            tables: task.tables,
-            completions: Air.TaskLibrary.completions()
-          },
-          data_sources(conn, task)
-        )
+      %{
+        id: task.id,
+        name: task.name,
+        query: task.query,
+        cloak_id: task.cloak_id,
+        tables: task.tables,
+        completions: Air.TaskLibrary.completions()
+      },
+      data_sources(conn, task)
+    )
     render(conn, "editor.html", token: Guardian.Plug.current_token(conn),
-        task_json: Poison.encode!(task_map))
+      task_json: Poison.encode!(task_map))
   end
 
   def update(conn, %{"task" => task_params}) do
     changeset = Task.changeset(conn.assigns.task,
-        # Tasks are temporary until they are explicitly saved by the user for the first time.
-        # Only tasks that are permanent are shown in the interface.
-        Map.merge(parse_task_params(task_params), %{"permanent" => true}))
+      # Tasks are temporary until they are explicitly saved by the user for the first time.
+      # Only tasks that are permanent are shown in the interface.
+      Map.merge(parse_task_params(task_params), %{"permanent" => true}))
     Repo.update!(changeset)
     json(conn, %{success: true})
   end
@@ -91,9 +91,8 @@ defmodule Air.TaskController do
   end
 
   def run_task(conn, %{"task" => task_params}) do
-    task =
-      Task.changeset(conn.assigns.task, parse_task_params(task_params))
-      |> Ecto.Changeset.apply_changes()
+    task = Task.changeset(conn.assigns.task, parse_task_params(task_params))
+    |> Ecto.Changeset.apply_changes()
 
     try do
       case Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task)) do
@@ -108,9 +107,9 @@ defmodule Air.TaskController do
     catch type, error ->
       # We'll make a nice error log report and return 500
       Logger.error([
-            "Error starting a task: #{inspect(type)}:#{inspect(error)}\n",
-            Exception.format_stacktrace(System.stacktrace())
-          ])
+        "Error starting a task: #{inspect(type)}:#{inspect(error)}\n",
+        Exception.format_stacktrace(System.stacktrace())
+      ])
 
       send_resp(conn, Plug.Conn.Status.code(:internal_server_error), "")
     end

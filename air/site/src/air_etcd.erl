@@ -143,15 +143,15 @@ etcd_req(Method, Path) -> etcd_req(Method, Path, "").
 
 etcd_req(Method, Path, Body) ->
   Res = hackney:request(
-        Method,
-        iolist_to_binary([url(), "/v2/keys", Path]),
-        [],
-        Body,
-        [
-          {connect_timeout, ?ETCD_TIMEOUT},
-          {recv_timeout, ?ETCD_TIMEOUT}
-        ]
-      ),
+    Method,
+    iolist_to_binary([url(), "/v2/keys", Path]),
+    [],
+    Body,
+    [
+      {connect_timeout, ?ETCD_TIMEOUT},
+      {recv_timeout, ?ETCD_TIMEOUT}
+    ]
+  ),
   decode_response(Res).
 
 decode_response({error, _} = Error) -> Error;
@@ -231,13 +231,13 @@ handle_etcd_response(Response) ->
           FolderSize = byte_size(Folder),
           [set(binary_to_list(Folder) ++ "/" ++ Is, Is) || I <- lists:seq(1, 3), Is <- [integer_to_list(I)]],
           ?assertMatch(
-                [
-                  {<<Folder:FolderSize/binary, "/1" >>, <<"1">>},
-                  {<<Folder:FolderSize/binary, "/2" >>, <<"2">>},
-                  {<<Folder:FolderSize/binary, "/3" >>, <<"3">>}
-                ],
-                lists:sort(ls(Folder))
-              )
+            [
+              {<<Folder:FolderSize/binary, "/1" >>, <<"1">>},
+              {<<Folder:FolderSize/binary, "/2" >>, <<"2">>},
+              {<<Folder:FolderSize/binary, "/3" >>, <<"3">>}
+            ],
+            lists:sort(ls(Folder))
+          )
         end)},
         {"rmdir", ?keyTest(fun(Folder) ->
           [set(binary_to_list(Folder) ++ "/" ++ Is, Is) || I <- lists:seq(1, 3), Is <- [integer_to_list(I)]],

@@ -121,8 +121,8 @@ function aggregate_data_values(dataBuckets, name, total)
   var histogram = {name: name, min: min, max: max, values: []};
   for(var i = min + step; i <= max; i += step)
   {
-      var intervalCount = cdfs[number_to_key(i)] - cdfs[number_to_key(i - step)];
-      histogram.values.push(intervalCount);
+    var intervalCount = cdfs[number_to_key(i)] - cdfs[number_to_key(i - step)];
+    histogram.values.push(intervalCount);
   }
 
   // reduce range

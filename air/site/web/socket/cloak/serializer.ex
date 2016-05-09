@@ -19,7 +19,7 @@ defmodule Air.Socket.Cloak.Serializer do
   @doc false
   def encode!(%Reply{} = reply) do
     encode(%Message{topic: reply.topic, event: "phx_reply", ref: reply.ref,
-        payload: %{status: reply.status, response: reply.payload}})
+      payload: %{status: reply.status, response: reply.payload}})
   end
   def encode!(%Message{} = msg),
     do: encode(msg)

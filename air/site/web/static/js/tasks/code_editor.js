@@ -47,21 +47,20 @@ export class CodeEditor extends React.Component {
     }
 
     let
-        dataSource = this.props.settings.selectedDataSource(),
-        selectedTables = Array.from(this.props.settings.tables),
-        list =
-          _.chain([]).
-              union(
-                    this.props.completions,
-                    _.map(selectedTables, (table) => {return {text: `load_user_table("${dataSource.id}/${table}")`}}),
-                    _.map(selectedTables, (table) => {return {text: `user_table("${dataSource.id}/${table}")`}}),
-                    _.map(this.editor.hint.anyword(cm, {word: /[a-zA-Z_](\w)*/}).list,
-                      (word) => {return {text: word}})
-                  ).
-              filter((candidate) => {return candidate.text.match(fuzzyMatcher)}).
-              uniqBy((el) => {return el.displayText || el.text}).
-              sortBy((el) => {return sortOrder(el.text)}).
-              value();
+      dataSource = this.props.settings.selectedDataSource(),
+      selectedTables = Array.from(this.props.settings.tables),
+      list = _.chain([]).
+        union(
+          this.props.completions,
+          _.map(selectedTables, (table) => {return {text: `load_user_table("${dataSource.id}/${table}")`}}),
+          _.map(selectedTables, (table) => {return {text: `user_table("${dataSource.id}/${table}")`}}),
+          _.map(this.editor.hint.anyword(cm, {word: /[a-zA-Z_](\w)*/}).list,
+            (word) => {return {text: word}})
+        ).
+        filter((candidate) => {return candidate.text.match(fuzzyMatcher)}).
+        uniqBy((el) => {return el.displayText || el.text}).
+        sortBy((el) => {return sortOrder(el.text)}).
+        value();
 
     let returnValue = {
       list: list,
@@ -103,13 +102,13 @@ export class CodeEditor extends React.Component {
       }
     };
     return (
-          <div className={this.props.sidePaneHidden() ? 'side-panel-hidden' : 'side-panel-shown' }>
-            <Codemirror
-                ref={this.setupComponent}
-                value={this.props.query}
-                onChange={this.props.onChange}
-                options={options} />
-          </div>
-        );
+      <div className={this.props.sidePaneHidden() ? 'side-panel-hidden' : 'side-panel-shown' }>
+        <Codemirror
+          ref={this.setupComponent}
+          value={this.props.query}
+          onChange={this.props.onChange}
+          options={options} />
+      </div>
+    );
   }
 };

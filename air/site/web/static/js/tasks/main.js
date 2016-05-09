@@ -19,12 +19,12 @@ class TaskEditor extends React.Component {
       // and task name field
       query: props.query,
       settings: new SettingsModel({
-            dataSources: props.data_sources,
-            dataSourceToken: props.data_source_token,
-            tables: new Set(props.tables),
-            cloakId: props.cloak_id,
-            taskName: props.name
-          }),
+        dataSources: props.data_sources,
+        dataSourceToken: props.data_source_token,
+        tables: new Set(props.tables),
+        cloakId: props.cloak_id,
+        taskName: props.name
+      }),
       activeSidePane: null,
 
       // We keep some stats on whether or not
@@ -118,40 +118,40 @@ class TaskEditor extends React.Component {
     }
     this.updateTaskRunningProgress(0);
     $.ajax(`/tasks/${this.props.id}/run`, {
-          context: this,
-          method: "POST",
-          headers: {
-            "X-CSRF-TOKEN": this.props.CSRFToken,
-            "Content-Type": "application/json"
-          },
-          data: this.queryData(),
-          success: (responseData, textStatus) => {
-            if (responseData.success)
-              console.log("Task run scheduled...");
-            else
-              this.updateTaskResult({error: responseData.reason || "unknown error"});
-          },
-          error: (jqXHR, status, errorReason) => {
-            console.error("Task run failed: ", errorReason);
-            this.updateTaskResult({error: errorReason});
-          }
-        });
+      context: this,
+      method: "POST",
+      headers: {
+        "X-CSRF-TOKEN": this.props.CSRFToken,
+        "Content-Type": "application/json"
+      },
+      data: this.queryData(),
+      success: (responseData, textStatus) => {
+        if (responseData.success)
+          console.log("Task run scheduled...");
+        else
+          this.updateTaskResult({error: responseData.reason || "unknown error"});
+      },
+      error: (jqXHR, status, errorReason) => {
+        console.error("Task run failed: ", errorReason);
+        this.updateTaskResult({error: errorReason});
+      }
+    });
   }
 
   saveTask() {
     $.ajax(`/tasks/${this.props.id}`, {
-          context: this,
-          method: "PUT",
-          headers: {
-            "X-CSRF-TOKEN": this.props.CSRFToken,
-            "Content-Type": "application/json"
-          },
-          data: this.queryData(),
-          success: this.updateSavedState,
-          error: (jqXHR, status, errorStatus) => {
-            console.error("Task saving failed: ", errorReason);
-          }
-      });
+      context: this,
+      method: "PUT",
+      headers: {
+        "X-CSRF-TOKEN": this.props.CSRFToken,
+        "Content-Type": "application/json"
+      },
+      data: this.queryData(),
+      success: this.updateSavedState,
+      error: (jqXHR, status, errorStatus) => {
+        console.error("Task saving failed: ", errorReason);
+      }
+    });
   }
 
 
@@ -171,13 +171,13 @@ class TaskEditor extends React.Component {
 
   queryData() {
     return JSON.stringify({
-          task: {
-            name: this.state.settings.taskName,
-            query: this.state.query,
-            data_source_token: this.state.settings.dataSourceToken,
-            tables: Array.from(this.state.settings.tables)
-          }
-        });
+      task: {
+        name: this.state.settings.taskName,
+        query: this.state.query,
+        data_source_token: this.state.settings.dataSourceToken,
+        tables: Array.from(this.state.settings.tables)
+      }
+    });
   }
 
   hasChanges() {
@@ -186,10 +186,10 @@ class TaskEditor extends React.Component {
 
   canRun() {
     return (
-        this.state.settings.dataSourceToken != null &&
-        this.state.settings.tables.size > 0 &&
-        ! this.taskIsRunning() &&
-        this.state.settings.selectedCloakOnline());
+      this.state.settings.dataSourceToken != null &&
+      this.state.settings.tables.size > 0 &&
+      ! this.taskIsRunning() &&
+      this.state.settings.selectedCloakOnline());
   }
 
   taskIsRunning() {

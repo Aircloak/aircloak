@@ -42,9 +42,9 @@ defmodule Air.Result do
     end
 
     errors = for exception <- exceptions do
-          "#{exception["error"]} (#{exception["count"]} times)"
-        end
-        |> Enum.join("\n")
+      "#{exception["error"]} (#{exception["count"]} times)"
+    end
+    |> Enum.join("\n")
 
     %{
       id: result.id,

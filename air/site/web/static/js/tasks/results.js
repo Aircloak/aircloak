@@ -59,25 +59,25 @@ class Buckets extends React.Component {
       return (<p>The task returned no results.</p>)
 
     return (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Label</th>
-                <th>Value</th>
-                <th>Count</th>
-              </tr>
-            </thead>
-            <tbody>
-              {this.props.buckets.map((item) =>
-                    <tr key={`${item.label}_${item.value}`}>
-                      <td>{item.label}</td>
-                      <td>{item.value}</td>
-                      <td>{item.count}</td>
-                    </tr>
-                  )}
-            </tbody>
-          </table>
-        )
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Label</th>
+            <th>Value</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {this.props.buckets.map((item) =>
+            <tr key={`${item.label}_${item.value}`}>
+              <td>{item.label}</td>
+              <td>{item.value}</td>
+              <td>{item.count}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    )
   }
 }
 
@@ -87,14 +87,14 @@ class Exceptions extends React.Component {
       return null;
 
     return (
-          <div className="alert alert-danger">
-            <p>Following exceptions were reported:</p>
-            <ul>
-              {this.props.exceptions.map((item) =>
-                    <li key={item.error}>{item.error} ({item.count} times)</li>
-                  )}
-            </ul>
-          </div>
-        )
+      <div className="alert alert-danger">
+        <p>Following exceptions were reported:</p>
+        <ul>
+          {this.props.exceptions.map((item) =>
+            <li key={item.error}>{item.error} ({item.count} times)</li>
+          )}
+        </ul>
+      </div>
+    )
   }
 }
