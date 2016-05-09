@@ -21,12 +21,12 @@ defmodule Air.TestRepoHelper do
     organisation
     |> Ecto.build_assoc(:users)
     |> Air.User.changeset(%{
-          email: "#{random_string()}@aircloak.com",
-          password: "1234",
-          password_confirmation: "1234",
-          name: random_string(),
-          role_id: Air.User.role_id(role_key)
-        })
+      email: "#{random_string()}@aircloak.com",
+      password: "1234",
+      password_confirmation: "1234",
+      name: random_string(),
+      role_id: Air.User.role_id(role_key)
+    })
     |> Air.Repo.insert!()
   end
 

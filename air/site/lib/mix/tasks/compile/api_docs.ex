@@ -28,9 +28,9 @@ defmodule Mix.Tasks.Compile.ApiDocs do
     |> Enum.map(&File.stat!(&1).mtime)
     |> Enum.sort(&(&1 > &2))
     |> case do
-        [] -> true
-        [target_mtime | _] -> target_mtime < source_mtime
-      end
+      [] -> true
+      [target_mtime | _] -> target_mtime < source_mtime
+    end
   end
 
   defp cmd!(cmd, args) do

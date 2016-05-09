@@ -14,16 +14,16 @@ defmodule Air.Repo do
   """
   def configure do
     Air.Utils.update_app_env(
-          :air, Air.Repo,
-          &Keyword.merge(&1,
-                hostname: :air_etcd.get("/settings/air/db/host"),
-                port: String.to_integer(:air_etcd.get("/settings/air/db/port")),
-                ssl: String.to_existing_atom(:air_etcd.get("/settings/air/db/ssl")),
-                database: :air_etcd.get("/settings/air/db/insights_database"),
-                username: :air_etcd.get("/settings/air/db/username"),
-                password: :air_etcd.get("/settings/air/db/password"),
-              )
-        )
+      :air, Air.Repo,
+      &Keyword.merge(&1,
+        hostname: :air_etcd.get("/settings/air/db/host"),
+        port: String.to_integer(:air_etcd.get("/settings/air/db/port")),
+        ssl: String.to_existing_atom(:air_etcd.get("/settings/air/db/ssl")),
+        database: :air_etcd.get("/settings/air/db/insights_database"),
+        username: :air_etcd.get("/settings/air/db/username"),
+        password: :air_etcd.get("/settings/air/db/password"),
+      )
+    )
   end
 
   defmodule Migrator do
@@ -37,11 +37,11 @@ defmodule Air.Repo do
 
     def init(_) do
       Ecto.Migrator.run(
-            Air.Repo,
-            Application.app_dir(:air, "priv/repo/migrations"),
-            :up,
-            all: true
-          )
+        Air.Repo,
+        Application.app_dir(:air, "priv/repo/migrations"),
+        :up,
+        all: true
+      )
       Logger.info("database migrated")
       :ignore # stops the server without crashing the supervisor
     end

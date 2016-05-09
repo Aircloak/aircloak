@@ -83,6 +83,6 @@ req(_, Path, Headers, Body, ContentType) -> {url(Path), Headers, ContentType, io
 
 url(Path) ->
   lists:concat(["http://", cloak_conf:get_val(api, address), ":",
-      integer_to_list(cloak_conf:get_val(api, port)), "/", Path]).
+    integer_to_list(cloak_conf:get_val(api, port)), "/", Path]).
 
 -endif.

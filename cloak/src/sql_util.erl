@@ -65,9 +65,9 @@ user_table_name_regex() ->
 -spec sanitize_db_object(iodata()) -> binary().
 sanitize_db_object(DbObject) ->
   SanitizedParts = [
-      ("\"" ++ re:replace(Part, "\"", "\"\"", [global, {return, list}]) ++ "\"") ||
-        Part <- re:split(DbObject, "\\.", [{return, list}])
-    ],
+    ("\"" ++ re:replace(Part, "\"", "\"\"", [global, {return, list}]) ++ "\"") ||
+      Part <- re:split(DbObject, "\\.", [{return, list}])
+  ],
   list_to_binary(string:join(SanitizedParts, ".")).
 
 %% @doc Generates binary representation of a query parameter with the given index.

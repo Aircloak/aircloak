@@ -76,8 +76,8 @@ defmodule Air.OrganisationControllerTest do
     new_org_name = "foobarbaz"
 
     conn =
-      login(admin)
-      |> post("/organisations", organisation: %{name: new_org_name})
+    login(admin)
+    |> post("/organisations", organisation: %{name: new_org_name})
 
     assert "/organisations" == redirected_to(conn)
     orgs_html = login(admin) |> get("/organisations") |> response(200)
@@ -92,8 +92,8 @@ defmodule Air.OrganisationControllerTest do
     changed_name = "foobarbaz"
 
     conn =
-      login(admin)
-      |> put("/organisations/#{another_org.id}", organisation: %{name: changed_name})
+    login(admin)
+    |> put("/organisations/#{another_org.id}", organisation: %{name: changed_name})
 
     assert "/organisations/#{another_org.id}" == redirected_to(conn)
     orgs_html = login(admin) |> get("/organisations") |> response(200)
@@ -103,10 +103,10 @@ defmodule Air.OrganisationControllerTest do
 
   test "can't update admin organisation name" do
     error =
-      TestRepoHelper.admin_organisation()
-      |> Air.Organisation.changeset(%{name: "changed_name"})
-      |> Air.Repo.update()
-      |> catch_error()
+    TestRepoHelper.admin_organisation()
+    |> Air.Organisation.changeset(%{name: "changed_name"})
+    |> Air.Repo.update()
+    |> catch_error()
 
     assert %Postgrex.Error{postgres: %{message: message}} = error
     assert "can't change administrators name" == message
@@ -115,9 +115,9 @@ defmodule Air.OrganisationControllerTest do
 
   test "can't delete admin organisation" do
     error =
-      TestRepoHelper.admin_organisation()
-      |> Repo.delete!()
-      |> catch_error()
+    TestRepoHelper.admin_organisation()
+    |> Repo.delete!()
+    |> catch_error()
 
     assert %Postgrex.Error{postgres: %{message: message}} = error
     assert "can't delete administrators group" == message

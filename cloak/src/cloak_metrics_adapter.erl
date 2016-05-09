@@ -23,16 +23,16 @@ start_metrics_server() -> {ok, self()}.
 -else.
 start_metrics_server() ->
   cloak_metrics:start_server([
-        {noise_fun, fun noise_fun/1},
-        {bucketizer, fun bucketize/1},
-        {path_prefix, [cloak_core]},
-        {reporters, [
-          cloak_metrics:graphite_pickle_reporter(
-                cloak_conf:get_val(metrics, graphite_server),
-                cloak_conf:get_val(metrics, graphite_port)
-              )
-        ]}
-      ]).
+    {noise_fun, fun noise_fun/1},
+    {bucketizer, fun bucketize/1},
+    {path_prefix, [cloak_core]},
+    {reporters, [
+      cloak_metrics:graphite_pickle_reporter(
+        cloak_conf:get_val(metrics, graphite_server),
+        cloak_conf:get_val(metrics, graphite_port)
+      )
+    ]}
+  ]).
 -endif.
 
 
@@ -86,7 +86,7 @@ ranges_to_report([{From, To, Count} | Ranges]) ->
 to_bucket_sets([]) -> [];
 to_bucket_sets([{MetricName, Reports}|RemainingReports]) ->
   Buckets = [{range_from_string(From), range_from_string(To), NoisyCount}
-      || #bucket_report{label=#bucket_label{label=From, value=To}, noisy_count=NoisyCount} <- Reports],
+    || #bucket_report{label=#bucket_label{label=From, value=To}, noisy_count=NoisyCount} <- Reports],
   BucketSet = {MetricName, Buckets},
   [BucketSet | to_bucket_sets(RemainingReports)].
 

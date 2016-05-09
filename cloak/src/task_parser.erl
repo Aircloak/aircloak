@@ -105,15 +105,15 @@ parse_period({<<"monthly">>, DayOfMonth}) ->
 %% Newlines are preserved, so reported errors will still point to proper line numbers.
 strip_comments(LuaCode) ->
   re:replace(
-        LuaCode,
-        % Capture all characters (non-greedy) until the first occurence of -- not followed by a bracket
-        % (if a bracket is behind, it's a possible block comment, so we'll capture this as well).
-        "^(.*?)--(?![\\[\\]]).*$",
-        % Replace the line with the captured group (all chars until the start of a non-block comment)
-        "\\1",
-        % Treat each line separately, replace all occurrences, return a binary
-        [multiline, global, {return, binary}]
-      ).
+    LuaCode,
+    % Capture all characters (non-greedy) until the first occurence of -- not followed by a bracket
+    % (if a bracket is behind, it's a possible block comment, so we'll capture this as well).
+    "^(.*?)--(?![\\[\\]]).*$",
+    % Replace the line with the captured group (all chars until the start of a non-block comment)
+    "\\1",
+    % Treat each line separately, replace all occurrences, return a binary
+    [multiline, global, {return, binary}]
+  ).
 
 
 %% -------------------------------------------------------------------

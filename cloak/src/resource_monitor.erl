@@ -81,26 +81,26 @@ handle_info(analyze_usage, State) ->
 handle_info(estimate_disk_usage, #state{last_disk_usage=LastDiskUsage} = State) ->
   CurrentDiskUsage = disksup:get_disk_data(),
   lists:foreach(
-        fun({Partition, _, Percentage}) ->
-          PreviousUsage = case lists:keyfind(Partition, 1, LastDiskUsage) of
-            false -> Percentage;
-            {Partition, _, Previous} -> Previous
-          end,
-          %% Magical 0.01 compensates for zero or negative numbers. Given an interval of 12 hours,
-          %% a no change in disk usage will estimate to 5000 days.
-          Increase = max(0.01, Percentage - PreviousUsage),
-          EstimatedOutOfSpace = round((100 / Increase) * (?DISK_CHECK_INTERVAL / timer:hours(24))),
-          if
-            EstimatedOutOfSpace < 31 ->
-              ?ERROR("Estimated disk expiry for ~s is ~p days", [Partition, EstimatedOutOfSpace]);
-            EstimatedOutOfSpace < 365 ->
-              ?WARN("Estimated disk expiry for ~s is ~p days", [Partition, EstimatedOutOfSpace]);
-            true ->
-              ?INFO("Estimated disk expiry for ~s is ~p days", [Partition, EstimatedOutOfSpace])
-          end
-        end,
-        CurrentDiskUsage
-      ),
+    fun({Partition, _, Percentage}) ->
+      PreviousUsage = case lists:keyfind(Partition, 1, LastDiskUsage) of
+        false -> Percentage;
+        {Partition, _, Previous} -> Previous
+      end,
+      %% Magical 0.01 compensates for zero or negative numbers. Given an interval of 12 hours,
+      %% a no change in disk usage will estimate to 5000 days.
+      Increase = max(0.01, Percentage - PreviousUsage),
+      EstimatedOutOfSpace = round((100 / Increase) * (?DISK_CHECK_INTERVAL / timer:hours(24))),
+      if
+        EstimatedOutOfSpace < 31 ->
+          ?ERROR("Estimated disk expiry for ~s is ~p days", [Partition, EstimatedOutOfSpace]);
+        EstimatedOutOfSpace < 365 ->
+          ?WARN("Estimated disk expiry for ~s is ~p days", [Partition, EstimatedOutOfSpace]);
+        true ->
+          ?INFO("Estimated disk expiry for ~s is ~p days", [Partition, EstimatedOutOfSpace])
+      end
+    end,
+    CurrentDiskUsage
+  ),
   erlang:send_after(?DISK_CHECK_INTERVAL, self(), estimate_disk_usage),
   {noreply, State#state{last_disk_usage=CurrentDiskUsage}};
 handle_info(_, State) -> {noreply, State}.
@@ -123,25 +123,25 @@ analyze_memory(#state{swap_trend=SwapTrend} = State) ->
   FreeSwap = round(proplists:get_value(free_swap, MemoryUsage, 0) / 1000000),
   UsedSwap = TotalSwap - FreeSwap,
   SwapTrend1 = add_to_trend(UsedSwap,
-      {swap_usage_increase, [{used_mb, UsedSwap}, {total_mb, TotalSwap}]}, SwapTrend),
+    {swap_usage_increase, [{used_mb, UsedSwap}, {total_mb, TotalSwap}]}, SwapTrend),
   State#state{swap_trend=SwapTrend1}.
 
 analyze_disk(#state{disk_usage_trends=DiskUsageTrends} = State) ->
   DiskUsageTrends1 = lists:foldl(
-        fun({Partition, _, UsedPercent}, TrendsAcc) ->
-          PartitionTrend = case dict:find(Partition, TrendsAcc) of
-            {ok, Existing} ->
-              add_to_trend(UsedPercent,
-                  {disk_usage_increase, [{partition, Partition}, {used_percent, UsedPercent}]}, Existing);
-            error ->
-              % We signal a 10 percent change in disk usage.
-              trend_detector:new(UsedPercent, 10, 0.001)
-          end,
-          dict:store(Partition, PartitionTrend, TrendsAcc)
-        end,
-        DiskUsageTrends,
-        disksup:get_disk_data()
-      ),
+    fun({Partition, _, UsedPercent}, TrendsAcc) ->
+      PartitionTrend = case dict:find(Partition, TrendsAcc) of
+        {ok, Existing} ->
+          add_to_trend(UsedPercent,
+              {disk_usage_increase, [{partition, Partition}, {used_percent, UsedPercent}]}, Existing);
+        error ->
+          % We signal a 10 percent change in disk usage.
+          trend_detector:new(UsedPercent, 10, 0.001)
+      end,
+      dict:store(Partition, PartitionTrend, TrendsAcc)
+    end,
+    DiskUsageTrends,
+    disksup:get_disk_data()
+  ),
   State#state{disk_usage_trends=DiskUsageTrends1}.
 
 analyze_beam(#state{
@@ -159,15 +159,15 @@ analyze_beam(#state{
   ProcessesNum = length(erlang:processes()),
   State#state{
     atom_usage_trend=add_to_trend(AtomUsedMb,
-        {atom_usage_increase, [{used_mb, AtomUsedMb}]}, AtomUsageTrend),
+      {atom_usage_increase, [{used_mb, AtomUsedMb}]}, AtomUsageTrend),
     binary_usage_trend=add_to_trend(BinaryUsedMb,
-        {binary_usage_increase, [{used_mb, BinaryUsedMb}]}, BinaryUsageTrend),
+      {binary_usage_increase, [{used_mb, BinaryUsedMb}]}, BinaryUsageTrend),
     ets_usage_trend=add_to_trend(EtsUsedMb,
-        {ets_usage_increase, [{used_mb, EtsUsedMb}]}, EtsUsageTrend),
+      {ets_usage_increase, [{used_mb, EtsUsedMb}]}, EtsUsageTrend),
     ets_tables_trend=add_to_trend(EtsTablesNum,
-        {ets_tables_increase, [{num_tables, EtsTablesNum}]}, EtsTablesTrend),
+      {ets_tables_increase, [{num_tables, EtsTablesNum}]}, EtsTablesTrend),
     processes_trend=add_to_trend(ProcessesNum,
-        {processes_increase, [{num_processes, ProcessesNum}]}, ProcessesTrend)
+      {processes_increase, [{num_processes, ProcessesNum}]}, ProcessesTrend)
   }.
 
 add_to_trend(Value, Alarm, Trend) ->
@@ -196,7 +196,7 @@ num_of_cpu_cores() ->
       %% If we can't get the system info we'll rely on number of schedulers.
       NumSchedulers = erlang:system_info(schedulers_online),
       ?INFO("erlang:system_info(logical_processors_available) returned ~p, using number of schedulers (~p) instead",
-          [Other, NumSchedulers]),
+        [Other, NumSchedulers]),
       NumSchedulers
   end.
 

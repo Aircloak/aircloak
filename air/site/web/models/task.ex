@@ -95,9 +95,9 @@ defmodule Air.Task do
   """
   def remove_temporary_tasks do
     Air.Repo.delete_all(
-          from t in Air.Task,
-          where: t.inserted_at < datetime_add(^Ecto.DateTime.utc, -1, "week"),
-          where: t.permanent == false
-        )
+      from t in Air.Task,
+      where: t.inserted_at < datetime_add(^Ecto.DateTime.utc, -1, "week"),
+      where: t.permanent == false
+    )
   end
 end

@@ -26,8 +26,8 @@ defmodule Cloak.DataSourceTest do
     table_id = String.to_existing_atom(table_name)
     source_id = String.to_existing_atom(source_name)
     assert(Cloak.DataSource.get_metadata(source_id, table_id,
-        {"value != $1", [20]}, 0) == [{"user-id", 1, 3, 2}])
+      {"value != $1", [20]}, 0) == [{"user-id", 1, 3, 2}])
     assert(Cloak.DataSource.get_data_batch(source_id, table_id,
-        "user-id", 1, 3, 10, ["value"], {"value != $1", [20]}) == {2, [[1, 10], [3, 30]]})
+      "user-id", 1, 3, 10, ["value"], {"value != $1", [20]}) == {2, [[1, 10], [3, 30]]})
   end
 end

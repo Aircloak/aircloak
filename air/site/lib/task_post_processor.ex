@@ -14,9 +14,9 @@ defmodule Air.TaskPostProcessor do
   @spec start_link() :: GenServer.on_start
   def start_link() do
     JsSandbox.Pool.start_link(
-          Application.app_dir(:air, "priv/task_post_processor"),
-          __MODULE__
-        )
+      Application.app_dir(:air, "priv/task_post_processor"),
+      __MODULE__
+    )
   end
 
   @doc "Processes a raw result sent by the cloak."

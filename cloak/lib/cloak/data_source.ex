@@ -213,10 +213,10 @@ defmodule Cloak.DataSource do
       Enum.empty?(unsupported) -> nil
       true ->
         raise """
-              The following columns in "#{source_id}/#{table[:name]}" have unsupported types:
-              #{inspect(unsupported)}
-              To ignore them set "ignore_unsupported_types: true" in your table settings
-          """
+          The following columns in "#{source_id}/#{table[:name]}" have unsupported types:
+          #{inspect(unsupported)}
+          To ignore them set "ignore_unsupported_types: true" in your table settings
+        """
     end
   end
 

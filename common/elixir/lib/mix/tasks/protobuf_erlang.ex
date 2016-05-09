@@ -35,10 +35,9 @@ defmodule Mix.Tasks.Compile.Protobuf.Erlang do
           stale?(proto_src, compile_path)
       do
         :protobuffs_compile.scan_file(to_char_list(proto_src),
-              output_include_dir: 'include',
-              output_ebin_dir: to_char_list(compile_path),
-              compile_flags: config[:erlc_options]
-            )
+            output_include_dir: 'include',
+            output_ebin_dir: to_char_list(compile_path),
+            compile_flags: config[:erlc_options])
 
         Path.join(compile_path, pb_file(proto_src, "beam"))
         |> to_char_list

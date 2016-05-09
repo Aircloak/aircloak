@@ -27,9 +27,9 @@ defmodule Air.CloaksController do
     cloaks = for cloak <- cloaks do
       # capture time difference since connected, ignoring sub-minute values
       conn_uptime =  :erlang.monotonic_time(:seconds) - cloak.created_at
-          |> div(60)
-          |> Time.from(:minutes)
-          |> Timex.Format.Time.Formatters.Humanized.format()
+      |> div(60)
+      |> Time.from(:minutes)
+      |> Timex.Format.Time.Formatters.Humanized.format()
       Map.put_new(cloak, :conn_uptime, conn_uptime)
     end
     render(conn, "index.html", cloaks: cloaks)

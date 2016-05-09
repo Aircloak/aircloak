@@ -36,10 +36,10 @@ defmodule Air.CloakInfo do
   def start_link(raw_cloak_info) do
     cloak_info = parse_cloak_info(raw_cloak_info)
     Air.ServiceRegistration.start_link(
-          etcd_path(cloak_info.id),
-          encode_cloak_data(%{pid: self(), cloak_info: cloak_info}),
-          crash_on_error: true
-        )
+      etcd_path(cloak_info.id),
+      encode_cloak_data(%{pid: self(), cloak_info: cloak_info}),
+      crash_on_error: true
+    )
   end
 
   @doc """

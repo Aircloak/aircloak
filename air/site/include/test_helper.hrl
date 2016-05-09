@@ -22,20 +22,19 @@
 %%           % place standard tests here
 %%         ]
 %%       ).
--define(test_suite(Name, Type, Specs, Tests),
-      Name() ->
-        {Setups, Teardowns} = lists:unzip(lists:flatten(Specs)),
-        {
-          Type,
-          fun() ->
-            [SetupFun() || SetupFun <- Setups]
-          end,
-          fun(SetupResults) ->
-            [Fun(Arg) || {Fun, Arg} <- lists:reverse(lists:zip(Teardowns, SetupResults))]
-          end,
-          Tests
-        }
-      ).
+-define(test_suite(Name, Type, Specs, Tests), Name() ->
+  {Setups, Teardowns} = lists:unzip(lists:flatten(Specs)),
+  {
+    Type,
+    fun() ->
+      [SetupFun() || SetupFun <- Setups]
+    end,
+    fun(SetupResults) ->
+      [Fun(Arg) || {Fun, Arg} <- lists:reverse(lists:zip(Teardowns, SetupResults))]
+    end,
+    Tests
+  }
+).
 
 -define(with_processes(ProcessesSpec),
   {
@@ -48,7 +47,8 @@
             M when is_atom(M) -> apply(M, start_link, [])
           end,
           Pid
-        end || ProcessSpec <- ProcessesSpec]
+        end || ProcessSpec <- ProcessesSpec
+      ]
     end,
     fun(Pids) ->
       error_logger:tty(false),
@@ -73,11 +73,11 @@
     fun() ->
       error_logger:tty(false),
       Started = lists:flatten([
-            begin
-              {ok, StartedApps} = application:ensure_all_started(Application),
-              StartedApps
-            end || Application <- Applications
-          ]),
+        begin
+          {ok, StartedApps} = application:ensure_all_started(Application),
+          StartedApps
+        end || Application <- Applications
+      ]),
       error_logger:tty(true),
       Started
     end,
@@ -96,3 +96,4 @@
 -define(with_db, [?with_applications([gproc, pgsql, etcd]), ?with_processes([cloak_db_pool_sup])]).
 
 -define(api_web_server, [{fun() -> air_api_sup:setup_routes() end, fun(_) -> ok end}]).
+

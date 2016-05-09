@@ -101,11 +101,11 @@ defmodule Air.User do
     |> roles()
     |> Stream.map(&Map.get(permissions, &1, []))
     |> Enum.any?(
-            fn
-              :all -> true
-              allowed -> Enum.member?(allowed, operation)
-            end
-          )
+      fn
+        :all -> true
+        allowed -> Enum.member?(allowed, operation)
+      end
+    )
   end
 
   @doc """

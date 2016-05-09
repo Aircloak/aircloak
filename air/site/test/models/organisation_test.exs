@@ -21,10 +21,9 @@ defmodule Air.OrganisationTest do
     |> Organisation.changeset(%{name: "Test organisation"})
     |> Air.Repo.insert!
 
-    assert {:error, changeset} =
-      %Organisation{}
-      |> Organisation.changeset(%{name: "Test organisation"})
-      |> Air.Repo.insert
+    assert {:error, changeset} = %Organisation{}
+    |> Organisation.changeset(%{name: "Test organisation"})
+    |> Air.Repo.insert
 
     assert [name: "has already been taken"] = changeset.errors
   end

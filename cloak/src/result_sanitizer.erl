@@ -20,7 +20,7 @@
 sanitize(JobResponses) ->
   DupesRemoved = lists:usort(fun compare_by_user/2, JobResponses),
   [JobResponse#job_response{properties=lists:usort(JobResponse#job_response.properties)} ||
-      JobResponse <- DupesRemoved].
+    JobResponse <- DupesRemoved].
 
 
 %% ------------------------------------------------------------------

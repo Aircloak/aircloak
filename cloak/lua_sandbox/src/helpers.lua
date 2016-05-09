@@ -18,22 +18,22 @@ function user_table(table_name)
   local index = 1
 
   local iterator = function ()
-        local row = batch[index]
-        -- check if we are finished with current batch
-        if row == nil then
-          if complete then
-            -- no more batches remaining
-            return nil
-          else
-            -- get next batch
-            batch, complete = ac_get_next_batch(table_name, false)
-            index = 1
-            row = batch[index]
-          end
-        end
-        index = index + 1 -- advance cursor
-        return row
+    local row = batch[index]
+    -- check if we are finished with current batch
+    if row == nil then
+      if complete then
+        -- no more batches remaining
+        return nil
+      else
+        -- get next batch
+        batch, complete = ac_get_next_batch(table_name, false)
+        index = 1
+        row = batch[index]
       end
+    end
+    index = index + 1 -- advance cursor
+    return row
+  end
 
   return iterator
 end

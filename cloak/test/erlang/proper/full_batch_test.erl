@@ -66,42 +66,45 @@ prop_batch() ->
   },
   Result =
     numtests(3,
-        ?FORALL(Commands, more_commands(CommandsFactor, proper_statem:commands(?MODULE, InitialState)),
-            ?IMPLIES(
-                  command_list_has_at_least_one_run_batch_task(Commands) andalso
-                      db_model:command_list_has_at_least_one_add_data(Commands),
-                  ?TRACEFAIL(State, Commands,
-                        begin
-                          db_model:prepare_database(),
-                          proper_statem:run_commands(?MODULE, Commands)
-                        end,
-                        measure("Command sequence length", length(Commands),
-                            measure("Outlier buckets", State#state.buckets_not_ok,
-                                use_aggregators(
-                                      [
-                                        {fun my_command_names/1, [Commands]},
-                                        {fun absolute_bucket_stats/1, [State]},
-                                        {fun relative_bucket_stats/1, [State]},
-                                        {fun bucket_sizes/1, [State]},
-                                        {fun bucket_list_sizes/1, [State]}
-                                      ],
-                                      Result =:= ok andalso verify_buckets(State)
-                                    )))
-                      )
-                ))),
+      ?FORALL(Commands, more_commands(CommandsFactor, proper_statem:commands(?MODULE, InitialState)),
+        ?IMPLIES(
+          command_list_has_at_least_one_run_batch_task(Commands) andalso
+            db_model:command_list_has_at_least_one_add_data(Commands),
+          ?TRACEFAIL(State, Commands,
+            begin
+              db_model:prepare_database(),
+              proper_statem:run_commands(?MODULE, Commands)
+            end,
+            measure("Command sequence length", length(Commands),
+              measure("Outlier buckets", State#state.buckets_not_ok,
+                use_aggregators([
+                    {fun my_command_names/1, [Commands]},
+                    {fun absolute_bucket_stats/1, [State]},
+                    {fun relative_bucket_stats/1, [State]},
+                    {fun bucket_sizes/1, [State]},
+                    {fun bucket_list_sizes/1, [State]}
+                  ],
+                  Result =:= ok andalso verify_buckets(State)
+                )
+              )
+            )
+          )
+        )
+      )
+    ),
   Result.
 
 -spec command_list_has_at_least_one_run_batch_task([any()]) -> boolean().
 command_list_has_at_least_one_run_batch_task(Commands) ->
   lists:any(
-        fun
-          ({set, {var, _}, {call, ?MODULE, callback_run_batch_task, _}}) ->
-            true;
-          (_) ->
-            false
-        end,
-        Commands
-      ).
+    fun
+      ({set, {var, _}, {call, ?MODULE, callback_run_batch_task, _}}) ->
+        true;
+      (_) ->
+        false
+    end,
+    Commands
+  ).
 
 
 %% -------------------------------------------------------------------
@@ -111,12 +114,12 @@ command_list_has_at_least_one_run_batch_task(Commands) ->
 -spec use_aggregators([{fun(), [any()]}], boolean()) -> boolean().
 use_aggregators(Aggregators, Result) ->
   lists:foldr(
-        fun({Function, Parameters}, Acc) ->
-          aggregate(apply(Function, Parameters), Acc)
-        end,
-        Result,
-        Aggregators
-      ).
+    fun({Function, Parameters}, Acc) ->
+      aggregate(apply(Function, Parameters), Acc)
+    end,
+    Result,
+    Aggregators
+  ).
 
 -spec my_command_names([any()]) -> [any()].
 my_command_names(Commands) ->
@@ -230,16 +233,16 @@ callback_run_batch_task(Prefetch) ->
     task_id = <<"task-id">>,
     prefetch = Prefetch,
     code = iolist_to_binary([
-          "tables = get_user_tables()\n",
-          "for index, table_name in ipairs (tables) do \n",
-          "  rows = load_user_table(table_name)\n",
-          "  for i = 1, #rows do\n",
-          "    for column_name, column in pairs (rows[i]) do\n",
-          "      report_property (table_name .. \":\" .. column_name, column)\n",
-          "    end\n",
-          "  end\n",
-          "end\n"
-        ]),
+      "tables = get_user_tables()\n",
+      "for index, table_name in ipairs (tables) do \n",
+      "  rows = load_user_table(table_name)\n",
+      "  for i = 1, #rows do\n",
+      "    for column_name, column in pairs (rows[i]) do\n",
+      "      report_property (table_name .. \":\" .. column_name, column)\n",
+      "    end\n",
+      "  end\n",
+      "end\n"
+    ]),
     result_destination = {process, self()}
   },
   gproc:reg({p, l, {task_listener, Task#task.task_id}}),
@@ -296,28 +299,28 @@ next_state_run_batch_task(#state{db_state=DbState}=State, Result, _Prefetch) ->
 -spec generate_expected_result(db_model:db_state()) -> batch_task_result().
 generate_expected_result(DbState) ->
   Buckets = db_model:fold_tables(
-        fun(TableName, Rows, Buckets0) ->
+    fun(TableName, Rows, Buckets0) ->
+      lists:foldl(
+        fun({_UserName, LastRow}, Buckets1) ->
           lists:foldl(
-                fun({_UserName, LastRow}, Buckets1) ->
-                  lists:foldl(
-                      fun({ColumnName, ColumnData}, Buckets2) ->
-                        Key = {
-                          iolist_to_binary([db_test:table_path(TableName), $:, ColumnName]),
-                          iolist_to_binary(integer_to_list(ColumnData))
-                        },
-                        dict:update_counter(Key, 1, Buckets2)
-                      end,
-                      Buckets1,
-                      LastRow
-                    )
-                end,
-                Buckets0,
-                Rows
-              )
+            fun({ColumnName, ColumnData}, Buckets2) ->
+              Key = {
+                iolist_to_binary([db_test:table_path(TableName), $:, ColumnName]),
+                iolist_to_binary(integer_to_list(ColumnData))
+              },
+              dict:update_counter(Key, 1, Buckets2)
+            end,
+            Buckets1,
+            LastRow
+          )
         end,
-        dict:new(),
-        DbState
-      ),
+        Buckets0,
+        Rows
+      )
+    end,
+    dict:new(),
+    DbState
+  ),
   BucketList = dict:fold(fun({Label, Value}, Count, Acc) -> [{Label, Value, Count}|Acc] end, [], Buckets),
   lists:sort(BucketList).
 
@@ -344,8 +347,7 @@ collect_stats_from_results(State, [{Label, Value, CountExpected}|RestExpected],
   collect_stats_from_bucket(State, Label, Value, CountExpected, Count, RestExpected, Rest, Print);
 collect_stats_from_results(State, [{ExpectedLabel, ExpectedValue, CountExpected}|RestExpected],
     [{Label, Value, _Count}|_]=Result, Print) when {ExpectedLabel, ExpectedValue} < {Label, Value} ->
-  collect_stats_from_bucket(State, ExpectedLabel, ExpectedValue, CountExpected, 0, RestExpected, Result,
-      Print);
+  collect_stats_from_bucket(State, ExpectedLabel, ExpectedValue, CountExpected, 0, RestExpected, Result, Print);
 collect_stats_from_results(State, [{ExpectedLabel, ExpectedValue, CountExpected}|RestExpected], [], Print) ->
   collect_stats_from_bucket(State, ExpectedLabel, ExpectedValue, CountExpected, 0, RestExpected, [], Print);
 collect_stats_from_results(_, _, [{Label, Value, _}|_], _Print) ->

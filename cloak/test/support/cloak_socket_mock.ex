@@ -7,13 +7,13 @@ defmodule Cloak.CloakSocketMock do
     defoverridable start_link: 0
     def start_link do
       Application.put_env(:aircloak_common, __MODULE__, [
-            https: false,
-            http: [port: 29876],
-            secret_key_base: String.duplicate("abcdefgh", 8),
-            debug_errors: false,
-            server: true,
-            pubsub: [adapter: Phoenix.PubSub.PG2, name: __MODULE__]
-          ])
+        https: false,
+        http: [port: 29876],
+        secret_key_base: String.duplicate("abcdefgh", 8),
+        debug_errors: false,
+        server: true,
+        pubsub: [adapter: Phoenix.PubSub.PG2, name: __MODULE__]
+      ])
 
       super()
     end

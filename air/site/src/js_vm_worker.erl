@@ -48,9 +48,9 @@ call(Worker, Function, Arguments) ->
 init(JSModules) when is_list(JSModules) ->
   VM = open_sandbox(),
   lists:foreach(fun (JSModule) ->
-        {ok, JSContent} = file:read_file(JSModule),
-        {ok, _} = evaluate_js(VM, filename:basename(JSModule), JSContent)
-      end, JSModules),
+    {ok, JSContent} = file:read_file(JSModule),
+    {ok, _} = evaluate_js(VM, filename:basename(JSModule), JSContent)
+  end, JSModules),
   {ok, #state{vm = VM}}.
 
 handle_call({call, Func, Args}, _From, #state{vm = VM} = State) ->

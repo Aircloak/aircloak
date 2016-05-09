@@ -61,16 +61,15 @@ defmodule Air.UserControllerTest do
 
     new_user_email = "foo@bar.baz"
 
-    conn =
-      login(org_admin)
-      |> post("/users", user: %{
-            email: new_user_email,
-            name: "foobarbaz",
-            password: "1234",
-            password_confirmation: "1234",
-            role_id: Air.User.role_id(:user),
-            organisation_id: org.id
-          })
+    conn = login(org_admin)
+    |> post("/users", user: %{
+      email: new_user_email,
+      name: "foobarbaz",
+      password: "1234",
+      password_confirmation: "1234",
+      role_id: Air.User.role_id(:user),
+      organisation_id: org.id
+    })
 
     assert "/users" == redirected_to(conn)
     users_html = login(org_admin) |> get("/users") |> response(200)
@@ -84,16 +83,15 @@ defmodule Air.UserControllerTest do
 
     new_user_email = "foo@bar.baz"
 
-    conn =
-      login(admin)
-      |> post("/users", user: %{
-            email: new_user_email,
-            name: "foobarbaz",
-            password: "1234",
-            password_confirmation: "1234",
-            role_id: Air.User.role_id(:user),
-            organisation_id: another_org.id
-          })
+    conn = login(admin)
+    |> post("/users", user: %{
+      email: new_user_email,
+      name: "foobarbaz",
+      password: "1234",
+      password_confirmation: "1234",
+      role_id: Air.User.role_id(:user),
+      organisation_id: another_org.id
+    })
 
     assert "/users" == redirected_to(conn)
     users_html = login(admin) |> get("/users") |> response(200)
@@ -109,16 +107,15 @@ defmodule Air.UserControllerTest do
 
     new_user_email = "foo@bar.baz"
 
-    conn =
-      login(org_admin)
-      |> post("/users", user: %{
-            email: new_user_email,
-            name: "foobarbaz",
-            password: "1234",
-            password_confirmation: "1234",
-            role_id: Air.User.role_id(:user),
-            organisation_id: another_org.id
-          })
+    conn = login(org_admin)
+    |> post("/users", user: %{
+      email: new_user_email,
+      name: "foobarbaz",
+      password: "1234",
+      password_confirmation: "1234",
+      role_id: Air.User.role_id(:user),
+      organisation_id: another_org.id
+    })
 
     response(conn, 200)
     assert get_flash(conn)["error"] =~ "Action not allowed!"
@@ -132,13 +129,12 @@ defmodule Air.UserControllerTest do
 
     changed_email = "foo@bar.baz"
 
-    conn =
-      login(org_admin)
-      |> put("/users/#{org_admin.id}", user: %{
-            email: changed_email,
-            name: org_admin.name,
-            role_id: org_admin.role_id
-          })
+    conn = login(org_admin)
+    |> put("/users/#{org_admin.id}", user: %{
+      email: changed_email,
+      name: org_admin.name,
+      role_id: org_admin.role_id
+    })
 
     assert "/users" == redirected_to(conn)
     users_html = login(%{email: changed_email}) |> get("/users") |> response(200)
@@ -152,9 +148,8 @@ defmodule Air.UserControllerTest do
     another_org = TestRepoHelper.create_organisation!()
     user = TestRepoHelper.create_user!(another_org, :user)
 
-    conn =
-      login(admin)
-      |> put("/users/#{user.id}", user: %{organisation_id: admin_org.id})
+    conn = login(admin)
+    |> put("/users/#{user.id}", user: %{organisation_id: admin_org.id})
 
     assert "/users" == redirected_to(conn)
 
@@ -168,14 +163,13 @@ defmodule Air.UserControllerTest do
 
     changed_email = "foo@bar.baz"
 
-    conn =
-      login(org_admin)
-      |> put("/users/#{org_admin.id}", user: %{
-            email: changed_email,
-            name: org_admin.name,
-            role_id: org_admin.role_id,
-            organisation_id: TestRepoHelper.admin_organisation().id
-          })
+    conn = login(org_admin)
+    |> put("/users/#{org_admin.id}", user: %{
+      email: changed_email,
+      name: org_admin.name,
+      role_id: org_admin.role_id,
+      organisation_id: TestRepoHelper.admin_organisation().id
+    })
 
     assert "/users" == redirected_to(conn)
     assert get_flash(conn)["error"] =~ "Action not allowed!"

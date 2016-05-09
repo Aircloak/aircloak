@@ -10,22 +10,22 @@
     receive Pattern = ReceivedMessage -> ReceivedMessage
     after Timeout ->
       erlang:error({
-            message_not_received,
-            [
-              {module, ?MODULE},
-              {line, ?LINE},
-              {pattern, (??Pattern)},
-              {message_queue,
-                % This is wrapped inside a lambda to avoid polluting the context
-                % with a local Flush variable.
-                (fun() ->
-                  % Simple self-recursive lambda that flushes the message queue.
-                  Flush = fun(F) -> receive M -> [M | F(F)] after 0 -> [] end end,
-                  Flush(Flush)
-                end)()
-              }
-            ]
-          })
+        message_not_received,
+        [
+          {module, ?MODULE},
+          {line, ?LINE},
+          {pattern, (??Pattern)},
+          {message_queue,
+            % This is wrapped inside a lambda to avoid polluting the context
+            % with a local Flush variable.
+            (fun() ->
+              % Simple self-recursive lambda that flushes the message queue.
+              Flush = fun(F) -> receive M -> [M | F(F)] after 0 -> [] end end,
+              Flush(Flush)
+            end)()
+          }
+        ]
+      })
     end
   end)()
 ).
@@ -35,13 +35,13 @@
   begin
     receive Pattern ->
       erlang:error({
-            message_received,
-            [
-              {module, ?MODULE},
-              {line, ?LINE},
-              {pattern, (??Pattern)}
-            ]
-          })
+        message_received,
+        [
+          {module, ?MODULE},
+          {line, ?LINE},
+          {pattern, (??Pattern)}
+        ]
+      })
     after Timeout -> ok
     end
   end

@@ -97,9 +97,9 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 convert_buckets(TaskId, RawBuckets) ->
   Buckets = [convert_bucket(RawBucket) ||
-      #bucket_report{label = #bucket_label{label = Label}} = RawBucket <- RawBuckets, Label =/= ?JOB_EXECUTION_ERROR],
+    #bucket_report{label = #bucket_label{label = Label}} = RawBucket <- RawBuckets, Label =/= ?JOB_EXECUTION_ERROR],
   Exceptions = [#{error => iolist_to_binary(Error), count => Count} ||
-      #bucket_report{label = #bucket_label{label = ?JOB_EXECUTION_ERROR, value = Error}, noisy_count = Count} <- RawBuckets],
+    #bucket_report{label = #bucket_label{label = ?JOB_EXECUTION_ERROR, value = Error}, noisy_count = Count} <- RawBuckets],
   ?INFO("result report for task ~s: ~p buckets, ~p exceptions", [TaskId, length(Buckets), length(Exceptions)]),
   #{task_id => TaskId, buckets => Buckets, exceptions => Exceptions}.
 

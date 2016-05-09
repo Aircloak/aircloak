@@ -62,10 +62,10 @@ export class SettingsModel {
   setDataSourceToken(dataSourceToken) {
     if (this.dataSourceToken == dataSourceToken) return this;
     return this.transform(
-          (newSettings) => {
-            Object.assign(newSettings, {dataSourceToken: dataSourceToken, tables: new Set([])})
-          }
-        )
+      (newSettings) => {
+        Object.assign(newSettings, {dataSourceToken: dataSourceToken, tables: new Set([])})
+      }
+    )
   }
 
   selectTable(tableId) {
@@ -90,11 +90,11 @@ export class SettingsModel {
 export class SettingsView extends React.Component {
   render() {
     return (
-          <div>
-            <Error{...this.props} />
-            <Form {...this.props} />
-          </div>
-        );
+      <div>
+        <Error{...this.props} />
+        <Form {...this.props} />
+      </div>
+    );
   }
 }
 
@@ -111,12 +111,12 @@ class Error extends React.Component {
 class Form extends React.Component {
   render() {
     return (
-        <form className="form-horizontal">
-          <TaskNameControl {...this.props} />
-          <DataSources {...this.props} />
-          <Tables {...this.props} />
-        </form>
-      );
+      <form className="form-horizontal">
+        <TaskNameControl {...this.props} />
+        <DataSources {...this.props} />
+        <Tables {...this.props} />
+      </form>
+    );
   }
 }
 
@@ -132,11 +132,11 @@ class TaskNameControl extends React.Component {
 
   render() {
     return (
-        <Control label="Task name">
-          <input type="text" className="form-control"
-              onChange={this.handleNameChange}
-              value={this.props.settings.taskName} />
-        </Control>
+      <Control label="Task name">
+        <input type="text" className="form-control"
+          onChange={this.handleNameChange}
+          value={this.props.settings.taskName} />
+      </Control>
     );
   }
 }
@@ -144,18 +144,18 @@ class TaskNameControl extends React.Component {
 class Control extends React.Component {
   render() {
     return (
-          <div className="form-group">
-            <label className="col-sm-4 control-label">{this.props.label}</label>
-            <div className="col-sm-6">{this.props.children}</div>
-          </div>
-        );
+      <div className="form-group">
+        <label className="col-sm-4 control-label">{this.props.label}</label>
+        <div className="col-sm-6">{this.props.children}</div>
+      </div>
+    );
   }
 }
 
 class DataSources extends React.Component {
   onDataSourceSelected(event) {
     this.props.onChange(this.props.settings.setDataSourceToken(
-        (event.target.value == "__select") ? null : event.target.value))
+      (event.target.value == "__select") ? null : event.target.value))
   }
 
   render() {
@@ -164,22 +164,21 @@ class DataSources extends React.Component {
     }
     let dataSources =
       [{token: "__select", display: "select a data source", tables: [], cloak: {}}].
-          concat(this.props.settings.dataSources)
+        concat(this.props.settings.dataSources)
 
     return (
-          <Control label="Data source">
-            <select
-              className="form-control"
-              value={`${this.props.settings.selectedDataSourceToken()}`}
-              onChange={this.onDataSourceSelected.bind(this)}
-            >
-              {dataSources.map((dataSource) =>
-                  <option key={dataSource.token} value={dataSource.token}>
-                    {dataSource.display}
-                  </option>)}
-            </select>
-          </Control>
-        );
+      <Control label="Data source">
+        <select
+          className="form-control"
+          value={`${this.props.settings.selectedDataSourceToken()}`}
+          onChange={this.onDataSourceSelected.bind(this)}>
+          {dataSources.map((dataSource) =>
+            <option key={dataSource.token} value={dataSource.token}>
+              {dataSource.display}
+            </option>)}
+        </select>
+      </Control>
+    );
   }
 }
 
@@ -187,8 +186,8 @@ class Tables extends React.Component {
   onTableSelected(event) {
     let newSettings =
       event.target.checked ?
-          this.props.settings.selectTable(event.target.value) :
-          this.props.settings.unselectTable(event.target.value);
+        this.props.settings.selectTable(event.target.value) :
+        this.props.settings.unselectTable(event.target.value);
     this.props.onChange(newSettings);
   }
 
@@ -196,19 +195,19 @@ class Tables extends React.Component {
     let tables = this.props.settings.selectedDataSourceTables();
     if (this.props.settings.hasDataSourcesAvailable() && tables.length > 0) {
       return (
-            <Control label="Tables">
-              <div style={{paddingTop: '7px'}}>
-                {tables.map((table) =>
-                    <label key={table.id}>
-                      <input style={{marginRight: '5px'}} type="checkbox"
-                        onChange={this.onTableSelected.bind(this)}
-                        checked={this.props.settings.isTableSelected(table)}
-                        value={table.id} />
-                      {table.id}
-                    </label>)}
-              </div>
-            </Control>
-          );
+        <Control label="Tables">
+          <div style={{paddingTop: '7px'}}>
+            {tables.map((table) =>
+              <label key={table.id}>
+                <input style={{marginRight: '5px'}} type="checkbox"
+                  onChange={this.onTableSelected.bind(this)}
+                  checked={this.props.settings.isTableSelected(table)}
+                  value={table.id} />
+                {table.id}
+              </label>)}
+          </div>
+        </Control>
+      );
     } else {
       return null;
     }

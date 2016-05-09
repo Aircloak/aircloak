@@ -23,12 +23,12 @@
 %% processed.
 prop_queued_computation() ->
   numtests(10,
-      ?FORALL({NumberOfItems, MaxConcurrency}, g_parameters(),
-          ?TRAPEXIT(
-              measure("Number of items", NumberOfItems,
-                  measure("Maximum concurrency", MaxConcurrency,
-                      measure("Items/Concurrency", NumberOfItems / MaxConcurrency,
-                          process_items(NumberOfItems, MaxConcurrency))))))).
+    ?FORALL({NumberOfItems, MaxConcurrency}, g_parameters(),
+     ?TRAPEXIT(
+       measure("Number of items", NumberOfItems,
+         measure("Maximum concurrency", MaxConcurrency,
+           measure("Items/Concurrency", NumberOfItems / MaxConcurrency,
+             process_items(NumberOfItems, MaxConcurrency))))))).
 
 
 %% ---------------------------------------------------------------------
@@ -68,7 +68,7 @@ process_items(NumberOfItems, MaxConcurrency) ->
       Max = stop_max_concurrent_processings_process(ProcessCounterPid),
       %% This assumes that we spawn the jobs fast enough to really fill the queue.
       ((NumberOfItems >= MaxConcurrency) andalso (Max =:= MaxConcurrency)) orelse
-          ((NumberOfItems < MaxConcurrency) andalso (Max =< NumberOfItems))
+        ((NumberOfItems < MaxConcurrency) andalso (Max =< NumberOfItems))
   after ?RUN_TIMEOUT ->
     false
   end.

@@ -58,9 +58,9 @@
 new() ->
   % Create local tables on all nodes, ignore bad nodes.
   {EtsTables, _BadNodes} = rpc:multicall(
-        [node()],
-        ?MODULE, create_local_lcf_table, [self()], timer:seconds(10)
-      ),
+    [node()],
+    ?MODULE, create_local_lcf_table, [self()], timer:seconds(10)
+  ),
   dict:from_list(EtsTables).
 
 %% @doc Deletes the storage.
@@ -150,15 +150,15 @@ start_local_reporters(LcfStorage, BucketLabels, MasterPid) ->
       % if the parallel process dies. We consider LCF tail as a "nice-to-have" feature, so if
       % something dies somewhere, we don't want to crash the entire task report.
       spawn_monitor(
-            fun() ->
-              MasterPid ! {
-                result,
-                % The timeout of 30 secs is chosen to accommodate cases when we have long LCF tails with
-                % bunch of buckets and users.
-                rpc:call(Node, ?MODULE, local_lcf_tail_report, [Table, BucketLabels], timer:seconds(30))
-              }
-            end
-          )
+        fun() ->
+          MasterPid ! {
+            result,
+            % The timeout of 30 secs is chosen to accommodate cases when we have long LCF tails with
+            % bunch of buckets and users.
+            rpc:call(Node, ?MODULE, local_lcf_tail_report, [Table, BucketLabels], timer:seconds(30))
+          }
+        end
+      )
     end || {Node, {Table, _TableOwner}} <- dict:to_list(LcfStorage)
   ].
 
@@ -195,7 +195,7 @@ local_lcf_tail_report(Table, BucketLabels) ->
 
 start_aggregate_processors(Table, Aggregator) ->
   [spawn_link(fun() -> aggregate_processor_loop(Table, Aggregator) end)
-      || _ <- lists:seq(0, ?AGGREGATE_PROCESSORS - 1)].
+    || _ <- lists:seq(0, ?AGGREGATE_PROCESSORS - 1)].
 
 dispatch_aggregations(BucketLabels, Processors) ->
   dispatch_aggregations(BucketLabels, [], Processors).
@@ -222,15 +222,15 @@ stop_aggregate_processors(Processors) ->
 aggregate_processor_loop(Table, Aggregator) ->
   receive
     {aggregate, BucketLabel} ->
-      [aggregator:add_property(
-            #property{label=?AIRCLOAK_LABEL, value=?LCF_TAIL_VALUE},
-            UserId,
-            Aggregator
-          )
-        ||
-          Matches <- ets:match(Table, {BucketLabel, '$1'}),
-          UserIds <- Matches,
-          UserId <- UserIds
+      [
+        aggregator:add_property(
+          #property{label=?AIRCLOAK_LABEL, value=?LCF_TAIL_VALUE},
+          UserId,
+          Aggregator
+        ) ||
+        Matches <- ets:match(Table, {BucketLabel, '$1'}),
+        UserIds <- Matches,
+        UserId <- UserIds
       ],
       aggregate_processor_loop(Table, Aggregator);
     stop -> ok

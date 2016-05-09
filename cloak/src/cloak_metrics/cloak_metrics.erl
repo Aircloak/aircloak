@@ -173,9 +173,9 @@ init(Options) ->
 
 start_dispatchers(ReportersDef) ->
   lists:map(fun(ReporterDef) ->
-        {ok, ReporterPid} = cloak_metrics_dispatcher:start_link(ReporterDef),
-        ReporterPid
-      end, ReportersDef).
+    {ok, ReporterPid} = cloak_metrics_dispatcher:start_link(ReporterDef),
+    ReporterPid
+  end, ReportersDef).
 
 
 %% @hidden
@@ -197,7 +197,7 @@ handle_info(flush_stats, State) ->
   Now = os:timestamp(),
   Timespan = timer:now_diff(Now, State#state.last_flush_time) / 1000000,
   cloak_metrics_aggregator:aggregate_and_dispatch(State#state.aggregator,
-      State#state.collected, State#state.dispatchers, Timespan),
+    State#state.collected, State#state.dispatchers, Timespan),
   {noreply, State#state{last_flush_time=Now, collected=cloak_metrics_data:reset(State#state.collected)}};
 handle_info(_, State) ->
   {noreply, State}.
@@ -216,19 +216,19 @@ code_change(_, State, _) -> {ok, State}.
 identity_buckets(Histograms) ->
   IdentityBuckets = fun(DataPoints) ->
     Counts = lists:foldl(
-          fun({Value, Count}, CountsAcc) -> dict:update_counter(Value, Count, CountsAcc) end,
-          dict:new(), DataPoints
-        ),
+      fun({Value, Count}, CountsAcc) -> dict:update_counter(Value, Count, CountsAcc) end,
+      dict:new(), DataPoints
+    ),
     dict:fold(
-          fun(Value, Count, Acc) -> [{Value, Value + 1, Count} | Acc] end,
-          [],
-          Counts
-        )
+      fun(Value, Count, Acc) -> [{Value, Value + 1, Count} | Acc] end,
+      [],
+      Counts
+    )
   end,
   lists:map(
-        fun({Name, DataPoints}) -> {Name, IdentityBuckets(DataPoints)} end,
-        Histograms
-      ).
+    fun({Name, DataPoints}) -> {Name, IdentityBuckets(DataPoints)} end,
+    Histograms
+  ).
 
 
 %% -------------------------------------------------------------------
@@ -276,56 +276,54 @@ test_send() ->
   start_test_server(),
   [count(<<"counter">>) || _ <- lists:duplicate(100, 1)],
   [histogram(<<"histogram">>, 20) || _ <- lists:duplicate(100, 1)],
-  ?assertReceived(
-      {sent_data,
-        [
-          {<<"anonymization_error.localhost.histogram.average">>, _},
-          {<<"localhost.histogram.average">>, _},
-          {<<"anonymization_error.localhost.histogram.median">>, _},
-          {<<"localhost.histogram.median">>, _},
-          {<<"anonymization_error.localhost.histogram.upper_75">>, _},
-          {<<"localhost.histogram.upper_75">>, _},
-          {<<"anonymization_error.localhost.histogram.upper_90">>, _},
-          {<<"localhost.histogram.upper_90">>, _},
-          {<<"anonymization_error.localhost.histogram.upper_99">>, _},
-          {<<"localhost.histogram.upper_99">>, _},
-          {<<"localhost.counter.rate">>, _},
-          {<<"anonymization_error.localhost.counter.rate">>, _}
-        ]
-      }, 100).
+  ?assertReceived({sent_data,
+    [
+      {<<"anonymization_error.localhost.histogram.average">>, _},
+      {<<"localhost.histogram.average">>, _},
+      {<<"anonymization_error.localhost.histogram.median">>, _},
+      {<<"localhost.histogram.median">>, _},
+      {<<"anonymization_error.localhost.histogram.upper_75">>, _},
+      {<<"localhost.histogram.upper_75">>, _},
+      {<<"anonymization_error.localhost.histogram.upper_90">>, _},
+      {<<"localhost.histogram.upper_90">>, _},
+      {<<"anonymization_error.localhost.histogram.upper_99">>, _},
+      {<<"localhost.histogram.upper_99">>, _},
+      {<<"localhost.counter.rate">>, _},
+      {<<"anonymization_error.localhost.counter.rate">>, _}
+    ]
+  }, 100).
 
 test_measure() ->
   start_test_server(),
   ?assertEqual(result, measure(<<"measured">>, fun() -> result end)),
   [
     spawn(fun() ->
-          measure(<<"measured">>, fun() -> timer:sleep(Duration) end)
-        end) ||
+      measure(<<"measured">>, fun() -> timer:sleep(Duration) end)
+    end) ||
     Duration <- lists:seq(1, 20)
   ],
-  ?assertReceived(
-      {sent_data,
-        [
-          {<<"anonymization_error.localhost.measured.average">>, _},
-          {<<"localhost.measured.average">>, _},
-          {<<"anonymization_error.localhost.measured.median">>, _},
-          {<<"localhost.measured.median">>, _},
-          {<<"anonymization_error.localhost.measured.upper_75">>, _},
-          {<<"localhost.measured.upper_75">>, _},
-          {<<"anonymization_error.localhost.measured.upper_90">>, _},
-          {<<"localhost.measured.upper_90">>, _},
-          {<<"anonymization_error.localhost.measured.upper_99">>, _},
-          {<<"localhost.measured.upper_99">>, _}
-        ]
-      }, 100).
+  ?assertReceived({sent_data,
+    [
+      {<<"anonymization_error.localhost.measured.average">>, _},
+      {<<"localhost.measured.average">>, _},
+      {<<"anonymization_error.localhost.measured.median">>, _},
+      {<<"localhost.measured.median">>, _},
+      {<<"anonymization_error.localhost.measured.upper_75">>, _},
+      {<<"localhost.measured.upper_75">>, _},
+      {<<"anonymization_error.localhost.measured.upper_90">>, _},
+      {<<"localhost.measured.upper_90">>, _},
+      {<<"anonymization_error.localhost.measured.upper_99">>, _},
+      {<<"localhost.measured.upper_99">>, _}
+    ]
+  }, 100).
 
 start_test_server() ->
   start_server([
-        {bucketizer, identity_bucketizer()},
-        {noise_fun, no_noise_fun()},
-        {flush_interval, 50},
-        {reporters, [make_test_reporter()]}
-      ]).
+    {bucketizer, identity_bucketizer()},
+    {noise_fun, no_noise_fun()},
+    {flush_interval, 50},
+    {reporters, [make_test_reporter()]}
+  ]).
 
 make_test_reporter() ->
   {
@@ -353,11 +351,11 @@ test_identity_buckets() ->
     {metric2, [{1, 1}, {2, 2}, {1, 3}]}
   ],
   ?assertEqual(
-        [
-          {metric1, [{2, 3, 2}, {1, 2, 1}]},
-          {metric2, [{2, 3, 2}, {1, 2, 4}]}
-        ],
-        (identity_bucketizer())(Histograms)
-      ).
+    [
+      {metric1, [{2, 3, 2}, {1, 2, 1}]},
+      {metric2, [{2, 3, 2}, {1, 2, 4}]}
+    ],
+    (identity_bucketizer())(Histograms)
+  ).
 
 -endif.

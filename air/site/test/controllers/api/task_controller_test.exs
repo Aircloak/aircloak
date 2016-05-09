@@ -9,15 +9,15 @@ defmodule Air.API.TaskControllerTest do
     token = create_token(conn, create_user!())
 
     %{"success" => success, "errors" => errors} = conn
-        |> put_req_header("auth-token", token)
-        |> post("/api/task")
-        |> response(422)
-        |> Poison.decode!
+    |> put_req_header("auth-token", token)
+    |> post("/api/task")
+    |> response(422)
+    |> Poison.decode!
 
     assert errors
-        |> Enum.map(fn(str) -> Regex.run(~r"The '(\w+)' parameter", str, capture: :all_but_first) end)
-        |> Enum.map(&hd(&1))
-        |> Enum.sort == ["cloak", "data_source", "query", "tables"]
+    |> Enum.map(fn(str) -> Regex.run(~r"The '(\w+)' parameter", str, capture: :all_but_first) end)
+    |> Enum.map(&hd(&1))
+    |> Enum.sort == ["cloak", "data_source", "query", "tables"]
 
     refute success
   end
@@ -30,10 +30,11 @@ defmodule Air.API.TaskControllerTest do
     # Open the cloak mock socket so we can schedule a task execution against it.
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main", %{"data_sources" => [
-        %{"id" => "local", "tables" => [%{"columns" => [
-          %{"name" => "item", "type" => "text"},
-          %{"name" => "price", "type" => "number"}
-        ], "id" => "test"}]}], "name" => "nonode@nohost"})
+      %{"id" => "local", "tables" => [%{"columns" => [
+        %{"name" => "item", "type" => "text"},
+        %{"name" => "price", "type" => "number"}
+      ], "id" => "test"}]}], "name" => "nonode@nohost"}
+    )
 
     query_params = %{
       query: "report_property(\"Hello\", \"world\")",
@@ -46,14 +47,14 @@ defmodule Air.API.TaskControllerTest do
     # in a secondary thread.
     me = self()
     spawn_link(fn ->
-          response = conn
-              |> put_req_header("auth-token", token)
-              |> put_req_header("content-type", "application/json")
-              |> post("/api/task", query_params)
-              |> response(200)
-              |> Poison.decode!
-          send(me, {:response, response})
-        end)
+      response = conn
+      |> put_req_header("auth-token", token)
+      |> put_req_header("content-type", "application/json")
+      |> post("/api/task", query_params)
+      |> response(200)
+      |> Poison.decode!
+      send(me, {:response, response})
+    end)
 
     # We block waiting for the task to have been created by the request,
     # otherwise we don't know which ID we should send our fake results to.

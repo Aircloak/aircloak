@@ -200,16 +200,16 @@ execute_job(#job{request=Request, parameters={_User, _Input}} = Job, #state{port
   ?REPORT_DURATION("job.queued", Job#job.created_at),
   NextState = create_timeout_timer(State#state{run_jobs=N+1, start_time=os:timestamp()}),
   port_command(
-        Port,
-        sandbox_pb:encode_jobinputmessagepb(#jobinputmessagepb{
-              job_request=#jobrequestpb{
-                code=Request#task.code,
-                libraries=[#librarydatapb{name=Name, code=Code} || {Name, Code} <- Request#task.libraries],
-                accumulator=Job#job.accumulator,
-                task_time=task_time(Request#task.timestamp)
-              }
-            })
-      ),
+    Port,
+    sandbox_pb:encode_jobinputmessagepb(#jobinputmessagepb{
+      job_request=#jobrequestpb{
+        code=Request#task.code,
+        libraries=[#librarydatapb{name=Name, code=Code} || {Name, Code} <- Request#task.libraries],
+        accumulator=Job#job.accumulator,
+        task_time=task_time(Request#task.timestamp)
+      }
+    })
+  ),
   cloak_metrics:count("job.started"),
   NextState#state{active_job=Job};
 execute_job(#job{request_id=RequestId, parameters=GetParametersFun} = Job, State) when is_function(GetParametersFun, 1) ->
@@ -287,7 +287,7 @@ generate_success_reply(Properties, Accumulator,
 
 convert_properties(Properties) ->
   [#property{label=cloak_util:binarify(Label), value=convert_bucket_value(Value)}
-      || #jobresponsepb_property{label=Label, value=Value} <- Properties].
+    || #jobresponsepb_property{label=Label, value=Value} <- Properties].
 
 convert_bucket_value(undefined) -> <<"<notice: undefined value>">>;
 convert_bucket_value(Value) -> cloak_util:binarify(Value).
@@ -298,9 +298,9 @@ generate_error_reply(Reason,
     user_id = User,
     task_id = Request#task.task_id,
     properties = [#property{
-          label = ?JOB_EXECUTION_ERROR,
-          value = string_of_reason(Reason)
-        }]
+      label = ?JOB_EXECUTION_ERROR,
+      value = string_of_reason(Reason)
+    }]
   },
   report_result(ReporterFun, RequestId, {error, JobResponse}),
   cloak_metrics:count("job.failed"),
@@ -364,31 +364,30 @@ add_job_runtime_metric(#state{start_time=StartTime}) ->
 -define(run_sandbox_test(Code), ?run_sandbox_test(Code, [])).
 -define(run_sandbox_test(Code, Libraries), ?run_sandbox_test(Code, Libraries, undefined)).
 -define(run_sandbox_test(Code, Libraries, Accumulator), ?run_sandbox_test(Code, Libraries, Accumulator, undefined)).
--define(run_sandbox_test(Code, Libraries, Accumulator, Timestamp),
-    (
-      fun() ->
-        ReqId = make_ref(),
-        Me = self(),
-        job_runner:execute(1,
-              #task{
-                task_id=1, prefetch=undefined, libraries=Libraries, code=Code, timestamp=Timestamp
-              },
-              {<<"user-1">>, []}, Accumulator, ReqId,
-              fun(RId, Response) when RId =:= ReqId ->
-                Me ! {job_done, Response}
-              end
-            ),
-        receive
-          {job_done, Response} ->
-            Response
-        after 500 -> timeout
-        end
+-define(run_sandbox_test(Code, Libraries, Accumulator, Timestamp), (
+  fun() ->
+    ReqId = make_ref(),
+    Me = self(),
+    job_runner:execute(1,
+      #task{
+        task_id=1, prefetch=undefined, libraries=Libraries, code=Code, timestamp=Timestamp
+      },
+      {<<"user-1">>, []}, Accumulator, ReqId,
+      fun(RId, Response) when RId =:= ReqId ->
+        Me ! {job_done, Response}
       end
-    )()).
+    ),
+    receive
+      {job_done, Response} ->
+        Response
+    after 500 -> timeout
+    end
+  end
+)()).
 
 -define(job_response(Properties, Accumulator),
-      #job_response{user_id= <<"user-1">>, task_id=1, properties=Properties, accumulator=Accumulator}
-    ).
+  #job_response{user_id= <<"user-1">>, task_id=1, properties=Properties, accumulator=Accumulator}
+).
 
 run_sandbox_test_() ->
 {setup,
@@ -397,29 +396,29 @@ run_sandbox_test_() ->
   [
     {"job runs", fun() ->
       {ok, ?job_response(Properties, _)} = ?run_sandbox_test("
-            report_property('prop1', 'val1')
-            report_property('prop2', 'val2')
-          "),
+        report_property('prop1', 'val1')
+        report_property('prop2', 'val2')
+      "),
       ?assertEqual(
-            [
-              {property, <<"prop1">>, <<"val1">>},
-              {property, <<"prop2">>, <<"val2">>}
-            ],
-            lists:sort(Properties)
-          )
+        [
+          {property, <<"prop1">>, <<"val1">>},
+          {property, <<"prop2">>, <<"val2">>}
+        ],
+        lists:sort(Properties)
+      )
     end},
     {"integer accumulator", fun() ->
       {ok, ?job_response(Properties1, Acc)} = ?run_sandbox_test("
-            if accumulator == nil then
-              report_property('prop1', 'val1')
-              accumulator = 30
-            else
-              accumulator = 0
-            end
-          ", [], undefined),
+        if accumulator == nil then
+          report_property('prop1', 'val1')
+          accumulator = 30
+        else
+          accumulator = 0
+        end
+      ", [], undefined),
       ?assertEqual([{property, <<"prop1">>, <<"val1">>}], lists:sort(Properties1)),
       {ok, ?job_response(Properties2, _)} = ?run_sandbox_test("report_property('prop2', accumulator + 12)",
-          [], Acc),
+        [], Acc),
       ?assertEqual([{property, <<"prop2">>, <<"42">>}], lists:sort(Properties2))
     end},
     {"boolean accumulator", fun() ->
@@ -436,120 +435,119 @@ run_sandbox_test_() ->
       {ok, ?job_response(_, Acc)} = ?run_sandbox_test("accumulator = nil", [], undefined),
       ?assertEqual(undefined, Acc),
       {ok, ?job_response(Properties, _)} = ?run_sandbox_test(
-            "if accumulator == nil then report_property('prop2', 'foo') end", [], Acc),
+        "if accumulator == nil then report_property('prop2', 'foo') end", [], Acc),
       ?assertEqual([{property, <<"prop2">>, <<"foo">>}], lists:sort(Properties))
     end},
     {"array accumulator", fun() ->
       {ok, ?job_response(_, Acc)} = ?run_sandbox_test("accumulator = {3, 0.14}", [], undefined),
       {ok, ?job_response(Properties, _)} = ?run_sandbox_test(
-          "report_property('prop2', accumulator[1] + accumulator[2])", [], Acc),
+        "report_property('prop2', accumulator[1] + accumulator[2])", [], Acc),
       ?assertEqual([{property, <<"prop2">>, <<"3.14">>}], lists:sort(Properties))
     end},
     {"complex table", fun() ->
-      {ok, ?job_response(_, Acc)} = ?run_sandbox_test(
-            "
-              accumulator = {}
-              accumulator[{a='b', c='d'}] = {4, 5, 6}
-            ", [], undefined),
-      {ok, ?job_response(Properties, _)} = ?run_sandbox_test(
-            "
-              res = ''
-              for k, v in pairs(accumulator) do
-                for k1, v1 in pairs(k) do
-                  res = res..k1..v1
-                end
-                for k2, v2 in pairs(v) do
-                  res = res..k2..v2
-                end
-              end
-              report_property('prop2', res)
-            ",
-            [], Acc),
+      {ok, ?job_response(_, Acc)} = ?run_sandbox_test("
+        accumulator = {}
+        accumulator[{a='b', c='d'}] = {4, 5, 6}
+      ", [], undefined),
+      {ok, ?job_response(Properties, _)} = ?run_sandbox_test("
+      	  res = ''
+      	  for k, v in pairs(accumulator) do
+      	    for k1, v1 in pairs(k) do
+      	      res = res..k1..v1
+      	    end
+      	    for k2, v2 in pairs(v) do
+      	      res = res..k2..v2
+      	    end
+      	  end
+      	  report_property('prop2', res)
+      	",
+      	[], Acc
+			),
       ?assertEqual([{property, <<"prop2">>, <<"abcd142536">>}], lists:sort(Properties))
     end},
     {"task_time", fun() ->
       Timestamp = cloak_util:timestamp_to_epoch(os:timestamp()),
       {ok, ?job_response(Properties, _)} = ?run_sandbox_test("
-            report_property('time', task_time)
-          ", [], undefined, Timestamp),
+        report_property('time', task_time)
+      ", [], undefined, Timestamp),
       ?assertEqual(
-            [{property, <<"time">>, integer_to_binary((Timestamp div 60) * 60)}],
-            Properties
-          )
+        [{property, <<"time">>, integer_to_binary((Timestamp div 60) * 60)}],
+        Properties
+      )
     end},
     {"nil task_time", fun() ->
       {ok, ?job_response(Properties, _)} = ?run_sandbox_test("
-            report_property('time', task_time or 'nil')
-          ", [], undefined, undefined),
+        report_property('time', task_time or 'nil')
+      ", [], undefined, undefined),
       ?assertEqual([{property, <<"time">>, <<"nil">>}], Properties)
     end},
     {"to_date", fun() ->
       % 27.03.5015. 10:43:42
       Timestamp = 96098265822,
       {ok, ?job_response(Properties, _)} = ?run_sandbox_test("
-            time = to_date(task_time)
-            report_property('time', table.concat({time.year, time.month, time.day, time.hour, time.min}, '/'))
-          ", [], undefined, Timestamp),
+        time = to_date(task_time)
+        report_property('time', table.concat({time.year, time.month, time.day, time.hour, time.min}, '/'))
+      ", [], undefined, Timestamp),
       ?assertEqual(
-            [{property, <<"time">>, <<"5015/3/27/10/43">>}],
-            Properties
-          )
+        [{property, <<"time">>, <<"5015/3/27/10/43">>}],
+        Properties
+      )
     end},
     {"libraries are loaded", fun() ->
       {ok, ?job_response(Properties, _)} = ?run_sandbox_test(
-            "foo(); bar();",
-            [
-              {<<"lib1">>, <<"function foo() report_property('prop1', 'val1') end">>},
-              {<<"lib2">>, <<"function bar() report_property('prop2', 'val2') end">>}
-            ]
-          ),
+        "foo(); bar();",
+        [
+          {<<"lib1">>, <<"function foo() report_property('prop1', 'val1') end">>},
+          {<<"lib2">>, <<"function bar() report_property('prop2', 'val2') end">>}
+        ]
+      ),
       ?assertEqual(
-            [
-              {property, <<"prop1">>, <<"val1">>},
-              {property, <<"prop2">>, <<"val2">>}
-            ],
-            lists:sort(Properties)
-          )
+        [
+          {property, <<"prop1">>, <<"val1">>},
+          {property, <<"prop2">>, <<"val2">>}
+        ],
+        lists:sort(Properties)
+      )
     end},
     {"library syntax error", fun() ->
       {error, ?job_response(Properties, _)} = ?run_sandbox_test(
-            "",
-            [{<<"lib1">>, <<"library syntax error">>}]
-          ),
+        "",
+        [{<<"lib1">>, <<"library syntax error">>}]
+      ),
       ?assertEqual(
-            [{property, ?JOB_EXECUTION_ERROR, <<"{sandbox_error,\"cannot load library lib1\"}">>}],
-            lists:sort(Properties)
-          )
+        [{property, ?JOB_EXECUTION_ERROR, <<"{sandbox_error,\"cannot load library lib1\"}">>}],
+        lists:sort(Properties)
+      )
     end},
     {"library runtime error", fun() ->
       {error, ?job_response(Properties, _)} = ?run_sandbox_test(
-            "",
-            [{<<"lib1">>, <<"function foo() error('bar') end\nfoo()">>}]
-          ),
+        "",
+        [{<<"lib1">>, <<"function foo() error('bar') end\nfoo()">>}]
+      ),
       ?assertEqual(
-            [{property, ?JOB_EXECUTION_ERROR, <<"{sandbox_error,\"[string \\\"lib1\\\"]:1: bar\"}">>}],
-            lists:sort(Properties)
-          )
+        [{property, ?JOB_EXECUTION_ERROR, <<"{sandbox_error,\"[string \\\"lib1\\\"]:1: bar\"}">>}],
+        lists:sort(Properties)
+      )
     end},
     {"code syntax error", fun() ->
       {error, ?job_response(Properties, _)} = ?run_sandbox_test(
-            "code syntax error",
-            [{<<"lib1">>, <<"">>}]
-          ),
+        "code syntax error",
+        [{<<"lib1">>, <<"">>}]
+      ),
       ?assertEqual(
-            [{property, ?JOB_EXECUTION_ERROR, <<"{sandbox_error,\"[string \\\"task_code\\\"]:1: '=' expected near 'syntax'\"}">>}],
-            lists:sort(Properties)
-          )
+        [{property, ?JOB_EXECUTION_ERROR, <<"{sandbox_error,\"[string \\\"task_code\\\"]:1: '=' expected near 'syntax'\"}">>}],
+        lists:sort(Properties)
+      )
     end},
     {"code runtime error", fun() ->
       {error, ?job_response(Properties, _)} = ?run_sandbox_test(
-            "function foo() error('bar') end\nfoo()",
-            [{<<"lib1">>, <<"">>}]
-          ),
+        "function foo() error('bar') end\nfoo()",
+        [{<<"lib1">>, <<"">>}]
+      ),
       ?assertEqual(
-            [{property, ?JOB_EXECUTION_ERROR, <<"{sandbox_error,\"[string \\\"task_code\\\"]:1: bar\"}">>}],
-            lists:sort(Properties)
-          )
+        [{property, ?JOB_EXECUTION_ERROR, <<"{sandbox_error,\"[string \\\"task_code\\\"]:1: bar\"}">>}],
+        lists:sort(Properties)
+      )
     end}
   ]
 }.

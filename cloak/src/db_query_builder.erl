@@ -34,13 +34,13 @@
 
 % Helper macro for simpler definitions of binary operators in filters
 -define(FILTER_BIN_OP(Operator, Value, Context),
-      bin_op(
-            Context#parser_context.field,
-            Value,
-            Context,
-            fun(Field, PlaceHolder) -> [Field, Operator, PlaceHolder] end
-          )
-    ).
+  bin_op(
+    Context#parser_context.field,
+    Value,
+    Context,
+    fun(Field, PlaceHolder) -> [Field, Operator, PlaceHolder] end
+  )
+).
 
 
 %% -------------------------------------------------------------------
@@ -117,13 +117,13 @@ surround_join(Terms, Joiner, Context) ->
 % Parses and joins terms with joiner.
 parse_join(Terms, Joiner, Context) ->
   {ParsedTerms, Context1} = lists:foldl(
-        fun(Term, {ParsedTermsAcc, ContextAcc}) ->
-          {ParsedTerm, ContextAcc1} = parse_filter(Term, ContextAcc),
-          {[ParsedTerm | ParsedTermsAcc], ContextAcc1}
-        end,
-        {[], Context},
-        Terms
-      ),
+    fun(Term, {ParsedTermsAcc, ContextAcc}) ->
+      {ParsedTerm, ContextAcc1} = parse_filter(Term, ContextAcc),
+      {[ParsedTerm | ParsedTermsAcc], ContextAcc1}
+    end,
+    {[], Context},
+    Terms
+  ),
   {cloak_util:join(lists:reverse(ParsedTerms), Joiner), Context1}.
 
 % Sanitizes operands, then calls the callback fun to generate the operation string
@@ -161,53 +161,53 @@ sanitize(Value, #parser_context{param_index=Index, params=Params} = Context) ->
 db_query_builder_test_() -> [
   ?_filter_test(<<"TRUE">>, [], []),
   ?_filter_test(
-        <<"\"x\"=$1">>,
-        [1],
-        [{<<"$$x">>, [{<<"$eq">>, 1}]}]
-      ),
+    <<"\"x\"=$1">>,
+    [1],
+    [{<<"$$x">>, [{<<"$eq">>, 1}]}]
+  ),
   ?_filter_test(
-        <<"\"x\"<>$1">>,
-        [1],
-        [{<<"$$x">>, [{<<"$neq">>, 1}]}]
-      ),
+    <<"\"x\"<>$1">>,
+    [1],
+    [{<<"$$x">>, [{<<"$neq">>, 1}]}]
+  ),
   ?_filter_test(
-        <<"\"x\"=\"y\"">>,
-        [],
-        [{<<"$$x">>, [{<<"$eq">>, <<"$$y">>}]}]
-      ),
+    <<"\"x\"=\"y\"">>,
+    [],
+    [{<<"$$x">>, [{<<"$eq">>, <<"$$y">>}]}]
+  ),
   ?_filter_test(
-        <<"(\"x\"<$1 AND \"x\">$2)">>,
-        [10, 0],
-        [{<<"$$x">>, [{<<"$lt">>, 10}, {<<"$gt">>, 0}]}]
-      ),
+    <<"(\"x\"<$1 AND \"x\">$2)">>,
+    [10, 0],
+    [{<<"$$x">>, [{<<"$lt">>, 10}, {<<"$gt">>, 0}]}]
+  ),
   ?_filter_test(
-        <<"((\"x\"<$1 AND \"x\">$2) AND (\"y\"<=$3 AND \"y\">=$4))">>,
-        [10, 0, 100, 90],
-        [
-          [{<<"$$x">>, [{<<"$lt">>, 10}, {<<"$gt">>, 0}]}],
-          [{<<"$$y">>, [{<<"$lte">>, 100}, {<<"$gte">>, 90}]}]
-        ]
-      ),
+    <<"((\"x\"<$1 AND \"x\">$2) AND (\"y\"<=$3 AND \"y\">=$4))">>,
+    [10, 0, 100, 90],
+    [
+      [{<<"$$x">>, [{<<"$lt">>, 10}, {<<"$gt">>, 0}]}],
+      [{<<"$$y">>, [{<<"$lte">>, 100}, {<<"$gte">>, 90}]}]
+    ]
+  ),
   ?_filter_test(
-        <<"((\"x\"<$1 AND \"x\">$2) OR (\"y\"<=$3 AND \"y\">=$4))">>,
-        [10, 0, 100, 90],
-        [
-          {<<"$or">>, [
-            [{<<"$$x">>, [{<<"$lt">>, 10}, {<<"$gt">>, 0}]}],
-            [{<<"$$y">>, [{<<"$lte">>, 100}, {<<"$gte">>, 90}]}]
-          ]}
-        ]
-      ),
+    <<"((\"x\"<$1 AND \"x\">$2) OR (\"y\"<=$3 AND \"y\">=$4))">>,
+    [10, 0, 100, 90],
+    [
+      {<<"$or">>, [
+        [{<<"$$x">>, [{<<"$lt">>, 10}, {<<"$gt">>, 0}]}],
+        [{<<"$$y">>, [{<<"$lte">>, 100}, {<<"$gte">>, 90}]}]
+      ]}
+    ]
+  ),
   ?_filter_test(
-        <<"NOT (((\"x\"<$1 AND \"x\">$2) AND (\"y\"<=$3 AND \"y\">=$4)))">>,
-        [10, 0, 100, 90],
-        [
-          {<<"$not">>, [
-            [{<<"$$x">>, [{<<"$lt">>, 10}, {<<"$gt">>, 0}]}],
-            [{<<"$$y">>, [{<<"$lte">>, 100}, {<<"$gte">>, 90}]}]
-          ]}
-        ]
-      )
+    <<"NOT (((\"x\"<$1 AND \"x\">$2) AND (\"y\"<=$3 AND \"y\">=$4)))">>,
+    [10, 0, 100, 90],
+    [
+      {<<"$not">>, [
+        [{<<"$$x">>, [{<<"$lt">>, 10}, {<<"$gt">>, 0}]}],
+        [{<<"$$y">>, [{<<"$lte">>, 100}, {<<"$gte">>, 90}]}]
+      ]}
+    ]
+  )
 ].
 
 -endif.

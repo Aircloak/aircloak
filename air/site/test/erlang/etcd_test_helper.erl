@@ -6,6 +6,6 @@
 
 unique_key() ->
   iolist_to_binary([
-        "/tests/",
-        lists:flatten([[io_lib:format("~2.16.0B",[X]) || <<X:8>> <= crypto:rand_bytes(20)]])
-      ]).
+    "/tests/",
+    lists:flatten([[io_lib:format("~2.16.0B",[X]) || <<X:8>> <= crypto:rand_bytes(20)]])
+  ]).

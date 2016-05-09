@@ -88,13 +88,13 @@ anonymize(AggregatedReports, LcfUsers) ->
   {PassedLcf, FilteredLabels} = filter_lcf(ReportsWithAnonState, Params),
   LcfTailReports = lcf_tail_reports(FilteredLabels, Params, LcfUsers),
   {FinalResults, _} = oportunistically_filter_reports(LcfTailReports ++ PassedLcf, Params, [
-        fun apply_constant_noise/2,
-        fun apply_proportional_random_noise/2,
-        fun calculate_total_noise/2,
-        fun cap_noise_to_4sd/2,
-        fun round_count/2,
-        fun remove_non_positive_buckets/2
-      ]),
+    fun apply_constant_noise/2,
+    fun apply_proportional_random_noise/2,
+    fun calculate_total_noise/2,
+    fun cap_noise_to_4sd/2,
+    fun round_count/2,
+    fun remove_non_positive_buckets/2
+  ]),
   [strip_anonymization_state(Result) || Result <- FinalResults].
 
 %% @doc Return the default anonymizer parameters.
@@ -123,9 +123,9 @@ default_params() ->
 
 filter_lcf(ReportsWithAnonState, Params) ->
   oportunistically_filter_reports(ReportsWithAnonState, Params, [
-        fun absolute_low_count_filter/2,
-        fun soft_low_count_filter/2
-      ]).
+    fun absolute_low_count_filter/2,
+    fun soft_low_count_filter/2
+  ]).
 
 lcf_tail_reports(_LcfFilteredLabels, _Params, undefined) -> [];
 lcf_tail_reports(LcfFilteredLabels, Params, LcfUsers) ->
@@ -165,23 +165,24 @@ oportunistically_filter_reports(Reports, AnonymizationParameters, Tests) ->
 oportunistically_filter_reports(Reports, FailedLabels, _AnonymizationParameters, []) -> {Reports, FailedLabels};
 oportunistically_filter_reports(Reports, FailedLabels, AnonymizationParameters, [NextTest|PendingTests]) ->
   {ReportsThatPassedTheTest, NewFailedLabels} = lists:foldl(
-      fun(Report, {PassedReports, NewFailedLabelsAcc}) ->
-        case NextTest(Report, AnonymizationParameters) of
-          failed ->
-            {BucketReport, _} = Report,
-            {PassedReports, [BucketReport#bucket_report.label | NewFailedLabelsAcc]};
-          UpdatedReport ->
-            {[UpdatedReport | PassedReports], NewFailedLabelsAcc}
-        end
-      end,
-      {[], []},
-      Reports),
+    fun(Report, {PassedReports, NewFailedLabelsAcc}) ->
+      case NextTest(Report, AnonymizationParameters) of
+        failed ->
+          {BucketReport, _} = Report,
+          {PassedReports, [BucketReport#bucket_report.label | NewFailedLabelsAcc]};
+        UpdatedReport ->
+          {[UpdatedReport | PassedReports], NewFailedLabelsAcc}
+      end
+    end,
+    {[], []},
+    Reports
+  ),
   oportunistically_filter_reports(
-        ReportsThatPassedTheTest,
-        NewFailedLabels ++ FailedLabels,
-        AnonymizationParameters,
-        PendingTests
-      ).
+    ReportsThatPassedTheTest,
+    NewFailedLabels ++ FailedLabels,
+    AnonymizationParameters,
+    PendingTests
+  ).
 
 
 %% -------------------------------------------------------------------
@@ -502,7 +503,7 @@ target_error_test() ->
   AnonBuckets = lists:flatten([anonymizer:anonymize(Buckets) || _ <- lists:seq(1,100)]),
   AnonParams = default_params(),
   TargetError = AnonParams#anonymizer_params.target_error,
-  IsUnderTargetError = fun (#bucket_report{count = Count, noisy_count = NoisyCount}) ->
+  IsUnderTargetError = fun(#bucket_report{count = Count, noisy_count = NoisyCount}) ->
       % Rounding to multiples of 10 will add at most 5 to the noise.
       abs(NoisyCount - Count) - 5 =< Count * TargetError
     end,
@@ -556,11 +557,10 @@ lcf_tail(Properties) ->
 add_buckets(Aggregator, Properties) ->
   [
     aggregator:add_property(
-          #property{label=atom_to_binary(Label, latin1), value=""},
-          iolist_to_binary(io_lib:format("u~p", [UserIndex])),
-          Aggregator
-        )
-    || {Label, From, To} <- Properties, UserIndex <- lists:seq(From, To)
+      #property{label=atom_to_binary(Label, latin1), value=""},
+      iolist_to_binary(io_lib:format("u~p", [UserIndex])),
+      Aggregator
+    ) || {Label, From, To} <- Properties, UserIndex <- lists:seq(From, To)
   ].
 
 -endif.

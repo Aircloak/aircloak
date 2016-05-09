@@ -84,7 +84,7 @@ get_next_batch(UserId, TableName, JobInput, ResetStream) ->
 %% Reads data from a prefetch table and returns the next batch.
 -spec read_from_table(user_id(), #table_stream_state{}, boolean()) -> {#table_stream_state{}, #tabledatapb{}}.
 read_from_table(_UserId, #table_stream_state{last_row_id = LastRowId,
-      max_row_id = MaxRowId} = TableStream, false) when LastRowId > MaxRowId ->
+    max_row_id = MaxRowId} = TableStream, false) when LastRowId > MaxRowId ->
   % this should never happen in normal circumstances (data streaming has finished, needs to be reset)
   EmptyBatch = #tabledatapb{columns = [], rows = [], complete = true},
   {TableStream, EmptyBatch};
@@ -102,7 +102,7 @@ read_from_table(UserId, TableStream, false) ->
   BatchSize = batch_size(length(Columns)),
   % create the query for the next batch
   {DataRows, NewLastRowId} = load_next_batch(SourceId, TableId, UserId,
-      LastRowId, RowIdStep, BatchSize, Columns, Filter),
+    LastRowId, RowIdStep, BatchSize, Columns, Filter),
   % convert the rows to the job input format
   InputRows = [create_input_table_data_row(DataRow) || DataRow <- DataRows],
   % update stream state and return data
@@ -112,7 +112,7 @@ read_from_table(UserId, TableStream, false) ->
 
 %% Loads the next batch from the database and returns the data and the last row id of the loaded data.
 -spec load_next_batch(atom(), atom(), user_id(), integer(),
-      pos_integer(), pos_integer(), [binary()], db_query_builder:query()) -> {[[data_value()]], integer()}.
+  pos_integer(), pos_integer(), [binary()], db_query_builder:query()) -> {[[data_value()]], integer()}.
 load_next_batch(SourceId, TableId, UserId, StartRowId, RowIdStep, BatchSize, Columns, Filter) ->
   EndRowId = StartRowId + RowIdStep,
   case 'Elixir.Cloak.DataSource':get_data_batch(SourceId, TableId, UserId,
@@ -120,8 +120,8 @@ load_next_batch(SourceId, TableId, UserId, StartRowId, RowIdStep, BatchSize, Col
     {0, []} -> % no results found in this range, go to the next one
       load_next_batch(SourceId, TableId, UserId, EndRowId, RowIdStep, BatchSize, Columns, Filter);
     {BatchSize, DataRows} ->
-        [LastRowId | _LastRowFields] = lists:last(DataRows),
-        {DataRows, LastRowId};
+      [LastRowId | _LastRowFields] = lists:last(DataRows),
+      {DataRows, LastRowId};
     {_Count, DataRows} ->
       {DataRows, EndRowId}
   end.
@@ -135,7 +135,7 @@ create_per_user_table_streams(QuerySpec) ->
 
 %% Parses a data query specification and extract the information needed to create the initial stream state.
 -spec parse_data_query_spec(prefetch_table_spec()) ->
-    {binary(), atom(), atom(), [binary()], non_neg_integer(), db_query_builder:query()}.
+  {binary(), atom(), atom(), [binary()], non_neg_integer(), db_query_builder:query()}.
 parse_data_query_spec(QuerySpec) ->
   TablePath = proplists:get_value(table, QuerySpec, null),
   true = TablePath /= null, % this field is required
@@ -147,14 +147,14 @@ parse_data_query_spec(QuerySpec) ->
   TableColumns = 'Elixir.Cloak.DataSource':columns(SourceId, TableId),
   ColumnNames = [ColumnName || {ColumnName, _Type} <- TableColumns],
   SelectedColumns = case proplists:get_value(columns, QuerySpec, null) of
-        null -> ColumnNames; % not specified, select all columns
-        QueryColumns -> ColumnNames -- (ColumnNames -- QueryColumns) % protect against SQL injection
-      end,
+    null -> ColumnNames; % not specified, select all columns
+    QueryColumns -> ColumnNames -- (ColumnNames -- QueryColumns) % protect against SQL injection
+  end,
   {TablePath, SourceId, TableId, SelectedColumns, RowLimit, Filter}.
 
 %% Creates the initial stream state from the metadata information about the streamed table data.
 -spec parse_metadata(binary(), atom(), atom(), [binary()], db_query_builder:query(),
-    {user_id(), integer(), integer(), non_neg_integer()}) -> {user_id(), {binary(), #table_stream_state{}}}.
+  {user_id(), integer(), integer(), non_neg_integer()}) -> {user_id(), {binary(), #table_stream_state{}}}.
 parse_metadata(TableName, SourceId, TableId, Columns, Filter, {UserId, MinRowId, MaxRowId, Count}) ->
   RowIdRange = MaxRowId - MinRowId,
   BatchSize = batch_size(length(Columns)),
@@ -168,8 +168,8 @@ parse_metadata(TableName, SourceId, TableId, Columns, Filter, {UserId, MinRowId,
 -spec group_table_streams([{user_id(), {binary(), #table_stream_state{}}}]) -> [{user_id(), job_input()}].
 group_table_streams(UserTableStreams) ->
   UserStreamsMap = lists:foldr(fun({UserId, TableStream}, UserStreamsMap) ->
-        dict:update(UserId, fun(Streams) -> [TableStream | Streams] end, [TableStream], UserStreamsMap)
-      end, dict:new(), UserTableStreams),
+    dict:update(UserId, fun(Streams) -> [TableStream | Streams] end, [TableStream], UserStreamsMap)
+  end, dict:new(), UserTableStreams),
   dict:to_list(UserStreamsMap).
 
 %% Packs the table row data into an job input row record.
@@ -224,7 +224,7 @@ compute_rows_sum(_JobInput, true) ->
   0;
 compute_rows_sum(JobInput, false) ->
   {NewJobInput, #tabledatapb{columns = Columns, rows = Rows, complete = Complete}} =
-      get_next_batch(<<"user-id">>, db_test:table_path(<<"test">>), JobInput, false),
+    get_next_batch(<<"user-id">>, db_test:table_path(<<"test">>), JobInput, false),
   ?assertEqual(true, Columns =:= [<<"Data Value">>] orelse Columns =:= []),
   Values = [get_row_value(Row) || Row <- Rows],
   BatchSum = lists:foldl(fun(Value, Sum) -> Value + Sum end, 0, Values),

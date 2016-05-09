@@ -28,9 +28,9 @@ defmodule Air.Socket.CloakTest do
 
     me = self()
     spawn(fn ->
-          start_task_result = MainChannel.run_task("unknown_org/cloak_1", %{id: 42, code: ""})
-          send(me, {:start_task_result, start_task_result})
-        end)
+      start_task_result = MainChannel.run_task("unknown_org/cloak_1", %{id: 42, code: ""})
+      send(me, {:start_task_result, start_task_result})
+    end)
     assert {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, 100)
     assert %{"event" => "run_task", "payload" => %{"id" => 42}, "request_id" => request_id} = request
 
@@ -39,10 +39,9 @@ defmodule Air.Socket.CloakTest do
   end
 
   test "receiving a task result" do
-    task =
-      Air.TestRepoHelper.create_organisation!()
-      |> Air.TestRepoHelper.create_user!()
-      |> Air.TestRepoHelper.create_task!()
+    task = Air.TestRepoHelper.create_organisation!()
+    |> Air.TestRepoHelper.create_user!()
+    |> Air.TestRepoHelper.create_task!()
     task_id = task.id
 
     socket = TestSocketHelper.connect!()

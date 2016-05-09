@@ -13,11 +13,11 @@ defmodule Air.GuardianSerializer do
 
   def from_token("User:" <> id) do
     user = Repo.one!(
-          from user in User,
-          join: organisation in assoc(user, :organisation),
-          where: user.id == ^id,
-          preload: [organisation: organisation]
-        )
+      from user in User,
+      join: organisation in assoc(user, :organisation),
+      where: user.id == ^id,
+      preload: [organisation: organisation]
+    )
     {:ok, user}
   end
   def from_token(_), do: {:error, "Unknown resource type"}
