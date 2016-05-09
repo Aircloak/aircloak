@@ -8,13 +8,13 @@ defmodule Cloak.Logger.ProdFormatterTest do
     console_setting = Application.get_env(:logger, :console, [])
 
     Logger.configure_backend(:console,
-        Keyword.put(console_setting, :format, {Cloak.Logger.ProdFormatter, :format}))
+      Keyword.put(console_setting, :format, {Cloak.Logger.ProdFormatter, :format}))
     Logger.configure(level: :debug)
 
     on_exit(fn ->
-          :ok = Logger.configure(level: current_level)
-          Logger.configure_backend(:console, console_setting)
-        end)
+      :ok = Logger.configure(level: current_level)
+      Logger.configure_backend(:console, console_setting)
+    end)
     :ok
   end
 

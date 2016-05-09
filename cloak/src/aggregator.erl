@@ -101,12 +101,14 @@ add_property(Property, UserId, Aggregator) ->
 %%      of `task_coordinator:handle_message/2' for detailed explanation.
 -spec add_bucket_reports([#bucket_report{}], aggregator()) -> aggregator().
 add_bucket_reports(BucketReports, Aggregator) ->
-  [add(#property{label=Label, value=Value}, UsersHash, Count, Aggregator)
-      || #bucket_report{
-        label=#bucket_label{label=Label, value=Value},
-        users_hash=UsersHash,
-        count=Count
-      } <- BucketReports],
+  [
+    add(#property{label=Label, value=Value}, UsersHash, Count, Aggregator)
+    || #bucket_report{
+      label=#bucket_label{label=Label, value=Value},
+      users_hash=UsersHash,
+      count=Count
+    } <- BucketReports
+  ],
   Aggregator.
 
 %% @doc Returns aggregated bucket reports.
@@ -147,11 +149,11 @@ report_loop(#aggregator{table=Table, lcf_users=LcfUsers} = Aggregator, Dict) ->
     {add, {Property, UsersKey} = Key} ->
       [{_, Count}] = ets:lookup(Table, Key),
       Dict1 = dict:update(
-            Property,
-            fun(UsersKeys) -> gb_trees:enter(UsersKey, Count, UsersKeys) end,
-            gb_trees:from_orddict([{UsersKey, Count}]),
-            Dict
-          ),
+        Property,
+        fun(UsersKeys) -> gb_trees:enter(UsersKey, Count, UsersKeys) end,
+        gb_trees:from_orddict([{UsersKey, Count}]),
+        Dict
+      ),
       report_loop(Aggregator, Dict1);
     {get, Caller} ->
       Reports = dict:fold(
@@ -194,14 +196,14 @@ process_buckets(Table, Reporters, {Property, _} = Key) ->
 get_reports(ReportersList) ->
   [Reporter ! {get, self()} || Reporter <- ReportersList],
   lists:foldl(
-        fun(_, ReportsAcc) ->
-          receive
-            {reports, Reports} -> Reports ++ ReportsAcc
-          end
-        end,
-        [],
-        ReportersList
-      ).
+    fun(_, ReportsAcc) ->
+      receive
+        {reports, Reports} -> Reports ++ ReportsAcc
+      end
+    end,
+    [],
+    ReportersList
+  ).
 
 
 %% -------------------------------------------------------------------
@@ -214,18 +216,19 @@ get_reports(ReportersList) ->
 
 make_reports(Entries) ->
   Aggregator = new(),
-  [add_job_response(
-        #job_response{user_id=User, properties=[#property{label=PropertyLabel}]},
-        Aggregator
-      ) || {PropertyLabel, User} <- Entries
+  [
+    add_job_response(
+      #job_response{user_id=User, properties=[#property{label=PropertyLabel}]},
+      Aggregator
+    ) || {PropertyLabel, User} <- Entries
   ],
   reports(Aggregator).
 
 bucket_counts(Reports) ->
   SortedReports = lists:sort(
-        fun(#bucket_report{count=Count1}, #bucket_report{count=Count2}) -> Count1 =< Count2 end,
-        Reports
-      ),
+    fun(#bucket_report{count=Count1}, #bucket_report{count=Count2}) -> Count1 =< Count2 end,
+    Reports
+  ),
   [{(Report#bucket_report.label)#bucket_label.label, Report#bucket_report.count} || Report <- SortedReports].
 
 aggregator_test_() ->
@@ -235,21 +238,21 @@ aggregator_test_() ->
     [
       ?_assertEqual([{b2, 1}, {b1, 2}], bucket_counts(make_reports([{b1, u1}, {b1, u2}, {b2, u1}]))),
       ?_assertEqual(
-            lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u1}])),
-            lists:sort(make_reports([{b2, u1}, {b1, u1}, {b1, u2}]))
-          ),
+        lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u1}])),
+        lists:sort(make_reports([{b2, u1}, {b1, u1}, {b1, u2}]))
+      ),
       ?_assertNotEqual(
-            lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u1}])),
-            lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u3}]))
-          ),
+        lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u1}])),
+        lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u3}]))
+      ),
       ?_assertNotEqual(
-            lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u1}])),
-            lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u1}, {b2, u2}]))
-          ),
+        lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u1}])),
+        lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u1}, {b2, u2}]))
+      ),
       ?_assertNotEqual(
-            lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u1}])),
-            lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u1}, {b3, u2}]))
-          ),
+        lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u1}])),
+        lists:sort(make_reports([{b1, u1}, {b1, u2}, {b2, u1}, {b3, u2}]))
+      ),
       fun() ->
         Aggregator = new(),
         EntriesList = [

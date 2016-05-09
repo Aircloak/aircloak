@@ -57,14 +57,14 @@ sort_buckets(Buckets) ->
 % values instead.
 normalize_buckets(Buckets) ->
   lists:filtermap(
-        fun
-          (Bucket) when element(3, Bucket) =< 0 -> false;
-          (Bucket) when element(1, Bucket) =:= neg_infinite -> {true, setelement(1, Bucket, 0)};
-          (Bucket) when element(2, Bucket) =:= infinite -> {true, setelement(2, Bucket, element(1, Bucket) * 2)};
-          (Bucket) -> {true, Bucket}
-        end,
-        Buckets
-      ).
+    fun
+      (Bucket) when element(3, Bucket) =< 0 -> false;
+      (Bucket) when element(1, Bucket) =:= neg_infinite -> {true, setelement(1, Bucket, 0)};
+      (Bucket) when element(2, Bucket) =:= infinite -> {true, setelement(2, Bucket, element(1, Bucket) * 2)};
+      (Bucket) -> {true, Bucket}
+    end,
+    Buckets
+  ).
 
 total_size(Buckets) ->
   lists:foldl(fun(Bucket, Size) -> Size + bucket_size(Bucket) end, 0, Buckets).
@@ -79,10 +79,10 @@ init(_, Stats) -> Stats.
 
 visit({_, _, NoisyCount} = Bucket, #stats{position=Position} = Stats) ->
   lists:foldl(
-        fun(StatType, StatsAcc) -> visit(StatType, Bucket, StatsAcc) end,
-        Stats#stats{position=Position + NoisyCount},
-        ?STAT_TYPES
-      ).
+    fun(StatType, StatsAcc) -> visit(StatType, Bucket, StatsAcc) end,
+    Stats#stats{position=Position + NoisyCount},
+    ?STAT_TYPES
+  ).
 
 % This is implemented as a macro, because this module works with records, which
 % have no support for run-time dynamic field manipulation. Since we compute
@@ -117,9 +117,9 @@ visit({percentile, _}, _, Stats) -> Stats.
 
 to_proplist(Stats) ->
   lists:foldl(
-        fun(StatType, Acc) -> [property(StatType, Stats) | Acc] end,
-        [], ?STAT_TYPES
-      ).
+    fun(StatType, Acc) -> [property(StatType, Stats) | Acc] end,
+    [], ?STAT_TYPES
+  ).
 
 % See comment for visit_percentile macro above.
 -define(property_percentile(Perc, Field),

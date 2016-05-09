@@ -26,7 +26,7 @@ defmodule Cloak.DataSource.PostgreSQL do
       [schema_name, table_name] -> {schema_name, table_name}
     end
     query = "SELECT column_name, udt_name FROM information_schema.columns " <>
-        "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
+      "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
     row_mapper = fn [name, type_name] -> {name, parse_type(type_name)} end
     {_count, columns} = run_query(source_id, query, [], row_mapper)
     columns
@@ -50,8 +50,8 @@ defmodule Cloak.DataSource.PostgreSQL do
     quoted_columns = for column <- columns, do: ~s("#{column}")
     columns_string = Enum.join([row_id | quoted_columns], ",")
     query = "SELECT #{columns_string} FROM #{table_name} WHERE (#{filter_string}) " <>
-        "AND #{user_id} = '#{user_id_value}' AND #{row_id} BETWEEN '#{min_row_id}' AND '#{max_row_id}' " <>
-        "ORDER BY #{row_id} ASC LIMIT #{batch_size}"
+      "AND #{user_id} = '#{user_id_value}' AND #{row_id} BETWEEN '#{min_row_id}' AND '#{max_row_id}' " <>
+      "ORDER BY #{row_id} ASC LIMIT #{batch_size}"
     run_query(source_id, query, filter_parameters)
   end
 
@@ -88,15 +88,15 @@ defmodule Cloak.DataSource.PostgreSQL do
     user_id = table[:user_id]
     row_id = table[:row_id]
     "SELECT #{user_id}, MIN(#{row_id}), MAX(#{row_id}), COUNT(#{row_id}) FROM #{table_name} " <>
-        "WHERE #{filter} GROUP BY #{user_id}"
+      "WHERE #{filter} GROUP BY #{user_id}"
   end
   defp build_metadata_query(table, filter, row_limit) do
     table_name = table[:name]
     user_id = table[:user_id]
     row_id = table[:row_id]
     "SELECT #{user_id}, MIN(#{row_id}), MAX(#{row_id}), COUNT(#{row_id}) FROM " <>
-        "(SELECT #{user_id}, #{row_id}, ROW_NUMBER() OVER (PARTITION BY #{user_id} ORDER BY #{row_id} DESC) " <>
-        "AS index FROM #{table_name} WHERE #{filter}) numbered WHERE index <= #{row_limit} GROUP BY #{user_id}"
+      "(SELECT #{user_id}, #{row_id}, ROW_NUMBER() OVER (PARTITION BY #{user_id} ORDER BY #{row_id} DESC) " <>
+      "AS index FROM #{table_name} WHERE #{filter}) numbered WHERE index <= #{row_limit} GROUP BY #{user_id}"
   end
 
 

@@ -18,18 +18,16 @@
 % group leader. The two arguments version accepts the group leader. This can be useful in tests
 % that normally capture I/O. From tests, you can call ?DBG_INSPECT(user, ...) to see the result printed.
 -define(DBG_INSPECT(Term), ?DBG_INSPECT(group_leader(), Term)).
--define(DBG_INSPECT(IoDevice, Term),
-      (
-        fun() ->
-          DBG_INSPECT_Res = Term,
-          io:format(IoDevice,
-                "~n\e[32;mINSPECT ~p (line ~p):~n  ~s~n\e[36;m  ~p~n~n\e[0;m",
-                [?MODULE, ?LINE, ??Term, DBG_INSPECT_Res]
-              ),
-          DBG_INSPECT_Res
-        end
-      )()
-    ).
+-define(DBG_INSPECT(IoDevice, Term), (
+  fun() ->
+    DBG_INSPECT_Res = Term,
+    io:format(IoDevice,
+      "~n\e[32;mINSPECT ~p (line ~p):~n  ~s~n\e[36;m  ~p~n~n\e[0;m",
+      [?MODULE, ?LINE, ??Term, DBG_INSPECT_Res]
+    ),
+    DBG_INSPECT_Res
+  end)()
+).
 
 
 % Helper for profiling some function call. This can be useful for development and testing.
@@ -48,15 +46,15 @@
 % at any point in time.
 -define(DBG_PROFILE(Term), ?DBG_PROFILE(group_leader(), Term)).
 -define(DBG_PROFILE(IoDevice, Term), (fun() ->
-      filelib:ensure_dir("/tmp/profile/"),
-      DBG_PROFILE_TraceFileName = "/tmp/profile.trace",
-      DBG_PROFILE_AnalyseFileName = "/tmp/profile.analyse",
-      DBG_PROFILE_Result = fprof:apply(fun() -> Term end, [], [{file, DBG_PROFILE_TraceFileName}]),
-      fprof:profile({file, DBG_PROFILE_TraceFileName}),
-      fprof:analyse([{dest, DBG_PROFILE_AnalyseFileName}]),
-      file:delete(DBG_PROFILE_TraceFileName),
-      {ok, Contents} = file:read_file(DBG_PROFILE_AnalyseFileName),
-      io:format(IoDevice, "~n~n~s", [Contents]),
-      io:format(IoDevice, "Profile results are stored in ~s~n~n", [DBG_PROFILE_AnalyseFileName]),
-      DBG_PROFILE_Result
-    end)()).
+  filelib:ensure_dir("/tmp/profile/"),
+  DBG_PROFILE_TraceFileName = "/tmp/profile.trace",
+  DBG_PROFILE_AnalyseFileName = "/tmp/profile.analyse",
+  DBG_PROFILE_Result = fprof:apply(fun() -> Term end, [], [{file, DBG_PROFILE_TraceFileName}]),
+  fprof:profile({file, DBG_PROFILE_TraceFileName}),
+  fprof:analyse([{dest, DBG_PROFILE_AnalyseFileName}]),
+  file:delete(DBG_PROFILE_TraceFileName),
+  {ok, Contents} = file:read_file(DBG_PROFILE_AnalyseFileName),
+  io:format(IoDevice, "~n~n~s", [Contents]),
+  io:format(IoDevice, "Profile results are stored in ~s~n~n", [DBG_PROFILE_AnalyseFileName]),
+  DBG_PROFILE_Result
+end)()).

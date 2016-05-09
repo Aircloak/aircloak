@@ -20,17 +20,17 @@ defmodule Cloak.AirSocket do
   @spec start_link(String.t, GenServer.options) :: GenServer.on_start
   def start_link(cloak_name \\ cloak_name(), gen_server_opts \\ [name: __MODULE__]) do
     GenSocketClient.start_link(
-          __MODULE__,
-          GenSocketClient.Transport.WebSocketClient,
-          cloak_name,
-          [
-            serializer: :cloak_conf.get_val(:air, :serializer),
-            transport_opts: [
-              keepalive: :timer.seconds(30)
-            ]
-          ],
-          gen_server_opts
-        )
+      __MODULE__,
+      GenSocketClient.Transport.WebSocketClient,
+      cloak_name,
+      [
+        serializer: :cloak_conf.get_val(:air, :serializer),
+        transport_opts: [
+          keepalive: :timer.seconds(30)
+        ]
+      ],
+      gen_server_opts
+    )
   end
 
   @doc """
@@ -148,7 +148,7 @@ defmodule Cloak.AirSocket do
   def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, transport, state) do
     request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
     GenSocketClient.push(transport, "main", "cloak_call",
-        %{request_id: request_id, event: event, payload: payload})
+      %{request_id: request_id, event: event, payload: payload})
     timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
     {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
   end
@@ -194,10 +194,10 @@ defmodule Cloak.AirSocket do
       :ok | {:error, any}
   defp respond_to_air({transport, request_id}, status, result \\ nil) do
     case GenSocketClient.push(transport, "main", "call_response", %{
-              request_id: request_id,
-              status: status,
-              result: result
-            }) do
+          request_id: request_id,
+          status: status,
+          result: result
+        }) do
       {:ok, _} -> :ok
       error -> error
     end

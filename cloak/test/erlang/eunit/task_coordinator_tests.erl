@@ -42,83 +42,86 @@ task_test_() ->
     [
       {"no rows", fun() ->
         ?verifyAsync(
-              <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
-                  "\") do report_property(\"height\", row.height) end">>,
-              #{buckets => [], exceptions => [], task_id => "test_task"}
-            )
+          <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
+              "\") do report_property(\"height\", row.height) end">>,
+          #{buckets => [], exceptions => [], task_id => "test_task"}
+        )
       end},
       {"async task", fun() ->
         Data = [{
             iolist_to_binary(io_lib:format("user-~p", [Index])),
             [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
-          } || Index <- lists:seq(1, 100)],
+          } || Index <- lists:seq(1, 100)
+				],
         ok = db_test:add_users_data(Data),
         ?verifyAsync(
-              <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
-                  "\") do report_property(\"height\", row.height) end">>,
-              #{
-                buckets => [#{
-                  label => <<"height">>,
-                  value => <<"180">>,
-                  count => 100
-                }],
-                exceptions => [],
-                task_id => "test_task"
-              }
-            )
+          <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
+              "\") do report_property(\"height\", row.height) end">>,
+          #{
+            buckets => [#{
+              label => <<"height">>,
+              value => <<"180">>,
+              count => 100
+            }],
+            exceptions => [],
+            task_id => "test_task"
+          }
+        )
       end},
       {"sync task", fun() ->
         Data = [{
             iolist_to_binary(io_lib:format("user-~p", [Index])),
             [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
-          } || Index <- lists:seq(1, 100)],
+          } || Index <- lists:seq(1, 100)
+				],
         ok = db_test:add_users_data(Data),
         ?verifySync(
-              <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
-                  "\") do report_property(\"height\", row.height) end">>,
-              #{
-                buckets => [#{
-                  label => <<"height">>,
-                  value => <<"180">>,
-                  count => 100
-                }],
-                exceptions => [],
-                task_id => "test_task"
-              }
-            )
+          <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
+              "\") do report_property(\"height\", row.height) end">>,
+          #{
+            buckets => [#{
+              label => <<"height">>,
+              value => <<"180">>,
+              count => 100
+            }],
+            exceptions => [],
+            task_id => "test_task"
+          }
+        )
       end},
       {"task with errors", fun() ->
         Data = [{
             iolist_to_binary(io_lib:format("user-~p", [Index])),
             [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
-          } || Index <- lists:seq(1, 100)],
+          } || Index <- lists:seq(1, 100)
+				],
         ok = db_test:add_users_data(Data),
         ?verifyAsync(
-              <<"error('some_error')">>,
-              #{
-                buckets => [],
-                exceptions => [#{
-                  error => <<"{sandbox_error,\"[string \\\"task_code\\\"]:1: some_error\"}">>,
-                  count => 100
-                }],
-                task_id => "test_task"
-              }
-            )
+          <<"error('some_error')">>,
+          #{
+            buckets => [],
+            exceptions => [#{
+              error => <<"{sandbox_error,\"[string \\\"task_code\\\"]:1: some_error\"}">>,
+              count => 100
+            }],
+            task_id => "test_task"
+          }
+        )
       end},
       {"timeout", fun() ->
         gen_server:start_link(task_coordinator, {test_task(<<"">>), undefined, undefined, fun timeout_runner/4}, []),
         {reply, Result} = ?assertReceived({reply, _}, 1000),
         ?assertEqual(
-              #{
-                buckets => [],
-                exceptions => [#{
-                  error => <<"task execution timed out before processing all users">>,
-                  count => 1
-                }],
-                task_id => "test_task"
-              },
-              Result
-            )
+          #{
+            buckets => [],
+            exceptions => [#{
+              error => <<"task execution timed out before processing all users">>,
+              count => 1
+            }],
+            task_id => "test_task"
+          },
+          Result
+        )
       end}
     ]
   }.

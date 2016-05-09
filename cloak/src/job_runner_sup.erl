@@ -28,8 +28,8 @@ start_link() ->
 -spec execute(#task{}, job_runner:get_parameters_fun(), term(), job_runner:callback_fun()) -> ok.
 execute(Req, GetParametersFun, ReqId, SPid) when is_function(GetParametersFun, 1) ->
   lists:foreach(fun (I) ->
-        ok = job_runner:execute(I, Req, GetParametersFun, undefined, ReqId, SPid)
-      end, lists:seq(0, runners_count() - 1)).
+    ok = job_runner:execute(I, Req, GetParametersFun, undefined, ReqId, SPid)
+  end, lists:seq(0, runners_count() - 1)).
 
 %% Send a timeout of a given request to all runners.
 -spec send_request_timeout(term()) -> ok.

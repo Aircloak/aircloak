@@ -45,7 +45,7 @@
 host_from_node(Nodename) when Nodename =:= node() -> "127.0.0.1";
 host_from_node(Nodename) ->
   [_Node, Host] = re:split(atom_to_list(Nodename), "@",
-      [{return, list}, {parts, 2}]),
+    [{return, list}, {parts, 2}]),
   Host.
 
 %% @doc Joins a list by concatenating each
@@ -104,11 +104,12 @@ epoch_to_timestamp(Epoch) ->
 -spec dedupe([any()]) -> [any()].
 dedupe(Elements) ->
   {ReversedDedupedList,_} = lists:foldl(fun(Element, {AccList, DupeSet}=Acc) ->
-        case sets:is_element(Element, DupeSet) of
-          true -> Acc;
-          false -> {[Element|AccList], sets:add_element(Element, DupeSet)}
-        end
-      end, {[], sets:new()}, Elements),
+      case sets:is_element(Element, DupeSet) of
+        true -> Acc;
+        false -> {[Element|AccList], sets:add_element(Element, DupeSet)}
+      end
+    end, {[], sets:new()}, Elements
+  ),
   lists:reverse(ReversedDedupedList).
 
 %% @doc Returns a list of all nodes visible from the local node,
@@ -200,13 +201,13 @@ host_from_node_test_() ->
 join_test_() ->
   [
     {"A single item should not be joined",
-        ?_assertEqual("item", lists:flatten(join(["item"], ", ")))
+      ?_assertEqual("item", lists:flatten(join(["item"], ", ")))
     },
     {"Multiple items should be joined",
-        ?_assertEqual("item1, item2", lists:flatten(join(["item1", "item2"], ", ")))
+      ?_assertEqual("item1, item2", lists:flatten(join(["item1", "item2"], ", ")))
     },
     {"Should only join the outermost levels of iolists",
-        ?_assertEqual("item1, item2", lists:flatten(join([["item1"], "item2"], ", ")))
+      ?_assertEqual("item1, item2", lists:flatten(join([["item1"], "item2"], ", ")))
     }
   ].
 
@@ -247,11 +248,11 @@ chunk_size_test_() ->
 
 folded_chunks(List, ChunkSize) ->
   lists:reverse(chunked_foldl(
-        fun(Chunk, Acc) -> [Chunk | Acc] end,
-        [],
-        List,
-        ChunkSize
-      )).
+    fun(Chunk, Acc) -> [Chunk | Acc] end,
+    [],
+    List,
+    ChunkSize
+  )).
 
 chunk_foldl_test_() ->
   [

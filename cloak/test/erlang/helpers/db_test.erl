@@ -83,18 +83,18 @@ full_table_name(TableName) when is_binary(TableName) ->
 insert_rows(UserId, TableName, TableData) ->
   FullTableName = sanitized_table(TableName),
   Columns = lists:map(fun sql_util:sanitize_db_object/1,
-      [<<"user_id">>] ++ proplists:get_value(columns, TableData)),
+    [<<"user_id">>] ++ proplists:get_value(columns, TableData)),
   Rows = lists:map(
-        fun(Row) -> [UserId | Row] end,
-        proplists:get_value(data, TableData)
-      ),
+    fun(Row) -> [UserId | Row] end,
+    proplists:get_value(data, TableData)
+  ),
   {PlaceHolders, _} = lists:foldr(
-        fun(_Column, {PlaceholdersAcc, Index}) ->
-          {[sql_util:param_placeholder(Index) | PlaceholdersAcc], Index - 1}
-        end,
-        {[], length(Columns)},
-        Columns
-      ),
+    fun(_Column, {PlaceholdersAcc, Index}) ->
+      {[sql_util:param_placeholder(Index) | PlaceholdersAcc], Index - 1}
+    end,
+    {[], length(Columns)},
+    Columns
+  ),
   Query = iolist_to_binary([
     <<"INSERT INTO ">>, FullTableName,
     $(, cloak_util:join(Columns, $,), $), $\s,
@@ -108,4 +108,4 @@ clean_db() ->
   'Elixir.Cloak.DataSource':clear_test_tables().
 
 sanitized_table(TableName) ->
-    sql_util:sanitize_db_object(<<"cloak_test.", TableName/binary>>).
+  sql_util:sanitize_db_object(<<"cloak_test.", TableName/binary>>).

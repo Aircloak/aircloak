@@ -134,31 +134,31 @@ has_at_least_one_table(#state{tables=Tables}) ->
 -spec command_list(pos_integer(), db_state()) -> [{integer(), proper_gen:generator()}].
 command_list(Factor, State) ->
   lists:flatten(
-        [
-          [{1 * Factor, add_table(State)}]
-        ] ++ [
-          [
-            {1 * Factor, remove_table(State)},
-            {1 * Factor, clear_table(State)},
-            {20 * Factor, add_data(State)}
-          ]
-        ||
-          has_at_least_one_table(State)
-        ]
-      ).
+    [
+      [{1 * Factor, add_table(State)}]
+    ] ++ [
+      [
+        {1 * Factor, remove_table(State)},
+        {1 * Factor, clear_table(State)},
+        {20 * Factor, add_data(State)}
+      ]
+    ||
+      has_at_least_one_table(State)
+    ]
+  ).
 
 %% @doc Check if the command list has at least one add data (which implies we have at least one table).
 -spec command_list_has_at_least_one_add_data([any()]) -> boolean().
 command_list_has_at_least_one_add_data(Commands) ->
   lists:any(
-        fun
-          ({set, {var, _}, {call, ?MODULE, callback_add_data, _}}) ->
-            true;
-          (_) ->
-            false
-        end,
-        Commands
-      ).
+    fun
+      ({set, {var, _}, {call, ?MODULE, callback_add_data, _}}) ->
+        true;
+      (_) ->
+        false
+    end,
+    Commands
+  ).
 
 %% @doc Return the names of all active tables.
 -spec tables(db_state()) -> [string()].
@@ -169,12 +169,12 @@ tables(#state{tables=Tables}) ->
 -spec fold_tables(fun((string(), db_rows(), any()) -> any()), any(), db_state()) -> any().
 fold_tables(Folder, InitialAcc, #state{tables=Tables}) ->
   dict:fold(
-        fun(TableName, TableSpec, Acc) ->
-          Folder(TableName, extract_row_list(TableSpec), Acc)
-        end,
-        InitialAcc,
-        Tables
-      ).
+    fun(TableName, TableSpec, Acc) ->
+      Folder(TableName, extract_row_list(TableSpec), Acc)
+    end,
+    InitialAcc,
+    Tables
+  ).
 
 %% @doc Return the rows for a specific table.
 -spec rows_of_table(string(), db_state()) -> db_rows().
@@ -220,11 +220,12 @@ postcondition(_State, _Call, _Result) ->
 -spec add_table(db_state()) -> proper_gen:generator().
 add_table(State) ->
   ?LET(Columns, integer(1, State#state.max_initial_columns),
-      begin
-        NewTableName = unique_table_name(),
-        NewColumns = [column_name(I) || I <- lists:seq(1, Columns)],
-        {call, ?MODULE, callback_add_table, [return(NewTableName), return(NewColumns)]}
-      end).
+    begin
+      NewTableName = unique_table_name(),
+      NewColumns = [column_name(I) || I <- lists:seq(1, Columns)],
+      {call, ?MODULE, callback_add_table, [return(NewTableName), return(NewColumns)]}
+    end
+  ).
 
 -spec column_name(non_neg_integer()) -> string().
 column_name(I) ->
@@ -282,7 +283,7 @@ create_table({Table, {create, Columns}}) ->
 remove_table(State) ->
   Tables = dict:to_list(State#state.tables),
   ?LET({ToRemove, _TableSpec}, oneof([return(Table) || Table <- Tables]),
-      {call, ?MODULE, callback_remove_table, [return(ToRemove)]}).
+    {call, ?MODULE, callback_remove_table, [return(ToRemove)]}).
 
 %% @hidden
 -spec callback_remove_table(binary()) -> ok | {error, any()}.
@@ -318,7 +319,7 @@ postcondition_remove_table(_State, Result, _TableName) ->
 clear_table(State) ->
   Tables = dict:to_list(State#state.tables),
   ?LET({ToClear, _}, oneof([return(Table) || Table <- Tables]),
-      {call, ?MODULE, callback_clear_table, [return(ToClear)]}).
+    {call, ?MODULE, callback_clear_table, [return(ToClear)]}).
 
 %% @hidden
 -spec callback_clear_table(binary()) -> ok | {error, any()}.
@@ -354,33 +355,36 @@ postcondition_clear_table(_State, Result, _TableName) ->
 -spec add_data(db_state()) -> proper_gen:generator().
 add_data(State) ->
   ?LET(Data, data_generator(State),
-      return({call, ?MODULE, callback_add_data, [
-            % We need to pack this as a binary as PropEr dislikes state with improper lists and dictionaries
-            % may contain improper lists...
-            return([{User, List} || {User, List} <- Data, List /= []])
-          ]})).
+    return({call, ?MODULE, callback_add_data, [
+      % We need to pack this as a binary as PropEr dislikes state with improper lists and dictionaries
+      % may contain improper lists...
+      return([{User, List} || {User, List} <- Data, List /= []])
+    ]})
+  ).
 
 -spec data_generator(db_state()) -> proper_gen:generator().
 data_generator(State) ->
   common_generators:subset_generic(
-      fun(I) ->
-        UserName = "user" ++ integer_to_list(I),
-        user_data_generator(UserName, State)
-      end,
-      lists:seq(1, State#state.users),
-      ?USER_FREQ_YES,
-      ?USER_FREQ_NO).
+    fun(I) ->
+      UserName = "user" ++ integer_to_list(I),
+      user_data_generator(UserName, State)
+    end,
+    lists:seq(1, State#state.users),
+    ?USER_FREQ_YES,
+    ?USER_FREQ_NO
+  ).
 
 -spec user_data_generator(string(), db_state()) -> proper_gen:generator().
 user_data_generator(UserName, State) ->
   ?LET(UserData,
-      common_generators:subset_generic(
-            fun({TableName, TableSpec}) -> return(generate_table_data(State, TableName, TableSpec)) end,
-            dict:to_list(State#state.tables),
-            ?TABLE_FREQ_YES,
-            ?TABLE_FREQ_NO
-          ),
-      return({iolist_to_binary(UserName), UserData})).
+    common_generators:subset_generic(
+      fun({TableName, TableSpec}) -> return(generate_table_data(State, TableName, TableSpec)) end,
+      dict:to_list(State#state.tables),
+      ?TABLE_FREQ_YES,
+      ?TABLE_FREQ_NO
+    ),
+    return({iolist_to_binary(UserName), UserData})
+  ).
 
 -spec generate_table_data(db_state(), binary(), #table_spec{}) -> table_data().
 generate_table_data(State, TableName, TableSpec) ->
@@ -398,46 +402,46 @@ callback_add_data(Data) ->
 -spec next_state_add_data(db_state, any(), table_data()) -> db_state().
 next_state_add_data(#state{tables=OldTables}=State, _Result, Data) ->
   TablesWithNewData = lists:foldl(
-        fun({User, UserRows}, TablesAcc1) ->
-          lists:foldl(
-                fun({TableName, [{columns, ColumnNames}, {data, [ColumnDatas]}]}, TablesAcc2) ->
-                  TableSpec1 = dict:fetch(TableName, TablesAcc2),
-                  Rows1 = TableSpec1#table_spec.rows,
-                  Columns = lists:zip(ColumnNames, ColumnDatas),
-                  Rows2 = dict:store(User, Columns, Rows1),
-                  TableSpec2 = TableSpec1#table_spec{rows=Rows2},
-                  dict:store(TableName, TableSpec2, TablesAcc2)
-                end,
-                TablesAcc1,
-                UserRows
-              )
+    fun({User, UserRows}, TablesAcc1) ->
+      lists:foldl(
+        fun({TableName, [{columns, ColumnNames}, {data, [ColumnDatas]}]}, TablesAcc2) ->
+          TableSpec1 = dict:fetch(TableName, TablesAcc2),
+          Rows1 = TableSpec1#table_spec.rows,
+          Columns = lists:zip(ColumnNames, ColumnDatas),
+          Rows2 = dict:store(User, Columns, Rows1),
+          TableSpec2 = TableSpec1#table_spec{rows=Rows2},
+          dict:store(TableName, TableSpec2, TablesAcc2)
         end,
-        OldTables,
-        Data
-      ),
+        TablesAcc1,
+        UserRows
+      )
+    end,
+    OldTables,
+    Data
+  ),
   State#state{tables=TablesWithNewData}.
 
 %% @hidden
 -spec precondition_add_data(db_state(), table_data()) -> boolean().
 precondition_add_data(#state{tables=Tables}, Data) ->
   lists:all(
-        fun({_User, UserRows}) ->
-          lists:all(
-                fun({TableName, [{columns, Columns}|_]}) ->
-                  case dict:find(TableName, Tables) of
-                    {ok, TableSpec} -> length(Columns) == TableSpec#table_spec.column_num;
-                    error -> false
-                  end
-                end,
-                UserRows
-              )
+    fun({_User, UserRows}) ->
+      lists:all(
+        fun({TableName, [{columns, Columns}|_]}) ->
+          case dict:find(TableName, Tables) of
+            {ok, TableSpec} -> length(Columns) == TableSpec#table_spec.column_num;
+            error -> false
+          end
         end,
-        Data
-      ).
+        UserRows
+      )
+    end,
+    Data
+  ).
 
 %% @hidden
 -spec postcondition_add_data(db_state(), {ok, db_contents()} | {error, any()}, table_data()) ->
-    boolean().
+  boolean().
 postcondition_add_data(_State, Result, _Data) ->
   Result =:= ok.
 

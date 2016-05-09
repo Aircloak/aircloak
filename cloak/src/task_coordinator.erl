@@ -100,7 +100,7 @@ init({Task, ReplyPid, ReplyRef, JobRunner}) ->
     start_time = os:timestamp(),
     task = Task,
     job_parameters = ?MEASURE("task.prefetch",
-        job_data_streamer:create_job_inputs(Task#task.prefetch)),
+      job_data_streamer:create_job_inputs(Task#task.prefetch)),
     reply_pid = ReplyPid,
     reply_ref = ReplyRef
   },
@@ -113,16 +113,16 @@ init({Task, ReplyPid, ReplyRef, JobRunner}) ->
     [_|_] ->
       % Some input data -> forward to job runners
       ok = JobRunner(
-              Task,
-              fun (This) ->
-                gen_server:call(This, get_parameters, infinity) % invoke coordinating server to get the parameters for next job
-              end,
-              self(),
-              fun (This, {_JobReturnCode, JobResponse}) ->
-                try aggregator:add_job_response(JobResponse, Aggregator) catch _:_ -> ok end, % store response
-                gen_server:cast(This, job_finished) % inform coordinating server that job finished
-              end
-            ),
+        Task,
+        fun (This) ->
+          gen_server:call(This, get_parameters, infinity) % invoke coordinating server to get the parameters for next job
+        end,
+        self(),
+        fun (This, {_JobReturnCode, JobResponse}) ->
+          try aggregator:add_job_response(JobResponse, Aggregator) catch _:_ -> ok end, % store response
+          gen_server:cast(This, job_finished) % inform coordinating server that job finished
+        end
+      ),
       % create timer to cancel task on timeout
       erlang:send_after(cloak_conf:get_val(queries, query_timeout), self(), timeout),
       {ok, State}
@@ -176,9 +176,9 @@ terminate(Error, State) ->
     noise_sd = 1
   }],
   ?MEASURE("task.send_result", begin
-        #task{task_id = TaskId, result_destination = ResultDestination} = State#state.task,
-        result_sender:send_result(TaskId, ResultDestination, Buckets)
-      end),
+    #task{task_id = TaskId, result_destination = ResultDestination} = State#state.task,
+    result_sender:send_result(TaskId, ResultDestination, Buckets)
+  end),
   ?REPORT_DURATION("task.total", State#state.start_time).
 
 code_change(_, _, _) ->
@@ -211,17 +211,17 @@ on_task_finished(FinishReason, State) ->
 get_next_job_parameters(State = #state{job_parameters = []}) ->
   {undefined, State};
 get_next_job_parameters(State = #state{active_jobs = ActiveJobs,
-      job_parameters = [NextJobParameters | RemainingJobParameters]}) ->
+    job_parameters = [NextJobParameters | RemainingJobParameters]}) ->
   {NextJobParameters, State#state{job_parameters = RemainingJobParameters, active_jobs = ActiveJobs + 1}}.
 
 process_responses(FinishReason, #state{task=#task{type=batch}} = State) ->
   Reports = aggregator:reports(State#state.aggregator),
   Buckets = ?MEASURE("task.anonymization", anonymizer:anonymize(Reports, State#state.lcf_users)),
   ?MEASURE("task.send_result", begin
-        #task{task_id = TaskId, result_destination = ResultDestination} = State#state.task,
-        FinalBuckets = Buckets ++ report_finish_reason(FinishReason),
-        result_sender:send_result(TaskId, ResultDestination, FinalBuckets)
-      end),
+    #task{task_id = TaskId, result_destination = ResultDestination} = State#state.task,
+    FinalBuckets = Buckets ++ report_finish_reason(FinishReason),
+    result_sender:send_result(TaskId, ResultDestination, FinalBuckets)
+  end),
   case State#state.reply_pid of
     undefined -> ok;
     Pid -> Pid ! {finished, State#state.reply_ref}

@@ -178,13 +178,13 @@ deltaT2(N) -> N.
 
 map_values(Values, InitialUser, UsersPerSet, UsersOverlap) ->
   {NewValues, _} = lists:foldl(
-        fun({Value, Count}, {ValuesAcc, UserIdAcc}) ->
-          NewValue = {Value, Count},
-          {[NewValue | ValuesAcc], UserIdAcc + UsersPerSet - UsersOverlap}
-        end,
-        {[], InitialUser},
-        Values
-      ),
+    fun({Value, Count}, {ValuesAcc, UserIdAcc}) ->
+      NewValue = {Value, Count},
+      {[NewValue | ValuesAcc], UserIdAcc + UsersPerSet - UsersOverlap}
+    end,
+    {[], InitialUser},
+    Values
+  ),
   lists:reverse(NewValues).
 
 uniform_distribution_test(N, K) ->

@@ -81,15 +81,15 @@ code_change(_, State, _) -> {ok, State}.
 do_init({Encoder, Transport, TransportArgs, ReconnectInterval}, State) ->
   {InitFun, SendFun, ReconnectFun} = transport_funs(Transport),
   call_transport_fun(
-        InitFun, [TransportArgs],
-        State#state{
-          encoder_fun=encoder_fun(Encoder),
-          transport_args=TransportArgs,
-          send_fun=SendFun,
-          reconnect_fun=ReconnectFun,
-          reconnect_interval=ReconnectInterval
-        }
-      ).
+    InitFun, [TransportArgs],
+    State#state{
+      encoder_fun=encoder_fun(Encoder),
+      transport_args=TransportArgs,
+      send_fun=SendFun,
+      reconnect_fun=ReconnectFun,
+      reconnect_interval=ReconnectInterval
+    }
+  ).
 
 transport_funs(TransportModule) when is_atom(TransportModule) ->
   {
@@ -117,16 +117,16 @@ do_send(Data, State) ->
     {fail, _} -> State;
     {success, Encoded} ->
       call_transport_fun(
-            State#state.send_fun, [Encoded, State#state.transport_state],
-            State
-          )
+        State#state.send_fun, [Encoded, State#state.transport_state],
+        State
+      )
   end.
 
 do_reconnect(State) ->
   call_transport_fun(
-        State#state.reconnect_fun, [State#state.transport_args, State#state.transport_state],
-        State#state{reconnect_queued=false}
-      ).
+    State#state.reconnect_fun, [State#state.transport_args, State#state.transport_state],
+    State#state{reconnect_queued=false}
+  ).
 
 call_transport_fun(Fun, Args, State) ->
   handle_transport_response(safe_call(Fun, Args), State).
@@ -165,8 +165,8 @@ queue_reconnect(State) ->
 
 start_dispatcher(Transport, Args) ->
   start_link({
-        fun(X) -> X end, Transport, Args, 50
-      }).
+    fun(X) -> X end, Transport, Args, 50
+  }).
 
 test_init({transport_args, TestPid}) -> TestPid ! initalized, {ok, {TestPid, 1}}.
 
@@ -174,9 +174,9 @@ test_send(Data, {Pid, Cnt}) -> Pid ! {sent_data, Data, Cnt}, {ok, {Pid, Cnt + 1}
 
 basic_test() ->
   {ok, Pid} = start_dispatcher(
-        [{init, fun test_init/1}, {send, fun test_send/2}],
-        {transport_args, self()}
-      ),
+    [{init, fun test_init/1}, {send, fun test_send/2}],
+    {transport_args, self()}
+  ),
   ?assertReceived(initalized, 100),
   ?assertNotReceived({sent_data, _}, 100),
   send(Pid, test_data),
@@ -191,9 +191,9 @@ test_reconnect({transport_args, TestPid}, PrevState) -> TestPid ! {reconnect, Pr
 reconnect_after_bad_init_test() ->
   'Elixir.Logger':remove_backend(console),
   {ok, Pid} = start_dispatcher(
-        [{init, fun test_invalid_init/1}, {send, fun test_send/2}, {reconnect, fun test_reconnect/2}],
-        {transport_args, self()}
-      ),
+    [{init, fun test_invalid_init/1}, {send, fun test_send/2}, {reconnect, fun test_reconnect/2}],
+    {transport_args, self()}
+  ),
   send(Pid, test_data),
   ?assertNotReceived({sent_data, test_data, 1}, 100),
   'Elixir.Logger':add_backend(console, [{flush, true}]),
@@ -219,9 +219,9 @@ test_error(Pid, ErrorType) ->
 
 reconnect_after_send_test() ->
   {ok, Pid} = start_dispatcher(
-        [{init, fun test_init/1}, {send, fun test_send_with_error/2}, {reconnect, fun test_reconnect/2}],
-        {transport_args, self()}
-      ),
+    [{init, fun test_init/1}, {send, fun test_send_with_error/2}, {reconnect, fun test_reconnect/2}],
+    {transport_args, self()}
+  ),
   send(Pid, test_data),
   ?assertReceived({sent_data, test_data}, 100),
   'Elixir.Logger':remove_backend(console),
@@ -234,11 +234,11 @@ invalid_encoder(Other) -> Other.
 
 invalid_encoder_test() ->
   {ok, Pid} = start_link({
-        fun invalid_encoder/1,
-        [{init, fun test_init/1}, {send, fun test_send/2}],
-        {transport_args, self()},
-        50
-      }),
+    fun invalid_encoder/1,
+    [{init, fun test_init/1}, {send, fun test_send/2}],
+    {transport_args, self()},
+    50
+  }),
   send(Pid, test_data),
   ?assertReceived({sent_data, test_data, _}, 100),
   'Elixir.Logger':remove_backend(console),

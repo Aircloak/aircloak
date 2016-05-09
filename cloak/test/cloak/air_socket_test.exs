@@ -33,10 +33,10 @@ defmodule Cloak.AirSocketTest do
       :gproc_monitor.subscribe(reg_name)
 
       ExUnit.CaptureLog.capture_log(fn ->
-            CloakSocketMock.Socket.kill(cloak_name)
-            assert_receive {:gproc_monitor, ^reg_name, :undefined}
-            ensure_joined(cloak_name)
-          end)
+        CloakSocketMock.Socket.kill(cloak_name)
+        assert_receive {:gproc_monitor, ^reg_name, :undefined}
+        ensure_joined(cloak_name)
+      end)
     after
       Application.put_env(:cloak, :air, air_config)
     end
@@ -52,10 +52,10 @@ defmodule Cloak.AirSocketTest do
       :gproc_monitor.subscribe(reg_name)
 
       ExUnit.CaptureLog.capture_log(fn ->
-            MainChannel.leave(cloak_name)
-            assert_receive {:gproc_monitor, ^reg_name, :undefined}
-            ensure_joined(cloak_name)
-          end)
+        MainChannel.leave(cloak_name)
+        assert_receive {:gproc_monitor, ^reg_name, :undefined}
+        ensure_joined(cloak_name)
+      end)
     after
       Application.put_env(:cloak, :air, air_config)
     end
@@ -80,9 +80,9 @@ defmodule Cloak.AirSocketTest do
     MainChannel.subscribe(cloak_name)
     me = self()
     spawn(fn ->
-          res = AirSocket.send_task_result(socket_pid, %{task_id: 1})
-          send(me, {:send_task_result, res})
-        end)
+      res = AirSocket.send_task_result(socket_pid, %{task_id: 1})
+      send(me, {:send_task_result, res})
+    end)
     assert_receive {:in_message, "cloak_call", response}
     assert%{"event" => "task_result", "payload" => %{"task_id" => 1}, "request_id" => request_id} = response
 
