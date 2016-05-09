@@ -103,7 +103,7 @@ code_change(_OldVsn, State, _Extra) ->
 open_sandbox() ->
   process_flag(trap_exit, true),
   Binary = code:priv_dir(air) ++ "/js_sandbox/js_sandbox",
-  open_port({spawn_executable, Binary}, [{packet, 4}, {args, ["1536"]}, use_stdio, binary]).
+  open_port({spawn_executable, Binary}, [{packet, 4}, {args, []}, use_stdio, binary]).
 
 -spec close_sandbox(port()) -> ok.
 close_sandbox(Port) ->
