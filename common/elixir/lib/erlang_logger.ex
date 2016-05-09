@@ -15,10 +15,7 @@ defmodule Aircloak.ErlangLogger do
   for log_level <- [:debug, :info, :warn, :error] do
     @doc "Logs with the #{log_level} level"
     def unquote(log_level)(format, params \\ [], meta \\ []) do
-      Logger.unquote(log_level)(
-            fn -> :io_lib.format(format, params) end,
-            meta
-          )
+      Logger.unquote(log_level)(fn -> :io_lib.format(format, params) end, meta)
     end
   end
 end
