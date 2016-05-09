@@ -32,8 +32,8 @@ admin_organisation
 
 # test client organisation
 client_organisation = %Organisation{}
-|> Organisation.changeset(%{name: "Client test organisation"})
-|> Air.Repo.insert!
+  |> Organisation.changeset(%{name: "Client test organisation"})
+  |> Air.Repo.insert!
 
 # org admin
 client_organisation

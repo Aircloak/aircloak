@@ -440,8 +440,7 @@ precondition_add_data(#state{tables=Tables}, Data) ->
   ).
 
 %% @hidden
--spec postcondition_add_data(db_state(), {ok, db_contents()} | {error, any()}, table_data()) ->
-  boolean().
+-spec postcondition_add_data(db_state(), {ok, db_contents()} | {error, any()}, table_data()) -> boolean().
 postcondition_add_data(_State, Result, _Data) ->
   Result =:= ok.
 

@@ -369,14 +369,14 @@ add_job_runtime_metric(#state{start_time=StartTime}) ->
     ReqId = make_ref(),
     Me = self(),
     job_runner:execute(1,
-          #task{
-            task_id=1, prefetch=undefined, libraries=Libraries, code=Code, timestamp=Timestamp
-          },
-          {<<"user-1">>, []}, Accumulator, ReqId,
-          fun(RId, Response) when RId =:= ReqId ->
-            Me ! {job_done, Response}
-          end
-        ),
+      #task{
+        task_id=1, prefetch=undefined, libraries=Libraries, code=Code, timestamp=Timestamp
+      },
+      {<<"user-1">>, []}, Accumulator, ReqId,
+      fun(RId, Response) when RId =:= ReqId ->
+        Me ! {job_done, Response}
+      end
+    ),
     receive
       {job_done, Response} ->
         Response

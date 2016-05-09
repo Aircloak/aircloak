@@ -52,7 +52,7 @@ task_test_() ->
             iolist_to_binary(io_lib:format("user-~p", [Index])),
             [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
           } || Index <- lists:seq(1, 100)
-				],
+        ],
         ok = db_test:add_users_data(Data),
         ?verifyAsync(
           <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,

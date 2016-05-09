@@ -38,7 +38,8 @@
 
 -define(with_processes(ProcessesSpec),
   {
-    fun() -> [
+    fun() ->
+      [
         begin
           {ok, Pid} = case ProcessSpec of
             {M, F, A} -> apply(M, F, A);
@@ -50,7 +51,8 @@
       ]
     end,
     fun(Pids) ->
-      error_logger:tty(false), [
+      error_logger:tty(false),
+      [
         begin
           unlink(Pid),
           monitor(process, Pid),

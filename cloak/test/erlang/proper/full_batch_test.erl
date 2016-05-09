@@ -84,7 +84,14 @@ prop_batch() ->
                     {fun bucket_sizes/1, [State]},
                     {fun bucket_list_sizes/1, [State]}
                   ],
-                  Result =:= ok andalso verify_buckets(State)))))))),
+                  Result =:= ok andalso verify_buckets(State)
+                )
+              )
+            )
+          )
+        )
+      )
+    ),
   Result.
 
 -spec command_list_has_at_least_one_run_batch_task([any()]) -> boolean().
@@ -340,8 +347,7 @@ collect_stats_from_results(State, [{Label, Value, CountExpected}|RestExpected],
   collect_stats_from_bucket(State, Label, Value, CountExpected, Count, RestExpected, Rest, Print);
 collect_stats_from_results(State, [{ExpectedLabel, ExpectedValue, CountExpected}|RestExpected],
     [{Label, Value, _Count}|_]=Result, Print) when {ExpectedLabel, ExpectedValue} < {Label, Value} ->
-  collect_stats_from_bucket(State, ExpectedLabel, ExpectedValue, CountExpected, 0, RestExpected, Result,
-    Print);
+  collect_stats_from_bucket(State, ExpectedLabel, ExpectedValue, CountExpected, 0, RestExpected, Result, Print);
 collect_stats_from_results(State, [{ExpectedLabel, ExpectedValue, CountExpected}|RestExpected], [], Print) ->
   collect_stats_from_bucket(State, ExpectedLabel, ExpectedValue, CountExpected, 0, RestExpected, [], Print);
 collect_stats_from_results(_, _, [{Label, Value, _}|_], _Print) ->

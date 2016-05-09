@@ -84,7 +84,7 @@ get_next_batch(UserId, TableName, JobInput, ResetStream) ->
 %% Reads data from a prefetch table and returns the next batch.
 -spec read_from_table(user_id(), #table_stream_state{}, boolean()) -> {#table_stream_state{}, #tabledatapb{}}.
 read_from_table(_UserId, #table_stream_state{last_row_id = LastRowId,
-  	max_row_id = MaxRowId} = TableStream, false) when LastRowId > MaxRowId ->
+    max_row_id = MaxRowId} = TableStream, false) when LastRowId > MaxRowId ->
   % this should never happen in normal circumstances (data streaming has finished, needs to be reset)
   EmptyBatch = #tabledatapb{columns = [], rows = [], complete = true},
   {TableStream, EmptyBatch};

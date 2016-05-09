@@ -35,7 +35,8 @@
   begin
     receive Pattern ->
       erlang:error({
-        message_received, [
+        message_received,
+        [
           {module, ?MODULE},
           {line, ?LINE},
           {pattern, (??Pattern)}

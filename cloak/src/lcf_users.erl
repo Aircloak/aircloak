@@ -222,11 +222,12 @@ stop_aggregate_processors(Processors) ->
 aggregate_processor_loop(Table, Aggregator) ->
   receive
     {aggregate, BucketLabel} ->
-      [aggregator:add_property(
-        #property{label=?AIRCLOAK_LABEL, value=?LCF_TAIL_VALUE},
-        UserId,
-        Aggregator
-      ) ||
+      [
+        aggregator:add_property(
+          #property{label=?AIRCLOAK_LABEL, value=?LCF_TAIL_VALUE},
+          UserId,
+          Aggregator
+        ) ||
         Matches <- ets:match(Table, {BucketLabel, '$1'}),
         UserIds <- Matches,
         UserId <- UserIds
