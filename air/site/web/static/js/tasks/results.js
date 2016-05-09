@@ -6,7 +6,7 @@ export class ResultsView extends React.Component {
   // ----------------------------------------------------------------
 
   renderResultRows() {
-    var dateString = new Date(this.props.result.created_at * 1000).toString();
+    var dateString = new Date(this.props.result.created_at * 1000).toLocaleString();
     return (
       <div>
         <p>

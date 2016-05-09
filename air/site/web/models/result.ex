@@ -32,15 +32,29 @@ defmodule Air.Result do
   end
 
   @doc "Utility method to unpack the result's fields into a map for easier rendering in the UI."
-  @spec unpack(t) :: %{}
-  def unpack(result) do
-    buckets = Poison.decode!(result.buckets)
-    exceptions = Poison.decode!(result.exceptions)
-
+  @spec unpack(t, pos_integer) :: %{}
+  def unpack(result, bucket_count_limit) do
+    limit_exceeded_bucket = %{
+      "label" => "Notice",
+      "value" => "Limit exceeded",
+      "count" => "result is too large to be displayed"
+    }
+    # avoid processing buckets exceeding the size limit
+    buckets = case String.length(result.buckets) > bucket_count_limit * 1024 do
+      true -> [limit_exceeded_bucket]
+      false -> Poison.decode!(result.buckets)
+    end
+    # avoid processing buckets exceeding the count limit
+    buckets = case length(buckets) > bucket_count_limit do
+      true -> [limit_exceeded_bucket]
+      false -> buckets
+    end
+    # convert result buckets from maps to tuples
     buckets = for bucket <- buckets do
       {bucket["label"], bucket["value"], bucket["count"]}
     end
 
+    exceptions = Poison.decode!(result.exceptions)
     errors = for exception <- exceptions do
           "#{exception["error"]} (#{exception["count"]} times)"
         end

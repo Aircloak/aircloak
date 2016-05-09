@@ -1,6 +1,14 @@
-<h2>Results for '<%= @task.name %>'</h2>
+<script>
+  function write_local_time(utcTimeStr) {
+    var localTime = new Date(Date.parse(utcTimeStr));
+    var localTimeStr = localTime.toLocaleString();
+    document.write(localTimeStr);
+  }
+</script>
 
-<table class="table table-striped">
+<h2>Results for '<%= @task.name %>'</h2>
+<hr/>
+<table class="table table-striped" id="results">
   <thead>
     <tr>
       <th><center>Generated on</center></th>
@@ -14,7 +22,7 @@
   <tbody>
   <%= for result <- @results do %>
     <tr align="center">
-      <td><%= result.timestamp %> UTC</td>
+      <td><script>write_local_time("<%= Ecto.DateTime.to_iso8601(result.timestamp) %>");</script></td>
       <td><%= link "view", to: task_result_path(@conn, :show, @task.id, result.id) %></td>
       <td>
         <%= if result.errors == "" do %>

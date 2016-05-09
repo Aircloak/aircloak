@@ -8,8 +8,8 @@
 <% end %>
 
 <%= if length(@api_tokens) > 0 do %>
-<h1>Existing tokens</h1>
-
+<h2>Existing tokens</h2>
+<hr/>
 <table class="table">
   <thead>
     <tr>
@@ -33,7 +33,7 @@
 
 
 <h2>Add a new token</h2>
-
+<hr/>
 <%= form_for @changeset, api_token_path(@conn, :create), fn f -> %>
 <%= if @changeset.action do %>
   <div class="alert alert-danger">

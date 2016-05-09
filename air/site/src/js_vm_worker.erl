@@ -72,7 +72,9 @@ handle_info(Message, State) ->
 terminate(normal, #state{vm = VM}) ->
   close_sandbox(VM),
   ok;
-terminate(Reason, _State) ->
+terminate(shutdown, State) ->
+  terminate(normal, State);
+terminate(Reason, State) ->
   ?ERROR("JS worker terminated with reason: ~p", [Reason]),
   ok.
 
