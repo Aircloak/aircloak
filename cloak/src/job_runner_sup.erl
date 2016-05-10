@@ -26,15 +26,15 @@ start_link() ->
   supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 -spec execute(#task{}, job_runner:get_parameters_fun(), term(), job_runner:callback_fun()) -> ok.
-execute(Req, GetParametersFun, ReqId, SPid) when is_function(GetParametersFun, 1) ->
+execute(Req, GetParametersFun, RequestId, ReportingFun) when is_function(GetParametersFun, 1) ->
   lists:foreach(fun (I) ->
-    ok = job_runner:execute(I, Req, GetParametersFun, undefined, ReqId, SPid)
+    ok = job_runner:execute(I, Req, GetParametersFun, undefined, RequestId, ReportingFun)
   end, lists:seq(0, runners_count() - 1)).
 
 %% Send a timeout of a given request to all runners.
 -spec send_request_timeout(term()) -> ok.
-send_request_timeout(ReqId) ->
-  [job_runner:send_request_timeout(I, ReqId) || I <- lists:seq(0, runners_count() - 1)],
+send_request_timeout(RequestId) ->
+  [job_runner:send_request_timeout(I, RequestId) || I <- lists:seq(0, runners_count() - 1)],
   ok.
 
 
