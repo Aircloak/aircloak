@@ -36,16 +36,6 @@ config :cloak, :queries,
   # query times out completely, without any answers.
   query_timeout: 3600000, # 1 hour
 
-  # The time we wait in synchronous queries for the task
-  # to finish.  The timeout is set relatively high to allow
-  # more complex tasks to be run synchronously without
-  # having to pass through the web.
-  # Once we have AirPub in place as a central dispatch
-  # point for query results, we should reduce the
-  # synchronous query timeout to reduce the number of
-  # file descriptions potentially help open concurrently.
-  sync_query_timeout: 3600000,
-
   # This is the number of concurrent task_coordinators that
   # are spawned per node.  If we run out of task_coordinators
   # the queued_worker mechanism queues tasks and runs them as

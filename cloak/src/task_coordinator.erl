@@ -6,8 +6,7 @@
 
 %% API
 -export([
-  run_task/1,
-  block_run_task/1
+  run_task/1
 ]).
 
 %% queued_worker callbacks
@@ -34,9 +33,7 @@
   aggregator :: aggregator:aggregator(),
   lcf_users :: lcf_users:lcf_users(),
   job_parameters = [] :: [job_runner:parameters()],
-  active_jobs = 0 :: non_neg_integer(),
-  reply_pid :: pid() | undefined,
-  reply_ref :: reference() | undefined
+  active_jobs = 0 :: non_neg_integer()
 }).
 
 -define(RUN_ON_MASTER_MAX_RETRIES, 16).  %% how many times we try to push the job to the master node
@@ -50,20 +47,7 @@
 %% @doc Asynchronously runs the given task on all nodes in the cluster.
 -spec run_task(#task{}) -> ok.
 run_task(Task) ->
-  queued_worker:run(?MODULE, {Task, undefined, undefined}).
-
-%% @doc Runs the task, and returns after the task is executed, and the result reported back.
-%%      Note: the result is always `ok', regardless of whether the task completed successfully, or some error
-%%      occured.
--spec block_run_task(#task{}) -> ok | {error, timeout}.
-block_run_task(Task) ->
-  CallerRef = make_ref(),
-  queued_worker:run(?MODULE, {Task, self(), CallerRef}),
-  receive
-    {finished, CallerRef} -> ok
-  after cloak_conf:get_val(queries, sync_query_timeout) ->
-    {error, timeout}
-  end.
+  queued_worker:run(?MODULE, Task).
 
 
 %% -------------------------------------------------------------------
@@ -71,14 +55,8 @@ block_run_task(Task) ->
 %% -------------------------------------------------------------------
 
 %% @hidden
-run_job({Task, CallerPid, CallerRef}) ->
-  TaskRef = make_ref(),
-  gen_server:start_link(?MODULE, {Task, self(), TaskRef}, []),
-  receive
-    {finished, TaskRef} -> notify_caller(CallerPid, CallerRef)
-  after cloak_conf:get_val(queries, sync_query_timeout) ->
-    notify_caller(CallerPid, CallerRef)
-  end,
+run_job(Task) ->
+  gen_server:start_link(?MODULE, {Task, fun job_runner_sup:execute/4}, []),
   ok.
 
 
@@ -87,9 +65,7 @@ run_job({Task, CallerPid, CallerRef}) ->
 %% -------------------------------------------------------------------
 
 %% @hidden
-init({Task, ReplyPid, ReplyRef}) ->
-  init({Task, ReplyPid, ReplyRef, fun job_runner_sup:execute/4});
-init({Task, ReplyPid, ReplyRef, JobRunner}) ->
+init({Task, JobRunner}) ->
   % Notify possible subscribers that this process has started. Used for test purposes.
   gproc:send({p, l, {task_listener, Task#task.task_id}}, {task, Task#task.task_id, {started, self()}}),
   LcfUsers = lcf_users:new(),
@@ -100,9 +76,7 @@ init({Task, ReplyPid, ReplyRef, JobRunner}) ->
     start_time = os:timestamp(),
     task = Task,
     job_parameters = ?MEASURE("task.prefetch",
-      job_data_streamer:create_job_inputs(Task#task.prefetch)),
-    reply_pid = ReplyPid,
-    reply_ref = ReplyRef
+      job_data_streamer:create_job_inputs(Task#task.prefetch))
   },
   progress_handler:add_unfinished_jobs(Task, length(State#state.job_parameters) + 1),
   case State#state.job_parameters of
@@ -189,10 +163,6 @@ code_change(_, _, _) ->
 %% Internal functions
 %% -------------------------------------------------------------------
 
-notify_caller(undefined, _) -> ok;
-notify_caller(CallerPid, CallerRef) ->
-  CallerPid ! {finished, CallerRef}.
-
 on_task_finished(FinishReason, State) ->
   try progress_handler:job_of_task_finished(State#state.task) catch _:_ -> ok end,
   progress_handler:unregister_task(State#state.task),
@@ -222,10 +192,6 @@ process_responses(FinishReason, #state{task=#task{type=batch}} = State) ->
     FinalBuckets = Buckets ++ report_finish_reason(FinishReason),
     result_sender:send_result(TaskId, ResultDestination, FinalBuckets)
   end),
-  case State#state.reply_pid of
-    undefined -> ok;
-    Pid -> Pid ! {finished, State#state.reply_ref}
-  end,
   ?REPORT_DURATION("task.total", State#state.start_time).
 
 -spec report_finish_reason(success | timeout) -> [#bucket_report{}].

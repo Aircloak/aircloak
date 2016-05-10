@@ -6,17 +6,11 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("eunit_helpers.hrl").
 
--define(verifyAsync(Code, Expected), (fun() ->
-      task_coordinator:run_task(test_task(Code)),
-      {reply, Result} = ?assertReceived({reply, _}, 1000),
-      ?assertEqual(Expected, Result)
-    end)()).
-
--define(verifySync(Code, Expected), (fun() ->
-      task_coordinator:block_run_task(test_task(Code)),
-      {reply, Result} = ?assertReceived({reply, _}, 1000),
-      ?assertEqual(Expected, Result)
-    end)()).
+-define(runTaskAndVerifyResult(Code, Expected), (fun() ->
+  task_coordinator:run_task(test_task(Code)),
+  {reply, Result} = ?assertReceived({reply, _}, 1000),
+  ?assertEqual(Expected, Result)
+end)()).
 
 test_task(Code) ->
   #task{
@@ -41,7 +35,7 @@ task_test_() ->
     fun(_) -> meck:unload() end,
     [
       {"no rows", fun() ->
-        ?verifyAsync(
+        ?runTaskAndVerifyResult(
           <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
               "\") do report_property(\"height\", row.height) end">>,
           #{buckets => [], exceptions => [], task_id => "test_task"}
@@ -54,28 +48,7 @@ task_test_() ->
           } || Index <- lists:seq(1, 100)
         ],
         ok = db_test:add_users_data(Data),
-        ?verifyAsync(
-          <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
-              "\") do report_property(\"height\", row.height) end">>,
-          #{
-            buckets => [#{
-              label => <<"height">>,
-              value => <<"180">>,
-              count => 100
-            }],
-            exceptions => [],
-            task_id => "test_task"
-          }
-        )
-      end},
-      {"sync task", fun() ->
-        Data = [{
-            iolist_to_binary(io_lib:format("user-~p", [Index])),
-            [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
-          } || Index <- lists:seq(1, 100)
-        ],
-        ok = db_test:add_users_data(Data),
-        ?verifySync(
+        ?runTaskAndVerifyResult(
           <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
               "\") do report_property(\"height\", row.height) end">>,
           #{
@@ -96,7 +69,7 @@ task_test_() ->
           } || Index <- lists:seq(1, 100)
         ],
         ok = db_test:add_users_data(Data),
-        ?verifyAsync(
+        ?runTaskAndVerifyResult(
           <<"error('some_error')">>,
           #{
             buckets => [],
@@ -109,7 +82,7 @@ task_test_() ->
         )
       end},
       {"timeout", fun() ->
-        gen_server:start_link(task_coordinator, {test_task(<<"">>), undefined, undefined, fun timeout_runner/4}, []),
+        gen_server:start_link(task_coordinator, {test_task(<<"">>), fun timeout_runner/4}, []),
         {reply, Result} = ?assertReceived({reply, _}, 1000),
         ?assertEqual(
           #{
