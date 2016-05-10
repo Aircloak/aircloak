@@ -6,7 +6,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("eunit_helpers.hrl").
 
--define(verifyAsync(Code, Expected), (fun() ->
+-define(runTaskAndVerifyResult(Code, Expected), (fun() ->
   task_coordinator:run_task(test_task(Code)),
   {reply, Result} = ?assertReceived({reply, _}, 1000),
   ?assertEqual(Expected, Result)
@@ -35,7 +35,7 @@ task_test_() ->
     fun(_) -> meck:unload() end,
     [
       {"no rows", fun() ->
-        ?verifyAsync(
+        ?runTaskAndVerifyResult(
           <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
               "\") do report_property(\"height\", row.height) end">>,
           #{buckets => [], exceptions => [], task_id => "test_task"}
@@ -48,7 +48,7 @@ task_test_() ->
           } || Index <- lists:seq(1, 100)
         ],
         ok = db_test:add_users_data(Data),
-        ?verifyAsync(
+        ?runTaskAndVerifyResult(
           <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
               "\") do report_property(\"height\", row.height) end">>,
           #{
@@ -69,7 +69,7 @@ task_test_() ->
           } || Index <- lists:seq(1, 100)
         ],
         ok = db_test:add_users_data(Data),
-        ?verifyAsync(
+        ?runTaskAndVerifyResult(
           <<"error('some_error')">>,
           #{
             buckets => [],
