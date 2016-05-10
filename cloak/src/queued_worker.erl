@@ -90,7 +90,7 @@ handle_info({'DOWN', MonitorRef, process, Pid, Reason},
     #state{number_of_active_jobs=NumJobs, active_jobs=ActiveJobs}=State) ->
   case Reason of
     normal -> ignore;
-    _Error -> ?ERROR("Monitored process crashed ~p", [Reason])
+    _Error -> ?ERROR("Queued worker ~p terminated abnormally ~p", [Pid, Reason])
   end,
   case lists:member({Pid, MonitorRef}, ActiveJobs) of
     true ->
