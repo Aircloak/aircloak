@@ -46,12 +46,18 @@ call(Worker, Function, Arguments) ->
 %% -------------------------------------------------------------------
 
 init(JSModules) when is_list(JSModules) ->
-  VM = open_sandbox(),
-  lists:foreach(fun (JSModule) ->
-    {ok, JSContent} = file:read_file(JSModule),
-    {ok, _} = evaluate_js(VM, filename:basename(JSModule), JSContent)
-  end, JSModules),
-  {ok, #state{vm = VM}}.
+  try
+    VM = open_sandbox(),
+    lists:foreach(fun (JSModule) ->
+      {ok, JSContent} = file:read_file(JSModule),
+      {ok, _} = evaluate_js(VM, filename:basename(JSModule), JSContent)
+    end, JSModules),
+    {ok, #state{vm = VM}}
+  catch
+    error:{js_worker_exit, ExitStatus} ->
+      ?ERROR("JS worker crashed during initialization with exit status: ~p", [ExitStatus]),
+      {stop, {js_worker_exit, ExitStatus}}
+  end.
 
 handle_call({call, Func, Args}, _From, #state{vm = VM} = State) ->
   {reply, call_js(VM, Func, Args), State};
@@ -74,7 +80,7 @@ terminate(normal, #state{vm = VM}) ->
   ok;
 terminate(shutdown, State) ->
   terminate(normal, State);
-terminate(Reason, State) ->
+terminate(Reason, _State) ->
   ?ERROR("JS worker terminated with reason: ~p", [Reason]),
   ok.
 
@@ -103,7 +109,7 @@ code_change(_OldVsn, State, _Extra) ->
 open_sandbox() ->
   process_flag(trap_exit, true),
   Binary = code:priv_dir(air) ++ "/js_sandbox/js_sandbox",
-  open_port({spawn_executable, Binary}, [{packet, 4}, {args, ["1536"]}, use_stdio, binary]).
+  open_port({spawn_executable, Binary}, [{packet, 4}, {args, []}, exit_status, use_stdio, binary]).
 
 -spec close_sandbox(port()) -> ok.
 close_sandbox(Port) ->
@@ -172,7 +178,8 @@ parse_data(<<?STRING, Value/binary>>) ->
 listen(Port) when is_port(Port) ->
   receive
     {Port, {data, Result}} -> parse_result(Result);
-    {'EXIT', Port, ExitCode} -> error({js_worker_crash, ExitCode})
+    {Port, {exit_status, ExitStatus}} -> error({js_worker_exit, ExitStatus});
+    {'EXIT', Port, ExitStatus} -> error({js_worker_exit, ExitStatus})
   end.
 
 % Packs the arguments for a function call into binary data for the sandbox port.

@@ -229,25 +229,8 @@ static void message_loop(JSContext* cx, const JS::HandleObject& global)
   }
 }
 
-// Sets the maximum memory that can be consumed by the sandbox process.
-void set_memory_limit(uint64_t memoryLimit)
-{
-  const rlimit rlimit = {memoryLimit, memoryLimit};
-  if (setrlimit(RLIMIT_AS, &rlimit))
-    exit(EXIT_FAILURE);
-}
-
 int main(int argc, const char *argv[])
 {
-  uint64_t memoryLimit = 256; // 256 MB by default
-  if (argc == 2)
-  {
-    memoryLimit = atoi(argv[1]);
-    if (memoryLimit == 0)
-      exit(EXIT_FAILURE);
-  }
-  set_memory_limit(memoryLimit * 1024 * 1024);
-
   JS_Init();
 
   JSRuntime *rt = JS_NewRuntime(8L * 1024 * 1024); // run GC in 8 MB steps.
