@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <memory.h>
 
 #if defined(__APPLE__)
   #include <libkern/OSByteOrder.h>
@@ -87,11 +88,10 @@ void write_message(const OutMessage& message)
   {
     uint32_t packetSize; // this is in network order (big-endian)
     bool success; // result of the performed action
-    DataType type; // type of returned value
-  } header = {0, message.success, message.type};
-  header.packetSize = bswap_32(message.size + sizeof(header) - sizeof(header.packetSize));
+  } header = {0, message.success};
+  header.packetSize = bswap_32(message.body.size() + sizeof(header) - sizeof(header.packetSize));
 
   write_data(&header, sizeof(header));
 
-  write_data(message.data, message.size);
+  write_data(message.body.data(), message.body.size());
 }

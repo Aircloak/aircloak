@@ -97,13 +97,18 @@ code_change(_OldVsn, State, _Extra) ->
 -define(EVALUATE, 1).
 -define(CALL, 2).
 
-% Sandbox supported types.
+% Sandbox types ids.
 -define(UNDEFINED, 0).
 -define(NULL, 1).
 -define(BOOLEAN, 2).
 -define(INT32, 3).
 -define(DOUBLE, 4).
 -define(STRING, 5).
+-define(ARRAY, 6).
+-define(MAP, 7).
+
+% Types of sandbox values.
+-type js_type() :: atom() | number() | [js_type()] | binary() | #{js_type() => js_type()}.
 
 -spec open_sandbox() -> port().
 open_sandbox() ->
@@ -118,12 +123,12 @@ close_sandbox(Port) ->
     {'EXIT', Port, normal} -> ok
   end.
 
--spec evaluate_js(port(), string() | binary(), binary()) -> {ok | error, atom() | number() | binary()}.
+-spec evaluate_js(port(), string() | binary(), binary()) -> {ok | error, js_type()}.
 evaluate_js(Port, ScriptName, ScriptContent) ->
   port_command(Port, message(?EVALUATE, ScriptName, ScriptContent)),
   listen(Port).
 
--spec call_js(port(), string() | binary(), [atom() | number() | binary()]) -> {ok | error, atom() | number() | binary()}.
+-spec call_js(port(), string() | binary(), [js_type()]) -> {ok | error, js_type()}.
 call_js(Port, FunctionName, Arguments) ->
   port_command(Port, message(?CALL, FunctionName, pack_arguments(Arguments))),
   listen(Port).
@@ -136,13 +141,14 @@ message(Action, Name, Body) when is_integer(Action), byte_size(Name) < 256 ->
   [<<Action, (byte_size(Name)):8>>, Name, Body].
 
 % Unpacks an output message from the sandbox port into a result.
--spec parse_result(binary()) -> {ok | error, atom() | number() | binary()}.
+-spec parse_result(binary()) -> {ok | error, js_type()}.
 parse_result(<<Success:8, Data/binary>>) ->
   Status = case Success of
     0 -> error;
     1 -> ok
   end,
-  {Status, parse_data(Data)}.
+  {Value, <<>>} = parse_data(Data),
+  {Status, Value}.
 
 % Erlang doesn't know about non-finite numbers, we need to handle those cases ourselves.
 -spec decode_double(binary()) -> atom() | float().
@@ -156,25 +162,49 @@ decode_double(<<Value:64/little-signed-float>>) ->
   Value.
 
 % Parses output data from the sandbox into a supported value.
--spec parse_data(binary()) -> atom() | number() | binary().
-parse_data(<<?UNDEFINED>>) ->
-  undefined;
-parse_data(<<?NULL>>) ->
-  null;
-parse_data(<<?BOOLEAN, Value:8>>) ->
-  case Value of
+-spec parse_data(binary()) -> {js_type(), binary()}.
+parse_data(<<?UNDEFINED, Rest/binary>>) ->
+  {undefined, Rest};
+parse_data(<<?NULL, Rest/binary>>) ->
+  {null, Rest};
+parse_data(<<?BOOLEAN, Value:8, Rest/binary>>) ->
+  Atom = case Value of
     0 -> false;
     1 -> true
-  end;
-parse_data(<<?INT32, Value:32/little-signed-integer>>) ->
-  Value;
-parse_data(<<?DOUBLE, Value:8/binary>>) ->
-  decode_double(Value);
-parse_data(<<?STRING, Value/binary>>) ->
-  Value.
+  end,
+  {Atom, Rest};
+parse_data(<<?INT32, Value:32/little-signed-integer, Rest/binary>>) ->
+  {Value, Rest};
+parse_data(<<?DOUBLE, Value:8/binary, Rest/binary>>) ->
+  {decode_double(Value), Rest};
+parse_data(<<?STRING, Size:32/little-unsigned-integer, Value:Size/binary, Rest/binary>>) ->
+  {Value, Rest};
+parse_data(<<?ARRAY, Count:32/little-unsigned-integer, Elements/binary>>) ->
+  {Value, Rest} = parse_array(Elements, Count, []),
+  {Value, Rest};
+parse_data(<<?MAP, Count:32/little-unsigned-integer, Elements/binary>>) ->
+  {Value, Rest} = parse_map(Elements, Count, #{}),
+  {Value, Rest}.
+
+% Unpacks an array from the sandbox.
+-spec parse_array(binary(), non_neg_integer(), [js_type()]) -> {[js_type()], binary()}.
+parse_array(Data, 0, Array) ->
+  {lists:reverse(Array), Data};
+parse_array(Data, Count, Array) ->
+  {Element, Rest} = parse_data(Data),
+  parse_array(Rest, Count - 1, [Element | Array]).
+
+% Unpacks a map from the sandbox.
+-spec parse_map(binary(), non_neg_integer(), #{js_type() => js_type()}) -> {#{js_type() => js_type()}, binary()}.
+parse_map(Data, 0, Map) ->
+  {Map, Data};
+parse_map(Data, Count, Map) ->
+  {Property, Rest1} = parse_data(Data),
+  {Value, Rest2} = parse_data(Rest1),
+  parse_map(Rest2, Count - 1, Map#{Property => Value}).
 
 % Waits for a message to arrive from the sandbox port and unpacks it.
--spec listen(port()) -> {ok | error, atom() | number() | binary()}.
+-spec listen(port()) -> {ok | error, js_type()}.
 listen(Port) when is_port(Port) ->
   receive
     {Port, {data, Result}} -> parse_result(Result);
@@ -183,19 +213,19 @@ listen(Port) when is_port(Port) ->
   end.
 
 % Packs the arguments for a function call into binary data for the sandbox port.
--spec pack_arguments([atom() | number() | string() | binary()]) -> iodata().
+-spec pack_arguments([js_type()]) -> iodata().
 pack_arguments(Arguments) ->
   pack_arguments(Arguments, []).
 
 % Helper for the pack_arguments/1 function.
--spec pack_arguments([atom() | number() | string() | binary()], iodata()) -> iodata().
+-spec pack_arguments([js_type()], iodata()) -> iodata().
 pack_arguments([], Accumulator) ->
   lists:reverse(Accumulator);
 pack_arguments([Current | Remaining], Accumulator) ->
   pack_arguments(Remaining, [pack_argument(Current) | Accumulator]).
 
 % Converts a single argument into binary data for the sandbox port.
--spec pack_argument(atom() | number() | string() | binary()) -> iodata().
+-spec pack_argument(js_type()) -> iodata().
 pack_argument(undefined) ->
   ?UNDEFINED;
 pack_argument(null) ->
@@ -208,7 +238,13 @@ pack_argument(Value) when is_integer(Value) ->
   <<?INT32, Value:32/little-signed-integer>>;
 pack_argument(Value) when is_float(Value) ->
   <<?DOUBLE, Value:64/little-signed-float>>;
-pack_argument(Value) when is_list(Value) ->
-  pack_argument(list_to_binary(Value));
+pack_argument(Value) when is_atom(Value) ->
+  pack_argument(atom_to_binary(Value, utf8));
 pack_argument(Value) when is_binary(Value) ->
-  [<<?STRING, (byte_size(Value)):32/little-unsigned-integer>>, Value].
+  [<<?STRING, (byte_size(Value)):32/little-unsigned-integer>>, Value];
+pack_argument(Values) when is_list(Values) ->
+  PackedList = [pack_argument(Value) || Value <- Values],
+  [<<?ARRAY, (length(Values)):32/little-unsigned-integer>>, PackedList];
+pack_argument(Values) when is_map(Values) ->
+  PackedMap = [[pack_argument(Key), pack_argument(Value)] || {Key, Value} <- maps:to_list(Values)],
+  [<<?MAP, (maps:size(Values)):32/little-unsigned-integer>>, PackedMap].

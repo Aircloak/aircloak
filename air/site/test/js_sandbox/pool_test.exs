@@ -10,7 +10,7 @@ defmodule Air.JsSandbox.PoolTest do
     expected_sum = test_range |> Enum.map(&(&1 * 2)) |> Enum.sum()
     sum_of_doubles = test_range
     # using Task.async to hopefully trigger concurrent executions of multiple workers.
-    |> Enum.map(&Task.async(fn -> Pool.call(pool, "double", [&1]) end))
+    |> Enum.map(&Task.async(fn -> Pool.call(pool, "double_value", [&1]) end))
     |> Enum.map(&Task.await/1)
     |> Enum.map(fn({:ok, result}) -> result end)
     |> Enum.sum()
