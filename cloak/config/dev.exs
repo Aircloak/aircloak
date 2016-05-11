@@ -21,7 +21,7 @@ config :cloak, data_sources: [
   local: [
     driver: Cloak.DataSource.PostgreSQL,
     parameters: [
-      host: "localhost",
+      hostname: "localhost",
       username: "cloak",
       database: "cloak",
       sync_connect: true,
