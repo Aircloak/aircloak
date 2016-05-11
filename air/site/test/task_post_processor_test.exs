@@ -54,6 +54,6 @@ defmodule Air.TaskPostProcessorTest do
     }
     result = TaskPostProcessor.process(original_result)
     histograms = result["post_processed"]["histograms"]
-    assert [%{"max" => 100, "min" => -100, "name" => "data", "values" => [_|_]}] = histograms
+    assert [%{"max" => 100.0, "min" => -100.0, "name" => "data", "values" => [_|_]}] = histograms
   end
 end

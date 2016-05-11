@@ -22,9 +22,9 @@ defmodule Air.TaskPostProcessor do
   @doc "Processes a raw result sent by the cloak."
   @spec process(%{String.t => any}) :: %{String.t => any}
   def process(original_result) do
-    case JsSandbox.Pool.call(__MODULE__, "process_result", [Poison.encode!(original_result)]) do
+    case JsSandbox.Pool.call(__MODULE__, "process_result", [original_result]) do
       {:ok, post_processed_result} ->
-        Poison.decode!(post_processed_result)
+        post_processed_result
       {:error, reason} ->
         Logger.error("Error during article post-processing: #{inspect reason}")
         original_result
