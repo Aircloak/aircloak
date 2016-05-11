@@ -4,12 +4,11 @@ defmodule Air.Utils.Process do
   """
 
   @doc """
-  Checks if process `pid` on node `node_name` is alive. Works just like `Process.alive?` but also for remote
-  processes.
+  Checks if process `pid` is alive. Works just like `Process.alive?` but also for remote processes.
   """
-  @spec alive?(node_name :: atom, pid :: pid) :: boolean
-  def alive?(node_name, pid) do
-    case :rpc.call(node_name, Process, :alive?, [pid]) do
+  @spec alive?(pid :: pid) :: boolean
+  def alive?(pid) do
+    case :rpc.call(node(pid), Process, :alive?, [pid]) do
       true -> true
       _ -> false
     end

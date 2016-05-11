@@ -7,12 +7,12 @@ defmodule Air.Utils.ProcessTest do
     pid = spawn(fn -> :timer.sleep(:infinity) end)
     Process.exit(pid, :kill)
 
-    assert ProcessUtils.alive?(Node.self(), pid) == false
+    assert ProcessUtils.alive?(pid) == false
   end
 
   test "alive? of an alive process" do
     pid = spawn(fn -> :timer.sleep(:infinity) end)
 
-    assert ProcessUtils.alive?(Node.self(), pid) == true
+    assert ProcessUtils.alive?(pid) == true
   end
 end
