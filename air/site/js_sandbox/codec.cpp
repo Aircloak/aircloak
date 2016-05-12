@@ -11,8 +11,10 @@ static void append_data(std::vector<uint8_t>* buffer, DataType type, const uint8
   buffer->resize(index + 1 + size); // make room
   uint8_t* target = buffer->data() + index;
 
-  *target++ = (uint8_t)type; // append type
+  *target = (uint8_t)type; // append type
+  target++;
   memcpy(target, data, size); // append data
+  target += size;
 }
 
 // Adds a string to a raw output buffer.
@@ -30,7 +32,7 @@ void append_string(std::vector<uint8_t>* buffer, const char* string, uint32_t si
 }
 
 // Packs the specified JavaScript value into the raw output. Returns false if the value is invalid.
-bool write_value(std::vector<uint8_t>* buffer, JSContext *cx, const JS::HandleValue& rval)
+bool write_value(std::vector<uint8_t>* buffer, JSContext* cx, const JS::HandleValue& rval)
 {
   if (rval.isUndefined())
   {

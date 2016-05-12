@@ -180,11 +180,9 @@ parse_data(<<?DOUBLE, Value:8/binary, Rest/binary>>) ->
 parse_data(<<?STRING, Size:32/little-unsigned-integer, Value:Size/binary, Rest/binary>>) ->
   {Value, Rest};
 parse_data(<<?ARRAY, Count:32/little-unsigned-integer, Elements/binary>>) ->
-  {Value, Rest} = parse_array(Elements, Count, []),
-  {Value, Rest};
+  parse_array(Elements, Count, []);
 parse_data(<<?MAP, Count:32/little-unsigned-integer, Elements/binary>>) ->
-  {Value, Rest} = parse_map(Elements, Count, #{}),
-  {Value, Rest}.
+  parse_map(Elements, Count, #{}).
 
 % Unpacks an array from the sandbox.
 -spec parse_array(binary(), non_neg_integer(), [js_type()]) -> {[js_type()], binary()}.

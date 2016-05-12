@@ -11,7 +11,7 @@
 char g_error[8 * 1024];
 
 // The error reporter callback.
-static void report_error(JSContext *cx, const char *message, JSErrorReport *report)
+static void report_error(JSContext* cx, const char* message, JSErrorReport* report)
 {
   snprintf (g_error, sizeof(g_error), "[%s:%u] %s",
           report->filename ? report->filename : "<unknown>",
@@ -20,7 +20,7 @@ static void report_error(JSContext *cx, const char *message, JSErrorReport *repo
 }
 
 // Reports the result of the last action back to the calling process.
-static void report_result(JSContext *cx, bool ok, const JS::HandleValue& rval)
+static void report_result(JSContext* cx, bool ok, const JS::HandleValue& rval)
 {
   OutMessage message = {}; // message to be sent back
   message.body.reserve(16 * 1024); // avoid small allocations
@@ -112,15 +112,15 @@ static void message_loop(JSContext* cx, const JS::HandleObject& global)
   }
 }
 
-int main(int argc, const char *argv[])
+int main(int argc, const char* argv[])
 {
   JS_Init();
 
-  JSRuntime *rt = JS_NewRuntime(8L * 1024 * 1024); // run GC in 8 MB steps.
+  JSRuntime* rt = JS_NewRuntime(8L * 1024 * 1024); // run GC in 8 MB steps.
   if (!rt)
     return 1;
 
-  JSContext *cx = JS_NewContext(rt, 8192);
+  JSContext* cx = JS_NewContext(rt, 8192);
   if (!cx)
     return 1;
 
