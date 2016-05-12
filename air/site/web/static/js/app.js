@@ -11,15 +11,15 @@
 //
 // If you no longer want to use a dependency, remember
 // to also remove its path from "config.paths.watched".
-import "phoenix_html"
+import 'phoenix_html';
 
-import { TaskEditor } from "./tasks/main"
+import { renderTaskEditor } from './tasks/main';
 
-let App = {
+const App = {
   taskPage: (data) => {
-    TaskEditor(data);
-  }
-}
+    renderTaskEditor(data);
+  },
+};
 
 if (window.pageConfig !== undefined) {
   window.pageConfig.onLoad.call(this, App);

@@ -285,7 +285,7 @@ class TaskEditor extends React.Component {
   }
 }
 
-exports.TaskEditor = (data) => {
+exports.renderTaskEditor = (data) => {
   ReactDOM.render(
     <TaskEditor {...data} />,
     document.getElementById("task-view")
