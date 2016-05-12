@@ -6,7 +6,7 @@ defmodule Air.ResultController do
   alias Air.Result
 
   import Air.TaskController, only: [load_task_and_validate_ownership: 2]
-  plug :load_task_and_validate_ownership, "task_id" when action in [:index, :show]
+  plug :load_task_and_validate_ownership, "task_id" when action in [:index, :show, :delete]
 
 
   # -------------------------------------------------------------------
@@ -47,5 +47,20 @@ defmodule Air.ResultController do
     task = conn.assigns.task
     result = Result |> Repo.get!(params["id"]) |> Result.unpack(100)
     render(conn, "show.html", task: task, result: result)
+  end
+
+  def delete(conn, %{"id" => "all"}) do
+    task = conn.assigns.task
+    from(r in Result, where: r.task_id == ^task.id) |> Repo.delete_all
+    conn
+    |> put_flash(:info, "Task results deleted successfully.")
+    |> redirect(to: task_result_path(conn, :index, task.id))
+  end
+  def delete(conn, %{"id" => id}) do
+    task = conn.assigns.task
+    Result |> Repo.get!(id) |> Repo.delete!
+    conn
+    |> put_flash(:info, "Task result deleted successfully.")
+    |> redirect(to: task_result_path(conn, :index, task.id))
   end
 end

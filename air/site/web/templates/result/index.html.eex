@@ -8,33 +8,42 @@
 
 <h2>Results for '<%= @task.name %>'</h2>
 <hr/>
-<table class="table table-striped" id="results">
-  <thead>
-    <tr>
-      <th><center>Generated on</center></th>
-      <th><center>Details</center></th>
-      <th><center>Errors</center></th>
-      <%= for {label, value} <- @headers do %>
-        <th><center><%= "#{label}: #{value}" %></center>
-      <% end %>
-    </tr>
-  </thead>
-  <tbody>
-  <%= for result <- @results do %>
-    <tr align="center">
-      <td><script>write_local_time("<%= Ecto.DateTime.to_iso8601(result.timestamp) %>");</script></td>
-      <td><%= link "view", to: task_result_path(@conn, :show, @task.id, result.id) %></td>
-      <td>
-        <%= if result.errors == "" do %>
-          none
-        <% else %>
-          <div title="<%= result.errors %>" class="error">present</div>
+<%= if length(@results) == 0 do %>
+  <div><b>Currently there are no results stored for this task.</b></div>
+<% else %>
+  <div align="right">
+    <%= link "Delete all", to: task_result_path(@conn, :delete, @task.id, :all), method: :delete,
+      data: [confirm: "Are you sure you want to delete all results?"], class: "btn btn-danger btn-xs" %>
+  </div>
+  <br/>
+  <table class="table table-striped" id="results">
+    <thead>
+      <tr>
+        <th><center>Generated on</center></th>
+        <th><center>Details</center></th>
+        <th><center>Errors</center></th>
+        <%= for {label, value} <- @headers do %>
+          <th><center><%= "#{label}: #{value}" %></center>
         <% end %>
-      </td>
-      <%= for count <- result.counts do %>
-        <td><%= count %></td>
-      <% end %>
-    </tr>
-  <% end %>
-  </tbody>
-</table>
+      </tr>
+    </thead>
+    <tbody>
+    <%= for result <- @results do %>
+      <tr align="center">
+        <td><script>write_local_time("<%= Ecto.DateTime.to_iso8601(result.timestamp) %>");</script></td>
+        <td><%= link "view", to: task_result_path(@conn, :show, @task.id, result.id) %></td>
+        <td>
+          <%= if result.errors == "" do %>
+            none
+          <% else %>
+            <div title="<%= result.errors %>" class="error">present</div>
+          <% end %>
+        </td>
+        <%= for count <- result.counts do %>
+          <td><%= count %></td>
+        <% end %>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
+<% end %>

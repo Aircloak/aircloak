@@ -1,5 +1,9 @@
 <h2>Viewing individual result for '<%= @task.name %>'</h2>
 <hr/>
+<div align="right">
+  <%= link "Delete", to: task_result_path(@conn, :delete, @task.id, @result.id), method: :delete,
+    data: [confirm: "Are you sure you want to delete this result?"], class: "btn btn-danger btn-xs" %>
+</div>
 <div>Generated on: <b><span id="timestamp"><%= Ecto.DateTime.to_iso8601(@result.timestamp) %></span></b></div>
 <div>Errors: <b>
   <%= if @result.errors == "" do %>
