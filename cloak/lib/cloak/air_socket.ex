@@ -11,6 +11,12 @@ defmodule Cloak.AirSocket do
   alias Phoenix.Channels.GenSocketClient
   @behaviour GenSocketClient
 
+  # The number of ms we initially wait before attempting to rejoin the air upon a broken connection.
+  # It should be kept very low. The most common reason for a broken connection is that the air has
+  # been re-deployed. Since we are doing rolling deploys, there is going to be other air machines
+  # available to connect to.
+  @initial_interval 5
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -64,27 +70,38 @@ defmodule Cloak.AirSocket do
       cloak_name: cloak_name
     }
     url = "#{:cloak_conf.get_val(:air, :socket_url)}?#{URI.encode_query(params)}"
-    {:connect, url, %{cloak_name: cloak_name, pending_calls: %{}}}
+    state = %{
+      cloak_name: cloak_name,
+      pending_calls: %{},
+      reconnect_interval: @initial_interval,
+      rejoin_interval: @initial_interval
+    }
+    {:connect, url, state}
   end
 
   @doc false
   def handle_connected(_transport, state) do
     Logger.info("connected")
     send(self(), {:join, "main"})
-    {:ok, state}
+    {:ok, %{state | reconnect_interval: @initial_interval}}
   end
 
   @doc false
-  def handle_disconnected(reason, state) do
+  def handle_disconnected(reason, %{reconnect_interval: interval} = state) do
     Logger.error("disconnected: #{inspect reason}")
-    Process.send_after(self(), :connect, :cloak_conf.get_val(:air, :reconnect_interval))
-    {:ok, state}
+    Process.send_after(self(), :connect, interval)
+    max_reconnect_interval = :cloak_conf.get_val(:air, :max_reconnect_interval)
+    next_state = case interval * 2 >= max_reconnect_interval do
+      true -> %{state | reconnect_interval: max_reconnect_interval}
+      false -> %{state | reconnect_interval: interval * 2}
+    end
+    {:ok, next_state}
   end
 
   @doc false
   def handle_joined(topic, _payload, _transport, state) do
     Logger.info("joined the topic #{topic}")
-    {:ok, state}
+    {:ok, %{state | rejoin_interval: @initial_interval}}
   end
 
   @doc false
@@ -94,10 +111,15 @@ defmodule Cloak.AirSocket do
   end
 
   @doc false
-  def handle_channel_closed(topic, payload, _transport, state) do
+  def handle_channel_closed(topic, payload, _transport, %{rejoin_interval: interval} = state) do
     Logger.error("disconnected from the topic #{topic}: #{inspect payload}")
-    Process.send_after(self(), {:join, topic}, :cloak_conf.get_val(:air, :rejoin_interval))
-    {:ok, state}
+    Process.send_after(self(), {:join, topic}, interval)
+    max_rejoin_interval = :cloak_conf.get_val(:air, :max_rejoin_interval)
+    next_state = case interval * 2 >= max_rejoin_interval do
+      true -> %{state | rejoin_interval: max_rejoin_interval}
+      false -> %{state | rejoin_interval: interval * 2}
+    end
+    {:ok, next_state}
   end
 
   @doc false
