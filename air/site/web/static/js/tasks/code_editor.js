@@ -1,10 +1,10 @@
-import React from "react"
-import Codemirror from "react-codemirror"
-var _ = require("lodash");
+import React from 'react';
+import Codemirror from 'react-codemirror';
+import _ from 'lodash';
 
-require("codemirror/mode/lua/lua");
-require("codemirror/addon/hint/show-hint");
-require("codemirror/addon/hint/anyword-hint");
+require('codemirror/mode/lua/lua');
+require('codemirror/addon/hint/show-hint');
+require('codemirror/addon/hint/anyword-hint');
 
 export class CodeEditor extends React.Component {
   constructor(props) {
@@ -19,6 +19,21 @@ export class CodeEditor extends React.Component {
     // the react component.
     this.editor = undefined;
   }
+
+  setupComponent(codeMirrorComponent) {
+    const instance = codeMirrorComponent.getCodeMirrorInstance();
+    this.editor = instance;
+    instance.commands.save = (_cm) => {
+      this.props.onSave();
+    }
+    instance.commands.run = (_cm) => {
+      this.props.onRun();
+    }
+    instance.commands.autoComplete = (cm) => {
+      cm.showHint({hint: this.completionList});
+    }
+  }
+
   completionList(cm) {
     let regex = /(\w|\.)/;
     let cur = cm.getCursor();
@@ -35,14 +50,14 @@ export class CodeEditor extends React.Component {
     }
 
     let curWord = curLine.slice(start, end);
-    let fuzzyMatcher = new RegExp(curWord.replace(/(.)/g, "$1.*"), "i");
+    let fuzzyMatcher = new RegExp(curWord.replace(/(.)/g, '$1.*'), 'i');
 
     let sortOrder = (text) => {
       // Place items that start with the given word at the top of the completion list.
       if (text.startsWith(curWord)) {
-        return "0" + text;
+        return '0' + text;
       } else {
-        return "1" + text;
+        return '1' + text;
       }
     }
 
@@ -69,19 +84,7 @@ export class CodeEditor extends React.Component {
     };
     return returnValue;
   }
-  setupComponent(codeMirrorComponent) {
-    let instance = codeMirrorComponent.getCodeMirrorInstance();
-    this.editor = instance;
-    instance.commands.save = (_cm) => {
-      this.props.onSave();
-    }
-    instance.commands.run = (_cm) => {
-      this.props.onRun();
-    }
-    instance.commands.autoComplete = (cm) => {
-      cm.showHint({hint: this.completionList});
-    }
-  }
+
   render() {
     var options = {
       autofocus: true,
@@ -90,15 +93,15 @@ export class CodeEditor extends React.Component {
       lineNumbers: true,
       lineWrapping: true,
       matchBrackets: true,
-      mode: "lua",
+      mode: 'lua',
       showCursorWhenSelecting: true,
       smartIndent: true,
       viewportMargin: Infinity,
 
       extraKeys: {
-        "Ctrl-S": "save",
-        "Ctrl-R": "run",
-        "Ctrl-Space": "autoComplete"
+        'Ctrl-S': 'save',
+        'Ctrl-R': 'run',
+        'Ctrl-Space': 'autoComplete'
       }
     };
     return (
