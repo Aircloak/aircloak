@@ -32,6 +32,8 @@
     </tbody>
   </table>
 </div>
+<hr/>
+<div><%= link "Back to all results", to: task_result_path(@conn, :index, @task.id) %><div>
 
 <script>
   window.pageConfig = {

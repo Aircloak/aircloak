@@ -47,3 +47,5 @@
     </tbody>
   </table>
 <% end %>
+<hr/>
+<div><%= link "Back to all tasks", to: task_path(@conn, :index) %><div>
