@@ -4,8 +4,7 @@
 #include <vector>
 
 // The data types supported by the sandbox.
-// TODO: add support for arrays and maps.
-enum class DataType : uint8_t {Undefined, Null, Boolean, Int32, Double, String};
+enum class DataType : uint8_t {Undefined, Null, Boolean, Int32, Double, String, Array, Map};
 // The actions that can be executed by the sandbox.
 enum class Action : uint8_t {Stop, Evaluate, Call};
 
@@ -21,9 +20,7 @@ struct InMessage
 struct OutMessage
 {
   bool success;
-  DataType type;
-  uint32_t size;
-  const uint8_t* data;
+  std::vector<uint8_t> body;
 };
 
 // Reads a new message from the controlling process.

@@ -1,17 +1,17 @@
 #include "jsapi.h"
 #include "comm.h"
+#include "codec.h"
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/resource.h>
-
 
 // The global buffer to store the last error message.
 // Notice: we can't return error messages bigger than the size of this buffer.
 char g_error[8 * 1024];
 
 // The error reporter callback.
-static void report_error(JSContext *cx, const char *message, JSErrorReport *report)
+static void report_error(JSContext* cx, const char* message, JSErrorReport* report)
 {
   snprintf (g_error, sizeof(g_error), "[%s:%u] %s",
           report->filename ? report->filename : "<unknown>",
@@ -20,70 +20,25 @@ static void report_error(JSContext *cx, const char *message, JSErrorReport *repo
 }
 
 // Reports the result of the last action back to the calling process.
-static void report_result(JSContext *cx, bool ok, const JS::HandleValue& rval)
+static void report_result(JSContext* cx, bool ok, const JS::HandleValue& rval)
 {
   OutMessage message = {}; // message to be sent back
-  union
-  {
-    bool b;
-    int32_t i;
-    double d;
-  } value; // container to hold bool, int or double data
-  JSAutoByteString bytes; // container to hold string data
+  message.body.reserve(16 * 1024); // avoid small allocations
 
   if (ok)
   {
     message.success = true;
-
-    if (rval.isUndefined())
-    {
-      message.type = DataType::Undefined;
-    }
-    else if (rval.isNull())
-    {
-      message.type = DataType::Null;
-    }
-    else if (rval.isBoolean())
-    {
-      message.type = DataType::Boolean;
-      value.b = rval.toBoolean();
-      message.size = sizeof(value.b);
-      message.data = (uint8_t*)&value.b;
-    }
-    else if (rval.isInt32())
-    {
-      message.type = DataType::Int32;
-      value.i = rval.toInt32();
-      message.size = sizeof(value.i);
-      message.data = (uint8_t*)&value.i;
-    }
-    else if (rval.isDouble())
-    {
-      message.type = DataType::Double;
-      value.d = rval.toDouble();
-      message.size = sizeof(value.d);
-      message.data = (uint8_t*)&value.d;
-    }
-    else if (rval.isString())
-    {
-      JS::RootedString str(cx, rval.toString());
-      bytes.encodeUtf8(cx, str);
-      message.type = DataType::String;
-      message.size = (uint32_t)bytes.length();
-      message.data = (uint8_t*)bytes.ptr();
-    }
-    else
+    if (!write_value(&message.body, cx, rval))
     {
       ok = false;
-      strcpy(g_error, "Operation returned an unsupported value type.");
+      message.body.resize(0);
+      strcpy(g_error, "Operation returned an invalid value.");
     }
   }
   if (!ok)
   {
     message.success = false;
-    message.type = DataType::String;
-    message.size = (uint32_t)strlen(g_error);
-    message.data = (uint8_t*)g_error;
+    append_string(&message.body, g_error, (uint32_t)strlen(g_error));
   }
 
   write_message(message);
@@ -112,88 +67,16 @@ static void call_function(JSContext* cx, const JS::HandleObject& global,
 // Unpacks the arguments for a function call out of a raw buffer received from the calling process.
 static void unpack_args(JSContext* cx, JS::AutoValueVector* args, const uint8_t* buffer, uint32_t size)
 {
-  if(size == 0)
-    return;
-
-  DataType type = (DataType)buffer[0];
-  buffer++;
-  size--;
-
-  switch(type)
+  while (size > 0)
   {
-    case DataType::Undefined:
-      args->append(JS::UndefinedValue());
-      break;
+    JS::RootedValue value(cx);
 
-    case DataType::Null:
-      args->append(JS::NullValue());
-      break;
+    uint32_t read = unpack_value(cx, &value, buffer, size);
+    buffer += read;
+    size -= read;
 
-    case DataType::Boolean:
-      {
-        if (size < sizeof(bool))
-          exit(EXIT_FAILURE);
-
-        bool value = *(bool*)buffer;
-        buffer += sizeof(bool);
-        size -= sizeof(bool);
-
-        args->append(JS::BooleanValue(value));
-      }
-      break;
-
-    case DataType::Int32:
-      {
-        if (size < sizeof(int32_t))
-          exit(EXIT_FAILURE);
-
-        int32_t value = *(int32_t*)buffer;
-        buffer += sizeof(int32_t);
-        size -= sizeof(int32_t);
-
-        args->append(JS::Int32Value(value));
-      }
-      break;
-
-    case DataType::Double:
-      {
-        if (size < sizeof(double))
-          exit(EXIT_FAILURE);
-
-        double value = *(double*)buffer;
-        buffer += sizeof(double);
-        size -= sizeof(double);
-
-        args->append(JS::DoubleValue(value));
-      }
-      break;
-
-    case DataType::String:
-      {
-        if (size < sizeof(uint32_t))
-          exit(EXIT_FAILURE);
-
-        uint32_t length = *(uint32_t*)buffer;
-        buffer += sizeof(uint32_t);
-        size -= sizeof(uint32_t);
-
-        if (size < length)
-          exit(EXIT_FAILURE);
-
-        JS::RootedString value(cx, JS_NewStringCopyN(cx, (const char*)buffer, length));
-        buffer += length;
-        size -= length;
-
-        args->append(JS::StringValue(value));
-      }
-      break;
-
-    default:
-      exit(EXIT_FAILURE);
-      break;
+    args->append(value);
   }
-
-  unpack_args(cx, args, buffer, size);
 }
 
 // This is the main message loop of the program. It will wait for a message to arrive from
@@ -229,15 +112,15 @@ static void message_loop(JSContext* cx, const JS::HandleObject& global)
   }
 }
 
-int main(int argc, const char *argv[])
+int main(int argc, const char* argv[])
 {
   JS_Init();
 
-  JSRuntime *rt = JS_NewRuntime(8L * 1024 * 1024); // run GC in 8 MB steps.
+  JSRuntime* rt = JS_NewRuntime(8L * 1024 * 1024); // run GC in 8 MB steps.
   if (!rt)
     return 1;
 
-  JSContext *cx = JS_NewContext(rt, 8192);
+  JSContext* cx = JS_NewContext(rt, 8192);
   if (!cx)
     return 1;
 
