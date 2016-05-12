@@ -2,3 +2,4 @@
 /image_shell_init.sh
 /tmp/
 /.dockerignore
+.bundle
