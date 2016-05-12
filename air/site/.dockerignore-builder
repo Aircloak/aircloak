@@ -11,6 +11,7 @@
 !air/site/brunch-config.js
 !air/site/package.json
 !air/site/priv/repo
+!air/site/priv/task_post_processor
 !air/site/Makefile
 !air/site/mix.exs
 !air/site/mix.lock
