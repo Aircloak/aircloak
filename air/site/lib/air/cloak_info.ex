@@ -10,6 +10,8 @@ defmodule Air.CloakInfo do
   the channel to be closed.
   """
 
+  alias Air.Utils.Process, as: ProcessUtils
+
   defstruct [:id, :name, :organisation, :data_sources, :created_at]
 
   @type t :: %__MODULE__{
@@ -97,7 +99,7 @@ defmodule Air.CloakInfo do
     case :air_etcd.fetch(etcd_path) do
       {:ok, encoded_cloak_data} when is_binary(encoded_cloak_data) ->
         cloak_data = decode_cloak_data(encoded_cloak_data)
-        if Process.alive?(cloak_data.pid) do
+        if ProcessUtils.alive?(cloak_data.pid) do
           # keeps false positives out, i.e. processes which have terminated, but the entry still lingers on
           cloak_data
         else
