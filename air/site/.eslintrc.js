@@ -4,6 +4,7 @@ module.exports = {
         "react"
     ],
     "rules": {
-      "allow-unused-underscore-vars": ["error"]
+      "allow-unused-underscore-vars": ["error"],
+      "no-else-return": ["off"]
     }
 };
