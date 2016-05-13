@@ -43,6 +43,10 @@ ul.nav.navbar-nav.navbar-right li form.link a:hover {
   width: 50%;
 }
 
+.table-hover tbody tr:hover td {
+    background: rgb(255,255,155);
+}
+
 /* Customize container */
 @media (min-width: 768px) {
   .container {

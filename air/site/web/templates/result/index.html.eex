@@ -16,7 +16,7 @@
       data: [confirm: "Are you sure you want to delete all results?"], class: "btn btn-danger btn-xs" %>
   </div>
   <br/>
-  <table class="table table-striped" id="results">
+  <table class="table table-striped table-hover" id="results">
     <thead>
       <tr>
         <th><center>Generated on</center></th>
