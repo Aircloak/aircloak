@@ -31,7 +31,7 @@
     <%= for result <- @results do %>
       <tr align="center">
         <td>
-          <script>write_local_time("<%= Ecto.DateTime.to_iso8601(result.timestamp) %>");</script>
+          <script>write_local_time("<%= to_js_timestamp(result.timestamp) %>");</script>
           <%= if result.timestamp < @task.updated_at do %>
             *
           <% end %>
