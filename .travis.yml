@@ -16,6 +16,7 @@ cache:
   - common/elixir/_build
   - air/site/deps
   - air/site/_build
+  - air/site/node_modules
   - .mix
   - cloak/deps
   - cloak/_build
@@ -52,7 +53,7 @@ before_script:
   - air/etcd/config_travis.sh
   - air/db/init_db.sh
   - cd air/site
-  - mix deps.get
+  - make deps
   - mix compile --warnings-as-errors
   - MIX_ENV=test mix compile --warnings-as-errors
   - MIX_ENV=prod mix compile --warnings-as-errors
