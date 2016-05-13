@@ -32,7 +32,7 @@
       <tr align="center">
         <td>
           <script>write_local_time("<%= to_js_timestamp(result.timestamp) %>");</script>
-          <%= if result.timestamp < @task.updated_at do %>
+          <%= if is_old_result?(result, @task) do %>
             *
           <% end %>
         </td>

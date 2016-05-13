@@ -6,7 +6,7 @@
 </div>
 <div>
   Generated on: <b><span id="timestamp"><%= to_js_timestamp(@result.timestamp) %></span></b>
-  <%= if @result.timestamp < @task.updated_at do %>
+  <%= if is_old_result?(@result, @task) do %>
     <span><small><i>(Task was modified since result was generated.)</i></small></span>
   <% end %>
 </div>
