@@ -27,7 +27,7 @@ defmodule Air.ResultController do
   def index(conn, _params) do
     # Preload and unpack the task results.
     task = conn.assigns.task |> Repo.preload(results: (from r in Result, order_by: [desc: r.id]))
-    results = for result <- task.results, do: Result.unpack(result, 15)
+    results = for result <- task.results, do: Result.unpack(result, 10)
 
     # Create the list of unique bucket names.
     headers = (for %{buckets: buckets} <- results, {label, value, _count} <- buckets, do: {label, value}) |> Enum.uniq
