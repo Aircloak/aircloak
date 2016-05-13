@@ -11,9 +11,9 @@
 //
 // If you no longer want to use a dependency, remember
 // to also remove its path from "config.paths.watched".
-import 'phoenix_html';
+import "phoenix_html";
 
-import { renderTaskEditor } from './tasks/main';
+import {renderTaskEditor} from "./tasks/main";
 
 const App = {
   taskPage: (data) => {
