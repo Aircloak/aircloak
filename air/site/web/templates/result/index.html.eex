@@ -30,7 +30,12 @@
     <tbody>
     <%= for result <- @results do %>
       <tr align="center">
-        <td><script>write_local_time("<%= Ecto.DateTime.to_iso8601(result.timestamp) %>");</script></td>
+        <td>
+          <script>write_local_time("<%= Ecto.DateTime.to_iso8601(result.timestamp) %>");</script>
+          <%= if result.timestamp < @task.updated_at do %>
+            *
+          <% end %>
+        </td>
         <td><%= link "view", to: task_result_path(@conn, :show, @task.id, result.id) %></td>
         <td>
           <%= if result.errors == "" do %>
@@ -46,6 +51,7 @@
     <% end %>
     </tbody>
   </table>
+  <div><i>* = Task was modified since result was generated.</i></div>
 <% end %>
 <hr/>
 <div><%= link "Back to all tasks", to: task_path(@conn, :index) %><div>

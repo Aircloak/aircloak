@@ -4,7 +4,12 @@
   <%= link "Delete", to: task_result_path(@conn, :delete, @task.id, @result.id), method: :delete,
     data: [confirm: "Are you sure you want to delete this result?"], class: "btn btn-danger btn-xs" %>
 </div>
-<div>Generated on: <b><span id="timestamp"><%= Ecto.DateTime.to_iso8601(@result.timestamp) %></span></b></div>
+<div>
+  Generated on: <b><span id="timestamp"><%= Ecto.DateTime.to_iso8601(@result.timestamp) %></span></b>
+  <%= if @result.timestamp < @task.updated_at do %>
+    <span><small><i>(Task was modified since result was generated.)</i></small></span>
+  <% end %>
+</div>
 <div>Errors: <b>
   <%= if @result.errors == "" do %>
     none
@@ -12,6 +17,7 @@
     <span class="error"><%= @result.errors %></span>
   <% end %>
 </b></div>
+<br/>
 <div>Properties:
   <table class="table table-striped">
     <thead>
