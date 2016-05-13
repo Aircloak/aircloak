@@ -5,6 +5,7 @@ module.exports = {
     ],
     "rules": {
       "allow-unused-underscore-vars": ["error"],
-      "no-else-return": ["off"]
+      "no-else-return": ["off"],
+      "quotes": ["error", "double"],
     }
 };
