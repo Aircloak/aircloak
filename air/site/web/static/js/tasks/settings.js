@@ -1,4 +1,4 @@
-import React from "react"
+import React from "react";
 
 export class SettingsModel {
   constructor(props) {
@@ -6,21 +6,21 @@ export class SettingsModel {
   }
 
   selectedDataSource() {
-    return this.dataSources.find((dataSource) => {return dataSource.token == this.dataSourceToken});
+    return this.dataSources.find((dataSource) => (dataSource.token === this.dataSourceToken));
   }
 
   selectedDataSourceToken() {
-    let selectedDataSource = this.selectedDataSource();
+    const selectedDataSource = this.selectedDataSource();
     return selectedDataSource ? selectedDataSource.token : null;
   }
 
   selectedDataSourceTables() {
-    let selectedDataSource = this.selectedDataSource();
+    const selectedDataSource = this.selectedDataSource();
     return selectedDataSource ? selectedDataSource.tables : [];
   }
 
   isTableSelected(table) {
-    return this.tables.has(table.id)
+    return this.tables.has(table.id);
   }
 
   hasAssignedDataSource() {
@@ -42,7 +42,7 @@ export class SettingsModel {
     // some cloaks are connected, but no cloak is selected
     if (this.cloakId == null) return true;
 
-    let selectedCloak = (this.dataSources.find((dataSource) => {return dataSource.cloak.id == this.cloakId}));
+    const selectedCloak = this.dataSources.find((dataSource) => (dataSource.cloak.id === this.cloakId));
     if (selectedCloak != null) return true;
 
     // We have a cloak, but it is not online
@@ -50,34 +50,36 @@ export class SettingsModel {
   }
 
   errorMessage() {
-    if (this.dataSources.length == 0 && this.cloakId == null) {
+    if (this.dataSources.length === 0 && this.cloakId === null) {
       return "There are no cloaks connected.";
     }
 
     if (!this.selectedCloakOnline()) {
       return `The cloak ${this.cloakId} is not connected.`;
     }
+
+    return null;
   }
 
   setDataSourceToken(dataSourceToken) {
-    if (this.dataSourceToken == dataSourceToken) return this;
+    if (this.dataSourceToken === dataSourceToken) return this;
     return this.transform(
       (newSettings) => {
-        Object.assign(newSettings, {dataSourceToken: dataSourceToken, tables: new Set([])})
+        Object.assign(newSettings, {dataSourceToken, tables: new Set([])});
       }
-    )
+    );
   }
 
   selectTable(tableId) {
-    return this.transform((newSettings) => {newSettings.tables.add(tableId)});
+    return this.transform((newSettings) => newSettings.tables.add(tableId));
   }
 
   unselectTable(tableId) {
-    return this.transform((newSettings) => {newSettings.tables.delete(tableId)});
+    return this.transform((newSettings) => newSettings.tables.delete(tableId));
   }
 
   changeTaskName(newName) {
-    return this.transform((newSettings) => {newSettings.taskName = newName});
+    return this.transform((newSettings) => { newSettings.taskName = newName });
   }
 
   transform(fun) {
