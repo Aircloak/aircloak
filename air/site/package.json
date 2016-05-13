@@ -8,6 +8,7 @@
     "codemirror": "^5.13.4",
     "css-brunch": "~1.7.0",
     "javascript-brunch": "~1.8.0",
+    "jquery": "^2.2.3",
     "lodash": "^4.11.1",
     "mousetrap": "^1.5.3",
     "phoenix": "file:deps/phoenix",

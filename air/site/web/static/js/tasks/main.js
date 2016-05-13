@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import Mousetrap from "mousetrap";
+import $ from "jquery";
 
 // Imported components
 import {CodeEditor} from "./code_editor";
