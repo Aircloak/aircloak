@@ -1,70 +1,81 @@
-import React from "react"
+import React from "react";
 
-export class Menu extends React.Component {
-  render() {
+export const Menu = (props) => <div id="task-menu">{props.children}</div>;
+
+Menu.propTypes = {children: React.PropTypes.node};
+
+export const MenuButton = (props) =>
+  <button
+    type="button"
+    className="btn btn-primary"
+    onClick={props.onClick}
+    disabled={!props.isActive()}
+  >
+    {props.children}
+  </button>;
+
+MenuButton.propTypes = {
+  onClick: React.PropTypes.func.isRequired,
+  isActive: React.PropTypes.func.isRequired,
+  children: React.PropTypes.node,
+};
+
+export const TaskProgress = (props) => {
+  if (props.taskIsRunning()) {
     return (
-      <div id="task-menu">
-        {this.props.children}
+      <div className="progress">
+        <div
+          className="progress-bar"
+          role="progressbar"
+          aria-valuenow="{props.runningPercent}" aria-valuemin="0"
+          aria-valuemax="100" style={{width: `${props.runningPercent}%`}}
+        >
+          {props.runningPercent}%
+        </div>
+      </div>
+    );
+  } else {
+    return null;
+  }
+};
+
+TaskProgress.propTypes = {
+  taskIsRunning: React.PropTypes.func.isRequired,
+  runningPercent: React.PropTypes.number,
+};
+
+export const PaneSelectButton = (props) => {
+  const classes = props.isActive() ? "selection active" : "selection";
+
+  return (
+    <button onClick={props.onClick} className={classes}>
+      {props.children}
+    </button>
+  );
+};
+
+PaneSelectButton.propTypes = {
+  isActive: React.PropTypes.func.isRequired,
+  onClick: React.PropTypes.func.isRequired,
+  children: React.PropTypes.node,
+};
+
+export const InfoBox = (props) => {
+  if (props.info == null) {
+    return null;
+  } else {
+    return (
+      <div id="infobox">
+        <span className="label label-default">Notice</span>
+        <span onClick={props.info.action} id="infobox-message">{props.info.message}</span>
       </div>
     );
   }
-}
+};
 
-export class MenuButton extends React.Component {
-  render() {
-    return (
-      <button type="button" className="btn btn-primary" onClick={this.props.onClick}
-          disabled={! this.props.isActive()}>
-        {this.props.children}
-      </button>
-    );
-  }
-
-}
-
-export class TaskProgress extends React.Component {
-  render() {
-    if (this.props.taskIsRunning()) {
-      return (
-        <div className="progress">
-          <div className="progress-bar" role="progressbar"
-              aria-valuenow="{this.props.runningPercent}" aria-valuemin="0"
-              aria-valuemax="100" style={{width: this.props.runningPercent + '%'}}>
-            {this.props.runningPercent}%
-          </div>
-        </div>
-      );
-    } else {
-      return null;
-    }
-  }
-}
-
-export class PaneSelectButton extends React.Component {
-  render() {
-    let classes = "selection";
-    if (this.props.isActive()) {
-      classes = classes + " active";
-    }
-    return (
-      <button onClick={this.props.onClick} className={classes}>
-        {this.props.children}
-      </button>
-    )
-  }
-}
-
-export class InfoBox extends React.Component {
-  render() {
-    if (this.props.info == null) {
-      return null;
-    } else {
-      return(
-        <div id="infobox">
-          <span className="label label-default">Notice</span>
-          <span onClick={this.props.info.action} id="infobox-message">{this.props.info.message}</span>
-        </div>
-      );
-    }
-  }
-}
+InfoBox.propTypes = {
+  info: React.PropTypes.shape({
+    action: React.PropTypes.func,
+    message: React.PropTypes.string,
+  }),
+};
