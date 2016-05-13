@@ -33,7 +33,7 @@
         <td>
           <script>write_local_time("<%= to_js_timestamp(result.timestamp) %>");</script>
           <%= if is_old_result?(result, @task) do %>
-            *
+            <span class="old-result"/>
           <% end %>
         </td>
         <td><%= link "view", to: task_result_path(@conn, :show, @task.id, result.id) %></td>
@@ -51,7 +51,7 @@
     <% end %>
     </tbody>
   </table>
-  <div><i>* = Task was modified since result was generated.</i></div>
+  <div><span class="old-result"/><i> = Task was modified since result was generated.</i></div>
 <% end %>
 <hr/>
 <div><%= link "Back to all tasks", to: task_path(@conn, :index) %><div>
