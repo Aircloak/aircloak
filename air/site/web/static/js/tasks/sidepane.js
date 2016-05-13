@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 export class SidePane extends React.Component {
   render() {
