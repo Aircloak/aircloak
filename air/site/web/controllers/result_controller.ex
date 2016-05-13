@@ -51,14 +51,14 @@ defmodule Air.ResultController do
 
   def delete(conn, %{"id" => "all"}) do
     task = conn.assigns.task
-    from(r in Result, where: r.task_id == ^task.id) |> Repo.delete_all
+    Result.delete_all!(task)
     conn
     |> put_flash(:info, "Task results deleted successfully.")
     |> redirect(to: task_result_path(conn, :index, task.id))
   end
   def delete(conn, %{"id" => id}) do
     task = conn.assigns.task
-    Result |> Repo.get!(id) |> Repo.delete!
+    Result.delete!(id)
     conn
     |> put_flash(:info, "Task result deleted successfully.")
     |> redirect(to: task_result_path(conn, :index, task.id))
