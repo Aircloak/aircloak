@@ -8,5 +8,6 @@ module.exports = {
       "no-else-return": ["off"],
       "quotes": ["error", "double"],
       "object-curly-spacing": ["error", "never"],
+      "max-len": ["error", {"code": 110}],
     }
 };
