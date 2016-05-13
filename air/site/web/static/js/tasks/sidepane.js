@@ -16,5 +16,5 @@ export class SidePane extends React.Component {
 
 SidePane.propTypes = {
   sidePaneHidden: React.PropTypes.func.isRequired,
-  children: React.PropTypes.element,
+  children: React.PropTypes.node,
 };

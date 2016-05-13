@@ -168,3 +168,16 @@ div#task-editor-container div.ReactCodeMirror {
   width: 100%;
   overflow: auto;
 }
+
+
+/********************************************************************
+ * Tables
+ *******************************************************************/
+
+.table-control {
+  padding-top: 7px;
+}
+
+.table-control input {
+  margin-right: 5px;
+}

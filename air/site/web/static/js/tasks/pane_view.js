@@ -24,5 +24,5 @@ export class PaneView extends React.Component {
 PaneView.propTypes = {
   isActive: React.PropTypes.func.isRequired,
   onHideClick: React.PropTypes.func.isRequired,
-  children: React.PropTypes.element,
+  children: React.PropTypes.node,
 };
