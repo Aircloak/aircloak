@@ -7,5 +7,6 @@ module.exports = {
       "allow-unused-underscore-vars": ["error"],
       "no-else-return": ["off"],
       "quotes": ["error", "double"],
+      "object-curly-spacing": ["error", "never"],
     }
 };
