@@ -26,7 +26,6 @@ defmodule Air.TaskPostProcessor do
       {:ok, post_processed_result} ->
         post_processed_result
       {:error, reason} ->
-        # log error and add it to the exceptions list
         Logger.error("Error during result post-processing: #{reason}")
         exception = %{"error" => "post-processing failed: #{reason}", "count" => 1}
         %{original_result | "exceptions" => [exception | original_result["exceptions"]]}
