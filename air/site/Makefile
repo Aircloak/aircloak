@@ -47,6 +47,7 @@ release:
 lint:
 	MIX_ENV=dev mix lint
 	MIX_ENV=test mix lint
+	node_modules/eslint/bin/eslint.js --rulesdir eslint_rules web/static/js/**/*.js
 
 check_dependent_apps:
 	mix check_dependent_apps
