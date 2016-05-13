@@ -26,8 +26,9 @@ defmodule Air.TaskPostProcessor do
       {:ok, post_processed_result} ->
         post_processed_result
       {:error, reason} ->
-        Logger.error("Error during article post-processing: #{inspect reason}")
-        original_result
+        Logger.error("Error during result post-processing: #{reason}")
+        exception = %{"error" => "post-processing failed: #{reason}", "count" => 1}
+        %{original_result | "exceptions" => [exception | original_result["exceptions"]]}
     end
   end
 end

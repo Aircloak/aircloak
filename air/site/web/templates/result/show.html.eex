@@ -1,6 +1,15 @@
 <h2>Viewing individual result for '<%= @task.name %>'</h2>
 <hr/>
-<div>Generated on: <b><span id="timestamp"><%= Ecto.DateTime.to_iso8601(@result.timestamp) %></span></b></div>
+<div align="right">
+  <%= link "Delete", to: task_result_path(@conn, :delete, @task.id, @result.id), method: :delete,
+    data: [confirm: "Are you sure you want to delete this result?"], class: "btn btn-danger btn-xs" %>
+</div>
+<div>
+  Generated on: <b><span id="timestamp"><%= to_js_timestamp(@result.timestamp) %></span></b>
+  <%= if is_old_result?(@result, @task) do %>
+    <span><small><i>(Task was modified since result was generated.)</i></small></span>
+  <% end %>
+</div>
 <div>Errors: <b>
   <%= if @result.errors == "" do %>
     none
@@ -8,8 +17,9 @@
     <span class="error"><%= @result.errors %></span>
   <% end %>
 </b></div>
+<br/>
 <div>Properties:
-  <table class="table table-striped">
+  <table class="table table-striped table-hover">
     <thead>
       <tr>
         <th>Label</th>
@@ -28,6 +38,8 @@
     </tbody>
   </table>
 </div>
+<hr/>
+<div><%= link "Back to all results", to: task_result_path(@conn, :index, @task.id) %><div>
 
 <script>
   window.pageConfig = {

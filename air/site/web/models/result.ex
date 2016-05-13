@@ -3,7 +3,7 @@ defmodule Air.Result do
 
   use Air.Web, :model
 
-  alias Air.Task
+  alias Air.{Task, Repo}
 
   @type t :: %__MODULE__{}
 
@@ -66,5 +66,17 @@ defmodule Air.Result do
       errors: errors,
       buckets: buckets
     }
+  end
+
+  @doc "Deletes al results for a task."
+  @spec delete_all!(Task.t) :: no_return
+  def delete_all!(task) do
+    from(r in __MODULE__, where: r.task_id == ^task.id) |> Repo.delete_all
+  end
+
+  @doc "Deletes a result by id."
+  @spec delete!(String.t | integer) :: no_return
+  def delete!(id) do
+    __MODULE__ |> Repo.get!(id) |> Repo.delete!
   end
 end

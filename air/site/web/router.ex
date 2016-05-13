@@ -41,7 +41,7 @@ defmodule Air.Router do
     resources "/cloaks", CloaksController
     resources "/organisations", OrganisationController
     resources "/tasks", TaskController, except: [:show, :create] do
-      resources "/results", ResultController, only: [:index, :show]
+      resources "/results", ResultController, only: [:index, :show, :delete]
     end
     resources "/users", UserController
   end

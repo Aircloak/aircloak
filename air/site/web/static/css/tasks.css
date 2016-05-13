@@ -155,10 +155,6 @@ div#task-side-content table {
   margin-bottom: 0px;
 }
 
-.error {
-  color: red;
-}
-
 
 /********************************************************************
  * CodeEditor
@@ -181,3 +177,16 @@ div#task-editor-container div.ReactCodeMirror {
 .table-control input {
   margin-right: 5px;
 }
+
+
+/********************************************************************
+ * Results
+ *******************************************************************/
+
+ .error {
+   color: red;
+ }
+
+ .old-result:before {
+   content: "*";
+ }
