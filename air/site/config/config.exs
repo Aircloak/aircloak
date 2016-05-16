@@ -25,6 +25,9 @@ config :phoenix, :generators,
   migration: true,
   binary_id: false
 
+# configure markdown compiler
+config :phoenix, :template_engines, md: Air.Phoenix.MarkdownEngine
+
 config :guardian, Guardian,
   allowed_algos: ["HS512"],
   verify_module: Guardian.JWT,

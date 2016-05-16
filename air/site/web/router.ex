@@ -36,6 +36,9 @@ defmodule Air.Router do
     get "/", PageController, :index
     delete "/logout", SessionController, :delete
 
+    get "/help_guides", HelpGuideController, :index
+    get "/help_guide/:article", HelpGuideController, :article
+
     post "/tasks/:id/run", TaskController, :run_task
     resources "/api_tokens", ApiTokenController
     resources "/cloaks", CloaksController
