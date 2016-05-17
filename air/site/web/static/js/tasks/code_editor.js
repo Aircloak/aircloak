@@ -2,7 +2,7 @@ import React from "react";
 import Codemirror from "react-codemirror";
 import _ from "lodash";
 
-require("codemirror/mode/lua/lua");
+require("codemirror/mode/sql/sql");
 require("codemirror/addon/hint/show-hint");
 require("codemirror/addon/hint/anyword-hint");
 
@@ -66,8 +66,7 @@ export class CodeEditor extends React.Component {
     const list = _.chain([]).
       union(
         this.props.completions,
-        _.map(selectedTables, (table) => ({text: `load_user_table("${dataSource.id}/${table}")`})),
-        _.map(selectedTables, (table) => ({text: `user_table("${dataSource.id}/${table}")`})),
+        _.map(selectedTables, (table) => ({text: `${dataSource.id}/${table}`})),
         _.map(this.editor.hint.anyword(cm, {word: /[a-zA-Z_](\w)*/}).list, (word) => ({text: word}))
       ).
       filter((candidate) => candidate.text.match(fuzzyMatcher)).
@@ -92,7 +91,7 @@ export class CodeEditor extends React.Component {
       lineNumbers: true,
       lineWrapping: true,
       matchBrackets: true,
-      mode: "lua",
+      mode: "text/x-sql",
       showCursorWhenSelecting: true,
       smartIndent: true,
       viewportMargin: Infinity,
