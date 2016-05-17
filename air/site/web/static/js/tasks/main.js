@@ -1,14 +1,16 @@
-import React from "react"
-import ReactDOM from "react-dom"
-import Mousetrap from "mousetrap"
+import React from "react";
+import ReactDOM from "react-dom";
+import Mousetrap from "mousetrap";
+import $ from "jquery";
 
 // Imported components
-import { CodeEditor } from "./code_editor"
-import { ResultSocket } from "./results_socket"
-import { SidePane, PaneView } from "./sidepane"
-import { Menu, MenuButton, TaskProgress, PaneSelectButton, InfoBox } from "./menu"
-import { SettingsModel, SettingsView } from "./settings"
-import { ResultsView } from "./results"
+import {CodeEditor} from "./code_editor";
+import {ResultSocket} from "./results_socket";
+import {SidePane} from "./sidepane";
+import {PaneView} from "./pane_view";
+import {Menu, MenuButton, TaskProgress, PaneSelectButton, InfoBox} from "./menu";
+import {SettingsModel, SettingsView} from "./settings";
+import {ResultsView} from "./results";
 
 class TaskEditor extends React.Component {
   constructor(props) {
@@ -23,7 +25,7 @@ class TaskEditor extends React.Component {
         dataSourceToken: props.data_source_token,
         tables: new Set(props.tables),
         cloakId: props.cloak_id,
-        taskName: props.name
+        taskName: props.name,
       }),
       activeSidePane: null,
 
@@ -31,8 +33,8 @@ class TaskEditor extends React.Component {
       // the task is running. This is used
       // throughout the interface to toggle
       // buttons and show progress bars
-      runningPercent: -1
-    }
+      runningPercent: -1,
+    };
     // we keep a backup copy of the last saved
     // state of the task, in order to be able to
     // verify whether the task needs saving or not
@@ -63,18 +65,18 @@ class TaskEditor extends React.Component {
 
     new ResultSocket(props.id, props.guardianToken)
       .start({
-        joined: (resp) => {console.log("Joined channel for task updates")},
-        failed_join: (resp) => {console.error("Failed to join channel for task updates");},
+        joined: (_resp) => console.log("Joined channel for task updates"),
+        failed_join: (_resp) => console.error("Failed to join channel for task updates"),
         progress: this.updateTaskRunningProgress,
-        result: this.updateTaskResult
+        result: this.updateTaskResult,
       });
 
     // We trap save and run key-board shortcuts while the user is editing the task through
     // the code mirror editor itself. To avoid confusion, the same behaviour to be preserved also when
     // the user is not actively editing the task. To achieve this, we bind the key's here as well,
     // which ensures they are active all the time.
-    Mousetrap.bind(['ctrl+s'], this.saveTask);
-    Mousetrap.bind(['ctrl+r'], this.handleRunTask);
+    Mousetrap.bind(["ctrl+s"], this.saveTask);
+    Mousetrap.bind(["ctrl+r"], this.handleRunTask);
   }
 
 
@@ -83,27 +85,26 @@ class TaskEditor extends React.Component {
   // ----------------------------------------------------------------
 
   handleCodeChange(query) {
-    this.setState({query: query});
+    this.setState({query});
   }
 
   handleSettingsChange(settings) {
-    this.setState({settings: settings});
+    this.setState({settings});
   }
 
   handleHideSidePane() {
     this.setState({activeSidePane: null});
-  };
+  }
 
-  updateTaskRunningProgress(progress) {
-    this.setState({runningPercent: progress});
+  updateTaskRunningProgress(runningPercent) {
+    this.setState({runningPercent});
   }
 
   updateTaskResult(result) {
     // We assume that the task is now complete, since we received a
     // result, and therefore update the progress too
     this.updateTaskRunningProgress(-1);
-    this.setState({result: result});
-    this.setState({activeSidePane: "results"});
+    this.setState({result, activeSidePane: "results"});
   }
 
 
@@ -122,19 +123,20 @@ class TaskEditor extends React.Component {
       method: "POST",
       headers: {
         "X-CSRF-TOKEN": this.props.CSRFToken,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       data: this.queryData(),
-      success: (responseData, textStatus) => {
-        if (responseData.success)
+      success: (responseData, _textStatus) => {
+        if (responseData.success) {
           console.log("Task run scheduled...");
-        else
+        } else {
           this.updateTaskResult({error: responseData.reason || "unknown error"});
+        }
       },
       error: (jqXHR, status, errorReason) => {
         console.error("Task run failed: ", errorReason);
         this.updateTaskResult({error: errorReason});
-      }
+      },
     });
   }
 
@@ -144,13 +146,13 @@ class TaskEditor extends React.Component {
       method: "PUT",
       headers: {
         "X-CSRF-TOKEN": this.props.CSRFToken,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       data: this.queryData(),
       success: this.updateSavedState,
       error: (jqXHR, status, errorStatus) => {
-        console.error("Task saving failed: ", errorReason);
-      }
+        console.error("Task saving failed: ", errorStatus);
+      },
     });
   }
 
@@ -161,13 +163,13 @@ class TaskEditor extends React.Component {
 
   conditionallySave() {
     if (this.hasChanges()) {
-      this.saveTask()
+      this.saveTask();
     }
   }
 
   updateSavedState() {
     this.setState({savedState: this.queryData()});
-  };
+  }
 
   queryData() {
     return JSON.stringify({
@@ -175,13 +177,13 @@ class TaskEditor extends React.Component {
         name: this.state.settings.taskName,
         query: this.state.query,
         data_source_token: this.state.settings.dataSourceToken,
-        tables: Array.from(this.state.settings.tables)
-      }
+        tables: Array.from(this.state.settings.tables),
+      },
     });
   }
 
   hasChanges() {
-    return (this.state.savedState != this.queryData());
+    return (this.state.savedState !== this.queryData());
   }
 
   canRun() {
@@ -200,20 +202,20 @@ class TaskEditor extends React.Component {
     if (!this.state.settings.hasAssignedDataSource()) {
       return {
         message: "Your task needs a datasource before it can be run",
-        action: this.activatePane("settings")
-      }
+        action: this.activatePane("settings"),
+      };
     }
     if (!this.state.settings.hasAssignedTables()) {
       return {
         message: "You need to select at least one table to run your task",
-        action: this.activatePane("settings")
-      }
+        action: this.activatePane("settings"),
+      };
     }
     if (!this.state.settings.selectedCloakOnline()) {
       return {
         message: "The task cannot be run while the cloak is offline",
-        action: this.activatePane("settings")
-      }
+        action: this.activatePane("settings"),
+      };
     }
     return null;
   }
@@ -222,14 +224,16 @@ class TaskEditor extends React.Component {
     if (this.hasChanges()) {
       return "Your task has unsaved changes!";
     }
+
+    return null;
   }
 
   createActivePaneCheck(pane) {
-    return (() => {return this.state.activeSidePane == pane});
+    return (() => this.state.activeSidePane === pane);
   }
 
   activatePane(pane) {
-    return (() => {this.setState({activeSidePane: pane})});
+    return (() => this.setState({activeSidePane: pane}));
   }
 
 
@@ -242,13 +246,15 @@ class TaskEditor extends React.Component {
       <div id="task-editor-container">
         <Menu>
           <PaneSelectButton
-              onClick={this.activatePane("settings")}
-              isActive={this.createActivePaneCheck("settings")}>
+            onClick={this.activatePane("settings")}
+            isActive={this.createActivePaneCheck("settings")}
+          >
             Settings
           </PaneSelectButton>
           <PaneSelectButton
-              onClick={this.activatePane("results")}
-              isActive={this.createActivePaneCheck("results")}>
+            onClick={this.activatePane("results")}
+            isActive={this.createActivePaneCheck("results")}
+          >
             Results
           </PaneSelectButton>
           <MenuButton onClick={this.saveTask} isActive={this.hasChanges}>Save task</MenuButton>
@@ -260,22 +266,25 @@ class TaskEditor extends React.Component {
         </Menu>
         <div>
           <CodeEditor
-              sidePaneHidden={this.createActivePaneCheck(null)}
-              query={this.state.query}
-              settings={this.state.settings}
-              completions={this.props.completions}
-              onChange={this.handleCodeChange}
-              onSave={this.conditionallySave}
-              onRun={this.handleRunTask} />
+            sidePaneHidden={this.createActivePaneCheck(null)}
+            query={this.state.query}
+            settings={this.state.settings}
+            completions={this.props.completions}
+            onChange={this.handleCodeChange}
+            onSave={this.conditionallySave}
+            onRun={this.handleRunTask}
+          />
           <SidePane sidePaneHidden={this.createActivePaneCheck(null)}>
             <PaneView
-                onHideClick={this.handleHideSidePane}
-                isActive={this.createActivePaneCheck("results")}>
+              onHideClick={this.handleHideSidePane}
+              isActive={this.createActivePaneCheck("results")}
+            >
               <ResultsView {...this.state} />
             </PaneView>
             <PaneView
-                onHideClick={this.handleHideSidePane}
-                isActive={this.createActivePaneCheck("settings")}>
+              onHideClick={this.handleHideSidePane}
+              isActive={this.createActivePaneCheck("settings")}
+            >
               <SettingsView {...this.state} onChange={this.handleSettingsChange} />
             </PaneView>
           </SidePane>
@@ -285,7 +294,20 @@ class TaskEditor extends React.Component {
   }
 }
 
-exports.TaskEditor = (data) => {
+TaskEditor.propTypes = {
+  id: React.PropTypes.string,
+  query: React.PropTypes.string,
+  data_sources: React.PropTypes.array,
+  tables: React.PropTypes.array,
+  completions: React.PropTypes.array,
+  cloak_id: React.PropTypes.string,
+  name: React.PropTypes.string,
+  data_source_token: React.PropTypes.string,
+  guardianToken: React.PropTypes.string,
+  CSRFToken: React.PropTypes.string,
+};
+
+exports.renderTaskEditor = (data) => {
   ReactDOM.render(
     <TaskEditor {...data} />,
     document.getElementById("task-view")

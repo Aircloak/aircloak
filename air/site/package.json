@@ -8,6 +8,7 @@
     "codemirror": "^5.13.4",
     "css-brunch": "~1.7.0",
     "javascript-brunch": "~1.8.0",
+    "jquery": "^2.2.3",
     "lodash": "^4.11.1",
     "mousetrap": "^1.5.3",
     "phoenix": "file:deps/phoenix",
@@ -16,5 +17,12 @@
     "react-codemirror": "~0.2.0",
     "react-dom": "^15.0.1",
     "uglify-js-brunch": "~1.7.0"
+  },
+  "devDependencies": {
+    "eslint": "^2.9.0",
+    "eslint-config-airbnb": "^9.0.1",
+    "eslint-plugin-import": "^1.8.0",
+    "eslint-plugin-jsx-a11y": "^1.2.0",
+    "eslint-plugin-react": "^5.1.1"
   }
 }

@@ -16,6 +16,7 @@ cache:
   - common/elixir/_build
   - air/site/deps
   - air/site/_build
+  - air/site/node_modules
   - .mix
   - cloak/deps
   - cloak/_build
@@ -38,6 +39,7 @@ before_install:
   - curl -L  https://github.com/coreos/etcd/releases/download/v2.0.11/etcd-v2.0.11-linux-amd64.tar.gz -o etcd-v2.0.11-linux-amd64.tar.gz && tar xzvf etcd-v2.0.11-linux-amd64.tar.gz
   - etcd-v2.0.11-linux-amd64/etcd -addr 127.0.0.1:$(. ./air/config/config.sh && get_tcp_port test etcd/client) &
   - cd cloak; make regenerate_db; cd ..
+  - nvm install node
 install:
   - mkdir -p $MIX_HOME
   - mix local.hex --force
@@ -52,7 +54,7 @@ before_script:
   - air/etcd/config_travis.sh
   - air/db/init_db.sh
   - cd air/site
-  - mix deps.get
+  - make deps
   - mix compile --warnings-as-errors
   - MIX_ENV=test mix compile --warnings-as-errors
   - MIX_ENV=prod mix compile --warnings-as-errors

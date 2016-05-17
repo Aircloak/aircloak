@@ -1,4 +1,4 @@
-import React from "react"
+import React from "react";
 
 export class ResultsView extends React.Component {
   // ----------------------------------------------------------------
@@ -6,7 +6,7 @@ export class ResultsView extends React.Component {
   // ----------------------------------------------------------------
 
   renderResultRows() {
-    var dateString = new Date(this.props.result.created_at * 1000).toLocaleString();
+    const dateString = new Date(this.props.result.created_at * 1000).toLocaleString();
     return (
       <div>
         <p>
@@ -41,7 +41,7 @@ export class ResultsView extends React.Component {
   // ----------------------------------------------------------------
 
   render() {
-    if (this.props.result != undefined) {
+    if (this.props.result !== undefined) {
       if (this.props.result.error) {
         return this.renderTaskRunError(this.props.result.error);
       } else {
@@ -53,11 +53,19 @@ export class ResultsView extends React.Component {
   }
 }
 
-class Buckets extends React.Component {
-  render() {
-    if (this.props.buckets.length == 0)
-      return (<p>The task returned no results.</p>)
+ResultsView.propTypes = {
+  result: React.PropTypes.shape({
+    created_at: React.PropTypes.number.isRequired,
+    exceptions: React.PropTypes.array,
+    buckets: React.PropTypes.array,
+    error: React.PropTypes.string,
+  }),
+};
 
+const Buckets = (props) => {
+  if (props.buckets.length === 0) {
+    return (<p>The task returned no results.</p>);
+  } else {
     return (
       <table className="table">
         <thead>
@@ -68,7 +76,7 @@ class Buckets extends React.Component {
           </tr>
         </thead>
         <tbody>
-          {this.props.buckets.map((item) =>
+          {props.buckets.map((item) =>
             <tr key={`${item.label}_${item.value}`}>
               <td>{item.label}</td>
               <td>{item.value}</td>
@@ -77,15 +85,22 @@ class Buckets extends React.Component {
           )}
         </tbody>
       </table>
-    )
+    );
   }
-}
+};
 
-class Exceptions extends React.Component {
-  render() {
-    if (this.props.exceptions.length == 0)
-      return null;
+Buckets.propTypes = {
+  buckets: React.PropTypes.arrayOf(React.PropTypes.shape({
+    label: React.PropTypes.string,
+    value: React.PropTypes.string,
+    count: React.PropTypes.number,
+  })),
+};
 
+const Exceptions = (props) => {
+  if (props.exceptions.length === 0) {
+    return null;
+  } else {
     return (
       <div className="alert alert-danger">
         <p>Following exceptions were reported:</p>
@@ -95,6 +110,13 @@ class Exceptions extends React.Component {
           )}
         </ul>
       </div>
-    )
+    );
   }
-}
+};
+
+Exceptions.propTypes = {
+  exceptions: React.PropTypes.arrayOf(React.PropTypes.shape({
+    error: React.PropTypes.string,
+    count: React.PropTypes.number,
+  })),
+};

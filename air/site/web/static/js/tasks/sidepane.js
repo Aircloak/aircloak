@@ -1,4 +1,4 @@
-import React from "react"
+import React from "react";
 
 export class SidePane extends React.Component {
   render() {
@@ -14,23 +14,7 @@ export class SidePane extends React.Component {
   }
 }
 
-export class PaneView extends React.Component {
-  render() {
-    if (this.props.isActive()) {
-      return (
-        <div id="side-pane">
-          <div id="side-pane-hide">
-            <button onClick={this.props.onHideClick} className="btn">
-              Hide sidepane &gt;
-            </button>
-          </div>
-          <div id="side-pane-content">
-            {this.props.children}
-          </div>
-        </div>
-      );
-    } else {
-      return null;
-    }
-  }
-}
+SidePane.propTypes = {
+  sidePaneHidden: React.PropTypes.func.isRequired,
+  children: React.PropTypes.node,
+};

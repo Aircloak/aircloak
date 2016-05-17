@@ -44,9 +44,12 @@ docs:
 release:
 	NODE_ENV=production MIX_ENV=prod mix do compile, site_release
 
-lint:
+lint: eslint
 	MIX_ENV=dev mix lint
 	MIX_ENV=test mix lint
+
+eslint:
+	node_modules/.bin/eslint --rulesdir eslint_rules web/static/js/*.js web/static/js/**/*.js
 
 check_dependent_apps:
 	mix check_dependent_apps
