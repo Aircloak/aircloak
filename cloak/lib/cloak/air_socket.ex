@@ -114,7 +114,7 @@ defmodule Cloak.AirSocket do
   def handle_channel_closed(topic, payload, _transport, %{rejoin_interval: interval} = state) do
     Logger.error("disconnected from the topic #{topic}: #{inspect payload}")
     Process.send_after(self(), {:join, topic}, interval)
-    max_rejoin_interval = :cloak_conf.get_val(:air, :max_rejoin_interval)
+    max_rejoin_interval = :cloak_conf.get_val(:air, :max_reconnect_interval)
     next_state = case interval * 2 >= max_rejoin_interval do
       true -> %{state | rejoin_interval: max_rejoin_interval}
       false -> %{state | rejoin_interval: interval * 2}

@@ -14,8 +14,7 @@ config :cloak, :air,
   socket_url: "wss://insights.air-local:20000/cloak/socket/websocket",
   # The reconnect intervals start out very low, and doubles for each failed attempt until
   # they arrive at and stay at this max interval.
-  max_reconnect_interval: :timer.minutes(1),
-  max_rejoin_interval: :timer.minutes(1)
+  max_reconnect_interval: :timer.minutes(1)
 
 config :cloak, :in_development, true
 
