@@ -104,8 +104,7 @@ class TaskEditor extends React.Component {
     // We assume that the task is now complete, since we received a
     // result, and therefore update the progress too
     this.updateTaskRunningProgress(-1);
-    this.setState({result});
-    this.setState({activeSidePane: "results"});
+    this.setState({result, activeSidePane: "results"});
   }
 
 
