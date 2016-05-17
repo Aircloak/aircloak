@@ -2,7 +2,7 @@ import React from "react";
 import Codemirror from "react-codemirror";
 import _ from "lodash";
 
-require("codemirror/mode/lua/lua");
+require("codemirror/mode/sql/sql");
 require("codemirror/addon/hint/show-hint");
 require("codemirror/addon/hint/anyword-hint");
 
@@ -92,7 +92,7 @@ export class CodeEditor extends React.Component {
       lineNumbers: true,
       lineWrapping: true,
       matchBrackets: true,
-      mode: "lua",
+      mode: "text/x-sql",
       showCursorWhenSelecting: true,
       smartIndent: true,
       viewportMargin: Infinity,
