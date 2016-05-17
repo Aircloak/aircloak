@@ -90,12 +90,7 @@ defmodule Cloak.AirSocket do
   def handle_disconnected(reason, %{reconnect_interval: interval} = state) do
     Logger.error("disconnected: #{inspect reason}")
     Process.send_after(self(), :connect, interval)
-    max_reconnect_interval = :cloak_conf.get_val(:air, :max_reconnect_interval)
-    next_state = case interval * 2 >= max_reconnect_interval do
-      true -> %{state | reconnect_interval: max_reconnect_interval}
-      false -> %{state | reconnect_interval: interval * 2}
-    end
-    {:ok, next_state}
+    {:ok, %{state | reconnect_interval: next_interval(interval)}}
   end
 
   @doc false
@@ -114,12 +109,7 @@ defmodule Cloak.AirSocket do
   def handle_channel_closed(topic, payload, _transport, %{rejoin_interval: interval} = state) do
     Logger.error("disconnected from the topic #{topic}: #{inspect payload}")
     Process.send_after(self(), {:join, topic}, interval)
-    max_rejoin_interval = :cloak_conf.get_val(:air, :max_reconnect_interval)
-    next_state = case interval * 2 >= max_rejoin_interval do
-      true -> %{state | rejoin_interval: max_rejoin_interval}
-      false -> %{state | rejoin_interval: interval * 2}
-    end
-    {:ok, next_state}
+    {:ok, %{state | rejoin_interval: next_interval(interval)}}
   end
 
   @doc false
@@ -257,5 +247,10 @@ defmodule Cloak.AirSocket do
       %{id: data_source, tables: tables}
     end
     %{name: cloak_name, data_sources: data_sources}
+  end
+
+  defp next_interval(current_interval) do
+    max_interval = :cloak_conf.get_val(:air, :max_reconnect_interval)
+    min(current_interval * 2, max_interval)
   end
 end
