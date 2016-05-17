@@ -8,7 +8,7 @@ defmodule Air.Utils.Process do
   """
   @spec alive?(pid :: pid) :: boolean
   def alive?(pid) do
-    case :rpc.call(node(pid), Process, :alive?, [pid]) do
+    case :rpc.call(node(pid), Process, :alive?, [pid], :timer.seconds(1)) do
       true -> true
       _ -> false
     end
