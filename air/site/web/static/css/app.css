@@ -88,3 +88,18 @@ ul.nav.navbar-nav.navbar-right li form.link a:hover {
 .signout-btn:hover {
   text-decoration: none;
 }
+
+.help-links {
+  margin-bottom: 10px;
+}
+
+a.suggested-reading {
+  z-index: 99999999999;
+  color: black;
+  background-color: rgba(254,251,0,0.2);
+}
+
+a.suggested-reading:hover {
+  background-color: yellow;
+  color: black;
+}
