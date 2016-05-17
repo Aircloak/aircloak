@@ -8,6 +8,9 @@ defmodule Air.TaskController do
   plug :scrub_params, "task" when action in [:create, :update]
   plug :load_task_and_validate_ownership, "id" when action in [:edit, :update, :delete, :run_task]
 
+  plug Air.Plug.HelpPages, [
+    edit: [:writing_tasks]
+  ]
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
