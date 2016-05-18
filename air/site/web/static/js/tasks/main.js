@@ -104,7 +104,7 @@ class TaskEditor extends React.Component {
     // We assume that the task is now complete, since we received a
     // result, and therefore update the progress too
     this.updateTaskRunningProgress(-1);
-    this.setState({result, activeSidePane: "results"});
+    this.setState({result});
   }
 
 
@@ -205,12 +205,14 @@ class TaskEditor extends React.Component {
         action: this.activatePane("settings"),
       };
     }
+
     if (!this.state.settings.hasAssignedTables()) {
       return {
         message: "You need to select at least one table to run your task",
         action: this.activatePane("settings"),
       };
     }
+
     if (!this.state.settings.selectedCloakOnline()) {
       return {
         message: "The task cannot be run while the cloak is offline",
@@ -275,11 +277,6 @@ class TaskEditor extends React.Component {
           <ResultsView {...this.state} />
 
           <SidePane sidePaneHidden={this.createActivePaneCheck(null)}>
-            <PaneView
-              onHideClick={this.handleHideSidePane}
-              isActive={this.createActivePaneCheck("results")}
-            >
-            </PaneView>
             <PaneView
               onHideClick={this.handleHideSidePane}
               isActive={this.createActivePaneCheck("settings")}
