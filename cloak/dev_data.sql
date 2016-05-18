@@ -113,14 +113,42 @@ GRANT ALL ON TABLE user_data TO cloak;
 
 CREATE TABLE purchases (
     uid character varying(20),
+    row_id integer not null,
     itemname text,
     price integer,
     date timestamp without time zone
 );
 
-CREATE INDEX ON purchases (uid);
-
 ALTER TABLE public.purchases OWNER TO cloak;
+
+--
+-- Name: purchases_row_id_seq; Type: SEQUENCE; Schema: public; Owner: cloak
+--
+
+CREATE SEQUENCE purchases_row_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE purchases_row_id_seq OWNER TO cloak;
+
+--
+-- Name: purchases_row_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: cloak
+--
+
+ALTER SEQUENCE purchases_row_id_seq OWNED BY purchases.row_id;
+
+
+--
+-- Name: row_id; Type: DEFAULT; Schema: public; Owner: cloak
+--
+
+ALTER TABLE ONLY purchases ALTER COLUMN row_id SET DEFAULT nextval('purchases_row_id_seq'::regclass);
+
+CREATE INDEX ON purchases (uid);
 
 --
 -- Data for Name: purchases; Type: TABLE DATA; Schema: public; Owner: cloak
