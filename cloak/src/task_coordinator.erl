@@ -43,7 +43,7 @@ run_job(Task) ->
   %   - post-process the buckets
   %   - convert the anonymized buckets into a table
   %   - send the final result to its destination
-  % for now, return an emptsy result set
+  % For now, return an empty result set.
   Buckets = [],
   progress_handler:unregister_task(Task),
   cloak_metrics:count("task.successful"),
