@@ -105,7 +105,7 @@ const Exceptions = (props) => {
       <div className="alert alert-danger">
         <p>Following exceptions were reported:</p>
         <ul>
-          {this.props.exceptions.map((item) =>
+          {props.exceptions.map((item) =>
             <li key={item.error}>{item.error} ({item.count} times)</li>
           )}
         </ul>
