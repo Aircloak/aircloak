@@ -251,19 +251,16 @@ class TaskEditor extends React.Component {
           >
             Settings
           </PaneSelectButton>
-          <PaneSelectButton
-            onClick={this.activatePane("results")}
-            isActive={this.createActivePaneCheck("results")}
-          >
-            Results
-          </PaneSelectButton>
+
           <MenuButton onClick={this.saveTask} isActive={this.hasChanges}>Save task</MenuButton>
+
           <div>
             <MenuButton onClick={this.handleRunTask} isActive={this.canRun}>Run task</MenuButton>
             <TaskProgress {...this.state} taskIsRunning={this.taskIsRunning} />
             <InfoBox info={this.infoBoxContent()} />
           </div>
         </Menu>
+
         <div>
           <CodeEditor
             sidePaneHidden={this.createActivePaneCheck(null)}
@@ -274,12 +271,14 @@ class TaskEditor extends React.Component {
             onSave={this.conditionallySave}
             onRun={this.handleRunTask}
           />
+
+          <ResultsView {...this.state} />
+
           <SidePane sidePaneHidden={this.createActivePaneCheck(null)}>
             <PaneView
               onHideClick={this.handleHideSidePane}
               isActive={this.createActivePaneCheck("results")}
             >
-              <ResultsView {...this.state} />
             </PaneView>
             <PaneView
               onHideClick={this.handleHideSidePane}

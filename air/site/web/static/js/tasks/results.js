@@ -19,13 +19,7 @@ export class ResultsView extends React.Component {
   }
 
   renderEmptyResultSet() {
-    return (
-      <p>
-        There are currently no results to show.
-        As you results are returned from the database,
-        they will be be displayed here.
-      </p>
-    );
+    return null;
   }
 
   renderTaskRunError(reason) {
