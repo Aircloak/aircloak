@@ -43,8 +43,14 @@ defmodule Cloak.SqlQuery do
   defp parser do
     next_token()
     |> select_statement()
-    |> next_token()
+    |> statement_termination()
     |> eof()
+  end
+
+  defp statement_termination(parser) do
+    parser
+    |> next_token()
+    |> skip(char(?;))
   end
 
   defp select_statement(parser) do
