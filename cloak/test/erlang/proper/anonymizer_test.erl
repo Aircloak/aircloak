@@ -16,7 +16,7 @@
 
 prop_anonymizer() ->
   random:seed(),
-  ?FORALL(InputList0, g_bucket_reports(),
+  ?FORALL(InputList0, g_buckets(),
     ?TRAPEXIT(
       begin
         InputList = strip_doubles(InputList0),
@@ -57,12 +57,12 @@ check_length(InputList, OutputList) ->
 
 noisy_results_positive(OutputList) ->
   ["non-positive noisy bucket count" ||
-    #bucket_report{noisy_count=NoisyCount} <- OutputList,
+    #bucket{noisy_count = NoisyCount} <- OutputList,
     NoisyCount =< 0].
 
 check_correct_rounding(OutputList) ->
   ["erroneous rounding" ||
-    #bucket_report{noisy_count=NoisyCount, noise_sd=Sigma} <- OutputList,
+    #bucket{noisy_count = NoisyCount, noise_sd = Sigma} <- OutputList,
     not check_correct_rounding(NoisyCount, Sigma)].
 
 check_correct_rounding(NoisyCount, Sigma) when Sigma < 5 -> NoisyCount rem 5 == 0;
@@ -71,20 +71,20 @@ check_correct_rounding(NoisyCount, _Sigma) -> NoisyCount rem 10 == 0.
 check_lower_limit_k1(OutputList) ->
   #anonymizer_params{absolute_lower_bound=LowerBound} = anonymizer:default_params(),
   ["bucket included with count not above #anonymizer_params.absolute_lower_bound" ||
-    #bucket_report{count=Count} <- OutputList,
+    #bucket{count = Count} <- OutputList,
     Count =< LowerBound].
 
 check_no_additional_bucket(InputList, OutputList) ->
-  InputDict = lists:foldl(fun(#bucket_report{label=Label}, D) ->
-    dict:store(Label, true, D)
+  InputDict = lists:foldl(fun(#bucket{property = Property}, D) ->
+    dict:store(Property, true, D)
   end, dict:new(), InputList),
   ["unknown bucket created by anonymization function" ||
-    #bucket_report{label=Label} <- OutputList,
-    not dict:is_key(Label, InputDict)].
+    #bucket{property = Property} <- OutputList,
+    not dict:is_key(Property, InputDict)].
 
 check_average_noise_greater_minimum(OutputList) ->
   #anonymizer_params{min_sigma = MinSigma} = anonymizer:default_params(),
-  SD = math:sqrt(lists:foldl(fun(#bucket_report{count=Count, noisy_count=NoisyCount}, Acc) ->
+  SD = math:sqrt(lists:foldl(fun(#bucket{count = Count, noisy_count = NoisyCount}, Acc) ->
     Noise = Count - NoisyCount,
     Noise * Noise + Acc
   end, 0, OutputList)),
@@ -98,20 +98,20 @@ check_average_noise_greater_minimum(OutputList) ->
 %% Generators
 %% ---------------------------------------------------------------------
 
-g_bucket_reports() ->
-  ?LET(Length, integer(0, ?MAX_LENGTH), g_bucket_reports(Length, [])).
+g_buckets() ->
+  ?LET(Length, integer(0, ?MAX_LENGTH), g_buckets(Length, [])).
 
-g_bucket_reports(0, Acc) ->
+g_buckets(0, Acc) ->
   return(Acc);
-g_bucket_reports(N, Acc) ->
-  ?LET(BucketReport, g_bucket_report(), g_bucket_reports(N - 1, [BucketReport|Acc])).
+g_buckets(N, Acc) ->
+  ?LET(Bucket, g_bucket(), g_buckets(N - 1, [Bucket | Acc])).
 
-g_bucket_report() ->
+g_bucket() ->
   ?LET(Label, g_bucket_label(),
     ?LET(Count, g_bucket_count(),
       ?LET(UsersHash, binary(16),
-        return(#bucket_report{
-          label = Label,
+        return(#bucket{
+          property = Label,
           count = Count,
           noisy_count = Count,
           users_hash = UsersHash
@@ -120,10 +120,9 @@ g_bucket_report() ->
 g_bucket_label() ->
   ?LET(Label, string(),
     ?LET(Value, string(),
-      return(#bucket_label{
-        label = Label,
-        value = Value
-      }))).
+      return(
+        [Label, Value]
+      ))).
 
 g_bucket_count() ->
   ?LET(Base, integer(1, 10), return(integer(1, Base*Base*Base*Base))).
@@ -134,7 +133,7 @@ g_bucket_count() ->
 %% ---------------------------------------------------------------------
 
 strip_doubles(List) ->
-  Dict = lists:foldl(fun(#bucket_report{label=Label}=BucketReport, D) ->
-    dict:store(Label, BucketReport, D)
+  Dict = lists:foldl(fun(#bucket{property = Property} = Bucket, D) ->
+    dict:store(Property, Bucket, D)
   end, dict:new(), List),
-  [BucketReport || {_, BucketReport} <- dict:to_list(Dict)].
+  [Bucket || {_, Bucket} <- dict:to_list(Dict)].

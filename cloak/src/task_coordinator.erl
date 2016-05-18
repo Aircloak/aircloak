@@ -44,11 +44,11 @@ run_job(Task) ->
   %   - convert the anonymized buckets into a table
   %   - send the final result to its destination
   % For now, return an empty result set.
-  Buckets = [],
+  Result = {buckets, []},
   progress_handler:unregister_task(Task),
   cloak_metrics:count("task.successful"),
   #task{task_id = TaskId, result_destination = ResultDestination} = Task,
-  ?MEASURE("task.send_result", result_sender:send_result(TaskId, ResultDestination, Buckets)),
+  ?MEASURE("task.send_result", result_sender:send_result(TaskId, ResultDestination, Result)),
   ?REPORT_DURATION("task.total", StartTime),
   ok.
 
@@ -57,15 +57,9 @@ on_failure(Task, Reason) ->
   ?ERROR("task_coordinator failure: ~p", [Reason]),
   cloak_metrics:count("task.failure"),
   progress_handler:unregister_task(Task),
-  Buckets = [#bucket_report{
-    label = #bucket_label{label = ?JOB_EXECUTION_ERROR, value = <<"task execution failed">>},
-    count = 1,
-    noisy_count = 1,
-    users_hash = <<"">>,
-    noise_sd = 1
-  }],
   #task{task_id = TaskId, result_destination = ResultDestination} = Task,
-  ?MEASURE("task.send_result", result_sender:send_result(TaskId, ResultDestination, Buckets)).
+  Result = {error, <<"task execution failed">>},
+  ?MEASURE("task.send_result", result_sender:send_result(TaskId, ResultDestination, Result)).
 
 
 %% -------------------------------------------------------------------

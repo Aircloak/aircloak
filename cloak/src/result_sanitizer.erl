@@ -38,11 +38,7 @@ compare_by_user(#job_response{user_id=UserId1}, #job_response{user_id=UserId2}) 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
-prop() ->
-  #property{
-    label = "test",
-    value = "hello"
-  }.
+prop() -> ["test", "hello"].
 
 prop_job_response_for(User, Props) ->
   job_response_for(User, Props).
