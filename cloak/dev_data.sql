@@ -123,7 +123,7 @@ CREATE INDEX ON purchases (uid);
 ALTER TABLE public.purchases OWNER TO cloak;
 
 --
--- Data for Name: purchases; Type: TABLE DATA; Schema: public; Owner: seb
+-- Data for Name: purchases; Type: TABLE DATA; Schema: public; Owner: cloak
 --
 
 COPY purchases (uid, itemname, price, date) FROM stdin;
