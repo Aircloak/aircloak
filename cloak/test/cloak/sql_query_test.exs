@@ -7,12 +7,17 @@ defmodule Cloak.SqlQueryTest do
     assert %Cloak.SqlQuery{select: ["foo"], from: "baz"} == SqlQuery.parse!("select foo from baz")
   end
 
+  test "query with a terminating semicolon" do
+    assert %Cloak.SqlQuery{select: ["foo"], from: "baz"} == SqlQuery.parse!("select foo from baz;")
+  end
+
   test "multiple fields" do
     assert %Cloak.SqlQuery{select: ["foo", "bar"], from: "baz"} == SqlQuery.parse!("select foo, bar from baz")
   end
 
-  test "multiline query" do
-    assert %Cloak.SqlQuery{select: ["foo"], from: "baz"} == SqlQuery.parse!("select foo\nfrom\n\nbaz")
+  test "whitespaces are ignored" do
+    assert %Cloak.SqlQuery{select: ["foo"], from: "baz"} ==
+      SqlQuery.parse!("select  foo\n from \n \n baz \n ; \n  ")
   end
 
   test "all allowed identifier characters" do
@@ -21,7 +26,7 @@ defmodule Cloak.SqlQueryTest do
 
 
   for {description, statement} <- [
-    {"comma is not allowed in the identifier", "select fo'o from baz"},
+    {"single quote is not allowed in the identifier", "select fo'o from baz"},
     {"identifier can't start with a number", "select 1foo from baz"},
     {"from table is required", "select foo"},
     {"at least one column must be specified", "select from baz"},

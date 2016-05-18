@@ -43,8 +43,14 @@ defmodule Cloak.SqlQuery do
   defp parser do
     next_token()
     |> select_statement()
+    |> statement_termination()
+    |> end_of_input()
+  end
+
+  defp statement_termination(parser) do
+    parser
     |> next_token()
-    |> eof()
+    |> skip(char(?;))
   end
 
   defp select_statement(parser) do
@@ -75,13 +81,16 @@ defmodule Cloak.SqlQuery do
   defp keyword(regex) do
     next_token()
     |> word_of(regex)
-    |> map(&(&1 |> String.downcase() |> String.to_atom()))
+    |> map(&String.downcase/1)
+    |> map(&String.to_atom/1)
   end
 
   defp comma_delimited(term_parser) do
     next_token()
     |> sep_by1(next_token(term_parser), char(","))
   end
+
+  defp end_of_input(parser), do: parser |> next_token() |> eof()
 
   defp next_token(), do: skip(whitespaces())
 
