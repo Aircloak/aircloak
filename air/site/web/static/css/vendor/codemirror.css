@@ -4,15 +4,6 @@
   /* Set height, width, borders, and global font properties here */
   font-family: monospace;
   color: black;
-
-  /* Firefox */
-  height: -moz-calc(100vh - 110px);
-  /* WebKit */
-  height: -webkit-calc(100vh - 110px);
-  /* Opera */
-  height: -o-calc(100vh - 110px);
-  /* Standard */
-  height: calc(100vh - 110px);
 }
 
 /* PADDING */
