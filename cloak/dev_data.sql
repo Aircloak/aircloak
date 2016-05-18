@@ -118,6 +118,7 @@ CREATE TABLE purchases (
     date timestamp without time zone
 );
 
+CREATE INDEX ON purchases (uid);
 
 ALTER TABLE public.purchases OWNER TO cloak;
 
