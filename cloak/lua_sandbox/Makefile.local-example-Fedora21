@@ -1,4 +1,0 @@
-# Fedora 21 contains Lua 5.2 which is not backward compatible, so we have to create a manual install of it,
-# which is typically placed into /usr/local/*.
-LUALIB=lua-5.1 -lm
-LUAINCPATH=/usr/local/include/
