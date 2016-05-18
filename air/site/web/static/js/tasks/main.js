@@ -55,7 +55,7 @@ class TaskEditor extends React.Component {
     this.taskIsRunning = this.taskIsRunning.bind(this);
     this.updateTaskResult = this.updateTaskResult.bind(this);
     this.updateTaskRunningProgress = this.updateTaskRunningProgress.bind(this);
-    this.createActivePaneCheck = this.createActivePaneCheck.bind(this);
+    this.isPaneActive = this.isPaneActive.bind(this);
     this.activatePane = this.activatePane.bind(this);
 
     // To prevent the user loosing changes, we ask whether
@@ -230,8 +230,8 @@ class TaskEditor extends React.Component {
     return null;
   }
 
-  createActivePaneCheck(pane) {
-    return (() => this.state.activeSidePane === pane);
+  isPaneActive(pane) {
+    return this.state.activeSidePane === pane;
   }
 
   activatePane(pane) {
@@ -249,7 +249,7 @@ class TaskEditor extends React.Component {
         <Menu>
           <PaneSelectButton
             onClick={this.activatePane("settings")}
-            isActive={this.createActivePaneCheck("settings")}
+            isActive={this.isPaneActive("settings")}
           >
             Settings
           </PaneSelectButton>
@@ -263,7 +263,7 @@ class TaskEditor extends React.Component {
           </div>
         </Menu>
 
-        <div className={this.state.activeSidePane ? "side-panel-shown" : "side-panel-hidden"}>
+        <div className={this.isPaneActive(null) ? "side-panel-hidden" : "side-panel-shown"}>
           <CodeEditor
             query={this.state.query}
             settings={this.state.settings}
@@ -276,10 +276,10 @@ class TaskEditor extends React.Component {
           <ResultsView {...this.state} />
         </div>
 
-        <SidePane sidePaneHidden={this.createActivePaneCheck(null)}>
+        <SidePane sidePaneHidden={this.isPaneActive(null)}>
           <PaneView
             onHideClick={this.handleHideSidePane}
-            isActive={this.createActivePaneCheck("settings")}
+            isActive={this.isPaneActive("settings")}
           >
             <SettingsView {...this.state} onChange={this.handleSettingsChange} />
           </PaneView>
