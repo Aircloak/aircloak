@@ -75,7 +75,8 @@ defmodule Cloak.SqlQuery do
   defp keyword(regex) do
     next_token()
     |> word_of(regex)
-    |> map(&(&1 |> String.downcase() |> String.to_atom()))
+    |> map(&String.downcase/1)
+    |> map(&String.to_atom/1)
   end
 
   defp comma_delimited(term_parser) do
