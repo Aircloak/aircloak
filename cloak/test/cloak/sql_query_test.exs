@@ -21,7 +21,7 @@ defmodule Cloak.SqlQueryTest do
 
 
   for {description, statement} <- [
-    {"comma is not allowed in the identifier", "select fo'o from baz"},
+    {"single quote is not allowed in the identifier", "select fo'o from baz"},
     {"identifier can't start with a number", "select 1foo from baz"},
     {"from table is required", "select foo"},
     {"at least one column must be specified", "select from baz"},
