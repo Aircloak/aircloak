@@ -149,6 +149,7 @@ ALTER SEQUENCE purchases_row_id_seq OWNED BY purchases.row_id;
 ALTER TABLE ONLY purchases ALTER COLUMN row_id SET DEFAULT nextval('purchases_row_id_seq'::regclass);
 
 CREATE INDEX ON purchases (uid);
+CREATE UNIQUE INDEX ON purchases (row_id);
 
 --
 -- Data for Name: purchases; Type: TABLE DATA; Schema: public; Owner: cloak
