@@ -263,9 +263,8 @@ class TaskEditor extends React.Component {
           </div>
         </Menu>
 
-        <div>
+        <div className={this.state.activeSidePane ? "side-panel-shown" : "side-panel-hidden"}>
           <CodeEditor
-            sidePaneHidden={this.createActivePaneCheck(null)}
             query={this.state.query}
             settings={this.state.settings}
             completions={this.props.completions}
@@ -275,16 +274,16 @@ class TaskEditor extends React.Component {
           />
 
           <ResultsView {...this.state} />
-
-          <SidePane sidePaneHidden={this.createActivePaneCheck(null)}>
-            <PaneView
-              onHideClick={this.handleHideSidePane}
-              isActive={this.createActivePaneCheck("settings")}
-            >
-              <SettingsView {...this.state} onChange={this.handleSettingsChange} />
-            </PaneView>
-          </SidePane>
         </div>
+
+        <SidePane sidePaneHidden={this.createActivePaneCheck(null)}>
+          <PaneView
+            onHideClick={this.handleHideSidePane}
+            isActive={this.createActivePaneCheck("settings")}
+          >
+            <SettingsView {...this.state} onChange={this.handleSettingsChange} />
+          </PaneView>
+        </SidePane>
       </div>
     );
   }

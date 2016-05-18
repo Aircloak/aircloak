@@ -102,15 +102,14 @@ export class CodeEditor extends React.Component {
         "Ctrl-Space": "autoComplete",
       },
     };
+
     return (
-      <div className={this.props.sidePaneHidden() ? "side-panel-hidden" : "side-panel-shown"}>
-        <Codemirror
-          ref={this.setupComponent}
-          value={this.props.query}
-          onChange={this.props.onChange}
-          options={options}
-        />
-      </div>
+      <Codemirror
+        ref={this.setupComponent}
+        value={this.props.query}
+        onChange={this.props.onChange}
+        options={options}
+      />
     );
   }
 }
@@ -120,7 +119,6 @@ CodeEditor.propTypes = {
   onRun: React.PropTypes.func.isRequired,
   onChange: React.PropTypes.func.isRequired,
 
-  sidePaneHidden: React.PropTypes.func.isRequired,
   settings: React.PropTypes.shape({
     selectedDataSource: React.PropTypes.func.isRequired,
     tables: React.PropTypes.object,
