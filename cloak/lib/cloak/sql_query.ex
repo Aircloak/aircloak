@@ -67,27 +67,20 @@ defmodule Cloak.SqlQuery do
     )
   end
 
-  defp identifier(), do: next_token() |> identifier()
-
-  defp identifier(parser) do
-    parser
-    |> next_token
+  defp identifier() do
+    next_token()
     |> word_of(~r/[a-zA-Z_][a-zA-Z0-9_]*/)
   end
 
-  defp keyword(regex), do: next_token() |> keyword(regex)
-
-  defp keyword(parser, regex) do
-    parser
-    |> next_token()
+  defp keyword(regex) do
+    next_token()
     |> word_of(regex)
     |> map(&(&1 |> String.downcase() |> String.to_atom()))
   end
 
-  defp comma_delimited(term_parser), do: next_token() |> comma_delimited(term_parser)
-
-  defp comma_delimited(parser, term_parser) do
-    sep_by1(parser, next_token(term_parser), char(","))
+  defp comma_delimited(term_parser) do
+    next_token()
+    |> sep_by1(next_token(term_parser), char(","))
   end
 
   defp next_token(), do: skip(whitespaces())
