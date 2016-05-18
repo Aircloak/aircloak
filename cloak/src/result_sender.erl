@@ -31,7 +31,7 @@
   reply = undefined :: #{} | undefined
 }).
 
--type result() :: {error, binary()} | {buckets, [#bucket{}]}.
+-type result() :: {error, binary()} | {buckets, [binary()], [#bucket{}]}.
 
 %% -------------------------------------------------------------------
 %% API
@@ -68,9 +68,9 @@ init(Args) ->
 
 convert_result(timeout, #state{result = Result, task_id = TaskId} = S0) ->
   Reply = case Result of
-    {buckets, Buckets} ->
+    {buckets, Columns, Buckets} ->
       ?INFO("Processing buckets report for task ~s: ~p buckets", [TaskId, length(Buckets)]),
-      #{task_id => TaskId, buckets => filter_buckets(Buckets)};
+      #{task_id => TaskId, columns => Columns, rows => expand_buckets(Buckets)};
     {error, Reason} ->
       ?INFO("Processing error report for task ~s: ~p", [TaskId, Reason]),
       #{task_id => TaskId, error => Reason}
@@ -103,8 +103,12 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %% Internal functions
 %% -------------------------------------------------------------------
 
-filter_buckets(Buckets) ->
-  [{Property, Count} || #bucket{property = Property, noisy_count = Count} <- Buckets].
+%% Converts the buckets to rows.
+expand_buckets(Buckets) ->
+  lists:flatten([
+    lists:duplicate(Count, Property)
+    || #bucket{property = Property, noisy_count = Count} <- Buckets
+  ]).
 
 send_reply(air_socket, Reply) ->
   'Elixir.Cloak.AirSocket':send_task_result(Reply);
