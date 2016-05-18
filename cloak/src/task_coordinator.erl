@@ -9,7 +9,8 @@
 
 %% queued_worker callbacks
 -export([
-  run_job/1
+  run_job/1,
+  on_failure/2
 ]).
 
 -include("cloak.hrl").
