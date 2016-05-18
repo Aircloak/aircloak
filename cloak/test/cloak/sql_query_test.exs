@@ -15,8 +15,9 @@ defmodule Cloak.SqlQueryTest do
     assert %Cloak.SqlQuery{select: ["foo", "bar"], from: "baz"} == SqlQuery.parse!("select foo, bar from baz")
   end
 
-  test "multiline query" do
-    assert %Cloak.SqlQuery{select: ["foo"], from: "baz"} == SqlQuery.parse!("select foo\nfrom\n\nbaz")
+  test "whitespaces are ignored" do
+    assert %Cloak.SqlQuery{select: ["foo"], from: "baz"} ==
+      SqlQuery.parse!("select  foo\n from \n \n baz \n ; \n  ")
   end
 
   test "all allowed identifier characters" do

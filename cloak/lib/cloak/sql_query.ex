@@ -44,7 +44,7 @@ defmodule Cloak.SqlQuery do
     next_token()
     |> select_statement()
     |> statement_termination()
-    |> eof()
+    |> end_of_input()
   end
 
   defp statement_termination(parser) do
@@ -89,6 +89,8 @@ defmodule Cloak.SqlQuery do
     next_token()
     |> sep_by1(next_token(term_parser), char(","))
   end
+
+  defp end_of_input(parser), do: parser |> next_token() |> eof()
 
   defp next_token(), do: skip(whitespaces())
 
