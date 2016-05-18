@@ -38,11 +38,12 @@ run_job(Task) ->
   %   - process the AST of the query
   %   - reassemble the AST into a SQL query
   %   - execute the query and retrieve the working data set
-  %   - post-process the data set into buckets
+  %   - pre-process the data set into buckets
   %   - anonymize the resulting buckets
+  %   - post-process the buckets
   %   - convert the anonymized buckets into a table
   %   - send the final result to its destination
-  % for now, return an empty result set
+  % for now, return an emptsy result set
   Buckets = [],
   progress_handler:unregister_task(Task),
   cloak_metrics:count("task.successful"),
