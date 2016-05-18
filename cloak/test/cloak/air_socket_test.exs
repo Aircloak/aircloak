@@ -66,7 +66,7 @@ defmodule Cloak.AirSocketTest do
     Process.register(socket_pid, AirSocket)
     ensure_joined(cloak_name)
     MainChannel.subscribe(cloak_name)
-    request = %{request_id: "foo", event: "run_task", payload: %{id: 42, prefetch: [], code: ""}}
+    request = %{request_id: "foo", event: "run_task", payload: %{id: 42, query: ""}}
     MainChannel.send_to_cloak(cloak_name, "air_call", request)
     assert_receive {:in_message, "call_response", response}
     assert %{"request_id" => "foo", "status" => "ok"} = response

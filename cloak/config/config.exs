@@ -77,10 +77,6 @@ config :cloak, :metrics,
   graphite_server: 'cloakmetrics.mpi-sws.org',
   graphite_port: 2004
 
-config :cloak, :sandbox,
-  # Number of ms a job is allowed to execute in the sandbox before being terminated
-  max_time: 120000 # 2 minutes
-
 config :cloak, :alarm_handler, install: true
 
 config :cloak, :in_development, false

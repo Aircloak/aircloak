@@ -22,7 +22,7 @@
 %% -------------------------------------------------------------------
 
 %% @doc Splits the fully qualified table name into schema and table name
--spec split_table_name(string() | binary()) -> {schema_name(), table_name()}.
+-spec split_table_name(string() | binary()) -> {binary(), binary()}.
 split_table_name(FullyQualifiedTableName) ->
   UnquotedFQTN = binary:replace(cloak_util:binarify(FullyQualifiedTableName), <<$">>, <<>>, [global]),
   case binary:split(UnquotedFQTN, <<$.>>) of
@@ -31,7 +31,7 @@ split_table_name(FullyQualifiedTableName) ->
   end.
 
 %% @doc Checks if the table name is valid. Currently we only allow English alphabet letters.
--spec valid_table_name(table_name()) -> boolean().
+-spec valid_table_name(binary()) -> boolean().
 valid_table_name(TableName) when is_binary(TableName) ->
   re:run(TableName, sql_name_regex()) =/= nomatch;
 valid_table_name(_) ->
