@@ -9,7 +9,6 @@ defmodule Cloak.Mixfile do
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       deps: deps,
-      compilers: [:yecc, :leex, :erlang, :elixir, :app],
       elixirc_paths: elixirc_paths(Mix.env),
       erlc_options: erlc_options(Mix.env),
       erlc_paths: erlc_paths(Mix.env),
