@@ -20,8 +20,6 @@
   chunked_foldl/4
 ]).
 
--include("user_data.hrl").
-
 -export_type([
   deep_proplist/0
 ]).

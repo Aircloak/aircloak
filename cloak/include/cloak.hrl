@@ -1,5 +1,3 @@
--include("sandbox_pb.hrl").
--include("user_data.hrl").
 -include("cloak_logging.hrl").
 
 -include("debug_helpers.hrl").
@@ -26,28 +24,13 @@
 -type task_id() :: binary().
 -type task_type() :: batch | streaming | periodic.
 -type index() :: string().
--type payload_identifier() :: binary().
--type code_id() :: binary().
--type code() :: binary().
-
-%% Task specification types
--type prefetch_table_spec() :: [
-  {table_id, binary()} |
-  {user_rows, pos_integer() | undefined | null} |
-  {where, db_query_builder:filter_spec()} |
-  {columns, [binary()]}
-].
--type prefetch_spec() :: [prefetch_table_spec()].
--type task_data() :: [{table_name(), [column_name()], [column_name()], [{data_value(), data_value()}]}].
 
 -record(task, {
   task_id :: task_id(),
   type = batch :: task_type(),
   report_interval :: non_neg_integer() | undefined,
   period :: erlcron:run_when() | undefined,
-  prefetch :: prefetch_spec(),
-  code :: binary(),
-  libraries = [] :: [{binary(), binary()}],
+  query :: binary(), % string for now but should actually be AST 
   timestamp :: integer() | undefined,
   result_destination :: result_destination(),
   user_expire_interval :: undefined | pos_integer(),
@@ -121,21 +104,8 @@
 
 -type result_destination() :: {url, binary()} | {process, pid()} | air_socket.
 
--type sql_date() :: {2014..3000, 1..12, 1..31}.
--type sql_time() :: {0..24, 0..59, 0..59 | float()}.
--type sql_timestamp() :: {sql_date(), sql_time()}.
-
 %% Helper macro for specifying cron intervals
 -define(EVERY_N_SEC(Sec), {daily, {every, {Sec, sec}, {between, {0, 0, 0}, {23, 59, 59}}}}).
-
--ifndef(TEST).
-%% The ?MIN_BATCH_SIZE setting provides the lower limit for the batch size. The actual batch size varies with
-%% the number of columns requested. See "job_data_streamer:batch_size()" for more information.
--define(MIN_BATCH_SIZE, 30000).
--else.
-%% For tests, we use a smaller size to shorten the test duration
--define(MIN_BATCH_SIZE, 200).
--endif.
 
 %% The absolute count above which we consider that buckets will not be LCF-ed
 %% Since LCF is not deterministic, we reject all buckets where count > threshold + 4 sigma, since it is

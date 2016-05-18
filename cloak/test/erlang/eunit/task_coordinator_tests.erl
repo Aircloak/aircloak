@@ -6,18 +6,16 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("eunit_helpers.hrl").
 
--define(runTaskAndVerifyResult(Code, Expected), (fun() ->
-  task_coordinator:run_task(test_task(Code)),
+-define(runTaskAndVerifyResult(Query, Expected), (fun() ->
+  task_coordinator:run_task(test_task(Query)),
   {reply, Result} = ?assertReceived({reply, _}, 1000),
   ?assertEqual(Expected, Result)
 end)()).
 
-test_task(Code) ->
+test_task(Query) ->
   #task{
     task_id = "test_task",
-    prefetch = [[{table, db_test:table_path(<<"heights">>)}]],
-    code = Code,
-    libraries = [],
+    query = Query,
     result_destination = {process, self()}
   }.
 
@@ -34,74 +32,7 @@ task_test_() ->
     end,
     fun(_) -> meck:unload() end,
     [
-      {"no rows", fun() ->
-        ?runTaskAndVerifyResult(
-          <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
-              "\") do report_property(\"height\", row.height) end">>,
-          #{buckets => [], exceptions => [], task_id => "test_task"}
-        )
-      end},
-      {"async task", fun() ->
-        Data = [{
-            iolist_to_binary(io_lib:format("user-~p", [Index])),
-            [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
-          } || Index <- lists:seq(1, 100)
-        ],
-        ok = db_test:add_users_data(Data),
-        ?runTaskAndVerifyResult(
-          <<"for row in user_table(\"", (db_test:table_path(<<"heights">>))/binary,
-              "\") do report_property(\"height\", row.height) end">>,
-          #{
-            buckets => [#{
-              label => <<"height">>,
-              value => <<"180">>,
-              count => 100
-            }],
-            exceptions => [],
-            task_id => "test_task"
-          }
-        )
-      end},
-      {"task with errors", fun() ->
-        Data = [{
-            iolist_to_binary(io_lib:format("user-~p", [Index])),
-            [{<<"heights">>, [{columns, [<<"height">>]}, {data, [[180]]}]}]
-          } || Index <- lists:seq(1, 100)
-        ],
-        ok = db_test:add_users_data(Data),
-        ?runTaskAndVerifyResult(
-          <<"error('some_error')">>,
-          #{
-            buckets => [],
-            exceptions => [#{
-              error => <<"{sandbox_error,\"[string \\\"task_code\\\"]:1: some_error\"}">>,
-              count => 100
-            }],
-            task_id => "test_task"
-          }
-        )
-      end},
-      {"timeout", fun() ->
-        gen_server:start_link(task_coordinator, {test_task(<<"">>), fun timeout_runner/4}, []),
-        {reply, Result} = ?assertReceived({reply, _}, 1000),
-        ?assertEqual(
-          #{
-            buckets => [],
-            exceptions => [#{
-              error => <<"task execution timed out before processing all users">>,
-              count => 1
-            }],
-            task_id => "test_task"
-          },
-          Result
-        )
-      end}
     ]
   }.
-
-  timeout_runner(_, _, _, _) ->
-    Me = self(),
-    spawn(fun() -> Me ! timeout end),
-    ok.
 
 -endif.
