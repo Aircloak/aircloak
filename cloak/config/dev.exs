@@ -32,7 +32,6 @@ config :cloak, data_sources: [
       test: [
         name: "user_data",
         user_id: "user_id",
-        row_id: "id",
         ignore_unsupported_types: false
       ]
     ]

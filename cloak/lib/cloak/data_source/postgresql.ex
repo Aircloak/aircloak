@@ -28,31 +28,13 @@ defmodule Cloak.DataSource.PostgreSQL do
     query = "SELECT column_name, udt_name FROM information_schema.columns " <>
       "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
     row_mapper = fn [name, type_name] -> {name, parse_type(type_name)} end
-    {_count, columns} = run_query(source_id, query, [], row_mapper)
-    columns
+    {_, _, columns_list} = run_query!(source_id, query, row_mapper)
+    columns_list
   end
 
   @doc false
-  def get_metadata(source_id, table, filter, row_limit) do
-    {filter_string, filter_parameters} = filter
-    query = build_metadata_query(table, filter_string, row_limit)
-    row_mapper = fn [user_id, min_row_id, max_row_id, row_count] -> {user_id, min_row_id, max_row_id, row_count} end
-    {_count, rows} = run_query(source_id, query, filter_parameters, row_mapper)
-    rows
-  end
-
-  @doc false
-  def get_data_batch(source_id, table, user_id_value, min_row_id, max_row_id, batch_size, columns, filter) do
-    table_name = table[:name]
-    user_id = table[:user_id]
-    row_id = table[:row_id]
-    {filter_string, filter_parameters} = filter
-    quoted_columns = for column <- columns, do: ~s("#{column}")
-    columns_string = Enum.join([row_id | quoted_columns], ",")
-    query = "SELECT #{columns_string} FROM #{table_name} WHERE (#{filter_string}) " <>
-      "AND #{user_id} = '#{user_id_value}' AND #{row_id} BETWEEN '#{min_row_id}' AND '#{max_row_id}' " <>
-      "ORDER BY #{row_id} ASC LIMIT #{batch_size}"
-    run_query(source_id, query, filter_parameters)
+  def query!(source_id, statement) do
+    run_query!(source_id, statement)
   end
 
 
@@ -60,11 +42,11 @@ defmodule Cloak.DataSource.PostgreSQL do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp run_query(source_id, statement, parameters, row_mapper \\ fn x -> x end) do
+  defp run_query!(source_id, statement, row_mapper \\ fn x -> x end) do
     options = [timeout: 15 * 60 * 1000, pool_timeout: 2 * 60 * 1000, decode_mapper: row_mapper, pool: @pool_name]
-    result = Postgrex.query!(proc_name(source_id), statement, parameters, options)
-    %Postgrex.Result{command: :select, num_rows: count, rows: rows} = result
-    {count, rows}
+    result = Postgrex.query!(proc_name(source_id), statement, [], options)
+    %Postgrex.Result{command: :select, num_rows: count, columns: columns, rows: rows} = result
+    {count, columns, rows}
   end
 
   defp proc_name(source_id), do: {:via, :gproc, {:n, :l, {Cloak.DataSource, source_id}}}
@@ -81,22 +63,6 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("money"), do: :number
   defp parse_type("numeric"), do: :number
   defp parse_type(type), do: {:unsupported, type}
-
-  defp build_metadata_query(table, filter, 0) do
-    table_name = table[:name]
-    user_id = table[:user_id]
-    row_id = table[:row_id]
-    "SELECT #{user_id}, MIN(#{row_id}), MAX(#{row_id}), COUNT(#{row_id}) FROM #{table_name} " <>
-      "WHERE #{filter} GROUP BY #{user_id}"
-  end
-  defp build_metadata_query(table, filter, row_limit) do
-    table_name = table[:name]
-    user_id = table[:user_id]
-    row_id = table[:row_id]
-    "SELECT #{user_id}, MIN(#{row_id}), MAX(#{row_id}), COUNT(#{row_id}) FROM " <>
-      "(SELECT #{user_id}, #{row_id}, ROW_NUMBER() OVER (PARTITION BY #{user_id} ORDER BY #{row_id} DESC) " <>
-      "AS index FROM #{table_name} WHERE #{filter}) numbered WHERE index <= #{row_limit} GROUP BY #{user_id}"
-  end
 
 
   #-----------------------------------------------------------------------------------------------------------
