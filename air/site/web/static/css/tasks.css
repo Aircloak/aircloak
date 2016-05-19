@@ -96,13 +96,6 @@ div#task-menu button.active:hover {
   width: calc(100vw - 600px);
 }
 
-div.progress {
-  float: right;
-  display: block;
-  width: 150px;
-  margin: 7px 10px 10px;
-}
-
 div#task-editor-side-panel {
   float: right;
   right: 10px;
