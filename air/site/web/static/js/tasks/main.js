@@ -55,7 +55,7 @@ class TaskEditor extends React.Component {
     this.taskIsRunning = this.taskIsRunning.bind(this);
     this.updateTaskResult = this.updateTaskResult.bind(this);
     this.updateTaskRunningProgress = this.updateTaskRunningProgress.bind(this);
-    this.createActivePaneCheck = this.createActivePaneCheck.bind(this);
+    this.isPaneActive = this.isPaneActive.bind(this);
     this.activatePane = this.activatePane.bind(this);
 
     // To prevent the user loosing changes, we ask whether
@@ -104,7 +104,7 @@ class TaskEditor extends React.Component {
     // We assume that the task is now complete, since we received a
     // result, and therefore update the progress too
     this.updateTaskRunningProgress(-1);
-    this.setState({result, activeSidePane: "results"});
+    this.setState({result});
   }
 
 
@@ -205,12 +205,14 @@ class TaskEditor extends React.Component {
         action: this.activatePane("settings"),
       };
     }
+
     if (!this.state.settings.hasAssignedTables()) {
       return {
         message: "You need to select at least one table to run your task",
         action: this.activatePane("settings"),
       };
     }
+
     if (!this.state.settings.selectedCloakOnline()) {
       return {
         message: "The task cannot be run while the cloak is offline",
@@ -228,8 +230,8 @@ class TaskEditor extends React.Component {
     return null;
   }
 
-  createActivePaneCheck(pane) {
-    return (() => this.state.activeSidePane === pane);
+  isPaneActive(pane) {
+    return this.state.activeSidePane === pane;
   }
 
   activatePane(pane) {
@@ -247,26 +249,22 @@ class TaskEditor extends React.Component {
         <Menu>
           <PaneSelectButton
             onClick={this.activatePane("settings")}
-            isActive={this.createActivePaneCheck("settings")}
+            isActive={this.isPaneActive("settings")}
           >
             Settings
           </PaneSelectButton>
-          <PaneSelectButton
-            onClick={this.activatePane("results")}
-            isActive={this.createActivePaneCheck("results")}
-          >
-            Results
-          </PaneSelectButton>
+
           <MenuButton onClick={this.saveTask} isActive={this.hasChanges}>Save task</MenuButton>
+
           <div>
             <MenuButton onClick={this.handleRunTask} isActive={this.canRun}>Run task</MenuButton>
             <TaskProgress {...this.state} taskIsRunning={this.taskIsRunning} />
             <InfoBox info={this.infoBoxContent()} />
           </div>
         </Menu>
-        <div>
+
+        <div className={this.isPaneActive(null) ? "side-panel-hidden" : "side-panel-shown"}>
           <CodeEditor
-            sidePaneHidden={this.createActivePaneCheck(null)}
             query={this.state.query}
             settings={this.state.settings}
             completions={this.props.completions}
@@ -274,21 +272,18 @@ class TaskEditor extends React.Component {
             onSave={this.conditionallySave}
             onRun={this.handleRunTask}
           />
-          <SidePane sidePaneHidden={this.createActivePaneCheck(null)}>
-            <PaneView
-              onHideClick={this.handleHideSidePane}
-              isActive={this.createActivePaneCheck("results")}
-            >
-              <ResultsView {...this.state} />
-            </PaneView>
-            <PaneView
-              onHideClick={this.handleHideSidePane}
-              isActive={this.createActivePaneCheck("settings")}
-            >
-              <SettingsView {...this.state} onChange={this.handleSettingsChange} />
-            </PaneView>
-          </SidePane>
+
+          <ResultsView {...this.state} />
         </div>
+
+        <SidePane sidePaneHidden={this.isPaneActive(null)}>
+          <PaneView
+            onHideClick={this.handleHideSidePane}
+            isActive={this.isPaneActive("settings")}
+          >
+            <SettingsView {...this.state} onChange={this.handleSettingsChange} />
+          </PaneView>
+        </SidePane>
       </div>
     );
   }

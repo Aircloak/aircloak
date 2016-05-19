@@ -7,25 +7,33 @@ export class ResultsView extends React.Component {
 
   renderResultRows() {
     const dateString = new Date(this.props.result.created_at * 1000).toLocaleString();
+
     return (
-      <div>
-        <p>
-          Generated on <strong>{dateString}</strong>
-        </p>
-        <Exceptions exceptions={this.props.result.exceptions} />
-        <Buckets buckets={this.props.result.buckets} />
+      <div className="task-results">
+        <h4>Generated on {dateString}</h4>
+        <table className="table table-striped table-hover">
+          <thead>
+            <tr>
+              {this.props.result.columns.map((column) =>
+                <th key={column}>{column}</th>
+              )}
+            </tr>
+          </thead>
+
+          <tbody>
+            {this.props.result.rows.map((row, i) =>
+              <tr key={i}>
+                {row.map((value, j) => <td key={j}>{value}</td>)}
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     );
   }
 
   renderEmptyResultSet() {
-    return (
-      <p>
-        There are currently no results to show.
-        As you results are returned from the database,
-        they will be be displayed here.
-      </p>
-    );
+    return null;
   }
 
   renderTaskRunError(reason) {
@@ -59,64 +67,7 @@ ResultsView.propTypes = {
     exceptions: React.PropTypes.array,
     buckets: React.PropTypes.array,
     error: React.PropTypes.string,
+    columns: React.PropTypes.arrayOf(React.PropTypes.string),
+    rows: React.PropTypes.arrayOf(React.PropTypes.array),
   }),
-};
-
-const Buckets = (props) => {
-  if (props.buckets.length === 0) {
-    return (<p>The task returned no results.</p>);
-  } else {
-    return (
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Label</th>
-            <th>Value</th>
-            <th>Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          {props.buckets.map((item) =>
-            <tr key={`${item.label}_${item.value}`}>
-              <td>{item.label}</td>
-              <td>{item.value}</td>
-              <td>{item.count}</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    );
-  }
-};
-
-Buckets.propTypes = {
-  buckets: React.PropTypes.arrayOf(React.PropTypes.shape({
-    label: React.PropTypes.string,
-    value: React.PropTypes.string,
-    count: React.PropTypes.number,
-  })),
-};
-
-const Exceptions = (props) => {
-  if (props.exceptions.length === 0) {
-    return null;
-  } else {
-    return (
-      <div className="alert alert-danger">
-        <p>Following exceptions were reported:</p>
-        <ul>
-          {this.props.exceptions.map((item) =>
-            <li key={item.error}>{item.error} ({item.count} times)</li>
-          )}
-        </ul>
-      </div>
-    );
-  }
-};
-
-Exceptions.propTypes = {
-  exceptions: React.PropTypes.arrayOf(React.PropTypes.shape({
-    error: React.PropTypes.string,
-    count: React.PropTypes.number,
-  })),
 };

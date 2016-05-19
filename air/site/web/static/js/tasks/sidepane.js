@@ -2,7 +2,7 @@ import React from "react";
 
 export class SidePane extends React.Component {
   render() {
-    if (this.props.sidePaneHidden()) {
+    if (this.props.sidePaneHidden) {
       return null;
     } else {
       return (
@@ -15,6 +15,6 @@ export class SidePane extends React.Component {
 }
 
 SidePane.propTypes = {
-  sidePaneHidden: React.PropTypes.func.isRequired,
+  sidePaneHidden: React.PropTypes.bool.isRequired,
   children: React.PropTypes.node,
 };

@@ -45,7 +45,7 @@ TaskProgress.propTypes = {
 };
 
 export const PaneSelectButton = (props) => {
-  const classes = props.isActive() ? "selection active" : "selection";
+  const classes = props.isActive ? "selection active" : "selection";
 
   return (
     <button onClick={props.onClick} className={classes}>
@@ -55,7 +55,7 @@ export const PaneSelectButton = (props) => {
 };
 
 PaneSelectButton.propTypes = {
-  isActive: React.PropTypes.func.isRequired,
+  isActive: React.PropTypes.bool.isRequired,
   onClick: React.PropTypes.func.isRequired,
   children: React.PropTypes.node,
 };

@@ -3,7 +3,6 @@ div#task-view {
   position: absolute;
   left: 0;
   top: 80px;
-  bottom: 0;
   padding: 0;
   margin: 0;
 
@@ -15,17 +14,11 @@ div#task-view {
   width: -o-calc(100vw);
   /* Standard */
   width: calc(100vw);
-
-  /* Firefox */
-  height: -moz-calc(100vh - 70px);
-  /* WebKit */
-  height: -webkit-calc(100vh - 70px);
-  /* Opera */
-  height: -o-calc(100vh - 70px);
-  /* Standard */
-  height: calc(100vh - 70px);
 }
 
+#task-view .task-results {
+  padding: 0 20px;
+}
 
 /********************************************************************
  * Menu bar
@@ -87,7 +80,6 @@ div#task-menu button.active:hover {
  *******************************************************************/
 
 .side-panel-hidden {
-  background-color: blue;
   width: 100%;
 }
 
@@ -95,13 +87,13 @@ div#task-menu button.active:hover {
   float: left;
 
   /* Firefox */
-  max-width: -moz-calc(100vw - 600px);
+  width: -moz-calc(100vw - 600px);
   /* WebKit */
-  max-width: -webkit-calc(100vw - 600px);
+  width: -webkit-calc(100vw - 600px);
   /* Opera */
-  max-width: -o-calc(100vw - 600px);
+  width: -o-calc(100vw - 600px);
   /* Standard */
-  max-width: calc(100vw - 600px);
+  width: calc(100vw - 600px);
 }
 
 div.progress {

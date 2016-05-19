@@ -2,7 +2,7 @@ import React from "react";
 
 export class PaneView extends React.Component {
   render() {
-    if (this.props.isActive()) {
+    if (this.props.isActive) {
       return (
         <div id="side-pane">
           <div id="side-pane-hide">
@@ -22,7 +22,7 @@ export class PaneView extends React.Component {
 }
 
 PaneView.propTypes = {
-  isActive: React.PropTypes.func.isRequired,
+  isActive: React.PropTypes.bool.isRequired,
   onHideClick: React.PropTypes.func.isRequired,
   children: React.PropTypes.node,
 };
