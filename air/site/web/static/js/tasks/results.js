@@ -22,7 +22,7 @@ export class ResultsView extends React.Component {
           <tbody>
             {this.props.result.rows.map((row, i) =>
               <tr key={i}>
-                {row.map((value, i) => <td key={i}>{value}</td>)}
+                {row.map((value, j) => <td key={j}>{value}</td>)}
               </tr>
             )}
           </tbody>
@@ -66,5 +66,7 @@ ResultsView.propTypes = {
     exceptions: React.PropTypes.array,
     buckets: React.PropTypes.array,
     error: React.PropTypes.string,
+    columns: React.PropTypes.arrayOf(React.PropTypes.string),
+    rows: React.PropTypes.arrayOf(React.PropTypes.array),
   }),
 };
