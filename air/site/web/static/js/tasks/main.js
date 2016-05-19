@@ -53,7 +53,7 @@ class TaskEditor extends React.Component {
     this.isPaneActive = this.isPaneActive.bind(this);
     this.activatePane = this.activatePane.bind(this);
 
-    // To prevent the user loosing changes, we ask whether
+    // To prevent the user losing changes, we ask whether
     // the page should be closed, if changes have been
     // made since the last time the task was saved.
     window.onbeforeunload = this.checkForUnsavedChanges;
