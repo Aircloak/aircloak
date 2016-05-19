@@ -105,10 +105,9 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 %% Converts the buckets to rows.
 expand_buckets(Buckets) ->
-  lists:flatten([
+  lists:flatmap(fun (#bucket{property = Property, noisy_count = Count}) ->
     lists:duplicate(Count, Property)
-    || #bucket{property = Property, noisy_count = Count} <- Buckets
-  ]).
+  end, Buckets).
 
 send_reply(air_socket, Reply) ->
   'Elixir.Cloak.AirSocket':send_task_result(Reply);
