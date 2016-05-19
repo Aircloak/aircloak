@@ -8,7 +8,7 @@ export class ResultsView extends React.Component {
   renderResultRows() {
     const dateString = new Date(this.props.result.created_at * 1000).toLocaleString();
     return (
-      <div>
+      <div className="task-results">
         <h3>Generated on {dateString}</h3>
         <table className="table table-striped table-hover">
           <thead>
