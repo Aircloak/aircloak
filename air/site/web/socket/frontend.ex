@@ -8,7 +8,7 @@ defmodule Air.Socket.Frontend do
 
   The socket supports following topics:
 
-  - __tasks__ - returns all task notifications, like results and progress information
+  - __tasks__ - returns all task notifications, like results
 
   The connection will be established if the user is authenticated.
   Otherwise, a 403 response is returned.
