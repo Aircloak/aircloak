@@ -9,10 +9,24 @@ export class ResultsView extends React.Component {
     const dateString = new Date(this.props.result.created_at * 1000).toLocaleString();
     return (
       <div>
-        <p>
-          Generated on <strong>{dateString}</strong>
-        </p>
-        <Buckets buckets={this.props.result.buckets} />
+        <h3>Generated on {dateString}</h3>
+        <table className="table table-striped table-hover">
+          <thead>
+            <tr>
+              {this.props.result.columns.map((column) =>
+                <th key={column}>{column}</th>
+              )}
+            </tr>
+          </thead>
+
+          <tbody>
+            {this.props.result.rows.map((row, i) =>
+              <tr key={i}>
+                {row.map((value, i) => <td key={i}>{value}</td>)}
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     );
   }
@@ -53,39 +67,4 @@ ResultsView.propTypes = {
     buckets: React.PropTypes.array,
     error: React.PropTypes.string,
   }),
-};
-
-const Buckets = (props) => {
-  if (props.buckets.length === 0) {
-    return (<p>The task returned no results.</p>);
-  } else {
-    return (
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Label</th>
-            <th>Value</th>
-            <th>Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          {props.buckets.map((item) =>
-            <tr key={`${item.label}_${item.value}`}>
-              <td>{item.label}</td>
-              <td>{item.value}</td>
-              <td>{item.count}</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    );
-  }
-};
-
-Buckets.propTypes = {
-  buckets: React.PropTypes.arrayOf(React.PropTypes.shape({
-    label: React.PropTypes.string,
-    value: React.PropTypes.string,
-    count: React.PropTypes.number,
-  })),
 };
