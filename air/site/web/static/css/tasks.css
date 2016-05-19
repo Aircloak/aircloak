@@ -84,13 +84,13 @@ div#task-menu button.active:hover {
   float: left;
 
   /* Firefox */
-  max-width: -moz-calc(100vw - 600px);
+  width: -moz-calc(100vw - 600px);
   /* WebKit */
-  max-width: -webkit-calc(100vw - 600px);
+  width: -webkit-calc(100vw - 600px);
   /* Opera */
-  max-width: -o-calc(100vw - 600px);
+  width: -o-calc(100vw - 600px);
   /* Standard */
-  max-width: calc(100vw - 600px);
+  width: calc(100vw - 600px);
 }
 
 div.progress {
