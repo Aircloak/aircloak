@@ -9,12 +9,11 @@ config :logger,
 config :cloak, :api, address: '0.0.0.0'
 
 config :cloak, :air,
-  # The URL that results from asynchronous queries are sent to
-  return_url: 'https://infrastructure-api.air-local:20000',
   socket_url: "wss://insights.air-local:20000/cloak/socket/websocket",
   # The reconnect intervals start out very low, and doubles for each failed attempt until
   # they arrive at and stay at this max interval.
-  max_reconnect_interval: :timer.minutes(1)
+  min_reconnect_interval: :timer.seconds(30),
+  max_reconnect_interval: :timer.minutes(3)
 
 config :cloak, :in_development, true
 

@@ -81,6 +81,12 @@ config :cloak, :alarm_handler, install: true
 
 config :cloak, :in_development, false
 
+# The number of ms we initially wait before attempting to rejoin the air upon a broken connection.
+# It should be kept very low. The most common reason for a broken connection is that the air has
+# been re-deployed. Since we are doing rolling deploys, there is going to be other air machines
+# available to connect to.
+config :cloak, initial_reconnect_interval: 125
+
 
 import_config "#{Mix.env}.exs"
 if File.exists?("config/#{Mix.env}.local.exs") do
