@@ -22,12 +22,10 @@
 
 -type user_id() :: binary() | integer().
 -type task_id() :: binary().
--type task_type() :: batch | streaming | periodic.
 -type index() :: string().
 
 -record(task, {
   task_id :: task_id(),
-  type = batch :: task_type(),
   report_interval :: non_neg_integer() | undefined,
   period :: erlcron:run_when() | undefined,
   query :: binary(), % string for now but should actually be AST

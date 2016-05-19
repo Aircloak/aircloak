@@ -26,7 +26,6 @@
 parse(Task) ->
   #task{
     task_id = maps:get(<<"id">>, Task),
-    type = parse_type(maps:get(<<"type">>, Task, <<"batch">>)),
     query = parse_query(maps:get(<<"query">>, Task)),
     report_interval = parse_report_interval(maps:get(<<"report_interval">>, Task, undefined)),
     result_destination = parse_return_url(maps:get(<<"return_url">>, Task, undefined)),
@@ -39,10 +38,6 @@ parse(Task) ->
 %% -------------------------------------------------------------------
 %% Internal functions
 %% -------------------------------------------------------------------
-
-parse_type(<<"batch">>) -> batch;
-parse_type(<<"streaming">>) -> streaming;
-parse_type(<<"periodic">>) -> periodic.
 
 parse_return_url(undefined) -> air_socket;
 parse_return_url(Url) -> {url, Url}.
