@@ -26,7 +26,6 @@
 
 -record(task, {
   task_id :: task_id(),
-  report_interval :: non_neg_integer() | undefined,
   period :: erlcron:run_when() | undefined,
   query :: binary(), % string for now but should actually be AST
   timestamp :: integer() | undefined,

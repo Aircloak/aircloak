@@ -27,7 +27,6 @@ parse(Task) ->
   #task{
     task_id = maps:get(<<"id">>, Task),
     query = parse_query(maps:get(<<"query">>, Task)),
-    report_interval = parse_report_interval(maps:get(<<"report_interval">>, Task, undefined)),
     result_destination = parse_return_url(maps:get(<<"return_url">>, Task, undefined)),
     user_expire_interval = maps:get(<<"user_expire_interval">>, Task, undefined),
     period = parse_period(maps:get(<<"period">>, Task, undefined)),
@@ -41,9 +40,6 @@ parse(Task) ->
 
 parse_return_url(undefined) -> air_socket;
 parse_return_url(Url) -> {url, Url}.
-
-parse_report_interval(undefined) -> undefined;
-parse_report_interval(ReportInterval) -> ReportInterval * 1000.
 
 parse_period(undefined) -> undefined;
 parse_period({<<"every">>, Minutes}) ->
