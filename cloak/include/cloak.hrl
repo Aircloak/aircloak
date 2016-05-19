@@ -26,7 +26,6 @@
 
 -record(task, {
   task_id :: task_id(),
-  period :: erlcron:run_when() | undefined,
   query :: binary(), % string for now but should actually be AST
   timestamp :: integer() | undefined,
   result_destination :: result_destination(),
