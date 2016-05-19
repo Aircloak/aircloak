@@ -41,7 +41,6 @@ check_output(InputList, OutputList) ->
   Functions = [
     fun() -> check_length(InputList, OutputList) end,
     fun() -> noisy_results_positive(OutputList) end,
-    fun() -> check_correct_rounding(OutputList) end,
     fun() -> check_lower_limit_k1(OutputList) end,
     fun() -> check_no_additional_bucket(InputList, OutputList) end,
     fun() -> check_average_noise_greater_minimum(OutputList) end
@@ -59,14 +58,6 @@ noisy_results_positive(OutputList) ->
   ["non-positive noisy bucket count" ||
     #bucket{noisy_count = NoisyCount} <- OutputList,
     NoisyCount =< 0].
-
-check_correct_rounding(OutputList) ->
-  ["erroneous rounding" ||
-    #bucket{noisy_count = NoisyCount, noise_sd = Sigma} <- OutputList,
-    not check_correct_rounding(NoisyCount, Sigma)].
-
-check_correct_rounding(NoisyCount, Sigma) when Sigma < 5 -> NoisyCount rem 5 == 0;
-check_correct_rounding(NoisyCount, _Sigma) -> NoisyCount rem 10 == 0.
 
 check_lower_limit_k1(OutputList) ->
   #anonymizer_params{absolute_lower_bound=LowerBound} = anonymizer:default_params(),

@@ -92,7 +92,6 @@ anonymize(AggregatedBuckets, LcfUsers) ->
     fun apply_proportional_random_noise/2,
     fun calculate_total_noise/2,
     fun cap_noise_to_4sd/2,
-    fun round_count/2,
     fun remove_non_positive_buckets/2
   ]),
   [strip_anonymization_state(Result) || Result <- FinalResults].
@@ -274,12 +273,6 @@ cap_noise_to_4sd({#bucket{noise_sd = TotalNoiseSD, count = RawCount, noisy_count
   end,
   {AdjustedBucket, AnonState}.
 
-%% @doc We round the noisy value to the nearest 5 or nearest 10 depending on the answer size.
-%%      This provides marginal better anonymity properties as well as making it clear that
-%%      there is some uncertainty present in the values reported.
-round_count({#bucket{noisy_count = Count, noise_sd = Sigma} = Bucket, AnonState}, _AnonymizationParameters) ->
-  {Bucket#bucket{noisy_count = round_noisy(Count, Sigma)}, AnonState}.
-
 %% @doc Remove buckets with a non-positive noisy count.
 remove_non_positive_buckets({#bucket{noisy_count = Count} = Bucket, AnonState}, _AnonymizationParameters) ->
   if
@@ -288,19 +281,6 @@ remove_non_positive_buckets({#bucket{noisy_count = Count} = Bucket, AnonState}, 
     Count > 0 ->
       {Bucket, AnonState}
   end.
-
-
-%% -------------------------------------------------------------------
-%% Noise function
-%% -------------------------------------------------------------------
-
--spec round_noisy(integer(), integer()) -> integer().
-round_noisy(Value, 0) -> Value;
-round_noisy(Value, Sigma) when Sigma < 5 -> discretize(Value, 5);
-round_noisy(Value, _Sigma) -> discretize(Value, 10).
-
--spec discretize(integer(), 5 | 10) -> integer().
-discretize(Value, Step) -> round(Value / Step) * Step.
 
 
 %% -------------------------------------------------------------------
@@ -443,14 +423,6 @@ cap_noise_to_4sd_test_() ->
     ?_assertEqual(?bucket(100, 90, 5), ?run(cap_noise_to_4sd, ?bucket(100, 90, 5)))
   ].
 
-round_count_test_() ->
-  [
-    ?_assertEqual(?bucket(0, 15, 4), ?run(round_count, ?bucket(0, 15, 4))),
-    ?_assertEqual(?bucket(0, 10, 4), ?run(round_count, ?bucket(0, 12, 4))),
-    ?_assertEqual(?bucket(0, 20, 5), ?run(round_count, ?bucket(0, 15, 5))),
-    ?_assertEqual(?bucket(0, 10, 5), ?run(round_count, ?bucket(0, 14, 5)))
-  ].
-
 remove_non_positive_buckets_test_() ->
   [
     ?_assertEqual(failed, ?run(remove_non_positive_buckets, ?bucket(0, 0))),
@@ -481,11 +453,11 @@ end_to_end_test_() ->
         ?_assertEqual([], anonymize([?strip(?bucket(2)), ?strip(?bucket(3))]))
       ]},
 
-      {"Noise should be applied and answers rounded", [
-        ?_assertEqual([?strip(?bucket(100, 105, 2.5))], anonymize([?strip(?bucket(100))])),
-        ?_assertEqual([?strip(?bucket(120, 125, 2.5))], anonymize([?strip(?bucket(120))])),
-        ?_assertEqual([?strip(?bucket(400, 405, 2.5))], anonymize([?strip(?bucket(400))])),
-        ?_assertEqual([?strip(?bucket(1800, 1810, 6.006666666666668))], anonymize([?strip(?bucket(1800))]))
+      {"Noise should be applied", [
+        ?_assertEqual([?strip(?bucket(100, 104, 2.5))], anonymize([?strip(?bucket(100))])),
+        ?_assertEqual([?strip(?bucket(120, 124, 2.5))], anonymize([?strip(?bucket(120))])),
+        ?_assertEqual([?strip(?bucket(400, 404, 2.5))], anonymize([?strip(?bucket(400))])),
+        ?_assertEqual([?strip(?bucket(1800, 1808, 6.006666666666668))], anonymize([?strip(?bucket(1800))]))
       ]}
     ]
   }.
@@ -517,9 +489,7 @@ lcf_test_() ->
     end,
     [
       {"lcf tail is reported", ?_assertEqual(8, (lcf_tail([{p1, 1, 4}, {p2, 5, 8}]))#bucket.count)},
-      {"lcf tail count has noise",
-        % Although we have 8 users, the noisy count should be 10, due to discretization
-        ?_assertEqual(10, (lcf_tail([{p3, 11, 14}, {p4, 15, 18}]))#bucket.noisy_count)},
+      {"lcf tail count has noise", ?_assertEqual(8, (lcf_tail([{p3, 11, 14}, {p4, 15, 18}]))#bucket.noisy_count)},
       % Too few entries in the lcf tail to be reported
       {"lcf tail is lcf-ed", ?_assertEqual(undefined, lcf_tail([{p5, 21, 24}]))},
       % User 34 is in two buckets, so we should have 7 users in the lcf tail
