@@ -12,7 +12,6 @@ export class ResultsView extends React.Component {
         <p>
           Generated on <strong>{dateString}</strong>
         </p>
-        <Exceptions exceptions={this.props.result.exceptions} />
         <Buckets buckets={this.props.result.buckets} />
       </div>
     );
@@ -87,30 +86,6 @@ Buckets.propTypes = {
   buckets: React.PropTypes.arrayOf(React.PropTypes.shape({
     label: React.PropTypes.string,
     value: React.PropTypes.string,
-    count: React.PropTypes.number,
-  })),
-};
-
-const Exceptions = (props) => {
-  if (props.exceptions.length === 0) {
-    return null;
-  } else {
-    return (
-      <div className="alert alert-danger">
-        <p>Following exceptions were reported:</p>
-        <ul>
-          {props.exceptions.map((item) =>
-            <li key={item.error}>{item.error} ({item.count} times)</li>
-          )}
-        </ul>
-      </div>
-    );
-  }
-};
-
-Exceptions.propTypes = {
-  exceptions: React.PropTypes.arrayOf(React.PropTypes.shape({
-    error: React.PropTypes.string,
     count: React.PropTypes.number,
   })),
 };
