@@ -30,7 +30,6 @@
   query :: binary(), % string for now but should actually be AST
   timestamp :: integer() | undefined,
   result_destination :: result_destination(),
-  user_expire_interval :: undefined | pos_integer(),
   progress_handle :: pos_integer()
 }).
 

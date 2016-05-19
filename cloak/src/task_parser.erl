@@ -28,7 +28,6 @@ parse(Task) ->
     task_id = maps:get(<<"id">>, Task),
     query = parse_query(maps:get(<<"query">>, Task)),
     result_destination = parse_return_url(maps:get(<<"return_url">>, Task, undefined)),
-    user_expire_interval = maps:get(<<"user_expire_interval">>, Task, undefined),
     period = parse_period(maps:get(<<"period">>, Task, undefined)),
     timestamp = cloak_util:timestamp_to_epoch(os:timestamp())
   }.
