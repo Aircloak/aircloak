@@ -183,7 +183,6 @@ defmodule Cloak.AirSocket do
       try do
           task
           |> :task_parser.parse()
-          |> :progress_handler.register_task()
           |> :task_coordinator.run_task()
         rescue
           error ->
