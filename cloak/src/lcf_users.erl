@@ -224,7 +224,7 @@ aggregate_processor_loop(Table, Aggregator) ->
     {aggregate, Property} ->
       [
         aggregator:add_property(
-          [?AIRCLOAK_LABEL, ?LCF_TAIL_VALUE],
+          ?LCF_TAIL_PROPERTY,
           UserId,
           Aggregator
         ) ||

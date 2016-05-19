@@ -38,7 +38,7 @@
 
 -type job_accumulator() :: binary() | undefined.
 
--type property() :: [binary()].
+-type property() :: [binary()] | binary().
 
 -record(job_response, {
   user_id :: user_id(),
@@ -102,5 +102,4 @@
     ).
 
 %% Special labels
--define(AIRCLOAK_LABEL, <<"aircloak">>).
--define(LCF_TAIL_VALUE, <<"lcf_tail">>).
+-define(LCF_TAIL_PROPERTY, <<"aircloak_lcf_tail">>).

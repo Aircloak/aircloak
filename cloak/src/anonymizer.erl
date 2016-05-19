@@ -537,7 +537,7 @@ lcf_tail(Properties) ->
     add_buckets(Aggregator, Properties),
     case [Bucket ||
       #bucket{
-        property = [?AIRCLOAK_LABEL, ?LCF_TAIL_VALUE]
+        property = ?LCF_TAIL_PROPERTY
       } = Bucket <- anonymizer:anonymize(aggregator:buckets(Aggregator), LcfUsers)
     ] of
       [] -> undefined;
