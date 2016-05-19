@@ -29,6 +29,6 @@ config :cloak, data_sources: [
 
 config :cloak, :air,
   socket_url: "ws://127.0.0.1:29876/cloak/socket/websocket",
-  max_reconnect_interval: :timer.minutes(1),
-  max_rejoin_interval: :timer.minutes(1),
+  min_reconnect_interval: 50,
+  max_reconnect_interval: :timer.seconds(5),
   serializer: Phoenix.Channels.GenSocketClient.Serializer.Json

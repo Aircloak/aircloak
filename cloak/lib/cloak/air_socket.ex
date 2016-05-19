@@ -11,12 +11,6 @@ defmodule Cloak.AirSocket do
   alias Phoenix.Channels.GenSocketClient
   @behaviour GenSocketClient
 
-  # The number of ms we initially wait before attempting to rejoin the air upon a broken connection.
-  # It should be kept very low. The most common reason for a broken connection is that the air has
-  # been re-deployed. Since we are doing rolling deploys, there is going to be other air machines
-  # available to connect to.
-  @initial_interval 5
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -70,11 +64,12 @@ defmodule Cloak.AirSocket do
       cloak_name: cloak_name
     }
     url = "#{:cloak_conf.get_val(:air, :socket_url)}?#{URI.encode_query(params)}"
+    initial_interval = :cloak_conf.get_val(:air, :min_reconnect_interval)
     state = %{
       cloak_name: cloak_name,
       pending_calls: %{},
-      reconnect_interval: @initial_interval,
-      rejoin_interval: @initial_interval
+      reconnect_interval: initial_interval,
+      rejoin_interval: initial_interval
     }
     {:connect, url, state}
   end
@@ -83,7 +78,8 @@ defmodule Cloak.AirSocket do
   def handle_connected(_transport, state) do
     Logger.info("connected")
     send(self(), {:join, "main"})
-    {:ok, %{state | reconnect_interval: @initial_interval}}
+    initial_interval = :cloak_conf.get_val(:air, :min_reconnect_interval)
+    {:ok, %{state | reconnect_interval: initial_interval}}
   end
 
   @doc false
@@ -96,7 +92,8 @@ defmodule Cloak.AirSocket do
   @doc false
   def handle_joined(topic, _payload, _transport, state) do
     Logger.info("joined the topic #{topic}")
-    {:ok, %{state | rejoin_interval: @initial_interval}}
+    initial_interval = :cloak_conf.get_val(:air, :min_reconnect_interval)
+    {:ok, %{state | rejoin_interval: initial_interval}}
   end
 
   @doc false
