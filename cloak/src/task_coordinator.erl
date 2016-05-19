@@ -37,14 +37,22 @@ run_job(Task) ->
   % We need to:
   %   - process the AST of the query
   %   - reassemble the AST into a SQL query
-  %   - execute the query and retrieve the working data set
+  %   - execute the query and retrieve the working data set: done
   %   - pre-process the data set into buckets
-  %   - anonymize the resulting buckets
+  %   - anonymize the resulting buckets: done
   %   - post-process the buckets
   %   - convert the anonymized buckets into a table: done
-  %   - send the final result to its destination
-  % For now, return an empty result set.
-  Result = {buckets, [], []},
+  %   - send the final result to its destination: done
+  % For now, use a basic pipeline that executes the query raw without any error checking:
+  LcfUsers = lcf_users:new(),
+  Aggregator = aggregator:new(LcfUsers),
+  Query = Task#task.query, % formatted as <<"SELECT user_id, item FROM user_data">>,
+  {_Count, [_UserId | Columns], Rows} = 'Elixir.Cloak.DataSource':'query!'(local, Query),
+  [aggregator:add_property(Property, UserId, Aggregator) || [UserId | Property] <- Rows],
+  Buckets = anonymizer:anonymize(aggregator:buckets(Aggregator)),
+  aggregator:delete(Aggregator),
+  lcf_users:delete(LcfUsers),
+  Result = {buckets, Columns, Buckets},
   progress_handler:unregister_task(Task),
   cloak_metrics:count("task.successful"),
   #task{task_id = TaskId, result_destination = ResultDestination} = Task,

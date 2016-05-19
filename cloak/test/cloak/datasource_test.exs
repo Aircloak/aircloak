@@ -23,11 +23,8 @@ defmodule Cloak.DataSourceTest do
 
   test "data retrieval" do
     [source_name, table_name] = String.split(:db_test.table_path("test"), "/")
-    table_id = String.to_existing_atom(table_name)
     source_id = String.to_existing_atom(source_name)
-    assert(Cloak.DataSource.get_metadata(source_id, table_id,
-      {"value != $1", [20]}, 0) == [{"user-id", 1, 3, 2}])
-    assert(Cloak.DataSource.get_data_batch(source_id, table_id,
-      "user-id", 1, 3, 10, ["value"], {"value != $1", [20]}) == {2, [[1, 10], [3, 30]]})
+    data = Cloak.DataSource.query!(source_id, "SELECT value FROM #{table_name} WHERE user_id = \"user_id\"")
+    assert(data == {3, ["value"], [[10], [20], [30]]})
   end
 end

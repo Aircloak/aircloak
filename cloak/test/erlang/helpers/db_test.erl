@@ -37,11 +37,11 @@ create_test_schema() ->
 %% @doc Creates a test table.
 create_table(TableName, Definition) ->
   Query = iolist_to_binary([<<"CREATE TABLE ">>, sanitized_table(TableName),
-      <<" (row_id SERIAL, user_id VARCHAR(64), ">>, Definition, $)]),
+      <<" (user_id VARCHAR(64), ">>, Definition, $)]),
   Result = 'Elixir.Cloak.DataSource.PostgreSQL':execute(Query, []),
   case Result of
     {ok, _} ->
-      'Elixir.Cloak.DataSource':register_test_table(full_table_name(TableName), <<"user_id">>, <<"row_id">>),
+      'Elixir.Cloak.DataSource':register_test_table(full_table_name(TableName), <<"user_id">>),
       Result;
     {error, _} -> Result
   end.
