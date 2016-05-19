@@ -1,4 +1,4 @@
-%% @doc A storage for mapping bucket labels to user ids.
+%% @doc A storage for mapping bucket properties to user ids.
 %%
 %%      This module is used to collect all users which are removed due to low
 %%      count filter (LCF). While running tasks, we'll add another property,
@@ -69,15 +69,15 @@ delete(LcfStorage) ->
   [TableOwner ! stop || {_, {_, TableOwner}} <- dict:to_list(LcfStorage)],
   ok.
 
-%% @doc Adds `bucket_label -> [user_id()]' mapping to the storage.
--spec add_bucket_users(lcf_users(), #bucket_label{}, [user_id()]) -> lcf_users().
-add_bucket_users(LcfStorage, BucketLabel, UserIds) ->
+%% @doc Adds `property() -> [user_id()]' mapping to the storage.
+-spec add_bucket_users(lcf_users(), property(), [user_id()]) -> lcf_users().
+add_bucket_users(LcfStorage, Property, UserIds) ->
   case dict:find(node(), LcfStorage) of
     error ->
       % Not probable, but might happen during netsplit, so we'll just ignore.
       LcfStorage;
     {ok, {LocalEtsTable, _TableOwner}} ->
-      ets:insert(LocalEtsTable, {BucketLabel, UserIds}),
+      ets:insert(LocalEtsTable, {Property, UserIds}),
       LcfStorage
   end.
 
@@ -96,14 +96,14 @@ add_bucket_users(LcfStorage, BucketLabel, UserIds) ->
 %%
 %%      This works correctly as long as each user is guaranteed to be processed on the same
 %%      node (for a single task).
--spec lcf_tail_report(lcf_users(), [#bucket_label{}]) -> undefined | #bucket_report{}.
+-spec lcf_tail_report(lcf_users(), [property()]) -> undefined | #bucket{}.
 lcf_tail_report(_, []) -> undefined;
-lcf_tail_report(LcfStorage, BucketLabels) ->
+lcf_tail_report(LcfStorage, Properties) ->
   Aggregator = aggregator:new(),
   try
-    LocalReporters = start_local_reporters(LcfStorage, BucketLabels, self()),
+    LocalReporters = start_local_reporters(LcfStorage, Properties, self()),
     add_reports_to_aggregator(LocalReporters, Aggregator),
-    case aggregator:reports(Aggregator) of
+    case aggregator:buckets(Aggregator) of
       [] -> undefined;
       [LcfReport] -> LcfReport
     end
@@ -142,7 +142,7 @@ create_local_lcf_table(MasterPid) ->
       erlang:error(timeout)
   end.
 
-start_local_reporters(LcfStorage, BucketLabels, MasterPid) ->
+start_local_reporters(LcfStorage, Properties, MasterPid) ->
   [
     begin
       % Spawn a process which fetches the report from the given node
@@ -155,7 +155,7 @@ start_local_reporters(LcfStorage, BucketLabels, MasterPid) ->
             result,
             % The timeout of 30 secs is chosen to accommodate cases when we have long LCF tails with
             % bunch of buckets and users.
-            rpc:call(Node, ?MODULE, local_lcf_tail_report, [Table, BucketLabels], timer:seconds(30))
+            rpc:call(Node, ?MODULE, local_lcf_tail_report, [Table, Properties], timer:seconds(30))
           }
         end
       )
@@ -163,7 +163,7 @@ start_local_reporters(LcfStorage, BucketLabels, MasterPid) ->
   ].
 
 add_reports_to_aggregator(LocalReporters, Aggregator) ->
-  [aggregator:add_bucket_reports([Report], Aggregator) ||
+  [aggregator:add_buckets([Report], Aggregator) ||
     {_Pid, MRef} <- LocalReporters,
     Response <- [
       % Note: no timeout is needed here, because we enforce it in the spawned reporter.
@@ -179,13 +179,13 @@ add_reports_to_aggregator(LocalReporters, Aggregator) ->
   ok.
 
 %% @hidden
-local_lcf_tail_report(Table, BucketLabels) ->
+local_lcf_tail_report(Table, Properties) ->
   Aggregator = aggregator:new(),
   try
     Processors = start_aggregate_processors(Table, Aggregator),
-    dispatch_aggregations(BucketLabels, Processors),
+    dispatch_aggregations(Properties, Processors),
     stop_aggregate_processors(Processors),
-    case aggregator:reports(Aggregator) of
+    case aggregator:buckets(Aggregator) of
       [] -> undefined;
       [LcfReport] -> {report, LcfReport}
     end
@@ -197,16 +197,16 @@ start_aggregate_processors(Table, Aggregator) ->
   [spawn_link(fun() -> aggregate_processor_loop(Table, Aggregator) end)
     || _ <- lists:seq(0, ?AGGREGATE_PROCESSORS - 1)].
 
-dispatch_aggregations(BucketLabels, Processors) ->
-  dispatch_aggregations(BucketLabels, [], Processors).
+dispatch_aggregations(Properties, Processors) ->
+  dispatch_aggregations(Properties, [], Processors).
 
 % We're dispatching each bucket to one processor in a round-robin fashion.
 dispatch_aggregations([], _, _) -> ok;
-dispatch_aggregations(BucketLabels, [], AllProcessors) ->
-  dispatch_aggregations(BucketLabels, AllProcessors, AllProcessors);
-dispatch_aggregations([BucketLabel | RestLabels], [ProcessorPid | RestProcessors], AllProcessors) ->
-  ProcessorPid ! {aggregate, BucketLabel},
-  dispatch_aggregations(RestLabels, RestProcessors, AllProcessors).
+dispatch_aggregations(Properties, [], AllProcessors) ->
+  dispatch_aggregations(Properties, AllProcessors, AllProcessors);
+dispatch_aggregations([Property | RestProperties], [ProcessorPid | RestProcessors], AllProcessors) ->
+  ProcessorPid ! {aggregate, Property},
+  dispatch_aggregations(RestProperties, RestProcessors, AllProcessors).
 
 stop_aggregate_processors(Processors) ->
   MRefs = [
@@ -221,14 +221,14 @@ stop_aggregate_processors(Processors) ->
 
 aggregate_processor_loop(Table, Aggregator) ->
   receive
-    {aggregate, BucketLabel} ->
+    {aggregate, Property} ->
       [
         aggregator:add_property(
-          #property{label=?AIRCLOAK_LABEL, value=?LCF_TAIL_VALUE},
+          [?AIRCLOAK_LABEL, ?LCF_TAIL_VALUE],
           UserId,
           Aggregator
         ) ||
-        Matches <- ets:match(Table, {BucketLabel, '$1'}),
+        Matches <- ets:match(Table, {Property, '$1'}),
         UserIds <- Matches,
         UserId <- UserIds
       ],

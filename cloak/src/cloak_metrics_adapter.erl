@@ -71,11 +71,8 @@ anonymize_ranges([{MetricName, Ranges}|RemainingMetrics]) ->
 
 ranges_to_report([]) -> [];
 ranges_to_report([{From, To, Count} | Ranges]) ->
-  Report = #bucket_report{
-    label = #bucket_label{
-      label = cloak_util:binarify(From),
-      value = cloak_util:binarify(To)
-    },
+  Report = #bucket{
+    property = [cloak_util:binarify(From), cloak_util:binarify(To)],
     count = Count,
     noisy_count = Count,
     users_hash = crypto:hash(md4, term_to_binary(["anon", "metrics"])),
@@ -86,7 +83,7 @@ ranges_to_report([{From, To, Count} | Ranges]) ->
 to_bucket_sets([]) -> [];
 to_bucket_sets([{MetricName, Reports}|RemainingReports]) ->
   Buckets = [{range_from_string(From), range_from_string(To), NoisyCount}
-    || #bucket_report{label=#bucket_label{label=From, value=To}, noisy_count=NoisyCount} <- Reports],
+    || #bucket{property = [From, To], noisy_count = NoisyCount} <- Reports],
   BucketSet = {MetricName, Buckets},
   [BucketSet | to_bucket_sets(RemainingReports)].
 

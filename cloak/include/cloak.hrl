@@ -30,7 +30,7 @@
   type = batch :: task_type(),
   report_interval :: non_neg_integer() | undefined,
   period :: erlcron:run_when() | undefined,
-  query :: binary(), % string for now but should actually be AST 
+  query :: binary(), % string for now but should actually be AST
   timestamp :: integer() | undefined,
   result_destination :: result_destination(),
   user_expire_interval :: undefined | pos_integer(),
@@ -41,29 +41,19 @@
 
 -type generated_range() :: {From :: integer() | neg_infinite, To :: integer() | infinite, Count :: non_neg_integer()}.
 
--type property_label() :: binary().
--type property_string() :: binary() | undefined.
 -type job_accumulator() :: binary() | undefined.
 
--record(property, {
-  label :: property_label(),
-  value :: property_string()
-}).
+-type property() :: [binary()].
 
 -record(job_response, {
   user_id :: user_id(),
   task_id :: task_id(),
-  properties :: [#property{}],
+  properties :: [property()],
   accumulator :: job_accumulator()
 }).
 
--record(bucket_label, {
-  label :: property_label(),
-  value :: property_string()
-}).
-
--record(bucket_report, {
-  label :: #bucket_label{},
+-record(bucket, {
+  property :: property(),
   count :: non_neg_integer(),
   noisy_count :: number(),
   users_hash :: binary(),

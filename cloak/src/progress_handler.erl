@@ -167,8 +167,8 @@ report_progress(#task_progress{progress = Progress, task = Task,
 anonymize_progress(#task_progress{number_of_jobs=0}) ->
   0;
 anonymize_progress(#task_progress{number_of_jobs=Num, finished_jobs=Finished}) ->
-  BucketReport = #bucket_report{
-    label = #bucket_label{label = <<"progress">>},
+  BucketReport = #bucket{
+    property = [<<"progress">>],
     count = Finished,
     noisy_count = Finished,
     users_hash = crypto:hash(md4, <<"progress">>),
@@ -177,7 +177,7 @@ anonymize_progress(#task_progress{number_of_jobs=Num, finished_jobs=Finished}) -
   NoisyCount = case anonymizer:anonymize([BucketReport]) of
     [] ->
       0;
-    [#bucket_report{noisy_count=NC}] ->
+    [#bucket{noisy_count=NC}] ->
       % We don't want to have strange results, so make 0 and the maximum number of jobs a bound for it.
       max(0, min(NC, Num))
   end,
