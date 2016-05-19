@@ -54,7 +54,6 @@ run_job(Task) ->
   aggregator:delete(Aggregator),
   lcf_users:delete(LcfUsers),
   Result = {buckets, Columns, AnonymizedBuckets},
-  progress_handler:unregister_task(Task),
   cloak_metrics:count("task.successful"),
   #task{task_id = TaskId, result_destination = ResultDestination} = Task,
   ?MEASURE("task.send_result", result_sender:send_result(TaskId, ResultDestination, Result)),
@@ -65,7 +64,6 @@ run_job(Task) ->
 on_failure(Task, Reason) ->
   ?ERROR("task_coordinator failure: ~p", [Reason]),
   cloak_metrics:count("task.failure"),
-  progress_handler:unregister_task(Task),
   #task{task_id = TaskId, result_destination = ResultDestination} = Task,
   Result = {error, <<"task execution failed">>},
   ?MEASURE("task.send_result", result_sender:send_result(TaskId, ResultDestination, Result)).
