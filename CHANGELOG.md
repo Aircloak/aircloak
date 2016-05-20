@@ -1,5 +1,10 @@
 This document serves to describe breaking changes and provide upgrade hints when major changes are introduced. When you're creating a pull with some major changes, please add brief upgrade instructions here.
 
+## Main branch change from `develop` to `master`
+
+The change was made to get Travis to pick up our caches, and secondly it's what most people and projects expect. Update your local git remotes.
+
+
 ## Mixification of cloak
 
 - Cloak project is now compiled with `mix` and powered by Elixir. You'll need Erlang 18.x and Elixir >= 1.2.3 to run it. There is the `Makefile` file in the `cloak` folder with typical tasks.
