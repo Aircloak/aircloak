@@ -11,9 +11,16 @@ export class ResultSocket {
 
   start(callbacks) {
     const channel = this.socket.channel(`task:${this.taskId}`, {});
+    const noop = () => {};
+    const {
+      joined = noop,
+      failedJoin = noop,
+      result = noop,
+    } = callbacks;
+
     channel.join()
-      .receive("ok", resp => callbacks.joined(resp))
-      .receive("error", resp => callbacks.failed_join(resp));
-    channel.on("result", payload => callbacks.result(payload));
+      .receive("ok", joined)
+      .receive("error", failedJoin);
+    channel.on("result", result);
   }
 }

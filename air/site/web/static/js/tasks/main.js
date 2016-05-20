@@ -60,8 +60,7 @@ class TaskEditor extends React.Component {
 
     new ResultSocket(props.id, props.guardianToken)
       .start({
-        joined: (_resp) => {},
-        failed_join: (_resp) => { throw new Error("Failed to join channel for task updates"); },
+        failedJoin: (_resp) => { throw new Error("Failed to join channel for task updates"); },
         result: this.updateTaskResult,
       });
 
