@@ -1,0 +1,13 @@
+<div id="query-view" />
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = <%= {:safe, @recent_tasks} %>;
+      props.CSRFToken = "<%= @csrf_token %>";
+      props.guardianToken = "<%= @guardian_token %>";
+
+      App.queryPage(props, document.getElementById("query-view"));
+    }
+  };
+</script>
