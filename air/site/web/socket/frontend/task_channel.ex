@@ -4,7 +4,6 @@ defmodule Air.Socket.Frontend.TaskChannel do
   For the time being no incoming messages are supported,
   but we do support two outgoing type of messages:
 
-  - __progress__: reports on the progress of task execution
   - __result__: reports new results as tasks finish executing
   """
   use Air.Web, :channel
@@ -15,22 +14,6 @@ defmodule Air.Socket.Frontend.TaskChannel do
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
-
-  @doc """
-  Broadcasts a progress message to all clients subscribing to a task.
-  This allows the interface to keep progress meters up to date.
-
-  The `progress` parameter should be an integer between 0 and 100
-  indicating to what percent the task execution is complete.
-  """
-  @spec broadcast_progress(Task.t, integer) :: :ok
-  def broadcast_progress(task, progress) do
-    payload = %{
-      progress: progress
-    }
-    Air.Endpoint.broadcast_from!(self(), "task:#{task.id}", "progress", payload)
-    :ok
-  end
 
   @doc """
   Broadcasts the results of a task execution to all listening clients.

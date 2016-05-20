@@ -14,7 +14,6 @@ export class ResultSocket {
     channel.join()
       .receive("ok", resp => callbacks.joined(resp))
       .receive("error", resp => callbacks.failed_join(resp));
-    channel.on("progress", payload => callbacks.progress(payload.progress));
     channel.on("result", payload => callbacks.result(payload));
   }
 }

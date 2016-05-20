@@ -8,7 +8,7 @@ import {CodeEditor} from "./code_editor";
 import {ResultSocket} from "./results_socket";
 import {SidePane} from "./sidepane";
 import {PaneView} from "./pane_view";
-import {Menu, MenuButton, TaskProgress, PaneSelectButton, InfoBox} from "./menu";
+import {Menu, MenuButton, PaneSelectButton, InfoBox} from "./menu";
 import {SettingsModel, SettingsView} from "./settings";
 import {ResultsView} from "./results";
 
@@ -28,12 +28,7 @@ class TaskEditor extends React.Component {
         taskName: props.name,
       }),
       activeSidePane: null,
-
-      // We keep some stats on whether or not
-      // the task is running. This is used
-      // throughout the interface to toggle
-      // buttons and show progress bars
-      runningPercent: -1,
+      taskIsRunning: false,
     };
     // we keep a backup copy of the last saved
     // state of the task, in order to be able to
@@ -52,13 +47,13 @@ class TaskEditor extends React.Component {
     this.canRun = this.canRun.bind(this);
     this.infoBoxContent = this.infoBoxContent.bind(this);
     this.saveTask = this.saveTask.bind(this);
-    this.taskIsRunning = this.taskIsRunning.bind(this);
     this.updateTaskResult = this.updateTaskResult.bind(this);
-    this.updateTaskRunningProgress = this.updateTaskRunningProgress.bind(this);
+    this.markTaskCompleted = this.markTaskCompleted.bind(this);
+    this.markTaskStarted = this.markTaskStarted.bind(this);
     this.isPaneActive = this.isPaneActive.bind(this);
     this.activatePane = this.activatePane.bind(this);
 
-    // To prevent the user loosing changes, we ask whether
+    // To prevent the user losing changes, we ask whether
     // the page should be closed, if changes have been
     // made since the last time the task was saved.
     window.onbeforeunload = this.checkForUnsavedChanges;
@@ -67,7 +62,6 @@ class TaskEditor extends React.Component {
       .start({
         joined: (_resp) => console.log("Joined channel for task updates"),
         failed_join: (_resp) => console.error("Failed to join channel for task updates"),
-        progress: this.updateTaskRunningProgress,
         result: this.updateTaskResult,
       });
 
@@ -96,14 +90,16 @@ class TaskEditor extends React.Component {
     this.setState({activeSidePane: null});
   }
 
-  updateTaskRunningProgress(runningPercent) {
-    this.setState({runningPercent});
+  markTaskStarted() {
+    this.setState({taskIsRunning: true});
+  }
+
+  markTaskCompleted() {
+    this.setState({taskIsRunning: false});
   }
 
   updateTaskResult(result) {
-    // We assume that the task is now complete, since we received a
-    // result, and therefore update the progress too
-    this.updateTaskRunningProgress(-1);
+    this.markTaskCompleted();
     this.setState({result});
   }
 
@@ -117,7 +113,7 @@ class TaskEditor extends React.Component {
     if (! this.canRun()) {
       return;
     }
-    this.updateTaskRunningProgress(0);
+    this.markTaskStarted();
     $.ajax(`/tasks/${this.props.id}/run`, {
       context: this,
       method: "POST",
@@ -190,12 +186,8 @@ class TaskEditor extends React.Component {
     return (
       this.state.settings.dataSourceToken != null &&
       this.state.settings.tables.size > 0 &&
-      ! this.taskIsRunning() &&
+      !this.state.taskIsRunning &&
       this.state.settings.selectedCloakOnline());
-  }
-
-  taskIsRunning() {
-    return this.state.runningPercent !== -1;
   }
 
   infoBoxContent() {
@@ -258,7 +250,6 @@ class TaskEditor extends React.Component {
 
           <div>
             <MenuButton onClick={this.handleRunTask} isActive={this.canRun}>Run task</MenuButton>
-            <TaskProgress {...this.state} taskIsRunning={this.taskIsRunning} />
             <InfoBox info={this.infoBoxContent()} />
           </div>
         </Menu>

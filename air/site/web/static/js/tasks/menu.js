@@ -20,30 +20,6 @@ MenuButton.propTypes = {
   children: React.PropTypes.node,
 };
 
-export const TaskProgress = (props) => {
-  if (props.taskIsRunning()) {
-    return (
-      <div className="progress">
-        <div
-          className="progress-bar"
-          role="progressbar"
-          aria-valuenow="{props.runningPercent}" aria-valuemin="0"
-          aria-valuemax="100" style={{width: `${props.runningPercent}%`}}
-        >
-          {props.runningPercent}%
-        </div>
-      </div>
-    );
-  } else {
-    return null;
-  }
-};
-
-TaskProgress.propTypes = {
-  taskIsRunning: React.PropTypes.func.isRequired,
-  runningPercent: React.PropTypes.number,
-};
-
 export const PaneSelectButton = (props) => {
   const classes = props.isActive ? "selection active" : "selection";
 
