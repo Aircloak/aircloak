@@ -8,7 +8,7 @@ import {CodeEditor} from "../code_editor";
 import {ResultSocket} from "./results_socket";
 import {SidePane} from "./sidepane";
 import {PaneView} from "./pane_view";
-import {Menu, MenuButton, PaneSelectButton, InfoBox} from "./menu";
+import {Menu, MenuButton, PaneSelectButton, InfoBox} from "../menu";
 import {SettingsModel, SettingsView} from "./settings";
 import {ResultsView} from "./results";
 
@@ -239,10 +239,10 @@ class TaskEditor extends React.Component {
             Settings
           </PaneSelectButton>
 
-          <MenuButton onClick={this.saveTask} isActive={this.hasChanges}>Save task</MenuButton>
+          <MenuButton onClick={this.saveTask} isActive={this.hasChanges()}>Save task</MenuButton>
 
           <div>
-            <MenuButton onClick={this.handleRunTask} isActive={this.canRun}>Run task</MenuButton>
+            <MenuButton onClick={this.handleRunTask} isActive={this.canRun()}>Run task</MenuButton>
             <InfoBox info={this.infoBoxContent()} />
           </div>
         </Menu>
