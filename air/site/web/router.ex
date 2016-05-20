@@ -40,6 +40,7 @@ defmodule Air.Router do
     get "/help_guide/:article", HelpGuideController, :article
 
     post "/tasks/:id/run", TaskController, :run_task
+    resources "/queries", QueriesController
     resources "/api_tokens", ApiTokenController
     resources "/cloaks", CloaksController
     resources "/organisations", OrganisationController
