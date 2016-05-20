@@ -17,6 +17,7 @@ cache:
   - air/site/deps
   - air/site/_build
   - air/site/node_modules
+  - air/site/api_docs/vendor/bundle
   - .mix
   - cloak/deps
   - cloak/_build
