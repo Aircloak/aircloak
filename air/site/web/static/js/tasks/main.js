@@ -60,8 +60,8 @@ class TaskEditor extends React.Component {
 
     new ResultSocket(props.id, props.guardianToken)
       .start({
-        joined: (_resp) => console.log("Joined channel for task updates"),
-        failed_join: (_resp) => console.error("Failed to join channel for task updates"),
+        joined: (_resp) => {},
+        failed_join: (_resp) => { throw new Error("Failed to join channel for task updates"); },
         result: this.updateTaskResult,
       });
 
@@ -123,14 +123,11 @@ class TaskEditor extends React.Component {
       },
       data: this.queryData(),
       success: (responseData, _textStatus) => {
-        if (responseData.success) {
-          console.log("Task run scheduled...");
-        } else {
+        if (!responseData.success) {
           this.updateTaskResult({error: responseData.reason || "unknown error"});
         }
       },
       error: (jqXHR, status, errorReason) => {
-        console.error("Task run failed: ", errorReason);
         this.updateTaskResult({error: errorReason});
       },
     });
@@ -146,9 +143,6 @@ class TaskEditor extends React.Component {
       },
       data: this.queryData(),
       success: this.updateSavedState,
-      error: (jqXHR, status, errorStatus) => {
-        console.error("Task saving failed: ", errorStatus);
-      },
     });
   }
 
