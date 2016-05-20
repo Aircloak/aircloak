@@ -67,7 +67,7 @@ class TaskEditor extends React.Component {
 
     // We trap save and run key-board shortcuts while the user is editing the task through
     // the code mirror editor itself. To avoid confusion, the same behaviour to be preserved also when
-    // the user is not actively editing the task. To achieve this, we bind the key's here as well,
+    // the user is not actively editing the task. To achieve this, we bind the keys here as well,
     // which ensures they are active all the time.
     Mousetrap.bind(["ctrl+s"], this.saveTask);
     Mousetrap.bind(["ctrl+r"], this.handleRunTask);
