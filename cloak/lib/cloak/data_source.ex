@@ -123,7 +123,7 @@ defmodule Cloak.DataSource do
     data_sources = Application.get_env(:cloak, :data_sources)
     data_source = data_sources[source_id]
     driver = data_source[:driver]
-    driver.query!(source_id, parse_query(raw_query))
+    driver.query!(source_id, parse_query(raw_query, data_source))
   end
 
 
@@ -183,8 +183,15 @@ defmodule Cloak.DataSource do
     end
   end
 
-  defp parse_query(raw_query) do
-    Cloak.SqlQuery.parse!(raw_query)
+  defp parse_query(raw_query, data_source) do
+    query = Cloak.SqlQuery.parse!(raw_query)
+
+    table =
+      data_source[:tables]
+      |> Stream.map(fn({_, meta}) -> meta end)
+      |> Enum.find(&(&1[:name] == query.from))
+
+    %{query | select: [table[:user_id] | query.select]}
   end
 
   #-----------------------------------------------------------------------------------------------------------
