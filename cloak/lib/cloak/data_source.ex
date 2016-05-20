@@ -55,7 +55,7 @@ defmodule Cloak.DataSource do
     @callback get_columns(atom, String.t) :: [[{String.t, DataSource.data_type}]]
 
     @doc "Database specific implementation for the `DataSource.query!` functionality."
-    @callback query!(atom, String.t) :: {non_neg_integer, [String.t], [[DataSource.data_value]]}
+    @callback query!(atom, Cloak.SqlQuery.t) :: {non_neg_integer, [String.t], [[DataSource.data_value]]}
   end
 
 
@@ -119,11 +119,11 @@ defmodule Cloak.DataSource do
   Returns {RowCount, Columns, Rows}.
   """
   @spec query!(atom, String.t) :: {non_neg_integer, [String.t], [[DataSource.data_value]]}
-  def query!(source_id, statement) do
+  def query!(source_id, raw_query) do
     data_sources = Application.get_env(:cloak, :data_sources)
     data_source = data_sources[source_id]
     driver = data_source[:driver]
-    driver.query!(source_id, statement)
+    driver.query!(source_id, parse_query(raw_query))
   end
 
 
@@ -181,6 +181,10 @@ defmodule Cloak.DataSource do
           To ignore them set "ignore_unsupported_types: true" in your table settings
         """
     end
+  end
+
+  defp parse_query(raw_query) do
+    Cloak.SqlQuery.parse!(raw_query)
   end
 
   #-----------------------------------------------------------------------------------------------------------

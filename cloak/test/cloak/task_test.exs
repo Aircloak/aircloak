@@ -11,8 +11,8 @@ defmodule Cloak.TaskTest do
   end
 
   test "task execution" do
-    Cloak.Task.run(
-      %Cloak.Task{
+    Task.run(
+      %Task{
         id: "1",
         query: "select user_id, height from cloak_test.heights"
       },

@@ -24,7 +24,7 @@ defmodule Cloak.DataSourceTest do
   test "data retrieval" do
     [source_name, table_name] = String.split(:db_test.table_path("test"), "/")
     source_id = String.to_existing_atom(source_name)
-    data = Cloak.DataSource.query!(source_id, "SELECT value FROM #{table_name} WHERE user_id = \"user_id\"")
+    data = Cloak.DataSource.query!(source_id, "SELECT value FROM #{table_name}")
     assert(data == {3, ["value"], [[10], [20], [30]]})
   end
 end
