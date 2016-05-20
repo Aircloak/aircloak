@@ -76,9 +76,15 @@ defmodule Air.Task do
     where: t.permanent == true
   end
 
-  def for_user(query, user) do
+  def for_user(query \\ __MODULE__, user) do
     from t in query,
     where: t.user_id == ^user.id
+  end
+
+  def recent(query \\ __MODULE__, count) do
+    from t in query,
+    order_by: [desc: t.inserted_at],
+    limit: ^count
   end
 
 
