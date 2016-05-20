@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Compile.ApiDocs do
   @doc false
   def run(_args) do
     if stale?() do
-      cmd!("bundle", ~w(install))
+      cmd!("bundle", ~w(install --path vendor/bundle))
       cmd!("bundle", ~w(exec middleman build))
       File.mkdir_p!("priv/static")
       File.rm_rf!("priv/static/api_docs")
