@@ -69,7 +69,19 @@ defmodule Cloak.SqlQuery do
   defp from(parser) do
     pair_both(parser,
       keyword(~r/FROM/i),
-      identifier()
+      from_table_name()
+    )
+  end
+
+  defp from_table_name() do
+    next_token()
+    |> either(table_with_schema(), identifier())
+  end
+
+  defp table_with_schema() do
+    pipe(
+      [identifier(), char(?.), identifier()],
+      &Enum.join/1
     )
   end
 

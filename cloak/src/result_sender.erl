@@ -32,6 +32,11 @@
 }).
 
 -type result() :: {error, binary()} | {buckets, [binary()], [#bucket{}]}.
+-type result_destination() :: {url, binary()} | {process, pid()} | air_socket.
+
+-export_type([
+  result_destination/0
+]).
 
 %% -------------------------------------------------------------------
 %% API

@@ -33,8 +33,8 @@ defmodule Cloak.DataSource.PostgreSQL do
   end
 
   @doc false
-  def query!(source_id, statement) do
-    run_query!(source_id, statement)
+  def query!(source_id, query) do
+    run_query!(source_id, query_to_string(query))
   end
 
 
@@ -63,6 +63,10 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("money"), do: :number
   defp parse_type("numeric"), do: :number
   defp parse_type(type), do: {:unsupported, type}
+
+  defp query_to_string(query) do
+    "SELECT #{Enum.join(query.select, ",")} FROM #{query.from}"
+  end
 
 
   #-----------------------------------------------------------------------------------------------------------

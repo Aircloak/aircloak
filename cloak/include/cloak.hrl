@@ -24,14 +24,6 @@
 -type task_id() :: binary().
 -type index() :: string().
 
--record(task, {
-  task_id :: task_id(),
-  query :: binary(), % string for now but should actually be AST
-  timestamp :: integer() | undefined,
-  result_destination :: result_destination(),
-  progress_handle :: pos_integer()
-}).
-
 -type noise_function() :: fun((integer()) -> integer()).
 
 -type generated_range() :: {From :: integer() | neg_infinite, To :: integer() | infinite, Count :: non_neg_integer()}.
@@ -86,8 +78,6 @@
   %% the bucket. The noise is normal with a certain standard deviation.
   constant_noise_sd :: float()
 }).
-
--type result_destination() :: {url, binary()} | {process, pid()} | air_socket.
 
 %% Helper macro for specifying cron intervals
 -define(EVERY_N_SEC(Sec), {daily, {every, {Sec, sec}, {between, {0, 0, 0}, {23, 59, 59}}}}).
