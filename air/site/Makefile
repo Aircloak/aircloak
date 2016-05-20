@@ -49,7 +49,7 @@ lint: eslint
 	MIX_ENV=test mix lint
 
 eslint:
-	node_modules/.bin/eslint --rulesdir eslint_rules web/static/js/*.js web/static/js/**/*.js
+	node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules web/static/js/*.js web/static/js/**/*.js
 
 check_dependent_apps:
 	mix check_dependent_apps

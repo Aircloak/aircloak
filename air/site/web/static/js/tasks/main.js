@@ -60,14 +60,13 @@ class TaskEditor extends React.Component {
 
     new ResultSocket(props.id, props.guardianToken)
       .start({
-        joined: (_resp) => console.log("Joined channel for task updates"),
-        failed_join: (_resp) => console.error("Failed to join channel for task updates"),
+        failedJoin: (_resp) => { throw new Error("Failed to join channel for task updates"); },
         result: this.updateTaskResult,
       });
 
     // We trap save and run key-board shortcuts while the user is editing the task through
     // the code mirror editor itself. To avoid confusion, the same behaviour to be preserved also when
-    // the user is not actively editing the task. To achieve this, we bind the key's here as well,
+    // the user is not actively editing the task. To achieve this, we bind the keys here as well,
     // which ensures they are active all the time.
     Mousetrap.bind(["ctrl+s"], this.saveTask);
     Mousetrap.bind(["ctrl+r"], this.handleRunTask);
@@ -123,14 +122,11 @@ class TaskEditor extends React.Component {
       },
       data: this.queryData(),
       success: (responseData, _textStatus) => {
-        if (responseData.success) {
-          console.log("Task run scheduled...");
-        } else {
+        if (!responseData.success) {
           this.updateTaskResult({error: responseData.reason || "unknown error"});
         }
       },
       error: (jqXHR, status, errorReason) => {
-        console.error("Task run failed: ", errorReason);
         this.updateTaskResult({error: errorReason});
       },
     });
@@ -146,9 +142,6 @@ class TaskEditor extends React.Component {
       },
       data: this.queryData(),
       success: this.updateSavedState,
-      error: (jqXHR, status, errorStatus) => {
-        console.error("Task saving failed: ", errorStatus);
-      },
     });
   }
 
