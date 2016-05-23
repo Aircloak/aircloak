@@ -22,10 +22,6 @@ export class ResultsView extends React.Component {
 
           <tbody>
             {this.props.result.rows.
-              /* TODO: We need to report tails as well. This would likely be better done in the cloak,
-                       where we could do extra post-aggregation of lcf tails.
-              */
-              filter((row) => row !== "aircloak_lcf_tail").
               map((row, i) =>
                 <tr key={i}>
                   {row.map((value, j) => <td key={j}>{value}</td>)}
