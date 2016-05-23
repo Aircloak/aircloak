@@ -80,4 +80,27 @@ defmodule Cloak.Processor.AccumulateCountTest do
     ]
     assert AccumulateCount.post_process(anonymized_buckets) == expected
   end
+
+  test "accepts and ignores low count buckets" do
+    anonymized_buckets = [
+      bucket(property: ["aircloak_lcf_tail"], noisy_count: 10)
+    ]
+    expected = [
+      bucket(property: ["aircloak_lcf_tail"], noisy_count: 10)
+    ]
+    assert AccumulateCount.post_process(anonymized_buckets) == expected
+  end
+
+  test "accepts and ignores low count buckets" do
+    prop = [:a]
+    anonymized_buckets = [
+      bucket(property: ["aircloak_lcf_tail"], noisy_count: 10),
+      bucket(property: {prop, 1}, noisy_count: 10),
+    ]
+    expected = [
+      bucket(property: ["aircloak_lcf_tail"], noisy_count: 10),
+      bucket(property: prop, noisy_count: 10)
+    ]
+    assert AccumulateCount.post_process(anonymized_buckets) == expected
+  end
 end

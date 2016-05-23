@@ -45,10 +45,15 @@ defmodule Cloak.Processor.AccumulateCount do
   If it isn't it might fail, or otherwise produce incorrect answers.
   """
   def post_process(anonymized_buckets) do
-    anonymized_buckets
+    {anonymized_values, low_count_buckets} = anonymized_buckets
     |> extract_from_buckets
+    |> Enum.partition(fn({property, _}) -> property != ["aircloak_lcf_tail"] end)
+
+    processed_values = anonymized_values
     |> group_by_property
     |> Enum.map(&aggregate_for_property/1)
+
+    low_count_buckets ++ processed_values
     |> Enum.map(&format_as_buckets/1)
   end
 
