@@ -40,8 +40,9 @@ defmodule Cloak.Task do
     lcf_users = :lcf_users.new()
     aggregator = :aggregator.new(lcf_users)
     {_count, [_user_id | columns], rows} = Cloak.DataSource.query!(:local, task.query)
+    rows_by_user = group_by_user(rows)
 
-    pre_processed_properties = Cloak.Processor.AccumulateCount.pre_process(rows)
+    pre_processed_properties = Cloak.Processor.AccumulateCount.pre_process(rows_by_user)
     for [user_id, property] <- pre_processed_properties, do: :aggregator.add_property(property, user_id, aggregator)
     aggregated_buckets = :aggregator.buckets(aggregator)
     anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_users)
@@ -54,5 +55,13 @@ defmodule Cloak.Task do
     :lcf_users.delete(lcf_users)
 
     {:buckets, columns, all_buckets}
+  end
+
+  defp group_by_user(rows) do
+    rows
+    |> Enum.reduce(%{}, fn([user | property], accumulator) ->
+        Map.update(accumulator, user, [property], fn(existing_properties) -> [property | existing_properties] end)
+      end)
+    |> Enum.to_list
   end
 end

@@ -10,7 +10,7 @@ defmodule Cloak.Processor.AccumulateCountTest do
   test "produces a cdf for a single property for a user" do
     user = "user"
     prop = [:a, :b, :c]
-    input = [[user | prop], [user | prop], [user | prop]]
+    input = [{user, [prop, prop, prop]}]
     expected = [[user, {prop, 1}], [user, {prop, 2}], [user, {prop, 3}]]
     assert AccumulateCount.pre_process(input) == expected
   end
@@ -19,7 +19,7 @@ defmodule Cloak.Processor.AccumulateCountTest do
     user = "user"
     prop1 = [:a, :b, :c]
     prop2 = [:d, :e]
-    input = [[user | prop1], [user | prop2]]
+    input = [{user, [prop1, prop2]}]
     expected = [[user, {prop1, 1}], [user, {prop2, 1}]]
     assert AccumulateCount.pre_process(input) == expected
   end
@@ -30,8 +30,8 @@ defmodule Cloak.Processor.AccumulateCountTest do
     prop1 = [:a, :b, :c]
     prop2 = [:d, :e]
     input = [
-      [user1 | prop1], [user1 | prop1], [user1 | prop2],
-      [user2 | prop1], [user2 | prop2]
+      {user1, [prop1, prop1, prop2]},
+      {user2, [prop1, prop2]}
     ]
     expected = [
       [user1, {prop1, 1}], [user1, {prop1, 2}], [user1, {prop2, 1}],

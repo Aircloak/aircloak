@@ -19,6 +19,7 @@ defmodule Cloak.Processor.AccumulateCount do
   import Record, only: [defrecord: 2, extract: 2]
   defrecord :bucket, extract(:bucket, from_lib: "cloak/include/cloak.hrl")
 
+  @type user_id :: binary
   @type accumulated_property :: {any, pos_integer}
   @type bucket :: record(:bucket, property: [accumulated_property], noisy_count: pos_integer)
 
@@ -31,14 +32,10 @@ defmodule Cloak.Processor.AccumulateCount do
   Given a list of properties for each user, the pre-processor will do the following per user
   - count how many times each property occurrs
   - make a per property CDF that can be used to produce a global count per property
-
-  It is assumed that the first column in each row is the ID of the user.
   """
-  @spec pre_process([any]) :: [accumulated_property]
-  def pre_process(database_rows) do
-    database_rows
-    |> group_by_user
-    |> create_per_user_accumulated_properties
+  @spec pre_process([{user_id, [any]}]) :: [[user_id | [accumulated_property]]]
+  def pre_process(rows_by_user) do
+    Enum.flat_map(rows_by_user, &per_user_processing/1)
   end
 
   @doc """
@@ -61,18 +58,6 @@ defmodule Cloak.Processor.AccumulateCount do
   # -------------------------------------------------------------------
   # Internal functions for pre-processing
   # -------------------------------------------------------------------
-
-  defp group_by_user(buckets) do
-    buckets
-    |> Enum.reduce(%{}, fn([user | property], accumulator) ->
-        Map.update(accumulator, user, [property], fn(existing_properties) -> [property | existing_properties] end)
-      end)
-    |> Enum.to_list
-  end
-
-  defp create_per_user_accumulated_properties(per_user_properties) do
-    Enum.flat_map(per_user_properties, &per_user_processing/1)
-  end
 
   defp per_user_processing({user, properties}) do
     properties
