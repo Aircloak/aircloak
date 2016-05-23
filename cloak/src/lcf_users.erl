@@ -19,7 +19,7 @@
   new/0,
   delete/1,
   add_bucket_users/3,
-  lcf_tail_report/2
+  lcf_tail_report/3
 ]).
 
 -include("cloak.hrl").
@@ -84,12 +84,12 @@ add_bucket_users({EtsTable, _TableOwner} = LcfStorage, Property, UserIds) ->
 %%      unique users which are lcf-ed. This function is not meant to be invoked
 %%      directly. It will be called by the anonymizer after the reported properties
 %%      have been lcf-ed.
--spec lcf_tail_report(lcf_users(), [property()]) -> undefined | #bucket{}.
-lcf_tail_report(_, []) -> undefined;
-lcf_tail_report({EtsTable, _TableOwner}, Properties) ->
+-spec lcf_tail_report(lcf_users(), [property()], pos_integer()) -> undefined | #bucket{}.
+lcf_tail_report(_, [], _) -> undefined;
+lcf_tail_report({EtsTable, _TableOwner}, Properties, ColumnsCount) ->
   Aggregator = aggregator:new(),
   try
-    Processors = start_aggregate_processors(EtsTable, Aggregator),
+    Processors = start_aggregate_processors(EtsTable, ColumnsCount, Aggregator),
     dispatch_aggregations(Properties, Processors),
     stop_aggregate_processors(Processors),
     case aggregator:buckets(Aggregator) of
@@ -105,8 +105,8 @@ lcf_tail_report({EtsTable, _TableOwner}, Properties) ->
 %% Internal functions
 %% -------------------------------------------------------------------
 
-start_aggregate_processors(Table, Aggregator) ->
-  [spawn_link(fun() -> aggregate_processor_loop(Table, Aggregator) end)
+start_aggregate_processors(Table, ColumnsCount, Aggregator) ->
+  [spawn_link(fun() -> aggregate_processor_loop(Table, ColumnsCount, Aggregator) end)
     || _ <- lists:seq(0, ?AGGREGATE_PROCESSORS - 1)].
 
 dispatch_aggregations(Properties, Processors) ->
@@ -131,12 +131,12 @@ stop_aggregate_processors(Processors) ->
   [receive {'DOWN', MRef, process, _, _} -> ok end || MRef <- MRefs],
   ok.
 
-aggregate_processor_loop(Table, Aggregator) ->
+aggregate_processor_loop(Table, ColumnsCount, Aggregator) ->
   receive
     {aggregate, Property} ->
       [
         aggregator:add_property(
-          [?LCF_TAIL_PROPERTY],
+          lists:duplicate(ColumnsCount, ?LCF_TAIL_PROPERTY),
           UserId,
           Aggregator
         ) ||
@@ -144,6 +144,6 @@ aggregate_processor_loop(Table, Aggregator) ->
         UserIds <- Matches,
         UserId <- UserIds
       ],
-      aggregate_processor_loop(Table, Aggregator);
+      aggregate_processor_loop(Table, ColumnsCount, Aggregator);
     stop -> ok
   end.
