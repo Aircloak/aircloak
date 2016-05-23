@@ -19,8 +19,8 @@ defmodule Cloak.Processor.AccumulateCount do
   import Record, only: [defrecord: 2, extract: 2]
   defrecord :bucket, extract(:bucket, from_lib: "cloak/include/cloak.hrl")
 
-  @type accumulate_property :: {any, pos_integer}
-  @type bucket :: record(:bucket, property: [accumulate_property], noisy_count: pos_integer)
+  @type accumulated_property :: {any, pos_integer}
+  @type bucket :: record(:bucket, property: [accumulated_property], noisy_count: pos_integer)
 
 
   # -------------------------------------------------------------------
@@ -34,11 +34,11 @@ defmodule Cloak.Processor.AccumulateCount do
 
   It is assumed that the first column in each row is the ID of the user.
   """
-  @spec pre_process([any]) :: [accumulate_property]
+  @spec pre_process([any]) :: [accumulated_property]
   def pre_process(database_rows) do
     database_rows
     |> group_by_user
-    |> create_per_user_accumulates
+    |> create_per_user_accumulated_properties
   end
 
   @doc """
@@ -75,7 +75,7 @@ defmodule Cloak.Processor.AccumulateCount do
     |> Enum.to_list
   end
 
-  defp create_per_user_accumulates(per_user_properties) do
+  defp create_per_user_accumulated_properties(per_user_properties) do
     Enum.flat_map(per_user_properties, &per_user_processing/1)
   end
 
