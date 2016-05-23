@@ -72,7 +72,8 @@ defmodule Cloak.Processor.AccumulateCount do
 
   defp per_user_processing({user, properties}) do
     properties
-    |> Enum.reduce(%{}, fn(property, accumulator) -> Map.update(accumulator, property, 1, &(&1 + 1)) end)
+    |> Enum.group_by(&(&1))
+    |> Enum.map(fn {prop, occurences} -> {prop, Enum.count(occurences)} end)
     |> Enum.to_list
     |> Enum.flat_map(fn({prop, count}) -> produce_user_cdf(user, prop, count) end)
   end
