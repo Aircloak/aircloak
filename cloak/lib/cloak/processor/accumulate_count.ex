@@ -19,6 +19,9 @@ defmodule Cloak.Processor.AccumulateCount do
   import Record, only: [defrecord: 2, extract: 2]
   defrecord :bucket, extract(:bucket, from_lib: "cloak/include/cloak.hrl")
 
+  @type accumulate_property :: {any, pos_integer}
+  @type bucket :: record(:bucket, property: [accumulate_property], noisy_count: pos_integer)
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -31,6 +34,7 @@ defmodule Cloak.Processor.AccumulateCount do
 
   It is assumed that the first column in each row is the ID of the user.
   """
+  @spec pre_process([any]) :: [accumulate_property]
   def pre_process(database_rows) do
     database_rows
     |> group_by_user
@@ -44,6 +48,7 @@ defmodule Cloak.Processor.AccumulateCount do
   accumulate count pre-processor, but doesn't check that this is in fact the case.
   If it isn't it might fail, or otherwise produce incorrect answers.
   """
+  @spec post_process([bucket]) :: [bucket]
   def post_process(anonymized_buckets) do
     {anonymized_values, low_count_buckets} = anonymized_buckets
     |> extract_from_buckets
