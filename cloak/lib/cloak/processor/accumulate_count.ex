@@ -102,7 +102,6 @@ defmodule Cloak.Processor.AccumulateCount do
     |> Enum.reduce(%{}, fn({{prop, val}, count}, accumulator) ->
       Map.update(accumulator, prop, [{val, count}], &([{val, count} | &1]))
     end)
-    |> Enum.to_list
     |> Enum.map(&descending_sorted_values/1)
   end
 
