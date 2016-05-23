@@ -66,6 +66,16 @@ defmodule Cloak.Processor.AccumulateCountTest do
     assert AccumulateCount.post_process(anonymized_buckets) == expected
   end
 
+  test "order of anonymized properties is irrelevant" do
+    prop = [:a, :b]
+    anonymized_buckets = [
+      bucket(property: {prop, 1}, noisy_count: 10),
+      bucket(property: {prop, 2}, noisy_count: 5)
+    ]
+    expected = [bucket(property: prop, noisy_count: 15)]
+    assert AccumulateCount.post_process(anonymized_buckets) == expected
+  end
+
   test "produces accumulate count for distinct properties" do
     prop1 = [:a, :b]
     prop2 = [:c]
