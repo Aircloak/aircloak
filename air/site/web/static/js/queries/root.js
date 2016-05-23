@@ -59,12 +59,14 @@ class QueriesView extends React.Component {
         query={this.state.query}
       />
 
-      <MenuButton onClick={this.runQuery} isActive>Run</MenuButton>
-      <DataSourceSelector
-        sources={this.props.sources}
-        onChange={this.setDataSource}
-        selectedDataSource={this.state.dataSource}
-      />
+      <div className="query-menu">
+        <MenuButton onClick={this.runQuery} isActive>Run</MenuButton>
+        <DataSourceSelector
+          sources={this.props.sources}
+          onChange={this.setDataSource}
+          selectedDataSource={this.state.dataSource}
+        />
+      </div>
 
       <Results {...this.props} />
     </div>);

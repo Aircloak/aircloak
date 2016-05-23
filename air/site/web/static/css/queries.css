@@ -1,0 +1,9 @@
+.query-menu {
+  padding-bottom: 10px;
+  padding-top: 10px;
+  overflow: auto;
+}
+
+.query-menu button{
+  float: right;
+}
