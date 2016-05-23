@@ -48,16 +48,21 @@ defmodule Cloak.Processor.AccumulateCountTest do
     ]
     expected = [bucket(property: prop, noisy_count: 20)]
     assert AccumulateCount.post_process(anonymized_buckets) == expected
+  end
 
+  test "produces accumulate count for tailed distributions" do
+    prop = [:a, :b]
     anonymized_buckets = [
       bucket(property: {prop, 2}, noisy_count: 5),
       bucket(property: {prop, 1}, noisy_count: 10)
     ]
     expected = [bucket(property: prop, noisy_count: 15)]
     assert AccumulateCount.post_process(anonymized_buckets) == expected
+  end
 
-    # When the counts don't make sense because of noise, then we use
-    # the largest count
+  test "produces reasonable count approximations despite the random noise causing non-monotonically " <>
+      "decreasing count values" do
+    prop = [:a, :b]
     anonymized_buckets = [
       bucket(property: {prop, 2}, noisy_count: 7),
       bucket(property: {prop, 1}, noisy_count: 5)
