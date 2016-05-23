@@ -6,7 +6,7 @@ defmodule Air.TaskController do
   alias Air.{Task, Result}
 
   plug :scrub_params, "task" when action in [:create, :update]
-  plug :load_task_and_validate_ownership, "id" when action in [:edit, :update, :delete, :run_task]
+  plug :load_task_and_validate_ownership, "id" when action in [:edit, :update, :delete]
 
   plug Air.Plug.HelpPages, [
     edit: [:writing_tasks]
@@ -94,7 +94,7 @@ defmodule Air.TaskController do
   end
 
   def run_task(conn, %{"task" => task_params}) do
-    task = Task.changeset(conn.assigns.task, parse_task_params(task_params))
+    task = Task.changeset(%Task{}, parse_task_params(task_params))
     |> Ecto.Changeset.apply_changes()
 
     try do
