@@ -38,7 +38,7 @@ defmodule Cloak.Processor.AccumulateCount do
   def pre_process(database_rows) do
     database_rows
     |> group_by_user
-    |> Enum.flat_map(&per_user_processing/1)
+    |> create_per_user_accumulates
   end
 
   @doc """
@@ -73,6 +73,10 @@ defmodule Cloak.Processor.AccumulateCount do
         Map.update(accumulator, user, [property], fn(existing_properties) -> [property | existing_properties] end)
       end)
     |> Enum.to_list
+  end
+
+  defp create_per_user_accumulates(per_user_properties) do
+    Enum.flat_map(per_user_properties, &per_user_processing/1)
   end
 
   defp per_user_processing({user, properties}) do
