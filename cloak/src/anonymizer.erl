@@ -11,7 +11,7 @@
 %% API
 -export([
   anonymize/1,
-  anonymize/2,
+  anonymize/3,
   default_params/0
 ]).
 
@@ -30,7 +30,7 @@
 %% @doc Works just like {@link anonymize/2} but doesn't include LCF tail in the result
 -spec anonymize([#bucket{}]) -> [#bucket{}].
 anonymize(AggregatedBuckets) ->
-  anonymize(AggregatedBuckets, undefined).
+  anonymize(AggregatedBuckets, undefined, undefined).
 
 %% @doc Anonymizes a list of buckets, filtering out buckets that don't qualify
 %%      for reporting, and applying noisy to the rest.
@@ -81,12 +81,12 @@ anonymize(AggregatedBuckets) ->
 %%        - Each bucket returned by `anonymize/1' existed in the bucket list given to `anonymize/1'.
 %%
 %%        - `#bucket.noisy_count mod K ≡ 0' with `K' equals 5 or 10 depending on the noise added.
--spec anonymize([#bucket{}], undefined | lcf_users:lcf_users()) -> [#bucket{}].
-anonymize(AggregatedBuckets, LcfUsers) ->
+-spec anonymize([#bucket{}], undefined | lcf_users:lcf_users(), undefined | pos_integer()) -> [#bucket{}].
+anonymize(AggregatedBuckets, LcfUsers, ColumnsCount) ->
   BucketsWithAnonState = [append_anonymization_state(Bucket) || Bucket <- AggregatedBuckets],
   Params = default_params(),
   {PassedLcf, FilteredProperties} = filter_lcf(BucketsWithAnonState, Params),
-  LcfTailReports = lcf_tail_reports(FilteredProperties, Params, LcfUsers),
+  LcfTailReports = lcf_tail_reports(FilteredProperties, Params, LcfUsers, ColumnsCount),
   {FinalResults, _} = oportunistically_filter_reports(LcfTailReports ++ PassedLcf, Params, [
     fun apply_constant_noise/2,
     fun apply_proportional_random_noise/2,
@@ -126,9 +126,9 @@ filter_lcf(BucketsWithAnonState, Params) ->
     fun soft_low_count_filter/2
   ]).
 
-lcf_tail_reports(_LcfFilteredProperties, _Params, undefined) -> [];
-lcf_tail_reports(LcfFilteredProperties, Params, LcfUsers) ->
-  case lcf_users:lcf_tail_report(LcfUsers, LcfFilteredProperties) of
+lcf_tail_reports(_LcfFilteredProperties, _Params, undefined, _) -> [];
+lcf_tail_reports(LcfFilteredProperties, Params, LcfUsers, ColumnsCount) ->
+  case lcf_users:lcf_tail_report(LcfUsers, LcfFilteredProperties, ColumnsCount) of
     undefined -> [];
     LcfTailBucket ->
       {Passed, _Filtered} = filter_lcf([append_anonymization_state(LcfTailBucket)], Params),
@@ -489,6 +489,16 @@ lcf_test_() ->
     end,
     [
       {"lcf tail is reported", ?_assertEqual(8, (lcf_tail([{p1, 1, 4}, {p2, 5, 8}]))#bucket.count)},
+      {"lcf tail report has proper number of columns", fun() ->
+        ?assertEqual(
+          [<<"aircloak_lcf_tail">>],
+          (lcf_tail([{p1, 1, 4}, {p2, 5, 8}], 1))#bucket.property
+        ),
+        ?assertEqual(
+          [<<"aircloak_lcf_tail">>, <<"aircloak_lcf_tail">>],
+          (lcf_tail([{p1, 1, 4}, {p2, 5, 8}], 2))#bucket.property
+        )
+      end},
       {"lcf tail count has noise", ?_assertEqual(8, (lcf_tail([{p3, 11, 14}, {p4, 15, 18}]))#bucket.noisy_count)},
       % Too few entries in the lcf tail to be reported
       {"lcf tail is lcf-ed", ?_assertEqual(undefined, lcf_tail([{p5, 21, 24}]))},
@@ -501,14 +511,17 @@ lcf_test_() ->
   }.
 
 lcf_tail(Properties) ->
+  lcf_tail(Properties, 1).
+
+lcf_tail(Properties, ColumnsCount) ->
   LcfUsers = lcf_users:new(),
   Aggregator = aggregator:new(LcfUsers),
   try
     add_buckets(Aggregator, Properties),
     case [Bucket ||
       #bucket{
-        property = [?LCF_TAIL_PROPERTY]
-      } = Bucket <- anonymizer:anonymize(aggregator:buckets(Aggregator), LcfUsers)
+        property = [?LCF_TAIL_PROPERTY | _]
+      } = Bucket <- anonymizer:anonymize(aggregator:buckets(Aggregator), LcfUsers, ColumnsCount)
     ] of
       [] -> undefined;
       [Count] -> Count

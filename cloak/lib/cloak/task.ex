@@ -43,7 +43,7 @@ defmodule Cloak.Task do
     pre_processed_properties = Cloak.Processor.AccumulateCount.pre_process(rows)
     for [user_id, property] <- pre_processed_properties, do: :aggregator.add_property(property, user_id, aggregator)
     aggregated_buckets = :aggregator.buckets(aggregator)
-    anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_users)
+    anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_users, length(columns))
     post_processed_properties = Cloak.Processor.AccumulateCount.post_process(anonymized_buckets)
 
     :aggregator.delete(aggregator)
