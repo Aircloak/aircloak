@@ -22,6 +22,9 @@ defmodule Air.TaskPostProcessor do
   @doc "Processes a raw result sent by the cloak."
   @spec process(%{String.t => any}) :: %{String.t => any}
   def process(original_result) do
+    # TODO: This code is broken with the new format of results reported by AQL.
+    #       It's not used anywhere (other than tests), so it's not a problem at the moment.
+    #       Once we're reintroducing post processing, we'll need to revisit this.
     case JsSandbox.Pool.call(__MODULE__, "process_result", [original_result]) do
       {:ok, post_processed_result} ->
         post_processed_result
