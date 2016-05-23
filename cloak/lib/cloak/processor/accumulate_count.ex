@@ -7,7 +7,7 @@ defmodule Cloak.Processor.AccumulateCount do
   The process is inaccurate at best due to the anonymisation, and
   long tails are completely lost.
 
-  The process works by produing a CDF of the counts, in the pre-processing
+  The process works by producing a CDF of the counts, in the pre-processing
   phase, and then constructing a single count in the post-processing phase.
 
   FIXME: Possible optimisations
