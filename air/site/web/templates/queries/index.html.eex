@@ -5,6 +5,7 @@
     onLoad: function(App) {
       var props = {
         results: <%= {:safe, @recent_results} %>,
+        sources: <%= {:safe, @data_sources} %>,
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
       };

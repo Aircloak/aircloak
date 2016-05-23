@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 
 import {CodeEditor} from "../code_editor";
 import {Results} from "./results";
+import {DataSourceSelector} from "./data_source_selector";
 import {MenuButton} from "../menu";
 
 class QueriesView extends React.Component {
@@ -17,6 +18,7 @@ class QueriesView extends React.Component {
       />
 
       <MenuButton onClick={this.runQuery} isActive>Run</MenuButton>
+      <DataSourceSelector sources={this.props.sources} />
 
       <Results {...this.props} />
     </div>);
@@ -26,3 +28,7 @@ class QueriesView extends React.Component {
 export default function renderQueriesView(data, elem) {
   ReactDOM.render(<QueriesView {...data} />, elem);
 }
+
+QueriesView.propTypes = {
+  sources: DataSourceSelector.propTypes.sources,
+};
