@@ -189,7 +189,7 @@ defmodule Cloak.AirSocket do
         )
         rescue
           error ->
-            Logger.error("error starting task #{task["id"]}: #{inspect error}\n#{inspect System.stacktrace}")
+            Logger.error(Exception.format(:error, error))
             :error
       end
     respond_to_air(from, response)
