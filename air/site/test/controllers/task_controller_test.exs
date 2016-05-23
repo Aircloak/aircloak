@@ -86,18 +86,8 @@ defmodule Air.TaskControllerTest do
     assert response_html =~ "Page not found"
   end
 
-  test "task that doesn't exist returns 404 json" do
+  test "can run a new task" do
     user = create_user!()
-    update_sequence = fn() ->
-      login(user)
-      |> post("/tasks/b9e1f65f-572e-4f40-be87-1ced8ec5a2b1/run", @query_data_params)
-    end
-    assert_raise(Ecto.NoResultsError, update_sequence)
-  end
-
-  test "can run task owned by the user" do
-    user = create_user!()
-    task = create_task(user)
 
     # Open the cloak mock socket
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
@@ -108,12 +98,12 @@ defmodule Air.TaskControllerTest do
     spawn_link(fn ->
       run_params = put_in(@query_data_params, [:task, :data_source_token],
           Phoenix.Token.sign(Air.Endpoint, "data_source_token",{"unknown_org/cloak_1", nil}))
-      response_json = login(user) |> post("/tasks/#{task.id}/run", run_params) |> response(200)
+      response_json = login(user) |> post("/tasks/run", run_params) |> response(200)
       send(me, {:response_json, response_json})
     end)
 
     # Cloak responds to the request from the POST controller
-    TestSocketHelper.respond_to_start_task_request!(socket, task.id, "ok")
+    TestSocketHelper.respond_to_start_task_request!(socket, "ok")
 
     # Verify the cloak response
     assert_receive {:response_json, response_json}
