@@ -37,24 +37,38 @@ defmodule Cloak.Task do
   # -------------------------------------------------------------------
 
   defp execute_task(task) do
+    {_count, [_user_id | columns], rows} = Cloak.DataSource.query!(:local, task.query)
+
+    reportable_buckets = group_by_user(rows)
+    |> pre_process
+    |> anonymize
+    |> post_process(columns)
+
+    {:buckets, columns, reportable_buckets}
+  end
+
+  defp pre_process(rows_by_user) do
+    Cloak.Processor.AccumulateCount.pre_process(rows_by_user)
+  end
+
+  defp anonymize(properties) do
     lcf_users = :lcf_users.new()
     aggregator = :aggregator.new(lcf_users)
-    {_count, [_user_id | columns], rows} = Cloak.DataSource.query!(:local, task.query)
-    rows_by_user = group_by_user(rows)
 
-    pre_processed_properties = Cloak.Processor.AccumulateCount.pre_process(rows_by_user)
-    for [user_id, property] <- pre_processed_properties, do: :aggregator.add_property(property, user_id, aggregator)
+    for [user_id, property] <- properties, do: :aggregator.add_property(property, user_id, aggregator)
     aggregated_buckets = :aggregator.buckets(aggregator)
     anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_users)
-
-    {lcf_buckets, non_lcf_buckets} = Cloak.Processor.LowCountFilter.process_lcf(anonymized_buckets, columns)
-    post_processed_buckets = Cloak.Processor.AccumulateCount.post_process(non_lcf_buckets)
-    all_buckets = lcf_buckets ++ post_processed_buckets
 
     :aggregator.delete(aggregator)
     :lcf_users.delete(lcf_users)
 
-    {:buckets, columns, all_buckets}
+    anonymized_buckets
+  end
+
+  defp post_process(buckets, columns) do
+    {lcf_buckets, non_lcf_buckets} = Cloak.Processor.LowCountFilter.process_lcf(buckets, columns)
+    post_processed_buckets = Cloak.Processor.AccumulateCount.post_process(non_lcf_buckets)
+    lcf_buckets ++ post_processed_buckets
   end
 
   defp group_by_user(rows) do
