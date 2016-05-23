@@ -21,11 +21,13 @@ export class ResultsView extends React.Component {
           </thead>
 
           <tbody>
-            {this.props.result.rows.map((row, i) =>
-              <tr key={i}>
-                {row.map((value, j) => <td key={j}>{value}</td>)}
-              </tr>
-            )}
+            {this.props.result.rows.
+              map((row, i) =>
+                <tr key={i}>
+                  {row.map((value, j) => <td key={j}>{value}</td>)}
+                </tr>
+              )
+            }
           </tbody>
         </table>
       </div>

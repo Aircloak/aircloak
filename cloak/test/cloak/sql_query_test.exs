@@ -7,6 +7,10 @@ defmodule Cloak.SqlQueryTest do
     assert %Cloak.SqlQuery{select: ["foo"], from: "baz"} == SqlQuery.parse!("select foo from baz")
   end
 
+  test "fully qualified table name" do
+    assert %Cloak.SqlQuery{select: ["foo"], from: "bar.baz"} == SqlQuery.parse!("select foo from bar.baz")
+  end
+
   test "query with a terminating semicolon" do
     assert %Cloak.SqlQuery{select: ["foo"], from: "baz"} == SqlQuery.parse!("select foo from baz;")
   end

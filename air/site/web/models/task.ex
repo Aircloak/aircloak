@@ -5,7 +5,7 @@ defmodule Air.Task do
   alias Air.{User, Result}
 
   @type t :: %__MODULE__{}
-  @type cloak_query :: %{id: String.t, prefetch: [%{table: String.t}], code: String.t}
+  @type cloak_query :: %{id: String.t, prefetch: [%{table: String.t}], query: String.t}
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "tasks" do
@@ -62,7 +62,7 @@ defmodule Air.Task do
     %{
       id: model.id,
       prefetch: Enum.map(model.tables, &%{table: "#{model.data_source}/#{&1}"}),
-      code: model.query
+      query: model.query
     }
   end
 

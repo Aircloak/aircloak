@@ -17,7 +17,6 @@
   new/0,
   new/1,
   delete/1,
-  add_job_response/2,
   add_buckets/2,
   add_property/3,
   buckets/1
@@ -83,12 +82,6 @@ new(LcfUsers) ->
 delete(#aggregator{table=Table}) ->
   ets:delete(Table),
   ok.
-
-%% @doc Adds all properties from the job response to the aggregator
--spec add_job_response(#job_response{}, aggregator()) -> aggregator().
-add_job_response(#job_response{user_id=UserId, properties=Properties}, Aggregator) ->
-  [add_property(Property, UserId, Aggregator) || Property <- Properties],
-  Aggregator.
 
 %% @doc Adds a property for the given user to the aggregator.
 -spec add_property(property(), user_id(), aggregator()) -> aggregator().
@@ -212,7 +205,7 @@ get_reports(ReportersList) ->
 make_buckets(Entries) ->
   Aggregator = new(),
   [
-    add_job_response(#job_response{user_id = User, properties = [Property]}, Aggregator)
+    add_property(Property, User, Aggregator)
     || {Property, User} <- Entries
   ],
   buckets(Aggregator).

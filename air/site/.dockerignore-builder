@@ -18,7 +18,6 @@
 !air/site/config
 !air/site/lib
 !air/site/js_sandbox
-!air/site/lua_libraries
 !air/site/api_docs
 !air/site/web
 !air/site/src
