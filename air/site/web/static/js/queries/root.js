@@ -12,7 +12,7 @@ class QueriesView extends React.Component {
     super(props);
 
     this.state = {
-      query: "",
+      query: this.props.results[0] ? this.props.results[0].query : "",
       dataSource: this.props.sources[0] ? this.props.sources[0].token : "",
     };
 
@@ -56,6 +56,7 @@ class QueriesView extends React.Component {
         onRun={this.runQuery}
         onSave={() => {}}
         onChange={this.setQuery}
+        query={this.state.query}
       />
 
       <MenuButton onClick={this.runQuery} isActive>Run</MenuButton>
@@ -76,5 +77,6 @@ export default function renderQueriesView(data, elem) {
 
 QueriesView.propTypes = {
   sources: DataSourceSelector.propTypes.sources,
+  results: Results.propTypes.results,
   CSRFToken: React.PropTypes.string.isRequired,
 };
