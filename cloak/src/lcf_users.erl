@@ -224,7 +224,7 @@ aggregate_processor_loop(Table, Aggregator) ->
     {aggregate, Property} ->
       [
         aggregator:add_property(
-          ?LCF_TAIL_PROPERTY,
+          [?LCF_TAIL_PROPERTY],
           UserId,
           Aggregator
         ) ||

@@ -34,7 +34,7 @@ defmodule Cloak.TaskTest do
 
     assert_receive {:reply, %{task_id: "1", columns: ["height"], rows: rows}}
     assert 100 == length(rows)
-    assert Enum.all?(rows, &(&1 == 180))
+    assert Enum.all?(rows, &(&1 == [180]))
   end
 
   defp insert_rows(count, table, columns, values) do

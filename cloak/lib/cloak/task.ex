@@ -40,7 +40,7 @@ defmodule Cloak.Task do
     lcf_users = :lcf_users.new()
     aggregator = :aggregator.new(lcf_users)
     {_count, [_user_id | columns], rows} = Cloak.DataSource.query!(:local, task.query)
-    for [user_id, property] <- rows, do: :aggregator.add_property(property, user_id, aggregator)
+    for [user_id | properties] <- rows, do: :aggregator.add_property(properties, user_id, aggregator)
     aggregated_buckets = :aggregator.buckets(aggregator)
     anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_users)
     :aggregator.delete(aggregator)

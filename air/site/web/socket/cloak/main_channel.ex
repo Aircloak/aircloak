@@ -20,8 +20,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   @spec run_task(CloakInfo.cloak_id, Air.Task.cloak_query) :: :ok | {:error, any}
   def run_task(cloak_id, task) do
     try do
-      full_task = Map.put(task, :libraries, Air.TaskLibrary.dependencies(task.code))
-      case call(cloak_id, "run_task", full_task, :timer.seconds(5)) do
+      case call(cloak_id, "run_task", task, :timer.seconds(5)) do
         {:ok, _} -> :ok
         error -> error
       end
@@ -163,8 +162,7 @@ defmodule Air.Socket.Cloak.MainChannel do
     end
   end
 
-  defp process_task_result(original_result) do
-    result = Air.TaskPostProcessor.process(original_result)
+  defp process_task_result(result) do
     {:ok, task_id} = Ecto.UUID.cast(result["task_id"])
 
     result_model = %Result{

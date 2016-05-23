@@ -8,7 +8,7 @@ defmodule Air.Mixfile do
       elixir: "~> 1.0",
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [
-        :phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :lua_libraries, :js_sandbox, :api_docs, :app
+        :phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :js_sandbox, :api_docs, :app
       ],
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
