@@ -11,7 +11,13 @@ class QueriesView extends React.Component {
   constructor(props) {
     super(props);
 
+    this.state = {
+      query: "",
+      dataSource: this.props.sources[0] ? this.props.sources[0].token : "",
+    };
+
     this.setQuery = this.setQuery.bind(this);
+    this.setDataSource = this.setDataSource.bind(this);
     this.runQuery = this.runQuery.bind(this);
     this.queryData = this.queryData.bind(this);
   }
@@ -20,10 +26,15 @@ class QueriesView extends React.Component {
     this.setState({query});
   }
 
+  setDataSource(dataSource) {
+    this.setState({dataSource});
+  }
+
   queryData() {
     return JSON.stringify({
       task: {
         query: this.state.query,
+        data_source_token: this.state.dataSource,
       },
     });
   }
@@ -48,7 +59,11 @@ class QueriesView extends React.Component {
       />
 
       <MenuButton onClick={this.runQuery} isActive>Run</MenuButton>
-      <DataSourceSelector sources={this.props.sources} />
+      <DataSourceSelector
+        sources={this.props.sources}
+        onChange={this.setDataSource}
+        selectedDataSource={this.state.dataSource}
+      />
 
       <Results {...this.props} />
     </div>);
