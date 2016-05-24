@@ -179,20 +179,21 @@ defmodule Cloak.AirSocket do
 
   defp handle_air_call("run_task", task, from, state) do
     Logger.info("starting task #{task["id"]}")
-    response =
-      try do
-        Cloak.Task.run(
-          %Cloak.Task{
-            id: Map.fetch!(task, "id"),
-            query: Map.fetch!(task, "query")
-          }
-        )
-        rescue
-          error ->
-            Logger.error(Exception.format(:error, error))
-            :error
+    try do
+      case Cloak.Task.run(
+        %Cloak.Task{
+          id: Map.fetch!(task, "id"),
+          query: Map.fetch!(task, "query")
+        }
+      ) do
+        :ok -> respond_to_air(from, :ok)
+        {:error, reason} -> respond_to_air(from, :error, inspect(reason))
       end
-    respond_to_air(from, response)
+    rescue
+      error ->
+        Logger.error(Exception.format(:error, error))
+        respond_to_air(from, :error, "cloak error")
+    end
     {:ok, state}
   end
 
