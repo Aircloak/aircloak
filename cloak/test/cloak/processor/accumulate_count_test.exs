@@ -10,8 +10,8 @@ defmodule Cloak.Processor.AccumulateCountTest do
   test "produces a cdf for a single property for a user" do
     user = "user"
     prop = [:a, :b, :c]
-    input = [[user | prop], [user | prop], [user | prop]]
-    expected = [[user, {prop, 1}], [user, {prop, 2}], [user, {prop, 3}]]
+    input = [{user, [prop, prop, prop]}]
+    expected = [{user, {prop, 1}}, {user, {prop, 2}}, {user, {prop, 3}}]
     assert AccumulateCount.pre_process(input) == expected
   end
 
@@ -19,8 +19,8 @@ defmodule Cloak.Processor.AccumulateCountTest do
     user = "user"
     prop1 = [:a, :b, :c]
     prop2 = [:d, :e]
-    input = [[user | prop1], [user | prop2]]
-    expected = [[user, {prop1, 1}], [user, {prop2, 1}]]
+    input = [{user, [prop1, prop2]}]
+    expected = [{user, {prop1, 1}}, {user, {prop2, 1}}]
     assert AccumulateCount.pre_process(input) == expected
   end
 
@@ -30,12 +30,12 @@ defmodule Cloak.Processor.AccumulateCountTest do
     prop1 = [:a, :b, :c]
     prop2 = [:d, :e]
     input = [
-      [user1 | prop1], [user1 | prop1], [user1 | prop2],
-      [user2 | prop1], [user2 | prop2]
+      {user1, [prop1, prop1, prop2]},
+      {user2, [prop1, prop2]}
     ]
     expected = [
-      [user1, {prop1, 1}], [user1, {prop1, 2}], [user1, {prop2, 1}],
-      [user2, {prop1, 1}], [user2, {prop2, 1}]
+      {user1, {prop1, 1}}, {user1, {prop1, 2}}, {user1, {prop2, 1}},
+      {user2, {prop1, 1}}, {user2, {prop2, 1}}
     ]
     assert AccumulateCount.pre_process(input) == expected
   end
@@ -92,29 +92,6 @@ defmodule Cloak.Processor.AccumulateCountTest do
     expected = [
       bucket(property: prop1, noisy_count: 20),
       bucket(property: prop2, noisy_count: 5)
-    ]
-    assert AccumulateCount.post_process(anonymized_buckets) == expected
-  end
-
-  test "accepts and ignores low count buckets" do
-    anonymized_buckets = [
-      bucket(property: ["aircloak_lcf_tail"], noisy_count: 10)
-    ]
-    expected = [
-      bucket(property: ["aircloak_lcf_tail"], noisy_count: 10)
-    ]
-    assert AccumulateCount.post_process(anonymized_buckets) == expected
-  end
-
-  test "accepts and ignores low count buckets" do
-    prop = [:a]
-    anonymized_buckets = [
-      bucket(property: ["aircloak_lcf_tail"], noisy_count: 10),
-      bucket(property: {prop, 1}, noisy_count: 10),
-    ]
-    expected = [
-      bucket(property: ["aircloak_lcf_tail"], noisy_count: 10),
-      bucket(property: prop, noisy_count: 10)
     ]
     assert AccumulateCount.post_process(anonymized_buckets) == expected
   end
