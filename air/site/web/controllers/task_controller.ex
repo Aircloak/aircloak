@@ -6,7 +6,7 @@ defmodule Air.TaskController do
   alias Air.{Task, Result}
 
   plug :scrub_params, "task" when action in [:create, :update]
-  plug :load_task_and_validate_ownership, "id" when action in [:edit, :update, :delete, :run_task]
+  plug :load_task_and_validate_ownership, "id" when action in [:edit, :update, :delete]
 
   plug Air.Plug.HelpPages, [
     edit: [:writing_tasks]
@@ -94,8 +94,14 @@ defmodule Air.TaskController do
   end
 
   def run_task(conn, %{"task" => task_params}) do
-    task = Task.changeset(conn.assigns.task, parse_task_params(task_params))
-    |> Ecto.Changeset.apply_changes()
+    task_params = Map.merge(task_params, %{
+      "name" => "<untitled task>",
+      "permanent" => false
+    })
+
+    {:ok, task} = build_assoc(conn.assigns.current_user, :tasks)
+    |> Task.changeset(parse_task_params(task_params))
+    |> Repo.insert()
 
     try do
       case Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task)) do

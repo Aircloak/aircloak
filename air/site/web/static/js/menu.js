@@ -9,14 +9,14 @@ export const MenuButton = (props) =>
     type="button"
     className="btn btn-primary"
     onClick={props.onClick}
-    disabled={!props.isActive()}
+    disabled={!props.isActive}
   >
     {props.children}
   </button>;
 
 MenuButton.propTypes = {
   onClick: React.PropTypes.func.isRequired,
-  isActive: React.PropTypes.func.isRequired,
+  isActive: React.PropTypes.bool.isRequired,
   children: React.PropTypes.node,
 };
 

@@ -33,13 +33,15 @@ defmodule Air.Router do
   scope "/", Air do
     pipe_through [:browser, :browser_auth]
 
-    get "/", PageController, :index
+    get "/", QueriesController, :index
+
     delete "/logout", SessionController, :delete
 
     get "/help_guides", HelpGuideController, :index
     get "/help_guide/:article", HelpGuideController, :article
 
-    post "/tasks/:id/run", TaskController, :run_task
+    post "/tasks/run", TaskController, :run_task
+
     resources "/api_tokens", ApiTokenController
     resources "/cloaks", CloaksController
     resources "/organisations", OrganisationController

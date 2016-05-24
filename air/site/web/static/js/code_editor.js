@@ -97,8 +97,8 @@ export class CodeEditor extends React.Component {
       viewportMargin: Infinity,
 
       extraKeys: {
-        "Ctrl-S": "save",
-        "Ctrl-R": "run",
+        "Ctrl-Enter": "run",
+        "Cmd-Enter": "run",
         "Ctrl-Space": "autoComplete",
       },
     };
