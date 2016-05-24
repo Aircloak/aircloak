@@ -8,7 +8,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   use Air.Web, :channel
   require Logger
-  alias Air.Task
+  alias Air.{Task, Repo}
 
 
   # -------------------------------------------------------------------
@@ -20,7 +20,8 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   @spec broadcast_result(Task.result) :: :ok
   def broadcast_result(result) do
-    Air.Endpoint.broadcast_from!(self(), "task:#{result["task_id"]}", "result", result)
+    task = Repo.get!(Task, result["task_id"])
+    Air.Endpoint.broadcast_from!(self(), "user:#{task.user_id}", "result", result)
     :ok
   end
 
