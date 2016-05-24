@@ -99,6 +99,7 @@ defmodule Cloak.SqlQuery do
     |> choice(Enum.map(keyword_matchers(), &word_of/1))
     |> map(&String.downcase/1)
     |> map(&String.to_atom/1)
+    |> satisfy(&(&1 == type))
     |> label(to_string(type))
   end
 

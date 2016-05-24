@@ -36,7 +36,8 @@ defmodule Cloak.SqlQueryTest do
     {"from table is required", "select foo"},
     {"at least one column must be specified", "select from baz"},
     {"columns must be separated with a comma", "select foo bar from baz"},
-    {"query must start with a select", "foo select foo bar from baz"}
+    {"query must start with a select", "foo select foo bar from baz"},
+    {"from is not select", "from a from b"}
   ] do
     test description do
       assert {:error, _} = SqlQuery.parse(unquote(statement))
