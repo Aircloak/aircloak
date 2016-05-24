@@ -124,9 +124,9 @@ defmodule Air.API.TaskController do
           await_response(send_chunked(conn, 200), task)
         {:error, :not_connected} ->
           json(conn, %{success: false, reason: "the cloak is not connected"})
-        {:error, other} ->
-          Logger.error("Task start error: #{other}")
-          json(conn, %{success: false, reason: "an error has occurred"})
+        {:error, reason} ->
+          Logger.error("Task start error: #{reason}")
+          json(conn, %{success: false, reason: reason})
       end
     catch type, error ->
       # We'll make a nice error log report and return 500

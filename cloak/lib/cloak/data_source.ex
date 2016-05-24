@@ -39,6 +39,12 @@ defmodule Cloak.DataSource do
   @type data_value :: String.t | integer | number | boolean
   @typedoc "The type for the data columns format."
   @type data_type :: :text | :integer | :number | :boolean | {:unsupported, String.t}
+  @typedoc "Data returned by a database query."
+  @type query_result :: {
+    count :: non_neg_integer,
+    columns :: [String.t],
+    rows :: [[DataSource.data_value]]
+  }
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -54,8 +60,8 @@ defmodule Cloak.DataSource do
     @doc "Retrieves the existing columns for the specified table name and data source id."
     @callback get_columns(atom, String.t) :: [[{String.t, DataSource.data_type}]]
 
-    @doc "Database specific implementation for the `DataSource.query!` functionality."
-    @callback query!(atom, Cloak.SqlQuery.t) :: {non_neg_integer, [String.t], [[DataSource.data_value]]}
+    @doc "Database specific implementation for the `DataSource.query` functionality."
+    @callback query(atom, Cloak.SqlQuery.t) :: {:ok, Cloak.DataSource.query_result} | {:error, any}
   end
 
 
@@ -118,12 +124,14 @@ defmodule Cloak.DataSource do
   Execute a query over the specified data source.
   Returns {RowCount, Columns, Rows}.
   """
-  @spec query!(atom, String.t) :: {non_neg_integer, [String.t], [[DataSource.data_value]]}
-  def query!(source_id, raw_query) do
+  @spec query(atom, String.t) :: {:ok, query_result} | {:error, any}
+  def query(source_id, raw_query) do
     data_sources = Application.get_env(:cloak, :data_sources)
     data_source = data_sources[source_id]
     driver = data_source[:driver]
-    driver.query!(source_id, parse_query(raw_query, data_source))
+
+    with {:ok, query} <- parse_query(raw_query, data_source), do:
+      driver.query(source_id, query)
   end
 
 
@@ -184,14 +192,14 @@ defmodule Cloak.DataSource do
   end
 
   defp parse_query(raw_query, data_source) do
-    query = Cloak.SqlQuery.parse!(raw_query)
+    with {:ok, query} <- Cloak.SqlQuery.parse(raw_query) do
+      table =
+        data_source[:tables]
+        |> Stream.map(fn({_, meta}) -> meta end)
+        |> Enum.find(&(&1[:name] == query.from))
 
-    table =
-      data_source[:tables]
-      |> Stream.map(fn({_, meta}) -> meta end)
-      |> Enum.find(&(&1[:name] == query.from))
-
-    %{query | select: [table[:user_id] | query.select]}
+      {:ok, %{query | select: [table[:user_id] | query.select]}}
+    end
   end
 
   #-----------------------------------------------------------------------------------------------------------

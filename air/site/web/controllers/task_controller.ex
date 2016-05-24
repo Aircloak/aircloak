@@ -103,9 +103,9 @@ defmodule Air.TaskController do
           json(conn, %{success: true})
         {:error, :not_connected} ->
           json(conn, %{success: false, reason: "the cloak is not connected"})
-        {:error, other} ->
-          Logger.error(fn -> "Task start error: #{other}" end)
-          json(conn, %{success: false, reason: "an error has occurred"})
+        {:error, reason} ->
+          Logger.error(fn -> "Task start error: #{reason}" end)
+          json(conn, %{success: false, reason: reason})
       end
     catch type, error ->
       # We'll make a nice error log report and return 500

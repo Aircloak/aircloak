@@ -33,8 +33,8 @@ defmodule Cloak.DataSource.PostgreSQL do
   end
 
   @doc false
-  def query!(source_id, query) do
-    run_query!(source_id, query_to_string(query))
+  def query(source_id, query) do
+    run_query(source_id, query_to_string(query))
   end
 
 
@@ -42,11 +42,17 @@ defmodule Cloak.DataSource.PostgreSQL do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp run_query!(source_id, statement, row_mapper \\ fn x -> x end) do
+  defp run_query!(source_id, statement, row_mapper) do
+    {:ok, result} = run_query(source_id, statement, row_mapper)
+    result
+  end
+
+  defp run_query(source_id, statement, row_mapper \\ fn x -> x end) do
     options = [timeout: 15 * 60 * 1000, pool_timeout: 2 * 60 * 1000, decode_mapper: row_mapper, pool: @pool_name]
-    result = Postgrex.query!(proc_name(source_id), statement, [], options)
-    %Postgrex.Result{command: :select, num_rows: count, columns: columns, rows: rows} = result
-    {count, columns, rows}
+    with {:ok, result} <- Postgrex.query(proc_name(source_id), statement, [], options) do
+      %Postgrex.Result{command: :select, num_rows: count, columns: columns, rows: rows} = result
+      {:ok, {count, columns, rows}}
+    end
   end
 
   defp proc_name(source_id), do: {:via, :gproc, {:n, :l, {Cloak.DataSource, source_id}}}
