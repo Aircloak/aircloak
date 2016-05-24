@@ -8,7 +8,7 @@ defmodule Air.Socket.Frontend do
 
   The socket supports following topics:
 
-  - __tasks__ - returns all task notifications, like results
+  - __user__ - returns all task notifications for the given user, like results
 
   The connection will be established if the user is authenticated.
   Otherwise, a 403 response is returned.
@@ -20,7 +20,7 @@ defmodule Air.Socket.Frontend do
   transport :longpoll, Phoenix.Transports.LongPoll
 
   # List of exposed channels
-  channel "task:*", Air.Socket.Frontend.TaskChannel
+  channel "user:*", Air.Socket.Frontend.UserChannel
 
 
   # -------------------------------------------------------------------

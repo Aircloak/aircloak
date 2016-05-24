@@ -188,7 +188,7 @@ defmodule Air.Socket.Cloak.MainChannel do
     # Starting a linked reporter. This ensures that a crash in the reporter won't terminate this channel.
     # The link ensures that the termination of this channel terminates the reporter as well.
     Task.start_link(fn ->
-      Air.Socket.Frontend.TaskChannel.broadcast_result(result)
+      Air.Socket.Frontend.UserChannel.broadcast_result(result)
     end)
   end
 end
