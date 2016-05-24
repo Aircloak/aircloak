@@ -20,7 +20,8 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
     UserChannel.broadcast_result(result)
 
-    assert_push("result", ^result)
+    expected = Map.put(result, "query", task.query)
+    assert_push("result", ^expected)
   end
 
   test "results of other user's tasks are not pushed to the user" do

@@ -16,6 +16,7 @@ class QueriesView extends React.Component {
     this.state = {
       query: this.props.results[0] ? this.props.results[0].query : "",
       dataSource: this.props.sources[0] ? this.props.sources[0].token : "",
+      sessionResults: [],
     };
 
     this.setQuery = this.setQuery.bind(this);
@@ -39,7 +40,7 @@ class QueriesView extends React.Component {
   }
 
   addResult(result) {
-    console.log(result);
+    this.setState({sessionResults: [result].concat(this.state.sessionResults)});
   }
 
   bindKeysWithoutEditorFocus() {
@@ -84,7 +85,7 @@ class QueriesView extends React.Component {
         />
       </div>
 
-      <Results {...this.props} />
+      <Results results={this.state.sessionResults.concat(this.props.results)} />
     </div>);
   }
 }
