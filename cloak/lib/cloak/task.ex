@@ -78,7 +78,8 @@ defmodule Cloak.Task do
   end
 
   defp post_process(buckets) do
-    {lcf_buckets, other_buckets} = Enum.partition(buckets, &(bucket(&1, :property) == ["aircloak_lcf_tail"]))
+    {lcf_buckets, other_buckets} = Enum.partition(buckets,
+      &(is_list(bucket(&1, :property)) && hd(bucket(&1, :property)) == "aircloak_lcf_tail"))
 
     post_processed_buckets = Cloak.Processor.AccumulateCount.post_process(other_buckets)
 
