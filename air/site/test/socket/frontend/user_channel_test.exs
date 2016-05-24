@@ -7,7 +7,7 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
   setup do
     user = create_user!()
-    {:ok, _, socket} =
+    {:ok, _, _} =
       socket("user", %{user: user})
       |> subscribe_and_join(UserChannel, "user:" <> to_string(user.id))
 
