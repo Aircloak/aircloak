@@ -6,7 +6,6 @@ defmodule Cloak.SqlQuery do
   `parse/1` function to convert an SQL query string into a struct.
   """
   use Combine
-  import Cloak.Combinators
 
   @type t :: %__MODULE__{
     from: String.t,
@@ -62,14 +61,14 @@ defmodule Cloak.SqlQuery do
 
   defp select_columns(parser) do
     pair_both(parser,
-      expected_keyword(:select),
+      keyword(:select),
       comma_delimited(identifier())
     )
   end
 
   defp from(parser) do
     pair_both(parser,
-      expected_keyword(:from),
+      keyword(:from),
       from_table_name()
     )
   end
@@ -88,26 +87,26 @@ defmodule Cloak.SqlQuery do
 
   defp identifier() do
     next_token()
-    |> error_on(keyword(), fn([keyword]) -> "Unexpected `#{keyword}`" end)
-    |> pair_right(word_of(~r/[a-zA-Z_][a-zA-Z0-9_]*/) |> label("identifier"))
+    |> word_of(~r/[a-zA-Z_][a-zA-Z0-9_]*/)
+    |> satisfy(fn(identifier) ->
+          not Enum.any?(keyword_matchers(), &Regex.match?(&1, identifier))
+        end)
+    |> label("keyword")
   end
 
-  defp keyword(), do: next_token() |> keyword()
-
-  defp keyword(parser) do
-    parser
-    |> next_token()
-    |> choice([
-          word_of(~r/SELECT/i),
-          word_of(~r/FROM/i)
-        ])
+  defp keyword(type) do
+    next_token()
+    |> choice(Enum.map(keyword_matchers(), &word_of/1))
     |> map(&String.downcase/1)
     |> map(&String.to_atom/1)
+    |> label(to_string(type))
   end
 
-  defp expected_keyword(type) do
-    satisfy(keyword(), &(&1 == type))
-    |> label(to_string(type))
+  defp keyword_matchers() do
+    [
+      ~r/SELECT/i,
+      ~r/FROM/i
+    ]
   end
 
   defp comma_delimited(term_parser) do
