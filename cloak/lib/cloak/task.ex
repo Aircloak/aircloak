@@ -67,7 +67,7 @@ defmodule Cloak.Task do
     lcf_users = :lcf_users.new()
     aggregator = :aggregator.new(lcf_users)
 
-    for [user_id, property] <- properties, do: :aggregator.add_property(property, user_id, aggregator)
+    for {user_id, property} <- properties, do: :aggregator.add_property(property, user_id, aggregator)
     aggregated_buckets = :aggregator.buckets(aggregator)
     anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_users, length(columns))
 

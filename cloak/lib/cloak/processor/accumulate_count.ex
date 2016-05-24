@@ -34,7 +34,7 @@ defmodule Cloak.Processor.AccumulateCount do
   - count how many times each property occurrs
   - make a per property CDF that can be used to produce a global count per property
   """
-  @spec pre_process([{User.id, [any]}]) :: [[User.id | [accumulated_property]]]
+  @spec pre_process([{User.id, [any]}]) :: [{User.id | [accumulated_property]}]
   def pre_process(rows_by_user) do
     Enum.flat_map(rows_by_user, &per_user_processing/1)
   end
@@ -65,7 +65,7 @@ defmodule Cloak.Processor.AccumulateCount do
     |> Enum.group_by(&(&1))
     |> Enum.flat_map(fn({prop, occurences}) ->
       count = Enum.count(occurences)
-      1..count |> Enum.map(&([user, {prop, &1}]))
+      1..count |> Enum.map(&({user, {prop, &1}}))
     end)
   end
 

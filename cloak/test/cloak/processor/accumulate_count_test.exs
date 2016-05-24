@@ -11,7 +11,7 @@ defmodule Cloak.Processor.AccumulateCountTest do
     user = "user"
     prop = [:a, :b, :c]
     input = [{user, [prop, prop, prop]}]
-    expected = [[user, {prop, 1}], [user, {prop, 2}], [user, {prop, 3}]]
+    expected = [{user, {prop, 1}}, {user, {prop, 2}}, {user, {prop, 3}}]
     assert AccumulateCount.pre_process(input) == expected
   end
 
@@ -20,7 +20,7 @@ defmodule Cloak.Processor.AccumulateCountTest do
     prop1 = [:a, :b, :c]
     prop2 = [:d, :e]
     input = [{user, [prop1, prop2]}]
-    expected = [[user, {prop1, 1}], [user, {prop2, 1}]]
+    expected = [{user, {prop1, 1}}, {user, {prop2, 1}}]
     assert AccumulateCount.pre_process(input) == expected
   end
 
@@ -34,8 +34,8 @@ defmodule Cloak.Processor.AccumulateCountTest do
       {user2, [prop1, prop2]}
     ]
     expected = [
-      [user1, {prop1, 1}], [user1, {prop1, 2}], [user1, {prop2, 1}],
-      [user2, {prop1, 1}], [user2, {prop2, 1}]
+      {user1, {prop1, 1}}, {user1, {prop1, 2}}, {user1, {prop2, 1}},
+      {user2, {prop1, 1}}, {user2, {prop2, 1}}
     ]
     assert AccumulateCount.pre_process(input) == expected
   end
