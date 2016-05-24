@@ -52,9 +52,9 @@ defmodule Cloak.Task do
 
   defp process_query({_count, [_user_id | columns], rows}) do
     reportable_buckets = group_by_user(rows)
-    |> pre_process
+    |> pre_process()
     |> anonymize(columns)
-    |> post_process
+    |> post_process()
 
     {:buckets, columns, reportable_buckets}
   end
