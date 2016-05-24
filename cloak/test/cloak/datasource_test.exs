@@ -24,11 +24,11 @@ defmodule Cloak.DataSourceTest do
   test "data retrieval" do
     [source_name, table_name] = String.split(:db_test.table_path("test"), "/")
     source_id = String.to_existing_atom(source_name)
-    data = Cloak.DataSource.query!(source_id, "SELECT value FROM #{table_name}")
-    assert(data == {
+    data = Cloak.DataSource.query(source_id, "SELECT value FROM #{table_name}")
+    assert(data == {:ok, {
       3,
       ["user_id", "value"],
       [["user-id", 10], ["user-id", 20], ["user-id", 30]]
-    })
+    }})
   end
 end

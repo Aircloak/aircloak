@@ -20,20 +20,24 @@ defmodule Cloak.Task do
   # -------------------------------------------------------------------
 
   @doc "Runs the task and reports the result to the given destination."
-  @spec run(t, :result_sender.result_destination) :: :ok
+  @spec run(t, :result_sender.result_destination) :: :ok | {:error, any}
   def run(task, result_target \\ :air_socket) do
     :cloak_metrics.count("task.started")
     start_time = :erlang.monotonic_time(:milli_seconds)
 
-    result = execute_task(task)
-    :cloak_metrics.count("task.successful")
-    :result_sender.send_result(task.id, result_target, result)
+    response =
+      with {:ok, result} <- execute_task(task) do
+        :cloak_metrics.count("task.successful")
+        :result_sender.send_result(task.id, result_target, result)
+        :ok
+      end
 
     task_execution_time = :erlang.monotonic_time(:milli_seconds) - start_time
     :cloak_metrics.histogram("task.total", task_execution_time)
+    :cloak_metrics.count("task.finished")
     Logger.info("Task #{task.id} executed in #{task_execution_time} ms")
 
-    :ok
+    response
   end
 
 
@@ -42,8 +46,11 @@ defmodule Cloak.Task do
   # -------------------------------------------------------------------
 
   defp execute_task(task) do
-    {_count, [_user_id | columns], rows} = Cloak.DataSource.query!(:local, task.query)
+    with {:ok, query_result} <- Cloak.DataSource.query(:local, task.query), do:
+      {:ok, process_query(query_result)}
+  end
 
+  defp process_query({_count, [_user_id | columns], rows}) do
     reportable_buckets = group_by_user(rows)
     |> pre_process
     |> anonymize(columns)
