@@ -35,16 +35,12 @@ defmodule Cloak.DataSource do
   """
 
   # define returned data types and values
-  @typedoc "The type for the data fields values."
+  @type num_rows :: non_neg_integer
+  @type column :: String.t
+  @type row :: [data_value]
   @type data_value :: String.t | integer | number | boolean
-  @typedoc "The type for the data columns format."
   @type data_type :: :text | :integer | :number | :boolean | {:unsupported, String.t}
-  @typedoc "Data returned by a database query."
-  @type query_result :: {
-    count :: non_neg_integer,
-    columns :: [String.t],
-    rows :: [[DataSource.data_value]]
-  }
+  @type query_result :: {num_rows, [column], [row]}
 
 
   #-----------------------------------------------------------------------------------------------------------
