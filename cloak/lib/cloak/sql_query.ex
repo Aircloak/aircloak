@@ -61,14 +61,14 @@ defmodule Cloak.SqlQuery do
 
   defp select_columns(parser) do
     pair_both(parser,
-      keyword(~r/SELECT/i),
+      keyword(:select),
       comma_delimited(identifier())
     )
   end
 
   defp from(parser) do
     pair_both(parser,
-      keyword(~r/FROM/i),
+      keyword(:from),
       from_table_name()
     )
   end
@@ -88,13 +88,26 @@ defmodule Cloak.SqlQuery do
   defp identifier() do
     next_token()
     |> word_of(~r/[a-zA-Z_][a-zA-Z0-9_]*/)
+    |> satisfy(fn(identifier) ->
+          not Enum.any?(keyword_matchers(), &Regex.match?(&1, identifier))
+        end)
+    |> label("keyword")
   end
 
-  defp keyword(regex) do
+  defp keyword(type) do
     next_token()
-    |> word_of(regex)
+    |> choice(Enum.map(keyword_matchers(), &word_of/1))
     |> map(&String.downcase/1)
     |> map(&String.to_atom/1)
+    |> satisfy(&(&1 == type))
+    |> label(to_string(type))
+  end
+
+  defp keyword_matchers() do
+    [
+      ~r/SELECT/i,
+      ~r/FROM/i
+    ]
   end
 
   defp comma_delimited(term_parser) do
