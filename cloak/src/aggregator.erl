@@ -26,7 +26,7 @@
 
 -record(aggregator, {
   table :: ets:tab(),
-  lcf_users :: undefined | lcf_users:lcf_users()
+  lcf_users :: undefined | 'Elixir.Cloak.LowCountFilter':t()
 }).
 
 -opaque aggregator() :: #aggregator{}.
@@ -50,10 +50,10 @@
 new() ->
   new(undefined).
 
-%% @doc Creates the new aggregator instance. If {@link lcf_users} is provided, it
+%% @doc Creates the new aggregator instance. If {@link 'Elixir.Cloak.LowCountFilter'} is provided, it
 %%      will be used to collect candidates for low count filter (lcf) tail. These
 %%      candidates are collected when {@link bucket/1} function is called.
--spec new(undefined | lcf_users:lcf_users()) -> aggregator().
+-spec new(undefined | 'Elixir.Cloak.LowCountFilter':t()) -> aggregator().
 new(LcfUsers) ->
   #aggregator{
     % The aggregator is internally an ETS set table, with keys containing
@@ -155,7 +155,7 @@ report_loop(#aggregator{table=Table, lcf_users=LcfUsers} = Aggregator, Dict) ->
               case RawCount > ?LCF_CERTAINTY_THRESHOLD of
                 true -> ok;
                 false ->
-                  lcf_users:add_bucket_users(LcfUsers, Property, SortedUsersKeys)
+                  'Elixir.Cloak.LowCountFilter':add_bucket_users(LcfUsers, Property, SortedUsersKeys)
               end
           end,
           [

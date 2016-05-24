@@ -81,7 +81,7 @@ anonymize(AggregatedBuckets) ->
 %%        - Each bucket returned by `anonymize/1' existed in the bucket list given to `anonymize/1'.
 %%
 %%        - `#bucket.noisy_count mod K ≡ 0' with `K' equals 5 or 10 depending on the noise added.
--spec anonymize([#bucket{}], undefined | lcf_users:lcf_users(), undefined | pos_integer()) -> [#bucket{}].
+-spec anonymize([#bucket{}], undefined | 'Elixir.Cloak.LowCountFilter':t(), undefined | pos_integer()) -> [#bucket{}].
 anonymize(AggregatedBuckets, LcfUsers, ColumnsCount) ->
   BucketsWithAnonState = [append_anonymization_state(Bucket) || Bucket <- AggregatedBuckets],
   Params = default_params(),
@@ -128,7 +128,7 @@ filter_lcf(BucketsWithAnonState, Params) ->
 
 lcf_tail_reports(_LcfFilteredProperties, _Params, undefined, _) -> [];
 lcf_tail_reports(LcfFilteredProperties, Params, LcfUsers, ColumnsCount) ->
-  case lcf_users:lcf_tail_report(LcfUsers, LcfFilteredProperties, ColumnsCount) of
+  case 'Elixir.Cloak.LowCountFilter':lcf_tail_report(LcfUsers, LcfFilteredProperties, ColumnsCount) of
     undefined -> [];
     LcfTailBucket ->
       {Passed, _Filtered} = filter_lcf([append_anonymization_state(LcfTailBucket)], Params),
@@ -514,7 +514,7 @@ lcf_tail(Properties) ->
   lcf_tail(Properties, 1).
 
 lcf_tail(Properties, ColumnsCount) ->
-  LcfUsers = lcf_users:new(),
+  LcfUsers = 'Elixir.Cloak.LowCountFilter':new(),
   Aggregator = aggregator:new(LcfUsers),
   try
     add_buckets(Aggregator, Properties),
@@ -528,7 +528,7 @@ lcf_tail(Properties, ColumnsCount) ->
     end
   after
     aggregator:delete(Aggregator),
-    lcf_users:delete(LcfUsers)
+    'Elixir.Cloak.LowCountFilter':delete(LcfUsers)
   end.
 
 add_buckets(Aggregator, Properties) ->

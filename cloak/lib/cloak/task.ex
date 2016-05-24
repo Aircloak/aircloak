@@ -14,6 +14,8 @@ defmodule Cloak.Task do
     query: String.t
   }
 
+  alias Cloak.LowCountFilter
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -64,7 +66,7 @@ defmodule Cloak.Task do
   end
 
   defp anonymize(properties, columns) do
-    lcf_users = :lcf_users.new()
+    lcf_users = LowCountFilter.new()
     aggregator = :aggregator.new(lcf_users)
 
     for {user_id, property} <- properties, do: :aggregator.add_property(property, user_id, aggregator)
@@ -72,7 +74,7 @@ defmodule Cloak.Task do
     anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_users, length(columns))
 
     :aggregator.delete(aggregator)
-    :lcf_users.delete(lcf_users)
+    LowCountFilter.delete(lcf_users)
 
     anonymized_buckets
   end
