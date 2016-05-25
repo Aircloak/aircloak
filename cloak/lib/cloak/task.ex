@@ -93,7 +93,7 @@ defmodule Cloak.Task do
     |> anonymize(:undefined)
     |> Cloak.Processor.AccumulateCount.post_process
 
-    lcf_buckets ++ post_processed_buckets
+    post_processed_buckets ++ lcf_buckets
   end
 
   defp group_by_user(rows) do
