@@ -3,7 +3,7 @@ import React from "react";
 export const Error = (props) =>
   <div>
     <pre>{props.query}</pre>
-    <div className="alert">{props.error}</div>
+    <div className="alert alert-danger">{props.error}</div>
   </div>;
 
 Error.propTypes = {
