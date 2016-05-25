@@ -14,11 +14,6 @@ defmodule Air.Task do
     field :cloak_id, :string
     field :data_source, :string
     field :tables, {:array, :string}
-    # Tasks start out as temporary until they are explicitly
-    # saved as permanent. A temporary task doesn't show
-    # in the list of tasks, and all temporary tasks are automatically
-    # cleaned up and removed after a period.
-    field :permanent, :boolean
 
     belongs_to :user, User
     has_many :results, Result
