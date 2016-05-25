@@ -28,7 +28,7 @@ defmodule Air.QueriesController do
     )
   end
 
-  def run_query(conn, %{"query" => params}) do
+  def create(conn, %{"query" => params}) do
     {:ok, task} = build_assoc(conn.assigns.current_user, :tasks)
     |> Task.changeset(parse_task_params(params))
     |> Repo.insert()

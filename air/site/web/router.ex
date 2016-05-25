@@ -34,7 +34,7 @@ defmodule Air.Router do
     pipe_through [:browser, :browser_auth]
 
     get "/", QueriesController, :index
-    post "/queries", QueriesController, :run_query
+    post "/queries", QueriesController, :create
 
     delete "/logout", SessionController, :delete
 
