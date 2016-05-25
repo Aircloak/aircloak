@@ -18,7 +18,7 @@ defmodule Cloak.Task do
     query: String.t
   }
 
-  @sup_name Module.concat(__MODULE__, Supervisor)
+  @supervisor_name Module.concat(__MODULE__, Supervisor)
 
 
   # -------------------------------------------------------------------
@@ -32,7 +32,7 @@ defmodule Cloak.Task do
 
     supervisor(Supervisor, [
       [worker(GenServer, [__MODULE__], restart: :temporary)],
-      [id: @sup_name, name: @sup_name, strategy: :simple_one_for_one]
+      [id: @supervisor_name, name: @supervisor_name, strategy: :simple_one_for_one]
     ])
   end
 
@@ -45,7 +45,7 @@ defmodule Cloak.Task do
   """
   @spec start(t, :result_sender.result_destination) :: :ok
   def start(task, result_target \\ :air_socket) do
-    {:ok, _} = Supervisor.start_child(@sup_name, [{task, result_target}])
+    {:ok, _} = Supervisor.start_child(@supervisor_name, [{task, result_target}])
     :ok
   end
 
