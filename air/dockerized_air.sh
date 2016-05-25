@@ -8,8 +8,6 @@ cd $(dirname $0)
 
 function stop_docker_services {
   site/container.sh stop&
-  frontend/container.sh stop&
-  backend/container.sh stop&
   router/container.sh stop&
   balancer/container.sh stop&
   wait
@@ -28,8 +26,6 @@ case "$1" in
   start)
     ./start_dependencies.sh --no-router
     start_docker_service site
-    start_docker_service frontend
-    start_docker_service backend
     start_docker_service router
     start_docker_service balancer
 
