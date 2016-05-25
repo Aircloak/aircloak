@@ -29,7 +29,8 @@ defmodule Cloak do
 
     [
       supervisor(Cloak.DataSource, []),
-      supervisor(:result_sender_sup, [])
+      supervisor(:result_sender_sup, []),
+      Cloak.Task.supervisor_spec()
     ]
   end
 

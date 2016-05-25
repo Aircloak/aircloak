@@ -24,17 +24,27 @@ defmodule Cloak.TaskTest do
   test "task execution" do
     assert :ok = insert_rows(100, "heights", ["height"], [180])
 
-    assert :ok == Task.run(
-      %Task{
-        id: "1",
-        query: "select height from cloak_test.heights"
-      },
-      {:process, self()}
-    )
-
+    assert :ok == start_task("select height from cloak_test.heights")
     assert_receive {:reply, %{task_id: "1", columns: ["height"], rows: rows}}
     assert 100 == length(rows)
     assert Enum.all?(rows, &(&1 == [180]))
+  end
+
+  test "task reports an error" do
+    assert :ok = start_task("invalid statement")
+    assert_receive {:reply, %{task_id: "1", error: _}}
+
+    assert :ok = start_task("select invalid_column from non_existent_source")
+    assert_receive {:reply, %{task_id: "1", error: _}}
+
+    ExUnit.CaptureLog.capture_log(fn ->
+      assert :ok = start_task(:invalid_query_type)
+      assert_receive {:reply, %{task_id: "1", error: "Cloak error"}}
+    end)
+  end
+
+  defp start_task(query) do
+    Task.start(%Task{id: "1", query: query}, {:process, self()})
   end
 
   defp insert_rows(count, table, columns, values) do
