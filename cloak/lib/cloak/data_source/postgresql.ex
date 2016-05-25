@@ -59,14 +59,21 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("int2"), do: :integer
   defp parse_type("int4"), do: :integer
   defp parse_type("int8"), do: :integer
-  defp parse_type("float4"), do: :number
-  defp parse_type("float8"), do: :number
-  defp parse_type("money"), do: :number
-  defp parse_type("numeric"), do: :number
+  defp parse_type("float4"), do: :real
+  defp parse_type("float8"), do: :real
+  defp parse_type("money"), do: :real
+  defp parse_type("numeric"), do: :real
+  defp parse_type("timestamp"), do: :timestamp
+  defp parse_type("timestamptz"), do: :timestamp
+  defp parse_type("time"), do: :time
+  defp parse_type("timetz"), do: :time
+  defp parse_type("date"), do: :date
+  defp parse_type("interval"), do: :interval
   defp parse_type(type), do: {:unsupported, type}
 
   defp query_to_string(query) do
-    "SELECT #{Enum.join(query.select, ",")} FROM #{query.from}"
+    fields = Enum.map_join(query.select, ",", &("(" <> &1 <> ")::text"))
+    "SELECT #{fields} FROM #{query.from}"
   end
 
 

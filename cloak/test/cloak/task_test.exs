@@ -28,7 +28,7 @@ defmodule Cloak.TaskTest do
 
     assert_receive {:reply, %{task_id: "1", columns: ["height"], rows: rows}}
     assert 100 == length(rows)
-    assert Enum.all?(rows, &(&1 == [180]))
+    assert Enum.all?(rows, &(&1 == ["180"]))
   end
 
   test "should return LCF property when sufficient rows are filtered" do
@@ -44,8 +44,9 @@ defmodule Cloak.TaskTest do
     groups = rows
     |> Enum.group_by(&(&1))
     |> Enum.map(fn({k, values}) -> {k, Enum.count(values)} end)
+    |> Enum.sort()
 
-    assert groups == [{[180], 20}, {["*"], 20}]
+    assert groups == [{["*"], 20}, {["180"], 20}]
   end
 
   test "task reports an error on invalid statement" do
