@@ -30,15 +30,19 @@ defmodule Cloak.TaskTest do
     assert Enum.all?(rows, &(&1 == [180]))
   end
 
-  test "task reports an error" do
-    assert :ok = start_task("invalid statement")
+  test "task reports an error on invalid statement" do
+    :ok = start_task("invalid statement")
     assert_receive {:reply, %{task_id: "1", error: _}}
+  end
 
-    assert :ok = start_task("select invalid_column from non_existent_source")
+  test "task reports an error on invalid data source" do
+    :ok = start_task("select invalid_column from non_existent_source")
     assert_receive {:reply, %{task_id: "1", error: _}}
+  end
 
+  test "task reports an error on runner crash" do
     ExUnit.CaptureLog.capture_log(fn ->
-      assert :ok = start_task(:invalid_query_type)
+      :ok = start_task(:invalid_query_type)
       assert_receive {:reply, %{task_id: "1", error: "Cloak error"}}
     end)
   end
