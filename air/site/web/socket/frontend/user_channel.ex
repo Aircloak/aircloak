@@ -1,4 +1,4 @@
-defmodule Air.Socket.Frontend.TaskChannel do
+defmodule Air.Socket.Frontend.UserChannel do
   @moduledoc """
   Channel used for communicating events related to tasks.
   For the time being no incoming messages are supported,
@@ -8,7 +8,7 @@ defmodule Air.Socket.Frontend.TaskChannel do
   """
   use Air.Web, :channel
   require Logger
-  alias Air.Task
+  alias Air.{Task, Repo}
 
 
   # -------------------------------------------------------------------
@@ -20,7 +20,11 @@ defmodule Air.Socket.Frontend.TaskChannel do
   """
   @spec broadcast_result(Task.result) :: :ok
   def broadcast_result(result) do
-    Air.Endpoint.broadcast_from!(self(), "task:#{result["task_id"]}", "result", result)
+    task = Repo.get!(Task, result["task_id"])
+    payload = Map.put(result, "query", task.query)
+
+    Air.Endpoint.broadcast_from!(self(), "user:#{task.user_id}", "result", payload)
+
     :ok
   end
 
@@ -30,11 +34,11 @@ defmodule Air.Socket.Frontend.TaskChannel do
   # -------------------------------------------------------------------
 
   @doc false
-  def join("task:" <> task_id, _, socket) do
-    user_id = socket.assigns.user.id
-    case Repo.get(Task, task_id) do
-      %Task{user_id: id} when id == user_id -> {:ok, socket}
-      _ -> {:error, %{success: false, description: "Task not found"}}
+  def join("user:" <> user_id, _, socket) do
+    if socket.assigns.user.id == String.to_integer(user_id) do
+      {:ok, socket}
+    else
+      {:error, %{success: false, description: "Channel not found"}}
     end
   end
 end

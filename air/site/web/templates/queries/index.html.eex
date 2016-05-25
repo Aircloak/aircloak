@@ -8,6 +8,7 @@
         sources: <%= {:safe, @data_sources} %>,
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
+        userId: "<%= @current_user.id %>",
       };
 
       App.queryPage(props, document.getElementById("query-view"));

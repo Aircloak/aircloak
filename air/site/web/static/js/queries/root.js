@@ -7,6 +7,7 @@ import {CodeEditor} from "../code_editor";
 import {Results} from "./results";
 import {DataSourceSelector} from "./data_source_selector";
 import {MenuButton} from "../menu";
+import {ResultSocket} from "../result_socket";
 
 class QueriesView extends React.Component {
   constructor(props) {
@@ -15,14 +16,19 @@ class QueriesView extends React.Component {
     this.state = {
       query: this.props.results[0] ? this.props.results[0].query : "",
       dataSource: this.props.sources[0] ? this.props.sources[0].token : "",
+      sessionResults: [],
     };
 
     this.setQuery = this.setQuery.bind(this);
     this.setDataSource = this.setDataSource.bind(this);
     this.runQuery = this.runQuery.bind(this);
     this.queryData = this.queryData.bind(this);
+    this.addResult = this.addResult.bind(this);
 
     this.bindKeysWithoutEditorFocus();
+    this.props.resultSocket.start({
+      result: this.addResult,
+    });
   }
 
   setQuery(query) {
@@ -31,6 +37,10 @@ class QueriesView extends React.Component {
 
   setDataSource(dataSource) {
     this.setState({dataSource});
+  }
+
+  addResult(result) {
+    this.setState({sessionResults: [result].concat(this.state.sessionResults)});
   }
 
   bindKeysWithoutEditorFocus() {
@@ -75,17 +85,19 @@ class QueriesView extends React.Component {
         />
       </div>
 
-      <Results {...this.props} />
+      <Results results={this.state.sessionResults.concat(this.props.results)} />
     </div>);
   }
 }
 
 export default function renderQueriesView(data, elem) {
-  ReactDOM.render(<QueriesView {...data} />, elem);
+  const socket = new ResultSocket(data.userId, data.guardianToken);
+  ReactDOM.render(<QueriesView resultSocket={socket} {...data} />, elem);
 }
 
 QueriesView.propTypes = {
   sources: DataSourceSelector.propTypes.sources,
   results: Results.propTypes.results,
   CSRFToken: React.PropTypes.string.isRequired,
+  resultSocket: React.PropTypes.instanceOf(ResultSocket).isRequired,
 };

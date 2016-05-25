@@ -1,8 +1,8 @@
 import {Socket} from "phoenix";
 
 export class ResultSocket {
-  constructor(taskId, userToken) {
-    this.taskId = taskId;
+  constructor(userId, userToken) {
+    this.userId = userId;
     this.socket = new Socket("/frontend/socket", {params: {token: userToken}});
     this.socket.connect();
 
@@ -10,7 +10,7 @@ export class ResultSocket {
   }
 
   start(callbacks) {
-    const channel = this.socket.channel(`task:${this.taskId}`, {});
+    const channel = this.socket.channel(`user:${this.userId}`, {});
     const noop = () => {};
     const {
       joined = noop,

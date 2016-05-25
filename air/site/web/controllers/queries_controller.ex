@@ -3,8 +3,7 @@ defmodule Air.QueriesController do
   use Air.Web, :controller
   use Timex
 
-  alias Air.Task
-  alias Air.Repo
+  alias Air.{Task, Repo}
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback

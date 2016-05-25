@@ -5,7 +5,7 @@ import $ from "jquery";
 
 // Imported components
 import {CodeEditor} from "../code_editor";
-import {ResultSocket} from "./results_socket";
+import {ResultSocket} from "../result_socket";
 import {SidePane} from "./sidepane";
 import {PaneView} from "./pane_view";
 import {Menu, MenuButton, PaneSelectButton, InfoBox} from "../menu";
