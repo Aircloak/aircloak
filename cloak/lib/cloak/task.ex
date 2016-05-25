@@ -53,10 +53,14 @@ defmodule Cloak.Task do
   end
 
   defp process_query({_count, [_user_id | columns], rows}) do
+    lcf_users = LowCountFilter.new()
+
     reportable_buckets = group_by_user(rows)
     |> pre_process()
-    |> anonymize(columns)
-    |> post_process()
+    |> anonymize(lcf_users)
+    |> post_process(lcf_users, length(columns))
+
+    LowCountFilter.delete(lcf_users)
 
     {:buckets, columns, reportable_buckets}
   end
@@ -65,25 +69,29 @@ defmodule Cloak.Task do
     Cloak.Processor.AccumulateCount.pre_process(rows_by_user)
   end
 
-  defp anonymize(properties, columns) do
-    lcf_users = LowCountFilter.new()
+  defp anonymize(properties, lcf_users) do
     aggregator = :aggregator.new(lcf_users)
 
     for {user_id, property} <- properties, do: :aggregator.add_property(property, user_id, aggregator)
     aggregated_buckets = :aggregator.buckets(aggregator)
-    anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_users, length(columns))
+    anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_users)
 
     :aggregator.delete(aggregator)
-    LowCountFilter.delete(lcf_users)
 
     anonymized_buckets
   end
 
-  defp post_process(buckets) do
-    {lcf_buckets, other_buckets} = Enum.partition(buckets,
-      &(is_list(bucket(&1, :property)) && hd(bucket(&1, :property)) == "aircloak_lcf_tail"))
+  defp post_process(buckets, lcf_users, columns_count) do
+    post_processed_buckets = Cloak.Processor.AccumulateCount.post_process(buckets)
 
-    post_processed_buckets = Cloak.Processor.AccumulateCount.post_process(other_buckets)
+    # We also want to account for the number of low count filtered properties
+    lcf_property = List.duplicate("*", columns_count)
+    low_count_filter_data = LowCountFilter.filtered_property_counts(lcf_users)
+    |> Enum.map(fn({user, count}) -> {user, List.duplicate(lcf_property, count)} end)
+
+    lcf_buckets = Cloak.Processor.AccumulateCount.pre_process(low_count_filter_data)
+    |> anonymize(:undefined)
+    |> Cloak.Processor.AccumulateCount.post_process
 
     lcf_buckets ++ post_processed_buckets
   end

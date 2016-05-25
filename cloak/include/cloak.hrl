@@ -76,7 +76,9 @@
 
   %% The anonymized results contain a layer of noise that is constant and unique to
   %% the bucket. The noise is normal with a certain standard deviation.
-  constant_noise_sd :: float()
+  constant_noise_sd :: float(),
+
+  lcf_users :: 'Elixir.Cloak.LowCountFilter':t()
 }).
 
 %% Helper macro for specifying cron intervals

@@ -15,7 +15,6 @@ defmodule Cloak.LowCountFilter do
   @type t :: {:ets.tab, pid}
 
   @aggregate_processors 10
-  @lcf_property "aircloak_lcf_tail"
 
 
   ## -----------------------------------------------------------------
@@ -65,26 +64,38 @@ defmodule Cloak.LowCountFilter do
   end
 
   @doc """
-  Generates the lcf_tail report based on the data in the storage.
-  The generated property will be correctly connected to the sorted list of
-  unique users which are lcf-ed. This function is not meant to be invoked
-  directly. It will be called by the anonymizer after the reported properties
-  have been lcf-ed.
+  Records which properties were dropped during anonymization so we can later
+  take these into account when generating the final low count properties property.
   """
-  @spec lcf_tail_report(t, [Property.t], pos_integer) :: :undefined | Bucket.t
-  def lcf_tail_report(_, [], _), do: :undefined
-  def lcf_tail_report({ets_table, _table_owner}, properties, columns_count) do
-    aggregator = :aggregator.new()
+  @spec record_dropped_property(t, Property.t) :: :ok
+  def record_dropped_property({ets_table, _table_owner}, property) do
+    :ets.insert(ets_table, {:lcf_property, property})
+    :ok
+  end
+
+  @doc """
+  Returns a list tuples indicating how many properties each returned user had filtered.
+  This data can then be used to generate any low count filter property that is desired.
+  """
+  @spec filtered_property_counts(t) :: [{User.id, pos_integer}]
+  def filtered_property_counts({ets_table, _table_owner}) do
+    properties = :ets.lookup(ets_table, :lcf_property)
+    |> Enum.map(fn({_, property}) -> property end)
+
+    # We use this table to record how many properties each user has gotten suppressed
+    user_count_table = :ets.new(__MODULE__,
+      [:set, :public, {:write_concurrency, true}, {:read_concurrency, false}])
+
     try do
-      processors = start_aggregate_processors(ets_table, columns_count, aggregator)
+      processors = start_aggregate_processors(ets_table, user_count_table)
       dispatch_aggregations(properties, processors)
       stop_aggregate_processors(processors)
-      case :aggregator.buckets(aggregator) do
-        [] -> :undefined
-        [lcf_report] -> lcf_report
-      end
+
+      # We can now generate a table of tuples {<user_id>, <dropped-property_count>}
+      # that we can generate so the consumer can generate an lcf property based on it
+      :ets.foldl(&([&1|&2]), [], user_count_table)
     after
-      :aggregator.delete(aggregator)
+      :ets.delete(user_count_table)
     end
   end
 
@@ -93,9 +104,9 @@ defmodule Cloak.LowCountFilter do
   ## Internal functions
   ## ----------------------------------------------------------------
 
-  def start_aggregate_processors(table, columns_count, aggregator) do
+  def start_aggregate_processors(table, user_count_table) do
     for _ <- 1..@aggregate_processors do
-      spawn_link(fn() -> aggregate_processor_loop(table, columns_count, aggregator) end)
+      spawn_link(fn() -> aggregate_processor_loop(table, user_count_table) end)
     end
   end
 
@@ -127,15 +138,15 @@ defmodule Cloak.LowCountFilter do
     :ok
   end
 
-  def aggregate_processor_loop(table, columns_count, aggregator) do
+  def aggregate_processor_loop(table, user_count_table) do
     receive do
       {:aggregate, property} ->
         for matches <- :ets.match(table, {property, :"$1"}),
             user_ids <- matches,
             user_id <- user_ids do
-          :aggregator.add_property(List.duplicate(@lcf_property, columns_count), user_id, aggregator)
+          :ets.update_counter(user_count_table, user_id, {2, 1}, {user_id, 0})
         end
-        aggregate_processor_loop(table, columns_count, aggregator)
+        aggregate_processor_loop(table, user_count_table)
       :stop -> :ok
     end
   end
