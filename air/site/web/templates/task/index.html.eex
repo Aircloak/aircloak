@@ -3,7 +3,6 @@
 <table class="table table-striped table-hover">
   <thead>
     <tr>
-      <th width="70%">Name</th>
       <th>Results</th>
       <th></th>
     </tr>
@@ -11,8 +10,7 @@
   <tbody>
 <%= for task <- @tasks do %>
     <tr>
-      <td><%= Air.Task.display_name(task) %></td>
-      <td align="center">
+      <td>
         <%= task.results_count %>
         <%= link "(view)", to: task_result_path(@conn, :index, task.id) %>
       </td>

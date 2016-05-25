@@ -22,7 +22,7 @@ defmodule Air.Task do
   end
 
   @required_fields ~w()
-  @optional_fields ~w(name query cloak_id data_source tables)
+  @optional_fields ~w(query cloak_id data_source tables)
 
 
   # -------------------------------------------------------------------
@@ -39,16 +39,6 @@ defmodule Air.Task do
   def changeset(model, params \\ :empty) do
     model
     |> cast(params, @required_fields, @optional_fields)
-  end
-
-  @doc "Returns the task display name."
-  @spec display_name(t) :: String.t
-  def display_name(task) do
-    if task.name == nil do
-      "Unnamed task"
-    else
-      task.name
-    end
   end
 
   @doc "Converts the task model to the cloak compliant data."

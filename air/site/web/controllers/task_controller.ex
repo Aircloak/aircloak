@@ -44,8 +44,7 @@ defmodule Air.TaskController do
     # and then redirect to the edit page. This way we operate on an
     # existing task from the get go, and can easily update it in place.
     task_params = %{
-      query: "-- Add your task code here",
-      name: "<untitled task>"
+      query: "-- Add your task code here"
     }
     changeset = build_assoc(conn.assigns.current_user, :tasks)
     changeset = Task.changeset(changeset, task_params)
@@ -64,7 +63,6 @@ defmodule Air.TaskController do
     task_map = Map.merge(
       %{
         id: task.id,
-        name: task.name,
         query: task.query,
         cloak_id: task.cloak_id,
         tables: task.tables,
@@ -90,10 +88,6 @@ defmodule Air.TaskController do
   end
 
   def run_task(conn, %{"task" => task_params}) do
-    task_params = Map.merge(task_params, %{
-      "name" => "<untitled task>",
-    })
-
     {:ok, task} = build_assoc(conn.assigns.current_user, :tasks)
     |> Task.changeset(parse_task_params(task_params))
     |> Repo.insert()
