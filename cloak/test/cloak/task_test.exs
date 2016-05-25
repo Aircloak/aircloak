@@ -17,12 +17,13 @@ defmodule Cloak.TaskTest do
     :ok
   end
 
-  def setup do
+  setup do
     :db_test.clear_table("heights")
+    :ok
   end
 
   test "task execution" do
-    assert :ok = insert_rows(100, "heights", ["height"], [180])
+    assert :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert :ok == Task.run(
       %Task{
@@ -37,9 +38,32 @@ defmodule Cloak.TaskTest do
     assert Enum.all?(rows, &(&1 == [180]))
   end
 
-  defp insert_rows(count, table, columns, values) do
+  test "should return LCF property when sufficient rows are filtered" do
+    assert :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    for id <- 5..9 do
+      range = (id * 4)..(id * 4 + 3)
+      assert :ok = insert_rows(_user_ids = range, "heights", ["height"], [100 + id])
+    end
+
+    assert :ok == Task.run(
+      %Task{
+        id: "1",
+        query: "select height from cloak_test.heights"
+      },
+      {:process, self()}
+    )
+
+    assert_receive {:reply, %{task_id: "1", columns: ["height"], rows: rows}}
+    groups = rows
+    |> Enum.group_by(&(&1))
+    |> Enum.map(fn({k, values}) -> {k, Enum.count(values)} end)
+
+    assert groups == [{[180], 20}, {["*"], 20}]
+  end
+
+  defp insert_rows(user_id_range, table, columns, values) do
     :db_test.add_users_data(
-      Enum.map(1..count,
+      Enum.map(user_id_range,
         &{"user#{&1}", [
           {table, [
             columns: columns,
