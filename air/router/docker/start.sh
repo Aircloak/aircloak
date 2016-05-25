@@ -58,9 +58,7 @@ AIR_HOST_NAME=${AIR_HOST_NAME:-"127.0.0.1"}
 
 cat /aircloak/router/docker/nginx/sites/upstreams.tmpl \
   | sed "s/\$AIR_HOST_NAME/$AIR_HOST_NAME/g; " \
-  | sed "s/\$AIR_BACKEND_HTTP_PORT/$(tcp_port 'air_backend/http')/" \
   | sed "s/\$AIRPUB_HTTP_PORT/$(tcp_port 'airpub/http')/" \
-  | sed "s/\$AIR_FRONTEND_HTTP_PORT/$(tcp_port 'air_frontend/http')/" \
   | sed "s/\$AIR_INSIGHTS_HTTP_PORT/$(tcp_port 'insights/http')/" \
   | sed "s#include /etc/nginx/support/upstream_keepalive.conf;#$(cat /aircloak/router/docker/nginx/support/upstream_keepalive.conf)#" \
   > /etc/confd/templates/upstreams.tmpl
@@ -68,8 +66,6 @@ cat /aircloak/router/docker/nginx/sites/upstreams.tmpl \
 cp -rp /aircloak/router/docker/nginx/support/maintenance.tmpl /etc/confd/templates/
 
 # Ensure root keys exist (equivalent of mkdir -p)
-curl -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service_instances/frontends -XPUT -d dir="true"
-curl -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service_instances/backends -XPUT -d dir="true"
 curl -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/maintenance -XPUT -d dir="true"
 
 cp -rp /aircloak/router/docker/conf.d/*.toml /etc/confd/conf.d/
@@ -99,7 +95,6 @@ mv /aircloak/router/docker/nginx/static /etc/nginx/
 
 for config in $(ls -1 /aircloak/router/docker/nginx/sites/*.conf); do
   cat $config \
-  | sed "s#\$FRONTEND_SITE#$(etcd_get /site/frontend)#" \
   | sed "s#\$INSIGHTS_SITE#$(etcd_get /site/insights)#" \
   | sed "s#\$API_SITE#$(etcd_get /site/api)#" \
   | sed "s#\$INFRASTRUCTURE_API_SITE#$(etcd_get /site/infrastructure_api)#" \
