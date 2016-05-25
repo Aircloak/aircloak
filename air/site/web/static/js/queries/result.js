@@ -1,10 +1,31 @@
 import React from "react";
 
 export const Result = (props) =>
-  <pre>
-    {props.query}
-  </pre>;
+  <div>
+    <pre>{props.query}</pre>
+    <table className="table table-striped table-hover">
+      <thead>
+        <tr>
+          {props.columns.map((column) =>
+            <th key={column}>{column}</th>
+          )}
+        </tr>
+      </thead>
+
+      <tbody>
+        {props.rows.
+          map((row, i) =>
+            <tr key={i}>
+              {row.map((value, j) => <td key={j}>{value}</td>)}
+            </tr>
+          )
+        }
+      </tbody>
+    </table>
+  </div>;
 
 Result.propTypes = {
   query: React.PropTypes.string,
+  columns: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
+  rows: React.PropTypes.arrayOf(React.PropTypes.array).isRequired,
 };
