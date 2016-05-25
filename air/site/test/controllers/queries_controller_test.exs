@@ -4,7 +4,6 @@ defmodule Air.QueriesControllerTest do
   import Air.{TestConnHelper, TestRepoHelper}
   alias Air.TestSocketHelper
 
-  alias Air.Task
   @query_data_params %{task: %{query: "Query code", name: "Query name"}}
 
   test "can run a new task" do
