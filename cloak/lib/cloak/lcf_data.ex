@@ -93,7 +93,7 @@ defmodule Cloak.LCFData do
 
       # We can now generate a table of tuples {<user_id>, <dropped-property_count>}
       # that we can generate so the consumer can generate an lcf property based on it
-      :ets.foldl(&([&1|&2]), [], user_count_table)
+      :ets.tab2list(user_count_table)
     after
       :ets.delete(user_count_table)
     end
