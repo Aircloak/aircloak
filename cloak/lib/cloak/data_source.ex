@@ -38,7 +38,8 @@ defmodule Cloak.DataSource do
   @type num_rows :: non_neg_integer
   @type column :: String.t
   @type row :: [String.t]
-  @type data_type :: :text | :integer | :real | :boolean | :timestamp | :time | :date | :interval | {:unsupported, String.t}
+  @type data_type :: :text | :integer | :real | :boolean | :timestamp |
+    :time | :date | :interval | {:unsupported, String.t}
   @type query_result :: {num_rows, [column], [row]}
 
 
