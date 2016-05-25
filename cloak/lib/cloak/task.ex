@@ -14,7 +14,7 @@ defmodule Cloak.Task do
     query: String.t
   }
 
-  alias Cloak.LowCountFilter
+  alias Cloak.LCFData
 
 
   # -------------------------------------------------------------------
@@ -53,14 +53,14 @@ defmodule Cloak.Task do
   end
 
   defp process_query({_count, [_user_id | columns], rows}) do
-    lcf_users = LowCountFilter.new()
+    lcf_data = LCFData.new()
 
     reportable_buckets = group_by_user(rows)
     |> pre_process()
-    |> anonymize(lcf_users)
-    |> post_process(lcf_users, length(columns))
+    |> anonymize(lcf_data)
+    |> post_process(lcf_data, length(columns))
 
-    LowCountFilter.delete(lcf_users)
+    LCFData.delete(lcf_data)
 
     {:buckets, columns, reportable_buckets}
   end
@@ -69,24 +69,24 @@ defmodule Cloak.Task do
     Cloak.Processor.AccumulateCount.pre_process(rows_by_user)
   end
 
-  defp anonymize(properties, lcf_users) do
-    aggregator = :aggregator.new(lcf_users)
+  defp anonymize(properties, lcf_data) do
+    aggregator = :aggregator.new(lcf_data)
 
     for {user_id, property} <- properties, do: :aggregator.add_property(property, user_id, aggregator)
     aggregated_buckets = :aggregator.buckets(aggregator)
-    anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_users)
+    anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_data)
 
     :aggregator.delete(aggregator)
 
     anonymized_buckets
   end
 
-  defp post_process(buckets, lcf_users, columns_count) do
+  defp post_process(buckets, lcf_data, columns_count) do
     post_processed_buckets = Cloak.Processor.AccumulateCount.post_process(buckets)
 
     # We also want to account for the number of low count filtered properties
     lcf_property = List.duplicate("*", columns_count)
-    low_count_filter_data = LowCountFilter.filtered_property_counts(lcf_users)
+    low_count_filter_data = LCFData.filtered_property_counts(lcf_data)
     |> Enum.map(fn({user, count}) -> {user, List.duplicate(lcf_property, count)} end)
 
     lcf_buckets = Cloak.Processor.AccumulateCount.pre_process(low_count_filter_data)

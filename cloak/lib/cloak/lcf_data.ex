@@ -1,4 +1,4 @@
-defmodule Cloak.LowCountFilter do
+defmodule Cloak.LCFData do
   @moduledoc """
   This module accounts for properties that are low count filtered during anonymization.
 

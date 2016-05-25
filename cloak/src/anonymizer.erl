@@ -35,8 +35,8 @@ anonymize(AggregatedBuckets) ->
 %% @doc Anonymizes a list of buckets, filtering out buckets that don't qualify
 %%      for reporting, and applying noisy to the rest.
 %%
-%%      If the `LcfUsers` argument is provided (i.e. not `undefined`), it will be used to generate the
-%%      additional anonymized LCF tail property containing the count of LCF-ed users.
+%%      If the `LcfData` argument is provided (i.e. not `undefined`), it will be used to record data about
+%%      which properties got filtered during anonymization.
 %%
 %%      We use the following anonymization parameters:
 %%
@@ -81,10 +81,10 @@ anonymize(AggregatedBuckets) ->
 %%        - Each bucket returned by `anonymize/1' existed in the bucket list given to `anonymize/1'.
 %%
 %%        - `#bucket.noisy_count mod K ≡ 0' with `K' equals 5 or 10 depending on the noise added.
--spec anonymize([#bucket{}], undefined | 'Elixir.Cloak.LowCountFilter':t()) -> [#bucket{}].
-anonymize(AggregatedBuckets, LcfUsers) ->
+-spec anonymize([#bucket{}], undefined | 'Elixir.Cloak.LCFData':t()) -> [#bucket{}].
+anonymize(AggregatedBuckets, LcfData) ->
   BucketsWithAnonState = [append_anonymization_state(Bucket) || Bucket <- AggregatedBuckets],
-  Params = default_params(LcfUsers),
+  Params = default_params(LcfData),
   FinalResults = oportunistically_filter_reports(BucketsWithAnonState, Params, [
     fun absolute_low_count_filter/2,
     fun soft_low_count_filter/2,
@@ -103,7 +103,7 @@ default_params() ->
 %% @doc Return the default anonymizer parameters.
 %%      The parameters are read from the configuration file.
 -spec default_params(undefined | 'Elixir.Cloak.LCFData':t()) -> #anonymizer_params{}.
-default_params(LcfUsers) ->
+default_params(LcfData) ->
   #anonymizer_params{
     absolute_lower_bound = cloak_conf:get_val(noise, absolute_lower_bound),
     sigma_soft_lower_bound = cloak_conf:get_val(noise, sigma_soft_lower_bound),
@@ -112,7 +112,7 @@ default_params(LcfUsers) ->
     max_sigma = cloak_conf:get_val(noise, max_sigma),
     min_sigma = cloak_conf:get_val(noise, min_sigma),
     constant_noise_sd = cloak_conf:get_val(noise, constant_noise_sd),
-    lcf_users = LcfUsers
+    lcf_data = LcfData
   }.
 
 
@@ -155,10 +155,10 @@ oportunistically_filter_reports(Reports, AnonymizationParameters, [NextTest | Pe
       case NextTest(Report, AnonymizationParameters) of
         failed ->
           {#bucket{property=Property}, _} = Report,
-          case AnonymizationParameters#anonymizer_params.lcf_users of
+          case AnonymizationParameters#anonymizer_params.lcf_data of
             undefined -> ok;
-            LcfUsers ->
-              'Elixir.Cloak.LowCountFilter':record_dropped_property(LcfUsers, Property)
+            LcfData ->
+              'Elixir.Cloak.LCFData':record_dropped_property(LcfData, Property)
           end,
           PassedReports;
         UpdatedReport ->
