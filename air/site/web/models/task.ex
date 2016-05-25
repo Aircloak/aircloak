@@ -9,7 +9,6 @@ defmodule Air.Task do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "tasks" do
-    field :name, :string
     field :query, :string
     field :cloak_id, :string
     field :data_source, :string
