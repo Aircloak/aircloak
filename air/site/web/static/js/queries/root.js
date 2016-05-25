@@ -57,7 +57,7 @@ class QueriesView extends React.Component {
   }
 
   runQuery() {
-    $.ajax("/tasks/run", {
+    $.ajax("/queries", {
       method: "POST",
       headers: {
         "X-CSRF-TOKEN": this.props.CSRFToken,

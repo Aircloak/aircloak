@@ -87,32 +87,6 @@ defmodule Air.TaskController do
     |> redirect(to: task_path(conn, :index))
   end
 
-  def run_task(conn, %{"task" => task_params}) do
-    {:ok, task} = build_assoc(conn.assigns.current_user, :tasks)
-    |> Task.changeset(parse_task_params(task_params))
-    |> Repo.insert()
-
-    try do
-      case Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task)) do
-        :ok ->
-          json(conn, %{success: true})
-        {:error, :not_connected} ->
-          json(conn, %{success: false, reason: "the cloak is not connected"})
-        {:error, reason} ->
-          Logger.error(fn -> "Task start error: #{reason}" end)
-          json(conn, %{success: false, reason: reason})
-      end
-    catch type, error ->
-      # We'll make a nice error log report and return 500
-      Logger.error([
-        "Error starting a task: #{inspect(type)}:#{inspect(error)}\n",
-        Exception.format_stacktrace(System.stacktrace())
-      ])
-
-      send_resp(conn, Plug.Conn.Status.code(:internal_server_error), "")
-    end
-  end
-
   def load_task_and_validate_ownership(conn, id_param_name) do
     task = Repo.get!(Task, conn.params[id_param_name])
     if task.user_id != conn.assigns.current_user.id do

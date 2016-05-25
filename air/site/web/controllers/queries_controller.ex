@@ -3,6 +3,7 @@ defmodule Air.QueriesController do
   use Air.Web, :controller
   use Timex
 
+  require Logger
   alias Air.{Task, Repo}
 
   # -------------------------------------------------------------------
@@ -26,6 +27,37 @@ defmodule Air.QueriesController do
       data_sources: Poison.encode!(data_sources(conn))
     )
   end
+
+  def run_query(conn, %{"task" => task_params}) do
+    {:ok, task} = build_assoc(conn.assigns.current_user, :tasks)
+    |> Task.changeset(parse_task_params(task_params))
+    |> Repo.insert()
+
+    try do
+      case Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task)) do
+        :ok ->
+          json(conn, %{success: true})
+        {:error, :not_connected} ->
+          json(conn, %{success: false, reason: "the cloak is not connected"})
+        {:error, reason} ->
+          Logger.error(fn -> "Task start error: #{reason}" end)
+          json(conn, %{success: false, reason: reason})
+      end
+    catch type, error ->
+      # We'll make a nice error log report and return 500
+      Logger.error([
+        "Error starting a task: #{inspect(type)}:#{inspect(error)}\n",
+        Exception.format_stacktrace(System.stacktrace())
+      ])
+
+      send_resp(conn, Plug.Conn.Status.code(:internal_server_error), "")
+    end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp recent_tasks(user) do
     user
@@ -53,8 +85,19 @@ defmodule Air.QueriesController do
       end
   end
 
+  defp parse_task_params(task_params) do
+    {cloak_id, data_source} = decode_data_source_token(task_params["data_source_token"])
+    Map.merge(task_params, %{"cloak_id" => cloak_id, "data_source" => data_source})
+  end
+
   defp data_source_token(nil, nil), do: nil
   defp data_source_token(cloak_id, data_source) do
     Phoenix.Token.sign(Air.Endpoint, "data_source_token", {cloak_id, data_source})
+  end
+
+  defp decode_data_source_token(nil), do: {nil, nil}
+  defp decode_data_source_token(data_source_token) do
+    {:ok, {cloak_id, data_source}} = Phoenix.Token.verify(Air.Endpoint, "data_source_token", data_source_token)
+    {cloak_id, data_source}
   end
 end
