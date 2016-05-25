@@ -50,12 +50,19 @@ defmodule Cloak.TaskTest do
 
   test "task reports an error on invalid statement" do
     :ok = start_task("invalid statement")
-    assert_receive {:reply, %{task_id: "1", error: _}}
+    assert_receive {:reply, %{task_id: "1", error: "Expected `select` at line 1, column 1."}}
   end
 
-  test "task reports an error on invalid data source" do
-    :ok = start_task("select invalid_column from non_existent_source")
-    assert_receive {:reply, %{task_id: "1", error: _}}
+  test "task reports an error on invalid column" do
+    :ok = start_task("select invalid_column from cloak_test.heights")
+    assert_receive {:reply, %{task_id: "1", error: error}}
+    assert ~s/ERROR (undefined_column): column "invalid_column" does not exist/ == error
+  end
+
+  test "task reports an error on invalid table" do
+    :ok = start_task("select column from invalid_table")
+    assert_receive {:reply, %{task_id: "1", error: error}}
+    assert ~s/Table invalid_table doesn't exist/ == error
   end
 
   test "task reports an error on runner crash" do
