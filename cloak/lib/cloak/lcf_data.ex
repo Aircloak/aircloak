@@ -104,27 +104,27 @@ defmodule Cloak.LCFData do
   ## Internal functions
   ## ----------------------------------------------------------------
 
-  def start_aggregate_processors(table, user_count_table) do
+  defp start_aggregate_processors(table, user_count_table) do
     for _ <- 1..@aggregate_processors do
       spawn_link(fn() -> aggregate_processor_loop(table, user_count_table) end)
     end
   end
 
-  def dispatch_aggregations(properties, processors) do
+  defp dispatch_aggregations(properties, processors) do
     dispatch_aggregations(properties, [], processors)
   end
 
   # We're dispatching each bucket to one processor in a round-robin fashion.
-  def dispatch_aggregations([], _, _), do: :ok
-  def dispatch_aggregations(properties, [], all_processors) do
+  defp dispatch_aggregations([], _, _), do: :ok
+  defp dispatch_aggregations(properties, [], all_processors) do
     dispatch_aggregations(properties, all_processors, all_processors)
   end
-  def dispatch_aggregations([property | rest_properties], [processor_pid | rest_processors], all_processors) do
+  defp dispatch_aggregations([property | rest_properties], [processor_pid | rest_processors], all_processors) do
     send(processor_pid, {:aggregate, property})
     dispatch_aggregations(rest_properties, rest_processors, all_processors)
   end
 
-  def stop_aggregate_processors(processors) do
+  defp stop_aggregate_processors(processors) do
     mrefs = for processor_pid <- processors do
       send(processor_pid, :stop)
       Process.monitor(processor_pid)
@@ -138,7 +138,7 @@ defmodule Cloak.LCFData do
     :ok
   end
 
-  def aggregate_processor_loop(table, user_count_table) do
+  defp aggregate_processor_loop(table, user_count_table) do
     receive do
       {:aggregate, property} ->
         for matches <- :ets.match(table, {property, :"$1"}),
