@@ -12,7 +12,7 @@ defmodule Cloak.Query.Runner do
     {:buckets, [Cloak.DataSource.column], [Cloak.DataSource.row]} |
     {:error, any}
   def run(query) do
-    with {:ok, query_result} <- Cloak.DataSource.query(:local, query.aql) do
+    with {:ok, query_result} <- Cloak.DataSource.query(:local, query.statement) do
       {_count, [_user_id | columns], rows} = query_result
       lcf_data = LCFData.new()
 

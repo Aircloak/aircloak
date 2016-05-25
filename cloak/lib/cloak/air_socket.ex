@@ -180,7 +180,7 @@ defmodule Cloak.AirSocket do
   defp handle_air_call("run_query", query, from, state) do
     query_id = Map.fetch!(query, "id")
     Logger.info("starting query #{query_id}")
-    Cloak.Query.start(%Cloak.Query{id: query_id, aql: Map.fetch!(query, "aql")})
+    Cloak.Query.start(%Cloak.Query{id: query_id, statement: Map.fetch!(query, "statement")})
     respond_to_air(from, :ok)
     {:ok, state}
   end

@@ -46,7 +46,7 @@ defmodule Air.Task do
     %{
       id: model.id,
       prefetch: Enum.map(model.tables, &%{table: "#{model.data_source}/#{&1}"}),
-      aql: model.query
+      statement: model.query
     }
   end
 
