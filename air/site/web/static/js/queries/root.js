@@ -65,13 +65,13 @@ class QueriesView extends React.Component {
         "Content-Type": "application/json",
       },
       data: this.queryData(),
-      success: (resp) => {
-        if (!resp.success) {
-          this.addResult({query: this.state.query, error: resp.reason});
-        }
-      },
-      error: (error) => this.addResult({query: this.state.query, error: error.statusText}),
+      success: (response) => { if (!response.success) { this.addError(response.reason); } },
+      error: (error) => this.addError(error.statusText),
     });
+  }
+
+  addError(text) {
+    this.addResult({query: this.state.query, error: text});
   }
 
   render() {
