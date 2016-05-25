@@ -109,11 +109,9 @@ defmodule Cloak.Task do
   end
 
   defp format_error_reason(text) when is_binary(text), do: text
-  defp format_error_reason(other) do
-    if Exception.exception?(other) do
-      Exception.message(other)
-    else
-      inspect(other)
-    end
+  defp format_error_reason(%Postgrex.Error{} = error), do: Exception.message(error)
+  defp format_error_reason(reason) do
+    Logger.error("Unknown task error reason: #{inspect(reason)}")
+    "Cloak error"
   end
 end
