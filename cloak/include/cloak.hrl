@@ -21,7 +21,7 @@
 -endif.
 
 -type user_id() :: binary() | integer().
--type task_id() :: binary().
+-type query_id() :: binary().
 -type index() :: string().
 
 -type noise_function() :: fun((integer()) -> integer()).
@@ -34,7 +34,7 @@
 
 -record(job_response, {
   user_id :: user_id(),
-  task_id :: task_id(),
+  query_id :: query_id(),
   properties :: [property()],
   accumulator :: job_accumulator()
 }).

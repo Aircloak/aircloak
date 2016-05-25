@@ -34,24 +34,24 @@ defmodule Cloak.AirSocket do
   end
 
   @doc """
-  Sends a task result to the Air.
+  Sends a query result to the Air.
 
   The function returns when the Air responds. If the timeout occurs, it is
   still possible that the Air has received the request.
   """
-  @spec send_task_result(GenServer.server, %{}) :: :ok | {:error, any}
-  def send_task_result(socket \\ __MODULE__, result) do
-    Logger.info("sending result for task #{result.task_id} to Air")
-    case call(socket, "task_result", result, :timer.seconds(5)) do
+  @spec send_query_result(GenServer.server, %{}) :: :ok | {:error, any}
+  def send_query_result(socket \\ __MODULE__, result) do
+    Logger.info("sending result for query #{result.query_id} to Air")
+    case call(socket, "query_result", result, :timer.seconds(5)) do
       {:ok, _} -> :ok
       error -> error
     end
   end
 
-  @doc "Sends task progress report to the Air."
-  @spec send_task_progress_report(GenServer.server, %{}) :: :ok
-  def send_task_progress_report(_socket \\ __MODULE__, progress_report),
-    do: Logger.info("new task progress report: #{inspect progress_report}")
+  @doc "Sends query progress report to the Air."
+  @spec send_query_progress_report(GenServer.server, %{}) :: :ok
+  def send_query_progress_report(_socket \\ __MODULE__, progress_report),
+    do: Logger.info("new query progress report: #{inspect progress_report}")
 
 
   # -------------------------------------------------------------------
@@ -177,10 +177,10 @@ defmodule Cloak.AirSocket do
   # Handling air sync calls
   # -------------------------------------------------------------------
 
-  defp handle_air_call("run_task", task, from, state) do
-    task_id = Map.fetch!(task, "id")
-    Logger.info("starting task #{task_id}")
-    Cloak.Task.start(%Cloak.Task{id: task_id, query: Map.fetch!(task, "query")})
+  defp handle_air_call("run_query", query, from, state) do
+    query_id = Map.fetch!(query, "id")
+    Logger.info("starting query #{query_id}")
+    Cloak.Query.start(%Cloak.Query{id: query_id, query: Map.fetch!(query, "query")})
     respond_to_air(from, :ok)
     {:ok, state}
   end

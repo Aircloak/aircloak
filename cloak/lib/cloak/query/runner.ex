@@ -1,5 +1,5 @@
-defmodule Cloak.Task.Runner do
-  @moduledoc "Cloak task runner."
+defmodule Cloak.Query.Runner do
+  @moduledoc "Cloak query runner."
   import Record, only: [defrecord: 2, extract: 2]
   defrecord :bucket, extract(:bucket, from_lib: "cloak/include/cloak.hrl")
 
@@ -7,12 +7,12 @@ defmodule Cloak.Task.Runner do
 
   @type bucket :: record(:bucket, property: [any], noisy_count: pos_integer)
 
-  @doc "Runs the task and returns the result."
-  @spec run(Cloak.Task.t) ::
+  @doc "Runs the query and returns the result."
+  @spec run(Cloak.Query.t) ::
     {:buckets, [Cloak.DataSource.column], [Cloak.DataSource.row]} |
     {:error, any}
-  def run(task) do
-    with {:ok, query_result} <- Cloak.DataSource.query(:local, task.query) do
+  def run(query) do
+    with {:ok, query_result} <- Cloak.DataSource.query(:local, query.query) do
       {_count, [_user_id | columns], rows} = query_result
       lcf_data = LCFData.new()
 

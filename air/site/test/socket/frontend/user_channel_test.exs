@@ -16,7 +16,7 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
   test "results of tasks are pushed to the user", %{user: user} do
     task = create_task!(user)
-    result = %{"task_id" => task.id, "some" => "data"}
+    result = %{"query_id" => task.id, "some" => "data"}
 
     UserChannel.broadcast_result(result)
 
@@ -26,7 +26,7 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
   test "results of other user's tasks are not pushed to the user" do
     task = create_task!(_other_user = create_user!())
-    result = %{"task_id" => task.id, "some" => "data"}
+    result = %{"query_id" => task.id, "some" => "data"}
 
     UserChannel.broadcast_result(result)
 

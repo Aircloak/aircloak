@@ -1,15 +1,15 @@
-defmodule Cloak.Task do
+defmodule Cloak.Query do
   @moduledoc """
-  Module for starting tasks.
+  Module for starting queries.
 
-  This module implements the main server process which starts the task concurrently,
-  waits for it to respond, and sends the result back. If the task terminates abnormally,
+  This module implements the main server process which starts the queries concurrently,
+  waits for it to respond, and sends the result back. If the query terminates abnormally,
   the server will send an error result back.
   """
   use GenServer
   require Logger
 
-  alias Cloak.Task.Runner
+  alias Cloak.Query.Runner
 
   defstruct [:id, :query]
 
@@ -25,7 +25,7 @@ defmodule Cloak.Task do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns the supervisor specification for the task runner supervisor."
+  @doc "Returns the supervisor specification for the query runner supervisor."
   @spec supervisor_spec() :: Supervisor.Spec.spec
   def supervisor_spec() do
     import Supervisor.Spec, warn: false
@@ -37,15 +37,15 @@ defmodule Cloak.Task do
   end
 
   @doc """
-  Starts the task execution concurrently.
+  Starts the query execution concurrently.
 
-  This function returns as soon as the task runner process is started. The result
+  This function returns as soon as the query runner process is started. The result
   is sent to the required destination. If an error occurs, the result will contain
   error information.
   """
   @spec start(t, :result_sender.result_destination) :: :ok
-  def start(task, result_target \\ :air_socket) do
-    {:ok, _} = Supervisor.start_child(@supervisor_name, [{task, result_target}])
+  def start(query, result_target \\ :air_socket) do
+    {:ok, _} = Supervisor.start_child(@supervisor_name, [{query, result_target}])
     :ok
   end
 
@@ -55,27 +55,27 @@ defmodule Cloak.Task do
   # -------------------------------------------------------------------
 
   @doc false
-  def init({task, result_target}) do
+  def init({query, result_target}) do
     Process.flag(:trap_exit, true)
     {:ok, %{
-      task_id: task.id,
+      query_id: query.id,
       result_target: result_target,
       start_time: :erlang.monotonic_time(:milli_seconds),
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
-      # detect a failure no matter how the task fails (even if the runner process is for example killed).
-      runner: Task.async(fn() -> Runner.run(task) end)
+      # detect a failure no matter how the query fails (even if the runner process is for example killed).
+      runner: Task.async(fn() -> Runner.run(query) end)
     }}
   end
 
   @doc false
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
     if reason != :normal do
-      :result_sender.send_result(state.task_id, state.result_target, {:error, "Cloak error"})
-      :cloak_metrics.count("task.error")
+      :result_sender.send_result(state.query_id, state.result_target, {:error, "Cloak error"})
+      :cloak_metrics.count("query.error")
     end
 
-    # Note: we're always exiting with a reason normal. If a task crashed, the error will be
+    # Note: we're always exiting with a reason normal. If a query crashed, the error will be
     # properly logged, so no need to add more noise.
     {:stop, :normal, state}
   end
@@ -83,11 +83,11 @@ defmodule Cloak.Task do
     with {result, ^runner} <- Task.find([runner], msg) do
       case result do
         {:ok, result} ->
-          :result_sender.send_result(state.task_id, state.result_target, result)
+          :result_sender.send_result(state.query_id, state.result_target, result)
           log_success(state)
         {:error, reason} ->
-          :result_sender.send_result(state.task_id, state.result_target, {:error, reason})
-          :cloak_metrics.count("task.error")
+          :result_sender.send_result(state.query_id, state.result_target, {:error, reason})
+          :cloak_metrics.count("query.error")
       end
     end
     {:noreply, state}
@@ -99,9 +99,9 @@ defmodule Cloak.Task do
   # -------------------------------------------------------------------
 
   defp log_success(state) do
-    :cloak_metrics.count("task.success")
-    task_execution_time = :erlang.monotonic_time(:milli_seconds) - state.start_time
-    :cloak_metrics.histogram("task.total", task_execution_time)
-    Logger.info("Task #{state.task_id} executed in #{task_execution_time} ms")
+    :cloak_metrics.count("query.success")
+    query_execution_time = :erlang.monotonic_time(:milli_seconds) - state.start_time
+    :cloak_metrics.histogram("query.total", query_execution_time)
+    Logger.info("Query #{state.query_id} executed in #{query_execution_time} ms")
   end
 end

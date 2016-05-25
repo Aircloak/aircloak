@@ -1,6 +1,6 @@
 %% @doc The result sender receives buckets that have been aggregated,
 %%      noised up and sanitized, and send them to the URL specified
-%%      in the batch task request.
+%%      in the batch query request.
 -module(result_sender).
 -behaviour(gen_fsm).
 
@@ -25,7 +25,7 @@
 -include("cloak.hrl").
 
 -record(state, {
-  task_id :: task_id(),
+  query_id :: query_id(),
   result_destination :: result_destination(),
   result :: result() | undefined,
   reply = undefined :: #{} | undefined
@@ -45,10 +45,10 @@
 %% @doc Takes a set of noised buckets, and sends
 %%      them to the URL specified in the query as the
 %%      result endpoint.
--spec send_result(task_id(), result_destination(), result()) -> pid().
-send_result(TaskId, ResultDestination, Result) ->
+-spec send_result(query_id(), result_destination(), result()) -> pid().
+send_result(QueryId, ResultDestination, Result) ->
   Args = [
-    {task_id, TaskId},
+    {query_id, QueryId},
     {result_destination, ResultDestination},
     {result, Result}
   ],
@@ -65,20 +65,20 @@ start_link(Args) ->
 
 init(Args) ->
   State = #state{
-    task_id = proplists:get_value(task_id, Args),
+    query_id = proplists:get_value(query_id, Args),
     result_destination = proplists:get_value(result_destination, Args),
     result = proplists:get_value(result, Args)
   },
   {ok, convert_result, State, 0}.
 
-convert_result(timeout, #state{result = Result, task_id = TaskId} = S0) ->
+convert_result(timeout, #state{result = Result, query_id = QueryId} = S0) ->
   Reply = case Result of
     {buckets, Columns, Buckets} ->
-      ?INFO("Processing buckets report for task ~s: ~p buckets", [TaskId, length(Buckets)]),
-      #{task_id => TaskId, columns => Columns, rows => expand_buckets(Buckets)};
+      ?INFO("Processing buckets report for query ~s: ~p buckets", [QueryId, length(Buckets)]),
+      #{query_id => QueryId, columns => Columns, rows => expand_buckets(Buckets)};
     {error, Reason} ->
-      ?INFO("Processing error report for task ~s: ~p", [TaskId, Reason]),
-      #{task_id => TaskId, error => Reason}
+      ?INFO("Processing error report for query ~s: ~p", [QueryId, Reason]),
+      #{query_id => QueryId, error => Reason}
   end,
   S1 = S0#state{result = undefined, reply = Reply},
   {next_state, send_result_state, S1, 0}.
@@ -115,7 +115,7 @@ expand_buckets(Buckets) ->
   end, Buckets).
 
 send_reply(air_socket, Reply) ->
-  'Elixir.Cloak.AirSocket':send_task_result(Reply);
+  'Elixir.Cloak.AirSocket':send_query_result(Reply);
 send_reply({url, Url}, Reply) ->
   Format = "application/json",
   CompressedReply = zlib:gzip('Elixir.Poison':'encode!'(Reply)),
