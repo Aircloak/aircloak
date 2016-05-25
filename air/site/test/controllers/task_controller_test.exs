@@ -5,7 +5,7 @@ defmodule Air.TaskControllerTest do
   alias Air.TestSocketHelper
 
   alias Air.Task
-  @valid_attrs %{name: "name", query: "query content", permanent: true}
+  @valid_attrs %{name: "name", query: "query content"}
   @invalid_attrs %{name: ""}
   @query_data_params %{task: %{query: "Query code", name: "Query name"}}
 

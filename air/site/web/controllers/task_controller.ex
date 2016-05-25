@@ -30,7 +30,6 @@ defmodule Air.TaskController do
   def index(conn, _params) do
     tasks =
       Task
-      |> Task.permanent
       |> Task.for_user(conn.assigns.current_user)
       |> Repo.all
     tasks = for task <- tasks do
@@ -45,8 +44,7 @@ defmodule Air.TaskController do
     # and then redirect to the edit page. This way we operate on an
     # existing task from the get go, and can easily update it in place.
     task_params = %{
-      query: "-- Add your task code here",
-      name: "<untitled task>"
+      query: "-- Add your task code here"
     }
     changeset = build_assoc(conn.assigns.current_user, :tasks)
     changeset = Task.changeset(changeset, task_params)
@@ -65,7 +63,6 @@ defmodule Air.TaskController do
     task_map = Map.merge(
       %{
         id: task.id,
-        name: task.name,
         query: task.query,
         cloak_id: task.cloak_id,
         tables: task.tables,
@@ -78,10 +75,7 @@ defmodule Air.TaskController do
   end
 
   def update(conn, %{"task" => task_params}) do
-    changeset = Task.changeset(conn.assigns.task,
-      # Tasks are temporary until they are explicitly saved by the user for the first time.
-      # Only tasks that are permanent are shown in the interface.
-      Map.merge(parse_task_params(task_params), %{"permanent" => true}))
+    changeset = Task.changeset(conn.assigns.task, parse_task_params(task_params))
     Repo.update!(changeset)
     json(conn, %{success: true})
   end
@@ -94,11 +88,6 @@ defmodule Air.TaskController do
   end
 
   def run_task(conn, %{"task" => task_params}) do
-    task_params = Map.merge(task_params, %{
-      "name" => "<untitled task>",
-      "permanent" => false
-    })
-
     {:ok, task} = build_assoc(conn.assigns.current_user, :tasks)
     |> Task.changeset(parse_task_params(task_params))
     |> Repo.insert()
