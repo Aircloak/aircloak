@@ -26,7 +26,7 @@
 
 -record(aggregator, {
   table :: ets:tab(),
-  lcf_users :: undefined | lcf_users:lcf_users()
+  lcf_data :: undefined | 'Elixir.Cloak.LCFData':t()
 }).
 
 -opaque aggregator() :: #aggregator{}.
@@ -50,11 +50,11 @@
 new() ->
   new(undefined).
 
-%% @doc Creates the new aggregator instance. If {@link lcf_users} is provided, it
+%% @doc Creates the new aggregator instance. If {@link 'Elixir.Cloak.LCFData'} is provided, it
 %%      will be used to collect candidates for low count filter (lcf) tail. These
 %%      candidates are collected when {@link bucket/1} function is called.
--spec new(undefined | lcf_users:lcf_users()) -> aggregator().
-new(LcfUsers) ->
+-spec new(undefined | 'Elixir.Cloak.LCFData':t()) -> aggregator().
+new(LcfData) ->
   #aggregator{
     % The aggregator is internally an ETS set table, with keys containing
     % `{Property, UserId}`. Furthermore, the table is public, and concurrency
@@ -74,7 +74,7 @@ new(LcfUsers) ->
     % To improve the performance when processing a huge number of buckets, we
     % produce final buckets in parallel. See `buckets/1` for more details.
     table = ets:new(aggregator, [set, public, {write_concurrency, true}, {read_concurrency, true}]),
-    lcf_users = LcfUsers
+    lcf_data = LcfData
   }.
 
 %% @doc Releases the memory occupied by the aggregator.
@@ -133,7 +133,7 @@ start_reporters(Aggregator) ->
 start_reporter(Aggregator) ->
   spawn_link(fun() -> report_loop(Aggregator, dict:new()) end).
 
-report_loop(#aggregator{table=Table, lcf_users=LcfUsers} = Aggregator, Dict) ->
+report_loop(#aggregator{table=Table, lcf_data=LcfData} = Aggregator, Dict) ->
   receive
     {add, {Property, UsersKey} = Key} ->
       [{_, Count}] = ets:lookup(Table, Key),
@@ -149,13 +149,13 @@ report_loop(#aggregator{table=Table, lcf_users=LcfUsers} = Aggregator, Dict) ->
         fun(Property, UsersKeys, ReportsAcc) ->
           SortedUsersKeys = gb_trees:keys(UsersKeys),
           RawCount = lists:sum(gb_trees:values(UsersKeys)),
-          case LcfUsers of
+          case LcfData of
             undefined -> ok;
             _ ->
               case RawCount > ?LCF_CERTAINTY_THRESHOLD of
                 true -> ok;
                 false ->
-                  lcf_users:add_bucket_users(LcfUsers, Property, SortedUsersKeys)
+                  'Elixir.Cloak.LCFData':add_bucket_users(LcfData, Property, SortedUsersKeys)
               end
           end,
           [

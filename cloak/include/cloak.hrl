@@ -76,7 +76,12 @@
 
   %% The anonymized results contain a layer of noise that is constant and unique to
   %% the bucket. The noise is normal with a certain standard deviation.
-  constant_noise_sd :: float()
+  constant_noise_sd :: float(),
+
+  %% Keeps state about which users have been low count filtered, and how many times.
+  %% Allows us to later generate an anonymized property indicating how many user
+  %% properties have been removed due to anonymization
+  lcf_data :: 'Elixir.Cloak.LCFData':t()
 }).
 
 %% Helper macro for specifying cron intervals
