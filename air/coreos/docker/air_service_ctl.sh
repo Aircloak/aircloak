@@ -14,7 +14,7 @@ set -eo pipefail
 
   function stop_system {
     # Explicitly stop main services
-    systemctl stop air-frontend-sidekick air-frontend air-backend air-insights air-router air-static-site
+    systemctl stop air-insights air-router air-static-site
 
     # Then stop the prerequisites service
     systemctl stop air-prerequisites
@@ -39,7 +39,7 @@ set -eo pipefail
   }
 
   function check_system {
-    wanted_services="air-backend air-frontend air-frontend-sidekick air-insights air-prerequisites air-router air-static-site"
+    wanted_services="air-insights air-prerequisites air-router air-static-site"
     active_services=$(
           systemctl list-units |
           grep 'air\-' |
@@ -58,18 +58,6 @@ set -eo pipefail
     router_code=$(http_code $(get_tcp_port prod router/http))
     if [ "$router_code" != "403" ]; then
       echo "router http request returned $router_code (expected 403)"
-      return 0
-    fi
-
-    air_frontend_code=$(http_code $(get_tcp_port prod air_frontend/http))
-    if [ "$air_frontend_code" != "302" ]; then
-      echo "air_frontend http request returned $air_frontend_code (expected 302)"
-      return 0
-    fi
-
-    air_backend_code=$(http_code $(get_tcp_port prod air_backend/http))
-    if [ "$air_backend_code" != "404" ]; then
-      echo "air_backend http request returned $air_backend_code (expected 404)"
       return 0
     fi
 

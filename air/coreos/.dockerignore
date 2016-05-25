@@ -8,8 +8,6 @@
 !config/tcp_ports.json
 !etcd
 !common
-!frontend/container.sh
-!backend/container.sh
 !site/container.sh
 !router/container.sh
 !coreos/docker
