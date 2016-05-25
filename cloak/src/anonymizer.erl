@@ -85,8 +85,9 @@ anonymize(AggregatedBuckets) ->
 anonymize(AggregatedBuckets, LcfUsers) ->
   BucketsWithAnonState = [append_anonymization_state(Bucket) || Bucket <- AggregatedBuckets],
   Params = default_params(LcfUsers),
-  PassedLcf = filter_lcf(BucketsWithAnonState, Params),
-  FinalResults = oportunistically_filter_reports(PassedLcf, Params, [
+  FinalResults = oportunistically_filter_reports(BucketsWithAnonState, Params, [
+    fun absolute_low_count_filter/2,
+    fun soft_low_count_filter/2,
     fun apply_constant_noise/2,
     fun apply_proportional_random_noise/2,
     fun calculate_total_noise/2,
@@ -123,12 +124,6 @@ default_params(LcfUsers) ->
   noise_sds=[],
   userids_hash
 }).
-
-filter_lcf(BucketsWithAnonState, Params) ->
-  oportunistically_filter_reports(BucketsWithAnonState, Params, [
-    fun absolute_low_count_filter/2,
-    fun soft_low_count_filter/2
-  ]).
 
 %% @doc Wraps the bucket with an anonymization state
 %%      that is used internally while anonymizing.
