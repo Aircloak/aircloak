@@ -126,8 +126,6 @@ check_registry
 push_static_site_image
 push_air_image coreos
 push_air_image router
-push_air_image backend
-push_air_image frontend
 push_air_image site
 
 # Remove all local repo tags. We don't need those, since the image is tagged
