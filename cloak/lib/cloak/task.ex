@@ -1,15 +1,18 @@
 defmodule Cloak.Task do
-  @moduledoc "Cloak task runner."
+  @moduledoc """
+  Module for starting tasks.
+
+  This module implements the main server process which starts the task concurrently,
+  waits for it to respond, and sends the result back. If the task terminates abnormally,
+  the server will send an error result back.
+  """
   use GenServer
   require Logger
-  require Record
 
-  import Record, only: [defrecord: 2, extract: 2]
-  defrecord :bucket, extract(:bucket, from_lib: "cloak/include/cloak.hrl")
+  alias Cloak.Task.Runner
 
   defstruct [:id, :query]
 
-  @type bucket :: record(:bucket, property: [any], noisy_count: pos_integer)
   @type t :: %__MODULE__{
     id: String.t,
     query: String.t
@@ -61,7 +64,7 @@ defmodule Cloak.Task do
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the task fails (even if the runner process is for example killed).
-      runner: Task.async(fn() -> run_task(task) end)
+      runner: Task.async(fn() -> Runner.run(task) end)
     }}
   end
 
@@ -91,54 +94,5 @@ defmodule Cloak.Task do
       end
     end
     {:noreply, state}
-  end
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp run_task(task) do
-    with {:ok, query_result} <- Cloak.DataSource.query(:local, task.query) do
-      {_count, [_user_id | columns], rows} = query_result
-
-      reportable_buckets = group_by_user(rows)
-      |> Cloak.Processor.AccumulateCount.pre_process()
-      |> anonymize(columns)
-      |> post_process()
-
-      {:ok, {:buckets, columns, reportable_buckets}}
-    end
-  end
-
-  defp anonymize(properties, columns) do
-    lcf_users = :lcf_users.new()
-    aggregator = :aggregator.new(lcf_users)
-
-    for {user_id, property} <- properties, do: :aggregator.add_property(property, user_id, aggregator)
-    aggregated_buckets = :aggregator.buckets(aggregator)
-    anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_users, length(columns))
-
-    :aggregator.delete(aggregator)
-    :lcf_users.delete(lcf_users)
-
-    anonymized_buckets
-  end
-
-  defp post_process(buckets) do
-    {lcf_buckets, other_buckets} = Enum.partition(buckets,
-      &(is_list(bucket(&1, :property)) && hd(bucket(&1, :property)) == "aircloak_lcf_tail"))
-
-    post_processed_buckets = Cloak.Processor.AccumulateCount.post_process(other_buckets)
-
-    lcf_buckets ++ post_processed_buckets
-  end
-
-  defp group_by_user(rows) do
-    rows
-    |> Enum.reduce(%{}, fn([user | property], accumulator) ->
-        Map.update(accumulator, user, [property], fn(existing_properties) -> [property | existing_properties] end)
-      end)
-    |> Enum.to_list
   end
 end
