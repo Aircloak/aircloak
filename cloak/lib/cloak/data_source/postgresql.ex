@@ -28,7 +28,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     query = "SELECT column_name, udt_name FROM information_schema.columns " <>
       "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
     row_mapper = fn [name, type_name] -> {name, parse_type(type_name)} end
-    {_, _, columns_list} = run_query!(source_id, query, row_mapper)
+    {:ok, {_, _, columns_list}} = run_query(source_id, query, row_mapper)
     columns_list
   end
 
@@ -41,11 +41,6 @@ defmodule Cloak.DataSource.PostgreSQL do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
-
-  defp run_query!(source_id, statement, row_mapper) do
-    {:ok, result} = run_query(source_id, statement, row_mapper)
-    result
-  end
 
   defp run_query(source_id, statement, row_mapper \\ fn x -> x end) do
     options = [timeout: 15 * 60 * 1000, pool_timeout: 2 * 60 * 1000, decode_mapper: row_mapper, pool: @pool_name]
@@ -64,14 +59,21 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("int2"), do: :integer
   defp parse_type("int4"), do: :integer
   defp parse_type("int8"), do: :integer
-  defp parse_type("float4"), do: :number
-  defp parse_type("float8"), do: :number
-  defp parse_type("money"), do: :number
-  defp parse_type("numeric"), do: :number
+  defp parse_type("float4"), do: :real
+  defp parse_type("float8"), do: :real
+  defp parse_type("money"), do: :real
+  defp parse_type("numeric"), do: :real
+  defp parse_type("timestamp"), do: :timestamp
+  defp parse_type("timestamptz"), do: :timestamp
+  defp parse_type("time"), do: :time
+  defp parse_type("timetz"), do: :time
+  defp parse_type("date"), do: :date
+  defp parse_type("interval"), do: :interval
   defp parse_type(type), do: {:unsupported, type}
 
   defp query_to_string(query) do
-    "SELECT #{Enum.join(query.select, ",")} FROM #{query.from}"
+    fields = Enum.map_join(query.select, ",", &("(" <> &1 <> ")::text"))
+    "SELECT #{fields} FROM #{query.from}"
   end
 
 

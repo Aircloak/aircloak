@@ -36,7 +36,7 @@ config :cloak, data_sources: [
       purchases: [
         name: "purchases",
         user_id: "uid",
-        ignore_unsupported_types: true
+        ignore_unsupported_types: false
       ]
     ]
   ]
