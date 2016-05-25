@@ -84,15 +84,24 @@ defmodule Cloak.Task do
       case result do
         {:ok, result} ->
           :result_sender.send_result(state.task_id, state.result_target, result)
-          :cloak_metrics.count("task.success")
-          task_execution_time = :erlang.monotonic_time(:milli_seconds) - state.start_time
-          :cloak_metrics.histogram("task.total", task_execution_time)
-          Logger.info("Task #{state.task_id} executed in #{task_execution_time} ms")
+          log_success(state)
         {:error, reason} ->
           :result_sender.send_result(state.task_id, state.result_target, {:error, reason})
           :cloak_metrics.count("task.error")
       end
     end
     {:noreply, state}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp log_success(state) do
+    :cloak_metrics.count("task.success")
+    task_execution_time = :erlang.monotonic_time(:milli_seconds) - state.start_time
+    :cloak_metrics.histogram("task.total", task_execution_time)
+    Logger.info("Task #{state.task_id} executed in #{task_execution_time} ms")
   end
 end
