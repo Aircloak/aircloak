@@ -1,5 +1,0 @@
-if [ "$2" != "" ]; then
-  args="suites=$2"
-fi
-
-EUNIT_ARGS="$args" make test-eunit-$1
