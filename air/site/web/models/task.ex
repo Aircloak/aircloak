@@ -27,7 +27,7 @@ defmodule Air.Task do
   end
 
   @required_fields ~w()
-  @optional_fields ~w(name query cloak_id data_source tables permanent)
+  @optional_fields ~w(name query cloak_id data_source tables)
 
 
   # -------------------------------------------------------------------
@@ -71,11 +71,6 @@ defmodule Air.Task do
   # Task query functions
   # -------------------------------------------------------------------
 
-  def permanent(query) do
-    from t in query,
-    where: t.permanent == true
-  end
-
   def for_user(query \\ __MODULE__, user) do
     from t in query,
     where: t.user_id == ^user.id
@@ -85,25 +80,5 @@ defmodule Air.Task do
     from t in query,
     order_by: [desc: t.inserted_at],
     limit: ^count
-  end
-
-
-  # -------------------------------------------------------------------
-  # Utility functions
-  # -------------------------------------------------------------------
-
-  @doc """
-  Removes all temporary tasks that are older than a week.
-  In this context, a temporary task is one that was added,
-  but was never marked as permanent. An example of this would
-  be a new task that was never explicitly saved by the user,
-  but which never the less got saved to the database.
-  """
-  def remove_temporary_tasks do
-    Air.Repo.delete_all(
-      from t in Air.Task,
-      where: t.inserted_at < datetime_add(^Ecto.DateTime.utc, -1, "week"),
-      where: t.permanent == false
-    )
   end
 end
