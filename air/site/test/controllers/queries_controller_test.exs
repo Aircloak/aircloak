@@ -4,9 +4,9 @@ defmodule Air.QueriesControllerTest do
   import Air.{TestConnHelper, TestRepoHelper}
   alias Air.TestSocketHelper
 
-  @query_data_params %{task: %{query: "Query code", name: "Query name"}}
+  @query_data_params %{query: %{query: "Query code", name: "Query name"}}
 
-  test "can run a new task" do
+  test "can run a query" do
     user = create_user!()
 
     # Open the cloak mock socket
@@ -16,7 +16,7 @@ defmodule Air.QueriesControllerTest do
     # Run the task in parallel since it's blocking on waiting a response from the socket
     me = self()
     spawn_link(fn ->
-      run_params = put_in(@query_data_params, [:task, :data_source_token],
+      run_params = put_in(@query_data_params, [:query, :data_source_token],
           Phoenix.Token.sign(Air.Endpoint, "data_source_token",{"unknown_org/cloak_1", nil}))
       response_json = login(user) |> post("/queries", run_params) |> response(200)
       send(me, {:response_json, response_json})

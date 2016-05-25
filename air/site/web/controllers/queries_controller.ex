@@ -28,9 +28,9 @@ defmodule Air.QueriesController do
     )
   end
 
-  def run_query(conn, %{"task" => task_params}) do
+  def run_query(conn, %{"query" => params}) do
     {:ok, task} = build_assoc(conn.assigns.current_user, :tasks)
-    |> Task.changeset(parse_task_params(task_params))
+    |> Task.changeset(parse_task_params(params))
     |> Repo.insert()
 
     try do
@@ -85,9 +85,9 @@ defmodule Air.QueriesController do
       end
   end
 
-  defp parse_task_params(task_params) do
-    {cloak_id, data_source} = decode_data_source_token(task_params["data_source_token"])
-    Map.merge(task_params, %{"cloak_id" => cloak_id, "data_source" => data_source})
+  defp parse_task_params(params) do
+    {cloak_id, data_source} = decode_data_source_token(params["data_source_token"])
+    Map.merge(params, %{"cloak_id" => cloak_id, "data_source" => data_source})
   end
 
   defp data_source_token(nil, nil), do: nil

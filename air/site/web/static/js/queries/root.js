@@ -49,7 +49,7 @@ class QueriesView extends React.Component {
 
   queryData() {
     return JSON.stringify({
-      task: {
+      query: {
         query: this.state.query,
         data_source_token: this.state.dataSource,
       },
