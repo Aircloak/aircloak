@@ -11,7 +11,7 @@
 %% API
 -export([
   anonymize/1,
-  anonymize/3,
+  anonymize/2,
   default_params/0
 ]).
 
@@ -30,13 +30,13 @@
 %% @doc Works just like {@link anonymize/2} but doesn't include LCF tail in the result
 -spec anonymize([#bucket{}]) -> [#bucket{}].
 anonymize(AggregatedBuckets) ->
-  anonymize(AggregatedBuckets, undefined, undefined).
+  anonymize(AggregatedBuckets, undefined).
 
 %% @doc Anonymizes a list of buckets, filtering out buckets that don't qualify
 %%      for reporting, and applying noisy to the rest.
 %%
-%%      If the `LcfUsers` argument is provided (i.e. not `undefined`), it will be used to generate the
-%%      additional anonymized LCF tail property containing the count of LCF-ed users.
+%%      If the `LcfData` argument is provided (i.e. not `undefined`), it will be used to record data about
+%%      which properties got filtered during anonymization.
 %%
 %%      We use the following anonymization parameters:
 %%
@@ -81,13 +81,13 @@ anonymize(AggregatedBuckets) ->
 %%        - Each bucket returned by `anonymize/1' existed in the bucket list given to `anonymize/1'.
 %%
 %%        - `#bucket.noisy_count mod K ≡ 0' with `K' equals 5 or 10 depending on the noise added.
--spec anonymize([#bucket{}], undefined | lcf_users:lcf_users(), undefined | pos_integer()) -> [#bucket{}].
-anonymize(AggregatedBuckets, LcfUsers, ColumnsCount) ->
+-spec anonymize([#bucket{}], undefined | 'Elixir.Cloak.LCFData':t()) -> [#bucket{}].
+anonymize(AggregatedBuckets, LcfData) ->
   BucketsWithAnonState = [append_anonymization_state(Bucket) || Bucket <- AggregatedBuckets],
-  Params = default_params(),
-  {PassedLcf, FilteredProperties} = filter_lcf(BucketsWithAnonState, Params),
-  LcfTailReports = lcf_tail_reports(FilteredProperties, Params, LcfUsers, ColumnsCount),
-  {FinalResults, _} = oportunistically_filter_reports(LcfTailReports ++ PassedLcf, Params, [
+  Params = default_params(LcfData),
+  FinalResults = oportunistically_filter_reports(BucketsWithAnonState, Params, [
+    fun absolute_low_count_filter/2,
+    fun soft_low_count_filter/2,
     fun apply_constant_noise/2,
     fun apply_proportional_random_noise/2,
     fun calculate_total_noise/2,
@@ -96,10 +96,14 @@ anonymize(AggregatedBuckets, LcfUsers, ColumnsCount) ->
   ]),
   [strip_anonymization_state(Result) || Result <- FinalResults].
 
+%% @doc Same as default_params/1, but with the low count filter disabled
+default_params() ->
+  default_params(undefined).
+
 %% @doc Return the default anonymizer parameters.
 %%      The parameters are read from the configuration file.
--spec default_params() -> #anonymizer_params{}.
-default_params() ->
+-spec default_params(undefined | 'Elixir.Cloak.LCFData':t()) -> #anonymizer_params{}.
+default_params(LcfData) ->
   #anonymizer_params{
     absolute_lower_bound = cloak_conf:get_val(noise, absolute_lower_bound),
     sigma_soft_lower_bound = cloak_conf:get_val(noise, sigma_soft_lower_bound),
@@ -107,7 +111,8 @@ default_params() ->
     target_error = cloak_conf:get_val(noise, target_error),
     max_sigma = cloak_conf:get_val(noise, max_sigma),
     min_sigma = cloak_conf:get_val(noise, min_sigma),
-    constant_noise_sd = cloak_conf:get_val(noise, constant_noise_sd)
+    constant_noise_sd = cloak_conf:get_val(noise, constant_noise_sd),
+    lcf_data = LcfData
   }.
 
 
@@ -119,21 +124,6 @@ default_params() ->
   noise_sds=[],
   userids_hash
 }).
-
-filter_lcf(BucketsWithAnonState, Params) ->
-  oportunistically_filter_reports(BucketsWithAnonState, Params, [
-    fun absolute_low_count_filter/2,
-    fun soft_low_count_filter/2
-  ]).
-
-lcf_tail_reports(_LcfFilteredProperties, _Params, undefined, _) -> [];
-lcf_tail_reports(LcfFilteredProperties, Params, LcfUsers, ColumnsCount) ->
-  case lcf_users:lcf_tail_report(LcfUsers, LcfFilteredProperties, ColumnsCount) of
-    undefined -> [];
-    LcfTailBucket ->
-      {Passed, _Filtered} = filter_lcf([append_anonymization_state(LcfTailBucket)], Params),
-      Passed
-  end.
 
 %% @doc Wraps the bucket with an anonymization state
 %%      that is used internally while anonymizing.
@@ -158,27 +148,28 @@ remember_noise(Sd, #anonymization_state{noise_sds = ExistingNoise} = State) ->
 %%      as some of the tests have to re-seed random and this would
 %%      put a significant amount of strain on the clock if we constantly
 %%      had to reseed it.
-oportunistically_filter_reports(Reports, AnonymizationParameters, Tests) ->
-  oportunistically_filter_reports(Reports, [], AnonymizationParameters, Tests).
-
-oportunistically_filter_reports(Reports, FailedProperties, _AnonymizationParameters, []) -> {Reports, FailedProperties};
-oportunistically_filter_reports(Reports, FailedProperties, AnonymizationParameters, [NextTest | PendingTests]) ->
-  {ReportsThatPassedTheTest, NewFailedProperties} = lists:foldl(
-    fun(Report, {PassedReports, NewFailedPropertiesAcc}) ->
+oportunistically_filter_reports(Reports, _AnonymizationParameters, []) -> Reports;
+oportunistically_filter_reports(Reports, AnonymizationParameters, [NextTest | PendingTests]) ->
+  ReportsThatPassedTheTest = lists:foldl(
+    fun(Report, PassedReports) ->
       case NextTest(Report, AnonymizationParameters) of
         failed ->
-          {Bucket, _} = Report,
-          {PassedReports, [Bucket#bucket.property | NewFailedPropertiesAcc]};
+          {#bucket{property=Property}, _} = Report,
+          case AnonymizationParameters#anonymizer_params.lcf_data of
+            undefined -> ok;
+            LcfData ->
+              'Elixir.Cloak.LCFData':record_dropped_property(LcfData, Property)
+          end,
+          PassedReports;
         UpdatedReport ->
-          {[UpdatedReport | PassedReports], NewFailedPropertiesAcc}
+          [UpdatedReport | PassedReports]
       end
     end,
-    {[], []},
+    [],
     Reports
   ),
   oportunistically_filter_reports(
     ReportsThatPassedTheTest,
-    NewFailedProperties ++ FailedProperties,
     AnonymizationParameters,
     PendingTests
   ).
@@ -475,69 +466,5 @@ target_error_test() ->
     end,
   % we need 99% of the results to be under the target error (68–95–99.7 rule)
   true = length(lists:filter(IsUnderTargetError, AnonBuckets)) > length(Buckets) * 99.
-
-lcf_test_() ->
-  {
-    setup,
-    fun() ->
-      meck:new(cloak_distributions),
-      meck:expect(cloak_distributions, gauss, fun(_Sigma, N) -> round(N) end),
-      meck:expect(cloak_distributions, gauss_s, fun(_Sigma, N, _Seed) -> round(N) end)
-    end,
-    fun(_) ->
-      meck:unload()
-    end,
-    [
-      {"lcf tail is reported", ?_assertEqual(8, (lcf_tail([{p1, 1, 4}, {p2, 5, 8}]))#bucket.count)},
-      {"lcf tail report has proper number of columns", fun() ->
-        ?assertEqual(
-          [<<"aircloak_lcf_tail">>],
-          (lcf_tail([{p1, 1, 4}, {p2, 5, 8}], 1))#bucket.property
-        ),
-        ?assertEqual(
-          [<<"aircloak_lcf_tail">>, <<"aircloak_lcf_tail">>],
-          (lcf_tail([{p1, 1, 4}, {p2, 5, 8}], 2))#bucket.property
-        )
-      end},
-      {"lcf tail count has noise", ?_assertEqual(8, (lcf_tail([{p3, 11, 14}, {p4, 15, 18}]))#bucket.noisy_count)},
-      % Too few entries in the lcf tail to be reported
-      {"lcf tail is lcf-ed", ?_assertEqual(undefined, lcf_tail([{p5, 21, 24}]))},
-      % User 34 is in two buckets, so we should have 7 users in the lcf tail
-      {"users are deduplicated", ?_assertEqual(7, (lcf_tail([{p6, 31, 34}, {p7, 34, 37}]))#bucket.count)},
-      % A large bucket including all users shouldn't affect the lcf tail
-      {"only lcf-ed properties are included in lcf tail",
-        ?_assertEqual(8, (lcf_tail([{p8, 41, 44}, {p9, 45, 48}, {p10, 41, 100}]))#bucket.count)}
-    ]
-  }.
-
-lcf_tail(Properties) ->
-  lcf_tail(Properties, 1).
-
-lcf_tail(Properties, ColumnsCount) ->
-  LcfUsers = lcf_users:new(),
-  Aggregator = aggregator:new(LcfUsers),
-  try
-    add_buckets(Aggregator, Properties),
-    case [Bucket ||
-      #bucket{
-        property = [?LCF_TAIL_PROPERTY | _]
-      } = Bucket <- anonymizer:anonymize(aggregator:buckets(Aggregator), LcfUsers, ColumnsCount)
-    ] of
-      [] -> undefined;
-      [Count] -> Count
-    end
-  after
-    aggregator:delete(Aggregator),
-    lcf_users:delete(LcfUsers)
-  end.
-
-add_buckets(Aggregator, Properties) ->
-  [
-    aggregator:add_property(
-      [atom_to_binary(Property, latin1)],
-      iolist_to_binary(io_lib:format("u~p", [UserIndex])),
-      Aggregator
-    ) || {Property, From, To} <- Properties, UserIndex <- lists:seq(From, To)
-  ].
 
 -endif.

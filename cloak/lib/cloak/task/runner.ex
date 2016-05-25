@@ -3,6 +3,8 @@ defmodule Cloak.Task.Runner do
   import Record, only: [defrecord: 2, extract: 2]
   defrecord :bucket, extract(:bucket, from_lib: "cloak/include/cloak.hrl")
 
+  alias Cloak.LCFData
+
   @type bucket :: record(:bucket, property: [any], noisy_count: pos_integer)
 
   @doc "Runs the task and returns the result."
@@ -12,35 +14,42 @@ defmodule Cloak.Task.Runner do
   def run(task) do
     with {:ok, query_result} <- Cloak.DataSource.query(:local, task.query) do
       {_count, [_user_id | columns], rows} = query_result
+      lcf_data = LCFData.new()
 
       reportable_buckets = group_by_user(rows)
       |> Cloak.Processor.AccumulateCount.pre_process()
-      |> anonymize(columns)
-      |> post_process()
+      |> anonymize(lcf_data)
+      |> post_process(lcf_data, length(columns))
+
+      LCFData.delete(lcf_data)
 
       {:ok, {:buckets, columns, reportable_buckets}}
     end
   end
 
-  defp anonymize(properties, columns) do
-    lcf_users = :lcf_users.new()
-    aggregator = :aggregator.new(lcf_users)
+  defp anonymize(properties, lcf_data) do
+    aggregator = :aggregator.new(lcf_data)
 
     for {user_id, property} <- properties, do: :aggregator.add_property(property, user_id, aggregator)
     aggregated_buckets = :aggregator.buckets(aggregator)
-    anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_users, length(columns))
+    anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_data)
 
     :aggregator.delete(aggregator)
-    :lcf_users.delete(lcf_users)
 
     anonymized_buckets
   end
 
-  defp post_process(buckets) do
-    {lcf_buckets, other_buckets} = Enum.partition(buckets,
-      &(is_list(bucket(&1, :property)) && hd(bucket(&1, :property)) == "aircloak_lcf_tail"))
+  defp post_process(buckets, lcf_data, columns_count) do
+    post_processed_buckets = Cloak.Processor.AccumulateCount.post_process(buckets)
 
-    post_processed_buckets = Cloak.Processor.AccumulateCount.post_process(other_buckets)
+    # We also want to account for the number of low count filtered properties
+    lcf_property = List.duplicate("*", columns_count)
+    low_count_filter_data = LCFData.filtered_property_counts(lcf_data)
+    |> Enum.map(fn({user, count}) -> {user, List.duplicate(lcf_property, count)} end)
+
+    lcf_buckets = Cloak.Processor.AccumulateCount.pre_process(low_count_filter_data)
+    |> anonymize(:undefined)
+    |> Cloak.Processor.AccumulateCount.post_process
 
     lcf_buckets ++ post_processed_buckets
   end
