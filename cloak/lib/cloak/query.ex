@@ -11,11 +11,11 @@ defmodule Cloak.Query do
 
   alias Cloak.Query.Runner
 
-  defstruct [:id, :query]
+  defstruct [:id, :aql]
 
   @type t :: %__MODULE__{
     id: String.t,
-    query: String.t
+    aql: String.t
   }
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)

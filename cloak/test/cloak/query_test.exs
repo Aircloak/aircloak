@@ -65,8 +65,8 @@ defmodule Cloak.QueryTest do
     end)
   end
 
-  defp start_query(query) do
-    Query.start(%Query{id: "1", query: query}, {:process, self()})
+  defp start_query(aql) do
+    Query.start(%Query{id: "1", aql: aql}, {:process, self()})
   end
 
   defp insert_rows(user_id_range, table, columns, values) do

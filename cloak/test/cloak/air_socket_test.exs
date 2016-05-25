@@ -74,7 +74,7 @@ defmodule Cloak.AirSocketTest do
     request = %{
       request_id: "foo",
       event: "run_query",
-      payload: %{id: 42, query: "SELECT height FROM cloak_test.heights"}
+      payload: %{id: 42, aql: "SELECT height FROM cloak_test.heights"}
     }
     MainChannel.send_to_cloak(cloak_name, "air_call", request)
     assert_receive {:in_message, "call_response", response}
