@@ -10,7 +10,7 @@ defmodule Cloak.LCFData do
 
   require Logger
 
-  alias Cloak.Property
+  alias Cloak.Type.Property
 
   @type t :: {:ets.tab, pid}
 

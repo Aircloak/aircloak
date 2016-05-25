@@ -71,8 +71,7 @@ defmodule Cloak.Query do
   @doc false
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
     if reason != :normal do
-      :result_sender.send_result(state.query_id, state.result_target, {:error, "Cloak error"})
-      :cloak_metrics.count("query.error")
+      report_error(state, "Cloak error")
     end
 
     # Note: we're always exiting with a reason normal. If a query crashed, the error will be
@@ -86,8 +85,7 @@ defmodule Cloak.Query do
           :result_sender.send_result(state.query_id, state.result_target, result)
           log_success(state)
         {:error, reason} ->
-          :result_sender.send_result(state.query_id, state.result_target, {:error, reason})
-          :cloak_metrics.count("query.error")
+          report_error(state, reason)
       end
     end
     {:noreply, state}
@@ -103,5 +101,17 @@ defmodule Cloak.Query do
     query_execution_time = :erlang.monotonic_time(:milli_seconds) - state.start_time
     :cloak_metrics.histogram("query.total", query_execution_time)
     Logger.info("Query #{state.query_id} executed in #{query_execution_time} ms")
+  end
+
+  defp report_error(state, reason) do
+    :result_sender.send_result(state.query_id, state.result_target, {:error, format_error_reason(reason)})
+    :cloak_metrics.count("query.error")
+  end
+
+  defp format_error_reason(text) when is_binary(text), do: text
+  defp format_error_reason(%Postgrex.Error{} = error), do: Exception.message(error)
+  defp format_error_reason(reason) do
+    Logger.error("Unknown query error reason: #{inspect(reason)}")
+    "Cloak error"
   end
 end

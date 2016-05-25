@@ -36,9 +36,6 @@
                 <%= if permitted?(@conn, Air.CloaksController, :index) do %>
                   <%= navbar_link(@conn, "Cloaks", cloaks_path(@conn, :index)) %>
                 <% end %>
-                <%= if permitted?(@conn, Air.TaskController, :index) do %>
-                  <%= navbar_link(@conn, "Tasks", task_path(@conn, :index)) %>
-                <% end %>
                 <%= if permitted?(@conn, Air.UserController, :index) do %>
                   <%= navbar_link(@conn, "Users", manage_users_link(@conn)) %>
                 <% end %>

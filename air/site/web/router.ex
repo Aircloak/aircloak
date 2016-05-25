@@ -34,20 +34,16 @@ defmodule Air.Router do
     pipe_through [:browser, :browser_auth]
 
     get "/", QueriesController, :index
+    post "/queries", QueriesController, :create
 
     delete "/logout", SessionController, :delete
 
     get "/help_guides", HelpGuideController, :index
     get "/help_guide/:article", HelpGuideController, :article
 
-    post "/tasks/run", TaskController, :run_task
-
     resources "/api_tokens", ApiTokenController
     resources "/cloaks", CloaksController
     resources "/organisations", OrganisationController
-    resources "/tasks", TaskController, except: [:show, :create] do
-      resources "/results", ResultController, only: [:index, :show, :delete]
-    end
     resources "/users", UserController
   end
 

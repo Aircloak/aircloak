@@ -37,9 +37,9 @@ defmodule Cloak.DataSource do
   # define returned data types and values
   @type num_rows :: non_neg_integer
   @type column :: String.t
-  @type row :: [data_value]
-  @type data_value :: String.t | integer | number | boolean
-  @type data_type :: :text | :integer | :number | :boolean | {:unsupported, String.t}
+  @type row :: [String.t]
+  @type data_type :: :text | :integer | :real | :boolean | :timestamp |
+    :time | :date | :interval | {:unsupported, String.t}
   @type query_result :: {num_rows, [column], [row]}
 
 
@@ -188,14 +188,20 @@ defmodule Cloak.DataSource do
   end
 
   defp parse_query(raw_query, data_source) do
-    with {:ok, query} <- Cloak.SqlQuery.parse(raw_query) do
-      table =
-        data_source[:tables]
-        |> Stream.map(fn({_, meta}) -> meta end)
-        |> Enum.find(&(&1[:name] == query.from))
-
-      {:ok, %{query | select: [table[:user_id] | query.select]}}
+    with {:ok, query} <- Cloak.SqlQuery.parse(raw_query),
+         {:ok, user_id_column} <- user_id_column(data_source, query.from) do
+      {:ok, %{query | select: [user_id_column | query.select]}}
     end
+  end
+
+  defp user_id_column(data_source, table_name) do
+    data_source[:tables]
+    |> Stream.map(fn({_, meta}) -> meta end)
+    |> Enum.find(&(&1[:name] == table_name))
+    |> case do
+          nil -> {:error, "Table #{table_name} doesn't exist"}
+          table -> {:ok, Keyword.fetch!(table, :user_id)}
+        end
   end
 
   #-----------------------------------------------------------------------------------------------------------

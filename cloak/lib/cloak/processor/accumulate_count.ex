@@ -19,7 +19,7 @@ defmodule Cloak.Processor.AccumulateCount do
   import Record, only: [defrecord: 2, extract: 2]
   defrecord :bucket, extract(:bucket, from_lib: "cloak/include/cloak.hrl")
 
-  alias Cloak.User
+  alias Cloak.Type.User
 
   @type accumulated_property :: {any, pos_integer}
   @type bucket :: record(:bucket, property: [accumulated_property], noisy_count: pos_integer)

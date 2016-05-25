@@ -28,7 +28,7 @@ defmodule Cloak.DataSourceTest do
     assert(data == {:ok, {
       3,
       ["user_id", "value"],
-      [["user-id", 10], ["user-id", 20], ["user-id", 30]]
+      [["user-id", "10"], ["user-id", "20"], ["user-id", "30"]]
     }})
   end
 end

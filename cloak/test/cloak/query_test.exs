@@ -28,7 +28,7 @@ defmodule Cloak.QueryTest do
 
     assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
     assert 100 == length(rows)
-    assert Enum.all?(rows, &(&1 == [180]))
+    assert Enum.all?(rows, &(&1 == ["180"]))
   end
 
   test "should return LCF property when sufficient rows are filtered" do
@@ -44,18 +44,26 @@ defmodule Cloak.QueryTest do
     groups = rows
     |> Enum.group_by(&(&1))
     |> Enum.map(fn({k, values}) -> {k, Enum.count(values)} end)
+    |> Enum.sort()
 
-    assert groups == [{[180], 20}, {["*"], 20}]
+    assert groups == [{["*"], 20}, {["180"], 20}]
   end
 
   test "query reports an error on invalid statement" do
     :ok = start_query("invalid statement")
-    assert_receive {:reply, %{query_id: "1", error: _}}
+    assert_receive {:reply, %{query_id: "1", error: "Expected `select` at line 1, column 1."}}
   end
 
-  test "query reports an error on invalid data source" do
-    :ok = start_query("select invalid_column from non_existent_source")
-    assert_receive {:reply, %{query_id: "1", error: _}}
+  test "query reports an error on invalid column" do
+    :ok = start_query("select invalid_column from cloak_test.heights")
+    assert_receive {:reply, %{query_id: "1", error: error}}
+    assert ~s/ERROR (undefined_column): column "invalid_column" does not exist/ == error
+  end
+
+  test "query reports an error on invalid table" do
+    :ok = start_query("select column from invalid_table")
+    assert_receive {:reply, %{query_id: "1", error: error}}
+    assert ~s/Table invalid_table doesn't exist/ == error
   end
 
   test "query reports an error on runner crash" do
