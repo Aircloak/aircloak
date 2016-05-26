@@ -32,7 +32,7 @@ defmodule Air.Socket.CloakTest do
       send(me, {:start_task_result, start_task_result})
     end)
     assert {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, 100)
-    assert %{"event" => "run_task", "payload" => %{"id" => 42}, "request_id" => request_id} = request
+    assert %{"event" => "run_query", "payload" => %{"id" => 42}, "request_id" => request_id} = request
 
     TestSocket.push(socket, "main", "call_response", %{request_id: request_id, status: "ok"})
     assert_receive {:start_task_result, :ok}
@@ -48,8 +48,8 @@ defmodule Air.Socket.CloakTest do
     assert {:ok, %{}} == join_main_channel(socket)
 
     request = %{
-      request_id: "foobar", event: "task_result",
-      payload: %{task_id: task_id, buckets: [], exceptions: []}
+      request_id: "foobar", event: "query_result",
+      payload: %{query_id: task_id, buckets: [], exceptions: []}
     }
     assert nil == Air.Repo.one(Air.Result)
     TestSocket.push(socket, "main", "cloak_call", request)

@@ -1,7 +1,7 @@
-defmodule Cloak.TaskTest do
+defmodule Cloak.QueryTest do
   use ExUnit.Case, async: false
 
-  alias Cloak.Task
+  alias Cloak.Query
 
   setup_all do
     :db_test.setup()
@@ -22,11 +22,11 @@ defmodule Cloak.TaskTest do
     :ok
   end
 
-  test "task execution" do
+  test "query execution" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    :ok = start_task("select height from cloak_test.heights")
+    :ok = start_query("select height from cloak_test.heights")
 
-    assert_receive {:reply, %{task_id: "1", columns: ["height"], rows: rows}}
+    assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
     assert 100 == length(rows)
     assert Enum.all?(rows, &(&1 == ["180"]))
   end
@@ -38,9 +38,9 @@ defmodule Cloak.TaskTest do
       assert :ok = insert_rows(_user_ids = range, "heights", ["height"], [100 + id])
     end
 
-    :ok = start_task("select height from cloak_test.heights")
+    :ok = start_query("select height from cloak_test.heights")
 
-    assert_receive {:reply, %{task_id: "1", columns: ["height"], rows: rows}}
+    assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
     groups = rows
     |> Enum.group_by(&(&1))
     |> Enum.map(fn({k, values}) -> {k, Enum.count(values)} end)
@@ -49,32 +49,32 @@ defmodule Cloak.TaskTest do
     assert groups == [{["*"], 20}, {["180"], 20}]
   end
 
-  test "task reports an error on invalid statement" do
-    :ok = start_task("invalid statement")
-    assert_receive {:reply, %{task_id: "1", error: "Expected `select` at line 1, column 1."}}
+  test "query reports an error on invalid statement" do
+    :ok = start_query("invalid statement")
+    assert_receive {:reply, %{query_id: "1", error: "Expected `select` at line 1, column 1."}}
   end
 
-  test "task reports an error on invalid column" do
-    :ok = start_task("select invalid_column from cloak_test.heights")
-    assert_receive {:reply, %{task_id: "1", error: error}}
+  test "query reports an error on invalid column" do
+    :ok = start_query("select invalid_column from cloak_test.heights")
+    assert_receive {:reply, %{query_id: "1", error: error}}
     assert ~s/ERROR (undefined_column): column "invalid_column" does not exist/ == error
   end
 
-  test "task reports an error on invalid table" do
-    :ok = start_task("select column from invalid_table")
-    assert_receive {:reply, %{task_id: "1", error: error}}
+  test "query reports an error on invalid table" do
+    :ok = start_query("select column from invalid_table")
+    assert_receive {:reply, %{query_id: "1", error: error}}
     assert ~s/Table invalid_table doesn't exist/ == error
   end
 
-  test "task reports an error on runner crash" do
+  test "query reports an error on runner crash" do
     ExUnit.CaptureLog.capture_log(fn ->
-      :ok = start_task(:invalid_query_type)
-      assert_receive {:reply, %{task_id: "1", error: "Cloak error"}}
+      :ok = start_query(:invalid_query_type)
+      assert_receive {:reply, %{query_id: "1", error: "Cloak error"}}
     end)
   end
 
-  defp start_task(query) do
-    Task.start(%Task{id: "1", query: query}, {:process, self()})
+  defp start_query(statement) do
+    Query.start(%Query{id: "1", statement: statement}, {:process, self()})
   end
 
   defp insert_rows(user_id_range, table, columns, values) do

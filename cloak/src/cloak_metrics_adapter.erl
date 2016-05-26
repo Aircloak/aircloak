@@ -102,8 +102,8 @@ range_from_string(Num) -> binary_to_integer(Num).
 bucketize_test() ->
   meck:new(range_generation),
   meck:expect(range_generation, generate, fun(_, _, _) -> [{0,1,1}, {2, 10, 100}] end),
-  Input = [{<<"TaskExecutionTime">>, [{1, 2}, {3, 4}]}],
-  ?assertMatch([{<<"TaskExecutionTime">>, [{2,10, _}]}], bucketize(Input)),
+  Input = [{<<"QueryExecutionTime">>, [{1, 2}, {3, 4}]}],
+  ?assertMatch([{<<"QueryExecutionTime">>, [{2,10, _}]}], bucketize(Input)),
   ?assert(meck:validate(range_generation)),
   meck:unload().
 
