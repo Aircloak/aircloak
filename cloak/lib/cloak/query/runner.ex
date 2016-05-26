@@ -3,25 +3,68 @@ defmodule Cloak.Query.Runner do
   import Record, only: [defrecord: 2, extract: 2]
   defrecord :bucket, extract(:bucket, from_lib: "cloak/include/cloak.hrl")
 
-  alias Cloak.LCFData
+  alias Cloak.{LCFData, DataSource, Processor}
 
   @type bucket :: record(:bucket, property: [any], noisy_count: pos_integer)
 
   @doc "Runs the query and returns the result."
-  @spec run(Cloak.Query.t) ::
-    {:buckets, [Cloak.DataSource.column], [Cloak.DataSource.row]} |
-    {:error, any}
+  @spec run(Cloak.Query.t) :: {:ok, {:buckets, [DataSource.column], [bucket]}} | {:error, any}
   def run(query) do
-    with {:ok, query_result} <- Cloak.DataSource.query(:local, query.statement) do
-      {_count, [_user_id | columns], rows} = query_result
+    with {:ok, sql_query} <- Cloak.SqlQuery.parse(query.statement), :ok <- validate(sql_query) do
+       execute_sql_query(sql_query)
+    end
+  end
+
+
+  ## ----------------------------------------------------------------
+  ## Internal functions
+  ## ----------------------------------------------------------------
+
+  defp validate(sql_query) do
+    with :ok <- validate_from(sql_query), :ok <- validate_fields(sql_query), do: :ok
+  end
+
+  defp validate_from(%{from: table_identifier}) do
+    case Enum.find_index(DataSource.tables(:local), &(Atom.to_string(&1) === table_identifier)) do
+      nil -> {:error, ~s/Table "#{table_identifier}" doesn't exist./}
+      _ -> :ok
+    end
+  end
+  defp validate_from(%{}), do: :ok
+
+  defp validate_fields(%{select: fields, from: table_identifier}) do
+    table_id = String.to_existing_atom(table_identifier)
+    columns = for {name, _} <- DataSource.columns(:local, table_id), do: name
+    case fields -- columns do
+      [] -> :ok
+      [invalid_field | _rest] -> {:error, ~s/Field "#{invalid_field}" doesn't exist./}
+    end
+  end
+  defp validate_fields(%{}), do: :ok
+
+  defp execute_sql_query(%{show: :tables}) do
+    tables = DataSource.tables(:local)
+    buckets = for table <- tables, do: bucket(property: [table], noisy_count: 1)
+    {:ok, {:buckets, ["name"], buckets}}
+  end
+  defp execute_sql_query(%{show: :columns, from: table_identifier}) do
+    table_id = String.to_existing_atom(table_identifier)
+    columns = DataSource.columns(:local, table_id)
+    buckets = for {name, type} <- columns, do: bucket(property: [name, type], noisy_count: 1)
+    {:ok, {:buckets, ["name", "type"], buckets}}
+  end
+  defp execute_sql_query(select_query) do
+    with {:ok, {_count, [_user_id | columns], rows}} <- DataSource.select(:local, select_query) do
       lcf_data = LCFData.new()
 
-      reportable_buckets = group_by_user(rows)
-      |> Cloak.Processor.AccumulateCount.pre_process()
-      |> anonymize(lcf_data)
-      |> post_process(lcf_data, length(columns))
-
-      LCFData.delete(lcf_data)
+      reportable_buckets = try do
+        group_by_user(rows)
+        |> Processor.AccumulateCount.pre_process()
+        |> anonymize(lcf_data)
+        |> post_process(lcf_data, length(columns))
+      after
+        LCFData.delete(lcf_data)
+      end
 
       {:ok, {:buckets, columns, reportable_buckets}}
     end
@@ -40,16 +83,16 @@ defmodule Cloak.Query.Runner do
   end
 
   defp post_process(buckets, lcf_data, columns_count) do
-    post_processed_buckets = Cloak.Processor.AccumulateCount.post_process(buckets)
+    post_processed_buckets = Processor.AccumulateCount.post_process(buckets)
 
     # We also want to account for the number of low count filtered properties
     lcf_property = List.duplicate("*", columns_count)
     low_count_filter_data = LCFData.filtered_property_counts(lcf_data)
     |> Enum.map(fn({user, count}) -> {user, List.duplicate(lcf_property, count)} end)
 
-    lcf_buckets = Cloak.Processor.AccumulateCount.pre_process(low_count_filter_data)
+    lcf_buckets = Processor.AccumulateCount.pre_process(low_count_filter_data)
     |> anonymize(:undefined)
-    |> Cloak.Processor.AccumulateCount.post_process
+    |> Processor.AccumulateCount.post_process
 
     post_processed_buckets ++ lcf_buckets
   end

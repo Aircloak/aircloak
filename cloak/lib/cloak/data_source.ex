@@ -56,8 +56,8 @@ defmodule Cloak.DataSource do
     @doc "Retrieves the existing columns for the specified table name and data source id."
     @callback get_columns(atom, String.t) :: [[{String.t, DataSource.data_type}]]
 
-    @doc "Database specific implementation for the `DataSource.query` functionality."
-    @callback query(atom, Cloak.SqlQuery.t) :: {:ok, Cloak.DataSource.query_result} | {:error, any}
+    @doc "Database specific implementation for the `DataSource.select` functionality."
+    @callback select(atom, Cloak.SqlQuery.t) :: {:ok, Cloak.DataSource.query_result} | {:error, any}
   end
 
 
@@ -117,17 +117,20 @@ defmodule Cloak.DataSource do
   end
 
   @doc """
-  Execute a query over the specified data source.
+  Execute a `select` query over the specified data source.
   Returns {RowCount, Columns, Rows}.
   """
-  @spec query(atom, String.t) :: {:ok, query_result} | {:error, any}
-  def query(source_id, raw_query) do
+  @spec select(atom, Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
+  def select(source_id, %{select: fields, from: table_identifier} = select_query) do
     data_sources = Application.get_env(:cloak, :data_sources)
     data_source = data_sources[source_id]
     driver = data_source[:driver]
-
-    with {:ok, query} <- parse_query(raw_query, data_source), do:
-      driver.query(source_id, query)
+    table_id = String.to_existing_atom(table_identifier)
+    table = data_source[:tables][table_id]
+    user_id = Keyword.fetch!(table, :user_id)
+    table_name = Keyword.fetch!(table, :name)
+    # insert the user_id column into the fields list, translate the table name and execute the `select` query
+    driver.select(source_id, %{select_query | select: [user_id | fields], from: table_name})
   end
 
 
@@ -187,22 +190,6 @@ defmodule Cloak.DataSource do
     end
   end
 
-  defp parse_query(raw_query, data_source) do
-    with {:ok, query} <- Cloak.SqlQuery.parse(raw_query),
-         {:ok, user_id_column} <- user_id_column(data_source, query.from) do
-      {:ok, %{query | select: [user_id_column | query.select]}}
-    end
-  end
-
-  defp user_id_column(data_source, table_name) do
-    data_source[:tables]
-    |> Stream.map(fn({_, meta}) -> meta end)
-    |> Enum.find(&(&1[:name] == table_name))
-    |> case do
-          nil -> {:error, "Table #{table_name} doesn't exist"}
-          table -> {:ok, Keyword.fetch!(table, :user_id)}
-        end
-  end
 
   #-----------------------------------------------------------------------------------------------------------
   # Test functions
