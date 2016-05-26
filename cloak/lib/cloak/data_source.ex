@@ -197,9 +197,8 @@ defmodule Cloak.DataSource do
 
   if Mix.env == :test do
     @doc false
-    def register_test_table(table_name, user_id) do
+    def register_test_table(table_id, table_name, user_id) do
       source = Application.get_env(:cloak, :data_sources)[:local]
-      table_id = String.to_atom(table_name)
       table = [name: table_name, user_id: user_id]
       tables = Keyword.put(source[:tables], table_id, table)
       source = Keyword.put(source, :tables, tables)
@@ -208,9 +207,8 @@ defmodule Cloak.DataSource do
     end
 
     @doc false
-    def unregister_test_table(table_name) do
+    def unregister_test_table(table_id) do
       source = Application.get_env(:cloak, :data_sources)[:local]
-      table_id = String.to_existing_atom(table_name)
       tables = Keyword.delete(source[:tables], table_id)
       source = Keyword.put(source, :tables, tables)
       Application.put_env(:cloak, :data_sources, [local: source])

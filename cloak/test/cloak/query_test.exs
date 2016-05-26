@@ -24,7 +24,7 @@ defmodule Cloak.QueryTest do
 
   test "query execution" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    :ok = start_query("select height from cloak_test.heights")
+    :ok = start_query("select height from heights")
 
     assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
     assert 100 == length(rows)
@@ -38,7 +38,7 @@ defmodule Cloak.QueryTest do
       assert :ok = insert_rows(_user_ids = range, "heights", ["height"], [100 + id])
     end
 
-    :ok = start_query("select height from cloak_test.heights")
+    :ok = start_query("select height from heights")
 
     assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
     groups = rows
@@ -55,7 +55,7 @@ defmodule Cloak.QueryTest do
   end
 
   test "query reports an error on invalid column" do
-    :ok = start_query("select invalid_column from cloak_test.heights")
+    :ok = start_query("select invalid_column from heights")
     assert_receive {:reply, %{query_id: "1", error: error}}
     assert ~s/Field "invalid_column" doesn't exist./ == error
   end
