@@ -15,7 +15,6 @@
 set_tcp_ports test
 
 # Site names
-etcd_set /site/api "api.air-local"
 etcd_set /site/aircloak "aircloak.air-local"
 etcd_set /site/insights "localhost"
 

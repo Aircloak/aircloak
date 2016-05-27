@@ -48,7 +48,6 @@ function generate_nginx_conf {
       #   - Replace absolute /etc/... path with the path in this folder
       cat $config \
       | sed "s#\$INSIGHTS_SITE#$(etcd_get /site/insights)#" \
-      | sed "s#\$API_SITE#$(etcd_get /site/api)#" \
       | sed "s#\$AIRCLOAK_SITE#$(etcd_get /site/aircloak)#" \
       | sed "s#\$ROUTER_HTTPS_PORT#$(etcd_get /tcp_ports/router/https)#" \
       | sed "s#\$ROUTER_HTTP_PORT#$(etcd_get /tcp_ports/router/http)#" \
@@ -102,7 +101,6 @@ check_etc_hosts
 
 echo "You can access following sites:
   https://insights.air-local:$(etcd_get /tcp_ports/balancer/https)
-  https://api.air-local:$(etcd_get /tcp_ports/balancer/https)
   https://aircloak.air-local:$(etcd_get /tcp_ports/balancer/https)
 
   The services must be individually started, for example with 'cd air/site && make start'.

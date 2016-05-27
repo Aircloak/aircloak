@@ -95,7 +95,6 @@ mv /aircloak/router/docker/nginx/static /etc/nginx/
 for config in $(ls -1 /aircloak/router/docker/nginx/sites/*.conf); do
   cat $config \
   | sed "s#\$INSIGHTS_SITE#$(etcd_get /site/insights)#" \
-  | sed "s#\$API_SITE#$(etcd_get /site/api)#" \
   | sed "s#\$AIRCLOAK_SITE#$(etcd_get /site/aircloak)#" \
   | sed "s#\$ROUTER_HTTPS_PORT#$(tcp_port router/https)#" \
   | sed "s#\$ROUTER_HTTP_PORT#$(tcp_port router/http)#" \

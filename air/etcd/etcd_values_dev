@@ -17,7 +17,6 @@ GATEWAY="127.0.0.1"
 set_tcp_ports dev
 
 # Site names
-etcd_set /site/api "api.air-local"
 etcd_set /site/aircloak "aircloak.air-local"
 etcd_set /site/insights "insights.air-local"
 
