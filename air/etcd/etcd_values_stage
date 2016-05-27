@@ -1,9 +1,7 @@
 . $(dirname ${BASH_SOURCE[0]})/etcd_values_prod
 
-etcd_set /site/frontend "hello-stage.aircloak.com"
 etcd_set /site/api "api-stage.aircloak.com"
 etcd_set /site/infrastructure_api "infrastructure-api-stage.aircloak.com"
-etcd_set /site/airpub "pub-stage.aircloak.com"
 etcd_set /site/aircloak "www-stage.aircloak.com stage.aircloak.com"
 etcd_set /site/insights "insights-stage.aircloak.com"
 
@@ -11,5 +9,3 @@ etcd_set /settings/air/db/host airdb-stage.aircloak.com
 etcd_set /settings/air/db/database aircloakstage
 etcd_set /settings/air/db/username aircloakstage
 etcd_set /settings/air/db/insights_database air_stage
-
-etcd_set /settings/air_backend/integration_test false
