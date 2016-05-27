@@ -33,8 +33,8 @@ defmodule Cloak.DataSource.PostgreSQL do
   end
 
   @doc false
-  def query(source_id, query) do
-    run_query(source_id, query_to_string(query))
+  def select(source_id, sql_query) do
+    run_query(source_id, select_query_to_string(sql_query))
   end
 
 
@@ -71,9 +71,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("interval"), do: :interval
   defp parse_type(type), do: {:unsupported, type}
 
-  defp query_to_string(query) do
-    fields = Enum.map_join(query.select, ",", &("(" <> &1 <> ")::text"))
-    "SELECT #{fields} FROM #{query.from}"
+  defp select_query_to_string(%{select: fields_list, from: table}) do
+    fields_str = Enum.map_join(fields_list, ",", &("(" <> &1 <> ")::text"))
+    "SELECT #{fields_str} FROM #{table}"
   end
 
 

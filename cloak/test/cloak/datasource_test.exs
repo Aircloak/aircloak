@@ -14,17 +14,12 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "schema discovery" do
-    [source_name, table_name] = String.split(:db_test.table_path("test"), "/")
-    table_id = String.to_existing_atom(table_name)
-    source_id = String.to_existing_atom(source_name)
-    assert(Cloak.DataSource.tables(source_id) == [table_id])
-    assert(Cloak.DataSource.columns(source_id, table_id) == [{"value", :integer}])
+    assert(Cloak.DataSource.tables(:local) == [:test])
+    assert(Cloak.DataSource.columns(:local, :test) == [{"value", :integer}])
   end
 
   test "data retrieval" do
-    [source_name, table_name] = String.split(:db_test.table_path("test"), "/")
-    source_id = String.to_existing_atom(source_name)
-    data = Cloak.DataSource.query(source_id, "SELECT value FROM #{table_name}")
+    data = Cloak.DataSource.select(:local, %{select: ["value"], from: "test"})
     assert(data == {:ok, {
       3,
       ["user_id", "value"],

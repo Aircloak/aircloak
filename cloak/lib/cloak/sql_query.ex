@@ -3,16 +3,15 @@ defmodule Cloak.SqlQuery do
   Represents an SQL query.
 
   This module defines a struct which describes an SQL query. You can use the
-  `parse/1` function to convert an SQL query string into a struct.
+  `parse/1` function to convert an SQL query string into a map.
   """
   use Combine
 
-  @type t :: %__MODULE__{
+  @type t :: %{
     from: String.t,
-    select: [String.t]
+    select: [String.t],
+    show: :tables | :columns
   }
-
-  defstruct [:from, :select]
 
 
   # -------------------------------------------------------------------
@@ -31,7 +30,7 @@ defmodule Cloak.SqlQuery do
   def parse(query_string) do
     case Combine.parse(query_string, parser()) do
       {:error, _} = error -> error
-      query_spec -> {:ok, struct!(__MODULE__, query_spec)}
+      query_spec -> {:ok, Enum.into(query_spec, %{})}
     end
   end
 
@@ -41,8 +40,7 @@ defmodule Cloak.SqlQuery do
   # -------------------------------------------------------------------
 
   defp parser do
-    next_token()
-    |> select_statement()
+    either(select_statement(), show_statement())
     |> statement_termination()
     |> end_of_input()
   end
@@ -53,9 +51,32 @@ defmodule Cloak.SqlQuery do
     |> skip(char(?;))
   end
 
-  defp select_statement(parser) do
-    parser
+  defp select_statement() do
+    next_token()
     |> select_columns()
+    |> from()
+  end
+
+  defp show_statement() do
+    either(show_tables(), show_columns())
+  end
+
+  defp show_tables() do
+    next_token()
+    |> pair_both(
+      keyword(:show),
+      keyword(:tables)
+    )
+    |> label("show tables")
+  end
+
+  defp show_columns() do
+    next_token()
+    |> pair_both(
+      keyword(:show),
+      keyword(:columns)
+    )
+    |> label("show columns")
     |> from()
   end
 
@@ -106,6 +127,9 @@ defmodule Cloak.SqlQuery do
   defp keyword_matchers() do
     [
       ~r/SELECT/i,
+      ~r/SHOW/i,
+      ~r/TABLES/i,
+      ~r/COLUMNS/i,
       ~r/FROM/i
     ]
   end

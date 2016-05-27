@@ -24,7 +24,7 @@ defmodule Cloak.QueryTest do
 
   test "query execution" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    :ok = start_query("select height from cloak_test.heights")
+    :ok = start_query("select height from heights")
 
     assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
     assert 100 == length(rows)
@@ -38,7 +38,7 @@ defmodule Cloak.QueryTest do
       assert :ok = insert_rows(_user_ids = range, "heights", ["height"], [100 + id])
     end
 
-    :ok = start_query("select height from cloak_test.heights")
+    :ok = start_query("select height from heights")
 
     assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
     groups = rows
@@ -51,19 +51,20 @@ defmodule Cloak.QueryTest do
 
   test "query reports an error on invalid statement" do
     :ok = start_query("invalid statement")
-    assert_receive {:reply, %{query_id: "1", error: "Expected `select` at line 1, column 1."}}
+    assert_receive {:reply, %{query_id: "1", error: "Expected `select` at line 1, column 1.," <>
+      " or: Expected `show tables` at line 1, column 1., or: Expected `show columns` at line 1, column 1."}}
   end
 
   test "query reports an error on invalid column" do
-    :ok = start_query("select invalid_column from cloak_test.heights")
+    :ok = start_query("select invalid_column from heights")
     assert_receive {:reply, %{query_id: "1", error: error}}
-    assert ~s/ERROR (undefined_column): column "invalid_column" does not exist/ == error
+    assert ~s/Column "invalid_column" doesn't exist./ == error
   end
 
   test "query reports an error on invalid table" do
     :ok = start_query("select column from invalid_table")
     assert_receive {:reply, %{query_id: "1", error: error}}
-    assert ~s/Table invalid_table doesn't exist/ == error
+    assert ~s/Table "invalid_table" doesn't exist./ == error
   end
 
   test "query reports an error on runner crash" do

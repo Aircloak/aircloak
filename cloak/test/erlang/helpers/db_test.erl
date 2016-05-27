@@ -17,8 +17,7 @@
   create_table/2,
   add_users_data/1,
   drop_table/1,
-  clear_table/1,
-  table_path/1
+  clear_table/1
 ]).
 
 
@@ -41,7 +40,8 @@ create_table(TableName, Definition) ->
   Result = 'Elixir.Cloak.DataSource.PostgreSQL':execute(Query, []),
   case Result of
     {ok, _} ->
-      'Elixir.Cloak.DataSource':register_test_table(full_table_name(TableName), <<"user_id">>),
+      'Elixir.Cloak.DataSource':register_test_table(binary_to_atom(TableName, utf8),
+        full_table_name(TableName), <<"user_id">>),
       Result;
     {error, _} -> Result
   end.
@@ -55,7 +55,7 @@ add_users_data(Data) ->
 drop_table(TableName) ->
   case 'Elixir.Cloak.DataSource.PostgreSQL':execute(<<"DROP TABLE ", (sanitized_table(TableName))/binary>>, []) of
     {ok, Result} ->
-      'Elixir.Cloak.DataSource':unregister_test_table(full_table_name(TableName)),
+      'Elixir.Cloak.DataSource':unregister_test_table(binary_to_existing_atom(TableName, utf8)),
       {ok, Result};
     {error, Reason} ->
       {error, Reason}
@@ -64,10 +64,6 @@ drop_table(TableName) ->
 %% @doc Clears a test table
 clear_table(TableName) ->
   'Elixir.Cloak.DataSource.PostgreSQL':execute(<<"TRUNCATE TABLE ", (sanitized_table(TableName))/binary>>, []).
-
-%% @doc Returns the full path for a test table
-table_path(TableName) ->
-  <<"local/", (full_table_name(TableName))/binary>>.
 
 
 %% -------------------------------------------------------------------
