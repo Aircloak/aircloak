@@ -45,17 +45,6 @@ etcd_set /settings/air/integration_test/cluster_size 3
 etcd_set /settings/air/integration_test/data/num_users 40000
 etcd_set /settings/air/integration_test/data/mean_rows_per_user 800
 
-# Whether it is a global installation, or whether it should
-# ignore costly operations involving infrastructure.
-# false is a good choice for local development.
-etcd_set /settings/rails/global true
-
-etcd_set /settings/rails/secrets/private_key_password ""
-etcd_set /settings/rails/secrets/github_oauth_token ""
-etcd_set /settings/rails/secrets/secret_key_base ""
-etcd_set /settings/rails/secrets/ca_path "/aircloak/ca"
-
-
 # External services
 etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/http)
 etcd_set /service/build_server/host build.aircloak.com
