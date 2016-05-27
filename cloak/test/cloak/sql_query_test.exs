@@ -27,7 +27,7 @@ defmodule Cloak.SqlQueryTest do
     assert %{select: ["foO1_"], from: "Ba_z2"} == SqlQuery.parse!("select foO1_ from Ba_z2")
   end
 
-  test "case insensivity" do
+  test "case insensivity of commands" do
     assert %{select: ["foo"], from: "baz"} == SqlQuery.parse!("SELECT foo FROM baz")
   end
 
