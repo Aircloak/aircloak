@@ -34,7 +34,6 @@ etcd_set /settings/air/db/host ${GATEWAY}
 etcd_set /settings/air/db/port $(get_tcp_port dev database/tcp)
 etcd_set /settings/air/db/username air
 etcd_set /settings/air/db/password ''
-etcd_set /settings/air/db/database aircloakdatabase
 etcd_set /settings/air/db/insights_database air_dev
 etcd_set /settings/air/db/ssl false
 
