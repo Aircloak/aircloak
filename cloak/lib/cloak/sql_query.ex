@@ -41,7 +41,6 @@ defmodule Cloak.SqlQuery do
 
   defp parser do
     either(select_statement(), show_statement())
-    |> label("select or show")
     |> statement_termination()
     |> end_of_input()
   end
