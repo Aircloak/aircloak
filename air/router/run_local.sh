@@ -9,21 +9,6 @@ init_env "dev"
 
 function generate_upstreams_conf {
   cat <<EOF > ./nginx_local/sites/upstreams.conf
-    upstream frontend {
-      server 127.0.0.1:$(etcd_get /tcp_ports/air_frontend/http);
-      $(cat ./docker/nginx/support/upstream_keepalive.conf)
-    }
-    upstream backend {
-      server 127.0.0.1:$(etcd_get /tcp_ports/air_backend/http);
-      $(cat ./docker/nginx/support/upstream_keepalive.conf)
-    }
-    upstream airpub {
-      server 127.0.0.1:$(etcd_get /tcp_ports/airpub/http);
-      $(cat ./docker/nginx/support/upstream_keepalive.conf)
-    }
-    upstream local_backend {
-      server 127.0.0.1:$(etcd_get /tcp_ports/air_backend/http);
-    }
     upstream insights {
       server 127.0.0.1:$(etcd_get /tcp_ports/insights/http);
       $(cat ./docker/nginx/support/upstream_keepalive.conf)
@@ -62,11 +47,7 @@ function generate_nginx_conf {
       #   - Don't use proxy protocol and http_real_ip module.
       #   - Replace absolute /etc/... path with the path in this folder
       cat $config \
-      | sed "s#\$FRONTEND_SITE#$(etcd_get /site/frontend)#" \
       | sed "s#\$INSIGHTS_SITE#$(etcd_get /site/insights)#" \
-      | sed "s#\$API_SITE#$(etcd_get /site/api)#" \
-      | sed "s#\$INFRASTRUCTURE_API_SITE#$(etcd_get /site/infrastructure_api)#" \
-      | sed "s#\$AIRPUB_SITE#$(etcd_get /site/airpub)#" \
       | sed "s#\$AIRCLOAK_SITE#$(etcd_get /site/aircloak)#" \
       | sed "s#\$ROUTER_HTTPS_PORT#$(etcd_get /tcp_ports/router/https)#" \
       | sed "s#\$ROUTER_HTTP_PORT#$(etcd_get /tcp_ports/router/http)#" \
@@ -120,11 +101,7 @@ check_etc_hosts
 
 echo "You can access following sites:
   https://insights.air-local:$(etcd_get /tcp_ports/balancer/https)
-  https://frontend.air-local:$(etcd_get /tcp_ports/balancer/https)
-  https://api.air-local:$(etcd_get /tcp_ports/balancer/https)
-  https://infrastructure-api.air-local:$(etcd_get /tcp_ports/balancer/https)
   https://aircloak.air-local:$(etcd_get /tcp_ports/balancer/https)
-  https://airpub.air-local:$(etcd_get /tcp_ports/balancer/https)
 
   The services must be individually started, for example with 'cd air/site && make start'.
   See their READMEs (e.g. air/site/README.md) for details

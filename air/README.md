@@ -31,7 +31,6 @@ This repository contains the Air system, which provides HTTPS endpoints that all
 These features are provided through the following endpoints:
 
 - Web user interface (hello.aircloak.com)
-- Internal infrastructure API (infrastructure-api.aircloak.com)
 - Analysts API (analyst-api.aircloak.com)
 
 
@@ -40,13 +39,11 @@ These features are provided through the following endpoints:
 The air system consists of following components:
 
 - `site` - The new Air system (insights) which unifies `frontend` and `backend` roles.
-- `backend` - Erlang system which implements various processes in the air system, such as publishing of task results (airpub), or background and periodic jobs.
 - `balancer` - TCP balancer that forwards requests to multiple routers.
 - `coreos` - Vagrant powered CoreOS system that runs cluster of air machines.
 - `db` - Dockerized database server (used only for development and testing)
 - `docker_registry` - Containerized Docker registry (needed for CoreOS)
 - `etcd` - Dockerized KV registry where system configuration is stored. All other components retrieve their settings from here (e.g. database settings, or addresses of other services)
-- `frontend` - Web user interface
 - `router` - http(s) interface that routes all requests.
 
 Specific details of each component are describe in `README.md` in their corresponding folders. This document provides general instructions on starting the entire system and deploying.
@@ -103,13 +100,11 @@ You'll need to one-time add some entries to your `/etc/hosts`. Watch the end of 
 
 __Note__: some sane default settings are provided. If you need to override them, see [here](etcd/README.md#overriding-settings).
 
-You can migrate the database with `cd frontend && bundle exec rake db:migrate`.
-
 If you want to transfer your previous data from the localhost database to the docker one, see [here](db/README.md#migrating-data) for instructions.
 
 ### Running the system on the localhost
 
-Make sure that all dependencies have been fetched, that backend is built (`cd backend && make`), and the required components are started (see above).
+Make sure that all dependencies have been fetched, and the required components are started (see above).
 
 Now you can start components in the usual way:
 
@@ -125,7 +120,7 @@ If all data is migrated, you should see all clusters/cloaks (make sure to impers
 
 You can start the entire system as docker containers. This gives you an environment very similar to the real production. In particular, each component is running in production mode. Moreover, the balancer container is started, which allows you to test the complete production request path (`balancer -> router -> service`).
 
-To start the system, you can invoke `./dockerized_air.sh start` which will rebuild all images and start required containers in background. If everything is fine, you should be able to access the web via https://frontend.air-local:20100.
+To start the system, you can invoke `./dockerized_air.sh start` which will rebuild all images and start required containers in background. If everything is fine, you should be able to access the web via https://insights.air-local:20000.
 
 If you want to start each container separately in a foreground, make sure that the required components are started with `./start_dependencies.sh`.
 
@@ -233,13 +228,9 @@ __Note:__ These need to be executed on a CoreOS machine.
 - Start the system: `sudo coreos-cloudinit --from-file=/var/lib/coreos-install/user_data`
 - Shell to the running container:
     - `/aircloak/air/site/container.sh ssh`
-    - `/aircloak/air/frontend/container.sh ssh`
-    - `/aircloak/air/backend/container.sh ssh`
     - `/aircloak/air/router/container.sh ssh`
 - Shell to Rails/Erlang console:
     - `/aircloak/air/site/container.sh remote_console`
-    - `/aircloak/air/frontend/container.sh remote_console`
-    - `/aircloak/air/backend/container.sh remote_console`
 - Maintenance mode:
     - `/aircloak/air/router/container.sh maintenance_on`
     - `/aircloak/air/router/container.sh maintenance_off`

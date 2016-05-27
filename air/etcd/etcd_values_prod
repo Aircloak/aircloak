@@ -15,10 +15,6 @@
 set_tcp_ports prod
 
 # Site names
-etcd_set /site/frontend "hello.aircloak.com"
-etcd_set /site/api "api.aircloak.com"
-etcd_set /site/infrastructure_api "infrastructure-api.aircloak.com"
-etcd_set /site/airpub "pub.aircloak.com"
 etcd_set /site/aircloak "www.aircloak.com aircloak.com"
 etcd_set /site/insights "insights.aircloak.com"
 
@@ -34,47 +30,12 @@ etcd_set /settings/air/db/host airdb.aircloak.com
 etcd_set /settings/air/db/port 5432
 etcd_set /settings/air/db/username aircloak
 etcd_set /settings/air/db/password ""
-etcd_set /settings/air/db/database aircloakdatabase
 etcd_set /settings/air/db/insights_database air_prod
 etcd_set /settings/air/db/ssl true
 
-# Integration test settings
-# Each row we upload is 504 bytes of data.
-# We want a total of 100GB worth (100000000000 bytes).
-# We therefore need at the very least 198,412,699 records.
-# With an average of 800 records per user we are just above 100GB
-# in total of data.
-etcd_set /settings/air/integration_test/cluster_size 3
-etcd_set /settings/air/integration_test/data/num_users 40000
-etcd_set /settings/air/integration_test/data/mean_rows_per_user 800
-
-# Whether it is a global installation, or whether it should
-# ignore costly operations involving infrastructure.
-# false is a good choice for local development.
-etcd_set /settings/rails/global true
-
-etcd_set /settings/rails/task/publish_url https://$(etcd_get /site/airpub)/publish
-
-etcd_set /settings/rails/secrets/private_key_password ""
-etcd_set /settings/rails/secrets/github_oauth_token ""
-etcd_set /settings/rails/secrets/secret_key_base ""
-etcd_set /settings/rails/secrets/ca_path "/aircloak/ca"
-
-etcd_set /settings/air_backend/integration_test true
-
 # External services
-etcd_set /service/frontend_local http://frontend.air-local:$(etcd_get /tcp_ports/router/http)
-etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/http)
-etcd_set /service/backend_local http://backend.air-local:$(etcd_get /tcp_ports/router/http)
-etcd_set /service/airpub/shared_secret ""
-etcd_set /service/airpub/subscribe_endpoint "wss://$(etcd_get /site/airpub)/subscribe/ws"
 etcd_set /service/build_server/host build.aircloak.com
-etcd_set /service/cloak/port 443
-etcd_set /service/cloak/protocol https
-etcd_set /service/manny_air/host localhost
-etcd_set /service/airpub/allow_publish "127.0.0.0/8 139.19.208.0/24 139.19.210.0/24"
 # Frontier (139.19.208.0/24), Sanctuary (139.19.209.0/24), Pink Frontier (139.19.210.0/24)
-etcd_set /service/infrastructure_api/allow "139.19.208.0/24 139.19.209.0/24 139.19.210.0/24"
 
 # Registered local symbolic names
-etcd_set /service/local_names "frontend backend api infrastructure-api aircloak airpub"
+etcd_set /service/local_names "aircloak"

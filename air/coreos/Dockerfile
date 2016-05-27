@@ -7,8 +7,6 @@ RUN mkdir -p /aircloak/air/static_website && \
 COPY config/config.sh config/tcp_ports.json /aircloak/air/config/
 COPY etcd /aircloak/air/etcd/
 COPY common/docker_helper.sh /aircloak/air/common/
-COPY frontend/container.sh /aircloak/air/frontend/
-COPY backend/container.sh /aircloak/air/backend/
 COPY site/container.sh /aircloak/air/site/
 COPY router/container.sh /aircloak/air/router/
 

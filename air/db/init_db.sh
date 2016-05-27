@@ -47,7 +47,6 @@ until server_is_up; do
 done
 
 conditionally_create_user "air"
-conditionally_create_database "aircloakdatabase" "air"
 
 conditionally_create_user "airtest"
 psql -U postgres -c "ALTER USER airtest CREATEDB"

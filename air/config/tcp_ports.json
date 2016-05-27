@@ -34,20 +34,8 @@
     "etcd/peer": 21,
     "balancer/http": 22,
     "router/http": 23,
-    "air_frontend/http": 24,
-    "air_backend/epmd": 25,
     "registry/http": 26,
     "insights/http": 27,
-
-    // Ports 30-34 are reserved for HTTP of the backend node.
-    // Ports 35-39 are reserved for inet_dist of the backend node.
-    // We use multiple ports to support multiple instances on the same machine.
-    "air_backend/http": 30,
-    "air_backend/inet_dist_listen_min": 35,
-    "air_backend/inet_dist_listen_max": 39,
-
-    // Ports 40-44 are reserved for airpub HTTP of the backend node.
-    "airpub/http": 40,
 
     // We use proxy protocol to listen on these ports. This allows us to use
     // haproxy balancer and forward IP addresses of clients.

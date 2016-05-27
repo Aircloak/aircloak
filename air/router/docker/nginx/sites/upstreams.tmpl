@@ -1,70 +1,3 @@
-upstream frontend {
-  {{ if ls "/service_instances/frontends" }}
-    {{ if exists "/service_instances/frontends/$AIR_HOST_NAME"}}
-      {{/* Set local service as primary, others as backup */}}
-      {{ range gets "/service_instances/frontends/*" }}
-        {{ $data := json .Value }}
-        {{ if eq .Key "/service_instances/frontends/$AIR_HOST_NAME"}}
-          {{/* Use the known address of the host instead of the public ip */}}
-          server 127.0.0.1:$AIR_FRONTEND_HTTP_PORT;
-        {{ else }}
-          server {{ $data.http_endpoint }} backup;
-        {{ end }}
-      {{ end }}
-    {{ else }}
-      {{/* No local service -> make all upstreams primary */}}
-      {{ range gets "/service_instances/frontends/*" }}
-        {{ $data := json .Value }}
-        server {{ $data.http_endpoint }};
-      {{ end }}
-    {{ end }}
-  {{ else }}
-    {{/* No registered service -> hardcode one required upstream to the local service */}}
-    server 127.0.0.1:$AIR_FRONTEND_HTTP_PORT;
-  {{ end }}
-
-  include /etc/nginx/support/upstream_keepalive.conf;
-}
-
-upstream airpub {
-  {{ if exists "/service/airpub_leader" }}
-    server {{ getv "/service/airpub_leader" }};
-  {{ else }}
-    {{/* No registered service -> hardcode one required upstream to the local service */}}
-    server 127.0.0.1:$AIRPUB_HTTP_PORT;
-  {{ end }}
-
-  include /etc/nginx/support/upstream_keepalive.conf;
-}
-
-upstream backend {
-  {{ if ls "/service_instances/backends" }}
-    {{ if exists "/service_instances/backends/$AIR_HOST_NAME_$AIR_BACKEND_HTTP_PORT"}}
-      {{/* Set local service as primary, others as backup */}}
-      {{ range gets "/service_instances/backends/*" }}
-        {{ $data := json .Value }}
-        {{ if eq .Key "/service_instances/backends/$AIR_HOST_NAME_$AIR_BACKEND_HTTP_PORT"}}
-          {{/* Use the known address of the host instead of the public ip */}}
-          server 127.0.0.1:$AIR_BACKEND_HTTP_PORT;
-        {{ else }}
-          server {{ $data.http_endpoint }} backup;
-        {{ end }}
-      {{ end }}
-    {{ else }}
-      {{/* No local service -> make all upstreams primary */}}
-      {{ range gets "/service_instances/backends/*" }}
-        {{ $data := json .Value }}
-        server {{ $data.http_endpoint }};
-      {{ end }}
-    {{ end }}
-  {{ else }}
-    {{/* No registered service -> hardcode one required upstream to the local service */}}
-    server 127.0.0.1:$AIR_BACKEND_HTTP_PORT;
-  {{ end }}
-
-  include /etc/nginx/support/upstream_keepalive.conf;
-}
-
 upstream insights {
   {{ if ls "/service_instances/insights" }}
     {{ if exists "/service_instances/insights/$AIR_HOST_NAME_$AIR_INSIGHTS_HTTP_PORT"}}
@@ -91,14 +24,6 @@ upstream insights {
   {{ end }}
 
   include /etc/nginx/support/upstream_keepalive.conf;
-}
-
-# References just the local backend. Needed for monitoring purposes.
-# Note that we deliberately don't include upstream_keepalive.conf here, since this
-# is needed only for periodic monitor pings, so we don't want to keep connections
-# open.
-upstream local_backend {
-  server 127.0.0.1:$AIR_BACKEND_HTTP_PORT;
 }
 
 upstream aircloak {
