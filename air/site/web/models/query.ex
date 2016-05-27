@@ -1,15 +1,15 @@
-defmodule Air.Task do
-  @moduledoc "The task model."
+defmodule Air.Query do
+  @moduledoc "The query model."
   use Air.Web, :model
 
   alias Air.{User, Result}
 
   @type t :: %__MODULE__{}
-  @type cloak_query :: %{id: String.t, prefetch: [%{table: String.t}], query: String.t}
+  @type cloak_query :: %{id: String.t, prefetch: [%{table: String.t}], statement: String.t}
 
   @primary_key {:id, :binary_id, autogenerate: true}
-  schema "tasks" do
-    field :query, :string
+  schema "queries" do
+    field :statement, :string
     field :cloak_id, :string
     field :data_source, :string
     field :tables, {:array, :string}
@@ -21,7 +21,7 @@ defmodule Air.Task do
   end
 
   @required_fields ~w()
-  @optional_fields ~w(query cloak_id data_source tables)
+  @optional_fields ~w(statement cloak_id data_source tables)
 
 
   # -------------------------------------------------------------------
@@ -40,19 +40,19 @@ defmodule Air.Task do
     |> cast(params, @required_fields, @optional_fields)
   end
 
-  @doc "Converts the task model to the cloak compliant data."
+  @doc "Converts the query model to the cloak compliant data."
   @spec to_cloak_query(t) :: cloak_query
   def to_cloak_query(model) do
     %{
       id: model.id,
       prefetch: Enum.map(model.tables, &%{table: "#{model.data_source}/#{&1}"}),
-      statement: model.query
+      statement: model.statement
     }
   end
 
 
   # -------------------------------------------------------------------
-  # Task query functions
+  # Query functions
   # -------------------------------------------------------------------
 
   def for_user(query \\ __MODULE__, user) do

@@ -14,19 +14,19 @@ defmodule Air.Socket.Frontend.UserChannelTest do
     {:ok, user: user}
   end
 
-  test "results of tasks are pushed to the user", %{user: user} do
-    task = create_task!(user)
-    result = %{"query_id" => task.id, "some" => "data"}
+  test "results of queries are pushed to the user", %{user: user} do
+    query = create_query!(user)
+    result = %{"query_id" => query.id, "some" => "data"}
 
     UserChannel.broadcast_result(result)
 
-    expected = Map.put(result, "query", task.query)
+    expected = Map.put(result, "statement", query.statement)
     assert_push("result", ^expected)
   end
 
-  test "results of other user's tasks are not pushed to the user" do
-    task = create_task!(_other_user = create_user!())
-    result = %{"query_id" => task.id, "some" => "data"}
+  test "results of other user's queries are not pushed to the user" do
+    query = create_query!(_other_user = create_user!())
+    result = %{"query_id" => query.id, "some" => "data"}
 
     UserChannel.broadcast_result(result)
 

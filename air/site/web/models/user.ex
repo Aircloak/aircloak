@@ -6,7 +6,7 @@ defmodule Air.User do
 
   alias Ecto.Changeset
   alias Comeonin.Pbkdf2, as: Hash
-  alias Air.{Organisation, Task}
+  alias Air.{Organisation, Query}
 
   @type t :: %__MODULE__{}
   @type role_id :: non_neg_integer
@@ -22,7 +22,7 @@ defmodule Air.User do
 
     belongs_to :organisation, Organisation
 
-    has_many :tasks, Task
+    has_many :queries, Query
 
     timestamps
 

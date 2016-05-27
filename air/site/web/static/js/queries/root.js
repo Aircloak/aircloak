@@ -14,12 +14,12 @@ class QueriesView extends React.Component {
     super(props);
 
     this.state = {
-      query: this.props.results[0] ? this.props.results[0].query : "",
+      statement: this.props.results[0] ? this.props.results[0].statement : "",
       dataSource: this.props.sources[0] ? this.props.sources[0].token : "",
       sessionResults: [],
     };
 
-    this.setQuery = this.setQuery.bind(this);
+    this.setStatement = this.setStatement.bind(this);
     this.setDataSource = this.setDataSource.bind(this);
     this.runQuery = this.runQuery.bind(this);
     this.queryData = this.queryData.bind(this);
@@ -31,8 +31,8 @@ class QueriesView extends React.Component {
     });
   }
 
-  setQuery(query) {
-    this.setState({query});
+  setStatement(statement) {
+    this.setState({statement});
   }
 
   setDataSource(dataSource) {
@@ -50,7 +50,7 @@ class QueriesView extends React.Component {
   queryData() {
     return JSON.stringify({
       query: {
-        query: this.state.query,
+        statement: this.state.statement,
         data_source_token: this.state.dataSource,
       },
     });
@@ -70,7 +70,7 @@ class QueriesView extends React.Component {
   }
 
   addError(text) {
-    this.addResult({query: this.state.query, error: text});
+    this.addResult({statement: this.state.statement, error: text});
   }
 
   render() {
@@ -78,8 +78,8 @@ class QueriesView extends React.Component {
       <CodeEditor
         onRun={this.runQuery}
         onSave={() => {}}
-        onChange={this.setQuery}
-        query={this.state.query}
+        onChange={this.setStatement}
+        statement={this.state.statement}
       />
 
       <div className="query-menu">

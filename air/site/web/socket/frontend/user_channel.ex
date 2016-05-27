@@ -1,14 +1,14 @@
 defmodule Air.Socket.Frontend.UserChannel do
   @moduledoc """
-  Channel used for communicating events related to tasks.
+  Channel used for communicating events related to queries.
   For the time being no incoming messages are supported,
   but we do support two outgoing type of messages:
 
-  - __result__: reports new results as tasks finish executing
+  - __result__: reports new results as queries finish executing
   """
   use Air.Web, :channel
   require Logger
-  alias Air.{Task, Repo}
+  alias Air.{Query, Repo}
 
 
   # -------------------------------------------------------------------
@@ -16,14 +16,14 @@ defmodule Air.Socket.Frontend.UserChannel do
   # -------------------------------------------------------------------
 
   @doc """
-  Broadcasts the results of a task execution to all listening clients.
+  Broadcasts the results of a query execution to all listening clients.
   """
-  @spec broadcast_result(Task.result) :: :ok
+  @spec broadcast_result(Query.result) :: :ok
   def broadcast_result(result) do
-    task = Repo.get!(Task, result["query_id"])
-    payload = Map.put(result, "query", task.query)
+    query = Repo.get!(Query, result["query_id"])
+    payload = Map.put(result, "statement", query.statement)
 
-    Air.Endpoint.broadcast_from!(self(), "user:#{task.user_id}", "result", payload)
+    Air.Endpoint.broadcast_from!(self(), "user:#{query.user_id}", "result", payload)
 
     :ok
   end
