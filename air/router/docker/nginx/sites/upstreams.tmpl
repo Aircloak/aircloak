@@ -1,14 +1,3 @@
-upstream airpub {
-  {{ if exists "/service/airpub_leader" }}
-    server {{ getv "/service/airpub_leader" }};
-  {{ else }}
-    {{/* No registered service -> hardcode one required upstream to the local service */}}
-    server 127.0.0.1:$AIRPUB_HTTP_PORT;
-  {{ end }}
-
-  include /etc/nginx/support/upstream_keepalive.conf;
-}
-
 upstream insights {
   {{ if ls "/service_instances/insights" }}
     {{ if exists "/service_instances/insights/$AIR_HOST_NAME_$AIR_INSIGHTS_HTTP_PORT"}}
