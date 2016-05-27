@@ -67,6 +67,7 @@ defmodule Cloak.SqlQuery do
       keyword(:show),
       keyword(:tables)
     )
+    |> label("show tables")
   end
 
   defp show_columns() do
@@ -75,6 +76,7 @@ defmodule Cloak.SqlQuery do
       keyword(:show),
       keyword(:columns)
     )
+    |> label("show columns")
     |> from()
   end
 
