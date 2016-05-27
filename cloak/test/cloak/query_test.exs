@@ -58,7 +58,7 @@ defmodule Cloak.QueryTest do
   test "query reports an error on invalid column" do
     :ok = start_query("select invalid_column from heights")
     assert_receive {:reply, %{query_id: "1", error: error}}
-    assert ~s/Field "invalid_column" doesn't exist./ == error
+    assert ~s/Column "invalid_column" doesn't exist./ == error
   end
 
   test "query reports an error on invalid table" do

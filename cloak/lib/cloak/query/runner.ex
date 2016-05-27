@@ -21,7 +21,7 @@ defmodule Cloak.Query.Runner do
   ## ----------------------------------------------------------------
 
   defp validate(sql_query) do
-    with :ok <- validate_from(sql_query), :ok <- validate_fields(sql_query), do: :ok
+    with :ok <- validate_from(sql_query), :ok <- validate_columns(sql_query), do: :ok
   end
 
   defp validate_from(%{from: table_identifier}) do
@@ -32,15 +32,15 @@ defmodule Cloak.Query.Runner do
   end
   defp validate_from(%{}), do: :ok
 
-  defp validate_fields(%{select: fields, from: table_identifier}) do
+  defp validate_columns(%{select: selected_columns, from: table_identifier}) do
     table_id = String.to_existing_atom(table_identifier)
-    columns = for {name, _} <- DataSource.columns(:local, table_id), do: name
-    case fields -- columns do
+    existing_columns = for {name, _} <- DataSource.columns(:local, table_id), do: name
+    case selected_columns -- existing_columns do
       [] -> :ok
-      [invalid_field | _rest] -> {:error, ~s/Field "#{invalid_field}" doesn't exist./}
+      [invalid_column | _rest] -> {:error, ~s/Column "#{invalid_column}" doesn't exist./}
     end
   end
-  defp validate_fields(%{}), do: :ok
+  defp validate_columns(%{}), do: :ok
 
   defp execute_sql_query(%{show: :tables}) do
     tables = DataSource.tables(:local)
