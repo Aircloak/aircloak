@@ -39,7 +39,7 @@ defmodule Air.TestRepoHelper do
 
   @doc "Inserts a test query into the database"
   @spec create_query!(Air.User.t, %{}) :: Air.Query.t
-  def create_query!(user, params \\ %{name: "name", query: "query content", permanent: true}) do
+  def create_query!(user, params \\ %{query: "query content"}) do
     user
     |> Ecto.build_assoc(:queries)
     |> Air.Query.changeset(params)
