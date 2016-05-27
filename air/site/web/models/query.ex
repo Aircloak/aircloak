@@ -52,7 +52,7 @@ defmodule Air.Query do
 
 
   # -------------------------------------------------------------------
-  # Functions by which to query for a queries
+  # Query functions
   # -------------------------------------------------------------------
 
   def for_user(query \\ __MODULE__, user) do
