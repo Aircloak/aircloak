@@ -33,16 +33,6 @@ etcd_set /settings/air/db/password ""
 etcd_set /settings/air/db/insights_database air_prod
 etcd_set /settings/air/db/ssl true
 
-# Integration test settings
-# Each row we upload is 504 bytes of data.
-# We want a total of 100GB worth (100000000000 bytes).
-# We therefore need at the very least 198,412,699 records.
-# With an average of 800 records per user we are just above 100GB
-# in total of data.
-etcd_set /settings/air/integration_test/cluster_size 3
-etcd_set /settings/air/integration_test/data/num_users 40000
-etcd_set /settings/air/integration_test/data/mean_rows_per_user 800
-
 # External services
 etcd_set /service/build_server/host build.aircloak.com
 # Frontier (139.19.208.0/24), Sanctuary (139.19.209.0/24), Pink Frontier (139.19.210.0/24)

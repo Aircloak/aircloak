@@ -33,11 +33,6 @@ etcd_set /settings/air/db/password ''
 etcd_set /settings/air/db/insights_database air_test
 etcd_set /settings/air/db/ssl false
 
-# Integration test settings
-etcd_set /settings/air/integration_test/cluster_size 1
-etcd_set /settings/air/integration_test/data/num_users 100
-etcd_set /settings/air/integration_test/data/mean_rows_per_user 10
-
 # External services
 etcd_set /service/build_server/host ""
 
