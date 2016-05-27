@@ -20,12 +20,6 @@ set_tcp_ports dev
 etcd_set /site/aircloak "aircloak.air-local"
 etcd_set /site/insights "insights.air-local"
 
-etcd_set /settings/mail/smtp/address smtp.mandrillapp.com
-etcd_set /settings/mail/smtp/port 587
-etcd_set /settings/mail/smtp/username "sebastian@aircloak.com"
-etcd_set /settings/mail/smtp/password "_EFioVwohF4p6bHBbdaAGw" # This is a valid mandrill test key. API works, but no emails sent
-etcd_set /settings/mail/smtp/domain "aircloak.com"
-
 # The database settings are set once when the app launches
 # and cannot be changed without relaunching the container.
 etcd_set /settings/air/db/host ${GATEWAY}

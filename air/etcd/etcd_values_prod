@@ -18,12 +18,6 @@ set_tcp_ports prod
 etcd_set /site/aircloak "www.aircloak.com aircloak.com"
 etcd_set /site/insights "insights.aircloak.com"
 
-etcd_set /settings/mail/smtp/address smtp.mandrillapp.com
-etcd_set /settings/mail/smtp/port 587
-etcd_set /settings/mail/smtp/username "sebastian@aircloak.com"
-etcd_set /settings/mail/smtp/password ""
-etcd_set /settings/mail/smtp/domain "aircloak.com"
-
 # The database settings are set once when the app launches
 # and cannot be changed without relaunching the container.
 etcd_set /settings/air/db/host airdb.aircloak.com
