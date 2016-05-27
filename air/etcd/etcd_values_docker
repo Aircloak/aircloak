@@ -47,7 +47,6 @@ etcd_set /settings/air/integration_test/data/mean_rows_per_user 100
 etcd_set /service/build_server/host localhost
 etcd_set /service/cloak/port 8098
 etcd_set /service/cloak/protocol http
-etcd_set /service/manny_air/host localhost
 
 # Insights secrets
 etcd_set /settings/air/insights/secrets/guardian_key "6MvtANFkxCr3VaDY/C8oCooF6Pg1uqFzOWNYVMry/V5acmSPuQydPeU5X5Jh"

@@ -47,7 +47,6 @@ etcd_set /settings/air/integration_test/data/mean_rows_per_user 800
 etcd_set /service/build_server/host build.aircloak.com
 etcd_set /service/cloak/port 443
 etcd_set /service/cloak/protocol https
-etcd_set /service/manny_air/host localhost
 # Frontier (139.19.208.0/24), Sanctuary (139.19.209.0/24), Pink Frontier (139.19.210.0/24)
 
 # Registered local symbolic names
