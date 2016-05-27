@@ -37,12 +37,12 @@ defmodule Air.TestRepoHelper do
     create_user!(org, :user)
   end
 
-  @doc "Inserts a test task into the database"
-  @spec create_task!(Air.User.t, %{}) :: Air.Task.t
-  def create_task!(user, params \\ %{name: "name", query: "query content", permanent: true}) do
+  @doc "Inserts a test query into the database"
+  @spec create_query!(Air.User.t, %{}) :: Air.Query.t
+  def create_query!(user, params \\ %{name: "name", query: "query content", permanent: true}) do
     user
-    |> Ecto.build_assoc(:tasks)
-    |> Air.Task.changeset(params)
+    |> Ecto.build_assoc(:queries)
+    |> Air.Query.changeset(params)
     |> Air.Repo.insert!()
   end
 

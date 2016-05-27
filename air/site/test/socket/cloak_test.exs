@@ -22,40 +22,40 @@ defmodule Air.Socket.CloakTest do
     assert {:ok, %{}} == join_main_channel(socket)
   end
 
-  test "starting a task" do
+  test "starting a query" do
     socket = TestSocketHelper.connect!()
     assert {:ok, %{}} == join_main_channel(socket)
 
     me = self()
     spawn(fn ->
-      start_task_result = MainChannel.run_task("unknown_org/cloak_1", %{id: 42, code: ""})
-      send(me, {:start_task_result, start_task_result})
+      start_query_result = MainChannel.run_query("unknown_org/cloak_1", %{id: 42, code: ""})
+      send(me, {:start_query_result, start_query_result})
     end)
     assert {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, 100)
     assert %{"event" => "run_query", "payload" => %{"id" => 42}, "request_id" => request_id} = request
 
     TestSocket.push(socket, "main", "call_response", %{request_id: request_id, status: "ok"})
-    assert_receive {:start_task_result, :ok}
+    assert_receive {:start_query_result, :ok}
   end
 
-  test "receiving a task result" do
-    task = Air.TestRepoHelper.create_organisation!()
+  test "receiving a query result" do
+    query = Air.TestRepoHelper.create_organisation!()
     |> Air.TestRepoHelper.create_user!()
-    |> Air.TestRepoHelper.create_task!()
-    task_id = task.id
+    |> Air.TestRepoHelper.create_query!()
+    query_id = query.id
 
     socket = TestSocketHelper.connect!()
     assert {:ok, %{}} == join_main_channel(socket)
 
     request = %{
       request_id: "foobar", event: "query_result",
-      payload: %{query_id: task_id, buckets: [], exceptions: []}
+      payload: %{query_id: query_id, buckets: [], exceptions: []}
     }
     assert nil == Air.Repo.one(Air.Result)
     TestSocket.push(socket, "main", "cloak_call", request)
     assert {:ok, {"main", "call_response", response}} = TestSocket.await_message(socket, 100)
     assert %{"request_id" => "foobar", "status" => "ok"} = response
-    assert %Air.Result{task_id: ^task_id} = Air.Repo.one(Air.Result)
+    assert %Air.Result{query_id: ^query_id} = Air.Repo.one(Air.Result)
   end
 
   test "getting data for connected cloaks" do

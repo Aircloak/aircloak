@@ -1,9 +1,9 @@
 defmodule Air.Result do
-  @moduledoc "The task result model."
+  @moduledoc "The query result model."
 
   use Air.Web, :model
 
-  alias Air.{Task, Repo}
+  alias Air.{Query, Repo}
 
   @type t :: %__MODULE__{}
 
@@ -11,7 +11,7 @@ defmodule Air.Result do
     field :buckets, :string
     field :exceptions, :string
     field :post_processed, :string
-    belongs_to :task, Task, type: Ecto.UUID
+    belongs_to :query, Query, type: Ecto.UUID
 
     timestamps
   end
@@ -68,10 +68,10 @@ defmodule Air.Result do
     }
   end
 
-  @doc "Deletes al results for a task."
-  @spec delete_all!(Task.t) :: no_return
-  def delete_all!(task) do
-    from(r in __MODULE__, where: r.task_id == ^task.id) |> Repo.delete_all
+  @doc "Deletes al results for a query."
+  @spec delete_all!(Query.t) :: no_return
+  def delete_all!(query) do
+    from(r in __MODULE__, where: r.query_id == ^query.id) |> Repo.delete_all
   end
 
   @doc "Deletes a result by id."

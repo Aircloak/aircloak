@@ -4,7 +4,7 @@ defmodule Air.QueriesController do
   use Timex
 
   require Logger
-  alias Air.{Task, Repo}
+  alias Air.{Query, Repo}
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -23,30 +23,30 @@ defmodule Air.QueriesController do
     render(conn, "index.html",
       guardian_token: Guardian.Plug.current_token(conn),
       csrf_token: Plug.CSRFProtection.get_csrf_token(),
-      recent_results: Poison.encode!(recent_tasks(conn.assigns.current_user)),
+      recent_results: Poison.encode!(recent_queries(conn.assigns.current_user)),
       data_sources: Poison.encode!(data_sources(conn))
     )
   end
 
   def create(conn, %{"query" => params}) do
-    {:ok, task} = build_assoc(conn.assigns.current_user, :tasks)
-    |> Task.changeset(parse_task_params(params))
+    {:ok, query} = build_assoc(conn.assigns.current_user, :queries)
+    |> Query.changeset(parse_query_params(params))
     |> Repo.insert()
 
     try do
-      case Air.Socket.Cloak.MainChannel.run_task(task.cloak_id, Task.to_cloak_query(task)) do
+      case Air.Socket.Cloak.MainChannel.run_query(query.cloak_id, Query.to_cloak_query(query)) do
         :ok ->
           json(conn, %{success: true})
         {:error, :not_connected} ->
           json(conn, %{success: false, reason: "the cloak is not connected"})
         {:error, reason} ->
-          Logger.error(fn -> "Task start error: #{reason}" end)
+          Logger.error(fn -> "Query start error: #{reason}" end)
           json(conn, %{success: false, reason: reason})
       end
     catch type, error ->
       # We'll make a nice error log report and return 500
       Logger.error([
-        "Error starting a task: #{inspect(type)}:#{inspect(error)}\n",
+        "Error running a query: #{inspect(type)}:#{inspect(error)}\n",
         Exception.format_stacktrace(System.stacktrace())
       ])
 
@@ -59,16 +59,16 @@ defmodule Air.QueriesController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp recent_tasks(user) do
+  defp recent_queries(user) do
     user
-    |> Task.for_user
-    |> Task.recent(_recent_count = 5)
+    |> Query.for_user
+    |> Query.recent(_recent_count = 5)
     |> Repo.all
-    |> Enum.map(&encode_task/1)
+    |> Enum.map(&encode_query/1)
   end
 
-  defp encode_task(task) do
-    %{query: task.query}
+  defp encode_query(query) do
+    %{query: query.query}
   end
 
   defp data_sources(conn) do
@@ -85,7 +85,7 @@ defmodule Air.QueriesController do
       end
   end
 
-  defp parse_task_params(params) do
+  defp parse_query_params(params) do
     {cloak_id, data_source} = decode_data_source_token(params["data_source_token"])
     Map.merge(params, %{"cloak_id" => cloak_id, "data_source" => data_source})
   end

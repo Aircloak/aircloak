@@ -49,6 +49,7 @@ defmodule Air.Router do
 
   scope "/api" do
     pipe_through [:api]
-    post "/task", Air.API.TaskController, :run_task
+    # Add API endpoints here, for example something like
+    # post "/queries", Air.API.QueriesController, :run_query
   end
 end

@@ -12,15 +12,15 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
 
   @doc """
-  Runs a task on the given cloak.
+  Executes a query on the given cloak.
 
   The function returns when the cloak responds. If the timeout occurs, it is
   still possible that a cloak has received the request.
   """
-  @spec run_task(CloakInfo.cloak_id, Air.Task.cloak_query) :: :ok | {:error, any}
-  def run_task(cloak_id, task) do
+  @spec run_query(CloakInfo.cloak_id, Air.Query.cloak_query) :: :ok | {:error, any}
+  def run_query(cloak_id, query) do
     try do
-      case call(cloak_id, "run_query", task, :timer.seconds(5)) do
+      case call(cloak_id, "run_query", query, :timer.seconds(5)) do
         {:ok, _} -> :ok
         error -> error
       end
@@ -118,9 +118,9 @@ defmodule Air.Socket.Cloak.MainChannel do
   # Handling cloak sync calls
   # -------------------------------------------------------------------
 
-  defp handle_cloak_call("query_result", task_result, request_id, socket) do
-    Logger.info("received task result for task #{task_result["query_id"]}")
-    process_task_result(task_result)
+  defp handle_cloak_call("query_result", query_result, request_id, socket) do
+    Logger.info("received result for query #{query_result["query_id"]}")
+    process_query_result(query_result)
     respond_to_cloak(socket, request_id, :ok)
     {:noreply, socket}
   end
@@ -162,11 +162,11 @@ defmodule Air.Socket.Cloak.MainChannel do
     end
   end
 
-  defp process_task_result(result) do
-    {:ok, task_id} = Ecto.UUID.cast(result["query_id"])
+  defp process_query_result(result) do
+    {:ok, query_id} = Ecto.UUID.cast(result["query_id"])
 
     result_model = %Result{
-      task_id: task_id,
+      query_id: query_id,
       buckets: Poison.encode!(result["buckets"]),
       exceptions: Poison.encode!(result["exceptions"]),
       post_processed: Poison.encode!([])
@@ -177,14 +177,14 @@ defmodule Air.Socket.Cloak.MainChannel do
         result
         |> Map.put("created_at", :os.system_time(:seconds))
         |> Map.put("id", db_result.id)
-        |> report_task_result() # Broadcast result to subscribers.
+        |> report_query_result() # Broadcast result to subscribers.
       {:error, changeset} ->
-        Logger.error("failed to save result for task #{task_id}: #{inspect changeset.errors}")
+        Logger.error("failed to save result for query #{query_id}: #{inspect changeset.errors}")
         :error
     end
   end
 
-  defp report_task_result(result) do
+  defp report_query_result(result) do
     # Starting a linked reporter. This ensures that a crash in the reporter won't terminate this channel.
     # The link ensures that the termination of this channel terminates the reporter as well.
     Task.start_link(fn ->
