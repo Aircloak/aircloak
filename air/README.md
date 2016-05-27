@@ -21,24 +21,18 @@ Status](https://magnum.travis-ci.com/Aircloak/web.svg?token=aFqD8qTNFV1Li4zdKtZw
 
 # What it does
 
-This repository contains the Air system, which provides HTTPS endpoints that allows end-users, such as analysts and cluster maintainers, to perform various tasks, such as:
+This repository contains the Air system, which provides HTTPS endpoints that allows users to write and execute
+queries against database backends.
 
-- Manage cloaks and clusters
-- Manage users and their permissions
-- Write, test, and execute queries
-- Generate private keys
-
-These features are provided through the following endpoints:
-
-- Web user interface (hello.aircloak.com)
-- Analysts API (analyst-api.aircloak.com)
+Additionally there are some user management features in place, which allow for two levels of users. Those with
+privileges to create users, and those than can just issue queries.
 
 
 # What is it made up of
 
 The air system consists of following components:
 
-- `site` - The new Air system (insights) which unifies `frontend` and `backend` roles.
+- `site` - The web interface that analysts interact with
 - `balancer` - TCP balancer that forwards requests to multiple routers.
 - `coreos` - Vagrant powered CoreOS system that runs cluster of air machines.
 - `db` - Dockerized database server (used only for development and testing)
