@@ -6,12 +6,7 @@ SSH_OPTS="
 "
 
 function etcd_settings {
-cat <<EOF
-  $(cat ../etcd/etcd_values_prod)
-
-  # temporarily disable integration tests on prod
-  etcd_set /settings/air_backend/integration_test false
-EOF
+  cat ../etcd/etcd_values_prod
 }
 
 function prepare_machine {

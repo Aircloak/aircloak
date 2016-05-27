@@ -47,7 +47,7 @@ function start_local_cluster {
 
   sleep 10
   printf "\nCluster started!\n"
-  printf "You can access the site at https://frontend.air-local:$(get_tcp_port prod balancer/https)\n"
+  printf "You can access the site at https://insights.air-local:$(get_tcp_port prod balancer/https)\n"
   printf "To stop the system press Ctrl-C (only once)\n\n"
 
   wait
