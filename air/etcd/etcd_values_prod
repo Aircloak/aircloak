@@ -27,9 +27,5 @@ etcd_set /settings/air/db/password ""
 etcd_set /settings/air/db/insights_database air_prod
 etcd_set /settings/air/db/ssl true
 
-# External services
-etcd_set /service/build_server/host build.aircloak.com
-# Frontier (139.19.208.0/24), Sanctuary (139.19.209.0/24), Pink Frontier (139.19.210.0/24)
-
 # Registered local symbolic names
 etcd_set /service/local_names "aircloak"
