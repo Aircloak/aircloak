@@ -96,7 +96,6 @@ for config in $(ls -1 /aircloak/router/docker/nginx/sites/*.conf); do
   cat $config \
   | sed "s#\$INSIGHTS_SITE#$(etcd_get /site/insights)#" \
   | sed "s#\$API_SITE#$(etcd_get /site/api)#" \
-  | sed "s#\$INFRASTRUCTURE_API_SITE#$(etcd_get /site/infrastructure_api)#" \
   | sed "s#\$AIRCLOAK_SITE#$(etcd_get /site/aircloak)#" \
   | sed "s#\$ROUTER_HTTPS_PORT#$(tcp_port router/https)#" \
   | sed "s#\$ROUTER_HTTP_PORT#$(tcp_port router/http)#" \
@@ -106,7 +105,6 @@ for config in $(ls -1 /aircloak/router/docker/nginx/sites/*.conf); do
 done
 
 generate_local_http_allows
-echo "$(allows service/infrastructure_api/allow)" > /etc/nginx/support/infrastructure_api_allows.conf
 
 log "Starting nginx"
 exec nginx -g "daemon off;"
