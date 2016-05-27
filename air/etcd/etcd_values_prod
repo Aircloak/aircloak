@@ -16,7 +16,6 @@ set_tcp_ports prod
 
 # Site names
 etcd_set /site/api "api.aircloak.com"
-etcd_set /site/infrastructure_api "infrastructure-api.aircloak.com"
 etcd_set /site/aircloak "www.aircloak.com aircloak.com"
 etcd_set /site/insights "insights.aircloak.com"
 
@@ -46,13 +45,11 @@ etcd_set /settings/air/integration_test/data/num_users 40000
 etcd_set /settings/air/integration_test/data/mean_rows_per_user 800
 
 # External services
-etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/http)
 etcd_set /service/build_server/host build.aircloak.com
 etcd_set /service/cloak/port 443
 etcd_set /service/cloak/protocol https
 etcd_set /service/manny_air/host localhost
 # Frontier (139.19.208.0/24), Sanctuary (139.19.209.0/24), Pink Frontier (139.19.210.0/24)
-etcd_set /service/infrastructure_api/allow "139.19.208.0/24 139.19.209.0/24 139.19.210.0/24"
 
 # Registered local symbolic names
-etcd_set /service/local_names "api infrastructure-api aircloak"
+etcd_set /service/local_names "api aircloak"

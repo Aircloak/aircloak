@@ -31,7 +31,6 @@ This repository contains the Air system, which provides HTTPS endpoints that all
 These features are provided through the following endpoints:
 
 - Web user interface (hello.aircloak.com)
-- Internal infrastructure API (infrastructure-api.aircloak.com)
 - Analysts API (analyst-api.aircloak.com)
 
 

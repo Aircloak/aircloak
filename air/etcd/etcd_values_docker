@@ -18,7 +18,6 @@ set_tcp_ports prod
 
 # Site names
 etcd_set /site/api "api.air-local"
-etcd_set /site/infrastructure_api "infrastructure-api.air-local"
 etcd_set /site/aircloak "aircloak.air-local"
 etcd_set /site/insights "insights.air-local"
 
@@ -46,12 +45,10 @@ etcd_set /settings/air/integration_test/data/num_users 100
 etcd_set /settings/air/integration_test/data/mean_rows_per_user 100
 
 # External services
-etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/http)
 etcd_set /service/build_server/host localhost
 etcd_set /service/cloak/port 8098
 etcd_set /service/cloak/protocol http
 etcd_set /service/manny_air/host localhost
-etcd_set /service/infrastructure_api/allow "all"
 
 # Insights secrets
 etcd_set /settings/air/insights/secrets/guardian_key "6MvtANFkxCr3VaDY/C8oCooF6Pg1uqFzOWNYVMry/V5acmSPuQydPeU5X5Jh"

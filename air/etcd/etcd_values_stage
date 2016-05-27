@@ -1,7 +1,6 @@
 . $(dirname ${BASH_SOURCE[0]})/etcd_values_prod
 
 etcd_set /site/api "api-stage.aircloak.com"
-etcd_set /site/infrastructure_api "infrastructure-api-stage.aircloak.com"
 etcd_set /site/aircloak "www-stage.aircloak.com stage.aircloak.com"
 etcd_set /site/insights "insights-stage.aircloak.com"
 

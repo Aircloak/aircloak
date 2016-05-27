@@ -16,7 +16,6 @@ set_tcp_ports test
 
 # Site names
 etcd_set /site/api "api.air-local"
-etcd_set /site/infrastructure_api "infrastructure-api.air-local"
 etcd_set /site/aircloak "aircloak.air-local"
 etcd_set /site/insights "localhost"
 
@@ -41,7 +40,6 @@ etcd_set /settings/air/integration_test/data/num_users 100
 etcd_set /settings/air/integration_test/data/mean_rows_per_user 10
 
 # External services
-etcd_set /service/infrastructure_api_local http://infrastructure-api.air-local:$(etcd_get /tcp_ports/router/http)
 etcd_set /service/build_server/host ""
 etcd_set /service/cloak/port 8098
 etcd_set /service/cloak/protocol http
