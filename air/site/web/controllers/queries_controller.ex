@@ -68,7 +68,7 @@ defmodule Air.QueriesController do
   end
 
   defp encode_query(query) do
-    %{query: query.query}
+    %{statement: query.statement}
   end
 
   defp data_sources(conn) do

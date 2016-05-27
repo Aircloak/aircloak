@@ -20,7 +20,7 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
     UserChannel.broadcast_result(result)
 
-    expected = Map.put(result, "query", query.query)
+    expected = Map.put(result, "statement", query.statement)
     assert_push("result", ^expected)
   end
 

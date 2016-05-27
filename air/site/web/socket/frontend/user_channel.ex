@@ -21,7 +21,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   @spec broadcast_result(Query.result) :: :ok
   def broadcast_result(result) do
     query = Repo.get!(Query, result["query_id"])
-    payload = Map.put(result, "query", query.query)
+    payload = Map.put(result, "statement", query.statement)
 
     Air.Endpoint.broadcast_from!(self(), "user:#{query.user_id}", "result", payload)
 

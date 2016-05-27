@@ -2,7 +2,7 @@ import React from "react";
 
 export const Result = (props) =>
   <div>
-    <pre>{props.query}</pre>
+    <pre>{props.statement}</pre>
     <table className="table table-striped table-hover">
       <thead>
         <tr>
@@ -25,7 +25,7 @@ export const Result = (props) =>
   </div>;
 
 Result.propTypes = {
-  query: React.PropTypes.string,
+  statement: React.PropTypes.string,
   columns: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
   rows: React.PropTypes.arrayOf(React.PropTypes.array).isRequired,
 };

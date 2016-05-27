@@ -106,7 +106,7 @@ export class CodeEditor extends React.Component {
     return (
       <Codemirror
         ref={this.setupComponent}
-        value={this.props.query}
+        value={this.props.statement}
         onChange={this.props.onChange}
         options={options}
       />
@@ -127,5 +127,5 @@ CodeEditor.propTypes = {
     displayText: React.PropTypes.string,
     text: React.PropTypes.string,
   })),
-  query: React.PropTypes.string,
+  statement: React.PropTypes.string,
 };
