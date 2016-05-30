@@ -112,6 +112,19 @@ defmodule Cloak.SqlQueryTest do
       SqlQuery.parse!("select foo from bar where a = 2 and b in (1,2,3) and c like '_o'")
   end
 
+  test "boolean values are allowed in comparisons" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where:
+        [{:comparison, "a", :=, true}, {:in, "b", [true, false]}]} ==
+      SqlQuery.parse!("select foo from bar where a = true and b in (true, false)")
+  end
+
+  test "yes/no + true/false are all allowed boolean values in where clause" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where:
+        [{:comparison, "a", :=, true}, {:comparison, "b", :=, true},
+        {:comparison, "c", :=, false}, {:comparison, "d", :=, false}]} ==
+      SqlQuery.parse!("select foo from bar where a = true and b = YES and c = false and d = NO")
+  end
+
   for {description, statement, expected_error} <- [
     {"single quote is not allowed in the identifier", "select fo'o from baz", "Expected `from`"},
     {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},

@@ -181,7 +181,23 @@ defmodule Cloak.SqlQuery do
 
   defp allowed_where_values() do
     next_token()
-    |> choice([raw_string(), integer(), float()])
+    |> choice([raw_string(), integer(), float(), boolean()])
+  end
+
+  defp boolean() do
+    word()
+    |> map(fn(word) when is_bitstring(word) -> String.downcase(word); (word) -> word end)
+    |> map(fn(word) -> Map.get(boolean_map(), word) end)
+    |> one_of([true, false])
+  end
+
+  defp boolean_map() do
+    %{
+      "yes" => true,
+      "true" => true,
+      "no" => false,
+      "false" => false
+    }
   end
 
   defp identifier() do
