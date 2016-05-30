@@ -87,7 +87,8 @@ defmodule Cloak.SqlQuery do
   defp select_statement() do
     sequence([
       select_columns(),
-      from()
+      from(),
+      where()
     ])
   end
 
@@ -119,6 +120,28 @@ defmodule Cloak.SqlQuery do
     )
   end
 
+  defp where() do
+    option(
+      pair_both(
+        keyword(:where),
+        and_delimited(where_expression())
+      )
+    )
+  end
+
+  defp where_expression() do
+    choice([comparison()])
+  end
+
+  defp comparison() do
+    pipe(
+      [identifier(), comparator(), comparison_value()],
+      fn([identifier, comparator, value]) ->
+        {:comparison, identifier, String.to_atom(comparator), value}
+      end
+    )
+  end
+
   defp identifier() do
     next_token()
     |> word_of(~r/[a-zA-Z_][a-zA-Z0-9_]*/)
@@ -126,6 +149,25 @@ defmodule Cloak.SqlQuery do
           not Enum.any?(keyword_matchers(), &Regex.match?(&1, identifier))
         end)
     |> label("identifier")
+  end
+
+  defp comparator() do
+    next_token()
+    |> word_of(~r/[<=>]*/)
+    |> one_of(["=", "<", "<=", ">=", ">", "<>"])
+    |> label("comparator")
+  end
+
+  defp comparison_value() do
+    next_token()
+    |> choice([raw_string(), integer(), float()])
+    |> label("comparison value")
+  end
+
+  defp raw_string() do
+    sequence([char("'"), word_of(~r/[\w\s]/), char("'")])
+    |> map(&Enum.join/1)
+    |> label("string value")
   end
 
   defp keyword_of(types) do
@@ -148,13 +190,20 @@ defmodule Cloak.SqlQuery do
       ~r/SHOW/i,
       ~r/TABLES/i,
       ~r/COLUMNS/i,
-      ~r/FROM/i
+      ~r/FROM/i,
+      ~r/WHERE/i,
+      ~r/AND/i
     ]
   end
 
   defp comma_delimited(term_parser) do
     next_token()
     |> sep_by1(next_token(term_parser), char(","))
+  end
+
+  defp and_delimited(term_parser) do
+    next_token()
+    |> sep_by1(next_token(term_parser), keyword(:and))
   end
 
   defp end_of_input(parser), do: parser |> next_token() |> eof()

@@ -43,6 +43,59 @@ defmodule Cloak.SqlQueryTest do
     assert %{command: :show, show: :columns, from: "foo"} == SqlQuery.parse!("show columns from foo")
   end
 
+  test "where clause with equality" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :=, 10}]} ==
+      SqlQuery.parse!("select foo from bar where a = 10")
+  end
+
+  test "where clause with <" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :<, 10}]} ==
+      SqlQuery.parse!("select foo from bar where a < 10")
+  end
+
+  test "where clause with >" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :>, 10}]} ==
+      SqlQuery.parse!("select foo from bar where a > 10")
+  end
+
+  test "where clause with >=" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :>=, 10}]} ==
+      SqlQuery.parse!("select foo from bar where a >= 10")
+  end
+
+  test "where clause with <=" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :<=, 10}]} ==
+      SqlQuery.parse!("select foo from bar where a <= 10")
+  end
+
+  test "where clause with <>" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :<>, 10}]} ==
+      SqlQuery.parse!("select foo from bar where a <> 10")
+  end
+
+  test "where clause can have string values" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, "'tom'"}]} ==
+      SqlQuery.parse!("select foo from bar where name = 'tom'")
+  end
+
+  test "where clause can have string values of any case" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where:
+        [{:comparison, "name", :=, "'tOm'"}]} ==
+      SqlQuery.parse!("select foo from bar where name = 'tOm'")
+  end
+
+  test "where clause can have multi-word string values" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where:
+        [{:comparison, "name", :=, "'avishai cohen'"}]} ==
+      SqlQuery.parse!("select foo from bar where name = 'avishai cohen'")
+  end
+
+  test "where clause with mutliple comparisons" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where:
+      [{:comparison, "a", :<>, 10}, {:comparison, "b", :=, "'bar'"}]} ==
+      SqlQuery.parse!("select foo from bar where a <> 10 and b = 'bar'")
+  end
+
   for {description, statement, expected_error} <- [
     {"single quote is not allowed in the identifier", "select fo'o from baz", "Expected `from`"},
     {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},
@@ -51,7 +104,12 @@ defmodule Cloak.SqlQueryTest do
     {"at least one column must be specified", "select from baz", "Expected `identifier`"},
     {"columns must be separated with a comma", "select foo bar from baz", "Expected `from`"},
     {"query must start with a select or show", "foo select foo bar from baz", "Expected `select or show`"},
-    {"show requires tables or columns", "show foobar", "Expected `tables or columns`"}
+    {"show requires tables or columns", "show foobar", "Expected `tables or columns`"},
+    {"!= is an illegal comparator in where clause", "select a from b where a != b"},
+    {"=> is an illegal comparator in where clause", "select a from b where a => b"},
+    {"=< is an illegal comparator in where clause", "select a from b where a =< b"},
+    {"multiple where clauses cannot be separated by or", "select a from b where a > 1 or b < 2"},
+    {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2"}
   ] do
     test description do
       assert {:error, reason} = SqlQuery.parse(unquote(statement))
