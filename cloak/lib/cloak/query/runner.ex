@@ -32,7 +32,7 @@ defmodule Cloak.Query.Runner do
   end
   defp validate_from(%{}), do: :ok
 
-  defp validate_columns(%{select: selected_columns, from: table_identifier}) do
+  defp validate_columns(%{statement: :select, columns: selected_columns, from: table_identifier}) do
     table_id = String.to_existing_atom(table_identifier)
     existing_columns = for {name, _} <- DataSource.columns(:local, table_id), do: name
     case selected_columns -- existing_columns do
@@ -42,18 +42,18 @@ defmodule Cloak.Query.Runner do
   end
   defp validate_columns(%{}), do: :ok
 
-  defp execute_sql_query(%{show: :tables}) do
+  defp execute_sql_query(%{statement: :show, show: :tables}) do
     tables = DataSource.tables(:local)
     buckets = for table <- tables, do: bucket(property: [table], noisy_count: 1)
     {:ok, {:buckets, ["name"], buckets}}
   end
-  defp execute_sql_query(%{show: :columns, from: table_identifier}) do
+  defp execute_sql_query(%{statement: :show, show: :columns, from: table_identifier}) do
     table_id = String.to_existing_atom(table_identifier)
     columns = DataSource.columns(:local, table_id)
     buckets = for {name, type} <- columns, do: bucket(property: [name, type], noisy_count: 1)
     {:ok, {:buckets, ["name", "type"], buckets}}
   end
-  defp execute_sql_query(select_query) do
+  defp execute_sql_query(%{statement: :select} = select_query) do
     with {:ok, {_count, [_user_id | columns], rows}} <- DataSource.select(:local, select_query) do
       lcf_data = LCFData.new()
 

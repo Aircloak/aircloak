@@ -1,15 +1,12 @@
 defmodule Cloak.SqlQuery do
-  @moduledoc """
-  Represents an SQL query.
-
-  This module defines a struct which describes an SQL query. You can use the
-  `parse/1` function to convert an SQL query string into a map.
-  """
+  @moduledoc "Implements a parser of the sql query."
   use Combine
+  import Cloak.SqlQuery.Parsers
 
   @type t :: %{
-    from: String.t,
-    select: [String.t],
+    statement: :select | :show,
+    from: [String.t],
+    columns: [String.t],
     show: :tables | :columns
   }
 
@@ -30,7 +27,7 @@ defmodule Cloak.SqlQuery do
   def parse(query_string) do
     case Combine.parse(query_string, parser()) do
       {:error, _} = error -> error
-      query_spec -> {:ok, Enum.into(query_spec, %{})}
+      [statement] -> {:ok, statement}
     end
   end
 
@@ -40,9 +37,22 @@ defmodule Cloak.SqlQuery do
   # -------------------------------------------------------------------
 
   defp parser do
-    either(select_statement(), show_statement())
+    statement()
     |> statement_termination()
     |> end_of_input()
+  end
+
+  defp statement() do
+    switch(
+      keyword_of([:select, :show]),
+      %{
+        select: select_statement(),
+        show: show_statement()
+      }
+    )
+    |> map(fn({statement, [statement_data]}) ->
+      Map.merge(%{statement: statement}, Map.new(statement_data))
+    end)
   end
 
   defp statement_termination(parser) do
@@ -51,40 +61,31 @@ defmodule Cloak.SqlQuery do
     |> skip(char(?;))
   end
 
-  defp select_statement() do
-    next_token()
-    |> select_columns()
-    |> from()
-  end
-
   defp show_statement() do
-    either(show_tables(), show_columns())
+    switch(
+      keyword_of([:tables, :columns]),
+      %{
+        tables: noop(),
+        columns: from()
+      }
+    )
+    |> map(fn({show, data}) -> [{:show, show} | data] end)
   end
 
-  defp show_tables() do
-    next_token()
-    |> pair_both(
-      keyword(:show),
-      keyword(:tables)
-    )
-    |> label("show tables")
+  defp select_statement() do
+    sequence([
+      select_columns(),
+      from()
+    ])
   end
 
-  defp show_columns() do
+  defp select_columns() do
+    map(comma_delimited(identifier()), &{:columns, &1})
+  end
+
+  defp from() do
     next_token()
-    |> pair_both(
-      keyword(:show),
-      keyword(:columns)
-    )
-    |> label("show columns")
     |> from()
-  end
-
-  defp select_columns(parser) do
-    pair_both(parser,
-      keyword(:select),
-      comma_delimited(identifier())
-    )
   end
 
   defp from(parser) do
@@ -112,7 +113,12 @@ defmodule Cloak.SqlQuery do
     |> satisfy(fn(identifier) ->
           not Enum.any?(keyword_matchers(), &Regex.match?(&1, identifier))
         end)
-    |> label("keyword")
+    |> label("identifier")
+  end
+
+  defp keyword_of(types) do
+    choice(Enum.map(types, &keyword(&1)))
+    |> label(types |> Enum.join(" or "))
   end
 
   defp keyword(type) do
