@@ -43,6 +43,11 @@ defmodule Cloak.SqlQueryTest do
     assert %{statement: :show, show: :columns, from: "foo"} == SqlQuery.parse!("show columns from foo")
   end
 
+  test "count(*)" do
+    assert %{statement: :select, columns: [{:count, :star}], from: "foo"} ==
+      SqlQuery.parse!("select count(*) from foo")
+  end
+
   for {description, statement, expected_error} <- [
     {"single quote is not allowed in the identifier", "select fo'o from baz", "Expected `from`"},
     {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},
