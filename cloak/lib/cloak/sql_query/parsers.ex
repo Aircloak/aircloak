@@ -42,7 +42,7 @@ defmodule Cloak.SqlQuery.Parsers do
     switch_map
   ) do
     with switch_state = switch_parser.(state),
-         %ParserState{status: :ok, results: [switch_result | rest] = results} <- switch_state,
+         %ParserState{status: :ok, results: [switch_result | rest]} <- switch_state,
          next_parser = Map.fetch!(switch_map, switch_result),
          final_state = next_parser.(%ParserState{switch_state | results: []}),
          %ParserState{status: :ok, results: new_results} <- final_state
