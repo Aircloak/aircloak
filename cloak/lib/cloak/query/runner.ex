@@ -32,7 +32,7 @@ defmodule Cloak.Query.Runner do
   end
   defp validate_from(%{}), do: :ok
 
-  defp validate_columns(%{statement: :select, columns: selected_columns, from: table_identifier}) do
+  defp validate_columns(%{command: :select, columns: selected_columns, from: table_identifier}) do
     table_id = String.to_existing_atom(table_identifier)
     invalid_columns = Enum.reject(selected_columns, &valid_column?(&1, DataSource.columns(:local, table_id)))
     case invalid_columns do
@@ -48,18 +48,18 @@ defmodule Cloak.Query.Runner do
     |> Enum.any?(fn {column, _} -> name == column end)
   end
 
-  defp execute_sql_query(%{statement: :show, show: :tables}) do
+  defp execute_sql_query(%{command: :show, show: :tables}) do
     tables = DataSource.tables(:local)
     buckets = for table <- tables, do: bucket(property: [table], noisy_count: 1)
     {:ok, {:buckets, ["name"], buckets}}
   end
-  defp execute_sql_query(%{statement: :show, show: :columns, from: table_identifier}) do
+  defp execute_sql_query(%{command: :show, show: :columns, from: table_identifier}) do
     table_id = String.to_existing_atom(table_identifier)
     columns = DataSource.columns(:local, table_id)
     buckets = for {name, type} <- columns, do: bucket(property: [name, type], noisy_count: 1)
     {:ok, {:buckets, ["name", "type"], buckets}}
   end
-  defp execute_sql_query(%{statement: :select} = select_query) do
+  defp execute_sql_query(%{command: :select} = select_query) do
     with {:ok, {_count, [_user_id | columns], rows}} <- DataSource.select(:local, select_query) do
       lcf_data = LCFData.new()
 

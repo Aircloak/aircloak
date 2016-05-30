@@ -14,6 +14,8 @@ defmodule Cloak.SqlQuery.Parsers do
   Runs the first parser, then based on its result runs the corresponding
   parser from the supplied map.
 
+  The parser emits a tuple in form of `{switch_parser_output, selected_parser_output}`.
+
   Example:
 
   ```
@@ -25,6 +27,8 @@ defmodule Cloak.SqlQuery.Parsers do
     }
   )
   ```
+
+  The output will be `{:foo, output_of_foo_parser}` or `{:bar, output_of_bar_parser}`.
 
   If the parser for the corresponding term has not been supplied, a run-time error
   will be raised.
@@ -38,7 +42,7 @@ defmodule Cloak.SqlQuery.Parsers do
     switch_map
   ) do
     with switch_state = switch_parser.(state),
-         %ParserState{status: :ok, results: [switch_result | rest] = results} <- switch_state,
+         %ParserState{status: :ok, results: [switch_result | rest]} <- switch_state,
          next_parser = Map.fetch!(switch_map, switch_result),
          final_state = next_parser.(%ParserState{switch_state | results: []}),
          %ParserState{status: :ok, results: new_results} <- final_state

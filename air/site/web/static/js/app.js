@@ -13,11 +13,9 @@
 // to also remove its path from "config.paths.watched".
 import "phoenix_html";
 
-import {renderTaskEditor} from "./tasks/main";
 import renderQueriesView from "./queries/root";
 
 const App = {
-  taskPage: renderTaskEditor,
   queryPage: renderQueriesView,
 };
 
