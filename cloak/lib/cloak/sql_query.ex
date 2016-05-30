@@ -60,7 +60,10 @@ defmodule Cloak.SqlQuery do
       }
     )
     |> map(fn({command, [statement_data]}) ->
-      Map.merge(%{command: command}, Map.new(statement_data))
+      statement_data = statement_data
+      |> Enum.reject(fn(value) -> value == nil end)
+      |> Map.new
+      Map.merge(%{command: command}, statement_data)
     end)
   end
 
