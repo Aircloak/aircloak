@@ -121,7 +121,7 @@ defmodule Cloak.DataSource do
   Returns {RowCount, Columns, Rows}.
   """
   @spec select(atom, Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
-  def select(source_id, %{select: fields, from: table_identifier} = select_query) do
+  def select(source_id, %{columns: fields, from: table_identifier} = select_query) do
     data_sources = Application.get_env(:cloak, :data_sources)
     data_source = data_sources[source_id]
     driver = data_source[:driver]
@@ -130,7 +130,7 @@ defmodule Cloak.DataSource do
     user_id = Keyword.fetch!(table, :user_id)
     table_name = Keyword.fetch!(table, :name)
     # insert the user_id column into the fields list, translate the table name and execute the `select` query
-    driver.select(source_id, %{select_query | select: [user_id | fields], from: table_name})
+    driver.select(source_id, %{select_query | columns: [user_id | fields], from: table_name})
   end
 
 

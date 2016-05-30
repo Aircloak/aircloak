@@ -19,7 +19,7 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "data retrieval" do
-    data = Cloak.DataSource.select(:local, %{select: ["value"], from: "test"})
+    data = Cloak.DataSource.select(:local, %{command: :select, columns: ["value"], from: "test"})
     assert(data == {:ok, {
       3,
       ["user_id", "value"],

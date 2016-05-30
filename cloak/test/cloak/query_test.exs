@@ -51,8 +51,7 @@ defmodule Cloak.QueryTest do
 
   test "query reports an error on invalid statement" do
     :ok = start_query("invalid statement")
-    assert_receive {:reply, %{query_id: "1", error: "Expected `select` at line 1, column 1.," <>
-      " or: Expected `show tables` at line 1, column 1., or: Expected `show columns` at line 1, column 1."}}
+    assert_receive {:reply, %{query_id: "1", error: "Expected `select or show` at line 1, column 1."}}
   end
 
   test "query reports an error on invalid column" do
