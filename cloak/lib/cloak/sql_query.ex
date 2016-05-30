@@ -18,6 +18,7 @@ defmodule Cloak.SqlQuery do
     where: [
         {:comparison, String.t, comparator, any}
       | {:like, String.t, String.t}
+      | {:in, String.t, [any]}
     ],
     show: :tables | :columns
   }
@@ -133,7 +134,7 @@ defmodule Cloak.SqlQuery do
   end
 
   defp where_expression() do
-    choice([like(), comparison()])
+    choice([like(), where_in(), comparison()])
   end
 
   defp like() do
@@ -152,13 +153,35 @@ defmodule Cloak.SqlQuery do
     |> label("like comparison value")
   end
 
+  defp where_in() do
+    pipe(
+      [identifier(), keyword(:in), in_values()],
+      fn([identifier, _, in_values]) ->
+        {:in, identifier, in_values}
+      end
+    )
+  end
+
+  defp in_values() do
+    next_token()
+    |> pipe(
+        [char("("), comma_delimited(allowed_where_values()), char(")")],
+        fn([_, values, _]) -> values end
+      )
+  end
+
   defp comparison() do
     pipe(
-      [identifier(), comparator(), comparison_value()],
+      [identifier(), comparator(), allowed_where_values()],
       fn([identifier, comparator, value]) ->
         {:comparison, identifier, String.to_atom(comparator), value}
       end
     )
+  end
+
+  defp allowed_where_values() do
+    next_token()
+    |> choice([raw_string(), integer(), float()])
   end
 
   defp identifier() do
@@ -175,12 +198,6 @@ defmodule Cloak.SqlQuery do
     |> word_of(~r/[<=>]*/)
     |> one_of(["=", "<", "<=", ">=", ">", "<>"])
     |> label("comparator")
-  end
-
-  defp comparison_value() do
-    next_token()
-    |> choice([raw_string(), integer(), float()])
-    |> label("comparison value")
   end
 
   defp raw_string() do
@@ -212,7 +229,8 @@ defmodule Cloak.SqlQuery do
       ~r/FROM/i,
       ~r/WHERE/i,
       ~r/AND/i,
-      ~r/LIKE/i
+      ~r/LIKE/i,
+      ~r/IN/i
     ]
   end
 
