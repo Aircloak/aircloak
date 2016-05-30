@@ -44,7 +44,6 @@ defmodule Cloak.Query.Runner do
 
   defp valid_column?({:count, :star}, _), do: true
   defp valid_column?(name, columns), do: Enum.any?(columns, fn {column, _} -> name == column end)
-  defp valid_column?(_, _), do: false
 
   defp execute_sql_query(%{statement: :show, show: :tables}) do
     tables = DataSource.tables(:local)
