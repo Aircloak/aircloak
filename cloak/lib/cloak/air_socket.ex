@@ -48,11 +48,6 @@ defmodule Cloak.AirSocket do
     end
   end
 
-  @doc "Sends query progress report to the Air."
-  @spec send_query_progress_report(GenServer.server, %{}) :: :ok
-  def send_query_progress_report(_socket \\ __MODULE__, progress_report),
-    do: Logger.info("new query progress report: #{inspect progress_report}")
-
 
   # -------------------------------------------------------------------
   # GenSocketClient callbacks
