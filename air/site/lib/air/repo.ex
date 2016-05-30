@@ -5,6 +5,8 @@ defmodule Air.Repo do
   # Need to disable due to error in old Ecto. Should be revised once we upgrade Ecto to 2.0
   @dialyzer :no_undefined_callbacks
 
+  require Logger
+
   @doc """
   Reads database settings from etcd and merges them into the existing repo
   configuration as specified in `config.exs`.
@@ -13,16 +15,18 @@ defmodule Air.Repo do
   release.
   """
   def configure do
+    conn_params = [
+      hostname: :air_etcd.get("/settings/air/db/host"),
+      port: String.to_integer(:air_etcd.get("/settings/air/db/port")),
+      username: :air_etcd.get("/settings/air/db/username"),
+      database: :air_etcd.get("/settings/air/db/insights_database"),
+      ssl: String.to_existing_atom(:air_etcd.get("/settings/air/db/ssl"))
+    ]
+
+    Logger.info("connecting to database #{inspect(conn_params)}")
     Air.Utils.update_app_env(
       :air, Air.Repo,
-      &Keyword.merge(&1,
-        hostname: :air_etcd.get("/settings/air/db/host"),
-        port: String.to_integer(:air_etcd.get("/settings/air/db/port")),
-        ssl: String.to_existing_atom(:air_etcd.get("/settings/air/db/ssl")),
-        database: :air_etcd.get("/settings/air/db/insights_database"),
-        username: :air_etcd.get("/settings/air/db/username"),
-        password: :air_etcd.get("/settings/air/db/password"),
-      )
+      &Keyword.merge(&1, [password: :air_etcd.get("/settings/air/db/password")] ++ conn_params)
     )
   end
 
