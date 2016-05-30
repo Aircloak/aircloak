@@ -96,6 +96,11 @@ defmodule Cloak.SqlQueryTest do
       SqlQuery.parse!("select foo from bar where a <> 10 and b = 'bar'")
   end
 
+  test "where clause with LIKE is OK" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:like, "a", "'_ob d%'"}]} ==
+      SqlQuery.parse!("select foo from bar where a LIKE '_ob d%'")
+  end
+
   for {description, statement, expected_error} <- [
     {"single quote is not allowed in the identifier", "select fo'o from baz", "Expected `from`"},
     {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},

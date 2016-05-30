@@ -15,7 +15,10 @@ defmodule Cloak.SqlQuery do
     command: :select | :show,
     columns: [String.t],
     from: [String.t],
-    where: [{:comparison, String.t, comparator, any}],
+    where: [
+        {:comparison, String.t, comparator, any}
+      | {:like, String.t, String.t}
+    ],
     show: :tables | :columns
   }
 
@@ -130,7 +133,23 @@ defmodule Cloak.SqlQuery do
   end
 
   defp where_expression() do
-    choice([comparison()])
+    choice([like(), comparison()])
+  end
+
+  defp like() do
+    pipe(
+      [identifier(), keyword(:like), wildcard_comparison_value()],
+      fn([identifier, _, wildcard_value]) ->
+        {:like, identifier, wildcard_value}
+      end
+    )
+  end
+
+  defp wildcard_comparison_value() do
+    next_token()
+    |> sequence([char("'"), word_of(~r/[%\w\s]/), char("'")])
+    |> map(&Enum.join/1)
+    |> label("like comparison value")
   end
 
   defp comparison() do
@@ -192,7 +211,8 @@ defmodule Cloak.SqlQuery do
       ~r/COLUMNS/i,
       ~r/FROM/i,
       ~r/WHERE/i,
-      ~r/AND/i
+      ~r/AND/i,
+      ~r/LIKE/i
     ]
   end
 
