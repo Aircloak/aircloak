@@ -76,7 +76,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     "SELECT #{fields_str} FROM #{table}"
   end
 
-  defp select_column_to_string({:count, :star}), do: "1::text as __count_star__"
+  defp select_column_to_string({:count, :star}), do: "1::text as \"count(*)\""
   defp select_column_to_string(column), do: "(" <> column <> ")::text"
 
 

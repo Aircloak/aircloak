@@ -109,7 +109,7 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %% -------------------------------------------------------------------
 
 %% Converts the buckets to rows.
-expand_buckets([<<"__count_star__">>], Buckets) ->
+expand_buckets([<<"count(*)">>], Buckets) ->
   lists:map(fun(#bucket{noisy_count = Count}) -> [Count] end, Buckets);
 expand_buckets(C, Buckets) ->
   lists:flatmap(fun (#bucket{property = Property, noisy_count = Count}) ->
