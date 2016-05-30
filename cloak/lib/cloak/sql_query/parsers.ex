@@ -14,6 +14,8 @@ defmodule Cloak.SqlQuery.Parsers do
   Runs the first parser, then based on its result runs the corresponding
   parser from the supplied map.
 
+  The parser emits a tuple in form of `{switch_parser_output, selected_parser_output}`.
+
   Example:
 
   ```
@@ -25,6 +27,8 @@ defmodule Cloak.SqlQuery.Parsers do
     }
   )
   ```
+
+  The output will be `{:foo, output_of_foo_parser}` or `{:bar, output_of_bar_parser}`.
 
   If the parser for the corresponding term has not been supplied, a run-time error
   will be raised.
