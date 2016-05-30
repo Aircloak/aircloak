@@ -204,7 +204,7 @@ defmodule Cloak.SqlQuery do
     next_token()
     |> word_of(~r/[a-zA-Z_][a-zA-Z0-9_]*/)
     |> satisfy(fn(identifier) ->
-          not Enum.any?(keyword_matchers(), &Regex.match?(&1, identifier))
+          not Enum.any?(keyword_matchers(), &(Regex.replace(&1, identifier, "") == ""))
         end)
     |> label("identifier")
   end

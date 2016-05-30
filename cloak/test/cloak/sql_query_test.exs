@@ -125,6 +125,11 @@ defmodule Cloak.SqlQueryTest do
       SqlQuery.parse!("select foo from bar where a = true and b = YES and c = false and d = NO")
   end
 
+  test "it's valid to have a identifier contain a keyword" do
+    assert %{command: :select, columns: ["INvalid", "selectiscious"], from: "whereables"} ==
+      SqlQuery.parse!("SELECT INvalid, selectiscious FROM whereables")
+  end
+
   for {description, statement, expected_error} <- [
     {"single quote is not allowed in the identifier", "select fo'o from baz", "Expected `from`"},
     {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},
