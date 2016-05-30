@@ -5,8 +5,8 @@ defmodule Cloak.SqlQuery do
 
   @type t :: %{
     command: :select | :show,
-    from: [String.t],
     columns: [String.t],
+    from: [String.t],
     show: :tables | :columns
   }
 
