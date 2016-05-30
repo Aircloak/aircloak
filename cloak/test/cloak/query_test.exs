@@ -54,8 +54,7 @@ defmodule Cloak.QueryTest do
 
     :ok = start_query("select count(*) from heights")
 
-    assert_receive {:reply, %{query_id: "1", columns: ["__count_star__"], rows: rows}}
-    assert Enum.count(rows) == 20
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[20]]}}
   end
 
   test "query reports an error on invalid statement" do
