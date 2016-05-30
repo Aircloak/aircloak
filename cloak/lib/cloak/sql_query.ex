@@ -4,7 +4,7 @@ defmodule Cloak.SqlQuery do
   import Cloak.SqlQuery.Parsers
 
   @type t :: %{
-    statement: :select | :show,
+    command: :select | :show,
     from: [String.t],
     columns: [String.t],
     show: :tables | :columns
@@ -50,8 +50,8 @@ defmodule Cloak.SqlQuery do
         show: show_statement()
       }
     )
-    |> map(fn({statement, [statement_data]}) ->
-      Map.merge(%{statement: statement}, Map.new(statement_data))
+    |> map(fn({command, [statement_data]}) ->
+      Map.merge(%{command: command}, Map.new(statement_data))
     end)
   end
 

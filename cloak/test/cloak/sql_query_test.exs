@@ -4,43 +4,43 @@ defmodule Cloak.SqlQueryTest do
   alias Cloak.SqlQuery
 
   test "simple select query" do
-    assert %{statement: :select, columns: ["foo"], from: "baz"} == SqlQuery.parse!("select foo from baz")
+    assert %{command: :select, columns: ["foo"], from: "baz"} == SqlQuery.parse!("select foo from baz")
   end
 
   test "fully qualified table name" do
     query = SqlQuery.parse!("select foo from bar.baz")
-    assert %{statement: :select, columns: ["foo"], from: "bar.baz"} == query
+    assert %{command: :select, columns: ["foo"], from: "bar.baz"} == query
   end
 
   test "query with a terminating semicolon" do
-    assert %{statement: :select, columns: ["foo"], from: "baz"} == SqlQuery.parse!("select foo from baz;")
+    assert %{command: :select, columns: ["foo"], from: "baz"} == SqlQuery.parse!("select foo from baz;")
   end
 
   test "multiple fields" do
     query = SqlQuery.parse!("select foo, bar from baz")
-    assert %{statement: :select, columns: ["foo", "bar"], from: "baz"} == query
+    assert %{command: :select, columns: ["foo", "bar"], from: "baz"} == query
   end
 
   test "whitespaces are ignored" do
     query = SqlQuery.parse!("select  foo\n from \n \n baz \n ; \n  ")
-    assert %{statement: :select, columns: ["foo"], from: "baz"} == query
+    assert %{command: :select, columns: ["foo"], from: "baz"} == query
   end
 
   test "all allowed identifier characters" do
     query = SqlQuery.parse!("select foO1_ from Ba_z2")
-    assert %{statement: :select, columns: ["foO1_"], from: "Ba_z2"} == query
+    assert %{command: :select, columns: ["foO1_"], from: "Ba_z2"} == query
   end
 
   test "case insensivity of commands" do
-    assert %{statement: :select, columns: ["foo"], from: "baz"} == SqlQuery.parse!("SELECT foo FROM baz")
+    assert %{command: :select, columns: ["foo"], from: "baz"} == SqlQuery.parse!("SELECT foo FROM baz")
   end
 
   test "show tables" do
-    assert %{statement: :show, show: :tables} == SqlQuery.parse!("show tables")
+    assert %{command: :show, show: :tables} == SqlQuery.parse!("show tables")
   end
 
   test "show columns" do
-    assert %{statement: :show, show: :columns, from: "foo"} == SqlQuery.parse!("show columns from foo")
+    assert %{command: :show, show: :columns, from: "foo"} == SqlQuery.parse!("show columns from foo")
   end
 
   for {description, statement, expected_error} <- [
