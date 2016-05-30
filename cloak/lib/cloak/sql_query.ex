@@ -88,13 +88,17 @@ defmodule Cloak.SqlQuery do
   end
 
   defp count_expression() do
-    skip(keyword(:count))
-    |> skip(char("("))
-    |> next_token()
-    |> (char("*") |> map(fn _ -> :star end))
-    |> next_token()
-    |> skip(char(")"))
-    |> map(&{:count, &1})
+    pipe(
+      [
+        keyword(:count),
+        char("("),
+        next_token(),
+        char("*"),
+        next_token(),
+        char(")"),
+      ],
+      fn _ -> {:count, :star} end
+    )
   end
 
   defp from() do
