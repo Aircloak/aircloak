@@ -34,13 +34,17 @@ defmodule Cloak.Query.Runner do
 
   defp validate_columns(%{statement: :select, columns: selected_columns, from: table_identifier}) do
     table_id = String.to_existing_atom(table_identifier)
-    existing_columns = for {name, _} <- DataSource.columns(:local, table_id), do: name
-    case selected_columns -- existing_columns do
+    invalid_columns = Enum.reject(selected_columns, &valid_column?(&1, DataSource.columns(:local, table_id)))
+    case invalid_columns do
       [] -> :ok
       [invalid_column | _rest] -> {:error, ~s/Column "#{invalid_column}" doesn't exist./}
     end
   end
   defp validate_columns(%{}), do: :ok
+
+  defp valid_column?({:count, :star}, _), do: true
+  defp valid_column?(name, columns), do: Enum.any?(columns, fn {column, _} -> name == column end)
+  defp valid_column?(_, _), do: false
 
   defp execute_sql_query(%{statement: :show, show: :tables}) do
     tables = DataSource.tables(:local)
