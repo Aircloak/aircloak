@@ -3,10 +3,19 @@ defmodule Cloak.SqlQuery do
   use Combine
   import Cloak.SqlQuery.Parsers
 
+  @type comparator ::
+      :=
+    | :<
+    | :<=
+    | :>=
+    | :>
+    | :<>
+
   @type t :: %{
     command: :select | :show,
     columns: [String.t],
     from: [String.t],
+    where: [{:comparison, String.t, comparator, any}],
     show: :tables | :columns
   }
 
