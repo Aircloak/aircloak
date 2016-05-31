@@ -240,10 +240,7 @@ defmodule Cloak.SqlQuery do
 
   defp quoted_value(regex) do
     next_token()
-    |> pipe(
-        [char("'"), word_of(regex), char("'")],
-        fn([_, value, _]) -> value end
-      )
+    |> pipe([char("'"), word_of(regex), char("'")], &Enum.join/1)
   end
 
   defp keyword_of(types) do
