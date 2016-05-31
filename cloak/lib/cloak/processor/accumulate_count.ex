@@ -15,14 +15,9 @@ defmodule Cloak.Processor.AccumulateCount do
   - anonymize directly inside processor, and then do post-processing immediately too
   """
 
-  require Record
-  import Record, only: [defrecord: 2, extract: 2]
-  defrecord :bucket, extract(:bucket, from_lib: "cloak/include/cloak.hrl")
-
-  alias Cloak.Type.User
+  use Cloak.Type
 
   @type accumulated_property :: {any, pos_integer}
-  @type bucket :: record(:bucket, property: [accumulated_property], noisy_count: pos_integer)
 
 
   # -------------------------------------------------------------------
@@ -34,7 +29,7 @@ defmodule Cloak.Processor.AccumulateCount do
   - count how many times each property occurrs
   - make a per property CDF that can be used to produce a global count per property
   """
-  @spec pre_process([{User.id, [any]}]) :: [{User.id | [accumulated_property]}]
+  @spec pre_process([{UserId.t, [any]}]) :: [{UserId.t | [accumulated_property]}]
   def pre_process(rows_by_user) do
     Enum.flat_map(rows_by_user, &per_user_processing/1)
   end
@@ -46,7 +41,7 @@ defmodule Cloak.Processor.AccumulateCount do
   accumulate count pre-processor, but doesn't check that this is in fact the case.
   If it isn't it might fail, or otherwise produce incorrect answers.
   """
-  @spec post_process([bucket]) :: [bucket]
+  @spec post_process([Bucket.t]) :: [Bucket.t]
   def post_process(anonymized_buckets) do
     anonymized_buckets
     |> extract_from_buckets

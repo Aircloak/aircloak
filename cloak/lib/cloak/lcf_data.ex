@@ -10,7 +10,7 @@ defmodule Cloak.LCFData do
 
   require Logger
 
-  alias Cloak.Type.Property
+  use Cloak.Type
 
   @type t :: {:ets.tab, pid}
 
@@ -57,7 +57,7 @@ defmodule Cloak.LCFData do
   end
 
   @doc "Adds `property() -> [user_id()]' mapping to the storage."
-  @spec add_bucket_users(t, Property.t, [User.id]) :: t
+  @spec add_bucket_users(t, Property.t, [UserId.t]) :: t
   def add_bucket_users({ets_table, _table_owner} = lcf_storage, property, user_ids) do
     :ets.insert(ets_table, {property, user_ids})
     lcf_storage
@@ -77,7 +77,7 @@ defmodule Cloak.LCFData do
   Returns a list tuples indicating how many properties each returned user had filtered.
   This data can then be used to generate any low count filter property that is desired.
   """
-  @spec filtered_property_counts(t) :: [{User.id, pos_integer}]
+  @spec filtered_property_counts(t) :: [{UserId.t, pos_integer}]
   def filtered_property_counts({ets_table, _table_owner}) do
     properties = :ets.lookup(ets_table, :lcf_property)
     |> Enum.map(fn({_, property}) -> property end)

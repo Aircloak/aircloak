@@ -1,10 +1,7 @@
 defmodule Cloak.Processor.AccumulateCountTest do
   use ExUnit.Case, async: true
 
-  require Record
-  import Record, only: [defrecord: 2, extract: 2]
-  defrecord :bucket, extract(:bucket, from_lib: "cloak/include/cloak.hrl")
-
+  use Cloak.Type
   alias Cloak.Processor.AccumulateCount
 
   test "produces a cdf for a single property for a user" do
