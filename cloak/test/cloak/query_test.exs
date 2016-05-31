@@ -6,7 +6,7 @@ defmodule Cloak.QueryTest do
   setup_all do
     :db_test.setup()
     :db_test.create_test_schema()
-    :db_test.create_table("heights", "height INTEGER")
+    :db_test.create_table("heights", "height INTEGER, name TEXT")
 
     :meck.new(:cloak_distributions)
     :meck.expect(:cloak_distributions, :gauss, fn(_sigma, n) -> round(n) end)
@@ -55,6 +55,28 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(*) from heights")
 
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[20]]}}
+  end
+
+  test "should allow ranges for where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+    :ok = start_query("select count(*) from heights where height > 170 and height < 190")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[20]]}}
+  end
+
+  test "should allow LIKE in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "bob"])
+    :ok = start_query("select count(*) from heights where name LIKE 'b%'")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[20]]}}
+  end
+
+  test "should allow IN in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+    :ok = start_query("select count(*) from heights where height IN (170, 180, 190)")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[60]]}}
   end
 
   test "query reports an error on invalid statement" do
