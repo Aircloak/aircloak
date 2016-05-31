@@ -130,6 +130,11 @@ defmodule Cloak.SqlQueryTest do
       SqlQuery.parse!("SELECT INvalid, selectiscious FROM whereables")
   end
 
+  test "count(*)" do
+    assert %{command: :select, columns: [{:count, :star}], from: "foo"} ==
+      SqlQuery.parse!("select count(*) from foo")
+  end
+
   for {description, statement, expected_error} <- [
     {"single quote is not allowed in the identifier", "select fo'o from baz", "Expected `from`"},
     {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},
@@ -143,7 +148,8 @@ defmodule Cloak.SqlQueryTest do
     {"=> is an illegal comparator in where clause", "select a from b where a => b"},
     {"=< is an illegal comparator in where clause", "select a from b where a =< b"},
     {"multiple where clauses cannot be separated by or", "select a from b where a > 1 or b < 2"},
-    {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2"}
+    {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2"},
+    {"count requires parens", "select count * from foo", "Expected `(`"}
   ] do
     test description do
       assert {:error, reason} = SqlQuery.parse(unquote(statement))

@@ -99,7 +99,25 @@ defmodule Cloak.SqlQuery do
   end
 
   defp select_columns() do
-    map(comma_delimited(identifier()), &{:columns, &1})
+    map(comma_delimited(column()), &{:columns, &1})
+  end
+
+  defp column() do
+    either(count_expression(), identifier())
+  end
+
+  defp count_expression() do
+    pipe(
+      [
+        keyword(:count),
+        char("("),
+        next_token(),
+        char("*"),
+        next_token(),
+        char(")"),
+      ],
+      fn _ -> {:count, :star} end
+    )
   end
 
   defp from() do
@@ -252,7 +270,8 @@ defmodule Cloak.SqlQuery do
       ~r/WHERE/i,
       ~r/AND/i,
       ~r/LIKE/i,
-      ~r/IN/i
+      ~r/IN/i,
+      ~r/COUNT/i
     ]
   end
 
