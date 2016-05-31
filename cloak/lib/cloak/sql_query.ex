@@ -13,7 +13,8 @@ defmodule Cloak.SqlQuery do
 
   @type t :: %{
     command: :select | :show,
-    columns: [String.t],
+    columns: [String.t | {:count, :star}],
+    group_by: [String.t],
     from: [String.t],
     where: [
         {:comparison, String.t, comparator, any}
