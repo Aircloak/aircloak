@@ -9,6 +9,9 @@
 
 -include("cloak.hrl").
 
+-type noise_function() :: fun((integer()) -> integer()).
+-type generated_range() :: {From :: integer() | neg_infinite, To :: integer() | infinite, Count :: non_neg_integer()}.
+
 
 %% -------------------------------------------------------------------
 %% API

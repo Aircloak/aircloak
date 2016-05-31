@@ -1,14 +1,12 @@
 defmodule Cloak.Query.Runner do
   @moduledoc "Cloak query runner."
-  import Record, only: [defrecord: 2, extract: 2]
-  defrecord :bucket, extract(:bucket, from_lib: "cloak/include/cloak.hrl")
 
-  alias Cloak.{LCFData, DataSource, Processor}
+  alias Cloak.{Aggregator, LCFData, DataSource, Processor}
 
-  @type bucket :: record(:bucket, property: [any], noisy_count: pos_integer)
+  use Cloak.Type
 
   @doc "Runs the query and returns the result."
-  @spec run(Cloak.Query.t) :: {:ok, {:buckets, [DataSource.column], [bucket]}} | {:error, any}
+  @spec run(Cloak.Query.t) :: {:ok, {:buckets, [DataSource.column], [Bucket.t]}} | {:error, any}
   def run(query) do
     with {:ok, sql_query} <- Cloak.SqlQuery.parse(query.statement), :ok <- validate(sql_query) do
        execute_sql_query(sql_query)
@@ -71,15 +69,14 @@ defmodule Cloak.Query.Runner do
   end
 
   defp anonymize(properties, lcf_data) do
-    aggregator = :aggregator.new(lcf_data)
+    aggregator = Aggregator.new()
 
-    for {user_id, property} <- properties, do: :aggregator.add_property(property, user_id, aggregator)
-    aggregated_buckets = :aggregator.buckets(aggregator)
-    anonymized_buckets = :anonymizer.anonymize(aggregated_buckets, lcf_data)
-
-    :aggregator.delete(aggregator)
-
-    anonymized_buckets
+    try do
+      for {user_id, property} <- properties, do: Aggregator.add_property(aggregator, user_id, property)
+      Aggregator.gather_buckets(aggregator, lcf_data) |> :anonymizer.anonymize(lcf_data)
+    after
+      Aggregator.delete(aggregator)
+    end
   end
 
   defp post_process(buckets, lcf_data, columns_count) do
