@@ -97,7 +97,7 @@ defmodule Cloak.SqlQuery do
     sequence([
       select_columns(),
       from(),
-      where()
+      option(where())
     ])
   end
 
@@ -130,11 +130,9 @@ defmodule Cloak.SqlQuery do
   end
 
   defp where() do
-    option(
-      pair_both(
-        keyword(:where),
-        and_delimited(where_expression())
-      )
+    pair_both(
+      keyword(:where),
+      and_delimited(where_expression())
     )
   end
 
