@@ -186,19 +186,22 @@ defmodule Cloak.SqlQuery do
 
   defp boolean() do
     word()
-    |> map(fn(word) when is_bitstring(word) -> String.downcase(word); (word) -> word end)
-    |> map(fn(word) -> Map.get(boolean_map(), word) end)
+    |> map(&convert_to_boolean/1)
     |> one_of([true, false])
   end
 
-  defp boolean_map() do
-    %{
-      "yes" => true,
-      "true" => true,
-      "no" => false,
-      "false" => false
-    }
+  defp convert_to_boolean(string) when is_bitstring(string) do
+    string
+    |> String.downcase
+    |> map_to_boolean
   end
+  defp convert_to_boolean(_non_string), do: :unknown
+
+  defp map_to_boolean("yes"), do: true
+  defp map_to_boolean("true"), do: true
+  defp map_to_boolean("no"), do: false
+  defp map_to_boolean("false"), do: false
+  defp map_to_boolean(_), do: :unknown
 
   defp identifier() do
     next_token()
