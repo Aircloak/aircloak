@@ -74,30 +74,30 @@ defmodule Cloak.SqlQueryTest do
   end
 
   test "where clause can have string values" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, "tom"}]} ==
+    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, "'tom'"}]} ==
       SqlQuery.parse!("select foo from bar where name = 'tom'")
   end
 
   test "where clause can have string values of any case" do
     assert %{command: :select, columns: ["foo"], from: "bar", where:
-        [{:comparison, "name", :=, "tOm"}]} ==
+        [{:comparison, "name", :=, "'tOm'"}]} ==
       SqlQuery.parse!("select foo from bar where name = 'tOm'")
   end
 
   test "where clause can have multi-word string values" do
     assert %{command: :select, columns: ["foo"], from: "bar", where:
-        [{:comparison, "name", :=, "avishai cohen"}]} ==
+        [{:comparison, "name", :=, "'avishai cohen'"}]} ==
       SqlQuery.parse!("select foo from bar where name = 'avishai cohen'")
   end
 
   test "where clause with mutliple comparisons" do
     assert %{command: :select, columns: ["foo"], from: "bar", where:
-      [{:comparison, "a", :<>, 10}, {:comparison, "b", :=, "bar"}]} ==
+      [{:comparison, "a", :<>, 10}, {:comparison, "b", :=, "'bar'"}]} ==
       SqlQuery.parse!("select foo from bar where a <> 10 and b = 'bar'")
   end
 
   test "where clause with LIKE is OK" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:like, "a", "_ob d%"}]} ==
+    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:like, "a", "'_ob d%'"}]} ==
       SqlQuery.parse!("select foo from bar where a LIKE '_ob d%'")
   end
 
@@ -108,7 +108,7 @@ defmodule Cloak.SqlQueryTest do
 
   test "where clause with all types of clauses is OK" do
     assert %{command: :select, columns: ["foo"], from: "bar", where:
-        [{:comparison, "a", :=, 2}, {:in, "b", [1, 2, 3]}, {:like, "c", "_o"}]} ==
+        [{:comparison, "a", :=, 2}, {:in, "b", [1, 2, 3]}, {:like, "c", "'_o'"}]} ==
       SqlQuery.parse!("select foo from bar where a = 2 and b in (1,2,3) and c like '_o'")
   end
 
