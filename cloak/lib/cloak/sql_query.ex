@@ -225,7 +225,7 @@ defmodule Cloak.SqlQuery do
       [
         keyword(:group),
         keyword(:by),
-        comma_delimited(column()),
+        comma_delimited(identifier()),
       ],
       fn [_, _, columns] -> {:group_by, columns} end
     )

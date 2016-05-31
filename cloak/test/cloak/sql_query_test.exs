@@ -158,6 +158,7 @@ defmodule Cloak.SqlQueryTest do
     {"multiple where clauses cannot be separated by or", "select a from b where a > 1 or b < 2", ""},
     {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2", ""},
     {"count requires parens", "select count * from foo", "Expected `(`"},
+    {"cannot group by count", "select a from foor group by count(*)", ""},
   ] do
     test description do
       assert {:error, reason} = SqlQuery.parse(unquote(statement))
