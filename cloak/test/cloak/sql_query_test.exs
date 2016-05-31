@@ -152,12 +152,12 @@ defmodule Cloak.SqlQueryTest do
     {"columns must be separated with a comma", "select foo bar from baz", "Expected `from`"},
     {"query must start with a select or show", "foo select foo bar from baz", "Expected `select or show`"},
     {"show requires tables or columns", "show foobar", "Expected `tables or columns`"},
-    {"!= is an illegal comparator in where clause", "select a from b where a != b"},
-    {"=> is an illegal comparator in where clause", "select a from b where a => b"},
-    {"=< is an illegal comparator in where clause", "select a from b where a =< b"},
-    {"multiple where clauses cannot be separated by or", "select a from b where a > 1 or b < 2"},
-    {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2"},
-    {"count requires parens", "select count * from foo", "Expected `(`"}
+    {"!= is an illegal comparator in where clause", "select a from b where a != b", ""},
+    {"=> is an illegal comparator in where clause", "select a from b where a => b", ""},
+    {"=< is an illegal comparator in where clause", "select a from b where a =< b", ""},
+    {"multiple where clauses cannot be separated by or", "select a from b where a > 1 or b < 2", ""},
+    {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2", ""},
+    {"count requires parens", "select count * from foo", "Expected `(`"},
   ] do
     test description do
       assert {:error, reason} = SqlQuery.parse(unquote(statement))
