@@ -139,6 +139,10 @@ defmodule Cloak.SqlQueryTest do
     assert %{group_by: ["a"]} = SqlQuery.parse!("select a from b group by a")
   end
 
+  test "group by multiple columns" do
+    assert %{group_by: ["x", "y", "z"]} = SqlQuery.parse!("select x from b group by x, y, z")
+  end
+
   for {description, statement, expected_error} <- [
     {"single quote is not allowed in the identifier", "select fo'o from baz", "Expected `from`"},
     {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},
