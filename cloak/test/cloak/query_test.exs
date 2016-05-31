@@ -81,6 +81,12 @@ defmodule Cloak.QueryTest do
     assert error =~ ~r/All columns need to be aggregated/
   end
 
+  test "query allows mixing aggregated and grouped columns" do
+    :ok = start_query("select count(*), height from heights group by height")
+
+    assert_receive {:reply, %{columns: ["count(*)", "height"], rows: []}}
+  end
+
   test "query reports an error on runner crash" do
     ExUnit.CaptureLog.capture_log(fn ->
       :ok = start_query(:invalid_query_type)

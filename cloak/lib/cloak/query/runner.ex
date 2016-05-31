@@ -33,8 +33,8 @@ defmodule Cloak.Query.Runner do
   end
   defp validate_from(%{}), do: :ok
 
-  defp validate_aggregation(%{command: :select, columns: [first_column | columns]}) do
-    if Enum.all?(columns, fn column -> aggregate?(column) == aggregate?(first_column) end) do
+  defp validate_aggregation(%{command: :select, columns: [first_column | columns]} = query) do
+    if Enum.all?(columns, fn column -> aggregate?(column, query) == aggregate?(first_column, query) end) do
       :ok
     else
       {:error, "All columns need to be aggregated or listed in the 'group by' clause"}
@@ -42,8 +42,11 @@ defmodule Cloak.Query.Runner do
   end
   defp validate_aggregation(_), do: :ok
 
-  defp aggregate?({:count, _}), do: true
-  defp aggregate?(_), do: false
+  defp aggregate?({:count, _}, _), do: true
+  defp aggregate?(column, %{group_by: group_bys}) do
+    Enum.member?(group_bys, column)
+  end
+  defp aggregate?(_, _), do: false
 
   defp validate_columns(%{command: :select, columns: selected_columns, from: table_identifier}) do
     table_id = String.to_existing_atom(table_identifier)
