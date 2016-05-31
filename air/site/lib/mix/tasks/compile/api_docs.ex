@@ -19,17 +19,23 @@ defmodule Mix.Tasks.Compile.ApiDocs do
   end
 
   defp stale?() do
-    source_mtime =
-      Path.wildcard("api_docs/**")
-      |> Enum.map(&File.stat!(&1).mtime)
-      |> Enum.max()
+    try do
+      source_mtime =
+        Path.wildcard("api_docs/**")
+        |> Enum.map(&File.stat!(&1).mtime)
+        |> Enum.max()
 
-    Path.wildcard("priv/static/api_docs/**")
-    |> Enum.map(&File.stat!(&1).mtime)
-    |> Enum.sort(&(&1 > &2))
-    |> case do
-      [] -> true
-      [target_mtime | _] -> target_mtime < source_mtime
+      Path.wildcard("priv/static/api_docs/**")
+      |> Enum.map(&File.stat!(&1).mtime)
+      |> Enum.sort(&(&1 > &2))
+      |> case do
+        [] -> true
+        [target_mtime | _] -> target_mtime < source_mtime
+      end
+    catch
+      # For some unknown reason, File.stat! fails on a local docker build. Since it is not critical,
+      # here we're just suppressing the error and assuming that the target is stale.
+      _,_ -> true
     end
   end
 
