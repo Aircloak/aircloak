@@ -73,17 +73,15 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   defp select_query_to_string(%{columns: fields_list, from: table} = query) do
     fields_str = Enum.map_join(fields_list, ",", &select_column_to_string/1)
-    "SELECT #{fields_str} FROM #{table} #{where_sql(query)}"
+    "SELECT #{fields_str} FROM #{table} #{where_sql(Map.get(query, :where))}"
   end
 
   defp select_column_to_string({:count, :star}), do: "'*' as \"count(*)\""
   defp select_column_to_string(column), do: "(" <> column <> ")::text"
 
-  defp where_sql(query) do
-    case Map.get(query, :where) do
-      nil -> ""
-      clauses -> "WHERE #{construct_where_clause(clauses, [])}"
-    end
+  defp where_sql(nil), do: ""
+  defp where_sql(clauses) do
+    "WHERE #{construct_where_clause(clauses, [])}"
   end
 
   defp construct_where_clause(_clauses = [], acc), do: acc |> Enum.reverse |> Enum.join(" AND ")
