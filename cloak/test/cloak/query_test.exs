@@ -49,6 +49,14 @@ defmodule Cloak.QueryTest do
     assert groups == [{["*"], 20}, {["180"], 20}]
   end
 
+  test "should produce counts" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+
+    :ok = start_query("select count(*) from heights")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[20]]}}
+  end
+
   test "query reports an error on invalid statement" do
     :ok = start_query("invalid statement")
     assert_receive {:reply, %{query_id: "1", error: "Expected `select or show` at line 1, column 1."}}
