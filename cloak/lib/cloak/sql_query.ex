@@ -150,10 +150,7 @@ defmodule Cloak.SqlQuery do
   end
 
   defp wildcard_comparison_value() do
-    next_token()
-    |> sequence([char("'"), word_of(~r/[%\w\s]/), char("'")])
-    |> map(&Enum.join/1)
-    |> label("like comparison value")
+    quoted_value(~r/[%\w\s]/)
   end
 
   defp where_in() do
@@ -220,9 +217,15 @@ defmodule Cloak.SqlQuery do
   end
 
   defp raw_string() do
-    sequence([char("'"), word_of(~r/[\w\s]/), char("'")])
-    |> map(&Enum.join/1)
-    |> label("string value")
+    quoted_value(~r/[\w\s]/)
+  end
+
+  defp quoted_value(regex) do
+    next_token()
+    |> pipe(
+        [char("'"), word_of(regex), char("'")],
+        fn([_, value, _]) -> value end
+      )
   end
 
   defp keyword_of(types) do
