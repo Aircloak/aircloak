@@ -9,7 +9,7 @@ defmodule Cloak.Query.Runner do
   @spec run(Cloak.Query.t) :: {:ok, {:buckets, [DataSource.column], [Bucket.t]}} | {:error, any}
   def run(query) do
     with {:ok, sql_query} <- Cloak.SqlQuery.parse(query.statement), :ok <- validate(sql_query) do
-       execute_sql_query(sql_query)
+      execute_sql_query(sql_query)
     end
   end
 
@@ -19,7 +19,10 @@ defmodule Cloak.Query.Runner do
   ## ----------------------------------------------------------------
 
   defp validate(sql_query) do
-    with :ok <- validate_from(sql_query), :ok <- validate_columns(sql_query), do: :ok
+    with :ok <- validate_from(sql_query),
+         :ok <- validate_columns(sql_query),
+         :ok <- validate_aggregation(sql_query),
+      do: :ok
   end
 
   defp validate_from(%{from: table_identifier}) do
@@ -29,6 +32,18 @@ defmodule Cloak.Query.Runner do
     end
   end
   defp validate_from(%{}), do: :ok
+
+  defp validate_aggregation(%{command: :select, columns: [first_column | columns]}) do
+    if Enum.all?(columns, fn column -> aggregate?(column) == aggregate?(first_column) end) do
+      :ok
+    else
+      {:error, "All columns need to be aggregated or listed in the 'group by' clause"}
+    end
+  end
+  defp validate_aggregation(_), do: :ok
+
+  defp aggregate?({:count, _}), do: true
+  defp aggregate?(_), do: false
 
   defp validate_columns(%{command: :select, columns: selected_columns, from: table_identifier}) do
     table_id = String.to_existing_atom(table_identifier)

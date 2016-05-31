@@ -74,6 +74,13 @@ defmodule Cloak.QueryTest do
     assert ~s/Table "invalid_table" doesn't exist./ == error
   end
 
+  test "query reports an error when mixing aggregated and normal columns" do
+    :ok = start_query("select count(*), height from heights")
+
+    assert_receive {:reply, %{query_id: "1", error: error}}
+    assert error =~ ~r/All columns need to be aggregated/
+  end
+
   test "query reports an error on runner crash" do
     ExUnit.CaptureLog.capture_log(fn ->
       :ok = start_query(:invalid_query_type)
