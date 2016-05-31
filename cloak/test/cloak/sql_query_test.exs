@@ -135,6 +135,10 @@ defmodule Cloak.SqlQueryTest do
       SqlQuery.parse!("select count(*) from foo")
   end
 
+  test "group by a column" do
+    assert %{group_by: ["a"]} = SqlQuery.parse!("select a from b group by a")
+  end
+
   for {description, statement, expected_error} <- [
     {"single quote is not allowed in the identifier", "select fo'o from baz", "Expected `from`"},
     {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},

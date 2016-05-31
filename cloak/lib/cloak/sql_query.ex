@@ -94,7 +94,8 @@ defmodule Cloak.SqlQuery do
     sequence([
       select_columns(),
       from(),
-      option(where())
+      option(where()),
+      option(group_by()),
     ])
   end
 
@@ -217,6 +218,17 @@ defmodule Cloak.SqlQuery do
   defp map_to_boolean("no"), do: false
   defp map_to_boolean("false"), do: false
   defp map_to_boolean(_), do: :unknown
+
+  defp group_by() do
+    pipe(
+      [
+        keyword(:group),
+        keyword(:by),
+        comma_delimited(column()),
+      ],
+      fn [_, _, columns] -> {:group_by, columns} end
+    )
+  end
 
   defp identifier() do
     next_token()
