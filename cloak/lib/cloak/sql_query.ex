@@ -3,10 +3,23 @@ defmodule Cloak.SqlQuery do
   use Combine
   import Cloak.SqlQuery.Parsers
 
+  @type comparator ::
+      :=
+    | :<
+    | :<=
+    | :>=
+    | :>
+    | :<>
+
   @type t :: %{
     command: :select | :show,
-    from: [String.t],
     columns: [String.t],
+    from: [String.t],
+    where: [
+        {:comparison, String.t, comparator, any}
+      | {:like, String.t, String.t}
+      | {:in, String.t, [any]}
+    ],
     show: :tables | :columns
   }
 
@@ -50,9 +63,14 @@ defmodule Cloak.SqlQuery do
         show: show_statement()
       }
     )
-    |> map(fn({command, [statement_data]}) ->
-      Map.merge(%{command: command}, Map.new(statement_data))
-    end)
+    |> map(&create_reportable_map/1)
+  end
+
+  defp create_reportable_map({command, [statement_data]}) do
+    statement_data = statement_data
+    |> Enum.reject(fn(value) -> value == nil end)
+    |> Map.new
+    Map.merge(%{command: command}, statement_data)
   end
 
   defp statement_termination(parser) do
@@ -75,7 +93,8 @@ defmodule Cloak.SqlQuery do
   defp select_statement() do
     sequence([
       select_columns(),
-      from()
+      from(),
+      option(where())
     ])
   end
 
@@ -125,13 +144,106 @@ defmodule Cloak.SqlQuery do
     )
   end
 
+  defp where() do
+    pair_both(
+      keyword(:where),
+      and_delimited(where_expression())
+    )
+  end
+
+  defp where_expression() do
+    choice([like(), where_in(), comparison()])
+  end
+
+  defp like() do
+    pipe(
+      [identifier(), keyword(:like), wildcard_comparison_value()],
+      fn([identifier, _, wildcard_value]) ->
+        {:like, identifier, wildcard_value}
+      end
+    )
+  end
+
+  defp wildcard_comparison_value() do
+    quoted_value(~r/[%\w\s]/)
+  end
+
+  defp where_in() do
+    pipe(
+      [identifier(), keyword(:in), in_values()],
+      fn([identifier, _, in_values]) ->
+        {:in, identifier, in_values}
+      end
+    )
+  end
+
+  defp in_values() do
+    next_token()
+    |> pipe(
+        [char("("), comma_delimited(allowed_where_values()), char(")")],
+        fn([_, values, _]) -> values end
+      )
+  end
+
+  defp comparison() do
+    pipe(
+      [identifier(), comparator(), allowed_where_values()],
+      fn([identifier, comparator, value]) ->
+        {:comparison, identifier, String.to_atom(comparator), value}
+      end
+    )
+  end
+
+  defp allowed_where_values() do
+    next_token()
+    |> choice([raw_string(), integer(), float(), boolean()])
+  end
+
+  defp boolean() do
+    word()
+    |> map(&convert_to_boolean/1)
+    |> one_of([true, false])
+  end
+
+  defp convert_to_boolean(string) when is_bitstring(string) do
+    string
+    |> String.downcase
+    |> map_to_boolean
+  end
+  defp convert_to_boolean(_non_string), do: :unknown
+
+  defp map_to_boolean("yes"), do: true
+  defp map_to_boolean("true"), do: true
+  defp map_to_boolean("no"), do: false
+  defp map_to_boolean("false"), do: false
+  defp map_to_boolean(_), do: :unknown
+
   defp identifier() do
     next_token()
     |> word_of(~r/[a-zA-Z_][a-zA-Z0-9_]*/)
     |> satisfy(fn(identifier) ->
-          not Enum.any?(keyword_matchers(), &Regex.match?(&1, identifier))
+          not Enum.any?(keyword_matchers(), &(Regex.replace(&1, identifier, "") == ""))
         end)
     |> label("identifier")
+  end
+
+  defp comparator() do
+    next_token()
+    |> word_of(~r/[<=>]*/)
+    |> one_of(["=", "<", "<=", ">=", ">", "<>"])
+    |> label("comparator")
+  end
+
+  defp raw_string() do
+    quoted_value(~r/[\w\s]/)
+  end
+
+  defp quoted_value(regex) do
+    next_token()
+    |> pipe(
+        [char("'"), word_of(regex), char("'")],
+        fn([_, value, _]) -> value end
+      )
   end
 
   defp keyword_of(types) do
@@ -155,13 +267,22 @@ defmodule Cloak.SqlQuery do
       ~r/TABLES/i,
       ~r/COLUMNS/i,
       ~r/FROM/i,
-      ~r/COUNT/i,
+      ~r/WHERE/i,
+      ~r/AND/i,
+      ~r/LIKE/i,
+      ~r/IN/i,
+      ~r/COUNT/i
     ]
   end
 
   defp comma_delimited(term_parser) do
     next_token()
     |> sep_by1(next_token(term_parser), char(","))
+  end
+
+  defp and_delimited(term_parser) do
+    next_token()
+    |> sep_by1(next_token(term_parser), keyword(:and))
   end
 
   defp end_of_input(parser), do: parser |> next_token() |> eof()
