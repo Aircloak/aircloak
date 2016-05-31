@@ -261,18 +261,8 @@ defmodule Cloak.SqlQuery do
   end
 
   defp keyword_matchers() do
-    [
-      ~r/SELECT/i,
-      ~r/SHOW/i,
-      ~r/TABLES/i,
-      ~r/COLUMNS/i,
-      ~r/FROM/i,
-      ~r/WHERE/i,
-      ~r/AND/i,
-      ~r/LIKE/i,
-      ~r/IN/i,
-      ~r/COUNT/i
-    ]
+    ~w(AND BY COLUMNS COUNT FROM GROUP IN LIKE SELECT SHOW TABLES WHERE)
+    |> Enum.map(fn keyword -> ~r/#{keyword}/i end)
   end
 
   defp comma_delimited(term_parser) do
