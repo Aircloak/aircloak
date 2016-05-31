@@ -63,12 +63,17 @@ defmodule Cloak.SqlQuery do
         show: show_statement()
       }
     )
-    |> map(fn({command, [statement_data]}) ->
+    |> create_reportable_map
+  end
+
+  defp create_reportable_map(data) do
+    map_fn = fn({command, [statement_data]}) ->
       statement_data = statement_data
       |> Enum.reject(fn(value) -> value == nil end)
       |> Map.new
       Map.merge(%{command: command}, statement_data)
-    end)
+    end
+    map(data, map_fn)
   end
 
   defp statement_termination(parser) do
