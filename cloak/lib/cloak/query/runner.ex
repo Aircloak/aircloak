@@ -66,6 +66,7 @@ defmodule Cloak.Query.Runner do
         |> Processor.AccumulateCount.pre_process()
         |> anonymize(lcf_data)
         |> post_process(lcf_data, length(columns))
+        |> order_buckets(columns)
       after
         LCFData.delete(lcf_data)
       end
@@ -107,4 +108,24 @@ defmodule Cloak.Query.Runner do
       end)
     |> Enum.to_list
   end
+
+  defp order_buckets(buckets, columns) do
+    columns_count = length(columns)
+    order = for index <- 0..columns_count, do: {index, :asc}
+    buckets |> Enum.sort(fn (bucket(property: row1), bucket(property: row2)) ->
+      compare_rows(row1, row2, order)
+    end)
+  end
+
+  defp compare_rows(row1, row2, [{index, direction} | remaining_order]) do
+    field1 = row1 |> Enum.at(index)
+    field2 = row2 |> Enum.at(index)
+    case field1 === field2 do
+      :true -> compare_rows(row1, row2, remaining_order)
+      :false -> compare_fields(field1, field2, direction)
+    end
+  end
+
+  defp compare_fields(field1, field2, :asc), do: field1 < field2
+  defp compare_fields(field1, field2, :desc), do: field1 > field2
 end
