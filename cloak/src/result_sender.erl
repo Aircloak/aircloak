@@ -73,9 +73,9 @@ init(Args) ->
 
 convert_result(timeout, #state{result = Result, query_id = QueryId} = S0) ->
   Reply = case Result of
-    {buckets, Columns, Buckets} ->
-      ?INFO("Processing buckets report for query ~s: ~p buckets", [QueryId, length(Buckets)]),
-      #{query_id => QueryId, columns => Columns, rows => Buckets};
+    {buckets, Columns, Rows} ->
+      ?INFO("Processing buckets report for query ~s: ~p buckets", [QueryId, length(Rows)]),
+      #{query_id => QueryId, columns => Columns, rows => Rows};
     {error, Reason} ->
       ?INFO("Processing error report for query ~s: ~p", [QueryId, Reason]),
       #{query_id => QueryId, error => Reason}
