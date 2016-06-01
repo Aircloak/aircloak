@@ -65,8 +65,9 @@ defmodule Cloak.Query.Runner do
         group_by_user(rows)
         |> Processor.AccumulateCount.pre_process()
         |> anonymize(lcf_data)
-        |> post_process(lcf_data, length(columns))
+        |> Processor.AccumulateCount.post_process()
         |> order_buckets(columns)
+        |> add_lcf_buckets(lcf_data, length(columns))
       after
         LCFData.delete(lcf_data)
       end
@@ -86,10 +87,7 @@ defmodule Cloak.Query.Runner do
     end
   end
 
-  defp post_process(buckets, lcf_data, columns_count) do
-    post_processed_buckets = Processor.AccumulateCount.post_process(buckets)
-
-    # We also want to account for the number of low count filtered properties
+  defp add_lcf_buckets(buckets, lcf_data, columns_count) do
     lcf_property = List.duplicate("*", columns_count)
     low_count_filter_data = LCFData.filtered_property_counts(lcf_data)
     |> Enum.map(fn({user, count}) -> {user, List.duplicate(lcf_property, count)} end)
@@ -98,7 +96,7 @@ defmodule Cloak.Query.Runner do
     |> anonymize(:undefined)
     |> Processor.AccumulateCount.post_process
 
-    post_processed_buckets ++ lcf_buckets
+    buckets ++ lcf_buckets
   end
 
   defp group_by_user(rows) do
