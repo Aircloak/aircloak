@@ -92,16 +92,12 @@ defmodule Cloak.SqlQuery.Lexer do
   end
 
   defp boolean_constant() do
-    boolean_constants = %{"true" => true, "yes" => true, "false" => false, "no" => false}
-
     choice([
       word_of(~r/true/i),
-      word_of(~r/yes/i),
-      word_of(~r/false/i),
-      word_of(~r/no/i)
+      word_of(~r/false/i)
     ])
     |> map(&String.downcase/1)
-    |> map(&Map.fetch!(boolean_constants, &1))
+    |> map(&String.to_atom/1)
     |> output_constant(:boolean)
   end
 

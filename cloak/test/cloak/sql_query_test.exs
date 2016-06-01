@@ -118,13 +118,6 @@ defmodule Cloak.SqlQueryTest do
       SqlQuery.parse!("select foo from bar where a = true and b in (true, false)")
   end
 
-  test "yes/no + true/false are all allowed boolean values in where clause" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where:
-        [{:comparison, "a", :=, true}, {:comparison, "b", :=, true},
-        {:comparison, "c", :=, false}, {:comparison, "d", :=, false}]} ==
-      SqlQuery.parse!("select foo from bar where a = true and b = YES and c = false and d = NO")
-  end
-
   test "it's valid to have a identifier contain a keyword" do
     assert %{command: :select, columns: ["INvalid", "selectiscious"], from: "whereables"} ==
       SqlQuery.parse!("SELECT INvalid, selectiscious FROM whereables")
