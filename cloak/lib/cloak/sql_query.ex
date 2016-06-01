@@ -91,14 +91,7 @@ defmodule Cloak.SqlQuery do
     sequence([
       select_columns(),
       from(),
-      switch([
-        {keyword(:where), where_expressions()},
-        {:else, noop()}
-      ])
-      |> map(fn
-            {[:where], [where_expressions]} -> {:where, where_expressions}
-            other -> other
-          end)
+      optional_where()
     ])
   end
 
@@ -139,6 +132,17 @@ defmodule Cloak.SqlQuery do
       [identifier(), keyword(:"."), identifier()],
       &Enum.join/1
     )
+  end
+
+  defp optional_where() do
+    switch([
+      {keyword(:where), where_expressions()},
+      {:else, noop()}
+    ])
+    |> map(fn
+          {[:where], [where_expressions]} -> {:where, where_expressions}
+          other -> other
+        end)
   end
 
   defp where_expressions() do
