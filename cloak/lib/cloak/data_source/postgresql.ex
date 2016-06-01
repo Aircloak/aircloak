@@ -71,7 +71,8 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("interval"), do: :interval
   defp parse_type(type), do: {:unsupported, type}
 
-  defp select_query_to_string(%{columns: fields_list, from: table}) do
+  defp select_query_to_string(%{columns: fields_list, from: table} = query) do
+    fields_list = fields_list ++ (Map.get(query, :group_by, []) -- fields_list)
     fields_str = Enum.map_join(fields_list, ",", &select_column_to_string/1)
     "SELECT #{fields_str} FROM #{table}"
   end

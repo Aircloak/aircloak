@@ -9,6 +9,13 @@ defmodule Cloak.Query.Buckets do
     end
   end
 
+  def columns(%{columns: columns}) do
+    Enum.map(columns, &column_title/1)
+  end
+
+  defp column_title({:count, :star}), do: "count(*)"
+  defp column_title(column), do: column
+
   defp extract_rows(results, query) do
     Enum.map(results, &extract_row(&1, query))
   end

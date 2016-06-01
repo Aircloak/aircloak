@@ -91,6 +91,16 @@ defmodule Cloak.QueryTest do
     assert Enum.sort(rows) == [[10, "180"], [20, "160"]]
   end
 
+  test "grouping works when the column is not selected" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
+
+    :ok = start_query("select count(*) from heights group by height")
+
+    assert_receive {:reply, %{columns: ["count(*)"], rows: rows}}
+    assert Enum.sort(rows) == [[10], [20]]
+  end
+
   test "query reports an error on runner crash" do
     ExUnit.CaptureLog.capture_log(fn ->
       :ok = start_query(:invalid_query_type)
