@@ -136,7 +136,7 @@ defmodule Cloak.SqlQueryTest do
   end
 
   for {description, statement, expected_error} <- [
-    {"single quote is not allowed in the identifier", "select fo'o from baz", "Expected `from`"},
+    {"single quote is not allowed in the identifier", "select fo'o from baz", "Invalid character"},
     {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},
     {"keyword is not identifier", "select select from baz", "Expected `identifier`"},
     {"from table is required", "select foo", "`from`"},
@@ -149,7 +149,14 @@ defmodule Cloak.SqlQueryTest do
     {"=< is an illegal comparator in where clause", "select a from b where a =< b"},
     {"multiple where clauses cannot be separated by or", "select a from b where a > 1 or b < 2"},
     {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2"},
-    {"count requires parens", "select count * from foo", "Expected `(`"}
+    {"count requires parens", "select count * from foo", "Expected `(`"},
+    {"invalid like", "select foo from bar where baz like", "Expected `string constant`"},
+    {"invalid like type", "select foo from bar where baz like 10", "Expected `string constant`"},
+    {"invalid in", "select foo from bar where baz in", "Expected `(`"},
+    {"invalid comparison", "select foo from bar where baz =", "Expected `comparison value`"},
+    {"missing where expression", "select foo from bar where", "Invalid where expression"},
+    {"invalid where expression", "select foo from bar where foo bar", "Invalid where expression"},
+    {"no input allowed after the statement", "select foo from bar baz", "Expected end of input"}
   ] do
     test description do
       assert {:error, reason} = SqlQuery.parse(unquote(statement))
