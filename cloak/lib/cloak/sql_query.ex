@@ -206,9 +206,8 @@ defmodule Cloak.SqlQuery do
 
   defp keyword(parser \\ noop(), type) do
     parser
-    |> token(:keyword)
-    |> satisfy(&(&1.value == type))
-    |> map(&(&1.value))
+    |> token(type)
+    |> map(&(&1.category))
     |> label(to_string(type))
   end
 

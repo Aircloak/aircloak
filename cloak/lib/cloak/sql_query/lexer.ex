@@ -116,7 +116,7 @@ defmodule Cloak.SqlQuery.Lexer do
 
   defp keyword() do
     choice(Enum.map(@keyword_regexes, &word_of/1))
-    |> map(&{:keyword, String.to_atom(String.downcase(&1))})
+    |> map(&{String.to_atom(String.downcase(&1)), nil})
     |> output_token()
   end
 
