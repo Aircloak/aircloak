@@ -75,20 +75,25 @@ class QueriesView extends React.Component {
 
   render() {
     return (<div>
-      <CodeEditor
-        onRun={this.runQuery}
-        onSave={() => {}}
-        onChange={this.setStatement}
-        statement={this.state.statement}
-      />
+      <div id="aql-editor">
+        <h3>Query editor</h3>
+        <CodeEditor
+          onRun={this.runQuery}
+          onSave={() => {}}
+          onChange={this.setStatement}
+          statement={this.state.statement}
+        />
 
-      <div className="query-menu">
-        <MenuButton onClick={this.runQuery} isActive>Run</MenuButton>
+        <div className="right-align">
+          <MenuButton onClick={this.runQuery} isActive>Run</MenuButton> or <kbd>Ctrl + Enter</kbd>
+        </div>
+
         <DataSourceSelector
           sources={this.props.sources}
           onChange={this.setDataSource}
           selectedDataSource={this.state.dataSource}
         />
+
       </div>
 
       <Results results={this.state.sessionResults.concat(this.props.results)} />
