@@ -106,15 +106,8 @@ defmodule Cloak.SqlQuery do
   end
 
   defp count_expression() do
-    pipe(
-      [
-        keyword(:count),
-        keyword(:"("),
-        keyword(:"*"),
-        keyword(:")")
-      ],
-      fn _ -> {:count, :star} end
-    )
+    keywords([:count, :"(", :"*", :")"])
+    |> map(fn(_) -> {:count, :star} end)
   end
 
   defp from(parser \\ noop()) do
@@ -194,10 +187,10 @@ defmodule Cloak.SqlQuery do
 
   defp optional_order_by() do
     switch([
-      {keyword(:order) |> keyword(:by), comma_delimited(order_by_field())},
+      {keywords([:order, :by]), comma_delimited(order_by_field())},
       {:else, noop()}
     ])
-    |> map(fn({[:order, :by], [fields]}) -> {:order_by, fields} end)
+    |> map(fn({[[:order, :by]], [fields]}) -> {:order_by, fields} end)
   end
 
   defp order_by_field() do
@@ -239,6 +232,10 @@ defmodule Cloak.SqlQuery do
     |> token(type)
     |> map(&(&1.category))
     |> label(to_string(type))
+  end
+
+  defp keywords(types) do
+    sequence(Enum.map(types, &keyword/1))
   end
 
   defp comma_delimited(term_parser) do
