@@ -103,7 +103,7 @@ defmodule Cloak.Query.Runner do
         LCFData.delete(lcf_data)
       end
 
-      {:ok, {:buckets, Result.columns(select_query), reportable_buckets}}
+      {:ok, {:buckets, Result.column_titles(select_query), reportable_buckets}}
     end
   end
 
