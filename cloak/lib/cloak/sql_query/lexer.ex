@@ -53,8 +53,7 @@ defmodule Cloak.SqlQuery.Lexer do
       identifier(),
       keyword()
     ]))
-    |> eof()
-    |> if_then_else(noop(), fail("Invalid character"))
+    |> error_message(eof(), "Invalid character")
   end
 
   defp whitespace() do

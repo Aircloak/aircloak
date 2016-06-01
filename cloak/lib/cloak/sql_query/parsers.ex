@@ -192,4 +192,23 @@ defmodule Cloak.SqlQuery.Parsers do
     {result_group, rest} = Enum.split(results, n)
     %ParserState{state | results: [List.to_tuple(Enum.reverse(result_group)) | rest]}
   end
+
+  @doc """
+  Runs the parser and sets the error message if it fails, appending the position
+  information.
+
+  This is more flexible than `label`, because it allows you to set an arbitrary
+  error message, whereas `label` can only used for `Expected ... at ...` messages.
+  """
+  @spec error_message(Base.parser, String.t) :: Base.parser
+  @spec error_message(Base.parser, Base.parser, String.t) :: Base.parser
+  defparser error_message(%ParserState{status: :ok} = state, parser, message) do
+    with next_state = parser.(state),
+         %ParserState{status: :error} <- next_state
+    do
+      %ParserState{next_state |
+        error: "#{message} at line #{next_state.line}, column #{next_state.column + 1}."
+      }
+    end
+  end
 end
