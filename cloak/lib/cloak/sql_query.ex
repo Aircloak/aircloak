@@ -111,9 +111,9 @@ defmodule Cloak.SqlQuery do
     pipe(
       [
         keyword(:count),
-        ignore(keyword(:"(")),
-        ignore(keyword(:"*")),
-        ignore(keyword(:")"))
+        keyword(:"("),
+        keyword(:"*"),
+        keyword(:")")
       ],
       fn _ -> {:count, :star} end
     )
