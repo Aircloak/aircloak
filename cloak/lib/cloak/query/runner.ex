@@ -19,7 +19,9 @@ defmodule Cloak.Query.Runner do
   ## ----------------------------------------------------------------
 
   defp validate(sql_query) do
-    with :ok <- validate_from(sql_query), :ok <- validate_columns(sql_query), do: :ok
+    with :ok <- validate_from(sql_query),
+      :ok <- validate_columns(sql_query),
+      :ok <- validate_order_by(sql_query), do: :ok
   end
 
   defp validate_from(%{from: table_identifier}) do
@@ -46,6 +48,16 @@ defmodule Cloak.Query.Runner do
     |> Enum.any?(fn {column, _} -> name == column end)
   end
 
+  defp validate_order_by(%{columns: columns, order_by: order_by_spec}) do
+    invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
+    case invalid_fields do
+      [] -> :ok
+      [{invalid_field, _direction} | _rest] ->
+        {:error, ~s/Non-selected field specified in 'order by' clause: #{inspect invalid_field}./}
+    end
+  end
+  defp validate_order_by(%{}), do: :ok
+
   defp execute_sql_query(%{command: :show, show: :tables}) do
     tables = DataSource.tables(:local)
     buckets = for table <- tables, do: bucket(property: [table], noisy_count: 1)
@@ -66,7 +78,7 @@ defmodule Cloak.Query.Runner do
         |> Processor.AccumulateCount.pre_process()
         |> anonymize(lcf_data)
         |> Processor.AccumulateCount.post_process()
-        |> order_buckets(columns)
+        |> order_buckets(select_query)
         |> add_lcf_buckets(lcf_data, length(columns))
       after
         LCFData.delete(lcf_data)
@@ -107,14 +119,18 @@ defmodule Cloak.Query.Runner do
     |> Enum.to_list
   end
 
-  defp order_buckets(buckets, columns) do
-    columns_count = length(columns)
-    order = for index <- 0..columns_count, do: {index, :asc}
+  defp order_buckets(buckets, %{columns: columns, order_by: order_by_spec}) do
+    order_list = for {column, direction} <- order_by_spec do
+      index = columns |> Enum.find_index(&(&1 == column))
+      {index, direction}
+    end
     buckets |> Enum.sort(fn (bucket(property: row1), bucket(property: row2)) ->
-      compare_rows(row1, row2, order)
+      compare_rows(row1, row2, order_list)
     end)
   end
+  defp order_buckets(buckets, %{}), do: buckets
 
+  defp compare_rows(row1, row2, []), do: row1 < row2
   defp compare_rows(row1, row2, [{index, direction} | remaining_order]) do
     field1 = row1 |> Enum.at(index)
     field2 = row2 |> Enum.at(index)
@@ -124,6 +140,7 @@ defmodule Cloak.Query.Runner do
     end
   end
 
+  defp compare_fields(field1, field2, nil), do: compare_fields(field1, field2, :asc)
   defp compare_fields(field1, field2, :asc), do: field1 < field2
   defp compare_fields(field1, field2, :desc), do: field1 > field2
 end

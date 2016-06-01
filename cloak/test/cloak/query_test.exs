@@ -79,6 +79,15 @@ defmodule Cloak.QueryTest do
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[60]]}}
   end
 
+  test "should order rows when instructed" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [190])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+    :ok = start_query("select height from heights order by height")
+    assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
+    assert rows == Enum.sort(rows)
+  end
+
   test "query reports an error on invalid statement" do
     :ok = start_query("invalid statement")
     assert_receive {:reply, %{query_id: "1", error: "Expected `select or show` at line 1, column 1."}}
@@ -94,6 +103,12 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select column from invalid_table")
     assert_receive {:reply, %{query_id: "1", error: error}}
     assert ~s/Table "invalid_table" doesn't exist./ == error
+  end
+
+  test "query reports an error on invalid order by field" do
+    :ok = start_query("select height from heights order by age")
+    assert_receive {:reply, %{query_id: "1", error: error}}
+    assert ~s/Non-selected field specified in 'order by' clause: "age"./ == error
   end
 
   test "query reports an error on runner crash" do
