@@ -81,6 +81,13 @@ defmodule Cloak.QueryTest do
     assert error =~ ~r/All columns need to be aggregated/
   end
 
+  test "query reports an error when grouping by nonexistent columns" do
+    :ok = start_query("select count(*) from heights group by nothing")
+
+    assert_receive {:reply, %{query_id: "1", error: error}}
+    assert error =~ ~r/Column "nothing" doesn't exist./
+  end
+
   test "query allows mixing aggregated and grouped columns" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])

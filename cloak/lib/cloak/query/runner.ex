@@ -49,8 +49,9 @@ defmodule Cloak.Query.Runner do
   end
   defp aggregate?(_, _), do: false
 
-  defp validate_columns(%{command: :select, columns: selected_columns, from: table_identifier}) do
+  defp validate_columns(%{command: :select, columns: selected_columns, from: table_identifier} = query) do
     table_id = String.to_existing_atom(table_identifier)
+    selected_columns = selected_columns ++ Map.get(query, :group_by, [])
     invalid_columns = Enum.reject(selected_columns, &valid_column?(&1, DataSource.columns(:local, table_id)))
     case invalid_columns do
       [] -> :ok
