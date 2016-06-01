@@ -13,6 +13,7 @@ defmodule Air.Query do
     field :cloak_id, :string
     field :data_source, :string
     field :tables, {:array, :string}
+    field :result, :string
 
     belongs_to :user, User
     has_many :results, Result
