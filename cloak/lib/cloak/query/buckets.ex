@@ -13,13 +13,15 @@ defmodule Cloak.Query.Buckets do
     Enum.map(results, &extract_row(&1, query))
   end
 
-  defp extract_row(bucket, %{columns: columns}) do
-    Enum.zip(bucket(bucket, :property), columns)
-    |> Enum.map(&extract_value(&1, bucket(bucket, :noisy_count)))
+  defp extract_row(row_bucket, %{columns: columns}) do
+    row_bucket
+    |> bucket(:property)
+    |> Enum.zip(columns)
+    |> Enum.map(fn
+       {_value, {:count, _}} -> bucket(row_bucket, :noisy_count)
+       {value, _column} -> value
+    end)
   end
-
-  defp extract_value({_value, {:count, _}}, count), do: count
-  defp extract_value({value, _column}, _count), do: value
 
   defp expand_rows(results) do
     Enum.flat_map(results, fn result ->
