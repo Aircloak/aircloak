@@ -58,17 +58,15 @@ defmodule Cloak.SqlQuery do
   end
 
   defp statement() do
-    switch(
-      keyword_of([:select, :show]),
-      %{
-        select: select_statement(),
-        show: show_statement()
-      }
-    )
+    switch([
+      {keyword(:select), select_statement()},
+      {keyword(:show), show_statement()},
+      {:else, error_message(fail(""), "Expected `select or show`")}
+    ])
     |> map(&create_reportable_map/1)
   end
 
-  defp create_reportable_map({command, [statement_data]}) do
+  defp create_reportable_map({[command], [statement_data]}) do
     statement_data = statement_data
     |> Enum.reject(fn(value) -> value == nil end)
     |> Map.new
@@ -81,21 +79,26 @@ defmodule Cloak.SqlQuery do
   end
 
   defp show_statement() do
-    switch(
-      keyword_of([:tables, :columns]),
-      %{
-        tables: noop(),
-        columns: from()
-      }
-    )
-    |> map(fn({show, data}) -> [{:show, show} | data] end)
+    switch([
+      {keyword(:tables), noop()},
+      {keyword(:columns), from()},
+      {:else, fail("Expected `tables or columns`")}
+    ])
+    |> map(fn({[show], data}) -> [{:show, show} | data] end)
   end
 
   defp select_statement() do
     sequence([
       select_columns(),
       from(),
-      if_then_else(keyword(:where), where_expressions() |> group(2), noop())
+      switch([
+        {keyword(:where), where_expressions()},
+        {:else, noop()}
+      ])
+      |> map(fn
+            {[:where], [where_expressions]} -> {:where, where_expressions}
+            other -> other
+          end)
     ])
   end
 
@@ -143,31 +146,20 @@ defmodule Cloak.SqlQuery do
   end
 
   defp where_expression() do
-    if_then_else(
-      identifier() |> keyword(:like),
-      (
-        constant(:string)
-        |> group(3)
-        |> map(fn({identifier, :like, like}) -> {:like, identifier, like} end)
-      ),
-      if_then_else(
-        identifier() |> keyword(:in),
-        (
-          in_values()
-          |> group(3)
-          |> map(fn({identifier, :in, in_values}) -> {:in, identifier, in_values} end)
-        ),
-        if_then_else(
-          identifier() |> comparator(),
-          (
-            allowed_where_values()
-            |> group(3)
-            |> map(fn({identifier, comparator, value}) -> {:comparison, identifier, comparator, value} end)
-          ),
-          fail("Invalid where expression")
-        )
-      )
-    )
+    switch([
+      {identifier() |> keyword(:like),
+        constant(:string)},
+      {identifier() |> keyword(:in),
+        in_values()},
+      {identifier() |> comparator(),
+        allowed_where_values()},
+      {:else, fail("Invalid where expression")}
+    ])
+    |> map(fn
+          {[identifier, :like], [string_constant]} -> {:like, identifier, string_constant}
+          {[identifier, :in], [in_values]} -> {:in, identifier, in_values}
+          {[identifier, comparator], [value]} -> {:comparison, identifier, comparator, value}
+        end)
   end
 
   defp in_values() do
@@ -206,7 +198,7 @@ defmodule Cloak.SqlQuery do
     |> label("comparator")
   end
 
-  defp keyword_of(parser \\ noop(), types) do
+  defp keyword_of(parser, types) do
     parser
     |> choice(Enum.map(types, &keyword(&1)))
     |> label(types |> Enum.join(" or "))

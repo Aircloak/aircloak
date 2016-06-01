@@ -27,43 +27,37 @@ defmodule Cloak.SqlQuery.Parsers do
   # -------------------------------------------------------------------
 
   @doc """
-  Runs the first parser, then based on its result runs the corresponding
-  parser from the supplied map.
+  Takes a list of parser pairs, and runs the first pair where the first parser
+  succeeds, emitting the result as `{first_parser_results, next_parser_results}`
 
-  The parser emits a tuple in form of `{switch_parser_output, selected_parser_output}`.
-
-  Example:
-
-  ```
-  switch(
-    either(keyword(:foo), keyword(:bar)),
-    %{
-      foo: foo_parser(),
-      bar: bar_parser()
-    }
-  )
-  ```
-
-  The output will be `{:foo, output_of_foo_parser}` or `{:bar, output_of_bar_parser}`.
-
-  If the parser for the corresponding term has not been supplied, a run-time error
-  will be raised.
+  If no parser succeeds, an error is generated. You can handle this case
+  specifically by providing the `{:else, parser}` pair which will always run.
   ```
   """
-  @spec switch(Base.parser, %{any => Base.parser}) :: Base.parser
-  @spec switch(Base.parser, Base.parser, %{any => Base.parser}) :: Base.parser
-  defparser switch(
-    %ParserState{status: :ok} = state,
-    switch_parser,
-    switch_map
-  ) do
-    with switch_state = switch_parser.(state),
-         %ParserState{status: :ok, results: [switch_result | rest]} <- switch_state,
-         next_parser = Map.fetch!(switch_map, switch_result),
-         final_state = next_parser.(%ParserState{switch_state | results: []}),
-         %ParserState{status: :ok, results: new_results} <- final_state
-    do
-      %ParserState{final_state | results: [{switch_result, new_results} | rest]}
+  @spec switch([{Base.parser | :else, Base.parser}]) :: Base.parser
+  @spec switch(Base.parser, [{Base.parser | :else, Base.parser}]) :: Base.parser
+  defparser switch(%ParserState{status: :ok} = state, switch_rules) do
+    interpret_switch_rules(switch_rules, state)
+  end
+
+  defp interpret_switch_rules([], _state) do
+    %ParserState{status: :error, error: "Expected at least one parser to succeed"}
+  end
+  defp interpret_switch_rules([{:else, parser} | _], state) do
+    parser.(state)
+  end
+  defp interpret_switch_rules([{parser, next_parser} | other_rules], state) do
+    case parser.(%ParserState{state | results: []}) do
+      %ParserState{status: :ok, results: switch_results} = next_state ->
+        case next_parser.(%ParserState{next_state | results: []}) do
+          %ParserState{status: :ok, results: next_results} = final_state ->
+            %ParserState{final_state |
+              results: [{Enum.reverse(switch_results), Enum.reverse(next_results)} | state.results]
+            }
+          other -> other
+        end
+      _ ->
+        interpret_switch_rules(other_rules, state)
     end
   end
 
@@ -129,68 +123,6 @@ defmodule Cloak.SqlQuery.Parsers do
       [] -> state
       _ -> %{state | :status => :error, :error => "Expected end of input at line #{line}, column #{column}"}
     end
-  end
-
-  @doc """
-  Runs the `if` parser, and depending on its success, either the `then` or `else` parser.
-
-  This parser can be more useful than built-in `option` to get better error reporting.
-
-  One example is customizing the error string:
-
-  ```
-  if_then_else(some_parser(), noop(), fail("custom error message"))
-  ```
-
-  In this example, if `some_parser` succeeds, we do nothing. Otherwise, we fail
-  with a custom error message.
-
-  Another example is reporting an error on an optional construct. Let's say we want to
-  parse an optional where clause. Using a naive `option(where_parser())` won't
-  report a proper error in the `where` clause, since `option` will simply ignore
-  any reported error.
-
-  Using this parser, you can first check for the keyword presence, and then
-  parse the rest of the expression:
-
-  ```
-  if_then_else(keyword(:where), rest_of_where_parser(), noop())
-  ```
-
-  If the `where` keyword is provided, we parse the rest, and report a proper error.
-  Otherwise, we'll just run the `noop()` parser, leaving the state unchanged.
-
-  Notice that `then_parser` is running on the state produced by the `if_parser`.
-  This means that results produced by the `if_parser` are already on the stack.
-  If you want to group the results of both parser, you can use `group/1`.
-  """
-  @spec if_then_else(Base.parser, Base.parser, Base.parser) :: Base.parser
-  @spec if_then_else(Base.parser, Base.parser, Base.parser, Base.parser) :: Base.parser
-  defparser if_then_else(%ParserState{status: :ok} = state, if_parser, then_parser, else_parser) do
-    case if_parser.(state) do
-      %ParserState{status: :ok} = next_state -> then_parser.(next_state)
-      _ -> else_parser.(state)
-    end
-  end
-
-  @doc """
-  Groups the last `n` results into a tuple.
-
-  This parser can be useful with `if_then_else/3` to retroactively group the
-  results of `if_parser` and `then_parser`:
-
-  ```
-  if_then_else(keyword(:where), where_expressions() |> group(2), noop())
-  ```
-
-  In this example, if the keyword `where` is provided, the output will be
-  `{output_of_keyword_parser, output_of_where_expressions_parser}`
-  """
-  @spec group(pos_integer) :: Base.parser
-  @spec group(Base.parser, pos_integer) :: Base.parser
-  defparser group(%ParserState{status: :ok, results: results} = state, n) do
-    {result_group, rest} = Enum.split(results, n)
-    %ParserState{state | results: [List.to_tuple(Enum.reverse(result_group)) | rest]}
   end
 
   @doc """
