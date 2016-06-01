@@ -2,7 +2,7 @@ defmodule Air.Query do
   @moduledoc "The query model."
   use Air.Web, :model
 
-  alias Air.{User, Result}
+  alias Air.User
 
   @type t :: %__MODULE__{}
   @type cloak_query :: %{id: String.t, prefetch: [%{table: String.t}], statement: String.t}
@@ -16,7 +16,6 @@ defmodule Air.Query do
     field :result, :string
 
     belongs_to :user, User
-    has_many :results, Result
 
     timestamps
   end
