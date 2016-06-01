@@ -1,4 +1,4 @@
-defmodule Cloak.Query.Buckets do
+defmodule Cloak.Query.Result do
   use Cloak.Type
 
   def expand(results, query) do

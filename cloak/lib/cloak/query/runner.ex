@@ -2,7 +2,7 @@ defmodule Cloak.Query.Runner do
   @moduledoc "Cloak query runner."
 
   alias Cloak.{Aggregator, LCFData, DataSource, Processor}
-  alias Cloak.Query.Buckets
+  alias Cloak.Query.Result
 
   use Cloak.Type
 
@@ -85,12 +85,12 @@ defmodule Cloak.Query.Runner do
         |> Processor.AccumulateCount.pre_process()
         |> anonymize(lcf_data)
         |> post_process(lcf_data, length(columns))
-        |> Buckets.expand(select_query)
+        |> Result.expand(select_query)
       after
         LCFData.delete(lcf_data)
       end
 
-      {:ok, {:buckets, Buckets.columns(select_query), reportable_buckets}}
+      {:ok, {:buckets, Result.columns(select_query), reportable_buckets}}
     end
   end
 
