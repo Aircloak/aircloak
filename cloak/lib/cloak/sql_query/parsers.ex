@@ -32,7 +32,6 @@ defmodule Cloak.SqlQuery.Parsers do
 
   If no parser succeeds, an error is generated. You can handle this case
   specifically by providing the `{:else, parser}` pair which will always run.
-  ```
   """
   @spec switch([{Base.parser | :else, Base.parser}]) :: Base.parser
   @spec switch(Base.parser, [{Base.parser | :else, Base.parser}]) :: Base.parser
