@@ -1,12 +1,12 @@
 defmodule Cloak.Type do
   defmodule UserId do
     @moduledoc false
-    @type t :: binary
+    @type t :: String.t
   end
 
   defmodule Property do
     @moduledoc false
-    @type t :: [binary] | binary
+    @type t :: [String.t]
   end
 
   defmodule Bucket do

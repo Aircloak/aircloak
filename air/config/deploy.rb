@@ -2,7 +2,7 @@
 lock '3.2.1'
 
 set :application, 'air'
-set :branch, ENV["AIR_DEPLOY_BRANCH"] || "develop"
+set :branch, ENV["AIR_DEPLOY_BRANCH"] || "master"
 
 # Prevents key hijacking.
 set :ssh_options, {:forward_agent => false}

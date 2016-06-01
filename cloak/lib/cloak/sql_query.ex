@@ -21,6 +21,7 @@ defmodule Cloak.SqlQuery do
       | {:like, String.t, String.t}
       | {:in, String.t, [any]}
     ],
+    order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns
   }
 
@@ -39,9 +40,11 @@ defmodule Cloak.SqlQuery do
   @doc "Parses the query string."
   @spec parse(String.t) :: {:ok, t} | {:error, any}
   def parse(query_string) do
-    case Combine.parse(query_string, parser()) do
-      {:error, _} = error -> error
-      [statement] -> {:ok, statement}
+    with {:ok, tokens} <- Cloak.SqlQuery.Lexer.tokenize(query_string) do
+      case parse_tokens(tokens, parser()) do
+        {:error, _} = error -> error
+        [statement] -> {:ok, statement}
+      end
     end
   end
 
@@ -57,17 +60,15 @@ defmodule Cloak.SqlQuery do
   end
 
   defp statement() do
-    switch(
-      keyword_of([:select, :show]),
-      %{
-        select: select_statement(),
-        show: show_statement()
-      }
-    )
+    switch([
+      {keyword(:select), select_statement()},
+      {keyword(:show), show_statement()},
+      {:else, error_message(fail(""), "Expected `select or show`")}
+    ])
     |> map(&create_reportable_map/1)
   end
 
-  defp create_reportable_map({command, [statement_data]}) do
+  defp create_reportable_map({[command], [statement_data]}) do
     statement_data
     |> Enum.reject(fn(value) -> value == nil end)
     |> Map.new
@@ -76,27 +77,25 @@ defmodule Cloak.SqlQuery do
 
   defp statement_termination(parser) do
     parser
-    |> next_token()
-    |> skip(char(?;))
+    |> skip(keyword(:";"))
   end
 
   defp show_statement() do
-    switch(
-      keyword_of([:tables, :columns]),
-      %{
-        tables: noop(),
-        columns: from()
-      }
-    )
-    |> map(fn({show, data}) -> [{:show, show} | data] end)
+    switch([
+      {keyword(:tables), noop()},
+      {keyword(:columns), from()},
+      {:else, fail("Expected `tables or columns`")}
+    ])
+    |> map(fn({[show], data}) -> [{:show, show} | data] end)
   end
 
   defp select_statement() do
     sequence([
       select_columns(),
       from(),
-      option(where()),
-      option(group_by()),
+      optional_where(),
+      optional_group_by(),
+      optional_order_by()
     ])
   end
 
@@ -109,25 +108,11 @@ defmodule Cloak.SqlQuery do
   end
 
   defp count_expression() do
-    pipe(
-      [
-        keyword(:count),
-        char("("),
-        next_token(),
-        char("*"),
-        next_token(),
-        char(")"),
-      ],
-      fn _ -> {:count, :star} end
-    )
+    keywords([:count, :"(", :"*", :")"])
+    |> map(fn(_) -> {:count, :star} end)
   end
 
-  defp from() do
-    next_token()
-    |> from()
-  end
-
-  defp from(parser) do
+  defp from(parser \\ noop()) do
     pair_both(parser,
       keyword(:from),
       from_table_name()
@@ -135,164 +120,172 @@ defmodule Cloak.SqlQuery do
   end
 
   defp from_table_name() do
-    next_token()
-    |> either(table_with_schema(), identifier())
+    either(table_with_schema(), identifier())
+    |> label("table name")
   end
 
   defp table_with_schema() do
     pipe(
-      [identifier(), char(?.), identifier()],
+      [identifier(), keyword(:"."), identifier()],
       &Enum.join/1
     )
   end
 
-  defp where() do
-    pair_both(
-      keyword(:where),
-      and_delimited(where_expression())
-    )
+  defp optional_where() do
+    switch([
+      {keyword(:where), where_expressions()},
+      {:else, noop()}
+    ])
+    |> map(fn
+          {[:where], [where_expressions]} -> {:where, where_expressions}
+          other -> other
+        end)
+  end
+
+  defp where_expressions() do
+    and_delimited(where_expression())
   end
 
   defp where_expression() do
-    choice([like(), where_in(), comparison()])
-  end
-
-  defp like() do
-    pipe(
-      [identifier(), keyword(:like), wildcard_comparison_value()],
-      fn([identifier, _, wildcard_value]) ->
-        {:like, identifier, wildcard_value}
-      end
-    )
-  end
-
-  defp wildcard_comparison_value() do
-    quoted_value(~r/[%\w\s]/)
-  end
-
-  defp where_in() do
-    pipe(
-      [identifier(), keyword(:in), in_values()],
-      fn([identifier, _, in_values]) ->
-        {:in, identifier, in_values}
-      end
-    )
+    switch([
+      {identifier() |> keyword(:like),
+        constant(:string)},
+      {identifier() |> keyword(:in),
+        in_values()},
+      {identifier() |> comparator(),
+        allowed_where_values()},
+      {:else, fail("Invalid where expression")}
+    ])
+    |> map(fn
+          {[identifier, :like], [string_constant]} -> {:like, identifier, string_constant}
+          {[identifier, :in], [in_values]} -> {:in, identifier, in_values}
+          {[identifier, comparator], [value]} -> {:comparison, identifier, comparator, value}
+        end)
   end
 
   defp in_values() do
-    next_token()
-    |> pipe(
-        [char("("), comma_delimited(allowed_where_values()), char(")")],
-        fn([_, values, _]) -> values end
-      )
-  end
-
-  defp comparison() do
     pipe(
-      [identifier(), comparator(), allowed_where_values()],
-      fn([identifier, comparator, value]) ->
-        {:comparison, identifier, String.to_atom(comparator), value}
-      end
+      [keyword(:"("), comma_delimited(allowed_where_values()), keyword(:")")],
+      fn([_, values, _]) -> values end
     )
   end
 
   defp allowed_where_values() do
-    next_token()
-    |> choice([raw_string(), integer(), float(), boolean()])
+    constant_of([:string, :integer, :float, :boolean])
+    |> label("comparison value")
   end
 
-  defp boolean() do
-    word()
-    |> map(&convert_to_boolean/1)
-    |> one_of([true, false])
+  defp constant_of(expected_types) do
+    choice(Enum.map(expected_types, &constant/1))
+    |> label(expected_types |> Enum.map(&"#{&1} constant") |> Enum.join(" or "))
   end
 
-  defp convert_to_boolean(string) when is_bitstring(string) do
-    string
-    |> String.downcase
-    |> map_to_boolean
+  defp constant(expected_type) do
+    token(:constant)
+    |> satisfy(fn(token) -> token.value.type == expected_type end)
+    |> map(&(&1.value.value))
+    |> label("#{expected_type} constant")
   end
-  defp convert_to_boolean(_non_string), do: :unknown
 
-  defp map_to_boolean("yes"), do: true
-  defp map_to_boolean("true"), do: true
-  defp map_to_boolean("no"), do: false
-  defp map_to_boolean("false"), do: false
-  defp map_to_boolean(_), do: :unknown
+  defp optional_order_by() do
+    switch([
+      {keywords([:order, :by]), comma_delimited(order_by_field())},
+      {:else, noop()}
+    ])
+    |> map(fn({[[:order, :by]], [fields]}) -> {:order_by, fields} end)
+  end
 
-  defp group_by() do
-    pipe(
-      [
-        keyword(:group),
-        keyword(:by),
-        comma_delimited(identifier()),
-      ],
-      fn [_, _, columns] -> {:group_by, columns} end
+  defp optional_group_by() do
+    switch([
+      {keywords([:group, :by]), comma_delimited(identifier())},
+      {:else, noop()}
+    ])
+    |> map(fn {_, [columns]} -> {:group_by, columns} end)
+  end
+
+  defp order_by_field() do
+    pair_both(
+      column(),
+      order_by_direction()
+    )
+  end
+
+  defp order_by_direction() do
+    option(
+      either(
+        keyword(:asc),
+        keyword(:desc)
+      )
     )
   end
 
   defp identifier() do
-    next_token()
-    |> word_of(~r/[a-zA-Z_][a-zA-Z0-9_]*/)
-    |> satisfy(fn(identifier) ->
-          not Enum.any?(keyword_matchers(), &(Regex.replace(&1, identifier, "") == ""))
-        end)
+    token(:identifier)
+    |> map(&(&1.value))
     |> label("identifier")
   end
 
-  defp comparator() do
-    next_token()
-    |> word_of(~r/[<=>]*/)
-    |> one_of(["=", "<", "<=", ">=", ">", "<>"])
+  defp comparator(parser) do
+    parser
+    |> keyword_of([:"=", :"<", :"<=", :">=", :">", :"<>"])
     |> label("comparator")
   end
 
-  defp raw_string() do
-    quoted_value(~r/[\w\s]/)
-  end
-
-  defp quoted_value(regex) do
-    next_token()
-    |> pipe(
-        [char("'"), word_of(regex), char("'")],
-        fn([_, value, _]) -> value end
-      )
-  end
-
-  defp keyword_of(types) do
-    choice(Enum.map(types, &keyword(&1)))
+  defp keyword_of(parser, types) do
+    parser
+    |> choice(Enum.map(types, &keyword(&1)))
     |> label(types |> Enum.join(" or "))
   end
 
-  defp keyword(type) do
-    next_token()
-    |> choice(Enum.map(keyword_matchers(), &word_of/1))
-    |> map(&String.downcase/1)
-    |> map(&String.to_atom/1)
-    |> satisfy(&(&1 == type))
+  defp keyword(parser \\ noop(), type) do
+    parser
+    |> token(type)
+    |> map(&(&1.category))
     |> label(to_string(type))
   end
 
-  defp keyword_matchers() do
-    ~w(AND BY COLUMNS COUNT FROM GROUP IN LIKE SELECT SHOW TABLES WHERE)
-    |> Enum.map(fn keyword -> ~r/#{keyword}/i end)
+  defp keywords(types) do
+    sequence(Enum.map(types, &keyword/1))
   end
 
   defp comma_delimited(term_parser) do
-    next_token()
-    |> sep_by1(next_token(term_parser), char(","))
+    sep_by1(term_parser, keyword(:","))
   end
 
   defp and_delimited(term_parser) do
-    next_token()
-    |> sep_by1(next_token(term_parser), keyword(:and))
+    sep_by1(term_parser, keyword(:and))
   end
 
-  defp end_of_input(parser), do: parser |> next_token() |> eof()
+  defp end_of_input(parser), do: parser |> end_of_tokens()
 
-  defp next_token(), do: skip(whitespaces())
 
-  defp next_token(parser), do: skip(parser, whitespaces())
+  # -------------------------------------------------------------------
+  # Work around invalid combine spec (see below)
+  # -------------------------------------------------------------------
 
-  defp whitespaces(), do: word_of(~r/(\s|\t|\n|\r)*/)
+  # Temporary hack, since per spec Combine.parse accepts only string, which
+  # leads to many dialyzer errors. A couple of functions are copy-pasted here
+  # from combine. Once our changes are merged upstream, we should replace this
+  # with a regular combine
+
+  defp parse_tokens(tokens, parser) do
+    alias Combine.ParserState
+
+    case parser.(%ParserState{input: tokens}) do
+      %ParserState{status: :ok, results: res} ->
+        res |> Enum.reverse |> Enum.filter_map(&ignore_filter/1, &filter_ignores/1)
+      %ParserState{error: res} ->
+        {:error, res}
+      x ->
+        {:error, {:fatal, x}}
+    end
+  end
+
+  defp ignore_filter(:__ignore), do: false
+  defp ignore_filter(_), do: true
+
+  defp filter_ignores(element) when is_list(element) do
+    Enum.filter_map(element, &ignore_filter/1, &filter_ignores/1)
+  end
+  defp filter_ignores(element), do: element
 end
