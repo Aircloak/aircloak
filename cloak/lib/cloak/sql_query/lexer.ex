@@ -63,22 +63,27 @@ defmodule Cloak.SqlQuery.Lexer do
 
   defp constant() do
     choice([
-      numeric_constant(),
+      float_constant(),
+      integer_constant(),
       string_constant(),
       boolean_constant()
     ])
   end
 
-  defp numeric_constant() do
-    # We use regex to extract any valid numeric form (int, float, float with exp notation)
-    # Then we use Integer.parse and Float.parse to convert to a type, favoring int if possible.
-    word_of(~r/[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?+/)
-    |> map(&{Integer.parse(&1), Float.parse(&1)})
-    |> map(fn
-          {{int_value, ""}, _} -> {:constant, %{type: :integer, value: int_value}}
-          {_, {float_value, ""}} -> {:constant, %{type: :float, value: float_value}}
-        end)
-    |> output_token()
+  defp float_constant() do
+    word_of(~r/[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?+/)
+    |> map(&Float.parse/1)
+    |> satisfy(&match?({_, ""}, &1))
+    |> map(fn({value, _}) -> value end)
+    |> output_constant(:float)
+  end
+
+  defp integer_constant() do
+    word_of(~r/[-+]?[0-9]+/)
+    |> map(&Integer.parse/1)
+    |> satisfy(&match?({_, ""}, &1))
+    |> map(fn({value, _}) -> value end)
+    |> output_constant(:integer)
   end
 
   defp string_constant() do

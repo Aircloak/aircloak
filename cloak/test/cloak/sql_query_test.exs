@@ -73,6 +73,11 @@ defmodule Cloak.SqlQueryTest do
       SqlQuery.parse!("select foo from bar where a <> 10")
   end
 
+  test "where clause can have float values" do
+    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :=, 10.0}]} ==
+      SqlQuery.parse!("select foo from bar where a = 10.0")
+  end
+
   test "where clause can have string values" do
     assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, "'tom'"}]} ==
       SqlQuery.parse!("select foo from bar where name = 'tom'")
