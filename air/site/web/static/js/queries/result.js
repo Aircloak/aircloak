@@ -22,6 +22,9 @@ export const Result = (props) =>
         }
       </tbody>
     </table>
+    <div className="row-count">
+      {props.rows.length} rows after anonymization
+    </div>
   </div>;
 
 Result.propTypes = {
