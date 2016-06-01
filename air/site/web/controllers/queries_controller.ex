@@ -64,11 +64,7 @@ defmodule Air.QueriesController do
     |> Query.for_user
     |> Query.recent(_recent_count = 5)
     |> Repo.all
-    |> Enum.map(&encode_query/1)
-  end
-
-  defp encode_query(query) do
-    %{statement: query.statement}
+    |> Enum.map(&Query.for_display/1)
   end
 
   defp data_sources(conn) do

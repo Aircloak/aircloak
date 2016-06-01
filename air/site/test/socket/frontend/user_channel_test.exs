@@ -16,19 +16,19 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
   test "results of queries are pushed to the user", %{user: user} do
     query = create_query!(user)
-    result = %{"query_id" => query.id, "some" => "data"}
 
-    UserChannel.broadcast_result(result)
+    UserChannel.broadcast_result(query)
 
-    expected = Map.put(result, "statement", query.statement)
+    expected = Air.Query.for_display(query)
+
     assert_push("result", ^expected)
   end
 
   test "results of other user's queries are not pushed to the user" do
     query = create_query!(_other_user = create_user!())
-    result = %{"query_id" => query.id, "some" => "data"}
+    result = Air.Query.for_display(query)
 
-    UserChannel.broadcast_result(result)
+    UserChannel.broadcast_result(query)
 
     refute_push("result", ^result)
   end

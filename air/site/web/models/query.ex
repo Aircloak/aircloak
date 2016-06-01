@@ -21,7 +21,7 @@ defmodule Air.Query do
   end
 
   @required_fields ~w()
-  @optional_fields ~w(statement cloak_id data_source tables)
+  @optional_fields ~w(statement cloak_id data_source tables result)
 
 
   # -------------------------------------------------------------------
@@ -50,6 +50,16 @@ defmodule Air.Query do
     }
   end
 
+  @doc "Produces a JSON blob of the query and it's result for rendering"
+  @spec for_display(t) :: %{}
+  def for_display(query) do
+    base_query = %{
+      statement: query.statement,
+      id: query.id
+    }
+    Map.merge(base_query, result_map(query))
+  end
+
 
   # -------------------------------------------------------------------
   # Query functions
@@ -64,5 +74,20 @@ defmodule Air.Query do
     from t in query,
     order_by: [desc: t.inserted_at],
     limit: ^count
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp result_map(%{result: nil}), do: %{rows: [], columns: []}
+  defp result_map(%{result: result_json}) do
+    {:ok, result} = Poison.decode(result_json)
+
+    %{
+      columns: result["columns"],
+      rows: result["rows"],
+    }
   end
 end

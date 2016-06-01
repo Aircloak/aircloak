@@ -4,7 +4,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  alias Air.CloakInfo
+  alias Air.{CloakInfo, Repo, Query}
 
 
   # -------------------------------------------------------------------
@@ -163,9 +163,17 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   defp process_query_result(result) do
-    result
-    |> Map.put("created_at", :os.system_time(:seconds))
-    |> report_query_result() # Broadcast result to subscribers.
+    query = Repo.get!(Query, result["query_id"])
+
+    storable_result = %{
+      columns: result["columns"],
+      rows: result["rows"]
+    } |> Poison.encode!
+
+    {:ok, updated_query} = Query.changeset(query, %{result: storable_result})
+    |> Repo.update
+
+    report_query_result(updated_query) # Broadcast result to subscribers.
   end
 
   defp report_query_result(result) do
