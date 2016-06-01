@@ -133,6 +133,12 @@ defmodule Cloak.SqlQueryTest do
       SqlQuery.parse!("select count(*) from foo")
   end
 
+  test "order by caluse" do
+    assert %{command: :select, columns: ["a", "b", "c"], from: "foo",
+      order_by: [{"a", :desc}, {"b", :asc}, {"c", nil}]} ==
+     SqlQuery.parse!("select a, b, c from foo order by a desc, b asc, c")
+  end
+
   for {description, statement, expected_error} <- [
     {"single quote is not allowed in the identifier", "select fo'o from baz", "Invalid character"},
     {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},
@@ -148,6 +154,8 @@ defmodule Cloak.SqlQueryTest do
     {"multiple where clauses cannot be separated by or", "select a from b where a > 1 or b < 2"},
     {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2"},
     {"count requires parens", "select count * from foo", "Expected `(`"},
+    {"'by' has to follow 'order'", "select a from foo order a asc"},
+    {"order by fields needs to be comma separated", "select a, b, c from foo order by a b"},
     {"invalid like", "select foo from bar where baz like", "Expected `string constant`"},
     {"invalid like type", "select foo from bar where baz like 10", "Expected `string constant`"},
     {"invalid in", "select foo from bar where baz in", "Expected `(`"},

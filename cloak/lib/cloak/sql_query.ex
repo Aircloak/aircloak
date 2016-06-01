@@ -20,6 +20,7 @@ defmodule Cloak.SqlQuery do
       | {:like, String.t, String.t}
       | {:in, String.t, [any]}
     ],
+    order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns
   }
 
@@ -91,7 +92,8 @@ defmodule Cloak.SqlQuery do
     sequence([
       select_columns(),
       from(),
-      optional_where()
+      optional_where(),
+      optional_order_by()
     ])
   end
 
@@ -188,6 +190,30 @@ defmodule Cloak.SqlQuery do
     |> satisfy(fn(token) -> token.value.type == expected_type end)
     |> map(&(&1.value.value))
     |> label("#{expected_type} constant")
+  end
+
+  defp optional_order_by() do
+    switch([
+      {keyword(:order) |> keyword(:by), comma_delimited(order_by_field())},
+      {:else, noop()}
+    ])
+    |> map(fn({[:order, :by], [fields]}) -> {:order_by, fields} end)
+  end
+
+  defp order_by_field() do
+    pair_both(
+      column(),
+      order_by_direction()
+    )
+  end
+
+  defp order_by_direction() do
+    option(
+      either(
+        keyword(:asc),
+        keyword(:desc)
+      )
+    )
   end
 
   defp identifier() do
