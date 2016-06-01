@@ -20,6 +20,7 @@ defmodule Cloak.SqlQuery do
       | {:like, String.t, String.t}
       | {:in, String.t, [any]}
     ],
+    order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns
   }
 
@@ -94,7 +95,8 @@ defmodule Cloak.SqlQuery do
     sequence([
       select_columns(),
       from(),
-      option(where())
+      option(where()),
+      option(order_by()),
     ])
   end
 
@@ -218,6 +220,37 @@ defmodule Cloak.SqlQuery do
   defp map_to_boolean("false"), do: false
   defp map_to_boolean(_), do: :unknown
 
+  defp order_by() do
+    pair_both(
+      order_by_command(),
+      comma_delimited(order_by_field())
+    )
+  end
+
+  defp order_by_command() do
+    both(
+      keyword(:order),
+      keyword(:by),
+      fn (:order, :by) -> :order_by end
+    )
+  end
+
+  defp order_by_field() do
+    pair_both(
+      column(),
+      order_by_direction()
+    )
+  end
+
+  defp order_by_direction() do
+    option(
+      either(
+        keyword(:asc),
+        keyword(:desc)
+      )
+    )
+  end
+
   defp identifier() do
     next_token()
     |> word_of(~r/[a-zA-Z_][a-zA-Z0-9_]*/)
@@ -268,7 +301,11 @@ defmodule Cloak.SqlQuery do
       ~r/AND/i,
       ~r/LIKE/i,
       ~r/IN/i,
-      ~r/COUNT/i
+      ~r/COUNT/i,
+      ~r/ORDER/i,
+      ~r/BY/i,
+      ~r/ASC/i,
+      ~r/DESC/i
     ]
   end
 
