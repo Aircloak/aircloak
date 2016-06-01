@@ -82,9 +82,13 @@ defmodule Cloak.QueryTest do
   end
 
   test "query allows mixing aggregated and grouped columns" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
+
     :ok = start_query("select count(*), height from heights group by height")
 
-    assert_receive {:reply, %{columns: ["count(*)", "height"], rows: []}}
+    assert_receive {:reply, %{columns: ["count(*)", "height"], rows: rows}}
+    assert Enum.sort(rows) == [[10, "180"], [20, "160"]]
   end
 
   test "query reports an error on runner crash" do
