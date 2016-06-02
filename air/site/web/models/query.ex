@@ -66,13 +66,13 @@ defmodule Air.Query do
   # -------------------------------------------------------------------
 
   def for_user(query \\ __MODULE__, user) do
-    from t in query,
-    where: t.user_id == ^user.id
+    from q in query,
+    where: q.user_id == ^user.id
   end
 
   def recent(query \\ __MODULE__, count) do
-    from t in query,
-    order_by: [desc: t.inserted_at],
+    from q in query,
+    order_by: [desc: q.inserted_at],
     limit: ^count
   end
 
