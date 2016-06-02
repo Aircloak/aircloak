@@ -189,18 +189,18 @@ defmodule Cloak.SqlQuery do
 
   defp optional_order_by() do
     switch([
-      {keywords([:order, :by]), comma_delimited(order_by_field())},
+      {keyword(:order), keyword(:by) |> comma_delimited(order_by_field())},
       {:else, noop()}
     ])
-    |> map(fn({[[:order, :by]], [fields]}) -> {:order_by, fields} end)
+    |> map(fn({[:order], [:by, fields]}) -> {:order_by, fields} end)
   end
 
   defp optional_group_by() do
     switch([
-      {keywords([:group, :by]), comma_delimited(identifier())},
+      {keyword(:group), keyword(:by) |> comma_delimited(identifier())},
       {:else, noop()}
     ])
-    |> map(fn {_, [columns]} -> {:group_by, columns} end)
+    |> map(fn {_, [:by, columns]} -> {:group_by, columns} end)
   end
 
   defp order_by_field() do
@@ -248,8 +248,9 @@ defmodule Cloak.SqlQuery do
     sequence(Enum.map(types, &keyword/1))
   end
 
-  defp comma_delimited(term_parser) do
-    sep_by1(term_parser, keyword(:","))
+  defp comma_delimited(previous \\ noop(), term_parser) do
+    previous
+    |> sep_by1(term_parser, keyword(:","))
   end
 
   defp and_delimited(term_parser) do
