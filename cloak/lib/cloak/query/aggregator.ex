@@ -71,7 +71,7 @@ defmodule Cloak.Aggregator do
   defp gather_loop(aggregator, property, buckets, lcf_data) do
     users = (for {^property, user} <- :ets.lookup(aggregator, property), do: user) |> Enum.sort()
     hash = users |> Enum.reduce(:crypto.hash(:md4, ""), fn (user, list_hash) ->
-      user_hash = :crypto.hash(:md4, user)
+      user_hash = :crypto.hash(:md4, to_string(user))
       :crypto.exor(user_hash, list_hash)
     end)
     count = length(users)

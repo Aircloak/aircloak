@@ -6,7 +6,7 @@ defmodule Cloak.Type do
 
   defmodule Property do
     @moduledoc false
-    @type t :: [String.t]
+    @type t :: Cloak.DataSource.row
   end
 
   defmodule Bucket do
