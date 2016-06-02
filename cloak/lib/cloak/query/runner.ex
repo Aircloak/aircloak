@@ -34,14 +34,19 @@ defmodule Cloak.Query.Runner do
   end
   defp validate_from(%{}), do: :ok
 
-  defp validate_aggregation(%{command: :select, columns: [first_column | columns]} = query) do
-    if Enum.all?(columns, fn column -> aggregate?(column, query) == aggregate?(first_column, query) end) do
+  defp validate_aggregation(%{command: :select, columns: columns} = query) do
+    if Enum.all?(columns, fn column -> aggregate?(column, query) == aggregate_query?(query) end) do
       :ok
     else
       {:error, "All columns need to be aggregated or listed in the 'group by' clause"}
     end
   end
   defp validate_aggregation(_), do: :ok
+
+  defp aggregate_query?(%{group_by: [_ | _]}), do: true
+  defp aggregate_query?(%{columns: columns} = query) do
+    Enum.any?(columns, &aggregate?(&1, query))
+  end
 
   defp aggregate?({:count, _}, _), do: true
   defp aggregate?(column, %{group_by: group_bys}) do
