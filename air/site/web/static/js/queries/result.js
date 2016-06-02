@@ -4,9 +4,7 @@ import {CodeEditor} from "../code_editor";
 
 export const Result = (props) =>
   <div className="panel panel-success">
-    <div className="panel-heading">
-      <div className="panel-title">Completed query</div>
-    </div>
+    <div className="panel-heading" />
     <div className="panel-body">
       <CodeEditor
         onRun={() => {}}

@@ -4,9 +4,7 @@ import {CodeEditor} from "../code_editor";
 
 export const Error = (props) =>
   <div className="panel panel-danger">
-    <div className="panel-heading">
-      <div className="panel-title">Failed query</div>
-    </div>
+    <div className="panel-heading" />
     <div className="panel-body">
       <CodeEditor
         onRun={() => {}}
@@ -15,7 +13,9 @@ export const Error = (props) =>
         statement={props.statement}
         readOnly
       />
-      <div className="alert alert-danger">{props.error}</div>
+
+      <h4>Query failed</h4>
+      <p>{props.error}</p>
     </div>
   </div>;
 
