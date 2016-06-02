@@ -139,7 +139,7 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(*), height from heights group by height")
 
     assert_receive {:reply, %{columns: ["count(*)", "height"], rows: rows}}
-    assert Enum.sort(rows) == [[10, "180"], [20, "160"]]
+    assert Enum.sort(rows) == [[10, 180], [20, 160]]
   end
 
   test "grouping works when the column is not selected" do
