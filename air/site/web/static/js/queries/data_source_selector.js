@@ -13,7 +13,7 @@ export class DataSourceSelector extends React.Component {
 
   render() {
     return (
-      <select onChange={this.onChange} value={this.props.selectedDataSource}>
+      <select onChange={this.onChange} value={this.props.selectedDataSource} className="form-control">
         {this.props.sources.map((source, i) =>
           <option key={i} value={source.token}>{source.display}</option>
         )}

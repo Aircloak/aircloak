@@ -1,5 +1,6 @@
 import React from "react";
 import Codemirror from "react-codemirror";
+import $ from "jquery";
 import _ from "lodash";
 
 require("codemirror/mode/sql/sql");
@@ -21,6 +22,11 @@ export class CodeEditor extends React.Component {
   }
 
   setupComponent(codeMirrorComponent) {
+    // Skip setup for read-only
+    if (this.props.readOnly) {
+      return;
+    }
+
     const instance = codeMirrorComponent.getCodeMirrorInstance();
     this.editor = instance;
     instance.commands.save = (_cm) => {
@@ -85,23 +91,28 @@ export class CodeEditor extends React.Component {
 
   render() {
     const options = {
-      autofocus: true,
       indentUnit: 2,
       indentWithTabs: false,
       lineNumbers: true,
       lineWrapping: true,
       matchBrackets: true,
+      readOnly: this.props.readOnly,
       mode: "text/x-sql",
       showCursorWhenSelecting: true,
       smartIndent: true,
       viewportMargin: Infinity,
-
-      extraKeys: {
-        "Ctrl-Enter": "run",
-        "Cmd-Enter": "run",
-        "Ctrl-Space": "autoComplete",
-      },
+      cursorBlinkRate: (this.props.readOnly ? -1 : 530),
     };
+
+    if (! this.props.readOnly) {
+      $.extend(options, {
+        autofocus: true,
+        extraKeys: {
+          "Ctrl-Enter": "run",
+          "Cmd-Enter": "run",
+          "Ctrl-Space": "autoComplete",
+        }});
+    }
 
     return (
       <Codemirror
@@ -118,6 +129,7 @@ CodeEditor.propTypes = {
   onSave: React.PropTypes.func.isRequired,
   onRun: React.PropTypes.func.isRequired,
   onChange: React.PropTypes.func.isRequired,
+  readOnly: React.PropTypes.bool,
 
   settings: React.PropTypes.shape({
     selectedDataSource: React.PropTypes.func.isRequired,

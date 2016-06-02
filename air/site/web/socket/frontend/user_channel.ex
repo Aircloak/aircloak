@@ -8,7 +8,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   use Air.Web, :channel
   require Logger
-  alias Air.{Query, Repo}
+  alias Air.Query
 
 
   # -------------------------------------------------------------------
@@ -18,13 +18,9 @@ defmodule Air.Socket.Frontend.UserChannel do
   @doc """
   Broadcasts the results of a query execution to all listening clients.
   """
-  @spec broadcast_result(Query.result) :: :ok
-  def broadcast_result(result) do
-    query = Repo.get!(Query, result["query_id"])
-    payload = Map.put(result, "statement", query.statement)
-
-    Air.Endpoint.broadcast_from!(self(), "user:#{query.user_id}", "result", payload)
-
+  @spec broadcast_result(Query.t) :: :ok
+  def broadcast_result(query) do
+    Air.Endpoint.broadcast_from!(self(), "user:#{query.user_id}", "result", Query.for_display(query))
     :ok
   end
 
