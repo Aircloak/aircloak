@@ -163,7 +163,7 @@ defmodule Cloak.SqlQueryTest do
     {"multiple where clauses cannot be separated by or", "select a from b where a > 1 or b < 2", "Expected end of input"},
     {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2", "Expected end of input"},
     {"count requires parens", "select count * from foo", "Expected `(`"},
-    {"cannot group by count", "select a from foor group by count(*)", "Expected `identifier`"},
+    {"cannot group by count", "select a from foo group by count(*)", "Expected `identifier`"},
     {"'by' has to follow 'order'", "select a from foo order a asc", "Expected `by`"},
     {"'by' has to follow 'group'", "select a from foo group a", "Expected `by`"},
     {"order by fields needs to be comma separated", "select a, b, c from foo order by a b", "Expected end of input"},
