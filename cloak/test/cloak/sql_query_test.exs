@@ -148,7 +148,7 @@ defmodule Cloak.SqlQueryTest do
      SqlQuery.parse!("select a, b, c from foo order by a desc, b asc, c")
   end
 
-  for {description, statement, expected_error} <- [
+  Enum.each([
     {"single quote is not allowed in the identifier", "select fo'o from baz", "Invalid character"},
     {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},
     {"keyword is not identifier", "select select from baz", "Expected `identifier`"},
@@ -173,10 +173,10 @@ defmodule Cloak.SqlQueryTest do
     {"missing where expression", "select foo from bar where", "Invalid where expression"},
     {"invalid where expression", "select foo from bar where foo bar", "Invalid where expression"},
     {"no input allowed after the statement", "select foo from bar baz", "Expected end of input"}
-  ] do
+  ], fn {description, statement, expected_error} ->
     test description do
       assert {:error, reason} = SqlQuery.parse(unquote(statement))
       assert reason =~ unquote(expected_error)
     end
-  end
+  end)
 end
