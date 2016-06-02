@@ -21,6 +21,7 @@ defmodule Cloak.Query.Runner do
   defp validate(sql_query) do
     with :ok <- validate_from(sql_query),
       :ok <- validate_columns(sql_query),
+      :ok <- validate_where_clauses(sql_query),
       :ok <- validate_order_by(sql_query), do: :ok
   end
 
@@ -47,6 +48,21 @@ defmodule Cloak.Query.Runner do
     columns
     |> Enum.any?(fn {column, _} -> name == column end)
   end
+
+  defp validate_where_clauses(%{command: :select, from: table_identifier, where: clauses}) do
+    table_id = String.to_existing_atom(table_identifier)
+    column_names = Enum.map(clauses, &where_clause_to_identifier/1)
+    invalid_columns = Enum.reject(column_names, &valid_column?(&1, DataSource.columns(:local, table_id)))
+    case invalid_columns do
+      [] -> :ok
+      [invalid_column | _rest] -> {:error, ~s/Column "#{invalid_column}" used in the WHERE-clause doesn't exist./}
+    end
+  end
+  defp validate_where_clauses(%{}), do: :ok
+
+  defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
+  defp where_clause_to_identifier({:in, identifier, _}), do: identifier
+  defp where_clause_to_identifier({:like, identifier, _}), do: identifier
 
   defp validate_order_by(%{columns: columns, order_by: order_by_spec}) do
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
