@@ -34,36 +34,31 @@ defmodule Cloak.Query.Runner do
   end
   defp validate_from(%{}), do: :ok
 
-  defp validate_aggregation(%{command: :select, columns: columns} = query) do
-    columns
-    |> Enum.map(&aggregate_column?(&1, query))
-    |> Enum.uniq()
-    |> case do
-      [_] -> :ok
-      [_|_] ->
-        unaggregated = columns
-        |> Enum.filter(fn column -> !aggregate_column?(column, query) end)
-        |> Enum.map(&Result.column_title/1)
-        |> Enum.join(", ")
-
+  defp validate_aggregation(%{command: :select} = query) do
+    case invalid_not_aggregated_columns(query) do
+      [] -> :ok
+      columns ->
         {
           :error,
-          "The columns #{unaggregated} should appear in the `group by` clause or be used inside " <>
-            "aggregation functions"
+          "Columns #{columns |> Enum.map(&Result.column_title/1) |> Enum.join} need to appear in the " <>
+            "`group by` clause or be used in an aggregate function."
         }
     end
   end
   defp validate_aggregation(_), do: :ok
 
-  defp aggregate_column?(column, query) do
-    aggregate_function?(column) || grouped_column?(column, query)
+  defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
+    Enum.reject(query.columns, &(aggregate_function?(&1) || Enum.member?(query.group_by, &1)))
+  end
+  defp invalid_not_aggregated_columns(%{command: :select} = query) do
+    case Enum.partition(query.columns, &aggregate_function?/1) do
+      {[_|_] = _aggregates, [_|_] = non_aggregates} -> non_aggregates
+      _ -> []
+    end
   end
 
   defp aggregate_function?({:count, _}), do: true
   defp aggregate_function?(_), do: false
-
-  defp grouped_column?(column, %{group_by: group_bys}), do: Enum.member?(group_bys, column)
-  defp grouped_column?(_, _), do: false
 
   defp validate_columns(%{command: :select, from: table_identifier} = query) do
     table_id = String.to_existing_atom(table_identifier)
