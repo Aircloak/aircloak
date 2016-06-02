@@ -20,10 +20,14 @@ defmodule Air.QueriesController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
+    last_query = case load_recent_queries(conn.assigns.current_user, _recent_count = 1) do
+      [query] -> query
+      _ -> nil
+    end
     render(conn, "index.html",
       guardian_token: Guardian.Plug.current_token(conn),
       csrf_token: Plug.CSRFProtection.get_csrf_token(),
-      recent_results: Poison.encode!(recent_queries(conn.assigns.current_user)),
+      last_query: Poison.encode!(last_query),
       data_sources: Poison.encode!(data_sources(conn))
     )
   end
@@ -59,10 +63,10 @@ defmodule Air.QueriesController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp recent_queries(user) do
+  defp load_recent_queries(user, recent_count) do
     user
     |> Query.for_user
-    |> Query.recent(_recent_count = 5)
+    |> Query.recent(recent_count)
     |> Repo.all
     |> Enum.map(&Query.for_display/1)
   end

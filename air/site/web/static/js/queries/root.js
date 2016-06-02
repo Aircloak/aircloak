@@ -14,9 +14,9 @@ class QueriesView extends React.Component {
     super(props);
 
     this.state = {
-      statement: this.props.results[0] ? this.props.results[0].statement : "",
+      statement: this.props.lastQuery ? this.props.lastQuery.statement : "",
       dataSource: this.props.sources[0] ? this.props.sources[0].token : "",
-      sessionResults: props.results,
+      sessionResults: [],
     };
 
     this.setStatement = this.setStatement.bind(this);
@@ -145,7 +145,9 @@ export default function renderQueriesView(data, elem) {
 
 QueriesView.propTypes = {
   sources: DataSourceSelector.propTypes.sources,
-  results: Results.propTypes.results,
+  lastQuery: React.PropTypes.shape({
+    statement: React.PropTypes.string.isRequired,
+  }),
   CSRFToken: React.PropTypes.string.isRequired,
   resultSocket: React.PropTypes.instanceOf(ResultSocket).isRequired,
 };
