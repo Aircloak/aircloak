@@ -34,7 +34,7 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @doc false
   def select(source_id, sql_query) do
-    run_query(source_id, select_query_to_string(sql_query))
+    run_query(source_id, select_query_to_string(sql_query), &row_mapper/1)
   end
 
 
@@ -42,8 +42,8 @@ defmodule Cloak.DataSource.PostgreSQL do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp run_query(source_id, statement, row_mapper \\ fn x -> x end) do
-    options = [timeout: 15 * 60 * 1000, pool_timeout: 2 * 60 * 1000, decode_mapper: row_mapper, pool: @pool_name]
+  defp run_query(source_id, statement, decode_mapper) do
+    options = [timeout: 15 * 60 * 1000, pool_timeout: 2 * 60 * 1000, decode_mapper: decode_mapper, pool: @pool_name]
     with {:ok, result} <- Postgrex.query(proc_name(source_id), statement, [], options) do
       %Postgrex.Result{command: :select, num_rows: count, columns: columns, rows: rows} = result
       {:ok, {count, columns, rows}}
@@ -68,7 +68,6 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("time"), do: :time
   defp parse_type("timetz"), do: :time
   defp parse_type("date"), do: :date
-  defp parse_type("interval"), do: :interval
   defp parse_type(type), do: {:unsupported, type}
 
   defp select_query_to_string(%{columns: fields_list, from: table} = query) do
@@ -77,7 +76,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   end
 
   defp select_column_to_string({:count, :star}), do: "'*' as \"count(*)\""
-  defp select_column_to_string(column), do: "(" <> column <> ")::text"
+  defp select_column_to_string(column), do: column
 
   defp where_sql(nil), do: ""
   defp where_sql(clauses) do
@@ -97,6 +96,42 @@ defmodule Cloak.DataSource.PostgreSQL do
     clause = "#{what} LIKE #{match}"
     construct_where_clause(clauses, [clause|acc])
   end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Selected data mapping functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  defp row_mapper(row), do: for field <- row, do: field_mapper(field)
+
+  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
+      hour: hour, min: min, sec: sec, usec: 0}) do
+    :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [year, month, day, hour, min, sec])
+    |> to_string()
+  end
+  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
+      hour: hour, min: min, sec: sec, usec: usec}) do
+    :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B.~6..0B", [year, month, day, hour, min, sec, usec])
+    |> to_string()
+  end
+  defp field_mapper(%Postgrex.Date{year: year, month: month, day: day}) do
+    :io_lib.format("~4..0B-~2..0B-~2..0B", [year, month, day])
+    |> to_string()
+  end
+  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
+      hour: hour, min: min, sec: sec, usec: 0}) do
+    :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [year, month, day, hour, min, sec])
+    |> to_string()
+  end
+  defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec, usec: 0}) do
+    :io_lib.format("~2..0B:~2..0B:~2..0B", [hour, min, sec])
+    |> to_string()
+  end
+  defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec, usec: usec}) do
+    :io_lib.format("~2..0B:~2..0B:~2..0B.~6..0B", [hour, min, sec, usec])
+    |> to_string()
+  end
+  defp field_mapper(field), do: field
 
 
   #-----------------------------------------------------------------------------------------------------------
