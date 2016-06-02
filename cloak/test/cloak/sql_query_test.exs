@@ -133,12 +133,13 @@ defmodule Cloak.SqlQueryTest do
       SqlQuery.parse!("select count(*) from foo")
   end
 
-  test "group by a column" do
-    assert %{group_by: ["a"]} = SqlQuery.parse!("select a from b group by a")
+  test "group by multiple columns" do
+    assert %{columns: ["x"], from: "b", group_by: ["x", "y", "z"]} =
+      SqlQuery.parse!("select x from b group by x, y, z")
   end
 
-  test "group by multiple columns" do
-    assert %{group_by: ["x", "y", "z"]} = SqlQuery.parse!("select x from b group by x, y, z")
+  test "group by just one column" do
+    assert %{group_by: ["a"]} = SqlQuery.parse!("select a from b group by a")
   end
 
   test "order by caluse" do
