@@ -36,7 +36,7 @@ defmodule Air.QueriesController do
     try do
       case Air.Socket.Cloak.MainChannel.run_query(query.cloak_id, Query.to_cloak_query(query)) do
         :ok ->
-          json(conn, %{success: true})
+          json(conn, %{success: true, query_id: query.id})
         {:error, :not_connected} ->
           json(conn, %{success: false, reason: "the cloak is not connected"})
         {:error, reason} ->
