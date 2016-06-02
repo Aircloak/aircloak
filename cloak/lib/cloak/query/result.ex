@@ -49,7 +49,7 @@ defmodule Cloak.Query.Result do
 
   defp expand_rows(results) do
     Enum.flat_map(results, fn result ->
-      :lists.duplicate(bucket(result, :noisy_count), bucket(result, :property))
+      List.duplicate(bucket(result, :property), bucket(result, :noisy_count))
     end)
   end
 
