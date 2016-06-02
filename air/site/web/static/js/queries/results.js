@@ -1,12 +1,15 @@
 import React from "react";
 
 import {Result} from "./result";
+import {PendingResult} from "./pending_result";
 import {Error} from "./error";
 
 export const Results = (props) =>
   <div>
     {props.results.map((result, i) => {
-      if (result.columns) {
+      if (result.pendingResult) {
+        return <PendingResult key={i} {...result} />;
+      } else if (result.columns) {
         return <Result key={i} {...result} />;
       } else {
         return <Error key={i} {...result} />;
