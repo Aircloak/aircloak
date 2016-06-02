@@ -37,7 +37,7 @@ defmodule Cloak.Query.Runner do
   defp validate_aggregation(%{command: :select, columns: columns} = query) do
     columns
     |> Enum.map(&aggregate_column?(&1, query))
-    |> Enum.uniq
+    |> Enum.uniq()
     |> case do
       [_] -> :ok
       [_|_] ->
