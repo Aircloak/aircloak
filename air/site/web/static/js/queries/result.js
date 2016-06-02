@@ -24,7 +24,7 @@ export class Result extends React.Component {
     if (this.props.isLoading) {
       return (
         <div className="row-count">
-          <img role="presentation" src="/images/loader.gif" /> loading rows.
+          <img role="presentation" src="/images/loader.gif" /> loading rows
         </div>
       );
     }
