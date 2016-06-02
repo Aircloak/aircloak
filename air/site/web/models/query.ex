@@ -83,7 +83,7 @@ defmodule Air.Query do
 
   defp result_map(%{result: nil}), do: %{rows: [], columns: []}
   defp result_map(%{result: result_json}) do
-    {:ok, result} = Poison.decode(result_json)
+    result = Poison.decode!(result_json)
 
     %{
       columns: result["columns"],

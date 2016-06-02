@@ -165,15 +165,13 @@ defmodule Air.Socket.Cloak.MainChannel do
   defp process_query_result(result) do
     query = Repo.get!(Query, result["query_id"])
 
-    storable_result = %{
+    storable_result = Poison.encode!(%{
       columns: result["columns"],
       rows: result["rows"],
       error: result["error"]
-    } |> Poison.encode!
+    })
 
-    {:ok, updated_query} = Query.changeset(query, %{result: storable_result})
-    |> Repo.update
-
+    updated_query = Repo.update!(Query.changeset(query, %{result: storable_result}))
     report_query_result(updated_query) # Broadcast result to subscribers.
   end
 
