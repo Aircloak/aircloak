@@ -38,7 +38,7 @@ export class Result extends React.Component {
     if (this.state.showAll) {
       return (
         <div className="row-count">
-          {this.props.rows.length} rows.
+          {this.props.rows.length} rows
         </div>
       );
     } else {
