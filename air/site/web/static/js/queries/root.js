@@ -31,6 +31,9 @@ class QueriesView extends React.Component {
     this.addResult = this.addResult.bind(this);
     this.setResults = this.setResults.bind(this);
     this.handleLoadHistory = this.handleLoadHistory.bind(this);
+    this.handleLoadRows = this.handleLoadRows.bind(this);
+    this.handleLessRows = this.handleLessRows.bind(this);
+    this.replaceResult = this.replaceResult.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     this.props.resultSocket.start({
@@ -50,6 +53,17 @@ class QueriesView extends React.Component {
     this.setState({sessionResults: results.slice(0, 5)});
   }
 
+  replaceResult(result) {
+    const sessionResults = this.state.sessionResults.map((item) => {
+      if (item.id === result.id) {
+        return result;
+      } else {
+        return item;
+      }
+    });
+    this.setResults(sessionResults);
+  }
+
   addResult(result, dontReplace = false) {
     const existingResult = this.state.sessionResults.find((item) => item.id === result.id);
     if (existingResult === undefined) {
@@ -62,14 +76,7 @@ class QueriesView extends React.Component {
         // trying to add.
         return;
       }
-      const sessionResults = this.state.sessionResults.map((item) => {
-        if (item.id === result.id) {
-          return result;
-        } else {
-          return item;
-        }
-      });
-      this.setResults(sessionResults);
+      this.replaceResult(result);
     }
   }
 
@@ -128,6 +135,28 @@ class QueriesView extends React.Component {
     });
   }
 
+  handleLoadRows(result) {
+    this.replaceResult($.extend(result, {loadingData: true}));
+    $.ajax(`/query/${result.id}`, {
+      method: "GET",
+      headers: {
+        "X-CSRF-TOKEN": this.props.CSRFToken,
+        "Content-Type": "application/json",
+      },
+      success: (result) => {
+        console.log(result);
+        this.replaceResult(result);
+      },
+      error: (error) => console.log("Failed at loading result"),
+    });
+  }
+
+  handleLessRows(result) {
+    const rows = result.rows.slice(0, 10);
+    let updateableResult = $.extend({}, result);
+    updateableResult.rows = rows
+    this.replaceResult(updateableResult);
+  }
 
   addError(statement, text) {
     const result = {statement, error: text};
@@ -157,7 +186,10 @@ class QueriesView extends React.Component {
 
       </div>
 
-      <Results results={this.state.sessionResults} />
+      <Results results={this.state.sessionResults}
+        handleLoadRows={this.handleLoadRows}
+        handleLessRows={this.handleLessRows}
+      />
 
       <HistoryLoader {...this.state} handleLoadHistory={this.handleLoadHistory} />
     </div>);

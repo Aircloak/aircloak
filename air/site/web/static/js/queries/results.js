@@ -10,7 +10,7 @@ export const Results = (props) =>
       if (result.pendingResult) {
         return <PendingResult key={i} {...result} />;
       } else if (result.columns) {
-        return <Result key={i} {...result} />;
+        return <Result key={i} {...result} {...props} />;
       } else {
         return <Error key={i} {...result} />;
       }
@@ -19,4 +19,6 @@ export const Results = (props) =>
 
 Results.propTypes = {
   results: React.PropTypes.array.isRequired,
+  handleLoadRows: React.PropTypes.func,
+  handleLessRows: React.PropTypes.func,
 };

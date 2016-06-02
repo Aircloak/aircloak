@@ -51,13 +51,13 @@ defmodule Air.Query do
   end
 
   @doc "Produces a JSON blob of the query and it's result for rendering"
-  @spec for_display(t) :: %{}
-  def for_display(query) do
+  @spec for_display(t, boolean) :: %{}
+  def for_display(query, complete \\ false) do
     base_query = %{
       statement: query.statement,
       id: query.id
     }
-    Map.merge(base_query, result_map(query))
+    Map.merge(base_query, result_map(query, complete))
   end
 
 
@@ -76,19 +76,34 @@ defmodule Air.Query do
     limit: ^count
   end
 
+  def with_id(query \\ __MODULE__, id) do
+    from q in query,
+    where: q.id == ^id
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp result_map(%{result: nil}), do: %{rows: [], columns: []}
-  defp result_map(%{result: result_json}) do
+  defp result_map(%{result: nil}, _complete), do: %{rows: [], columns: []}
+  defp result_map(%{result: result_json}, complete) do
     result = Poison.decode!(result_json)
+    {rows, row_count} = case result["rows"] do
+      nil -> {[], 0}
+      rows ->
+        if complete do
+          {rows, length(rows)}
+        else
+          {Enum.take(rows, 10), length(rows)}
+        end
+    end
 
     %{
       columns: result["columns"],
-      rows: result["rows"],
-      error: result["error"]
+      rows: rows,
+      error: result["error"],
+      row_count: row_count,
     }
   end
 end
