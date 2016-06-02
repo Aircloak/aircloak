@@ -11,9 +11,11 @@ defmodule Cloak.SqlQuery do
     | :>
     | :<>
 
+  @type column :: String.t | {:count, :star}
+
   @type t :: %{
     command: :select | :show,
-    columns: [String.t | {:count, :star}],
+    columns: [column],
     group_by: [String.t],
     from: [String.t],
     where: [

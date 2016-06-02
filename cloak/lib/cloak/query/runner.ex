@@ -35,24 +35,32 @@ defmodule Cloak.Query.Runner do
   defp validate_from(%{}), do: :ok
 
   defp validate_aggregation(%{command: :select, columns: columns} = query) do
-    if Enum.all?(columns, fn column -> aggregate?(column, query) == aggregate_query?(query) end) do
-      :ok
+    if invalid = Enum.find(columns, fn column -> !valid_aggregation?(column, query) end) do
+      {
+        :error,
+        "Column #{Result.column_title(invalid)} needs to appear in the `group by` clause or be used in an " <>
+          "aggregate function"
+      }
     else
-      {:error, "All columns need to be aggregated or listed in the 'group by' clause"}
+      :ok
     end
   end
   defp validate_aggregation(_), do: :ok
 
-  defp aggregate_query?(%{group_by: [_ | _]}), do: true
-  defp aggregate_query?(%{columns: columns} = query) do
-    Enum.any?(columns, &aggregate?(&1, query))
+  defp valid_aggregation?(column, query) do
+    aggregate_column?(column, query) == aggregate_query?(query)
   end
 
-  defp aggregate?({:count, _}, _), do: true
-  defp aggregate?(column, %{group_by: group_bys}) do
+  defp aggregate_query?(%{group_by: [_ | _]}), do: true
+  defp aggregate_query?(%{columns: columns} = query) do
+    Enum.any?(columns, &aggregate_column?(&1, query))
+  end
+
+  defp aggregate_column?({:count, _}, _), do: true
+  defp aggregate_column?(column, %{group_by: group_bys}) do
     Enum.member?(group_bys, column)
   end
-  defp aggregate?(_, _), do: false
+  defp aggregate_column?(_, _), do: false
 
   defp validate_columns(%{command: :select, columns: selected_columns, from: table_identifier} = query) do
     table_id = String.to_existing_atom(table_identifier)

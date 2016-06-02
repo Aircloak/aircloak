@@ -25,13 +25,15 @@ defmodule Cloak.Query.Result do
     Enum.map(columns, &column_title/1)
   end
 
-  #
+  @doc "Returns a string title for the given column specification."
+  @spec column_title(SqlQuery.column) :: String.t
+  def column_title({:count, :star}), do: "count(*)"
+  def column_title(column), do: column
+
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp column_title({:count, :star}), do: "count(*)"
-  defp column_title(column), do: column
 
   defp extract_rows(results, query) do
     Enum.map(results, &extract_row(&1, query))
