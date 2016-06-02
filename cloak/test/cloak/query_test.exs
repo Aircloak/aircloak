@@ -106,9 +106,9 @@ defmodule Cloak.QueryTest do
   end
 
   test "query reports an error on invalid where clause identifier" do
-    :ok = start_query("select height from heights where age > 10")
+    :ok = start_query("select height from heights where nonexistant > 10")
     assert_receive {:reply, %{query_id: "1", error: error}}
-    assert ~s/Column "age" doesn't exist./ == error
+    assert ~s/Column "nonexistant" doesn't exist./ == error
   end
 
   test "query reports an error on invalid order by field" do
