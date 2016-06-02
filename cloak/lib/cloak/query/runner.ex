@@ -48,7 +48,7 @@ defmodule Cloak.Query.Runner do
 
         {
           :error,
-          "The columns #{unaggregated} needs to appear in the `group by` clause or be used inside " <>
+          "The columns #{unaggregated} should appear in the `group by` clause or be used inside " <>
             "aggregation functions"
         }
     end

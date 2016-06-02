@@ -122,7 +122,7 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(*), height from heights")
 
     assert_receive {:reply, %{query_id: "1", error: error}}
-    assert error =~ ~r/height needs to appear in the `group by` clause/
+    assert error =~ ~r/height should appear in the `group by` clause/
   end
 
   test "query reports an error when grouping by nonexistent columns" do
