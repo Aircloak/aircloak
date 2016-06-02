@@ -35,26 +35,25 @@ defmodule Cloak.Query.Runner do
   defp validate_from(%{}), do: :ok
 
   defp validate_aggregation(%{command: :select, columns: columns} = query) do
-    if invalid = Enum.find(columns, fn column -> !valid_aggregation?(column, query) end) do
-      {
-        :error,
-        "Column #{Result.column_title(invalid)} needs to appear in the `group by` clause or be used in an " <>
-          "aggregate function"
-      }
-    else
-      :ok
+    columns
+    |> Enum.map(&aggregate_column?(&1, query))
+    |> Enum.uniq
+    |> case do
+      [_] -> :ok
+      [_|_] ->
+        unaggregated = columns
+        |> Enum.filter(fn column -> !aggregate_column?(column, query) end)
+        |> Enum.map(&Result.column_title/1)
+        |> Enum.join(", ")
+
+        {
+          :error,
+          "The columns #{unaggregated} needs to appear in the `group by` clause or be used inside " <>
+            "aggregation functions"
+        }
     end
   end
   defp validate_aggregation(_), do: :ok
-
-  defp valid_aggregation?(column, query) do
-    aggregate_column?(column, query) == aggregate_query?(query)
-  end
-
-  defp aggregate_query?(%{group_by: [_ | _]}), do: true
-  defp aggregate_query?(%{columns: columns} = query) do
-    Enum.any?(columns, &aggregate_column?(&1, query))
-  end
 
   defp aggregate_column?(column, query) do
     aggregate_function?(column) || grouped_column?(column, query)
