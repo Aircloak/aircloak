@@ -1,5 +1,5 @@
 defmodule Cloak.Query.Result do
-  @moduledoc "Contains functions for converting buckets to a columns/rows representation"
+  @moduledoc "Contains functions for converting buckets to a columns/rows representation."
 
   use Cloak.Type
   alias Cloak.SqlQuery
@@ -9,7 +9,7 @@ defmodule Cloak.Query.Result do
   # API
   # -------------------------------------------------------------------
 
-  @doc "Converts a list of buckets into rows, expanding them if the query does not aggregate"
+  @doc "Converts a list of buckets into rows, expanding them if the query does not aggregate."
   @spec expand([Bucket.t], SqlQuery.t) :: [number | String.t]
   def expand(results, query) do
     if aggregate?(query) do
@@ -19,7 +19,7 @@ defmodule Cloak.Query.Result do
     end
   end
 
-  @doc "Returns a list of column titles for the query"
+  @doc "Returns a list of column titles for the query."
   @spec column_titles(SqlQuery.t) :: [String.t]
   def column_titles(%{columns: columns}) do
     Enum.map(columns, &column_title/1)
