@@ -16,7 +16,7 @@ class QueriesView extends React.Component {
     this.state = {
       statement: this.props.results[0] ? this.props.results[0].statement : "",
       dataSource: this.props.sources[0] ? this.props.sources[0].token : "",
-      sessionResults: [],
+      sessionResults: props.results,
     };
 
     this.setStatement = this.setStatement.bind(this);
@@ -24,6 +24,7 @@ class QueriesView extends React.Component {
     this.runQuery = this.runQuery.bind(this);
     this.queryData = this.queryData.bind(this);
     this.addResult = this.addResult.bind(this);
+    this.setResults = this.setResults.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     this.props.resultSocket.start({
@@ -39,10 +40,14 @@ class QueriesView extends React.Component {
     this.setState({dataSource});
   }
 
+  setResults(results) {
+    this.setState({sessionResults: results.slice(0, 5)});
+  }
+
   addResult(result, dontReplace = false) {
     const existingResult = this.state.sessionResults.find((item) => item.id === result.id);
     if (existingResult === undefined) {
-      this.setState({sessionResults: [result].concat(this.state.sessionResults)});
+      this.setResults([result].concat(this.state.sessionResults));
     } else {
       if (dontReplace) {
         // This guards against a race condition where the response from the cloak comes through the websocket
@@ -58,7 +63,7 @@ class QueriesView extends React.Component {
           return item;
         }
       });
-      this.setState({sessionResults});
+      this.setResults(sessionResults);
     }
   }
 
@@ -102,7 +107,7 @@ class QueriesView extends React.Component {
 
   addError(statement, text) {
     const result = {statement, error: text};
-    this.setState({sessionResults: [result].concat(this.state.sessionResults)});
+    this.setResults([result].concat(this.state.sessionResults));
   }
 
   render() {
@@ -128,7 +133,7 @@ class QueriesView extends React.Component {
 
       </div>
 
-      <Results results={this.state.sessionResults.concat(this.props.results)} />
+      <Results results={this.state.sessionResults} />
     </div>);
   }
 }
