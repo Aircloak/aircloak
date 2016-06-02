@@ -56,11 +56,15 @@ defmodule Cloak.Query.Runner do
     Enum.any?(columns, &aggregate_column?(&1, query))
   end
 
-  defp aggregate_column?({:count, _}, _), do: true
-  defp aggregate_column?(column, %{group_by: group_bys}) do
-    Enum.member?(group_bys, column)
+  defp aggregate_column?(column, query) do
+    aggregate_function?(column) || grouped_column?(column, query)
   end
-  defp aggregate_column?(_, _), do: false
+
+  defp aggregate_function?({:count, _}), do: true
+  defp aggregate_function?(_), do: false
+
+  defp grouped_column?(column, %{group_by: group_bys}), do: Enum.member?(group_bys, column)
+  defp grouped_column?(_, _), do: false
 
   defp validate_columns(%{command: :select, columns: selected_columns, from: table_identifier} = query) do
     table_id = String.to_existing_atom(table_identifier)
