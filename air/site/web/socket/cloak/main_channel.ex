@@ -4,7 +4,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  alias Air.{CloakInfo, Result}
+  alias Air.{CloakInfo, Repo, Query}
 
 
   # -------------------------------------------------------------------
@@ -163,25 +163,16 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   defp process_query_result(result) do
-    {:ok, query_id} = Ecto.UUID.cast(result["query_id"])
+    query = Repo.get!(Query, result["query_id"])
 
-    result_model = %Result{
-      query_id: query_id,
-      buckets: Poison.encode!(result["buckets"]),
-      exceptions: Poison.encode!(result["exceptions"]),
-      post_processed: Poison.encode!([])
-    }
-    # Write result to database.
-    case Air.Repo.insert(result_model) do
-      {:ok, db_result} ->
-        result
-        |> Map.put("created_at", :os.system_time(:seconds))
-        |> Map.put("id", db_result.id)
-        |> report_query_result() # Broadcast result to subscribers.
-      {:error, changeset} ->
-        Logger.error("failed to save result for query #{query_id}: #{inspect changeset.errors}")
-        :error
-    end
+    storable_result = Poison.encode!(%{
+      columns: result["columns"],
+      rows: result["rows"],
+      error: result["error"]
+    })
+
+    updated_query = Repo.update!(Query.changeset(query, %{result: storable_result}))
+    report_query_result(updated_query) # Broadcast result to subscribers.
   end
 
   defp report_query_result(result) do

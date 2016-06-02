@@ -2,8 +2,8 @@ import React from "react";
 
 import {CodeEditor} from "../code_editor";
 
-export const Error = (props) =>
-  <div className="panel panel-danger">
+export const PendingResult = (props) =>
+  <div className="panel panel-info">
     <div className="panel-heading" />
     <div className="panel-body">
       <CodeEditor
@@ -14,12 +14,12 @@ export const Error = (props) =>
         readOnly
       />
 
-      <h4>Query failed</h4>
-      <p>{props.error}</p>
+      <p>
+        <img src="/images/loader.gif" role="presentation" /> loading results
+      </p>
     </div>
   </div>;
 
-Error.propTypes = {
+PendingResult.propTypes = {
   statement: React.PropTypes.string,
-  error: React.PropTypes.string,
 };

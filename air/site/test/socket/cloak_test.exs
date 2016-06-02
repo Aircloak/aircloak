@@ -49,13 +49,14 @@ defmodule Air.Socket.CloakTest do
 
     request = %{
       request_id: "foobar", event: "query_result",
-      payload: %{query_id: query_id, buckets: [], exceptions: []}
+      payload: %{query_id: query_id, rows: [], columns: []}
     }
-    assert nil == Air.Repo.one(Air.Result)
+    assert Air.Repo.get!(Air.Query, query_id).result == nil
     TestSocket.push(socket, "main", "cloak_call", request)
     assert {:ok, {"main", "call_response", response}} = TestSocket.await_message(socket, 100)
     assert %{"request_id" => "foobar", "status" => "ok"} = response
-    assert %Air.Result{query_id: ^query_id} = Air.Repo.one(Air.Result)
+
+    assert Air.Repo.get!(Air.Query, query_id).result != nil
   end
 
   test "getting data for connected cloaks" do

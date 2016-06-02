@@ -3,7 +3,7 @@
 
 -type user_id() :: binary().
 -type query_id() :: binary().
--type property() :: [binary()] | binary().
+-type property() :: 'Elixir.Cloak.DataSource':row().
 
 -record(bucket, {
   property :: property(),

@@ -41,7 +41,7 @@ defmodule Cloak.QueryTest do
 
     assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
     assert 100 == length(rows)
-    assert Enum.all?(rows, &(&1 == ["180"]))
+    assert Enum.all?(rows, &(&1 == [180]))
   end
 
   test "should return LCF property when sufficient rows are filtered" do
@@ -59,7 +59,7 @@ defmodule Cloak.QueryTest do
     |> Enum.map(fn({k, values}) -> {k, Enum.count(values)} end)
     |> Enum.sort()
 
-    assert groups == [{["*"], 20}, {["180"], 20}]
+    assert groups == [{[180], 20}, {["*"], 20}]
   end
 
   test "should produce counts" do
