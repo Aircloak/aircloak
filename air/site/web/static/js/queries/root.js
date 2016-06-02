@@ -8,6 +8,7 @@ import {Results} from "./results";
 import {DataSourceSelector} from "./data_source_selector";
 import {MenuButton} from "../menu";
 import {ResultSocket} from "../result_socket";
+import {HistoryLoader} from "./history_loader";
 
 class QueriesView extends React.Component {
   constructor(props) {
@@ -17,7 +18,11 @@ class QueriesView extends React.Component {
       statement: this.props.lastQuery ? this.props.lastQuery.statement : "",
       dataSource: this.props.sources[0] ? this.props.sources[0].token : "",
       sessionResults: [],
+
+      historyLoading: false,
+      historyLoaded: false,
     };
+
 
     this.setStatement = this.setStatement.bind(this);
     this.setDataSource = this.setDataSource.bind(this);
@@ -25,6 +30,7 @@ class QueriesView extends React.Component {
     this.queryData = this.queryData.bind(this);
     this.addResult = this.addResult.bind(this);
     this.setResults = this.setResults.bind(this);
+    this.handleLoadHistory = this.handleLoadHistory.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     this.props.resultSocket.start({
@@ -105,6 +111,24 @@ class QueriesView extends React.Component {
     });
   }
 
+  handleLoadHistory() {
+    this.setState({historyLoading: true});
+    $.ajax("/queries/load_history", {
+      method: "GET",
+      headers: {
+        "X-CSRF-TOKEN": this.props.CSRFToken,
+        "Content-Type": "application/json",
+      },
+      success: (response) => {
+        let sessionResults = this.state.sessionResults;
+        sessionResults.push.apply(sessionResults, response);
+        this.setState({sessionResults, historyLoaded: true});
+      },
+      error: (error) => this.setStatement({historyLoading: false}),
+    });
+  }
+
+
   addError(statement, text) {
     const result = {statement, error: text};
     this.setResults([result].concat(this.state.sessionResults));
@@ -134,6 +158,8 @@ class QueriesView extends React.Component {
       </div>
 
       <Results results={this.state.sessionResults} />
+
+      <HistoryLoader {...this.state} handleLoadHistory={this.handleLoadHistory} />
     </div>);
   }
 }

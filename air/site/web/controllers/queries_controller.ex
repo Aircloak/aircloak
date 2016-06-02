@@ -58,6 +58,10 @@ defmodule Air.QueriesController do
     end
   end
 
+  def load_history(conn, _params) do
+    json(conn, load_recent_queries(conn.assigns.current_user, 10))
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
