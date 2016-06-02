@@ -13,6 +13,10 @@ export const PendingResult = (props) =>
         statement={props.statement}
         readOnly
       />
+
+      <p>
+        <img src="/images/loader.gif" role="presentation" /> loading results
+      </p>
     </div>
   </div>;
 
