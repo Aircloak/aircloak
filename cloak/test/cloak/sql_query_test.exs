@@ -133,13 +133,22 @@ defmodule Cloak.SqlQueryTest do
       SqlQuery.parse!("select count(*) from foo")
   end
 
+  test "group by multiple columns" do
+    assert %{columns: ["x"], from: "b", group_by: ["x", "y", "z"]} =
+      SqlQuery.parse!("select x from b group by x, y, z")
+  end
+
+  test "group by just one column" do
+    assert %{group_by: ["a"]} = SqlQuery.parse!("select a from b group by a")
+  end
+
   test "order by caluse" do
     assert %{command: :select, columns: ["a", "b", "c"], from: "foo",
       order_by: [{"a", :desc}, {"b", :asc}, {"c", nil}]} ==
      SqlQuery.parse!("select a, b, c from foo order by a desc, b asc, c")
   end
 
-  for {description, statement, expected_error} <- [
+  Enum.each([
     {"single quote is not allowed in the identifier", "select fo'o from baz", "Invalid character"},
     {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},
     {"keyword is not identifier", "select select from baz", "Expected `identifier`"},
@@ -148,14 +157,16 @@ defmodule Cloak.SqlQueryTest do
     {"columns must be separated with a comma", "select foo bar from baz", "Expected `from`"},
     {"query must start with a select or show", "foo select foo bar from baz", "Expected `select or show`"},
     {"show requires tables or columns", "show foobar", "Expected `tables or columns`"},
-    {"!= is an illegal comparator in where clause", "select a from b where a != b"},
-    {"=> is an illegal comparator in where clause", "select a from b where a => b"},
-    {"=< is an illegal comparator in where clause", "select a from b where a =< b"},
-    {"multiple where clauses cannot be separated by or", "select a from b where a > 1 or b < 2"},
-    {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2"},
+    {"!= is an illegal comparator in where clause", "select a from b where a != b", "Invalid character"},
+    {"=> is an illegal comparator in where clause", "select a from b where a => b", "Expected `comparison value`"},
+    {"=< is an illegal comparator in where clause", "select a from b where a =< b", "Expected `comparison value`"},
+    {"where clauses cannot be separated by or", "select a from b where a > 1 or b < 2", "Expected end of input"},
+    {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2", "Expected end of input"},
     {"count requires parens", "select count * from foo", "Expected `(`"},
-    {"'by' has to follow 'order'", "select a from foo order a asc"},
-    {"order by fields needs to be comma separated", "select a, b, c from foo order by a b"},
+    {"cannot group by count", "select a from foo group by count(*)", "Expected `identifier`"},
+    {"'by' has to follow 'order'", "select a from foo order a asc", "Expected `by`"},
+    {"'by' has to follow 'group'", "select a from foo group a", "Expected `by`"},
+    {"order by fields needs to be comma separated", "select a, b, c from foo order by a b", "Expected end of input"},
     {"invalid like", "select foo from bar where baz like", "Expected `string constant`"},
     {"invalid like type", "select foo from bar where baz like 10", "Expected `string constant`"},
     {"invalid in", "select foo from bar where baz in", "Expected `(`"},
@@ -163,10 +174,10 @@ defmodule Cloak.SqlQueryTest do
     {"missing where expression", "select foo from bar where", "Invalid where expression"},
     {"invalid where expression", "select foo from bar where foo bar", "Invalid where expression"},
     {"no input allowed after the statement", "select foo from bar baz", "Expected end of input"}
-  ] do
+  ], fn {description, statement, expected_error} ->
     test description do
       assert {:error, reason} = SqlQuery.parse(unquote(statement))
       assert reason =~ unquote(expected_error)
     end
-  end
+  end)
 end

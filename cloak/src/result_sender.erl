@@ -73,9 +73,9 @@ init(Args) ->
 
 convert_result(timeout, #state{result = Result, query_id = QueryId} = S0) ->
   Reply = case Result of
-    {buckets, Columns, Buckets} ->
-      ?INFO("Processing buckets report for query ~s: ~p buckets", [QueryId, length(Buckets)]),
-      #{query_id => QueryId, columns => Columns, rows => expand_buckets(Columns, Buckets)};
+    {buckets, Columns, Rows} ->
+      ?INFO("Processing buckets report for query ~s: ~p buckets", [QueryId, length(Rows)]),
+      #{query_id => QueryId, columns => Columns, rows => Rows};
     {error, Reason} ->
       ?INFO("Processing error report for query ~s: ~p", [QueryId, Reason]),
       #{query_id => QueryId, error => Reason}
@@ -107,14 +107,6 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %% -------------------------------------------------------------------
 %% Internal functions
 %% -------------------------------------------------------------------
-
-%% Converts the buckets to rows.
-expand_buckets([<<"count(*)">>], Buckets) ->
-  lists:map(fun(#bucket{noisy_count = Count}) -> [Count] end, Buckets);
-expand_buckets(_, Buckets) ->
-  lists:flatmap(fun (#bucket{property = Property, noisy_count = Count}) ->
-    lists:duplicate(Count, Property)
-  end, Buckets).
 
 send_reply(air_socket, Reply) ->
   'Elixir.Cloak.AirSocket':send_query_result(Reply);
