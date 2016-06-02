@@ -106,9 +106,10 @@ defmodule Cloak.Query.Runner do
   defp validate_order_by(%{}), do: :ok
 
   defp execute_sql_query(%{command: :show, show: :tables}) do
-    tables = DataSource.tables(:local)
-    buckets = for table <- tables, do: bucket(property: [table], noisy_count: 1)
-    {:ok, {:buckets, ["name"], buckets}}
+    columns = ["name"]
+    rows = Enum.map(DataSource.tables(:local), &[&1])
+
+    {:ok, {:buckets, columns, rows}}
   end
   defp execute_sql_query(%{command: :show, show: :columns, from: table_identifier}) do
     table_id = String.to_existing_atom(table_identifier)

@@ -22,6 +22,12 @@ defmodule Cloak.QueryTest do
     :ok
   end
 
+  test "show tables" do
+    :ok = start_query("show tables")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["name"], rows: [[:heights]]}}
+  end
+
   test "query execution" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     :ok = start_query("select height from heights")
