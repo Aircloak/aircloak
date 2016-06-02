@@ -167,7 +167,8 @@ defmodule Air.Socket.Cloak.MainChannel do
 
     storable_result = %{
       columns: result["columns"],
-      rows: result["rows"]
+      rows: result["rows"],
+      error: result["error"]
     } |> Poison.encode!
 
     {:ok, updated_query} = Query.changeset(query, %{result: storable_result})

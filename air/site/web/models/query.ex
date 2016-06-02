@@ -88,6 +88,7 @@ defmodule Air.Query do
     %{
       columns: result["columns"],
       rows: result["rows"],
+      error: result["error"]
     }
   end
 end
