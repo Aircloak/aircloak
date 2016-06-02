@@ -28,6 +28,13 @@ defmodule Cloak.QueryTest do
     assert_receive {:reply, %{query_id: "1", columns: ["name"], rows: [[:heights]]}}
   end
 
+  test "show columns" do
+    :ok = start_query("show columns from heights")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["name", "type"], rows: rows}}
+    assert Enum.sort(rows) == [["height", :integer], ["name", :text]]
+  end
+
   test "query execution" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     :ok = start_query("select height from heights")

@@ -113,9 +113,10 @@ defmodule Cloak.Query.Runner do
   end
   defp execute_sql_query(%{command: :show, show: :columns, from: table_identifier}) do
     table_id = String.to_existing_atom(table_identifier)
-    columns = DataSource.columns(:local, table_id)
-    buckets = for {name, type} <- columns, do: bucket(property: [name, type], noisy_count: 1)
-    {:ok, {:buckets, ["name", "type"], buckets}}
+    columns = ["name", "type"]
+    rows = Enum.map(DataSource.columns(:local, table_id), &Tuple.to_list/1)
+
+    {:ok, {:buckets, columns, rows}}
   end
   defp execute_sql_query(%{command: :select} = select_query) do
     with {:ok, {_count, [_user_id | columns], rows}} <- DataSource.select(:local, select_query) do
