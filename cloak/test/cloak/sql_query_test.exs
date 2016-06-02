@@ -160,7 +160,7 @@ defmodule Cloak.SqlQueryTest do
     {"!= is an illegal comparator in where clause", "select a from b where a != b", "Invalid character"},
     {"=> is an illegal comparator in where clause", "select a from b where a => b", "Expected `comparison value`"},
     {"=< is an illegal comparator in where clause", "select a from b where a =< b", "Expected `comparison value`"},
-    {"multiple where clauses cannot be separated by or", "select a from b where a > 1 or b < 2", "Expected end of input"},
+    {"where clauses cannot be separated by or", "select a from b where a > 1 or b < 2", "Expected end of input"},
     {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2", "Expected end of input"},
     {"count requires parens", "select count * from foo", "Expected `(`"},
     {"cannot group by count", "select a from foo group by count(*)", "Expected `identifier`"},
