@@ -127,7 +127,7 @@ class QueriesView extends React.Component {
         "Content-Type": "application/json",
       },
       success: (response) => {
-        let sessionResults = this.state.sessionResults;
+        const sessionResults = this.state.sessionResults;
         sessionResults.push.apply(sessionResults, response);
         this.setState({sessionResults, historyLoaded: true});
       },
@@ -143,18 +143,16 @@ class QueriesView extends React.Component {
         "X-CSRF-TOKEN": this.props.CSRFToken,
         "Content-Type": "application/json",
       },
-      success: (result) => {
-        console.log(result);
-        this.replaceResult(result);
+      success: (completeResult) => {
+        this.replaceResult(completeResult);
       },
       error: (error) => console.log("Failed at loading result"),
     });
   }
 
   handleLessRows(result) {
-    const rows = result.rows.slice(0, 10);
-    let updateableResult = $.extend({}, result);
-    updateableResult.rows = rows
+    const updateableResult = $.extend({}, result);
+    updateableResult.rows = result.rows.slice(0, 10);
     this.replaceResult(updateableResult);
   }
 
@@ -186,7 +184,8 @@ class QueriesView extends React.Component {
 
       </div>
 
-      <Results results={this.state.sessionResults}
+      <Results
+        results={this.state.sessionResults}
         handleLoadRows={this.handleLoadRows}
         handleLessRows={this.handleLessRows}
       />

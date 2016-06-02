@@ -24,7 +24,7 @@ export class Result extends React.Component {
     if (this.props.isLoading) {
       return (
         <div className="row-count">
-          <img src="/images/loader.gif" /> loading rows.
+          <img role="presentation" src="/images/loader.gif" /> loading rows.
         </div>
       );
     }
@@ -34,10 +34,11 @@ export class Result extends React.Component {
           {this.props.row_count} rows.
         </div>
       );
-    } else if (this.props.row_count == this.props.rows.length) {
+    } else if (this.props.row_count === this.props.rows.length) {
       return (
         <div className="row-count">
-          {this.props.row_count} rows. <a onClick={() => this.props.handleLessRows(this.props)}>Show fewer rows</a>
+          {this.props.row_count} rows.&nbsp;
+          <a onClick={() => this.props.handleLessRows(this.props)}>Show fewer rows</a>
         </div>
       );
     } else {
@@ -89,4 +90,6 @@ Result.propTypes = {
   rows: React.PropTypes.arrayOf(React.PropTypes.array).isRequired,
   row_count: React.PropTypes.number,
   isLoading: React.PropTypes.bool,
+  handleLessRows: React.PropTypes.func,
+  handleLoadRows: React.PropTypes.func,
 };
