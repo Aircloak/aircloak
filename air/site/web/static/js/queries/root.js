@@ -39,8 +39,27 @@ class QueriesView extends React.Component {
     this.setState({dataSource});
   }
 
-  addResult(result) {
-    this.setState({sessionResults: [result].concat(this.state.sessionResults)});
+  addResult(result, dontReplace = false) {
+    const existingResult = this.state.sessionResults.find((item) => item.id === result.id);
+    if (existingResult === undefined) {
+      this.setState({sessionResults: [result].concat(this.state.sessionResults)});
+    } else {
+      if (dontReplace) {
+        // This guards against a race condition where the response from the cloak comes through the websocket
+        // before we have had time to process the response from the AJAX runQuery call. What has happened if
+        // we end up here, is that we already have a response, which is more up to date than the one we are
+        // trying to add.
+        return;
+      }
+      const sessionResults = this.state.sessionResults.map((item) => {
+        if (item.id === result.id) {
+          return result;
+        } else {
+          return item;
+        }
+      });
+      this.setState({sessionResults});
+    }
   }
 
   bindKeysWithoutEditorFocus() {
@@ -57,6 +76,7 @@ class QueriesView extends React.Component {
   }
 
   runQuery() {
+    const statement = this.state.statement;
     $.ajax("/queries", {
       method: "POST",
       headers: {
@@ -64,13 +84,25 @@ class QueriesView extends React.Component {
         "Content-Type": "application/json",
       },
       data: this.queryData(),
-      success: (response) => { if (!response.success) { this.addError(response.reason); } },
-      error: (error) => this.addError(error.statusText),
+      success: (response) => {
+        if (response.success) {
+          const result = {
+            statement,
+            id: response.query_id,
+            pendingResult: true,
+          };
+          this.addResult(result, true /* dontReplace */);
+        } else {
+          this.addError(statement, response.reason);
+        }
+      },
+      error: (error) => this.addError(statement, error.statusText),
     });
   }
 
-  addError(text) {
-    this.addResult({statement: this.state.statement, error: text});
+  addError(statement, text) {
+    const result = {statement, error: text};
+    this.setState({sessionResults: [result].concat(this.state.sessionResults)});
   }
 
   render() {
