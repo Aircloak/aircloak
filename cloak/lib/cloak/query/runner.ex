@@ -66,10 +66,9 @@ defmodule Cloak.Query.Runner do
   defp grouped_column?(column, %{group_by: group_bys}), do: Enum.member?(group_bys, column)
   defp grouped_column?(_, _), do: false
 
-  defp validate_columns(%{command: :select, columns: selected_columns, from: table_identifier} = query) do
+  defp validate_columns(%{command: :select, from: table_identifier} = query) do
     table_id = String.to_existing_atom(table_identifier)
-    selected_columns = selected_columns ++ Map.get(query, :group_by, [])
-    invalid_columns = Enum.reject(selected_columns, &valid_column?(&1, DataSource.columns(:local, table_id)))
+    invalid_columns = Enum.reject(all_columns(query), &valid_column?(&1, DataSource.columns(:local, table_id)))
     case invalid_columns do
       [] -> :ok
       [invalid_column | _rest] -> {:error, ~s/Column "#{invalid_column}" doesn't exist./}
@@ -82,6 +81,19 @@ defmodule Cloak.Query.Runner do
     columns
     |> Enum.any?(fn {column, _} -> name == column end)
   end
+
+  defp all_columns(%{columns: selected_columns} = query) do
+    where_columns = Map.get(query, :where, [])
+    |> Enum.map(&where_clause_to_identifier/1)
+
+    group_by_columns = Map.get(query, :group_by, [])
+
+    selected_columns ++ where_columns ++ group_by_columns
+  end
+
+  defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
+  defp where_clause_to_identifier({:in, identifier, _}), do: identifier
+  defp where_clause_to_identifier({:like, identifier, _}), do: identifier
 
   defp validate_order_by(%{columns: columns, order_by: order_by_spec}) do
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
