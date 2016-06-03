@@ -148,13 +148,13 @@ class QueriesView extends React.Component {
         sessionResults.push.apply(sessionResults, response);
         this.setState({sessionResults, history: successHistory});
       },
-      error: (error) => {
+      error: (_error) => {
         const errorHistory = {
           loaded: false,
           loading: false,
           error: true,
         };
-        this.setState({history: errorHistory})
+        this.setState({history: errorHistory});
       },
     });
   }
@@ -170,7 +170,7 @@ class QueriesView extends React.Component {
       success: (completeResult) => {
         this.replaceResult(completeResult);
       },
-      error: (error) => {
+      error: (_error) => {
         this.replaceResult(this.mutateObject(result, {isLoading: false, errorLoading: true}));
       },
     });

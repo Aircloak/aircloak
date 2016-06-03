@@ -105,6 +105,7 @@ Result.propTypes = {
   rows: React.PropTypes.arrayOf(React.PropTypes.array).isRequired,
   row_count: React.PropTypes.number,
   isLoading: React.PropTypes.bool,
+  errorLoading: React.PropTypes.bool,
   handleLessRows: React.PropTypes.func,
   handleLoadRows: React.PropTypes.func,
 };

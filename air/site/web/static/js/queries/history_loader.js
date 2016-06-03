@@ -33,4 +33,5 @@ HistoryLoader.propTypes = {
     loading: React.PropTypes.bool.isRequired,
     error: React.PropTypes.bool,
   }),
+  handleLoadHistory: React.PropTypes.func,
 };
