@@ -10,7 +10,7 @@ defmodule Cloak.Query.Result do
   # -------------------------------------------------------------------
 
   @doc "Converts a list of buckets into rows, expanding them if the query does not aggregate."
-  @spec expand([Bucket.t], SqlQuery.t) :: [number | String.t]
+  @spec expand([Bucket.t], SqlQuery.t) :: [Property.t]
   def expand(results, query) do
     if aggregate?(query) do
       extract_rows(results, query)
@@ -20,7 +20,7 @@ defmodule Cloak.Query.Result do
   end
 
   @doc "Sorts the rows in the order defined in the query."
-  @spec apply_order([number | String.t], SqlQuery.t) :: [number | String.t]
+  @spec apply_order([Property.t], SqlQuery.t) :: [Property.t]
   def apply_order(rows, %{columns: columns, order_by: order_by_spec}) do
     order_list = for {column, direction} <- order_by_spec do
       index = columns |> Enum.find_index(&(&1 == column))
