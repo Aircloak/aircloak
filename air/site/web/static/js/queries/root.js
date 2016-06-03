@@ -19,6 +19,10 @@ class QueriesView extends React.Component {
       dataSource: this.props.sources[0] ? this.props.sources[0].token : "",
       sessionResults: [],
 
+      history: {
+        loading: false,
+        loaded: false,
+      },
       historyLoading: false,
       historyLoaded: false,
     };
@@ -119,7 +123,11 @@ class QueriesView extends React.Component {
   }
 
   handleLoadHistory() {
-    this.setState({historyLoading: true});
+    const history = {
+      loaded: false,
+      loading: true,
+    };
+    this.setState({history});
     $.ajax("/queries/load_history", {
       method: "GET",
       headers: {
@@ -127,11 +135,22 @@ class QueriesView extends React.Component {
         "Content-Type": "application/json",
       },
       success: (response) => {
+        const successHistory = {
+          loaded: true,
+          loading: false,
+        };
         const sessionResults = this.state.sessionResults;
         sessionResults.push.apply(sessionResults, response);
-        this.setState({sessionResults, historyLoaded: true});
+        this.setState({sessionResults, history: successHistory});
       },
-      error: (error) => this.setStatement({historyLoading: false}),
+      error: (error) => {
+        const errorHistory = {
+          loaded: false,
+          loading: false,
+          error: true,
+        };
+        this.setState({history: errorHistory})
+      },
     });
   }
 
@@ -190,7 +209,7 @@ class QueriesView extends React.Component {
         handleLessRows={this.handleLessRows}
       />
 
-      <HistoryLoader {...this.state} handleLoadHistory={this.handleLoadHistory} />
+      <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
     </div>);
   }
 }
