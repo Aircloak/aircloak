@@ -12,10 +12,21 @@ defmodule Cloak.Query.Result do
   @doc "Converts a list of buckets into rows, expanding them if the query does not aggregate."
   @spec expand([Bucket.t], SqlQuery.t) :: [Property.t]
   def expand(results, query) do
+    Enum.flat_map(results, fn result ->
+      List.duplicate(bucket(result, :property), bucket(result, :noisy_count))
+    end)
+  end
+
+  @doc """
+  For aggregating queries (ones that group or use aggregate functions) this converts the buckets to contain
+  the values of the aggregating functions and have count 1.
+  """
+  @spec apply_aggregation([Bucket.t], SqlQuery.t) :: [Bucket.t]
+  def apply_aggregation(results, query) do
     if aggregate?(query) do
-      extract_rows(results, query)
+      do_apply_aggregation(results, query)
     else
-      expand_rows(results)
+      results
     end
   end
 
@@ -49,23 +60,19 @@ defmodule Cloak.Query.Result do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp extract_rows(results, query) do
-    Enum.map(results, &extract_row(&1, query))
+  defp do_apply_aggregation(results, query) do
+    Enum.map(results, fn result ->
+      bucket(result, noisy_count: 1, property: assemble_row(result, query))
+    end)
   end
 
-  defp extract_row(row_bucket, %{columns: columns}) do
+  defp assemble_row(row_bucket, %{columns: columns}) do
     row_bucket
     |> bucket(:property)
     |> Enum.zip(columns)
     |> Enum.map(fn
        {_value, {:count, _}} -> bucket(row_bucket, :noisy_count)
        {value, _column} -> value
-    end)
-  end
-
-  defp expand_rows(results) do
-    Enum.flat_map(results, fn result ->
-      List.duplicate(bucket(result, :property), bucket(result, :noisy_count))
     end)
   end
 
