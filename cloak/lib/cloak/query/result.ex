@@ -20,16 +20,18 @@ defmodule Cloak.Query.Result do
   end
 
   @doc "Sorts the rows in the order defined in the query."
-  @spec apply_order([Property.t], SqlQuery.t) :: [Property.t]
-  def apply_order(rows, %{columns: columns, order_by: order_by_spec}) do
+  @spec apply_order([Bucket.t], SqlQuery.t) :: [Bucket.t]
+  def apply_order(buckets, %{columns: columns, order_by: order_by_spec}) do
     order_list = for {column, direction} <- order_by_spec do
       index = columns |> Enum.find_index(&(&1 == column))
       {index, direction}
     end
 
-    Enum.sort(rows, &compare_rows(&1, &2, order_list))
+    Enum.sort(buckets, fn (bucket1, bucket2) ->
+      compare_rows(bucket(bucket1, :property), bucket(bucket2, :property), order_list)
+    end)
   end
-  def apply_order(rows, _), do: rows
+  def apply_order(buckets, _), do: buckets
 
   @doc "Returns a list of column titles for the query."
   @spec column_titles(SqlQuery.t) :: [String.t]

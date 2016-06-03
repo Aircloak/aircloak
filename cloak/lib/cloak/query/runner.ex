@@ -122,8 +122,8 @@ defmodule Cloak.Query.Runner do
         |> anonymize(lcf_data)
         |> Processor.AccumulateCount.post_process()
         |> add_lcf_buckets(lcf_data, length(columns))
-        |> Result.expand(select_query)
         |> Result.apply_order(select_query)
+        |> Result.expand(select_query)
       after
         LCFData.delete(lcf_data)
       end
