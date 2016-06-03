@@ -43,11 +43,7 @@ defmodule Air.Query do
   @doc "Converts the query model to the cloak compliant data."
   @spec to_cloak_query(t) :: cloak_query
   def to_cloak_query(model) do
-    %{
-      id: model.id,
-      statement: model.statement,
-      data_source: model.data_source,
-    }
+    Map.take(model, [:id, :statement, :data_source])
   end
 
   @doc "Produces a JSON blob of the query and it's result for rendering"
