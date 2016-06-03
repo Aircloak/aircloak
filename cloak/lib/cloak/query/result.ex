@@ -10,8 +10,8 @@ defmodule Cloak.Query.Result do
   # -------------------------------------------------------------------
 
   @doc "Converts a list of buckets into rows, expanding them if the query does not aggregate."
-  @spec expand([Bucket.t], SqlQuery.t) :: [Property.t]
-  def expand(results, query) do
+  @spec expand([Bucket.t]) :: [Property.t]
+  def expand(results) do
     Enum.flat_map(results, fn result ->
       List.duplicate(bucket(result, :property), bucket(result, :noisy_count))
     end)

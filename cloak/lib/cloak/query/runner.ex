@@ -124,7 +124,7 @@ defmodule Cloak.Query.Runner do
         |> add_lcf_buckets(lcf_data, length(columns))
         |> Result.apply_aggregation(select_query)
         |> Result.apply_order(select_query)
-        |> Result.expand(select_query)
+        |> Result.expand()
       after
         LCFData.delete(lcf_data)
       end
