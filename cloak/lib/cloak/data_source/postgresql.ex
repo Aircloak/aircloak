@@ -125,29 +125,37 @@ defmodule Cloak.DataSource.PostgreSQL do
     fragments_to_query_spec([
       "SELECT ", Enum.map_join(ordered_selected_columns(query), ",", &select_column_to_string/1), " ",
       "FROM ", table, " ",
-      where_sql(query[:where])
+      where_fragments(query[:where])
     ])
   end
 
   @spec fragments_to_query_spec([fragment]) :: query_spec
   defp fragments_to_query_spec(fragments) do
-    flattened_fragments = List.flatten(fragments)
+    {query_string(fragments), params(fragments)}
+  end
 
-    params =
-      flattened_fragments
-      |> Stream.filter(&match?({:param, _}, &1))
-      |> Enum.map(fn({:param, value}) -> value end)
+  defp query_string(fragments) do
+    fragments
+    |> List.flatten()
+    |> Enum.reduce(%{query_string: [], param_index: 1}, &parse_fragment(&2, &1))
+    |> Map.fetch!(:query_string)
+  end
 
-    {full_query_iolist, _} = Enum.reduce(flattened_fragments, {[], 1},
-      fn
-        ({:param, _value}, {query_string_acc, param_index}) ->
-          {[query_string_acc, "$#{param_index}"], param_index + 1}
+  defp parse_fragment(query_builder, string) when is_binary(string) do
+    %{query_builder | query_string: [query_builder.query_string, string]}
+  end
+  defp parse_fragment(query_builder, {:param, _value}) do
+    %{query_builder |
+      query_string: [query_builder.query_string, "$#{query_builder.param_index}"],
+      param_index: query_builder.param_index + 1
+    }
+  end
 
-        (string, {query_string_acc, param_index}) when is_binary(string) ->
-          {[query_string_acc, string], param_index}
-      end
-    )
-    {full_query_iolist, params}
+  defp params(fragments) do
+    fragments
+    |> List.flatten()
+    |> Stream.filter(&match?({:param, _}, &1))
+    |> Enum.map(fn({:param, value}) -> value end)
   end
 
   defp ordered_selected_columns(%{columns: columns} = query) do
@@ -158,8 +166,8 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp select_column_to_string({:count, :star}), do: "'*' as \"count(*)\""
   defp select_column_to_string(column), do: column
 
-  defp where_sql(nil), do: []
-  defp where_sql(where_clause) do
+  defp where_fragments(nil), do: []
+  defp where_fragments(where_clause) do
     ["WHERE ", where_clause_to_fragments(where_clause)]
   end
 
