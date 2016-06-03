@@ -236,36 +236,69 @@ defmodule Cloak.SqlQueryTest do
     )
   end
 
-  Enum.each([
-    {"single quote is not allowed in the identifier", "select fo'o from baz", "Invalid character"},
-    {"identifier can't start with a number", "select 1foo from baz", "Expected `identifier`"},
-    {"keyword is not identifier", "select select from baz", "Expected `identifier`"},
-    {"from table is required", "select foo", "`from`"},
-    {"at least one column must be specified", "select from baz", "Expected `identifier`"},
-    {"columns must be separated with a comma", "select foo bar from baz", "Expected `from`"},
-    {"query must start with a select or show", "foo select foo bar from baz", "Expected `select or show`"},
-    {"show requires tables or columns", "show foobar", "Expected `tables or columns`"},
-    {"!= is an illegal comparator in where clause", "select a from b where a != b", "Invalid character"},
-    {"=> is an illegal comparator in where clause", "select a from b where a => b", "Expected `comparison value`"},
-    {"=< is an illegal comparator in where clause", "select a from b where a =< b", "Expected `comparison value`"},
-    {"where clauses cannot be separated by or", "select a from b where a > 1 or b < 2", "Expected end of input"},
-    {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2", "Expected end of input"},
-    {"count requires parens", "select count * from foo", "Expected `(`"},
-    {"cannot group by count", "select a from foo group by count(*)", "Expected `identifier`"},
-    {"'by' has to follow 'order'", "select a from foo order a asc", "Expected `by`"},
-    {"'by' has to follow 'group'", "select a from foo group a", "Expected `by`"},
-    {"order by fields needs to be comma separated", "select a, b, c from foo order by a b", "Expected end of input"},
-    {"invalid like", "select foo from bar where baz like", "Expected `string constant`"},
-    {"invalid like type", "select foo from bar where baz like 10", "Expected `string constant`"},
-    {"invalid in", "select foo from bar where baz in", "Expected `(`"},
-    {"invalid comparison", "select foo from bar where baz =", "Expected `comparison value`"},
-    {"missing where expression", "select foo from bar where", "Invalid where expression"},
-    {"invalid where expression", "select foo from bar where foo bar", "Invalid where expression"},
-    {"no input allowed after the statement", "select foo from bar baz", "Expected end of input"}
-  ], fn {description, statement, expected_error} ->
-    test description do
-      assert {:error, reason} = SqlQuery.parse(unquote(statement))
-      assert reason =~ unquote(expected_error)
+  Enum.each(
+    [
+      {"single quote is not allowed in the identifier",
+        "select fo'o from baz", "Invalid character", {1, 10}},
+      {"identifier can't start with a number",
+        "select 1foo from baz", "Expected `identifier`", {1, 8}},
+      {"keyword is not identifier",
+        "select select from baz", "Expected `identifier`", {1, 8}},
+      {"from table is required",
+        "select foo", "`from`", {1, 11}},
+      {"at least one column must be specified",
+        "select from baz", "Expected `identifier`", {1, 8}},
+      {"columns must be separated with a comma",
+        "select foo bar from baz", "Expected `from`", {1, 12}},
+      {"query must start with a select or show",
+        "foo select foo bar from baz", "Expected `select or show`", {1, 1}},
+      {"show requires tables or columns",
+        "show foobar", "Expected `tables or columns`", {1, 6}},
+      {"!= is an illegal comparator in where clause",
+        "select a from b where a != b", "Invalid character", {1, 25}},
+      {"=> is an illegal comparator in where clause",
+        "select a from b where a => b", "Expected `comparison value`", {1, 25}},
+      {"=< is an illegal comparator in where clause",
+        "select a from b where a =< b", "Expected `comparison value`", {1, 25}},
+      {"where clauses cannot be separated by or",
+        "select a from b where a > 1 or b < 2", "Expected end of input", {1, 29}},
+      {"not joining multiple where clauses is illegal",
+        "select a from b where a > 1 b < 2", "Expected end of input", {1, 29}},
+      {"count requires parens",
+        "select count * from foo", "Expected `(`", {1, 14}},
+      {"cannot group by count",
+        "select a from foo group by count(*)", "Expected `identifier`", {1, 28}},
+      {"'by' has to follow 'order'",
+        "select a from foo order a asc", "Expected `by`", {1, 25}},
+      {"'by' has to follow 'group'",
+        "select a from foo group a", "Expected `by`", {1, 25}},
+      {"order by fields needs to be comma separated",
+        "select a, b, c from foo order by a b", "Expected end of input", {1, 36}},
+      {"invalid like",
+        "select foo from bar where baz like", "Expected `string constant`", {1, 35}},
+      {"invalid like type",
+        "select foo from bar where baz like 10", "Expected `string constant`", {1, 36}},
+      {"invalid in",
+        "select foo from bar where baz in", "Expected `(`", {1, 33}},
+      {"invalid comparison",
+        "select foo from bar where baz =", "Expected `comparison value`", {1, 31}},
+      {"missing where expression",
+        "select foo from bar where", "Invalid where expression", {1, 26}},
+      {"invalid where expression",
+        "select foo from bar where foo bar", "Invalid where expression", {1, 27}},
+      {"no input allowed after the statement",
+        "select foo from bar baz", "Expected end of input", {1, 21}},
+      {"error after spaces",
+        "   invalid_statement", "Expected `select or show`", {1, 4}},
+      {"initial error after spaces and newlines",
+        "  \n  \n invalid_statement", "Expected `select or show`", {3, 2}}
+    ],
+    fn({description, statement, expected_error, {line, column}}) ->
+      test description do
+        assert {:error, reason} = SqlQuery.parse(unquote(statement))
+        assert reason =~ unquote(expected_error)
+        assert reason =~ "line #{unquote(line)}, column #{unquote(column)}\."
+      end
     end
-  end)
+  )
 end

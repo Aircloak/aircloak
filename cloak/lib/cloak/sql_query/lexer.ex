@@ -9,18 +9,18 @@ defmodule Cloak.SqlQuery.Lexer do
   # -------------------------------------------------------------------
 
   @doc "Tokenizes the given string, and raises on error."
-  @spec tokenize!(String.t) :: Token.t
+  @spec tokenize!(String.t) :: [Token.t]
   def tokenize!(query_string) do
     {:ok, tokens} = tokenize(query_string)
     tokens
   end
 
   @doc "Tokenizes the given string."
-  @spec tokenize(String.t) :: {:ok, Token.t} | {:error, any}
+  @spec tokenize(String.t) :: {:ok, [Token.t]} | {:error, any}
   def tokenize(query_string) do
     case Combine.parse(query_string, lexer()) do
       {:error, _} = error -> error
-      [tokens] -> {:ok, tokens}
+      [{tokens, eof}] -> {:ok, tokens ++ [eof]}
     end
   end
 
@@ -52,13 +52,22 @@ defmodule Cloak.SqlQuery.Lexer do
   ]
 
   defp lexer() do
+    pair_both(tokens(), eof_token())
+  end
+
+  defp tokens() do
     many(choice([
       whitespace(),
       constant(),
       identifier(),
       keyword()
     ]))
-    |> error_message(eof(), "Invalid character")
+  end
+
+  defp eof_token() do
+    error_message(eof(), "Invalid character")
+    |> position()
+    |> map(fn({line, column}) -> %Token{line: line, column: column, category: :eof} end)
   end
 
   defp whitespace() do
