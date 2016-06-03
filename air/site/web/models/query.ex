@@ -5,7 +5,7 @@ defmodule Air.Query do
   alias Air.User
 
   @type t :: %__MODULE__{}
-  @type cloak_query :: %{id: String.t, statement: String.t}
+  @type cloak_query :: %{id: String.t, statement: String.t, data_source: String.t}
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "queries" do
