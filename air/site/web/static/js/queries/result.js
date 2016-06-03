@@ -6,27 +6,13 @@ export class Result extends React.Component {
   constructor(props) {
     super(props);
 
-    if (props.rows.length > 10) {
-      this.state = {showAll: false};
-    } else {
-      this.state = {showAll: true};
-    }
-
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
-    this.clickShowAll = this.clickShowAll.bind(this);
-  }
-
-  clickShowAll() {
-    this.setState({showAll: true});
+    this.renderLoadLink = this.renderLoadLink.bind(this);
   }
 
   renderRows() {
-    let rows = this.props.rows;
-    if (! this.state.showAll) {
-      rows = rows.slice(0, 10);
-    }
-    const tableRows = rows.map((row, i) =>
+    const tableRows = this.props.rows.map((row, i) =>
       <tr key={i}>
         {row.map((value, j) => <td key={j}>{value}</td>)}
       </tr>
@@ -34,17 +20,46 @@ export class Result extends React.Component {
     return tableRows;
   }
 
+  renderLoadLink() {
+    if (this.props.errorLoading) {
+      return (
+        <span>
+          <span className="label label-danger">Error</span> failed at loading rows.&nbsp;
+          <a onClick={() => this.props.handleLoadRows(this.props)}>Retry loading rows</a>
+        </span>
+      );
+    } else {
+      return <a onClick={() => this.props.handleLoadRows(this.props)}>Show all rows</a>;
+    }
+  }
+
   renderShowAll() {
-    if (this.state.showAll) {
+    if (this.props.isLoading) {
       return (
         <div className="row-count">
-          {this.props.rows.length} rows
+          <img role="presentation" src="/images/loader.gif" />&nbsp;
+          loading {this.props.row_count - this.props.rows.length} additional rows
+        </div>
+      );
+    }
+    if (this.props.row_count < 10) {
+      return (
+        <div className="row-count">
+          {this.props.row_count} rows.
+        </div>
+      );
+    } else if (this.props.row_count === this.props.rows.length) {
+      return (
+        <div className="row-count">
+          {this.props.row_count} rows.&nbsp;
+          <a onClick={() => this.props.handleLessRows(this.props)}>Show fewer rows</a>
         </div>
       );
     } else {
       return (
         <div className="row-count">
-          Showing 10 of {this.props.rows.length} rows. <a onClick={this.clickShowAll}>Show all rows</a>
+          Showing 10 of {this.props.row_count} rows.&nbsp;
+          {this.renderLoadLink()}
         </div>
       );
     }
@@ -87,4 +102,9 @@ Result.propTypes = {
   statement: React.PropTypes.string,
   columns: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
   rows: React.PropTypes.arrayOf(React.PropTypes.array).isRequired,
+  row_count: React.PropTypes.number,
+  isLoading: React.PropTypes.bool,
+  errorLoading: React.PropTypes.bool,
+  handleLessRows: React.PropTypes.func,
+  handleLoadRows: React.PropTypes.func,
 };

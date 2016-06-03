@@ -8,16 +8,25 @@ import {Results} from "./results";
 import {DataSourceSelector} from "./data_source_selector";
 import {MenuButton} from "../menu";
 import {ResultSocket} from "../result_socket";
+import {HistoryLoader} from "./history_loader";
 
 class QueriesView extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      statement: this.props.results[0] ? this.props.results[0].statement : "",
+      statement: this.props.lastQuery ? this.props.lastQuery.statement : "",
       dataSource: this.props.sources[0] ? this.props.sources[0].token : "",
-      sessionResults: props.results,
+      sessionResults: [],
+
+      history: {
+        loading: false,
+        loaded: false,
+      },
+      historyLoading: false,
+      historyLoaded: false,
     };
+
 
     this.setStatement = this.setStatement.bind(this);
     this.setDataSource = this.setDataSource.bind(this);
@@ -25,6 +34,11 @@ class QueriesView extends React.Component {
     this.queryData = this.queryData.bind(this);
     this.addResult = this.addResult.bind(this);
     this.setResults = this.setResults.bind(this);
+    this.handleLoadHistory = this.handleLoadHistory.bind(this);
+    this.handleLoadRows = this.handleLoadRows.bind(this);
+    this.handleLessRows = this.handleLessRows.bind(this);
+    this.replaceResult = this.replaceResult.bind(this);
+    this.mutateObject = this.mutateObject.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     this.props.resultSocket.start({
@@ -44,6 +58,21 @@ class QueriesView extends React.Component {
     this.setState({sessionResults: results.slice(0, 5)});
   }
 
+  mutateObject(object, change) {
+    return $.extend(JSON.parse(JSON.stringify(object)), change);
+  }
+
+  replaceResult(result) {
+    const sessionResults = this.state.sessionResults.map((item) => {
+      if (item.id === result.id) {
+        return result;
+      } else {
+        return item;
+      }
+    });
+    this.setResults(sessionResults);
+  }
+
   addResult(result, dontReplace = false) {
     const existingResult = this.state.sessionResults.find((item) => item.id === result.id);
     if (existingResult === undefined) {
@@ -56,14 +85,7 @@ class QueriesView extends React.Component {
         // trying to add.
         return;
       }
-      const sessionResults = this.state.sessionResults.map((item) => {
-        if (item.id === result.id) {
-          return result;
-        } else {
-          return item;
-        }
-      });
-      this.setResults(sessionResults);
+      this.replaceResult(result);
     }
   }
 
@@ -105,6 +127,61 @@ class QueriesView extends React.Component {
     });
   }
 
+  handleLoadHistory() {
+    const history = {
+      loaded: false,
+      loading: true,
+    };
+    this.setState({history});
+    $.ajax("/queries/load_history", {
+      method: "GET",
+      headers: {
+        "X-CSRF-TOKEN": this.props.CSRFToken,
+        "Content-Type": "application/json",
+      },
+      success: (response) => {
+        const successHistory = {
+          loaded: true,
+          loading: false,
+        };
+        const sessionResults = this.state.sessionResults;
+        sessionResults.push.apply(sessionResults, response);
+        this.setState({sessionResults, history: successHistory});
+      },
+      error: (_error) => {
+        const errorHistory = {
+          loaded: false,
+          loading: false,
+          error: true,
+        };
+        this.setState({history: errorHistory});
+      },
+    });
+  }
+
+  handleLoadRows(result) {
+    this.replaceResult(this.mutateObject(result, {isLoading: true}));
+    $.ajax(`/query/${result.id}`, {
+      method: "GET",
+      headers: {
+        "X-CSRF-TOKEN": this.props.CSRFToken,
+        "Content-Type": "application/json",
+      },
+      success: (completeResult) => {
+        this.replaceResult(completeResult);
+      },
+      error: (_error) => {
+        this.replaceResult(this.mutateObject(result, {isLoading: false, errorLoading: true}));
+      },
+    });
+  }
+
+  handleLessRows(result) {
+    const updateableResult = $.extend({}, result);
+    updateableResult.rows = result.rows.slice(0, 10);
+    this.replaceResult(updateableResult);
+  }
+
   addError(statement, text) {
     const result = {statement, error: text};
     this.setResults([result].concat(this.state.sessionResults));
@@ -133,7 +210,13 @@ class QueriesView extends React.Component {
 
       </div>
 
-      <Results results={this.state.sessionResults} />
+      <Results
+        results={this.state.sessionResults}
+        handleLoadRows={this.handleLoadRows}
+        handleLessRows={this.handleLessRows}
+      />
+
+      <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
     </div>);
   }
 }
@@ -145,7 +228,9 @@ export default function renderQueriesView(data, elem) {
 
 QueriesView.propTypes = {
   sources: DataSourceSelector.propTypes.sources,
-  results: Results.propTypes.results,
+  lastQuery: React.PropTypes.shape({
+    statement: React.PropTypes.string.isRequired,
+  }),
   CSRFToken: React.PropTypes.string.isRequired,
   resultSocket: React.PropTypes.instanceOf(ResultSocket).isRequired,
 };

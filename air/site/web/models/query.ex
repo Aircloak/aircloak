@@ -51,13 +51,13 @@ defmodule Air.Query do
   end
 
   @doc "Produces a JSON blob of the query and it's result for rendering"
-  @spec for_display(t) :: %{}
-  def for_display(query) do
+  @spec for_display(t, [{atom, any}]) :: %{}
+  def for_display(query, options \\ []) do
     base_query = %{
       statement: query.statement,
       id: query.id
     }
-    Map.merge(base_query, result_map(query))
+    Map.merge(base_query, result_map(query, options[:complete] || false))
   end
 
 
@@ -65,15 +65,26 @@ defmodule Air.Query do
   # Query functions
   # -------------------------------------------------------------------
 
+  @doc "Adds a query filter selecting only those for the given user"
+  @spec for_user(__MODULE__, User.t) :: __MODULE__
   def for_user(query \\ __MODULE__, user) do
-    from t in query,
-    where: t.user_id == ^user.id
+    from q in query,
+    where: q.user_id == ^user.id
   end
 
+  @doc "Adds a query filter limiting the number of selected queries"
+  @spec recent(__MODULE__, non_neg_integer) :: __MODULE__
   def recent(query \\ __MODULE__, count) do
-    from t in query,
-    order_by: [desc: t.inserted_at],
+    from q in query,
+    order_by: [desc: q.inserted_at],
     limit: ^count
+  end
+
+  @doc "Adds a query filter limiting the returned queries to that with a given ID"
+  @spec with_id(__MODULE__, String.t) :: __MODULE__
+  def with_id(query \\ __MODULE__, id) do
+    from q in query,
+    where: q.id == ^id
   end
 
 
@@ -81,14 +92,24 @@ defmodule Air.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp result_map(%{result: nil}), do: %{rows: [], columns: []}
-  defp result_map(%{result: result_json}) do
+  defp result_map(%{result: nil}, _complete), do: %{rows: [], columns: []}
+  defp result_map(%{result: result_json}, complete) do
     result = Poison.decode!(result_json)
+    {rows, row_count} = case result["rows"] do
+      nil -> {[], 0}
+      rows ->
+        if complete do
+          {rows, length(rows)}
+        else
+          {Enum.take(rows, 10), length(rows)}
+        end
+    end
 
     %{
       columns: result["columns"],
-      rows: result["rows"],
-      error: result["error"]
+      rows: rows,
+      error: result["error"],
+      row_count: row_count,
     }
   end
 end
