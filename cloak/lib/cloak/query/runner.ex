@@ -121,9 +121,10 @@ defmodule Cloak.Query.Runner do
         |> Processor.AccumulateCount.pre_process()
         |> anonymize(lcf_data)
         |> Processor.AccumulateCount.post_process()
-        |> order_buckets(select_query)
         |> add_lcf_buckets(lcf_data, length(columns))
-        |> Result.expand(select_query)
+        |> Result.apply_aggregation(select_query)
+        |> Result.apply_order(select_query)
+        |> Result.expand()
       after
         LCFData.delete(lcf_data)
       end
@@ -144,7 +145,7 @@ defmodule Cloak.Query.Runner do
   end
 
   defp add_lcf_buckets(buckets, lcf_data, columns_count) do
-    lcf_property = List.duplicate("*", columns_count)
+    lcf_property = List.duplicate(:*, columns_count)
     low_count_filter_data = LCFData.filtered_property_counts(lcf_data)
     |> Enum.map(fn({user, count}) -> {user, List.duplicate(lcf_property, count)} end)
 
@@ -162,29 +163,4 @@ defmodule Cloak.Query.Runner do
       end)
     |> Enum.to_list
   end
-
-  defp order_buckets(buckets, %{columns: columns, order_by: order_by_spec}) do
-    order_list = for {column, direction} <- order_by_spec do
-      index = columns |> Enum.find_index(&(&1 == column))
-      {index, direction}
-    end
-    buckets |> Enum.sort(fn (bucket(property: row1), bucket(property: row2)) ->
-      compare_rows(row1, row2, order_list)
-    end)
-  end
-  defp order_buckets(buckets, %{}), do: buckets
-
-  defp compare_rows(row1, row2, []), do: row1 < row2
-  defp compare_rows(row1, row2, [{index, direction} | remaining_order]) do
-    field1 = row1 |> Enum.at(index)
-    field2 = row2 |> Enum.at(index)
-    case field1 === field2 do
-      :true -> compare_rows(row1, row2, remaining_order)
-      :false -> compare_fields(field1, field2, direction)
-    end
-  end
-
-  defp compare_fields(field1, field2, nil), do: compare_fields(field1, field2, :asc)
-  defp compare_fields(field1, field2, :asc), do: field1 < field2
-  defp compare_fields(field1, field2, :desc), do: field1 > field2
 end

@@ -10,14 +10,39 @@ defmodule Cloak.Query.Result do
   # -------------------------------------------------------------------
 
   @doc "Converts a list of buckets into rows, expanding them if the query does not aggregate."
-  @spec expand([Bucket.t], SqlQuery.t) :: [number | String.t]
-  def expand(results, query) do
+  @spec expand([Bucket.t]) :: [Property.t]
+  def expand(results) do
+    Enum.flat_map(results, fn(result) ->
+      List.duplicate(bucket(result, :property), bucket(result, :noisy_count))
+    end)
+  end
+
+  @doc """
+  For aggregating queries (ones that group or use aggregate functions) this converts the buckets to contain
+  the values of the aggregating functions and have count 1.
+  """
+  @spec apply_aggregation([Bucket.t], SqlQuery.t) :: [Bucket.t]
+  def apply_aggregation(results, query) do
     if aggregate?(query) do
-      extract_rows(results, query)
+      do_apply_aggregation(results, query)
     else
-      expand_rows(results)
+      results
     end
   end
+
+  @doc "Sorts the rows in the order defined in the query."
+  @spec apply_order([Bucket.t], SqlQuery.t) :: [Bucket.t]
+  def apply_order(buckets, %{columns: columns, order_by: order_by_spec}) do
+    order_list = for {column, direction} <- order_by_spec do
+      index = columns |> Enum.find_index(&(&1 == column))
+      {index, direction}
+    end
+
+    Enum.sort(buckets, fn(bucket1, bucket2) ->
+      compare_rows(bucket(bucket1, :property), bucket(bucket2, :property), order_list)
+    end)
+  end
+  def apply_order(buckets, _), do: buckets
 
   @doc "Returns a list of column titles for the query."
   @spec column_titles(SqlQuery.t) :: [String.t]
@@ -35,11 +60,13 @@ defmodule Cloak.Query.Result do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp extract_rows(results, query) do
-    Enum.map(results, &extract_row(&1, query))
+  defp do_apply_aggregation(results, query) do
+    Enum.map(results, fn(result) ->
+      bucket(result, noisy_count: 1, property: assemble_row(result, query))
+    end)
   end
 
-  defp extract_row(row_bucket, %{columns: columns}) do
+  defp assemble_row(row_bucket, %{columns: columns}) do
     row_bucket
     |> bucket(:property)
     |> Enum.zip(columns)
@@ -49,13 +76,23 @@ defmodule Cloak.Query.Result do
     end)
   end
 
-  defp expand_rows(results) do
-    Enum.flat_map(results, fn result ->
-      List.duplicate(bucket(result, :property), bucket(result, :noisy_count))
-    end)
-  end
-
   defp aggregate?(%{columns: [count: :star]}), do: true
   defp aggregate?(%{group_by: [_ | _]}), do: true
   defp aggregate?(_), do: false
+
+  defp compare_rows(row1, row2, []), do: row1 < row2
+  defp compare_rows(row1, row2, [{index, direction} | remaining_order]) do
+    field1 = row1 |> Enum.at(index)
+    field2 = row2 |> Enum.at(index)
+    case field1 === field2 do
+      :true -> compare_rows(row1, row2, remaining_order)
+      :false -> compare_fields(field1, field2, direction)
+    end
+  end
+
+  defp compare_fields(field1, field2, nil), do: compare_fields(field1, field2, :asc)
+  defp compare_fields(:*, _, _), do: false
+  defp compare_fields(_, :*, _), do: true
+  defp compare_fields(field1, field2, :asc), do: field1 < field2
+  defp compare_fields(field1, field2, :desc), do: field1 > field2
 end

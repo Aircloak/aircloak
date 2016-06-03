@@ -59,7 +59,7 @@ defmodule Cloak.QueryTest do
     |> Enum.map(fn({k, values}) -> {k, Enum.count(values)} end)
     |> Enum.sort()
 
-    assert groups == [{[180], 20}, {["*"], 20}]
+    assert groups == [{[180], 20}, {[:*], 20}]
   end
 
   test "should produce counts" do
@@ -157,6 +157,39 @@ defmodule Cloak.QueryTest do
 
     assert_receive {:reply, %{columns: ["count(*)"], rows: rows}}
     assert Enum.sort(rows) == [[10], [20]]
+  end
+
+  test "grouping and sorting by a count" do
+    :ok = insert_rows(_user_ids = 30..59, "heights", ["height"], [150])
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
+
+    :ok = start_query("select count(*), height from heights group by height order by count(*) asc")
+
+    assert_receive {:reply, %{columns: ["count(*)", "height"], rows: rows}}
+    assert rows == [[10, 180], [20, 160], [30, 150]]
+  end
+
+  test "ordering hidden values" do
+    :ok = insert_rows(_user_ids = 0..2, "heights", ["name"], ["Alice"])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["name"], ["Charlie"])
+    :ok = insert_rows(_user_ids = 3..5, "heights", ["name"], ["Bob"])
+
+    :ok = start_query("select count(*), name from heights group by name order by name asc")
+
+    assert_receive {:reply, %{columns: ["count(*)", "name"], rows: rows}}
+    assert rows == [[10, "Charlie"], [6, :*]]
+  end
+
+  test "grouping and sorting by a grouped field" do
+    :ok = insert_rows(_user_ids = 30..59, "heights", ["height"], [150])
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
+
+    :ok = start_query("select count(*), height from heights group by height order by height asc")
+
+    assert_receive {:reply, %{columns: ["count(*)", "height"], rows: rows}}
+    assert rows == [[30, 150], [20, 160], [10, 180]]
   end
 
   test "query reports an error on invalid where clause identifier" do
