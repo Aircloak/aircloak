@@ -4,6 +4,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   For more information, see `DataSource`.
   """
 
+  alias Cloak.SqlQuery.Parsers.Token
+
+
   #-----------------------------------------------------------------------------------------------------------
   # DataSource.Driver callbacks
   #-----------------------------------------------------------------------------------------------------------
@@ -34,7 +37,8 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @doc false
   def select(source_id, sql_query) do
-    run_query(source_id, select_query_to_string(sql_query), &row_mapper/1)
+    {query_string, params} = select_query_spec(sql_query)
+    run_query(source_id, query_string, params, &row_mapper/1)
   end
 
 
@@ -42,9 +46,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp run_query(source_id, statement, decode_mapper) do
+  defp run_query(source_id, statement, params \\ [], decode_mapper) do
     options = [timeout: 15 * 60 * 1000, pool_timeout: 2 * 60 * 1000, decode_mapper: decode_mapper, pool: @pool_name]
-    with {:ok, result} <- Postgrex.query(proc_name(source_id), statement, [], options) do
+    with {:ok, result} <- Postgrex.query(proc_name(source_id), statement, params, options) do
       %Postgrex.Result{command: :select, num_rows: count, columns: columns, rows: rows} = result
       {:ok, {count, columns, rows}}
     end
@@ -70,42 +74,10 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("date"), do: :date
   defp parse_type(type), do: {:unsupported, type}
 
-  defp select_query_to_string(%{from: table} = query) do
-    fields_str = Enum.map_join(ordered_selected_columns(query), ",", &select_column_to_string/1)
-    "SELECT #{fields_str} FROM #{table} #{where_sql(query[:where])}"
-  end
 
-  defp ordered_selected_columns(%{columns: columns} = query) do
-    unselected_group_by_columns = Map.get(query, :group_by, []) -- columns
-    columns ++ unselected_group_by_columns
-  end
-
-  defp select_column_to_string({:count, :star}), do: "'*' as \"count(*)\""
-  defp select_column_to_string(column), do: column
-
-  defp where_sql(nil), do: ""
-  defp where_sql(clauses) do
-    "WHERE #{construct_where_clause(clauses, [])}"
-  end
-
-  defp construct_where_clause(_clauses = [], acc), do: acc |> Enum.reverse |> Enum.join(" AND ")
-  defp construct_where_clause([{:comparison, what, comparator, value} | clauses], acc) do
-    clause = "#{what} #{comparator} #{value}"
-    construct_where_clause(clauses, [clause|acc])
-  end
-  defp construct_where_clause([{:in, what, values} | clauses], acc) do
-    clause = "#{what} IN (#{values |> Enum.join(", ")})"
-    construct_where_clause(clauses, [clause|acc])
-  end
-  defp construct_where_clause([{:like, what, match} | clauses], acc) do
-    clause = "#{what} LIKE #{match}"
-    construct_where_clause(clauses, [clause|acc])
-  end
-
-
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
   # Selected data mapping functions
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
 
   defp row_mapper(row), do: for field <- row, do: field_mapper(field)
 
@@ -137,6 +109,88 @@ defmodule Cloak.DataSource.PostgreSQL do
     |> to_string()
   end
   defp field_mapper(field), do: field
+
+
+  # -------------------------------------------------------------------
+  # Transformation of query AST to query specification
+  # -------------------------------------------------------------------
+
+  @typep query_spec :: {statement, [constant]}
+  @typep constant :: String.t | number | boolean
+  @typep statement :: iodata
+  @typep fragment :: String.t | {:param, constant} | [fragment]
+
+  @spec select_query_spec(Cloak.SqlQuery.t) :: query_spec
+  defp select_query_spec(%{from: table} = query) do
+    fragments_to_query_spec([
+      "SELECT ", Enum.map_join(ordered_selected_columns(query), ",", &select_column_to_string/1), " ",
+      "FROM ", table, " ",
+      where_fragments(query[:where])
+    ])
+  end
+
+  @spec fragments_to_query_spec([fragment]) :: query_spec
+  defp fragments_to_query_spec(fragments) do
+    {query_string(fragments), params(fragments)}
+  end
+
+  defp query_string(fragments) do
+    fragments
+    |> List.flatten()
+    |> Enum.reduce(%{query_string: [], param_index: 1}, &parse_fragment(&2, &1))
+    |> Map.fetch!(:query_string)
+  end
+
+  defp parse_fragment(query_builder, string) when is_binary(string) do
+    %{query_builder | query_string: [query_builder.query_string, string]}
+  end
+  defp parse_fragment(query_builder, {:param, _value}) do
+    %{query_builder |
+      query_string: [query_builder.query_string, "$#{query_builder.param_index}"],
+      param_index: query_builder.param_index + 1
+    }
+  end
+
+  defp params(fragments) do
+    fragments
+    |> List.flatten()
+    |> Stream.filter(&match?({:param, _}, &1))
+    |> Enum.map(fn({:param, value}) -> value end)
+  end
+
+  defp ordered_selected_columns(%{columns: columns} = query) do
+    unselected_group_by_columns = Map.get(query, :group_by, []) -- columns
+    columns ++ unselected_group_by_columns
+  end
+
+  defp select_column_to_string({:count, :star}), do: "'*' as \"count(*)\""
+  defp select_column_to_string(column), do: column
+
+  defp where_fragments(nil), do: []
+  defp where_fragments(where_clause) do
+    ["WHERE ", where_clause_to_fragments(where_clause)]
+  end
+
+  defp where_clause_to_fragments([_|_] = and_clauses) do
+    ["(", and_clauses |> Enum.map(&where_clause_to_fragments/1) |> join(" AND "), ")"]
+  end
+  defp where_clause_to_fragments({:comparison, what, comparator, value}) do
+    [to_fragment(what), to_fragment(comparator), to_fragment(value)]
+  end
+  defp where_clause_to_fragments({:like, what, match}) do
+    [to_fragment(what), " LIKE ", to_fragment(match)]
+  end
+  defp where_clause_to_fragments({:in, what, values}) do
+    [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(","), ")"]
+  end
+
+  defp to_fragment(string) when is_binary(string), do: string
+  defp to_fragment(atom) when is_atom(atom), do: to_string(atom)
+  defp to_fragment(%Token{category: :constant, value: value}), do: {:param, value.value}
+
+  defp join([first | [_|_] = rest], joiner), do: [first, joiner, join(rest, joiner)]
+  defp join([el], _joiner), do: [el]
+  defp join([], _joiner), do: []
 
 
   #-----------------------------------------------------------------------------------------------------------
