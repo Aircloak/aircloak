@@ -2,6 +2,7 @@ defmodule Cloak.SqlQueryTest do
   use ExUnit.Case, async: true
 
   alias Cloak.SqlQuery
+  alias Cloak.SqlQuery.Parsers.Token
 
   test "simple select query" do
     assert %{command: :select, columns: ["foo"], from: "baz"} == SqlQuery.parse!("select foo from baz")
@@ -43,109 +44,161 @@ defmodule Cloak.SqlQueryTest do
     assert %{command: :show, show: :columns, from: "foo"} == SqlQuery.parse!("show columns from foo")
   end
 
+  defmacrop verify_select(string, opts) do
+    quote do
+      assert %{unquote_splicing([command: :select] ++ opts)} = SqlQuery.parse!(unquote(string))
+    end
+  end
+
+  defmacrop constant(value) do
+    quote do
+      %Token{category: :constant, value: %{value: unquote(value)}}
+    end
+  end
+
+  defmacrop constants(values) do
+    Enum.map(values, &quote(do: constant(unquote(&1))))
+  end
+
   test "where clause with equality" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :=, 10}]} ==
-      SqlQuery.parse!("select foo from bar where a = 10")
+    verify_select(
+      "select foo from bar where a = 10",
+      columns: ["foo"], from: "bar", where: [{:comparison, "a", :=, constant(10)}]
+    )
   end
 
   test "where clause with <" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :<, 10}]} ==
-      SqlQuery.parse!("select foo from bar where a < 10")
+    verify_select(
+      "select foo from bar where a < 10",
+      columns: ["foo"], from: "bar", where: [{:comparison, "a", :<, constant(10)}]
+    )
   end
 
   test "where clause with >" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :>, 10}]} ==
-      SqlQuery.parse!("select foo from bar where a > 10")
+    verify_select(
+      "select foo from bar where a > 10",
+      columns: ["foo"], from: "bar", where: [{:comparison, "a", :>, constant(10)}]
+    )
   end
 
   test "where clause with >=" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :>=, 10}]} ==
-      SqlQuery.parse!("select foo from bar where a >= 10")
+    verify_select(
+      "select foo from bar where a >= 10",
+      columns: ["foo"], from: "bar", where: [{:comparison, "a", :>=, constant(10)}]
+    )
   end
 
   test "where clause with <=" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :<=, 10}]} ==
-      SqlQuery.parse!("select foo from bar where a <= 10")
+    verify_select(
+      "select foo from bar where a <= 10",
+      columns: ["foo"], from: "bar", where: [{:comparison, "a", :<=, constant(10)}]
+    )
   end
 
   test "where clause with <>" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :<>, 10}]} ==
-      SqlQuery.parse!("select foo from bar where a <> 10")
+    verify_select(
+      "select foo from bar where a <> 10",
+      columns: ["foo"], from: "bar", where: [{:comparison, "a", :<>, constant(10)}]
+    )
   end
 
   test "where clause can have float values" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "a", :=, 10.0}]} ==
-      SqlQuery.parse!("select foo from bar where a = 10.0")
+    verify_select(
+      "select foo from bar where a = 10.0",
+      columns: ["foo"], from: "bar", where: [{:comparison, "a", :=, constant(10.0)}]
+    )
   end
 
   test "where clause can have string values" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, "'tom'"}]} ==
-      SqlQuery.parse!("select foo from bar where name = 'tom'")
+    verify_select(
+      "select foo from bar where name = 'tom'",
+      columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, constant("tom")}]
+    )
   end
 
   test "where clause can have string values of any case" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where:
-        [{:comparison, "name", :=, "'tOm'"}]} ==
-      SqlQuery.parse!("select foo from bar where name = 'tOm'")
+    verify_select(
+      "select foo from bar where name = 'tOm'",
+      columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, constant("tOm")}]
+    )
   end
 
   test "where clause can have multi-word string values" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where:
-        [{:comparison, "name", :=, "'avishai cohen'"}]} ==
-      SqlQuery.parse!("select foo from bar where name = 'avishai cohen'")
+    verify_select(
+      "select foo from bar where name = 'avishai cohen'",
+      columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, constant("avishai cohen")}]
+    )
   end
 
   test "where clause with mutliple comparisons" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where:
-      [{:comparison, "a", :<>, 10}, {:comparison, "b", :=, "'bar'"}]} ==
-      SqlQuery.parse!("select foo from bar where a <> 10 and b = 'bar'")
+    verify_select(
+      "select foo from bar where a <> 10 and b = 'bar'",
+      columns: ["foo"], from: "bar",
+      where: [{:comparison, "a", :<>, constant(10)}, {:comparison, "b", :=, constant("bar")}]
+    )
   end
 
   test "where clause with LIKE is OK" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:like, "a", "'_ob d%'"}]} ==
-      SqlQuery.parse!("select foo from bar where a LIKE '_ob d%'")
+    verify_select(
+      "select foo from bar where a LIKE '_ob d%'",
+      columns: ["foo"], from: "bar", where: [{:like, "a", constant("_ob d%")}]
+    )
   end
 
   test "where clause with IN is OK" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where: [{:in, "a", [1, 2, 3]}]} ==
-      SqlQuery.parse!("select foo from bar where a IN (1, 2, 3)")
+    verify_select(
+      "select foo from bar where a IN (1, 2, 3)",
+      columns: ["foo"], from: "bar", where: [{:in, "a", constants([1, 2, 3])}]
+    )
   end
 
   test "where clause with all types of clauses is OK" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where:
-        [{:comparison, "a", :=, 2}, {:in, "b", [1, 2, 3]}, {:like, "c", "'_o'"}]} ==
-      SqlQuery.parse!("select foo from bar where a = 2 and b in (1,2,3) and c like '_o'")
+    verify_select(
+      "select foo from bar where a = 2 and b in (1,2,3) and c like '_o'",
+      columns: ["foo"], from: "bar",
+      where: [
+        {:comparison, "a", :=, constant(2)},
+        {:in, "b", constants([1, 2, 3])},
+        {:like, "c", constant("_o")}
+      ]
+    )
   end
 
   test "boolean values are allowed in comparisons" do
-    assert %{command: :select, columns: ["foo"], from: "bar", where:
-        [{:comparison, "a", :=, true}, {:in, "b", [true, false]}]} ==
-      SqlQuery.parse!("select foo from bar where a = true and b in (true, false)")
+    verify_select(
+      "select foo from bar where a = true and b in (true, false)",
+      columns: ["foo"], from: "bar",
+      where: [{:comparison, "a", :=, constant(true)}, {:in, "b", constants([true, false])}]
+    )
   end
 
   test "it's valid to have a identifier contain a keyword" do
-    assert %{command: :select, columns: ["INvalid", "selectiscious"], from: "whereables"} ==
-      SqlQuery.parse!("SELECT INvalid, selectiscious FROM whereables")
+    verify_select(
+      "SELECT INvalid, selectiscious FROM whereables",
+      columns: ["INvalid", "selectiscious"], from: "whereables"
+    )
   end
 
   test "count(*)" do
-    assert %{command: :select, columns: [{:count, :star}], from: "foo"} ==
-      SqlQuery.parse!("select count(*) from foo")
+    verify_select("select count(*) from foo", columns: [{:count, :star}], from: "foo")
   end
 
   test "group by multiple columns" do
-    assert %{columns: ["x"], from: "b", group_by: ["x", "y", "z"]} =
-      SqlQuery.parse!("select x from b group by x, y, z")
+    verify_select(
+      "select x from b group by x, y, z",
+      columns: ["x"], from: "b", group_by: ["x", "y", "z"]
+    )
   end
 
   test "group by just one column" do
-    assert %{group_by: ["a"]} = SqlQuery.parse!("select a from b group by a")
+    verify_select("select a from b group by a", group_by: ["a"])
   end
 
-  test "order by caluse" do
-    assert %{command: :select, columns: ["a", "b", "c"], from: "foo",
-      order_by: [{"a", :desc}, {"b", :asc}, {"c", nil}]} ==
-     SqlQuery.parse!("select a, b, c from foo order by a desc, b asc, c")
+  test "order by clause" do
+    verify_select(
+      "select a, b, c from foo order by a desc, b asc, c",
+      columns: ["a", "b", "c"], from: "foo", order_by: [{"a", :desc}, {"b", :asc}, {"c", nil}]
+    )
   end
 
   Enum.each([

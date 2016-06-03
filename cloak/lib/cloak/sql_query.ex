@@ -185,7 +185,6 @@ defmodule Cloak.SqlQuery do
   defp constant(expected_type) do
     token(:constant)
     |> satisfy(fn(token) -> token.value.type == expected_type end)
-    |> map(&(&1.value.value))
     |> label("#{expected_type} constant")
   end
 
