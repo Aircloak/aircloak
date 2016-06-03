@@ -51,13 +51,13 @@ defmodule Air.Query do
   end
 
   @doc "Produces a JSON blob of the query and it's result for rendering"
-  @spec for_display(t, boolean) :: %{}
-  def for_display(query, complete \\ false) do
+  @spec for_display(t, [{atom, any}]) :: %{}
+  def for_display(query, options \\ []) do
     base_query = %{
       statement: query.statement,
       id: query.id
     }
-    Map.merge(base_query, result_map(query, complete))
+    Map.merge(base_query, result_map(query, options[:complete] || false))
   end
 
 

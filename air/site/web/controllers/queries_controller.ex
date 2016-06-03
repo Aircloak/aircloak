@@ -20,7 +20,7 @@ defmodule Air.QueriesController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    last_query = case load_recent_queries(conn.assigns.current_user, _recent_count = 1) do
+    last_query = case load_recent_queries(conn.assigns.current_user, 1) do
       [query] -> query
       _ -> nil
     end
@@ -67,7 +67,7 @@ defmodule Air.QueriesController do
     |> Query.for_user()
     |> Query.with_id(params["id"])
     |> Repo.one!()
-    json(conn, Query.for_display(query, _complete = true))
+    json(conn, Query.for_display(query, complete: true))
   end
 
 
