@@ -92,9 +92,9 @@ defmodule Cloak.SqlQuery.Lexer do
 
   defp string_constant() do
     sequence([
-      char(?'),
+      ignore(char(?')),
       word_of(~r/[^']*/),
-      char(?')
+      ignore(char(?'))
     ])
     |> map(&Enum.join/1)
     |> output_constant(:string)
