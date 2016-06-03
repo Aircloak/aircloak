@@ -59,7 +59,7 @@ defmodule Cloak.QueryTest do
     |> Enum.map(fn({k, values}) -> {k, Enum.count(values)} end)
     |> Enum.sort()
 
-    assert groups == [{[180], 20}, {["*"], 20}]
+    assert groups == [{[180], 20}, {[:*], 20}]
   end
 
   test "should produce counts" do
@@ -168,6 +168,17 @@ defmodule Cloak.QueryTest do
 
     assert_receive {:reply, %{columns: ["count(*)", "height"], rows: rows}}
     assert rows == [[10, 180], [20, 160], [30, 150]]
+  end
+
+  test "ordering hidden values" do
+    :ok = insert_rows(_user_ids = 0..2, "heights", ["name"], ["Alice"])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["name"], ["Charlie"])
+    :ok = insert_rows(_user_ids = 3..5, "heights", ["name"], ["Bob"])
+
+    :ok = start_query("select count(*), name from heights group by name order by name asc")
+
+    assert_receive {:reply, %{columns: ["count(*)", "name"], rows: rows}}
+    assert rows == [[10, "Charlie"], [6, :*]]
   end
 
   test "grouping and sorting by a grouped field" do

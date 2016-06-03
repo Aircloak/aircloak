@@ -144,7 +144,7 @@ defmodule Cloak.Query.Runner do
   end
 
   defp add_lcf_buckets(buckets, lcf_data, columns_count) do
-    lcf_property = List.duplicate("*", columns_count)
+    lcf_property = List.duplicate(:*, columns_count)
     low_count_filter_data = LCFData.filtered_property_counts(lcf_data)
     |> Enum.map(fn({user, count}) -> {user, List.duplicate(lcf_property, count)} end)
 
