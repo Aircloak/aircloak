@@ -7,8 +7,11 @@ defmodule Cloak.AirSocket do
   the process will attempt to reconnect in regular intervals specified in the
   configuration file.
   """
+
   require Logger
   alias Phoenix.Channels.GenSocketClient
+  alias Cloak.Query
+
   @behaviour GenSocketClient
 
 
@@ -172,10 +175,12 @@ defmodule Cloak.AirSocket do
   # Handling air sync calls
   # -------------------------------------------------------------------
 
-  defp handle_air_call("run_query", query, from, state) do
-    query_id = Map.fetch!(query, "id")
-    Logger.info("starting query #{query_id}")
-    Cloak.Query.start(%Cloak.Query{id: query_id, statement: Map.fetch!(query, "statement")})
+  defp handle_air_call("run_query", serialized_query, from, state) do
+    %{"id" => id, "statement" => statement, "data_source" => data_source} = serialized_query
+    query = %Query{id: id, statement: statement, data_source: String.to_existing_atom(data_source)}
+    Logger.info("starting query #{query.id}")
+    Cloak.Query.start(query)
+
     respond_to_air(from, :ok)
     {:ok, state}
   end

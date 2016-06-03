@@ -212,7 +212,7 @@ defmodule Cloak.QueryTest do
   end
 
   defp start_query(statement) do
-    Query.start(%Query{id: "1", statement: statement}, {:process, self()})
+    Query.start(%Query{id: "1", statement: statement, data_source: :local}, {:process, self()})
   end
 
   defp insert_rows(user_id_range, table, columns, values) do

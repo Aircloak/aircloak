@@ -46,7 +46,8 @@ defmodule Air.Query do
     %{
       id: model.id,
       prefetch: Enum.map(model.tables, &%{table: "#{model.data_source}/#{&1}"}),
-      statement: model.statement
+      statement: model.statement,
+      data_source: model.data_source,
     }
   end
 
