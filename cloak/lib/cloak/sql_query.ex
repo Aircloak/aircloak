@@ -65,7 +65,7 @@ defmodule Cloak.SqlQuery do
     switch([
       {keyword(:select), select_statement()},
       {keyword(:show), show_statement()},
-      {:else, error_message(fail(""), "Expected `select or show`")}
+      {:else, error_message(fail_on_current_token(), "Expected `select or show`")}
     ])
     |> map(&create_reportable_map/1)
   end
@@ -86,7 +86,7 @@ defmodule Cloak.SqlQuery do
     switch([
       {keyword(:tables), noop()},
       {keyword(:columns), from()},
-      {:else, fail("Expected `tables or columns`")}
+      {:else, error_message(fail_on_current_token(), "Expected `tables or columns`")}
     ])
     |> map(fn({[show], data}) -> [{:show, show} | data] end)
   end
@@ -114,8 +114,8 @@ defmodule Cloak.SqlQuery do
     |> map(fn(_) -> {:count, :star} end)
   end
 
-  defp from(parser \\ noop()) do
-    pair_both(parser,
+  defp from() do
+    pair_both(
       keyword(:from),
       from_table_name()
     )
@@ -156,7 +156,7 @@ defmodule Cloak.SqlQuery do
         in_values()},
       {identifier() |> comparator(),
         allowed_where_values()},
-      {:else, fail("Invalid where expression")}
+      {:else, error_message(fail_on_current_token(), "Invalid where expression")}
     ])
     |> map(fn
           {[identifier, :like], [string_constant]} -> {:like, identifier, string_constant}
@@ -258,8 +258,13 @@ defmodule Cloak.SqlQuery do
     sep_by1(term_parser, keyword(:and))
   end
 
-  defp end_of_input(parser), do: parser |> end_of_tokens()
+  defp fail_on_current_token(), do: token(nil)
 
+  defp end_of_input(parser) do
+    parser
+    |> error_message(token(:eof), "Expected end of input.")
+    |> ignore()
+  end
 
   # -------------------------------------------------------------------
   # Work around invalid combine spec (see below)

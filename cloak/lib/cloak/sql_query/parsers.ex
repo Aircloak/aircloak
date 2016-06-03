@@ -96,7 +96,7 @@ defmodule Cloak.SqlQuery.Parsers do
   @spec increment_line() :: Base.parser
   @spec increment_line(Base.parser) :: Base.parser
   defparser increment_line(%ParserState{status: :ok} = state) do
-    %ParserState{state | line: (state.line + 1)}
+    %ParserState{state | line: (state.line + 1), column: 0}
   end
 
   @doc "Consumes a token of the given category."
