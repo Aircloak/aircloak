@@ -11,9 +11,12 @@ defmodule Cloak.SqlQuery do
     | :>
     | :<>
 
+  @type column :: String.t | {:count, :star}
+
   @type t :: %{
     command: :select | :show,
-    columns: [String.t],
+    columns: [column],
+    group_by: [String.t],
     from: [String.t],
     where: [
         {:comparison, String.t, comparator, any}
@@ -68,10 +71,10 @@ defmodule Cloak.SqlQuery do
   end
 
   defp create_reportable_map({[command], [statement_data]}) do
-    statement_data = statement_data
+    statement_data
     |> Enum.reject(fn(value) -> value == nil end)
     |> Map.new
-    Map.merge(%{command: command}, statement_data)
+    |> Map.merge(%{command: command})
   end
 
   defp statement_termination(parser) do
@@ -93,6 +96,7 @@ defmodule Cloak.SqlQuery do
       select_columns(),
       from(),
       optional_where(),
+      optional_group_by(),
       optional_order_by()
     ])
   end
@@ -187,10 +191,18 @@ defmodule Cloak.SqlQuery do
 
   defp optional_order_by() do
     switch([
-      {keywords([:order, :by]), comma_delimited(order_by_field())},
+      {keyword(:order), keyword(:by) |> comma_delimited(order_by_field())},
       {:else, noop()}
     ])
-    |> map(fn({[[:order, :by]], [fields]}) -> {:order_by, fields} end)
+    |> map(fn({[:order], [:by, fields]}) -> {:order_by, fields} end)
+  end
+
+  defp optional_group_by() do
+    switch([
+      {keyword(:group), keyword(:by) |> comma_delimited(identifier())},
+      {:else, noop()}
+    ])
+    |> map(fn {_, [:by, columns]} -> {:group_by, columns} end)
   end
 
   defp order_by_field() do
@@ -238,8 +250,9 @@ defmodule Cloak.SqlQuery do
     sequence(Enum.map(types, &keyword/1))
   end
 
-  defp comma_delimited(term_parser) do
-    sep_by1(term_parser, keyword(:","))
+  defp comma_delimited(previous \\ noop(), term_parser) do
+    previous
+    |> sep_by1(term_parser, keyword(:","))
   end
 
   defp and_delimited(term_parser) do

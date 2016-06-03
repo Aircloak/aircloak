@@ -97,7 +97,7 @@ export class CodeEditor extends React.Component {
       lineWrapping: true,
       matchBrackets: true,
       readOnly: this.props.readOnly,
-      mode: "text/x-sql",
+      mode: "text/x-pgsql",
       showCursorWhenSelecting: true,
       smartIndent: true,
       viewportMargin: Infinity,

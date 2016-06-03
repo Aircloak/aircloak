@@ -41,6 +41,7 @@ defmodule Cloak.SqlQuery.Lexer do
     "LIKE",
     "IN",
     "ORDER",
+    "GROUP",
     "BY",
     "ASC",
     "DESC",

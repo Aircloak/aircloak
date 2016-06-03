@@ -2,6 +2,7 @@ defmodule Cloak.Query.Runner do
   @moduledoc "Cloak query runner."
 
   alias Cloak.{Aggregator, LCFData, DataSource, Processor}
+  alias Cloak.Query.Result
 
   use Cloak.Type
 
@@ -9,7 +10,7 @@ defmodule Cloak.Query.Runner do
   @spec run(Cloak.Query.t) :: {:ok, {:buckets, [DataSource.column], [Bucket.t]}} | {:error, any}
   def run(query) do
     with {:ok, sql_query} <- Cloak.SqlQuery.parse(query.statement), :ok <- validate(sql_query) do
-       execute_sql_query(sql_query)
+      execute_sql_query(sql_query)
     end
   end
 
@@ -20,8 +21,9 @@ defmodule Cloak.Query.Runner do
 
   defp validate(sql_query) do
     with :ok <- validate_from(sql_query),
-      :ok <- validate_columns(sql_query),
-      :ok <- validate_order_by(sql_query), do: :ok
+         :ok <- validate_columns(sql_query),
+         :ok <- validate_aggregation(sql_query),
+         :ok <- validate_order_by(sql_query), do: :ok
   end
 
   defp validate_from(%{from: table_identifier}) do
@@ -31,6 +33,32 @@ defmodule Cloak.Query.Runner do
     end
   end
   defp validate_from(%{}), do: :ok
+
+  defp validate_aggregation(%{command: :select} = query) do
+    case invalid_not_aggregated_columns(query) do
+      [] -> :ok
+      columns ->
+        {
+          :error,
+          "Columns #{columns |> Enum.map(&Result.column_title/1) |> Enum.join} need to appear in the " <>
+            "`group by` clause or be used in an aggregate function."
+        }
+    end
+  end
+  defp validate_aggregation(_), do: :ok
+
+  defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
+    Enum.reject(query.columns, &(aggregate_function?(&1) || Enum.member?(query.group_by, &1)))
+  end
+  defp invalid_not_aggregated_columns(%{command: :select} = query) do
+    case Enum.partition(query.columns, &aggregate_function?/1) do
+      {[_|_] = _aggregates, [_|_] = non_aggregates} -> non_aggregates
+      _ -> []
+    end
+  end
+
+  defp aggregate_function?({:count, _}), do: true
+  defp aggregate_function?(_), do: false
 
   defp validate_columns(%{command: :select, from: table_identifier} = query) do
     table_id = String.to_existing_atom(table_identifier)
@@ -49,10 +77,12 @@ defmodule Cloak.Query.Runner do
   end
 
   defp all_columns(%{columns: selected_columns} = query) do
-    case query[:where] do
-      nil -> selected_columns
-      clauses -> selected_columns ++ Enum.map(clauses, &where_clause_to_identifier/1)
-    end
+    where_columns = Map.get(query, :where, [])
+    |> Enum.map(&where_clause_to_identifier/1)
+
+    group_by_columns = Map.get(query, :group_by, [])
+
+    selected_columns ++ where_columns ++ group_by_columns
   end
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
@@ -70,15 +100,17 @@ defmodule Cloak.Query.Runner do
   defp validate_order_by(%{}), do: :ok
 
   defp execute_sql_query(%{command: :show, show: :tables}) do
-    tables = DataSource.tables(:local)
-    buckets = for table <- tables, do: bucket(property: [table], noisy_count: 1)
-    {:ok, {:buckets, ["name"], buckets}}
+    columns = ["name"]
+    rows = Enum.map(DataSource.tables(:local), &[&1])
+
+    {:ok, {:buckets, columns, rows}}
   end
   defp execute_sql_query(%{command: :show, show: :columns, from: table_identifier}) do
     table_id = String.to_existing_atom(table_identifier)
-    columns = DataSource.columns(:local, table_id)
-    buckets = for {name, type} <- columns, do: bucket(property: [name, type], noisy_count: 1)
-    {:ok, {:buckets, ["name", "type"], buckets}}
+    columns = ["name", "type"]
+    rows = Enum.map(DataSource.columns(:local, table_id), &Tuple.to_list/1)
+
+    {:ok, {:buckets, columns, rows}}
   end
   defp execute_sql_query(%{command: :select} = select_query) do
     with {:ok, {_count, [_user_id | columns], rows}} <- DataSource.select(:local, select_query) do
@@ -91,11 +123,12 @@ defmodule Cloak.Query.Runner do
         |> Processor.AccumulateCount.post_process()
         |> order_buckets(select_query)
         |> add_lcf_buckets(lcf_data, length(columns))
+        |> Result.expand(select_query)
       after
         LCFData.delete(lcf_data)
       end
 
-      {:ok, {:buckets, columns, reportable_buckets}}
+      {:ok, {:buckets, Result.column_titles(select_query), reportable_buckets}}
     end
   end
 

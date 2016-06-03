@@ -22,6 +22,19 @@ defmodule Cloak.QueryTest do
     :ok
   end
 
+  test "show tables" do
+    :ok = start_query("show tables")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["name"], rows: [[:heights]]}}
+  end
+
+  test "show columns" do
+    :ok = start_query("show columns from heights")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["name", "type"], rows: rows}}
+    assert Enum.sort(rows) == [["height", :integer], ["name", :text]]
+  end
+
   test "query execution" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     :ok = start_query("select height from heights")
@@ -103,6 +116,47 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select column from invalid_table")
     assert_receive {:reply, %{query_id: "1", error: error}}
     assert ~s/Table "invalid_table" doesn't exist./ == error
+  end
+
+  test "query reports an error when mixing aggregated and normal columns" do
+    :ok = start_query("select count(*), height from heights")
+
+    assert_receive {:reply, %{query_id: "1", error: error}}
+    assert error =~ ~r/height need to appear in the `group by` clause/
+  end
+
+  test "query reports an error when grouping by nonexistent columns" do
+    :ok = start_query("select count(*) from heights group by nothing")
+
+    assert_receive {:reply, %{query_id: "1", error: error}}
+    assert error =~ ~r/Column "nothing" doesn't exist./
+  end
+
+  test "query reports an error when not grouping by some selected columns" do
+    :ok = start_query("select name, height from heights group by height")
+
+    assert_receive {:reply, %{query_id: "1", error: error}}
+    assert error =~ ~r/name need to appear in the `group by` clause/
+  end
+
+  test "query allows mixing aggregated and grouped columns" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
+
+    :ok = start_query("select count(*), height from heights group by height")
+
+    assert_receive {:reply, %{columns: ["count(*)", "height"], rows: rows}}
+    assert Enum.sort(rows) == [[10, 180], [20, 160]]
+  end
+
+  test "grouping works when the column is not selected" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
+
+    :ok = start_query("select count(*) from heights group by height")
+
+    assert_receive {:reply, %{columns: ["count(*)"], rows: rows}}
+    assert Enum.sort(rows) == [[10], [20]]
   end
 
   test "query reports an error on invalid where clause identifier" do

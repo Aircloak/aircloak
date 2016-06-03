@@ -11,7 +11,6 @@ export class Result extends React.Component {
     this.renderLoadLink = this.renderLoadLink.bind(this);
   }
 
-
   renderRows() {
     const tableRows = this.props.rows.map((row, i) =>
       <tr key={i}>
