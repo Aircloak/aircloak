@@ -7,6 +7,11 @@ require("codemirror/mode/sql/sql");
 require("codemirror/addon/hint/show-hint");
 require("codemirror/addon/hint/anyword-hint");
 
+const KEYWORDS = [
+  "SELECT", "SHOW", "TABLES", "COLUMNS", "FROM", "COUNT(*)",
+  "WHERE", "IS", "LIKE", "IN", "AND", "GROUP", "ORDER", "BY",
+];
+
 export class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
@@ -67,18 +72,11 @@ export class CodeEditor extends React.Component {
       }
     };
 
-    const dataSource = this.props.settings.selectedDataSource();
-    const selectedTables = Array.from(this.props.settings.tables);
-    const list = _.chain([]).
-      union(
-        this.props.completions,
-        _.map(selectedTables, (table) => ({text: `${dataSource.id}/${table}`})),
-        _.map(this.editor.hint.anyword(cm, {word: /[a-zA-Z_](\w)*/}).list, (word) => ({text: word}))
-      ).
-      filter((candidate) => candidate.text.match(fuzzyMatcher)).
-      uniqBy((el) => el.displayText || el.text).
-      sortBy((el) => sortOrder(el.text)).
-      value();
+    // TODO: auto-complete column and table names
+    const list = _.chain(KEYWORDS).
+    filter((candidate) => candidate.match(fuzzyMatcher)).
+    sortBy((item) => sortOrder(item)).
+    value();
 
     return {
       list,
@@ -130,11 +128,6 @@ CodeEditor.propTypes = {
   onRun: React.PropTypes.func.isRequired,
   onChange: React.PropTypes.func.isRequired,
   readOnly: React.PropTypes.bool,
-
-  settings: React.PropTypes.shape({
-    selectedDataSource: React.PropTypes.func.isRequired,
-    tables: React.PropTypes.object,
-  }),
   completions: React.PropTypes.arrayOf(React.PropTypes.shape({
     displayText: React.PropTypes.string,
     text: React.PropTypes.string,
