@@ -64,9 +64,9 @@ defmodule Air.QueriesController do
 
   def show(conn, params) do
     query = conn.assigns.current_user
-    |> Query.for_user
+    |> Query.for_user()
     |> Query.with_id(params["id"])
-    |> Repo.one!
+    |> Repo.one!()
     json(conn, Query.for_display(query, _complete = true))
   end
 
