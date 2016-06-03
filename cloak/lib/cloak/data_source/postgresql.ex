@@ -75,9 +75,50 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type(type), do: {:unsupported, type}
 
 
-  @typep fragment :: String.t | {:param, constant} | [fragment]
+  # -------------------------------------------------------------------
+  # Selected data mapping functions
+  # -------------------------------------------------------------------
+
+  defp row_mapper(row), do: for field <- row, do: field_mapper(field)
+
+  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
+      hour: hour, min: min, sec: sec, usec: 0}) do
+    :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [year, month, day, hour, min, sec])
+    |> to_string()
+  end
+  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
+      hour: hour, min: min, sec: sec, usec: usec}) do
+    :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B.~6..0B", [year, month, day, hour, min, sec, usec])
+    |> to_string()
+  end
+  defp field_mapper(%Postgrex.Date{year: year, month: month, day: day}) do
+    :io_lib.format("~4..0B-~2..0B-~2..0B", [year, month, day])
+    |> to_string()
+  end
+  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
+      hour: hour, min: min, sec: sec, usec: 0}) do
+    :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [year, month, day, hour, min, sec])
+    |> to_string()
+  end
+  defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec, usec: 0}) do
+    :io_lib.format("~2..0B:~2..0B:~2..0B", [hour, min, sec])
+    |> to_string()
+  end
+  defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec, usec: usec}) do
+    :io_lib.format("~2..0B:~2..0B:~2..0B.~6..0B", [hour, min, sec, usec])
+    |> to_string()
+  end
+  defp field_mapper(field), do: field
+
+
+  # -------------------------------------------------------------------
+  # Transformation of query AST to query specification
+  # -------------------------------------------------------------------
+
+  @typep query_spec :: {statement, [constant]}
   @typep constant :: String.t | number | boolean
-  @typep query_spec :: {iodata, [constant]}
+  @typep statement :: iodata
+  @typep fragment :: String.t | {:param, constant} | [fragment]
 
   @spec select_query_spec(Cloak.SqlQuery.t) :: query_spec
   defp select_query_spec(%{from: table} = query) do
@@ -142,42 +183,6 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp join([first | [_|_] = rest], joiner), do: [first, joiner, join(rest, joiner)]
   defp join([el], _joiner), do: [el]
   defp join([], _joiner), do: []
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Selected data mapping functions
-  #-----------------------------------------------------------------------------------------------------------
-
-  defp row_mapper(row), do: for field <- row, do: field_mapper(field)
-
-  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
-      hour: hour, min: min, sec: sec, usec: 0}) do
-    :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [year, month, day, hour, min, sec])
-    |> to_string()
-  end
-  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
-      hour: hour, min: min, sec: sec, usec: usec}) do
-    :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B.~6..0B", [year, month, day, hour, min, sec, usec])
-    |> to_string()
-  end
-  defp field_mapper(%Postgrex.Date{year: year, month: month, day: day}) do
-    :io_lib.format("~4..0B-~2..0B-~2..0B", [year, month, day])
-    |> to_string()
-  end
-  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
-      hour: hour, min: min, sec: sec, usec: 0}) do
-    :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [year, month, day, hour, min, sec])
-    |> to_string()
-  end
-  defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec, usec: 0}) do
-    :io_lib.format("~2..0B:~2..0B:~2..0B", [hour, min, sec])
-    |> to_string()
-  end
-  defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec, usec: usec}) do
-    :io_lib.format("~2..0B:~2..0B:~2..0B.~6..0B", [hour, min, sec, usec])
-    |> to_string()
-  end
-  defp field_mapper(field), do: field
 
 
   #-----------------------------------------------------------------------------------------------------------
