@@ -9,8 +9,9 @@ defmodule Cloak.Query.Runner do
   @doc "Runs the query and returns the result."
   @spec run(Cloak.Query.t) :: {:ok, {:buckets, [DataSource.column], [Bucket.t]}} | {:error, any}
   def run(query) do
-    with {:ok, sql_query} <- Cloak.SqlQuery.parse(query.statement), :ok <- validate(sql_query) do
-      execute_sql_query(sql_query)
+    with {:ok, sql_query} <- Cloak.SqlQuery.parse(query.statement),
+         :ok <- validate(sql_query, query.data_source) do
+      execute_sql_query(sql_query, query.data_source)
     end
   end
 
@@ -19,20 +20,20 @@ defmodule Cloak.Query.Runner do
   ## Internal functions
   ## ----------------------------------------------------------------
 
-  defp validate(sql_query) do
-    with :ok <- validate_from(sql_query),
-         :ok <- validate_columns(sql_query),
+  defp validate(sql_query, data_source) do
+    with :ok <- validate_from(sql_query, data_source),
+         :ok <- validate_columns(sql_query, data_source),
          :ok <- validate_aggregation(sql_query),
          :ok <- validate_order_by(sql_query), do: :ok
   end
 
-  defp validate_from(%{from: table_identifier}) do
-    case Enum.find_index(DataSource.tables(:local), &(Atom.to_string(&1) === table_identifier)) do
+  defp validate_from(%{from: table_identifier}, data_source) do
+    case Enum.find_index(DataSource.tables(data_source), &(Atom.to_string(&1) === table_identifier)) do
       nil -> {:error, ~s/Table "#{table_identifier}" doesn't exist./}
       _ -> :ok
     end
   end
-  defp validate_from(%{}), do: :ok
+  defp validate_from(%{}, _data_source), do: :ok
 
   defp validate_aggregation(%{command: :select} = query) do
     case invalid_not_aggregated_columns(query) do
@@ -60,15 +61,15 @@ defmodule Cloak.Query.Runner do
   defp aggregate_function?({:count, _}), do: true
   defp aggregate_function?(_), do: false
 
-  defp validate_columns(%{command: :select, from: table_identifier} = query) do
+  defp validate_columns(%{command: :select, from: table_identifier} = query, data_source) do
     table_id = String.to_existing_atom(table_identifier)
-    invalid_columns = Enum.reject(all_columns(query), &valid_column?(&1, DataSource.columns(:local, table_id)))
+    invalid_columns = Enum.reject(all_columns(query), &valid_column?(&1, DataSource.columns(data_source, table_id)))
     case invalid_columns do
       [] -> :ok
       [invalid_column | _rest] -> {:error, ~s/Column "#{invalid_column}" doesn't exist./}
     end
   end
-  defp validate_columns(%{}), do: :ok
+  defp validate_columns(%{}, _data_source), do: :ok
 
   defp valid_column?({:count, :star}, _), do: true
   defp valid_column?(name, columns) do
@@ -99,21 +100,21 @@ defmodule Cloak.Query.Runner do
   end
   defp validate_order_by(%{}), do: :ok
 
-  defp execute_sql_query(%{command: :show, show: :tables}) do
+  defp execute_sql_query(%{command: :show, show: :tables}, data_source) do
     columns = ["name"]
-    rows = Enum.map(DataSource.tables(:local), &[&1])
+    rows = Enum.map(DataSource.tables(data_source), &[&1])
 
     {:ok, {:buckets, columns, rows}}
   end
-  defp execute_sql_query(%{command: :show, show: :columns, from: table_identifier}) do
+  defp execute_sql_query(%{command: :show, show: :columns, from: table_identifier}, data_source) do
     table_id = String.to_existing_atom(table_identifier)
     columns = ["name", "type"]
-    rows = Enum.map(DataSource.columns(:local, table_id), &Tuple.to_list/1)
+    rows = Enum.map(DataSource.columns(data_source, table_id), &Tuple.to_list/1)
 
     {:ok, {:buckets, columns, rows}}
   end
-  defp execute_sql_query(%{command: :select} = select_query) do
-    with {:ok, {_count, [_user_id | columns], rows}} <- DataSource.select(:local, select_query) do
+  defp execute_sql_query(%{command: :select} = select_query, data_source) do
+    with {:ok, {_count, [_user_id | columns], rows}} <- DataSource.select(data_source, select_query) do
       lcf_data = LCFData.new()
 
       reportable_buckets = try do

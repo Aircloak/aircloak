@@ -5,7 +5,7 @@ defmodule Air.Query do
   alias Air.User
 
   @type t :: %__MODULE__{}
-  @type cloak_query :: %{id: String.t, prefetch: [%{table: String.t}], statement: String.t}
+  @type cloak_query :: %{id: String.t, statement: String.t, data_source: String.t}
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "queries" do
@@ -43,11 +43,7 @@ defmodule Air.Query do
   @doc "Converts the query model to the cloak compliant data."
   @spec to_cloak_query(t) :: cloak_query
   def to_cloak_query(model) do
-    %{
-      id: model.id,
-      prefetch: Enum.map(model.tables, &%{table: "#{model.data_source}/#{&1}"}),
-      statement: model.statement
-    }
+    Map.take(model, [:id, :statement, :data_source])
   end
 
   @doc "Produces a JSON blob of the query and it's result for rendering"
