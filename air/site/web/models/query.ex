@@ -65,17 +65,23 @@ defmodule Air.Query do
   # Query functions
   # -------------------------------------------------------------------
 
+  @doc "Adds a query filter selecting only those for the given user"
+  @spec for_user(__MODULE__, User.t) :: __MODULE__
   def for_user(query \\ __MODULE__, user) do
     from q in query,
     where: q.user_id == ^user.id
   end
 
+  @doc "Adds a query filter limiting the number of selected queries"
+  @spec recent(__MODULE__, non_neg_integer) :: __MODULE__
   def recent(query \\ __MODULE__, count) do
     from q in query,
     order_by: [desc: q.inserted_at],
     limit: ^count
   end
 
+  @doc "Adds a query filter limiting the returned queries to that with a given ID"
+  @spec with_id(__MODULE__, String.t) :: __MODULE__
   def with_id(query \\ __MODULE__, id) do
     from q in query,
     where: q.id == ^id
