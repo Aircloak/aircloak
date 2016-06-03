@@ -8,6 +8,7 @@ export class Result extends React.Component {
 
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
+    this.renderLoadLink = this.renderLoadLink.bind(this);
   }
 
 
@@ -20,11 +21,25 @@ export class Result extends React.Component {
     return tableRows;
   }
 
+  renderLoadLink() {
+    if (this.props.errorLoading) {
+      return (
+        <span>
+          <span className="label label-danger">Error</span> failed at loading rows.&nbsp;
+          <a onClick={() => this.props.handleLoadRows(this.props)}>Retry loading rows</a>
+        </span>
+      );
+    } else {
+      return <a onClick={() => this.props.handleLoadRows(this.props)}>Show all rows</a>;
+    }
+  }
+
   renderShowAll() {
     if (this.props.isLoading) {
       return (
         <div className="row-count">
-          <img role="presentation" src="/images/loader.gif" /> loading rows
+          <img role="presentation" src="/images/loader.gif" />&nbsp;
+          loading {this.props.row_count - this.props.rows.length} additional rows
         </div>
       );
     }
@@ -45,7 +60,7 @@ export class Result extends React.Component {
       return (
         <div className="row-count">
           Showing 10 of {this.props.row_count} rows.&nbsp;
-          <a onClick={() => this.props.handleLoadRows(this.props)}>Show all rows</a>
+          {this.renderLoadLink()}
         </div>
       );
     }

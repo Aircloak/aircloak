@@ -38,6 +38,7 @@ class QueriesView extends React.Component {
     this.handleLoadRows = this.handleLoadRows.bind(this);
     this.handleLessRows = this.handleLessRows.bind(this);
     this.replaceResult = this.replaceResult.bind(this);
+    this.mutateObject = this.mutateObject.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     this.props.resultSocket.start({
@@ -55,6 +56,10 @@ class QueriesView extends React.Component {
 
   setResults(results) {
     this.setState({sessionResults: results.slice(0, 5)});
+  }
+
+  mutateObject(object, change) {
+    return $.extend(JSON.parse(JSON.stringify(object)), change);
   }
 
   replaceResult(result) {
@@ -155,7 +160,7 @@ class QueriesView extends React.Component {
   }
 
   handleLoadRows(result) {
-    this.replaceResult($.extend(result, {loadingData: true}));
+    this.replaceResult(this.mutateObject(result, {isLoading: true}));
     $.ajax(`/query/${result.id}`, {
       method: "GET",
       headers: {
@@ -165,7 +170,9 @@ class QueriesView extends React.Component {
       success: (completeResult) => {
         this.replaceResult(completeResult);
       },
-      error: (error) => console.log("Failed at loading result"),
+      error: (error) => {
+        this.replaceResult(this.mutateObject(result, {isLoading: false, errorLoading: true}));
+      },
     });
   }
 
