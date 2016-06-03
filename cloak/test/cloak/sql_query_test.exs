@@ -4,200 +4,235 @@ defmodule Cloak.SqlQueryTest do
   alias Cloak.SqlQuery
   alias Cloak.SqlQuery.Parsers.Token
 
-  test "simple select query" do
-    assert %{command: :select, columns: ["foo"], from: "baz"} == SqlQuery.parse!("select foo from baz")
-  end
 
-  test "fully qualified table name" do
-    query = SqlQuery.parse!("select foo from bar.baz")
-    assert %{command: :select, columns: ["foo"], from: "bar.baz"} == query
-  end
+  # -------------------------------------------------------------------
+  # Helper macros
+  # -------------------------------------------------------------------
 
-  test "query with a terminating semicolon" do
-    assert %{command: :select, columns: ["foo"], from: "baz"} == SqlQuery.parse!("select foo from baz;")
-  end
+  # These macros can be used to verify the AST produced by the parser. The
+  # helpers are implemented as macros because we're testing the AST through
+  # pattern matching, rather than comparison. This allows tests to be more
+  # concise and skip specifying some details, such as line and column of
+  # each element in the ast.
 
-  test "multiple fields" do
-    query = SqlQuery.parse!("select foo, bar from baz")
-    assert %{command: :select, columns: ["foo", "bar"], from: "baz"} == query
-  end
-
-  test "whitespaces are ignored" do
-    query = SqlQuery.parse!("select  foo\n from \n \n baz \n ; \n  ")
-    assert %{command: :select, columns: ["foo"], from: "baz"} == query
-  end
-
-  test "all allowed identifier characters" do
-    query = SqlQuery.parse!("select foO1_ from Ba_z2")
-    assert %{command: :select, columns: ["foO1_"], from: "Ba_z2"} == query
-  end
-
-  test "case insensivity of commands" do
-    assert %{command: :select, columns: ["foo"], from: "baz"} == SqlQuery.parse!("SELECT foo FROM baz")
-  end
-
-  test "show tables" do
-    assert %{command: :show, show: :tables} == SqlQuery.parse!("show tables")
-  end
-
-  test "show columns" do
-    assert %{command: :show, show: :columns, from: "foo"} == SqlQuery.parse!("show columns from foo")
-  end
-
-  defmacrop verify_select(string, opts) do
+  # Runs the query string and asserts it matches to the given pattern.
+  defmacrop assert_parse(query_string, expected_pattern) do
     quote do
-      assert %{unquote_splicing([command: :select] ++ opts)} = SqlQuery.parse!(unquote(string))
+      assert unquote(expected_pattern) = SqlQuery.parse!(unquote(query_string))
     end
   end
 
+  # Produces a pattern which matches an AST of a select query.
+  defmacrop select(select_data) do
+    quote do
+      %{unquote_splicing([command: :select] ++ select_data)}
+    end
+  end
+
+  # Produces a pattern which matches an AST of a show query.
+  defmacrop show(what, show_data \\ []) do
+    quote do
+      %{unquote_splicing([command: :show, show: what] ++ show_data)}
+    end
+  end
+
+  # Produces a pattern which matches an AST of a constant.
   defmacrop constant(value) do
     quote do
       %Token{category: :constant, value: %{value: unquote(value)}}
     end
   end
 
+  # Produces a pattern which matches an AST of multiple constants.
   defmacrop constants(values) do
     Enum.map(values, &quote(do: constant(unquote(&1))))
   end
 
+
+  # -------------------------------------------------------------------
+  # Tests
+  # -------------------------------------------------------------------
+
+  test "simple select query" do
+    assert_parse("select foo from baz", select(columns: ["foo"], from: "baz"))
+  end
+
+  test "fully qualified table name" do
+    assert_parse("select foo from bar.baz", select(columns: ["foo"], from: "bar.baz"))
+  end
+
+  test "query with a terminating semicolon" do
+    assert_parse("select foo from baz;", select(columns: ["foo"], from: "baz"))
+  end
+
+  test "multiple fields" do
+    assert_parse("select foo, bar from baz", select(columns: ["foo", "bar"], from: "baz"))
+  end
+
+  test "whitespaces are ignored" do
+    assert_parse("select  foo\n from \n \n baz \n ; \n  ", select(columns: ["foo"], from: "baz"))
+  end
+
+  test "all allowed identifier characters" do
+    assert_parse("select foO1_ from Ba_z2", select(columns: ["foO1_"], from: "Ba_z2"))
+  end
+
+  test "case insensivity of commands" do
+    assert_parse("SELECT foo FROM baz", select(columns: ["foo"], from: "baz"))
+  end
+
+  test "show tables" do
+    assert_parse("show tables", show(:tables))
+  end
+
+  test "show columns" do
+    assert_parse("show columns from foo", show(:columns, from: "foo"))
+  end
+
   test "where clause with equality" do
-    verify_select(
+    assert_parse(
       "select foo from bar where a = 10",
-      columns: ["foo"], from: "bar", where: [{:comparison, "a", :=, constant(10)}]
+      select(columns: ["foo"], from: "bar", where: [{:comparison, "a", :=, constant(10)}])
     )
   end
 
   test "where clause with <" do
-    verify_select(
+    assert_parse(
       "select foo from bar where a < 10",
-      columns: ["foo"], from: "bar", where: [{:comparison, "a", :<, constant(10)}]
+      select(columns: ["foo"], from: "bar", where: [{:comparison, "a", :<, constant(10)}])
     )
   end
 
   test "where clause with >" do
-    verify_select(
+    assert_parse(
       "select foo from bar where a > 10",
-      columns: ["foo"], from: "bar", where: [{:comparison, "a", :>, constant(10)}]
+      select(columns: ["foo"], from: "bar", where: [{:comparison, "a", :>, constant(10)}])
     )
   end
 
   test "where clause with >=" do
-    verify_select(
+    assert_parse(
       "select foo from bar where a >= 10",
-      columns: ["foo"], from: "bar", where: [{:comparison, "a", :>=, constant(10)}]
+      select(columns: ["foo"], from: "bar", where: [{:comparison, "a", :>=, constant(10)}])
     )
   end
 
   test "where clause with <=" do
-    verify_select(
+    assert_parse(
       "select foo from bar where a <= 10",
-      columns: ["foo"], from: "bar", where: [{:comparison, "a", :<=, constant(10)}]
+      select(columns: ["foo"], from: "bar", where: [{:comparison, "a", :<=, constant(10)}])
     )
   end
 
   test "where clause with <>" do
-    verify_select(
+    assert_parse(
       "select foo from bar where a <> 10",
-      columns: ["foo"], from: "bar", where: [{:comparison, "a", :<>, constant(10)}]
+      select(columns: ["foo"], from: "bar", where: [{:comparison, "a", :<>, constant(10)}])
     )
   end
 
   test "where clause can have float values" do
-    verify_select(
+    assert_parse(
       "select foo from bar where a = 10.0",
-      columns: ["foo"], from: "bar", where: [{:comparison, "a", :=, constant(10.0)}]
+      select(columns: ["foo"], from: "bar", where: [{:comparison, "a", :=, constant(10.0)}])
     )
   end
 
   test "where clause can have string values" do
-    verify_select(
+    assert_parse(
       "select foo from bar where name = 'tom'",
-      columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, constant("tom")}]
+      select(columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, constant("tom")}])
     )
   end
 
   test "where clause can have string values of any case" do
-    verify_select(
+    assert_parse(
       "select foo from bar where name = 'tOm'",
-      columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, constant("tOm")}]
+      select(columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, constant("tOm")}])
     )
   end
 
   test "where clause can have multi-word string values" do
-    verify_select(
+    assert_parse(
       "select foo from bar where name = 'avishai cohen'",
-      columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, constant("avishai cohen")}]
+      select(columns: ["foo"], from: "bar", where: [{:comparison, "name", :=, constant("avishai cohen")}])
     )
   end
 
   test "where clause with mutliple comparisons" do
-    verify_select(
+    assert_parse(
       "select foo from bar where a <> 10 and b = 'bar'",
-      columns: ["foo"], from: "bar",
-      where: [{:comparison, "a", :<>, constant(10)}, {:comparison, "b", :=, constant("bar")}]
+      select(
+        columns: ["foo"], from: "bar",
+        where: [{:comparison, "a", :<>, constant(10)}, {:comparison, "b", :=, constant("bar")}]
+      )
     )
   end
 
   test "where clause with LIKE is OK" do
-    verify_select(
+    assert_parse(
       "select foo from bar where a LIKE '_ob d%'",
-      columns: ["foo"], from: "bar", where: [{:like, "a", constant("_ob d%")}]
+      select(columns: ["foo"], from: "bar", where: [{:like, "a", constant("_ob d%")}])
     )
   end
 
   test "where clause with IN is OK" do
-    verify_select(
+    assert_parse(
       "select foo from bar where a IN (1, 2, 3)",
-      columns: ["foo"], from: "bar", where: [{:in, "a", constants([1, 2, 3])}]
+      select(columns: ["foo"], from: "bar", where: [{:in, "a", constants([1, 2, 3])}])
     )
   end
 
   test "where clause with all types of clauses is OK" do
-    verify_select(
+    assert_parse(
       "select foo from bar where a = 2 and b in (1,2,3) and c like '_o'",
-      columns: ["foo"], from: "bar",
-      where: [
-        {:comparison, "a", :=, constant(2)},
-        {:in, "b", constants([1, 2, 3])},
-        {:like, "c", constant("_o")}
-      ]
+      select(
+        columns: ["foo"], from: "bar",
+        where: [
+          {:comparison, "a", :=, constant(2)},
+          {:in, "b", constants([1, 2, 3])},
+          {:like, "c", constant("_o")}
+        ]
+      )
     )
   end
 
   test "boolean values are allowed in comparisons" do
-    verify_select(
+    assert_parse(
       "select foo from bar where a = true and b in (true, false)",
-      columns: ["foo"], from: "bar",
-      where: [{:comparison, "a", :=, constant(true)}, {:in, "b", constants([true, false])}]
+      select(
+        columns: ["foo"], from: "bar",
+        where: [{:comparison, "a", :=, constant(true)}, {:in, "b", constants([true, false])}]
+      )
     )
   end
 
   test "it's valid to have a identifier contain a keyword" do
-    verify_select(
+    assert_parse(
       "SELECT INvalid, selectiscious FROM whereables",
-      columns: ["INvalid", "selectiscious"], from: "whereables"
+      select(columns: ["INvalid", "selectiscious"], from: "whereables")
     )
   end
 
   test "count(*)" do
-    verify_select("select count(*) from foo", columns: [{:count, :star}], from: "foo")
+    assert_parse("select count(*) from foo", select(columns: [{:count, :star}], from: "foo"))
   end
 
   test "group by multiple columns" do
-    verify_select(
+    assert_parse(
       "select x from b group by x, y, z",
-      columns: ["x"], from: "b", group_by: ["x", "y", "z"]
+      select(columns: ["x"], from: "b", group_by: ["x", "y", "z"])
     )
   end
 
   test "group by just one column" do
-    verify_select("select a from b group by a", group_by: ["a"])
+    assert_parse("select a from b group by a", select(group_by: ["a"]))
   end
 
   test "order by clause" do
-    verify_select(
+    assert_parse(
       "select a, b, c from foo order by a desc, b asc, c",
-      columns: ["a", "b", "c"], from: "foo", order_by: [{"a", :desc}, {"b", :asc}, {"c", nil}]
+      select(columns: ["a", "b", "c"], from: "foo", order_by: [{"a", :desc}, {"b", :asc}, {"c", nil}])
     )
   end
 
