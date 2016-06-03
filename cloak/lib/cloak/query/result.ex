@@ -12,7 +12,7 @@ defmodule Cloak.Query.Result do
   @doc "Converts a list of buckets into rows, expanding them if the query does not aggregate."
   @spec expand([Bucket.t]) :: [Property.t]
   def expand(results) do
-    Enum.flat_map(results, fn result ->
+    Enum.flat_map(results, fn(result) ->
       List.duplicate(bucket(result, :property), bucket(result, :noisy_count))
     end)
   end
@@ -38,7 +38,7 @@ defmodule Cloak.Query.Result do
       {index, direction}
     end
 
-    Enum.sort(buckets, fn (bucket1, bucket2) ->
+    Enum.sort(buckets, fn(bucket1, bucket2) ->
       compare_rows(bucket(bucket1, :property), bucket(bucket2, :property), order_list)
     end)
   end
@@ -61,7 +61,7 @@ defmodule Cloak.Query.Result do
   # -------------------------------------------------------------------
 
   defp do_apply_aggregation(results, query) do
-    Enum.map(results, fn result ->
+    Enum.map(results, fn(result) ->
       bucket(result, noisy_count: 1, property: assemble_row(result, query))
     end)
   end
