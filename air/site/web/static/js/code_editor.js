@@ -10,6 +10,7 @@ require("codemirror/addon/hint/anyword-hint");
 const KEYWORDS = [
   "SELECT", "SHOW", "TABLES", "COLUMNS", "FROM", "COUNT(*)",
   "WHERE", "IS", "LIKE", "IN", "AND", "GROUP BY", "ORDER BY",
+  "ASC", "DESC",
 ];
 
 export class CodeEditor extends React.Component {

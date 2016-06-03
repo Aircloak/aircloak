@@ -92,6 +92,13 @@ defmodule Cloak.SqlQuery.Parsers do
     %ParserState{state | results: [{state.line, state.column}]}
   end
 
+  @doc "Manually increments the current line cursor as it is not done so automatically."
+  @spec increment_line() :: Base.parser
+  @spec increment_line(Base.parser) :: Base.parser
+  defparser increment_line(%ParserState{status: :ok} = state) do
+    %ParserState{state | line: (state.line + 1)}
+  end
+
   @doc "Consumes a token of the given category."
   @spec token(any) :: Base.parser
   @spec token(Base.parser, any) :: Base.parser
