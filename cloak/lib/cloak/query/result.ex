@@ -39,17 +39,6 @@ defmodule Cloak.Query.Result do
   end
   def apply_order(buckets, _), do: buckets
 
-  @doc "Returns a list of column titles for the query."
-  @spec column_titles(SqlQuery.t) :: [String.t]
-  def column_titles(%{columns: columns}) do
-    Enum.map(columns, &column_title/1)
-  end
-
-  @doc "Returns a string title for the given column specification."
-  @spec column_title(SqlQuery.column) :: String.t
-  def column_title({:count, :star}), do: "count(*)"
-  def column_title(column), do: column
-
 
   # -------------------------------------------------------------------
   # Internal functions

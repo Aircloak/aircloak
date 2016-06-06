@@ -1,5 +1,5 @@
-defmodule Cloak.SqlQuery do
-  @moduledoc "Implements a parser of the sql query."
+defmodule Cloak.SqlQuery.Parser do
+  @moduledoc "Parser for SQL queries."
   use Combine
   import Cloak.SqlQuery.Parsers
 
@@ -20,13 +20,13 @@ defmodule Cloak.SqlQuery do
       | {:in, String.t, [any]}
       | {:not, where_clause}
 
-  @type t :: %{
+  @type parsed_query :: %{
     command: :select | :show,
     columns: [column],
     group_by: [String.t],
     from: [String.t],
     where: [where_clause],
-    order_by: [{String.t | pos_integer, :asc | :desc}],
+    order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns
   }
 
@@ -35,17 +35,17 @@ defmodule Cloak.SqlQuery do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Parses and returns the query string. Raises on parse error."
-  @spec parse!(String.t) :: t
-  def parse!(query_string) do
-    {:ok, parsed_query} = parse(query_string)
-    parsed_query
+  @doc "Parses a SQL query in text form. Raises on error."
+  @spec parse!(String.t) :: parsed_query
+  def parse!(string) do
+    {:ok, query} = parse(string)
+    query
   end
 
-  @doc "Parses the query string."
-  @spec parse(String.t) :: {:ok, t} | {:error, any}
-  def parse(query_string) do
-    with {:ok, tokens} <- Cloak.SqlQuery.Lexer.tokenize(query_string) do
+  @doc "Parses a SQL query in text form."
+  @spec parse(String.t) :: {:ok, parsed_query} | {:error, any}
+  def parse(string) do
+    with {:ok, tokens} <- Cloak.SqlQuery.Lexer.tokenize(string) do
       case parse_tokens(tokens, parser()) do
         {:error, _} = error -> error
         [statement] -> {:ok, statement}

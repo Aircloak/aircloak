@@ -18,7 +18,7 @@ defmodule Cloak.SqlQueryTest do
   # Runs the query string and asserts it matches to the given pattern.
   defmacrop assert_parse(query_string, expected_pattern) do
     quote do
-      assert unquote(expected_pattern) = SqlQuery.parse!(unquote(query_string))
+      assert unquote(expected_pattern) = SqlQuery.Parser.parse!(unquote(query_string))
     end
   end
 
@@ -320,7 +320,7 @@ defmodule Cloak.SqlQueryTest do
     ],
     fn({description, statement, expected_error, {line, column}}) ->
       test description do
-        assert {:error, reason} = SqlQuery.parse(unquote(statement))
+        assert {:error, reason} = SqlQuery.Parser.parse(unquote(statement))
         assert reason =~ unquote(expected_error)
         assert reason =~ "line #{unquote(line)}, column #{unquote(column)}\."
       end

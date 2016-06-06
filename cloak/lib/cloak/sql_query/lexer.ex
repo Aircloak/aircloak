@@ -4,16 +4,10 @@ defmodule Cloak.SqlQuery.Lexer do
   import Cloak.SqlQuery.Parsers
   alias Cloak.SqlQuery.Parsers.Token
 
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Tokenizes the given string, and raises on error."
-  @spec tokenize!(String.t) :: [Token.t]
-  def tokenize!(query_string) do
-    {:ok, tokens} = tokenize(query_string)
-    tokens
-  end
 
   @doc "Tokenizes the given string."
   @spec tokenize(String.t) :: {:ok, [Token.t]} | {:error, any}
