@@ -13,17 +13,19 @@ defmodule Cloak.SqlQuery do
 
   @type column :: String.t | {:count, :star}
 
+  @type where_clause ::
+        {:comparison, String.t, comparator, any}
+      | {:like, String.t, String.t}
+      | {:ilike, String.t, String.t}
+      | {:in, String.t, [any]}
+      | {:not, where_clause}
+
   @type t :: %{
     command: :select | :show,
     columns: [column],
     group_by: [String.t],
     from: [String.t],
-    where: [
-        {:comparison, String.t, comparator, any}
-      | {:like, String.t, String.t}
-      | {:not_like, String.t, String.t}
-      | {:in, String.t, [any]}
-    ],
+    where: [where_clause],
     order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns
   }
