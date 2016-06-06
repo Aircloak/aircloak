@@ -188,9 +188,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp to_fragment(atom) when is_atom(atom), do: to_string(atom)
   defp to_fragment(%Token{category: :constant, value: value}), do: {:param, value.value}
 
-  defp join([first | [_|_] = rest], joiner), do: [first, joiner, join(rest, joiner)]
-  defp join([el], _joiner), do: [el]
   defp join([], _joiner), do: []
+  defp join([el], _joiner), do: [el]
+  defp join([first | rest], joiner), do: [first, joiner, join(rest, joiner)]
 
 
   #-----------------------------------------------------------------------------------------------------------
