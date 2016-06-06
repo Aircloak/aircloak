@@ -183,6 +183,8 @@ defmodule Cloak.DataSource.PostgreSQL do
   Enum.each([
     {:like, " LIKE "},
     {:ilike, " ILIKE "},
+    {:not_like, " NOT LIKE "},
+    {:not_ilike, " NOT ILIKE "},
   ], fn({keyword, fragment}) ->
     defp where_clause_to_fragments({unquote(keyword), what, match}) do
       [to_fragment(what), unquote(fragment), to_fragment(match)]
