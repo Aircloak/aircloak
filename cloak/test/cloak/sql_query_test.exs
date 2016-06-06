@@ -176,6 +176,13 @@ defmodule Cloak.SqlQueryTest do
     )
   end
 
+  test "where clause with NOT LIKE" do
+    assert_parse(
+      "select foo from bar where a NOT LIKE '%pattern%'",
+      select(where: [{:not_like, "a", constant("%pattern%")}])
+    )
+  end
+
   test "where clause with IN is OK" do
     assert_parse(
       "select foo from bar where a IN (1, 2, 3)",

@@ -21,6 +21,7 @@ defmodule Cloak.SqlQuery do
     where: [
         {:comparison, String.t, comparator, any}
       | {:like, String.t, String.t}
+      | {:not_like, String.t, String.t}
       | {:in, String.t, [any]}
     ],
     order_by: [{String.t, :asc | :desc}],
@@ -150,7 +151,7 @@ defmodule Cloak.SqlQuery do
 
   defp where_expression() do
     switch([
-      {identifier() |> keyword(:like),
+      {identifier() |> option(keyword(:not)) |> keyword(:like),
         constant(:string)},
       {identifier() |> keyword(:in),
         in_values()},
@@ -159,7 +160,8 @@ defmodule Cloak.SqlQuery do
       {:else, fail("Invalid where expression")}
     ])
     |> map(fn
-          {[identifier, :like], [string_constant]} -> {:like, identifier, string_constant}
+          {[identifier, nil, :like], [string_constant]} -> {:like, identifier, string_constant}
+          {[identifier, :not, :like], [string_constant]} -> {:not_like, identifier, string_constant}
           {[identifier, :in], [in_values]} -> {:in, identifier, in_values}
           {[identifier, comparator], [value]} -> {:comparison, identifier, comparator, value}
         end)
