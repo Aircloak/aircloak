@@ -69,6 +69,10 @@ defmodule Cloak.SqlQueryTest do
     assert_parse("select foo, bar from baz", select(columns: ["foo", "bar"], from: "baz"))
   end
 
+  test "all fields" do
+    assert_parse("select * from baz", select(columns: :star, from: "baz"))
+  end
+
   test "whitespaces are ignored" do
     assert_parse("select  foo\n from \n \n baz \n ; \n  ", select(columns: ["foo"], from: "baz"))
   end

@@ -64,9 +64,14 @@ defmodule Cloak.Query.Runner do
   defp aggregate_function?({:count, _}), do: true
   defp aggregate_function?(_), do: false
 
+  defp compile_columns(%{command: :select, columns: :star, from: table_identifier, data_source: data_source} = query) do
+    table_id = String.to_existing_atom(table_identifier)
+    columns = for {name, _type} <- DataSource.columns(data_source, table_id), do: name
+    {:ok, %{query | columns: columns}}
+  end
   defp compile_columns(%{command: :select, from: table_identifier, data_source: data_source} = query) do
     table_id = String.to_existing_atom(table_identifier)
-    columns = DataSource.columns(data_source, table_id)
+    columns = for {name, _type} <- DataSource.columns(data_source, table_id), do: name
     invalid_columns = Enum.reject(all_columns(query), &valid_column?(&1, columns))
     case invalid_columns do
       [] -> {:ok, query}
@@ -77,8 +82,7 @@ defmodule Cloak.Query.Runner do
 
   defp valid_column?({:count, :star}, _), do: true
   defp valid_column?(name, columns) do
-    columns
-    |> Enum.any?(fn {column, _} -> name == column end)
+    columns |> Enum.any?(&(&1 == name))
   end
 
   defp all_columns(%{columns: selected_columns} = query) do

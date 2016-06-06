@@ -11,7 +11,7 @@ defmodule Cloak.SqlQuery do
     | :>
     | :<>
 
-  @type column :: String.t | {:count, :star}
+  @type column :: String.t | :star | {:count, :star}
 
   @type t :: %{
     command: :select | :show,
@@ -102,7 +102,14 @@ defmodule Cloak.SqlQuery do
   end
 
   defp select_columns() do
-    map(comma_delimited(column()), &{:columns, &1})
+    either(
+      star(),
+      comma_delimited(column())
+    ) |> map(&{:columns, &1})
+  end
+
+  defp star() do
+    keyword(:"*") |> map(fn(:*) -> :star end)
   end
 
   defp column() do
