@@ -106,17 +106,22 @@ defmodule Cloak.SqlQuery.Parsers do
     if Enum.empty?(input) do
       %{state | status: :error, error: "Expected #{category}, but hit end of input"}
     else
-      case hd(input) do
-        %Token{category: ^category} = token ->
+      case input do
+        [%Token{category: ^category} = token | next_tokens] ->
+          {next_line, next_column} =
+            case next_tokens do
+              [next_token | _] -> {next_token.line, next_token.column}
+              [] -> {token.line, token.column}
+            end
+          %{state | line: next_line, column: next_column, input: next_tokens, results: [token | results]}
+
+        [%Token{} = token | _] ->
           %{state |
-            line: token.line, column: token.column, input: tl(input), results: [token | results]
+            status: :error,
+            error: "Unexpected token `#{to_string(token)}` at line #{state.line}, column #{state.column}}"
           }
-        %Token{} = token ->
-          %{state |
-            line: token.line, column: token.column, status: :error,
-            error: "Unexpected token `#{to_string(token)}` at line #{token.line}, column #{token.column}}"
-          }
-        other -> raise "Input contained non-token #{inspect other}"
+
+        [other | _] -> raise "Input contained non-token #{inspect other}"
       end
     end
   end
