@@ -87,8 +87,8 @@ defmodule Cloak.Query.Runner do
   end
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
-  defp where_clause_to_identifier({:in, identifier, _}), do: identifier
-  Enum.each([:like, :ilike, :not_like, :not_ilike], fn(keyword) ->
+  defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
+  Enum.each([:in, :like, :ilike], fn(keyword) ->
     defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
   end)
 

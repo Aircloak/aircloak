@@ -179,7 +179,7 @@ defmodule Cloak.SqlQueryTest do
   test "where clause with NOT LIKE" do
     assert_parse(
       "select foo from bar where a NOT LIKE '%pattern%'",
-      select(where: [{:not_like, "a", constant("%pattern%")}])
+      select(where: [{:not, {:like, "a", constant("%pattern%")}}])
     )
   end
 
@@ -193,7 +193,7 @@ defmodule Cloak.SqlQueryTest do
   test "where clause with NOT ILIKE" do
     assert_parse(
       "select foo from bar where a NOT ILIKE '%pattern%'",
-      select(where: [{:not_ilike, "a", constant("%pattern%")}])
+      select(where: [{:not, {:ilike, "a", constant("%pattern%")}}])
     )
   end
 

@@ -161,9 +161,9 @@ defmodule Cloak.SqlQuery do
     ])
     |> map(fn
           {[identifier, nil, :like], [string_constant]} -> {:like, identifier, string_constant}
-          {[identifier, :not, :like], [string_constant]} -> {:not_like, identifier, string_constant}
+          {[identifier, :not, :like], [string_constant]} -> {:not, {:like, identifier, string_constant}}
           {[identifier, nil, :ilike], [string_constant]} -> {:ilike, identifier, string_constant}
-          {[identifier, :not, :ilike], [string_constant]} -> {:not_ilike, identifier, string_constant}
+          {[identifier, :not, :ilike], [string_constant]} -> {:not, {:ilike, identifier, string_constant}}
           {[identifier, :in], [in_values]} -> {:in, identifier, in_values}
           {[identifier, comparator], [value]} -> {:comparison, identifier, comparator, value}
         end)
