@@ -10,8 +10,8 @@ defmodule Cloak.Query.Runner do
   @spec run(Cloak.Query.t) :: {:ok, {:buckets, [DataSource.column], [Bucket.t]}} | {:error, any}
   def run(query) do
     with {:ok, sql_query} <- Cloak.SqlQuery.parse(query.statement),
-         :ok <- validate(sql_query, query.data_source) do
-      execute_sql_query(sql_query, query.data_source)
+         {:ok, sql_query} <- compile(sql_query, query.data_source) do
+      execute_sql_query(sql_query)
     end
   end
 
@@ -20,24 +20,27 @@ defmodule Cloak.Query.Runner do
   ## Internal functions
   ## ----------------------------------------------------------------
 
-  defp validate(sql_query, data_source) do
-    with :ok <- validate_from(sql_query, data_source),
-         :ok <- validate_columns(sql_query, data_source),
-         :ok <- validate_aggregation(sql_query),
-         :ok <- validate_order_by(sql_query), do: :ok
+  defp compile(sql_query, data_source) do
+    sql_query = Map.put(sql_query, :data_source, data_source)
+    with {:ok, sql_query} <- compile_from(sql_query),
+         {:ok, sql_query} <- compile_columns(sql_query),
+         {:ok, sql_query} <- compile_aggregation(sql_query),
+         {:ok, sql_query} <- compile_order_by(sql_query),
+      do: {:ok, sql_query}
   end
 
-  defp validate_from(%{from: table_identifier}, data_source) do
-    case Enum.find_index(DataSource.tables(data_source), &(Atom.to_string(&1) === table_identifier)) do
+  defp compile_from(%{from: table_identifier, data_source: data_source} = query) do
+    tables = DataSource.tables(data_source)
+    case Enum.find_index(tables, &(Atom.to_string(&1) === table_identifier)) do
       nil -> {:error, ~s/Table "#{table_identifier}" doesn't exist./}
-      _ -> :ok
+      _ -> {:ok, query}
     end
   end
-  defp validate_from(%{}, _data_source), do: :ok
+  defp compile_from(query), do: {:ok, query}
 
-  defp validate_aggregation(%{command: :select} = query) do
+  defp compile_aggregation(%{command: :select} = query) do
     case invalid_not_aggregated_columns(query) do
-      [] -> :ok
+      [] -> {:ok, query}
       columns ->
         {
           :error,
@@ -46,7 +49,7 @@ defmodule Cloak.Query.Runner do
         }
     end
   end
-  defp validate_aggregation(_), do: :ok
+  defp compile_aggregation(query), do: {:ok, query}
 
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
     Enum.reject(query.columns, &(aggregate_function?(&1) || Enum.member?(query.group_by, &1)))
@@ -61,15 +64,16 @@ defmodule Cloak.Query.Runner do
   defp aggregate_function?({:count, _}), do: true
   defp aggregate_function?(_), do: false
 
-  defp validate_columns(%{command: :select, from: table_identifier} = query, data_source) do
+  defp compile_columns(%{command: :select, from: table_identifier, data_source: data_source} = query) do
     table_id = String.to_existing_atom(table_identifier)
-    invalid_columns = Enum.reject(all_columns(query), &valid_column?(&1, DataSource.columns(data_source, table_id)))
+    columns = DataSource.columns(data_source, table_id)
+    invalid_columns = Enum.reject(all_columns(query), &valid_column?(&1, columns))
     case invalid_columns do
-      [] -> :ok
+      [] -> {:ok, query}
       [invalid_column | _rest] -> {:error, ~s/Column "#{invalid_column}" doesn't exist./}
     end
   end
-  defp validate_columns(%{}, _data_source), do: :ok
+  defp compile_columns(query), do: {:ok, query}
 
   defp valid_column?({:count, :star}, _), do: true
   defp valid_column?(name, columns) do
@@ -90,30 +94,30 @@ defmodule Cloak.Query.Runner do
   defp where_clause_to_identifier({:in, identifier, _}), do: identifier
   defp where_clause_to_identifier({:like, identifier, _}), do: identifier
 
-  defp validate_order_by(%{columns: columns, order_by: order_by_spec}) do
+  defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
     case invalid_fields do
-      [] -> :ok
+      [] -> {:ok, query}
       [{invalid_field, _direction} | _rest] ->
         {:error, ~s/Non-selected field specified in 'order by' clause: #{inspect invalid_field}./}
     end
   end
-  defp validate_order_by(%{}), do: :ok
+  defp compile_order_by(query), do: {:ok, query}
 
-  defp execute_sql_query(%{command: :show, show: :tables}, data_source) do
+  defp execute_sql_query(%{command: :show, show: :tables, data_source: data_source}) do
     columns = ["name"]
     rows = Enum.map(DataSource.tables(data_source), &[&1])
 
     {:ok, {:buckets, columns, rows}}
   end
-  defp execute_sql_query(%{command: :show, show: :columns, from: table_identifier}, data_source) do
+  defp execute_sql_query(%{command: :show, show: :columns, from: table_identifier, data_source: data_source}) do
     table_id = String.to_existing_atom(table_identifier)
     columns = ["name", "type"]
     rows = Enum.map(DataSource.columns(data_source, table_id), &Tuple.to_list/1)
 
     {:ok, {:buckets, columns, rows}}
   end
-  defp execute_sql_query(%{command: :select} = select_query, data_source) do
+  defp execute_sql_query(%{command: :select, data_source: data_source} = select_query) do
     with {:ok, {_count, [_user_id | columns], rows}} <- DataSource.select(data_source, select_query) do
       lcf_data = LCFData.new()
 
