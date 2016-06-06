@@ -1,6 +1,7 @@
 import React from "react";
 
 import {CodeEditor} from "../code_editor";
+import {Info} from "./info";
 
 export class Result extends React.Component {
   constructor(props) {
@@ -77,6 +78,7 @@ export class Result extends React.Component {
             statement={this.props.statement}
             readOnly
           />
+          <Info info={this.props.info} />
           <table className="table table-striped table-hover">
             <thead>
               <tr>
@@ -103,6 +105,7 @@ Result.propTypes = {
   columns: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
   rows: React.PropTypes.arrayOf(React.PropTypes.array).isRequired,
   row_count: React.PropTypes.number,
+  info: React.PropTypes.string,
   isLoading: React.PropTypes.bool,
   errorLoading: React.PropTypes.bool,
   handleLessRows: React.PropTypes.func,
