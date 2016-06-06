@@ -35,13 +35,27 @@ defmodule Cloak.QueryTest do
     assert Enum.sort(rows) == [["height", :integer], ["name", :text]]
   end
 
-  test "query execution" do
+  test "simple select query" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     :ok = start_query("select height from heights")
 
     assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
     assert 100 == length(rows)
     assert Enum.all?(rows, &(&1 == [180]))
+  end
+
+  test "select all query" do
+    :ok = start_query("select * from heights")
+    assert_receive {:reply, %{query_id: "1", columns: ["height", "name"], rows: []}}
+  end
+
+  test "select all and order query" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height"], ["john", 180])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height"], ["adam", 180])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
+    :ok = start_query("select * from heights order by name")
+    assert_receive {:reply, %{query_id: "1", columns: ["height", "name"], rows: rows}}
+    assert Enum.uniq(rows) == [[180, "adam"], [180, "john"], [180, "mike"]]
   end
 
   test "should return LCF property when sufficient rows are filtered" do
