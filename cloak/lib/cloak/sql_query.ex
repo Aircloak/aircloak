@@ -16,9 +16,10 @@ defmodule Cloak.SqlQuery do
   @type where_clause ::
         {:comparison, String.t, comparator, any}
       | {:like, String.t, String.t}
+      | {:not, {:like, String.t, String.t}}
       | {:ilike, String.t, String.t}
+      | {:not, {:ilike, String.t, String.t}}
       | {:in, String.t, [any]}
-      | {:not, where_clause}
 
   @type t :: %{
     command: :select | :show,
