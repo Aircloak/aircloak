@@ -117,6 +117,7 @@ defmodule Cloak.SqlQuery.Lexer do
   defp string_content() do
     choice([
       string("\\'") |> map(fn _ -> "'" end),
+      string("\\\\") |> map(fn _ -> "\\" end),
       word_of(~r/[^'\\]+/),
     ])
   end

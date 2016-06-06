@@ -8,4 +8,9 @@ defmodule Cloak.SqlQuery.Lexer.Test do
     assert [%Token{category: :constant, value: %{type: :string, value: "a string with a '"}} | _] =
       Lexer.tokenize!("'a string with a \\''")
   end
+
+  test "lexing strings with escaped backslashes" do
+    assert [%Token{category: :constant, value: %{type: :string, value: "a string with a \\"}} | _] =
+      Lexer.tokenize!("'a string with a \\\\'")
+  end
 end
