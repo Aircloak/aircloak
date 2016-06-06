@@ -23,7 +23,7 @@ defmodule Cloak.SqlQuery do
       | {:like, String.t, String.t}
       | {:in, String.t, [any]}
     ],
-    order_by: [{String.t, :asc | :desc}],
+    order_by: [{String.t | pos_integer, :asc | :desc}],
     show: :tables | :columns
   }
 

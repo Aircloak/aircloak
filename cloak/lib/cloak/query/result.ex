@@ -32,12 +32,7 @@ defmodule Cloak.Query.Result do
 
   @doc "Sorts the rows in the order defined in the query."
   @spec apply_order([Bucket.t], SqlQuery.t) :: [Bucket.t]
-  def apply_order(buckets, %{columns: columns, order_by: order_by_spec}) do
-    order_list = for {column, direction} <- order_by_spec do
-      index = columns |> Enum.find_index(&(&1 == column))
-      {index, direction}
-    end
-
+  def apply_order(buckets, %{order_by: order_list}) do
     Enum.sort(buckets, fn(bucket1, bucket2) ->
       compare_rows(bucket(bucket1, :property), bucket(bucket2, :property), order_list)
     end)

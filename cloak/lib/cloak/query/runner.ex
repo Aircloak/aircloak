@@ -101,7 +101,12 @@ defmodule Cloak.Query.Runner do
   defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
     case invalid_fields do
-      [] -> {:ok, query}
+      [] ->
+        order_list = for {column, direction} <- order_by_spec do
+          index = columns |> Enum.find_index(&(&1 == column))
+          {index, direction}
+        end
+        {:ok, %{query | order_by: order_list}}
       [{invalid_field, _direction} | _rest] ->
         {:error, ~s/Non-selected field specified in 'order by' clause: #{inspect invalid_field}./}
     end
