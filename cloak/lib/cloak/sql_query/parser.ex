@@ -11,14 +11,15 @@ defmodule Cloak.SqlQuery.Parser do
     | :>
     | :<>
 
-  @type column :: String.t | :star | {:count, :star}
+  @type column :: String.t | {:count, :star}
+
+  @type like :: {:like | :ilike, String.t, String.t}
 
   @type where_clause ::
         {:comparison, String.t, comparator, any}
-      | {:like, String.t, String.t}
-      | {:ilike, String.t, String.t}
+      | like
+      | {:not, like}
       | {:in, String.t, [any]}
-      | {:not, where_clause}
 
   @type parsed_query :: %{
     command: :select | :show,
