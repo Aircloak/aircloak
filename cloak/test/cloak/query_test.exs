@@ -49,6 +49,12 @@ defmodule Cloak.QueryTest do
     assert_receive {:reply, %{query_id: "1", columns: ["height", "name"], rows: []}}
   end
 
+  test "select all and order query" do
+    :ok = start_query("select * from heights order by name")
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height"], ["jon", 180])
+    assert_receive {:reply, %{query_id: "1", columns: ["height", "name"], rows: _}}
+  end
+
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     for id <- 5..9 do
