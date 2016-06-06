@@ -187,7 +187,6 @@ defmodule Cloak.DataSource.PostgreSQL do
     defp where_clause_to_fragments({unquote(keyword), what, match}) do
       [to_fragment(what), unquote(fragment), to_fragment(match)]
     end
-
     defp where_clause_to_fragments({:not, {unquote(keyword), what, match}}) do
       [to_fragment(what), unquote(negative_fragment), to_fragment(match)]
     end
