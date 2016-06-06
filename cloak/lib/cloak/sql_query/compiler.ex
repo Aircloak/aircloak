@@ -1,6 +1,6 @@
 defmodule Cloak.SqlQuery.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
-  alias Cloak.{DataSource, SqlQuery}
+  alias Cloak.DataSource
 
   @type compiled_query :: %{
     data_source: atom,
@@ -29,6 +29,11 @@ defmodule Cloak.SqlQuery.Compiler do
       do: {:ok, query}
   end
 
+  @doc "Returns a string title for the given column specification."
+  @spec column_title(Parser.column) :: String.t
+  def column_title({:count, :star}), do: "count(*)"
+  def column_title(column), do: column
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -49,7 +54,7 @@ defmodule Cloak.SqlQuery.Compiler do
       columns ->
         {
           :error,
-          "Columns #{columns |> Enum.map(&SqlQuery.column_title/1) |> Enum.join} need to appear in the " <>
+          "Columns #{columns |> Enum.map(&column_title/1) |> Enum.join} need to appear in the " <>
             "`group by` clause or be used in an aggregate function."
         }
     end
