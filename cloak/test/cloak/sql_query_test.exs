@@ -180,6 +180,27 @@ defmodule Cloak.SqlQueryTest do
     )
   end
 
+  test "where clause with NOT LIKE" do
+    assert_parse(
+      "select foo from bar where a NOT LIKE '%pattern%'",
+      select(where: [{:not, {:like, "a", constant("%pattern%")}}])
+    )
+  end
+
+  test "where clause with ILIKE" do
+    assert_parse(
+      "select foo from bar where a ILIKE '_ob d%'",
+      select(columns: ["foo"], from: "bar", where: [{:ilike, "a", constant("_ob d%")}])
+    )
+  end
+
+  test "where clause with NOT ILIKE" do
+    assert_parse(
+      "select foo from bar where a NOT ILIKE '%pattern%'",
+      select(where: [{:not, {:ilike, "a", constant("%pattern%")}}])
+    )
+  end
+
   test "where clause with IN is OK" do
     assert_parse(
       "select foo from bar where a IN (1, 2, 3)",
@@ -261,9 +282,9 @@ defmodule Cloak.SqlQueryTest do
       {"!= is an illegal comparator in where clause",
         "select a from b where a != b", "Invalid character", {1, 25}},
       {"=> is an illegal comparator in where clause",
-        "select a from b where a => b", "Expected `comparison value`", {1, 25}},
+        "select a from b where a => b", "Expected `comparison value`", {1, 26}},
       {"=< is an illegal comparator in where clause",
-        "select a from b where a =< b", "Expected `comparison value`", {1, 25}},
+        "select a from b where a =< b", "Expected `comparison value`", {1, 26}},
       {"where clauses cannot be separated by or",
         "select a from b where a > 1 or b < 2", "Expected end of input", {1, 29}},
       {"not joining multiple where clauses is illegal",
@@ -285,7 +306,7 @@ defmodule Cloak.SqlQueryTest do
       {"invalid in",
         "select foo from bar where baz in", "Expected `(`", {1, 33}},
       {"invalid comparison",
-        "select foo from bar where baz =", "Expected `comparison value`", {1, 31}},
+        "select foo from bar where baz =", "Expected `comparison value`", {1, 32}},
       {"missing where expression",
         "select foo from bar where", "Invalid where expression", {1, 26}},
       {"invalid where expression",

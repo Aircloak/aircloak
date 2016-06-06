@@ -42,7 +42,7 @@ defmodule Cloak.Mixfile do
       {:poolboy, "~> 1.5"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client"},
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
-      {:combine, "~> 0.8.0"},
+      {:combine, github: "bitwalker/combine"},
       {:phoenix, "~> 1.1.4", only: :test},
       {:cowboy, "~> 1.0", only: :test}
     ]

@@ -89,6 +89,26 @@ defmodule Cloak.QueryTest do
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[20]]}}
   end
 
+  test "should allow NOT LIKE in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "bob"])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height", "name"], [170, "alice"])
+    :ok = start_query("select count(*) from heights where name NOT LIKE 'b%'")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
+  end
+
+  test "should allow NOT ILIKE in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "Bob"])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height", "name"], [170, "alice"])
+    :ok = start_query("select count(*) from heights where name NOT ILIKE 'b%'")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
+  end
+
+  test "should allow ILIKE in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "Bob"])
+    :ok = start_query("select count(*) from heights where name ILIKE 'b%'")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[20]]}}
+  end
+
   test "should allow IN in where clause" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])

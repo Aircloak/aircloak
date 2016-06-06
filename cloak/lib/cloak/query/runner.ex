@@ -95,8 +95,10 @@ defmodule Cloak.Query.Runner do
   end
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
-  defp where_clause_to_identifier({:in, identifier, _}), do: identifier
-  defp where_clause_to_identifier({:like, identifier, _}), do: identifier
+  defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
+  Enum.each([:in, :like, :ilike], fn(keyword) ->
+    defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
+  end)
 
   defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)

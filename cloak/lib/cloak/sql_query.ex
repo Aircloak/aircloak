@@ -13,16 +13,19 @@ defmodule Cloak.SqlQuery do
 
   @type column :: String.t | :star | {:count, :star}
 
+  @type where_clause ::
+        {:comparison, String.t, comparator, any}
+      | {:like, String.t, String.t}
+      | {:ilike, String.t, String.t}
+      | {:in, String.t, [any]}
+      | {:not, where_clause}
+
   @type t :: %{
     command: :select | :show,
     columns: [column],
     group_by: [String.t],
     from: [String.t],
-    where: [
-        {:comparison, String.t, comparator, any}
-      | {:like, String.t, String.t}
-      | {:in, String.t, [any]}
-    ],
+    where: [where_clause],
     order_by: [{String.t | pos_integer, :asc | :desc}],
     show: :tables | :columns
   }
@@ -65,7 +68,7 @@ defmodule Cloak.SqlQuery do
     switch([
       {keyword(:select), select_statement()},
       {keyword(:show), show_statement()},
-      {:else, error_message(fail_on_current_token(), "Expected `select or show`")}
+      {:else, error_message(fail(""), "Expected `select or show`")}
     ])
     |> map(&create_reportable_map/1)
   end
@@ -86,7 +89,7 @@ defmodule Cloak.SqlQuery do
     switch([
       {keyword(:tables), noop()},
       {keyword(:columns), from()},
-      {:else, error_message(fail_on_current_token(), "Expected `tables or columns`")}
+      {:else, error_message(fail(""), "Expected `tables or columns`")}
     ])
     |> map(fn({[show], data}) -> [{:show, show} | data] end)
   end
@@ -157,16 +160,19 @@ defmodule Cloak.SqlQuery do
 
   defp where_expression() do
     switch([
-      {identifier() |> keyword(:like),
+      {identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]),
         constant(:string)},
       {identifier() |> keyword(:in),
         in_values()},
       {identifier() |> comparator(),
         allowed_where_values()},
-      {:else, error_message(fail_on_current_token(), "Invalid where expression")}
+      {:else, error_message(fail(""), "Invalid where expression")}
     ])
     |> map(fn
-          {[identifier, :like], [string_constant]} -> {:like, identifier, string_constant}
+          {[identifier, nil, :like], [string_constant]} -> {:like, identifier, string_constant}
+          {[identifier, :not, :like], [string_constant]} -> {:not, {:like, identifier, string_constant}}
+          {[identifier, nil, :ilike], [string_constant]} -> {:ilike, identifier, string_constant}
+          {[identifier, :not, :ilike], [string_constant]} -> {:not, {:ilike, identifier, string_constant}}
           {[identifier, :in], [in_values]} -> {:in, identifier, in_values}
           {[identifier, comparator], [value]} -> {:comparison, identifier, comparator, value}
         end)
@@ -265,8 +271,6 @@ defmodule Cloak.SqlQuery do
     sep_by1(term_parser, keyword(:and))
   end
 
-  defp fail_on_current_token(), do: token(nil)
-
   defp end_of_input(parser) do
     parser
     |> error_message(token(:eof), "Expected end of input.")
@@ -282,10 +286,10 @@ defmodule Cloak.SqlQuery do
   # from combine. Once our changes are merged upstream, we should replace this
   # with a regular combine
 
-  defp parse_tokens(tokens, parser) do
+  defp parse_tokens([first_token | _] = tokens, parser) do
     alias Combine.ParserState
 
-    case parser.(%ParserState{input: tokens}) do
+    case parser.(%ParserState{input: tokens, line: first_token.line, column: first_token.column}) do
       %ParserState{status: :ok, results: res} ->
         res |> Enum.reverse |> Enum.filter_map(&ignore_filter/1, &filter_ignores/1)
       %ParserState{error: res} ->
