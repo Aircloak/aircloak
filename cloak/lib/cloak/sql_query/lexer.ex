@@ -40,6 +40,7 @@ defmodule Cloak.SqlQuery.Lexer do
     "AND",
     "NOT",
     "LIKE",
+    "ILIKE",
     "IN",
     "ORDER",
     "GROUP",

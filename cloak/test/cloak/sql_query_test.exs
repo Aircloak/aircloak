@@ -183,6 +183,20 @@ defmodule Cloak.SqlQueryTest do
     )
   end
 
+  test "where clause with ILIKE" do
+    assert_parse(
+      "select foo from bar where a ILIKE '_ob d%'",
+      select(columns: ["foo"], from: "bar", where: [{:ilike, "a", constant("_ob d%")}])
+    )
+  end
+
+  test "where clause with NOT ILIKE" do
+    assert_parse(
+      "select foo from bar where a NOT ILIKE '%pattern%'",
+      select(where: [{:not_ilike, "a", constant("%pattern%")}])
+    )
+  end
+
   test "where clause with IN is OK" do
     assert_parse(
       "select foo from bar where a IN (1, 2, 3)",
