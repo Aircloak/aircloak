@@ -133,6 +133,43 @@ defmodule Cloak.SqlQuery.Parsers do
     end
   end
 
+  @doc "Consumes any token."
+  @spec any_token(Combine.previous_parser) :: Combine.parser
+  defparser any_token(%ParserState{status: :ok, input: input, results: results} = state) do
+    case input do
+      [] ->
+        %ParserState{status: :error,
+          error: "Unexpected `eof` at line #{state.line}, column #{state.column + 1}."
+        }
+
+      [%Token{} = token | next_tokens] ->
+        {next_line, next_column} =
+          case next_tokens do
+            [next_token | _] -> {next_token.line, next_token.column}
+            [] -> {token.line, token.column}
+          end
+        %{state | line: next_line, column: next_column, input: next_tokens, results: [token | results]}
+    end
+  end
+
+  @doc """
+  Emits the token offset in the input string.
+
+  The token offset is a zero-based integer which determines token position in the
+  input string.
+  """
+  @spec token_offset(Combine.previous_parser) :: Combine.parser
+  defparser token_offset(%ParserState{status: :ok, input: input, results: results} = state) do
+    case input do
+      [] ->
+        %ParserState{status: :error,
+          error: "Unexpected `eof` at line #{state.line}, column #{state.column + 1}."
+        }
+
+      [%Token{} = token | _] -> %{state | results: [token.offset | results]}
+    end
+  end
+
   @doc "Assert that there are no more tokens in the input."
   @spec end_of_tokens(Combine.previous_parser) :: Combine.parser
   defparser end_of_tokens(%ParserState{status: :ok, line: line, column: column} = state) do
@@ -158,5 +195,38 @@ defmodule Cloak.SqlQuery.Parsers do
         error: "#{message} at line #{next_state.line}, column #{next_state.column + 1}."
       }
     end
+  end
+
+  @doc """
+  Creates a lazy parser.
+
+  A lazy parser is created on demand. This can be useful to parse recursive grammars.
+
+  For example, the following spec for parsing recursive parentheses won't work:
+
+  ```
+  defp parens do
+    sequence([char("("), many(parens()), char(")")])
+  end
+  ```
+
+  The reason is that parsers are by default eager, so invoking `parser()` will
+  cause an infinite loop.
+
+  Using `lazy`, you can defer recursing:
+
+  ```
+  defp parens do
+    sequence([char("("), many(lazy(fn -> parens() end)), char(")")])
+  end
+  ```
+
+  Lazy parser will be created on demand. In this example, if the next character is
+  `(`, we'll recurse once. Then, if the next character is again `(`, we'll recurse
+  again. Otherwise, we'll try to match the `)` character.
+  """
+  @spec lazy(Combine.previous_parser, (() -> Combine.parser)) :: Combine.parser
+  defparser lazy(%ParserState{status: :ok} = state, generator) do
+    (generator.()).(state)
   end
 end
