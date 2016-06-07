@@ -168,7 +168,8 @@ defmodule Air.Socket.Cloak.MainChannel do
     storable_result = Poison.encode!(%{
       columns: result["columns"],
       rows: result["rows"],
-      error: result["error"]
+      error: result["error"],
+      info: result["info"],
     })
 
     updated_query = Repo.update!(Query.changeset(query, %{result: storable_result}))
