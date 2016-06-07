@@ -63,7 +63,7 @@ defmodule Cloak.SqlQuery.Parser do
     %{statement | from: {:verbatim, ""}}
   end
   defp map_from(%{from: {:verbatim, from, to}} = statement, statement_string) do
-    %{statement | from: {:verbatim, String.slice(statement_string, from..(to-1))}}
+    %{statement | from: {:verbatim, String.slice(statement_string, from..(to - 1))}}
   end
   defp map_from(statement, _statement_string), do: statement
 
