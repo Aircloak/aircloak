@@ -49,15 +49,23 @@ defmodule Cloak.SqlQuery.Parser do
     with {:ok, tokens} <- Cloak.SqlQuery.Lexer.tokenize(string) do
       case parse_tokens(tokens, parser()) do
         {:error, _} = error -> error
-        [statement] -> {:ok, statement}
+        [statement] ->
+          {:ok, map_from(statement, string)}
       end
     end
   end
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp map_from(%{from: {:verbatim, from, from}} = statement, _statement_string) do
+    %{statement | from: {:verbatim, ""}}
+  end
+  defp map_from(%{from: {:verbatim, from, to}} = statement, statement_string) do
+    %{statement | from: {:verbatim, String.slice(statement_string, from..(to-1))}}
+  end
+  defp map_from(statement, _statement_string), do: statement
 
   defp parser do
     statement()
@@ -133,8 +141,36 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp from_table_name() do
-    either(table_with_schema(), identifier())
-    |> label("table name")
+    switch([
+      {keyword(:"(") |> map(fn(_) -> :verbatim end), verbatim_position()},
+      {:else, either(table_with_schema(), identifier()) |> label("table name")}
+    ])
+    |> map(fn
+          {[:verbatim], [[from, to]]} -> {:verbatim, from, to}
+          other -> other
+        end)
+  end
+
+  defp verbatim_position() do
+    sequence([
+      token_offset(),
+      ignore(verbatim_expr()),
+      token_offset(),
+      ignore(keyword(:")"))
+    ])
+  end
+
+  defp verbatim_expr() do
+    many(
+      either(
+        verbatim_nested_expr(),
+        any_token() |> satisfy(&(&1.category != :")" && &1.category != :eof))
+      )
+    )
+  end
+
+  defp verbatim_nested_expr() do
+    sequence([keyword(:"("), lazy(fn -> verbatim_expr() end), keyword(:")")])
   end
 
   defp table_with_schema() do
