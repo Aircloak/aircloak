@@ -10,4 +10,4 @@ COPY docker/docker_helper.sh /aircloak/docker/
 COPY air/site/container.sh /aircloak/air/site/
 COPY air/router/container.sh /aircloak/air/router/
 
-AIR_TAG_VERSION
+TAG_VERSION

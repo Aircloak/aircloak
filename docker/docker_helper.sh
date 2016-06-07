@@ -194,14 +194,14 @@ function dockerfile_content {
   while read line; do
     case "$(echo "$line" | xargs -0)" in
       # production specific initialization of proxies and user ids
-      AIR_INIT)
-        echo "$(air_init)"
+      MPI_INIT)
+        echo "$(mpi_init)"
         ;;
 
       # Version tagging. When a version is bumped, this will cause a new image
       # to be rebuilt. Usually, this instruction should be included at the end
       # of the Dockerfile to reduce the amount of rebuilt layers.
-      AIR_TAG_VERSION)
+      TAG_VERSION)
         echo "RUN echo '$SYSTEM_VERSION' > /tmp/VERSION"
         ;;
 
@@ -212,7 +212,7 @@ function dockerfile_content {
   done
 }
 
-function air_init {
+function mpi_init {
   # This function generates the RUN command which sets up some production specific
   # initialization, such as http proxies, and package mirrors.
   # In addition, we export UID of the current host user to the image. While
@@ -232,7 +232,7 @@ function air_init {
   # Start the RUN command
   echo "RUN mkdir -p /tmp/build_config && \\"
 
-  if [ "$AIR_ENV" = "prod" ]; then
+  if [ "$CONTAINER_ENV" = "prod" ]; then
     # set mpi repos & proxies
     cat <<-EOF
       echo "deb http://acmirror.mpi-sws.org/debian jessie main" > /etc/apt/sources.list && \\

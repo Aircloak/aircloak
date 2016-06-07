@@ -37,7 +37,7 @@ namespace :aircloak do
 
       # package docker images
       exec_ml "
-            AIR_ENV=prod
+            CONTAINER_ENV=prod
             REGISTRY_URL=registry.aircloak.com
             IMAGE_CATEGORY=#{fetch(:stage)}
             #{build_folder}/air/package.sh
@@ -59,7 +59,7 @@ namespace :aircloak do
       update_server_code
 
       # build the balancer image
-      execute "AIR_ENV=prod #{build_folder}/air/balancer/build-image.sh"
+      execute "CONTAINER_ENV=prod #{build_folder}/air/balancer/build-image.sh"
 
       # restart the systemd service
       execute "systemctl daemon-reload && systemctl restart #{fetch(:balancer_service)}"

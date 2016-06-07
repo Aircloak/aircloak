@@ -11,7 +11,7 @@ STOP_TIMEOUT=30
 
 DOCKER_IMAGE=$(aircloak_image_name air_router)
 
-if [ "$AIR_ENV" = "prod" ]; then
+if [ "$CONTAINER_ENV" = "prod" ]; then
   cert_folder="/aircloak/ca"
 else
   cert_folder="$(pwd)/dev_cert"

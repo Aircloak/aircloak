@@ -153,9 +153,9 @@ To manually build the latest images and push them to the Docker registry, you ca
 
 1. `cd` to the `/aircloak/target_cluster/air`
 2. Perform `git pull` and checkout the desired branch
-3. Run `AIR_ENV=prod REGISTRY_URL=registry.aircloak.com IMAGE_CATEGORY=target_cluster             /aircloak/target_cluster/aircloak/air/package.sh`
+3. Run `CONTAINER_ENV=prod REGISTRY_URL=registry.aircloak.com IMAGE_CATEGORY=target_cluster             /aircloak/target_cluster/aircloak/air/package.sh`
 
-In the commands above, `AIR_ENV` must always be set to `prod` (indicating we're building on MPI servers), while `target_cluster` must be replaced with `air_stage` or `air_prod`.
+In the commands above, `CONTAINER_ENV` must always be set to `prod` (indicating we're building on MPI servers), while `target_cluster` must be replaced with `air_stage` or `air_prod`.
 
 #### Preparing CoreOS machines
 

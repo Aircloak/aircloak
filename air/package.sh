@@ -100,7 +100,7 @@ function push_static_site_image {
   fi
 
   curdir=$(pwd)
-  if [ "AIR_ENV" == "prod" ]; then site_build_env="production"; fi
+  if [ "CONTAINER_ENV" == "prod" ]; then site_build_env="production"; fi
 
   build_and_push \
       "aircloak/static_website" \

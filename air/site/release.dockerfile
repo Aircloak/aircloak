@@ -5,7 +5,7 @@ MAINTAINER Aircloak
 ## Some basic setup of the image
 ## ------------------------------------------------------------------
 
-AIR_INIT
+MPI_INIT
 
 # Dependencies, helper tools, and configuration of UTF-8 locale
 RUN \
@@ -50,4 +50,4 @@ USER root
 
 CMD /aircloak/start.sh
 
-AIR_TAG_VERSION
+TAG_VERSION

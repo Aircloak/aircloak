@@ -1,7 +1,7 @@
 FROM nginx:1.9.11
 MAINTAINER Aircloak
 
-AIR_INIT
+MPI_INIT
 
 ENV site_path /aircloak/router
 RUN mkdir -p $site_path
@@ -22,4 +22,4 @@ COPY air/config/tcp_ports.json $site_path/docker/tcp_ports.json
 
 USER root
 
-AIR_TAG_VERSION
+TAG_VERSION

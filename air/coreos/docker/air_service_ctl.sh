@@ -183,12 +183,12 @@ set -eo pipefail
       shift
       image_name=$(/aircloak/air/$1/container.sh image_name)
       latest_local_version=$(latest_local_version $REGISTRY_URL/$image_name)
-      DOCKER_IMAGE_VERSION="$latest_local_version" AIR_ENV=prod /aircloak/air/$1/container.sh foreground
+      DOCKER_IMAGE_VERSION="$latest_local_version" CONTAINER_ENV=prod /aircloak/air/$1/container.sh foreground
       ;;
 
     stop_service)
       shift
-      AIR_ENV=prod /aircloak/air/$1/container.sh stop
+      CONTAINER_ENV=prod /aircloak/air/$1/container.sh stop
       ;;
 
     stop_system)

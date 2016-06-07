@@ -12,7 +12,7 @@ cd $(dirname $0)
 # etcd
 # -------------------------------------------------------------------
 
-if [ "$AIR_ENV" != "prod" ]; then
+if [ "$CONTAINER_ENV" != "prod" ]; then
   stop_named_container etcd_air_dev
   stop_named_container etcd_air_test
 fi
@@ -28,7 +28,7 @@ container_ctl $@
 if [ "$1" = "start" ] || [ "$1" = "ensure_started" ] || [ "$1" = "console" ]; then
   wait_for_etcd prod
 
-  if [ "$AIR_ENV" = "prod" ]; then
+  if [ "$CONTAINER_ENV" = "prod" ]; then
     log "Configuring ETCD for production"
     ./config_prod.sh
   else
