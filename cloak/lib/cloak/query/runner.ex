@@ -2,7 +2,7 @@ defmodule Cloak.Query.Runner do
   @moduledoc "Cloak query runner."
 
   alias Cloak.{Aggregator, LCFData, DataSource}
-  alias Cloak.Processor.AccumulateCount
+  alias Cloak.Processor.{AccumulateCount, NegativeCondition}
   alias Cloak.Query.Result
 
   use Cloak.Type
@@ -39,6 +39,7 @@ defmodule Cloak.Query.Runner do
 
       reportable_buckets = try do
         rows
+        |> NegativeCondition.apply(select_query)
         |> group_by_user()
         |> AccumulateCount.pre_process()
         |> anonymize(lcf_data)

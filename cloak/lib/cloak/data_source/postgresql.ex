@@ -167,6 +167,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp select_column_to_string(column), do: column
 
   defp where_fragments(nil), do: []
+  defp where_fragments([]), do: []
   defp where_fragments(where_clause) do
     ["WHERE ", where_clause_to_fragments(where_clause)]
   end
@@ -180,18 +181,12 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp where_clause_to_fragments({:in, what, values}) do
     [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(","), ")"]
   end
-  defp where_clause_to_fragments({:not, {:comparison, what, :=, value}}) do
-    [to_fragment(what), " <> ", to_fragment(value)]
-  end
   Enum.each([
-    {:like, " LIKE ", " NOT LIKE "},
-    {:ilike, " ILIKE ", " NOT ILIKE "},
-  ], fn({keyword, fragment, negative_fragment}) ->
+    {:like, " LIKE "},
+    {:ilike, " ILIKE "},
+  ], fn({keyword, fragment}) ->
     defp where_clause_to_fragments({unquote(keyword), what, match}) do
       [to_fragment(what), unquote(fragment), to_fragment(match)]
-    end
-    defp where_clause_to_fragments({:not, {unquote(keyword), what, match}}) do
-      [to_fragment(what), unquote(negative_fragment), to_fragment(match)]
     end
   end)
 

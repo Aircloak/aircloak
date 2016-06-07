@@ -136,6 +136,15 @@ defmodule Cloak.QueryTest do
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[40]]}}
   end
 
+  test "should drop <> conditions if they would expose small groups" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["name"], ["Alice"])
+    :ok = insert_rows(_user_ids = 10..10, "heights", ["name"], ["Bob"])
+
+    :ok = start_query("select count(*) from heights where name <> 'Bob'")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[11]]}}
+  end
+
   test "should order rows when instructed" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [190])
