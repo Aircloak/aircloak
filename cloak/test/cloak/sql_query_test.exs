@@ -275,6 +275,10 @@ defmodule Cloak.SqlQueryTest do
     assert_parse("select foo from (bar baz)", select(columns: ["foo"], from: verbatim("bar baz")))
   end
 
+  test "verbatim sql with an unknown token" do
+    assert_parse("select foo from (bar ` baz)", select(columns: ["foo"], from: verbatim("bar ` baz")))
+  end
+
   test "verbatim sql with parens" do
     assert_parse(
       "select foo from ((1) ((2 3) (4 5 6)) 7 8 (9));",
@@ -299,7 +303,7 @@ defmodule Cloak.SqlQueryTest do
   Enum.each(
     [
       {"single quote is not allowed in the identifier",
-        "select fo'o from baz", "Invalid character", {1, 10}},
+        "select fo'o from baz", "Expected `from`", {1, 10}},
       {"identifier can't start with a number",
         "select 1foo from baz", "Expected `identifier`", {1, 8}},
       {"keyword is not identifier",
@@ -315,7 +319,7 @@ defmodule Cloak.SqlQueryTest do
       {"show requires tables or columns",
         "show foobar", "Expected `tables or columns`", {1, 6}},
       {"!= is an illegal comparator in where clause",
-        "select a from b where a != b", "Invalid character", {1, 25}},
+        "select a from b where a != b", "Expected `comparator`", {1, 25}},
       {"=> is an illegal comparator in where clause",
         "select a from b where a => b", "Expected `comparison value`", {1, 26}},
       {"=< is an illegal comparator in where clause",
@@ -345,7 +349,7 @@ defmodule Cloak.SqlQueryTest do
       {"missing where expression",
         "select foo from bar where", "Invalid where expression", {1, 26}},
       {"invalid where expression",
-        "select foo from bar where foo bar", "Invalid where expression", {1, 27}},
+        "select foo from bar where foo bar", "Expected `comparator`", {1, 31}},
       {"no input allowed after the statement",
         "select foo from bar baz", "Expected end of input", {1, 21}},
       {"error after spaces",

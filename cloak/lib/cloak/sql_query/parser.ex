@@ -201,8 +201,8 @@ defmodule Cloak.SqlQuery.Parser do
         constant(:string)},
       {identifier() |> keyword(:in),
         in_values()},
-      {identifier() |> comparator(),
-        allowed_where_values()},
+      {identifier(),
+        pair_both(comparator(), allowed_where_values())},
       {:else, error_message(fail(""), "Invalid where expression")}
     ])
     |> map(fn
@@ -211,7 +211,7 @@ defmodule Cloak.SqlQuery.Parser do
           {[identifier, nil, :ilike], [string_constant]} -> {:ilike, identifier, string_constant}
           {[identifier, :not, :ilike], [string_constant]} -> {:not, {:ilike, identifier, string_constant}}
           {[identifier, :in], [in_values]} -> {:in, identifier, in_values}
-          {[identifier, comparator], [value]} -> {:comparison, identifier, comparator, value}
+          {[identifier], [{comparator, value}]} -> {:comparison, identifier, comparator, value}
         end)
   end
 
@@ -276,7 +276,7 @@ defmodule Cloak.SqlQuery.Parser do
     |> label("identifier")
   end
 
-  defp comparator(parser) do
+  defp comparator(parser \\ noop()) do
     parser
     |> keyword_of([:"=", :"<", :"<=", :">=", :">", :"<>"])
     |> label("comparator")

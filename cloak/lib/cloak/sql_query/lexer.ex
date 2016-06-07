@@ -56,7 +56,8 @@ defmodule Cloak.SqlQuery.Lexer do
       whitespace(),
       constant(),
       identifier(),
-      keyword()
+      keyword(),
+      other()
     ]))
   end
 
@@ -66,6 +67,12 @@ defmodule Cloak.SqlQuery.Lexer do
     |> map(fn({offset, {line, column}}) ->
           %Token{offset: offset, line: line, column: column, category: :eof}
         end)
+  end
+
+  defp other() do
+    char()
+    |> map(&{:other, &1})
+    |> output_token()
   end
 
   defp whitespace() do
