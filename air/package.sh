@@ -13,7 +13,7 @@
 set -eo pipefail
 
 cd $(dirname $0)
-. common/docker_helper.sh
+. ../docker/docker_helper.sh
 
 # This function builds a docker image and pushes it if needed. The build machine
 # keeps the last built image, which allows it to determine whether the image has

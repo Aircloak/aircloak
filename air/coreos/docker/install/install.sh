@@ -7,7 +7,8 @@
 set -eo pipefail
 
 . /etc/environment
-. /aircloak/air/common/docker_helper.sh
+. /aircloak/docker/docker_helper.sh
+. /aircloak/air/config/config.sh
 
 function pull_docker_image {
   latest_version=$(

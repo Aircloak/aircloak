@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-. $(dirname ${BASH_SOURCE[0]})/../config/config.sh
-
 function named_container_running {
   if [ -z "$(docker ps --filter=name=$1 | grep -v CONTAINER)" ]; then
     return 1
@@ -204,7 +202,7 @@ function dockerfile_content {
       # to be rebuilt. Usually, this instruction should be included at the end
       # of the Dockerfile to reduce the amount of rebuilt layers.
       AIR_TAG_VERSION)
-        echo "COPY VERSION /tmp/"
+        echo "RUN echo '$SYSTEM_VERSION' > /tmp/VERSION"
         ;;
 
       *)

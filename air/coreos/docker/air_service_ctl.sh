@@ -7,7 +7,8 @@ set -eo pipefail
 # the system, and bash can still execute the code.
 {
   . /etc/environment
-  . /aircloak/air/common/docker_helper.sh
+  . /aircloak/docker/docker_helper.sh
+  . /aircloak/air/config/config.sh
 
   # export air environment vars
   export $(cat /aircloak/air/environment | xargs)

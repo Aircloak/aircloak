@@ -16,9 +16,9 @@ RUN apt-get update && apt-get install -y vim nano curl jq && \
     apt-get -y upgrade
 
 RUN mkdir -p /etc/confd/conf.d && mkdir -p /etc/confd/templates
-COPY router/docker $site_path/docker
-COPY config/config.sh $site_path/docker/config.sh
-COPY config/tcp_ports.json $site_path/docker/tcp_ports.json
+COPY air/router/docker $site_path/docker
+COPY air/config/config.sh $site_path/docker/config.sh
+COPY air/config/tcp_ports.json $site_path/docker/tcp_ports.json
 
 USER root
 

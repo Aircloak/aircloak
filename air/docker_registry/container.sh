@@ -3,7 +3,7 @@
 set -eo pipefail
 
 cd $(dirname $0)
-. ../common/docker_helper.sh
+. ../../docker/docker_helper.sh
 . ../config/config.sh
 
 DOCKER_IMAGE="registry"

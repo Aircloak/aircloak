@@ -40,8 +40,8 @@ RUN useradd --create-home --shell /bin/bash deployer && mkdir -p /aircloak/app
 
 WORKDIR /aircloak/insights
 
-COPY site/artifacts/rel /aircloak/insights
-COPY site/docker/start.sh /aircloak/
+COPY air/site/artifacts/rel /aircloak/insights
+COPY air/site/docker/start.sh /aircloak/
 
 RUN chown -R deployer:deployer /aircloak/insights && chown -R deployer:deployer /var/run/
 

@@ -4,7 +4,7 @@ set -eo pipefail
 
 cd $(dirname $0)
 . ./etcd_lib.sh
-. ../common/docker_helper.sh
+. ../../docker/docker_helper.sh
 
 log "Starting etcd_air_test"
 
