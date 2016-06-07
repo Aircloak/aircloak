@@ -18,7 +18,7 @@ defmodule Cloak.SqlQueryTest do
   # Runs the query string and asserts it matches to the given pattern.
   defmacrop assert_parse(query_string, expected_pattern) do
     quote do
-      assert unquote(expected_pattern) = SqlQuery.parse!(unquote(query_string))
+      assert unquote(expected_pattern) = SqlQuery.Parser.parse!(unquote(query_string))
     end
   end
 
@@ -67,6 +67,10 @@ defmodule Cloak.SqlQueryTest do
 
   test "multiple fields" do
     assert_parse("select foo, bar from baz", select(columns: ["foo", "bar"], from: "baz"))
+  end
+
+  test "all fields" do
+    assert_parse("select * from baz", select(columns: :star, from: "baz"))
   end
 
   test "whitespaces are ignored" do
@@ -173,6 +177,27 @@ defmodule Cloak.SqlQueryTest do
     assert_parse(
       "select foo from bar where a LIKE '_ob d%'",
       select(columns: ["foo"], from: "bar", where: [{:like, "a", constant("_ob d%")}])
+    )
+  end
+
+  test "where clause with NOT LIKE" do
+    assert_parse(
+      "select foo from bar where a NOT LIKE '%pattern%'",
+      select(where: [{:not, {:like, "a", constant("%pattern%")}}])
+    )
+  end
+
+  test "where clause with ILIKE" do
+    assert_parse(
+      "select foo from bar where a ILIKE '_ob d%'",
+      select(columns: ["foo"], from: "bar", where: [{:ilike, "a", constant("_ob d%")}])
+    )
+  end
+
+  test "where clause with NOT ILIKE" do
+    assert_parse(
+      "select foo from bar where a NOT ILIKE '%pattern%'",
+      select(where: [{:not, {:ilike, "a", constant("%pattern%")}}])
     )
   end
 
@@ -295,7 +320,7 @@ defmodule Cloak.SqlQueryTest do
     ],
     fn({description, statement, expected_error, {line, column}}) ->
       test description do
-        assert {:error, reason} = SqlQuery.parse(unquote(statement))
+        assert {:error, reason} = SqlQuery.Parser.parse(unquote(statement))
         assert reason =~ unquote(expected_error)
         assert reason =~ "line #{unquote(line)}, column #{unquote(column)}\."
       end
