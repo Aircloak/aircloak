@@ -25,7 +25,7 @@ defmodule Cloak.SqlQuery.Parser do
     command: :select | :show,
     columns: [column],
     group_by: [String.t],
-    from: [String.t],
+    from: String.t | {:verbatim, String.t},
     where: [where_clause],
     order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns
