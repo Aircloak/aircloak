@@ -33,8 +33,7 @@ defmodule Cloak.SqlQuery.Parsers do
   If no parser succeeds, an error is generated. You can handle this case
   specifically by providing the `{:else, parser}` pair which will always run.
   """
-  @spec switch([{Base.parser | :else, Base.parser}]) :: Base.parser
-  @spec switch(Base.parser, [{Base.parser | :else, Base.parser}]) :: Base.parser
+  @spec switch(Combine.previous_parser, [{Combine.parser | :else, Combine.parser}]) :: Combine.parser
   defparser switch(%ParserState{status: :ok} = state, switch_rules) do
     interpret_switch_rules(switch_rules, state)
   end
@@ -79,29 +78,25 @@ defmodule Cloak.SqlQuery.Parsers do
   If the input is a keyword `foo`, the output is `[:foo]`. If it is `bar`, the
   output is `[:bar, result_of_bar_parser]`.
   """
-  @spec noop() :: Base.parser
-  @spec noop(Base.parser) :: Base.parser
+  @spec noop(Combine.previous_parser) :: Combine.parser
   defparser noop(%ParserState{status: :ok} = state) do
     state
   end
 
   @doc "Emits the current line and column."
-  @spec position() :: Base.parser
-  @spec position(Base.parser) :: Base.parser
+  @spec position(Combine.previous_parser) :: Combine.parser
   defparser position(%ParserState{status: :ok} = state) do
     %ParserState{state | results: [{state.line, state.column}]}
   end
 
   @doc "Manually increments the current line cursor as it is not done so automatically."
-  @spec increment_line() :: Base.parser
-  @spec increment_line(Base.parser) :: Base.parser
+  @spec increment_line(Combine.previous_parser) :: Combine.parser
   defparser increment_line(%ParserState{status: :ok} = state) do
     %ParserState{state | line: (state.line + 1), column: 0}
   end
 
   @doc "Consumes a token of the given category."
-  @spec token(any) :: Base.parser
-  @spec token(Base.parser, any) :: Base.parser
+  @spec token(Combine.previous_parser, any) :: Combine.parser
   defparser token(%ParserState{status: :ok, input: input, results: results} = state, category) do
     case input do
       [] ->
@@ -126,8 +121,7 @@ defmodule Cloak.SqlQuery.Parsers do
   end
 
   @doc "Assert that there are no more tokens in the input."
-  @spec end_of_tokens() :: Base.parser
-  @spec end_of_tokens(Base.parser) :: Base.parser
+  @spec end_of_tokens(Combine.previous_parser) :: Combine.parser
   defparser end_of_tokens(%ParserState{status: :ok, line: line, column: column} = state) do
     case state.input do
       [] -> state
@@ -142,8 +136,7 @@ defmodule Cloak.SqlQuery.Parsers do
   This is more flexible than `label`, because it allows you to set an arbitrary
   error message, whereas `label` can only used for `Expected ... at ...` messages.
   """
-  @spec error_message(Base.parser, String.t) :: Base.parser
-  @spec error_message(Base.parser, Base.parser, String.t) :: Base.parser
+  @spec error_message(Combine.previous_parser, Combine.parser, String.t) :: Combine.parser
   defparser error_message(%ParserState{status: :ok} = state, parser, message) do
     with next_state = parser.(state),
          %ParserState{status: :error} <- next_state
