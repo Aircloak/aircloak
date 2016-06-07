@@ -126,6 +126,16 @@ defmodule Cloak.QueryTest do
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[60]]}}
   end
 
+  test "should allow <> in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+
+    :ok = start_query("select count(*) from heights where height <> 180")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[40]]}}
+  end
+
   test "should order rows when instructed" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [190])

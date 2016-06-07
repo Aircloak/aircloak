@@ -180,6 +180,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp where_clause_to_fragments({:in, what, values}) do
     [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(","), ")"]
   end
+  defp where_clause_to_fragments({:not, {:comparison, what, :=, value}}) do
+    [to_fragment(what), " <> ", to_fragment(value)]
+  end
   Enum.each([
     {:like, " LIKE ", " NOT LIKE "},
     {:ilike, " ILIKE ", " NOT ILIKE "},
