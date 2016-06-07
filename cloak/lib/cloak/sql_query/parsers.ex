@@ -158,9 +158,9 @@ defmodule Cloak.SqlQuery.Parsers do
   @doc """
   Shorthand for `map(fn(_) -> value end)`
   """
-  @spec pure(any) :: Base.parser
-  @spec pure(Base.parser, any) :: Base.parser
-  def pure(previous \\ noop(), value) do
+  @spec return(any) :: Base.parser
+  @spec return(Base.parser, any) :: Base.parser
+  def return(previous \\ noop(), value) do
     previous |> Base.map(fn(_) -> value end)
   end
 end
