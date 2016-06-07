@@ -174,6 +174,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp where_clause_to_fragments([_|_] = and_clauses) do
     ["(", and_clauses |> Enum.map(&where_clause_to_fragments/1) |> join(" AND "), ")"]
   end
+  defp where_clause_to_fragments({:not, clause}) do
+    [" NOT ", where_clause_to_fragments(clause)]
+  end
   defp where_clause_to_fragments({:comparison, what, comparator, value}) do
     [to_fragment(what), to_fragment(comparator), to_fragment(value)]
   end
@@ -181,19 +184,17 @@ defmodule Cloak.DataSource.PostgreSQL do
     [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(","), ")"]
   end
   Enum.each([
-    {:like, " LIKE ", " NOT LIKE "},
-    {:ilike, " ILIKE ", " NOT ILIKE "},
-  ], fn({keyword, fragment, negative_fragment}) ->
+    {:like, " LIKE "},
+    {:ilike, " ILIKE "},
+    {:is, " IS "},
+  ], fn({keyword, fragment}) ->
     defp where_clause_to_fragments({unquote(keyword), what, match}) do
       [to_fragment(what), unquote(fragment), to_fragment(match)]
-    end
-    defp where_clause_to_fragments({:not, {unquote(keyword), what, match}}) do
-      [to_fragment(what), unquote(negative_fragment), to_fragment(match)]
     end
   end)
 
   defp to_fragment(string) when is_binary(string), do: string
-  defp to_fragment(atom) when is_atom(atom), do: to_string(atom)
+  defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
   defp to_fragment(%Token{category: :constant, value: value}), do: {:param, value.value}
 
   defp join([], _joiner), do: []
