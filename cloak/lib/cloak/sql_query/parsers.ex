@@ -7,13 +7,14 @@ defmodule Cloak.SqlQuery.Parsers do
 
   defmodule Token do
     @moduledoc "Defines a structure which represents tokens."
-    defstruct [:category, :value, :line, :column]
+    defstruct [:category, :value, :offset, :line, :column]
 
     @type t :: %__MODULE__{
       category: any,
       value: any,
+      offset: non_neg_integer(),
       line: pos_integer(),
-      column: pos_integer()
+      column: non_neg_integer()
     }
 
     defimpl String.Chars do
@@ -89,10 +90,22 @@ defmodule Cloak.SqlQuery.Parsers do
     %ParserState{state | results: [{state.line, state.column}]}
   end
 
+  @doc """
+  Emits the current offset.
+
+  The offset is a zero-based integer which determines current position in the
+  input string.
+  """
+  @spec offset(Combine.previous_parser) :: Combine.parser
+  defparser offset(%ParserState{status: :ok} = state) do
+    %ParserState{state | results: [Map.get(state, :offset, 0) + state.column | state.results]}
+  end
+
   @doc "Manually increments the current line cursor as it is not done so automatically."
   @spec increment_line(Combine.previous_parser) :: Combine.parser
   defparser increment_line(%ParserState{status: :ok} = state) do
     %ParserState{state | line: (state.line + 1), column: 0}
+    |> Map.put(:offset, Map.get(state, :offset, 0) + state.column)
   end
 
   @doc "Consumes a token of the given category."
