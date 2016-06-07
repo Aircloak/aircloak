@@ -3,7 +3,7 @@ import React from "react";
 export const Info = (props) => {
   if (props.info) {
     return (
-      <div className="result_info">
+      <div>
         <h4>Info</h4>
         <p>{props.info}</p>
       </div>
