@@ -131,7 +131,7 @@ defmodule Cloak.SqlQuery.Parser.Test do
   test "where clause with <>" do
     assert_parse(
       "select foo from bar where a <> 10",
-      select(columns: ["foo"], from: "bar", where: [{:comparison, "a", :<>, constant(10)}])
+      select(columns: ["foo"], from: "bar", where: [{:not, {:comparison, "a", :=, constant(10)}}])
     )
   end
 
@@ -168,7 +168,7 @@ defmodule Cloak.SqlQuery.Parser.Test do
       "select foo from bar where a <> 10 and b = 'bar'",
       select(
         columns: ["foo"], from: "bar",
-        where: [{:comparison, "a", :<>, constant(10)}, {:comparison, "b", :=, constant("bar")}]
+        where: [{:not, {:comparison, "a", :=, constant(10)}}, {:comparison, "b", :=, constant("bar")}]
       )
     )
   end

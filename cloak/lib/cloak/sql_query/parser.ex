@@ -9,7 +9,6 @@ defmodule Cloak.SqlQuery.Parser do
     | :<=
     | :>=
     | :>
-    | :<>
 
   @type column :: String.t | {:count, :star}
 
@@ -19,6 +18,7 @@ defmodule Cloak.SqlQuery.Parser do
         {:comparison, String.t, comparator, any}
       | like
       | {:not, like}
+      | {:not, {:comparison, String.t, :=, any}}
       | {:in, String.t, [any]}
 
   @type parsed_query :: %{
@@ -175,6 +175,7 @@ defmodule Cloak.SqlQuery.Parser do
           {[identifier, nil, :ilike], [string_constant]} -> {:ilike, identifier, string_constant}
           {[identifier, :not, :ilike], [string_constant]} -> {:not, {:ilike, identifier, string_constant}}
           {[identifier, :in], [in_values]} -> {:in, identifier, in_values}
+          {[identifier, :<>], [value]} -> {:not, {:comparison, identifier, :=, value}}
           {[identifier, comparator], [value]} -> {:comparison, identifier, comparator, value}
         end)
   end
@@ -242,7 +243,7 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp comparator(parser) do
     parser
-    |> keyword_of([:"=", :"<", :"<=", :">=", :">", :"<>"])
+    |> keyword_of([:=, :<, :<=, :>=, :>, :<>])
     |> label("comparator")
   end
 
