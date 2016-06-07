@@ -25,5 +25,5 @@ export const Error = (props) =>
 Error.propTypes = {
   statement: React.PropTypes.string,
   error: React.PropTypes.string,
-  info: React.PropTypes.string,
+  info: Info.propTypes.info,
 };
