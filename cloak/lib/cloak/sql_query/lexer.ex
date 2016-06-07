@@ -129,7 +129,7 @@ defmodule Cloak.SqlQuery.Lexer do
   end
 
   # precompile regexes so we don't have to do it on every query invocation
-  @keyword_regexes Enum.map(@keywords, &Regex.compile!(Regex.escape(&1), "i"))
+  @keyword_regexes Enum.map(@keywords, &Regex.compile!("(#{Regex.escape(&1)}){1}", "i"))
 
   defp keyword() do
     choice(Enum.map(@keyword_regexes, &word_of/1))
