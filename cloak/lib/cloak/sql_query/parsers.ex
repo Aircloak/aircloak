@@ -4,6 +4,7 @@ defmodule Cloak.SqlQuery.Parsers do
   """
   import Combine.Helpers
   alias Combine.ParserState
+  alias Combine.Parsers.Base
 
   defmodule Token do
     @moduledoc "Defines a structure which represents tokens."
@@ -152,5 +153,14 @@ defmodule Cloak.SqlQuery.Parsers do
         error: "#{message} at line #{next_state.line}, column #{next_state.column + 1}."
       }
     end
+  end
+
+  @doc """
+  Shorthand for `map(fn(_) -> value end)`
+  """
+  @spec return(any) :: Base.parser
+  @spec return(Base.parser, any) :: Base.parser
+  def return(previous \\ noop(), value) do
+    previous |> Base.map(fn(_) -> value end)
   end
 end

@@ -103,20 +103,26 @@ defmodule Cloak.SqlQuery.Lexer do
   defp string_constant() do
     sequence([
       ignore(char(?')),
-      word_of(~r/[^']*/),
+      many(string_content()),
       ignore(char(?'))
     ])
     |> map(&Enum.join/1)
     |> output_constant(:string)
   end
 
+  defp string_content() do
+    choice([
+      string("\\'") |> return("'"),
+      string("\\\\") |> return("\\"),
+      word_of(~r/[^'\\]+/),
+    ])
+  end
+
   defp boolean_constant() do
     choice([
-      word_of(~r/true/i),
-      word_of(~r/false/i)
+      word_of(~r/true/i) |> return(true),
+      word_of(~r/false/i) |> return(false)
     ])
-    |> map(&String.downcase/1)
-    |> map(&String.to_atom/1)
     |> output_constant(:boolean)
   end
 
