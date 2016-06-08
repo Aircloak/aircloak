@@ -4,12 +4,21 @@ defmodule Cloak.Processor.NegativeCondition do
 
   def apply(rows, %{where_not: clauses} = query) do
     clauses
+    |> Enum.filter(&sufficient_matches?(&1, rows, query))
     |> Enum.reduce(rows, fn(clause, rows) -> Enum.reject(rows, filter(clause, query)) end)
   end
 
   def drop_filter_columns(rows, %{filter_columns: filter_columns} = query) do
     anonymizable = Enum.count(Columns.all(query, user_id: true)) - Enum.count(filter_columns)
     Enum.map(rows, &Enum.take(&1, anonymizable))
+  end
+
+  defp sufficient_matches?(clause, rows, query) do
+    matches = rows
+    |> Enum.filter(filter(clause, query))
+    |> Enum.count()
+
+    matches > 1
   end
 
   defp filter({:comparison, column, :=, %Token{value: %{value: value}}}, query) do
