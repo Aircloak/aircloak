@@ -21,15 +21,21 @@ defmodule Cloak.Processor.NegativeCondition do
     regex = to_regex(pattern)
     fn(row) -> Enum.at(row, index) =~ regex end
   end
-  defp filter(_, _), do: fn(_) -> false end
+  defp filter({:ilike, column, %Token{value: %{type: :string, value: pattern}}}, query) do
+    index = Columns.index(column, query, user_id: true)
+    regex = to_regex(pattern, [_case_insensitive = "i"])
+    fn(row) -> Enum.at(row, index) =~ regex end
+  end
 
-  defp to_regex(sql_pattern) do
+  defp to_regex(sql_pattern, options \\ []) do
+    options = Enum.join([_unicode = "u" | options])
+
     sql_pattern
     |> Regex.escape
     |> String.replace("%", ".*")
     |> String.replace("_", ".")
     |> anchor
-    |> Regex.compile!(_unicode = "u")
+    |> Regex.compile!(options)
   end
 
   defp anchor(pattern), do: "^#{pattern}$"
