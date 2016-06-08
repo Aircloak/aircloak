@@ -96,7 +96,7 @@ defmodule Cloak.DataSource.Acl do
     end
   end
 
-  defp sql_statement(%{from: {:verbatim, unsafe_select}}) do
+  defp sql_statement(%{from: {:subquery, unsafe_select}}) do
     %{
       type: "unsafe",
       val: unsafe_select
