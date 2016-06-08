@@ -40,6 +40,7 @@ defmodule Cloak.Query.Runner do
       reportable_buckets = try do
         rows
         |> NegativeCondition.apply(select_query)
+        |> NegativeCondition.drop_filter_columns(select_query)
         |> group_by_user()
         |> AccumulateCount.pre_process()
         |> anonymize(lcf_data)
