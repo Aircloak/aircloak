@@ -1,4 +1,15 @@
 defmodule Cloak.Processor.Noise do
+  @moduledoc "Functions for dealing with noised bucket counts."
+
+  @doc """
+  Returns true if count is sufficiently large to be reported. Sufficiently large means:
+
+  1. Greater than absolute_lower_bound
+  2. A noised version of the count is greater than soft_lower_bound
+
+  See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
+  on the user list provided, giving the same answer every time for the given list of users.
+  """
   def passes_filter?(count, users) do
     count > absolute_lower_bound() && noisy_count(count, users) > soft_lower_bound()
   end
