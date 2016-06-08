@@ -88,8 +88,8 @@ defmodule Cloak.SqlQuery.Builder do
     [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(","), ")"]
   end
   Enum.each([
-    {:like, " LIKE ", " NOT LIKE "},
-    {:ilike, " ILIKE ", " NOT ILIKE "},
+    {:like, " LIKE "},
+    {:ilike, " ILIKE "},
     {:is, " IS "},
   ], fn({keyword, fragment}) ->
     defp where_clause_to_fragments({unquote(keyword), what, match}) do
