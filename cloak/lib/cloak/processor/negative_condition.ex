@@ -28,6 +28,9 @@ defmodule Cloak.Processor.NegativeCondition do
     |> Regex.escape
     |> String.replace("%", ".*")
     |> String.replace("_", ".")
-    |> Regex.compile!
+    |> anchor
+    |> Regex.compile!(_unicode = "u")
   end
+
+  defp anchor(pattern), do: "^#{pattern}$"
 end
