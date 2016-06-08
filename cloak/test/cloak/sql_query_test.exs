@@ -267,36 +267,45 @@ defmodule Cloak.SqlQueryTest do
     )
   end
 
-  test "subquery empty sql" do
-    assert_parse("select foo from ()", select(columns: ["foo"], from: subquery("")))
-  end
-
   test "subquery sql" do
-    assert_parse("select foo from (bar baz)", select(columns: ["foo"], from: subquery("bar baz")))
-  end
-
-  test "subquery sql with an unknown token" do
-    assert_parse("select foo from (bar ` baz)", select(columns: ["foo"], from: subquery("bar ` baz")))
-  end
-
-  test "subquery sql with parens" do
     assert_parse(
-      "select foo from ((1) ((2 3) (4 5 6)) 7 8 (9));",
-      select(columns: ["foo"], from: subquery("(1) ((2 3) (4 5 6)) 7 8 (9)"))
+      "select foo from (select bar from baz) alias",
+      select(columns: ["foo"], from: subquery("select bar from baz"))
+    )
+  end
+
+  test "subquery sql with AS" do
+    assert_parse(
+      "select foo from (select bar from baz) as alias",
+      select(columns: ["foo"], from: subquery("select bar from baz"))
     )
   end
 
   test "subquery sql with semicolon" do
     assert_parse(
-      "select foo from ((1) ((2 3) (4 5 6)) 7 8 (9));",
-      select(columns: ["foo"], from: subquery("(1) ((2 3) (4 5 6)) 7 8 (9)"))
+      "select foo from (select bar from baz) alias;",
+      select(columns: ["foo"], from: subquery("select bar from baz"))
+    )
+  end
+
+  test "subquery sql with an unknown token" do
+    assert_parse(
+      "select foo from (select `bar` from baz) alias",
+      select(columns: ["foo"], from: subquery("select `bar` from baz"))
+    )
+  end
+
+  test "subquery sql with parens" do
+    assert_parse(
+      "select foo from (select bar, cast(now() as text) from baz) alias",
+      select(columns: ["foo"], from: subquery("select bar, cast(now() as text) from baz"))
     )
   end
 
   test "subquery sql with newlines" do
     assert_parse(
-      "select foo from ((1) ((2 3) \n\n   (4 5 6)) 7   \n   8 (9));",
-      select(columns: ["foo"], from: subquery("(1) ((2 3) \n\n   (4 5 6)) 7   \n   8 (9)"))
+      "select foo from (select bar\n, \n\ncast(now()\n as text) from baz\n) alias",
+      select(columns: ["foo"], from: subquery("select bar\n, \n\ncast(now()\n as text) from baz\n"))
     )
   end
 
@@ -356,8 +365,14 @@ defmodule Cloak.SqlQueryTest do
         "   invalid_statement", "Expected `select or show`", {1, 4}},
       {"initial error after spaces and newlines",
         "  \n  \n invalid_statement", "Expected `select or show`", {3, 2}},
-      {"unclosed parens in a subquery from",
-        "select foo from ( (bar) baz", "Expected `)`", {1, 28}}
+      {"unclosed parens in a subquery expression",
+        "select foo from (select bar from baz", "Expected `)`", {1, 37}},
+      {"empty subquery expression",
+        "select foo from ()", "Expected `subquery expression`", {1, 18}},
+      {"missing alias",
+        "select foo from (select bar from baz)", "Expected `subquery alias`", {1, 38}},
+      {"missing alias after AS",
+        "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}}
     ],
     fn({description, statement, expected_error, {line, column}}) ->
       test description do

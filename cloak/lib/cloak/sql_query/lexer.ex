@@ -41,6 +41,7 @@ defmodule Cloak.SqlQuery.Lexer do
     "BY",
     "ASC",
     "DESC",
+    "AS",
     "(", ")",
     ",", ".", ";",
     "<=", ">=", "<>", "=", "<", ">",

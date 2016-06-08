@@ -154,18 +154,20 @@ defmodule Cloak.SqlQuery.Parser do
   defp subquery() do
     sequence([
       token_offset(),
-      ignore(subquery_tokens()),
+      ignore(many1(subquery_token()) |> label("subquery expression")),
       token_offset(),
-      ignore(keyword(:")"))
+      ignore(keyword(:")")),
+      ignore(
+        sequence([option(keyword(:as)), identifier()])
+        |> label("subquery alias")
+      )
     ])
   end
 
-  defp subquery_tokens() do
-    many(
-      either(
-        sequence([keyword(:"("), lazy(fn -> subquery_tokens() end), keyword(:")")]),
-        any_token() |> satisfy(&(&1.category != :")" && &1.category != :eof))
-      )
+  defp subquery_token() do
+    either(
+      sequence([keyword(:"("), lazy(fn -> many(subquery_token()) end), keyword(:")")]),
+      any_token() |> satisfy(&(&1.category != :")" && &1.category != :eof))
     )
   end
 
@@ -266,8 +268,9 @@ defmodule Cloak.SqlQuery.Parser do
     )
   end
 
-  defp identifier() do
-    token(:identifier)
+  defp identifier(parser \\ noop()) do
+    parser
+    |> token(:identifier)
     |> map(&(&1.value))
     |> label("identifier")
   end
