@@ -4,8 +4,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.SqlQuery.{Builder, Parsers.Token}
-
+  alias Cloak.SqlQuery.Builder
 
   #-----------------------------------------------------------------------------------------------------------
   # DataSource.Driver callbacks

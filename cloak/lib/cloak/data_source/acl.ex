@@ -26,10 +26,7 @@ defmodule Cloak.DataSource.Acl do
       }
   """
 
-  alias Cloak.SqlQuery.Parsers.Token
-
   import Supervisor.Spec
-
 
   #-----------------------------------------------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -123,7 +120,7 @@ defmodule Cloak.DataSource.Acl do
         response = case receive_data([]) do
           {:ok, data} ->
             Poison.decode(data)
-          {:error, error} ->
+          {:error, _error} ->
             {:error, "Communication with ACL backend failed"}
         end
         :gen_tcp.close(socket)
@@ -142,7 +139,7 @@ defmodule Cloak.DataSource.Acl do
         |> Enum.reverse()
         |> Enum.join()
         {:ok, data}
-      other ->
+      _other ->
         {:error, "Unexpected response from ACL backend"}
     end
   end
