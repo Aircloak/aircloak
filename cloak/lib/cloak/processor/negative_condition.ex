@@ -3,7 +3,8 @@ defmodule Cloak.Processor.NegativeCondition do
   alias Cloak.SqlQuery.Parsers.Token
 
   def apply(rows, %{where_not: clauses} = query) do
-    Enum.reduce(clauses, rows, fn(clause, rows) -> reject(clause, rows, query) end)
+    clauses
+    |> Enum.reduce(rows, fn(clause, rows) -> Enum.reject(rows, filter(clause, query)) end)
   end
 
   def drop_filter_columns(rows, %{filter_columns: filter_columns} = query) do
@@ -11,10 +12,9 @@ defmodule Cloak.Processor.NegativeCondition do
     Enum.map(rows, &Enum.take(&1, anonymizable))
   end
 
-  defp reject({:comparison, column, :=, %Token{value: %{value: value}}}, rows, query) do
+  defp filter({:comparison, column, :=, %Token{value: %{value: value}}}, query) do
     index = Columns.index(column, query, user_id: true)
-
-    Enum.reject(rows, &(Enum.at(&1, index) == value))
+    fn(row) -> Enum.at(row, index) == value end
   end
-  defp reject(_, rows, _), do: rows
+  defp filter(_, _), do: fn(_) -> false end
 end
