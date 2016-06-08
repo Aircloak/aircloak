@@ -25,7 +25,7 @@ defmodule Cloak.SqlQuery.Parser do
     command: :select | :show,
     columns: [column],
     group_by: [String.t],
-    from: String.t | {:verbatim, String.t},
+    from: String.t | {:subquery, String.t},
     where: [where_clause],
     order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns
@@ -59,11 +59,11 @@ defmodule Cloak.SqlQuery.Parser do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp map_from(%{from: {:verbatim, from, from}} = statement, _statement_string) do
-    %{statement | from: {:verbatim, ""}}
+  defp map_from(%{from: {:subquery, from, from}} = statement, _statement_string) do
+    %{statement | from: {:subquery, ""}}
   end
-  defp map_from(%{from: {:verbatim, from, to}} = statement, statement_string) do
-    %{statement | from: {:verbatim, String.slice(statement_string, from..(to - 1))}}
+  defp map_from(%{from: {:subquery, from, to}} = statement, statement_string) do
+    %{statement | from: {:subquery, String.slice(statement_string, from..(to - 1))}}
   end
   defp map_from(statement, _statement_string), do: statement
 
@@ -136,41 +136,37 @@ defmodule Cloak.SqlQuery.Parser do
   defp from() do
     pair_both(
       keyword(:from),
-      from_table_name()
+      from_expression()
     )
   end
 
-  defp from_table_name() do
+  defp from_expression() do
     switch([
-      {keyword(:"(") |> map(fn(_) -> :verbatim end), verbatim_position()},
+      {keyword(:"(") |> map(fn(_) -> :subquery end), subquery()},
       {:else, either(table_with_schema(), identifier()) |> label("table name")}
     ])
     |> map(fn
-          {[:verbatim], [[from, to]]} -> {:verbatim, from, to}
+          {[:subquery], [[from, to]]} -> {:subquery, from, to}
           other -> other
         end)
   end
 
-  defp verbatim_position() do
+  defp subquery() do
     sequence([
       token_offset(),
-      ignore(verbatim_expr()),
+      ignore(subquery_tokens()),
       token_offset(),
       ignore(keyword(:")"))
     ])
   end
 
-  defp verbatim_expr() do
+  defp subquery_tokens() do
     many(
       either(
-        verbatim_nested_expr(),
+        sequence([keyword(:"("), lazy(fn -> subquery_tokens() end), keyword(:")")]),
         any_token() |> satisfy(&(&1.category != :")" && &1.category != :eof))
       )
     )
-  end
-
-  defp verbatim_nested_expr() do
-    sequence([keyword(:"("), lazy(fn -> verbatim_expr() end), keyword(:")")])
   end
 
   defp table_with_schema() do

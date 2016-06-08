@@ -48,9 +48,9 @@ defmodule Cloak.SqlQueryTest do
     Enum.map(values, &quote(do: constant(unquote(&1))))
   end
 
-  defmacrop verbatim(value) do
+  defmacrop subquery(value) do
     quote do
-      {:verbatim, unquote(value)}
+      {:subquery, unquote(value)}
     end
   end
 
@@ -267,36 +267,36 @@ defmodule Cloak.SqlQueryTest do
     )
   end
 
-  test "verbatim empty sql" do
-    assert_parse("select foo from ()", select(columns: ["foo"], from: verbatim("")))
+  test "subquery empty sql" do
+    assert_parse("select foo from ()", select(columns: ["foo"], from: subquery("")))
   end
 
-  test "verbatim sql" do
-    assert_parse("select foo from (bar baz)", select(columns: ["foo"], from: verbatim("bar baz")))
+  test "subquery sql" do
+    assert_parse("select foo from (bar baz)", select(columns: ["foo"], from: subquery("bar baz")))
   end
 
-  test "verbatim sql with an unknown token" do
-    assert_parse("select foo from (bar ` baz)", select(columns: ["foo"], from: verbatim("bar ` baz")))
+  test "subquery sql with an unknown token" do
+    assert_parse("select foo from (bar ` baz)", select(columns: ["foo"], from: subquery("bar ` baz")))
   end
 
-  test "verbatim sql with parens" do
+  test "subquery sql with parens" do
     assert_parse(
       "select foo from ((1) ((2 3) (4 5 6)) 7 8 (9));",
-      select(columns: ["foo"], from: verbatim("(1) ((2 3) (4 5 6)) 7 8 (9)"))
+      select(columns: ["foo"], from: subquery("(1) ((2 3) (4 5 6)) 7 8 (9)"))
     )
   end
 
-  test "verbatim sql with semicolon" do
+  test "subquery sql with semicolon" do
     assert_parse(
       "select foo from ((1) ((2 3) (4 5 6)) 7 8 (9));",
-      select(columns: ["foo"], from: verbatim("(1) ((2 3) (4 5 6)) 7 8 (9)"))
+      select(columns: ["foo"], from: subquery("(1) ((2 3) (4 5 6)) 7 8 (9)"))
     )
   end
 
-  test "verbatim sql with newlines" do
+  test "subquery sql with newlines" do
     assert_parse(
       "select foo from ((1) ((2 3) \n\n   (4 5 6)) 7   \n   8 (9));",
-      select(columns: ["foo"], from: verbatim("(1) ((2 3) \n\n   (4 5 6)) 7   \n   8 (9)"))
+      select(columns: ["foo"], from: subquery("(1) ((2 3) \n\n   (4 5 6)) 7   \n   8 (9)"))
     )
   end
 
@@ -356,7 +356,7 @@ defmodule Cloak.SqlQueryTest do
         "   invalid_statement", "Expected `select or show`", {1, 4}},
       {"initial error after spaces and newlines",
         "  \n  \n invalid_statement", "Expected `select or show`", {3, 2}},
-      {"unclosed parens in a verbatim from",
+      {"unclosed parens in a subquery from",
         "select foo from ( (bar) baz", "Expected `)`", {1, 28}}
     ],
     fn({description, statement, expected_error, {line, column}}) ->
