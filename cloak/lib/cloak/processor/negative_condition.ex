@@ -14,11 +14,19 @@ defmodule Cloak.Processor.NegativeCondition do
   end
 
   defp sufficient_matches?(clause, rows, query) do
+    random_seed = rows
+    |> Enum.map(&hd/1)
+    |> Enum.sort()
+    |> :erlang.term_to_binary()
+    |> random_seed()
+
     matches = rows
     |> Enum.filter(filter(clause, query))
     |> Enum.count()
 
-    matches > 1
+    noisy_matches = :cloak_distributions.gauss_s(sigma_soft_lower_bound, matches, random_seed)
+
+    matches >= absolute_limit && noisy_matches >= soft_limit
   end
 
   defp filter({:comparison, column, :=, %Token{value: %{value: value}}}, query) do
@@ -48,4 +56,17 @@ defmodule Cloak.Processor.NegativeCondition do
   end
 
   defp anchor(pattern), do: "^#{pattern}$"
+
+  defp random_seed(binary) do
+    <<a::32, b::32, c::64>> = :crypto.hash(:md4, binary)
+    {a, b, c}
+  end
+
+  defp absolute_limit, do: noise_config(:absolute_lower_bound)
+
+  defp soft_limit, do: noise_config(:soft_lower_bound)
+
+  defp sigma_soft_lower_bound, do: noise_config(:sigma_soft_lower_bound)
+
+  defp noise_config(name), do: Application.get_env(:cloak, :noise) |> Keyword.get(name)
 end
