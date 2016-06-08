@@ -210,7 +210,7 @@ defmodule Cloak.SqlQuery.Parsers do
   end
   ```
 
-  The reason is that parsers are by default eager, so invoking `parser()` will
+  The reason is that parsers are by default eager, so invoking `parens()` will
   cause an infinite loop.
 
   Using `lazy`, you can defer recursing:
