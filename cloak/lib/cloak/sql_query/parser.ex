@@ -14,12 +14,13 @@ defmodule Cloak.SqlQuery.Parser do
   @type column :: String.t | {:count, :star}
 
   @type like :: {:like | :ilike, String.t, String.t}
+  @type is :: {:is, String.t, :null}
 
   @type where_clause ::
         {:comparison, String.t, comparator, any}
-      | like
-      | {:not, like}
+      | like | {:not, like}
       | {:in, String.t, [any]}
+      | is | {:not, is}
 
   @type parsed_query :: %{
     command: :select | :show,
@@ -195,12 +196,10 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp where_expression() do
     switch([
-      {identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]),
-        constant(:string)},
-      {identifier() |> keyword(:in),
-        in_values()},
-      {identifier(),
-        pair_both(comparator(), allowed_where_values())},
+      {identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
+      {identifier() |> keyword(:in), in_values()},
+      {identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
+      {identifier(), pair_both(comparator(), allowed_where_values())},
       {:else, error_message(fail(""), "Invalid where expression")}
     ])
     |> map(fn
@@ -209,6 +208,8 @@ defmodule Cloak.SqlQuery.Parser do
           {[identifier, nil, :ilike], [string_constant]} -> {:ilike, identifier, string_constant}
           {[identifier, :not, :ilike], [string_constant]} -> {:not, {:ilike, identifier, string_constant}}
           {[identifier, :in], [in_values]} -> {:in, identifier, in_values}
+          {[identifier, :is, nil], [:null]} -> {:is, identifier, :null}
+          {[identifier, :is, :not], [:null]} -> {:not, {:is, identifier, :null}}
           {[identifier], [{comparator, value}]} -> {:comparison, identifier, comparator, value}
         end)
   end

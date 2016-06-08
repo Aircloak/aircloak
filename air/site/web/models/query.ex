@@ -106,6 +106,7 @@ defmodule Air.Query do
       rows: rows,
       error: result["error"],
       row_count: row_count,
+      info: result["info"],
     }
   end
 end
