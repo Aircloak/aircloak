@@ -43,7 +43,7 @@ defmodule Cloak.Processor.NegativeCondition do
     |> Regex.escape
     |> String.replace("%", ".*")
     |> String.replace("_", ".")
-    |> anchor
+    |> anchor()
     |> Regex.compile!(options)
   end
 
