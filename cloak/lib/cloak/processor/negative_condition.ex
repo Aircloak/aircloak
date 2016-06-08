@@ -41,6 +41,7 @@ defmodule Cloak.Processor.NegativeCondition do
   defp sufficient_matches?(clause, rows, query) do
     rows
     |> Enum.filter(filter(clause, query))
+    |> Enum.uniq_by(&user_id(&1))
     |> Enum.count()
     |> Noise.passes_filter?(user_ids(rows))
   end
@@ -73,5 +74,7 @@ defmodule Cloak.Processor.NegativeCondition do
 
   defp anchor(pattern), do: "^#{pattern}$"
 
-  defp user_ids(rows), do: Enum.map(rows, &hd/1)
+  defp user_ids(rows), do: Enum.map(rows, &user_id/1)
+
+  defp user_id(row), do: hd(row)
 end

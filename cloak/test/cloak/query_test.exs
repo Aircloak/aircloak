@@ -145,7 +145,14 @@ defmodule Cloak.QueryTest do
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[12]]}}
   end
 
-  test "<> conditions count unique users"
+  test "<> conditions count unique users" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["name"], ["Alice"])
+    1..10 |> Enum.each(fn _ -> :ok = insert_rows(_user_ids = 10..10, "heights", ["name"], ["Bob"]) end)
+
+    :ok = start_query("select count(*) from heights where name <> 'Bob'")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[11]]}}
+  end
 
   test "should order rows when instructed" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
