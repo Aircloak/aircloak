@@ -124,7 +124,11 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_order_by(query), do: {:ok, query}
 
   defp compile_where_not(%{where: clauses} = query) do
-    {negative, positive} = Enum.partition(clauses, fn(clause) -> match?({:not, _}, clause) end)
+    {positive, negative} = Enum.partition(clauses, fn
+       {:not, {:is, _, :null}} -> true
+       {:not, _} -> false
+       _ -> true
+    end)
     negative = Enum.map(negative, fn({:not, clause}) -> clause end)
     filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
 

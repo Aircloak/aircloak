@@ -154,10 +154,17 @@ defmodule Cloak.QueryTest do
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[11]]}}
   end
 
-  test "should allow IS in where clause" do
+  test "should allow IS NULL in where clause" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
     :ok = start_query("select count(*) from heights where height IS NULL")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
+  end
+
+  test "should allow IS NOT NULL in where clause" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [180])
+    :ok = start_query("select count(*) from heights where height IS NOT NULL")
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
   end
 
