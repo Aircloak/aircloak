@@ -16,5 +16,18 @@ defmodule Cloak.Processor.NegativeCondition do
     index = Columns.index(column, query, user_id: true)
     fn(row) -> Enum.at(row, index) == value end
   end
+  defp filter({:like, column, %Token{value: %{type: :string, value: pattern}}}, query) do
+    index = Columns.index(column, query, user_id: true)
+    regex = to_regex(pattern)
+    fn(row) -> Enum.at(row, index) =~ regex end
+  end
   defp filter(_, _), do: fn(_) -> false end
+
+  defp to_regex(sql_pattern) do
+    sql_pattern
+    |> Regex.escape
+    |> String.replace("%", ".*")
+    |> String.replace("_", ".")
+    |> Regex.compile!
+  end
 end
