@@ -9,7 +9,7 @@ defmodule Cloak.SqlQuery.Compiler do
     group_by: [String.t],
     from: [String.t],
     where: [Parser.where_clause],
-    negative_conditions: [Parser.where_clause],
+    where_not: [Parser.where_clause],
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns
   }
@@ -21,12 +21,12 @@ defmodule Cloak.SqlQuery.Compiler do
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
-    query = Map.merge(query, %{data_source: data_source, negative_conditions: []})
+    query = Map.merge(query, %{data_source: data_source, where_not: []})
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_aggregation(query),
          {:ok, query} <- compile_order_by(query),
-         {:ok, query} <- compile_negative_conditions(query),
+         {:ok, query} <- compile_where_not(query),
       do: {:ok, query}
   end
 
@@ -126,10 +126,11 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_order_by(query), do: {:ok, query}
 
-  defp compile_negative_conditions(%{where: clauses} = query) do
+  defp compile_where_not(%{where: clauses} = query) do
     {negative, positive} = Enum.partition(clauses, fn(clause) -> match?({:not, _}, clause) end)
+    negative = Enum.map(negative, fn({:not, clause}) -> clause end)
 
-    {:ok, %{query | where: positive, negative_conditions: negative}}
+    {:ok, %{query | where: positive, where_not: negative}}
   end
-  defp compile_negative_conditions(query), do: {:ok, query}
+  defp compile_where_not(query), do: {:ok, query}
 end
