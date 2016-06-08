@@ -121,6 +121,12 @@ defmodule Cloak.DataSource do
   Returns {RowCount, Columns, Rows}.
   """
   @spec select(atom, Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
+  def select(source_id, %{from: {:subquery, _}} = select_query) do
+    data_sources = Application.get_env(:cloak, :data_sources)
+    data_source = data_sources[source_id]
+    driver = data_source[:driver]
+    driver.select(source_id, select_query)
+  end
   def select(source_id, %{columns: fields, from: table_identifier} = select_query) do
     data_sources = Application.get_env(:cloak, :data_sources)
     data_source = data_sources[source_id]
