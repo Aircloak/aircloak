@@ -145,6 +145,8 @@ defmodule Cloak.QueryTest do
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[12]]}}
   end
 
+  test "<> conditions count unique users"
+
   test "should order rows when instructed" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [190])

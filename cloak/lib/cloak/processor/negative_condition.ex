@@ -1,18 +1,38 @@
 defmodule Cloak.Processor.NegativeCondition do
+  @moduledoc """
+  Implements handling of negated LIKE, ILIKE and equality WHERE clauses on the side of the application.
+  These need special handling, because a malicious analyst would be able to find out information about
+  individuals by adding a condition that would exclude an individual from a result set. Then by comparing
+  the result of a query with and without that condition the analyst can find out if that user was in fact
+  included in the result set. To avoid this we ignore the condition if it would remove too few users.
+  """
+
   alias Cloak.Query.Columns
   alias Cloak.SqlQuery.Parsers.Token
   alias Cloak.Processor.Noise
 
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Applies or ignore negative conditions in the query to the given rows."
   def apply(rows, %{where_not: clauses} = query) do
     clauses
     |> Enum.filter(&sufficient_matches?(&1, rows, query))
     |> Enum.reduce(rows, fn(clause, rows) -> Enum.reject(rows, filter(clause, query)) end)
   end
 
+  @doc "Removes columns selected only for the purpose of implementing negative filters."
   def drop_filter_columns(rows, %{filter_columns: filter_columns} = query) do
     anonymizable = Enum.count(Columns.all(query, user_id: true)) - Enum.count(filter_columns)
     Enum.map(rows, &Enum.take(&1, anonymizable))
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp sufficient_matches?(clause, rows, query) do
     rows
