@@ -1,6 +1,8 @@
 defmodule Cloak.SqlQuery.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
+
   alias Cloak.DataSource
+  alias Cloak.SqlQuery.Parser
 
   @type compiled_query :: %{
     data_source: atom,
