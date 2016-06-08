@@ -208,15 +208,23 @@ defmodule Cloak.SqlQuery.Parser.Test do
     )
   end
 
+  test "where clause with IS and IS NOT" do
+    assert_parse(
+      "select foo from bar where a is null and b is not null",
+       select(where: [{:is, "a", :null}, {:not, {:is, "b", :null}}])
+    )
+  end
+
   test "where clause with all types of clauses is OK" do
     assert_parse(
-      "select foo from bar where a = 2 and b in (1,2,3) and c like '_o'",
+      "select foo from bar where a = 2 and b in (1,2,3) and c like '_o' and d is not null",
       select(
         columns: ["foo"], from: "bar",
         where: [
           {:comparison, "a", :=, constant(2)},
           {:in, "b", constants([1, 2, 3])},
-          {:like, "c", constant("_o")}
+          {:like, "c", constant("_o")},
+          {:not, {:is, "d", :null}},
         ]
       )
     )
@@ -305,6 +313,8 @@ defmodule Cloak.SqlQuery.Parser.Test do
         "select foo from bar where baz like 10", "Expected `string constant`", {1, 36}},
       {"invalid in",
         "select foo from bar where baz in", "Expected `(`", {1, 33}},
+      {"invalid is",
+        "select foo from bar where baz is", "Expected `null`", {1, 33}},
       {"invalid comparison",
         "select foo from bar where baz =", "Expected `comparison value`", {1, 32}},
       {"missing where expression",

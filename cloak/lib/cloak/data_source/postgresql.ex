@@ -180,6 +180,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   Enum.each([
     {:like, " LIKE "},
     {:ilike, " ILIKE "},
+    {:is, " IS "},
   ], fn({keyword, fragment}) ->
     defp where_clause_to_fragments({unquote(keyword), what, match}) do
       [to_fragment(what), unquote(fragment), to_fragment(match)]
@@ -187,7 +188,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   end)
 
   defp to_fragment(string) when is_binary(string), do: string
-  defp to_fragment(atom) when is_atom(atom), do: to_string(atom)
+  defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
   defp to_fragment(%Token{category: :constant, value: value}), do: {:param, value.value}
 
   defp join([], _joiner), do: []

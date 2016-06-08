@@ -55,8 +55,8 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
     :ok = start_query("select * from heights order by name")
     assert_receive {:reply, %{query_id: "1", columns: ["height", "name"], rows: rows}}
-    assert Enum.uniq(rows) == [[180, "adam"], [180, "john"], [180, "mike"]]
-  end
+        assert Enum.uniq(rows) == [[180, "adam"], [180, "john"], [180, "mike"]]
+    end
 
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
@@ -152,6 +152,13 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(*) from heights where name <> 'Bob'")
 
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[11]]}}
+  end
+
+  test "should allow IS in where clause" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+    :ok = start_query("select count(*) from heights where height IS NULL")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
   end
 
   test "should order rows when instructed" do
