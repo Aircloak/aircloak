@@ -8,9 +8,14 @@ require("codemirror/addon/hint/show-hint");
 require("codemirror/addon/hint/anyword-hint");
 
 const KEYWORDS = [
-  "SELECT", "SHOW", "TABLES", "COLUMNS", "FROM", "COUNT(*)",
-  "WHERE", "IS", "LIKE", "IN", "AND", "GROUP BY", "ORDER BY",
-  "ASC", "DESC",
+  "SELECT", "FROM", "COUNT(*)",
+  "SHOW TABLES", "SHOW COLUMNS FROM",
+  "WHERE", "AND",
+  "GROUP BY", "ORDER BY",
+  "ASC", "DESC", "NOT",
+  "IS NULL", "IS NOT NULL",
+  "LIKE ''", "ILIKE ''", "NOT LIKE ''", "NOT ILIKE ''",
+  "IN ()", "NOT IN ()",
 ];
 
 export class CodeEditor extends React.Component {

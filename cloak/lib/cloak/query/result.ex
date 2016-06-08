@@ -77,6 +77,10 @@ defmodule Cloak.Query.Result do
   defp compare_fields(field1, field2, nil), do: compare_fields(field1, field2, :asc)
   defp compare_fields(:*, _, _), do: false
   defp compare_fields(_, :*, _), do: true
+  defp compare_fields(nil, _, :asc), do: false
+  defp compare_fields(_, nil, :asc), do: true
+  defp compare_fields(nil, _, :desc), do: true
+  defp compare_fields(_, nil, :desc), do: false
   defp compare_fields(field1, field2, :asc), do: field1 < field2
   defp compare_fields(field1, field2, :desc), do: field1 > field2
 end

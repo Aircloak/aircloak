@@ -106,7 +106,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
   defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
-  Enum.each([:in, :like, :ilike], fn(keyword) ->
+  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
     defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
   end)
 

@@ -14,18 +14,19 @@ defmodule Cloak.SqlQuery.Parser do
   @type column :: String.t | {:count, :star}
 
   @type like :: {:like | :ilike, String.t, String.t}
+  @type is :: {:is, String.t, :null}
 
   @type where_clause ::
         {:comparison, String.t, comparator, any}
-      | like
-      | {:not, like}
+      | like | {:not, like}
       | {:in, String.t, [any]}
+      | is | {:not, is}
 
   @type parsed_query :: %{
     command: :select | :show,
     columns: [column],
     group_by: [String.t],
-    from: [String.t],
+    from: String.t | {:subquery, String.t},
     where: [where_clause],
     order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns
@@ -49,15 +50,23 @@ defmodule Cloak.SqlQuery.Parser do
     with {:ok, tokens} <- Cloak.SqlQuery.Lexer.tokenize(string) do
       case parse_tokens(tokens, parser()) do
         {:error, _} = error -> error
-        [statement] -> {:ok, statement}
+        [statement] ->
+          {:ok, map_from(statement, string)}
       end
     end
   end
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp map_from(%{from: {:subquery, from, from}} = statement, _statement_string) do
+    %{statement | from: {:subquery, ""}}
+  end
+  defp map_from(%{from: {:subquery, from, to}} = statement, statement_string) do
+    %{statement | from: {:subquery, String.slice(statement_string, from..(to - 1))}}
+  end
+  defp map_from(statement, _statement_string), do: statement
 
   defp parser do
     statement()
@@ -128,13 +137,39 @@ defmodule Cloak.SqlQuery.Parser do
   defp from() do
     pair_both(
       keyword(:from),
-      from_table_name()
+      from_expression()
     )
   end
 
-  defp from_table_name() do
-    either(table_with_schema(), identifier())
-    |> label("table name")
+  defp from_expression() do
+    switch([
+      {keyword(:"(") |> map(fn(_) -> :subquery end), subquery()},
+      {:else, either(table_with_schema(), identifier()) |> label("table name")}
+    ])
+    |> map(fn
+          {[:subquery], [[from, to]]} -> {:subquery, from, to}
+          other -> other
+        end)
+  end
+
+  defp subquery() do
+    sequence([
+      token_offset(),
+      ignore(many1(subquery_token()) |> label("subquery expression")),
+      token_offset(),
+      ignore(keyword(:")")),
+      ignore(
+        sequence([option(keyword(:as)), identifier()])
+        |> label("subquery alias")
+      )
+    ])
+  end
+
+  defp subquery_token() do
+    either(
+      sequence([keyword(:"("), lazy(fn -> many(subquery_token()) end), keyword(:")")]),
+      any_token() |> satisfy(&(&1.category != :")" && &1.category != :eof))
+    )
   end
 
   defp table_with_schema() do
@@ -161,12 +196,10 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp where_expression() do
     switch([
-      {identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]),
-        constant(:string)},
-      {identifier() |> keyword(:in),
-        in_values()},
-      {identifier() |> comparator(),
-        allowed_where_values()},
+      {identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
+      {identifier() |> keyword(:in), in_values()},
+      {identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
+      {identifier(), pair_both(comparator(), allowed_where_values())},
       {:else, error_message(fail(""), "Invalid where expression")}
     ])
     |> map(fn
@@ -175,7 +208,9 @@ defmodule Cloak.SqlQuery.Parser do
           {[identifier, nil, :ilike], [string_constant]} -> {:ilike, identifier, string_constant}
           {[identifier, :not, :ilike], [string_constant]} -> {:not, {:ilike, identifier, string_constant}}
           {[identifier, :in], [in_values]} -> {:in, identifier, in_values}
-          {[identifier, comparator], [value]} -> {:comparison, identifier, comparator, value}
+          {[identifier, :is, nil], [:null]} -> {:is, identifier, :null}
+          {[identifier, :is, :not], [:null]} -> {:not, {:is, identifier, :null}}
+          {[identifier], [{comparator, value}]} -> {:comparison, identifier, comparator, value}
         end)
   end
 
@@ -234,13 +269,14 @@ defmodule Cloak.SqlQuery.Parser do
     )
   end
 
-  defp identifier() do
-    token(:identifier)
+  defp identifier(parser \\ noop()) do
+    parser
+    |> token(:identifier)
     |> map(&(&1.value))
     |> label("identifier")
   end
 
-  defp comparator(parser) do
+  defp comparator(parser \\ noop()) do
     parser
     |> keyword_of([:"=", :"<", :"<=", :">=", :">", :"<>"])
     |> label("comparator")
