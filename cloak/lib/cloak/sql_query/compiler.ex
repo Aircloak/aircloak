@@ -27,7 +27,7 @@ defmodule Cloak.SqlQuery.Compiler do
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_aggregation(query),
          {:ok, query} <- compile_order_by(query),
-         {:ok, query} <- compile_where_not(query),
+         {:ok, query} = compile_where_not(query),
       do: {:ok, query}
   end
 
