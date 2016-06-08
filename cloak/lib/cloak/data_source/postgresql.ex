@@ -5,6 +5,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   """
 
   alias Cloak.SqlQuery.Parsers.Token
+  alias Cloak.Query.Columns
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -123,7 +124,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   @spec select_query_spec(Cloak.SqlQuery.t) :: query_spec
   defp select_query_spec(%{from: table} = query) do
     fragments_to_query_spec([
-      "SELECT ", Enum.map_join(ordered_selected_columns(query), ",", &select_column_to_string/1), " ",
+      "SELECT ", Enum.map_join(Columns.all(query), ",", &select_column_to_string/1), " ",
       "FROM ", table, " ",
       where_fragments(query[:where])
     ])
@@ -156,11 +157,6 @@ defmodule Cloak.DataSource.PostgreSQL do
     |> List.flatten()
     |> Stream.filter(&match?({:param, _}, &1))
     |> Enum.map(fn({:param, value}) -> value end)
-  end
-
-  defp ordered_selected_columns(%{columns: columns} = query) do
-    unselected_group_by_columns = Map.get(query, :group_by, []) -- columns
-    columns ++ unselected_group_by_columns
   end
 
   defp select_column_to_string({:count, :star}), do: "'*' as \"count(*)\""
