@@ -54,7 +54,7 @@ defmodule Cloak.DataSource do
     @callback child_spec(atom, Keyword.t) :: Supervisor.Spec.spec
 
     @doc "Retrieves the existing columns for the specified table name and data source id."
-    @callback get_columns(atom, String.t) :: [[{String.t, DataSource.data_type}]]
+    @callback get_columns(atom, String.t) :: [{String.t, DataSource.data_type}]
 
     @doc "Database specific implementation for the `DataSource.select` functionality."
     @callback select(atom, Cloak.SqlQuery.t) :: {:ok, Cloak.DataSource.query_result} | {:error, any}
