@@ -7,9 +7,11 @@ defmodule Cloak.Processor.NegativeCondition do
   included in the result set. To avoid this we ignore the condition if it would remove too few users.
   """
 
-  alias Cloak.Query.Columns
-  alias Cloak.SqlQuery.Parsers.Token
   alias Cloak.Processor.Noise
+  alias Cloak.Query.Columns
+  alias Cloak.SqlQuery.Parser
+  alias Cloak.SqlQuery.Parsers.Token
+  use Cloak.Type
 
 
   # -------------------------------------------------------------------
@@ -17,6 +19,7 @@ defmodule Cloak.Processor.NegativeCondition do
   # -------------------------------------------------------------------
 
   @doc "Applies or ignore negative conditions in the query to the given rows."
+  @spec apply([Property.t], Parser.compiled_query) :: [Property.t]
   def apply(rows, %{where_not: clauses} = query) do
     clauses
     |> Enum.filter(&sufficient_matches?(&1, rows, query))
@@ -24,6 +27,7 @@ defmodule Cloak.Processor.NegativeCondition do
   end
 
   @doc "Removes columns selected only for the purpose of implementing negative filters."
+  @spec drop_filter_columns([Property.t], Parser.compiled_query) :: [Property.t]
   def drop_filter_columns(rows, %{filter_columns: filter_columns} = query) do
     anonymizable = Enum.count(Columns.all(query, user_id: true)) - Enum.count(filter_columns)
     Enum.map(rows, &Enum.take(&1, anonymizable))

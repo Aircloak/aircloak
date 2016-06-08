@@ -10,6 +10,7 @@ defmodule Cloak.Processor.Noise do
   See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
   on the user list provided, giving the same answer every time for the given list of users.
   """
+  @spec passes_filter?(non_neg_integer, [any]) :: boolean
   def passes_filter?(count, users) do
     count > absolute_lower_bound() && noisy_count(count, users) > soft_lower_bound()
   end
