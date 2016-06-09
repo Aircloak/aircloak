@@ -13,7 +13,6 @@ export class Result extends React.Component {
 
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
-    this.renderLoadLink = this.renderLoadLink.bind(this);
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
     this.handleClickLessRows = this.handleClickLessRows.bind(this);
   }
@@ -45,19 +44,6 @@ export class Result extends React.Component {
     }, []);
   }
 
-  renderLoadLink() {
-    if (this.props.errorLoading) {
-      return (
-        <span>
-          <span className="label label-danger">Error</span> failed at loading rows.&nbsp;
-          <a onClick={this.handleClickMoreRows}>Retry loading rows</a>
-        </span>
-      );
-    } else {
-      return <a onClick={this.handleClickMoreRows}>Show all rows</a>;
-    }
-  }
-
   renderShowAll() {
     if (this.props.isLoading) {
       return (
@@ -84,7 +70,7 @@ export class Result extends React.Component {
       return (
         <div className="row-count">
           Showing 10 of {this.props.row_count} rows.&nbsp;
-          {this.renderLoadLink()}
+          <a onClick={this.handleClickMoreRows}>Show all rows</a>
         </div>
       );
     }
@@ -134,7 +120,6 @@ Result.propTypes = {
   row_count: React.PropTypes.number,
   info: Info.propTypes.info,
   isLoading: React.PropTypes.bool,
-  errorLoading: React.PropTypes.bool,
   handleLessRows: React.PropTypes.func,
   handleLoadRows: React.PropTypes.func,
 };
