@@ -43,7 +43,7 @@ defmodule Cloak.Processor.NegativeCondition do
     |> Enum.filter(filter(clause, query))
     |> Enum.uniq_by(&user_id(&1))
     |> Enum.count()
-    |> Noise.passes_filter?(user_ids(rows))
+    |> Noise.passes_filter?(Noise.random_seed(user_ids(rows)))
   end
 
   defp filter({:comparison, column, :=, %Token{value: %{value: value}}}, query) do
