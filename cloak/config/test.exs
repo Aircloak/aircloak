@@ -4,7 +4,7 @@ use Mix.Config
 config :logger,
   level: :error,
   console: [
-    format: {Cloak.Logger.DevFormatter, :format},
+    format: {Cloak.Logger.Formatter, :format},
     metadata: [:file_name, :line_no, :log_level]
   ]
 
