@@ -76,13 +76,6 @@ defmodule Air.Query do
     limit: ^count
   end
 
-  @doc "Adds a query filter limiting the returned queries to that with a given ID"
-  @spec with_id(__MODULE__, String.t) :: __MODULE__
-  def with_id(query \\ __MODULE__, id) do
-    from q in query,
-    where: q.id == ^id
-  end
-
 
   # -------------------------------------------------------------------
   # Internal functions

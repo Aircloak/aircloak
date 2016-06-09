@@ -62,15 +62,6 @@ defmodule Air.QueriesController do
     json(conn, load_recent_queries(conn.assigns.current_user, 10))
   end
 
-  def show(conn, params) do
-    query_map = conn.assigns.current_user
-    |> Query.for_user()
-    |> Query.with_id(params["id"])
-    |> Repo.one!()
-    |> Query.for_display()
-    json(conn, query_map)
-  end
-
 
   # -------------------------------------------------------------------
   # Internal functions
