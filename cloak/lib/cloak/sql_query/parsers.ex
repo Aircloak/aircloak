@@ -8,13 +8,14 @@ defmodule Cloak.SqlQuery.Parsers do
 
   defmodule Token do
     @moduledoc "Defines a structure which represents tokens."
-    defstruct [:category, :value, :line, :column]
+    defstruct [:category, :value, :offset, :line, :column]
 
     @type t :: %__MODULE__{
       category: any,
       value: any,
+      offset: non_neg_integer(),
       line: pos_integer(),
-      column: pos_integer()
+      column: non_neg_integer()
     }
 
     defimpl String.Chars do
@@ -34,8 +35,7 @@ defmodule Cloak.SqlQuery.Parsers do
   If no parser succeeds, an error is generated. You can handle this case
   specifically by providing the `{:else, parser}` pair which will always run.
   """
-  @spec switch([{Base.parser | :else, Base.parser}]) :: Base.parser
-  @spec switch(Base.parser, [{Base.parser | :else, Base.parser}]) :: Base.parser
+  @spec switch(Combine.previous_parser, [{Combine.parser | :else, Combine.parser}]) :: Combine.parser
   defparser switch(%ParserState{status: :ok} = state, switch_rules) do
     interpret_switch_rules(switch_rules, state)
   end
@@ -80,29 +80,37 @@ defmodule Cloak.SqlQuery.Parsers do
   If the input is a keyword `foo`, the output is `[:foo]`. If it is `bar`, the
   output is `[:bar, result_of_bar_parser]`.
   """
-  @spec noop() :: Base.parser
-  @spec noop(Base.parser) :: Base.parser
+  @spec noop(Combine.previous_parser) :: Combine.parser
   defparser noop(%ParserState{status: :ok} = state) do
     state
   end
 
   @doc "Emits the current line and column."
-  @spec position() :: Base.parser
-  @spec position(Base.parser) :: Base.parser
+  @spec position(Combine.previous_parser) :: Combine.parser
   defparser position(%ParserState{status: :ok} = state) do
     %ParserState{state | results: [{state.line, state.column}]}
   end
 
+  @doc """
+  Emits the current offset.
+
+  The offset is a zero-based integer which determines current position in the
+  input string.
+  """
+  @spec offset(Combine.previous_parser) :: Combine.parser
+  defparser offset(%ParserState{status: :ok} = state) do
+    %ParserState{state | results: [Map.get(state, :offset, 0) + state.column | state.results]}
+  end
+
   @doc "Manually increments the current line cursor as it is not done so automatically."
-  @spec increment_line() :: Base.parser
-  @spec increment_line(Base.parser) :: Base.parser
+  @spec increment_line(Combine.previous_parser) :: Combine.parser
   defparser increment_line(%ParserState{status: :ok} = state) do
     %ParserState{state | line: (state.line + 1), column: 0}
+    |> Map.put(:offset, Map.get(state, :offset, 0) + state.column)
   end
 
   @doc "Consumes a token of the given category."
-  @spec token(any) :: Base.parser
-  @spec token(Base.parser, any) :: Base.parser
+  @spec token(Combine.previous_parser, any) :: Combine.parser
   defparser token(%ParserState{status: :ok, input: input, results: results} = state, category) do
     case input do
       [] ->
@@ -126,9 +134,45 @@ defmodule Cloak.SqlQuery.Parsers do
     end
   end
 
+  @doc "Consumes any token."
+  @spec any_token(Combine.previous_parser) :: Combine.parser
+  defparser any_token(%ParserState{status: :ok, input: input, results: results} = state) do
+    case input do
+      [] ->
+        %ParserState{status: :error,
+          error: "Unexpected `eof` at line #{state.line}, column #{state.column + 1}."
+        }
+
+      [%Token{} = token | next_tokens] ->
+        {next_line, next_column} =
+          case next_tokens do
+            [next_token | _] -> {next_token.line, next_token.column}
+            [] -> {token.line, token.column}
+          end
+        %{state | line: next_line, column: next_column, input: next_tokens, results: [token | results]}
+    end
+  end
+
+  @doc """
+  Emits the token offset in the input string.
+
+  The token offset is a zero-based integer which determines token position in the
+  input string.
+  """
+  @spec token_offset(Combine.previous_parser) :: Combine.parser
+  defparser token_offset(%ParserState{status: :ok, input: input, results: results} = state) do
+    case input do
+      [] ->
+        %ParserState{status: :error,
+          error: "Unexpected `eof` at line #{state.line}, column #{state.column + 1}."
+        }
+
+      [%Token{} = token | _] -> %{state | results: [token.offset | results]}
+    end
+  end
+
   @doc "Assert that there are no more tokens in the input."
-  @spec end_of_tokens() :: Base.parser
-  @spec end_of_tokens(Base.parser) :: Base.parser
+  @spec end_of_tokens(Combine.previous_parser) :: Combine.parser
   defparser end_of_tokens(%ParserState{status: :ok, line: line, column: column} = state) do
     case state.input do
       [] -> state
@@ -143,8 +187,7 @@ defmodule Cloak.SqlQuery.Parsers do
   This is more flexible than `label`, because it allows you to set an arbitrary
   error message, whereas `label` can only used for `Expected ... at ...` messages.
   """
-  @spec error_message(Base.parser, String.t) :: Base.parser
-  @spec error_message(Base.parser, Base.parser, String.t) :: Base.parser
+  @spec error_message(Combine.previous_parser, Combine.parser, String.t) :: Combine.parser
   defparser error_message(%ParserState{status: :ok} = state, parser, message) do
     with next_state = parser.(state),
          %ParserState{status: :error} <- next_state
@@ -162,5 +205,38 @@ defmodule Cloak.SqlQuery.Parsers do
   @spec return(Base.parser, any) :: Base.parser
   def return(previous \\ noop(), value) do
     previous |> Base.map(fn(_) -> value end)
+  end
+
+  @doc """
+  Creates a lazy parser.
+
+  A lazy parser is created on demand. This can be useful to parse recursive grammars.
+
+  For example, the following spec for parsing recursive parentheses won't work:
+
+  ```
+  defp parens do
+    sequence([char("("), many(parens()), char(")")])
+  end
+  ```
+
+  The reason is that parsers are by default eager, so invoking `parens()` will
+  cause an infinite loop.
+
+  Using `lazy`, you can defer recursing:
+
+  ```
+  defp parens do
+    sequence([char("("), many(lazy(fn -> parens() end)), char(")")])
+  end
+  ```
+
+  Lazy parser will be created on demand. In this example, if the next character is
+  `(`, we'll recurse once. Then, if the next character is again `(`, we'll recurse
+  again. Otherwise, we'll try to match the `)` character.
+  """
+  @spec lazy(Combine.previous_parser, (() -> Combine.parser)) :: Combine.parser
+  defparser lazy(%ParserState{status: :ok} = state, generator) do
+    (generator.()).(state)
   end
 end

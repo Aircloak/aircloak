@@ -8,7 +8,8 @@ require("codemirror/addon/hint/show-hint");
 require("codemirror/addon/hint/anyword-hint");
 
 const KEYWORDS = [
-  "SELECT", "FROM", "COUNT(*)",
+  "SELECT", "FROM",
+  "COUNT(*)", "SUM()", "MIN()", "MAX()", "AVG()", "STDDEV()", "MEDIAN()",
   "SHOW TABLES", "SHOW COLUMNS FROM",
   "WHERE", "AND",
   "GROUP BY", "ORDER BY",
