@@ -36,7 +36,6 @@ class QueriesView extends React.Component {
     this.setResults = this.setResults.bind(this);
     this.handleLoadHistory = this.handleLoadHistory.bind(this);
     this.replaceResult = this.replaceResult.bind(this);
-    this.mutateObject = this.mutateObject.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     this.props.resultSocket.start({
@@ -54,10 +53,6 @@ class QueriesView extends React.Component {
 
   setResults(results) {
     this.setState({sessionResults: results.slice(0, 5)});
-  }
-
-  mutateObject(object, change) {
-    return $.extend(JSON.parse(JSON.stringify(object)), change);
   }
 
   replaceResult(result) {
