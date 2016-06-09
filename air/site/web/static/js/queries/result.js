@@ -45,14 +45,6 @@ export class Result extends React.Component {
   }
 
   renderShowAll() {
-    if (this.props.isLoading) {
-      return (
-        <div className="row-count">
-          <img role="presentation" src="/images/loader.gif" />&nbsp;
-          loading {this.props.row_count - this.props.rows.length} additional rows
-        </div>
-      );
-    }
     if (this.props.row_count < 10) {
       return (
         <div className="row-count">
@@ -119,7 +111,6 @@ Result.propTypes = {
   })).isRequired,
   row_count: React.PropTypes.number,
   info: Info.propTypes.info,
-  isLoading: React.PropTypes.bool,
   handleLessRows: React.PropTypes.func,
   handleLoadRows: React.PropTypes.func,
 };
