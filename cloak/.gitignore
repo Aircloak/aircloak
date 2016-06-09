@@ -38,3 +38,4 @@ priv/serialization.lua
 /cover
 /deps
 *.ez
+/artifacts/

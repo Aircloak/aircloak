@@ -1,0 +1,18 @@
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!cloak/VERSION
+!cloak/Makefile
+!cloak/mix.exs
+!cloak/mix.lock
+!cloak/config
+!cloak/lib
+!cloak/src
+!cloak/include
+!cloak/rel
+!cloak/fetch_deps.sh
+!common
+
+# additional ignores
+cloak/priv/config
