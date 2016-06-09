@@ -3,7 +3,7 @@
 set -e
 
 cd $(dirname $0)
-. ../common/docker_helper.sh
+. ../../docker/docker_helper.sh
 . ../config/config.sh
 
 ./ensure_persistent_volume.sh

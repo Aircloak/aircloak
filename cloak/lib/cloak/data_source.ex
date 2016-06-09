@@ -85,7 +85,7 @@ defmodule Cloak.DataSource do
     children = for {source_id, data_source} <- data_sources do
       driver = data_source[:driver]
       parameters = data_source[:parameters]
-      driver.child_spec(source_id, parameters)
+      driver.child_spec(source_id, Enum.to_list(parameters))
     end
     supervise(children, strategy: :one_for_one)
   end
@@ -99,14 +99,14 @@ defmodule Cloak.DataSource do
   @spec all() :: [atom]
   def all() do
     data_sources = Application.get_env(:cloak, :data_sources)
-    Keyword.keys(data_sources)
+    Map.keys(data_sources)
   end
 
   @doc "Returns the list of defined tables for a specific data source."
   @spec tables(atom) :: [atom]
   def tables(source_id) do
     data_sources = Application.get_env(:cloak, :data_sources)
-    Keyword.keys(data_sources[source_id][:tables])
+    Map.keys(data_sources[source_id][:tables])
   end
 
   @doc "Returns the list of columns for a specific table."
@@ -133,8 +133,8 @@ defmodule Cloak.DataSource do
     driver = data_source[:driver]
     table_id = String.to_existing_atom(table_identifier)
     table = data_source[:tables][table_id]
-    user_id = Keyword.fetch!(table, :user_id)
-    table_name = Keyword.fetch!(table, :name)
+    user_id = Map.fetch!(table, :user_id)
+    table_name = Map.fetch!(table, :name)
     # insert the user_id column into the fields list, translate the table name and execute the `select` query
     driver.select(source_id, %{select_query | columns: [user_id | fields], from: table_name})
   end
@@ -147,12 +147,12 @@ defmodule Cloak.DataSource do
   # load the columns list for all defined tables in all data sources
   defp load_columns() do
     data_sources = Application.get_env(:cloak, :data_sources)
-    data_sources = for {id, data_source} <- data_sources, do: {id, load_columns(id, data_source)}
+    data_sources = for {id, data_source} <- data_sources, into: %{}, do: {id, load_columns(id, data_source)}
     Application.put_env(:cloak, :data_sources, data_sources)
   end
 
   defp load_columns(source_id, data_source) do
-    tables = for {table_id, table} <- data_source[:tables] do
+    tables = for {table_id, table} <- data_source[:tables], into: %{} do
       columns = load_columns(source_id, data_source, table)
       # verify the format of the columns list
       columns != [] or raise("Could not load columns for table '#{source_id}/#{table_id}'!")
@@ -166,10 +166,10 @@ defmodule Cloak.DataSource do
       # check that we still have columns left in the list
       columns != [] or raise("No data columns found in table '#{source_id}/#{table_id}'!")
       # save the columns list into the table specification
-      {table_id, Keyword.put(table, :columns, columns)}
+      {table_id, Map.put(table, :columns, columns)}
     end
     # save the new table structure into the data source specification
-    Keyword.put(data_source, :tables, tables)
+    Map.put(data_source, :tables, tables)
   end
 
   defp load_columns(source_id, data_source, table) do
@@ -205,26 +205,26 @@ defmodule Cloak.DataSource do
     @doc false
     def register_test_table(table_id, table_name, user_id) do
       source = Application.get_env(:cloak, :data_sources)[:local]
-      table = [name: table_name, user_id: user_id]
-      tables = Keyword.put(source[:tables], table_id, table)
-      source = Keyword.put(source, :tables, tables)
+      table = %{name: table_name, user_id: user_id}
+      tables = Map.put(source[:tables], table_id, table)
+      source = Map.put(source, :tables, tables)
       source = load_columns(:local, source)
-      Application.put_env(:cloak, :data_sources, [local: source])
+      Application.put_env(:cloak, :data_sources, %{local: source})
     end
 
     @doc false
     def unregister_test_table(table_id) do
       source = Application.get_env(:cloak, :data_sources)[:local]
-      tables = Keyword.delete(source[:tables], table_id)
-      source = Keyword.put(source, :tables, tables)
-      Application.put_env(:cloak, :data_sources, [local: source])
+      tables = Map.delete(source[:tables], table_id)
+      source = Map.put(source, :tables, tables)
+      Application.put_env(:cloak, :data_sources, %{local: source})
     end
 
     @doc false
     def clear_test_tables() do
       source = Application.get_env(:cloak, :data_sources)[:local]
-      source = Keyword.put(source, :tables, [])
-      Application.put_env(:cloak, :data_sources, [local: source])
+      source = Map.put(source, :tables, %{})
+      Application.put_env(:cloak, :data_sources, %{local: source})
     end
   end
 end

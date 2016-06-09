@@ -1,0 +1,27 @@
+{
+  "air_socket_url": "wss://insights.air-local:20000/cloak/socket/websocket",
+  "data_sources": {
+    "local": {
+      "driver": "postgresql",
+      "parameters": {
+        "hostname": "localhost",
+        "username": "cloak",
+        "database": "cloak",
+        "sync_connect": true,
+        "pool_size": 4
+      },
+      "tables": {
+        "test": {
+          "name": "user_data",
+          "user_id": "user_id",
+          "ignore_unsupported_types": false
+        },
+        "purchases": {
+          "name": "purchases",
+          "user_id": "uid",
+          "ignore_unsupported_types": false
+        }
+      }
+    }
+  }
+}

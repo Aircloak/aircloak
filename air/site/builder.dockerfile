@@ -1,7 +1,7 @@
 FROM elixir:1.2.3
 MAINTAINER Aircloak
 
-AIR_INIT
+MPI_INIT
 
 # Install dependencies (packages, hex, rebar, npm, brunch) and configure UTF-8
 RUN \

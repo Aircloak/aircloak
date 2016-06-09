@@ -1,0 +1,6 @@
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!cloak/artifacts/rel
+!cloak/docker

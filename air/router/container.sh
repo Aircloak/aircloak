@@ -3,14 +3,15 @@
 set -eo pipefail
 
 cd $(dirname $0)
-. ../common/docker_helper.sh
+. ../../docker/docker_helper.sh
+. ../config/config.sh
 
 STOP_SIGNAL=SIGQUIT
 STOP_TIMEOUT=30
 
 DOCKER_IMAGE=$(aircloak_image_name air_router)
 
-if [ "$AIR_ENV" = "prod" ]; then
+if [ "$CONTAINER_ENV" = "prod" ]; then
   cert_folder="/aircloak/ca"
 else
   cert_folder="$(pwd)/dev_cert"

@@ -3,8 +3,8 @@
 set -eo pipefail
 
 cd $(dirname $0)
-. ../common/docker_helper.sh
-
+. ../../docker/docker_helper.sh
+. ../config/config.sh
 
 STOP_SIGNAL=SIGQUIT
 STOP_TIMEOUT=30

@@ -2,8 +2,7 @@
 *
 
 # whitelist only needed folders
-!VERSION
-!config/config.sh
-!config/tcp_ports.json
-!site/artifacts/rel
-!site/docker
+!air/config/config.sh
+!air/config/tcp_ports.json
+!air/site/artifacts/rel
+!air/site/docker

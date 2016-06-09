@@ -7,7 +7,11 @@ config :sasl, :sasl_error_logger, false
 
 config :logger,
   level: :info,
-  backends: [:console]
+  backends: [:console],
+  console: [
+    format: {Cloak.Logger.Formatter, :format},
+    metadata: [:file_name, :line_no, :log_level, :file, :line]
+  ]
 
 config :kernel,
   # The portnumber the cloak erlang vm listens

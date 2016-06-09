@@ -2,6 +2,10 @@
 
 set -eo pipefail
 
-. $(dirname ${BASH_SOURCE[0]})/../common/docker_helper.sh
+# build from the top-level folder of the project
+cd $(dirname ${BASH_SOURCE[0]})/../..
 
-build_aircloak_image air_installer coreos
+. docker/docker_helper.sh
+. air/config/config.sh
+
+SYSTEM_VERSION=$(cat air/VERSION) build_aircloak_image air_installer air/coreos

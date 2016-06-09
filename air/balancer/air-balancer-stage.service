@@ -6,7 +6,7 @@ Requires=docker.service
 [Service]
 SyslogIdentifier=air-balancer-stage
 TimeoutStartSec=0
-Environment=AIR_ENV=prod
+Environment=CONTAINER_ENV=prod
 Environment=BIND_IF=139.19.208.121
 Environment=ROUTERS_FILE=routers_stage
 ExecStart=/aircloak/air_stage/air/balancer/container.sh foreground

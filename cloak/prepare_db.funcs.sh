@@ -15,14 +15,14 @@ conditionally_create_user()
   END
   $body$'
 
-  echo "$user_command" | psql -U postgres
+  echo "$user_command" | psql -h $DB_HOST -p $DB_PORT -U postgres
 }
 
 regenerate_database()
 {
   database=$1
   user=$2
-  psql -c "DROP DATABASE IF EXISTS $database;" -U postgres
-  psql -c "CREATE DATABASE $database ENCODING 'UTF8';" -U postgres
-  psql -c "GRANT ALL PRIVILEGES ON DATABASE $database TO $user;" -U postgres
+  psql -h $DB_HOST -p $DB_PORT -c "DROP DATABASE IF EXISTS $database;" -U postgres
+  psql -h $DB_HOST -p $DB_PORT -c "CREATE DATABASE $database ENCODING 'UTF8';" -U postgres
+  psql -h $DB_HOST -p $DB_PORT -c "GRANT ALL PRIVILEGES ON DATABASE $database TO $user;" -U postgres
 }

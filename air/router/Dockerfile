@@ -1,7 +1,7 @@
 FROM nginx:1.9.11
 MAINTAINER Aircloak
 
-AIR_INIT
+MPI_INIT
 
 ENV site_path /aircloak/router
 RUN mkdir -p $site_path
@@ -16,10 +16,10 @@ RUN apt-get update && apt-get install -y vim nano curl jq && \
     apt-get -y upgrade
 
 RUN mkdir -p /etc/confd/conf.d && mkdir -p /etc/confd/templates
-COPY router/docker $site_path/docker
-COPY config/config.sh $site_path/docker/config.sh
-COPY config/tcp_ports.json $site_path/docker/tcp_ports.json
+COPY air/router/docker $site_path/docker
+COPY air/config/config.sh $site_path/docker/config.sh
+COPY air/config/tcp_ports.json $site_path/docker/tcp_ports.json
 
 USER root
 
-AIR_TAG_VERSION
+TAG_VERSION

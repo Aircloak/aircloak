@@ -1,6 +1,6 @@
 SHELL=/bin/bash -o pipefail
 
-.PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile regenerate_db dialyze lint release
+.PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile regenerate_db dialyze lint release release-local
 
 all: deps compile
 
@@ -50,6 +50,9 @@ lint:
 release:
 	rm -rf rel/cloak
 	MIX_ENV=prod mix do compile, release --no-confirm-missing
+
+release-local: release
+	cp rel/cloak/lib/cloak-0.1.0/priv/config/dev.json rel/cloak/lib/cloak-0.1.0/priv/config/config.json
 
 check_dependent_apps:
 	mix check_dependent_apps

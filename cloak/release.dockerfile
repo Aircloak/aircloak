@@ -10,7 +10,7 @@ MPI_INIT
 # Dependencies, helper tools, and configuration of UTF-8 locale
 RUN \
   apt-get update && \
-  apt-get install locales nano telnet curl jq -y && \
+  apt-get install locales nano telnet curl -y && \
   locale-gen en_US.UTF-8 en_us && \
   dpkg-reconfigure locales && \
   locale-gen C.UTF-8 && \
@@ -36,18 +36,20 @@ RUN \
 ## ------------------------------------------------------------------
 
 # User under which the app will run.
-RUN useradd --create-home --shell /bin/bash deployer && mkdir -p /aircloak/app
+RUN useradd --shell /bin/bash deployer && mkdir -p /aircloak/app
 
-WORKDIR /aircloak/insights
+WORKDIR /aircloak/cloak
 
-COPY air/site/artifacts/rel /aircloak/insights
-COPY air/site/docker/start.sh /aircloak/
+COPY cloak/artifacts/rel /aircloak/cloak
+COPY cloak/docker/start.sh /aircloak/
 
-RUN chown -R deployer:deployer /aircloak/insights && chown -R deployer:deployer /var/run/
+RUN chown -R deployer:deployer /aircloak/cloak && chown -R deployer:deployer /var/run/
 
 # We'll run as root, but step down in the init script to the non-privileged user
 USER root
 
 CMD /aircloak/start.sh
+
+VOLUME /aircloak/cloak/lib/cloak-0.1.0/priv/config
 
 TAG_VERSION

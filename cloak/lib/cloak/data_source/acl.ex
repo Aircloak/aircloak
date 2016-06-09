@@ -6,23 +6,23 @@ defmodule Cloak.DataSource.Acl do
   To use this data-source you need to add it to the list of data sources that should
   be served by your cloak and declare where the ACL backend can be found.
 
-  A sample configuration could look like this:
+  A sample deploy configuration could look like this:
 
-      config :cloak, data_sources: [
-        acl: [
-          driver: Cloak.DataSource.Acl,
-          parameters: [
-            hostname: "localhost",
-            port: 8000
-          ],
-          tables: [
-            <table-display-name>: [
-              name: "<actual-table-name>",
-              user_id: "<user-id-column-name>",
-              ignore_unsupported_types: false
-            ]
-          ]
-        ]
+      "data_sources": {
+        "acl": {
+          driver: "acl",
+          "parameters": {
+            "hostname": "localhost",
+            "port": 8000
+          },
+          "tables": {
+            "<table-display-name>": {
+              "name": "<actual-table-name>",
+              "user_id": "<user-id-column-name>",
+              "ignore_unsupported_types": false
+            }
+          }
+        }
       }
   """
 
