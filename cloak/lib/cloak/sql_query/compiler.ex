@@ -27,7 +27,6 @@ defmodule Cloak.SqlQuery.Compiler do
     query = Map.merge(query, %{data_source: data_source, where_not: [], unsafe_filter_columns: []})
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- compile_columns(query),
-         {:ok, query} <- compile_aggregation(query),
          {:ok, query} <- compile_order_by(query),
          {:ok, query} = compile_where_not(query),
       do: {:ok, query}
@@ -35,7 +34,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   @doc "Returns a string title for the given column specification."
   @spec column_title(Parser.column) :: String.t
-  def column_title({:count, :star}), do: "count(*)"
+  def column_title({:function, function, identifier}), do: "#{function}(#{identifier})"
   def column_title(column), do: column
 
 
@@ -58,19 +57,6 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_from(query), do: {:ok, query}
 
-  defp compile_aggregation(%{command: :select} = query) do
-    case invalid_not_aggregated_columns(query) do
-      [] -> {:ok, query}
-      [invalid_column | _rest] ->
-        {
-          :error,
-          "Column `#{invalid_column}` needs to appear in the " <>
-            "`group by` clause or be used in an aggregate function."
-        }
-    end
-  end
-  defp compile_aggregation(query), do: {:ok, query}
-
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
     Enum.reject(query.columns, &(aggregate_function?(&1) || Enum.member?(query.group_by, &1)))
   end
@@ -81,7 +67,8 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp aggregate_function?({_, _}), do: true
+  @aggregation_functions  ["count", "sum", "avg", "min", "max", "stddev", "median"]
+  defp aggregate_function?({:function, function, _}), do: Enum.member?(@aggregation_functions, function)
   defp aggregate_function?(_), do: false
 
   defp compile_columns(%{command: :select, from: {:subquery, _}} = query) do
@@ -90,28 +77,53 @@ defmodule Cloak.SqlQuery.Compiler do
     # the outer column selections
     {:ok, query}
   end
-  defp compile_columns(%{command: :select, columns: :star, from: table_identifier, data_source: data_source} = query) do
+  defp compile_columns(%{command: :select, columns: :"*", from: table_identifier, data_source: data_source} = query) do
     table_id = String.to_existing_atom(table_identifier)
     columns = for {name, _type} <- DataSource.columns(data_source, table_id), do: name
-    {:ok, %{query | columns: columns}}
+    compile_columns(%{query | columns: columns})
   end
   defp compile_columns(%{command: :select, from: table_identifier, data_source: data_source} = query) do
     table_id = String.to_existing_atom(table_identifier)
     table_columns = DataSource.columns(data_source, table_id)
     with :ok <- verify_column_names(query, table_columns),
-        :ok <- verify_aggregated_types(query, table_columns),
+        :ok <- verify_aggregated_columns(query),
+        :ok <- verify_functions(query),
+        :ok <- verify_function_parameters(query, table_columns),
       do: {:ok, query}
   end
   defp compile_columns(query), do: {:ok, query}
 
-  defp verify_aggregated_types(query, table_columns) do
-    aggregated_columns = for {function, identifier} <- query.columns, function !== :count, do: identifier
+  defp verify_function_parameters(query, table_columns) do
+    aggregated_columns = for {:function, function, _} = column <- query.columns, aggregate_function?(column),
+      function !== "count", do: select_clause_to_identifier(column)
     invalid_columns = Enum.reject(aggregated_columns,
       &(Enum.member?(table_columns, {&1, :integer}) or Enum.member?(table_columns, {&1, :real})))
     case invalid_columns do
       [] -> :ok
       [invalid_column | _rest] ->
         {:error, ~s/Aggregation function used over non-numeric column `#{invalid_column}`./}
+    end
+  end
+
+  defp verify_aggregated_columns(query) do
+    case invalid_not_aggregated_columns(query) do
+      [] -> :ok
+      [invalid_column | _rest] ->
+        {
+          :error,
+          "Column `#{invalid_column}` needs to appear in the " <>
+            "`group by` clause or be used in an aggregate function."
+        }
+    end
+  end
+
+  defp verify_functions(query) do
+    invalid_functions = for {:function, function, _} = column <- query.columns,
+      !aggregate_function?(column), do: function
+    case invalid_functions do
+      [] -> :ok
+      [invalid_function | _rest] ->
+        {:error, ~s/Unknown function `#{invalid_function}`./}
     end
   end
 
@@ -128,10 +140,10 @@ defmodule Cloak.SqlQuery.Compiler do
     select_columns = for column <- query.columns, do: select_clause_to_identifier(column)
     where_columns = for column <- Map.get(query, :where, []), do: where_clause_to_identifier(column)
     group_by_columns = Map.get(query, :group_by, [])
-    (select_columns -- [:star]) ++ where_columns ++ group_by_columns
+    (select_columns -- [:"*"]) ++ where_columns ++ group_by_columns
   end
 
-  defp select_clause_to_identifier({_function, identifier}), do: identifier
+  defp select_clause_to_identifier({:function, _function, identifier}), do: identifier
   defp select_clause_to_identifier(identifier), do: identifier
 
   defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do

@@ -280,6 +280,12 @@ defmodule Cloak.QueryTest do
     assert ~s/Non-selected field `age` specified in `order by` clause./ == error
   end
 
+  test "query reports an error on unknown function" do
+    :ok = start_query("select invalid_function(height) from heights")
+    assert_receive {:reply, %{query_id: "1", error: error}}
+    assert ~s/Unknown function `invalid_function`./ == error
+  end
+
   test "query reports an error on runner crash" do
     ExUnit.CaptureLog.capture_log(fn ->
       :ok = start_query(:invalid_query_type)
