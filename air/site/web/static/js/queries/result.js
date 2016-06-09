@@ -7,14 +7,34 @@ export class Result extends React.Component {
   constructor(props) {
     super(props);
 
+    this.state = {
+      rowsToShowCount: 10,
+    };
+
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
     this.renderLoadLink = this.renderLoadLink.bind(this);
+    this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
+    this.handleClickLessRows = this.handleClickLessRows.bind(this);
+  }
+
+  handleClickMoreRows() {
+    this.setState({rowsToShowCount: this.props.row_count});
+  }
+
+  handleClickLessRows() {
+    this.setState({rowsToShowCount: 10});
   }
 
   renderRows() {
+    let rowsProducedCount = 0;
     return this.props.rows.reduce((rowAcc, accumulateRow, i) => {
       for (let occurenceCount = 0; occurenceCount < accumulateRow.occurrences; occurenceCount++) {
+        if (rowsProducedCount >= this.state.rowsToShowCount) {
+          return rowAcc;
+        }
+        rowsProducedCount += 1;
+
         const key = `${i}-${occurenceCount}`;
         const row = (<tr key={key}>
           {accumulateRow.row.map((value, j) => <td key={j}>{value}</td>)}
@@ -30,11 +50,11 @@ export class Result extends React.Component {
       return (
         <span>
           <span className="label label-danger">Error</span> failed at loading rows.&nbsp;
-          <a onClick={() => this.props.handleLoadRows(this.props)}>Retry loading rows</a>
+          <a onClick={this.handleClickMoreRows}>Retry loading rows</a>
         </span>
       );
     } else {
-      return <a onClick={() => this.props.handleLoadRows(this.props)}>Show all rows</a>;
+      return <a onClick={this.handleClickMoreRows}>Show all rows</a>;
     }
   }
 
@@ -53,11 +73,11 @@ export class Result extends React.Component {
           {this.props.row_count} rows.
         </div>
       );
-    } else if (this.props.row_count === this.props.rows.length) {
+    } else if (this.props.row_count === this.state.rowsToShowCount) {
       return (
         <div className="row-count">
           {this.props.row_count} rows.&nbsp;
-          <a onClick={() => this.props.handleLessRows(this.props)}>Show fewer rows</a>
+          <a onClick={this.handleClickLessRows}>Show fewer rows</a>
         </div>
       );
     } else {
