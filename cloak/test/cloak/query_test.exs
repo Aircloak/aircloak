@@ -55,8 +55,8 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
     :ok = start_query("select * from heights order by name")
     assert_receive {:reply, %{query_id: "1", columns: ["height", "name"], rows: rows}}
-        assert Enum.uniq(rows) == [[180, "adam"], [180, "john"], [180, "mike"]]
-    end
+    assert Enum.uniq(rows) == [[180, "adam"], [180, "john"], [180, "mike"]]
+  end
 
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
