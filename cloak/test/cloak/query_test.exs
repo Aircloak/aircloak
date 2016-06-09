@@ -126,10 +126,45 @@ defmodule Cloak.QueryTest do
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[60]]}}
   end
 
-  test "should allow IS in where clause" do
+  test "should allow <> in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+
+    :ok = start_query("select count(*) from heights where height <> 180")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[40]]}}
+  end
+
+  test "should drop <> conditions if they would expose small groups" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["name"], ["Alice"])
+    :ok = insert_rows(_user_ids = 10..11, "heights", ["name"], ["Bob"])
+
+    :ok = start_query("select count(*) from heights where name <> 'Bob'")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[12]]}}
+  end
+
+  test "<> conditions count unique users" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["name"], ["Alice"])
+    1..10 |> Enum.each(fn _ -> :ok = insert_rows(_user_ids = 10..10, "heights", ["name"], ["Bob"]) end)
+
+    :ok = start_query("select count(*) from heights where name <> 'Bob'")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[11]]}}
+  end
+
+  test "should allow IS NULL in where clause" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
     :ok = start_query("select count(*) from heights where height IS NULL")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
+  end
+
+  test "should allow IS NOT NULL in where clause" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [180])
+    :ok = start_query("select count(*) from heights where height IS NOT NULL")
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
   end
 
@@ -150,34 +185,34 @@ defmodule Cloak.QueryTest do
   test "query reports an error on invalid column" do
     :ok = start_query("select invalid_column from heights")
     assert_receive {:reply, %{query_id: "1", error: error}}
-    assert ~s/Column "invalid_column" doesn't exist./ == error
+    assert ~s/Column `invalid_column` doesn't exist./ == error
   end
 
   test "query reports an error on invalid table" do
     :ok = start_query("select column from invalid_table")
     assert_receive {:reply, %{query_id: "1", error: error}}
-    assert ~s/Table "invalid_table" doesn't exist./ == error
+    assert ~s/Table `invalid_table` doesn't exist./ == error
   end
 
   test "query reports an error when mixing aggregated and normal columns" do
     :ok = start_query("select count(*), height from heights")
 
     assert_receive {:reply, %{query_id: "1", error: error}}
-    assert error =~ ~r/height need to appear in the `group by` clause/
+    assert error =~ ~r/`height` needs to appear in the `group by` clause/
   end
 
   test "query reports an error when grouping by nonexistent columns" do
     :ok = start_query("select count(*) from heights group by nothing")
 
     assert_receive {:reply, %{query_id: "1", error: error}}
-    assert error =~ ~r/Column "nothing" doesn't exist./
+    assert error =~ ~r/Column `nothing` doesn't exist./
   end
 
   test "query reports an error when not grouping by some selected columns" do
     :ok = start_query("select name, height from heights group by height")
 
     assert_receive {:reply, %{query_id: "1", error: error}}
-    assert error =~ ~r/name need to appear in the `group by` clause/
+    assert error =~ ~r/`name` needs to appear in the `group by` clause/
   end
 
   test "query allows mixing aggregated and grouped columns" do
@@ -236,13 +271,13 @@ defmodule Cloak.QueryTest do
   test "query reports an error on invalid where clause identifier" do
     :ok = start_query("select height from heights where nonexistant > 10")
     assert_receive {:reply, %{query_id: "1", error: error}}
-    assert ~s/Column "nonexistant" doesn't exist./ == error
+    assert ~s/Column `nonexistant` doesn't exist./ == error
   end
 
   test "query reports an error on invalid order by field" do
     :ok = start_query("select height from heights order by age")
     assert_receive {:reply, %{query_id: "1", error: error}}
-    assert ~s/Non-selected field specified in 'order by' clause: "age"./ == error
+    assert ~s/Non-selected field `age` specified in `order by` clause./ == error
   end
 
   test "query reports an error on runner crash" do

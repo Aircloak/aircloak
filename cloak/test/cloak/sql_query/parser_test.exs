@@ -1,7 +1,7 @@
-defmodule Cloak.SqlQueryTest do
+defmodule Cloak.SqlQuery.Parser.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.SqlQuery
+  alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
 
 
@@ -18,7 +18,7 @@ defmodule Cloak.SqlQueryTest do
   # Runs the query string and asserts it matches to the given pattern.
   defmacrop assert_parse(query_string, expected_pattern) do
     quote do
-      assert unquote(expected_pattern) = SqlQuery.Parser.parse!(unquote(query_string))
+      assert unquote(expected_pattern) = Parser.parse!(unquote(query_string))
     end
   end
 
@@ -46,6 +46,12 @@ defmodule Cloak.SqlQueryTest do
   # Produces a pattern which matches an AST of multiple constants.
   defmacrop constants(values) do
     Enum.map(values, &quote(do: constant(unquote(&1))))
+  end
+
+  defmacrop subquery(value) do
+    quote do
+      {:subquery, unquote(value)}
+    end
   end
 
 
@@ -131,7 +137,7 @@ defmodule Cloak.SqlQueryTest do
   test "where clause with <>" do
     assert_parse(
       "select foo from bar where a <> 10",
-      select(columns: ["foo"], from: "bar", where: [{:comparison, "a", :<>, constant(10)}])
+      select(columns: ["foo"], from: "bar", where: [{:not, {:comparison, "a", :=, constant(10)}}])
     )
   end
 
@@ -168,7 +174,7 @@ defmodule Cloak.SqlQueryTest do
       "select foo from bar where a <> 10 and b = 'bar'",
       select(
         columns: ["foo"], from: "bar",
-        where: [{:comparison, "a", :<>, constant(10)}, {:comparison, "b", :=, constant("bar")}]
+        where: [{:not, {:comparison, "a", :=, constant(10)}}, {:comparison, "b", :=, constant("bar")}]
       )
     )
   end
@@ -251,6 +257,13 @@ defmodule Cloak.SqlQueryTest do
     assert_parse("select count(*) from foo", select(columns: [{:count, :star}], from: "foo"))
   end
 
+  test "aggregation functions" do
+    assert_parse(
+      "select sum(price), min(value) from foo",
+      select(columns: [{:sum, "price"}, {:min, "value"}], from: "foo")
+    )
+  end
+
   test "group by multiple columns" do
     assert_parse(
       "select x from b group by x, y, z",
@@ -269,18 +282,60 @@ defmodule Cloak.SqlQueryTest do
     )
   end
 
+  test "subquery sql" do
+    assert_parse(
+      "select foo from (select bar from baz) alias",
+      select(columns: ["foo"], from: subquery("select bar from baz"))
+    )
+  end
+
+  test "subquery sql with AS" do
+    assert_parse(
+      "select foo from (select bar from baz) as alias",
+      select(columns: ["foo"], from: subquery("select bar from baz"))
+    )
+  end
+
+  test "subquery sql with semicolon" do
+    assert_parse(
+      "select foo from (select bar from baz) alias;",
+      select(columns: ["foo"], from: subquery("select bar from baz"))
+    )
+  end
+
+  test "subquery sql with an unknown token" do
+    assert_parse(
+      "select foo from (select `bar` from baz) alias",
+      select(columns: ["foo"], from: subquery("select `bar` from baz"))
+    )
+  end
+
+  test "subquery sql with parens" do
+    assert_parse(
+      "select foo from (select bar, cast(now() as text) from baz) alias",
+      select(columns: ["foo"], from: subquery("select bar, cast(now() as text) from baz"))
+    )
+  end
+
+  test "subquery sql with newlines" do
+    assert_parse(
+      "select foo from (select bar\n, \n\ncast(now()\n as text) from baz\n) alias",
+      select(columns: ["foo"], from: subquery("select bar\n, \n\ncast(now()\n as text) from baz\n"))
+    )
+  end
+
   Enum.each(
     [
       {"single quote is not allowed in the identifier",
-        "select fo'o from baz", "Invalid character", {1, 10}},
+        "select fo'o from baz", "Expected `from`", {1, 10}},
       {"identifier can't start with a number",
-        "select 1foo from baz", "Expected `identifier`", {1, 8}},
+        "select 1foo from baz", "Expected `column definition`", {1, 8}},
       {"keyword is not identifier",
-        "select select from baz", "Expected `identifier`", {1, 8}},
+        "select select from baz", "Expected `column definition`", {1, 8}},
       {"from table is required",
         "select foo", "`from`", {1, 11}},
       {"at least one column must be specified",
-        "select from baz", "Expected `identifier`", {1, 8}},
+        "select from baz", "Expected `column definition`", {1, 8}},
       {"columns must be separated with a comma",
         "select foo bar from baz", "Expected `from`", {1, 12}},
       {"query must start with a select or show",
@@ -288,7 +343,7 @@ defmodule Cloak.SqlQueryTest do
       {"show requires tables or columns",
         "show foobar", "Expected `tables or columns`", {1, 6}},
       {"!= is an illegal comparator in where clause",
-        "select a from b where a != b", "Invalid character", {1, 25}},
+        "select a from b where a != b", "Expected `comparator`", {1, 25}},
       {"=> is an illegal comparator in where clause",
         "select a from b where a => b", "Expected `comparison value`", {1, 26}},
       {"=< is an illegal comparator in where clause",
@@ -298,7 +353,9 @@ defmodule Cloak.SqlQueryTest do
       {"not joining multiple where clauses is illegal",
         "select a from b where a > 1 b < 2", "Expected end of input", {1, 29}},
       {"count requires parens",
-        "select count * from foo", "Expected `(`", {1, 14}},
+        "select count * from foo", "Expected `column definition`", {1, 8}},
+      {"aggregation function requires parens",
+          "select sum price from foo", "Expected `column definition`", {1, 8}},
       {"cannot group by count",
         "select a from foo group by count(*)", "Expected `identifier`", {1, 28}},
       {"'by' has to follow 'order'",
@@ -320,17 +377,25 @@ defmodule Cloak.SqlQueryTest do
       {"missing where expression",
         "select foo from bar where", "Invalid where expression", {1, 26}},
       {"invalid where expression",
-        "select foo from bar where foo bar", "Invalid where expression", {1, 27}},
+        "select foo from bar where foo bar", "Expected `comparator`", {1, 31}},
       {"no input allowed after the statement",
         "select foo from bar baz", "Expected end of input", {1, 21}},
       {"error after spaces",
         "   invalid_statement", "Expected `select or show`", {1, 4}},
       {"initial error after spaces and newlines",
-        "  \n  \n invalid_statement", "Expected `select or show`", {3, 2}}
+        "  \n  \n invalid_statement", "Expected `select or show`", {3, 2}},
+      {"unclosed parens in a subquery expression",
+        "select foo from (select bar from baz", "Expected `)`", {1, 37}},
+      {"empty subquery expression",
+        "select foo from ()", "Expected `subquery expression`", {1, 18}},
+      {"missing alias",
+        "select foo from (select bar from baz)", "Expected `subquery alias`", {1, 38}},
+      {"missing alias after AS",
+        "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}}
     ],
     fn({description, statement, expected_error, {line, column}}) ->
       test description do
-        assert {:error, reason} = SqlQuery.Parser.parse(unquote(statement))
+        assert {:error, reason} = Parser.parse(unquote(statement))
         assert reason =~ unquote(expected_error)
         assert reason =~ "line #{unquote(line)}, column #{unquote(column)}\."
       end

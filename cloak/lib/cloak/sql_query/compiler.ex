@@ -1,18 +1,21 @@
 defmodule Cloak.SqlQuery.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
+
   alias Cloak.DataSource
+  alias Cloak.SqlQuery.Parser
 
   @type compiled_query :: %{
     data_source: atom,
     command: :select | :show,
     columns: [Parser.column],
+    unsafe_filter_columns: [Parser.column],
     group_by: [String.t],
     from: [String.t],
     where: [Parser.where_clause],
+    where_not: [Parser.where_clause],
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns
   }
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -21,11 +24,12 @@ defmodule Cloak.SqlQuery.Compiler do
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
-    query = Map.put(query, :data_source, data_source)
+    query = Map.merge(query, %{data_source: data_source, where_not: [], unsafe_filter_columns: []})
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_aggregation(query),
          {:ok, query} <- compile_order_by(query),
+         {:ok, query} = compile_where_not(query),
       do: {:ok, query}
   end
 
@@ -39,10 +43,16 @@ defmodule Cloak.SqlQuery.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp compile_from(%{from: {:subquery, _}} = query) do
+    # We currently treat subqueries as absolute blackboxes, and therefore just have to trust the analyst
+    # to having selected a table that actually exists. This is unfortunate, but can't be improved
+    # until we do full subquery parsing ourselves.
+    {:ok, query}
+  end
   defp compile_from(%{from: table_identifier, data_source: data_source} = query) do
     tables = DataSource.tables(data_source)
     case Enum.find_index(tables, &(Atom.to_string(&1) === table_identifier)) do
-      nil -> {:error, ~s/Table "#{table_identifier}" doesn't exist./}
+      nil -> {:error, ~s/Table `#{table_identifier}` doesn't exist./}
       _ -> {:ok, query}
     end
   end
@@ -51,10 +61,10 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_aggregation(%{command: :select} = query) do
     case invalid_not_aggregated_columns(query) do
       [] -> {:ok, query}
-      columns ->
+      [invalid_column | _rest] ->
         {
           :error,
-          "Columns #{columns |> Enum.map(&column_title/1) |> Enum.join} need to appear in the " <>
+          "Column `#{invalid_column}` needs to appear in the " <>
             "`group by` clause or be used in an aggregate function."
         }
     end
@@ -71,9 +81,15 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp aggregate_function?({:count, _}), do: true
+  defp aggregate_function?({_, _}), do: true
   defp aggregate_function?(_), do: false
 
+  defp compile_columns(%{command: :select, from: {:subquery, _}} = query) do
+    # Subqueries can produce column-names that are not actually in the table. Without understanding what
+    # is being produced by the subquery (currently it is being treated as a blackbox), we cannot validate
+    # the outer column selections
+    {:ok, query}
+  end
   defp compile_columns(%{command: :select, columns: :star, from: table_identifier, data_source: data_source} = query) do
     table_id = String.to_existing_atom(table_identifier)
     columns = for {name, _type} <- DataSource.columns(data_source, table_id), do: name
@@ -81,34 +97,42 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_columns(%{command: :select, from: table_identifier, data_source: data_source} = query) do
     table_id = String.to_existing_atom(table_identifier)
-    columns = for {name, _type} <- DataSource.columns(data_source, table_id), do: name
-    invalid_columns = Enum.reject(all_columns(query), &valid_column?(&1, columns))
-    case invalid_columns do
-      [] -> {:ok, query}
-      [invalid_column | _rest] -> {:error, ~s/Column "#{invalid_column}" doesn't exist./}
-    end
+    table_columns = DataSource.columns(data_source, table_id)
+    with :ok <- verify_column_names(query, table_columns),
+        :ok <- verify_aggregated_types(query, table_columns),
+      do: {:ok, query}
   end
   defp compile_columns(query), do: {:ok, query}
 
-  defp valid_column?({:count, :star}, _), do: true
-  defp valid_column?(name, columns) do
-    columns |> Enum.any?(&(&1 == name))
+  defp verify_aggregated_types(query, table_columns) do
+    aggregated_columns = for {function, identifier} <- query.columns, function !== :count, do: identifier
+    invalid_columns = Enum.reject(aggregated_columns,
+      &(Enum.member?(table_columns, {&1, :integer}) or Enum.member?(table_columns, {&1, :real})))
+    case invalid_columns do
+      [] -> :ok
+      [invalid_column | _rest] ->
+        {:error, ~s/Aggregation function used over non-numeric column `#{invalid_column}`./}
+    end
   end
 
-  defp all_columns(%{columns: selected_columns} = query) do
-    where_columns = Map.get(query, :where, [])
-    |> Enum.map(&where_clause_to_identifier/1)
+  defp verify_column_names(query, table_columns) do
+    names = for {name, _type} <- table_columns, do: name
+    invalid_columns = Enum.reject(all_columns(query), &Enum.member?(names, &1))
+    case invalid_columns do
+      [] -> :ok
+      [invalid_column | _rest] -> {:error, ~s/Column `#{invalid_column}` doesn't exist./}
+    end
+  end
 
+  defp all_columns(query) do
+    select_columns = for column <- query.columns, do: select_clause_to_identifier(column)
+    where_columns = for column <- Map.get(query, :where, []), do: where_clause_to_identifier(column)
     group_by_columns = Map.get(query, :group_by, [])
-
-    selected_columns ++ where_columns ++ group_by_columns
+    (select_columns -- [:star]) ++ where_columns ++ group_by_columns
   end
 
-  defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
-  defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
-  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
-  end)
+  defp select_clause_to_identifier({_function, identifier}), do: identifier
+  defp select_clause_to_identifier(identifier), do: identifier
 
   defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
@@ -120,8 +144,27 @@ defmodule Cloak.SqlQuery.Compiler do
         end
         {:ok, %{query | order_by: order_list}}
       [{invalid_field, _direction} | _rest] ->
-        {:error, ~s/Non-selected field specified in 'order by' clause: #{inspect invalid_field}./}
+        {:error, ~s/Non-selected field `#{column_title(invalid_field)}` specified in `order by` clause./}
     end
   end
   defp compile_order_by(query), do: {:ok, query}
+
+  defp compile_where_not(%{where: clauses} = query) do
+    {positive, negative} = Enum.partition(clauses, fn
+       {:not, {:is, _, :null}} -> true
+       {:not, _} -> false
+       _ -> true
+    end)
+    negative = Enum.map(negative, fn({:not, clause}) -> clause end)
+    unsafe_filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
+
+    {:ok, %{query | where: positive, where_not: negative, unsafe_filter_columns: unsafe_filter_columns}}
+  end
+  defp compile_where_not(query), do: {:ok, query}
+
+  defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
+  defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
+  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
+    defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
+  end)
 end

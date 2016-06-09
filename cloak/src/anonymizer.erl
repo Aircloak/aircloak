@@ -86,7 +86,6 @@ anonymize(AggregatedBuckets, LcfData) ->
   BucketsWithAnonState = [append_anonymization_state(Bucket) || Bucket <- AggregatedBuckets],
   Params = default_params(LcfData),
   FinalResults = oportunistically_filter_reports(BucketsWithAnonState, Params, [
-    fun absolute_low_count_filter/2,
     fun soft_low_count_filter/2,
     fun apply_constant_noise/2,
     fun apply_proportional_random_noise/2,
@@ -105,9 +104,6 @@ default_params() ->
 -spec default_params(undefined | 'Elixir.Cloak.LCFData':t()) -> #anonymizer_params{}.
 default_params(LcfData) ->
   #anonymizer_params{
-    absolute_lower_bound = cloak_conf:get_val(noise, absolute_lower_bound),
-    sigma_soft_lower_bound = cloak_conf:get_val(noise, sigma_soft_lower_bound),
-    soft_lower_bound = cloak_conf:get_val(noise, soft_lower_bound),
     target_error = cloak_conf:get_val(noise, target_error),
     max_sigma = cloak_conf:get_val(noise, max_sigma),
     min_sigma = cloak_conf:get_val(noise, min_sigma),
@@ -179,26 +175,16 @@ oportunistically_filter_reports(Reports, AnonymizationParameters, [NextTest | Pe
 %% Anonymization steps
 %% -------------------------------------------------------------------
 
-%% @doc We have an absolute low count filter.
-%%      It is in place to make sure that an analyst can never
-%%      learn something about properties that only pertain to very few (0 or 1)
-%%      users.
-absolute_low_count_filter({#bucket{count = Count}, _State},
-    #anonymizer_params{absolute_lower_bound = LowerBound}) when Count =< LowerBound ->
-  failed;
-absolute_low_count_filter(Bucket, _) -> Bucket.
-
 %% @doc The soft low-count filter prevents very small buckets from
 %%      leaving the system. It is soft rather than fixed, to ensure
 %%      that a malicious analyst cannot do attacks where the fact that
 %%      a value is reported or not, tells him if his victim is in
 %%      the result set or not.
 soft_low_count_filter({#bucket{count = Count}, #anonymization_state{userids_hash = UserIdHashSeed}} = FullBucket,
-    #anonymizer_params{sigma_soft_lower_bound = SigmaSoftLowerBound, soft_lower_bound = LowerBound}) ->
-  NoisedCount = cloak_distributions:gauss_s(SigmaSoftLowerBound, Count, UserIdHashSeed),
-  case NoisedCount =< LowerBound of
-    true -> failed;
-    false -> FullBucket
+    #anonymizer_params{}) ->
+  case 'Elixir.Cloak.Processor.Noise':passes_filter(Count, UserIdHashSeed) of
+    true -> FullBucket;
+    false -> failed
   end.
 
 %% @doc We apply a layer of noise that is constant (i.e. it doesn't grow
@@ -287,9 +273,6 @@ remove_non_positive_buckets({#bucket{noisy_count = Count} = Bucket, AnonState}, 
 
 anonymizer_params() ->
   #anonymizer_params{
-    absolute_lower_bound = 1,
-    sigma_soft_lower_bound = ?SIGMA_SOFT_LOWER_BOUND,
-    soft_lower_bound = 3,
     target_error = 0.05,
     max_sigma = ?MAX_SIGMA,
     min_sigma = ?MIN_SIGMA,
@@ -346,13 +329,6 @@ apply_constant_noise_test() ->
   F = fun(_) -> ?assertEqual(?bucket(4, 4, 0, [1]), ?run(apply_constant_noise, ?bucket(4))) end,
   lists:foreach(F, lists:seq(1,100)).
 
-absolute_low_count_filter_test_() ->
-  [
-    ?_assertEqual(failed, ?run(absolute_low_count_filter, ?bucket(0))),
-    ?_assertEqual(failed, ?run(absolute_low_count_filter, ?bucket(1))),
-    ?_assertEqual(?bucket(2), ?run(absolute_low_count_filter,  ?bucket(2)))
-  ].
-
 soft_low_count_filter_test_() ->
   {setup,
    fun() ->
@@ -361,8 +337,8 @@ soft_low_count_filter_test_() ->
    fun(_) -> meck:unload() end,
   [
     ?_assertEqual(failed, ?run(soft_low_count_filter, ?bucket(0))),
-    ?_assertEqual(failed, ?run(soft_low_count_filter, ?bucket(4))),
-    ?_assertEqual(?bucket(5), ?run(soft_low_count_filter,  ?bucket(5)))
+    ?_assertEqual(failed, ?run(soft_low_count_filter, ?bucket(6))),
+    ?_assertEqual(?bucket(7), ?run(soft_low_count_filter,  ?bucket(7)))
   ]}.
 
 noise_test_() ->
