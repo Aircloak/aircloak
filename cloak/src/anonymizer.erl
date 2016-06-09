@@ -106,7 +106,6 @@ default_params() ->
 default_params(LcfData) ->
   #anonymizer_params{
     absolute_lower_bound = cloak_conf:get_val(noise, absolute_lower_bound),
-    sigma_soft_lower_bound = cloak_conf:get_val(noise, sigma_soft_lower_bound),
     soft_lower_bound = cloak_conf:get_val(noise, soft_lower_bound),
     target_error = cloak_conf:get_val(noise, target_error),
     max_sigma = cloak_conf:get_val(noise, max_sigma),
@@ -194,8 +193,8 @@ absolute_low_count_filter(Bucket, _) -> Bucket.
 %%      a value is reported or not, tells him if his victim is in
 %%      the result set or not.
 soft_low_count_filter({#bucket{count = Count}, #anonymization_state{userids_hash = UserIdHashSeed}} = FullBucket,
-    #anonymizer_params{sigma_soft_lower_bound = SigmaSoftLowerBound, soft_lower_bound = LowerBound}) ->
-  NoisedCount = cloak_distributions:gauss_s(SigmaSoftLowerBound, Count, UserIdHashSeed),
+    #anonymizer_params{soft_lower_bound = LowerBound}) ->
+  NoisedCount = 'Elixir.Cloak.Processor.Noise':noisy_count(Count, UserIdHashSeed),
   case NoisedCount =< LowerBound of
     true -> failed;
     false -> FullBucket
@@ -288,7 +287,6 @@ remove_non_positive_buckets({#bucket{noisy_count = Count} = Bucket, AnonState}, 
 anonymizer_params() ->
   #anonymizer_params{
     absolute_lower_bound = 1,
-    sigma_soft_lower_bound = ?SIGMA_SOFT_LOWER_BOUND,
     soft_lower_bound = 3,
     target_error = 0.05,
     max_sigma = ?MAX_SIGMA,
