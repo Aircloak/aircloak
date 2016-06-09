@@ -13,12 +13,16 @@ export class Result extends React.Component {
   }
 
   renderRows() {
-    const tableRows = this.props.rows.map((row, i) =>
-      <tr key={i}>
-        {row.map((value, j) => <td key={j}>{value}</td>)}
-      </tr>
-    );
-    return tableRows;
+    return this.props.rows.reduce((rowAcc, accumulateRow, i) => {
+      for (let occurenceCount = 0; occurenceCount < accumulateRow.occurrences; occurenceCount++) {
+        const key = `${i}-${occurenceCount}`;
+        const row = (<tr key={key}>
+          {accumulateRow.row.map((value, j) => <td key={j}>{value}</td>)}
+        </tr>);
+        rowAcc.push(row);
+      }
+      return rowAcc;
+    }, []);
   }
 
   renderLoadLink() {
@@ -103,7 +107,10 @@ export class Result extends React.Component {
 Result.propTypes = {
   statement: React.PropTypes.string,
   columns: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
-  rows: React.PropTypes.arrayOf(React.PropTypes.array).isRequired,
+  rows: React.PropTypes.arrayOf(React.PropTypes.shape({
+    occurrences: React.PropTypes.integer,
+    row: React.PropTypes.array,
+  })).isRequired,
   row_count: React.PropTypes.number,
   info: Info.propTypes.info,
   isLoading: React.PropTypes.bool,
