@@ -62,6 +62,7 @@ defmodule Cloak.DeployConfig do
     Enum.map(data_sources, fn({data_source, params}) ->
       driver_module = case params[:driver] do
         "postgresql" -> Cloak.DataSource.PostgreSQL
+        "acl" -> Cloak.DataSource.Acl
         other -> raise("Unknown driver `#{other}` for data source `#{data_source}`")
       end
 
