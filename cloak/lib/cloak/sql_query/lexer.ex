@@ -27,7 +27,7 @@ defmodule Cloak.SqlQuery.Lexer do
     "SELECT", "SHOW",
     "TABLES", "COLUMNS",
     "FROM",
-    "COUNT",
+    "COUNT", "SUM", "MIN", "MAX", "AVG", "MEDIAN", "STDDEV",
     "WHERE", "AND", "NOT",
     "LIKE", "ILIKE", "IN", "IS",
     "ORDER", "GROUP", "BY",

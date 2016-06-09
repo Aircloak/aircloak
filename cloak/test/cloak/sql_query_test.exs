@@ -257,6 +257,13 @@ defmodule Cloak.SqlQueryTest do
     assert_parse("select count(*) from foo", select(columns: [{:count, :star}], from: "foo"))
   end
 
+  test "aggregation functions" do
+    assert_parse(
+      "select sum(price), min(value) from foo",
+      select(columns: [{:sum, "price"}, {:min, "value"}], from: "foo")
+    )
+  end
+
   test "group by multiple columns" do
     assert_parse(
       "select x from b group by x, y, z",
@@ -322,13 +329,13 @@ defmodule Cloak.SqlQueryTest do
       {"single quote is not allowed in the identifier",
         "select fo'o from baz", "Expected `from`", {1, 10}},
       {"identifier can't start with a number",
-        "select 1foo from baz", "Expected `identifier`", {1, 8}},
+        "select 1foo from baz", "Expected `column definition`", {1, 8}},
       {"keyword is not identifier",
-        "select select from baz", "Expected `identifier`", {1, 8}},
+        "select select from baz", "Expected `column definition`", {1, 8}},
       {"from table is required",
         "select foo", "`from`", {1, 11}},
       {"at least one column must be specified",
-        "select from baz", "Expected `identifier`", {1, 8}},
+        "select from baz", "Expected `column definition`", {1, 8}},
       {"columns must be separated with a comma",
         "select foo bar from baz", "Expected `from`", {1, 12}},
       {"query must start with a select or show",
@@ -346,7 +353,9 @@ defmodule Cloak.SqlQueryTest do
       {"not joining multiple where clauses is illegal",
         "select a from b where a > 1 b < 2", "Expected end of input", {1, 29}},
       {"count requires parens",
-        "select count * from foo", "Expected `(`", {1, 14}},
+        "select count * from foo", "Expected `column definition`", {1, 8}},
+      {"aggregation function requires parens",
+          "select sum price from foo", "Expected `column definition`", {1, 8}},
       {"cannot group by count",
         "select a from foo group by count(*)", "Expected `identifier`", {1, 28}},
       {"'by' has to follow 'order'",

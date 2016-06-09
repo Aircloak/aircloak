@@ -11,7 +11,8 @@ defmodule Cloak.SqlQuery.Parser do
     | :>
     | :<>
 
-  @type column :: String.t | {:count, :star}
+  @type aggregate :: :sum | :min | :max | :avg | :median | :stddev
+  @type column :: String.t | {:count, :star} | {aggregate, String.t}
 
   @type like :: {:like | :ilike, String.t, String.t}
   @type is :: {:is, String.t, :null}
@@ -119,6 +120,7 @@ defmodule Cloak.SqlQuery.Parser do
       star(),
       comma_delimited(column())
     ) |> map(&{:columns, &1})
+    |> label("column definition")
   end
 
   defp star() do
@@ -126,12 +128,26 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp column() do
-    either(count_expression(), identifier())
+    choice([count_expression(), aggregate_expression(), identifier()])
+    |> label("column name or aggregate")
   end
 
   defp count_expression() do
     keywords([:count, :"(", :"*", :")"])
     |> map(fn(_) -> {:count, :star} end)
+  end
+
+  defp aggregate_expression() do
+    pipe(
+      [aggregate_function(), keyword(:"("), identifier(), keyword(:")")],
+      fn([function, :"(", target, :")"]) -> {function, target} end
+    )
+  end
+
+  defp aggregate_function() do
+    choice([
+      keyword(:sum), keyword(:min), keyword(:max), keyword(:avg), keyword(:median), keyword(:stddev)
+    ])
   end
 
   defp from() do
