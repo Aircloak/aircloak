@@ -36,7 +36,7 @@ RUN \
 ## ------------------------------------------------------------------
 
 # User under which the app will run.
-RUN useradd --create-home --shell /bin/bash deployer && mkdir -p /aircloak/app
+RUN useradd --shell /bin/bash deployer && mkdir -p /aircloak/app
 
 WORKDIR /aircloak/cloak
 
