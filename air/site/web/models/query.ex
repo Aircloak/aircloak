@@ -91,21 +91,12 @@ defmodule Air.Query do
   defp result_map(%{result: nil}, _complete), do: %{rows: [], columns: []}
   defp result_map(%{result: result_json}, complete) do
     result = Poison.decode!(result_json)
-    {rows, row_count} = case result["rows"] do
-      nil -> {[], 0}
-      rows ->
-        if complete do
-          {rows, length(rows)}
-        else
-          {Enum.take(rows, 10), length(rows)}
-        end
-    end
 
     %{
       columns: result["columns"],
-      rows: rows,
+      rows: result["rows"],
       error: result["error"],
-      row_count: row_count,
+      row_count: result["row_count"],
       info: result["info"],
     }
   end
