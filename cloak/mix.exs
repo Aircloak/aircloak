@@ -44,7 +44,9 @@ defmodule Cloak.Mixfile do
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
       {:combine, github: "bitwalker/combine"},
       {:phoenix, "~> 1.1.4", only: :test},
-      {:cowboy, "~> 1.0", only: :test}
+      {:cowboy, "~> 1.0", only: :test},
+      {:excheck, "~> 0.3", only: :test},
+      {:triq, github: "krestenkrab/triq", only: :test}
     ]
   end
 
