@@ -15,6 +15,8 @@ defmodule Cloak.Processor.Noise do
     count > absolute_lower_bound() && noisy_count(count, users) > soft_lower_bound()
   end
 
+  def passes_filter(count, random_seed), do: passes_filter?(count, random_seed)
+
   def noisy_count(count, {_, _, _} = random_seed) do
     :cloak_distributions.gauss_s(sigma_soft_lower_bound(), count, random_seed)
   end
