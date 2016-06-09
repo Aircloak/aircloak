@@ -12,21 +12,6 @@ config :cloak, :alarm_handler, install: false
 
 config :cloak, :api, address: '0.0.0.0'
 
-config :cloak, data_sources: [
-  local: [
-    driver: Cloak.DataSource.PostgreSQL,
-    parameters: [
-      host: "127.0.0.1",
-      username: "postgres",
-      database: "cloaktest1",
-      sync_connect: true,
-      pool_size: 2
-    ],
-    tables: [
-    ]
-  ]
-]
-
 config :cloak, :air,
   socket_url: "ws://127.0.0.1:29876/cloak/socket/websocket",
   min_reconnect_interval: 50,
