@@ -111,6 +111,4 @@ Result.propTypes = {
   })).isRequired,
   row_count: React.PropTypes.number,
   info: Info.propTypes.info,
-  handleLessRows: React.PropTypes.func,
-  handleLoadRows: React.PropTypes.func,
 };

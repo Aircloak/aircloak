@@ -35,8 +35,6 @@ class QueriesView extends React.Component {
     this.addResult = this.addResult.bind(this);
     this.setResults = this.setResults.bind(this);
     this.handleLoadHistory = this.handleLoadHistory.bind(this);
-    this.handleLoadRows = this.handleLoadRows.bind(this);
-    this.handleLessRows = this.handleLessRows.bind(this);
     this.replaceResult = this.replaceResult.bind(this);
     this.mutateObject = this.mutateObject.bind(this);
 
@@ -159,29 +157,6 @@ class QueriesView extends React.Component {
     });
   }
 
-  handleLoadRows(result) {
-    this.replaceResult(this.mutateObject(result, {isLoading: true}));
-    $.ajax(`/query/${result.id}`, {
-      method: "GET",
-      headers: {
-        "X-CSRF-TOKEN": this.props.CSRFToken,
-        "Content-Type": "application/json",
-      },
-      success: (completeResult) => {
-        this.replaceResult(completeResult);
-      },
-      error: (_error) => {
-        this.replaceResult(this.mutateObject(result, {isLoading: false, errorLoading: true}));
-      },
-    });
-  }
-
-  handleLessRows(result) {
-    const updateableResult = $.extend({}, result);
-    updateableResult.rows = result.rows.slice(0, 10);
-    this.replaceResult(updateableResult);
-  }
-
   addError(statement, text) {
     const result = {statement, error: text};
     this.setResults([result].concat(this.state.sessionResults));
@@ -210,11 +185,7 @@ class QueriesView extends React.Component {
 
       </div>
 
-      <Results
-        results={this.state.sessionResults}
-        handleLoadRows={this.handleLoadRows}
-        handleLessRows={this.handleLessRows}
-      />
+      <Results results={this.state.sessionResults} />
 
       <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
     </div>);
