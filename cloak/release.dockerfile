@@ -50,6 +50,6 @@ USER root
 
 CMD /aircloak/start.sh
 
-RUN mkdir -p /aircloak/cloak/lib/cloak-0.0.1/priv/
+RUN mkdir -p /aircloak/cloak/lib/cloak-0.1.0/priv/
 
 TAG_VERSION
