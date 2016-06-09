@@ -31,7 +31,7 @@ defmodule Cloak.SqlQuery.Lexer do
     "WHERE", "AND", "NOT",
     "LIKE", "ILIKE", "IN", "IS",
     "ORDER", "GROUP", "BY",
-    "ASC", "DESC",
+    "ASC", "DESC", "AS",
     "NULL", "TRUE", "FALSE",
     "(", ")",
     ",", ".", ";",
@@ -48,14 +48,23 @@ defmodule Cloak.SqlQuery.Lexer do
       whitespace(),
       constant(),
       identifier(),
-      keyword()
+      keyword(),
+      other()
     ]))
   end
 
   defp eof_token() do
     error_message(eof(), "Invalid character")
-    |> position()
-    |> map(fn({line, column}) -> %Token{line: line, column: column, category: :eof} end)
+    |> pair_both(offset(), position())
+    |> map(fn({offset, {line, column}}) ->
+          %Token{offset: offset, line: line, column: column, category: :eof}
+        end)
+  end
+
+  defp other() do
+    char()
+    |> map(&{:other, &1})
+    |> output_token()
   end
 
   defp whitespace() do
@@ -125,7 +134,7 @@ defmodule Cloak.SqlQuery.Lexer do
   end
 
   # precompile regexes so we don't have to do it on every query invocation
-  @keyword_regexes Enum.map(@keywords, &Regex.compile!(Regex.escape(&1), "i"))
+  @keyword_regexes Enum.map(@keywords, &Regex.compile!("(#{Regex.escape(&1)}){1}", "i"))
 
   defp keyword() do
     choice(Enum.map(@keyword_regexes, &word_of/1))
@@ -143,9 +152,9 @@ defmodule Cloak.SqlQuery.Lexer do
   end
 
   defp output_token(token_parser) do
-    pair_both(position(), token_parser)
-    |> map(fn({{line, column}, {category, value}}) ->
-          %Token{line: line, column: column, category: category, value: value}
+    sequence([offset(), position(), token_parser])
+    |> map(fn([offset, {line, column}, {category, value}]) ->
+          %Token{offset: offset, line: line, column: column, category: category, value: value}
         end)
   end
 end

@@ -39,6 +39,12 @@ defmodule Cloak.SqlQuery.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp compile_from(%{from: {:subquery, _}} = query) do
+    # We currently treat subqueries as absolute blackboxes, and therefore just have to trust the analyst
+    # to having selected a table that actually exists. This is unfortunate, but can't be improved
+    # until we do full subquery parsing ourselves.
+    {:ok, query}
+  end
   defp compile_from(%{from: table_identifier, data_source: data_source} = query) do
     tables = DataSource.tables(data_source)
     case Enum.find_index(tables, &(Atom.to_string(&1) === table_identifier)) do
@@ -74,6 +80,12 @@ defmodule Cloak.SqlQuery.Compiler do
   defp aggregate_function?({_, _}), do: true
   defp aggregate_function?(_), do: false
 
+  defp compile_columns(%{command: :select, from: {:subquery, _}} = query) do
+    # Subqueries can produce column-names that are not actually in the table. Without understanding what
+    # is being produced by the subquery (currently it is being treated as a blackbox), we cannot validate
+    # the outer column selections
+    {:ok, query}
+  end
   defp compile_columns(%{command: :select, columns: :star, from: table_identifier, data_source: data_source} = query) do
     table_id = String.to_existing_atom(table_identifier)
     columns = for {name, _type} <- DataSource.columns(data_source, table_id), do: name

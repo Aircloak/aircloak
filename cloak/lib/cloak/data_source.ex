@@ -54,7 +54,7 @@ defmodule Cloak.DataSource do
     @callback child_spec(atom, Keyword.t) :: Supervisor.Spec.spec
 
     @doc "Retrieves the existing columns for the specified table name and data source id."
-    @callback get_columns(atom, String.t) :: [[{String.t, DataSource.data_type}]]
+    @callback get_columns(atom, String.t) :: [{String.t, DataSource.data_type}]
 
     @doc "Database specific implementation for the `DataSource.select` functionality."
     @callback select(atom, Cloak.SqlQuery.t) :: {:ok, Cloak.DataSource.query_result} | {:error, any}
@@ -121,6 +121,12 @@ defmodule Cloak.DataSource do
   Returns {RowCount, Columns, Rows}.
   """
   @spec select(atom, Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
+  def select(source_id, %{from: {:subquery, _}} = select_query) do
+    data_sources = Application.get_env(:cloak, :data_sources)
+    data_source = data_sources[source_id]
+    driver = data_source[:driver]
+    driver.select(source_id, select_query)
+  end
   def select(source_id, %{columns: fields, from: table_identifier} = select_query) do
     data_sources = Application.get_env(:cloak, :data_sources)
     data_source = data_sources[source_id]
