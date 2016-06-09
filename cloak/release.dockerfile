@@ -10,7 +10,7 @@ MPI_INIT
 # Dependencies, helper tools, and configuration of UTF-8 locale
 RUN \
   apt-get update && \
-  apt-get install locales nano telnet curl jq -y && \
+  apt-get install locales nano telnet curl -y && \
   locale-gen en_US.UTF-8 en_us && \
   dpkg-reconfigure locales && \
   locale-gen C.UTF-8 && \
