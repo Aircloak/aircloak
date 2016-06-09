@@ -8,7 +8,7 @@ defmodule Cloak.SqlQuery.Compiler do
     data_source: atom,
     command: :select | :show,
     columns: [Parser.column],
-    filter_columns: [Parser.column],
+    unsafe_filter_columns: [Parser.column],
     group_by: [String.t],
     from: [String.t],
     where: [Parser.where_clause],
@@ -24,7 +24,7 @@ defmodule Cloak.SqlQuery.Compiler do
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
-    query = Map.merge(query, %{data_source: data_source, where_not: [], filter_columns: []})
+    query = Map.merge(query, %{data_source: data_source, where_not: [], unsafe_filter_columns: []})
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_aggregation(query),
@@ -156,9 +156,9 @@ defmodule Cloak.SqlQuery.Compiler do
        _ -> true
     end)
     negative = Enum.map(negative, fn({:not, clause}) -> clause end)
-    filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
+    unsafe_filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
 
-    {:ok, %{query | where: positive, where_not: negative, filter_columns: filter_columns}}
+    {:ok, %{query | where: positive, where_not: negative, unsafe_filter_columns: unsafe_filter_columns}}
   end
   defp compile_where_not(query), do: {:ok, query}
 

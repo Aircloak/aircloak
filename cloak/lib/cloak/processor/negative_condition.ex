@@ -27,9 +27,9 @@ defmodule Cloak.Processor.NegativeCondition do
   end
 
   @doc "Removes columns selected only for the purpose of implementing negative filters."
-  @spec drop_filter_columns([Property.t], Parser.compiled_query) :: [Property.t]
-  def drop_filter_columns(rows, %{filter_columns: filter_columns} = query) do
-    anonymizable = Enum.count(Columns.all(query, user_id: true)) - Enum.count(filter_columns)
+  @spec drop_unsafe_filter_columns([Property.t], Parser.compiled_query) :: [Property.t]
+  def drop_unsafe_filter_columns(rows, %{unsafe_filter_columns: unsafe_filter_columns} = query) do
+    anonymizable = Enum.count(Columns.all(query, user_id: true)) - Enum.count(unsafe_filter_columns)
     Enum.map(rows, &Enum.take(&1, anonymizable))
   end
 

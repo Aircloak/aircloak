@@ -22,7 +22,7 @@ defmodule Cloak.DataSourceTest do
     data = Cloak.DataSource.select(:local, %{
       command: :select,
       columns: ["value"],
-      filter_columns: [],
+      unsafe_filter_columns: [],
       from: "test"
     })
 

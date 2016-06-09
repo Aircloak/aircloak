@@ -14,9 +14,9 @@ defmodule Cloak.Query.Columns do
   @spec all(Compiler.compiled_query, options) :: [Parser.column]
   def all(query, options \\ [])
   def all(query, user_id: true), do: [:user_id | all(query)]
-  def all(%{columns: columns, filter_columns: filter_columns} = query, _) do
+  def all(%{columns: columns, unsafe_filter_columns: unsafe_filter_columns} = query, _) do
     unselected_group_by_columns = Map.get(query, :group_by, [])
-    columns ++ unselected_group_by_columns ++ filter_columns
+    columns ++ unselected_group_by_columns ++ unsafe_filter_columns
   end
 
   @doc "Convenience function. Returns the index of the given column in `Columns.all`."
