@@ -1,0 +1,26 @@
+# ignore everything by default
+*
+
+
+# Whitelist only needed folders
+
+# The folders not copied in the base image
+!cloak/lib
+!cloak/src
+!cloak/include
+!cloak/rel
+!docker_cache/cloak
+
+
+# Additional ignores
+
+# `consolidated` and `cloak` are always regenerated when building in prod
+# environment. Since the base image is needed only to build deps, we'll ignore
+# these folders. Otherwise, a release would be rebuilt even if there were no
+# changes in the source.
+docker_cache/cloak/_build/prod/consolidated
+docker_cache/cloak/_build/prod/lib/cloak
+
+# We don't want runtime config included. It needs to be provided through a
+# mounted volume
+cloak/priv/config
