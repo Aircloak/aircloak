@@ -3,6 +3,11 @@ defmodule Cloak.Processor.Noise do
 
   @opaque seed :: {integer, integer, integer}
 
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
   @doc """
   Returns true if count is sufficiently large to be reported. Sufficiently large means:
 
@@ -33,6 +38,11 @@ defmodule Cloak.Processor.Noise do
     |> compute_hash()
     |> binary_to_seed()
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp noisy_count(count, random_seed) do
     :cloak_distributions.gauss_s(sigma_soft_lower_bound(), count, random_seed)
