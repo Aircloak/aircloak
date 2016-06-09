@@ -34,6 +34,7 @@ defmodule Cloak.Processor.Noise do
   def random_seed(users) do
     users
     |> Enum.sort()
+    |> Enum.dedup()
     |> :erlang.term_to_binary()
     |> compute_hash()
     |> binary_to_seed()
