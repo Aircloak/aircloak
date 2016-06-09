@@ -28,7 +28,7 @@ defmodule Cloak.SqlQuery.Builder do
 
   @spec select_column_to_string(Cloak.SqlQuery.Parser.column) :: String.t
   @doc "Creates a string representation of a potentially complex column selection"
-  def select_column_to_string({:aggregate, "count", :star}), do: "'*' AS \"count(*)\""
+  def select_column_to_string({:aggregate, "count", :"*"}), do: "'*' AS \"count(*)\""
   def select_column_to_string({:aggregate, function, identifier}), do: "#{function}(#{identifier})"
   def select_column_to_string(column), do: column
 

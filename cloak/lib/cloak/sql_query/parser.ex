@@ -11,7 +11,7 @@ defmodule Cloak.SqlQuery.Parser do
     | :>
     | :<>
 
-  @type column :: String.t | {:aggregate, String.t, String.t | :star}
+  @type column :: String.t | {:aggregate, String.t, String.t | :"*"}
 
   @type like :: {:like | :ilike, String.t, String.t}
   @type is :: {:is, String.t, :null}
@@ -116,14 +116,10 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp select_columns() do
     either(
-      star(),
+      keyword(:"*"),
       comma_delimited(column())
     ) |> map(&{:columns, &1})
     |> label("column definition")
-  end
-
-  defp star() do
-    keyword(:"*") |> map(fn(:*) -> :star end)
   end
 
   defp column() do
@@ -133,7 +129,7 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp aggregate_expression() do
     pipe(
-      [identifier(), keyword(:"("), either(identifier(), star()), keyword(:")")],
+      [identifier(), keyword(:"("), either(identifier(), keyword(:"*")), keyword(:")")],
       fn([function, :"(", target, :")"]) -> {:aggregate, String.downcase(function), target} end
     )
   end
