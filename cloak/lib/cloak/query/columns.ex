@@ -15,8 +15,7 @@ defmodule Cloak.Query.Columns do
   def all(query, options \\ [])
   def all(query, user_id: true), do: [:user_id | all(query)]
   def all(%{columns: columns, filter_columns: filter_columns} = query, _) do
-    unselected_group_by_columns = Map.get(query, :group_by, []) -- columns
-
+    unselected_group_by_columns = Map.get(query, :group_by, [])
     columns ++ unselected_group_by_columns ++ filter_columns
   end
 
