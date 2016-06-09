@@ -27,6 +27,8 @@ defmodule Cloak.DataSource.Acl do
   """
 
   import Supervisor.Spec
+  alias Cloak.SqlQuery.Builder
+
 
   #-----------------------------------------------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -83,7 +85,7 @@ defmodule Cloak.DataSource.Acl do
   defp run_query(params, %{columns: columns} = query) do
     request = %{
       type: "query",
-      columns: columns |> Enum.map(&Cloak.SqlQuery.Builder.select_column_to_string/1),
+      columns: columns |> Enum.map(&Builder.select_column_to_string/1),
       statement: sql_statement(query)
     }
     with {:ok, response} <- tcp_send_receive(params, request) do
@@ -103,7 +105,7 @@ defmodule Cloak.DataSource.Acl do
     }
   end
   defp sql_statement(sql_query) do
-    {query_string, params} = Cloak.SqlQuery.Builder.build(sql_query)
+    {query_string, params} = Builder.build(sql_query)
     %{
       type: "parsed",
       params: params,
