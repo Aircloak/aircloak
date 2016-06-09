@@ -254,13 +254,13 @@ defmodule Cloak.SqlQueryTest do
   end
 
   test "count(*)" do
-    assert_parse("select count(*) from foo", select(columns: [{:count, :star}], from: "foo"))
+    assert_parse("select count(*) from foo", select(columns: [{:aggregate, "count", :star}], from: "foo"))
   end
 
   test "aggregation functions" do
     assert_parse(
       "select sum(price), min(value) from foo",
-      select(columns: [{:sum, "price"}, {:min, "value"}], from: "foo")
+      select(columns: [{:aggregate, "sum", "price"}, {:aggregate, "min", "value"}], from: "foo")
     )
   end
 
@@ -353,11 +353,11 @@ defmodule Cloak.SqlQueryTest do
       {"not joining multiple where clauses is illegal",
         "select a from b where a > 1 b < 2", "Expected end of input", {1, 29}},
       {"count requires parens",
-        "select count * from foo", "Expected `column definition`", {1, 8}},
+        "select count * from foo", "Expected `from`", {1, 14}},
       {"aggregation function requires parens",
-          "select sum price from foo", "Expected `column definition`", {1, 8}},
+          "select sum price from foo", "Expected `from`", {1, 12}},
       {"cannot group by count",
-        "select a from foo group by count(*)", "Expected `identifier`", {1, 28}},
+        "select a from foo group by count(*)", "Expected end of input", {1, 33}},
       {"'by' has to follow 'order'",
         "select a from foo order a asc", "Expected `by`", {1, 25}},
       {"'by' has to follow 'group'",

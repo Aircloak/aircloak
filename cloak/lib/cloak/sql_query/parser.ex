@@ -11,8 +11,7 @@ defmodule Cloak.SqlQuery.Parser do
     | :>
     | :<>
 
-  @type aggregate :: :sum | :min | :max | :avg | :median | :stddev
-  @type column :: String.t | {:count, :star} | {aggregate, String.t}
+  @type column :: String.t | {:aggregate, String.t, String.t | :star}
 
   @type like :: {:like | :ilike, String.t, String.t}
   @type is :: {:is, String.t, :null}
@@ -128,26 +127,15 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp column() do
-    choice([count_expression(), aggregate_expression(), identifier()])
+    either(aggregate_expression(), identifier())
     |> label("column name or aggregate")
-  end
-
-  defp count_expression() do
-    keywords([:count, :"(", :"*", :")"])
-    |> map(fn(_) -> {:count, :star} end)
   end
 
   defp aggregate_expression() do
     pipe(
-      [aggregate_function(), keyword(:"("), identifier(), keyword(:")")],
-      fn([function, :"(", target, :")"]) -> {function, target} end
+      [identifier(), keyword(:"("), either(identifier(), star()), keyword(:")")],
+      fn([function, :"(", target, :")"]) -> {:aggregate, String.downcase(function), target} end
     )
-  end
-
-  defp aggregate_function() do
-    choice([
-      keyword(:sum), keyword(:min), keyword(:max), keyword(:avg), keyword(:median), keyword(:stddev)
-    ])
   end
 
   defp from() do
@@ -309,10 +297,6 @@ defmodule Cloak.SqlQuery.Parser do
     |> token(type)
     |> map(&(&1.category))
     |> label(to_string(type))
-  end
-
-  defp keywords(types) do
-    sequence(Enum.map(types, &keyword/1))
   end
 
   defp comma_delimited(previous \\ noop(), term_parser) do
