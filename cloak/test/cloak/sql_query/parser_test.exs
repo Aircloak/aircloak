@@ -1,7 +1,7 @@
-defmodule Cloak.SqlQueryTest do
+defmodule Cloak.SqlQuery.Parser.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.SqlQuery
+  alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
 
 
@@ -18,7 +18,7 @@ defmodule Cloak.SqlQueryTest do
   # Runs the query string and asserts it matches to the given pattern.
   defmacrop assert_parse(query_string, expected_pattern) do
     quote do
-      assert unquote(expected_pattern) = SqlQuery.Parser.parse!(unquote(query_string))
+      assert unquote(expected_pattern) = Parser.parse!(unquote(query_string))
     end
   end
 
@@ -137,7 +137,7 @@ defmodule Cloak.SqlQueryTest do
   test "where clause with <>" do
     assert_parse(
       "select foo from bar where a <> 10",
-      select(columns: ["foo"], from: "bar", where: [{:comparison, "a", :<>, constant(10)}])
+      select(columns: ["foo"], from: "bar", where: [{:not, {:comparison, "a", :=, constant(10)}}])
     )
   end
 
@@ -174,7 +174,7 @@ defmodule Cloak.SqlQueryTest do
       "select foo from bar where a <> 10 and b = 'bar'",
       select(
         columns: ["foo"], from: "bar",
-        where: [{:comparison, "a", :<>, constant(10)}, {:comparison, "b", :=, constant("bar")}]
+        where: [{:not, {:comparison, "a", :=, constant(10)}}, {:comparison, "b", :=, constant("bar")}]
       )
     )
   end
@@ -395,7 +395,7 @@ defmodule Cloak.SqlQueryTest do
     ],
     fn({description, statement, expected_error, {line, column}}) ->
       test description do
-        assert {:error, reason} = SqlQuery.Parser.parse(unquote(statement))
+        assert {:error, reason} = Parser.parse(unquote(statement))
         assert reason =~ unquote(expected_error)
         assert reason =~ "line #{unquote(line)}, column #{unquote(column)}\."
       end
