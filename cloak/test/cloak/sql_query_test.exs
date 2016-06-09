@@ -254,13 +254,13 @@ defmodule Cloak.SqlQueryTest do
   end
 
   test "count(*)" do
-    assert_parse("select count(*) from foo", select(columns: [{:aggregate, "count", :"*"}], from: "foo"))
+    assert_parse("select count(*) from foo", select(columns: [{:function, "count", :"*"}], from: "foo"))
   end
 
   test "aggregation functions" do
     assert_parse(
       "select sum(price), min(value) from foo",
-      select(columns: [{:aggregate, "sum", "price"}, {:aggregate, "min", "value"}], from: "foo")
+      select(columns: [{:function, "sum", "price"}, {:function, "min", "value"}], from: "foo")
     )
   end
 

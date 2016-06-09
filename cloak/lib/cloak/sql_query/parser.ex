@@ -11,7 +11,7 @@ defmodule Cloak.SqlQuery.Parser do
     | :>
     | :<>
 
-  @type column :: String.t | {:aggregate, String.t, String.t | :"*"}
+  @type column :: String.t | {:function, String.t, String.t | :"*"}
 
   @type like :: {:like | :ilike, String.t, String.t}
   @type is :: {:is, String.t, :null}
@@ -123,14 +123,14 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp column() do
-    either(aggregate_expression(), identifier())
-    |> label("column name or aggregate")
+    either(function_expression(), identifier())
+    |> label("column name or function")
   end
 
-  defp aggregate_expression() do
+  defp function_expression() do
     pipe(
       [identifier(), keyword(:"("), either(identifier(), keyword(:"*")), keyword(:")")],
-      fn([function, :"(", target, :")"]) -> {:aggregate, String.downcase(function), target} end
+      fn([function, :"(", parameter, :")"]) -> {:function, String.downcase(function), parameter} end
     )
   end
 

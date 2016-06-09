@@ -30,7 +30,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   @doc "Returns a string title for the given column specification."
   @spec column_title(Parser.column) :: String.t
-  def column_title({:aggregate, function, identifier}), do: "#{function}(#{identifier})"
+  def column_title({:function, function, identifier}), do: "#{function}(#{identifier})"
   def column_title(column), do: column
 
 
@@ -63,7 +63,8 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp aggregate_function?({:aggregate, _, _}), do: true
+  @aggregation_functions  ["count", "sum", "avg", "min", "max", "stddev", "median"]
+  defp aggregate_function?({:function, function, _}), do: Enum.member?(@aggregation_functions, function)
   defp aggregate_function?(_), do: false
 
   defp compile_columns(%{command: :select, from: {:subquery, _}} = query) do
@@ -82,14 +83,15 @@ defmodule Cloak.SqlQuery.Compiler do
     table_columns = DataSource.columns(data_source, table_id)
     with :ok <- verify_column_names(query, table_columns),
         :ok <- verify_aggregated_columns(query),
-        :ok <- verify_aggregation_functions(query),
-        :ok <- verify_aggregated_types(query, table_columns),
+        :ok <- verify_functions(query),
+        :ok <- verify_function_parameters(query, table_columns),
       do: {:ok, query}
   end
   defp compile_columns(query), do: {:ok, query}
 
-  defp verify_aggregated_types(query, table_columns) do
-    aggregated_columns = for {:aggregate, function, identifier} <- query.columns, function !== "count", do: identifier
+  defp verify_function_parameters(query, table_columns) do
+    aggregated_columns = for {:function, function, _} = column <- query.columns, aggregate_function?(column),
+      function !== "count", do: select_clause_to_identifier(column)
     invalid_columns = Enum.reject(aggregated_columns,
       &(Enum.member?(table_columns, {&1, :integer}) or Enum.member?(table_columns, {&1, :real})))
     case invalid_columns do
@@ -111,14 +113,13 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp verify_aggregation_functions(query) do
-    functions = for {:aggregate, function, _} <- query.columns, do: function
-    valid_functions = ["count", "sum", "avg", "min", "max", "stddev", "median"]
-    invalid_functions = Enum.reject(functions, &(Enum.member?(valid_functions, &1)))
+  defp verify_functions(query) do
+    invalid_functions = for {:function, function, _} = column <- query.columns,
+      !aggregate_function?(column), do: function
     case invalid_functions do
       [] -> :ok
       [invalid_function | _rest] ->
-        {:error, ~s/Unknown aggregation function `#{invalid_function}`./}
+        {:error, ~s/Unknown function `#{invalid_function}`./}
     end
   end
 
@@ -138,7 +139,7 @@ defmodule Cloak.SqlQuery.Compiler do
     (select_columns -- [:"*"]) ++ where_columns ++ group_by_columns
   end
 
-  defp select_clause_to_identifier({:aggregate, _function, identifier}), do: identifier
+  defp select_clause_to_identifier({:function, _function, identifier}), do: identifier
   defp select_clause_to_identifier(identifier), do: identifier
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier

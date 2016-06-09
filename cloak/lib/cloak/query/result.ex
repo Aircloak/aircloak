@@ -55,12 +55,12 @@ defmodule Cloak.Query.Result do
     |> bucket(:property)
     |> Enum.zip(columns)
     |> Enum.map(fn
-       {_value, {:aggregate, "count", _}} -> bucket(row_bucket, :noisy_count)
+       {_value, {:function, "count", _}} -> bucket(row_bucket, :noisy_count)
        {value, _column} -> value
     end)
   end
 
-  defp aggregate?(%{columns: [{:aggregate, _, _}]}), do: true
+  defp aggregate?(%{columns: [{:function, _, _}]}), do: true
   defp aggregate?(%{group_by: [_ | _]}), do: true
   defp aggregate?(_), do: false
 
