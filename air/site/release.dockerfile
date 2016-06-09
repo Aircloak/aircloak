@@ -5,7 +5,7 @@ MAINTAINER Aircloak
 ## Some basic setup of the image
 ## ------------------------------------------------------------------
 
-AIR_INIT
+MPI_INIT
 
 # Dependencies, helper tools, and configuration of UTF-8 locale
 RUN \
@@ -40,8 +40,8 @@ RUN useradd --create-home --shell /bin/bash deployer && mkdir -p /aircloak/app
 
 WORKDIR /aircloak/insights
 
-COPY site/artifacts/rel /aircloak/insights
-COPY site/docker/start.sh /aircloak/
+COPY air/site/artifacts/rel /aircloak/insights
+COPY air/site/docker/start.sh /aircloak/
 
 RUN chown -R deployer:deployer /aircloak/insights && chown -R deployer:deployer /var/run/
 
@@ -50,4 +50,4 @@ USER root
 
 CMD /aircloak/start.sh
 
-AIR_TAG_VERSION
+TAG_VERSION

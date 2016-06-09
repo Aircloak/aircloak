@@ -126,10 +126,45 @@ defmodule Cloak.QueryTest do
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[60]]}}
   end
 
-  test "should allow IS in where clause" do
+  test "should allow <> in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+
+    :ok = start_query("select count(*) from heights where height <> 180")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[40]]}}
+  end
+
+  test "should drop <> conditions if they would expose small groups" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["name"], ["Alice"])
+    :ok = insert_rows(_user_ids = 10..11, "heights", ["name"], ["Bob"])
+
+    :ok = start_query("select count(*) from heights where name <> 'Bob'")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[12]]}}
+  end
+
+  test "<> conditions count unique users" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["name"], ["Alice"])
+    1..10 |> Enum.each(fn _ -> :ok = insert_rows(_user_ids = 10..10, "heights", ["name"], ["Bob"]) end)
+
+    :ok = start_query("select count(*) from heights where name <> 'Bob'")
+
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[11]]}}
+  end
+
+  test "should allow IS NULL in where clause" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
     :ok = start_query("select count(*) from heights where height IS NULL")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
+  end
+
+  test "should allow IS NOT NULL in where clause" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [180])
+    :ok = start_query("select count(*) from heights where height IS NOT NULL")
     assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
   end
 

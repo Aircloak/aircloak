@@ -1,7 +1,8 @@
 defmodule Cloak.Query.Runner do
   @moduledoc "Cloak query runner."
 
-  alias Cloak.{Aggregator, LCFData, DataSource, Processor}
+  alias Cloak.{Aggregator, LCFData, DataSource}
+  alias Cloak.Processor.{AccumulateCount, NegativeCondition}
   alias Cloak.Query.Result
 
   use Cloak.Type
@@ -37,10 +38,13 @@ defmodule Cloak.Query.Runner do
       lcf_data = LCFData.new()
 
       reportable_buckets = try do
-        group_by_user(rows)
-        |> Processor.AccumulateCount.pre_process()
+        rows
+        |> NegativeCondition.apply(select_query)
+        |> NegativeCondition.drop_unsafe_filter_columns(select_query)
+        |> group_by_user()
+        |> AccumulateCount.pre_process()
         |> anonymize(lcf_data)
-        |> Processor.AccumulateCount.post_process()
+        |> AccumulateCount.post_process()
         |> add_lcf_buckets(lcf_data, length(columns))
         |> Result.apply_aggregation(select_query)
         |> Result.apply_order(select_query)
@@ -69,9 +73,9 @@ defmodule Cloak.Query.Runner do
     low_count_filter_data = LCFData.filtered_property_counts(lcf_data)
     |> Enum.map(fn({user, count}) -> {user, List.duplicate(lcf_property, count)} end)
 
-    lcf_buckets = Processor.AccumulateCount.pre_process(low_count_filter_data)
+    lcf_buckets = AccumulateCount.pre_process(low_count_filter_data)
     |> anonymize(:undefined)
-    |> Processor.AccumulateCount.post_process
+    |> AccumulateCount.post_process
 
     buckets ++ lcf_buckets
   end

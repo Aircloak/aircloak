@@ -2,8 +2,12 @@
 
 set -e
 
-cd $(dirname $0)
-. ../common/docker_helper.sh
+cd $(dirname ${BASH_SOURCE[0]})/../..
+
+. docker/docker_helper.sh
+. air/config/config.sh
+
+cd air/db
 
 docker build -t aircloak/air_db:latest .
 

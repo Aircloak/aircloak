@@ -2,12 +2,13 @@
 *
 
 # whitelist only needed folders
-!VERSION
-!tmp/image_shell_init.sh
-!config/config.sh
-!config/tcp_ports.json
-!etcd
-!common
-!site/container.sh
-!router/container.sh
-!coreos/docker
+!air/VERSION
+!air/tmp/image_shell_init.sh
+!air/config/config.sh
+!air/config/tcp_ports.json
+!air/etcd
+!air/common
+!air/site/container.sh
+!air/router/container.sh
+!air/coreos/docker
+!docker/

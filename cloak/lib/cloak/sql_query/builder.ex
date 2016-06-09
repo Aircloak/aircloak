@@ -5,6 +5,7 @@ defmodule Cloak.SqlQuery.Builder do
   """
 
   alias Cloak.SqlQuery.Parsers.Token
+  alias Cloak.Query.Columns
 
   @typep query_spec :: {statement, [constant]}
   @typep constant :: String.t | number | boolean
@@ -20,7 +21,7 @@ defmodule Cloak.SqlQuery.Builder do
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
   def build(%{from: table} = query) do
     fragments_to_query_spec([
-      "SELECT ", Enum.map_join(ordered_selected_columns(query), ",", &select_column_to_string/1), " ",
+      "SELECT ", Enum.map_join(Columns.all(query), ",", &select_column_to_string/1), " ",
       "FROM ", table, " ",
       where_fragments(query[:where])
     ])
@@ -66,12 +67,8 @@ defmodule Cloak.SqlQuery.Builder do
     |> Enum.map(fn({:param, value}) -> value end)
   end
 
-  defp ordered_selected_columns(%{columns: columns} = query) do
-    unselected_group_by_columns = Map.get(query, :group_by, []) -- columns
-    columns ++ unselected_group_by_columns
-  end
-
   defp where_fragments(nil), do: []
+  defp where_fragments([]), do: []
   defp where_fragments(where_clause) do
     ["WHERE ", where_clause_to_fragments(where_clause)]
   end
@@ -79,14 +76,14 @@ defmodule Cloak.SqlQuery.Builder do
   defp where_clause_to_fragments([_|_] = and_clauses) do
     ["(", and_clauses |> Enum.map(&where_clause_to_fragments/1) |> join(" AND "), ")"]
   end
-  defp where_clause_to_fragments({:not, clause}) do
-    [" NOT ", where_clause_to_fragments(clause)]
-  end
   defp where_clause_to_fragments({:comparison, what, comparator, value}) do
     [to_fragment(what), to_fragment(comparator), to_fragment(value)]
   end
   defp where_clause_to_fragments({:in, what, values}) do
     [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(","), ")"]
+  end
+  defp where_clause_to_fragments({:not, {:is, what, match}}) do
+    [to_fragment(what), " IS NOT ", to_fragment(match)]
   end
   Enum.each([
     {:like, " LIKE "},

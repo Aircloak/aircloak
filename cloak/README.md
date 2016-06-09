@@ -59,7 +59,7 @@ If everything is properly installed and setup, standard tests invoked with `make
 - `make dialyze` - runs the dialyzer
 - `make lint` - style checking of Elixir code
 - `make doc` - generates the documentation
-- `make release` - creates the OTP release
+- `make release-local` - creates the OTP release that can be run locally (on a dev machine)
 - `mix coveralls.html` - runs ExUnit tests with test coverage (generates an HTML output in the `cover` folder)
 
 
@@ -77,3 +77,15 @@ Occasionally you may want to run only some tests. Depending on the kind of test,
 - `mix proper --module erlang_module` PropEr test of a single module.
 
 Note that when specifying Erlang modules, you need to provide the name of the real module and not the test one. For example, let's say you have the module `anonymizer` and property tests are residing in the `anonymizer_test` module. The corresponding command is `mix proper --module anonymizer` (without the `_test` suffix).
+
+#### Running a local docker container
+
+It is possible to run cloak as a local docker container:
+
+1. Make sure all the air dependencies are started with `../air/start_dependencies.sh`.
+2. If needed, create the cloak database on docker with `DB_PORT=20002 ./regenerate_db.sh`.
+3. Start the `air` container with `../air/site/container.sh console`.
+4. Run `./build_image.sh` to create the docker image.
+5. Start the container with `./container.sh console`.
+
+You can now interact with the cloak via the dockerized air (https://insights.air-local:20100).

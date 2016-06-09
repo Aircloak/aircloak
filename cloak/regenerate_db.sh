@@ -15,7 +15,9 @@ function main() {
   regenerate_database "cloaktest3" "cloaktest3"
 
   # import dev schema and data
-  psql -U postgres cloak < dev_data.sql
+  psql -h $DB_HOST -p $DB_PORT -U postgres cloak < dev_data.sql
 }
 
+export DB_HOST=${DB_HOST:-127.0.0.1}
+export DB_PORT=${DB_PORT:-5432}
 (main)

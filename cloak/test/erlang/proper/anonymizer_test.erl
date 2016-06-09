@@ -60,7 +60,7 @@ noisy_results_positive(OutputList) ->
     NoisyCount =< 0].
 
 check_lower_limit_k1(OutputList) ->
-  #anonymizer_params{absolute_lower_bound=LowerBound} = anonymizer:default_params(),
+  LowerBound = cloak_conf:get_val(noise, absolute_lower_bound),
   ["bucket included with count not above #anonymizer_params.absolute_lower_bound" ||
     #bucket{count = Count} <- OutputList,
     Count =< LowerBound].

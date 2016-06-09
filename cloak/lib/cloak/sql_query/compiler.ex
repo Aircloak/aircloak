@@ -1,18 +1,21 @@
 defmodule Cloak.SqlQuery.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
+
   alias Cloak.DataSource
+  alias Cloak.SqlQuery.Parser
 
   @type compiled_query :: %{
     data_source: atom,
     command: :select | :show,
     columns: [Parser.column],
+    unsafe_filter_columns: [Parser.column],
     group_by: [String.t],
     from: [String.t],
     where: [Parser.where_clause],
+    where_not: [Parser.where_clause],
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns
   }
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -21,10 +24,11 @@ defmodule Cloak.SqlQuery.Compiler do
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
-    query = Map.put(query, :data_source, data_source)
+    query = Map.merge(query, %{data_source: data_source, where_not: [], unsafe_filter_columns: []})
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_order_by(query),
+         {:ok, query} = compile_where_not(query),
       do: {:ok, query}
   end
 
@@ -142,12 +146,6 @@ defmodule Cloak.SqlQuery.Compiler do
   defp select_clause_to_identifier({:function, _function, identifier}), do: identifier
   defp select_clause_to_identifier(identifier), do: identifier
 
-  defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
-  defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
-  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
-  end)
-
   defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
     case invalid_fields do
@@ -162,4 +160,23 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
   defp compile_order_by(query), do: {:ok, query}
+
+  defp compile_where_not(%{where: clauses} = query) do
+    {positive, negative} = Enum.partition(clauses, fn
+       {:not, {:is, _, :null}} -> true
+       {:not, _} -> false
+       _ -> true
+    end)
+    negative = Enum.map(negative, fn({:not, clause}) -> clause end)
+    unsafe_filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
+
+    {:ok, %{query | where: positive, where_not: negative, unsafe_filter_columns: unsafe_filter_columns}}
+  end
+  defp compile_where_not(query), do: {:ok, query}
+
+  defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
+  defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
+  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
+    defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
+  end)
 end

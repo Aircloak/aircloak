@@ -2,9 +2,12 @@
 
 set -eo pipefail
 
+# build from the top-level folder of the project
 ROOT_DIR=$(cd $(dirname ${BASH_SOURCE[0]})/../.. && pwd)
+cd $ROOT_DIR
 
-. $ROOT_DIR/air/common/docker_helper.sh
+. docker/docker_helper.sh
+. air/config/config.sh
 
 # This will build a dockerized version of the air site.
 #
@@ -16,8 +19,8 @@ ROOT_DIR=$(cd $(dirname ${BASH_SOURCE[0]})/../.. && pwd)
 #    the need to install Erlang.
 
 # Build deps locally
-cd $ROOT_DIR
-build_aircloak_image air_insights_build air/site/builder.dockerfile air/site/.dockerignore-builder
+SYSTEM_VERSION=$(cat air/VERSION) \
+  build_aircloak_image air_insights_build air/site/builder.dockerfile air/site/.dockerignore-builder
 
 # Start the instance of the builder image and copy the generated release back to the disk
 cd $ROOT_DIR/air
@@ -30,8 +33,9 @@ docker rm -v $builder_container_id > /dev/null
 cd site/artifacts/rel && \
   tar -xzf air.tar.gz && \
   rm air.tar.gz && \
-  rm releases/0.0.1/air.tar.gz && \
-  cd $ROOT_DIR/air
+  rm releases/0.0.1/air.tar.gz
 
 # Build the release image
-build_aircloak_image air_insights site/release.dockerfile site/.dockerignore-release
+cd $ROOT_DIR
+SYSTEM_VERSION=$(cat air/VERSION) \
+  build_aircloak_image air_insights air/site/release.dockerfile air/site/.dockerignore-release
