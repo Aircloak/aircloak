@@ -47,13 +47,13 @@ defmodule Air.Query do
   end
 
   @doc "Produces a JSON blob of the query and it's result for rendering"
-  @spec for_display(t, [{atom, any}]) :: %{}
-  def for_display(query, options \\ []) do
+  @spec for_display(t) :: %{}
+  def for_display(query) do
     base_query = %{
       statement: query.statement,
       id: query.id
     }
-    Map.merge(base_query, result_map(query, options[:complete] || false))
+    Map.merge(base_query, result_map(query))
   end
 
 
@@ -88,16 +88,6 @@ defmodule Air.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp result_map(%{result: nil}, _complete), do: %{rows: [], columns: []}
-  defp result_map(%{result: result_json}, complete) do
-    result = Poison.decode!(result_json)
-
-    %{
-      columns: result["columns"],
-      rows: result["rows"],
-      error: result["error"],
-      row_count: result["row_count"],
-      info: result["info"],
-    }
-  end
+  defp result_map(%{result: nil}), do: %{rows: [], columns: []}
+  defp result_map(%{result: result_json}), do: Poison.decode!(result_json)
 end
