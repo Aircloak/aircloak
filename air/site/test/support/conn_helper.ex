@@ -15,8 +15,9 @@ defmodule Air.TestConnHelper do
   @doc "Simulates a connection authenticated with the given token"
   defmacro api_conn(token) do
     quote do
+      token_salt = Application.get_env(:air, Air.Endpoint) |> Keyword.fetch!(:api_token_secret)
       fake_connection = %Plug.Conn{private: %{phoenix_endpoint: Air.Endpoint}}
-      token_text = Phoenix.Token.sign(fake_connection, "api_token", unquote(token).id)
+      token_text = Phoenix.Token.sign(fake_connection, token_salt, unquote(token).id)
 
       put_req_header(conn(), "auth-token", token_text)
     end

@@ -17,7 +17,7 @@ defmodule Air.QueriesControllerTest do
     me = self()
     spawn_link(fn ->
       run_params = put_in(@query_data_params, [:query, :data_source_token],
-          Phoenix.Token.sign(Air.Endpoint, "data_source_token",{"unknown_org/cloak_1", nil}))
+          Phoenix.Token.sign(Air.Endpoint, token_salt, {"unknown_org/cloak_1", nil}))
       response_json = login(user) |> post("/queries", run_params) |> response(200)
       send(me, {:response_json, response_json})
     end)
@@ -29,5 +29,9 @@ defmodule Air.QueriesControllerTest do
     assert_receive {:response_json, response_json}
     %{"success" => status} = Poison.decode!(response_json)
     assert status
+  end
+
+  defp token_salt do
+    Application.get_env(:air, Air.Endpoint) |> Keyword.fetch!(:data_source_token_secret)
   end
 end

@@ -101,12 +101,16 @@ defmodule Air.QueriesController do
 
   defp data_source_token(nil, nil), do: nil
   defp data_source_token(cloak_id, data_source) do
-    Token.sign(Endpoint, "data_source_token", {cloak_id, data_source})
+    Token.sign(Endpoint, token_salt, {cloak_id, data_source})
   end
 
   defp decode_data_source_token(nil), do: {nil, nil}
   defp decode_data_source_token(data_source_token) do
-    {:ok, {cloak_id, data_source}} = Token.verify(Endpoint, "data_source_token", data_source_token)
+    {:ok, {cloak_id, data_source}} = Token.verify(Endpoint, token_salt, data_source_token)
     {cloak_id, data_source}
+  end
+
+  defp token_salt do
+    Application.get_env(:air, Endpoint) |> Keyword.fetch!(:data_source_token_secret)
   end
 end
