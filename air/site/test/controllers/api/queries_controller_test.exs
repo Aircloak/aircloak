@@ -1,4 +1,4 @@
-defmodule Air.QueriesControllerTest do
+defmodule Air.API.QueriesController.Test do
   use Air.ConnCase
 
   import Air.{TestConnHelper, TestRepoHelper}
@@ -7,7 +7,7 @@ defmodule Air.QueriesControllerTest do
   @query_data_params %{query: %{query: "Query code", name: "Query name"}}
 
   test "can run a query" do
-    user = create_user!()
+    token = create_token!()
 
     # Open the cloak mock socket
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
@@ -18,7 +18,7 @@ defmodule Air.QueriesControllerTest do
     spawn_link(fn ->
       data_source_token = Token.data_source_token("unknown_org/cloak_1", nil)
       run_params = put_in(@query_data_params, [:query, :data_source_token], data_source_token)
-      response_json = login(user) |> post("/queries", run_params) |> response(200)
+      response_json = api_conn(token) |> post("/api/queries", run_params) |> response(200)
       send(me, {:response_json, response_json})
     end)
 
