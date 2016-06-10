@@ -66,7 +66,7 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select height from heights")
 
     assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
-    assert Enum.sort(rows) == [
+    assert Enum.sort_by(rows, &(&1[:row])) == [
       %{row: [180], occurrences: 20},
       %{row: [:*], occurrences: 20}
     ]
@@ -218,7 +218,8 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(*), height from heights group by height")
 
     assert_receive {:reply, %{columns: ["count(*)", "height"], rows: rows}}
-    assert Enum.sort(rows) == [%{row: [10, 180], occurrences: 1}, %{row: [20, 160], occurrences: 1}]
+    assert Enum.sort_by(rows, &(&1[:row])) ==
+      [%{row: [10, 180], occurrences: 1}, %{row: [20, 160], occurrences: 1}]
   end
 
   test "grouping works when the column is not selected" do
@@ -228,7 +229,8 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(*) from heights group by height")
 
     assert_receive {:reply, %{columns: ["count(*)"], rows: rows}}
-    assert Enum.sort(rows) == [%{row: [10], occurrences: 1}, %{row: [20], occurrences: 1}]
+    assert Enum.sort_by(rows, &(&1[:row])) ==
+      [%{row: [10], occurrences: 1}, %{row: [20], occurrences: 1}]
   end
 
   test "grouping and sorting by a count" do
