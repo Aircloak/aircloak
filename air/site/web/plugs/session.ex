@@ -29,7 +29,7 @@ defmodule Air.Plug.Session do
           |> Phoenix.Controller.json(%{success: false, description: missing_auth_header_error()})
           |> halt()
         [token] ->
-          case Air.ApiToken.user_for_token(conn, token) do
+          case Air.Token.user_for_token(conn, token) do
             :error ->
               conn
               |> put_status(Plug.Conn.Status.code(:unauthorized))

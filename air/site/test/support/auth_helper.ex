@@ -1,7 +1,7 @@
 defmodule Air.TestAuthHelper do
   @moduledoc "Helpers for working with users."
 
-  alias Air.{ApiToken, User}
+  alias Air.{ApiToken, Token, User}
 
   defmodule TokenEndpoint do
     @moduledoc false
@@ -11,11 +11,11 @@ defmodule Air.TestAuthHelper do
   @doc "Creates a token that can be used in API calls"
   @spec create_token(Plug.Conn.t, User.t) :: String.t
   def create_token(conn, user) do
-    ApiToken.create_for(conn, user, "Test token")
+    Token.create_api_token(conn, user, "Test token")
   end
 
   @doc "Creates a token instance and returns it. No token string is generated"
-  @spec create_token(Plug.Conn.t, User.t) :: ApiToken.t
+  @spec create_token_entity!(User.t) :: ApiToken.t
   def create_token_entity!(user) do
     changeset = ApiToken.changeset(%ApiToken{}, %{description: "test token", user_id: user.id})
     Air.Repo.insert!(changeset)
