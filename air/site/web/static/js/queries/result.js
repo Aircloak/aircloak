@@ -8,8 +8,10 @@ export class Result extends React.Component {
   constructor(props) {
     super(props);
 
+    this.minRowsToShow = 10;
+
     this.state = {
-      rowsToShowCount: 10,
+      rowsToShowCount: this.minRowsToShow,
     };
 
     this.renderRows = this.renderRows.bind(this);
@@ -23,7 +25,8 @@ export class Result extends React.Component {
   }
 
   handleClickLessRows() {
-    this.setState({rowsToShowCount: Math.max(Math.round(this.state.rowsToShowCount / 2), 10)});
+    const rowsToShowCount = Math.max(Math.round(this.state.rowsToShowCount / 2), this.minRowsToShow);
+    this.setState({rowsToShowCount});
   }
 
   renderRows() {
@@ -40,7 +43,7 @@ export class Result extends React.Component {
   }
 
   renderShowAll() {
-    if (this.props.row_count < 10) {
+    if (this.props.row_count < this.minRowsToShow) {
       return (
         <div className="row-count">
           {this.props.row_count} rows.
@@ -53,10 +56,10 @@ export class Result extends React.Component {
           <a onClick={this.handleClickLessRows}>Show fewer rows</a>
         </div>
       );
-    } else if (this.state.rowsToShowCount === 10 && this.props.row_count > 10) {
+    } else if (this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow) {
       return (
         <div className="row-count">
-          Showing 10 of {this.props.row_count} rows.&nbsp;
+          Showing {this.minRowsToShow} of {this.props.row_count} rows.&nbsp;
           <a onClick={this.handleClickMoreRows}>Show more rows</a>
         </div>
       );
