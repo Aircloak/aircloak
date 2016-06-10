@@ -165,10 +165,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   defp process_query_result(result) do
     query = Repo.get!(Query, result["query_id"])
 
-    row_count = case result["rows"] do
-      nil -> 0
-      rows -> Enum.reduce(rows, 0, &(&1["occurrences"] + &2))
-    end
+    row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
 
     storable_result = Poison.encode!(%{
       columns: result["columns"],
