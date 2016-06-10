@@ -18,6 +18,10 @@ export class Result extends React.Component {
     this.renderShowAll = this.renderShowAll.bind(this);
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
     this.handleClickLessRows = this.handleClickLessRows.bind(this);
+
+    this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
+    this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
+    this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
   }
 
   handleClickMoreRows() {
@@ -27,6 +31,18 @@ export class Result extends React.Component {
   handleClickLessRows() {
     const rowsToShowCount = Math.max(Math.round(this.state.rowsToShowCount / 2), this.minRowsToShow);
     this.setState({rowsToShowCount});
+  }
+
+  showingAllOfFewRows() {
+    return this.props.row_count < this.minRowsToShow;
+  }
+
+  showingAllOfManyRows() {
+    return this.props.row_count === this.state.rowsToShowCount;
+  }
+
+  showingMinimumNumberOfManyRows() {
+    return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
   renderRows() {
@@ -43,20 +59,20 @@ export class Result extends React.Component {
   }
 
   renderShowAll() {
-    if (this.props.row_count < this.minRowsToShow) {
+    if (this.showingAllOfFewRows()) {
       return (
         <div className="row-count">
           {this.props.row_count} rows.
         </div>
       );
-    } else if (this.props.row_count === this.state.rowsToShowCount) {
+    } else if (this.showingAllOfManyRows()) {
       return (
         <div className="row-count">
           {this.props.row_count} rows.&nbsp;
           <a onClick={this.handleClickLessRows}>Show fewer rows</a>
         </div>
       );
-    } else if (this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow) {
+    } else if (this.showingMinimumNumberOfManyRows()) {
       return (
         <div className="row-count">
           Showing {this.minRowsToShow} of {this.props.row_count} rows.&nbsp;
