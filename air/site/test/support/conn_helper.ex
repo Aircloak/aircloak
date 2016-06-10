@@ -11,4 +11,14 @@ defmodule Air.TestConnHelper do
       |> recycle()
     end
   end
+
+  @doc "Simulates a connection authenticated with the given token"
+  defmacro api_conn(token) do
+    quote do
+      fake_connection = %Plug.Conn{private: %{phoenix_endpoint: Air.Endpoint}}
+      token_text = Phoenix.Token.sign(fake_connection, "api_token", unquote(token).id)
+
+      put_req_header(conn(), "auth-token", token_text)
+    end
+  end
 end
