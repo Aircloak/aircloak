@@ -49,7 +49,6 @@ docker run --rm -it \
 
 # build the release
 echo "Building the release"
-export IMAGE_CATEGORY="$PROD_IMAGE_CATEGORY"
 build_aircloak_image \
   cloak_release_builder \
   cloak/docker/release-builder.dockerfile \
@@ -69,6 +68,7 @@ cd artifacts/rel && \
   rm cloak.tar.gz
 
 # Build the release image
+export IMAGE_CATEGORY="$PROD_IMAGE_CATEGORY"
 cd $ROOT_DIR
 SYSTEM_VERSION=$(cat cloak/VERSION) \
   build_aircloak_image cloak cloak/docker/release.dockerfile cloak/docker/.dockerignore-release
