@@ -51,6 +51,6 @@ defmodule Air.Router do
   scope "/api" do
     pipe_through [:api]
 
-    post "/queries", Air.QueriesController, :create
+    resources "/queries", Air.QueriesController
   end
 end

@@ -66,10 +66,26 @@ defmodule Air.QueriesController do
     json(conn, load_recent_queries(conn.assigns.current_user, 10))
   end
 
+  def show(conn, %{"id" => id}) do
+    case find_query(conn.assigns.current_user, id) do
+      %Query{} = query -> json(conn, %{query: Query.for_display(query)})
+      nil ->
+        conn
+        |> put_status(Status.code(:not_found))
+        |> json(%{error: "Query with that id does not exist"})
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp find_query(user, id) do
+    user
+    |> Query.for_user
+    |> Repo.get(id)
+  end
 
   defp load_recent_queries(user, recent_count) do
     user

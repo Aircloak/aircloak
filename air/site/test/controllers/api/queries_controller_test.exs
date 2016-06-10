@@ -3,6 +3,7 @@ defmodule Air.API.QueriesController.Test do
 
   import Air.{TestConnHelper, TestRepoHelper}
   alias Air.{TestSocketHelper, Token}
+  alias Poison, as: JSON
 
   @query_data_params %{query: %{query: "Query code", name: "Query name"}}
 
@@ -22,6 +23,26 @@ defmodule Air.API.QueriesController.Test do
 
     TestSocketHelper.respond_to_start_task_request!(socket, "ok")
 
-    assert %{"success" => true} = Poison.decode!(Task.await(task))
+    assert %{"success" => true} = JSON.decode!(Task.await(task))
+  end
+
+  test "show a query of the token's user" do
+    user = create_user!()
+    token = create_token!(user)
+    query = create_query!(user, %{statement: "text of the query"})
+
+    result = api_conn(token) |> get("/api/queries/#{query.id}") |> response(200)
+
+    assert %{"query" => %{"statement" => "text of the query"}} = JSON.decode!(result)
+  end
+
+  test "show a query of another user fails" do
+    user = create_user!()
+    token = create_token!(user)
+    query = create_query!(_another_user = create_user!(), %{statement: "text of the query"})
+
+    result = api_conn(token) |> get("/api/queries/#{query.id}") |> response(404)
+
+    assert %{"error" => _} = JSON.decode!(result)
   end
 end
