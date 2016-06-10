@@ -14,13 +14,13 @@ else
   cloak_name="cloak$num"
 fi
 
-((listen_port=34423+100*(num-1)))
+((listen_port=34000+100*(num-1)))
 ((http=8098+100*(num-1)))
 
 cat "$app_base/app.config" | \
   sed "s/{min_age_of_timeslot_for_sync_in_seconds, 300}/{min_age_of_timeslot_for_sync_in_seconds, 10}/" | \
   sed "s,.data/1,.data/$num," | \
-  sed "s,34423,$listen_port," | \
+  sed "s,34000,$listen_port," | \
   sed "s,https://infrastructure-api.aircloak.com,https://infrastructure-api.air-local:20000," | \
   sed "s,address\, \"127\.0\.0\.1\",address \, \"0.0.0.0\"," | \
   sed "s,8098,$http," > "$config_dest/app$num.config"

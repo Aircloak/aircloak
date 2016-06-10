@@ -16,8 +16,8 @@ config :logger,
 config :kernel,
   # The portnumber the cloak erlang vm listens
   # to for communication from other nodes.
-  inet_dist_listen_min: 34423,
-  inet_dist_listen_max: 34423
+  inet_dist_listen_min: 34000,
+  inet_dist_listen_max: 35000
 
 config :os_mon,
   # Check RAM usage every minute, set alarm if more than 70% used.
