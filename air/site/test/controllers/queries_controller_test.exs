@@ -2,7 +2,7 @@ defmodule Air.QueriesControllerTest do
   use Air.ConnCase
 
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.TestSocketHelper
+  alias Air.{TestSocketHelper, Token}
 
   @query_data_params %{query: %{query: "Query code", name: "Query name"}}
 
@@ -16,8 +16,8 @@ defmodule Air.QueriesControllerTest do
     # Run the task in parallel since it's blocking on waiting a response from the socket
     me = self()
     spawn_link(fn ->
-      run_params = put_in(@query_data_params, [:query, :data_source_token],
-          Phoenix.Token.sign(Air.Endpoint, token_salt, {"unknown_org/cloak_1", nil}))
+      data_source_token = Token.data_source_token("unknown_org/cloak_1", nil)
+      run_params = put_in(@query_data_params, [:query, :data_source_token], data_source_token)
       response_json = login(user) |> post("/queries", run_params) |> response(200)
       send(me, {:response_json, response_json})
     end)
@@ -29,9 +29,5 @@ defmodule Air.QueriesControllerTest do
     assert_receive {:response_json, response_json}
     %{"success" => status} = Poison.decode!(response_json)
     assert status
-  end
-
-  defp token_salt do
-    Application.get_env(:air, Air.Endpoint) |> Keyword.fetch!(:data_source_token_secret)
   end
 end

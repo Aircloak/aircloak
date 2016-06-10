@@ -4,12 +4,11 @@ defmodule Air.QueriesController do
   use Timex
 
   require Logger
-  alias Air.{Query, Repo, Endpoint, CloakInfo}
+  alias Air.{Query, Repo, CloakInfo, Token}
   alias Poison, as: JSON
   alias Plug.CSRFProtection
   alias Plug.Conn.Status
   alias Air.Socket.Cloak.MainChannel
-  alias Phoenix.Token
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -89,28 +88,13 @@ defmodule Air.QueriesController do
           display: "#{data_source.id} (#{cloak.name})",
           tables: data_source.tables,
           cloak: cloak,
-          token: data_source_token(cloak.id, data_source.id)
+          token: Token.data_source_token(cloak.id, data_source.id)
         }
       end
   end
 
   defp parse_query_params(params) do
-    {cloak_id, data_source} = decode_data_source_token(params["data_source_token"])
+    {cloak_id, data_source} = Token.decode_data_source_token(params["data_source_token"])
     Map.merge(params, %{"cloak_id" => cloak_id, "data_source" => data_source})
-  end
-
-  defp data_source_token(nil, nil), do: nil
-  defp data_source_token(cloak_id, data_source) do
-    Token.sign(Endpoint, token_salt, {cloak_id, data_source})
-  end
-
-  defp decode_data_source_token(nil), do: {nil, nil}
-  defp decode_data_source_token(data_source_token) do
-    {:ok, {cloak_id, data_source}} = Token.verify(Endpoint, token_salt, data_source_token)
-    {cloak_id, data_source}
-  end
-
-  defp token_salt do
-    Application.get_env(:air, Endpoint) |> Keyword.fetch!(:data_source_token_secret)
   end
 end

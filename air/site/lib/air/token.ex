@@ -1,7 +1,7 @@
 defmodule Air.Token do
   @moduledoc "Functions for token management."
 
-  alias Air.{ApiToken, User, Repo}
+  alias Air.{ApiToken, Endpoint, User, Repo}
 
   @doc "Given a user and a description, a token is created and assigned to the user"
   def create_api_token(conn, user, description) do
@@ -33,7 +33,22 @@ defmodule Air.Token do
     end
   end
 
+  def data_source_token(nil, nil), do: nil
+  def data_source_token(cloak_id, data_source) do
+    Phoenix.Token.sign(Endpoint, data_source_token_salt, {cloak_id, data_source})
+  end
+
+  def decode_data_source_token(nil), do: {nil, nil}
+  def decode_data_source_token(data_source_token) do
+    {:ok, {cloak_id, data_source}} = Phoenix.Token.verify(Endpoint, data_source_token_salt, data_source_token)
+    {cloak_id, data_source}
+  end
+
   defp api_token_salt do
     Application.get_env(:air, Air.Endpoint) |> Keyword.fetch!(:api_token_secret)
+  end
+
+  defp data_source_token_salt do
+    Application.get_env(:air, Endpoint) |> Keyword.fetch!(:data_source_token_secret)
   end
 end
