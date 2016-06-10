@@ -1,4 +1,5 @@
 import React from "react";
+import _ from "lodash";
 
 import {CodeEditor} from "../code_editor";
 import {Info} from "./info";
@@ -26,22 +27,16 @@ export class Result extends React.Component {
   }
 
   renderRows() {
-    let rowsProducedCount = 0;
-    return this.props.rows.reduce((rowAcc, accumulateRow, i) => {
-      for (let occurenceCount = 0; occurenceCount < accumulateRow.occurrences; occurenceCount++) {
-        if (rowsProducedCount >= this.state.rowsToShowCount) {
-          return rowAcc;
-        }
-        rowsProducedCount += 1;
-
-        const key = `${i}-${occurenceCount}`;
-        const row = (<tr key={key}>
+    let remainingRowsToProduce = this.state.rowsToShowCount;
+    return _.flatMap(this.props.rows, (accumulateRow, i) => {
+      const occurrencesForAccumulateRow = Math.min(remainingRowsToProduce, accumulateRow.occurrences);
+      return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
+        remainingRowsToProduce -= 1;
+        return (<tr key={`${i}-${occurrenceCount}`}>
           {accumulateRow.row.map((value, j) => <td key={j}>{value}</td>)}
         </tr>);
-        rowAcc.push(row);
-      }
-      return rowAcc;
-    }, []);
+      });
+    });
   }
 
   renderShowAll() {
