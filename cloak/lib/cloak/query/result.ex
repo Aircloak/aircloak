@@ -9,11 +9,15 @@ defmodule Cloak.Query.Result do
   # API
   # -------------------------------------------------------------------
 
-  @doc "Converts a list of buckets into rows, expanding them if the query does not aggregate."
-  @spec expand([Bucket.t]) :: [Property.t]
-  def expand(results) do
-    Enum.flat_map(results, fn(result) ->
-      List.duplicate(bucket(result, :property), bucket(result, :noisy_count))
+  @doc """
+  Converts a list of buckets into aggregate rows for reporting.
+  The consuming client will still have to expand the rows to mimic normal SQL
+  where individual rows are produced.
+  """
+  @spec to_map([Bucket.t]) :: [Map.t]
+  def to_map(results) do
+    Enum.map(results, fn(result) ->
+      %{row: bucket(result, :property), occurrences: bucket(result, :noisy_count)}
     end)
   end
 

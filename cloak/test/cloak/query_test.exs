@@ -39,9 +39,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     :ok = start_query("select height from heights")
 
-    assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
-    assert 100 == length(rows)
-    assert Enum.all?(rows, &(&1 == [180]))
+    assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: [%{row: [180], occurrences: 100}]}}
   end
 
   test "select all query" do
@@ -55,7 +53,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
     :ok = start_query("select * from heights order by name")
     assert_receive {:reply, %{query_id: "1", columns: ["height", "name"], rows: rows}}
-    assert Enum.uniq(rows) == [[180, "adam"], [180, "john"], [180, "mike"]]
+    assert Enum.map(rows, &(&1[:row])) == [[180, "adam"], [180, "john"], [180, "mike"]]
   end
 
   test "should return LCF property when sufficient rows are filtered" do
@@ -68,12 +66,10 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select height from heights")
 
     assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
-    groups = rows
-    |> Enum.group_by(&(&1))
-    |> Enum.map(fn({k, values}) -> {k, Enum.count(values)} end)
-    |> Enum.sort()
-
-    assert groups == [{[180], 20}, {[:*], 20}]
+    assert Enum.sort_by(rows, &(&1[:row])) == [
+      %{row: [180], occurrences: 20},
+      %{row: [:*], occurrences: 20}
+    ]
   end
 
   test "should produce counts" do
@@ -81,7 +77,7 @@ defmodule Cloak.QueryTest do
 
     :ok = start_query("select count(*) from heights")
 
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[20]]}}
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [20], occurrences: 1}]}}
   end
 
   test "should allow ranges for where clause" do
@@ -89,33 +85,33 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
     :ok = start_query("select count(*) from heights where height > 170 and height < 190")
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[20]]}}
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [20], occurrences: 1}]}}
   end
 
   test "should allow LIKE in where clause" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "bob"])
     :ok = start_query("select count(*) from heights where name LIKE 'b%'")
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[20]]}}
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [20], occurrences: 1}]}}
   end
 
   test "should allow NOT LIKE in where clause" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "bob"])
     :ok = insert_rows(_user_ids = 20..29, "heights", ["height", "name"], [170, "alice"])
     :ok = start_query("select count(*) from heights where name NOT LIKE 'b%'")
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [10], occurrences: 1}]}}
   end
 
   test "should allow NOT ILIKE in where clause" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "Bob"])
     :ok = insert_rows(_user_ids = 20..29, "heights", ["height", "name"], [170, "alice"])
     :ok = start_query("select count(*) from heights where name NOT ILIKE 'b%'")
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [10], occurrences: 1}]}}
   end
 
   test "should allow ILIKE in where clause" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "Bob"])
     :ok = start_query("select count(*) from heights where name ILIKE 'b%'")
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[20]]}}
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [20], occurrences: 1}]}}
   end
 
   test "should allow IN in where clause" do
@@ -123,7 +119,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
     :ok = start_query("select count(*) from heights where height IN (170, 180, 190)")
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[60]]}}
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [60], occurrences: 1}]}}
   end
 
   test "should allow <> in where clause" do
@@ -133,7 +129,7 @@ defmodule Cloak.QueryTest do
 
     :ok = start_query("select count(*) from heights where height <> 180")
 
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[40]]}}
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [40], occurrences: 1}]}}
   end
 
   test "should drop <> conditions if they would expose small groups" do
@@ -142,7 +138,7 @@ defmodule Cloak.QueryTest do
 
     :ok = start_query("select count(*) from heights where name <> 'Bob'")
 
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[12]]}}
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [12], occurrences: 1}]}}
   end
 
   test "<> conditions count unique users" do
@@ -151,21 +147,21 @@ defmodule Cloak.QueryTest do
 
     :ok = start_query("select count(*) from heights where name <> 'Bob'")
 
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[11]]}}
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [11], occurrences: 1}]}}
   end
 
   test "should allow IS NULL in where clause" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
     :ok = start_query("select count(*) from heights where height IS NULL")
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [10], occurrences: 1}]}}
   end
 
   test "should allow IS NOT NULL in where clause" do
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [nil])
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [180])
     :ok = start_query("select count(*) from heights where height IS NOT NULL")
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [[10]]}}
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [10], occurrences: 1}]}}
   end
 
   test "should order rows when instructed" do
@@ -222,7 +218,8 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(*), height from heights group by height")
 
     assert_receive {:reply, %{columns: ["count(*)", "height"], rows: rows}}
-    assert Enum.sort(rows) == [[10, 180], [20, 160]]
+    assert Enum.sort_by(rows, &(&1[:row])) ==
+      [%{row: [10, 180], occurrences: 1}, %{row: [20, 160], occurrences: 1}]
   end
 
   test "grouping works when the column is not selected" do
@@ -232,7 +229,8 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(*) from heights group by height")
 
     assert_receive {:reply, %{columns: ["count(*)"], rows: rows}}
-    assert Enum.sort(rows) == [[10], [20]]
+    assert Enum.sort_by(rows, &(&1[:row])) ==
+      [%{row: [10], occurrences: 1}, %{row: [20], occurrences: 1}]
   end
 
   test "grouping and sorting by a count" do
@@ -243,7 +241,11 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(*), height from heights group by height order by count(*) asc")
 
     assert_receive {:reply, %{columns: ["count(*)", "height"], rows: rows}}
-    assert rows == [[10, 180], [20, 160], [30, 150]]
+    assert rows == [
+      %{row: [10, 180], occurrences: 1},
+      %{row: [20, 160], occurrences: 1},
+      %{row: [30, 150], occurrences: 1}
+    ]
   end
 
   test "ordering hidden values" do
@@ -254,7 +256,7 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(*), name from heights group by name order by name asc")
 
     assert_receive {:reply, %{columns: ["count(*)", "name"], rows: rows}}
-    assert rows == [[10, "Charlie"], [6, :*]]
+    assert rows == [%{row: [10, "Charlie"], occurrences: 1}, %{row: [6, :*], occurrences: 1}]
   end
 
   test "grouping and sorting by a grouped field" do
@@ -265,7 +267,11 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(*), height from heights group by height order by height asc")
 
     assert_receive {:reply, %{columns: ["count(*)", "height"], rows: rows}}
-    assert rows == [[30, 150], [20, 160], [10, 180]]
+    assert rows == [
+      %{row: [30, 150], occurrences: 1},
+      %{row: [20, 160], occurrences: 1},
+      %{row: [10, 180], occurrences: 1}
+    ]
   end
 
   test "query reports an error on invalid where clause identifier" do

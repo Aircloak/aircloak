@@ -1,4 +1,5 @@
 import React from "react";
+import _ from "lodash";
 
 import {CodeEditor} from "../code_editor";
 import {Info} from "./info";
@@ -7,60 +8,85 @@ export class Result extends React.Component {
   constructor(props) {
     super(props);
 
+    this.minRowsToShow = 10;
+
+    this.state = {
+      rowsToShowCount: this.minRowsToShow,
+    };
+
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
-    this.renderLoadLink = this.renderLoadLink.bind(this);
+    this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
+    this.handleClickLessRows = this.handleClickLessRows.bind(this);
+
+    this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
+    this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
+    this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
+  }
+
+  handleClickMoreRows() {
+    this.setState({rowsToShowCount: Math.min(this.state.rowsToShowCount * 2, this.props.row_count)});
+  }
+
+  handleClickLessRows() {
+    const rowsToShowCount = Math.max(Math.round(this.state.rowsToShowCount / 2), this.minRowsToShow);
+    this.setState({rowsToShowCount});
+  }
+
+  showingAllOfFewRows() {
+    return this.props.row_count < this.minRowsToShow;
+  }
+
+  showingAllOfManyRows() {
+    return this.props.row_count === this.state.rowsToShowCount;
+  }
+
+  showingMinimumNumberOfManyRows() {
+    return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
   renderRows() {
-    const tableRows = this.props.rows.map((row, i) =>
-      <tr key={i}>
-        {row.map((value, j) => <td key={j}>{value}</td>)}
-      </tr>
-    );
-    return tableRows;
-  }
-
-  renderLoadLink() {
-    if (this.props.errorLoading) {
-      return (
-        <span>
-          <span className="label label-danger">Error</span> failed at loading rows.&nbsp;
-          <a onClick={() => this.props.handleLoadRows(this.props)}>Retry loading rows</a>
-        </span>
-      );
-    } else {
-      return <a onClick={() => this.props.handleLoadRows(this.props)}>Show all rows</a>;
-    }
+    let remainingRowsToProduce = this.state.rowsToShowCount;
+    return _.flatMap(this.props.rows, (accumulateRow, i) => {
+      const occurrencesForAccumulateRow = Math.min(remainingRowsToProduce, accumulateRow.occurrences);
+      return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
+        remainingRowsToProduce -= 1;
+        return (<tr key={`${i}-${occurrenceCount}`}>
+          {accumulateRow.row.map((value, j) => <td key={j}>{value}</td>)}
+        </tr>);
+      });
+    });
   }
 
   renderShowAll() {
-    if (this.props.isLoading) {
-      return (
-        <div className="row-count">
-          <img role="presentation" src="/images/loader.gif" />&nbsp;
-          loading {this.props.row_count - this.props.rows.length} additional rows
-        </div>
-      );
-    }
-    if (this.props.row_count < 10) {
+    if (this.showingAllOfFewRows()) {
       return (
         <div className="row-count">
           {this.props.row_count} rows.
         </div>
       );
-    } else if (this.props.row_count === this.props.rows.length) {
+    } else if (this.showingAllOfManyRows()) {
       return (
         <div className="row-count">
           {this.props.row_count} rows.&nbsp;
-          <a onClick={() => this.props.handleLessRows(this.props)}>Show fewer rows</a>
+          <a onClick={this.handleClickLessRows}>Show fewer rows</a>
+        </div>
+      );
+    } else if (this.showingMinimumNumberOfManyRows()) {
+      return (
+        <div className="row-count">
+          Showing {this.minRowsToShow} of {this.props.row_count} rows.&nbsp;
+          <a onClick={this.handleClickMoreRows}>Show more rows</a>
         </div>
       );
     } else {
+      const rowsShown = Math.min(this.state.rowsToShowCount, this.props.row_count);
       return (
         <div className="row-count">
-          Showing 10 of {this.props.row_count} rows.&nbsp;
-          {this.renderLoadLink()}
+          Showing {rowsShown} of {this.props.row_count} rows.&nbsp;
+          Show&nbsp;
+          <a onClick={this.handleClickLessRows}>fewer rows</a>,&nbsp;
+          <a onClick={this.handleClickMoreRows}>more rows</a>
         </div>
       );
     }
@@ -103,11 +129,10 @@ export class Result extends React.Component {
 Result.propTypes = {
   statement: React.PropTypes.string,
   columns: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
-  rows: React.PropTypes.arrayOf(React.PropTypes.array).isRequired,
+  rows: React.PropTypes.arrayOf(React.PropTypes.shape({
+    occurrences: React.PropTypes.integer,
+    row: React.PropTypes.array,
+  })).isRequired,
   row_count: React.PropTypes.number,
   info: Info.propTypes.info,
-  isLoading: React.PropTypes.bool,
-  errorLoading: React.PropTypes.bool,
-  handleLessRows: React.PropTypes.func,
-  handleLoadRows: React.PropTypes.func,
 };

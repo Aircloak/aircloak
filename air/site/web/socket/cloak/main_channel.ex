@@ -165,11 +165,14 @@ defmodule Air.Socket.Cloak.MainChannel do
   defp process_query_result(result) do
     query = Repo.get!(Query, result["query_id"])
 
+    row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
+
     storable_result = Poison.encode!(%{
       columns: result["columns"],
       rows: result["rows"],
       error: result["error"],
       info: result["info"],
+      row_count: row_count,
     })
 
     updated_query = Repo.update!(Query.changeset(query, %{result: storable_result}))
