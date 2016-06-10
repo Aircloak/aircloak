@@ -66,4 +66,4 @@ cd artifacts/rel && \
 # Build the release image
 cd $ROOT_DIR
 SYSTEM_VERSION=$(cat cloak/VERSION) \
-  build_aircloak_image cloak cloak/release.dockerfile cloak/.dockerignore-release
+  build_aircloak_image cloak cloak/docker/release.dockerfile cloak/docker/.dockerignore-release
