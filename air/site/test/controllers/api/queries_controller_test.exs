@@ -13,20 +13,15 @@ defmodule Air.API.QueriesController.Test do
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main", %{name: "cloak_1", data_sources: []})
 
-    # Run the task in parallel since it's blocking on waiting a response from the socket
-    me = self()
-    spawn_link(fn ->
+    task = Task.async(fn ->
       data_source_token = Token.data_source_token("unknown_org/cloak_1", nil)
       run_params = put_in(@query_data_params, [:query, :data_source_token], data_source_token)
-      response_json = api_conn(token) |> post("/api/queries", run_params) |> response(200)
-      send(me, {:response_json, response_json})
+
+      api_conn(token) |> post("/api/queries", run_params) |> response(200)
     end)
 
-    # Cloak responds to the request from the POST controller
     TestSocketHelper.respond_to_start_task_request!(socket, "ok")
 
-    # Verify the cloak response
-    assert_receive {:response_json, response_json}
-    assert %{"success" => true} = Poison.decode!(response_json)
+    assert %{"success" => true} = Poison.decode!(Task.await(task))
   end
 end
