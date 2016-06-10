@@ -10,7 +10,7 @@ defmodule Air.ApiTokenControllerTest do
   test "api token pages require an authenticated user", %{conn: conn} do
     conn = add_auth_to_conn(conn)
     user = create_user!()
-    token = create_token(conn, user)
+    token = create_token(user)
 
     assert "/auth" == conn() |> get(api_token_path(conn, :index)) |> redirected_to()
     assert "/auth" == delete(conn, api_token_path(conn, :delete, token)) |> redirected_to()

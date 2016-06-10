@@ -9,9 +9,9 @@ defmodule Air.TestAuthHelper do
   end
 
   @doc "Creates a token that can be used in API calls"
-  @spec create_token(Plug.Conn.t, User.t) :: String.t
-  def create_token(conn, user) do
-    Token.create_api_token(conn, user, "Test token")
+  @spec create_token(User.t) :: String.t
+  def create_token(user) do
+    Token.create_api_token(user, "Test token")
   end
 
   @doc "Creates a token instance and returns it. No token string is generated"
