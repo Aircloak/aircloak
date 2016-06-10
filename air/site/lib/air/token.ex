@@ -3,7 +3,13 @@ defmodule Air.Token do
 
   alias Air.{ApiToken, Endpoint, User, Repo}
 
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
   @doc "Given a user and a description, a token is created and assigned to the user"
+  @spec create_api_token(Plug.Conn.t, User.t, String.t) :: {:ok, String.t} | {:error, String.t}
   def create_api_token(conn, user, description) do
     changeset = ApiToken.changeset(%ApiToken{}, %{description: description,
         user_id: user.id})
@@ -15,6 +21,7 @@ defmodule Air.Token do
   end
 
   @doc "Will return the user associated with a token, assuming the token is valid"
+  @spec user_for_token(Plug.Conn.t, String.t) :: User.t | :error
   def user_for_token(conn, token) do
     import Ecto.Query
 
@@ -33,16 +40,25 @@ defmodule Air.Token do
     end
   end
 
+  @doc "Generates a data source token for the given cloak_id and data source name."
+  @spec data_source_token(String.t | nil, String.t | nil) :: nil
   def data_source_token(nil, nil), do: nil
   def data_source_token(cloak_id, data_source) do
     Phoenix.Token.sign(Endpoint, data_source_token_salt, {cloak_id, data_source})
   end
 
+  @doc "Unpacks a data source token."
+  @spec decode_data_source_token(String.t | nil) ::  {String.t | nil, String.t | nil}
   def decode_data_source_token(nil), do: {nil, nil}
   def decode_data_source_token(data_source_token) do
     {:ok, {cloak_id, data_source}} = Phoenix.Token.verify(Endpoint, data_source_token_salt, data_source_token)
     {cloak_id, data_source}
   end
+
+
+  # -------------------------------------------------------------------
+  # Salt configuration
+  # -------------------------------------------------------------------
 
   defp api_token_salt do
     Application.get_env(:air, Air.Endpoint) |> Keyword.fetch!(:api_token_secret)
