@@ -382,3 +382,12 @@ function registry_v2_req {
 
   eval "curl -s $auth_header $protocol://$1/v2/$2"
 }
+
+function untag_registry_tags {
+  # Remove all local repo tags. We don't need those, since the image is tagged
+  # anyway, and this allows us proper local cleanup of older images.
+  repo_tags=$(docker images | grep "$1" | awk '{print $1":"$2}' || true)
+  if [ "$repo_tags" != "" ]; then
+    docker rmi $repo_tags
+  fi
+}

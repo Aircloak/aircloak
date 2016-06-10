@@ -27,6 +27,10 @@ cd $ROOT_DIR
 # the image so we rely on the docker layers caching. If neither sources, nor deps
 # have been changed, the existing image will be reused.
 
+# Build images are built without the category suffix
+PROD_IMAGE_CATEGORY="$IMAGE_CATEGORY"
+export IMAGE_CATEGORY=""
+
 # build the base image
 build_aircloak_image \
   cloak_builder_base \
@@ -45,6 +49,7 @@ docker run --rm -it \
 
 # build the release
 echo "Building the release"
+export IMAGE_CATEGORY="$PROD_IMAGE_CATEGORY"
 build_aircloak_image \
   cloak_release_builder \
   cloak/docker/release-builder.dockerfile \
