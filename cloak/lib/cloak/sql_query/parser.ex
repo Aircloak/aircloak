@@ -10,7 +10,7 @@ defmodule Cloak.SqlQuery.Parser do
     | :>=
     | :>
 
-  @type column :: String.t | {:function, String.t, String.t | :"*"}
+  @type column :: String.t | {:function, String.t, String.t | :*}
 
   @type like :: {:like | :ilike, String.t, String.t}
   @type is :: {:is, String.t, :null}
@@ -117,7 +117,7 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp select_columns() do
     either(
-      keyword(:"*"),
+      keyword(:*),
       comma_delimited(column())
     ) |> map(&{:columns, &1})
     |> label("column definition")
@@ -130,7 +130,7 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp function_expression() do
     pipe(
-      [identifier(), keyword(:"("), either(identifier(), keyword(:"*")), keyword(:")")],
+      [identifier(), keyword(:"("), either(identifier(), keyword(:*)), keyword(:")")],
       fn([function, :"(", parameter, :")"]) -> {:function, String.downcase(function), parameter} end
     )
   end
@@ -175,7 +175,7 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp table_with_schema() do
     pipe(
-      [identifier(), keyword(:"."), identifier()],
+      [identifier(), keyword(:.), identifier()],
       &Enum.join/1
     )
   end

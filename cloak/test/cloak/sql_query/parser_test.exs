@@ -76,7 +76,7 @@ defmodule Cloak.SqlQuery.Parser.Test do
   end
 
   test "all fields" do
-    assert_parse("select * from baz", select(columns: :"*", from: "baz"))
+    assert_parse("select * from baz", select(columns: :*, from: "baz"))
   end
 
   test "whitespaces are ignored" do
@@ -254,7 +254,7 @@ defmodule Cloak.SqlQuery.Parser.Test do
   end
 
   test "count(*)" do
-    assert_parse("select count(*) from foo", select(columns: [{:function, "count", :"*"}], from: "foo"))
+    assert_parse("select count(*) from foo", select(columns: [{:function, "count", :*}], from: "foo"))
   end
 
   test "aggregation functions" do

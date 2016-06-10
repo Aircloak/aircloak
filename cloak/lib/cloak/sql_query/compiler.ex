@@ -77,7 +77,7 @@ defmodule Cloak.SqlQuery.Compiler do
     # the outer column selections
     {:ok, query}
   end
-  defp compile_columns(%{command: :select, columns: :"*", from: table_identifier, data_source: data_source} = query) do
+  defp compile_columns(%{command: :select, columns: :*, from: table_identifier, data_source: data_source} = query) do
     table_id = String.to_existing_atom(table_identifier)
     columns = for {name, _type} <- DataSource.columns(data_source, table_id), do: name
     compile_columns(%{query | columns: columns})
@@ -140,7 +140,7 @@ defmodule Cloak.SqlQuery.Compiler do
     select_columns = for column <- query.columns, do: select_clause_to_identifier(column)
     where_columns = for column <- Map.get(query, :where, []), do: where_clause_to_identifier(column)
     group_by_columns = Map.get(query, :group_by, [])
-    (select_columns -- [:"*"]) ++ where_columns ++ group_by_columns
+    (select_columns -- [:*]) ++ where_columns ++ group_by_columns
   end
 
   defp select_clause_to_identifier({:function, _function, identifier}), do: identifier
