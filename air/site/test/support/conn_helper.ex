@@ -2,6 +2,7 @@ defmodule Air.TestConnHelper do
   @moduledoc "Helpers for working with the connection."
 
   import Phoenix.ConnTest
+  import Air.TestRepoHelper
 
   @doc "Logs-in as the given user, and returns the recycled connection."
   defmacro login(user) do
