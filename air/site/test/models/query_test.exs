@@ -12,8 +12,6 @@ defmodule Air.Query.Test do
     assert %{completed: false} = Query.for_display(%Query{result: nil})
   end
 
-  test "for_display of an errored query"
-
   test "for_display includes all data from result" do
     query = %Query{result: JSON.encode!(%{"some" => "data"})}
     assert %{"some" => "data"} = Query.for_display(query)
