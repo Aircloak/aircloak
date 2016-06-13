@@ -4,7 +4,7 @@ defmodule Air.QueriesController do
   use Timex
 
   require Logger
-  alias Air.{Query, Repo, CloakInfo, Token}
+  alias Air.{DataSource, Query, Repo, Token}
   alias Poison, as: JSON
   alias Plug.CSRFProtection
   alias Plug.Conn.Status
@@ -33,7 +33,7 @@ defmodule Air.QueriesController do
       guardian_token: Guardian.Plug.current_token(conn),
       csrf_token: CSRFProtection.get_csrf_token(),
       last_query: JSON.encode!(last_query),
-      data_sources: JSON.encode!(data_sources(conn))
+      data_sources: JSON.encode!(DataSource.all(conn.assigns.current_user.organisation))
     )
   end
 
@@ -94,20 +94,6 @@ defmodule Air.QueriesController do
     |> Query.recent(recent_count)
     |> Repo.all
     |> Enum.map(&Query.for_display/1)
-  end
-
-  defp data_sources(conn) do
-    for cloak <- CloakInfo.all(conn.assigns.current_user.organisation),
-        data_source <- cloak.data_sources
-    do
-      %{
-        id: data_source.id,
-        display: "#{data_source.id} (#{cloak.name})",
-        tables: data_source.tables,
-        cloak: cloak,
-        token: Token.data_source_token(cloak.id, data_source.id)
-      }
-    end
   end
 
   defp parse_query_params(params) do
