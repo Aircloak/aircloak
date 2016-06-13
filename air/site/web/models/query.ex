@@ -84,7 +84,6 @@ defmodule Air.Query do
   defp result_map(%{result: nil}), do: %{rows: [], columns: [], completed: false}
   defp result_map(%{result: result_json}) do
     Poison.decode!(result_json)
-    |> Map.take(["rows", "columns"])
     |> Map.put(:completed, true)
   end
 end
