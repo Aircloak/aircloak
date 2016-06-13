@@ -364,6 +364,10 @@ function build_and_push_to_registry {
     echo "Pushing $image_name:$new_version to the registry"
     docker tag -f "$new_image_id" "$REGISTRY_URL/$image_name:$new_version"
     docker push "$REGISTRY_URL/$image_name:$new_version"
+
+    # also tag with latest
+    docker tag -f "$new_image_id" "$REGISTRY_URL/$image_name:latest"
+    docker push "$REGISTRY_URL/$image_name:latest"
   fi
 }
 
