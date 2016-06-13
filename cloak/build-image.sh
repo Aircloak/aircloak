@@ -41,7 +41,7 @@ build_aircloak_image \
 echo "Building dependencies"
 mkdir -p docker_cache/cloak/deps
 mkdir -p docker_cache/cloak/_build
-docker run --rm -it \
+docker run --rm -i \
   -v $(pwd)/docker_cache/cloak/deps:/aircloak/cloak/deps \
   -v $(pwd)/docker_cache/cloak/_build:/aircloak/cloak/_build \
   $(aircloak_image_name cloak_builder_base):latest \
