@@ -222,7 +222,16 @@ defmodule Cloak.AirSocket do
     end
   end
 
-  defp cloak_name(), do: Node.self() |> Atom.to_string()
+  defp cloak_name() do
+    vm_short_name =
+      Node.self()
+      |> Atom.to_string()
+      |> String.split("@")
+      |> hd()
+    {:ok, hostname} = :inet.gethostname()
+
+    "#{vm_short_name}@#{hostname}"
+  end
 
   defp get_join_info(cloak_name) do
     data_sources = for data_source <- Cloak.DataSource.all do
