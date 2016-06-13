@@ -10,6 +10,7 @@ defmodule Air.QueriesController do
   alias Plug.Conn.Status
   alias Air.Socket.Cloak.MainChannel
 
+
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
   # -------------------------------------------------------------------
@@ -96,17 +97,17 @@ defmodule Air.QueriesController do
   end
 
   defp data_sources(conn) do
-      for cloak <- CloakInfo.all(conn.assigns.current_user.organisation),
-          data_source <- cloak.data_sources
-      do
-        %{
-          id: data_source.id,
-          display: "#{data_source.id} (#{cloak.name})",
-          tables: data_source.tables,
-          cloak: cloak,
-          token: Token.data_source_token(cloak.id, data_source.id)
-        }
-      end
+    for cloak <- CloakInfo.all(conn.assigns.current_user.organisation),
+        data_source <- cloak.data_sources
+    do
+      %{
+        id: data_source.id,
+        display: "#{data_source.id} (#{cloak.name})",
+        tables: data_source.tables,
+        cloak: cloak,
+        token: Token.data_source_token(cloak.id, data_source.id)
+      }
+    end
   end
 
   defp parse_query_params(params) do
