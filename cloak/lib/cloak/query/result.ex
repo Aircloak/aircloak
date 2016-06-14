@@ -14,7 +14,6 @@ defmodule Cloak.Query.Result do
   The consuming client will still have to expand the rows to mimic normal SQL
   where individual rows are produced.
   """
-
   @spec map_buckets([Bucket.t], SqlQuery.t) :: [Row.t]
   def map_buckets(buckets, %{implicit_count: true} = query) do
     for {property, [count]} <- buckets, do: %{row: bucket_to_row(query, property, []), occurrences: count}
@@ -24,6 +23,7 @@ defmodule Cloak.Query.Result do
       do: %{row: bucket_to_row(query, property, aggregated_values), occurrences: 1}
   end
 
+  @doc "Groups users and data values for aggregation by the property selected in the query to be reported."
   @spec group_by_property([Property.t], [String.t], SqlQuery.t) :: [GroupedRow.t]
   def group_by_property(rows, columns, query) do
     columns_start = List.duplicate([], length(query.aggregators))
