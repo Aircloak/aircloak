@@ -51,6 +51,8 @@ defmodule Air.TestSocketHelper do
     :ok
   end
 
+  @doc "Runs the action while a cloak with the given name and data source exists and returns its result."
+  @spec with_cloak(String.t, String.t, (() -> any)) :: any
   def with_cloak(cloak_name, data_source_name, action) do
     socket = connect!(%{cloak_name: cloak_name})
 

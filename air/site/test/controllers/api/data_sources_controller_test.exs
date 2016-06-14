@@ -9,7 +9,7 @@ defmodule Air.API.DataSourcesController.Test do
     user = create_user!(admin_organisation())
     api_token = create_token!(user)
 
-    result = TestSocketHelper.with_cloak(:cloak_name, :data_source_name, fn ->
+    result = TestSocketHelper.with_cloak("cloak_name", "data_source_name", fn ->
       api_conn(api_token)
       |> get("/api/data_sources")
       |> response(200)
