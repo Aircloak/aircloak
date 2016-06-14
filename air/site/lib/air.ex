@@ -25,8 +25,8 @@ defmodule Air do
     Air.Utils.update_app_env(:air, Air.Endpoint, fn(config) ->
       [
         {:secret_key_base, :air_etcd.get("/settings/air/insights/secrets/endpoint_key_base")},
-        {:api_token_secret, :air_etcd.get("/settings/air/insights/secrets/api_token")},
-        {:data_source_token_secret, :air_etcd.get("/settings/air/insights/secrets/data_source_token")}
+        {:api_token_secret, :air_etcd.get("/settings/air/insights/secrets/api_token_secret")},
+        {:data_source_token_secret, :air_etcd.get("/settings/air/insights/secrets/data_source_token_secret")}
         | config
       ]
     end)
