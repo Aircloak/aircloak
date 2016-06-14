@@ -66,6 +66,7 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select height from heights")
 
     assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: rows}}
+    # TODO: re-enable this assert once lcf users are generated again.
     #assert Enum.sort_by(rows, &(&1[:row])) == [%{row: [180], occurrences: 20}, %{row: [:*], occurrences: 20}]
   end
 
@@ -290,6 +291,7 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(*), name from heights group by name order by name asc")
 
     assert_receive {:reply, %{columns: ["count(*)", "name"], rows: rows}}
+    # TODO: re-enable this assert once lcf users are generated again.
     #assert rows == [%{row: [10, "Charlie"], occurrences: 1}, %{row: [6, :*], occurrences: 1}]
   end
 
