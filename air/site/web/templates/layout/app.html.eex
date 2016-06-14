@@ -31,7 +31,7 @@
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
               <ul class="nav navbar-nav navbar-right">
                 <%= if permitted?(@conn, Air.QueryController, :index) do %>
-                  <%= navbar_link(@conn, "Query", queries_path(@conn, :index)) %>
+                  <%= navbar_link(@conn, "Query", query_path(@conn, :index)) %>
                 <% end %>
                 <%= if permitted?(@conn, Air.CloaksController, :index) do %>
                   <%= navbar_link(@conn, "Cloaks", cloaks_path(@conn, :index)) %>
