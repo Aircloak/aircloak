@@ -15,25 +15,6 @@ set -eo pipefail
 cd $(dirname $0)
 . ../docker/docker_helper.sh
 
-function push_air_image {
-  build_and_push_to_registry $($1/container.sh image_name) "$1/build-image.sh" $(cat ./VERSION)
-}
-
-function push_static_site_image {
-  if [ ! -e "$(pwd)/../../static-website" ]; then
-    echo "Static website repo not found in $(pwd)/../../static-website"
-    exit 1
-  fi
-
-  curdir=$(pwd)
-  if [ "CONTAINER_ENV" == "prod" ]; then site_build_env="production"; fi
-
-  build_and_push_to_registry \
-      "aircloak/static_website" \
-      "cd ../../static-website && BUILD_ENV='$site_build_env' ./build.sh && cd $(pwd)" \
-      "$(cat ./VERSION)"
-}
-
 
 if [ "$IMAGE_CATEGORY" == "" ]; then
   echo "Please specify some deploy environment through IMAGE_CATEGORY variable."
@@ -42,9 +23,6 @@ fi
 
 check_registry
 
-push_static_site_image
-push_air_image coreos
-push_air_image router
-push_air_image site
+build_and_push_to_registry $(./container.sh image_name) "./build-image.sh" $(cat ./VERSION)
 
 untag_registry_tags "$REGISTRY_URL"

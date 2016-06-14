@@ -50,6 +50,6 @@ USER root
 
 CMD /aircloak/start.sh
 
-VOLUME /aircloak/cloak/lib/cloak-0.1.0/priv/config
+VOLUME /runtime_config
 
 TAG_VERSION

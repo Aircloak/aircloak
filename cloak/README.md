@@ -7,6 +7,8 @@
     - [Preparing the database](#preparing-the-database)
     - [Typical tasks](#typical-tasks)
         - [Running partial tests](#running-partial-tests)
+        - [Running a local docker container](#running-a-local-docker-container)
+        - [Deploying](#deploying)
 
 ----------------------
 
@@ -89,3 +91,37 @@ It is possible to run cloak as a local docker container:
 5. Start the container with `./container.sh console`.
 
 You can now interact with the cloak via the dockerized air (https://insights.air-local:20100).
+
+#### Deploying
+
+__Warning:__ Running deploys in parallel may lead to strange results, so coordinate with colleagues before deploying.
+
+Typical deploys:
+
+- `./deploy.sh deploy_targets/master_prod` - deploy production cloak to `srv-76-133`
+- `./deploy.sh deploy_targets/master_stage` - deploy staging cloak to `srv-76-133`
+
+This will deploy all __pushed__ changes from your current local branch.
+
+It is also possible to deploy a custom cloak instance to an arbitrary thor machine:
+
+```bash
+./deploy.sh image_category target_machine runtime_configuration cloak_name
+```
+
+The parameters have following meaning:
+
+- `image_category` - Custom string which is prepended to the image name. You can use your own name, or the name of the feature you're experimenting with. Use only alphanumerics and underscores.
+- `target_machine` - Fully qualified name of the thor machine (e.g. `srv-76-133.mpi-sws.org`) which must be accessible via ssh. __Note__: currently docker is installed only on `srv-76-133`. If you want to use another machine, ask our administrator to install docker there.
+- `runtime_configuration` - name of the configuration folder in `/aircloak/` on the target machine. Currently we support `prod` and `stage`.
+- `cloak_name` - The name which will be given to the cloak and the docker container. Use only alphanumerics and underscores.
+
+__Note__: You can only provide one value for each argument. Quoting spaces (e.g. passing `"srv1 srv2 srv3"` as `target_machine`) will not work properly.
+
+Example:
+
+```bash
+./deploy.sh sasa srv-76-133.mpi-sws.org stage sasa
+```
+
+__Note__: You can run multiple cloaks on the same machine. As long as you're not doing any performance/load tests, that should be fine. Otherwise, reserve a dedicated machine for your experiments.
