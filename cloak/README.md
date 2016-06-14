@@ -116,6 +116,8 @@ The parameters have following meaning:
 - `runtime_configuration` - name of the configuration folder in `/aircloak/` on the target machine. Currently we support `prod` and `stage`.
 - `cloak_name` - The name which will be given to the cloak and the docker container. Use only alphanumerics and underscores.
 
+__Note__: You can only provide one value for each argument. Quoting spaces (e.g. passing `"srv1 srv2 srv3"` as `target_machine`) will not work properly.
+
 Example:
 
 ```bash
