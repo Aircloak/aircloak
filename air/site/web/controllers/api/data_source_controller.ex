@@ -1,4 +1,4 @@
-defmodule Air.API.DataSourcesController do
+defmodule Air.API.DataSourceController do
   @moduledoc false
   use Air.Web, :controller
 

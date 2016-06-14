@@ -1,4 +1,4 @@
-defmodule Air.API.DataSourcesController.Test do
+defmodule Air.API.DataSourceController.Test do
   use Air.ConnCase
 
   import Air.{TestConnHelper, TestRepoHelper}

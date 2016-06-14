@@ -52,6 +52,6 @@ defmodule Air.Router do
     pipe_through [:api]
 
     resources "/queries", Air.QueryController
-    resources "/data_sources", Air.API.DataSourcesController
+    resources "/data_sources", Air.API.DataSourceController
   end
 end
