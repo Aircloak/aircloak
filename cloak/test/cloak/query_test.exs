@@ -37,8 +37,8 @@ defmodule Cloak.QueryTest do
 
   test "simple select query" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    :ok = start_query("select height from heights")
 
+    :ok = start_query("select height from heights")
     assert_receive {:reply, %{query_id: "1", columns: ["height"], rows: [%{row: [180], occurrences: 100}]}}
   end
 
@@ -71,10 +71,47 @@ defmodule Cloak.QueryTest do
 
   test "should produce counts" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [nil])
 
     :ok = start_query("select count(*) from heights")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [40], occurrences: 1}]}}
 
-    assert_receive {:reply, %{query_id: "1", columns: ["count(*)"], rows: [%{row: [20], occurrences: 1}]}}
+    :ok = start_query("select COUNT(height) from heights")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(height)"], rows: [%{row: [20], occurrences: 1}]}}
+  end
+
+  test "should produce aggregated values" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
+    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+
+    :ok = start_query("select count(height) from heights")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(height)"], rows: [%{row: [30], occurrences: 1}]}}
+
+    :ok = start_query("select sum(height) from heights")
+    assert_receive {:reply, %{query_id: "1", columns: ["sum(height)"], rows: [%{row: [5400], occurrences: 1}]}}
+
+    :ok = start_query("select min(height) from heights")
+    assert_receive {:reply, %{query_id: "1", columns: ["min(height)"], rows: [%{row: [170], occurrences: 1}]}}
+
+    :ok = start_query("select max(height) from heights")
+    assert_receive {:reply, %{query_id: "1", columns: ["max(height)"], rows: [%{row: [190], occurrences: 1}]}}
+
+    :ok = start_query("select avg(height) from heights")
+    assert_receive {:reply, %{query_id: "1", columns: ["avg(height)"], rows: [%{row: [180.0], occurrences: 1}]}}
+  end
+
+  test "should be able to select the same column multiple times" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+
+    :ok = start_query("select height, height from heights")
+    assert_receive {:reply, %{query_id: "1", columns: ["height", "height"],
+      rows: [%{row: [180, 180], occurrences: 100}]}}
+
+    :ok = start_query("select count(height), count(*), count(*), count(height) from heights")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(height)", "count(*)", "count(*)", "count(height)"],
+      rows: [%{row: [100, 100, 100, 100], occurrences: 1}]}}
   end
 
   test "should allow ranges for where clause" do
