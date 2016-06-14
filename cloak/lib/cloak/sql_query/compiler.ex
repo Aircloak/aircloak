@@ -133,8 +133,8 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp verify_column_names(query, table_columns) do
-    names = [:* | (for {name, _type} <- table_columns, do: name)]
-    invalid_columns = Enum.reject(all_columns(query), &Enum.member?(names, &1))
+    valid_names = [:* | (for {name, _type} <- table_columns, do: name)]
+    invalid_columns = Enum.reject(all_columns(query), &Enum.member?(valid_names, &1))
     case invalid_columns do
       [] -> :ok
       [invalid_column | _rest] -> {:error, ~s/Column `#{invalid_column}` doesn't exist./}
