@@ -1,4 +1,4 @@
-defmodule Air.QueriesControllerTest do
+defmodule Air.QueryControllerTest do
   use Air.ConnCase
 
   import Air.{TestConnHelper, TestRepoHelper}

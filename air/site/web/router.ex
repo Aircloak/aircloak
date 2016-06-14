@@ -33,9 +33,9 @@ defmodule Air.Router do
   scope "/", Air do
     pipe_through [:browser, :browser_auth]
 
-    get "/", QueriesController, :index
-    post "/queries", QueriesController, :create
-    get "/queries/load_history", QueriesController, :load_history
+    get "/", QueryController, :index
+    post "/queries", QueryController, :create
+    get "/queries/load_history", QueryController, :load_history
 
     delete "/logout", SessionController, :delete
 
@@ -51,7 +51,7 @@ defmodule Air.Router do
   scope "/api" do
     pipe_through [:api]
 
-    resources "/queries", Air.QueriesController
+    resources "/queries", Air.QueryController
     resources "/data_sources", Air.API.DataSourcesController
   end
 end

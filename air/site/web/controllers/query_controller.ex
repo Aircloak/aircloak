@@ -1,4 +1,4 @@
-defmodule Air.QueriesController do
+defmodule Air.QueryController do
   @moduledoc false
   use Air.Web, :controller
   use Timex
