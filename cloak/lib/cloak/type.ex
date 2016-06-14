@@ -11,17 +11,16 @@ defmodule Cloak.Type do
 
   defmodule Bucket do
     @moduledoc false
-    import Record, only: [defrecord: 2, extract: 2]
-    defrecord :bucket, extract(:bucket, from_lib: "cloak/include/cloak.hrl")
-    @type t :: record(:bucket, property: Property.t, count: pos_integer, noisy_count: pos_integer, users_hash: binary)
+    @type t :: {Property.t, [number]}
   end
 
-  defmacro __using__(_) do
-    quote do
-      alias User
-      alias Property
-      alias Bucket
-      import Bucket
-    end
+  defmodule Row do
+    @moduledoc false
+    @type t :: %{row: Property.t, occurrences: pos_integer}
+  end
+
+  defmodule GroupedRow do
+    @moduledoc false
+    @type t :: {Property.t, {[User.t], [Property.t]}}
   end
 end

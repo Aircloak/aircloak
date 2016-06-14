@@ -8,6 +8,9 @@ defmodule Cloak.SqlQuery.Compiler do
     data_source: atom,
     command: :select | :show,
     columns: [Parser.column],
+    property: [String.t],
+    aggregators: [{String.t, String.t}],
+    implicit_count: true,
     unsafe_filter_columns: [Parser.column],
     group_by: [String.t],
     from: [String.t],
@@ -16,6 +19,7 @@ defmodule Cloak.SqlQuery.Compiler do
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns
   }
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -28,7 +32,8 @@ defmodule Cloak.SqlQuery.Compiler do
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_order_by(query),
-         {:ok, query} = compile_where_not(query),
+         query = partition_selected_columns(query),
+         query = partition_where_clauses(query),
       do: {:ok, query}
   end
 
@@ -128,7 +133,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp verify_column_names(query, table_columns) do
-    names = for {name, _type} <- table_columns, do: name
+    names = [:* | (for {name, _type} <- table_columns, do: name)]
     invalid_columns = Enum.reject(all_columns(query), &Enum.member?(names, &1))
     case invalid_columns do
       [] -> :ok
@@ -140,11 +145,25 @@ defmodule Cloak.SqlQuery.Compiler do
     select_columns = for column <- query.columns, do: select_clause_to_identifier(column)
     where_columns = for column <- Map.get(query, :where, []), do: where_clause_to_identifier(column)
     group_by_columns = Map.get(query, :group_by, [])
-    (select_columns -- [:*]) ++ where_columns ++ group_by_columns
+    select_columns ++ where_columns ++ group_by_columns
   end
 
   defp select_clause_to_identifier({:function, _function, identifier}), do: identifier
   defp select_clause_to_identifier(identifier), do: identifier
+
+  defp partition_selected_columns(%{group_by: groups, columns: columns} = query) do
+    aggregators = for column <- columns, aggregate_function?(column), do: column
+    Map.merge(query, %{property: groups |> Enum.uniq(), aggregators: aggregators |> Enum.uniq()})
+  end
+  defp partition_selected_columns(%{columns: columns} = query) do
+    aggregators = for column <- columns, aggregate_function?(column), do: column
+    partitioned_columns = case aggregators do
+      [] -> %{property: columns |> Enum.uniq(), aggregators: [{:function, "count", :*}], implicit_count: true}
+      _ -> %{property: [], aggregators: aggregators |> Enum.uniq()}
+    end
+    Map.merge(query, partitioned_columns)
+  end
+  defp partition_selected_columns(query), do: query
 
   defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
@@ -161,7 +180,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_order_by(query), do: {:ok, query}
 
-  defp compile_where_not(%{where: clauses} = query) do
+  defp partition_where_clauses(%{where: clauses, where_not: [], unsafe_filter_columns: []} = query) do
     {positive, negative} = Enum.partition(clauses, fn
        {:not, {:is, _, :null}} -> true
        {:not, _} -> false
@@ -170,9 +189,9 @@ defmodule Cloak.SqlQuery.Compiler do
     negative = Enum.map(negative, fn({:not, clause}) -> clause end)
     unsafe_filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
 
-    {:ok, %{query | where: positive, where_not: negative, unsafe_filter_columns: unsafe_filter_columns}}
+    %{query | where: positive, where_not: negative, unsafe_filter_columns: unsafe_filter_columns}
   end
-  defp compile_where_not(query), do: {:ok, query}
+  defp partition_where_clauses(query), do: query
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
   defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)

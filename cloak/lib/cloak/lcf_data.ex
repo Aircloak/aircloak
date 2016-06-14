@@ -10,7 +10,7 @@ defmodule Cloak.LCFData do
 
   require Logger
 
-  use Cloak.Type
+  import Cloak.Type
 
   @type t :: {:ets.tab, pid}
 

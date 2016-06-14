@@ -8,10 +8,10 @@ defmodule Cloak.Processor.NegativeCondition do
   """
 
   alias Cloak.Processor.Noise
-  alias Cloak.Query.Columns
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
-  use Cloak.Type
+
+  import Cloak.Type
 
 
   # -------------------------------------------------------------------
@@ -19,18 +19,11 @@ defmodule Cloak.Processor.NegativeCondition do
   # -------------------------------------------------------------------
 
   @doc "Applies or ignore negative conditions in the query to the given rows."
-  @spec apply([Property.t], Parser.compiled_query) :: [Property.t]
-  def apply(rows, %{where_not: clauses} = query) do
+  @spec apply([Property.t], [String.t], Parser.compiled_query) :: [Property.t]
+  def apply(rows, columns, %{where_not: clauses}) do
     clauses
-    |> Enum.filter(&sufficient_matches?(&1, rows, query))
-    |> Enum.reduce(rows, fn(clause, rows) -> Enum.reject(rows, filter(clause, query)) end)
-  end
-
-  @doc "Removes columns selected only for the purpose of implementing negative filters."
-  @spec drop_unsafe_filter_columns([Property.t], Parser.compiled_query) :: [Property.t]
-  def drop_unsafe_filter_columns(rows, %{unsafe_filter_columns: unsafe_filter_columns} = query) do
-    anonymizable = Enum.count(Columns.all(query, user_id: true)) - Enum.count(unsafe_filter_columns)
-    Enum.map(rows, &Enum.take(&1, anonymizable))
+    |> Enum.filter(&sufficient_matches?(&1, rows, columns))
+    |> Enum.reduce(rows, fn(clause, rows) -> Enum.reject(rows, filter(clause, columns)) end)
   end
 
 
@@ -38,27 +31,27 @@ defmodule Cloak.Processor.NegativeCondition do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp sufficient_matches?(clause, rows, query) do
+  defp sufficient_matches?(clause, rows, columns) do
     rows
-    |> Enum.filter(filter(clause, query))
+    |> Enum.filter(filter(clause, columns))
     |> Enum.uniq_by(&user_id(&1))
     |> Enum.count()
     |> Noise.passes_filter?(Noise.random_seed(user_ids(rows)))
   end
 
-  defp filter({:comparison, column, :=, %Token{value: %{value: value}}}, query) do
-    index = Columns.index(column, query, user_id: true)
-    fn(row) -> Enum.at(row, index) == value end
+  defp filter({:comparison, column, :=, %Token{value: %{value: value}}}, columns) do
+    index = Enum.find_index(columns, &(&1 === column))
+    fn(row) -> Enum.at(row, index + 1) == value end
   end
-  defp filter({:like, column, %Token{value: %{type: :string, value: pattern}}}, query) do
-    index = Columns.index(column, query, user_id: true)
+  defp filter({:like, column, %Token{value: %{type: :string, value: pattern}}}, columns) do
+    index = Enum.find_index(columns, &(&1 === column))
     regex = to_regex(pattern)
-    fn(row) -> Enum.at(row, index) =~ regex end
+    fn(row) -> Enum.at(row, index + 1) =~ regex end
   end
-  defp filter({:ilike, column, %Token{value: %{type: :string, value: pattern}}}, query) do
-    index = Columns.index(column, query, user_id: true)
+  defp filter({:ilike, column, %Token{value: %{type: :string, value: pattern}}}, columns) do
+    index = Enum.find_index(columns, &(&1 === column))
     regex = to_regex(pattern, [_case_insensitive = "i"])
-    fn(row) -> Enum.at(row, index) =~ regex end
+    fn(row) -> Enum.at(row, index + 1) =~ regex end
   end
 
   defp to_regex(sql_pattern, options \\ []) do
