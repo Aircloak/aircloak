@@ -59,10 +59,10 @@ defmodule Air.Token do
   # -------------------------------------------------------------------
 
   defp api_token_salt do
-    Application.get_env(:air, Air.Endpoint) |> Keyword.fetch!(:api_token_secret)
+    Application.get_env(:air, Air.Endpoint) |> Keyword.fetch!(:api_token_salt)
   end
 
   defp data_source_token_salt do
-    Application.get_env(:air, Endpoint) |> Keyword.fetch!(:data_source_token_secret)
+    Application.get_env(:air, Endpoint) |> Keyword.fetch!(:data_source_token_salt)
   end
 end
