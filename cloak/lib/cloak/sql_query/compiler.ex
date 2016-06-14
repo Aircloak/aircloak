@@ -76,6 +76,8 @@ defmodule Cloak.SqlQuery.Compiler do
   defp aggregate_function?({:function, function, _}), do: Enum.member?(@aggregation_functions, function)
   defp aggregate_function?(_), do: false
 
+  defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
+
   defp compile_columns(%{command: :select, from: {:subquery, _}} = query) do
     # Subqueries can produce column-names that are not actually in the table. Without understanding what
     # is being produced by the subquery (currently it is being treated as a blackbox), we cannot validate
@@ -152,11 +154,11 @@ defmodule Cloak.SqlQuery.Compiler do
   defp select_clause_to_identifier(identifier), do: identifier
 
   defp partition_selected_columns(%{group_by: groups, columns: columns} = query) do
-    aggregators = for column <- columns, aggregate_function?(column), do: column
+    aggregators = filter_aggregators(columns)
     Map.merge(query, %{property: groups |> Enum.uniq(), aggregators: aggregators |> Enum.uniq()})
   end
   defp partition_selected_columns(%{columns: columns} = query) do
-    aggregators = for column <- columns, aggregate_function?(column), do: column
+    aggregators = filter_aggregators(columns)
     partitioned_columns = case aggregators do
       [] -> %{property: columns |> Enum.uniq(), aggregators: [{:function, "count", :*}], implicit_count: true}
       _ -> %{property: [], aggregators: aggregators |> Enum.uniq()}
