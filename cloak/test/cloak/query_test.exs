@@ -113,6 +113,10 @@ defmodule Cloak.QueryTest do
     :ok = start_query("select count(height), count(*), count(*), count(height) from heights")
     assert_receive {:reply, %{query_id: "1", columns: ["count(height)", "count(*)", "count(*)", "count(height)"],
       rows: [%{row: [100, 100, 100, 100], occurrences: 1}]}}
+
+    :ok = start_query("select count(height), max(height) from heights")
+    assert_receive {:reply, %{query_id: "1", columns: ["count(height)", "max(height)"],
+      rows: [%{row: [100, 180], occurrences: 1}]}}
   end
 
   test "should allow ranges for where clause" do
