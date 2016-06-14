@@ -28,7 +28,7 @@ defmodule Air.SessionController do
     user = Repo.get_by(User, email: params["email"])
     case User.validate_password(user, params["password"]) do
       true ->
-        return_path = get_session(conn, :return_path) || queries_path(conn, :index)
+        return_path = get_session(conn, :return_path) || query_path(conn, :index)
         conn
         |> Guardian.Plug.sign_in(user)
         |> conditionally_create_persistent_login(params)

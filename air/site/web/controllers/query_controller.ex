@@ -1,10 +1,15 @@
-defmodule Air.QueriesController do
+defmodule Air.QueryController do
   @moduledoc false
   use Air.Web, :controller
   use Timex
 
   require Logger
-  alias Air.{Query, Repo}
+  alias Air.{DataSource, Query, Repo, Token}
+  alias Poison, as: JSON
+  alias Plug.CSRFProtection
+  alias Plug.Conn.Status
+  alias Air.Socket.Cloak.MainChannel
+
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -26,9 +31,9 @@ defmodule Air.QueriesController do
     end
     render(conn, "index.html",
       guardian_token: Guardian.Plug.current_token(conn),
-      csrf_token: Plug.CSRFProtection.get_csrf_token(),
-      last_query: Poison.encode!(last_query),
-      data_sources: Poison.encode!(data_sources(conn))
+      csrf_token: CSRFProtection.get_csrf_token(),
+      last_query: JSON.encode!(last_query),
+      data_sources: JSON.encode!(DataSource.all(conn.assigns.current_user.organisation))
     )
   end
 
@@ -38,7 +43,7 @@ defmodule Air.QueriesController do
     |> Repo.insert()
 
     try do
-      case Air.Socket.Cloak.MainChannel.run_query(query.cloak_id, Query.to_cloak_query(query)) do
+      case MainChannel.run_query(query.cloak_id, Query.to_cloak_query(query)) do
         :ok ->
           json(conn, %{success: true, query_id: query.id})
         {:error, :not_connected} ->
@@ -54,7 +59,7 @@ defmodule Air.QueriesController do
         Exception.format_stacktrace(System.stacktrace())
       ])
 
-      send_resp(conn, Plug.Conn.Status.code(:internal_server_error), "")
+      send_resp(conn, Status.code(:internal_server_error), "")
     end
   end
 
@@ -62,10 +67,26 @@ defmodule Air.QueriesController do
     json(conn, load_recent_queries(conn.assigns.current_user, 10))
   end
 
+  def show(conn, %{"id" => id}) do
+    case find_query(conn.assigns.current_user, id) do
+      %Query{} = query -> json(conn, %{query: Query.for_display(query)})
+      nil ->
+        conn
+        |> put_status(Status.code(:not_found))
+        |> json(%{error: "Query with that id does not exist"})
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp find_query(user, id) do
+    user
+    |> Query.for_user
+    |> Repo.get(id)
+  end
 
   defp load_recent_queries(user, recent_count) do
     user
@@ -75,33 +96,8 @@ defmodule Air.QueriesController do
     |> Enum.map(&Query.for_display/1)
   end
 
-  defp data_sources(conn) do
-      for cloak <- Air.CloakInfo.all(conn.assigns.current_user.organisation),
-          data_source <- cloak.data_sources
-      do
-        %{
-          id: data_source.id,
-          display: "#{data_source.id} (#{cloak.name})",
-          tables: data_source.tables,
-          cloak: cloak,
-          token: data_source_token(cloak.id, data_source.id)
-        }
-      end
-  end
-
   defp parse_query_params(params) do
-    {cloak_id, data_source} = decode_data_source_token(params["data_source_token"])
+    {cloak_id, data_source} = Token.decode_data_source_token(params["data_source_token"])
     Map.merge(params, %{"cloak_id" => cloak_id, "data_source" => data_source})
-  end
-
-  defp data_source_token(nil, nil), do: nil
-  defp data_source_token(cloak_id, data_source) do
-    Phoenix.Token.sign(Air.Endpoint, "data_source_token", {cloak_id, data_source})
-  end
-
-  defp decode_data_source_token(nil), do: {nil, nil}
-  defp decode_data_source_token(data_source_token) do
-    {:ok, {cloak_id, data_source}} = Phoenix.Token.verify(Air.Endpoint, "data_source_token", data_source_token)
-    {cloak_id, data_source}
   end
 end

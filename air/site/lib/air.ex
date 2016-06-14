@@ -22,8 +22,14 @@ defmodule Air do
     Air.Utils.update_app_env(:guardian, Guardian,
       &[{:secret_key, :air_etcd.get("/settings/air/insights/secrets/guardian_key")} | &1])
 
-    Air.Utils.update_app_env(:air, Air.Endpoint,
-      &[{:secret_key_base, :air_etcd.get("/settings/air/insights/secrets/endpoint_key_base")} | &1])
+    Air.Utils.update_app_env(:air, Air.Endpoint, fn(config) ->
+      [
+        {:secret_key_base, :air_etcd.get("/settings/air/insights/secrets/endpoint_key_base")},
+        {:api_token_salt, :air_etcd.get("/settings/air/insights/secrets/api_token_salt")},
+        {:data_source_token_salt, :air_etcd.get("/settings/air/insights/secrets/data_source_token_salt")}
+        | config
+      ]
+    end)
   end
 
   # Configures the url setting of the Air.Endpoint config,

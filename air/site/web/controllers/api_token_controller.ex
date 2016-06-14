@@ -2,7 +2,7 @@ defmodule Air.ApiTokenController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.ApiToken
+  alias Air.{ApiToken, Token}
 
 
   # -------------------------------------------------------------------
@@ -26,7 +26,7 @@ defmodule Air.ApiTokenController do
   end
 
   def create(conn, %{"api_token" => %{"description" => description}}) do
-    case ApiToken.create_for(conn, conn.assigns.current_user, description) do
+    case Token.create_api_token(conn.assigns.current_user, description) do
       {:error, changeset} ->
         conn
         |> render("index.html", api_tokens: existing_tokens(conn), changeset: changeset)

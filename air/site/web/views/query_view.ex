@@ -1,4 +1,4 @@
-defmodule Air.QueriesView do
+defmodule Air.QueryView do
   @moduledoc false
   use Air.Web, :view
   # bug in the current Phoenix

@@ -51,6 +51,20 @@ defmodule Air.TestSocketHelper do
     :ok
   end
 
+  @doc "Runs the action while a cloak with the given name and data source exists and returns its result."
+  @spec with_cloak(String.t, String.t, (() -> any)) :: any
+  def with_cloak(cloak_name, data_source_name, action) do
+    socket = connect!(%{cloak_name: cloak_name})
+
+    try do
+      data_source = %{id: data_source_name, tables: []}
+      join!(socket, "main", %{name: cloak_name, data_sources: [data_source]})
+      action.()
+    after
+      TestSocket.leave(socket, "main")
+    end
+  end
+
   defp url(params) do
     "#{Air.Endpoint.url}/cloak/socket/websocket?#{URI.encode_query(params)}"
     |> String.replace(~r(http://), "ws://")

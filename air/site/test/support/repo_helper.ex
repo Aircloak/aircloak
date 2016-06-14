@@ -1,18 +1,20 @@
 defmodule Air.TestRepoHelper do
   @moduledoc "Helpers for working with the repository."
 
+  alias Air.{ApiToken, Repo}
+
   @doc "Inserts the new organisation into the database."
   @spec create_organisation!(String.t) :: Air.Organisation.t
   def create_organisation!(name \\ random_string()) do
     %Air.Organisation{}
     |> Air.Organisation.changeset(%{name: name})
-    |> Air.Repo.insert!()
+    |> Repo.insert!()
   end
 
   @doc "Retrieves the administrators organisation."
   @spec admin_organisation :: Air.Organisation.t
   def admin_organisation do
-    Air.Repo.get_by!(Air.Organisation, name: Air.Organisation.admin_group_name())
+    Repo.get_by!(Air.Organisation, name: Air.Organisation.admin_group_name())
   end
 
   @doc "Inserts the new user into the database."
@@ -27,7 +29,7 @@ defmodule Air.TestRepoHelper do
       name: random_string(),
       role_id: Air.User.role_id(role_key)
     })
-    |> Air.Repo.insert!()
+    |> Repo.insert!()
   end
 
   @doc "Inserts a new user with default parameters into the database. See create_user!/2 for details"
@@ -37,13 +39,21 @@ defmodule Air.TestRepoHelper do
     create_user!(org, :user)
   end
 
+  @doc "Inserts a new token with default parameters into the database."
+  @spec create_token!() :: Air.ApiToken.t
+  @spec create_token!(Air.User.t) :: Air.ApiToken.t
+  def create_token!(user \\ create_user!()) do
+    ApiToken.changeset(%ApiToken{}, %{user_id: user.id, description: "some description"})
+    |> Repo.insert!
+  end
+
   @doc "Inserts a test query into the database"
   @spec create_query!(Air.User.t, %{}) :: Air.Query.t
   def create_query!(user, params \\ %{query: "query content"}) do
     user
     |> Ecto.build_assoc(:queries)
     |> Air.Query.changeset(params)
-    |> Air.Repo.insert!()
+    |> Repo.insert!()
   end
 
   defp random_string,

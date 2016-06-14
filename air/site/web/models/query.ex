@@ -81,6 +81,9 @@ defmodule Air.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp result_map(%{result: nil}), do: %{rows: [], columns: []}
-  defp result_map(%{result: result_json}), do: Poison.decode!(result_json)
+  defp result_map(%{result: nil}), do: %{rows: [], columns: [], completed: false}
+  defp result_map(%{result: result_json}) do
+    Poison.decode!(result_json)
+    |> Map.put(:completed, true)
+  end
 end
