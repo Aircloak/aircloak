@@ -1,12 +1,12 @@
 defmodule Air.ResultProcessor do
   @moduledoc """
-  Asynchronous processing of query results.
+  Concurrent processing of query results.
 
-  A processing of query result requires multiple actions, such as interpreting
+  Processing of a query result requires multiple actions, such as interpreting
   data, storing the information into the database, and notifying interested
-  parties. Since many things can go wrong here, we're doing the job asynchronously
-  to avoid crashing the channel where results where sent. This keeps the connection
-  stable, and doesn't propagate errors to the cloak.
+  parties. Since many things can go wrong here, we're doing the job concurrently
+  to limit the effect of a possible failure. If processing of a single result
+  fails, nothing else is taken down.
   """
   alias Air.{Repo, Query}
   require Logger
@@ -17,9 +17,9 @@ defmodule Air.ResultProcessor do
   # -------------------------------------------------------------------
 
   @doc """
-  Returns a supervisor specification for the supervisor of processors.
+  Returns a supervisor specification for the supervisor of result processors.
 
-  All processors will be running under this supervisor as temporary workers. If
+  All result processors will be running under this supervisor as temporary workers. If
   a processor crashes, an error will be logged, but there won't be any attempts
   to retry the job.
   """
@@ -30,7 +30,7 @@ defmodule Air.ResultProcessor do
     supervisor(Task.Supervisor, [[name: __MODULE__, restart: :temporary]])
   end
 
-  @doc "Starts asynchronous result processor."
+  @doc "Starts a result processor."
   @spec start(%{String.t => any}) :: {:ok, pid}
   def start(result) do
     Task.Supervisor.start_child(__MODULE__, fn() -> process_result(result) end)
