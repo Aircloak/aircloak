@@ -30,7 +30,7 @@ defmodule Cloak.QueryTest do
   end
 
   test "show tables" do
-    assert_query "show tables", %{columns: ["name"], rows: [[:heights]]}
+    assert_query "show tables", %{columns: ["name"], rows: [%{occurrences: 1, row: [:heights]}]}
   end
 
   test "show columns" do
