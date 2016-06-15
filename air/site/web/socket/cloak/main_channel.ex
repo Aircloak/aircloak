@@ -4,7 +4,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  alias Air.{CloakInfo, Repo, Query}
+  alias Air.CloakInfo
 
 
   # -------------------------------------------------------------------
@@ -120,8 +120,8 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   defp handle_cloak_call("query_result", query_result, request_id, socket) do
     Logger.info("received result for query #{query_result["query_id"]}")
-    process_query_result(query_result)
     respond_to_cloak(socket, request_id, :ok)
+    Air.ResultProcessor.start(query_result)
     {:noreply, socket}
   end
 
@@ -160,30 +160,5 @@ defmodule Air.Socket.Cloak.MainChannel do
           exit(:timeout)
         end
     end
-  end
-
-  defp process_query_result(result) do
-    query = Repo.get!(Query, result["query_id"])
-
-    row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
-
-    storable_result = Poison.encode!(%{
-      columns: result["columns"],
-      rows: result["rows"],
-      error: result["error"],
-      info: result["info"],
-      row_count: row_count,
-    })
-
-    updated_query = Repo.update!(Query.changeset(query, %{result: storable_result}))
-    report_query_result(updated_query) # Broadcast result to subscribers.
-  end
-
-  defp report_query_result(result) do
-    # Starting a linked reporter. This ensures that a crash in the reporter won't terminate this channel.
-    # The link ensures that the termination of this channel terminates the reporter as well.
-    Task.start_link(fn ->
-      Air.Socket.Frontend.UserChannel.broadcast_result(result)
-    end)
   end
 end
