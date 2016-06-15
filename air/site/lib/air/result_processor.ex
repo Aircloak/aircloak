@@ -54,8 +54,11 @@ defmodule Air.ResultProcessor do
       row_count: row_count,
     })
 
-    updated_query = Repo.update!(Query.changeset(query, %{result: storable_result}))
-    Air.Socket.Frontend.UserChannel.broadcast_result(updated_query)
+    query
+    |> Query.changeset(%{result: storable_result})
+    |> Repo.update!()
+    |> Air.Socket.Frontend.UserChannel.broadcast_result()
+
     Logger.info("processed result for query #{result["query_id"]}")
   end
 end
