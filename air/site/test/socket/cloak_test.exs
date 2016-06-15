@@ -52,10 +52,13 @@ defmodule Air.Socket.CloakTest do
       payload: %{query_id: query_id, rows: [], columns: []}
     }
     assert Air.Repo.get!(Air.Query, query_id).result == nil
+
+    Air.Endpoint.subscribe(self(), "user:#{query.user_id}")
     TestSocket.push(socket, "main", "cloak_call", request)
     assert {:ok, {"main", "call_response", response}} = TestSocket.await_message(socket, 100)
     assert %{"request_id" => "foobar", "status" => "ok"} = response
 
+    assert_receive %Phoenix.Socket.Broadcast{event: "result", payload: %{completed: true, id: ^query_id}}
     assert Air.Repo.get!(Air.Query, query_id).result != nil
   end
 
