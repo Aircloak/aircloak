@@ -35,7 +35,10 @@ defmodule Cloak.QueryTest do
 
   test "show columns" do
     assert_query "show columns from heights", %{query_id: "1", columns: ["name", "type"], rows: rows}
-    assert Enum.sort(rows) == [["height", :integer], ["name", :text]]
+    assert Enum.sort_by(rows, &(&1[:row])) == [
+      %{occurrences: 1, row: ["height", :integer]},
+      %{occurrences: 1, row: ["name", :text]}
+    ]
   end
 
   test "simple select query" do

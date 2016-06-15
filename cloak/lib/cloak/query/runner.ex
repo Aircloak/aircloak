@@ -35,7 +35,8 @@ defmodule Cloak.Query.Runner do
   defp execute_sql_query(%{command: :show, show: :columns, from: table_identifier, data_source: data_source}) do
     table_id = String.to_existing_atom(table_identifier)
     columns = ["name", "type"]
-    rows = Enum.map(DataSource.columns(data_source, table_id), &Tuple.to_list/1)
+    rows = DataSource.columns(data_source, table_id)
+    |> Enum.map(fn(column) -> %{occurrences: 1, row: Tuple.to_list(column)} end)
 
     {:ok, {:buckets, columns, rows}}
   end
