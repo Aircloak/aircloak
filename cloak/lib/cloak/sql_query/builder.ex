@@ -5,7 +5,6 @@ defmodule Cloak.SqlQuery.Builder do
   """
 
   alias Cloak.SqlQuery.Parsers.Token
-  alias Cloak.Query.Columns
 
   @typep query_spec :: {statement, [constant]}
   @typep constant :: String.t | number | boolean
@@ -21,7 +20,7 @@ defmodule Cloak.SqlQuery.Builder do
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
   def build(%{from: table} = query) do
     fragments_to_query_spec([
-      "SELECT ", Enum.map_join(Columns.all(query), ",", &select_column_to_string/1), " ",
+      "SELECT ", Enum.map_join(needed_columns(query), ",", &select_column_to_string/1), " ",
       "FROM ", table, " ",
       where_fragments(query[:where])
     ])
@@ -29,14 +28,18 @@ defmodule Cloak.SqlQuery.Builder do
 
   @spec select_column_to_string(Cloak.SqlQuery.Parser.column) :: String.t
   @doc "Creates a string representation of a potentially complex column selection"
-  def select_column_to_string({:function, "count", :"*"}), do: "'*' AS \"count(*)\""
-  def select_column_to_string({:function, function, identifier}), do: "#{function}(#{identifier})"
+  def select_column_to_string({:function, "count", :*}), do: ~s/'*' AS "*"/
+  def select_column_to_string({:function, _function, identifier}), do: "#{identifier}"
   def select_column_to_string(column), do: column
 
 
   # -------------------------------------------------------------------
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
+
+  def needed_columns(query) do
+    (query.columns ++ Map.get(query, :group_by, []) ++ query.unsafe_filter_columns) |> Enum.uniq()
+  end
 
   @spec fragments_to_query_spec([fragment]) :: query_spec
   defp fragments_to_query_spec(fragments) do

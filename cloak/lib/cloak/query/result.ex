@@ -1,7 +1,7 @@
 defmodule Cloak.Query.Result do
   @moduledoc "Contains functions for converting buckets to a columns/rows representation."
 
-  use Cloak.Type
+  import Cloak.Type
   alias Cloak.SqlQuery
 
 
@@ -14,59 +14,63 @@ defmodule Cloak.Query.Result do
   The consuming client will still have to expand the rows to mimic normal SQL
   where individual rows are produced.
   """
-  @spec to_map([Bucket.t]) :: [Map.t]
-  def to_map(results) do
-    Enum.map(results, fn(result) ->
-      %{row: bucket(result, :property), occurrences: bucket(result, :noisy_count)}
-    end)
+  @spec map_buckets([Bucket.t], SqlQuery.t) :: [Row.t]
+  def map_buckets(buckets, %{implicit_count: true} = query) do
+    for {property, [count]} <- buckets, do: %{row: bucket_to_row(query, property, []), occurrences: count}
+  end
+  def map_buckets(buckets, query) do
+    for {property, aggregated_values} <- buckets,
+      do: %{row: bucket_to_row(query, property, aggregated_values), occurrences: 1}
   end
 
-  @doc """
-  For aggregating queries (ones that group or use aggregate functions) this converts the buckets to contain
-  the values of the aggregating functions and have count 1.
-  """
-  @spec apply_aggregation([Bucket.t], SqlQuery.t) :: [Bucket.t]
-  def apply_aggregation(results, query) do
-    if aggregate?(query) do
-      do_apply_aggregation(results, query)
-    else
-      results
-    end
+  @doc "Groups users and data values for aggregation by the property selected in the query to be reported."
+  @spec group_by_property([Property.t], [String.t], SqlQuery.t) :: [GroupedRow.t]
+  def group_by_property(rows, columns, query) do
+    columns_start = List.duplicate([], length(query.aggregators))
+    rows
+    |> Enum.reduce(%{}, fn([user | fields], accumulator) ->
+        property = for column <- query.property, do: extract_field(fields, columns, column)
+        {old_users, old_columns} = Map.get(accumulator, property, {[], columns_start})
+        new_users = [user | old_users]
+        values = for {:function, _, column} <- query.aggregators, do: extract_field(fields, columns, column)
+        new_columns = for {new_value, old_column} <- Enum.zip(values, old_columns), do: [new_value | old_column]
+        Map.put(accumulator, property, {new_users, new_columns})
+      end)
+    |> Enum.to_list()
   end
 
   @doc "Sorts the rows in the order defined in the query."
-  @spec apply_order([Bucket.t], SqlQuery.t) :: [Bucket.t]
-  def apply_order(buckets, %{order_by: order_list}) do
-    Enum.sort(buckets, fn(bucket1, bucket2) ->
-      compare_rows(bucket(bucket1, :property), bucket(bucket2, :property), order_list)
+  @spec order_rows([Row.t], SqlQuery.t) :: [Row.t]
+  def order_rows(rows, %{order_by: order_list}) do
+    Enum.sort(rows, fn(%{row: row1}, %{row: row2}) ->
+      compare_rows(row1, row2, order_list)
     end)
   end
-  def apply_order(buckets, _), do: buckets
+  def order_rows(rows, _), do: rows
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_apply_aggregation(results, query) do
-    Enum.map(results, fn(result) ->
-      bucket(result, noisy_count: 1, property: assemble_row(result, query))
-    end)
+  defp bucket_to_row(query, property, aggregated_values) do
+    for column <- query.columns do
+      case column do
+        {:function, _, _} ->
+          extract_field(aggregated_values, query.aggregators, column)
+        identifier ->
+          extract_field(property, query.property, identifier)
+      end
+    end
   end
 
-  defp assemble_row(row_bucket, %{columns: columns}) do
-    row_bucket
-    |> bucket(:property)
-    |> Enum.zip(columns)
-    |> Enum.map(fn
-       {_value, {:function, "count", _}} -> bucket(row_bucket, :noisy_count)
-       {value, _column} -> value
-    end)
+  defp extract_field(_fields, _columns, :*) do
+    :*
   end
-
-  defp aggregate?(%{columns: [{:function, _, _}]}), do: true
-  defp aggregate?(%{group_by: [_ | _]}), do: true
-  defp aggregate?(_), do: false
+  defp extract_field(fields, columns, column) do
+    index = Enum.find_index(columns, &(&1 === column))
+    Enum.at(fields, index)
+  end
 
   defp compare_rows(row1, row2, []), do: row1 < row2
   defp compare_rows(row1, row2, [{index, direction} | remaining_order]) do
