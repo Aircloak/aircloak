@@ -36,7 +36,7 @@ defmodule Cloak.Query.Runner do
     table_id = String.to_existing_atom(table_identifier)
     columns = ["name", "type"]
     rows = DataSource.columns(data_source, table_id)
-    |> Enum.map(fn(column) -> %{occurrences: 1, row: Tuple.to_list(column)} end)
+    |> Enum.map(fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
 
     {:ok, {:buckets, columns, rows}}
   end
