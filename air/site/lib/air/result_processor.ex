@@ -8,7 +8,7 @@ defmodule Air.ResultProcessor do
   to limit the effect of a possible failure. If processing of a single result
   fails, nothing else is taken down.
   """
-  alias Air.{Repo, Query}
+  alias Air.{Repo, Query, Socket.Frontend.UserChannel}
   require Logger
 
 
@@ -57,7 +57,7 @@ defmodule Air.ResultProcessor do
     query
     |> Query.changeset(%{result: storable_result})
     |> Repo.update!()
-    |> Air.Socket.Frontend.UserChannel.broadcast_result()
+    |> UserChannel.broadcast_result()
 
     Logger.info("processed result for query #{result["query_id"]}")
   end
