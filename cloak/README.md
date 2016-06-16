@@ -9,6 +9,7 @@
         - [Running partial tests](#running-partial-tests)
         - [Running a local docker container](#running-a-local-docker-container)
         - [Deploying](#deploying)
+        - [Interacting with production cloaks](#interacting-with-production-cloaks)
 
 ----------------------
 
@@ -127,3 +128,57 @@ Example:
 __Note__: You can run multiple cloaks on the same machine. As long as you're not doing any performance/load tests, that should be fine. Otherwise, reserve a dedicated machine for your experiments.
 
 If you want to add the additional configuration, you can add a new folder under `/opt/share/cloak_runtime_configs/`. Take a look at the existing ones (e.g. `prod` or `stage`) for examples. __Note__: `/opt/share` is shared between all thors, so you only need to add the configuration on one thor, and then you can reuse it on all others.
+
+#### Interacting with production cloaks
+
+Some typical tasks you can run on a thor machine:
+
+- getting a list of running cloaks - `docker ps`
+- logs - `docker logs container`
+- restarting a cloak - `docker restart container`
+- stopping a cloak - `docker stop container && docker rm container`
+- remote bash shell - `docker exec -it container /bin/bash`
+- remote iex shell - `docker exec -it master_prod bin/cloak remote_console`
+
+##### Connecting local observer to a production cloak
+
+First you need to tunnel the remote EPMD port:
+
+```
+# on a local machine
+$ ssh -L 4370:localhost:4369 srv-76-133.mpi-sws.org
+```
+
+Here, we're using port 4370 on a local machine to avoid collisions with local EPMD.
+
+Now you can get a list of remote nodes locally:
+
+```
+# on a local machine
+$ ERL_EPMD_PORT=4370 epmd -names
+
+epmd: up and running on port 4369 with data:
+name master_stage at port 34000
+name master_prod at port 34001
+```
+
+Let's say you want to connect to the stage cloak. Close the previous SSH session, and open a new one which tunnel ports 4369 and 34000:
+
+```
+# on a local machine
+$ ssh -L 4370:localhost:4369 -L 34000:localhost:34000 srv-76-133.mpi-sws.org
+```
+
+Now, you can start a local node and connect it to the remote:
+
+```
+# on a local machine
+$ ERL_EPMD_PORT=4370 iex --name observer@127.0.0.1 --cookie cloak
+
+iex(observer@127.0.0.1)1> Node.connect(:"master_stage@127.0.0.1")
+true
+
+iex(observer@127.0.0.1)2> :observer.start
+```
+
+Finally, in the Nodes menu select the remote node, and you'll get an observer view of the production cloak.
