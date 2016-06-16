@@ -17,11 +17,15 @@ function build_image {
 }
 
 function upgrade_cloak {
+  # Note that while starting, we're starting an epmd in a separate container. This allows us to
+  # restart cloak containers without stopping epmd instance. On subsequent deploys, starting of
+  # epmd will fail (since it's already running), but we'll just ignore that error and move on.
   ssh $TARGET_MACHINE "
     docker pull $IMAGE &&
     echo 'Stopping cloak $CLOAK_NAME' &&
     ( docker stop $CLOAK_NAME || true) &&
     ( docker rm $CLOAK_NAME || true) &&
+    ( docker run -d --net=host --name epmd $IMAGE /aircloak/cloak/erts-7.2.1/bin/epmd || true) &&
     echo 'Starting cloak $CLOAK_NAME' &&
     docker run -d --net=host \\
       --name $CLOAK_NAME \\
