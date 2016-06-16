@@ -84,12 +84,12 @@ defmodule Cloak.Processor.Anonymizer do
 
   defp aggregate_row({property, _seed, user_values_map}, aggregated_columns, aggregators) do
     users = Map.keys(user_values_map)
-    aggregated_values = for {:function, function, column} <- aggregators do
+    property_values = Map.values(user_values_map)
+    aggregated_values = for {:function, function, column} <- aggregators,
       column_index = Enum.find_index(aggregated_columns, &(&1 === column))
-      values = for values_list <- Map.values(user_values_map) do
-        for values <- values_list, do: Enum.at(values, column_index)
-      end
-      aggregate_values(function, users, List.flatten(values))
+    do
+      input_values = for user_values <- property_values, do: Enum.map(user_values, &Enum.at(&1, column_index))
+      aggregate_values(function, users, List.flatten(input_values))
     end
     {property, aggregated_values}
   end
