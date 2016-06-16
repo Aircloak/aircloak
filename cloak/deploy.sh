@@ -17,8 +17,8 @@ function build_image {
 }
 
 function upgrade_cloak {
-  # Note that while starting, we're starting an epmd in a separate container. This allows us to
-  # restart cloak containers without stopping epmd instance. On subsequent deploys, starting of
+  # Note that while starting, we're starting epmd in a separate container. This allows us to
+  # restart cloak containers without stopping the epmd instance. On subsequent deploys, starting of
   # epmd will fail (since it's already running), but we'll just ignore that error and move on.
   ssh $TARGET_MACHINE "
     docker pull $IMAGE &&
