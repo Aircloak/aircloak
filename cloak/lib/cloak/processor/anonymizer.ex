@@ -13,7 +13,7 @@ defmodule Cloak.Processor.Anonymizer do
   def aggregate(grouped_rows, query) do
     seeded_rows = seed_rows(grouped_rows)
     non_lcf_rows = reject_low_count_users_rows(seeded_rows, query)
-    aggregated_columns = (for {:function, _, column} <- query.aggregators, do: column) |> Enum.uniq()
+    aggregated_columns = SqlQuery.aggregated_columns(query)
     for {property, _seed, user_values_map} <- non_lcf_rows do
       users = Map.keys(user_values_map)
       aggregated_values = for {:function, function, column} <- query.aggregators do
