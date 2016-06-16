@@ -35,6 +35,7 @@ defmodule Cloak.Processor.Noise do
       user
       |> to_string()
       |> compute_hash()
+      # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
       |> :crypto.exor(accumulator)
     end)
     |> binary_to_seed()
