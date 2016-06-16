@@ -79,9 +79,10 @@ defmodule Cloak.Processor.Anonymizer do
 
   defp reject_low_count_users_rows(rows, query) do
     {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
-    lcf_users_values_map = Enum.reduce(low_count_rows, %{}, fn ({_property, _seed, users_values_map}, accumulator) ->
-      Map.merge(accumulator, users_values_map, fn (_user, values1, values2) -> values1 ++ values2 end)
-    end)
+    lcf_users_values_map = Enum.reduce(low_count_rows, %{},
+      fn ({_property, _seed, users_values_map}, accumulator) ->
+        Map.merge(accumulator, users_values_map, fn (_user, values1, values2) -> values1 ++ values2 end)
+      end)
     lcf_seed = Noise.random_seed(Map.keys(lcf_users_values_map))
     lcf_property = List.duplicate(:*, length(query.property))
     lcf_row = {lcf_property, lcf_seed, lcf_users_values_map}
