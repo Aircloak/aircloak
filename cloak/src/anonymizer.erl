@@ -182,7 +182,7 @@ oportunistically_filter_reports(Reports, AnonymizationParameters, [NextTest | Pe
 %%      the result set or not.
 soft_low_count_filter({#bucket{count = Count}, #anonymization_state{userids_hash = UserIdHashSeed}} = FullBucket,
     #anonymizer_params{}) ->
-  case 'Elixir.Cloak.Processor.Noise':passes_filter(Count, UserIdHashSeed) of
+  case 'Elixir.Cloak.Processor.Noise':'passes_filter?'(Count, UserIdHashSeed) of
     true -> FullBucket;
     false -> failed
   end.

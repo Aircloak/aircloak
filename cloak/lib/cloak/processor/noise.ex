@@ -3,6 +3,8 @@ defmodule Cloak.Processor.Noise do
 
   @opaque seed :: {integer, integer, integer}
 
+  import Cloak.Type
+
 
   # -------------------------------------------------------------------
   # API
@@ -19,24 +21,23 @@ defmodule Cloak.Processor.Noise do
   """
   @spec passes_filter?(non_neg_integer, seed) :: boolean
   def passes_filter?(count, random_seed) do
-    count > absolute_lower_bound() && noisy_count(count, random_seed) > soft_lower_bound()
+    count > absolute_lower_bound() and noisy_count(count, random_seed) > soft_lower_bound()
   end
-
-  @doc "Alias for passes_filter that can be called from erlang"
-  @spec passes_filter(non_neg_integer, seed) :: boolean
-  def passes_filter(count, random_seed), do: passes_filter?(count, random_seed)
 
   @doc """
   Builds a random seed from the given list of users - it's obtained by hashing and will be constant
-  for lists containing the same users.
+  for lists containing unique users.
   """
-  @spec random_seed([any]) :: seed
-  def random_seed(users) do
+  @spec random_seed_from_unique_users([UserId.t]) :: seed
+  def random_seed_from_unique_users(users) do
     users
-    |> Enum.sort()
-    |> Enum.dedup()
-    |> :erlang.term_to_binary()
-    |> compute_hash()
+    |> Enum.reduce(compute_hash(""), fn (user, accumulator) ->
+      user
+      |> to_string()
+      |> compute_hash()
+      # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
+      |> :crypto.exor(accumulator)
+    end)
     |> binary_to_seed()
   end
 
@@ -62,5 +63,5 @@ defmodule Cloak.Processor.Noise do
 
   defp sigma_soft_lower_bound, do: noise_config(:sigma_soft_lower_bound)
 
-  defp noise_config(name), do: Application.get_env(:cloak, :noise) |> Keyword.get(name)
+  defp noise_config(name), do: :cloak_conf.get_val(:noise, name)
 end
