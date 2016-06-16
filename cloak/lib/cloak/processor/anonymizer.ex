@@ -10,21 +10,11 @@ defmodule Cloak.Processor.Anonymizer do
 
   @doc "Aggregates the grouped rows into anonymized buckets by applying the selected aggregation function."
   @spec aggregate(GroupedRows.t, SqlQuery.t) :: [Bucket.t]
-  def aggregate(grouped_rows, query) do
-    seeded_rows = seed_rows(grouped_rows)
-    non_lcf_rows = reject_low_count_users_rows(seeded_rows, query)
-    aggregated_columns = SqlQuery.aggregated_columns(query)
-    for {property, _seed, user_values_map} <- non_lcf_rows do
-      users = Map.keys(user_values_map)
-      aggregated_values = for {:function, function, column} <- query.aggregators do
-        column_index = Enum.find_index(aggregated_columns, &(&1 === column))
-        values = for values_list <- Map.values(user_values_map) do
-          for values <- values_list, do: Enum.at(values, column_index)
-        end
-        aggregate_values(function, users, List.flatten(values))
-      end
-      {property, aggregated_values}
-    end
+  def aggregate(rows, query) do
+    rows
+    |> seed_rows()
+    |> reject_low_count_users_rows(query)
+    |> aggregate_rows(query)
   end
 
 
@@ -90,5 +80,22 @@ defmodule Cloak.Processor.Anonymizer do
       false -> [lcf_row | high_count_rows]
       true -> high_count_rows
     end
+  end
+
+  defp aggregate_row({property, _seed, user_values_map}, aggregated_columns, aggregators) do
+    users = Map.keys(user_values_map)
+    aggregated_values = for {:function, function, column} <- aggregators do
+      column_index = Enum.find_index(aggregated_columns, &(&1 === column))
+      values = for values_list <- Map.values(user_values_map) do
+        for values <- values_list, do: Enum.at(values, column_index)
+      end
+      aggregate_values(function, users, List.flatten(values))
+    end
+    {property, aggregated_values}
+  end
+
+  defp aggregate_rows(rows, query) do
+    aggregated_columns = SqlQuery.aggregated_columns(query)
+    for row <- rows, do: aggregate_row(row, aggregated_columns, query.aggregators)
   end
 end
