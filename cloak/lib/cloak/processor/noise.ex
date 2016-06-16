@@ -22,10 +22,6 @@ defmodule Cloak.Processor.Noise do
     count > absolute_lower_bound() && noisy_count(count, random_seed) > soft_lower_bound()
   end
 
-  @doc "Alias for passes_filter that can be called from erlang"
-  @spec passes_filter(non_neg_integer, seed) :: boolean
-  def passes_filter(count, random_seed), do: passes_filter?(count, random_seed)
-
   @doc """
   Builds a random seed from the given list of users - it's obtained by hashing and will be constant
   for lists containing the same users.
