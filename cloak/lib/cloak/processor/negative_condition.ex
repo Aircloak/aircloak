@@ -33,9 +33,10 @@ defmodule Cloak.Processor.NegativeCondition do
 
   defp sufficient_matches?(clause, rows, columns) do
     seed = rows
-    |> user_ids()
-    |> Enum.uniq()
-    |> Noise.random_seed()
+      |> user_ids()
+      |> Enum.uniq()
+      |> Noise.random_seed()
+
     rows
     |> Enum.filter(filter(clause, columns))
     |> Enum.uniq_by(&user_id(&1))
