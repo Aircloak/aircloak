@@ -67,8 +67,7 @@ defmodule Cloak.QueryTest do
     end
 
     assert_query "select height from heights", %{columns: ["height"], rows: rows}
-    # TODO: re-enable this assert once lcf users are generated again.
-    #assert Enum.sort_by(rows, &(&1[:row])) == [%{row: [180], occurrences: 20}, %{row: [:*], occurrences: 20}]
+    assert Enum.sort_by(rows, &(&1[:row])) == [%{row: [180], occurrences: 20}, %{row: [:*], occurrences: 20}]
   end
 
   test "should produce counts" do
@@ -287,8 +286,7 @@ defmodule Cloak.QueryTest do
 
     assert_query "select count(*), name from heights group by name order by name asc",
       %{columns: ["count(*)", "name"], rows: rows}
-    # TODO: re-enable this assert once lcf users are generated again.
-    #assert rows == [%{row: [10, "Charlie"], occurrences: 1}, %{row: [6, :*], occurrences: 1}]
+    assert rows == [%{row: [10, "Charlie"], occurrences: 1}, %{row: [6, :*], occurrences: 1}]
   end
 
   test "grouping and sorting by a grouped field" do

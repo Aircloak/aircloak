@@ -23,20 +23,17 @@ defmodule Cloak.Query.Result do
       do: %{row: bucket_to_row(query, property, aggregated_values), occurrences: 1}
   end
 
-  @doc "Groups users and data values for aggregation by the property selected in the query to be reported."
-  @spec group_by_property([Property.t], [String.t], SqlQuery.t) :: [GroupedRow.t]
-  def group_by_property(rows, columns, query) do
-    columns_start = List.duplicate([], length(query.aggregators))
-    rows
-    |> Enum.reduce(%{}, fn([user | fields], accumulator) ->
-        property = for column <- query.property, do: extract_field(fields, columns, column)
-        {old_users, old_columns} = Map.get(accumulator, property, {[], columns_start})
-        new_users = [user | old_users]
-        values = for {:function, _, column} <- query.aggregators, do: extract_field(fields, columns, column)
-        new_columns = for {new_value, old_column} <- Enum.zip(values, old_columns), do: [new_value | old_column]
-        Map.put(accumulator, property, {new_users, new_columns})
+  @doc "Groups the data values to be aggregated by the selected property and the reported users."
+  @spec group_by_property_and_users([Property.t], [String.t], SqlQuery.t) :: GroupedRows.t
+  def group_by_property_and_users(rows, columns, query) do
+    aggregated_columns = (for {:function, _, column} <- query.aggregators, do: column) |> Enum.uniq()
+    Enum.reduce(rows, %{}, fn([user | fields], accumulator) ->
+      property = for column <- query.property, do: extract_field(fields, columns, column)
+      values = for column <- aggregated_columns, do: extract_field(fields, columns, column)
+      Map.update(accumulator, property, %{user => [values]}, fn (user_values_map) ->
+        Map.update(user_values_map, user, [values], fn (prev_values) -> [values | prev_values] end)
       end)
-    |> Enum.to_list()
+    end)
   end
 
   @doc "Sorts the rows in the order defined in the query."

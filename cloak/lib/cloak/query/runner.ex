@@ -45,7 +45,7 @@ defmodule Cloak.Query.Runner do
 
       buckets = rows
       |> NegativeCondition.apply(columns, select_query)
-      |> Result.group_by_property(columns, select_query)
+      |> Result.group_by_property_and_users(columns, select_query)
       |> Anonymizer.aggregate(select_query)
       |> Result.map_buckets(select_query)
       |> Result.order_rows(select_query)
