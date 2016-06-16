@@ -54,7 +54,7 @@ function upgrade_cloak {
     docker run -d --net=host \\
       --name $CLOAK_NAME \\
       -e CLOAK_NAME=$CLOAK_NAME \\
-      -v /aircloak/$RUNTIME_CONFIG/:/runtime_config \\
+      -v /opt/share/cloak_runtime_configs/$RUNTIME_CONFIG/:/runtime_config \\
       $IMAGE
   "
 }

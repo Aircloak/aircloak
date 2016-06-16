@@ -113,7 +113,7 @@ The parameters have following meaning:
 
 - `image_category` - Custom string which is prepended to the image name. You can use your own name, or the name of the feature you're experimenting with. Use only alphanumerics and underscores.
 - `target_machine` - Fully qualified name of the thor machine (e.g. `srv-76-133.mpi-sws.org`) which must be accessible via ssh. __Note__: currently docker is installed only on `srv-76-133`. If you want to use another machine, ask our administrator to install docker there.
-- `runtime_configuration` - name of the configuration folder in `/aircloak/` on the target machine. Currently we support `prod` and `stage`.
+- `runtime_configuration` - name of the configuration folder in `/opt/share/cloak_runtime_configs/` on the target machine. Currently we support `prod` and `stage`.
 - `cloak_name` - The name which will be given to the cloak and the docker container. Use only alphanumerics and underscores.
 
 __Note__: You can only provide one value for each argument. Quoting spaces (e.g. passing `"srv1 srv2 srv3"` as `target_machine`) will not work properly.
@@ -125,3 +125,5 @@ Example:
 ```
 
 __Note__: You can run multiple cloaks on the same machine. As long as you're not doing any performance/load tests, that should be fine. Otherwise, reserve a dedicated machine for your experiments.
+
+If you want to add the additional configuration, you can add a new folder under `/opt/share/cloak_runtime_configs/`. Take a look at the existing ones (e.g. `prod` or `stage`) for examples. __Note__: `/opt/share` is shared between all thors, so you only need to add the configuration on one thor, and then you can reuse it on all others.
