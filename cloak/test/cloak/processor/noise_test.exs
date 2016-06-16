@@ -9,10 +9,4 @@ defmodule Cloak.Processor.Noise.Test do
       Noise.random_seed(x) == Noise.random_seed(Enum.shuffle(x))
     end
   end
-
-  property "the random seed is the same for lists with the same unique elements" do
-    for_all x in list(int) do
-      assert Noise.random_seed(x) == Noise.random_seed(Enum.dedup(x))
-    end
-  end
 end
