@@ -13,7 +13,7 @@ defmodule Cloak.Processor.Anonymizer do
   def aggregate(rows, query) do
     rows
     |> seed_rows()
-    |> reject_low_count_users_rows(query)
+    |> process_low_count_users(query)
     |> aggregate_rows(query)
   end
 
@@ -67,7 +67,7 @@ defmodule Cloak.Processor.Anonymizer do
   defp low_users_count?({_property, seed, users_values_map}),
     do: not Noise.passes_filter?(Enum.count(users_values_map), seed)
 
-  defp reject_low_count_users_rows(rows, query) do
+  defp process_low_count_users(rows, query) do
     {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
     lcf_users_values_map = Enum.reduce(low_count_rows, %{},
       fn ({_property, _seed, users_values_map}, accumulator) ->
