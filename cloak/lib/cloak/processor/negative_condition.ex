@@ -35,7 +35,7 @@ defmodule Cloak.Processor.NegativeCondition do
     seed = rows
       |> user_ids()
       |> Enum.uniq()
-      |> Noise.random_seed()
+      |> Noise.random_seed_from_unique_users()
 
     rows
     |> Enum.filter(filter(clause, columns))

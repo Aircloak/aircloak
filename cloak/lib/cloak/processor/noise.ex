@@ -28,8 +28,8 @@ defmodule Cloak.Processor.Noise do
   Builds a random seed from the given list of users - it's obtained by hashing and will be constant
   for lists containing unique users.
   """
-  @spec random_seed([UserId.t]) :: seed
-  def random_seed(users) do
+  @spec random_seed_from_unique_users([UserId.t]) :: seed
+  def random_seed_from_unique_users(users) do
     users
     |> Enum.reduce(compute_hash(""), fn (user, accumulator) ->
       user
