@@ -8,14 +8,9 @@
     stdlib,
     lager,
     gproc,
-    cloak_metrics,
-    pgsql,
-    webmachine,
     sasl,
-    os_mon,
     ssl,
-    mnesia,
-    erlcron
+    mnesia
   ]},
   {mod, { cloak_app, []}},
   {env, []}

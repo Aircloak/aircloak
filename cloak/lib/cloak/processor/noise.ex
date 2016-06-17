@@ -3,6 +3,8 @@ defmodule Cloak.Processor.Noise do
 
   @opaque seed :: {integer, integer, integer}
 
+  import Cloak.Type
+
 
   # -------------------------------------------------------------------
   # API
@@ -19,25 +21,21 @@ defmodule Cloak.Processor.Noise do
   """
   @spec passes_filter?(non_neg_integer, seed) :: boolean
   def passes_filter?(count, random_seed) do
-    count > absolute_lower_bound() && noisy_count(count, random_seed) > soft_lower_bound()
+    count > absolute_lower_bound() and noisy_count(count, random_seed) > soft_lower_bound()
   end
 
-  @doc "Alias for passes_filter that can be called from erlang"
-  @spec passes_filter(non_neg_integer, seed) :: boolean
-  def passes_filter(count, random_seed), do: passes_filter?(count, random_seed)
-
   @doc """
-  Builds a random seed from the given list of users - it's obtained by hashing and will be constant
-  for lists containing the same users.
+  Builds a random seed from the given set or map of unique users.
+
+  This function takes either a `MapSet` containing user ids, or a map where
+  keys are user ids. Such types ensure that user ids are deduplicated.
   """
-  @spec random_seed([any]) :: seed
-  def random_seed(users) do
-    users
-    |> Enum.sort()
-    |> Enum.dedup()
-    |> :erlang.term_to_binary()
-    |> compute_hash()
-    |> binary_to_seed()
+  @spec random_seed(MapSet.t | %{String.t => any}) :: seed
+  def random_seed(%MapSet{} = users) do
+    random_seed_from_unique_users(users)
+  end
+  def random_seed(%{} = users_map) do
+    random_seed_from_unique_users(Map.keys(users_map))
   end
 
 
@@ -47,6 +45,18 @@ defmodule Cloak.Processor.Noise do
 
   defp noisy_count(count, random_seed) do
     :cloak_distributions.gauss_s(sigma_soft_lower_bound(), count, random_seed)
+  end
+
+  defp random_seed_from_unique_users(users) do
+    users
+    |> Enum.reduce(compute_hash(""), fn (user, accumulator) ->
+      user
+      |> to_string()
+      |> compute_hash()
+      # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
+      |> :crypto.exor(accumulator)
+    end)
+    |> binary_to_seed()
   end
 
   defp compute_hash(binary), do: :crypto.hash(:md4, binary)
@@ -62,5 +72,5 @@ defmodule Cloak.Processor.Noise do
 
   defp sigma_soft_lower_bound, do: noise_config(:sigma_soft_lower_bound)
 
-  defp noise_config(name), do: Application.get_env(:cloak, :noise) |> Keyword.get(name)
+  defp noise_config(name), do: :cloak_conf.get_val(:noise, name)
 end

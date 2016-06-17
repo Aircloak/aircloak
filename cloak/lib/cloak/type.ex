@@ -19,8 +19,8 @@ defmodule Cloak.Type do
     @type t :: %{row: Property.t, occurrences: pos_integer}
   end
 
-  defmodule GroupedRow do
+  defmodule GroupedRows do
     @moduledoc false
-    @type t :: {Property.t, {[User.t], [Property.t]}}
+    @type t :: %{Property.t => %{User.t => [[Property.t]]}}
   end
 end

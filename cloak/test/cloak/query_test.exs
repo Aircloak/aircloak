@@ -30,12 +30,16 @@ defmodule Cloak.QueryTest do
   end
 
   test "show tables" do
-    assert_query "show tables", %{columns: ["name"], rows: [[:heights]]}
+    assert_query "show tables", %{columns: ["name"], rows: [%{occurrences: 1, row: [:heights]}]}
   end
 
   test "show columns" do
     assert_query "show columns from heights", %{query_id: "1", columns: ["name", "type"], rows: rows}
-    assert Enum.sort(rows) == [["height", :integer], ["name", :text], ["time", :timestamp]]
+    assert Enum.sort_by(rows, &(&1[:row])) == [
+      %{occurrences: 1, row: ["height", :integer]},
+      %{occurrences: 1, row: ["name", :text]},
+      %{occurrences: 1, row: ["time", :timestamp]}
+    ]
   end
 
   test "simple select query" do
@@ -70,8 +74,7 @@ defmodule Cloak.QueryTest do
     end
 
     assert_query "select height from heights", %{columns: ["height"], rows: rows}
-    # TODO: re-enable this assert once lcf users are generated again.
-    #assert Enum.sort_by(rows, &(&1[:row])) == [%{row: [180], occurrences: 20}, %{row: [:*], occurrences: 20}]
+    assert Enum.sort_by(rows, &(&1[:row])) == [%{row: [180], occurrences: 20}, %{row: [:*], occurrences: 20}]
   end
 
   test "should produce counts" do
@@ -298,8 +301,7 @@ defmodule Cloak.QueryTest do
 
     assert_query "select count(*), name from heights group by name order by name asc",
       %{columns: ["count(*)", "name"], rows: rows}
-    # TODO: re-enable this assert once lcf users are generated again.
-    #assert rows == [%{row: [10, "Charlie"], occurrences: 1}, %{row: [6, :*], occurrences: 1}]
+    assert rows == [%{row: [10, "Charlie"], occurrences: 1}, %{row: [6, :*], occurrences: 1}]
   end
 
   test "grouping and sorting by a grouped field" do

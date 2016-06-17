@@ -28,4 +28,9 @@ defmodule Cloak.SqlQuery do
   def column_titles(%{columns: columns}) do
     Enum.map(columns, &Cloak.SqlQuery.Compiler.column_title/1)
   end
+
+  @doc "Returns the list of unique columns used in the aggregation process."
+  @spec aggregated_columns(t) :: [String.t]
+  def aggregated_columns(query),
+    do: (for {:function, _, column} <- query.aggregators, do: column) |> Enum.uniq()
 end

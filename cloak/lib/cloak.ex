@@ -7,13 +7,7 @@ defmodule Cloak do
   def start(_type, _args) do
     Cloak.DeployConfig.load()
 
-    case Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor) do
-      {:ok, pid} ->
-        # TODO: re-enable this once the metrics infrastructure works again
-        #:cloak_metrics_adapter.start_metrics_server()
-        {:ok, pid}
-      error -> error
-    end
+    Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor)
   end
 
   # Conditional definition of top-level processes, since we don't want to run
@@ -40,7 +34,6 @@ defmodule Cloak do
       import Supervisor.Spec, warn: false
 
       [
-        supervisor(:cloak_metrics_sup, []),
         worker(Cloak.AirSocket, [])
       ]
     end
