@@ -3,6 +3,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   alias Cloak.DataSource
   alias Cloak.SqlQuery.Parser
+  alias Timex, as: Time
 
   @type compiled_query :: %{
     data_source: atom,
@@ -32,6 +33,7 @@ defmodule Cloak.SqlQuery.Compiler do
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_order_by(query),
+         {:ok, query} <- cast_where_clauses(query),
          query = partition_selected_columns(query),
          query = partition_where_clauses(query),
       do: {:ok, query}
@@ -192,6 +194,34 @@ defmodule Cloak.SqlQuery.Compiler do
     %{query | where: positive, where_not: negative, unsafe_filter_columns: unsafe_filter_columns}
   end
   defp partition_where_clauses(query), do: query
+
+  defp cast_where_clauses(%{where: [_|_] = clauses} = query) do
+    clauses = clauses
+    |> Enum.map(fn(clause) ->
+      column = where_clause_to_identifier(clause)
+      type = columns(query.from, query.data_source)
+      |> Enum.into(%{})
+      |> Map.fetch!(column)
+
+      cast_where_clause(clause, type)
+    end)
+
+    {:ok, %{query | where: clauses}}
+  end
+  defp cast_where_clauses(query), do: {:ok, query}
+
+  defp cast_where_clause({:not, subclause}, type), do: {:not, cast_where_clause(subclause, type)}
+  defp cast_where_clause({:comparison, identifier, comparator, rhs}, :timestamp) do
+    {:comparison, identifier, comparator, parse_time(rhs.value.value)}
+  end
+  defp cast_where_clause(clause, _), do: clause
+
+  defp parse_time(string) do
+    case Time.parse(string, "{ISO}") do
+      {:ok, value} -> value
+      _ -> Time.parse!(string, "{ISOdate}")
+    end
+  end
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
   defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
