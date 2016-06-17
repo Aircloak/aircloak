@@ -101,17 +101,25 @@ defmodule Cloak.QueryTest do
       %{columns: ["avg(height)"], rows: [%{row: [180.0], occurrences: 1}]}
   end
 
-  test "should be able to select the same column multiple times" do
+  test "select the same column multiple times" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert_query "select height, height from heights",
       %{columns: ["height", "height"], rows: [%{row: [180, 180], occurrences: 100}]}
+  end
+
+  test "select the same aggregate multiple times" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert_query "select count(height), count(*), count(*), count(height) from heights",
       %{
         columns: ["count(height)", "count(*)", "count(*)", "count(height)"],
         rows: [%{row: [100, 100, 100, 100], occurrences: 1}]
       }
+  end
+
+  test "different aggregates on the same column" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert_query "select count(height), max(height) from heights",
       %{columns: ["count(height)", "max(height)"], rows: [%{row: [100, 180], occurrences: 1}]}
