@@ -13,7 +13,7 @@ defmodule Cloak.QueryTest do
   setup_all do
     :db_test.setup()
     :db_test.create_test_schema()
-    :db_test.create_table("heights", "height INTEGER, name TEXT")
+    :db_test.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
 
     :meck.new(:cloak_distributions)
     :meck.expect(:cloak_distributions, :gauss, fn(_sigma, n) -> round(n) end)
@@ -35,7 +35,7 @@ defmodule Cloak.QueryTest do
 
   test "show columns" do
     assert_query "show columns from heights", %{query_id: "1", columns: ["name", "type"], rows: rows}
-    assert Enum.sort(rows) == [["height", :integer], ["name", :text]]
+    assert Enum.sort(rows) == [["height", :integer], ["name", :text], ["time", :timestamp]]
   end
 
   test "simple select query" do
@@ -44,16 +44,22 @@ defmodule Cloak.QueryTest do
   end
 
   test "select all query" do
-    assert_query "select * from heights", %{query_id: "1", columns: ["height", "name"], rows: []}
+    assert_query "select * from heights", %{query_id: "1", columns: ["height", "name", "time"], rows: []}
   end
 
   test "select all and order query" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height"], ["john", 180])
+    time = %Postgrex.Timestamp{year: 2015, month: 1, day: 1}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "time"], ["john", 180, time])
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height"], ["adam", 180])
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
 
-    assert_query "select * from heights order by name", %{query_id: "1", columns: ["height", "name"], rows: rows}
-    assert Enum.map(rows, &(&1[:row])) == [[180, "adam"], [180, "john"], [180, "mike"]]
+    assert_query "select * from heights order by name",
+      %{query_id: "1", columns: ["height", "name", "time"], rows: rows}
+    assert Enum.map(rows, &(&1[:row])) == [
+      [180, "adam", nil],
+      [180, "john", "2015-01-01 00:00:00"],
+      [180, "mike", nil]
+    ]
   end
 
   test "should return LCF property when sufficient rows are filtered" do
