@@ -72,7 +72,7 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  @aggregation_functions  ["count", "sum", "avg", "min", "max", "stddev", "median"]
+  @aggregation_functions ~w(count sum avg min max stddev median)
   defp aggregate_function?({:function, function, _}), do: Enum.member?(@aggregation_functions, function)
   defp aggregate_function?(_), do: false
 
