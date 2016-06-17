@@ -61,7 +61,7 @@ defmodule Cloak.Processor.Anonymizer do
 
   defp seed_rows(grouped_rows) do
     for {property, users_values_map} <- grouped_rows,
-      do: {property, Noise.random_seed_from_unique_users(Map.keys(users_values_map)), users_values_map}
+      do: {property, Noise.random_seed(users_values_map), users_values_map}
   end
 
   defp low_users_count?({_property, seed, users_values_map}),
@@ -73,7 +73,7 @@ defmodule Cloak.Processor.Anonymizer do
       fn ({_property, _seed, users_values_map}, accumulator) ->
         Map.merge(accumulator, users_values_map, fn (_user, values1, values2) -> values1 ++ values2 end)
       end)
-    lcf_seed = Noise.random_seed_from_unique_users(Map.keys(lcf_users_values_map))
+    lcf_seed = Noise.random_seed(lcf_users_values_map)
     lcf_property = List.duplicate(:*, length(query.property))
     lcf_row = {lcf_property, lcf_seed, lcf_users_values_map}
     case low_users_count?(lcf_row) do
