@@ -85,14 +85,12 @@ defmodule Cloak.SqlQuery.Compiler do
     {:ok, query}
   end
   defp compile_columns(%{command: :select, columns: :*, from: table_identifier, data_source: data_source} = query) do
-    table_id = String.to_existing_atom(table_identifier)
-    columns = for {name, _type} <- DataSource.columns(data_source, table_id), do: name
+    columns = for {name, _type} <- columns(table_identifier, data_source), do: name
     compile_columns(%{query | columns: columns})
   end
   defp compile_columns(%{command: :select, from: table_identifier, data_source: data_source} = query) do
-    table_id = String.to_existing_atom(table_identifier)
-    table_columns = DataSource.columns(data_source, table_id)
-    with :ok <- verify_column_names(query, table_columns),
+    with table_columns = columns(table_identifier, data_source),
+        :ok <- verify_column_names(query, table_columns),
         :ok <- verify_aggregated_columns(query),
         :ok <- verify_functions(query),
         :ok <- verify_function_parameters(query, table_columns),
@@ -200,4 +198,9 @@ defmodule Cloak.SqlQuery.Compiler do
   Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
     defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
   end)
+
+  defp columns(table, data_source) do
+    table_id = String.to_existing_atom(table)
+    DataSource.columns(data_source, table_id)
+  end
 end
