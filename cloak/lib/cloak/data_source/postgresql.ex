@@ -5,6 +5,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   """
 
   alias Cloak.SqlQuery.Builder
+  alias Timex.DateTime
 
   #-----------------------------------------------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -37,6 +38,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   @doc false
   def select(source_id, sql_query) do
     {query_string, params} = Builder.build(sql_query)
+    params = Enum.map(params, &convert_param/1)
     run_query(source_id, query_string, params, &row_mapper/1)
   end
 
@@ -72,6 +74,14 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("timetz"), do: :time
   defp parse_type("date"), do: :date
   defp parse_type(type), do: {:unsupported, type}
+
+  defp convert_param(%DateTime{} = time) do
+    %Postgrex.Timestamp{
+      year: time.year, month: time.month, day: time.day, hour: time.hour, min: time.minute, sec: time.second,
+      usec: time.millisecond
+    }
+  end
+  defp convert_param(param), do: param
 
 
   # -------------------------------------------------------------------

@@ -143,6 +143,16 @@ defmodule Cloak.QueryTest do
       %{query_id: "1", columns: ["count(*)"], rows: [%{row: [20], occurrences: 1}]}
   end
 
+  test "comparing a timestamp" do
+    early = %Postgrex.Timestamp{year: 2015}
+    late = %Postgrex.Timestamp{year: 2017}
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["time"], [early])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["time"], [late])
+
+    assert_query "select count(*) from heights where time > '2016-01-01'",
+      %{query_id: "1", columns: ["count(*)"], rows: [%{row: [10], occurrences: 1}]}
+  end
+
   test "should allow LIKE in where clause" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "bob"])
 
