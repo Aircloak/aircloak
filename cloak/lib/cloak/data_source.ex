@@ -35,6 +35,16 @@ defmodule Cloak.DataSource do
   """
 
   # define returned data types and values
+  @type t :: %{
+    driver: module,
+    parameters: %{},
+    tables: %{atom => table}
+  }
+  @type table :: %{
+    name: String.t,
+    user_id: String.t,
+    ignore_unsupported_types: boolean
+  }
   @type num_rows :: non_neg_integer
   @type column :: String.t
   @type field :: String.t | integer | number | boolean | nil
@@ -54,10 +64,11 @@ defmodule Cloak.DataSource do
     @callback child_spec(atom, Keyword.t) :: Supervisor.Spec.spec
 
     @doc "Retrieves the existing columns for the specified table name and data source id."
-    @callback get_columns(atom, String.t) :: [{String.t, DataSource.data_type}]
+    @callback get_columns(Cloak.DataSource.t, String.t) :: [{String.t, DataSource.data_type}]
 
     @doc "Database specific implementation for the `DataSource.select` functionality."
-    @callback select(atom, Cloak.SqlQuery.t) :: {:ok, Cloak.DataSource.query_result} | {:error, any}
+    @callback select(Cloak.DataSource.t, Cloak.SqlQuery.t) ::
+      {:ok, Cloak.DataSource.query_result} | {:error, any}
   end
 
 
@@ -82,10 +93,10 @@ defmodule Cloak.DataSource do
   def init(:ok) do
     data_sources = Application.get_env(:cloak, :data_sources)
     # get the Supervisor spec for all defined data sources
-    children = for {source_id, data_source} <- data_sources do
+    children = for {_, data_source} <- data_sources do
       driver = data_source[:driver]
       parameters = data_source[:parameters]
-      driver.child_spec(source_id, Enum.to_list(parameters))
+      driver.child_spec(data_source.id, Enum.to_list(parameters))
     end
     supervise(children, strategy: :one_for_one)
   end
@@ -96,47 +107,54 @@ defmodule Cloak.DataSource do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc "Returns the list of defined data sources."
-  @spec all() :: [atom]
+  @spec all() :: [t]
   def all() do
-    data_sources = Application.get_env(:cloak, :data_sources)
-    Map.keys(data_sources)
+    Map.values(Application.get_env(:cloak, :data_sources))
   end
 
   @doc "Returns the list of defined tables for a specific data source."
-  @spec tables(atom) :: [atom]
-  def tables(source_id) do
-    data_sources = Application.get_env(:cloak, :data_sources)
-    Map.keys(data_sources[source_id][:tables])
+  @spec tables(t) :: [table]
+  def tables(data_source) do
+    Map.keys(data_source.tables)
   end
 
   @doc "Returns the list of columns for a specific table."
-  @spec columns(atom, atom) :: [{String.t, data_type}]
-  def columns(source_id, table_id) do
-    data_sources = Application.get_env(:cloak, :data_sources)
-    data_sources[source_id][:tables][table_id][:columns]
+  @spec columns(t, atom) :: [{String.t, data_type}]
+  def columns(data_source, table_id) do
+    Map.fetch!(data_source.tables, table_id).columns
   end
 
   @doc """
   Execute a `select` query over the specified data source.
   Returns {RowCount, Columns, Rows}.
   """
-  @spec select(atom, Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
-  def select(source_id, %{from: {:subquery, _}} = select_query) do
-    data_sources = Application.get_env(:cloak, :data_sources)
-    data_source = data_sources[source_id]
-    driver = data_source[:driver]
-    driver.select(source_id, select_query)
+  @spec select(t, Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
+  def select(data_source, %{from: {:subquery, _}} = select_query) do
+    driver = data_source.driver
+    driver.select(data_source.id, select_query)
   end
-  def select(source_id, %{columns: fields, from: table_identifier} = select_query) do
-    data_sources = Application.get_env(:cloak, :data_sources)
-    data_source = data_sources[source_id]
-    driver = data_source[:driver]
+  def select(data_source, %{columns: fields, from: table_identifier} = select_query) do
+    driver = data_source.driver
     table_id = String.to_existing_atom(table_identifier)
     table = data_source[:tables][table_id]
     user_id = Map.fetch!(table, :user_id)
     table_name = Map.fetch!(table, :name)
     # insert the user_id column into the fields list, translate the table name and execute the `select` query
-    driver.select(source_id, %{select_query | columns: [user_id | fields], from: table_name})
+    driver.select(data_source.id, %{select_query | columns: [user_id | fields], from: table_name})
+  end
+
+  @doc "Returns the datasource for the given id, raises if it's not found."
+  @spec fetch!(atom) :: t
+  def fetch!(data_source_id) do
+    {:ok, data_source} = fetch(data_source_id)
+    data_source
+  end
+
+  @doc "Returns the datasource with the given id, or `:error` if it's not found."
+  @spec fetch(atom) :: {:ok, t} | :error
+  def fetch(data_source_id) do
+    Application.get_env(:cloak, :data_sources)
+    |> Map.fetch(data_source_id)
   end
 
 
@@ -147,24 +165,26 @@ defmodule Cloak.DataSource do
   # load the columns list for all defined tables in all data sources
   defp load_columns() do
     data_sources = Application.get_env(:cloak, :data_sources)
-    data_sources = for {id, data_source} <- data_sources, into: %{}, do: {id, load_columns(id, data_source)}
+    data_sources = for {id, data_source} <- data_sources, into: %{} do
+      {id, load_data_source_columns(data_source)}
+    end
     Application.put_env(:cloak, :data_sources, data_sources)
   end
 
-  defp load_columns(source_id, data_source) do
-    tables = for {table_id, table} <- data_source[:tables], into: %{} do
-      columns = load_columns(source_id, data_source, table)
+  defp load_data_source_columns(data_source) do
+    tables = for {table_id, table} <- data_source.tables, into: %{} do
+      columns = load_table_columns(data_source, table)
       # verify the format of the columns list
-      columns != [] or raise("Could not load columns for table '#{source_id}/#{table_id}'!")
+      columns != [] or raise("Could not load columns for table '#{data_source.id}/#{table_id}'!")
       # extract user_id column and verify that it has the expected format
       user_id = table[:user_id]
       columns = case List.keytake(columns, user_id, 0) do
         {{^user_id, :integer}, data_columns} -> data_columns
         {{^user_id, :text}, data_columns} -> data_columns
-        _ -> raise("Invalid user id column specified for table '#{source_id}/#{table_id}'!")
+        _ -> raise("Invalid user id column specified for table '#{data_source.id}/#{table_id}'!")
       end
       # check that we still have columns left in the list
-      columns != [] or raise("No data columns found in table '#{source_id}/#{table_id}'!")
+      columns != [] or raise("No data columns found in table '#{data_source.id}/#{table_id}'!")
       # save the columns list into the table specification
       {table_id, Map.put(table, :columns, columns)}
     end
@@ -172,24 +192,24 @@ defmodule Cloak.DataSource do
     Map.put(data_source, :tables, tables)
   end
 
-  defp load_columns(source_id, data_source, table) do
-    columns = data_source[:driver].get_columns(source_id, table[:name])
+  defp load_table_columns(data_source, table) do
+    columns = data_source.driver.get_columns(data_source.id, table.name)
     {supported, unsupported} = Enum.partition(columns, &supported?/1)
 
-    validate_unsupported_columns(unsupported, source_id, table)
+    validate_unsupported_columns(unsupported, data_source, table)
     supported
   end
 
   defp supported?({_name, {:unsupported, _db_type}}), do: false
   defp supported?({_name, _type}), do: true
 
-  defp validate_unsupported_columns(unsupported, source_id, table) do
+  defp validate_unsupported_columns(unsupported, data_source, table) do
     cond do
       table[:ignore_unsupported_types] -> nil
       Enum.empty?(unsupported) -> nil
       true ->
         raise """
-          The following columns in "#{source_id}/#{table[:name]}" have unsupported types:
+          The following columns in "#{data_source.id}/#{table[:name]}" have unsupported types:
           #{inspect(unsupported)}
           To ignore them set "ignore_unsupported_types: true" in your table settings
         """
@@ -208,7 +228,7 @@ defmodule Cloak.DataSource do
       table = %{name: table_name, user_id: user_id}
       tables = Map.put(source[:tables], table_id, table)
       source = Map.put(source, :tables, tables)
-      source = load_columns(:local, source)
+      source = load_data_source_columns(source)
       Application.put_env(:cloak, :data_sources, %{local: source})
     end
 

@@ -14,12 +14,12 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "schema discovery" do
-    assert(Cloak.DataSource.tables(:local) == [:test])
-    assert(Cloak.DataSource.columns(:local, :test) == [{"value", :integer}])
+    assert(Cloak.DataSource.tables(local_data_source()) == [:test])
+    assert(Cloak.DataSource.columns(local_data_source(), :test) == [{"value", :integer}])
   end
 
   test "data retrieval" do
-    data = Cloak.DataSource.select(:local, %{
+    data = Cloak.DataSource.select(local_data_source(), %{
       command: :select,
       columns: ["value"],
       unsafe_filter_columns: [],
@@ -31,5 +31,9 @@ defmodule Cloak.DataSourceTest do
       ["user_id", "value"],
       [["user-id", 10], ["user-id", 20], ["user-id", 30]]
     }})
+  end
+
+  defp local_data_source() do
+    Cloak.DataSource.fetch!(:local)
   end
 end

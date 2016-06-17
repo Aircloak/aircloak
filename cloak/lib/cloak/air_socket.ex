@@ -177,11 +177,17 @@ defmodule Cloak.AirSocket do
 
   defp handle_air_call("run_query", serialized_query, from, state) do
     %{"id" => id, "statement" => statement, "data_source" => data_source} = serialized_query
-    query = %Query{id: id, statement: statement, data_source: String.to_existing_atom(data_source)}
-    Logger.info("starting query #{query.id}")
-    Cloak.Query.start(query)
+    case Cloak.DataSource.fetch(String.to_existing_atom(data_source)) do
+      :error ->
+        respond_to_air(from, :error, "unknown data source")
 
-    respond_to_air(from, :ok)
+      {:ok, data_source} ->
+        query = %Query{id: id, statement: statement, data_source: data_source}
+        Logger.info("starting query #{query.id}")
+        Cloak.Query.start(query)
+
+        respond_to_air(from, :ok)
+    end
     {:ok, state}
   end
 
@@ -234,14 +240,14 @@ defmodule Cloak.AirSocket do
   end
 
   defp get_join_info(cloak_name) do
-    data_sources = for data_source <- Cloak.DataSource.all do
+    data_sources = for data_source <- Cloak.DataSource.all() do
       tables = for table <- Cloak.DataSource.tables(data_source) do
         columns = for {name, type} <- Cloak.DataSource.columns(data_source, table) do
           %{name: name, type: type}
         end
         %{id: table, columns: columns}
       end
-      %{id: data_source, tables: tables}
+      %{id: data_source.id, tables: tables}
     end
     %{name: cloak_name, data_sources: data_sources}
   end
