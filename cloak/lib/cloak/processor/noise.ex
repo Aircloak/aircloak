@@ -25,20 +25,17 @@ defmodule Cloak.Processor.Noise do
   end
 
   @doc """
-  Builds a random seed from the given list of users - it's obtained by hashing and will be constant
-  for lists containing unique users.
+  Builds a random seed from the given set or map of unique users.
+
+  This function takes either a `MapSet` containing user ids, or a map where
+  keys are user ids. Such types ensure that user ids are deduplicated.
   """
-  @spec random_seed_from_unique_users([UserId.t]) :: seed
-  def random_seed_from_unique_users(users) do
-    users
-    |> Enum.reduce(compute_hash(""), fn (user, accumulator) ->
-      user
-      |> to_string()
-      |> compute_hash()
-      # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
-      |> :crypto.exor(accumulator)
-    end)
-    |> binary_to_seed()
+  @spec random_seed(MapSet.t | %{String.t => any}) :: seed
+  def random_seed(%MapSet{} = users) do
+    random_seed_from_unique_users(users)
+  end
+  def random_seed(%{} = users_map) do
+    random_seed_from_unique_users(Map.keys(users_map))
   end
 
 
@@ -48,6 +45,18 @@ defmodule Cloak.Processor.Noise do
 
   defp noisy_count(count, random_seed) do
     :cloak_distributions.gauss_s(sigma_soft_lower_bound(), count, random_seed)
+  end
+
+  defp random_seed_from_unique_users(users) do
+    users
+    |> Enum.reduce(compute_hash(""), fn (user, accumulator) ->
+      user
+      |> to_string()
+      |> compute_hash()
+      # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
+      |> :crypto.exor(accumulator)
+    end)
+    |> binary_to_seed()
   end
 
   defp compute_hash(binary), do: :crypto.hash(:md4, binary)
