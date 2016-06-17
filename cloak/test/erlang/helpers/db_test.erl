@@ -8,8 +8,6 @@
 %%      setup the state of the database.
 -module(db_test).
 
--include("cloak.hrl").
-
 %% API functions
 -export([
   setup/0,
@@ -65,6 +63,21 @@ drop_table(TableName) ->
 clear_table(TableName) ->
   'Elixir.Cloak.DataSource.PostgreSQL':execute(<<"TRUNCATE TABLE ", (sanitized_table(TableName))/binary>>, []).
 
+%% @doc Sanitizes the database object (table, column) name by surrounding each qualifier in double quotes
+%%      and replacing all inner " with "". Returns a binary.
+-spec sanitize_db_object(iodata()) -> binary().
+sanitize_db_object(DbObject) ->
+  SanitizedParts = [
+    ("\"" ++ re:replace(Part, "\"", "\"\"", [global, {return, list}]) ++ "\"") ||
+      Part <- re:split(DbObject, "\\.", [{return, list}])
+  ],
+  list_to_binary(string:join(SanitizedParts, ".")).
+
+%% @doc Generates binary representation of a query parameter with the given index.
+-spec param_placeholder(pos_integer()) -> binary().
+param_placeholder(Index) ->
+  << <<"$">>/binary, (integer_to_binary(Index))/binary >>.
+
 
 %% -------------------------------------------------------------------
 %% Internal functions
@@ -78,7 +91,7 @@ full_table_name(TableName) when is_binary(TableName) ->
 
 insert_rows(UserId, TableName, TableData) ->
   FullTableName = sanitized_table(TableName),
-  Columns = lists:map(fun sql_util:sanitize_db_object/1,
+  Columns = lists:map(fun sanitize_db_object/1,
     [<<"user_id">>] ++ proplists:get_value(columns, TableData)),
   Rows = lists:map(
     fun(Row) -> [UserId | Row] end,
@@ -86,15 +99,15 @@ insert_rows(UserId, TableName, TableData) ->
   ),
   {PlaceHolders, _} = lists:foldr(
     fun(_Column, {PlaceholdersAcc, Index}) ->
-      {[sql_util:param_placeholder(Index) | PlaceholdersAcc], Index - 1}
+      {[param_placeholder(Index) | PlaceholdersAcc], Index - 1}
     end,
     {[], length(Columns)},
     Columns
   ),
   Query = iolist_to_binary([
     <<"INSERT INTO ">>, FullTableName,
-    $(, cloak_util:join(Columns, $,), $), $\s,
-    <<"VALUES(">>, cloak_util:join(PlaceHolders, $,), $)
+    $(, join(Columns, $,), $), $\s,
+    <<"VALUES(">>, join(PlaceHolders, $,), $)
   ]),
   [{ok, _} = 'Elixir.Cloak.DataSource.PostgreSQL':execute(Query, Row) || Row <- Rows],
   ok.
@@ -104,4 +117,11 @@ clean_db() ->
   'Elixir.Cloak.DataSource':clear_test_tables().
 
 sanitized_table(TableName) ->
-  sql_util:sanitize_db_object(<<"cloak_test.", TableName/binary>>).
+  sanitize_db_object(<<"cloak_test.", TableName/binary>>).
+
+  %% Joins a list by concatenating each individual element with a separator.
+  %% It returns the new list as an iolist without any flattening.
+  join([], _Separator) -> [];
+  join([LastItem], _Separator) -> LastItem;
+  join([Item | Rest], Separator) ->
+    [Item, Separator, join(Rest, Separator)].

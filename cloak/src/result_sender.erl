@@ -22,7 +22,7 @@
   code_change/4
 ]).
 
--include("cloak.hrl").
+-include_lib("aircloak_common/include/elixir_logger.hrl").
 
 -record(state, {
   query_id :: query_id(),
@@ -31,7 +31,8 @@
   reply = undefined :: #{} | undefined
 }).
 
--type result() :: {error, binary()} | {buckets, [binary()], [#bucket{}]}.
+-type query_id() :: binary().
+-type result() :: {error, binary()} | {buckets, [binary()], [#{}]}.
 -type result_destination() :: {url, binary()} | {process, pid()} | air_socket.
 
 -export_type([

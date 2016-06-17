@@ -98,15 +98,12 @@ defmodule Cloak.Query do
   # -------------------------------------------------------------------
 
   defp log_success(state) do
-    :cloak_metrics.count("query.success")
     query_execution_time = :erlang.monotonic_time(:milli_seconds) - state.start_time
-    :cloak_metrics.histogram("query.total", query_execution_time)
     Logger.info("Query #{state.query_id} executed in #{query_execution_time} ms")
   end
 
   defp report_error(state, reason) do
     :result_sender.send_result(state.query_id, state.result_target, {:error, format_error_reason(reason)})
-    :cloak_metrics.count("query.error")
   end
 
   defp format_error_reason(text) when is_binary(text), do: text
