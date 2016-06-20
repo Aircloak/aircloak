@@ -91,13 +91,13 @@ defmodule Cloak.QueryTest do
       %{columns: ["count(height)"], rows: [%{row: [30], occurrences: 1}]}
 
     assert_query "select sum(height) from heights",
-      %{columns: ["sum(height)"], rows: [%{row: [5400], occurrences: 1}]}
+      %{columns: ["sum(height)"], rows: [%{row: [5400.0], occurrences: 1}]}
 
     assert_query "select min(height) from heights",
-      %{columns: ["min(height)"], rows: [%{row: [170], occurrences: 1}]}
+      %{columns: ["min(height)"], rows: [%{row: [170.0], occurrences: 1}]}
 
     assert_query "select max(height) from heights",
-      %{columns: ["max(height)"], rows: [%{row: [190], occurrences: 1}]}
+      %{columns: ["max(height)"], rows: [%{row: [190.0], occurrences: 1}]}
 
     assert_query "select avg(height) from heights",
       %{columns: ["avg(height)"], rows: [%{row: [180.0], occurrences: 1}]}
@@ -116,7 +116,7 @@ defmodule Cloak.QueryTest do
       }
 
     assert_query "select count(height), max(height) from heights",
-      %{columns: ["count(height)", "max(height)"], rows: [%{row: [100, 180], occurrences: 1}]}
+      %{columns: ["count(height)", "max(height)"], rows: [%{row: [100, 180.0], occurrences: 1}]}
   end
 
   test "should allow ranges for where clause" do
@@ -185,8 +185,8 @@ defmodule Cloak.QueryTest do
   end
 
   test "<> conditions count unique users" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["name"], ["Alice"])
-    1..10 |> Enum.each(fn _ -> :ok = insert_rows(_user_ids = 10..10, "heights", ["name"], ["Bob"]) end)
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["name"], ["Alice"])
+    1..10 |> Enum.each(fn _ -> :ok = insert_rows(_user_ids = [10], "heights", ["name"], ["Bob"]) end)
 
     assert_query "select count(*) from heights where name <> 'Bob'",
       %{query_id: "1", columns: ["count(*)"], rows: [%{row: [20], occurrences: 1}]}

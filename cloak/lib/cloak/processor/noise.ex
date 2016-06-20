@@ -38,6 +38,10 @@ defmodule Cloak.Processor.Noise do
     random_seed_from_unique_users(Map.keys(users_map))
   end
 
+  @doc "Returns the noise configuration values with the specified name."
+  @spec config(atom) :: integer
+  def config(name), do: :cloak_conf.get_val(:noise, name)
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -66,11 +70,9 @@ defmodule Cloak.Processor.Noise do
     {a, b, c}
   end
 
-  defp absolute_lower_bound, do: noise_config(:absolute_lower_bound)
+  defp absolute_lower_bound, do: config(:absolute_lower_bound)
 
-  defp soft_lower_bound, do: noise_config(:soft_lower_bound)
+  defp soft_lower_bound, do: config(:soft_lower_bound)
 
-  defp sigma_soft_lower_bound, do: noise_config(:sigma_soft_lower_bound)
-
-  defp noise_config(name), do: :cloak_conf.get_val(:noise, name)
+  defp sigma_soft_lower_bound, do: config(:sigma_soft_lower_bound)
 end
