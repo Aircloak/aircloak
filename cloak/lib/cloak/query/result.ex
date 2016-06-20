@@ -3,6 +3,7 @@ defmodule Cloak.Query.Result do
 
   import Cloak.Type
   alias Cloak.SqlQuery
+  alias Timex.DateTime
 
 
   # -------------------------------------------------------------------
@@ -45,6 +46,11 @@ defmodule Cloak.Query.Result do
   end
   def order_rows(rows, _), do: rows
 
+  @doc "Serializes fields that need it to be transported."
+  @spec serialize([Row.t]) :: [Row.t]
+  def serialize(rows) do
+    Enum.map(rows, &serialize_row/1)
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -88,4 +94,11 @@ defmodule Cloak.Query.Result do
   defp compare_fields(_, nil, :desc), do: false
   defp compare_fields(field1, field2, :asc), do: field1 < field2
   defp compare_fields(field1, field2, :desc), do: field1 > field2
+
+  defp serialize_row(row = %{row: fields}) do
+    %{row | row: Enum.map(fields, &serialize_field/1)}
+  end
+
+  defp serialize_field(field = %DateTime{}), do: Timex.format!(field, "{ISOz}")
+  defp serialize_field(field), do: field
 end

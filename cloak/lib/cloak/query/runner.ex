@@ -49,6 +49,7 @@ defmodule Cloak.Query.Runner do
       |> Anonymizer.aggregate(select_query)
       |> Result.map_buckets(select_query)
       |> Result.order_rows(select_query)
+      |> Result.serialize()
 
       {:ok, {:buckets, Cloak.SqlQuery.column_titles(select_query), buckets}}
     end
