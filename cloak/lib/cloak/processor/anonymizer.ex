@@ -136,9 +136,8 @@ defmodule Cloak.Processor.Anonymizer do
     aggregated_values = for {:function, function, column} <- aggregators,
       column_index = Enum.find_index(aggregated_columns, &(&1 === column))
     do
-      input_values = for user_values <- property_values,
-        values = extract_user_values(user_values, column_index),
-        values !== [], do: values
+      input_values = for user_values <- property_values, do: extract_user_values(user_values, column_index)
+      input_values = for values <- input_values, values !== [], do: values # drop users with no valid values
       case low_users_count?(length(input_values), seed) do
         true -> nil
         false -> aggregate_values(function, seed, input_values)
