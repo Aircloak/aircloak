@@ -3,6 +3,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   alias Cloak.DataSource
   alias Cloak.SqlQuery.Parser
+  alias Cloak.SqlQuery.Parsers.Token
   alias Timex, as: Time
 
   @type compiled_query :: %{
@@ -212,11 +213,14 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp cast_where_clause({:not, subclause}, type), do: {:not, cast_where_clause(subclause, type)}
   defp cast_where_clause({:comparison, identifier, comparator, rhs}, :timestamp) do
-    {:comparison, identifier, comparator, parse_time(rhs.value.value)}
+    {:comparison, identifier, comparator, parse_time(rhs)}
+  end
+  defp cast_where_clause({:in, column, values}, :timestamp) do
+    {:in, column, Enum.map(values, &parse_time/1)}
   end
   defp cast_where_clause(clause, _), do: clause
 
-  defp parse_time(string) do
+  defp parse_time(%Token{category: :constant, value: %{type: :string, value: string}}) do
     case Time.parse(string, "{ISO}") do
       {:ok, value} -> value
       _ -> Time.parse!(string, "{ISOdate}")
