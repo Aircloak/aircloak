@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   """
 
   alias Cloak.SqlQuery.Builder
-  alias Timex.DateTime
+  alias Timex.{DateTime, Timezone}
 
   #-----------------------------------------------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -91,31 +91,17 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp row_mapper(row), do: for field <- row, do: field_mapper(field)
 
   defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
-      hour: hour, min: min, sec: sec, usec: 0}) do
-    :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [year, month, day, hour, min, sec])
-    |> to_string()
-  end
-  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
       hour: hour, min: min, sec: sec, usec: usec}) do
-    :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B.~6..0B", [year, month, day, hour, min, sec, usec])
-    |> to_string()
+    %DateTime{
+      year: year, month: month, day: day, hour: hour, minute: min, second: sec, millisecond: usec,
+      timezone: Timezone.get(:utc)
+    }
   end
   defp field_mapper(%Postgrex.Date{year: year, month: month, day: day}) do
-    :io_lib.format("~4..0B-~2..0B-~2..0B", [year, month, day])
-    |> to_string()
-  end
-  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
-      hour: hour, min: min, sec: sec, usec: 0}) do
-    :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [year, month, day, hour, min, sec])
-    |> to_string()
-  end
-  defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec, usec: 0}) do
-    :io_lib.format("~2..0B:~2..0B:~2..0B", [hour, min, sec])
-    |> to_string()
+    %DateTime{year: year, month: month, day: day, timezone: Timezone.get(:utc)}
   end
   defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec, usec: usec}) do
-    :io_lib.format("~2..0B:~2..0B:~2..0B.~6..0B", [hour, min, sec, usec])
-    |> to_string()
+    %DateTime{hour: hour, minute: min, second: sec, millisecond: usec, timezone: Timezone.get(:utc)}
   end
   defp field_mapper(field), do: field
 

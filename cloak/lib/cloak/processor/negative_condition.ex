@@ -48,6 +48,10 @@ defmodule Cloak.Processor.NegativeCondition do
     index = index_with_user_id(column, columns)
     fn(row) -> Enum.at(row, index) == value end
   end
+  defp filter({:comparison, column, :=, value}, columns) do
+    index = index_with_user_id(column, columns)
+    fn(row) -> Enum.at(row, index) == value end
+  end
   defp filter({:like, column, %Token{value: %{type: :string, value: pattern}}}, columns) do
     index = index_with_user_id(column, columns)
     regex = to_regex(pattern)

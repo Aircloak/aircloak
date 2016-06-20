@@ -2,6 +2,7 @@ defmodule Cloak.QueryTest do
   use ExUnit.Case, async: false
 
   alias Cloak.Query
+  alias Timex.{DateTime, Timezone}
 
   defmacrop assert_query(query, expected_response) do
     quote do
@@ -61,7 +62,7 @@ defmodule Cloak.QueryTest do
       %{query_id: "1", columns: ["height", "name", "time"], rows: rows}
     assert Enum.map(rows, &(&1[:row])) == [
       [180, "adam", nil],
-      [180, "john", "2015-01-01 00:00:00"],
+      [180, "john", %DateTime{year: 2015, month: 1, day: 1, timezone: Timezone.get(:utc)}],
       [180, "mike", nil]
     ]
   end
@@ -150,6 +151,16 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 10..19, "heights", ["time"], [late])
 
     assert_query "select count(*) from heights where time > '2016-01-01'",
+      %{query_id: "1", columns: ["count(*)"], rows: [%{row: [10], occurrences: 1}]}
+  end
+
+  test "comparing a timestamp with <>" do
+    early = %Postgrex.Timestamp{year: 2015, month: 1, day: 1}
+    late = %Postgrex.Timestamp{year: 2017, month: 1, day: 1}
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["time"], [early])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["time"], [late])
+
+    assert_query "select count(*) from heights where time <> '2015-01-01'",
       %{query_id: "1", columns: ["count(*)"], rows: [%{row: [10], occurrences: 1}]}
   end
 
