@@ -236,7 +236,10 @@ defmodule Cloak.SqlQuery.Compiler do
   defp parse_time(%Token{category: :constant, value: %{type: :string, value: string}}) do
     case Time.parse(string, "{ISO}") do
       {:ok, value} -> {:ok, value}
-      _ -> Time.parse(string, "{ISOdate}")
+      _ -> case Time.parse(string, "{ISOdate}") do
+        {:ok, value} -> {:ok, value}
+        _ -> {:error, "Cannot cast `#{string}` to timestamp."}
+      end
     end
   end
   defp parse_time(%Token{value: %{value: value}}), do: {:error, "Cannot cast `#{value}` to timestamp."}
