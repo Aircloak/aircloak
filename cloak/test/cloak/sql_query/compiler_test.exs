@@ -30,7 +30,12 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     ]
   end
 
-  test "casts timestamp in negated conditions"
+  test "casts timestamp in negated conditions", %{data_source: data_source} do
+    result = compile("select * from table where column <> '2015-01-01'", data_source)
+
+    assert result[:where_not] ==
+      [{:comparison, "column", :=, %DateTime{year: 2015, month: 1, day: 1, timezone: Timezone.get(:utc)}}]
+  end
 
   defp compile(query_string, data_source) do
     query = Parser.parse!(query_string)
