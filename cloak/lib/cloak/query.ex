@@ -16,7 +16,7 @@ defmodule Cloak.Query do
   @type t :: %__MODULE__{
     id: String.t,
     statement: String.t,
-    data_source: atom,
+    data_source: Cloak.DataSource.t,
   }
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)

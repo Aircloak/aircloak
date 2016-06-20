@@ -66,7 +66,7 @@ defmodule Cloak.DeployConfig do
         other -> raise("Unknown driver `#{other}` for data source `#{data_source}`")
       end
 
-      {data_source, Map.put(params, :driver, driver_module)}
+      {data_source, Map.merge(params, %{driver: driver_module, id: data_source})}
     end)
   end
 
