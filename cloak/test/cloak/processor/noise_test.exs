@@ -6,7 +6,7 @@ defmodule Cloak.Processor.Noise.Test do
 
   property "the random seed is the same for reordered lists" do
     for_all x in list(int) do
-      Noise.random_seed(MapSet.new(x)) == Noise.random_seed(MapSet.new(Enum.shuffle(x)))
+      Noise.make_seed(MapSet.new(x)) == Noise.make_seed(MapSet.new(Enum.shuffle(x)))
     end
   end
 end

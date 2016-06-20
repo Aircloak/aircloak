@@ -37,53 +37,61 @@ defmodule Cloak.Processor.Anonymizer do
   end
 
   # Computes the anonymized sum of a collection of values.
-  defp anonymized_sum(seed, values) do
+  defp anonymized_sum(values, seed) do
     values = Enum.sort(values)
+
+    Noise.set_seed(seed)
 
     outlier_count = Noise.config(:dropped_outliers_count)
     values = drop_outliers(values, outlier_count)
 
     margin_count_mean = Noise.config(:margin_count_mean)
     margin_count_sigma = Noise.config(:margin_count_sigma)
-    margin_count = round(:cloak_distributions.gauss_s(margin_count_sigma, margin_count_mean, seed))
+    margin_count = Noise.get(margin_count_sigma, margin_count_mean) |> round()
     top_average = margin_average(values, margin_count)
     bottom_average = margin_average(values, -margin_count)
 
     sum_noise_sigma = Noise.config(:sum_noise_sigma)
-    noise = :cloak_distributions.gauss_s(sum_noise_sigma, outlier_count, seed)
+    noise = Noise.get(sum_noise_sigma, outlier_count)
 
     noise * (top_average + bottom_average) + Enum.sum(values)
   end
 
   # Computes the anonymized average for one of the ends of a collection of values.
-  defp anonymized_margin(seed, values, margin_sign) do
+  defp anonymized_margin(values, seed, margin_sign) do
     values = Enum.sort(values)
+
+    Noise.set_seed(seed)
 
     outlier_count = Noise.config(:dropped_outliers_count)
     values = drop_outliers(values, outlier_count)
 
     margin_count_mean = Noise.config(:margin_count_mean)
     margin_count_sigma = Noise.config(:margin_count_sigma)
-    margin_count = round(:cloak_distributions.gauss_s(margin_count_sigma, margin_count_mean, seed))
+    margin_count = Noise.get(margin_count_sigma, margin_count_mean) |> round()
 
     margin_average(values, margin_sign * margin_count)
   end
 
   defp aggregate_values("count", seed, property_values) do
-    counts = for user_values <- property_values, do: length(user_values)
-    anonymized_sum(seed, counts) |> round()
+    (for user_values <- property_values, do: length(user_values))
+    |> anonymized_sum(seed)
+    |> round()
   end
   defp aggregate_values("sum", seed, property_values) do
-    sums = for user_values <- property_values, do: Enum.sum(user_values)
-    anonymized_sum(seed, sums) |> Float.round(3)
+    (for user_values <- property_values, do: Enum.sum(user_values))
+    |> anonymized_sum(seed)
+    |> Float.round(3)
   end
   defp aggregate_values("min", seed, property_values) do
-    mins = for user_values <- property_values, do: Enum.min(user_values)
-    anonymized_margin(seed, mins, 1) |> Float.round(3)
+    (for user_values <- property_values, do: Enum.min(user_values))
+    |> anonymized_margin(seed, 1)
+    |> Float.round(3)
   end
   defp aggregate_values("max", seed, property_values) do
-    maxs = for user_values <- property_values, do: Enum.max(user_values)
-    anonymized_margin(seed, maxs, -1) |> Float.round(3)
+    (for user_values <- property_values, do: Enum.max(user_values))
+    |> anonymized_margin(seed, -1)
+    |> Float.round(3)
   end
   defp aggregate_values("avg", seed, values) do
     count = aggregate_values("count", seed, values)
@@ -96,13 +104,14 @@ defmodule Cloak.Processor.Anonymizer do
 
   defp seed_rows(grouped_rows) do
     for {property, users_values_map} <- grouped_rows,
-      do: {property, Noise.random_seed(users_values_map), users_values_map}
+      do: {property, Noise.make_seed(users_values_map), users_values_map}
   end
 
   defp low_users_count?({_property, seed, users_values_map}),
     do: low_users_count?(Enum.count(users_values_map), seed)
 
-  defp low_users_count?(count, seed), do: not Noise.passes_filter?(count, seed)
+  defp low_users_count?(count, seed),
+    do: not Noise.passes_filter?(count, seed)
 
   defp process_low_count_users(rows, query) do
     {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
@@ -110,7 +119,7 @@ defmodule Cloak.Processor.Anonymizer do
       fn ({_property, _seed, users_values_map}, accumulator) ->
         Map.merge(accumulator, users_values_map, fn (_user, values1, values2) -> values1 ++ values2 end)
       end)
-    lcf_seed = Noise.random_seed(lcf_users_values_map)
+    lcf_seed = Noise.make_seed(lcf_users_values_map)
     lcf_property = List.duplicate(:*, length(query.property))
     lcf_row = {lcf_property, lcf_seed, lcf_users_values_map}
     case low_users_count?(lcf_row) do

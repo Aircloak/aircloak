@@ -35,7 +35,7 @@ defmodule Cloak.Processor.NegativeCondition do
     seed = rows
       |> user_ids()
       |> Enum.into(MapSet.new())
-      |> Noise.random_seed()
+      |> Noise.make_seed()
 
     rows
     |> Enum.filter(filter(clause, columns))

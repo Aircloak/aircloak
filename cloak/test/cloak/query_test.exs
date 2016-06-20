@@ -2,6 +2,7 @@ defmodule Cloak.QueryTest do
   use ExUnit.Case, async: false
 
   alias Cloak.Query
+  alias Cloak.Processor.Noise
 
   defmacrop assert_query(query, expected_response) do
     quote do
@@ -15,9 +16,8 @@ defmodule Cloak.QueryTest do
     :db_test.create_test_schema()
     :db_test.create_table("heights", "height INTEGER, name TEXT")
 
-    :meck.new(:cloak_distributions)
-    :meck.expect(:cloak_distributions, :gauss, fn(_sigma, n) -> round(n) end)
-    :meck.expect(:cloak_distributions, :gauss_s, fn(_sigma, n, _seed) -> round(n) end)
+    :meck.new(Noise, [:passthrough])
+    :meck.expect(Noise, :get, fn(_sigma, n) -> round(n) end)
 
     on_exit(fn -> :meck.unload() end)
 
@@ -282,11 +282,12 @@ defmodule Cloak.QueryTest do
   test "ordering hidden values" do
     :ok = insert_rows(_user_ids = 0..2, "heights", ["name"], ["Alice"])
     :ok = insert_rows(_user_ids = 10..19, "heights", ["name"], ["Charlie"])
-    :ok = insert_rows(_user_ids = 3..5, "heights", ["name"], ["Bob"])
+    :ok = insert_rows(_user_ids = 3..6, "heights", ["name"], ["John"])
+    :ok = insert_rows(_user_ids = 7..9, "heights", ["name"], ["Bob"])
 
     assert_query "select count(*), name from heights group by name order by name asc",
       %{columns: ["count(*)", "name"], rows: rows}
-    assert rows == [%{row: [10, "Charlie"], occurrences: 1}, %{row: [6, :*], occurrences: 1}]
+    assert rows == [%{row: [10, "Charlie"], occurrences: 1}, %{row: [10, :*], occurrences: 1}]
   end
 
   test "grouping and sorting by a grouped field" do
