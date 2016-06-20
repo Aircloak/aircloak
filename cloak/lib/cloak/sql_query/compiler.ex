@@ -34,7 +34,7 @@ defmodule Cloak.SqlQuery.Compiler do
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_order_by(query),
-         {:ok, query} <- cast_where_clauses(query),
+         query = cast_where_clauses(query),
          query = partition_selected_columns(query),
          query = partition_where_clauses(query),
       do: {:ok, query}
@@ -207,7 +207,7 @@ defmodule Cloak.SqlQuery.Compiler do
       cast_where_clause(clause, type)
     end)
 
-    {:ok, %{query | where: clauses}}
+    %{query | where: clauses}
   end
   defp cast_where_clauses(query), do: {:ok, query}
 
