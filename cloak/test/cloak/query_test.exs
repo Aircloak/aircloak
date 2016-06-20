@@ -353,6 +353,11 @@ defmodule Cloak.QueryTest do
     assert ~s/Unknown function `invalid_function`./ == error
   end
 
+  test "reports an error on wrong cast" do
+    assert_query "select * from heights where time > 0", %{error: error}
+    assert ~s/Cannot cast `0` to timestamp./ == error
+  end
+
   test "query reports an error on runner crash" do
     ExUnit.CaptureLog.capture_log(fn ->
       assert_query :invalid_query_type, %{error: "Cloak error"}

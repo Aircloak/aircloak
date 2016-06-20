@@ -34,7 +34,7 @@ defmodule Cloak.SqlQuery.Compiler do
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_order_by(query),
-         query = cast_where_clauses(query),
+         {:ok, query} <- cast_where_clauses(query),
          query = partition_selected_columns(query),
          query = partition_where_clauses(query),
       do: {:ok, query}
@@ -197,9 +197,12 @@ defmodule Cloak.SqlQuery.Compiler do
   defp partition_where_clauses(query), do: query
 
   defp cast_where_clauses(%{where: [_|_] = clauses} = query) do
-    %{query | where: Enum.map(clauses, &cast_where_clause(&1, query))}
+    case error_map(clauses, &cast_where_clause(&1, query)) do
+      {:ok, result} -> {:ok, %{query | where: result}}
+      error -> error
+    end
   end
-  defp cast_where_clauses(query), do: query
+  defp cast_where_clauses(query), do: {:ok, query}
 
   defp cast_where_clause(clause, query) do
     column = where_clause_to_identifier(clause)
@@ -210,21 +213,33 @@ defmodule Cloak.SqlQuery.Compiler do
     do_cast_where_clause(clause, type)
   end
 
-  defp do_cast_where_clause({:not, subclause}, type), do: {:not, do_cast_where_clause(subclause, type)}
+  defp do_cast_where_clause({:not, subclause}, type) do
+    case do_cast_where_clause(subclause, type) do
+      {:ok, result} -> {:ok, {:not, result}}
+      error -> error
+    end
+  end
   defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, :timestamp) do
-    {:comparison, identifier, comparator, parse_time(rhs)}
+    case parse_time(rhs) do
+      {:ok, time} -> {:ok, {:comparison, identifier, comparator, time}}
+      error -> error
+    end
   end
   defp do_cast_where_clause({:in, column, values}, :timestamp) do
-    {:in, column, Enum.map(values, &parse_time/1)}
+    case error_map(values, &parse_time/1) do
+      {:ok, times} -> {:ok, {:in, column, times}}
+      error -> error
+    end
   end
-  defp do_cast_where_clause(clause, _), do: clause
+  defp do_cast_where_clause(clause, _), do: {:ok, clause}
 
   defp parse_time(%Token{category: :constant, value: %{type: :string, value: string}}) do
     case Time.parse(string, "{ISO}") do
-      {:ok, value} -> value
-      _ -> Time.parse!(string, "{ISOdate}")
+      {:ok, value} -> {:ok, value}
+      _ -> Time.parse(string, "{ISOdate}")
     end
   end
+  defp parse_time(%Token{value: %{value: value}}), do: {:error, "Cannot cast `#{value}` to timestamp."}
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
   defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
@@ -235,5 +250,14 @@ defmodule Cloak.SqlQuery.Compiler do
   defp columns(table, data_source) do
     table_id = String.to_existing_atom(table)
     DataSource.columns(data_source, table_id)
+  end
+
+  defp error_map(xs, fun) do
+    result = Enum.map(xs, fun)
+
+    case Enum.find(result, &match?({:error, _}, &1)) do
+      {:error, error} -> {:error, error}
+      _ -> {:ok, Enum.map(result, fn({:ok, x}) -> x end)}
+    end
   end
 end
