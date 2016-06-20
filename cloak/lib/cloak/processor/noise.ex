@@ -94,7 +94,7 @@ defmodule Cloak.Processor.Noise do
 
   # Generates a gaussian distributed random number from two
   # uniform distributed numbers by the Box-Muller method.
-  defp gauss(sigma, mu, rand1, rand2) when Rand1 > 0 do
+  defp gauss(sigma, mu, rand1, rand2) when rand1 > 0 do
     r1 = -2.0 * :math.log(rand1)
     r2 = 2.0 * :math.pi() * rand2
     preval = :math.sqrt(r1) * :math.cos(r2)
