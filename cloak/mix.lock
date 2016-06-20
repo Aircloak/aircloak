@@ -42,7 +42,7 @@
   "rebar_vsn_plugin": {:git, "https://github.com/erlware/rebar_vsn_plugin.git", "fd40c960c7912193631d948fe962e1162a8d1334", [tag: "master"]},
   "relx": {:hex, :relx, "3.18.0", "02a27d8250c7f5c7a19f3ec60e15311a877ae4a7b76f4588ec03525c7de1842d", [:rebar3], [{:providers, "1.6.0", [hex: :providers, optional: false]}, {:getopt, "0.8.2", [hex: :getopt, optional: false]}, {:erlware_commons, "0.19.0", [hex: :erlware_commons, optional: false]}, {:cf, "0.2.1", [hex: :cf, optional: false]}, {:bbmustache, "1.0.4", [hex: :bbmustache, optional: false]}]},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.0", "edee20847c42e379bf91261db474ffbe373f8acb56e9079acb6038d4e0bf414f", [:rebar, :make], []},
-  "timex": {:hex, :timex, "2.1.6", "2c59cd03074bccea47acd668c4dd6aad269879bcc9d6d4dd98fe0ffbaf48fcaa", [:mix], [{:gettext, "~> 0.10", [hex: :gettext, optional: false]}, {:combine, "~> 0.7", [hex: :combine, optional: false]}, {:tzdata, "~> 0.1.8 or ~> 0.5", [hex: :tzdata, optional: false]}]},
+  "timex": {:git, "https://github.com/bitwalker/timex.git", "161258c5154c60371d8452a100da1946e092f219", []},
   "triq": {:git, "https://github.com/krestenkrab/triq.git", "c7306b8eaea133d52140cb828817efb5e50a3d52", []},
   "tzdata": {:hex, :tzdata, "0.5.8", "a4ffe564783c6519e4df230a5d0e1cf44b7db7f576bcae76d05540b5da5b6143", [:mix], [{:hackney, "~> 1.0", [hex: :hackney, optional: false]}]},
   "websocket_client": {:git, "https://github.com/sanmiguel/websocket_client.git", "16cd139a71d99813ec0c0cd1d8cb92dbde93d9c7", [tag: "1.1.0"]}}

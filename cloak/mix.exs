@@ -47,7 +47,7 @@ defmodule Cloak.Mixfile do
       {:cowboy, "~> 1.0", only: :test},
       {:excheck, "~> 0.3", only: :test},
       {:triq, github: "krestenkrab/triq", only: :test},
-      {:timex, "~> 2.1.6"}
+      {:timex, "~> 2.1.6", github: "bitwalker/timex"}
     ]
   end
 
