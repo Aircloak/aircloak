@@ -64,15 +64,13 @@ defmodule Cloak.DataSource.DsProxy do
     Agent.get(proc_name(source_id), &(&1))
   end
 
-  defp url(params), do: Keyword.fetch!(params, :url)
-
   defp load_column_definitions(params, full_table_name) do
-    response = %{"success" => true} = post!(url(params), "show_columns", %{table: full_table_name})
+    response = %{"success" => true} = post!(params, "show_columns", %{table: full_table_name})
     Enum.map(response["columns"], &({&1["name"], parse_type(&1["type"])}))
   end
 
   defp run_query(params, %{columns: columns} = query) do
-    response = %{"success" => true} = post!(url(params), "query", %{
+    response = %{"success" => true} = post!(params, "query", %{
       columns: Enum.map(columns, &Builder.select_column_to_string/1),
       statement: sql_statement(query)
     })
@@ -94,9 +92,9 @@ defmodule Cloak.DataSource.DsProxy do
     }
   end
 
-  defp post!(url, operation, payload) do
+  defp post!(params, operation, payload) do
     %HTTPoison.Response{status_code: 200, body: body} = HTTPoison.post!(
-      "#{url}/#{operation}",
+      "#{Keyword.fetch!(params, :url)}/#{operation}",
       Poison.encode!(payload),
       [{"Content-Type", "application/json"}]
     )
