@@ -7,6 +7,12 @@ defmodule Cloak.Query.Runner do
 
   import Cloak.Type
 
+  defmodule RuntimeError do
+    @moduledoc "An error that occurred while running the query."
+
+    defexception [:message]
+  end
+
 
   # -------------------------------------------------------------------
   # API
@@ -18,6 +24,22 @@ defmodule Cloak.Query.Runner do
     with {:ok, sql_query} <- Cloak.SqlQuery.make(query.data_source, query.statement) do
       execute_sql_query(sql_query)
     end
+  end
+
+  @doc """
+  Reports a human-friendly runtime error.
+
+  This function can be used to signal an error that will be caught by the runner
+  and reported to the user.
+
+  You're advised to not overuse this mechanism. However, sometimes it can be
+  quite complicated to bubble up an error from a deep nested stack of maps,
+  reduces, and other transformations. In such cases, you can raise this error
+  with a descriptive message which will be reported to the end-user.
+  """
+  @spec runtime_error(String.t) :: no_return
+  def runtime_error(message) do
+    raise(RuntimeError, message)
   end
 
 
@@ -41,16 +63,19 @@ defmodule Cloak.Query.Runner do
     {:ok, {:buckets, columns, rows}}
   end
   defp execute_sql_query(%{command: :select, data_source: data_source} = select_query) do
-    with {:ok, {_count, [_user_id | columns], rows}} <- DataSource.select(data_source, select_query) do
+    try do
+      with {:ok, {_count, [_user_id | columns], rows}} <- DataSource.select(data_source, select_query) do
+        buckets = rows
+        |> NegativeCondition.apply(columns, select_query)
+        |> Result.group_by_property_and_users(columns, select_query)
+        |> Anonymizer.aggregate(select_query)
+        |> Result.map_buckets(select_query)
+        |> Result.order_rows(select_query)
 
-      buckets = rows
-      |> NegativeCondition.apply(columns, select_query)
-      |> Result.group_by_property_and_users(columns, select_query)
-      |> Anonymizer.aggregate(select_query)
-      |> Result.map_buckets(select_query)
-      |> Result.order_rows(select_query)
-
-      {:ok, {:buckets, Cloak.SqlQuery.column_titles(select_query), buckets}}
+        {:ok, {:buckets, Cloak.SqlQuery.column_titles(select_query), buckets}}
+      end
+    rescue e in [RuntimeError] ->
+      {:error, e.message}
     end
   end
 end
