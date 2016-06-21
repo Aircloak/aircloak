@@ -57,7 +57,7 @@ defmodule Cloak.DataSource.DsProxyTest do
 
   test "invalid unsafe select", context do
     expect_json_post(context, "/run_query",
-      fn(payload) ->
+      fn(_) ->
         {200, %{success: true, columns: ["user_id", "foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
       end
     )
