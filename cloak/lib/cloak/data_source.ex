@@ -215,7 +215,6 @@ defmodule Cloak.DataSource do
       |> Stream.filter(&(&1 != nil))
       |> Enum.into(%{})
 
-    # save the new table structure into the data source specification
     {id, Map.put(data_source, :tables, tables)}
   end
 
