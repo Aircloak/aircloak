@@ -82,6 +82,12 @@ defmodule Cloak.DataSource do
 
   @doc false
   def start_link() do
+    Application.put_env(:cloak, :data_sources,
+      Cloak.DeployConfig.fetch!("data_sources")
+      |> atomize_keys()
+      |> map_drivers()
+    )
+
     case Supervisor.start_link(__MODULE__, :ok, name: __MODULE__) do
       {ok, pid} ->
         load_columns()
@@ -163,6 +169,32 @@ defmodule Cloak.DataSource do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp map_drivers(data_sources) do
+    Enum.map(data_sources, fn({data_source, params}) ->
+      driver_module = case params[:driver] do
+        "postgresql" -> Cloak.DataSource.PostgreSQL
+        "dsproxy" -> Cloak.DataSource.DsProxy
+        other -> raise("Unknown driver `#{other}` for data source `#{data_source}`")
+      end
+
+      {data_source, Map.merge(params, %{driver: driver_module, id: data_source})}
+    end)
+  end
+
+  defp atomize_keys(%{} = map) do
+    for {key, value} <- map, into: %{}, do: {String.to_atom(key), atomize_keys(value)}
+  end
+  defp atomize_keys(list) when is_list(list) do
+    Enum.map(list, &atomize_keys/1)
+  end
+  defp atomize_keys(tuple) when is_tuple(tuple) do
+    tuple
+    |> Tuple.to_list()
+    |> atomize_keys()
+    |> List.to_tuple()
+  end
+  defp atomize_keys(other), do: other
 
   # load the columns list for all defined tables in all data sources
   defp load_columns() do
