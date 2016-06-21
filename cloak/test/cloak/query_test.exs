@@ -17,7 +17,7 @@ defmodule Cloak.QueryTest do
     :db_test.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
 
     :meck.new(Noise, [:passthrough])
-    :meck.expect(Noise, :get, fn(_sigma, n) -> round(n) end)
+    :meck.expect(Noise, :get, fn(noise_generator, _sigma, n) -> {round(n), noise_generator} end)
 
     on_exit(fn -> :meck.unload() end)
 

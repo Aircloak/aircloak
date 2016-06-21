@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.DsProxyTest do
 
   setup_all do
     :meck.new(Cloak.Processor.Noise, [:passthrough])
-    :meck.expect(Cloak.Processor.Noise, :get, fn(_sigma, n) -> n end)
+    :meck.expect(Cloak.Processor.Noise, :get, fn(noise_generator, _sigma, n) -> {n, noise_generator} end)
 
     on_exit(fn -> :meck.unload() end)
   end

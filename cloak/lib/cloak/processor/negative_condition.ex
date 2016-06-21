@@ -32,16 +32,20 @@ defmodule Cloak.Processor.NegativeCondition do
   # -------------------------------------------------------------------
 
   defp sufficient_matches?(clause, rows, columns) do
-    seed = rows
+    {result, _} =
+      rows
       |> user_ids()
       |> Enum.into(MapSet.new())
-      |> Noise.make_seed()
+      |> Noise.new()
+      |> Noise.passes_filter?(Enum.count(filtered_rows(rows, clause, columns)))
 
+    result
+  end
+
+  defp filtered_rows(rows, clause, columns) do
     rows
     |> Enum.filter(filter(clause, columns))
     |> Enum.uniq_by(&user_id(&1))
-    |> Enum.count()
-    |> Noise.passes_filter?(seed)
   end
 
   defp filter({:comparison, column, :=, %Token{value: %{value: value}}}, columns) do

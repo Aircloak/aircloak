@@ -1,7 +1,9 @@
 defmodule Cloak.Processor.Noise do
   @moduledoc "Utility module for noisy processing of buckets."
 
-  @opaque seed :: {integer, integer, integer}
+  @opaque t :: %{
+    rng: :rand.state
+  }
 
   import Cloak.Type
 
@@ -11,7 +13,33 @@ defmodule Cloak.Processor.Noise do
   # -------------------------------------------------------------------
 
   @doc """
-  Returns true if count is sufficiently large to be reported. Sufficiently large means:
+  Creates a noise generator from a collection of unique user ids.
+
+  This function takes either a `MapSet` containing user ids, or a map where
+  keys are user ids. Such types ensure that user ids are deduplicated.
+
+  It then creates a noise generator which can be used to create deterministic
+  noise based on the input list.
+
+  Internally, noise generator uses a `rand` based random number generator. This
+  generator is relying on explicit passing of state, rather than on process
+  dictionary, which forces client to explicitly pass the state around, and
+  thus decide whether they want to produce noise sequences, or start from the
+  beginning.
+  """
+  @spec new(MapSet.t | %{String.t => any}) :: t
+  def new(%MapSet{} = users) do
+    new_instance(users)
+  end
+  def new(%{} = users_map) do
+    new_instance(Map.keys(users_map))
+  end
+
+  @doc """
+  Returns a `{passes_filter?, noise_generator}` tuple, where `passes_filter?` is
+  true if count is sufficiently large to be reported.
+
+  Sufficiently large means:
 
   1. Greater than absolute_lower_bound
   2. A noised version of the count is greater than soft_lower_bound
@@ -19,53 +47,32 @@ defmodule Cloak.Processor.Noise do
   See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
   on the user list provided, giving the same answer every time for the given list of users.
   """
-  @spec passes_filter?(non_neg_integer, seed) :: boolean
-  def passes_filter?(count, seed) do
+  @spec passes_filter?(t, non_neg_integer) :: {boolean, t}
+  def passes_filter?(noise_generator, count) do
     absolute_lower_bound = config(:absolute_lower_bound)
     soft_lower_bound = config(:soft_lower_bound)
     sigma_soft_lower_bound = config(:sigma_soft_lower_bound)
-    set_seed(seed)
-    noisy_count = get(sigma_soft_lower_bound, count) |> round()
-    count > absolute_lower_bound and noisy_count > soft_lower_bound
+    {noisy_count, noise_generator} = get(noise_generator, sigma_soft_lower_bound, count)
+    {
+      count > absolute_lower_bound and round(noisy_count) > soft_lower_bound,
+      noise_generator
+    }
   end
-
-  @doc """
-  Builds a seed from the given set or map of unique users.
-
-  This function takes either a `MapSet` containing user ids, or a map where
-  keys are user ids. Such types ensure that user ids are deduplicated.
-  """
-  @spec make_seed(MapSet.t | %{String.t => any}) :: seed
-  def make_seed(%MapSet{} = users) do
-    make_seed_from_unique_users(users)
-  end
-  def make_seed(%{} = users_map) do
-    make_seed_from_unique_users(Map.keys(users_map))
-  end
-
-  @doc """
-  Seeds the noise generator.
-
-  The following calls to `gauss/2` will return predictable results
-  (as long as the `random` module is not used in between calls).
-  """
-  @spec set_seed(seed) :: :undefined | seed
-  def set_seed({a, b, c}), do: :random.seed(a, b, c)
 
   @doc "Returns the noise configuration value with the specified name."
   @spec config(atom) :: integer
   def config(name), do: :cloak_conf.get_val(:noise, name)
 
-  @doc "Generates a gaussian distributed random integer with given standard deviation and mean."
-  @spec get(integer | float, integer | float) :: float
-  def get(sigma, mu) do
-    case :random.uniform() do
-      0.0 ->
-        get(sigma, mu)
-      rand1 ->
-        rand2 = :random.uniform()
-        gauss(sigma, mu, rand1, rand2)
-    end
+  @doc """
+  Generates a gaussian distributed random integer with given standard deviation and mean.
+
+  Returns the integer together with the new generator state.
+  """
+  @spec get(t, integer | float, integer | float) :: {float, t}
+  def get(%{rng: rng} = noise_generator, sigma, mu) do
+    {rand1, rng} = :rand.uniform_s(rng)
+    {rand2, rng} = :rand.uniform_s(rng)
+    {gauss(sigma, mu, rand1, rand2), %{noise_generator | rng: rng}}
   end
 
 
@@ -73,8 +80,12 @@ defmodule Cloak.Processor.Noise do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp make_seed_from_unique_users(users) do
-    users
+  defp new_instance(unique_users) do
+    %{rng: :rand.seed(:exsplus, seed(unique_users))}
+  end
+
+  defp seed(unique_users) do
+    unique_users
     |> Enum.reduce(compute_hash(""), fn (user, accumulator) ->
       user
       |> to_string()
