@@ -45,6 +45,7 @@ defmodule Cloak.Mixfile do
       {:combine, github: "bitwalker/combine", override: true},
       {:timex, "~> 2.1.6", github: "bitwalker/timex"},
       {:poison, "~> 1.5.2"},
+      {:httpoison, "~> 0.8.3"},
 
       # Test deps
 
@@ -52,10 +53,11 @@ defmodule Cloak.Mixfile do
       {:cowboy, "~> 1.0", only: :test},
       {:excheck, "~> 0.3", only: :test},
       {:triq, github: "krestenkrab/triq", only: :test},
+      {:bypass, "~> 0.5.1", only: :test}
     ]
   end
 
-  defp applications(:test), do: [:phoenix, :cowboy | common_applications()]
+  defp applications(:test), do: [:phoenix, :cowboy, :bypass | common_applications()]
   defp applications(:dev), do: [:os_mon | common_applications()]
   defp applications(:prod), do: [:os_mon | common_applications()]
 
@@ -63,7 +65,7 @@ defmodule Cloak.Mixfile do
     [
       :logger, :gproc, :aircloak_common, :postgrex, :poolboy,
       :phoenix_gen_socket_client, :websocket_client, :combine,
-      :runtime_tools, :timex, :poison
+      :runtime_tools, :timex, :poison, :httpoison
     ]
   end
 

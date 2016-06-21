@@ -65,8 +65,17 @@ defmodule Cloak.Query.Result do
     :*
   end
   defp extract_field(fields, columns, column) do
-    index = Enum.find_index(columns, &(&1 === column))
-    Enum.at(fields, index)
+    case Enum.find_index(columns, &(&1 === column)) do
+      nil ->
+        quoted_columns = columns |> Enum.map(&"`#{&1}`") |> Enum.join(", ")
+        raise(
+          Cloak.Query.Runner.RuntimeError,
+          "Column `#{column}` doesn't exist in selected columns #{quoted_columns}."
+        )
+
+      index ->
+        Enum.at(fields, index)
+    end
   end
 
   defp compare_rows(row1, row2, []), do: row1 < row2

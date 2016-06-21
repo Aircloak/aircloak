@@ -36,6 +36,7 @@ defmodule Cloak.DataSource do
 
   # define returned data types and values
   @type t :: %{
+    id: atom,
     driver: module,
     parameters: %{},
     tables: %{atom => table}
@@ -43,7 +44,8 @@ defmodule Cloak.DataSource do
   @type table :: %{
     name: String.t,
     user_id: String.t,
-    ignore_unsupported_types: boolean
+    ignore_unsupported_types: boolean,
+    columns: [{column, data_type}]
   }
   @type num_rows :: non_neg_integer
   @type column :: String.t
