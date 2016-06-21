@@ -4,7 +4,6 @@ defmodule Cloak.SqlQuery.Compiler do
   alias Cloak.DataSource
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
-  alias Timex, as: Time
 
   @type compiled_query :: %{
     data_source: atom,
@@ -233,9 +232,9 @@ defmodule Cloak.SqlQuery.Compiler do
   defp do_cast_where_clause(clause, _), do: {:ok, clause}
 
   defp parse_time(%Token{category: :constant, value: %{type: :string, value: string}}) do
-    case Time.parse(string, "{ISO}") do
+    case Timex.parse(string, "{ISO}") do
       {:ok, value} -> {:ok, value}
-      _ -> case Time.parse(string, "{ISOdate}") do
+      _ -> case Timex.parse(string, "{ISOdate}") do
         {:ok, value} -> {:ok, value}
         _ -> {:error, "Cannot cast `#{string}` to timestamp."}
       end

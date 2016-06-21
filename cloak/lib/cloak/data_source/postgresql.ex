@@ -5,7 +5,6 @@ defmodule Cloak.DataSource.PostgreSQL do
   """
 
   alias Cloak.SqlQuery.Builder
-  alias Timex.{DateTime, Timezone}
 
   #-----------------------------------------------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -75,7 +74,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("date"), do: :date
   defp parse_type(type), do: {:unsupported, type}
 
-  defp convert_param(%DateTime{} = time) do
+  defp convert_param(%Timex.DateTime{} = time) do
     %Postgrex.Timestamp{
       year: time.year, month: time.month, day: time.day, hour: time.hour, min: time.minute, sec: time.second,
       usec: time.millisecond
@@ -92,16 +91,16 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
       hour: hour, min: min, sec: sec, usec: usec}) do
-    %DateTime{
+    %Timex.DateTime{
       year: year, month: month, day: day, hour: hour, minute: min, second: sec, millisecond: usec,
-      timezone: Timezone.get(:utc)
+      timezone: Timex.Timezone.get(:utc)
     }
   end
   defp field_mapper(%Postgrex.Date{year: year, month: month, day: day}) do
-    %DateTime{year: year, month: month, day: day, timezone: Timezone.get(:utc)}
+    %Timex.DateTime{year: year, month: month, day: day, timezone: Timex.Timezone.get(:utc)}
   end
   defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec, usec: usec}) do
-    %DateTime{hour: hour, minute: min, second: sec, millisecond: usec, timezone: Timezone.get(:utc)}
+    %Timex.DateTime{hour: hour, minute: min, second: sec, millisecond: usec, timezone: Timex.Timezone.get(:utc)}
   end
   defp field_mapper(field), do: field
 

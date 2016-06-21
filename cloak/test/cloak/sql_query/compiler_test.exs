@@ -3,7 +3,6 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
   alias Cloak.SqlQuery.Compiler
   alias Cloak.SqlQuery.Parser
-  alias Timex.{DateTime, Timezone}
 
   setup do
     {:ok, %{
@@ -16,8 +15,8 @@ defmodule Cloak.SqlQuery.Compiler.Test do
   test "casts timestamp where conditions", %{data_source: data_source} do
     result = compile!("select * from table where column > '2015-01-01'", data_source)
 
-    assert result[:where] ==
-      [{:comparison, "column", :>, %DateTime{year: 2015, month: 1, day: 1, timezone: Timezone.get(:utc)}}]
+    time = %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}
+    assert result[:where] == [{:comparison, "column", :>, time}]
   end
 
   test "casts timestamp in `in` conditions", %{data_source: data_source} do
@@ -25,16 +24,16 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     assert [{:in, "column", times}] = result[:where]
     assert Enum.sort(times) == [
-      %DateTime{year: 2015, month: 1, day: 1, timezone: Timezone.get(:utc)},
-      %DateTime{year: 2015, month: 1, day: 2, timezone: Timezone.get(:utc)},
+      %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)},
+      %Timex.DateTime{year: 2015, month: 1, day: 2, timezone: Timex.Timezone.get(:utc)},
     ]
   end
 
   test "casts timestamp in negated conditions", %{data_source: data_source} do
     result = compile!("select * from table where column <> '2015-01-01'", data_source)
 
-    assert result[:where_not] ==
-      [{:comparison, "column", :=, %DateTime{year: 2015, month: 1, day: 1, timezone: Timezone.get(:utc)}}]
+    time = %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}
+    assert result[:where_not] == [{:comparison, "column", :=, time}]
   end
 
   test "reports malformed timestamps", %{data_source: data_source} do

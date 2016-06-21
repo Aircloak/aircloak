@@ -5,7 +5,6 @@ defmodule Cloak.SqlQuery.Builder do
   """
 
   alias Cloak.SqlQuery.Parsers.Token
-  alias Timex.DateTime
 
   @typep query_spec :: {statement, [constant]}
   @typep constant :: String.t | number | boolean
@@ -102,7 +101,7 @@ defmodule Cloak.SqlQuery.Builder do
   defp to_fragment(string) when is_binary(string), do: string
   defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
   defp to_fragment(%Token{category: :constant, value: value}), do: {:param, value.value}
-  defp to_fragment(%DateTime{} = time), do: {:param, time}
+  defp to_fragment(%Timex.DateTime{} = time), do: {:param, time}
 
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]
