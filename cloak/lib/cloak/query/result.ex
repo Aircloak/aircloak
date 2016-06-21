@@ -68,7 +68,8 @@ defmodule Cloak.Query.Result do
     case Enum.find_index(columns, &(&1 === column)) do
       nil ->
         quoted_columns = columns |> Enum.map(&"`#{&1}`") |> Enum.join(", ")
-        Cloak.Query.Runner.runtime_error(
+        raise(
+          Cloak.Query.Runner.RuntimeError,
           "Column `#{column}` doesn't exist in selected columns #{quoted_columns}."
         )
 
