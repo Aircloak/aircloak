@@ -96,7 +96,7 @@ defmodule Cloak.DataSource do
     data_sources =
       Cloak.DeployConfig.fetch!("data_sources")
       |> atomize_keys()
-      |> map_drivers()
+      |> Enum.map(&map_driver/1)
 
     child_specs =
       for {_, data_source} <- data_sources do
@@ -170,16 +170,14 @@ defmodule Cloak.DataSource do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp map_drivers(data_sources) do
-    Enum.map(data_sources, fn({data_source, params}) ->
-      driver_module = case params[:driver] do
-        "postgresql" -> Cloak.DataSource.PostgreSQL
-        "dsproxy" -> Cloak.DataSource.DsProxy
-        other -> raise("Unknown driver `#{other}` for data source `#{data_source}`")
-      end
+  defp map_driver({data_source, params}) do
+    driver_module = case params[:driver] do
+      "postgresql" -> Cloak.DataSource.PostgreSQL
+      "dsproxy" -> Cloak.DataSource.DsProxy
+      other -> raise("Unknown driver `#{other}` for data source `#{data_source}`")
+    end
 
-      {data_source, Map.merge(params, %{driver: driver_module, id: data_source})}
-    end)
+    {data_source, Map.merge(params, %{driver: driver_module, id: data_source})}
   end
 
   defp atomize_keys(%{} = map) do
