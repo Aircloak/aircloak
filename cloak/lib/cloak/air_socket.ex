@@ -25,7 +25,7 @@ defmodule Cloak.AirSocket do
     GenSocketClient.start_link(
       __MODULE__,
       GenSocketClient.Transport.WebSocketClient,
-      cloak_name,
+      {cloak_name, socket_url()},
       [
         serializer: :cloak_conf.get_val(:air, :serializer),
         transport_opts: [
@@ -57,11 +57,11 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   @doc false
-  def init(cloak_name) do
+  def init({cloak_name, socket_url}) do
     params = %{
       cloak_name: cloak_name
     }
-    url = "#{:cloak_conf.get_val(:air, :socket_url)}?#{URI.encode_query(params)}"
+    url = "#{socket_url}?#{URI.encode_query(params)}"
     initial_interval = :cloak_conf.get_val(:air, :min_reconnect_interval)
     state = %{
       cloak_name: cloak_name,
@@ -195,6 +195,14 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp socket_url() do
+    # deploy specific configuration takes precedence over OTP app configuration
+    case Cloak.DeployConfig.fetch("air_socket_url") do
+      {:ok, socket_url} -> socket_url
+      :error -> :cloak_conf.get_val(:air, :socket_url)
+    end
+  end
 
   @spec respond_to_air({GenSocketClient.transport, request_id::String.t}, :ok | :error, any) ::
       :ok | {:error, any}
