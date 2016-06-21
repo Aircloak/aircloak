@@ -19,7 +19,7 @@ defmodule Cloak.DataSource.DsProxyTest do
   end
 
   test "get columns", context do
-    expect_json_post(context, "/show_columns",
+    expect_json_post(context.bypass, "/show_columns",
       fn(payload) ->
         assert %{"table" => "table_name"} == payload
 
@@ -35,7 +35,7 @@ defmodule Cloak.DataSource.DsProxyTest do
   end
 
   test "parsed select", context do
-    expect_json_post(context, "/query",
+    expect_json_post(context.bypass, "/query",
       fn(payload) ->
         assert %{"columns" => ["user_id", "foo"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" => "SELECT user_id,foo FROM bar "} == statement
@@ -49,7 +49,7 @@ defmodule Cloak.DataSource.DsProxyTest do
   end
 
   test "unsafe select", context do
-    expect_json_post(context, "/query",
+    expect_json_post(context.bypass, "/query",
       fn(payload) ->
         assert %{"columns" => ["foo"], "statement" => statement} = payload
         assert %{"type" => "unsafe", "val" => "select foo from bar"} == statement
@@ -63,7 +63,7 @@ defmodule Cloak.DataSource.DsProxyTest do
   end
 
   test "invalid unsafe select", context do
-    expect_json_post(context, "/query",
+    expect_json_post(context.bypass, "/query",
       fn(_) ->
         {200, %{success: true, columns: ["user_id", "foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
       end
@@ -83,8 +83,8 @@ defmodule Cloak.DataSource.DsProxyTest do
   ## Internal functions
   ## ----------------------------------------------------------------
 
-  defp expect_json_post(test_context, path, callback) do
-    Bypass.expect(test_context.bypass,
+  defp expect_json_post(bypass, path, callback) do
+    Bypass.expect(bypass,
       fn(conn) ->
         assert "POST" == conn.method
         assert path == conn.request_path
