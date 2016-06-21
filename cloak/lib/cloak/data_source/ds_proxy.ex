@@ -64,13 +64,15 @@ defmodule Cloak.DataSource.DsProxy do
     Agent.get(proc_name(source_id), &(&1))
   end
 
+  defp url(params), do: Keyword.fetch!(params, :url)
+
   defp load_column_definitions(params, full_table_name) do
-    response = %{"success" => true} = post!(params.url, "list_columns", %{table: full_table_name})
+    response = %{"success" => true} = post!(url(params), "show_columns", %{table: full_table_name})
     Enum.map(response["columns"], &({&1["name"], parse_type(&1["type"])}))
   end
 
   defp run_query(params, %{columns: columns} = query) do
-    response = %{"success" => true} = post!(params.url, "run_query", %{
+    response = %{"success" => true} = post!(url(params), "query", %{
       columns: Enum.map(columns, &Builder.select_column_to_string/1),
       statement: sql_statement(query)
     })
