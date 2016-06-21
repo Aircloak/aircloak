@@ -35,15 +35,17 @@ config :cloak, :noise,
   sigma_soft_lower_bound: 1,
   soft_lower_bound: 5,
 
-  # min_sigma: The minimum standard deviation allowed for noise.
-  # max_sigma: The maximum total standard deviation to be used. This can be exceeded without
-  # causing privacy issues, but is honoured to improve the usability of the system.
-  min_sigma: 2,
-  max_sigma: 20,
+  # The number of outliers dropped, from top and bottom, during the anonymized aggregation of values.
+  # The outliers are replaced with the average value for that margin of the collection.
+  dropped_outliers_count: 1,
 
-  # The anonymized results contain a layer of noise that is constant and unique to
-  # the bucket. The noise is normal with a certain standard deviation.
-  constant_noise_sd: 1.5
+  # The mean and standard deviation for the length of a collection's margin,
+  # used for computing the average value of the margin.
+  margin_count_mean: 5,
+  margin_count_sigma: 1,
+
+  # The standard deviation of the noise of margin averages added to summed values.
+  sum_noise_sigma: 2
 
 config :cloak, :in_development, false
 
