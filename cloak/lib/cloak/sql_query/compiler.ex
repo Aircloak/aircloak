@@ -206,9 +206,8 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp cast_where_clause(clause, query) do
     column = where_clause_to_identifier(clause)
-    type = columns(query.from, query.data_source)
-      |> Enum.into(%{})
-      |> Map.fetch!(column)
+    {_, type} = columns(query.from, query.data_source)
+      |> List.keyfind(column, 0)
 
     do_cast_where_clause(clause, type)
   end
