@@ -62,7 +62,7 @@ defmodule Cloak.DataSource.DsProxyTest do
     assert {:ok, {:buckets, ["count(foo)"], [%{occurrences: 1, row: [100]}]}} = query_result
   end
 
-  test "invalid unsafe select", context do
+  test "invalid select column in unsafe select", context do
     expect_json_post(context.bypass, "/query",
       fn(_) ->
         {200, %{success: true, columns: ["user_id", "foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
@@ -72,6 +72,14 @@ defmodule Cloak.DataSource.DsProxyTest do
     query_result = run_query(context, "select count(foo) from (select foo1 from bar) as baz")
     assert {:error, message} = query_result
     assert "Column `foo` doesn't exist in selected columns `foo1`, `foo2`." == message
+  end
+
+  test "invalid group by in unsafe select", context do
+    expect_json_post(context.bypass, "/query",
+      fn(_) ->
+        {200, %{success: true, columns: ["user_id", "foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
+      end
+    )
 
     query_result = run_query(context, "select count(*) from (select foo1 from bar) as baz group by foobar")
     assert {:error, message} = query_result
