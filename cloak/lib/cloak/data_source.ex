@@ -286,7 +286,7 @@ defmodule Cloak.DataSource do
       table = %{name: table_name, user_id: user_id}
       tables = Map.put(source[:tables], table_id, table)
       source = Map.put(source, :tables, tables)
-      {_, source} = data_source_with_columns({:local, source})
+      {_id, source} = data_source_with_columns({:local, source})
       Application.put_env(:cloak, :data_sources, %{local: source})
     end
 
