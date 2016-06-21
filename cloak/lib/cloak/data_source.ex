@@ -100,9 +100,7 @@ defmodule Cloak.DataSource do
 
     child_specs =
       for {_, data_source} <- data_sources do
-        driver = data_source[:driver]
-        parameters = data_source[:parameters]
-        driver.child_spec(data_source.id, Enum.to_list(parameters))
+        data_source.driver.child_spec(data_source.id, Enum.to_list(data_source.parameters))
       end
 
     case Supervisor.start_link(child_specs, strategy: :one_for_one, name: __MODULE__) do
