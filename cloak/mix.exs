@@ -44,6 +44,7 @@ defmodule Cloak.Mixfile do
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
       {:combine, github: "bitwalker/combine", override: true},
       {:timex, "~> 2.1.6", github: "bitwalker/timex"},
+      {:poison, "~> 1.5.2"},
 
       # Test deps
 
@@ -62,7 +63,7 @@ defmodule Cloak.Mixfile do
     [
       :logger, :gproc, :aircloak_common, :postgrex, :poolboy,
       :phoenix_gen_socket_client, :websocket_client, :combine,
-      :runtime_tools, :timex
+      :runtime_tools, :timex, :poison
     ]
   end
 
