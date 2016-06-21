@@ -47,11 +47,12 @@ defmodule Cloak.Mixfile do
       {:phoenix, "~> 1.1.4", only: :test},
       {:cowboy, "~> 1.0", only: :test},
       {:excheck, "~> 0.3", only: :test},
-      {:triq, github: "krestenkrab/triq", only: :test}
+      {:triq, github: "krestenkrab/triq", only: :test},
+      {:bypass, "~> 0.5.1", only: :test}
     ]
   end
 
-  defp applications(:test), do: [:phoenix, :cowboy | common_applications()]
+  defp applications(:test), do: [:phoenix, :cowboy, :bypass | common_applications()]
   defp applications(:dev), do: [:os_mon | common_applications()]
   defp applications(:prod), do: [:os_mon | common_applications()]
 
