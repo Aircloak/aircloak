@@ -45,7 +45,7 @@ defmodule Cloak.DataSource do
     name: String.t,
     user_id: String.t,
     ignore_unsupported_types: boolean,
-    columns: [%{column => data_type}]
+    columns: [{column, data_type}]
   }
   @type num_rows :: non_neg_integer
   @type column :: String.t
