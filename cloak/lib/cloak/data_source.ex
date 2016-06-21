@@ -75,44 +75,37 @@ defmodule Cloak.DataSource do
 
 
   #-----------------------------------------------------------------------------------------------------------
-  # Supervisor callbacks
+  # API
   #-----------------------------------------------------------------------------------------------------------
 
-  use Supervisor
+  @doc """
+  Starts data source adapter supervision subtree.
 
-  @doc false
+  This function starts a datasource supervisor, and underneath it all data
+  source adapters specified in the deployment configuration.
+  """
+  @spec start_link() :: Supervisor.on_start
   def start_link() do
-    Application.put_env(:cloak, :data_sources,
+    data_sources =
       Cloak.DeployConfig.fetch!("data_sources")
       |> atomize_keys()
       |> map_drivers()
-    )
 
-    case Supervisor.start_link(__MODULE__, :ok, name: __MODULE__) do
-      {ok, pid} ->
-        load_columns()
-        {ok, pid}
+    child_specs =
+      for {_, data_source} <- data_sources do
+        driver = data_source[:driver]
+        parameters = data_source[:parameters]
+        driver.child_spec(data_source.id, Enum.to_list(parameters))
+      end
+
+    case Supervisor.start_link(child_specs, strategy: :one_for_one, name: __MODULE__) do
+      {:ok, pid} ->
+        cache_columns(data_sources)
+        {:ok, pid}
       error ->
         error
     end
   end
-
-  @doc false
-  def init(:ok) do
-    data_sources = Application.get_env(:cloak, :data_sources)
-    # get the Supervisor spec for all defined data sources
-    children = for {_, data_source} <- data_sources do
-      driver = data_source[:driver]
-      parameters = data_source[:parameters]
-      driver.child_spec(data_source.id, Enum.to_list(parameters))
-    end
-    supervise(children, strategy: :one_for_one)
-  end
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # API
-  #-----------------------------------------------------------------------------------------------------------
 
   @doc "Returns the list of defined data sources."
   @spec all() :: [t]
@@ -197,8 +190,7 @@ defmodule Cloak.DataSource do
   defp atomize_keys(other), do: other
 
   # load the columns list for all defined tables in all data sources
-  defp load_columns() do
-    data_sources = Application.get_env(:cloak, :data_sources)
+  defp cache_columns(data_sources) do
     data_sources = for {id, data_source} <- data_sources, into: %{} do
       {id, load_data_source_columns(data_source)}
     end
