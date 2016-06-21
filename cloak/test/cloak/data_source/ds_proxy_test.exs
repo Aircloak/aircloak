@@ -1,13 +1,13 @@
-defmodule Cloak.DataSource.AclTest do
+defmodule Cloak.DataSource.DsProxyTest do
   use ExUnit.Case, async: true
 
-  alias Cloak.DataSource.Acl
+  alias Cloak.DataSource.DsProxy
 
   setup do
     data_source_id = :"data_source_#{:erlang.unique_integer()}"
     bypass = Bypass.open
     url = "http://localhost:#{bypass.port}"
-    {:ok, _} = Acl.start_link(data_source_id, %{url: url})
+    {:ok, _} = DsProxy.start_link(data_source_id, %{url: url})
     {:ok, data_source_id: data_source_id, url: url, bypass: bypass}
   end
 
@@ -23,7 +23,7 @@ defmodule Cloak.DataSource.AclTest do
       end
     )
 
-    columns = Acl.get_columns(context.data_source_id, "table_name")
+    columns = DsProxy.get_columns(context.data_source_id, "table_name")
     assert [{"column1", :text}, {"column2", :integer}] == columns
   end
 
@@ -106,7 +106,7 @@ defmodule Cloak.DataSource.AclTest do
   defp default_data_source(test_context) do
     %{
       id: test_context.data_source_id,
-      driver: Acl,
+      driver: DsProxy,
       parameters: %{url: test_context.url},
       tables: %{
         bar: %{

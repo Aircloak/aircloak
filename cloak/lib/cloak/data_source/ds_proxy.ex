@@ -1,16 +1,16 @@
-defmodule Cloak.DataSource.Acl do
+defmodule Cloak.DataSource.DsProxy do
   @moduledoc """
   Implements the DataSource.Driver behaviour for Paul's Anonymizing Query Language backend.
   For more information, see `DataSource`.
 
   To use this data-source you need to add it to the list of data sources that should
-  be served by your cloak and declare where the ACL backend can be found.
+  be served by your cloak and declare where the dsproxy backend can be found.
 
   A sample deploy configuration could look like this:
 
       "data_sources": {
-        "acl": {
-          driver: "acl",
+        "dsproxy": {
+          driver: "dsproxy",
           "parameters": {"url": "http://localhost:8000"},
           "tables": {
             "<table-display-name>": {
