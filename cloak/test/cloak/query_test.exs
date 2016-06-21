@@ -14,7 +14,7 @@ defmodule Cloak.QueryTest do
   setup_all do
     :db_test.setup()
     :db_test.create_test_schema()
-    :db_test.create_table("heights", "height INTEGER, name TEXT")
+    :db_test.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
 
     :meck.new(Noise, [:passthrough])
     :meck.expect(Noise, :get, fn(_sigma, n) -> round(n) end)
@@ -37,7 +37,8 @@ defmodule Cloak.QueryTest do
     assert_query "show columns from heights", %{query_id: "1", columns: ["name", "type"], rows: rows}
     assert Enum.sort_by(rows, &(&1[:row])) == [
       %{occurrences: 1, row: ["height", :integer]},
-      %{occurrences: 1, row: ["name", :text]}
+      %{occurrences: 1, row: ["name", :text]},
+      %{occurrences: 1, row: ["time", :timestamp]}
     ]
   end
 
@@ -47,16 +48,22 @@ defmodule Cloak.QueryTest do
   end
 
   test "select all query" do
-    assert_query "select * from heights", %{query_id: "1", columns: ["height", "name"], rows: []}
+    assert_query "select * from heights", %{query_id: "1", columns: ["height", "name", "time"], rows: []}
   end
 
   test "select all and order query" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height"], ["john", 180])
+    time = %Postgrex.Timestamp{year: 2015, month: 1, day: 1}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "time"], ["john", 180, time])
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height"], ["adam", 180])
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
 
-    assert_query "select * from heights order by name", %{query_id: "1", columns: ["height", "name"], rows: rows}
-    assert Enum.map(rows, &(&1[:row])) == [[180, "adam"], [180, "john"], [180, "mike"]]
+    assert_query "select * from heights order by name",
+      %{query_id: "1", columns: ["height", "name", "time"], rows: rows}
+    assert Enum.map(rows, &(&1[:row])) == [
+      [180, "adam", nil],
+      [180, "john", %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}],
+      [180, "mike", nil]
+    ]
   end
 
   test "should return LCF property when sufficient rows are filtered" do
@@ -103,17 +110,25 @@ defmodule Cloak.QueryTest do
       %{columns: ["avg(height)"], rows: [%{row: [180.0], occurrences: 1}]}
   end
 
-  test "should be able to select the same column multiple times" do
+  test "select the same column multiple times" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert_query "select height, height from heights",
       %{columns: ["height", "height"], rows: [%{row: [180, 180], occurrences: 100}]}
+  end
+
+  test "select the same aggregate multiple times" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert_query "select count(height), count(*), count(*), count(height) from heights",
       %{
         columns: ["count(height)", "count(*)", "count(*)", "count(height)"],
         rows: [%{row: [100, 100, 100, 100], occurrences: 1}]
       }
+  end
+
+  test "different aggregates on the same column" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert_query "select count(height), max(height) from heights",
       %{columns: ["count(height)", "max(height)"], rows: [%{row: [100, 180.0], occurrences: 1}]}
@@ -126,6 +141,26 @@ defmodule Cloak.QueryTest do
 
     assert_query "select count(*) from heights where height > 170 and height < 190",
       %{query_id: "1", columns: ["count(*)"], rows: [%{row: [20], occurrences: 1}]}
+  end
+
+  test "comparing a timestamp" do
+    early = %Postgrex.Timestamp{year: 2015}
+    late = %Postgrex.Timestamp{year: 2017}
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["time"], [early])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["time"], [late])
+
+    assert_query "select count(*) from heights where time > '2016-01-01'",
+      %{query_id: "1", columns: ["count(*)"], rows: [%{row: [10], occurrences: 1}]}
+  end
+
+  test "comparing a timestamp with <>" do
+    early = %Postgrex.Timestamp{year: 2015, month: 1, day: 1}
+    late = %Postgrex.Timestamp{year: 2017, month: 1, day: 1}
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["time"], [early])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["time"], [late])
+
+    assert_query "select count(*) from heights where time <> '2015-01-01'",
+      %{query_id: "1", columns: ["count(*)"], rows: [%{row: [10], occurrences: 1}]}
   end
 
   test "should allow LIKE in where clause" do
@@ -317,6 +352,11 @@ defmodule Cloak.QueryTest do
   test "query reports an error on unknown function" do
     assert_query "select invalid_function(height) from heights", %{error: error}
     assert ~s/Unknown function `invalid_function`./ == error
+  end
+
+  test "reports an error on wrong cast" do
+    assert_query "select * from heights where time > 0", %{error: error}
+    assert ~s/Cannot cast `0` to timestamp./ == error
   end
 
   test "query reports an error on runner crash" do
