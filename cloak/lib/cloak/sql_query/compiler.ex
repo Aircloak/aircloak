@@ -3,6 +3,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   alias Cloak.DataSource
   alias Cloak.SqlQuery.Parser
+  alias Cloak.SqlQuery.Parsers.Token
 
   @type compiled_query :: %{
     data_source: atom,
@@ -32,6 +33,7 @@ defmodule Cloak.SqlQuery.Compiler do
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_order_by(query),
+         {:ok, query} <- cast_where_clauses(query),
          query = partition_selected_columns(query),
          query = partition_where_clauses(query),
       do: {:ok, query}
@@ -72,7 +74,7 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  @aggregation_functions  ["count", "sum", "avg", "min", "max", "stddev", "median"]
+  @aggregation_functions ~w(count sum avg min max stddev median)
   defp aggregate_function?({:function, function, _}), do: Enum.member?(@aggregation_functions, function)
   defp aggregate_function?(_), do: false
 
@@ -85,14 +87,12 @@ defmodule Cloak.SqlQuery.Compiler do
     {:ok, query}
   end
   defp compile_columns(%{command: :select, columns: :*, from: table_identifier, data_source: data_source} = query) do
-    table_id = String.to_existing_atom(table_identifier)
-    columns = for {name, _type} <- DataSource.columns(data_source, table_id), do: name
+    columns = for {name, _type} <- columns(table_identifier, data_source), do: name
     compile_columns(%{query | columns: columns})
   end
   defp compile_columns(%{command: :select, from: table_identifier, data_source: data_source} = query) do
-    table_id = String.to_existing_atom(table_identifier)
-    table_columns = DataSource.columns(data_source, table_id)
-    with :ok <- verify_column_names(query, table_columns),
+    with table_columns = columns(table_identifier, data_source),
+        :ok <- verify_column_names(query, table_columns),
         :ok <- verify_aggregated_columns(query),
         :ok <- verify_functions(query),
         :ok <- verify_function_parameters(query, table_columns),
@@ -195,9 +195,70 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp partition_where_clauses(query), do: query
 
+  defp cast_where_clauses(%{where: [_|_] = clauses} = query) do
+    case error_map(clauses, &cast_where_clause(&1, query)) do
+      {:ok, result} -> {:ok, %{query | where: result}}
+      error -> error
+    end
+  end
+  defp cast_where_clauses(query), do: {:ok, query}
+
+  defp cast_where_clause(clause, query) do
+    column = where_clause_to_identifier(clause)
+    {_, type} = columns(query.from, query.data_source)
+      |> List.keyfind(column, 0)
+
+    do_cast_where_clause(clause, type)
+  end
+
+  defp do_cast_where_clause({:not, subclause}, type) do
+    case do_cast_where_clause(subclause, type) do
+      {:ok, result} -> {:ok, {:not, result}}
+      error -> error
+    end
+  end
+  defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, :timestamp) do
+    case parse_time(rhs) do
+      {:ok, time} -> {:ok, {:comparison, identifier, comparator, time}}
+      error -> error
+    end
+  end
+  defp do_cast_where_clause({:in, column, values}, :timestamp) do
+    case error_map(values, &parse_time/1) do
+      {:ok, times} -> {:ok, {:in, column, times}}
+      error -> error
+    end
+  end
+  defp do_cast_where_clause(clause, _), do: {:ok, clause}
+
+  defp parse_time(%Token{category: :constant, value: %{type: :string, value: string}}) do
+    case Timex.parse(string, "{ISO}") do
+      {:ok, value} -> {:ok, value}
+      _ -> case Timex.parse(string, "{ISOdate}") do
+        {:ok, value} -> {:ok, value}
+        _ -> {:error, "Cannot cast `#{string}` to timestamp."}
+      end
+    end
+  end
+  defp parse_time(%Token{value: %{value: value}}), do: {:error, "Cannot cast `#{value}` to timestamp."}
+
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
   defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
   Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
     defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
   end)
+
+  defp columns(table, data_source) do
+    table_id = String.to_existing_atom(table)
+    DataSource.columns(data_source, table_id)
+  end
+
+  defp error_map(xs, fun) do
+    result = Enum.map(xs, fun)
+
+    case Enum.find(result, &match?({:error, _}, &1)) do
+      {:error, error} -> {:error, error}
+      _ -> {:ok, Enum.map(result, fn({:ok, x}) -> x end)}
+    end
+  end
 end

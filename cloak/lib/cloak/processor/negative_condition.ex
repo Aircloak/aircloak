@@ -45,18 +45,22 @@ defmodule Cloak.Processor.NegativeCondition do
   end
 
   defp filter({:comparison, column, :=, %Token{value: %{value: value}}}, columns) do
-    index = Enum.find_index(columns, &(&1 === column))
-    fn(row) -> Enum.at(row, index + 1) == value end
+    index = index_with_user_id(column, columns)
+    fn(row) -> Enum.at(row, index) == value end
+  end
+  defp filter({:comparison, column, :=, value}, columns) do
+    index = index_with_user_id(column, columns)
+    fn(row) -> Enum.at(row, index) == value end
   end
   defp filter({:like, column, %Token{value: %{type: :string, value: pattern}}}, columns) do
-    index = Enum.find_index(columns, &(&1 === column))
+    index = index_with_user_id(column, columns)
     regex = to_regex(pattern)
-    fn(row) -> Enum.at(row, index + 1) =~ regex end
+    fn(row) -> Enum.at(row, index) =~ regex end
   end
   defp filter({:ilike, column, %Token{value: %{type: :string, value: pattern}}}, columns) do
-    index = Enum.find_index(columns, &(&1 === column))
+    index = index_with_user_id(column, columns)
     regex = to_regex(pattern, [_case_insensitive = "i"])
-    fn(row) -> Enum.at(row, index + 1) =~ regex end
+    fn(row) -> Enum.at(row, index) =~ regex end
   end
 
   defp to_regex(sql_pattern, options \\ []) do
@@ -75,4 +79,9 @@ defmodule Cloak.Processor.NegativeCondition do
   defp user_ids(rows), do: Enum.map(rows, &user_id/1)
 
   defp user_id(row), do: hd(row)
+
+  # Return the index of column, 1-based, since the rows contain the user id as their first value
+  defp index_with_user_id(column, columns) do
+    Enum.find_index(columns, &(&1 === column)) + 1
+  end
 end
