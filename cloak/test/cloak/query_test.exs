@@ -2,6 +2,7 @@ defmodule Cloak.QueryTest do
   use ExUnit.Case, async: false
 
   alias Cloak.Query
+  alias Timex.{DateTime, Timezone}
 
   defmacrop assert_query(query, expected_response) do
     quote do
@@ -61,7 +62,7 @@ defmodule Cloak.QueryTest do
       %{query_id: "1", columns: ["height", "name", "time"], rows: rows}
     assert Enum.map(rows, &(&1[:row])) == [
       [180, "adam", nil],
-      [180, "john", "2015-01-01T00:00:00Z"],
+      [180, "john", %DateTime{year: 2015, month: 1, day: 1, timezone: Timezone.get(:utc)}],
       [180, "mike", nil]
     ]
   end
