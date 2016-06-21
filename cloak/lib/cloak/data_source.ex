@@ -34,6 +34,8 @@ defmodule Cloak.DataSource do
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
 
+  require Logger
+
   # define returned data types and values
   @type t :: %{
     id: atom,
@@ -83,6 +85,11 @@ defmodule Cloak.DataSource do
 
   This function starts a datasource supervisor, and underneath it all data
   source adapters specified in the deployment configuration.
+
+  Starting is fault-tolerant: if some data sources can't be accessed, or if
+  there are some errors in the configuration, the system will still start,
+  using the valid datasources. Invalid data sources won't be accessible, but
+  the system will log corresponding errors.
   """
   @spec start_link() :: Supervisor.on_start
   def start_link() do
@@ -191,39 +198,69 @@ defmodule Cloak.DataSource do
 
   # load the columns list for all defined tables in all data sources
   defp cache_columns(data_sources) do
-    data_sources = for {id, data_source} <- data_sources, into: %{} do
-      {id, load_data_source_columns(data_source)}
-    end
-    Application.put_env(:cloak, :data_sources, data_sources)
+    Application.put_env(:cloak, :data_sources,
+      data_sources
+      |> Stream.map(&data_source_with_columns/1)
+      |> Enum.into(%{})
+    )
   end
 
-  defp load_data_source_columns(data_source) do
-    tables = for {table_id, table} <- data_source.tables, into: %{} do
-      columns = load_table_columns(data_source, table)
-      # verify the format of the columns list
-      columns != [] or raise("Could not load columns for table '#{data_source.id}/#{table_id}'!")
-      # extract user_id column and verify that it has the expected format
-      user_id = table[:user_id]
-      columns = case List.keytake(columns, user_id, 0) do
-        {{^user_id, :integer}, data_columns} -> data_columns
-        {{^user_id, :text}, data_columns} -> data_columns
-        _ -> raise("Invalid user id column specified for table '#{data_source.id}/#{table_id}'!")
+  defp data_source_with_columns({id, data_source}) do
+    tables =
+      for {table_id, table} <- data_source.tables do
+        case load_table_columns(data_source, table) do
+          {:ok, columns} ->
+            {table_id, Map.put(table, :columns, columns)}
+          {:error, reason} ->
+            Logger.error("Error fetching columns for table #{data_source.id}/#{table.name}: #{reason}")
+            nil
+        end
       end
-      # check that we still have columns left in the list
-      columns != [] or raise("No data columns found in table '#{data_source.id}/#{table_id}'!")
-      # save the columns list into the table specification
-      {table_id, Map.put(table, :columns, columns)}
-    end
+      |> Stream.filter(&(&1 != nil))
+      |> Enum.into(%{})
+
     # save the new table structure into the data source specification
-    Map.put(data_source, :tables, tables)
+    {id, Map.put(data_source, :tables, tables)}
   end
 
   defp load_table_columns(data_source, table) do
-    columns = data_source.driver.get_columns(data_source.id, table.name)
-    {supported, unsupported} = Enum.partition(columns, &supported?/1)
+    with {:ok, columns} <- do_load_columns(data_source, table) do
+      {supported, unsupported} = Enum.partition(columns, &supported?/1)
+      validate_unsupported_columns(unsupported, data_source, table)
+      {:ok, supported}
+    end
+  end
 
-    validate_unsupported_columns(unsupported, data_source, table)
-    supported
+  defp do_load_columns(data_source, table) do
+    try do
+      verify_columns(
+        table,
+        data_source.driver.get_columns(data_source.id, table.name)
+      )
+    catch type, error ->
+      {
+        :error,
+        Exception.format(type, error, :erlang.get_stacktrace())
+      }
+    end
+  end
+
+  defp verify_columns(table, columns) do
+    with {:ok, columns} <- verify_user_id(table, columns) do
+      case columns do
+        [] -> {:error, "no data columns found in table"}
+        [_|_] -> {:ok, columns}
+      end
+    end
+  end
+
+  defp verify_user_id(table, columns) do
+    user_id = table.user_id
+    case List.keytake(columns, user_id, 0) do
+      {{^user_id, :integer}, data_columns} -> {:ok, data_columns}
+      {{^user_id, :text}, data_columns} -> {:ok, data_columns}
+      _ -> {:error, "invalid user id column specified"}
+    end
   end
 
   defp supported?({_name, {:unsupported, _db_type}}), do: false
@@ -254,7 +291,7 @@ defmodule Cloak.DataSource do
       table = %{name: table_name, user_id: user_id}
       tables = Map.put(source[:tables], table_id, table)
       source = Map.put(source, :tables, tables)
-      source = load_data_source_columns(source)
+      {_, source} = data_source_with_columns({:local, source})
       Application.put_env(:cloak, :data_sources, %{local: source})
     end
 
