@@ -45,6 +45,12 @@ defmodule Cloak.Query.Result do
   end
   def order_rows(rows, _), do: rows
 
+  @doc "Adds an artificial row for aggregating queries with no grouping that returned no results."
+  @spec manufacture_empty_bucket([Bucket.t], SqlQuery.t) :: [Bucket.t]
+  def manufacture_empty_bucket(buckets, %{group_by: _}), do: buckets
+  def manufacture_empty_bucket([], %{aggregators: [_|_]}), do: [{[], [0]}]
+  def manufacture_empty_bucket(buckets, _), do: buckets
+
 
   # -------------------------------------------------------------------
   # Internal functions

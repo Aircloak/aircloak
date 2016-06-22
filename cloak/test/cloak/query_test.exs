@@ -48,7 +48,7 @@ defmodule Cloak.QueryTest do
   end
 
   test "select all query" do
-    assert_query "select * from heights", %{query_id: "1", columns: ["height", "name", "time"], rows: []}
+    assert_query "select * from heights", %{query_id: "1", columns: ["height", "name", "time"], rows: _}
   end
 
   test "select all and order query" do
@@ -86,6 +86,11 @@ defmodule Cloak.QueryTest do
 
     assert_query "select COUNT(height) from heights",
       %{columns: ["count(height)"], rows: [%{row: [20], occurrences: 1}]}
+  end
+
+  test "count of empty table" do
+    assert_query "select count(*) from heights",
+      %{columns: ["count(*)"], rows: [%{row: [0], occurrences: 1}]}
   end
 
   test "should produce aggregated values" do
