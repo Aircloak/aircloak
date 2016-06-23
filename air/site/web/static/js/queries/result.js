@@ -108,8 +108,8 @@ export class Result extends React.Component {
           <table className="table table-striped table-hover">
             <thead>
               <tr>
-                {this.props.columns.map((column) =>
-                  <th key={column}>{column}</th>
+                {this.props.columns.map((column, i) =>
+                  <th key={i}>{column}</th>
                 )}
               </tr>
             </thead>
