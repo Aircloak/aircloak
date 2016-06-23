@@ -1,14 +1,7 @@
 defmodule Cloak.DataSource.DsProxyTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias Cloak.DataSource.DsProxy
-
-  setup_all do
-    :meck.new(Cloak.Processor.Noise, [:passthrough])
-    :meck.expect(Cloak.Processor.Noise, :get, fn(_sigma, n) -> n end)
-
-    on_exit(fn -> :meck.unload() end)
-  end
 
   setup do
     data_source_id = :"data_source_#{:erlang.unique_integer()}"
