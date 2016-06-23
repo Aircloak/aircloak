@@ -24,7 +24,7 @@ defmodule Cloak.Processor.Anonymizer do
 
   defp aggregate_values("count", noise_generator, property_values) do
     {sum, _noise_generator} = Noise.sum(noise_generator, Enum.map(property_values, &length/1))
-    round(sum)
+    max(round(sum), Noise.count_lower_bound())
   end
   defp aggregate_values("sum", noise_generator, property_values) do
     {sum, _noise_generator} = Noise.sum(noise_generator, Enum.map(property_values, &Enum.sum/1))
