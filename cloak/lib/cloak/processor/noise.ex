@@ -154,8 +154,8 @@ defmodule Cloak.Processor.Noise do
     {a, b, c}
   end
 
-  # Produces a gaussian distributed random integer with given standard deviation and mean.
   if Mix.env != :test do
+    # Produces a gaussian distributed random integer with given standard deviation and mean.
     defp random(%{rng: rng} = noise_generator, sigma, mu) do
       {rand1, rng} = :rand.uniform_s(rng)
       {rand2, rng} = :rand.uniform_s(rng)
