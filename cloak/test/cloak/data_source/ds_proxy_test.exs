@@ -30,10 +30,10 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "parsed select", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["user_id", "foo"], "statement" => statement} = payload
+        assert %{"columns" => ["foo"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" => "SELECT user_id,foo FROM bar "} == statement
 
-        {200, %{success: true, columns: ["user_id", "foo"], rows: Enum.map(1..100, &[&1, &1])}}
+        {200, %{success: true, columns: ["foo"], rows: Enum.map(1..100, &[&1, &1])}}
       end
     )
 

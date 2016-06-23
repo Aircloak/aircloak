@@ -69,13 +69,27 @@ defmodule Cloak.DataSource.DsProxy do
     Enum.map(response["columns"], &({&1["name"], parse_type(&1["type"])}))
   end
 
-  defp run_query(params, %{columns: columns} = query) do
+  defp run_query(params, query) do
     response = %{"success" => true} = post!(params, "query", %{
-      columns: Enum.map(columns, &Builder.select_column_to_string/1),
+      columns: Enum.map(columns_without_user_id(query), &Builder.select_column_to_string/1),
       statement: sql_statement(query)
     })
-    {:ok, {length(response["rows"]), response["columns"], response["rows"]}}
+    {:ok, {
+      length(response["rows"]),
+      columns_with_user_id(query, response["columns"]),
+      response["rows"]
+    }}
   end
+
+  defp columns_without_user_id(%{columns: columns, from: {:subquery, _}}),
+    do: columns
+  defp columns_without_user_id(%{columns: [_user_id_column | other_columns]}),
+    do: other_columns
+
+  defp columns_with_user_id(%{from: {:subquery, _}}, columns),
+    do: columns
+  defp columns_with_user_id(%{columns: [user_id_column | _]}, columns),
+    do: [user_id_column | columns]
 
   defp sql_statement(%{from: {:subquery, unsafe_select}}) do
     %{
