@@ -63,6 +63,7 @@ defmodule Cloak.Query.Runner do
         |> NegativeCondition.apply(columns, select_query)
         |> Result.group_by_property_and_users(columns, select_query)
         |> Anonymizer.aggregate(select_query)
+        |> Result.manufacture_empty_bucket(select_query)
         |> Result.map_buckets(select_query)
         |> Result.order_rows(select_query)
 
