@@ -90,7 +90,7 @@ defmodule Cloak.QueryTest do
 
   test "aggregates of an empty table" do
     assert_query "select count(*), count(height), avg(height) from heights",
-      %{columns: ["count(*)", "count(height)", "avg(height)"], rows: [%{row: [0, 0, :*], occurrences: 1}]}
+      %{columns: ["count(*)", "count(height)", "avg(height)"], rows: [%{row: [0, 0, nil], occurrences: 1}]}
   end
 
   test "should produce aggregated values" do

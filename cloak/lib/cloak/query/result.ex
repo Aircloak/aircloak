@@ -51,7 +51,7 @@ defmodule Cloak.Query.Result do
   def manufacture_empty_bucket([], %{aggregators: [_|_] = aggregators}) do
     aggregates = Enum.map(aggregators, fn
       {_, "count", _} -> 0
-      _ -> :*
+      _ -> nil
     end)
 
     [{[], aggregates}]
