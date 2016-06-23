@@ -1,5 +1,32 @@
 defmodule Cloak.Processor.Noise do
-  @moduledoc "Utility module for noisy processing of buckets."
+  @moduledoc """
+  Utility module for generating deterministic noise from collection of unique users.
+
+  This module can be used to produce noisy values, such as sums or averages.
+  The values are approximations of the real values, with some random noise
+  added. The amount of noise can be configured through `:noise` section of OTP
+  application environment.
+
+  The generated noise is deterministic for the same set of users. For example,
+  calling `Noise.new() |> Noise.sum(users)` will always give the same result for
+  the same set of users, while it may differ for another set of users.
+
+  All functions return the anonymized value as well as the next state of the
+  noise generator. This state is used to produce the next random number.
+  Consequently, calling the same function with the same input but a different
+  state may produce a different value.
+
+  For example, let's say we have the following code:
+
+  ```
+  initial_noise_generator = Noise.new()
+  {sum, new_noise_generator} = Noise.sum(initial_noise_generator, users)
+  ```
+
+  At this point, calling `Noise.sum(new_noise_generator, users)` might return a
+  different sum. However, calling `Noise.sum(initial_noise, users)` would always
+  return the same value.
+  """
 
   @opaque t :: %{
     rng: :rand.state
@@ -16,16 +43,7 @@ defmodule Cloak.Processor.Noise do
   Creates a noise generator from a collection of unique user ids.
 
   This function takes either a `MapSet` containing user ids, or a map where
-  keys are user ids. Such types ensure that user ids are deduplicated.
-
-  It then creates a noise generator which can be used to create deterministic
-  noise based on the input list.
-
-  Internally, noise generator uses a `rand` based random number generator. This
-  generator is relying on explicit passing of state, rather than on process
-  dictionary, which forces client to explicitly pass the state around, and
-  thus decide whether they want to produce noise sequences, or start from the
-  beginning.
+  keys are user ids. Such types ensure that user ids are unique.
   """
   @spec new(MapSet.t | %{String.t => any}) :: t
   def new(%MapSet{} = users) do
