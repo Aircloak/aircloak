@@ -71,7 +71,7 @@ defmodule Cloak.DataSource.DsProxy do
 
   defp run_query(params, query) do
     response = %{"success" => true} = post!(params, "query", %{
-      columns: Enum.map(columns_without_user_id(query), &Builder.select_column_to_string/1),
+      columns: Enum.map(columns_without_user_id(query), &Builder.select_column_name/1),
       statement: sql_statement(query)
     })
     {:ok, {

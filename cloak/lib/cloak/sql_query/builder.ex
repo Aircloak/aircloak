@@ -26,11 +26,17 @@ defmodule Cloak.SqlQuery.Builder do
     ])
   end
 
-  @spec select_column_to_string(Cloak.SqlQuery.Parser.column) :: String.t
   @doc "Creates a string representation of a potentially complex column selection"
-  def select_column_to_string({:function, "count", :*}), do: ~s/'*' AS "*"/
+  @spec select_column_to_string(Cloak.SqlQuery.Parser.column) :: String.t
+  def select_column_to_string({:function, "count", :*}), do: "NULL AS ac_ignore"
   def select_column_to_string({:function, _function, identifier}), do: "#{identifier}"
   def select_column_to_string(column), do: column
+
+  @doc "Creates a column name of a potentially complex column selection"
+  @spec select_column_name(Cloak.SqlQuery.Parser.column) :: String.t
+  def select_column_name({:function, "count", :*}), do: "ac_ignore"
+  def select_column_name({:function, _function, identifier}), do: identifier
+  def select_column_name(column), do: column
 
 
   # -------------------------------------------------------------------
