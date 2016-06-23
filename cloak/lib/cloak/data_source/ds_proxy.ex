@@ -109,6 +109,7 @@ defmodule Cloak.DataSource.DsProxy do
   defp parse_type("text"), do: :text
   defp parse_type("bool"), do: :boolean
   defp parse_type("integer"), do: :integer
+  defp parse_type("int"), do: :integer
   defp parse_type("int2"), do: :integer
   defp parse_type("int4"), do: :integer
   defp parse_type("int8"), do: :integer
