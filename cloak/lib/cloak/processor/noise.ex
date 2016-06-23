@@ -71,7 +71,7 @@ defmodule Cloak.Processor.Noise do
     absolute_lower_bound = config(:absolute_lower_bound)
     soft_lower_bound = config(:soft_lower_bound)
     sigma_soft_lower_bound = config(:sigma_soft_lower_bound)
-    {noisy_count, noise_generator} = random(noise_generator, count, sigma_soft_lower_bound)
+    {noisy_count, noise_generator} = add_noise(noise_generator, count, sigma_soft_lower_bound)
     {
       count > absolute_lower_bound and round(noisy_count) > soft_lower_bound,
       noise_generator
@@ -93,16 +93,16 @@ defmodule Cloak.Processor.Noise do
 
     margin_count_mean = config(:margin_count_mean)
     margin_count_sigma = config(:margin_count_sigma)
-    {margin_count, noise_generator} = random(noise_generator, margin_count_mean, margin_count_sigma)
-    rounded_margin_count = round(margin_count)
-    top_average = real_margin_average(values, rounded_margin_count, :top)
-    bottom_average = real_margin_average(values, rounded_margin_count, :bottom)
+    {noisy_margin_count, noise_generator} = add_noise(noise_generator, margin_count_mean, margin_count_sigma)
+    rounded_noisy_margin_count = round(noisy_margin_count)
+    top_average = real_margin_average(values, rounded_noisy_margin_count, :top)
+    bottom_average = real_margin_average(values, rounded_noisy_margin_count, :bottom)
 
     sum_noise_sigma = config(:sum_noise_sigma)
-    {noise, noise_generator} = random(noise_generator, outlier_count, sum_noise_sigma)
+    {noisy_outlier_count, noise_generator} = add_noise(noise_generator, outlier_count, sum_noise_sigma)
 
     {
-      noise * (top_average + bottom_average) + Enum.sum(values),
+      noisy_outlier_count * (top_average + bottom_average) + Enum.sum(values),
       noise_generator
     }
   end
@@ -157,7 +157,7 @@ defmodule Cloak.Processor.Noise do
 
   if Mix.env != :test do
     # Produces a gaussian distributed random integer with given mean and standard deviation.
-    defp random(%{rng: rng} = noise_generator, mu, sigma) do
+    defp add_noise(%{rng: rng} = noise_generator, mu, sigma) do
       {rand1, rng} = :rand.uniform_s(rng)
       {rand2, rng} = :rand.uniform_s(rng)
       {gauss(mu, sigma, rand1, rand2), %{noise_generator | rng: rng}}
@@ -173,7 +173,7 @@ defmodule Cloak.Processor.Noise do
     end
   else
     # No noise in unit tests
-    defp random(noise_generator, mu, _sigma), do: {mu, noise_generator}
+    defp add_noise(noise_generator, mu, _sigma), do: {mu, noise_generator}
   end
 
   defp drop_outliers(values, outlier_count) do
@@ -191,9 +191,9 @@ defmodule Cloak.Processor.Noise do
 
     margin_count_mean = config(:margin_count_mean)
     margin_count_sigma = config(:margin_count_sigma)
-    {margin_count, noise_generator} = random(noise_generator, margin_count_mean, margin_count_sigma)
+    {noisy_margin_count, noise_generator} = add_noise(noise_generator, margin_count_mean, margin_count_sigma)
 
-    {real_margin_average(values, round(margin_count), top_or_bottom), noise_generator}
+    {real_margin_average(values, round(noisy_margin_count), top_or_bottom), noise_generator}
   end
 
   # Computes the average value for the margin of a collection.
