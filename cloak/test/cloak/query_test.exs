@@ -2,7 +2,6 @@ defmodule Cloak.QueryTest do
   use ExUnit.Case, async: false
 
   alias Cloak.Query
-  alias Cloak.Processor.Noise
 
   defmacrop assert_query(query, expected_response) do
     quote do
@@ -15,12 +14,6 @@ defmodule Cloak.QueryTest do
     :db_test.setup()
     :db_test.create_test_schema()
     :db_test.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
-
-    :meck.new(Noise, [:passthrough])
-    :meck.expect(Noise, :get, fn(noise_generator, _sigma, n) -> {round(n), noise_generator} end)
-
-    on_exit(fn -> :meck.unload() end)
-
     :ok
   end
 
