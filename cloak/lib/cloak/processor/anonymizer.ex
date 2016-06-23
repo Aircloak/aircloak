@@ -31,11 +31,11 @@ defmodule Cloak.Processor.Anonymizer do
     Float.round(sum, 3)
   end
   defp aggregate_values("min", noise_generator, property_values) do
-    {margin_average, _} = Noise.margin_average(noise_generator, Enum.map(property_values, &Enum.min/1), 1)
+    {margin_average, _} = Noise.top_margin_average(noise_generator, Enum.map(property_values, &Enum.min/1))
     Float.round(margin_average, 3)
   end
   defp aggregate_values("max", noise_generator, property_values) do
-    {margin_average, _} = Noise.margin_average(noise_generator, Enum.map(property_values, &Enum.max/1), -1)
+    {margin_average, _} = Noise.bottom_margin_average(noise_generator, Enum.map(property_values, &Enum.max/1))
     Float.round(margin_average, 3)
   end
   defp aggregate_values("avg", noise_generator, values) do

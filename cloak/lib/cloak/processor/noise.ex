@@ -76,8 +76,8 @@ defmodule Cloak.Processor.Noise do
     margin_count_sigma = config(:margin_count_sigma)
     {margin_count, noise_generator} = random(noise_generator, margin_count_sigma, margin_count_mean)
     rounded_margin_count = round(margin_count)
-    top_average = real_margin_average(values, rounded_margin_count)
-    bottom_average = real_margin_average(values, -rounded_margin_count)
+    top_average = real_margin_average(values, rounded_margin_count, :top)
+    bottom_average = real_margin_average(values, rounded_margin_count, :bottom)
 
     sum_noise_sigma = config(:sum_noise_sigma)
     {noise, noise_generator} = random(noise_generator, sum_noise_sigma, outlier_count)
@@ -89,26 +89,21 @@ defmodule Cloak.Processor.Noise do
   end
 
   @doc """
-  Sorts the values and computes the anonymized average of either beginning or
-  the end of the sorted collection.
-
-  The function first sorts the values, and then computes the anonymized average
-  of either the beginning of the list (if `margin_sign` == 1), or its end
-  (if `margin_sign` == -1). Refer to the implementation for precise details of
-  the noise algorithm.
+  Sorts the values and computes the anonymized average of the top of the sorted
+  collection. Refer to the implementation for precise details of the noise algorithm.
   """
-  @spec margin_average(t, [number], 1 | -1) :: {float, t}
-  def margin_average(noise_generator, values, margin_sign) do
-    values = Enum.sort(values)
+  @spec top_margin_average(t, [number]) :: {float, t}
+  def top_margin_average(noise_generator, values) do
+    margin_average(noise_generator, values, :top)
+  end
 
-    outlier_count = config(:dropped_outliers_count)
-    values = drop_outliers(values, outlier_count)
-
-    margin_count_mean = config(:margin_count_mean)
-    margin_count_sigma = config(:margin_count_sigma)
-    {margin_count, noise_generator} = random(noise_generator, margin_count_sigma, margin_count_mean)
-
-    {real_margin_average(values, margin_sign * round(margin_count)), noise_generator}
+  @doc """
+  Sorts the values and computes the anonymized average of the bottom of the sorted
+  collection. Refer to the implementation for precise details of the noise algorithm.
+  """
+  @spec bottom_margin_average(t, [number]) :: {float, t}
+  def bottom_margin_average(noise_generator, values) do
+    margin_average(noise_generator, values, :bottom)
   end
 
 
@@ -169,10 +164,28 @@ defmodule Cloak.Processor.Noise do
     Enum.slice(values, outlier_count, new_length)
   end
 
+  # Computes the margin average of the top or bottom of the collection.
+  defp margin_average(noise_generator, values, top_or_bottom) do
+    values = Enum.sort(values)
+
+    outlier_count = config(:dropped_outliers_count)
+    values = drop_outliers(values, outlier_count)
+
+    margin_count_mean = config(:margin_count_mean)
+    margin_count_sigma = config(:margin_count_sigma)
+    {margin_count, noise_generator} = random(noise_generator, margin_count_sigma, margin_count_mean)
+
+    {real_margin_average(values, round(margin_count), top_or_bottom), noise_generator}
+  end
+
   # Computes the average value for the margin of a collection.
-  defp real_margin_average([], _margin_count), do: 0
-  defp real_margin_average(values, margin_count) do
-    margin = Enum.take(values, margin_count)
+  defp real_margin_average([], _margin_count, _top_or_bottom), do: 0
+  defp real_margin_average(values, margin_count, top_or_bottom) do
+    count_to_take = case top_or_bottom do
+      :top -> margin_count
+      :bottom -> -margin_count
+    end
+    margin = Enum.take(values, count_to_take)
     Enum.sum(margin) / length(margin)
   end
 end
