@@ -1,15 +1,16 @@
 defmodule Cloak.Processor.Noise do
   @moduledoc """
-  Utility module for generating deterministic noise from collection of unique users.
+  Utility module for generating deterministic noise from a collection of unique users.
 
   This module can be used to produce noisy values, such as sums or averages.
   The values are approximations of the real values, with some random noise
-  added. The amount of noise can be configured through `:noise` section of OTP
+  added. The amount of noise can be configured through the `:noise` section of OTP
   application environment.
 
   The generated noise is deterministic for the same set of users. For example,
-  calling `Noise.new() |> Noise.sum(users)` will always give the same result for
-  the same set of users, while it may differ for another set of users.
+  calling `Noise.new(users) |> Noise.sum(values)` will always give the same result
+  for the same set of users and values, while it may differ for another set of
+  users even if the values are the same.
 
   All functions return the anonymized value as well as the next state of the
   noise generator. This state is used to produce the next random number.
@@ -19,13 +20,13 @@ defmodule Cloak.Processor.Noise do
   For example, let's say we have the following code:
 
   ```
-  initial_noise_generator = Noise.new()
-  {sum, new_noise_generator} = Noise.sum(initial_noise_generator, users)
+  initial_noise_generator = Noise.new(users)
+  {sum, new_noise_generator} = Noise.sum(initial_noise_generator, values)
   ```
 
-  At this point, calling `Noise.sum(new_noise_generator, users)` might return a
-  different sum. However, calling `Noise.sum(initial_noise, users)` would always
-  return the same value.
+  At this point, calling `Noise.sum(new_noise_generator, values)` might return a
+  different sum. However, calling `Noise.sum(initial_noise_generator, values)`
+  would always return the same value.
   """
 
   @opaque t :: %{
