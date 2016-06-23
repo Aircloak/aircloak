@@ -22,73 +22,21 @@ defmodule Cloak.Processor.Anonymizer do
   ## Internal functions
   ## ----------------------------------------------------------------
 
-  # Computes the average value for the margin of a collection.
-  defp margin_average([], _margin_count), do: 0
-  defp margin_average(values, margin_count) do
-    margin = Enum.take(values, margin_count)
-    Enum.sum(margin) / length(margin)
-  end
-
-  # Drops the specified numbers of outliers from a sorted collection of values.
-  defp drop_outliers(values, outlier_count) do
-    new_length = length(values) - 2 * outlier_count
-    true = new_length > 0 # assert we have enough values to remove
-    Enum.slice(values, outlier_count, new_length)
-  end
-
-  # Computes the anonymized sum of a collection of values.
-  defp anonymized_sum(values, noise_generator) do
-    values = Enum.sort(values)
-
-    outlier_count = Noise.config(:dropped_outliers_count)
-    values = drop_outliers(values, outlier_count)
-
-    margin_count_mean = Noise.config(:margin_count_mean)
-    margin_count_sigma = Noise.config(:margin_count_sigma)
-    {margin_count, noise_generator} = Noise.get(noise_generator, margin_count_sigma, margin_count_mean)
-    rounded_margin_count = round(margin_count)
-    top_average = margin_average(values, rounded_margin_count)
-    bottom_average = margin_average(values, -rounded_margin_count)
-
-    sum_noise_sigma = Noise.config(:sum_noise_sigma)
-    {noise, _noise_generator} = Noise.get(noise_generator, sum_noise_sigma, outlier_count)
-
-    noise * (top_average + bottom_average) + Enum.sum(values)
-  end
-
-  # Computes the anonymized average for one of the ends of a collection of values.
-  defp anonymized_margin(values, noise_generator, margin_sign) do
-    values = Enum.sort(values)
-
-    outlier_count = Noise.config(:dropped_outliers_count)
-    values = drop_outliers(values, outlier_count)
-
-    margin_count_mean = Noise.config(:margin_count_mean)
-    margin_count_sigma = Noise.config(:margin_count_sigma)
-    {margin_count, _noise_generator} = Noise.get(noise_generator, margin_count_sigma, margin_count_mean)
-
-    margin_average(values, margin_sign * round(margin_count))
-  end
-
   defp aggregate_values("count", noise_generator, property_values) do
-    (for user_values <- property_values, do: length(user_values))
-    |> anonymized_sum(noise_generator)
-    |> round()
+    {sum, _noise_generator} = Noise.sum(noise_generator, Enum.map(property_values, &length/1))
+    round(sum)
   end
   defp aggregate_values("sum", noise_generator, property_values) do
-    (for user_values <- property_values, do: Enum.sum(user_values))
-    |> anonymized_sum(noise_generator)
-    |> Float.round(3)
+    {sum, _noise_generator} = Noise.sum(noise_generator, Enum.map(property_values, &Enum.sum/1))
+    Float.round(sum, 3)
   end
   defp aggregate_values("min", noise_generator, property_values) do
-    (for user_values <- property_values, do: Enum.min(user_values))
-    |> anonymized_margin(noise_generator, 1)
-    |> Float.round(3)
+    {margin_average, _} = Noise.margin_average(noise_generator, Enum.map(property_values, &Enum.min/1), 1)
+    Float.round(margin_average, 3)
   end
   defp aggregate_values("max", noise_generator, property_values) do
-    (for user_values <- property_values, do: Enum.max(user_values))
-    |> anonymized_margin(noise_generator, -1)
-    |> Float.round(3)
+    {margin_average, _} = Noise.margin_average(noise_generator, Enum.map(property_values, &Enum.max/1), -1)
+    Float.round(margin_average, 3)
   end
   defp aggregate_values("avg", noise_generator, values) do
     count = aggregate_values("count", noise_generator, values)
