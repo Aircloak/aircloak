@@ -175,7 +175,6 @@ defmodule Cloak.Processor.Noise do
     defp random(noise_generator, _sigma, mu), do: {mu, noise_generator}
   end
 
-  # Drops the specified numbers of outliers from a sorted collection of values.
   defp drop_outliers(values, outlier_count) do
     new_length = length(values) - 2 * outlier_count
     true = new_length > 0 # assert we have enough values to remove
