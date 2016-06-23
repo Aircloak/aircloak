@@ -71,7 +71,7 @@ defmodule Cloak.Processor.Noise do
     absolute_lower_bound = config(:absolute_lower_bound)
     soft_lower_bound = config(:soft_lower_bound)
     sigma_soft_lower_bound = config(:sigma_soft_lower_bound)
-    {noisy_count, noise_generator} = random(noise_generator, sigma_soft_lower_bound, count)
+    {noisy_count, noise_generator} = random(noise_generator, count, sigma_soft_lower_bound)
     {
       count > absolute_lower_bound and round(noisy_count) > soft_lower_bound,
       noise_generator
@@ -93,13 +93,13 @@ defmodule Cloak.Processor.Noise do
 
     margin_count_mean = config(:margin_count_mean)
     margin_count_sigma = config(:margin_count_sigma)
-    {margin_count, noise_generator} = random(noise_generator, margin_count_sigma, margin_count_mean)
+    {margin_count, noise_generator} = random(noise_generator, margin_count_mean, margin_count_sigma)
     rounded_margin_count = round(margin_count)
     top_average = real_margin_average(values, rounded_margin_count, :top)
     bottom_average = real_margin_average(values, rounded_margin_count, :bottom)
 
     sum_noise_sigma = config(:sum_noise_sigma)
-    {noise, noise_generator} = random(noise_generator, sum_noise_sigma, outlier_count)
+    {noise, noise_generator} = random(noise_generator, outlier_count, sum_noise_sigma)
 
     {
       noise * (top_average + bottom_average) + Enum.sum(values),
@@ -156,16 +156,16 @@ defmodule Cloak.Processor.Noise do
   end
 
   if Mix.env != :test do
-    # Produces a gaussian distributed random integer with given standard deviation and mean.
-    defp random(%{rng: rng} = noise_generator, sigma, mu) do
+    # Produces a gaussian distributed random integer with given mean and standard deviation.
+    defp random(%{rng: rng} = noise_generator, mu, sigma) do
       {rand1, rng} = :rand.uniform_s(rng)
       {rand2, rng} = :rand.uniform_s(rng)
-      {gauss(sigma, mu, rand1, rand2), %{noise_generator | rng: rng}}
+      {gauss(mu, sigma, rand1, rand2), %{noise_generator | rng: rng}}
     end
 
     # Generates a gaussian distributed random number from two
     # uniform distributed numbers by the Box-Muller method.
-    defp gauss(sigma, mu, rand1, rand2) when rand1 > 0 do
+    defp gauss(mu, sigma, rand1, rand2) when rand1 > 0 do
       r1 = -2.0 * :math.log(rand1)
       r2 = 2.0 * :math.pi() * rand2
       preval = :math.sqrt(r1) * :math.cos(r2)
@@ -173,7 +173,7 @@ defmodule Cloak.Processor.Noise do
     end
   else
     # No noise in unit tests
-    defp random(noise_generator, _sigma, mu), do: {mu, noise_generator}
+    defp random(noise_generator, mu, _sigma), do: {mu, noise_generator}
   end
 
   defp drop_outliers(values, outlier_count) do
@@ -191,7 +191,7 @@ defmodule Cloak.Processor.Noise do
 
     margin_count_mean = config(:margin_count_mean)
     margin_count_sigma = config(:margin_count_sigma)
-    {margin_count, noise_generator} = random(noise_generator, margin_count_sigma, margin_count_mean)
+    {margin_count, noise_generator} = random(noise_generator, margin_count_mean, margin_count_sigma)
 
     {real_margin_average(values, round(margin_count), top_or_bottom), noise_generator}
   end
