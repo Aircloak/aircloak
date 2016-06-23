@@ -47,8 +47,7 @@ defmodule Cloak.Query.Result do
 
   @doc "Adds an artificial bucket for aggregating queries with no grouping that returned no results."
   @spec manufacture_empty_bucket([Bucket.t], SqlQuery.t) :: [Bucket.t]
-  def manufacture_empty_bucket(buckets, %{group_by: _}), do: buckets
-  def manufacture_empty_bucket([], %{aggregators: [_|_] = aggregators}) do
+  def manufacture_empty_bucket([], %{group_by: [], aggregators: [_|_] = aggregators}) do
     aggregates = Enum.map(aggregators, fn
       {_, "count", _} -> 0
       _ -> nil

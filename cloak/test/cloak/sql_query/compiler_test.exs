@@ -12,6 +12,10 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     }}
   end
 
+  test "adds an empty group by", %{data_source: data_source} do
+    assert %{group_by: []} = compile!("select * from table", data_source)
+  end
+
   test "casts timestamp where conditions", %{data_source: data_source} do
     result = compile!("select * from table where column > '2015-01-01'", data_source)
 

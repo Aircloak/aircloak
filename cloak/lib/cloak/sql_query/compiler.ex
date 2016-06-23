@@ -29,7 +29,8 @@ defmodule Cloak.SqlQuery.Compiler do
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
-    query = Map.merge(query, %{data_source: data_source, where_not: [], unsafe_filter_columns: []})
+    defaults = %{data_source: data_source, where_not: [], unsafe_filter_columns: [], group_by: []}
+    query = Map.merge(defaults, query)
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_order_by(query),
@@ -146,14 +147,13 @@ defmodule Cloak.SqlQuery.Compiler do
   defp all_columns(query) do
     select_columns = for column <- query.columns, do: select_clause_to_identifier(column)
     where_columns = for column <- Map.get(query, :where, []), do: where_clause_to_identifier(column)
-    group_by_columns = Map.get(query, :group_by, [])
-    select_columns ++ where_columns ++ group_by_columns
+    select_columns ++ where_columns ++ query.group_by
   end
 
   defp select_clause_to_identifier({:function, _function, identifier}), do: identifier
   defp select_clause_to_identifier(identifier), do: identifier
 
-  defp partition_selected_columns(%{group_by: groups, columns: columns} = query) do
+  defp partition_selected_columns(%{group_by: groups = [_|_], columns: columns} = query) do
     aggregators = filter_aggregators(columns)
     Map.merge(query, %{property: groups |> Enum.uniq(), aggregators: aggregators |> Enum.uniq()})
   end
