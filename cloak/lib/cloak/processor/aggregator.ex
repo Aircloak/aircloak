@@ -1,4 +1,4 @@
-defmodule Cloak.Processor.Anonymizer do
+defmodule Cloak.Processor.Aggregator do
   @moduledoc "This module aggregates the values for a property in a query into an anonymized result."
   import Cloak.Type
   alias Cloak.SqlQuery

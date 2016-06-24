@@ -3,7 +3,7 @@ defmodule Cloak.Query.Runner do
 
   alias Cloak.DataSource
   alias Cloak.Query.Result
-  alias Cloak.Processor.{NegativeCondition, Anonymizer}
+  alias Cloak.Processor.{NegativeCondition, Aggregator}
 
   import Cloak.Type
 
@@ -62,7 +62,7 @@ defmodule Cloak.Query.Runner do
         buckets = rows
         |> NegativeCondition.apply(columns, select_query)
         |> Result.group_by_property_and_users(columns, select_query)
-        |> Anonymizer.aggregate(select_query)
+        |> Aggregator.aggregate(select_query)
         |> Result.manufacture_empty_bucket(select_query)
         |> Result.map_buckets(select_query)
         |> Result.order_rows(select_query)
