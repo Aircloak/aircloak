@@ -66,13 +66,14 @@ defmodule Cloak.Processor.Noise do
   See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
   on the user list provided, giving the same answer every time for the given list of users.
   """
-  @spec passes_filter?(t, non_neg_integer) :: {boolean, t}
-  def passes_filter?(noise_generator, count) do
+  @spec passes_filter?(t, Enumerable.t) :: {boolean, t}
+  def passes_filter?(noise_generator, values) do
     soft_lower_bound = config(:soft_lower_bound)
     sigma_soft_lower_bound = config(:sigma_soft_lower_bound)
-    {noisy_count, noise_generator} = add_noise(noise_generator, count, sigma_soft_lower_bound)
+    real_count = Enum.count(values)
+    {noisy_count, noise_generator} = add_noise(noise_generator, real_count, sigma_soft_lower_bound)
     {
-      count > count_lower_bound() and round(noisy_count) > soft_lower_bound,
+      real_count > count_lower_bound() and round(noisy_count) > soft_lower_bound,
       noise_generator
     }
   end

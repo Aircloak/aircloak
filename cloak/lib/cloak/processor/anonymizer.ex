@@ -53,10 +53,10 @@ defmodule Cloak.Processor.Anonymizer do
   end
 
   defp low_users_count?({_property, noise_generator, users_values_map}),
-    do: low_users_count?(Enum.count(users_values_map), noise_generator)
+    do: low_users_count?(users_values_map, noise_generator)
 
-  defp low_users_count?(count, noise_generator) do
-    {passes_filter?, _} = Noise.passes_filter?(noise_generator, count)
+  defp low_users_count?(values, noise_generator) do
+    {passes_filter?, _} = Noise.passes_filter?(noise_generator, values)
     not passes_filter?
   end
 
@@ -85,7 +85,7 @@ defmodule Cloak.Processor.Anonymizer do
     do
       input_values = for user_values <- property_values, do: extract_user_values(user_values, column_index)
       input_values = for values <- input_values, values !== [], do: values # drop users with no valid values
-      case low_users_count?(length(input_values), noise_generator) do
+      case low_users_count?(input_values, noise_generator) do
         true -> nil
         false -> aggregate_values(function, noise_generator, input_values)
       end
