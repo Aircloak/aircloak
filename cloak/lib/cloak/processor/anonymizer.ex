@@ -35,6 +35,7 @@ defmodule Cloak.Processor.Anonymizer do
   }
 
   import Cloak.Type
+  import Kernel, except: [max: 2]
 
 
   # -------------------------------------------------------------------
@@ -71,27 +72,30 @@ defmodule Cloak.Processor.Anonymizer do
   def sufficiently_large?(anonymizer, values) do
     count_soft_lower_bound = config(:count_soft_lower_bound)
     count_soft_lower_bound_sigma = config(:count_soft_lower_bound_sigma)
+    count_absolute_lower_bound = config(:count_absolute_lower_bound)
     real_count = Enum.count(values)
     {noisy_count, anonymizer} = add_noise(anonymizer, real_count, count_soft_lower_bound_sigma)
     {
-      real_count > count_absolute_lower_bound() and round(noisy_count) > count_soft_lower_bound,
+      real_count > count_absolute_lower_bound and round(noisy_count) > count_soft_lower_bound,
       anonymizer
     }
   end
 
-  @doc "Returns the size below which buckets are always considered too small to include."
-  @spec count_absolute_lower_bound :: non_neg_integer
-  def count_absolute_lower_bound, do: config(:count_absolute_lower_bound)
+  @doc "Computes the anonymized count of all values in rows, where each row is an enumerable."
+  @spec count(t, Enumerable.t) :: {non_neg_integer, t}
+  def count(anonymizer, rows) do
+    {sum, anonymizer} = sum(anonymizer, Enum.map(rows, &[Enum.count(&1)]))
+    anonymized_count = Kernel.max(round(sum), config(:count_absolute_lower_bound))
+    {anonymized_count, anonymizer}
+  end
 
-  @doc """
-  Computes the anonymized sum of a collection of values.
-
-  The returned sum is an approximation of the real value. Refer to the
-  implementation for precise details of the noise algorithm.
-  """
+  @doc "Computes the anonymized sum of all values in rows, where each row is an enumerable of numbers."
   @spec sum(t, Enumerable.t) :: {float, t}
-  def sum(anonymizer, values) do
-    values = Enum.sort(values)
+  def sum(anonymizer, rows) do
+    values =
+      rows
+      |> Enum.map(&Enum.sum/1)
+      |> Enum.sort()
 
     outlier_count = config(:dropped_outliers_count)
     values = drop_outliers(values, outlier_count)
@@ -112,22 +116,24 @@ defmodule Cloak.Processor.Anonymizer do
     }
   end
 
-  @doc """
-  Sorts the values and computes the anonymized average of the top of the sorted
-  collection. Refer to the implementation for precise details of the noise algorithm.
-  """
-  @spec top_margin_average(t, Enumerable.t) :: {float, t}
-  def top_margin_average(anonymizer, values) do
-    margin_average(anonymizer, values, :top)
+  @doc "Computes the anonymized minimum value of all values in rows, where each row is an enumerable of numbers."
+  @spec min(t, Enumerable.t) :: {float, t}
+  def min(anonymizer, rows) do
+    margin_average(anonymizer, Enum.map(rows, &Enum.min/1), :top)
   end
 
-  @doc """
-  Sorts the values and computes the anonymized average of the bottom of the sorted
-  collection. Refer to the implementation for precise details of the noise algorithm.
-  """
-  @spec bottom_margin_average(t, Enumerable.t) :: {float, t}
-  def bottom_margin_average(anonymizer, values) do
-    margin_average(anonymizer, values, :bottom)
+  @doc "Computes the anonymized maximum value of all values in rows, where each row is an enumerable of numbers."
+  @spec max(t, Enumerable.t) :: {float, t}
+  def max(anonymizer, rows) do
+    margin_average(anonymizer, Enum.map(rows, &Enum.max/1), :bottom)
+  end
+
+  @doc "Computes the average value of all values in rows, where each row is an enumerable of numbers."
+  @spec avg(t, Enumerable.t) :: {float, t}
+  def avg(anonymizer, rows) do
+    {sum, anonymizer} = sum(anonymizer, rows)
+    {count, anonymizer} = count(anonymizer, rows)
+    {sum / count, anonymizer}
   end
 
 

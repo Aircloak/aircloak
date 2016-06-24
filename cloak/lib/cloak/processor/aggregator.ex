@@ -23,25 +23,24 @@ defmodule Cloak.Processor.Aggregator do
   ## ----------------------------------------------------------------
 
   defp aggregate_values("count", anonymizer, property_values) do
-    {sum, _anonymizer} = Anonymizer.sum(anonymizer, Enum.map(property_values, &length/1))
-    max(round(sum), Anonymizer.count_absolute_lower_bound())
+    {count, _anonymizer} = Anonymizer.count(anonymizer, property_values)
+    count
   end
   defp aggregate_values("sum", anonymizer, property_values) do
-    {sum, _anonymizer} = Anonymizer.sum(anonymizer, Enum.map(property_values, &Enum.sum/1))
+    {sum, _anonymizer} = Anonymizer.sum(anonymizer, property_values)
     Float.round(sum, 3)
   end
   defp aggregate_values("min", anonymizer, property_values) do
-    {margin_average, _} = Anonymizer.top_margin_average(anonymizer, Enum.map(property_values, &Enum.min/1))
+    {margin_average, _anonymizer} = Anonymizer.min(anonymizer, property_values)
     Float.round(margin_average, 3)
   end
   defp aggregate_values("max", anonymizer, property_values) do
-    {margin_average, _} = Anonymizer.bottom_margin_average(anonymizer, Enum.map(property_values, &Enum.max/1))
+    {margin_average, _anonymizer} = Anonymizer.max(anonymizer, property_values)
     Float.round(margin_average, 3)
   end
-  defp aggregate_values("avg", anonymizer, values) do
-    count = aggregate_values("count", anonymizer, values)
-    sum = aggregate_values("sum", anonymizer, values)
-    Float.round(sum / count, 3)
+  defp aggregate_values("avg", anonymizer, property_values) do
+    {avg, _anonymizer} = Anonymizer.avg(anonymizer, property_values)
+    Float.round(avg, 3)
   end
   defp aggregate_values(unknown_aggregator, _, _) do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
