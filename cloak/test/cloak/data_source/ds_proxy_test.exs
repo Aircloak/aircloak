@@ -110,6 +110,16 @@ defmodule Cloak.DataSource.DsProxyTest do
     assert "Column `foobar` doesn't exist in selected columns `foo1`, `foo2`." == message
   end
 
+  test "propagating reported error", context do
+    expect_json_post(context.bypass, "/query",
+      fn(_) ->
+        {200, %{success: false, error: "Some error message"}}
+      end
+    )
+
+    assert {:error, "Some error message"} == run_query(context, "select foo from (bar) as baz")
+  end
+
 
   ## ----------------------------------------------------------------
   ## Internal functions
