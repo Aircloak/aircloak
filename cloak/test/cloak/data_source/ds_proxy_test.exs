@@ -33,7 +33,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"columns" => ["foo"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" => "SELECT user_id,foo FROM bar "} == statement
 
-        {200, %{success: true, columns: ["foo"], rows: Enum.map(1..100, &[&1, &1])}}
+        {200, %{success: true, columns: ["user_id", "foo"], rows: Enum.map(1..100, &[&1, &1])}}
       end
     )
 
@@ -48,7 +48,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"params" => [], "type" => "parsed", "val" => query_string} = statement
         assert "SELECT user_id,NULL AS ac_ignore FROM bar " == query_string
 
-        {200, %{success: true, columns: ["ac_ignore"], rows: Enum.map(1..100, &[&1, &1])}}
+        {200, %{success: true, columns: ["user_id", "ac_ignore"], rows: Enum.map(1..100, &[&1, &1])}}
       end
     )
 
@@ -62,7 +62,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"statement" => statement} = payload
         assert %{"type" => "unsafe", "val" => "select foo from bar"} == statement
 
-        {200, %{success: true, columns: ["foo"], rows: Enum.map(1..100, &[&1, &1])}}
+        {200, %{success: true, columns: ["user_id", "foo"], rows: Enum.map(1..100, &[&1, &1])}}
       end
     )
 
@@ -76,7 +76,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"statement" => statement} = payload
         assert %{"type" => "unsafe", "val" => "select foo from bar"} == statement
 
-        {200, %{success: true, columns: ["foo"], rows: Enum.map(1..100, &[&1, &1])}}
+        {200, %{success: true, columns: ["user_id", "foo"], rows: Enum.map(1..100, &[&1, &1])}}
       end
     )
 
@@ -87,7 +87,7 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "invalid select column in unsafe select", context do
     expect_json_post(context.bypass, "/query",
       fn(_) ->
-        {200, %{success: true, columns: ["foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
+        {200, %{success: true, columns: ["user_id", "foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
       end
     )
 
@@ -99,7 +99,7 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "invalid group by in unsafe select", context do
     expect_json_post(context.bypass, "/query",
       fn(_) ->
-        {200, %{success: true, columns: ["foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
+        {200, %{success: true, columns: ["user_id", "foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
       end
     )
 
