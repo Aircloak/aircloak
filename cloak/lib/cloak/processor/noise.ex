@@ -88,7 +88,7 @@ defmodule Cloak.Processor.Noise do
   The returned sum is an approximation of the real value. Refer to the
   implementation for precise details of the noise algorithm.
   """
-  @spec sum(t, [number]) :: {float, t}
+  @spec sum(t, Enumerable.t) :: {float, t}
   def sum(noise_generator, values) do
     values = Enum.sort(values)
 
@@ -115,7 +115,7 @@ defmodule Cloak.Processor.Noise do
   Sorts the values and computes the anonymized average of the top of the sorted
   collection. Refer to the implementation for precise details of the noise algorithm.
   """
-  @spec top_margin_average(t, [number]) :: {float, t}
+  @spec top_margin_average(t, Enumerable.t) :: {float, t}
   def top_margin_average(noise_generator, values) do
     margin_average(noise_generator, values, :top)
   end
@@ -124,7 +124,7 @@ defmodule Cloak.Processor.Noise do
   Sorts the values and computes the anonymized average of the bottom of the sorted
   collection. Refer to the implementation for precise details of the noise algorithm.
   """
-  @spec bottom_margin_average(t, [number]) :: {float, t}
+  @spec bottom_margin_average(t, Enumerable.t) :: {float, t}
   def bottom_margin_average(noise_generator, values) do
     margin_average(noise_generator, values, :bottom)
   end
