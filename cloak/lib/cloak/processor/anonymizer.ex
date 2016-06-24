@@ -166,25 +166,20 @@ defmodule Cloak.Processor.Anonymizer do
     {a, b, c}
   end
 
-  if Mix.env != :test do
-    # Produces a gaussian distributed random integer with given mean and standard deviation.
-    defp add_noise(%{rng: rng} = anonymizer, mu, sigma) do
-      {rand1, rng} = :rand.uniform_s(rng)
-      {rand2, rng} = :rand.uniform_s(rng)
-      {gauss(mu, sigma, rand1, rand2), %{anonymizer | rng: rng}}
-    end
+  # Produces a gaussian distributed random integer with given mean and standard deviation.
+  defp add_noise(%{rng: rng} = anonymizer, mu, sigma) do
+    {rand1, rng} = :rand.uniform_s(rng)
+    {rand2, rng} = :rand.uniform_s(rng)
+    {gauss(mu, sigma, rand1, rand2), %{anonymizer | rng: rng}}
+  end
 
-    # Generates a gaussian distributed random number from two
-    # uniform distributed numbers by the Box-Muller method.
-    defp gauss(mu, sigma, rand1, rand2) when rand1 > 0 do
-      r1 = -2.0 * :math.log(rand1)
-      r2 = 2.0 * :math.pi() * rand2
-      preval = :math.sqrt(r1) * :math.cos(r2)
-      mu + sigma * preval
-    end
-  else
-    # No noise in unit tests
-    defp add_noise(anonymizer, mu, _sigma), do: {mu, anonymizer}
+  # Generates a gaussian distributed random number from two
+  # uniform distributed numbers by the Box-Muller method.
+  defp gauss(mu, sigma, rand1, rand2) when rand1 > 0 do
+    r1 = -2.0 * :math.log(rand1)
+    r2 = 2.0 * :math.pi() * rand2
+    preval = :math.sqrt(r1) * :math.cos(r2)
+    mu + sigma * preval
   end
 
   defp drop_outliers(values, outlier_count) do

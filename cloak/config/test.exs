@@ -17,3 +17,5 @@ config :cloak, :air,
   min_reconnect_interval: 50,
   max_reconnect_interval: :timer.seconds(5),
   serializer: Phoenix.Channels.GenSocketClient.Serializer.Json
+
+config :cloak, :anonymizer, sum_noise_sigma: 0
