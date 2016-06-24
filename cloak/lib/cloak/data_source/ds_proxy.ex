@@ -70,8 +70,12 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   defp run_query(params, query) do
-    response = %{"success" => true} = post!(params, "query", request(query))
-    {:ok, {length(response["rows"]), response["columns"], response["rows"]}}
+    case post!(params, "query", request(query)) do
+      %{"success" => true} = response ->
+        {:ok, {length(response["rows"]), response["columns"], response["rows"]}}
+      %{"success" => false, "error" => error_message} ->
+        {:error, error_message}
+    end
   end
 
   defp request(query) do
