@@ -68,15 +68,18 @@ defmodule Cloak.Processor.Noise do
   """
   @spec passes_filter?(t, non_neg_integer) :: {boolean, t}
   def passes_filter?(noise_generator, count) do
-    absolute_lower_bound = config(:absolute_lower_bound)
     soft_lower_bound = config(:soft_lower_bound)
     sigma_soft_lower_bound = config(:sigma_soft_lower_bound)
     {noisy_count, noise_generator} = add_noise(noise_generator, count, sigma_soft_lower_bound)
     {
-      count > absolute_lower_bound and round(noisy_count) > soft_lower_bound,
+      count > count_lower_bound() and round(noisy_count) > soft_lower_bound,
       noise_generator
     }
   end
+
+  @doc "Returns the size below which buckets are always considered too small to include."
+  @spec count_lower_bound :: non_neg_integer
+  def count_lower_bound, do: config(:absolute_lower_bound)
 
   @doc """
   Computes the anonymized sum of a collection of values.
