@@ -26,7 +26,7 @@ config :cloak, :air,
   return_url: 'https://infrastructure-api.aircloak.com/results',
   serializer: Phoenix.Channels.GenSocketClient.Serializer.GzipJson
 
-config :cloak, :noise,
+config :cloak, :anonymizer,
   # The minimum number of users that must be in a bucket to get reported.
   count_absolute_lower_bound: 2,
 

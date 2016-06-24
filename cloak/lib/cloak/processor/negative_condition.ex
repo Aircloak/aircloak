@@ -7,7 +7,7 @@ defmodule Cloak.Processor.NegativeCondition do
   included in the result set. To avoid this we ignore the condition if it would remove too few users.
   """
 
-  alias Cloak.Processor.Noise
+  alias Cloak.Processor.Anonymizer
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
 
@@ -36,8 +36,8 @@ defmodule Cloak.Processor.NegativeCondition do
       rows
       |> user_ids()
       |> Enum.into(MapSet.new())
-      |> Noise.new()
-      |> Noise.sufficiently_large?(filtered_rows(rows, clause, columns))
+      |> Anonymizer.new()
+      |> Anonymizer.sufficiently_large?(filtered_rows(rows, clause, columns))
 
     result
   end

@@ -1,16 +1,17 @@
-defmodule Cloak.Processor.Noise do
+defmodule Cloak.Processor.Anonymizer do
   @moduledoc """
-  Utility module for generating deterministic noise from a collection of unique users.
+  Utility module for stateful deterministic anonymization based on collection
+  of unique users.
 
-  This module can be used to produce noisy values, such as sums or averages.
+  This module can be used to produce anonymized values, such as sums or averages.
   The values are approximations of the real values, with some random noise
-  added. The amount of noise can be configured through the `:noise` section of OTP
-  application environment.
+  added. The amount of noise can be configured through the `:anonymizer` section
+  of OTP application environment.
 
   The generated noise is deterministic for the same set of users. For example,
-  calling `Noise.new(users) |> Noise.sum(values)` will always give the same result
-  for the same set of users and values, while it may differ for another set of
-  users even if the values are the same.
+  calling `Anonymizer.new(users) |> Anonymizer.sum(values)` will always give the
+  same result for the same set of users and values, while it may differ for another
+  set of users even if the values are the same.
 
   All functions return the anonymized value as well as the next state of the
   noise generator. This state is used to produce the next random number.
@@ -20,12 +21,12 @@ defmodule Cloak.Processor.Noise do
   For example, let's say we have the following code:
 
   ```
-  initial_noise_generator = Noise.new(users)
-  {sum, new_noise_generator} = Noise.sum(initial_noise_generator, values)
+  initial_anonymizer = Anonymizer.new(users)
+  {sum, new_anonymizer} = Anonymizer.sum(initial_anonymizer, values)
   ```
 
-  At this point, calling `Noise.sum(new_noise_generator, values)` might return a
-  different sum. However, calling `Noise.sum(initial_noise_generator, values)`
+  At this point, calling `Anonymizer.sum(new_anonymizer, values)` might return a
+  different sum. However, calling `Anonymizer.sum(initial_anonymizer, values)`
   would always return the same value.
   """
 
@@ -55,7 +56,7 @@ defmodule Cloak.Processor.Noise do
   end
 
   @doc """
-  Returns a `{boolean, noise_generator}` tuple, where the boolean value is
+  Returns a `{boolean, anonymizer}` tuple, where the boolean value is
   true if the passed collection is sufficiently large to be reported.
 
   Sufficiently large means:
@@ -67,14 +68,14 @@ defmodule Cloak.Processor.Noise do
   on the user list provided, giving the same answer every time for the given list of users.
   """
   @spec sufficiently_large?(t, Enumerable.t) :: {boolean, t}
-  def sufficiently_large?(noise_generator, values) do
+  def sufficiently_large?(anonymizer, values) do
     count_soft_lower_bound = config(:count_soft_lower_bound)
     count_soft_lower_bound_sigma = config(:count_soft_lower_bound_sigma)
     real_count = Enum.count(values)
-    {noisy_count, noise_generator} = add_noise(noise_generator, real_count, count_soft_lower_bound_sigma)
+    {noisy_count, anonymizer} = add_noise(anonymizer, real_count, count_soft_lower_bound_sigma)
     {
       real_count > count_absolute_lower_bound() and round(noisy_count) > count_soft_lower_bound,
-      noise_generator
+      anonymizer
     }
   end
 
@@ -89,7 +90,7 @@ defmodule Cloak.Processor.Noise do
   implementation for precise details of the noise algorithm.
   """
   @spec sum(t, Enumerable.t) :: {float, t}
-  def sum(noise_generator, values) do
+  def sum(anonymizer, values) do
     values = Enum.sort(values)
 
     outlier_count = config(:dropped_outliers_count)
@@ -97,17 +98,17 @@ defmodule Cloak.Processor.Noise do
 
     margin_count_mean = config(:margin_count_mean)
     margin_count_sigma = config(:margin_count_sigma)
-    {noisy_margin_count, noise_generator} = add_noise(noise_generator, margin_count_mean, margin_count_sigma)
+    {noisy_margin_count, anonymizer} = add_noise(anonymizer, margin_count_mean, margin_count_sigma)
     rounded_noisy_margin_count = round(noisy_margin_count)
     top_average = real_margin_average(values, rounded_noisy_margin_count, :top)
     bottom_average = real_margin_average(values, rounded_noisy_margin_count, :bottom)
 
     sum_noise_sigma = config(:sum_noise_sigma)
-    {noisy_outlier_count, noise_generator} = add_noise(noise_generator, outlier_count, sum_noise_sigma)
+    {noisy_outlier_count, anonymizer} = add_noise(anonymizer, outlier_count, sum_noise_sigma)
 
     {
       noisy_outlier_count * (top_average + bottom_average) + Enum.sum(values),
-      noise_generator
+      anonymizer
     }
   end
 
@@ -116,8 +117,8 @@ defmodule Cloak.Processor.Noise do
   collection. Refer to the implementation for precise details of the noise algorithm.
   """
   @spec top_margin_average(t, Enumerable.t) :: {float, t}
-  def top_margin_average(noise_generator, values) do
-    margin_average(noise_generator, values, :top)
+  def top_margin_average(anonymizer, values) do
+    margin_average(anonymizer, values, :top)
   end
 
   @doc """
@@ -125,8 +126,8 @@ defmodule Cloak.Processor.Noise do
   collection. Refer to the implementation for precise details of the noise algorithm.
   """
   @spec bottom_margin_average(t, Enumerable.t) :: {float, t}
-  def bottom_margin_average(noise_generator, values) do
-    margin_average(noise_generator, values, :bottom)
+  def bottom_margin_average(anonymizer, values) do
+    margin_average(anonymizer, values, :bottom)
   end
 
 
@@ -134,7 +135,7 @@ defmodule Cloak.Processor.Noise do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp config(name), do: :cloak_conf.get_val(:noise, name)
+  defp config(name), do: :cloak_conf.get_val(:anonymizer, name)
 
   defp new_instance(unique_users) do
     %{rng: :rand.seed(:exsplus, seed(unique_users))}
@@ -161,10 +162,10 @@ defmodule Cloak.Processor.Noise do
 
   if Mix.env != :test do
     # Produces a gaussian distributed random integer with given mean and standard deviation.
-    defp add_noise(%{rng: rng} = noise_generator, mu, sigma) do
+    defp add_noise(%{rng: rng} = anonymizer, mu, sigma) do
       {rand1, rng} = :rand.uniform_s(rng)
       {rand2, rng} = :rand.uniform_s(rng)
-      {gauss(mu, sigma, rand1, rand2), %{noise_generator | rng: rng}}
+      {gauss(mu, sigma, rand1, rand2), %{anonymizer | rng: rng}}
     end
 
     # Generates a gaussian distributed random number from two
@@ -177,7 +178,7 @@ defmodule Cloak.Processor.Noise do
     end
   else
     # No noise in unit tests
-    defp add_noise(noise_generator, mu, _sigma), do: {mu, noise_generator}
+    defp add_noise(anonymizer, mu, _sigma), do: {mu, anonymizer}
   end
 
   defp drop_outliers(values, outlier_count) do
@@ -187,7 +188,7 @@ defmodule Cloak.Processor.Noise do
   end
 
   # Computes the margin average of the top or bottom of the collection.
-  defp margin_average(noise_generator, values, top_or_bottom) do
+  defp margin_average(anonymizer, values, top_or_bottom) do
     values = Enum.sort(values)
 
     outlier_count = config(:dropped_outliers_count)
@@ -195,9 +196,9 @@ defmodule Cloak.Processor.Noise do
 
     margin_count_mean = config(:margin_count_mean)
     margin_count_sigma = config(:margin_count_sigma)
-    {noisy_margin_count, noise_generator} = add_noise(noise_generator, margin_count_mean, margin_count_sigma)
+    {noisy_margin_count, anonymizer} = add_noise(anonymizer, margin_count_mean, margin_count_sigma)
 
-    {real_margin_average(values, round(noisy_margin_count), top_or_bottom), noise_generator}
+    {real_margin_average(values, round(noisy_margin_count), top_or_bottom), anonymizer}
   end
 
   # Computes the average value for the margin of a collection.
