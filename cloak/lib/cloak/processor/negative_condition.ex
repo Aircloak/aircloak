@@ -37,7 +37,7 @@ defmodule Cloak.Processor.NegativeCondition do
       |> user_ids()
       |> Enum.into(MapSet.new())
       |> Noise.new()
-      |> Noise.passes_filter?(filtered_rows(rows, clause, columns))
+      |> Noise.sufficiently_large?(filtered_rows(rows, clause, columns))
 
     result
   end

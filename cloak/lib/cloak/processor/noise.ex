@@ -55,32 +55,32 @@ defmodule Cloak.Processor.Noise do
   end
 
   @doc """
-  Returns a `{passes_filter?, noise_generator}` tuple, where `passes_filter?` is
-  true if count is sufficiently large to be reported.
+  Returns a `{boolean, noise_generator}` tuple, where the boolean value is
+  true if the passed collection is sufficiently large to be reported.
 
   Sufficiently large means:
 
-  1. Greater than absolute_lower_bound
-  2. A noised version of the count is greater than soft_lower_bound
+  1. Greater than count_absolute_lower_bound
+  2. A noised version of the count is greater than count_soft_lower_bound
 
   See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
   on the user list provided, giving the same answer every time for the given list of users.
   """
-  @spec passes_filter?(t, Enumerable.t) :: {boolean, t}
-  def passes_filter?(noise_generator, values) do
-    soft_lower_bound = config(:soft_lower_bound)
-    sigma_soft_lower_bound = config(:sigma_soft_lower_bound)
+  @spec sufficiently_large?(t, Enumerable.t) :: {boolean, t}
+  def sufficiently_large?(noise_generator, values) do
+    count_soft_lower_bound = config(:count_soft_lower_bound)
+    count_soft_lower_bound_sigma = config(:count_soft_lower_bound_sigma)
     real_count = Enum.count(values)
-    {noisy_count, noise_generator} = add_noise(noise_generator, real_count, sigma_soft_lower_bound)
+    {noisy_count, noise_generator} = add_noise(noise_generator, real_count, count_soft_lower_bound_sigma)
     {
-      real_count > count_lower_bound() and round(noisy_count) > soft_lower_bound,
+      real_count > count_absolute_lower_bound() and round(noisy_count) > count_soft_lower_bound,
       noise_generator
     }
   end
 
   @doc "Returns the size below which buckets are always considered too small to include."
-  @spec count_lower_bound :: non_neg_integer
-  def count_lower_bound, do: config(:absolute_lower_bound)
+  @spec count_absolute_lower_bound :: non_neg_integer
+  def count_absolute_lower_bound, do: config(:count_absolute_lower_bound)
 
   @doc """
   Computes the anonymized sum of a collection of values.

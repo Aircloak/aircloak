@@ -24,7 +24,7 @@ defmodule Cloak.Processor.Anonymizer do
 
   defp aggregate_values("count", noise_generator, property_values) do
     {sum, _noise_generator} = Noise.sum(noise_generator, Enum.map(property_values, &length/1))
-    max(round(sum), Noise.count_lower_bound())
+    max(round(sum), Noise.count_absolute_lower_bound())
   end
   defp aggregate_values("sum", noise_generator, property_values) do
     {sum, _noise_generator} = Noise.sum(noise_generator, Enum.map(property_values, &Enum.sum/1))
@@ -56,8 +56,8 @@ defmodule Cloak.Processor.Anonymizer do
     do: low_users_count?(users_values_map, noise_generator)
 
   defp low_users_count?(values, noise_generator) do
-    {passes_filter?, _} = Noise.passes_filter?(noise_generator, values)
-    not passes_filter?
+    {sufficiently_large?, _} = Noise.sufficiently_large?(noise_generator, values)
+    not sufficiently_large?
   end
 
   defp process_low_count_users(rows, query) do

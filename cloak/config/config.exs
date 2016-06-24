@@ -28,12 +28,12 @@ config :cloak, :air,
 
 config :cloak, :noise,
   # The minimum number of users that must be in a bucket to get reported.
-  absolute_lower_bound: 2,
+  count_absolute_lower_bound: 2,
 
-  # After adding noise with standard deviation sigma_soft_lower_bound to the number of users in a bucket
-  # this noisy count has to be greater than soft_lower_bound to get reported.
-  sigma_soft_lower_bound: 1,
-  soft_lower_bound: 5,
+  # After adding noise with standard deviation count_soft_lower_bound_sigma to the number of users in a bucket
+  # this noisy count has to be greater than count_soft_lower_bound to get reported.
+  count_soft_lower_bound_sigma: 1,
+  count_soft_lower_bound: 5,
 
   # The number of outliers dropped, from top and bottom, during the anonymized aggregation of values.
   # The outliers are replaced with the average value for that margin of the collection.
