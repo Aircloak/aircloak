@@ -69,12 +69,18 @@ defmodule Cloak.DataSource.DsProxy do
     Enum.map(response["columns"], &({&1["name"], parse_type(&1["type"])}))
   end
 
-  defp run_query(params, %{columns: columns} = query) do
-    response = %{"success" => true} = post!(params, "query", %{
-      columns: Enum.map(columns, &Builder.select_column_to_string/1),
-      statement: sql_statement(query)
-    })
+  defp run_query(params, query) do
+    response = %{"success" => true} = post!(params, "query", request(query))
     {:ok, {length(response["rows"]), response["columns"], response["rows"]}}
+  end
+
+  defp request(query) do
+    maybe_include_columns(%{statement: sql_statement(query)}, query)
+  end
+
+  defp maybe_include_columns(request, %{from: {:subquery, _}}), do: request
+  defp maybe_include_columns(request, %{columns: [_user_id_column | columns_to_select]}) do
+    Map.put(request, :columns, Enum.map(columns_to_select, &Builder.select_column_name/1))
   end
 
   defp sql_statement(%{from: {:subquery, unsafe_select}}) do
@@ -109,6 +115,7 @@ defmodule Cloak.DataSource.DsProxy do
   defp parse_type("text"), do: :text
   defp parse_type("bool"), do: :boolean
   defp parse_type("integer"), do: :integer
+  defp parse_type("int"), do: :integer
   defp parse_type("int2"), do: :integer
   defp parse_type("int4"), do: :integer
   defp parse_type("int8"), do: :integer
