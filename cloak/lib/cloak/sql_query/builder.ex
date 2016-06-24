@@ -26,15 +26,22 @@ defmodule Cloak.SqlQuery.Builder do
     ])
   end
 
+  # The name of the column which we select from the db in place of `count(*)`
+  @count_all_column_name "ac_count_all_placeholder"
+  if Mix.env == :test do
+    @doc false
+    def count_all_column_name(), do: @count_all_column_name
+  end
+
   @doc "Creates a string representation of a potentially complex column selection"
   @spec select_column_to_string(Cloak.SqlQuery.Parser.column) :: String.t
-  def select_column_to_string({:function, "count", :*}), do: "NULL AS ac_ignore"
+  def select_column_to_string({:function, "count", :*}), do: "NULL AS #{@count_all_column_name}"
   def select_column_to_string({:function, _function, identifier}), do: "#{identifier}"
   def select_column_to_string(column), do: column
 
   @doc "Creates a column name of a potentially complex column selection"
   @spec select_column_name(Cloak.SqlQuery.Parser.column) :: String.t
-  def select_column_name({:function, "count", :*}), do: "ac_ignore"
+  def select_column_name({:function, "count", :*}), do: @count_all_column_name
   def select_column_name({:function, _function, identifier}), do: identifier
   def select_column_name(column), do: column
 
