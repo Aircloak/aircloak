@@ -59,10 +59,10 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "unsafe select count(foo)", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["foo"], "statement" => statement} = payload
+        assert %{"statement" => statement} = payload
         assert %{"type" => "unsafe", "val" => "select foo from bar"} == statement
 
-        {200, %{success: true, columns: ["user_id", "foo"], rows: Enum.map(1..100, &[&1, &1])}}
+        {200, %{success: true, columns: ["foo"], rows: Enum.map(1..100, &[&1, &1])}}
       end
     )
 
@@ -73,21 +73,21 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "unsafe select count(*)", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["ac_ignore"], "statement" => statement} = payload
+        assert %{"statement" => statement} = payload
         assert %{"type" => "unsafe", "val" => "select foo from bar"} == statement
 
-        {200, %{success: true, columns: ["user_id", "ac_ignore"], rows: Enum.map(1..100, &[&1, &1])}}
+        {200, %{success: true, columns: ["foo"], rows: Enum.map(1..100, &[&1, &1])}}
       end
     )
 
-    query_result = run_query(context, "select count(*) from (select foo from bar) as baz")
-    assert {:ok, {:buckets, ["count(*)"], [%{occurrences: 1, row: [100]}]}} = query_result
+    query_result = run_query(context, "select foo, count(*) from (select foo from bar) as baz group by foo")
+    assert {:ok, {:buckets, ["foo", "count(*)"], [%{occurrences: 1, row: [:*, 100]}]}} = query_result
   end
 
   test "invalid select column in unsafe select", context do
     expect_json_post(context.bypass, "/query",
       fn(_) ->
-        {200, %{success: true, columns: ["user_id", "foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
+        {200, %{success: true, columns: ["foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
       end
     )
 
@@ -99,7 +99,7 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "invalid group by in unsafe select", context do
     expect_json_post(context.bypass, "/query",
       fn(_) ->
-        {200, %{success: true, columns: ["user_id", "foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
+        {200, %{success: true, columns: ["foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
       end
     )
 

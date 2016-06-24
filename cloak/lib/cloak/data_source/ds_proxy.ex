@@ -70,10 +70,8 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   defp run_query(params, query) do
-    response = %{"success" => true} = post!(params, "query", %{
-      columns: Enum.map(columns_without_user_id(query), &Builder.select_column_name/1),
-      statement: sql_statement(query)
-    })
+    response = %{"success" => true} = post!(params, "query", request(query))
+
     {:ok, {
       length(response["rows"]),
       columns_with_user_id(query, response["columns"]),
@@ -81,13 +79,17 @@ defmodule Cloak.DataSource.DsProxy do
     }}
   end
 
-  defp columns_without_user_id(%{columns: columns, from: {:subquery, _}}),
-    do: columns
-  defp columns_without_user_id(%{columns: [_user_id_column | other_columns]}),
-    do: other_columns
+  defp request(query) do
+    maybe_include_columns(%{statement: sql_statement(query)}, query)
+  end
+
+  defp maybe_include_columns(request, %{from: {:subquery, _}}), do: request
+  defp maybe_include_columns(request, %{columns: [_user_id_column | columns_to_select]}) do
+    Map.put(request, :columns, Enum.map(columns_to_select, &Builder.select_column_name/1))
+  end
 
   defp columns_with_user_id(%{from: {:subquery, _}}, columns),
-    do: columns
+    do: ["cloak_added_uid_name_" | columns]
   defp columns_with_user_id(%{columns: [user_id_column | _]}, columns),
     do: [user_id_column | columns]
 
