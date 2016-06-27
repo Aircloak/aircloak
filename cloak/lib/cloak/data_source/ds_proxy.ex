@@ -147,6 +147,5 @@ defmodule Cloak.DataSource.DsProxy do
   defp parse_type("date"), do: :date
   defp parse_type("datetime"), do: :datetime
   defp parse_type("datetime2"), do: :datetime
-  defp parse_type("image"), do: :blob
   defp parse_type(type), do: {:unsupported, type}
 end
