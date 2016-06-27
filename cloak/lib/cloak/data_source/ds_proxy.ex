@@ -66,7 +66,7 @@ defmodule Cloak.DataSource.DsProxy do
 
   defp load_column_definitions(params, full_table_name) do
     response = %{"success" => true} = post!(params, "show_columns", %{table: full_table_name})
-    Enum.map(response["columns"], &({&1["name"], parse_type(&1["type"])}))
+    Enum.map(response["columns"], &({&1["name"], parse_type(String.downcase(&1["type"]))}))
   end
 
   defp run_query(params, query) do
@@ -118,6 +118,8 @@ defmodule Cloak.DataSource.DsProxy do
   defp parse_type("nvarchar"), do: :text
   defp parse_type("varchar"), do: :text
   defp parse_type("char"), do: :text
+  defp parse_type("character"), do: :text
+  defp parse_type("character varying"), do: :text
   defp parse_type("text"), do: :text
   defp parse_type("ntext"), do: :text
   defp parse_type("bool"), do: :boolean
