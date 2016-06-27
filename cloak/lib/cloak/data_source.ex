@@ -283,16 +283,24 @@ defmodule Cloak.DataSource do
   defp supported?({_name, {:unsupported, _db_type}}), do: false
   defp supported?({_name, _type}), do: true
 
+  defp validate_unsupported_columns([], _data_source, _table), do: nil
   defp validate_unsupported_columns(unsupported, data_source, table) do
-    cond do
-      table[:ignore_unsupported_types] -> nil
-      Enum.empty?(unsupported) -> nil
-      true ->
-        raise """
-          The following columns in "#{data_source.id}/#{table[:name]}" have unsupported types:
-          #{inspect(unsupported)}
-          To ignore them set "ignore_unsupported_types: true" in your table settings
-        """
+    table_string = "#{data_source.id}/#{table[:name]}"
+
+    columns_string =
+      unsupported
+      |> Enum.map(fn({column_name, {:unsupported, type}}) -> "  #{column_name} :: #{type}" end)
+      |> Enum.join("\n")
+
+    msg =
+      "The following columns in `#{table_string}` have unsupported types and will be ignored:\n" <>
+      columns_string
+
+    if table[:ignore_unsupported_types] do
+      Logger.warn(msg)
+      nil
+    else
+      raise "#{msg}\nTo ignore these columns set `ignore_unsupported_types: true` in your table settings"
     end
   end
 
