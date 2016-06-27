@@ -3,7 +3,7 @@ defmodule Cloak.Processor.Anonymizer do
   Utility module for stateful deterministic anonymization based on collection
   of unique users.
 
-  This module can be used to produce anonymized values, such as sums or averages.
+  This module can be used to produce noisy values, such as sums or averages.
   The values are approximations of the real values, with some random noise
   added. The amount of noise can be configured through the `:anonymizer` section
   of OTP application environment.
@@ -13,7 +13,7 @@ defmodule Cloak.Processor.Anonymizer do
   same result for the same set of users and values, while it may differ for another
   set of users even if the values are the same.
 
-  All functions return the anonymized value as well as the next state of the
+  All functions return the noisy value as well as the next state of the
   noise generator. This state is used to produce the next random number.
   Consequently, calling the same function with the same input but a different
   state may produce a different value.
@@ -81,15 +81,15 @@ defmodule Cloak.Processor.Anonymizer do
     }
   end
 
-  @doc "Computes the anonymized count of all values in rows, where each row is an enumerable."
+  @doc "Computes the noisy count of all values in rows, where each row is an enumerable."
   @spec count(t, Enumerable.t) :: {non_neg_integer, t}
   def count(anonymizer, rows) do
     {sum, anonymizer} = sum(anonymizer, Enum.map(rows, &[Enum.count(&1)]))
-    anonymized_count = Kernel.max(round(sum), config(:count_absolute_lower_bound))
-    {anonymized_count, anonymizer}
+    noisy_count = Kernel.max(round(sum), config(:count_absolute_lower_bound))
+    {noisy_count, anonymizer}
   end
 
-  @doc "Computes the anonymized sum of all values in rows, where each row is an enumerable of numbers."
+  @doc "Computes the noisy sum of all values in rows, where each row is an enumerable of numbers."
   @spec sum(t, Enumerable.t) :: {float, t}
   def sum(anonymizer, rows) do
     values =
@@ -116,13 +116,13 @@ defmodule Cloak.Processor.Anonymizer do
     }
   end
 
-  @doc "Computes the anonymized minimum value of all values in rows, where each row is an enumerable of numbers."
+  @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
   @spec min(t, Enumerable.t) :: {float, t}
   def min(anonymizer, rows) do
     margin_average(anonymizer, Enum.map(rows, &Enum.min/1), :top)
   end
 
-  @doc "Computes the anonymized maximum value of all values in rows, where each row is an enumerable of numbers."
+  @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."
   @spec max(t, Enumerable.t) :: {float, t}
   def max(anonymizer, rows) do
     margin_average(anonymizer, Enum.map(rows, &Enum.max/1), :bottom)
