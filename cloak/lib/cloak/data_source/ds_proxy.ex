@@ -114,24 +114,37 @@ defmodule Cloak.DataSource.DsProxy do
 
   defp proc_name(source_id), do: {:via, :gproc, {:n, :l, {Cloak.DataSource, source_id}}}
 
+  defp parse_type("uniqueidentifier"), do: :uuid
+  defp parse_type("nvarchar"), do: :text
   defp parse_type("varchar"), do: :text
   defp parse_type("char"), do: :text
   defp parse_type("text"), do: :text
+  defp parse_type("ntext"), do: :text
   defp parse_type("bool"), do: :boolean
+  defp parse_type("bit"), do: :boolean
   defp parse_type("integer"), do: :integer
   defp parse_type("int"), do: :integer
   defp parse_type("int2"), do: :integer
   defp parse_type("int4"), do: :integer
   defp parse_type("int8"), do: :integer
+  defp parse_type("tinyint"), do: :integer
+  defp parse_type("smallint"), do: :integer
+  defp parse_type("bigint"), do: :integer
+  defp parse_type("real"), do: :real
   defp parse_type("float"), do: :real
   defp parse_type("float4"), do: :real
   defp parse_type("float8"), do: :real
+  defp parse_type("decimal"), do: :real
   defp parse_type("money"), do: :real
+  defp parse_type("smallmoney"), do: :real
   defp parse_type("numeric"), do: :real
   defp parse_type("timestamp"), do: :timestamp
   defp parse_type("timestamptz"), do: :timestamp
   defp parse_type("time"), do: :time
   defp parse_type("timetz"), do: :time
   defp parse_type("date"), do: :date
+  defp parse_type("datetime"), do: :datetime
+  defp parse_type("datetime2"), do: :datetime
+  defp parse_type("image"), do: :blob
   defp parse_type(type), do: {:unsupported, type}
 end
