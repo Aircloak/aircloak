@@ -58,6 +58,20 @@ defmodule Cloak.DataSource.DsProxyTest do
     assert {:ok, {:buckets, ["count(*)"], [%{occurrences: 1, row: [100]}]}} = query_result
   end
 
+  test "dsproxy returns empty set", context do
+    expect_json_post(context.bypass, "/query",
+      fn(payload) ->
+        assert %{"columns" => ["foo"], "statement" => statement} = payload
+        assert %{"params" => [], "type" => "parsed", "val" => "SELECT user_id,foo FROM bar "} == statement
+
+        {200, %{success: true, columns: ["user_id", "foo"], rows: [[]]}}
+      end
+    )
+
+    query_result = run_query(context, "select foo from bar")
+    assert {:ok, {:buckets, ["foo"], [%{occurrences: 0, row: [nil]}]}} = query_result
+  end
+
   test "unsafe select count(foo)", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->

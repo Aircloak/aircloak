@@ -72,7 +72,18 @@ defmodule Cloak.DataSource.DsProxy do
   defp run_query(params, query) do
     case post!(params, "query", request(query)) do
       %{"success" => true} = response ->
-        {:ok, {length(response["rows"]), response["columns"], response["rows"]}}
+        rows =
+          case response["rows"] do
+            [[]] ->
+              # dsproxy returns a `[[]]` when there are no results, so we'll normalize it to
+              # an empty list
+              []
+
+            [_|_] = some_rows ->
+              some_rows
+          end
+        {:ok, {length(response["rows"]), response["columns"], rows}}
+
       %{"success" => false, "error" => error_message} ->
         {:error, error_message}
     end

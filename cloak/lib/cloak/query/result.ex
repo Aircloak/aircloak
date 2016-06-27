@@ -25,7 +25,6 @@ defmodule Cloak.Query.Result do
 
   @doc "Groups the data values to be aggregated by the selected property and the reported users."
   @spec group_by_property_and_users([Property.t], [String.t], SqlQuery.t) :: GroupedRows.t
-  def group_by_property_and_users([[]], _columns, _query), do: %{}
   def group_by_property_and_users(rows, columns, query) do
     aggregated_columns = SqlQuery.aggregated_columns(query)
     Enum.reduce(rows, %{}, fn([user | fields], accumulator) ->
