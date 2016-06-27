@@ -13,4 +13,9 @@ defmodule Cloak.SqlQuery.Lexer.Test do
     assert {:ok, [%Token{category: :constant, value: %{type: :string, value: "a string with a \\"}} | _]} =
       Lexer.tokenize("'a string with a \\\\'")
   end
+
+  test  "lexing strings with whitespace" do
+    assert {:ok, [%Token{category: :from}, %Token{category: :select} | _]} =
+      Lexer.tokenize("from\t\n select")
+  end
 end

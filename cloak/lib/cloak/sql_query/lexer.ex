@@ -69,7 +69,7 @@ defmodule Cloak.SqlQuery.Lexer do
   defp whitespace() do
     ignore(
       either(
-        spaces(),
+        word_of(~r/[\t ]/),
         newline() |> increment_line()
       )
     )
