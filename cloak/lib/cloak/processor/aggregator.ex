@@ -26,6 +26,9 @@ defmodule Cloak.Processor.Aggregator do
     {count, _anonymizer} = Anonymizer.count(anonymizer, property_values)
     count
   end
+  defp aggregate_values("distinct_count", anonymizer, property_values) do
+    aggregate_values("count", anonymizer, Enum.uniq(property_values))
+  end
   defp aggregate_values("sum", anonymizer, property_values) do
     {sum, _anonymizer} = Anonymizer.sum(anonymizer, property_values)
     Float.round(sum, 3)
