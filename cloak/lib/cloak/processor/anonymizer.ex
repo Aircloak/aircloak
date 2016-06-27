@@ -1,100 +1,215 @@
 defmodule Cloak.Processor.Anonymizer do
-  @moduledoc "This module aggregates the values for a property in a query into an anonymized result."
+  @moduledoc """
+  Utility module for stateful deterministic anonymization based on collection
+  of unique users.
+
+  This module can be used to produce noisy values, such as sums or averages.
+  The values are approximations of the real values, with some random noise
+  added. The amount of noise can be configured through the `:anonymizer` section
+  of OTP application environment.
+
+  The generated noise is deterministic for the same set of users. For example,
+  calling `Anonymizer.new(users) |> Anonymizer.sum(values)` will always give the
+  same result for the same set of users and values, while it may differ for another
+  set of users even if the values are the same.
+
+  All functions return the noisy value as well as the next state of the
+  noise generator. This state is used to produce the next random number.
+  Consequently, calling the same function with the same input but a different
+  state may produce a different value.
+
+  For example, let's say we have the following code:
+
+  ```
+  initial_anonymizer = Anonymizer.new(users)
+  {sum, new_anonymizer} = Anonymizer.sum(initial_anonymizer, values)
+  ```
+
+  At this point, calling `Anonymizer.sum(new_anonymizer, values)` might return a
+  different sum. However, calling `Anonymizer.sum(initial_anonymizer, values)`
+  would always return the same value.
+  """
+
+  @opaque t :: %{
+    rng: :rand.state
+  }
+
   import Cloak.Type
-  alias Cloak.SqlQuery
-  alias Cloak.Processor.Noise
+  import Kernel, except: [max: 2]
+
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
-  @doc "Aggregates the grouped rows into anonymized buckets by applying the selected aggregation function."
-  @spec aggregate(GroupedRows.t, SqlQuery.t) :: [Bucket.t]
-  def aggregate(rows, query) do
-    rows
-    |> init_noise()
-    |> process_low_count_users(query)
-    |> aggregate_rows(query)
+  @doc """
+  Creates a noise generator from a collection of unique user ids.
+
+  This function takes either a `MapSet` containing user ids, or a map where
+  keys are user ids. Such types ensure that user ids are unique.
+  """
+  @spec new(MapSet.t | %{String.t => any}) :: t
+  def new(%MapSet{} = users) do
+    new_instance(users)
+  end
+  def new(%{} = users_map) do
+    new_instance(Map.keys(users_map))
+  end
+
+  @doc """
+  Returns a `{boolean, anonymizer}` tuple, where the boolean value is
+  true if the passed collection is sufficiently large to be reported.
+
+  Sufficiently large means:
+
+  1. Greater than count_absolute_lower_bound
+  2. A noised version of the count is greater than count_soft_lower_bound
+
+  See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
+  on the user list provided, giving the same answer every time for the given list of users.
+  """
+  @spec sufficiently_large?(t, Enumerable.t) :: {boolean, t}
+  def sufficiently_large?(anonymizer, values) do
+    count_soft_lower_bound = config(:count_soft_lower_bound)
+    count_soft_lower_bound_sigma = config(:count_soft_lower_bound_sigma)
+    count_absolute_lower_bound = config(:count_absolute_lower_bound)
+    real_count = Enum.count(values)
+    {noisy_count, anonymizer} = add_noise(anonymizer, real_count, count_soft_lower_bound_sigma)
+    {
+      real_count > count_absolute_lower_bound and round(noisy_count) > count_soft_lower_bound,
+      anonymizer
+    }
+  end
+
+  @doc "Computes the noisy count of all values in rows, where each row is an enumerable."
+  @spec count(t, Enumerable.t) :: {non_neg_integer, t}
+  def count(anonymizer, rows) do
+    {sum, anonymizer} = sum(anonymizer, Enum.map(rows, &[Enum.count(&1)]))
+    noisy_count = Kernel.max(round(sum), config(:count_absolute_lower_bound))
+    {noisy_count, anonymizer}
+  end
+
+  @doc "Computes the noisy sum of all values in rows, where each row is an enumerable of numbers."
+  @spec sum(t, Enumerable.t) :: {float, t}
+  def sum(anonymizer, rows) do
+    values =
+      rows
+      |> Enum.map(&Enum.sum/1)
+      |> Enum.sort()
+
+    outlier_count = config(:dropped_outliers_count)
+    values = drop_outliers(values, outlier_count)
+
+    margin_count_mean = config(:margin_count_mean)
+    margin_count_sigma = config(:margin_count_sigma)
+    {noisy_margin_count, anonymizer} = add_noise(anonymizer, margin_count_mean, margin_count_sigma)
+    rounded_noisy_margin_count = round(noisy_margin_count)
+    top_average = real_margin_average(values, rounded_noisy_margin_count, :top)
+    bottom_average = real_margin_average(values, rounded_noisy_margin_count, :bottom)
+
+    sum_noise_sigma = config(:sum_noise_sigma)
+    {noisy_outlier_count, anonymizer} = add_noise(anonymizer, outlier_count, sum_noise_sigma)
+
+    {
+      noisy_outlier_count * (top_average + bottom_average) + Enum.sum(values),
+      anonymizer
+    }
+  end
+
+  @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
+  @spec min(t, Enumerable.t) :: {float, t}
+  def min(anonymizer, rows) do
+    margin_average(anonymizer, Enum.map(rows, &Enum.min/1), :top)
+  end
+
+  @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."
+  @spec max(t, Enumerable.t) :: {float, t}
+  def max(anonymizer, rows) do
+    margin_average(anonymizer, Enum.map(rows, &Enum.max/1), :bottom)
+  end
+
+  @doc "Computes the average value of all values in rows, where each row is an enumerable of numbers."
+  @spec avg(t, Enumerable.t) :: {float, t}
+  def avg(anonymizer, rows) do
+    {sum, anonymizer} = sum(anonymizer, rows)
+    {count, anonymizer} = count(anonymizer, rows)
+    {sum / count, anonymizer}
   end
 
 
-  ## ----------------------------------------------------------------
-  ## Internal functions
-  ## ----------------------------------------------------------------
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
-  defp aggregate_values("count", noise_generator, property_values) do
-    {sum, _noise_generator} = Noise.sum(noise_generator, Enum.map(property_values, &length/1))
-    max(round(sum), Noise.count_lower_bound())
-  end
-  defp aggregate_values("sum", noise_generator, property_values) do
-    {sum, _noise_generator} = Noise.sum(noise_generator, Enum.map(property_values, &Enum.sum/1))
-    Float.round(sum, 3)
-  end
-  defp aggregate_values("min", noise_generator, property_values) do
-    {margin_average, _} = Noise.top_margin_average(noise_generator, Enum.map(property_values, &Enum.min/1))
-    Float.round(margin_average, 3)
-  end
-  defp aggregate_values("max", noise_generator, property_values) do
-    {margin_average, _} = Noise.bottom_margin_average(noise_generator, Enum.map(property_values, &Enum.max/1))
-    Float.round(margin_average, 3)
-  end
-  defp aggregate_values("avg", noise_generator, values) do
-    count = aggregate_values("count", noise_generator, values)
-    sum = aggregate_values("sum", noise_generator, values)
-    Float.round(sum / count, 3)
-  end
-  defp aggregate_values(unknown_aggregator, _, _) do
-    raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
+  defp config(name), do: :cloak_conf.get_val(:anonymizer, name)
+
+  defp new_instance(unique_users) do
+    %{rng: :rand.seed(:exsplus, seed(unique_users))}
   end
 
-  defp init_noise(grouped_rows) do
-    for {property, users_values_map} <- grouped_rows,
-      do: {property, Noise.new(users_values_map), users_values_map}
+  defp seed(unique_users) do
+    unique_users
+    |> Enum.reduce(compute_hash(""), fn (user, accumulator) ->
+      user
+      |> to_string()
+      |> compute_hash()
+      # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
+      |> :crypto.exor(accumulator)
+    end)
+    |> binary_to_seed()
   end
 
-  defp low_users_count?({_property, noise_generator, users_values_map}),
-    do: low_users_count?(Enum.count(users_values_map), noise_generator)
+  defp compute_hash(binary), do: :crypto.hash(:md4, binary)
 
-  defp low_users_count?(count, noise_generator) do
-    {passes_filter?, _} = Noise.passes_filter?(noise_generator, count)
-    not passes_filter?
+  defp binary_to_seed(binary) do
+    <<a::32, b::32, c::64>> = binary
+    {a, b, c}
   end
 
-  defp process_low_count_users(rows, query) do
-    {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
-    lcf_users_values_map = Enum.reduce(low_count_rows, %{},
-      fn ({_property, _noise_generator, users_values_map}, accumulator) ->
-        Map.merge(accumulator, users_values_map, fn (_user, values1, values2) -> values1 ++ values2 end)
-      end)
-    noise_generator = Noise.new(lcf_users_values_map)
-    lcf_property = List.duplicate(:*, length(query.property))
-    lcf_row = {lcf_property, noise_generator, lcf_users_values_map}
-    case low_users_count?(lcf_row) do
-      false -> [lcf_row | high_count_rows]
-      true -> high_count_rows
+  # Produces a gaussian distributed random integer with given mean and standard deviation.
+  defp add_noise(%{rng: rng} = anonymizer, mu, sigma) do
+    {rand1, rng} = :rand.uniform_s(rng)
+    {rand2, rng} = :rand.uniform_s(rng)
+    {gauss(mu, sigma, rand1, rand2), %{anonymizer | rng: rng}}
+  end
+
+  # Generates a gaussian distributed random number from two
+  # uniform distributed numbers by the Box-Muller method.
+  defp gauss(mu, sigma, rand1, rand2) when rand1 > 0 do
+    r1 = -2.0 * :math.log(rand1)
+    r2 = 2.0 * :math.pi() * rand2
+    preval = :math.sqrt(r1) * :math.cos(r2)
+    mu + sigma * preval
+  end
+
+  defp drop_outliers(values, outlier_count) do
+    new_length = length(values) - 2 * outlier_count
+    true = new_length > 0 # assert we have enough values to remove
+    Enum.slice(values, outlier_count, new_length)
+  end
+
+  # Computes the margin average of the top or bottom of the collection.
+  defp margin_average(anonymizer, values, top_or_bottom) do
+    values = Enum.sort(values)
+
+    outlier_count = config(:dropped_outliers_count)
+    values = drop_outliers(values, outlier_count)
+
+    margin_count_mean = config(:margin_count_mean)
+    margin_count_sigma = config(:margin_count_sigma)
+    {noisy_margin_count, anonymizer} = add_noise(anonymizer, margin_count_mean, margin_count_sigma)
+
+    {real_margin_average(values, round(noisy_margin_count), top_or_bottom), anonymizer}
+  end
+
+  # Computes the average value for the margin of a collection.
+  defp real_margin_average([], _margin_count, _top_or_bottom), do: 0
+  defp real_margin_average(values, margin_count, top_or_bottom) do
+    count_to_take = case top_or_bottom do
+      :top -> margin_count
+      :bottom -> -margin_count
     end
-  end
-
-  defp extract_user_values(user_values, index), do:
-    for values <- user_values, value = Enum.at(values, index), value !== nil, do: value
-
-  defp aggregate_row({property, noise_generator, user_values_map}, aggregated_columns, aggregators) do
-    property_values = Map.values(user_values_map)
-    aggregated_values = for {:function, function, column} <- aggregators,
-      column_index = Enum.find_index(aggregated_columns, &(&1 === column))
-    do
-      input_values = for user_values <- property_values, do: extract_user_values(user_values, column_index)
-      input_values = for values <- input_values, values !== [], do: values # drop users with no valid values
-      case low_users_count?(length(input_values), noise_generator) do
-        true -> nil
-        false -> aggregate_values(function, noise_generator, input_values)
-      end
-    end
-    {property, aggregated_values}
-  end
-
-  defp aggregate_rows(rows, query) do
-    aggregated_columns = SqlQuery.aggregated_columns(query)
-    for row <- rows, do: aggregate_row(row, aggregated_columns, query.aggregators)
+    margin = Enum.take(values, count_to_take)
+    Enum.sum(margin) / length(margin)
   end
 end
