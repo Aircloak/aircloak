@@ -66,13 +66,24 @@ defmodule Cloak.DataSource.DsProxy do
 
   defp load_column_definitions(params, full_table_name) do
     response = %{"success" => true} = post!(params, "show_columns", %{table: full_table_name})
-    Enum.map(response["columns"], &({&1["name"], parse_type(&1["type"])}))
+    Enum.map(response["columns"], &({&1["name"], parse_type(String.downcase(&1["type"]))}))
   end
 
   defp run_query(params, query) do
     case post!(params, "query", request(query)) do
       %{"success" => true} = response ->
-        {:ok, {length(response["rows"]), response["columns"], response["rows"]}}
+        rows =
+          case response["rows"] do
+            [[]] ->
+              # dsproxy returns a `[[]]` when there are no results, so we'll normalize it to
+              # an empty list
+              []
+
+            [_|_] = some_rows ->
+              some_rows
+          end
+        {:ok, {length(response["rows"]), response["columns"], rows}}
+
       %{"success" => false, "error" => error_message} ->
         {:error, error_message}
     end
@@ -114,24 +125,38 @@ defmodule Cloak.DataSource.DsProxy do
 
   defp proc_name(source_id), do: {:via, :gproc, {:n, :l, {Cloak.DataSource, source_id}}}
 
+  defp parse_type("uniqueidentifier"), do: :uuid
+  defp parse_type("nvarchar"), do: :text
   defp parse_type("varchar"), do: :text
   defp parse_type("char"), do: :text
+  defp parse_type("character"), do: :text
+  defp parse_type("character varying"), do: :text
   defp parse_type("text"), do: :text
+  defp parse_type("ntext"), do: :text
   defp parse_type("bool"), do: :boolean
+  defp parse_type("bit"), do: :boolean
   defp parse_type("integer"), do: :integer
   defp parse_type("int"), do: :integer
   defp parse_type("int2"), do: :integer
   defp parse_type("int4"), do: :integer
   defp parse_type("int8"), do: :integer
+  defp parse_type("tinyint"), do: :integer
+  defp parse_type("smallint"), do: :integer
+  defp parse_type("bigint"), do: :integer
+  defp parse_type("real"), do: :real
   defp parse_type("float"), do: :real
   defp parse_type("float4"), do: :real
   defp parse_type("float8"), do: :real
+  defp parse_type("decimal"), do: :real
   defp parse_type("money"), do: :real
+  defp parse_type("smallmoney"), do: :real
   defp parse_type("numeric"), do: :real
   defp parse_type("timestamp"), do: :timestamp
   defp parse_type("timestamptz"), do: :timestamp
   defp parse_type("time"), do: :time
   defp parse_type("timetz"), do: :time
   defp parse_type("date"), do: :date
+  defp parse_type("datetime"), do: :datetime
+  defp parse_type("datetime2"), do: :datetime
   defp parse_type(type), do: {:unsupported, type}
 end
