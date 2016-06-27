@@ -10,6 +10,7 @@ defmodule Air.CloakInfo do
   the channel to be closed.
   """
 
+  require Logger
   alias Air.Utils.Process, as: ProcessUtils
 
   defstruct [:id, :name, :organisation, :data_sources, :created_at]
@@ -37,9 +38,11 @@ defmodule Air.CloakInfo do
   @spec start_link(%{String.t => any}) :: GenServer.server
   def start_link(raw_cloak_info) do
     cloak_info = parse_cloak_info(raw_cloak_info)
+    store_cloak_info(cloak_info)
+
     Air.ServiceRegistration.start_link(
       etcd_path(cloak_info.id),
-      encode_cloak_data(%{pid: self(), cloak_info: cloak_info}),
+      encode_cloak_data(%{pid: self()}),
       crash_on_error: true
     )
   end
@@ -101,13 +104,36 @@ defmodule Air.CloakInfo do
         cloak_data = decode_cloak_data(encoded_cloak_data)
         if ProcessUtils.alive?(cloak_data.pid) do
           # keeps false positives out, i.e. processes which have terminated, but the entry still lingers on
-          cloak_data
+          Map.put(cloak_data, :cloak_info, fetch_cloak_info(cloak_data.pid))
         else
           nil
         end
       _ ->
         nil
     end
+  end
+
+  defp store_cloak_info(cloak_info) do
+    true = :gproc.reg(gproc_name(self()), cloak_info)
+  end
+
+  @doc false
+  def fetch_cloak_info(main_channel_pid) do
+    if node(main_channel_pid) == node() do
+      :gproc.lookup_value(gproc_name(main_channel_pid))
+    else
+      case :rpc.call(node(main_channel_pid), __MODULE__, :fetch_cloak_info, [main_channel_pid]) do
+        {:badrpc, reason} ->
+          Logger.error("Error retrieving cloak info #{inspect reason}")
+          raise "can't fetch cloak info"
+
+        cloak_info -> cloak_info
+      end
+    end
+  end
+
+  defp gproc_name(main_channel_pid) do
+    {:n, :l, {__MODULE__, main_channel_pid}}
   end
 
   defp etcd_path(cloak_id) do
