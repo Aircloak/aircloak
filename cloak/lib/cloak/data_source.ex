@@ -252,9 +252,18 @@ defmodule Cloak.DataSource do
   defp verify_user_id(table, columns) do
     user_id = table.user_id
     case List.keytake(columns, user_id, 0) do
-      {{^user_id, :integer}, data_columns} -> {:ok, data_columns}
-      {{^user_id, :text}, data_columns} -> {:ok, data_columns}
-      _ -> {:error, "invalid user id column specified"}
+      {{^user_id, type}, data_columns} ->
+        if type in [:integer, :text, :uuid] do
+          {:ok, data_columns}
+        else
+          {:error, "unsupported user id type: #{type}"}
+        end
+      _ ->
+        columns_string =
+          columns
+          |> Enum.map(fn({column_name, _}) -> "`#{column_name}`" end)
+          |> Enum.join(", ")
+        {:error, "invalid user id column specified `#{user_id}`\n  columns: #{columns_string}"}
     end
   end
 
