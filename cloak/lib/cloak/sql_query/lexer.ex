@@ -32,6 +32,7 @@ defmodule Cloak.SqlQuery.Lexer do
     "ORDER", "GROUP", "BY",
     "ASC", "DESC", "AS",
     "NULL", "TRUE", "FALSE",
+    "DISTINCT",
     "(", ")",
     ",", ".", ";",
     "<=", ">=", "<>", "=", "<", ">",

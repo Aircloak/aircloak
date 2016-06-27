@@ -324,6 +324,13 @@ defmodule Cloak.SqlQuery.Parser.Test do
     )
   end
 
+  test "count(distinct column)" do
+    assert_parse(
+      "select count(distinct foo) from bar",
+      select(columns: [{:function, "distinct_count", "foo"}])
+    )
+  end
+
   Enum.each(
     [
       {"single quote is not allowed in the identifier",
