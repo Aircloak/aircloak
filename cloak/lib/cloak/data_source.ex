@@ -202,20 +202,33 @@ defmodule Cloak.DataSource do
   end
 
   defp data_source_with_columns({id, data_source}) do
+    # A reasonably sized chunk to avoid opening too many simultaneous connections
+    chunk_size = 50
+
     tables =
-      for {table_id, table} <- data_source.tables do
-        case load_table_columns(data_source, table) do
-          {:ok, columns} ->
-            {table_id, Map.put(table, :columns, columns)}
-          {:error, reason} ->
-            Logger.error("Error fetching columns for table #{data_source.id}/#{table.name}: #{reason}")
-            nil
-        end
-      end
-      |> Stream.filter(&(&1 != nil))
-      |> Enum.into(%{})
+      data_source.tables
+      |> Enum.chunk(chunk_size, chunk_size, [])
+      |> Enum.map(&load_tables_columns(data_source, &1))
+      |> Enum.reduce(%{}, &Map.merge/2)
 
     {id, Map.put(data_source, :tables, tables)}
+  end
+
+  defp load_tables_columns(data_source, tables) do
+    Enum.map(tables, &Task.async(fn -> table_with_columns(data_source, &1) end))
+    |> Enum.map(&Task.await/1)
+    |> Stream.filter(&(&1 != nil))
+    |> Enum.into(%{})
+  end
+
+  defp table_with_columns(data_source, {table_id, table}) do
+    case load_table_columns(data_source, table) do
+      {:ok, columns} ->
+        {table_id, Map.put(table, :columns, columns)}
+      {:error, reason} ->
+        Logger.error("Error fetching columns for table #{data_source.id}/#{table.name}: #{reason}")
+        nil
+    end
   end
 
   defp load_table_columns(data_source, table) do
