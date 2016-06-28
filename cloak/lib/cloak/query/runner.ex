@@ -2,10 +2,10 @@ defmodule Cloak.Query.Runner do
   @moduledoc "Cloak query runner."
 
   alias Cloak.DataSource
-  alias Cloak.Query.Result
-  alias Cloak.Processor.{NegativeCondition, Aggregator}
+  alias Cloak.DataSource.Row
+  alias Cloak.Query.{Aggregator, NegativeCondition, Sorter}
 
-  import Cloak.Type
+  @type bucket :: %{row: [DataSource.field], occurrences: pos_integer}
 
   defmodule RuntimeError do
     @moduledoc """
@@ -29,7 +29,7 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   @doc "Runs the query and returns the result."
-  @spec run(Cloak.Query.t) :: {:ok, {:buckets, [String.t], [Row.t]}} | {:error, any}
+  @spec run(Cloak.Query.t) :: {:ok, {:buckets, [String.t], [bucket]}} | {:error, any}
   def run(query) do
     with {:ok, sql_query} <- Cloak.SqlQuery.make(query.data_source, query.statement) do
       execute_sql_query(sql_query)
@@ -58,14 +58,13 @@ defmodule Cloak.Query.Runner do
   end
   defp execute_sql_query(%{command: :select, data_source: data_source} = select_query) do
     try do
-      with {:ok, {_count, [_user_id | columns], rows}} <- DataSource.select(data_source, select_query) do
-        buckets = rows
-        |> NegativeCondition.apply(columns, select_query)
-        |> Result.group_by_property_and_users(columns, select_query)
-        |> Aggregator.aggregate(select_query)
-        |> Result.manufacture_empty_bucket(select_query)
-        |> Result.map_buckets(select_query)
-        |> Result.order_rows(select_query)
+      with {:ok, rows} <- DataSource.select(data_source, select_query) do
+        buckets =
+          rows
+          |> NegativeCondition.apply(select_query)
+          |> Aggregator.aggregate(select_query)
+          |> Sorter.order_rows(select_query)
+          |> buckets(select_query)
 
         {:ok, {:buckets, Cloak.SqlQuery.column_titles(select_query), buckets}}
       end
@@ -73,4 +72,11 @@ defmodule Cloak.Query.Runner do
       {:error, e.message}
     end
   end
+
+  defp buckets(rows, query) do
+    Enum.map(rows, &%{row: Row.values(&1, query.columns), occurrences: occurrences(&1, query)})
+  end
+
+  defp occurrences(row, %{implicit_count: true}), do: Row.fetch!(row, {:function, "count", :*})
+  defp occurrences(_row, _query), do: 1
 end
