@@ -27,7 +27,11 @@ defmodule Cloak.Processor.Aggregator do
     count
   end
   defp aggregate_values("distinct_count", anonymizer, property_values) do
-    aggregate_values("count", anonymizer, Enum.uniq(property_values))
+    property_values
+    |> Enum.sort()
+    |> Enum.chunk_by(&(&1))
+    |> Enum.reject(&low_users_count?(&1, anonymizer))
+    |> Enum.count()
   end
   defp aggregate_values("sum", anonymizer, property_values) do
     {sum, _anonymizer} = Anonymizer.sum(anonymizer, property_values)
