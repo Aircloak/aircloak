@@ -106,7 +106,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_columns(query), do: {:ok, query}
 
   defp verify_function_parameters(query, table_columns) do
-    aggregated_columns = for {:function, function, _} = column <- query.columns,
+    aggregated_columns = for {:function, _, _} = column <- query.columns,
       numeric_aggregate_function?(column), do: select_clause_to_identifier(column)
     invalid_columns = Enum.reject(aggregated_columns,
       &(Enum.member?(table_columns, {&1, :integer}) or Enum.member?(table_columns, {&1, :real})))
