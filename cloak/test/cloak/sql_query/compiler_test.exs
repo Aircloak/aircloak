@@ -45,10 +45,16 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       compile("select * from table where column > 'something stupid'", data_source)
   end
 
-  for function <- ~w(avg min max sum) do
+  for function <- ~w(avg min max sum stddev median) do
     test "rejecting #{function} on non-numerical columns", %{data_source: data_source} do
       assert {:error, "Aggregation function used over non-numeric column `column`."} =
         compile("select #{unquote(function)}(column) from table", data_source)
+    end
+  end
+
+  for function <- ~w(count distinct_count) do
+    test "allowing #{function} on non-numerical columns", %{data_source: data_source} do
+      assert {:ok, _} = compile("select #{unquote(function)}(column) from table", data_source)
     end
   end
 
