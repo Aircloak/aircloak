@@ -1,11 +1,15 @@
 defmodule Cloak.Query.Result.Test do
   use ExUnit.Case, async: true
 
+  alias Cloak.DataSource.Row
   alias Cloak.Query.Result
   import Cloak.Type
 
-  defp list_to_rows(list), do: Enum.map(list, &(%{row: &1, occurrences: 1}))
-  defp rows_to_list(rows), do: Enum.map(rows, fn (%{row: row}) -> row end)
+  defp list_to_rows(values) do
+    Enum.map(values, &Row.new([:column_1], [&1]))
+  end
+
+  defp rows_to_list(rows), do: Enum.map(rows, &Row.values/1)
 
   Enum.each([
     {"a string", :asc},
@@ -16,8 +20,8 @@ defmodule Cloak.Query.Result.Test do
     {nil, :desc},
   ], fn {other_value, order} ->
     test ":* is ordered after #{other_value} when the order is #{order}" do
-      rows = [[:*], [unquote(other_value)], [:*]] |> list_to_rows()
-      query = %{columns: [], order_by: [{0, unquote(order)}]}
+      rows = [:*, unquote(other_value), :*] |> list_to_rows()
+      query = %{columns: [], order_by: [{:column_1, unquote(order)}]}
 
       ordered = Result.order_rows(rows, query) |> rows_to_list()
 
@@ -26,8 +30,8 @@ defmodule Cloak.Query.Result.Test do
   end)
 
   test "nil is ordered after present values and before anonymized values" do
-    rows = [[nil], [:*], ["aaa"], [nil]] |> list_to_rows()
-    query = %{columns: [], order_by: [{0, :asc}]}
+    rows = [nil, :*, "aaa", nil] |> list_to_rows()
+    query = %{columns: [], order_by: [{:column_1, :asc}]}
     ordered = Result.order_rows(rows, query) |> rows_to_list()
     assert ordered == [["aaa"], [nil], [nil], [:*]]
   end

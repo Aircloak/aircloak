@@ -1,6 +1,9 @@
 defmodule Cloak.DataSourceTest do
   use ExUnit.Case, async: false
 
+  alias Cloak.DataSource
+  alias Cloak.DataSource.Row
+
   setup do
     :ok = :db_test.setup()
     {:ok, _} = :db_test.create_test_schema()
@@ -14,23 +17,21 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "schema discovery" do
-    assert(Cloak.DataSource.tables(local_data_source()) == [:test])
-    assert(Cloak.DataSource.columns(local_data_source(), :test) == [{"value", :integer}])
+    assert(DataSource.tables(local_data_source()) == [:test])
+    assert(DataSource.columns(local_data_source(), :test) == [{"value", :integer}])
   end
 
   test "data retrieval" do
-    data = Cloak.DataSource.select(local_data_source(), %{
+    assert {:ok, rows} = DataSource.select(local_data_source(), %{
       command: :select,
       columns: ["value"],
       unsafe_filter_columns: [],
       from: "test"
     })
 
-    assert(data == {:ok, {
-      3,
-      ["user_id", "value"],
-      [["user-id", 10], ["user-id", 20], ["user-id", 30]]
-    }})
+    assert 3 == length(rows)
+    assert Enum.all?(rows, &(&1.columns == ["user_id", "value"]))
+    assert [["user-id", 10], ["user-id", 20], ["user-id", 30]] == Enum.map(rows, &Row.values/1)
   end
 
   defp local_data_source() do

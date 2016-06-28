@@ -29,7 +29,7 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   @doc "Runs the query and returns the result."
-  @spec run(Cloak.Query.t) :: {:ok, {:buckets, [String.t], [Row.t]}} | {:error, any}
+  @spec run(Cloak.Query.t) :: {:ok, {:buckets, [String.t], [Bucket.t]}} | {:error, any}
   def run(query) do
     with {:ok, sql_query} <- Cloak.SqlQuery.make(query.data_source, query.statement) do
       execute_sql_query(sql_query)
@@ -58,14 +58,14 @@ defmodule Cloak.Query.Runner do
   end
   defp execute_sql_query(%{command: :select, data_source: data_source} = select_query) do
     try do
-      with {:ok, {_count, [_user_id | columns], rows}} <- DataSource.select(data_source, select_query) do
-        buckets = rows
-        |> NegativeCondition.apply(columns, select_query)
-        |> Result.group_by_property_and_users(columns, select_query)
-        |> Aggregator.aggregate(select_query)
-        |> Result.manufacture_empty_bucket(select_query)
-        |> Result.map_buckets(select_query)
-        |> Result.order_rows(select_query)
+      with {:ok, rows} <- DataSource.select(data_source, select_query) do
+        buckets =
+          rows
+          |> NegativeCondition.apply(select_query)
+          |> Result.group_by_property_and_users(select_query)
+          |> Aggregator.aggregate(select_query)
+          |> Result.order_rows(select_query)
+          |> Result.buckets(select_query)
 
         {:ok, {:buckets, Cloak.SqlQuery.column_titles(select_query), buckets}}
       end

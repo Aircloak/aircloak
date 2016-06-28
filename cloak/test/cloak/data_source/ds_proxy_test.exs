@@ -109,7 +109,7 @@ defmodule Cloak.DataSource.DsProxyTest do
 
     query_result = run_query(context, "select count(foo) from (select foo1 from bar) as baz")
     assert {:error, message} = query_result
-    assert "Column `foo` doesn't exist in selected columns `foo1`, `foo2`." == message
+    assert "Column `foo` doesn't exist in selected columns." == message
   end
 
   test "invalid group by in unsafe select", context do
@@ -121,7 +121,7 @@ defmodule Cloak.DataSource.DsProxyTest do
 
     query_result = run_query(context, "select count(*) from (select foo1 from bar) as baz group by foobar")
     assert {:error, message} = query_result
-    assert "Column `foobar` doesn't exist in selected columns `foo1`, `foo2`." == message
+    assert "Column `foobar` doesn't exist in selected columns." == message
   end
 
   test "propagating reported error", context do

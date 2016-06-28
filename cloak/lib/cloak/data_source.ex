@@ -35,6 +35,7 @@ defmodule Cloak.DataSource do
   """
 
   require Logger
+  alias Cloak.DataSource.Row
 
   # define returned data types and values
   @type t :: %{
@@ -134,10 +135,11 @@ defmodule Cloak.DataSource do
   Execute a `select` query over the specified data source.
   Returns {RowCount, Columns, Rows}.
   """
-  @spec select(t, Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
+  @spec select(t, Cloak.SqlQuery.t) :: {:ok, [Row.t]} | {:error, any}
   def select(data_source, %{from: {:subquery, _}} = select_query) do
     driver = data_source.driver
-    driver.select(data_source.id, select_query)
+    with {:ok, {_count, columns, rows}} <- driver.select(data_source.id, select_query),
+      do: {:ok, make_rows(columns, rows)}
   end
   def select(data_source, %{columns: fields, from: table_identifier} = select_query) do
     driver = data_source.driver
@@ -146,7 +148,9 @@ defmodule Cloak.DataSource do
     user_id = Map.fetch!(table, :user_id)
     table_name = Map.fetch!(table, :name)
     # insert the user_id column into the fields list, translate the table name and execute the `select` query
-    driver.select(data_source.id, %{select_query | columns: [user_id | fields], from: table_name})
+    full_query = %{select_query | columns: [user_id | fields], from: table_name}
+    with {:ok, {_count, columns, rows}} <- driver.select(data_source.id, full_query),
+      do: {:ok, make_rows(columns, rows)}
   end
 
   @doc "Returns the datasource for the given id, raises if it's not found."
@@ -302,6 +306,10 @@ defmodule Cloak.DataSource do
     else
       raise "#{msg}\nTo ignore these columns set `ignore_unsupported_types: true` in your table settings"
     end
+  end
+
+  defp make_rows(columns, rows) do
+    Enum.map(rows, &Row.new(columns, &1))
   end
 
 
