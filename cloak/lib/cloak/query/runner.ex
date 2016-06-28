@@ -74,16 +74,9 @@ defmodule Cloak.Query.Runner do
   end
 
   defp buckets(rows, query) do
-    for row <- rows do
-      %{
-        row: Row.values(row, query.columns),
-        occurrences:
-          if query[:implicit_count] do
-            Row.value(row, {:function, "count", :*})
-          else
-            1
-          end
-      }
-    end
+    Enum.map(rows, &%{row: Row.values(&1, query.columns), occurrences: occurrences(&1, query)})
   end
+
+  defp occurrences(row, %{implicit_count: true}), do: Row.value(row, {:function, "count", :*})
+  defp occurrences(_row, _query), do: 1
 end
