@@ -25,8 +25,8 @@ defmodule Cloak.Query.Sorter do
 
   defp compare_rows(row1, row2, []), do: row1 < row2
   defp compare_rows(row1, row2, [{column, direction} | remaining_order]) do
-    field1 = Row.value(row1, column)
-    field2 = Row.value(row2, column)
+    field1 = Row.fetch!(row1, column)
+    field2 = Row.fetch!(row2, column)
     case field1 === field2 do
       :true -> compare_rows(row1, row2, remaining_order)
       :false -> compare_fields(field1, field2, direction)

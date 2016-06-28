@@ -31,7 +31,7 @@ defmodule Cloak.Query.NegativeCondition do
   # -------------------------------------------------------------------
 
   defp user_id(row) do
-    Row.value(row, hd(row.columns))
+    Row.fetch!(row, hd(row.columns))
   end
 
   defp sufficient_matches?(clause, rows) do
@@ -52,16 +52,16 @@ defmodule Cloak.Query.NegativeCondition do
   end
 
   defp filter(row, {:comparison, column, :=, %Token{value: %{value: value}}}) do
-    Row.value(row, column) == value
+    Row.fetch!(row, column) == value
   end
   defp filter(row, {:comparison, column, :=, value}) do
-    Row.value(row, column) == value
+    Row.fetch!(row, column) == value
   end
   defp filter(row, {:like, column, %Token{value: %{type: :string, value: pattern}}}) do
-    Row.value(row, column) =~ to_regex(pattern)
+    Row.fetch!(row, column) =~ to_regex(pattern)
   end
   defp filter(row, {:ilike, column, %Token{value: %{type: :string, value: pattern}}}) do
-    Row.value(row, column) =~ to_regex(pattern, [_case_insensitive = "i"])
+    Row.fetch!(row, column) =~ to_regex(pattern, [_case_insensitive = "i"])
   end
 
   defp to_regex(sql_pattern, options \\ []) do

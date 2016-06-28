@@ -77,6 +77,6 @@ defmodule Cloak.Query.Runner do
     Enum.map(rows, &%{row: Row.values(&1, query.columns), occurrences: occurrences(&1, query)})
   end
 
-  defp occurrences(row, %{implicit_count: true}), do: Row.value(row, {:function, "count", :*})
+  defp occurrences(row, %{implicit_count: true}), do: Row.fetch!(row, {:function, "count", :*})
   defp occurrences(_row, _query), do: 1
 end

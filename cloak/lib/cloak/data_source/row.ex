@@ -25,8 +25,8 @@ defmodule Cloak.DataSource.Row do
   end
 
   @doc "Returns a value of the desired column."
-  @spec value(t, any) :: any
-  def value(row, column) do
+  @spec fetch!(t, any) :: any
+  def fetch!(row, column) do
     case Map.fetch(row.values_map, column) do
       {:ok, value} -> value
       :error ->
@@ -44,6 +44,6 @@ defmodule Cloak.DataSource.Row do
   @doc "Returns ordered values of specified columns in the row."
   @spec values(t, [any]) :: [any]
   def values(row, columns) do
-    Enum.map(columns, &value(row, &1))
+    Enum.map(columns, &fetch!(row, &1))
   end
 end
