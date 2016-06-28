@@ -83,51 +83,54 @@ defmodule Cloak.Query.Aggregator do
   end
 
   defp aggregate_row({property_values, anonymizer, users_rows}, query) do
-    all_rows = Map.values(users_rows)
+    all_users_rows = Map.values(users_rows)
 
     aggregated_values =
       for {:function, function, column} <- query.aggregators do
-        all_values =
-          all_rows
-          |> Enum.map(&values(&1, column))
-          |> Enum.filter(&(&1 != [])) # drop users with no valid values
+        aggregation_data = aggregation_data(all_users_rows, column)
 
-        case low_users_count?(all_values, anonymizer) do
+        case low_users_count?(aggregation_data, anonymizer) do
           true -> nil
-          false -> aggregate_by(function, anonymizer, all_values)
+          false -> aggregate_by(function, anonymizer, aggregation_data)
         end
       end
 
     make_row(query, property_values, aggregated_values)
   end
 
-  defp values(rows, column) do
+  defp aggregation_data(all_users_rows, column) do
+    all_users_rows
+    |> Enum.map(&values_for_aggregation(&1, column))
+    |> Enum.filter(&(&1 != [])) # drop users with no values for aggregation
+  end
+
+  defp values_for_aggregation(rows, column) do
     rows
     |> Enum.map(&value(&1, column))
-    |> Enum.filter(&(&1 != nil))
+    |> Enum.filter(&(&1 != nil)) # `nil` values do not participate in the aggregation
   end
 
   defp value(_row, :*), do: :*
   defp value(row, column), do: Row.value(row, column)
 
-  defp aggregate_by("count", anonymizer, property_values) do
-    {count, _anonymizer} = Anonymizer.count(anonymizer, property_values)
+  defp aggregate_by("count", anonymizer, aggregation_data) do
+    {count, _anonymizer} = Anonymizer.count(anonymizer, aggregation_data)
     count
   end
-  defp aggregate_by("sum", anonymizer, property_values) do
-    {sum, _anonymizer} = Anonymizer.sum(anonymizer, property_values)
+  defp aggregate_by("sum", anonymizer, aggregation_data) do
+    {sum, _anonymizer} = Anonymizer.sum(anonymizer, aggregation_data)
     Float.round(sum, 3)
   end
-  defp aggregate_by("min", anonymizer, property_values) do
-    {margin_average, _anonymizer} = Anonymizer.min(anonymizer, property_values)
+  defp aggregate_by("min", anonymizer, aggregation_data) do
+    {margin_average, _anonymizer} = Anonymizer.min(anonymizer, aggregation_data)
     Float.round(margin_average, 3)
   end
-  defp aggregate_by("max", anonymizer, property_values) do
-    {margin_average, _anonymizer} = Anonymizer.max(anonymizer, property_values)
+  defp aggregate_by("max", anonymizer, aggregation_data) do
+    {margin_average, _anonymizer} = Anonymizer.max(anonymizer, aggregation_data)
     Float.round(margin_average, 3)
   end
-  defp aggregate_by("avg", anonymizer, property_values) do
-    {avg, _anonymizer} = Anonymizer.avg(anonymizer, property_values)
+  defp aggregate_by("avg", anonymizer, aggregation_data) do
+    {avg, _anonymizer} = Anonymizer.avg(anonymizer, aggregation_data)
     Float.round(avg, 3)
   end
   defp aggregate_by(unknown_aggregator, _, _) do
