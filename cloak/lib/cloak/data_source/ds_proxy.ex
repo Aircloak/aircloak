@@ -94,8 +94,12 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   defp maybe_include_columns(request, %{from: {:subquery, _}}), do: request
-  defp maybe_include_columns(request, %{columns: [_user_id_column | columns_to_select]}) do
-    Map.put(request, :columns, Enum.map(columns_to_select, &Builder.select_column_name/1))
+  defp maybe_include_columns(request, query) do
+    Map.put(request, :columns, needed_columns(query))
+  end
+
+  defp needed_columns(query) do
+    Cloak.SqlQuery.db_columns(query) -- [Cloak.SqlQuery.user_id_column(query)]
   end
 
   defp sql_statement(%{from: {:subquery, unsafe_select}}) do

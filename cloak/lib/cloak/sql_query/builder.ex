@@ -18,40 +18,32 @@ defmodule Cloak.SqlQuery.Builder do
 
   @spec build(Cloak.SqlQuery.t) :: query_spec
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
-  def build(%{from: table} = query) do
+  def build(query) do
     fragments_to_query_spec([
-      "SELECT ", Enum.map_join(needed_columns(query), ",", &select_column_to_string/1), " ",
-      "FROM ", table, " ",
+      "SELECT ", columns_string(query), " ",
+      "FROM ", query.from, " ",
       where_fragments(query[:where])
     ])
   end
-
-  # The name of the column which we select from the db in place of `count(*)`
-  @count_all_column_name "ac_count_all_placeholder"
-  if Mix.env == :test do
-    @doc false
-    def count_all_column_name(), do: @count_all_column_name
-  end
-
-  @doc "Creates a string representation of a potentially complex column selection"
-  @spec select_column_to_string(Cloak.SqlQuery.Parser.column) :: String.t
-  def select_column_to_string({:function, "count", :*}), do: "NULL AS #{@count_all_column_name}"
-  def select_column_to_string({:function, _function, identifier}), do: "#{identifier}"
-  def select_column_to_string(column), do: column
-
-  @doc "Creates a column name of a potentially complex column selection"
-  @spec select_column_name(Cloak.SqlQuery.Parser.column) :: String.t
-  def select_column_name({:function, "count", :*}), do: @count_all_column_name
-  def select_column_name({:function, _function, identifier}), do: identifier
-  def select_column_name(column), do: column
 
 
   # -------------------------------------------------------------------
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
 
-  def needed_columns(query) do
-    (query.columns ++ Map.get(query, :group_by, []) ++ query.unsafe_filter_columns) |> Enum.uniq()
+  defp columns_string(query) do
+    query
+    |> Cloak.SqlQuery.db_columns()
+    |> Enum.map(&column_expression/1)
+    |> Enum.join(",")
+  end
+
+  defp column_expression(column_name) do
+    if column_name == Cloak.SqlQuery.count_all_column() do
+      "NULL AS #{column_name}"
+    else
+      column_name
+    end
   end
 
   @spec fragments_to_query_spec([fragment]) :: query_spec
