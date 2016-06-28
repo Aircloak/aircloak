@@ -1,4 +1,4 @@
-defmodule Cloak.Processor.NegativeCondition do
+defmodule Cloak.Query.NegativeCondition do
   @moduledoc """
   Implements handling of negated LIKE, ILIKE and equality WHERE clauses on the side of the application.
   These need special handling, because a malicious analyst would be able to find out information about
@@ -8,11 +8,9 @@ defmodule Cloak.Processor.NegativeCondition do
   """
 
   alias Cloak.DataSource.Row
-  alias Cloak.Processor.Anonymizer
+  alias Cloak.Query.Anonymizer
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
-
-  import Cloak.Type
 
 
   # -------------------------------------------------------------------

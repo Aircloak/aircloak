@@ -1,9 +1,8 @@
-defmodule Cloak.Query.Result.Test do
+defmodule Cloak.Query.SorterTest do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Row
-  alias Cloak.Query.Result
-  import Cloak.Type
+  alias Cloak.Query.Sorter
 
   defp list_to_rows(values) do
     Enum.map(values, &Row.new([:column_1], [&1]))
@@ -23,7 +22,7 @@ defmodule Cloak.Query.Result.Test do
       rows = [:*, unquote(other_value), :*] |> list_to_rows()
       query = %{columns: [], order_by: [{:column_1, unquote(order)}]}
 
-      ordered = Result.order_rows(rows, query) |> rows_to_list()
+      ordered = Sorter.order_rows(rows, query) |> rows_to_list()
 
       assert ordered == [[unquote(other_value)], [:*], [:*]]
     end
@@ -32,7 +31,7 @@ defmodule Cloak.Query.Result.Test do
   test "nil is ordered after present values and before anonymized values" do
     rows = [nil, :*, "aaa", nil] |> list_to_rows()
     query = %{columns: [], order_by: [{:column_1, :asc}]}
-    ordered = Result.order_rows(rows, query) |> rows_to_list()
+    ordered = Sorter.order_rows(rows, query) |> rows_to_list()
     assert ordered == [["aaa"], [nil], [nil], [:*]]
   end
 end

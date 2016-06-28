@@ -2,10 +2,10 @@ defmodule Cloak.Query.Runner do
   @moduledoc "Cloak query runner."
 
   alias Cloak.DataSource
-  alias Cloak.Query.Result
-  alias Cloak.Processor.{NegativeCondition, Aggregator}
+  alias Cloak.DataSource.Row
+  alias Cloak.Query.{Aggregator, NegativeCondition, Sorter}
 
-  import Cloak.Type
+  @type bucket :: %{row: [DataSource.field], occurrences: pos_integer}
 
   defmodule RuntimeError do
     @moduledoc """
@@ -29,7 +29,7 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   @doc "Runs the query and returns the result."
-  @spec run(Cloak.Query.t) :: {:ok, {:buckets, [String.t], [Bucket.t]}} | {:error, any}
+  @spec run(Cloak.Query.t) :: {:ok, {:buckets, [String.t], [bucket]}} | {:error, any}
   def run(query) do
     with {:ok, sql_query} <- Cloak.SqlQuery.make(query.data_source, query.statement) do
       execute_sql_query(sql_query)
@@ -62,15 +62,28 @@ defmodule Cloak.Query.Runner do
         buckets =
           rows
           |> NegativeCondition.apply(select_query)
-          |> Result.group_by_property_and_users(select_query)
           |> Aggregator.aggregate(select_query)
-          |> Result.order_rows(select_query)
-          |> Result.buckets(select_query)
+          |> Sorter.order_rows(select_query)
+          |> buckets(select_query)
 
         {:ok, {:buckets, Cloak.SqlQuery.column_titles(select_query), buckets}}
       end
     rescue e in [RuntimeError] ->
       {:error, e.message}
+    end
+  end
+
+  defp buckets(rows, query) do
+    for row <- rows do
+      %{
+        row: Row.values(row, query.columns),
+        occurrences:
+          if query[:implicit_count] do
+            Row.value(row, {:function, "count", :*})
+          else
+            1
+          end
+      }
     end
   end
 end

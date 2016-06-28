@@ -1,16 +1,15 @@
-defmodule Cloak.Processor.Aggregator do
+defmodule Cloak.Query.Aggregator do
   @moduledoc "This module aggregates the values for a property in a query into an anonymized result."
-  import Cloak.Type
   alias Cloak.DataSource.Row
   alias Cloak.SqlQuery
-  alias Cloak.Processor.Anonymizer
+  alias Cloak.Query.Anonymizer
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
   @doc """
-  Applies aggregation functions to grouped rows, and produces aggregated rows.
+  Applies aggregation functions and produces aggregated rows.
 
   The resulting rows will consist of all query properties together with
   computed anonymized aggregates (count, sum, ...). For example, in the following
@@ -22,9 +21,10 @@ defmodule Cloak.Processor.Aggregator do
 
   Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
   """
-  @spec aggregate(GroupedRows.t, SqlQuery.t) :: [Row.t]
+  @spec aggregate([Row.t], SqlQuery.t) :: [Row.t]
   def aggregate(rows, query) do
     rows
+    |> group_by_property_and_users(query)
     |> init_anonymizer()
     |> process_low_count_users(query)
     |> aggregate_rows(query)
@@ -35,6 +35,20 @@ defmodule Cloak.Processor.Aggregator do
   ## ----------------------------------------------------------------
   ## Internal functions
   ## ----------------------------------------------------------------
+
+  defp group_by_property_and_users(rows, query) do
+    Enum.reduce(rows, %{}, fn(row, accumulator) ->
+      property = for column <- query.property, do: Row.value(row, column)
+      user = user_id(row)
+      Map.update(accumulator, property, %{user => [row]}, fn (user_values_map) ->
+        Map.update(user_values_map, user, [row], &([row | &1]))
+      end)
+    end)
+  end
+
+  defp user_id(row) do
+    Row.value(row, hd(row.columns))
+  end
 
   defp init_anonymizer(grouped_rows) do
     for {property, users_rows} <- grouped_rows,

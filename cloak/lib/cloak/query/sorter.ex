@@ -1,7 +1,6 @@
-defmodule Cloak.Query.Result do
-  @moduledoc "Contains functions for converting buckets to a columns/rows representation."
+defmodule Cloak.Query.Sorter do
+  @moduledoc "Sorts rows according to the query specification."
 
-  import Cloak.Type
   alias Cloak.DataSource.Row
   alias Cloak.SqlQuery
 
@@ -9,38 +8,6 @@ defmodule Cloak.Query.Result do
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
-
-  @doc """
-  Converts a list of buckets into aggregate rows for reporting.
-  The consuming client will still have to expand the rows to mimic normal SQL
-  where individual rows are produced.
-  """
-  @spec buckets([Row.t], SqlQuery.t) :: [Bucket.t]
-  def buckets(rows, query) do
-    for row <- rows do
-      %{
-        row: Row.values(row, query.columns),
-        occurrences:
-          if query[:implicit_count] do
-            Row.value(row, {:function, "count", :*})
-          else
-            1
-          end
-      }
-    end
-  end
-
-  @doc "Groups the data values to be aggregated by the selected property and the reported users."
-  @spec group_by_property_and_users([Row.t], SqlQuery.t) :: GroupedRows.t
-  def group_by_property_and_users(rows, query) do
-    Enum.reduce(rows, %{}, fn(row, accumulator) ->
-      property = for column <- query.property, do: Row.value(row, column)
-      user = user_id(row)
-      Map.update(accumulator, property, %{user => [row]}, fn (user_values_map) ->
-        Map.update(user_values_map, user, [row], &([row | &1]))
-      end)
-    end)
-  end
 
   @doc "Sorts the rows in the order defined in the query."
   @spec order_rows([Row.t], SqlQuery.t) :: [Row.t]
@@ -55,10 +22,6 @@ defmodule Cloak.Query.Result do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp user_id(row) do
-    Row.value(row, hd(row.columns))
-  end
 
   defp compare_rows(row1, row2, []), do: row1 < row2
   defp compare_rows(row1, row2, [{column, direction} | remaining_order]) do
