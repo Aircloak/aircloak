@@ -94,8 +94,7 @@ defmodule Cloak.Query.Aggregator do
 
         case low_users_count?(all_values, anonymizer) do
           true -> nil
-          false ->
-            aggregate_by(function, anonymizer, all_values)
+          false -> aggregate_by(function, anonymizer, all_values)
         end
       end
 
