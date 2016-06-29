@@ -1,17 +1,31 @@
 defmodule Cloak.Query.Aggregator do
-  @moduledoc "This module aggregates the values for a property in a query into an anonymized result."
+  @moduledoc "This module aggregates the values into an anonymized result. See `aggregate/2` for details."
   alias Cloak.DataSource.Row
   alias Cloak.SqlQuery
   alias Cloak.Query.Anonymizer
+
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
   @doc """
-  Applies aggregation functions and produces aggregated rows.
+  Transforms the non-anonymized rows returned from the database into an
+  anonymized result. This is done in following steps:
 
-  The resulting rows will consist of all query properties together with
+  1. Rows are groupped per distinct property. A property is collection of
+     selected columns, as well as columns listed in the `group by` clause.
+     Additionally, inside each distinct property, rows are groupped per user.
+
+  2. Distinct properties for which there are not enough distinct users are discarded.
+     A low-count substitute property is generated for all such properties to indicate
+     the amount of rows which are filtered out. This property is reported, but only
+     if there are enough of users which are filtered out.
+
+  3. Aggregation functions (e.g. `sum`, `count`) are computed for each distinct property.
+     The resulting values are anonymized using the `Anonymizer` module.
+
+  Each output row will consist of all property values together with
   computed anonymized aggregates (count, sum, ...). For example, in the following
   query:
 
@@ -138,6 +152,9 @@ defmodule Cloak.Query.Aggregator do
   end
 
   defp normalize([], query) do
+    # If there are no results, we'll produce one row.
+    # All values will be `nil`-ed except for `count` which will have
+    # the value of 0.
     property_values = Enum.map(query.property, fn(_) -> nil end)
     aggregated_values = Enum.map(query.aggregators, fn
       {_, "count", _} -> 0
