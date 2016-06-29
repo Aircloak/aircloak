@@ -4,6 +4,10 @@ defmodule Cloak.Query.Aggregator do
   alias Cloak.SqlQuery
   alias Cloak.Query.Anonymizer
 
+  @typep property_values :: [Cloak.DataSource.field | :*]
+  @typep user_id :: Cloak.DataSource.field
+  @typep properties :: [{property_values, Anonymizer.t, %{user_id => [Row.t]}}]
+
 
   # -------------------------------------------------------------------
   # API
@@ -38,8 +42,7 @@ defmodule Cloak.Query.Aggregator do
   @spec aggregate([Row.t], SqlQuery.t) :: [Row.t]
   def aggregate(rows, query) do
     rows
-    |> group_by_property_and_users(query)
-    |> init_anonymizer()
+    |> group_by_property(query)
     |> process_low_count_users(query)
     |> aggregate_properties(query)
     |> normalize(query)
@@ -50,7 +53,8 @@ defmodule Cloak.Query.Aggregator do
   ## Internal functions
   ## ----------------------------------------------------------------
 
-  defp group_by_property_and_users(rows, query) do
+  @spec group_by_property([Row.t], SqlQuery.t) :: properties
+  defp group_by_property(rows, query) do
     Enum.reduce(rows, %{}, fn(row, accumulator) ->
       property_values = for column <- query.property, do: Row.fetch!(row, column)
       user_id = user_id(row)
@@ -58,6 +62,7 @@ defmodule Cloak.Query.Aggregator do
         Map.update(user_values_map, user_id, [row], &([row | &1]))
       end)
     end)
+    |> init_anonymizer()
   end
 
   defp user_id(row) do
@@ -77,6 +82,7 @@ defmodule Cloak.Query.Aggregator do
     not sufficiently_large?
   end
 
+  @spec process_low_count_users(properties, SqlQuery.t) :: properties
   defp process_low_count_users(rows, query) do
     {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
     lcf_users_rows = Enum.reduce(low_count_rows, %{},
@@ -92,6 +98,7 @@ defmodule Cloak.Query.Aggregator do
     end
   end
 
+  @spec aggregate_properties(properties, SqlQuery.t) :: [Row.t]
   defp aggregate_properties(properties, query) do
     Enum.map(properties, &aggregate_property(&1, query))
   end
@@ -151,6 +158,7 @@ defmodule Cloak.Query.Aggregator do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
   end
 
+  @spec normalize([Row.t], SqlQuery.t) :: nonempty_list(Row.t)
   defp normalize([], query) do
     # If there are no results, we'll produce one row.
     # All values will be `nil`-ed except for `count` which will have
