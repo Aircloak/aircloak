@@ -58,6 +58,10 @@ defmodule Cloak.Query.Aggregator do
   defp low_users_count?({_property, anonymizer, users_rows}),
     do: low_users_count?(users_rows, anonymizer)
 
+  defp low_users_count?(count, anonymizer) when is_number(count) do
+    {sufficiently_large?, _} = Anonymizer.sufficient_count?(anonymizer, count)
+    not sufficiently_large?
+  end
   defp low_users_count?(values, anonymizer) do
     {sufficiently_large?, _} = Anonymizer.sufficiently_large?(anonymizer, values)
     not sufficiently_large?
@@ -120,10 +124,10 @@ defmodule Cloak.Query.Aggregator do
   defp aggregate_by("distinct_count", anonymizer, aggregation_data) do
     Enum.reduce(aggregation_data, %{}, fn(user_values, accumulator) ->
       Enum.reduce(Enum.uniq(user_values), accumulator, fn(value, accumulator) ->
-        Map.update(accumulator, value, [nil], &[nil | &1])
+        Map.update(accumulator, value, 1, &(&1 + 1))
       end)
     end)
-    |> Enum.reject(fn({_value, values}) -> low_users_count?(values, anonymizer) end)
+    |> Enum.reject(fn({_value, count}) -> low_users_count?(count, anonymizer) end)
     |> Enum.count()
   end
   defp aggregate_by("sum", anonymizer, aggregation_data) do
