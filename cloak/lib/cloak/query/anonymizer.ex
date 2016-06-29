@@ -1,4 +1,4 @@
-defmodule Cloak.Processor.Anonymizer do
+defmodule Cloak.Query.Anonymizer do
   @moduledoc """
   Utility module for stateful deterministic anonymization based on collection
   of unique users.
@@ -34,7 +34,6 @@ defmodule Cloak.Processor.Anonymizer do
     rng: :rand.state
   }
 
-  import Cloak.Type
   import Kernel, except: [max: 2]
 
 

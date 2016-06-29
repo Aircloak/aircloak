@@ -44,7 +44,7 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "parsed select count(*)", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        count_all_column = Cloak.SqlQuery.Builder.count_all_column_name()
+        count_all_column = Cloak.SqlQuery.count_all_column()
 
         assert %{"columns" => [^count_all_column], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" => query_string} = statement
@@ -56,6 +56,53 @@ defmodule Cloak.DataSource.DsProxyTest do
 
     query_result = run_query(context, "select count(*) from bar")
     assert {:ok, {:buckets, ["count(*)"], [%{occurrences: 1, row: [100]}]}} = query_result
+  end
+
+  test "parsed column deduplication", context do
+    expect_json_post(context.bypass, "/query",
+      fn(payload) ->
+        assert %{"columns" => ["foo", "baz"], "statement" => statement} = payload
+        assert %{"params" => [], "type" => "parsed", "val" => "SELECT user_id,foo,baz FROM bar "} == statement
+
+        {200, %{success: true, columns: ["user_id", "foo", "baz"], rows: Enum.map(1..100, &[&1, 1, 2])}}
+      end
+    )
+
+    query_result = run_query(context, "select foo, baz, foo, baz from bar")
+    assert {:ok, {:buckets, columns, [row]}} = query_result
+    assert ["foo", "baz", "foo", "baz"] == columns
+    assert %{occurrences: 100, row: [1, 2, 1, 2]} == row
+  end
+
+  test "deduplication of aggregate columns", context do
+    expect_json_post(context.bypass, "/query",
+      fn(payload) ->
+        assert %{"columns" => ["foo"], "statement" => statement} = payload
+        assert %{"params" => [], "type" => "parsed", "val" => "SELECT user_id,foo FROM bar "} == statement
+
+        rows = Enum.map(1..49, &[&1, 0]) ++ Enum.map(50..100, &[&1, 10])
+        {200, %{success: true, columns: ["user_id", "foo"], rows: rows}}
+      end
+    )
+
+    query_result = run_query(context, "select min(foo), max(foo) from bar")
+    assert {:ok, {:buckets, columns, [row]}} = query_result
+    assert ["min(foo)", "max(foo)"] == columns
+    assert %{occurrences: 1, row: [0.0, 10.0]} == row
+  end
+
+  test "dsproxy returns empty set", context do
+    expect_json_post(context.bypass, "/query",
+      fn(payload) ->
+        assert %{"columns" => ["foo"], "statement" => statement} = payload
+        assert %{"params" => [], "type" => "parsed", "val" => "SELECT user_id,foo FROM bar "} == statement
+
+        {200, %{success: true, columns: ["user_id", "foo"], rows: [[]]}}
+      end
+    )
+
+    query_result = run_query(context, "select foo from bar")
+    assert {:ok, {:buckets, ["foo"], [%{occurrences: 0, row: [nil]}]}} = query_result
   end
 
   test "unsafe select count(foo)", context do
@@ -95,7 +142,7 @@ defmodule Cloak.DataSource.DsProxyTest do
 
     query_result = run_query(context, "select count(foo) from (select foo1 from bar) as baz")
     assert {:error, message} = query_result
-    assert "Column `foo` doesn't exist in selected columns `foo1`, `foo2`." == message
+    assert "Column `foo` doesn't exist in selected columns." == message
   end
 
   test "invalid group by in unsafe select", context do
@@ -107,7 +154,7 @@ defmodule Cloak.DataSource.DsProxyTest do
 
     query_result = run_query(context, "select count(*) from (select foo1 from bar) as baz group by foobar")
     assert {:error, message} = query_result
-    assert "Column `foobar` doesn't exist in selected columns `foo1`, `foo2`." == message
+    assert "Column `foobar` doesn't exist in selected columns." == message
   end
 
   test "propagating reported error", context do
@@ -161,7 +208,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         bar: %{
           name: "bar",
           user_id: "user_id",
-          columns: %{"foo" => :integer}
+          columns: %{"foo" => :integer, "baz" => :integer}
         }
       }
     }

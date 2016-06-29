@@ -35,6 +35,7 @@ defmodule Cloak.DataSource do
   """
 
   require Logger
+  alias Cloak.DataSource.Row
 
   # define returned data types and values
   @type t :: %{
@@ -134,10 +135,11 @@ defmodule Cloak.DataSource do
   Execute a `select` query over the specified data source.
   Returns {RowCount, Columns, Rows}.
   """
-  @spec select(t, Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
+  @spec select(t, Cloak.SqlQuery.t) :: {:ok, [Row.t]} | {:error, any}
   def select(data_source, %{from: {:subquery, _}} = select_query) do
     driver = data_source.driver
-    driver.select(data_source.id, select_query)
+    with {:ok, {_count, columns, rows}} <- driver.select(data_source.id, select_query),
+      do: {:ok, make_rows(columns, rows)}
   end
   def select(data_source, %{columns: fields, from: table_identifier} = select_query) do
     driver = data_source.driver
@@ -146,7 +148,9 @@ defmodule Cloak.DataSource do
     user_id = Map.fetch!(table, :user_id)
     table_name = Map.fetch!(table, :name)
     # insert the user_id column into the fields list, translate the table name and execute the `select` query
-    driver.select(data_source.id, %{select_query | columns: [user_id | fields], from: table_name})
+    full_query = %{select_query | columns: [user_id | fields], from: table_name}
+    with {:ok, {_count, columns, rows}} <- driver.select(data_source.id, full_query),
+      do: {:ok, make_rows(columns, rows)}
   end
 
   @doc "Returns the datasource for the given id, raises if it's not found."
@@ -202,20 +206,33 @@ defmodule Cloak.DataSource do
   end
 
   defp data_source_with_columns({id, data_source}) do
+    # A reasonably sized chunk to avoid opening too many simultaneous connections
+    chunk_size = 50
+
     tables =
-      for {table_id, table} <- data_source.tables do
-        case load_table_columns(data_source, table) do
-          {:ok, columns} ->
-            {table_id, Map.put(table, :columns, columns)}
-          {:error, reason} ->
-            Logger.error("Error fetching columns for table #{data_source.id}/#{table.name}: #{reason}")
-            nil
-        end
-      end
-      |> Stream.filter(&(&1 != nil))
-      |> Enum.into(%{})
+      data_source.tables
+      |> Enum.chunk(chunk_size, chunk_size, [])
+      |> Enum.map(&load_tables_columns(data_source, &1))
+      |> Enum.reduce(%{}, &Map.merge/2)
 
     {id, Map.put(data_source, :tables, tables)}
+  end
+
+  defp load_tables_columns(data_source, tables) do
+    Enum.map(tables, &Task.async(fn -> table_with_columns(data_source, &1) end))
+    |> Enum.map(&Task.await/1)
+    |> Stream.filter(&(&1 != nil))
+    |> Enum.into(%{})
+  end
+
+  defp table_with_columns(data_source, {table_id, table}) do
+    case load_table_columns(data_source, table) do
+      {:ok, columns} ->
+        {table_id, Map.put(table, :columns, columns)}
+      {:error, reason} ->
+        Logger.error("Error fetching columns for table #{data_source.id}/#{table.name}: #{reason}")
+        nil
+    end
   end
 
   defp load_table_columns(data_source, table) do
@@ -252,26 +269,47 @@ defmodule Cloak.DataSource do
   defp verify_user_id(table, columns) do
     user_id = table.user_id
     case List.keytake(columns, user_id, 0) do
-      {{^user_id, :integer}, data_columns} -> {:ok, data_columns}
-      {{^user_id, :text}, data_columns} -> {:ok, data_columns}
-      _ -> {:error, "invalid user id column specified"}
+      {{^user_id, type}, data_columns} ->
+        if type in [:integer, :text, :uuid] do
+          {:ok, data_columns}
+        else
+          {:error, "unsupported user id type: #{type}"}
+        end
+      _ ->
+        columns_string =
+          columns
+          |> Enum.map(fn({column_name, _}) -> "`#{column_name}`" end)
+          |> Enum.join(", ")
+        {:error, "invalid user id column specified `#{user_id}`\n  columns: #{columns_string}"}
     end
   end
 
   defp supported?({_name, {:unsupported, _db_type}}), do: false
   defp supported?({_name, _type}), do: true
 
+  defp validate_unsupported_columns([], _data_source, _table), do: nil
   defp validate_unsupported_columns(unsupported, data_source, table) do
-    cond do
-      table[:ignore_unsupported_types] -> nil
-      Enum.empty?(unsupported) -> nil
-      true ->
-        raise """
-          The following columns in "#{data_source.id}/#{table[:name]}" have unsupported types:
-          #{inspect(unsupported)}
-          To ignore them set "ignore_unsupported_types: true" in your table settings
-        """
+    table_string = "#{data_source.id}/#{table[:name]}"
+
+    columns_string =
+      unsupported
+      |> Enum.map(fn({column_name, {:unsupported, type}}) -> "  #{column_name} :: #{type}" end)
+      |> Enum.join("\n")
+
+    msg =
+      "The following columns in `#{table_string}` have unsupported types and will be ignored:\n" <>
+      columns_string
+
+    if table[:ignore_unsupported_types] do
+      Logger.warn(msg)
+      nil
+    else
+      raise "#{msg}\nTo ignore these columns set `ignore_unsupported_types: true` in your table settings"
     end
+  end
+
+  defp make_rows(columns, rows) do
+    Enum.map(rows, &Row.new(columns, &1))
   end
 
 
