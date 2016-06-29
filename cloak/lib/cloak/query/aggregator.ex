@@ -118,10 +118,12 @@ defmodule Cloak.Query.Aggregator do
     count
   end
   defp aggregate_by("distinct_count", anonymizer, aggregation_data) do
-    aggregation_data
-    |> Enum.sort()
-    |> Enum.chunk_by(&(&1))
-    |> Enum.reject(&low_users_count?(&1, anonymizer))
+    Enum.reduce(aggregation_data, %{}, fn(user_values, accumulator) ->
+      Enum.reduce(Enum.uniq(user_values), accumulator, fn(value, accumulator) ->
+        Map.update(accumulator, value, [nil], &[nil | &1])
+      end)
+    end)
+    |> Enum.reject(fn({_value, values}) -> low_users_count?(values, anonymizer) end)
     |> Enum.count()
   end
   defp aggregate_by("sum", anonymizer, aggregation_data) do
