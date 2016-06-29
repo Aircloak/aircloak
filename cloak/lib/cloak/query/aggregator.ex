@@ -140,19 +140,19 @@ defmodule Cloak.Query.Aggregator do
   end
   defp aggregate_by("sum", anonymizer, aggregation_data) do
     {sum, _anonymizer} = Anonymizer.sum(anonymizer, aggregation_data)
-    Float.round(sum, 3)
+    sum
   end
   defp aggregate_by("min", anonymizer, aggregation_data) do
     {margin_average, _anonymizer} = Anonymizer.min(anonymizer, aggregation_data)
-    Float.round(margin_average, 3)
+    margin_average
   end
   defp aggregate_by("max", anonymizer, aggregation_data) do
     {margin_average, _anonymizer} = Anonymizer.max(anonymizer, aggregation_data)
-    Float.round(margin_average, 3)
+    margin_average
   end
   defp aggregate_by("avg", anonymizer, aggregation_data) do
     {avg, _anonymizer} = Anonymizer.avg(anonymizer, aggregation_data)
-    Float.round(avg, 3)
+    avg
   end
   defp aggregate_by(unknown_aggregator, _, _) do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
