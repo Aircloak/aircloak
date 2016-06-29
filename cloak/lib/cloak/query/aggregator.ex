@@ -27,7 +27,7 @@ defmodule Cloak.Query.Aggregator do
     |> group_by_property_and_users(query)
     |> init_anonymizer()
     |> process_low_count_users(query)
-    |> aggregate_rows(query)
+    |> aggregate_properties(query)
     |> normalize(query)
   end
 
@@ -38,10 +38,10 @@ defmodule Cloak.Query.Aggregator do
 
   defp group_by_property_and_users(rows, query) do
     Enum.reduce(rows, %{}, fn(row, accumulator) ->
-      property = for column <- query.property, do: Row.fetch!(row, column)
-      user = user_id(row)
-      Map.update(accumulator, property, %{user => [row]}, fn (user_values_map) ->
-        Map.update(user_values_map, user, [row], &([row | &1]))
+      property_values = for column <- query.property, do: Row.fetch!(row, column)
+      user_id = user_id(row)
+      Map.update(accumulator, property_values, %{user_id => [row]}, fn (user_values_map) ->
+        Map.update(user_values_map, user_id, [row], &([row | &1]))
       end)
     end)
   end
@@ -78,11 +78,11 @@ defmodule Cloak.Query.Aggregator do
     end
   end
 
-  defp aggregate_rows(rows, query) do
-    Enum.map(rows, &aggregate_row(&1, query))
+  defp aggregate_properties(properties, query) do
+    Enum.map(properties, &aggregate_property(&1, query))
   end
 
-  defp aggregate_row({property_values, anonymizer, users_rows}, query) do
+  defp aggregate_property({property_values, anonymizer, users_rows}, query) do
     all_users_rows = Map.values(users_rows)
 
     aggregated_values =
