@@ -89,7 +89,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [150])
 
     assert_query "select count(distinct height) from heights",
-      %{columns: ["distinct_count(height)"], rows: [%{row: [4], occurrences: 1}]}
+      %{columns: ["count(distinct height)"], rows: [%{row: [4], occurrences: 1}]}
   end
 
   test "aggregates of an empty table" do
