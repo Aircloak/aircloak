@@ -34,7 +34,7 @@ defmodule Air.Socket.CloakTest do
 
     me = self()
     spawn(fn ->
-      start_query_result = MainChannel.run_query("unknown_org/cloak_1", %{id: 42, code: ""})
+      start_query_result = MainChannel.run_query("some_organisation/cloak_1", %{id: 42, code: ""})
       send(me, {:start_query_result, start_query_result})
     end)
     assert {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, 100)
@@ -73,13 +73,13 @@ defmodule Air.Socket.CloakTest do
 
   test "getting data for connected cloaks" do
     socket1 = connect!(%{cloak_name: "cloak_3"})
-    join_main_channel!(socket1, "cloak_3")
+    join_main_channel!(socket1)
     assert [%Air.CloakInfo{name: "cloak_3"} = cloak_3] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
     assert cloak_3 == CloakInfo.get(cloak_3.id)
     assert nil == CloakInfo.get("non-existing cloak")
 
     socket2 = connect!(%{cloak_name: "cloak_4"})
-    join_main_channel!(socket2, "cloak_4")
+    join_main_channel!(socket2)
 
     # admin org fetches all cloaks
     all_cloaks = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
@@ -87,11 +87,11 @@ defmodule Air.Socket.CloakTest do
     assert cloak_4 == CloakInfo.get(cloak_4.id)
 
     # owner org fetches all owned cloaks
-    all_cloaks = CloakInfo.all(%Air.Organisation{name: "unknown_org"})
+    all_cloaks = CloakInfo.all(%Air.Organisation{name: "some_organisation"})
     assert [%Air.CloakInfo{name: "cloak_3"}, %Air.CloakInfo{name: "cloak_4"}] = Enum.sort(all_cloaks)
 
     # cloak data disappears when it leaves the main channel
-    mref = Process.monitor(CloakInfo.main_channel_pid("unknown_org/cloak_3"))
+    mref = Process.monitor(CloakInfo.main_channel_pid("some_organisation/cloak_3"))
     TestSocket.leave(socket1, "main")
     assert_receive {:DOWN, ^mref, _, _, _}
     assert [%Air.CloakInfo{name: "cloak_4"}] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
@@ -102,16 +102,16 @@ defmodule Air.Socket.CloakTest do
   defp connect!(params \\ %{}) do
     default_params = %{
       cloak_name: "cloak_1",
-      cloak_organisation: "unknown_org"
+      cloak_organisation: "some_organisation"
     }
     TestSocketHelper.connect!(Map.merge(default_params, params))
   end
 
-  defp join_main_channel!(socket, cloak_name \\ "cloak_1", data_sources \\ []) do
-    {:ok, %{}} = join_main_channel(socket, cloak_name, data_sources)
+  defp join_main_channel!(socket, data_sources \\ []) do
+    {:ok, %{}} = join_main_channel(socket, data_sources)
   end
 
-  defp join_main_channel(socket, cloak_name \\ "cloak_1", data_sources \\ []) do
-    TestSocketHelper.join!(socket, "main", %{name: cloak_name, data_sources: data_sources})
+  defp join_main_channel(socket, data_sources \\ []) do
+    TestSocketHelper.join!(socket, "main", %{data_sources: data_sources})
   end
 end

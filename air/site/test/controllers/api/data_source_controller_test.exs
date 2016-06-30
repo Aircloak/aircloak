@@ -18,6 +18,6 @@ defmodule Air.API.DataSourceController.Test do
     end)
 
     assert [%{"display" => "data_source_name (cloak_name)", "token" => token}] = result
-    assert {"unknown_org/cloak_name", "data_source_name"} = Token.decode_data_source_token(token)
+    assert {"#{organisation.name}/cloak_name", "data_source_name"} == Token.decode_data_source_token(token)
   end
 end

@@ -154,13 +154,11 @@ defmodule Air.CloakInfo do
   end
 
   defp parse_cloak_info(cloak_info) do
-    name = Map.fetch!(cloak_info, "name")
-    organisation = "unknown_org" # TODO: fix this when there's org info
     %__MODULE__{
-      id: "#{organisation}/#{name}",
-      name: Map.fetch!(cloak_info, "name"),
-      organisation: organisation,
-      data_sources: Map.fetch!(cloak_info, "data_sources") |> parse_data_sources(),
+      id: "#{cloak_info.organisation}/#{cloak_info.name}",
+      name: cloak_info.name,
+      organisation: cloak_info.organisation,
+      data_sources: parse_data_sources(cloak_info.data_sources),
       created_at: :erlang.monotonic_time(:seconds)
     }
   end

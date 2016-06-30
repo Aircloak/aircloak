@@ -38,7 +38,11 @@ defmodule Air.Socket.Cloak.MainChannel do
   @doc false
   def join("main", cloak_info, socket) do
     Process.flag(:trap_exit, true)
-    {:ok, cloak_info_pid} = CloakInfo.start_link(cloak_info)
+    {:ok, cloak_info_pid} = CloakInfo.start_link(%{
+      name: socket.assigns.name,
+      organisation: socket.assigns.organisation,
+      data_sources: Map.fetch!(cloak_info, "data_sources")
+    })
 
     {:ok, %{},
       socket

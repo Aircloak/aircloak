@@ -12,10 +12,10 @@ defmodule Air.QueryControllerTest do
 
     # Open the cloak mock socket
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1", cloak_organisation: organisation.name})
-    TestSocketHelper.join!(socket, "main", %{name: "cloak_1", data_sources: []})
+    TestSocketHelper.join!(socket, "main", %{data_sources: []})
 
     task = Task.async(fn ->
-      data_source_token = Token.data_source_token("unknown_org/cloak_1", nil)
+      data_source_token = Token.data_source_token("#{organisation.name}/cloak_1", nil)
       run_params = put_in(@query_data_params, [:query, :data_source_token], data_source_token)
 
       login(user) |> post("/queries", run_params) |> response(200)

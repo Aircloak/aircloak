@@ -29,7 +29,12 @@ defmodule Air.Socket.Cloak do
     cloak_organisation = params["cloak_organisation"]
     if valid_required_param?(cloak_name) && valid_required_param?(cloak_organisation) do
       cloak_id = "#{cloak_organisation}/#{cloak_name}"
-      {:ok, assign(socket, :cloak_id, cloak_id)}
+      {:ok,
+        socket
+        |> assign(:cloak_id, cloak_id)
+        |> assign(:name, cloak_name)
+        |> assign(:organisation, cloak_organisation)
+      }
     else
       :error
     end
