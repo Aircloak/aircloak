@@ -39,10 +39,10 @@ config :cloak, :anonymizer,
   # The outliers are replaced with the average value for that margin of the collection.
   dropped_outliers_count: 1,
 
-  # The mean and standard deviation for the length of a collection's margin,
-  # used for computing the average value of the margin.
-  margin_count_mean: 5,
-  margin_count_sigma: 1,
+  # The mean and standard deviation for the count of items at the top of a collection,
+  # used for computing the average value of the top.
+  top_count_mean: 5,
+  top_count_sigma: 1,
 
   # The standard deviation of the noise of margin averages added to summed values.
   sum_noise_sigma: 2
