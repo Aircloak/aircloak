@@ -185,7 +185,6 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   # Computes the noisy sum of a collection of positive numbers.
-  defp sum_positives(anonymizer, []), do: {0, anonymizer}
   defp sum_positives(anonymizer, values) do
     values = Enum.sort(values, &(&1 > &2))
 
