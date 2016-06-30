@@ -43,7 +43,11 @@ defmodule Air.QueryController do
     |> Repo.insert()
 
     try do
-      case MainChannel.run_query(query.cloak_id, Query.to_cloak_query(query)) do
+      case MainChannel.run_query(
+        query.cloak_id,
+        conn.assigns.current_user.organisation,
+        Query.to_cloak_query(query)
+      ) do
         :ok ->
           json(conn, %{success: true, query_id: query.id})
         {:error, :not_connected} ->
