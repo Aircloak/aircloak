@@ -45,6 +45,10 @@ export class Result extends React.Component {
     return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
+  renderValue(value) {
+    return isNaN(value) ? value : Math.round(value * 1000) / 1000; // keep 3 decimals at most
+  }
+
   renderRows() {
     let remainingRowsToProduce = this.state.rowsToShowCount;
     return _.flatMap(this.props.rows, (accumulateRow, i) => {
@@ -52,7 +56,7 @@ export class Result extends React.Component {
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
         return (<tr key={`${i}-${occurrenceCount}`}>
-          {accumulateRow.row.map((value, j) => <td key={j}>{value}</td>)}
+          {accumulateRow.row.map((value, j) => <td key={j}>{this.renderValue(value)}</td>)}
         </tr>);
       });
     });

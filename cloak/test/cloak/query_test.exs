@@ -86,14 +86,11 @@ defmodule Cloak.QueryTest do
       %{columns: ["count(*)", "count(height)", "avg(height)"], rows: [%{row: [0, 0, nil], occurrences: 1}]}
   end
 
-  test "should produce aggregated values" do
+  test "should be able to aggregate positive values" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
     :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
     :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
     :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
-
-    assert_query "select count(height) from heights",
-      %{columns: ["count(height)"], rows: [%{row: [30], occurrences: 1}]}
 
     assert_query "select sum(height) from heights",
       %{columns: ["sum(height)"], rows: [%{row: [5400.0], occurrences: 1}]}
@@ -106,6 +103,44 @@ defmodule Cloak.QueryTest do
 
     assert_query "select avg(height) from heights",
       %{columns: ["avg(height)"], rows: [%{row: [180.0], occurrences: 1}]}
+  end
+
+  test "should be able to aggregate negative values" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-170])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
+    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [-180])
+
+    assert_query "select sum(height) from heights",
+      %{columns: ["sum(height)"], rows: [%{row: [-5400.0], occurrences: 1}]}
+
+    assert_query "select min(height) from heights",
+      %{columns: ["min(height)"], rows: [%{row: [-190.0], occurrences: 1}]}
+
+    assert_query "select max(height) from heights",
+      %{columns: ["max(height)"], rows: [%{row: [-170.0], occurrences: 1}]}
+
+    assert_query "select avg(height) from heights",
+      %{columns: ["avg(height)"], rows: [%{row: [-180.0], occurrences: 1}]}
+  end
+
+  test "should be able to aggregate negative and positive values" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-170])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
+    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+
+    assert_query "select sum(height) from heights",
+      %{columns: ["sum(height)"], rows: [%{row: [-1800.0], occurrences: 1}]}
+
+    assert_query "select min(height) from heights",
+      %{columns: ["min(height)"], rows: [%{row: [-190.0], occurrences: 1}]}
+
+    assert_query "select max(height) from heights",
+      %{columns: ["max(height)"], rows: [%{row: [180.0], occurrences: 1}]}
+
+    assert_query "select avg(height) from heights",
+      %{columns: ["avg(height)"], rows: [%{row: [-60.0], occurrences: 1}]}
   end
 
   test "select the same column multiple times" do
