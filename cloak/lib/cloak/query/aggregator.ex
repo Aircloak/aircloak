@@ -122,11 +122,8 @@ defmodule Cloak.Query.Aggregator do
     count
   end
   defp aggregate_by("distinct_count", anonymizer, aggregation_data) do
-    Enum.reduce(aggregation_data, %{}, fn(user_values, accumulator) ->
-      Enum.reduce(Enum.uniq(user_values), accumulator, fn(value, accumulator) ->
-        Map.update(accumulator, value, 1, &(&1 + 1))
-      end)
-    end)
+    aggregation_data
+    |> user_counts_by_value()
     |> Enum.reject(fn({_value, count}) -> low_users_count?(count, anonymizer) end)
     |> Enum.count()
   end
@@ -148,6 +145,14 @@ defmodule Cloak.Query.Aggregator do
   end
   defp aggregate_by(unknown_aggregator, _, _) do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
+  end
+
+  defp user_counts_by_value(aggregation_data) do
+    Enum.reduce(aggregation_data, %{}, fn(user_values, accumulator) ->
+      Enum.reduce(Enum.uniq(user_values), accumulator, fn(value, accumulator) ->
+        Map.update(accumulator, value, 1, &(&1 + 1))
+      end)
+    end)
   end
 
   defp normalize([], query) do
