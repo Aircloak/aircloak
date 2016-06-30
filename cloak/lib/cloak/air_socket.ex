@@ -20,12 +20,12 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   @doc "Starts the socket client."
-  @spec start_link(String.t, GenServer.options) :: GenServer.on_start
-  def start_link(cloak_name \\ cloak_name(), gen_server_opts \\ [name: __MODULE__]) do
+  @spec start_link(%{}, GenServer.options) :: GenServer.on_start
+  def start_link(cloak_params \\ cloak_params(), gen_server_opts \\ [name: __MODULE__]) do
     GenSocketClient.start_link(
       __MODULE__,
       GenSocketClient.Transport.WebSocketClient,
-      {cloak_name, socket_url()},
+      {cloak_params, socket_url()},
       [
         serializer: :cloak_conf.get_val(:air, :serializer),
         transport_opts: [
@@ -57,14 +57,11 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   @doc false
-  def init({cloak_name, socket_url}) do
-    params = %{
-      cloak_name: cloak_name
-    }
-    url = "#{socket_url}?#{URI.encode_query(params)}"
+  def init({cloak_params, socket_url}) do
+    url = "#{socket_url}?#{URI.encode_query(cloak_params)}"
     initial_interval = :cloak_conf.get_val(:air, :min_reconnect_interval)
     state = %{
-      cloak_name: cloak_name,
+      cloak_name: cloak_params.cloak_name,
       pending_calls: %{},
       reconnect_interval: initial_interval,
       rejoin_interval: initial_interval
@@ -234,6 +231,13 @@ defmodule Cloak.AirSocket do
     after timeout ->
       exit(:timeout)
     end
+  end
+
+  defp cloak_params() do
+    %{
+      cloak_name: cloak_name(),
+      cloak_organisation: Cloak.DeployConfig.get("organisation", "unknown")
+    }
   end
 
   defp cloak_name() do

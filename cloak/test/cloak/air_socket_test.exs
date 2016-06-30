@@ -13,7 +13,11 @@ defmodule Cloak.AirSocketTest do
   setup do
     # create a unique cloak_name, to avoid name registration clashes
     cloak_name = "cloak_#{:erlang.unique_integer()}"
-    {:ok, socket_pid} = AirSocket.start_link(cloak_name, [])
+    params = %{
+      cloak_name: cloak_name,
+      cloak_organisation: "test"
+    }
+    {:ok, socket_pid} = AirSocket.start_link(params, [])
     {:ok, %{socket_pid: socket_pid, cloak_name: cloak_name}}
   end
 
