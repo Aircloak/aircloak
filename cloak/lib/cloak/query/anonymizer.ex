@@ -83,7 +83,7 @@ defmodule Cloak.Query.Anonymizer do
   @doc "Computes the noisy count of all values in rows, where each row is an enumerable."
   @spec count(t, Enumerable.t) :: {non_neg_integer, t}
   def count(anonymizer, rows) do
-    values = Enum.map(rows, &Enum.count(&1))
+    values = Stream.map(rows, &Enum.count(&1))
     {count, anonymizer} = sum_positives(anonymizer, values)
     noisy_count = Kernel.max(round(count), config(:count_absolute_lower_bound))
     {noisy_count, anonymizer}
@@ -92,13 +92,9 @@ defmodule Cloak.Query.Anonymizer do
   @doc "Computes the noisy sum of all values in rows, where each row is an enumerable of numbers."
   @spec sum(t, Enumerable.t) :: {float, t}
   def sum(anonymizer, rows) do
-    {positives, negatives} = Enum.reduce(rows, {[], []}, fn (user_values, {positives, negatives}) ->
-      sum = Enum.sum(user_values)
-      case sum >= 0 do
-        true -> {[sum | positives], negatives}
-        false -> {positives, [-sum | negatives]}
-      end
-    end)
+    values = Stream.map(rows, &Enum.sum/1)
+    positives = Stream.filter(values, &(&1 >= 0))
+    negatives = Stream.filter_map(values, &(&1 < 0), &-/1)
 
     {positives_sum, anonymizer} = sum_positives(anonymizer, positives)
     {negatives_sum, anonymizer} = sum_positives(anonymizer, negatives)
@@ -109,7 +105,7 @@ defmodule Cloak.Query.Anonymizer do
   @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
   @spec min(t, Enumerable.t) :: {float, t}
   def min(anonymizer, rows) do
-    values = rows |> Enum.map(&Enum.min/1) |> Enum.sort(&(&1 < &2))
+    values = rows |> Stream.map(&Enum.min/1) |> Enum.sort(&(&1 < &2))
     {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
     top_average(anonymizer, values)
   end
@@ -117,7 +113,7 @@ defmodule Cloak.Query.Anonymizer do
   @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."
   @spec max(t, Enumerable.t) :: {float, t}
   def max(anonymizer, rows) do
-    values = rows |> Enum.map(&Enum.max/1) |> Enum.sort(&(&1 > &2))
+    values = rows |> Stream.map(&Enum.max/1) |> Enum.sort(&(&1 > &2))
     {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
     top_average(anonymizer, values)
   end
