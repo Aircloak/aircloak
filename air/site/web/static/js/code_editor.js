@@ -39,15 +39,14 @@ export class CodeEditor extends React.Component {
       return;
     }
 
-    const instance = codeMirrorComponent.getCodeMirrorInstance();
-    this.editor = instance;
-    instance.commands.save = (_cm) => {
+    this.editor = codeMirrorComponent.getCodeMirrorInstance();
+    this.editor.commands.save = (_cm) => {
       this.props.onSave();
     };
-    instance.commands.run = (_cm) => {
+    this.editor.commands.run = (_cm) => {
       this.props.onRun();
     };
-    instance.commands.autoComplete = (cm) => {
+    this.editor.commands.autoComplete = (cm) => {
       cm.showHint({hint: this.completionList});
     };
   }
