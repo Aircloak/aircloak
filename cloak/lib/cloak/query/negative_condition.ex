@@ -35,12 +35,17 @@ defmodule Cloak.Query.NegativeCondition do
   end
 
   defp sufficient_matches?(clause, rows) do
+    real_count =
+      rows
+      |> filtered_rows(clause)
+      |> Enum.count()
+
     {result, _} =
       rows
       |> Enum.map(&user_id/1)
       |> Enum.into(MapSet.new())
       |> Anonymizer.new()
-      |> Anonymizer.sufficiently_large?(filtered_rows(rows, clause))
+      |> Anonymizer.sufficiently_large?(real_count)
 
     result
   end
