@@ -32,22 +32,19 @@ defmodule Air.Socket.CloakTest do
 
   test "starting a query" do
     socket = connect!()
-    assert {:ok, %{}} == join_main_channel(socket)
+    join_main_channel!(socket)
 
-    me = self()
-    spawn(fn ->
-      start_query_result = MainChannel.run_query(
-        CloakInfo.cloak_id("some_organisation", "cloak_1"),
-        %Organisation{name: "some_organisation"},
-        %{id: 42, code: ""}
-      )
-      send(me, {:start_query_result, start_query_result})
-    end)
-    assert {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, 100)
-    assert %{"event" => "run_query", "payload" => %{"id" => 42}, "request_id" => request_id} = request
+    async_query(
+      CloakInfo.cloak_id("some_organisation", "cloak_1"),
+      %Organisation{name: "some_organisation"},
+      %{id: 42, code: ""}
+    )
 
-    TestSocket.push(socket, "main", "call_response", %{request_id: request_id, status: "ok"})
-    assert_receive {:start_query_result, :ok}
+    request = next_cloak_request(socket)
+    assert %{"event" => "run_query", "payload" => %{"id" => 42}} = request
+
+    respond_to_cloak(socket, request, %{status: "ok"})
+    assert :ok == query_response!()
   end
 
   test "receiving a query result" do
@@ -110,33 +107,31 @@ defmodule Air.Socket.CloakTest do
 
   test "can't run a query on a cloak from another organisation" do
     socket = connect!()
-    {:ok, %{}} = join_main_channel(socket)
+    join_main_channel!(socket)
 
-    assert {:error, :forbidden} == MainChannel.run_query(
+    async_query(
       CloakInfo.cloak_id("some_organisation", "cloak_1"),
       %Organisation{name: "another_organisation"},
       %{id: 42, code: ""}
     )
+
+    assert {:error, :forbidden} == query_response!()
   end
 
   test "admins can run a query on a cloak from another organisation" do
     socket = connect!()
-    assert {:ok, %{}} == join_main_channel(socket)
+    join_main_channel!(socket)
 
-    me = self()
-    spawn(fn ->
-      start_query_result = MainChannel.run_query(
-        CloakInfo.cloak_id("some_organisation", "cloak_1"),
-        admin_organisation(),
-        %{id: 42, code: ""}
-      )
-      send(me, {:start_query_result, start_query_result})
-    end)
-    assert {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, 100)
-    assert %{"event" => "run_query", "payload" => %{"id" => 42}, "request_id" => request_id} = request
+    async_query(
+      CloakInfo.cloak_id("some_organisation", "cloak_1"),
+      admin_organisation(),
+      %{id: 42, code: ""}
+    )
 
-    TestSocket.push(socket, "main", "call_response", %{request_id: request_id, status: "ok"})
-    assert_receive {:start_query_result, :ok}
+    request = next_cloak_request(socket)
+    respond_to_cloak(socket, request, %{status: "ok"})
+
+    assert :ok == query_response!()
   end
 
 
@@ -154,5 +149,30 @@ defmodule Air.Socket.CloakTest do
 
   defp join_main_channel(socket, data_sources \\ []) do
     TestSocketHelper.join!(socket, "main", %{data_sources: data_sources})
+  end
+
+  defp async_query(cloak_id, user_organisation, payload) do
+    caller = self()
+    spawn(fn ->
+      start_query_result = MainChannel.run_query(cloak_id, user_organisation, payload)
+      send(caller, {:query_response, start_query_result})
+    end)
+  end
+
+  defp query_response!(timeout \\ 100) do
+    receive do
+      {:query_response, response} -> response
+    after timeout ->
+      raise("timeout")
+    end
+  end
+
+  defp next_cloak_request(socket, timeout \\ 100) do
+    {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
+    request
+  end
+
+  defp respond_to_cloak(socket, %{"request_id" => request_id}, response) do
+    TestSocket.push(socket, "main", "call_response", Map.put(response, :request_id, request_id))
   end
 end
