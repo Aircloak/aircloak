@@ -80,6 +80,19 @@ defmodule Air.CloakInfo do
     end
   end
 
+  @doc """
+  Generates a deterministic cloak_id from organisation and name.
+
+  The internal format of the generated id is chosen for simpler debugging and
+  analysis. By looking at the ID, it should be easy to find out the related
+  cloak. However, you shouldn't rely on this shape in the client code, since it
+  might change in the future.
+  """
+  @spec cloak_id(String.t, String.t) :: String.t
+  def cloak_id(organisation, name) do
+    inspect({organisation, name})
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -154,13 +167,11 @@ defmodule Air.CloakInfo do
   end
 
   defp parse_cloak_info(cloak_info) do
-    name = Map.fetch!(cloak_info, "name")
-    organisation = "unknown_org" # TODO: fix this when there's org info
     %__MODULE__{
-      id: "#{organisation}/#{name}",
-      name: Map.fetch!(cloak_info, "name"),
-      organisation: organisation,
-      data_sources: Map.fetch!(cloak_info, "data_sources") |> parse_data_sources(),
+      id: cloak_id(cloak_info.organisation, cloak_info.name),
+      name: cloak_info.name,
+      organisation: cloak_info.organisation,
+      data_sources: parse_data_sources(cloak_info.data_sources),
       created_at: :erlang.monotonic_time(:seconds)
     }
   end

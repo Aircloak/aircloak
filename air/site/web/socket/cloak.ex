@@ -26,10 +26,15 @@ defmodule Air.Socket.Cloak do
   @doc false
   def connect(params, socket) do
     cloak_name = params["cloak_name"]
-    if cloak_name != nil do
-      #TODO: get organization's name from the supplied client certificate's subject info
-      cloak_id = "unknown_org/#{cloak_name}"
-      {:ok, assign(socket, :cloak_id, cloak_id)}
+    cloak_organisation = params["cloak_organisation"]
+    if valid_required_param?(cloak_name) && valid_required_param?(cloak_organisation) do
+      cloak_id = "#{cloak_organisation}/#{cloak_name}"
+      {:ok,
+        socket
+        |> assign(:cloak_id, cloak_id)
+        |> assign(:name, cloak_name)
+        |> assign(:organisation, cloak_organisation)
+      }
     else
       :error
     end
@@ -38,4 +43,13 @@ defmodule Air.Socket.Cloak do
   @doc false
   def id(socket),
     do: "cloak_socket:#{socket.assigns.cloak_id}"
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp valid_required_param?(nil), do: false
+  defp valid_required_param?(""), do: false
+  defp valid_required_param?(_value), do: true
 end

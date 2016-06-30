@@ -4,7 +4,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  alias Air.CloakInfo
+  alias Air.{CloakInfo, Organisation}
 
 
   # -------------------------------------------------------------------
@@ -17,10 +17,10 @@ defmodule Air.Socket.Cloak.MainChannel do
   The function returns when the cloak responds. If the timeout occurs, it is
   still possible that a cloak has received the request.
   """
-  @spec run_query(CloakInfo.cloak_id, Air.Query.cloak_query) :: :ok | {:error, any}
-  def run_query(cloak_id, query) do
+  @spec run_query(CloakInfo.cloak_id, Organisation.t, Air.Query.cloak_query) :: :ok | {:error, any}
+  def run_query(cloak_id, user_organisation, query) do
     try do
-      case call(cloak_id, "run_query", query, :timer.seconds(5)) do
+      case call(cloak_id, user_organisation, "run_query", query, :timer.seconds(5)) do
         {:ok, _} -> :ok
         error -> error
       end
@@ -38,7 +38,11 @@ defmodule Air.Socket.Cloak.MainChannel do
   @doc false
   def join("main", cloak_info, socket) do
     Process.flag(:trap_exit, true)
-    {:ok, cloak_info_pid} = CloakInfo.start_link(cloak_info)
+    {:ok, cloak_info_pid} = CloakInfo.start_link(%{
+      name: socket.assigns.name,
+      organisation: socket.assigns.organisation,
+      data_sources: Map.fetch!(cloak_info, "data_sources")
+    })
 
     {:ok, %{},
       socket
@@ -83,14 +87,19 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
-  def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, socket) do
-    request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
-    push(socket, "air_call", %{request_id: request_id, event: event, payload: payload})
-    timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
-    {:noreply,
-      assign(socket, :pending_calls,
-        Map.put(socket.assigns.pending_calls, request_id, %{from: from, timeout_ref: timeout_ref}))
-    }
+  def handle_info({{__MODULE__, :call}, timeout, from, user_organisation, event, payload}, socket) do
+    if user_organisation.name == socket.assigns.organisation || Organisation.admins?(user_organisation) do
+      request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
+      push(socket, "air_call", %{request_id: request_id, event: event, payload: payload})
+      timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
+      {:noreply,
+        assign(socket, :pending_calls,
+          Map.put(socket.assigns.pending_calls, request_id, %{from: from, timeout_ref: timeout_ref}))
+      }
+    else
+      respond_to_internal_request(from, {:error, :forbidden})
+      {:noreply, socket}
+    end
   end
   def handle_info({:call_timeout, request_id}, socket) do
     # We're just removing entries here without responding. It is the responsibility of the
@@ -143,13 +152,13 @@ defmodule Air.Socket.Cloak.MainChannel do
     send(client_pid, {mref, response})
   end
 
-  @spec call(String.t, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
-  defp call(cloak_id, event, payload, timeout) do
+  @spec call(String.t, Organisation.t, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
+  defp call(cloak_id, user_organisation, event, payload, timeout) do
     case CloakInfo.main_channel_pid(cloak_id) do
       nil -> exit(:noproc)
       pid ->
         mref = Process.monitor(pid)
-        send(pid, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
+        send(pid, {{__MODULE__, :call}, timeout, {self(), mref}, user_organisation, event, payload})
         receive do
           {^mref, response} ->
             Process.demonitor(mref, [:flush])

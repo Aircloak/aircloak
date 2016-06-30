@@ -8,14 +8,15 @@ defmodule Air.API.QueryController.Test do
   @query_data_params %{query: %{query: "Query code", name: "Query name"}}
 
   test "can run a query" do
-    token = create_token!()
+    organisation = create_organisation!()
+    token = create_token!(create_user!(organisation))
 
     # Open the cloak mock socket
-    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
-    TestSocketHelper.join!(socket, "main", %{name: "cloak_1", data_sources: []})
+    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1", cloak_organisation: organisation.name})
+    TestSocketHelper.join!(socket, "main", %{data_sources: []})
 
     task = Task.async(fn ->
-      data_source_token = Token.data_source_token("unknown_org/cloak_1", nil)
+      data_source_token = Token.data_source_token(Air.CloakInfo.cloak_id(organisation.name, "cloak_1"), nil)
       run_params = put_in(@query_data_params, [:query, :data_source_token], data_source_token)
 
       api_conn(token) |> post("/api/queries", run_params) |> response(200)

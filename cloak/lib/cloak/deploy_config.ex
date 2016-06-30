@@ -31,6 +31,13 @@ defmodule Cloak.DeployConfig do
     |> Map.fetch(key)
   end
 
+  @doc "Retrieves a deploy-specific configuration value, returns a default value if not found."
+  @spec get(String.t) :: any
+  def get(key, default \\ nil) do
+    read_config!()
+    |> Map.get(key, default)
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

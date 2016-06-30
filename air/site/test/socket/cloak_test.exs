@@ -4,38 +4,47 @@ defmodule Air.Socket.CloakTest do
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
   alias Air.Socket.Cloak.MainChannel
-  alias Air.{CloakInfo, TestSocketHelper}
+  alias Air.{CloakInfo, Organisation, TestSocketHelper}
+
+  import Air.TestRepoHelper
 
 
-  test "invalid authentication" do
-    assert {{:disconnected, {403, "Forbidden"}}, _} = TestSocketHelper.connect(%{})
+  test "cloak name must be provided" do
+    params = %{cloak_name: "", cloak_organisation: "some_organisation"}
+    assert {{:disconnected, {403, "Forbidden"}}, _} = TestSocketHelper.connect(params)
+  end
+
+  test "cloak org must be provided" do
+    params = %{cloak_name: "some_name", cloak_organisation: ""}
+    assert {{:disconnected, {403, "Forbidden"}}, _} = TestSocketHelper.connect(params)
   end
 
   test "unmatched topic" do
-    socket = TestSocketHelper.connect!()
+    socket = connect!()
     assert {:error, reason} = TestSocket.join(socket, "invalid_channel")
     assert {:server_rejected, "invalid_channel", %{"reason" => "unmatched topic"}} == reason
   end
 
   test "main topic" do
-    socket = TestSocketHelper.connect!()
+    socket = connect!()
     assert {:ok, %{}} == join_main_channel(socket)
   end
 
   test "starting a query" do
-    socket = TestSocketHelper.connect!()
-    assert {:ok, %{}} == join_main_channel(socket)
+    socket = connect!()
+    join_main_channel!(socket)
 
-    me = self()
-    spawn(fn ->
-      start_query_result = MainChannel.run_query("unknown_org/cloak_1", %{id: 42, code: ""})
-      send(me, {:start_query_result, start_query_result})
-    end)
-    assert {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, 100)
-    assert %{"event" => "run_query", "payload" => %{"id" => 42}, "request_id" => request_id} = request
+    async_query(
+      CloakInfo.cloak_id("some_organisation", "cloak_1"),
+      %Organisation{name: "some_organisation"},
+      %{id: 42, code: ""}
+    )
 
-    TestSocket.push(socket, "main", "call_response", %{request_id: request_id, status: "ok"})
-    assert_receive {:start_query_result, :ok}
+    request = next_cloak_request(socket)
+    assert %{"event" => "run_query", "payload" => %{"id" => 42}} = request
+
+    respond_to_cloak(socket, request, %{status: "ok"})
+    assert :ok == query_response!()
   end
 
   test "receiving a query result" do
@@ -45,7 +54,7 @@ defmodule Air.Socket.CloakTest do
 
     nil = Air.Repo.get!(Air.Query, query.id).result
 
-    socket = TestSocketHelper.connect!()
+    socket = connect!()
     join_main_channel!(socket)
 
     request = %{
@@ -66,14 +75,14 @@ defmodule Air.Socket.CloakTest do
   end
 
   test "getting data for connected cloaks" do
-    socket1 = TestSocketHelper.connect!(%{cloak_name: "cloak_3"})
-    join_main_channel!(socket1, "cloak_3")
+    socket1 = connect!(%{cloak_name: "cloak_3"})
+    join_main_channel!(socket1)
     assert [%Air.CloakInfo{name: "cloak_3"} = cloak_3] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
     assert cloak_3 == CloakInfo.get(cloak_3.id)
     assert nil == CloakInfo.get("non-existing cloak")
 
-    socket2 = TestSocketHelper.connect!(%{cloak_name: "cloak_4"})
-    join_main_channel!(socket2, "cloak_4")
+    socket2 = connect!(%{cloak_name: "cloak_4"})
+    join_main_channel!(socket2)
 
     # admin org fetches all cloaks
     all_cloaks = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
@@ -81,22 +90,89 @@ defmodule Air.Socket.CloakTest do
     assert cloak_4 == CloakInfo.get(cloak_4.id)
 
     # owner org fetches all owned cloaks
-    all_cloaks = CloakInfo.all(%Air.Organisation{name: "unknown_org"})
+    all_cloaks = CloakInfo.all(%Air.Organisation{name: "some_organisation"})
     assert [%Air.CloakInfo{name: "cloak_3"}, %Air.CloakInfo{name: "cloak_4"}] = Enum.sort(all_cloaks)
 
     # cloak data disappears when it leaves the main channel
-    mref = Process.monitor(CloakInfo.main_channel_pid("unknown_org/cloak_3"))
+    mref =
+      CloakInfo.cloak_id("some_organisation", "cloak_3")
+      |> CloakInfo.main_channel_pid()
+      |> Process.monitor()
+
     TestSocket.leave(socket1, "main")
     assert_receive {:DOWN, ^mref, _, _, _}
     assert [%Air.CloakInfo{name: "cloak_4"}] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
     assert nil == CloakInfo.get(cloak_3.id)
   end
 
-  defp join_main_channel!(socket, cloak_name \\ "cloak_1", data_sources \\ []) do
-    {:ok, %{}} = join_main_channel(socket, cloak_name, data_sources)
+  test "can't run a query on a cloak from another organisation" do
+    socket = connect!()
+    join_main_channel!(socket)
+
+    async_query(
+      CloakInfo.cloak_id("some_organisation", "cloak_1"),
+      %Organisation{name: "another_organisation"},
+      %{id: 42, code: ""}
+    )
+
+    assert {:error, :forbidden} == query_response!()
   end
 
-  defp join_main_channel(socket, cloak_name \\ "cloak_1", data_sources \\ []) do
-    TestSocketHelper.join!(socket, "main", %{name: cloak_name, data_sources: data_sources})
+  test "admins can run a query on a cloak from another organisation" do
+    socket = connect!()
+    join_main_channel!(socket)
+
+    async_query(
+      CloakInfo.cloak_id("some_organisation", "cloak_1"),
+      admin_organisation(),
+      %{id: 42, code: ""}
+    )
+
+    request = next_cloak_request(socket)
+    respond_to_cloak(socket, request, %{status: "ok"})
+
+    assert :ok == query_response!()
+  end
+
+
+  defp connect!(params \\ %{}) do
+    default_params = %{
+      cloak_name: "cloak_1",
+      cloak_organisation: "some_organisation"
+    }
+    TestSocketHelper.connect!(Map.merge(default_params, params))
+  end
+
+  defp join_main_channel!(socket, data_sources \\ []) do
+    {:ok, %{}} = join_main_channel(socket, data_sources)
+  end
+
+  defp join_main_channel(socket, data_sources \\ []) do
+    TestSocketHelper.join!(socket, "main", %{data_sources: data_sources})
+  end
+
+  defp async_query(cloak_id, user_organisation, payload) do
+    caller = self()
+    spawn(fn ->
+      start_query_result = MainChannel.run_query(cloak_id, user_organisation, payload)
+      send(caller, {:query_response, start_query_result})
+    end)
+  end
+
+  defp query_response!(timeout \\ 100) do
+    receive do
+      {:query_response, response} -> response
+    after timeout ->
+      raise("timeout")
+    end
+  end
+
+  defp next_cloak_request(socket, timeout \\ 100) do
+    {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
+    request
+  end
+
+  defp respond_to_cloak(socket, %{"request_id" => request_id}, response) do
+    TestSocket.push(socket, "main", "call_response", Map.put(response, :request_id, request_id))
   end
 end
