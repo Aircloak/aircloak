@@ -106,22 +106,6 @@ defmodule Cloak.Query.Anonymizer do
     {positives_sum - negatives_sum, anonymizer}
   end
 
-  @doc "Computes the noisy sum of a collection of positive numbers."
-  @spec sum_positives(t, Enumerable.t) :: {float, t}
-  def sum_positives(anonymizer, []), do: {0, anonymizer}
-  def sum_positives(anonymizer, values) do
-    values = Enum.sort(values, &(&1 > &2))
-
-    outlier_count = config(:dropped_outliers_count)
-    {_outliers, values} = Enum.split(values, outlier_count) # drop outliers
-
-    {top_average, anonymizer} = top_average(anonymizer, values)
-
-    {noisy_outlier_count, anonymizer} = add_noise(anonymizer, outlier_count, config(:sum_noise_sigma))
-    sum = noisy_outlier_count * top_average + Enum.sum(values)
-    {sum, anonymizer}
-  end
-
   @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
   @spec min(t, Enumerable.t) :: {float, t}
   def min(anonymizer, rows) do
@@ -202,5 +186,20 @@ defmodule Cloak.Query.Anonymizer do
     top = Enum.take(values, round(noisy_top_count))
     average = Enum.sum(top) / length(top)
     {average, anonymizer}
+  end
+
+  # Computes the noisy sum of a collection of positive numbers.
+  defp sum_positives(anonymizer, []), do: {0, anonymizer}
+  defp sum_positives(anonymizer, values) do
+    values = Enum.sort(values, &(&1 > &2))
+
+    outlier_count = config(:dropped_outliers_count)
+    {_outliers, values} = Enum.split(values, outlier_count) # drop outliers
+
+    {top_average, anonymizer} = top_average(anonymizer, values)
+
+    {noisy_outlier_count, anonymizer} = add_noise(anonymizer, outlier_count, config(:sum_noise_sigma))
+    sum = noisy_outlier_count * top_average + Enum.sum(values)
+    {sum, anonymizer}
   end
 end
