@@ -168,6 +168,7 @@ defmodule Cloak.Query.Aggregator do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
   end
 
+  @spec user_counts_by_value([[any]]) :: %{any => non_neg_integer}
   defp user_counts_by_value(aggregation_data) do
     Enum.reduce(aggregation_data, %{}, fn(user_values, accumulator) ->
       Enum.reduce(Enum.uniq(user_values), accumulator, fn(value, accumulator) ->
