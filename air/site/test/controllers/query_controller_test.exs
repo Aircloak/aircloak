@@ -15,7 +15,7 @@ defmodule Air.QueryControllerTest do
     TestSocketHelper.join!(socket, "main", %{data_sources: []})
 
     task = Task.async(fn ->
-      data_source_token = Token.data_source_token("#{organisation.name}/cloak_1", nil)
+      data_source_token = Token.data_source_token(Air.CloakInfo.cloak_id(organisation.name, "cloak_1"), nil)
       run_params = put_in(@query_data_params, [:query, :data_source_token], data_source_token)
 
       login(user) |> post("/queries", run_params) |> response(200)

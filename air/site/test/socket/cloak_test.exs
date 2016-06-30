@@ -34,7 +34,10 @@ defmodule Air.Socket.CloakTest do
 
     me = self()
     spawn(fn ->
-      start_query_result = MainChannel.run_query("some_organisation/cloak_1", %{id: 42, code: ""})
+      start_query_result = MainChannel.run_query(
+        CloakInfo.cloak_id("some_organisation", "cloak_1"),
+        %{id: 42, code: ""}
+      )
       send(me, {:start_query_result, start_query_result})
     end)
     assert {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, 100)
@@ -91,7 +94,11 @@ defmodule Air.Socket.CloakTest do
     assert [%Air.CloakInfo{name: "cloak_3"}, %Air.CloakInfo{name: "cloak_4"}] = Enum.sort(all_cloaks)
 
     # cloak data disappears when it leaves the main channel
-    mref = Process.monitor(CloakInfo.main_channel_pid("some_organisation/cloak_3"))
+    mref =
+      CloakInfo.cloak_id("some_organisation", "cloak_3")
+      |> CloakInfo.main_channel_pid()
+      |> Process.monitor()
+
     TestSocket.leave(socket1, "main")
     assert_receive {:DOWN, ^mref, _, _, _}
     assert [%Air.CloakInfo{name: "cloak_4"}] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
