@@ -6,10 +6,11 @@ defmodule Air.API.DataSourceController.Test do
   alias Poison, as: JSON
 
   test "getting all sources" do
-    user = create_user!(admin_organisation())
+    organisation = admin_organisation()
+    user = create_user!(organisation)
     api_token = create_token!(user)
 
-    result = TestSocketHelper.with_cloak("cloak_name", "data_source_name", fn ->
+    result = TestSocketHelper.with_cloak("cloak_name", organisation.name, "data_source_name", fn ->
       api_conn(api_token)
       |> get("/api/data_sources")
       |> response(200)

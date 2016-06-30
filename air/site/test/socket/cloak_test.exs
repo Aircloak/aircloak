@@ -7,23 +7,29 @@ defmodule Air.Socket.CloakTest do
   alias Air.{CloakInfo, TestSocketHelper}
 
 
-  test "invalid authentication" do
-    assert {{:disconnected, {403, "Forbidden"}}, _} = TestSocketHelper.connect(%{})
+  test "cloak name must be provided" do
+    params = %{cloak_name: "", cloak_organisation: "some_organisation"}
+    assert {{:disconnected, {403, "Forbidden"}}, _} = TestSocketHelper.connect(params)
+  end
+
+  test "cloak org must be provided" do
+    params = %{cloak_name: "some_name", cloak_organisation: ""}
+    assert {{:disconnected, {403, "Forbidden"}}, _} = TestSocketHelper.connect(params)
   end
 
   test "unmatched topic" do
-    socket = TestSocketHelper.connect!()
+    socket = connect!()
     assert {:error, reason} = TestSocket.join(socket, "invalid_channel")
     assert {:server_rejected, "invalid_channel", %{"reason" => "unmatched topic"}} == reason
   end
 
   test "main topic" do
-    socket = TestSocketHelper.connect!()
+    socket = connect!()
     assert {:ok, %{}} == join_main_channel(socket)
   end
 
   test "starting a query" do
-    socket = TestSocketHelper.connect!()
+    socket = connect!()
     assert {:ok, %{}} == join_main_channel(socket)
 
     me = self()
@@ -45,7 +51,7 @@ defmodule Air.Socket.CloakTest do
 
     nil = Air.Repo.get!(Air.Query, query.id).result
 
-    socket = TestSocketHelper.connect!()
+    socket = connect!()
     join_main_channel!(socket)
 
     request = %{
@@ -66,13 +72,13 @@ defmodule Air.Socket.CloakTest do
   end
 
   test "getting data for connected cloaks" do
-    socket1 = TestSocketHelper.connect!(%{cloak_name: "cloak_3"})
+    socket1 = connect!(%{cloak_name: "cloak_3"})
     join_main_channel!(socket1, "cloak_3")
     assert [%Air.CloakInfo{name: "cloak_3"} = cloak_3] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
     assert cloak_3 == CloakInfo.get(cloak_3.id)
     assert nil == CloakInfo.get("non-existing cloak")
 
-    socket2 = TestSocketHelper.connect!(%{cloak_name: "cloak_4"})
+    socket2 = connect!(%{cloak_name: "cloak_4"})
     join_main_channel!(socket2, "cloak_4")
 
     # admin org fetches all cloaks
@@ -90,6 +96,15 @@ defmodule Air.Socket.CloakTest do
     assert_receive {:DOWN, ^mref, _, _, _}
     assert [%Air.CloakInfo{name: "cloak_4"}] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
     assert nil == CloakInfo.get(cloak_3.id)
+  end
+
+
+  defp connect!(params \\ %{}) do
+    default_params = %{
+      cloak_name: "cloak_1",
+      cloak_organisation: "unknown_org"
+    }
+    TestSocketHelper.connect!(Map.merge(default_params, params))
   end
 
   defp join_main_channel!(socket, cloak_name \\ "cloak_1", data_sources \\ []) do

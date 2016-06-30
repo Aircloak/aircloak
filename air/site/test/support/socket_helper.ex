@@ -11,7 +11,7 @@ defmodule Air.TestSocketHelper do
 
   @doc "Opens a socket and waits for the connection status."
   @spec connect!(%{}) :: {status::any, GenServer.on_start}
-  def connect(params \\ %{cloak_name: "cloak_1"}) do
+  def connect(params) do
     {:ok, socket} = TestSocket.start_link(GenSocketClient.Transport.WebSocketClient, url(params), true,
         serializer: GenSocketClient.Serializer.GzipJson)
     {TestSocket.wait_connect_status(socket), socket}
@@ -19,7 +19,7 @@ defmodule Air.TestSocketHelper do
 
   @doc "Opens a socket and waits for the connection to be successfully established."
   @spec connect!(%{}) :: GenServer.on_start
-  def connect!(params \\ %{cloak_name: "cloak_1"}) do
+  def connect!(params) do
     {:connected, socket} = connect(params)
     socket
   end
@@ -52,9 +52,9 @@ defmodule Air.TestSocketHelper do
   end
 
   @doc "Runs the action while a cloak with the given name and data source exists and returns its result."
-  @spec with_cloak(String.t, String.t, (() -> any)) :: any
-  def with_cloak(cloak_name, data_source_name, action) do
-    socket = connect!(%{cloak_name: cloak_name})
+  @spec with_cloak(String.t, String.t, String.t, (() -> any)) :: any
+  def with_cloak(cloak_name, cloak_organisation, data_source_name, action) do
+    socket = connect!(%{cloak_name: cloak_name, cloak_organisation: cloak_organisation})
 
     try do
       data_source = %{id: data_source_name, tables: []}
