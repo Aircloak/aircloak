@@ -9,6 +9,7 @@ language_tabs:
 includes:
   - authentication
   - data_sources
+  - queries
   - errors
 
 search: true
