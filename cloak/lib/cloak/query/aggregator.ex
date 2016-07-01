@@ -154,6 +154,10 @@ defmodule Cloak.Query.Aggregator do
     {avg, _anonymizer} = Anonymizer.avg(anonymizer, aggregation_data)
     avg
   end
+  defp aggregate_by("stddev", anonymizer, aggregation_data) do
+    {stddev, _anonymizer} = Anonymizer.stddev(anonymizer, aggregation_data)
+    stddev
+  end
   defp aggregate_by(unknown_aggregator, _, _) do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
   end
