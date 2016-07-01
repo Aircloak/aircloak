@@ -130,9 +130,21 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp function_expression() do
     pipe(
-      [identifier(), keyword(:"("), either(identifier(), keyword(:*)), keyword(:")")],
-      fn([function, :"(", parameter, :")"]) -> {:function, String.downcase(function), parameter} end
+      [
+        identifier(),
+        keyword(:"("),
+        choice([identifier(), distinct_identifier(), keyword(:*)]),
+        keyword(:")")
+      ],
+      fn
+        (["count", :"(", :distinct, parameter, :")"]) -> {:function, "distinct_count", parameter}
+        ([function, :"(", parameter, :")"]) -> {:function, String.downcase(function), parameter}
+      end
     )
+  end
+
+  defp distinct_identifier() do
+    keyword(:distinct) |> identifier()
   end
 
   defp from() do

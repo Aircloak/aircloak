@@ -81,6 +81,17 @@ defmodule Cloak.QueryTest do
       %{columns: ["count(height)"], rows: [%{row: [20], occurrences: 1}]}
   end
 
+  test "count(distinct column)" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [175])
+    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [160])
+    :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [150])
+
+    assert_query "select count(distinct height) from heights",
+      %{columns: ["count(distinct height)"], rows: [%{row: [4], occurrences: 1}]}
+  end
+
   test "aggregates of an empty table" do
     assert_query "select count(*), count(height), avg(height) from heights",
       %{columns: ["count(*)", "count(height)", "avg(height)"], rows: [%{row: [0, 0, nil], occurrences: 1}]}

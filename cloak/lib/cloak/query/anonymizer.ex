@@ -57,7 +57,7 @@ defmodule Cloak.Query.Anonymizer do
 
   @doc """
   Returns a `{boolean, anonymizer}` tuple, where the boolean value is
-  true if the passed collection is sufficiently large to be reported.
+  true if the passed bucket size is sufficiently large to be reported.
 
   Sufficiently large means:
 
@@ -67,12 +67,11 @@ defmodule Cloak.Query.Anonymizer do
   See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
   on the user list provided, giving the same answer every time for the given list of users.
   """
-  @spec sufficiently_large?(t, Enumerable.t) :: {boolean, t}
-  def sufficiently_large?(anonymizer, values) do
+  @spec sufficiently_large?(t, non_neg_integer) :: {boolean, t}
+  def sufficiently_large?(anonymizer, real_count) do
     count_soft_lower_bound = config(:count_soft_lower_bound)
     count_soft_lower_bound_sigma = config(:count_soft_lower_bound_sigma)
     count_absolute_lower_bound = config(:count_absolute_lower_bound)
-    real_count = Enum.count(values)
     {noisy_count, anonymizer} = add_noise(anonymizer, real_count, count_soft_lower_bound_sigma)
     {
       real_count > count_absolute_lower_bound and round(noisy_count) > count_soft_lower_bound,

@@ -77,8 +77,12 @@ defmodule Cloak.Query.Aggregator do
   defp low_users_count?({_property, anonymizer, users_rows}),
     do: low_users_count?(users_rows, anonymizer)
 
+  defp low_users_count?(count, anonymizer) when is_number(count) do
+    {sufficiently_large?, _} = Anonymizer.sufficiently_large?(anonymizer, count)
+    not sufficiently_large?
+  end
   defp low_users_count?(values, anonymizer) do
-    {sufficiently_large?, _} = Anonymizer.sufficiently_large?(anonymizer, values)
+    {sufficiently_large?, _} = Anonymizer.sufficiently_large?(anonymizer, Enum.count(values))
     not sufficiently_large?
   end
 
@@ -138,6 +142,12 @@ defmodule Cloak.Query.Aggregator do
     {count, _anonymizer} = Anonymizer.count(anonymizer, aggregation_data)
     count
   end
+  defp aggregate_by("distinct_count", anonymizer, aggregation_data) do
+    aggregation_data
+    |> user_counts_by_value()
+    |> Enum.reject(fn({_value, count}) -> low_users_count?(count, anonymizer) end)
+    |> Enum.count()
+  end
   defp aggregate_by("sum", anonymizer, aggregation_data) do
     {sum, _anonymizer} = Anonymizer.sum(anonymizer, aggregation_data)
     sum
@@ -156,6 +166,15 @@ defmodule Cloak.Query.Aggregator do
   end
   defp aggregate_by(unknown_aggregator, _, _) do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
+  end
+
+  @spec user_counts_by_value([[any]]) :: %{any => pos_integer}
+  defp user_counts_by_value(aggregation_data) do
+    Enum.reduce(aggregation_data, %{}, fn(user_values, accumulator) ->
+      Enum.reduce(Enum.uniq(user_values), accumulator, fn(value, accumulator) ->
+        Map.update(accumulator, value, 1, &(&1 + 1))
+      end)
+    end)
   end
 
   @spec normalize([Row.t], SqlQuery.t) :: nonempty_list(Row.t)

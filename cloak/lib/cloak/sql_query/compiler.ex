@@ -42,6 +42,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   @doc "Returns a string title for the given column specification."
   @spec column_title(Parser.column) :: String.t
+  def column_title({:function, "distinct_count", identifier}), do: "count(distinct #{identifier})"
   def column_title({:function, function, identifier}), do: "#{function}(#{identifier})"
   def column_title(column), do: column
 
@@ -75,9 +76,13 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  @aggregation_functions ~w(count sum avg min max stddev median)
+  @aggregation_functions ~w(count distinct_count sum avg min max stddev median)
   defp aggregate_function?({:function, function, _}), do: Enum.member?(@aggregation_functions, function)
   defp aggregate_function?(_), do: false
+
+  @numeric_aggregate_functions ~w(sum avg min max stddev median)
+  defp numeric_aggregate_function?({:function, function, _}),
+    do: Enum.member?(@numeric_aggregate_functions, function)
 
   defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
 
@@ -102,8 +107,8 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_columns(query), do: {:ok, query}
 
   defp verify_function_parameters(query, table_columns) do
-    aggregated_columns = for {:function, function, _} = column <- query.columns, aggregate_function?(column),
-      function !== "count", do: select_clause_to_identifier(column)
+    aggregated_columns = for {:function, _, _} = column <- query.columns,
+      numeric_aggregate_function?(column), do: select_clause_to_identifier(column)
     invalid_columns = Enum.reject(aggregated_columns,
       &(Enum.member?(table_columns, {&1, :integer}) or Enum.member?(table_columns, {&1, :real})))
     case invalid_columns do
