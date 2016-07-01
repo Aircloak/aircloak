@@ -8,8 +8,7 @@ language_tabs:
 
 includes:
   - authentication
-  - web_rest_api
-  - cloak
+  - data_sources
   - errors
 
 search: true
