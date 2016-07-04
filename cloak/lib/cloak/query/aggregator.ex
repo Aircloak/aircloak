@@ -138,36 +138,18 @@ defmodule Cloak.Query.Aggregator do
   defp value(_row, :*), do: :*
   defp value(row, column), do: Row.fetch!(row, column)
 
-  defp aggregate_by("count", anonymizer, aggregation_data) do
-    {count, _anonymizer} = Anonymizer.count(anonymizer, aggregation_data)
-    count
-  end
   defp aggregate_by("distinct_count", anonymizer, aggregation_data) do
     aggregation_data
     |> user_counts_by_value()
     |> Enum.reject(fn({_value, count}) -> low_users_count?(count, anonymizer) end)
     |> Enum.count()
   end
-  defp aggregate_by("sum", anonymizer, aggregation_data) do
-    {sum, _anonymizer} = Anonymizer.sum(anonymizer, aggregation_data)
-    sum
-  end
-  defp aggregate_by("min", anonymizer, aggregation_data) do
-    {margin_average, _anonymizer} = Anonymizer.min(anonymizer, aggregation_data)
-    margin_average
-  end
-  defp aggregate_by("max", anonymizer, aggregation_data) do
-    {margin_average, _anonymizer} = Anonymizer.max(anonymizer, aggregation_data)
-    margin_average
-  end
-  defp aggregate_by("avg", anonymizer, aggregation_data) do
-    {avg, _anonymizer} = Anonymizer.avg(anonymizer, aggregation_data)
-    avg
-  end
-  defp aggregate_by("stddev", anonymizer, aggregation_data) do
-    {stddev, _anonymizer} = Anonymizer.stddev(anonymizer, aggregation_data)
-    stddev
-  end
+  defp aggregate_by("count", anonymizer, aggregation_data), do: Anonymizer.count(anonymizer, aggregation_data)
+  defp aggregate_by("sum", anonymizer, aggregation_data), do: Anonymizer.sum(anonymizer, aggregation_data)
+  defp aggregate_by("min", anonymizer, aggregation_data), do: Anonymizer.min(anonymizer, aggregation_data)
+  defp aggregate_by("max", anonymizer, aggregation_data), do: Anonymizer.max(anonymizer, aggregation_data)
+  defp aggregate_by("avg", anonymizer, aggregation_data), do: Anonymizer.avg(anonymizer, aggregation_data)
+  defp aggregate_by("stddev", anonymizer, aggregation_data), do: Anonymizer.stddev(anonymizer, aggregation_data)
   defp aggregate_by(unknown_aggregator, _, _) do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
   end
