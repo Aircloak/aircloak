@@ -101,7 +101,7 @@ This endpoint returns the status of the query started by the [run query endpoint
 
 The API return value contains information about the query.
 
-- If the query is still running, the `completed` field will be set to false. In this case, the cliend needs to
+- If the query is still running, the `completed` field will be set to false. In this case, the client needs to
 repeat the request a bit later.
 - If the query has completed, the `completed` field will be set to true.
 - If the query succeeded, the result can be obtained in fields `columns`, `row_count`, and `rows`.
