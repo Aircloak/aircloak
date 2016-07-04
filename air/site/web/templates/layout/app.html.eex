@@ -45,7 +45,7 @@
                 <%= if permitted?(@conn, Air.ApiTokenController, :index) do %>
                   <%= navbar_link(@conn, "API Tokens", api_token_path(@conn, :index)) %>
                 <% end %>
-                <%= navbar_link(@conn, "API Documentation", "/api_docs") %>
+                <%= navbar_link(@conn, "API Documentation", "/docs") %>
                 <%= if Guardian.Plug.authenticated?(@conn) do %>
                   <li>
                     <%= link "Sign out", to: session_path(@conn, :delete), method: :delete %>

@@ -6,19 +6,19 @@ defmodule Air.Plug.Rewrite do
   to some internal path. This makes it possible to process some non-standard path
   by other plugs in the endpoint.
 
-  For example, let's say we have a static file accessible at `/api_docs/index.html`
-  and we want to expose the access through `/api_docs`. It can be done as:
+  For example, let's say we have a static file accessible at `/docs/index.html`
+  and we want to expose the access through `/docs`. It can be done as:
 
   ```elixir
   plug Air.Plug.Rewrite, rules: %{
-    ["api_docs"] => ["api_docs", "index.html"]
+    ["docs"] => ["docs", "index.html"]
   }
 
   plug Plug.Static,
     ...
   ```
 
-  The rewrite mapping will transform `/api_docs` request into `/api_docs/index.html`.
+  The rewrite mapping will transform `/docs` request into `/docs/index.html`.
   This will then be picked up by the subsequent `Plug.Static` and serve the proper
   content.
   """
