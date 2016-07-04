@@ -96,7 +96,10 @@ defmodule Cloak.QueryTest do
       %{columns: ["count(distinct height)"], rows: [%{row: [5], occurrences: 1}]}
   end
 
-  test "count(distinct column) for empty sets"
+  test "count(distinct column) for empty sets" do
+    assert_query "select count(distinct height) from heights",
+      %{columns: ["count(distinct height)"], rows: [%{row: [0], occurrences: 1}]}
+  end
 
   test "aggregates of an empty table" do
     assert_query "select count(*), count(height), avg(height) from heights",
