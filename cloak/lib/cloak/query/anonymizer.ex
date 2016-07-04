@@ -3,8 +3,8 @@ defmodule Cloak.Query.Anonymizer do
   Utility module for stateful deterministic anonymization based on collection
   of unique users.
 
-  This module can be used to produce noisy values, such as sums or averages.
-  The values are approximations of the real values, with some random noise
+  This module can be used to produce noisy values, such as counts, sums or averages.
+  The values are approximations of the real values, with some constant noise
   added. The amount of noise can be configured through the `:anonymizer` section
   of OTP application environment.
 
@@ -13,16 +13,15 @@ defmodule Cloak.Query.Anonymizer do
   same result for the same set of users and values, while it may differ for another
   set of users even if the values are the same.
 
-  All functions return the noisy value as well as the next state of the
-  noise generator. This state is used to produce the next random number.
-  Consequently, calling the same function with the same input but a different
-  state may produce a different value.
+  All functions need the state of the noise generator. This state is used to produce
+  the next noisy number. Consequently, calling the same function with the same input
+  but a different state may produce a different value.
 
   For example, let's say we have the following code:
 
   ```
   initial_anonymizer = Anonymizer.new(users)
-  {sum, new_anonymizer} = Anonymizer.sum(initial_anonymizer, values)
+  sum = Anonymizer.sum(initial_anonymizer, values)
   ```
 
   At this point, calling `Anonymizer.sum(new_anonymizer, values)` might return a
@@ -80,53 +79,50 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Computes the noisy count of all values in rows, where each row is an enumerable."
-  @spec count(t, Enumerable.t) :: {non_neg_integer, t}
+  @spec count(t, Enumerable.t) :: non_neg_integer
   def count(anonymizer, rows) do
     values = Stream.map(rows, &Enum.count(&1))
-    {count, anonymizer} = sum_positives(anonymizer, values)
-    noisy_count = Kernel.max(round(count), config(:count_absolute_lower_bound))
-    {noisy_count, anonymizer}
+    {count, _anonymizer} = sum_positives(anonymizer, values)
+    Kernel.max(round(count), config(:count_absolute_lower_bound))
   end
 
   @doc "Computes the noisy sum of all values in rows, where each row is an enumerable of numbers."
-  @spec sum(t, Enumerable.t) :: {float, t}
+  @spec sum(t, Enumerable.t) :: float
   def sum(anonymizer, rows) do
     values = Stream.map(rows, &Enum.sum/1)
     positives = Stream.filter(values, &(&1 >= 0))
     negatives = Stream.filter_map(values, &(&1 < 0), &-/1)
 
     {positives_sum, anonymizer} = sum_positives(anonymizer, positives)
-    {negatives_sum, anonymizer} = sum_positives(anonymizer, negatives)
+    {negatives_sum, _anonymizer} = sum_positives(anonymizer, negatives)
 
-    {positives_sum - negatives_sum, anonymizer}
+    positives_sum - negatives_sum
   end
 
   @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
-  @spec min(t, Enumerable.t) :: {float, t}
+  @spec min(t, Enumerable.t) :: float
   def min(anonymizer, rows) do
     values = rows |> Stream.map(&Enum.min/1) |> Enum.sort(&(&1 < &2))
     {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
-    top_average(anonymizer, values)
+    {min, _anonymizer} = top_average(anonymizer, values)
+    min
   end
 
   @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."
-  @spec max(t, Enumerable.t) :: {float, t}
+  @spec max(t, Enumerable.t) :: float
   def max(anonymizer, rows) do
     values = rows |> Stream.map(&Enum.max/1) |> Enum.sort(&(&1 > &2))
     {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
-    top_average(anonymizer, values)
+    {max, _anonymizer} = top_average(anonymizer, values)
+    max
   end
 
   @doc "Computes the average value of all values in rows, where each row is an enumerable of numbers."
-  @spec avg(t, Enumerable.t) :: {float, t}
-  def avg(anonymizer, rows) do
-    {sum, anonymizer} = sum(anonymizer, rows)
-    {count, anonymizer} = count(anonymizer, rows)
-    {sum / count, anonymizer}
-  end
+  @spec avg(t, Enumerable.t) :: float
+  def avg(anonymizer, rows), do: sum(anonymizer, rows) / count(anonymizer, rows)
 
   @doc "Computes the standard deviation of all values in rows, where each row is an enumerable of numbers."
-  @spec stddev(t, Enumerable.t) :: {float, t}
+  @spec stddev(t, Enumerable.t) :: float
   def stddev(anonymizer, rows) do
     real_sum = rows |> Stream.map(&Enum.sum(&1)) |> Enum.sum()
     real_count = rows |> Stream.map(&Enum.count(&1)) |> Enum.sum()
@@ -135,9 +131,7 @@ defmodule Cloak.Query.Anonymizer do
     get_variance = fn (value) -> (real_avg - value) * (real_avg - value) end
     variances = Stream.map(rows, &Stream.map(&1, get_variance))
 
-    {avg_variance, anonymizer} = avg(anonymizer, variances)
-    stddev = :math.sqrt(avg_variance)
-    {stddev, anonymizer}
+    :math.sqrt(avg(anonymizer, variances))
   end
 
 
