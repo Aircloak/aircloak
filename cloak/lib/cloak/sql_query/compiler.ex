@@ -155,7 +155,9 @@ defmodule Cloak.SqlQuery.Compiler do
     select_columns ++ where_columns ++ query.group_by
   end
 
-  defp select_clause_to_identifier({:function, _function, identifier}), do: identifier
+  defp select_clause_to_identifier({:function, _function, identifier}),
+    do: select_clause_to_identifier(identifier)
+  defp select_clause_to_identifier({:distinct, identifier}), do: identifier
   defp select_clause_to_identifier(identifier), do: identifier
 
   defp partition_selected_columns(%{group_by: groups = [_|_], columns: columns} = query) do
