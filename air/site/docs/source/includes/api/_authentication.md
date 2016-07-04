@@ -15,7 +15,6 @@ class RestClient
     http = Net::HTTP.new uri.host, uri.port
     http.read_timeout = 300
     http.use_ssl = true
-    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
     request = Net::HTTP::Get.new uri.path
     request.add_field "auth-token", api_token
@@ -33,7 +32,6 @@ class RestClient
     http = Net::HTTP.new uri.host, uri.port
     http.read_timeout = 300
     http.use_ssl = true
-    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
     request = Net::HTTP::Post.new uri.path
     request.add_field "auth-token", api_token

@@ -12,7 +12,6 @@ wget \
   --output-document - \
   --method=GET \
   --header 'auth-token:'$API_TOKEN \
-  --no-check-certificate \
   $SITE_URL/api/data_sources
 ```
 

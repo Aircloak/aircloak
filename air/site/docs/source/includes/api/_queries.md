@@ -22,7 +22,6 @@ wget \
   --header "auth-token: $API_TOKEN" \
   --header "Content-Type: application/json" \
   --body-data "{\"query\": {\"statement\": \"$statement\", \"data_source_token\": \"$data_source_token\"}}" \
-  --no-check-certificate \
   $SITE_URL/api/queries
 ```
 
@@ -65,7 +64,6 @@ wget \
   --output-document - \
   --method=GET \
   --header "auth-token: $API_TOKEN" \
-  --no-check-certificate \
   $SITE_URL/api/queries/$query_id
 ```
 
