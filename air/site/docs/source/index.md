@@ -1,5 +1,5 @@
 ---
-title: Aircloak Users' Guide
+title: Aircloak User Guide
 
 language_tabs:
   - ruby
