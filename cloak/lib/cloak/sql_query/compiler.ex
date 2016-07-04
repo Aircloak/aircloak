@@ -42,8 +42,8 @@ defmodule Cloak.SqlQuery.Compiler do
 
   @doc "Returns a string title for the given column specification."
   @spec column_title(Parser.column) :: String.t
-  def column_title({:function, "distinct_count", identifier}), do: "count(distinct #{identifier})"
-  def column_title({:function, function, identifier}), do: "#{function}(#{identifier})"
+  def column_title({:function, function, identifier}), do: "#{function}(#{column_title(identifier)})"
+  def column_title({:distinct, identifier}), do: "distinct #{identifier}"
   def column_title(column), do: column
 
 

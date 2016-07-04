@@ -112,18 +112,26 @@ defmodule Cloak.Query.Aggregator do
 
     aggregated_values =
       for {:function, function, column} <- query.aggregators do
-        aggregation_data = aggregation_data(all_users_rows, column)
+        aggregation_data = aggregation_data(all_users_rows, column, anonymizer)
 
-        case low_users_count?(aggregation_data, anonymizer) do
-          true -> nil
-          false -> aggregate_by(function, anonymizer, aggregation_data)
+        case {column, low_users_count?(aggregation_data, anonymizer)} do
+          {{:distinct, _}, _} -> aggregate_by(function, anonymizer, aggregation_data)
+          {_, false}          -> aggregate_by(function, anonymizer, aggregation_data)
+          {_, true}           -> nil
         end
       end
 
     make_row(query, property_values, aggregated_values)
   end
 
-  defp aggregation_data(all_users_rows, column) do
+  defp aggregation_data(all_users_rows, {:distinct, column}, anonymizer) do
+    all_users_rows
+    |> List.flatten()
+    |> Enum.group_by(&value(&1, column))
+    |> Enum.reject(fn({_value, rows}) -> low_users_count?(rows, anonymizer) end)
+    |> Enum.map(fn({_value, [row | _]}) -> [value(row, column)] end)
+  end
+  defp aggregation_data(all_users_rows, column, _anonymizer) do
     all_users_rows
     |> Enum.map(&values_for_aggregation(&1, column))
     |> Enum.filter(&(&1 != [])) # drop users with no values for aggregation
@@ -138,12 +146,6 @@ defmodule Cloak.Query.Aggregator do
   defp value(_row, :*), do: :*
   defp value(row, column), do: Row.fetch!(row, column)
 
-  defp aggregate_by("distinct_count", anonymizer, aggregation_data) do
-    aggregation_data
-    |> user_counts_by_value()
-    |> Enum.reject(fn({_value, count}) -> low_users_count?(count, anonymizer) end)
-    |> Enum.count()
-  end
   defp aggregate_by("count", anonymizer, aggregation_data), do: Anonymizer.count(anonymizer, aggregation_data)
   defp aggregate_by("sum", anonymizer, aggregation_data), do: Anonymizer.sum(anonymizer, aggregation_data)
   defp aggregate_by("min", anonymizer, aggregation_data), do: Anonymizer.min(anonymizer, aggregation_data)
@@ -152,15 +154,6 @@ defmodule Cloak.Query.Aggregator do
   defp aggregate_by("stddev", anonymizer, aggregation_data), do: Anonymizer.stddev(anonymizer, aggregation_data)
   defp aggregate_by(unknown_aggregator, _, _) do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
-  end
-
-  @spec user_counts_by_value([[any]]) :: %{any => pos_integer}
-  defp user_counts_by_value(aggregation_data) do
-    Enum.reduce(aggregation_data, %{}, fn(user_values, accumulator) ->
-      Enum.reduce(Enum.uniq(user_values), accumulator, fn(value, accumulator) ->
-        Map.update(accumulator, value, 1, &(&1 + 1))
-      end)
-    end)
   end
 
   @spec normalize([Row.t], SqlQuery.t) :: nonempty_list(Row.t)
