@@ -112,7 +112,7 @@ defmodule Cloak.Query.Aggregator do
 
     aggregated_values =
       for {:function, function, column} <- query.aggregators do
-        aggregation_data = aggregation_data(all_users_rows, column, anonymizer)
+        aggregation_data = aggregation_data(all_users_rows, column)
 
         case {column, low_users_count?(aggregation_data, anonymizer)} do
           {{:distinct, _}, _} -> aggregate_by(function, anonymizer, aggregation_data)
@@ -124,14 +124,16 @@ defmodule Cloak.Query.Aggregator do
     make_row(query, property_values, aggregated_values)
   end
 
-  defp aggregation_data(all_users_rows, {:distinct, column}, anonymizer) do
+  defp aggregation_data(all_users_rows, {:distinct, column}) do
     all_users_rows
+    |> Enum.sort_by(&Enum.count/1)
+    |> Enum.reverse()
     |> List.flatten()
-    |> Enum.group_by(&value(&1, column))
-    |> Enum.reject(fn({_value, rows}) -> low_users_count?(rows, anonymizer) end)
-    |> Enum.map(fn({_value, [row | _]}) -> [value(row, column)] end)
+    |> Enum.uniq_by(&value(&1, column))
+    |> Enum.group_by(&user_id(&1))
+    |> Enum.map(fn({_value, row}) -> [row] end)
   end
-  defp aggregation_data(all_users_rows, column, _anonymizer) do
+  defp aggregation_data(all_users_rows, column) do
     all_users_rows
     |> Enum.map(&values_for_aggregation(&1, column))
     |> Enum.filter(&(&1 != [])) # drop users with no values for aggregation
