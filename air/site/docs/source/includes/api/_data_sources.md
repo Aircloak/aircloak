@@ -1,6 +1,6 @@
-# Data sources
+## Data sources
 
-## Get the list of all data sources
+### Get the list of all data sources
 
 ```ruby
 RestClient.get "#{site_url}/api/data_sources", api_token
@@ -25,11 +25,11 @@ curl -v \
 
 This endpoint retrieves the list of all data sources.
 
-### HTTP Request
+#### HTTP Request
 
 `GET /api/data_sources`
 
-### Response
+#### Response
 
 ```json
 [

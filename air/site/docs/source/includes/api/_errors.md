@@ -1,6 +1,6 @@
-# Errors
+## Errors
 
-## Status codes
+### Status codes
 
 The Aircloak REST API uses the following error codes:
 

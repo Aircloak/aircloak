@@ -1,4 +1,4 @@
-# Authentication
+## Authentication
 
 All APIs are authenticated using API tokens. You need to pass the token in each API request through the `auth-token` header.
 

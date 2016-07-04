@@ -1,6 +1,6 @@
-# Queries
+## Queries
 
-## Running a query
+### Running a query
 
 ```ruby
 RestClient.post "#{site_url}/api/queries",
@@ -37,11 +37,11 @@ curl -v \
 
 This endpoint starts a query asynchronously. You need to provide a valid data source token, which you can obtain with the [data source endpoint](#get-the-list-of-all-data-sources).
 
-### HTTP Request
+#### HTTP Request
 
 `POST /api/queries`
 
-### Response
+#### Response
 
 ```json
 {
@@ -53,7 +53,7 @@ This endpoint starts a query asynchronously. You need to provide a valid data so
 The API return value is the success information and the id of the query. You can use this id to [get the query result](#getting-the-result-of-a-query).
 
 
-## Getting the result of a query
+### Getting the result of a query
 
 ```ruby
 RestClient.get "#{site_url}/api/queries/#{query_id}",
@@ -78,11 +78,11 @@ curl -v \
 
 This endpoint returns the status of the query started by the [run query endpoint](#running-a-query). The `query_id` must correspond to the id returned by the run query endpoint.
 
-### HTTP Request
+#### HTTP Request
 
 `GET /api/queries/query_id`
 
-### Response
+#### Response
 
 ```text
 {
