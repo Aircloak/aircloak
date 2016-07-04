@@ -129,6 +129,7 @@ defmodule Cloak.Query.Aggregator do
     |> Enum.sort_by(&Enum.count/1)
     |> Enum.reverse()
     |> List.flatten()
+    |> Enum.reject(&is_nil(value(&1, column)))
     |> Enum.uniq_by(&value(&1, column))
     |> Enum.group_by(&user_id(&1))
     |> Enum.map(fn({_value, row}) -> [row] end)
