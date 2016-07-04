@@ -104,13 +104,13 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
 
     assert_query "select sum(height) from heights",
-      %{columns: ["sum(height)"], rows: [%{row: [5400.0], occurrences: 1}]}
+      %{columns: ["sum(height)"], rows: [%{row: [5400], occurrences: 1}]}
 
     assert_query "select min(height) from heights",
-      %{columns: ["min(height)"], rows: [%{row: [170.0], occurrences: 1}]}
+      %{columns: ["min(height)"], rows: [%{row: [170], occurrences: 1}]}
 
     assert_query "select max(height) from heights",
-      %{columns: ["max(height)"], rows: [%{row: [190.0], occurrences: 1}]}
+      %{columns: ["max(height)"], rows: [%{row: [190], occurrences: 1}]}
 
     assert_query "select avg(height) from heights",
       %{columns: ["avg(height)"], rows: [%{row: [180.0], occurrences: 1}]}
@@ -127,13 +127,13 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [-180])
 
     assert_query "select sum(height) from heights",
-      %{columns: ["sum(height)"], rows: [%{row: [-5400.0], occurrences: 1}]}
+      %{columns: ["sum(height)"], rows: [%{row: [-5400], occurrences: 1}]}
 
     assert_query "select min(height) from heights",
-      %{columns: ["min(height)"], rows: [%{row: [-190.0], occurrences: 1}]}
+      %{columns: ["min(height)"], rows: [%{row: [-190], occurrences: 1}]}
 
     assert_query "select max(height) from heights",
-      %{columns: ["max(height)"], rows: [%{row: [-170.0], occurrences: 1}]}
+      %{columns: ["max(height)"], rows: [%{row: [-170], occurrences: 1}]}
 
     assert_query "select avg(height) from heights",
       %{columns: ["avg(height)"], rows: [%{row: [-180.0], occurrences: 1}]}
@@ -150,13 +150,13 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
 
     assert_query "select sum(height) from heights",
-      %{columns: ["sum(height)"], rows: [%{row: [-1800.0], occurrences: 1}]}
+      %{columns: ["sum(height)"], rows: [%{row: [-1800], occurrences: 1}]}
 
     assert_query "select min(height) from heights",
-      %{columns: ["min(height)"], rows: [%{row: [-190.0], occurrences: 1}]}
+      %{columns: ["min(height)"], rows: [%{row: [-190], occurrences: 1}]}
 
     assert_query "select max(height) from heights",
-      %{columns: ["max(height)"], rows: [%{row: [180.0], occurrences: 1}]}
+      %{columns: ["max(height)"], rows: [%{row: [180], occurrences: 1}]}
 
     assert_query "select avg(height) from heights",
       %{columns: ["avg(height)"], rows: [%{row: [-60.0], occurrences: 1}]}
@@ -187,7 +187,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert_query "select count(height), max(height) from heights",
-      %{columns: ["count(height)", "max(height)"], rows: [%{row: [100, 180.0], occurrences: 1}]}
+      %{columns: ["count(height)", "max(height)"], rows: [%{row: [100, 180], occurrences: 1}]}
   end
 
   test "should allow ranges for where clause" do

@@ -105,7 +105,7 @@ defmodule Cloak.Query.Anonymizer do
     values = rows |> Stream.map(&Enum.min/1) |> Enum.sort(&(&1 < &2))
     {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
     {min, _anonymizer} = top_average(anonymizer, values)
-    min
+    round_result(min, values)
   end
 
   @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."
@@ -114,7 +114,7 @@ defmodule Cloak.Query.Anonymizer do
     values = rows |> Stream.map(&Enum.max/1) |> Enum.sort(&(&1 > &2))
     {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
     {max, _anonymizer} = top_average(anonymizer, values)
-    max
+    round_result(max, values)
   end
 
   @doc "Computes the average value of all values in rows, where each row is an enumerable of numbers."
@@ -203,6 +203,10 @@ defmodule Cloak.Query.Anonymizer do
 
     {noisy_outlier_count, anonymizer} = add_noise(anonymizer, outlier_count, config(:sum_noise_sigma))
     sum = noisy_outlier_count * top_average + Enum.sum(values)
-    {sum, anonymizer}
+    {round_result(sum, values), anonymizer}
   end
+
+  # Round the final result of an aggregator depending on the type of aggregated values.
+  defp round_result(result, [value | _rest]) when is_float(value), do: result
+  defp round_result(result, _values), do: round(result)
 end
