@@ -3,8 +3,8 @@ defmodule Cloak.Query.Anonymizer do
   Utility module for stateful deterministic anonymization based on collection
   of unique users.
 
-  This module can be used to produce noisy values, such as sums or averages.
-  The values are approximations of the real values, with some random noise
+  This module can be used to produce noisy values, such as counts, sums or averages.
+  The values are approximations of the real values, with some constant noise
   added. The amount of noise can be configured through the `:anonymizer` section
   of OTP application environment.
 
@@ -13,16 +13,15 @@ defmodule Cloak.Query.Anonymizer do
   same result for the same set of users and values, while it may differ for another
   set of users even if the values are the same.
 
-  All functions return the noisy value as well as the next state of the
-  noise generator. This state is used to produce the next random number.
-  Consequently, calling the same function with the same input but a different
-  state may produce a different value.
+  All functions need the state of the noise generator. This state is used to produce
+  the next noisy number. Consequently, calling the same function with the same input
+  but a different state may produce a different value.
 
   For example, let's say we have the following code:
 
   ```
   initial_anonymizer = Anonymizer.new(users)
-  {sum, new_anonymizer} = Anonymizer.sum(initial_anonymizer, values)
+  sum = Anonymizer.sum(initial_anonymizer, values)
   ```
 
   At this point, calling `Anonymizer.sum(new_anonymizer, values)` might return a
