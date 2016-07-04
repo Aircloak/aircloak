@@ -125,6 +125,21 @@ defmodule Cloak.Query.Anonymizer do
     {sum / count, anonymizer}
   end
 
+  @doc "Computes the standard deviation of all values in rows, where each row is an enumerable of numbers."
+  @spec stddev(t, Enumerable.t) :: {float, t}
+  def stddev(anonymizer, rows) do
+    real_sum = rows |> Stream.map(&Enum.sum(&1)) |> Enum.sum()
+    real_count = rows |> Stream.map(&Enum.count(&1)) |> Enum.sum()
+    real_avg = real_sum / real_count
+
+    get_variance = fn (value) -> (real_avg - value) * (real_avg - value) end
+    variances = Stream.map(rows, &Stream.map(&1, get_variance))
+
+    {avg_variance, anonymizer} = avg(anonymizer, variances)
+    stddev = :math.sqrt(avg_variance)
+    {stddev, anonymizer}
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
