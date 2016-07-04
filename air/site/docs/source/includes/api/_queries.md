@@ -104,7 +104,7 @@ The API return value contains information about the query.
 - If the query is still running, the `completed` field will be set to false. In this case, the client needs to
 repeat the request a bit later.
 - If the query has completed, the `completed` field will be set to true.
-- If the query succeeded, the result can be obtained in fields `columns`, `row_count`, and `rows`.
-- If the query failed, the `error` field will contain a descriptive error message.
+  - If the query succeeded, the result can be obtained in fields `columns`, `row_count`, and `rows`.
+  - If the query failed, the `error` field will contain a descriptive error message.
 
 For the use of error codes in the Web REST API, please consult the [Errors](#errors) section.
