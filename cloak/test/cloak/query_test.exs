@@ -105,7 +105,8 @@ defmodule Cloak.QueryTest do
       %{columns: ["avg(height)"], rows: [%{row: [180.0], occurrences: 1}]}
 
     assert_query "select stddev(height) from heights",
-      %{columns: ["stddev(height)"], rows: [%{row: [8.16496580927726], occurrences: 1}]}
+      %{columns: ["stddev(height)"], rows: [%{row: [stddev], occurrences: 1}]}
+    assert_in_delta(stddev, 8.1, 0.1)
   end
 
   test "should be able to aggregate negative values" do
@@ -127,7 +128,8 @@ defmodule Cloak.QueryTest do
       %{columns: ["avg(height)"], rows: [%{row: [-180.0], occurrences: 1}]}
 
     assert_query "select stddev(height) from heights",
-      %{columns: ["stddev(height)"], rows: [%{row: [8.16496580927726], occurrences: 1}]}
+      %{columns: ["stddev(height)"], rows: [%{row: [stddev], occurrences: 1}]}
+    assert_in_delta(stddev, 8.1, 0.1)
   end
 
   test "should be able to aggregate negative and positive values" do
@@ -149,7 +151,8 @@ defmodule Cloak.QueryTest do
       %{columns: ["avg(height)"], rows: [%{row: [-60.0], occurrences: 1}]}
 
     assert_query "select stddev(height) from heights",
-      %{columns: ["stddev(height)"], rows: [%{row: [169.9019324983288], occurrences: 1}]}
+      %{columns: ["stddev(height)"], rows: [%{row: [stddev], occurrences: 1}]}
+    assert_in_delta(stddev, 169.9, 0.1)
   end
 
   test "select the same column multiple times" do
