@@ -136,9 +136,8 @@ defmodule Cloak.Query.Anonymizer do
     get_variance = fn (value) -> (real_avg - value) * (real_avg - value) end
     variances = Stream.map(rows, &Stream.map(&1, get_variance))
 
-    {variance_sum, anonymizer} = sum(anonymizer, variances)
-    {count, anonymizer} = count(anonymizer, rows)
-    stddev = :math.sqrt(variance_sum / count)
+    {avg_variance, anonymizer} = avg(anonymizer, variances)
+    stddev = :math.sqrt(avg_variance)
     {stddev, anonymizer}
   end
 
