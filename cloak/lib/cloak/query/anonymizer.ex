@@ -95,21 +95,19 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
-  @spec min(t, Enumerable.t) :: float | integer
+  @spec min(t, Enumerable.t) :: float | integer | nil
   def min(anonymizer, rows) do
     values = rows |> Stream.map(&Enum.min/1) |> Enum.sort(&(&1 < &2))
     {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
-    {min, _anonymizer} = top_average(anonymizer, values)
-    maybe_round_result(min, values)
+    anonymizer |> top_average(values) |> maybe_round_result(values)
   end
 
   @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."
-  @spec max(t, Enumerable.t) :: float | integer
+  @spec max(t, Enumerable.t) :: float | integer | nil
   def max(anonymizer, rows) do
     values = rows |> Stream.map(&Enum.max/1) |> Enum.sort(&(&1 > &2))
     {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
-    {max, _anonymizer} = top_average(anonymizer, values)
-    maybe_round_result(max, values)
+    anonymizer |> top_average(values) |> maybe_round_result(values)
   end
 
   @doc "Computes the average value of all values in rows, where each row is an enumerable of numbers."
@@ -179,12 +177,13 @@ defmodule Cloak.Query.Anonymizer do
   defp scale_noise(sd, noise) when is_float(sd), do: sd * noise
 
   # Computes the noisy average of the top of the collection.
-  defp top_average(anonymizer, []), do: {0, anonymizer}
   defp top_average(anonymizer, values) do
-    {noisy_top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
+    {noisy_top_count, _anonymizer} = add_noise(anonymizer, config(:top_count))
     top = Enum.take(values, noisy_top_count)
-    average = Enum.sum(top) / Enum.count(top)
-    {average, anonymizer}
+    case Enum.count(top) do
+      ^noisy_top_count -> Enum.sum(top) / noisy_top_count
+      _ -> nil # there weren't enough values in the input to anonymize the result
+    end
   end
 
   # Computes the noisy sum of a collection of positive numbers.
@@ -194,7 +193,11 @@ defmodule Cloak.Query.Anonymizer do
     outlier_count = config(:dropped_outliers_count)
     {_outliers, values} = Enum.split(values, outlier_count) # drop outliers
 
-    {top_average, anonymizer} = top_average(anonymizer, values)
+    {noisy_top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
+    top_average = case Enum.take(values, noisy_top_count) do
+      [] -> 0
+      top -> Enum.sum(top) / Enum.count(top)
+    end
 
     {noisy_outlier_count, anonymizer} = add_noise(anonymizer, {outlier_count, config(:sum_noise_sigma)})
     sum = noisy_outlier_count * top_average + Enum.sum(values)
@@ -202,6 +205,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   # Round the final result of an aggregator depending on the type of aggregated values.
+  defp maybe_round_result(nil, _values), do: nil
   defp maybe_round_result(result, []), do: round(result)
   defp maybe_round_result(result, [value | _rest]) when is_integer(value), do: round(result)
   defp maybe_round_result(result, [value | _rest]) when is_float(value), do: result
