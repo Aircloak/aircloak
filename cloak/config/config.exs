@@ -42,8 +42,8 @@ config :cloak, :anonymizer,
   # used for computing the average value of the top.
   top_count: {5, 1},
 
-  # The standard deviation of the noise of margin averages added to summed values.
-  sum_noise_sigma: 2
+  # The standard deviation for the noisy top average added to summed values.
+  sum_noise_sigma: 2.0
 
 config :cloak, :in_development, false
 

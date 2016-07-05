@@ -69,7 +69,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec sufficiently_large?(t, non_neg_integer) :: {boolean, t}
   def sufficiently_large?(anonymizer, real_count) do
     {noisy_lower_bound, anonymizer} = add_noise(anonymizer, config(:count_soft_lower_bound))
-    noisy_lower_bound = Kernel.max(round(noisy_lower_bound), config(:count_absolute_lower_bound))
+    noisy_lower_bound = Kernel.max(noisy_lower_bound, config(:count_absolute_lower_bound))
     {real_count > noisy_lower_bound, anonymizer}
   end
 
@@ -159,27 +159,30 @@ defmodule Cloak.Query.Anonymizer do
     {a, b, c}
   end
 
-  # Produces a gaussian distributed random integer with given mean and standard deviation.
-  defp add_noise(%{rng: rng} = anonymizer, {mu, sigma}) do
+  # Produces a gaussian distributed random number with given mean and standard deviation.
+  defp add_noise(%{rng: rng} = anonymizer, {mean, sd}) do
     {rand1, rng} = :rand.uniform_s(rng)
     {rand2, rng} = :rand.uniform_s(rng)
-    {gauss(mu, sigma, rand1, rand2), %{anonymizer | rng: rng}}
+    noise = scale_noise(sd, gauss(rand1, rand2))
+    {mean + noise, %{anonymizer | rng: rng}}
   end
 
   # Generates a gaussian distributed random number from two
   # uniform distributed numbers by the Box-Muller method.
-  defp gauss(mu, sigma, rand1, rand2) when rand1 > 0 do
+  defp gauss(rand1, rand2) when rand1 > 0 do
     r1 = -2.0 * :math.log(rand1)
     r2 = 2.0 * :math.pi() * rand2
-    preval = :math.sqrt(r1) * :math.cos(r2)
-    mu + sigma * preval
+    :math.sqrt(r1) * :math.cos(r2)
   end
+
+  defp scale_noise(sd, noise) when is_integer(sd), do: round(sd * noise)
+  defp scale_noise(sd, noise) when is_float(sd), do: sd * noise
 
   # Computes the noisy average of the top of the collection.
   defp top_average(anonymizer, []), do: {0, anonymizer}
   defp top_average(anonymizer, values) do
     {noisy_top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
-    top = Enum.take(values, round(noisy_top_count))
+    top = Enum.take(values, noisy_top_count)
     average = Enum.sum(top) / Enum.count(top)
     {average, anonymizer}
   end
