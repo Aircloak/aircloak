@@ -116,10 +116,9 @@ defmodule Cloak.Query.Aggregator do
       for {:function, function, column} <- query.aggregators do
         aggregation_data = aggregation_data(all_users_rows, column)
 
-        case {column, low_users_count?(aggregation_data, anonymizer)} do
-          {{:distinct, _}, _} -> aggregate_by(function, anonymizer, aggregation_data)
-          {_, false}          -> aggregate_by(function, anonymizer, aggregation_data)
-          {_, true}           -> nil
+        case low_users_count?(aggregation_data, anonymizer) do
+          true  -> nil
+          false -> aggregate_by(function, anonymizer, aggregation_data)
         end
       end
 
