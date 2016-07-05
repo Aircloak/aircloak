@@ -67,10 +67,10 @@ defmodule Cloak.Query.Anonymizer do
   on the user list provided, giving the same answer every time for the given list of users.
   """
   @spec sufficiently_large?(t, non_neg_integer) :: {boolean, t}
-  def sufficiently_large?(anonymizer, real_count) do
+  def sufficiently_large?(anonymizer, count) do
     {noisy_lower_bound, anonymizer} = add_noise(anonymizer, config(:count_soft_lower_bound))
     noisy_lower_bound = Kernel.max(noisy_lower_bound, config(:count_absolute_lower_bound))
-    {real_count > noisy_lower_bound, anonymizer}
+    {count > noisy_lower_bound, anonymizer}
   end
 
   @doc "Computes the noisy count of all values in rows, where each row is an enumerable."
