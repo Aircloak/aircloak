@@ -52,7 +52,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     end
   end
 
-  for function <- ~w(count distinct_count) do
+  for function <- ~w(count) do
     test "allowing #{function} on non-numerical columns", %{data_source: data_source} do
       assert {:ok, _} = compile("select #{unquote(function)}(column) from table", data_source)
     end
