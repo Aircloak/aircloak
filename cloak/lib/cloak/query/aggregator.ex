@@ -140,7 +140,6 @@ defmodule Cloak.Query.Aggregator do
   end
   defp preprocess_for_aggregation(all_users_rows, _column), do: all_users_rows
 
-  defp extract_values(rows, {:distinct, column}), do: extract_values(rows, column)
   defp extract_values(rows, column) do
     rows
     |> Enum.map(fn(user_rows) ->
@@ -148,7 +147,6 @@ defmodule Cloak.Query.Aggregator do
     end)
   end
 
-  defp drop_nils(rows, {:distinct, column}), do: drop_nils(rows, column)
   defp drop_nils(rows, column) do
     rows
     |> Enum.map(fn(user_rows) ->
