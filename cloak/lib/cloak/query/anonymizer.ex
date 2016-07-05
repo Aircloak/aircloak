@@ -188,7 +188,7 @@ defmodule Cloak.Query.Anonymizer do
     {noisy_top_count, anonymizer} = add_noise(anonymizer, top_count_mean, top_count_sigma)
 
     top = Enum.take(values, round(noisy_top_count))
-    average = Enum.sum(top) / length(top)
+    average = Enum.sum(top) / Enum.count(top)
     {average, anonymizer}
   end
 
