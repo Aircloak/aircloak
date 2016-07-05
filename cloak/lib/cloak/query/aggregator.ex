@@ -55,14 +55,16 @@ defmodule Cloak.Query.Aggregator do
 
   @spec group_by_property([Row.t], SqlQuery.t) :: properties
   defp group_by_property(rows, query) do
-    Enum.reduce(rows, %{}, fn(row, accumulator) ->
-      property_values = for column <- query.property, do: Row.fetch!(row, column)
-      user_id = user_id(row)
-      Map.update(accumulator, property_values, %{user_id => [row]}, fn (user_values_map) ->
-        Map.update(user_values_map, user_id, [row], &([row | &1]))
-      end)
+    rows
+    |> Enum.group_by(&grouping_property(&1, query))
+    |> Enum.map(fn({property, rows}) ->
+      {property, Enum.group_by(rows, &user_id/1)}
     end)
     |> init_anonymizer()
+  end
+
+  defp grouping_property(row, query) do
+    Enum.map(query.property, &Row.fetch!(row, &1))
   end
 
   defp user_id(row) do
