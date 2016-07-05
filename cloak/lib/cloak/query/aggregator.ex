@@ -114,7 +114,11 @@ defmodule Cloak.Query.Aggregator do
 
     aggregated_values =
       for {:function, function, column} <- query.aggregators do
-        aggregation_data = aggregation_data(all_users_rows, column)
+        aggregation_data =
+          all_users_rows
+          |> drop_nils(column)
+          |> preprocess_for_aggregation(column)
+          |> extract_values(column)
 
         case low_users_count?(aggregation_data, anonymizer) do
           true  -> nil
@@ -125,27 +129,32 @@ defmodule Cloak.Query.Aggregator do
     make_row(query, property_values, aggregated_values)
   end
 
-  defp aggregation_data(all_users_rows, {:distinct, column}) do
+  defp preprocess_for_aggregation(all_users_rows, {:distinct, column}) do
     all_users_rows
     |> Enum.sort_by(&Enum.count/1)
     |> Enum.reverse()
     |> List.flatten()
-    |> Enum.reject(&is_nil(value(&1, column)))
     |> Enum.uniq_by(&value(&1, column))
     |> Enum.group_by(&user_id(&1))
     |> Map.values()
-    |> Enum.map(fn(rows) -> Enum.map(rows, &value(&1, column)) end)
   end
-  defp aggregation_data(all_users_rows, column) do
-    all_users_rows
-    |> Enum.map(&values_for_aggregation(&1, column))
-    |> Enum.filter(&(&1 != [])) # drop users with no values for aggregation
+  defp preprocess_for_aggregation(all_users_rows, _column), do: all_users_rows
+
+  defp extract_values(rows, {:distinct, column}), do: extract_values(rows, column)
+  defp extract_values(rows, column) do
+    rows
+    |> Enum.map(fn(user_rows) ->
+      Enum.map(user_rows, fn(row) -> value(row, column) end)
+    end)
   end
 
-  defp values_for_aggregation(rows, column) do
+  defp drop_nils(rows, {:distinct, column}), do: drop_nils(rows, column)
+  defp drop_nils(rows, column) do
     rows
-    |> Enum.map(&value(&1, column))
-    |> Enum.filter(&(&1 != nil)) # `nil` values do not participate in the aggregation
+    |> Enum.map(fn(user_rows) ->
+      Enum.reject(user_rows, fn(row) -> value(row, column) == nil end)
+    end)
+    |> Enum.reject(&Enum.empty?/1)
   end
 
   defp value(_row, :*), do: :*
