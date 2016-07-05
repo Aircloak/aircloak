@@ -7,7 +7,7 @@ language_tabs:
   - plaintext: curl
 
 includes:
-  - api/header
+  - api
   - api/authentication
   - api/data_sources
   - api/queries
