@@ -10,7 +10,7 @@ You can discover database tables and their structure using the `SHOW` statement.
 
 ## Querying the database
 
-The `SELECT` statement can be used to obtain anonymized data from tables. See [Understanding query results](understanding-query-results) for the explanation of anonymized result.
+The `SELECT` statement can be used to obtain anonymized data from tables. See [Understanding query results](understanding-query-results) for an explanation of the effects of anonymization on the results.
 
 The syntax conforms to the standard SQL syntax, but only a subset of features is supported. The general shape of the query looks like:
 
