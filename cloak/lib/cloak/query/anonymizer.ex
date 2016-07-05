@@ -68,14 +68,9 @@ defmodule Cloak.Query.Anonymizer do
   """
   @spec sufficiently_large?(t, non_neg_integer) :: {boolean, t}
   def sufficiently_large?(anonymizer, real_count) do
-    count_soft_lower_bound = config(:count_soft_lower_bound)
-    count_soft_lower_bound_sigma = config(:count_soft_lower_bound_sigma)
-    count_absolute_lower_bound = config(:count_absolute_lower_bound)
-    {noisy_count, anonymizer} = add_noise(anonymizer, real_count, count_soft_lower_bound_sigma)
-    {
-      real_count > count_absolute_lower_bound and round(noisy_count) > count_soft_lower_bound,
-      anonymizer
-    }
+    {noisy_lower_bound, anonymizer} = add_noise(anonymizer, config(:count_soft_lower_bound))
+    noisy_lower_bound = Kernel.max(round(noisy_lower_bound), config(:count_absolute_lower_bound))
+    {real_count > noisy_lower_bound, anonymizer}
   end
 
   @doc "Computes the noisy count of all values in rows, where each row is an enumerable."
@@ -165,7 +160,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   # Produces a gaussian distributed random integer with given mean and standard deviation.
-  defp add_noise(%{rng: rng} = anonymizer, mu, sigma) do
+  defp add_noise(%{rng: rng} = anonymizer, {mu, sigma}) do
     {rand1, rng} = :rand.uniform_s(rng)
     {rand2, rng} = :rand.uniform_s(rng)
     {gauss(mu, sigma, rand1, rand2), %{anonymizer | rng: rng}}
@@ -183,10 +178,7 @@ defmodule Cloak.Query.Anonymizer do
   # Computes the noisy average of the top of the collection.
   defp top_average(anonymizer, []), do: {0, anonymizer}
   defp top_average(anonymizer, values) do
-    top_count_mean = config(:top_count_mean)
-    top_count_sigma = config(:top_count_sigma)
-    {noisy_top_count, anonymizer} = add_noise(anonymizer, top_count_mean, top_count_sigma)
-
+    {noisy_top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
     top = Enum.take(values, round(noisy_top_count))
     average = Enum.sum(top) / Enum.count(top)
     {average, anonymizer}
@@ -201,7 +193,7 @@ defmodule Cloak.Query.Anonymizer do
 
     {top_average, anonymizer} = top_average(anonymizer, values)
 
-    {noisy_outlier_count, anonymizer} = add_noise(anonymizer, outlier_count, config(:sum_noise_sigma))
+    {noisy_outlier_count, anonymizer} = add_noise(anonymizer, {outlier_count, config(:sum_noise_sigma)})
     sum = noisy_outlier_count * top_average + Enum.sum(values)
     {maybe_round_result(sum, values), anonymizer}
   end
