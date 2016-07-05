@@ -114,15 +114,15 @@ defmodule Cloak.Query.Aggregator do
 
     aggregated_values =
       for {:function, function, column} <- query.aggregators do
-        aggregation_data =
-          all_users_rows
-          |> drop_nils(column)
-          |> preprocess_for_aggregation(column)
-          |> extract_values(column)
+        rows_for_aggregation = drop_nils(all_users_rows, column)
 
-        case low_users_count?(aggregation_data, anonymizer) do
+        case low_users_count?(rows_for_aggregation, anonymizer) do
           true  -> nil
-          false -> aggregate_by(function, anonymizer, aggregation_data)
+          false ->
+            rows_for_aggregation
+            |> preprocess_for_aggregation(column)
+            |> extract_values(column)
+            |> aggregate_by(function, anonymizer)
         end
       end
 
@@ -158,13 +158,13 @@ defmodule Cloak.Query.Aggregator do
   defp value(_row, :*), do: :*
   defp value(row, column), do: Row.fetch!(row, column)
 
-  defp aggregate_by("count", anonymizer, aggregation_data), do: Anonymizer.count(anonymizer, aggregation_data)
-  defp aggregate_by("sum", anonymizer, aggregation_data), do: Anonymizer.sum(anonymizer, aggregation_data)
-  defp aggregate_by("min", anonymizer, aggregation_data), do: Anonymizer.min(anonymizer, aggregation_data)
-  defp aggregate_by("max", anonymizer, aggregation_data), do: Anonymizer.max(anonymizer, aggregation_data)
-  defp aggregate_by("avg", anonymizer, aggregation_data), do: Anonymizer.avg(anonymizer, aggregation_data)
-  defp aggregate_by("stddev", anonymizer, aggregation_data), do: Anonymizer.stddev(anonymizer, aggregation_data)
-  defp aggregate_by(unknown_aggregator, _, _) do
+  defp aggregate_by(aggregation_data, "count", anonymizer), do: Anonymizer.count(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "sum", anonymizer), do: Anonymizer.sum(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "min", anonymizer), do: Anonymizer.min(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "max", anonymizer), do: Anonymizer.max(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "avg", anonymizer), do: Anonymizer.avg(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "stddev", anonymizer), do: Anonymizer.stddev(anonymizer, aggregation_data)
+  defp aggregate_by(_, unknown_aggregator, _) do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
   end
 
