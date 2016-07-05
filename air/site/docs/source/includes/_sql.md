@@ -46,9 +46,14 @@ __Notes__:
 
 `SELECT` queries return anonymized results. The results have a small amount of noise added to them. This is crucial in protecting the privacy of individuals, while sufficiently unobtrusive to provide accurate results during normal use.
 
+The results are anonymized in two phases:
+
+1. Low-count filtering
+2. Adding noise
+
 ### Low-count filtering
 
-The results only contain data that appeared for a sufficiently large number of distinct users. For example, consider the query `SELECT first_name FROM users`.
+In this phase, values which are not associated with a sufficiently large number of distinct users are discarded. For example, consider the query `SELECT first_name FROM users`.
 
 Let's say that the names in the `users` table are distributed as follows:
 
@@ -60,9 +65,9 @@ John   | 150
 Mary   | 1
 Tom    | 2
 
-Since the number of distinct for users named Bob, Mary, and Tom is too small, they won't appear in the final result. In contrast, there is a sufficient number of Alices and Johns, so the result will contain the corresponding rows.
+Since the number of distinct users named Bob, Mary, and Tom is too small, these names won't appear in the final result. In contrast, there is a sufficient number of Alices and Johns, so the result will contain the corresponding rows.
 
-In place of the discarded rows, the `*` rows will be included in the result. All columns of these rows will have the value of `*`. So in this example, the returned rows would have the following distribution:
+In place of the discarded rows, the `*` rows will be included in the result. All columns of these rows will have the value of `*`. So in this example, the distribution of rows after filtering would be as follows:
 
 Name   | Number of returned rows
 ------ | ------------------------
@@ -76,6 +81,6 @@ It's worth noting that absence of `*` rows doesn't mean that no rows were omitte
 
 ### Adding noise
 
-As explained in [Understanding query results](#understanding-query-results), some amount of noise is introduced in the result. Consider the example from the [previous section](#low-count-filtering), where there are 100 Alices, 150 Johns, and 5 other names. The anonymized result might contain a slightly different distribution, for example 94 Alice rows, 152 John rows, and 7 `*` rows.
+After low-count values are filtered, some amount of noise is introduced. Consider the example from the [previous section](#low-count-filtering), where there are 100 Alices, 150 Johns, and 5 other names. The final result might contain a slightly different distribution, for example 94 Alice rows, 152 John rows, and 7 `*` rows.
 
 The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymized. The returned values will slightly differ from the real values.
