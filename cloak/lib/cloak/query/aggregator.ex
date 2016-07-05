@@ -132,7 +132,6 @@ defmodule Cloak.Query.Aggregator do
   defp preprocess_for_aggregation(all_users_rows, {:distinct, column}) do
     all_users_rows
     |> Enum.sort_by(&Enum.count/1)
-    |> Enum.reverse()
     |> List.flatten()
     |> Enum.uniq_by(&value(&1, column))
     |> Enum.group_by(&user_id(&1))
