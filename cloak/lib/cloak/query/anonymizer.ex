@@ -87,7 +87,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Computes the noisy sum of all values in rows, where each row is an enumerable of numbers."
-  @spec sum(t, Enumerable.t) :: float
+  @spec sum(t, Enumerable.t) :: float | integer
   def sum(anonymizer, rows) do
     values = Stream.map(rows, &Enum.sum/1)
     positives = Stream.filter(values, &(&1 >= 0))
@@ -100,7 +100,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
-  @spec min(t, Enumerable.t) :: float
+  @spec min(t, Enumerable.t) :: float | integer
   def min(anonymizer, rows) do
     values = rows |> Stream.map(&Enum.min/1) |> Enum.sort(&(&1 < &2))
     {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
@@ -109,7 +109,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."
-  @spec max(t, Enumerable.t) :: float
+  @spec max(t, Enumerable.t) :: float | integer
   def max(anonymizer, rows) do
     values = rows |> Stream.map(&Enum.max/1) |> Enum.sort(&(&1 > &2))
     {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
