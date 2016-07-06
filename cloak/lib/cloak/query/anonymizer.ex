@@ -131,9 +131,9 @@ defmodule Cloak.Query.Anonymizer do
   @spec median(t, Enumerable.t) :: number | nil
   def median(anonymizer, rows) do
     values =
-      Stream.transform(rows, 0, fn (row, user_index) ->
-        {Stream.map(row, &{user_index, &1}), user_index + 1}
-      end)
+      rows
+      |> Stream.with_index()
+      |> Stream.flat_map(fn ({row, user_index}) -> Stream.map(row, &{user_index, &1}) end)
       |> Enum.sort_by(fn ({_user_index, value}) -> value end)
 
     top_count = config(:top_count)
