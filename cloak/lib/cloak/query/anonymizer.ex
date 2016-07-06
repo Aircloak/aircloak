@@ -1,12 +1,11 @@
 defmodule Cloak.Query.Anonymizer do
   @moduledoc """
-  Utility module for stateful deterministic anonymization based on collection
-  of unique users.
+  Module for anonymized aggregation of data.
 
-  This module can be used to produce noisy values, such as counts, sums or averages.
-  The values are approximations of the real values, with some constant noise
-  added. The amount of noise can be configured through the `:anonymizer` section
-  of OTP application environment.
+  This module can be used to produce aggregated values, such as counts, sums or averages,
+  in a privacy-preserving form. The produced results are approximations of the real values,
+  with constant noise added and removal of outliers. The anonymization parameters can
+  be configured through the `:anonymizer` section of OTP application environment.
 
   The generated noise is deterministic for the same set of users. For example,
   calling `Anonymizer.new(users) |> Anonymizer.sum(values)` will always give the
@@ -27,6 +26,8 @@ defmodule Cloak.Query.Anonymizer do
   At this point, calling `Anonymizer.sum(new_anonymizer, values)` might return a
   different sum. However, calling `Anonymizer.sum(initial_anonymizer, values)`
   would always return the same value.
+
+  For a description of the way the aggregation is performed, see `docs/anonymizer.md`.
   """
 
   @opaque t :: %{
