@@ -43,7 +43,7 @@ defmodule Air.Endpoint do
   socket "/frontend/socket", Air.Socket.Frontend
 
   plug Air.Plug.Rewrite, rules: %{
-    ["api_docs"] => ["api_docs", "index.html"]
+    ["docs"] => ["docs", "index.html"]
   }
 
   # Serve at "/" the static files from "priv/static" directory.
@@ -52,7 +52,7 @@ defmodule Air.Endpoint do
   # when deploying your static files in production.
   plug Plug.Static,
     at: "/", from: :air, gzip: false,
-    only: ~w(css fonts images js robots.txt api_docs)
+    only: ~w(css fonts images js robots.txt docs)
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.

@@ -24,6 +24,6 @@ configure :build do
   activate :asset_hash
 
   # Or use a different image path
-  set :http_prefix, "/api_docs"
+  set :http_prefix, "/docs"
 end
 
