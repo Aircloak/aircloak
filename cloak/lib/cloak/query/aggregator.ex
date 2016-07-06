@@ -55,14 +55,16 @@ defmodule Cloak.Query.Aggregator do
 
   @spec group_by_property([Row.t], SqlQuery.t) :: properties
   defp group_by_property(rows, query) do
-    Enum.reduce(rows, %{}, fn(row, accumulator) ->
-      property_values = for column <- query.property, do: Row.fetch!(row, column)
-      user_id = user_id(row)
-      Map.update(accumulator, property_values, %{user_id => [row]}, fn (user_values_map) ->
-        Map.update(user_values_map, user_id, [row], &([row | &1]))
-      end)
+    rows
+    |> Enum.group_by(&grouping_property(&1, query))
+    |> Enum.map(fn({property, rows}) ->
+      {property, Enum.group_by(rows, &user_id/1)}
     end)
     |> init_anonymizer()
+  end
+
+  defp grouping_property(row, query) do
+    Enum.map(query.property, &Row.fetch!(row, &1))
   end
 
   defp user_id(row) do
@@ -112,56 +114,58 @@ defmodule Cloak.Query.Aggregator do
 
     aggregated_values =
       for {:function, function, column} <- query.aggregators do
-        aggregation_data = aggregation_data(all_users_rows, column)
+        rows_for_aggregation = drop_nils(all_users_rows, column)
 
-        case low_users_count?(aggregation_data, anonymizer) do
-          true -> nil
-          false -> aggregate_by(function, anonymizer, aggregation_data)
+        case low_users_count?(rows_for_aggregation, anonymizer) do
+          true  -> nil
+          false ->
+            rows_for_aggregation
+            |> preprocess_for_aggregation(column)
+            |> extract_values(column)
+            |> aggregate_by(function, anonymizer)
         end
       end
 
     make_row(query, property_values, aggregated_values)
   end
 
-  defp aggregation_data(all_users_rows, column) do
+  defp preprocess_for_aggregation(all_users_rows, {:distinct, column}) do
     all_users_rows
-    |> Enum.map(&values_for_aggregation(&1, column))
-    |> Enum.filter(&(&1 != [])) # drop users with no values for aggregation
+    |> Enum.sort_by(&Enum.count/1)
+    |> List.flatten()
+    |> Enum.uniq_by(&value(&1, column))
+    |> Enum.group_by(&user_id(&1))
+    |> Map.values()
+  end
+  defp preprocess_for_aggregation(all_users_rows, _column), do: all_users_rows
+
+  defp extract_values(rows, column) do
+    rows
+    |> Enum.map(fn(user_rows) ->
+      Enum.map(user_rows, fn(row) -> value(row, column) end)
+    end)
   end
 
-  defp values_for_aggregation(rows, column) do
+  defp drop_nils(rows, column) do
     rows
-    |> Enum.map(&value(&1, column))
-    |> Enum.filter(&(&1 != nil)) # `nil` values do not participate in the aggregation
+    |> Enum.map(fn(user_rows) ->
+      Enum.reject(user_rows, fn(row) -> value(row, column) == nil end)
+    end)
+    |> Enum.reject(&Enum.empty?/1)
   end
 
   defp value(_row, :*), do: :*
   defp value(row, column), do: Row.fetch!(row, column)
 
-  defp aggregate_by("distinct_count", anonymizer, aggregation_data) do
-    aggregation_data
-    |> user_counts_by_value()
-    |> Enum.reject(fn({_value, count}) -> low_users_count?(count, anonymizer) end)
-    |> Enum.count()
-  end
-  defp aggregate_by("count", anonymizer, aggregation_data), do: Anonymizer.count(anonymizer, aggregation_data)
-  defp aggregate_by("sum", anonymizer, aggregation_data), do: Anonymizer.sum(anonymizer, aggregation_data)
-  defp aggregate_by("min", anonymizer, aggregation_data), do: Anonymizer.min(anonymizer, aggregation_data)
-  defp aggregate_by("max", anonymizer, aggregation_data), do: Anonymizer.max(anonymizer, aggregation_data)
-  defp aggregate_by("avg", anonymizer, aggregation_data), do: Anonymizer.avg(anonymizer, aggregation_data)
-  defp aggregate_by("stddev", anonymizer, aggregation_data), do: Anonymizer.stddev(anonymizer, aggregation_data)
-  defp aggregate_by("median", anonymizer, aggregation_data), do: Anonymizer.median(anonymizer, aggregation_data)
-  defp aggregate_by(unknown_aggregator, _, _) do
+  defp aggregate_by(aggregation_data, "count", anonymizer), do: Anonymizer.count(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "sum", anonymizer), do: Anonymizer.sum(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "min", anonymizer), do: Anonymizer.min(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "max", anonymizer), do: Anonymizer.max(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "avg", anonymizer), do: Anonymizer.avg(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "stddev", anonymizer), do: Anonymizer.stddev(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "median", anonymizer), do: Anonymizer.median(anonymizer, aggregation_data)
+  defp aggregate_by(_, unknown_aggregator, _) do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
-  end
-
-  @spec user_counts_by_value([[any]]) :: %{any => pos_integer}
-  defp user_counts_by_value(aggregation_data) do
-    Enum.reduce(aggregation_data, %{}, fn(user_values, accumulator) ->
-      Enum.reduce(Enum.uniq(user_values), accumulator, fn(value, accumulator) ->
-        Map.update(accumulator, value, 1, &(&1 + 1))
-      end)
-    end)
   end
 
   @spec normalize([Row.t], SqlQuery.t) :: nonempty_list(Row.t)

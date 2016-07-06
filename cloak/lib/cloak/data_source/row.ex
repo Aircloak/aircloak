@@ -26,6 +26,7 @@ defmodule Cloak.DataSource.Row do
 
   @doc "Returns a value of the desired column."
   @spec fetch!(t, any) :: any
+  def fetch!(row, {:distinct, column}), do: fetch!(row, column)
   def fetch!(row, column) do
     case Map.fetch(row.values_map, column) do
       {:ok, value} -> value

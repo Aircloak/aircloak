@@ -42,8 +42,8 @@ defmodule Cloak.SqlQuery.Compiler do
 
   @doc "Returns a string title for the given column specification."
   @spec column_title(Parser.column) :: String.t
-  def column_title({:function, "distinct_count", identifier}), do: "count(distinct #{identifier})"
-  def column_title({:function, function, identifier}), do: "#{function}(#{identifier})"
+  def column_title({:function, function, identifier}), do: "#{function}(#{column_title(identifier)})"
+  def column_title({:distinct, identifier}), do: "distinct #{identifier}"
   def column_title(column), do: column
 
 
@@ -76,7 +76,7 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  @aggregation_functions ~w(count distinct_count sum avg min max stddev median)
+  @aggregation_functions ~w(count sum avg min max stddev median)
   defp aggregate_function?({:function, function, _}), do: Enum.member?(@aggregation_functions, function)
   defp aggregate_function?(_), do: false
 
@@ -155,7 +155,9 @@ defmodule Cloak.SqlQuery.Compiler do
     select_columns ++ where_columns ++ query.group_by
   end
 
-  defp select_clause_to_identifier({:function, _function, identifier}), do: identifier
+  defp select_clause_to_identifier({:function, _function, identifier}),
+    do: select_clause_to_identifier(identifier)
+  defp select_clause_to_identifier({:distinct, identifier}), do: identifier
   defp select_clause_to_identifier(identifier), do: identifier
 
   defp partition_selected_columns(%{group_by: groups = [_|_], columns: columns} = query) do

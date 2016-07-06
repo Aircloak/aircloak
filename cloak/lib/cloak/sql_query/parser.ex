@@ -137,14 +137,13 @@ defmodule Cloak.SqlQuery.Parser do
         keyword(:")")
       ],
       fn
-        (["count", :"(", :distinct, parameter, :")"]) -> {:function, "distinct_count", parameter}
         ([function, :"(", parameter, :")"]) -> {:function, String.downcase(function), parameter}
       end
     )
   end
 
   defp distinct_identifier() do
-    keyword(:distinct) |> identifier()
+    pair_both(keyword(:distinct), identifier())
   end
 
   defp from() do
