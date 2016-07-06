@@ -189,7 +189,7 @@ defmodule Cloak.Query.Anonymizer do
   defp add_noise(%{rng: rng} = anonymizer, {mean, sd}) do
     {rand1, rng} = :rand.uniform_s(rng)
     {rand2, rng} = :rand.uniform_s(rng)
-    noise = scale_noise(sd, gauss(rand1, rand2))
+    noise = gauss(rand1, rand2) |> scale_noise(sd)
     {mean + noise, %{anonymizer | rng: rng}}
   end
 
@@ -201,8 +201,8 @@ defmodule Cloak.Query.Anonymizer do
     :math.sqrt(r1) * :math.cos(r2)
   end
 
-  defp scale_noise(sd, noise) when is_integer(sd), do: round(sd * noise)
-  defp scale_noise(sd, noise) when is_float(sd), do: sd * noise
+  defp scale_noise(noise, sd) when is_integer(sd), do: round(sd * noise)
+  defp scale_noise(noise, sd) when is_float(sd), do: sd * noise
 
   # Computes the noisy average of the top of the collection.
   defp top_average(anonymizer, values) do
