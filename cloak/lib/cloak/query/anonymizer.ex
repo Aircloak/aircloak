@@ -69,7 +69,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec sufficiently_large?(t, non_neg_integer) :: {boolean, t}
   def sufficiently_large?(anonymizer, count) do
     {noisy_lower_bound, anonymizer} = add_noise(anonymizer, config(:count_soft_lower_bound))
-    noisy_lower_bound = Kernel.max(noisy_lower_bound, config(:count_absolute_lower_bound))
+    noisy_lower_bound = Kernel.max(round(noisy_lower_bound), config(:count_absolute_lower_bound))
     {count > noisy_lower_bound, anonymizer}
   end
 
@@ -138,7 +138,9 @@ defmodule Cloak.Query.Anonymizer do
 
     top_count = config(:top_count)
     {noisy_above_count, anonymizer} = add_noise(anonymizer, top_count)
+    noisy_above_count = round(noisy_above_count)
     {noisy_below_count, _anonymizer} = add_noise(anonymizer, top_count)
+    noisy_below_count = round(noisy_below_count)
 
     middle = round((Enum.count(values) - 1) / 2)
     {bottom_values, [{_middle_user_index, middle_value} | top_values]} = Enum.split(values, middle - 1)
@@ -189,7 +191,7 @@ defmodule Cloak.Query.Anonymizer do
   defp add_noise(%{rng: rng} = anonymizer, {mean, sd}) do
     {rand1, rng} = :rand.uniform_s(rng)
     {rand2, rng} = :rand.uniform_s(rng)
-    noise = gauss(rand1, rand2) |> scale_noise(sd)
+    noise = sd * gauss(rand1, rand2)
     {mean + noise, %{anonymizer | rng: rng}}
   end
 
@@ -201,12 +203,10 @@ defmodule Cloak.Query.Anonymizer do
     :math.sqrt(r1) * :math.cos(r2)
   end
 
-  defp scale_noise(noise, sd) when is_integer(sd), do: round(sd * noise)
-  defp scale_noise(noise, sd) when is_float(sd), do: sd * noise
-
   # Computes the noisy average of the top of the collection.
   defp top_average(anonymizer, values) do
     {noisy_top_count, _anonymizer} = add_noise(anonymizer, config(:top_count))
+    noisy_top_count = round(noisy_top_count)
     top = Enum.take(values, noisy_top_count)
     case Enum.count(top) do
       ^noisy_top_count -> Enum.sum(top) / noisy_top_count
@@ -222,6 +222,7 @@ defmodule Cloak.Query.Anonymizer do
     {_outliers, values} = Enum.split(values, outlier_count) # drop outliers
 
     {noisy_top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
+    noisy_top_count = round(noisy_top_count)
     top_average = case Enum.take(values, noisy_top_count) do
       [] -> 0
       top -> Enum.sum(top) / Enum.count(top)
