@@ -82,7 +82,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Computes the noisy sum of all values in rows, where each row is an enumerable of numbers."
-  @spec sum(t, Enumerable.t) :: float | integer
+  @spec sum(t, Enumerable.t) :: number
   def sum(anonymizer, rows) do
     values = Stream.map(rows, &Enum.sum/1)
     positives = Stream.filter(values, &(&1 >= 0))
@@ -95,7 +95,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
-  @spec min(t, Enumerable.t) :: float | integer | nil
+  @spec min(t, Enumerable.t) :: number | nil
   def min(anonymizer, rows) do
     values = rows |> Stream.map(&Enum.min/1) |> Enum.sort(&(&1 < &2))
     {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
@@ -103,7 +103,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."
-  @spec max(t, Enumerable.t) :: float | integer | nil
+  @spec max(t, Enumerable.t) :: number | nil
   def max(anonymizer, rows) do
     values = rows |> Stream.map(&Enum.max/1) |> Enum.sort(&(&1 > &2))
     {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
@@ -128,7 +128,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Computes the median value of all values in rows, where each row is an enumerable of numbers."
-  @spec median(t, Enumerable.t) :: float | nil
+  @spec median(t, Enumerable.t) :: number | nil
   def median(anonymizer, rows) do
     values =
       Stream.transform(rows, 0, fn (row, user_index) ->
