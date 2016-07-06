@@ -62,14 +62,14 @@ defmodule Air.Query do
   # -------------------------------------------------------------------
 
   @doc "Adds a query filter selecting only those for the given user"
-  @spec for_user(__MODULE__, User.t) :: __MODULE__
+  @spec for_user(Ecto.Queryable.t, User.t) :: Ecto.Queryable.t
   def for_user(query \\ __MODULE__, user) do
     from q in query,
     where: q.user_id == ^user.id
   end
 
   @doc "Adds a query filter limiting the number of selected queries"
-  @spec recent(__MODULE__, non_neg_integer) :: __MODULE__
+  @spec recent(Ecto.Queryable.t, non_neg_integer) :: Ecto.Queryable.t
   def recent(query \\ __MODULE__, count) do
     from q in query,
     order_by: [desc: q.inserted_at],
