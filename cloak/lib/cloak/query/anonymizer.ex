@@ -142,8 +142,8 @@ defmodule Cloak.Query.Anonymizer do
 
     middle = round((Enum.count(values) - 1) / 2)
     {bottom_values, [{_middle_user_index, middle_value} | top_values]} = Enum.split(values, middle - 1)
-    above_values = top_values |> take_values_from_distinct_users(noisy_above_count, [])
-    below_values = bottom_values |> Enum.reverse() |> take_values_from_distinct_users(noisy_below_count, [])
+    above_values = top_values |> take_values_from_distinct_users(noisy_above_count)
+    below_values = bottom_values |> Enum.reverse() |> take_values_from_distinct_users(noisy_below_count)
     middle_values = below_values ++ [middle_value] ++ above_values
 
     middle_values_count = Enum.count(middle_values)
@@ -238,10 +238,10 @@ defmodule Cloak.Query.Anonymizer do
   defp maybe_round_result(result, [value | _rest]) when is_integer(value), do: round(result)
   defp maybe_round_result(result, [value | _rest]) when is_float(value), do: result
 
-  defp take_values_from_distinct_users([], _amount, acc), do: acc
-  defp take_values_from_distinct_users(_user_values, 0, acc), do: acc
-  defp take_values_from_distinct_users([{user, value1}, {user, _value2} | remaining], amount, acc), do:
-    take_values_from_distinct_users([{user, value1} | remaining], amount, acc)
-  defp take_values_from_distinct_users([{_user, value} | remaining], amount, acc), do:
-    take_values_from_distinct_users(remaining, amount - 1, [value | acc])
+  defp take_values_from_distinct_users(user_values, amount) do
+    user_values
+    |> Stream.dedup_by(fn({user, _value}) -> user end)
+    |> Stream.map(fn({_user, value}) -> value end)
+    |> Enum.take(amount)
+  end
 end

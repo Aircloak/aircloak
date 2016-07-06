@@ -43,7 +43,7 @@ config :cloak, :anonymizer,
   top_count: {5, 1},
 
   # The standard deviation for the noisy top average added to summed values.
-  sum_noise_sigma: 2.0
+  sum_noise_sigma: 2
 
 config :cloak, :in_development, false
 
