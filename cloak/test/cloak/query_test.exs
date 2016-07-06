@@ -118,6 +118,9 @@ defmodule Cloak.QueryTest do
     assert_query "select stddev(height) from heights",
       %{columns: ["stddev(height)"], rows: [%{row: [stddev], occurrences: 1}]}
     assert_in_delta(stddev, 8.1, 0.1)
+
+    assert_query "select median(height) from heights",
+      %{columns: ["median(height)"], rows: [%{row: [180], occurrences: 1}]}
   end
 
   test "should be able to aggregate negative values" do
@@ -141,6 +144,9 @@ defmodule Cloak.QueryTest do
     assert_query "select stddev(height) from heights",
       %{columns: ["stddev(height)"], rows: [%{row: [stddev], occurrences: 1}]}
     assert_in_delta(stddev, 8.1, 0.1)
+
+    assert_query "select median(height) from heights",
+      %{columns: ["median(height)"], rows: [%{row: [-180], occurrences: 1}]}
   end
 
   test "should be able to aggregate negative and positive values" do
@@ -164,6 +170,16 @@ defmodule Cloak.QueryTest do
     assert_query "select stddev(height) from heights",
       %{columns: ["stddev(height)"], rows: [%{row: [stddev], occurrences: 1}]}
     assert_in_delta(stddev, 169.9, 0.1)
+
+    assert_query "select median(height) from heights",
+      %{columns: ["median(height)"], rows: [%{row: [-170], occurrences: 1}]}
+  end
+
+  test "should return nil when not enough values present for anonymization" do
+    :ok = insert_rows(_user_ids = 0..8, "heights", ["height"], [180])
+
+    assert_query "select median(height) from heights",
+      %{columns: ["median(height)"], rows: [%{row: [nil], occurrences: 1}]}
   end
 
   test "select the same column multiple times" do
