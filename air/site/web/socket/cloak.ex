@@ -12,6 +12,7 @@ defmodule Air.Socket.Cloak do
   403 response is returned.
   """
   use Phoenix.Socket
+  require Logger
 
   transport :websocket, Phoenix.Transports.WebSocket, serializer: Air.Socket.Cloak.Serializer
 
@@ -25,6 +26,7 @@ defmodule Air.Socket.Cloak do
 
   @doc false
   def connect(params, socket) do
+    Logger.info("Cloak connecting #{inspect params}")
     cloak_name = params["cloak_name"]
     cloak_organisation = params["cloak_organisation"]
     if valid_required_param?(cloak_name) && valid_required_param?(cloak_organisation) do
@@ -36,6 +38,7 @@ defmodule Air.Socket.Cloak do
         |> assign(:organisation, cloak_organisation)
       }
     else
+      Logger.info("Connection refused")
       :error
     end
   end
