@@ -27,7 +27,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     aggregation_function([DISTINCT] column_name)
 
   aggregation_function :=
-    COUNT | SUM | AVG | MIN | MAX | STDDEV
+    COUNT | SUM | AVG | MIN | MAX | STDDEV | MEDIAN
 
   where_expression :=
     column_name comparison_operator value |
