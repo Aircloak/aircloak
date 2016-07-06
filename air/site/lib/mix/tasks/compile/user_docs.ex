@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Compile.ApiDocs do
+defmodule Mix.Tasks.Compile.UserDocs do
   @shortdoc "Compiles the API documentation."
   @moduledoc "Compiles the API documentation."
   use Mix.Task
@@ -12,20 +12,20 @@ defmodule Mix.Tasks.Compile.ApiDocs do
       cmd!("bundle", ~w(install --path vendor/bundle))
       cmd!("bundle", ~w(exec middleman build))
       File.mkdir_p!("priv/static")
-      File.rm_rf!("priv/static/api_docs")
-      File.cp_r!("api_docs/build", "priv/static/api_docs")
-      Mix.Shell.IO.info("Compiled api_docs")
+      File.rm_rf!("priv/static/docs")
+      File.cp_r!("docs/build", "priv/static/docs")
+      Mix.Shell.IO.info("Compiled docs")
     end
   end
 
   defp stale?() do
     try do
       source_mtime =
-        Path.wildcard("api_docs/**")
+        Path.wildcard("docs/**")
         |> Enum.map(&File.stat!(&1).mtime)
         |> Enum.max()
 
-      Path.wildcard("priv/static/api_docs/**")
+      Path.wildcard("priv/static/docs/**")
       |> Enum.map(&File.stat!(&1).mtime)
       |> Enum.sort(&(&1 > &2))
       |> case do
@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Compile.ApiDocs do
     case System.cmd(cmd, args,
           stderr_to_stdout: true,
           into: IO.stream(:stdio, :line),
-          cd: "api_docs"
+          cd: "docs"
         ) do
       {_, 0} -> :ok
       {_, _} ->

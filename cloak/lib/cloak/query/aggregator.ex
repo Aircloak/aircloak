@@ -163,6 +163,7 @@ defmodule Cloak.Query.Aggregator do
   defp aggregate_by(aggregation_data, "max", anonymizer), do: Anonymizer.max(anonymizer, aggregation_data)
   defp aggregate_by(aggregation_data, "avg", anonymizer), do: Anonymizer.avg(anonymizer, aggregation_data)
   defp aggregate_by(aggregation_data, "stddev", anonymizer), do: Anonymizer.stddev(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "median", anonymizer), do: Anonymizer.median(anonymizer, aggregation_data)
   defp aggregate_by(_, unknown_aggregator, _) do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
   end

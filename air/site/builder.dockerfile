@@ -30,7 +30,7 @@ COPY air/site/mix.exs air/site/mix.lock air/site/package.json /aircloak/air/site
 COPY air/site/config /aircloak/air/site/config
 COPY common /aircloak/common
 COPY air/site/fetch_deps.sh /aircloak/air/site/
-COPY air/site/api_docs /aircloak/air/site/api_docs
+COPY air/site/docs /aircloak/air/site/docs
 
 RUN \
   . /tmp/build_config/proxies.sh && \
@@ -39,7 +39,7 @@ RUN \
   MIX_ENV=prod mix deps.compile && \
   echo "Fetching npm packages..." && \
   npm install && \
-  cd api_docs && bundle install -j4 && cd ..
+  cd docs && bundle install -j4 && cd ..
 
 # Now we copy the rest of the site and build the release.
 COPY air/site /aircloak/air/site
