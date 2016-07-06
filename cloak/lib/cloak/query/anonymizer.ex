@@ -127,6 +127,34 @@ defmodule Cloak.Query.Anonymizer do
     :math.sqrt(avg(anonymizer, variances))
   end
 
+  @doc "Computes the median value of all values in rows, where each row is an enumerable of numbers."
+  @spec median(t, Enumerable.t) :: float | nil
+  def median(anonymizer, rows) do
+    values =
+      Stream.transform(rows, 0, fn (row, user_index) ->
+        {Stream.map(row, &{user_index, &1}), user_index + 1}
+      end)
+      |> Enum.sort_by(fn ({_user_index, value}) -> value end)
+
+    top_count = config(:top_count)
+    {noisy_above_count, anonymizer} = add_noise(anonymizer, top_count)
+    {noisy_below_count, _anonymizer} = add_noise(anonymizer, top_count)
+
+    middle = round((Enum.count(values) - 1) / 2)
+    {bottom_values, [middle_value | top_values]} = Enum.split(values, middle - 1)
+    above_values = top_values |> take_distinct(noisy_above_count, [])
+    below_values = bottom_values |> Enum.reverse() |> take_distinct(noisy_below_count, [])
+    middle_values = for {_user_index, value} <- below_values ++ [middle_value] ++ above_values, do: value
+
+    middle_values_count = Enum.count(middle_values)
+    case  noisy_below_count + noisy_above_count + 1 do
+      ^middle_values_count ->
+        median = Enum.sum(middle_values) / middle_values_count
+        maybe_round_result(median, middle_values)
+      _ -> nil
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -209,4 +237,10 @@ defmodule Cloak.Query.Anonymizer do
   defp maybe_round_result(result, []), do: round(result)
   defp maybe_round_result(result, [value | _rest]) when is_integer(value), do: round(result)
   defp maybe_round_result(result, [value | _rest]) when is_float(value), do: result
+
+  defp take_distinct([], _amount, acc), do: acc
+  defp take_distinct(_values, 0, acc), do: acc
+  defp take_distinct([value | [value | _] = remaining], amount, acc), do: take_distinct(remaining, amount, acc)
+  defp take_distinct([value | remaining], amount, acc), do: take_distinct(remaining, amount - 1, [value | acc])
+
 end
