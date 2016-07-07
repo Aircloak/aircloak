@@ -33,6 +33,9 @@
                 <%= if permitted?(@conn, Air.QueryController, :index) do %>
                   <%= navbar_link(@conn, "Query", query_path(@conn, :index)) %>
                 <% end %>
+                <%= if permitted?(@conn, Air.QueryController, :failed) do %>
+                  <%= navbar_link(@conn, "Failed queries", query_path(@conn, :failed)) %>
+                <% end %>
                 <%= if permitted?(@conn, Air.CloaksController, :index) do %>
                   <%= navbar_link(@conn, "Cloaks", cloaks_path(@conn, :index)) %>
                 <% end %>

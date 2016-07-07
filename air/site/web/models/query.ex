@@ -76,6 +76,29 @@ defmodule Air.Query do
     limit: ^count
   end
 
+  @doc """
+  Adds a query filter returning recent queries which failed on cloak.
+
+  The queryable returned by this function will select a map with fields
+  `id`, `statement`, and `error`.
+  """
+  @spec failed(Ecto.Queryable.t) :: Ecto.Queryable.t
+  def failed(query \\ __MODULE__) do
+    from q in query,
+    select: %{
+      id: q.id,
+      inserted_at: q.inserted_at,
+      data_source: q.data_source,
+      statement: q.statement,
+      error: fragment("?::json->>'error'", q.result)
+    },
+    where:
+      not is_nil(q.statement) and q.statement != "" and
+      q.inserted_at > fragment("(CURRENT_DATE - INTERVAL '7 day')::date") and
+      fragment("?::json->>'error' <> ''", q.result),
+    order_by: [desc: q.inserted_at]
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

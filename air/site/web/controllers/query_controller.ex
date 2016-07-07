@@ -16,7 +16,10 @@ defmodule Air.QueryController do
   # -------------------------------------------------------------------
 
   def permissions do
-    %{user: :all}
+    %{
+      user: [:index, :create, :show, :load_history],
+      admin: :all
+    }
   end
 
 
@@ -79,6 +82,10 @@ defmodule Air.QueryController do
         |> put_status(Status.code(:not_found))
         |> json(%{error: "Query with that id does not exist"})
     end
+  end
+
+  def failed(conn, _params) do
+    render(conn, "failed.html", failed_queries: Air.Repo.all(Air.Query.failed()))
   end
 
 
