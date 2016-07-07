@@ -17,7 +17,6 @@
 !air/site/mix.lock
 !air/site/config
 !air/site/lib
-!air/site/js_sandbox
 !air/site/docs
 !air/site/web
 !air/site/src
@@ -29,5 +28,3 @@
 
 # blacklist some stuff
 air/site/priv/repo/seeds.exs
-air/site/js_sandbox/mozjs
-air/site/js_sandbox/bin
