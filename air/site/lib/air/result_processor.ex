@@ -8,6 +8,8 @@ defmodule Air.ResultProcessor do
   to limit the effect of a possible failure. If processing of a single result
   fails, nothing else is taken down.
   """
+
+  import Supervisor.Spec, warn: false
   alias Air.{Repo, Query, Socket.Frontend.UserChannel}
   require Logger
 
@@ -25,9 +27,13 @@ defmodule Air.ResultProcessor do
   """
   @spec supervisor_spec() :: Supervisor.Spec.spec
   def supervisor_spec() do
-    import Supervisor.Spec, warn: false
-
     supervisor(Task.Supervisor, [[name: __MODULE__, restart: :temporary]])
+  end
+
+  def observer_spec do
+    worker(Task, [fn() ->
+      for {:result, result} <- Air.QueryEvents.stream, do: start(result)
+    end])
   end
 
   @doc "Starts a result processor."
