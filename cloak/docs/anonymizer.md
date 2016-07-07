@@ -1,7 +1,7 @@
 
 # Anonymization techniques
 
-This document describes the methods used by the `anonymizer` module to compute aggregated values
+This document describes the methods used by the `Anonymizer` module to compute aggregated values
 in a privacy-preserving form. The final algorithm is a result of the discussion in
 [#264](https://github.com/Aircloak/aircloak/issues/264).
 
