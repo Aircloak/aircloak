@@ -27,7 +27,7 @@ defmodule Cloak.Query.Anonymizer do
   different sum. However, calling `Anonymizer.sum(initial_anonymizer, values)`
   would always return the same value.
 
-  For a description of the way the aggregation is performed, see `docs/anonymizer.md`.
+  For a description of the way the aggregation is performed, see `docs/anonymization.md`.
   """
 
   @opaque t :: %{
