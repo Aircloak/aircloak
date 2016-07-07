@@ -63,7 +63,7 @@ The input to each method is the list of values for a bucket, grouped by user (so
 
 ## Example SUM() computation of positive values
 
-0. Input values (with total sum: 14020):
+- Input values (with total sum: 14020):
 
 | values |
 |--------|
@@ -75,7 +75,7 @@ The input to each method is the list of values for a bucket, grouped by user (so
 | 1000 |
 | 9000, 800, 200 |
 
-1. We sum values per-user:
+- We sum values per-user:
 
 | values |
 |--------|
@@ -87,7 +87,7 @@ The input to each method is the list of values for a bucket, grouped by user (so
 | 1000 |
 | 10000 |
 
-2. We order values in descending order:
+- We order values in descending order:
 
 | values |
 |--------|
@@ -99,7 +99,7 @@ The input to each method is the list of values for a bucket, grouped by user (so
 | 10 |
 | 10 |
 
-3. We drop the first user:
+- We drop the first user:
 
 | values |
 |--------|
@@ -110,8 +110,8 @@ The input to each method is the list of values for a bucket, grouped by user (so
 | 10 |
 | 10 |
 
-4. We compute the noisy value for Nc: `Nc = 3`.
-5. We compute the average of the top Nc remaining users: `TopAverage = (1000 + 1000 + 1000) / 3 = 1000`.
-6. We compute the noisy value for Nv: `Nv = 1.3`.
-7. We compute the sum of all the remaining users: `Sum = 10 + 10 + 1000 + 1000 + 1000 + 1000 = 4020`.
-8. We compute the final result: `Result = Sum + Nv * TopAverage = 4020 + 1.3 * 1000 = 5320`.
+- We compute the noisy value for Nc: `Nc = 3`.
+- We compute the average of the top Nc remaining users: `TopAverage = (1000 + 1000 + 1000) / 3 = 1000`.
+- We compute the noisy value for Nv: `Nv = 1.3`.
+- We compute the sum of all the remaining users: `Sum = 10 + 10 + 1000 + 1000 + 1000 + 1000 = 4020`.
+- We compute the final result: `Result = Sum + Nv * TopAverage = 4020 + 1.3 * 1000 = 5320`.
