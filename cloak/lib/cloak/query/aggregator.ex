@@ -129,7 +129,7 @@ defmodule Cloak.Query.Aggregator do
     make_row(query, property_values, aggregated_values)
   end
 
-  # See docs/aggregator.md for details
+  # See docs/anonymization.md for details
   defp preprocess_for_aggregation(all_users_rows, {:distinct, column}) do
     all_users_rows
     |> Enum.sort_by(&Enum.count/1)
