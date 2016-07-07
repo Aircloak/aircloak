@@ -36,6 +36,7 @@ defmodule Air.Router do
     get "/", QueryController, :index
     post "/queries", QueryController, :create
     get "/queries/load_history", QueryController, :load_history
+    get "/queries/failed", QueryController, :failed
 
     delete "/logout", SessionController, :delete
 

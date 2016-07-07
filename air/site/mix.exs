@@ -65,7 +65,7 @@ defmodule Air.Mixfile do
       {:etcd, github: "spilgames/etcd.erl", ref: "79d04a775e4488b0eb6e5e07a8c0bf4803adb997"},
       {:hackney, "~> 1.5.0"},
       {:exrm, "~> 1.0", warn_missing: false},
-      {:timex, "~> 2.1"},
+      {:timex, "~> 2.2"},
       {:aircloak_common, path: "../../common/elixir"},
       {:inflex, "~> 1.5.0"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", only: :test},

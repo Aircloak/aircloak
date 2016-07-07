@@ -62,18 +62,41 @@ defmodule Air.Query do
   # -------------------------------------------------------------------
 
   @doc "Adds a query filter selecting only those for the given user"
-  @spec for_user(__MODULE__, User.t) :: __MODULE__
+  @spec for_user(Ecto.Queryable.t, User.t) :: Ecto.Queryable.t
   def for_user(query \\ __MODULE__, user) do
     from q in query,
     where: q.user_id == ^user.id
   end
 
   @doc "Adds a query filter limiting the number of selected queries"
-  @spec recent(__MODULE__, non_neg_integer) :: __MODULE__
+  @spec recent(Ecto.Queryable.t, non_neg_integer) :: Ecto.Queryable.t
   def recent(query \\ __MODULE__, count) do
     from q in query,
     order_by: [desc: q.inserted_at],
     limit: ^count
+  end
+
+  @doc """
+  Adds a query filter returning recent queries which failed on cloak.
+
+  The queryable returned by this function will select a map with fields
+  `id`, `statement`, and `error`.
+  """
+  @spec failed(Ecto.Queryable.t) :: Ecto.Queryable.t
+  def failed(query \\ __MODULE__) do
+    from q in query,
+    select: %{
+      id: q.id,
+      inserted_at: q.inserted_at,
+      data_source: q.data_source,
+      statement: q.statement,
+      error: fragment("?::json->>'error'", q.result)
+    },
+    where:
+      not is_nil(q.statement) and q.statement != "" and
+      q.inserted_at > fragment("(CURRENT_DATE - INTERVAL '7 day')::date") and
+      fragment("?::json->>'error' <> ''", q.result),
+    order_by: [desc: q.inserted_at]
   end
 
 
