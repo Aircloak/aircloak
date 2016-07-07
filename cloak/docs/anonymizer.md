@@ -6,6 +6,10 @@ in a privacy-preserving form. The final algorithm is a result of the discussion 
 [#264](https://github.com/Aircloak/aircloak/issues/264).
 
 The input to each method is the list of values for a bucket, grouped by user (so a list of lists).
+A bucket consists of a selected property, the collection of users having that property and the set
+of values, for those users and for that property, needing to be aggregated. A property is a specific
+list of values, from the columns specified by the analyst in the `GROUP BY` section of the query, on
+which the values to be aggregated are selected and grouped.
 
 
 ## MAX() / MIN()
