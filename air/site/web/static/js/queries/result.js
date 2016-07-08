@@ -1,6 +1,7 @@
 import React from "react";
 import _ from "lodash";
 
+import Plotly from "../plotly.js";
 import {CodeEditor} from "../code_editor";
 import {Info} from "./info";
 
@@ -12,16 +13,60 @@ export class Result extends React.Component {
 
     this.state = {
       rowsToShowCount: this.minRowsToShow,
+
+      showChart: false,
+      chartYAxisIndex: props.columns.length - 1,
     };
+
+    this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
+    this.handleClickLessRows = this.handleClickLessRows.bind(this);
 
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
-    this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
-    this.handleClickLessRows = this.handleClickLessRows.bind(this);
+    this.renderOptionMenu = this.renderOptionMenu.bind(this);
+
+    this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
+    this.setChartDataOnRef = this.setChartDataOnRef.bind(this);
+    this.plotChart = this.plotChart.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
+  }
+
+  componentDidUpdate() {
+    this.plotChart();
+  }
+
+  setChartDataOnRef(ref) {
+    this.chartRef = ref;
+    this.plotChart();
+  }
+
+  plotChart() {
+    if (! this.state.showChart || ! this.chartRef) {
+      return;
+    }
+    const chartData = [{
+      type: "bar",
+      name: this.props.columns[this.state.chartYAxisIndex],
+      y: this.props.rows.map((accumulateRow) => accumulateRow.row[this.state.chartYAxisIndex]),
+      x: this.props.rows.map((accumulateRow) => {
+        const firstPart = _.take(accumulateRow.row, this.state.chartYAxisIndex);
+        let secondPart = [];
+        if (this.state.chartYAxisIndex < accumulateRow.row.length - 1) {
+          secondPart = _.slice(accumulateRow.row, this.state.chartYAxisIndex + 1);
+        }
+        return _.join(firstPart.concat(secondPart), ", ");
+      }),
+    }];
+    const layout = {
+      showlegend: true,
+    };
+    const displayOptions = {
+      staticPlot: true,
+    };
+    Plotly.newPlot(this.chartRef, chartData, layout, displayOptions);
   }
 
   handleClickMoreRows() {
@@ -45,8 +90,36 @@ export class Result extends React.Component {
     return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
-  renderValue(value) {
+  formatValue(value) {
     return isNaN(value) ? value : Math.round(value * 1000) / 1000; // keep 3 decimals at most
+  }
+
+  conditionallyRenderChart() {
+    if (this.state.showChart) {
+      return (
+        <div>
+          <div className="column-select">
+            Use&nbsp;
+            <select
+              value={this.state.chartYAxisIndex}
+              onChange={(e) => {
+                this.setState({chartYAxisIndex: parseInt(e.target.value, 10)});
+              }}
+            >
+            {this.props.columns.map((column, i) => <option key={i} value={i}>{column}</option>)}
+            </select>&nbsp;
+            as value for y-axis.
+          </div>
+
+          <div
+            ref={this.setChartDataOnRef}
+            className="plotlyGraph" style={{width: "100%", height: "500px"}}
+          />
+        </div>
+      );
+    } else {
+      return null;
+    }
   }
 
   renderRows() {
@@ -56,7 +129,7 @@ export class Result extends React.Component {
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
         return (<tr key={`${i}-${occurrenceCount}`}>
-          {accumulateRow.row.map((value, j) => <td key={j}>{this.renderValue(value)}</td>)}
+          {accumulateRow.row.map((value, j) => <td key={j}>{this.formatValue(value)}</td>)}
         </tr>);
       });
     });
@@ -96,6 +169,20 @@ export class Result extends React.Component {
     }
   }
 
+  renderOptionMenu() {
+    const chartButtonText = this.state.showChart ? "HideChart" : "Show chart";
+    return (
+      <div className="options-menu">
+        <button
+          className="btn btn-default btn-xs"
+          onClick={() => this.setState({showChart: ! this.state.showChart})}
+        >
+          {chartButtonText}
+        </button>
+      </div>
+    );
+  }
+
   render() {
     return (
       <div className="panel panel-success">
@@ -123,6 +210,8 @@ export class Result extends React.Component {
             </tbody>
           </table>
           {this.renderShowAll()}
+          {this.renderOptionMenu()}
+          {this.conditionallyRenderChart()}
         </div>
       </div>
     );
