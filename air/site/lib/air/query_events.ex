@@ -10,7 +10,7 @@ defmodule Air.QueryEvents do
   end
 
   @doc "Triggers a :result event, indicating a result has been returned from the cloak for the query."
-  @spec trigger_result(%{}) :: no_return
+  @spec trigger_result(%{}) :: :ok
   def trigger_result(payload) do
     GenEvent.ack_notify(__MODULE__, {:result, payload})
   end
