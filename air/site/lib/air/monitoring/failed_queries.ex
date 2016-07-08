@@ -1,5 +1,14 @@
 defmodule Air.Monitoring.FailedQueries do
+  @moduledoc "Logs failed queries as JSON with details."
+
+  @doc false
+  @spec start_link() :: {:ok, pid}
   def start_link, do: Task.start_link(&work/0)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp work do
     for {:result, result} <- Air.QueryEvents.stream do
