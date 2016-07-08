@@ -19,6 +19,8 @@ defmodule Cloak.Query.NegativeCondition do
 
   @doc "Applies or ignore negative conditions in the query to the given rows."
   @spec apply([Row.t], Parser.compiled_query) :: [Row.t]
+  # subqueries that are executed in DSProxy, has the where-clauses applied there
+  def apply(rows, %{from: {:subquery, _}}), do: rows
   def apply(rows, %{where_not: clauses}) do
     clauses
     |> Enum.filter(&sufficient_matches?(&1, rows))

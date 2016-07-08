@@ -209,6 +209,9 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp cast_where_clauses(query), do: {:ok, query}
 
+  defp cast_where_clause(clause, %{from: {:subquery, _}}) do
+    do_cast_where_clause(clause, :unknown)
+  end
   defp cast_where_clause(clause, query) do
     column = where_clause_to_identifier(clause)
     {_, type} = columns(query.from, query.data_source)

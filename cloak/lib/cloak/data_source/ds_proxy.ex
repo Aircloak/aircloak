@@ -90,12 +90,91 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   defp request(query) do
-    maybe_include_columns(%{statement: sql_statement(query)}, query)
+    %{statement: sql_statement(query)}
+    |> maybe_include_columns(query)
+    |> maybe_include_where_clause(query)
   end
 
   defp maybe_include_columns(request, %{from: {:subquery, _}}), do: request
   defp maybe_include_columns(request, query) do
     Map.put(request, :columns, needed_columns(query))
+  end
+
+  defp maybe_include_where_clause(request, %{from: {:subquery, _}, where: where, where_not: where_not}) do
+    request
+    |> Map.put(:where, Enum.map(where, &encode_where/1))
+    |> Map.put(:where_not, Enum.map(where_not, &encode_where/1))
+  end
+  defp maybe_include_where_clause(request, _) do
+    request
+  end
+
+  defp encode_where({:comparison, lhs, comparator, rhs}) do
+    %{
+      type: :comparison,
+      lhs: lhs,
+      comparator: comparator,
+      rhs: encode_rhs(rhs)
+    }
+  end
+  defp encode_where({:ilike, lhs, rhs}) do
+    %{
+      type: :ilike,
+      lhs: lhs,
+      rhs: encode_rhs(rhs)
+    }
+  end
+  defp encode_where({:like, lhs, rhs}) do
+    %{
+      type: :like,
+      lhs: lhs,
+      rhs: encode_rhs(rhs)
+    }
+  end
+  defp encode_where({:not, {:ilike, lhs, rhs}}) do
+    %{
+      type: :not_ilike,
+      lhs: lhs,
+      rhs: encode_rhs(rhs)
+    }
+  end
+  defp encode_where({:not, {:like, lhs, rhs}}) do
+    %{
+      type: :not_like,
+      lhs: lhs,
+      rhs: encode_rhs(rhs)
+    }
+  end
+  defp encode_where({:not, {:comparison, lhs, :=, rhs}}) do
+    %{
+      type: :not_comparison,
+      lhs: lhs,
+      comparator: :=,
+      rhs: encode_rhs(rhs)
+    }
+  end
+  defp encode_where({:in, lhs, rhss}) do
+    %{
+      type: :in,
+      lhs: lhs,
+      rhss: Enum.map(rhss, &encode_rhs/1)
+    }
+  end
+  defp encode_where({:is, lhs, :null}) do
+    %{
+      type: :is_null,
+      lhs: lhs,
+    }
+  end
+  defp encode_where({:not, {:is, lhs, :null}}) do
+    %{
+      type: :is_not_null,
+      lhs: lhs,
+    }
+  end
+
+  defp encode_rhs(%{value: value}) do
+    value
   end
 
   defp needed_columns(query) do
