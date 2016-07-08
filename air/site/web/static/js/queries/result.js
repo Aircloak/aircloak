@@ -46,12 +46,13 @@ export class Result extends React.Component {
   }
 
   renderValue(value) {
-    if (value === null)
+    if (value === null) {
       return "<null>";
-    else if(typeof(value) === "number" && isFinite(value))
+    } else if (typeof(value) === "number" && isFinite(value)) {
       return Math.round(value * 1000) / 1000; // keep 3 decimals at most
-    else
+    } else {
       return value;
+    }
   }
 
   renderRows() {
