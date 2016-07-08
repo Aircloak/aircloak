@@ -79,7 +79,7 @@ defmodule Cloak.Query.Anonymizer do
   def count(anonymizer, rows) do
     values = Stream.map(rows, &Enum.count(&1))
     {count, _anonymizer} = sum_positives(anonymizer, values)
-    Kernel.max(round(count), config(:count_absolute_lower_bound))
+    Kernel.max(count, config(:count_absolute_lower_bound))
   end
 
   @doc "Computes the noisy sum of all values in rows, where each row is an enumerable of numbers."
@@ -98,17 +98,16 @@ defmodule Cloak.Query.Anonymizer do
   @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
   @spec min(t, Enumerable.t) :: number | nil
   def min(anonymizer, rows) do
-    values = rows |> Stream.map(&Enum.min/1) |> Enum.sort(&(&1 < &2))
-    {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
-    anonymizer |> top_average(values) |> maybe_round_result(values)
+    # we use the fact that min([value]) = -max([-value])
+    values = Stream.map(rows, &(-Enum.min(&1)))
+    -get_max(anonymizer, values)
   end
 
   @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."
   @spec max(t, Enumerable.t) :: number | nil
   def max(anonymizer, rows) do
-    values = rows |> Stream.map(&Enum.max/1) |> Enum.sort(&(&1 > &2))
-    {_outliers, values} = Enum.split(values, config(:dropped_outliers_count)) # drop outliers
-    anonymizer |> top_average(values) |> maybe_round_result(values)
+    values = Stream.map(rows, &Enum.max/1)
+    get_max(anonymizer, values)
   end
 
   @doc "Computes the average value of all values in rows, where each row is an enumerable of numbers."
@@ -204,38 +203,20 @@ defmodule Cloak.Query.Anonymizer do
     :math.sqrt(r1) * :math.cos(r2)
   end
 
-  # Computes the noisy average of the top of the collection.
-  defp top_average(anonymizer, values) do
-    {noisy_top_count, _anonymizer} = add_noise(anonymizer, config(:top_count))
-    noisy_top_count = round(noisy_top_count)
-    top = Enum.take(values, noisy_top_count)
-    case Enum.count(top) do
-      ^noisy_top_count -> Enum.sum(top) / noisy_top_count
-      _ -> nil # there weren't enough values in the input to anonymize the result
-    end
-  end
-
   # Computes the noisy sum of a collection of positive numbers.
   defp sum_positives(anonymizer, values) do
-    values = Enum.sort(values, &(&1 > &2))
-
     outlier_count = config(:dropped_outliers_count)
-    {_outliers, values} = Enum.split(values, outlier_count) # drop outliers
-
     {noisy_top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
     noisy_top_count = round(noisy_top_count)
-    top_average = case Enum.take(values, noisy_top_count) do
-      [] -> 0
-      top -> Enum.sum(top) / Enum.count(top)
-    end
+
+    {sum, top_average} = get_sum_and_top_average(values, outlier_count, noisy_top_count)
 
     {noisy_outlier_count, anonymizer} = add_noise(anonymizer, {outlier_count, config(:sum_noise_sigma)})
-    sum = noisy_outlier_count * top_average + Enum.sum(values)
-    {maybe_round_result(sum, values), anonymizer}
+    sum = sum + noisy_outlier_count * top_average
+    {maybe_round_result(sum, values |> Enum.take(1)), anonymizer}
   end
 
   # Round the final result of an aggregator depending on the type of aggregated values.
-  defp maybe_round_result(nil, _values), do: nil
   defp maybe_round_result(result, []), do: round(result)
   defp maybe_round_result(result, [value | _rest]) when is_integer(value), do: round(result)
   defp maybe_round_result(result, [value | _rest]) when is_float(value), do: result
@@ -245,5 +226,51 @@ defmodule Cloak.Query.Anonymizer do
     |> Stream.dedup_by(fn({user, _value}) -> user end)
     |> Stream.map(fn({_user, value}) -> value end)
     |> Enum.take(amount)
+  end
+
+  # Given a stream of values, this method will drop the biggest outliers, and,
+  # for the remaining values, will return the sum and average value of the top.
+  defp get_sum_and_top_average(values, outliers_count, top_amount) do
+    {sum, top_length, top_values} = Enum.reduce(values, {0, 0, []}, fn
+      (value, {sum, top_length, top}) when top_length <= outliers_count + top_amount ->
+        {sum + value, top_length + 1, Enum.sort([value | top])}
+      (value, {sum, top_length, [top_smallest | top_rest]}) when value > top_smallest ->
+        {sum + value, top_length, Enum.sort([value | top_rest])}
+      (value, {sum, top_length, top}) ->
+        {sum + value, top_length, top}
+    end)
+    {outliers, top_values} = top_values |> Enum.reverse() |> Enum.split(outliers_count) # drop outliers
+    top_length = top_length - outliers_count
+    top_average = case top_length do
+      0 -> 0
+      _ -> Enum.sum(top_values) / top_length
+    end
+    {sum - Enum.sum(outliers), top_average}
+  end
+
+  # Given a stream of values, this method will drop the biggest outliers and will return
+  # the average value of the top, if enough values are available.
+  defp get_max(anonymizer, values) do
+    {noisy_top_count, _anonymizer} = add_noise(anonymizer, config(:top_count))
+    noisy_top_count = round(noisy_top_count)
+    outliers_count = config(:dropped_outliers_count)
+
+    {top_length, top_values} = Enum.reduce(values, {0, []}, fn
+      (value, {top_length, top}) when top_length <= outliers_count + noisy_top_count ->
+        {top_length + 1, Enum.sort([value | top])}
+      (value, {top_length, [top_smallest | top_rest]}) when value > top_smallest ->
+        {top_length, Enum.sort([value | top_rest])}
+      (_value, {top_length, top}) ->
+        {top_length, top}
+    end)
+
+    case top_length < noisy_top_count + outliers_count do
+      true -> nil # there weren't enough values in the input to anonymize the result
+      false ->
+        {_outliers, top_values} = top_values |> Enum.reverse() |> Enum.split(outliers_count) # drop outliers
+        top_length = top_length - outliers_count
+        top_average = Enum.sum(top_values) / top_length
+        maybe_round_result(top_average, Enum.take(values, 1))
+    end
   end
 end
