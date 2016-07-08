@@ -21,8 +21,9 @@ defmodule Air.Supervisor do
       supervisor(Air.Repo, []),
       worker(Air.Repo.Migrator, [], restart: :transient),
       worker(Air.QueryEvents, []),
+      worker(Air.Monitoring.FailedQueries, []),
       Air.ResultProcessor.observer_spec(),
-      Air.Endpoint.supervisor_spec()
+      Air.Endpoint.supervisor_spec(),
     ]
   end
 
