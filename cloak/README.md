@@ -103,7 +103,7 @@ Typical deploys:
 - `./deploy.sh deploy_targets/master_stage` - deploy staging cloak to `srv-76-133`
 
 This will deploy all __pushed__ changes from your current local branch.
-If you want to add a new standard deployment target, please add a new file to the `deploy_targets` folder of
+If you want to add a new standard deployment target, please add it to the `deploy_targets` folder of
 this repo.
 
 It is also possible to deploy a custom cloak instance to an arbitrary thor machine:
@@ -115,7 +115,7 @@ It is also possible to deploy a custom cloak instance to an arbitrary thor machi
 The parameters have following meaning:
 
 - `image_category` - Custom string which is prepended to the image name. You can use your own name, or the name of the feature you're experimenting with. Use only alphanumerics and underscores.
-- `target_machine` - Fully qualified name of the thor machine (e.g. `srv-76-133.mpi-sws.org`) which must be accessible via ssh. __Note__: currently docker is installed only on `srv-76-133`. If you want to use another machine, ask our administrator to install docker there.
+- `target_machine` - Fully qualified name of the thor machine (e.g. `srv-76-133.mpi-sws.org`) which must be accessible via ssh. __Note__: currently docker is installed only on `srv-76-133` and `srv-76-135`. If you want to use another machine, ask our administrator to install docker there.
 - `runtime_configuration` - name of the configuration folder in `/opt/share/cloak_runtime_configs/` on the target machine. Currently we support `prod` and `stage`.
 - `cloak_name` - The name which will be given to the cloak and the docker container. Use only alphanumerics and underscores.
 
