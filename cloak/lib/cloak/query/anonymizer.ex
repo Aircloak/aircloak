@@ -85,7 +85,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec sum(t, Enumerable.t) :: number
   def sum(anonymizer, rows) do
     {positives_sum, anonymizer} = sum_positives(anonymizer, rows, &Enum.sum(&1))
-    {negatives_sum, _anonymizer} = sum_positives(anonymizer, rows, &-Enum.sum(&1))
+    {negatives_sum, _anonymizer} = sum_positives(anonymizer, rows, & -Enum.sum(&1))
     first_value = rows |> Enum.at(0) |> Enum.sum()
     maybe_round_result(positives_sum - negatives_sum, first_value)
   end
