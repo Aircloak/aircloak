@@ -103,6 +103,8 @@ Typical deploys:
 - `./deploy.sh deploy_targets/master_stage` - deploy staging cloak to `srv-76-133`
 
 This will deploy all __pushed__ changes from your current local branch.
+If you want to add a new standard deployment target, please add a new file to the `deploy_targets` folder of
+this repo.
 
 It is also possible to deploy a custom cloak instance to an arbitrary thor machine:
 
