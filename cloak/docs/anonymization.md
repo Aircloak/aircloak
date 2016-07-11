@@ -41,19 +41,17 @@ The input to each method is the list of values for a bucket, grouped by user.
 
 ## MAX() / MIN()
 
-  - The maximum / minimum values per-user are taken and sorted in:
-    - decreasing order for `MAX`.
-    - increasing order for `MIN`.
-  - The first value (user with the maximum / minimum value) is dropped.
+  - The maximum / minimum values per-user are taken.
+  - The user with the maximum / minimum overall value is dropped.
   - Final result is the average value of the top Nc remaining users, where Nc is a noisy number with mean 5 and SD 1.
   - In case we don't have enough values available to compute the average, `null` is returned.
 
 
 ## COUNT()
 
-  - The counts of values per-user are computed and sorted in descending order.
-  - The first value (user with the biggest count) is dropped.
-  - Compute the average count of the top Nc remaining users, where Nc is a noisy number with mean 5 and SD 1.
+  - The counts of values per-user are computed.
+  - The user with the biggest overall count is dropped.
+  - The average count of the top Nc remaining users is computed, where Nc is a noisy number with mean 5 and SD 1.
   - The total count is the sum of all the remaining counts plus Nv multiplied by the average count of the top,
     where NV is a noisy number with mean 1 and SD 2.
   - The final result is the maximum between the absolute lower bound of the LCF and the total count.
@@ -64,9 +62,8 @@ The input to each method is the list of values for a bucket, grouped by user.
   - The sums of values per-user are computed and split into negative and positive values.
   - The final result is the anonymized sum of the positive values minus the anonymized sum of the negated negative values.
   - The anonymized sum of a set of positive values is computed as follows:
-    - The values are sorted in descending order.
-    - The first value (user with the biggest value) is dropped.
-    - Compute the average value of the top Nc remaining users, where Nc is a noisy number with mean 5 and SD 1.
+    - The user with the biggest overall value is dropped.
+    - The average value of the top Nc remaining users is computed, where Nc is a noisy number with mean 5 and SD 1.
     - The total sum is the sum of all the remaining values plus Nv multiplied by the average count of the top,
       where NV is a noisy number with mean 1 and SD 2.
 
@@ -118,28 +115,16 @@ The input to each method is the list of values for a bucket, grouped by user.
 | 1000 |
 | 10000 |
 
-- We order values in descending order:
+- We drop the user with the biggest value:
 
 | values |
 |--------|
-| 10000 |
-| 1000 |
-| 1000 |
+| 10 |
 | 1000 |
 | 1000 |
 | 10 |
-| 10 |
-
-- We drop the first user:
-
-| values |
-|--------|
 | 1000 |
 | 1000 |
-| 1000 |
-| 1000 |
-| 10 |
-| 10 |
 
 - We compute the noisy value for Nc: `Nc = 3`.
 - We compute the average of the top Nc remaining users: `TopAverage = (1000 + 1000 + 1000) / 3 = 1000`.
