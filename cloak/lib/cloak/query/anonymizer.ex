@@ -223,28 +223,27 @@ defmodule Cloak.Query.Anonymizer do
   # Given a list of rows and a row accumulator functor, this method will drop the
   # biggest outliers and rows with negative values, and, for the remaining rows,
   # will return the sum and average value of the top rows.
-  defp get_positives_sum_and_top_average(rows, outliers_count, top_amount, row_accumulator) do
+  defp get_positives_sum_and_top_average(rows, outliers_count, noisy_top_count, row_accumulator) do
     {sum, top_length, top_values} = Enum.reduce(rows, {0, 0, []}, fn
-      (row, {sum, top_length, top}) when top_length <= outliers_count + top_amount ->
+      (row, {sum, top_length, top}) when top_length <= outliers_count + noisy_top_count ->
         row_value = row_accumulator.(row)
         case row_value >= 0 do
-          true -> {sum + row_value, top_length + 1, Enum.sort([row_value | top])}
+          true -> {sum, top_length + 1, Enum.sort([row_value | top])}
           false -> {sum, top_length, top}
         end
       (row, {sum, top_length, [top_smallest | top_rest] = top}) ->
         row_value = Kernel.max(row_accumulator.(row), 0)
         case row_value > top_smallest do
-          true -> {sum + row_value, top_length, Enum.sort([row_value | top_rest])}
+          true -> {sum + top_smallest, top_length, Enum.sort([row_value | top_rest])}
           false -> {sum + row_value, top_length, top}
         end
     end)
-    {outliers, top_values} = top_values |> Enum.reverse() |> Enum.split(outliers_count) # drop outliers
-    top_length = top_length - outliers_count
-    top_average = case top_length do
-      0 -> 0
-      _ -> Enum.sum(top_values) / top_length
+    case top_length - outliers_count do
+      0 -> {sum, 0}
+      top_length ->
+        top_values_sum = top_values |> Enum.take(top_length) |> Enum.sum()
+        {sum + top_values_sum, top_values_sum / top_length}
     end
-    {sum - Enum.sum(outliers), top_average}
   end
 
   # Given a list of rows and a row accumulator functor, this method will drop the biggest outliers and
@@ -269,9 +268,7 @@ defmodule Cloak.Query.Anonymizer do
     case top_length < noisy_top_count + outliers_count do
       true -> nil # there weren't enough values in the input to anonymize the result
       false ->
-        {_outliers, top_values} = top_values |> Enum.reverse() |> Enum.split(outliers_count) # drop outliers
-        top_length = top_length - outliers_count
-        top_average = Enum.sum(top_values) / top_length
+        top_average = (top_values |> Enum.take(noisy_top_count) |> Enum.sum()) / noisy_top_count
         maybe_round_result(top_average, Enum.at(top_values, 0))
     end
   end
