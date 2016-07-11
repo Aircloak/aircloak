@@ -103,6 +103,8 @@ Typical deploys:
 - `./deploy.sh deploy_targets/master_stage` - deploy staging cloak to `srv-76-133`
 
 This will deploy all __pushed__ changes from your current local branch.
+If you want to add a new standard deployment target, please add it to the `deploy_targets` folder of
+this repo.
 
 It is also possible to deploy a custom cloak instance to an arbitrary thor machine:
 
@@ -113,7 +115,7 @@ It is also possible to deploy a custom cloak instance to an arbitrary thor machi
 The parameters have following meaning:
 
 - `image_category` - Custom string which is prepended to the image name. You can use your own name, or the name of the feature you're experimenting with. Use only alphanumerics and underscores.
-- `target_machine` - Fully qualified name of the thor machine (e.g. `srv-76-133.mpi-sws.org`) which must be accessible via ssh. __Note__: currently docker is installed only on `srv-76-133`. If you want to use another machine, ask our administrator to install docker there.
+- `target_machine` - Fully qualified name of the thor machine (e.g. `srv-76-133.mpi-sws.org`) which must be accessible via ssh. __Note__: currently docker is installed only on `srv-76-133` and `srv-76-135`. If you want to use another machine, ask our administrator to install docker there.
 - `runtime_configuration` - name of the configuration folder in `/opt/share/cloak_runtime_configs/` on the target machine. Currently we support `prod` and `stage`.
 - `cloak_name` - The name which will be given to the cloak and the docker container. Use only alphanumerics and underscores.
 
@@ -125,7 +127,7 @@ Example:
 ./deploy.sh sasa srv-76-133.mpi-sws.org stage sasa
 ```
 
-__Note__: You can run multiple cloaks on the same machine. As long as you're not doing any performance/load tests, that should be fine. Otherwise, reserve a dedicated machine for your experiments.
+__Note__: You can run multiple cloaks on the same machine. As long as you're not doing any performance/load tests, that should be fine. `srv-76-135` exists for experimental loads that can potentially affect and break other cloaks. If you need a dedicated machine, feel free to take one.
 
 If you want to add the additional configuration, you can add a new folder under `/opt/share/cloak_runtime_configs/`. Take a look at the existing ones (e.g. `prod` or `stage`) for examples. __Note__: `/opt/share` is shared between all thors, so you only need to add the configuration on one thor, and then you can reuse it on all others.
 
