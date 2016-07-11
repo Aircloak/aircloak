@@ -78,7 +78,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec count(t, Enumerable.t) :: non_neg_integer
   def count(anonymizer, rows) do
     {count, _anonymizer} = sum_positives(anonymizer, rows, &Enum.count(&1))
-    Kernel.max(count, config(:count_absolute_lower_bound))
+    count |> round() |> Kernel.max(config(:count_absolute_lower_bound))
   end
 
   @doc "Computes the noisy sum of all values in rows, where each row is an enumerable of numbers."
@@ -86,7 +86,8 @@ defmodule Cloak.Query.Anonymizer do
   def sum(anonymizer, rows) do
     {positives_sum, anonymizer} = sum_positives(anonymizer, rows, &Enum.sum(&1))
     {negatives_sum, _anonymizer} = sum_positives(anonymizer, rows, &-Enum.sum(&1))
-    positives_sum - negatives_sum
+    first_value = rows |> Enum.at(0) |> Enum.sum()
+    maybe_round_result(positives_sum - negatives_sum, first_value)
   end
 
   @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
@@ -144,7 +145,7 @@ defmodule Cloak.Query.Anonymizer do
     case  noisy_below_count + noisy_above_count + 1 do
       ^middle_values_count ->
         median = Enum.sum(middle_values) / middle_values_count
-        maybe_round_result(median, middle_values)
+        maybe_round_result(median, Enum.at(middle_values, 0))
       _ -> nil
     end
   end
@@ -205,13 +206,12 @@ defmodule Cloak.Query.Anonymizer do
 
     {noisy_outlier_count, anonymizer} = add_noise(anonymizer, {outlier_count, config(:sum_noise_sigma)})
     sum = sum + noisy_outlier_count * top_average
-    {maybe_round_result(sum, [rows |> Enum.at(0) |> row_accumulator.()]), anonymizer}
+    {sum, anonymizer}
   end
 
   # Round the final result of an aggregator depending on the type of aggregated values.
-  defp maybe_round_result(result, []), do: round(result)
-  defp maybe_round_result(result, [value | _rest]) when is_integer(value), do: round(result)
-  defp maybe_round_result(result, [value | _rest]) when is_float(value), do: result
+  defp maybe_round_result(result, value) when is_integer(value), do: round(result)
+  defp maybe_round_result(result, value) when is_float(value), do: result
 
   defp take_values_from_distinct_users(user_values, amount) do
     user_values
@@ -272,7 +272,7 @@ defmodule Cloak.Query.Anonymizer do
         {_outliers, top_values} = top_values |> Enum.reverse() |> Enum.split(outliers_count) # drop outliers
         top_length = top_length - outliers_count
         top_average = Enum.sum(top_values) / top_length
-        maybe_round_result(top_average, Enum.at(rows, 0))
+        maybe_round_result(top_average, Enum.at(top_values, 0))
     end
   end
 end
