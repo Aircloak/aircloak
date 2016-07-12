@@ -57,7 +57,8 @@ export class Result extends React.Component {
         if (this.state.chartYAxisIndex < accumulateRow.row.length - 1) {
           secondPart = _.slice(accumulateRow.row, this.state.chartYAxisIndex + 1);
         }
-        return _.join(firstPart.concat(secondPart), ", ");
+        const xAxisAttributes = _.map(firstPart.concat(secondPart), (val) => this.formatValue(val));
+        return _.join(xAxisAttributes, ", ");
       }),
     }];
     const layout = {
