@@ -91,7 +91,13 @@ export class Result extends React.Component {
   }
 
   formatValue(value) {
-    return isNaN(value) ? value : Math.round(value * 1000) / 1000; // keep 3 decimals at most
+    if (value === null) {
+      return "<null>";
+    } else if (typeof(value) === "number" && isFinite(value)) {
+      return Math.round(value * 1000) / 1000; // keep 3 decimals at most
+    } else {
+      return value;
+    }
   }
 
   conditionallyRenderChart() {
