@@ -211,6 +211,8 @@ export class Result extends React.Component {
   renderOptionMenu() {
     return (
       <div className="options-menu">
+        <a className="btn btn-default btn-xs" href={`/queries/${this.props.id}.csv`}>Download as CSV</a>
+        &nbsp;
         {this.renderChartButton()}
       </div>
     );
@@ -253,6 +255,7 @@ export class Result extends React.Component {
 }
 
 Result.propTypes = {
+  id: React.PropTypes.string,
   statement: React.PropTypes.string,
   columns: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
   rows: React.PropTypes.arrayOf(React.PropTypes.shape({
