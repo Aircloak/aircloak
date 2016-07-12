@@ -126,20 +126,7 @@ export class Result extends React.Component {
     if (this.state.showChart) {
       return (
         <div>
-          <div className="column-select">
-            Use&nbsp;
-            <select
-              value={this.state.chartYAxisIndex}
-              onChange={(e) => {
-                this.setState({chartYAxisIndex: parseInt(e.target.value, 10)});
-              }}
-            >
-            {this.possibleYColumns().map(value =>
-              <option key={value[0]} value={value[0]}>{value[1]}</option>
-            )}
-            </select>&nbsp;
-            as value for y-axis.
-          </div>
+          {this.renderChartYOptionsSelector()}
 
           <div
             ref={this.setChartDataOnRef}
@@ -151,6 +138,27 @@ export class Result extends React.Component {
       return null;
     }
   }
+
+  renderChartYOptionsSelector() {
+    if (this.possibleYColumns().length === 0) return null;
+    return (
+      <div className="column-select">
+        Use&nbsp;
+        <select
+          value={this.state.chartYAxisIndex}
+          onChange={(e) => {
+            this.setState({chartYAxisIndex: parseInt(e.target.value, 10)});
+          }}
+        >
+        {this.possibleYColumns().map(value =>
+          <option key={value[0]} value={value[0]}>{value[1]}</option>
+        )}
+        </select>&nbsp;
+        as value for y-axis.
+      </div>
+    );
+  }
+
 
   renderRows() {
     let remainingRowsToProduce = this.state.rowsToShowCount;
