@@ -100,6 +100,10 @@ export class Result extends React.Component {
     }
   }
 
+  isNumeric(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+  }
+
   conditionallyRenderChart() {
     if (this.state.showChart) {
       return (
@@ -112,7 +116,13 @@ export class Result extends React.Component {
                 this.setState({chartYAxisIndex: parseInt(e.target.value, 10)});
               }}
             >
-            {this.props.columns.map((column, i) => <option key={i} value={i}>{column}</option>)}
+            {this.props.columns.map((column, i) => {
+              if (this.isNumeric(this.props.rows[0].row[i])) {
+                return <option key={i} value={i}>{column}</option>;
+              } else {
+                return null;
+              }
+            })}
             </select>&nbsp;
             as value for y-axis.
           </div>
