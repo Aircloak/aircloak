@@ -176,7 +176,7 @@ export class Result extends React.Component {
   }
 
   renderOptionMenu() {
-    const chartButtonText = this.state.showChart ? "HideChart" : "Show chart";
+    const chartButtonText = this.state.showChart ? "Hide chart" : "Show chart";
     return (
       <div className="options-menu">
         <button
