@@ -74,13 +74,24 @@ defmodule Air.QueryController do
     json(conn, load_recent_queries(conn.assigns.current_user, 10))
   end
 
-  def show(conn, %{"id" => id}) do
+  def show(conn, %{"id" => id_type}) do
+    [id | extension] = String.split(id_type, ".", parts: 2)
     case find_query(conn.assigns.current_user, id) do
-      %Query{} = query -> json(conn, %{query: Query.for_display(query)})
+      %Query{} = query ->
+        case extension do
+          ["csv"] ->
+            conn
+            |> put_resp_content_type("text/csv")
+            |> text(Query.to_csv(query))
+          _ -> json(conn, %{query: Query.for_display(query)})
+        end
       nil ->
-        conn
-        |> put_status(Status.code(:not_found))
-        |> json(%{error: "Query with that id does not exist"})
+        conn = put_status(conn, Status.code(:not_found))
+        error_text = "A query with that id does not exist"
+        case extension do
+          ["csv"] -> text(conn, error_text)
+          _ -> json(conn, %{error: error_text})
+        end
     end
   end
 

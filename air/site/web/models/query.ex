@@ -56,6 +56,22 @@ defmodule Air.Query do
     Map.merge(base_query, result_map(query))
   end
 
+  @doc "Exports the query as CSV"
+  @spec to_csv(t) :: String.t
+  def to_csv(%{result: result_json}) do
+    result = Poison.decode!(result_json)
+    headers = result["columns"] |> Enum.join(";")
+    rows = result["rows"]
+    |> Enum.flat_map(fn(%{"occurrences" => occurrences, "row" => row}) -> List.duplicate(row, occurrences) end)
+    |> Enum.map(&(Enum.join(&1, ";")))
+    |> Enum.join("\n")
+    """
+    sep=;
+    #{headers}
+    #{rows}
+    """
+  end
+
 
   # -------------------------------------------------------------------
   # Query functions
