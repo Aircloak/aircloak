@@ -77,7 +77,8 @@ exports.config = {
       "codemirror",
       "react-codemirror",
       "jquery",
-      "mousetrap"
+      "mousetrap",
+      "plotly.js"
     ]
   }
 };
