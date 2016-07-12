@@ -15,7 +15,7 @@ export class Result extends React.Component {
       rowsToShowCount: this.minRowsToShow,
 
       showChart: false,
-      chartYAxisIndex: props.columns.length - 1,
+      chartYAxisIndex: this.defaultChartColumn(),
     };
 
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
@@ -104,6 +104,23 @@ export class Result extends React.Component {
     return !isNaN(parseFloat(n)) && isFinite(n);
   }
 
+  defaultChartColumn() {
+    const alternatives = this.possibleYColumns();
+    if (alternatives.length === 0) return null;
+    return alternatives[0][0];
+  }
+
+  possibleYColumns() {
+    const columns = this.props.columns.map((column, i) => {
+      if (this.isNumeric(this.props.rows[0].row[i])) {
+        return [i, column];
+      } else {
+        return null;
+      }
+    });
+    return _.filter(columns, (e) => e != null);
+  }
+
   conditionallyRenderChart() {
     if (this.state.showChart) {
       return (
@@ -116,13 +133,9 @@ export class Result extends React.Component {
                 this.setState({chartYAxisIndex: parseInt(e.target.value, 10)});
               }}
             >
-            {this.props.columns.map((column, i) => {
-              if (this.isNumeric(this.props.rows[0].row[i])) {
-                return <option key={i} value={i}>{column}</option>;
-              } else {
-                return null;
-              }
-            })}
+            {this.possibleYColumns().map(value =>
+              <option key={value[0]} value={value[0]}>{value[1]}</option>
+            )}
             </select>&nbsp;
             as value for y-axis.
           </div>
