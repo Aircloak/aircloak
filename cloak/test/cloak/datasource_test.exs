@@ -2,7 +2,6 @@ defmodule Cloak.DataSourceTest do
   use ExUnit.Case, async: false
 
   alias Cloak.DataSource
-  alias Cloak.DataSource.Row
 
   setup do
     :ok = :db_test.setup()
@@ -22,16 +21,18 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "data retrieval" do
-    assert {:ok, rows} = DataSource.select(local_data_source(), %{
+    assert {:ok, data} = DataSource.select(local_data_source(), %{
       command: :select,
       columns: ["value"],
       unsafe_filter_columns: [],
       from: "test"
     })
 
-    assert 3 == length(rows)
-    assert Enum.all?(rows, &(&1.columns == ["user_id", "value"]))
-    assert [["user-id", 10], ["user-id", 20], ["user-id", 30]] == Enum.map(rows, &Row.values/1)
+    assert(data == {
+      3,
+      ["user_id", "value"],
+      [["user-id", 10], ["user-id", 20], ["user-id", 30]]
+    })
   end
 
   defp local_data_source() do
