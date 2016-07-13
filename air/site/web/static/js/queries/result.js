@@ -106,12 +106,12 @@ export class Result extends React.Component {
   }
 
   defaultChartColumn() {
-    const alternatives = this.possibleYColumns();
+    const alternatives = this.yColumns();
     if (alternatives.length === 0) return null;
     return alternatives[0][0];
   }
 
-  possibleYColumns() {
+  yColumns() {
     const columns = this.props.columns.map((column, i) => {
       if (this.isNumeric(this.props.rows[0].row[i])) {
         return [i, column];
@@ -126,7 +126,7 @@ export class Result extends React.Component {
     return this.props.columns.length >= 2 &&
       this.props.rows.length > 1 &&
       this.props.rows.length < 20 &&
-      this.possibleYColumns().length > 0;
+      this.yColumns().length > 0;
   }
 
   conditionallyRenderChart() {
@@ -147,7 +147,7 @@ export class Result extends React.Component {
   }
 
   renderChartYOptionsSelector() {
-    if (this.possibleYColumns().length === 0) return null;
+    if (this.yColumns().length === 0) return null;
     return (
       <div className="column-select">
         Use&nbsp;
@@ -157,7 +157,7 @@ export class Result extends React.Component {
             this.setState({chartYAxisIndex: parseInt(e.target.value, 10)});
           }}
         >
-        {this.possibleYColumns().map(value =>
+        {this.yColumns().map(value =>
           <option key={value[0]} value={value[0]}>{value[1]}</option>
         )}
         </select>&nbsp;
