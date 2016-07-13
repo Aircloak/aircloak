@@ -122,6 +122,13 @@ export class Result extends React.Component {
     return _.filter(columns, (e) => e != null);
   }
 
+  canShowChart() {
+    return this.props.columns.length >= 2 &&
+      this.props.rows.length > 1 &&
+      this.props.rows.length < 20 &&
+      this.possibleYColumns().length > 0;
+  }
+
   conditionallyRenderChart() {
     if (this.state.showChart) {
       return (
@@ -207,16 +214,26 @@ export class Result extends React.Component {
     }
   }
 
-  renderOptionMenu() {
-    const chartButtonText = this.state.showChart ? "Hide chart" : "Show chart";
-    return (
-      <div className="options-menu">
+  renderChartButton() {
+    if (this.canShowChart()) {
+      const chartButtonText = this.state.showChart ? "Hide chart" : "Show chart";
+      return (
         <button
           className="btn btn-default btn-xs"
           onClick={() => this.setState({showChart: ! this.state.showChart})}
         >
           {chartButtonText}
         </button>
+      );
+    } else {
+      return null;
+    }
+  }
+
+  renderOptionMenu() {
+    return (
+      <div className="options-menu">
+        {this.renderChartButton()}
       </div>
     );
   }
