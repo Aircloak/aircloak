@@ -13,9 +13,7 @@ export class Result extends React.Component {
 
     this.state = {
       rowsToShowCount: this.minRowsToShow,
-
       showChart: false,
-      chartYAxisIndex: this.defaultChartColumn(),
     };
 
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
@@ -112,12 +110,6 @@ export class Result extends React.Component {
 
   isNumeric(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
-  }
-
-  defaultChartColumn() {
-    const alternatives = this.yColumns();
-    if (alternatives.length === 0) return null;
-    return alternatives[0][0];
   }
 
   yColumns() {
