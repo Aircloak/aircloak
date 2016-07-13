@@ -201,6 +201,12 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp partition_where_clauses(query), do: query
 
+  # This is a restriction imposed by our current usage of DS Proxy.
+  # Once we are able to parse subqueries ourselves, this restriction
+  # no longer applies and should be removed.
+  defp cast_where_clauses(%{where: [_|_], from: {:subquery, _}}) do
+    {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery"}
+  end
   defp cast_where_clauses(%{where: [_|_] = clauses} = query) do
     case error_map(clauses, &cast_where_clause(&1, query)) do
       {:ok, result} -> {:ok, %{query | where: result}}

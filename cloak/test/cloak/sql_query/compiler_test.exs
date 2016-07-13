@@ -58,6 +58,11 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     end
   end
 
+  test "rejecting outer where clause in queries unchecked sub-select", %{data_source: data_source} do
+    assert {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery"} =
+      compile("SELECT a FROM (unchecked inner select) t WHERE a > 10", data_source)
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result
