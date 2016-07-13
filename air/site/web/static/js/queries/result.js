@@ -50,7 +50,7 @@ export class Result extends React.Component {
       let index = 0;
       const nonNumericalValues = _.reduce(accumulateRow.row, (acc, value) => {
         if (! _.includes(yValueIndices, index)) {
-          acc.push(value);
+          acc.push(this.formatValue(value));
         }
         index = index + 1;
         return acc;
