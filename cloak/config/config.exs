@@ -43,7 +43,11 @@ config :cloak, :anonymizer,
   top_count: {5, 1},
 
   # The standard deviation for the noisy top average added to summed values.
-  sum_noise_sigma: 2
+  sum_noise_sigma: 2,
+
+  # It is possible to specify a unique salt per data source that is used when seeding
+  # the pseudo random number generator. When none is provided, we fall back on a default one.
+  default_salt: "HCsLcJ7ywpTmfU0fMZbZwuZQsppLkDlVtcLOlMcptOckCd9ffcg8VVGx0BMIxwYY"
 
 config :cloak, :in_development, false
 

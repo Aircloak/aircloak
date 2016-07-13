@@ -2,6 +2,7 @@
   "air_socket_url": "wss://insights.air-local:20000/cloak/socket/websocket",
   "data_sources": {
     "local": {
+      "salt": "some sea salt",
       "driver": "postgresql",
       "parameters": {
         "hostname": "localhost",
