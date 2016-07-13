@@ -5,13 +5,15 @@ defmodule Air.Monitoring.FailedQueries do
   @spec start_link() :: {:ok, pid}
   def start_link, do: Task.start_link(&work/0)
 
+  alias Air.{Repo, Query, QueryEvents}
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp work do
-    for {:result, result} <- Air.QueryEvents.stream do
+    for {:result, result} <- QueryEvents.stream do
       if result["error"], do: log_error(result)
     end
   end
@@ -20,7 +22,7 @@ defmodule Air.Monitoring.FailedQueries do
     import Logger, warn: false
 
     message =
-      Air.Repo.get!(Air.Query, query_id)
+      Repo.get!(Query, query_id)
       |> Map.take([:statement, :cloak_id, :data_source])
       |> Map.merge(%{type: "failed_query", message: error})
       |> Poison.encode!()
