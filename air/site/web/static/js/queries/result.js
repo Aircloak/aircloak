@@ -133,8 +133,6 @@ export class Result extends React.Component {
     if (this.state.showChart) {
       return (
         <div>
-          {this.renderChartYOptionsSelector()}
-
           <div
             ref={this.setChartDataOnRef}
             className="plotlyGraph" style={{width: "100%", height: "500px"}}
@@ -145,27 +143,6 @@ export class Result extends React.Component {
       return null;
     }
   }
-
-  renderChartYOptionsSelector() {
-    if (this.yColumns().length === 0) return null;
-    return (
-      <div className="column-select">
-        Use&nbsp;
-        <select
-          value={this.state.chartYAxisIndex}
-          onChange={(e) => {
-            this.setState({chartYAxisIndex: parseInt(e.target.value, 10)});
-          }}
-        >
-        {this.yColumns().map(value =>
-          <option key={value[0]} value={value[0]}>{value[1]}</option>
-        )}
-        </select>&nbsp;
-        as value for y-axis.
-      </div>
-    );
-  }
-
 
   renderRows() {
     let remainingRowsToProduce = this.state.rowsToShowCount;
