@@ -19,9 +19,9 @@ defmodule Cloak.Query.NegativeCondition do
 
   @doc "Applies or ignore negative conditions in the query to the given rows."
   @spec apply([Row.t], Parser.compiled_query) :: [Row.t]
-  def apply(rows, %{where_not: clauses}) do
+  def apply(rows, %{where_not: clauses} = query) do
     clauses
-    |> Enum.filter(&sufficient_matches?(&1, rows))
+    |> Enum.filter(&sufficient_matches?(&1, rows, query))
     |> Enum.reduce(rows, fn(clause, rows) -> Enum.reject(rows, &filter(&1, clause)) end)
   end
 
@@ -34,7 +34,7 @@ defmodule Cloak.Query.NegativeCondition do
     Row.fetch!(row, hd(row.columns))
   end
 
-  defp sufficient_matches?(clause, rows) do
+  defp sufficient_matches?(clause, rows, query) do
     real_count =
       rows
       |> filtered_rows(clause)
@@ -44,7 +44,7 @@ defmodule Cloak.Query.NegativeCondition do
       rows
       |> Enum.map(&user_id/1)
       |> Enum.into(MapSet.new())
-      |> Anonymizer.new()
+      |> Anonymizer.new(query.data_source)
       |> Anonymizer.sufficiently_large?(real_count)
 
     result
