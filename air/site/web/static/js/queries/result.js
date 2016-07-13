@@ -47,27 +47,36 @@ export class Result extends React.Component {
     if (! this.state.showChart || ! this.chartRef) {
       return;
     }
-    const chartData = [{
-      type: "bar",
-      name: this.props.columns[this.state.chartYAxisIndex],
-      y: this.props.rows.map((accumulateRow) => accumulateRow.row[this.state.chartYAxisIndex]),
-      x: this.props.rows.map((accumulateRow) => {
-        const firstPart = _.take(accumulateRow.row, this.state.chartYAxisIndex);
-        let secondPart = [];
-        if (this.state.chartYAxisIndex < accumulateRow.row.length - 1) {
-          secondPart = _.slice(accumulateRow.row, this.state.chartYAxisIndex + 1);
+    const yValueIndices = _.map(this.yColumns(), (v) => v[0]);
+    const xAxisValues = this.props.rows.map((accumulateRow) => {
+      let index = 0;
+      const nonNumericalValues = _.reduce(accumulateRow.row, (acc, value) => {
+        if (! _.includes(yValueIndices, index)) {
+          acc.push(value);
         }
-        const xAxisAttributes = _.map(firstPart.concat(secondPart), (val) => this.formatValue(val));
-        return _.join(xAxisAttributes, ", ");
-      }),
-    }];
+        index = index + 1;
+        return acc;
+      }, []);
+      return _.join(nonNumericalValues, ", ");
+    });
+    const traces = _.map(this.yColumns(), (value) => {
+      const columnIndex = value[0];
+      const columnName = value[1];
+      const renderableValues = this.props.rows.map((accumulateRow) => accumulateRow.row[columnIndex]);
+      return {
+        type: "bar",
+        name: columnName,
+        y: renderableValues,
+        x: xAxisValues,
+      };
+    });
     const layout = {
       showlegend: true,
     };
     const displayOptions = {
       staticPlot: true,
     };
-    Plotly.newPlot(this.chartRef, chartData, layout, displayOptions);
+    Plotly.newPlot(this.chartRef, traces, layout, displayOptions);
   }
 
   handleClickMoreRows() {
