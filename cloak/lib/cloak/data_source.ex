@@ -42,7 +42,8 @@ defmodule Cloak.DataSource do
     id: atom,
     driver: module,
     parameters: %{},
-    tables: %{atom => table}
+    tables: %{atom => table},
+    salt: String.t,
   }
   @type table :: %{
     name: String.t,
@@ -98,6 +99,7 @@ defmodule Cloak.DataSource do
       Cloak.DeployConfig.fetch!("data_sources")
       |> atomize_keys()
       |> Enum.map(&map_driver/1)
+      |> Enum.map(&add_default_salt/1)
 
     child_specs =
       for {_, data_source} <- data_sources do
@@ -171,6 +173,12 @@ defmodule Cloak.DataSource do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp add_default_salt({_, %{salt: _}} = valid_entry), do: valid_entry
+  defp add_default_salt({data_source, params}) do
+    default_salt = :cloak_conf.get_val(:anonymizer, :default_salt)
+    {data_source, Map.merge(params, %{salt: default_salt})}
+  end
 
   defp map_driver({data_source, params}) do
     driver_module = case params[:driver] do
