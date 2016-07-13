@@ -31,12 +31,18 @@ defmodule Air.Monitoring.FailedQueries do
     user = query.user
     organisation = user.organisation
 
-    message = %{type: "failed_query", message: error}
-      |> Map.merge(Map.take(query, [:statement, :cloak_id, :data_source]))
-      |> Map.merge(%{user_email: user.email, user_id: user.id})
-      |> Map.merge(%{organisation_name: organisation.name, organisation_id: organisation.id})
-      |> Poison.encode!()
+    message = %{
+      type: "failed_query",
+      message: error,
+      statement: query.statement,
+      cloak_id: query.cloak_id,
+      data_source: query.data_source,
+      user_id: user.id,
+      user_email: user.email,
+      organisation_id: organisation.id,
+      organisation_name: organisation.name,
+    }
 
-    Logger.error("JSON_LOG #{message}")
+    Logger.error("JSON_LOG #{Poison.encode!(message)}")
   end
 end
