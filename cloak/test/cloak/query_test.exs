@@ -61,13 +61,16 @@ defmodule Cloak.QueryTest do
 
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    for id <- 5..9 do
-      range = (id * 4)..(id * 4 + 3)
+    for id <- 5..10 do
+      range = (id * 4)..(id * 4 + 2)
       assert :ok = insert_rows(_user_ids = range, "heights", ["height"], [100 + id])
     end
 
     assert_query "select height from heights", %{columns: ["height"], rows: rows}
-    assert Enum.sort_by(rows, &(&1[:row])) == [%{row: [180], occurrences: 20}, %{row: [:*], occurrences: 20}]
+    assert Enum.sort_by(rows, &(&1[:row])) == [
+      %{row: [180], occurrences: 20},
+      %{row: [:*], occurrences: 18}
+    ]
   end
 
   test "should produce counts" do
@@ -136,10 +139,10 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
     :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-170])
     :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [-180])
+    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [-183])
 
     assert_query "select sum(height) from heights",
-      %{columns: ["sum(height)"], rows: [%{row: [-5400], occurrences: 1}]}
+      %{columns: ["sum(height)"], rows: [%{row: [-5430], occurrences: 1}]}
 
     assert_query "select min(height) from heights",
       %{columns: ["min(height)"], rows: [%{row: [-190], occurrences: 1}]}
@@ -148,24 +151,24 @@ defmodule Cloak.QueryTest do
       %{columns: ["max(height)"], rows: [%{row: [-170], occurrences: 1}]}
 
     assert_query "select avg(height) from heights",
-      %{columns: ["avg(height)"], rows: [%{row: [-180.0], occurrences: 1}]}
+      %{columns: ["avg(height)"], rows: [%{row: [-181.0], occurrences: 1}]}
 
     assert_query "select stddev(height) from heights",
       %{columns: ["stddev(height)"], rows: [%{row: [stddev], occurrences: 1}]}
-    assert_in_delta(stddev, 8.1, 0.1)
+    assert_in_delta(stddev, 8.29, 0.1)
 
     assert_query "select median(height) from heights",
-      %{columns: ["median(height)"], rows: [%{row: [-180], occurrences: 1}]}
+      %{columns: ["median(height)"], rows: [%{row: [-183], occurrences: 1}]}
   end
 
   test "should be able to aggregate negative and positive values" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-170])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-175])
     :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
     :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
 
     assert_query "select sum(height) from heights",
-      %{columns: ["sum(height)"], rows: [%{row: [-1800], occurrences: 1}]}
+      %{columns: ["sum(height)"], rows: [%{row: [-1850], occurrences: 1}]}
 
     assert_query "select min(height) from heights",
       %{columns: ["min(height)"], rows: [%{row: [-190], occurrences: 1}]}
@@ -174,14 +177,14 @@ defmodule Cloak.QueryTest do
       %{columns: ["max(height)"], rows: [%{row: [180], occurrences: 1}]}
 
     assert_query "select avg(height) from heights",
-      %{columns: ["avg(height)"], rows: [%{row: [-60.0], occurrences: 1}]}
+      %{columns: ["avg(height)"], rows: [%{row: [-61.666666666666664], occurrences: 1}]}
 
     assert_query "select stddev(height) from heights",
       %{columns: ["stddev(height)"], rows: [%{row: [stddev], occurrences: 1}]}
-    assert_in_delta(stddev, 169.9, 0.1)
+    assert_in_delta(stddev, 170.99, 0.1)
 
     assert_query "select median(height) from heights",
-      %{columns: ["median(height)"], rows: [%{row: [-170], occurrences: 1}]}
+      %{columns: ["median(height)"], rows: [%{row: [-175], occurrences: 1}]}
   end
 
   test "should return nil when not enough values present for anonymization" do
