@@ -1,6 +1,7 @@
 import React from "react";
 import _ from "lodash";
 
+import Plotly from "../plotly.js";
 import {CodeEditor} from "../code_editor";
 import {Info} from "./info";
 
@@ -12,16 +13,68 @@ export class Result extends React.Component {
 
     this.state = {
       rowsToShowCount: this.minRowsToShow,
+      showChart: false,
     };
+
+    this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
+    this.handleClickLessRows = this.handleClickLessRows.bind(this);
 
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
-    this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
-    this.handleClickLessRows = this.handleClickLessRows.bind(this);
+    this.renderOptionMenu = this.renderOptionMenu.bind(this);
+
+    this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
+    this.setChartDataOnRef = this.setChartDataOnRef.bind(this);
+    this.plotChart = this.plotChart.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
+  }
+
+  componentDidUpdate() {
+    this.plotChart();
+  }
+
+  setChartDataOnRef(ref) {
+    this.chartRef = ref;
+    this.plotChart();
+  }
+
+  plotChart() {
+    if (! this.state.showChart || ! this.chartRef) {
+      return;
+    }
+    const yValueIndices = _.map(this.yColumns(), (v) => v[0]);
+    const xAxisValues = this.props.rows.map((accumulateRow) => {
+      let index = 0;
+      const nonNumericalValues = _.reduce(accumulateRow.row, (acc, value) => {
+        if (! _.includes(yValueIndices, index)) {
+          acc.push(this.formatValue(value));
+        }
+        index = index + 1;
+        return acc;
+      }, []);
+      return _.join(nonNumericalValues, ", ");
+    });
+    const traces = _.map(this.yColumns(), (value) => {
+      const columnIndex = value[0];
+      const columnName = value[1];
+      const renderableValues = this.props.rows.map((accumulateRow) => accumulateRow.row[columnIndex]);
+      return {
+        type: "bar",
+        name: columnName,
+        y: renderableValues,
+        x: xAxisValues,
+      };
+    });
+    const layout = {
+      showlegend: true,
+    };
+    const displayOptions = {
+      staticPlot: true,
+    };
+    Plotly.newPlot(this.chartRef, traces, layout, displayOptions);
   }
 
   handleClickMoreRows() {
@@ -45,13 +98,50 @@ export class Result extends React.Component {
     return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
-  renderValue(value) {
+  formatValue(value) {
     if (value === null) {
       return "<null>";
     } else if (typeof(value) === "number" && isFinite(value)) {
       return Math.round(value * 1000) / 1000; // keep 3 decimals at most
     } else {
       return value;
+    }
+  }
+
+  isNumeric(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+  }
+
+  yColumns() {
+    const columns = this.props.columns.map((column, i) => {
+      if (this.isNumeric(this.props.rows[0].row[i])) {
+        return [i, column];
+      } else {
+        return null;
+      }
+    });
+    return _.filter(columns, (e) => e != null);
+  }
+
+  canShowChart() {
+    return this.props.columns.length >= 2 &&
+      this.props.rows.length > 1 &&
+      this.props.rows.length < 20 &&
+      this.yColumns().length > 0;
+  }
+
+  conditionallyRenderChart() {
+    if (this.state.showChart) {
+      return (
+        <div>
+          <div
+            ref={this.setChartDataOnRef}
+            className="plotlyGraph" style={{width: "100%", height: "500px"}}
+          />
+        </div>
+      );
+    } else {
+      return null;
     }
   }
 
@@ -62,7 +152,7 @@ export class Result extends React.Component {
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
         return (<tr key={`${i}-${occurrenceCount}`}>
-          {accumulateRow.row.map((value, j) => <td key={j}>{this.renderValue(value)}</td>)}
+          {accumulateRow.row.map((value, j) => <td key={j}>{this.formatValue(value)}</td>)}
         </tr>);
       });
     });
@@ -102,6 +192,30 @@ export class Result extends React.Component {
     }
   }
 
+  renderChartButton() {
+    if (this.canShowChart()) {
+      const chartButtonText = this.state.showChart ? "Hide chart" : "Show chart";
+      return (
+        <button
+          className="btn btn-default btn-xs"
+          onClick={() => this.setState({showChart: ! this.state.showChart})}
+        >
+          {chartButtonText}
+        </button>
+      );
+    } else {
+      return null;
+    }
+  }
+
+  renderOptionMenu() {
+    return (
+      <div className="options-menu">
+        {this.renderChartButton()}
+      </div>
+    );
+  }
+
   render() {
     return (
       <div className="panel panel-success">
@@ -129,6 +243,8 @@ export class Result extends React.Component {
             </tbody>
           </table>
           {this.renderShowAll()}
+          {this.renderOptionMenu()}
+          {this.conditionallyRenderChart()}
         </div>
       </div>
     );
