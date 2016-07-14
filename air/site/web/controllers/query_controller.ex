@@ -80,9 +80,8 @@ defmodule Air.QueryController do
       %Query{} = query ->
         case extension do
           ["csv"] ->
-            conn = conn
-            |> put_resp_content_type("text/csv")
-            |> send_chunked(200)
+            conn = put_resp_content_type(conn, "text/csv")
+            conn = send_chunked(conn, 200)
             csv_stream = Query.to_csv_stream(query)
             Enum.reduce(csv_stream, conn, fn(data, conn) ->
               {:ok, conn} = chunk(conn, data)
