@@ -57,19 +57,13 @@ defmodule Air.Query do
   end
 
   @doc "Exports the query as CSV"
-  @spec to_csv(t) :: String.t
-  def to_csv(%{result: result_json}) do
+  @spec to_csv_stream(t) :: Enumerable.t
+  def to_csv_stream(%{result: result_json}) do
     result = Poison.decode!(result_json)
-    headers = result["columns"] |> Enum.join(";")
-    rows = result["rows"]
-    |> Enum.flat_map(fn(%{"occurrences" => occurrences, "row" => row}) -> List.duplicate(row, occurrences) end)
-    |> Enum.map(&(Enum.join(&1, ";")))
-    |> Enum.join("\n")
-    """
-    sep=;
-    #{headers}
-    #{rows}
-    """
+    header = result["columns"]
+    rows = Enum.flat_map(result["rows"],
+      fn(%{"occurrences" => occurrences, "row" => row}) -> List.duplicate(row, occurrences) end)
+    CSV.encode([header | rows])
   end
 
 
