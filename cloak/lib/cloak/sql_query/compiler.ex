@@ -179,7 +179,8 @@ defmodule Cloak.SqlQuery.Compiler do
     case invalid_fields do
       [] ->
         order_list = for {column, direction} <- order_by_spec do
-          {column, direction}
+          index = columns |> Enum.find_index(&(&1 == column))
+          {index, direction}
         end
         {:ok, %{query | order_by: order_list}}
       [{invalid_field, _direction} | _rest] ->
