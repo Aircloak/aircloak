@@ -42,8 +42,7 @@ defmodule Cloak.DataSource do
     id: atom,
     driver: module,
     parameters: %{},
-    tables: %{atom => table},
-    salt: String.t,
+    tables: %{atom => table}
   }
   @type table :: %{
     name: String.t,
@@ -99,7 +98,8 @@ defmodule Cloak.DataSource do
       Cloak.DeployConfig.fetch!("data_sources")
       |> atomize_keys()
       |> Enum.map(&map_driver/1)
-      |> Enum.map(&add_default_salt/1)
+
+    set_salt()
 
     child_specs =
       for {_, data_source} <- data_sources do
@@ -174,11 +174,6 @@ defmodule Cloak.DataSource do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp add_default_salt({_, %{salt: _}} = valid_entry), do: valid_entry
-  defp add_default_salt({data_source, params}) do
-    {data_source, Map.merge(params, %{salt: "default salt"})}
-  end
-
   defp map_driver({data_source, params}) do
     driver_module = case params[:driver] do
       "postgresql" -> Cloak.DataSource.PostgreSQL
@@ -210,6 +205,16 @@ defmodule Cloak.DataSource do
       |> Stream.map(&data_source_with_columns/1)
       |> Enum.into(%{})
     )
+  end
+
+  defp set_salt() do
+    salt = case Cloak.DeployConfig.fetch!("salt") do
+      nil -> "default salt"
+      value -> value
+    end
+    existing_env = Application.get_env(:cloak, :anonymizer)
+    new_env = Keyword.put(existing_env, :salt, salt)
+    Application.put_env(:cloak, :anonymizer, new_env)
   end
 
   defp data_source_with_columns({id, data_source}) do

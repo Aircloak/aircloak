@@ -1,7 +1,7 @@
 {
+  "salt": "test salt which doesn't matter since tests have SD=0",
   "data_sources": {
     "local": {
-      "salt": "test salt which doesn't matter since tests have SD=0",
       "driver": "postgresql",
       "parameters": {
         "hostname": "localhost",

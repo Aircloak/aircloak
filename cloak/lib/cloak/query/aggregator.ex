@@ -60,7 +60,7 @@ defmodule Cloak.Query.Aggregator do
     |> Enum.map(fn({property, rows}) ->
       {property, Enum.group_by(rows, &user_id/1)}
     end)
-    |> init_anonymizer(query)
+    |> init_anonymizer()
   end
 
   defp grouping_property(row, query) do
@@ -71,9 +71,9 @@ defmodule Cloak.Query.Aggregator do
     Row.fetch!(row, hd(row.columns))
   end
 
-  defp init_anonymizer(grouped_rows, query) do
+  defp init_anonymizer(grouped_rows) do
     for {property, users_rows} <- grouped_rows,
-      do: {property, Anonymizer.new(users_rows, query.data_source), users_rows}
+      do: {property, Anonymizer.new(users_rows), users_rows}
   end
 
   defp low_users_count?({_property, anonymizer, users_rows}),
@@ -95,7 +95,7 @@ defmodule Cloak.Query.Aggregator do
       fn ({_property, _anonymizer, users_rows}, accumulator) ->
         Map.merge(accumulator, users_rows, fn (_user, values1, values2) -> values1 ++ values2 end)
       end)
-    anonymizer = Anonymizer.new(lcf_users_rows, query.data_source)
+    anonymizer = Anonymizer.new(lcf_users_rows)
     lcf_property = List.duplicate(:*, length(query.property))
     lcf_row = {lcf_property, anonymizer, lcf_users_rows}
     case low_users_count?(lcf_row) do

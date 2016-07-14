@@ -35,7 +35,6 @@ defmodule Cloak.Query.Anonymizer do
   }
 
   import Kernel, except: [max: 2]
-  alias Cloak.DataSource
 
 
   # -------------------------------------------------------------------
@@ -48,12 +47,12 @@ defmodule Cloak.Query.Anonymizer do
   This function takes either a `MapSet` containing user ids, or a map where
   keys are user ids. Such types ensure that user ids are unique.
   """
-  @spec new(MapSet.t | %{String.t => any}, DataSource.t) :: t
-  def new(%MapSet{} = users, data_source) do
-    new_instance(users, data_source)
+  @spec new(MapSet.t | %{String.t => any}) :: t
+  def new(%MapSet{} = users) do
+    new_instance(users)
   end
-  def new(%{} = users_map, data_source) do
-    new_instance(Map.keys(users_map), data_source)
+  def new(%{} = users_map) do
+    new_instance(Map.keys(users_map))
   end
 
   @doc """
@@ -158,13 +157,13 @@ defmodule Cloak.Query.Anonymizer do
 
   defp config(name), do: :cloak_conf.get_val(:anonymizer, name)
 
-  defp new_instance(unique_users, %{salt: salt}) do
-    %{rng: :rand.seed(:exsplus, seed(unique_users, salt))}
+  defp new_instance(unique_users) do
+    %{rng: :rand.seed(:exsplus, seed(unique_users))}
   end
 
-  defp seed(unique_users, salt) do
+  defp seed(unique_users) do
     unique_users
-    |> Enum.reduce(compute_hash(salt), fn (user, accumulator) ->
+    |> Enum.reduce(compute_hash(config(:salt)), fn (user, accumulator) ->
       user
       |> to_string()
       |> compute_hash()
