@@ -176,8 +176,7 @@ defmodule Cloak.DataSource do
 
   defp add_default_salt({_, %{salt: _}} = valid_entry), do: valid_entry
   defp add_default_salt({data_source, params}) do
-    default_salt = :cloak_conf.get_val(:anonymizer, :default_salt)
-    {data_source, Map.merge(params, %{salt: default_salt})}
+    {data_source, Map.merge(params, %{salt: "default salt"})}
   end
 
   defp map_driver({data_source, params}) do
