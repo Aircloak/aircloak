@@ -6,9 +6,14 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
   setup do
     {:ok, %{
-      data_source: %{tables: %{table: %{
-         columns: [{"column", :timestamp}]
-      }}}
+      data_source: %{tables: %{
+        table: %{
+          columns: [{"column", :timestamp}]
+        },
+        other_table: %{
+          columns: [{"other_column", :timestamp}]
+        }
+      }}
     }}
   end
 
@@ -61,6 +66,36 @@ defmodule Cloak.SqlQuery.Compiler.Test do
   test "rejecting outer where clause in queries unchecked sub-select", %{data_source: data_source} do
     assert {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery"} =
       compile("SELECT a FROM (unchecked inner select) t WHERE a > 10", data_source)
+  end
+
+  test "rejecting missing column", %{data_source: data_source} do
+    assert {:error, "Column `a` doesn't exist."} =
+      compile("SELECT a FROM table", data_source)
+  end
+
+  test "rejecting missing qualified column", %{data_source: data_source} do
+    assert {:error, "Column `table.a` doesn't exist."} =
+      compile("SELECT table.a FROM table", data_source)
+  end
+
+  test "rejecting qualified SELECT from not selected table", %{data_source: data_source} do
+    assert {:error, "Missing FROM clause entry for table `other_table`"} =
+      compile("SELECT other_table.other_column FROM table", data_source)
+  end
+
+  test "rejecting qualified ORDER BY from not selected table", %{data_source: data_source} do
+    assert {:error, "Missing FROM clause entry for table `other_table`"} =
+      compile("SELECT column FROM table ORDER BY other_table.other_column", data_source)
+  end
+
+  test "rejecting qualified GROUP BY from not selected table", %{data_source: data_source} do
+    assert {:error, "Missing FROM clause entry for table `other_table`"} =
+      compile("SELECT column FROM table GROUP BY other_table.other_column", data_source)
+  end
+
+  test "rejecting qualified WHERE from not selected table", %{data_source: data_source} do
+    assert {:error, "Missing FROM clause entry for table `other_table`"} =
+      compile("SELECT column FROM table WHERE other_table.other_column <> ''", data_source)
   end
 
   defp compile!(query_string, data_source) do

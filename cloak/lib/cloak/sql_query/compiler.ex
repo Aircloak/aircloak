@@ -37,6 +37,7 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec column_title(Parser.column) :: String.t
   def column_title({:function, function, identifier}), do: "#{function}(#{column_title(identifier)})"
   def column_title({:distinct, identifier}), do: "distinct #{identifier}"
+  def column_title({:qualified, table, column}), do: "#{table}.#{column_title(column)}"
   def column_title(column), do: column
 
 
@@ -61,6 +62,8 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_prepped_query(query) do
     with {:ok, query} <- compile_from(query),
+         {:ok, query} <- expand_star_select(query),
+         :ok <- validate_all_requested_tables_are_selected(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_order_by(query),
          {:ok, query} <- cast_where_clauses(query),
@@ -108,6 +111,41 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
+  defp expand_star_select(%{command: :select, columns: :*, from: table_identifier, data_source: data_source} = query) do
+    columns = for {name, _type} <- columns(table_identifier, data_source),
+      do: {:qualified, table_identifier, name}
+    {:ok, %{query | columns: columns}}
+  end
+  defp expand_star_select(query), do: {:ok, query}
+
+  defp validate_all_requested_tables_are_selected(%{from: table_identifier} = query) do
+    all_identifiers = query.columns ++ Map.get(query, :group_by, []) ++
+      Map.get(query, :where, []) ++ Map.get(query, :order_by, [])
+    referenced_tables = all_identifiers
+    |> Enum.map(&extract_identifier/1)
+    |> Enum.map(fn
+      ({:qualified, table, _}) -> table
+      (_) -> table_identifier
+    end)
+    |> Enum.dedup()
+    case referenced_tables -- [table_identifier] do
+      [] -> :ok
+      [table | _] -> {:error, ~s/Missing FROM clause entry for table `#{table}`/}
+    end
+  end
+
+  defp extract_identifier({:function, _function, identifier}), do: extract_identifier(identifier)
+  defp extract_identifier({:distinct, identifier}), do: extract_identifier(identifier)
+  defp extract_identifier({:comparison, identifier, _comparator, _any}), do: extract_identifier(identifier)
+  defp extract_identifier({:not, subclause}), do: extract_identifier(subclause)
+  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
+    defp extract_identifier({unquote(keyword), identifier, _}), do: extract_identifier(identifier)
+  end)
+  Enum.each([:asc, :desc, :nil], fn(keyword) ->
+    defp extract_identifier({identifier, unquote(keyword)}), do: extract_identifier(identifier)
+  end)
+  defp extract_identifier(entry), do: entry
+
   @aggregation_functions ~w(count sum avg min max stddev median)
   defp aggregate_function?({:function, function, _}), do: Enum.member?(@aggregation_functions, function)
   defp aggregate_function?(_), do: false
@@ -118,10 +156,6 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
 
-  defp compile_columns(%{command: :select, columns: :*, from: table_identifier, data_source: data_source} = query) do
-    columns = for {name, _type} <- columns(table_identifier, data_source), do: name
-    compile_columns(%{query | columns: columns})
-  end
   defp compile_columns(%{command: :select, from: table_identifier, data_source: data_source} = query) do
     with table_columns = columns(table_identifier, data_source),
         :ok <- verify_column_names(query, table_columns),
@@ -150,7 +184,7 @@ defmodule Cloak.SqlQuery.Compiler do
       [invalid_column | _rest] ->
         {
           :error,
-          "Column `#{invalid_column}` needs to appear in the " <>
+          "Column `#{Cloak.SqlQuery.column_name(invalid_column)}` needs to appear in the " <>
             "`group by` clause or be used in an aggregate function."
         }
     end
@@ -166,12 +200,14 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp verify_column_names(query, table_columns) do
-    valid_names = [:* | (for {name, _type} <- table_columns, do: name)]
+  defp verify_column_names(%{from: table_identifier} = query, table_columns) do
+    valid_names = [:*] ++ (for {name, _type} <- table_columns, do: name) ++
+      (for {name, _type} <- table_columns, do: {:qualified, table_identifier, name})
     invalid_columns = Enum.reject(all_columns(query), &Enum.member?(valid_names, &1))
     case invalid_columns do
       [] -> :ok
-      [invalid_column | _rest] -> {:error, ~s/Column `#{invalid_column}` doesn't exist./}
+      [invalid_column | _rest] ->
+        {:error, ~s/Column `#{column_title(invalid_column)}` doesn't exist./}
     end
   end
 
