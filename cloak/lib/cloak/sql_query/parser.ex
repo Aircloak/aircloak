@@ -124,7 +124,7 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp column() do
-    either(function_expression(), identifier())
+    either(function_expression(), qualified_identifier())
     |> label("column name or function")
   end
 
@@ -133,7 +133,7 @@ defmodule Cloak.SqlQuery.Parser do
       [
         identifier(),
         keyword(:"("),
-        choice([identifier(), distinct_identifier(), keyword(:*)]),
+        choice([qualified_identifier(), distinct_identifier(), keyword(:*)]),
         keyword(:")")
       ],
       fn
@@ -142,8 +142,24 @@ defmodule Cloak.SqlQuery.Parser do
     )
   end
 
+  defp qualified_identifier() do
+    either(
+      pipe(
+        [
+          identifier(),
+          keyword(:"."),
+          identifier()
+        ],
+        fn
+          ([table, :".", column]) -> {:qualified, table, column}
+        end
+      ),
+      identifier()
+    )
+  end
+
   defp distinct_identifier() do
-    pair_both(keyword(:distinct), identifier())
+    pair_both(keyword(:distinct), qualified_identifier())
   end
 
   defp from() do
@@ -208,10 +224,10 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp where_expression() do
     switch([
-      {identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
-      {identifier() |> keyword(:in), in_values()},
-      {identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
-      {identifier(), pair_both(comparator(), allowed_where_values())},
+      {qualified_identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
+      {qualified_identifier() |> keyword(:in), in_values()},
+      {qualified_identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
+      {qualified_identifier(), pair_both(comparator(), allowed_where_values())},
       {:else, error_message(fail(""), "Invalid where expression")}
     ])
     |> map(fn
@@ -260,7 +276,7 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp optional_group_by() do
     switch([
-      {keyword(:group), keyword(:by) |> comma_delimited(identifier())},
+      {keyword(:group), keyword(:by) |> comma_delimited(qualified_identifier())},
       {:else, noop()}
     ])
     |> map(fn {_, [:by, columns]} -> {:group_by, columns} end)

@@ -331,6 +331,31 @@ defmodule Cloak.SqlQuery.Parser.Test do
     )
   end
 
+  test "fully qualified identifiers" do
+    assert_parse(
+      """
+      SELECT table.column, count(table.column), count(distinct table.column)
+      FROM table
+      WHERE table.column = 't'
+      GROUP BY table.column
+      ORDER BY table.column DESC, count(distinct table.column)
+      """,
+      select(
+        columns: [
+          {:qualified, "table", "column"},
+          {:function, "count", {:qualified, "table", "column"}},
+          {:function, "count", {:distinct, {:qualified, "table", "column"}}}
+        ],
+        where: [{:comparison, {:qualified, "table", "column"}, :=, _}],
+        group_by: [{:qualified, "table", "column"}],
+        order_by: [
+          {{:qualified, "table", "column"}, :desc},
+          {{:function, "count", {:distinct, {:qualified, "table", "column"}}}, :nil}
+        ]
+      )
+    )
+  end
+
   Enum.each(
     [
       {"single quote is not allowed in the identifier",
