@@ -6,7 +6,7 @@ defmodule Cloak.SqlQuery.Compiler do
   alias Cloak.SqlQuery.Parsers.Token
 
   @type compiled_query :: %{
-    data_source: atom,
+    data_source: DataSource.t,
     command: :select | :show,
     columns: [Parser.column],
     property: [String.t],

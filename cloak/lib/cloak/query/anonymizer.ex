@@ -163,7 +163,7 @@ defmodule Cloak.Query.Anonymizer do
 
   defp seed(unique_users) do
     unique_users
-    |> Enum.reduce(compute_hash(""), fn (user, accumulator) ->
+    |> Enum.reduce(compute_hash(config(:salt)), fn (user, accumulator) ->
       user
       |> to_string()
       |> compute_hash()
