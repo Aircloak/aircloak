@@ -18,4 +18,21 @@ config :cloak, :air,
   max_reconnect_interval: :timer.seconds(5),
   serializer: Phoenix.Channels.GenSocketClient.Serializer.Json
 
-config :cloak, :anonymizer, sum_noise_sigma: 0
+config :cloak, :anonymizer,
+  # The mean and standard deviation for the lower bound of the number
+  # of users that must be in a bucket to get reported.
+  count_soft_lower_bound: {5, 0},
+
+  # The minimum absolute value of the noisy lower bound.
+  count_absolute_lower_bound: 2,
+
+  # The number of outliers dropped, from top and bottom, during the anonymized aggregation of values.
+  # The outliers are replaced with the average value for that margin of the collection.
+  dropped_outliers_count: 1,
+
+  # The mean and standard deviation for the count of items at the top of a collection,
+  # used for computing the average value of the top.
+  top_count: {5, 0},
+
+  # The standard deviation for the noisy top average added to summed values.
+  sum_noise_sigma: 0
