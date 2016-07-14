@@ -7,7 +7,7 @@ defmodule Cloak.Query.NegativeCondition do
   included in the result set. To avoid this we ignore the condition if it would remove too few users.
   """
 
-  alias Cloak.DataSource.Row
+  alias Cloak.DataSource
   alias Cloak.Query.Anonymizer
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
@@ -18,11 +18,11 @@ defmodule Cloak.Query.NegativeCondition do
   # -------------------------------------------------------------------
 
   @doc "Applies or ignore negative conditions in the query to the given rows."
-  @spec apply([Row.t], Parser.compiled_query) :: [Row.t]
-  def apply(rows, %{where_not: clauses}) do
+  @spec apply([DataSource.row], [DataSource.column], Parser.compiled_query) :: [DataSource.row]
+  def apply(rows, columns, %{where_not: clauses}) do
     clauses
-    |> Enum.filter(&sufficient_matches?(&1, rows))
-    |> Enum.reduce(rows, fn(clause, rows) -> Enum.reject(rows, &filter(&1, clause)) end)
+    |> Enum.filter(&sufficient_matches?(&1, rows, columns))
+    |> Enum.reduce(rows, fn(clause, rows) -> Enum.reject(rows, &filter(&1, columns, clause)) end)
   end
 
 
@@ -30,14 +30,12 @@ defmodule Cloak.Query.NegativeCondition do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp user_id(row) do
-    Row.fetch!(row, hd(row.columns))
-  end
+  defp user_id([user_id | _rest]), do: user_id
 
-  defp sufficient_matches?(clause, rows) do
+  defp sufficient_matches?(clause, rows, columns) do
     real_count =
       rows
-      |> filtered_rows(clause)
+      |> filtered_rows(columns, clause)
       |> Enum.count()
 
     {result, _} =
@@ -50,23 +48,23 @@ defmodule Cloak.Query.NegativeCondition do
     result
   end
 
-  defp filtered_rows(rows, clause) do
+  defp filtered_rows(rows, columns, clause) do
     rows
-    |> Enum.filter(&filter(&1, clause))
+    |> Enum.filter(&filter(&1, columns, clause))
     |> Enum.uniq_by(&user_id/1)
   end
 
-  defp filter(row, {:comparison, column, :=, %Token{value: %{value: value}}}) do
-    Row.fetch!(row, column) == value
+  defp filter(row, columns, {:comparison, column, :=, %Token{value: %{value: value}}}) do
+    DataSource.fetch_value!(row, columns, column) == value
   end
-  defp filter(row, {:comparison, column, :=, value}) do
-    Row.fetch!(row, column) == value
+  defp filter(row, columns, {:comparison, column, :=, value}) do
+    DataSource.fetch_value!(row, columns, column) == value
   end
-  defp filter(row, {:like, column, %Token{value: %{type: :string, value: pattern}}}) do
-    Row.fetch!(row, column) =~ to_regex(pattern)
+  defp filter(row, columns, {:like, column, %Token{value: %{type: :string, value: pattern}}}) do
+    DataSource.fetch_value!(row, columns, column) =~ to_regex(pattern)
   end
-  defp filter(row, {:ilike, column, %Token{value: %{type: :string, value: pattern}}}) do
-    Row.fetch!(row, column) =~ to_regex(pattern, [_case_insensitive = "i"])
+  defp filter(row, columns, {:ilike, column, %Token{value: %{type: :string, value: pattern}}}) do
+    DataSource.fetch_value!(row, columns, column) =~ to_regex(pattern, [_case_insensitive = "i"])
   end
 
   defp to_regex(sql_pattern, options \\ []) do

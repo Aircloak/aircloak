@@ -452,8 +452,7 @@ defmodule Cloak.QueryTest do
   test "query which returns zero rows" do
     :db_test.clear_table("heights")
     assert_query "select height from heights", result
-    assert %{query_id: "1", columns: ["height"], rows: rows} = result
-    assert [%{occurrences: 0, row: [nil]}] == rows
+    assert %{query_id: "1", columns: ["height"], rows: []} = result
   end
 
   defp start_query(statement) do

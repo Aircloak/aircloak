@@ -102,7 +102,7 @@ defmodule Cloak.DataSource.DsProxyTest do
     )
 
     query_result = run_query(context, "select foo from bar")
-    assert {:ok, {:buckets, ["foo"], [%{occurrences: 0, row: [nil]}]}} = query_result
+    assert {:ok, {:buckets, ["foo"], []}} = query_result
   end
 
   test "unsafe select count(foo)", context do
