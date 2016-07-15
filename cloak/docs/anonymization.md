@@ -42,30 +42,37 @@ The input to each method is the list of values for a bucket, grouped by user.
 ## MAX() / MIN()
 
   - The maximum / minimum values per-user are taken.
-  - The first No users with the maximum / minimum overall values are dropped, where No is 1 plus a noisy number with mean 3 and SD 1.
-  - Final result is the average value of the top Nt remaining users, where Nt is a noisy number with mean 5 and SD 1.
+  - The first No users with the maximum / minimum overall values are dropped,
+    where No is 1 plus a noisy number with mean 3 and SD 1.
+  - Final result is the average value of the top Nt remaining users,
+    where Nt is a noisy number with mean 5 and SD 1.
   - In case we don't have enough values available to compute the average, `null` is returned.
 
 
 ## COUNT()
 
   - The counts of values per-user are computed.
-  - The first No users with the biggest overall counts are dropped, where No is 1 plus a noisy number with mean 3 and SD 1.
-  - The average count of the top Nc remaining users is computed, where Nc is a noisy number with mean 5 and SD 1.
-  - The total count is the sum of all the remaining counts plus Nv multiplied by the average count of the top,
-    where NV is a noisy number with mean No and SD 2.
+  - The first No users with the biggest overall counts are dropped,
+    where No is 1 plus a noisy number with mean 3 and SD 1.
+  - The average count of the top Nc remaining users is computed,
+    where Nc is a noisy number with mean 5 and SD 1.
+  - The total count is the sum of all the remaining counts plus Nv multiplied by
+    the average count of the top, where NV is a noisy number with mean No and SD 2.
   - The final result is the maximum between the absolute lower bound of the LCF and the total count.
 
 
 ## SUM()
 
   - The sums of values per-user are computed and split into negative and positive values.
-  - The final result is the anonymized sum of the positive values minus the anonymized sum of the negated negative values.
+  - The final result is the anonymized sum of the positive values minus the
+    anonymized sum of the negated negative values.
   - The anonymized sum of a set of positive values is computed as follows:
-    - The first No users with the biggest overall valuea are dropped, where No is 1 plus a noisy number with mean 3 and SD 1.
-    - The average value of the top Nc remaining users is computed, where Nc is a noisy number with mean 5 and SD 1.
-    - The total sum is the sum of all the remaining values plus Nv multiplied by the average count of the top,
-      where NV is a noisy number with mean No and SD 2.
+    - The first No users with the biggest overall valuea are dropped,
+      where No is 1 plus a noisy number with mean 3 and SD 1.
+    - The average value of the top Nt remaining users is computed,
+      where Nt is a noisy number with mean 5 and SD 1.
+    - The total sum is the sum of all the remaining values plus Nv multiplied by
+      the average count of the top, where NV is a noisy number with mean No and SD 2.
 
 
 ## AVG()
@@ -84,7 +91,8 @@ The input to each method is the list of values for a bucket, grouped by user.
 
   - The values are sorted in ascending order.
   - The real median is computed.  
-  - The closest value per-user is extracted from above and below the median, from a noisy amount (mean: 5, SD: 1) of distinct users on each side.
+  - The closest value per-user is extracted from above and below the median,
+    from a noisy amount (mean: 5, SD: 1) of distinct users on each side.
   - The final result is the average of the real median and the extracted values from above and below.
   - In case we don't have enough values available to compute the average, `null` is returned.
 
