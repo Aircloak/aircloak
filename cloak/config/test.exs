@@ -26,9 +26,11 @@ config :cloak, :anonymizer,
   # The minimum absolute value of the noisy lower bound.
   count_absolute_lower_bound: 2,
 
-  # The number of outliers dropped, from top and bottom, during the anonymized aggregation of values.
-  # The outliers are replaced with the average value for that margin of the collection.
-  dropped_outliers_count: 1,
+  # The fixed and variable numbers of outliers dropped, from the top of the collection,
+  # during the anonymized aggregation of values. The outliers are replaced with the noisy
+  # average value for the top of the remaining users in the collection.
+  fixed_outliers_count: 1,
+  var_outliers_count: {3, 0},
 
   # The mean and standard deviation for the count of items at the top of a collection,
   # used for computing the average value of the top.

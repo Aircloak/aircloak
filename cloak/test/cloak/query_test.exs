@@ -94,6 +94,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [152])
     :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [153])
     :ok = insert_rows(_user_ids = 41..49, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 50..59, "heights", ["height"], [190])
 
     assert_query "select count(distinct height) from heights",
       %{columns: ["count(distinct height)"], rows: [%{row: [5], occurrences: 1}]}
