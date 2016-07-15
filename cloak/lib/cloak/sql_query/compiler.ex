@@ -146,13 +146,15 @@ defmodule Cloak.SqlQuery.Compiler do
   end)
   defp extract_identifier(entry), do: entry
 
-  @aggregation_functions ~w(count sum avg min max stddev median)
-  defp aggregate_function?({:function, function, _}), do: Enum.member?(@aggregation_functions, function)
+  Enum.each(~w(count sum avg min max stddev median), fn(function) ->
+    defp aggregate_function?({:function, unquote(function), _}), do: true
+  end)
   defp aggregate_function?(_), do: false
 
-  @numeric_aggregate_functions ~w(sum avg min max stddev median)
-  defp numeric_aggregate_function?({:function, function, _}),
-    do: Enum.member?(@numeric_aggregate_functions, function)
+  Enum.each(~w(sum avg min max stddev median), fn(function) ->
+    defp numeric_aggregate_function?({:function, unquote(function), _}), do: true
+  end)
+  defp numeric_aggregate_function?(_), do: false
 
   defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
 
