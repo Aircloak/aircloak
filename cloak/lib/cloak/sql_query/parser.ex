@@ -10,7 +10,7 @@ defmodule Cloak.SqlQuery.Parser do
     | :>=
     | :>
 
-  @type column :: String.t | {:function, String.t, String.t | :*}
+  @type column :: String.t | {:function, String.t, String.t | :* | {:distinct, String.t}}
 
   @type like :: {:like | :ilike, String.t, String.t}
   @type is :: {:is, String.t, :null}

@@ -62,13 +62,10 @@ defmodule Cloak.SqlQuery do
   @spec count_all_column() :: String.t
   def count_all_column(), do: "ac_count_all_placeholder"
 
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp column_name({:function, "count", :*}), do: count_all_column()
-  defp column_name({:function, _function, identifier}), do: column_name(identifier)
-  defp column_name({:distinct, identifier}), do: column_name(identifier)
-  defp column_name(column) when is_binary(column), do: column
+  @doc "Converts a column identifier into a printable name"
+  @spec column_name(Cloak.SqlQuery.Parser.column) :: String.t
+  def column_name({:function, "count", :*}), do: count_all_column()
+  def column_name({:function, _function, identifier}), do: column_name(identifier)
+  def column_name({:distinct, identifier}), do: column_name(identifier)
+  def column_name(column) when is_binary(column), do: column
 end

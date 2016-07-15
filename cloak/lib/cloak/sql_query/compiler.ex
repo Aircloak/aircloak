@@ -30,14 +30,7 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
     defaults = %{data_source: data_source, where_not: [], unsafe_filter_columns: [], group_by: []}
-    query = Map.merge(defaults, query)
-    with {:ok, query} <- compile_from(query),
-         {:ok, query} <- compile_columns(query),
-         {:ok, query} <- compile_order_by(query),
-         {:ok, query} <- cast_where_clauses(query),
-         query = partition_selected_columns(query),
-         query = partition_where_clauses(query),
-      do: {:ok, query}
+    compile_prepped_query(Map.merge(defaults, query))
   end
 
   @doc "Returns a string title for the given column specification."
@@ -51,12 +44,51 @@ defmodule Cloak.SqlQuery.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp compile_from(%{from: {:subquery, _}} = query) do
-    # We currently treat subqueries as absolute blackboxes, and therefore just have to trust the analyst
-    # to having selected a table that actually exists. This is unfortunate, but can't be improved
-    # until we do full subquery parsing ourselves.
-    {:ok, query}
+  # Due to the blackbox nature of the subquery, there are a whole lot
+  # of validations we cannot do when using DS proxy. Conversely, there
+  # are also built in cloak functionality that we cannot provide, like
+  # regular, top level WHERE clauses.
+  # We therefore perform custom DS proxy validations, in order to
+  # keep the remaining validations clean, and free from having to
+  # consider the DS Proxy case.
+  defp compile_prepped_query(%{from: {:subquery, _}} = query) do
+    with :ok <- ds_proxy_validate_no_wildcard(query),
+         :ok <- ds_proxy_validate_no_where(query),
+         :ok <- verify_aggregated_columns(query),
+         {:ok, query} <- compile_order_by(query),
+         query = partition_selected_columns(query),
+      do: {:ok, query}
   end
+  defp compile_prepped_query(query) do
+    with {:ok, query} <- compile_from(query),
+         {:ok, query} <- compile_columns(query),
+         {:ok, query} <- compile_order_by(query),
+         {:ok, query} <- cast_where_clauses(query),
+         query = partition_selected_columns(query),
+         query = partition_where_clauses(query),
+      do: {:ok, query}
+  end
+
+
+  # -------------------------------------------------------------------
+  # DS Proxy validators.
+  # -------------------------------------------------------------------
+
+  defp ds_proxy_validate_no_wildcard(%{command: :select, columns: :*}) do
+    {:error, "Unfortunately wildcard selects are not supported together with subselects"}
+  end
+  defp ds_proxy_validate_no_wildcard(_), do: :ok
+
+  defp ds_proxy_validate_no_where(%{where: _}) do
+    {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery"}
+  end
+  defp ds_proxy_validate_no_where(_), do: :ok
+
+
+  # -------------------------------------------------------------------
+  # Normal validators and compilers
+  # -------------------------------------------------------------------
+
   defp compile_from(%{from: table_identifier, data_source: data_source} = query) do
     tables = DataSource.tables(data_source)
     case Enum.find_index(tables, &(Atom.to_string(&1) === table_identifier)) do
@@ -86,12 +118,6 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
 
-  defp compile_columns(%{command: :select, from: {:subquery, _}} = query) do
-    # Subqueries can produce column-names that are not actually in the table. Without understanding what
-    # is being produced by the subquery (currently it is being treated as a blackbox), we cannot validate
-    # the outer column selections
-    {:ok, query}
-  end
   defp compile_columns(%{command: :select, columns: :*, from: table_identifier, data_source: data_source} = query) do
     columns = for {name, _type} <- columns(table_identifier, data_source), do: name
     compile_columns(%{query | columns: columns})
@@ -202,12 +228,6 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp partition_where_clauses(query), do: query
 
-  # This is a restriction imposed by our current usage of DS Proxy.
-  # Once we are able to parse subqueries ourselves, this restriction
-  # no longer applies and should be removed.
-  defp cast_where_clauses(%{where: [_|_], from: {:subquery, _}}) do
-    {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery"}
-  end
   defp cast_where_clauses(%{where: [_|_] = clauses} = query) do
     case error_map(clauses, &cast_where_clause(&1, query)) do
       {:ok, result} -> {:ok, %{query | where: result}}
