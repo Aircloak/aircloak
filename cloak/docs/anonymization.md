@@ -7,6 +7,10 @@ privacy-preserving form. The final algorithm is a result of the discussion in
 
 The input to each method is the list of values for a bucket, grouped by user.
 
+The hardcoded numbers used throughout this document can be changed during setup,
+on a per-customer basis. For a specific cloak, the actual values are taken from
+the [configuration file](../config/config.exs), in the `anonymizer` section.
+
 
 ## DISTINCT preprocessing
 
