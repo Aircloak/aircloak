@@ -52,7 +52,7 @@ defmodule Cloak.SqlQuery.Compiler do
   # We therefore perform custom DS proxy validations, in order to
   # keep the remaining validations clean, and free from having to
   # consider the DS Proxy case.
-  defp compile_prepped_query(%{from: {:subquery, _}} = query) do
+  defp compile_prepped_query(%{command: :select, from: {:subquery, _}} = query) do
     with :ok <- ds_proxy_validate_no_wildcard(query),
          :ok <- ds_proxy_validate_no_where(query),
          :ok <- verify_aggregated_columns(query),
@@ -60,6 +60,7 @@ defmodule Cloak.SqlQuery.Compiler do
          query = partition_selected_columns(query),
       do: {:ok, query}
   end
+  defp compile_prepped_query(%{command: :show} = query), do: compile_from(query)
   defp compile_prepped_query(query) do
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- expand_star_select(query),
@@ -111,9 +112,8 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp expand_star_select(%{command: :select, columns: :*, from: table_identifier, data_source: data_source} = query) do
-    columns = for {name, _type} <- columns(table_identifier, data_source),
-      do: {:qualified, table_identifier, name}
+  defp expand_star_select(%{columns: :*, from: table_identifier, data_source: data_source} = query) do
+    columns = for {name, _type} <- columns(table_identifier, data_source), do: name
     {:ok, %{query | columns: columns}}
   end
   defp expand_star_select(query), do: {:ok, query}
@@ -156,7 +156,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
 
-  defp compile_columns(%{command: :select, from: table_identifier, data_source: data_source} = query) do
+  defp compile_columns(%{from: table_identifier, data_source: data_source} = query) do
     with table_columns = columns(table_identifier, data_source),
         :ok <- verify_column_names(query, table_columns),
         :ok <- verify_aggregated_columns(query),
