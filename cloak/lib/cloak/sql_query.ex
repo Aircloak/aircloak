@@ -1,5 +1,5 @@
 defmodule Cloak.SqlQuery do
-  @moduledoc "Handles representing and creating SQL queries in structured form."
+  @moduledoc "Handles representing and creating SQL query abstract syntax trees."
 
   @type t :: Compiler.compiled_query
 
@@ -8,14 +8,21 @@ defmodule Cloak.SqlQuery do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Transforms a string into a structured SQL query ready for execution. Raises on error."
+  @doc """
+  Transforms a string into an abstract syntax tree of the analyst provided SQL query.
+  This AST can later be used to generate a query to execute against the data store.
+  Raises on error.
+  """
   @spec make!(atom, String.t) :: t
   def make!(data_source, string) do
     {:ok, query} = make(data_source, string)
     query
   end
 
-  @doc "Transforms a string into a structured SQL query ready for execution."
+  @doc """
+  Transforms a string into an abstract syntax tree of the analyst provided SQL query.
+  This AST can later be used to generate a query to execute against the data store.
+  """
   @spec make(atom, String.t) :: {:ok, t} | {:error, String.t}
   def make(data_source, string) do
     with {:ok, parsed_query} <- Cloak.SqlQuery.Parser.parse(string) do
