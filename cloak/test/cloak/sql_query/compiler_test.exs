@@ -98,6 +98,15 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       compile("SELECT column FROM table WHERE other_table.other_column <> ''", data_source)
   end
 
+  test "allows qualified identifiers in function calls", %{data_source: data_source} do
+    result = compile!("select column, count(distinct table.column) from table GROUP BY column",
+      data_source)
+    assert result[:columns] == [
+      "column",
+      {:function, "count", {:distinct, {:qualified, "table", "column"}}}
+    ]
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result
