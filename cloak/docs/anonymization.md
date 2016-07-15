@@ -137,8 +137,9 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 | 1000 |
 | 1000 |
 
-- We compute the noisy value for Nc: `Nc = 4`.
-- We compute the average of the top Nc remaining users: `TopAverage = (1000 + 1000 + 10 + 10) / 4 = 505`.
-- We compute the noisy value for Nv: `Nv = 3.5`.
+- We compute the noisy value for Nt: `Nt = 3`.
+- We compute the average of the top Nt remaining users: `TopAverage = (1000 + 1000 + 10) / 3 = 670`.
+- We compute the average of the remaining users: `RemainingAverage = (1000 + 1000 + 10 + 10) / 4 = 505`.
+- We compute the noisy value for Nv: `Nv = 0.5`.
 - We compute the sum of all the remaining users: `Sum = 10 + 10 + 1000 + 1000 = 2020`.
-- We compute the final result: `Result = Sum + Nv * TopAverage = 2020 + 3.5 * 505 = 3787,5`.
+- We compute the final result: `Result = Sum + No * TopAverage + Nv * RemainingAverage = 2020 + 3 * 670 + 0.5 * 505 = 4282.5`.
