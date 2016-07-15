@@ -61,16 +61,16 @@ defmodule Cloak.Query.Anonymizer do
 
   Sufficiently large means:
 
-  1. Greater than count_absolute_lower_bound
-  2. A noised version of the count is greater than count_soft_lower_bound
+  1. Greater than low_count_absolute_lower_bound
+  2. A noised version of the count is greater than low_count_soft_lower_bound
 
   See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
   on the user list provided, giving the same answer every time for the given list of users.
   """
   @spec sufficiently_large?(t, non_neg_integer) :: {boolean, t}
   def sufficiently_large?(anonymizer, count) do
-    {noisy_lower_bound, anonymizer} = add_noise(anonymizer, config(:count_soft_lower_bound))
-    noisy_lower_bound = Kernel.max(round(noisy_lower_bound), config(:count_absolute_lower_bound))
+    {noisy_lower_bound, anonymizer} = add_noise(anonymizer, config(:low_count_soft_lower_bound))
+    noisy_lower_bound = Kernel.max(round(noisy_lower_bound), config(:low_count_absolute_lower_bound))
     {count > noisy_lower_bound, anonymizer}
   end
 
@@ -78,7 +78,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec count(t, Enumerable.t) :: non_neg_integer
   def count(anonymizer, rows) do
     {count, _anonymizer} = sum_positives(anonymizer, rows, &Enum.count(&1))
-    count |> round() |> Kernel.max(config(:count_absolute_lower_bound))
+    count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
   end
 
   @doc "Computes the noisy sum of all values in rows, where each row is an enumerable of numbers."

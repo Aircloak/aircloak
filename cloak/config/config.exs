@@ -29,10 +29,10 @@ config :cloak, :air,
 config :cloak, :anonymizer,
   # The mean and standard deviation for the lower bound of the number
   # of users that must be in a bucket to get reported.
-  count_soft_lower_bound: {5, 1},
+  low_count_soft_lower_bound: {5, 1},
 
   # The minimum absolute value of the noisy lower bound.
-  count_absolute_lower_bound: 2,
+  low_count_absolute_lower_bound: 2,
 
   # The fixed and variable numbers of outliers dropped, from the top of the collection,
   # during the anonymized aggregation of values. The outliers are replaced with the noisy
