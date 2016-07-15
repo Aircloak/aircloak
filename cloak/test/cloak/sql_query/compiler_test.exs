@@ -25,13 +25,13 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     result = compile!("select * from table where column > '2015-01-01'", data_source)
 
     time = %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}
-    assert result[:where] == [{:comparison, "column", :>, time}]
+    assert result[:where] == [{:comparison, {:qualified, "table", "column"}, :>, time}]
   end
 
   test "casts timestamp in `in` conditions", %{data_source: data_source} do
     result = compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source)
 
-    assert [{:in, "column", times}] = result[:where]
+    assert [{:in, {:qualified, "table", "column"}, times}] = result[:where]
     assert Enum.sort(times) == [
       %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)},
       %Timex.DateTime{year: 2015, month: 1, day: 2, timezone: Timex.Timezone.get(:utc)},
@@ -42,7 +42,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     result = compile!("select * from table where column <> '2015-01-01'", data_source)
 
     time = %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}
-    assert result[:where_not] == [{:comparison, "column", :=, time}]
+    assert result[:where_not] == [{:comparison, {:qualified, "table", "column"}, :=, time}]
   end
 
   test "reports malformed timestamps", %{data_source: data_source} do
@@ -102,9 +102,29 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     result = compile!("select column, count(distinct table.column) from table GROUP BY column",
       data_source)
     assert result[:columns] == [
-      "column",
+      {:qualified, "table", "column"},
       {:function, "count", {:distinct, {:qualified, "table", "column"}}}
     ]
+  end
+
+  test "qualifies all identifiers", %{data_source: data_source} do
+    result = compile!("""
+        SELECT column, count(column)
+        FROM table
+        WHERE column > '2015-01-01' and column <> '2015-01-02'
+        GROUP BY column
+        ORDER BY count(column) DESC, count(table.column) DESC
+      """,
+      data_source)
+    assert result[:columns] == [
+      {:qualified, "table", "column"},
+      {:function, "count", {:qualified, "table", "column"}}
+    ]
+    assert [{:comparison, {:qualified, "table", "column"}, :>, _}] = result[:where]
+    assert [{:comparison, {:qualified, "table", "column"}, :=, _}] = result[:where_not]
+    assert [{:qualified, "table", "column"}] = result[:unsafe_filter_columns]
+    assert result[:group_by] == [{:qualified, "table", "column"}]
+    assert result[:order_by] == [{1, :desc}, {1, :desc}]
   end
 
   defp compile!(query_string, data_source) do

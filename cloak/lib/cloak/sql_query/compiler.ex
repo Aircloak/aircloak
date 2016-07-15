@@ -68,6 +68,7 @@ defmodule Cloak.SqlQuery.Compiler do
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_order_by(query),
          {:ok, query} <- cast_where_clauses(query),
+         {:ok, query} <- qualify_all_identifiers(query),
          query = partition_selected_columns(query),
          query = partition_where_clauses(query),
       do: {:ok, query}
@@ -238,12 +239,16 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp partition_selected_columns(query), do: query
 
-  defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
-    invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
+  defp compile_order_by(%{columns: columns, order_by: order_by_spec, from: table_identifier} = query) do
+    qualified_columns = Enum.map(columns, &qualify_identifier(&1, table_identifier))
+    invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) ->
+      Enum.member?(qualified_columns, qualify_identifier(column, table_identifier))
+    end)
     case invalid_fields do
       [] ->
         order_list = for {column, direction} <- order_by_spec do
-          index = columns |> Enum.find_index(&(&1 == column))
+          qualified_column = qualify_identifier(column, table_identifier)
+          index = qualified_columns |> Enum.find_index(&(&1 == qualified_column))
           {index, direction}
         end
         {:ok, %{query | order_by: order_list}}
@@ -332,4 +337,52 @@ defmodule Cloak.SqlQuery.Compiler do
       _ -> {:ok, Enum.map(result, fn({:ok, x}) -> x end)}
     end
   end
+
+  defp qualify_all_identifiers(%{from: table_identifier} = query) do
+    columns = Enum.map(query.columns, &(qualify_identifier(&1, table_identifier)))
+    query = %{query | columns: columns}
+    query = case Map.get(query, :group_by, []) do
+      [] -> query
+      columns ->
+        qualified_identifiers = Enum.map(columns, &(qualify_identifier(&1, table_identifier)))
+        %{query | group_by: qualified_identifiers}
+    end
+    query = case Map.get(query, :where, []) do
+      [] -> query
+      clauses ->
+        qualified_clauses = Enum.map(clauses, &(qualify_where_clause(&1, table_identifier)))
+        %{query | where: qualified_clauses}
+    end
+    query = case Map.get(query, :where_not, []) do
+      [] -> query
+      clauses ->
+        qualified_clauses = Enum.map(clauses, &(qualify_where_clause(&1, table_identifier)))
+        %{query | where_not: qualified_clauses}
+    end
+    {:ok, query}
+  end
+
+  defp qualify_identifier({:function, "count", :*} = function, _table_identifier), do: function
+  defp qualify_identifier({:function, function, identifier}, table_identifier) do
+    {:function, function, qualify_identifier(identifier, table_identifier)}
+  end
+  defp qualify_identifier({:distinct, identifier}, table_identifier) do
+    {:distinct, qualify_identifier(identifier, table_identifier)}
+  end
+  defp qualify_identifier({:qualified, _, _} = identifier, _table), do: identifier
+  defp qualify_identifier(identifier, table_identifier) do
+    {:qualified, table_identifier, identifier}
+  end
+
+  defp qualify_where_clause({:comparison, identifier, comparator, any}, table_identifier) do
+    {:comparison, qualify_identifier(identifier, table_identifier), comparator, any}
+  end
+  defp qualify_where_clause({:not, subclause}, table_identifier) do
+    {:not, qualify_where_clause(subclause, table_identifier)}
+  end
+  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
+    defp qualify_where_clause({unquote(keyword), identifier, any}, table_identifier) do
+      {unquote(keyword), qualify_identifier(identifier, table_identifier), any}
+    end
+  end)
 end
