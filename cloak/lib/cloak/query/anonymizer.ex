@@ -198,8 +198,8 @@ defmodule Cloak.Query.Anonymizer do
 
   # Computes the noisy sum of a collection of positive numbers.
   defp sum_positives(anonymizer, rows, row_accumulator) do
-    {var_outliers_count, anonymizer} = add_noise(anonymizer, config(:var_outliers_count))
-    outliers_count = config(:fixed_outliers_count) + Kernel.max(round(var_outliers_count), 0)
+    {outliers_count, anonymizer} = add_noise(anonymizer, config(:outliers_count))
+    outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
     {noisy_top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
     noisy_top_count = round(noisy_top_count)
 
@@ -250,8 +250,8 @@ defmodule Cloak.Query.Anonymizer do
   # Given a list of rows and a row accumulator functor, this method will drop the biggest outliers and
   # will return the average value of the top remaining rows, if enough rows are available.
   defp get_max(anonymizer, rows, row_accumulator) do
-    {var_outliers_count, anonymizer} = add_noise(anonymizer, config(:var_outliers_count))
-    outliers_count = config(:fixed_outliers_count) + Kernel.max(round(var_outliers_count), 0)
+    {outliers_count, anonymizer} = add_noise(anonymizer, config(:outliers_count))
+    outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
     {noisy_top_count, _anonymizer} = add_noise(anonymizer, config(:top_count))
     noisy_top_count = round(noisy_top_count)
 
