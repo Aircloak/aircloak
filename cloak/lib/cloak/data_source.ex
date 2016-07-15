@@ -215,8 +215,8 @@ defmodule Cloak.DataSource do
 
   defp set_salt() do
     salt = case Cloak.DeployConfig.fetch!("salt") do
-      nil -> "default salt"
-      value -> value
+      :error -> "default salt"
+      {:ok, value} -> value
     end
     existing_env = Application.get_env(:cloak, :anonymizer)
     new_env = Keyword.put(existing_env, :salt, salt)
