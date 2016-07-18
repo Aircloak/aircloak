@@ -74,5 +74,7 @@ defmodule Cloak.SqlQuery do
   def column_name({:function, "count", :*}), do: count_all_column()
   def column_name({:function, _function, identifier}), do: column_name(identifier)
   def column_name({:distinct, identifier}), do: column_name(identifier)
+  def column_name({:qualified, table, identifier}), do: "#{table}.#{identifier}"
+  def column_name(:*), do: :*
   def column_name(column) when is_binary(column), do: column
 end

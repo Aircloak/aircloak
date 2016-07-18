@@ -42,7 +42,7 @@ defmodule Cloak.SqlQuery.Builder do
     if column_name == Cloak.SqlQuery.count_all_column() do
       "NULL AS #{column_name}"
     else
-      column_name
+      "#{column_name} AS \"#{column_name}\""
     end
   end
 
@@ -103,6 +103,7 @@ defmodule Cloak.SqlQuery.Builder do
     end
   end)
 
+  defp to_fragment({:qualified, table, identifier}), do: "#{table}.#{to_fragment(identifier)}"
   defp to_fragment(string) when is_binary(string), do: string
   defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
   defp to_fragment(%Token{category: :constant, value: value}), do: {:param, value.value}

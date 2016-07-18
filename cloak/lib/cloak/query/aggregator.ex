@@ -68,7 +68,8 @@ defmodule Cloak.Query.Aggregator do
   end
 
   defp grouping_property(row, columns, query) do
-    Enum.map(query.property, &DataSource.fetch_value!(row, columns, &1))
+    query_properties = Enum.map(query.property, &SqlQuery.column_name/1)
+    Enum.map(query_properties, &DataSource.fetch_value!(row, columns, &1))
   end
 
   defp user_id([user_id | _rest]), do: user_id
@@ -147,6 +148,7 @@ defmodule Cloak.Query.Aggregator do
   defp preprocess_for_aggregation(values, _column), do: values
 
   defp extract_values(rows, columns, column) do
+    column = SqlQuery.column_name(column)
     rows
     |> Enum.map(fn(user_rows) ->
       user_rows
