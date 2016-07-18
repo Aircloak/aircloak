@@ -147,8 +147,8 @@ defmodule Cloak.DataSource do
     driver = data_source.driver
     table_id = String.to_existing_atom(table_identifier)
     table = data_source[:tables][table_id]
-    user_id = Map.fetch!(table, :user_id)
     table_name = Map.fetch!(table, :name)
+    user_id = {:qualified, table_name, Map.fetch!(table, :user_id)}
     # insert the user_id column into the fields list, translate the table name and execute the `select` query
     full_query = %{select_query | columns: [user_id | fields], from: table_name}
     driver.select(data_source.id, full_query)

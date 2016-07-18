@@ -30,7 +30,7 @@ defmodule Cloak.DataSourceTest do
 
     assert(data == {
       3,
-      ["user_id", "test.value"],
+      ["cloak_test.test.user_id", "test.value"],
       [["user-id", 10], ["user-id", 20], ["user-id", 30]]
     })
   end

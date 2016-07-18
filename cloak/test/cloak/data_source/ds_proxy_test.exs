@@ -30,11 +30,11 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "parsed select count(foo)", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["bar.foo"], "statement" => statement} = payload
+        assert %{"columns" => ["bar.user_id", "bar.foo"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT user_id AS \"user_id\",bar.foo AS \"bar.foo\" FROM bar "} == statement
+          "SELECT bar.user_id AS \"bar.user_id\",bar.foo AS \"bar.foo\" FROM bar "} == statement
 
-        {200, %{success: true, columns: ["user_id", "bar.foo"], rows: Enum.map(1..100, &[&1, &1])}}
+        {200, %{success: true, columns: ["bar.user_id", "bar.foo"], rows: Enum.map(1..100, &[&1, &1])}}
       end
     )
 
@@ -47,11 +47,11 @@ defmodule Cloak.DataSource.DsProxyTest do
       fn(payload) ->
         count_all_column = Cloak.SqlQuery.count_all_column()
 
-        assert %{"columns" => [^count_all_column], "statement" => statement} = payload
+        assert %{"columns" => ["bar.user_id", ^count_all_column], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" => query_string} = statement
-        assert "SELECT user_id AS \"user_id\",NULL AS #{count_all_column} FROM bar " == query_string
+        assert "SELECT bar.user_id AS \"bar.user_id\",NULL AS #{count_all_column} FROM bar " == query_string
 
-        {200, %{success: true, columns: ["user_id", count_all_column], rows: Enum.map(1..100, &[&1, &1])}}
+        {200, %{success: true, columns: ["bar.user_id", count_all_column], rows: Enum.map(1..100, &[&1, &1])}}
       end
     )
 
@@ -62,11 +62,12 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "parsed column deduplication", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["bar.foo", "bar.baz"], "statement" => statement} = payload
+        assert %{"columns" => ["bar.user_id", "bar.foo", "bar.baz"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT user_id AS \"user_id\",bar.foo AS \"bar.foo\",bar.baz AS \"bar.baz\" FROM bar "} == statement
+          "SELECT bar.user_id AS \"bar.user_id\",bar.foo AS \"bar.foo\",bar.baz AS \"bar.baz\" FROM bar "} == statement
 
-        {200, %{success: true, columns: ["user_id", "bar.foo", "bar.baz"], rows: Enum.map(1..100, &[&1, 1, 2])}}
+        {200, %{success: true, columns: ["bar.user_id", "bar.foo", "bar.baz"],
+          rows: Enum.map(1..100, &[&1, 1, 2])}}
       end
     )
 
@@ -79,9 +80,9 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "deduplication of aggregate columns", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["bar.foo"], "statement" => statement} = payload
+        assert %{"columns" => ["bar.user_id", "bar.foo"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT user_id AS \"user_id\",bar.foo AS \"bar.foo\" FROM bar "} == statement
+          "SELECT bar.user_id AS \"bar.user_id\",bar.foo AS \"bar.foo\" FROM bar "} == statement
 
         rows = Enum.map(1..49, &[&1, 0]) ++ Enum.map(50..100, &[&1, 10])
         {200, %{success: true, columns: ["user_id", "bar.foo"], rows: rows}}
@@ -97,9 +98,9 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "dsproxy returns empty set", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["bar.foo"], "statement" => statement} = payload
+        assert %{"columns" => ["bar.user_id", "bar.foo"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT user_id AS \"user_id\",bar.foo AS \"bar.foo\" FROM bar "} == statement
+          "SELECT bar.user_id AS \"bar.user_id\",bar.foo AS \"bar.foo\" FROM bar "} == statement
 
         {200, %{success: true, columns: ["user_id", "bar.foo"], rows: [[]]}}
       end
@@ -187,6 +188,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert "application/json" == headers["content-type"]
 
         {:ok, body, conn} = Plug.Conn.read_body(conn)
+
         {status, response} = callback.(Poison.decode!(body))
         Plug.Conn.resp(conn, status, Poison.encode!(response))
       end
