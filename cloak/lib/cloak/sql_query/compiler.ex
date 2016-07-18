@@ -187,7 +187,7 @@ defmodule Cloak.SqlQuery.Compiler do
       [invalid_column | _rest] ->
         {
           :error,
-          "Column `#{Cloak.SqlQuery.column_name(invalid_column)}` needs to appear in the " <>
+          "Column `#{Cloak.SqlQuery.full_column_name(invalid_column)}` needs to appear in the " <>
             "`group by` clause or be used in an aggregate function."
         }
     end

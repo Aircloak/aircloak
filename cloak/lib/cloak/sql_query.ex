@@ -55,7 +55,7 @@ defmodule Cloak.SqlQuery do
   @spec db_columns(t) :: [String.t]
   def db_columns(query) do
     (query.columns ++ Map.get(query, :group_by, []) ++ query.unsafe_filter_columns)
-    |> Enum.map(&column_name/1)
+    |> Enum.map(&full_column_name/1)
     |> Enum.uniq()
   end
 
@@ -70,11 +70,11 @@ defmodule Cloak.SqlQuery do
   def count_all_column(), do: "ac_count_all_placeholder"
 
   @doc "Converts a column identifier into a printable name"
-  @spec column_name(Cloak.SqlQuery.Parser.column) :: String.t
-  def column_name({:function, "count", :*}), do: count_all_column()
-  def column_name({:function, _function, identifier}), do: column_name(identifier)
-  def column_name({:distinct, identifier}), do: column_name(identifier)
-  def column_name({:qualified, table, identifier}), do: "#{table}.#{identifier}"
-  def column_name(:*), do: :*
-  def column_name(column) when is_binary(column), do: column
+  @spec full_column_name(Cloak.SqlQuery.Parser.column) :: String.t
+  def full_column_name({:function, "count", :*}), do: count_all_column()
+  def full_column_name({:function, _function, identifier}), do: full_column_name(identifier)
+  def full_column_name({:distinct, identifier}), do: full_column_name(identifier)
+  def full_column_name({:qualified, table, identifier}), do: "#{table}.#{identifier}"
+  def full_column_name(:*), do: :*
+  def full_column_name(column) when is_binary(column), do: column
 end
