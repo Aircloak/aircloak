@@ -8,7 +8,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     {:ok, %{
       data_source: %{tables: %{
         table: %{
-          columns: [{"column", :timestamp}]
+          columns: [{"column", :timestamp}, {"numeric", :integer}]
         },
         other_table: %{
           columns: [{"other_column", :timestamp}]
@@ -52,7 +52,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
   for function <- ~w(avg min max sum stddev median) do
     test "rejecting #{function} on non-numerical columns", %{data_source: data_source} do
-      assert {:error, "Aggregation function used over non-numeric column `column`."} =
+      assert {:error, "Aggregation function used over non-numeric column `column` from table `table`."} =
         compile("select #{unquote(function)}(column) from table", data_source)
     end
   end
@@ -69,12 +69,12 @@ defmodule Cloak.SqlQuery.Compiler.Test do
   end
 
   test "rejecting missing column", %{data_source: data_source} do
-    assert {:error, "Column `a` doesn't exist."} =
+    assert {:error, "Column `a` doesn't exist in table `table`."} =
       compile("SELECT a FROM table", data_source)
   end
 
   test "rejecting missing qualified column", %{data_source: data_source} do
-    assert {:error, "Column `table.a` doesn't exist."} =
+    assert {:error, "Column `a` doesn't exist in table `table`."} =
       compile("SELECT table.a FROM table", data_source)
   end
 
@@ -98,14 +98,15 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       compile("SELECT column FROM table WHERE other_table.other_column <> ''", data_source)
   end
 
-  test "allows qualified identifiers in function calls", %{data_source: data_source} do
-    result = compile!("select column, count(distinct table.column) from table GROUP BY column",
-      data_source)
-    assert result[:columns] == [
-      {:qualified, "table", "column"},
-      {:function, "count", {:distinct, {:qualified, "table", "column"}}}
-    ]
-  end
+  Enum.each(["count", "min", "max", "median", "stddev"], fn(function) ->
+    test "allows qualified identifiers in function calls (function #{function})", %{data_source: data_source} do
+      result = compile!("select #{unquote(function)}(table.numeric) from table",
+        data_source)
+      assert result[:columns] == [
+        {:function, unquote(function), {:qualified, "table", "numeric"}}
+      ]
+    end
+  end)
 
   test "qualifies all identifiers", %{data_source: data_source} do
     result = compile!("""

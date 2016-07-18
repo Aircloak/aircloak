@@ -64,11 +64,11 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_prepped_query(query) do
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- expand_star_select(query),
+         {:ok, query} <- qualify_all_identifiers(query),
          :ok <- validate_all_requested_tables_are_selected(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_order_by(query),
          {:ok, query} <- cast_where_clauses(query),
-         {:ok, query} <- qualify_all_identifiers(query),
          query = partition_selected_columns(query),
          query = partition_where_clauses(query),
       do: {:ok, query}
@@ -124,10 +124,8 @@ defmodule Cloak.SqlQuery.Compiler do
       Map.get(query, :where, []) ++ Map.get(query, :order_by, [])
     referenced_tables = all_identifiers
     |> Enum.map(&extract_identifier/1)
-    |> Enum.map(fn
-      ({:qualified, table, _}) -> table
-      (_) -> table_identifier
-    end)
+    |> Enum.reject(&(&1 == :*))
+    |> Enum.map(fn({:qualified, table, _}) -> table end)
     |> Enum.dedup()
     case referenced_tables -- [table_identifier] do
       [] -> :ok
@@ -176,18 +174,18 @@ defmodule Cloak.SqlQuery.Compiler do
       &(Enum.member?(table_columns, {&1, :integer}) or Enum.member?(table_columns, {&1, :real})))
     case invalid_columns do
       [] -> :ok
-      [invalid_column | _rest] ->
-        {:error, ~s/Aggregation function used over non-numeric column `#{invalid_column}`./}
+      [{:qualified, table, invalid_column} | _rest] ->
+        {:error, ~s/Aggregation function used over non-numeric column `#{invalid_column}` from table `#{table}`./}
     end
   end
 
   defp verify_aggregated_columns(query) do
     case invalid_not_aggregated_columns(query) do
       [] -> :ok
-      [invalid_column | _rest] ->
+      [{:qualified, table, invalid_column} | _rest] ->
         {
           :error,
-          "Column `#{Cloak.SqlQuery.full_column_name(invalid_column)}` needs to appear in the " <>
+          "Column `#{invalid_column}` from table `#{table}` needs to appear in the " <>
             "`group by` clause or be used in an aggregate function."
         }
     end
@@ -203,14 +201,13 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp verify_column_names(%{from: table_identifier} = query, table_columns) do
-    valid_names = [:*] ++ (for {name, _type} <- table_columns, do: name) ++
-      (for {name, _type} <- table_columns, do: {:qualified, table_identifier, name})
+  defp verify_column_names(query, table_columns) do
+    valid_names = [:* | (for {name, _type} <- table_columns, do: name)]
     invalid_columns = Enum.reject(all_columns(query), &Enum.member?(valid_names, &1))
     case invalid_columns do
       [] -> :ok
-      [invalid_column | _rest] ->
-        {:error, ~s/Column `#{column_title(invalid_column)}` doesn't exist./}
+      [{:qualified, table, invalid_column} | _rest] ->
+        {:error, ~s/Column `#{invalid_column}` doesn't exist in table `#{table}`./}
     end
   end
 
@@ -252,8 +249,8 @@ defmodule Cloak.SqlQuery.Compiler do
           {index, direction}
         end
         {:ok, %{query | order_by: order_list}}
-      [{invalid_field, _direction} | _rest] ->
-        {:error, ~s/Non-selected field `#{column_title(invalid_field)}` specified in `order by` clause./}
+      [{{:qualified, table, field}, _direction} | _rest] ->
+        {:error, ~s/Non-selected field `#{field}` from table `#{table}` specified in `order by` clause./}
     end
   end
   defp compile_order_by(query), do: {:ok, query}
@@ -358,6 +355,14 @@ defmodule Cloak.SqlQuery.Compiler do
       clauses ->
         qualified_clauses = Enum.map(clauses, &(qualify_where_clause(&1, table_identifier)))
         %{query | where_not: qualified_clauses}
+    end
+    query = case Map.get(query, :order_by, []) do
+      [] -> query
+      clauses ->
+        qualified_order_clauses = Enum.map(clauses, fn({identifier, direction}) ->
+          {qualify_identifier(identifier, table_identifier), direction}
+        end)
+        %{query | order_by: qualified_order_clauses}
     end
     {:ok, query}
   end

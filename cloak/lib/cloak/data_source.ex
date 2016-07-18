@@ -129,7 +129,9 @@ defmodule Cloak.DataSource do
   @doc "Returns the list of columns for a specific table."
   @spec columns(t, atom) :: [{String.t, data_type}]
   def columns(data_source, table_id) do
-    Map.fetch!(data_source.tables, table_id).columns
+    for {name, type} <- Map.fetch!(data_source.tables, table_id).columns do
+      {{:qualified, Atom.to_string(table_id), name}, type}
+    end
   end
 
   @doc """

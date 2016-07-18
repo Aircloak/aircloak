@@ -6,7 +6,7 @@ defmodule Cloak.QueryTest do
   defmacrop assert_query(query, expected_response) do
     quote do
       :ok = start_query(unquote(query))
-      assert_receive {:reply, unquote(expected_response)}
+      assert_receive {:reply, unquote(expected_response)}, 1000
     end
   end
 
@@ -135,6 +135,32 @@ defmodule Cloak.QueryTest do
     assert_in_delta(stddev, 8.1, 0.1)
 
     assert_query "select median(height) from heights",
+      %{columns: ["median"], rows: [%{row: [179], occurrences: 1}]}
+  end
+
+  test "should be able to aggregate qualified columns values" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
+    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+
+    assert_query "select sum(heights.height) from heights",
+      %{columns: ["sum"], rows: [%{row: [5400], occurrences: 1}]}
+
+    assert_query "select min(heights.height) from heights",
+      %{columns: ["min"], rows: [%{row: [170], occurrences: 1}]}
+
+    assert_query "select max(heights.height) from heights",
+      %{columns: ["max"], rows: [%{row: [190], occurrences: 1}]}
+
+    assert_query "select avg(heights.height) from heights",
+      %{columns: ["avg"], rows: [%{row: [180.0], occurrences: 1}]}
+
+    assert_query "select stddev(heights.height) from heights",
+      %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
+    assert_in_delta(stddev, 8.1, 0.1)
+
+    assert_query "select median(heights.height) from heights",
       %{columns: ["median"], rows: [%{row: [179], occurrences: 1}]}
   end
 
@@ -347,7 +373,7 @@ defmodule Cloak.QueryTest do
 
   test "query reports an error on invalid column" do
     assert_query "select invalid_column from heights", %{error: error}
-    assert ~s/Column `invalid_column` doesn't exist./ == error
+    assert ~s/Column `invalid_column` doesn't exist in table `heights`./ == error
   end
 
   test "query reports an error on invalid table" do
@@ -357,17 +383,17 @@ defmodule Cloak.QueryTest do
 
   test "query reports an error when mixing aggregated and normal columns" do
     assert_query "select count(*), height from heights", %{error: error}
-    assert error =~ ~r/`height` needs to appear in the `group by` clause/
+    assert error =~ ~r/`height` from table `heights` needs to appear in the `group by` clause/
   end
 
   test "query reports an error when grouping by nonexistent columns" do
     assert_query "select count(*) from heights group by nothing", %{error: error}
-    assert error =~ ~r/Column `nothing` doesn't exist./
+    assert error =~ ~r/Column `nothing` doesn't exist in table `heights`./
   end
 
   test "query reports an error when not grouping by some selected columns" do
     assert_query "select name, height from heights group by height", %{error: error}
-    assert error =~ ~r/`name` needs to appear in the `group by` clause/
+    assert error =~ ~r/`name` from table `heights` needs to appear in the `group by` clause/
   end
 
   test "query allows mixing aggregated and grouped columns" do
@@ -429,12 +455,12 @@ defmodule Cloak.QueryTest do
 
   test "query reports an error on invalid where clause identifier" do
     assert_query "select height from heights where nonexistant > 10", %{error: error}
-    assert ~s/Column `nonexistant` doesn't exist./ == error
+    assert ~s/Column `nonexistant` doesn't exist in table `heights`./ == error
   end
 
   test "query reports an error on invalid order by field" do
     assert_query "select height from heights order by age", %{error: error}
-    assert ~s/Non-selected field `age` specified in `order by` clause./ == error
+    assert ~s/Non-selected field `age` from table `heights` specified in `order by` clause./ == error
   end
 
   test "query reports an error on unknown function" do
