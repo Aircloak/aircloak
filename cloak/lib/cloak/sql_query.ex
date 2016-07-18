@@ -33,7 +33,7 @@ defmodule Cloak.SqlQuery do
   @doc "Returns a list of column titles for the query."
   @spec column_titles(t) :: [String.t]
   def column_titles(%{columns: columns}) do
-    Enum.map(columns, &Cloak.SqlQuery.Compiler.column_title/1)
+    Enum.map(columns, &shallow_column_name/1)
   end
 
   @doc "Returns the list of unique columns used in the aggregation process."
@@ -77,4 +77,14 @@ defmodule Cloak.SqlQuery do
   def full_column_name({:qualified, table, identifier}), do: "#{table}.#{identifier}"
   def full_column_name(:*), do: :*
   def full_column_name(column) when is_binary(column), do: column
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  def shallow_column_name({:function, function, _}), do: function
+  def shallow_column_name({:distinct, identifier}), do: shallow_column_name(identifier)
+  def shallow_column_name({:qualified, _table, identifier}), do: identifier
+  def shallow_column_name(column) when is_binary(column), do: column
 end
