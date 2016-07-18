@@ -159,7 +159,6 @@ defmodule Cloak.Query.Aggregator do
   end
 
   defp value(_row, _columns, :*), do: :*
-  defp value(row, columns, {:distinct, column}), do: value(row, columns, column)
   defp value(row, columns, column), do: DataSource.fetch_value!(row, columns, column)
 
   defp aggregate_by(aggregation_data, "count", anonymizer), do: Anonymizer.count(anonymizer, aggregation_data)

@@ -117,7 +117,8 @@ defmodule Cloak.SqlQuery.Compiler do
     columns = for {name, _type} <- columns(table_identifier, data_source), do: name
     {:ok, %{query | columns: columns}}
   end
-  defp expand_star_select(query), do: {:ok, query}
+  defp expand_star_select(%{command: :select} = query), do: {:ok, query}
+  defp expand_star_select(_), do: {:error, "ERROR: Unexpected query"}
 
   defp validate_all_requested_tables_are_selected(%{from: table_identifier} = query) do
     all_identifiers = query.columns ++ Map.get(query, :group_by, []) ++
@@ -366,6 +367,7 @@ defmodule Cloak.SqlQuery.Compiler do
     end
     {:ok, query}
   end
+  defp qualify_all_identifiers(_), do: {:error, "ERROR: Unexpected query"}
 
   defp qualify_identifier({:function, "count", :*} = function, _table_identifier), do: function
   defp qualify_identifier({:function, function, identifier}, table_identifier) do
