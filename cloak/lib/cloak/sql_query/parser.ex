@@ -172,12 +172,16 @@ defmodule Cloak.SqlQuery.Parser do
   defp from_expression() do
     switch([
       {keyword(:"(") |> map(fn(_) -> :subquery end), subquery()},
-      {:else, either(table_with_schema(), identifier()) |> label("table name")}
+      {:else, table_selection()}
     ])
     |> map(fn
           {[:subquery], [[from, to]]} -> {:subquery, from, to}
           other -> other
         end)
+  end
+
+  defp table_selection() do
+    either(table_with_schema(), identifier()) |> label("table name")
   end
 
   defp subquery() do
