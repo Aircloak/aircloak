@@ -9,6 +9,7 @@ defmodule Cloak.SqlQuery.Compiler do
     data_source: DataSource.t,
     command: :select | :show,
     columns: [Parser.column],
+    column_titles: [String.t],
     property: [String.t],
     aggregators: [{String.t, String.t}],
     implicit_count: true,
@@ -29,9 +30,11 @@ defmodule Cloak.SqlQuery.Compiler do
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
-    defaults = %{data_source: data_source, where_not: [], unsafe_filter_columns: [], group_by: []}
+    defaults = %{data_source: data_source, where_not: [],
+      unsafe_filter_columns: [], group_by: [], order_by: [], column_titles: []}
     query = Map.merge(defaults, query)
     with {:ok, query} <- compile_from(query),
+         {:ok, query} <- compile_aliases(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_order_by(query),
          {:ok, query} <- cast_where_clauses(query),
@@ -39,12 +42,6 @@ defmodule Cloak.SqlQuery.Compiler do
          query = partition_where_clauses(query),
       do: {:ok, query}
   end
-
-  @doc "Returns a string title for the given column specification."
-  @spec column_title(Parser.column) :: String.t
-  def column_title({:function, function, identifier}), do: "#{function}(#{column_title(identifier)})"
-  def column_title({:distinct, identifier}), do: "distinct #{identifier}"
-  def column_title(column), do: column
 
 
   # -------------------------------------------------------------------
@@ -65,6 +62,32 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
   defp compile_from(query), do: {:ok, query}
+
+  defp compile_aliases(%{command: :select, columns: [_|_] = columns} = query) do
+    column_titles = Enum.map(columns, fn
+      ({_column, :as, name}) -> name
+      (column) -> column_title(column)
+    end)
+    with :ok <- verify_aliases(columns) do
+      aliases = (for {column, :as, name} <- columns, do: {name, column}) |> Enum.into(%{})
+      columns = Enum.map(columns, fn
+        ({column, :as, _name}) -> column
+        (column) -> column
+      end)
+      order_by = for {column, direction} <- query.order_by, do: {Map.get(aliases, column, column), direction}
+      group_by = for column <- query.group_by, do: Map.get(aliases, column, column)
+      {:ok, %{query | column_titles: column_titles, columns: columns, group_by: group_by, order_by: order_by}}
+    end
+  end
+  defp compile_aliases(query), do: {:ok, query}
+
+  defp verify_aliases(columns) do
+    names = for {_column, :as, name} <- columns, do: name
+    case names -- Enum.uniq(names) do
+      [] -> :ok
+      [name | _rest] -> {:error, "Column alias `#{name}` is used multiples times."}
+    end
+  end
 
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
     Enum.reject(query.columns, &(aggregate_function?(&1) || Enum.member?(query.group_by, &1)))
@@ -94,7 +117,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_columns(%{command: :select, columns: :*, from: table_identifier, data_source: data_source} = query) do
     columns = for {name, _type} <- columns(table_identifier, data_source), do: name
-    compile_columns(%{query | columns: columns})
+    compile_columns(%{query | columns: columns, column_titles: columns})
   end
   defp compile_columns(%{command: :select, from: table_identifier, data_source: data_source} = query) do
     with table_columns = columns(table_identifier, data_source),
@@ -274,4 +297,8 @@ defmodule Cloak.SqlQuery.Compiler do
       _ -> {:ok, Enum.map(result, fn({:ok, x}) -> x end)}
     end
   end
+
+  def column_title({:function, function, identifier}), do: "#{function}(#{column_title(identifier)})"
+  def column_title({:distinct, identifier}), do: "distinct #{identifier}"
+  def column_title(column), do: column
 end
