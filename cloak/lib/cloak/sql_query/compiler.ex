@@ -89,11 +89,11 @@ defmodule Cloak.SqlQuery.Compiler do
     aliases = for {_column, :as, name} <- query.columns, do: name
     column_names = for {name, _type} <- columns(query.from, query.data_source), do: name
     existing_names = aliases ++ column_names
-    used_names = (for {name, _direction} <- query.order_by, do: name) ++ query.group_by
-    ambigous_names = for name <- used_names, Enum.count(existing_names, &name == &1) > 1, do: name
-    case ambigous_names do
+    referenced_names = (for {name, _direction} <- query.order_by, do: name) ++ query.group_by
+    ambiguous_names = for name <- referenced_names, Enum.count(existing_names, &name == &1) > 1, do: name
+    case ambiguous_names do
       [] -> :ok
-      [name | _rest] -> {:error, "Usage of `#{name}` is ambigous."}
+      [name | _rest] -> {:error, "Usage of `#{name}` is ambiguous."}
     end
   end
 

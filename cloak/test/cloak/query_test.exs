@@ -446,9 +446,9 @@ defmodule Cloak.QueryTest do
 
   test "reports an error on ambigous usage of an identifier" do
     assert_query "select count(*) as x, count(height) as x from heights order by x", %{error: error}
-    assert ~s/Usage of `x` is ambigous./ == error
+    assert ~s/Usage of `x` is ambiguous./ == error
     assert_query "select count(*) as height from heights order by height", %{error: error}
-    assert ~s/Usage of `height` is ambigous./ == error
+    assert ~s/Usage of `height` is ambiguous./ == error
   end
 
   test "query reports an error on runner crash" do
