@@ -70,12 +70,12 @@ defmodule Cloak.SqlQuery do
   def count_all_column(), do: "ac_count_all_placeholder"
 
   @doc "Converts a column identifier into a printable name"
-  # @spec full_column_name(Cloak.SqlQuery.Parser.column) :: String.t
+  @spec full_column_name(Cloak.SqlQuery.Parser.column) :: String.t | :*
   def full_column_name({:function, "count", :*}), do: count_all_column()
   def full_column_name({:function, _function, identifier}), do: full_column_name(identifier)
   def full_column_name({:distinct, identifier}), do: full_column_name(identifier)
   def full_column_name({:qualified, table, identifier}), do: "#{table}.#{identifier}"
-  def full_column_name(:*), do: :*
+  def full_column_name(:*), do: "*"
   def full_column_name(column) when is_binary(column), do: column
 
 

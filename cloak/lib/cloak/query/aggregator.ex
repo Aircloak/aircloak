@@ -158,7 +158,7 @@ defmodule Cloak.Query.Aggregator do
     |> Enum.reject(&Enum.empty?/1)
   end
 
-  defp value(_row, _columns, :*), do: :*
+  defp value(_row, _columns, "*"), do: "*"
   defp value(row, columns, column), do: DataSource.fetch_value!(row, columns, column)
 
   defp aggregate_by(aggregation_data, "count", anonymizer), do: Anonymizer.count(anonymizer, aggregation_data)
