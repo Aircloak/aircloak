@@ -21,6 +21,10 @@ defmodule Cloak.SqlQuery.Compiler do
     show: :tables | :columns
   }
 
+  defmodule AmbiguousIdentifier do
+    defexception message: "Ambiguous identifier"
+  end
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -64,8 +68,8 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_prepped_query(query) do
     with {:ok, query} <- compile_from(query),
          {:ok, query} <- expand_star_select(query),
-         {:ok, query} <- qualify_all_identifiers(query),
          :ok <- validate_all_requested_tables_are_selected(query),
+         {:ok, query} <- qualify_all_identifiers(query),
          {:ok, query} <- compile_columns(query),
          {:ok, query} <- compile_order_by(query),
          {:ok, query} <- cast_where_clauses(query),
@@ -94,14 +98,18 @@ defmodule Cloak.SqlQuery.Compiler do
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
-  defp compile_from(%{from: table_identifier, data_source: data_source} = query) do
-    tables = DataSource.tables(data_source)
-    case Enum.find_index(tables, &(Atom.to_string(&1) === table_identifier)) do
-      nil -> {:error, ~s/Table `#{table_identifier}` doesn't exist./}
-      _ -> {:ok, query}
+  defp compile_from(%{from: from_clause, data_source: data_source} = query) do
+    tables = Enum.map(DataSource.tables(data_source), &Atom.to_string/1)
+    selected_tables = from_clause_to_tables(from_clause)
+    case selected_tables -- tables do
+      [] -> {:ok, query}
+      [table | _] -> {:error, ~s/Table `#{table}` doesn't exist./}
     end
   end
   defp compile_from(query), do: {:ok, query}
+
+  defp from_clause_to_tables({:cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
+  defp from_clause_to_tables(table), do: [table]
 
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
     Enum.reject(query.columns, &(aggregate_function?(&1) || Enum.member?(query.group_by, &1)))
@@ -113,22 +121,26 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp expand_star_select(%{columns: :*, from: table_identifier, data_source: data_source} = query) do
-    columns = for {name, _type} <- columns(table_identifier, data_source), do: name
+  defp expand_star_select(%{columns: :*} = query) do
+    columns = for {column, _type} <- all_available_columns(query), do: column
     {:ok, %{query | columns: columns}}
   end
   defp expand_star_select(%{command: :select} = query), do: {:ok, query}
   defp expand_star_select(_), do: {:error, "ERROR: Unexpected query"}
 
-  defp validate_all_requested_tables_are_selected(%{from: table_identifier} = query) do
+  defp validate_all_requested_tables_are_selected(%{from: from_clause} = query) do
     all_identifiers = query.columns ++ Map.get(query, :group_by, []) ++
       Map.get(query, :where, []) ++ Map.get(query, :order_by, [])
     referenced_tables = all_identifiers
     |> Enum.map(&extract_identifier/1)
     |> Enum.reject(&(&1 == :*))
-    |> Enum.map(fn({:qualified, table, _}) -> table end)
+    |> Enum.map(fn
+      ({:qualified, table, _}) -> table
+      (_) -> :drop
+    end)
+    |> Enum.reject(&(&1 == :drop))
     |> Enum.dedup()
-    case referenced_tables -- [table_identifier] do
+    case referenced_tables -- from_clause_to_tables(from_clause) do
       [] -> :ok
       [table | _] -> {:error, ~s/Missing FROM clause entry for table `#{table}`/}
     end
@@ -158,21 +170,19 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
 
-  defp compile_columns(%{from: table_identifier, data_source: data_source} = query) do
-    with table_columns = columns(table_identifier, data_source),
-        :ok <- verify_column_names(query, table_columns),
-        :ok <- verify_aggregated_columns(query),
-        :ok <- verify_functions(query),
-        :ok <- verify_function_parameters(query, table_columns),
+  defp compile_columns(query) do
+    available_columns = all_available_columns(query)
+    with :ok <- verify_aggregated_columns(query),
+         :ok <- verify_functions(query),
+         :ok <- verify_function_parameters(query, available_columns),
       do: {:ok, query}
   end
-  defp compile_columns(query), do: {:ok, query}
 
-  defp verify_function_parameters(query, table_columns) do
+  defp verify_function_parameters(query, available_columns) do
     aggregated_columns = for {:function, _, _} = column <- query.columns,
       numeric_aggregate_function?(column), do: select_clause_to_identifier(column)
     invalid_columns = Enum.reject(aggregated_columns,
-      &(Enum.member?(table_columns, {&1, :integer}) or Enum.member?(table_columns, {&1, :real})))
+      &(Enum.member?(available_columns, {&1, :integer}) or Enum.member?(available_columns, {&1, :real})))
     case invalid_columns do
       [] -> :ok
       [{:qualified, table, invalid_column} | _rest] ->
@@ -202,20 +212,8 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp verify_column_names(query, table_columns) do
-    valid_names = [:* | (for {name, _type} <- table_columns, do: name)]
-    invalid_columns = Enum.reject(all_columns(query), &Enum.member?(valid_names, &1))
-    case invalid_columns do
-      [] -> :ok
-      [{:qualified, table, invalid_column} | _rest] ->
-        {:error, ~s/Column `#{invalid_column}` doesn't exist in table `#{table}`./}
-    end
-  end
-
-  defp all_columns(query) do
-    select_columns = for column <- query.columns, do: select_clause_to_identifier(column)
-    where_columns = for column <- Map.get(query, :where, []), do: where_clause_to_identifier(column)
-    select_columns ++ where_columns ++ query.group_by
+  defp all_available_columns(%{from: from_clause, data_source: data_source}) do
+    Enum.flat_map(from_clause_to_tables(from_clause), &(columns(&1, data_source)))
   end
 
   defp select_clause_to_identifier({:function, _function, identifier}),
@@ -237,15 +235,16 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp partition_selected_columns(query), do: query
 
-  defp compile_order_by(%{columns: columns, order_by: order_by_spec, from: table_identifier} = query) do
-    qualified_columns = Enum.map(columns, &qualify_identifier(&1, table_identifier))
+  defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
+    column_table_map = construct_column_table_map(query)
+    qualified_columns = Enum.map(columns, &qualify_identifier(&1, column_table_map))
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) ->
-      Enum.member?(qualified_columns, qualify_identifier(column, table_identifier))
+      Enum.member?(qualified_columns, qualify_identifier(column, column_table_map))
     end)
     case invalid_fields do
       [] ->
         order_list = for {column, direction} <- order_by_spec do
-          qualified_column = qualify_identifier(column, table_identifier)
+          qualified_column = qualify_identifier(column, column_table_map)
           index = qualified_columns |> Enum.find_index(&(&1 == qualified_column))
           {index, direction}
         end
@@ -336,60 +335,98 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp qualify_all_identifiers(%{from: table_identifier} = query) do
-    columns = Enum.map(query.columns, &(qualify_identifier(&1, table_identifier)))
+  defp qualify_all_identifiers(query) do
+    try do
+      qualify_all_identifiers!(query)
+    rescue
+      e in AmbiguousIdentifier ->
+        {:error, e.message}
+    end
+  end
+
+  defp qualify_all_identifiers!(query) do
+    column_table_map = construct_column_table_map(query)
+    columns = Enum.map(query.columns, &(qualify_identifier(&1, column_table_map)))
     query = %{query | columns: columns}
     query = case Map.get(query, :group_by, []) do
       [] -> query
       columns ->
-        qualified_identifiers = Enum.map(columns, &(qualify_identifier(&1, table_identifier)))
+        qualified_identifiers = Enum.map(columns, &(qualify_identifier(&1, column_table_map)))
         %{query | group_by: qualified_identifiers}
     end
     query = case Map.get(query, :where, []) do
       [] -> query
       clauses ->
-        qualified_clauses = Enum.map(clauses, &(qualify_where_clause(&1, table_identifier)))
+        qualified_clauses = Enum.map(clauses, &(qualify_where_clause(&1, column_table_map)))
         %{query | where: qualified_clauses}
     end
     query = case Map.get(query, :where_not, []) do
       [] -> query
       clauses ->
-        qualified_clauses = Enum.map(clauses, &(qualify_where_clause(&1, table_identifier)))
+        qualified_clauses = Enum.map(clauses, &(qualify_where_clause(&1, column_table_map)))
         %{query | where_not: qualified_clauses}
     end
     query = case Map.get(query, :order_by, []) do
       [] -> query
       clauses ->
         qualified_order_clauses = Enum.map(clauses, fn({identifier, direction}) ->
-          {qualify_identifier(identifier, table_identifier), direction}
+          {qualify_identifier(identifier, column_table_map), direction}
         end)
         %{query | order_by: qualified_order_clauses}
     end
     {:ok, query}
   end
-  defp qualify_all_identifiers(_), do: {:error, "ERROR: Unexpected query"}
 
-  defp qualify_identifier({:function, "count", :*} = function, _table_identifier), do: function
-  defp qualify_identifier({:function, function, identifier}, table_identifier) do
-    {:function, function, qualify_identifier(identifier, table_identifier)}
-  end
-  defp qualify_identifier({:distinct, identifier}, table_identifier) do
-    {:distinct, qualify_identifier(identifier, table_identifier)}
-  end
-  defp qualify_identifier({:qualified, _, _} = identifier, _table), do: identifier
-  defp qualify_identifier(identifier, table_identifier) do
-    {:qualified, table_identifier, identifier}
+  defp construct_column_table_map(%{from: from_clause, data_source: data_source}) do
+    from_clause_to_tables(from_clause)
+    |> Enum.flat_map(fn(table) ->
+      for {{:qualified, table, column}, _type} <- columns(table, data_source), do: {table, column}
+    end)
+    |> Enum.reduce(%{}, fn({table, column}, acc) ->
+      Map.update(acc, column, [table], &([table | &1]))
+    end)
   end
 
-  defp qualify_where_clause({:comparison, identifier, comparator, any}, table_identifier) do
-    {:comparison, qualify_identifier(identifier, table_identifier), comparator, any}
+  defp qualify_identifier({:function, "count", :*} = function, _column_table_map), do: function
+  defp qualify_identifier({:function, function, identifier}, column_table_map) do
+    {:function, function, qualify_identifier(identifier, column_table_map)}
   end
-  defp qualify_where_clause({:not, subclause}, table_identifier) do
-    {:not, qualify_where_clause(subclause, table_identifier)}
+  defp qualify_identifier({:distinct, identifier}, column_table_map) do
+    {:distinct, qualify_identifier(identifier, column_table_map)}
+  end
+  defp qualify_identifier({:qualified, table, column} = identifier, column_table_map) do
+    case [table] -- Map.get(column_table_map, column, []) do
+      [] -> identifier
+      _ -> raise AmbiguousIdentifier, message: "Column `#{column}` doesn't exist in table `#{table}`."
+    end
+  end
+  defp qualify_identifier(identifier, column_table_map) do
+    case Map.get(column_table_map, identifier) do
+      [table] -> {:qualified, table, identifier}
+      [_|_] -> raise AmbiguousIdentifier, message: "Column `#{identifier}` is ambiguous."
+      nil ->
+        tables = Map.values(column_table_map)
+        |> List.flatten()
+        |> Enum.dedup()
+        case tables do
+          [table] ->
+            raise AmbiguousIdentifier, message: "Column `#{identifier}` doesn't exist in table `#{table}`."
+          [_|_] ->
+            raise AmbiguousIdentifier,
+              message: "Column `#{identifier}` doesn't exist in any of the selected tables."
+        end
+    end
+  end
+
+  defp qualify_where_clause({:comparison, identifier, comparator, any}, column_table_map) do
+    {:comparison, qualify_identifier(identifier, column_table_map), comparator, any}
+  end
+  defp qualify_where_clause({:not, subclause}, column_table_map) do
+    {:not, qualify_where_clause(subclause, column_table_map)}
   end
   Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp qualify_where_clause({unquote(keyword), identifier, any}, table_identifier) do
-      {unquote(keyword), qualify_identifier(identifier, table_identifier), any}
+    defp qualify_where_clause({unquote(keyword), identifier, any}, column_table_map) do
+      {unquote(keyword), qualify_identifier(identifier, column_table_map), any}
     end
   end)
 end

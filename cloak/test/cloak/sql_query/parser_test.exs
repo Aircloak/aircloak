@@ -356,6 +356,11 @@ defmodule Cloak.SqlQuery.Parser.Test do
     )
   end
 
+  test "allow selection of multiple tables" do
+    assert_parse("select a from foo, bar, baz",
+      select(columns: ["a"], from: {:cross_join, "foo", {:cross_join, "bar", "baz"}}))
+  end
+
   Enum.each(
     [
       {"single quote is not allowed in the identifier",

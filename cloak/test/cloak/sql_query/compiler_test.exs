@@ -12,6 +12,12 @@ defmodule Cloak.SqlQuery.Compiler.Test do
         },
         other_table: %{
           columns: [{"other_column", :timestamp}]
+        },
+        t1: %{
+          columns: [{"c1", :integer}, {"c2", :integer}]
+        },
+        t2: %{
+          columns: [{"c1", :integer}, {"c3", :integer}]
         }
       }}
     }}
@@ -73,6 +79,11 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       compile("SELECT a FROM table", data_source)
   end
 
+  test "rejecting missing column on join", %{data_source: data_source} do
+    assert {:error, "Column `a` doesn't exist in any of the selected tables."} =
+      compile("SELECT a FROM t1, t2", data_source)
+  end
+
   test "rejecting missing qualified column", %{data_source: data_source} do
     assert {:error, "Column `a` doesn't exist in table `table`."} =
       compile("SELECT table.a FROM table", data_source)
@@ -81,6 +92,11 @@ defmodule Cloak.SqlQuery.Compiler.Test do
   test "rejecting qualified SELECT from not selected table", %{data_source: data_source} do
     assert {:error, "Missing FROM clause entry for table `other_table`"} =
       compile("SELECT other_table.other_column FROM table", data_source)
+  end
+
+  test "rejecting qualified SELECT from not selected table when join", %{data_source: data_source} do
+    assert {:error, "Missing FROM clause entry for table `other_table`"} =
+      compile("SELECT other_table.other_column FROM t1, t2", data_source)
   end
 
   test "rejecting qualified ORDER BY from not selected table", %{data_source: data_source} do
@@ -126,6 +142,26 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     assert [{:qualified, "table", "column"}] = result[:unsafe_filter_columns]
     assert result[:group_by] == [{:qualified, "table", "column"}]
     assert result[:order_by] == [{1, :desc}, {1, :desc}]
+  end
+
+  test "complains when tables don't exist", %{data_source: data_source} do
+    assert {:error, "Table `t_doesnt_exist` doesn't exist."} =
+      compile("SELECT c1 FROM t1, t_doesnt_exist", data_source)
+  end
+
+  test "expands all columns for all tables when cross joining", %{data_source: data_source} do
+    result = compile!("SELECT * FROM t1, t2", data_source)
+    assert result[:columns] == [
+      {:qualified, "t1", "c1"},
+      {:qualified, "t1", "c2"},
+      {:qualified, "t2", "c1"},
+      {:qualified, "t2", "c3"}
+    ]
+  end
+
+  test "complains when an unqualified identifier cannot be pinned down", %{data_source: data_source} do
+    assert {:error, "Column `c1` is ambiguous."} =
+      compile("SELECT c1 FROM t1, t2", data_source)
   end
 
   defp compile!(query_string, data_source) do

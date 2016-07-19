@@ -181,7 +181,15 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp table_selection() do
-    either(table_with_schema(), identifier()) |> label("table name")
+    map(
+      comma_delimited(either(table_with_schema(), identifier())),
+      &turn_tables_into_join/1
+    ) |> label("table name")
+  end
+
+  defp turn_tables_into_join([table]), do: table
+  defp turn_tables_into_join([table | tables]) do
+    {:cross_join, table, turn_tables_into_join(tables)}
   end
 
   defp subquery() do

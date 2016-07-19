@@ -459,8 +459,8 @@ defmodule Cloak.QueryTest do
   end
 
   test "query reports an error on invalid order by field" do
-    assert_query "select height from heights order by age", %{error: error}
-    assert ~s/Non-selected field `age` from table `heights` specified in `order by` clause./ == error
+    assert_query "select height from heights order by name", %{error: error}
+    assert ~s/Non-selected field `name` from table `heights` specified in `order by` clause./ == error
   end
 
   test "query reports an error on unknown function" do
