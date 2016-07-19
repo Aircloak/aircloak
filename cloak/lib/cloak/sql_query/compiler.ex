@@ -21,7 +21,8 @@ defmodule Cloak.SqlQuery.Compiler do
     show: :tables | :columns
   }
 
-  defmodule AmbiguousIdentifier do
+  defmodule RuntimeAmbiguousIdentifier do
+    @moduledoc false
     defexception message: "Ambiguous identifier"
   end
 
@@ -348,7 +349,7 @@ defmodule Cloak.SqlQuery.Compiler do
       }
       {:ok, query}
     rescue
-      e in AmbiguousIdentifier ->
+      e in RuntimeAmbiguousIdentifier ->
         {:error, e.message}
     end
   end
@@ -373,22 +374,23 @@ defmodule Cloak.SqlQuery.Compiler do
   defp qualify_identifier({:qualified, table, column} = identifier, column_table_map) do
     case [table] -- Map.get(column_table_map, column, []) do
       [] -> identifier
-      _ -> raise AmbiguousIdentifier, message: "Column `#{column}` doesn't exist in table `#{table}`."
+      _ -> raise RuntimeAmbiguousIdentifier, message: "Column `#{column}` doesn't exist in table `#{table}`."
     end
   end
   defp qualify_identifier(identifier, column_table_map) do
     case Map.get(column_table_map, identifier) do
       [table] -> {:qualified, table, identifier}
-      [_|_] -> raise AmbiguousIdentifier, message: "Column `#{identifier}` is ambiguous."
+      [_|_] -> raise RuntimeAmbiguousIdentifier, message: "Column `#{identifier}` is ambiguous."
       nil ->
         tables = Map.values(column_table_map)
         |> List.flatten()
         |> Enum.uniq()
         case tables do
           [table] ->
-            raise AmbiguousIdentifier, message: "Column `#{identifier}` doesn't exist in table `#{table}`."
+            raise RuntimeAmbiguousIdentifier,
+              message: "Column `#{identifier}` doesn't exist in table `#{table}`."
           [_|_] ->
-            raise AmbiguousIdentifier,
+            raise RuntimeAmbiguousIdentifier,
               message: "Column `#{identifier}` doesn't exist in any of the selected tables."
         end
     end
