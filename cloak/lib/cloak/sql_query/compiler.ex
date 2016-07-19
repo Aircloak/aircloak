@@ -84,7 +84,7 @@ defmodule Cloak.SqlQuery.Compiler do
   # Subqueries can produce column-names that are not actually in the table. Without understanding what
   # is being produced by the subquery (currently it is being treated as a blackbox), we cannot validate
   # the outer column selections
-  defp verify_aliases(%{command: :select, from: {:subquery, _}} = query), do: :ok
+  defp verify_aliases(%{command: :select, from: {:subquery, _}}), do: :ok
   defp verify_aliases(query) do
     aliases = for {_column, :as, name} <- query.columns, do: name
     column_names = for {name, _type} <- columns(query.from, query.data_source), do: name
