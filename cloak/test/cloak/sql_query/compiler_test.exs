@@ -18,6 +18,10 @@ defmodule Cloak.SqlQuery.Compiler.Test do
         },
         t2: %{
           columns: [{"c1", :integer}, {"c3", :integer}]
+        },
+        t3: %{
+          name: "renamed_table",
+          columns: [{"c1", :integer}]
         }
       }}
     }}
@@ -174,6 +178,24 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     assert [{:comparison, {:qualified, "t1", "c2"}, :>, _}] = result[:where]
     assert result[:group_by] == [{:qualified, "t1", "c1"}, {:qualified, "t2", "c3"}]
     assert result[:order_by] == [{0, :desc}]
+  end
+
+  test "renames from clause to use internal names", %{data_source: data_source} do
+    assert %{from: "renamed_table"} = compile!("SELECT c1 FROM t3", data_source)
+  end
+
+  test "renames selected column tables clause to use internal names", %{data_source: data_source} do
+    assert %{columns: [{:qualified, "renamed_table", "c1"}]} = compile!("SELECT c1 FROM t3", data_source)
+  end
+
+  test "renames group by column tables clause to use internal names", %{data_source: data_source} do
+    assert %{group_by: [{:qualified, "renamed_table", "c1"}]} =
+      compile!("SELECT c1 FROM t3 GROUP BY c1", data_source)
+  end
+
+  test "renames where identifier tables clause to use internal names", %{data_source: data_source} do
+    assert %{where: [{:comparison, {:qualified, "renamed_table", "c1"}, _, _}]} =
+      compile!("SELECT c1 FROM t3 WHERE c1 > 1", data_source)
   end
 
   defp compile!(query_string, data_source) do
