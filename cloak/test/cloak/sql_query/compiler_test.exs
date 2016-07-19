@@ -164,6 +164,21 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       compile("SELECT c1 FROM t1, t2", data_source)
   end
 
+  test "allows for where, order by and group by when performing cross join", %{data_source: data_source} do
+    result = compile!("""
+        SELECT t1.c1
+        FROM t1, t2
+        WHERE c2 > 10
+        GROUP BY t1.c1, c3
+        ORDER BY t1.c1 DESC
+      """,
+      data_source)
+    assert result[:columns] == [{:qualified, "t1", "c1"}]
+    assert [{:comparison, {:qualified, "t1", "c2"}, :>, _}] = result[:where]
+    assert result[:group_by] == [{:qualified, "t1", "c1"}, {:qualified, "t2", "c3"}]
+    assert result[:order_by] == [{0, :desc}]
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result

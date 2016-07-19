@@ -25,6 +25,7 @@ defmodule Cloak.DataSourceTest do
       command: :select,
       columns: [{:qualified, "test", "value"}],
       unsafe_filter_columns: [],
+      where: [],
       from: "test"
     })
 

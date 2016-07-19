@@ -14,6 +14,7 @@ defmodule Cloak.QueryTest do
     :db_test.setup()
     :db_test.create_test_schema()
     :db_test.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
+    :db_test.create_table("purchases", "price INTEGER, name TEXT, time TIMESTAMP")
     :ok
   end
 
@@ -23,7 +24,10 @@ defmodule Cloak.QueryTest do
   end
 
   test "show tables" do
-    assert_query "show tables", %{columns: ["name"], rows: [%{occurrences: 1, row: [:heights]}]}
+    assert_query "show tables", %{columns: ["name"], rows: [
+      %{occurrences: 1, row: [:heights]},
+      %{occurrences: 1, row: [:purchases]}]
+    }
   end
 
   test "show columns" do
@@ -451,6 +455,15 @@ defmodule Cloak.QueryTest do
       %{row: [20, 160], occurrences: 1},
       %{row: [10, 180], occurrences: 1}
     ]
+  end
+
+  test "selecting from multiple tables" do
+    :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+
+    assert_query "select max(height), max(price) FROM heights, purchases",
+      %{columns: ["max", "max"], rows: rows}
+    assert rows == [%{row: [180, 200], occurrences: 1}]
   end
 
   test "query reports an error on invalid where clause identifier" do

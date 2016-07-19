@@ -33,7 +33,7 @@ defmodule Cloak.SqlQuery.Compiler do
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
-    defaults = %{data_source: data_source, where_not: [], unsafe_filter_columns: [], group_by: []}
+    defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [], group_by: []}
     compile_prepped_query(Map.merge(defaults, query))
   end
 
@@ -88,10 +88,10 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp ds_proxy_validate_no_wildcard(_), do: :ok
 
-  defp ds_proxy_validate_no_where(%{where: _}) do
+  defp ds_proxy_validate_no_where(%{where: []}), do: :ok
+  defp ds_proxy_validate_no_where(_) do
     {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery"}
   end
-  defp ds_proxy_validate_no_where(_), do: :ok
 
 
   # -------------------------------------------------------------------
@@ -278,9 +278,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp cast_where_clause(clause, query) do
     column = where_clause_to_identifier(clause)
-    {_, type} = columns(query.from, query.data_source)
-      |> List.keyfind(column, 0)
-
+    {_, type} = List.keyfind(all_available_columns(query), column, 0)
     do_cast_where_clause(clause, type)
   end
 

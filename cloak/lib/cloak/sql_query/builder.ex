@@ -21,8 +21,8 @@ defmodule Cloak.SqlQuery.Builder do
   def build(query) do
     fragments_to_query_spec([
       "SELECT ", columns_string(query), " ",
-      "FROM ", query.from, " ",
-      where_fragments(query[:where])
+      "FROM ", from_clause(query.from), " ",
+      where_fragments(augment_where_with_join_conditions(query[:where], query.from))
     ])
   end
 
@@ -45,6 +45,11 @@ defmodule Cloak.SqlQuery.Builder do
       "#{column_name} AS \"#{column_name}\""
     end
   end
+
+  defp from_clause({:cross_join, lhs, rhs}) do
+    [from_clause(lhs), " CROSS JOIN ", from_clause(rhs)]
+  end
+  defp from_clause({table, _user_id_column}), do: table
 
   @spec fragments_to_query_spec([fragment]) :: query_spec
   defp fragments_to_query_spec(fragments) do
@@ -75,7 +80,18 @@ defmodule Cloak.SqlQuery.Builder do
     |> Enum.map(fn({:param, value}) -> value end)
   end
 
-  defp where_fragments(nil), do: []
+  defp augment_where_with_join_conditions(where_clauses, from_clause) do
+    case user_ids_from_from_clause(from_clause, []) do
+      [_user_id] -> where_clauses # It's only a single table select, no additional constraints needed
+      [user_id | rest] -> Enum.map(rest, &({:comparison, user_id, :=, &1})) ++ where_clauses
+    end
+  end
+
+  defp user_ids_from_from_clause({:cross_join, lhs, rhs}, acc) do
+    user_ids_from_from_clause(rhs, user_ids_from_from_clause(lhs, acc))
+  end
+  defp user_ids_from_from_clause({_table, user_id}, acc), do: [user_id | acc]
+
   defp where_fragments([]), do: []
   defp where_fragments(where_clause) do
     ["WHERE ", where_clause_to_fragments(where_clause)]

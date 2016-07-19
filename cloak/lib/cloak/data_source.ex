@@ -143,14 +143,12 @@ defmodule Cloak.DataSource do
     driver = data_source.driver
     driver.select(data_source.id, select_query)
   end
-  def select(data_source, %{columns: fields, from: table_identifier} = select_query) do
+  def select(data_source, %{columns: fields, from: from_clause} = select_query) do
     driver = data_source.driver
-    table_id = String.to_existing_atom(table_identifier)
-    table = data_source[:tables][table_id]
-    table_name = Map.fetch!(table, :name)
-    user_id = {:qualified, table_name, Map.fetch!(table, :user_id)}
+    tables_with_ids = from_clause_to_tables_with_ids(from_clause, data_source)
+    user_id = first_user_id(tables_with_ids)
     # insert the user_id column into the fields list, translate the table name and execute the `select` query
-    full_query = %{select_query | columns: [user_id | fields], from: table_name}
+    full_query = %{select_query | columns: [user_id | fields], from: tables_with_ids}
     driver.select(data_source.id, full_query)
   end
 
@@ -183,6 +181,21 @@ defmodule Cloak.DataSource do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp from_clause_to_tables_with_ids({:cross_join, lhs, rhs}, data_source) do
+    {:cross_join, from_clause_to_tables_with_ids(lhs, data_source),
+      from_clause_to_tables_with_ids(rhs, data_source)}
+  end
+  defp from_clause_to_tables_with_ids(table_identifier, data_source) do
+    table_id = String.to_existing_atom(table_identifier)
+    table = data_source[:tables][table_id]
+    table_name = Map.fetch!(table, :name)
+    user_id = {:qualified, table_name, Map.fetch!(table, :user_id)}
+    {table_name, user_id}
+  end
+
+  defp first_user_id({:cross_join, lhs, _}), do: first_user_id(lhs)
+  defp first_user_id({_table_name, user_id}), do: user_id
 
   defp map_driver({data_source, params}) do
     driver_module = case params[:driver] do
