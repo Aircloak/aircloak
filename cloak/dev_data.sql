@@ -391,6 +391,63 @@ GRANT ALL ON TABLE purchases TO postgres;
 GRANT ALL ON TABLE purchases TO cloak;
 
 --
+-- Name: demographics; Type: TABLE; Schema: public; Owner: cloak; Tablespace:
+--
+
+CREATE TABLE demographics (
+    uid character varying(20),
+    name character varying(40),
+    age integer
+);
+
+ALTER TABLE public.demographics OWNER TO cloak;
+
+CREATE INDEX ON demographics (uid);
+
+--
+-- Data for Name: demographics; Type: TABLE DATA; Schema: public; Owner: cloak
+--
+
+COPY demographics (uid, name, age) FROM stdin;
+sebastian	Sebastian	31
+cristian	Cristian	10
+sasa	Sasa	10
+pascal	Pascal	10
+pawel	Pawel	10
+felix	Felix	29
+paul	Paul	10
+mamiko	Mamiko	10
+person1	Fred	20
+person2	Bob	25
+person3	Lisa	15
+person4	Laura	30
+person5	Bob	45
+person6	Bob	50
+person7	George	60
+person8	Lisa	25
+person9	Steven	50
+person10	Isabel	27
+person11	Isabel	28
+person12	Isabel	29
+person13	Isabel	30
+person14	Isabel	31
+person15	Isabel	32
+person13	Isabel	33
+person14	Lisa	34
+person15	Weronika	24
+person16	Muni	28
+person17	Melanie	27
+person18	Elena	32
+person19	Isabel	26
+person20	Isabel	25
+\.
+
+REVOKE ALL ON TABLE demographics FROM PUBLIC;
+REVOKE ALL ON TABLE demographics FROM postgres;
+GRANT ALL ON TABLE demographics TO postgres;
+GRANT ALL ON TABLE demographics TO cloak;
+
+--
 -- PostgreSQL database dump complete
 --
 
