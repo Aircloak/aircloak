@@ -33,7 +33,8 @@ defmodule Cloak.SqlQuery.Compiler do
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
-    defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [], group_by: []}
+    defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
+      group_by: [], order_by: []}
     compile_prepped_query(Map.merge(defaults, query))
   end
 
@@ -233,6 +234,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp partition_selected_columns(query), do: query
 
+  defp compile_order_by(%{order_by: []} = query), do: {:ok, query}
   defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
     column_table_map = construct_column_table_map(query)
     qualified_columns = Enum.map(columns, &qualify_identifier(&1, column_table_map))
@@ -251,7 +253,6 @@ defmodule Cloak.SqlQuery.Compiler do
         {:error, ~s/Non-selected field `#{field}` from table `#{table}` specified in `order by` clause./}
     end
   end
-  defp compile_order_by(query), do: {:ok, query}
 
   defp partition_where_clauses(%{where: clauses, where_not: [], unsafe_filter_columns: []} = query) do
     {positive, negative} = Enum.partition(clauses, fn
