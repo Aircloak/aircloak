@@ -139,7 +139,7 @@ defmodule Cloak.SqlQuery.Compiler do
       (_) -> :drop
     end)
     |> Enum.reject(&(&1 == :drop))
-    |> Enum.dedup()
+    |> Enum.uniq()
     case referenced_tables -- from_clause_to_tables(from_clause) do
       [] -> :ok
       [table | _] -> {:error, ~s/Missing FROM clause entry for table `#{table}`/}
@@ -407,7 +407,7 @@ defmodule Cloak.SqlQuery.Compiler do
       nil ->
         tables = Map.values(column_table_map)
         |> List.flatten()
-        |> Enum.dedup()
+        |> Enum.uniq()
         case tables do
           [table] ->
             raise AmbiguousIdentifier, message: "Column `#{identifier}` doesn't exist in table `#{table}`."
