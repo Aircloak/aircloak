@@ -335,45 +335,22 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp qualify_all_identifiers(query) do
+    column_table_map = construct_column_table_map(query)
     try do
-      qualify_all_identifiers!(query)
+      query = %{query |
+        columns: Enum.map(query.columns, &(qualify_identifier(&1, column_table_map))),
+        group_by: Enum.map(query.group_by, &(qualify_identifier(&1, column_table_map))),
+        where: Enum.map(query.where, &(qualify_where_clause(&1, column_table_map))),
+        where_not: Enum.map(query.where_not, &(qualify_where_clause(&1, column_table_map))),
+        order_by: Enum.map(query.order_by, fn({identifier, direction}) ->
+          {qualify_identifier(identifier, column_table_map), direction}
+        end)
+      }
+      {:ok, query}
     rescue
       e in AmbiguousIdentifier ->
         {:error, e.message}
     end
-  end
-
-  defp qualify_all_identifiers!(query) do
-    column_table_map = construct_column_table_map(query)
-    columns = Enum.map(query.columns, &(qualify_identifier(&1, column_table_map)))
-    query = %{query | columns: columns}
-    query = case Map.get(query, :group_by, []) do
-      [] -> query
-      columns ->
-        qualified_identifiers = Enum.map(columns, &(qualify_identifier(&1, column_table_map)))
-        %{query | group_by: qualified_identifiers}
-    end
-    query = case Map.get(query, :where, []) do
-      [] -> query
-      clauses ->
-        qualified_clauses = Enum.map(clauses, &(qualify_where_clause(&1, column_table_map)))
-        %{query | where: qualified_clauses}
-    end
-    query = case Map.get(query, :where_not, []) do
-      [] -> query
-      clauses ->
-        qualified_clauses = Enum.map(clauses, &(qualify_where_clause(&1, column_table_map)))
-        %{query | where_not: qualified_clauses}
-    end
-    query = case Map.get(query, :order_by, []) do
-      [] -> query
-      clauses ->
-        qualified_order_clauses = Enum.map(clauses, fn({identifier, direction}) ->
-          {qualify_identifier(identifier, column_table_map), direction}
-        end)
-        %{query | order_by: qualified_order_clauses}
-    end
-    {:ok, query}
   end
 
   defp construct_column_table_map(%{from: from_clause, data_source: data_source}) do
