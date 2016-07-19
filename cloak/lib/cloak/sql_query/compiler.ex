@@ -68,7 +68,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_prepped_query(%{command: :show} = query), do: compile_from(query)
   defp compile_prepped_query(query) do
     with {:ok, query} <- compile_from(query),
-         {:ok, query} <- expand_star_select(query),
+         query = expand_star_select(query),
          :ok <- validate_all_requested_tables_are_selected(query),
          {:ok, query} <- qualify_all_identifiers(query),
          {:ok, query} <- compile_columns(query),
@@ -124,10 +124,9 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp expand_star_select(%{columns: :*} = query) do
     columns = for {column, _type} <- all_available_columns(query), do: column
-    {:ok, %{query | columns: columns}}
+    %{query | columns: columns}
   end
-  defp expand_star_select(%{command: :select} = query), do: {:ok, query}
-  defp expand_star_select(_), do: {:error, "ERROR: Unexpected query"}
+  defp expand_star_select(query), do: query
 
   defp validate_all_requested_tables_are_selected(%{from: from_clause} = query) do
     all_identifiers = query.columns ++ Map.get(query, :group_by, []) ++
