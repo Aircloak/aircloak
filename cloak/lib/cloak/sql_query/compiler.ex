@@ -64,11 +64,11 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_from(query), do: {:ok, query}
 
   defp compile_aliases(%{command: :select, columns: [_|_] = columns} = query) do
-    column_titles = Enum.map(columns, fn
-      ({_column, :as, name}) -> name
-      (column) -> column_title(column)
-    end)
-    with :ok <- verify_aliases(columns) do
+    with :ok <- verify_aliases(query) do
+      column_titles = Enum.map(columns, fn
+        ({_column, :as, name}) -> name
+        (column) -> column_title(column)
+      end)
       aliases = (for {column, :as, name} <- columns, do: {name, column}) |> Enum.into(%{})
       columns = Enum.map(columns, fn
         ({column, :as, _name}) -> column
@@ -81,11 +81,19 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_aliases(query), do: {:ok, query}
 
-  defp verify_aliases(columns) do
-    names = for {_column, :as, name} <- columns, do: name
-    case names -- Enum.uniq(names) do
+  # Subqueries can produce column-names that are not actually in the table. Without understanding what
+  # is being produced by the subquery (currently it is being treated as a blackbox), we cannot validate
+  # the outer column selections
+  defp verify_aliases(%{command: :select, from: {:subquery, _}} = query), do: :ok
+  defp verify_aliases(query) do
+    aliases = for {_column, :as, name} <- query.columns, do: name
+    column_names = for {name, _type} <- columns(query.from, query.data_source), do: name
+    existing_names = aliases ++ column_names
+    used_names = (for {name, _direction} <- query.order_by, do: name) ++ query.group_by
+    ambigous_names = for name <- used_names, Enum.count(existing_names, &name == &1) > 1, do: name
+    case ambigous_names do
       [] -> :ok
-      [name | _rest] -> {:error, "Column alias `#{name}` is used multiples times."}
+      [name | _rest] -> {:error, "Usage of `#{name}` is ambigous."}
     end
   end
 
