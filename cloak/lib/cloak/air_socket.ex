@@ -253,7 +253,7 @@ defmodule Cloak.AirSocket do
   defp get_join_info() do
     data_sources = for data_source <- Cloak.DataSource.all() do
       tables = for table <- Cloak.DataSource.tables(data_source) do
-        columns = for {{:qualified, _table, name}, type} <- Cloak.DataSource.columns(data_source, table) do
+        columns = for {name, type} <- Cloak.DataSource.columns(data_source, table) do
           %{name: name, type: type}
         end
         %{id: table, columns: columns}

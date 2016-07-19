@@ -321,7 +321,9 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp columns(table, data_source) do
     table_id = String.to_existing_atom(table)
-    DataSource.columns(data_source, table_id)
+    for {name, type} <- DataSource.columns(data_source, table_id) do
+      {{:qualified, Atom.to_string(table_id), name}, type}
+    end
   end
 
   defp error_map(xs, fun) do
