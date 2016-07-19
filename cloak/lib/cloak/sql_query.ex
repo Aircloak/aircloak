@@ -9,8 +9,8 @@ defmodule Cloak.SqlQuery do
   # -------------------------------------------------------------------
 
   @doc """
-  Transforms a string into an abstract syntax tree of the analyst provided SQL query.
-  This AST can later be used to generate a query to execute against the data store.
+  Transforms the analyst provided SQL query from a string format into an abstract syntax tree format.
+  This AST can later be used to execute the query against the data store.
   Raises on error.
   """
   @spec make!(atom, String.t) :: t
@@ -20,8 +20,8 @@ defmodule Cloak.SqlQuery do
   end
 
   @doc """
-  Transforms a string into an abstract syntax tree of the analyst provided SQL query.
-  This AST can later be used to generate a query to execute against the data store.
+  Transforms the analyst provided SQL query from a string format into an abstract syntax tree format.
+  This AST can later be used to execute the query against the data store.
   """
   @spec make(atom, String.t) :: {:ok, t} | {:error, String.t}
   def make(data_source, string) do
