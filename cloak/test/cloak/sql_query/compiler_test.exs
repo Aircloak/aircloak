@@ -116,11 +116,8 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
   Enum.each(["count", "min", "max", "median", "stddev"], fn(function) ->
     test "allows qualified identifiers in function calls (function #{function})", %{data_source: data_source} do
-      result = compile!("select #{unquote(function)}(table.numeric) from table",
-        data_source)
-      assert result[:columns] == [
-        {:function, unquote(function), {:qualified, "table", "numeric"}}
-      ]
+      assert %{columns: [{:function, unquote(function), {:qualified, "table", "numeric"}}]} =
+        compile!("select #{unquote(function)}(table.numeric) from table", data_source)
     end
   end)
 
