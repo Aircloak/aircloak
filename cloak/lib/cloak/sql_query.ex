@@ -30,12 +30,6 @@ defmodule Cloak.SqlQuery do
     end
   end
 
-  @doc "Returns a list of column titles for the query."
-  @spec column_titles(t) :: [String.t]
-  def column_titles(%{columns: columns}) do
-    Enum.map(columns, &shallow_column_name/1)
-  end
-
   @doc "Returns the list of unique columns used in the aggregation process."
   @spec aggregated_columns(t) :: [String.t]
   def aggregated_columns(query),
@@ -80,13 +74,4 @@ defmodule Cloak.SqlQuery do
   def full_column_name({:identifier, :unknown, column}), do: column
   def full_column_name({:identifier, table, column}), do: "#{table}.#{column}"
   def full_column_name(:*), do: "*"
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  def shallow_column_name({:function, function, _}), do: function
-  def shallow_column_name({:distinct, identifier}), do: shallow_column_name(identifier)
-  def shallow_column_name({:identifier, _table, column}), do: column
 end

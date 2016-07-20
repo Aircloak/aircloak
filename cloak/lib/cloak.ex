@@ -5,7 +5,18 @@ defmodule Cloak do
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
+    set_salt()
     Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor)
+  end
+
+  defp set_salt() do
+    salt = case Cloak.DeployConfig.fetch("salt") do
+      :error -> "default salt"
+      {:ok, value} -> value
+    end
+    existing_env = Application.get_env(:cloak, :anonymizer)
+    new_env = Keyword.put(existing_env, :salt, salt)
+    Application.put_env(:cloak, :anonymizer, new_env)
   end
 
   # Conditional definition of top-level processes, since we don't want to run

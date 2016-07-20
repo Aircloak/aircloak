@@ -9,6 +9,7 @@ defmodule Cloak.SqlQuery.Compiler do
     data_source: DataSource.t,
     command: :select | :show,
     columns: [Parser.column],
+    column_titles: [String.t],
     property: [String.t],
     aggregators: [{String.t, String.t}],
     implicit_count: true,
@@ -35,16 +36,9 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
     defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
-      group_by: [], order_by: []}
+      group_by: [], order_by: [], column_titles: []}
     compile_prepped_query(Map.merge(defaults, query))
   end
-
-  @doc "Returns a string title for the given column specification."
-  @spec column_title(Parser.column) :: String.t
-  def column_title({:function, function, identifier}), do: "#{function}(#{column_title(identifier)})"
-  def column_title({:distinct, identifier}), do: "distinct #{column_title(identifier)}"
-  def column_title({:identifier, table, column}), do: "#{table}.#{column_title(column)}"
-  def column_title(column), do: column
 
 
   # -------------------------------------------------------------------
@@ -61,6 +55,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_prepped_query(%{command: :select, from: {:subquery, _}} = query) do
     with :ok <- ds_proxy_validate_no_wildcard(query),
          :ok <- ds_proxy_validate_no_where(query),
+         {:ok, query} <- compile_aliases(query),
          :ok <- verify_aggregated_columns(query),
          {:ok, query} <- compile_order_by(query),
          query = partition_selected_columns(query),
@@ -70,6 +65,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_prepped_query(query) do
     with {:ok, query} <- compile_from(query),
          query = expand_star_select(query),
+         {:ok, query} <- compile_aliases(query),
          :ok <- validate_all_requested_tables_are_selected(query),
          {:ok, query} <- qualify_all_identifiers(query),
          {:ok, query} <- compile_columns(query),
@@ -114,6 +110,51 @@ defmodule Cloak.SqlQuery.Compiler do
   defp from_clause_to_tables({:cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
   defp from_clause_to_tables(table), do: [table]
 
+  defp compile_aliases(%{columns: [_|_] = columns} = query) do
+    with :ok <- verify_aliases(query) do
+      column_titles = Enum.map(columns, fn
+        ({_column, :as, name}) -> name
+        (column) -> column_title(column)
+      end)
+      aliases = (for {column, :as, name} <- columns, do: {name, column}) |> Enum.into(%{})
+      columns = Enum.map(columns, fn
+        ({column, :as, _name}) -> column
+        (column) -> column
+      end)
+      order_by = for {identifier, direction} <- query.order_by do
+        {replace_alias(identifier, aliases), direction}
+      end
+      group_by = for identifier <- query.group_by, do: replace_alias(identifier, aliases)
+      {:ok, %{query | column_titles: column_titles, columns: columns, group_by: group_by, order_by: order_by}}
+    end
+  end
+  defp compile_aliases(query), do: {:ok, query}
+
+  defp replace_alias(:*, _mapping), do: :*
+  defp replace_alias({:function, function, identifier}, mapping) do
+    {:function, function, replace_alias(identifier, mapping)}
+  end
+  defp replace_alias({:identifier, _, column_maybe_alias} = identifier, mapping) do
+    Map.get(mapping, column_maybe_alias, identifier)
+  end
+
+  # Subqueries can produce column-names that are not actually in the table. Without understanding what
+  # is being produced by the subquery (currently it is being treated as a blackbox), we cannot validate
+  # the outer column selections
+  defp verify_aliases(%{command: :select, from: {:subquery, _}}), do: :ok
+  defp verify_aliases(query) do
+    aliases = for {_column, :as, name} <- query.columns, do: name
+    column_names = for {identifier, _type} <- all_available_columns(query), do: identifier
+    existing_names = aliases ++ column_names
+    referenced_names = (for {{:identifier, _table, name}, _direction} <- query.order_by, do: name) ++
+      query.group_by
+    ambiguous_names = for name <- referenced_names, Enum.count(existing_names, &name == &1) > 1, do: name
+    case ambiguous_names do
+      [] -> :ok
+      [name | _rest] -> {:error, "Usage of `#{name}` is ambiguous."}
+    end
+  end
+
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
     Enum.reject(query.columns, &(aggregate_function?(&1) || Enum.member?(query.group_by, &1)))
   end
@@ -126,7 +167,8 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp expand_star_select(%{columns: :*} = query) do
     columns = for {column, _type} <- all_available_columns(query), do: column
-    %{query | columns: columns}
+    column_names = for {:identifier, _table, name} <- columns, do: name
+    %{query | columns: columns, column_titles: column_names}
   end
   defp expand_star_select(query), do: query
 
@@ -450,4 +492,8 @@ defmodule Cloak.SqlQuery.Compiler do
   defp rename_where_identifier({:comparison, identifier, comparison, rhs}, mapping) do
     {:comparison, rename_identifier(identifier, mapping), comparison, rhs}
   end
+
+  def column_title({:function, function, _}), do: function
+  def column_title({:distinct, identifier}), do: column_title(identifier)
+  def column_title({:identifier, _table, column}), do: column
 end

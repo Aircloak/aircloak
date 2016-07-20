@@ -101,7 +101,7 @@ export class Result extends React.Component {
   formatValue(value) {
     if (value === null) {
       return "<null>";
-    } else if (typeof(value) === "number" && isFinite(value)) {
+    } else if (this.isNumeric(value)) {
       return Math.round(value * 1000) / 1000; // keep 3 decimals at most
     } else {
       return value;
@@ -109,7 +109,7 @@ export class Result extends React.Component {
   }
 
   isNumeric(n) {
-    return !isNaN(parseFloat(n)) && isFinite(n);
+    return typeof(n) === "number" && isFinite(n);
   }
 
   yColumns() {
@@ -211,6 +211,8 @@ export class Result extends React.Component {
   renderOptionMenu() {
     return (
       <div className="options-menu">
+        <a className="btn btn-default btn-xs" href={`/queries/${this.props.id}.csv`}>Download as CSV</a>
+        &nbsp;
         {this.renderChartButton()}
       </div>
     );
@@ -253,6 +255,7 @@ export class Result extends React.Component {
 }
 
 Result.propTypes = {
+  id: React.PropTypes.string,
   statement: React.PropTypes.string,
   columns: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
   rows: React.PropTypes.arrayOf(React.PropTypes.shape({

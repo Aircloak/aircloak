@@ -393,6 +393,11 @@ defmodule Cloak.SqlQuery.Parser.Test do
         from: {:cross_join, "foo", {:cross_join, "bar", "baz"}}))
   end
 
+  test "column alias" do
+    assert_parse("select a as x from b",
+      select(columns: [{{:identifier, :unknown, "a"}, :as, "x"}]))
+  end
+
   Enum.each(
     [
       {"single quote is not allowed in the identifier",

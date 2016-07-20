@@ -61,16 +61,16 @@ defmodule Cloak.Query.Anonymizer do
 
   Sufficiently large means:
 
-  1. Greater than count_absolute_lower_bound
-  2. A noised version of the count is greater than count_soft_lower_bound
+  1. Greater than low_count_absolute_lower_bound
+  2. A noised version of the count is greater than low_count_soft_lower_bound
 
   See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
   on the user list provided, giving the same answer every time for the given list of users.
   """
   @spec sufficiently_large?(t, non_neg_integer) :: {boolean, t}
   def sufficiently_large?(anonymizer, count) do
-    {noisy_lower_bound, anonymizer} = add_noise(anonymizer, config(:count_soft_lower_bound))
-    noisy_lower_bound = Kernel.max(round(noisy_lower_bound), config(:count_absolute_lower_bound))
+    {noisy_lower_bound, anonymizer} = add_noise(anonymizer, config(:low_count_soft_lower_bound))
+    noisy_lower_bound = Kernel.max(round(noisy_lower_bound), config(:low_count_absolute_lower_bound))
     {count > noisy_lower_bound, anonymizer}
   end
 
@@ -78,7 +78,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec count(t, Enumerable.t) :: non_neg_integer
   def count(anonymizer, rows) do
     {count, _anonymizer} = sum_positives(anonymizer, rows, &Enum.count(&1))
-    count |> round() |> Kernel.max(config(:count_absolute_lower_bound))
+    count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
   end
 
   @doc "Computes the noisy sum of all values in rows, where each row is an enumerable of numbers."
@@ -198,14 +198,13 @@ defmodule Cloak.Query.Anonymizer do
 
   # Computes the noisy sum of a collection of positive numbers.
   defp sum_positives(anonymizer, rows, row_accumulator) do
-    outlier_count = config(:dropped_outliers_count)
-    {noisy_top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
-    noisy_top_count = round(noisy_top_count)
+    {outliers_count, anonymizer} = add_noise(anonymizer, config(:outliers_count))
+    outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
+    {top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
+    top_count = round(top_count)
+    {noise, anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
 
-    {sum, top_average} = get_positives_sum_and_top_average(rows, outlier_count, noisy_top_count, row_accumulator)
-
-    {noisy_outlier_count, anonymizer} = add_noise(anonymizer, {outlier_count, config(:sum_noise_sigma)})
-    sum = sum + noisy_outlier_count * top_average
+    sum = sum_positives(rows, outliers_count, top_count, row_accumulator, noise)
     {sum, anonymizer}
   end
 
@@ -220,41 +219,46 @@ defmodule Cloak.Query.Anonymizer do
     |> Enum.take(amount)
   end
 
-  # Given a list of rows and a row accumulator functor, this method will drop the
-  # biggest outliers and rows with negative values, and, for the remaining rows,
-  # will return the sum and average value of the top rows.
-  defp get_positives_sum_and_top_average(rows, outliers_count, noisy_top_count, row_accumulator) do
-    {sum, top_length, top_values} = Enum.reduce(rows, {0, 0, []}, fn
-      (row, {sum, top_length, top}) when top_length <= outliers_count + noisy_top_count ->
+  # Given a list of rows, a row accumulator functor and the anonymization parameters,
+  # this method will drop the rows with negative values, and, for the remaining rows,
+  # will return the anonymized sum.
+  defp sum_positives(rows, outliers_count, top_count, row_accumulator, noise) do
+    {sum, count, top_length, top_values} = Enum.reduce(rows, {0, 0, 0, []}, fn
+      (row, {sum, count, top_length, top}) when top_length <= outliers_count + top_count ->
         row_value = row_accumulator.(row)
         case row_value >= 0 do
-          true -> {sum, top_length + 1, Enum.sort([row_value | top])}
-          false -> {sum, top_length, top}
+          true -> {sum, count, top_length + 1, Enum.sort([row_value | top])}
+          false -> {sum, count, top_length, top}
         end
-      (row, {sum, top_length, [top_smallest | top_rest] = top}) ->
+      (row, {sum, count, top_length, [top_smallest | top_rest] = top}) ->
         row_value = Kernel.max(row_accumulator.(row), 0)
         case row_value > top_smallest do
-          true -> {sum + top_smallest, top_length, Enum.sort([row_value | top_rest])}
-          false -> {sum + row_value, top_length, top}
+          true -> {sum + top_smallest, count + 1, top_length, Enum.sort([row_value | top_rest])}
+          false -> {sum + row_value, count + 1, top_length, top}
         end
     end)
     case top_length - outliers_count do
-      0 -> {sum, 0}
+      0 -> 0
       top_length ->
         top_values_sum = top_values |> Enum.take(top_length) |> Enum.sum()
-        {sum + top_values_sum, top_values_sum / top_length}
+        top_average = top_values_sum / top_length
+        sum = sum + top_values_sum
+        count = count + top_length
+        average = sum / count
+        sum + outliers_count * top_average + noise * average
     end
   end
 
   # Given a list of rows and a row accumulator functor, this method will drop the biggest outliers and
   # will return the average value of the top remaining rows, if enough rows are available.
   defp get_max(anonymizer, rows, row_accumulator) do
-    {noisy_top_count, _anonymizer} = add_noise(anonymizer, config(:top_count))
-    noisy_top_count = round(noisy_top_count)
-    outliers_count = config(:dropped_outliers_count)
+    {outliers_count, anonymizer} = add_noise(anonymizer, config(:outliers_count))
+    outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
+    {top_count, _anonymizer} = add_noise(anonymizer, config(:top_count))
+    top_count = round(top_count)
 
     {top_length, top_values} = Enum.reduce(rows, {0, []}, fn
-      (row, {top_length, top}) when top_length <= outliers_count + noisy_top_count ->
+      (row, {top_length, top}) when top_length <= outliers_count + top_count ->
         row_value = row_accumulator.(row)
         {top_length + 1, Enum.sort([row_value | top])}
       (row, {top_length, [top_smallest | top_rest] = top}) ->
@@ -265,10 +269,10 @@ defmodule Cloak.Query.Anonymizer do
         end
     end)
 
-    case top_length < noisy_top_count + outliers_count do
+    case top_length < top_count + outliers_count do
       true -> nil # there weren't enough values in the input to anonymize the result
       false ->
-        top_average = (top_values |> Enum.take(noisy_top_count) |> Enum.sum()) / noisy_top_count
+        top_average = (top_values |> Enum.take(top_count) |> Enum.sum()) / top_count
         maybe_round_result(top_average, Enum.at(top_values, 0))
     end
   end

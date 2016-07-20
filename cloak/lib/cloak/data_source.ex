@@ -98,8 +98,6 @@ defmodule Cloak.DataSource do
       |> atomize_keys()
       |> Enum.map(&map_driver/1)
 
-    set_salt()
-
     child_specs =
       for {_, data_source} <- data_sources do
         data_source.driver.child_spec(data_source.id, Enum.to_list(data_source.parameters))
@@ -226,16 +224,6 @@ defmodule Cloak.DataSource do
       |> Stream.map(&data_source_with_columns/1)
       |> Enum.into(%{})
     )
-  end
-
-  defp set_salt() do
-    salt = case Cloak.DeployConfig.fetch!("salt") do
-      nil -> "default salt"
-      value -> value
-    end
-    existing_env = Application.get_env(:cloak, :anonymizer)
-    new_env = Keyword.put(existing_env, :salt, salt)
-    Application.put_env(:cloak, :anonymizer, new_env)
   end
 
   defp data_source_with_columns({id, data_source}) do

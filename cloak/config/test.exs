@@ -21,14 +21,18 @@ config :cloak, :air,
 config :cloak, :anonymizer,
   # The mean and standard deviation for the lower bound of the number
   # of users that must be in a bucket to get reported.
-  count_soft_lower_bound: {5, 0},
+  low_count_soft_lower_bound: {5, 0},
 
   # The minimum absolute value of the noisy lower bound.
-  count_absolute_lower_bound: 2,
+  low_count_absolute_lower_bound: 2,
 
-  # The number of outliers dropped, from top and bottom, during the anonymized aggregation of values.
-  # The outliers are replaced with the average value for that margin of the collection.
-  dropped_outliers_count: 1,
+  # The mean and standard deviation for the count of outliers dropped, from the top of the collection,
+  # during the anonymized aggregation of values. The outliers are replaced with the noisy
+  # average value for the top of the remaining users in the collection.
+  outliers_count: {4, 0},
+
+  # The minimum count of dropped outliers.
+  min_outliers_count: 1,
 
   # The mean and standard deviation for the count of items at the top of a collection,
   # used for computing the average value of the top.
