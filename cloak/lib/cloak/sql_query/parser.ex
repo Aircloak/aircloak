@@ -143,18 +143,21 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp qualified_identifier() do
-    either(
-      pipe(
-        [
-          identifier(),
-          keyword(:"."),
-          identifier()
-        ],
-        fn
-          ([table, :".", column]) -> {:identifier, table, column}
-        end
+    map(
+      either(
+        sequence(
+          [
+            identifier(),
+            keyword(:"."),
+            identifier()
+          ]
+        ),
+        identifier()
       ),
-      identifier()
+      fn
+        ([table, :".", column]) -> {:identifier, table, column}
+        (column) -> {:identifier, :unknown, column}
+      end
     )
   end
 
