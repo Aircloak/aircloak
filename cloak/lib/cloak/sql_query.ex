@@ -74,6 +74,10 @@ defmodule Cloak.SqlQuery do
   def full_column_name({:function, "count", :*}), do: count_all_column()
   def full_column_name({:function, _function, identifier}), do: full_column_name(identifier)
   def full_column_name({:distinct, identifier}), do: full_column_name(identifier)
+  # This case is needed for DS Proxy. We can't qualify the identifiers when
+  # we don't know what tables are part of the select, therefore we have to
+  # pass through unknown tables, and drop them from the names here.
+  def full_column_name({:identifier, :unknown, column}), do: column
   def full_column_name({:identifier, table, column}), do: "#{table}.#{column}"
   def full_column_name(:*), do: "*"
 
