@@ -45,7 +45,7 @@ defmodule Cloak.Query.Aggregator do
     rows
     |> group_by_property(columns, query)
     |> process_low_count_users(query)
-    |> aggregate_properties(columns, query)
+    |> aggregate_properties(query)
     |> make_buckets(query)
   end
 
@@ -54,14 +54,29 @@ defmodule Cloak.Query.Aggregator do
   ## Internal functions
   ## ----------------------------------------------------------------
 
+  # We store values for aggregation in a column-oriented format for easier retrival.
+  defp add_values_to_columns([], []), do: []
+  defp add_values_to_columns([[] | rest_values], [prev_values | rest_prev_values]) do
+    [prev_values | add_values_to_columns(rest_values, rest_prev_values)]
+  end
+  defp add_values_to_columns([[value] | rest_values], [prev_values | rest_prev_values]) do
+    [[value | prev_values] | add_values_to_columns(rest_values, rest_prev_values)]
+  end
+
   @spec group_by_property([DataSource.row], [DataSource.column], SqlQuery.t) :: properties
   defp group_by_property(rows, columns, query) do
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
       property = grouping_property(row, columns, query)
       user_id = user_id(row)
-      Map.update(accumulator, property, %{user_id => [row]}, fn (user_values_map) ->
-        Map.update(user_values_map, user_id, [row], fn (rows) -> [row | rows] end)
+      values = for {:function, _function, column} <- query.aggregators do
+        case value(row, columns, column) do
+          nil -> []
+          value -> [value]
+        end
+      end
+      Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
+        Map.update(user_values_map, user_id, values, &add_values_to_columns(values, &1))
       end)
     end)
     |> init_anonymizer()
@@ -106,28 +121,23 @@ defmodule Cloak.Query.Aggregator do
     end
   end
 
-  @spec aggregate_properties(properties, [DataSource.column], SqlQuery.t) :: [DataSource.row]
-  defp aggregate_properties(properties, columns, query) do
-    Enum.map(properties, &aggregate_property(&1, columns, query))
+  @spec aggregate_properties(properties, SqlQuery.t) :: [DataSource.row]
+  defp aggregate_properties(properties, query) do
+    Enum.map(properties, &aggregate_property(&1, query))
   end
 
-  defp aggregate_property({property_values, anonymizer, users_rows}, columns, query) do
+  defp aggregate_property({property_values, anonymizer, users_rows}, query) do
     all_users_rows = Map.values(users_rows)
 
-    aggregated_values =
-      for {:function, function, column} <- query.aggregators do
-        values_for_aggregation = extract_values(all_users_rows, columns, column)
-
-        case low_users_count?(values_for_aggregation, anonymizer) do
-          true  -> nil
-          false ->
-            values_for_aggregation
-            |> preprocess_for_aggregation(column)
-            |> aggregate_by(function, anonymizer)
-        end
+    aggregation_results = for {{:function, function, column}, index}  <- Enum.with_index(query.aggregators) do
+      aggregated_values = all_users_rows |> Stream.map(&Enum.at(&1, index)) |> Stream.reject(&[] === &1)
+      case low_users_count?(aggregated_values, anonymizer) do
+        true  -> nil
+        false -> aggregated_values |> preprocess_for_aggregation(column) |> aggregate_by(function, anonymizer)
       end
+    end
 
-    property_values ++ aggregated_values
+    property_values ++ aggregation_results
   end
 
   # See docs/anonymization.md for details
@@ -145,16 +155,6 @@ defmodule Cloak.Query.Aggregator do
     |> Map.values()
   end
   defp preprocess_for_aggregation(values, _column), do: values
-
-  defp extract_values(rows, columns, column) do
-    rows
-    |> Enum.map(fn(user_rows) ->
-      user_rows
-      |> Enum.map(fn(row) -> value(row, columns, column) end)
-      |> Enum.reject(&(&1 === nil))
-    end)
-    |> Enum.reject(&Enum.empty?/1)
-  end
 
   defp value(_row, _columns, :*), do: :*
   defp value(row, columns, {:distinct, column}), do: value(row, columns, column)
