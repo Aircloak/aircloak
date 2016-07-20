@@ -487,7 +487,7 @@ defmodule Cloak.QueryTest do
     assert ~s/Cannot cast `0` to timestamp./ == error
   end
 
-  test "reports an error on ambigous usage of an identifier" do
+  test "reports an error on ambigous usage of an alias occurring multiple times" do
     assert_query "select count(*) as x, count(height) as x from heights order by x", %{error: error}
     assert ~s/Usage of `x` is ambiguous./ == error
   end
