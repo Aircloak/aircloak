@@ -151,12 +151,13 @@ defmodule Cloak.SqlQuery.Compiler.Test do
   end
 
   test "expands all columns for all tables when cross joining", %{data_source: data_source} do
-    result = compile!("SELECT * FROM t1, t2", data_source)
+    result = compile!("SELECT * FROM t1, t2, t3", data_source)
     assert result[:columns] == [
       {:identifier, "t1", "c1"},
       {:identifier, "t1", "c2"},
       {:identifier, "t2", "c1"},
-      {:identifier, "t2", "c3"}
+      {:identifier, "t2", "c3"},
+      {:identifier, "renamed_table", "c1"}
     ]
   end
 
