@@ -136,11 +136,8 @@ defmodule Cloak.SqlQuery.Compiler do
     referenced_tables = all_identifiers
     |> Enum.map(&extract_identifier/1)
     |> Enum.reject(&(&1 == :*))
-    |> Enum.map(fn
-      ({:identifier, table, _}) -> table
-      (_) -> :drop
-    end)
-    |> Enum.reject(&(&1 == :drop))
+    |> Enum.map(fn({:identifier, table, _}) -> table end)
+    |> Enum.reject(&(&1 == :unknown))
     |> Enum.uniq()
     case referenced_tables -- from_clause_to_tables(from_clause) do
       [] -> :ok
@@ -371,13 +368,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp qualify_identifier({:distinct, identifier}, column_table_map) do
     {:distinct, qualify_identifier(identifier, column_table_map)}
   end
-  defp qualify_identifier({:identifier, table, column} = identifier, column_table_map) do
-    case [table] -- Map.get(column_table_map, column, []) do
-      [] -> identifier
-      _ -> raise RuntimeAmbiguousIdentifier, message: "Column `#{column}` doesn't exist in table `#{table}`."
-    end
-  end
-  defp qualify_identifier(column, column_table_map) do
+  defp qualify_identifier({:identifier, :unknown, column}, column_table_map) do
     case Map.get(column_table_map, column) do
       [table] -> {:identifier, table, column}
       [_|_] -> raise RuntimeAmbiguousIdentifier, message: "Column `#{column}` is ambiguous."
@@ -393,6 +384,12 @@ defmodule Cloak.SqlQuery.Compiler do
             raise RuntimeAmbiguousIdentifier,
               message: "Column `#{column}` doesn't exist in any of the selected tables."
         end
+    end
+  end
+  defp qualify_identifier({:identifier, table, column} = identifier, column_table_map) do
+    case [table] -- Map.get(column_table_map, column, []) do
+      [] -> identifier
+      _ -> raise RuntimeAmbiguousIdentifier, message: "Column `#{column}` doesn't exist in table `#{table}`."
     end
   end
 

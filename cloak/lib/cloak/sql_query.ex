@@ -76,7 +76,6 @@ defmodule Cloak.SqlQuery do
   def full_column_name({:distinct, identifier}), do: full_column_name(identifier)
   def full_column_name({:identifier, table, column}), do: "#{table}.#{column}"
   def full_column_name(:*), do: "*"
-  def full_column_name(identifier) when is_binary(identifier), do: identifier
 
 
   # -------------------------------------------------------------------
@@ -86,5 +85,4 @@ defmodule Cloak.SqlQuery do
   def shallow_column_name({:function, function, _}), do: function
   def shallow_column_name({:distinct, identifier}), do: shallow_column_name(identifier)
   def shallow_column_name({:identifier, _table, column}), do: column
-  def shallow_column_name(identifier) when is_binary(identifier), do: identifier
 end
