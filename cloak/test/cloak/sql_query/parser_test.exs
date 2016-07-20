@@ -342,15 +342,15 @@ defmodule Cloak.SqlQuery.Parser.Test do
       """,
       select(
         columns: [
-          {:qualified, "table", "column"},
-          {:function, "count", {:qualified, "table", "column"}},
-          {:function, "count", {:distinct, {:qualified, "table", "column"}}}
+          {:identifier, "table", "column"},
+          {:function, "count", {:identifier, "table", "column"}},
+          {:function, "count", {:distinct, {:identifier, "table", "column"}}}
         ],
-        where: [{:comparison, {:qualified, "table", "column"}, :=, _}],
-        group_by: [{:qualified, "table", "column"}],
+        where: [{:comparison, {:identifier, "table", "column"}, :=, _}],
+        group_by: [{:identifier, "table", "column"}],
         order_by: [
-          {{:qualified, "table", "column"}, :desc},
-          {{:function, "count", {:distinct, {:qualified, "table", "column"}}}, :nil}
+          {{:identifier, "table", "column"}, :desc},
+          {{:function, "count", {:distinct, {:identifier, "table", "column"}}}, :nil}
         ]
       )
     )

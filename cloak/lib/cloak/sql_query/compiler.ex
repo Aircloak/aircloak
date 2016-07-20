@@ -43,7 +43,7 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec column_title(Parser.column) :: String.t
   def column_title({:function, function, identifier}), do: "#{function}(#{column_title(identifier)})"
   def column_title({:distinct, identifier}), do: "distinct #{column_title(identifier)}"
-  def column_title({:qualified, table, column}), do: "#{table}.#{column_title(column)}"
+  def column_title({:identifier, table, column}), do: "#{table}.#{column_title(column)}"
   def column_title(column), do: column
 
 
@@ -137,7 +137,7 @@ defmodule Cloak.SqlQuery.Compiler do
     |> Enum.map(&extract_identifier/1)
     |> Enum.reject(&(&1 == :*))
     |> Enum.map(fn
-      ({:qualified, table, _}) -> table
+      ({:identifier, table, _}) -> table
       (_) -> :drop
     end)
     |> Enum.reject(&(&1 == :drop))
@@ -185,7 +185,7 @@ defmodule Cloak.SqlQuery.Compiler do
       &(Enum.member?(available_columns, {&1, :integer}) or Enum.member?(available_columns, {&1, :real})))
     case invalid_columns do
       [] -> :ok
-      [{:qualified, table, invalid_column} | _rest] ->
+      [{:identifier, table, invalid_column} | _rest] ->
         {:error, ~s/Aggregation function used over non-numeric column `#{invalid_column}` from table `#{table}`./}
     end
   end
@@ -193,7 +193,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp verify_aggregated_columns(query) do
     case invalid_not_aggregated_columns(query) do
       [] -> :ok
-      [{:qualified, table, invalid_column} | _rest] ->
+      [{:identifier, table, invalid_column} | _rest] ->
         {
           :error,
           "Column `#{invalid_column}` from table `#{table}` needs to appear in the " <>
@@ -250,7 +250,7 @@ defmodule Cloak.SqlQuery.Compiler do
           {index, direction}
         end
         {:ok, %{query | order_by: order_list}}
-      [{{:qualified, table, field}, _direction} | _rest] ->
+      [{{:identifier, table, field}, _direction} | _rest] ->
         {:error, ~s/Non-selected field `#{field}` from table `#{table}` specified in `order by` clause./}
     end
   end
@@ -322,7 +322,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp columns(table, data_source) do
     table_id = String.to_existing_atom(table)
     for {name, type} <- DataSource.columns(data_source, table_id) do
-      {{:qualified, Atom.to_string(table_id), name}, type}
+      {{:identifier, Atom.to_string(table_id), name}, type}
     end
   end
 
@@ -357,7 +357,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp construct_column_table_map(%{from: from_clause, data_source: data_source}) do
     from_clause_to_tables(from_clause)
     |> Enum.flat_map(fn(table) ->
-      for {{:qualified, table, column}, _type} <- columns(table, data_source), do: {table, column}
+      for {{:identifier, table, column}, _type} <- columns(table, data_source), do: {table, column}
     end)
     |> Enum.reduce(%{}, fn({table, column}, acc) ->
       Map.update(acc, column, [table], &([table | &1]))
@@ -371,16 +371,16 @@ defmodule Cloak.SqlQuery.Compiler do
   defp qualify_identifier({:distinct, identifier}, column_table_map) do
     {:distinct, qualify_identifier(identifier, column_table_map)}
   end
-  defp qualify_identifier({:qualified, table, column} = identifier, column_table_map) do
+  defp qualify_identifier({:identifier, table, column} = identifier, column_table_map) do
     case [table] -- Map.get(column_table_map, column, []) do
       [] -> identifier
       _ -> raise RuntimeAmbiguousIdentifier, message: "Column `#{column}` doesn't exist in table `#{table}`."
     end
   end
-  defp qualify_identifier(identifier, column_table_map) do
-    case Map.get(column_table_map, identifier) do
-      [table] -> {:qualified, table, identifier}
-      [_|_] -> raise RuntimeAmbiguousIdentifier, message: "Column `#{identifier}` is ambiguous."
+  defp qualify_identifier(column, column_table_map) do
+    case Map.get(column_table_map, column) do
+      [table] -> {:identifier, table, column}
+      [_|_] -> raise RuntimeAmbiguousIdentifier, message: "Column `#{column}` is ambiguous."
       nil ->
         tables = Map.values(column_table_map)
         |> List.flatten()
@@ -388,10 +388,10 @@ defmodule Cloak.SqlQuery.Compiler do
         case tables do
           [table] ->
             raise RuntimeAmbiguousIdentifier,
-              message: "Column `#{identifier}` doesn't exist in table `#{table}`."
+              message: "Column `#{column}` doesn't exist in table `#{table}`."
           [_|_] ->
             raise RuntimeAmbiguousIdentifier,
-              message: "Column `#{identifier}` doesn't exist in any of the selected tables."
+              message: "Column `#{column}` doesn't exist in any of the selected tables."
         end
     end
   end
@@ -433,8 +433,8 @@ defmodule Cloak.SqlQuery.Compiler do
   defp rename_identifier({:distinct, identifier}, mapping) do
     {:distinct, rename_identifier(identifier, mapping)}
   end
-  defp rename_identifier({:qualified, table, column}, mapping) do
-    {:qualified, Map.get(mapping, table), column}
+  defp rename_identifier({:identifier, table, column}, mapping) do
+    {:identifier, Map.get(mapping, table), column}
   end
   defp rename_identifier({:function, function, identifier}, mapping) do
     {:function, function, rename_identifier(identifier, mapping)}

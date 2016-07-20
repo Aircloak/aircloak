@@ -151,7 +151,7 @@ defmodule Cloak.SqlQuery.Parser do
           identifier()
         ],
         fn
-          ([table, :".", column]) -> {:qualified, table, column}
+          ([table, :".", column]) -> {:identifier, table, column}
         end
       ),
       identifier()
