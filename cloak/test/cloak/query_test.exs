@@ -469,6 +469,8 @@ defmodule Cloak.QueryTest do
 
     assert_query "select height as h from heights group by h order by h",
       %{columns: ["h"], rows: [%{row: [170], occurrences: 1}, %{row: [180], occurrences: 1}]}
+    assert_query "select count(*) as c, count(height) as c from heights",
+      %{columns: ["c", "c"], rows: [%{row: [30, 30], occurrences: 1}]}
   end
 
   defp start_query(statement) do
