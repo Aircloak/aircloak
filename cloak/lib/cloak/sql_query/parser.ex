@@ -25,7 +25,7 @@ defmodule Cloak.SqlQuery.Parser do
 
   @type parsed_query :: %{
     command: :select | :show,
-    columns: [column],
+    columns: [column | {column, :as, String.t}] | :*,
     group_by: [String.t],
     from: String.t | {:subquery, String.t},
     where: [where_clause],
@@ -118,7 +118,7 @@ defmodule Cloak.SqlQuery.Parser do
   defp select_columns() do
     either(
       keyword(:*),
-      comma_delimited(column())
+      comma_delimited(select_column())
     ) |> map(&{:columns, &1})
     |> label("column definition")
   end
@@ -126,6 +126,19 @@ defmodule Cloak.SqlQuery.Parser do
   defp column() do
     either(function_expression(), identifier())
     |> label("column name or function")
+  end
+
+  defp select_column() do
+    pipe(
+      [
+        column(),
+        option(keyword(:as) |> identifier())
+      ],
+      fn
+        ([column, nil]) -> column
+        ([column, :as, name]) -> {column, :as, name}
+      end
+    )
   end
 
   defp function_expression() do

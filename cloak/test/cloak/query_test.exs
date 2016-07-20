@@ -444,6 +444,13 @@ defmodule Cloak.QueryTest do
     assert ~s/Cannot cast `0` to timestamp./ == error
   end
 
+  test "reports an error on ambigous usage of an identifier" do
+    assert_query "select count(*) as x, count(height) as x from heights order by x", %{error: error}
+    assert ~s/Usage of `x` is ambiguous./ == error
+    assert_query "select count(*) as height from heights order by height", %{error: error}
+    assert ~s/Usage of `height` is ambiguous./ == error
+  end
+
   test "query reports an error on runner crash" do
     ExUnit.CaptureLog.capture_log(fn ->
       assert_query :invalid_query_type, %{error: "Cloak error"}
@@ -454,6 +461,16 @@ defmodule Cloak.QueryTest do
     :db_test.clear_table("heights")
     assert_query "select height from heights", result
     assert %{query_id: "1", columns: ["height"], rows: []} = result
+  end
+
+  test "select with column alias" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+
+    assert_query "select height as h from heights group by h order by h",
+      %{columns: ["h"], rows: [%{row: [170], occurrences: 1}, %{row: [180], occurrences: 1}]}
+    assert_query "select count(*) as c, count(height) as c from heights",
+      %{columns: ["c", "c"], rows: [%{row: [30, 30], occurrences: 1}]}
   end
 
   defp start_query(statement) do

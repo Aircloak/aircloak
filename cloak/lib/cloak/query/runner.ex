@@ -62,7 +62,7 @@ defmodule Cloak.Query.Runner do
           |> Aggregator.aggregate(columns, select_query)
           |> Sorter.order(select_query)
 
-        {:ok, {:buckets, Cloak.SqlQuery.column_titles(select_query), buckets}}
+        {:ok, {:buckets, select_query.column_titles, buckets}}
       end
     rescue e in [RuntimeError] ->
       {:error, e.message}
