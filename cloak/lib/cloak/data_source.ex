@@ -179,7 +179,7 @@ defmodule Cloak.DataSource do
       from_clause_to_tables_with_ids(rhs, data_source)}
   end
   defp from_clause_to_tables_with_ids(table_name, data_source) do
-    {table_name, table} = Enum.find_value(data_source[:tables], fn({table_id, data}) ->
+    {table_name, table} = Enum.find_value(data_source.tables, fn({table_id, data}) ->
       backend_name = Map.get(data, :name, to_string(table_id))
       case backend_name == table_name or to_string(table_id) == table_name do
         true -> {backend_name, data}
