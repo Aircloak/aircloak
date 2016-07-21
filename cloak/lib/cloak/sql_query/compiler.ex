@@ -53,28 +53,44 @@ defmodule Cloak.SqlQuery.Compiler do
   # keep the remaining validations clean, and free from having to
   # consider the DS Proxy case.
   defp compile_prepped_query(%{command: :select, from: {:subquery, _}} = query) do
-    with :ok <- ds_proxy_validate_no_wildcard(query),
-         :ok <- ds_proxy_validate_no_where(query),
-         {:ok, query} <- compile_aliases(query),
-         :ok <- verify_aggregated_columns(query),
-         {:ok, query} <- compile_order_by(query),
-         query = partition_selected_columns(query),
-      do: {:ok, query}
+    try do
+      ds_proxy_validate_no_wildcard(query)
+      ds_proxy_validate_no_where(query)
+      query = compile_aliases(query)
+      verify_aggregated_columns(query)
+      query = query
+      |> compile_order_by()
+      |> partition_selected_columns()
+      {:ok, query}
+    rescue
+      e in RuntimeAmbiguousIdentifier -> {:error, e.message}
+    end
   end
-  defp compile_prepped_query(%{command: :show} = query), do: compile_from(query)
+  defp compile_prepped_query(%{command: :show} = query) do
+    try do
+      {:ok, compile_from(query)}
+    rescue
+      e in RuntimeAmbiguousIdentifier -> {:error, e.message}
+    end
+  end
   defp compile_prepped_query(query) do
-    with {:ok, query} <- compile_from(query),
-         query = expand_star_select(query),
-         {:ok, query} <- compile_aliases(query),
-         :ok <- validate_all_requested_tables_are_selected(query),
-         {:ok, query} <- qualify_all_identifiers(query),
-         {:ok, query} <- compile_columns(query),
-         {:ok, query} <- compile_order_by(query),
-         {:ok, query} <- cast_where_clauses(query),
-         query = use_database_internal_table_names(query),
-         query = partition_selected_columns(query),
-         query = partition_where_clauses(query),
-      do: {:ok, query}
+    try do
+      query = query
+      |> compile_from()
+      |> expand_star_select()
+      |> compile_aliases()
+      |> validate_all_requested_tables_are_selected()
+      |> qualify_all_identifiers()
+      |> compile_columns()
+      |> compile_order_by()
+      |> cast_where_clauses()
+      |> use_database_internal_table_names()
+      |> partition_selected_columns()
+      |> partition_where_clauses()
+      {:ok, query}
+    rescue
+      e in RuntimeAmbiguousIdentifier -> {:error, e.message}
+    end
   end
 
 
@@ -83,13 +99,15 @@ defmodule Cloak.SqlQuery.Compiler do
   # -------------------------------------------------------------------
 
   defp ds_proxy_validate_no_wildcard(%{command: :select, columns: :*}) do
-    {:error, "Unfortunately wildcard selects are not supported together with subselects"}
+    raise RuntimeAmbiguousIdentifier,
+      message: "Unfortunately wildcard selects are not supported together with subselects"
   end
   defp ds_proxy_validate_no_wildcard(_), do: :ok
 
   defp ds_proxy_validate_no_where(%{where: []}), do: :ok
   defp ds_proxy_validate_no_where(_) do
-    {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery"}
+    raise RuntimeAmbiguousIdentifier,
+      message: "WHERE-clause in outer SELECT is not allowed in combination with a subquery"
   end
 
 
@@ -101,34 +119,33 @@ defmodule Cloak.SqlQuery.Compiler do
     tables = Enum.map(DataSource.tables(data_source), &Atom.to_string/1)
     selected_tables = from_clause_to_tables(from_clause)
     case selected_tables -- tables do
-      [] -> {:ok, query}
-      [table | _] -> {:error, ~s/Table `#{table}` doesn't exist./}
+      [] -> query
+      [table | _] -> raise RuntimeAmbiguousIdentifier, message: "Table `#{table}` doesn't exist."
     end
   end
-  defp compile_from(query), do: {:ok, query}
+  defp compile_from(query), do: query
 
   defp from_clause_to_tables({:cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
   defp from_clause_to_tables(table), do: [table]
 
   defp compile_aliases(%{columns: [_|_] = columns} = query) do
-    with :ok <- verify_aliases(query) do
-      column_titles = Enum.map(columns, fn
-        ({_column, :as, name}) -> name
-        (column) -> column_title(column)
-      end)
-      aliases = (for {column, :as, name} <- columns, do: {name, column}) |> Enum.into(%{})
-      columns = Enum.map(columns, fn
-        ({column, :as, _name}) -> column
-        (column) -> column
-      end)
-      order_by = for {identifier, direction} <- query.order_by do
-        {replace_alias(identifier, aliases), direction}
-      end
-      group_by = for identifier <- query.group_by, do: replace_alias(identifier, aliases)
-      {:ok, %{query | column_titles: column_titles, columns: columns, group_by: group_by, order_by: order_by}}
+    verify_aliases(query)
+    column_titles = Enum.map(columns, fn
+      ({_column, :as, name}) -> name
+      (column) -> column_title(column)
+    end)
+    aliases = (for {column, :as, name} <- columns, do: {name, column}) |> Enum.into(%{})
+    columns = Enum.map(columns, fn
+      ({column, :as, _name}) -> column
+      (column) -> column
+    end)
+    order_by = for {identifier, direction} <- query.order_by do
+      {replace_alias(identifier, aliases), direction}
     end
+    group_by = for identifier <- query.group_by, do: replace_alias(identifier, aliases)
+    %{query | column_titles: column_titles, columns: columns, group_by: group_by, order_by: order_by}
   end
-  defp compile_aliases(query), do: {:ok, query}
+  defp compile_aliases(query), do: query
 
   defp replace_alias(:*, _mapping), do: :*
   defp replace_alias({:function, function, identifier}, mapping) do
@@ -151,7 +168,7 @@ defmodule Cloak.SqlQuery.Compiler do
     ambiguous_names = for name <- referenced_names, Enum.count(existing_names, &name == &1) > 1, do: name
     case ambiguous_names do
       [] -> :ok
-      [name | _rest] -> {:error, "Usage of `#{name}` is ambiguous."}
+      [name | _rest] -> raise RuntimeAmbiguousIdentifier, message: "Usage of `#{name}` is ambiguous."
     end
   end
 
@@ -182,8 +199,8 @@ defmodule Cloak.SqlQuery.Compiler do
     |> Enum.reject(&(&1 == :unknown))
     |> Enum.uniq()
     case referenced_tables -- from_clause_to_tables(from_clause) do
-      [] -> :ok
-      [table | _] -> {:error, ~s/Missing FROM clause entry for table `#{table}`/}
+      [] -> query
+      [table | _] -> raise RuntimeAmbiguousIdentifier, message: ~s/Missing FROM clause entry for table `#{table}`/
     end
   end
 
@@ -210,14 +227,14 @@ defmodule Cloak.SqlQuery.Compiler do
   defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
 
   defp compile_columns(query) do
-    available_columns = all_available_columns(query)
-    with :ok <- verify_aggregated_columns(query),
-         :ok <- verify_functions(query),
-         :ok <- verify_function_parameters(query, available_columns),
-      do: {:ok, query}
+    verify_aggregated_columns(query)
+    verify_functions(query)
+    verify_function_parameters(query)
+    query
   end
 
-  defp verify_function_parameters(query, available_columns) do
+  defp verify_function_parameters(query) do
+    available_columns = all_available_columns(query)
     aggregated_columns = for {:function, _, _} = column <- query.columns,
       numeric_aggregate_function?(column), do: select_clause_to_identifier(column)
     invalid_columns = Enum.reject(aggregated_columns,
@@ -225,7 +242,8 @@ defmodule Cloak.SqlQuery.Compiler do
     case invalid_columns do
       [] -> :ok
       [{:identifier, table, invalid_column} | _rest] ->
-        {:error, ~s/Aggregation function used over non-numeric column `#{invalid_column}` from table `#{table}`./}
+        raise RuntimeAmbiguousIdentifier, message: "Aggregation function used over non-numeric " <>
+          "column `#{invalid_column}` from table `#{table}`."
     end
   end
 
@@ -233,11 +251,8 @@ defmodule Cloak.SqlQuery.Compiler do
     case invalid_not_aggregated_columns(query) do
       [] -> :ok
       [{:identifier, table, invalid_column} | _rest] ->
-        {
-          :error,
-          "Column `#{invalid_column}` from table `#{table}` needs to appear in the " <>
-            "`group by` clause or be used in an aggregate function."
-        }
+        raise RuntimeAmbiguousIdentifier, message: "Column `#{invalid_column}` from table `#{table}` needs " <>
+          "to appear in the `group by` clause or be used in an aggregate function."
     end
   end
 
@@ -247,7 +262,7 @@ defmodule Cloak.SqlQuery.Compiler do
     case invalid_functions do
       [] -> :ok
       [invalid_function | _rest] ->
-        {:error, ~s/Unknown function `#{invalid_function}`./}
+        raise RuntimeAmbiguousIdentifier, message: ~s/Unknown function `#{invalid_function}`./
     end
   end
 
@@ -274,7 +289,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp partition_selected_columns(query), do: query
 
-  defp compile_order_by(%{order_by: []} = query), do: {:ok, query}
+  defp compile_order_by(%{order_by: []} = query), do: query
   defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
     column_table_map = construct_column_table_map(query)
     qualified_columns = Enum.map(columns, &qualify_identifier(&1, column_table_map))
@@ -288,9 +303,10 @@ defmodule Cloak.SqlQuery.Compiler do
           index = qualified_columns |> Enum.find_index(&(&1 == qualified_column))
           {index, direction}
         end
-        {:ok, %{query | order_by: order_list}}
+        %{query | order_by: order_list}
       [{{:identifier, table, field}, _direction} | _rest] ->
-        {:error, ~s/Non-selected field `#{field}` from table `#{table}` specified in `order by` clause./}
+        raise RuntimeAmbiguousIdentifier, message: "Non-selected field `#{field}` from table `#{table}` " <>
+          "specified in `order by` clause."
     end
   end
 
@@ -308,12 +324,9 @@ defmodule Cloak.SqlQuery.Compiler do
   defp partition_where_clauses(query), do: query
 
   defp cast_where_clauses(%{where: [_|_] = clauses} = query) do
-    case error_map(clauses, &cast_where_clause(&1, query)) do
-      {:ok, result} -> {:ok, %{query | where: result}}
-      error -> error
-    end
+    %{query | where: Enum.map(clauses, &cast_where_clause(&1, query))}
   end
-  defp cast_where_clauses(query), do: {:ok, query}
+  defp cast_where_clauses(query), do: query
 
   defp cast_where_clause(clause, query) do
     column = where_clause_to_identifier(clause)
@@ -322,35 +335,28 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp do_cast_where_clause({:not, subclause}, type) do
-    case do_cast_where_clause(subclause, type) do
-      {:ok, result} -> {:ok, {:not, result}}
-      error -> error
-    end
+    {:not, do_cast_where_clause(subclause, type)}
   end
   defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, :timestamp) do
-    case parse_time(rhs) do
-      {:ok, time} -> {:ok, {:comparison, identifier, comparator, time}}
-      error -> error
-    end
+    {:comparison, identifier, comparator, parse_time(rhs)}
   end
   defp do_cast_where_clause({:in, column, values}, :timestamp) do
-    case error_map(values, &parse_time/1) do
-      {:ok, times} -> {:ok, {:in, column, times}}
-      error -> error
-    end
+    {:in, column, Enum.map(values, &parse_time/1)}
   end
-  defp do_cast_where_clause(clause, _), do: {:ok, clause}
+  defp do_cast_where_clause(clause, _), do: clause
 
   defp parse_time(%Token{category: :constant, value: %{type: :string, value: string}}) do
     case Timex.parse(string, "{ISO}") do
-      {:ok, value} -> {:ok, value}
+      {:ok, value} -> value
       _ -> case Timex.parse(string, "{ISOdate}") do
-        {:ok, value} -> {:ok, value}
-        _ -> {:error, "Cannot cast `#{string}` to timestamp."}
+        {:ok, value} -> value
+        _ -> raise RuntimeAmbiguousIdentifier, message: "Cannot cast `#{string}` to timestamp."
       end
     end
   end
-  defp parse_time(%Token{value: %{value: value}}), do: {:error, "Cannot cast `#{value}` to timestamp."}
+  defp parse_time(%Token{value: %{value: value}}) do
+    raise RuntimeAmbiguousIdentifier, message: "Cannot cast `#{value}` to timestamp."
+  end
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
   defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
@@ -365,32 +371,17 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp error_map(xs, fun) do
-    result = Enum.map(xs, fun)
-
-    case Enum.find(result, &match?({:error, _}, &1)) do
-      {:error, error} -> {:error, error}
-      _ -> {:ok, Enum.map(result, fn({:ok, x}) -> x end)}
-    end
-  end
-
   defp qualify_all_identifiers(query) do
     column_table_map = construct_column_table_map(query)
-    try do
-      query = %{query |
-        columns: Enum.map(query.columns, &(qualify_identifier(&1, column_table_map))),
-        group_by: Enum.map(query.group_by, &(qualify_identifier(&1, column_table_map))),
-        where: Enum.map(query.where, &(qualify_where_clause(&1, column_table_map))),
-        where_not: Enum.map(query.where_not, &(qualify_where_clause(&1, column_table_map))),
-        order_by: Enum.map(query.order_by, fn({identifier, direction}) ->
-          {qualify_identifier(identifier, column_table_map), direction}
-        end)
-      }
-      {:ok, query}
-    rescue
-      e in RuntimeAmbiguousIdentifier ->
-        {:error, e.message}
-    end
+    %{query |
+      columns: Enum.map(query.columns, &(qualify_identifier(&1, column_table_map))),
+      group_by: Enum.map(query.group_by, &(qualify_identifier(&1, column_table_map))),
+      where: Enum.map(query.where, &(qualify_where_clause(&1, column_table_map))),
+      where_not: Enum.map(query.where_not, &(qualify_where_clause(&1, column_table_map))),
+      order_by: Enum.map(query.order_by, fn({identifier, direction}) ->
+        {qualify_identifier(identifier, column_table_map), direction}
+      end)
+    }
   end
 
   defp construct_column_table_map(%{from: from_clause, data_source: data_source}) do
