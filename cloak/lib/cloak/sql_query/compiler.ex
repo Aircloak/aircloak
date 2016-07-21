@@ -22,9 +22,9 @@ defmodule Cloak.SqlQuery.Compiler do
     show: :tables | :columns
   }
 
-  defmodule RuntimeAmbiguousIdentifier do
+  defmodule CompilationError do
     @moduledoc false
-    defexception message: "Ambiguous identifier"
+    defexception message: "Error during compiling query"
   end
 
 
@@ -63,14 +63,14 @@ defmodule Cloak.SqlQuery.Compiler do
       |> partition_selected_columns()
       {:ok, query}
     rescue
-      e in RuntimeAmbiguousIdentifier -> {:error, e.message}
+      e in CompilationError -> {:error, e.message}
     end
   end
   defp compile_prepped_query(%{command: :show} = query) do
     try do
       {:ok, compile_from(query)}
     rescue
-      e in RuntimeAmbiguousIdentifier -> {:error, e.message}
+      e in CompilationError -> {:error, e.message}
     end
   end
   defp compile_prepped_query(query) do
@@ -89,7 +89,7 @@ defmodule Cloak.SqlQuery.Compiler do
       |> partition_where_clauses()
       {:ok, query}
     rescue
-      e in RuntimeAmbiguousIdentifier -> {:error, e.message}
+      e in CompilationError -> {:error, e.message}
     end
   end
 
@@ -99,15 +99,13 @@ defmodule Cloak.SqlQuery.Compiler do
   # -------------------------------------------------------------------
 
   defp ds_proxy_validate_no_wildcard(%{command: :select, columns: :*}) do
-    raise RuntimeAmbiguousIdentifier,
-      message: "Unfortunately wildcard selects are not supported together with subselects"
+    raise CompilationError, message: "Unfortunately wildcard selects are not supported together with subselects"
   end
   defp ds_proxy_validate_no_wildcard(_), do: :ok
 
   defp ds_proxy_validate_no_where(%{where: []}), do: :ok
   defp ds_proxy_validate_no_where(_) do
-    raise RuntimeAmbiguousIdentifier,
-      message: "WHERE-clause in outer SELECT is not allowed in combination with a subquery"
+    raise CompilationError, message: "WHERE-clause in outer SELECT is not allowed in combination with a subquery"
   end
 
 
@@ -120,7 +118,7 @@ defmodule Cloak.SqlQuery.Compiler do
     selected_tables = from_clause_to_tables(from_clause)
     case selected_tables -- tables do
       [] -> query
-      [table | _] -> raise RuntimeAmbiguousIdentifier, message: "Table `#{table}` doesn't exist."
+      [table | _] -> raise CompilationError, message: "Table `#{table}` doesn't exist."
     end
   end
   defp compile_from(query), do: query
@@ -168,7 +166,7 @@ defmodule Cloak.SqlQuery.Compiler do
     ambiguous_names = for name <- referenced_names, Enum.count(existing_names, &name == &1) > 1, do: name
     case ambiguous_names do
       [] -> :ok
-      [name | _rest] -> raise RuntimeAmbiguousIdentifier, message: "Usage of `#{name}` is ambiguous."
+      [name | _rest] -> raise CompilationError, message: "Usage of `#{name}` is ambiguous."
     end
   end
 
@@ -200,7 +198,7 @@ defmodule Cloak.SqlQuery.Compiler do
     |> Enum.uniq()
     case referenced_tables -- from_clause_to_tables(from_clause) do
       [] -> query
-      [table | _] -> raise RuntimeAmbiguousIdentifier, message: ~s/Missing FROM clause entry for table `#{table}`/
+      [table | _] -> raise CompilationError, message: ~s/Missing FROM clause entry for table `#{table}`/
     end
   end
 
@@ -242,7 +240,7 @@ defmodule Cloak.SqlQuery.Compiler do
     case invalid_columns do
       [] -> :ok
       [{:identifier, table, invalid_column} | _rest] ->
-        raise RuntimeAmbiguousIdentifier, message: "Aggregation function used over non-numeric " <>
+        raise CompilationError, message: "Aggregation function used over non-numeric " <>
           "column `#{invalid_column}` from table `#{table}`."
     end
   end
@@ -251,7 +249,7 @@ defmodule Cloak.SqlQuery.Compiler do
     case invalid_not_aggregated_columns(query) do
       [] -> :ok
       [{:identifier, table, invalid_column} | _rest] ->
-        raise RuntimeAmbiguousIdentifier, message: "Column `#{invalid_column}` from table `#{table}` needs " <>
+        raise CompilationError, message: "Column `#{invalid_column}` from table `#{table}` needs " <>
           "to appear in the `group by` clause or be used in an aggregate function."
     end
   end
@@ -262,7 +260,7 @@ defmodule Cloak.SqlQuery.Compiler do
     case invalid_functions do
       [] -> :ok
       [invalid_function | _rest] ->
-        raise RuntimeAmbiguousIdentifier, message: ~s/Unknown function `#{invalid_function}`./
+        raise CompilationError, message: ~s/Unknown function `#{invalid_function}`./
     end
   end
 
@@ -305,7 +303,7 @@ defmodule Cloak.SqlQuery.Compiler do
         end
         %{query | order_by: order_list}
       [{{:identifier, table, field}, _direction} | _rest] ->
-        raise RuntimeAmbiguousIdentifier, message: "Non-selected field `#{field}` from table `#{table}` " <>
+        raise CompilationError, message: "Non-selected field `#{field}` from table `#{table}` " <>
           "specified in `order by` clause."
     end
   end
@@ -350,12 +348,12 @@ defmodule Cloak.SqlQuery.Compiler do
       {:ok, value} -> value
       _ -> case Timex.parse(string, "{ISOdate}") do
         {:ok, value} -> value
-        _ -> raise RuntimeAmbiguousIdentifier, message: "Cannot cast `#{string}` to timestamp."
+        _ -> raise CompilationError, message: "Cannot cast `#{string}` to timestamp."
       end
     end
   end
   defp parse_time(%Token{value: %{value: value}}) do
-    raise RuntimeAmbiguousIdentifier, message: "Cannot cast `#{value}` to timestamp."
+    raise CompilationError, message: "Cannot cast `#{value}` to timestamp."
   end
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
@@ -404,25 +402,21 @@ defmodule Cloak.SqlQuery.Compiler do
   defp qualify_identifier({:identifier, :unknown, column}, column_table_map) do
     case Map.get(column_table_map, column) do
       [table] -> {:identifier, table, column}
-      [_|_] -> raise RuntimeAmbiguousIdentifier, message: "Column `#{column}` is ambiguous."
+      [_|_] -> raise CompilationError, message: "Column `#{column}` is ambiguous."
       nil ->
         tables = Map.values(column_table_map)
         |> List.flatten()
         |> Enum.uniq()
         case tables do
-          [table] ->
-            raise RuntimeAmbiguousIdentifier,
-              message: "Column `#{column}` doesn't exist in table `#{table}`."
-          [_|_] ->
-            raise RuntimeAmbiguousIdentifier,
-              message: "Column `#{column}` doesn't exist in any of the selected tables."
+          [table] -> raise CompilationError, message: "Column `#{column}` doesn't exist in table `#{table}`."
+          [_|_] -> raise CompilationError, message: "Column `#{column}` doesn't exist in any of the selected tables."
         end
     end
   end
   defp qualify_identifier({:identifier, table, column} = identifier, column_table_map) do
     case [table] -- Map.get(column_table_map, column, []) do
       [] -> identifier
-      _ -> raise RuntimeAmbiguousIdentifier, message: "Column `#{column}` doesn't exist in table `#{table}`."
+      _ -> raise CompilationError, message: "Column `#{column}` doesn't exist in table `#{table}`."
     end
   end
 
