@@ -26,6 +26,8 @@ defmodule Cloak.DataSourceTest do
       columns: [{:identifier, "test", "value"}],
       unsafe_filter_columns: [],
       where: [],
+      group_by: [],
+      data_source: local_data_source(),
       from: "test"
     })
 

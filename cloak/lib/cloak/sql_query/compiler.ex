@@ -84,7 +84,6 @@ defmodule Cloak.SqlQuery.Compiler do
       |> compile_columns()
       |> compile_order_by()
       |> cast_where_clauses()
-      |> use_database_internal_table_names()
       |> partition_selected_columns()
       |> partition_where_clauses()
       {:ok, query}
@@ -431,50 +430,6 @@ defmodule Cloak.SqlQuery.Compiler do
       {unquote(keyword), qualify_identifier(identifier, column_table_map), any}
     end
   end)
-
-  defp use_database_internal_table_names(query) do
-    table_name_mapping = query.data_source.tables
-    |> Enum.map(fn({table_id, data}) -> {to_string(table_id), to_string(Map.get(data, :name, table_id))} end)
-    |> Enum.into(%{})
-    %{query |
-      from: rename_from_clause(query.from, table_name_mapping),
-      columns: rename_identifiers(query.columns, table_name_mapping),
-      group_by: rename_identifiers(query.group_by, table_name_mapping),
-      where: rename_where_identifiers(query.where, table_name_mapping)
-    }
-  end
-
-  defp rename_from_clause({:cross_join, lhs, rhs}, mapping) do
-    {:cross_join, rename_from_clause(lhs, mapping), rename_from_clause(rhs, mapping)}
-  end
-  defp rename_from_clause(table, mapping), do: Map.get(mapping, table)
-
-  defp rename_identifiers(identifiers, mapping), do: Enum.map(identifiers, &rename_identifier(&1, mapping))
-
-  defp rename_identifier(:*, _mapping), do: :*
-  defp rename_identifier({:distinct, identifier}, mapping) do
-    {:distinct, rename_identifier(identifier, mapping)}
-  end
-  defp rename_identifier({:identifier, table, column}, mapping) do
-    {:identifier, Map.get(mapping, table), column}
-  end
-  defp rename_identifier({:function, function, identifier}, mapping) do
-    {:function, function, rename_identifier(identifier, mapping)}
-  end
-
-  defp rename_where_identifiers(where_clauses, mapping) do
-    Enum.map(where_clauses, &(rename_where_identifier(&1, mapping)))
-  end
-
-  defp rename_where_identifier({some_comparison, identifier, something}, mapping) do
-    {some_comparison, rename_identifier(identifier, mapping), something}
-  end
-  defp rename_where_identifier({:not, comparison}, mapping) do
-    {:not, rename_where_identifier(comparison, mapping)}
-  end
-  defp rename_where_identifier({:comparison, identifier, comparison, rhs}, mapping) do
-    {:comparison, rename_identifier(identifier, mapping), comparison, rhs}
-  end
 
   def column_title({:function, function, _}), do: function
   def column_title({:distinct, identifier}), do: column_title(identifier)

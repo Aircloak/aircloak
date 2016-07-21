@@ -19,8 +19,13 @@ defmodule Cloak.SqlQuery.Builder do
   @spec build(Cloak.SqlQuery.t) :: query_spec
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
   def build(query) do
+    cloak_column_names = Cloak.SqlQuery.db_columns(query)
+    query = use_database_internal_table_names(query)
+    db_column_names = Cloak.SqlQuery.db_columns(query)
+    select_column_names = Enum.zip(db_column_names, cloak_column_names)
+
     fragments_to_query_spec([
-      "SELECT ", columns_string(query), " ",
+      "SELECT ", columns_string(select_column_names), " ",
       "FROM ", from_clause(query.from), " ",
       where_fragments(augment_where_with_join_conditions(query[:where], query.from))
     ])
@@ -31,18 +36,17 @@ defmodule Cloak.SqlQuery.Builder do
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
 
-  defp columns_string(query) do
-    query
-    |> Cloak.SqlQuery.db_columns()
+  defp columns_string(column_names) do
+    column_names
     |> Enum.map(&column_expression/1)
     |> Enum.join(",")
   end
 
-  defp column_expression(column_name) do
-    if column_name == Cloak.SqlQuery.count_all_column() do
-      "NULL AS #{column_name}"
+  defp column_expression({db_column_name, cloak_column_name}) do
+    if db_column_name == Cloak.SqlQuery.count_all_column() do
+      "NULL AS #{cloak_column_name}"
     else
-      "#{column_name} AS \"#{column_name}\""
+      "#{db_column_name} AS \"#{cloak_column_name}\""
     end
   end
 
@@ -128,4 +132,46 @@ defmodule Cloak.SqlQuery.Builder do
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]
   defp join([first | rest], joiner), do: [first, joiner, join(rest, joiner)]
+
+  defp use_database_internal_table_names(query) do
+    table_name_mapping = query.data_source.tables
+    |> Enum.map(fn({table_id, data}) -> {to_string(table_id), to_string(Map.get(data, :name, table_id))} end)
+    |> Enum.into(%{})
+    query = %{query |
+      columns: rename_identifiers(query.columns, table_name_mapping),
+      group_by: rename_identifiers(query.group_by, table_name_mapping),
+      where: rename_where_identifiers(query.where, table_name_mapping)
+    }
+    query
+  end
+
+  defp rename_identifiers(identifiers, mapping), do: Enum.map(identifiers, &rename_identifier(&1, mapping))
+
+  defp rename_identifier(:*, _mapping), do: :*
+  defp rename_identifier({:distinct, identifier}, mapping) do
+    {:distinct, rename_identifier(identifier, mapping)}
+  end
+  defp rename_identifier({:identifier, table, column} = identifier, mapping) do
+    case Map.get(mapping, table) do
+      nil -> identifier
+      table -> {:identifier, table, column}
+    end
+  end
+  defp rename_identifier({:function, function, identifier}, mapping) do
+    {:function, function, rename_identifier(identifier, mapping)}
+  end
+
+  defp rename_where_identifiers(where_clauses, mapping) do
+    Enum.map(where_clauses, &(rename_where_identifier(&1, mapping)))
+  end
+
+  defp rename_where_identifier({some_comparison, identifier, something}, mapping) do
+    {some_comparison, rename_identifier(identifier, mapping), something}
+  end
+  defp rename_where_identifier({:not, comparison}, mapping) do
+    {:not, rename_where_identifier(comparison, mapping)}
+  end
+  defp rename_where_identifier({:comparison, identifier, comparison, rhs}, mapping) do
+    {:comparison, rename_identifier(identifier, mapping), comparison, rhs}
+  end
 end

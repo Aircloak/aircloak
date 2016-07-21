@@ -48,7 +48,7 @@ defmodule Cloak.SqlQuery do
   """
   @spec db_columns(t) :: [String.t]
   def db_columns(query) do
-    (query.columns ++ Map.get(query, :group_by, []) ++ query.unsafe_filter_columns)
+    (query.columns ++ query.group_by ++ query.unsafe_filter_columns)
     |> Enum.map(&full_column_name/1)
     |> Enum.uniq()
   end
