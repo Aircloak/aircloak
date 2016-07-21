@@ -451,7 +451,7 @@ defmodule Cloak.SqlQuery.Compiler do
     Map.get(mapping, table)
   end
 
-  defp rename_identifiers(identifiers, mapping), do: Enum.map(identifiers, &(rename_identifier(&1, mapping)))
+  defp rename_identifiers(identifiers, mapping), do: Enum.map(identifiers, &rename_identifier(&1, mapping))
 
   defp rename_identifier(:*, _mapping), do: :*
   defp rename_identifier({:distinct, identifier}, mapping) do
