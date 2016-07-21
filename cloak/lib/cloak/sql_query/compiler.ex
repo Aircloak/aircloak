@@ -131,26 +131,16 @@ defmodule Cloak.SqlQuery.Compiler do
       ({_column, :as, name}) -> name
       (column) -> column_title(column)
     end)
-    aliases = (for {column, :as, name} <- columns, do: {name, column}) |> Enum.into(%{})
+    aliases = (for {column, :as, name} <- columns, do: {{:identifier, :unknown, name}, column}) |> Enum.into(%{})
     columns = Enum.map(columns, fn
       ({column, :as, _name}) -> column
       (column) -> column
     end)
-    order_by = for {identifier, direction} <- query.order_by do
-      {replace_alias(identifier, aliases), direction}
-    end
-    group_by = for identifier <- query.group_by, do: replace_alias(identifier, aliases)
+    order_by = for {column, direction} <- query.order_by, do: {Map.get(aliases, column, column), direction}
+    group_by = for identifier <- query.group_by, do: Map.get(aliases, identifier, identifier)
     %{query | column_titles: column_titles, columns: columns, group_by: group_by, order_by: order_by}
   end
   defp compile_aliases(query), do: query
-
-  defp replace_alias(:*, _mapping), do: :*
-  defp replace_alias({:function, function, identifier}, mapping) do
-    {:function, function, replace_alias(identifier, mapping)}
-  end
-  defp replace_alias({:identifier, _, column_maybe_alias} = identifier, mapping) do
-    Map.get(mapping, column_maybe_alias, identifier)
-  end
 
   # Subqueries can produce column-names that are not actually in the table. Without understanding what
   # is being produced by the subquery (currently it is being treated as a blackbox), we cannot validate
