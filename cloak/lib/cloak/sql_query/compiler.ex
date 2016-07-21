@@ -413,9 +413,9 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
   defp qualify_identifier({:identifier, table, column} = identifier, column_table_map) do
-    case [table] -- Map.get(column_table_map, column, []) do
-      [] -> identifier
-      _ -> raise CompilationError, message: "Column `#{column}` doesn't exist in table `#{table}`."
+    case Enum.member?(Map.get(column_table_map, column, []), table) do
+      true -> identifier
+      false -> raise CompilationError, message: "Column `#{column}` doesn't exist in table `#{table}`."
     end
   end
 
