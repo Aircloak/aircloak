@@ -1,5 +1,5 @@
 defmodule Cloak.SqlQuery do
-  @moduledoc "Handles representing and creating SQL queries in structured form."
+  @moduledoc "Handles representing and creating SQL query abstract syntax trees."
 
   @type t :: Compiler.compiled_query
 
@@ -8,14 +8,21 @@ defmodule Cloak.SqlQuery do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Transforms a string into a structured SQL query ready for execution. Raises on error."
+  @doc """
+  Transforms the analyst provided SQL query from a string format into an abstract syntax tree format.
+  This AST can later be used to execute the query against the data store.
+  Raises on error.
+  """
   @spec make!(atom, String.t) :: t
   def make!(data_source, string) do
     {:ok, query} = make(data_source, string)
     query
   end
 
-  @doc "Transforms a string into a structured SQL query ready for execution."
+  @doc """
+  Transforms the analyst provided SQL query from a string format into an abstract syntax tree format.
+  This AST can later be used to execute the query against the data store.
+  """
   @spec make(atom, String.t) :: {:ok, t} | {:error, String.t}
   def make(data_source, string) do
     with {:ok, parsed_query} <- Cloak.SqlQuery.Parser.parse(string) do
@@ -41,8 +48,8 @@ defmodule Cloak.SqlQuery do
   """
   @spec db_columns(t) :: [String.t]
   def db_columns(query) do
-    (query.columns ++ Map.get(query, :group_by, []) ++ query.unsafe_filter_columns)
-    |> Enum.map(&column_name/1)
+    (query.columns ++ query.group_by ++ query.unsafe_filter_columns)
+    |> Enum.map(&full_column_name/1)
     |> Enum.uniq()
   end
 
@@ -56,13 +63,15 @@ defmodule Cloak.SqlQuery do
   @spec count_all_column() :: String.t
   def count_all_column(), do: "ac_count_all_placeholder"
 
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp column_name({:function, "count", :*}), do: count_all_column()
-  defp column_name({:function, _function, identifier}), do: column_name(identifier)
-  defp column_name({:distinct, identifier}), do: column_name(identifier)
-  defp column_name(column) when is_binary(column), do: column
+  @doc "Converts a column identifier into a printable name"
+  @spec full_column_name(Cloak.SqlQuery.Parser.column) :: String.t | :*
+  def full_column_name({:function, "count", :*}), do: count_all_column()
+  def full_column_name({:function, _function, identifier}), do: full_column_name(identifier)
+  def full_column_name({:distinct, identifier}), do: full_column_name(identifier)
+  # This case is needed for DS Proxy. We can't qualify the identifiers when
+  # we don't know what tables are part of the select, therefore we have to
+  # pass through unknown tables, and drop them from the names here.
+  def full_column_name({:identifier, :unknown, column}), do: column
+  def full_column_name({:identifier, table, column}), do: "#{table}.#{column}"
+  def full_column_name(:*), do: "*"
 end

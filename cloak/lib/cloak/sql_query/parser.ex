@@ -10,7 +10,12 @@ defmodule Cloak.SqlQuery.Parser do
     | :>=
     | :>
 
-  @type column :: String.t | {:function, String.t, String.t | :*}
+  @type qualified_identifier :: {:identifier, :unknown | String.t, String.t}
+
+  @type column ::
+      qualified_identifier
+    | {:distinct, qualified_identifier}
+    | {:function, String.t, qualified_identifier | :* | {:distinct, qualified_identifier}}
 
   @type like :: {:like | :ilike, String.t, String.t}
   @type is :: {:is, String.t, :null}
@@ -124,7 +129,7 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp column() do
-    either(function_expression(), identifier())
+    either(function_expression(), qualified_identifier())
     |> label("column name or function")
   end
 
@@ -146,7 +151,7 @@ defmodule Cloak.SqlQuery.Parser do
       [
         identifier(),
         keyword(:"("),
-        choice([identifier(), distinct_identifier(), keyword(:*)]),
+        choice([qualified_identifier(), distinct_identifier(), keyword(:*)]),
         keyword(:")")
       ],
       fn
@@ -155,8 +160,27 @@ defmodule Cloak.SqlQuery.Parser do
     )
   end
 
+  defp qualified_identifier() do
+    map(
+      either(
+        sequence(
+          [
+            identifier(),
+            keyword(:"."),
+            identifier()
+          ]
+        ),
+        identifier()
+      ),
+      fn
+        ([table, :".", column]) -> {:identifier, table, column}
+        (column) -> {:identifier, :unknown, column}
+      end
+    )
+  end
+
   defp distinct_identifier() do
-    pair_both(keyword(:distinct), identifier())
+    pair_both(keyword(:distinct), qualified_identifier())
   end
 
   defp from() do
@@ -169,12 +193,24 @@ defmodule Cloak.SqlQuery.Parser do
   defp from_expression() do
     switch([
       {keyword(:"(") |> map(fn(_) -> :subquery end), subquery()},
-      {:else, either(table_with_schema(), identifier()) |> label("table name")}
+      {:else, table_selection()}
     ])
     |> map(fn
           {[:subquery], [[from, to]]} -> {:subquery, from, to}
           other -> other
         end)
+  end
+
+  defp table_selection() do
+    map(
+      comma_delimited(either(table_with_schema(), identifier())),
+      &turn_tables_into_join/1
+    ) |> label("table name")
+  end
+
+  defp turn_tables_into_join([table]), do: table
+  defp turn_tables_into_join([table | tables]) do
+    {:cross_join, table, turn_tables_into_join(tables)}
   end
 
   defp subquery() do
@@ -221,10 +257,10 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp where_expression() do
     switch([
-      {identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
-      {identifier() |> keyword(:in), in_values()},
-      {identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
-      {identifier(), pair_both(comparator(), allowed_where_values())},
+      {qualified_identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
+      {qualified_identifier() |> keyword(:in), in_values()},
+      {qualified_identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
+      {qualified_identifier(), pair_both(comparator(), allowed_where_values())},
       {:else, error_message(fail(""), "Invalid where expression")}
     ])
     |> map(fn
@@ -273,7 +309,7 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp optional_group_by() do
     switch([
-      {keyword(:group), keyword(:by) |> comma_delimited(identifier())},
+      {keyword(:group), keyword(:by) |> comma_delimited(qualified_identifier())},
       {:else, noop()}
     ])
     |> map(fn {_, [:by, columns]} -> {:group_by, columns} end)

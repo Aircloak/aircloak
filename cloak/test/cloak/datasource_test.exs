@@ -23,14 +23,17 @@ defmodule Cloak.DataSourceTest do
   test "data retrieval" do
     assert {:ok, data} = DataSource.select(local_data_source(), %{
       command: :select,
-      columns: ["value"],
+      columns: [{:identifier, "test", "value"}],
       unsafe_filter_columns: [],
+      where: [],
+      group_by: [],
+      data_source: local_data_source(),
       from: "test"
     })
 
     assert(data == {
       3,
-      ["user_id", "value"],
+      ["cloak_test.test.user_id", "test.value"],
       [["user-id", 10], ["user-id", 20], ["user-id", 30]]
     })
   end

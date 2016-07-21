@@ -126,9 +126,7 @@ defmodule Cloak.DataSource do
 
   @doc "Returns the list of columns for a specific table."
   @spec columns(t, atom) :: [{String.t, data_type}]
-  def columns(data_source, table_id) do
-    Map.fetch!(data_source.tables, table_id).columns
-  end
+  def columns(data_source, table_id), do: Map.fetch!(data_source.tables, table_id).columns
 
   @doc """
   Execute a `select` query over the specified data source.
@@ -139,14 +137,12 @@ defmodule Cloak.DataSource do
     driver = data_source.driver
     driver.select(data_source.id, select_query)
   end
-  def select(data_source, %{columns: fields, from: table_identifier} = select_query) do
+  def select(data_source, %{columns: fields, from: from_clause} = select_query) do
     driver = data_source.driver
-    table_id = String.to_existing_atom(table_identifier)
-    table = data_source[:tables][table_id]
-    user_id = Map.fetch!(table, :user_id)
-    table_name = Map.fetch!(table, :name)
+    tables_with_ids = from_clause_to_tables_with_ids(from_clause, data_source)
+    user_id = first_user_id(tables_with_ids)
     # insert the user_id column into the fields list, translate the table name and execute the `select` query
-    full_query = %{select_query | columns: [user_id | fields], from: table_name}
+    full_query = %{select_query | columns: [user_id | fields], from: tables_with_ids}
     driver.select(data_source.id, full_query)
   end
 
@@ -165,7 +161,7 @@ defmodule Cloak.DataSource do
   end
 
   @doc "Returns a specific field value from a row of data."
-  @spec fetch_value!(row, [column], column | {:function, String.t, :* | column}) :: field
+  @spec fetch_value!(row, [column], any) :: field
   def fetch_value!(row, columns, column) do
     case Enum.find_index(columns, &(&1 === column)) do
       nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{column}` doesn't exist in selected columns.")
@@ -177,6 +173,25 @@ defmodule Cloak.DataSource do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp from_clause_to_tables_with_ids({:cross_join, lhs, rhs}, data_source) do
+    {:cross_join, from_clause_to_tables_with_ids(lhs, data_source),
+      from_clause_to_tables_with_ids(rhs, data_source)}
+  end
+  defp from_clause_to_tables_with_ids(table_name, data_source) do
+    {table_name, table} = Enum.find_value(data_source.tables, fn({table_id, data}) ->
+      backend_name = Map.get(data, :name, to_string(table_id))
+      case backend_name == table_name or to_string(table_id) == table_name do
+        true -> {backend_name, data}
+        _ -> false
+      end
+    end)
+    user_id = {:identifier, table_name, Map.fetch!(table, :user_id)}
+    {table_name, user_id}
+  end
+
+  defp first_user_id({:cross_join, lhs, _}), do: first_user_id(lhs)
+  defp first_user_id({_table_name, user_id}), do: user_id
 
   defp map_driver({data_source, params}) do
     driver_module = case params[:driver] do

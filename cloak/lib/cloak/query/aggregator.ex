@@ -83,7 +83,8 @@ defmodule Cloak.Query.Aggregator do
   end
 
   defp grouping_property(row, columns, query) do
-    Enum.map(query.property, &DataSource.fetch_value!(row, columns, &1))
+    query_properties = Enum.map(query.property, &SqlQuery.full_column_name/1)
+    Enum.map(query_properties, &DataSource.fetch_value!(row, columns, &1))
   end
 
   defp user_id([user_id | _rest]), do: user_id
@@ -158,6 +159,9 @@ defmodule Cloak.Query.Aggregator do
 
   defp value(_row, _columns, :*), do: :*
   defp value(row, columns, {:distinct, column}), do: value(row, columns, column)
+  # The following is to allow results from DS Proxy which aren't fully qualified
+  defp value(row, columns, {:identifier, :unknown, column}), do: value(row, columns, column)
+  defp value(row, columns, {:identifier, table, column}), do: value(row, columns, "#{table}.#{column}")
   defp value(row, columns, column), do: DataSource.fetch_value!(row, columns, column)
 
   defp aggregate_by(aggregation_data, "count", anonymizer), do: Anonymizer.count(anonymizer, aggregation_data)

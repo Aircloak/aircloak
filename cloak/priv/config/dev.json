@@ -20,6 +20,11 @@
           "name": "purchases",
           "user_id": "uid",
           "ignore_unsupported_types": false
+        },
+        "demographics": {
+          "name": "demographics",
+          "user_id": "uid",
+          "ignore_unsupported_types": false
         }
       }
     }
