@@ -447,9 +447,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp rename_from_clause({:cross_join, lhs, rhs}, mapping) do
     {:cross_join, rename_from_clause(lhs, mapping), rename_from_clause(rhs, mapping)}
   end
-  defp rename_from_clause(table, mapping) do
-    Map.get(mapping, table)
-  end
+  defp rename_from_clause(table, mapping), do: Map.get(mapping, table)
 
   defp rename_identifiers(identifiers, mapping), do: Enum.map(identifiers, &rename_identifier(&1, mapping))
 
