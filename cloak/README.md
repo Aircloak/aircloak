@@ -132,7 +132,7 @@ __Note__: You can run multiple cloaks on the same machine. As long as you're not
 
 If you want to add the additional configuration, you can add a new folder under `/opt/share/cloak_runtime_configs/`. Take a look at the existing ones (e.g. `prod` or `stage`) for examples. __Note__: `/opt/share` is shared between all thors, so you only need to add the configuration on one thor, and then you can reuse it on all others.
 
-As a convenience, there have been deploy targets setup for each developer.
+As a convenience, there are deploy targets set up for each developer.
 These deploy to the experimental thor node `srv-76-135` and do therefore not affect production cloaks.
 These cloaks are available for querying through insights-stage.
 
