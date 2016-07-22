@@ -101,6 +101,7 @@ Typical deploys:
 
 - `./deploy.sh deploy_targets/master_prod` - deploy production cloak to `srv-76-133`
 - `./deploy.sh deploy_targets/master_stage` - deploy staging cloak to `srv-76-133`
+- `./deploy.sh deploy_targets/test_<dev-name>` - deploy test cloak to `srv-76-135`
 
 This will deploy all __pushed__ changes from your current local branch.
 If you want to add a new standard deployment target, please add it to the `deploy_targets` folder of
@@ -130,6 +131,10 @@ Example:
 __Note__: You can run multiple cloaks on the same machine. As long as you're not doing any performance/load tests, that should be fine. `srv-76-135` exists for experimental loads that can potentially affect and break other cloaks. If you need a dedicated machine, feel free to take one.
 
 If you want to add the additional configuration, you can add a new folder under `/opt/share/cloak_runtime_configs/`. Take a look at the existing ones (e.g. `prod` or `stage`) for examples. __Note__: `/opt/share` is shared between all thors, so you only need to add the configuration on one thor, and then you can reuse it on all others.
+
+As a convenience, there are deploy targets set up for each developer.
+These deploy to the experimental thor node `srv-76-135` and do therefore not affect production cloaks.
+These cloaks are available for querying through insights-stage.
 
 #### Interacting with production cloaks
 
