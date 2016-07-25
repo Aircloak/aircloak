@@ -42,13 +42,9 @@ defmodule Cloak.SqlQuery.Builder do
     |> Enum.join(",")
   end
 
-  defp column_expression({db_column_name, cloak_column_name}) do
-    if db_column_name == Cloak.SqlQuery.count_all_column() do
-      "NULL AS #{cloak_column_name}"
-    else
-      "#{db_column_name} AS \"#{cloak_column_name}\""
-    end
-  end
+  defp column_expression({:*, cloak_column_name}), do: "NULL AS \"#{cloak_column_name}\""
+  defp column_expression({db_column_name, cloak_column_name}),
+    do: "#{db_column_name} AS \"#{cloak_column_name}\""
 
   defp from_clause({:cross_join, lhs, rhs}) do
     [from_clause(lhs), " CROSS JOIN ", from_clause(rhs)]
