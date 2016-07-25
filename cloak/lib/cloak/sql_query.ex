@@ -41,7 +41,7 @@ defmodule Cloak.SqlQuery do
   This function can be used by drivers to get the list of columns which need to
   be retrieved from the database.
 
-  __Note__: a column might have a special name equal to `count_all_column/0`.
+  __Note__: a column might have a special name equal to `:*`.
   This is a pseudocolumn which doesn't exist in the database. It is the
   responsibility of the driver to check for this value and in its place return a
   `nil` value for each returned row.
@@ -59,13 +59,9 @@ defmodule Cloak.SqlQuery do
     hd(query.columns)
   end
 
-  @doc "Returns the name of the pseudo count all column. See `db_columns/1` for details."
-  @spec count_all_column() :: String.t
-  def count_all_column(), do: "ac_count_all_placeholder"
-
   @doc "Converts a column identifier into a printable name"
   @spec full_column_name(Cloak.SqlQuery.Parser.column) :: String.t | :*
-  def full_column_name({:function, "count", :*}), do: count_all_column()
+  def full_column_name({:function, "count", :*}), do: :*
   def full_column_name({:function, _function, identifier}), do: full_column_name(identifier)
   def full_column_name({:distinct, identifier}), do: full_column_name(identifier)
   # This case is needed for DS Proxy. We can't qualify the identifiers when
