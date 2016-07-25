@@ -53,12 +53,6 @@ defmodule Cloak.SqlQuery do
     |> Enum.uniq()
   end
 
-  @doc "Returns the name of the `user_id` column."
-  @spec user_id_column(t) :: String.t
-  def user_id_column(query) do
-    hd(query.columns)
-  end
-
   @doc "Converts a column identifier into a printable name"
   @spec full_column_name(Cloak.SqlQuery.Parser.column) :: String.t | :*
   def full_column_name({:function, "count", :*}), do: :*

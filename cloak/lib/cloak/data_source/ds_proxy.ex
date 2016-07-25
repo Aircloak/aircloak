@@ -99,7 +99,8 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   defp needed_columns(query) do
-    Cloak.SqlQuery.db_columns(query) -- [Cloak.SqlQuery.user_id_column(query)]
+    user_id_column = hd(query.columns)
+    Cloak.SqlQuery.db_columns(query) -- [user_id_column]
   end
 
   defp sql_statement(%{from: {:subquery, unsafe_select}}) do
