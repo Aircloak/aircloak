@@ -72,7 +72,7 @@ defmodule Cloak.Query do
   @doc false
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
     if reason != :normal do
-      report_error(state, "Cloak error")
+      report_result(state, {:error, "Cloak error"})
     end
 
     # Note: we're always exiting with a reason normal. If a query crashed, the error will be
@@ -81,10 +81,7 @@ defmodule Cloak.Query do
   end
   def handle_info(msg, %{runner: runner} = state) do
     with {result, ^runner} <- Task.find([runner], msg) do
-      case result do
-        {:ok, result} -> report_success(state, result)
-        {:error, reason} -> report_error(state, reason)
-      end
+      report_result(state, result)
     end
     {:noreply, state}
   end
@@ -94,13 +91,12 @@ defmodule Cloak.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp report_success(state, {:buckets, columns, rows}) do
+  defp report_result(state, {:ok, {:buckets, columns, rows}}) do
     log_success(state)
-    Cloak.ResultSender.send_result(state.result_target, %{
-      query_id: state.query_id,
-      columns: columns,
-      rows: rows,
-    })
+    send_result(state, %{columns: columns, rows: rows})
+  end
+  defp report_result(state, {:error, reason}) do
+    send_result(state, %{error: format_error_reason(reason)})
   end
 
   defp log_success(state) do
@@ -108,11 +104,8 @@ defmodule Cloak.Query do
     Logger.info("Query #{state.query_id} executed in #{query_execution_time} ms")
   end
 
-  defp report_error(state, reason) do
-    Cloak.ResultSender.send_result(state.result_target, %{
-      query_id: state.query_id,
-      error: format_error_reason(reason),
-    })
+  defp send_result(%{result_target: target, query_id: query_id}, partial_result) do
+    Cloak.ResultSender.send_result(target, Map.put(partial_result, :query_id, query_id))
   end
 
   defp format_error_reason(text) when is_binary(text), do: text
