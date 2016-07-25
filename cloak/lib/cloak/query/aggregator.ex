@@ -69,7 +69,7 @@ defmodule Cloak.Query.Aggregator do
     |> Enum.reduce(%{}, fn(row, accumulator) ->
       property = grouping_property(row, columns, query)
       user_id = user_id(row)
-      values = for {:function, _function, column} <- query.aggregators do
+      values = for column <- SqlQuery.aggregated_columns(query) do
         case value(row, columns, column) do
           nil -> []
           value -> [value]
@@ -129,9 +129,11 @@ defmodule Cloak.Query.Aggregator do
 
   defp aggregate_property({property_values, anonymizer, users_rows}, query) do
     all_users_rows = Map.values(users_rows)
+    aggregated_columns = SqlQuery.aggregated_columns(query)
 
-    aggregation_results = for {{:function, function, column}, index}  <- Enum.with_index(query.aggregators) do
-      aggregated_values = all_users_rows |> Stream.map(&Enum.at(&1, index)) |> Stream.reject(&[] === &1)
+    aggregation_results = for {:function, function, column}  <- query.aggregators do
+      values_index = Enum.find_index(aggregated_columns, &column == &1)
+      aggregated_values = all_users_rows |> Stream.map(&Enum.at(&1, values_index)) |> Stream.reject(&[] === &1)
       case low_users_count?(aggregated_values, anonymizer) do
         true  -> nil
         false -> aggregated_values |> preprocess_for_aggregation(column) |> aggregate_by(function, anonymizer)
