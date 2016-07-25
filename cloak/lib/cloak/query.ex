@@ -44,7 +44,7 @@ defmodule Cloak.Query do
   is sent to the required destination. If an error occurs, the result will contain
   error information.
   """
-  @spec start(t, :result_sender.result_destination) :: :ok
+  @spec start(t, Cloak.ResultSender.target) :: :ok
   def start(query, result_target \\ :air_socket) do
     {:ok, _} = Supervisor.start_child(@supervisor_name, [{query, result_target}])
     :ok
@@ -96,7 +96,7 @@ defmodule Cloak.Query do
 
   defp report_success(state, {:buckets, columns, rows}) do
     log_success(state)
-    :result_sender.send_result(state.query_id, state.result_target, %{
+    Cloak.ResultSender.send_result(state.result_target, %{
       query_id: state.query_id,
       columns: columns,
       rows: rows,
@@ -109,7 +109,7 @@ defmodule Cloak.Query do
   end
 
   defp report_error(state, reason) do
-    :result_sender.send_result(state.query_id, state.result_target, %{
+    Cloak.ResultSender.send_result(state.result_target, %{
       query_id: state.query_id,
       error: format_error_reason(reason),
     })

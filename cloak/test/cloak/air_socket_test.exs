@@ -71,7 +71,6 @@ defmodule Cloak.AirSocketTest do
     :db_test.create_test_schema()
     :db_test.create_table("heights", "height INTEGER")
 
-    # need to register a process properly so result_sender works
     Process.register(socket_pid, AirSocket)
     ensure_joined(cloak_name)
     MainChannel.subscribe(cloak_name)
