@@ -48,12 +48,12 @@
 %%      result endpoint.
 -spec send_result(query_id(), result_destination(), result()) -> pid().
 send_result(QueryId, ResultDestination, Result) ->
-  Args = [
-    {query_id, QueryId},
-    {result_destination, ResultDestination},
-    {result, Result}
-  ],
-  {ok, Pid} = supervisor:start_child(result_sender_sup, [Args]),
+  State = #state{
+    query_id = QueryId,
+    result_destination = ResultDestination,
+    result = Result
+  },
+  {ok, Pid} = supervisor:start_child(result_sender_sup, [State]),
   Pid.
 
 start_link(Args) ->
@@ -64,13 +64,8 @@ start_link(Args) ->
 %% FSM callbacks
 %% -------------------------------------------------------------------
 
-init(Args) ->
-  State = #state{
-    query_id = proplists:get_value(query_id, Args),
-    result_destination = proplists:get_value(result_destination, Args),
-    result = proplists:get_value(result, Args)
-  },
-  {ok, convert_result, State, 0}.
+init(InitialState) ->
+  {ok, convert_result, InitialState, 0}.
 
 convert_result(timeout, #state{result = Result, query_id = QueryId} = S0) ->
   Reply = case Result of
