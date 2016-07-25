@@ -82,11 +82,8 @@ defmodule Cloak.Query do
   def handle_info(msg, %{runner: runner} = state) do
     with {result, ^runner} <- Task.find([runner], msg) do
       case result do
-        {:ok, result} ->
-          :result_sender.send_result(state.query_id, state.result_target, result)
-          log_success(state)
-        {:error, reason} ->
-          report_error(state, reason)
+        {:ok, result} -> report_success(state, result)
+        {:error, reason} -> report_error(state, reason)
       end
     end
     {:noreply, state}
@@ -97,13 +94,25 @@ defmodule Cloak.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp report_success(state, {:buckets, columns, rows}) do
+    log_success(state)
+    :result_sender.send_result(state.query_id, state.result_target, %{
+      query_id: state.query_id,
+      columns: columns,
+      rows: rows,
+    })
+  end
+
   defp log_success(state) do
     query_execution_time = :erlang.monotonic_time(:milli_seconds) - state.start_time
     Logger.info("Query #{state.query_id} executed in #{query_execution_time} ms")
   end
 
   defp report_error(state, reason) do
-    :result_sender.send_result(state.query_id, state.result_target, {:error, format_error_reason(reason)})
+    :result_sender.send_result(state.query_id, state.result_target, %{
+      query_id: state.query_id,
+      error: format_error_reason(reason),
+    })
   end
 
   defp format_error_reason(text) when is_binary(text), do: text

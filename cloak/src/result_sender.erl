@@ -13,7 +13,6 @@
 %% gen_fsm callbacks
 -export([
   init/1,
-  convert_result/2,
   send_result_state/2,
   handle_event/3,
   handle_sync_event/4,
@@ -51,7 +50,7 @@ send_result(QueryId, ResultDestination, Result) ->
   State = #state{
     query_id = QueryId,
     result_destination = ResultDestination,
-    result = Result
+    reply = Result
   },
   {ok, Pid} = supervisor:start_child(result_sender_sup, [State]),
   Pid.
@@ -65,19 +64,7 @@ start_link(Args) ->
 %% -------------------------------------------------------------------
 
 init(InitialState) ->
-  {ok, convert_result, InitialState, 0}.
-
-convert_result(timeout, #state{result = Result, query_id = QueryId} = S0) ->
-  Reply = case Result of
-    {buckets, Columns, Rows} ->
-      ?INFO("Processing buckets report for query ~s: ~p buckets", [QueryId, length(Rows)]),
-      #{query_id => QueryId, columns => Columns, rows => Rows};
-    {error, Reason} ->
-      ?INFO("Processing error report for query ~s: ~p", [QueryId, Reason]),
-      #{query_id => QueryId, error => Reason}
-  end,
-  S1 = S0#state{result = undefined, reply = Reply},
-  {next_state, send_result_state, S1, 0}.
+  {ok, send_result_state, InitialState, 0}.
 
 send_result_state(timeout, #state{reply = Reply, result_destination = ResultDestination} = State) ->
   send_reply(ResultDestination, Reply),
