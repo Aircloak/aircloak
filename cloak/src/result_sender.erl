@@ -93,17 +93,5 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 send_reply(air_socket, Reply) ->
   'Elixir.Cloak.AirSocket':send_query_result(Reply);
-send_reply({url, Url}, Reply) ->
-  Format = "application/json",
-  CompressedReply = zlib:gzip('Elixir.Poison':'encode!'(Reply)),
-  Headers = [{"Content-Encoding", "gzip"}],
-  Request = {binary_to_list(Url), Headers, Format, CompressedReply},
-  ?INFO("Sending result to ~p", [Url]),
-  case httpc:request(post, Request, [], []) of
-    {ok, _Result} ->
-      ok;
-    {error, Reason} ->
-      ?ERROR("Failed to return result. Reason: ~p", [Reason])
-  end;
 send_reply({process, Pid}, Reply) ->
   Pid ! {reply, Reply}.
