@@ -32,7 +32,7 @@ defmodule Cloak do
 
     [
       supervisor(Cloak.DataSource, []),
-      supervisor(:result_sender_sup, []),
+      Cloak.ResultSender.supervisor_spec(),
       Cloak.Query.supervisor_spec()
     ]
   end

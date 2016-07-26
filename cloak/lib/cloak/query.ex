@@ -44,7 +44,7 @@ defmodule Cloak.Query do
   is sent to the required destination. If an error occurs, the result will contain
   error information.
   """
-  @spec start(t, :result_sender.result_destination) :: :ok
+  @spec start(t, Cloak.ResultSender.target) :: :ok
   def start(query, result_target \\ :air_socket) do
     {:ok, _} = Supervisor.start_child(@supervisor_name, [{query, result_target}])
     :ok
@@ -72,7 +72,7 @@ defmodule Cloak.Query do
   @doc false
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
     if reason != :normal do
-      report_error(state, "Cloak error")
+      report_result(state, {:error, "Cloak error"})
     end
 
     # Note: we're always exiting with a reason normal. If a query crashed, the error will be
@@ -81,13 +81,7 @@ defmodule Cloak.Query do
   end
   def handle_info(msg, %{runner: runner} = state) do
     with {result, ^runner} <- Task.find([runner], msg) do
-      case result do
-        {:ok, result} ->
-          :result_sender.send_result(state.query_id, state.result_target, result)
-          log_success(state)
-        {:error, reason} ->
-          report_error(state, reason)
-      end
+      report_result(state, result)
     end
     {:noreply, state}
   end
@@ -97,13 +91,30 @@ defmodule Cloak.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp log_success(state) do
-    query_execution_time = :erlang.monotonic_time(:milli_seconds) - state.start_time
-    Logger.info("Query #{state.query_id} executed in #{query_execution_time} ms")
+  defp report_result(state, {:ok, {:buckets, columns, rows}}) do
+    log_completion(state, status: :success, row_count: length(rows))
+    send_result(state, %{columns: columns, rows: rows})
+  end
+  defp report_result(state, {:error, reason}) do
+    log_completion(state, status: :error, reason: reason)
+    send_result(state, %{error: format_error_reason(reason)})
   end
 
-  defp report_error(state, reason) do
-    :result_sender.send_result(state.query_id, state.result_target, {:error, format_error_reason(reason)})
+  defp send_result(%{result_target: target, query_id: query_id}, partial_result) do
+    Cloak.ResultSender.send_result(target, Map.put(partial_result, :query_id, query_id))
+  end
+
+  defp log_completion(state, options) do
+    message = Poison.encode!(%{
+      query_id: state.query_id,
+      type: :query_complete,
+      execution_time: :erlang.monotonic_time(:milli_seconds) - state.start_time,
+      status: Keyword.get(options, :status),
+      reason: Keyword.get(options, :reason, ""),
+      row_count: Keyword.get(options, :row_count, 0),
+    })
+
+    Logger.info("JSON_LOG #{message}")
   end
 
   defp format_error_reason(text) when is_binary(text), do: text
