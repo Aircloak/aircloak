@@ -32,6 +32,7 @@ defmodule Air.Token do
             preload: [{:user, :organisation}],
             select: token) do
           %{} = token ->
+            Task.start(fn() -> Repo.update(ApiToken.touch(token)) end)
             token.user
           _ -> :error
         end
