@@ -25,13 +25,14 @@ defmodule Air.Token do
 
     case Phoenix.Token.verify(Endpoint, api_token_salt(), token) do
       {:ok, token_id} ->
-        case Repo.one(from user in User,
-            join: token in ApiToken, on: token.user_id == user.id,
+        case Repo.one(from token in ApiToken,
+            join: user in User, on: user.id == token.user_id,
             where: token.id == ^token_id,
             join: organisation in assoc(user, :organisation),
-            preload: [organisation: organisation],
-            select: user) do
-          %{} = user -> user
+            preload: [{:user, :organisation}],
+            select: token) do
+          %{} = token ->
+            token.user
           _ -> :error
         end
       _ -> :error
