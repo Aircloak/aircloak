@@ -54,7 +54,7 @@ defmodule Cloak.Query.Runner do
   end
   defp execute_sql_query(%{command: :select} = query) do
     try do
-      with {:ok, {_count, columns, rows}} <- DataSource.select(query.data_source, query) do
+      with {:ok, {_count, columns, rows}} <- DataSource.select(query) do
         buckets =
           rows
           |> NegativeCondition.apply(columns, query)

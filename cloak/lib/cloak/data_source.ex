@@ -134,13 +134,12 @@ defmodule Cloak.DataSource do
   Execute a `select` query over the specified data source.
   Returns {RowCount, Columns, Rows}.
   """
-  @spec select(t, Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
-  def select(data_source, %{from: {:subquery, _}} = select_query) do
-    driver = data_source.driver
-    driver.select(data_source.id, select_query)
+  @spec select(Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
+  def select(%{from: {:subquery, _}, data_source: data_source} = select_query) do
+    data_source.driver.select(data_source.id, select_query)
   end
-  def select(data_source, select_query) do
-    data_source.driver.select(data_source.id, expand_select_query(select_query, data_source))
+  def select(%{data_source: data_source} = select_query) do
+    data_source.driver.select(data_source.id, expand_select_query(select_query))
   end
 
   @doc "Returns the datasource for the given id, raises if it's not found."
@@ -171,12 +170,11 @@ defmodule Cloak.DataSource do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp expand_select_query(select_query, data_source) do
+  defp expand_select_query(select_query) do
     select_query
-    |> Map.update!(:columns, &[user_id_column(select_query.from, data_source) | &1])
-    |> Map.update!(:from, &translate_table_names(&1, data_source))
+    |> Map.update!(:columns, &[user_id_column(select_query.from, select_query.data_source) | &1])
+    |> Map.update!(:from, &translate_table_names(&1, select_query.data_source))
   end
-
 
   defp user_id_column({:cross_join, lhs, _rhs}, data_source),
     do: user_id_column(lhs, data_source)

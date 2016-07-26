@@ -21,7 +21,7 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "data retrieval" do
-    assert {:ok, data} = DataSource.select(local_data_source(), %{
+    assert {:ok, data} = DataSource.select(%{
       command: :select,
       columns: [{:identifier, "test", "value"}],
       unsafe_filter_columns: [],
