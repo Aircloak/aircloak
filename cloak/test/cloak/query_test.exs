@@ -50,6 +50,14 @@ defmodule Cloak.QueryTest do
       %{query_id: "1", columns: ["height", "name", "time"], rows: _}
   end
 
+  test "select date parts" do
+    time = %Postgrex.Timestamp{year: 2015, month: 1, day: 2}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["time"], [time])
+
+    assert_query "select year(time), month(time), day(time) from heights group by time",
+      %{columns: ["year(time)", "month(time)", "day(time)"], rows: [[2015, 1, 2]]}
+  end
+
   test "select all and order query" do
     time = %Postgrex.Timestamp{year: 2015, month: 1, day: 1}
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "time"], ["john", 180, time])
