@@ -235,21 +235,28 @@ defmodule Cloak.SqlQuery.Compiler do
     |> case do
       [] -> :ok
       [function_call | _rest] ->
-        {:identifier, table, name} = select_clause_to_identifier(function_call)
-        raise CompilationError, message: "Aggregation function used over non-numeric " <>
-          "column `#{name}` from table `#{table}`."
+        {:function, function_name, _} = function_call
+        function_type = @functions[function_name].type
+        {:identifier, table, name} = column = select_clause_to_identifier(function_call)
+        {_, column_type} = column_type(column, query)
+        raise CompilationError, message: "Function `#{function_name}` requires `#{function_type}`,"
+          <> " but used over column `#{name}` of type `#{column_type}` from table `#{table}`"
     end
   end
 
   defp valid_parameter_type?({:function, function, _} = function_call, query) do
     column = select_clause_to_identifier(function_call)
-    name_type = Enum.find(all_available_columns(query), &match?({^column, _}, &1))
+    name_type = column_type(column, query)
 
     case @functions[function].type do
       :any -> true
       :timestamp -> match?({_, :timestamp}, name_type)
       :numeric -> match?({_, :integer}, name_type) or match?({_, :real}, name_type)
     end
+  end
+
+  defp column_type(column, query) do
+    Enum.find(all_available_columns(query), &match?({^column, _}, &1))
   end
 
   defp verify_aggregated_columns(query) do

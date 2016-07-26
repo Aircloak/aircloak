@@ -62,8 +62,9 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
   for function <- ~w(avg min max sum stddev median) do
     test "rejecting #{function} on non-numerical columns", %{data_source: data_source} do
-      assert {:error, "Aggregation function used over non-numeric column `column` from table `table`."} =
-        compile("select #{unquote(function)}(column) from table", data_source)
+      assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source)
+      assert error == "Function `#{unquote(function)}` requires `numeric`, but used over column"
+        <> " `column` of type `timestamp` from table `table`"
     end
   end
 
@@ -80,8 +81,8 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on non-timestamp columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      # assert ^error = "Function `#{unquote(function)}` requires `timestamp`, but used over column"
-      #   <> " `numeric` of type `integer` from table `table`"
+      assert error == "Function `#{unquote(function)}` requires `timestamp`, but used over column"
+        <> " `numeric` of type `integer` from table `table`"
     end
   end
 
