@@ -219,6 +219,18 @@ defmodule Cloak.SqlQuery.Compiler do
   defp aggregate_function?({:function, function, _}), do: @functions[function].aggregate
   defp aggregate_function?(_), do: false
 
+  defp parameter_type({:function, function, _}), do: @functions[function].type
+
+  defp valid_parameter_type?(function_call, query) do
+    case {parameter_type(function_call), column_with_type(function_call, query)} do
+      {:any, _} -> true
+      {:timestamp, {_, :timestamp}} -> true
+      {:numeric, {_, :integer}} -> true
+      {:numeric, {_, :real}} -> true
+      _ -> false
+    end
+  end
+
   defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
 
   defp compile_columns(query) do
@@ -236,26 +248,16 @@ defmodule Cloak.SqlQuery.Compiler do
       [] -> :ok
       [function_call | _rest] ->
         {:function, function_name, _} = function_call
-        function_type = @functions[function_name].type
-        {:identifier, table, name} = column = select_clause_to_identifier(function_call)
-        {_, column_type} = column_type(column, query)
+        function_type = parameter_type(function_call)
+        {{:identifier, table, name}, column_type} = column_with_type(function_call, query)
+
         raise CompilationError, message: "Function `#{function_name}` requires `#{function_type}`,"
           <> " but used over column `#{name}` of type `#{column_type}` from table `#{table}`"
     end
   end
 
-  defp valid_parameter_type?({:function, function, _} = function_call, query) do
-    column = select_clause_to_identifier(function_call)
-    name_type = column_type(column, query)
-
-    case @functions[function].type do
-      :any -> true
-      :timestamp -> match?({_, :timestamp}, name_type)
-      :numeric -> match?({_, :integer}, name_type) or match?({_, :real}, name_type)
-    end
-  end
-
-  defp column_type(column, query) do
+  defp column_with_type(select_clause, query) do
+    column = select_clause_to_identifier(select_clause)
     Enum.find(all_available_columns(query), &match?({^column, _}, &1))
   end
 
@@ -269,11 +271,12 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp verify_functions(query) do
-    invalid_functions = for {:function, function, _} = column <- query.columns,
-      !valid_function?(column), do: function
-    case invalid_functions do
+    query.columns
+    |> Enum.filter(&function?/1)
+    |> Enum.reject(&valid_function?/1)
+    |> case do
       [] -> :ok
-      [invalid_function | _rest] ->
+      [{:function, invalid_function, _} | _rest] ->
         raise CompilationError, message: ~s/Unknown function `#{invalid_function}`./
     end
   end
