@@ -204,11 +204,14 @@ defmodule Cloak.SqlQuery.Compiler do
   defp extract_identifier(entry), do: entry
 
   @functions %{
-    ~w(count) => %{aggregate: true, numeric: false},
-    ~w(sum avg min max stddev median) => %{aggregate: true, numeric: true}
+    ~w(count) => %{aggregate: true, numeric: false, timestamp: false},
+    ~w(sum avg min max stddev median) => %{aggregate: true, numeric: true, timestamp: false},
+    ~w(year month day hour minute second weekday) => %{aggregate: false, numeric: false, timestamp: true},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
+
+  defp valid_function?({:function, function, _}), do: Map.has_key?(@functions, function)
 
   defp aggregate_function?({:function, function, _}), do: @functions[function][:aggregate]
   defp aggregate_function?(_), do: false
@@ -251,7 +254,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp verify_functions(query) do
     invalid_functions = for {:function, function, _} = column <- query.columns,
-      !aggregate_function?(column), do: function
+      !valid_function?(column), do: function
     case invalid_functions do
       [] -> :ok
       [invalid_function | _rest] ->

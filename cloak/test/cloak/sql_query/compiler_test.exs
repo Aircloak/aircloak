@@ -73,6 +73,12 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     end
   end
 
+  for function <- ~w(year month day hour minute second weekday) do
+    test "allowing #{function} on timestamp columns", %{data_source: data_source} do
+      assert {:ok, _} = compile("select #{unquote(function)}(column) from table", data_source)
+    end
+  end
+
   test "rejecting outer where clause in queries unchecked sub-select", %{data_source: data_source} do
     assert {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery"} =
       compile("SELECT a FROM (unchecked inner select) t WHERE a > 10", data_source)
