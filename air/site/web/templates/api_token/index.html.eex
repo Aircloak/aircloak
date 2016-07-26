@@ -3,12 +3,21 @@
   <p>Your new token has been added. Please copy and paste it into your application:</p>
   <br />
   <pre><%= get_flash(@conn, :api_token) %></pre>
-  <!-- TODO: Add link to documentation once it exists -->
 </div>
 <% end %>
 
+<h2>API tokens</h2>
+
+<p>
+  The Aircloak API is authenticated using API tokens.
+  For more information about their usage, and how to authenticated
+  against the API, please visit the
+  <%= link "authentication section in the API documentation", to: "/docs#authentication"  %>
+</p>
+
+
 <%= if length(@api_tokens) > 0 do %>
-<h2>Existing tokens</h2>
+<h3>Existing tokens</h3>
 <hr/>
 <table class="table">
   <thead>
