@@ -35,7 +35,8 @@ defmodule Cloak.QueryTest do
     assert Enum.sort_by(rows, &(&1[:row])) == [
       %{occurrences: 1, row: ["height", :integer]},
       %{occurrences: 1, row: ["name", :text]},
-      %{occurrences: 1, row: ["time", :timestamp]}
+      %{occurrences: 1, row: ["time", :timestamp]},
+      %{occurrences: 1, row: ["user_id", :text]}
     ]
   end
 
@@ -47,7 +48,7 @@ defmodule Cloak.QueryTest do
 
   test "select all query" do
     assert_query "select * from heights",
-      %{query_id: "1", columns: ["height", "name", "time"], rows: _}
+      %{query_id: "1", columns: ["user_id", "height", "name", "time"], rows: _}
   end
 
   test "select all and order query" do
@@ -57,12 +58,8 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
 
     assert_query "select * from heights order by name",
-      %{query_id: "1", columns: ["height", "name", "time"], rows: rows}
-    assert Enum.map(rows, &(&1[:row])) == [
-      [180, "adam", nil],
-      [180, "john", %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}],
-      [180, "mike", nil]
-    ]
+      %{query_id: "1", columns: ["user_id", "height", "name", "time"], rows: rows}
+    assert Enum.map(rows, &(&1[:row])) == [[:*, :*, :*, :*]]
   end
 
   test "should return LCF property when sufficient rows are filtered" do

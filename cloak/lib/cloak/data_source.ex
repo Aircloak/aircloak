@@ -137,13 +137,8 @@ defmodule Cloak.DataSource do
     driver = data_source.driver
     driver.select(data_source.id, select_query)
   end
-  def select(data_source, %{columns: fields, from: from_clause} = select_query) do
-    driver = data_source.driver
-    tables_with_ids = from_clause_to_tables_with_ids(from_clause, data_source)
-    user_id = first_user_id(tables_with_ids)
-    # insert the user_id column into the fields list, translate the table name and execute the `select` query
-    full_query = %{select_query | columns: [user_id | fields], from: tables_with_ids}
-    driver.select(data_source.id, full_query)
+  def select(data_source, select_query) do
+    data_source.driver.select(data_source.id, expand_select_query(select_query, data_source))
   end
 
   @doc "Returns the datasource for the given id, raises if it's not found."
@@ -174,24 +169,28 @@ defmodule Cloak.DataSource do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp from_clause_to_tables_with_ids({:cross_join, lhs, rhs}, data_source) do
-    {:cross_join, from_clause_to_tables_with_ids(lhs, data_source),
-      from_clause_to_tables_with_ids(rhs, data_source)}
-  end
-  defp from_clause_to_tables_with_ids(table_name, data_source) do
-    {table_name, table} = Enum.find_value(data_source.tables, fn({table_id, data}) ->
-      backend_name = Map.get(data, :name, to_string(table_id))
-      case backend_name == table_name or to_string(table_id) == table_name do
-        true -> {backend_name, data}
-        _ -> false
-      end
-    end)
-    user_id = {:identifier, table_name, Map.fetch!(table, :user_id)}
-    {table_name, user_id}
+  defp expand_select_query(select_query, data_source) do
+    select_query
+    |> Map.update!(:columns, &[user_id_column(select_query.from, data_source) | &1])
+    |> Map.update!(:from, &translate_table_names(&1, data_source))
   end
 
-  defp first_user_id({:cross_join, lhs, _}), do: first_user_id(lhs)
-  defp first_user_id({_table_name, user_id}), do: user_id
+
+  defp user_id_column({:cross_join, lhs, _rhs}, data_source),
+    do: user_id_column(lhs, data_source)
+  defp user_id_column(table_name, data_source),
+    do: {:identifier, table_name, Map.fetch!(data_source.tables, String.to_existing_atom(table_name)).user_id}
+
+  defp translate_table_names({:cross_join, lhs, rhs}, data_source) do
+    {:cross_join, translate_table_names(lhs, data_source),
+      translate_table_names(rhs, data_source)}
+  end
+  defp translate_table_names(table_name, data_source) do
+    {
+      Map.fetch!(data_source.tables, String.to_existing_atom(table_name)).name,
+      user_id_column(table_name, data_source)
+    }
+  end
 
   defp map_driver({data_source, params}) do
     driver_module = case params[:driver] do
@@ -266,10 +265,8 @@ defmodule Cloak.DataSource do
 
   defp do_load_columns(data_source, table) do
     try do
-      verify_columns(
-        table,
-        data_source.driver.get_columns(data_source.id, table.name)
-      )
+      columns = data_source.driver.get_columns(data_source.id, table.name)
+      with :ok <- verify_columns(table, columns), do: {:ok, columns}
     catch type, error ->
       {
         :error,
@@ -279,20 +276,20 @@ defmodule Cloak.DataSource do
   end
 
   defp verify_columns(table, columns) do
-    with {:ok, columns} <- verify_user_id(table, columns) do
+    with :ok <- verify_user_id(table, columns) do
       case columns do
         [] -> {:error, "no data columns found in table"}
-        [_|_] -> {:ok, columns}
+        [_|_] -> :ok
       end
     end
   end
 
   defp verify_user_id(table, columns) do
     user_id = table.user_id
-    case List.keytake(columns, user_id, 0) do
-      {{^user_id, type}, data_columns} ->
+    case List.keyfind(columns, user_id, 0) do
+      {^user_id, type} ->
         if type in [:integer, :text, :uuid] do
-          {:ok, data_columns}
+          :ok
         else
           {:error, "unsupported user id type: #{type}"}
         end
