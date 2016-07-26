@@ -1,4 +1,5 @@
 defmodule Air.ApiTokenTest do
+  use ExUnit.Case, async: true
   use Air.ModelCase
   alias Air.{ApiToken}
 
