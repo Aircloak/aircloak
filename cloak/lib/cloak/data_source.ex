@@ -125,12 +125,10 @@ defmodule Cloak.DataSource do
   end
 
   @doc "Returns the table descriptor for the given table."
-  @spec table(t, atom) :: table
-  def table(data_source, table_id), do: Map.fetch!(data_source.tables, table_id)
-
-  @doc "Returns the list of columns for a specific table."
-  @spec columns(t, atom) :: [{String.t, data_type}]
-  def columns(data_source, table_id), do: Map.fetch!(data_source.tables, table_id).columns
+  @spec table(t, atom | String.t) :: table
+  def table(data_source, table_id) when is_atom(table_id), do: Map.fetch!(data_source.tables, table_id)
+  def table(data_source, table_name) when is_binary(table_name),
+    do: table(data_source, String.to_existing_atom(table_name))
 
   @doc """
   Execute a `select` query over the specified data source.
@@ -183,7 +181,7 @@ defmodule Cloak.DataSource do
   defp user_id_column({:cross_join, lhs, _rhs}, data_source),
     do: user_id_column(lhs, data_source)
   defp user_id_column(table_name, data_source),
-    do: {:identifier, table_name, Map.fetch!(data_source.tables, String.to_existing_atom(table_name)).user_id}
+    do: {:identifier, table_name, table(data_source, table_name).user_id}
 
   defp translate_table_names({:cross_join, lhs, rhs}, data_source) do
     {:cross_join, translate_table_names(lhs, data_source),
@@ -191,7 +189,7 @@ defmodule Cloak.DataSource do
   end
   defp translate_table_names(table_name, data_source) do
     {
-      Map.fetch!(data_source.tables, String.to_existing_atom(table_name)).name,
+      table(data_source, table_name).name,
       user_id_column(table_name, data_source)
     }
   end

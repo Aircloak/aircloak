@@ -353,9 +353,8 @@ defmodule Cloak.SqlQuery.Compiler do
   end)
 
   defp columns(table, data_source) do
-    table_id = String.to_existing_atom(table)
-    for {name, type} <- DataSource.columns(data_source, table_id) do
-      {{:identifier, Atom.to_string(table_id), name}, type}
+    for {name, type} <- DataSource.table(data_source, table).columns do
+      {{:identifier, table, name}, type}
     end
   end
 
@@ -449,7 +448,6 @@ defmodule Cloak.SqlQuery.Compiler do
     |> MapSet.union(qualified_uid_columns(rhs, data_source))
   end
   defp qualified_uid_columns(table_name, data_source) do
-    table_id = String.to_existing_atom(table_name)
-    MapSet.new([{:identifier, table_name, DataSource.table(data_source, table_id).user_id}])
+    MapSet.new([{:identifier, table_name, DataSource.table(data_source, table_name).user_id}])
   end
 end
