@@ -92,20 +92,29 @@ defmodule Cloak.Query do
   # -------------------------------------------------------------------
 
   defp report_result(state, {:ok, {:buckets, columns, rows}}) do
-    log_success(state)
+    log_completion(state, status: :success, row_count: length(rows))
     send_result(state, %{columns: columns, rows: rows})
   end
   defp report_result(state, {:error, reason}) do
+    log_completion(state, status: :error, reason: reason)
     send_result(state, %{error: format_error_reason(reason)})
-  end
-
-  defp log_success(state) do
-    query_execution_time = :erlang.monotonic_time(:milli_seconds) - state.start_time
-    Logger.info("Query #{state.query_id} executed in #{query_execution_time} ms")
   end
 
   defp send_result(%{result_target: target, query_id: query_id}, partial_result) do
     Cloak.ResultSender.send_result(target, Map.put(partial_result, :query_id, query_id))
+  end
+
+  defp log_completion(state, options) do
+    message = Poison.encode!(%{
+      query_id: state.query_id,
+      type: :query_complete,
+      execution_time: :erlang.monotonic_time(:milli_seconds) - state.start_time,
+      status: Keyword.get(options, :status),
+      reason: Keyword.get(options, :reason, ""),
+      row_count: Keyword.get(options, :row_count, 0),
+    })
+
+    Logger.info("JSON_LOG #{message}")
   end
 
   defp format_error_reason(text) when is_binary(text), do: text
