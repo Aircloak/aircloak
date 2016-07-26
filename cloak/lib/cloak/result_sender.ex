@@ -1,5 +1,5 @@
 defmodule Cloak.ResultSender do
-  @moduledoc "Abstract sending the result of a query to the requester"
+  @moduledoc "Handles returning the result of a query back to the requester"
 
   @type target :: {:process, pid()} | :air_socket
 
