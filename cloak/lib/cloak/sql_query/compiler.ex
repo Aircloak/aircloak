@@ -203,13 +203,19 @@ defmodule Cloak.SqlQuery.Compiler do
   end)
   defp extract_identifier(entry), do: entry
 
-  @aggregate_functions ~w(count sum avg min max stddev median)
-  defp aggregate_function?({:function, function, _}), do: Enum.member?(@aggregate_functions, function)
+  @functions %{
+    ~w(count) => %{aggregate: true, numeric: false},
+    ~w(sum avg min max stddev median) => %{aggregate: true, numeric: true}
+  }
+  |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
+  |> Enum.into(%{})
+
+  defp aggregate_function?({:function, function, _}), do: @functions[function][:aggregate]
   defp aggregate_function?(_), do: false
 
-  @numeric_aggregate_functions ~w(sum avg min max stddev median)
-  defp numeric_aggregate_function?({:function, function, _}),
-    do: Enum.member?(@numeric_aggregate_functions, function)
+  defp numeric_aggregate_function?({:function, function, _}) do
+    @functions[function][:aggregate] and @functions[function][:numeric]
+  end
 
   defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
 
