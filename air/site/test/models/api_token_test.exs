@@ -15,4 +15,9 @@ defmodule Air.ApiTokenTest do
     changeset = ApiToken.changeset(%ApiToken{}, @invalid_attrs)
     refute changeset.valid?
   end
+
+  test "touching changes updated at time" do
+    %Ecto.Changeset{model: model} = ApiToken.changeset(%ApiToken{}, @valid_attrs)
+    assert %{changes: %{updated_at: _}} = ApiToken.touch(model)
+  end
 end

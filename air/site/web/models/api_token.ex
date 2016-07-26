@@ -13,6 +13,7 @@ defmodule Air.ApiToken do
   use Air.Web, :model
 
   alias Air.{User}
+  alias Ecto.Changeset
 
   @type t :: %__MODULE__{}
 
@@ -38,5 +39,18 @@ defmodule Air.ApiToken do
     |> cast(params, @required_fields, @optional_fields)
     |> unique_constraint(:token, name: :api_tokens_pkey)
     |> validate_length(:description, min: 3)
+  end
+
+  @doc """
+  Updates the token with information about when it was last used,
+  and other stats, like how frequently it has been accessed etc.
+
+  This allows a user to determine whether or not a token is still
+  in active use, or whether it can be removed.
+  """
+  @spec touch(ApiToken.t) :: Changeset.t
+  def touch(model) do
+    time_params = %{updated_at: Timex.Time.now |> Timex.to_erlang_datetime |> Ecto.DateTime.from_erl}
+    cast(model, time_params, [:updated_at], [])
   end
 end
