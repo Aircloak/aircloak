@@ -77,6 +77,12 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     test "allowing #{function} on timestamp columns", %{data_source: data_source} do
       assert {:ok, _} = compile("select #{unquote(function)}(column) from table", data_source)
     end
+
+    test "rejecting #{function} on non-timestamp columns", %{data_source: data_source} do
+      assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
+      # assert ^error = "Function `#{unquote(function)}` requires `timestamp`, but used over column"
+      #   <> " `numeric` of type `integer` from table `table`"
+    end
   end
 
   test "rejecting outer where clause in queries unchecked sub-select", %{data_source: data_source} do

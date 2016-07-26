@@ -204,42 +204,51 @@ defmodule Cloak.SqlQuery.Compiler do
   defp extract_identifier(entry), do: entry
 
   @functions %{
-    ~w(count) => %{aggregate: true, numeric: false, timestamp: false},
-    ~w(sum avg min max stddev median) => %{aggregate: true, numeric: true, timestamp: false},
-    ~w(year month day hour minute second weekday) => %{aggregate: false, numeric: false, timestamp: true},
+    ~w(count) => %{aggregate: true, type: :any},
+    ~w(sum avg min max stddev median) => %{aggregate: true, type: :numeric},
+    ~w(year month day hour minute second weekday) => %{aggregate: false, type: :timestamp},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
 
+  defp function?({:function, _, _}), do: true
+  defp function?(_), do: false
+
   defp valid_function?({:function, function, _}), do: Map.has_key?(@functions, function)
 
-  defp aggregate_function?({:function, function, _}), do: @functions[function][:aggregate]
+  defp aggregate_function?({:function, function, _}), do: @functions[function].aggregate
   defp aggregate_function?(_), do: false
-
-  defp numeric_aggregate_function?({:function, function, _}) do
-    @functions[function][:aggregate] and @functions[function][:numeric]
-  end
 
   defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
 
   defp compile_columns(query) do
-    verify_aggregated_columns(query)
     verify_functions(query)
+    verify_aggregated_columns(query)
     verify_function_parameters(query)
     query
   end
 
   defp verify_function_parameters(query) do
-    available_columns = all_available_columns(query)
-    aggregated_columns = for {:function, _, _} = column <- query.columns,
-      numeric_aggregate_function?(column), do: select_clause_to_identifier(column)
-    invalid_columns = Enum.reject(aggregated_columns,
-      &(Enum.member?(available_columns, {&1, :integer}) or Enum.member?(available_columns, {&1, :real})))
-    case invalid_columns do
+    query.columns
+    |> Enum.filter(&function?/1)
+    |> Enum.reject(&valid_parameter_type?(&1, query))
+    |> case do
       [] -> :ok
-      [{:identifier, table, invalid_column} | _rest] ->
+      [function_call | _rest] ->
+        {:identifier, table, name} = select_clause_to_identifier(function_call)
         raise CompilationError, message: "Aggregation function used over non-numeric " <>
-          "column `#{invalid_column}` from table `#{table}`."
+          "column `#{name}` from table `#{table}`."
+    end
+  end
+
+  defp valid_parameter_type?({:function, function, _} = function_call, query) do
+    column = select_clause_to_identifier(function_call)
+    name_type = Enum.find(all_available_columns(query), &match?({^column, _}, &1))
+
+    case @functions[function].type do
+      :any -> true
+      :timestamp -> match?({_, :timestamp}, name_type)
+      :numeric -> match?({_, :integer}, name_type) or match?({_, :real}, name_type)
     end
   end
 
