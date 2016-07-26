@@ -91,9 +91,9 @@ defmodule Cloak.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp report_result(state, {:ok, {:buckets, columns, rows}}) do
+  defp report_result(state, {:ok, {:buckets, columns, rows}, info}) do
     log_completion(state, status: :success, row_count: length(rows))
-    send_result(state, %{columns: columns, rows: rows})
+    send_result(state, %{columns: columns, rows: rows, info: info})
   end
   defp report_result(state, {:error, reason}) do
     log_completion(state, status: :error, reason: reason)

@@ -10,6 +10,13 @@ defmodule Cloak.QueryTest do
     end
   end
 
+  defmacrop assert_info(query, expected_info_regex) do
+    quote do
+      assert_query unquote(query), %{info: [info]}
+      assert info =~ unquote(expected_info_regex)
+    end
+  end
+
   setup_all do
     :db_test.setup()
     :db_test.create_test_schema()
@@ -60,6 +67,17 @@ defmodule Cloak.QueryTest do
     assert_query "select * from heights order by name",
       %{query_id: "1", columns: ["user_id", "height", "name", "time"], rows: rows}
     assert Enum.map(rows, &(&1[:row])) == [[:*, :*, :*, :*]]
+  end
+
+  test "warns when uid column is selected" do
+    assert_info "select user_id from heights", "`heights.user_id`"
+    assert_info "select user_id, height from heights", "`heights.user_id`"
+    assert_info "select * from heights", "`heights.user_id`"
+    assert_info(
+      "select heights.user_id as h_uid, purchases.user_id as p_uid from heights, purchases",
+      ~r/`heights.user_id`.*`purchases.user_id`/
+    )
+    assert_info "select * from heights, purchases", ~r/`heights.user_id`.*`purchases.user_id`/
   end
 
   test "should return LCF property when sufficient rows are filtered" do

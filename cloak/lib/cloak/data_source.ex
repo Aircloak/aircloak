@@ -124,6 +124,10 @@ defmodule Cloak.DataSource do
     Map.keys(data_source.tables)
   end
 
+  @doc "Returns the table descriptor for the given table."
+  @spec table(t, atom) :: table
+  def table(data_source, table_id), do: Map.fetch!(data_source.tables, table_id)
+
   @doc "Returns the list of columns for a specific table."
   @spec columns(t, atom) :: [{String.t, data_type}]
   def columns(data_source, table_id), do: Map.fetch!(data_source.tables, table_id).columns

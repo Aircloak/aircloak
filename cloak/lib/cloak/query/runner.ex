@@ -26,7 +26,7 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   @doc "Runs the query and returns the result."
-  @spec run(Cloak.Query.t) :: {:ok, {:buckets, [String.t], [Aggregator.bucket]}} | {:error, any}
+  @spec run(Cloak.Query.t) :: {:ok, {:buckets, [String.t], [Aggregator.bucket]}, [String.t]} | {:error, any}
   def run(query) do
     with {:ok, sql_query} <- Cloak.SqlQuery.make(query.data_source, query.statement) do
       execute_sql_query(sql_query)
@@ -38,34 +38,37 @@ defmodule Cloak.Query.Runner do
   ## Internal functions
   ## ----------------------------------------------------------------
 
-  defp execute_sql_query(%{command: :show, show: :tables, data_source: data_source}) do
+  defp execute_sql_query(%{command: :show, show: :tables} = query) do
     columns = ["name"]
-    rows = DataSource.tables(data_source)
+    rows = DataSource.tables(query.data_source)
     |> Enum.map(fn(table) -> %{occurrences: 1, row: [table]} end)
 
-    {:ok, {:buckets, columns, rows}}
+    successful_result({:buckets, columns, rows}, query)
   end
-  defp execute_sql_query(%{command: :show, show: :columns, from: table_identifier, data_source: data_source}) do
-    table_id = String.to_existing_atom(table_identifier)
+  defp execute_sql_query(%{command: :show, show: :columns} = query) do
+    table_id = String.to_existing_atom(query.from)
     columns = ["name", "type"]
-    rows = DataSource.columns(data_source, table_id)
+    rows = DataSource.columns(query.data_source, table_id)
     |> Enum.map(fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
 
-    {:ok, {:buckets, columns, rows}}
+    successful_result({:buckets, columns, rows}, query)
   end
-  defp execute_sql_query(%{command: :select, data_source: data_source} = select_query) do
+  defp execute_sql_query(%{command: :select} = query) do
     try do
-      with {:ok, {_count, columns, rows}} <- DataSource.select(data_source, select_query) do
+      with {:ok, {_count, columns, rows}} <- DataSource.select(query.data_source, query) do
         buckets =
           rows
-          |> NegativeCondition.apply(columns, select_query)
-          |> Aggregator.aggregate(columns, select_query)
-          |> Sorter.order(select_query)
+          |> NegativeCondition.apply(columns, query)
+          |> Aggregator.aggregate(columns, query)
+          |> Sorter.order(query)
 
-        {:ok, {:buckets, select_query.column_titles, buckets}}
+        successful_result({:buckets, query.column_titles, buckets}, query)
       end
     rescue e in [RuntimeError] ->
       {:error, e.message}
     end
   end
+
+  defp successful_result(result, query),
+    do: {:ok, result, Enum.reverse(query.info)}
 end
