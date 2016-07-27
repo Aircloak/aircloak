@@ -162,10 +162,6 @@ defmodule Cloak.DataSource do
 
   @doc "Returns a specific field value from a row of data."
   @spec fetch_value!(row, [column], any) :: field
-  def fetch_value!(row, columns, {:function, function, column}) do
-    fetch_value!(row, columns, column)
-    |> Cloak.Query.Function.apply(function)
-  end
   def fetch_value!(row, columns, column) do
     case Enum.find_index(columns, &(&1 === column)) do
       nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{column}` doesn't exist in selected columns.")

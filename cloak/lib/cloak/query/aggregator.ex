@@ -187,12 +187,21 @@ defmodule Cloak.Query.Aggregator do
     [%{row: aggregated_values, occurrences: 1}]
   end
   defp make_buckets(rows, query) do
-    columns = query.property ++ Enum.map(query.aggregators, fn({:function, _, column}) -> column end)
+    columns = query.property ++ query.aggregators
     Enum.map(rows, &%{row: selected_values(&1, columns, query), occurrences: occurrences(&1, columns, query)})
   end
 
-  defp selected_values(row, columns, query), do:
-    for selected_column <- query.columns, do: DataSource.fetch_value!(row, columns, selected_column)
+  defp selected_values(row, columns, query) do
+    for selected_column <- query.columns do
+      if Cloak.Query.Function.extraction_function?(selected_column) do
+        argument = Cloak.Query.Function.argument(selected_column)
+        value = DataSource.fetch_value!(row, columns, argument)
+        Cloak.Query.Function.apply(value, selected_column)
+      else
+        DataSource.fetch_value!(row, columns, selected_column)
+      end
+    end
+  end
 
   defp occurrences(row, columns, %{implicit_count: true}), do:
     DataSource.fetch_value!(row, columns, {:function, "count", :*})

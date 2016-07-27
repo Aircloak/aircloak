@@ -257,8 +257,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert_query "select count(height), max(height) from heights",
-      %{columns: ["count", "max"],
-      rows: [%{row: [100, 180], occurrences: 1}]}
+      %{columns: ["count", "max"], rows: [%{row: [100, 180], occurrences: 1}]}
   end
 
   test "should allow ranges for where clause" do
