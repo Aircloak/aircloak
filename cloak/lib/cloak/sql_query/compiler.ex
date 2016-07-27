@@ -451,7 +451,8 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end)
 
-  def column_title({:function, function, _}), do: function
+  def column_title({:function, function, column}), do: "#{function}(#{column_title(column)})"
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, column}), do: column
+  def column_title(:*), do: "*"
 end
