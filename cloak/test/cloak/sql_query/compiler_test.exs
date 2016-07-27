@@ -17,16 +17,21 @@ defmodule Cloak.SqlQuery.Compiler.Test do
         },
         t1: %{
           user_id: "uid",
-          columns: [{"c1", :integer}, {"c2", :integer}]
+          columns: [{"uid", :integer}, {"c1", :integer}, {"c2", :integer}]
         },
         t2: %{
           user_id: "uid",
-          columns: [{"c1", :integer}, {"c3", :integer}]
+          columns: [{"uid", :integer}, {"c1", :integer}, {"c3", :integer}]
         },
         t3: %{
           user_id: "uid",
           name: "distinct_name",
-          columns: [{"c1", :integer}]
+          columns: [{"uid", :integer}, {"c1", :integer}]
+        },
+        t4: %{
+          user_id: "uid",
+          name: "distinct_name",
+          columns: [{"uid", :integer}, {"c1", :integer}]
         }
       }}
     }}
@@ -78,6 +83,26 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     end
   end
 
+  test "accepting proper joins", %{data_source: data_source} do
+    assert {:ok, _} = compile("SELECT t1.c1 from t1, t2 WHERE t1.uid = t2.uid", data_source)
+    assert {:ok, _} = compile("SELECT t1.c1 from t1, t2 WHERE t2.uid = t1.uid", data_source)
+
+    assert {:ok, _} = compile(
+      "SELECT t1.c1 from t1, t2, t3 WHERE t1.uid = t2.uid AND t2.uid = t3.uid",
+      data_source
+    )
+
+    assert {:ok, _} = compile(
+      "SELECT t1.c1 from t1, t2, t3 WHERE t3.uid = t1.uid AND t3.uid = t2.uid",
+      data_source
+    )
+
+    assert {:ok, _} = compile(
+      "SELECT t1.c1 from t1, t2, t3, t4 WHERE t3.uid = t1.uid AND t3.uid = t2.uid AND t1.uid = t4.uid",
+      data_source
+    )
+  end
+
   test "rejecting outer where clause in queries unchecked sub-select", %{data_source: data_source} do
     assert {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery"} =
       compile("SELECT a FROM (unchecked inner select) t WHERE a > 10", data_source)
@@ -123,6 +148,20 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       compile("SELECT column FROM table WHERE other_table.other_column <> ''", data_source)
   end
 
+  test "rejecting improper joins", %{data_source: data_source} do
+    assert {:error, error} = compile("SELECT t1.c1 from t1, t2", data_source)
+    assert error =~ ~r/Missing where comparison.*`t1` and `t2`/
+
+    assert {:error, error} = compile("SELECT t1.c1 from t1, t2, t3 WHERE t1.uid = t2.uid", data_source)
+    assert error =~ ~r/Missing where comparison.*`t2` and `t3`/
+
+    assert {:error, error} = compile(
+      "SELECT t1.c1 from t1, t2, t3, t4 WHERE t1.uid = t2.uid AND t3.uid = t4.uid",
+      data_source
+    )
+    assert error =~ ~r/Missing where comparison.*`t2` and `t3`/
+  end
+
   Enum.each(["count", "min", "max", "median", "stddev"], fn(function) ->
     test "allows qualified identifiers in function calls (function #{function})", %{data_source: data_source} do
       assert %{columns: [{:function, unquote(function), {:identifier, "table", "numeric"}}]} =
@@ -156,12 +195,15 @@ defmodule Cloak.SqlQuery.Compiler.Test do
   end
 
   test "expands all columns for all tables when cross joining", %{data_source: data_source} do
-    result = compile!("SELECT * FROM t1, t2, t3", data_source)
+    result = compile!("SELECT * FROM t1, t2, t3 WHERE t1.uid = t2.uid AND t2.uid = t3.uid", data_source)
     assert result[:columns] == [
+      {:identifier, "t1", "uid"},
       {:identifier, "t1", "c1"},
       {:identifier, "t1", "c2"},
+      {:identifier, "t2", "uid"},
       {:identifier, "t2", "c1"},
       {:identifier, "t2", "c3"},
+      {:identifier, "t3", "uid"},
       {:identifier, "t3", "c1"}
     ]
   end
@@ -175,13 +217,15 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     result = compile!("""
         SELECT t1.c1
         FROM t1, t2
-        WHERE c2 > 10
+        WHERE c2 > 10 AND t1.uid = t2.uid
         GROUP BY t1.c1, c3
         ORDER BY t1.c1 DESC
       """,
       data_source)
     assert result[:columns] == [{:identifier, "t1", "c1"}]
-    assert [{:comparison, {:identifier, "t1", "c2"}, :>, _}] = result[:where]
+    assert [comparison1, comparison2] = result[:where]
+    assert {:comparison, {:identifier, "t1", "c2"}, :>, _} = comparison1
+    assert {:comparison, {:identifier, "t1", "uid"}, :=, {:identifier, "t2", "uid"}} == comparison2
     assert result[:group_by] == [{:identifier, "t1", "c1"}, {:identifier, "t2", "c3"}]
     assert result[:order_by] == [{0, :desc}]
   end

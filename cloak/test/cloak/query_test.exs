@@ -74,7 +74,7 @@ defmodule Cloak.QueryTest do
     assert_info "select user_id, height from heights", "`user_id` from table `heights`"
     assert_info "select * from heights", "`user_id` from table `heights`"
 
-    assert_query "select * from heights, purchases", %{info: [info1, info2]}
+    assert_query "select * from heights, purchases where heights.user_id = purchases.user_id", %{info: [info1, info2]}
     assert info1 =~ "`user_id` from table `heights`"
     assert info2 =~ "`user_id` from table `purchases`"
   end
@@ -476,7 +476,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
 
-    assert_query "select max(height), max(price) FROM heights, purchases",
+    assert_query "select max(height), max(price) FROM heights, purchases WHERE heights.user_id = purchases.user_id",
       %{columns: ["max", "max"], rows: rows}
     assert rows == [%{row: [180, 200], occurrences: 1}]
   end
@@ -526,6 +526,12 @@ defmodule Cloak.QueryTest do
       %{columns: ["h"], rows: [%{row: [170], occurrences: 1}, %{row: [180], occurrences: 1}]}
     assert_query "select count(*) as c, count(height) as c from heights",
       %{columns: ["c", "c"], rows: [%{row: [30, 30], occurrences: 1}]}
+  end
+
+  test "select comparing two columns" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from heights where height = height",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
   defp start_query(statement) do
