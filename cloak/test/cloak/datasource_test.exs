@@ -17,11 +17,11 @@ defmodule Cloak.DataSourceTest do
 
   test "schema discovery" do
     assert(DataSource.tables(local_data_source()) == [:test])
-    assert(DataSource.columns(local_data_source(), :test) == [{"value", :integer}])
+    assert(DataSource.table(local_data_source(), :test).columns == [{"user_id", :text}, {"value", :integer}])
   end
 
   test "data retrieval" do
-    assert {:ok, rows} = DataSource.select(local_data_source(), %{
+    assert {:ok, rows} = DataSource.select( %{
       command: :select,
       identifiers: [{:identifier, "test", "value"}],
       where: [],
