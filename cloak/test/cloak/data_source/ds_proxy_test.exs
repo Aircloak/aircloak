@@ -32,7 +32,7 @@ defmodule Cloak.DataSource.DsProxyTest do
       fn(payload) ->
         assert %{"columns" => ["bar.user_id", "bar.foo"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT bar.user_id AS \"bar.user_id\",bar.foo AS \"bar.foo\" FROM bar "} == statement
+          "SELECT bar.user_id,bar.foo FROM bar "} == statement
 
         {200, %{success: true, columns: ["bar.user_id", "bar.foo"], rows: Enum.map(1..100, &[&1, &1])}}
       end
@@ -45,11 +45,11 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "parsed select count(*)", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["bar.user_id", "*"], "statement" => statement} = payload
+        assert %{"columns" => ["bar.user_id"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" => query_string} = statement
-        assert "SELECT bar.user_id AS \"bar.user_id\",NULL AS \"*\" FROM bar " == query_string
+        assert "SELECT bar.user_id FROM bar " == query_string
 
-        {200, %{success: true, columns: ["bar.user_id", "*"], rows: Enum.map(1..100, &[&1, &1])}}
+        {200, %{success: true, columns: ["bar.user_id"], rows: Enum.map(1..100, &[&1])}}
       end
     )
 
@@ -62,7 +62,7 @@ defmodule Cloak.DataSource.DsProxyTest do
       fn(payload) ->
         assert %{"columns" => ["bar.user_id", "bar.foo", "bar.baz"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT bar.user_id AS \"bar.user_id\",bar.foo AS \"bar.foo\",bar.baz AS \"bar.baz\" FROM bar "} == statement
+          "SELECT bar.user_id,bar.foo,bar.baz FROM bar "} == statement
 
         {200, %{success: true, columns: ["bar.user_id", "bar.foo", "bar.baz"],
           rows: Enum.map(1..100, &[&1, 1, 2])}}
@@ -80,7 +80,7 @@ defmodule Cloak.DataSource.DsProxyTest do
       fn(payload) ->
         assert %{"columns" => ["bar.user_id", "bar.foo"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT bar.user_id AS \"bar.user_id\",bar.foo AS \"bar.foo\" FROM bar "} == statement
+          "SELECT bar.user_id,bar.foo FROM bar "} == statement
 
         rows = Enum.map(1..49, &[&1, 0]) ++ Enum.map(50..100, &[&1, 10])
         {200, %{success: true, columns: ["user_id", "bar.foo"], rows: rows}}
@@ -98,7 +98,7 @@ defmodule Cloak.DataSource.DsProxyTest do
       fn(payload) ->
         assert %{"columns" => ["bar.user_id", "bar.foo"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT bar.user_id AS \"bar.user_id\",bar.foo AS \"bar.foo\" FROM bar "} == statement
+          "SELECT bar.user_id,bar.foo FROM bar "} == statement
 
         {200, %{success: true, columns: ["user_id", "bar.foo"], rows: [[]]}}
       end
@@ -135,30 +135,6 @@ defmodule Cloak.DataSource.DsProxyTest do
 
     query_result = run_query(context, "select foo, count(*) from (select foo from bar) as baz group by foo")
     assert {:ok, {:buckets, ["foo", "count"], [%{occurrences: 1, row: [:*, 100]}]}} = query_result
-  end
-
-  test "invalid select column in unsafe select", context do
-    expect_json_post(context.bypass, "/query",
-      fn(_) ->
-        {200, %{success: true, columns: ["user_id", "foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
-      end
-    )
-
-    query_result = run_query(context, "select count(foo) from (select foo1 from bar) as baz")
-    assert {:error, message} = query_result
-    assert "Column `foo` doesn't exist in selected columns." == message
-  end
-
-  test "invalid group by in unsafe select", context do
-    expect_json_post(context.bypass, "/query",
-      fn(_) ->
-        {200, %{success: true, columns: ["user_id", "foo1", "foo2"], rows: Enum.map(1..100, &[&1, &1, &1])}}
-      end
-    )
-
-    query_result = run_query(context, "select count(*) from (select foo1 from bar) as baz group by foobar")
-    assert {:error, message} = query_result
-    assert "Column `foobar` doesn't exist in selected columns." == message
   end
 
   test "propagating reported error", context do
