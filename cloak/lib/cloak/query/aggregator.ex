@@ -187,7 +187,7 @@ defmodule Cloak.Query.Aggregator do
     [%{row: aggregated_values, occurrences: 1}]
   end
   defp make_buckets(rows, query) do
-    columns = query.property ++ query.aggregators
+    columns = query.property ++ Enum.map(query.aggregators, fn({:function, _, column}) -> column end)
     Enum.map(rows, &%{row: selected_values(&1, columns, query), occurrences: occurrences(&1, columns, query)})
   end
 

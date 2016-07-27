@@ -6,4 +6,5 @@ defmodule Cloak.Query.Function do
   def apply(value, "minute"), do: value.minute
   def apply(value, "second"), do: value.second
   def apply(value, "weekday"), do: Timex.weekday(value)
+  def apply(value, _), do: value
 end

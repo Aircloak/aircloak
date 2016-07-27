@@ -55,7 +55,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["time"], [time])
 
     assert_query "select year(time), month(time), day(time) from heights group by time",
-      %{columns: ["year(time)", "month(time)", "day(time)"], rows: [%{occurrences: 1, row: [2015, 1, 2]}]}
+      %{columns: ["year", "month", "day"], rows: [%{occurrences: 1, row: [2015, 1, 2]}]}
   end
 
   test "select all and order query" do
