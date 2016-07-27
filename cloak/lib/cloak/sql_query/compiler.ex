@@ -4,6 +4,7 @@ defmodule Cloak.SqlQuery.Compiler do
   alias Cloak.DataSource
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
+  alias Cloak.Query.Function
 
   @type compiled_query :: %{
     data_source: DataSource.t,
@@ -161,11 +162,11 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
     Enum.reject(query.columns, fn(column) ->
-      aggregate_function?(column) || Enum.member?(query.group_by, select_clause_to_identifier(column))
+      Function.aggregate_function?(column) || Enum.member?(query.group_by, select_clause_to_identifier(column))
     end)
   end
   defp invalid_not_aggregated_columns(%{command: :select} = query) do
-    case Enum.partition(query.columns, &aggregate_function?/1) do
+    case Enum.partition(query.columns, &Function.aggregate_function?/1) do
       {[_|_] = _aggregates, [_|_] = non_aggregates} -> non_aggregates
       _ -> []
     end
@@ -205,26 +206,8 @@ defmodule Cloak.SqlQuery.Compiler do
   end)
   defp extract_identifier(entry), do: entry
 
-  @functions %{
-    ~w(count) => %{aggregate: true, type: :any},
-    ~w(sum avg min max stddev median) => %{aggregate: true, type: :numeric},
-    ~w(year month day hour minute second weekday) => %{aggregate: false, type: :timestamp},
-  }
-  |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
-  |> Enum.into(%{})
-
-  defp function?({:function, _, _}), do: true
-  defp function?(_), do: false
-
-  defp valid_function?({:function, function, _}), do: Map.has_key?(@functions, function)
-
-  defp aggregate_function?({:function, function, _}), do: @functions[function].aggregate
-  defp aggregate_function?(_), do: false
-
-  defp parameter_type({:function, function, _}), do: @functions[function].type
-
-  defp valid_parameter_type?(function_call, query) do
-    case {parameter_type(function_call), column_with_type(function_call, query)} do
+  defp valid_argument_type(function_call, query) do
+    case {Function.argument_type(function_call), column_with_type(function_call, query)} do
       {:any, _} -> true
       {:timestamp, {_, :timestamp}} -> true
       {:numeric, {_, :integer}} -> true
@@ -233,7 +216,7 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
+  defp filter_aggregators(columns), do: Enum.filter(columns, &Function.aggregate_function?/1)
 
   defp compile_columns(query) do
     verify_functions(query)
@@ -244,13 +227,13 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp verify_function_parameters(query) do
     query.columns
-    |> Enum.filter(&function?/1)
-    |> Enum.reject(&valid_parameter_type?(&1, query))
+    |> Enum.filter(&Function.function?/1)
+    |> Enum.reject(&valid_argument_type(&1, query))
     |> case do
       [] -> :ok
       [function_call | _rest] ->
         {:function, function_name, _} = function_call
-        function_type = parameter_type(function_call)
+        function_type = Function.argument_type(function_call)
         {{:identifier, table, name}, column_type} = column_with_type(function_call, query)
 
         raise CompilationError, message: "Function `#{function_name}` requires `#{function_type}`,"
@@ -274,8 +257,8 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp verify_functions(query) do
     query.columns
-    |> Enum.filter(&function?/1)
-    |> Enum.reject(&valid_function?/1)
+    |> Enum.filter(&Function.function?/1)
+    |> Enum.reject(&Function.valid_function?/1)
     |> case do
       [] -> :ok
       [{:function, invalid_function, _} | _rest] ->
