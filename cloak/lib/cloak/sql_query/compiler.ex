@@ -408,9 +408,15 @@ defmodule Cloak.SqlQuery.Compiler do
       false -> raise CompilationError, message: "Column `#{column}` doesn't exist in table `#{table}`."
     end
   end
+  defp qualify_identifier(other, _column_table_map), do: other
 
-  defp qualify_where_clause({:comparison, identifier, comparator, any}, column_table_map) do
-    {:comparison, qualify_identifier(identifier, column_table_map), comparator, any}
+  defp qualify_where_clause({:comparison, lhs, comparator, rhs}, column_table_map) do
+    {
+      :comparison,
+      qualify_identifier(lhs, column_table_map),
+      comparator,
+      qualify_identifier(rhs, column_table_map)
+    }
   end
   defp qualify_where_clause({:not, subclause}, column_table_map) do
     {:not, qualify_where_clause(subclause, column_table_map)}

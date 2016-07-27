@@ -528,6 +528,12 @@ defmodule Cloak.QueryTest do
       %{columns: ["c", "c"], rows: [%{row: [30, 30], occurrences: 1}]}
   end
 
+  test "select comparing two columns" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from heights where height = height",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
   defp start_query(statement) do
     %Query{id: "1", statement: statement, data_source: Cloak.DataSource.fetch!(:local)}
     |> Query.start({:process, self()})
