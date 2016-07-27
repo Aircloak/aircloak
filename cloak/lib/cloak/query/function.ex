@@ -1,8 +1,8 @@
 defmodule Cloak.Query.Function do
   @functions %{
-    ~w(count) => %{aggregate: true, type: :any},
-    ~w(sum avg min max stddev median) => %{aggregate: true, type: :numeric},
-    ~w(year month day hour minute second weekday) => %{aggregate: false, type: :timestamp},
+    ~w(count) => %{aggregate: true, extraction: false, type: :any},
+    ~w(sum avg min max stddev median) => %{aggregate: true, extraction: false, type: :numeric},
+    ~w(year month day hour minute second weekday) => %{aggregate: false, extraction: true, type: :timestamp},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -15,9 +15,7 @@ defmodule Cloak.Query.Function do
   def aggregate_function?({:function, function, _}), do: @functions[function].aggregate
   def aggregate_function?(_), do: false
 
-  def extraction_function?({:function, name, _}) do
-    Enum.member?(~w(year month day hour minute second weekday), name)
-  end
+  def extraction_function?({:function, function, _}), do: @functions[function].extraction
   def extraction_function?(_), do: false
 
   def argument_type({:function, function, _}), do: @functions[function].type
