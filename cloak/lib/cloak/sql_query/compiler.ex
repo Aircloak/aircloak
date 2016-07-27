@@ -444,8 +444,10 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp qualified_uid_columns({:cross_join, lhs, rhs}, data_source) do
-    qualified_uid_columns(lhs, data_source)
-    |> MapSet.union(qualified_uid_columns(rhs, data_source))
+    MapSet.union(
+      qualified_uid_columns(lhs, data_source),
+      qualified_uid_columns(rhs, data_source)
+    )
   end
   defp qualified_uid_columns(table_name, data_source) do
     MapSet.new([{:identifier, table_name, DataSource.table(data_source, table_name).user_id}])
