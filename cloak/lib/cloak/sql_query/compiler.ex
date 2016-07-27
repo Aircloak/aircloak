@@ -36,7 +36,7 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
     defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
-      group_by: [], order_by: [], column_titles: []}
+      group_by: [], order_by: [], column_titles: [], info: []}
     compile_prepped_query(Map.merge(defaults, query))
   end
 
@@ -81,6 +81,7 @@ defmodule Cloak.SqlQuery.Compiler do
       |> compile_aliases()
       |> validate_all_requested_tables_are_selected()
       |> qualify_all_identifiers()
+      |> warn_on_selected_uids()
       |> compile_columns()
       |> compile_order_by()
       |> cast_where_clauses()
@@ -352,9 +353,8 @@ defmodule Cloak.SqlQuery.Compiler do
   end)
 
   defp columns(table, data_source) do
-    table_id = String.to_existing_atom(table)
-    for {name, type} <- DataSource.columns(data_source, table_id) do
-      {{:identifier, Atom.to_string(table_id), name}, type}
+    for {name, type} <- DataSource.table(data_source, table).columns do
+      {{:identifier, table, name}, type}
     end
   end
 
@@ -424,4 +424,36 @@ defmodule Cloak.SqlQuery.Compiler do
   def column_title({:function, function, _}), do: function
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, column}), do: column
+
+  defp warn_on_selected_uids(query) do
+    case selected_uid_columns(query) do
+      [] -> query
+      [_|_] = selected_uid_columns ->
+        Enum.reduce(selected_uid_columns, query, &warn_on_selected_uid(&2, &1))
+    end
+  end
+
+  defp selected_uid_columns(query) do
+    all_uid_columns = qualified_uid_columns(query.from, query.data_source)
+    Enum.filter(query.columns, &MapSet.member?(all_uid_columns, &1))
+  end
+
+  defp qualified_uid_columns({:cross_join, lhs, rhs}, data_source) do
+    MapSet.union(
+      qualified_uid_columns(lhs, data_source),
+      qualified_uid_columns(rhs, data_source)
+    )
+  end
+  defp qualified_uid_columns(table_name, data_source) do
+    MapSet.new([{:identifier, table_name, DataSource.table(data_source, table_name).user_id}])
+  end
+
+  defp warn_on_selected_uid(query, {:identifier, table_name, column_name}) do
+    add_info_message(query,
+      "Selecting column `#{column_name}` from table `#{table_name}` will cause all values to be anonymized. " <>
+      "Consider removing this column from the list of selected columns."
+    )
+  end
+
+  defp add_info_message(query, info_message), do: %{query | info: [info_message | query.info]}
 end
