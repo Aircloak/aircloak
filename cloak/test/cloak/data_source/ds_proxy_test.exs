@@ -45,11 +45,11 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "parsed select count(*)", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["bar.user_id", "*"], "statement" => statement} = payload
+        assert %{"columns" => ["bar.user_id"], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" => query_string} = statement
-        assert "SELECT bar.user_id AS \"bar.user_id\",NULL AS \"*\" FROM bar " == query_string
+        assert "SELECT bar.user_id AS \"bar.user_id\" FROM bar " == query_string
 
-        {200, %{success: true, columns: ["bar.user_id", "*"], rows: Enum.map(1..100, &[&1, &1])}}
+        {200, %{success: true, columns: ["bar.user_id"], rows: Enum.map(1..100, &[&1])}}
       end
     )
 

@@ -42,7 +42,6 @@ defmodule Cloak.SqlQuery.Builder do
     |> Enum.join(",")
   end
 
-  defp column_expression({:*, cloak_column_name}), do: "NULL AS \"#{cloak_column_name}\""
   defp column_expression({db_column_name, cloak_column_name}),
     do: "#{db_column_name} AS \"#{cloak_column_name}\""
 
