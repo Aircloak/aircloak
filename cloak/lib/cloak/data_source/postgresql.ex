@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     query = "SELECT column_name, udt_name FROM information_schema.columns " <>
       "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
     row_mapper = fn [name, type_name] -> {name, parse_type(type_name)} end
-    {:ok, {_, _, columns_list}} = run_query(source_id, query, row_mapper)
+    {:ok, columns_list} = run_query(source_id, query, row_mapper)
     columns_list
   end
 
@@ -49,8 +49,8 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp run_query(source_id, statement, params \\ [], decode_mapper) do
     options = [timeout: 15 * 60 * 1000, pool_timeout: 2 * 60 * 1000, decode_mapper: decode_mapper, pool: @pool_name]
     with {:ok, result} <- Postgrex.query(proc_name(source_id), statement, params, options) do
-      %Postgrex.Result{command: :select, num_rows: count, columns: columns, rows: rows} = result
-      {:ok, {count, columns, rows}}
+      %Postgrex.Result{command: :select, rows: rows} = result
+      {:ok, rows}
     end
   end
 

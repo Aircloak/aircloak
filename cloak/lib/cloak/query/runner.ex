@@ -55,11 +55,11 @@ defmodule Cloak.Query.Runner do
   end
   defp execute_sql_query(%{command: :select, data_source: data_source} = select_query) do
     try do
-      with {:ok, {_count, columns, rows}} <- DataSource.select(data_source, select_query) do
+      with {:ok, rows} <- DataSource.select(data_source, select_query) do
         buckets =
           rows
-          |> NegativeCondition.apply(columns, select_query)
-          |> Aggregator.aggregate(columns, select_query)
+          |> NegativeCondition.apply(select_query)
+          |> Aggregator.aggregate(select_query)
           |> Sorter.order(select_query)
 
         {:ok, {:buckets, select_query.column_titles, buckets}}

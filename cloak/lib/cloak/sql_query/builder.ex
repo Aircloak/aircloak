@@ -19,15 +19,14 @@ defmodule Cloak.SqlQuery.Builder do
   @spec build(Cloak.SqlQuery.t) :: query_spec
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
   def build(query) do
-    cloak_column_names = Cloak.SqlQuery.db_columns(query)
-    query = use_database_internal_table_names(query)
-    db_column_names = Cloak.SqlQuery.db_columns(query)
-    select_column_names = Enum.zip(db_column_names, cloak_column_names)
+    table_name_map = get_table_name_map(query.data_source.tables)
+    db_used_identifiers = rename_identifiers(query.identifiers, table_name_map)
+    db_where_clauses = rename_where_identifiers(query.where, table_name_map)
 
     fragments_to_query_spec([
-      "SELECT ", columns_string(select_column_names), " ",
+      "SELECT ", identifiers_string(db_used_identifiers), " ",
       "FROM ", from_clause(query.from), " ",
-      where_fragments(augment_where_with_join_conditions(query[:where], query.from))
+      where_fragments(augment_where_with_join_conditions(db_where_clauses, query.from))
     ])
   end
 
@@ -36,15 +35,13 @@ defmodule Cloak.SqlQuery.Builder do
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
 
-  defp columns_string(column_names) do
-    column_names
-    |> Enum.map(&column_expression/1)
+  defp identifiers_string(columns) do
+    columns
+    |> Enum.map(&identifier_string/1)
     |> Enum.join(",")
   end
 
-  defp column_expression({:*, cloak_column_name}), do: "NULL AS \"#{cloak_column_name}\""
-  defp column_expression({db_column_name, cloak_column_name}),
-    do: "#{db_column_name} AS \"#{cloak_column_name}\""
+  def identifier_string({:identifier, table, column}), do: "#{table}.#{column}"
 
   defp from_clause({:cross_join, lhs, rhs}) do
     [from_clause(lhs), " CROSS JOIN ", from_clause(rhs)]
@@ -129,16 +126,10 @@ defmodule Cloak.SqlQuery.Builder do
   defp join([el], _joiner), do: [el]
   defp join([first | rest], joiner), do: [first, joiner, join(rest, joiner)]
 
-  defp use_database_internal_table_names(query) do
-    table_name_mapping = query.data_source.tables
+  defp get_table_name_map(tables) do
+    tables
     |> Enum.map(fn({table_id, data}) -> {to_string(table_id), to_string(Map.get(data, :name, table_id))} end)
     |> Enum.into(%{})
-    query = %{query |
-      columns: rename_identifiers(query.columns, table_name_mapping),
-      group_by: rename_identifiers(query.group_by, table_name_mapping),
-      where: rename_where_identifiers(query.where, table_name_mapping)
-    }
-    query
   end
 
   defp rename_identifiers(identifiers, mapping), do: Enum.map(identifiers, &rename_identifier(&1, mapping))

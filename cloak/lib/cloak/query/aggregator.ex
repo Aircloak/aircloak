@@ -40,10 +40,10 @@ defmodule Cloak.Query.Aggregator do
 
   Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
   """
-  @spec aggregate([DataSource.row], [DataSource.column], SqlQuery.t) :: [bucket]
-  def aggregate(rows, columns, query) do
+  @spec aggregate([DataSource.row], SqlQuery.t) :: [bucket]
+  def aggregate(rows, query) do
     rows
-    |> group_by_property(columns, query)
+    |> group_by_property(query)
     |> process_low_count_users(query)
     |> aggregate_properties(query)
     |> make_buckets(query)
@@ -63,14 +63,15 @@ defmodule Cloak.Query.Aggregator do
     [[value | prev_values] | add_values_to_columns(rest_values, rest_prev_values)]
   end
 
-  @spec group_by_property([DataSource.row], [DataSource.column], SqlQuery.t) :: properties
-  defp group_by_property(rows, columns, query) do
+  @spec group_by_property([DataSource.row], SqlQuery.t) :: properties
+  defp group_by_property(rows, query) do
+    aggregated_columns = SqlQuery.aggregated_columns(query)
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
-      property = grouping_property(row, columns, query)
+      property = for column <- query.property, do: Enum.at(row, column + 1)
       user_id = user_id(row)
-      values = for column <- SqlQuery.aggregated_columns(query) do
-        case value(row, columns, column) do
+      values = for column <- aggregated_columns do
+        case value(row, column) do
           nil -> []
           value -> [value]
         end
@@ -80,11 +81,6 @@ defmodule Cloak.Query.Aggregator do
       end)
     end)
     |> init_anonymizer()
-  end
-
-  defp grouping_property(row, columns, query) do
-    query_properties = Enum.map(query.property, &SqlQuery.full_column_name/1)
-    Enum.map(query_properties, &DataSource.fetch_value!(row, columns, &1))
   end
 
   defp user_id([user_id | _rest]), do: user_id
@@ -159,12 +155,9 @@ defmodule Cloak.Query.Aggregator do
   end
   defp preprocess_for_aggregation(values, _column), do: values
 
-  defp value(_row, _columns, :*), do: :*
-  defp value(row, columns, {:distinct, column}), do: value(row, columns, column)
-  # The following is to allow results from DS Proxy which aren't fully qualified
-  defp value(row, columns, {:identifier, :unknown, column}), do: value(row, columns, column)
-  defp value(row, columns, {:identifier, table, column}), do: value(row, columns, "#{table}.#{column}")
-  defp value(row, columns, column), do: DataSource.fetch_value!(row, columns, column)
+  defp value(_row, nil), do: true
+  defp value(row, {:distinct, column}), do: value(row, column)
+  defp value(row, column), do: Enum.at(row, column + 1)
 
   defp aggregate_by(aggregation_data, "count", anonymizer), do: Anonymizer.count(anonymizer, aggregation_data)
   defp aggregate_by(aggregation_data, "sum", anonymizer), do: Anonymizer.sum(anonymizer, aggregation_data)
@@ -191,10 +184,17 @@ defmodule Cloak.Query.Aggregator do
     Enum.map(rows, &%{row: selected_values(&1, columns, query), occurrences: occurrences(&1, columns, query)})
   end
 
-  defp selected_values(row, columns, query), do:
-    for selected_column <- query.columns, do: DataSource.fetch_value!(row, columns, selected_column)
+  def fetch_value!(row, columns, column) do
+    case Enum.find_index(columns, &(&1 === column)) do
+      nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{column}` was not selected.")
+      index -> Enum.at(row, index)
+    end
+  end
 
-  defp occurrences(row, columns, %{implicit_count: true}), do:
-    DataSource.fetch_value!(row, columns, {:function, "count", :*})
+  defp selected_values(row, columns, query), do:
+    for selected_column <- query.columns, do: fetch_value!(row, columns, selected_column)
+
+  defp occurrences(row, columns, %{implicit_count: true, aggregators: [count_aggregator]}), do:
+    fetch_value!(row, columns, count_aggregator)
   defp occurrences(_row, _columns, _query), do: 1
 end

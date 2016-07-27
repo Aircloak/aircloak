@@ -54,7 +54,7 @@ defmodule Cloak.DataSource do
   @type field :: String.t | integer | number | boolean | nil
   @type row :: [field]
   @type data_type :: :text | :integer | :real | :boolean | :timestamp | :time | :date | {:unsupported, String.t}
-  @type query_result :: {num_rows, [column], [row]}
+  @type query_result :: [row]
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -128,21 +128,18 @@ defmodule Cloak.DataSource do
   @spec columns(t, atom) :: [{String.t, data_type}]
   def columns(data_source, table_id), do: Map.fetch!(data_source.tables, table_id).columns
 
-  @doc """
-  Execute a `select` query over the specified data source.
-  Returns {RowCount, Columns, Rows}.
-  """
+  @doc "Execute a `select` query over the specified data source."
   @spec select(t, Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
   def select(data_source, %{from: {:subquery, _}} = select_query) do
     driver = data_source.driver
     driver.select(data_source.id, select_query)
   end
-  def select(data_source, %{columns: fields, from: from_clause} = select_query) do
+  def select(data_source, %{identifiers: identifiers, from: from_clause} = select_query) do
     driver = data_source.driver
     tables_with_ids = from_clause_to_tables_with_ids(from_clause, data_source)
     user_id = first_user_id(tables_with_ids)
     # insert the user_id column into the fields list, translate the table name and execute the `select` query
-    full_query = %{select_query | columns: [user_id | fields], from: tables_with_ids}
+    full_query = %{select_query | identifiers: [user_id | identifiers], from: tables_with_ids}
     driver.select(data_source.id, full_query)
   end
 

@@ -82,7 +82,7 @@ defmodule Cloak.DataSource.DsProxy do
             [_|_] = some_rows ->
               some_rows
           end
-        {:ok, {length(response["rows"]), response["columns"], rows}}
+        {:ok, rows}
 
       %{"success" => false, "error" => error_message} ->
         {:error, error_message}
@@ -95,13 +95,12 @@ defmodule Cloak.DataSource.DsProxy do
 
   defp maybe_include_columns(request, %{from: {:subquery, _}}), do: request
   defp maybe_include_columns(request, query) do
-    Map.put(request, :columns, needed_columns(query))
+    identifiers = for identifier <- query.identifiers, do: identifier_string(identifier)
+    Map.put(request, :columns, identifiers)
   end
 
-  defp needed_columns(query) do
-    user_id_column = hd(query.columns)
-    Cloak.SqlQuery.db_columns(query) -- [user_id_column]
-  end
+  def identifier_string({:identifier, :unknown, column}), do: column
+  def identifier_string({:identifier, table, column}), do: "#{table}.#{column}"
 
   defp sql_statement(%{from: {:subquery, unsafe_select}}) do
     %{
