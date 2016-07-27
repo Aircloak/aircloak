@@ -5,20 +5,31 @@ defmodule Cloak.SqlQuery.Compiler do
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
 
+  @type identifier_index :: non_neg_integer
+
+  @type column ::
+      identifier_index
+    | {:distinct, identifier_index}
+    | {:function, String.t, identifier_index | :* | {:distinct, identifier_index}}
+
+  @type unsafe_where_clause ::
+      {:like | :ilike, identifier_index, String.t}
+    | {:comparison, identifier_index, :=, any}
+
   @type compiled_query :: %{
     data_source: DataSource.t,
     command: :select | :show,
-    columns: [Parser.column],
+    columns: [column],
     column_titles: [String.t],
-    property: [String.t],
-    aggregators: [{String.t, String.t}],
+    property: [identifier_index],
+    aggregators: [column],
     implicit_count: true,
-    unsafe_filter_columns: [Parser.column],
-    group_by: [String.t],
+    group_by: [identifier_index],
     from: [String.t],
     where: [Parser.where_clause],
-    where_not: [Parser.where_clause],
-    order_by: [{pos_integer, :asc | :desc}],
+    unsafe_where_clauses: [unsafe_where_clause],
+    identifiers: [Parser.qualified_identifier],
+    order_by: [{non_neg_integer, :asc | :desc}],
     show: :tables | :columns
   }
 
@@ -35,8 +46,8 @@ defmodule Cloak.SqlQuery.Compiler do
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
-    defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
-      group_by: [], order_by: [], column_titles: []}
+    defaults = %{data_source: data_source, where: [], unsafe_where_clauses: [],
+      group_by: [], order_by: [], column_titles: [], identifiers: []}
     compile_prepped_query(Map.merge(defaults, query))
   end
 
@@ -61,6 +72,7 @@ defmodule Cloak.SqlQuery.Compiler do
       query = query
       |> compile_order_by()
       |> partition_selected_columns()
+      |> map_identifiers_to_indices()
       {:ok, query}
     rescue
       e in CompilationError -> {:error, e.message}
@@ -84,8 +96,9 @@ defmodule Cloak.SqlQuery.Compiler do
       |> compile_columns()
       |> compile_order_by()
       |> cast_where_clauses()
-      |> partition_selected_columns()
       |> partition_where_clauses()
+      |> partition_selected_columns()
+      |> map_identifiers_to_indices()
       {:ok, query}
     rescue
       e in CompilationError -> {:error, e.message}
@@ -262,6 +275,12 @@ defmodule Cloak.SqlQuery.Compiler do
   defp select_clause_to_identifier({:distinct, identifier}), do: identifier
   defp select_clause_to_identifier(identifier), do: identifier
 
+  defp set_select_clause_identifier({:function, function, clause}, identifier),
+    do: {:function, function, set_select_clause_identifier(clause, identifier)}
+  defp set_select_clause_identifier({:distinct, clause}, identifier),
+    do: {:distinct, set_select_clause_identifier(clause, identifier)}
+  defp set_select_clause_identifier(_old_indentifier, identifier), do: identifier
+
   defp partition_selected_columns(%{group_by: groups = [_|_], columns: columns} = query) do
     aggregators = filter_aggregators(columns)
     Map.merge(query, %{property: groups |> Enum.uniq(), aggregators: aggregators |> Enum.uniq()})
@@ -297,16 +316,14 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp partition_where_clauses(%{where: clauses, where_not: [], unsafe_filter_columns: []} = query) do
+  defp partition_where_clauses(%{where: clauses, unsafe_where_clauses: []} = query) do
     {positive, negative} = Enum.partition(clauses, fn
        {:not, {:is, _, :null}} -> true
        {:not, _} -> false
        _ -> true
     end)
-    negative = Enum.map(negative, fn({:not, clause}) -> clause end)
-    unsafe_filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
-
-    %{query | where: positive, where_not: negative, unsafe_filter_columns: unsafe_filter_columns}
+    unsafe_where_clauses = Enum.map(negative, fn({:not, clause}) -> clause end)
+    %{query | where: positive, unsafe_where_clauses: unsafe_where_clauses}
   end
   defp partition_where_clauses(query), do: query
 
@@ -351,6 +368,15 @@ defmodule Cloak.SqlQuery.Compiler do
     defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
   end)
 
+  defp set_where_clause_identifier({:comparison, _old_indentifier, operator, operand}, identifier),
+    do: {:comparison, identifier, operator, operand}
+  defp set_where_clause_identifier({:not, subclause}, identifier),
+    do: {:not, set_where_clause_identifier(subclause, identifier)}
+  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
+    defp set_where_clause_identifier({unquote(keyword), _old_indentifier, operand}, identifier),
+      do: {unquote(keyword), identifier, operand}
+  end)
+
   defp columns(table, data_source) do
     table_id = String.to_existing_atom(table)
     for {name, type} <- DataSource.columns(data_source, table_id) do
@@ -364,7 +390,6 @@ defmodule Cloak.SqlQuery.Compiler do
       columns: Enum.map(query.columns, &(qualify_identifier(&1, column_table_map))),
       group_by: Enum.map(query.group_by, &(qualify_identifier(&1, column_table_map))),
       where: Enum.map(query.where, &(qualify_where_clause(&1, column_table_map))),
-      where_not: Enum.map(query.where_not, &(qualify_where_clause(&1, column_table_map))),
       order_by: Enum.map(query.order_by, fn({identifier, direction}) ->
         {qualify_identifier(identifier, column_table_map), direction}
       end)
@@ -409,19 +434,38 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp qualify_where_clause({:comparison, identifier, comparator, any}, column_table_map) do
-    {:comparison, qualify_identifier(identifier, column_table_map), comparator, any}
+  defp qualify_where_clause(clause, column_table_map) do
+    identifier = where_clause_to_identifier(clause) |> qualify_identifier(column_table_map)
+    set_where_clause_identifier(clause, identifier)
   end
-  defp qualify_where_clause({:not, subclause}, column_table_map) do
-    {:not, qualify_where_clause(subclause, column_table_map)}
-  end
-  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp qualify_where_clause({unquote(keyword), identifier, any}, column_table_map) do
-      {unquote(keyword), qualify_identifier(identifier, column_table_map), any}
-    end
-  end)
 
   def column_title({:function, function, _}), do: function
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, column}), do: column
+
+  def map_identifiers_to_indices(query) do
+    select_identifiers = Enum.map(query.columns, &select_clause_to_identifier/1)
+    unsafe_filter_identifiers = Enum.map(query.unsafe_where_clauses, &where_clause_to_identifier/1)
+    identifiers = Enum.uniq(select_identifiers ++ query.group_by ++ unsafe_filter_identifiers) -- [:*]
+
+    select_clause_to_index = fn (clause) ->
+      identifier = select_clause_to_identifier(clause)
+      index = Enum.find_index(identifiers, &identifier == &1)
+      set_select_clause_identifier(clause, index)
+    end
+    where_clause_to_index = fn (clause) ->
+      identifier = where_clause_to_identifier(clause)
+      index = Enum.find_index(identifiers, &identifier == &1)
+      set_where_clause_identifier(clause, index)
+    end
+
+    columns = for clause <- query.columns, do: select_clause_to_index.(clause)
+    aggregators = for clause <- query.aggregators, do: select_clause_to_index.(clause)
+    property = for identifier <- query.property, do: Enum.find_index(identifiers, &identifier == &1)
+    group_by = for identifier <- query.group_by, do: Enum.find_index(identifiers, &identifier == &1)
+    unsafe_where_clauses = for clause <- query.unsafe_where_clauses, do: where_clause_to_index.(clause)
+
+    %{query | columns: columns, property: property, aggregators: aggregators, group_by: group_by,
+      unsafe_where_clauses: unsafe_where_clauses, identifiers: identifiers}
+  end
 end
