@@ -160,15 +160,6 @@ defmodule Cloak.DataSource do
     |> Map.fetch(data_source_id)
   end
 
-  @doc "Returns a specific field value from a row of data."
-  @spec fetch_value!(row, [column], any) :: field
-  def fetch_value!(row, columns, column) do
-    case Enum.find_index(columns, &(&1 === column)) do
-      nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{column}` doesn't exist in selected columns.")
-      index -> Enum.at(row, index)
-    end
-  end
-
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
