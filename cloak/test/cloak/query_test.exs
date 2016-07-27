@@ -70,14 +70,13 @@ defmodule Cloak.QueryTest do
   end
 
   test "warns when uid column is selected" do
-    assert_info "select user_id from heights", "`heights.user_id`"
-    assert_info "select user_id, height from heights", "`heights.user_id`"
-    assert_info "select * from heights", "`heights.user_id`"
-    assert_info(
-      "select heights.user_id as h_uid, purchases.user_id as p_uid from heights, purchases",
-      ~r/`heights.user_id`.*`purchases.user_id`/
-    )
-    assert_info "select * from heights, purchases", ~r/`heights.user_id`.*`purchases.user_id`/
+    assert_info "select user_id from heights", "`user_id` from table `heights`"
+    assert_info "select user_id, height from heights", "`user_id` from table `heights`"
+    assert_info "select * from heights", "`user_id` from table `heights`"
+
+    assert_query "select * from heights, purchases", %{info: [info1, info2]}
+    assert info1 =~ "`user_id` from table `heights`"
+    assert info2 =~ "`user_id` from table `purchases`"
   end
 
   test "should return LCF property when sufficient rows are filtered" do

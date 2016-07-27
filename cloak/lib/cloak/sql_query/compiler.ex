@@ -426,21 +426,16 @@ defmodule Cloak.SqlQuery.Compiler do
   def column_title({:identifier, _table, column}), do: column
 
   defp warn_on_selected_uids(query) do
-    MapSet.new(query.columns)
-    |> MapSet.intersection(qualified_uid_columns(query.from, query.data_source))
-    |> Enum.to_list()
-    |> case do
-          [] -> query
-          [_|_] = selected_uid_columns ->
-            columns_display =
-              for {:identifier, table_name, column_name} <- selected_uid_columns do
-                "`#{table_name}.#{column_name}`"
-              end
-            info_message =
-              "Selecting columns #{Enum.join(columns_display, ", ")} will cause all values to be anonymized. " <>
-              "Consider removing these columns from the select list. "
-            %{query | info: [info_message | query.info]}
-        end
+    case selected_uid_columns(query) do
+      [] -> query
+      [_|_] = selected_uid_columns ->
+        Enum.reduce(selected_uid_columns, query, &warn_on_selected_uid(&2, &1))
+    end
+  end
+
+  defp selected_uid_columns(query) do
+    all_uid_columns = qualified_uid_columns(query.from, query.data_source)
+    Enum.filter(query.columns, &MapSet.member?(all_uid_columns, &1))
   end
 
   defp qualified_uid_columns({:cross_join, lhs, rhs}, data_source) do
@@ -452,4 +447,13 @@ defmodule Cloak.SqlQuery.Compiler do
   defp qualified_uid_columns(table_name, data_source) do
     MapSet.new([{:identifier, table_name, DataSource.table(data_source, table_name).user_id}])
   end
+
+  defp warn_on_selected_uid(query, {:identifier, table_name, column_name}) do
+    add_info_message(query,
+      "Selecting column `#{column_name}` from table `#{table_name}` will cause all values to be anonymized. " <>
+      "Consider removing this column from the list of selected columns."
+    )
+  end
+
+  defp add_info_message(query, info_message), do: %{query | info: [info_message | query.info]}
 end
