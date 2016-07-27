@@ -27,7 +27,7 @@ defmodule Air.ResultProcessor do
   """
   @spec supervisor_spec() :: Supervisor.Spec.spec
   def supervisor_spec() do
-    supervisor(Task.Supervisor, [[name: __MODULE__, restart: :temporary]])
+    supervisor(Task.Supervisor, [[name: __MODULE__, restart: :temporary]], [id: :result_processor])
   end
 
   def observer_spec do
