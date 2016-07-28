@@ -15,9 +15,6 @@ defmodule Cloak.Query.Function do
   def aggregate_function?({:function, function, _}), do: @functions[function].aggregate
   def aggregate_function?(_), do: false
 
-  def extraction_function?({:function, function, _}), do: @functions[function].extraction
-  def extraction_function?(_), do: false
-
   def argument_type({:function, function, _}), do: @functions[function].type
 
   def argument({:function, _, argument}), do: argument
