@@ -284,6 +284,13 @@ defmodule Cloak.SqlQuery.Parser.Test do
     )
   end
 
+  test "date extraction" do
+    assert_parse(
+      "SELECT extract(year FROM column) FROM table",
+      select(columns: [{:function, "year", {:identifier, :unknown, "column"}}])
+    )
+  end
+
   test "count(*)" do
     assert_parse("select count(*) from foo", select(columns: [{:function, "count", :*}], from: "foo"))
   end
