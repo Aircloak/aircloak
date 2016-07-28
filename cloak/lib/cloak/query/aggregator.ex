@@ -2,7 +2,8 @@ defmodule Cloak.Query.Aggregator do
   @moduledoc "This module aggregates the values into an anonymized result. See `aggregate/2` for details."
   alias Cloak.DataSource
   alias Cloak.SqlQuery
-  alias Cloak.Query.{Anonymizer, Function}
+  alias Cloak.SqlQuery.Function
+  alias Cloak.Query.Anonymizer
 
   @typep property_values :: [DataSource.field | :*]
   @typep user_id :: DataSource.field

@@ -4,7 +4,7 @@ defmodule Cloak.SqlQuery.Compiler do
   alias Cloak.DataSource
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
-  alias Cloak.Query.Function
+  alias Cloak.SqlQuery.Function
 
   @type compiled_query :: %{
     data_source: DataSource.t,

@@ -1,4 +1,4 @@
-defmodule Cloak.Query.Function do
+defmodule Cloak.SqlQuery.Function do
   @moduledoc "Includes information about functions and implementation of non-aggregation functions."
 
   alias Cloak.SqlQuery.Parser
