@@ -2,7 +2,7 @@ defmodule Cloak.Query.Aggregator do
   @moduledoc "This module aggregates the values into an anonymized result. See `aggregate/2` for details."
   alias Cloak.DataSource
   alias Cloak.SqlQuery
-  alias Cloak.Query.Anonymizer
+  alias Cloak.Query.{Anonymizer, Function}
 
   @typep property_values :: [DataSource.field | :*]
   @typep user_id :: DataSource.field
@@ -82,11 +82,17 @@ defmodule Cloak.Query.Aggregator do
   end
 
   defp group_by_property(rows, columns, query) do
-    property_indices = for column <- query.property, do: column_index(column, columns)
+    property_indices = for column <- query.property, do: {column, column_index(column, columns)}
     aggregators_indices = for column <- SqlQuery.aggregated_columns(query), do: column_index(column, columns)
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
-      property = for index <- property_indices, do: Enum.at(row, index)
+      property = for {column, index} <- property_indices do
+        if Function.function?(column) do
+          Function.apply(Enum.at(row, index), column)
+        else
+          Enum.at(row, index)
+        end
+      end
       user_id = user_id(row)
       values = for index <- aggregators_indices, do: index_to_value_list(index, row)
       Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
@@ -195,13 +201,21 @@ defmodule Cloak.Query.Aggregator do
 
   defp selected_values(row, columns, query) do
     for selected_column <- query.columns do
-      if Cloak.Query.Function.extraction_function?(selected_column) do
-        argument = Cloak.Query.Function.argument(selected_column)
-        value = DataSource.fetch_value!(row, columns, argument)
-        Cloak.Query.Function.apply(value, selected_column)
+      index = output_index(selected_column, columns)
+
+      if Function.function?(selected_column) && !Function.function?(Enum.at(columns, index)) do
+        Function.apply(Enum.at(row, index), selected_column)
       else
-        DataSource.fetch_value!(row, columns, selected_column)
+        Enum.at(row, index)
       end
+    end
+  end
+
+  defp output_index(column, columns) do
+    cond do
+      index = Enum.find_index(columns, &(&1 == column)) -> index
+      index = Enum.find_index(columns, &(&1 == Function.argument(column))) -> index
+      true -> raise(Cloak.Query.Runner.RuntimeError, "Could not find column in output")
     end
   end
 
