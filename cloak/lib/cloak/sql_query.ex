@@ -51,6 +51,7 @@ defmodule Cloak.SqlQuery do
     (query.columns ++ query.group_by ++ query.unsafe_filter_columns)
     |> Enum.map(&full_column_name/1)
     |> Enum.uniq()
+    |> Enum.reject(&:* == &1)
   end
 
   @doc "Converts a column identifier into a printable name"
@@ -63,5 +64,4 @@ defmodule Cloak.SqlQuery do
   # pass through unknown tables, and drop them from the names here.
   def full_column_name({:identifier, :unknown, column}), do: column
   def full_column_name({:identifier, table, column}), do: "#{table}.#{column}"
-  def full_column_name(:*), do: "*"
 end
