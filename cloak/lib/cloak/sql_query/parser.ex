@@ -260,7 +260,7 @@ defmodule Cloak.SqlQuery.Parser do
       {qualified_identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
       {qualified_identifier() |> keyword(:in), in_values()},
       {qualified_identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
-      {qualified_identifier(), pair_both(comparator(), allowed_where_values())},
+      {qualified_identifier(), pair_both(comparator(), allowed_where_value())},
       {:else, error_message(fail(""), "Invalid where expression")}
     ])
     |> map(fn
@@ -276,14 +276,19 @@ defmodule Cloak.SqlQuery.Parser do
         end)
   end
 
+  defp allowed_where_value() do
+    choice([qualified_identifier(), allowed_where_constant()])
+    |> label("comparison value")
+  end
+
   defp in_values() do
     pipe(
-      [keyword(:"("), comma_delimited(allowed_where_values()), keyword(:")")],
+      [keyword(:"("), comma_delimited(allowed_where_constant()), keyword(:")")],
       fn([_, values, _]) -> values end
     )
   end
 
-  defp allowed_where_values() do
+  defp allowed_where_constant() do
     constant_of([:string, :integer, :float, :boolean])
     |> label("comparison value")
   end

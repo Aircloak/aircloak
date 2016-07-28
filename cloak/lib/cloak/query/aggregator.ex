@@ -63,28 +63,37 @@ defmodule Cloak.Query.Aggregator do
     [[value | prev_values] | add_values_to_columns(rest_values, rest_prev_values)]
   end
 
-  @spec group_by_property([DataSource.row], [DataSource.column], SqlQuery.t) :: properties
+  defp column_index(:*, _columns), do: :*
+  defp column_index({:distinct, column}, columns), do: column_index(column, columns)
+  defp column_index(column, columns) do
+    name = SqlQuery.full_column_name(column)
+    case Enum.find_index(columns, &(&1 === name)) do
+      nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{name}` doesn't exist in selected columns.")
+      index -> index
+    end
+  end
+
+  defp index_to_value_list(:*, _row), do: [:*]
+  defp index_to_value_list(index, row) do
+    case Enum.at(row, index) do
+      nil -> []
+      value -> [value]
+    end
+  end
+
   defp group_by_property(rows, columns, query) do
+    property_indices = for column <- query.property, do: column_index(column, columns)
+    aggregators_indices = for column <- SqlQuery.aggregated_columns(query), do: column_index(column, columns)
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
-      property = grouping_property(row, columns, query)
+      property = for index <- property_indices, do: Enum.at(row, index)
       user_id = user_id(row)
-      values = for column <- SqlQuery.aggregated_columns(query) do
-        case value(row, columns, column) do
-          nil -> []
-          value -> [value]
-        end
-      end
+      values = for index <- aggregators_indices, do: index_to_value_list(index, row)
       Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
         Map.update(user_values_map, user_id, values, &add_values_to_columns(values, &1))
       end)
     end)
     |> init_anonymizer()
-  end
-
-  defp grouping_property(row, columns, query) do
-    query_properties = Enum.map(query.property, &SqlQuery.full_column_name/1)
-    Enum.map(query_properties, &DataSource.fetch_value!(row, columns, &1))
   end
 
   defp user_id([user_id | _rest]), do: user_id
@@ -158,13 +167,6 @@ defmodule Cloak.Query.Aggregator do
     |> Map.values()
   end
   defp preprocess_for_aggregation(values, _column), do: values
-
-  defp value(_row, _columns, :*), do: :*
-  defp value(row, columns, {:distinct, column}), do: value(row, columns, column)
-  # The following is to allow results from DS Proxy which aren't fully qualified
-  defp value(row, columns, {:identifier, :unknown, column}), do: value(row, columns, column)
-  defp value(row, columns, {:identifier, table, column}), do: value(row, columns, "#{table}.#{column}")
-  defp value(row, columns, column), do: DataSource.fetch_value!(row, columns, column)
 
   defp aggregate_by(aggregation_data, "count", anonymizer), do: Anonymizer.count(anonymizer, aggregation_data)
   defp aggregate_by(aggregation_data, "sum", anonymizer), do: Anonymizer.sum(anonymizer, aggregation_data)

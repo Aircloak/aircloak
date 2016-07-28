@@ -1,4 +1,5 @@
 defmodule Air.ApiTokenTest do
+  use ExUnit.Case, async: true
   use Air.ModelCase
   alias Air.{ApiToken}
 
@@ -13,5 +14,10 @@ defmodule Air.ApiTokenTest do
   test "changeset with invalid attributes" do
     changeset = ApiToken.changeset(%ApiToken{}, @invalid_attrs)
     refute changeset.valid?
+  end
+
+  test "touching changes updated at time" do
+    %Ecto.Changeset{model: model} = ApiToken.changeset(%ApiToken{}, @valid_attrs)
+    assert %{changes: %{updated_at: _}} = ApiToken.touch(model)
   end
 end

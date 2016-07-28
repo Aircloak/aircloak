@@ -37,7 +37,7 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
     defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
-      group_by: [], order_by: [], column_titles: []}
+      group_by: [], order_by: [], column_titles: [], info: []}
     compile_prepped_query(Map.merge(defaults, query))
   end
 
@@ -82,8 +82,10 @@ defmodule Cloak.SqlQuery.Compiler do
       |> compile_aliases()
       |> validate_all_requested_tables_are_selected()
       |> qualify_all_identifiers()
+      |> warn_on_selected_uids()
       |> compile_columns()
       |> compile_order_by()
+      |> verify_joins()
       |> cast_where_clauses()
       |> partition_selected_columns()
       |> partition_where_clauses()
@@ -323,6 +325,53 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp partition_where_clauses(query), do: query
 
+  defp verify_joins(query) do
+    # Algorithm for finding improperly joined tables:
+    #
+    # 1. Create a DCG graph, where all uid columns are vertices.
+    # 2. Add an edge for all where clauses shaped as `uid1 = uid2`
+    # 3. Find the first pair (uid1, uid2) where there is no path from uid1 to uid2 in the graph.
+    # 4. Report an error if something is found in the step 3
+
+    graph = :digraph.new([:private, :cyclic])
+    try do
+      # add uid columns as vertices
+      uid_columns = qualified_uid_columns(query)
+      Enum.each(uid_columns, &:digraph.add_vertex(graph, &1))
+
+      # add edges for all `uid1 = uid2` filters
+      for {:comparison, uid1, :=, uid2} <- query.where,
+          uid1 != uid2,
+          MapSet.member?(uid_columns, uid1),
+          MapSet.member?(uid_columns, uid2)
+      do
+       :digraph.add_edge(graph, uid1, uid2)
+       :digraph.add_edge(graph, uid2, uid1)
+     end
+
+      # Find first pair (uid1, uid2) which are not connected in the graph.
+      uid_columns
+      |> Stream.chunk(2, 1)
+      |> Stream.filter(fn([uid1, uid2]) -> :digraph.get_path(graph, uid1, uid2) == false end)
+      |> Enum.take(1)
+      |> case do
+            [] ->
+              # No such pair -> all tables are properly joined
+              query
+
+            [[{:identifier, table1, column1}, {:identifier, table2, column2}]] ->
+              raise CompilationError,
+                message:
+                  "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
+                  "You can fix the error by adding `#{table1}.#{column1} = #{table2}.#{column2}` " <>
+                  "condition to the `WHERE` clause."
+          end
+    after
+      # digraph is powered by ets tables, so we need to make sure they are deleted once we don't need them
+      :digraph.delete(graph)
+    end
+  end
+
   defp cast_where_clauses(%{where: [_|_] = clauses} = query) do
     %{query | where: Enum.map(clauses, &cast_where_clause(&1, query))}
   end
@@ -365,9 +414,8 @@ defmodule Cloak.SqlQuery.Compiler do
   end)
 
   defp columns(table, data_source) do
-    table_id = String.to_existing_atom(table)
-    for {name, type} <- DataSource.columns(data_source, table_id) do
-      {{:identifier, Atom.to_string(table_id), name}, type}
+    for {name, type} <- DataSource.table(data_source, table).columns do
+      {{:identifier, table, name}, type}
     end
   end
 
@@ -421,9 +469,15 @@ defmodule Cloak.SqlQuery.Compiler do
       false -> raise CompilationError, message: "Column `#{column}` doesn't exist in table `#{table}`."
     end
   end
+  defp qualify_identifier(other, _column_table_map), do: other
 
-  defp qualify_where_clause({:comparison, identifier, comparator, any}, column_table_map) do
-    {:comparison, qualify_identifier(identifier, column_table_map), comparator, any}
+  defp qualify_where_clause({:comparison, lhs, comparator, rhs}, column_table_map) do
+    {
+      :comparison,
+      qualify_identifier(lhs, column_table_map),
+      comparator,
+      qualify_identifier(rhs, column_table_map)
+    }
   end
   defp qualify_where_clause({:not, subclause}, column_table_map) do
     {:not, qualify_where_clause(subclause, column_table_map)}
@@ -437,5 +491,38 @@ defmodule Cloak.SqlQuery.Compiler do
   def column_title({:function, function, _}), do: function
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, column}), do: column
-  def column_title(:*), do: "*"
+
+  defp warn_on_selected_uids(query) do
+    case selected_uid_columns(query) do
+      [] -> query
+      [_|_] = selected_uid_columns ->
+        Enum.reduce(selected_uid_columns, query, &warn_on_selected_uid(&2, &1))
+    end
+  end
+
+  defp selected_uid_columns(query) do
+    all_uid_columns = qualified_uid_columns(query)
+    Enum.filter(query.columns, &MapSet.member?(all_uid_columns, &1))
+  end
+
+  defp qualified_uid_columns(query), do: collect_qualified_uid_columns(query.from, query.data_source)
+
+  defp collect_qualified_uid_columns({:cross_join, lhs, rhs}, data_source) do
+    MapSet.union(
+      collect_qualified_uid_columns(lhs, data_source),
+      collect_qualified_uid_columns(rhs, data_source)
+    )
+  end
+  defp collect_qualified_uid_columns(table_name, data_source) do
+    MapSet.new([{:identifier, table_name, DataSource.table(data_source, table_name).user_id}])
+  end
+
+  defp warn_on_selected_uid(query, {:identifier, table_name, column_name}) do
+    add_info_message(query,
+      "Selecting column `#{column_name}` from table `#{table_name}` will cause all values to be anonymized. " <>
+      "Consider removing this column from the list of selected columns."
+    )
+  end
+
+  defp add_info_message(query, info_message), do: %{query | info: [info_message | query.info]}
 end

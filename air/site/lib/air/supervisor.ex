@@ -21,6 +21,7 @@ defmodule Air.Supervisor do
       supervisor(Air.Repo, []),
       worker(Air.Repo.Migrator, [], restart: :transient),
       worker(Air.QueryEvents, []),
+      supervisor(Task.Supervisor, [[name: Air.ApiTokenTimestampUpdater]], [id: :api_token_updater]),
       worker(Air.Monitoring.FailedQueries, []),
       Air.ResultProcessor.observer_spec(),
       Air.Endpoint.supervisor_spec(),

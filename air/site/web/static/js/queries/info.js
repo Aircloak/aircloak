@@ -5,7 +5,7 @@ export const Info = (props) => {
     return (
       <div>
         <h4>Info</h4>
-        <p>{props.info}</p>
+        {props.info.map((infoMessage, i) => <p key={i}>{infoMessage}</p>)}
       </div>
     );
   } else {
@@ -14,5 +14,5 @@ export const Info = (props) => {
 };
 
 Info.propTypes = {
-  info: React.PropTypes.string,
+  info: React.PropTypes.array,
 };

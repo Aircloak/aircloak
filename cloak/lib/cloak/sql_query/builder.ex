@@ -27,7 +27,7 @@ defmodule Cloak.SqlQuery.Builder do
     fragments_to_query_spec([
       "SELECT ", columns_string(select_column_names), " ",
       "FROM ", from_clause(query.from), " ",
-      where_fragments(augment_where_with_join_conditions(query[:where], query.from))
+      where_fragments(query[:where])
     ])
   end
 
@@ -42,7 +42,6 @@ defmodule Cloak.SqlQuery.Builder do
     |> Enum.join(",")
   end
 
-  defp column_expression({:*, cloak_column_name}), do: "NULL AS \"#{cloak_column_name}\""
   defp column_expression({db_column_name, cloak_column_name}),
     do: "#{db_column_name} AS \"#{cloak_column_name}\""
 
@@ -79,18 +78,6 @@ defmodule Cloak.SqlQuery.Builder do
     |> Stream.filter(&match?({:param, _}, &1))
     |> Enum.map(fn({:param, value}) -> value end)
   end
-
-  defp augment_where_with_join_conditions(where_clauses, from_clause) do
-    case user_ids_from_from_clause(from_clause, []) do
-      [_user_id] -> where_clauses # It's only a single table select, no additional constraints needed
-      [user_id | rest] -> Enum.map(rest, &({:comparison, user_id, :=, &1})) ++ where_clauses
-    end
-  end
-
-  defp user_ids_from_from_clause({:cross_join, lhs, rhs}, acc) do
-    user_ids_from_from_clause(rhs, user_ids_from_from_clause(lhs, acc))
-  end
-  defp user_ids_from_from_clause({_table, user_id}, acc), do: [user_id | acc]
 
   defp where_fragments([]), do: []
   defp where_fragments(where_clause) do

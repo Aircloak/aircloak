@@ -168,6 +168,14 @@ defmodule Cloak.SqlQuery.Parser.Test do
     )
   end
 
+  test "where clause comparing two columns" do
+    assert_parse(
+      "select foo from bar where a = b",
+      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
+        where: [{:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}])
+    )
+  end
+
   test "where clause can have string values of any case" do
     assert_parse(
       "select foo from bar where name = 'tOm'",

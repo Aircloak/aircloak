@@ -10,6 +10,13 @@ defmodule Cloak.QueryTest do
     end
   end
 
+  defmacrop assert_info(query, expected_info_regex) do
+    quote do
+      assert_query unquote(query), %{info: [info]}
+      assert info =~ unquote(expected_info_regex)
+    end
+  end
+
   setup_all do
     :db_test.setup()
     :db_test.create_test_schema()
@@ -35,7 +42,8 @@ defmodule Cloak.QueryTest do
     assert Enum.sort_by(rows, &(&1[:row])) == [
       %{occurrences: 1, row: ["height", :integer]},
       %{occurrences: 1, row: ["name", :text]},
-      %{occurrences: 1, row: ["time", :timestamp]}
+      %{occurrences: 1, row: ["time", :timestamp]},
+      %{occurrences: 1, row: ["user_id", :text]}
     ]
   end
 
@@ -47,7 +55,7 @@ defmodule Cloak.QueryTest do
 
   test "select all query" do
     assert_query "select * from heights",
-      %{query_id: "1", columns: ["height", "name", "time"], rows: _}
+      %{query_id: "1", columns: ["user_id", "height", "name", "time"], rows: _}
   end
 
   test "select date parts" do
@@ -65,12 +73,18 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
 
     assert_query "select * from heights order by name",
-      %{query_id: "1", columns: ["height", "name", "time"], rows: rows}
-    assert Enum.map(rows, &(&1[:row])) == [
-      [180, "adam", nil],
-      [180, "john", %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}],
-      [180, "mike", nil]
-    ]
+      %{query_id: "1", columns: ["user_id", "height", "name", "time"], rows: rows}
+    assert Enum.map(rows, &(&1[:row])) == [[:*, :*, :*, :*]]
+  end
+
+  test "warns when uid column is selected" do
+    assert_info "select user_id from heights", "`user_id` from table `heights`"
+    assert_info "select user_id, height from heights", "`user_id` from table `heights`"
+    assert_info "select * from heights", "`user_id` from table `heights`"
+
+    assert_query "select * from heights, purchases where heights.user_id = purchases.user_id", %{info: [info1, info2]}
+    assert info1 =~ "`user_id` from table `heights`"
+    assert info2 =~ "`user_id` from table `purchases`"
   end
 
   test "should return LCF property when sufficient rows are filtered" do
@@ -469,7 +483,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
 
-    assert_query "select max(height), max(price) FROM heights, purchases",
+    assert_query "select max(height), max(price) FROM heights, purchases WHERE heights.user_id = purchases.user_id",
       %{columns: ["max", "max"], rows: rows}
     assert rows == [%{row: [180, 200], occurrences: 1}]
   end
@@ -519,6 +533,12 @@ defmodule Cloak.QueryTest do
       %{columns: ["h"], rows: [%{row: [170], occurrences: 1}, %{row: [180], occurrences: 1}]}
     assert_query "select count(*) as c, count(height) as c from heights",
       %{columns: ["c", "c"], rows: [%{row: [30, 30], occurrences: 1}]}
+  end
+
+  test "select comparing two columns" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from heights where height = height",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
   defp start_query(statement) do
