@@ -59,6 +59,7 @@ defmodule Cloak.SqlQuery.Compiler do
       ds_proxy_validate_no_where(query)
       query = compile_aliases(query)
       verify_aggregated_columns(query)
+      verify_group_by_functions(query)
       query = query
       |> compile_order_by()
       |> partition_selected_columns()
@@ -224,6 +225,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_columns(query) do
     verify_functions(query)
     verify_aggregated_columns(query)
+    verify_group_by_functions(query)
     verify_function_parameters(query)
     query
   end
@@ -255,6 +257,16 @@ defmodule Cloak.SqlQuery.Compiler do
       [{:identifier, table, invalid_column} | _rest] ->
         raise CompilationError, message: "Column `#{invalid_column}` from table `#{table}` needs " <>
           "to appear in the `group by` clause or be used in an aggregate function."
+    end
+  end
+
+  defp verify_group_by_functions(query) do
+    query.group_by
+    |> Enum.filter(&Function.aggregate_function?/1)
+    |> case do
+      [] -> :ok
+      [function | _] -> raise CompilationError, message: "Aggregate function `#{Function.name(function)}`"
+        <> " used in the group by clause"
     end
   end
 

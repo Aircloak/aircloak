@@ -84,6 +84,14 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     end
   end
 
+  for function <- ~w(count avg min max sum stddev median) do
+    test "rejecting #{function} in group by", %{data_source: data_source} do
+      query = "select #{unquote(function)}(numeric) from table group by #{unquote(function)}(numeric)"
+      assert {:error, error} = compile(query, data_source)
+      assert error == "Aggregate function `#{unquote(function)}` used in the group by clause"
+    end
+  end
+
   for function <- ~w(year month day hour minute second weekday) do
     test "allowing #{function} on timestamp columns", %{data_source: data_source} do
       assert {:ok, _} = compile("select #{unquote(function)}(column) from table", data_source)
