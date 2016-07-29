@@ -135,11 +135,8 @@ defmodule Cloak.DataSource do
   Returns {RowCount, Columns, Rows}.
   """
   @spec select(Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
-  def select(%{from: {:subquery, _}, data_source: data_source} = select_query) do
-    data_source.driver.select(data_source.id, select_query)
-  end
   def select(%{data_source: data_source} = select_query) do
-    data_source.driver.select(data_source.id, expand_select_query(select_query))
+    data_source.driver.select(data_source.id, select_query)
   end
 
   @doc "Returns the datasource for the given id, raises if it's not found."
@@ -169,19 +166,6 @@ defmodule Cloak.DataSource do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
-
-  defp expand_select_query(select_query) do
-    select_query
-    |> Map.update!(:columns, &[user_id_column(select_query.from, select_query.data_source) | &1])
-  end
-
-  defp user_id_column({:cross_join, lhs, _rhs}, data_source),
-    do: user_id_column(lhs, data_source)
-  defp user_id_column(table_name, data_source) do
-    table = table(data_source, table_name)
-    user_id = to_string(table.user_id)
-    %Cloak.SqlQuery.Column{name: user_id, table: table}
-  end
 
   defp map_driver({data_source, params}) do
     driver_module = case params[:driver] do

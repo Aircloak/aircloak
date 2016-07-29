@@ -24,6 +24,7 @@ defmodule Cloak.DataSourceTest do
     assert {:ok, data} = DataSource.select(%{
       command: :select,
       columns: [%Cloak.SqlQuery.Column{table: %{name: "test", user_name: "test"}, name: "value"}],
+      db_columns: [%Cloak.SqlQuery.Column{table: %{name: "test", user_name: "test"}, name: "value"}],
       unsafe_filter_columns: [],
       where: [],
       group_by: [],
@@ -34,8 +35,8 @@ defmodule Cloak.DataSourceTest do
 
     assert(data == {
       3,
-      ["test.user_id", "test.value"],
-      [["user-id", 10], ["user-id", 20], ["user-id", 30]]
+      ["test.value"],
+      [[10], [20], [30]]
     })
   end
 

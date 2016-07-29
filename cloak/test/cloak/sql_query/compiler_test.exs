@@ -17,13 +17,13 @@ defmodule Cloak.SqlQuery.Compiler.Test do
           name: "table",
           user_name: "table",
           user_id: "uid",
-          columns: [{"column", :timestamp}, {"numeric", :integer}]
+          columns: [{"uid", :integer}, {"column", :timestamp}, {"numeric", :integer}]
         },
         other_table: %{
           name: "other_table",
           user_name: "other_table",
           user_id: "uid",
-          columns: [{"other_column", :timestamp}]
+          columns: [{"uid", :integer}, {"other_column", :timestamp}]
         },
         t1: %{
           name: "t1",

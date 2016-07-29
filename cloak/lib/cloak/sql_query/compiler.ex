@@ -39,7 +39,7 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
     defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
-      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: []}
+      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: [], db_columns: []}
     compile_prepped_query(Map.merge(defaults, query))
   end
 
@@ -87,6 +87,7 @@ defmodule Cloak.SqlQuery.Compiler do
       |> cast_where_clauses()
       |> partition_selected_columns()
       |> partition_where_clauses()
+      |> calculate_db_columns()
       {:ok, query}
     rescue
       e in CompilationError -> {:error, e.message}
@@ -551,4 +552,15 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp add_info_message(query, info_message), do: %{query | info: [info_message | query.info]}
+
+  defp calculate_db_columns(%{command: :select, from: {:subquery, _}} = query),
+    do: query
+  defp calculate_db_columns(%{command: :select, selected_tables: [table | _]} = query) do
+    user_id = table.user_id
+    {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
+    user_id_column = %Column{table: table, name: user_id, type: type, user_id?: true}
+    %{query | db_columns: [user_id_column | query.columns]}
+  end
+  defp calculate_db_columns(query),
+    do: query
 end

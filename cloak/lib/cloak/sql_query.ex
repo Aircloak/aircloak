@@ -50,7 +50,7 @@ defmodule Cloak.SqlQuery do
   """
   @spec db_columns(t) :: [Column.t]
   def db_columns(query) do
-    (query.columns ++ query.group_by ++ query.unsafe_filter_columns)
+    (query.db_columns ++ query.group_by ++ query.unsafe_filter_columns)
     |> Enum.map(&extract_column/1)
     |> Enum.uniq()
     |> Enum.reject(&:* == &1)
