@@ -80,7 +80,6 @@ defmodule Cloak.SqlQuery.Compiler do
       query = query
       |> verify_from()
       |> compile_columns()
-      |> warn_on_selected_uids()
       |> verify_columns()
       |> compile_order_by()
       |> verify_joins()
@@ -206,7 +205,7 @@ defmodule Cloak.SqlQuery.Compiler do
     verify_aggregated_columns(query)
     verify_group_by_functions(query)
     verify_function_parameters(query)
-    query
+    warn_on_selected_uids(query)
   end
 
   defp verify_function_parameters(query) do
