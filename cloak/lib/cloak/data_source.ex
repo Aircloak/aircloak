@@ -160,7 +160,7 @@ defmodule Cloak.DataSource do
   @spec fetch_value!(row, [column], any) :: field
   def fetch_value!(row, columns, column) do
     case Enum.find_index(columns, &(&1 === column)) do
-      nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{column}` doesn't exist in selected columns.")
+      nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{column.name}` doesn't exist in selected columns.")
       index -> Enum.at(row, index)
     end
   end
@@ -177,8 +177,11 @@ defmodule Cloak.DataSource do
 
   defp user_id_column({:cross_join, lhs, _rhs}, data_source),
     do: user_id_column(lhs, data_source)
-  defp user_id_column(table_name, data_source),
-    do: {:identifier, table_name, table(data_source, table_name).user_id}
+  defp user_id_column(table_name, data_source) do
+    table = table(data_source, table_name)
+    user_id = to_string(table.user_id)
+    %Cloak.SqlQuery.Column{name: user_id, table: table}
+  end
 
   defp map_driver({data_source, params}) do
     driver_module = case params[:driver] do

@@ -3,6 +3,8 @@ defmodule Cloak.SqlQuery do
 
   @type t :: Compiler.compiled_query
 
+  alias Cloak.SqlQuery.Column
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -31,7 +33,7 @@ defmodule Cloak.SqlQuery do
   end
 
   @doc "Returns the list of unique columns used in the aggregation process."
-  @spec aggregated_columns(t) :: [String.t]
+  @spec aggregated_columns(t) :: [Column.t]
   def aggregated_columns(query),
     do: (for {:function, _, column} <- query.aggregators, do: column) |> Enum.uniq()
 
@@ -46,22 +48,21 @@ defmodule Cloak.SqlQuery do
   responsibility of the driver to check for this value and in its place return a
   `nil` value for each returned row.
   """
-  @spec db_columns(t) :: [String.t]
+  @spec db_columns(t) :: [Column.t]
   def db_columns(query) do
     (query.columns ++ query.group_by ++ query.unsafe_filter_columns)
-    |> Enum.map(&full_column_name/1)
+    |> Enum.map(&extract_column/1)
     |> Enum.uniq()
     |> Enum.reject(&:* == &1)
   end
 
-  @doc "Converts a column identifier into a printable name"
-  @spec full_column_name(Cloak.SqlQuery.Parser.column) :: String.t | :*
-  def full_column_name({:function, "count", :*}), do: :*
-  def full_column_name({:function, _function, identifier}), do: full_column_name(identifier)
-  def full_column_name({:distinct, identifier}), do: full_column_name(identifier)
-  # This case is needed for DS Proxy. We can't qualify the identifiers when
-  # we don't know what tables are part of the select, therefore we have to
-  # pass through unknown tables, and drop them from the names here.
-  def full_column_name({:identifier, :unknown, column}), do: column
-  def full_column_name({:identifier, table, column}), do: "#{table}.#{column}"
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp extract_column({:function, "count", :*}), do: :*
+  defp extract_column({:function, _function, identifier}), do: extract_column(identifier)
+  defp extract_column({:distinct, identifier}), do: extract_column(identifier)
+  defp extract_column(%Column{} = column), do: column
 end

@@ -66,10 +66,10 @@ defmodule Cloak.Query.Aggregator do
 
   defp input_index(:*, _columns), do: :*
   defp input_index({:distinct, column}, columns), do: input_index(column, columns)
+  defp input_index({:function, _, column}, columns), do: input_index(column, columns)
   defp input_index(column, columns) do
-    name = SqlQuery.full_column_name(column)
-    case Enum.find_index(columns, &(&1 === name)) do
-      nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{name}` doesn't exist in selected columns.")
+    case Enum.find_index(columns, &(&1 === Cloak.SqlQuery.Column.alias(column))) do
+      nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{column.name}` doesn't exist in selected columns.")
       index -> index
     end
   end

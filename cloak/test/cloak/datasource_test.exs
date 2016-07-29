@@ -23,7 +23,7 @@ defmodule Cloak.DataSourceTest do
   test "data retrieval" do
     assert {:ok, data} = DataSource.select(%{
       command: :select,
-      columns: [{:identifier, "test", "value"}],
+      columns: [%Cloak.SqlQuery.Column{table: %{name: "test", user_name: "test"}, name: "value"}],
       unsafe_filter_columns: [],
       where: [],
       group_by: [],

@@ -9,7 +9,6 @@ defmodule Cloak.Query.NegativeCondition do
 
   alias Cloak.DataSource
   alias Cloak.Query.Anonymizer
-  alias Cloak.SqlQuery
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
 
@@ -56,20 +55,20 @@ defmodule Cloak.Query.NegativeCondition do
   end
 
   defp filter(row, columns, {:comparison, column, :=, %Token{value: %{value: value}}}) do
-    column = SqlQuery.full_column_name(column)
-    DataSource.fetch_value!(row, columns, column) == value
+    fetch_value!(row, columns, column) == value
   end
   defp filter(row, columns, {:comparison, column, :=, value}) do
-    column = SqlQuery.full_column_name(column)
-    DataSource.fetch_value!(row, columns, column) == value
+    fetch_value!(row, columns, column) == value
   end
   defp filter(row, columns, {:like, column, %Token{value: %{type: :string, value: pattern}}}) do
-    column = SqlQuery.full_column_name(column)
-    DataSource.fetch_value!(row, columns, column) =~ to_regex(pattern)
+    fetch_value!(row, columns, column) =~ to_regex(pattern)
   end
   defp filter(row, columns, {:ilike, column, %Token{value: %{type: :string, value: pattern}}}) do
-    column = SqlQuery.full_column_name(column)
-    DataSource.fetch_value!(row, columns, column) =~ to_regex(pattern, [_case_insensitive = "i"])
+    fetch_value!(row, columns, column) =~ to_regex(pattern, [_case_insensitive = "i"])
+  end
+
+  defp fetch_value!(row, columns, column) do
+    DataSource.fetch_value!(row, columns, Cloak.SqlQuery.Column.alias(column))
   end
 
   defp to_regex(sql_pattern, options \\ []) do

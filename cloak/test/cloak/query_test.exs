@@ -461,7 +461,7 @@ defmodule Cloak.QueryTest do
 
   test "query reports an error when mixing aggregated and normal columns" do
     assert_query "select count(*), height from heights", %{error: error}
-    assert error =~ ~r/`height` needs to appear in the `group by` clause/
+    assert error =~ ~r/`height` from table `heights` needs to appear in the `group by` clause/
   end
 
   test "query reports an error when grouping by nonexistent columns" do
@@ -471,7 +471,7 @@ defmodule Cloak.QueryTest do
 
   test "query reports an error when not grouping by some selected columns" do
     assert_query "select name, height from heights group by height", %{error: error}
-    assert error =~ ~r/`name` needs to appear in the `group by` clause/
+    assert error =~ ~r/`name` from table `heights` needs to appear in the `group by` clause/
   end
 
   test "query allows mixing aggregated and grouped columns" do
@@ -547,7 +547,7 @@ defmodule Cloak.QueryTest do
 
   test "query reports an error on invalid order by field" do
     assert_query "select height from heights order by name", %{error: error}
-    assert ~s/Non-selected field `name` from table `heights` specified in `order by` clause./ == error
+    assert ~s/Non-selected column `name` from table `heights` specified in `order by` clause./ == error
   end
 
   test "query reports an error on unknown function" do
