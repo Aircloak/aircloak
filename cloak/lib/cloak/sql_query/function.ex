@@ -43,7 +43,7 @@ defmodule Cloak.SqlQuery.Function do
   def argument({:function, _, argument}), do: argument
 
   @doc "Returns the function name of the given function call."
-  @spec argument(Parser.column) :: String.t
+  @spec name(Parser.column) :: String.t
   def name({:function, name, _}), do: name
 
   # -------------------------------------------------------------------
