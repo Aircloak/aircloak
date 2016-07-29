@@ -65,6 +65,7 @@ defmodule Cloak.SqlQuery.Compiler do
       |> verify_columns()
       |> compile_order_by()
       |> partition_selected_columns()
+      |> calculate_db_columns()
       {:ok, query}
     rescue
       e in CompilationError -> {:error, e.message}
@@ -557,19 +558,20 @@ defmodule Cloak.SqlQuery.Compiler do
   defp calculate_db_columns(query) do
     %{query |
         db_columns:
-          (user_id_columns(query) ++ query.columns ++ query.group_by ++ query.unsafe_filter_columns)
+          db_columns(query)
           |> Enum.map(&extract_column/1)
           |> Enum.reject(&(&1 == nil))
           |> Enum.uniq()
     }
   end
 
-  defp user_id_columns(%{command: :select, from: {:subquery, _}}),
-    do: []
-  defp user_id_columns(%{command: :select, selected_tables: [table | _]}) do
+  defp db_columns(%{command: :select, from: {:subquery, _}} = query) do
+    [%Column{table: :unknown, name: "user_id", user_id?: true}] ++ query.columns ++ query.group_by
+  end
+  defp db_columns(%{command: :select, selected_tables: [table | _]} = query) do
     user_id = table.user_id
     {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
     user_id_column = %Column{table: table, name: user_id, type: type, user_id?: true}
-    [user_id_column]
+    [user_id_column] ++ query.columns ++ query.group_by ++ query.unsafe_filter_columns
   end
 end

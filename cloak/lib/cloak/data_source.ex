@@ -36,6 +36,8 @@ defmodule Cloak.DataSource do
 
   require Logger
 
+  alias Cloak.SqlQuery.Column
+
   # define returned data types and values
   @type t :: %{
     id: atom,
@@ -55,7 +57,7 @@ defmodule Cloak.DataSource do
   @type row :: [field]
   @type data_type :: :text | :integer | :real | :boolean | :timestamp | :time | :date | {:unsupported, String.t}
   @type query_result :: {num_rows, [column], [row]}
-
+  @opaque columns :: %{any => non_neg_integer}
 
   #-----------------------------------------------------------------------------------------------------------
   # Driver behaviour
@@ -134,9 +136,16 @@ defmodule Cloak.DataSource do
   Execute a `select` query over the specified data source.
   Returns {RowCount, Columns, Rows}.
   """
-  @spec select(Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
+  @spec select(Cloak.SqlQuery.t) :: {:ok, columns, [row]} | {:error, any}
   def select(%{data_source: data_source} = select_query) do
-    data_source.driver.select(data_source.id, select_query)
+    with {:ok, {_count, column_names, rows}} <- data_source.driver.select(data_source.id, select_query) do
+      # Note: we need to preindex columns here because of unsafe queries in dsproxy. This is the only
+      # case where we can't know the order of returned data upfront, since it is determined by an
+      # unparsed subquery. Therefore, we can only compute column indices after data is returned by
+      # the data source, relying on the returned column_names. Once dsproxy is out of the picture,
+      # we can push this preindexing to the compiler.
+      {:ok, index_columns(select_query, column_names), rows}
+    end
   end
 
   @doc "Returns the datasource for the given id, raises if it's not found."
@@ -154,11 +163,13 @@ defmodule Cloak.DataSource do
   end
 
   @doc "Returns a specific field value from a row of data."
-  @spec fetch_value!(row, [column], any) :: field
+  @spec fetch_value!(row, columns, Column.t) :: field
   def fetch_value!(row, columns, column) do
-    case Enum.find_index(columns, &(&1 === column)) do
-      nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{column.name}` doesn't exist in selected columns.")
-      index -> Enum.at(row, index)
+    case Map.fetch(columns, column_id(column)) do
+      {:ok, index} ->
+        Enum.at(row, index)
+      :error ->
+        raise(Cloak.Query.Runner.RuntimeError, "Column `#{column.name}` doesn't exist in selected columns.")
     end
   end
 
@@ -299,6 +310,22 @@ defmodule Cloak.DataSource do
     else
       raise "#{msg}\nTo ignore these columns set `ignore_unsupported_types: true` in your table settings"
     end
+  end
+
+  defp index_columns(query, column_names) do
+    for column <- query.db_columns, into: %{} do
+      case Enum.find_index(column_names, &(&1 == Column.alias(column))) do
+        nil ->
+          raise Cloak.Query.Runner.RuntimeError, "Column `#{column.name}` doesn't exist in selected columns."
+        index ->
+          {column_id(column), index}
+      end
+    end
+  end
+
+  def column_id(%Column{table: :unknown, name: name}), do: name
+  def column_id(%Column{} = column) do
+    {column.table.user_name, column.name}
   end
 
 

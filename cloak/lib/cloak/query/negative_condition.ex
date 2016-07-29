@@ -18,7 +18,7 @@ defmodule Cloak.Query.NegativeCondition do
   # -------------------------------------------------------------------
 
   @doc "Applies or ignore negative conditions in the query to the given rows."
-  @spec apply([DataSource.row], [DataSource.column], Parser.compiled_query) :: [DataSource.row]
+  @spec apply([DataSource.row], DataSource.columns, Parser.compiled_query) :: [DataSource.row]
   def apply(rows, columns, %{where_not: clauses}) do
     clauses
     |> Enum.filter(&sufficient_matches?(&1, rows, columns))
@@ -55,20 +55,16 @@ defmodule Cloak.Query.NegativeCondition do
   end
 
   defp filter(row, columns, {:comparison, column, :=, %Token{value: %{value: value}}}) do
-    fetch_value!(row, columns, column) == value
+    DataSource.fetch_value!(row, columns, column) == value
   end
   defp filter(row, columns, {:comparison, column, :=, value}) do
-    fetch_value!(row, columns, column) == value
+    DataSource.fetch_value!(row, columns, column) == value
   end
   defp filter(row, columns, {:like, column, %Token{value: %{type: :string, value: pattern}}}) do
-    fetch_value!(row, columns, column) =~ to_regex(pattern)
+    DataSource.fetch_value!(row, columns, column) =~ to_regex(pattern)
   end
   defp filter(row, columns, {:ilike, column, %Token{value: %{type: :string, value: pattern}}}) do
-    fetch_value!(row, columns, column) =~ to_regex(pattern, [_case_insensitive = "i"])
-  end
-
-  defp fetch_value!(row, columns, column) do
-    DataSource.fetch_value!(row, columns, Cloak.SqlQuery.Column.alias(column))
+    DataSource.fetch_value!(row, columns, column) =~ to_regex(pattern, [_case_insensitive = "i"])
   end
 
   defp to_regex(sql_pattern, options \\ []) do

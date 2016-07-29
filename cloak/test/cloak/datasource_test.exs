@@ -21,10 +21,11 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "data retrieval" do
-    assert {:ok, data} = DataSource.select(%{
+    column = %Cloak.SqlQuery.Column{table: %{name: "test", user_name: "test"}, name: "value"}
+    assert {:ok, columns, rows} = DataSource.select(%{
       command: :select,
-      columns: [%Cloak.SqlQuery.Column{table: %{name: "test", user_name: "test"}, name: "value"}],
-      db_columns: [%Cloak.SqlQuery.Column{table: %{name: "test", user_name: "test"}, name: "value"}],
+      columns: [column],
+      db_columns: [column],
       unsafe_filter_columns: [],
       where: [],
       group_by: [],
@@ -33,11 +34,8 @@ defmodule Cloak.DataSourceTest do
       selected_tables: [%{name: "cloak_test.test"}]
     })
 
-    assert(data == {
-      3,
-      ["test.value"],
-      [[10], [20], [30]]
-    })
+    assert [[10], [20], [30]] == rows
+    assert 10 == DataSource.fetch_value!(hd(rows), columns, column)
   end
 
   defp local_data_source() do
