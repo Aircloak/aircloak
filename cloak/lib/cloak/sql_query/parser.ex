@@ -328,7 +328,7 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp optional_group_by() do
     switch([
-      {keyword(:group), keyword(:by) |> comma_delimited(qualified_identifier())},
+      {keyword(:group), keyword(:by) |> comma_delimited(column())},
       {:else, noop()}
     ])
     |> map(fn {_, [:by, columns]} -> {:group_by, columns} end)
