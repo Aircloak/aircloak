@@ -49,6 +49,7 @@ defmodule Cloak.SqlQuery.Function do
 
   @doc "Returns the result of applying the given function definition to the given value."
   @spec apply(term, Parser.column) :: term
+  def apply(:*, _), do: :*
   def apply(value, {:function, "year", _}), do: value.year
   def apply(value, {:function, "month", _}), do: value.month
   def apply(value, {:function, "day", _}), do: value.day

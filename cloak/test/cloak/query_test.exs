@@ -66,6 +66,16 @@ defmodule Cloak.QueryTest do
       %{columns: ["year", "month", "day"], rows: [%{occurrences: 1, row: [2015, 1, 2]}]}
   end
 
+  test "select date parts of the LCF bucket" do
+    time = %Postgrex.Timestamp{year: 2015, month: 1}
+    for number <- 1..10 do
+      :ok = insert_rows(_user_ids = number..number, "heights", ["time"], [%{time | day: number}])
+    end
+
+    assert_query "select day(time) from heights group by time",
+      %{columns: ["day"], rows: [%{occurrences: 1, row: [:*]}]}
+  end
+
   test "anonymization over date parts" do
     time1 = %Postgrex.Timestamp{year: 2015, month: 1, day: 2}
     time2 = %Postgrex.Timestamp{year: 2015, month: 1, day: 3}
