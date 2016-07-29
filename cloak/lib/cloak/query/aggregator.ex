@@ -2,6 +2,7 @@ defmodule Cloak.Query.Aggregator do
   @moduledoc "This module aggregates the values into an anonymized result. See `aggregate/2` for details."
   alias Cloak.DataSource
   alias Cloak.SqlQuery
+  alias Cloak.SqlQuery.Function
   alias Cloak.Query.Anonymizer
 
   @typep property_values :: [DataSource.field | :*]
@@ -63,9 +64,9 @@ defmodule Cloak.Query.Aggregator do
     [[value | prev_values] | add_values_to_columns(rest_values, rest_prev_values)]
   end
 
-  defp column_index(:*, _columns), do: :*
-  defp column_index({:distinct, column}, columns), do: column_index(column, columns)
-  defp column_index(column, columns) do
+  defp input_index(:*, _columns), do: :*
+  defp input_index({:distinct, column}, columns), do: input_index(column, columns)
+  defp input_index(column, columns) do
     name = SqlQuery.full_column_name(column)
     case Enum.find_index(columns, &(&1 === name)) do
       nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{name}` doesn't exist in selected columns.")
@@ -82,11 +83,11 @@ defmodule Cloak.Query.Aggregator do
   end
 
   defp group_by_property(rows, columns, query) do
-    property_indices = for column <- query.property, do: column_index(column, columns)
-    aggregators_indices = for column <- SqlQuery.aggregated_columns(query), do: column_index(column, columns)
+    property_indices = for column <- query.property, do: {column, input_index(column, columns)}
+    aggregators_indices = for column <- SqlQuery.aggregated_columns(query), do: input_index(column, columns)
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
-      property = for index <- property_indices, do: Enum.at(row, index)
+      property = for {column, index} <- property_indices, do: input_value(column, Enum.at(row, index))
       user_id = user_id(row)
       values = for index <- aggregators_indices, do: index_to_value_list(index, row)
       Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
@@ -95,6 +96,9 @@ defmodule Cloak.Query.Aggregator do
     end)
     |> init_anonymizer()
   end
+
+  defp input_value(column, value), do:
+    if Function.function?(column), do: Function.apply(value, column), else: value
 
   defp user_id([user_id | _rest]), do: user_id
 
@@ -193,8 +197,25 @@ defmodule Cloak.Query.Aggregator do
     Enum.map(rows, &%{row: selected_values(&1, columns, query), occurrences: occurrences(&1, columns, query)})
   end
 
-  defp selected_values(row, columns, query), do:
-    for selected_column <- query.columns, do: DataSource.fetch_value!(row, columns, selected_column)
+  defp selected_values(row, columns, query) do
+    for selected_column <- query.columns do
+      index = output_index(selected_column, columns)
+
+      if Function.function?(selected_column) && !Function.function?(Enum.at(columns, index)) do
+        Function.apply(Enum.at(row, index), selected_column)
+      else
+        Enum.at(row, index)
+      end
+    end
+  end
+
+  defp output_index(column, columns) do
+    cond do
+      index = Enum.find_index(columns, &(&1 == column)) -> index
+      index = Enum.find_index(columns, &(&1 == Function.argument(column))) -> index
+      true -> raise(Cloak.Query.Runner.RuntimeError, "Could not find column in output")
+    end
+  end
 
   defp occurrences(row, columns, %{implicit_count: true}), do:
     DataSource.fetch_value!(row, columns, {:function, "count", :*})

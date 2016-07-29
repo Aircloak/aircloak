@@ -129,7 +129,7 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp column() do
-    either(function_expression(), qualified_identifier())
+    choice([function_expression(), extract_expression(), qualified_identifier()])
     |> label("column name or function")
   end
 
@@ -157,6 +157,20 @@ defmodule Cloak.SqlQuery.Parser do
       fn
         ([function, :"(", parameter, :")"]) -> {:function, String.downcase(function), parameter}
       end
+    )
+  end
+
+  defp extract_expression() do
+    pipe(
+      [
+        keyword(:extract),
+        keyword(:"("),
+        identifier(),
+        keyword(:from),
+        lazy(fn -> column() end),
+        keyword(:")"),
+      ],
+      fn([:extract, :"(", part, :from, column, :")"]) -> {:function, String.downcase(part), column} end
     )
   end
 

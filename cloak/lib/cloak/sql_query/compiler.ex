@@ -4,6 +4,7 @@ defmodule Cloak.SqlQuery.Compiler do
   alias Cloak.DataSource
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
+  alias Cloak.SqlQuery.Function
 
   @type compiled_query :: %{
     data_source: DataSource.t,
@@ -162,10 +163,12 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
-    Enum.reject(query.columns, &(aggregate_function?(&1) || Enum.member?(query.group_by, &1)))
+    Enum.reject(query.columns, fn(column) ->
+      Function.aggregate_function?(column) || Enum.member?(query.group_by, select_clause_to_identifier(column))
+    end)
   end
   defp invalid_not_aggregated_columns(%{command: :select} = query) do
-    case Enum.partition(query.columns, &aggregate_function?/1) do
+    case Enum.partition(query.columns, &Function.aggregate_function?/1) do
       {[_|_] = _aggregates, [_|_] = non_aggregates} -> non_aggregates
       _ -> []
     end
@@ -205,35 +208,44 @@ defmodule Cloak.SqlQuery.Compiler do
   end)
   defp extract_identifier(entry), do: entry
 
-  @aggregate_functions ~w(count sum avg min max stddev median)
-  defp aggregate_function?({:function, function, _}), do: Enum.member?(@aggregate_functions, function)
-  defp aggregate_function?(_), do: false
+  defp valid_argument_type(function_call, query) do
+    case {Function.argument_type(function_call), column_with_type(function_call, query)} do
+      {:any, _} -> true
+      {:timestamp, {_, :timestamp}} -> true
+      {:numeric, {_, :integer}} -> true
+      {:numeric, {_, :real}} -> true
+      _ -> false
+    end
+  end
 
-  @numeric_aggregate_functions ~w(sum avg min max stddev median)
-  defp numeric_aggregate_function?({:function, function, _}),
-    do: Enum.member?(@numeric_aggregate_functions, function)
-
-  defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
+  defp filter_aggregators(columns), do: Enum.filter(columns, &Function.aggregate_function?/1)
 
   defp compile_columns(query) do
-    verify_aggregated_columns(query)
     verify_functions(query)
+    verify_aggregated_columns(query)
     verify_function_parameters(query)
     query
   end
 
   defp verify_function_parameters(query) do
-    available_columns = all_available_columns(query)
-    aggregated_columns = for {:function, _, _} = column <- query.columns,
-      numeric_aggregate_function?(column), do: select_clause_to_identifier(column)
-    invalid_columns = Enum.reject(aggregated_columns,
-      &(Enum.member?(available_columns, {&1, :integer}) or Enum.member?(available_columns, {&1, :real})))
-    case invalid_columns do
+    query.columns
+    |> Enum.filter(&Function.function?/1)
+    |> Enum.reject(&valid_argument_type(&1, query))
+    |> case do
       [] -> :ok
-      [{:identifier, table, invalid_column} | _rest] ->
-        raise CompilationError, message: "Aggregation function used over non-numeric " <>
-          "column `#{invalid_column}` from table `#{table}`."
+      [function_call | _rest] ->
+        {:function, function_name, _} = function_call
+        function_type = Function.argument_type(function_call)
+        {{:identifier, table, name}, column_type} = column_with_type(function_call, query)
+
+        raise CompilationError, message: "Function `#{function_name}` requires `#{function_type}`,"
+          <> " but used over column `#{name}` of type `#{column_type}` from table `#{table}`"
     end
+  end
+
+  defp column_with_type(select_clause, query) do
+    column = select_clause_to_identifier(select_clause)
+    Enum.find(all_available_columns(query), &match?({^column, _}, &1))
   end
 
   defp verify_aggregated_columns(query) do
@@ -246,11 +258,12 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp verify_functions(query) do
-    invalid_functions = for {:function, function, _} = column <- query.columns,
-      !aggregate_function?(column), do: function
-    case invalid_functions do
+    query.columns
+    |> Enum.filter(&Function.function?/1)
+    |> Enum.reject(&Function.valid_function?/1)
+    |> case do
       [] -> :ok
-      [invalid_function | _rest] ->
+      [{:function, invalid_function, _} | _rest] ->
         raise CompilationError, message: ~s/Unknown function `#{invalid_function}`./
     end
   end

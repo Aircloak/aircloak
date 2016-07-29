@@ -58,6 +58,36 @@ defmodule Cloak.QueryTest do
       %{query_id: "1", columns: ["user_id", "height", "name", "time"], rows: _}
   end
 
+  test "select date parts" do
+    time = %Postgrex.Timestamp{year: 2015, month: 1, day: 2}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["time"], [time])
+
+    assert_query "select year(time), month(time), day(time) from heights group by time",
+      %{columns: ["year", "month", "day"], rows: [%{occurrences: 1, row: [2015, 1, 2]}]}
+  end
+
+  test "select date parts of the LCF bucket" do
+    time = %Postgrex.Timestamp{year: 2015, month: 1}
+    for number <- 1..10 do
+      :ok = insert_rows(_user_ids = number..number, "heights", ["time"], [%{time | day: number}])
+    end
+
+    assert_query "select day(time) from heights group by time",
+      %{columns: ["day"], rows: [%{occurrences: 1, row: [:*]}]}
+  end
+
+  test "anonymization over date parts" do
+    time1 = %Postgrex.Timestamp{year: 2015, month: 1, day: 2}
+    time2 = %Postgrex.Timestamp{year: 2015, month: 1, day: 3}
+    time3 = %Postgrex.Timestamp{year: 2016, month: 1, day: 3}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["time"], [time1])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["time"], [time2])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["time"], [time3])
+
+    assert_query "select year(time) from heights",
+      %{columns: ["year"], rows: [%{occurrences: 20, row: [2015]}, %{occurrences: 10, row: [2016]}]}
+  end
+
   test "select all and order query" do
     time = %Postgrex.Timestamp{year: 2015, month: 1, day: 1}
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "time"], ["john", 180, time])
@@ -263,8 +293,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert_query "select count(height), max(height) from heights",
-      %{columns: ["count", "max"],
-      rows: [%{row: [100, 180], occurrences: 1}]}
+      %{columns: ["count", "max"], rows: [%{row: [100, 180], occurrences: 1}]}
   end
 
   test "should allow ranges for where clause" do
