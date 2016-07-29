@@ -20,7 +20,8 @@ defmodule Cloak.SqlQuery.Compiler do
     where: [Parser.where_clause],
     where_not: [Parser.where_clause],
     order_by: [{pos_integer, :asc | :desc}],
-    show: :tables | :columns
+    show: :tables | :columns,
+    selected_tables: [String.t]
   }
 
   defmodule CompilationError do
@@ -37,7 +38,7 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
     defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
-      group_by: [], order_by: [], column_titles: [], info: []}
+      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: []}
     compile_prepped_query(Map.merge(defaults, query))
   end
 
@@ -70,7 +71,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_prepped_query(%{command: :show} = query) do
     try do
-      {:ok, verify_from(query)}
+      {:ok, compile_tables(query)}
     rescue
       e in CompilationError -> {:error, e.message}
     end
@@ -78,7 +79,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_prepped_query(query) do
     try do
       query = query
-      |> verify_from()
+      |> compile_tables()
       |> compile_columns()
       |> verify_columns()
       |> compile_order_by()
@@ -112,16 +113,16 @@ defmodule Cloak.SqlQuery.Compiler do
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
-  defp verify_from(%{data_source: data_source, from: _} = query) do
-    tables = Enum.map(DataSource.tables(data_source), &Atom.to_string/1)
-    case selected_tables(query) -- tables do
-      [] -> query
+  defp compile_tables(%{from: _} = query) do
+    selected_tables = from_clause_to_tables(query.from)
+    available_tables = Enum.map(DataSource.tables(query.data_source), &Atom.to_string/1)
+
+    case selected_tables -- available_tables do
+      [] -> %{query | selected_tables: selected_tables}
       [table | _] -> raise CompilationError, message: "Table `#{table}` doesn't exist."
     end
   end
-  defp verify_from(query), do: query
-
-  defp selected_tables(query), do: from_clause_to_tables(query.from)
+  defp compile_tables(query), do: query
 
   defp from_clause_to_tables({:cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
   defp from_clause_to_tables(table), do: [table]
@@ -260,7 +261,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp all_available_columns(%{data_source: data_source} = query) do
-    Enum.flat_map(selected_tables(query), &(columns(&1, data_source)))
+    Enum.flat_map(query.selected_tables, &(columns(&1, data_source)))
   end
 
   defp select_clause_to_identifier({:function, _function, identifier}),
@@ -424,7 +425,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp construct_column_table_map(%{data_source: data_source} = query) do
-    selected_tables(query)
+    query.selected_tables
     |> Enum.flat_map(fn(table) ->
       for {{:identifier, table, column}, _type} <- columns(table, data_source), do: {table, column}
     end)
@@ -455,7 +456,7 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
   defp qualify_identifier({:identifier, table, column} = identifier, column_table_map, query) do
-    unless Enum.member?(selected_tables(query), table),
+    unless Enum.member?(query.selected_tables, table),
       do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
 
     case Enum.member?(Map.get(column_table_map, column, []), table) do
@@ -499,16 +500,10 @@ defmodule Cloak.SqlQuery.Compiler do
     Enum.filter(query.columns, &MapSet.member?(all_uid_columns, &1))
   end
 
-  defp qualified_uid_columns(query), do: collect_qualified_uid_columns(query.from, query.data_source)
-
-  defp collect_qualified_uid_columns({:cross_join, lhs, rhs}, data_source) do
-    MapSet.union(
-      collect_qualified_uid_columns(lhs, data_source),
-      collect_qualified_uid_columns(rhs, data_source)
-    )
-  end
-  defp collect_qualified_uid_columns(table_name, data_source) do
-    MapSet.new([{:identifier, table_name, DataSource.table(data_source, table_name).user_id}])
+  defp qualified_uid_columns(query) do
+    query.selected_tables
+    |> Enum.map(&{:identifier, &1, DataSource.table(query.data_source, &1).user_id})
+    |> MapSet.new()
   end
 
   defp warn_on_selected_uid(query, {:identifier, table_name, column_name}) do
