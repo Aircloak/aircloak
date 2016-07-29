@@ -19,27 +19,27 @@ defmodule Cloak.SqlQuery.Function do
   # -------------------------------------------------------------------
 
   @doc "Returns true if the given column definition is a function call, false otherwise."
-  @spec function?(Parser.column) :: boolean
+  @spec function?(Parser.column | Cloak.SqlQuery.Column.t) :: boolean
   def function?({:function, _, _}), do: true
   def function?(_), do: false
 
   @doc "Returns true if the given function call to a known function, false otherwise."
-  @spec valid_function?(Parser.column) :: boolean
+  @spec valid_function?(Parser.column | Cloak.SqlQuery.Column.t) :: boolean
   def valid_function?({:function, function, _}), do: Map.has_key?(@functions, function)
 
   @doc """
   Returns true if the given column definition is a function call to an aggregate function, false otherwise.
   """
-  @spec aggregate_function?(Parser.column) :: boolean
+  @spec aggregate_function?(Parser.column | Cloak.SqlQuery.Column.t) :: boolean
   def aggregate_function?({:function, function, _}), do: @functions[function].aggregate
   def aggregate_function?(_), do: false
 
   @doc "Returns the argument type required by the given function call."
-  @spec argument_type(Parser.column) :: argument_type
+  @spec argument_type(Parser.column | Cloak.SqlQuery.Column.t) :: argument_type
   def argument_type({:function, function, _}), do: @functions[function].type
 
   @doc "Returns the argument specifiaction of the given function call."
-  @spec argument(Parser.column) :: Parser.column
+  @spec argument(Parser.column | Cloak.SqlQuery.Column.t) :: Cloak.SqlQuery.Column.t
   def argument({:function, _, argument}), do: argument
 
   @doc "Returns the function name of the given function call."
