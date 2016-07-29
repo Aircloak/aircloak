@@ -116,15 +116,16 @@ defmodule Cloak.SqlQuery.Compiler do
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
-  defp verify_from(%{from: from_clause, data_source: data_source} = query) do
+  defp verify_from(%{data_source: data_source, from: _} = query) do
     tables = Enum.map(DataSource.tables(data_source), &Atom.to_string/1)
-    selected_tables = from_clause_to_tables(from_clause)
-    case selected_tables -- tables do
+    case selected_tables(query) -- tables do
       [] -> query
       [table | _] -> raise CompilationError, message: "Table `#{table}` doesn't exist."
     end
   end
   defp verify_from(query), do: query
+
+  defp selected_tables(query), do: from_clause_to_tables(query.from)
 
   defp from_clause_to_tables({:cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
   defp from_clause_to_tables(table), do: [table]
@@ -184,7 +185,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp expand_star_select(query), do: query
 
-  defp validate_all_requested_tables_are_selected(%{from: from_clause} = query) do
+  defp validate_all_requested_tables_are_selected(query) do
     all_identifiers = query.columns ++ Map.get(query, :group_by, []) ++
       Map.get(query, :where, []) ++ Map.get(query, :order_by, [])
     referenced_tables = all_identifiers
@@ -193,7 +194,7 @@ defmodule Cloak.SqlQuery.Compiler do
     |> Enum.map(fn({:identifier, table, _}) -> table end)
     |> Enum.reject(&(&1 == :unknown))
     |> Enum.uniq()
-    case referenced_tables -- from_clause_to_tables(from_clause) do
+    case referenced_tables -- selected_tables(query) do
       [] -> query
       [table | _] -> raise CompilationError, message: ~s/Missing FROM clause entry for table `#{table}`/
     end
@@ -282,8 +283,8 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp all_available_columns(%{from: from_clause, data_source: data_source}) do
-    Enum.flat_map(from_clause_to_tables(from_clause), &(columns(&1, data_source)))
+  defp all_available_columns(%{data_source: data_source} = query) do
+    Enum.flat_map(selected_tables(query), &(columns(&1, data_source)))
   end
 
   defp select_clause_to_identifier({:function, _function, identifier}),
@@ -446,8 +447,8 @@ defmodule Cloak.SqlQuery.Compiler do
     }
   end
 
-  defp construct_column_table_map(%{from: from_clause, data_source: data_source}) do
-    from_clause_to_tables(from_clause)
+  defp construct_column_table_map(%{data_source: data_source} = query) do
+    selected_tables(query)
     |> Enum.flat_map(fn(table) ->
       for {{:identifier, table, column}, _type} <- columns(table, data_source), do: {table, column}
     end)
