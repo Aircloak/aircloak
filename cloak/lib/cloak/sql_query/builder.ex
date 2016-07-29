@@ -26,7 +26,7 @@ defmodule Cloak.SqlQuery.Builder do
 
     fragments_to_query_spec([
       "SELECT ", columns_string(select_column_names), " ",
-      "FROM ", from_clause(query.from), " ",
+      "FROM ", from_clause(query), " ",
       where_fragments(query[:where])
     ])
   end
@@ -45,10 +45,11 @@ defmodule Cloak.SqlQuery.Builder do
   defp column_expression({db_column_name, cloak_column_name}),
     do: "#{db_column_name} AS \"#{cloak_column_name}\""
 
-  defp from_clause({:cross_join, lhs, rhs}) do
-    [from_clause(lhs), " CROSS JOIN ", from_clause(rhs)]
+  defp from_clause(query) do
+    query.selected_tables
+    |> Enum.map(&(&1.name))
+    |> Enum.join(" CROSS JOIN ")
   end
-  defp from_clause({table, _user_id_column}), do: table
 
   @spec fragments_to_query_spec([fragment]) :: query_spec
   defp fragments_to_query_spec(fragments) do

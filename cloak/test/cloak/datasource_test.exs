@@ -28,7 +28,8 @@ defmodule Cloak.DataSourceTest do
       where: [],
       group_by: [],
       data_source: local_data_source(),
-      from: "test"
+      from: "test",
+      selected_tables: [%{name: "cloak_test.test"}]
     })
 
     assert(data == {

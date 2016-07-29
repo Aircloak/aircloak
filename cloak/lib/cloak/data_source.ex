@@ -173,24 +173,12 @@ defmodule Cloak.DataSource do
   defp expand_select_query(select_query) do
     select_query
     |> Map.update!(:columns, &[user_id_column(select_query.from, select_query.data_source) | &1])
-    |> Map.update!(:from, &translate_table_names(&1, select_query.data_source))
   end
 
   defp user_id_column({:cross_join, lhs, _rhs}, data_source),
     do: user_id_column(lhs, data_source)
   defp user_id_column(table_name, data_source),
     do: {:identifier, table_name, table(data_source, table_name).user_id}
-
-  defp translate_table_names({:cross_join, lhs, rhs}, data_source) do
-    {:cross_join, translate_table_names(lhs, data_source),
-      translate_table_names(rhs, data_source)}
-  end
-  defp translate_table_names(table_name, data_source) do
-    {
-      table(data_source, table_name).name,
-      user_id_column(table_name, data_source)
-    }
-  end
 
   defp map_driver({data_source, params}) do
     driver_module = case params[:driver] do
