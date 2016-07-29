@@ -164,10 +164,11 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
-    Enum.reject(query.columns, fn(column) ->
-      Function.aggregate_function?(column) ||
-        Enum.any?(query.group_by, &(select_clause_to_identifier(&1) == select_clause_to_identifier(column)))
-    end)
+    query.columns
+    |> Stream.reject(&Function.aggregate_function?/1)
+    |> Stream.reject(fn(column) -> Enum.any?(query.group_by, &(&1 == select_clause_to_identifier(column))) end)
+    |> Stream.reject(fn(column) -> Enum.any?(query.group_by, &(select_clause_to_identifier(&1) == column)) end)
+    |> Enum.reject(fn(column) -> Enum.member?(query.group_by, column) end)
   end
   defp invalid_not_aggregated_columns(%{command: :select} = query) do
     case Enum.partition(query.columns, &Function.aggregate_function?/1) do
@@ -254,9 +255,9 @@ defmodule Cloak.SqlQuery.Compiler do
   defp verify_aggregated_columns(query) do
     case invalid_not_aggregated_columns(query) do
       [] -> :ok
-      [{:identifier, table, invalid_column} | _rest] ->
-        raise CompilationError, message: "Column `#{invalid_column}` from table `#{table}` needs " <>
-          "to appear in the `group by` clause or be used in an aggregate function."
+      [column | _] ->
+        raise CompilationError, message: "Column `#{column_title(column)}` needs to appear in the `group by`"
+          <> " clause or be used in an aggregate function."
     end
   end
 
