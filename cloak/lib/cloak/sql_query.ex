@@ -36,33 +36,4 @@ defmodule Cloak.SqlQuery do
   @spec aggregated_columns(t) :: [Column.t]
   def aggregated_columns(query),
     do: (for {:function, _, column} <- query.aggregators, do: column) |> Enum.uniq()
-
-  @doc """
-  Returns a list of unique columns needed from the database.
-
-  This function can be used by drivers to get the list of columns which need to
-  be retrieved from the database.
-
-  __Note__: a column might have a special name equal to `:*`.
-  This is a pseudocolumn which doesn't exist in the database. It is the
-  responsibility of the driver to check for this value and in its place return a
-  `nil` value for each returned row.
-  """
-  @spec db_columns(t) :: [Column.t]
-  def db_columns(query) do
-    (query.db_columns ++ query.group_by ++ query.unsafe_filter_columns)
-    |> Enum.map(&extract_column/1)
-    |> Enum.uniq()
-    |> Enum.reject(&:* == &1)
-  end
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp extract_column({:function, "count", :*}), do: :*
-  defp extract_column({:function, _function, identifier}), do: extract_column(identifier)
-  defp extract_column({:distinct, identifier}), do: extract_column(identifier)
-  defp extract_column(%Column{} = column), do: column
 end

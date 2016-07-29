@@ -32,8 +32,7 @@ defmodule Cloak.SqlQuery.Builder do
   # -------------------------------------------------------------------
 
   defp columns_string(query) do
-    query
-    |> Cloak.SqlQuery.db_columns()
+    query.db_columns
     |> Enum.map(&"#{&1.table.name}.#{&1.name} AS \"#{Cloak.SqlQuery.Column.alias(&1)}\"")
     |> Enum.join(",")
   end

@@ -22,7 +22,8 @@ defmodule Cloak.SqlQuery.Compiler do
     where_not: [Parser.where_clause],
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
-    selected_tables: [String.t]
+    selected_tables: [String.t],
+    db_columns: [Column.t]
   }
 
   defmodule CompilationError do
@@ -553,14 +554,22 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp add_info_message(query, info_message), do: %{query | info: [info_message | query.info]}
 
-  defp calculate_db_columns(%{command: :select, from: {:subquery, _}} = query),
-    do: query
-  defp calculate_db_columns(%{command: :select, selected_tables: [table | _]} = query) do
+  defp calculate_db_columns(query) do
+    %{query |
+        db_columns:
+          (user_id_columns(query) ++ query.columns ++ query.group_by ++ query.unsafe_filter_columns)
+          |> Enum.map(&extract_column/1)
+          |> Enum.reject(&(&1 == nil))
+          |> Enum.uniq()
+    }
+  end
+
+  defp user_id_columns(%{command: :select, from: {:subquery, _}}),
+    do: []
+  defp user_id_columns(%{command: :select, selected_tables: [table | _]}) do
     user_id = table.user_id
     {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
     user_id_column = %Column{table: table, name: user_id, type: type, user_id?: true}
-    %{query | db_columns: [user_id_column | query.columns]}
+    [user_id_column]
   end
-  defp calculate_db_columns(query),
-    do: query
 end
