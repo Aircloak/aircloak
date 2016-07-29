@@ -212,6 +212,7 @@ defmodule Cloak.DataSource.DsProxyTest do
       parameters: [url: test_context.url],
       tables: %{
         bar: %{
+          user_name: "bar",
           name: "bar",
           user_id: "user_id",
           columns: %{"foo" => :integer, "baz" => :integer}

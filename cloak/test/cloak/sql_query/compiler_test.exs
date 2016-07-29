@@ -8,27 +8,33 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     {:ok, %{
       data_source: %{tables: %{
         table: %{
+          user_name: "table",
           user_id: "uid",
           columns: [{"column", :timestamp}, {"numeric", :integer}]
         },
         other_table: %{
+          user_name: "other_table",
           user_id: "uid",
           columns: [{"other_column", :timestamp}]
         },
         t1: %{
+          user_name: "t1",
           user_id: "uid",
           columns: [{"uid", :integer}, {"c1", :integer}, {"c2", :integer}]
         },
         t2: %{
+          user_name: "t2",
           user_id: "uid",
           columns: [{"uid", :integer}, {"c1", :integer}, {"c3", :integer}]
         },
         t3: %{
+          user_name: "t3",
           user_id: "uid",
           name: "distinct_name",
           columns: [{"uid", :integer}, {"c1", :integer}]
         },
         t4: %{
+          user_name: "t4",
           user_id: "uid",
           name: "distinct_name",
           columns: [{"uid", :integer}, {"c1", :integer}]

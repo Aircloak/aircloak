@@ -114,12 +114,18 @@ defmodule Cloak.SqlQuery.Compiler do
   # -------------------------------------------------------------------
 
   defp compile_tables(%{from: _} = query) do
-    selected_tables = from_clause_to_tables(query.from)
-    available_tables = Enum.map(DataSource.tables(query.data_source), &Atom.to_string/1)
+    selected_table_names = from_clause_to_tables(query.from)
+    available_table_names = Enum.map(DataSource.tables(query.data_source), &Atom.to_string/1)
 
-    case selected_tables -- available_tables do
-      [] -> %{query | selected_tables: selected_tables}
-      [table | _] -> raise CompilationError, message: "Table `#{table}` doesn't exist."
+    case selected_table_names -- available_table_names do
+      [] ->
+        Enum.map(selected_table_names, &DataSource.table(query.data_source, &1))
+        %{query |
+            selected_tables: Enum.map(selected_table_names, &DataSource.table(query.data_source, &1))
+        }
+
+      [table | _] ->
+        raise CompilationError, message: "Table `#{table}` doesn't exist."
     end
   end
   defp compile_tables(query), do: query
@@ -260,8 +266,8 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp all_available_columns(%{data_source: data_source} = query) do
-    Enum.flat_map(query.selected_tables, &(columns(&1, data_source)))
+  defp all_available_columns(query) do
+    Enum.flat_map(query.selected_tables, &columns/1)
   end
 
   defp select_clause_to_identifier({:function, _function, identifier}),
@@ -405,9 +411,9 @@ defmodule Cloak.SqlQuery.Compiler do
     defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
   end)
 
-  defp columns(table, data_source) do
-    for {name, type} <- DataSource.table(data_source, table).columns do
-      {{:identifier, table, name}, type}
+  defp columns(table) do
+    for {name, type} <- table.columns do
+      {{:identifier, table.user_name, name}, type}
     end
   end
 
@@ -424,10 +430,10 @@ defmodule Cloak.SqlQuery.Compiler do
     }
   end
 
-  defp construct_column_table_map(%{data_source: data_source} = query) do
+  defp construct_column_table_map(query) do
     query.selected_tables
     |> Enum.flat_map(fn(table) ->
-      for {{:identifier, table, column}, _type} <- columns(table, data_source), do: {table, column}
+      for {{:identifier, table, column}, _type} <- columns(table), do: {table, column}
     end)
     |> Enum.reduce(%{}, fn({table, column}, acc) ->
       Map.update(acc, column, [table], &([table | &1]))
@@ -456,7 +462,7 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
   defp qualify_identifier({:identifier, table, column} = identifier, column_table_map, query) do
-    unless Enum.member?(query.selected_tables, table),
+    unless Enum.any?(query.selected_tables, &(&1.user_name == table)),
       do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
 
     case Enum.member?(Map.get(column_table_map, column, []), table) do
@@ -502,7 +508,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp qualified_uid_columns(query) do
     query.selected_tables
-    |> Enum.map(&{:identifier, &1, DataSource.table(query.data_source, &1).user_id})
+    |> Enum.map(&{:identifier, &1.user_name, &1.user_id})
     |> MapSet.new()
   end
 

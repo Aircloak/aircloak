@@ -248,7 +248,7 @@ defmodule Cloak.DataSource do
   defp table_with_columns(data_source, {table_id, table}) do
     case load_table_columns(data_source, table) do
       {:ok, columns} ->
-        {table_id, Map.put(table, :columns, columns)}
+        {table_id, Map.merge(table, %{columns: columns, user_name: to_string(table_id)})}
       {:error, reason} ->
         Logger.error("Error fetching columns for table #{data_source.id}/#{table.name}: #{reason}")
         nil
