@@ -81,7 +81,6 @@ defmodule Cloak.SqlQuery.Compiler do
       |> verify_from()
       |> expand_star_select()
       |> compile_aliases()
-      |> validate_all_requested_tables_are_selected()
       |> qualify_all_identifiers()
       |> warn_on_selected_uids()
       |> verify_columns()
@@ -185,33 +184,6 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp expand_star_select(query), do: query
 
-  defp validate_all_requested_tables_are_selected(query) do
-    all_identifiers = query.columns ++ Map.get(query, :group_by, []) ++
-      Map.get(query, :where, []) ++ Map.get(query, :order_by, [])
-    referenced_tables = all_identifiers
-    |> Enum.map(&extract_identifier/1)
-    |> Enum.reject(&(&1 == :*))
-    |> Enum.map(fn({:identifier, table, _}) -> table end)
-    |> Enum.reject(&(&1 == :unknown))
-    |> Enum.uniq()
-    case referenced_tables -- selected_tables(query) do
-      [] -> query
-      [table | _] -> raise CompilationError, message: ~s/Missing FROM clause entry for table `#{table}`/
-    end
-  end
-
-  defp extract_identifier({:function, _function, identifier}), do: extract_identifier(identifier)
-  defp extract_identifier({:distinct, identifier}), do: extract_identifier(identifier)
-  defp extract_identifier({:comparison, identifier, _comparator, _any}), do: extract_identifier(identifier)
-  defp extract_identifier({:not, subclause}), do: extract_identifier(subclause)
-  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp extract_identifier({unquote(keyword), identifier, _}), do: extract_identifier(identifier)
-  end)
-  Enum.each([:asc, :desc, :nil], fn(keyword) ->
-    defp extract_identifier({identifier, unquote(keyword)}), do: extract_identifier(identifier)
-  end)
-  defp extract_identifier(entry), do: entry
-
   defp valid_argument_type(function_call, query) do
     case {Function.argument_type(function_call), column_with_type(function_call, query)} do
       {:any, _} -> true
@@ -309,14 +281,14 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_order_by(%{order_by: []} = query), do: query
   defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
     column_table_map = construct_column_table_map(query)
-    qualified_columns = Enum.map(columns, &qualify_identifier(&1, column_table_map))
+    qualified_columns = Enum.map(columns, &qualify_identifier(&1, column_table_map, query))
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) ->
-      Enum.member?(qualified_columns, qualify_identifier(column, column_table_map))
+      Enum.member?(qualified_columns, qualify_identifier(column, column_table_map, query))
     end)
     case invalid_fields do
       [] ->
         order_list = for {column, direction} <- order_by_spec do
-          qualified_column = qualify_identifier(column, column_table_map)
+          qualified_column = qualify_identifier(column, column_table_map, query)
           index = qualified_columns |> Enum.find_index(&(&1 == qualified_column))
           {index, direction}
         end
@@ -437,12 +409,12 @@ defmodule Cloak.SqlQuery.Compiler do
   defp qualify_all_identifiers(query) do
     column_table_map = construct_column_table_map(query)
     %{query |
-      columns: Enum.map(query.columns, &(qualify_identifier(&1, column_table_map))),
-      group_by: Enum.map(query.group_by, &(qualify_identifier(&1, column_table_map))),
-      where: Enum.map(query.where, &(qualify_where_clause(&1, column_table_map))),
-      where_not: Enum.map(query.where_not, &(qualify_where_clause(&1, column_table_map))),
+      columns: Enum.map(query.columns, &(qualify_identifier(&1, column_table_map, query))),
+      group_by: Enum.map(query.group_by, &(qualify_identifier(&1, column_table_map, query))),
+      where: Enum.map(query.where, &(qualify_where_clause(&1, column_table_map, query))),
+      where_not: Enum.map(query.where_not, &(qualify_where_clause(&1, column_table_map, query))),
       order_by: Enum.map(query.order_by, fn({identifier, direction}) ->
-        {qualify_identifier(identifier, column_table_map), direction}
+        {qualify_identifier(identifier, column_table_map, query), direction}
       end)
     }
   end
@@ -457,14 +429,14 @@ defmodule Cloak.SqlQuery.Compiler do
     end)
   end
 
-  defp qualify_identifier({:function, "count", :*} = function, _column_table_map), do: function
-  defp qualify_identifier({:function, function, identifier}, column_table_map) do
-    {:function, function, qualify_identifier(identifier, column_table_map)}
+  defp qualify_identifier({:function, "count", :*} = function, _column_table_map, _query), do: function
+  defp qualify_identifier({:function, function, identifier}, column_table_map, query) do
+    {:function, function, qualify_identifier(identifier, column_table_map, query)}
   end
-  defp qualify_identifier({:distinct, identifier}, column_table_map) do
-    {:distinct, qualify_identifier(identifier, column_table_map)}
+  defp qualify_identifier({:distinct, identifier}, column_table_map, query) do
+    {:distinct, qualify_identifier(identifier, column_table_map, query)}
   end
-  defp qualify_identifier({:identifier, :unknown, column}, column_table_map) do
+  defp qualify_identifier({:identifier, :unknown, column}, column_table_map, _query) do
     case Map.get(column_table_map, column) do
       [table] -> {:identifier, table, column}
       [_|_] -> raise CompilationError, message: "Column `#{column}` is ambiguous."
@@ -478,28 +450,31 @@ defmodule Cloak.SqlQuery.Compiler do
         end
     end
   end
-  defp qualify_identifier({:identifier, table, column} = identifier, column_table_map) do
+  defp qualify_identifier({:identifier, table, column} = identifier, column_table_map, query) do
+    unless Enum.member?(selected_tables(query), table),
+      do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
+
     case Enum.member?(Map.get(column_table_map, column, []), table) do
       true -> identifier
       false -> raise CompilationError, message: "Column `#{column}` doesn't exist in table `#{table}`."
     end
   end
-  defp qualify_identifier(other, _column_table_map), do: other
+  defp qualify_identifier(other, _column_table_map, _query), do: other
 
-  defp qualify_where_clause({:comparison, lhs, comparator, rhs}, column_table_map) do
+  defp qualify_where_clause({:comparison, lhs, comparator, rhs}, column_table_map, query) do
     {
       :comparison,
-      qualify_identifier(lhs, column_table_map),
+      qualify_identifier(lhs, column_table_map, query),
       comparator,
-      qualify_identifier(rhs, column_table_map)
+      qualify_identifier(rhs, column_table_map, query)
     }
   end
-  defp qualify_where_clause({:not, subclause}, column_table_map) do
-    {:not, qualify_where_clause(subclause, column_table_map)}
+  defp qualify_where_clause({:not, subclause}, column_table_map, query) do
+    {:not, qualify_where_clause(subclause, column_table_map, query)}
   end
   Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp qualify_where_clause({unquote(keyword), identifier, any}, column_table_map) do
-      {unquote(keyword), qualify_identifier(identifier, column_table_map), any}
+    defp qualify_where_clause({unquote(keyword), identifier, any}, column_table_map, query) do
+      {unquote(keyword), qualify_identifier(identifier, column_table_map, query), any}
     end
   end)
 
