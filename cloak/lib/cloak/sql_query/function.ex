@@ -42,6 +42,9 @@ defmodule Cloak.SqlQuery.Function do
   @spec argument(Parser.column) :: Parser.column
   def argument({:function, _, argument}), do: argument
 
+  @doc "Returns the function name of the given function call."
+  @spec name(Parser.column) :: String.t
+  def name({:function, name, _}), do: name
 
   # -------------------------------------------------------------------
   # Implementations

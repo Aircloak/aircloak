@@ -413,6 +413,12 @@ defmodule Cloak.SqlQuery.Parser.Test do
       select(columns: [{{:identifier, :unknown, "a"}, :as, "x"}]))
   end
 
+  test "function in group by" do
+    assert_parse("select * from foo group by bar(x)",
+      select(group_by: [{:function, "bar", {:identifier, :unknown, "x"}}])
+    )
+  end
+
   Enum.each(
     [
       {"single quote is not allowed in the identifier",
@@ -445,8 +451,6 @@ defmodule Cloak.SqlQuery.Parser.Test do
         "select count * from foo", "Expected `from`", {1, 14}},
       {"aggregation function requires parens",
           "select sum price from foo", "Expected `from`", {1, 12}},
-      {"cannot group by count",
-        "select a from foo group by count(*)", "Expected end of input", {1, 33}},
       {"'by' has to follow 'order'",
         "select a from foo order a asc", "Expected `by`", {1, 25}},
       {"'by' has to follow 'group'",

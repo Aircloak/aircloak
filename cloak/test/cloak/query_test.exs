@@ -88,6 +88,36 @@ defmodule Cloak.QueryTest do
       %{columns: ["year"], rows: [%{occurrences: 20, row: [2015]}, %{occurrences: 10, row: [2016]}]}
   end
 
+  test "grouping by a date part" do
+    time1 = %Postgrex.Timestamp{year: 2015, month: 1, day: 2}
+    time2 = %Postgrex.Timestamp{year: 2015, month: 1, day: 3}
+    time3 = %Postgrex.Timestamp{year: 2016, month: 1, day: 3}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["time"], [time1])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["time"], [time2])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["time"], [time3])
+
+    assert_query "select count(*), year(time) from heights group by year(time) order by count(*)",
+      %{columns: ["count", "year"], rows: [
+        %{occurrences: 1, row: [10, 2016]},
+        %{occurrences: 1, row: [20, 2015]},
+      ]}
+  end
+
+  test "grouping by an aliased date part" do
+    time1 = %Postgrex.Timestamp{year: 2015, month: 1, day: 2}
+    time2 = %Postgrex.Timestamp{year: 2015, month: 1, day: 3}
+    time3 = %Postgrex.Timestamp{year: 2016, month: 1, day: 3}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["time"], [time1])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["time"], [time2])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["time"], [time3])
+
+    assert_query "select count(*), year(time) as the_year from heights group by the_year order by count(*)",
+      %{columns: ["count", "the_year"], rows: [
+        %{occurrences: 1, row: [10, 2016]},
+        %{occurrences: 1, row: [20, 2015]},
+      ]}
+  end
+
   test "select all and order query" do
     time = %Postgrex.Timestamp{year: 2015, month: 1, day: 1}
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "time"], ["john", 180, time])
@@ -431,7 +461,7 @@ defmodule Cloak.QueryTest do
 
   test "query reports an error when mixing aggregated and normal columns" do
     assert_query "select count(*), height from heights", %{error: error}
-    assert error =~ ~r/`height` from table `heights` needs to appear in the `group by` clause/
+    assert error =~ ~r/`height` needs to appear in the `group by` clause/
   end
 
   test "query reports an error when grouping by nonexistent columns" do
@@ -441,7 +471,7 @@ defmodule Cloak.QueryTest do
 
   test "query reports an error when not grouping by some selected columns" do
     assert_query "select name, height from heights group by height", %{error: error}
-    assert error =~ ~r/`name` from table `heights` needs to appear in the `group by` clause/
+    assert error =~ ~r/`name` needs to appear in the `group by` clause/
   end
 
   test "query allows mixing aggregated and grouped columns" do

@@ -84,6 +84,14 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     end
   end
 
+  for function <- ~w(count avg min max sum stddev median) do
+    test "rejecting #{function} in group by", %{data_source: data_source} do
+      query = "select #{unquote(function)}(numeric) from table group by #{unquote(function)}(numeric)"
+      assert {:error, error} = compile(query, data_source)
+      assert error == "Aggregate function `#{unquote(function)}` used in the group by clause"
+    end
+  end
+
   for function <- ~w(year month day hour minute second weekday) do
     test "allowing #{function} on timestamp columns", %{data_source: data_source} do
       assert {:ok, _} = compile("select #{unquote(function)}(column) from table", data_source)
@@ -94,6 +102,19 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       assert error == "Function `#{unquote(function)}` requires `timestamp`, but used over column"
         <> " `numeric` of type `integer` from table `table`"
     end
+
+    test "allowing #{function} in group by", %{data_source: data_source} do
+      assert {:ok, _} = compile("select column from table group by #{unquote(function)}(column)", data_source)
+    end
+
+    test "allowing #{function} in select when the argument is grouped", %{data_source: data_source} do
+      assert {:ok, _} = compile("select #{unquote(function)}(column) from table group by column", data_source)
+    end
+  end
+
+  test "rejecting a function in select when another function is grouped", %{data_source: data_source} do
+    assert {:error, error} = compile("select weekday(column) from table group by day(column)", data_source)
+    assert error == "Column `weekday` needs to appear in the `group by` clause or be used in an aggregate function."
   end
 
   test "accepting proper joins", %{data_source: data_source} do
