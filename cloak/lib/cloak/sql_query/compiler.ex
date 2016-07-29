@@ -70,7 +70,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_prepped_query(%{command: :show} = query) do
     try do
-      {:ok, compile_from(query)}
+      {:ok, verify_from(query)}
     rescue
       e in CompilationError -> {:error, e.message}
     end
@@ -78,13 +78,13 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_prepped_query(query) do
     try do
       query = query
-      |> compile_from()
+      |> verify_from()
       |> expand_star_select()
       |> compile_aliases()
       |> validate_all_requested_tables_are_selected()
       |> qualify_all_identifiers()
       |> warn_on_selected_uids()
-      |> compile_columns()
+      |> verify_columns()
       |> compile_order_by()
       |> verify_joins()
       |> cast_where_clauses()
@@ -116,7 +116,7 @@ defmodule Cloak.SqlQuery.Compiler do
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
-  defp compile_from(%{from: from_clause, data_source: data_source} = query) do
+  defp verify_from(%{from: from_clause, data_source: data_source} = query) do
     tables = Enum.map(DataSource.tables(data_source), &Atom.to_string/1)
     selected_tables = from_clause_to_tables(from_clause)
     case selected_tables -- tables do
@@ -124,7 +124,7 @@ defmodule Cloak.SqlQuery.Compiler do
       [table | _] -> raise CompilationError, message: "Table `#{table}` doesn't exist."
     end
   end
-  defp compile_from(query), do: query
+  defp verify_from(query), do: query
 
   defp from_clause_to_tables({:cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
   defp from_clause_to_tables(table), do: [table]
@@ -223,7 +223,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp filter_aggregators(columns), do: Enum.filter(columns, &Function.aggregate_function?/1)
 
-  defp compile_columns(query) do
+  defp verify_columns(query) do
     verify_functions(query)
     verify_aggregated_columns(query)
     verify_group_by_functions(query)
