@@ -164,7 +164,8 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
     Enum.reject(query.columns, fn(column) ->
-      Function.aggregate_function?(column) || Enum.member?(query.group_by, select_clause_to_identifier(column))
+      Function.aggregate_function?(column) ||
+        Enum.any?(query.group_by, &(select_clause_to_identifier(&1) == select_clause_to_identifier(column)))
     end)
   end
   defp invalid_not_aggregated_columns(%{command: :select} = query) do

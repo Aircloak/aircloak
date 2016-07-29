@@ -94,6 +94,10 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       assert error == "Function `#{unquote(function)}` requires `timestamp`, but used over column"
         <> " `numeric` of type `integer` from table `table`"
     end
+
+    test "allowing #{function} in group by", %{data_source: data_source} do
+      assert {:ok, _} = compile("select column from table group by #{unquote(function)}(column)", data_source)
+    end
   end
 
   test "accepting proper joins", %{data_source: data_source} do
