@@ -79,9 +79,7 @@ defmodule Cloak.SqlQuery.Compiler do
     try do
       query = query
       |> verify_from()
-      |> expand_star_select()
-      |> compile_aliases()
-      |> qualify_all_identifiers()
+      |> compile_columns()
       |> warn_on_selected_uids()
       |> verify_columns()
       |> compile_order_by()
@@ -175,6 +173,13 @@ defmodule Cloak.SqlQuery.Compiler do
       {[_|_] = _aggregates, [_|_] = non_aggregates} -> non_aggregates
       _ -> []
     end
+  end
+
+  defp compile_columns(query) do
+    query
+    |> expand_star_select()
+    |> compile_aliases()
+    |> qualify_all_identifiers()
   end
 
   defp expand_star_select(%{columns: :*} = query) do
