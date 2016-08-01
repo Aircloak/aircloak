@@ -241,8 +241,8 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp aggregated_expression_display({:function, function, column}) do
-    "Expression `#{function}(#{column.name})` from table `#{column.table.user_name}`"
+  defp aggregated_expression_display({:function, _function, column}) do
+    aggregated_expression_display(column)
   end
   defp aggregated_expression_display(%Column{} = column) do
     "Column `#{column.name}` from table `#{column.table.user_name}`"

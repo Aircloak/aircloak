@@ -131,7 +131,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
   test "rejecting a function in select when another function is grouped", %{data_source: data_source} do
     assert {:error, error} = compile("select weekday(column) from table group by day(column)", data_source)
     assert error ==
-      "Expression `weekday(column)` from table `table` needs to appear in the `group by` clause" <>
+      "Column `column` from table `table` needs to appear in the `group by` clause" <>
       " or be used in an aggregate function."
   end
 
