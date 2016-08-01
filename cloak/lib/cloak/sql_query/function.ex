@@ -4,9 +4,11 @@ defmodule Cloak.SqlQuery.Function do
   alias Cloak.SqlQuery.Parser
 
   @functions %{
-    ~w(count) => %{aggregate: true, extraction: false, type: :any},
-    ~w(sum avg min max stddev median) => %{aggregate: true, extraction: false, type: :numeric},
-    ~w(year month day hour minute second weekday) => %{aggregate: false, extraction: true, type: :timestamp},
+    ~w(count) => %{aggregate: true, type: :any},
+    ~w(sum avg min max stddev median) => %{aggregate: true, type: :numeric},
+    ~w(year month day hour minute second weekday) => %{aggregate: false, type: :timestamp},
+    ~w(floor ceil ceiling round trunc) => %{aggregate: false, type: :real},
+    ~w(abs sqrt) => %{aggregate: false, type: :numeric},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -60,5 +62,12 @@ defmodule Cloak.SqlQuery.Function do
   def apply(value, {:function, "minute", _}), do: value.minute
   def apply(value, {:function, "second", _}), do: value.second
   def apply(value, {:function, "weekday", _}), do: Timex.weekday(value)
+  def apply(value, {:function, "sqrt", _}), do: :math.sqrt(value)
+  def apply(value, {:function, "floor", _}), do: Float.floor(value)
+  def apply(value, {:function, "ceil", _}), do: Float.ceil(value)
+  def apply(value, {:function, "ceiling", _}), do: Float.ceil(value)
+  def apply(value, {:function, "abs", _}), do: abs(value)
+  def apply(value, {:function, "round", _}), do: round(value)
+  def apply(value, {:function, "trunc", _}), do: trunc(value)
   def apply(value, _), do: value
 end
