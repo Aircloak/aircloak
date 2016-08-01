@@ -176,6 +176,7 @@ defmodule Cloak.DataSource do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
+  defp fetch_raw_value!(_row, _columns, %Column{constant?: true, value: value}), do: value
   defp fetch_raw_value!(row, columns, column) do
     if Function.function?(column) and not Function.aggregate_function?(column) do
       fetch_raw_value!(row, columns, Function.argument(column))

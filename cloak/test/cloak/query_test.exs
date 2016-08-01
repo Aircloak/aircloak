@@ -118,6 +118,17 @@ defmodule Cloak.QueryTest do
       ]}
   end
 
+  test "select a constant" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
+    assert_query "select 3 from heights", %{columns: [""], rows: [%{occurrences: 10, row: [3]}]}
+  end
+
+  test "select an aliased constant" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
+    assert_query "select 'text' as the_text from heights",
+      %{columns: ["the_text"], rows: [%{occurrences: 10, row: ["text"]}]}
+  end
+
   test "select all and order query" do
     time = %Postgrex.Timestamp{year: 2015, month: 1, day: 1}
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "time"], ["john", 180, time])

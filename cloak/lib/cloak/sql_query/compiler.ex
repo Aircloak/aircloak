@@ -494,15 +494,14 @@ defmodule Cloak.SqlQuery.Compiler do
   defp do_convert_column(%Token{} = token, _converter_fun), do: token
   defp do_convert_column(%Column{} = column, _converter_fun), do: column
   defp do_convert_column({:function, "count", :*} = function, _converter_fun), do: function
-  defp do_convert_column({:function, function, identifier}, converter_fun) do
+  defp do_convert_column({:function, function, identifier}, converter_fun), do:
     {:function, function, do_convert_column(identifier, converter_fun)}
-  end
-  defp do_convert_column({:distinct, identifier}, converter_fun) do
+  defp do_convert_column({:distinct, identifier}, converter_fun), do:
     {:distinct, do_convert_column(identifier, converter_fun)}
-  end
-  defp do_convert_column({:identifier, _, _} = identifier, converter_fun) do
+  defp do_convert_column({:identifier, _, _} = identifier, converter_fun), do:
     converter_fun.(identifier)
-  end
+  defp do_convert_column({:constant, %Token{value: %{value: value}}}, _converter_fun), do:
+    Column.constant(value)
 
   defp qualify_where_clause({:comparison, lhs, comparator, rhs}, columns_by_name, query) do
     {
@@ -524,6 +523,7 @@ defmodule Cloak.SqlQuery.Compiler do
   def column_title({:function, function, _}), do: function
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, column}), do: column
+  def column_title({:constant, _}), do: ""
 
   defp warn_on_selected_uids(query) do
     case selected_uid_columns(query) do
@@ -559,6 +559,7 @@ defmodule Cloak.SqlQuery.Compiler do
           db_columns(query)
           |> Enum.map(&extract_column/1)
           |> Enum.reject(&(&1 == nil))
+          |> Enum.reject(&(&1.constant?))
           |> Enum.uniq()
     }
   end
