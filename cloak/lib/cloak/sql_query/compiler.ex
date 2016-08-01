@@ -345,13 +345,13 @@ defmodule Cloak.SqlQuery.Compiler do
       Enum.each(uid_columns, &:digraph.add_vertex(graph, column_key.(&1)))
 
       # add edges for all `uid1 = uid2` filters
-      for {:comparison, uid1, :=, uid2} <- query.where,
-          uid1 != uid2,
-          uid1.user_id?,
-          uid2.user_id?
+      for {:comparison, column1, :=, column2} <- query.where,
+          column1 != column2,
+          column1.user_id?,
+          column2.user_id?
       do
-        :digraph.add_edge(graph, column_key.(uid1), column_key.(uid2))
-        :digraph.add_edge(graph, column_key.(uid2), column_key.(uid1))
+        :digraph.add_edge(graph, column_key.(column1), column_key.(column2))
+        :digraph.add_edge(graph, column_key.(column2), column_key.(column1))
       end
 
       # Find first pair (uid1, uid2) which are not connected in the graph.
