@@ -3,26 +3,28 @@ defmodule Cloak.SqlQuery.Function.Test do
 
   alias Cloak.SqlQuery.Function
 
-  test "sqrt" do
-    assert_in_delta(Function.apply(3, {:function, "sqrt", nil}), 1.73, 0.1)
-  end
+  test "sqrt", do:
+    assert_in_delta(apply_function("sqrt", 3), 1.73, 0.1)
 
   test "floor" do
-    assert Function.apply(3.99, {:function, "floor", nil}) == 3
-    assert Function.apply(3.01, {:function, "floor", nil}) == 3
+    assert apply_function("floor", 3.99) == 3
+    assert apply_function("floor", 3.01) == 3
   end
 
   test "ceil" do
-    assert Function.apply(3.99, {:function, "ceil", nil}) == 4
-    assert Function.apply(3.01, {:function, "ceil", nil}) == 4
-    assert Function.apply(3.99, {:function, "ceiling", nil}) == 4
-    assert Function.apply(3.01, {:function, "ceiling", nil}) == 4
+    assert apply_function("ceil", 3.99) == 4
+    assert apply_function("ceil", 3.01) == 4
+    assert apply_function("ceiling", 3.99) == 4
+    assert apply_function("ceiling", 3.01) == 4
   end
 
   test "abs" do
-    assert Function.apply(1.2, {:function, "abs", nil}) == 1.2
-    assert Function.apply(-1.2, {:function, "abs", nil}) == 1.2
-    assert Function.apply(1, {:function, "abs", nil}) == 1
-    assert Function.apply(-1, {:function, "abs", nil}) == 1
+    assert apply_function("abs", 1.2) == 1.2
+    assert apply_function("abs", -1.2) == 1.2
+    assert apply_function("abs", 1) == 1
+    assert apply_function("abs", -1) == 1
   end
+
+  defp apply_function(name, arg), do:
+    Function.apply(arg, {:function, name, nil})
 end
