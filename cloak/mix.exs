@@ -10,15 +10,9 @@ defmodule Cloak.Mixfile do
       start_permanent: Mix.env == :prod,
       deps: deps,
       elixirc_paths: elixirc_paths(Mix.env),
-      erlc_options: erlc_options(Mix.env),
-      erlc_paths: erlc_paths(Mix.env),
       preferred_cli_env: [
-        eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev, "coveralls.html": :test,
+        :test, dialyze: :dev, "coveralls.html": :test,
         dialyze_retry: :dev, check_dependent_apps: :prod
-      ],
-      eunit_options: [
-        :no_tty,
-        {:report, {:eunit_progress, [:colored]}}
       ],
       aliases: aliases(Mix.env),
       test_coverage: [tool: ExCoveralls]
@@ -70,14 +64,6 @@ defmodule Cloak.Mixfile do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]
-  defp erlc_options(:dev), do: [:debug_info]
-  defp erlc_options(:prod), do: []
-
-  defp erlc_paths(:test), do: ["test/erlang/*", "src"]
-  defp erlc_paths(:dev), do: ["src"]
-  defp erlc_paths(:prod), do: ["src"]
-
   # Aliases are shortcut or tasks specific to the current project.
   # For example, to create, migrate and run the seeds file at once:
   #
@@ -86,7 +72,6 @@ defmodule Cloak.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      "test.standard": ["test", "eunit", "proper --level simple"],
       "lint": ["credo --strict"]
     ]
   end
