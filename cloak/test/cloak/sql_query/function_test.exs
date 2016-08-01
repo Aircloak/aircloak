@@ -9,5 +9,13 @@ defmodule Cloak.SqlQuery.Function.Test do
 
   test "floor" do
     assert Function.apply(3.99, {:function, "floor", nil}) == 3
+    assert Function.apply(3.01, {:function, "floor", nil}) == 3
+  end
+
+  test "ceil" do
+    assert Function.apply(3.99, {:function, "ceil", nil}) == 4
+    assert Function.apply(3.01, {:function, "ceil", nil}) == 4
+    assert Function.apply(3.99, {:function, "ceiling", nil}) == 4
+    assert Function.apply(3.01, {:function, "ceiling", nil}) == 4
   end
 end
