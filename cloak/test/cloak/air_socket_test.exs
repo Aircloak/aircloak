@@ -66,10 +66,9 @@ defmodule Cloak.AirSocketTest do
   end
 
   test "starting a query", %{socket_pid: socket_pid, cloak_name: cloak_name} do
-    # setup a test table
-    :db_test.setup()
-    :db_test.create_test_schema()
-    :db_test.create_table("heights", "height INTEGER")
+    Cloak.Test.DB.setup()
+    Cloak.Test.DB.create_test_schema()
+    Cloak.Test.DB.create_table("heights", "height INTEGER")
 
     Process.register(socket_pid, AirSocket)
     ensure_joined(cloak_name)

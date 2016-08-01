@@ -4,14 +4,14 @@ defmodule Cloak.DataSourceTest do
   alias Cloak.DataSource
 
   setup do
-    :ok = :db_test.setup()
-    {:ok, _} = :db_test.create_test_schema()
-    {:ok, _} = :db_test.create_table("test", "value INTEGER")
+    :ok = Cloak.Test.DB.setup()
+    {:ok, _} = Cloak.Test.DB.create_test_schema()
+    {:ok, _} = Cloak.Test.DB.create_table("test", "value INTEGER")
     data = [{"test", [
       {:columns, ["value"]},
       {:data, [[10], [20], [30]]}
     ]}]
-    :ok = :db_test.add_users_data([{"user-id", data}])
+    :ok = Cloak.Test.DB.add_users_data([{"user-id", data}])
     :ok
   end
 
@@ -21,21 +21,21 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "data retrieval" do
-    assert {:ok, data} = DataSource.select(%{
+    column = %Cloak.SqlQuery.Column{table: %{name: "test", user_name: "test"}, name: "value"}
+    assert {:ok, columns, rows} = DataSource.select(%{
       command: :select,
-      columns: [{:identifier, "test", "value"}],
+      columns: [column],
+      db_columns: [column],
       unsafe_filter_columns: [],
       where: [],
       group_by: [],
       data_source: local_data_source(),
-      from: "test"
+      from: "test",
+      selected_tables: [%{name: "cloak_test.test"}]
     })
 
-    assert(data == {
-      3,
-      ["test.user_id", "test.value"],
-      [["user-id", 10], ["user-id", 20], ["user-id", 30]]
-    })
+    assert [[10], [20], [30]] == rows
+    assert 10 == DataSource.fetch_value!(hd(rows), columns, column)
   end
 
   defp local_data_source() do

@@ -18,15 +18,15 @@ defmodule Cloak.QueryTest do
   end
 
   setup_all do
-    :db_test.setup()
-    :db_test.create_test_schema()
-    :db_test.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
-    :db_test.create_table("purchases", "price INTEGER, name TEXT, time TIMESTAMP")
+    Cloak.Test.DB.setup()
+    Cloak.Test.DB.create_test_schema()
+    Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
+    Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, time TIMESTAMP")
     :ok
   end
 
   setup do
-    :db_test.clear_table("heights")
+    Cloak.Test.DB.clear_table("heights")
     :ok
   end
 
@@ -56,6 +56,66 @@ defmodule Cloak.QueryTest do
   test "select all query" do
     assert_query "select * from heights",
       %{query_id: "1", columns: ["user_id", "height", "name", "time"], rows: _}
+  end
+
+  test "select date parts" do
+    time = %Postgrex.Timestamp{year: 2015, month: 1, day: 2}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["time"], [time])
+
+    assert_query "select year(time), month(time), day(time) from heights group by time",
+      %{columns: ["year", "month", "day"], rows: [%{occurrences: 1, row: [2015, 1, 2]}]}
+  end
+
+  test "select date parts of the LCF bucket" do
+    time = %Postgrex.Timestamp{year: 2015, month: 1}
+    for number <- 1..10 do
+      :ok = insert_rows(_user_ids = number..number, "heights", ["time"], [%{time | day: number}])
+    end
+
+    assert_query "select day(time) from heights group by time",
+      %{columns: ["day"], rows: [%{occurrences: 1, row: [:*]}]}
+  end
+
+  test "anonymization over date parts" do
+    time1 = %Postgrex.Timestamp{year: 2015, month: 1, day: 2}
+    time2 = %Postgrex.Timestamp{year: 2015, month: 1, day: 3}
+    time3 = %Postgrex.Timestamp{year: 2016, month: 1, day: 3}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["time"], [time1])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["time"], [time2])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["time"], [time3])
+
+    assert_query "select year(time) from heights",
+      %{columns: ["year"], rows: [%{occurrences: 20, row: [2015]}, %{occurrences: 10, row: [2016]}]}
+  end
+
+  test "grouping by a date part" do
+    time1 = %Postgrex.Timestamp{year: 2015, month: 1, day: 2}
+    time2 = %Postgrex.Timestamp{year: 2015, month: 1, day: 3}
+    time3 = %Postgrex.Timestamp{year: 2016, month: 1, day: 3}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["time"], [time1])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["time"], [time2])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["time"], [time3])
+
+    assert_query "select count(*), year(time) from heights group by year(time) order by count(*)",
+      %{columns: ["count", "year"], rows: [
+        %{occurrences: 1, row: [10, 2016]},
+        %{occurrences: 1, row: [20, 2015]},
+      ]}
+  end
+
+  test "grouping by an aliased date part" do
+    time1 = %Postgrex.Timestamp{year: 2015, month: 1, day: 2}
+    time2 = %Postgrex.Timestamp{year: 2015, month: 1, day: 3}
+    time3 = %Postgrex.Timestamp{year: 2016, month: 1, day: 3}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["time"], [time1])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["time"], [time2])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["time"], [time3])
+
+    assert_query "select count(*), year(time) as the_year from heights group by the_year order by count(*)",
+      %{columns: ["count", "the_year"], rows: [
+        %{occurrences: 1, row: [10, 2016]},
+        %{occurrences: 1, row: [20, 2015]},
+      ]}
   end
 
   test "select all and order query" do
@@ -263,8 +323,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert_query "select count(height), max(height) from heights",
-      %{columns: ["count", "max"],
-      rows: [%{row: [100, 180], occurrences: 1}]}
+      %{columns: ["count", "max"], rows: [%{row: [100, 180], occurrences: 1}]}
   end
 
   test "should allow ranges for where clause" do
@@ -488,7 +547,7 @@ defmodule Cloak.QueryTest do
 
   test "query reports an error on invalid order by field" do
     assert_query "select height from heights order by name", %{error: error}
-    assert ~s/Non-selected field `name` from table `heights` specified in `order by` clause./ == error
+    assert ~s/Non-selected column `name` from table `heights` specified in `order by` clause./ == error
   end
 
   test "query reports an error on unknown function" do
@@ -513,7 +572,7 @@ defmodule Cloak.QueryTest do
   end
 
   test "query which returns zero rows" do
-    :db_test.clear_table("heights")
+    Cloak.Test.DB.clear_table("heights")
     assert_query "select height from heights", result
     assert %{query_id: "1", columns: ["height"], rows: []} = result
   end
@@ -540,7 +599,7 @@ defmodule Cloak.QueryTest do
   end
 
   defp insert_rows(user_id_range, table, columns, values) do
-    :db_test.add_users_data(
+    Cloak.Test.DB.add_users_data(
       Enum.map(user_id_range,
         &{"user#{&1}", [
           {table, [

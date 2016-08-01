@@ -20,14 +20,14 @@ start:
 	iex -S mix
 
 test:
-	mix test.standard
+	mix test
 
 regenerate_db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
 	./regenerate_db.sh
 
 docs:
-	mix docs.all
+	mix docs
 
 # a proper run may take some time...
 # Note: proper-full is temporarily removed because of big changes in the code.

@@ -2,24 +2,28 @@ defmodule Cloak.SqlQuery.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.DataSource
+  alias Cloak.SqlQuery.Column
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
+  alias Cloak.SqlQuery.Function
 
   @type compiled_query :: %{
     data_source: DataSource.t,
     command: :select | :show,
-    columns: [Parser.column],
+    columns: [Column.t],
     column_titles: [String.t],
     property: [String.t],
     aggregators: [{String.t, String.t}],
     implicit_count: true,
-    unsafe_filter_columns: [Parser.column],
+    unsafe_filter_columns: [Column.t],
     group_by: [String.t],
     from: [String.t],
     where: [Parser.where_clause],
     where_not: [Parser.where_clause],
     order_by: [{pos_integer, :asc | :desc}],
-    show: :tables | :columns
+    show: :tables | :columns,
+    selected_tables: [String.t],
+    db_columns: [Column.t]
   }
 
   defmodule CompilationError do
@@ -36,7 +40,7 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
     defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
-      group_by: [], order_by: [], column_titles: [], info: []}
+      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: [], db_columns: []}
     compile_prepped_query(Map.merge(defaults, query))
   end
 
@@ -56,11 +60,12 @@ defmodule Cloak.SqlQuery.Compiler do
     try do
       ds_proxy_validate_no_wildcard(query)
       ds_proxy_validate_no_where(query)
-      query = compile_aliases(query)
-      verify_aggregated_columns(query)
       query = query
+      |> compile_columns()
+      |> verify_columns()
       |> compile_order_by()
       |> partition_selected_columns()
+      |> calculate_db_columns()
       {:ok, query}
     rescue
       e in CompilationError -> {:error, e.message}
@@ -68,7 +73,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_prepped_query(%{command: :show} = query) do
     try do
-      {:ok, compile_from(query)}
+      {:ok, compile_tables(query)}
     rescue
       e in CompilationError -> {:error, e.message}
     end
@@ -76,18 +81,15 @@ defmodule Cloak.SqlQuery.Compiler do
   defp compile_prepped_query(query) do
     try do
       query = query
-      |> compile_from()
-      |> expand_star_select()
-      |> compile_aliases()
-      |> validate_all_requested_tables_are_selected()
-      |> qualify_all_identifiers()
-      |> warn_on_selected_uids()
+      |> compile_tables()
       |> compile_columns()
+      |> verify_columns()
       |> compile_order_by()
       |> verify_joins()
       |> cast_where_clauses()
       |> partition_selected_columns()
       |> partition_where_clauses()
+      |> calculate_db_columns()
       {:ok, query}
     rescue
       e in CompilationError -> {:error, e.message}
@@ -114,15 +116,21 @@ defmodule Cloak.SqlQuery.Compiler do
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
-  defp compile_from(%{from: from_clause, data_source: data_source} = query) do
-    tables = Enum.map(DataSource.tables(data_source), &Atom.to_string/1)
-    selected_tables = from_clause_to_tables(from_clause)
-    case selected_tables -- tables do
-      [] -> query
-      [table | _] -> raise CompilationError, message: "Table `#{table}` doesn't exist."
+  defp compile_tables(%{from: _} = query) do
+    selected_table_names = from_clause_to_tables(query.from)
+    available_table_names = Enum.map(DataSource.tables(query.data_source), &Atom.to_string/1)
+
+    case selected_table_names -- available_table_names do
+      [] ->
+        %{query |
+            selected_tables: Enum.map(selected_table_names, &DataSource.table(query.data_source, &1))
+        }
+
+      [table | _] ->
+        raise CompilationError, message: "Table `#{table}` doesn't exist."
     end
   end
-  defp compile_from(query), do: query
+  defp compile_tables(query), do: query
 
   defp from_clause_to_tables({:cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
   defp from_clause_to_tables(table), do: [table]
@@ -150,11 +158,10 @@ defmodule Cloak.SqlQuery.Compiler do
   defp verify_aliases(%{command: :select, from: {:subquery, _}}), do: :ok
   defp verify_aliases(query) do
     aliases = for {_column, :as, name} <- query.columns, do: name
-    column_names = for {identifier, _type} <- all_available_columns(query), do: identifier
-    existing_names = aliases ++ column_names
+    all_identifiers = aliases ++ all_column_identifiers(query)
     referenced_names = (for {{:identifier, _table, name}, _direction} <- query.order_by, do: name) ++
       query.group_by
-    ambiguous_names = for name <- referenced_names, Enum.count(existing_names, &name == &1) > 1, do: name
+    ambiguous_names = for name <- referenced_names, Enum.count(all_identifiers, &name == &1) > 1, do: name
     case ambiguous_names do
       [] -> :ok
       [name | _rest] -> raise CompilationError, message: "Usage of `#{name}` is ambiguous."
@@ -162,101 +169,110 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
-    Enum.reject(query.columns, &(aggregate_function?(&1) || Enum.member?(query.group_by, &1)))
+    query.columns
+    |> Stream.reject(&Function.aggregate_function?/1)
+    |> Stream.reject(fn(column) -> Enum.any?(query.group_by, &(&1 == select_clause_to_identifier(column))) end)
+    |> Stream.reject(fn(column) -> Enum.any?(query.group_by, &(select_clause_to_identifier(&1) == column)) end)
+    |> Enum.reject(fn(column) -> Enum.member?(query.group_by, column) end)
   end
   defp invalid_not_aggregated_columns(%{command: :select} = query) do
-    case Enum.partition(query.columns, &aggregate_function?/1) do
+    case Enum.partition(query.columns, &Function.aggregate_function?/1) do
       {[_|_] = _aggregates, [_|_] = non_aggregates} -> non_aggregates
       _ -> []
     end
   end
 
+  defp compile_columns(query) do
+    query
+    |> expand_star_select()
+    |> compile_aliases()
+    |> transform_columns()
+  end
+
   defp expand_star_select(%{columns: :*} = query) do
-    columns = for {column, _type} <- all_available_columns(query), do: column
+    columns = all_column_identifiers(query)
     column_names = for {:identifier, _table, name} <- columns, do: name
     %{query | columns: columns, column_titles: column_names}
   end
   defp expand_star_select(query), do: query
 
-  defp validate_all_requested_tables_are_selected(%{from: from_clause} = query) do
-    all_identifiers = query.columns ++ Map.get(query, :group_by, []) ++
-      Map.get(query, :where, []) ++ Map.get(query, :order_by, [])
-    referenced_tables = all_identifiers
-    |> Enum.map(&extract_identifier/1)
-    |> Enum.reject(&(&1 == :*))
-    |> Enum.map(fn({:identifier, table, _}) -> table end)
-    |> Enum.reject(&(&1 == :unknown))
-    |> Enum.uniq()
-    case referenced_tables -- from_clause_to_tables(from_clause) do
-      [] -> query
-      [table | _] -> raise CompilationError, message: ~s/Missing FROM clause entry for table `#{table}`/
+  defp valid_argument_type(function_call) do
+    case {Function.argument_type(function_call), select_clause_to_identifier(function_call)} do
+      {:any, _} -> true
+      {:timestamp, %{type: :timestamp}} -> true
+      {:numeric, %{type: :integer}} -> true
+      {:numeric, %{type: :real}} -> true
+      _ -> false
     end
   end
 
-  defp extract_identifier({:function, _function, identifier}), do: extract_identifier(identifier)
-  defp extract_identifier({:distinct, identifier}), do: extract_identifier(identifier)
-  defp extract_identifier({:comparison, identifier, _comparator, _any}), do: extract_identifier(identifier)
-  defp extract_identifier({:not, subclause}), do: extract_identifier(subclause)
-  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp extract_identifier({unquote(keyword), identifier, _}), do: extract_identifier(identifier)
-  end)
-  Enum.each([:asc, :desc, :nil], fn(keyword) ->
-    defp extract_identifier({identifier, unquote(keyword)}), do: extract_identifier(identifier)
-  end)
-  defp extract_identifier(entry), do: entry
+  defp filter_aggregators(columns), do: Enum.filter(columns, &Function.aggregate_function?/1)
 
-  @aggregate_functions ~w(count sum avg min max stddev median)
-  defp aggregate_function?({:function, function, _}), do: Enum.member?(@aggregate_functions, function)
-  defp aggregate_function?(_), do: false
-
-  @numeric_aggregate_functions ~w(sum avg min max stddev median)
-  defp numeric_aggregate_function?({:function, function, _}),
-    do: Enum.member?(@numeric_aggregate_functions, function)
-
-  defp filter_aggregators(columns), do: Enum.filter(columns, &aggregate_function?/1)
-
-  defp compile_columns(query) do
-    verify_aggregated_columns(query)
+  defp verify_columns(query) do
     verify_functions(query)
+    verify_aggregated_columns(query)
+    verify_group_by_functions(query)
     verify_function_parameters(query)
-    query
+    warn_on_selected_uids(query)
   end
 
   defp verify_function_parameters(query) do
-    available_columns = all_available_columns(query)
-    aggregated_columns = for {:function, _, _} = column <- query.columns,
-      numeric_aggregate_function?(column), do: select_clause_to_identifier(column)
-    invalid_columns = Enum.reject(aggregated_columns,
-      &(Enum.member?(available_columns, {&1, :integer}) or Enum.member?(available_columns, {&1, :real})))
-    case invalid_columns do
+    query.columns
+    |> Enum.filter(&Function.function?/1)
+    |> Enum.reject(&valid_argument_type/1)
+    |> case do
       [] -> :ok
-      [{:identifier, table, invalid_column} | _rest] ->
-        raise CompilationError, message: "Aggregation function used over non-numeric " <>
-          "column `#{invalid_column}` from table `#{table}`."
+      [function_call | _rest] ->
+        {:function, function_name, _} = function_call
+        function_type = Function.argument_type(function_call)
+        column = select_clause_to_identifier(function_call)
+
+        raise CompilationError, message: "Function `#{function_name}` requires `#{function_type}`,"
+          <> " but used over column `#{column.name}` of type `#{column.type}` from table `#{column.table.user_name}`"
     end
   end
 
   defp verify_aggregated_columns(query) do
     case invalid_not_aggregated_columns(query) do
       [] -> :ok
-      [{:identifier, table, invalid_column} | _rest] ->
-        raise CompilationError, message: "Column `#{invalid_column}` from table `#{table}` needs " <>
+      [column | _rest] ->
+        raise CompilationError, message: "#{aggregated_expression_display(column)} needs " <>
           "to appear in the `group by` clause or be used in an aggregate function."
     end
   end
 
-  defp verify_functions(query) do
-    invalid_functions = for {:function, function, _} = column <- query.columns,
-      !aggregate_function?(column), do: function
-    case invalid_functions do
+  defp aggregated_expression_display({:function, _function, column}) do
+    aggregated_expression_display(column)
+  end
+  defp aggregated_expression_display(%Column{} = column) do
+    "Column `#{column.name}` from table `#{column.table.user_name}`"
+  end
+
+  defp verify_group_by_functions(query) do
+    query.group_by
+    |> Enum.filter(&Function.aggregate_function?/1)
+    |> case do
       [] -> :ok
-      [invalid_function | _rest] ->
+      [function | _] -> raise CompilationError, message: "Aggregate function `#{Function.name(function)}`"
+        <> " used in the group by clause"
+    end
+  end
+
+  defp verify_functions(query) do
+    query.columns
+    |> Enum.filter(&Function.function?/1)
+    |> Enum.reject(&Function.valid_function?/1)
+    |> case do
+      [] -> :ok
+      [{:function, invalid_function, _} | _rest] ->
         raise CompilationError, message: ~s/Unknown function `#{invalid_function}`./
     end
   end
 
-  defp all_available_columns(%{from: from_clause, data_source: data_source}) do
-    Enum.flat_map(from_clause_to_tables(from_clause), &(columns(&1, data_source)))
+  defp all_column_identifiers(query) do
+    for table <- query.selected_tables, {column_name, _type} <- table.columns do
+      {:identifier, table.user_name, column_name}
+    end
   end
 
   defp select_clause_to_identifier({:function, _function, identifier}),
@@ -280,22 +296,22 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp compile_order_by(%{order_by: []} = query), do: query
   defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
-    column_table_map = construct_column_table_map(query)
-    qualified_columns = Enum.map(columns, &qualify_identifier(&1, column_table_map))
+    columns_by_name = columns_by_name(query)
+    qualified_columns = Enum.map(columns, &convert_column(&1, columns_by_name, query))
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) ->
-      Enum.member?(qualified_columns, qualify_identifier(column, column_table_map))
+      Enum.member?(qualified_columns, convert_column(column, columns_by_name, query))
     end)
     case invalid_fields do
       [] ->
         order_list = for {column, direction} <- order_by_spec do
-          qualified_column = qualify_identifier(column, column_table_map)
+          qualified_column = convert_column(column, columns_by_name, query)
           index = qualified_columns |> Enum.find_index(&(&1 == qualified_column))
           {index, direction}
         end
         %{query | order_by: order_list}
-      [{{:identifier, table, field}, _direction} | _rest] ->
-        raise CompilationError, message: "Non-selected field `#{field}` from table `#{table}` " <>
-          "specified in `order by` clause."
+      [{column, _direction} | _rest] ->
+        raise CompilationError, message:
+          "Non-selected #{Column.display_name(column)} specified in `order by` clause."
     end
   end
 
@@ -320,37 +336,43 @@ defmodule Cloak.SqlQuery.Compiler do
     # 3. Find the first pair (uid1, uid2) where there is no path from uid1 to uid2 in the graph.
     # 4. Report an error if something is found in the step 3
 
+    column_key = fn(column) -> {column.name, column.table.name} end
+
     graph = :digraph.new([:private, :cyclic])
     try do
       # add uid columns as vertices
-      uid_columns = qualified_uid_columns(query)
-      Enum.each(uid_columns, &:digraph.add_vertex(graph, &1))
+      uid_columns = Enum.map(query.selected_tables, &%Column{name: &1.user_id, table: &1})
+      Enum.each(uid_columns, &:digraph.add_vertex(graph, column_key.(&1)))
 
       # add edges for all `uid1 = uid2` filters
-      for {:comparison, uid1, :=, uid2} <- query.where,
-          uid1 != uid2,
-          MapSet.member?(uid_columns, uid1),
-          MapSet.member?(uid_columns, uid2)
+      for {:comparison, column1, :=, column2} <- query.where,
+          column1 != column2,
+          column1.user_id?,
+          column2.user_id?
       do
-       :digraph.add_edge(graph, uid1, uid2)
-       :digraph.add_edge(graph, uid2, uid1)
-     end
+        :digraph.add_edge(graph, column_key.(column1), column_key.(column2))
+        :digraph.add_edge(graph, column_key.(column2), column_key.(column1))
+      end
 
       # Find first pair (uid1, uid2) which are not connected in the graph.
       uid_columns
       |> Stream.chunk(2, 1)
-      |> Stream.filter(fn([uid1, uid2]) -> :digraph.get_path(graph, uid1, uid2) == false end)
+      |> Stream.filter(
+            fn([uid1, uid2]) -> :digraph.get_path(graph, column_key.(uid1), column_key.(uid2)) == false end
+          )
       |> Enum.take(1)
       |> case do
             [] ->
               # No such pair -> all tables are properly joined
               query
 
-            [[{:identifier, table1, column1}, {:identifier, table2, column2}]] ->
+            [[column1, column2]] ->
+              table1 = column1.table.user_name
+              table2 = column2.table.user_name
               raise CompilationError,
                 message:
                   "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
-                  "You can fix the error by adding `#{table1}.#{column1} = #{table2}.#{column2}` " <>
+                  "You can fix the error by adding `#{table1}.#{column1.name} = #{table2}.#{column2.name}` " <>
                   "condition to the `WHERE` clause."
           end
     after
@@ -360,14 +382,13 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp cast_where_clauses(%{where: [_|_] = clauses} = query) do
-    %{query | where: Enum.map(clauses, &cast_where_clause(&1, query))}
+    %{query | where: Enum.map(clauses, &cast_where_clause/1)}
   end
   defp cast_where_clauses(query), do: query
 
-  defp cast_where_clause(clause, query) do
+  defp cast_where_clause(clause) do
     column = where_clause_to_identifier(clause)
-    {_, type} = List.keyfind(all_available_columns(query), column, 0)
-    do_cast_where_clause(clause, type)
+    do_cast_where_clause(clause, column.type)
   end
 
   defp do_cast_where_clause({:not, subclause}, type) do
@@ -400,78 +421,103 @@ defmodule Cloak.SqlQuery.Compiler do
     defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
   end)
 
-  defp columns(table, data_source) do
-    for {name, type} <- DataSource.table(data_source, table).columns do
-      {{:identifier, table, name}, type}
-    end
-  end
+  defp transform_columns(%{from: {:subquery, _}} = query),
+    do: transform_columns(query, nil)
+  defp transform_columns(query),
+    do: transform_columns(query, columns_by_name(query))
 
-  defp qualify_all_identifiers(query) do
-    column_table_map = construct_column_table_map(query)
+  defp transform_columns(query, columns_by_name) do
     %{query |
-      columns: Enum.map(query.columns, &(qualify_identifier(&1, column_table_map))),
-      group_by: Enum.map(query.group_by, &(qualify_identifier(&1, column_table_map))),
-      where: Enum.map(query.where, &(qualify_where_clause(&1, column_table_map))),
-      where_not: Enum.map(query.where_not, &(qualify_where_clause(&1, column_table_map))),
+      columns: Enum.map(query.columns, &(convert_column(&1, columns_by_name, query))),
+      group_by: Enum.map(query.group_by, &(convert_column(&1, columns_by_name, query))),
+      where: Enum.map(query.where, &(qualify_where_clause(&1, columns_by_name, query))),
+      where_not: Enum.map(query.where_not, &(qualify_where_clause(&1, columns_by_name, query))),
       order_by: Enum.map(query.order_by, fn({identifier, direction}) ->
-        {qualify_identifier(identifier, column_table_map), direction}
+        {convert_column(identifier, columns_by_name, query), direction}
       end)
     }
   end
 
-  defp construct_column_table_map(%{from: from_clause, data_source: data_source}) do
-    from_clause_to_tables(from_clause)
-    |> Enum.flat_map(fn(table) ->
-      for {{:identifier, table, column}, _type} <- columns(table, data_source), do: {table, column}
-    end)
-    |> Enum.reduce(%{}, fn({table, column}, acc) ->
-      Map.update(acc, column, [table], &([table | &1]))
-    end)
+  defp columns_by_name(query) do
+    for table <- query.selected_tables, {column, type} <- table.columns do
+      %Column{table: table, name: column, type: type, user_id?: table.user_id == column}
+    end
+    |> Enum.group_by(&(&1.name))
   end
 
-  defp qualify_identifier({:function, "count", :*} = function, _column_table_map), do: function
-  defp qualify_identifier({:function, function, identifier}, column_table_map) do
-    {:function, function, qualify_identifier(identifier, column_table_map)}
+  defp convert_column(column, nil, _query) do
+    do_convert_column(column, &convert_column_for_unsafe_query(&1))
   end
-  defp qualify_identifier({:distinct, identifier}, column_table_map) do
-    {:distinct, qualify_identifier(identifier, column_table_map)}
+  defp convert_column(column, columns_by_name, query) do
+    do_convert_column(column, &convert_column_for_parsed_query(&1, columns_by_name, query))
   end
-  defp qualify_identifier({:identifier, :unknown, column}, column_table_map) do
-    case Map.get(column_table_map, column) do
-      [table] -> {:identifier, table, column}
-      [_|_] -> raise CompilationError, message: "Column `#{column}` is ambiguous."
+
+  defp convert_column_for_unsafe_query({:identifier, :unknown, column_name}) do
+    %Column{name: column_name, table: :unknown}
+  end
+
+  defp convert_column_for_parsed_query({:identifier, :unknown, column_name}, columns_by_name, _query) do
+    case Map.get(columns_by_name, column_name) do
+      [column] -> column
+      [_|_] -> raise CompilationError, message: "Column `#{column_name}` is ambiguous."
       nil ->
-        tables = Map.values(column_table_map)
+        columns_by_name
+        |> Map.values()
         |> List.flatten()
+        |> Enum.map(&(&1.table))
         |> Enum.uniq()
-        case tables do
-          [table] -> raise CompilationError, message: "Column `#{column}` doesn't exist in table `#{table}`."
-          [_|_] -> raise CompilationError, message: "Column `#{column}` doesn't exist in any of the selected tables."
+        |> case do
+            [table] ->
+              raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table.user_name}`."
+            [_|_] ->
+              raise CompilationError, message: "Column `#{column_name}` doesn't exist in any of the selected tables."
+          end
+    end
+  end
+  defp convert_column_for_parsed_query({:identifier, table, column_name}, columns_by_name, query) do
+    unless Enum.any?(query.selected_tables, &(&1.user_name == table)),
+      do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
+
+    case Map.fetch(columns_by_name, column_name) do
+      :error ->
+        raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
+      {:ok, columns} ->
+        case Enum.find(columns, &(&1.table.user_name == table)) do
+          nil ->
+            raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
+          column ->
+            column
         end
     end
   end
-  defp qualify_identifier({:identifier, table, column} = identifier, column_table_map) do
-    case Enum.member?(Map.get(column_table_map, column, []), table) do
-      true -> identifier
-      false -> raise CompilationError, message: "Column `#{column}` doesn't exist in table `#{table}`."
-    end
-  end
-  defp qualify_identifier(other, _column_table_map), do: other
 
-  defp qualify_where_clause({:comparison, lhs, comparator, rhs}, column_table_map) do
+  defp do_convert_column(%Token{} = token, _converter_fun), do: token
+  defp do_convert_column(%Column{} = column, _converter_fun), do: column
+  defp do_convert_column({:function, "count", :*} = function, _converter_fun), do: function
+  defp do_convert_column({:function, function, identifier}, converter_fun) do
+    {:function, function, do_convert_column(identifier, converter_fun)}
+  end
+  defp do_convert_column({:distinct, identifier}, converter_fun) do
+    {:distinct, do_convert_column(identifier, converter_fun)}
+  end
+  defp do_convert_column({:identifier, _, _} = identifier, converter_fun) do
+    converter_fun.(identifier)
+  end
+
+  defp qualify_where_clause({:comparison, lhs, comparator, rhs}, columns_by_name, query) do
     {
       :comparison,
-      qualify_identifier(lhs, column_table_map),
+      convert_column(lhs, columns_by_name, query),
       comparator,
-      qualify_identifier(rhs, column_table_map)
+      convert_column(rhs, columns_by_name, query)
     }
   end
-  defp qualify_where_clause({:not, subclause}, column_table_map) do
-    {:not, qualify_where_clause(subclause, column_table_map)}
+  defp qualify_where_clause({:not, subclause}, columns_by_name, query) do
+    {:not, qualify_where_clause(subclause, columns_by_name, query)}
   end
   Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp qualify_where_clause({unquote(keyword), identifier, any}, column_table_map) do
-      {unquote(keyword), qualify_identifier(identifier, column_table_map), any}
+    defp qualify_where_clause({unquote(keyword), identifier, any}, columns_by_name, query) do
+      {unquote(keyword), convert_column(identifier, columns_by_name, query), any}
     end
   end)
 
@@ -488,28 +534,42 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp selected_uid_columns(query) do
-    all_uid_columns = qualified_uid_columns(query)
-    Enum.filter(query.columns, &MapSet.member?(all_uid_columns, &1))
+    query.columns
+    |> Enum.map(&extract_column/1)
+    |> Enum.filter(&(&1 != nil and &1.user_id?))
   end
 
-  defp qualified_uid_columns(query), do: collect_qualified_uid_columns(query.from, query.data_source)
+  defp extract_column(%Column{} = column), do: column
+  defp extract_column({:function, "count", :*}), do: nil
+  defp extract_column({:function, _function, expression}), do: extract_column(expression)
+  defp extract_column({:distinct, expression}), do: extract_column(expression)
 
-  defp collect_qualified_uid_columns({:cross_join, lhs, rhs}, data_source) do
-    MapSet.union(
-      collect_qualified_uid_columns(lhs, data_source),
-      collect_qualified_uid_columns(rhs, data_source)
-    )
-  end
-  defp collect_qualified_uid_columns(table_name, data_source) do
-    MapSet.new([{:identifier, table_name, DataSource.table(data_source, table_name).user_id}])
-  end
-
-  defp warn_on_selected_uid(query, {:identifier, table_name, column_name}) do
+  defp warn_on_selected_uid(query, column) do
     add_info_message(query,
-      "Selecting column `#{column_name}` from table `#{table_name}` will cause all values to be anonymized. " <>
+      "Selecting #{Column.display_name(column)} will cause all values to be anonymized. " <>
       "Consider removing this column from the list of selected columns."
     )
   end
 
   defp add_info_message(query, info_message), do: %{query | info: [info_message | query.info]}
+
+  defp calculate_db_columns(query) do
+    %{query |
+        db_columns:
+          db_columns(query)
+          |> Enum.map(&extract_column/1)
+          |> Enum.reject(&(&1 == nil))
+          |> Enum.uniq()
+    }
+  end
+
+  defp db_columns(%{command: :select, from: {:subquery, _}} = query) do
+    [%Column{table: :unknown, name: "user_id", user_id?: true}] ++ query.columns ++ query.group_by
+  end
+  defp db_columns(%{command: :select, selected_tables: [table | _]} = query) do
+    user_id = table.user_id
+    {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
+    user_id_column = %Column{table: table, name: user_id, type: type, user_id?: true}
+    [user_id_column] ++ query.columns ++ query.group_by ++ query.unsafe_filter_columns
+  end
 end

@@ -146,12 +146,14 @@ defmodule Cloak.Query.Anonymizer do
     end
   end
 
+  @doc "Returns the configuration value for an anonymizer parameter."
+  @spec config(atom) :: term
+  def config(name), do: Application.get_env(:cloak, :anonymizer) |> Keyword.fetch!(name)
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp config(name), do: :cloak_conf.get_val(:anonymizer, name)
 
   defp new_instance(unique_users) do
     %{rng: :rand.seed(:exsplus, seed(unique_users))}

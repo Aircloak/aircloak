@@ -11,7 +11,6 @@ defmodule Cloak.Query.NegativeCondition do
 
   alias Cloak.DataSource
   alias Cloak.Query.Anonymizer
-  alias Cloak.SqlQuery
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
 
@@ -44,7 +43,7 @@ defmodule Cloak.Query.NegativeCondition do
   The input is wrapped in our custom stream object and filtered during processing.
   Note: the order of the input rows is not guaranteed to be kept after filtering.
   """
-  @spec apply(Enumerable.t, [DataSource.column], Parser.compiled_query) :: Enumerable.t
+  @spec apply(Enumerable.t, DataSource.columns, Parser.compiled_query) :: Enumerable.t
   def apply(rows, columns, %{where_not: clauses}),
     do: %Stream{rows: rows, filters: filters(columns, clauses)}
 
@@ -135,37 +134,25 @@ defmodule Cloak.Query.NegativeCondition do
 
   # Converts the 'where not' clauses into filters for the stream of rows.
   defp filters(columns, clauses) do
-    {low_count_mean, low_count_sd} = :cloak_conf.get_val(:anonymizer, :low_count_soft_lower_bound)
+    {low_count_mean, low_count_sd} = Anonymizer.config(:low_count_soft_lower_bound)
     # Once we match this amount of users we can confidently make a decision to apply the filter.
     hard_limit = low_count_sd * 5 + low_count_mean
     for clause <- clauses, do: %Filter{matcher: matcher(columns, clause), match_hard_limit: hard_limit}
   end
 
-  def column_to_index(column, columns) do
-    column = SqlQuery.full_column_name(column)
-    case Enum.find_index(columns, &(&1 === column)) do
-      nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{column}` doesn't exist in selected columns.")
-      index -> index
-    end
-  end
-
   defp matcher(columns, {:comparison, column, :=, %Token{value: %{value: value}}}) do
-    index = column_to_index(column, columns)
-    fn (row) -> Enum.at(row, index) == value end
+    fn (row) -> DataSource.fetch_value!(row, columns, column) == value end
   end
   defp matcher(columns, {:comparison, column, :=, value}) do
-    index = column_to_index(column, columns)
-    fn (row) -> Enum.at(row, index) == value end
+    fn (row) -> DataSource.fetch_value!(row, columns, column) == value end
   end
   defp matcher(columns, {:like, column, %Token{value: %{type: :string, value: pattern}}}) do
     regex = to_regex(pattern)
-    index = column_to_index(column, columns)
-    fn (row) -> Enum.at(row, index) =~ regex end
+    fn (row) -> DataSource.fetch_value!(row, columns, column) =~ regex end
   end
   defp matcher(columns, {:ilike, column, %Token{value: %{type: :string, value: pattern}}}) do
     regex = to_regex(pattern, [_case_insensitive = "i"])
-    index = column_to_index(column, columns)
-    fn (row) -> Enum.at(row, index) =~ regex end
+    fn (row) -> DataSource.fetch_value!(row, columns, column) =~ regex end
   end
 
   defp to_regex(sql_pattern, options \\ []) do
