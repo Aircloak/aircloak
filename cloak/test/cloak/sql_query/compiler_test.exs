@@ -120,12 +120,19 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     end
 
     test "allowing #{function} in group by", %{data_source: data_source} do
-      assert {:ok, _} = compile("select column from table group by #{unquote(function)}(column)", data_source)
+      assert {:ok, _} = compile("select count(*) from table group by #{unquote(function)}(column)", data_source)
     end
 
     test "allowing #{function} in select when the argument is grouped", %{data_source: data_source} do
       assert {:ok, _} = compile("select #{unquote(function)}(column) from table group by column", data_source)
     end
+  end
+
+  test "rejecting a column in select when its function is grouped", %{data_source: data_source} do
+    assert {:error, error} = compile("select column from table group by day(column)", data_source)
+    assert error ==
+      "Column `column` from table `table` needs to appear in the `group by` clause" <>
+      " or be used in an aggregate function."
   end
 
   test "rejecting a function in select when another function is grouped", %{data_source: data_source} do

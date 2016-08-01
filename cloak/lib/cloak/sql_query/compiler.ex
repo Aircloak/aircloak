@@ -172,7 +172,6 @@ defmodule Cloak.SqlQuery.Compiler do
     query.columns
     |> Stream.reject(&Function.aggregate_function?/1)
     |> Stream.reject(fn(column) -> Enum.any?(query.group_by, &(&1 == select_clause_to_identifier(column))) end)
-    |> Stream.reject(fn(column) -> Enum.any?(query.group_by, &(select_clause_to_identifier(&1) == column)) end)
     |> Enum.reject(fn(column) -> Enum.member?(query.group_by, column) end)
   end
   defp invalid_not_aggregated_columns(%{command: :select} = query) do
