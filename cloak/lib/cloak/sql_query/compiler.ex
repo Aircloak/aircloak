@@ -439,10 +439,9 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp construct_column_table_map(query) do
-    (
-      for table <- query.selected_tables, {column, type} <- table.columns, do:
-        %Column{table: table, name: column, type: type, user_id?: table.user_id == column}
-    )
+    for table <- query.selected_tables, {column, type} <- table.columns do
+      %Column{table: table, name: column, type: type, user_id?: table.user_id == column}
+    end
     |> Enum.group_by(&(&1.name))
   end
 
