@@ -67,6 +67,7 @@ defmodule Cloak.Query.NegativeCondition do
     # At the end of the stream we need to make a decission about the matched rows.
     # If we have enough matched users, we drop any rows captured,
     # otherwise we send them forward for processing.
+    @dialyzer [:no_opaque, :no_return] # needed becaus of the Anonymizer.new(MapSet.t) call
     def flush(%Filter{matched_users: users, matched_rows: rows, match_hard_limit: hard_limit}) do
       matched_users_count = MapSet.size(users)
       {sufficient_matches, _} = Anonymizer.sufficiently_large?(Anonymizer.new(users), matched_users_count)
