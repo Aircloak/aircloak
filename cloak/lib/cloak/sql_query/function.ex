@@ -4,9 +4,9 @@ defmodule Cloak.SqlQuery.Function do
   alias Cloak.SqlQuery.Parser
 
   @functions %{
-    ~w(count) => %{aggregate: true, extraction: false, type: :any},
-    ~w(sum avg min max stddev median) => %{aggregate: true, extraction: false, type: :numeric},
-    ~w(year month day hour minute second weekday) => %{aggregate: false, extraction: true, type: :timestamp},
+    ~w(count) => %{aggregate: true, type: :any},
+    ~w(sum avg min max stddev median) => %{aggregate: true, type: :numeric},
+    ~w(year month day hour minute second weekday) => %{aggregate: false, type: :timestamp},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
