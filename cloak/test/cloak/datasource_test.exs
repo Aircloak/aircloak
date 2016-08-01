@@ -4,14 +4,14 @@ defmodule Cloak.DataSourceTest do
   alias Cloak.DataSource
 
   setup do
-    :ok = :db_test.setup()
-    {:ok, _} = :db_test.create_test_schema()
-    {:ok, _} = :db_test.create_table("test", "value INTEGER")
+    :ok = Cloak.Test.DB.setup()
+    {:ok, _} = Cloak.Test.DB.create_test_schema()
+    {:ok, _} = Cloak.Test.DB.create_table("test", "value INTEGER")
     data = [{"test", [
       {:columns, ["value"]},
       {:data, [[10], [20], [30]]}
     ]}]
-    :ok = :db_test.add_users_data([{"user-id", data}])
+    :ok = Cloak.Test.DB.add_users_data([{"user-id", data}])
     :ok
   end
 

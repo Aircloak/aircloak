@@ -155,7 +155,7 @@ defmodule Cloak.Query.Anonymizer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp config(name), do: :cloak_conf.get_val(:anonymizer, name)
+  defp config(name), do: Application.get_env(:cloak, :anonymizer) |> Keyword.fetch!(name)
 
   defp new_instance(unique_users) do
     %{rng: :rand.seed(:exsplus, seed(unique_users))}

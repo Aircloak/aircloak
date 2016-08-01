@@ -27,7 +27,7 @@ defmodule Cloak.AirSocket do
       GenSocketClient.Transport.WebSocketClient,
       {cloak_params, socket_url()},
       [
-        serializer: :cloak_conf.get_val(:air, :serializer),
+        serializer: config(:serializer),
         transport_opts: [
           keepalive: :timer.seconds(30)
         ]
@@ -59,7 +59,7 @@ defmodule Cloak.AirSocket do
   @doc false
   def init({cloak_params, socket_url}) do
     url = "#{socket_url}?#{URI.encode_query(cloak_params)}"
-    initial_interval = :cloak_conf.get_val(:air, :min_reconnect_interval)
+    initial_interval = config(:min_reconnect_interval)
     state = %{
       pending_calls: %{},
       reconnect_interval: initial_interval,
@@ -72,7 +72,7 @@ defmodule Cloak.AirSocket do
   def handle_connected(_transport, state) do
     Logger.info("connected")
     send(self(), {:join, "main"})
-    initial_interval = :cloak_conf.get_val(:air, :min_reconnect_interval)
+    initial_interval = config(:min_reconnect_interval)
     {:ok, %{state | reconnect_interval: initial_interval}}
   end
 
@@ -86,7 +86,7 @@ defmodule Cloak.AirSocket do
   @doc false
   def handle_joined(topic, _payload, _transport, state) do
     Logger.info("joined the topic #{topic}")
-    initial_interval = :cloak_conf.get_val(:air, :min_reconnect_interval)
+    initial_interval = config(:min_reconnect_interval)
     {:ok, %{state | rejoin_interval: initial_interval}}
   end
 
@@ -143,7 +143,7 @@ defmodule Cloak.AirSocket do
     case GenSocketClient.join(transport, topic, get_join_info()) do
       {:error, reason} ->
         Logger.error("error joining the topic #{topic}: #{inspect reason}")
-        Process.send_after(self(), {:join, topic}, :cloak_conf.get_val(:air, :rejoin_interval))
+        Process.send_after(self(), {:join, topic}, config(:rejoin_interval))
       {:ok, _ref} -> :ok
     end
     {:ok, state}
@@ -196,7 +196,7 @@ defmodule Cloak.AirSocket do
     # deploy specific configuration takes precedence over OTP app configuration
     case Cloak.DeployConfig.fetch("air_socket_url") do
       {:ok, socket_url} -> socket_url
-      :error -> :cloak_conf.get_val(:air, :socket_url)
+      :error -> config(:socket_url)
     end
   end
 
@@ -264,7 +264,10 @@ defmodule Cloak.AirSocket do
   end
 
   defp next_interval(current_interval) do
-    max_interval = :cloak_conf.get_val(:air, :max_reconnect_interval)
-    min(current_interval * 2, max_interval)
+    min(current_interval * 2, config(:max_reconnect_interval))
+  end
+
+  defp config(key) do
+    Application.get_env(:cloak, :air) |> Keyword.fetch!(key)
   end
 end

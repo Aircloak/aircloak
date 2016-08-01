@@ -18,15 +18,15 @@ defmodule Cloak.QueryTest do
   end
 
   setup_all do
-    :db_test.setup()
-    :db_test.create_test_schema()
-    :db_test.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
-    :db_test.create_table("purchases", "price INTEGER, name TEXT, time TIMESTAMP")
+    Cloak.Test.DB.setup()
+    Cloak.Test.DB.create_test_schema()
+    Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
+    Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, time TIMESTAMP")
     :ok
   end
 
   setup do
-    :db_test.clear_table("heights")
+    Cloak.Test.DB.clear_table("heights")
     :ok
   end
 
@@ -572,7 +572,7 @@ defmodule Cloak.QueryTest do
   end
 
   test "query which returns zero rows" do
-    :db_test.clear_table("heights")
+    Cloak.Test.DB.clear_table("heights")
     assert_query "select height from heights", result
     assert %{query_id: "1", columns: ["height"], rows: []} = result
   end
@@ -599,7 +599,7 @@ defmodule Cloak.QueryTest do
   end
 
   defp insert_rows(user_id_range, table, columns, values) do
-    :db_test.add_users_data(
+    Cloak.Test.DB.add_users_data(
       Enum.map(user_id_range,
         &{"user#{&1}", [
           {table, [

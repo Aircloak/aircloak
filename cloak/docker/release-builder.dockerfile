@@ -3,7 +3,6 @@ MAINTAINER Aircloak
 
 # Copy the remaining folders
 COPY cloak/lib /aircloak/cloak/lib
-COPY cloak/src /aircloak/cloak/src
 COPY cloak/include /aircloak/cloak/include
 COPY cloak/rel /aircloak/cloak/rel
 COPY docker_cache/cloak/deps /aircloak/cloak/deps
