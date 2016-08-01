@@ -124,6 +124,8 @@ defmodule Cloak.Query.NegativeCondition do
 
   # This is the called during stream processing when we have active filters.
   # We wrap the reducer function and iterate through the rows, applying the filters for each row.
+  # It needs to be public because it is called from the `Enumerable` protocol implementation.
+  @doc false
   def reduce(rows, filters, {:cont, acc}, fun) do
     case Enumerable.reduce(rows, {:cont, {filters, acc, fun}}, &reducer/2) do
       {:done, {filters, acc, _fun}} -> flush_filters(filters, acc, fun)
