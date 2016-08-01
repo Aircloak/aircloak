@@ -4,33 +4,49 @@ defmodule Cloak.SqlQuery.Compiler.Test do
   alias Cloak.SqlQuery.Compiler
   alias Cloak.SqlQuery.Parser
 
+  defmacrop column(table_name, column_name) do
+    quote do
+      %{name: unquote(column_name), table: %{name: unquote(table_name)}}
+    end
+  end
+
   setup do
     {:ok, %{
       data_source: %{tables: %{
         table: %{
+          name: "table",
+          user_name: "table",
           user_id: "uid",
-          columns: [{"column", :timestamp}, {"numeric", :integer}]
+          columns: [{"uid", :integer}, {"column", :timestamp}, {"numeric", :integer}]
         },
         other_table: %{
+          name: "other_table",
+          user_name: "other_table",
           user_id: "uid",
-          columns: [{"other_column", :timestamp}]
+          columns: [{"uid", :integer}, {"other_column", :timestamp}]
         },
         t1: %{
+          name: "t1",
+          user_name: "t1",
           user_id: "uid",
           columns: [{"uid", :integer}, {"c1", :integer}, {"c2", :integer}]
         },
         t2: %{
+          name: "t2",
+          user_name: "t2",
           user_id: "uid",
           columns: [{"uid", :integer}, {"c1", :integer}, {"c3", :integer}]
         },
         t3: %{
+          name: "t3",
+          user_name: "t3",
           user_id: "uid",
-          name: "distinct_name",
           columns: [{"uid", :integer}, {"c1", :integer}]
         },
         t4: %{
+          name: "t4",
+          user_name: "t4",
           user_id: "uid",
-          name: "distinct_name",
           columns: [{"uid", :integer}, {"c1", :integer}]
         }
       }}
@@ -45,13 +61,13 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     result = compile!("select * from table where column > '2015-01-01'", data_source)
 
     time = %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}
-    assert result[:where] == [{:comparison, {:identifier, "table", "column"}, :>, time}]
+    assert [{:comparison, column("table", "column"), :>, ^time}] = result[:where]
   end
 
   test "casts timestamp in `in` conditions", %{data_source: data_source} do
     result = compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source)
 
-    assert [{:in, {:identifier, "table", "column"}, times}] = result[:where]
+    assert [{:in, column("table", "column"), times}] = result[:where]
     assert Enum.sort(times) == [
       %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)},
       %Timex.DateTime{year: 2015, month: 1, day: 2, timezone: Timex.Timezone.get(:utc)},
@@ -62,7 +78,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     result = compile!("select * from table where column <> '2015-01-01'", data_source)
 
     time = %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}
-    assert result[:where_not] == [{:comparison, {:identifier, "table", "column"}, :=, time}]
+    assert [{:comparison, column("table", "column"), :=, ^time}] = result[:where_not]
   end
 
   test "reports malformed timestamps", %{data_source: data_source} do
@@ -114,7 +130,9 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
   test "rejecting a function in select when another function is grouped", %{data_source: data_source} do
     assert {:error, error} = compile("select weekday(column) from table group by day(column)", data_source)
-    assert error == "Column `weekday` needs to appear in the `group by` clause or be used in an aggregate function."
+    assert error ==
+      "Column `column` from table `table` needs to appear in the `group by` clause" <>
+      " or be used in an aggregate function."
   end
 
   test "accepting proper joins", %{data_source: data_source} do
@@ -198,7 +216,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
   Enum.each(["count", "min", "max", "median", "stddev"], fn(function) ->
     test "allows qualified identifiers in function calls (function #{function})", %{data_source: data_source} do
-      assert %{columns: [{:function, unquote(function), {:identifier, "table", "numeric"}}]} =
+      assert %{columns: [{:function, unquote(function), column("table", "numeric")}]} =
         compile!("select #{unquote(function)}(table.numeric) from table", data_source)
     end
   end)
@@ -212,14 +230,11 @@ defmodule Cloak.SqlQuery.Compiler.Test do
         ORDER BY count(column) DESC, count(table.column) DESC
       """,
       data_source)
-    assert result[:columns] == [
-      {:identifier, "table", "column"},
-      {:function, "count", {:identifier, "table", "column"}}
-    ]
-    assert [{:comparison, {:identifier, "table", "column"}, :>, _}] = result[:where]
-    assert [{:comparison, {:identifier, "table", "column"}, :=, _}] = result[:where_not]
-    assert [{:identifier, "table", "column"}] = result[:unsafe_filter_columns]
-    assert result[:group_by] == [{:identifier, "table", "column"}]
+    assert [column("table", "column"), {:function, "count", column("table", "column")}] = result[:columns]
+    assert [{:comparison, column("table", "column"), :>, _}] = result[:where]
+    assert [{:comparison, column("table", "column"), :=, _}] = result[:where_not]
+    assert [column("table", "column")] = result[:unsafe_filter_columns]
+    assert [column("table", "column")] = result[:group_by]
     assert result[:order_by] == [{1, :desc}, {1, :desc}]
   end
 
@@ -230,16 +245,16 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
   test "expands all columns for all tables when cross joining", %{data_source: data_source} do
     result = compile!("SELECT * FROM t1, t2, t3 WHERE t1.uid = t2.uid AND t2.uid = t3.uid", data_source)
-    assert result[:columns] == [
-      {:identifier, "t1", "uid"},
-      {:identifier, "t1", "c1"},
-      {:identifier, "t1", "c2"},
-      {:identifier, "t2", "uid"},
-      {:identifier, "t2", "c1"},
-      {:identifier, "t2", "c3"},
-      {:identifier, "t3", "uid"},
-      {:identifier, "t3", "c1"}
-    ]
+    assert [
+      column("t1", "uid"),
+      column("t1", "c1"),
+      column("t1", "c2"),
+      column("t2", "uid"),
+      column("t2", "c1"),
+      column("t2", "c3"),
+      column("t3", "uid"),
+      column("t3", "c1")
+    ] = result[:columns]
   end
 
   test "complains when an unqualified identifier cannot be pinned down", %{data_source: data_source} do
@@ -256,11 +271,11 @@ defmodule Cloak.SqlQuery.Compiler.Test do
         ORDER BY t1.c1 DESC
       """,
       data_source)
-    assert result[:columns] == [{:identifier, "t1", "c1"}]
+    assert [column("t1", "c1")] = result[:columns]
     assert [comparison1, comparison2] = result[:where]
-    assert {:comparison, {:identifier, "t1", "c2"}, :>, _} = comparison1
-    assert {:comparison, {:identifier, "t1", "uid"}, :=, {:identifier, "t2", "uid"}} == comparison2
-    assert result[:group_by] == [{:identifier, "t1", "c1"}, {:identifier, "t2", "c3"}]
+    assert {:comparison, column("t1", "c2"), :>, _} = comparison1
+    assert {:comparison, column("t1", "uid"), :=, column("t2", "uid")} = comparison2
+    assert [column("t1", "c1"), column("t2", "c3")] = result[:group_by]
     assert result[:order_by] == [{0, :desc}]
   end
 

@@ -41,7 +41,7 @@ defmodule Cloak.Query.Aggregator do
 
   Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
   """
-  @spec aggregate([DataSource.row], [DataSource.column], SqlQuery.t) :: [bucket]
+  @spec aggregate([DataSource.row], DataSource.columns, SqlQuery.t) :: [bucket]
   def aggregate(rows, columns, query) do
     rows
     |> group_by_property(columns, query)
@@ -64,32 +64,12 @@ defmodule Cloak.Query.Aggregator do
     [[value | prev_values] | add_values_to_columns(rest_values, rest_prev_values)]
   end
 
-  defp input_index(:*, _columns), do: :*
-  defp input_index({:distinct, column}, columns), do: input_index(column, columns)
-  defp input_index(column, columns) do
-    name = SqlQuery.full_column_name(column)
-    case Enum.find_index(columns, &(&1 === name)) do
-      nil -> raise(Cloak.Query.Runner.RuntimeError, "Column `#{name}` doesn't exist in selected columns.")
-      index -> index
-    end
-  end
-
-  defp index_to_value_list(:*, _row), do: [:*]
-  defp index_to_value_list(index, row) do
-    case Enum.at(row, index) do
-      nil -> []
-      value -> [value]
-    end
-  end
-
   defp group_by_property(rows, columns, query) do
-    property_indices = for column <- query.property, do: {column, input_index(column, columns)}
-    aggregators_indices = for column <- SqlQuery.aggregated_columns(query), do: input_index(column, columns)
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
-      property = for {column, index} <- property_indices, do: input_value(column, Enum.at(row, index))
+      property = for column <- query.property, do: DataSource.fetch_value!(row, columns, column)
       user_id = user_id(row)
-      values = for index <- aggregators_indices, do: index_to_value_list(index, row)
+      values = for column <- SqlQuery.aggregated_columns(query), do: aggregated_value_list(row, columns, column)
       Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
         Map.update(user_values_map, user_id, values, &add_values_to_columns(values, &1))
       end)
@@ -97,8 +77,14 @@ defmodule Cloak.Query.Aggregator do
     |> init_anonymizer()
   end
 
-  defp input_value(column, value), do:
-    if Function.function?(column), do: Function.apply(value, column), else: value
+  defp aggregated_value_list(_row, _columns, :*), do: [:*]
+  defp aggregated_value_list(row, columns, {:distinct, column}), do: aggregated_value_list(row, columns, column)
+  defp aggregated_value_list(row, columns, column) do
+    case DataSource.fetch_value!(row, columns, column) do
+      nil -> []
+      value -> [value]
+    end
+  end
 
   defp user_id([user_id | _rest]), do: user_id
 
@@ -193,31 +179,39 @@ defmodule Cloak.Query.Aggregator do
     [%{row: aggregated_values, occurrences: 1}]
   end
   defp make_buckets(rows, query) do
-    columns = query.property ++ query.aggregators
-    Enum.map(rows, &%{row: selected_values(&1, columns, query), occurrences: occurrences(&1, columns, query)})
+    columns =
+      (query.property ++ query.aggregators)
+      |> Enum.with_index()
+      |> Enum.into(%{})
+
+    Enum.map(rows,
+      &%{
+        row: selected_values(&1, columns, query),
+        occurrences: occurrences(&1, columns, query)
+      }
+    )
   end
 
   defp selected_values(row, columns, query) do
     for selected_column <- query.columns do
-      index = output_index(selected_column, columns)
-
-      if Function.function?(selected_column) && !Function.function?(Enum.at(columns, index)) do
-        Function.apply(Enum.at(row, index), selected_column)
-      else
-        Enum.at(row, index)
-      end
-    end
-  end
-
-  defp output_index(column, columns) do
-    cond do
-      index = Enum.find_index(columns, &(&1 == column)) -> index
-      index = Enum.find_index(columns, &(&1 == Function.argument(column))) -> index
-      true -> raise(Cloak.Query.Runner.RuntimeError, "Could not find column in output")
+      fetch_bucket_value!(row, columns, selected_column)
     end
   end
 
   defp occurrences(row, columns, %{implicit_count: true}), do:
-    DataSource.fetch_value!(row, columns, {:function, "count", :*})
+    fetch_bucket_value!(row, columns, {:function, "count", :*})
   defp occurrences(_row, _columns, _query), do: 1
+
+  defp fetch_bucket_value!(row, columns, {:function, _, column} = function) do
+    if selected?(columns, function),
+      do: Enum.at(row, Map.fetch!(columns, function)),
+      else: row |> fetch_bucket_value!(columns, column) |> Function.apply(function)
+  end
+  defp fetch_bucket_value!(row, columns, column) do
+    Enum.at(row, Map.fetch!(columns, column))
+  end
+
+  defp selected?(columns, column) do
+    Map.has_key?(columns, column)
+  end
 end

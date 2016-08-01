@@ -83,7 +83,7 @@ defmodule Cloak.DataSource.DsProxyTest do
           "SELECT bar.user_id AS \"bar.user_id\",bar.foo AS \"bar.foo\" FROM bar "} == statement
 
         rows = Enum.map(1..49, &[&1, 0]) ++ Enum.map(50..100, &[&1, 10])
-        {200, %{success: true, columns: ["user_id", "bar.foo"], rows: rows}}
+        {200, %{success: true, columns: ["bar.user_id", "bar.foo"], rows: rows}}
       end
     )
 
@@ -100,7 +100,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"params" => [], "type" => "parsed", "val" =>
           "SELECT bar.user_id AS \"bar.user_id\",bar.foo AS \"bar.foo\" FROM bar "} == statement
 
-        {200, %{success: true, columns: ["user_id", "bar.foo"], rows: [[]]}}
+        {200, %{success: true, columns: ["bar.user_id", "bar.foo"], rows: [[]]}}
       end
     )
 
@@ -135,6 +135,19 @@ defmodule Cloak.DataSource.DsProxyTest do
 
     query_result = run_query(context, "select foo, count(*) from (select foo from bar) as baz group by foo")
     assert {:ok, {:buckets, ["foo", "count"], [%{occurrences: 1, row: [:*, 100]}]}, []} = query_result
+  end
+
+  test "unsafe select is not sensitive on subquery order", context do
+    expect_json_post(context.bypass, "/query",
+      fn(_payload) ->
+        rows = Enum.map(1..100, &[&1, "bar_val", "foo_val"])
+        {200, %{success: true, columns: ["user_id", "bar", "foo"], rows: rows}}
+      end
+    )
+
+    query_result = run_query(context, "select foo, bar from (select bar, foo from bar) as baz")
+    assert {:ok, {:buckets, ["foo", "bar"], rows}, []} = query_result
+    assert rows == [%{occurrences: 100, row: ["foo_val", "bar_val"]}]
   end
 
   test "invalid select column in unsafe select", context do
@@ -212,9 +225,10 @@ defmodule Cloak.DataSource.DsProxyTest do
       parameters: [url: test_context.url],
       tables: %{
         bar: %{
+          user_name: "bar",
           name: "bar",
           user_id: "user_id",
-          columns: %{"foo" => :integer, "baz" => :integer}
+          columns: %{"user_id" => :integer, "foo" => :integer, "baz" => :integer}
         }
       }
     }
