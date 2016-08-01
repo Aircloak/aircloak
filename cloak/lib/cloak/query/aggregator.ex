@@ -41,7 +41,7 @@ defmodule Cloak.Query.Aggregator do
 
   Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
   """
-  @spec aggregate([DataSource.row], DataSource.columns, SqlQuery.t) :: [bucket]
+  @spec aggregate(Enumerable.t, DataSource.columns, SqlQuery.t) :: [bucket]
   def aggregate(rows, columns, query) do
     rows
     |> group_by_property(columns, query)

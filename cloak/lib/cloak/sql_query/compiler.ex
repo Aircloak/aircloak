@@ -198,9 +198,9 @@ defmodule Cloak.SqlQuery.Compiler do
   defp valid_argument_type(function_call) do
     case {Function.argument_type(function_call), select_clause_to_identifier(function_call)} do
       {:any, _} -> true
-      {:timestamp, %{type: :timestamp}} -> true
       {:numeric, %{type: :integer}} -> true
       {:numeric, %{type: :real}} -> true
+      {exact_type, %{type: exact_type}} -> true
       _ -> false
     end
   end
