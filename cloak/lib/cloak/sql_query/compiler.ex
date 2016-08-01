@@ -296,15 +296,15 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp compile_order_by(%{order_by: []} = query), do: query
   defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
-    column_table_map = construct_column_table_map(query)
-    qualified_columns = Enum.map(columns, &convert_column(&1, column_table_map, query))
+    columns_by_name = columns_by_name(query)
+    qualified_columns = Enum.map(columns, &convert_column(&1, columns_by_name, query))
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) ->
-      Enum.member?(qualified_columns, convert_column(column, column_table_map, query))
+      Enum.member?(qualified_columns, convert_column(column, columns_by_name, query))
     end)
     case invalid_fields do
       [] ->
         order_list = for {column, direction} <- order_by_spec do
-          qualified_column = convert_column(column, column_table_map, query)
+          qualified_column = convert_column(column, columns_by_name, query)
           index = qualified_columns |> Enum.find_index(&(&1 == qualified_column))
           {index, direction}
         end
@@ -424,21 +424,21 @@ defmodule Cloak.SqlQuery.Compiler do
   defp transform_columns(%{from: {:subquery, _}} = query),
     do: transform_columns(query, nil)
   defp transform_columns(query),
-    do: transform_columns(query, construct_column_table_map(query))
+    do: transform_columns(query, columns_by_name(query))
 
-  defp transform_columns(query, column_table_map) do
+  defp transform_columns(query, columns_by_name) do
     %{query |
-      columns: Enum.map(query.columns, &(convert_column(&1, column_table_map, query))),
-      group_by: Enum.map(query.group_by, &(convert_column(&1, column_table_map, query))),
-      where: Enum.map(query.where, &(qualify_where_clause(&1, column_table_map, query))),
-      where_not: Enum.map(query.where_not, &(qualify_where_clause(&1, column_table_map, query))),
+      columns: Enum.map(query.columns, &(convert_column(&1, columns_by_name, query))),
+      group_by: Enum.map(query.group_by, &(convert_column(&1, columns_by_name, query))),
+      where: Enum.map(query.where, &(qualify_where_clause(&1, columns_by_name, query))),
+      where_not: Enum.map(query.where_not, &(qualify_where_clause(&1, columns_by_name, query))),
       order_by: Enum.map(query.order_by, fn({identifier, direction}) ->
-        {convert_column(identifier, column_table_map, query), direction}
+        {convert_column(identifier, columns_by_name, query), direction}
       end)
     }
   end
 
-  defp construct_column_table_map(query) do
+  defp columns_by_name(query) do
     for table <- query.selected_tables, {column, type} <- table.columns do
       %Column{table: table, name: column, type: type, user_id?: table.user_id == column}
     end
@@ -448,20 +448,20 @@ defmodule Cloak.SqlQuery.Compiler do
   defp convert_column(column, nil, _query) do
     do_convert_column(column, &convert_column_for_unsafe_query(&1))
   end
-  defp convert_column(column, column_table_map, query) do
-    do_convert_column(column, &convert_column_for_parsed_query(&1, column_table_map, query))
+  defp convert_column(column, columns_by_name, query) do
+    do_convert_column(column, &convert_column_for_parsed_query(&1, columns_by_name, query))
   end
 
   defp convert_column_for_unsafe_query({:identifier, :unknown, column_name}) do
     %Column{name: column_name, table: :unknown}
   end
 
-  defp convert_column_for_parsed_query({:identifier, :unknown, column_name}, column_table_map, _query) do
-    case Map.get(column_table_map, column_name) do
+  defp convert_column_for_parsed_query({:identifier, :unknown, column_name}, columns_by_name, _query) do
+    case Map.get(columns_by_name, column_name) do
       [column] -> column
       [_|_] -> raise CompilationError, message: "Column `#{column_name}` is ambiguous."
       nil ->
-        column_table_map
+        columns_by_name
         |> Map.values()
         |> List.flatten()
         |> Enum.map(&(&1.table))
@@ -474,11 +474,11 @@ defmodule Cloak.SqlQuery.Compiler do
           end
     end
   end
-  defp convert_column_for_parsed_query({:identifier, table, column_name}, column_table_map, query) do
+  defp convert_column_for_parsed_query({:identifier, table, column_name}, columns_by_name, query) do
     unless Enum.any?(query.selected_tables, &(&1.user_name == table)),
       do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
 
-    case Map.fetch(column_table_map, column_name) do
+    case Map.fetch(columns_by_name, column_name) do
       :error ->
         raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
       {:ok, columns} ->
@@ -504,20 +504,20 @@ defmodule Cloak.SqlQuery.Compiler do
     converter_fun.(identifier)
   end
 
-  defp qualify_where_clause({:comparison, lhs, comparator, rhs}, column_table_map, query) do
+  defp qualify_where_clause({:comparison, lhs, comparator, rhs}, columns_by_name, query) do
     {
       :comparison,
-      convert_column(lhs, column_table_map, query),
+      convert_column(lhs, columns_by_name, query),
       comparator,
-      convert_column(rhs, column_table_map, query)
+      convert_column(rhs, columns_by_name, query)
     }
   end
-  defp qualify_where_clause({:not, subclause}, column_table_map, query) do
-    {:not, qualify_where_clause(subclause, column_table_map, query)}
+  defp qualify_where_clause({:not, subclause}, columns_by_name, query) do
+    {:not, qualify_where_clause(subclause, columns_by_name, query)}
   end
   Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp qualify_where_clause({unquote(keyword), identifier, any}, column_table_map, query) do
-      {unquote(keyword), convert_column(identifier, column_table_map, query), any}
+    defp qualify_where_clause({unquote(keyword), identifier, any}, columns_by_name, query) do
+      {unquote(keyword), convert_column(identifier, columns_by_name, query), any}
     end
   end)
 
