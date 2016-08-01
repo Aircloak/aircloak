@@ -25,6 +25,11 @@ defmodule Cloak.SqlQuery.Function.Test do
     assert apply_function("abs", -1) == 1
   end
 
+  test "round" do
+    assert apply_function("round", 3.99) == 4
+    assert apply_function("round", 3.01) == 3
+  end
+
   defp apply_function(name, arg), do:
     Function.apply(arg, {:function, name, nil})
 end
