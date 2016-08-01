@@ -14,25 +14,6 @@ defmodule Cloak.Query.NegativeCondition do
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
 
-  defmodule Stream do
-    @moduledoc """
-    This struct acts as a wrapper for the original collection of rows.
-    We implement the Enumerable protocol for it and filter the rows during the reduce callback.
-    """
-    defstruct rows: [], filters: []
-
-    defimpl Enumerable, for: Stream do
-      def count(_), do: {:error, __MODULE__}
-
-      def member?(_, _), do: {:error, __MODULE__}
-
-      def reduce(%Stream{rows: rows, filters: []}, acc, fun),
-        do: Enumerable.reduce(rows, acc, fun)
-      def reduce(%Stream{rows: rows, filters: filters}, acc, fun),
-        do: Cloak.Query.NegativeCondition.reduce(rows, filters, acc, fun)
-    end
-  end
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -44,8 +25,14 @@ defmodule Cloak.Query.NegativeCondition do
   Note: the order of the input rows is not guaranteed to be kept after filtering.
   """
   @spec apply(Enumerable.t, DataSource.columns, Parser.compiled_query) :: Enumerable.t
-  def apply(rows, columns, %{where_not: clauses}),
-    do: %Stream{rows: rows, filters: filters(columns, clauses)}
+  def apply(rows, columns, %{where_not: clauses}) do
+    Cloak.RichStream.new(
+      rows,
+      %{filters: filters(columns, clauses)},
+      &process_input_row/2,
+      &output_remaining_rows/1
+    )
+  end
 
 
   # -------------------------------------------------------------------
@@ -90,6 +77,23 @@ defmodule Cloak.Query.NegativeCondition do
     end
   end
 
+  defp process_input_row(%{filters: []} = state, row) do
+    {[row], state}
+  end
+  defp process_input_row(state, row) do
+    case Enum.map_reduce(state.filters, row, &match_filter/2) do
+      {filters, :drop} ->
+        {[], %{state | filters: filters}}
+
+      {filters, _row} ->
+        {[row], %{state | filters: filters}}
+    end
+  end
+
+  defp output_remaining_rows(state) do
+    Enum.flat_map(state.filters, &Filter.flush/1)
+  end
+
   # Checks to see if a filter matches a row.
   # On match, we ask the filter to take the row and we instruct the caller to drop the row
   # from processing for now. The row might still get processed later during the flush step.
@@ -98,37 +102,6 @@ defmodule Cloak.Query.NegativeCondition do
     case Filter.matches?(filter, row) do
       false -> {filter, row}
       true -> {Filter.take(filter, row), :drop}
-    end
-  end
-
-  # This is a wrapper for the original reducer function.
-  # For each row, we ask the filters for a decision.
-  # If we get a match, we drop the row, otherwise we send it forward for processing.
-  defp reducer(row, {filters, acc, fun}) do
-    case Enum.map_reduce(filters, row, &match_filter/2) do
-      {filters, :drop} ->
-        {:cont, {filters, acc, fun}}
-      {filters, _row} ->
-        {state, acc} = fun.(row, acc)
-        {state, {filters, acc, fun}}
-    end
-  end
-
-  # At the end of the stream, we collect any remaining rows and send them forward for prcessing.
-  defp flush_filters(filters, acc, fun) do
-    filters
-    |> Enum.flat_map(&Filter.flush/1)
-    |> Enumerable.reduce({:cont, acc}, fun)
-  end
-
-  # This is the called during stream processing when we have active filters.
-  # We wrap the reducer function and iterate through the rows, applying the filters for each row.
-  # It needs to be public because it is called from the `Enumerable` protocol implementation.
-  @doc false
-  def reduce(rows, filters, {:cont, acc}, fun) do
-    case Enumerable.reduce(rows, {:cont, {filters, acc, fun}}, &reducer/2) do
-      {:done, {filters, acc, _fun}} -> flush_filters(filters, acc, fun)
-      {:halted, {_filters, acc, _fun}} -> {:halted, acc}
     end
   end
 
