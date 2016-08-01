@@ -18,4 +18,11 @@ defmodule Cloak.SqlQuery.Function.Test do
     assert Function.apply(3.99, {:function, "ceiling", nil}) == 4
     assert Function.apply(3.01, {:function, "ceiling", nil}) == 4
   end
+
+  test "abs" do
+    assert Function.apply(1.2, {:function, "abs", nil}) == 1.2
+    assert Function.apply(-1.2, {:function, "abs", nil}) == 1.2
+    assert Function.apply(1, {:function, "abs", nil}) == 1
+    assert Function.apply(-1, {:function, "abs", nil}) == 1
+  end
 end
