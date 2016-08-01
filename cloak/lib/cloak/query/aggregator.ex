@@ -67,7 +67,7 @@ defmodule Cloak.Query.Aggregator do
   defp group_by_property(rows, columns, query) do
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
-      property = for column <- query.property, do: fetch_property!(row, columns, column)
+      property = for column <- query.property, do: DataSource.fetch_value!(row, columns, column)
       user_id = user_id(row)
       values = for column <- SqlQuery.aggregated_columns(query), do: aggregated_value_list(row, columns, column)
       Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
@@ -77,18 +77,10 @@ defmodule Cloak.Query.Aggregator do
     |> init_anonymizer()
   end
 
-  defp fetch_property!(row, columns, column) do
-    if Function.function?(column) and not Function.aggregate_function?(column) do
-      final_value(column, fetch_property!(row, columns, Function.argument(column)))
-    else
-      final_value(column, DataSource.fetch_value!(row, columns, column))
-    end
-  end
-
   defp aggregated_value_list(_row, _columns, :*), do: [:*]
   defp aggregated_value_list(row, columns, {:distinct, column}), do: aggregated_value_list(row, columns, column)
   defp aggregated_value_list(row, columns, column) do
-    case fetch_property!(row, columns, column) do
+    case DataSource.fetch_value!(row, columns, column) do
       nil -> []
       value -> [value]
     end
@@ -213,7 +205,7 @@ defmodule Cloak.Query.Aggregator do
   defp fetch_bucket_value!(row, columns, {:function, _, column} = function) do
     if selected?(columns, function),
       do: Enum.at(row, Map.fetch!(columns, function)),
-      else: final_value(function, fetch_bucket_value!(row, columns, column))
+      else: row |> fetch_bucket_value!(columns, column) |> Function.apply(function)
   end
   defp fetch_bucket_value!(row, columns, column) do
     Enum.at(row, Map.fetch!(columns, column))
@@ -221,13 +213,5 @@ defmodule Cloak.Query.Aggregator do
 
   defp selected?(columns, column) do
     Map.has_key?(columns, column)
-  end
-
-  defp final_value(column, raw_value) do
-    if Function.function?(column) and not Function.aggregate_function?(column) do
-      Function.apply(raw_value, column)
-    else
-      raw_value
-    end
   end
 end

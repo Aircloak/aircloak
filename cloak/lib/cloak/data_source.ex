@@ -37,6 +37,7 @@ defmodule Cloak.DataSource do
   require Logger
 
   alias Cloak.SqlQuery.Column
+  alias Cloak.SqlQuery.Function
 
   # define returned data types and values
   @type t :: %{
@@ -165,18 +166,28 @@ defmodule Cloak.DataSource do
   @doc "Returns a specific field value from a row of data."
   @spec fetch_value!(row, columns, Column.t) :: field
   def fetch_value!(row, columns, column) do
-    case Map.fetch(columns, column_id(column)) do
-      {:ok, index} ->
-        Enum.at(row, index)
-      :error ->
-        raise(Cloak.Query.Runner.RuntimeError, "Column `#{column.name}` doesn't exist in selected columns.")
-    end
+    row
+    |> fetch_raw_value!(columns, column)
+    |> Function.apply(column)
   end
 
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp fetch_raw_value!(row, columns, column) do
+    if Function.function?(column) and not Function.aggregate_function?(column) do
+      fetch_raw_value!(row, columns, Function.argument(column))
+    else
+      case Map.fetch(columns, column_id(column)) do
+        {:ok, index} ->
+          Enum.at(row, index)
+        :error ->
+          raise(Cloak.Query.Runner.RuntimeError, "Column `#{column.name}` doesn't exist in selected columns.")
+      end
+    end
+  end
 
   defp map_driver({data_source, params}) do
     driver_module = case params[:driver] do
