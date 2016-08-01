@@ -21,17 +21,17 @@ defmodule Cloak.Query.NegativeCondition do
     We implement the Enumerable protocol for it and filter the rows during the reduce callback.
     """
     defstruct rows: [], filters: []
-  end
 
-  defimpl Enumerable, for: Stream do
-    def count(_), do: {:error, __MODULE__}
+    defimpl Enumerable, for: Stream do
+      def count(_), do: {:error, __MODULE__}
 
-    def member?(_, _), do: {:error, __MODULE__}
+      def member?(_, _), do: {:error, __MODULE__}
 
-    def reduce(%Stream{rows: rows, filters: []}, acc, fun),
-      do: Enumerable.reduce(rows, acc, fun)
-    def reduce(%Stream{rows: rows, filters: filters}, acc, fun),
-      do: Cloak.Query.NegativeCondition.reduce(rows, filters, acc, fun)
+      def reduce(%Stream{rows: rows, filters: []}, acc, fun),
+        do: Enumerable.reduce(rows, acc, fun)
+      def reduce(%Stream{rows: rows, filters: filters}, acc, fun),
+        do: Cloak.Query.NegativeCondition.reduce(rows, filters, acc, fun)
+    end
   end
 
 
