@@ -64,7 +64,7 @@ defmodule Cloak.Query.NegativeCondition do
     # Returns true if a filter matches a row.
     def matches?(%Filter{matcher: matcher}, row), do: matcher.(row)
 
-    # At the end of the stream we need to make a decission about the matched rows.
+    # At the end of the stream we need to make a decision about the matched rows.
     # If we have enough matched users, we drop any rows captured,
     # otherwise we send them forward for processing.
     @dialyzer [:no_opaque, :no_return] # needed becaus of the Anonymizer.new(MapSet.t) call
