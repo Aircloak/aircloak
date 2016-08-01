@@ -539,7 +539,7 @@ defmodule Cloak.SqlQuery.Compiler do
     |> Enum.filter(&(&1 != nil and &1.user_id?))
   end
 
-  defp extract_column(%{} = column), do: column
+  defp extract_column(%Column{} = column), do: column
   defp extract_column({:function, "count", :*}), do: nil
   defp extract_column({:function, _function, expression}), do: extract_column(expression)
   defp extract_column({:distinct, expression}), do: extract_column(expression)
