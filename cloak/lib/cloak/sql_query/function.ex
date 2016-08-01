@@ -60,5 +60,6 @@ defmodule Cloak.SqlQuery.Function do
   def apply(value, {:function, "minute", _}), do: value.minute
   def apply(value, {:function, "second", _}), do: value.second
   def apply(value, {:function, "weekday", _}), do: Timex.weekday(value)
+  def apply(value, {:function, "sqrt", _}), do: :math.sqrt(value)
   def apply(value, _), do: value
 end
