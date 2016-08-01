@@ -17,7 +17,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
           name: "table",
           user_name: "table",
           user_id: "uid",
-          columns: [{"uid", :integer}, {"column", :timestamp}, {"numeric", :integer}]
+          columns: [{"uid", :integer}, {"column", :timestamp}, {"numeric", :integer}, {"real", :real}]
         },
         other_table: %{
           name: "other_table",
@@ -86,7 +86,11 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       compile("select * from table where column > 'something stupid'", data_source)
   end
 
-  for function <- ~w(avg min max sum stddev median) do
+  for function <- ~w(avg min max sum stddev median abs sqrt) do
+    test "allowing #{function} on numeric columns", %{data_source: data_source} do
+      assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source)
+    end
+
     test "rejecting #{function} on non-numerical columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source)
       assert error == "Function `#{unquote(function)}` requires `numeric`, but used over column"
@@ -125,6 +129,18 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "allowing #{function} in select when the argument is grouped", %{data_source: data_source} do
       assert {:ok, _} = compile("select #{unquote(function)}(column) from table group by column", data_source)
+    end
+  end
+
+  for function <- ~w(floor ceil ceiling trunc round) do
+    test "allowing #{function} on real columns", %{data_source: data_source} do
+      assert {:ok, _} = compile("select #{unquote(function)}(real) from table", data_source)
+    end
+
+    test "rejecting #{function} on integer columns", %{data_source: data_source} do
+      assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
+      assert error == "Function `#{unquote(function)}` requires `real`, but used over column"
+        <> " `numeric` of type `integer` from table `table`"
     end
   end
 

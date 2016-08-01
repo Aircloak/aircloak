@@ -7,6 +7,8 @@ defmodule Cloak.SqlQuery.Function do
     ~w(count) => %{aggregate: true, type: :any},
     ~w(sum avg min max stddev median) => %{aggregate: true, type: :numeric},
     ~w(year month day hour minute second weekday) => %{aggregate: false, type: :timestamp},
+    ~w(floor ceil ceiling round trunc) => %{aggregate: false, type: :real},
+    ~w(abs sqrt) => %{aggregate: false, type: :numeric},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
