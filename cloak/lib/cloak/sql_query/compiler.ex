@@ -122,7 +122,6 @@ defmodule Cloak.SqlQuery.Compiler do
 
     case selected_table_names -- available_table_names do
       [] ->
-        Enum.map(selected_table_names, &DataSource.table(query.data_source, &1))
         %{query |
             selected_tables: Enum.map(selected_table_names, &DataSource.table(query.data_source, &1))
         }
