@@ -48,12 +48,8 @@ defmodule Cloak.Query.Anonymizer do
   keys are user ids. Such types ensure that user ids are unique.
   """
   @spec new(MapSet.t | %{String.t => any}) :: t
-  def new(%MapSet{} = users) do
-    new_instance(users)
-  end
-  def new(%{} = users_map) do
-    new_instance(Map.keys(users_map))
-  end
+  def new(%MapSet{} = users), do: new_instance(users)
+  def new(%{} = users_map), do: new_instance(Map.keys(users_map))
 
   @doc """
   Returns a `{boolean, anonymizer}` tuple, where the boolean value is
@@ -150,12 +146,14 @@ defmodule Cloak.Query.Anonymizer do
     end
   end
 
+  @doc "Returns the configuration value for an anonymizer parameter."
+  @spec config(atom) :: term
+  def config(name), do: Application.get_env(:cloak, :anonymizer) |> Keyword.fetch!(name)
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp config(name), do: Application.get_env(:cloak, :anonymizer) |> Keyword.fetch!(name)
 
   defp new_instance(unique_users) do
     %{rng: :rand.seed(:exsplus, seed(unique_users))}
