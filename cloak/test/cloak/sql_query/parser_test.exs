@@ -419,6 +419,10 @@ defmodule Cloak.SqlQuery.Parser.Test do
     )
   end
 
+  test "select a constant" do
+    assert_parse("select 10 from foor", select(columns: [{:constant, constant(10)}]))
+  end
+
   Enum.each(
     [
       {"single quote is not allowed in the identifier",

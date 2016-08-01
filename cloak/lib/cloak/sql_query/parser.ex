@@ -16,6 +16,7 @@ defmodule Cloak.SqlQuery.Parser do
       qualified_identifier
     | {:distinct, qualified_identifier}
     | {:function, String.t, qualified_identifier | :* | {:distinct, qualified_identifier}}
+    | {:constant, Parsers.Token.t}
 
   @type like :: {:like | :ilike, String.t, String.t}
   @type is :: {:is, String.t, :null}
@@ -129,8 +130,12 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp column() do
-    choice([function_expression(), extract_expression(), qualified_identifier()])
+    choice([function_expression(), extract_expression(), qualified_identifier(), constant_column()])
     |> label("column name or function")
+  end
+
+  defp constant_column() do
+    any_constant() |> map(&{:constant, &1})
   end
 
   defp select_column() do
@@ -291,18 +296,18 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp allowed_where_value() do
-    choice([qualified_identifier(), allowed_where_constant()])
+    choice([qualified_identifier(), any_constant()])
     |> label("comparison value")
   end
 
   defp in_values() do
     pipe(
-      [keyword(:"("), comma_delimited(allowed_where_constant()), keyword(:")")],
+      [keyword(:"("), comma_delimited(any_constant()), keyword(:")")],
       fn([_, values, _]) -> values end
     )
   end
 
-  defp allowed_where_constant() do
+  defp any_constant() do
     constant_of([:string, :integer, :float, :boolean])
     |> label("comparison value")
   end
