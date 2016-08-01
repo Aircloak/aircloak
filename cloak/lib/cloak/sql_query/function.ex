@@ -66,5 +66,6 @@ defmodule Cloak.SqlQuery.Function do
   def apply(value, {:function, "ceiling", _}), do: Float.ceil(value)
   def apply(value, {:function, "abs", _}), do: abs(value)
   def apply(value, {:function, "round", _}), do: round(value)
+  def apply(value, {:function, "trunc", _}), do: trunc(value)
   def apply(value, _), do: value
 end
