@@ -5,6 +5,8 @@ defmodule Cloak.Query.NegativeCondition do
   individuals by adding a condition that would exclude an individual from a result set. Then by comparing
   the result of a query with and without that condition the analyst can find out if that user was in fact
   included in the result set. To avoid this we ignore the condition if it would remove too few users.
+  The module creates a wrapper stream for the incoming collection of rows that applies the filtering
+  conditions when the stream is processed.
   """
 
   alias Cloak.DataSource
@@ -12,59 +14,145 @@ defmodule Cloak.Query.NegativeCondition do
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
 
+  defmodule Stream do
+    @moduledoc """
+    This struct acts as a wrapper for the original collection of rows.
+    We implement the Enumerable protocol for it and filter the rows during the reduce callback.
+    """
+    defstruct rows: [], filters: []
+
+    defimpl Enumerable, for: Stream do
+      def count(_), do: {:error, __MODULE__}
+
+      def member?(_, _), do: {:error, __MODULE__}
+
+      def reduce(%Stream{rows: rows, filters: []}, acc, fun),
+        do: Enumerable.reduce(rows, acc, fun)
+      def reduce(%Stream{rows: rows, filters: filters}, acc, fun),
+        do: Cloak.Query.NegativeCondition.reduce(rows, filters, acc, fun)
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Applies or ignore negative conditions in the query to the given rows."
-  @spec apply([DataSource.row], DataSource.columns, Parser.compiled_query) :: [DataSource.row]
-  def apply(rows, columns, %{where_not: clauses}) do
-    clauses
-    |> Enum.filter(&sufficient_matches?(&1, rows, columns))
-    |> Enum.reduce(rows, fn(clause, rows) -> Enum.reject(rows, &filter(&1, columns, clause)) end)
-  end
+  @doc """
+  Applies or ignores negative conditions in the query to the given rows.
+  The input is wrapped in our custom stream object and filtered during processing.
+  Note: the order of the input rows is not guaranteed to be kept after filtering.
+  """
+  @spec apply(Enumerable.t, DataSource.columns, Parser.compiled_query) :: Enumerable.t
+  def apply(rows, columns, %{where_not: clauses}),
+    do: %Stream{rows: rows, filters: filters(columns, clauses)}
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp user_id([user_id | _rest]), do: user_id
+  defmodule Filter do
+    @moduledoc false
+    # This holds the state for a filter during the stream processing.
+    # We capture all matched rows and users until we are have enough information to make a decision.
+    # If we hit the `hard_limit` amount of users, we stop gathering and start dropping rows directly.
+    # Otherwise, we make a decision when the end of the stream is reached.
+    defstruct matcher: nil, matched_rows: [], matched_users: MapSet.new(), match_hard_limit: 0
 
-  defp sufficient_matches?(clause, rows, columns) do
-    real_count =
-      rows
-      |> filtered_rows(columns, clause)
-      |> Enum.count()
+    # Returns true if a filter matches a row.
+    def matches?(%Filter{matcher: matcher}, row), do: matcher.(row)
 
-    {result, _} =
-      rows
-      |> Enum.map(&user_id/1)
-      |> Enum.into(MapSet.new())
-      |> Anonymizer.new()
-      |> Anonymizer.sufficiently_large?(real_count)
+    # At the end of the stream we need to make a decision about the matched rows.
+    # If we have enough matched users, we drop any rows captured,
+    # otherwise we send them forward for processing.
+    @dialyzer [:no_opaque, :no_return] # needed becaus of the Anonymizer.new(MapSet.t) call
+    def flush(%Filter{matched_users: users, matched_rows: rows, match_hard_limit: hard_limit}) do
+      matched_users_count = MapSet.size(users)
+      {sufficient_matches, _} = Anonymizer.sufficiently_large?(Anonymizer.new(users), matched_users_count)
+      case matched_users_count >= hard_limit or sufficient_matches do
+        true -> []
+        false -> rows
+      end
+    end
 
-    result
+    defp user_id([user_id | _rest]), do: user_id
+
+    # This is called when a row is matched by the filter.
+    # If we are under the hard limit of matched users, we store the row for later processing.
+    # otherwise, we can drop the row right now and not worry about it anymore.
+    def take(%Filter{matched_rows: rows, matched_users: users, match_hard_limit: hard_limit} = filter, row) do
+      matched_users_count = MapSet.size(users)
+      case matched_users_count >= hard_limit do
+        true -> filter
+        false -> %Filter{filter | matched_rows: [row | rows], matched_users: MapSet.put(users, user_id(row))}
+      end
+    end
   end
 
-  defp filtered_rows(rows, columns, clause) do
-    rows
-    |> Enum.filter(&filter(&1, columns, clause))
-    |> Enum.uniq_by(&user_id/1)
+  # Checks to see if a filter matches a row.
+  # On match, we ask the filter to take the row and we instruct the caller to drop the row
+  # from processing for now. The row might still get processed later during the flush step.
+  defp match_filter(filter, :drop), do: {filter, :drop}
+  defp match_filter(filter, row) do
+    case Filter.matches?(filter, row) do
+      false -> {filter, row}
+      true -> {Filter.take(filter, row), :drop}
+    end
   end
 
-  defp filter(row, columns, {:comparison, column, :=, %Token{value: %{value: value}}}) do
-    DataSource.fetch_value!(row, columns, column) == value
+  # This is a wrapper for the original reducer function.
+  # For each row, we ask the filters for a decision.
+  # If we get a match, we drop the row, otherwise we send it forward for processing.
+  defp reducer(row, {filters, acc, fun}) do
+    case Enum.map_reduce(filters, row, &match_filter/2) do
+      {filters, :drop} ->
+        {:cont, {filters, acc, fun}}
+      {filters, _row} ->
+        {state, acc} = fun.(row, acc)
+        {state, {filters, acc, fun}}
+    end
   end
-  defp filter(row, columns, {:comparison, column, :=, value}) do
-    DataSource.fetch_value!(row, columns, column) == value
+
+  # At the end of the stream, we collect any remaining rows and send them forward for prcessing.
+  defp flush_filters(filters, acc, fun) do
+    filters
+    |> Enum.flat_map(&Filter.flush/1)
+    |> Enumerable.reduce({:cont, acc}, fun)
   end
-  defp filter(row, columns, {:like, column, %Token{value: %{type: :string, value: pattern}}}) do
-    DataSource.fetch_value!(row, columns, column) =~ to_regex(pattern)
+
+  # This is the called during stream processing when we have active filters.
+  # We wrap the reducer function and iterate through the rows, applying the filters for each row.
+  # It needs to be public because it is called from the `Enumerable` protocol implementation.
+  @doc false
+  def reduce(rows, filters, {:cont, acc}, fun) do
+    case Enumerable.reduce(rows, {:cont, {filters, acc, fun}}, &reducer/2) do
+      {:done, {filters, acc, _fun}} -> flush_filters(filters, acc, fun)
+      {:halted, {_filters, acc, _fun}} -> {:halted, acc}
+    end
   end
-  defp filter(row, columns, {:ilike, column, %Token{value: %{type: :string, value: pattern}}}) do
-    DataSource.fetch_value!(row, columns, column) =~ to_regex(pattern, [_case_insensitive = "i"])
+
+  # Converts the 'where not' clauses into filters for the stream of rows.
+  defp filters(columns, clauses) do
+    {low_count_mean, low_count_sd} = Anonymizer.config(:low_count_soft_lower_bound)
+    # Once we match this amount of users we can confidently make a decision to apply the filter.
+    hard_limit = low_count_sd * 5 + low_count_mean
+    for clause <- clauses, do: %Filter{matcher: matcher(columns, clause), match_hard_limit: hard_limit}
+  end
+
+  defp matcher(columns, {:comparison, column, :=, %Token{value: %{value: value}}}) do
+    fn (row) -> DataSource.fetch_value!(row, columns, column) == value end
+  end
+  defp matcher(columns, {:comparison, column, :=, value}) do
+    fn (row) -> DataSource.fetch_value!(row, columns, column) == value end
+  end
+  defp matcher(columns, {:like, column, %Token{value: %{type: :string, value: pattern}}}) do
+    regex = to_regex(pattern)
+    fn (row) -> DataSource.fetch_value!(row, columns, column) =~ regex end
+  end
+  defp matcher(columns, {:ilike, column, %Token{value: %{type: :string, value: pattern}}}) do
+    regex = to_regex(pattern, [_case_insensitive = "i"])
+    fn (row) -> DataSource.fetch_value!(row, columns, column) =~ regex end
   end
 
   defp to_regex(sql_pattern, options \\ []) do
