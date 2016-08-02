@@ -2,6 +2,7 @@ defmodule Cloak.SqlQuery.Function do
   @moduledoc "Includes information about functions and implementation of non-aggregation functions."
 
   alias Cloak.SqlQuery.Parser
+  alias Cloak.DataSource
 
   @functions %{
     ~w(count) => %{aggregate: true, argument_types: [:any]},
@@ -14,7 +15,7 @@ defmodule Cloak.SqlQuery.Function do
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
 
-  @type argument_type :: :any | :numeric | :timestamp
+  @type argument_type :: :any | :numeric | :timestamp | DataSource.data_type
 
 
   # -------------------------------------------------------------------
