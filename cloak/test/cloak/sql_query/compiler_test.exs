@@ -144,6 +144,11 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     end
   end
 
+  test "multiarg function argument verification", %{data_source: data_source} do
+    assert {:error, error} = compile("select div(numeric, column) from table", data_source)
+    assert error == "Function `div` requires (`integer`, `integer`), but got (`integer`, `timestamp`)"
+  end
+
   test "rejecting a column in select when its function is grouped", %{data_source: data_source} do
     assert {:error, error} = compile("select column from table group by day(column)", data_source)
     assert error ==

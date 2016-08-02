@@ -238,7 +238,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp quoted_list(things), do:
-    Enum.map(things, &"`#{&1}`")
+    things |> Enum.map(&"`#{&1}`") |> Enum.join(", ")
 
   defp verify_aggregated_columns(query) do
     case invalid_not_aggregated_columns(query) do
