@@ -57,7 +57,7 @@ defmodule Cloak.DataSource do
   @type field :: String.t | integer | number | boolean | nil
   @type row :: [field]
   @type data_type :: :text | :integer | :real | :boolean | :timestamp | :time | :date | {:unsupported, String.t}
-  @type query_result :: {num_rows, [column], [row]}
+  @type query_result :: {num_rows, [row]}
   @opaque columns :: %{any => non_neg_integer}
 
   #-----------------------------------------------------------------------------------------------------------
@@ -139,13 +139,13 @@ defmodule Cloak.DataSource do
   """
   @spec select(Cloak.SqlQuery.t) :: {:ok, columns, [row]} | {:error, any}
   def select(%{data_source: data_source} = select_query) do
-    with {:ok, {_count, column_names, rows}} <- data_source.driver.select(data_source.id, select_query) do
+    with {:ok, {_count, rows}} <- data_source.driver.select(data_source.id, select_query) do
       # Note: we need to preindex columns here because of unsafe queries in dsproxy. This is the only
       # case where we can't know the order of returned data upfront, since it is determined by an
       # unparsed subquery. Therefore, we can only compute column indices after data is returned by
       # the data source, relying on the returned column_names. Once dsproxy is out of the picture,
       # we can push this preindexing to the compiler.
-      {:ok, index_columns(select_query, column_names), rows}
+      {:ok, index_columns(select_query), rows}
     end
   end
 
@@ -323,15 +323,11 @@ defmodule Cloak.DataSource do
     end
   end
 
-  defp index_columns(query, column_names) do
-    for column <- query.db_columns, into: %{} do
-      case Enum.find_index(column_names, &(&1 == Column.alias(column))) do
-        nil ->
-          raise Cloak.Query.Runner.RuntimeError, "Column `#{column.name}` doesn't exist in selected columns."
-        index ->
-          {column_id(column), index}
-      end
-    end
+  defp index_columns(query) do
+    query.db_columns
+    |> Enum.map(&column_id/1)
+    |> Enum.with_index()
+    |> Enum.into(%{})
   end
 
   def column_id(%Column{table: :unknown, name: name}), do: name
