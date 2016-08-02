@@ -21,17 +21,20 @@ defmodule Cloak.QueryTest do
     Cloak.Test.DB.setup()
     Cloak.Test.DB.create_test_schema()
     Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
+    Cloak.Test.DB.create_table("floats", "float REAL")
     Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, time TIMESTAMP")
     :ok
   end
 
   setup do
     Cloak.Test.DB.clear_table("heights")
+    Cloak.Test.DB.clear_table("floats")
     :ok
   end
 
   test "show tables" do
     assert_query "show tables", %{columns: ["name"], rows: [
+      %{occurrences: 1, row: [:floats]},
       %{occurrences: 1, row: [:heights]},
       %{occurrences: 1, row: [:purchases]}]
     }
@@ -139,6 +142,18 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
     assert_query "select div(height, 3) from heights",
       %{columns: ["div"], rows: [%{occurrences: 10, row: [7]}]}
+  end
+
+  test "unary trunc" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
+    assert_query "select trunc(float) from floats",
+      %{columns: ["trunc"], rows: [%{occurrences: 10, row: [12]}]}
+  end
+
+  test "binary trunc" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
+    assert_query "select trunc(float, 2) from floats",
+      %{columns: ["trunc"], rows: [%{occurrences: 10, row: [12.23]}]}
   end
 
   test "select all and order query" do

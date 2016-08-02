@@ -31,9 +31,21 @@ defmodule Cloak.SqlQuery.Function.Test do
     assert apply_function("round", [3.01]) == 3
   end
 
+  test "binary round" do
+    assert apply_function("round", [3.99, 1]) == 4.0
+    assert apply_function("round", [3.91, 1]) == 3.9
+    assert apply_function("round", [3.991, 2]) == 3.99
+  end
+
   test "trunc" do
     assert apply_function("trunc", [3.99]) == 3
     assert apply_function("trunc", [-3.99]) == -3
+  end
+
+  test "binary trunc" do
+    assert apply_function("trunc", [3.99, 1]) == 3.9
+    assert apply_function("trunc", [-3.99, 1]) == -3.9
+    assert apply_function("trunc", [3.99, 2]) == 3.99
   end
 
   test "div" do

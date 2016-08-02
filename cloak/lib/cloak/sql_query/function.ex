@@ -80,8 +80,14 @@ defmodule Cloak.SqlQuery.Function do
   defp do_apply([value], {:function, "ceiling", _}), do: Float.ceil(value)
   defp do_apply([value], {:function, "abs", _}), do: abs(value)
   defp do_apply([value], {:function, "round", _}), do: round(value)
+  defp do_apply([value, precision], {:function, "round", _}), do: Float.round(value, precision)
   defp do_apply([value], {:function, "trunc", _}), do: trunc(value)
+  defp do_apply([value, precision], {:function, "trunc", _}), do: do_trunc(value, precision)
   defp do_apply([x, y], {:function, "div", _}), do: div(x, y)
   defp do_apply([x, y], {:function, "mod", _}), do: rem(x, y)
   defp do_apply([x, y], {:function, "pow", _}), do: :math.pow(x, y)
+
+  defp do_trunc(value, 0), do: trunc(value)
+  defp do_trunc(value, precision) when value < 0, do: Float.ceil(value, precision)
+  defp do_trunc(value, precision), do: Float.floor(value, precision)
 end
