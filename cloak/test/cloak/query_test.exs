@@ -129,6 +129,12 @@ defmodule Cloak.QueryTest do
       %{columns: ["the_text"], rows: [%{occurrences: 10, row: ["text"]}]}
   end
 
+  test "a binary function of two columns" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
+    assert_query "select div(height, height) from heights",
+      %{columns: ["div"], rows: [%{occurrences: 10, row: [1]}]}
+  end
+
   test "select all and order query" do
     time = %Postgrex.Timestamp{year: 2015, month: 1, day: 1}
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "time"], ["john", 180, time])

@@ -36,6 +36,11 @@ defmodule Cloak.SqlQuery.Function.Test do
     assert apply_function("trunc", [-3.99]) == -3
   end
 
+  test "div" do
+    assert apply_function("div", [12, 3]) == 4
+    assert apply_function("div", [13, 3]) == 4
+  end
+
   test "any function with one of the arguments being :*", do:
     assert apply_function("whatever", [1, :*, "thing"]) == :*
 
