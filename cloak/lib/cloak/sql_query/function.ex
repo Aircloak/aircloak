@@ -55,19 +55,19 @@ defmodule Cloak.SqlQuery.Function do
   @doc "Returns the result of applying the given function definition to the given value."
   @spec apply(term, Parser.column | Cloak.SqlQuery.Column.t) :: term
   def apply(:*, _), do: :*
-  def apply(value, {:function, "year", _}), do: value.year
-  def apply(value, {:function, "month", _}), do: value.month
-  def apply(value, {:function, "day", _}), do: value.day
-  def apply(value, {:function, "hour", _}), do: value.hour
-  def apply(value, {:function, "minute", _}), do: value.minute
-  def apply(value, {:function, "second", _}), do: value.second
-  def apply(value, {:function, "weekday", _}), do: Timex.weekday(value)
-  def apply(value, {:function, "sqrt", _}), do: :math.sqrt(value)
-  def apply(value, {:function, "floor", _}), do: Float.floor(value)
-  def apply(value, {:function, "ceil", _}), do: Float.ceil(value)
-  def apply(value, {:function, "ceiling", _}), do: Float.ceil(value)
-  def apply(value, {:function, "abs", _}), do: abs(value)
-  def apply(value, {:function, "round", _}), do: round(value)
-  def apply(value, {:function, "trunc", _}), do: trunc(value)
+  def apply([value], {:function, "year", _}), do: value.year
+  def apply([value], {:function, "month", _}), do: value.month
+  def apply([value], {:function, "day", _}), do: value.day
+  def apply([value], {:function, "hour", _}), do: value.hour
+  def apply([value], {:function, "minute", _}), do: value.minute
+  def apply([value], {:function, "second", _}), do: value.second
+  def apply([value], {:function, "weekday", _}), do: Timex.weekday(value)
+  def apply([value], {:function, "sqrt", _}), do: :math.sqrt(value)
+  def apply([value], {:function, "floor", _}), do: Float.floor(value)
+  def apply([value], {:function, "ceil", _}), do: Float.ceil(value)
+  def apply([value], {:function, "ceiling", _}), do: Float.ceil(value)
+  def apply([value], {:function, "abs", _}), do: abs(value)
+  def apply([value], {:function, "round", _}), do: round(value)
+  def apply([value], {:function, "trunc", _}), do: trunc(value)
   def apply(value, _), do: value
 end
