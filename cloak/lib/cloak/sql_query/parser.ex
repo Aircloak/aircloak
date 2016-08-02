@@ -167,6 +167,10 @@ defmodule Cloak.SqlQuery.Parser do
       distinct_identifier(),
       keyword(:*)
     ])
+    |> map(fn
+      [_|_] = arguments -> arguments
+      single_argument -> [single_argument]
+    end)
   end
 
   defp extract_expression() do
