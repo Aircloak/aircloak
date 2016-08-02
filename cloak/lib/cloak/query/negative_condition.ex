@@ -26,8 +26,9 @@ defmodule Cloak.Query.NegativeCondition do
   """
   @spec apply(Enumerable.t, DataSource.columns, Parser.compiled_query) :: Enumerable.t
   def apply(rows, columns, %{where_not: clauses}) do
-    Cloak.Stream.transform(rows,
-      %{filters: filters(columns, clauses)},
+    Cloak.Stream.transform(
+      rows,
+      filters(columns, clauses),
       &process_input_row(&2, &1),
       &output_remaining_rows/1
     )
@@ -76,21 +77,21 @@ defmodule Cloak.Query.NegativeCondition do
     end
   end
 
-  defp process_input_row(%{filters: []} = state, row) do
-    {[row], state}
+  defp process_input_row([] = filters, row) do
+    {[row], filters}
   end
-  defp process_input_row(state, row) do
-    case Enum.map_reduce(state.filters, row, &match_filter/2) do
+  defp process_input_row(filters, row) do
+    case Enum.map_reduce(filters, row, &match_filter/2) do
       {filters, :drop} ->
-        {[], %{state | filters: filters}}
+        {[], filters}
 
       {filters, _row} ->
-        {[row], %{state | filters: filters}}
+        {[row], filters}
     end
   end
 
-  defp output_remaining_rows(state) do
-    Enum.flat_map(state.filters, &Filter.flush/1)
+  defp output_remaining_rows(filters) do
+    Enum.flat_map(filters, &Filter.flush/1)
   end
 
   # Checks to see if a filter matches a row.
