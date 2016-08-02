@@ -47,7 +47,8 @@ defmodule Cloak.DataSource do
     tables: %{atom => table}
   }
   @type table :: %{
-    db_name: String.t,
+    name: String.t, # table name as seen by the user
+    db_name: String.t, # table name in the database
     user_id: String.t,
     ignore_unsupported_types: boolean,
     columns: [{column, data_type}]
@@ -245,7 +246,7 @@ defmodule Cloak.DataSource do
   defp table_with_columns(data_source, {table_id, table}) do
     case load_table_columns(data_source, table) do
       {:ok, columns} ->
-        {table_id, Map.merge(table, %{columns: columns, user_name: to_string(table_id)})}
+        {table_id, Map.merge(table, %{columns: columns, name: to_string(table_id)})}
       {:error, reason} ->
         Logger.error("Error fetching columns for table #{data_source.id}/#{table.db_name}: #{reason}")
         nil
@@ -336,7 +337,7 @@ defmodule Cloak.DataSource do
 
   def column_id(%Column{table: :unknown, name: name}), do: name
   def column_id(%Column{} = column) do
-    {column.table.user_name, column.name}
+    {column.table.name, column.name}
   end
 
 

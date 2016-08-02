@@ -21,7 +21,7 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "data retrieval" do
-    column = %Cloak.SqlQuery.Column{table: %{db_name: "test", user_name: "test"}, name: "value"}
+    column = %Cloak.SqlQuery.Column{table: %{db_name: "test", name: "test"}, name: "value"}
     assert {:ok, columns, rows} = DataSource.select(%{
       command: :select,
       columns: [column],
