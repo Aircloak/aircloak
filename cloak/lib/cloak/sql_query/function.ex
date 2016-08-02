@@ -9,7 +9,7 @@ defmodule Cloak.SqlQuery.Function do
     ~w(year month day hour minute second weekday) => %{aggregate: false, argument_types: [:timestamp]},
     ~w(floor ceil ceiling round trunc) => %{aggregate: false, argument_types: [:real]},
     ~w(abs sqrt) => %{aggregate: false, argument_types: [:numeric]},
-    ~w(div) => %{aggregate: false, argument_types: [:integer, :integer]}
+    ~w(div mod) => %{aggregate: false, argument_types: [:integer, :integer]}
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -80,4 +80,5 @@ defmodule Cloak.SqlQuery.Function do
   defp do_apply([value], {:function, "round", _}), do: round(value)
   defp do_apply([value], {:function, "trunc", _}), do: trunc(value)
   defp do_apply([x, y], {:function, "div", _}), do: div(x, y)
+  defp do_apply([x, y], {:function, "mod", _}), do: rem(x, y)
 end
