@@ -5,8 +5,6 @@ defmodule Cloak.Query.NegativeCondition do
   individuals by adding a condition that would exclude an individual from a result set. Then by comparing
   the result of a query with and without that condition the analyst can find out if that user was in fact
   included in the result set. To avoid this we ignore the condition if it would remove too few users.
-  The module creates a wrapper stream for the incoming collection of rows that applies the filtering
-  conditions when the stream is processed.
   """
 
   alias Cloak.DataSource
@@ -25,6 +23,10 @@ defmodule Cloak.Query.NegativeCondition do
   Note: the order of the input rows is not guaranteed to be kept after filtering.
   """
   @spec apply(Enumerable.t, DataSource.columns, Parser.compiled_query) :: Enumerable.t
+  def apply(rows, _columns, %{where_not: []}),
+    # no negative conditions, so we immediately pass all the rows through to avoid
+    # needless intermediate wrapping which will return all rows anyway
+    do: rows
   def apply(rows, columns, %{where_not: clauses}) do
     Cloak.Stream.transform(
       rows,
@@ -77,9 +79,6 @@ defmodule Cloak.Query.NegativeCondition do
     end
   end
 
-  defp process_input_row([] = filters, row) do
-    {[row], filters}
-  end
   defp process_input_row(filters, row) do
     case Enum.map_reduce(filters, row, &match_filter/2) do
       {filters, :drop} ->
