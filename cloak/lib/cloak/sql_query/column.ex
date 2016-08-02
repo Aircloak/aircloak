@@ -12,8 +12,8 @@ defmodule Cloak.SqlQuery.Column do
   defstruct [table: :unknown, name: nil, type: nil, user_id?: false, constant?: false, value: nil]
 
   @doc "Returns a column struct representing the constant `value`."
-  def constant(value) do
-    %__MODULE__{table: :unknown, name: :constant, type: nil, user_id?: false, constant?: true, value: value}
+  def constant(type, value) do
+    %__MODULE__{table: :unknown, name: :constant, type: type, user_id?: false, constant?: true, value: value}
   end
 
   @doc """

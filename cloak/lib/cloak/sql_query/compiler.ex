@@ -503,8 +503,8 @@ defmodule Cloak.SqlQuery.Compiler do
     {:distinct, do_convert_column(identifier, converter_fun)}
   defp do_convert_column({:identifier, _, _} = identifier, converter_fun), do:
     converter_fun.(identifier)
-  defp do_convert_column({:constant, %Token{value: %{value: value}}}, _converter_fun), do:
-    Column.constant(value)
+  defp do_convert_column({:constant, %Token{value: %{type: type, value: value}}}, _converter_fun), do:
+    Column.constant(type, value)
 
   defp qualify_where_clause({:comparison, lhs, comparator, rhs}, columns_by_name, query) do
     {
