@@ -65,9 +65,11 @@ defmodule Cloak.Stream do
         Enum.reduce(
           output_values,
           {:cont, %TransformEnumerable{stream | acc: acc}},
-          fn(output_value, {_previous_action, stream}) ->
-            {reducer_action, consumer_acc} = stream.consumer_fun.(output_value, stream.consumer_acc)
-            {reducer_action, %TransformEnumerable{stream | consumer_acc: consumer_acc}}
+          fn
+            (_, {:halt, _} = acc) -> acc
+            (output_value, {:cont, stream}) ->
+              {reducer_action, consumer_acc} = stream.consumer_fun.(output_value, stream.consumer_acc)
+              {reducer_action, %TransformEnumerable{stream | consumer_acc: consumer_acc}}
           end
         )
       end
