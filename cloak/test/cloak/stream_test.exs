@@ -1,14 +1,12 @@
-defmodule Cloak.RichStreamTest do
+defmodule Cloak.StreamTest do
   use ExUnit.Case, async: true
-
-  alias Cloak.RichStream
 
   test "rich stream" do
     assert [:b, :c, :c, 3] ==
       [:a, :b, :c]
-      |> RichStream.new(
+      |> Cloak.Stream.transform(
             0,
-            fn(count, el) -> {output(el), count + 1} end,
+            fn(el, count) -> {output(el), count + 1} end,
             fn(count) -> [count] end
           )
       |> Enum.to_list()
@@ -18,9 +16,9 @@ defmodule Cloak.RichStreamTest do
     assert [:b, :c, :c, 3] ==
       [:a, :b, :c]
       |> Stream.map(&(&1))
-      |> RichStream.new(
+      |> Cloak.Stream.transform(
             0,
-            fn(count, el) -> {output(el), count + 1} end,
+            fn(el, count) -> {output(el), count + 1} end,
             fn(count) -> [count] end
           )
       |> Enum.to_list()

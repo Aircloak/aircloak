@@ -26,10 +26,9 @@ defmodule Cloak.Query.NegativeCondition do
   """
   @spec apply(Enumerable.t, DataSource.columns, Parser.compiled_query) :: Enumerable.t
   def apply(rows, columns, %{where_not: clauses}) do
-    Cloak.RichStream.new(
-      rows,
+    Cloak.Stream.transform(rows,
       %{filters: filters(columns, clauses)},
-      &process_input_row/2,
+      &process_input_row(&2, &1),
       &output_remaining_rows/1
     )
   end
