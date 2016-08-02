@@ -93,8 +93,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on non-numerical columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires `numeric`, but used over column"
-        <> " `column` of type `timestamp` from table `table`"
+      assert error == "Function `#{unquote(function)}` requires (`numeric`), but got (`timestamp`)"
     end
   end
 
@@ -119,8 +118,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on non-timestamp columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires `timestamp`, but used over column"
-        <> " `numeric` of type `integer` from table `table`"
+      assert error == "Function `#{unquote(function)}` requires (`timestamp`), but got (`integer`)"
     end
 
     test "allowing #{function} in group by", %{data_source: data_source} do
@@ -142,8 +140,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on integer columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires `real`, but used over column"
-        <> " `numeric` of type `integer` from table `table`"
+      assert error == "Function `#{unquote(function)}` requires (`real`), but got (`integer`)"
     end
   end
 

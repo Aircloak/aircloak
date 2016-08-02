@@ -225,13 +225,16 @@ defmodule Cloak.SqlQuery.Compiler do
     |> case do
       [] -> :ok
       [function_call | _rest] ->
-        function_type = Function.argument_types(function_call)
-        column = select_clause_to_identifier(function_call)
+        expected_types = Function.argument_types(function_call)
+        actual_types = Function.arguments(function_call) |> Enum.map(&(&1.type))
 
-        raise CompilationError, message: "Function `#{Function.name(function_call)}` requires `#{function_type}`,"
-          <> " but used over column `#{column.name}` of type `#{column.type}` from table `#{column.table.user_name}`"
+        raise CompilationError, message: "Function `#{Function.name(function_call)}`"
+          <> " requires (#{quoted_list(expected_types)}), but got (#{quoted_list(actual_types)})"
     end
   end
+
+  defp quoted_list(things), do:
+    Enum.map(things, &"`#{&1}`")
 
   defp verify_aggregated_columns(query) do
     case invalid_not_aggregated_columns(query) do
