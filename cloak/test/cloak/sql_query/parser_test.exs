@@ -54,6 +54,13 @@ defmodule Cloak.SqlQuery.Parser.Test do
     end
   end
 
+  # Produces a pattern which matches an identifier with the given name.
+  defmacrop identifier(name) do
+    quote do
+      {:identifier, :unknown, name}
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Tests
@@ -420,7 +427,13 @@ defmodule Cloak.SqlQuery.Parser.Test do
   end
 
   test "select a constant" do
-    assert_parse("select 10 from foor", select(columns: [{:constant, constant(10)}]))
+    assert_parse("select 10 from foo", select(columns: [{:constant, constant(10)}]))
+  end
+
+  test "multi-argument function" do
+    assert_parse("select foo(x, y, z) from bar", select(columns:
+      [{:function, "foo", [identifier("x"), identifier("y"), identifier("z")]}]
+    ))
   end
 
   Enum.each(

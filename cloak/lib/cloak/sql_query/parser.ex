@@ -152,17 +152,22 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp function_expression() do
-    pipe(
-      [
-        identifier(),
-        keyword(:"("),
-        choice([qualified_identifier(), distinct_identifier(), keyword(:*)]),
-        keyword(:")")
-      ],
-      fn
-        ([function, :"(", parameter, :")"]) -> {:function, String.downcase(function), parameter}
-      end
-    )
+    switch([
+      {identifier() |> keyword(:"("), lazy(fn -> function_arguments() end) |> keyword(:")")},
+      {:else, error_message(fail(""), "Expected an argument list")}
+    ])
+    |> map(fn
+      {[function, :"("], [[argument], :")"]} -> {:function, String.downcase(function), argument}
+      {[function, :"("], [arguments, :")"]} -> {:function, String.downcase(function), arguments}
+    end)
+  end
+
+  defp function_arguments() do
+    choice([
+      comma_delimited(column()),
+      distinct_identifier(),
+      keyword(:*)
+    ])
   end
 
   defp extract_expression() do
