@@ -242,7 +242,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
   Enum.each(["count", "min", "max", "median", "stddev"], fn(function) ->
     test "allows qualified identifiers in function calls (function #{function})", %{data_source: data_source} do
-      assert %{columns: [{:function, unquote(function), column("table", "numeric")}]} =
+      assert %{columns: [{:function, unquote(function), [column("table", "numeric")]}]} =
         compile!("select #{unquote(function)}(table.numeric) from table", data_source)
     end
   end)
@@ -256,7 +256,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
         ORDER BY count(column) DESC, count(table.column) DESC
       """,
       data_source)
-    assert [column("table", "column"), {:function, "count", column("table", "column")}] = result[:columns]
+    assert [column("table", "column"), {:function, "count", [column("table", "column")]}] = result[:columns]
     assert [{:comparison, column("table", "column"), :>, _}] = result[:where]
     assert [{:comparison, column("table", "column"), :=, _}] = result[:where_not]
     assert [column("table", "column")] = result[:unsafe_filter_columns]
