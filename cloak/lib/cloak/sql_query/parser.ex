@@ -15,7 +15,7 @@ defmodule Cloak.SqlQuery.Parser do
   @type column ::
       qualified_identifier
     | {:distinct, qualified_identifier}
-    | {:function, String.t, qualified_identifier | :* | {:distinct, qualified_identifier}}
+    | {:function, String.t, [column]}
     | {:constant, Parsers.Token.t}
 
   @type like :: {:like | :ilike, String.t, String.t}

@@ -199,7 +199,7 @@ defmodule Cloak.Query.Aggregator do
   end
 
   defp occurrences(row, columns, %{implicit_count: true}), do:
-    fetch_bucket_value!(row, columns, {:function, "count", :*})
+    fetch_bucket_value!(row, columns, {:function, "count", [:*]})
   defp occurrences(_row, _columns, _query), do: 1
 
   defp fetch_bucket_value!(row, columns, {:function, _, column} = function) do

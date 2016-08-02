@@ -286,7 +286,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp partition_selected_columns(%{columns: columns} = query) do
     aggregators = filter_aggregators(columns)
     partitioned_columns = case aggregators do
-      [] -> %{property: columns |> Enum.uniq(), aggregators: [{:function, "count", :*}], implicit_count: true}
+      [] -> %{property: columns |> Enum.uniq(), aggregators: [{:function, "count", [:*]}], implicit_count: true}
       _ -> %{property: [], aggregators: aggregators |> Enum.uniq()}
     end
     Map.merge(query, partitioned_columns)
@@ -492,7 +492,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp do_convert_column(%Token{} = token, _converter_fun), do: token
   defp do_convert_column(%Column{} = column, _converter_fun), do: column
-  defp do_convert_column({:function, "count", :*} = function, _converter_fun), do: function
+  defp do_convert_column({:function, "count", [:*]} = function, _converter_fun), do: function
   defp do_convert_column({:function, function, arguments}, converter_fun), do:
     {:function, function, Enum.map(arguments, &do_convert_column(&1, converter_fun))}
   defp do_convert_column({:distinct, identifier}, converter_fun), do:
@@ -539,7 +539,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp extract_columns(%Column{} = column), do: [column]
-  defp extract_columns({:function, "count", :*}), do: [nil]
+  defp extract_columns({:function, "count", [:*]}), do: [nil]
   defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)
   defp extract_columns({:distinct, expression}), do: extract_columns(expression)
 
