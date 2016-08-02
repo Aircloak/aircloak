@@ -211,22 +211,21 @@ defmodule Cloak.SqlQuery.Compiler do
     verify_functions(query)
     verify_aggregated_columns(query)
     verify_group_by_functions(query)
-    verify_function_parameters(query)
+    verify_function_arguments(query)
     warn_on_selected_uids(query)
   end
 
-  defp verify_function_parameters(query) do
+  defp verify_function_arguments(query) do
     query.columns
     |> Enum.filter(&Function.function?/1)
     |> Enum.reject(&valid_argument_type/1)
     |> case do
       [] -> :ok
       [function_call | _rest] ->
-        {:function, function_name, _} = function_call
         function_type = Function.argument_type(function_call)
         column = select_clause_to_identifier(function_call)
 
-        raise CompilationError, message: "Function `#{function_name}` requires `#{function_type}`,"
+        raise CompilationError, message: "Function `#{Function.name(function_call)}` requires `#{function_type}`,"
           <> " but used over column `#{column.name}` of type `#{column.type}` from table `#{column.table.user_name}`"
     end
   end
