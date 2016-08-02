@@ -171,7 +171,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
     query.columns
     |> Stream.reject(&Function.aggregate_function?/1)
-    |> Stream.reject(fn(column) -> Enum.any?(query.group_by, &(&1 == select_clause_to_identifier(column))) end)
+    |> Stream.reject(fn(column) -> Enum.all?(dependency_columns(column), &Enum.member?(query.group_by, &1)) end)
     |> Enum.reject(fn(column) -> Enum.member?(query.group_by, column) end)
   end
   defp invalid_not_aggregated_columns(%{command: :select} = query) do
@@ -180,6 +180,10 @@ defmodule Cloak.SqlQuery.Compiler do
       _ -> []
     end
   end
+
+  defp dependency_columns({:function, _, arguments}), do: Enum.flat_map(arguments, &dependency_columns/1)
+  defp dependency_columns({:distinct, identifier}), do: [identifier]
+  defp dependency_columns(identifier), do: [identifier]
 
   defp compile_columns(query) do
     query
@@ -245,7 +249,7 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp aggregated_expression_display({:function, _function, column}) do
+  defp aggregated_expression_display({:function, _function, [column]}) do
     aggregated_expression_display(column)
   end
   defp aggregated_expression_display(%Column{} = column) do
@@ -278,9 +282,6 @@ defmodule Cloak.SqlQuery.Compiler do
       {:identifier, table.user_name, column_name}
     end
   end
-
-  defp select_clause_to_identifier({:distinct, identifier}), do: identifier
-  defp select_clause_to_identifier(identifier), do: identifier
 
   defp partition_selected_columns(%{group_by: groups = [_|_], columns: columns} = query) do
     aggregators = filter_aggregators(columns)
