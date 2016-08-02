@@ -48,26 +48,34 @@ defmodule Cloak.SqlQuery.Function do
   @spec name(Parser.column) :: String.t
   def name({:function, name, _}), do: name
 
+
   # -------------------------------------------------------------------
   # Implementations
   # -------------------------------------------------------------------
 
   @doc "Returns the result of applying the given function definition to the given value."
   @spec apply(term, Parser.column | Cloak.SqlQuery.Column.t) :: term
-  def apply(:*, _), do: :*
-  def apply([value], {:function, "year", _}), do: value.year
-  def apply([value], {:function, "month", _}), do: value.month
-  def apply([value], {:function, "day", _}), do: value.day
-  def apply([value], {:function, "hour", _}), do: value.hour
-  def apply([value], {:function, "minute", _}), do: value.minute
-  def apply([value], {:function, "second", _}), do: value.second
-  def apply([value], {:function, "weekday", _}), do: Timex.weekday(value)
-  def apply([value], {:function, "sqrt", _}), do: :math.sqrt(value)
-  def apply([value], {:function, "floor", _}), do: Float.floor(value)
-  def apply([value], {:function, "ceil", _}), do: Float.ceil(value)
-  def apply([value], {:function, "ceiling", _}), do: Float.ceil(value)
-  def apply([value], {:function, "abs", _}), do: abs(value)
-  def apply([value], {:function, "round", _}), do: round(value)
-  def apply([value], {:function, "trunc", _}), do: trunc(value)
-  def apply(value, _), do: value
+  def apply(args = [_|_], function), do:
+    if Enum.member?(args, :*), do: :*, else: do_apply(args, function)
+  def apply(value, _aggregate_function), do: value
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp do_apply([value], {:function, "year", _}), do: value.year
+  defp do_apply([value], {:function, "month", _}), do: value.month
+  defp do_apply([value], {:function, "day", _}), do: value.day
+  defp do_apply([value], {:function, "hour", _}), do: value.hour
+  defp do_apply([value], {:function, "minute", _}), do: value.minute
+  defp do_apply([value], {:function, "second", _}), do: value.second
+  defp do_apply([value], {:function, "weekday", _}), do: Timex.weekday(value)
+  defp do_apply([value], {:function, "sqrt", _}), do: :math.sqrt(value)
+  defp do_apply([value], {:function, "floor", _}), do: Float.floor(value)
+  defp do_apply([value], {:function, "ceil", _}), do: Float.ceil(value)
+  defp do_apply([value], {:function, "ceiling", _}), do: Float.ceil(value)
+  defp do_apply([value], {:function, "abs", _}), do: abs(value)
+  defp do_apply([value], {:function, "round", _}), do: round(value)
+  defp do_apply([value], {:function, "trunc", _}), do: trunc(value)
 end

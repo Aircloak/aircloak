@@ -36,6 +36,9 @@ defmodule Cloak.SqlQuery.Function.Test do
     assert apply_function("trunc", [-3.99]) == -3
   end
 
+  test "any function with one of the arguments being :*", do:
+    assert apply_function("whatever", [1, :*, "thing"]) == :*
+
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})
 end
