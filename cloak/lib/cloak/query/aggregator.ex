@@ -130,7 +130,7 @@ defmodule Cloak.Query.Aggregator do
     all_users_rows = Map.values(users_rows)
     aggregated_columns = SqlQuery.aggregated_columns(query)
 
-    aggregation_results = for {:function, function, column}  <- query.aggregators do
+    aggregation_results = for {:function, function, arguments}  <- query.aggregators, column <- arguments do
       values_index = Enum.find_index(aggregated_columns, &column == &1)
       aggregated_values = all_users_rows |> Stream.map(&Enum.at(&1, values_index)) |> Stream.reject(&[] === &1)
       case low_users_count?(aggregated_values, anonymizer) do

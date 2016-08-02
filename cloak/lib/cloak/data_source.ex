@@ -179,7 +179,9 @@ defmodule Cloak.DataSource do
   defp fetch_raw_value!(_row, _columns, %Column{constant?: true, value: value}), do: value
   defp fetch_raw_value!(row, columns, column) do
     if Function.function?(column) and not Function.aggregate_function?(column) do
-      fetch_raw_value!(row, columns, Function.argument(column))
+      column
+      |> Function.arguments()
+      |> Enum.map(&fetch_value!(row, columns, &1))
     else
       case Map.fetch(columns, column_id(column)) do
         {:ok, index} ->

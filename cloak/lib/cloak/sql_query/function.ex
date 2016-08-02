@@ -4,11 +4,11 @@ defmodule Cloak.SqlQuery.Function do
   alias Cloak.SqlQuery.Parser
 
   @functions %{
-    ~w(count) => %{aggregate: true, type: :any},
-    ~w(sum avg min max stddev median) => %{aggregate: true, type: :numeric},
-    ~w(year month day hour minute second weekday) => %{aggregate: false, type: :timestamp},
-    ~w(floor ceil ceiling round trunc) => %{aggregate: false, type: :real},
-    ~w(abs sqrt) => %{aggregate: false, type: :numeric},
+    ~w(count) => %{aggregate: true, argument_types: [:any]},
+    ~w(sum avg min max stddev median) => %{aggregate: true, argument_types: [:numeric]},
+    ~w(year month day hour minute second weekday) => %{aggregate: false, argument_types: [:timestamp]},
+    ~w(floor ceil ceiling round trunc) => %{aggregate: false, argument_types: [:real]},
+    ~w(abs sqrt) => %{aggregate: false, argument_types: [:numeric]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -36,13 +36,13 @@ defmodule Cloak.SqlQuery.Function do
   def aggregate_function?({:function, function, _}), do: @functions[function].aggregate
   def aggregate_function?(_), do: false
 
-  @doc "Returns the argument type required by the given function call."
-  @spec argument_type(Parser.column | Cloak.SqlQuery.Column.t) :: argument_type
-  def argument_type({:function, function, _}), do: @functions[function].type
+  @doc "Returns the list of argument types required by the given function call."
+  @spec argument_types(Parser.column | Cloak.SqlQuery.Column.t) :: [argument_type]
+  def argument_types({:function, function, _}), do: @functions[function].argument_types
 
   @doc "Returns the argument specifiaction of the given function call."
-  @spec argument(Parser.column | Cloak.SqlQuery.Column.t) :: Cloak.SqlQuery.Column.t
-  def argument({:function, _, argument}), do: argument
+  @spec arguments(Parser.column | Cloak.SqlQuery.Column.t) :: [Cloak.SqlQuery.Column.t]
+  def arguments({:function, _, arguments}), do: arguments
 
   @doc "Returns the function name of the given function call."
   @spec name(Parser.column) :: String.t

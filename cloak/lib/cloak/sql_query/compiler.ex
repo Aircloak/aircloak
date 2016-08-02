@@ -196,13 +196,16 @@ defmodule Cloak.SqlQuery.Compiler do
   defp expand_star_select(query), do: query
 
   defp valid_argument_type(function_call) do
-    case {Function.argument_type(function_call), select_clause_to_identifier(function_call)} do
+    function_call
+    |> Function.argument_types()
+    |> Enum.zip(Function.arguments(function_call))
+    |> Enum.all?(fn
       {:any, _} -> true
       {:numeric, %{type: :integer}} -> true
       {:numeric, %{type: :real}} -> true
       {exact_type, %{type: exact_type}} -> true
       _ -> false
-    end
+    end)
   end
 
   defp filter_aggregators(columns), do: Enum.filter(columns, &Function.aggregate_function?/1)
@@ -222,7 +225,7 @@ defmodule Cloak.SqlQuery.Compiler do
     |> case do
       [] -> :ok
       [function_call | _rest] ->
-        function_type = Function.argument_type(function_call)
+        function_type = Function.argument_types(function_call)
         column = select_clause_to_identifier(function_call)
 
         raise CompilationError, message: "Function `#{Function.name(function_call)}` requires `#{function_type}`,"
@@ -273,8 +276,6 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp select_clause_to_identifier({:function, _function, identifier}),
-    do: select_clause_to_identifier(identifier)
   defp select_clause_to_identifier({:distinct, identifier}), do: identifier
   defp select_clause_to_identifier(identifier), do: identifier
 
@@ -492,8 +493,8 @@ defmodule Cloak.SqlQuery.Compiler do
   defp do_convert_column(%Token{} = token, _converter_fun), do: token
   defp do_convert_column(%Column{} = column, _converter_fun), do: column
   defp do_convert_column({:function, "count", :*} = function, _converter_fun), do: function
-  defp do_convert_column({:function, function, identifier}, converter_fun), do:
-    {:function, function, do_convert_column(identifier, converter_fun)}
+  defp do_convert_column({:function, function, arguments}, converter_fun), do:
+    {:function, function, Enum.map(arguments, &do_convert_column(&1, converter_fun))}
   defp do_convert_column({:distinct, identifier}, converter_fun), do:
     {:distinct, do_convert_column(identifier, converter_fun)}
   defp do_convert_column({:identifier, _, _} = identifier, converter_fun), do:
@@ -533,14 +534,14 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp selected_uid_columns(query) do
     query.columns
-    |> Enum.map(&extract_column/1)
+    |> Enum.flat_map(&extract_columns/1)
     |> Enum.filter(&(&1 != nil and &1.user_id?))
   end
 
-  defp extract_column(%Column{} = column), do: column
-  defp extract_column({:function, "count", :*}), do: nil
-  defp extract_column({:function, _function, expression}), do: extract_column(expression)
-  defp extract_column({:distinct, expression}), do: extract_column(expression)
+  defp extract_columns(%Column{} = column), do: [column]
+  defp extract_columns({:function, "count", :*}), do: [nil]
+  defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)
+  defp extract_columns({:distinct, expression}), do: extract_columns(expression)
 
   defp warn_on_selected_uid(query, column) do
     add_info_message(query,
@@ -555,7 +556,7 @@ defmodule Cloak.SqlQuery.Compiler do
     %{query |
         db_columns:
           db_columns(query)
-          |> Enum.map(&extract_column/1)
+          |> Enum.flat_map(&extract_columns/1)
           |> Enum.reject(&(&1 == nil))
           |> Enum.reject(&(&1.constant?))
           |> Enum.uniq()

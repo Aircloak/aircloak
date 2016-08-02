@@ -157,7 +157,6 @@ defmodule Cloak.SqlQuery.Parser do
       {:else, error_message(fail(""), "Expected an argument list")}
     ])
     |> map(fn
-      {[function, :"("], [[argument], :")"]} -> {:function, String.downcase(function), argument}
       {[function, :"("], [arguments, :")"]} -> {:function, String.downcase(function), arguments}
     end)
   end
