@@ -335,7 +335,7 @@ defmodule Cloak.SqlQuery.Compiler do
     # 3. Find the first pair (uid1, uid2) where there is no path from uid1 to uid2 in the graph.
     # 4. Report an error if something is found in the step 3
 
-    column_key = fn(column) -> {column.name, column.table.name} end
+    column_key = fn(column) -> {column.name, column.table.db_name} end
 
     graph = :digraph.new([:private, :cyclic])
     try do

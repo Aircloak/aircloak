@@ -12,7 +12,7 @@ defmodule Cloak.DataSource do
       ],
       tables: [
         table_id: [
-          name: "table name",
+          db_name: "table name",
           user_id: "user id column name",
           ignore_unsupported_types: false
         ]
@@ -47,7 +47,7 @@ defmodule Cloak.DataSource do
     tables: %{atom => table}
   }
   @type table :: %{
-    name: String.t,
+    db_name: String.t,
     user_id: String.t,
     ignore_unsupported_types: boolean,
     columns: [{column, data_type}]
@@ -247,7 +247,7 @@ defmodule Cloak.DataSource do
       {:ok, columns} ->
         {table_id, Map.merge(table, %{columns: columns, user_name: to_string(table_id)})}
       {:error, reason} ->
-        Logger.error("Error fetching columns for table #{data_source.id}/#{table.name}: #{reason}")
+        Logger.error("Error fetching columns for table #{data_source.id}/#{table.db_name}: #{reason}")
         nil
     end
   end
@@ -262,7 +262,7 @@ defmodule Cloak.DataSource do
 
   defp do_load_columns(data_source, table) do
     try do
-      columns = data_source.driver.get_columns(data_source.id, table.name)
+      columns = data_source.driver.get_columns(data_source.id, table.db_name)
       with :ok <- verify_columns(table, columns), do: {:ok, columns}
     catch type, error ->
       {
@@ -348,7 +348,7 @@ defmodule Cloak.DataSource do
     @doc false
     def register_test_table(table_id, table_name, user_id) do
       source = Application.get_env(:cloak, :data_sources)[:local]
-      table = %{name: table_name, user_id: user_id}
+      table = %{db_name: table_name, user_id: user_id}
       tables = Map.put(source[:tables], table_id, table)
       source = Map.put(source, :tables, tables)
       {_id, source} = data_source_with_columns({:local, source})

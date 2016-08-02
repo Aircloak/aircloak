@@ -226,7 +226,7 @@ defmodule Cloak.DataSource.DsProxyTest do
       tables: %{
         bar: %{
           user_name: "bar",
-          name: "bar",
+          db_name: "bar",
           user_id: "user_id",
           columns: %{"user_id" => :integer, "foo" => :integer, "baz" => :integer}
         }
