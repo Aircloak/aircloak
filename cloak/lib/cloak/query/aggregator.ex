@@ -202,10 +202,10 @@ defmodule Cloak.Query.Aggregator do
     fetch_bucket_value!(row, columns, {:function, "count", [:*]})
   defp occurrences(_row, _columns, _query), do: 1
 
-  defp fetch_bucket_value!(row, columns, {:function, _, column} = function) do
+  defp fetch_bucket_value!(row, columns, {:function, _, args} = function) do
     if selected?(columns, function),
       do: Enum.at(row, Map.fetch!(columns, function)),
-      else: row |> fetch_bucket_value!(columns, column) |> Function.apply(function)
+      else: Enum.map(args, &fetch_bucket_value!(row, columns, &1)) |> Function.apply(function)
   end
   defp fetch_bucket_value!(row, columns, column) do
     Enum.at(row, Map.fetch!(columns, column))
