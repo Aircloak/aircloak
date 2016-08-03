@@ -441,6 +441,11 @@ defmodule Cloak.SqlQuery.Parser.Test do
       select(columns: [{:function, "btrim", [identifier("foo")]}])
   end
 
+  test "extended with character set" do
+    assert_parse "select trim(both 'xyz' from foo) from bar",
+      select(columns: [{:function, "btrim", [identifier("foo"), {:constant, constant("xyz")}]}])
+  end
+
   Enum.each(
     [
       {"single quote is not allowed in the identifier",

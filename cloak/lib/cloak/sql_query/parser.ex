@@ -199,11 +199,15 @@ defmodule Cloak.SqlQuery.Parser do
         keyword(:trim),
         keyword(:"("),
         keyword(:both),
+        option(constant(:string)),
         keyword(:from),
         lazy(fn -> column() end),
         keyword(:")"),
      ],
-     fn([:trim, :"(", :both, :from, column, :")"]) -> {:function, "btrim", [column]} end
+     fn
+       [:trim, :"(", :both, nil, :from, column, :")"] -> {:function, "btrim", [column]}
+       [:trim, :"(", :both, chars, :from, column, :")"] -> {:function, "btrim", [column, {:constant, chars}]}
+     end
    )
   end
 
