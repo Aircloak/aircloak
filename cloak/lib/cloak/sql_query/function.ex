@@ -53,17 +53,11 @@ defmodule Cloak.SqlQuery.Function do
   @spec name(Parser.column) :: String.t
   def name({:function, name, _}), do: name
 
-  def type_matches?({:optional, _}, nil), do: true
-  def type_matches?(_, nil), do: false
-  def type_matches?({:optional, type}, argument), do: type_matches?(type, argument)
-  def type_matches?(:any, _), do: true
-  def type_matches?(expected_type, %{type: actual_type}) do
-    case {expected_type, actual_type} do
-      {:numeric, :integer} -> true
-      {:numeric, :real} -> true
-      {type, type} -> true
-      _ -> false
-    end
+  def well_typed?(function) do
+    length(arguments(function)) <= length(argument_types(function)) &&
+      argument_types(function)
+      |> Enum.with_index()
+      |> Enum.all?(fn({type, index}) -> type_matches?(type, Enum.at(arguments(function), index)) end)
   end
 
 
@@ -81,6 +75,19 @@ defmodule Cloak.SqlQuery.Function do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp type_matches?({:optional, _}, nil), do: true
+  defp type_matches?(_, nil), do: false
+  defp type_matches?({:optional, type}, argument), do: type_matches?(type, argument)
+  defp type_matches?(:any, _), do: true
+  defp type_matches?(expected_type, %{type: actual_type}) do
+    case {expected_type, actual_type} do
+      {:numeric, :integer} -> true
+      {:numeric, :real} -> true
+      {type, type} -> true
+      _ -> false
+    end
+  end
 
   defp do_apply([value], {:function, "year", _}), do: value.year
   defp do_apply([value], {:function, "month", _}), do: value.month
