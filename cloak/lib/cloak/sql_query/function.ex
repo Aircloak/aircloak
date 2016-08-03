@@ -15,7 +15,8 @@ defmodule Cloak.SqlQuery.Function do
     ~w(abs sqrt) => %{aggregate: false, argument_types: [:numeric]},
     ~w(div mod) => %{aggregate: false, argument_types: [:integer, :integer]},
     ~w(pow) => %{aggregate: false, argument_types: [:numeric, :numeric]},
-    ~w(length) => %{aggregate: false, argument_types: [:text, :integer]},
+    ~w(length) => %{aggregate: false, argument_types: [:text]},
+    ~w(left right) => %{aggregate: false, argument_types: [:text, :integer]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})

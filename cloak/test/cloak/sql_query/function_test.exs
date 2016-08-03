@@ -1,7 +1,7 @@
 defmodule Cloak.SqlQuery.Function.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.SqlQuery.Function
+  alias Cloak.SqlQuery.{Column, Function}
 
   test "sqrt", do:
     assert_in_delta(apply_function("sqrt", [3]), 1.73, 0.1)
@@ -61,15 +61,19 @@ defmodule Cloak.SqlQuery.Function.Test do
   test "pow", do:
     assert apply_function("pow", [2, 3]) == 8
 
-  test "length", do:
+  test "length" do
+    assert well_typed?("length", [:text])
     assert apply_function("length", ["a string"]) == 8
+  end
 
   test "left" do
+    assert well_typed?("left", [:text, :integer])
     assert apply_function("left", ["a string", 2]) == "a "
     assert apply_function("left", ["a string", -2]) == "a stri"
   end
 
   test "right" do
+    assert well_typed?("right", [:text, :integer])
     assert apply_function("right", ["a string", 2]) == "ng"
     assert apply_function("right", ["a string", -2]) == "string"
   end
@@ -79,4 +83,7 @@ defmodule Cloak.SqlQuery.Function.Test do
 
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})
+
+  defp well_typed?(name, types), do:
+    Function.well_typed?({:function, name, Enum.map(types, &Column.constant(&1, nil))})
 end
