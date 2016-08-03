@@ -45,7 +45,7 @@ defmodule Cloak.SqlQuery.Builder do
 
   defp from_clause(query) do
     query.selected_tables
-    |> Enum.map(&(&1.name))
+    |> Enum.map(&(&1.db_name))
     |> Enum.join(" CROSS JOIN ")
   end
 
@@ -109,7 +109,7 @@ defmodule Cloak.SqlQuery.Builder do
   defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
   defp to_fragment(%Token{category: :constant, value: value}), do: {:param, value.value}
   defp to_fragment(%Timex.DateTime{} = time), do: {:param, time}
-  defp to_fragment(%{} = column), do: "#{column.table.name}.#{column.name}"
+  defp to_fragment(%{} = column), do: "#{column.table.db_name}.#{column.name}"
 
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]
