@@ -1,9 +1,34 @@
 defmodule Cloak.SqlQuery do
   @moduledoc "Handles representing and creating SQL query abstract syntax trees."
 
-  @type t :: Compiler.compiled_query
-
   alias Cloak.SqlQuery.Column
+  alias Cloak.SqlQuery.Function
+
+  @type t :: %__MODULE__{
+    data_source: DataSource.t,
+    command: :select | :show,
+    columns: [Column.t],
+    column_titles: [String.t],
+    property: [Function.t],
+    aggregators: [Function.t],
+    implicit_count: true,
+    unsafe_filter_columns: [Column.t],
+    group_by: [Function.t],
+    from: [String.t],
+    where: [Parser.where_clause],
+    where_not: [Parser.where_clause],
+    order_by: [{pos_integer, :asc | :desc}],
+    show: :tables | :columns,
+    selected_tables: [DataSource.table],
+    db_columns: [Column.t],
+    mode: :parsed | :unparsed
+  }
+
+  defstruct [
+    columns: [], where: [], where_not: [], unsafe_filter_columns: [], group_by: [], order_by: [],
+    column_titles: [], info: [], selected_tables: [], db_columns: [], property: [], aggregators: [],
+    implicit_count: false, from: [], data_source: nil, command: nil, show: nil, mode: nil
+  ]
 
 
   # -------------------------------------------------------------------

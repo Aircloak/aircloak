@@ -2,37 +2,11 @@ defmodule Cloak.SqlQuery.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.DataSource
+  alias Cloak.SqlQuery
   alias Cloak.SqlQuery.Column
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
   alias Cloak.SqlQuery.Function
-
-  @type compiled_query :: %__MODULE__{
-    data_source: DataSource.t,
-    command: :select | :show,
-    columns: [Column.t],
-    column_titles: [String.t],
-    property: [String.t],
-    aggregators: [{String.t, String.t}],
-    implicit_count: true,
-    unsafe_filter_columns: [Column.t],
-    group_by: [String.t],
-    from: [String.t],
-    where: [Parser.where_clause],
-    where_not: [Parser.where_clause],
-    order_by: [{pos_integer, :asc | :desc}],
-    show: :tables | :columns,
-    selected_tables: [String.t],
-    db_columns: [Column.t],
-    mode: :parsed | :unparsed
-  }
-
-  defstruct [
-    columns: [], where: [], where_not: [], unsafe_filter_columns: [], group_by: [], order_by: [],
-    column_titles: [], info: [], selected_tables: [], db_columns: [], property: [], aggregators: [],
-    implicit_count: false, from: [],
-    data_source: nil, command: nil, show: nil, mode: nil
-  ]
 
   defmodule CompilationError do
     @moduledoc false
@@ -45,7 +19,7 @@ defmodule Cloak.SqlQuery.Compiler do
   # -------------------------------------------------------------------
 
   @doc "Prepares the parsed SQL query for execution."
-  @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
+  @spec compile(atom, Parser.parsed_query) :: {:ok, SqlQuery.t} | {:error, String.t}
   def compile(data_source, parsed_query) do
     parsed_query
     |> to_prepped_query(data_source)
@@ -57,7 +31,7 @@ defmodule Cloak.SqlQuery.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
   defp to_prepped_query(parsed_query, data_source) do
-    %__MODULE__{data_source: data_source, mode: query_mode(parsed_query[:from])}
+    %SqlQuery{data_source: data_source, mode: query_mode(parsed_query[:from])}
     |> Map.merge(parsed_query)
   end
 
@@ -71,7 +45,7 @@ defmodule Cloak.SqlQuery.Compiler do
   # We therefore perform custom DS proxy validations, in order to
   # keep the remaining validations clean, and free from having to
   # consider the DS Proxy case.
-  defp compile_prepped_query(%__MODULE__{command: :select, mode: :unparsed} = query) do
+  defp compile_prepped_query(%SqlQuery{command: :select, mode: :unparsed} = query) do
     try do
       ds_proxy_validate_no_wildcard(query)
       ds_proxy_validate_no_where(query)
@@ -86,7 +60,7 @@ defmodule Cloak.SqlQuery.Compiler do
       e in CompilationError -> {:error, e.message}
     end
   end
-  defp compile_prepped_query(%__MODULE__{command: :show} = query) do
+  defp compile_prepped_query(%SqlQuery{command: :show} = query) do
     try do
       {:ok, compile_tables(query)}
     rescue
@@ -116,12 +90,12 @@ defmodule Cloak.SqlQuery.Compiler do
   # DS Proxy validators.
   # -------------------------------------------------------------------
 
-  defp ds_proxy_validate_no_wildcard(%__MODULE__{command: :select, columns: :*}) do
+  defp ds_proxy_validate_no_wildcard(%SqlQuery{command: :select, columns: :*}) do
     raise CompilationError, message: "Unfortunately wildcard selects are not supported together with subselects"
   end
   defp ds_proxy_validate_no_wildcard(_), do: :ok
 
-  defp ds_proxy_validate_no_where(%__MODULE__{where: []}), do: :ok
+  defp ds_proxy_validate_no_where(%SqlQuery{where: []}), do: :ok
   defp ds_proxy_validate_no_where(_) do
     raise CompilationError, message: "WHERE-clause in outer SELECT is not allowed in combination with a subquery"
   end
@@ -131,14 +105,14 @@ defmodule Cloak.SqlQuery.Compiler do
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
-  defp compile_tables(%__MODULE__{from: []} = query), do: query
-  defp compile_tables(%__MODULE__{from: _} = query) do
+  defp compile_tables(%SqlQuery{from: []} = query), do: query
+  defp compile_tables(%SqlQuery{from: _} = query) do
     selected_table_names = from_clause_to_tables(query.from)
     available_table_names = Enum.map(DataSource.tables(query.data_source), &Atom.to_string/1)
 
     case selected_table_names -- available_table_names do
       [] ->
-        %__MODULE__{query |
+        %SqlQuery{query |
             selected_tables: Enum.map(selected_table_names, &DataSource.table(query.data_source, &1))
         }
 
@@ -151,7 +125,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp from_clause_to_tables({:cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
   defp from_clause_to_tables(table), do: [table]
 
-  defp compile_aliases(%__MODULE__{columns: [_|_] = columns} = query) do
+  defp compile_aliases(%SqlQuery{columns: [_|_] = columns} = query) do
     verify_aliases(query)
     column_titles = Enum.map(columns, fn
       ({_column, :as, name}) -> name
@@ -164,14 +138,14 @@ defmodule Cloak.SqlQuery.Compiler do
     end)
     order_by = for {column, direction} <- query.order_by, do: {Map.get(aliases, column, column), direction}
     group_by = for identifier <- query.group_by, do: Map.get(aliases, identifier, identifier)
-    %__MODULE__{query | column_titles: column_titles, columns: columns, group_by: group_by, order_by: order_by}
+    %SqlQuery{query | column_titles: column_titles, columns: columns, group_by: group_by, order_by: order_by}
   end
   defp compile_aliases(query), do: query
 
   # Subqueries can produce column-names that are not actually in the table. Without understanding what
   # is being produced by the subquery (currently it is being treated as a blackbox), we cannot validate
   # the outer column selections
-  defp verify_aliases(%__MODULE__{command: :select, mode: :unparsed}), do: :ok
+  defp verify_aliases(%SqlQuery{command: :select, mode: :unparsed}), do: :ok
   defp verify_aliases(query) do
     aliases = for {_column, :as, name} <- query.columns, do: name
     all_identifiers = aliases ++ all_column_identifiers(query)
@@ -184,13 +158,13 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp invalid_not_aggregated_columns(%__MODULE__{command: :select, group_by: [_|_]} = query) do
+  defp invalid_not_aggregated_columns(%SqlQuery{command: :select, group_by: [_|_]} = query) do
     query.columns
     |> Stream.reject(&Function.aggregate_function?/1)
     |> Stream.reject(fn(column) -> Enum.any?(query.group_by, &(&1 == select_clause_to_identifier(column))) end)
     |> Enum.reject(fn(column) -> Enum.member?(query.group_by, column) end)
   end
-  defp invalid_not_aggregated_columns(%__MODULE__{command: :select} = query) do
+  defp invalid_not_aggregated_columns(%SqlQuery{command: :select} = query) do
     case Enum.partition(query.columns, &Function.aggregate_function?/1) do
       {[_|_] = _aggregates, [_|_] = non_aggregates} -> non_aggregates
       _ -> []
@@ -204,10 +178,10 @@ defmodule Cloak.SqlQuery.Compiler do
     |> identifiers_to_columns()
   end
 
-  defp expand_star_select(%__MODULE__{columns: :*} = query) do
+  defp expand_star_select(%SqlQuery{columns: :*} = query) do
     columns = all_column_identifiers(query)
     column_names = for {:identifier, _table, name} <- columns, do: name
-    %__MODULE__{query | columns: columns, column_titles: column_names}
+    %SqlQuery{query | columns: columns, column_titles: column_names}
   end
   defp expand_star_select(query), do: query
 
@@ -295,24 +269,24 @@ defmodule Cloak.SqlQuery.Compiler do
   defp select_clause_to_identifier({:distinct, identifier}), do: identifier
   defp select_clause_to_identifier(identifier), do: identifier
 
-  defp partition_selected_columns(%__MODULE__{group_by: groups = [_|_], columns: columns} = query) do
+  defp partition_selected_columns(%SqlQuery{group_by: groups = [_|_], columns: columns} = query) do
     aggregators = filter_aggregators(columns)
-    %__MODULE__{query | property: groups |> Enum.uniq(), aggregators: aggregators |> Enum.uniq()}
+    %SqlQuery{query | property: groups |> Enum.uniq(), aggregators: aggregators |> Enum.uniq()}
   end
-  defp partition_selected_columns(%__MODULE__{columns: columns} = query) do
+  defp partition_selected_columns(%SqlQuery{columns: columns} = query) do
     case filter_aggregators(columns) do
       [] ->
-        %__MODULE__{query |
+        %SqlQuery{query |
           property: columns |> Enum.uniq(), aggregators: [{:function, "count", :*}], implicit_count: true
         }
       aggregators ->
-        %__MODULE__{query | property: [], aggregators: aggregators |> Enum.uniq()}
+        %SqlQuery{query | property: [], aggregators: aggregators |> Enum.uniq()}
     end
   end
   defp partition_selected_columns(query), do: query
 
-  defp compile_order_by(%__MODULE__{order_by: []} = query), do: query
-  defp compile_order_by(%__MODULE__{columns: columns, order_by: order_by_spec} = query) do
+  defp compile_order_by(%SqlQuery{order_by: []} = query), do: query
+  defp compile_order_by(%SqlQuery{columns: columns, order_by: order_by_spec} = query) do
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) ->
       Enum.member?(columns, column)
     end)
@@ -322,14 +296,14 @@ defmodule Cloak.SqlQuery.Compiler do
           index = columns |> Enum.find_index(&(&1 == column))
           {index, direction}
         end
-        %__MODULE__{query | order_by: order_list}
+        %SqlQuery{query | order_by: order_list}
       [{column, _direction} | _rest] ->
         raise CompilationError, message:
           "Non-selected #{Column.display_name(column)} specified in `order by` clause."
     end
   end
 
-  defp partition_where_clauses(%__MODULE__{where: clauses, where_not: [], unsafe_filter_columns: []} = query) do
+  defp partition_where_clauses(%SqlQuery{where: clauses, where_not: [], unsafe_filter_columns: []} = query) do
     {positive, negative} = Enum.partition(clauses, fn
        {:not, {:is, _, :null}} -> true
        {:not, _} -> false
@@ -338,7 +312,7 @@ defmodule Cloak.SqlQuery.Compiler do
     negative = Enum.map(negative, fn({:not, clause}) -> clause end)
     unsafe_filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
 
-    %__MODULE__{query | where: positive, where_not: negative, unsafe_filter_columns: unsafe_filter_columns}
+    %SqlQuery{query | where: positive, where_not: negative, unsafe_filter_columns: unsafe_filter_columns}
   end
   defp partition_where_clauses(query), do: query
 
@@ -395,8 +369,8 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp cast_where_clauses(%__MODULE__{where: [_|_] = clauses} = query) do
-    %__MODULE__{query | where: Enum.map(clauses, &cast_where_clause/1)}
+  defp cast_where_clauses(%SqlQuery{where: [_|_] = clauses} = query) do
+    %SqlQuery{query | where: Enum.map(clauses, &cast_where_clause/1)}
   end
   defp cast_where_clauses(query), do: query
 
@@ -436,7 +410,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end)
 
   defp map_terminal_elements(query, mapper_fun) do
-    %__MODULE__{query |
+    %SqlQuery{query |
       columns: Enum.map(query.columns, &map_terminal_element(&1, mapper_fun)),
       group_by: Enum.map(query.group_by, &map_terminal_element(&1, mapper_fun)),
       where: Enum.map(query.where, &map_where_clause(&1, mapper_fun)),
@@ -490,7 +464,7 @@ defmodule Cloak.SqlQuery.Compiler do
     map_terminal_elements(query, &(identifier_to_column(&1, columns_by_name, query)))
   end
 
-  defp identifier_to_column({:identifier, :unknown, column_name}, _columns_by_name, %__MODULE__{mode: :unparsed}),
+  defp identifier_to_column({:identifier, :unknown, column_name}, _columns_by_name, %SqlQuery{mode: :unparsed}),
     do: %Column{name: column_name, table: :unknown}
   defp identifier_to_column({:identifier, :unknown, column_name}, columns_by_name, _query) do
     case Map.get(columns_by_name, column_name) do
@@ -558,10 +532,10 @@ defmodule Cloak.SqlQuery.Compiler do
     )
   end
 
-  defp add_info_message(query, info_message), do: %__MODULE__{query | info: [info_message | query.info]}
+  defp add_info_message(query, info_message), do: %SqlQuery{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
-    query = %__MODULE__{query | db_columns: db_columns(query)}
+    query = %SqlQuery{query | db_columns: db_columns(query)}
     map_terminal_elements(query, &set_column_db_row_position(&1, query))
   end
 
@@ -573,20 +547,20 @@ defmodule Cloak.SqlQuery.Compiler do
     |> Enum.uniq_by(&{&1.table, &1.name})
   end
 
-  defp all_expressions_with_columns(%__MODULE__{command: :select, mode: :unparsed} = query) do
+  defp all_expressions_with_columns(%SqlQuery{command: :select, mode: :unparsed} = query) do
     # We don't know the name of the user_id column for an unsafe query, so we're generating
     # a fake one instead.
     fake_user_id = %Column{table: :unknown, name: "__aircloak_user_id__", user_id?: true}
     [fake_user_id] ++ query.columns ++ query.group_by
   end
-  defp all_expressions_with_columns(%__MODULE__{command: :select, selected_tables: [table | _]} = query) do
+  defp all_expressions_with_columns(%SqlQuery{command: :select, selected_tables: [table | _]} = query) do
     user_id = table.user_id
     {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
     user_id_column = %Column{table: table, name: user_id, type: type, user_id?: true}
     [user_id_column] ++ query.columns ++ query.group_by ++ query.unsafe_filter_columns
   end
 
-  defp set_column_db_row_position(%Column{} = column, %__MODULE__{db_columns: db_columns}) do
+  defp set_column_db_row_position(%Column{} = column, %SqlQuery{db_columns: db_columns}) do
     %Column{column |
       db_row_position: Enum.find_index(db_columns, &(&1.name == column.name && &1.table == column.table))
     }
