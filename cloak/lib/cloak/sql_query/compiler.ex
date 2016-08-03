@@ -40,7 +40,9 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
     defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
-      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: [], db_columns: []}
+      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: [], db_columns: [],
+      property: [], aggregators: []
+    }
     compile_prepped_query(Map.merge(defaults, query))
   end
 
@@ -423,7 +425,10 @@ defmodule Cloak.SqlQuery.Compiler do
       group_by: Enum.map(query.group_by, &map_terminal_element(&1, mapper_fun)),
       where: Enum.map(query.where, &map_where_clause(&1, mapper_fun)),
       where_not: Enum.map(query.where_not, &map_where_clause(&1, mapper_fun)),
-      order_by: Enum.map(query.order_by, &map_order_by(&1, mapper_fun))
+      order_by: Enum.map(query.order_by, &map_order_by(&1, mapper_fun)),
+      db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
+      property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
+      aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun))
     }
   end
 
@@ -447,7 +452,6 @@ defmodule Cloak.SqlQuery.Compiler do
   defp map_order_by({identifier, direction}, mapper_fun),
     do: {map_terminal_element(identifier, mapper_fun), direction}
 
-  defp map_terminal_element(:null, mapper_fun), do: mapper_fun.(:null)
   defp map_terminal_element(%Token{} = token, mapper_fun), do: mapper_fun.(token)
   defp map_terminal_element(%Column{} = column, mapper_fun), do: mapper_fun.(column)
   defp map_terminal_element({:identifier, _, _} = identifier, mapper_fun), do: mapper_fun.(identifier)
@@ -458,6 +462,7 @@ defmodule Cloak.SqlQuery.Compiler do
     do: {:distinct, map_terminal_element(identifier, converter_fun)}
   defp map_terminal_element(elements, mapper_fun) when is_list(elements),
     do: Enum.map(elements, &map_terminal_element(&1, mapper_fun))
+  defp map_terminal_element(constant, mapper_fun), do: mapper_fun.(constant)
 
   defp identifiers_to_columns(query) do
     columns_by_name =
@@ -540,22 +545,32 @@ defmodule Cloak.SqlQuery.Compiler do
   defp add_info_message(query, info_message), do: %{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
-    %{query |
-        db_columns:
-          db_columns(query)
-          |> Enum.map(&extract_column/1)
-          |> Enum.reject(&(&1 == nil))
-          |> Enum.uniq()
-    }
+    query = %{query | db_columns: db_columns(query)}
+    map_terminal_elements(query, &set_column_db_row_position(&1, query))
   end
 
-  defp db_columns(%{command: :select, from: {:subquery, _}} = query) do
+  defp db_columns(query) do
+    query
+    |> all_expressions_with_columns()
+    |> Enum.map(&extract_column/1)
+    |> Enum.reject(&(&1 == nil))
+    |> Enum.uniq_by(&{&1.table, &1.name})
+  end
+
+  defp all_expressions_with_columns(%{command: :select, from: {:subquery, _}} = query) do
     [%Column{table: :unknown, name: "user_id", user_id?: true}] ++ query.columns ++ query.group_by
   end
-  defp db_columns(%{command: :select, selected_tables: [table | _]} = query) do
+  defp all_expressions_with_columns(%{command: :select, selected_tables: [table | _]} = query) do
     user_id = table.user_id
     {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
     user_id_column = %Column{table: table, name: user_id, type: type, user_id?: true}
     [user_id_column] ++ query.columns ++ query.group_by ++ query.unsafe_filter_columns
   end
+
+  defp set_column_db_row_position(%Column{} = column, %{db_columns: db_columns}) do
+    %Column{column |
+      db_row_position: Enum.find_index(db_columns, &(&1.name == column.name && &1.table == column.table))
+    }
+  end
+  defp set_column_db_row_position(other, _query), do: other
 end

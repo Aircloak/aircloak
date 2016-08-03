@@ -22,7 +22,7 @@ defmodule Cloak.DataSourceTest do
 
   test "data retrieval" do
     column = %Cloak.SqlQuery.Column{table: %{name: "test", user_name: "test"}, name: "value"}
-    assert {:ok, columns, rows} = DataSource.select(%{
+    assert {:ok, rows} = DataSource.select(%{
       command: :select,
       columns: [column],
       db_columns: [column],
@@ -35,7 +35,6 @@ defmodule Cloak.DataSourceTest do
     })
 
     assert [[10], [20], [30]] == rows
-    assert 10 == DataSource.fetch_value!(hd(rows), columns, column)
   end
 
   defp local_data_source() do
