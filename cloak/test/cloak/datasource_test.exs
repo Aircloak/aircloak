@@ -21,7 +21,7 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "data retrieval" do
-    column = %Cloak.SqlQuery.Column{table: %{name: "test", user_name: "test"}, name: "value"}
+    column = %Cloak.SqlQuery.Column{table: %{db_name: "test", name: "test"}, name: "value"}
     assert {:ok, columns, rows} = DataSource.select(%{
       command: :select,
       columns: [column],
@@ -31,7 +31,7 @@ defmodule Cloak.DataSourceTest do
       group_by: [],
       data_source: local_data_source(),
       from: "test",
-      selected_tables: [%{name: "cloak_test.test"}]
+      selected_tables: [%{db_name: "cloak_test.test"}]
     })
 
     assert [[10], [20], [30]] == rows

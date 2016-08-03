@@ -31,7 +31,7 @@ defmodule Cloak.SqlQuery.Column do
   """
   @spec alias(t) :: String.t
   def alias(%__MODULE__{table: :unknown, name: name}), do: name
-  def alias(column), do: "#{column.table.user_name}.#{column.name}"
+  def alias(column), do: "#{column.table.name}.#{column.name}"
 
   @doc """
   Returns a display name of the column.
@@ -40,6 +40,6 @@ defmodule Cloak.SqlQuery.Column do
   """
   @spec display_name(t) :: String.t
   def display_name(column) do
-    "column `#{column.name}` from table `#{column.table.user_name}`"
+    "column `#{column.name}` from table `#{column.table.name}`"
   end
 end
