@@ -132,7 +132,7 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_tables(query), do: query
 
-  defp from_clause_to_tables({:cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
+  defp from_clause_to_tables({:join, :cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
   defp from_clause_to_tables(table), do: [table]
 
   defp compile_aliases(%{columns: [_|_] = columns} = query) do
