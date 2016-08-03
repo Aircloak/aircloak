@@ -156,6 +156,12 @@ defmodule Cloak.QueryTest do
       %{columns: ["trunc"], rows: [%{occurrences: 10, row: [12.23]}]}
   end
 
+  test "binary trunc in a grouped query" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
+    assert_query "select trunc(float, 2) from floats group by float",
+      %{columns: ["trunc"], rows: [%{occurrences: 1, row: [12.23]}]}
+  end
+
   test "select all and order query" do
     time = %Postgrex.Timestamp{year: 2015, month: 1, day: 1}
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "time"], ["john", 180, time])
