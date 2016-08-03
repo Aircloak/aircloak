@@ -31,12 +31,19 @@ defmodule Cloak.SqlQuery.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
   defp to_prepped_query(parsed_query, data_source) do
-    %SqlQuery{data_source: data_source, mode: query_mode(parsed_query[:from])}
+    %SqlQuery{
+      data_source: data_source,
+      mode: query_mode(parsed_query[:from]),
+      unsafe_subquery: unsafe_subquery(parsed_query[:from])
+    }
     |> Map.merge(parsed_query)
   end
 
   defp query_mode({:subquery, _}), do: :unparsed
   defp query_mode(_other), do: :parsed
+
+  defp unsafe_subquery({:subquery, unsafe_subquery}), do: unsafe_subquery
+  defp unsafe_subquery(_other), do: nil
 
   # Due to the blackbox nature of the subquery, there are a whole lot
   # of validations we cannot do when using DS proxy. Conversely, there
@@ -105,22 +112,24 @@ defmodule Cloak.SqlQuery.Compiler do
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
-  defp compile_tables(%SqlQuery{from: []} = query), do: query
-  defp compile_tables(%SqlQuery{from: _} = query) do
-    selected_table_names = from_clause_to_tables(query.from)
-    available_table_names = Enum.map(DataSource.tables(query.data_source), &Atom.to_string/1)
+  defp compile_tables(query) do
+    case Map.get(query, :from, nil) do
+      nil -> query
+      from ->
+        selected_table_names = from_clause_to_tables(from)
+        available_table_names = Enum.map(DataSource.tables(query.data_source), &Atom.to_string/1)
 
-    case selected_table_names -- available_table_names do
-      [] ->
-        %SqlQuery{query |
-            selected_tables: Enum.map(selected_table_names, &DataSource.table(query.data_source, &1))
-        }
+        case selected_table_names -- available_table_names do
+          [] ->
+            %SqlQuery{query |
+                selected_tables: Enum.map(selected_table_names, &DataSource.table(query.data_source, &1))
+            }
 
-      [table | _] ->
-        raise CompilationError, message: "Table `#{table}` doesn't exist."
+          [table | _] ->
+            raise CompilationError, message: "Table `#{table}` doesn't exist."
+        end
     end
   end
-  defp compile_tables(query), do: query
 
   defp from_clause_to_tables({:cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
   defp from_clause_to_tables(table), do: [table]

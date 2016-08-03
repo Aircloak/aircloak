@@ -31,7 +31,6 @@ defmodule Cloak.DataSourceTest do
       where: [],
       group_by: [],
       data_source: local_data_source(),
-      from: "test",
       selected_tables: [%{db_name: "cloak_test.test"}]
     })
 
