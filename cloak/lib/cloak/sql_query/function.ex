@@ -15,7 +15,7 @@ defmodule Cloak.SqlQuery.Function do
     ~w(abs sqrt) => %{aggregate: false, argument_types: [:numeric]},
     ~w(div mod) => %{aggregate: false, argument_types: [:integer, :integer]},
     ~w(pow) => %{aggregate: false, argument_types: [:numeric, :numeric]},
-    ~w(length) => %{aggregate: false, argument_types: [:text]},
+    ~w(length lower lcase upper ucase) => %{aggregate: false, argument_types: [:text]},
     ~w(left right) => %{aggregate: false, argument_types: [:text, :integer]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
@@ -124,6 +124,10 @@ defmodule Cloak.SqlQuery.Function do
   defp do_apply([x, y], {:function, "mod", _}), do: rem(x, y)
   defp do_apply([x, y], {:function, "pow", _}), do: :math.pow(x, y)
   defp do_apply([string], {:function, "length", _}), do: String.length(string)
+  defp do_apply([string], {:function, "lower", _}), do: String.downcase(string)
+  defp do_apply([string], {:function, "lcase", _}), do: String.downcase(string)
+  defp do_apply([string], {:function, "upper", _}), do: String.upcase(string)
+  defp do_apply([string], {:function, "ucase", _}), do: String.upcase(string)
   defp do_apply([string, count], {:function, "left", _}), do: left(string, count)
   defp do_apply([string, count], {:function, "right", _}), do: right(string, count)
 

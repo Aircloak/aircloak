@@ -78,6 +78,20 @@ defmodule Cloak.SqlQuery.Function.Test do
     assert apply_function("right", ["a string", -2]) == "string"
   end
 
+  test "lower" do
+    assert well_typed?("lower", [:text])
+    assert well_typed?("lcase", [:text])
+    assert apply_function("lower", ["A sTrinG"]) == "a string"
+    assert apply_function("lcase", ["A sTrinG"]) == "a string"
+  end
+
+  test "upper" do
+    assert well_typed?("upper", [:text])
+    assert well_typed?("ucase", [:text])
+    assert apply_function("upper", ["A sTrinG"]) == "A STRING"
+    assert apply_function("ucase", ["A sTrinG"]) == "A STRING"
+  end
+
   test "any function with one of the arguments being :*", do:
     assert apply_function("whatever", [1, :*, "thing"]) == :*
 
