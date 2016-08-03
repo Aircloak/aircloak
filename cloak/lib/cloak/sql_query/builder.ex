@@ -28,7 +28,7 @@ defmodule Cloak.SqlQuery.Builder do
     fragments_to_query_spec([
       "SELECT ", columns_string(query), " ",
       "FROM ", from_clause(query), " ",
-      where_fragments(query[:where])
+      where_fragments(query.where)
     ])
   end
 
