@@ -28,12 +28,10 @@ defmodule Cloak.Query.NegativeCondition do
     # needless intermediate wrapping which will return all rows anyway
     do: rows
   def apply(rows, columns, %{where_not: clauses}) do
-    Cloak.Stream.transform(
-      rows,
-      filters(columns, clauses),
-      &process_input_row(&2, &1),
-      &output_remaining_rows/1
-    )
+    rows
+    # add one more element so we can produce additional rows after the input has been exhausted
+    |> Stream.concat([:done])
+    |> Stream.transform(filters(columns, clauses), &process_input_row/2)
   end
 
 
@@ -79,7 +77,9 @@ defmodule Cloak.Query.NegativeCondition do
     end
   end
 
-  defp process_input_row(filters, row) do
+  defp process_input_row(:done, filters), do:
+    {Enum.flat_map(filters, &Filter.flush/1), nil}
+  defp process_input_row(row, filters) do
     case Enum.map_reduce(filters, row, &match_filter/2) do
       {filters, :drop} ->
         {[], filters}
@@ -87,10 +87,6 @@ defmodule Cloak.Query.NegativeCondition do
       {filters, _row} ->
         {[row], filters}
     end
-  end
-
-  defp output_remaining_rows(filters) do
-    Enum.flat_map(filters, &Filter.flush/1)
   end
 
   # Checks to see if a filter matches a row.
