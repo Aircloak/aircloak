@@ -200,16 +200,21 @@ defmodule Cloak.SqlQuery.Compiler do
   defp expand_star_select(query), do: query
 
   defp valid_argument_type(function_call) do
-    function_call
-    |> Function.argument_types()
-    |> Enum.zip(Function.arguments(function_call))
-    |> Enum.all?(fn
-      {:any, _} -> true
-      {:numeric, %{type: :integer}} -> true
-      {:numeric, %{type: :real}} -> true
-      {exact_type, %{type: exact_type}} -> true
-      _ -> false
-    end)
+    expected_arguments = Function.argument_types(function_call)
+    actual_arguments = Function.arguments(function_call)
+
+    length(actual_arguments) == length(expected_arguments) &&
+      expected_arguments
+      |> Enum.with_index()
+      |> Enum.all?(fn({type, index}) ->
+        case {type, Enum.at(actual_arguments, index)} do
+          {:any, _} -> true
+          {:numeric, %{type: :integer}} -> true
+          {:numeric, %{type: :real}} -> true
+          {exact_type, %{type: exact_type}} -> true
+          _ -> false
+        end
+      end)
   end
 
   defp filter_aggregators(columns), do: Enum.filter(columns, &Function.aggregate_function?/1)

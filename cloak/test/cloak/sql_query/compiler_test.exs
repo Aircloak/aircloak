@@ -149,6 +149,16 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     assert error == "Function `div` requires (`integer`, `integer`), but got (`integer`, `timestamp`)"
   end
 
+  test "rejecting a function with too many arguments", %{data_source: data_source} do
+    assert {:error, error} = compile("select avg(numeric, column) from table", data_source)
+    assert error == "Function `avg` requires (`numeric`), but got (`integer`, `timestamp`)"
+  end
+
+  test "rejecting a function with too few arguments", %{data_source: data_source} do
+    assert {:error, error} = compile("select div(numeric) from table", data_source)
+    assert error == "Function `div` requires (`integer`, `integer`), but got (`integer`)"
+  end
+
   test "rejecting a column in select when its function is grouped", %{data_source: data_source} do
     assert {:error, error} = compile("select column from table group by day(column)", data_source)
     assert error ==
