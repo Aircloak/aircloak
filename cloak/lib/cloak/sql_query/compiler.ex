@@ -227,7 +227,7 @@ defmodule Cloak.SqlQuery.Compiler do
         column = select_clause_to_identifier(function_call)
 
         raise CompilationError, message: "Function `#{function_name}` requires `#{function_type}`,"
-          <> " but used over column `#{column.name}` of type `#{column.type}` from table `#{column.table.user_name}`"
+          <> " but used over column `#{column.name}` of type `#{column.type}` from table `#{column.table.name}`"
     end
   end
 
@@ -244,7 +244,7 @@ defmodule Cloak.SqlQuery.Compiler do
     aggregated_expression_display(column)
   end
   defp aggregated_expression_display(%Column{} = column) do
-    "Column `#{column.name}` from table `#{column.table.user_name}`"
+    "Column `#{column.name}` from table `#{column.table.name}`"
   end
 
   defp verify_group_by_functions(query) do
@@ -270,7 +270,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp all_column_identifiers(query) do
     for table <- query.selected_tables, {column_name, _type} <- table.columns do
-      {:identifier, table.user_name, column_name}
+      {:identifier, table.name, column_name}
     end
   end
 
@@ -335,7 +335,7 @@ defmodule Cloak.SqlQuery.Compiler do
     # 3. Find the first pair (uid1, uid2) where there is no path from uid1 to uid2 in the graph.
     # 4. Report an error if something is found in the step 3
 
-    column_key = fn(column) -> {column.name, column.table.name} end
+    column_key = fn(column) -> {column.name, column.table.db_name} end
 
     graph = :digraph.new([:private, :cyclic])
     try do
@@ -366,8 +366,8 @@ defmodule Cloak.SqlQuery.Compiler do
               query
 
             [[column1, column2]] ->
-              table1 = column1.table.user_name
-              table2 = column2.table.user_name
+              table1 = column1.table.name
+              table2 = column2.table.name
               raise CompilationError,
                 message:
                   "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
@@ -467,21 +467,21 @@ defmodule Cloak.SqlQuery.Compiler do
         |> Enum.uniq()
         |> case do
             [table] ->
-              raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table.user_name}`."
+              raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table.name}`."
             [_|_] ->
               raise CompilationError, message: "Column `#{column_name}` doesn't exist in any of the selected tables."
           end
     end
   end
   defp convert_column_for_parsed_query({:identifier, table, column_name}, columns_by_name, query) do
-    unless Enum.any?(query.selected_tables, &(&1.user_name == table)),
+    unless Enum.any?(query.selected_tables, &(&1.name == table)),
       do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
 
     case Map.fetch(columns_by_name, column_name) do
       :error ->
         raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
       {:ok, columns} ->
-        case Enum.find(columns, &(&1.table.user_name == table)) do
+        case Enum.find(columns, &(&1.table.name == table)) do
           nil ->
             raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
           column ->

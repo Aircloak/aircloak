@@ -6,7 +6,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
   defmacrop column(table_name, column_name) do
     quote do
-      %{name: unquote(column_name), table: %{name: unquote(table_name)}}
+      %{name: unquote(column_name), table: %{db_name: unquote(table_name)}}
     end
   end
 
@@ -14,38 +14,38 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     {:ok, %{
       data_source: %{tables: %{
         table: %{
+          db_name: "table",
           name: "table",
-          user_name: "table",
           user_id: "uid",
           columns: [{"uid", :integer}, {"column", :timestamp}, {"numeric", :integer}, {"real", :real}]
         },
         other_table: %{
+          db_name: "other_table",
           name: "other_table",
-          user_name: "other_table",
           user_id: "uid",
           columns: [{"uid", :integer}, {"other_column", :timestamp}]
         },
         t1: %{
+          db_name: "t1",
           name: "t1",
-          user_name: "t1",
           user_id: "uid",
           columns: [{"uid", :integer}, {"c1", :integer}, {"c2", :integer}]
         },
         t2: %{
+          db_name: "t2",
           name: "t2",
-          user_name: "t2",
           user_id: "uid",
           columns: [{"uid", :integer}, {"c1", :integer}, {"c3", :integer}]
         },
         t3: %{
+          db_name: "t3",
           name: "t3",
-          user_name: "t3",
           user_id: "uid",
           columns: [{"uid", :integer}, {"c1", :integer}]
         },
         t4: %{
+          db_name: "t4",
           name: "t4",
-          user_name: "t4",
           user_id: "uid",
           columns: [{"uid", :integer}, {"c1", :integer}]
         }
