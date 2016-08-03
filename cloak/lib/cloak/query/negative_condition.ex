@@ -7,8 +7,8 @@ defmodule Cloak.Query.NegativeCondition do
   included in the result set. To avoid this we ignore the condition if it would remove too few users.
   """
 
-  alias Cloak.DataSource
   alias Cloak.Query.Anonymizer
+  alias Cloak.SqlQuery.Function
   alias Cloak.SqlQuery.Parser
   alias Cloak.SqlQuery.Parsers.Token
 
@@ -22,16 +22,16 @@ defmodule Cloak.Query.NegativeCondition do
   The input is wrapped in our custom stream object and filtered during processing.
   Note: the order of the input rows is not guaranteed to be kept after filtering.
   """
-  @spec apply(Enumerable.t, DataSource.columns, Parser.compiled_query) :: Enumerable.t
-  def apply(rows, _columns, %{where_not: []}),
+  @spec apply(Enumerable.t, Parser.compiled_query) :: Enumerable.t
+  def apply(rows, %{where_not: []}),
     # no negative conditions, so we immediately pass all the rows through to avoid
     # needless intermediate wrapping which will return all rows anyway
     do: rows
-  def apply(rows, columns, %{where_not: clauses}) do
+  def apply(rows, %{where_not: clauses}) do
     rows
     # add one more element so we can produce additional rows after the input has been exhausted
     |> Stream.concat([:done])
-    |> Stream.transform(filters(columns, clauses), &process_input_row/2)
+    |> Stream.transform(filters(clauses), &process_input_row/2)
   end
 
 
@@ -101,26 +101,26 @@ defmodule Cloak.Query.NegativeCondition do
   end
 
   # Converts the 'where not' clauses into filters for the stream of rows.
-  defp filters(columns, clauses) do
+  defp filters(clauses) do
     {low_count_mean, low_count_sd} = Anonymizer.config(:low_count_soft_lower_bound)
     # Once we match this amount of users we can confidently make a decision to apply the filter.
     hard_limit = low_count_sd * 5 + low_count_mean
-    for clause <- clauses, do: %Filter{matcher: matcher(columns, clause), match_hard_limit: hard_limit}
+    for clause <- clauses, do: %Filter{matcher: matcher(clause), match_hard_limit: hard_limit}
   end
 
-  defp matcher(columns, {:comparison, column, :=, %Token{value: %{value: value}}}) do
-    fn (row) -> DataSource.fetch_value!(row, columns, column) == value end
+  defp matcher({:comparison, column, :=, %Token{value: %{value: value}}}) do
+    fn (row) -> Function.apply_to_db_row(column, row) == value end
   end
-  defp matcher(columns, {:comparison, column, :=, value}) do
-    fn (row) -> DataSource.fetch_value!(row, columns, column) == value end
+  defp matcher({:comparison, column, :=, value}) do
+    fn (row) -> Function.apply_to_db_row(column, row) == value end
   end
-  defp matcher(columns, {:like, column, %Token{value: %{type: :string, value: pattern}}}) do
+  defp matcher({:like, column, %Token{value: %{type: :string, value: pattern}}}) do
     regex = to_regex(pattern)
-    fn (row) -> DataSource.fetch_value!(row, columns, column) =~ regex end
+    fn (row) -> Function.apply_to_db_row(column, row) =~ regex end
   end
-  defp matcher(columns, {:ilike, column, %Token{value: %{type: :string, value: pattern}}}) do
+  defp matcher({:ilike, column, %Token{value: %{type: :string, value: pattern}}}) do
     regex = to_regex(pattern, [_case_insensitive = "i"])
-    fn (row) -> DataSource.fetch_value!(row, columns, column) =~ regex end
+    fn (row) -> Function.apply_to_db_row(column, row) =~ regex end
   end
 
   defp to_regex(sql_pattern, options \\ []) do

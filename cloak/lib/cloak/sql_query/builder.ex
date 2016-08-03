@@ -18,6 +18,12 @@ defmodule Cloak.SqlQuery.Builder do
 
   @spec build(Cloak.SqlQuery.t) :: query_spec
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
+  def build(%{from: {:subquery, unsafe_select}} = query) do
+    {
+      ["SELECT ", columns_string(query), " FROM (", unsafe_select, ") AS unsafe_subquery"],
+      []
+    }
+  end
   def build(query) do
     fragments_to_query_spec([
       "SELECT ", columns_string(query), " ",
@@ -33,7 +39,7 @@ defmodule Cloak.SqlQuery.Builder do
 
   defp columns_string(query) do
     query.db_columns
-    |> Enum.map(&"#{&1.table.db_name}.#{&1.name} AS \"#{Cloak.SqlQuery.Column.alias(&1)}\"")
+    |> Enum.map(&Cloak.SqlQuery.Column.alias/1)
     |> Enum.join(",")
   end
 
