@@ -198,18 +198,24 @@ defmodule Cloak.SqlQuery.Parser do
       [
         keyword(:trim),
         keyword(:"("),
-        keyword(:both),
+        choice([keyword(:both), keyword(:leading), keyword(:trailing)]),
         option(constant(:string)),
         keyword(:from),
         lazy(fn -> column() end),
         keyword(:")"),
      ],
      fn
-       [:trim, :"(", :both, nil, :from, column, :")"] -> {:function, "btrim", [column]}
-       [:trim, :"(", :both, chars, :from, column, :")"] -> {:function, "btrim", [column, {:constant, chars}]}
+       [:trim, :"(", trim_type, nil, :from, column, :")"] ->
+         {:function, trim_function(trim_type), [column]}
+       [:trim, :"(", trim_type, chars, :from, column, :")"] ->
+         {:function, trim_function(trim_type), [column, {:constant, chars}]}
      end
    )
   end
+
+  defp trim_function(:both), do: "btrim"
+  defp trim_function(:leading), do: "ltrim"
+  defp trim_function(:trailing), do: "rtrim"
 
   defp qualified_identifier() do
     map(

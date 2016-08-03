@@ -441,6 +441,16 @@ defmodule Cloak.SqlQuery.Parser.Test do
       select(columns: [{:function, "btrim", [identifier("foo")]}])
   end
 
+  test "extended ltrim" do
+    assert_parse "select trim(leading from foo) from bar",
+      select(columns: [{:function, "ltrim", [identifier("foo")]}])
+  end
+
+  test "extended rtrim" do
+    assert_parse "select trim(trailing from foo) from bar",
+      select(columns: [{:function, "rtrim", [identifier("foo")]}])
+  end
+
   test "extended with character set" do
     assert_parse "select trim(both 'xyz' from foo) from bar",
       select(columns: [{:function, "btrim", [identifier("foo"), {:constant, constant("xyz")}]}])
