@@ -183,6 +183,12 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       "Columns (`numeric`, `numeric`) need to appear in the `group by` clause or be used in an aggregate function."
   end
 
+  test "accepting constants as aggregated", %{data_source: data_source}, do:
+    assert {:ok, _} = compile("select count(*), 1, abs(1) from table", data_source)
+
+  test "accepting constants as aggregated in queries with group by", %{data_source: data_source}, do:
+    assert {:ok, _} = compile("select 1, abs(1) from table group by numeric", data_source)
+
   test "accepting proper joins", %{data_source: data_source} do
     assert {:ok, _} = compile("SELECT t1.c1 from t1, t2 WHERE t1.uid = t2.uid", data_source)
     assert {:ok, _} = compile("SELECT t1.c1 from t1, t2 WHERE t2.uid = t1.uid", data_source)

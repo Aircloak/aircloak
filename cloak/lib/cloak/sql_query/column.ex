@@ -18,6 +18,11 @@ defmodule Cloak.SqlQuery.Column do
     %__MODULE__{table: :unknown, name: :constant, type: type, user_id?: false, constant?: true, value: value}
   end
 
+  @doc "Returns true if the given term is a constant column, false otherwise."
+  @spec constant?(Cloak.SqlQuery.Parser.column | t) :: boolean
+  def constant?(%__MODULE__{constant?: true}), do: true
+  def constant?(_), do: false
+
   @doc """
   Returns the column alias.
 

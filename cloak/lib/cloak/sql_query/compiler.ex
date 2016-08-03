@@ -170,20 +170,22 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
     query.columns
-    |> Stream.reject(&Function.aggregate_function?/1)
-    |> Stream.reject(fn(column) -> Enum.all?(dependency_columns(column), &Enum.member?(query.group_by, &1)) end)
+    |> Stream.reject(&aggregated_column?(&1, query))
     |> Enum.reject(fn(column) -> Enum.member?(query.group_by, column) end)
   end
   defp invalid_not_aggregated_columns(%{command: :select} = query) do
-    case Enum.partition(query.columns, &Function.aggregate_function?/1) do
+    case Enum.partition(query.columns, &aggregated_column?(&1, query)) do
       {[_|_] = _aggregates, [_|_] = non_aggregates} -> non_aggregates
       _ -> []
     end
   end
 
-  defp dependency_columns({:function, _, arguments}), do: Enum.flat_map(arguments, &dependency_columns/1)
-  defp dependency_columns({:distinct, identifier}), do: [identifier]
-  defp dependency_columns(identifier), do: [identifier]
+  defp aggregated_column?(column, query) do
+    Column.constant?(column) ||
+      Function.aggregate_function?(column) ||
+      Enum.member?(query.group_by, column) ||
+      (Function.function?(column) && Enum.all?(Function.arguments(column), &aggregated_column?(&1, query)))
+  end
 
   defp compile_columns(query) do
     query
