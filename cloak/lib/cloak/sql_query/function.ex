@@ -123,8 +123,16 @@ defmodule Cloak.SqlQuery.Function do
   defp do_apply([x, y], {:function, "mod", _}), do: rem(x, y)
   defp do_apply([x, y], {:function, "pow", _}), do: :math.pow(x, y)
   defp do_apply([string], {:function, "length", _}), do: String.length(string)
+  defp do_apply([string, count], {:function, "left", _}), do: left(string, count)
+  defp do_apply([string, count], {:function, "right", _}), do: right(string, count)
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: Float.ceil(value, precision)
   defp do_trunc(value, precision), do: Float.floor(value, precision)
+
+  defp left(string, count) when count < 0, do: String.slice(string, 0, String.length(string) + count)
+  defp left(string, count), do: String.slice(string, 0, count)
+
+  defp right(string, count) when count < 0, do: String.slice(string, -count, String.length(string))
+  defp right(string, count), do: String.slice(string, String.length(string) - count, count)
 end
