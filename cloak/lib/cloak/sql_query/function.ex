@@ -15,6 +15,7 @@ defmodule Cloak.SqlQuery.Function do
     ~w(abs sqrt) => %{aggregate: false, argument_types: [:numeric]},
     ~w(div mod) => %{aggregate: false, argument_types: [:integer, :integer]},
     ~w(pow) => %{aggregate: false, argument_types: [:numeric, :numeric]},
+    ~w(length) => %{aggregate: false, argument_types: [:text, :integer]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -121,6 +122,7 @@ defmodule Cloak.SqlQuery.Function do
   defp do_apply([x, y], {:function, "div", _}), do: div(x, y)
   defp do_apply([x, y], {:function, "mod", _}), do: rem(x, y)
   defp do_apply([x, y], {:function, "pow", _}), do: :math.pow(x, y)
+  defp do_apply([string], {:function, "length", _}), do: String.length(string)
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: Float.ceil(value, precision)

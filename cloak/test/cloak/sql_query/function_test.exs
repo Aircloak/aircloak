@@ -61,6 +61,9 @@ defmodule Cloak.SqlQuery.Function.Test do
   test "pow", do:
     assert apply_function("pow", [2, 3]) == 8
 
+  test "length", do:
+    assert apply_function("length", ["a string"]) == 8
+
   test "any function with one of the arguments being :*", do:
     assert apply_function("whatever", [1, :*, "thing"]) == :*
 
