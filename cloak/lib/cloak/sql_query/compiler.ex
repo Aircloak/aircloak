@@ -234,17 +234,15 @@ defmodule Cloak.SqlQuery.Compiler do
     case invalid_not_aggregated_columns(query) do
       [] -> :ok
       [column | _rest] ->
-        raise CompilationError, message: "#{aggregated_expression_display(column)} needs " <>
+        raise CompilationError, message: "#{aggregated_expression_display(column)} " <>
           "to appear in the `group by` clause or be used in an aggregate function."
     end
   end
 
-  defp aggregated_expression_display({:function, _function, [column]}) do
-    aggregated_expression_display(column)
-  end
-  defp aggregated_expression_display(%Column{} = column) do
-    "Column `#{column.name}` from table `#{column.table.user_name}`"
-  end
+  defp aggregated_expression_display({:function, _function, args}), do:
+    "Columns (#{args |> Enum.map(&(&1.name)) |> quoted_list()}) need"
+  defp aggregated_expression_display(%Column{} = column), do:
+    "Column `#{column.name}` from table `#{column.table.user_name}` needs"
 
   defp verify_group_by_functions(query) do
     query.group_by
