@@ -82,7 +82,7 @@ defmodule Cloak.DataSource.DsProxy do
             [_|_] = some_rows ->
               some_rows
           end
-        {:ok, {length(response["rows"]), rows}}
+        {:ok, rows}
 
       %{"success" => false, "error" => error_message} ->
         {:error, error_message}

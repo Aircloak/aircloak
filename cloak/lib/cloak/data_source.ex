@@ -55,7 +55,7 @@ defmodule Cloak.DataSource do
   @type field :: String.t | integer | number | boolean | nil
   @type row :: [field]
   @type data_type :: :text | :integer | :real | :boolean | :timestamp | :time | :date | {:unsupported, String.t}
-  @type query_result :: {num_rows, [row]}
+  @type query_result :: [row]
 
   #-----------------------------------------------------------------------------------------------------------
   # Driver behaviour
@@ -134,12 +134,9 @@ defmodule Cloak.DataSource do
   Execute a `select` query over the specified data source.
   Returns {RowCount, Columns, Rows}.
   """
-  @spec select(Cloak.SqlQuery.t) :: {:ok, [row]} | {:error, any}
-  def select(%{data_source: data_source} = select_query) do
-    with {:ok, {_count, rows}} <- data_source.driver.select(data_source.id, select_query) do
-      {:ok, rows}
-    end
-  end
+  @spec select(Cloak.SqlQuery.t) :: {:ok, query_result} | {:error, any}
+  def select(%{data_source: data_source} = select_query), do:
+    data_source.driver.select(data_source.id, select_query)
 
   @doc "Returns the datasource for the given id, raises if it's not found."
   @spec fetch!(atom) :: t
