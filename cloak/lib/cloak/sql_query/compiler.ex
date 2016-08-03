@@ -203,18 +203,10 @@ defmodule Cloak.SqlQuery.Compiler do
     expected_arguments = Function.argument_types(function_call)
     actual_arguments = Function.arguments(function_call)
 
-    length(actual_arguments) == length(expected_arguments) &&
+    length(actual_arguments) <= length(expected_arguments) &&
       expected_arguments
       |> Enum.with_index()
-      |> Enum.all?(fn({type, index}) ->
-        case {type, Enum.at(actual_arguments, index)} do
-          {:any, _} -> true
-          {:numeric, %{type: :integer}} -> true
-          {:numeric, %{type: :real}} -> true
-          {exact_type, %{type: exact_type}} -> true
-          _ -> false
-        end
-      end)
+      |> Enum.all?(fn({type, index}) -> Function.type_matches?(type, Enum.at(actual_arguments, index)) end)
   end
 
   defp filter_aggregators(columns), do: Enum.filter(columns, &Function.aggregate_function?/1)
@@ -242,8 +234,11 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp quoted_list(things), do:
-    things |> Enum.map(&"`#{&1}`") |> Enum.join(", ")
+  defp quoted_list(items), do:
+    items |> Enum.map(&quoted_item/1) |> Enum.join(", ")
+
+  defp quoted_item({:optional, type}), do: "[`#{type}`]"
+  defp quoted_item(item), do: "`#{item}`"
 
   defp verify_aggregated_columns(query) do
     case invalid_not_aggregated_columns(query) do

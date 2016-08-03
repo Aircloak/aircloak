@@ -8,7 +8,8 @@ defmodule Cloak.SqlQuery.Function do
     ~w(count) => %{aggregate: true, argument_types: [:any]},
     ~w(sum avg min max stddev median) => %{aggregate: true, argument_types: [:numeric]},
     ~w(year month day hour minute second weekday) => %{aggregate: false, argument_types: [:timestamp]},
-    ~w(floor ceil ceiling round trunc) => %{aggregate: false, argument_types: [:real]},
+    ~w(floor ceil ceiling) => %{aggregate: false, argument_types: [:real]},
+    ~w(round trunc) => %{aggregate: false, argument_types: [:real, {:optional, :integer}]},
     ~w(abs sqrt) => %{aggregate: false, argument_types: [:numeric]},
     ~w(div mod) => %{aggregate: false, argument_types: [:integer, :integer]},
     ~w(pow) => %{aggregate: false, argument_types: [:numeric, :numeric]},
@@ -16,7 +17,8 @@ defmodule Cloak.SqlQuery.Function do
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
 
-  @type argument_type :: :any | :numeric | :timestamp | DataSource.data_type
+  @type data_type :: :any | :numeric | :timestamp | DataSource.data_type
+  @type argument_type :: data_type | {:optional, data_type}
 
 
   # -------------------------------------------------------------------
@@ -50,6 +52,19 @@ defmodule Cloak.SqlQuery.Function do
   @doc "Returns the function name of the given function call."
   @spec name(Parser.column) :: String.t
   def name({:function, name, _}), do: name
+
+  def type_matches?({:optional, _}, nil), do: true
+  def type_matches?(_, nil), do: false
+  def type_matches?({:optional, type}, argument), do: type_matches?(type, argument)
+  def type_matches?(:any, _), do: true
+  def type_matches?(expected_type, %{type: actual_type}) do
+    case {expected_type, actual_type} do
+      {:numeric, :integer} -> true
+      {:numeric, :real} -> true
+      {type, type} -> true
+      _ -> false
+    end
+  end
 
 
   # -------------------------------------------------------------------

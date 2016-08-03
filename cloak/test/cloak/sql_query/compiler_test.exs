@@ -133,7 +133,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     end
   end
 
-  for function <- ~w(floor ceil ceiling trunc round) do
+  for function <- ~w(floor ceil ceiling) do
     test "allowing #{function} on real columns", %{data_source: data_source} do
       assert {:ok, _} = compile("select #{unquote(function)}(real) from table", data_source)
     end
@@ -141,6 +141,17 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     test "rejecting #{function} on integer columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
       assert error == "Function `#{unquote(function)}` requires (`real`), but got (`integer`)"
+    end
+  end
+
+  for function <- ~w(trunc round) do
+    test "allowing #{function} on real columns", %{data_source: data_source} do
+      assert {:ok, _} = compile("select #{unquote(function)}(real) from table", data_source)
+    end
+
+    test "rejecting #{function} on integer columns", %{data_source: data_source} do
+      assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
+      assert error == "Function `#{unquote(function)}` requires (`real`, [`integer`]), but got (`integer`)"
     end
   end
 
