@@ -436,6 +436,11 @@ defmodule Cloak.SqlQuery.Parser.Test do
     ))
   end
 
+  test "extended btrim" do
+    assert_parse "select trim(both from foo) from bar",
+      select(columns: [{:function, "btrim", [identifier("foo")]}])
+  end
+
   Enum.each(
     [
       {"single quote is not allowed in the identifier",
@@ -501,7 +506,9 @@ defmodule Cloak.SqlQuery.Parser.Test do
       {"missing alias",
         "select foo from (select bar from baz)", "Expected `subquery alias`", {1, 38}},
       {"missing alias after AS",
-        "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}}
+        "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}},
+      {"extended trim with two columns",
+        "select trim(both a from b) from foo", "Expected `column definition`", {1, 8}},
     ],
     fn({description, statement, expected_error, {line, column}}) ->
       test description do
