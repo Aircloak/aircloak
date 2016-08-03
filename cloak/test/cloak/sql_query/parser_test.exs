@@ -405,7 +405,44 @@ defmodule Cloak.SqlQuery.Parser.Test do
   test "allow selection of multiple tables" do
     assert_parse("select a from foo, bar, baz",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:cross_join, "foo", {:cross_join, "bar", "baz"}}))
+        from: {:join, :cross_join, "foo", {:join, :cross_join, "bar", "baz"}}))
+  end
+
+  test "allow INNER JOINs" do
+    assert_parse("select a from foo JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :inner_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+    assert_parse("select a from foo INNER JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :inner_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+  end
+
+  test "allow multiple INNER JOINs" do
+    assert_parse("select a from foo JOIN bar ON a = b INNER JOIN baz ON b = c",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :inner_join,
+            {:join, :inner_join, "foo", "bar", :on, [
+            {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+          ]}, "baz", :on, [
+          {:comparison, {:identifier, :unknown, "b"}, :=, {:identifier, :unknown, "c"}}
+        ]}))
+  end
+
+  test "allow combining JOIN types" do
+    assert_parse("select a from foo, bar JOIN baz ON a = b, gorp",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :cross_join, "foo",
+                {:join, :cross_join,
+                  {:join, :inner_join, "bar", "baz", :on, [
+                    {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+                  ]},
+                  "gorp"
+                }
+              }))
   end
 
   test "column alias" do
@@ -483,6 +520,8 @@ defmodule Cloak.SqlQuery.Parser.Test do
         "select foo from ()", "Expected `subquery expression`", {1, 18}},
       {"missing alias",
         "select foo from (select bar from baz)", "Expected `subquery alias`", {1, 38}},
+      {"assert at least one table",
+        "select foo from", "Expected `table name`", {1, 16}},
       {"missing alias after AS",
         "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}}
     ],

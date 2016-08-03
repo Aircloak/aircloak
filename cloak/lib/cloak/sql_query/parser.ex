@@ -217,14 +217,52 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp table_selection() do
     map(
-      comma_delimited(either(table_with_schema(), identifier())),
+      comma_delimited(table_construct()),
       &turn_tables_into_join/1
     ) |> label("table name")
   end
 
-  defp turn_tables_into_join([table]), do: table
-  defp turn_tables_into_join([table | tables]) do
-    {:cross_join, table, turn_tables_into_join(tables)}
+  defp turn_tables_into_join([table]), do: handle_clause(table, nil)
+  defp turn_tables_into_join([clause | rest]) do
+    {:join, :cross_join, handle_clause(clause, nil), turn_tables_into_join(rest)}
+  end
+
+  defp handle_clause({:join_clause, table, sub_clause}, _acc) do
+    handle_clause(sub_clause, table)
+  end
+  defp handle_clause({:join, join_type, table, :on, conditions, nil}, acc) do
+    {:join, join_type, acc, table, :on, conditions}
+  end
+  defp handle_clause({:join, join_type, table, :on, conditions, sub_join}, acc) do
+    acc = {:join, join_type, acc, table, :on, conditions}
+    handle_clause(sub_join, acc)
+  end
+  defp handle_clause(table, _acc), do: table
+
+  defp table_construct() do
+    either(
+      pipe([table_name(), join_appendix()], fn([table, join]) -> {:join_clause, table, join} end),
+      table_name()
+    )
+  end
+
+  defp join_appendix() do
+    pipe([
+        skip(option(keyword(:inner))),
+        keyword(:join),
+        table_name(),
+        keyword(:on),
+        where_expressions(),
+        option(lazy(fn -> join_appendix() end))
+      ],
+      fn([:join, table, :on, conditions, next]) ->
+        {:join, :inner_join, table, :on, conditions, next}
+      end
+    )
+  end
+
+  defp table_name() do
+    either(table_with_schema(), identifier())
   end
 
   defp subquery() do
