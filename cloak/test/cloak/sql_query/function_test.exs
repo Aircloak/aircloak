@@ -92,6 +92,27 @@ defmodule Cloak.SqlQuery.Function.Test do
     assert apply_function("ucase", ["A sTrinG"]) == "A STRING"
   end
 
+  test "btrim" do
+    assert well_typed?("btrim", [:text])
+    assert well_typed?("btrim", [:text, :text])
+    assert apply_function("btrim", ["  a string "]) == "a string"
+    assert apply_function("btrim", ["xyxa stringxyx", "xy"]) == "a string"
+  end
+
+  test "ltrim" do
+    assert well_typed?("ltrim", [:text])
+    assert well_typed?("ltrim", [:text, :text])
+    assert apply_function("ltrim", ["  a string "]) == "a string "
+    assert apply_function("ltrim", ["xyxa stringxyx", "xy"]) == "a stringxyx"
+  end
+
+  test "rtrim" do
+    assert well_typed?("rtrim", [:text])
+    assert well_typed?("rtrim", [:text, :text])
+    assert apply_function("rtrim", ["  a string "]) == "  a string"
+    assert apply_function("rtrim", ["xyxa stringxyx", "xy"]) == "xyxa string"
+  end
+
   test "any function with one of the arguments being :*", do:
     assert apply_function("whatever", [1, :*, "thing"]) == :*
 
