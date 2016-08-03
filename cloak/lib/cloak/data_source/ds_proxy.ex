@@ -93,7 +93,7 @@ defmodule Cloak.DataSource.DsProxy do
     maybe_include_columns(%{statement: sql_statement(query)}, query)
   end
 
-  defp maybe_include_columns(request, %{from: {:subquery, _}}), do: request
+  defp maybe_include_columns(request, %{mode: :unparsed}), do: request
   defp maybe_include_columns(request, query) do
     Map.put(request, :columns, needed_columns(query))
   end
@@ -111,7 +111,7 @@ defmodule Cloak.DataSource.DsProxy do
     }
   end
 
-  defp query_type(%{from: {:subquery, _}}), do: "unsafe"
+  defp query_type(%{mode: :unparsed}), do: "unsafe"
   defp query_type(_query), do: "parsed"
 
   defp post!(params, operation, payload) do

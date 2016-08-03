@@ -23,7 +23,8 @@ defmodule Cloak.SqlQuery.Compiler do
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [String.t],
-    db_columns: [Column.t]
+    db_columns: [Column.t],
+    mode: :parsed | :unparsed
   }
 
   defmodule CompilationError do
@@ -38,18 +39,28 @@ defmodule Cloak.SqlQuery.Compiler do
 
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
-  def compile(data_source, query) do
-    defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
-      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: [], db_columns: [],
-      property: [], aggregators: []
-    }
-    compile_prepped_query(Map.merge(defaults, query))
+  def compile(data_source, parsed_query) do
+    parsed_query
+    |> initialize_defaults(data_source)
+    |> compile_prepped_query()
   end
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+  defp initialize_defaults(parsed_query, data_source) do
+    %{
+      data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
+      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: [], db_columns: [],
+      property: [], aggregators: []
+    }
+    |> Map.merge(parsed_query)
+    |> Map.put(:mode, query_mode(parsed_query[:from]))
+  end
+
+  defp query_mode({:subquery, _}), do: :unparsed
+  defp query_mode(_other), do: :parsed
 
   # Due to the blackbox nature of the subquery, there are a whole lot
   # of validations we cannot do when using DS proxy. Conversely, there
@@ -58,7 +69,7 @@ defmodule Cloak.SqlQuery.Compiler do
   # We therefore perform custom DS proxy validations, in order to
   # keep the remaining validations clean, and free from having to
   # consider the DS Proxy case.
-  defp compile_prepped_query(%{command: :select, from: {:subquery, _}} = query) do
+  defp compile_prepped_query(%{command: :select, mode: :unparsed} = query) do
     try do
       ds_proxy_validate_no_wildcard(query)
       ds_proxy_validate_no_where(query)
@@ -157,7 +168,7 @@ defmodule Cloak.SqlQuery.Compiler do
   # Subqueries can produce column-names that are not actually in the table. Without understanding what
   # is being produced by the subquery (currently it is being treated as a blackbox), we cannot validate
   # the outer column selections
-  defp verify_aliases(%{command: :select, from: {:subquery, _}}), do: :ok
+  defp verify_aliases(%{command: :select, mode: :unparsed}), do: :ok
   defp verify_aliases(query) do
     aliases = for {_column, :as, name} <- query.columns, do: name
     all_identifiers = aliases ++ all_column_identifiers(query)
@@ -474,7 +485,7 @@ defmodule Cloak.SqlQuery.Compiler do
     map_terminal_elements(query, &(identifier_to_column(&1, columns_by_name, query)))
   end
 
-  defp identifier_to_column({:identifier, :unknown, column_name}, _columns_by_name, %{from: {:subquery, _}}),
+  defp identifier_to_column({:identifier, :unknown, column_name}, _columns_by_name, %{mode: :unparsed}),
     do: %Column{name: column_name, table: :unknown}
   defp identifier_to_column({:identifier, :unknown, column_name}, columns_by_name, _query) do
     case Map.get(columns_by_name, column_name) do
@@ -557,7 +568,7 @@ defmodule Cloak.SqlQuery.Compiler do
     |> Enum.uniq_by(&{&1.table, &1.name})
   end
 
-  defp all_expressions_with_columns(%{command: :select, from: {:subquery, _}} = query) do
+  defp all_expressions_with_columns(%{command: :select, mode: :unparsed} = query) do
     # We don't know the name of the user_id column for an unsafe query, so we're generating
     # a fake one instead.
     fake_user_id = %Column{table: :unknown, name: "__aircloak_user_id__", user_id?: true}
