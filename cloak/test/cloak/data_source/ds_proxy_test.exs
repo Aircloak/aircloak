@@ -114,7 +114,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"statement" => statement} = payload
         assert %{
           "type" => "unsafe",
-          "val" => "SELECT user_id,foo FROM (select foo from bar) AS unsafe_subquery"
+          "val" => "SELECT __aircloak_user_id__,foo FROM (select foo from bar) AS unsafe_subquery"
         } = statement
 
         {200, %{success: true, columns: ["user_id", "foo"], rows: Enum.map(1..100, &[&1, &1])}}
@@ -131,7 +131,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"statement" => statement} = payload
         assert %{
           "type" => "unsafe",
-          "val" => "SELECT user_id FROM (select * from bar) AS unsafe_subquery"
+          "val" => "SELECT __aircloak_user_id__ FROM (select * from bar) AS unsafe_subquery"
         } = statement
 
         {200, %{success: true, columns: ["user_id"], rows: Enum.map(1..100, &[&1, &1])}}
@@ -148,7 +148,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"statement" => statement} = payload
         assert %{
           "type" => "unsafe",
-          "val" => "SELECT user_id,foo FROM (select foo from bar) AS unsafe_subquery"
+          "val" => "SELECT __aircloak_user_id__,foo FROM (select foo from bar) AS unsafe_subquery"
         } = statement
 
         {200, %{success: true, columns: ["user_id", "foo"], rows: Enum.map(1..100, &[&1, &1])}}

@@ -558,7 +558,10 @@ defmodule Cloak.SqlQuery.Compiler do
   end
 
   defp all_expressions_with_columns(%{command: :select, from: {:subquery, _}} = query) do
-    [%Column{table: :unknown, name: "user_id", user_id?: true}] ++ query.columns ++ query.group_by
+    # We don't know the name of the user_id column for an unsafe query, so we're generating
+    # a fake one instead.
+    fake_user_id = %Column{table: :unknown, name: "__aircloak_user_id__", user_id?: true}
+    [fake_user_id] ++ query.columns ++ query.group_by
   end
   defp all_expressions_with_columns(%{command: :select, selected_tables: [table | _]} = query) do
     user_id = table.user_id
