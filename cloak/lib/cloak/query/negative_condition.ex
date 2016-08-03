@@ -23,11 +23,11 @@ defmodule Cloak.Query.NegativeCondition do
   Note: the order of the input rows is not guaranteed to be kept after filtering.
   """
   @spec apply(Enumerable.t, SqlQuery.t) :: Enumerable.t
-  def apply(rows, %{where_not: []}),
+  def apply(rows, %SqlQuery{where_not: []}),
     # no negative conditions, so we immediately pass all the rows through to avoid
     # needless intermediate wrapping which will return all rows anyway
     do: rows
-  def apply(rows, %{where_not: clauses}) do
+  def apply(rows, %SqlQuery{where_not: clauses}) do
     rows
     # add one more element so we can produce additional rows after the input has been exhausted
     |> Stream.concat([:done])

@@ -1,6 +1,7 @@
 defmodule Cloak.DataSourceTest do
   use ExUnit.Case, async: false
 
+  alias Cloak.SqlQuery
   alias Cloak.DataSource
 
   setup do
@@ -22,7 +23,7 @@ defmodule Cloak.DataSourceTest do
 
   test "data retrieval" do
     column = %Cloak.SqlQuery.Column{table: %{db_name: "test", name: "test"}, name: "value"}
-    assert {:ok, rows} = DataSource.select(%{
+    assert {:ok, rows} = DataSource.select(%SqlQuery{
       command: :select,
       columns: [column],
       db_columns: [column],

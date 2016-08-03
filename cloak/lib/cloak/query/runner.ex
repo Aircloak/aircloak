@@ -1,6 +1,7 @@
 defmodule Cloak.Query.Runner do
   @moduledoc "Cloak query runner."
 
+  alias Cloak.SqlQuery
   alias Cloak.DataSource
   alias Cloak.Query.{Aggregator, NegativeCondition, Sorter}
 
@@ -38,21 +39,21 @@ defmodule Cloak.Query.Runner do
   ## Internal functions
   ## ----------------------------------------------------------------
 
-  defp execute_sql_query(%{command: :show, show: :tables} = query) do
+  defp execute_sql_query(%SqlQuery{command: :show, show: :tables} = query) do
     columns = ["name"]
     rows = DataSource.tables(query.data_source)
     |> Enum.map(fn(table) -> %{occurrences: 1, row: [table]} end)
 
     successful_result({:buckets, columns, rows}, query)
   end
-  defp execute_sql_query(%{command: :show, show: :columns} = query) do
+  defp execute_sql_query(%SqlQuery{command: :show, show: :columns} = query) do
     columns = ["name", "type"]
     rows = DataSource.table(query.data_source, query.from).columns
     |> Enum.map(fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
 
     successful_result({:buckets, columns, rows}, query)
   end
-  defp execute_sql_query(%{command: :select} = query) do
+  defp execute_sql_query(%SqlQuery{command: :select} = query) do
     try do
       with {:ok, rows} <- DataSource.select(query) do
         buckets =

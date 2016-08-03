@@ -4,6 +4,7 @@ defmodule Cloak.SqlQuery.Builder do
   `Cloak.SqlQuery.t' AST
   """
 
+  alias Cloak.SqlQuery
   alias Cloak.SqlQuery.Parsers.Token
 
   @typep query_spec :: {statement, [constant]}
@@ -16,9 +17,9 @@ defmodule Cloak.SqlQuery.Builder do
   # API
   #-----------------------------------------------------------------------------------------------------------
 
-  @spec build(Cloak.SqlQuery.t) :: query_spec
+  @spec build(SqlQuery.t) :: query_spec
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
-  def build(%{mode: :unparsed, from: {:subquery, unsafe_select}} = query) do
+  def build(%SqlQuery{mode: :unparsed, from: {:subquery, unsafe_select}} = query) do
     {
       ["SELECT ", columns_string(query), " FROM (", unsafe_select, ") AS unsafe_subquery"],
       []

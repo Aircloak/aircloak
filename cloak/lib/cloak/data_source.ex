@@ -34,6 +34,7 @@ defmodule Cloak.DataSource do
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
 
+  alias Cloak.SqlQuery
   require Logger
 
   # define returned data types and values
@@ -71,7 +72,7 @@ defmodule Cloak.DataSource do
     @callback get_columns(Cloak.DataSource.t, String.t) :: [{String.t, DataSource.data_type}]
 
     @doc "Database specific implementation for the `DataSource.select` functionality."
-    @callback select(Cloak.DataSource.t, Cloak.SqlQuery.t) ::
+    @callback select(Cloak.DataSource.t, SqlQuery.t) ::
       {:ok, Cloak.DataSource.query_result} | {:error, any}
   end
 
@@ -134,8 +135,8 @@ defmodule Cloak.DataSource do
   Execute a `select` query over the specified data source.
   Returns {RowCount, Columns, Rows}.
   """
-  @spec select(Cloak.SqlQuery.t) :: {:ok, [row]} | {:error, any}
-  def select(%{data_source: data_source} = select_query) do
+  @spec select(SqlQuery.t) :: {:ok, [row]} | {:error, any}
+  def select(%SqlQuery{data_source: data_source} = select_query) do
     with {:ok, {_count, rows}} <- data_source.driver.select(data_source.id, select_query) do
       {:ok, rows}
     end
