@@ -18,6 +18,12 @@ defmodule Cloak.SqlQuery.Builder do
 
   @spec build(Cloak.SqlQuery.t) :: query_spec
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
+  def build(%{from: {:subquery, unsafe_select}} = query) do
+    {
+      ["SELECT ", columns_string(query), " FROM (", unsafe_select, ") AS unsafe_subquery"],
+      []
+    }
+  end
   def build(query) do
     fragments_to_query_spec([
       "SELECT ", columns_string(query), " ",
@@ -33,7 +39,7 @@ defmodule Cloak.SqlQuery.Builder do
 
   defp columns_string(query) do
     query.db_columns
-    |> Enum.map(&"#{&1.table.name}.#{&1.name} AS \"#{Cloak.SqlQuery.Column.alias(&1)}\"")
+    |> Enum.map(&Cloak.SqlQuery.Column.alias/1)
     |> Enum.join(",")
   end
 
@@ -47,8 +53,8 @@ defmodule Cloak.SqlQuery.Builder do
     ]
   end
   defp from_clause(table_name, query) do
-    table = Enum.find(query.selected_tables, &(&1.user_name == table_name))
-    table.name
+    table = Enum.find(query.selected_tables, &(&1.name == table_name))
+    table.db_name
   end
 
   defp join_name(:inner_join), do: " INNER JOIN "
@@ -116,7 +122,7 @@ defmodule Cloak.SqlQuery.Builder do
   defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
   defp to_fragment(%Token{category: :constant, value: value}), do: {:param, value.value}
   defp to_fragment(%Timex.DateTime{} = time), do: {:param, time}
-  defp to_fragment(%{} = column), do: "#{column.table.name}.#{column.name}"
+  defp to_fragment(%{} = column), do: "#{column.table.db_name}.#{column.name}"
 
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]
