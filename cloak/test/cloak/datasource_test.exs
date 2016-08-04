@@ -31,7 +31,7 @@ defmodule Cloak.DataSourceTest do
       group_by: [],
       data_source: local_data_source(),
       from: "test",
-      selected_tables: [%{db_name: "cloak_test.test"}]
+      selected_tables: [%{db_name: "cloak_test.test", name: "test"}]
     })
 
     assert [[10], [20], [30]] == rows

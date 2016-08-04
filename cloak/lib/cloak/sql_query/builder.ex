@@ -33,10 +33,10 @@ defmodule Cloak.SqlQuery.Builder do
     ])
   end
 
-  @doc "Returns a valid database name for the given column."
+  @doc "Returns a name uniquely identifying a column in the generated query."
   @spec column_name(Column.t) :: String.t
   def column_name(%Column{table: :unknown, name: name}), do: name
-  def column_name(column), do: "#{column.table.db_name}.#{column.name}"
+  def column_name(column), do: "#{column.table.name}.#{column.name}"
 
 
   # -------------------------------------------------------------------
@@ -51,9 +51,13 @@ defmodule Cloak.SqlQuery.Builder do
 
   defp from_clause(query) do
     query.selected_tables
-    |> Enum.map(&(&1.db_name))
+    |> Enum.map(&table_to_from/1)
     |> Enum.join(" CROSS JOIN ")
   end
+
+
+  defp table_to_from(%{name: table_name, db_name: table_name}), do: table_name
+  defp table_to_from(table), do: "#{table.db_name} AS #{table.name}"
 
   @spec fragments_to_query_spec([fragment]) :: query_spec
   defp fragments_to_query_spec(fragments) do
@@ -115,7 +119,7 @@ defmodule Cloak.SqlQuery.Builder do
   defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
   defp to_fragment(%Token{category: :constant, value: value}), do: {:param, value.value}
   defp to_fragment(%Timex.DateTime{} = time), do: {:param, time}
-  defp to_fragment(%{} = column), do: "#{column.table.db_name}.#{column.name}"
+  defp to_fragment(%{} = column), do: "#{column.table.name}.#{column.name}"
 
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]
