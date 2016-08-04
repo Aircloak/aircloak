@@ -6,10 +6,9 @@ defmodule Cloak.SqlQuery.Column do
     name: String.t,
     type: Cloak.DataSource.data_type | nil,
     user_id?: boolean,
-    in_scope?: boolean,
     db_row_position: nil | non_neg_integer
   }
-  defstruct [:table, :name, :type, :user_id?, :db_row_position, :in_scope?]
+  defstruct [:table, :name, :type, :user_id?, :db_row_position]
 
   @doc """
   Returns the column alias.

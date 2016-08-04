@@ -467,16 +467,6 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp map_join_conditions_columns(raw_table_name, _mapper_fun), do: raw_table_name
 
-  # defp columns_in_scope(columns_by_name, in_scope_tables) do
-  #   columns_by_name
-  #   |> Enum.flat_map(fn({_name, columns}) ->
-  #     Enum.map(columns, fn(column) ->
-  #       %{column | in_scope?: Enum.member?(in_scope_tables, column.table.user_name)}
-  #     end)
-  #   end)
-  #   |> Enum.group_by(&(&1.name))
-  # end
-
   defp map_where_clause({:comparison, lhs, comparator, rhs}, mapper_fun) do
     {
       :comparison,
@@ -512,7 +502,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp identifiers_to_columns(query) do
     columns_by_name =
       for table <- query.selected_tables, {column, type} <- table.columns do
-        %Column{table: table, name: column, type: type, user_id?: table.user_id == column, in_scope?: true}
+        %Column{table: table, name: column, type: type, user_id?: table.user_id == column}
       end
       |> Enum.group_by(&(&1.name))
 
