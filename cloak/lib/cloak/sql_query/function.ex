@@ -49,7 +49,7 @@ defmodule Cloak.SqlQuery.Function do
   def argument_types({:function, function, _}), do: @functions[function].argument_types
 
   @doc "Returns the argument specifiaction of the given function call."
-  @spec arguments(t) :: Column.t
+  @spec arguments(t) :: [Column.t]
   def arguments({:function, _, arguments}), do: arguments
 
   @doc "Returns the function name of the given function call."
