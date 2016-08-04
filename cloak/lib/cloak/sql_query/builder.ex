@@ -43,7 +43,7 @@ defmodule Cloak.SqlQuery.Builder do
   defp from_clause({:join, :inner_join, clause1, clause2, :on, conditions}, query) do
     [
       "(", from_clause(clause1, query), " INNER JOIN ", from_clause(clause2, query),
-      " ON ", where_clause_to_fragments(conditions), ")"
+      " ON ", conditions_to_fragments(conditions), ")"
     ]
   end
   defp from_clause(table_name, query) do
@@ -82,19 +82,19 @@ defmodule Cloak.SqlQuery.Builder do
 
   defp where_fragments([]), do: []
   defp where_fragments(where_clause) do
-    ["WHERE ", where_clause_to_fragments(where_clause)]
+    ["WHERE ", conditions_to_fragments(where_clause)]
   end
 
-  defp where_clause_to_fragments([_|_] = and_clauses) do
-    ["(", and_clauses |> Enum.map(&where_clause_to_fragments/1) |> join(" AND "), ")"]
+  defp conditions_to_fragments([_|_] = and_clauses) do
+    ["(", and_clauses |> Enum.map(&conditions_to_fragments/1) |> join(" AND "), ")"]
   end
-  defp where_clause_to_fragments({:comparison, what, comparator, value}) do
+  defp conditions_to_fragments({:comparison, what, comparator, value}) do
     [to_fragment(what), to_fragment(comparator), to_fragment(value)]
   end
-  defp where_clause_to_fragments({:in, what, values}) do
+  defp conditions_to_fragments({:in, what, values}) do
     [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(","), ")"]
   end
-  defp where_clause_to_fragments({:not, {:is, what, match}}) do
+  defp conditions_to_fragments({:not, {:is, what, match}}) do
     [to_fragment(what), " IS NOT ", to_fragment(match)]
   end
   Enum.each([
@@ -102,7 +102,7 @@ defmodule Cloak.SqlQuery.Builder do
     {:ilike, " ILIKE "},
     {:is, " IS "},
   ], fn({keyword, fragment}) ->
-    defp where_clause_to_fragments({unquote(keyword), what, match}) do
+    defp conditions_to_fragments({unquote(keyword), what, match}) do
       [to_fragment(what), unquote(fragment), to_fragment(match)]
     end
   end)
