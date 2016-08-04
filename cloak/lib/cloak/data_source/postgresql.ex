@@ -47,7 +47,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   #-----------------------------------------------------------------------------------------------------------
 
   defp run_query(source_id, statement, params \\ [], decode_mapper, result_processor) do
-    options = [timeout: 120 * 60_000, pool_timeout: 5 * 60_000, pool: @pool_name]
+    options = [timeout: 4 * 60 * 60_000, pool_timeout: 5 * 60_000, pool: @pool_name]
     Postgrex.transaction(proc_name(source_id), fn(conn) ->
       with {:ok, query} <- Postgrex.prepare(conn, "unknown", statement, []) do
         result = Postgrex.stream(conn, query, params, [decode_mapper: decode_mapper, max_rows: 25_000])
