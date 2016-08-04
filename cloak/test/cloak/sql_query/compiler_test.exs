@@ -151,7 +151,8 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on integer columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires arguments of type (`real`, [`integer`]), but got (`integer`)"
+      assert error ==
+        "Function `#{unquote(function)}` requires arguments of type (`real`, [`integer`]), but got (`integer`)"
     end
   end
 

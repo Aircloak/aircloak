@@ -104,46 +104,100 @@ SELECT EXTRACT(year FROM date_column) FROM table;
 
 Computes the absolute value of the given number.
 
+```sql
+ABS(3)
+-- 3
+
+ABS(-3)
+-- 3
+```
+
 ### ceil / ceiling
 
 Computes the smallest integer that is greater than or equal to its argument.
+
+```sql
+CEIL(3.22)
+-- 4
+```
 
 ### div
 
 Performs integer division on its arguments.
 
 ```sql
-SELECT DIV(integer_column, another_integer_column) FROM table;
+DIV(10, 2)
+-- 5
+
+DIV(10, 3)
+-- 3
 ```
 
 ### floor
 
 Computes the largest integer that is less than or equal to its argument.
 
+```sql
+FLOOR(3.22)
+-- 3
+```
+
 ### mod
 
 `MOD(a, b)` computes the remainder from `DIV(a, b)`.
 
+```sql
+MOD(10, 3)
+-- 1
+```
+
 ### pow
 
 `POW(a, b)` computes `a` to the `b`-th power.
+
+```sql
+POW(2, 3)
+-- 8
+
+POW(2, 3.5)
+-- 11.313708498984761
+```
 
 ### round
 
 Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
 
 ```sql
--- round to nearest integer
-SELECT ROUND(number_column) FROM table;
+ROUND(3.22)
+-- 3
 
--- round to second decimal place
-SELECT ROUND(number_column, 2) FROM table;
+ROUND(3.99)
+-- 4
+
+ROUND(3.22, 1)
+-- 3.2
 ```
 
 ### sqrt
 
 Computes the square root.
 
+```sql
+SQRT(2)
+-- 1.4142135623730951
+```
+
 ### trunc
 
 Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
+
+```sql
+TRUNC(3.22)
+-- 3
+
+TRUNC(-3.22)
+-- -3
+
+TRUNC(3.22, 1)
+-- 3.2
+```
