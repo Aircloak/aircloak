@@ -248,17 +248,38 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp join_appendix() do
     pipe([
-        skip(option(keyword(:inner))),
+        option(join_type()),
         keyword(:join),
         table_name(),
         keyword(:on),
         where_expressions(),
         option(lazy(fn -> join_appendix() end))
       ],
-      fn([:join, table, :on, conditions, next]) ->
-        {:join, :inner_join, table, :on, conditions, next}
+      fn
+        ([nil, :join, table, :on, conditions, next]) -> {:join, :inner_join, table, :on, conditions, next}
+        ([:inner, :join, table, :on, conditions, next]) -> {:join, :inner_join, table, :on, conditions, next}
+        ([:outer, :join, table, :on, conditions, next]) -> {:join, :full_outer_join, table, :on, conditions, next}
+        ([:full, :join, table, :on, conditions, next]) -> {:join, :full_outer_join, table, :on, conditions, next}
+        ([[:full, :outer], :join, table, :on, conditions, next]) -> {:join, :full_outer_join, table, :on, conditions, next}
+        ([:left, :join, table, :on, conditions, next]) -> {:join, :left_outer_join, table, :on, conditions, next}
+        ([[:left, :outer], :join, table, :on, conditions, next]) -> {:join, :left_outer_join, table, :on, conditions, next}
+        ([:right, :join, table, :on, conditions, next]) -> {:join, :right_outer_join, table, :on, conditions, next}
+        ([[:right, :outer], :join, table, :on, conditions, next]) -> {:join, :right_outer_join, table, :on, conditions, next}
       end
     )
+  end
+
+  defp join_type() do
+    choice([
+      sequence([keyword(:full), keyword(:outer)]),
+      keyword(:full),
+      keyword(:outer),
+      sequence([keyword(:left), keyword(:outer)]),
+      keyword(:left),
+      sequence([keyword(:right), keyword(:outer)]),
+      keyword(:right),
+      keyword(:inner),
+    ])
   end
 
   defp table_name() do

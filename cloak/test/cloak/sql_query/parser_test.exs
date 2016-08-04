@@ -432,6 +432,45 @@ defmodule Cloak.SqlQuery.Parser.Test do
         ]}))
   end
 
+  test "allow LEFT JOINs" do
+    assert_parse("select a from foo LEFT JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :left_outer_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+    assert_parse("select a from foo LEFT OUTER JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :left_outer_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+  end
+
+  test "allow RIGHT JOINs" do
+    assert_parse("select a from foo RIGHT JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :right_outer_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+    assert_parse("select a from foo RIGHT OUTER JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :right_outer_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+  end
+
+  test "allow FULL OUTER JOINs" do
+    assert_parse("select a from foo FULL JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :full_outer_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+    assert_parse("select a from foo FULL OUTER JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :full_outer_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+  end
+
   test "allow combining JOIN types" do
     assert_parse("select a from foo, bar JOIN baz ON a = b, gorp",
       select(columns: [{:identifier, :unknown, "a"}],
