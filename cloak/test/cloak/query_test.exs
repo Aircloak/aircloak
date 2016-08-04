@@ -661,6 +661,12 @@ defmodule Cloak.QueryTest do
       %{columns: [_], rows: [%{row: ["a na"], occurrences: 10}]}
   end
 
+  test "substring with neither for nor from" do
+    assert_query "select substring(name) from heights", %{error: error}
+    assert error == "Function `substring` requires arguments of type (`text`, `integer`, [`integer`]),"
+      <> " but got (`text`)"
+  end
+
   defp start_query(statement) do
     %Query{id: "1", statement: statement, data_source: Cloak.DataSource.fetch!(:local)}
     |> Query.start({:process, self()})
