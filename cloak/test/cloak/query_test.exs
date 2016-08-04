@@ -2,6 +2,7 @@ defmodule Cloak.QueryTest do
   use ExUnit.Case, async: false
 
   alias Cloak.Query
+  alias Cloak.SqlQuery.Column
 
   defmacrop assert_query(query, expected_response) do
     quote do
@@ -21,6 +22,7 @@ defmodule Cloak.QueryTest do
     Cloak.Test.DB.setup()
     Cloak.Test.DB.create_test_schema()
     Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
+    Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
     Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, time TIMESTAMP")
     :ok
   end
@@ -33,6 +35,7 @@ defmodule Cloak.QueryTest do
   test "show tables" do
     assert_query "show tables", %{columns: ["name"], rows: [
       %{occurrences: 1, row: [:heights]},
+      %{occurrences: 1, row: [:heights_alias]},
       %{occurrences: 1, row: [:purchases]}]
     }
   end
@@ -591,6 +594,36 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from heights where height = height",
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "table name is different from the database table name" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from heights_alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "selecting from two tables which point to the same database table" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query(
+      "
+        select heights.height as h1, heights_alias.height as h2
+        from heights, heights_alias
+        where heights.user_id=heights_alias.user_id
+      ",
+      %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
+    )
+  end
+
+  test "same database columns are selected only once in implicit self-join" do
+    {:ok, query} = Cloak.SqlQuery.make(
+      Cloak.DataSource.fetch!(:local),
+      "
+        select heights.height as h1, heights_alias.height as h2
+        from heights, heights_alias
+        where heights.user_id=heights_alias.user_id
+      "
+    )
+    assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
   end
 
   defp start_query(statement) do
