@@ -43,6 +43,13 @@ defmodule Cloak.SqlQuery.Parser.Test do
     end
   end
 
+  # Produces a pattern which matches an AST of a constant column
+  defmacrop constant_column(value) do
+    quote do
+      {:constant, constant(value)}
+    end
+  end
+
   # Produces a pattern which matches an AST of multiple constants.
   defmacrop constants(values) do
     Enum.map(values, &quote(do: constant(unquote(&1))))
@@ -427,7 +434,7 @@ defmodule Cloak.SqlQuery.Parser.Test do
   end
 
   test "select a constant" do
-    assert_parse("select 10 from foo", select(columns: [{:constant, constant(10)}]))
+    assert_parse("select 10 from foo", select(columns: [constant_column(10)]))
   end
 
   test "multi-argument function" do
@@ -453,12 +460,17 @@ defmodule Cloak.SqlQuery.Parser.Test do
 
   test "extended with character set" do
     assert_parse "select trim(both 'xyz' from foo) from bar",
-      select(columns: [{:function, "btrim", [identifier("foo"), {:constant, constant("xyz")}]}])
+      select(columns: [{:function, "btrim", [identifier("foo"), constant_column("xyz")]}])
   end
 
   test "substring from" do
     assert_parse "select substring(foo from 3) from bar",
-      select(columns: [{:function, "substring", [identifier("foo"), {:constant, constant(3)}]}])
+      select(columns: [{:function, "substring", [identifier("foo"), constant_column(3)]}])
+  end
+
+  test "substring from ... for ..." do
+    assert_parse "select substring(foo from 3 for 10) from bar",
+      select(columns: [{:function, "substring", [identifier("foo"), constant_column(3), constant_column(10)]}])
   end
 
   Enum.each(
