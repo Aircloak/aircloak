@@ -260,11 +260,14 @@ defmodule Cloak.SqlQuery.Parser do
         ([:inner, :join, table, :on, conditions, next]) -> {:join, :inner_join, table, :on, conditions, next}
         ([:outer, :join, table, :on, conditions, next]) -> {:join, :full_outer_join, table, :on, conditions, next}
         ([:full, :join, table, :on, conditions, next]) -> {:join, :full_outer_join, table, :on, conditions, next}
-        ([[:full, :outer], :join, table, :on, conditions, next]) -> {:join, :full_outer_join, table, :on, conditions, next}
+        ([[:full, :outer], :join, table, :on, conditions, next]) ->
+          {:join, :full_outer_join, table, :on, conditions, next}
         ([:left, :join, table, :on, conditions, next]) -> {:join, :left_outer_join, table, :on, conditions, next}
-        ([[:left, :outer], :join, table, :on, conditions, next]) -> {:join, :left_outer_join, table, :on, conditions, next}
+        ([[:left, :outer], :join, table, :on, conditions, next]) ->
+          {:join, :left_outer_join, table, :on, conditions, next}
         ([:right, :join, table, :on, conditions, next]) -> {:join, :right_outer_join, table, :on, conditions, next}
-        ([[:right, :outer], :join, table, :on, conditions, next]) -> {:join, :right_outer_join, table, :on, conditions, next}
+        ([[:right, :outer], :join, table, :on, conditions, next]) ->
+          {:join, :right_outer_join, table, :on, conditions, next}
       end
     )
   end

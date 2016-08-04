@@ -548,7 +548,10 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
 
-    assert_query "select max(height), max(price) FROM heights INNER JOIN purchases ON heights.user_id = purchases.user_id",
+    assert_query """
+      SELECT max(height), max(price)
+      FROM heights INNER JOIN purchases ON heights.user_id = purchases.user_id
+    """,
       %{columns: ["max", "max"], rows: rows}
     assert rows == [%{row: [180, 200], occurrences: 1}]
   end
