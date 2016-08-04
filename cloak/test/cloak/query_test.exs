@@ -22,6 +22,7 @@ defmodule Cloak.QueryTest do
     Cloak.Test.DB.create_test_schema()
     Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
     Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, time TIMESTAMP")
+    Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
     :ok
   end
 
@@ -32,6 +33,7 @@ defmodule Cloak.QueryTest do
 
   test "show tables" do
     assert_query "show tables", %{columns: ["name"], rows: [
+      %{occurrences: 1, row: [:children]},
       %{occurrences: 1, row: [:heights]},
       %{occurrences: 1, row: [:purchases]}]
     }
@@ -538,6 +540,30 @@ defmodule Cloak.QueryTest do
     assert_query "select max(height), max(price) FROM heights, purchases WHERE heights.user_id = purchases.user_id",
       %{columns: ["max", "max"], rows: rows}
     assert rows == [%{row: [180, 200], occurrences: 1}]
+  end
+
+  test "selecting using INNER JOIN" do
+    :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+
+    assert_query "select max(height), max(price) FROM heights INNER JOIN purchases ON heights.user_id = purchases.user_id",
+      %{columns: ["max", "max"], rows: rows}
+    assert rows == [%{row: [180, 200], occurrences: 1}]
+  end
+
+  test "selecting using complex JOIN" do
+    :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+    :ok = insert_rows(_user_ids = 0..100, "children", ["age"], [20])
+
+    assert_query """
+      SELECT max(height), max(price), max(age)
+      FROM
+        heights INNER JOIN purchases ON heights.user_id = purchases.user_id,
+        children
+      WHERE children.user_id = purchases.user_id
+    """, %{columns: ["max", "max", "max"], rows: rows}
+    assert rows == [%{row: [180, 200, 20], occurrences: 1}]
   end
 
   test "query reports an error on invalid where clause identifier" do
