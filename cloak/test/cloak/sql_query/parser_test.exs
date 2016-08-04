@@ -478,6 +478,11 @@ defmodule Cloak.SqlQuery.Parser.Test do
       select(columns: [{:function, "substring_for", [identifier("foor"), constant_column(3)]}])
   end
 
+  test "||" do
+    assert_parse "select a || b || c from bar",
+      select(columns: [{:function, "concat", [identifier("a"), identifier("b"), identifier("c")]}])
+  end
+
   Enum.each(
     [
       {"single quote is not allowed in the identifier",

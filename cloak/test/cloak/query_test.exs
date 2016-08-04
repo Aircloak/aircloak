@@ -673,6 +673,12 @@ defmodule Cloak.QueryTest do
       %{columns: [_], rows: [%{row: ["xyx"], occurrences: 10}]}
   end
 
+  test "concat with ||" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["x"])
+    assert_query "select name || 'y' || name from heights",
+      %{columns: [_], rows: [%{row: ["xyx"], occurrences: 10}]}
+  end
+
   defp start_query(statement) do
     %Query{id: "1", statement: statement, data_source: Cloak.DataSource.fetch!(:local)}
     |> Query.start({:process, self()})

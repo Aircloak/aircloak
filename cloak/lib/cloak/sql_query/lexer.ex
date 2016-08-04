@@ -36,6 +36,7 @@ defmodule Cloak.SqlQuery.Lexer do
     "EXTRACT",
     "TRIM", "BOTH", "LEADING", "TRAILING",
     "SUBSTRING", "FOR",
+    "||",
     "(", ")",
     ",", ".", ";",
     "<=", ">=", "<>", "=", "<", ">",

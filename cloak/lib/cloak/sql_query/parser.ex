@@ -135,6 +135,7 @@ defmodule Cloak.SqlQuery.Parser do
       extract_expression(),
       trim_expression(),
       substring_expression(),
+      concat_expression(),
       qualified_identifier(),
       constant_column()
     ])
@@ -239,6 +240,18 @@ defmodule Cloak.SqlQuery.Parser do
          {:function, "substring", [column]}
      end
    )
+  end
+
+  defp concat_expression() do
+    argument = either(qualified_identifier(), constant_column())
+
+    pipe(
+      [
+        argument,
+        many1(sequence([keyword(:||), argument]))
+      ],
+      fn([first, rest]) -> {:function, "concat", [first | Enum.map(rest, &Enum.at(&1, 1))]} end
+    )
   end
 
   defp qualified_identifier() do
