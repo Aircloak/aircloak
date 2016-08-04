@@ -122,6 +122,13 @@ defmodule Cloak.SqlQuery.Function.Test do
     assert apply_function("substring_for", ["a string", 3]) == "a s"
   end
 
+  test "concat" do
+    assert well_typed?("concat", [:text])
+    assert well_typed?("concat", [:text, :text])
+    assert well_typed?("concat", [:text, :text, :text, :text, :text])
+    refute well_typed?("concat", [:text, :text, :integer, :text, :text])
+  end
+
   test "any function with one of the arguments being :*", do:
     assert apply_function("whatever", [1, :*, "thing"]) == :*
 
