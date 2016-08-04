@@ -637,6 +637,12 @@ defmodule Cloak.QueryTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "extended trim" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["bob"])
+    assert_query "select trim(both 'b' from name) from heights",
+      %{columns: ["btrim"], rows: [%{row: ["o"], occurrences: 10}]}
+  end
+
   defp start_query(statement) do
     %Query{id: "1", statement: statement, data_source: Cloak.DataSource.fetch!(:local)}
     |> Query.start({:process, self()})
