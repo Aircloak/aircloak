@@ -32,7 +32,7 @@ defmodule Cloak.DataSourceTest do
       group_by: [],
       data_source: local_data_source(),
       selected_tables: [%{db_name: "cloak_test.test"}]
-    })
+    }, &Enum.to_list/1)
 
     assert [[10], [20], [30]] == rows
   end

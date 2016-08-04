@@ -58,15 +58,12 @@ defmodule Cloak.Query.Runner do
   end
   defp execute_sql_query(%SqlQuery{command: :select} = query) do
     try do
-      with {:ok, rows} <- DataSource.select(query) do
-        buckets =
-          rows
-          |> NegativeCondition.apply(query)
-          |> Aggregator.aggregate(query)
-          |> Sorter.order(query)
-
-        successful_result({:buckets, query.column_titles, buckets}, query)
-      end
+      with {:ok, buckets} <- DataSource.select(query, fn (rows) ->
+        rows
+        |> NegativeCondition.apply(query)
+        |> Aggregator.aggregate(query)
+        |> Sorter.order(query)
+      end), do: successful_result({:buckets, query.column_titles, buckets}, query)
     rescue e in [RuntimeError] ->
       {:error, e.message}
     end
