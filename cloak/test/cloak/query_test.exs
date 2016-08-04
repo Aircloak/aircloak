@@ -679,6 +679,12 @@ defmodule Cloak.QueryTest do
       %{columns: [_], rows: [%{row: ["xyx"], occurrences: 10}]}
   end
 
+  test "math functions with float constants" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [2])
+    assert_query "select pow(height, 3.5) from heights", %{columns: [_], rows: [%{row: [result]}]}
+    assert_in_delta result, 11.31, 0.01
+  end
+
   defp start_query(statement) do
     %Query{id: "1", statement: statement, data_source: Cloak.DataSource.fetch!(:local)}
     |> Query.start({:process, self()})

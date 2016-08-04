@@ -55,5 +55,6 @@ defmodule Cloak.SqlQuery.Column do
   # -------------------------------------------------------------------
 
   defp normalize_type(:string), do: :text
+  defp normalize_type(:float), do: :real
   defp normalize_type(type), do: type
 end
