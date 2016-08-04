@@ -27,6 +27,7 @@ defmodule Cloak.QueryTest do
 
   setup do
     Cloak.Test.DB.clear_table("heights")
+    Cloak.Test.DB.clear_table("purchases")
     :ok
   end
 
