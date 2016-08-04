@@ -30,6 +30,7 @@ defmodule Cloak.SqlQuery.Compiler do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
   defp to_prepped_query(parsed_query, data_source) do
     %SqlQuery{
       data_source: data_source,
