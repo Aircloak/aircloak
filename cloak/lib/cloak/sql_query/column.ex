@@ -5,9 +5,10 @@ defmodule Cloak.SqlQuery.Column do
     table: :unknown | Cloak.DataSource.table,
     name: String.t,
     type: Cloak.DataSource.data_type | nil,
-    user_id?: boolean
+    user_id?: boolean,
+    in_scope?: boolean,
   }
-  defstruct [:table, :name, :type, :user_id?]
+  defstruct [:table, :name, :type, :user_id?, :in_scope?]
 
   @doc """
   Returns the column alias.

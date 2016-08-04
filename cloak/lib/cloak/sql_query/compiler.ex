@@ -132,7 +132,12 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_tables(query), do: query
 
-  defp from_clause_to_tables({:join, :cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
+  defp from_clause_to_tables({:join, :cross_join, clause1, clause2}) do
+    from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
+  end
+  defp from_clause_to_tables({:join, :inner_join, clause1, clause2, :on, _conditions}) do
+    from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
+  end
   defp from_clause_to_tables(table), do: [table]
 
   defp compile_aliases(%{columns: [_|_] = columns} = query) do
@@ -344,7 +349,7 @@ defmodule Cloak.SqlQuery.Compiler do
       Enum.each(uid_columns, &:digraph.add_vertex(graph, column_key.(&1)))
 
       # add edges for all `uid1 = uid2` filters
-      for {:comparison, column1, :=, column2} <- query.where,
+      for {:comparison, column1, :=, column2} <- query.where ++ comparisons_from_joins(query.from),
           column1 != column2,
           column1.user_id?,
           column2.user_id?
@@ -379,6 +384,18 @@ defmodule Cloak.SqlQuery.Compiler do
       :digraph.delete(graph)
     end
   end
+
+  defp comparisons_from_joins([]), do: []
+  defp comparisons_from_joins({:join, :cross_join, clause1, clause2}) do
+    comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
+  end
+  defp comparisons_from_joins({:join, :inner_join, clause1, clause2, :on, conditions}) do
+    conditions ++ comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
+  end
+  defp comparisons_from_joins([_ | rest]) do
+    comparisons_from_joins(rest)
+  end
+  defp comparisons_from_joins(_), do: []
 
   defp cast_where_clauses(%{where: [_|_] = clauses} = query) do
     %{query | where: Enum.map(clauses, &cast_where_clause/1)}
@@ -427,6 +444,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp transform_columns(query, columns_by_name) do
     %{query |
+      from: transform_join_conditions_columns(query.from, columns_by_name, query),
       columns: Enum.map(query.columns, &(convert_column(&1, columns_by_name, query))),
       group_by: Enum.map(query.group_by, &(convert_column(&1, columns_by_name, query))),
       where: Enum.map(query.where, &(qualify_where_clause(&1, columns_by_name, query))),
@@ -439,9 +457,52 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp columns_by_name(query) do
     for table <- query.selected_tables, {column, type} <- table.columns do
-      %Column{table: table, name: column, type: type, user_id?: table.user_id == column}
+      %Column{table: table, name: column, type: type, user_id?: table.user_id == column, in_scope?: true}
     end
     |> Enum.group_by(&(&1.name))
+  end
+
+  defp transform_join_conditions_columns(from, columns_by_name, query) do
+    {from, _selected_tables} = do_transform_join_conditions_columns(from, columns_by_name, query, [])
+    from
+  end
+
+  defp do_transform_join_conditions_columns(from, columns_by_name, query, selected_tables) when is_list(from) do
+    Enum.reduce(from, {[], selected_tables}, fn(clause, {clauses, tables_acc}) ->
+      {clause, new_tables_acc} = do_transform_join_conditions_columns(clause, columns_by_name, query, tables_acc)
+      {[clause | clauses], new_tables_acc}
+    end)
+  end
+  defp do_transform_join_conditions_columns({:join, :cross_join, clause1, clause2}, columns_by_name, query,
+      selected_tables) do
+    {clause1, selected_tables} = do_transform_join_conditions_columns(clause1, columns_by_name, query, selected_tables)
+    {clause2, selected_tables} = do_transform_join_conditions_columns(clause2, columns_by_name, query, selected_tables)
+    {{:join, :cross_join, clause1, clause2}, selected_tables}
+  end
+  defp do_transform_join_conditions_columns({:join, join_type, clause1, clause2, :on, conditions},
+      columns_by_name, query, selected_tables) do
+    {clause1, selected_tables} = do_transform_join_conditions_columns(clause1, columns_by_name, query, selected_tables)
+    {clause2, selected_tables} = do_transform_join_conditions_columns(clause2, columns_by_name, query, selected_tables)
+    scoped_columns_by_name = columns_in_scope(columns_by_name, selected_tables)
+    where_clauses = Enum.map(conditions, &(qualify_where_clause(&1, scoped_columns_by_name, query)))
+    {{:join, join_type, clause1, clause2, :on, where_clauses}, selected_tables}
+  end
+  defp do_transform_join_conditions_columns(table_name, _columns_by_name, _query, selected_tables), do: {table_name, [table_name | selected_tables]}
+
+  defp columns_in_scope(columns_by_name, in_scope_tables) do
+    columns_by_name
+    |> Enum.flat_map(fn({_name, columns}) ->
+      Enum.map(columns, fn(column) ->
+        %{column | in_scope?: Enum.member?(in_scope_tables, column.table.user_name)}
+      end)
+    end)
+    |> Enum.group_by(&(&1.name))
+  end
+
+  defp scope_check(%{in_scope?: true} = column), do: column
+  defp scope_check(%{in_scope?: false} = column) do
+    raise CompilationError,
+      message: "Column `#{column.name}` of table `#{column.table.user_name}` is used out of scope."
   end
 
   defp convert_column(column, nil, _query) do
@@ -457,7 +518,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp convert_column_for_parsed_query({:identifier, :unknown, column_name}, columns_by_name, _query) do
     case Map.get(columns_by_name, column_name) do
-      [column] -> column
+      [column] -> scope_check(column)
       [_|_] -> raise CompilationError, message: "Column `#{column_name}` is ambiguous."
       nil ->
         columns_by_name
@@ -484,8 +545,7 @@ defmodule Cloak.SqlQuery.Compiler do
         case Enum.find(columns, &(&1.table.user_name == table)) do
           nil ->
             raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
-          column ->
-            column
+          column -> scope_check(column)
         end
     end
   end

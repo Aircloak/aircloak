@@ -269,8 +269,8 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       compile("SELECT c1 FROM t1, t_doesnt_exist", data_source)
   end
 
-  test "expands all columns for all tables when cross joining", %{data_source: data_source} do
-    result = compile!("SELECT * FROM t1, t2, t3 WHERE t1.uid = t2.uid AND t2.uid = t3.uid", data_source)
+  test "expands all columns for all tables when joining", %{data_source: data_source} do
+    result = compile!("SELECT * FROM t1, t2 JOIN t3 on t2.uid = t3.uid WHERE t1.uid = t2.uid", data_source)
     assert [
       column("t1", "uid"),
       column("t1", "c1"),
@@ -303,6 +303,39 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     assert {:comparison, column("t1", "uid"), :=, column("t2", "uid")} = comparison2
     assert [column("t1", "c1"), column("t2", "c3")] = result[:group_by]
     assert result[:order_by] == [{0, :desc}]
+  end
+
+  test "complains when conditions not on columns of JOINed tables", %{data_source: data_source} do
+    assert {:error, "Column `c3` of table `t2` is used out of scope."} = compile("""
+      SELECT t1.c1
+      FROM
+        t1 INNER JOIN t3 ON t1.uid = t3.uid and t2.c3 > 10,
+        t2
+      WHERE t2.uid = t1.uid
+    """, data_source)
+    assert {:error, "Column `c3` of table `t2` is used out of scope."} = compile("""
+      SELECT t1.c1
+      FROM
+        t1 INNER JOIN t3 ON t1.uid = t3.uid and c3 > 10,
+        t2
+      WHERE t2.uid = t1.uid
+    """, data_source)
+  end
+
+  test "complains on ambiguous JOIN on condition", %{data_source: data_source} do
+    assert {:error, "Column `c1` is ambiguous."} = compile("""
+      SELECT t1.c1
+      FROM t1 INNER JOIN t2 ON t1.uid = t2.uid and c1 > 10
+    """, data_source)
+  end
+
+  test "Can JOIN on columns from earlier JOIN", %{data_source: data_source} do
+    assert {:ok, _} = compile("""
+      SELECT t1.c1
+      FROM
+        t1 INNER JOIN t2 ON t1.uid = t2.uid
+           INNER JOIN t3 ON t3.uid = t1.uid AND t1.c2 > 10
+    """, data_source)
   end
 
   defp compile!(query_string, data_source) do
