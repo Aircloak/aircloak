@@ -55,7 +55,9 @@ defmodule Cloak.DataSource do
   @type field :: String.t | integer | number | boolean | nil
   @type row :: [field]
   @type data_type :: :text | :integer | :real | :boolean | :timestamp | :time | :date | {:unsupported, String.t}
-  @type query_result :: {num_rows, [row]}
+  @type query_result :: Enumerable.t
+  @type processed_result :: any
+  @type result_processor :: (query_result -> processed_result)
 
   #-----------------------------------------------------------------------------------------------------------
   # Driver behaviour
@@ -71,8 +73,8 @@ defmodule Cloak.DataSource do
     @callback get_columns(Cloak.DataSource.t, String.t) :: [{String.t, DataSource.data_type}]
 
     @doc "Database specific implementation for the `DataSource.select` functionality."
-    @callback select(Cloak.DataSource.t, Cloak.SqlQuery.t) ::
-      {:ok, Cloak.DataSource.query_result} | {:error, any}
+    @callback select(Cloak.DataSource.t, Cloak.SqlQuery.t, Cloak.DataSource.result_processor)
+      :: {:ok, Cloak.DataSource.processed_result} | {:error, any}
   end
 
 
@@ -131,15 +133,14 @@ defmodule Cloak.DataSource do
     do: table(data_source, String.to_existing_atom(table_name))
 
   @doc """
-  Execute a `select` query over the specified data source.
-  Returns {RowCount, Columns, Rows}.
+  Executes the specified 'select' query.
+
+  Besides the query object, this methods also needs a result processing function
+  for handling the stream of rows produced as a result of executing the query.
   """
-  @spec select(Cloak.SqlQuery.t) :: {:ok, [row]} | {:error, any}
-  def select(%{data_source: data_source} = select_query) do
-    with {:ok, {_count, rows}} <- data_source.driver.select(data_source.id, select_query) do
-      {:ok, rows}
-    end
-  end
+  @spec select(Cloak.SqlQuery.t, result_processor) :: {:ok, processed_result} | {:error, any}
+  def select(%{data_source: data_source} = select_query, result_processor), do:
+    data_source.driver.select(data_source.id, select_query, result_processor)
 
   @doc "Returns the datasource for the given id, raises if it's not found."
   @spec fetch!(atom) :: t
