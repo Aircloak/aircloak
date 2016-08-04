@@ -93,7 +93,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on non-numerical columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires (`numeric`), but got (`timestamp`)"
+      assert error == "Function `#{unquote(function)}` requires arguments of type (`numeric`), but got (`timestamp`)"
     end
   end
 
@@ -118,7 +118,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on non-timestamp columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires (`timestamp`), but got (`integer`)"
+      assert error == "Function `#{unquote(function)}` requires arguments of type (`timestamp`), but got (`integer`)"
     end
 
     test "allowing #{function} in group by", %{data_source: data_source} do
@@ -140,7 +140,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on integer columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires (`real`), but got (`integer`)"
+      assert error == "Function `#{unquote(function)}` requires arguments of type (`real`), but got (`integer`)"
     end
   end
 
@@ -151,23 +151,23 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on integer columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires (`real`, [`integer`]), but got (`integer`)"
+      assert error == "Function `#{unquote(function)}` requires arguments of type (`real`, [`integer`]), but got (`integer`)"
     end
   end
 
   test "multiarg function argument verification", %{data_source: data_source} do
     assert {:error, error} = compile("select div(numeric, column) from table", data_source)
-    assert error == "Function `div` requires (`integer`, `integer`), but got (`integer`, `timestamp`)"
+    assert error == "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `timestamp`)"
   end
 
   test "rejecting a function with too many arguments", %{data_source: data_source} do
     assert {:error, error} = compile("select avg(numeric, column) from table", data_source)
-    assert error == "Function `avg` requires (`numeric`), but got (`integer`, `timestamp`)"
+    assert error == "Function `avg` requires arguments of type (`numeric`), but got (`integer`, `timestamp`)"
   end
 
   test "rejecting a function with too few arguments", %{data_source: data_source} do
     assert {:error, error} = compile("select div(numeric) from table", data_source)
-    assert error == "Function `div` requires (`integer`, `integer`), but got (`integer`)"
+    assert error == "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`)"
   end
 
   test "rejecting a column in select when its function is grouped", %{data_source: data_source} do
