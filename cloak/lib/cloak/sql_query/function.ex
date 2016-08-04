@@ -4,6 +4,8 @@ defmodule Cloak.SqlQuery.Function do
   alias Cloak.SqlQuery.{Column, Parser}
   alias Cloak.DataSource
 
+  import Kernel, except: [apply: 2]
+
   @functions %{
     ~w(count) => %{aggregate: true, argument_types: [:any]},
     ~w(sum avg min max stddev median) => %{aggregate: true, argument_types: [:numeric]},
@@ -17,7 +19,7 @@ defmodule Cloak.SqlQuery.Function do
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
 
-  @type column :: Parser.column | Column.t
+  @type t :: Parser.column | Column.t
   @type data_type :: :any | :numeric | :timestamp | DataSource.data_type
   @type argument_type :: data_type | {:optional, data_type}
 
@@ -27,35 +29,35 @@ defmodule Cloak.SqlQuery.Function do
   # -------------------------------------------------------------------
 
   @doc "Returns true if the given column definition is a function call, false otherwise."
-  @spec function?(column) :: boolean
+  @spec function?(t) :: boolean
   def function?({:function, _, _}), do: true
   def function?(_), do: false
 
   @doc "Returns true if the given function call to a known function, false otherwise."
-  @spec valid_function?(column) :: boolean
+  @spec valid_function?(t) :: boolean
   def valid_function?({:function, function, _}), do: Map.has_key?(@functions, function)
 
   @doc """
   Returns true if the given column definition is a function call to an aggregate function, false otherwise.
   """
-  @spec aggregate_function?(column) :: boolean
+  @spec aggregate_function?(t) :: boolean
   def aggregate_function?({:function, function, _}), do: @functions[function].aggregate
   def aggregate_function?(_), do: false
 
-  @doc "Returns the list of argument types required by the given function call."
-  @spec argument_types(column) :: [argument_type]
+  @doc "Returns the argument type required by the given function call."
+  @spec argument_types(t) :: [argument_type]
   def argument_types({:function, function, _}), do: @functions[function].argument_types
 
   @doc "Returns the argument specifiaction of the given function call."
-  @spec arguments(column) :: [Column.t]
+  @spec arguments(t) :: Column.t
   def arguments({:function, _, arguments}), do: arguments
 
   @doc "Returns the function name of the given function call."
-  @spec name(column) :: String.t
+  @spec name(t) :: String.t
   def name({:function, name, _}), do: name
 
   @doc "Returns true if the arguments to the given function call match the expected argument types, false otherwise."
-  @spec well_typed?(column) :: boolean
+  @spec well_typed?(t) :: boolean
   def well_typed?(function) do
     length(arguments(function)) <= length(argument_types(function)) &&
       argument_types(function)
@@ -63,13 +65,21 @@ defmodule Cloak.SqlQuery.Function do
       |> Enum.all?(fn({type, index}) -> type_matches?(type, Enum.at(arguments(function), index)) end)
   end
 
+  @doc "Applies the function to the database row and returns its result."
+  @spec apply_to_db_row(t, DataSource.row) :: term
+  def apply_to_db_row(%Column{} = column, row),
+    do: Column.value(column, row)
+  def apply_to_db_row(function, row) do
+    true = function?(function)
 
-  # -------------------------------------------------------------------
-  # Implementations
-  # -------------------------------------------------------------------
+    function
+    |> arguments()
+    |> Enum.map(&Column.value(&1, row))
+    |> apply(function)
+  end
 
   @doc "Returns the result of applying the given function definition to the given value."
-  @spec apply(term, column) :: term
+  @spec apply([term], t) :: term
   def apply(args = [_|_], function), do:
     if Enum.member?(args, :*), do: :*, else: do_apply(args, function)
   def apply(value, _aggregate_function), do: value

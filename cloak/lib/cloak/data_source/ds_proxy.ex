@@ -51,8 +51,8 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   @doc false
-  def select(source_id, sql_query) do
-    run_query(params(source_id), sql_query)
+  def select(source_id, sql_query, result_processor) do
+    run_query(params(source_id), sql_query, result_processor)
   end
 
 
@@ -69,7 +69,7 @@ defmodule Cloak.DataSource.DsProxy do
     Enum.map(response["columns"], &({&1["name"], parse_type(String.downcase(&1["type"]))}))
   end
 
-  defp run_query(params, query) do
+  defp run_query(params, query, result_processor) do
     case post!(params, "query", request(query)) do
       %{"success" => true} = response ->
         rows =
@@ -82,7 +82,7 @@ defmodule Cloak.DataSource.DsProxy do
             [_|_] = some_rows ->
               some_rows
           end
-        {:ok, {length(response["rows"]), response["columns"], rows}}
+        {:ok, result_processor.(rows)}
 
       %{"success" => false, "error" => error_message} ->
         {:error, error_message}
@@ -102,20 +102,17 @@ defmodule Cloak.DataSource.DsProxy do
     Enum.map(query.db_columns, &Cloak.SqlQuery.Column.alias/1)
   end
 
-  defp sql_statement(%{from: {:subquery, unsafe_select}}) do
-    %{
-      type: "unsafe",
-      val: unsafe_select
-    }
-  end
   defp sql_statement(sql_query) do
     {query_string, params} = Builder.build(sql_query)
     %{
-      type: "parsed",
+      type: query_type(sql_query),
       params: params,
       val: query_string |> List.flatten |> Enum.join
     }
   end
+
+  defp query_type(%{from: {:subquery, _}}), do: "unsafe"
+  defp query_type(_query), do: "parsed"
 
   defp post!(params, operation, payload) do
     %HTTPoison.Response{status_code: 200, body: body} = HTTPoison.post!(

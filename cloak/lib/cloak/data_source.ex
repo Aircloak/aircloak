@@ -36,9 +36,6 @@ defmodule Cloak.DataSource do
 
   require Logger
 
-  alias Cloak.SqlQuery.Column
-  alias Cloak.SqlQuery.Function
-
   # define returned data types and values
   @type t :: %{
     id: atom,
@@ -58,8 +55,9 @@ defmodule Cloak.DataSource do
   @type field :: String.t | integer | number | boolean | nil
   @type row :: [field]
   @type data_type :: :text | :integer | :real | :boolean | :timestamp | :time | :date | {:unsupported, String.t}
-  @type query_result :: {num_rows, [column], [row]}
-  @opaque columns :: %{any => non_neg_integer}
+  @type query_result :: Enumerable.t
+  @type processed_result :: any
+  @type result_processor :: (query_result -> processed_result)
 
   #-----------------------------------------------------------------------------------------------------------
   # Driver behaviour
@@ -75,8 +73,8 @@ defmodule Cloak.DataSource do
     @callback get_columns(Cloak.DataSource.t, String.t) :: [{String.t, DataSource.data_type}]
 
     @doc "Database specific implementation for the `DataSource.select` functionality."
-    @callback select(Cloak.DataSource.t, Cloak.SqlQuery.t) ::
-      {:ok, Cloak.DataSource.query_result} | {:error, any}
+    @callback select(Cloak.DataSource.t, Cloak.SqlQuery.t, Cloak.DataSource.result_processor)
+      :: {:ok, Cloak.DataSource.processed_result} | {:error, any}
   end
 
 
@@ -135,20 +133,14 @@ defmodule Cloak.DataSource do
     do: table(data_source, String.to_existing_atom(table_name))
 
   @doc """
-  Execute a `select` query over the specified data source.
-  Returns {RowCount, Columns, Rows}.
+  Executes the specified 'select' query.
+
+  Besides the query object, this methods also needs a result processing function
+  for handling the stream of rows produced as a result of executing the query.
   """
-  @spec select(Cloak.SqlQuery.t) :: {:ok, columns, [row]} | {:error, any}
-  def select(%{data_source: data_source} = select_query) do
-    with {:ok, {_count, column_names, rows}} <- data_source.driver.select(data_source.id, select_query) do
-      # Note: we need to preindex columns here because of unsafe queries in dsproxy. This is the only
-      # case where we can't know the order of returned data upfront, since it is determined by an
-      # unparsed subquery. Therefore, we can only compute column indices after data is returned by
-      # the data source, relying on the returned column_names. Once dsproxy is out of the picture,
-      # we can push this preindexing to the compiler.
-      {:ok, index_columns(select_query, column_names), rows}
-    end
-  end
+  @spec select(Cloak.SqlQuery.t, result_processor) :: {:ok, processed_result} | {:error, any}
+  def select(%{data_source: data_source} = select_query, result_processor), do:
+    data_source.driver.select(data_source.id, select_query, result_processor)
 
   @doc "Returns the datasource for the given id, raises if it's not found."
   @spec fetch!(atom) :: t
@@ -164,34 +156,10 @@ defmodule Cloak.DataSource do
     |> Map.fetch(data_source_id)
   end
 
-  @doc "Returns a specific field value from a row of data."
-  @spec fetch_value!(row, columns, Column.t) :: field
-  def fetch_value!(row, columns, column) do
-    row
-    |> fetch_raw_value!(columns, column)
-    |> Function.apply(column)
-  end
-
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
-
-  defp fetch_raw_value!(_row, _columns, %Column{constant?: true, value: value}), do: value
-  defp fetch_raw_value!(row, columns, column) do
-    if Function.function?(column) and not Function.aggregate_function?(column) do
-      column
-      |> Function.arguments()
-      |> Enum.map(&fetch_value!(row, columns, &1))
-    else
-      case Map.fetch(columns, column_id(column)) do
-        {:ok, index} ->
-          Enum.at(row, index)
-        :error ->
-          raise(Cloak.Query.Runner.RuntimeError, "Column `#{column.name}` doesn't exist in selected columns.")
-      end
-    end
-  end
 
   defp map_driver({data_source, params}) do
     driver_module = case params[:driver] do
@@ -325,22 +293,6 @@ defmodule Cloak.DataSource do
     else
       raise "#{msg}\nTo ignore these columns set `ignore_unsupported_types: true` in your table settings"
     end
-  end
-
-  defp index_columns(query, column_names) do
-    for column <- query.db_columns, into: %{} do
-      case Enum.find_index(column_names, &(&1 == Column.alias(column))) do
-        nil ->
-          raise Cloak.Query.Runner.RuntimeError, "Column `#{column.name}` doesn't exist in selected columns."
-        index ->
-          {column_id(column), index}
-      end
-    end
-  end
-
-  def column_id(%Column{table: :unknown, name: name}), do: name
-  def column_id(%Column{} = column) do
-    {column.table.name, column.name}
   end
 
 

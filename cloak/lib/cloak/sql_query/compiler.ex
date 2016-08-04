@@ -40,7 +40,9 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
     defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
-      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: [], db_columns: []}
+      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: [], db_columns: [],
+      property: [], aggregators: []
+    }
     compile_prepped_query(Map.merge(defaults, query))
   end
 
@@ -191,7 +193,7 @@ defmodule Cloak.SqlQuery.Compiler do
     query
     |> expand_star_select()
     |> compile_aliases()
-    |> transform_columns()
+    |> identifiers_to_columns()
   end
 
   defp expand_star_select(%{columns: :*} = query) do
@@ -289,16 +291,13 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp compile_order_by(%{order_by: []} = query), do: query
   defp compile_order_by(%{columns: columns, order_by: order_by_spec} = query) do
-    columns_by_name = columns_by_name(query)
-    qualified_columns = Enum.map(columns, &convert_column(&1, columns_by_name, query))
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) ->
-      Enum.member?(qualified_columns, convert_column(column, columns_by_name, query))
+      Enum.member?(columns, column)
     end)
     case invalid_fields do
       [] ->
         order_list = for {column, direction} <- order_by_spec do
-          qualified_column = convert_column(column, columns_by_name, query)
-          index = qualified_columns |> Enum.find_index(&(&1 == qualified_column))
+          index = columns |> Enum.find_index(&(&1 == column))
           {index, direction}
         end
         %{query | order_by: order_list}
@@ -414,42 +413,64 @@ defmodule Cloak.SqlQuery.Compiler do
     defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
   end)
 
-  defp transform_columns(%{from: {:subquery, _}} = query),
-    do: transform_columns(query, nil)
-  defp transform_columns(query),
-    do: transform_columns(query, columns_by_name(query))
-
-  defp transform_columns(query, columns_by_name) do
+  defp map_terminal_elements(query, mapper_fun) do
     %{query |
-      columns: Enum.map(query.columns, &(convert_column(&1, columns_by_name, query))),
-      group_by: Enum.map(query.group_by, &(convert_column(&1, columns_by_name, query))),
-      where: Enum.map(query.where, &(qualify_where_clause(&1, columns_by_name, query))),
-      where_not: Enum.map(query.where_not, &(qualify_where_clause(&1, columns_by_name, query))),
-      order_by: Enum.map(query.order_by, fn({identifier, direction}) ->
-        {convert_column(identifier, columns_by_name, query), direction}
-      end)
+      columns: Enum.map(query.columns, &map_terminal_element(&1, mapper_fun)),
+      group_by: Enum.map(query.group_by, &map_terminal_element(&1, mapper_fun)),
+      where: Enum.map(query.where, &map_where_clause(&1, mapper_fun)),
+      where_not: Enum.map(query.where_not, &map_where_clause(&1, mapper_fun)),
+      order_by: Enum.map(query.order_by, &map_order_by(&1, mapper_fun)),
+      db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
+      property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
+      aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun))
     }
   end
 
-  defp columns_by_name(query) do
-    for table <- query.selected_tables, {column, type} <- table.columns do
-      %Column{table: table, name: column, type: type, user_id?: table.user_id == column}
+  defp map_where_clause({:comparison, lhs, comparator, rhs}, mapper_fun) do
+    {
+      :comparison,
+      map_terminal_element(lhs, mapper_fun),
+      comparator,
+      map_terminal_element(rhs, mapper_fun)
+    }
+  end
+  defp map_where_clause({:not, subclause}, mapper_fun) do
+    {:not, map_where_clause(subclause, mapper_fun)}
+  end
+  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
+    defp map_where_clause({unquote(keyword), lhs, rhs}, mapper_fun) do
+      {unquote(keyword), map_terminal_element(lhs, mapper_fun), map_terminal_element(rhs, mapper_fun)}
     end
-    |> Enum.group_by(&(&1.name))
+  end)
+
+  defp map_order_by({identifier, direction}, mapper_fun),
+    do: {map_terminal_element(identifier, mapper_fun), direction}
+
+  defp map_terminal_element(%Token{} = token, mapper_fun), do: mapper_fun.(token)
+  defp map_terminal_element(%Column{} = column, mapper_fun), do: mapper_fun.(column)
+  defp map_terminal_element({:identifier, _, _} = identifier, mapper_fun), do: mapper_fun.(identifier)
+  defp map_terminal_element({:function, "count", :*} = function, _converter_fun), do: function
+  defp map_terminal_element({:function, function, identifier}, converter_fun),
+    do: {:function, function, map_terminal_element(identifier, converter_fun)}
+  defp map_terminal_element({:distinct, identifier}, converter_fun),
+    do: {:distinct, map_terminal_element(identifier, converter_fun)}
+  defp map_terminal_element(elements, mapper_fun) when is_list(elements),
+    do: Enum.map(elements, &map_terminal_element(&1, mapper_fun))
+  defp map_terminal_element(constant, mapper_fun), do: mapper_fun.(constant)
+
+  defp identifiers_to_columns(query) do
+    columns_by_name =
+      for table <- query.selected_tables, {column, type} <- table.columns do
+        %Column{table: table, name: column, type: type, user_id?: table.user_id == column}
+      end
+      |> Enum.group_by(&(&1.name))
+
+    map_terminal_elements(query, &(identifier_to_column(&1, columns_by_name, query)))
   end
 
-  defp convert_column(column, nil, _query) do
-    do_convert_column(column, &convert_column_for_unsafe_query(&1))
-  end
-  defp convert_column(column, columns_by_name, query) do
-    do_convert_column(column, &convert_column_for_parsed_query(&1, columns_by_name, query))
-  end
-
-  defp convert_column_for_unsafe_query({:identifier, :unknown, column_name}) do
-    %Column{name: column_name, table: :unknown}
-  end
-
-  defp convert_column_for_parsed_query({:identifier, :unknown, column_name}, columns_by_name, _query) do
+  defp identifier_to_column({:identifier, :unknown, column_name}, _columns_by_name, %{from: {:subquery, _}}),
+    do: %Column{name: column_name, table: :unknown}
+  defp identifier_to_column({:identifier, :unknown, column_name}, columns_by_name, _query) do
     case Map.get(columns_by_name, column_name) do
       [column] -> column
       [_|_] -> raise CompilationError, message: "Column `#{column_name}` is ambiguous."
@@ -467,7 +488,7 @@ defmodule Cloak.SqlQuery.Compiler do
           end
     end
   end
-  defp convert_column_for_parsed_query({:identifier, table, column_name}, columns_by_name, query) do
+  defp identifier_to_column({:identifier, table, column_name}, columns_by_name, query) do
     unless Enum.any?(query.selected_tables, &(&1.name == table)),
       do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
 
@@ -483,35 +504,9 @@ defmodule Cloak.SqlQuery.Compiler do
         end
     end
   end
-
-  defp do_convert_column(%Token{} = token, _converter_fun), do: token
-  defp do_convert_column(%Column{} = column, _converter_fun), do: column
-  defp do_convert_column({:function, "count", [:*]} = function, _converter_fun), do: function
-  defp do_convert_column({:function, function, arguments}, converter_fun), do:
-    {:function, function, Enum.map(arguments, &do_convert_column(&1, converter_fun))}
-  defp do_convert_column({:distinct, identifier}, converter_fun), do:
-    {:distinct, do_convert_column(identifier, converter_fun)}
-  defp do_convert_column({:identifier, _, _} = identifier, converter_fun), do:
-    converter_fun.(identifier)
-  defp do_convert_column({:constant, %Token{value: %{type: type, value: value}}}, _converter_fun), do:
+  defp identifier_to_column({:constant, %Token{value: %{type: type, value: value}}}, _columns_by_name, _query), do:
     Column.constant(type, value)
-
-  defp qualify_where_clause({:comparison, lhs, comparator, rhs}, columns_by_name, query) do
-    {
-      :comparison,
-      convert_column(lhs, columns_by_name, query),
-      comparator,
-      convert_column(rhs, columns_by_name, query)
-    }
-  end
-  defp qualify_where_clause({:not, subclause}, columns_by_name, query) do
-    {:not, qualify_where_clause(subclause, columns_by_name, query)}
-  end
-  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp qualify_where_clause({unquote(keyword), identifier, any}, columns_by_name, query) do
-      {unquote(keyword), convert_column(identifier, columns_by_name, query), any}
-    end
-  end)
+  defp identifier_to_column(other, _columns_by_name, _query), do: other
 
   def column_title({:function, function, _}), do: function
   def column_title({:distinct, identifier}), do: column_title(identifier)
@@ -547,23 +542,36 @@ defmodule Cloak.SqlQuery.Compiler do
   defp add_info_message(query, info_message), do: %{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
-    %{query |
-        db_columns:
-          db_columns(query)
-          |> Enum.flat_map(&extract_columns/1)
-          |> Enum.reject(&(&1 == nil))
-          |> Enum.reject(&(&1.constant?))
-          |> Enum.uniq()
-    }
+    query = %{query | db_columns: db_columns(query)}
+    map_terminal_elements(query, &set_column_db_row_position(&1, query))
   end
 
-  defp db_columns(%{command: :select, from: {:subquery, _}} = query) do
-    [%Column{table: :unknown, name: "user_id", user_id?: true}] ++ query.columns ++ query.group_by
+  defp db_columns(query) do
+    query
+    |> all_expressions_with_columns()
+    |> Enum.flat_map(&extract_columns/1)
+    |> Enum.reject(&(&1 == nil))
+    |> Enum.reject(&(&1.constant?))
+    |> Enum.uniq_by(&{&1.table, &1.name})
   end
-  defp db_columns(%{command: :select, selected_tables: [table | _]} = query) do
+
+  defp all_expressions_with_columns(%{command: :select, from: {:subquery, _}} = query) do
+    # We don't know the name of the user_id column for an unsafe query, so we're generating
+    # a fake one instead.
+    fake_user_id = %Column{table: :unknown, name: "__aircloak_user_id__", user_id?: true}
+    [fake_user_id] ++ query.columns ++ query.group_by
+  end
+  defp all_expressions_with_columns(%{command: :select, selected_tables: [table | _]} = query) do
     user_id = table.user_id
     {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
     user_id_column = %Column{table: table, name: user_id, type: type, user_id?: true}
     [user_id_column] ++ query.columns ++ query.group_by ++ query.unsafe_filter_columns
   end
+
+  defp set_column_db_row_position(%Column{} = column, %{db_columns: db_columns}) do
+    %Column{column |
+      db_row_position: Enum.find_index(db_columns, &(&1.name == column.name && &1.table == column.table))
+    }
+  end
+  defp set_column_db_row_position(other, _query), do: other
 end

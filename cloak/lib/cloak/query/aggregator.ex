@@ -41,10 +41,10 @@ defmodule Cloak.Query.Aggregator do
 
   Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
   """
-  @spec aggregate(Enumerable.t, DataSource.columns, SqlQuery.t) :: [bucket]
-  def aggregate(rows, columns, query) do
+  @spec aggregate(Enumerable.t, SqlQuery.t) :: [bucket]
+  def aggregate(rows, query) do
     rows
-    |> group_by_property(columns, query)
+    |> group_by_property(query)
     |> process_low_count_users(query)
     |> aggregate_properties(query)
     |> make_buckets(query)
@@ -64,12 +64,12 @@ defmodule Cloak.Query.Aggregator do
     [[value | prev_values] | add_values_to_columns(rest_values, rest_prev_values)]
   end
 
-  defp group_by_property(rows, columns, query) do
+  defp group_by_property(rows, query) do
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
-      property = for column <- query.property, do: DataSource.fetch_value!(row, columns, column)
+      property = for column <- query.property, do: Function.apply_to_db_row(column, row)
       user_id = user_id(row)
-      values = for column <- SqlQuery.aggregated_columns(query), do: aggregated_value_list(row, columns, column)
+      values = for column <- SqlQuery.aggregated_columns(query), do: aggregated_value_list(row, column)
       Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
         Map.update(user_values_map, user_id, values, &add_values_to_columns(values, &1))
       end)
@@ -77,10 +77,10 @@ defmodule Cloak.Query.Aggregator do
     |> init_anonymizer()
   end
 
-  defp aggregated_value_list(_row, _columns, :*), do: [:*]
-  defp aggregated_value_list(row, columns, {:distinct, column}), do: aggregated_value_list(row, columns, column)
-  defp aggregated_value_list(row, columns, column) do
-    case DataSource.fetch_value!(row, columns, column) do
+  defp aggregated_value_list(_row, :*), do: [:*]
+  defp aggregated_value_list(row, {:distinct, column}), do: aggregated_value_list(row, column)
+  defp aggregated_value_list(row, column) do
+    case Function.apply_to_db_row(column, row) do
       nil -> []
       value -> [value]
     end
