@@ -224,16 +224,17 @@ defmodule Cloak.SqlQuery.Parser do
         keyword(:substring),
         keyword(:"("),
         lazy(fn -> column() end),
-        keyword(:from),
-        constant(:integer),
+        option(sequence([keyword(:from), constant(:integer)])),
         option(sequence([keyword(:for), constant(:integer)])),
         keyword(:")"),
      ],
      fn
-       [:substring, :"(", column, :from, from, nil, :")"] ->
+       [:substring, :"(", column, [:from, from], nil, :")"] ->
          {:function, "substring", [column, {:constant, from}]}
-       [:substring, :"(", column, :from, from, [:for, for_count], :")"] ->
+       [:substring, :"(", column, [:from, from], [:for, for_count], :")"] ->
          {:function, "substring", [column, {:constant, from}, {:constant, for_count}]}
+       [:substring, :"(", column, nil, [:for, for_count], :")"] ->
+         {:function, "substring_for", [column, {:constant, for_count}]}
      end
    )
   end

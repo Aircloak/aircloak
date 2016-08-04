@@ -116,8 +116,10 @@ defmodule Cloak.SqlQuery.Function.Test do
   test "substring" do
     assert well_typed?("substring", [:text, :integer])
     assert well_typed?("substring", [:text, :integer, :integer])
+    assert well_typed?("substring_for", [:text, :integer])
     assert apply_function("substring", ["a string", 3]) == "string"
     assert apply_function("substring", ["a string", 3, 2]) == "st"
+    assert apply_function("substring_for", ["a string", 3]) == "a s"
   end
 
   test "any function with one of the arguments being :*", do:
