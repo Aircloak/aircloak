@@ -135,7 +135,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp from_clause_to_tables({:join, :cross_join, clause1, clause2}) do
     from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
   end
-  defp from_clause_to_tables({:join, :inner_join, clause1, clause2, :on, _conditions}) do
+  defp from_clause_to_tables({:join, _join_type, clause1, clause2, :on, _conditions}) do
     from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
   end
   defp from_clause_to_tables(table), do: [table]
@@ -389,7 +389,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp comparisons_from_joins({:join, :cross_join, clause1, clause2}) do
     comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
   end
-  defp comparisons_from_joins({:join, :inner_join, clause1, clause2, :on, conditions}) do
+  defp comparisons_from_joins({:join, _join_type, clause1, clause2, :on, conditions}) do
     conditions ++ comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
   end
   defp comparisons_from_joins([_ | rest]) do

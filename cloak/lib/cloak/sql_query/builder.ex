@@ -40,9 +40,9 @@ defmodule Cloak.SqlQuery.Builder do
   defp from_clause({:join, :cross_join, clause1, clause2}, query) do
     ["(", from_clause(clause1, query), " CROSS JOIN ", from_clause(clause2, query), ")"]
   end
-  defp from_clause({:join, :inner_join, clause1, clause2, :on, conditions}, query) do
+  defp from_clause({:join, join_type, clause1, clause2, :on, conditions}, query) do
     [
-      "(", from_clause(clause1, query), " INNER JOIN ", from_clause(clause2, query),
+      "(", from_clause(clause1, query), join_name(join_type), from_clause(clause2, query),
       " ON ", conditions_to_fragments(conditions), ")"
     ]
   end
@@ -50,6 +50,11 @@ defmodule Cloak.SqlQuery.Builder do
     table = Enum.find(query.selected_tables, &(&1.user_name == table_name))
     table.name
   end
+
+  defp join_name(:inner_join), do: " INNER JOIN "
+  defp join_name(:full_outer_join), do: " FULL OUTER JOIN "
+  defp join_name(:left_outer_join), do: " LEFT OUTER JOIN "
+  defp join_name(:right_outer_join), do: " RIGHT OUTER JOIN "
 
   @spec fragments_to_query_spec([fragment]) :: query_spec
   defp fragments_to_query_spec(fragments) do

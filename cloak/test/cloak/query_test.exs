@@ -566,6 +566,39 @@ defmodule Cloak.QueryTest do
     assert rows == [%{row: [180, 200, 20], occurrences: 1}]
   end
 
+  test "selecting using LEFT OUTER JOIN" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..50, "children", ["age"], [20])
+
+    assert_query """
+      SELECT count(*)
+      FROM heights LEFT OUTER JOIN children ON heights.user_id = children.user_id
+    """, %{columns: ["count"], rows: rows}
+    assert rows == [%{row: [100], occurrences: 1}]
+  end
+
+  test "selecting using RIGHT OUTER JOIN" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..50, "children", ["age"], [20])
+
+    assert_query """
+      SELECT count(*)
+      FROM heights RIGHT OUTER JOIN children ON heights.user_id = children.user_id
+    """, %{columns: ["count"], rows: rows}
+    assert rows == [%{row: [50], occurrences: 1}]
+  end
+
+  test "selecting using FULL OUTER JOIN" do
+    :ok = insert_rows(_user_ids = 1..50, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 101..150, "children", ["age"], [20])
+
+    assert_query """
+      SELECT count(*)
+      FROM heights FULL OUTER JOIN children ON heights.user_id = children.user_id
+    """, %{columns: ["count"], rows: rows}
+    assert rows == [%{row: [100], occurrences: 1}]
+  end
+
   test "query reports an error on invalid where clause identifier" do
     assert_query "select height from heights where nonexistant > 10", %{error: error}
     assert ~s/Column `nonexistant` doesn't exist in table `heights`./ == error
