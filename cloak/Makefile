@@ -1,6 +1,7 @@
 SHELL=/bin/bash -o pipefail
 
-.PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile regenerate_db dialyze lint release release-local
+.PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile
+.PHONY: regenerate_db dialyze lint release release-local perftest perftest-setup
 
 all: deps compile
 
@@ -56,3 +57,9 @@ release-local: release
 
 check_dependent_apps:
 	mix check_dependent_apps
+
+perftest:
+	MIX_ENV=test mix run perftest/main.exs
+
+perftest-setup:
+	MIX_ENV=test mix run perftest/setup.exs ${SIZE}
