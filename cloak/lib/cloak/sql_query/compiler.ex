@@ -554,7 +554,7 @@ defmodule Cloak.SqlQuery.Compiler do
     |> all_expressions_with_columns()
     |> Enum.map(&extract_column/1)
     |> Enum.reject(&(&1 == nil))
-    |> Enum.uniq_by(&{&1.table, &1.name})
+    |> Enum.uniq_by(&db_column_name/1)
   end
 
   defp all_expressions_with_columns(%{command: :select, from: {:subquery, _}} = query) do
@@ -572,8 +572,11 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp set_column_db_row_position(%Column{} = column, %{db_columns: db_columns}) do
     %Column{column |
-      db_row_position: Enum.find_index(db_columns, &(&1.name == column.name && &1.table == column.table))
+      db_row_position: Enum.find_index(db_columns, &(db_column_name(&1) == db_column_name(column)))
     }
   end
   defp set_column_db_row_position(other, _query), do: other
+
+  defp db_column_name(%Column{table: :unknown, name: name}), do: name
+  defp db_column_name(column), do: "#{column.table.db_name}.#{column.name}"
 end

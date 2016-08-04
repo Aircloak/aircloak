@@ -2,6 +2,7 @@ defmodule Cloak.QueryTest do
   use ExUnit.Case, async: false
 
   alias Cloak.Query
+  alias Cloak.SqlQuery.Column
 
   defmacrop assert_query(query, expected_response) do
     quote do
@@ -611,6 +612,18 @@ defmodule Cloak.QueryTest do
       ",
       %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
     )
+  end
+
+  test "same database columns are selected only once in implicit self-join" do
+    {:ok, query} = Cloak.SqlQuery.make(
+      Cloak.DataSource.fetch!(:local),
+      "
+        select heights.height as h1, heights_alias.height as h2
+        from heights, heights_alias
+        where heights.user_id=heights_alias.user_id
+      "
+    )
+    assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
   end
 
   defp start_query(statement) do
