@@ -21,6 +21,7 @@ defmodule Cloak.QueryTest do
     Cloak.Test.DB.setup()
     Cloak.Test.DB.create_test_schema()
     Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
+    Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
     Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, time TIMESTAMP")
     :ok
   end
@@ -33,6 +34,7 @@ defmodule Cloak.QueryTest do
   test "show tables" do
     assert_query "show tables", %{columns: ["name"], rows: [
       %{occurrences: 1, row: [:heights]},
+      %{occurrences: 1, row: [:heights_alias]},
       %{occurrences: 1, row: [:purchases]}]
     }
   end
@@ -590,6 +592,12 @@ defmodule Cloak.QueryTest do
   test "select comparing two columns" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from heights where height = height",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "table name is different from the database table name" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from heights_alias",
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 

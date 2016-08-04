@@ -11,19 +11,14 @@ defmodule Cloak.Test.DB do
     PostgreSQL.execute("CREATE SCHEMA cloak_test", [])
   end
 
-  def clear_table(table_name) do
-    PostgreSQL.execute("TRUNCATE TABLE #{sanitized_table(table_name)}", [])
+  def clear_table(db_name) do
+    PostgreSQL.execute("TRUNCATE TABLE #{sanitized_table(db_name)}", [])
   end
 
-  def create_table(table_name, definition) do
-    "CREATE TABLE #{sanitized_table(table_name)} (user_id VARCHAR(64), #{definition})"
-    |> PostgreSQL.execute([])
-    |> case do
-      {:error, error} -> {:error, error}
-      {:ok, result} ->
-        DataSource.register_test_table(String.to_atom(table_name), full_table_name(table_name), "user_id")
-        {:ok, result}
-    end
+  def create_table(table_name, definition, opts \\ []) do
+    db_name = opts[:db_name] || table_name
+    with {:ok, _} <- create_db_table(db_name, definition, opts), do:
+      DataSource.register_test_table(String.to_atom(table_name), full_table_name(db_name), "user_id")
   end
 
   def add_users_data(data) do
@@ -37,6 +32,17 @@ defmodule Cloak.Test.DB do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp create_db_table(db_name, definition, opts) do
+    if opts[:skip_db_create] do
+      {:ok, :already_created}
+    else
+      PostgreSQL.execute(
+        "CREATE TABLE #{sanitized_table(db_name)} (user_id VARCHAR(64), #{definition})",
+        []
+      )
+    end
+  end
 
   defp insert_rows(user_id, table_name, table_data) do
     columns = Enum.map(["user_id" | Keyword.fetch!(table_data, :columns)], &sanitize_db_object/1)

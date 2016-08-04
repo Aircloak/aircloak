@@ -11,16 +11,6 @@ defmodule Cloak.SqlQuery.Column do
   defstruct [:table, :name, :type, :user_id?, :db_row_position]
 
   @doc """
-  Returns the column alias.
-
-  The alias is unique in the query scope, and can be used by data source drivers
-  to uniquely distinguish between different names.
-  """
-  @spec alias(t) :: String.t
-  def alias(%__MODULE__{table: :unknown, name: name}), do: name
-  def alias(column), do: "#{column.table.name}.#{column.name}"
-
-  @doc """
   Returns a display name of the column.
 
   This function should mostly be used when producing error messages.
