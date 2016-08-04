@@ -146,6 +146,7 @@ defmodule Cloak.SqlQuery.Function do
   defp do_apply([string, from], {:function, "substring", _}), do: substring(string, from)
   defp do_apply([string, from, count], {:function, "substring", _}), do: substring(string, from, count)
   defp do_apply([string, count], {:function, "substring_for", _}), do: substring(string, 1, count)
+  defp do_apply(args, {:function, "concat", _}), do: Enum.join(args)
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: Float.ceil(value, precision)

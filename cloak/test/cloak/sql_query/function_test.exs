@@ -127,6 +127,7 @@ defmodule Cloak.SqlQuery.Function.Test do
     assert well_typed?("concat", [:text, :text])
     assert well_typed?("concat", [:text, :text, :text, :text, :text])
     refute well_typed?("concat", [:text, :text, :integer, :text, :text])
+    assert apply_function("concat", ["a", " ", "string"]) == "a string"
   end
 
   test "any function with one of the arguments being :*", do:

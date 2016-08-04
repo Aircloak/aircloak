@@ -667,6 +667,12 @@ defmodule Cloak.QueryTest do
       <> " but got (`text`)"
   end
 
+  test "concat" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["x"])
+    assert_query "select concat(name, 'y', name) from heights",
+      %{columns: [_], rows: [%{row: ["xyx"], occurrences: 10}]}
+  end
+
   defp start_query(statement) do
     %Query{id: "1", statement: statement, data_source: Cloak.DataSource.fetch!(:local)}
     |> Query.start({:process, self()})
