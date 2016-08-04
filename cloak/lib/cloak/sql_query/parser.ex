@@ -134,6 +134,7 @@ defmodule Cloak.SqlQuery.Parser do
       function_expression(),
       extract_expression(),
       trim_expression(),
+      substring_expression(),
       qualified_identifier(),
       constant_column()
     ])
@@ -216,6 +217,20 @@ defmodule Cloak.SqlQuery.Parser do
   defp trim_function(:both), do: "btrim"
   defp trim_function(:leading), do: "ltrim"
   defp trim_function(:trailing), do: "rtrim"
+
+  defp substring_expression() do
+    pipe(
+      [
+        keyword(:substring),
+        keyword(:"("),
+        lazy(fn -> column() end),
+        keyword(:from),
+        constant(:integer),
+        keyword(:")"),
+     ],
+     fn([:substring, :"(", column, :from, from, :")"]) -> {:function, "substring", [column, {:constant, from}]} end
+   )
+  end
 
   defp qualified_identifier() do
     map(

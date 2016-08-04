@@ -18,6 +18,7 @@ defmodule Cloak.SqlQuery.Function do
     ~w(length lower lcase upper ucase) => %{aggregate: false, argument_types: [:text]},
     ~w(left right) => %{aggregate: false, argument_types: [:text, :integer]},
     ~w(btrim ltrim rtrim) => %{aggregate: false, argument_types: [:text, {:optional, :text}]},
+    ~w(substring) => %{aggregate: false, argument_types: [:text, :integer]}
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -137,6 +138,7 @@ defmodule Cloak.SqlQuery.Function do
   defp do_apply([string, chars], {:function, "rtrim", _}), do: rtrim(string, chars)
   defp do_apply([string, count], {:function, "left", _}), do: left(string, count)
   defp do_apply([string, count], {:function, "right", _}), do: right(string, count)
+  defp do_apply([string, from], {:function, "substring", _}), do: substring(string, from)
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: Float.ceil(value, precision)
@@ -150,7 +152,9 @@ defmodule Cloak.SqlQuery.Function do
 
   defp trim(string, chars), do: string |> ltrim(chars) |> rtrim(chars)
 
-  def ltrim(string, chars), do: Regex.replace(~r/^[#{Regex.escape(chars)}]*/, string, "")
+  defp ltrim(string, chars), do: Regex.replace(~r/^[#{Regex.escape(chars)}]*/, string, "")
 
-  def rtrim(string, chars), do: Regex.replace(~r/[#{Regex.escape(chars)}]*$/, string, "")
+  defp rtrim(string, chars), do: Regex.replace(~r/[#{Regex.escape(chars)}]*$/, string, "")
+
+  defp substring(string, from), do: String.slice(string, from - 1, String.length(string))
 end

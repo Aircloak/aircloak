@@ -456,6 +456,11 @@ defmodule Cloak.SqlQuery.Parser.Test do
       select(columns: [{:function, "btrim", [identifier("foo"), {:constant, constant("xyz")}]}])
   end
 
+  test "substring from" do
+    assert_parse "select substring(foo from 3) from bar",
+      select(columns: [{:function, "substring", [identifier("foo"), {:constant, constant(3)}]}])
+  end
+
   Enum.each(
     [
       {"single quote is not allowed in the identifier",

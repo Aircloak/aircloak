@@ -643,6 +643,12 @@ defmodule Cloak.QueryTest do
       %{columns: ["btrim"], rows: [%{row: ["o"], occurrences: 10}]}
   end
 
+  test "substring from" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["a name"])
+    assert_query "select substring(name from 3) from heights",
+      %{columns: [_], rows: [%{row: ["name"], occurrences: 10}]}
+  end
+
   defp start_query(statement) do
     %Query{id: "1", statement: statement, data_source: Cloak.DataSource.fetch!(:local)}
     |> Query.start({:process, self()})

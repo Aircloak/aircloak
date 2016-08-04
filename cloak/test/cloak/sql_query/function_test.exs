@@ -113,6 +113,11 @@ defmodule Cloak.SqlQuery.Function.Test do
     assert apply_function("rtrim", ["xyxa stringxyx", "xy"]) == "xyxa string"
   end
 
+  test "substring" do
+    assert well_typed?("substring", [:text, :integer])
+    assert apply_function("substring", ["a string", 3]) == "string"
+  end
+
   test "any function with one of the arguments being :*", do:
     assert apply_function("whatever", [1, :*, "thing"]) == :*
 
