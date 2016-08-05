@@ -120,6 +120,9 @@ defmodule Cloak.SqlQuery.Function.Test do
     assert well_typed?("substring_for", [:text, :integer])
     assert apply_function("substring", ["a string", 3]) == "string"
     assert apply_function("substring", ["a string", 3, 2]) == "st"
+    assert apply_function("substring", ["a string", -3, 2]) == ""
+    assert apply_function("substring", ["a string", -1, 4]) == "a "
+    assert apply_function("substring", ["a string", 3, -2]) == ""
     assert apply_function("substring_for", ["a string", 3]) == "a s"
   end
 

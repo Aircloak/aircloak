@@ -165,6 +165,9 @@ defmodule Cloak.SqlQuery.Function do
 
   defp rtrim(string, chars), do: Regex.replace(~r/[#{Regex.escape(chars)}]*$/, string, "")
 
-  defp substring(string, from, count \\ nil), do:
+  defp substring(string, from, count \\ nil)
+  defp substring(string, from, count) when from < 1, do: substring(string, 1, count + from - 1)
+  defp substring(_string, _from, count) when count < 0, do: ""
+  defp substring(string, from, count), do:
     String.slice(string, from - 1, count || String.length(string))
 end
