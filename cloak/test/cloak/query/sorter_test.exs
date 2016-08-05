@@ -30,4 +30,11 @@ defmodule Cloak.Query.SorterTest do
     ordered = Sorter.order(rows, query) |> buckets_to_list()
     assert ordered == ["aaa", nil, nil, :*]
   end
+
+  test "rows with :* are ordered after other rows in the default order" do
+    rows = [:*, "some value", :*] |> list_to_buckets()
+    query = %{columns: [], order_by: []}
+    ordered = Sorter.order(rows, query) |> buckets_to_list()
+    assert ordered == ["some value", :*, :*]
+  end
 end
