@@ -2,6 +2,16 @@ defmodule PerfTest do
 
   @table_name "aircloak_perftest"
 
+  def run() do
+    IO.puts ">>> Started performance test ..."
+    data_source_setup()
+    query = "SELECT COUNT(item), AVG(price) FROM #{@table_name} WHERE price <> 500"
+    IO.puts ">>> Testing query '#{query}' ..."
+    timings = Enum.map(1..5, fn (_) -> run_query(query) end)
+    {avg, stddev} = stats(timings)
+    IO.puts "\n>>> Performance test ended: AVERAGE duration: #{avg} seconds, STDDEV: #{stddev} seconds."
+  end
+
   defp data_source_setup() do
     Cloak.DataSource.register_test_table(String.to_atom(@table_name), @table_name, "user_id")
   end
@@ -26,16 +36,6 @@ defmodule PerfTest do
     duration = (duration / 1_000_000) |> Float.round(3)
     IO.puts ">>> Query finished with result #{inspect row} in #{duration} seconds."
     duration
-  end
-
-  def run() do
-    IO.puts ">>> Started performance test ..."
-    data_source_setup()
-    query = "SELECT COUNT(item), AVG(price) FROM #{@table_name} WHERE price <> 500"
-    IO.puts ">>> Testing query '#{query}' ..."
-    timings = Enum.map(1..5, fn (_) -> run_query(query) end)
-    {avg, stddev} = stats(timings)
-    IO.puts "\n>>> Performance test ended: AVERAGE duration: #{avg} seconds, STDDEV: #{stddev} seconds."
   end
 end
 

@@ -3,6 +3,11 @@ defmodule PerfTest do
 
   @table_name "aircloak_perftest"
 
+  def run(users_count_in_k) do
+    db_setup()
+    create_data(users_count_in_k)
+  end
+
   defp db_setup() do
     IO.puts ">>> Creating perftest table ..."
     {:ok, _} = PostgreSQL.execute("DROP TABLE IF EXISTS #{@table_name}", [])
@@ -23,11 +28,6 @@ defmodule PerfTest do
       {:ok, _} = PostgreSQL.execute("INSERT INTO #{@table_name} (user_id, item, price ) VALUES #{values}", [])
     end)
     IO.puts ">>> Test data created succesfully."
-  end
-
-  def run(users_count_in_k) do
-    db_setup()
-    create_data(users_count_in_k)
   end
 end
 
