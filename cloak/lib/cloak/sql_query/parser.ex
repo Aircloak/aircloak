@@ -15,7 +15,8 @@ defmodule Cloak.SqlQuery.Parser do
   @type column ::
       qualified_identifier
     | {:distinct, qualified_identifier}
-    | {:function, String.t, qualified_identifier | :* | {:distinct, qualified_identifier}}
+    | {:function, String.t, [column]}
+    | {:constant, Parsers.Token.t}
 
   @type like :: {:like | :ilike, String.t, String.t}
   @type is :: {:is, String.t, :null}
@@ -129,8 +130,12 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp column() do
-    choice([function_expression(), extract_expression(), qualified_identifier()])
+    choice([function_expression(), extract_expression(), qualified_identifier(), constant_column()])
     |> label("column name or function")
+  end
+
+  defp constant_column() do
+    any_constant() |> map(&{:constant, &1})
   end
 
   defp select_column() do
@@ -147,17 +152,25 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp function_expression() do
-    pipe(
-      [
-        identifier(),
-        keyword(:"("),
-        choice([qualified_identifier(), distinct_identifier(), keyword(:*)]),
-        keyword(:")")
-      ],
-      fn
-        ([function, :"(", parameter, :")"]) -> {:function, String.downcase(function), parameter}
-      end
-    )
+    switch([
+      {identifier() |> keyword(:"("), lazy(fn -> function_arguments() end) |> keyword(:")")},
+      {:else, error_message(fail(""), "Expected an argument list")}
+    ])
+    |> map(fn
+      {[function, :"("], [arguments, :")"]} -> {:function, String.downcase(function), arguments}
+    end)
+  end
+
+  defp function_arguments() do
+    choice([
+      comma_delimited(column()),
+      distinct_identifier(),
+      keyword(:*)
+    ])
+    |> map(fn
+      [_|_] = arguments -> arguments
+      single_argument -> [single_argument]
+    end)
   end
 
   defp extract_expression() do
@@ -291,18 +304,18 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp allowed_where_value() do
-    choice([qualified_identifier(), allowed_where_constant()])
+    choice([qualified_identifier(), any_constant()])
     |> label("comparison value")
   end
 
   defp in_values() do
     pipe(
-      [keyword(:"("), comma_delimited(allowed_where_constant()), keyword(:")")],
+      [keyword(:"("), comma_delimited(any_constant()), keyword(:")")],
       fn([_, values, _]) -> values end
     )
   end
 
-  defp allowed_where_constant() do
+  defp any_constant() do
     constant_of([:string, :integer, :float, :boolean])
     |> label("comparison value")
   end

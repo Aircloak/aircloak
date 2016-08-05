@@ -95,7 +95,7 @@ defmodule Cloak.SqlQuery.Lexer do
   end
 
   defp integer_constant() do
-    word_of(~r/[-+]?[0-9]+/)
+    word_of(~r/[-+]?[0-9]+(?!\w)/)
     |> map(&Integer.parse/1)
     |> satisfy(&match?({_, ""}, &1))
     |> map(fn({value, _}) -> value end)

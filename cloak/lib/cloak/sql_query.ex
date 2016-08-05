@@ -3,7 +3,7 @@ defmodule Cloak.SqlQuery do
 
   @type t :: Compiler.compiled_query
 
-  alias Cloak.SqlQuery.Column
+  alias Cloak.SqlQuery.{Column, Function}
 
 
   # -------------------------------------------------------------------
@@ -34,6 +34,9 @@ defmodule Cloak.SqlQuery do
 
   @doc "Returns the list of unique columns used in the aggregation process."
   @spec aggregated_columns(t) :: [Column.t]
-  def aggregated_columns(query),
-    do: (for {:function, _, column} <- query.aggregators, do: column) |> Enum.uniq()
+  def aggregated_columns(query) do
+    query.aggregators
+    |> Enum.flat_map(&Function.arguments/1)
+    |> Enum.uniq()
+  end
 end

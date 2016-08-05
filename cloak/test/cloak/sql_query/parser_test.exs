@@ -54,6 +54,13 @@ defmodule Cloak.SqlQuery.Parser.Test do
     end
   end
 
+  # Produces a pattern which matches an identifier with the given name.
+  defmacrop identifier(name) do
+    quote do
+      {:identifier, :unknown, name}
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Tests
@@ -292,14 +299,14 @@ defmodule Cloak.SqlQuery.Parser.Test do
   end
 
   test "count(*)" do
-    assert_parse("select count(*) from foo", select(columns: [{:function, "count", :*}], from: "foo"))
+    assert_parse("select count(*) from foo", select(columns: [{:function, "count", [:*]}], from: "foo"))
   end
 
   test "aggregation functions" do
     assert_parse(
       "select sum(price), min(value) from foo",
-      select(columns: [{:function, "sum", {:identifier, :unknown, "price"}},
-        {:function, "min", {:identifier, :unknown, "value"}}], from: "foo")
+      select(columns: [{:function, "sum", [{:identifier, :unknown, "price"}]},
+        {:function, "min", [{:identifier, :unknown, "value"}]}], from: "foo")
     )
   end
 
@@ -373,7 +380,7 @@ defmodule Cloak.SqlQuery.Parser.Test do
   test "count(distinct column)" do
     assert_parse(
       "select count(distinct foo) from bar",
-      select(columns: [{:function, "count", {:distinct, {:identifier, :unknown, "foo"}}}])
+      select(columns: [{:function, "count", [{:distinct, {:identifier, :unknown, "foo"}}]}])
     )
   end
 
@@ -389,14 +396,14 @@ defmodule Cloak.SqlQuery.Parser.Test do
       select(
         columns: [
           {:identifier, "table", "column"},
-          {:function, "count", {:identifier, "table", "column"}},
-          {:function, "count", {:distinct, {:identifier, "table", "column"}}}
+          {:function, "count", [{:identifier, "table", "column"}]},
+          {:function, "count", [{:distinct, {:identifier, "table", "column"}}]}
         ],
         where: [{:comparison, {:identifier, "table", "column"}, :=, _}],
         group_by: [{:identifier, "table", "column"}],
         order_by: [
           {{:identifier, "table", "column"}, :desc},
-          {{:function, "count", {:distinct, {:identifier, "table", "column"}}}, :nil}
+          {{:function, "count", [{:distinct, {:identifier, "table", "column"}}]}, :nil}
         ]
       )
     )
@@ -415,8 +422,18 @@ defmodule Cloak.SqlQuery.Parser.Test do
 
   test "function in group by" do
     assert_parse("select * from foo group by bar(x)",
-      select(group_by: [{:function, "bar", {:identifier, :unknown, "x"}}])
+      select(group_by: [{:function, "bar", [{:identifier, :unknown, "x"}]}])
     )
+  end
+
+  test "select a constant" do
+    assert_parse("select 10 from foo", select(columns: [{:constant, constant(10)}]))
+  end
+
+  test "multi-argument function" do
+    assert_parse("select foo(x, y, z) from bar", select(columns:
+      [{:function, "foo", [identifier("x"), identifier("y"), identifier("z")]}]
+    ))
   end
 
   Enum.each(
