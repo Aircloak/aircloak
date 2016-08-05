@@ -22,6 +22,7 @@ defmodule Cloak.QueryTest do
     Cloak.Test.DB.setup()
     Cloak.Test.DB.create_test_schema()
     Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
+    Cloak.Test.DB.create_table("floats", "float REAL")
     Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
     Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, time TIMESTAMP")
     :ok
@@ -29,11 +30,13 @@ defmodule Cloak.QueryTest do
 
   setup do
     Cloak.Test.DB.clear_table("heights")
+    Cloak.Test.DB.clear_table("floats")
     :ok
   end
 
   test "show tables" do
     assert_query "show tables", %{columns: ["name"], rows: [
+      %{occurrences: 1, row: [:floats]},
       %{occurrences: 1, row: [:heights]},
       %{occurrences: 1, row: [:heights_alias]},
       %{occurrences: 1, row: [:purchases]}]
@@ -119,6 +122,47 @@ defmodule Cloak.QueryTest do
         %{occurrences: 1, row: [10, 2016]},
         %{occurrences: 1, row: [20, 2015]},
       ]}
+  end
+
+  test "select a constant" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
+    assert_query "select 3 from heights", %{columns: [""], rows: [%{occurrences: 10, row: [3]}]}
+  end
+
+  test "select an aliased constant" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
+    assert_query "select 'text' as the_text from heights",
+      %{columns: ["the_text"], rows: [%{occurrences: 10, row: ["text"]}]}
+  end
+
+  test "a binary function of two columns" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
+    assert_query "select div(height, height) from heights",
+      %{columns: ["div"], rows: [%{occurrences: 10, row: [1]}]}
+  end
+
+  test "a binary function of a column and a constant" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
+    assert_query "select div(height, 3) from heights",
+      %{columns: ["div"], rows: [%{occurrences: 10, row: [7]}]}
+  end
+
+  test "unary trunc" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
+    assert_query "select trunc(float) from floats",
+      %{columns: ["trunc"], rows: [%{occurrences: 10, row: [12]}]}
+  end
+
+  test "binary trunc" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
+    assert_query "select trunc(float, 2) from floats",
+      %{columns: ["trunc"], rows: [%{occurrences: 10, row: [12.23]}]}
+  end
+
+  test "binary trunc in a grouped query" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
+    assert_query "select trunc(float, 2) from floats group by float",
+      %{columns: ["trunc"], rows: [%{occurrences: 1, row: [12.23]}]}
   end
 
   test "select all and order query" do

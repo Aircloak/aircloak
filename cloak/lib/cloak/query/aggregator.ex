@@ -2,7 +2,7 @@ defmodule Cloak.Query.Aggregator do
   @moduledoc "This module aggregates the values into an anonymized result. See `aggregate/2` for details."
   alias Cloak.DataSource
   alias Cloak.SqlQuery
-  alias Cloak.SqlQuery.Function
+  alias Cloak.SqlQuery.{Column, Function}
   alias Cloak.Query.Anonymizer
 
   @typep property_values :: [DataSource.field | :*]
@@ -130,7 +130,7 @@ defmodule Cloak.Query.Aggregator do
     all_users_rows = Map.values(users_rows)
     aggregated_columns = SqlQuery.aggregated_columns(query)
 
-    aggregation_results = for {:function, function, column}  <- query.aggregators do
+    aggregation_results = for {:function, function, arguments}  <- query.aggregators, column <- arguments do
       values_index = Enum.find_index(aggregated_columns, &column == &1)
       aggregated_values = all_users_rows |> Stream.map(&Enum.at(&1, values_index)) |> Stream.reject(&[] === &1)
       case low_users_count?(aggregated_values, anonymizer) do
@@ -199,17 +199,17 @@ defmodule Cloak.Query.Aggregator do
   end
 
   defp occurrences(row, columns, %{implicit_count: true}), do:
-    fetch_bucket_value!(row, columns, {:function, "count", :*})
+    fetch_bucket_value!(row, columns, {:function, "count", [:*]})
   defp occurrences(_row, _columns, _query), do: 1
 
-  defp fetch_bucket_value!(row, columns, {:function, _, column} = function) do
+  defp fetch_bucket_value!(row, columns, {:function, _, args} = function), do:
     if selected?(columns, function),
       do: Enum.at(row, Map.fetch!(columns, function)),
-      else: row |> fetch_bucket_value!(columns, column) |> Function.apply(function)
-  end
-  defp fetch_bucket_value!(row, columns, column) do
+      else: Enum.map(args, &fetch_bucket_value!(row, columns, &1)) |> Function.apply(function)
+  defp fetch_bucket_value!(_row, _columns, %Column{constant?: true, value: value}), do:
+    value
+  defp fetch_bucket_value!(row, columns, column), do:
     Enum.at(row, Map.fetch!(columns, column))
-  end
 
   defp selected?(columns, column) do
     Map.has_key?(columns, column)

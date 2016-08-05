@@ -84,3 +84,120 @@ It's worth noting that absence of `*` rows doesn't mean that no rows were omitte
 After low-count values are filtered, some amount of noise is introduced. Consider the example from the [previous section](#low-count-filtering), where there are 100 Alices, 150 Johns, and 5 other names. The final result might contain a slightly different distribution, for example 94 Alice rows, 152 John rows, and 7 `*` rows.
 
 The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymized. The returned values will slightly differ from the real values.
+
+## Database functions
+
+AQL supports a subset of common database functions to make working with data easier.
+
+### Date functions
+
+The functions `year`, `month`, `day`, `hour`, `minute`, `second`, and `weekday` are supported. They extract
+the named part from a date or time column.
+
+```sql
+SELECT YEAR(date_column), MONTH(date_column), DAY(date_column) FROM table;
+
+SELECT EXTRACT(year FROM date_column) FROM table;
+```
+
+### abs
+
+Computes the absolute value of the given number.
+
+```sql
+ABS(3)
+-- 3
+
+ABS(-3)
+-- 3
+```
+
+### ceil / ceiling
+
+Computes the smallest integer that is greater than or equal to its argument.
+
+```sql
+CEIL(3.22)
+-- 4
+```
+
+### div
+
+Performs integer division on its arguments.
+
+```sql
+DIV(10, 2)
+-- 5
+
+DIV(10, 3)
+-- 3
+```
+
+### floor
+
+Computes the largest integer that is less than or equal to its argument.
+
+```sql
+FLOOR(3.22)
+-- 3
+```
+
+### mod
+
+`MOD(a, b)` computes the remainder from `DIV(a, b)`.
+
+```sql
+MOD(10, 3)
+-- 1
+```
+
+### pow
+
+`POW(a, b)` computes `a` to the `b`-th power.
+
+```sql
+POW(2, 3)
+-- 8
+
+POW(2, 3.5)
+-- 11.313708498984761
+```
+
+### round
+
+Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
+
+```sql
+ROUND(3.22)
+-- 3
+
+ROUND(3.99)
+-- 4
+
+ROUND(3.22, 1)
+-- 3.2
+```
+
+### sqrt
+
+Computes the square root.
+
+```sql
+SQRT(2)
+-- 1.4142135623730951
+```
+
+### trunc
+
+Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
+
+```sql
+TRUNC(3.22)
+-- 3
+
+TRUNC(-3.22)
+-- -3
+
+TRUNC(3.22, 1)
+-- 3.2
+```
