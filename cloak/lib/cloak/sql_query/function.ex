@@ -152,7 +152,8 @@ defmodule Cloak.SqlQuery.Function do
   defp do_trunc(value, precision) when value < 0, do: Float.ceil(value, precision)
   defp do_trunc(value, precision), do: Float.floor(value, precision)
 
-  defp left(string, count) when count < 0, do: String.slice(string, 0, String.length(string) + count)
+  defp left(string, count) when count < 0, do:
+    String.slice(string, 0, max(String.length(string) + count, 0))
   defp left(string, count), do: String.slice(string, 0, count)
 
   defp right(string, count) when count < 0, do: String.slice(string, -count, String.length(string))

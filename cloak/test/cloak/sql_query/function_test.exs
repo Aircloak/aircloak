@@ -70,6 +70,7 @@ defmodule Cloak.SqlQuery.Function.Test do
     assert well_typed?("left", [:text, :integer])
     assert apply_function("left", ["a string", 2]) == "a "
     assert apply_function("left", ["a string", -2]) == "a stri"
+    assert apply_function("left", ["a string", -10]) == ""
   end
 
   test "right" do
