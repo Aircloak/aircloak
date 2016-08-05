@@ -491,6 +491,15 @@ defmodule Cloak.SqlQuery.Parser.Test do
               }))
   end
 
+  Enum.each(["JOIN", "INNER JOIN", "RIGHT JOIN", "RIGHT OUTER JOIN", "LEFT JOIN", "LEFT OUTER JOIN",
+      "FULL JOIN", "FULL OUTER JOIN"],
+    fn(join_type) ->
+      test "Fails when no ON clause is provided in complex JOIN (#{join_type})" do
+        assert_parse("select a from foo #{unquote(join_type)} bar", select(from: {:join, :error, _}))
+      end
+    end
+  )
+
   test "column alias" do
     assert_parse("select a as x from b",
       select(columns: [{{:identifier, :unknown, "a"}, :as, "x"}]))

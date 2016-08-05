@@ -141,6 +141,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp from_clause_to_tables({:join, _join_type, clause1, clause2, :on, _conditions}) do
     from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
   end
+  defp from_clause_to_tables({:join, :error, error_message}), do: raise CompilationError, message: error_message
   defp from_clause_to_tables(table), do: [table]
 
   defp compile_aliases(%{columns: [_|_] = columns} = query) do

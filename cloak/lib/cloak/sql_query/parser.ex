@@ -269,22 +269,28 @@ defmodule Cloak.SqlQuery.Parser do
         option(join_type()),
         keyword(:join),
         table_name(),
-        keyword(:on),
-        where_expressions(),
+        option(
+          sequence([
+            keyword(:on),
+            where_expressions()
+          ])
+        ),
         option(lazy(fn -> join_appendix() end))
       ],
       fn
-        ([nil, :join, table, :on, conditions, next]) -> {:join, :inner_join, table, :on, conditions, next}
-        ([:inner, :join, table, :on, conditions, next]) -> {:join, :inner_join, table, :on, conditions, next}
-        ([:outer, :join, table, :on, conditions, next]) -> {:join, :full_outer_join, table, :on, conditions, next}
-        ([:full, :join, table, :on, conditions, next]) -> {:join, :full_outer_join, table, :on, conditions, next}
-        ([[:full, :outer], :join, table, :on, conditions, next]) ->
+        ([_join, _join_type, _table, nil, _next]) ->
+          {:join, :error, "Expected an `ON`-clause when JOINing tables."}
+        ([nil, :join, table, [:on, conditions], next]) -> {:join, :inner_join, table, :on, conditions, next}
+        ([:inner, :join, table, [:on, conditions], next]) -> {:join, :inner_join, table, :on, conditions, next}
+        ([:outer, :join, table, [:on, conditions], next]) -> {:join, :full_outer_join, table, :on, conditions, next}
+        ([:full, :join, table, [:on, conditions], next]) -> {:join, :full_outer_join, table, :on, conditions, next}
+        ([[:full, :outer], :join, table, [:on, conditions], next]) ->
           {:join, :full_outer_join, table, :on, conditions, next}
-        ([:left, :join, table, :on, conditions, next]) -> {:join, :left_outer_join, table, :on, conditions, next}
-        ([[:left, :outer], :join, table, :on, conditions, next]) ->
+        ([:left, :join, table, [:on, conditions], next]) -> {:join, :left_outer_join, table, :on, conditions, next}
+        ([[:left, :outer], :join, table, [:on, conditions], next]) ->
           {:join, :left_outer_join, table, :on, conditions, next}
-        ([:right, :join, table, :on, conditions, next]) -> {:join, :right_outer_join, table, :on, conditions, next}
-        ([[:right, :outer], :join, table, :on, conditions, next]) ->
+        ([:right, :join, table, [:on, conditions], next]) -> {:join, :right_outer_join, table, :on, conditions, next}
+        ([[:right, :outer], :join, table, [:on, conditions], next]) ->
           {:join, :right_outer_join, table, :on, conditions, next}
       end
     )
