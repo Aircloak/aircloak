@@ -30,15 +30,15 @@ defmodule Cloak.DataSource.PostgreSQL do
     query = "SELECT column_name, udt_name FROM information_schema.columns " <>
       "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
     row_mapper = fn [name, type_name] -> {name, parse_type(type_name)} end
-    {:ok, {_, columns_list}} = run_query(source_id, query, row_mapper)
+    {:ok, columns_list} = run_query(source_id, query, row_mapper, &Enum.to_list/1)
     columns_list
   end
 
   @doc false
-  def select(source_id, sql_query) do
+  def select(source_id, sql_query, result_processor) do
     {query_string, params} = Builder.build(sql_query)
     params = Enum.map(params, &convert_param/1)
-    run_query(source_id, query_string, params, &row_mapper/1)
+    run_query(source_id, query_string, params, &row_mapper/1, result_processor)
   end
 
 
@@ -46,12 +46,19 @@ defmodule Cloak.DataSource.PostgreSQL do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp run_query(source_id, statement, params \\ [], decode_mapper) do
-    options = [timeout: 15 * 60 * 1000, pool_timeout: 2 * 60 * 1000, decode_mapper: decode_mapper, pool: @pool_name]
-    with {:ok, result} <- Postgrex.query(proc_name(source_id), statement, params, options) do
-      %Postgrex.Result{command: :select, num_rows: count, rows: rows} = result
-      {:ok, {count, rows}}
-    end
+  defp run_query(source_id, statement, params \\ [], decode_mapper, result_processor) do
+    options = [timeout: 4 * 60 * 60_000, pool_timeout: 5 * 60_000, pool: @pool_name]
+    Postgrex.transaction(proc_name(source_id), fn(conn) ->
+      with {:ok, query} <- Postgrex.prepare(conn, "data select", statement, []) do
+        try do
+          Postgrex.stream(conn, query, params, [decode_mapper: decode_mapper, max_rows: 25_000])
+          |> Stream.flat_map(fn (%Postgrex.Result{rows: rows}) -> rows end)
+          |> result_processor.()
+        after
+          Postgrex.close(conn, query)
+        end
+      end
+    end, options)
   end
 
   defp proc_name(source_id), do: {:via, :gproc, {:n, :l, {Cloak.DataSource, source_id}}}

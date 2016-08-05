@@ -178,15 +178,21 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp invalid_not_aggregated_columns(%{command: :select, group_by: [_|_]} = query) do
     query.columns
-    |> Stream.reject(&Function.aggregate_function?/1)
-    |> Stream.reject(fn(column) -> Enum.any?(query.group_by, &(&1 == select_clause_to_identifier(column))) end)
+    |> Stream.reject(&aggregated_column?(&1, query))
     |> Enum.reject(fn(column) -> Enum.member?(query.group_by, column) end)
   end
   defp invalid_not_aggregated_columns(%{command: :select} = query) do
-    case Enum.partition(query.columns, &Function.aggregate_function?/1) do
+    case Enum.partition(query.columns, &aggregated_column?(&1, query)) do
       {[_|_] = _aggregates, [_|_] = non_aggregates} -> non_aggregates
       _ -> []
     end
+  end
+
+  defp aggregated_column?(column, query) do
+    Column.constant?(column) ||
+      Function.aggregate_function?(column) ||
+      Enum.member?(query.group_by, column) ||
+      (Function.function?(column) && Enum.all?(Function.arguments(column), &aggregated_column?(&1, query)))
   end
 
   defp compile_columns(query) do
@@ -203,57 +209,50 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp expand_star_select(query), do: query
 
-  defp valid_argument_type(function_call) do
-    case {Function.argument_type(function_call), select_clause_to_identifier(function_call)} do
-      {:any, _} -> true
-      {:numeric, %{type: :integer}} -> true
-      {:numeric, %{type: :real}} -> true
-      {exact_type, %{type: exact_type}} -> true
-      _ -> false
-    end
-  end
-
   defp filter_aggregators(columns), do: Enum.filter(columns, &Function.aggregate_function?/1)
 
   defp verify_columns(query) do
     verify_functions(query)
     verify_aggregated_columns(query)
     verify_group_by_functions(query)
-    verify_function_parameters(query)
+    verify_function_arguments(query)
     warn_on_selected_uids(query)
   end
 
-  defp verify_function_parameters(query) do
+  defp verify_function_arguments(query) do
     query.columns
     |> Enum.filter(&Function.function?/1)
-    |> Enum.reject(&valid_argument_type/1)
+    |> Enum.reject(&Function.well_typed?/1)
     |> case do
       [] -> :ok
       [function_call | _rest] ->
-        {:function, function_name, _} = function_call
-        function_type = Function.argument_type(function_call)
-        column = select_clause_to_identifier(function_call)
+        expected_types = Function.argument_types(function_call)
+        actual_types = Function.arguments(function_call) |> Enum.map(&(&1.type))
 
-        raise CompilationError, message: "Function `#{function_name}` requires `#{function_type}`,"
-          <> " but used over column `#{column.name}` of type `#{column.type}` from table `#{column.table.name}`"
+        raise CompilationError, message: "Function `#{Function.name(function_call)}` requires arguments"
+          <> " of type (#{quoted_list(expected_types)}), but got (#{quoted_list(actual_types)})"
     end
   end
+
+  defp quoted_list(items), do:
+    items |> Enum.map(&quoted_item/1) |> Enum.join(", ")
+
+  defp quoted_item({:optional, type}), do: "[`#{type}`]"
+  defp quoted_item(item), do: "`#{item}`"
 
   defp verify_aggregated_columns(query) do
     case invalid_not_aggregated_columns(query) do
       [] -> :ok
       [column | _rest] ->
-        raise CompilationError, message: "#{aggregated_expression_display(column)} needs " <>
+        raise CompilationError, message: "#{aggregated_expression_display(column)} " <>
           "to appear in the `group by` clause or be used in an aggregate function."
     end
   end
 
-  defp aggregated_expression_display({:function, _function, column}) do
-    aggregated_expression_display(column)
-  end
-  defp aggregated_expression_display(%Column{} = column) do
-    "Column `#{column.name}` from table `#{column.table.name}`"
-  end
+  defp aggregated_expression_display({:function, _function, args}), do:
+    "Columns (#{args |> Enum.map(&(&1.name)) |> quoted_list()}) need"
+  defp aggregated_expression_display(%Column{} = column), do:
+    "Column `#{column.name}` from table `#{column.table.name}` needs"
 
   defp verify_group_by_functions(query) do
     query.group_by
@@ -282,11 +281,6 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp select_clause_to_identifier({:function, _function, identifier}),
-    do: select_clause_to_identifier(identifier)
-  defp select_clause_to_identifier({:distinct, identifier}), do: identifier
-  defp select_clause_to_identifier(identifier), do: identifier
-
   defp partition_selected_columns(%{group_by: groups = [_|_], columns: columns} = query) do
     aggregators = filter_aggregators(columns)
     Map.merge(query, %{property: groups |> Enum.uniq(), aggregators: aggregators |> Enum.uniq()})
@@ -294,7 +288,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp partition_selected_columns(%{columns: columns} = query) do
     aggregators = filter_aggregators(columns)
     partitioned_columns = case aggregators do
-      [] -> %{property: columns |> Enum.uniq(), aggregators: [{:function, "count", :*}], implicit_count: true}
+      [] -> %{property: columns |> Enum.uniq(), aggregators: [{:function, "count", [:*]}], implicit_count: true}
       _ -> %{property: [], aggregators: aggregators |> Enum.uniq()}
     end
     Map.merge(query, partitioned_columns)
@@ -546,11 +540,14 @@ defmodule Cloak.SqlQuery.Compiler do
         end
     end
   end
+  defp identifier_to_column({:constant, %Token{value: %{type: type, value: value}}}, _columns_by_name, _query), do:
+    Column.constant(type, value)
   defp identifier_to_column(other, _columns_by_name, _query), do: other
 
   def column_title({:function, function, _}), do: function
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, column}), do: column
+  def column_title({:constant, _}), do: ""
 
   defp warn_on_selected_uids(query) do
     case selected_uid_columns(query) do
@@ -562,15 +559,15 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp selected_uid_columns(query) do
     query.columns
-    |> Enum.map(&extract_column/1)
+    |> Enum.flat_map(&extract_columns/1)
     |> Enum.filter(&(&1 != nil and &1.user_id?))
   end
 
-  defp extract_column(%Column{} = column), do: column
-  defp extract_column({:function, "count", :*}), do: nil
-  defp extract_column({:function, _function, expression}), do: extract_column(expression)
-  defp extract_column({:distinct, expression}), do: extract_column(expression)
-  defp extract_column([columns]), do: Enum.map(columns, &extract_column(&1))
+  defp extract_columns(%Column{} = column), do: [column]
+  defp extract_columns({:function, "count", [:*]}), do: [nil]
+  defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)
+  defp extract_columns({:distinct, expression}), do: extract_columns(expression)
+  defp extract_columns([columns]), do: Enum.flat_map(columns, &extract_columns(&1))
 
   defp warn_on_selected_uid(query, column) do
     add_info_message(query,
@@ -585,9 +582,10 @@ defmodule Cloak.SqlQuery.Compiler do
     id_columns = all_id_columns_from_tables(query)
     data_columns = all_data_columns_from_expressions(query)
     |> Enum.reject(&Enum.member?(id_columns, &1))
-    |> Enum.map(&extract_column/1)
+    |> Enum.flat_map(&extract_columns/1)
     |> Enum.reject(&(&1 == nil))
-    |> Enum.uniq_by(&{&1.table, &1.name})
+    |> Enum.reject(&(&1.constant?))
+    |> Enum.uniq_by(&db_column_name/1)
 
     query = %{query |
       db_id_columns: id_columns,
@@ -621,7 +619,7 @@ defmodule Cloak.SqlQuery.Compiler do
     %Column{column | db_row_position: 0}
   end
   defp set_column_db_row_position(%Column{} = column, %{db_data_columns: data_columns}) do
-    case Enum.find_index(data_columns, &(&1.name == column.name && &1.table == column.table)) do
+    case Enum.find_index(data_columns, &(db_column_name(&1) == db_column_name(column))) do
       # It's not actually a selected column, so ignore for the purpose of positioning
       nil -> column
       # The (potentially complex) user id column occupies the first position,
@@ -630,6 +628,9 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
   defp set_column_db_row_position(other, _query), do: other
+
+  defp db_column_name(%Column{table: :unknown, name: name}), do: name
+  defp db_column_name(column), do: "#{column.table.db_name}.#{column.name}"
 
   defp join_conditions_scope_check(from) do
     do_join_conditions_scope_check(from, [])
@@ -664,5 +665,4 @@ defmodule Cloak.SqlQuery.Compiler do
           message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
     end
   end
-
 end

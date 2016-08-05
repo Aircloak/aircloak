@@ -51,8 +51,8 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   @doc false
-  def select(source_id, sql_query) do
-    run_query(params(source_id), sql_query)
+  def select(source_id, sql_query, result_processor) do
+    run_query(params(source_id), sql_query, result_processor)
   end
 
 
@@ -69,7 +69,7 @@ defmodule Cloak.DataSource.DsProxy do
     Enum.map(response["columns"], &({&1["name"], parse_type(String.downcase(&1["type"]))}))
   end
 
-  defp run_query(params, query) do
+  defp run_query(params, query, result_processor) do
     case post!(params, "query", request(query)) do
       %{"success" => true} = response ->
         rows =
@@ -82,7 +82,7 @@ defmodule Cloak.DataSource.DsProxy do
             [_|_] = some_rows ->
               some_rows
           end
-        {:ok, {length(response["rows"]), rows}}
+        {:ok, result_processor.(rows)}
 
       %{"success" => false, "error" => error_message} ->
         {:error, error_message}
@@ -99,7 +99,7 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   defp needed_columns(query) do
-    Enum.map(query.db_id_columns ++ query.db_data_columns, &Cloak.SqlQuery.Column.alias/1)
+    Enum.map(query.db_id_columns ++ query.db_data_columns, &Builder.column_name/1)
   end
 
   defp sql_statement(sql_query) do

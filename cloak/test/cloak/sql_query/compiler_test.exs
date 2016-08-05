@@ -93,8 +93,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on non-numerical columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires `numeric`, but used over column"
-        <> " `column` of type `timestamp` from table `table`"
+      assert error == "Function `#{unquote(function)}` requires arguments of type (`numeric`), but got (`timestamp`)"
     end
   end
 
@@ -119,8 +118,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on non-timestamp columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires `timestamp`, but used over column"
-        <> " `numeric` of type `integer` from table `table`"
+      assert error == "Function `#{unquote(function)}` requires arguments of type (`timestamp`), but got (`integer`)"
     end
 
     test "allowing #{function} in group by", %{data_source: data_source} do
@@ -135,16 +133,42 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     end
   end
 
-  for function <- ~w(floor ceil ceiling trunc round) do
+  for function <- ~w(floor ceil ceiling) do
     test "allowing #{function} on real columns", %{data_source: data_source} do
       assert {:ok, _} = compile("select #{unquote(function)}(real) from table", data_source)
     end
 
     test "rejecting #{function} on integer columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires `real`, but used over column"
-        <> " `numeric` of type `integer` from table `table`"
+      assert error == "Function `#{unquote(function)}` requires arguments of type (`real`), but got (`integer`)"
     end
+  end
+
+  for function <- ~w(trunc round) do
+    test "allowing #{function} on real columns", %{data_source: data_source} do
+      assert {:ok, _} = compile("select #{unquote(function)}(real) from table", data_source)
+    end
+
+    test "rejecting #{function} on integer columns", %{data_source: data_source} do
+      assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
+      assert error ==
+        "Function `#{unquote(function)}` requires arguments of type (`real`, [`integer`]), but got (`integer`)"
+    end
+  end
+
+  test "multiarg function argument verification", %{data_source: data_source} do
+    assert {:error, error} = compile("select div(numeric, column) from table", data_source)
+    assert error == "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `timestamp`)"
+  end
+
+  test "rejecting a function with too many arguments", %{data_source: data_source} do
+    assert {:error, error} = compile("select avg(numeric, column) from table", data_source)
+    assert error == "Function `avg` requires arguments of type (`numeric`), but got (`integer`, `timestamp`)"
+  end
+
+  test "rejecting a function with too few arguments", %{data_source: data_source} do
+    assert {:error, error} = compile("select div(numeric) from table", data_source)
+    assert error == "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`)"
   end
 
   test "rejecting a column in select when its function is grouped", %{data_source: data_source} do
@@ -155,11 +179,16 @@ defmodule Cloak.SqlQuery.Compiler.Test do
   end
 
   test "rejecting a function in select when another function is grouped", %{data_source: data_source} do
-    assert {:error, error} = compile("select weekday(column) from table group by day(column)", data_source)
+    assert {:error, error} = compile("select div(numeric, numeric) from table group by abs(numeric)", data_source)
     assert error ==
-      "Column `column` from table `table` needs to appear in the `group by` clause" <>
-      " or be used in an aggregate function."
+      "Columns (`numeric`, `numeric`) need to appear in the `group by` clause or be used in an aggregate function."
   end
+
+  test "accepting constants as aggregated", %{data_source: data_source}, do:
+    assert {:ok, _} = compile("select count(*), 1, abs(1) from table", data_source)
+
+  test "accepting constants as aggregated in queries with group by", %{data_source: data_source}, do:
+    assert {:ok, _} = compile("select 1, abs(1) from table group by numeric", data_source)
 
   test "accepting proper joins", %{data_source: data_source} do
     assert {:ok, _} = compile("SELECT t1.c1 from t1, t2 WHERE t1.uid = t2.uid", data_source)
@@ -242,7 +271,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
   Enum.each(["count", "min", "max", "median", "stddev"], fn(function) ->
     test "allows qualified identifiers in function calls (function #{function})", %{data_source: data_source} do
-      assert %{columns: [{:function, unquote(function), column("table", "numeric")}]} =
+      assert %{columns: [{:function, unquote(function), [column("table", "numeric")]}]} =
         compile!("select #{unquote(function)}(table.numeric) from table", data_source)
     end
   end)
@@ -256,7 +285,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
         ORDER BY count(column) DESC, count(table.column) DESC
       """,
       data_source)
-    assert [column("table", "column"), {:function, "count", column("table", "column")}] = result[:columns]
+    assert [column("table", "column"), {:function, "count", [column("table", "column")]}] = result[:columns]
     assert [{:comparison, column("table", "column"), :>, _}] = result[:where]
     assert [{:comparison, column("table", "column"), :=, _}] = result[:where_not]
     assert [column("table", "column")] = result[:unsafe_filter_columns]

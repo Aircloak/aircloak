@@ -18,4 +18,8 @@ defmodule Cloak.SqlQuery.Lexer.Test do
     assert {:ok, [%Token{category: :from}, %Token{category: :select} | _]} =
       Lexer.tokenize("from\t\n select")
   end
+
+  test "lexing pseudo-identifiers starting with numbers" do
+    refute match?({:ok, [%Token{category: :constant} | _]}, Lexer.tokenize("123thing"))
+  end
 end

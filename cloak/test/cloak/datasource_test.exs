@@ -6,7 +6,7 @@ defmodule Cloak.DataSourceTest do
   setup do
     :ok = Cloak.Test.DB.setup()
     {:ok, _} = Cloak.Test.DB.create_test_schema()
-    {:ok, _} = Cloak.Test.DB.create_table("test", "value INTEGER")
+    :ok = Cloak.Test.DB.create_table("test", "value INTEGER")
     data = [{"test", [
       {:columns, ["value"]},
       {:data, [[10], [20], [30]]}
@@ -34,7 +34,7 @@ defmodule Cloak.DataSourceTest do
       data_source: local_data_source(),
       from: "test",
       selected_tables: [%{db_name: "cloak_test.test", name: "test"}]
-    })
+    }, &Enum.to_list/1)
 
     assert [["user-id", 10], ["user-id", 20], ["user-id", 30]] == rows
   end
