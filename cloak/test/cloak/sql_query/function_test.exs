@@ -137,6 +137,11 @@ defmodule Cloak.SqlQuery.Function.Test do
   test "any function with one of the arguments being :*", do:
     assert apply_function("whatever", [1, :*, "thing"]) == :*
 
+  test "typechecking a nested function call" do
+    assert Function.well_typed?({:function, "avg", [{:function, "abs", nil}]})
+    refute Function.well_typed?({:function, "avg", [{:function, "concat", nil}]})
+  end
+
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})
 

@@ -7,19 +7,22 @@ defmodule Cloak.SqlQuery.Function do
   import Kernel, except: [apply: 2]
 
   @functions %{
-    ~w(count) => %{aggregate: true, argument_types: [:any]},
-    ~w(sum avg min max stddev median) => %{aggregate: true, argument_types: [:numeric]},
-    ~w(year month day hour minute second weekday) => %{aggregate: false, argument_types: [:timestamp]},
-    ~w(floor ceil ceiling) => %{aggregate: false, argument_types: [:real]},
-    ~w(round trunc) => %{aggregate: false, argument_types: [:real, {:optional, :integer}]},
-    ~w(abs sqrt) => %{aggregate: false, argument_types: [:numeric]},
-    ~w(div mod) => %{aggregate: false, argument_types: [:integer, :integer]},
-    ~w(pow) => %{aggregate: false, argument_types: [:numeric, :numeric]},
-    ~w(length lower lcase upper ucase) => %{aggregate: false, argument_types: [:text]},
-    ~w(left right) => %{aggregate: false, argument_types: [:text, :integer]},
-    ~w(btrim ltrim rtrim) => %{aggregate: false, argument_types: [:text, {:optional, :text}]},
-    ~w(substring substring_for) => %{aggregate: false, argument_types: [:text, :integer, {:optional, :integer}]},
-    ~w(concat) => %{aggregate: false, argument_types: [{:many1, :text}]},
+    ~w(count) => %{aggregate: true, return_type: :integer, argument_types: [:any]},
+    ~w(sum avg min max stddev median) => %{aggregate: true, return_type: :real, argument_types: [:numeric]},
+    ~w(year month day hour minute second weekday) =>
+      %{aggregate: false, return_type: :integer, argument_types: [:timestamp]},
+    ~w(floor ceil ceiling) => %{aggregate: false, return_type: :real, argument_types: [:real]},
+    ~w(round trunc) => %{aggregate: false, return_type: :real, argument_types: [:real, {:optional, :integer}]},
+    ~w(abs sqrt) => %{aggregate: false, return_type: :real, argument_types: [:numeric]},
+    ~w(div mod) => %{aggregate: false, return_type: :integer, argument_types: [:integer, :integer]},
+    ~w(pow) => %{aggregate: false, return_type: :real, argument_types: [:numeric, :numeric]},
+    ~w(length) => %{aggregate: false, return_type: :integer, argument_types: [:text]},
+    ~w(lower lcase upper ucase) => %{aggregate: false, return_type: :text, argument_types: [:text]},
+    ~w(left right) => %{aggregate: false, return_type: :text, argument_types: [:text, :integer]},
+    ~w(btrim ltrim rtrim) => %{aggregate: false, return_type: :text, argument_types: [:text, {:optional, :text}]},
+    ~w(substring substring_for) =>
+      %{aggregate: false, return_type: :text, argument_types: [:text, :integer, {:optional, :integer}]},
+    ~w(concat) => %{aggregate: false, return_type: :text, argument_types: [{:many1, :text}]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -61,6 +64,10 @@ defmodule Cloak.SqlQuery.Function do
   @spec name(t) :: String.t
   def name({:function, name, _}), do: name
 
+  @doc "Returns the return type of the given function call."
+  @spec return_type(t) :: argument_type
+  def return_type({:function, name, _}), do: @functions[name].return_type
+
   @doc "Returns true if the arguments to the given function call match the expected argument types, false otherwise."
   @spec well_typed?(t) :: boolean
   def well_typed?(function), do: do_well_typed?(function, argument_types(function))
@@ -98,6 +105,8 @@ defmodule Cloak.SqlQuery.Function do
       |> Enum.all?(fn({type, index}) -> type_matches?(type, Enum.at(arguments(function), index)) end)
   end
 
+  defp type_matches?(type, function = {:function, _, _}), do:
+    type_matches?(type, %{type: return_type(function)})
   defp type_matches?({:optional, _}, nil), do: true
   defp type_matches?(_, nil), do: false
   defp type_matches?({:optional, type}, argument), do: type_matches?(type, argument)
