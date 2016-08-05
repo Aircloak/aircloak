@@ -494,9 +494,7 @@ defmodule Cloak.SqlQuery.Parser.Test do
                     ]},
                     "t4"
                   },
-                  {:join, :cross_join, "t5", "t6"}
-                }
-              }))
+                  {:join, :cross_join, "t5", "t6"}}}))
   end
 
   Enum.each(["JOIN", "INNER JOIN", "RIGHT JOIN", "RIGHT OUTER JOIN", "LEFT JOIN", "LEFT OUTER JOIN",
