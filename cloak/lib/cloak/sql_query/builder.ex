@@ -43,14 +43,16 @@ defmodule Cloak.SqlQuery.Builder do
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
 
-  defp columns_string(query) do
-    id_column = case Enum.map(query.db_id_columns, &column_name/1) do
+  defp columns_string(query), do: Enum.join([id_column(query) | data_columns(query)], ",")
+
+  defp id_column(%{db_id_columns: columns}) do
+    case Enum.map(columns, &column_name/1) do
       [id_column] -> id_column
       id_columns -> "COALESCE(#{Enum.join(id_columns, ", ")})"
     end
-    data_columns = Enum.map(query.db_data_columns, &column_name/1)
-    Enum.join([id_column | data_columns], ",")
   end
+
+  defp data_columns(%{db_data_columns: columns}), do: Enum.map(columns, &column_name/1)
 
   defp from_clause({:join, :cross_join, clause1, clause2}, query) do
     ["(", from_clause(clause1, query), " CROSS JOIN ", from_clause(clause2, query), ")"]
