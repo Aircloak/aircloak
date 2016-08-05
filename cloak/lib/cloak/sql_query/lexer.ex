@@ -27,7 +27,7 @@ defmodule Cloak.SqlQuery.Lexer do
     "SELECT", "SHOW",
     "TABLES", "COLUMNS",
     "FROM",
-    "INNER", "OUTER", "LEFT", "RIGHT", "FULL", "JOIN", "ON",
+    "INNER", "OUTER", "LEFT", "RIGHT", "FULL", "JOIN", "ON", "CROSS",
     "WHERE", "AND", "NOT",
     "LIKE", "ILIKE", "IN", "IS",
     "ORDER", "GROUP", "BY",

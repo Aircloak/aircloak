@@ -243,6 +243,10 @@ defmodule Cloak.SqlQuery.Parser do
   defp handle_clause({:join_clause, table, sub_clause}, _acc) do
     handle_clause(sub_clause, table)
   end
+  defp handle_clause({:join, :cross_join, table, sub_join}, acc) do
+    acc = {:join, :cross_join, acc, table}
+    handle_clause(sub_join, acc)
+  end
   defp handle_clause({:join, join_type, table, :on, conditions, nil}, acc) do
     {:join, join_type, acc, table, :on, conditions}
   end
@@ -250,6 +254,7 @@ defmodule Cloak.SqlQuery.Parser do
     acc = {:join, join_type, acc, table, :on, conditions}
     handle_clause(sub_join, acc)
   end
+  defp handle_clause(nil, acc), do: acc
   defp handle_clause(table, _acc), do: table
 
   defp table_construct() do
@@ -278,6 +283,8 @@ defmodule Cloak.SqlQuery.Parser do
         option(lazy(fn -> join_appendix() end))
       ],
       fn
+        ([:cross, :join, table, nil, next]) -> {:join, :cross_join, table, next}
+        ([:cross, :join, _table, _on, _next]) -> {:join, :error, "`CROSS JOIN`s do not support `ON`-clauses."}
         ([_join, _join_type, _table, nil, _next]) ->
           {:join, :error, "Expected an `ON`-clause when JOINing tables."}
         ([nil, :join, table, [:on, conditions], next]) -> {:join, :inner_join, table, :on, conditions, next}
@@ -298,6 +305,7 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp join_type() do
     choice([
+      keyword(:cross),
       sequence([keyword(:full), keyword(:outer)]),
       keyword(:full),
       keyword(:outer),

@@ -372,6 +372,11 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       compile("SELECT t1.c1 FROM t1 JOIN t2", data_source)
   end
 
+  test "complains on ON after CROSS JOIN", %{data_source: data_source} do
+    assert {:error, "`CROSS JOIN`s do not support `ON`-clauses."} =
+      compile("SELECT t1.c1 FROM t1 CROSS JOIN t2 ON t1.uid = t2.uid", data_source)
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result

@@ -415,6 +415,11 @@ defmodule Cloak.SqlQuery.Parser.Test do
         from: {:join, :cross_join, "foo", {:join, :cross_join, "bar", "baz"}}))
   end
 
+  test "allow CROSS JOINs" do
+    assert_parse("select a from foo CROSS JOIN bar",
+      select(columns: [{:identifier, :unknown, "a"}], from: {:join, :cross_join, "foo", "bar"}))
+  end
+
   test "allow INNER JOINs" do
     assert_parse("select a from foo JOIN bar ON a = b",
       select(columns: [{:identifier, :unknown, "a"}],
@@ -479,14 +484,17 @@ defmodule Cloak.SqlQuery.Parser.Test do
   end
 
   test "allow combining JOIN types" do
-    assert_parse("select a from foo, bar JOIN baz ON a = b, gorp",
+    assert_parse("select a from t1, t2 JOIN t3 ON a = b CROSS JOIN t4, t5 CROSS JOIN t6",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:join, :cross_join, "foo",
+        from: {:join, :cross_join, "t1",
                 {:join, :cross_join,
-                  {:join, :inner_join, "bar", "baz", :on, [
-                    {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
-                  ]},
-                  "gorp"
+                  {:join, :cross_join,
+                    {:join, :inner_join, "t2", "t3", :on, [
+                      {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+                    ]},
+                    "t4"
+                  },
+                  {:join, :cross_join, "t5", "t6"}
                 }
               }))
   end
