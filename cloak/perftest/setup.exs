@@ -32,9 +32,7 @@ defmodule PerfTest do
 end
 
 users_count_in_k = case System.argv do
-  [param] ->
-    {value, _} = Integer.parse(param)
-    value
+  [param] -> String.to_integer(param)
   _ -> 16 # 16 k users, ~8 M rows
 end
 PerfTest.run(users_count_in_k)
