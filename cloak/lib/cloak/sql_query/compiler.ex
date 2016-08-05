@@ -17,7 +17,7 @@ defmodule Cloak.SqlQuery.Compiler do
     implicit_count: true,
     unsafe_filter_columns: [Column.t],
     group_by: [String.t],
-    from: [String.t],
+    from: Parser.from_clause,
     where: [Parser.where_clause],
     where_not: [Parser.where_clause],
     order_by: [{pos_integer, :asc | :desc}],
@@ -382,15 +382,12 @@ defmodule Cloak.SqlQuery.Compiler do
     end
   end
 
-  defp comparisons_from_joins([]), do: []
+  @spec comparisons_from_joins(Parser.from_clause) :: [Parser.where_clause]
   defp comparisons_from_joins({:join, :cross_join, clause1, clause2}) do
     comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
   end
   defp comparisons_from_joins({:join, _join_type, clause1, clause2, :on, conditions}) do
     conditions ++ comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
-  end
-  defp comparisons_from_joins([_ | rest]) do
-    comparisons_from_joins(rest)
   end
   defp comparisons_from_joins(_), do: []
 

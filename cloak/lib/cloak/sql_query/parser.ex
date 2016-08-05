@@ -29,11 +29,19 @@ defmodule Cloak.SqlQuery.Parser do
       | {:in, String.t, [any]}
       | is | {:not, is}
 
+  @type from_clause ::
+      String.t
+    | {:join, :cross_join, from_clause, from_clause}
+    | {
+        :join, :full_outer_join | :left_outer_join | :right_outer_join, :inner_join,
+        from_clause, from_clause, :on, [where_clause]
+      }
+
   @type parsed_query :: %{
     command: :select | :show,
     columns: [column | {column, :as, String.t}] | :*,
     group_by: [String.t],
-    from: String.t | {:subquery, String.t},
+    from: from_clause | {:subquery, String.t},
     where: [where_clause],
     order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns
