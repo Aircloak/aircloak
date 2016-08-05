@@ -28,7 +28,7 @@ defmodule Cloak.SqlQuery.Builder do
   def build(query) do
     fragments_to_query_spec([
       "SELECT ", columns_string(query), " ",
-      "FROM ", from_clause(query), " ",
+      "FROM ", from_clause(query.from, query), " ",
       where_fragments(query[:where])
     ])
   end
@@ -43,18 +43,36 @@ defmodule Cloak.SqlQuery.Builder do
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
 
-  defp columns_string(query) do
-    query.db_columns
-    |> Enum.map(&column_name/1)
-    |> Enum.join(",")
+  defp columns_string(query), do: Enum.join([id_column(query) | data_columns(query)], ",")
+
+  defp id_column(%{db_id_columns: columns}) do
+    case Enum.map(columns, &column_name/1) do
+      [id_column] -> id_column
+      id_columns -> "COALESCE(#{Enum.join(id_columns, ", ")})"
+    end
   end
 
-  defp from_clause(query) do
+  defp data_columns(%{db_data_columns: columns}), do: Enum.map(columns, &column_name/1)
+
+  defp from_clause({:join, :cross_join, clause1, clause2}, query) do
+    ["(", from_clause(clause1, query), " CROSS JOIN ", from_clause(clause2, query), ")"]
+  end
+  defp from_clause({:join, join_type, clause1, clause2, :on, conditions}, query) do
+    [
+      "(", from_clause(clause1, query), join_name(join_type), from_clause(clause2, query),
+      " ON ", conditions_to_fragments(conditions), ")"
+    ]
+  end
+  defp from_clause(table_name, query) do
     query.selected_tables
-    |> Enum.map(&table_to_from/1)
-    |> Enum.join(" CROSS JOIN ")
+    |> Enum.find(&(&1.name == table_name))
+    |> table_to_from()
   end
 
+  defp join_name(:inner_join), do: " INNER JOIN "
+  defp join_name(:full_outer_join), do: " FULL OUTER JOIN "
+  defp join_name(:left_outer_join), do: " LEFT OUTER JOIN "
+  defp join_name(:right_outer_join), do: " RIGHT OUTER JOIN "
 
   defp table_to_from(%{name: table_name, db_name: table_name}), do: table_name
   defp table_to_from(table), do: "#{table.db_name} AS #{table.name}"
@@ -90,19 +108,19 @@ defmodule Cloak.SqlQuery.Builder do
 
   defp where_fragments([]), do: []
   defp where_fragments(where_clause) do
-    ["WHERE ", where_clause_to_fragments(where_clause)]
+    ["WHERE ", conditions_to_fragments(where_clause)]
   end
 
-  defp where_clause_to_fragments([_|_] = and_clauses) do
-    ["(", and_clauses |> Enum.map(&where_clause_to_fragments/1) |> join(" AND "), ")"]
+  defp conditions_to_fragments([_|_] = and_clauses) do
+    ["(", and_clauses |> Enum.map(&conditions_to_fragments/1) |> join(" AND "), ")"]
   end
-  defp where_clause_to_fragments({:comparison, what, comparator, value}) do
+  defp conditions_to_fragments({:comparison, what, comparator, value}) do
     [to_fragment(what), to_fragment(comparator), to_fragment(value)]
   end
-  defp where_clause_to_fragments({:in, what, values}) do
+  defp conditions_to_fragments({:in, what, values}) do
     [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(","), ")"]
   end
-  defp where_clause_to_fragments({:not, {:is, what, match}}) do
+  defp conditions_to_fragments({:not, {:is, what, match}}) do
     [to_fragment(what), " IS NOT ", to_fragment(match)]
   end
   Enum.each([
@@ -110,7 +128,7 @@ defmodule Cloak.SqlQuery.Builder do
     {:ilike, " ILIKE "},
     {:is, " IS "},
   ], fn({keyword, fragment}) ->
-    defp where_clause_to_fragments({unquote(keyword), what, match}) do
+    defp conditions_to_fragments({unquote(keyword), what, match}) do
       [to_fragment(what), unquote(fragment), to_fragment(match)]
     end
   end)

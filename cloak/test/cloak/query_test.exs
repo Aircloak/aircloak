@@ -25,18 +25,21 @@ defmodule Cloak.QueryTest do
     Cloak.Test.DB.create_table("floats", "float REAL")
     Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
     Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, time TIMESTAMP")
+    Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
     :ok
   end
 
   setup do
     Cloak.Test.DB.clear_table("heights")
     Cloak.Test.DB.clear_table("purchases")
+    Cloak.Test.DB.clear_table("children")
     Cloak.Test.DB.clear_table("floats")
     :ok
   end
 
   test "show tables" do
     assert_query "show tables", %{columns: ["name"], rows: [
+      %{occurrences: 1, row: [:children]},
       %{occurrences: 1, row: [:floats]},
       %{occurrences: 1, row: [:heights]},
       %{occurrences: 1, row: [:heights_alias]},
@@ -588,6 +591,66 @@ defmodule Cloak.QueryTest do
     assert rows == [%{row: [180, 200], occurrences: 1}]
   end
 
+  test "selecting using INNER JOIN" do
+    :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+
+    assert_query """
+      SELECT max(height), max(price)
+      FROM heights INNER JOIN purchases ON heights.user_id = purchases.user_id
+    """,
+      %{columns: ["max", "max"], rows: rows}
+    assert rows == [%{row: [180, 200], occurrences: 1}]
+  end
+
+  test "selecting using complex JOIN" do
+    :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+    :ok = insert_rows(_user_ids = 0..100, "children", ["age"], [20])
+
+    assert_query """
+      SELECT max(height), max(price), max(age)
+      FROM
+        heights INNER JOIN purchases ON heights.user_id = purchases.user_id,
+        children
+      WHERE children.user_id = purchases.user_id
+    """, %{columns: ["max", "max", "max"], rows: rows}
+    assert rows == [%{row: [180, 200, 20], occurrences: 1}]
+  end
+
+  test "selecting using LEFT OUTER JOIN" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..50, "children", ["age"], [20])
+
+    assert_query """
+      SELECT count(*)
+      FROM heights LEFT OUTER JOIN children ON heights.user_id = children.user_id
+    """, %{columns: ["count"], rows: rows}
+    assert rows == [%{row: [100], occurrences: 1}]
+  end
+
+  test "selecting using RIGHT OUTER JOIN" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..50, "children", ["age"], [20])
+
+    assert_query """
+      SELECT count(*)
+      FROM heights RIGHT OUTER JOIN children ON heights.user_id = children.user_id
+    """, %{columns: ["count"], rows: rows}
+    assert rows == [%{row: [50], occurrences: 1}]
+  end
+
+  test "selecting using FULL OUTER JOIN" do
+    :ok = insert_rows(_user_ids = 1..50, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 101..150, "children", ["age"], [20])
+
+    assert_query """
+      SELECT count(*)
+      FROM heights FULL OUTER JOIN children ON heights.user_id = children.user_id
+    """, %{columns: ["count"], rows: rows}
+    assert rows == [%{row: [100], occurrences: 1}]
+  end
+
   test "query reports an error on invalid where clause identifier" do
     assert_query "select height from heights where nonexistant > 10", %{error: error}
     assert ~s/Column `nonexistant` doesn't exist in table `heights`./ == error
@@ -668,7 +731,14 @@ defmodule Cloak.QueryTest do
         where heights.user_id=heights_alias.user_id
       "
     )
-    assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
+    # UID columns are compacted if necessary during query building.
+    # But given that multiple distinct tables are joined, we need
+    # to include all relevant UIDs in the query.
+    assert [
+      %Column{name: "user_id"},
+      %Column{name: "user_id"}
+    ] = query.db_id_columns
+    assert [%Column{name: "height"}] = query.db_data_columns
   end
 
   defp start_query(statement) do

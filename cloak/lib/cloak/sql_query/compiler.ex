@@ -17,13 +17,14 @@ defmodule Cloak.SqlQuery.Compiler do
     implicit_count: true,
     unsafe_filter_columns: [Column.t],
     group_by: [String.t],
-    from: [String.t],
+    from: Parser.from_clause,
     where: [Parser.where_clause],
     where_not: [Parser.where_clause],
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [String.t],
-    db_columns: [Column.t]
+    db_id_columns: [Column.t],
+    db_data_columns: [Column.t]
   }
 
   defmodule CompilationError do
@@ -40,8 +41,8 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
     defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
-      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: [], db_columns: [],
-      property: [], aggregators: []
+      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: [],
+      db_id_columns: [], db_data_columns: [], property: [], aggregators: []
     }
     compile_prepped_query(Map.merge(defaults, query))
   end
@@ -134,7 +135,13 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp compile_tables(query), do: query
 
-  defp from_clause_to_tables({:cross_join, table, rest}), do: [table | from_clause_to_tables(rest)]
+  defp from_clause_to_tables({:join, :cross_join, clause1, clause2}) do
+    from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
+  end
+  defp from_clause_to_tables({:join, _join_type, clause1, clause2, :on, _conditions}) do
+    from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
+  end
+  defp from_clause_to_tables({:join, :error, error_message}), do: raise CompilationError, message: error_message
   defp from_clause_to_tables(table), do: [table]
 
   defp compile_aliases(%{columns: [_|_] = columns} = query) do
@@ -321,6 +328,8 @@ defmodule Cloak.SqlQuery.Compiler do
   defp partition_where_clauses(query), do: query
 
   defp verify_joins(query) do
+    join_conditions_scope_check(query.from)
+
     # Algorithm for finding improperly joined tables:
     #
     # 1. Create a DCG graph, where all uid columns are vertices.
@@ -337,7 +346,7 @@ defmodule Cloak.SqlQuery.Compiler do
       Enum.each(uid_columns, &:digraph.add_vertex(graph, column_key.(&1)))
 
       # add edges for all `uid1 = uid2` filters
-      for {:comparison, column1, :=, column2} <- query.where,
+      for {:comparison, column1, :=, column2} <- query.where ++ comparisons_from_joins(query.from),
           column1 != column2,
           column1.user_id?,
           column2.user_id?
@@ -372,6 +381,15 @@ defmodule Cloak.SqlQuery.Compiler do
       :digraph.delete(graph)
     end
   end
+
+  @spec comparisons_from_joins(Parser.from_clause) :: [Parser.where_clause]
+  defp comparisons_from_joins({:join, :cross_join, clause1, clause2}) do
+    comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
+  end
+  defp comparisons_from_joins({:join, _join_type, clause1, clause2, :on, conditions}) do
+    conditions ++ comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
+  end
+  defp comparisons_from_joins(_), do: []
 
   defp cast_where_clauses(%{where: [_|_] = clauses} = query) do
     %{query | where: Enum.map(clauses, &cast_where_clause/1)}
@@ -415,16 +433,33 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp map_terminal_elements(query, mapper_fun) do
     %{query |
+      from: map_join_conditions_columns(query.from, mapper_fun),
       columns: Enum.map(query.columns, &map_terminal_element(&1, mapper_fun)),
       group_by: Enum.map(query.group_by, &map_terminal_element(&1, mapper_fun)),
       where: Enum.map(query.where, &map_where_clause(&1, mapper_fun)),
       where_not: Enum.map(query.where_not, &map_where_clause(&1, mapper_fun)),
       order_by: Enum.map(query.order_by, &map_order_by(&1, mapper_fun)),
-      db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
+      db_id_columns: Enum.map(query.db_id_columns, &map_terminal_element(&1, mapper_fun)),
+      db_data_columns: Enum.map(query.db_data_columns, &map_terminal_element(&1, mapper_fun)),
       property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
       aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun))
     }
   end
+
+  defp map_join_conditions_columns(from, mapper_fun) when is_list(from), do:
+    Enum.map(from, &map_join_conditions_columns(&1, mapper_fun))
+  defp map_join_conditions_columns({:join, :cross_join, clause1, clause2}, mapper_fun) do
+    clause1 = map_join_conditions_columns(clause1, mapper_fun)
+    clause2 = map_join_conditions_columns(clause2, mapper_fun)
+    {:join, :cross_join, clause1, clause2}
+  end
+  defp map_join_conditions_columns({:join, join_type, clause1, clause2, :on, conditions}, mapper_fun) do
+    clause1 = map_join_conditions_columns(clause1, mapper_fun)
+    clause2 = map_join_conditions_columns(clause2, mapper_fun)
+    where_clauses = Enum.map(conditions, &map_where_clause(&1, mapper_fun))
+    {:join, join_type, clause1, clause2, :on, where_clauses}
+  end
+  defp map_join_conditions_columns(raw_table_name, _mapper_fun), do: raw_table_name
 
   defp map_where_clause({:comparison, lhs, comparator, rhs}, mapper_fun) do
     {
@@ -499,8 +534,7 @@ defmodule Cloak.SqlQuery.Compiler do
         case Enum.find(columns, &(&1.table.name == table)) do
           nil ->
             raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
-          column ->
-            column
+          column -> column
         end
     end
   end
@@ -531,6 +565,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp extract_columns({:function, "count", [:*]}), do: [nil]
   defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)
   defp extract_columns({:distinct, expression}), do: extract_columns(expression)
+  defp extract_columns([columns]), do: Enum.flat_map(columns, &extract_columns(&1))
 
   defp warn_on_selected_uid(query, column) do
     add_info_message(query,
@@ -542,39 +577,90 @@ defmodule Cloak.SqlQuery.Compiler do
   defp add_info_message(query, info_message), do: %{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
-    query = %{query | db_columns: db_columns(query)}
-    map_terminal_elements(query, &set_column_db_row_position(&1, query))
-  end
-
-  defp db_columns(query) do
-    query
-    |> all_expressions_with_columns()
+    id_columns = all_id_columns_from_tables(query)
+    data_columns = all_data_columns_from_expressions(query)
+    |> Enum.reject(&Enum.member?(id_columns, &1))
     |> Enum.flat_map(&extract_columns/1)
     |> Enum.reject(&(&1 == nil))
     |> Enum.reject(&(&1.constant?))
     |> Enum.uniq_by(&db_column_name/1)
+
+    query = %{query |
+      db_id_columns: id_columns,
+      db_data_columns: data_columns,
+    }
+    map_terminal_elements(query, &set_column_db_row_position(&1, query))
   end
 
-  defp all_expressions_with_columns(%{command: :select, from: {:subquery, _}} = query) do
+  defp all_id_columns_from_tables(%{command: :select, from: {:subquery, _}}) do
     # We don't know the name of the user_id column for an unsafe query, so we're generating
     # a fake one instead.
-    fake_user_id = %Column{table: :unknown, name: "__aircloak_user_id__", user_id?: true}
-    [fake_user_id] ++ query.columns ++ query.group_by
+    [%Column{table: :unknown, name: "__aircloak_user_id__", user_id?: true}]
   end
-  defp all_expressions_with_columns(%{command: :select, selected_tables: [table | _]} = query) do
-    user_id = table.user_id
-    {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
-    user_id_column = %Column{table: table, name: user_id, type: type, user_id?: true}
-    [user_id_column] ++ query.columns ++ query.group_by ++ query.unsafe_filter_columns
+  defp all_id_columns_from_tables(%{command: :select, selected_tables: tables}) do
+    Enum.map(tables, fn(table) ->
+      user_id = table.user_id
+      {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
+      %Column{table: table, name: user_id, type: type, user_id?: true}
+    end)
   end
 
-  defp set_column_db_row_position(%Column{} = column, %{db_columns: db_columns}) do
-    %Column{column |
-      db_row_position: Enum.find_index(db_columns, &(db_column_name(&1) == db_column_name(column)))
-    }
+  defp all_data_columns_from_expressions(%{command: :select, from: {:subquery, _}} = query) do
+    query.columns ++ query.group_by
+  end
+  defp all_data_columns_from_expressions(%{command: :select} = query) do
+    query.columns ++ query.group_by ++ query.unsafe_filter_columns
+  end
+
+  defp set_column_db_row_position(%Column{user_id?: true} = column, _query) do
+    # the user-id columns will collectively all be available in the first position
+    %Column{column | db_row_position: 0}
+  end
+  defp set_column_db_row_position(%Column{} = column, %{db_data_columns: data_columns}) do
+    case Enum.find_index(data_columns, &(db_column_name(&1) == db_column_name(column))) do
+      # It's not actually a selected column, so ignore for the purpose of positioning
+      nil -> column
+      # The (potentially complex) user id column occupies the first position,
+      # hence the other columns are offset by 1
+      position -> %Column{column | db_row_position: position + 1}
+    end
   end
   defp set_column_db_row_position(other, _query), do: other
 
   defp db_column_name(%Column{table: :unknown, name: name}), do: name
   defp db_column_name(column), do: "#{column.table.db_name}.#{column.name}"
+
+  defp join_conditions_scope_check(from) do
+    do_join_conditions_scope_check(from, [])
+  end
+
+  defp do_join_conditions_scope_check(from, []) when is_list(from) do
+    Enum.reduce(from, [], fn(clause, acc) -> do_join_conditions_scope_check(clause, acc) ++ acc end)
+  end
+  defp do_join_conditions_scope_check({:join, :cross_join, clause1, clause2}, selected_tables) do
+    selected_tables = do_join_conditions_scope_check(clause1, selected_tables)
+    do_join_conditions_scope_check(clause2, selected_tables)
+  end
+  defp do_join_conditions_scope_check({:join, _join_type, clause1, clause2, :on, conditions}, selected_tables) do
+    selected_tables = do_join_conditions_scope_check(clause1, selected_tables)
+    selected_tables = do_join_conditions_scope_check(clause2, selected_tables)
+    mapper_fun = fn
+      (%Cloak.SqlQuery.Column{table: %{name: table_name}, name: column_name}) ->
+        scope_check(selected_tables, table_name, column_name)
+      ({:identifier, table_name, column_name}) -> scope_check(selected_tables, table_name, column_name)
+      (_) -> :ok
+    end
+    Enum.each(conditions, &map_where_clause(&1, mapper_fun))
+    selected_tables
+  end
+  defp do_join_conditions_scope_check(table_name, selected_tables), do: [table_name | selected_tables]
+
+  defp scope_check(tables_in_scope, table_name, column_name) do
+    case Enum.member?(tables_in_scope, table_name) do
+      true -> :ok
+      _ ->
+        raise CompilationError,
+          message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
+    end
+  end
 end

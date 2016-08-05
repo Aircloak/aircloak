@@ -412,8 +412,99 @@ defmodule Cloak.SqlQuery.Parser.Test do
   test "allow selection of multiple tables" do
     assert_parse("select a from foo, bar, baz",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:cross_join, "foo", {:cross_join, "bar", "baz"}}))
+        from: {:join, :cross_join, "foo", {:join, :cross_join, "bar", "baz"}}))
   end
+
+  test "allow CROSS JOINs" do
+    assert_parse("select a from foo CROSS JOIN bar",
+      select(columns: [{:identifier, :unknown, "a"}], from: {:join, :cross_join, "foo", "bar"}))
+  end
+
+  test "allow INNER JOINs" do
+    assert_parse("select a from foo JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :inner_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+    assert_parse("select a from foo INNER JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :inner_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+  end
+
+  test "allow multiple INNER JOINs" do
+    assert_parse("select a from foo JOIN bar ON a = b INNER JOIN baz ON b = c",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :inner_join,
+            {:join, :inner_join, "foo", "bar", :on, [
+            {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+          ]}, "baz", :on, [
+          {:comparison, {:identifier, :unknown, "b"}, :=, {:identifier, :unknown, "c"}}
+        ]}))
+  end
+
+  test "allow LEFT JOINs" do
+    assert_parse("select a from foo LEFT JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :left_outer_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+    assert_parse("select a from foo LEFT OUTER JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :left_outer_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+  end
+
+  test "allow RIGHT JOINs" do
+    assert_parse("select a from foo RIGHT JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :right_outer_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+    assert_parse("select a from foo RIGHT OUTER JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :right_outer_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+  end
+
+  test "allow FULL OUTER JOINs" do
+    assert_parse("select a from foo FULL JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :full_outer_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+    assert_parse("select a from foo FULL OUTER JOIN bar ON a = b",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :full_outer_join, "foo", "bar", :on, [
+          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+        ]}))
+  end
+
+  test "allow combining JOIN types" do
+    assert_parse("select a from t1, t2 JOIN t3 ON a = b CROSS JOIN t4, t5 CROSS JOIN t6",
+      select(columns: [{:identifier, :unknown, "a"}],
+        from: {:join, :cross_join, "t1",
+                {:join, :cross_join,
+                  {:join, :cross_join,
+                    {:join, :inner_join, "t2", "t3", :on, [
+                      {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+                    ]},
+                    "t4"
+                  },
+                  {:join, :cross_join, "t5", "t6"}}}))
+  end
+
+  Enum.each(["JOIN", "INNER JOIN", "RIGHT JOIN", "RIGHT OUTER JOIN", "LEFT JOIN", "LEFT OUTER JOIN",
+      "FULL JOIN", "FULL OUTER JOIN"],
+    fn(join_type) ->
+      test "Fails when no ON clause is provided in complex JOIN (#{join_type})" do
+        assert_parse("select a from foo #{unquote(join_type)} bar", select(from: {:join, :error, _}))
+      end
+    end
+  )
 
   test "column alias" do
     assert_parse("select a as x from b",
@@ -500,6 +591,8 @@ defmodule Cloak.SqlQuery.Parser.Test do
         "select foo from ()", "Expected `subquery expression`", {1, 18}},
       {"missing alias",
         "select foo from (select bar from baz)", "Expected `subquery alias`", {1, 38}},
+      {"assert at least one table",
+        "select foo from", "Expected `table name`", {1, 16}},
       {"missing alias after AS",
         "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}}
     ],
