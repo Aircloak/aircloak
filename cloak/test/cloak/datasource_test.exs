@@ -21,11 +21,13 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "data retrieval" do
-    column = %Cloak.SqlQuery.Column{table: %{db_name: "test", name: "test"}, name: "value"}
+    id_column = %Cloak.SqlQuery.Column{table: %{db_name: "test", name: "test"}, name: "user_id"}
+    data_column = %Cloak.SqlQuery.Column{table: %{db_name: "test", name: "test"}, name: "value"}
     assert {:ok, rows} = DataSource.select(%{
       command: :select,
-      columns: [column],
-      db_columns: [column],
+      columns: [data_column],
+      db_id_columns: [id_column],
+      db_data_columns: [data_column],
       unsafe_filter_columns: [],
       where: [],
       group_by: [],
@@ -34,7 +36,7 @@ defmodule Cloak.DataSourceTest do
       selected_tables: [%{db_name: "cloak_test.test", name: "test"}]
     })
 
-    assert [[10], [20], [30]] == rows
+    assert [["user-id", 10], ["user-id", 20], ["user-id", 30]] == rows
   end
 
   defp local_data_source() do

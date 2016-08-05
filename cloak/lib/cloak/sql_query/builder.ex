@@ -38,9 +38,12 @@ defmodule Cloak.SqlQuery.Builder do
   # -------------------------------------------------------------------
 
   defp columns_string(query) do
-    query.db_columns
-    |> Enum.map(&Cloak.SqlQuery.Column.alias/1)
-    |> Enum.join(",")
+    id_column = case Enum.map(query.db_id_columns, &Cloak.SqlQuery.Column.alias/1) do
+      [id_column] -> id_column
+      id_columns -> "COALESCE(#{Enum.join(id_columns, ", ")})"
+    end
+    data_columns = Enum.map(query.db_data_columns, &Cloak.SqlQuery.Column.alias/1)
+    Enum.join([id_column | data_columns], ",")
   end
 
   defp from_clause({:join, :cross_join, clause1, clause2}, query) do

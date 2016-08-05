@@ -23,7 +23,8 @@ defmodule Cloak.SqlQuery.Compiler do
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [String.t],
-    db_columns: [Column.t]
+    db_id_columns: [Column.t],
+    db_data_columns: [Column.t]
   }
 
   defmodule CompilationError do
@@ -40,8 +41,8 @@ defmodule Cloak.SqlQuery.Compiler do
   @spec compile(atom, Parser.parsed_query) :: {:ok, compiled_query} | {:error, String.t}
   def compile(data_source, query) do
     defaults = %{data_source: data_source, where: [], where_not: [], unsafe_filter_columns: [],
-      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: [], db_columns: [],
-      property: [], aggregators: []
+      group_by: [], order_by: [], column_titles: [], info: [], selected_tables: [],
+      db_id_columns: [], db_data_columns: [], property: [], aggregators: []
     }
     compile_prepped_query(Map.merge(defaults, query))
   end
@@ -446,7 +447,8 @@ defmodule Cloak.SqlQuery.Compiler do
       where: Enum.map(query.where, &map_where_clause(&1, mapper_fun)),
       where_not: Enum.map(query.where_not, &map_where_clause(&1, mapper_fun)),
       order_by: Enum.map(query.order_by, &map_order_by(&1, mapper_fun)),
-      db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
+      db_id_columns: Enum.map(query.db_id_columns, &map_terminal_element(&1, mapper_fun)),
+      db_data_columns: Enum.map(query.db_data_columns, &map_terminal_element(&1, mapper_fun)),
       property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
       aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun))
     }
@@ -568,6 +570,7 @@ defmodule Cloak.SqlQuery.Compiler do
   defp extract_column({:function, "count", :*}), do: nil
   defp extract_column({:function, _function, expression}), do: extract_column(expression)
   defp extract_column({:distinct, expression}), do: extract_column(expression)
+  defp extract_column([columns]), do: Enum.map(columns, &extract_column(&1))
 
   defp warn_on_selected_uid(query, column) do
     add_info_message(query,
@@ -579,35 +582,52 @@ defmodule Cloak.SqlQuery.Compiler do
   defp add_info_message(query, info_message), do: %{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
-    query = %{query | db_columns: db_columns(query)}
-    map_terminal_elements(query, &set_column_db_row_position(&1, query))
-  end
-
-  defp db_columns(query) do
-    query
-    |> all_expressions_with_columns()
+    id_columns = all_id_columns_from_tables(query)
+    data_columns = all_data_columns_from_expressions(query)
+    |> Enum.reject(&Enum.member?(id_columns, &1))
     |> Enum.map(&extract_column/1)
     |> Enum.reject(&(&1 == nil))
     |> Enum.uniq_by(&{&1.table, &1.name})
+
+    query = %{query |
+      db_id_columns: id_columns,
+      db_data_columns: data_columns,
+    }
+    map_terminal_elements(query, &set_column_db_row_position(&1, query))
   end
 
-  defp all_expressions_with_columns(%{command: :select, from: {:subquery, _}} = query) do
+  defp all_id_columns_from_tables(%{command: :select, from: {:subquery, _}}) do
     # We don't know the name of the user_id column for an unsafe query, so we're generating
     # a fake one instead.
-    fake_user_id = %Column{table: :unknown, name: "__aircloak_user_id__", user_id?: true}
-    [fake_user_id] ++ query.columns ++ query.group_by
+    [%Column{table: :unknown, name: "__aircloak_user_id__", user_id?: true}]
   end
-  defp all_expressions_with_columns(%{command: :select, selected_tables: [table | _]} = query) do
-    user_id = table.user_id
-    {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
-    user_id_column = %Column{table: table, name: user_id, type: type, user_id?: true}
-    [user_id_column] ++ query.columns ++ query.group_by ++ query.unsafe_filter_columns
+  defp all_id_columns_from_tables(%{command: :select, selected_tables: tables}) do
+    Enum.map(tables, fn(table) ->
+      user_id = table.user_id
+      {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
+      %Column{table: table, name: user_id, type: type, user_id?: true}
+    end)
   end
 
-  defp set_column_db_row_position(%Column{} = column, %{db_columns: db_columns}) do
-    %Column{column |
-      db_row_position: Enum.find_index(db_columns, &(&1.name == column.name && &1.table == column.table))
-    }
+  defp all_data_columns_from_expressions(%{command: :select, from: {:subquery, _}} = query) do
+    query.columns ++ query.group_by
+  end
+  defp all_data_columns_from_expressions(%{command: :select} = query) do
+    query.columns ++ query.group_by ++ query.unsafe_filter_columns
+  end
+
+  defp set_column_db_row_position(%Column{user_id?: true} = column, _query) do
+    # the user-id columns will collectively all be available in the first position
+    %Column{column | db_row_position: 0}
+  end
+  defp set_column_db_row_position(%Column{} = column, %{db_data_columns: data_columns}) do
+    case Enum.find_index(data_columns, &(&1.name == column.name && &1.table == column.table)) do
+      # It's not actually a selected column, so ignore for the purpose of positioning
+      nil -> column
+      # The (potentially complex) user id column occupies the first position,
+      # hence the other columns are offset by 1
+      position -> %Column{column | db_row_position: position + 1}
+    end
   end
   defp set_column_db_row_position(other, _query), do: other
 
