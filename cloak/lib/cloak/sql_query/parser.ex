@@ -253,9 +253,14 @@ defmodule Cloak.SqlQuery.Parser do
   defp handle_clause(table, _acc), do: table
 
   defp table_construct() do
-    either(
-      pipe([table_name(), join_appendix()], fn([table, join]) -> {:join_clause, table, join} end),
-      table_name()
+    pipe([
+        table_name(),
+        option(join_appendix()),
+      ],
+      fn
+        [table, nil] -> table
+        [table, join] -> {:join_clause, table, join}
+      end
     )
   end
 
