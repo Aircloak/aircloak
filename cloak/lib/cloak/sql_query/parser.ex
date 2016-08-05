@@ -295,21 +295,21 @@ defmodule Cloak.SqlQuery.Parser do
         ([:cross, :join, _table, _on, _next]) -> {:join, :error, "`CROSS JOIN`s do not support `ON`-clauses."}
         ([_join, _join_type, _table, nil, _next]) ->
           {:join, :error, "Expected an `ON`-clause when JOINing tables."}
-        ([nil, :join, table, [:on, conditions], next]) -> {:join, :inner_join, table, :on, conditions, next}
-        ([:inner, :join, table, [:on, conditions], next]) -> {:join, :inner_join, table, :on, conditions, next}
-        ([:outer, :join, table, [:on, conditions], next]) -> {:join, :full_outer_join, table, :on, conditions, next}
-        ([:full, :join, table, [:on, conditions], next]) -> {:join, :full_outer_join, table, :on, conditions, next}
-        ([[:full, :outer], :join, table, [:on, conditions], next]) ->
-          {:join, :full_outer_join, table, :on, conditions, next}
-        ([:left, :join, table, [:on, conditions], next]) -> {:join, :left_outer_join, table, :on, conditions, next}
-        ([[:left, :outer], :join, table, [:on, conditions], next]) ->
-          {:join, :left_outer_join, table, :on, conditions, next}
-        ([:right, :join, table, [:on, conditions], next]) -> {:join, :right_outer_join, table, :on, conditions, next}
-        ([[:right, :outer], :join, table, [:on, conditions], next]) ->
-          {:join, :right_outer_join, table, :on, conditions, next}
+        ([join_type, :join, table, [:on, conditions], next]) ->
+          {:join, expand_join_type(join_type), table, :on, conditions, next}
       end
     )
   end
+
+  defp expand_join_type(nil), do: :inner_join
+  defp expand_join_type(:inner), do: :inner_join
+  defp expand_join_type(:outer), do: :full_outer_join
+  defp expand_join_type(:full), do: :full_outer_join
+  defp expand_join_type([:full, :outer]), do: :full_outer_join
+  defp expand_join_type(:left), do: :left_outer_join
+  defp expand_join_type([:left, :outer]), do: :left_outer_join
+  defp expand_join_type(:right), do: :right_outer_join
+  defp expand_join_type([:right, :outer]), do: :right_outer_join
 
   defp join_type() do
     choice([
