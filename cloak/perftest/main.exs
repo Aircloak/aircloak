@@ -2,10 +2,10 @@ defmodule PerfTest do
 
   @table_name "aircloak_perftest"
 
-  def run() do
+  def run(""), do: run("SELECT COUNT(item), AVG(price) FROM #{@table_name} WHERE price <> 500")
+  def run(query) do
     IO.puts ">>> Started performance test ..."
     data_source_setup()
-    query = "SELECT COUNT(item), AVG(price) FROM #{@table_name} WHERE price <> 500"
     IO.puts ">>> Testing query '#{query}' ..."
     timings = Enum.map(1..5, fn (_) -> run_query(query) end)
     {avg, stddev} = stats(timings)
@@ -39,4 +39,8 @@ defmodule PerfTest do
   end
 end
 
-PerfTest.run()
+query = case System.argv do
+  [param] -> param
+  _ -> "" # use default query
+end
+PerfTest.run(query)

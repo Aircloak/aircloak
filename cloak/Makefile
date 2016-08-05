@@ -59,7 +59,7 @@ check_dependent_apps:
 	mix check_dependent_apps
 
 perftest:
-	MIX_ENV=test mix run perftest/main.exs
+	MIX_ENV=test mix run perftest/main.exs "${QUERY}"
 
 perftest-setup:
 	MIX_ENV=test mix run perftest/setup.exs ${SIZE}
