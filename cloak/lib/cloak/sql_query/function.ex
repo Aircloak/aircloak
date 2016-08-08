@@ -90,7 +90,7 @@ defmodule Cloak.SqlQuery.Function do
 
     function
     |> arguments()
-    |> Enum.map(&Column.value(&1, row))
+    |> Enum.map(&apply_to_db_row(&1, row))
     |> apply(function)
   end
 

@@ -719,6 +719,13 @@ defmodule Cloak.QueryTest do
     assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
   end
 
+  test "nested function call" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [-4.2])
+    assert_query "select sqrt(abs(round(float))) from floats",
+      %{columns: ["sqrt"], rows: [%{row: [value], occurrences: 10}]}
+    assert_in_delta value, 2, 0.1
+  end
+
   defp start_query(statement) do
     %Query{id: "1", statement: statement, data_source: Cloak.DataSource.fetch!(:local)}
     |> Query.start({:process, self()})
