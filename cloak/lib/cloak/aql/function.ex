@@ -107,6 +107,7 @@ defmodule Cloak.Aql.Function do
       {:numeric, :integer} -> true
       {:numeric, :real} -> true
       {:timestamp, :date} -> true
+      {:timestamp, :time} -> true
       {type, type} -> true
       _ -> false
     end
