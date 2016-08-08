@@ -73,6 +73,7 @@ defmodule Cloak.Query.Runner do
       query_id: query_id,
       result_target: result_target,
       start_time: :erlang.monotonic_time(:milli_seconds),
+      execution_time: nil,
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
@@ -147,12 +148,20 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   defp report_result(state, {:ok, {:buckets, columns, rows}, info}) do
+    state = add_execution_time(state)
     log_completion(state, status: :success, row_count: length(rows))
-    send_result(state, %{columns: columns, rows: rows, info: info})
+    result = %{
+      columns: columns,
+      rows: rows,
+      info: info,
+      execution_time: execution_time_in_s(state),
+    }
+    send_result(state, result)
   end
   defp report_result(state, {:error, reason}) do
+    state = add_execution_time(state)
     log_completion(state, status: :error, reason: reason)
-    send_result(state, %{error: format_error_reason(reason)})
+    send_result(state, %{error: format_error_reason(reason), execution_time: execution_time_in_s(state)})
   end
 
   defp send_result(%{result_target: target, query_id: query_id}, partial_result) do
@@ -163,7 +172,7 @@ defmodule Cloak.Query.Runner do
     message = Poison.encode!(%{
       query_id: state.query_id,
       type: :query_complete,
-      execution_time: :erlang.monotonic_time(:milli_seconds) - state.start_time,
+      execution_time: state.execution_time,
       status: Keyword.get(options, :status),
       reason: Keyword.get(options, :reason, ""),
       row_count: Keyword.get(options, :row_count, 0),
@@ -177,6 +186,14 @@ defmodule Cloak.Query.Runner do
   defp format_error_reason(reason) do
     Logger.error("Unknown query error reason: #{inspect(reason)}")
     "Cloak error"
+  end
+
+  defp add_execution_time(state) do
+    %{state | execution_time: :erlang.monotonic_time(:milli_seconds) - state.start_time}
+  end
+
+  defp execution_time_in_s(%{execution_time: execution_time}) do
+    div(execution_time, 1000)
   end
 
 
