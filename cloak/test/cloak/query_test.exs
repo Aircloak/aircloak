@@ -2,6 +2,7 @@ defmodule Cloak.QueryTest do
   use ExUnit.Case, async: false
 
   alias Cloak.Query
+  alias Cloak.SqlQuery.Column
 
   defmacrop assert_query(query, expected_response) do
     quote do
@@ -21,18 +22,27 @@ defmodule Cloak.QueryTest do
     Cloak.Test.DB.setup()
     Cloak.Test.DB.create_test_schema()
     Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, time TIMESTAMP")
+    Cloak.Test.DB.create_table("floats", "float REAL")
+    Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
     Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, time TIMESTAMP")
+    Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
     :ok
   end
 
   setup do
     Cloak.Test.DB.clear_table("heights")
+    Cloak.Test.DB.clear_table("purchases")
+    Cloak.Test.DB.clear_table("children")
+    Cloak.Test.DB.clear_table("floats")
     :ok
   end
 
   test "show tables" do
     assert_query "show tables", %{columns: ["name"], rows: [
+      %{occurrences: 1, row: [:children]},
+      %{occurrences: 1, row: [:floats]},
       %{occurrences: 1, row: [:heights]},
+      %{occurrences: 1, row: [:heights_alias]},
       %{occurrences: 1, row: [:purchases]}]
     }
   end
@@ -116,6 +126,47 @@ defmodule Cloak.QueryTest do
         %{occurrences: 1, row: [10, 2016]},
         %{occurrences: 1, row: [20, 2015]},
       ]}
+  end
+
+  test "select a constant" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
+    assert_query "select 3 from heights", %{columns: [""], rows: [%{occurrences: 10, row: [3]}]}
+  end
+
+  test "select an aliased constant" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
+    assert_query "select 'text' as the_text from heights",
+      %{columns: ["the_text"], rows: [%{occurrences: 10, row: ["text"]}]}
+  end
+
+  test "a binary function of two columns" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
+    assert_query "select div(height, height) from heights",
+      %{columns: ["div"], rows: [%{occurrences: 10, row: [1]}]}
+  end
+
+  test "a binary function of a column and a constant" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
+    assert_query "select div(height, 3) from heights",
+      %{columns: ["div"], rows: [%{occurrences: 10, row: [7]}]}
+  end
+
+  test "unary trunc" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
+    assert_query "select trunc(float) from floats",
+      %{columns: ["trunc"], rows: [%{occurrences: 10, row: [12]}]}
+  end
+
+  test "binary trunc" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
+    assert_query "select trunc(float, 2) from floats",
+      %{columns: ["trunc"], rows: [%{occurrences: 10, row: [12.23]}]}
+  end
+
+  test "binary trunc in a grouped query" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
+    assert_query "select trunc(float, 2) from floats group by float",
+      %{columns: ["trunc"], rows: [%{occurrences: 1, row: [12.23]}]}
   end
 
   test "select all and order query" do
@@ -540,6 +591,66 @@ defmodule Cloak.QueryTest do
     assert rows == [%{row: [180, 200], occurrences: 1}]
   end
 
+  test "selecting using INNER JOIN" do
+    :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+
+    assert_query """
+      SELECT max(height), max(price)
+      FROM heights INNER JOIN purchases ON heights.user_id = purchases.user_id
+    """,
+      %{columns: ["max", "max"], rows: rows}
+    assert rows == [%{row: [180, 200], occurrences: 1}]
+  end
+
+  test "selecting using complex JOIN" do
+    :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+    :ok = insert_rows(_user_ids = 0..100, "children", ["age"], [20])
+
+    assert_query """
+      SELECT max(height), max(price), max(age)
+      FROM
+        heights INNER JOIN purchases ON heights.user_id = purchases.user_id,
+        children
+      WHERE children.user_id = purchases.user_id
+    """, %{columns: ["max", "max", "max"], rows: rows}
+    assert rows == [%{row: [180, 200, 20], occurrences: 1}]
+  end
+
+  test "selecting using LEFT OUTER JOIN" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..50, "children", ["age"], [20])
+
+    assert_query """
+      SELECT count(*)
+      FROM heights LEFT OUTER JOIN children ON heights.user_id = children.user_id
+    """, %{columns: ["count"], rows: rows}
+    assert rows == [%{row: [100], occurrences: 1}]
+  end
+
+  test "selecting using RIGHT OUTER JOIN" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..50, "children", ["age"], [20])
+
+    assert_query """
+      SELECT count(*)
+      FROM heights RIGHT OUTER JOIN children ON heights.user_id = children.user_id
+    """, %{columns: ["count"], rows: rows}
+    assert rows == [%{row: [50], occurrences: 1}]
+  end
+
+  test "selecting using FULL OUTER JOIN" do
+    :ok = insert_rows(_user_ids = 1..50, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 101..150, "children", ["age"], [20])
+
+    assert_query """
+      SELECT count(*)
+      FROM heights FULL OUTER JOIN children ON heights.user_id = children.user_id
+    """, %{columns: ["count"], rows: rows}
+    assert rows == [%{row: [100], occurrences: 1}]
+  end
+
   test "query reports an error on invalid where clause identifier" do
     assert_query "select height from heights where nonexistant > 10", %{error: error}
     assert ~s/Column `nonexistant` doesn't exist in table `heights`./ == error
@@ -591,6 +702,43 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from heights where height = height",
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "table name is different from the database table name" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from heights_alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "selecting from two tables which point to the same database table" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query(
+      "
+        select heights.height as h1, heights_alias.height as h2
+        from heights, heights_alias
+        where heights.user_id=heights_alias.user_id
+      ",
+      %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
+    )
+  end
+
+  test "same database columns are selected only once in implicit self-join" do
+    {:ok, query} = Cloak.SqlQuery.make(
+      Cloak.DataSource.fetch!(:local),
+      "
+        select heights.height as h1, heights_alias.height as h2
+        from heights, heights_alias
+        where heights.user_id=heights_alias.user_id
+      "
+    )
+    # UID columns are compacted if necessary during query building.
+    # But given that multiple distinct tables are joined, we need
+    # to include all relevant UIDs in the query.
+    assert [
+      %Column{name: "user_id"},
+      %Column{name: "user_id"}
+    ] = query.db_id_columns
+    assert [%Column{name: "height"}] = query.db_data_columns
   end
 
   defp start_query(statement) do

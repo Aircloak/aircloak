@@ -93,8 +93,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on non-numerical columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires `numeric`, but used over column"
-        <> " `column` of type `timestamp` from table `table`"
+      assert error == "Function `#{unquote(function)}` requires arguments of type (`numeric`), but got (`timestamp`)"
     end
   end
 
@@ -119,8 +118,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
     test "rejecting #{function} on non-timestamp columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires `timestamp`, but used over column"
-        <> " `numeric` of type `integer` from table `table`"
+      assert error == "Function `#{unquote(function)}` requires arguments of type (`timestamp`), but got (`integer`)"
     end
 
     test "allowing #{function} in group by", %{data_source: data_source} do
@@ -135,16 +133,42 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     end
   end
 
-  for function <- ~w(floor ceil ceiling trunc round) do
+  for function <- ~w(floor ceil ceiling) do
     test "allowing #{function} on real columns", %{data_source: data_source} do
       assert {:ok, _} = compile("select #{unquote(function)}(real) from table", data_source)
     end
 
     test "rejecting #{function} on integer columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires `real`, but used over column"
-        <> " `numeric` of type `integer` from table `table`"
+      assert error == "Function `#{unquote(function)}` requires arguments of type (`real`), but got (`integer`)"
     end
+  end
+
+  for function <- ~w(trunc round) do
+    test "allowing #{function} on real columns", %{data_source: data_source} do
+      assert {:ok, _} = compile("select #{unquote(function)}(real) from table", data_source)
+    end
+
+    test "rejecting #{function} on integer columns", %{data_source: data_source} do
+      assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
+      assert error ==
+        "Function `#{unquote(function)}` requires arguments of type (`real`, [`integer`]), but got (`integer`)"
+    end
+  end
+
+  test "multiarg function argument verification", %{data_source: data_source} do
+    assert {:error, error} = compile("select div(numeric, column) from table", data_source)
+    assert error == "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `timestamp`)"
+  end
+
+  test "rejecting a function with too many arguments", %{data_source: data_source} do
+    assert {:error, error} = compile("select avg(numeric, column) from table", data_source)
+    assert error == "Function `avg` requires arguments of type (`numeric`), but got (`integer`, `timestamp`)"
+  end
+
+  test "rejecting a function with too few arguments", %{data_source: data_source} do
+    assert {:error, error} = compile("select div(numeric) from table", data_source)
+    assert error == "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`)"
   end
 
   test "rejecting a column in select when its function is grouped", %{data_source: data_source} do
@@ -155,11 +179,16 @@ defmodule Cloak.SqlQuery.Compiler.Test do
   end
 
   test "rejecting a function in select when another function is grouped", %{data_source: data_source} do
-    assert {:error, error} = compile("select weekday(column) from table group by day(column)", data_source)
+    assert {:error, error} = compile("select div(numeric, numeric) from table group by abs(numeric)", data_source)
     assert error ==
-      "Column `column` from table `table` needs to appear in the `group by` clause" <>
-      " or be used in an aggregate function."
+      "Columns (`numeric`, `numeric`) need to appear in the `group by` clause or be used in an aggregate function."
   end
+
+  test "accepting constants as aggregated", %{data_source: data_source}, do:
+    assert {:ok, _} = compile("select count(*), 1, abs(1) from table", data_source)
+
+  test "accepting constants as aggregated in queries with group by", %{data_source: data_source}, do:
+    assert {:ok, _} = compile("select 1, abs(1) from table group by numeric", data_source)
 
   test "accepting proper joins", %{data_source: data_source} do
     assert {:ok, _} = compile("SELECT t1.c1 from t1, t2 WHERE t1.uid = t2.uid", data_source)
@@ -242,7 +271,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
 
   Enum.each(["count", "min", "max", "median", "stddev"], fn(function) ->
     test "allows qualified identifiers in function calls (function #{function})", %{data_source: data_source} do
-      assert %{columns: [{:function, unquote(function), column("table", "numeric")}]} =
+      assert %{columns: [{:function, unquote(function), [column("table", "numeric")]}]} =
         compile!("select #{unquote(function)}(table.numeric) from table", data_source)
     end
   end)
@@ -256,7 +285,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
         ORDER BY count(column) DESC, count(table.column) DESC
       """,
       data_source)
-    assert [column("table", "column"), {:function, "count", column("table", "column")}] = result.columns
+    assert [column("table", "column"), {:function, "count", [column("table", "column")]}] = result.columns
     assert [{:comparison, column("table", "column"), :>, _}] = result.where
     assert [{:comparison, column("table", "column"), :=, _}] = result.where_not
     assert [column("table", "column")] = result.unsafe_filter_columns
@@ -269,8 +298,8 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       compile("SELECT c1 FROM t1, t_doesnt_exist", data_source)
   end
 
-  test "expands all columns for all tables when cross joining", %{data_source: data_source} do
-    result = compile!("SELECT * FROM t1, t2, t3 WHERE t1.uid = t2.uid AND t2.uid = t3.uid", data_source)
+  test "expands all columns for all tables when joining", %{data_source: data_source} do
+    result = compile!("SELECT * FROM t1, t2 JOIN t3 on t2.uid = t3.uid WHERE t1.uid = t2.uid", data_source)
     assert [
       column("t1", "uid"),
       column("t1", "c1"),
@@ -303,6 +332,49 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     assert {:comparison, column("t1", "uid"), :=, column("t2", "uid")} = comparison2
     assert [column("t1", "c1"), column("t2", "c3")] = result.group_by
     assert result.order_by == [{0, :desc}]
+  end
+
+  test "complains when conditions not on columns of JOINed tables", %{data_source: data_source} do
+    assert {:error, "Column `c3` of table `t2` is used out of scope."} = compile("""
+      SELECT t1.c1
+      FROM
+        t1 INNER JOIN t3 ON t1.uid = t3.uid and t2.c3 > 10,
+        t2
+      WHERE t2.uid = t1.uid
+    """, data_source)
+    assert {:error, "Column `c3` of table `t2` is used out of scope."} = compile("""
+      SELECT t1.c1
+      FROM
+        t1 INNER JOIN t3 ON t1.uid = t3.uid and c3 > 10,
+        t2
+      WHERE t2.uid = t1.uid
+    """, data_source)
+  end
+
+  test "complains on ambiguous JOIN on condition", %{data_source: data_source} do
+    assert {:error, "Column `c1` is ambiguous."} = compile("""
+      SELECT t1.c1
+      FROM t1 INNER JOIN t2 ON t1.uid = t2.uid and c1 > 10
+    """, data_source)
+  end
+
+  test "Can JOIN on columns from earlier JOIN", %{data_source: data_source} do
+    assert {:ok, _} = compile("""
+      SELECT t1.c1
+      FROM
+        t1 INNER JOIN t2 ON t1.uid = t2.uid
+           INNER JOIN t3 ON t3.uid = t1.uid AND t1.c2 > 10
+    """, data_source)
+  end
+
+  test "complains on missing ON after JOIN", %{data_source: data_source} do
+    assert {:error, "Expected an `ON`-clause when JOINing tables."} =
+      compile("SELECT t1.c1 FROM t1 JOIN t2", data_source)
+  end
+
+  test "complains on ON after CROSS JOIN", %{data_source: data_source} do
+    assert {:error, "`CROSS JOIN`s do not support `ON`-clauses."} =
+      compile("SELECT t1.c1 FROM t1 CROSS JOIN t2 ON t1.uid = t2.uid", data_source)
   end
 
   defp compile!(query_string, data_source) do

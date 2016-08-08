@@ -27,6 +27,7 @@ defmodule Cloak.SqlQuery.Lexer do
     "SELECT", "SHOW",
     "TABLES", "COLUMNS",
     "FROM",
+    "INNER", "OUTER", "LEFT", "RIGHT", "FULL", "JOIN", "ON", "CROSS",
     "WHERE", "AND", "NOT",
     "LIKE", "ILIKE", "IN", "IS",
     "ORDER", "GROUP", "BY",
@@ -95,7 +96,7 @@ defmodule Cloak.SqlQuery.Lexer do
   end
 
   defp integer_constant() do
-    word_of(~r/[-+]?[0-9]+/)
+    word_of(~r/[-+]?[0-9]+(?!\w)/)
     |> map(&Integer.parse/1)
     |> satisfy(&match?({_, ""}, &1))
     |> map(fn({value, _}) -> value end)

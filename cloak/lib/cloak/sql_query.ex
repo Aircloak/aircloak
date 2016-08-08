@@ -1,8 +1,7 @@
 defmodule Cloak.SqlQuery do
   @moduledoc "Handles representing and creating SQL query abstract syntax trees."
 
-  alias Cloak.SqlQuery.Column
-  alias Cloak.SqlQuery.Function
+  alias Cloak.SqlQuery.{Column, Function}
 
   @type t :: %__MODULE__{
     data_source: DataSource.t,
@@ -19,16 +18,17 @@ defmodule Cloak.SqlQuery do
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [DataSource.table],
-    db_columns: [Column.t],
     mode: :parsed | :unparsed,
-    unsafe_subquery: String.t | nil
+    unsafe_subquery: String.t | nil,
+    db_id_columns: [Column.t],
+    db_data_columns: [Column.t]
   }
 
   defstruct [
     columns: [], where: [], where_not: [], unsafe_filter_columns: [], group_by: [], order_by: [],
-    column_titles: [], info: [], selected_tables: [], db_columns: [], property: [], aggregators: [],
+    column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
-    unsafe_subquery: nil
+    unsafe_subquery: nil, db_id_columns: [], db_data_columns: []
   ]
 
 
@@ -60,6 +60,9 @@ defmodule Cloak.SqlQuery do
 
   @doc "Returns the list of unique columns used in the aggregation process."
   @spec aggregated_columns(t) :: [Column.t]
-  def aggregated_columns(query),
-    do: (for {:function, _, column} <- query.aggregators, do: column) |> Enum.uniq()
+  def aggregated_columns(query) do
+    query.aggregators
+    |> Enum.flat_map(&Function.arguments/1)
+    |> Enum.uniq()
+  end
 end

@@ -23,7 +23,13 @@ defmodule Cloak.Query.Sorter do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp compare_rows(row1, row2, []), do: row1 < row2
+  defp compare_rows(row1, row2, []) do
+    cond do
+      Enum.member?(row1, :*) -> false
+      Enum.member?(row2, :*) -> true
+      true -> row1 < row2
+    end
+  end
   defp compare_rows(row1, row2, [{index, direction} | remaining_order]) do
     field1 = Enum.at(row1, index)
     field2 = Enum.at(row2, index)
