@@ -102,7 +102,7 @@ defmodule Cloak.Query.Runner do
   ## Query runner
   ## ----------------------------------------------------------------
 
-  def run_query(data_source, statement) do
+  defp run_query(data_source, statement) do
     with {:ok, sql_query} <- Query.make(data_source, statement) do
       execute_sql_query(sql_query)
     end
