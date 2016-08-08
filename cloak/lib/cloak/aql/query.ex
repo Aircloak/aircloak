@@ -1,4 +1,4 @@
-defmodule Cloak.SqlQuery do
+defmodule Cloak.Aql.Query do
   @moduledoc "Handles representing and creating SQL query abstract syntax trees."
 
   alias Cloak.SqlQuery.{Column, Function, Parser}

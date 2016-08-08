@@ -1,10 +1,7 @@
 defmodule Cloak.SqlQuery.Builder do
-  @moduledoc """
-  Provides functionality for constructing an SQL query from a
-  `Cloak.SqlQuery.t' AST
-  """
+  @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
-  alias Cloak.SqlQuery
+  alias Cloak.Aql.Query
   alias Cloak.SqlQuery.Column
   alias Cloak.SqlQuery.Parsers.Token
 
@@ -18,9 +15,9 @@ defmodule Cloak.SqlQuery.Builder do
   # API
   #-----------------------------------------------------------------------------------------------------------
 
-  @spec build(SqlQuery.t) :: query_spec
+  @spec build(Query.t) :: query_spec
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
-  def build(%SqlQuery{mode: :unparsed, unsafe_subquery: unsafe_subquery} = query) do
+  def build(%Query{mode: :unparsed, unsafe_subquery: unsafe_subquery} = query) do
     {
       ["SELECT ", columns_string(query), " FROM (", unsafe_subquery, ") AS unsafe_subquery"],
       []
@@ -46,14 +43,14 @@ defmodule Cloak.SqlQuery.Builder do
 
   defp columns_string(query), do: Enum.join([id_column(query) | data_columns(query)], ",")
 
-  defp id_column(%SqlQuery{db_id_columns: columns}) do
+  defp id_column(%Query{db_id_columns: columns}) do
     case Enum.map(columns, &column_name/1) do
       [id_column] -> id_column
       id_columns -> "COALESCE(#{Enum.join(id_columns, ", ")})"
     end
   end
 
-  defp data_columns(%SqlQuery{db_data_columns: columns}), do: Enum.map(columns, &column_name/1)
+  defp data_columns(%Query{db_data_columns: columns}), do: Enum.map(columns, &column_name/1)
 
   defp from_clause({:join, :cross_join, clause1, clause2}, query) do
     ["(", from_clause(clause1, query), " CROSS JOIN ", from_clause(clause2, query), ")"]

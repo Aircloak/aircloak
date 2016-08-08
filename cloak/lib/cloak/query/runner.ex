@@ -10,7 +10,7 @@ defmodule Cloak.Query.Runner do
   use GenServer
   require Logger
 
-  alias Cloak.SqlQuery
+  alias Cloak.Aql.Query
   alias Cloak.DataSource
   alias Cloak.Query.{Aggregator, NegativeCondition, Sorter}
 
@@ -103,19 +103,19 @@ defmodule Cloak.Query.Runner do
   ## ----------------------------------------------------------------
 
   def run_query(data_source, statement) do
-    with {:ok, sql_query} <- Cloak.SqlQuery.make(data_source, statement) do
+    with {:ok, sql_query} <- Query.make(data_source, statement) do
       execute_sql_query(sql_query)
     end
   end
 
-  defp execute_sql_query(%SqlQuery{command: :show, show: :tables} = query) do
+  defp execute_sql_query(%Query{command: :show, show: :tables} = query) do
     columns = ["name"]
     rows = DataSource.tables(query.data_source)
     |> Enum.map(fn(table) -> %{occurrences: 1, row: [table]} end)
 
     successful_result({:buckets, columns, rows}, query)
   end
-  defp execute_sql_query(%SqlQuery{command: :show, show: :columns} = query) do
+  defp execute_sql_query(%Query{command: :show, show: :columns} = query) do
     columns = ["name", "type"]
     [table] = query.selected_tables
     rows = Enum.map(
@@ -125,7 +125,7 @@ defmodule Cloak.Query.Runner do
 
     successful_result({:buckets, columns, rows}, query)
   end
-  defp execute_sql_query(%SqlQuery{command: :select} = query) do
+  defp execute_sql_query(%Query{command: :select} = query) do
     try do
       with {:ok, buckets} <- DataSource.select(query, fn (rows) ->
         rows
