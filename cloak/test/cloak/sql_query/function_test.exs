@@ -27,27 +27,39 @@ defmodule Cloak.SqlQuery.Function.Test do
   end
 
   test "round" do
+    assert well_typed?("round", [:real])
+    assert well_typed?("round", [:integer])
     assert apply_function("round", [3.99]) == 4
     assert apply_function("round", [3.01]) == 3
+    assert apply_function("round", [3]) == 3
   end
 
   test "binary round" do
+    assert well_typed?("round", [:real, :integer])
+    assert well_typed?("round", [:integer, :integer])
     assert apply_function("round", [3.99, 1]) == 4.0
     assert apply_function("round", [3.91, 1]) == 3.9
     assert apply_function("round", [3.991, 2]) == 3.99
     assert apply_function("round", [3.99, 4]) == 3.99
+    assert apply_function("round", [3, 1]) == 3
   end
 
   test "trunc" do
+    assert well_typed?("round", [:real])
+    assert well_typed?("round", [:integer])
     assert apply_function("trunc", [3.99]) == 3
     assert apply_function("trunc", [-3.99]) == -3
+    assert apply_function("trunc", [3]) == 3
   end
 
   test "binary trunc" do
+    assert well_typed?("round", [:real, :integer])
+    assert well_typed?("round", [:integer, :integer])
     assert apply_function("trunc", [3.99, 1]) == 3.9
     assert apply_function("trunc", [-3.99, 1]) == -3.9
     assert apply_function("trunc", [3.99, 2]) == 3.99
     assert apply_function("trunc", [3.99, 4]) == 3.99
+    assert apply_function("trunc", [3, 4]) == 3
   end
 
   test "div" do

@@ -12,7 +12,7 @@ defmodule Cloak.SqlQuery.Function do
     ~w(year month day hour minute second weekday) =>
       %{aggregate: false, return_type: :integer, argument_types: [:timestamp]},
     ~w(floor ceil ceiling) => %{aggregate: false, return_type: :real, argument_types: [:real]},
-    ~w(round trunc) => %{aggregate: false, return_type: :real, argument_types: [:real, {:optional, :integer}]},
+    ~w(round trunc) => %{aggregate: false, return_type: :real, argument_types: [:numeric, {:optional, :integer}]},
     ~w(abs sqrt) => %{aggregate: false, return_type: :real, argument_types: [:numeric]},
     ~w(div mod) => %{aggregate: false, return_type: :integer, argument_types: [:integer, :integer]},
     ~w(pow) => %{aggregate: false, return_type: :real, argument_types: [:numeric, :numeric]},
@@ -142,7 +142,7 @@ defmodule Cloak.SqlQuery.Function do
   defp do_apply([value], {:function, "ceiling", _}), do: Float.ceil(value)
   defp do_apply([value], {:function, "abs", _}), do: abs(value)
   defp do_apply([value], {:function, "round", _}), do: round(value)
-  defp do_apply([value, precision], {:function, "round", _}), do: Float.round(value, precision)
+  defp do_apply([value, precision], {:function, "round", _}), do: Float.round(:erlang.float(value), precision)
   defp do_apply([value], {:function, "trunc", _}), do: trunc(value)
   defp do_apply([value, precision], {:function, "trunc", _}), do: do_trunc(value, precision)
   defp do_apply([x, y], {:function, "div", _}), do: div(x, y)
@@ -168,7 +168,7 @@ defmodule Cloak.SqlQuery.Function do
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: Float.ceil(value, precision)
-  defp do_trunc(value, precision), do: Float.floor(value, precision)
+  defp do_trunc(value, precision), do: Float.floor(:erlang.float(value), precision)
 
   defp left(string, count) when count < 0, do:
     String.slice(string, 0, max(String.length(string) + count, 0))
