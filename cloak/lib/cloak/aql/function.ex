@@ -106,6 +106,7 @@ defmodule Cloak.Aql.Function do
     case {expected_type, actual_type} do
       {:numeric, :integer} -> true
       {:numeric, :real} -> true
+      {:timestamp, :date} -> true
       {type, type} -> true
       _ -> false
     end
