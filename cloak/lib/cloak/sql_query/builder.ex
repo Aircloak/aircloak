@@ -29,7 +29,7 @@ defmodule Cloak.SqlQuery.Builder do
   def build(query) do
     fragments_to_query_spec([
       "SELECT ", columns_string(query), " ",
-      "FROM ", from_clause(Map.fetch!(query, :from), query), " ",
+      "FROM ", from_clause(query.from, query), " ",
       where_fragments(query.where)
     ])
   end

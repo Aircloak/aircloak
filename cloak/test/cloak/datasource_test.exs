@@ -33,8 +33,9 @@ defmodule Cloak.DataSourceTest do
       where: [],
       group_by: [],
       data_source: local_data_source(),
+      from: "test",
       selected_tables: [%{db_name: "cloak_test.test", name: "test"}]
-    } |> Map.put(:from, "test"), &Enum.to_list/1)
+    }, &Enum.to_list/1)
 
     assert [["user-id", 10], ["user-id", 20], ["user-id", 30]] == rows
   end

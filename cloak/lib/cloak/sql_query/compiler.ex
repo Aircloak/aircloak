@@ -113,22 +113,19 @@ defmodule Cloak.SqlQuery.Compiler do
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
+  defp compile_tables(%SqlQuery{from: nil} = query), do: query
   defp compile_tables(query) do
-    case Map.get(query, :from, nil) do
-      nil -> query
-      from ->
-        selected_table_names = from_clause_to_tables(from)
-        available_table_names = Enum.map(DataSource.tables(query.data_source), &Atom.to_string/1)
+    selected_table_names = from_clause_to_tables(query.from)
+    available_table_names = Enum.map(DataSource.tables(query.data_source), &Atom.to_string/1)
 
-        case selected_table_names -- available_table_names do
-          [] ->
-            %SqlQuery{query |
-                selected_tables: Enum.map(selected_table_names, &DataSource.table(query.data_source, &1))
-            }
+    case selected_table_names -- available_table_names do
+      [] ->
+        %SqlQuery{query |
+            selected_tables: Enum.map(selected_table_names, &DataSource.table(query.data_source, &1))
+        }
 
-          [table | _] ->
-            raise CompilationError, message: "Table `#{table}` doesn't exist."
-        end
+      [table | _] ->
+        raise CompilationError, message: "Table `#{table}` doesn't exist."
     end
   end
 
@@ -440,9 +437,9 @@ defmodule Cloak.SqlQuery.Compiler do
       db_id_columns: Enum.map(query.db_id_columns, &map_terminal_element(&1, mapper_fun)),
       db_data_columns: Enum.map(query.db_data_columns, &map_terminal_element(&1, mapper_fun)),
       property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
-      aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun))
+      aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun)),
+      from: map_join_conditions_columns(query.from, mapper_fun)
     }
-    |> Map.put(:from, map_join_conditions_columns(query.from, mapper_fun))
   end
 
   defp map_join_conditions_columns(from, mapper_fun) when is_list(from), do:

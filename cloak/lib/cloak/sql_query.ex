@@ -1,7 +1,7 @@
 defmodule Cloak.SqlQuery do
   @moduledoc "Handles representing and creating SQL query abstract syntax trees."
 
-  alias Cloak.SqlQuery.{Column, Function}
+  alias Cloak.SqlQuery.{Column, Function, Parser}
 
   @type t :: %__MODULE__{
     data_source: DataSource.t,
@@ -21,14 +21,15 @@ defmodule Cloak.SqlQuery do
     mode: :parsed | :unparsed,
     unsafe_subquery: String.t | nil,
     db_id_columns: [Column.t],
-    db_data_columns: [Column.t]
+    db_data_columns: [Column.t],
+    from: Parser.from_clause | nil
   }
 
   defstruct [
     columns: [], where: [], where_not: [], unsafe_filter_columns: [], group_by: [], order_by: [],
     column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
-    unsafe_subquery: nil, db_id_columns: [], db_data_columns: []
+    unsafe_subquery: nil, db_id_columns: [], db_data_columns: [], from: nil
   ]
 
 
