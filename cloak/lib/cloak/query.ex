@@ -11,14 +11,6 @@ defmodule Cloak.Query do
 
   alias Cloak.Query.Runner
 
-  defstruct [:id, :statement, :data_source]
-
-  @type t :: %__MODULE__{
-    id: String.t,
-    statement: String.t,
-    data_source: Cloak.DataSource.t,
-  }
-
   @supervisor_name Module.concat(__MODULE__, Supervisor)
 
 
@@ -44,9 +36,9 @@ defmodule Cloak.Query do
   is sent to the required destination. If an error occurs, the result will contain
   error information.
   """
-  @spec start(t, Cloak.ResultSender.target) :: :ok
-  def start(query, result_target \\ :air_socket) do
-    {:ok, _} = Supervisor.start_child(@supervisor_name, [{query, result_target}])
+  @spec start(String.t, Cloak.DataSource.t, String.t Cloak.ResultSender.target) :: :ok
+  def start(query_id, data_source, statement, result_target \\ :air_socket) do
+    {:ok, _} = Supervisor.start_child(@supervisor_name, [{query_id, data_source, statement, result_target}])
     :ok
   end
 
@@ -56,16 +48,16 @@ defmodule Cloak.Query do
   # -------------------------------------------------------------------
 
   @doc false
-  def init({query, result_target}) do
+  def init({query_id, data_source, statement, result_target}) do
     Process.flag(:trap_exit, true)
     {:ok, %{
-      query_id: query.id,
+      query_id: query_id,
       result_target: result_target,
       start_time: :erlang.monotonic_time(:milli_seconds),
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
-      runner: Task.async(fn() -> Runner.run(query) end)
+      runner: Task.async(fn() -> Runner.run(data_source, statement) end)
     }}
   end
 

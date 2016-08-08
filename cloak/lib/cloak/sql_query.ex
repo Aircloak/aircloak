@@ -42,7 +42,7 @@ defmodule Cloak.SqlQuery do
   This AST can later be used to execute the query against the data store.
   Raises on error.
   """
-  @spec make!(atom, String.t) :: t
+  @spec make!(DataSource.t, String.t) :: t
   def make!(data_source, string) do
     {:ok, query} = make(data_source, string)
     query
@@ -52,7 +52,7 @@ defmodule Cloak.SqlQuery do
   Transforms the analyst provided SQL query from a string format into an abstract syntax tree format.
   This AST can later be used to execute the query against the data store.
   """
-  @spec make(atom, String.t) :: {:ok, t} | {:error, String.t}
+  @spec make(DataSource.t, String.t) :: {:ok, t} | {:error, String.t}
   def make(data_source, string) do
     with {:ok, parsed_query} <- Cloak.SqlQuery.Parser.parse(string) do
       Cloak.SqlQuery.Compiler.compile(data_source, parsed_query)

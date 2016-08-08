@@ -19,7 +19,7 @@ defmodule Cloak.SqlQuery.Compiler do
   # -------------------------------------------------------------------
 
   @doc "Prepares the parsed SQL query for execution."
-  @spec compile(atom, Parser.parsed_query) :: {:ok, SqlQuery.t} | {:error, String.t}
+  @spec compile(DataSource.t, Parser.parsed_query) :: {:ok, SqlQuery.t} | {:error, String.t}
   def compile(data_source, parsed_query) do
     parsed_query
     |> to_prepped_query(data_source)

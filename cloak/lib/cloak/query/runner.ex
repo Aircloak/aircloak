@@ -27,9 +27,11 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   @doc "Runs the query and returns the result."
-  @spec run(Cloak.Query.t) :: {:ok, {:buckets, [String.t], [Aggregator.bucket]}, [String.t]} | {:error, any}
-  def run(query) do
-    with {:ok, sql_query} <- Cloak.SqlQuery.make(query.data_source, query.statement) do
+  @spec run(DataSource.t, String.t) ::
+    {:ok, {:buckets, [String.t], [Aggregator.bucket]}, [String.t]} |
+    {:error, any}
+  def run(data_source, statement) do
+    with {:ok, sql_query} <- Cloak.SqlQuery.make(data_source, statement) do
       execute_sql_query(sql_query)
     end
   end
