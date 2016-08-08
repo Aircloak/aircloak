@@ -169,7 +169,7 @@ defmodule Cloak.Query.Aggregator do
     raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
   end
 
-  defp make_buckets([], %{property: []} = query) do
+  defp make_buckets([], %SqlQuery{property: []} = query) do
     # If there are no results for a global aggregation, we'll produce one row.
     # All results will be `nil`-ed except for `count` which will have the value of 0.
     aggregated_values = Enum.map(query.aggregators, fn
@@ -198,7 +198,7 @@ defmodule Cloak.Query.Aggregator do
     end
   end
 
-  defp occurrences(row, columns, %{implicit_count: true}), do:
+  defp occurrences(row, columns, %SqlQuery{implicit_count: true}), do:
     fetch_bucket_value!(row, columns, {:function, "count", [:*]})
   defp occurrences(_row, _columns, _query), do: 1
 

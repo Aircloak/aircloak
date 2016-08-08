@@ -11,7 +11,7 @@ defmodule Cloak.Query.Sorter do
 
   @doc "Sorts the buckets in the order defined in the query."
   @spec order([Aggregator.bucket], SqlQuery.t) :: [Aggregator.bucket]
-  def order(buckets, %{order_by: order_list}) do
+  def order(buckets, %SqlQuery{order_by: order_list}) do
     Enum.sort(buckets, fn(%{row: row1}, %{row: row2}) ->
       compare_rows(row1, row2, order_list)
     end)
