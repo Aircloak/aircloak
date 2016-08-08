@@ -6,17 +6,27 @@ defmodule Cloak.SqlQuery.Function.Test do
   test "sqrt", do:
     assert_in_delta(apply_function("sqrt", [3]), 1.73, 0.1)
 
+  for function <- ~w(floor ceil ceiling) do
+    test "#{function} argument types" do
+      assert well_typed?(unquote(function), [:integer])
+      assert well_typed?(unquote(function), [:real])
+    end
+  end
+
   test "floor" do
     assert apply_function("floor", [3.99]) == 3
     assert apply_function("floor", [3.01]) == 3
     assert apply_function("floor", [-3.99]) == -4
+    assert apply_function("floor", [3]) == 3
   end
 
   test "ceil" do
     assert apply_function("ceil", [3.99]) == 4
     assert apply_function("ceil", [3.01]) == 4
+    assert apply_function("ceil", 3) == 3
     assert apply_function("ceiling", [3.99]) == 4
     assert apply_function("ceiling", [3.01]) == 4
+    assert apply_function("ceiling", 3) == 3
   end
 
   test "abs" do
