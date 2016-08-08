@@ -1,4 +1,4 @@
-defmodule Cloak.SqlQuery.Column do
+defmodule Cloak.Aql.Column do
   @moduledoc "Represents a column in a compiled query."
 
   @type column_type :: Cloak.DataSource.data_type | nil
@@ -20,7 +20,7 @@ defmodule Cloak.SqlQuery.Column do
   end
 
   @doc "Returns true if the given term is a constant column, false otherwise."
-  @spec constant?(Cloak.SqlQuery.Parser.column | t) :: boolean
+  @spec constant?(Cloak.Aql.Parser.column | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
   def constant?(_), do: false
 

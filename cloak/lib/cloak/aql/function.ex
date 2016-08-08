@@ -1,7 +1,7 @@
-defmodule Cloak.SqlQuery.Function do
+defmodule Cloak.Aql.Function do
   @moduledoc "Includes information about functions and implementation of non-aggregation functions."
 
-  alias Cloak.SqlQuery.{Column, Parser}
+  alias Cloak.Aql.{Column, Parser}
   alias Cloak.DataSource
 
   import Kernel, except: [apply: 2]

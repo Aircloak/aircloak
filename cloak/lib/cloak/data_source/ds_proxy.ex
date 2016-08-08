@@ -24,7 +24,7 @@ defmodule Cloak.DataSource.DsProxy do
   """
 
   import Supervisor.Spec
-  alias Cloak.SqlQuery.Builder
+  alias Cloak.Aql.Builder
 
 
   #-----------------------------------------------------------------------------------------------------------

@@ -1,12 +1,12 @@
-defmodule Cloak.SqlQuery.Compiler do
+defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.DataSource
   alias Cloak.Aql.Query
-  alias Cloak.SqlQuery.Column
-  alias Cloak.SqlQuery.Parser
-  alias Cloak.SqlQuery.Parsers.Token
-  alias Cloak.SqlQuery.Function
+  alias Cloak.Aql.Column
+  alias Cloak.Aql.Parser
+  alias Cloak.Aql.Parsers.Token
+  alias Cloak.Aql.Function
 
   defmodule CompilationError do
     @moduledoc false
@@ -642,7 +642,7 @@ defmodule Cloak.SqlQuery.Compiler do
     selected_tables = do_join_conditions_scope_check(clause1, selected_tables)
     selected_tables = do_join_conditions_scope_check(clause2, selected_tables)
     mapper_fun = fn
-      (%Cloak.SqlQuery.Column{table: %{name: table_name}, name: column_name}) ->
+      (%Cloak.Aql.Column{table: %{name: table_name}, name: column_name}) ->
         scope_check(selected_tables, table_name, column_name)
       ({:identifier, table_name, column_name}) -> scope_check(selected_tables, table_name, column_name)
       (_) -> :ok

@@ -1,8 +1,8 @@
-defmodule Cloak.SqlQuery.Lexer do
+defmodule Cloak.Aql.Lexer do
   @moduledoc "Lexer for SQL queries"
   use Combine
-  import Cloak.SqlQuery.Parsers
-  alias Cloak.SqlQuery.Parsers.Token
+  import Cloak.Aql.Parsers
+  alias Cloak.Aql.Parsers.Token
 
 
   # -------------------------------------------------------------------

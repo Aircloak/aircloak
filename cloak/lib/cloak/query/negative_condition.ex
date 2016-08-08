@@ -9,8 +9,8 @@ defmodule Cloak.Query.NegativeCondition do
 
   alias Cloak.Query.Anonymizer
   alias Cloak.Aql.Query
-  alias Cloak.SqlQuery.Function
-  alias Cloak.SqlQuery.Parsers.Token
+  alias Cloak.Aql.Function
+  alias Cloak.Aql.Parsers.Token
 
 
   # -------------------------------------------------------------------

@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Query do
   @moduledoc "Handles representing and creating SQL query abstract syntax trees."
 
-  alias Cloak.SqlQuery.{Column, Function, Parser}
+  alias Cloak.Aql.{Column, Function, Parser}
 
   @type t :: %__MODULE__{
     data_source: DataSource.t,
@@ -54,8 +54,8 @@ defmodule Cloak.Aql.Query do
   """
   @spec make(DataSource.t, String.t) :: {:ok, t} | {:error, String.t}
   def make(data_source, string) do
-    with {:ok, parsed_query} <- Cloak.SqlQuery.Parser.parse(string) do
-      Cloak.SqlQuery.Compiler.compile(data_source, parsed_query)
+    with {:ok, parsed_query} <- Cloak.Aql.Parser.parse(string) do
+      Cloak.Aql.Compiler.compile(data_source, parsed_query)
     end
   end
 

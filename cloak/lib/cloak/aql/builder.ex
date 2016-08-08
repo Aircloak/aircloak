@@ -1,9 +1,9 @@
-defmodule Cloak.SqlQuery.Builder do
+defmodule Cloak.Aql.Builder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
   alias Cloak.Aql.Query
-  alias Cloak.SqlQuery.Column
-  alias Cloak.SqlQuery.Parsers.Token
+  alias Cloak.Aql.Column
+  alias Cloak.Aql.Parsers.Token
 
   @typep query_spec :: {statement, [constant]}
   @typep constant :: String.t | number | boolean

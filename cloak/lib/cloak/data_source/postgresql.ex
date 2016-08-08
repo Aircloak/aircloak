@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.SqlQuery.Builder
+  alias Cloak.Aql.Builder
 
   #-----------------------------------------------------------------------------------------------------------
   # DataSource.Driver callbacks

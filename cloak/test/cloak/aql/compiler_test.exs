@@ -1,8 +1,8 @@
-defmodule Cloak.SqlQuery.Compiler.Test do
+defmodule Cloak.Aql.Compiler.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.SqlQuery.Compiler
-  alias Cloak.SqlQuery.Parser
+  alias Cloak.Aql.Compiler
+  alias Cloak.Aql.Parser
 
   defmacrop column(table_name, column_name) do
     quote do

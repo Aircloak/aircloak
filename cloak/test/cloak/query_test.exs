@@ -2,7 +2,7 @@ defmodule Cloak.QueryTest do
   use ExUnit.Case, async: false
 
   alias Cloak.Query
-  alias Cloak.SqlQuery.Column
+  alias Cloak.Aql.Column
 
   defmacrop assert_query(query, expected_response) do
     quote do
