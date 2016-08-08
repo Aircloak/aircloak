@@ -17,7 +17,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
 <pre style="float:left; background-color:inherit; color:inherit; text-shadow:inherit; padding-top: inherit;">
   SELECT
     column_expression [, ...]
-    FROM table_name
+    FROM from_expression [, ...]
     [ WHERE where_expression [AND ...] ]
     [ GROUP BY column_name [, ...] ]
     [ ORDER BY column_name [ASC | DESC] [, ...] ]
@@ -25,6 +25,11 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
   column_expression :=
     column_name |
     aggregation_function([DISTINCT] column_name)
+
+  from_expression :=
+    table_name |
+    table1 CROSS JOIN table2 |
+    table1 { [INNER] | { LEFT | RIGHT | FULL } [OUTER] } JOIN table2 ON where_expression
 
   aggregation_function :=
     COUNT | SUM | AVG | MIN | MAX | STDDEV | MEDIAN
@@ -41,6 +46,17 @@ __Notes__:
 - The `*` argument and the `DISTINCT` modifier can only be provided to the `COUNT` function.
 - The operator `OR` is currently not supported.
 - The operator `NOT` can only be used in the cases mentioned above (`IS NOT NULL`, `NOT LIKE`, and `NOT ILIKE`).
+
+## JOIN restrictions
+
+When analysing data across multiple tables, it is required that the data that is joined is all about the same individual.
+This can either be achieved by adding a `WHERE`-clause, or in the case of `INNER JOIN`'s and `OUTER JOIN`'s through
+a corresponding restriction in the `ON`-clause.
+
+This requirement is in place to ensure that data can be reliably anonymized.
+
+For example, assuming tables `t1` and `t2` both have a user-id columns called `uid`, you would write a `CROSS JOIN` as:
+`SELECT c1, c2 FROM t1, t2 WHERE t1.uid = t2.uid`, or alternatively `SELECT c1, c2 FROM t1 CROSS JOIN t2 WHERE t1.uid = t2.uid`.
 
 ## Understanding query results
 
