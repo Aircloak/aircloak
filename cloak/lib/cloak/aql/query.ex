@@ -3,8 +3,8 @@ defmodule Cloak.Aql.Query do
   Represents a compiled AQL query.
 
   The struct defined by this module fully describes the goal of the query. It
-  can be used in various phases, for example to fetch data from the database,
-  perform anonymized aggregation, and produce the final output.
+  is used in various query execution phases, for example to fetch data from the
+  database, perform anonymized aggregation, and produce the final output.
   """
 
   alias Cloak.Aql.{Column, Function, Parser}
