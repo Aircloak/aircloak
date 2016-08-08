@@ -55,8 +55,11 @@ a corresponding restriction in the `ON`-clause.
 
 This requirement is in place to ensure that data can be reliably anonymized.
 
-For example, assuming tables `t1` and `t2` both have a user-id columns called `uid`, you would write a `CROSS JOIN` as:
-`SELECT c1, c2 FROM t1, t2 WHERE t1.uid = t2.uid`, or alternatively `SELECT c1, c2 FROM t1 CROSS JOIN t2 WHERE t1.uid = t2.uid`.
+For example, assuming tables `t1` and `t2` both have a user-id columns called `uid`, you would write joins as follows:
+
+- `SELECT c1, c2 FROM t1, t2 WHERE t1.uid = t2.uid`
+- `SELECT c1, c2 FROM t1 CROSS JOIN t2 WHERE t1.uid = t2.uid`
+- `SELECT c1, c2 FROM t1 INNER JOIN t2 ON t1.uid = t2.uid`
 
 ## Understanding query results
 
