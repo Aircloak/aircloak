@@ -215,7 +215,7 @@ defmodule Cloak.SqlQuery.Compiler do
 
   defp verify_function_arguments(query) do
     query.columns
-    |> Enum.filter(&Function.function?/1)
+    |> Enum.flat_map(&expand_arguments/1)
     |> Enum.reject(&Function.well_typed?/1)
     |> case do
       [] -> :ok
@@ -227,6 +227,9 @@ defmodule Cloak.SqlQuery.Compiler do
           <> " of type (#{quoted_list(expected_types)}), but got (#{quoted_list(actual_types)})"
     end
   end
+
+  defp expand_arguments(column), do:
+    [column | Function.arguments(column) |> Enum.flat_map(&expand_arguments/1)]
 
   defp quoted_list(items), do:
     items |> Enum.map(&quoted_item/1) |> Enum.join(", ")

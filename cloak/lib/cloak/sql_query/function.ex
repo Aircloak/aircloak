@@ -59,6 +59,7 @@ defmodule Cloak.SqlQuery.Function do
   @doc "Returns the argument specifiaction of the given function call."
   @spec arguments(t) :: [Column.t]
   def arguments({:function, _, arguments}), do: arguments
+  def arguments(_), do: []
 
   @doc "Returns the function name of the given function call."
   @spec name(t) :: String.t
@@ -75,7 +76,10 @@ defmodule Cloak.SqlQuery.Function do
 
   @doc "Returns true if the arguments to the given function call match the expected argument types, false otherwise."
   @spec well_typed?(t) :: boolean
-  def well_typed?(function), do: do_well_typed?(function, argument_types(function))
+  def well_typed?(column), do:
+    if function?(column),
+      do: do_well_typed?(column, argument_types(column)),
+      else: true
 
   @doc "Applies the function to the database row and returns its result."
   @spec apply_to_db_row(t, DataSource.row) :: term
