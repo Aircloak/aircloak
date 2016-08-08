@@ -221,7 +221,7 @@ defmodule Cloak.SqlQuery.Compiler do
       [] -> :ok
       [function_call | _rest] ->
         expected_types = Function.argument_types(function_call)
-        actual_types = Function.arguments(function_call) |> Enum.map(&(&1.type))
+        actual_types = Function.arguments(function_call) |> Enum.map(&Function.type/1)
 
         raise CompilationError, message: "Function `#{Function.name(function_call)}` requires arguments"
           <> " of type (#{quoted_list(expected_types)}), but got (#{quoted_list(actual_types)})"

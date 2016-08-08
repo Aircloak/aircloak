@@ -189,6 +189,11 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     assert error == "Function `concat` requires arguments of type ([`text`]+), but got (`integer`)"
   end
 
+  test "rejecting ill-typed nested function calls", %{data_source: data_source} do
+    assert {:error, error} = compile("select concat(avg(numeric)) from table", data_source)
+    assert error == "Function `concat` requires arguments of type ([`text`]+), but got (`real`)"
+  end
+
   test "accepting constants as aggregated", %{data_source: data_source}, do:
     assert {:ok, _} = compile("select count(*), 1, abs(1) from table", data_source)
 

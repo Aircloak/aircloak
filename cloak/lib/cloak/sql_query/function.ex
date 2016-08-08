@@ -65,8 +65,13 @@ defmodule Cloak.SqlQuery.Function do
   def name({:function, name, _}), do: name
 
   @doc "Returns the return type of the given function call."
-  @spec return_type(t) :: argument_type
+  @spec return_type(t) :: data_type
   def return_type({:function, name, _}), do: @functions[name].return_type
+
+  @doc "Returns the type of the given expression."
+  @spec type(t) :: data_type
+  def type(function = {:function, _, _}), do: return_type(function)
+  def type(%Column{type: type}), do: type
 
   @doc "Returns true if the arguments to the given function call match the expected argument types, false otherwise."
   @spec well_typed?(t) :: boolean
