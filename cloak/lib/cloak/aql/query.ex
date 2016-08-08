@@ -1,5 +1,11 @@
 defmodule Cloak.Aql.Query do
-  @moduledoc "Handles representing and creating SQL query abstract syntax trees."
+  @moduledoc """
+  Represents a compiled AQL query.
+
+  The struct defined by this module fully describes the goal of the query. It
+  can be used in various phases, for example to fetch data from the database,
+  perform anonymized aggregation, and produce the final output.
+  """
 
   alias Cloak.Aql.{Column, Function, Parser}
 
@@ -38,8 +44,8 @@ defmodule Cloak.Aql.Query do
   # -------------------------------------------------------------------
 
   @doc """
-  Transforms the analyst provided SQL query from a string format into an abstract syntax tree format.
-  This AST can later be used to execute the query against the data store.
+  Creates a compiled query from a string representation.
+
   Raises on error.
   """
   @spec make!(DataSource.t, String.t) :: t
@@ -48,10 +54,7 @@ defmodule Cloak.Aql.Query do
     query
   end
 
-  @doc """
-  Transforms the analyst provided SQL query from a string format into an abstract syntax tree format.
-  This AST can later be used to execute the query against the data store.
-  """
+  @doc "Creates a compiled query from a string representation."
   @spec make(DataSource.t, String.t) :: {:ok, t} | {:error, String.t}
   def make(data_source, string) do
     with {:ok, parsed_query} <- Cloak.Aql.Parser.parse(string) do
