@@ -61,6 +61,12 @@ For example, assuming tables `t1` and `t2` both have a user-id columns called `u
 - `SELECT c1, c2 FROM t1 CROSS JOIN t2 WHERE t1.uid = t2.uid`
 - `SELECT c1, c2 FROM t1 INNER JOIN t2 ON t1.uid = t2.uid`
 
+Note:
+
+- `OUTER` is automatically implied when you use `LEFT`, `RIGHT` or `FULL` joins. Writing `LEFT OUTER JOIN` is therefore equivalent to writing `LEFT JOIN`
+- `INNER` is automatically implied when you use `JOIN` without any other qualifiers. Writing `t1 JOIN t2` is therefore the same as writing `t1 INNER JOIN t2`
+
+
 ## Understanding query results
 
 `SELECT` queries return anonymized results. The results have a small amount of noise added to them. This is crucial in protecting the privacy of individuals, while sufficiently unobtrusive to provide accurate results during normal use.
