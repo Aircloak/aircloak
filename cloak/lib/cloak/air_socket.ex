@@ -178,7 +178,7 @@ defmodule Cloak.AirSocket do
 
       {:ok, data_source} ->
         Logger.info("starting query #{id}")
-        Cloak.Query.start(id, data_source, statement)
+        Cloak.Query.Runner.start(id, data_source, statement)
 
         respond_to_air(from, :ok)
     end
