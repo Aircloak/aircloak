@@ -24,7 +24,7 @@ defmodule Cloak.DataSource.DsProxy do
   """
 
   import Supervisor.Spec
-  alias Cloak.SqlQuery.Builder
+  alias Cloak.DataSource.SqlBuilder
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -99,11 +99,11 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   defp needed_columns(query) do
-    Enum.map(query.db_id_columns ++ query.db_data_columns, &Builder.column_name/1)
+    Enum.map(query.db_id_columns ++ query.db_data_columns, &SqlBuilder.column_name/1)
   end
 
   defp sql_statement(sql_query) do
-    {query_string, params} = Builder.build(sql_query)
+    {query_string, params} = SqlBuilder.build(sql_query)
     %{
       type: query_type(sql_query),
       params: params,

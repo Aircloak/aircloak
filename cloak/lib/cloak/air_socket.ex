@@ -10,7 +10,6 @@ defmodule Cloak.AirSocket do
 
   require Logger
   alias Phoenix.Channels.GenSocketClient
-  alias Cloak.Query
 
   @behaviour GenSocketClient
 
@@ -178,9 +177,8 @@ defmodule Cloak.AirSocket do
         respond_to_air(from, :error, "unknown data source")
 
       {:ok, data_source} ->
-        query = %Query{id: id, statement: statement, data_source: data_source}
-        Logger.info("starting query #{query.id}")
-        Cloak.Query.start(query)
+        Logger.info("starting query #{id}")
+        Cloak.Query.Runner.start(id, data_source, statement)
 
         respond_to_air(from, :ok)
     end

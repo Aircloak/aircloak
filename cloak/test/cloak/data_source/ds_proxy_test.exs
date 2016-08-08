@@ -192,14 +192,9 @@ defmodule Cloak.DataSource.DsProxyTest do
   end
 
   defp run_query(test_context, statement, data_source_opts \\ []) do
-    %Cloak.Query{
-      id: "foobar",
-      statement: statement,
-      data_source:
-        default_data_source(test_context)
-        |> Map.merge(Enum.into(data_source_opts, %{}))
-    }
-    |> Cloak.Query.Runner.run()
+    default_data_source(test_context)
+    |> Map.merge(Enum.into(data_source_opts, %{}))
+    |> Cloak.Query.Runner.run_sync(statement)
   end
 
   defp default_data_source(test_context) do
