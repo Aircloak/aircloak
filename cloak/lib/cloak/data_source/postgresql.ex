@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.Aql.Builder
+  alias Cloak.DataSource.SqlBuilder
 
   #-----------------------------------------------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -36,7 +36,7 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @doc false
   def select(source_id, sql_query, result_processor) do
-    {query_string, params} = Builder.build(sql_query)
+    {query_string, params} = SqlBuilder.build(sql_query)
     params = Enum.map(params, &convert_param/1)
     run_query(source_id, query_string, params, &row_mapper/1, result_processor)
   end
