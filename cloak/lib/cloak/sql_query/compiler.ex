@@ -203,7 +203,10 @@ defmodule Cloak.SqlQuery.Compiler do
   end
   defp expand_star_select(query), do: query
 
-  defp filter_aggregators(columns), do: Enum.filter(columns, &Function.aggregate_function?/1)
+  defp filter_aggregators(columns), do:
+    columns
+    |> Enum.flat_map(&expand_arguments/1)
+    |> Enum.filter(&Function.aggregate_function?/1)
 
   defp verify_columns(query) do
     verify_functions(query)

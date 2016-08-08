@@ -726,6 +726,13 @@ defmodule Cloak.QueryTest do
     assert_in_delta value, 2, 0.1
   end
 
+  test "function on an aggregated value" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [4])
+    :ok = insert_rows(_user_ids = 11..110, "floats", ["float"], [9])
+    assert_query "select round(avg(float)) from floats",
+      %{columns: ["round"], rows: [%{row: [9], occurrences: 1}]}
+  end
+
   defp start_query(statement) do
     %Query{id: "1", statement: statement, data_source: Cloak.DataSource.fetch!(:local)}
     |> Query.start({:process, self()})
