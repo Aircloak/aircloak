@@ -233,6 +233,7 @@ defmodule Cloak.SqlQuery.Compiler do
     items |> Enum.map(&quoted_item/1) |> Enum.join(", ")
 
   defp quoted_item({:optional, type}), do: "[`#{type}`]"
+  defp quoted_item({:many1, type}), do: "[`#{type}`]+"
   defp quoted_item(item), do: "`#{item}`"
 
   defp verify_aggregated_columns(query) do

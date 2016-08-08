@@ -85,11 +85,7 @@ After low-count values are filtered, some amount of noise is introduced. Conside
 
 The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymized. The returned values will slightly differ from the real values.
 
-## Database functions
-
-AQL supports a subset of common database functions to make working with data easier.
-
-### Date functions
+## Date functions
 
 The functions `year`, `month`, `day`, `hour`, `minute`, `second`, and `weekday` are supported. They extract
 the named part from a date or time column.
@@ -99,6 +95,8 @@ SELECT YEAR(date_column), MONTH(date_column), DAY(date_column) FROM table;
 
 SELECT EXTRACT(year FROM date_column) FROM table;
 ```
+
+## Mathematical functions
 
 ### abs
 
@@ -200,4 +198,129 @@ TRUNC(-3.22)
 
 TRUNC(3.22, 1)
 -- 3.2
+```
+
+## String functions
+
+### btrim
+
+Removes all of the given characters from the beginning and end of the string. The default is to remove spaces.
+
+```sql
+BTRIM(' some text ')
+-- 'some text'
+
+BTRIM('xyzsome textzyx', 'xyz')
+-- 'some text'
+```
+
+### concat
+
+Joins the passed strings into one.
+
+```sql
+CONCAT('some ', 'text')
+-- 'some text'
+
+CONCAT('a', 'b', 'c')
+-- 'abc'
+
+'a' || 'b' || 'c'
+-- 'abc'
+```
+
+### left
+
+`LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.
+
+```sql
+LEFT('some text', 4)
+-- 'some'
+
+LEFT('some text', -2)
+-- 'some te'
+```
+
+### length
+
+Computes the number of characters in the string.
+
+```sql
+LENGTH('some text')
+-- 9
+```
+
+### lower
+
+Transforms all characters in the given string into lowercase.
+
+```sql
+LOWER('Some Text')
+-- 'some text'
+
+LCASE('Some Text')
+-- 'some text'
+```
+
+### ltrim
+
+Removes all of the given characters from the beginning of the string. The default is to remove spaces.
+
+```sql
+LTRIM(' some text ')
+-- 'some text '
+
+LTRIM('xyzsome textzyx', 'xyz')
+-- 'some textzyx'
+```
+
+### right
+
+`RIGHT(string, n)` takes n characters from the end of the string. If n is negative takes all but the first |n| characters.
+
+```sql
+RIGHT('some text', 4)
+-- 'text'
+
+RIGHT('some text', -2)
+-- 'me text'
+```
+
+### rtrim
+
+Removes all of the given characters from the end of the string. The default is to remove spaces.
+
+```sql
+RTRIM(' some text ')
+-- ' some text'
+
+RTRIM('xyzsome textzyx', 'xyz')
+-- 'xyzsome text'
+```
+
+### substring
+
+Takes a slice of a string.
+
+```sql
+SUBSTRING('some text' FROM 3)
+-- 'me text'
+
+SUBSTRING('some text' FROM 3 FOR 5)
+-- 'me te'
+
+SUBSTRING('some text' FOR 4)
+-- 'some'
+```
+
+### upper
+
+Transforms all characters in the given string into uppercase.
+
+```sql
+UPPER('Some Text')
+-- 'SOME TEXT'
+
+UCASE('Some Text')
+-- 'SOME TEXT'
 ```

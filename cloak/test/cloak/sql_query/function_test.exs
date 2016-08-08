@@ -1,7 +1,7 @@
 defmodule Cloak.SqlQuery.Function.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.SqlQuery.Function
+  alias Cloak.SqlQuery.{Column, Function}
 
   test "sqrt", do:
     assert_in_delta(apply_function("sqrt", [3]), 1.73, 0.1)
@@ -61,9 +61,85 @@ defmodule Cloak.SqlQuery.Function.Test do
   test "pow", do:
     assert apply_function("pow", [2, 3]) == 8
 
+  test "length" do
+    assert well_typed?("length", [:text])
+    assert apply_function("length", ["a string"]) == 8
+  end
+
+  test "left" do
+    assert well_typed?("left", [:text, :integer])
+    assert apply_function("left", ["a string", 2]) == "a "
+    assert apply_function("left", ["a string", -2]) == "a stri"
+    assert apply_function("left", ["a string", -10]) == ""
+  end
+
+  test "right" do
+    assert well_typed?("right", [:text, :integer])
+    assert apply_function("right", ["a string", 2]) == "ng"
+    assert apply_function("right", ["a string", -2]) == "string"
+  end
+
+  test "lower" do
+    assert well_typed?("lower", [:text])
+    assert well_typed?("lcase", [:text])
+    assert apply_function("lower", ["A sTrinG"]) == "a string"
+    assert apply_function("lcase", ["A sTrinG"]) == "a string"
+  end
+
+  test "upper" do
+    assert well_typed?("upper", [:text])
+    assert well_typed?("ucase", [:text])
+    assert apply_function("upper", ["A sTrinG"]) == "A STRING"
+    assert apply_function("ucase", ["A sTrinG"]) == "A STRING"
+  end
+
+  test "btrim" do
+    assert well_typed?("btrim", [:text])
+    assert well_typed?("btrim", [:text, :text])
+    assert apply_function("btrim", ["  a string "]) == "a string"
+    assert apply_function("btrim", ["xyxa stringxyx", "xy"]) == "a string"
+  end
+
+  test "ltrim" do
+    assert well_typed?("ltrim", [:text])
+    assert well_typed?("ltrim", [:text, :text])
+    assert apply_function("ltrim", ["  a string "]) == "a string "
+    assert apply_function("ltrim", ["xyxa stringxyx", "xy"]) == "a stringxyx"
+  end
+
+  test "rtrim" do
+    assert well_typed?("rtrim", [:text])
+    assert well_typed?("rtrim", [:text, :text])
+    assert apply_function("rtrim", ["  a string "]) == "  a string"
+    assert apply_function("rtrim", ["xyxa stringxyx", "xy"]) == "xyxa string"
+  end
+
+  test "substring" do
+    assert well_typed?("substring", [:text, :integer])
+    assert well_typed?("substring", [:text, :integer, :integer])
+    assert well_typed?("substring_for", [:text, :integer])
+    assert apply_function("substring", ["a string", 3]) == "string"
+    assert apply_function("substring", ["a string", 3, 2]) == "st"
+    assert apply_function("substring", ["a string", -3, 2]) == ""
+    assert apply_function("substring", ["a string", -1, 4]) == "a "
+    assert apply_function("substring", ["a string", 3, -2]) == ""
+    assert apply_function("substring_for", ["a string", 3]) == "a s"
+  end
+
+  test "concat" do
+    assert well_typed?("concat", [:text])
+    assert well_typed?("concat", [:text, :text])
+    assert well_typed?("concat", [:text, :text, :text, :text, :text])
+    refute well_typed?("concat", [:text, :text, :integer, :text, :text])
+    assert apply_function("concat", ["a", " ", "string"]) == "a string"
+  end
+
   test "any function with one of the arguments being :*", do:
     assert apply_function("whatever", [1, :*, "thing"]) == :*
 
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})
+
+  defp well_typed?(name, types), do:
+    Function.well_typed?({:function, name, Enum.map(types, &Column.constant(&1, nil))})
 end

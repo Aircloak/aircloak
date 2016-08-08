@@ -138,7 +138,15 @@ defmodule Cloak.SqlQuery.Parser do
   end
 
   defp column() do
-    choice([function_expression(), extract_expression(), qualified_identifier(), constant_column()])
+    choice([
+      function_expression(),
+      extract_expression(),
+      trim_expression(),
+      substring_expression(),
+      concat_expression(),
+      qualified_identifier(),
+      constant_column()
+    ])
     |> label("column name or function")
   end
 
@@ -192,6 +200,65 @@ defmodule Cloak.SqlQuery.Parser do
         keyword(:")"),
       ],
       fn([:extract, :"(", part, :from, column, :")"]) -> {:function, String.downcase(part), column} end
+    )
+  end
+
+  defp trim_expression() do
+    pipe(
+      [
+        keyword(:trim),
+        keyword(:"("),
+        choice([keyword(:both), keyword(:leading), keyword(:trailing)]),
+        option(constant(:string)),
+        keyword(:from),
+        lazy(fn -> column() end),
+        keyword(:")"),
+     ],
+     fn
+       [:trim, :"(", trim_type, nil, :from, column, :")"] ->
+         {:function, trim_function(trim_type), [column]}
+       [:trim, :"(", trim_type, chars, :from, column, :")"] ->
+         {:function, trim_function(trim_type), [column, {:constant, chars}]}
+     end
+   )
+  end
+
+  defp trim_function(:both), do: "btrim"
+  defp trim_function(:leading), do: "ltrim"
+  defp trim_function(:trailing), do: "rtrim"
+
+  defp substring_expression() do
+    pipe(
+      [
+        keyword(:substring),
+        keyword(:"("),
+        lazy(fn -> column() end),
+        option(sequence([keyword(:from), constant(:integer)])),
+        option(sequence([keyword(:for), constant(:integer)])),
+        keyword(:")"),
+     ],
+     fn
+       [:substring, :"(", column, [:from, from], nil, :")"] ->
+         {:function, "substring", [column, {:constant, from}]}
+       [:substring, :"(", column, [:from, from], [:for, for_count], :")"] ->
+         {:function, "substring", [column, {:constant, from}, {:constant, for_count}]}
+       [:substring, :"(", column, nil, [:for, for_count], :")"] ->
+         {:function, "substring_for", [column, {:constant, for_count}]}
+       [:substring, :"(", column, nil, nil, :")"] ->
+         {:function, "substring", [column]}
+     end
+   )
+  end
+
+  defp concat_expression() do
+    argument = either(qualified_identifier(), constant_column())
+
+    pipe(
+      [
+        argument,
+        many1(sequence([keyword(:||), argument]))
+      ],
+      fn([first, rest]) -> {:function, "concat", [first | Enum.map(rest, &Enum.at(&1, 1))]} end
     )
   end
 

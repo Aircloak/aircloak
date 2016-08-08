@@ -43,6 +43,13 @@ defmodule Cloak.SqlQuery.Parser.Test do
     end
   end
 
+  # Produces a pattern which matches an AST of a constant column
+  defmacrop constant_column(value) do
+    quote do
+      {:constant, constant(value)}
+    end
+  end
+
   # Produces a pattern which matches an AST of multiple constants.
   defmacrop constants(values) do
     Enum.map(values, &quote(do: constant(unquote(&1))))
@@ -518,13 +525,53 @@ defmodule Cloak.SqlQuery.Parser.Test do
   end
 
   test "select a constant" do
-    assert_parse("select 10 from foo", select(columns: [{:constant, constant(10)}]))
+    assert_parse("select 10 from foo", select(columns: [constant_column(10)]))
   end
 
   test "multi-argument function" do
     assert_parse("select foo(x, y, z) from bar", select(columns:
       [{:function, "foo", [identifier("x"), identifier("y"), identifier("z")]}]
     ))
+  end
+
+  test "extended btrim" do
+    assert_parse "select trim(both from foo) from bar",
+      select(columns: [{:function, "btrim", [identifier("foo")]}])
+  end
+
+  test "extended ltrim" do
+    assert_parse "select trim(leading from foo) from bar",
+      select(columns: [{:function, "ltrim", [identifier("foo")]}])
+  end
+
+  test "extended rtrim" do
+    assert_parse "select trim(trailing from foo) from bar",
+      select(columns: [{:function, "rtrim", [identifier("foo")]}])
+  end
+
+  test "extended with character set" do
+    assert_parse "select trim(both 'xyz' from foo) from bar",
+      select(columns: [{:function, "btrim", [identifier("foo"), constant_column("xyz")]}])
+  end
+
+  test "substring from" do
+    assert_parse "select substring(foo from 3) from bar",
+      select(columns: [{:function, "substring", [identifier("foo"), constant_column(3)]}])
+  end
+
+  test "substring from ... for ..." do
+    assert_parse "select substring(foo from 3 for 10) from bar",
+      select(columns: [{:function, "substring", [identifier("foo"), constant_column(3), constant_column(10)]}])
+  end
+
+  test "substring for" do
+    assert_parse "select substring(foo for 3) from bar",
+      select(columns: [{:function, "substring_for", [identifier("foor"), constant_column(3)]}])
+  end
+
+  test "||" do
+    assert_parse "select a || b || c from bar",
+      select(columns: [{:function, "concat", [identifier("a"), identifier("b"), identifier("c")]}])
   end
 
   Enum.each(
@@ -594,7 +641,9 @@ defmodule Cloak.SqlQuery.Parser.Test do
       {"assert at least one table",
         "select foo from", "Expected `table name`", {1, 16}},
       {"missing alias after AS",
-        "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}}
+        "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}},
+      {"extended trim with two columns",
+        "select trim(both a from b) from foo", "Expected `column definition`", {1, 8}},
     ],
     fn({description, statement, expected_error, {line, column}}) ->
       test description do

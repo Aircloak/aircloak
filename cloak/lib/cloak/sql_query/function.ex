@@ -15,13 +15,18 @@ defmodule Cloak.SqlQuery.Function do
     ~w(abs sqrt) => %{aggregate: false, argument_types: [:numeric]},
     ~w(div mod) => %{aggregate: false, argument_types: [:integer, :integer]},
     ~w(pow) => %{aggregate: false, argument_types: [:numeric, :numeric]},
+    ~w(length lower lcase upper ucase) => %{aggregate: false, argument_types: [:text]},
+    ~w(left right) => %{aggregate: false, argument_types: [:text, :integer]},
+    ~w(btrim ltrim rtrim) => %{aggregate: false, argument_types: [:text, {:optional, :text}]},
+    ~w(substring substring_for) => %{aggregate: false, argument_types: [:text, :integer, {:optional, :integer}]},
+    ~w(concat) => %{aggregate: false, argument_types: [{:many1, :text}]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
 
   @type t :: Parser.column | Column.t
   @type data_type :: :any | :numeric | :timestamp | DataSource.data_type
-  @type argument_type :: data_type | {:optional, data_type}
+  @type argument_type :: data_type | {:optional, data_type} | {:many1, data_type}
 
 
   # -------------------------------------------------------------------
@@ -58,12 +63,7 @@ defmodule Cloak.SqlQuery.Function do
 
   @doc "Returns true if the arguments to the given function call match the expected argument types, false otherwise."
   @spec well_typed?(t) :: boolean
-  def well_typed?(function) do
-    length(arguments(function)) <= length(argument_types(function)) &&
-      argument_types(function)
-      |> Enum.with_index()
-      |> Enum.all?(fn({type, index}) -> type_matches?(type, Enum.at(arguments(function), index)) end)
-  end
+  def well_typed?(function), do: do_well_typed?(function, argument_types(function))
 
   @doc "Applies the function to the database row and returns its result."
   @spec apply_to_db_row(t, DataSource.row) :: term
@@ -88,6 +88,15 @@ defmodule Cloak.SqlQuery.Function do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp do_well_typed?(function, [{:many1, type}]), do:
+    Enum.all?(arguments(function), &type_matches?(type, &1))
+  defp do_well_typed?(function, argument_types) do
+    length(arguments(function)) <= length(argument_types) &&
+      argument_types
+      |> Enum.with_index()
+      |> Enum.all?(fn({type, index}) -> type_matches?(type, Enum.at(arguments(function), index)) end)
+  end
 
   defp type_matches?({:optional, _}, nil), do: true
   defp type_matches?(_, nil), do: false
@@ -121,8 +130,44 @@ defmodule Cloak.SqlQuery.Function do
   defp do_apply([x, y], {:function, "div", _}), do: div(x, y)
   defp do_apply([x, y], {:function, "mod", _}), do: rem(x, y)
   defp do_apply([x, y], {:function, "pow", _}), do: :math.pow(x, y)
+  defp do_apply([string], {:function, "length", _}), do: String.length(string)
+  defp do_apply([string], {:function, "lower", _}), do: String.downcase(string)
+  defp do_apply([string], {:function, "lcase", _}), do: String.downcase(string)
+  defp do_apply([string], {:function, "upper", _}), do: String.upcase(string)
+  defp do_apply([string], {:function, "ucase", _}), do: String.upcase(string)
+  defp do_apply([string], {:function, "btrim", _}), do: trim(string, " ")
+  defp do_apply([string, chars], {:function, "btrim", _}), do: trim(string, chars)
+  defp do_apply([string], {:function, "ltrim", _}), do: ltrim(string, " ")
+  defp do_apply([string, chars], {:function, "ltrim", _}), do: ltrim(string, chars)
+  defp do_apply([string], {:function, "rtrim", _}), do: rtrim(string, " ")
+  defp do_apply([string, chars], {:function, "rtrim", _}), do: rtrim(string, chars)
+  defp do_apply([string, count], {:function, "left", _}), do: left(string, count)
+  defp do_apply([string, count], {:function, "right", _}), do: right(string, count)
+  defp do_apply([string, from], {:function, "substring", _}), do: substring(string, from)
+  defp do_apply([string, from, count], {:function, "substring", _}), do: substring(string, from, count)
+  defp do_apply([string, count], {:function, "substring_for", _}), do: substring(string, 1, count)
+  defp do_apply(args, {:function, "concat", _}), do: Enum.join(args)
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: Float.ceil(value, precision)
   defp do_trunc(value, precision), do: Float.floor(value, precision)
+
+  defp left(string, count) when count < 0, do:
+    String.slice(string, 0, max(String.length(string) + count, 0))
+  defp left(string, count), do: String.slice(string, 0, count)
+
+  defp right(string, count) when count < 0, do: String.slice(string, -count, String.length(string))
+  defp right(string, count), do: String.slice(string, String.length(string) - count, count)
+
+  defp trim(string, chars), do: string |> ltrim(chars) |> rtrim(chars)
+
+  defp ltrim(string, chars), do: Regex.replace(~r/^[#{Regex.escape(chars)}]*/, string, "")
+
+  defp rtrim(string, chars), do: Regex.replace(~r/[#{Regex.escape(chars)}]*$/, string, "")
+
+  defp substring(string, from, count \\ nil)
+  defp substring(string, from, count) when from < 1, do: substring(string, 1, count + from - 1)
+  defp substring(_string, _from, count) when count < 0, do: ""
+  defp substring(string, from, count), do:
+    String.slice(string, from - 1, count || String.length(string))
 end

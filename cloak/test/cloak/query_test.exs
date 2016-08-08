@@ -704,6 +704,54 @@ defmodule Cloak.QueryTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "extended trim" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["bob"])
+    assert_query "select trim(both 'b' from name) from heights",
+      %{columns: ["btrim"], rows: [%{row: ["o"], occurrences: 10}]}
+  end
+
+  test "substring from" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["a name"])
+    assert_query "select substring(name from 3) from heights",
+      %{columns: [_], rows: [%{row: ["name"], occurrences: 10}]}
+  end
+
+  test "substring from ... for ..." do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["a name"])
+    assert_query "select substring(name from 3 for 2) from heights",
+      %{columns: [_], rows: [%{row: ["na"], occurrences: 10}]}
+  end
+
+  test "substring for" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["a name"])
+    assert_query "select substring(name for 4) from heights",
+      %{columns: [_], rows: [%{row: ["a na"], occurrences: 10}]}
+  end
+
+  test "substring with neither for nor from" do
+    assert_query "select substring(name) from heights", %{error: error}
+    assert error == "Function `substring` requires arguments of type (`text`, `integer`, [`integer`]),"
+      <> " but got (`text`)"
+  end
+
+  test "concat" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["x"])
+    assert_query "select concat(name, 'y', name) from heights",
+      %{columns: [_], rows: [%{row: ["xyx"], occurrences: 10}]}
+  end
+
+  test "concat with ||" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["x"])
+    assert_query "select name || 'y' || name from heights",
+      %{columns: [_], rows: [%{row: ["xyx"], occurrences: 10}]}
+  end
+
+  test "math functions with float constants" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [2])
+    assert_query "select pow(height, 3.5) from heights", %{columns: [_], rows: [%{row: [result]}]}
+    assert_in_delta result, 11.31, 0.01
+  end
+
   test "table name is different from the database table name" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from heights_alias",

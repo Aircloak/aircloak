@@ -16,7 +16,7 @@ defmodule Cloak.SqlQuery.Column do
   @doc "Returns a column struct representing the constant `value`."
   @spec constant(column_type, any) :: t
   def constant(type, value) do
-    %__MODULE__{table: :unknown, name: :constant, type: type, user_id?: false, constant?: true, value: value}
+    %__MODULE__{constant?: true, value: value, type: normalize_type(type), name: :constant}
   end
 
   @doc "Returns true if the given term is a constant column, false otherwise."
@@ -38,4 +38,13 @@ defmodule Cloak.SqlQuery.Column do
   @spec value(t, DataSource.row) :: DataSource.field
   def value(%__MODULE__{constant?: true, value: value}, _row), do: value
   def value(column, row), do: Enum.at(row, column.db_row_position)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp normalize_type(:string), do: :text
+  defp normalize_type(:float), do: :real
+  defp normalize_type(type), do: type
 end
