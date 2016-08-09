@@ -597,6 +597,11 @@ defmodule Cloak.Aql.Parser.Test do
           {:function, "%", [identifier("c"), identifier("d")]}]}]}])
   end
 
+  test "^" do
+    assert_parse "select a ^ b from bar",
+      select(columns: [{:function, "^", [identifier("a"), identifier("b")]}])
+  end
+
   test "* and / have higher precedence than + and -" do
     assert_parse "select a * b + c / d - e from bar",
       select(columns: [{:function, "+", [
@@ -604,6 +609,13 @@ defmodule Cloak.Aql.Parser.Test do
         {:function, "-", [
           {:function, "/", [identifier("c"), identifier("d")]},
           identifier("e")]}]}])
+  end
+
+  test "^ has a higher precedence than *" do
+    assert_parse "select a ^ b * c from bar",
+      select(columns: [{:function, "*", [
+        {:function, "^", [identifier("a"), identifier("b")]},
+        identifier("c")]}])
   end
 
   create_test =
