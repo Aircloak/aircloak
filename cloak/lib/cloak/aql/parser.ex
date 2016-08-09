@@ -93,7 +93,7 @@ defmodule Cloak.Aql.Parser do
   defp statement(data_source) do
     switch([
       {keyword(:select), select_statement(data_source)},
-      {keyword(:show), show_statement(data_source)},
+      {keyword(:show), show_statement()},
       {:else, error_message(fail(""), "Expected `select or show`")}
     ])
     |> map(&create_reportable_map/1)
@@ -111,10 +111,10 @@ defmodule Cloak.Aql.Parser do
     |> skip(keyword(:";"))
   end
 
-  defp show_statement(data_source) do
+  defp show_statement() do
     switch([
       {keyword(:tables), noop()},
-      {keyword(:columns), from(data_source)},
+      {keyword(:columns), pair_both(keyword(:from), table_name())},
       {:else, error_message(fail(""), "Expected `tables or columns`")}
     ])
     |> map(fn({[show], data}) -> [{:show, show} | data] end)
@@ -395,6 +395,7 @@ defmodule Cloak.Aql.Parser do
 
   defp table_name() do
     either(table_with_schema(), identifier())
+    |> label("table name")
   end
 
   defp subquery(%{driver: Cloak.DataSource.DsProxy}) do
