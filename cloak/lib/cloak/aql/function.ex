@@ -144,8 +144,10 @@ defmodule Cloak.Aql.Function do
   defp do_apply("ceil", [value]), do: value |> Float.ceil() |> round()
   defp do_apply("abs", [value]), do: abs(value)
   defp do_apply("round", [value]), do: round(value)
-  defp do_apply("round", [value, precision]), do: value |> :erlang.float() |> Float.round(precision)
+  defp do_apply("round", [value, precision]) when is_integer(value), do: value
+  defp do_apply("round", [value, precision]), do: Float.round(value, precision)
   defp do_apply("trunc", [value]), do: trunc(value)
+  defp do_apply("trunc", [value, precision]) when is_integer(value), do: value
   defp do_apply("trunc", [value, precision]), do: do_trunc(value, precision)
   defp do_apply("div", [x, y]), do: div(x, y)
   defp do_apply("mod", [x, y]), do: rem(x, y)

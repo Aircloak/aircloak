@@ -45,6 +45,7 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("round", [3.99]) == 4
     assert apply_function("round", [3.01]) == 3
     assert apply_function("round", [3]) == 3
+    assert apply_function("round", [pow(10, 5000)]) === pow(10, 5000)
   end
 
   test "binary round" do
@@ -55,6 +56,7 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("round", [3.991, 2]) == 3.99
     assert apply_function("round", [3.99, 4]) == 3.99
     assert apply_function("round", [3, 1]) == 3
+    assert apply_function("round", [pow(10, 5000), 1]) === pow(10, 5000)
   end
 
   test "trunc" do
@@ -63,6 +65,7 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("trunc", [3.99]) == 3
     assert apply_function("trunc", [-3.99]) == -3
     assert apply_function("trunc", [3]) == 3
+    assert apply_function("trunc", [pow(10, 5000)]) === pow(10, 5000)
   end
 
   test "binary trunc" do
@@ -73,6 +76,7 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("trunc", [3.99, 2]) == 3.99
     assert apply_function("trunc", [3.99, 4]) == 3.99
     assert apply_function("trunc", [3, 4]) == 3
+    assert apply_function("trunc", [pow(10, 5000), 1]) === pow(10, 5000)
   end
 
   test "div" do
