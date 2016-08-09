@@ -96,8 +96,8 @@ defmodule Cloak.Aql.Function do
 
   @doc "Returns the result of applying the given function definition to the given value."
   @spec apply([term], t) :: term
-  def apply(args = [_|_], function), do:
-    if Enum.member?(args, :*), do: :*, else: do_apply(args, function)
+  def apply(args = [_|_], {:function, name, _}), do:
+    if Enum.member?(args, :*), do: :*, else: do_apply(name, args)
   def apply(value, _aggregate_function), do: value
 
 
@@ -129,42 +129,42 @@ defmodule Cloak.Aql.Function do
     end
   end
 
-  defp do_apply([value], {:function, "year", _}), do: value.year
-  defp do_apply([value], {:function, "month", _}), do: value.month
-  defp do_apply([value], {:function, "day", _}), do: value.day
-  defp do_apply([value], {:function, "hour", _}), do: value.hour
-  defp do_apply([value], {:function, "minute", _}), do: value.minute
-  defp do_apply([value], {:function, "second", _}), do: value.second
-  defp do_apply([value], {:function, "weekday", _}), do: Timex.weekday(value)
-  defp do_apply([value], {:function, "sqrt", _}), do: :math.sqrt(value)
-  defp do_apply([value], {:function, "floor", _}), do: value |> :erlang.float() |> Float.floor()
-  defp do_apply([value], {:function, "ceil", _}), do: value |> :erlang.float() |> Float.ceil()
-  defp do_apply([value], {:function, "ceiling", _}), do: value |> :erlang.float() |> Float.ceil()
-  defp do_apply([value], {:function, "abs", _}), do: abs(value)
-  defp do_apply([value], {:function, "round", _}), do: round(value)
-  defp do_apply([value, precision], {:function, "round", _}), do: value |> :erlang.float() |> Float.round(precision)
-  defp do_apply([value], {:function, "trunc", _}), do: trunc(value)
-  defp do_apply([value, precision], {:function, "trunc", _}), do: do_trunc(value, precision)
-  defp do_apply([x, y], {:function, "div", _}), do: div(x, y)
-  defp do_apply([x, y], {:function, "mod", _}), do: rem(x, y)
-  defp do_apply([x, y], {:function, "pow", _}), do: :math.pow(x, y)
-  defp do_apply([string], {:function, "length", _}), do: String.length(string)
-  defp do_apply([string], {:function, "lower", _}), do: String.downcase(string)
-  defp do_apply([string], {:function, "lcase", _}), do: String.downcase(string)
-  defp do_apply([string], {:function, "upper", _}), do: String.upcase(string)
-  defp do_apply([string], {:function, "ucase", _}), do: String.upcase(string)
-  defp do_apply([string], {:function, "btrim", _}), do: trim(string, " ")
-  defp do_apply([string, chars], {:function, "btrim", _}), do: trim(string, chars)
-  defp do_apply([string], {:function, "ltrim", _}), do: ltrim(string, " ")
-  defp do_apply([string, chars], {:function, "ltrim", _}), do: ltrim(string, chars)
-  defp do_apply([string], {:function, "rtrim", _}), do: rtrim(string, " ")
-  defp do_apply([string, chars], {:function, "rtrim", _}), do: rtrim(string, chars)
-  defp do_apply([string, count], {:function, "left", _}), do: left(string, count)
-  defp do_apply([string, count], {:function, "right", _}), do: right(string, count)
-  defp do_apply([string, from], {:function, "substring", _}), do: substring(string, from)
-  defp do_apply([string, from, count], {:function, "substring", _}), do: substring(string, from, count)
-  defp do_apply([string, count], {:function, "substring_for", _}), do: substring(string, 1, count)
-  defp do_apply(args, {:function, "concat", _}), do: Enum.join(args)
+  defp do_apply("year", [value]), do: value.year
+  defp do_apply("month", [value]), do: value.month
+  defp do_apply("day", [value]), do: value.day
+  defp do_apply("hour", [value]), do: value.hour
+  defp do_apply("minute", [value]), do: value.minute
+  defp do_apply("second", [value]), do: value.second
+  defp do_apply("weekday", [value]), do: Timex.weekday(value)
+  defp do_apply("sqrt", [value]), do: :math.sqrt(value)
+  defp do_apply("floor", [value]), do: value |> :erlang.float() |> Float.floor()
+  defp do_apply("ceil", [value]), do: value |> :erlang.float() |> Float.ceil()
+  defp do_apply("ceiling", [value]), do: value |> :erlang.float() |> Float.ceil()
+  defp do_apply("abs", [value]), do: abs(value)
+  defp do_apply("round", [value]), do: round(value)
+  defp do_apply("round", [value, precision]), do: value |> :erlang.float() |> Float.round(precision)
+  defp do_apply("trunc", [value]), do: trunc(value)
+  defp do_apply("trunc", [value, precision]), do: do_trunc(value, precision)
+  defp do_apply("div", [x, y]), do: div(x, y)
+  defp do_apply("mod", [x, y]), do: rem(x, y)
+  defp do_apply("pow", [x, y]), do: :math.pow(x, y)
+  defp do_apply("length", [string]), do: String.length(string)
+  defp do_apply("lower", [string]), do: String.downcase(string)
+  defp do_apply("lcase", [string]), do: String.downcase(string)
+  defp do_apply("upper", [string]), do: String.upcase(string)
+  defp do_apply("ucase", [string]), do: String.upcase(string)
+  defp do_apply("btrim", [string]), do: trim(string, " ")
+  defp do_apply("btrim", [string, chars]), do: trim(string, chars)
+  defp do_apply("ltrim", [string]), do: ltrim(string, " ")
+  defp do_apply("ltrim", [string, chars]), do: ltrim(string, chars)
+  defp do_apply("rtrim", [string]), do: rtrim(string, " ")
+  defp do_apply("rtrim", [string, chars]), do: rtrim(string, chars)
+  defp do_apply("left", [string, count]), do: left(string, count)
+  defp do_apply("right", [string, count]), do: right(string, count)
+  defp do_apply("substring", [string, from]), do: substring(string, from)
+  defp do_apply("substring", [string, from, count]), do: substring(string, from, count)
+  defp do_apply("substring_for", [string, count]), do: substring(string, 1, count)
+  defp do_apply("concat", args), do: Enum.join(args)
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
