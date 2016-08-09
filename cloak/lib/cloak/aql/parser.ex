@@ -156,6 +156,7 @@ defmodule Cloak.Aql.Parser do
 
   defp simple_expression() do
     choice([
+      parenthesised_expression(),
       function_expression(),
       extract_expression(),
       trim_expression(),
@@ -165,6 +166,13 @@ defmodule Cloak.Aql.Parser do
       constant_column()
     ])
     |> label("column name or function")
+  end
+
+  defp parenthesised_expression() do
+    pipe(
+      [keyword(:"("), lazy(fn -> column() end), keyword(:")")],
+      fn([:"(", result, :")"]) -> result end
+    )
   end
 
   defp constant_column() do
