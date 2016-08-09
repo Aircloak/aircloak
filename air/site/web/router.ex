@@ -48,6 +48,8 @@ defmodule Air.Router do
     resources "/cloaks", CloaksController
     resources "/organisations", OrganisationController
     resources "/users", UserController
+
+    resources "/audit_log", AuditLogController
   end
 
   scope "/api" do

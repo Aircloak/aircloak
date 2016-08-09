@@ -1,0 +1,27 @@
+<h2>Audit log</h2>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Event</th>
+      <th>User</th>
+      <th>Event time</th>
+    </tr>
+  </thead>
+  <tbody>
+<%= for audit_log <- @audit_logs do %>
+    <tr>
+      <td><%= audit_log.event %></td>
+      <td><%= audit_log.user %></td>
+      <td>
+        <%=
+          audit_log.inserted_at
+          |> Ecto.DateTime.to_erl()
+          |> Timex.DateTime.from_erl()
+          |> Timex.from_now()
+        %>
+      </td>
+    </tr>
+<% end %>
+  </tbody>
+</table>
