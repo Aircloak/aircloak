@@ -2,6 +2,7 @@ defmodule Cloak.Aql.Parser do
   @moduledoc "Parser for SQL queries."
   use Combine
   import Cloak.Aql.Parsers
+  alias Cloak.DataSource
 
   @type comparator ::
       :=
@@ -53,17 +54,17 @@ defmodule Cloak.Aql.Parser do
   # -------------------------------------------------------------------
 
   @doc "Parses a SQL query in text form. Raises on error."
-  @spec parse!(String.t) :: parsed_query
-  def parse!(string) do
-    {:ok, query} = parse(string)
+  @spec parse!(DataSource.t, String.t) :: parsed_query
+  def parse!(data_source, string) do
+    {:ok, query} = parse(data_source, string)
     query
   end
 
   @doc "Parses a SQL query in text form."
-  @spec parse(String.t) :: {:ok, parsed_query} | {:error, any}
-  def parse(string) do
+  @spec parse(DataSource.t, String.t) :: {:ok, parsed_query} | {:error, any}
+  def parse(data_source, string) do
     with {:ok, tokens} <- Cloak.Aql.Lexer.tokenize(string) do
-      case parse_tokens(tokens, parser()) do
+      case parse_tokens(tokens, parser(data_source)) do
         {:error, _} = error -> error
         [statement] ->
           {:ok, map_from(statement, string)}
@@ -83,15 +84,15 @@ defmodule Cloak.Aql.Parser do
   end
   defp map_from(statement, _statement_string), do: statement
 
-  defp parser do
-    statement()
+  defp parser(data_source) do
+    statement(data_source)
     |> statement_termination()
     |> end_of_input()
   end
 
-  defp statement() do
+  defp statement(data_source) do
     switch([
-      {keyword(:select), select_statement()},
+      {keyword(:select), select_statement(data_source)},
       {keyword(:show), show_statement()},
       {:else, error_message(fail(""), "Expected `select or show`")}
     ])
@@ -113,16 +114,16 @@ defmodule Cloak.Aql.Parser do
   defp show_statement() do
     switch([
       {keyword(:tables), noop()},
-      {keyword(:columns), from()},
+      {keyword(:columns), pair_both(keyword(:from), table_name())},
       {:else, error_message(fail(""), "Expected `tables or columns`")}
     ])
     |> map(fn({[show], data}) -> [{:show, show} | data] end)
   end
 
-  defp select_statement() do
+  defp select_statement(data_source) do
     sequence([
       select_columns(),
-      from(),
+      from(data_source),
       optional_where(),
       optional_group_by(),
       optional_order_by()
@@ -285,16 +286,16 @@ defmodule Cloak.Aql.Parser do
     pair_both(keyword(:distinct), qualified_identifier())
   end
 
-  defp from() do
+  defp from(data_source) do
     pair_both(
       keyword(:from),
-      from_expression()
+      from_expression(data_source)
     )
   end
 
-  defp from_expression() do
+  defp from_expression(data_source) do
     switch([
-      {keyword(:"(") |> map(fn(_) -> :subquery end), subquery()},
+      {keyword(:"(") |> map(fn(_) -> :subquery end), subquery(data_source)},
       {:else, table_selection()}
     ])
     |> map(fn
@@ -394,12 +395,20 @@ defmodule Cloak.Aql.Parser do
 
   defp table_name() do
     either(table_with_schema(), identifier())
+    |> label("table name")
   end
 
-  defp subquery() do
+  defp subquery(%{driver: Cloak.DataSource.DsProxy}) do
+    unparsed_subquery()
+  end
+  defp subquery(_not_ds_proxy_data_source) do
+    error_message(fail(""), "Subqueries are not supported for this data source")
+  end
+
+  defp unparsed_subquery() do
     sequence([
       token_offset(),
-      ignore(many1(subquery_token()) |> label("subquery expression")),
+      ignore(many1(unparsed_subquery_token()) |> label("subquery expression")),
       token_offset(),
       ignore(keyword(:")")),
       ignore(
@@ -409,9 +418,9 @@ defmodule Cloak.Aql.Parser do
     ])
   end
 
-  defp subquery_token() do
+  defp unparsed_subquery_token() do
     either(
-      sequence([keyword(:"("), lazy(fn -> many(subquery_token()) end), keyword(:")")]),
+      sequence([keyword(:"("), lazy(fn -> many(unparsed_subquery_token()) end), keyword(:")")]),
       any_token() |> satisfy(&(&1.category != :")" && &1.category != :eof))
     )
   end
