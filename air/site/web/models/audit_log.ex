@@ -27,6 +27,9 @@ defmodule Air.AuditLog do
     |> cast(params, @required_fields, @optional_fields)
   end
 
+  def metadata_items(log_entry) do
+    Map.to_list(Poison.decode!(log_entry.metadata))
+  end
 
   # -------------------------------------------------------------------
   # Auditable events

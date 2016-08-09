@@ -5,7 +5,8 @@
     <tr>
       <th>Event</th>
       <th>User</th>
-      <th>Event time</th>
+      <th>Time</th>
+      <th></th>
     </tr>
   </thead>
   <tbody>
@@ -20,6 +21,13 @@
           |> Timex.DateTime.from_erl()
           |> Timex.from_now()
         %>
+      </td>
+      <td>
+        <ul>
+        <%= for {item, value} <- Air.AuditLog.metadata_items(audit_log) do %>
+          <li><strong><%= humanize(item) %></strong>: <%= value %></li>
+        <% end %>
+        </ul>
       </td>
     </tr>
 <% end %>
