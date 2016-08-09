@@ -40,10 +40,10 @@ defmodule Cloak.Aql.Compiler do
     |> Map.merge(parsed_query)
   end
 
-  defp query_mode({:subquery, _}), do: :unparsed
+  defp query_mode({:subquery, {:unparsed, _}}), do: :unparsed
   defp query_mode(_other), do: :parsed
 
-  defp unsafe_subquery({:subquery, unsafe_subquery}), do: unsafe_subquery
+  defp unsafe_subquery({:subquery, {:unparsed, unsafe_subquery}}), do: unsafe_subquery
   defp unsafe_subquery(_other), do: nil
 
   # Due to the blackbox nature of the subquery, there are a whole lot

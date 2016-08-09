@@ -42,7 +42,7 @@ defmodule Cloak.Aql.Parser do
     command: :select | :show,
     columns: [column | {column, :as, String.t}] | :*,
     group_by: [String.t],
-    from: from_clause | {:subquery, String.t},
+    from: from_clause | {:subquery, {:unparsed, String.t}},
     where: [where_clause],
     order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns
@@ -76,11 +76,11 @@ defmodule Cloak.Aql.Parser do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp map_from(%{from: {:subquery, from, from}} = statement, _statement_string) do
-    %{statement | from: {:subquery, ""}}
+  defp map_from(%{from: {:subquery, {:unparsed, from, from}}} = statement, _statement_string) do
+    %{statement | from: {:subquery, {:unparsed, ""}}}
   end
-  defp map_from(%{from: {:subquery, from, to}} = statement, statement_string) do
-    %{statement | from: {:subquery, String.slice(statement_string, from..(to - 1))}}
+  defp map_from(%{from: {:subquery, {:unparsed, from, to}}} = statement, statement_string) do
+    %{statement | from: {:subquery, {:unparsed, String.slice(statement_string, from..(to - 1))}}}
   end
   defp map_from(statement, _statement_string), do: statement
 
@@ -299,7 +299,7 @@ defmodule Cloak.Aql.Parser do
       {:else, table_selection()}
     ])
     |> map(fn
-          {[:subquery], [[from, to]]} -> {:subquery, from, to}
+          {[:subquery], [subquery_data]} -> {:subquery, subquery_data}
           other -> other
         end)
   end
@@ -416,6 +416,7 @@ defmodule Cloak.Aql.Parser do
         |> label("subquery alias")
       )
     ])
+    |> map(fn([from, to]) -> {:unparsed, from, to} end)
   end
 
   defp unparsed_subquery_token() do

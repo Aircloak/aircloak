@@ -58,9 +58,9 @@ defmodule Cloak.Aql.Parser.Test do
     Enum.map(values, &quote(do: constant(unquote(&1))))
   end
 
-  defmacrop subquery(value) do
+  defmacrop unparsed_subquery(value) do
     quote do
-      {:subquery, unquote(value)}
+      {:subquery, {:unparsed, unquote(value)}}
     end
   end
 
@@ -344,18 +344,18 @@ defmodule Cloak.Aql.Parser.Test do
     )
   end
 
-  test "subquery sql" do
+  test "unparsed subquery sql" do
     assert_parse(
       "select foo from (select bar from baz) alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select bar from baz")),
+      select(columns: [{:identifier, :unknown, "foo"}], from: unparsed_subquery("select bar from baz")),
       @ds_proxy_data_source
     )
   end
 
-  test "subquery sql with AS" do
+  test "unparsed subquery sql with AS" do
     assert_parse(
       "select foo from (select bar from baz) as alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select bar from baz")),
+      select(columns: [{:identifier, :unknown, "foo"}], from: unparsed_subquery("select bar from baz")),
       @ds_proxy_data_source
     )
   end
@@ -363,32 +363,35 @@ defmodule Cloak.Aql.Parser.Test do
   test "subquery sql with semicolon" do
     assert_parse(
       "select foo from (select bar from baz) alias;",
-      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select bar from baz")),
+      select(columns: [{:identifier, :unknown, "foo"}], from: unparsed_subquery("select bar from baz")),
       @ds_proxy_data_source
     )
   end
 
-  test "subquery sql with an unknown token" do
+  test "unparsed subquery sql with an unknown token" do
     assert_parse(
       "select foo from (select `bar` from baz) alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select `bar` from baz")),
+      select(columns: [{:identifier, :unknown, "foo"}], from: unparsed_subquery("select `bar` from baz")),
       @ds_proxy_data_source
     )
   end
 
-  test "subquery sql with parens" do
+  test "unparsed subquery sql with parens" do
     assert_parse(
       "select foo from (select bar, cast(now() as text) from baz) alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select bar, cast(now() as text) from baz")),
+      select(
+        columns: [{:identifier, :unknown, "foo"}],
+        from: unparsed_subquery("select bar, cast(now() as text) from baz")
+      ),
       @ds_proxy_data_source
     )
   end
 
-  test "subquery sql with newlines" do
+  test "unparsed subquery sql with newlines" do
     assert_parse(
       "select foo from (select bar\n, \n\ncast(now()\n as text) from baz\n) alias",
       select(columns: [{:identifier, :unknown, "foo"}],
-        from: subquery("select bar\n, \n\ncast(now()\n as text) from baz\n")),
+        from: unparsed_subquery("select bar\n, \n\ncast(now()\n as text) from baz\n")),
       @ds_proxy_data_source
     )
   end
@@ -658,15 +661,15 @@ defmodule Cloak.Aql.Parser.Test do
         "  \n  \n invalid_statement", "Expected `select or show`", {3, 2}},
       {"subquery on postgresql driver is not supported",
         "select foo from (select foo from bar) as subquery", "Subqueries are not supported", {1, 18}},
-      {"unclosed parens in a subquery expression", quote(do: @ds_proxy_data_source),
+      {"unclosed parens in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz", "Expected `)`", {1, 37}},
-      {"empty subquery expression", quote(do: @ds_proxy_data_source),
+      {"empty unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from ()", "Expected `subquery expression`", {1, 18}},
-      {"missing alias", quote(do: @ds_proxy_data_source),
+      {"missing alias in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz)", "Expected `subquery alias`", {1, 38}},
       {"assert at least one table",
         "select foo from", "Expected `table name`", {1, 16}},
-      {"missing alias after AS", quote(do: @ds_proxy_data_source),
+      {"missing alias after AS in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}},
       {"extended trim with two columns",
         "select trim(both a from b) from foo", "Expected `column definition`", {1, 8}},
