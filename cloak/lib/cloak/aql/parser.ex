@@ -147,7 +147,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp multiplicative_expression() do
-    infix_expression([keyword(:*), keyword(:/)], simple_expression())
+    infix_expression([keyword(:*), keyword(:/), keyword(:%)], simple_expression())
   end
 
   defp infix_expression(operators, inner_expression) do

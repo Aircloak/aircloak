@@ -590,10 +590,11 @@ defmodule Cloak.Aql.Parser.Test do
           {:function, "+", [identifier("c"), identifier("d")]}]}]}])
   end
 
-  test "* and /" do
-    assert_parse "select a * b / d from bar",
+  test "*, /, and %" do
+    assert_parse "select a * b / c % d from bar",
       select(columns: [{:function, "*", [identifier("a"),
-        {:function, "/", [identifier("b"), identifier("d")]}]}])
+        {:function, "/", [identifier("b"),
+          {:function, "%", [identifier("c"), identifier("d")]}]}]}])
   end
 
   test "* and / have higher precedence than + and -" do
