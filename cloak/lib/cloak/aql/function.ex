@@ -11,7 +11,7 @@ defmodule Cloak.Aql.Function do
     ~w(sum avg min max stddev median) => %{aggregate: true, return_type: :real, argument_types: [:numeric]},
     ~w(year month day hour minute second weekday) =>
       %{aggregate: false, return_type: :integer, argument_types: [:timestamp]},
-    ~w(floor ceil ceiling) => %{aggregate: false, return_type: :real, argument_types: [:numeric]},
+    ~w(floor ceil ceiling) => %{aggregate: false, return_type: :integer, argument_types: [:numeric]},
     ~w(round trunc) => %{aggregate: false, return_type: :real, argument_types: [:numeric, {:optional, :integer}]},
     ~w(abs sqrt) => %{aggregate: false, return_type: :real, argument_types: [:numeric]},
     ~w(div mod) => %{aggregate: false, return_type: :integer, argument_types: [:integer, :integer]},
@@ -137,9 +137,9 @@ defmodule Cloak.Aql.Function do
   defp do_apply("second", [value]), do: value.second
   defp do_apply("weekday", [value]), do: Timex.weekday(value)
   defp do_apply("sqrt", [value]), do: :math.sqrt(value)
-  defp do_apply("floor", [value]), do: value |> :erlang.float() |> Float.floor()
-  defp do_apply("ceil", [value]), do: value |> :erlang.float() |> Float.ceil()
-  defp do_apply("ceiling", [value]), do: value |> :erlang.float() |> Float.ceil()
+  defp do_apply("floor", [value]), do: value |> :erlang.float() |> Float.floor() |> round()
+  defp do_apply("ceil", [value]), do: value |> :erlang.float() |> Float.ceil() |> round()
+  defp do_apply("ceiling", [value]), do: value |> :erlang.float() |> Float.ceil() |> round()
   defp do_apply("abs", [value]), do: abs(value)
   defp do_apply("round", [value]), do: round(value)
   defp do_apply("round", [value, precision]), do: value |> :erlang.float() |> Float.round(precision)

@@ -1,4 +1,5 @@
 defmodule Cloak.Aql.Function.Test do
+  require Integer
   use ExUnit.Case, async: true
 
   alias Cloak.Aql.{Column, Function}
@@ -14,19 +15,19 @@ defmodule Cloak.Aql.Function.Test do
   end
 
   test "floor" do
-    assert apply_function("floor", [3.99]) == 3
-    assert apply_function("floor", [3.01]) == 3
-    assert apply_function("floor", [-3.99]) == -4
-    assert apply_function("floor", [3]) == 3
+    assert apply_function("floor", [3.99]) === 3
+    assert apply_function("floor", [3.01]) === 3
+    assert apply_function("floor", [-3.99]) === -4
+    assert apply_function("floor", [3]) === 3
   end
 
   test "ceil" do
-    assert apply_function("ceil", [3.99]) == 4
-    assert apply_function("ceil", [3.01]) == 4
-    assert apply_function("ceil", 3) == 3
-    assert apply_function("ceiling", [3.99]) == 4
-    assert apply_function("ceiling", [3.01]) == 4
-    assert apply_function("ceiling", 3) == 3
+    assert apply_function("ceil", [3.99]) === 4
+    assert apply_function("ceil", [3.01]) === 4
+    assert apply_function("ceil", 3) === 3
+    assert apply_function("ceiling", [3.99]) === 4
+    assert apply_function("ceiling", [3.01]) === 4
+    assert apply_function("ceiling", 3) === 3
   end
 
   test "abs" do
