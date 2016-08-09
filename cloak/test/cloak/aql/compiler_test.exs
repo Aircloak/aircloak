@@ -131,7 +131,8 @@ defmodule Cloak.Aql.Compiler.Test do
   for function <- ~w(hour minute second) do
     test "rejecting #{function} on non-timestamp columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires arguments of type (`timestamp`), but got (`integer`)"
+      assert error ==
+        "Function `#{unquote(function)}` requires arguments of type (`timestamp` | `time`), but got (`integer`)"
     end
   end
 

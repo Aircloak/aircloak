@@ -9,7 +9,7 @@ defmodule Cloak.Aql.Function do
   @functions %{
     ~w(count) => %{aggregate: true, argument_types: [:any]},
     ~w(sum avg min max stddev median) => %{aggregate: true, argument_types: [:numeric]},
-    ~w(hour minute second) => %{aggregate: false, argument_types: [:timestamp]},
+    ~w(hour minute second) => %{aggregate: false, argument_types: [{:or, [:timestamp, :time]}]},
     ~w(year month day weekday) => %{aggregate: false, argument_types: [{:or, [:timestamp, :date]}]},
     ~w(floor ceil ceiling) => %{aggregate: false, argument_types: [:real]},
     ~w(round trunc) => %{aggregate: false, argument_types: [:real, {:optional, :integer}]},
