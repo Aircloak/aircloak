@@ -42,7 +42,7 @@ defmodule Air.ApiTokenController do
     token = Repo.get(ApiToken, id)
     case token.user_id == conn.assigns.current_user.id do
       true ->
-        Repo.delete(token)
+        Repo.delete!(token)
         AuditLog.log(conn, "Invalidated API token")
         conn
         |> put_flash(:info, "Token revoked")
