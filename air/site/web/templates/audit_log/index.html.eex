@@ -1,35 +1,15 @@
 <h2>Audit log</h2>
 
-<table class="table">
-  <thead>
-    <tr>
-      <th>Event</th>
-      <th>User</th>
-      <th>Time</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-<%= for audit_log <- @audit_logs do %>
-    <tr>
-      <td><%= audit_log.event %></td>
-      <td><%= audit_log.user %></td>
-      <td>
-        <%=
-          audit_log.inserted_at
-          |> Ecto.DateTime.to_erl()
-          |> Timex.DateTime.from_erl()
-          |> Timex.from_now()
-        %>
-      </td>
-      <td>
-        <ul>
-        <%= for {item, value} <- Air.AuditLog.metadata_items(audit_log) do %>
-          <li><strong><%= humanize(item) %></strong>: <%= value %></li>
-        <% end %>
-        </ul>
-      </td>
-    </tr>
-<% end %>
-  </tbody>
-</table>
+<div id="audit-log-view" />
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = {
+        entries: <%= {:safe, @audit_logs} %>,
+      };
+
+      App.auditLog(props, document.getElementById("audit-log-view"));
+    }
+  };
+</script>

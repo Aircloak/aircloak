@@ -3,6 +3,7 @@ defmodule Air.AuditLogController do
   use Air.Web, :controller
 
   alias Air.AuditLog
+  alias Poison, as: JSON
 
 
   # -------------------------------------------------------------------
@@ -22,6 +23,8 @@ defmodule Air.AuditLogController do
 
   def index(conn, _params) do
     audit_logs = Repo.all(from a in AuditLog, order_by: [desc: :inserted_at])
+    |> Enum.map(&AuditLog.for_display/1)
+    |> Poison.encode!()
     render(conn, "index.html", audit_logs: audit_logs)
   end
 end

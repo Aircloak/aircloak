@@ -31,6 +31,25 @@ defmodule Air.AuditLog do
     Map.to_list(Poison.decode!(log_entry.metadata))
   end
 
+  def for_display(log_entry) do
+    metadata = Poison.decode!(log_entry.metadata)
+    |> Map.to_list()
+    |> Enum.map(fn({name, value}) -> [Phoenix.Naming.humanize(name), value] end)
+
+    inserted_at = log_entry.inserted_at
+    |> Ecto.DateTime.to_erl()
+    |> Timex.DateTime.from_erl()
+    |> Timex.from_now()
+
+    %{
+      user: log_entry.user,
+      event: log_entry.event,
+      metadata: metadata,
+      inserted_at: inserted_at,
+    }
+  end
+
+
   # -------------------------------------------------------------------
   # Auditable events
   # -------------------------------------------------------------------
