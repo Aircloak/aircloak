@@ -19,6 +19,7 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("floor", [3.01]) === 3
     assert apply_function("floor", [-3.99]) === -4
     assert apply_function("floor", [3]) === 3
+    assert apply_function("floor", [pow(10, 5000)]) === pow(10, 5000)
   end
 
   test "ceil" do
@@ -28,6 +29,7 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("ceiling", [3.99]) === 4
     assert apply_function("ceiling", [3.01]) === 4
     assert apply_function("ceiling", 3) === 3
+    assert apply_function("ceil", [pow(10, 5000)]) === pow(10, 5000)
   end
 
   test "abs" do
@@ -170,4 +172,11 @@ defmodule Cloak.Aql.Function.Test do
 
   defp well_typed?(name, types), do:
     Function.well_typed?({:function, name, Enum.map(types, &Column.constant(&1, nil))})
+
+  defp pow(_, 0), do: 1
+  defp pow(x, n) when Integer.is_odd(n), do: x * pow(x, n - 1)
+  defp pow(x, n) do
+    result = pow(x, div(n, 2))
+    result * result
+  end
 end

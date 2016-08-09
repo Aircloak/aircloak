@@ -137,9 +137,11 @@ defmodule Cloak.Aql.Function do
   defp do_apply("second", [value]), do: value.second
   defp do_apply("weekday", [value]), do: Timex.weekday(value)
   defp do_apply("sqrt", [value]), do: :math.sqrt(value)
-  defp do_apply("floor", [value]), do: value |> :erlang.float() |> Float.floor() |> round()
-  defp do_apply("ceil", [value]), do: value |> :erlang.float() |> Float.ceil() |> round()
-  defp do_apply("ceiling", [value]), do: value |> :erlang.float() |> Float.ceil() |> round()
+  defp do_apply("floor", [value]) when is_integer(value), do: value
+  defp do_apply("floor", [value]), do: value |> Float.floor() |> round()
+  defp do_apply("ceiling", [value]), do: do_apply("ceil", [value])
+  defp do_apply("ceil", [value]) when is_integer(value), do: value
+  defp do_apply("ceil", [value]), do: value |> Float.ceil() |> round()
   defp do_apply("abs", [value]), do: abs(value)
   defp do_apply("round", [value]), do: round(value)
   defp do_apply("round", [value, precision]), do: value |> :erlang.float() |> Float.round(precision)
