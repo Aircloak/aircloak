@@ -9,8 +9,10 @@ defmodule Cloak.Aql.Function do
   @functions %{
     ~w(count) => %{aggregate: true, return_type: :integer, argument_types: [:any]},
     ~w(sum avg min max stddev median) => %{aggregate: true, return_type: :real, argument_types: [:numeric]},
-    ~w(year month day hour minute second weekday) =>
-      %{aggregate: false, return_type: :integer, argument_types: [:timestamp]},
+    ~w(hour minute second) =>
+      %{aggregate: false, return_type: :integer, argument_types: [{:or, [:timestamp, :time]}]},
+    ~w(year month day weekday) =>
+      %{aggregate: false, return_type: :integer, argument_types: [{:or, [:timestamp, :date]}]},
     ~w(floor ceil ceiling) => %{aggregate: false, return_type: :integer, argument_types: [:numeric]},
     ~w(round trunc) => %{aggregate: false, return_type: :real, argument_types: [:numeric, {:optional, :integer}]},
     ~w(abs sqrt) => %{aggregate: false, return_type: :real, argument_types: [:numeric]},
@@ -29,7 +31,7 @@ defmodule Cloak.Aql.Function do
 
   @type t :: Parser.column | Column.t
   @type data_type :: :any | :numeric | :timestamp | DataSource.data_type
-  @type argument_type :: data_type | {:optional, data_type} | {:many1, data_type}
+  @type argument_type :: data_type | {:optional, data_type} | {:many1, data_type} | {:or, [data_type]}
 
 
   # -------------------------------------------------------------------
@@ -119,6 +121,7 @@ defmodule Cloak.Aql.Function do
   defp type_matches?({:optional, _}, nil), do: true
   defp type_matches?(_, nil), do: false
   defp type_matches?({:optional, type}, argument), do: type_matches?(type, argument)
+  defp type_matches?({:or, types}, argument), do: Enum.any?(types, &type_matches?(&1, argument))
   defp type_matches?(:any, _), do: true
   defp type_matches?(expected_type, %{type: actual_type}) do
     case {expected_type, actual_type} do

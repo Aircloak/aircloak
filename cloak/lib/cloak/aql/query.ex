@@ -57,7 +57,7 @@ defmodule Cloak.Aql.Query do
   @doc "Creates a compiled query from a string representation."
   @spec make(DataSource.t, String.t) :: {:ok, t} | {:error, String.t}
   def make(data_source, string) do
-    with {:ok, parsed_query} <- Cloak.Aql.Parser.parse(string) do
+    with {:ok, parsed_query} <- Cloak.Aql.Parser.parse(data_source, string) do
       Cloak.Aql.Compiler.compile(data_source, parsed_query)
     end
   end

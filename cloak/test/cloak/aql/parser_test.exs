@@ -4,6 +4,9 @@ defmodule Cloak.Aql.Parser.Test do
   alias Cloak.Aql.Parser
   alias Cloak.Aql.Parsers.Token
 
+  @psql_data_source %{driver: Cloak.DataSource.PostgreSQL}
+  @ds_proxy_data_source %{driver: Cloak.DataSource.DsProxy}
+
 
   # -------------------------------------------------------------------
   # Helper macros
@@ -16,9 +19,9 @@ defmodule Cloak.Aql.Parser.Test do
   # each element in the ast.
 
   # Runs the query string and asserts it matches to the given pattern.
-  defmacrop assert_parse(query_string, expected_pattern) do
+  defmacrop assert_parse(query_string, expected_pattern, data_source \\ quote(do: @psql_data_source)) do
     quote do
-      assert unquote(expected_pattern) = Parser.parse!(unquote(query_string))
+      assert unquote(expected_pattern) = Parser.parse!(unquote(data_source), unquote(query_string))
     end
   end
 
@@ -344,35 +347,40 @@ defmodule Cloak.Aql.Parser.Test do
   test "subquery sql" do
     assert_parse(
       "select foo from (select bar from baz) alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select bar from baz"))
+      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select bar from baz")),
+      @ds_proxy_data_source
     )
   end
 
   test "subquery sql with AS" do
     assert_parse(
       "select foo from (select bar from baz) as alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select bar from baz"))
+      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select bar from baz")),
+      @ds_proxy_data_source
     )
   end
 
   test "subquery sql with semicolon" do
     assert_parse(
       "select foo from (select bar from baz) alias;",
-      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select bar from baz"))
+      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select bar from baz")),
+      @ds_proxy_data_source
     )
   end
 
   test "subquery sql with an unknown token" do
     assert_parse(
       "select foo from (select `bar` from baz) alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select `bar` from baz"))
+      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select `bar` from baz")),
+      @ds_proxy_data_source
     )
   end
 
   test "subquery sql with parens" do
     assert_parse(
       "select foo from (select bar, cast(now() as text) from baz) alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select bar, cast(now() as text) from baz"))
+      select(columns: [{:identifier, :unknown, "foo"}], from: subquery("select bar, cast(now() as text) from baz")),
+      @ds_proxy_data_source
     )
   end
 
@@ -380,7 +388,8 @@ defmodule Cloak.Aql.Parser.Test do
     assert_parse(
       "select foo from (select bar\n, \n\ncast(now()\n as text) from baz\n) alias",
       select(columns: [{:identifier, :unknown, "foo"}],
-        from: subquery("select bar\n, \n\ncast(now()\n as text) from baz\n"))
+        from: subquery("select bar\n, \n\ncast(now()\n as text) from baz\n")),
+      @ds_proxy_data_source
     )
   end
 
@@ -574,6 +583,15 @@ defmodule Cloak.Aql.Parser.Test do
       select(columns: [{:function, "concat", [identifier("a"), identifier("b"), identifier("c")]}])
   end
 
+  create_test =
+    fn(description, data_source, statement, expected_error, line, column) ->
+      test description do
+        assert {:error, reason} = Parser.parse(unquote(data_source), unquote(statement))
+        assert reason =~ unquote(expected_error)
+        assert reason =~ "line #{unquote(line)}, column #{unquote(column)}\."
+      end
+    end
+
   Enum.each(
     [
       {"single quote is not allowed in the identifier",
@@ -592,6 +610,12 @@ defmodule Cloak.Aql.Parser.Test do
         "foo select foo bar from baz", "Expected `select or show`", {1, 1}},
       {"show requires tables or columns",
         "show foobar", "Expected `tables or columns`", {1, 6}},
+      {"show columns requires `from`",
+        "show columns", "Expected `from`", {1, 13}},
+      {"show columns requires a table",
+        "show columns from", "Expected `table name`", {1, 18}},
+      {"show columns works only with one table",
+        "show columns from foo, bar", "Expected end of input", {1, 22}},
       {"!= is an illegal comparator in where clause",
         "select a from b where a != b", "Expected `comparator`", {1, 25}},
       {"=> is an illegal comparator in where clause",
@@ -632,25 +656,26 @@ defmodule Cloak.Aql.Parser.Test do
         "   invalid_statement", "Expected `select or show`", {1, 4}},
       {"initial error after spaces and newlines",
         "  \n  \n invalid_statement", "Expected `select or show`", {3, 2}},
-      {"unclosed parens in a subquery expression",
+      {"subquery on postgresql driver is not supported",
+        "select foo from (select foo from bar) as subquery", "Subqueries are not supported", {1, 18}},
+      {"unclosed parens in a subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz", "Expected `)`", {1, 37}},
-      {"empty subquery expression",
+      {"empty subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from ()", "Expected `subquery expression`", {1, 18}},
-      {"missing alias",
+      {"missing alias", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz)", "Expected `subquery alias`", {1, 38}},
       {"assert at least one table",
         "select foo from", "Expected `table name`", {1, 16}},
-      {"missing alias after AS",
+      {"missing alias after AS", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}},
       {"extended trim with two columns",
         "select trim(both a from b) from foo", "Expected `column definition`", {1, 8}},
     ],
-    fn({description, statement, expected_error, {line, column}}) ->
-      test description do
-        assert {:error, reason} = Parser.parse(unquote(statement))
-        assert reason =~ unquote(expected_error)
-        assert reason =~ "line #{unquote(line)}, column #{unquote(column)}\."
-      end
+    fn
+      {description, statement, expected_error, {line, column}} ->
+        create_test.(description, quote(do: @psql_data_source), statement, expected_error, line, column)
+      {description, data_source, statement, expected_error, {line, column}} ->
+        create_test.(description, data_source, statement, expected_error, line, column)
     end
   )
 end
