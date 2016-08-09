@@ -791,6 +791,28 @@ defmodule Cloak.QueryTest do
     assert [%Column{name: "height"}] = query.db_data_columns
   end
 
+  test "nested function call" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [-4.2])
+    assert_query "select sqrt(abs(round(float))) from floats",
+      %{columns: ["sqrt"], rows: [%{row: [value], occurrences: 10}]}
+    assert_in_delta value, 2, 0.1
+  end
+
+  test "function on an aggregated value" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [4])
+    :ok = insert_rows(_user_ids = 11..100, "floats", ["float"], [9])
+    assert_query "select round(avg(float)) from floats",
+      %{columns: ["round"], rows: [%{row: [9], occurrences: 1}]}
+  end
+
+  test "aggregating a function" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [4])
+    :ok = insert_rows(_user_ids = 11..20, "floats", ["float"], [9])
+    assert_query "select avg(sqrt(float)) from floats",
+      %{columns: ["avg"], rows: [%{row: [value], occurrences: 1}]}
+    assert_in_delta value, 2.5, 0.01
+  end
+
   defp start_query(statement) do
     Query.Runner.start("1", Cloak.DataSource.fetch!(:local), statement, {:process, self()})
   end

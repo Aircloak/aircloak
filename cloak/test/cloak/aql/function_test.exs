@@ -1,4 +1,5 @@
 defmodule Cloak.Aql.Function.Test do
+  require Integer
   use ExUnit.Case, async: true
 
   alias Cloak.Aql.{Column, Function}
@@ -6,17 +7,29 @@ defmodule Cloak.Aql.Function.Test do
   test "sqrt", do:
     assert_in_delta(apply_function("sqrt", [3]), 1.73, 0.1)
 
+  for function <- ~w(floor ceil ceiling) do
+    test "#{function} argument types" do
+      assert well_typed?(unquote(function), [:integer])
+      assert well_typed?(unquote(function), [:real])
+    end
+  end
+
   test "floor" do
-    assert apply_function("floor", [3.99]) == 3
-    assert apply_function("floor", [3.01]) == 3
-    assert apply_function("floor", [-3.99]) == -4
+    assert apply_function("floor", [3.99]) === 3
+    assert apply_function("floor", [3.01]) === 3
+    assert apply_function("floor", [-3.99]) === -4
+    assert apply_function("floor", [3]) === 3
+    assert apply_function("floor", [pow(10, 5000)]) === pow(10, 5000)
   end
 
   test "ceil" do
-    assert apply_function("ceil", [3.99]) == 4
-    assert apply_function("ceil", [3.01]) == 4
-    assert apply_function("ceiling", [3.99]) == 4
-    assert apply_function("ceiling", [3.01]) == 4
+    assert apply_function("ceil", [3.99]) === 4
+    assert apply_function("ceil", [3.01]) === 4
+    assert apply_function("ceil", 3) === 3
+    assert apply_function("ceiling", [3.99]) === 4
+    assert apply_function("ceiling", [3.01]) === 4
+    assert apply_function("ceiling", 3) === 3
+    assert apply_function("ceil", [pow(10, 5000)]) === pow(10, 5000)
   end
 
   test "abs" do
@@ -27,27 +40,43 @@ defmodule Cloak.Aql.Function.Test do
   end
 
   test "round" do
+    assert well_typed?("round", [:real])
+    assert well_typed?("round", [:integer])
     assert apply_function("round", [3.99]) == 4
     assert apply_function("round", [3.01]) == 3
+    assert apply_function("round", [3]) == 3
+    assert apply_function("round", [pow(10, 5000)]) === pow(10, 5000)
   end
 
   test "binary round" do
+    assert well_typed?("round", [:real, :integer])
+    assert well_typed?("round", [:integer, :integer])
     assert apply_function("round", [3.99, 1]) == 4.0
     assert apply_function("round", [3.91, 1]) == 3.9
     assert apply_function("round", [3.991, 2]) == 3.99
     assert apply_function("round", [3.99, 4]) == 3.99
+    assert apply_function("round", [3, 1]) == 3
+    assert apply_function("round", [pow(10, 5000), 1]) === pow(10, 5000)
   end
 
   test "trunc" do
+    assert well_typed?("round", [:real])
+    assert well_typed?("round", [:integer])
     assert apply_function("trunc", [3.99]) == 3
     assert apply_function("trunc", [-3.99]) == -3
+    assert apply_function("trunc", [3]) == 3
+    assert apply_function("trunc", [pow(10, 5000)]) === pow(10, 5000)
   end
 
   test "binary trunc" do
+    assert well_typed?("round", [:real, :integer])
+    assert well_typed?("round", [:integer, :integer])
     assert apply_function("trunc", [3.99, 1]) == 3.9
     assert apply_function("trunc", [-3.99, 1]) == -3.9
     assert apply_function("trunc", [3.99, 2]) == 3.99
     assert apply_function("trunc", [3.99, 4]) == 3.99
+    assert apply_function("trunc", [3, 4]) == 3
+    assert apply_function("trunc", [pow(10, 5000), 1]) === pow(10, 5000)
   end
 
   test "div" do
@@ -153,9 +182,21 @@ defmodule Cloak.Aql.Function.Test do
   test "any function with one of the arguments being :*", do:
     assert apply_function("whatever", [1, :*, "thing"]) == :*
 
+  test "typechecking a nested function call" do
+    assert Function.well_typed?({:function, "avg", [{:function, "abs", nil}]})
+    refute Function.well_typed?({:function, "avg", [{:function, "concat", nil}]})
+  end
+
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})
 
   defp well_typed?(name, types), do:
     Function.well_typed?({:function, name, Enum.map(types, &Column.constant(&1, nil))})
+
+  defp pow(_, 0), do: 1
+  defp pow(x, n) when Integer.is_odd(n), do: x * pow(x, n - 1)
+  defp pow(x, n) do
+    result = pow(x, div(n, 2))
+    result * result
+  end
 end

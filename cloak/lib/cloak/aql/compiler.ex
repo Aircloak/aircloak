@@ -204,7 +204,10 @@ defmodule Cloak.Aql.Compiler do
   end
   defp expand_star_select(query), do: query
 
-  defp filter_aggregators(columns), do: Enum.filter(columns, &Function.aggregate_function?/1)
+  defp filter_aggregators(columns), do:
+    columns
+    |> Enum.flat_map(&expand_arguments/1)
+    |> Enum.filter(&Function.aggregate_function?/1)
 
   defp verify_columns(query) do
     verify_functions(query)
@@ -216,18 +219,21 @@ defmodule Cloak.Aql.Compiler do
 
   defp verify_function_arguments(query) do
     query.columns
-    |> Enum.filter(&Function.function?/1)
+    |> Enum.flat_map(&expand_arguments/1)
     |> Enum.reject(&Function.well_typed?/1)
     |> case do
       [] -> :ok
       [function_call | _rest] ->
         expected_types = Function.argument_types(function_call)
-        actual_types = Function.arguments(function_call) |> Enum.map(&(&1.type))
+        actual_types = Function.arguments(function_call) |> Enum.map(&Function.type/1)
 
         raise CompilationError, message: "Function `#{Function.name(function_call)}` requires arguments"
           <> " of type (#{quoted_list(expected_types)}), but got (#{quoted_list(actual_types)})"
     end
   end
+
+  defp expand_arguments(column), do:
+    [column | Function.arguments(column) |> Enum.flat_map(&expand_arguments/1)]
 
   defp quoted_list(items), do:
     items |> Enum.map(&quoted_item/1) |> Enum.join(", ")
