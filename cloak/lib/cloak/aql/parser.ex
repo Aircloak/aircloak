@@ -31,18 +31,23 @@ defmodule Cloak.Aql.Parser do
       | is | {:not, is}
 
   @type from_clause ::
+    parsed_from_clause |
+    {:subquery, {:parsed, parsed_query}} |
+    {:subquery, {:unparsed, String.t}}
+
+  @type parsed_from_clause ::
       String.t
-    | {:join, :cross_join, from_clause, from_clause}
+    | {:join, :cross_join, parsed_from_clause, parsed_from_clause}
     | {
         :join, :full_outer_join | :left_outer_join | :right_outer_join, :inner_join,
-        from_clause, from_clause, :on, [where_clause]
+        parsed_from_clause, parsed_from_clause, :on, [where_clause]
       }
 
   @type parsed_query :: %{
     command: :select | :show,
     columns: [column | {column, :as, String.t}] | :*,
     group_by: [String.t],
-    from: from_clause | {:subquery, {:unparsed, String.t}},
+    from: from_clause,
     where: [where_clause],
     order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns
@@ -67,7 +72,7 @@ defmodule Cloak.Aql.Parser do
       case parse_tokens(tokens, parser(data_source)) do
         {:error, _} = error -> error
         [statement] ->
-          {:ok, map_from(statement, string)}
+          {:ok, map_unparsed_subquery(statement, string)}
       end
     end
   end
@@ -76,13 +81,13 @@ defmodule Cloak.Aql.Parser do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp map_from(%{from: {:subquery, {:unparsed, from, from}}} = statement, _statement_string) do
+  defp map_unparsed_subquery(%{from: {:subquery, {:unparsed, from, from}}} = statement, _statement_string) do
     %{statement | from: {:subquery, {:unparsed, ""}}}
   end
-  defp map_from(%{from: {:subquery, {:unparsed, from, to}}} = statement, statement_string) do
+  defp map_unparsed_subquery(%{from: {:subquery, {:unparsed, from, to}}} = statement, statement_string) do
     %{statement | from: {:subquery, {:unparsed, String.slice(statement_string, from..(to - 1))}}}
   end
-  defp map_from(statement, _statement_string), do: statement
+  defp map_unparsed_subquery(statement, _statement_string), do: statement
 
   defp parser(data_source) do
     statement(data_source)
@@ -96,14 +101,14 @@ defmodule Cloak.Aql.Parser do
       {keyword(:show), show_statement()},
       {:else, error_message(fail(""), "Expected `select or show`")}
     ])
-    |> map(&create_reportable_map/1)
+    |> map(fn({[command], [statement_data]}) -> statement_map(command, statement_data) end)
   end
 
-  defp create_reportable_map({[command], [statement_data]}) do
+  defp statement_map(command, statement_data) do
     statement_data
     |> Enum.reject(fn(value) -> value == nil end)
-    |> Map.new
-    |> Map.merge(%{command: command})
+    |> Enum.into(%{})
+    |> Map.put(:command, command)
   end
 
   defp statement_termination(parser) do
@@ -398,11 +403,22 @@ defmodule Cloak.Aql.Parser do
     |> label("table name")
   end
 
-  defp subquery(%{driver: Cloak.DataSource.DsProxy}) do
-    unparsed_subquery()
-  end
-  defp subquery(_not_ds_proxy_data_source) do
-    error_message(fail(""), "Subqueries are not supported for this data source")
+  defp subquery(%{driver: Cloak.DataSource.DsProxy}), do: unparsed_subquery()
+  defp subquery(other_data_source), do: parsed_subquery(other_data_source)
+
+  defp parsed_subquery(data_source) do
+    sequence([
+      ignore(keyword(:select)),
+      lazy(fn -> select_statement(data_source) end),
+      ignore(keyword(:")")),
+      option(keyword(:as)),
+      label(identifier(), "subquery alias")
+    ])
+    |> map(
+          fn([select_statement, _as_keyword, alias]) ->
+            {:parsed, statement_map(:select, select_statement), alias}
+          end
+        )
   end
 
   defp unparsed_subquery() do

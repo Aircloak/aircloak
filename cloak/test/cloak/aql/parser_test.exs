@@ -58,6 +58,12 @@ defmodule Cloak.Aql.Parser.Test do
     Enum.map(values, &quote(do: constant(unquote(&1))))
   end
 
+  defmacrop parsed_subquery(value, alias) do
+    quote do
+      {:subquery, {:parsed, unquote(value), unquote(alias)}}
+    end
+  end
+
   defmacrop unparsed_subquery(value) do
     quote do
       {:subquery, {:unparsed, unquote(value)}}
@@ -342,6 +348,28 @@ defmodule Cloak.Aql.Parser.Test do
           {{:identifier, :unknown, "c"}, nil}
         ])
     )
+  end
+
+  test "parsed subquery sql" do
+    assert_parse(
+      "select foo from (select foo from bar) alias",
+      select(columns: [{:identifier, :unknown, "foo"}], from: parsed_subquery(subquery, "alias"))
+    )
+    assert select(columns: [{:identifier, :unknown, "foo"}], from: "bar") = subquery
+  end
+
+  test "parsed nested subquery sql" do
+    assert_parse(
+      "select foo from (select foo from (select foo from bar) inner_alias) outer_alias",
+      select(columns: [{:identifier, :unknown, "foo"}], from: parsed_subquery(subquery, "outer_alias"))
+    )
+
+    assert select(
+      columns: [{:identifier, :unknown, "foo"}],
+      from: parsed_subquery(inner_subquery, "inner_alias")
+    ) = subquery
+
+    assert select(columns: [{:identifier, :unknown, "foo"}], from: "bar") = inner_subquery
   end
 
   test "unparsed subquery sql" do
@@ -659,20 +687,28 @@ defmodule Cloak.Aql.Parser.Test do
         "   invalid_statement", "Expected `select or show`", {1, 4}},
       {"initial error after spaces and newlines",
         "  \n  \n invalid_statement", "Expected `select or show`", {3, 2}},
-      {"subquery on postgresql driver is not supported",
-        "select foo from (select foo from bar) as subquery", "Subqueries are not supported", {1, 18}},
+      {"assert at least one table",
+        "select foo from", "Expected `table name`", {1, 16}},
+      {"extended trim with two columns",
+        "select trim(both a from b) from foo", "Expected `column definition`", {1, 8}},
+      # parsed subqueries
+      {"unclosed parens in a parsed subquery expression",
+        "select foo from (select bar from baz", "Expected `)`", {1, 37}},
+      {"empty parsed subquery expression",
+        "select foo from ()", "Expected `select`", {1, 18}},
+      {"missing alias in a parsed subquery expression",
+        "select foo from (select bar from baz)", "Expected `subquery alias`", {1, 38}},
+      {"missing alias after AS in an parsed subquery expression",
+        "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}},
+      # unparsed subqueries
       {"unclosed parens in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz", "Expected `)`", {1, 37}},
       {"empty unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from ()", "Expected `subquery expression`", {1, 18}},
       {"missing alias in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz)", "Expected `subquery alias`", {1, 38}},
-      {"assert at least one table",
-        "select foo from", "Expected `table name`", {1, 16}},
       {"missing alias after AS in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}},
-      {"extended trim with two columns",
-        "select trim(both a from b) from foo", "Expected `column definition`", {1, 8}},
     ],
     fn
       {description, statement, expected_error, {line, column}} ->
