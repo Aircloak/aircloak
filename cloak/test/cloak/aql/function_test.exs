@@ -134,6 +134,22 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("concat", ["a", " ", "string"]) == "a string"
   end
 
+  for function <- ~w(year month day weekday) do
+    test function do
+      assert well_typed?(unquote(function), [:timestamp])
+      assert well_typed?(unquote(function), [:date])
+      refute well_typed?(unquote(function), [:time])
+    end
+  end
+
+  for function <- ~w(hour minute second) do
+    test function do
+      assert well_typed?(unquote(function), [:timestamp])
+      refute well_typed?(unquote(function), [:date])
+      assert well_typed?(unquote(function), [:time])
+    end
+  end
+
   test "any function with one of the arguments being :*", do:
     assert apply_function("whatever", [1, :*, "thing"]) == :*
 
