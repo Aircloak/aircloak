@@ -12,7 +12,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   setup do
     {:ok, %{
-      data_source: %{tables: %{
+      data_source: %{driver: Cloak.DataSource.DsProxy, tables: %{
         table: %{
           db_name: "table",
           name: "table",
@@ -388,7 +388,7 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   defp compile(query_string, data_source) do
-    query = Parser.parse!(query_string)
+    query = Parser.parse!(data_source, query_string)
     Compiler.compile(data_source, query)
   end
 end
