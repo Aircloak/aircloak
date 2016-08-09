@@ -24,6 +24,7 @@ defmodule Cloak.Aql.Function do
     ~w(btrim ltrim rtrim) => %{aggregate: false, return_type: :text, argument_types: [:text, {:optional, :text}]},
     ~w(substring substring_for) =>
       %{aggregate: false, return_type: :text, argument_types: [:text, :integer, {:optional, :integer}]},
+    ~w(||) => %{aggregate: false, return_type: :text, argument_types: [:text, :text]},
     ~w(concat) => %{aggregate: false, return_type: :text, argument_types: [{:many1, :text}]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
@@ -171,6 +172,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("substring", [string, from]), do: substring(string, from)
   defp do_apply("substring", [string, from, count]), do: substring(string, from, count)
   defp do_apply("substring_for", [string, count]), do: substring(string, 1, count)
+  defp do_apply("||", args), do: Enum.join(args)
   defp do_apply("concat", args), do: Enum.join(args)
 
   defp do_trunc(value, 0), do: trunc(value)

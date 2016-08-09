@@ -580,7 +580,8 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "||" do
     assert_parse "select a || b || c from bar",
-      select(columns: [{:function, "concat", [identifier("a"), identifier("b"), identifier("c")]}])
+      select(columns: [{:function, "||", [identifier("a"),
+        {:function, "||", [identifier("b"), identifier("c")]}]}])
   end
 
   test "+ and -" do

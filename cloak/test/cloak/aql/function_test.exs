@@ -163,6 +163,11 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("concat", ["a", " ", "string"]) == "a string"
   end
 
+  test "||" do
+    assert well_typed?("||", [:text, :text])
+    assert apply_function("||", ["a ", "string"]) == "a string"
+  end
+
   for function <- ~w(year month day weekday) do
     test function do
       assert well_typed?(unquote(function), [:timestamp])

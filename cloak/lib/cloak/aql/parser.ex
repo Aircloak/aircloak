@@ -154,20 +154,6 @@ defmodule Cloak.Aql.Parser do
     infix_expression([keyword(:^)], simple_expression())
   end
 
-  defp infix_expression(operators, inner_expression) do
-    either(
-      pipe(
-        [
-          inner_expression,
-          choice(operators),
-          lazy(fn -> infix_expression(operators, inner_expression) end)
-        ],
-        fn[left, operator, right] -> {:function, to_string(operator), [left, right]} end
-      ),
-      inner_expression
-    )
-  end
-
   defp simple_expression() do
     choice([
       function_expression(),
@@ -282,14 +268,20 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp concat_expression() do
-    argument = either(qualified_identifier(), constant_column())
+    infix_expression([keyword(:||)], either(qualified_identifier(), constant_column()))
+  end
 
-    pipe(
-      [
-        argument,
-        many1(sequence([keyword(:||), argument]))
-      ],
-      fn([first, rest]) -> {:function, "concat", [first | Enum.map(rest, &Enum.at(&1, 1))]} end
+  defp infix_expression(operators, inner_expression) do
+    either(
+      pipe(
+        [
+          inner_expression,
+          choice(operators),
+          lazy(fn -> infix_expression(operators, inner_expression) end)
+        ],
+        fn[left, operator, right] -> {:function, to_string(operator), [left, right]} end
+      ),
+      inner_expression
     )
   end
 
