@@ -791,20 +791,6 @@ defmodule Cloak.QueryTest do
     assert [%Column{name: "height"}] = query.db_data_columns
   end
 
-  test "extracting hours from a date" do
-    time = %Postgrex.Date{year: 2015, month: 1, day: 2}
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["date"], [time])
-    assert_query "select hour(date) from heights",
-      %{columns: ["hour"], rows: [%{row: [0], occurrences: 10}]}
-  end
-
-  test "extracting years from a time" do
-    time = %Postgrex.Time{hour: 10, min: 1, sec: 2}
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["time_only"], [time])
-    assert_query "select year(time_only) from heights",
-      %{columns: ["year"], rows: [%{row: [0], occurrences: 10}]}
-  end
-
   defp start_query(statement) do
     Query.Runner.start("1", Cloak.DataSource.fetch!(:local), statement, {:process, self()})
   end

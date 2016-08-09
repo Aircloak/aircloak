@@ -116,11 +116,6 @@ defmodule Cloak.Aql.Compiler.Test do
       assert {:ok, _} = compile("select #{unquote(function)}(column) from table", data_source)
     end
 
-    test "rejecting #{function} on non-timestamp columns", %{data_source: data_source} do
-      assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
-      assert error == "Function `#{unquote(function)}` requires arguments of type (`timestamp`), but got (`integer`)"
-    end
-
     test "allowing #{function} in group by", %{data_source: data_source} do
       assert {:ok, _} = compile(
         "select #{unquote(function)}(column) from table group by #{unquote(function)}(column)",
@@ -130,6 +125,21 @@ defmodule Cloak.Aql.Compiler.Test do
 
     test "allowing #{function} in select when the argument is grouped", %{data_source: data_source} do
       assert {:ok, _} = compile("select #{unquote(function)}(column) from table group by column", data_source)
+    end
+  end
+
+  for function <- ~w(hour minute second) do
+    test "rejecting #{function} on non-timestamp columns", %{data_source: data_source} do
+      assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
+      assert error == "Function `#{unquote(function)}` requires arguments of type (`timestamp`), but got (`integer`)"
+    end
+  end
+
+  for function <- ~w(year month day weekday) do
+    test "rejecting #{function} on non-timestamp columns", %{data_source: data_source} do
+      assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source)
+      assert error ==
+        "Function `#{unquote(function)}` requires arguments of type (`timestamp` | `date`), but got (`integer`)"
     end
   end
 
