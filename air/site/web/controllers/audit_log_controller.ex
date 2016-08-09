@@ -21,7 +21,7 @@ defmodule Air.AuditLogController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    audit_logs = Repo.all(AuditLog)
+    audit_logs = Repo.all(from a in AuditLog, order_by: [desc: :inserted_at])
     render(conn, "index.html", audit_logs: audit_logs)
   end
 end
