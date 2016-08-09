@@ -2,7 +2,7 @@ defmodule Air.UserController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.{User, Organisation}
+  alias Air.{User, Organisation, AuditLog}
 
   plug :preload_organisations, except: [:index, :delete]
 
@@ -41,7 +41,8 @@ defmodule Air.UserController do
     changeset = User.changeset(%User{}, params["user"])
     if (create_permitted?(conn, changeset)) do
       case Repo.insert(changeset) do
-        {:ok, _user} ->
+        {:ok, user} ->
+          AuditLog.log(conn, "Created user", user: user.email, name: user.name)
           conn
           |> put_flash(:info, "User created")
           |> redirect(to: user_path(conn, :index))
@@ -61,7 +62,8 @@ defmodule Air.UserController do
     if edit_permitted?(conn, user, user_params) do
       changeset = User.changeset(user, params["user"])
       case Repo.update(changeset) do
-        {:ok, _user} ->
+        {:ok, user} ->
+          AuditLog.log(conn, "Altered user", user: user.email, name: user.name)
           conn
           |> put_flash(:info, "User updated")
           |> redirect(to: user_path(conn, :index))
@@ -78,6 +80,7 @@ defmodule Air.UserController do
   def delete(conn, %{"id" => id}) do
     user = Repo.get!(User, id)
     Repo.delete!(user)
+    AuditLog.log(conn, "Removed user", user: user.email, name: user.name)
     conn
     |> put_flash(:info, "User deleted")
     |> redirect(to: user_path(conn, :index))

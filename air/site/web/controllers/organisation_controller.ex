@@ -2,7 +2,7 @@ defmodule Air.OrganisationController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.Organisation
+  alias Air.{Organisation, AuditLog}
 
   plug :scrub_params, "organisation" when action in [:create, :update]
 
@@ -35,7 +35,8 @@ defmodule Air.OrganisationController do
     changeset = Organisation.changeset(%Organisation{}, organisation_params)
 
     case Repo.insert(changeset) do
-      {:ok, _organisation} ->
+      {:ok, organisation} ->
+        AuditLog.log(conn, "Create organisation", name: organisation.name)
         conn
         |> put_flash(:info, "Organisation created successfully.")
         |> redirect(to: organisation_path(conn, :index))
@@ -63,6 +64,7 @@ defmodule Air.OrganisationController do
 
     case Repo.update(changeset) do
       {:ok, organisation} ->
+        AuditLog.log(conn, "Updated organisation", name: organisation.name)
         conn
         |> put_flash(:info, "Organisation updated successfully.")
         |> redirect(to: organisation_path(conn, :show, organisation))
@@ -78,6 +80,7 @@ defmodule Air.OrganisationController do
     # it to always work (and if it does not, it will raise).
     Repo.delete!(organisation)
 
+    AuditLog.log(conn, "Removed organisation", name: organisation.name)
     conn
     |> put_flash(:info, "Organisation deleted successfully.")
     |> redirect(to: organisation_path(conn, :index))

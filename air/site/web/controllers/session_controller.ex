@@ -2,7 +2,7 @@ defmodule Air.SessionController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.User
+  alias Air.{User, AuditLog}
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -28,6 +28,7 @@ defmodule Air.SessionController do
     user = Repo.get_by(User, email: params["email"])
     case User.validate_password(user, params["password"]) do
       true ->
+        AuditLog.log(conn, "Logged in", [], user)
         return_path = get_session(conn, :return_path) || query_path(conn, :index)
         conn
         |> Guardian.Plug.sign_in(user)
@@ -36,6 +37,7 @@ defmodule Air.SessionController do
         |> put_flash(:info, "Logged in successfully. Welcome back!")
         |> redirect(to: return_path)
       false ->
+        AuditLog.log(conn, "Failed login", [], user)
         conn
         |> put_flash(:error, "Invalid e-mail or password.")
         |> render("new.html")
@@ -43,6 +45,7 @@ defmodule Air.SessionController do
   end
 
   def delete(conn, _params) do
+    AuditLog.log(conn, "Logged out")
     conn
     |> Guardian.Plug.sign_out()
     |> Air.Plug.Session.Restoration.remove_token()

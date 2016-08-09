@@ -4,7 +4,7 @@ defmodule Air.QueryController do
   use Timex
 
   require Logger
-  alias Air.{DataSource, Query, Repo, Token}
+  alias Air.{DataSource, Query, Repo, Token, AuditLog}
   alias Poison, as: JSON
   alias Plug.CSRFProtection
   alias Plug.Conn.Status
@@ -44,6 +44,8 @@ defmodule Air.QueryController do
     {:ok, query} = build_assoc(conn.assigns.current_user, :queries)
     |> Query.changeset(parse_query_params(params))
     |> Repo.insert()
+
+    AuditLog.log(conn, "Executed query", query: query.statement, data_source: query.data_source)
 
     try do
       case MainChannel.run_query(
