@@ -143,16 +143,24 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp additive_expression() do
+    infix_expression([keyword(:+), keyword(:-)], multiplicative_expression())
+  end
+
+  defp multiplicative_expression() do
+    infix_expression([keyword(:*), keyword(:/)], simple_expression())
+  end
+
+  defp infix_expression(operators, inner_expression) do
     either(
       pipe(
         [
-          simple_expression(),
-          either(keyword(:+), keyword(:-)),
-          lazy(fn -> additive_expression() end)
+          inner_expression,
+          choice(operators),
+          lazy(fn -> infix_expression(operators, inner_expression) end)
         ],
         fn[left, operator, right] -> {:function, to_string(operator), [left, right]} end
       ),
-      simple_expression()
+      inner_expression
     )
   end
 
