@@ -372,6 +372,29 @@ defmodule Cloak.Aql.Parser.Test do
     assert select(columns: [{:identifier, :unknown, "foo"}], from: "bar") = inner_subquery
   end
 
+  test "join of parsed subqueries" do
+    assert_parse(
+      "select foo from (select foo from bar) sq1, (select foo from baz) sq2",
+      select(
+        columns: [{:identifier, :unknown, "foo"}],
+        from: {:join, :cross_join, parsed_subquery(sq1, "sq1"), parsed_subquery(sq2, "sq2")}
+      )
+    )
+    assert select(columns: [{:identifier, :unknown, "foo"}], from: "bar") = sq1
+    assert select(columns: [{:identifier, :unknown, "foo"}], from: "baz") = sq2
+  end
+
+  test "joining table with a parsed subquery" do
+    assert_parse(
+      "select foo from bar inner join (select foo from baz) sq on bar.id = sq.id",
+      select(
+        columns: [{:identifier, :unknown, "foo"}],
+        from: {:join, :inner_join, "bar", parsed_subquery(sq, "sq"), :on, _comparison}
+      )
+    )
+    assert select(columns: [{:identifier, :unknown, "foo"}], from: "baz") = sq
+  end
+
   test "unparsed subquery sql" do
     assert_parse(
       "select foo from (select bar from baz) alias",

@@ -31,16 +31,13 @@ defmodule Cloak.Aql.Parser do
       | is | {:not, is}
 
   @type from_clause ::
-    parsed_from_clause |
-    {:subquery, {:parsed, parsed_query}} |
-    {:subquery, {:unparsed, String.t}}
-
-  @type parsed_from_clause ::
       String.t
-    | {:join, :cross_join, parsed_from_clause, parsed_from_clause}
+    | {:subquery, {:parsed, parsed_query}}
+    | {:subquery, {:unparsed, String.t}}
+    | {:join, :cross_join, from_clause, from_clause}
     | {
         :join, :full_outer_join | :left_outer_join | :right_outer_join, :inner_join,
-        parsed_from_clause, parsed_from_clause, :on, [where_clause]
+        from_clause, from_clause, :on, [where_clause]
       }
 
   @type parsed_query :: %{
@@ -299,21 +296,10 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp from_expression(data_source) do
-    switch([
-      {keyword(:"(") |> map(fn(_) -> :subquery end), subquery(data_source)},
-      {:else, table_selection()}
-    ])
-    |> map(fn
-          {[:subquery], [subquery_data]} -> {:subquery, subquery_data}
-          other -> other
-        end)
-  end
-
-  defp table_selection() do
     map(
-      comma_delimited(table_construct()),
+      comma_delimited(table_construct(data_source)),
       &turn_tables_into_join/1
-    ) |> label("table name")
+    )
   end
 
   defp turn_tables_into_join([table]), do: handle_clause(table, nil)
@@ -338,10 +324,10 @@ defmodule Cloak.Aql.Parser do
   defp handle_clause(nil, acc), do: acc
   defp handle_clause(table, _acc), do: table
 
-  defp table_construct() do
+  defp table_construct(data_source) do
     pipe([
-        table_name(),
-        option(join_appendix()),
+        table_or_subquery(data_source),
+        option(join_appendix(data_source)),
       ],
       fn
         [table, nil] -> table
@@ -350,18 +336,18 @@ defmodule Cloak.Aql.Parser do
     )
   end
 
-  defp join_appendix() do
+  defp join_appendix(data_source) do
     pipe([
         option(join_type()),
         keyword(:join),
-        table_name(),
+        table_or_subquery(data_source),
         option(
           sequence([
             keyword(:on),
             where_expressions()
           ])
         ),
-        option(lazy(fn -> join_appendix() end))
+        option(lazy(fn -> join_appendix(data_source) end))
       ],
       fn
         ([:cross, :join, table, nil, next]) -> {:join, :cross_join, table, next}
@@ -398,13 +384,21 @@ defmodule Cloak.Aql.Parser do
     ])
   end
 
+  defp table_or_subquery(data_source) do
+    switch([
+      {keyword(:"(") |> map(fn(_) -> :subquery end), subquery(data_source)},
+      {:else, table_name()}
+    ])
+    |> map(fn
+          {[:subquery], [subquery_data]} -> {:subquery, subquery_data}
+          other -> other
+        end)
+  end
+
   defp table_name() do
     either(table_with_schema(), identifier())
     |> label("table name")
   end
-
-  defp subquery(%{driver: Cloak.DataSource.DsProxy}), do: unparsed_subquery()
-  defp subquery(other_data_source), do: parsed_subquery(other_data_source)
 
   defp parsed_subquery(data_source) do
     sequence([
@@ -420,6 +414,9 @@ defmodule Cloak.Aql.Parser do
           end
         )
   end
+
+  defp subquery(%{driver: Cloak.DataSource.DsProxy}), do: unparsed_subquery()
+  defp subquery(other_data_source), do: parsed_subquery(other_data_source)
 
   defp unparsed_subquery() do
     sequence([

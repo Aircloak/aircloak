@@ -169,6 +169,11 @@ defmodule Cloak.DataSource.DsProxyTest do
     assert {:error, "Some error message"} == run_query(context, "select foo from (bar) as baz")
   end
 
+  test "can't join subqueries in dsproxy", context do
+    assert {:error, error} = run_query(context, "select foo from bar, (select foo from baz) sq")
+    assert error == "Joining subqueries is not supported for this data source"
+  end
+
 
   ## ----------------------------------------------------------------
   ## Internal functions
