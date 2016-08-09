@@ -1,8 +1,8 @@
-defmodule Cloak.SqlQuery.Compiler.Test do
+defmodule Cloak.Aql.Compiler.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.SqlQuery.Compiler
-  alias Cloak.SqlQuery.Parser
+  alias Cloak.Aql.Compiler
+  alias Cloak.Aql.Parser
 
   defmacrop column(table_name, column_name) do
     quote do
@@ -61,13 +61,13 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     result = compile!("select * from table where column > '2015-01-01'", data_source)
 
     time = %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}
-    assert [{:comparison, column("table", "column"), :>, ^time}] = result[:where]
+    assert [{:comparison, column("table", "column"), :>, ^time}] = result.where
   end
 
   test "casts timestamp in `in` conditions", %{data_source: data_source} do
     result = compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source)
 
-    assert [{:in, column("table", "column"), times}] = result[:where]
+    assert [{:in, column("table", "column"), times}] = result.where
     assert Enum.sort(times) == [
       %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)},
       %Timex.DateTime{year: 2015, month: 1, day: 2, timezone: Timex.Timezone.get(:utc)},
@@ -78,7 +78,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
     result = compile!("select * from table where column <> '2015-01-01'", data_source)
 
     time = %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}
-    assert [{:comparison, column("table", "column"), :=, ^time}] = result[:where_not]
+    assert [{:comparison, column("table", "column"), :=, ^time}] = result.where_not
   end
 
   test "reports malformed timestamps", %{data_source: data_source} do
@@ -300,12 +300,12 @@ defmodule Cloak.SqlQuery.Compiler.Test do
         ORDER BY count(column) DESC, count(table.column) DESC
       """,
       data_source)
-    assert [column("table", "column"), {:function, "count", [column("table", "column")]}] = result[:columns]
-    assert [{:comparison, column("table", "column"), :>, _}] = result[:where]
-    assert [{:comparison, column("table", "column"), :=, _}] = result[:where_not]
-    assert [column("table", "column")] = result[:unsafe_filter_columns]
-    assert [column("table", "column")] = result[:group_by]
-    assert result[:order_by] == [{1, :desc}, {1, :desc}]
+    assert [column("table", "column"), {:function, "count", [column("table", "column")]}] = result.columns
+    assert [{:comparison, column("table", "column"), :>, _}] = result.where
+    assert [{:comparison, column("table", "column"), :=, _}] = result.where_not
+    assert [column("table", "column")] = result.unsafe_filter_columns
+    assert [column("table", "column")] = result.group_by
+    assert result.order_by == [{1, :desc}, {1, :desc}]
   end
 
   test "complains when tables don't exist", %{data_source: data_source} do
@@ -313,8 +313,8 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       compile("SELECT c1 FROM t1, t_doesnt_exist", data_source)
   end
 
-  test "expands all columns for all tables when cross joining", %{data_source: data_source} do
-    result = compile!("SELECT * FROM t1, t2, t3 WHERE t1.uid = t2.uid AND t2.uid = t3.uid", data_source)
+  test "expands all columns for all tables when joining", %{data_source: data_source} do
+    result = compile!("SELECT * FROM t1, t2 JOIN t3 on t2.uid = t3.uid WHERE t1.uid = t2.uid", data_source)
     assert [
       column("t1", "uid"),
       column("t1", "c1"),
@@ -324,7 +324,7 @@ defmodule Cloak.SqlQuery.Compiler.Test do
       column("t2", "c3"),
       column("t3", "uid"),
       column("t3", "c1")
-    ] = result[:columns]
+    ] = result.columns
   end
 
   test "complains when an unqualified identifier cannot be pinned down", %{data_source: data_source} do
@@ -341,12 +341,55 @@ defmodule Cloak.SqlQuery.Compiler.Test do
         ORDER BY t1.c1 DESC
       """,
       data_source)
-    assert [column("t1", "c1")] = result[:columns]
-    assert [comparison1, comparison2] = result[:where]
+    assert [column("t1", "c1")] = result.columns
+    assert [comparison1, comparison2] = result.where
     assert {:comparison, column("t1", "c2"), :>, _} = comparison1
     assert {:comparison, column("t1", "uid"), :=, column("t2", "uid")} = comparison2
-    assert [column("t1", "c1"), column("t2", "c3")] = result[:group_by]
-    assert result[:order_by] == [{0, :desc}]
+    assert [column("t1", "c1"), column("t2", "c3")] = result.group_by
+    assert result.order_by == [{0, :desc}]
+  end
+
+  test "complains when conditions not on columns of JOINed tables", %{data_source: data_source} do
+    assert {:error, "Column `c3` of table `t2` is used out of scope."} = compile("""
+      SELECT t1.c1
+      FROM
+        t1 INNER JOIN t3 ON t1.uid = t3.uid and t2.c3 > 10,
+        t2
+      WHERE t2.uid = t1.uid
+    """, data_source)
+    assert {:error, "Column `c3` of table `t2` is used out of scope."} = compile("""
+      SELECT t1.c1
+      FROM
+        t1 INNER JOIN t3 ON t1.uid = t3.uid and c3 > 10,
+        t2
+      WHERE t2.uid = t1.uid
+    """, data_source)
+  end
+
+  test "complains on ambiguous JOIN on condition", %{data_source: data_source} do
+    assert {:error, "Column `c1` is ambiguous."} = compile("""
+      SELECT t1.c1
+      FROM t1 INNER JOIN t2 ON t1.uid = t2.uid and c1 > 10
+    """, data_source)
+  end
+
+  test "Can JOIN on columns from earlier JOIN", %{data_source: data_source} do
+    assert {:ok, _} = compile("""
+      SELECT t1.c1
+      FROM
+        t1 INNER JOIN t2 ON t1.uid = t2.uid
+           INNER JOIN t3 ON t3.uid = t1.uid AND t1.c2 > 10
+    """, data_source)
+  end
+
+  test "complains on missing ON after JOIN", %{data_source: data_source} do
+    assert {:error, "Expected an `ON`-clause when JOINing tables."} =
+      compile("SELECT t1.c1 FROM t1 JOIN t2", data_source)
+  end
+
+  test "complains on ON after CROSS JOIN", %{data_source: data_source} do
+    assert {:error, "`CROSS JOIN`s do not support `ON`-clauses."} =
+      compile("SELECT t1.c1 FROM t1 CROSS JOIN t2 ON t1.uid = t2.uid", data_source)
   end
 
   defp compile!(query_string, data_source) do

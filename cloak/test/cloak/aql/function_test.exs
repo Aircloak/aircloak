@@ -1,7 +1,7 @@
-defmodule Cloak.SqlQuery.Function.Test do
+defmodule Cloak.Aql.Function.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.SqlQuery.{Column, Function}
+  alias Cloak.Aql.{Column, Function}
 
   test "sqrt", do:
     assert_in_delta(apply_function("sqrt", [3]), 1.73, 0.1)

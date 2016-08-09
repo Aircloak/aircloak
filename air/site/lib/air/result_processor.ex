@@ -61,7 +61,7 @@ defmodule Air.ResultProcessor do
     })
 
     query
-    |> Query.changeset(%{result: storable_result})
+    |> Query.changeset(%{result: storable_result, execution_time: result["execution_time"]})
     |> Repo.update!()
     |> UserChannel.broadcast_result()
 

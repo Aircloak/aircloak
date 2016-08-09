@@ -1,7 +1,7 @@
-defmodule Cloak.SqlQuery.Parser do
+defmodule Cloak.Aql.Parser do
   @moduledoc "Parser for SQL queries."
   use Combine
-  import Cloak.SqlQuery.Parsers
+  import Cloak.Aql.Parsers
 
   @type comparator ::
       :=
@@ -29,11 +29,19 @@ defmodule Cloak.SqlQuery.Parser do
       | {:in, String.t, [any]}
       | is | {:not, is}
 
+  @type from_clause ::
+      String.t
+    | {:join, :cross_join, from_clause, from_clause}
+    | {
+        :join, :full_outer_join | :left_outer_join | :right_outer_join, :inner_join,
+        from_clause, from_clause, :on, [where_clause]
+      }
+
   @type parsed_query :: %{
     command: :select | :show,
     columns: [column | {column, :as, String.t}] | :*,
     group_by: [String.t],
-    from: String.t | {:subquery, String.t},
+    from: from_clause | {:subquery, String.t},
     where: [where_clause],
     order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns
@@ -54,7 +62,7 @@ defmodule Cloak.SqlQuery.Parser do
   @doc "Parses a SQL query in text form."
   @spec parse(String.t) :: {:ok, parsed_query} | {:error, any}
   def parse(string) do
-    with {:ok, tokens} <- Cloak.SqlQuery.Lexer.tokenize(string) do
+    with {:ok, tokens} <- Cloak.Aql.Lexer.tokenize(string) do
       case parse_tokens(tokens, parser()) do
         {:error, _} = error -> error
         [statement] ->
@@ -297,14 +305,95 @@ defmodule Cloak.SqlQuery.Parser do
 
   defp table_selection() do
     map(
-      comma_delimited(either(table_with_schema(), identifier())),
+      comma_delimited(table_construct()),
       &turn_tables_into_join/1
     ) |> label("table name")
   end
 
-  defp turn_tables_into_join([table]), do: table
-  defp turn_tables_into_join([table | tables]) do
-    {:cross_join, table, turn_tables_into_join(tables)}
+  defp turn_tables_into_join([table]), do: handle_clause(table, nil)
+  defp turn_tables_into_join([clause | rest]) do
+    {:join, :cross_join, handle_clause(clause, nil), turn_tables_into_join(rest)}
+  end
+
+  defp handle_clause({:join_clause, table, sub_clause}, _acc) do
+    handle_clause(sub_clause, table)
+  end
+  defp handle_clause({:join, :cross_join, table, sub_join}, acc) do
+    acc = {:join, :cross_join, acc, table}
+    handle_clause(sub_join, acc)
+  end
+  defp handle_clause({:join, join_type, table, :on, conditions, nil}, acc) do
+    {:join, join_type, acc, table, :on, conditions}
+  end
+  defp handle_clause({:join, join_type, table, :on, conditions, sub_join}, acc) do
+    acc = {:join, join_type, acc, table, :on, conditions}
+    handle_clause(sub_join, acc)
+  end
+  defp handle_clause(nil, acc), do: acc
+  defp handle_clause(table, _acc), do: table
+
+  defp table_construct() do
+    pipe([
+        table_name(),
+        option(join_appendix()),
+      ],
+      fn
+        [table, nil] -> table
+        [table, join] -> {:join_clause, table, join}
+      end
+    )
+  end
+
+  defp join_appendix() do
+    pipe([
+        option(join_type()),
+        keyword(:join),
+        table_name(),
+        option(
+          sequence([
+            keyword(:on),
+            where_expressions()
+          ])
+        ),
+        option(lazy(fn -> join_appendix() end))
+      ],
+      fn
+        ([:cross, :join, table, nil, next]) -> {:join, :cross_join, table, next}
+        ([:cross, :join, _table, _on, _next]) -> {:join, :error, "`CROSS JOIN`s do not support `ON`-clauses."}
+        ([_join, _join_type, _table, nil, _next]) ->
+          {:join, :error, "Expected an `ON`-clause when JOINing tables."}
+        ([join_type, :join, table, [:on, conditions], next]) ->
+          {:join, expand_join_type(join_type), table, :on, conditions, next}
+      end
+    )
+  end
+
+  defp expand_join_type(nil), do: :inner_join
+  defp expand_join_type(:inner), do: :inner_join
+  defp expand_join_type(:outer), do: :full_outer_join
+  defp expand_join_type(:full), do: :full_outer_join
+  defp expand_join_type([:full, :outer]), do: :full_outer_join
+  defp expand_join_type(:left), do: :left_outer_join
+  defp expand_join_type([:left, :outer]), do: :left_outer_join
+  defp expand_join_type(:right), do: :right_outer_join
+  defp expand_join_type([:right, :outer]), do: :right_outer_join
+
+  defp join_type() do
+    choice([
+      keyword(:cross),
+      sequence([keyword(:full), keyword(:outer)]),
+      keyword(:full),
+      keyword(:outer),
+      sequence([keyword(:left), keyword(:outer)]),
+      keyword(:left),
+      sequence([keyword(:right), keyword(:outer)]),
+      keyword(:right),
+      keyword(:inner),
+    ])
+  end
+
+  defp table_name() do
+    either(table_with_schema(), identifier())
   end
 
   defp subquery() do

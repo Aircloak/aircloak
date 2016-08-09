@@ -14,6 +14,7 @@ defmodule Air.Query do
     field :data_source, :string
     field :tables, {:array, :string}
     field :result, :string
+    field :execution_time, :integer
 
     belongs_to :user, User
 
@@ -21,7 +22,7 @@ defmodule Air.Query do
   end
 
   @required_fields ~w()
-  @optional_fields ~w(statement cloak_id data_source tables result)
+  @optional_fields ~w(statement cloak_id data_source tables result execution_time)
 
 
   # -------------------------------------------------------------------
