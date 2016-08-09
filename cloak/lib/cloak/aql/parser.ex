@@ -139,6 +139,24 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp column() do
+    additive_expression()
+  end
+
+  defp additive_expression() do
+    either(
+      pipe(
+        [
+          simple_expression(),
+          either(keyword(:+), keyword(:-)),
+          lazy(fn -> additive_expression() end)
+        ],
+        fn[left, operator, right] -> {:function, to_string(operator), [left, right]} end
+      ),
+      simple_expression()
+    )
+  end
+
+  defp simple_expression() do
     choice([
       function_expression(),
       extract_expression(),

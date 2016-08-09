@@ -583,6 +583,13 @@ defmodule Cloak.Aql.Parser.Test do
       select(columns: [{:function, "concat", [identifier("a"), identifier("b"), identifier("c")]}])
   end
 
+  test "+ and -" do
+    assert_parse "select a + b - c + d from bar",
+      select(columns: [{:function, "+", [identifier("a"),
+        {:function, "-", [identifier("b"),
+          {:function, "+", [identifier("c"), identifier("d")]}]}]}])
+  end
+
   create_test =
     fn(description, data_source, statement, expected_error, line, column) ->
       test description do
