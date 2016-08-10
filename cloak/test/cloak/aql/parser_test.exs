@@ -497,9 +497,9 @@ defmodule Cloak.Aql.Parser.Test do
   end
 
   test "allow multiple CROSS JOINs" do
-    assert_parse("select a from foo CROSS JOIN bar CROSS JOIN baz",
+    assert_parse("select a from t1 CROSS JOIN t2 CROSS JOIN t3 CROSS JOIN t4",
       select(columns: [{:identifier, :unknown, "a"}], from: {
-        :join, :cross_join, {:join, :cross_join, "foo", "bar"}, "baz"
+        :join, :cross_join, {:join, :cross_join, {:join, :cross_join, "t1", "t2"}, "t3"}, "t4"
       }))
   end
 
