@@ -466,8 +466,6 @@ defmodule Cloak.Aql.Compiler do
     }
   end
 
-  defp map_join_conditions_columns(from, mapper_fun) when is_list(from), do:
-    Enum.map(from, &map_join_conditions_columns(&1, mapper_fun))
   defp map_join_conditions_columns({:join, :cross_join, clause1, clause2}, mapper_fun) do
     clause1 = map_join_conditions_columns(clause1, mapper_fun)
     clause2 = map_join_conditions_columns(clause2, mapper_fun)
@@ -654,9 +652,6 @@ defmodule Cloak.Aql.Compiler do
     do_join_conditions_scope_check(from, [])
   end
 
-  defp do_join_conditions_scope_check(from, []) when is_list(from) do
-    Enum.reduce(from, [], fn(clause, acc) -> do_join_conditions_scope_check(clause, acc) ++ acc end)
-  end
   defp do_join_conditions_scope_check({:join, :cross_join, clause1, clause2}, selected_tables) do
     selected_tables = do_join_conditions_scope_check(clause1, selected_tables)
     do_join_conditions_scope_check(clause2, selected_tables)
