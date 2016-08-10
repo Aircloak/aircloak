@@ -21,9 +21,13 @@ defmodule Cloak.Aql.Compiler do
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(DataSource.t, Parser.parsed_query) :: {:ok, Query.t} | {:error, String.t}
   def compile(data_source, parsed_query) do
-    parsed_query
-    |> to_prepped_query(data_source)
-    |> compile_prepped_query()
+    try do
+      parsed_query
+      |> to_prepped_query(data_source)
+      |> compile_prepped_query()
+    rescue
+      e in CompilationError -> {:error, e.message}
+    end
   end
 
 
@@ -34,16 +38,33 @@ defmodule Cloak.Aql.Compiler do
   defp to_prepped_query(parsed_query, data_source) do
     %Query{
       data_source: data_source,
-      mode: query_mode(parsed_query[:from]),
+      mode: query_mode(data_source.driver, parsed_query[:from]),
       unsafe_subquery: unsafe_subquery(parsed_query[:from])
     }
     |> Map.merge(parsed_query)
   end
 
-  defp query_mode({:subquery, _}), do: :unparsed
-  defp query_mode(_other), do: :parsed
+  defp query_mode(Cloak.DataSource.DsProxy, {:subquery, {:unparsed, _}}), do: :unparsed
+  defp query_mode(Cloak.DataSource.DsProxy, from) do
+    validate_dsproxy_from_for_parsed_query!(from)
+    :parsed
+  end
+  defp query_mode(_other_data_source, _from), do: :parsed
 
-  defp unsafe_subquery({:subquery, unsafe_subquery}), do: unsafe_subquery
+  defp validate_dsproxy_from_for_parsed_query!({:join, :cross_join, clause1, clause2}) do
+    validate_dsproxy_from_for_parsed_query!(clause1)
+    validate_dsproxy_from_for_parsed_query!(clause2)
+  end
+  defp validate_dsproxy_from_for_parsed_query!({:join, _join_type, clause1, clause2, :on, _conditions}) do
+    validate_dsproxy_from_for_parsed_query!(clause1)
+    validate_dsproxy_from_for_parsed_query!(clause2)
+  end
+  defp validate_dsproxy_from_for_parsed_query!({:subquery, _}) do
+    raise CompilationError, message: "Joining subqueries is not supported for this data source"
+  end
+  defp validate_dsproxy_from_for_parsed_query!(table_name) when is_binary(table_name), do: :ok
+
+  defp unsafe_subquery({:subquery, {:unparsed, unsafe_subquery}}), do: unsafe_subquery
   defp unsafe_subquery(_other), do: nil
 
   # Due to the blackbox nature of the subquery, there are a whole lot
@@ -54,19 +75,15 @@ defmodule Cloak.Aql.Compiler do
   # keep the remaining validations clean, and free from having to
   # consider the DS Proxy case.
   defp compile_prepped_query(%Query{command: :select, mode: :unparsed} = query) do
-    try do
-      ds_proxy_validate_no_wildcard(query)
-      ds_proxy_validate_no_where(query)
-      query = query
-      |> compile_columns()
-      |> verify_columns()
-      |> compile_order_by()
-      |> partition_selected_columns()
-      |> calculate_db_columns()
-      {:ok, query}
-    rescue
-      e in CompilationError -> {:error, e.message}
-    end
+    ds_proxy_validate_no_wildcard(query)
+    ds_proxy_validate_no_where(query)
+    query = query
+    |> compile_columns()
+    |> verify_columns()
+    |> compile_order_by()
+    |> partition_selected_columns()
+    |> calculate_db_columns()
+    {:ok, query}
   end
   defp compile_prepped_query(%Query{command: :show} = query) do
     try do
@@ -135,7 +152,6 @@ defmodule Cloak.Aql.Compiler do
   defp from_clause_to_tables({:join, _join_type, clause1, clause2, :on, _conditions}) do
     from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
   end
-  defp from_clause_to_tables({:join, :error, error_message}), do: raise CompilationError, message: error_message
   defp from_clause_to_tables(table), do: [table]
 
   defp compile_aliases(%Query{columns: [_|_] = columns} = query) do
