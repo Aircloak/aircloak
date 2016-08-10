@@ -184,6 +184,19 @@ defmodule Cloak.Aql.Function.Test do
     end
   end
 
+  for function <- ~w(* / + - ^) do
+    test "#{function} typing" do
+      assert well_typed?(unquote(function), [:integer, :integer])
+      assert well_typed?(unquote(function), [:real, :real])
+      refute well_typed?(unquote(function), [:text, :integer])
+    end
+  end
+
+  test "% typing" do
+    assert well_typed?("%", [:integer, :integer])
+    refute well_typed?("%", [:real, :real])
+  end
+
   test "any function with one of the arguments being :*", do:
     assert apply_function("whatever", [1, :*, "thing"]) == :*
 

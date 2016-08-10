@@ -16,8 +16,8 @@ defmodule Cloak.Aql.Function do
     ~w(floor ceil ceiling) => %{aggregate: false, return_type: :integer, argument_types: [:numeric]},
     ~w(round trunc) => %{aggregate: false, return_type: :real, argument_types: [:numeric, {:optional, :integer}]},
     ~w(abs sqrt) => %{aggregate: false, return_type: :real, argument_types: [:numeric]},
-    ~w(div mod) => %{aggregate: false, return_type: :integer, argument_types: [:integer, :integer]},
-    ~w(pow) => %{aggregate: false, return_type: :real, argument_types: [:numeric, :numeric]},
+    ~w(div mod %) => %{aggregate: false, return_type: :integer, argument_types: [:integer, :integer]},
+    ~w(pow * + - / ^) => %{aggregate: false, return_type: :real, argument_types: [:numeric, :numeric]},
     ~w(length) => %{aggregate: false, return_type: :integer, argument_types: [:text]},
     ~w(lower lcase upper ucase) => %{aggregate: false, return_type: :text, argument_types: [:text]},
     ~w(left right) => %{aggregate: false, return_type: :text, argument_types: [:text, :integer]},
@@ -154,6 +154,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("trunc", [value, _precision]) when is_integer(value), do: value
   defp do_apply("trunc", [value, precision]), do: do_trunc(value, precision)
   defp do_apply("div", [x, y]), do: div(x, y)
+  defp do_apply("%", [x, y]), do: rem(x, y)
   defp do_apply("mod", [x, y]), do: rem(x, y)
   defp do_apply("pow", [x, y]), do: :math.pow(x, y)
   defp do_apply("length", [string]), do: String.length(string)
@@ -174,6 +175,11 @@ defmodule Cloak.Aql.Function do
   defp do_apply("substring_for", [string, count]), do: substring(string, 1, count)
   defp do_apply("||", args), do: Enum.join(args)
   defp do_apply("concat", args), do: Enum.join(args)
+  defp do_apply("^", [x, y]), do: :math.pow(x, y)
+  defp do_apply("*", [x, y]), do: x * y
+  defp do_apply("/", [x, y]), do: x / y
+  defp do_apply("+", [x, y]), do: x + y
+  defp do_apply("-", [x, y]), do: x - y
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
