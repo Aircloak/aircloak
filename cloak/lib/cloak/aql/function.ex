@@ -6,18 +6,19 @@ defmodule Cloak.Aql.Function do
 
   import Kernel, except: [apply: 2]
 
+  numeric = {:or, [:integer, :real]}
   @functions %{
     ~w(count) => %{aggregate: true, return_type: :integer, argument_types: [:any]},
-    ~w(sum avg min max stddev median) => %{aggregate: true, return_type: :real, argument_types: [:numeric]},
+    ~w(sum avg min max stddev median) => %{aggregate: true, return_type: :real, argument_types: [numeric]},
     ~w(hour minute second) =>
       %{aggregate: false, return_type: :integer, argument_types: [{:or, [:timestamp, :time]}]},
     ~w(year month day weekday) =>
       %{aggregate: false, return_type: :integer, argument_types: [{:or, [:timestamp, :date]}]},
-    ~w(floor ceil ceiling) => %{aggregate: false, return_type: :integer, argument_types: [:numeric]},
-    ~w(round trunc) => %{aggregate: false, return_type: :real, argument_types: [:numeric, {:optional, :integer}]},
-    ~w(abs sqrt) => %{aggregate: false, return_type: :real, argument_types: [:numeric]},
+    ~w(floor ceil ceiling) => %{aggregate: false, return_type: :integer, argument_types: [numeric]},
+    ~w(round trunc) => %{aggregate: false, return_type: :real, argument_types: [numeric, {:optional, :integer}]},
+    ~w(abs sqrt) => %{aggregate: false, return_type: :real, argument_types: [numeric]},
     ~w(div mod %) => %{aggregate: false, return_type: :integer, argument_types: [:integer, :integer]},
-    ~w(pow * + - / ^) => %{aggregate: false, return_type: :real, argument_types: [:numeric, :numeric]},
+    ~w(pow * + - / ^) => %{aggregate: false, return_type: :real, argument_types: [numeric, numeric]},
     ~w(length) => %{aggregate: false, return_type: :integer, argument_types: [:text]},
     ~w(lower lcase upper ucase) => %{aggregate: false, return_type: :text, argument_types: [:text]},
     ~w(left right) => %{aggregate: false, return_type: :text, argument_types: [:text, :integer]},
@@ -31,7 +32,7 @@ defmodule Cloak.Aql.Function do
   |> Enum.into(%{})
 
   @type t :: Parser.column | Column.t
-  @type data_type :: :any | :numeric | :timestamp | DataSource.data_type
+  @type data_type :: :any | DataSource.data_type
   @type argument_type :: data_type | {:optional, data_type} | {:many1, data_type} | {:or, [data_type]}
 
 
@@ -124,14 +125,8 @@ defmodule Cloak.Aql.Function do
   defp type_matches?({:optional, type}, argument), do: type_matches?(type, argument)
   defp type_matches?({:or, types}, argument), do: Enum.any?(types, &type_matches?(&1, argument))
   defp type_matches?(:any, _), do: true
-  defp type_matches?(expected_type, %{type: actual_type}) do
-    case {expected_type, actual_type} do
-      {:numeric, :integer} -> true
-      {:numeric, :real} -> true
-      {type, type} -> true
-      _ -> false
-    end
-  end
+  defp type_matches?(expected_type, %{type: actual_type}), do:
+    expected_type == actual_type
 
   defp do_apply("year", [value]), do: value.year
   defp do_apply("month", [value]), do: value.month
