@@ -335,11 +335,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp partition_where_clauses(%Query{where: clauses, where_not: [], unsafe_filter_columns: []} = query) do
-    {positive, negative} = Enum.partition(clauses, fn
-       {:not, {:is, _, :null}} -> true
-       {:not, _} -> false
-       _ -> true
-    end)
+    {negative, positive} = Enum.partition(clauses, &negative_condition?/1)
     negative = Enum.map(negative, fn({:not, clause}) -> clause end)
     unsafe_filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
 
@@ -347,8 +343,13 @@ defmodule Cloak.Aql.Compiler do
   end
   defp partition_where_clauses(query), do: query
 
+  defp negative_condition?({:not, {:is, _, :null}}), do: false
+  defp negative_condition?({:not, _other}), do: true
+  defp negative_condition?(_other), do: false
+
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
+    Enum.each(comparisons_from_joins(query.from), &verify_supported_join_condition/1)
 
     # Algorithm for finding improperly joined tables:
     #
@@ -466,8 +467,6 @@ defmodule Cloak.Aql.Compiler do
     }
   end
 
-  defp map_join_conditions_columns(from, mapper_fun) when is_list(from), do:
-    Enum.map(from, &map_join_conditions_columns(&1, mapper_fun))
   defp map_join_conditions_columns({:join, :cross_join, clause1, clause2}, mapper_fun) do
     clause1 = map_join_conditions_columns(clause1, mapper_fun)
     clause2 = map_join_conditions_columns(clause2, mapper_fun)
@@ -654,9 +653,6 @@ defmodule Cloak.Aql.Compiler do
     do_join_conditions_scope_check(from, [])
   end
 
-  defp do_join_conditions_scope_check(from, []) when is_list(from) do
-    Enum.reduce(from, [], fn(clause, acc) -> do_join_conditions_scope_check(clause, acc) ++ acc end)
-  end
   defp do_join_conditions_scope_check({:join, :cross_join, clause1, clause2}, selected_tables) do
     selected_tables = do_join_conditions_scope_check(clause1, selected_tables)
     do_join_conditions_scope_check(clause2, selected_tables)
@@ -683,4 +679,13 @@ defmodule Cloak.Aql.Compiler do
           message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
     end
   end
+
+  defp verify_supported_join_condition(join_condition) do
+    if negative_condition?(join_condition), do: raise CompilationError,
+      message: "#{negative_condition_string(join_condition)} not supported in joins."
+  end
+
+  defp negative_condition_string({:not, {:like, _, _}}), do: "NOT LIKE"
+  defp negative_condition_string({:not, {:ilike, _, _}}), do: "NOT ILIKE"
+  defp negative_condition_string({:not, {:comparison, _, :=, _}}), do: "<>"
 end
