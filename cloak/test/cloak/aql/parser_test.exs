@@ -83,13 +83,6 @@ defmodule Cloak.Aql.Parser.Test do
     end
   end
 
-  # Produces a pattern which matches the given type
-  defmacrop type(name) do
-    quote do
-      {:type, name}
-    end
-  end
-
 
   # -------------------------------------------------------------------
   # Tests
@@ -711,12 +704,12 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "cast" do
     assert_parse "select cast(a, integer) from bar",
-      select(columns: [{:function, "cast", [identifier("a"), type(:integer)]}])
+      select(columns: [{:function, {"cast", :integer}, [identifier("a")]}])
   end
 
   test "extended cast" do
-    assert_parse "select cast(a as integer) from bar",
-      select(columns: [{:function, "cast", [identifier("a"), type(:integer)]}])
+    assert_parse "select cast(a as text) from bar",
+      select(columns: [{:function, {"cast", :text}, [identifier("a")]}])
   end
 
   create_test =

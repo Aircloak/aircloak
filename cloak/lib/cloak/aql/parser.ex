@@ -205,15 +205,14 @@ defmodule Cloak.Aql.Parser do
         data_type(),
         keyword(:")"),
       ],
-      fn [:cast, :"(", expr, _, type, :")"] -> {:function, "cast", [expr, type]} end
+      fn [:cast, :"(", expr, _, type, :")"] -> {:function, {"cast", type}, [expr]} end
     )
   end
 
   defp data_type() do
-    [:integer, :real, :boolean, :timestamp, :date, :time]
+    [:integer, :real, :text, :boolean, :timestamp, :date, :time]
     |> Enum.map(&keyword/1)
     |> choice()
-    |> map(fn(type) -> {:type, type} end)
   end
 
   defp function_expression() do
