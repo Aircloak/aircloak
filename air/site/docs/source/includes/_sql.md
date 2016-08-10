@@ -49,11 +49,13 @@ __Notes__:
 
 ## JOIN restrictions
 
+To ensure that data can be reliably anonymized, some limitations exist in the `JOIN` part of the query.
+
+Comparison operators `NOT LIKE`, `NOT ILIKE`, and `<>` are not allowed in join conditions (i.e. the `ON ...` part of a `JOIN` expression).
+
 When analysing data across multiple tables, it is required that the data that is joined is all about the same individual.
 This can either be achieved by adding a `WHERE`-clause, or in the case of `INNER JOIN`'s and `OUTER JOIN`'s through
 a corresponding restriction in the `ON`-clause.
-
-This requirement is in place to ensure that data can be reliably anonymized.
 
 For example, assuming tables `t1` and `t2` both have a user-id columns called `uid`, you would write joins as follows:
 
