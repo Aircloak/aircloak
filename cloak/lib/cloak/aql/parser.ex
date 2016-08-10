@@ -280,16 +280,14 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp infix_expression(operators, inner_expression) do
-    either(
-      pipe(
-        [
-          inner_expression,
-          choice(operators),
-          lazy(fn -> infix_expression(operators, inner_expression) end)
-        ],
-        fn[left, operator, right] -> {:function, to_string(operator), [left, right]} end
-      ),
-      inner_expression
+    pipe(
+      [
+        inner_expression,
+        many(sequence([choice(operators), inner_expression])),
+      ],
+      fn[first, rest] -> Enum.reduce(rest, first,
+        fn([operator, right], left) -> {:function, to_string(operator), [left, right]} end)
+      end
     )
   end
 

@@ -580,27 +580,34 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "||" do
     assert_parse "select a || b || c from bar",
-      select(columns: [{:function, "||", [identifier("a"),
-        {:function, "||", [identifier("b"), identifier("c")]}]}])
+      select(columns: [{:function, "||", [
+        {:function, "||", [identifier("a"), identifier("b")]},
+        identifier("c")]}])
   end
 
   test "+ and -" do
     assert_parse "select a + b - c + d from bar",
-      select(columns: [{:function, "+", [identifier("a"),
-        {:function, "-", [identifier("b"),
-          {:function, "+", [identifier("c"), identifier("d")]}]}]}])
+      select(columns: [{:function, "+", [
+        {:function, "-", [
+          {:function, "+", [identifier("a"), identifier("b")]},
+          identifier("c")]},
+        identifier("d")]}])
   end
 
   test "*, /, and %" do
     assert_parse "select a * b / c % d from bar",
-      select(columns: [{:function, "*", [identifier("a"),
-        {:function, "/", [identifier("b"),
-          {:function, "%", [identifier("c"), identifier("d")]}]}]}])
+      select(columns: [{:function, "%", [
+        {:function, "/", [
+          {:function, "*", [identifier("a"), identifier("b")]},
+          identifier("c")]},
+        identifier("d")]}])
   end
 
   test "^" do
-    assert_parse "select a ^ b from bar",
-      select(columns: [{:function, "^", [identifier("a"), identifier("b")]}])
+    assert_parse "select a ^ b ^ c from bar",
+      select(columns: [{:function, "^", [
+        {:function, "^", [identifier("b"), identifier("c")]},
+        identifier("a")]}])
   end
 
   test "()" do
@@ -614,11 +621,11 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "* and / have higher precedence than + and -" do
     assert_parse "select a * b + c / d - e from bar",
-      select(columns: [{:function, "+", [
-        {:function, "*", [identifier("a"), identifier("b")]},
-        {:function, "-", [
-          {:function, "/", [identifier("c"), identifier("d")]},
-          identifier("e")]}]}])
+      select(columns: [{:function, "-", [
+        {:function, "+", [
+          {:function, "*", [identifier("a"), identifier("b")]},
+          {:function, "/", [identifier("c"), identifier("d")]}]},
+        identifier("e")]}])
   end
 
   test "^ has a higher precedence than *" do

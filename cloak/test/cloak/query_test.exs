@@ -816,7 +816,7 @@ defmodule Cloak.QueryTest do
   test "arithmetic expressions" do
     :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [4])
     assert_query "select 2 ^ 3 * (3 + 4 - 1) / 5 from floats",
-      %{columns: ["*"], rows: [%{row: [8 * (3 + 4 - 1) / 5]}]}
+      %{columns: [_], rows: [%{row: [9.6]}]}
   end
 
   defp start_query(statement) do
