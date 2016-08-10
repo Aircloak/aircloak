@@ -62,7 +62,6 @@ defmodule Cloak.Aql.Compiler do
   defp validate_dsproxy_from_for_parsed_query!({:subquery, _}) do
     raise CompilationError, message: "Joining subqueries is not supported for this data source"
   end
-  defp validate_dsproxy_from_for_parsed_query!({:join, :error, _error_message}), do: :ok
   defp validate_dsproxy_from_for_parsed_query!(table_name) when is_binary(table_name), do: :ok
 
   defp unsafe_subquery({:subquery, {:unparsed, unsafe_subquery}}), do: unsafe_subquery
@@ -153,7 +152,6 @@ defmodule Cloak.Aql.Compiler do
   defp from_clause_to_tables({:join, _join_type, clause1, clause2, :on, _conditions}) do
     from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
   end
-  defp from_clause_to_tables({:join, :error, error_message}), do: raise CompilationError, message: error_message
   defp from_clause_to_tables(table), do: [table]
 
   defp compile_aliases(%Query{columns: [_|_] = columns} = query) do

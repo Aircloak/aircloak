@@ -297,91 +297,80 @@ defmodule Cloak.Aql.Parser do
 
   defp from_expression(data_source) do
     map(
-      comma_delimited(table_construct(data_source)),
-      &turn_tables_into_join/1
+      comma_delimited(join_expression(data_source) |> map(&join_ast/1)),
+      &cross_joins/1
     )
   end
 
-  defp turn_tables_into_join([table]), do: handle_clause(table, nil)
-  defp turn_tables_into_join([clause | rest]) do
-    {:join, :cross_join, handle_clause(clause, nil), turn_tables_into_join(rest)}
+  defp join_ast(join_clauses),
+    do: pair_joins(flatten_join_clauses(join_clauses))
+
+  defp flatten_join_clauses([table]), do: [table]
+  defp flatten_join_clauses([table, {join_type, next_join}]) do
+    [table, join_type] ++ flatten_join_clauses(next_join)
   end
 
-  defp handle_clause({:join_clause, table, sub_clause}, _acc) do
-    handle_clause(sub_clause, table)
+  defp pair_joins([table]), do: table
+  defp pair_joins([left_expr, join_type, table | rest]) do
+    pair_joins([join(join_type, left_expr, table) | rest])
   end
-  defp handle_clause({:join, :cross_join, table, sub_join}, acc) do
-    acc = {:join, :cross_join, acc, table}
-    handle_clause(sub_join, acc)
-  end
-  defp handle_clause({:join, join_type, table, :on, conditions, nil}, acc) do
-    {:join, join_type, acc, table, :on, conditions}
-  end
-  defp handle_clause({:join, join_type, table, :on, conditions, sub_join}, acc) do
-    acc = {:join, join_type, acc, table, :on, conditions}
-    handle_clause(sub_join, acc)
-  end
-  defp handle_clause(nil, acc), do: acc
-  defp handle_clause(table, _acc), do: table
 
-  defp table_construct(data_source) do
-    pipe([
+  defp join({join_type, :on, condition}, left_expr, table),
+    do: {:join, join_type, left_expr, table, :on, condition}
+  defp join(join_type, left_expr, table),
+    do: {:join, join_type, left_expr, table}
+
+  defp cross_joins([table]), do: table
+  defp cross_joins([clause | rest]) do
+    {:join, :cross_join, clause, cross_joins(rest)}
+  end
+
+  defp join_expression(data_source) do
+    lazy(fn ->
+      sequence([
         table_or_subquery(data_source),
-        option(join_appendix(data_source)),
-      ],
-      fn
-        [table, nil] -> table
-        [table, join] -> {:join_clause, table, join}
-      end
-    )
+        next_join(data_source)
+      ])
+    end)
   end
 
-  defp join_appendix(data_source) do
-    pipe([
-        option(join_type()),
-        keyword(:join),
+  defp join_expression_with_on_clause(data_source) do
+    lazy(fn ->
+      sequence([
         table_or_subquery(data_source),
-        option(
-          sequence([
-            keyword(:on),
-            where_expressions()
-          ])
-        ),
-        option(lazy(fn -> join_appendix(data_source) end))
-      ],
-      fn
-        ([:cross, :join, table, nil, next]) -> {:join, :cross_join, table, next}
-        ([:cross, :join, _table, _on, _next]) -> {:join, :error, "`CROSS JOIN`s do not support `ON`-clauses."}
-        ([_join, _join_type, _table, nil, _next]) ->
-          {:join, :error, "Expected an `ON`-clause when JOINing tables."}
-        ([join_type, :join, table, [:on, conditions], next]) ->
-          {:join, expand_join_type(join_type), table, :on, conditions, next}
-      end
-    )
+        keyword(:on),
+        where_expressions(),
+        next_join(data_source)
+      ])
+    end)
   end
 
-  defp expand_join_type(nil), do: :inner_join
-  defp expand_join_type(:inner), do: :inner_join
-  defp expand_join_type(:outer), do: :full_outer_join
-  defp expand_join_type(:full), do: :full_outer_join
-  defp expand_join_type([:full, :outer]), do: :full_outer_join
-  defp expand_join_type(:left), do: :left_outer_join
-  defp expand_join_type([:left, :outer]), do: :left_outer_join
-  defp expand_join_type(:right), do: :right_outer_join
-  defp expand_join_type([:right, :outer]), do: :right_outer_join
-
-  defp join_type() do
-    choice([
-      keyword(:cross),
-      sequence([keyword(:full), keyword(:outer)]),
-      keyword(:full),
-      keyword(:outer),
-      sequence([keyword(:left), keyword(:outer)]),
-      keyword(:left),
-      sequence([keyword(:right), keyword(:outer)]),
-      keyword(:right),
-      keyword(:inner),
+  defp next_join(data_source) do
+    switch([
+      {cross_join(),join_expression(data_source)},
+      {either(inner_join(), outer_join()), join_expression_with_on_clause(data_source)},
+      {:else, noop()}
     ])
+    |> map(&join_clause/1)
+  end
+
+  defp join_clause({[join_type], [[rhs, :on, comparison | next_join]]}),
+    do: {{join_type, :on, comparison}, [rhs | next_join]}
+  defp join_clause({[join_type], [rhs]}),
+    do: {join_type, rhs}
+
+  defp cross_join(),
+    do: replace(pair_both(keyword(:cross), keyword(:join)), :cross_join)
+
+  defp inner_join(),
+    do: replace(pair_both(option(keyword(:inner)), keyword(:join)), :inner_join)
+
+  defp outer_join(),
+    do: choice([outer_join(:left), outer_join(:right), outer_join(:full)])
+
+  defp outer_join(type) do
+    sequence([keyword(type), option(keyword(:outer)), keyword(:join)])
+    |> replace(:"#{type}_outer_join")
   end
 
   defp table_or_subquery(data_source) do
@@ -582,6 +571,8 @@ defmodule Cloak.Aql.Parser do
     |> error_message(token(:eof), "Expected end of input.")
     |> ignore()
   end
+
+  defp replace(parser, value), do: map(parser, fn(_) -> value end)
 
   # -------------------------------------------------------------------
   # Work around invalid combine spec (see below)

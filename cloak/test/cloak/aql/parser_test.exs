@@ -25,6 +25,12 @@ defmodule Cloak.Aql.Parser.Test do
     end
   end
 
+  defmacrop assert_parse_error(query_string, expected_pattern, data_source \\ quote(do: @psql_data_source)) do
+    quote do
+      assert {:error, unquote(expected_pattern)} = Parser.parse(unquote(data_source), unquote(query_string))
+    end
+  end
+
   # Produces a pattern which matches an AST of a select query.
   defmacrop select(select_data) do
     quote do
@@ -490,6 +496,13 @@ defmodule Cloak.Aql.Parser.Test do
       select(columns: [{:identifier, :unknown, "a"}], from: {:join, :cross_join, "foo", "bar"}))
   end
 
+  test "allow multiple CROSS JOINs" do
+    assert_parse("select a from foo CROSS JOIN bar CROSS JOIN baz",
+      select(columns: [{:identifier, :unknown, "a"}], from: {
+        :join, :cross_join, {:join, :cross_join, "foo", "bar"}, "baz"
+      }))
+  end
+
   test "allow INNER JOINs" do
     assert_parse("select a from foo JOIN bar ON a = b",
       select(columns: [{:identifier, :unknown, "a"}],
@@ -571,7 +584,7 @@ defmodule Cloak.Aql.Parser.Test do
       "FULL JOIN", "FULL OUTER JOIN"],
     fn(join_type) ->
       test "Fails when no ON clause is provided in complex JOIN (#{join_type})" do
-        assert_parse("select a from foo #{unquote(join_type)} bar", select(from: {:join, :error, _}))
+        assert_parse_error("select a from foo #{unquote(join_type)} bar", "Expected `on`" <> _)
       end
     end
   )
@@ -680,6 +693,8 @@ defmodule Cloak.Aql.Parser.Test do
         "select a from b where a > 1 or b < 2", "Expected end of input", {1, 29}},
       {"not joining multiple where clauses is illegal",
         "select a from b where a > 1 b < 2", "Expected end of input", {1, 29}},
+      {"on clause not allowed in a cross join",
+        "select a from b cross join c on foo=bar", "Expected end of input", {1, 30}},
       {"count requires parens",
         "select count * from foo", "Expected `from`", {1, 14}},
       {"aggregation function requires parens",
