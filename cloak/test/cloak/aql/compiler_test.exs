@@ -17,7 +17,7 @@ defmodule Cloak.Aql.Compiler.Test do
           db_name: "table",
           name: "table",
           user_id: "uid",
-          columns: [{"uid", :integer}, {"column", :timestamp}, {"numeric", :integer}, {"real", :real}]
+          columns: [{"uid", :integer}, {"column", :timestamp}, {"numeric", :integer}, {"float", :real}]
         },
         other_table: %{
           db_name: "other_table",
@@ -147,7 +147,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   for function <- ~w(floor ceil ceiling) do
     test "allowing #{function} on real columns", %{data_source: data_source} do
-      assert {:ok, _} = compile("select #{unquote(function)}(real) from table", data_source)
+      assert {:ok, _} = compile("select #{unquote(function)}(float) from table", data_source)
     end
 
     test "rejecting #{function} on non-numeric columns", %{data_source: data_source} do
@@ -159,7 +159,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   for function <- ~w(trunc round) do
     test "allowing #{function} on real columns", %{data_source: data_source} do
-      assert {:ok, _} = compile("select #{unquote(function)}(real) from table", data_source)
+      assert {:ok, _} = compile("select #{unquote(function)}(float) from table", data_source)
     end
 
     test "rejecting #{function} on non-numeric columns", %{data_source: data_source} do
