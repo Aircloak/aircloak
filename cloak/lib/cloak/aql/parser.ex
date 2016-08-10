@@ -141,7 +141,24 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp column() do
+    additive_expression()
+  end
+
+  defp additive_expression() do
+    infix_expression([keyword(:+), keyword(:-)], multiplicative_expression())
+  end
+
+  defp multiplicative_expression() do
+    infix_expression([keyword(:*), keyword(:/), keyword(:%)], exponentiation_expression())
+  end
+
+  def exponentiation_expression() do
+    infix_expression([keyword(:^)], simple_expression())
+  end
+
+  defp simple_expression() do
     choice([
+      parenthesised_expression(),
       function_expression(),
       extract_expression(),
       trim_expression(),
@@ -151,6 +168,13 @@ defmodule Cloak.Aql.Parser do
       constant_column()
     ])
     |> label("column name or function")
+  end
+
+  defp parenthesised_expression() do
+    pipe(
+      [keyword(:"("), lazy(fn -> column() end), keyword(:")")],
+      fn([:"(", result, :")"]) -> result end
+    )
   end
 
   defp constant_column() do
@@ -254,14 +278,18 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp concat_expression() do
-    argument = either(qualified_identifier(), constant_column())
+    infix_expression([keyword(:||)], either(qualified_identifier(), constant_column()))
+  end
 
+  defp infix_expression(operators, inner_expression) do
     pipe(
       [
-        argument,
-        many1(sequence([keyword(:||), argument]))
+        inner_expression,
+        many(sequence([choice(operators), inner_expression])),
       ],
-      fn([first, rest]) -> {:function, "concat", [first | Enum.map(rest, &Enum.at(&1, 1))]} end
+      fn[first, rest] -> Enum.reduce(rest, first,
+        fn([operator, right], left) -> {:function, to_string(operator), [left, right]} end)
+      end
     )
   end
 

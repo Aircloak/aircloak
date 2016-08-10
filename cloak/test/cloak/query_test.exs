@@ -813,6 +813,12 @@ defmodule Cloak.QueryTest do
     assert_in_delta value, 2.5, 0.01
   end
 
+  test "arithmetic expressions" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [4])
+    assert_query "select 2 ^ 3 * (3 + 4 - 1) / 5 from floats",
+      %{columns: [_], rows: [%{row: [9.6]}]}
+  end
+
   defp start_query(statement) do
     Query.Runner.start("1", Cloak.DataSource.fetch!(:local), statement, {:process, self()})
   end

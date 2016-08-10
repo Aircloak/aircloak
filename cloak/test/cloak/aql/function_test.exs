@@ -163,6 +163,11 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("concat", ["a", " ", "string"]) == "a string"
   end
 
+  test "||" do
+    assert well_typed?("||", [:text, :text])
+    assert apply_function("||", ["a ", "string"]) == "a string"
+  end
+
   for function <- ~w(year month day weekday) do
     test function do
       assert well_typed?(unquote(function), [:timestamp])
@@ -177,6 +182,19 @@ defmodule Cloak.Aql.Function.Test do
       refute well_typed?(unquote(function), [:date])
       assert well_typed?(unquote(function), [:time])
     end
+  end
+
+  for function <- ~w(* / + - ^) do
+    test "#{function} typing" do
+      assert well_typed?(unquote(function), [:integer, :integer])
+      assert well_typed?(unquote(function), [:real, :real])
+      refute well_typed?(unquote(function), [:text, :integer])
+    end
+  end
+
+  test "% typing" do
+    assert well_typed?("%", [:integer, :integer])
+    refute well_typed?("%", [:real, :real])
   end
 
   test "any function with one of the arguments being :*", do:

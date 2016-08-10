@@ -647,7 +647,59 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "||" do
     assert_parse "select a || b || c from bar",
-      select(columns: [{:function, "concat", [identifier("a"), identifier("b"), identifier("c")]}])
+      select(columns: [{:function, "||", [
+        {:function, "||", [identifier("a"), identifier("b")]},
+        identifier("c")]}])
+  end
+
+  test "+ and -" do
+    assert_parse "select a + b - c + d from bar",
+      select(columns: [{:function, "+", [
+        {:function, "-", [
+          {:function, "+", [identifier("a"), identifier("b")]},
+          identifier("c")]},
+        identifier("d")]}])
+  end
+
+  test "*, /, and %" do
+    assert_parse "select a * b / c % d from bar",
+      select(columns: [{:function, "%", [
+        {:function, "/", [
+          {:function, "*", [identifier("a"), identifier("b")]},
+          identifier("c")]},
+        identifier("d")]}])
+  end
+
+  test "^" do
+    assert_parse "select a ^ b ^ c from bar",
+      select(columns: [{:function, "^", [
+        {:function, "^", [identifier("b"), identifier("c")]},
+        identifier("a")]}])
+  end
+
+  test "()" do
+    assert_parse "select a ^ ((b + c) * (d - e)) from foo",
+      select(columns: [{:function, "^", [
+        identifier("a"),
+        {:function, "*", [
+          {:function, "+", [identifier("b"), identifier("c")]},
+          {:function, "-", [identifier("d"), identifier("e")]}]}]}])
+  end
+
+  test "* and / have higher precedence than + and -" do
+    assert_parse "select a * b + c / d - e from bar",
+      select(columns: [{:function, "-", [
+        {:function, "+", [
+          {:function, "*", [identifier("a"), identifier("b")]},
+          {:function, "/", [identifier("c"), identifier("d")]}]},
+        identifier("e")]}])
+  end
+
+  test "^ has a higher precedence than *" do
+    assert_parse "select a ^ b * c from bar",
+      select(columns: [{:function, "*", [
+        {:function, "^", [identifier("a"), identifier("b")]},
+        identifier("c")]}])
   end
 
   create_test =

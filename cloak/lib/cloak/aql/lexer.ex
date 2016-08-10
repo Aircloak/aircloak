@@ -37,7 +37,7 @@ defmodule Cloak.Aql.Lexer do
     "EXTRACT",
     "TRIM", "BOTH", "LEADING", "TRAILING",
     "SUBSTRING", "FOR",
-    "||",
+    "||", "+", "-", "/", "%", "^",
     "(", ")",
     ",", ".", ";",
     "<=", ">=", "<>", "=", "<", ">",
