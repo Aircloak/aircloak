@@ -335,11 +335,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp partition_where_clauses(%Query{where: clauses, where_not: [], unsafe_filter_columns: []} = query) do
-    {positive, negative} = Enum.partition(clauses, fn
-       {:not, {:is, _, :null}} -> true
-       {:not, _} -> false
-       _ -> true
-    end)
+    {negative, positive} = Enum.partition(clauses, &negative_condition?/1)
     negative = Enum.map(negative, fn({:not, clause}) -> clause end)
     unsafe_filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
 
@@ -347,8 +343,13 @@ defmodule Cloak.Aql.Compiler do
   end
   defp partition_where_clauses(query), do: query
 
+  defp negative_condition?({:not, {:is, _, :null}}), do: false
+  defp negative_condition?({:not, _other}), do: true
+  defp negative_condition?(_other), do: false
+
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
+    Enum.each(comparisons_from_joins(query.from), &verify_supported_join_condition/1)
 
     # Algorithm for finding improperly joined tables:
     #
@@ -678,4 +679,13 @@ defmodule Cloak.Aql.Compiler do
           message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
     end
   end
+
+  defp verify_supported_join_condition(join_condition) do
+    if negative_condition?(join_condition), do: raise CompilationError,
+      message: "#{negative_condition_string(join_condition)} not supported in joins."
+  end
+
+  defp negative_condition_string({:not, {:like, _, _}}), do: "NOT LIKE"
+  defp negative_condition_string({:not, {:ilike, _, _}}), do: "NOT ILIKE"
+  defp negative_condition_string({:not, {:comparison, _, :=, _}}), do: "<>"
 end
