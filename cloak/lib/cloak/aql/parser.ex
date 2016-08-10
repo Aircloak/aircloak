@@ -310,9 +310,9 @@ defmodule Cloak.Aql.Parser do
     [table, join_type] ++ flatten_join_clauses(next_join)
   end
 
-  defp pair_joins([table]), do: table
-  defp pair_joins([left_expr, join_type, table | rest]) do
-    pair_joins([join(join_type, left_expr, table) | rest])
+  defp pair_joins([table_or_join]), do: table_or_join
+  defp pair_joins([table_or_join, join_type, table | rest]) do
+    pair_joins([join(join_type, table_or_join, table) | rest])
   end
 
   defp join({join_type, :on, condition}, left_expr, table),
