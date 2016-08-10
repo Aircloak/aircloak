@@ -121,6 +121,24 @@ SELECT YEAR(date_column), MONTH(date_column), DAY(date_column) FROM table;
 SELECT EXTRACT(year FROM date_column) FROM table;
 ```
 
+## Mathematical operators
+
+The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtraction, division, and
+multiplication respectively. The operator `^` denotes exponentiation. The operator `%` denotes the division
+remainder.
+
+
+```sql
+1 - 2 + 4 * 3 / 2
+-- 5
+
+2 ^ 3
+-- 8
+
+7 % 3
+-- 1
+```
+
 ## Mathematical functions
 
 ### abs
