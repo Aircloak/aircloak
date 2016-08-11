@@ -15,13 +15,9 @@ export class AuditLogEntryView extends React.Component {
           this.containsFilterText(filter, this.props.entry.event)) {
         return true;
       }
-      for (const data of this.props.entry.metadata) {
-        if (this.containsFilterText(filter, data[0]) ||
-            this.containsFilterText(filter, data[1])) {
-          return true;
-        }
-      }
-      return false;
+      return _.some(this.props.entry.metadata, (data) =>
+        this.containsFilterText(filter, data[0]) || this.containsFilterText(filter, data[1])
+      );
     });
   }
 
