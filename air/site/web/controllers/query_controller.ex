@@ -28,7 +28,7 @@ defmodule Air.QueryController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    last_query = case load_recent_queries(conn.assigns.current_user, 1) do
+    last_query = case Query.load_recent_queries(conn.assigns.current_user, 1) do
       [query] -> query
       _ -> nil
     end
@@ -73,7 +73,7 @@ defmodule Air.QueryController do
   end
 
   def load_history(conn, _params) do
-    json(conn, load_recent_queries(conn.assigns.current_user, 10))
+    json(conn, Query.load_recent_queries(conn.assigns.current_user, 10))
   end
 
   def show(conn, %{"id" => id_type}) do
@@ -114,14 +114,6 @@ defmodule Air.QueryController do
     user
     |> Query.for_user
     |> Repo.get(id)
-  end
-
-  defp load_recent_queries(user, recent_count) do
-    user
-    |> Query.for_user
-    |> Query.recent(recent_count)
-    |> Repo.all
-    |> Enum.map(&Query.for_display/1)
   end
 
   defp parse_query_params(params) do

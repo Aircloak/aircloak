@@ -2,7 +2,7 @@ defmodule Air.Query do
   @moduledoc "The query model."
   use Air.Web, :model
 
-  alias Air.User
+  alias Air.{User, Repo}
 
   @type t :: %__MODULE__{}
   @type cloak_query :: %{id: String.t, statement: String.t, data_source: String.t}
@@ -65,6 +65,16 @@ defmodule Air.Query do
     rows = Enum.flat_map(result["rows"],
       fn(%{"occurrences" => occurrences, "row" => row}) -> List.duplicate(row, occurrences) end)
     CSV.encode([header | rows])
+  end
+
+  @doc "Loads the most recent queries for a given user"
+  @spec load_recent_queries(User.t, integer) :: [Query.t]
+  def load_recent_queries(user, recent_count) do
+    user
+    |> for_user()
+    |> recent(recent_count)
+    |> Repo.all
+    |> Enum.map(&for_display/1)
   end
 
 
