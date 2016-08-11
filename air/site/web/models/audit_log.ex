@@ -51,7 +51,7 @@ defmodule Air.AuditLog do
 
 
   # -------------------------------------------------------------------
-  # Auditable events
+  # API functions
   # -------------------------------------------------------------------
 
   @doc "Saves an audit log entry, but allows the operation to fail."
@@ -96,6 +96,11 @@ defmodule Air.AuditLog do
         :ok
     end
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp ip_to_string({a, b, c, d}), do: "#{a}.#{b}.#{c}.#{d}"
 end
