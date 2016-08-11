@@ -52,13 +52,9 @@ defmodule Cloak.Aql.Compiler do
   defp query_mode(_other_data_source, _from), do: :parsed
 
   defp validate_dsproxy_from_for_parsed_query!(nil), do: :ok
-  defp validate_dsproxy_from_for_parsed_query!({:join, :cross_join, clause1, clause2}) do
-    validate_dsproxy_from_for_parsed_query!(clause1)
-    validate_dsproxy_from_for_parsed_query!(clause2)
-  end
-  defp validate_dsproxy_from_for_parsed_query!({:join, _join_type, clause1, clause2, :on, _conditions}) do
-    validate_dsproxy_from_for_parsed_query!(clause1)
-    validate_dsproxy_from_for_parsed_query!(clause2)
+  defp validate_dsproxy_from_for_parsed_query!({:join, join}) do
+    validate_dsproxy_from_for_parsed_query!(join.lhs)
+    validate_dsproxy_from_for_parsed_query!(join.rhs)
   end
   defp validate_dsproxy_from_for_parsed_query!({:subquery, _}) do
     raise CompilationError, message: "Joining subqueries is not supported for this data source"
@@ -147,11 +143,8 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp from_clause_to_tables({:join, :cross_join, clause1, clause2}) do
-    from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
-  end
-  defp from_clause_to_tables({:join, _join_type, clause1, clause2, :on, _conditions}) do
-    from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
+  defp from_clause_to_tables({:join, join}) do
+    from_clause_to_tables(join.lhs) ++ from_clause_to_tables(join.rhs)
   end
   defp from_clause_to_tables(table), do: [table]
 
@@ -350,7 +343,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
-    Enum.each(comparisons_from_joins(query.from), &verify_supported_join_condition/1)
+    Enum.each(all_join_conditions(query.from), &verify_supported_join_condition/1)
 
     # Algorithm for finding improperly joined tables:
     #
@@ -368,7 +361,7 @@ defmodule Cloak.Aql.Compiler do
       Enum.each(uid_columns, &:digraph.add_vertex(graph, column_key.(&1)))
 
       # add edges for all `uid1 = uid2` filters
-      for {:comparison, column1, :=, column2} <- query.where ++ comparisons_from_joins(query.from),
+      for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
           column1 != column2,
           column1.user_id?,
           column2.user_id?
@@ -404,14 +397,11 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  @spec comparisons_from_joins(Parser.from_clause) :: [Parser.where_clause]
-  defp comparisons_from_joins({:join, :cross_join, clause1, clause2}) do
-    comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
+  @spec all_join_conditions(Parser.from_clause) :: [Parser.where_clause]
+  defp all_join_conditions({:join, join}) do
+    join.conditions ++ all_join_conditions(join.lhs) ++ all_join_conditions(join.rhs)
   end
-  defp comparisons_from_joins({:join, _join_type, clause1, clause2, :on, conditions}) do
-    conditions ++ comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
-  end
-  defp comparisons_from_joins(_), do: []
+  defp all_join_conditions(_), do: []
 
   defp cast_where_clauses(%Query{where: [_|_] = clauses} = query) do
     %Query{query | where: Enum.map(clauses, &cast_where_clause/1)}
@@ -468,16 +458,12 @@ defmodule Cloak.Aql.Compiler do
     }
   end
 
-  defp map_join_conditions_columns({:join, :cross_join, clause1, clause2}, mapper_fun) do
-    clause1 = map_join_conditions_columns(clause1, mapper_fun)
-    clause2 = map_join_conditions_columns(clause2, mapper_fun)
-    {:join, :cross_join, clause1, clause2}
-  end
-  defp map_join_conditions_columns({:join, join_type, clause1, clause2, :on, conditions}, mapper_fun) do
-    clause1 = map_join_conditions_columns(clause1, mapper_fun)
-    clause2 = map_join_conditions_columns(clause2, mapper_fun)
-    where_clauses = Enum.map(conditions, &map_where_clause(&1, mapper_fun))
-    {:join, join_type, clause1, clause2, :on, where_clauses}
+  defp map_join_conditions_columns({:join, join}, mapper_fun) do
+    {:join, %{join |
+      lhs: map_join_conditions_columns(join.lhs, mapper_fun),
+      rhs: map_join_conditions_columns(join.rhs, mapper_fun),
+      conditions: Enum.map(join.conditions, &map_where_clause(&1, mapper_fun))
+    }}
   end
   defp map_join_conditions_columns(raw_table_name, _mapper_fun), do: raw_table_name
 
@@ -654,20 +640,16 @@ defmodule Cloak.Aql.Compiler do
     do_join_conditions_scope_check(from, [])
   end
 
-  defp do_join_conditions_scope_check({:join, :cross_join, clause1, clause2}, selected_tables) do
-    selected_tables = do_join_conditions_scope_check(clause1, selected_tables)
-    do_join_conditions_scope_check(clause2, selected_tables)
-  end
-  defp do_join_conditions_scope_check({:join, _join_type, clause1, clause2, :on, conditions}, selected_tables) do
-    selected_tables = do_join_conditions_scope_check(clause1, selected_tables)
-    selected_tables = do_join_conditions_scope_check(clause2, selected_tables)
+  defp do_join_conditions_scope_check({:join, join}, selected_tables) do
+    selected_tables = do_join_conditions_scope_check(join.lhs, selected_tables)
+    selected_tables = do_join_conditions_scope_check(join.rhs, selected_tables)
     mapper_fun = fn
       (%Cloak.Aql.Column{table: %{name: table_name}, name: column_name}) ->
         scope_check(selected_tables, table_name, column_name)
       ({:identifier, table_name, column_name}) -> scope_check(selected_tables, table_name, column_name)
       (_) -> :ok
     end
-    Enum.each(conditions, &map_where_clause(&1, mapper_fun))
+    Enum.each(join.conditions, &map_where_clause(&1, mapper_fun))
     selected_tables
   end
   defp do_join_conditions_scope_check(table_name, selected_tables), do: [table_name | selected_tables]
