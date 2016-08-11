@@ -36,7 +36,7 @@ defmodule Air.OrganisationController do
 
     case Repo.insert(changeset) do
       {:ok, organisation} ->
-        AuditLog.log(conn, "Create organisation", name: organisation.name)
+        AuditLog.log(conn, "Created organisation", name: organisation.name)
         conn
         |> put_flash(:info, "Organisation created successfully.")
         |> redirect(to: organisation_path(conn, :index))
