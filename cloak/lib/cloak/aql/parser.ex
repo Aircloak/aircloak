@@ -35,11 +35,7 @@ defmodule Cloak.Aql.Parser do
       String.t
     | {:subquery, {:parsed, parsed_query}}
     | {:subquery, {:unparsed, String.t}}
-    | {:join, :cross_join, from_clause, from_clause}
-    | {
-        :join, :full_outer_join | :left_outer_join | :right_outer_join, :inner_join,
-        from_clause, from_clause, :on, [where_clause]
-      }
+    | Cloak.Aql.Join.t
 
   @type parsed_query :: %{
     command: :select | :show,
@@ -341,12 +337,12 @@ defmodule Cloak.Aql.Parser do
 
   defp pair_joins([table_or_join]), do: table_or_join
   defp pair_joins([table_or_join, join_type, table | rest]) do
-    pair_joins([join(join_type, table_or_join, table) | rest])
+    pair_joins([to_join(join_type, table_or_join, table) | rest])
   end
 
-  defp join({join_type, :on, condition}, left_expr, table),
-    do: join_with_condition(join_type, left_expr, table, condition)
-  defp join(:cross_join, left_expr, table),
+  defp to_join({join_type, :on, condition}, left_expr, table),
+    do: join(join_type, left_expr, table, condition)
+  defp to_join(:cross_join, left_expr, table),
     do: cross_join(left_expr, table)
 
   defp cross_joins([table]), do: table

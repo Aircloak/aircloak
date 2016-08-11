@@ -1,10 +1,20 @@
 defmodule Cloak.Aql.Join do
   @moduledoc "Helpers for working with joins"
 
+  alias Cloak.Aql.Parser
+
+  @type cross_join :: {:join, Parser.from_clause, Parser.from_clause, []}
+  @type join_with_conditions ::
+    {
+      :inner_join | :full_outer_join | :left_outer_join | :right_outer_join,
+      Parser.from_clause, Parser.from_clause, [Parser.where_clause]
+    }
+  @type t :: cross_join | join_with_conditions
+
   @doc "Matches a cross join"
   defmacro cross_join(lhs, rhs) do
     quote do
-      {:join, :cross_join, unquote(lhs), unquote(rhs)}
+      join(:cross_join, unquote(lhs), unquote(rhs), [])
     end
   end
 
@@ -18,15 +28,15 @@ defmodule Cloak.Aql.Join do
     defmacro unquote(join_type)(lhs, rhs, on) do
       join_type = unquote(join_type)
       quote do
-        join_with_condition(unquote(join_type), unquote(lhs), unquote(rhs), unquote(on))
+        join(unquote(join_type), unquote(lhs), unquote(rhs), unquote(on))
       end
     end
   end
 
-  @doc "Matches a join with an `ON` condition provided"
-  defmacro join_with_condition(join_type, lhs, rhs, on) do
+  @doc "Matches a join"
+  defmacro join(join_type, lhs, rhs, on) do
     quote do
-      {:join, unquote(join_type), unquote(lhs), unquote(rhs), :on, unquote(on)}
+      {:join, unquote(join_type), unquote(lhs), unquote(rhs), unquote(on)}
     end
   end
 end
