@@ -27,6 +27,8 @@ defmodule Air.AuditLog do
     |> cast(params, @required_fields, @optional_fields)
   end
 
+  @doc "Converts a log entry model into a map that can be converted to JSON"
+  @spec for_display(AuditLog.t) :: Map.t
   def for_display(log_entry) do
     metadata = Poison.decode!(log_entry.metadata)
     |> Map.to_list()
