@@ -29,7 +29,7 @@ defmodule Cloak.Aql.Function do
     ~w(concat) => %{aggregate: false, return_type: :text, argument_types: [{:many1, :text}]},
     [{"cast", :integer}, {"cast", :real}] =>
       %{aggregate: false, return_type: :integer, argument_types: [{:or, [:real, :integer, :text, :boolean]}]},
-    [{"cast", :date}] =>
+    [{"cast", :text}, {"cast", :date}] =>
       %{aggregate: false, return_type: :date, argument_types: [:any]}
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
@@ -237,4 +237,14 @@ defmodule Cloak.Aql.Function do
       :error -> nil
     end
   end
+  # cast to text
+  defp cast(true, :text), do: "TRUE"
+  defp cast(false, :text), do: "FALSE"
+  defp cast(value = %Timex.DateTime{}, :text) do
+    case Timex.format(value, "{ISOdate} {ISOtime}") do
+      {:ok, result} -> result
+      {:error, _} -> nil
+    end
+  end
+  defp cast(value, :text), do: to_string(value)
 end
