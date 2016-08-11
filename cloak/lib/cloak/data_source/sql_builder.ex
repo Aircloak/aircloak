@@ -4,7 +4,6 @@ defmodule Cloak.DataSource.SqlBuilder do
   alias Cloak.Aql.Query
   alias Cloak.Aql.Column
   alias Cloak.Aql.Parsers.Token
-  import Cloak.Aql.Join
 
   @typep query_spec :: {statement, [constant]}
   @typep constant :: String.t | number | boolean
@@ -53,9 +52,9 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp data_columns(%Query{db_data_columns: columns}), do: Enum.map(columns, &column_name/1)
 
-  defp from_clause(join(join_type, clause1, clause2, on), query) do
-    ["(", from_clause(clause1, query), join_name(join_type), from_clause(clause2, query),
-      on_clause(on), ")"]
+  defp from_clause({:join, join}, query) do
+    ["(", from_clause(join.lhs, query), join_name(join.type), from_clause(join.rhs, query),
+      on_clause(join.conditions), ")"]
   end
   defp from_clause(table_name, query) do
     query.selected_tables

@@ -3,7 +3,6 @@ defmodule Cloak.Aql.Parser.Test do
 
   alias Cloak.Aql.Parser
   alias Cloak.Aql.Parsers.Token
-  import Cloak.Aql.Join
 
   @psql_data_source %{driver: Cloak.DataSource.PostgreSQL}
   @ds_proxy_data_source %{driver: Cloak.DataSource.DsProxy}
@@ -81,6 +80,30 @@ defmodule Cloak.Aql.Parser.Test do
   defmacrop identifier(name) do
     quote do
       {:identifier, :unknown, name}
+    end
+  end
+
+  defmacrop cross_join(lhs, rhs) do
+    quote do
+      join(:cross_join, unquote(lhs), unquote(rhs), [])
+    end
+  end
+
+  for join_type <- [:inner_join, :full_outer_join, :left_outer_join, :right_outer_join] do
+    defmacrop unquote(join_type)(lhs, rhs, conditions) do
+      join_type = unquote(join_type)
+      quote do
+        join(unquote(join_type), unquote(lhs), unquote(rhs), unquote(conditions))
+      end
+    end
+  end
+
+  defmacrop join(join_type, lhs, rhs, conditions) do
+    quote do
+      {
+        :join,
+        %{type: unquote(join_type), lhs: unquote(lhs), rhs: unquote(rhs), conditions: unquote(conditions)}
+      }
     end
   end
 

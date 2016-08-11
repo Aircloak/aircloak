@@ -2,7 +2,6 @@ defmodule Cloak.Aql.Parser do
   @moduledoc "Parser for SQL queries."
   use Combine
   import Cloak.Aql.Parsers
-  import Cloak.Aql.Join
   alias Cloak.DataSource
 
   @type comparator ::
@@ -35,7 +34,15 @@ defmodule Cloak.Aql.Parser do
       String.t
     | {:subquery, {:parsed, parsed_query}}
     | {:subquery, {:unparsed, String.t}}
-    | Cloak.Aql.Join.t
+    | join
+
+  @type join ::
+    {:join, %{
+      type: :cross_join | :inner_join | :full_outer_join | :left_outer_join | :right_outer_join,
+      lhs: from_clause,
+      rhs: from_clause,
+      conditions: [where_clause]
+    }}
 
   @type parsed_query :: %{
     command: :select | :show,
@@ -340,15 +347,13 @@ defmodule Cloak.Aql.Parser do
     pair_joins([to_join(join_type, table_or_join, table) | rest])
   end
 
-  defp to_join({join_type, :on, condition}, left_expr, table),
-    do: join(join_type, left_expr, table, condition)
-  defp to_join(:cross_join, left_expr, table),
-    do: cross_join(left_expr, table)
+  defp to_join({join_type, :on, conditions}, left_expr, right_expr),
+    do: {:join, %{type: join_type, lhs: left_expr, rhs: right_expr, conditions: conditions}}
+  defp to_join(:cross_join, left_expr, right_expr),
+    do: to_join({:cross_join, :on, []}, left_expr, right_expr)
 
   defp cross_joins([table]), do: table
-  defp cross_joins([clause | rest]) do
-    cross_join(clause, cross_joins(rest))
-  end
+  defp cross_joins([clause | rest]), do: to_join(:cross_join, clause, cross_joins(rest))
 
   defp join_expression(data_source) do
     lazy(fn ->
