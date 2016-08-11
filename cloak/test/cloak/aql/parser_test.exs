@@ -704,12 +704,12 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "cast" do
     assert_parse "select cast(a, integer) from bar",
-      select(columns: [{:function, {"cast", :integer}, [identifier("a")]}])
+      select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
   end
 
   test "extended cast" do
     assert_parse "select cast(a as text) from bar",
-      select(columns: [{:function, {"cast", :text}, [identifier("a")]}])
+      select(columns: [{:function, {:cast, :text}, [identifier("a")]}])
   end
 
   create_test =

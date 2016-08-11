@@ -205,7 +205,7 @@ defmodule Cloak.Aql.Parser do
         data_type(),
         keyword(:")"),
       ],
-      fn [:cast, :"(", expr, _, type, :")"] -> {:function, {"cast", type}, [expr]} end
+      fn [:cast, :"(", expr, _, type, :")"] -> {:function, {:cast, type}, [expr]} end
     )
   end
 

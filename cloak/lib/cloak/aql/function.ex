@@ -27,15 +27,15 @@ defmodule Cloak.Aql.Function do
       %{aggregate: false, return_type: :text, argument_types: [:text, :integer, {:optional, :integer}]},
     ~w(||) => %{aggregate: false, return_type: :text, argument_types: [:text, :text]},
     ~w(concat) => %{aggregate: false, return_type: :text, argument_types: [{:many1, :text}]},
-    [{"cast", :integer}, {"cast", :real}, {"cast", :boolean}] =>
+    [{:cast, :integer}, {:cast, :real}, {:cast, :boolean}] =>
       %{aggregate: false, return_type: :integer, argument_types: [{:or, [:real, :integer, :text, :boolean]}]},
-    [{"cast", :timestamp}] =>
+    [{:cast, :timestamp}] =>
       %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp]}]},
-    [{"cast", :time}] =>
+    [{:cast, :time}] =>
       %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp, :time]}]},
-    [{"cast", :date}] =>
+    [{:cast, :date}] =>
       %{aggregate: false, return_type: :date, argument_types: [{:or, [:text, :timestamp, :date]}]},
-    [{"cast", :text}] =>
+    [{:cast, :text}] =>
       %{aggregate: false, return_type: :date, argument_types: [:any]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
@@ -68,7 +68,7 @@ defmodule Cloak.Aql.Function do
 
   @doc "Returns true if the given function call is a cast, false otherwise."
   @spec cast?(t) :: boolean
-  def cast?({:function, {"cast", _}, _}), do: true
+  def cast?({:function, {:cast, _}, _}), do: true
   def cast?(_), do: false
 
   @doc "Returns the argument type required by the given function call."
@@ -190,7 +190,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("/", [x, y]), do: x / y
   defp do_apply("+", [x, y]), do: x + y
   defp do_apply("-", [x, y]), do: x - y
-  defp do_apply({"cast", target}, [value]), do: cast(value, target)
+  defp do_apply({:cast, target}, [value]), do: cast(value, target)
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
