@@ -14,4 +14,24 @@ defmodule Air.Utils.DateTime do
     |> Timex.DateTime.from_erl()
     |> Timex.from_now()
   end
+
+  @doc """
+  Returns an Ecto.DateTime dated N days in the past.
+
+  Please note that the hour, minutes and seconds are all set to 0.
+  Therefore if you want to use the returned value in a database compairson,
+  and want all records for the current day included, then you should use
+  -1 as your parameter. This would then effectively make for a comparison
+  as follows:
+
+  ... where: inserted_at <= <tomorrow's date>
+  """
+  @spec date_days_ago(integer) :: Ecto.DateTime.t
+  def date_days_ago(days) do
+    interval = Timex.Time.to_timestamp(days, :days)
+    now = Timex.Date.now()
+    Timex.subtract(now, interval)
+    |> Timex.to_erlang_datetime()
+    |> Ecto.DateTime.from_erl()
+  end
 end

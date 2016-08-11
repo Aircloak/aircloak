@@ -2,7 +2,7 @@ defmodule Air.AuditLogController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.AuditLog
+  alias Air.{AuditLog, Utils}
 
 
   # -------------------------------------------------------------------
@@ -21,14 +21,14 @@ defmodule Air.AuditLogController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    from = date_days_ago(7)
-    to = date_days_ago(-1)
+    from = Utils.DateTime.date_days_ago(7)
+    to = Utils.DateTime.date_days_ago(-1)
     render(conn, "index.html", audit_logs: load_entries_json(from, to))
   end
 
   def load_entries(conn, params) do
-    from = date_or_default("#{params["from"]}T00:00:00Z", date_days_ago(7))
-    to = date_or_default("#{params["to"]}T23:59:59Z", date_days_ago(-1))
+    from = date_or_default("#{params["from"]}T00:00:00Z", Utils.DateTime.date_days_ago(7))
+    to = date_or_default("#{params["to"]}T23:59:59Z", Utils.DateTime.date_days_ago(-1))
     json(conn, load_entries_json(from, to))
   end
 
@@ -53,13 +53,5 @@ defmodule Air.AuditLogController do
       {:ok, date} -> date
       :error -> default
     end
-  end
-
-  defp date_days_ago(days) do
-    interval = Timex.Time.to_timestamp(days, :days)
-    now = Timex.Date.now()
-    Timex.subtract(now, interval)
-    |> Timex.to_erlang_datetime()
-    |> Ecto.DateTime.from_erl()
   end
 end
