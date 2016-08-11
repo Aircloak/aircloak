@@ -33,8 +33,10 @@ defmodule Cloak.Aql.Function do
       %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp]}]},
     [{"cast", :time}] =>
       %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp, :time]}]},
-    [{"cast", :text}, {"cast", :date}] =>
-      %{aggregate: false, return_type: :date, argument_types: [:any]}
+    [{"cast", :date}] =>
+      %{aggregate: false, return_type: :date, argument_types: [{:or, [:text, :timestamp, :date]}]},
+    [{"cast", :text}] =>
+      %{aggregate: false, return_type: :date, argument_types: [:any]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -275,6 +277,14 @@ defmodule Cloak.Aql.Function do
   defp cast(value = %Timex.DateTime{}, :time), do: %{value | year: 0, month: 0, day: 0}
   defp cast(value, :time) when is_binary(value) do
     case Timex.parse(value, "{ISOtime}") do
+       {:ok, result} -> result
+       {:error, _} -> nil
+    end
+  end
+  # cast to date
+  defp cast(value = %Timex.DateTime{}, :date), do: %{value | hour: 0, minute: 0, second: 0, millisecond: 0}
+  defp cast(value, :date) when is_binary(value) do
+    case Timex.parse(value, "{ISOdate}") do
        {:ok, result} -> result
        {:error, _} -> nil
     end
