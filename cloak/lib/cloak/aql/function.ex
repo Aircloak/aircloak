@@ -31,7 +31,8 @@ defmodule Cloak.Aql.Function do
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
   |> Map.merge(%{
-    {"cast", :integer} => %{aggregate: false, return_type: :integer, argument_types: [:integer]},
+    {"cast", :integer} =>
+      %{aggregate: false, return_type: :integer, argument_types: [{:or, [:real, :integer, :text, :boolean]}]},
     {"cast", :date} => %{aggregate: false, return_type: :date, argument_types: [:any]}
   })
 
@@ -184,6 +185,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("/", [x, y]), do: x / y
   defp do_apply("+", [x, y]), do: x + y
   defp do_apply("-", [x, y]), do: x - y
+  defp do_apply({"cast", target}, [value]), do: cast(value, target)
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
@@ -207,4 +209,15 @@ defmodule Cloak.Aql.Function do
   defp substring(_string, _from, count) when count < 0, do: ""
   defp substring(string, from, count), do:
     String.slice(string, from - 1, count || String.length(string))
+
+  defp cast(value, :integer) when is_integer(value), do: value
+  defp cast(value, :integer) when is_float(value), do: round(value)
+  defp cast(true, :integer), do: 1
+  defp cast(false, :integer), do: 0
+  defp cast(value, :integer) when is_binary(value) do
+    case Integer.parse(value) do
+      {number, _rest} -> number
+      :error -> nil
+    end
+  end
 end

@@ -205,6 +205,28 @@ defmodule Cloak.Aql.Function.Test do
     refute Function.well_typed?({:function, "avg", [{:function, "concat", nil}]})
   end
 
+  test "cast to integer typing" do
+    assert well_typed?({"cast", :integer}, [:text])
+    assert well_typed?({"cast", :integer}, [:boolean])
+    assert well_typed?({"cast", :integer}, [:real])
+    assert well_typed?({"cast", :integer}, [:integer])
+    refute well_typed?({"cast", :integer}, [:timestamp])
+    refute well_typed?({"cast", :integer}, [:date])
+    refute well_typed?({"cast", :integer}, [:time])
+  end
+
+  test "cast to integer" do
+    assert apply_function({"cast", :integer}, [123]) === 123
+    assert apply_function({"cast", :integer}, [123.0]) === 123
+    assert apply_function({"cast", :integer}, [123.1]) === 123
+    assert apply_function({"cast", :integer}, [123.9]) === 124
+    assert apply_function({"cast", :integer}, ["123"]) === 123
+    assert apply_function({"cast", :integer}, ["-123"]) === -123
+    assert apply_function({"cast", :integer}, ["123and some additional symbols"]) === 123
+    assert apply_function({"cast", :integer}, [true]) === 1
+    assert apply_function({"cast", :integer}, [false]) === 0
+  end
+
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})
 
