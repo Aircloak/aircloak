@@ -12,11 +12,11 @@ class AuditLogView extends React.Component {
 
     this.state = {
       filterText: "",
-      startDate: moment().subtract(1, 'week'),
+      startDate: moment().subtract(1, "week"),
       endDate: moment(),
       loadingData: false,
       entries: props.entries,
-    }
+    };
 
     this.filterTextChange = this.filterTextChange.bind(this);
     this.filterTextToFilters = this.filterTextToFilters.bind(this);
@@ -31,25 +31,22 @@ class AuditLogView extends React.Component {
   }
 
   filterTextToFilters() {
-    if (this.state.filterText == "") return [];
+    if (this.state.filterText === "") return [];
     return this.state.filterText.toLowerCase().split(" ");
   }
 
   handleDateStartChange(startDate) {
     this.setState({startDate});
-    this.loadData({startDate: startDate});
+    this.loadData(startDate, this.state.endDate);
   }
 
   handleDateEndChange(endDate) {
     this.setState({endDate});
-    this.loadData({endDate: endDate});
+    this.loadData(this.state.startDate, endDate);
   }
 
-  loadData(params) {
+  loadData(startDate, endDate) {
     this.setState({loadingData: true});
-
-    const startDate = params.startDate || this.state.startDate;
-    const endDate = params.endDate || this.state.endDate;
 
     const data = {
       from: startDate.format("YYYY-MM-DD"),
@@ -58,7 +55,7 @@ class AuditLogView extends React.Component {
 
     $.ajax("/audit_log/load_entries", {
       method: "GET",
-      data: data,
+      data,
       success: (response) => {
         this.setState({entries: JSON.parse(response)});
         this.setState({loadingData: false});
@@ -67,13 +64,13 @@ class AuditLogView extends React.Component {
   }
 
   render() {
-    const entries = this.state.entries.map((entry, i) => {
-      return <AuditLogEntryView
+    const entries = this.state.entries.map((entry, i) =>
+      <AuditLogEntryView
         key={i}
         entry={entry}
         filters={this.filterTextToFilters()}
-      />;
-    });
+      />
+    );
 
     let loading = null;
     if (this.state.loadingData) {

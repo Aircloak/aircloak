@@ -21,18 +21,20 @@ export class AuditLogEntryView extends React.Component {
         let satisfied = false;
         for (const data of this.props.entry.metadata) {
           if (this.containsFilterText(filter, data[0]) ||
-              this.containsFilterText(filter, data[1]))
+              this.containsFilterText(filter, data[1])) {
             satisfied = true;
+          }
         }
-        if (satisfied)
+        if (satisfied) {
           satisfiedFiltersCount = satisfiedFiltersCount + 1;
+        }
       }
     }
-    return requiredFiltersCount == satisfiedFiltersCount;
+    return requiredFiltersCount === satisfiedFiltersCount;
   }
 
   containsFilterText(filter, text) {
-    return (text.toLowerCase().indexOf(filter) !== -1)
+    return (text.toLowerCase().indexOf(filter) !== -1);
   }
 
   render() {
@@ -40,9 +42,9 @@ export class AuditLogEntryView extends React.Component {
       return null;
     }
 
-    const metadata = this.props.entry.metadata.map((keyval, i) => {
-      return <li key={i}><strong>{keyval[0]}</strong>: {keyval[1]}</li>
-    });
+    const metadata = this.props.entry.metadata.map((keyval, i) =>
+      <li key={i}><strong>{keyval[0]}</strong>: {keyval[1]}</li>
+    );
     return (
       <tr>
         <td>{this.props.entry.event}</td>
