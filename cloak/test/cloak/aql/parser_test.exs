@@ -3,6 +3,7 @@ defmodule Cloak.Aql.Parser.Test do
 
   alias Cloak.Aql.Parser
   alias Cloak.Aql.Parsers.Token
+  import Cloak.Aql.Join
 
   @psql_data_source %{driver: Cloak.DataSource.PostgreSQL}
   @ds_proxy_data_source %{driver: Cloak.DataSource.DsProxy}
@@ -383,7 +384,7 @@ defmodule Cloak.Aql.Parser.Test do
       "select foo from (select foo from bar) sq1, (select foo from baz) sq2",
       select(
         columns: [{:identifier, :unknown, "foo"}],
-        from: {:join, :cross_join, parsed_subquery(sq1, "sq1"), parsed_subquery(sq2, "sq2")}
+        from: cross_join(parsed_subquery(sq1, "sq1"), parsed_subquery(sq2, "sq2"))
       )
     )
     assert select(columns: [{:identifier, :unknown, "foo"}], from: "bar") = sq1
@@ -395,7 +396,7 @@ defmodule Cloak.Aql.Parser.Test do
       "select foo from bar inner join (select foo from baz) sq on bar.id = sq.id",
       select(
         columns: [{:identifier, :unknown, "foo"}],
-        from: {:join, :inner_join, "bar", parsed_subquery(sq, "sq"), :on, _comparison}
+        from: inner_join("bar", parsed_subquery(sq, "sq"), _comparison)
       )
     )
     assert select(columns: [{:identifier, :unknown, "foo"}], from: "baz") = sq
@@ -488,96 +489,96 @@ defmodule Cloak.Aql.Parser.Test do
   test "allow selection of multiple tables" do
     assert_parse("select a from foo, bar, baz",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:join, :cross_join, "foo", {:join, :cross_join, "bar", "baz"}}))
+        from: cross_join("foo", cross_join("bar", "baz"))))
   end
 
   test "allow CROSS JOINs" do
     assert_parse("select a from foo CROSS JOIN bar",
-      select(columns: [{:identifier, :unknown, "a"}], from: {:join, :cross_join, "foo", "bar"}))
+      select(columns: [{:identifier, :unknown, "a"}], from: cross_join("foo", "bar")))
   end
 
   test "allow multiple CROSS JOINs" do
     assert_parse("select a from t1 CROSS JOIN t2 CROSS JOIN t3 CROSS JOIN t4",
-      select(columns: [{:identifier, :unknown, "a"}], from: {
-        :join, :cross_join, {:join, :cross_join, {:join, :cross_join, "t1", "t2"}, "t3"}, "t4"
-      }))
+      select(columns: [{:identifier, :unknown, "a"}], from:
+        cross_join(cross_join(cross_join("t1", "t2"), "t3"), "t4")
+      ))
   end
 
   test "allow INNER JOINs" do
     assert_parse("select a from foo JOIN bar ON a = b",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:join, :inner_join, "foo", "bar", :on, [
+        from: inner_join("foo", "bar", [
           {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
-        ]}))
+        ])))
     assert_parse("select a from foo INNER JOIN bar ON a = b",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:join, :inner_join, "foo", "bar", :on, [
+        from: inner_join("foo", "bar", [
           {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
-        ]}))
+        ])))
   end
 
   test "allow multiple INNER JOINs" do
     assert_parse("select a from foo JOIN bar ON a = b INNER JOIN baz ON b = c",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:join, :inner_join,
-            {:join, :inner_join, "foo", "bar", :on, [
+        from: inner_join(
+            inner_join("foo", "bar", [
             {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
-          ]}, "baz", :on, [
+          ]), "baz", [
           {:comparison, {:identifier, :unknown, "b"}, :=, {:identifier, :unknown, "c"}}
-        ]}))
+        ])))
   end
 
   test "allow LEFT JOINs" do
     assert_parse("select a from foo LEFT JOIN bar ON a = b",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:join, :left_outer_join, "foo", "bar", :on, [
+        from: left_outer_join("foo", "bar", [
           {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
-        ]}))
+        ])))
     assert_parse("select a from foo LEFT OUTER JOIN bar ON a = b",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:join, :left_outer_join, "foo", "bar", :on, [
+        from: left_outer_join("foo", "bar", [
           {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
-        ]}))
+        ])))
   end
 
   test "allow RIGHT JOINs" do
     assert_parse("select a from foo RIGHT JOIN bar ON a = b",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:join, :right_outer_join, "foo", "bar", :on, [
+        from: right_outer_join("foo", "bar", [
           {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
-        ]}))
+        ])))
     assert_parse("select a from foo RIGHT OUTER JOIN bar ON a = b",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:join, :right_outer_join, "foo", "bar", :on, [
+        from: right_outer_join("foo", "bar", [
           {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
-        ]}))
+        ])))
   end
 
   test "allow FULL OUTER JOINs" do
     assert_parse("select a from foo FULL JOIN bar ON a = b",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:join, :full_outer_join, "foo", "bar", :on, [
+        from: full_outer_join("foo", "bar", [
           {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
-        ]}))
+        ])))
     assert_parse("select a from foo FULL OUTER JOIN bar ON a = b",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:join, :full_outer_join, "foo", "bar", :on, [
+        from: full_outer_join("foo", "bar", [
           {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
-        ]}))
+        ])))
   end
 
   test "allow combining JOIN types" do
     assert_parse("select a from t1, t2 JOIN t3 ON a = b CROSS JOIN t4, t5 CROSS JOIN t6",
       select(columns: [{:identifier, :unknown, "a"}],
-        from: {:join, :cross_join, "t1",
-                {:join, :cross_join,
-                  {:join, :cross_join,
-                    {:join, :inner_join, "t2", "t3", :on, [
+        from: cross_join("t1",
+                cross_join(
+                  cross_join(
+                    inner_join("t2", "t3", [
                       {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
-                    ]},
+                    ]),
                     "t4"
-                  },
-                  {:join, :cross_join, "t5", "t6"}}}))
+                  ),
+                  cross_join("t5", "t6")))))
   end
 
   Enum.each(["JOIN", "INNER JOIN", "RIGHT JOIN", "RIGHT OUTER JOIN", "LEFT JOIN", "LEFT OUTER JOIN",

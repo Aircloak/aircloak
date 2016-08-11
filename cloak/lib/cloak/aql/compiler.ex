@@ -7,6 +7,7 @@ defmodule Cloak.Aql.Compiler do
   alias Cloak.Aql.Parser
   alias Cloak.Aql.Parsers.Token
   alias Cloak.Aql.Function
+  import Cloak.Aql.Join
 
   defmodule CompilationError do
     @moduledoc false
@@ -52,11 +53,11 @@ defmodule Cloak.Aql.Compiler do
   defp query_mode(_other_data_source, _from), do: :parsed
 
   defp validate_dsproxy_from_for_parsed_query!(nil), do: :ok
-  defp validate_dsproxy_from_for_parsed_query!({:join, :cross_join, clause1, clause2}) do
+  defp validate_dsproxy_from_for_parsed_query!(cross_join(clause1, clause2)) do
     validate_dsproxy_from_for_parsed_query!(clause1)
     validate_dsproxy_from_for_parsed_query!(clause2)
   end
-  defp validate_dsproxy_from_for_parsed_query!({:join, _join_type, clause1, clause2, :on, _conditions}) do
+  defp validate_dsproxy_from_for_parsed_query!(join_with_condition(_type, clause1, clause2, _conditions)) do
     validate_dsproxy_from_for_parsed_query!(clause1)
     validate_dsproxy_from_for_parsed_query!(clause2)
   end
@@ -147,10 +148,10 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp from_clause_to_tables({:join, :cross_join, clause1, clause2}) do
+  defp from_clause_to_tables(cross_join(clause1, clause2)) do
     from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
   end
-  defp from_clause_to_tables({:join, _join_type, clause1, clause2, :on, _conditions}) do
+  defp from_clause_to_tables(join_with_condition(_type, clause1, clause2, _conditions)) do
     from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
   end
   defp from_clause_to_tables(table), do: [table]
@@ -405,10 +406,10 @@ defmodule Cloak.Aql.Compiler do
   end
 
   @spec comparisons_from_joins(Parser.from_clause) :: [Parser.where_clause]
-  defp comparisons_from_joins({:join, :cross_join, clause1, clause2}) do
+  defp comparisons_from_joins(cross_join(clause1, clause2)) do
     comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
   end
-  defp comparisons_from_joins({:join, _join_type, clause1, clause2, :on, conditions}) do
+  defp comparisons_from_joins(join_with_condition(_type, clause1, clause2, conditions)) do
     conditions ++ comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
   end
   defp comparisons_from_joins(_), do: []
@@ -468,16 +469,16 @@ defmodule Cloak.Aql.Compiler do
     }
   end
 
-  defp map_join_conditions_columns({:join, :cross_join, clause1, clause2}, mapper_fun) do
+  defp map_join_conditions_columns(cross_join(clause1, clause2), mapper_fun) do
     clause1 = map_join_conditions_columns(clause1, mapper_fun)
     clause2 = map_join_conditions_columns(clause2, mapper_fun)
-    {:join, :cross_join, clause1, clause2}
+    cross_join(clause1, clause2)
   end
-  defp map_join_conditions_columns({:join, join_type, clause1, clause2, :on, conditions}, mapper_fun) do
+  defp map_join_conditions_columns(join_with_condition(type, clause1, clause2, conditions), mapper_fun) do
     clause1 = map_join_conditions_columns(clause1, mapper_fun)
     clause2 = map_join_conditions_columns(clause2, mapper_fun)
     where_clauses = Enum.map(conditions, &map_where_clause(&1, mapper_fun))
-    {:join, join_type, clause1, clause2, :on, where_clauses}
+    join_with_condition(type, clause1, clause2, where_clauses)
   end
   defp map_join_conditions_columns(raw_table_name, _mapper_fun), do: raw_table_name
 
@@ -654,11 +655,11 @@ defmodule Cloak.Aql.Compiler do
     do_join_conditions_scope_check(from, [])
   end
 
-  defp do_join_conditions_scope_check({:join, :cross_join, clause1, clause2}, selected_tables) do
+  defp do_join_conditions_scope_check(cross_join(clause1, clause2), selected_tables) do
     selected_tables = do_join_conditions_scope_check(clause1, selected_tables)
     do_join_conditions_scope_check(clause2, selected_tables)
   end
-  defp do_join_conditions_scope_check({:join, _join_type, clause1, clause2, :on, conditions}, selected_tables) do
+  defp do_join_conditions_scope_check(join_with_condition(_type, clause1, clause2, conditions), selected_tables) do
     selected_tables = do_join_conditions_scope_check(clause1, selected_tables)
     selected_tables = do_join_conditions_scope_check(clause2, selected_tables)
     mapper_fun = fn

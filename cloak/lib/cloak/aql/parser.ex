@@ -2,6 +2,7 @@ defmodule Cloak.Aql.Parser do
   @moduledoc "Parser for SQL queries."
   use Combine
   import Cloak.Aql.Parsers
+  import Cloak.Aql.Join
   alias Cloak.DataSource
 
   @type comparator ::
@@ -344,13 +345,13 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp join({join_type, :on, condition}, left_expr, table),
-    do: {:join, join_type, left_expr, table, :on, condition}
-  defp join(join_type, left_expr, table),
-    do: {:join, join_type, left_expr, table}
+    do: join_with_condition(join_type, left_expr, table, condition)
+  defp join(:cross_join, left_expr, table),
+    do: cross_join(left_expr, table)
 
   defp cross_joins([table]), do: table
   defp cross_joins([clause | rest]) do
-    {:join, :cross_join, clause, cross_joins(rest)}
+    cross_join(clause, cross_joins(rest))
   end
 
   defp join_expression(data_source) do
