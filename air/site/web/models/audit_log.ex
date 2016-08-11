@@ -27,10 +27,6 @@ defmodule Air.AuditLog do
     |> cast(params, @required_fields, @optional_fields)
   end
 
-  def metadata_items(log_entry) do
-    Map.to_list(Poison.decode!(log_entry.metadata))
-  end
-
   def for_display(log_entry) do
     metadata = Poison.decode!(log_entry.metadata)
     |> Map.to_list()
