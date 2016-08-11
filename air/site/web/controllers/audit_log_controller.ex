@@ -48,7 +48,6 @@ defmodule Air.AuditLogController do
 
   # The date is expected to have the format YYYY/MM/DD, if it doesn't,
   # then the default will be used
-  defp date_or_default(nil, default), do: default
   defp date_or_default(date_string, default) do
     case Ecto.DateTime.cast("#{date_string}") do
       {:ok, date} -> date

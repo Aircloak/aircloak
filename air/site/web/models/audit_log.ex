@@ -55,8 +55,8 @@ defmodule Air.AuditLog do
   # -------------------------------------------------------------------
 
   @doc "Saves an audit log entry, but allows the operation to fail."
-  @spec log(Plug.Conn.t, String.t, User.t, Keyword.t) :: :ok
-  def log(%Plug.Conn{} = conn, event, options \\ [], user \\ nil) do
+  @spec log(Plug.Conn.t, String.t, Keyword.t, User.t | nil) :: :ok
+  def log(conn, event, options \\ [], user \\ nil) do
     user = case user do
       nil ->
         case conn.assigns.current_user do
