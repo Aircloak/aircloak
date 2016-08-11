@@ -270,7 +270,11 @@ defmodule Cloak.Aql.Function.Test do
     }]) === "2015-01-02 03:04:05"
   end
 
-  test "casting nil"
+  for type <- [:text, :boolean, :real, :integer, :timestamp, :date, :time] do
+    test "casting nil to #{type}" do
+      assert apply_function({"cast", unquote(type)}, [nil]) === nil
+    end
+  end
 
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})

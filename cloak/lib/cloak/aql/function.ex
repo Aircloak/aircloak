@@ -209,6 +209,7 @@ defmodule Cloak.Aql.Function do
   defp substring(string, from, count), do:
     String.slice(string, from - 1, count || String.length(string))
 
+  defp cast(nil, _), do: nil
   # cast to integer
   defp cast(value, :integer) when is_integer(value), do: value
   defp cast(value, :integer) when is_float(value), do: round(value)
