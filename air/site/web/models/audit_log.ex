@@ -3,7 +3,7 @@ defmodule Air.AuditLog do
   use Air.Web, :model
   require Logger
 
-  alias Air.{User, Repo}
+  alias Air.Repo
 
   schema "audit_logs" do
     field :event, :string
