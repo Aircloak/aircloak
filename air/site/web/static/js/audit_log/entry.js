@@ -14,8 +14,7 @@ export class AuditLogEntryView extends React.Component {
 
     for (const filter of this.props.filters) {
       if (this.containsFilterText(filter, this.props.entry.user) ||
-          this.containsFilterText(filter, this.props.entry.event) ||
-          this.containsFilterText(filter, this.props.entry.inserted_at)) {
+          this.containsFilterText(filter, this.props.entry.event)) {
         satisfiedFiltersCount = satisfiedFiltersCount + 1;
       } else {
         let satisfied = false;
