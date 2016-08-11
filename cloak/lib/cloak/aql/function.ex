@@ -27,14 +27,13 @@ defmodule Cloak.Aql.Function do
       %{aggregate: false, return_type: :text, argument_types: [:text, :integer, {:optional, :integer}]},
     ~w(||) => %{aggregate: false, return_type: :text, argument_types: [:text, :text]},
     ~w(concat) => %{aggregate: false, return_type: :text, argument_types: [{:many1, :text}]},
+    [{"cast", :integer}, {"cast", :real}] =>
+      %{aggregate: false, return_type: :integer, argument_types: [{:or, [:real, :integer, :text, :boolean]}]},
+    [{"cast", :date}] =>
+      %{aggregate: false, return_type: :date, argument_types: [:any]}
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
-  |> Map.merge(%{
-    {"cast", :integer} =>
-      %{aggregate: false, return_type: :integer, argument_types: [{:or, [:real, :integer, :text, :boolean]}]},
-    {"cast", :date} => %{aggregate: false, return_type: :date, argument_types: [:any]}
-  })
 
   @type t :: Parser.column | Column.t
   @type data_type :: :any | DataSource.data_type
@@ -210,12 +209,30 @@ defmodule Cloak.Aql.Function do
   defp substring(string, from, count), do:
     String.slice(string, from - 1, count || String.length(string))
 
+  # cast to integer
   defp cast(value, :integer) when is_integer(value), do: value
   defp cast(value, :integer) when is_float(value), do: round(value)
   defp cast(true, :integer), do: 1
   defp cast(false, :integer), do: 0
   defp cast(value, :integer) when is_binary(value) do
     case Integer.parse(value) do
+      {number, _rest} -> number
+      :error -> nil
+    end
+  end
+  # cast to real
+  defp cast(value, :real) when is_integer(value) do
+    try do
+      :erlang.float(value)
+    rescue
+      _ in ArgumentError -> nil
+    end
+  end
+  defp cast(value, :real) when is_float(value), do: value
+  defp cast(true, :real), do: 1.0
+  defp cast(false, :real), do: 0.0
+  defp cast(value, :real) when is_binary(value) do
+    case Float.parse(value) do
       {number, _rest} -> number
       :error -> nil
     end

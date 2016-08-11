@@ -227,6 +227,28 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function({"cast", :integer}, [false]) === 0
   end
 
+  test "cast to real typing" do
+    assert well_typed?({"cast", :real}, [:text])
+    assert well_typed?({"cast", :real}, [:boolean])
+    assert well_typed?({"cast", :real}, [:real])
+    assert well_typed?({"cast", :real}, [:integer])
+    refute well_typed?({"cast", :real}, [:timestamp])
+    refute well_typed?({"cast", :real}, [:date])
+    refute well_typed?({"cast", :real}, [:time])
+  end
+
+  test "cast to real" do
+    assert apply_function({"cast", :real}, [123]) === 123.0
+    assert apply_function({"cast", :real}, [pow(10, 400)]) === nil
+    assert apply_function({"cast", :real}, [123.123]) === 123.123
+    assert apply_function({"cast", :real}, ["123"]) === 123.0
+    assert apply_function({"cast", :real}, ["-123"]) === -123.0
+    assert apply_function({"cast", :real}, ["123.123"]) === 123.123
+    assert apply_function({"cast", :real}, ["123.123and some additional symbols"]) === 123.123
+    assert apply_function({"cast", :real}, [true]) === 1.0
+    assert apply_function({"cast", :real}, [false]) === 0.0
+  end
+
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})
 
