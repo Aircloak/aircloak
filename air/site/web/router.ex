@@ -49,7 +49,8 @@ defmodule Air.Router do
     resources "/organisations", OrganisationController
     resources "/users", UserController
 
-    resources "/audit_log", AuditLogController
+    get "/audit_log/load_entries", AuditLogController, :load_entries
+    get "/audit_log", AuditLogController, :index
   end
 
   scope "/api" do

@@ -78,7 +78,8 @@ exports.config = {
       "react-codemirror",
       "jquery",
       "mousetrap",
-      "plotly.js"
+      "plotly.js",
+      "react-date-picker"
     ]
   }
 };

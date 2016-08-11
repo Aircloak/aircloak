@@ -58,7 +58,11 @@ defmodule Air.AuditLog do
   @spec log(Plug.Conn.t, String.t, User.t, Keyword.t) :: :ok
   def log(%Plug.Conn{} = conn, event, options \\ [], user \\ nil) do
     user = case user do
-      nil -> conn.assigns.current_user
+      nil ->
+        case conn.assigns.current_user do
+          nil -> %{email: "Unknown user"}
+          user -> user
+        end
       _ -> user
     end
 

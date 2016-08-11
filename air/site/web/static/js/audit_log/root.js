@@ -1,5 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import DatePicker from "react-datepicker";
+import moment from "moment";
+import $ from "jquery";
 
 import {AuditLogEntryView} from "./entry";
 
@@ -9,14 +12,22 @@ class AuditLogView extends React.Component {
 
     this.state = {
       filterText: "",
+      startDate: moment().subtract(1, 'week'),
+      endDate: moment(),
+      loadingData: false,
+      entries: props.entries,
     }
 
     this.filterTextChange = this.filterTextChange.bind(this);
     this.filterTextToFilters = this.filterTextToFilters.bind(this);
+    this.handleDateStartChange = this.handleDateStartChange.bind(this);
+    this.handleDateEndChange = this.handleDateEndChange.bind(this);
+    this.loadData = this.loadData.bind(this);
   }
 
   filterTextChange(event) {
-    this.setState({filterText: event.target.value});
+    const filterText = event.target.value;
+    this.setState({filterText});
   }
 
   filterTextToFilters() {
@@ -24,8 +35,39 @@ class AuditLogView extends React.Component {
     return this.state.filterText.toLowerCase().split(" ");
   }
 
+  handleDateStartChange(startDate) {
+    this.setState({startDate});
+    this.loadData({startDate: startDate});
+  }
+
+  handleDateEndChange(endDate) {
+    this.setState({endDate});
+    this.loadData({endDate: endDate});
+  }
+
+  loadData(params) {
+    this.setState({loadingData: true});
+
+    const startDate = params.startDate || this.state.startDate;
+    const endDate = params.endDate || this.state.endDate;
+
+    const data = {
+      from: startDate.format("YYYY-MM-DD"),
+      to: endDate.format("YYYY-MM-DD"),
+    };
+
+    $.ajax("/audit_log/load_entries", {
+      method: "GET",
+      data: data,
+      success: (response) => {
+        this.setState({entries: JSON.parse(response)});
+        this.setState({loadingData: false});
+      },
+    });
+  }
+
   render() {
-    const entries = this.props.entries.map((entry, i) => {
+    const entries = this.state.entries.map((entry, i) => {
       return <AuditLogEntryView
         key={i}
         entry={entry}
@@ -33,16 +75,50 @@ class AuditLogView extends React.Component {
       />;
     });
 
+    let loading = null;
+    if (this.state.loadingData) {
+      loading = (
+        <span className="entries-loader">
+          <img role="presentation" src="/images/loader.gif" />
+          loading log entries
+        </span>);
+    }
+
     return (
       <div>
-        <div>
-          <span>Filter audit log</span>&nbsp;
-          <input
-            type="text"
-            value={this.state.filterText}
-            onChange={this.filterTextChange}
-          />
-          <hr />
+        <h2>Audit log {loading}</h2>
+        <hr />
+
+        <div className="controls">
+          <div className="filter">
+            <span>Filter audit log</span>&nbsp;
+            <input
+              type="text"
+              value={this.state.filterText}
+              onChange={this.filterTextChange}
+            />
+          </div>
+
+          <div className="time-interval">
+            <span>Time interval</span>&nbsp;
+            <DatePicker
+              dateFormat="YYYY/MM/DD"
+              showYearDropdown
+              selected={this.state.startDate}
+              startDate={this.state.startDate}
+              endDate={this.state.endDate}
+              onChange={this.handleDateStartChange}
+            />
+            <DatePicker
+              dateFormat="YYYY/MM/DD"
+              showYearDropdown
+              todayButton="Today"
+              selected={this.state.endDate}
+              startDate={this.state.startDate}
+              endDate={this.state.endDate}
+              onChange={this.handleDateEndChange}
+            />
+          </div>
         </div>
 
         <table className="table">
