@@ -56,7 +56,5 @@ defmodule Air.AuditLogTest do
     assert Poison.decode!(entry.metadata) == %{"peer" => "127.0.0.1:1234", "remote_ip" => "127.0.0.1"}
   end
 
-  defp assign_user(conn, user) do
-    %{conn | assigns: %{current_user: user}}
-  end
+  defp assign_user(conn, user), do: Plug.Conn.assign(conn, :current_user, user)
 end
