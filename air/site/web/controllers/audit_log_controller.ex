@@ -46,8 +46,8 @@ defmodule Air.AuditLogController do
     |> Poison.encode!()
   end
 
-  # The date is expected to have the format YYYY/MM/DD, if it doesn't,
-  # then the default will be used
+  # The datetime is expected to have the format YYYY-MM-DDTHH:MM:SSZ, if it doesn't,
+  # or rather, if it cannot be parsed correctly, then the default will be used.
   defp date_or_default(date_string, default) do
     case Ecto.DateTime.cast("#{date_string}") do
       {:ok, date} -> date
