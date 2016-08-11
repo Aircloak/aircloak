@@ -1,4 +1,5 @@
 import React from "react";
+import _ from "lodash";
 
 export class AuditLogEntryView extends React.Component {
   constructor(props) {

@@ -1,10 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import DatePicker from "react-datepicker";
-import moment from "moment";
 import $ from "jquery";
 
 import {AuditLogEntryView} from "./entry";
+import {DateFilter} from "./date_filter";
+import {FilterControl} from "./filter_control";
 
 class AuditLogView extends React.Component {
   constructor(props) {
@@ -12,16 +12,12 @@ class AuditLogView extends React.Component {
 
     this.state = {
       filterText: "",
-      startDate: moment().subtract(1, "week"),
-      endDate: moment(),
       loadingData: false,
       entries: props.entries,
     };
 
     this.filterTextChange = this.filterTextChange.bind(this);
     this.filterTextToFilters = this.filterTextToFilters.bind(this);
-    this.handleDateStartChange = this.handleDateStartChange.bind(this);
-    this.handleDateEndChange = this.handleDateEndChange.bind(this);
     this.loadData = this.loadData.bind(this);
   }
 
@@ -33,16 +29,6 @@ class AuditLogView extends React.Component {
   filterTextToFilters() {
     if (this.state.filterText === "") return [];
     return this.state.filterText.toLowerCase().split(" ");
-  }
-
-  handleDateStartChange(startDate) {
-    this.setState({startDate});
-    this.loadData(startDate, this.state.endDate);
-  }
-
-  handleDateEndChange(endDate) {
-    this.setState({endDate});
-    this.loadData(this.state.startDate, endDate);
   }
 
   loadData(startDate, endDate) {
@@ -87,35 +73,8 @@ class AuditLogView extends React.Component {
         <hr />
 
         <div className="controls">
-          <div className="filter">
-            <span>Filter audit log</span>&nbsp;
-            <input
-              type="text"
-              value={this.state.filterText}
-              onChange={this.filterTextChange}
-            />
-          </div>
-
-          <div className="time-interval">
-            <span>Time interval</span>&nbsp;
-            <DatePicker
-              dateFormat="YYYY/MM/DD"
-              showYearDropdown
-              selected={this.state.startDate}
-              startDate={this.state.startDate}
-              endDate={this.state.endDate}
-              onChange={this.handleDateStartChange}
-            />
-            <DatePicker
-              dateFormat="YYYY/MM/DD"
-              showYearDropdown
-              todayButton="Today"
-              selected={this.state.endDate}
-              startDate={this.state.startDate}
-              endDate={this.state.endDate}
-              onChange={this.handleDateEndChange}
-            />
-          </div>
+          <FilterControl value={this.state.filterText} onChange={this.filterTextChange} className="filter" />
+          <DateFilter handleDateChange={this.loadData} className="time-interval" />
         </div>
 
         <table className="table">
