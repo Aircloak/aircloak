@@ -20,7 +20,7 @@ defmodule Air.CloakInfo do
     name: String.t,
     organisation: String.t,
     data_sources: [data_source],
-    created_at: integer # connect timestamp, with second-level accuracy
+    created_at: Ecto.DateTime.t,
   }
   @type cloak_id :: String.t
   @type data_source :: %{id: String.t, tables: [table]}
