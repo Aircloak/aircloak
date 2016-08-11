@@ -29,6 +29,8 @@ defmodule Cloak.Aql.Function do
     ~w(concat) => %{aggregate: false, return_type: :text, argument_types: [{:many1, :text}]},
     [{"cast", :integer}, {"cast", :real}, {"cast", :boolean}] =>
       %{aggregate: false, return_type: :integer, argument_types: [{:or, [:real, :integer, :text, :boolean]}]},
+    [{"cast", :timestamp}] =>
+      %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp]}]},
     [{"cast", :text}, {"cast", :date}] =>
       %{aggregate: false, return_type: :date, argument_types: [:any]}
   }
@@ -257,6 +259,14 @@ defmodule Cloak.Aql.Function do
       "true" -> true
       "false" -> false
       _ -> nil
+    end
+  end
+  # cast to timestamp
+  defp cast(value = %Timex.DateTime{}, :timestamp), do: value
+  defp cast(value, :timestamp) when is_binary(value) do
+    case Timex.parse(value, "{ISO}") do
+      {:ok, result} -> result
+      {:error, _} -> nil
     end
   end
 end
