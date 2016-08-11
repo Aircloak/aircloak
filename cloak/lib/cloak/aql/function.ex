@@ -27,7 +27,7 @@ defmodule Cloak.Aql.Function do
       %{aggregate: false, return_type: :text, argument_types: [:text, :integer, {:optional, :integer}]},
     ~w(||) => %{aggregate: false, return_type: :text, argument_types: [:text, :text]},
     ~w(concat) => %{aggregate: false, return_type: :text, argument_types: [{:many1, :text}]},
-    [{"cast", :integer}, {"cast", :real}] =>
+    [{"cast", :integer}, {"cast", :real}, {"cast", :boolean}] =>
       %{aggregate: false, return_type: :integer, argument_types: [{:or, [:real, :integer, :text, :boolean]}]},
     [{"cast", :text}, {"cast", :date}] =>
       %{aggregate: false, return_type: :date, argument_types: [:any]}
@@ -248,4 +248,15 @@ defmodule Cloak.Aql.Function do
     end
   end
   defp cast(value, :text), do: to_string(value)
+  # cast to boolean
+  defp cast(value, :boolean) when is_integer(value), do: value != 0
+  defp cast(value, :boolean) when is_float(value), do: round(value) != 0
+  defp cast(value, :boolean) when is_boolean(value), do: value
+  defp cast(value, :boolean) when is_binary(value) do
+    case String.downcase(value) do
+      "true" -> true
+      "false" -> false
+      _ -> nil
+    end
+  end
 end

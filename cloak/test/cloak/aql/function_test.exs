@@ -270,6 +270,29 @@ defmodule Cloak.Aql.Function.Test do
     }]) === "2015-01-02 03:04:05"
   end
 
+  test "cast to boolean typing" do
+    assert well_typed?({"cast", :boolean}, [:text])
+    assert well_typed?({"cast", :boolean}, [:boolean])
+    assert well_typed?({"cast", :boolean}, [:real])
+    assert well_typed?({"cast", :boolean}, [:integer])
+    refute well_typed?({"cast", :boolean}, [:timestamp])
+    refute well_typed?({"cast", :boolean}, [:date])
+    refute well_typed?({"cast", :boolean}, [:time])
+  end
+
+  test "cast to boolean" do
+    assert apply_function({"cast", :boolean}, [1]) === true
+    assert apply_function({"cast", :boolean}, [0]) === false
+    assert apply_function({"cast", :boolean}, [123]) === true
+    assert apply_function({"cast", :boolean}, [0.01]) === false
+    assert apply_function({"cast", :boolean}, [0.9]) === true
+    assert apply_function({"cast", :boolean}, ["tRuE"]) === true
+    assert apply_function({"cast", :boolean}, ["fAlSe"]) === false
+    assert apply_function({"cast", :boolean}, ["Bob"]) === nil
+    assert apply_function({"cast", :boolean}, [true]) === true
+    assert apply_function({"cast", :boolean}, [false]) === false
+  end
+
   for type <- [:text, :boolean, :real, :integer, :timestamp, :date, :time] do
     test "casting nil to #{type}" do
       assert apply_function({"cast", unquote(type)}, [nil]) === nil
