@@ -312,6 +312,27 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function({"cast", :timestamp}, ["some string"]) === nil
   end
 
+  test "cast to time typing" do
+    assert well_typed?({"cast", :time}, [:text])
+    refute well_typed?({"cast", :time}, [:boolean])
+    refute well_typed?({"cast", :time}, [:real])
+    refute well_typed?({"cast", :time}, [:integer])
+    assert well_typed?({"cast", :time}, [:timestamp])
+    refute well_typed?({"cast", :time}, [:date])
+    assert well_typed?({"cast", :time}, [:time])
+  end
+
+  test "cast to time" do
+    time = %Timex.DateTime{
+      year: 2015, month: 1, day: 2, hour: 3, minute: 4, second: 5, timezone: Timex.Timezone.get(:utc)
+    }
+    assert apply_function({"cast", :time}, [time]) === %{time | year: 0, month: 0, day: 0}
+    assert apply_function({"cast", :time}, ["12:00:23"]) === %Timex.DateTime{
+      hour: 12, minute: 0, second: 23, timezone: Timex.Timezone.get(:utc)
+    }
+    assert apply_function({"cast", :time}, ["some string"]) === nil
+  end
+
   for type <- [:text, :boolean, :real, :integer, :timestamp, :date, :time] do
     test "casting nil to #{type}" do
       assert apply_function({"cast", unquote(type)}, [nil]) === nil

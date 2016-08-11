@@ -31,6 +31,8 @@ defmodule Cloak.Aql.Function do
       %{aggregate: false, return_type: :integer, argument_types: [{:or, [:real, :integer, :text, :boolean]}]},
     [{"cast", :timestamp}] =>
       %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp]}]},
+    [{"cast", :time}] =>
+      %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp, :time]}]},
     [{"cast", :text}, {"cast", :date}] =>
       %{aggregate: false, return_type: :date, argument_types: [:any]}
   }
@@ -267,6 +269,14 @@ defmodule Cloak.Aql.Function do
     case Timex.parse(value, "{ISO}") do
       {:ok, result} -> result
       {:error, _} -> nil
+    end
+  end
+  # cast to time
+  defp cast(value = %Timex.DateTime{}, :time), do: %{value | year: 0, month: 0, day: 0}
+  defp cast(value, :time) when is_binary(value) do
+    case Timex.parse(value, "{ISOtime}") do
+       {:ok, result} -> result
+       {:error, _} -> nil
     end
   end
 end
