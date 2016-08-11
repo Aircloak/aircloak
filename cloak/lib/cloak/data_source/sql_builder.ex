@@ -53,7 +53,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp data_columns(%Query{db_data_columns: columns}), do: Enum.map(columns, &column_name/1)
 
   defp from_clause({:join, join}, query) do
-    ["(", from_clause(join.lhs, query), join_name(join.type), from_clause(join.rhs, query),
+    ["(", from_clause(join.lhs, query), " ", join_sql(join.type), " ", from_clause(join.rhs, query),
       on_clause(join.conditions), ")"]
   end
   defp from_clause(table_name, query) do
@@ -65,11 +65,11 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp on_clause([]), do: []
   defp on_clause([_|_] = conditions), do: [" ON ", conditions_to_fragments(conditions)]
 
-  defp join_name(:cross_join), do: " CROSS JOIN "
-  defp join_name(:inner_join), do: " INNER JOIN "
-  defp join_name(:full_outer_join), do: " FULL OUTER JOIN "
-  defp join_name(:left_outer_join), do: " LEFT OUTER JOIN "
-  defp join_name(:right_outer_join), do: " RIGHT OUTER JOIN "
+  defp join_sql(:cross_join), do: "CROSS JOIN"
+  defp join_sql(:inner_join), do: "INNER JOIN"
+  defp join_sql(:full_outer_join), do: "FULL OUTER JOIN"
+  defp join_sql(:left_outer_join), do: "LEFT OUTER JOIN"
+  defp join_sql(:right_outer_join), do: "RIGHT OUTER JOIN"
 
   defp table_to_from(%{name: table_name, db_name: table_name}), do: table_name
   defp table_to_from(table), do: "#{table.db_name} AS #{table.name}"

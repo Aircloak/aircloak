@@ -343,7 +343,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
-    Enum.each(comparisons_from_joins(query.from), &verify_supported_join_condition/1)
+    Enum.each(all_join_conditions(query.from), &verify_supported_join_condition/1)
 
     # Algorithm for finding improperly joined tables:
     #
@@ -361,7 +361,7 @@ defmodule Cloak.Aql.Compiler do
       Enum.each(uid_columns, &:digraph.add_vertex(graph, column_key.(&1)))
 
       # add edges for all `uid1 = uid2` filters
-      for {:comparison, column1, :=, column2} <- query.where ++ comparisons_from_joins(query.from),
+      for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
           column1 != column2,
           column1.user_id?,
           column2.user_id?
@@ -397,11 +397,11 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  @spec comparisons_from_joins(Parser.from_clause) :: [Parser.where_clause]
-  defp comparisons_from_joins({:join, join}) do
-    join.conditions ++ comparisons_from_joins(join.lhs) ++ comparisons_from_joins(join.rhs)
+  @spec all_join_conditions(Parser.from_clause) :: [Parser.where_clause]
+  defp all_join_conditions({:join, join}) do
+    join.conditions ++ all_join_conditions(join.lhs) ++ all_join_conditions(join.rhs)
   end
-  defp comparisons_from_joins(_), do: []
+  defp all_join_conditions(_), do: []
 
   defp cast_where_clauses(%Query{where: [_|_] = clauses} = query) do
     %Query{query | where: Enum.map(clauses, &cast_where_clause/1)}
