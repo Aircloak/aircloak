@@ -395,6 +395,15 @@ defmodule Cloak.Aql.Compiler.Test do
     """, data_source)
   end
 
+  test "rejecting invalid casts", %{data_source: data_source} do
+    assert {:error, error} = compile("select cast(column as integer) from table", data_source)
+    assert error == "Cannot cast value of type `timestamp` to type `integer`."
+  end
+
+  test "accepting valid casts", %{data_source: data_source} do
+    assert {:ok, _} = compile("select cast(column as date) from table", data_source)
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result

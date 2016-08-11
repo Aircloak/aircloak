@@ -240,11 +240,22 @@ defmodule Cloak.Aql.Compiler do
     |> case do
       [] -> :ok
       [function_call | _rest] ->
-        expected_types = Function.argument_types(function_call)
-        actual_types = Function.arguments(function_call) |> Enum.map(&Function.type/1)
+        raise CompilationError, message: function_argument_error_message(function_call)
+    end
+  end
 
-        raise CompilationError, message: "Function `#{Function.name(function_call)}` requires arguments"
-          <> " of type (#{quoted_list(expected_types)}), but got (#{quoted_list(actual_types)})"
+  defp function_argument_error_message(function_call) do
+    if Function.cast?(function_call) do
+      [cast_source] = Function.arguments(function_call) |> Enum.map(&Function.type/1)
+      cast_target = Function.return_type(function_call)
+
+      "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
+    else
+      expected_types = Function.argument_types(function_call)
+      actual_types = Function.arguments(function_call) |> Enum.map(&Function.type/1)
+
+      "Function `#{Function.name(function_call)}` requires arguments"
+        <> " of type (#{quoted_list(expected_types)}), but got (#{quoted_list(actual_types)})"
     end
   end
 

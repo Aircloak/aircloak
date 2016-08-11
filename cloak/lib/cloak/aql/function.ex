@@ -30,6 +30,10 @@ defmodule Cloak.Aql.Function do
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
+  |> Map.merge(%{
+    {"cast", :integer} => %{aggregate: false, return_type: :integer, argument_types: [:integer]},
+    {"cast", :date} => %{aggregate: false, return_type: :date, argument_types: [:any]}
+  })
 
   @type t :: Parser.column | Column.t
   @type data_type :: :any | DataSource.data_type
@@ -55,6 +59,11 @@ defmodule Cloak.Aql.Function do
   @spec aggregate_function?(t) :: boolean
   def aggregate_function?({:function, function, _}), do: @functions[function].aggregate
   def aggregate_function?(_), do: false
+
+  @doc "Returns true if the given function call is a cast, false otherwise."
+  @spec cast?(t) :: boolean
+  def cast?({:function, {"cast", _}, _}), do: true
+  def cast?(_), do: false
 
   @doc "Returns the argument type required by the given function call."
   @spec argument_types(t) :: [argument_type]
