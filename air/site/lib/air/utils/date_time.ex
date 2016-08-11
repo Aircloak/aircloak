@@ -21,10 +21,10 @@ defmodule Air.Utils.DateTime do
   Please note that the hour, minutes and seconds are all set to 0.
   Therefore if you want to use the returned value in a database compairson,
   and want all records for the current day included, then you should use
-  -1 as your parameter. This would then effectively make for a comparison
-  as follows:
+  -1 as your parameter, or alternative use `date_days_in_the_future with 1
+  as the parameter in order to get a comparison like this:
 
-  ... where: inserted_at <= <tomorrow's date>
+  ... where: inserted_at <= <tomorrow's date at midnight>
   """
   @spec date_days_ago(integer) :: Ecto.DateTime.t
   def date_days_ago(days) do
@@ -34,4 +34,12 @@ defmodule Air.Utils.DateTime do
     |> Timex.to_erlang_datetime()
     |> Ecto.DateTime.from_erl()
   end
+
+  @doc """
+  Returns an Ecto.DateTime dated N days in the future.
+  The results are the same as you would get when calling date_days_ago
+  with the parameter negated.
+  """
+  @spec date_days_in_the_future(integer) :: Ecto.DateTime.t
+  def date_days_in_the_future(days), do: date_days_ago(-1 * days)
 end

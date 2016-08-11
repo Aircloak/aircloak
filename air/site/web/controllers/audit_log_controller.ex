@@ -22,13 +22,13 @@ defmodule Air.AuditLogController do
 
   def index(conn, _params) do
     from = Utils.DateTime.date_days_ago(7)
-    to = Utils.DateTime.date_days_ago(-1)
+    to = Utils.DateTime.date_days_in_the_future(1)
     render(conn, "index.html", audit_logs: load_entries_json(from, to))
   end
 
   def load_entries(conn, params) do
     from = date_or_default("#{params["from"]}T00:00:00Z", Utils.DateTime.date_days_ago(7))
-    to = date_or_default("#{params["to"]}T23:59:59Z", Utils.DateTime.date_days_ago(-1))
+    to = date_or_default("#{params["to"]}T23:59:59Z", Utils.DateTime.date_days_in_the_future(1))
     json(conn, load_entries_json(from, to))
   end
 
