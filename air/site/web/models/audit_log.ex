@@ -48,9 +48,9 @@ defmodule Air.AuditLog do
   # -------------------------------------------------------------------
 
   @doc "Saves an audit log entry, but allows the operation to fail."
-  @spec log(Plug.Conn.t, String.t, Keyword.t, User.t | nil) :: :ok
-  def log(conn, event, options \\ [], user \\ nil) do
-    params = build_params(conn, event, options, user)
+  @spec log(Plug.Conn.t, String.t, Keyword.t) :: :ok
+  def log(conn, event, options \\ []) do
+    params = build_params(conn, event, options)
     case Repo.insert(changeset(%__MODULE__{}, params)) do
       {:ok, _} -> :ok
       {:error, _} ->
@@ -66,13 +66,12 @@ defmodule Air.AuditLog do
 
   defp ip_to_string({a, b, c, d}), do: "#{a}.#{b}.#{c}.#{d}"
 
-  defp establish_user(conn, nil) do
+  defp user(conn) do
     case conn.assigns.current_user do
       nil -> %{email: "Unknown user"}
       user -> user
     end
   end
-  defp establish_user(_conn, user), do: user
 
   defp peer(conn) do
     case conn.peer do
@@ -88,7 +87,7 @@ defmodule Air.AuditLog do
     end
   end
 
-  defp build_params(conn, event, options, user) do
+  defp build_params(conn, event, options) do
     defaults = %{
       peer: peer(conn),
       remote_ip: remote_ip(conn),
@@ -99,7 +98,7 @@ defmodule Air.AuditLog do
     |> Map.merge(defaults)
 
     %{
-      user: establish_user(conn, user).email,
+      user: user(conn).email,
       event: event,
       metadata: Poison.encode!(metadata),
     }

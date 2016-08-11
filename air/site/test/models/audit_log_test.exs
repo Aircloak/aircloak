@@ -20,9 +20,9 @@ defmodule Air.AuditLogTest do
   test "creating audit log entries should save a db record" do
     organisation = create_organisation!()
     user = create_user!(organisation)
-    conn = %Plug.Conn{}
+    conn = assign_user(%Plug.Conn{}, user)
 
-    assert AuditLog.log(conn, "event", [meta: true], user) == :ok
+    assert AuditLog.log(conn, "event", meta: true) == :ok
     entry = Repo.one!(AuditLog)
 
     assert entry.event == "event"
