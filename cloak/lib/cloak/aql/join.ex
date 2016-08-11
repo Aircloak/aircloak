@@ -25,18 +25,18 @@ defmodule Cloak.Aql.Join do
       |> String.replace("_", " ")
 
     @doc "Matches a #{join_human_friendly_name}"
-    defmacro unquote(join_type)(lhs, rhs, on) do
+    defmacro unquote(join_type)(lhs, rhs, conditions) do
       join_type = unquote(join_type)
       quote do
-        join(unquote(join_type), unquote(lhs), unquote(rhs), unquote(on))
+        join(unquote(join_type), unquote(lhs), unquote(rhs), unquote(conditions))
       end
     end
   end
 
   @doc "Matches a join"
-  defmacro join(join_type, lhs, rhs, on) do
+  defmacro join(join_type, lhs, rhs, conditions) do
     quote do
-      {:join, unquote(join_type), unquote(lhs), unquote(rhs), unquote(on)}
+      {:join, unquote(join_type), unquote(lhs), unquote(rhs), unquote(conditions)}
     end
   end
 end

@@ -53,7 +53,7 @@ defmodule Cloak.Aql.Compiler do
   defp query_mode(_other_data_source, _from), do: :parsed
 
   defp validate_dsproxy_from_for_parsed_query!(nil), do: :ok
-  defp validate_dsproxy_from_for_parsed_query!(join(_type, clause1, clause2, _on)) do
+  defp validate_dsproxy_from_for_parsed_query!(join(_type, clause1, clause2, _conditions)) do
     validate_dsproxy_from_for_parsed_query!(clause1)
     validate_dsproxy_from_for_parsed_query!(clause2)
   end
@@ -144,7 +144,7 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp from_clause_to_tables(join(_type, clause1, clause2, _on)) do
+  defp from_clause_to_tables(join(_type, clause1, clause2, _conditions)) do
     from_clause_to_tables(clause1) ++ from_clause_to_tables(clause2)
   end
   defp from_clause_to_tables(table), do: [table]
@@ -399,8 +399,8 @@ defmodule Cloak.Aql.Compiler do
   end
 
   @spec comparisons_from_joins(Parser.from_clause) :: [Parser.where_clause]
-  defp comparisons_from_joins(join(_type, clause1, clause2, on)) do
-    on ++ comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
+  defp comparisons_from_joins(join(_type, clause1, clause2, conditions)) do
+    conditions ++ comparisons_from_joins(clause1) ++ comparisons_from_joins(clause2)
   end
   defp comparisons_from_joins(_), do: []
 
