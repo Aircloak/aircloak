@@ -57,38 +57,7 @@ defmodule Air.AuditLog do
   @doc "Saves an audit log entry, but allows the operation to fail."
   @spec log(Plug.Conn.t, String.t, Keyword.t, User.t | nil) :: :ok
   def log(conn, event, options \\ [], user \\ nil) do
-    user = case user do
-      nil ->
-        case conn.assigns.current_user do
-          nil -> %{email: "Unknown user"}
-          user -> user
-        end
-      _ -> user
-    end
-
-    peer = case conn.peer do
-      {ip, port} -> "#{ip_to_string(ip)}:#{port}"
-      _ -> "Unknown"
-    end
-    remote_ip = case conn.remote_ip do
-      ip when is_tuple(ip) -> ip_to_string(ip)
-      _ -> "Unknown"
-    end
-
-    defaults = %{
-      peer: peer,
-      remote_ip: remote_ip,
-    }
-
-    metadata = options
-    |> Enum.into(%{})
-    |> Map.merge(defaults)
-
-    params = %{
-      user: user.email,
-      event: event,
-      metadata: Poison.encode!(metadata),
-    }
+    params = build_params(conn, event, options, user)
     case Repo.insert(changeset(%__MODULE__{}, params)) do
       {:ok, _} -> :ok
       {:error, _} ->
@@ -103,4 +72,43 @@ defmodule Air.AuditLog do
   # -------------------------------------------------------------------
 
   defp ip_to_string({a, b, c, d}), do: "#{a}.#{b}.#{c}.#{d}"
+
+  defp establish_user(conn, nil) do
+    case conn.assigns.current_user do
+      nil -> %{email: "Unknown user"}
+      user -> user
+    end
+  end
+  defp establish_user(_conn, user), do: user
+
+  defp peer(conn) do
+    case conn.peer do
+      {ip, port} -> "#{ip_to_string(ip)}:#{port}"
+      _ -> "Unknown"
+    end
+  end
+
+  defp remote_ip(conn) do
+    case conn.remote_ip do
+      ip when is_tuple(ip) -> ip_to_string(ip)
+      _ -> "Unknown"
+    end
+  end
+
+  defp build_params(conn, event, options, user) do
+    defaults = %{
+      peer: peer(conn),
+      remote_ip: remote_ip(conn),
+    }
+
+    metadata = options
+    |> Enum.into(%{})
+    |> Map.merge(defaults)
+
+    %{
+      user: establish_user(conn, user).email,
+      event: event,
+      metadata: Poison.encode!(metadata),
+    }
+  end
 end
