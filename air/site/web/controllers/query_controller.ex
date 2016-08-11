@@ -112,7 +112,7 @@ defmodule Air.QueryController do
 
   defp find_query(user, id) do
     user
-    |> Query.for_user
+    |> Query.for_user()
     |> Repo.get(id)
   end
 
