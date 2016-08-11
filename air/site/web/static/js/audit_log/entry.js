@@ -9,27 +9,19 @@ export class AuditLogEntryView extends React.Component {
   }
 
   shouldBeVisible() {
-    const requiredFiltersCount = this.props.filters.length;
-    let satisfiedFiltersCount = 0;
-
-    for (const filter of this.props.filters) {
+    return _.every(this.props.filters, (filter) => {
       if (this.containsFilterText(filter, this.props.entry.user) ||
           this.containsFilterText(filter, this.props.entry.event)) {
-        satisfiedFiltersCount = satisfiedFiltersCount + 1;
-      } else {
-        let satisfied = false;
-        for (const data of this.props.entry.metadata) {
-          if (this.containsFilterText(filter, data[0]) ||
-              this.containsFilterText(filter, data[1])) {
-            satisfied = true;
-          }
-        }
-        if (satisfied) {
-          satisfiedFiltersCount = satisfiedFiltersCount + 1;
+        return true;
+      }
+      for (const data of this.props.entry.metadata) {
+        if (this.containsFilterText(filter, data[0]) ||
+            this.containsFilterText(filter, data[1])) {
+          return true;
         }
       }
-    }
-    return requiredFiltersCount === satisfiedFiltersCount;
+      return false;
+    });
   }
 
   containsFilterText(filter, text) {
