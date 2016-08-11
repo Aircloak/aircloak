@@ -1,0 +1,29 @@
+#audit-log-view .entries-loader {
+  padding-left: 10px;
+}
+
+#audit-log-view .entries-loader img {
+  padding-right: 5px;
+}
+
+#audit-log-view .controls {
+  display: block;
+  height: 40px;
+}
+
+.time-interval {
+  float: right;
+}
+
+.time-interval input {
+  margin-left: 5px;
+  width: 80px;
+}
+
+.filter {
+  float: left;
+}
+
+.filter input {
+  width: 300px;
+}

@@ -14,9 +14,11 @@
 import "phoenix_html";
 
 import renderQueriesView from "./queries/root";
+import renderAuditLogView from "./audit_log/root";
 
 const App = {
   queryPage: renderQueriesView,
+  auditLog: renderAuditLogView,
 };
 
 if (window.pageConfig !== undefined) {

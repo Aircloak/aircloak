@@ -2,13 +2,7 @@
   <%= for query <- @failed_queries do %>
     <div>
       <div>
-        <b>Time</b>:
-          <%=
-            query.inserted_at
-            |> Ecto.DateTime.to_erl()
-            |> Timex.DateTime.from_erl()
-            |> Timex.format!("%d.%m. %H:%M", :strftime)
-          %>
+        <b>Time</b>: <%= Air.Utils.DateTime.time_ago(query.inserted_at) %>
       </div>
       <div><b>Data source</b>: <%= query.data_source %></div>
       <div><b>Error</b>: <%= query.error %></div>

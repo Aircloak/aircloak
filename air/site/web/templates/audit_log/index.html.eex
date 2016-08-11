@@ -1,0 +1,13 @@
+<div id="audit-log-view" />
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = {
+        entries: <%= {:safe, @audit_logs} %>,
+      };
+
+      App.auditLog(props, document.getElementById("audit-log-view"));
+    }
+  };
+</script>

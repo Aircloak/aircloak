@@ -48,6 +48,9 @@ defmodule Air.Router do
     resources "/cloaks", CloaksController
     resources "/organisations", OrganisationController
     resources "/users", UserController
+
+    get "/audit_log/load_entries", AuditLogController, :load_entries
+    get "/audit_log", AuditLogController, :index
   end
 
   scope "/api" do

@@ -2,7 +2,7 @@ defmodule Air.ApiTokenController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.{ApiToken, Token}
+  alias Air.{ApiToken, AuditLog, Token}
 
 
   # -------------------------------------------------------------------
@@ -31,6 +31,7 @@ defmodule Air.ApiTokenController do
         conn
         |> render("index.html", api_tokens: existing_tokens(conn), changeset: changeset)
       token ->
+        AuditLog.log(conn, "Created API token")
         conn
         |> put_flash(:api_token, token)
         |> redirect(to: api_token_path(conn, :index))
@@ -41,7 +42,8 @@ defmodule Air.ApiTokenController do
     token = Repo.get(ApiToken, id)
     case token.user_id == conn.assigns.current_user.id do
       true ->
-        Repo.delete(token)
+        Repo.delete!(token)
+        AuditLog.log(conn, "Invalidated API token")
         conn
         |> put_flash(:info, "Token revoked")
         |> redirect(to: api_token_path(conn, :index))

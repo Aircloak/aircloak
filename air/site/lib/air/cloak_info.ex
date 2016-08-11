@@ -20,7 +20,7 @@ defmodule Air.CloakInfo do
     name: String.t,
     organisation: String.t,
     data_sources: [data_source],
-    created_at: integer # connect timestamp, with second-level accuracy
+    created_at: Ecto.DateTime.t,
   }
   @type cloak_id :: String.t
   @type data_source :: %{id: String.t, tables: [table]}
@@ -172,7 +172,7 @@ defmodule Air.CloakInfo do
       name: cloak_info.name,
       organisation: cloak_info.organisation,
       data_sources: parse_data_sources(cloak_info.data_sources),
-      created_at: :erlang.monotonic_time(:seconds)
+      created_at: Timex.DateTime.now() |> Timex.to_erlang_datetime() |> Ecto.DateTime.from_erl(),
     }
   end
 
