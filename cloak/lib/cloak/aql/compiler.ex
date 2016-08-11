@@ -51,6 +51,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp query_mode(_other_data_source, _from), do: :parsed
 
+  defp validate_dsproxy_from_for_parsed_query!(nil), do: :ok
   defp validate_dsproxy_from_for_parsed_query!({:join, :cross_join, clause1, clause2}) do
     validate_dsproxy_from_for_parsed_query!(clause1)
     validate_dsproxy_from_for_parsed_query!(clause2)
