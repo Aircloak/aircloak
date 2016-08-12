@@ -38,13 +38,12 @@ defmodule Cloak.Aql.Compiler do
   defp to_prepped_query(parsed_query, data_source) do
     %Query{
       data_source: data_source,
-      mode: query_mode(data_source.driver, parsed_query[:from]),
-      unsafe_subquery: unsafe_subquery(parsed_query[:from])
+      mode: query_mode(data_source.driver, parsed_query[:from])
     }
     |> Map.merge(parsed_query)
   end
 
-  defp query_mode(Cloak.DataSource.DsProxy, {:subquery, {:unparsed, _}}), do: :unparsed
+  defp query_mode(Cloak.DataSource.DsProxy, {:subquery, %{type: :unparsed}}), do: :unparsed
   defp query_mode(Cloak.DataSource.DsProxy, from) do
     validate_dsproxy_from_for_parsed_query!(from)
     :parsed
@@ -60,9 +59,6 @@ defmodule Cloak.Aql.Compiler do
     raise CompilationError, message: "Joining subqueries is not supported for this data source"
   end
   defp validate_dsproxy_from_for_parsed_query!(table_name) when is_binary(table_name), do: :ok
-
-  defp unsafe_subquery({:subquery, {:unparsed, unsafe_subquery}}), do: unsafe_subquery
-  defp unsafe_subquery(_other), do: nil
 
   # Due to the blackbox nature of the subquery, there are a whole lot
   # of validations we cannot do when using DS proxy. Conversely, there
@@ -140,8 +136,7 @@ defmodule Cloak.Aql.Compiler do
     }}
   end
   defp do_compile_subqueries({:subquery, subquery}, data_source) do
-    {:parsed, subquery_ast, alias} = subquery
-    {:subquery, {:parsed, compiled_subquery(data_source, subquery_ast), alias}}
+    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast)}}
   end
   defp do_compile_subqueries(table, _data_source), do: table
 
@@ -181,12 +176,12 @@ defmodule Cloak.Aql.Compiler do
   defp selected_tables({:join, join}, data_source) do
     selected_tables(join.lhs, data_source) ++ selected_tables(join.rhs, data_source)
   end
-  defp selected_tables({:subquery, {:parsed, subquery, alias}}, _data_source) do
+  defp selected_tables({:subquery, subquery}, _data_source) do
     [%{
-      name: alias,
+      name: subquery.alias,
       db_name: nil,
-      columns: Enum.map(subquery.db_columns, &{&1.name, &1.type}),
-      user_id: Enum.find(subquery.db_columns, &(&1.user_id?)).name
+      columns: Enum.map(subquery.ast.db_columns, &{&1.name, &1.type}),
+      user_id: Enum.find(subquery.ast.db_columns, &(&1.user_id?)).name
     }]
   end
   defp selected_tables(table_name, data_source) when is_binary(table_name) do
@@ -722,8 +717,8 @@ defmodule Cloak.Aql.Compiler do
     Enum.each(join.conditions, &map_where_clause(&1, mapper_fun))
     selected_tables
   end
-  defp do_join_conditions_scope_check({:subquery, {:parsed, _subquery, alias}}, selected_tables),
-    do: [alias | selected_tables]
+  defp do_join_conditions_scope_check({:subquery, subquery}, selected_tables),
+    do: [subquery.alias | selected_tables]
   defp do_join_conditions_scope_check(table_name, selected_tables) when is_binary(table_name),
     do: [table_name | selected_tables]
 

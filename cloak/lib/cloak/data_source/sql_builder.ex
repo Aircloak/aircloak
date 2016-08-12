@@ -17,7 +17,9 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @spec build(Query.t) :: query_spec
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
-  def build(%Query{mode: :unparsed, unsafe_subquery: unsafe_subquery} = query) do
+  def build(%Query{mode: :unparsed} = query) do
+    {:subquery, %{unparsed_string: unsafe_subquery}} = query.from
+
     {
       ["SELECT ", columns_sql(query.db_columns), " FROM (", unsafe_subquery, ") AS unsafe_subquery"],
       []
@@ -61,8 +63,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     ["(", from_clause(join.lhs, query), " ", join_sql(join.type), " ", from_clause(join.rhs, query),
       on_clause(join.conditions), ")"]
   end
-  defp from_clause({:subquery, {:parsed, subquery, alias}}, _query) do
-    ["(", build_fragments(subquery), ") AS ", alias]
+  defp from_clause({:subquery, subquery}, _query) do
+    ["(", build_fragments(subquery.ast), ") AS ", subquery.alias]
   end
   defp from_clause(table_name, query) do
     query.selected_tables
