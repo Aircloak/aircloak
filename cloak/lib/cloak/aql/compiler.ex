@@ -321,6 +321,9 @@ defmodule Cloak.Aql.Compiler do
   defp aggregated_expression_display(%Column{} = column), do:
     "Column `#{column.name}` from table `#{column.table.name}` needs"
 
+  defp verify_group_by_functions(%Query{subquery?: true, group_by: [_|_]}) do
+    raise CompilationError, message: "`GROUP BY` is not supported in a subquery."
+  end
   defp verify_group_by_functions(query) do
     query.group_by
     |> Enum.filter(&Function.aggregate_function?/1)

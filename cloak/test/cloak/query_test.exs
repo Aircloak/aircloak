@@ -888,6 +888,11 @@ defmodule Cloak.QueryTest do
       %{error: "<> is not supported in a subquery."}
   end
 
+  test "group by in subquery is not supported" do
+    assert_query "select height from (select user_id, avg(height) from heights group by user_id) alias",
+      %{error: "`GROUP BY` is not supported in a subquery."}
+  end
+
   defp start_query(statement) do
     Query.Runner.start("1", Cloak.DataSource.fetch!(:local), statement, {:process, self()})
   end
