@@ -726,6 +726,16 @@ defmodule Cloak.Aql.Parser.Test do
         identifier("c")]}])
   end
 
+  test "cast" do
+    assert_parse "select cast(a, integer) from bar",
+      select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
+  end
+
+  test "extended cast" do
+    assert_parse "select cast(a as text) from bar",
+      select(columns: [{:function, {:cast, :text}, [identifier("a")]}])
+  end
+
   create_test =
     fn(description, data_source, statement, expected_error, line, column) ->
       test description do

@@ -17,7 +17,7 @@ defmodule Cloak.Aql.Compiler.Test do
           db_name: "table",
           name: "table",
           user_id: "uid",
-          columns: [{"uid", :integer}, {"column", :timestamp}, {"numeric", :integer}, {"real", :real}]
+          columns: [{"uid", :integer}, {"column", :timestamp}, {"numeric", :integer}, {"float", :real}]
         },
         other_table: %{
           db_name: "other_table",
@@ -147,7 +147,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   for function <- ~w(floor ceil ceiling) do
     test "allowing #{function} on real columns", %{data_source: data_source} do
-      assert {:ok, _} = compile("select #{unquote(function)}(real) from table", data_source)
+      assert {:ok, _} = compile("select #{unquote(function)}(float) from table", data_source)
     end
 
     test "rejecting #{function} on non-numeric columns", %{data_source: data_source} do
@@ -159,7 +159,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   for function <- ~w(trunc round) do
     test "allowing #{function} on real columns", %{data_source: data_source} do
-      assert {:ok, _} = compile("select #{unquote(function)}(real) from table", data_source)
+      assert {:ok, _} = compile("select #{unquote(function)}(float) from table", data_source)
     end
 
     test "rejecting #{function} on non-numeric columns", %{data_source: data_source} do
@@ -393,6 +393,15 @@ defmodule Cloak.Aql.Compiler.Test do
         t1 INNER JOIN t2 ON t1.uid = t2.uid
            INNER JOIN t3 ON t3.uid = t1.uid AND t1.c2 > 10
     """, data_source)
+  end
+
+  test "rejecting invalid casts", %{data_source: data_source} do
+    assert {:error, error} = compile("select cast(column as integer) from table", data_source)
+    assert error == "Cannot cast value of type `timestamp` to type `integer`."
+  end
+
+  test "accepting valid casts", %{data_source: data_source} do
+    assert {:ok, _} = compile("select cast(column as date) from table", data_source)
   end
 
   defp compile!(query_string, data_source) do

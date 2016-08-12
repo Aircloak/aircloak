@@ -27,6 +27,16 @@ defmodule Cloak.Aql.Function do
       %{aggregate: false, return_type: :text, argument_types: [:text, :integer, {:optional, :integer}]},
     ~w(||) => %{aggregate: false, return_type: :text, argument_types: [:text, :text]},
     ~w(concat) => %{aggregate: false, return_type: :text, argument_types: [{:many1, :text}]},
+    [{:cast, :integer}, {:cast, :real}, {:cast, :boolean}] =>
+      %{aggregate: false, return_type: :integer, argument_types: [{:or, [:real, :integer, :text, :boolean]}]},
+    [{:cast, :timestamp}] =>
+      %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp]}]},
+    [{:cast, :time}] =>
+      %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp, :time]}]},
+    [{:cast, :date}] =>
+      %{aggregate: false, return_type: :date, argument_types: [{:or, [:text, :timestamp, :date]}]},
+    [{:cast, :text}] =>
+      %{aggregate: false, return_type: :date, argument_types: [:any]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -55,6 +65,11 @@ defmodule Cloak.Aql.Function do
   @spec aggregate_function?(t) :: boolean
   def aggregate_function?({:function, function, _}), do: @functions[function].aggregate
   def aggregate_function?(_), do: false
+
+  @doc "Returns true if the given function call is a cast, false otherwise."
+  @spec cast?(t) :: boolean
+  def cast?({:function, {:cast, _}, _}), do: true
+  def cast?(_), do: false
 
   @doc "Returns the argument type required by the given function call."
   @spec argument_types(t) :: [argument_type]
@@ -175,6 +190,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("/", [x, y]), do: x / y
   defp do_apply("+", [x, y]), do: x + y
   defp do_apply("-", [x, y]), do: x - y
+  defp do_apply({:cast, target}, [value]), do: cast(value, target)
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
@@ -198,4 +214,71 @@ defmodule Cloak.Aql.Function do
   defp substring(_string, _from, count) when count < 0, do: ""
   defp substring(string, from, count), do:
     String.slice(string, from - 1, count || String.length(string))
+
+  defp cast(nil, _), do: nil
+  # cast to integer
+  defp cast(value, :integer) when is_integer(value), do: value
+  defp cast(value, :integer) when is_float(value), do: round(value)
+  defp cast(true, :integer), do: 1
+  defp cast(false, :integer), do: 0
+  defp cast(value, :integer) when is_binary(value) do
+    case Integer.parse(value) do
+      {number, _rest} -> number
+      :error -> nil
+    end
+  end
+  # cast to real
+  defp cast(value, :real) when is_integer(value) do
+    try do
+      :erlang.float(value)
+    rescue
+      _ in ArgumentError -> nil
+    end
+  end
+  defp cast(value, :real) when is_float(value), do: value
+  defp cast(true, :real), do: 1.0
+  defp cast(false, :real), do: 0.0
+  defp cast(value, :real) when is_binary(value) do
+    case Float.parse(value) do
+      {number, _rest} -> number
+      :error -> nil
+    end
+  end
+  # cast to text
+  defp cast(true, :text), do: "TRUE"
+  defp cast(false, :text), do: "FALSE"
+  defp cast(value = %Timex.DateTime{}, :text) do
+    case Timex.format(value, "{ISOdate} {ISOtime}") do
+      {:ok, result} -> result
+      {:error, _} -> nil
+    end
+  end
+  defp cast(value, :text), do: to_string(value)
+  # cast to boolean
+  defp cast(value, :boolean) when is_integer(value), do: value != 0
+  defp cast(value, :boolean) when is_float(value), do: round(value) != 0
+  defp cast(value, :boolean) when is_boolean(value), do: value
+  defp cast(value, :boolean) when is_binary(value) do
+    case String.downcase(value) do
+      "true" -> true
+      "false" -> false
+      _ -> nil
+    end
+  end
+  # cast to timestamp
+  defp cast(value = %Timex.DateTime{}, :timestamp), do: value
+  defp cast(value, :timestamp) when is_binary(value), do: parse_time(value, "{ISO}")
+  # cast to time
+  defp cast(value = %Timex.DateTime{}, :time), do: %{value | year: 0, month: 0, day: 0}
+  defp cast(value, :time) when is_binary(value), do: parse_time(value, "{ISOtime}")
+  # cast to date
+  defp cast(value = %Timex.DateTime{}, :date), do: %{value | hour: 0, minute: 0, second: 0, millisecond: 0}
+  defp cast(value, :date) when is_binary(value), do: parse_time(value, "{ISOdate}")
+
+  defp parse_time(value, format) do
+    case Timex.parse(value, format) do
+      {:ok, result} -> result
+      {:error, _} -> nil
+    end
+  end
 end

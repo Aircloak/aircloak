@@ -205,6 +205,162 @@ defmodule Cloak.Aql.Function.Test do
     refute Function.well_typed?({:function, "avg", [{:function, "concat", nil}]})
   end
 
+  test "cast to integer typing" do
+    assert well_typed?({:cast, :integer}, [:text])
+    assert well_typed?({:cast, :integer}, [:boolean])
+    assert well_typed?({:cast, :integer}, [:real])
+    assert well_typed?({:cast, :integer}, [:integer])
+    refute well_typed?({:cast, :integer}, [:timestamp])
+    refute well_typed?({:cast, :integer}, [:date])
+    refute well_typed?({:cast, :integer}, [:time])
+  end
+
+  test "cast to integer" do
+    assert apply_function({:cast, :integer}, [123]) === 123
+    assert apply_function({:cast, :integer}, [123.0]) === 123
+    assert apply_function({:cast, :integer}, [123.1]) === 123
+    assert apply_function({:cast, :integer}, [123.9]) === 124
+    assert apply_function({:cast, :integer}, ["123"]) === 123
+    assert apply_function({:cast, :integer}, ["-123"]) === -123
+    assert apply_function({:cast, :integer}, ["123and some additional symbols"]) === 123
+    assert apply_function({:cast, :integer}, [true]) === 1
+    assert apply_function({:cast, :integer}, [false]) === 0
+  end
+
+  test "cast to real typing" do
+    assert well_typed?({:cast, :real}, [:text])
+    assert well_typed?({:cast, :real}, [:boolean])
+    assert well_typed?({:cast, :real}, [:real])
+    assert well_typed?({:cast, :real}, [:integer])
+    refute well_typed?({:cast, :real}, [:timestamp])
+    refute well_typed?({:cast, :real}, [:date])
+    refute well_typed?({:cast, :real}, [:time])
+  end
+
+  test "cast to real" do
+    assert apply_function({:cast, :real}, [123]) === 123.0
+    assert apply_function({:cast, :real}, [pow(10, 400)]) === nil
+    assert apply_function({:cast, :real}, [123.123]) === 123.123
+    assert apply_function({:cast, :real}, ["123"]) === 123.0
+    assert apply_function({:cast, :real}, ["-123"]) === -123.0
+    assert apply_function({:cast, :real}, ["123.123"]) === 123.123
+    assert apply_function({:cast, :real}, ["123.123and some additional symbols"]) === 123.123
+    assert apply_function({:cast, :real}, [true]) === 1.0
+    assert apply_function({:cast, :real}, [false]) === 0.0
+  end
+
+  test "cast to text typing" do
+    assert well_typed?({:cast, :text}, [:text])
+    assert well_typed?({:cast, :text}, [:boolean])
+    assert well_typed?({:cast, :text}, [:real])
+    assert well_typed?({:cast, :text}, [:integer])
+    assert well_typed?({:cast, :text}, [:timestamp])
+    assert well_typed?({:cast, :text}, [:date])
+    assert well_typed?({:cast, :text}, [:time])
+  end
+
+  test "cast to text" do
+    assert apply_function({:cast, :text}, [123]) === "123"
+    assert apply_function({:cast, :text}, [123.123]) === "123.123"
+    assert apply_function({:cast, :text}, ["123"]) === "123"
+    assert apply_function({:cast, :text}, [true]) === "TRUE"
+    assert apply_function({:cast, :text}, [false]) === "FALSE"
+    assert apply_function({:cast, :text}, [%Timex.DateTime{
+      year: 2015, month: 1, day: 2, hour: 3, minute: 4, second: 5, timezone: Timex.Timezone.get(:utc)
+    }]) === "2015-01-02 03:04:05"
+  end
+
+  test "cast to boolean typing" do
+    assert well_typed?({:cast, :boolean}, [:text])
+    assert well_typed?({:cast, :boolean}, [:boolean])
+    assert well_typed?({:cast, :boolean}, [:real])
+    assert well_typed?({:cast, :boolean}, [:integer])
+    refute well_typed?({:cast, :boolean}, [:timestamp])
+    refute well_typed?({:cast, :boolean}, [:date])
+    refute well_typed?({:cast, :boolean}, [:time])
+  end
+
+  test "cast to boolean" do
+    assert apply_function({:cast, :boolean}, [1]) === true
+    assert apply_function({:cast, :boolean}, [0]) === false
+    assert apply_function({:cast, :boolean}, [123]) === true
+    assert apply_function({:cast, :boolean}, [0.01]) === false
+    assert apply_function({:cast, :boolean}, [0.9]) === true
+    assert apply_function({:cast, :boolean}, ["tRuE"]) === true
+    assert apply_function({:cast, :boolean}, ["fAlSe"]) === false
+    assert apply_function({:cast, :boolean}, ["Bob"]) === nil
+    assert apply_function({:cast, :boolean}, [true]) === true
+    assert apply_function({:cast, :boolean}, [false]) === false
+  end
+
+  test "cast to timestamp typing" do
+    assert well_typed?({:cast, :timestamp}, [:text])
+    refute well_typed?({:cast, :timestamp}, [:boolean])
+    refute well_typed?({:cast, :timestamp}, [:real])
+    refute well_typed?({:cast, :timestamp}, [:integer])
+    assert well_typed?({:cast, :timestamp}, [:timestamp])
+    refute well_typed?({:cast, :timestamp}, [:date])
+    refute well_typed?({:cast, :timestamp}, [:time])
+  end
+
+  test "cast to timestamp" do
+    time = %Timex.DateTime{
+      year: 2015, month: 1, day: 2, hour: 3, minute: 4, second: 5, timezone: Timex.Timezone.get(:utc)
+    }
+    assert apply_function({:cast, :timestamp}, [time]) === time
+    assert apply_function({:cast, :timestamp}, [Timex.format!(time, "{ISOz}")]) === time
+    assert apply_function({:cast, :timestamp}, ["some string"]) === nil
+  end
+
+  test "cast to time typing" do
+    assert well_typed?({:cast, :time}, [:text])
+    refute well_typed?({:cast, :time}, [:boolean])
+    refute well_typed?({:cast, :time}, [:real])
+    refute well_typed?({:cast, :time}, [:integer])
+    assert well_typed?({:cast, :time}, [:timestamp])
+    refute well_typed?({:cast, :time}, [:date])
+    assert well_typed?({:cast, :time}, [:time])
+  end
+
+  test "cast to time" do
+    time = %Timex.DateTime{
+      year: 2015, month: 1, day: 2, hour: 3, minute: 4, second: 5, timezone: Timex.Timezone.get(:utc)
+    }
+    assert apply_function({:cast, :time}, [time]) === %{time | year: 0, month: 0, day: 0}
+    assert apply_function({:cast, :time}, ["12:00:23"]) === %Timex.DateTime{
+      hour: 12, minute: 0, second: 23, timezone: Timex.Timezone.get(:utc)
+    }
+    assert apply_function({:cast, :time}, ["some string"]) === nil
+  end
+
+  test "cast to date typing" do
+    assert well_typed?({:cast, :date}, [:text])
+    refute well_typed?({:cast, :date}, [:boolean])
+    refute well_typed?({:cast, :date}, [:real])
+    refute well_typed?({:cast, :date}, [:integer])
+    assert well_typed?({:cast, :date}, [:timestamp])
+    assert well_typed?({:cast, :date}, [:date])
+    refute well_typed?({:cast, :date}, [:time])
+  end
+
+  test "cast to date" do
+    time = %Timex.DateTime{
+      year: 2015, month: 1, day: 2, hour: 3, minute: 4, second: 5, millisecond: 6,
+      timezone: Timex.Timezone.get(:utc)
+    }
+    assert apply_function({:cast, :date}, [time]) === %{time | hour: 0, minute: 0, second: 0, millisecond: 0}
+    assert apply_function({:cast, :date}, ["2016-01-02"]) === %Timex.DateTime{
+      year: 2016, month: 1, day: 2, timezone: Timex.Timezone.get(:utc)
+    }
+    assert apply_function({:cast, :date}, ["some string"]) === nil
+  end
+
+  for type <- [:text, :boolean, :real, :integer, :timestamp, :date, :time] do
+    test "casting nil to #{type}" do
+      assert apply_function({:cast, unquote(type)}, [nil]) === nil
+    end
+  end
+
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})
 

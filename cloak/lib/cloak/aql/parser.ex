@@ -163,6 +163,7 @@ defmodule Cloak.Aql.Parser do
   defp simple_expression() do
     choice([
       parenthesised_expression(),
+      cast_expression(),
       function_expression(),
       extract_expression(),
       trim_expression(),
@@ -196,6 +197,26 @@ defmodule Cloak.Aql.Parser do
         ([column, :as, name]) -> {column, :as, name}
       end
     )
+  end
+
+  defp cast_expression() do
+    pipe(
+      [
+        keyword(:cast),
+        keyword(:"("),
+        lazy(fn -> column() end),
+        either(keyword(:","), keyword(:as)),
+        data_type(),
+        keyword(:")"),
+      ],
+      fn [:cast, :"(", expr, _, type, :")"] -> {:function, {:cast, type}, [expr]} end
+    )
+  end
+
+  defp data_type() do
+    [:integer, :real, :text, :boolean, :timestamp, :date, :time]
+    |> Enum.map(&keyword/1)
+    |> choice()
   end
 
   defp function_expression() do
