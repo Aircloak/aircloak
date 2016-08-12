@@ -847,6 +847,30 @@ defmodule Cloak.QueryTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "joining two subqueries" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query(
+      """
+        select t1.height from
+          (select user_id, height from heights) t1
+          inner join (select user_id, height from heights) t2 on t1.user_id = t2.user_id
+      """,
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+    )
+  end
+
+  test "joining a subquery and a table" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query(
+      """
+        select t1.height from
+          (select user_id, height from heights) t1
+          inner join heights on heights.user_id = t1.user_id
+      """,
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+    )
+  end
+
   test "nesting subqueries" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query(

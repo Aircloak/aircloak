@@ -722,7 +722,10 @@ defmodule Cloak.Aql.Compiler do
     Enum.each(join.conditions, &map_where_clause(&1, mapper_fun))
     selected_tables
   end
-  defp do_join_conditions_scope_check(table_name, selected_tables), do: [table_name | selected_tables]
+  defp do_join_conditions_scope_check({:subquery, {:parsed, _subquery, alias}}, selected_tables),
+    do: [alias | selected_tables]
+  defp do_join_conditions_scope_check(table_name, selected_tables) when is_binary(table_name),
+    do: [table_name | selected_tables]
 
   defp scope_check(tables_in_scope, table_name, column_name) do
     case Enum.member?(tables_in_scope, table_name) do
