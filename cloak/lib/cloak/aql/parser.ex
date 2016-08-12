@@ -32,7 +32,7 @@ defmodule Cloak.Aql.Parser do
 
   @type from_clause ::
       String.t
-    | {:subquery, {:parsed, parsed_query}}
+    | {:subquery, {:parsed, parsed_query, String.t}}
     | {:subquery, {:unparsed, String.t}}
     | join
 

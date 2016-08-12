@@ -92,6 +92,7 @@ defmodule Cloak.Aql.Compiler do
   defp compile_prepped_query(query) do
     try do
       query = query
+      |> compile_subqueries()
       |> compile_tables()
       |> compile_columns()
       |> verify_columns()
@@ -124,29 +125,76 @@ defmodule Cloak.Aql.Compiler do
 
 
   # -------------------------------------------------------------------
+  # Subqueries
+  # -------------------------------------------------------------------
+
+  defp compile_subqueries(%Query{from: nil} = query), do: query
+  defp compile_subqueries(query) do
+    %Query{query | from: do_compile_subqueries(query.from, query.data_source)}
+  end
+
+  defp do_compile_subqueries({:join, join}, data_source) do
+    {:join, %{join |
+      lhs: do_compile_subqueries(join.lhs, data_source),
+      rhs: do_compile_subqueries(join.rhs, data_source)
+    }}
+  end
+  defp do_compile_subqueries({:subquery, subquery}, data_source) do
+    {:parsed, subquery_ast, alias} = subquery
+    {:subquery, {:parsed, compiled_subquery(data_source, subquery_ast), alias}}
+  end
+  defp do_compile_subqueries(table, _data_source), do: table
+
+  defp compiled_subquery(data_source, parsed_query) do
+    case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
+      {:ok, compiled_query} -> validate_subquery(compiled_query)
+      {:error, error} -> raise CompilationError, message: error
+    end
+  end
+
+  defp validate_subquery(subquery) do
+    case Enum.find(subquery.db_columns, &(&1.user_id?)) do
+      nil ->
+        possible_uid_columns =
+          all_id_columns_from_tables(subquery)
+          |> Enum.map(&Column.display_name/1)
+          |> Enum.join(",")
+
+        raise CompilationError, message:
+          "Missing `user_id` column in the select list of a subquery. " <>
+          "To fix this error, add one of #{possible_uid_columns} to the subquery select list."
+      _ ->
+        subquery
+    end
+  end
+
+
+  # -------------------------------------------------------------------
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
   defp compile_tables(%Query{from: nil} = query), do: query
   defp compile_tables(query) do
-    selected_table_names = from_clause_to_tables(query.from)
-    available_table_names = Enum.map(DataSource.tables(query.data_source), &Atom.to_string/1)
+    %Query{query | selected_tables: selected_tables(query.from, query.data_source)}
+  end
 
-    case selected_table_names -- available_table_names do
-      [] ->
-        %Query{query |
-            selected_tables: Enum.map(selected_table_names, &DataSource.table(query.data_source, &1))
-        }
-
-      [table | _] ->
-        raise CompilationError, message: "Table `#{table}` doesn't exist."
+  defp selected_tables({:join, join}, data_source) do
+    selected_tables(join.lhs, data_source) ++ selected_tables(join.rhs, data_source)
+  end
+  defp selected_tables({:subquery, {:parsed, subquery, alias}}, _data_source) do
+    [%{
+      name: alias,
+      db_name: nil,
+      columns: Enum.map(subquery.db_columns, &{&1.name, &1.type}),
+      user_id: Enum.find(subquery.db_columns, &(&1.user_id?)).name
+    }]
+  end
+  defp selected_tables(table_name, data_source) when is_binary(table_name) do
+    case DataSource.table(data_source, table_name) do
+      nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
+      table -> [table]
     end
   end
-
-  defp from_clause_to_tables({:join, join}) do
-    from_clause_to_tables(join.lhs) ++ from_clause_to_tables(join.rhs)
-  end
-  defp from_clause_to_tables(table), do: [table]
 
   defp compile_aliases(%Query{columns: [_|_] = columns} = query) do
     verify_aliases(query)
@@ -475,6 +523,7 @@ defmodule Cloak.Aql.Compiler do
       conditions: Enum.map(join.conditions, &map_where_clause(&1, mapper_fun))
     }}
   end
+  defp map_join_conditions_columns({:subquery, _} = subquery, _mapper_fun), do: subquery
   defp map_join_conditions_columns(raw_table_name, _mapper_fun), do: raw_table_name
 
   defp map_where_clause({:comparison, lhs, comparator, rhs}, mapper_fun) do
@@ -595,7 +644,8 @@ defmodule Cloak.Aql.Compiler do
   defp calculate_db_columns(query) do
     query = %Query{query |
       db_columns:
-        [id_column(query) | columns_from_expressions(query)]
+        query
+        |> columns_to_select()
         |> Enum.flat_map(&extract_columns/1)
         |> Enum.reject(&(&1 == nil))
         |> Enum.reject(&(&1.constant?))
@@ -604,6 +654,13 @@ defmodule Cloak.Aql.Compiler do
 
     map_terminal_elements(query, &set_column_db_row_position(&1, query))
   end
+
+  defp columns_to_select(%Query{command: :select, mode: :unparsed} = query),
+    do: [id_column(query) | query.columns ++ query.group_by]
+  defp columns_to_select(%Query{command: :select, subquery?: true} = query),
+    do: query.columns
+  defp columns_to_select(%Query{command: :select, subquery?: false} = query),
+    do: [id_column(query) | query.columns ++ query.group_by ++ query.unsafe_filter_columns]
 
   defp id_column(query) do
     all_id_columns = all_id_columns_from_tables(query)
@@ -632,13 +689,6 @@ defmodule Cloak.Aql.Compiler do
     do: true
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
-
-  defp columns_from_expressions(%Query{command: :select, mode: :unparsed} = query) do
-    query.columns ++ query.group_by
-  end
-  defp columns_from_expressions(%Query{command: :select} = query) do
-    query.columns ++ query.group_by ++ query.unsafe_filter_columns
-  end
 
   defp set_column_db_row_position(%Column{user_id?: true} = column, _query) do
     # the user-id columns will collectively all be available in the first position

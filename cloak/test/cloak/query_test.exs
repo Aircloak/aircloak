@@ -823,6 +823,42 @@ defmodule Cloak.QueryTest do
       %{columns: [_], rows: [%{row: [9.6]}]}
   end
 
+  test "subquery must return a user_id" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from (select height from heights) alias",
+      %{error: "Missing `user_id` column in the select list of a subquery." <> _}
+  end
+
+  test "selecting from a subquery" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from (select user_id, height from heights) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "user_id can be in any position in a subquery" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from (select height, user_id from heights) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "fully qualified names with subqueries" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select alias.height from (select user_id, height from heights) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "nesting subqueries" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query(
+      """
+        select height from (
+          select user_id, height from (select user_id, height from heights) inner_alias
+        ) outer_alias
+      """,
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+    )
+  end
+
   defp start_query(statement) do
     Query.Runner.start("1", Cloak.DataSource.fetch!(:local), statement, {:process, self()})
   end

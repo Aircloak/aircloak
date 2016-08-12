@@ -24,11 +24,9 @@ defmodule Cloak.DataSource.SqlBuilder do
     }
   end
   def build(query) do
-    fragments_to_query_spec([
-      "SELECT ", columns_sql(query.db_columns), " ",
-      "FROM ", from_clause(query.from, query), " ",
-      where_fragments(query.where)
-    ])
+    query
+    |> build_fragments()
+    |> fragments_to_query_spec()
   end
 
   @doc "Returns a name uniquely identifying a column in the generated query."
@@ -40,6 +38,14 @@ defmodule Cloak.DataSource.SqlBuilder do
   # -------------------------------------------------------------------
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
+
+  defp build_fragments(query) do
+    [
+      "SELECT ", columns_sql(query.db_columns), " ",
+      "FROM ", from_clause(query.from, query), " ",
+      where_fragments(query.where)
+    ]
+  end
 
   defp columns_sql(columns) do
     columns
@@ -54,6 +60,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp from_clause({:join, join}, query) do
     ["(", from_clause(join.lhs, query), " ", join_sql(join.type), " ", from_clause(join.rhs, query),
       on_clause(join.conditions), ")"]
+  end
+  defp from_clause({:subquery, {:parsed, subquery, alias}}, _query) do
+    ["(", build_fragments(subquery), ") AS ", alias]
   end
   defp from_clause(table_name, query) do
     query.selected_tables
