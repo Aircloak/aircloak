@@ -94,7 +94,7 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} on non-numerical columns", %{data_source: data_source} do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source)
       assert error ==
-        "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`timestamp`)"
+        "Function `#{unquote(function)}` requires arguments of type (`integer`) or (`real`), but got (`timestamp`)"
     end
   end
 
@@ -176,7 +176,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "rejecting a function with too many arguments", %{data_source: data_source} do
     assert {:error, error} = compile("select avg(numeric, column) from table", data_source)
-    assert error == "Function `avg` requires arguments of type (`integer` | `real`), but got (`integer`, `timestamp`)"
+    assert error == "Function `avg` requires arguments of type (`integer`) or (`real`), but got (`integer`, `timestamp`)"
   end
 
   test "rejecting a function with too few arguments", %{data_source: data_source} do
@@ -402,6 +402,16 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "accepting valid casts", %{data_source: data_source} do
     assert {:ok, _} = compile("select cast(column as date) from table", data_source)
+  end
+
+  test "integer operations are valid on sums of integer columns", %{data_source: data_source} do
+    assert {:ok, _} = compile("select sum(numeric) % 3 from table", data_source)
+  end
+
+  test "integer operations are invalid on sums of real columns", %{data_source: data_source} do
+    assert {:error, error} = compile("select sum(float) % 3 from table", data_source)
+    assert error ==
+        "Function `%` requires arguments of type (`integer`, `integer`), but got (`real`, `integer`)"
   end
 
   defp compile!(query_string, data_source) do

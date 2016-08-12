@@ -9,14 +9,24 @@ defmodule Cloak.Aql.Function do
   numeric = {:or, [:integer, :real]}
   @functions %{
     ~w(count) => %{aggregate: true, type_specs: %{[:any] => :integer}},
-    ~w(sum avg min max stddev median) => %{aggregate: true, type_specs: %{[numeric] => :real}},
+    ~w(sum min max median) => %{aggregate: true, type_specs: %{
+      [:integer] => :integer,
+      [:real] => :real,
+    }},
+    ~w(avg stddev) => %{aggregate: true, type_specs: %{
+      [:integer] => :real,
+      [:real] => :real,
+    }},
     ~w(hour minute second) =>
       %{type_specs: %{[{:or, [:timestamp, :time]}] => :integer}},
     ~w(year month day weekday) =>
       %{type_specs: %{[{:or, [:timestamp, :date]}] => :integer}},
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
     ~w(round trunc) => %{type_specs: %{[numeric, {:optional, :integer}] => :real}},
-    ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
+    ~w(abs sqrt) => %{type_specs: %{
+      [:integer] => :real,
+      [:real] => :real,
+    }},
     ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
     ~w(pow * + - / ^) => %{type_specs: %{[numeric, numeric] => :real}},
     ~w(length) => %{type_specs: %{[:text] => :integer}},
@@ -75,9 +85,9 @@ defmodule Cloak.Aql.Function do
   def cast?({:function, {:cast, _}, _}), do: true
   def cast?(_), do: false
 
-  @doc "Returns the argument type required by the given function call."
-  @spec argument_types(t) :: [argument_type]
-  def argument_types({:function, function, _}), do: @functions[function].type_specs |> Map.keys() |> hd()
+  @doc "Returns a list of possible argument lists required by the given function call."
+  @spec argument_types(t) :: [[argument_type]]
+  def argument_types({:function, function, _}), do: @functions[function].type_specs |> Map.keys()
 
   @doc "Returns the argument specifiaction of the given function call."
   @spec arguments(t) :: [Column.t]
@@ -90,7 +100,15 @@ defmodule Cloak.Aql.Function do
 
   @doc "Returns the return type of the given function call."
   @spec return_type(t) :: data_type
-  def return_type({:function, name, _}), do: @functions[name].type_specs |> Map.values() |> hd()
+  def return_type({:function, {:cast, type}, _}), do: type
+  def return_type(function = {:function, name, _}) do
+    @functions[name].type_specs
+    |> Enum.find(fn({arguments, _}) -> do_well_typed?(function, arguments) end)
+    |> case do
+      {_arguments, return_type} -> return_type
+      nil -> nil
+    end
+  end
 
   @doc "Returns the type of the given expression."
   @spec type(t) :: data_type
@@ -101,7 +119,7 @@ defmodule Cloak.Aql.Function do
   @spec well_typed?(t) :: boolean
   def well_typed?(column), do:
     if function?(column),
-      do: do_well_typed?(column, argument_types(column)),
+      do: Enum.any?(argument_types(column), &do_well_typed?(column, &1)),
       else: true
 
   @doc "Applies the function to the database row and returns its result."
