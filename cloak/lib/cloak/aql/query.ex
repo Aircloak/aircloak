@@ -26,8 +26,7 @@ defmodule Cloak.Aql.Query do
     selected_tables: [DataSource.table],
     mode: :parsed | :unparsed,
     unsafe_subquery: String.t | nil,
-    db_id_columns: [Column.t],
-    db_data_columns: [Column.t],
+    db_columns: [Column.t],
     from: Parser.from_clause | nil
   }
 
@@ -35,7 +34,7 @@ defmodule Cloak.Aql.Query do
     columns: [], where: [], where_not: [], unsafe_filter_columns: [], group_by: [], order_by: [],
     column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
-    unsafe_subquery: nil, db_id_columns: [], db_data_columns: [], from: nil
+    unsafe_subquery: nil, db_columns: [], from: nil
   ]
 
 
