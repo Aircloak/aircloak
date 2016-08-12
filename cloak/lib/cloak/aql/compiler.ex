@@ -383,14 +383,21 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp partition_where_clauses(%Query{where: clauses, where_not: [], unsafe_filter_columns: []} = query) do
-    {negative, positive} = Enum.partition(clauses, &negative_condition?/1)
+  defp partition_where_clauses(%Query{subquery?: true} = query) do
+    case Enum.find(query.where, &negative_condition?/1) do
+      nil -> query
+      negative_condition ->
+        raise CompilationError,
+          message: "#{negative_condition_string(negative_condition)} is not supported in a subquery."
+    end
+  end
+  defp partition_where_clauses(query) do
+    {negative, positive} = Enum.partition(query.where, &negative_condition?/1)
     negative = Enum.map(negative, fn({:not, clause}) -> clause end)
     unsafe_filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
 
     %Query{query | where: positive, where_not: negative, unsafe_filter_columns: unsafe_filter_columns}
   end
-  defp partition_where_clauses(query), do: query
 
   defp negative_condition?({:not, {:is, _, :null}}), do: false
   defp negative_condition?({:not, _other}), do: true

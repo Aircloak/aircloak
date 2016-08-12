@@ -883,6 +883,11 @@ defmodule Cloak.QueryTest do
     )
   end
 
+  test "negative condition in subquery is not supported" do
+    assert_query "select height from (select user_id, height from heights where height <> 100) alias",
+      %{error: "<> is not supported in a subquery."}
+  end
+
   defp start_query(statement) do
     Query.Runner.start("1", Cloak.DataSource.fetch!(:local), statement, {:process, self()})
   end
