@@ -209,7 +209,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "typechecking nested function calls recursively", %{data_source: data_source} do
     assert {:error, error} = compile("select sqrt(abs(avg(column))) from table", data_source)
-    assert error == "Function `avg` requires arguments of type (`integer` | `real`), but got (`timestamp`)"
+    assert error == "Function `avg` requires arguments of type (`integer`) or (`real`), but got (`timestamp`)"
   end
 
   test "accepting constants as aggregated", %{data_source: data_source}, do:
