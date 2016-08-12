@@ -66,7 +66,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp from_clause({:subquery, subquery}, _query) do
     ["(", build_fragments(subquery.ast), ") AS ", subquery.alias]
   end
-  defp from_clause(table_name, query) do
+  defp from_clause(table_name, query) when is_binary(table_name) do
     query.selected_tables
     |> Enum.find(&(&1.name == table_name))
     |> table_to_from()

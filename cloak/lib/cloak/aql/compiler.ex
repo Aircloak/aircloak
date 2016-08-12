@@ -138,7 +138,7 @@ defmodule Cloak.Aql.Compiler do
   defp do_compile_subqueries({:subquery, subquery}, data_source) do
     {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast)}}
   end
-  defp do_compile_subqueries(table, _data_source), do: table
+  defp do_compile_subqueries(table, _data_source) when is_binary(table), do: table
 
   defp compiled_subquery(data_source, parsed_query) do
     case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
@@ -519,7 +519,8 @@ defmodule Cloak.Aql.Compiler do
     }}
   end
   defp map_join_conditions_columns({:subquery, _} = subquery, _mapper_fun), do: subquery
-  defp map_join_conditions_columns(raw_table_name, _mapper_fun), do: raw_table_name
+  defp map_join_conditions_columns(raw_table_name, _mapper_fun) when is_binary(raw_table_name),
+    do: raw_table_name
 
   defp map_where_clause({:comparison, lhs, comparator, rhs}, mapper_fun) do
     {
