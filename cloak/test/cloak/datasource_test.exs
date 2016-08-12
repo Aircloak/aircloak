@@ -27,8 +27,7 @@ defmodule Cloak.DataSourceTest do
     assert {:ok, rows} = DataSource.select(%Query{
       command: :select,
       columns: [data_column],
-      db_id_columns: [id_column],
-      db_data_columns: [data_column],
+      db_columns: [id_column, data_column],
       unsafe_filter_columns: [],
       where: [],
       group_by: [],

@@ -450,8 +450,7 @@ defmodule Cloak.Aql.Compiler do
       where: Enum.map(query.where, &map_where_clause(&1, mapper_fun)),
       where_not: Enum.map(query.where_not, &map_where_clause(&1, mapper_fun)),
       order_by: Enum.map(query.order_by, &map_order_by(&1, mapper_fun)),
-      db_id_columns: Enum.map(query.db_id_columns, &map_terminal_element(&1, mapper_fun)),
-      db_data_columns: Enum.map(query.db_data_columns, &map_terminal_element(&1, mapper_fun)),
+      db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
       property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
       aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun)),
       from: map_join_conditions_columns(query.from, mapper_fun)
@@ -583,19 +582,23 @@ defmodule Cloak.Aql.Compiler do
   defp add_info_message(query, info_message), do: %Query{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
-    id_columns = all_id_columns_from_tables(query)
-    data_columns = all_data_columns_from_expressions(query)
-    |> Enum.reject(&Enum.member?(id_columns, &1))
-    |> Enum.flat_map(&extract_columns/1)
-    |> Enum.reject(&(&1 == nil))
-    |> Enum.reject(&(&1.constant?))
-    |> Enum.uniq_by(&db_column_name/1)
-
     query = %Query{query |
-      db_id_columns: id_columns,
-      db_data_columns: data_columns,
+      db_columns:
+        [id_column(query) | columns_from_expressions(query)]
+        |> Enum.flat_map(&extract_columns/1)
+        |> Enum.reject(&(&1 == nil))
+        |> Enum.reject(&(&1.constant?))
+        |> Enum.uniq_by(&db_column_name/1)
     }
+
     map_terminal_elements(query, &set_column_db_row_position(&1, query))
+  end
+
+  defp id_column(query) do
+    all_id_columns = all_id_columns_from_tables(query)
+    if any_outer_join?(query.from),
+      do: Column.db_function(:coalesce, all_id_columns),
+      else: hd(all_id_columns)
   end
 
   defp all_id_columns_from_tables(%Query{command: :select, mode: :unparsed}) do
@@ -611,10 +614,18 @@ defmodule Cloak.Aql.Compiler do
     end)
   end
 
-  defp all_data_columns_from_expressions(%Query{command: :select, mode: :unparsed} = query) do
+  defp any_outer_join?(table) when is_binary(table), do: false
+  defp any_outer_join?({:subquery, _}), do: false
+  defp any_outer_join?({:join, %{type: type}})
+    when type in [:full_outer_join, :left_outer_join, :right_outer_join],
+    do: true
+  defp any_outer_join?({:join, join}),
+    do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
+
+  defp columns_from_expressions(%Query{command: :select, mode: :unparsed} = query) do
     query.columns ++ query.group_by
   end
-  defp all_data_columns_from_expressions(%Query{command: :select} = query) do
+  defp columns_from_expressions(%Query{command: :select} = query) do
     query.columns ++ query.group_by ++ query.unsafe_filter_columns
   end
 
@@ -622,13 +633,11 @@ defmodule Cloak.Aql.Compiler do
     # the user-id columns will collectively all be available in the first position
     %Column{column | db_row_position: 0}
   end
-  defp set_column_db_row_position(%Column{} = column, %Query{db_data_columns: data_columns}) do
-    case Enum.find_index(data_columns, &(db_column_name(&1) == db_column_name(column))) do
+  defp set_column_db_row_position(%Column{} = column, %Query{db_columns: db_columns}) do
+    case Enum.find_index(db_columns, &(db_column_name(&1) == db_column_name(column))) do
       # It's not actually a selected column, so ignore for the purpose of positioning
       nil -> column
-      # The (potentially complex) user id column occupies the first position,
-      # hence the other columns are offset by 1
-      position -> %Column{column | db_row_position: position + 1}
+      position -> %Column{column | db_row_position: position}
     end
   end
   defp set_column_db_row_position(other, _query), do: other

@@ -792,14 +792,7 @@ defmodule Cloak.QueryTest do
         where heights.user_id=heights_alias.user_id
       "
     )
-    # UID columns are compacted if necessary during query building.
-    # But given that multiple distinct tables are joined, we need
-    # to include all relevant UIDs in the query.
-    assert [
-      %Column{name: "user_id"},
-      %Column{name: "user_id"}
-    ] = query.db_id_columns
-    assert [%Column{name: "height"}] = query.db_data_columns
+    assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
   end
 
   test "nested function call" do

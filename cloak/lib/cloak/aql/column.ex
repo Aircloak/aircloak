@@ -2,6 +2,7 @@ defmodule Cloak.Aql.Column do
   @moduledoc "Represents a column in a compiled query."
 
   @type column_type :: Cloak.DataSource.data_type | nil
+  @type db_function :: :coalesce
   @type t :: %__MODULE__{
     table: :unknown | Cloak.DataSource.table,
     name: String.t,
@@ -10,13 +11,23 @@ defmodule Cloak.Aql.Column do
     db_row_position: nil | non_neg_integer,
     constant?: boolean,
     value: any,
+    db_function: db_function | String.t,
+    db_function_args: [t]
   }
-  defstruct [table: :unknown, name: nil, type: nil, user_id?: false, db_row_position: nil, constant?: false, value: nil]
+  defstruct [
+    table: :unknown, name: nil, type: nil, user_id?: false, db_row_position: nil, constant?: false,
+    value: nil, db_function: nil, db_function_args: []
+  ]
 
   @doc "Returns a column struct representing the constant `value`."
   @spec constant(column_type, any) :: t
   def constant(type, value) do
     %__MODULE__{constant?: true, value: value, type: normalize_type(type), name: :constant}
+  end
+
+  @doc "Creates a column representing a database function call."
+  def db_function(db_function, db_function_args) do
+    %__MODULE__{db_function: db_function, db_function_args: db_function_args}
   end
 
   @doc "Returns true if the given term is a constant column, false otherwise."

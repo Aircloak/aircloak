@@ -19,13 +19,13 @@ defmodule Cloak.DataSource.SqlBuilder do
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
   def build(%Query{mode: :unparsed, unsafe_subquery: unsafe_subquery} = query) do
     {
-      ["SELECT ", columns_string(query), " FROM (", unsafe_subquery, ") AS unsafe_subquery"],
+      ["SELECT ", columns_sql(query.db_columns), " FROM (", unsafe_subquery, ") AS unsafe_subquery"],
       []
     }
   end
   def build(query) do
     fragments_to_query_spec([
-      "SELECT ", columns_string(query), " ",
+      "SELECT ", columns_sql(query.db_columns), " ",
       "FROM ", from_clause(query.from, query), " ",
       where_fragments(query.where)
     ])
@@ -41,16 +41,15 @@ defmodule Cloak.DataSource.SqlBuilder do
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
 
-  defp columns_string(query), do: Enum.join([id_column(query) | data_columns(query)], ",")
-
-  defp id_column(%Query{db_id_columns: columns}) do
-    case Enum.map(columns, &column_name/1) do
-      [id_column] -> id_column
-      id_columns -> "COALESCE(#{Enum.join(id_columns, ", ")})"
-    end
+  defp columns_sql(columns) do
+    columns
+    |> Enum.map(&column_sql/1)
+    |> Enum.join(",")
   end
 
-  defp data_columns(%Query{db_data_columns: columns}), do: Enum.map(columns, &column_name/1)
+  defp column_sql(%Column{db_function: :coalesce, db_function_args: args}),
+    do: "COALESCE(#{columns_sql(args)})"
+  defp column_sql(column), do: column_name(column)
 
   defp from_clause({:join, join}, query) do
     ["(", from_clause(join.lhs, query), " ", join_sql(join.type), " ", from_clause(join.rhs, query),
