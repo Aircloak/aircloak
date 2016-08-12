@@ -11,32 +11,32 @@ defmodule Cloak.Aql.Function do
     ~w(count) => %{aggregate: true, return_type: :integer, argument_types: [:any]},
     ~w(sum avg min max stddev median) => %{aggregate: true, return_type: :real, argument_types: [numeric]},
     ~w(hour minute second) =>
-      %{aggregate: false, return_type: :integer, argument_types: [{:or, [:timestamp, :time]}]},
+      %{return_type: :integer, argument_types: [{:or, [:timestamp, :time]}]},
     ~w(year month day weekday) =>
-      %{aggregate: false, return_type: :integer, argument_types: [{:or, [:timestamp, :date]}]},
-    ~w(floor ceil ceiling) => %{aggregate: false, return_type: :integer, argument_types: [numeric]},
-    ~w(round trunc) => %{aggregate: false, return_type: :real, argument_types: [numeric, {:optional, :integer}]},
-    ~w(abs sqrt) => %{aggregate: false, return_type: :real, argument_types: [numeric]},
-    ~w(div mod %) => %{aggregate: false, return_type: :integer, argument_types: [:integer, :integer]},
-    ~w(pow * + - / ^) => %{aggregate: false, return_type: :real, argument_types: [numeric, numeric]},
-    ~w(length) => %{aggregate: false, return_type: :integer, argument_types: [:text]},
-    ~w(lower lcase upper ucase) => %{aggregate: false, return_type: :text, argument_types: [:text]},
-    ~w(left right) => %{aggregate: false, return_type: :text, argument_types: [:text, :integer]},
-    ~w(btrim ltrim rtrim) => %{aggregate: false, return_type: :text, argument_types: [:text, {:optional, :text}]},
+      %{return_type: :integer, argument_types: [{:or, [:timestamp, :date]}]},
+    ~w(floor ceil ceiling) => %{return_type: :integer, argument_types: [numeric]},
+    ~w(round trunc) => %{return_type: :real, argument_types: [numeric, {:optional, :integer}]},
+    ~w(abs sqrt) => %{return_type: :real, argument_types: [numeric]},
+    ~w(div mod %) => %{return_type: :integer, argument_types: [:integer, :integer]},
+    ~w(pow * + - / ^) => %{return_type: :real, argument_types: [numeric, numeric]},
+    ~w(length) => %{return_type: :integer, argument_types: [:text]},
+    ~w(lower lcase upper ucase) => %{return_type: :text, argument_types: [:text]},
+    ~w(left right) => %{return_type: :text, argument_types: [:text, :integer]},
+    ~w(btrim ltrim rtrim) => %{return_type: :text, argument_types: [:text, {:optional, :text}]},
     ~w(substring substring_for) =>
-      %{aggregate: false, return_type: :text, argument_types: [:text, :integer, {:optional, :integer}]},
-    ~w(||) => %{aggregate: false, return_type: :text, argument_types: [:text, :text]},
-    ~w(concat) => %{aggregate: false, return_type: :text, argument_types: [{:many1, :text}]},
+      %{return_type: :text, argument_types: [:text, :integer, {:optional, :integer}]},
+    ~w(||) => %{return_type: :text, argument_types: [:text, :text]},
+    ~w(concat) => %{return_type: :text, argument_types: [{:many1, :text}]},
     [{:cast, :integer}, {:cast, :real}, {:cast, :boolean}] =>
-      %{aggregate: false, return_type: :integer, argument_types: [{:or, [:real, :integer, :text, :boolean]}]},
+      %{return_type: :integer, argument_types: [{:or, [:real, :integer, :text, :boolean]}]},
     [{:cast, :timestamp}] =>
-      %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp]}]},
+      %{return_type: :timestamp, argument_types: [{:or, [:text, :timestamp]}]},
     [{:cast, :time}] =>
-      %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp, :time]}]},
+      %{return_type: :timestamp, argument_types: [{:or, [:text, :timestamp, :time]}]},
     [{:cast, :date}] =>
-      %{aggregate: false, return_type: :date, argument_types: [{:or, [:text, :timestamp, :date]}]},
+      %{return_type: :date, argument_types: [{:or, [:text, :timestamp, :date]}]},
     [{:cast, :text}] =>
-      %{aggregate: false, return_type: :date, argument_types: [:any]},
+      %{return_type: :date, argument_types: [:any]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -63,7 +63,7 @@ defmodule Cloak.Aql.Function do
   Returns true if the given column definition is a function call to an aggregate function, false otherwise.
   """
   @spec aggregate_function?(t) :: boolean
-  def aggregate_function?({:function, function, _}), do: @functions[function].aggregate
+  def aggregate_function?({:function, function, _}), do: !!@functions[function][:aggregate]
   def aggregate_function?(_), do: false
 
   @doc "Returns true if the given function call is a cast, false otherwise."
