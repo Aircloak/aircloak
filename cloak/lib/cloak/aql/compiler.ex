@@ -348,6 +348,7 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
+  defp partition_selected_columns(%Query{subquery?: true} = query), do: query
   defp partition_selected_columns(%Query{group_by: groups = [_|_], columns: columns} = query) do
     aggregators = filter_aggregators(columns)
     %Query{query | property: groups |> Enum.uniq(), aggregators: aggregators |> Enum.uniq()}
@@ -641,22 +642,26 @@ defmodule Cloak.Aql.Compiler do
     query = %Query{query |
       db_columns:
         query
-        |> columns_to_select()
-        |> Enum.flat_map(&extract_columns/1)
-        |> Enum.reject(&(&1 == nil))
-        |> Enum.reject(&(&1.constant?))
+        |> select_expressions()
         |> Enum.uniq_by(&db_column_name/1)
     }
 
     map_terminal_elements(query, &set_column_db_row_position(&1, query))
   end
 
-  defp columns_to_select(%Query{command: :select, mode: :unparsed} = query),
-    do: [id_column(query) | query.columns ++ query.group_by]
-  defp columns_to_select(%Query{command: :select, subquery?: true} = query),
-    do: query.columns
-  defp columns_to_select(%Query{command: :select, subquery?: false} = query),
-    do: [id_column(query) | query.columns ++ query.group_by ++ query.unsafe_filter_columns]
+  defp select_expressions(%Query{command: :select, subquery?: false} = query) do
+    # top-level query -> we,re fetching only columns, while other expressions (e.g. function calls)
+    # will be resolved in the post-processing phase
+    [id_column(query) | query.columns ++ query.group_by ++ query.unsafe_filter_columns]
+    |> Enum.flat_map(&extract_columns/1)
+    |> Enum.reject(&(&1 == nil))
+    |> Enum.reject(&(&1.constant?))
+  end
+  defp select_expressions(%Query{command: :select, subquery?: true} = query) do
+    # currently we don't support functions in subqueries
+    true = Enum.all?(query.columns, &match?(%Column{}, &1))
+    query.columns
+  end
 
   defp id_column(query) do
     all_id_columns = all_id_columns_from_tables(query)
