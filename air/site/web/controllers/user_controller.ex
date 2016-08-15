@@ -39,7 +39,7 @@ defmodule Air.UserController do
 
   def create(conn, params) do
     changeset = User.changeset(%User{}, params["user"])
-    if (create_permitted?(conn, changeset)) do
+    if create_permitted?(conn, changeset) do
       case Repo.insert(changeset) do
         {:ok, user} ->
           AuditLog.log(conn, "Created user", user: user.email, name: user.name)

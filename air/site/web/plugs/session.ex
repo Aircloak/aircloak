@@ -88,7 +88,7 @@ defmodule Air.Plug.Session do
 
     @cookie_key "auth_remember_me"
     # 30 days in seconds (30*24*60*60) - the time before a user has to login again.
-    @cookie_max_age_s 2592000
+    @cookie_max_age_s 2_592_000
 
 
     # -------------------------------------------------------------------

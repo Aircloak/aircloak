@@ -49,7 +49,7 @@ defmodule Air.UserTest do
   end
 
   test "requires the valid id" do
-    attributes = %{@valid_attrs | role_id: 314159}
+    attributes = %{@valid_attrs | role_id: 314_159}
     assert errors_on(%User{}, :role_id, attributes)
   end
 
