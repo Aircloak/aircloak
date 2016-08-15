@@ -845,11 +845,11 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query(
       """
-        select t1.height from
+        select t1.height as h1, t2.height as h2 from
           (select user_id, height from heights) t1
           inner join (select user_id, height from heights) t2 on t1.user_id = t2.user_id
       """,
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+      %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
     )
   end
 
@@ -857,11 +857,11 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query(
       """
-        select t1.height from
+        select t1.height as h1, heights.height as h2 from
           (select user_id, height from heights) t1
           inner join heights on heights.user_id = t1.user_id
       """,
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+      %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
     )
   end
 
