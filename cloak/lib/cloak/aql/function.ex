@@ -13,10 +13,7 @@ defmodule Cloak.Aql.Function do
       [:integer] => :integer,
       [:real] => :real,
     }},
-    ~w(avg stddev) => %{aggregate: true, type_specs: %{
-      [:integer] => :real,
-      [:real] => :real,
-    }},
+    ~w(avg stddev) => %{aggregate: true, type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
       %{type_specs: %{[{:or, [:timestamp, :time]}] => :integer}},
     ~w(year month day weekday) =>
@@ -26,10 +23,7 @@ defmodule Cloak.Aql.Function do
        [numeric] => :integer,
        [numeric, :integer] => :real,
     }},
-    ~w(abs sqrt) => %{type_specs: %{
-      [:integer] => :real,
-      [:real] => :real,
-    }},
+    ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
     ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
     ~w(pow * + - ^) => %{type_specs: %{
       [:integer, :integer] => :integer,

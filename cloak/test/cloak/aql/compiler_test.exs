@@ -43,7 +43,7 @@ defmodule Cloak.Aql.Compiler.Test do
       compile("select * from table where column > 'something stupid'", data_source())
   end
 
-  for function <- ~w(avg min max sum stddev median abs sqrt) do
+  for function <- ~w(min max sum median) do
     test "allowing #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
     end
@@ -52,6 +52,18 @@ defmodule Cloak.Aql.Compiler.Test do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
       assert error ==
         "Function `#{unquote(function)}` requires arguments of type (`integer`) or (`real`), but got (`timestamp`)"
+    end
+  end
+
+  for function <- ~w(avg stddev abs sqrt) do
+    test "allowing #{function} on numeric columns" do
+      assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
+    end
+
+    test "rejecting #{function} on non-numerical columns" do
+      assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
+      assert error ==
+        "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`timestamp`)"
     end
   end
 
@@ -135,7 +147,7 @@ defmodule Cloak.Aql.Compiler.Test do
   test "rejecting a function with too many arguments" do
     assert {:error, error} = compile("select avg(numeric, column) from table", data_source())
     assert error ==
-      "Function `avg` requires arguments of type (`integer`) or (`real`), but got (`integer`, `timestamp`)"
+      "Function `avg` requires arguments of type (`integer` | `real`), but got (`integer`, `timestamp`)"
   end
 
   test "rejecting a function with too few arguments" do
@@ -168,7 +180,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "typechecking nested function calls recursively" do
     assert {:error, error} = compile("select sqrt(abs(avg(column))) from table", data_source())
-    assert error == "Function `avg` requires arguments of type (`integer`) or (`real`), but got (`timestamp`)"
+    assert error == "Function `avg` requires arguments of type (`integer` | `real`), but got (`timestamp`)"
   end
 
   test "accepting constants as aggregated", do:
