@@ -37,16 +37,16 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:poison, "~> 1.5"},
       {:gproc, "~> 0.5.0"},
       {:protobuffs, github: "basho/erlang_protobuffs", tag: "0.8.2", warn_missing: false},
-      {:ex_doc, "~> 0.11", warn_missing: false},
-      {:earmark, "~> 0.2", warn_missing: false},
+      {:ex_doc, "~> 0.13", warn_missing: false},
+      {:earmark, "~> 1.0", warn_missing: false},
       {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, warn_missing: false},
-      {:credo, "~> 0.3.0", warn_missing: false},
+      {:credo, "~> 0.4.8", warn_missing: false},
       {:eunit_formatters, "~> 0.3.0", warn_missing: false},
       {:proper, github: "manopapad/proper", warn_missing: false},
       {:dialyze, "~> 0.2.1", warn_missing: false},
-      {:excoveralls, "~> 0.5", warn_missing: false},
-      {:exrm, "~> 1.0", warn_missing: false},
-      {:phoenix, "~> 1.1.4", only: :test},
+      {:excoveralls, "~> 0.5.5", warn_missing: false},
+      {:exrm, "~> 1.0.8", warn_missing: false},
+      {:phoenix, "~> 1.1.6", only: :test},
       {:cowboy, "~> 1.0", only: :test}
     ]
   end
