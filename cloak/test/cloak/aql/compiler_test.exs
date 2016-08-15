@@ -43,7 +43,19 @@ defmodule Cloak.Aql.Compiler.Test do
       compile("select * from table where column > 'something stupid'", data_source())
   end
 
-  for function <- ~w(avg min max sum stddev median abs sqrt) do
+  for function <- ~w(min max sum median) do
+    test "allowing #{function} on numeric columns" do
+      assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
+    end
+
+    test "rejecting #{function} on non-numerical columns" do
+      assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
+      assert error ==
+        "Function `#{unquote(function)}` requires arguments of type (`integer`) or (`real`), but got (`timestamp`)"
+    end
+  end
+
+  for function <- ~w(avg stddev abs sqrt) do
     test "allowing #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
     end
@@ -122,18 +134,20 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} on non-numeric columns" do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
       assert error == "Function `#{unquote(function)}` requires arguments of type"
-       <> " (`integer` | `real`, [`integer`]), but got (`timestamp`)"
+       <> " (`integer` | `real`) or (`integer` | `real`, `integer`), but got (`timestamp`)"
     end
   end
 
   test "multiarg function argument verification" do
     assert {:error, error} = compile("select div(numeric, column) from table", data_source())
-    assert error == "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `timestamp`)"
+    assert error ==
+      "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `timestamp`)"
   end
 
   test "rejecting a function with too many arguments" do
     assert {:error, error} = compile("select avg(numeric, column) from table", data_source())
-    assert error == "Function `avg` requires arguments of type (`integer` | `real`), but got (`integer`, `timestamp`)"
+    assert error ==
+      "Function `avg` requires arguments of type (`integer` | `real`), but got (`integer`, `timestamp`)"
   end
 
   test "rejecting a function with too few arguments" do
@@ -374,6 +388,16 @@ defmodule Cloak.Aql.Compiler.Test do
   test "group by in subquery is not supported" do
     assert {:error, error} = compile("select c1 from (select uid, avg(c1) from t1 group by uid) alias", data_source())
     assert error =~ "`GROUP BY` is not supported in a subquery."
+  end
+
+  test "integer operations are valid on sums of integer columns" do
+    assert {:ok, _} = compile("select sum(numeric) % 3 from table", data_source())
+  end
+
+  test "integer operations are invalid on sums of real columns" do
+    assert {:error, error} = compile("select sum(float) % 3 from table", data_source())
+    assert error ==
+        "Function `%` requires arguments of type (`integer`, `integer`), but got (`real`, `integer`)"
   end
 
   defp compile!(query_string, data_source) do
