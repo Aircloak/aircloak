@@ -66,13 +66,13 @@ defmodule Cloak.Aql.Parser.Test do
 
   defmacrop parsed_subquery(value, alias) do
     quote do
-      {:subquery, {:parsed, unquote(value), unquote(alias)}}
+      {:subquery, %{type: :parsed, ast: unquote(value), alias: unquote(alias)}}
     end
   end
 
   defmacrop unparsed_subquery(value) do
     quote do
-      {:subquery, {:unparsed, unquote(value)}}
+      {:subquery, %{type: :unparsed, unparsed_string: unquote(value)}}
     end
   end
 

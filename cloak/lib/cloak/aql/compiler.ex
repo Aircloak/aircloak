@@ -38,13 +38,12 @@ defmodule Cloak.Aql.Compiler do
   defp to_prepped_query(parsed_query, data_source) do
     %Query{
       data_source: data_source,
-      mode: query_mode(data_source.driver, parsed_query[:from]),
-      unsafe_subquery: unsafe_subquery(parsed_query[:from])
+      mode: query_mode(data_source.driver, parsed_query[:from])
     }
     |> Map.merge(parsed_query)
   end
 
-  defp query_mode(Cloak.DataSource.DsProxy, {:subquery, {:unparsed, _}}), do: :unparsed
+  defp query_mode(Cloak.DataSource.DsProxy, {:subquery, %{type: :unparsed}}), do: :unparsed
   defp query_mode(Cloak.DataSource.DsProxy, from) do
     validate_dsproxy_from_for_parsed_query!(from)
     :parsed
@@ -60,9 +59,6 @@ defmodule Cloak.Aql.Compiler do
     raise CompilationError, message: "Joining subqueries is not supported for this data source"
   end
   defp validate_dsproxy_from_for_parsed_query!(table_name) when is_binary(table_name), do: :ok
-
-  defp unsafe_subquery({:subquery, {:unparsed, unsafe_subquery}}), do: unsafe_subquery
-  defp unsafe_subquery(_other), do: nil
 
   # Due to the blackbox nature of the subquery, there are a whole lot
   # of validations we cannot do when using DS proxy. Conversely, there
@@ -92,6 +88,7 @@ defmodule Cloak.Aql.Compiler do
   defp compile_prepped_query(query) do
     try do
       query = query
+      |> compile_subqueries()
       |> compile_tables()
       |> compile_columns()
       |> verify_columns()
@@ -124,29 +121,75 @@ defmodule Cloak.Aql.Compiler do
 
 
   # -------------------------------------------------------------------
+  # Subqueries
+  # -------------------------------------------------------------------
+
+  defp compile_subqueries(%Query{from: nil} = query), do: query
+  defp compile_subqueries(query) do
+    %Query{query | from: do_compile_subqueries(query.from, query.data_source)}
+  end
+
+  defp do_compile_subqueries({:join, join}, data_source) do
+    {:join, %{join |
+      lhs: do_compile_subqueries(join.lhs, data_source),
+      rhs: do_compile_subqueries(join.rhs, data_source)
+    }}
+  end
+  defp do_compile_subqueries({:subquery, subquery}, data_source) do
+    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast)}}
+  end
+  defp do_compile_subqueries(table, _data_source) when is_binary(table), do: table
+
+  defp compiled_subquery(data_source, parsed_query) do
+    case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
+      {:ok, compiled_query} -> validate_subquery(compiled_query)
+      {:error, error} -> raise CompilationError, message: error
+    end
+  end
+
+  defp validate_subquery(subquery) do
+    case Enum.find(subquery.db_columns, &(&1.user_id?)) do
+      nil ->
+        possible_uid_columns =
+          all_id_columns_from_tables(subquery)
+          |> Enum.map(&Column.display_name/1)
+          |> Enum.join(", ")
+
+        raise CompilationError, message:
+          "Missing a user id column in the select list of a subquery. " <>
+          "To fix this error, add one of #{possible_uid_columns} to the subquery select list."
+      _ ->
+        subquery
+    end
+  end
+
+
+  # -------------------------------------------------------------------
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
   defp compile_tables(%Query{from: nil} = query), do: query
   defp compile_tables(query) do
-    selected_table_names = from_clause_to_tables(query.from)
-    available_table_names = Enum.map(DataSource.tables(query.data_source), &Atom.to_string/1)
+    %Query{query | selected_tables: selected_tables(query.from, query.data_source)}
+  end
 
-    case selected_table_names -- available_table_names do
-      [] ->
-        %Query{query |
-            selected_tables: Enum.map(selected_table_names, &DataSource.table(query.data_source, &1))
-        }
-
-      [table | _] ->
-        raise CompilationError, message: "Table `#{table}` doesn't exist."
+  defp selected_tables({:join, join}, data_source) do
+    selected_tables(join.lhs, data_source) ++ selected_tables(join.rhs, data_source)
+  end
+  defp selected_tables({:subquery, subquery}, _data_source) do
+    [%{
+      name: subquery.alias,
+      db_name: nil,
+      columns: Enum.map(subquery.ast.db_columns, &{&1.name, &1.type}),
+      user_id: Enum.find(subquery.ast.db_columns, &(&1.user_id?)).name
+    }]
+  end
+  defp selected_tables(table_name, data_source) when is_binary(table_name) do
+    case DataSource.table(data_source, table_name) do
+      nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
+      table -> [table]
     end
   end
-
-  defp from_clause_to_tables({:join, join}) do
-    from_clause_to_tables(join.lhs) ++ from_clause_to_tables(join.rhs)
-  end
-  defp from_clause_to_tables(table), do: [table]
 
   defp compile_aliases(%Query{columns: [_|_] = columns} = query) do
     verify_aliases(query)
@@ -280,6 +323,9 @@ defmodule Cloak.Aql.Compiler do
   defp aggregated_expression_display(%Column{} = column), do:
     "Column `#{column.name}` from table `#{column.table.name}` needs"
 
+  defp verify_group_by_functions(%Query{subquery?: true, group_by: [_|_]}) do
+    raise CompilationError, message: "`GROUP BY` is not supported in a subquery."
+  end
   defp verify_group_by_functions(query) do
     query.group_by
     |> Enum.filter(&Function.aggregate_function?/1)
@@ -307,6 +353,7 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
+  defp partition_selected_columns(%Query{subquery?: true} = query), do: query
   defp partition_selected_columns(%Query{group_by: groups = [_|_], columns: columns} = query) do
     aggregators = filter_aggregators(columns)
     %Query{query | property: groups |> Enum.uniq(), aggregators: aggregators |> Enum.uniq()}
@@ -341,14 +388,21 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp partition_where_clauses(%Query{where: clauses, where_not: [], unsafe_filter_columns: []} = query) do
-    {negative, positive} = Enum.partition(clauses, &negative_condition?/1)
+  defp partition_where_clauses(%Query{subquery?: true} = query) do
+    case Enum.find(query.where, &negative_condition?/1) do
+      nil -> query
+      negative_condition ->
+        raise CompilationError,
+          message: "#{negative_condition_string(negative_condition)} is not supported in a subquery."
+    end
+  end
+  defp partition_where_clauses(query) do
+    {negative, positive} = Enum.partition(query.where, &negative_condition?/1)
     negative = Enum.map(negative, fn({:not, clause}) -> clause end)
     unsafe_filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
 
     %Query{query | where: positive, where_not: negative, unsafe_filter_columns: unsafe_filter_columns}
   end
-  defp partition_where_clauses(query), do: query
 
   defp negative_condition?({:not, {:is, _, :null}}), do: false
   defp negative_condition?({:not, _other}), do: true
@@ -477,7 +531,9 @@ defmodule Cloak.Aql.Compiler do
       conditions: Enum.map(join.conditions, &map_where_clause(&1, mapper_fun))
     }}
   end
-  defp map_join_conditions_columns(raw_table_name, _mapper_fun), do: raw_table_name
+  defp map_join_conditions_columns({:subquery, _} = subquery, _mapper_fun), do: subquery
+  defp map_join_conditions_columns(raw_table_name, _mapper_fun) when is_binary(raw_table_name),
+    do: raw_table_name
 
   defp map_where_clause({:comparison, lhs, comparator, rhs}, mapper_fun) do
     {
@@ -597,14 +653,26 @@ defmodule Cloak.Aql.Compiler do
   defp calculate_db_columns(query) do
     query = %Query{query |
       db_columns:
-        [id_column(query) | columns_from_expressions(query)]
-        |> Enum.flat_map(&extract_columns/1)
-        |> Enum.reject(&(&1 == nil))
-        |> Enum.reject(&(&1.constant?))
+        query
+        |> select_expressions()
         |> Enum.uniq_by(&db_column_name/1)
     }
 
     map_terminal_elements(query, &set_column_db_row_position(&1, query))
+  end
+
+  defp select_expressions(%Query{command: :select, subquery?: false} = query) do
+    # top-level query -> we,re fetching only columns, while other expressions (e.g. function calls)
+    # will be resolved in the post-processing phase
+    [id_column(query) | query.columns ++ query.group_by ++ query.unsafe_filter_columns]
+    |> Enum.flat_map(&extract_columns/1)
+    |> Enum.reject(&(&1 == nil))
+    |> Enum.reject(&(&1.constant?))
+  end
+  defp select_expressions(%Query{command: :select, subquery?: true} = query) do
+    # currently we don't support functions in subqueries
+    true = Enum.all?(query.columns, &match?(%Column{}, &1))
+    query.columns
   end
 
   defp id_column(query) do
@@ -634,13 +702,6 @@ defmodule Cloak.Aql.Compiler do
     do: true
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
-
-  defp columns_from_expressions(%Query{command: :select, mode: :unparsed} = query) do
-    query.columns ++ query.group_by
-  end
-  defp columns_from_expressions(%Query{command: :select} = query) do
-    query.columns ++ query.group_by ++ query.unsafe_filter_columns
-  end
 
   defp set_column_db_row_position(%Column{user_id?: true} = column, _query) do
     # the user-id columns will collectively all be available in the first position
@@ -674,7 +735,10 @@ defmodule Cloak.Aql.Compiler do
     Enum.each(join.conditions, &map_where_clause(&1, mapper_fun))
     selected_tables
   end
-  defp do_join_conditions_scope_check(table_name, selected_tables), do: [table_name | selected_tables]
+  defp do_join_conditions_scope_check({:subquery, subquery}, selected_tables),
+    do: [subquery.alias | selected_tables]
+  defp do_join_conditions_scope_check(table_name, selected_tables) when is_binary(table_name),
+    do: [table_name | selected_tables]
 
   defp scope_check(tables_in_scope, table_name, column_name) do
     case Enum.member?(tables_in_scope, table_name) do
