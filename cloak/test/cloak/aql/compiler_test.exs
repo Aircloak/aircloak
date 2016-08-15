@@ -128,12 +128,14 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "multiarg function argument verification" do
     assert {:error, error} = compile("select div(numeric, column) from table", data_source())
-    assert error == "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `timestamp`)"
+    assert error ==
+      "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `timestamp`)"
   end
 
   test "rejecting a function with too many arguments" do
     assert {:error, error} = compile("select avg(numeric, column) from table", data_source())
-    assert error == "Function `avg` requires arguments of type (`integer`) or (`real`), but got (`integer`, `timestamp`)"
+    assert error ==
+      "Function `avg` requires arguments of type (`integer`) or (`real`), but got (`integer`, `timestamp`)"
   end
 
   test "rejecting a function with too few arguments" do
