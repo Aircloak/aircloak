@@ -5,7 +5,7 @@ defmodule Air.Mixfile do
     [
       app: :air,
       version: "0.0.1",
-      elixir: "~> 1.0",
+      elixir: "~> 1.3",
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [
         :phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :user_docs, :app

@@ -5,7 +5,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
     [
       app: :aircloak_common,
       version: "0.0.1",
-      elixir: "~> 1.2",
+      elixir: "~> 1.3",
       elixirc_paths: elixirc_paths(Mix.env),
       erlc_paths: erlc_paths(Mix.env),
       erlc_options: erlc_options(Mix.env),
