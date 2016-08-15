@@ -205,6 +205,14 @@ defmodule Cloak.Aql.Function.Test do
     refute Function.well_typed?({:function, "avg", [{:function, "concat", []}]})
   end
 
+  for function <- ~w(round trunc) do
+    test "#{function} return type" do
+      assert Function.return_type({:function, unquote(function), [Column.constant(:real, 3.3)]}) == :integer
+      assert Function.return_type({:function, unquote(function), [
+         Column.constant(:real, 3.3), Column.constant(:integer, 1)]}) == :real
+    end
+  end
+
   test "cast to integer typing" do
     assert well_typed?({:cast, :integer}, [:text])
     assert well_typed?({:cast, :integer}, [:boolean])
