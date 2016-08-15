@@ -331,6 +331,7 @@ defmodule Cloak.Aql.Function.Test do
   test "cast to time" do
     time = ~N[2015-01-02 03:04:05]
     assert apply_function({:cast, :time}, [time]) === ~T[03:04:05]
+    assert apply_function({:cast, :time}, [~T[01:02:03]]) === ~T[01:02:03]
     assert apply_function({:cast, :time}, ["12:00:23"]) === ~T[12:00:23]
     assert apply_function({:cast, :time}, ["some string"]) === nil
   end
@@ -348,6 +349,7 @@ defmodule Cloak.Aql.Function.Test do
   test "cast to date" do
     time = ~N[2015-01-02 03:04:05]
     assert apply_function({:cast, :date}, [time]) === ~D[2015-01-02]
+    assert apply_function({:cast, :date}, [~D[2015-01-01]]) === ~D[2015-01-01]
     assert apply_function({:cast, :date}, ["2016-01-02"]) === ~D[2016-01-02]
     assert apply_function({:cast, :date}, ["some string"]) === nil
   end
