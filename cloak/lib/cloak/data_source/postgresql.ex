@@ -102,7 +102,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     %NaiveDateTime{year: year, month: month, day: day, hour: 0, minute: 0, second: 0}
   end
   defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec}) do
-    %NaiveDateTime{year: 0, month: 0, day: 0, hour: hour, minute: min, second: sec}
+    %Time{hour: hour, minute: min, second: sec}
   end
   defp field_mapper(field), do: field
 

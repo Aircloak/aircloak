@@ -877,7 +877,13 @@ defmodule Cloak.QueryTest do
     )
   end
 
-  test "selecting time"
+  test "selecting time" do
+    time = %Postgrex.Time{hour: 1, min: 2, sec: 3}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["time_only"], [time])
+
+    assert_query "select time_only from heights group by time_only",
+      %{columns: [_], rows: [%{occurrences: 1, row: [~T[01:02:03]]}]}
+  end
 
   test "selecting date"
 
