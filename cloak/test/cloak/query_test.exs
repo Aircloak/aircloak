@@ -826,7 +826,7 @@ defmodule Cloak.QueryTest do
   test "subquery must return a user_id" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from (select height from heights) alias",
-      %{error: "Missing `user_id` column in the select list of a subquery." <> _}
+      %{error: "Missing a user id column in the select list of a subquery." <> _}
   end
 
   test "selecting from a subquery" do
