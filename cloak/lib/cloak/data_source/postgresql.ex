@@ -81,10 +81,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("date"), do: :date
   defp parse_type(type), do: {:unsupported, type}
 
-  defp convert_param(%Timex.DateTime{} = time) do
+  defp convert_param(%NaiveDateTime{} = time) do
     %Postgrex.Timestamp{
-      year: time.year, month: time.month, day: time.day, hour: time.hour, min: time.minute, sec: time.second,
-      usec: time.millisecond
+      year: time.year, month: time.month, day: time.day, hour: time.hour, min: time.minute, sec: time.second
     }
   end
   defp convert_param(param), do: param
@@ -96,18 +95,14 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   defp row_mapper(row), do: for field <- row, do: field_mapper(field)
 
-  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day,
-      hour: hour, min: min, sec: sec, usec: usec}) do
-    %Timex.DateTime{
-      year: year, month: month, day: day, hour: hour, minute: min, second: sec, millisecond: usec,
-      timezone: Timex.Timezone.get(:utc)
-    }
+  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day, hour: hour, min: min, sec: sec}) do
+    %NaiveDateTime{year: year, month: month, day: day, hour: hour, minute: min, second: sec}
   end
   defp field_mapper(%Postgrex.Date{year: year, month: month, day: day}) do
-    %Timex.DateTime{year: year, month: month, day: day, timezone: Timex.Timezone.get(:utc)}
+    %NaiveDateTime{year: year, month: month, day: day, hour: 0, minute: 0, second: 0}
   end
-  defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec, usec: usec}) do
-    %Timex.DateTime{hour: hour, minute: min, second: sec, millisecond: usec, timezone: Timex.Timezone.get(:utc)}
+  defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec}) do
+    %NaiveDateTime{year: 0, month: 0, day: 0, hour: hour, minute: min, second: sec}
   end
   defp field_mapper(field), do: field
 

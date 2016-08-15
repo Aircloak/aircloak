@@ -877,6 +877,12 @@ defmodule Cloak.QueryTest do
     )
   end
 
+  test "selecting time"
+
+  test "selecting date"
+
+  test "selecting datetime"
+
   defp start_query(statement) do
     Query.Runner.start("1", Cloak.DataSource.fetch!(:local), statement, {:process, self()})
   end

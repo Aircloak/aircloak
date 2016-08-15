@@ -272,7 +272,7 @@ defmodule Cloak.Aql.Function do
   # cast to text
   defp cast(true, :text), do: "TRUE"
   defp cast(false, :text), do: "FALSE"
-  defp cast(value = %Timex.DateTime{}, :text) do
+  defp cast(value = %NaiveDateTime{}, :text) do
     case Timex.format(value, "{ISOdate} {ISOtime}") do
       {:ok, result} -> result
       {:error, _} -> nil
@@ -291,13 +291,13 @@ defmodule Cloak.Aql.Function do
     end
   end
   # cast to timestamp
-  defp cast(value = %Timex.DateTime{}, :timestamp), do: value
+  defp cast(value = %NaiveDateTime{}, :timestamp), do: value
   defp cast(value, :timestamp) when is_binary(value), do: parse_time(value, "{ISO}")
   # cast to time
-  defp cast(value = %Timex.DateTime{}, :time), do: %{value | year: 0, month: 0, day: 0}
+  defp cast(value = %NaiveDateTime{}, :time), do: %{value | year: 0, month: 0, day: 0}
   defp cast(value, :time) when is_binary(value), do: parse_time(value, "{ISOtime}")
   # cast to date
-  defp cast(value = %Timex.DateTime{}, :date), do: %{value | hour: 0, minute: 0, second: 0, millisecond: 0}
+  defp cast(value = %NaiveDateTime{}, :date), do: %{value | hour: 0, minute: 0, second: 0, millisecond: 0}
   defp cast(value, :date) when is_binary(value), do: parse_time(value, "{ISOdate}")
 
   defp parse_time(value, format) do

@@ -273,9 +273,7 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function({:cast, :text}, ["123"]) === "123"
     assert apply_function({:cast, :text}, [true]) === "TRUE"
     assert apply_function({:cast, :text}, [false]) === "FALSE"
-    assert apply_function({:cast, :text}, [%Timex.DateTime{
-      year: 2015, month: 1, day: 2, hour: 3, minute: 4, second: 5, timezone: Timex.Timezone.get(:utc)
-    }]) === "2015-01-02 03:04:05"
+    assert apply_function({:cast, :text}, [~N[2015-01-02 03:04:05]]) === "2015-01-02 03:04:05"
   end
 
   test "cast to boolean typing" do
@@ -312,9 +310,7 @@ defmodule Cloak.Aql.Function.Test do
   end
 
   test "cast to timestamp" do
-    time = %Timex.DateTime{
-      year: 2015, month: 1, day: 2, hour: 3, minute: 4, second: 5, timezone: Timex.Timezone.get(:utc)
-    }
+    time = ~N[2015-01-02 03:04:05]
     assert apply_function({:cast, :timestamp}, [time]) === time
     assert apply_function({:cast, :timestamp}, [Timex.format!(time, "{ISOz}")]) === time
     assert apply_function({:cast, :timestamp}, ["some string"]) === nil
@@ -331,13 +327,9 @@ defmodule Cloak.Aql.Function.Test do
   end
 
   test "cast to time" do
-    time = %Timex.DateTime{
-      year: 2015, month: 1, day: 2, hour: 3, minute: 4, second: 5, timezone: Timex.Timezone.get(:utc)
-    }
-    assert apply_function({:cast, :time}, [time]) === %{time | year: 0, month: 0, day: 0}
-    assert apply_function({:cast, :time}, ["12:00:23"]) === %Timex.DateTime{
-      hour: 12, minute: 0, second: 23, timezone: Timex.Timezone.get(:utc)
-    }
+    time = ~N[2015-01-02 03:04:05]
+    assert apply_function({:cast, :time}, [time]) === ~T[03:04:05]
+    assert apply_function({:cast, :time}, ["12:00:23"]) === ~T[12:00:23]
     assert apply_function({:cast, :time}, ["some string"]) === nil
   end
 
@@ -352,14 +344,9 @@ defmodule Cloak.Aql.Function.Test do
   end
 
   test "cast to date" do
-    time = %Timex.DateTime{
-      year: 2015, month: 1, day: 2, hour: 3, minute: 4, second: 5, millisecond: 6,
-      timezone: Timex.Timezone.get(:utc)
-    }
-    assert apply_function({:cast, :date}, [time]) === %{time | hour: 0, minute: 0, second: 0, millisecond: 0}
-    assert apply_function({:cast, :date}, ["2016-01-02"]) === %Timex.DateTime{
-      year: 2016, month: 1, day: 2, timezone: Timex.Timezone.get(:utc)
-    }
+    time = ~N[2015-01-02 03:04:05]
+    assert apply_function({:cast, :date}, [time]) === ~D[2015-01-02]
+    assert apply_function({:cast, :date}, ["2016-01-02"]) === ~D[2016-01-02]
     assert apply_function({:cast, :date}, ["some string"]) === nil
   end
 
@@ -368,6 +355,10 @@ defmodule Cloak.Aql.Function.Test do
       assert apply_function({:cast, unquote(type)}, [nil]) === nil
     end
   end
+
+  test "cast date to string to date"
+
+  test "cast time to string to date"
 
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})

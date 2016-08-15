@@ -143,7 +143,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp to_fragment(string) when is_binary(string), do: string
   defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
   defp to_fragment(%Token{category: :constant, value: value}), do: {:param, value.value}
-  defp to_fragment(%Timex.DateTime{} = time), do: {:param, time}
+  defp to_fragment(%NaiveDateTime{} = time), do: {:param, time}
   defp to_fragment(%{} = column), do: "#{column.table.name}.#{column.name}"
 
   defp join([], _joiner), do: []

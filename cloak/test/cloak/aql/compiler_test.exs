@@ -17,25 +17,20 @@ defmodule Cloak.Aql.Compiler.Test do
   test "casts timestamp where conditions" do
     result = compile!("select * from table where column > '2015-01-01'", data_source())
 
-    time = %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}
-    assert [{:comparison, column("table", "column"), :>, ^time}] = result.where
+    assert [{:comparison, column("table", "column"), :>, ~D[2015-01-01]}] = result.where
   end
 
   test "casts timestamp in `in` conditions" do
     result = compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source())
 
     assert [{:in, column("table", "column"), times}] = result.where
-    assert Enum.sort(times) == [
-      %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)},
-      %Timex.DateTime{year: 2015, month: 1, day: 2, timezone: Timex.Timezone.get(:utc)},
-    ]
+    assert Enum.sort(times) == [~D[2015-01-01], ~D[2015-01-02]]
   end
 
   test "casts timestamp in negated conditions" do
     result = compile!("select * from table where column <> '2015-01-01'", data_source())
 
-    time = %Timex.DateTime{year: 2015, month: 1, day: 1, timezone: Timex.Timezone.get(:utc)}
-    assert [{:comparison, column("table", "column"), :=, ^time}] = result.where_not
+    assert [{:comparison, column("table", "column"), :=, ~D[2015-01-01]}] = result.where_not
   end
 
   test "reports malformed timestamps" do
