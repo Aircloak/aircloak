@@ -71,8 +71,13 @@ defmodule Cloak.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      "lint": ["credo --strict"]
+      "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
     ]
   end
   defp aliases(:prod), do: []
+
+  defp ignored_credo_checks(:test), do:
+    ["ModuleDoc" | ignored_credo_checks(:dev)]
+  defp ignored_credo_checks(_), do:
+    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 end

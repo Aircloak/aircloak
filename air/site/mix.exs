@@ -86,10 +86,15 @@ defmodule Air.Mixfile do
       "migrate": ["app.start", "ecto.migrate"],
       "rollback": ["app.start", "ecto.rollback"],
       "test.standard": ["test", "eunit"],
-      "lint": ["credo --strict"]
+      "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
     ]
   end
   defp aliases(:prod), do: []
+
+  defp ignored_credo_checks(:test), do:
+    ["ModuleDoc" | ignored_credo_checks(:dev)]
+  defp ignored_credo_checks(_), do:
+    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 
   defp applications(:test), do: [:phoenix_gen_socket_client, :websocket_client | common_applications()]
   defp applications(:dev), do: common_applications() ++ dialyzer_required_deps()

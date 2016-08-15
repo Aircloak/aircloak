@@ -14,7 +14,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       deps: deps,
       aliases: [
         "test.standard": ["test", "eunit", "proper --level simple"],
-        "lint": ["credo --strict"]
+        "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
       ],
       preferred_cli_env: [
         eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev,
@@ -64,4 +64,9 @@ defmodule Aircloak.ElixirCommon.Mixfile do
 
   defp applications(:test), do: [:logger, :gproc, :phoenix, :cowboy, :poison, :ex_unit]
   defp applications(_), do: [:logger, :gproc, :poison]
+
+  defp ignored_credo_checks(:test), do:
+    ["ModuleDoc" | ignored_credo_checks(:dev)]
+  defp ignored_credo_checks(_), do:
+    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 end

@@ -8,7 +8,7 @@ defmodule Cloak.CloakSocketMock do
     def start_link do
       Application.put_env(:aircloak_common, __MODULE__, [
         https: false,
-        http: [port: 29876],
+        http: [port: 29_876],
         secret_key_base: String.duplicate("abcdefgh", 8),
         debug_errors: false,
         server: true,
