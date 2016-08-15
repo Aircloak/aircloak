@@ -17,18 +17,18 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @spec build(Query.t) :: query_spec
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
-  def build(%Query{mode: :unparsed, unsafe_subquery: unsafe_subquery} = query) do
+  def build(%Query{mode: :unparsed} = query) do
+    {:subquery, %{unparsed_string: unsafe_subquery}} = query.from
+
     {
       ["SELECT ", columns_sql(query.db_columns), " FROM (", unsafe_subquery, ") AS unsafe_subquery"],
       []
     }
   end
   def build(query) do
-    fragments_to_query_spec([
-      "SELECT ", columns_sql(query.db_columns), " ",
-      "FROM ", from_clause(query.from, query), " ",
-      where_fragments(query.where)
-    ])
+    query
+    |> build_fragments()
+    |> fragments_to_query_spec()
   end
 
   @doc "Returns a name uniquely identifying a column in the generated query."
@@ -40,6 +40,14 @@ defmodule Cloak.DataSource.SqlBuilder do
   # -------------------------------------------------------------------
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
+
+  defp build_fragments(query) do
+    [
+      "SELECT ", columns_sql(query.db_columns), " ",
+      "FROM ", from_clause(query.from, query), " ",
+      where_fragments(query.where)
+    ]
+  end
 
   defp columns_sql(columns) do
     columns
@@ -55,7 +63,10 @@ defmodule Cloak.DataSource.SqlBuilder do
     ["(", from_clause(join.lhs, query), " ", join_sql(join.type), " ", from_clause(join.rhs, query),
       on_clause(join.conditions), ")"]
   end
-  defp from_clause(table_name, query) do
+  defp from_clause({:subquery, subquery}, _query) do
+    ["(", build_fragments(subquery.ast), ") AS ", subquery.alias]
+  end
+  defp from_clause(table_name, query) when is_binary(table_name) do
     query.selected_tables
     |> Enum.find(&(&1.name == table_name))
     |> table_to_from()

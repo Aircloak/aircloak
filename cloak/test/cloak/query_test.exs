@@ -823,6 +823,60 @@ defmodule Cloak.QueryTest do
       %{columns: [_], rows: [%{row: [9.6]}]}
   end
 
+  test "selecting from a subquery" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from (select user_id, height from heights) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "user_id can be in any position in a subquery" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from (select height, user_id from heights) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "fully qualified names with subqueries" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select alias.height from (select user_id, height from heights) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "joining two subqueries" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query(
+      """
+        select t1.height as h1, t2.height as h2 from
+          (select user_id, height from heights) t1
+          inner join (select user_id, height from heights) t2 on t1.user_id = t2.user_id
+      """,
+      %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
+    )
+  end
+
+  test "joining a subquery and a table" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query(
+      """
+        select t1.height as h1, heights.height as h2 from
+          (select user_id, height from heights) t1
+          inner join heights on heights.user_id = t1.user_id
+      """,
+      %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
+    )
+  end
+
+  test "nesting subqueries" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query(
+      """
+        select height from (
+          select user_id, height from (select user_id, height from heights) inner_alias
+        ) outer_alias
+      """,
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+    )
+  end
+
   defp start_query(statement) do
     Query.Runner.start("1", Cloak.DataSource.fetch!(:local), statement, {:process, self()})
   end

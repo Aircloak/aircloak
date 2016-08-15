@@ -30,11 +30,9 @@ defmodule Cloak.Aql.Parser do
       | {:in, String.t, [any]}
       | is | {:not, is}
 
-  @type from_clause ::
-      String.t
-    | {:subquery, {:parsed, parsed_query}}
-    | {:subquery, {:unparsed, String.t}}
-    | join
+  @type from_clause :: table | parsed_subquery | unparsed_subquery | join
+
+  @type table :: String.t
 
   @type join ::
     {:join, %{
@@ -43,6 +41,9 @@ defmodule Cloak.Aql.Parser do
       rhs: from_clause,
       conditions: [where_clause]
     }}
+
+  @type parsed_subquery :: {:subquery, %{type: :parsed, ast: parsed_query, alias: String.t}}
+  @type unparsed_subquery :: {:subquery, %{type: :unparsed, unparsed_string: String.t}}
 
   @type parsed_query :: %{
     command: :select | :show,
@@ -83,10 +84,13 @@ defmodule Cloak.Aql.Parser do
   # -------------------------------------------------------------------
 
   defp map_unparsed_subquery(%{from: {:subquery, {:unparsed, from, from}}} = statement, _statement_string) do
-    %{statement | from: {:subquery, {:unparsed, ""}}}
+    %{statement | from: {:subquery, %{type: :unparsed, unparsed_string: ""}}}
   end
   defp map_unparsed_subquery(%{from: {:subquery, {:unparsed, from, to}}} = statement, statement_string) do
-    %{statement | from: {:subquery, {:unparsed, String.slice(statement_string, from..(to - 1))}}}
+    %{statement | from: {
+      :subquery,
+      %{type: :unparsed, unparsed_string: String.slice(statement_string, from..(to - 1))}
+    }}
   end
   defp map_unparsed_subquery(statement, _statement_string), do: statement
 
@@ -450,7 +454,7 @@ defmodule Cloak.Aql.Parser do
     ])
     |> map(
           fn([select_statement, _as_keyword, alias]) ->
-            {:parsed, statement_map(:select, select_statement), alias}
+            %{type: :parsed, ast: statement_map(:select, select_statement), alias: alias}
           end
         )
   end
