@@ -361,6 +361,21 @@ defmodule Cloak.Aql.Compiler.Test do
     assert {:ok, _} = compile("select cast(column as date) from table", data_source())
   end
 
+  test "subquery must return a user_id" do
+    assert {:error, error} = compile("select c1 from (select c1 from t1) alias", data_source())
+    assert error =~ "Missing a user id column"
+  end
+
+  test "negative condition in subquery is not supported" do
+    assert {:error, error} = compile("select c1 from (select uid, c1 from t1 where c1 <> 100) alias", data_source())
+    assert error =~ "<> is not supported in a subquery."
+  end
+
+  test "group by in subquery is not supported" do
+    assert {:error, error} = compile("select c1 from (select uid, avg(c1) from t1 group by uid) alias", data_source())
+    assert error =~ "`GROUP BY` is not supported in a subquery."
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result

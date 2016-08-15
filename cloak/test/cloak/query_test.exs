@@ -823,12 +823,6 @@ defmodule Cloak.QueryTest do
       %{columns: [_], rows: [%{row: [9.6]}]}
   end
 
-  test "subquery must return a user_id" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query "select height from (select height from heights) alias",
-      %{error: "Missing a user id column in the select list of a subquery." <> _}
-  end
-
   test "selecting from a subquery" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from (select user_id, height from heights) alias",
@@ -881,16 +875,6 @@ defmodule Cloak.QueryTest do
       """,
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
     )
-  end
-
-  test "negative condition in subquery is not supported" do
-    assert_query "select height from (select user_id, height from heights where height <> 100) alias",
-      %{error: "<> is not supported in a subquery."}
-  end
-
-  test "group by in subquery is not supported" do
-    assert_query "select height from (select user_id, avg(height) from heights group by user_id) alias",
-      %{error: "`GROUP BY` is not supported in a subquery."}
   end
 
   defp start_query(statement) do
