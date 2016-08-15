@@ -37,7 +37,7 @@ defmodule Cloak.Mixfile do
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
       {:combine, github: "bitwalker/combine", override: true},
       {:timex, "~> 3.0.6"},
-      {:poison, "~> 1.5.2"},
+      {:poison, "~> 2.2.0", override: true},
       {:httpoison, "~> 0.9.0"},
 
       # Test deps
