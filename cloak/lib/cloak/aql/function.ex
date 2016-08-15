@@ -86,7 +86,7 @@ defmodule Cloak.Aql.Function do
   Returns true if the given column definition is a function call to an aggregate function, false otherwise.
   """
   @spec aggregate_function?(t) :: boolean
-  def aggregate_function?({:function, function, _}), do: !!@functions[function][:aggregate]
+  def aggregate_function?({:function, name, _}), do: @functions |> Map.fetch!(name) |> Map.get(:aggregate, false)
   def aggregate_function?(_), do: false
 
   @doc "Returns true if the given function call is a cast, false otherwise."

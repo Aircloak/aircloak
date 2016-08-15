@@ -298,7 +298,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp expand_arguments(column) do
-    (Function.arguments(column) |> Enum.flat_map(&expand_arguments/1)) ++ [column]
+    (column |> Function.arguments() |> Enum.flat_map(&expand_arguments/1)) ++ [column]
   end
 
   defp quoted_list(items), do:
