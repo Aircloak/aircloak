@@ -896,7 +896,13 @@ defmodule Cloak.QueryTest do
       %{rows: [%{row: [~D[0001-02-03]]}]}
   end
 
-  test "selecting datetime"
+  test "selecting datetime" do
+    time = %Postgrex.Timestamp{year: 2015, month: 1, day: 2, hour: 3, min: 4, sec: 5}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["datetime"], [time])
+
+    assert_query "select datetime from heights",
+      %{rows: [%{row: [~N[2015-01-02 03:04:05]]}]}
+  end
 
   defp start_query(statement) do
     Query.Runner.start("1", Cloak.DataSource.fetch!(:local), statement, {:process, self()})
