@@ -52,19 +52,19 @@ defmodule Air.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.1.4"},
+      {:phoenix, "~> 1.1.6"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_ecto, "~> 2.0"},
       {:phoenix_html, "~> 2.4"},
       {:phoenix_live_reload, "~> 1.0", only: :dev},
       {:gettext, "~> 0.9"},
       {:cowboy, "~> 1.0"},
-      {:comeonin, "~> 2.0"},
+      {:comeonin, "~> 2.5"},
       {:guardian, "~> 0.10.0"},
       {:lhttpc, github: "esl/lhttpc", override: true},
       {:etcd, github: "spilgames/etcd.erl", ref: "79d04a775e4488b0eb6e5e07a8c0bf4803adb997"},
       {:hackney, "~> 1.5.0"},
-      {:exrm, "~> 1.0", warn_missing: false},
+      {:exrm, "~> 1.0.8", warn_missing: false},
       {:timex, "~> 2.2"},
       {:aircloak_common, path: "../../common/elixir"},
       {:inflex, "~> 1.5.0"},
