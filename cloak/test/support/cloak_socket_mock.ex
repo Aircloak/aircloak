@@ -79,7 +79,7 @@ defmodule Cloak.CloakSocketMock do
       send(pid(cloak_name), {:call, self(), ref, request})
       receive do
         {^ref, response} -> response
-      after timeout -> raise :timeout
+      after timeout -> raise "timeout"
       end
     end
 
