@@ -274,6 +274,8 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function({:cast, :text}, [true]) === "TRUE"
     assert apply_function({:cast, :text}, [false]) === "FALSE"
     assert apply_function({:cast, :text}, [~N[2015-01-02 03:04:05]]) === "2015-01-02 03:04:05"
+    assert apply_function({:cast, :text}, [~T[03:04:05]]) === "03:04:05"
+    assert apply_function({:cast, :text}, [~D[2015-01-02]]) === "2015-01-02"
   end
 
   test "cast to boolean typing" do
