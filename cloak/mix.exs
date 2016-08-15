@@ -30,7 +30,6 @@ defmodule Cloak.Mixfile do
     [
       {:aircloak_common, path: "../common/elixir"},
       {:gproc, "~> 0.5.0"},
-      {:exrm, "~> 1.0", warn_missing: false},
       {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, warn_missing: false},
       {:postgrex, "~> 0.11"},
       {:poolboy, "~> 1.5"},
@@ -39,11 +38,11 @@ defmodule Cloak.Mixfile do
       {:combine, github: "bitwalker/combine", override: true},
       {:timex, "~> 2.1.6", github: "bitwalker/timex"},
       {:poison, "~> 1.5.2"},
-      {:httpoison, "~> 0.8.3"},
+      {:httpoison, "~> 0.9.0"},
 
       # Test deps
 
-      {:phoenix, "~> 1.1.4", only: :test},
+      {:phoenix, "~> 1.1.6", only: :test},
       {:cowboy, "~> 1.0", only: :test},
       {:bypass, "~> 0.5.1", only: :test}
     ]
