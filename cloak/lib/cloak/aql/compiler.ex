@@ -491,7 +491,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp do_cast_where_clause(clause, _), do: clause
 
-  defp parse_time(%Token{category: :constant, value: %{type: :string, value: string}}) do
+  defp parse_time(%Column{constant?: true, type: :text, value: string}) do
     case Timex.parse(string, "{ISO}") do
       {:ok, value} -> value
       _ -> case Timex.parse(string, "{ISOdate}") do
@@ -500,7 +500,7 @@ defmodule Cloak.Aql.Compiler do
       end
     end
   end
-  defp parse_time(%Token{value: %{value: value}}) do
+  defp parse_time(%Column{constant?: true, value: value}) do
     raise CompilationError, message: "Cannot cast `#{value}` to timestamp."
   end
 
@@ -612,14 +612,14 @@ defmodule Cloak.Aql.Compiler do
         end
     end
   end
-  defp identifier_to_column({:constant, %Token{value: %{type: type, value: value}}}, _columns_by_name, _query), do:
+  defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
     Column.constant(type, value)
   defp identifier_to_column(other, _columns_by_name, _query), do: other
 
   def column_title({:function, function, _}), do: function
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, column}), do: column
-  def column_title({:constant, _}), do: ""
+  def column_title({:constant, _, _}), do: ""
 
   defp warn_on_selected_uids(query) do
     case selected_uid_columns(query) do

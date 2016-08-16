@@ -3,7 +3,6 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   alias Cloak.Aql.Query
   alias Cloak.Aql.Column
-  alias Cloak.Aql.Parsers.Token
 
   @typep query_spec :: {statement, [constant]}
   @typep constant :: String.t | number | boolean
@@ -142,8 +141,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp to_fragment(string) when is_binary(string), do: string
   defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
-  defp to_fragment(%Token{category: :constant, value: value}), do: {:param, value.value}
   defp to_fragment(%NaiveDateTime{} = time), do: {:param, time}
+  defp to_fragment(%Column{constant?: true, value: value}), do: {:param, value}
   defp to_fragment(%{} = column), do: "#{column.table.name}.#{column.name}"
 
   defp join([], _joiner), do: []
