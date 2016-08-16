@@ -25,10 +25,6 @@ cd $ROOT_DIR
 # the image so we rely on the docker layers caching. If neither sources, nor deps
 # have been changed, the existing image will be reused.
 
-# Build images are built without the category suffix
-PROD_IMAGE_CATEGORY="$IMAGE_CATEGORY"
-export IMAGE_CATEGORY=""
-
 common/docker/elixir/build-image.sh
 
 # build deps
@@ -40,7 +36,7 @@ docker run --rm -i \
   -v $(pwd)/cloak:/aircloak/cloak \
   -v $(pwd)/docker_cache/cloak/deps:/aircloak/cloak/deps \
   -v $(pwd)/docker_cache/cloak/_build:/aircloak/cloak/_build \
-  $(aircloak_image_name elixir):latest \
+  $(aircloak_image_name elixir):$(elixir_version) \
   /bin/bash -c ". ~/.asdf/asdf.sh && cd /aircloak/cloak && MIX_ENV=prod ./fetch_deps.sh --only prod && MIX_ENV=prod mix compile"
 
 # build the release
@@ -63,8 +59,6 @@ cd artifacts/rel && \
   tar -xzf cloak.tar.gz && \
   rm cloak.tar.gz
 
-# Build the release image
-export IMAGE_CATEGORY="$PROD_IMAGE_CATEGORY"
 cd $ROOT_DIR
 SYSTEM_VERSION=$(cat cloak/VERSION) \
   build_aircloak_image cloak cloak/docker/release.dockerfile cloak/docker/.dockerignore-release

@@ -1,4 +1,4 @@
-FROM aircloak/erlang
+FROM aircloak/erlang:$ERLANG_VERSION
 MAINTAINER Aircloak
 
 MPI_INIT

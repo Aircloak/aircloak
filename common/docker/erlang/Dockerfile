@@ -1,4 +1,4 @@
-FROM aircloak/base:latest
+FROM aircloak/base:$DEBIAN_VERSION
 MAINTAINER Aircloak
 
 RUN \

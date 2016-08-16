@@ -14,4 +14,5 @@ common/docker/erlang/build-image.sh
 build_aircloak_image \
   elixir \
   common/docker/elixir/Dockerfile \
-  common/docker/elixir/.dockerignore
+  common/docker/elixir/.dockerignore \
+  $(elixir_version)

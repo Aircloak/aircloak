@@ -12,4 +12,5 @@ cd $ROOT_DIR
 build_aircloak_image \
   base \
   common/docker/base/Dockerfile \
-  common/docker/base/.dockerignore
+  common/docker/base/.dockerignore \
+  $(debian_version)

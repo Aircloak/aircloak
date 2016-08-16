@@ -14,4 +14,5 @@ common/docker/base/build-image.sh
 build_aircloak_image \
   erlang \
   common/docker/erlang/Dockerfile \
-  common/docker/erlang/.dockerignore
+  common/docker/erlang/.dockerignore \
+  $(erlang_version)

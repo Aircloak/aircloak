@@ -1,4 +1,4 @@
-FROM aircloak/elixir
+FROM aircloak/elixir:$ELIXIR_VERSION
 MAINTAINER Aircloak
 
 COPY common /aircloak/common

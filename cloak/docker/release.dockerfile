@@ -1,4 +1,4 @@
-FROM aircloak/base
+FROM aircloak/base:$DEBIAN_VERSION
 MAINTAINER Aircloak
 
 ## ------------------------------------------------------------------
