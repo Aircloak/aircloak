@@ -12,13 +12,11 @@ cd $ROOT_DIR
 #
 # To reduce the final image size, we build in a few steps:
 #
-# 1. First, we create the "base builder" image that contains required packages
-#    and the minimum subset of the source code needed to build dependencies.
-# 2. Then, we start the image, and fetch and build the dependencies. The result
+# 1. We start the base Elixir image, and fetch and build the dependencies. The result
 #    is stored in the ../docker_cache/cloak folder which is mounted.
-# 3. Then we build the release image, where remaining sources as well as deps
+# 2. Then we build the release image, where sources as well as deps
 #    are copied, and the OTP release is built.
-# 4. Finally, we briefly start the release image, fetch the release locally,
+# 3. Finally, we briefly start the release image, fetch the release locally,
 #    and create the release container. Here, we just copy the release, without
 #    the need to install Erlang.
 #
@@ -31,21 +29,19 @@ cd $ROOT_DIR
 PROD_IMAGE_CATEGORY="$IMAGE_CATEGORY"
 export IMAGE_CATEGORY=""
 
-# build the base image
-build_aircloak_image \
-  cloak_builder_base \
-  cloak/docker/builder_base.dockerfile \
-  cloak/docker/.dockerignore-builder-base
+common/docker/elixir/build-image.sh
 
 # build deps
 echo "Building dependencies"
 mkdir -p docker_cache/cloak/deps
 mkdir -p docker_cache/cloak/_build
 docker run --rm -i \
+  -v $(pwd)/common:/aircloak/common \
+  -v $(pwd)/cloak:/aircloak/cloak \
   -v $(pwd)/docker_cache/cloak/deps:/aircloak/cloak/deps \
   -v $(pwd)/docker_cache/cloak/_build:/aircloak/cloak/_build \
-  $(aircloak_image_name cloak_builder_base):latest \
-  /bin/bash -c "MIX_ENV=prod ./fetch_deps.sh --only prod && MIX_ENV=prod mix compile"
+  $(aircloak_image_name elixir_base):latest \
+  /bin/bash -c ". ~/.asdf/asdf.sh && cd /aircloak/cloak && MIX_ENV=prod ./fetch_deps.sh --only prod && MIX_ENV=prod mix compile"
 
 # build the release
 echo "Building the release"
