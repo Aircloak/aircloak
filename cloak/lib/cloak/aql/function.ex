@@ -272,6 +272,7 @@ defmodule Cloak.Aql.Function do
   # cast to text
   defp cast(true, :text), do: "TRUE"
   defp cast(false, :text), do: "FALSE"
+  defp cast(value = %Timex.Duration{}, :text), do: Timex.Duration.to_string(value)
   defp cast(value = %NaiveDateTime{}, :text) do
     case Timex.format(value, "{ISOdate} {ISOtime}") do
       {:ok, result} -> result
