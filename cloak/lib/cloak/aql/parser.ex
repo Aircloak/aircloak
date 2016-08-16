@@ -187,7 +187,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp constant_column() do
-    any_constant() |> map(&{:constant, &1})
+    either(interval, any_constant()) |> map(&{:constant, &1})
   end
 
   defp select_column() do
@@ -538,9 +538,18 @@ defmodule Cloak.Aql.Parser do
     )
   end
 
+  defp interval() do
+    pipe(
+      [
+        keyword(:interval),
+        constant_of([:string]),
+      ],
+      fn([:interval, %{value: %{value: value}}]) -> Timex.Duration.parse!(value) end
+    )
+  end
+
   defp any_constant() do
     constant_of([:string, :integer, :float, :boolean])
-    |> label("comparison value")
   end
 
   defp constant_of(expected_types) do

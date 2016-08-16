@@ -736,6 +736,12 @@ defmodule Cloak.Aql.Parser.Test do
       select(columns: [{:function, {:cast, :text}, [identifier("a")]}])
   end
 
+  test "select interval" do
+    duration = Timex.Duration.parse!("P1Y2M3DT4H5M6S")
+    assert_parse "select interval 'P1Y2M3DT4H5M6S' from bar",
+      select(columns: [{:constant, ^duration}])
+  end
+
   create_test =
     fn(description, data_source, statement, expected_error, line, column) ->
       test description do
