@@ -11,7 +11,7 @@ cd $ROOT_DIR
 common/docker/base/build-image.sh
 
 # build the base image
-build_aircloak_image \
+IMAGE_CATEGORY="" build_aircloak_image \
   erlang \
   common/docker/erlang/Dockerfile \
   common/docker/erlang/.dockerignore \

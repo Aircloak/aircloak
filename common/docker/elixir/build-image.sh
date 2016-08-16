@@ -11,7 +11,7 @@ cd $ROOT_DIR
 common/docker/erlang/build-image.sh
 
 # build the base image
-build_aircloak_image \
+IMAGE_CATEGORY="" build_aircloak_image \
   elixir \
   common/docker/elixir/Dockerfile \
   common/docker/elixir/.dockerignore \

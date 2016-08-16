@@ -9,7 +9,7 @@ cd $ROOT_DIR
 . docker/docker_helper.sh
 
 # build the base image
-build_aircloak_image \
+IMAGE_CATEGORY="" build_aircloak_image \
   base \
   common/docker/base/Dockerfile \
   common/docker/base/.dockerignore \
