@@ -1,0 +1,14 @@
+FROM aircloak/base:latest
+MAINTAINER Aircloak
+
+RUN \
+  apt-get update && \
+  apt-get install -y libz-dev autoconf libncurses-dev build-essential libssl-dev
+
+RUN \
+  . /tmp/build_config/proxies.sh && \
+  git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.1.0 && \
+  echo '. ~/.asdf/asdf.sh' >> ~/.bashrc && \
+  echo 'erlang $ERLANG_VERSION' >> ~/.tool-versions && \
+  bash -c ". ~/.asdf/asdf.sh && asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git" && \
+  bash -c ". ~/.asdf/asdf.sh && cd ~ && asdf install"

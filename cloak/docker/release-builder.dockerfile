@@ -1,4 +1,4 @@
-FROM aircloak/elixir_base
+FROM aircloak/elixir
 MAINTAINER Aircloak
 
 COPY common /aircloak/common

@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM aircloak/base
 MAINTAINER Aircloak
 
 ## ------------------------------------------------------------------

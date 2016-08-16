@@ -148,7 +148,10 @@ function build_aircloak_image {
   {
     mkdir -p tmp
     echo "[aircloak] building $full_image_name"
-    cat $dockerfile | dockerfile_content > "$temp_docker_file"
+    cat $dockerfile |
+      dockerfile_content |
+      sed "s/\$ERLANG_VERSION/$(erlang_version)/" |
+      sed "s/\$ELIXIR_VERSION/$(elixir_version)/" > "$temp_docker_file"
     docker build -t $full_image_name:latest -f "$temp_docker_file" .
   } || {
     # called in the case of an error
@@ -394,4 +397,12 @@ function untag_registry_tags {
   if [ "$repo_tags" != "" ]; then
     docker rmi $repo_tags
   fi
+}
+
+function erlang_version {
+  cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep erlang | sed s/'erlang '//
+}
+
+function elixir_version {
+  cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep elixir | sed s/'elixir '//
 }

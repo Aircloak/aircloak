@@ -8,10 +8,10 @@ cd $ROOT_DIR
 
 . docker/docker_helper.sh
 
-common/docker/erlang/build-image.sh
+common/docker/base/build-image.sh
 
 # build the base image
 build_aircloak_image \
-  elixir \
-  common/docker/elixir/Dockerfile \
-  common/docker/elixir/.dockerignore
+  erlang \
+  common/docker/erlang/Dockerfile \
+  common/docker/erlang/.dockerignore

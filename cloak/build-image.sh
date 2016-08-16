@@ -40,7 +40,7 @@ docker run --rm -i \
   -v $(pwd)/cloak:/aircloak/cloak \
   -v $(pwd)/docker_cache/cloak/deps:/aircloak/cloak/deps \
   -v $(pwd)/docker_cache/cloak/_build:/aircloak/cloak/_build \
-  $(aircloak_image_name elixir_base):latest \
+  $(aircloak_image_name elixir):latest \
   /bin/bash -c ". ~/.asdf/asdf.sh && cd /aircloak/cloak && MIX_ENV=prod ./fetch_deps.sh --only prod && MIX_ENV=prod mix compile"
 
 # build the release

@@ -1,4 +1,4 @@
-FROM aircloak/elixir_base
+FROM aircloak/elixir
 MAINTAINER Aircloak
 
 MPI_INIT
