@@ -13,12 +13,12 @@
       },
       "tables": {
         "test": {
-          "name": "user_data",
+          "db_name": "user_data",
           "user_id": "user_id",
           "ignore_unsupported_types": false
         },
         "purchases": {
-          "name": "purchases",
+          "db_name": "purchases",
           "user_id": "uid",
           "ignore_unsupported_types": false
         }
