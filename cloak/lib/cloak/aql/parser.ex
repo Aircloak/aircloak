@@ -1,6 +1,6 @@
 defmodule Cloak.Aql.Parser do
   @moduledoc "Parser for SQL queries."
-  use Combine
+  import Combine.Parsers.Base, except: [satisfy: 2]
   import Cloak.Aql.Parsers
   alias Cloak.DataSource
 
@@ -544,8 +544,10 @@ defmodule Cloak.Aql.Parser do
         keyword(:interval),
         constant_of([:string]),
       ],
-      fn([:interval, %{value: %{value: value}}]) -> Timex.Duration.parse!(value) end
+      fn([:interval, %{value: %{value: value}}]) -> Timex.Duration.parse(value) end
     )
+    |> satisfy(&match?({:ok, _}, &1))
+    |> map(fn({:ok, result}) -> result end)
   end
 
   defp any_constant() do

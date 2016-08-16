@@ -821,6 +821,8 @@ defmodule Cloak.Aql.Parser.Test do
         "select foo from", "Expected `table name`", {1, 16}},
       {"extended trim with two columns",
         "select trim(both a from b) from foo", "Expected `column definition`", {1, 8}},
+      {"invalid interval",
+        "select interval 'does not parse' from foo", "Expected `column definition`", {1, 8}},
       # parsed subqueries
       {"unclosed parens in a parsed subquery expression",
         "select foo from (select bar from baz", "Expected `)`", {1, 37}},

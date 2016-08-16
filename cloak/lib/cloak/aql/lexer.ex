@@ -1,6 +1,7 @@
 defmodule Cloak.Aql.Lexer do
   @moduledoc "Lexer for SQL queries"
-  use Combine
+  import Combine.Parsers.Base, except: [satisfy: 2]
+  import Combine.Parsers.Text
   import Cloak.Aql.Parsers
   alias Cloak.Aql.Parsers.Token
 
