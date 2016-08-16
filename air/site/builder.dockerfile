@@ -1,9 +1,7 @@
 FROM aircloak/elixir:$ELIXIR_VERSION
 MAINTAINER Aircloak
 
-MPI_INIT
-
-# Install dependencies (packages, hex, rebar, npm, brunch) and configure UTF-8
+# Install dependencies (packages, npm, brunch) and configure UTF-8
 RUN \
   apt-get update && \
   apt-get install jq ruby-full -y && \
@@ -13,7 +11,7 @@ RUN \
   /usr/local/node/bin/npm install -g brunch && \
   gem install bundle
 
-ENV PATH=/usr/local/node/bin:$PATH LANG=C.UTF-8 LANGUAGE=C.UTF-8 LC_ALL=C.UTF-8
+ENV PATH=/usr/local/node/bin:$PATH
 
 # First we'll copy only the subset of needed files and compile deps
 # This will reduce the amount of rebuilding when only the source code is changed.
