@@ -79,12 +79,7 @@ defmodule Cloak.Query.Aggregator do
 
   defp aggregated_value_list(_row, :*), do: [:*]
   defp aggregated_value_list(row, {:distinct, column}), do: aggregated_value_list(row, column)
-  defp aggregated_value_list(row, column) do
-    case Function.apply_to_db_row(column, row) do
-      nil -> []
-      value -> [value]
-    end
-  end
+  defp aggregated_value_list(row, column), do: List.wrap(Function.apply_to_db_row(column, row))
 
   defp user_id([user_id | _rest]), do: user_id
 
