@@ -1,7 +1,7 @@
 defmodule Air.DataSource do
   @moduledoc "Functions for dealing with data sources without caring about cloaks."
 
-  alias Air.{CloakInfo, Repo, Organisation}
+  alias Air.{CloakInfo, Repo, Organisation, Query}
 
   @type data_source :: %{
     id: String.t,
@@ -46,6 +46,26 @@ defmodule Air.DataSource do
     Enum.find(all(conn), fn
       (%{name: ^data_source_name, cloak_name: ^cloak_name}) -> true
       (_) -> false
+    end)
+  end
+
+  @doc "Returns the data source that was queried last. Nil if none is found"
+  @spec latest_data_source(Plug.Conn.t) :: data_source | nil
+  def latest_data_source(conn) do
+    queries = Query
+    |> Query.for_user(conn.assigns.current_user)
+    |> Query.recent(10)
+    |> Repo.all()
+
+    data_sources = all(conn)
+
+    Enum.find_value(queries, fn(query) ->
+      Enum.find_value(data_sources, fn(data_source) ->
+        cond do
+          query.cloak_id == data_source.cloak_id and query.data_source == data_source.name -> data_source
+          true -> nil
+        end
+      end)
     end)
   end
 end

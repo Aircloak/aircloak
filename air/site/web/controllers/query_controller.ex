@@ -28,16 +28,10 @@ defmodule Air.QueryController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    last_query = case Query.load_recent_queries(conn.assigns.current_user, 1) do
-      [query] -> query
-      _ -> nil
+    case DataSource.latest_data_source(conn) do
+      nil -> redirect(conn, to: "/data_sources")
+      data_source -> redirect(conn, to: "/data_sources/#{data_source.id}")
     end
-    render(conn, "index.html",
-      guardian_token: Guardian.Plug.current_token(conn),
-      csrf_token: CSRFProtection.get_csrf_token(),
-      last_query: JSON.encode!(last_query),
-      data_sources: JSON.encode!(DataSource.all(conn.assigns.current_user.organisation))
-    )
   end
 
   def create(conn, %{"query" => params}) do
