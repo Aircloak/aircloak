@@ -192,6 +192,36 @@ defmodule Cloak.Aql.Function.Test do
     end
   end
 
+  test "subtracting dates" do
+    assert well_typed?("-", [:date, :date])
+    assert return_type("-", [:date, :date]) == :interval
+    assert apply_function("-", [~D[2015-01-30], ~D[2015-01-20]]) === Timex.Duration.from_days(10)
+  end
+
+  test "subtracting times"
+
+  test "subtracting timestamps"
+
+  test "datetime + interval"
+
+  test "datetime - interval"
+
+  test "interval + datetime"
+
+  test "interval - datetime is ill-typed"
+
+  test "interval + interval"
+
+  test "interval - interval"
+
+  test "interval * number"
+
+  test "interval / number"
+
+  test "number * interval"
+
+  test "number / interval is ill-typed"
+
   test "% typing" do
     assert well_typed?("%", [:integer, :integer])
     refute well_typed?("%", [:real, :real])
@@ -207,9 +237,8 @@ defmodule Cloak.Aql.Function.Test do
 
   for function <- ~w(round trunc) do
     test "#{function} return type" do
-      assert Function.return_type({:function, unquote(function), [Column.constant(:real, 3.3)]}) == :integer
-      assert Function.return_type({:function, unquote(function), [
-         Column.constant(:real, 3.3), Column.constant(:integer, 1)]}) == :real
+      assert return_type(unquote(function), [:real]) == :integer
+      assert return_type(unquote(function), [:real, :integer]) == :real
     end
   end
 
@@ -385,6 +414,9 @@ defmodule Cloak.Aql.Function.Test do
       assert apply_function({:cast, unquote(type)}, [nil]) === nil
     end
   end
+
+  defp return_type(name, arg_types), do:
+    Function.return_type({:function, name, Enum.map(arg_types, &Column.constant(&1, nil))})
 
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})

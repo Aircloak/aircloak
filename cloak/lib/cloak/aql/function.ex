@@ -7,6 +7,13 @@ defmodule Cloak.Aql.Function do
   import Kernel, except: [apply: 2]
 
   numeric = {:or, [:integer, :real]}
+  arithmetic_operation = %{
+    [:integer, :integer] => :integer,
+    [:real, :integer] => :real,
+    [:integer, :real] => :real,
+    [:real, :real] => :real,
+  }
+
   @functions %{
     ~w(count) => %{aggregate: true, type_specs: %{[:any] => :integer}},
     ~w(sum min max median) => %{aggregate: true, type_specs: %{
@@ -25,12 +32,10 @@ defmodule Cloak.Aql.Function do
     }},
     ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
     ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
-    ~w(pow * + - ^) => %{type_specs: %{
-      [:integer, :integer] => :integer,
-      [:real, :integer] => :real,
-      [:integer, :real] => :real,
-      [:real, :real] => :real,
-    }},
+    ~w(pow * + ^) => %{type_specs: arithmetic_operation},
+    ~w(-) => %{type_specs: Map.merge(arithmetic_operation, %{
+      [:date, :date] => :interval
+    })},
     ~w(/) => %{type_specs: %{[numeric, numeric] => :real}},
     ~w(length) => %{type_specs: %{[:text] => :integer}},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
@@ -216,6 +221,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("*", [x, y]), do: x * y
   defp do_apply("/", [x, y]), do: x / y
   defp do_apply("+", [x, y]), do: x + y
+  defp do_apply("-", [x = %Date{}, y = %Date{}]), do: Timex.diff(x, y, :duration)
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
 
