@@ -232,20 +232,23 @@ defmodule Cloak.Aql.Function.Test do
 
   for {type, value} <- %{time: ~T[10:20:30], date: ~D[2015-01-02], timestamp: ~N[2015-01-02 10:20:30]} do
     @value value
+    @interval Duration.parse!("P10DT10M")
 
     test "#{type} - interval" do
       assert well_typed?("-", [unquote(type), :interval])
-      interval = Duration.parse!("P10DT10M")
-      assert apply_function("-", [@value, interval]) ===
-        apply_function("+", [@value, Duration.scale(interval, -1)])
+      assert apply_function("-", [@value, @interval]) ===
+        apply_function("+", [@value, Duration.scale(@interval, -1)])
     end
 
     test "interval - #{type} is ill-typed" do
       refute well_typed?("-", [:interval, unquote(type)])
     end
-  end
 
-  test "interval + datetime"
+    test "interval + #{type}" do
+      assert well_typed?("+", [:interval, unquote(type)])
+      assert apply_function("+", [@interval, @value]) == apply_function("+", [@value, @interval])
+    end
+  end
 
   test "interval + interval"
 
