@@ -35,7 +35,7 @@ defmodule Air.Router do
 
     get "/", QueryController, :index
     post "/queries", QueryController, :create
-    get "/queries/load_history", QueryController, :load_history
+    get "/queries/load_history/:data_source_id", QueryController, :load_history
     get "/queries/failed", QueryController, :failed
     get "/queries/:id", QueryController, :show
 
@@ -51,6 +51,9 @@ defmodule Air.Router do
 
     get "/audit_log/load_entries", AuditLogController, :load_entries
     get "/audit_log", AuditLogController, :index
+
+    get "/data_sources", DataSourceController, :index
+    get "/data_sources/:data_source_id", DataSourceController, :show
   end
 
   scope "/api" do

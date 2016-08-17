@@ -34,8 +34,7 @@ This endpoint retrieves the list of all data sources.
 [
   {
     "id": "<data-source-id>",
-    "display":"<data-source-id> (<cloak-name>)",
-    "token": "<data_source_token>",
+    "name": "<data source name>",
     "tables": [
       {
         "id":"purchases",
@@ -53,6 +52,6 @@ This endpoint retrieves the list of all data sources.
 ]
 ```
 
-The API return value is a list of all data sources. Take special note of the `token` field. This token must be used when you want to [run a query](#running-a-query) against a data source.
+The API return value is a list of all data sources. Take special note of the `id` field. This token must be used when you want to [run a query](#running-a-query) against a data source.
 
 For the use of error codes in the Web REST API, please consult the [Errors](#errors) section.

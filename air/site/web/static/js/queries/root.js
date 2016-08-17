@@ -5,7 +5,6 @@ import Mousetrap from "mousetrap";
 
 import {CodeEditor} from "../code_editor";
 import {Results} from "./results";
-import {DataSourceSelector} from "./data_source_selector";
 import {MenuButton} from "../menu";
 import {ResultSocket} from "../result_socket";
 import {HistoryLoader} from "./history_loader";
@@ -16,7 +15,6 @@ class QueriesView extends React.Component {
 
     this.state = {
       statement: this.props.lastQuery ? this.props.lastQuery.statement : "",
-      dataSource: this.props.sources[0] ? this.props.sources[0].token : "",
       sessionResults: [],
 
       history: {
@@ -90,7 +88,7 @@ class QueriesView extends React.Component {
     return JSON.stringify({
       query: {
         statement: this.state.statement,
-        data_source_token: this.state.dataSource,
+        data_source_id: this.props.dataSourceId,
       },
     });
   }
@@ -126,7 +124,7 @@ class QueriesView extends React.Component {
       loading: true,
     };
     this.setState({history});
-    $.ajax("/queries/load_history", {
+    $.ajax(`/queries/load_history/${this.props.dataSourceId}`, {
       method: "GET",
       headers: {
         "X-CSRF-TOKEN": this.props.CSRFToken,
@@ -160,7 +158,6 @@ class QueriesView extends React.Component {
   render() {
     return (<div>
       <div id="aql-editor">
-        <h3>Query editor</h3>
         <CodeEditor
           onRun={this.runQuery}
           onSave={() => {}}
@@ -171,13 +168,6 @@ class QueriesView extends React.Component {
         <div className="right-align">
           <MenuButton onClick={this.runQuery} isActive>Run</MenuButton> or <kbd>Ctrl + Enter</kbd>
         </div>
-
-        <DataSourceSelector
-          sources={this.props.sources}
-          onChange={this.setDataSource}
-          selectedDataSource={this.state.dataSource}
-        />
-
       </div>
 
       <Results results={this.state.sessionResults} />
@@ -193,7 +183,7 @@ export default function renderQueriesView(data, elem) {
 }
 
 QueriesView.propTypes = {
-  sources: DataSourceSelector.propTypes.sources,
+  dataSourceId: React.PropTypes.string.isRequired,
   lastQuery: React.PropTypes.shape({
     statement: React.PropTypes.string.isRequired,
   }),

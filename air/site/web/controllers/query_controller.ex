@@ -4,9 +4,7 @@ defmodule Air.QueryController do
   use Timex
 
   require Logger
-  alias Air.{DataSource, Query, Repo, Token, AuditLog}
-  alias Poison, as: JSON
-  alias Plug.CSRFProtection
+  alias Air.{DataSource, Query, Repo, AuditLog}
   alias Plug.Conn.Status
   alias Air.Socket.Cloak.MainChannel
 
@@ -28,21 +26,15 @@ defmodule Air.QueryController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    last_query = case load_recent_queries(conn.assigns.current_user, 1) do
-      [query] -> query
-      _ -> nil
+    case DataSource.latest_data_source(conn.assigns.current_user) do
+      nil -> redirect(conn, to: "/data_sources")
+      data_source -> redirect(conn, to: "/data_sources/#{data_source.id}")
     end
-    render(conn, "index.html",
-      guardian_token: Guardian.Plug.current_token(conn),
-      csrf_token: CSRFProtection.get_csrf_token(),
-      last_query: JSON.encode!(last_query),
-      data_sources: JSON.encode!(DataSource.all(conn.assigns.current_user.organisation))
-    )
   end
 
   def create(conn, %{"query" => params}) do
     {:ok, query} = build_assoc(conn.assigns.current_user, :queries)
-    |> Query.changeset(parse_query_params(params))
+    |> Query.changeset(parse_query_params(conn, params))
     |> Repo.insert()
 
     AuditLog.log(conn, "Executed query", query: query.statement, data_source: query.data_source)
@@ -72,8 +64,17 @@ defmodule Air.QueryController do
     end
   end
 
-  def load_history(conn, _params) do
-    json(conn, load_recent_queries(conn.assigns.current_user, 10))
+  def load_history(conn, %{"data_source_id" => data_source_id}) do
+    case DataSource.by_id(conn.assigns.current_user, data_source_id) do
+      nil ->
+        response = %{
+          success: false,
+          error: "Datasource is not available. Cannot load history"
+        }
+        json(conn, response)
+      data_source ->
+        json(conn, Query.load_recent_queries(conn.assigns.current_user, data_source, 10))
+    end
   end
 
   def show(conn, %{"id" => id_type}) do
@@ -112,20 +113,15 @@ defmodule Air.QueryController do
 
   defp find_query(user, id) do
     user
-    |> Query.for_user
+    |> Query.for_user()
     |> Repo.get(id)
   end
 
-  defp load_recent_queries(user, recent_count) do
-    user
-    |> Query.for_user
-    |> Query.recent(recent_count)
-    |> Repo.all
-    |> Enum.map(&Query.for_display/1)
-  end
-
-  defp parse_query_params(params) do
-    {cloak_id, data_source} = Token.decode_data_source_token(params["data_source_token"])
-    Map.merge(params, %{"cloak_id" => cloak_id, "data_source" => data_source})
+  defp parse_query_params(conn, params) do
+    # Needed for temporary backwards compatibility, while clients are still sending
+    # tokens rather than ID's.
+    data_source_id = params["data_source_id"] || params["data_source_token"]
+    data_source  = DataSource.by_id(conn.assigns.current_user, data_source_id)
+    Map.merge(params, %{"cloak_id" => data_source.cloak_id, "data_source" => data_source.name})
   end
 end

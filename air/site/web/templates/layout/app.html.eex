@@ -30,8 +30,8 @@
 
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
               <ul class="nav navbar-nav navbar-right">
-                <%= if permitted?(@conn, Air.QueryController, :index) do %>
-                  <%= navbar_link(@conn, "Query", query_path(@conn, :index)) %>
+                <%= if permitted?(@conn, Air.DataSourceController, :index) do %>
+                  <%= navbar_link(@conn, "Data sources", data_source_path(@conn, :index)) %>
                 <% end %>
                 <%= if permitted?(@conn, Air.QueryController, :failed) do %>
                   <%= navbar_link(@conn, "Failed queries", query_path(@conn, :failed)) %>

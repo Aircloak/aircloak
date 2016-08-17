@@ -2,7 +2,7 @@ defmodule Air.Query do
   @moduledoc "The query model."
   use Air.Web, :model
 
-  alias Air.User
+  alias Air.{User, Repo, DataSource}
 
   @type t :: %__MODULE__{}
   @type cloak_query :: %{id: String.t, statement: String.t, data_source: String.t}
@@ -67,6 +67,17 @@ defmodule Air.Query do
     CSV.encode([header | rows])
   end
 
+  @doc "Loads the most recent queries for a given user"
+  @spec load_recent_queries(User.t, DataSource.t, integer) :: [Query.t]
+  def load_recent_queries(user, data_source, recent_count) do
+    user
+    |> for_user()
+    |> for_data_source(data_source)
+    |> recent(recent_count)
+    |> Repo.all
+    |> Enum.map(&for_display/1)
+  end
+
 
   # -------------------------------------------------------------------
   # Query functions
@@ -77,6 +88,13 @@ defmodule Air.Query do
   def for_user(query \\ __MODULE__, user) do
     from q in query,
     where: q.user_id == ^user.id
+  end
+
+  @doc "Adds a query filter selecting only those for the given user"
+  @spec for_data_source(Ecto.Queryable.t, DataSource.t) :: Ecto.Queryable.t
+  def for_data_source(query \\ __MODULE__, data_source) do
+    from q in query,
+    where: q.cloak_id == ^data_source.cloak_id and q.data_source == ^data_source.name
   end
 
   @doc "Adds a query filter limiting the number of selected queries"
