@@ -264,11 +264,16 @@ defmodule Cloak.Aql.Function.Test do
       Duration.parse!("P9DT9M")
   end
 
-  test "interval * number"
+  test "interval * number" do
+    assert return_type("*", [:interval, :integer]) == :interval
+    assert return_type("*", [:integer, :interval]) == :interval
+    assert return_type("*", [:interval, :real]) == :interval
+    assert return_type("*", [:real, :interval]) == :interval
+    assert apply_function("*", [Duration.parse!("P1DT1M"), 10]) === Duration.parse!("P10DT10M")
+    assert apply_function("*", [10, Duration.parse!("P1DT1M")]) === Duration.parse!("P10DT10M")
+  end
 
   test "interval / number"
-
-  test "number * interval"
 
   test "number / interval is ill-typed"
 

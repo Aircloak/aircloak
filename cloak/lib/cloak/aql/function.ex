@@ -33,7 +33,7 @@ defmodule Cloak.Aql.Function do
     }},
     ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
     ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
-    ~w(pow * ^) => %{type_specs: arithmetic_operation},
+    ~w(pow ^) => %{type_specs: arithmetic_operation},
     ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :interval] => :timestamp,
       [:time, :interval] => :time,
@@ -52,6 +52,10 @@ defmodule Cloak.Aql.Function do
       [:timestamp, :interval] => :timestamp,
       [:interval, :interval] => :interval,
     })},
+    ~w(*) => %{type_specs: Map.merge(arithmetic_operation, %{
+       [:interval, numeric] => :interval,
+       [numeric, :interval] => :interval,
+     })},
     ~w(/) => %{type_specs: %{[numeric, numeric] => :real}},
     ~w(length) => %{type_specs: %{[:text] => :integer}},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
@@ -234,6 +238,8 @@ defmodule Cloak.Aql.Function do
   defp do_apply("||", args), do: Enum.join(args)
   defp do_apply("concat", args), do: Enum.join(args)
   defp do_apply("^", [x, y]), do: :math.pow(x, y)
+  defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
+  defp do_apply("*", [x, y = %Duration{}]), do: Duration.scale(y, x)
   defp do_apply("*", [x, y]), do: x * y
   defp do_apply("/", [x, y]), do: x / y
   defp do_apply("+", [x = %Date{}, y = %Duration{}]), do:
