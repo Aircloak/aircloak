@@ -262,14 +262,14 @@ defmodule Cloak.Aql.Parsers do
     when is_function(parser, 1) and is_function(predicate, 1) do
       case parser.(state) do
         %ParserState{status: :ok, results: [h|_]} = s ->
-          cond do
-            predicate.(h) -> s
-            true ->
-              %{s | :status => :error,
-                    :error => "Could not satisfy predicate for #{inspect(h)} at line #{line}, column #{col}",
-                    :line => line,
-                    :column => col
-              }
+          if predicate.(h) do
+            s
+          else
+            %{s | :status => :error,
+                  :error => "Could not satisfy predicate for #{inspect(h)} at line #{line}, column #{col}",
+                  :line => line,
+                  :column => col
+            }
           end
         %ParserState{} = s -> s
       end
