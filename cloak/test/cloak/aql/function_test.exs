@@ -271,6 +271,7 @@ defmodule Cloak.Aql.Function.Test do
     assert return_type("*", [:real, :interval]) == :interval
     assert apply_function("*", [Duration.parse!("P1DT1M"), 10]) === Duration.parse!("P10DT10M")
     assert apply_function("*", [10, Duration.parse!("P1DT1M")]) === Duration.parse!("P10DT10M")
+    assert apply_function("*", [Duration.parse!("P10DT10M"), 0.5]) === Duration.parse!("P5DT5M")
   end
 
   test "interval / number"

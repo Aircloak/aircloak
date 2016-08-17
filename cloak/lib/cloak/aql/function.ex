@@ -238,8 +238,10 @@ defmodule Cloak.Aql.Function do
   defp do_apply("||", args), do: Enum.join(args)
   defp do_apply("concat", args), do: Enum.join(args)
   defp do_apply("^", [x, y]), do: :math.pow(x, y)
-  defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
-  defp do_apply("*", [x, y = %Duration{}]), do: Duration.scale(y, x)
+  defp do_apply("*", [x = %Duration{}, y]) do
+    x |> Duration.to_seconds() |> Kernel.*(y) |> Duration.from_seconds()
+  end
+  defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])
   defp do_apply("*", [x, y]), do: x * y
   defp do_apply("/", [x, y]), do: x / y
   defp do_apply("+", [x = %Date{}, y = %Duration{}]), do:
