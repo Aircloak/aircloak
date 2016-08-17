@@ -118,7 +118,8 @@ defmodule Cloak.DataSource.DsProxy do
     %HTTPoison.Response{status_code: 200, body: body} = HTTPoison.post!(
       "#{Keyword.fetch!(params, :url)}/#{operation}",
       Poison.encode!(payload),
-      [{"Content-Type", "application/json"}]
+      [{"Content-Type", "application/json"}],
+      recv_timeout: :timer.hours(4)
     )
 
     Poison.decode!(body)

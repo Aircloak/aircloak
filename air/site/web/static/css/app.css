@@ -1,6 +1,6 @@
 body {
   /* Because of the static navbar we need padding
-     on top so the content doesn't get hidden */
+  on top so the content doesn't get hidden */
   padding-top: 70px;
 }
 
@@ -13,15 +13,15 @@ form.link, form.button {
 }
 
 ul.nav.navbar-nav.navbar-right li form.link a {
-	position: relative;
-	top: 15px;
-	margin-right: 10px;
-	margin-left: 5px;
-	padding: 10px;
+  position: relative;
+  top: 15px;
+  margin-right: 10px;
+  margin-left: 5px;
+  padding: 10px;
 }
 
 ul.nav.navbar-nav.navbar-right li form.link a:hover {
-	text-decoration: none;
+  text-decoration: none;
 }
 
 .logo {
@@ -44,7 +44,7 @@ ul.nav.navbar-nav.navbar-right li form.link a:hover {
 }
 
 .table-hover tbody tr:hover td {
-    background: rgb(255,255,155);
+  background: rgb(255,255,155);
 }
 
 /* Customize container */
@@ -102,4 +102,37 @@ a.suggested-reading {
 a.suggested-reading:hover {
   background-color: yellow;
   color: black;
+}
+
+ul.data-source {
+  margin: 0 -10px;
+  padding: 0;
+}
+
+ul.data-source li {
+  list-style-type: none;
+}
+
+ul.data-source li h3 {
+  padding: 10px;
+  margin: 0;
+}
+
+ul.data-source li a.main-link {
+  display: table;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+}
+
+ul.data-source li a.main-link:hover {
+  background-color: #ccc;
+}
+
+ul.data-source li p {
+  border-top: 1px solid #ecebed;
+  margin-left: 10px;
+  margin-right: 10px;
+  padding-top: 5px;
+  margin-top: -1px;
 }

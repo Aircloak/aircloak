@@ -8,7 +8,7 @@ RestClient.post "#{site_url}/api/queries",
   {
     query: {
       statement: statement,
-      data_source_token: data_source_token
+      data_source_id: data_source_id
     }
   }.to_json,
   {"Content-Type" => "application/json"}
@@ -21,7 +21,7 @@ wget \
   --method=POST \
   --header "auth-token: $API_TOKEN" \
   --header "Content-Type: application/json" \
-  --body-data "{\"query\": {\"statement\": \"$statement\", \"data_source_token\": \"$data_source_token\"}}" \
+  --body-data "{\"query\": {\"statement\": \"$statement\", \"data_source_id\": \"$data_source_id\"}}" \
   $SITE_URL/api/queries
 ```
 
@@ -30,11 +30,11 @@ curl -v \
   -X POST \
   -H "auth-token:$API_TOKEN" \
   -H "Content-Type:application/json" \
-  -d "{\"query\": {\"statement\": \"$statement\", \"data_source_token\": \"$data_source_token\"}}" \
+  -d "{\"query\": {\"statement\": \"$statement\", \"data_source_id\": \"$data_source_id\"}}" \
   $SITE_URL/api/queries
 ```
 
-This endpoint starts a query asynchronously. You need to provide a valid data source token, which you can obtain with the [data source endpoint](#get-the-list-of-all-data-sources).
+This endpoint starts a query asynchronously. You need to provide a valid data source id, which you can obtain with the [data source endpoint](#get-the-list-of-all-data-sources).
 
 #### HTTP Request
 
