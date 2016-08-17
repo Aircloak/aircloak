@@ -35,7 +35,8 @@ defmodule Cloak.Aql.Function do
     ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
     ~w(pow * ^) => %{type_specs: arithmetic_operation},
     ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
-      [:date, :interval] => :timestamp
+      [:date, :interval] => :timestamp,
+      [:time, :interval] => :time,
     })},
     ~w(-) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :date] => :interval,
@@ -228,6 +229,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("/", [x, y]), do: x / y
   defp do_apply("+", [x = %Date{}, y = %Duration{}]), do:
     Timex.add(Timex.to_naive_datetime(x), y)
+  defp do_apply("+", [x = %Time{}, y = %Duration{}]), do: add_to_time(x, y)
   defp do_apply("+", [x, y]), do: x + y
   defp do_apply("-", [x = %Date{}, y = %Date{}]), do: Timex.diff(x, y, :duration)
   defp do_apply("-", [x = %NaiveDateTime{}, y = %NaiveDateTime{}]), do: Timex.diff(x, y, :duration)
@@ -258,6 +260,12 @@ defmodule Cloak.Aql.Function do
   defp substring(_string, _from, count) when count < 0, do: ""
   defp substring(string, from, count), do:
     String.slice(string, from - 1, count || String.length(string))
+
+  defp add_to_time(time, duration) do
+    NaiveDateTime.from_erl!({_arbitrary_date = {100, 1, 1}, Time.to_erl(time)})
+    |> Timex.add(duration_time_part(duration))
+    |> NaiveDateTime.to_time
+  end
 
   defp cast(nil, _), do: nil
   # cast to integer
@@ -343,5 +351,10 @@ defmodule Cloak.Aql.Function do
       {:ok, result} -> result
       {:error, _} -> nil
     end
+  end
+
+  defp duration_time_part(duration) do
+    {hours, days, seconds, microseconds} = Duration.to_clock(duration)
+    Duration.from_clock({rem(hours, 24), days, seconds, microseconds})
   end
 end
