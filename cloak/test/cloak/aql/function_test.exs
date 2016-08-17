@@ -253,10 +253,16 @@ defmodule Cloak.Aql.Function.Test do
   test "interval + interval" do
     assert well_typed?("+", [:interval, :interval])
     assert return_type("+", [:interval, :interval]) == :interval
-    assert apply_function("+", [Duration.parse!("P10D"), Duration.parse!("PT10M")]) === Duration.parse!("P10DT10M")
+    assert apply_function("+", [Duration.parse!("P10D"), Duration.parse!("PT10M")]) ===
+      Duration.parse!("P10DT10M")
   end
 
-  test "interval - interval"
+  test "interval - interval" do
+    assert well_typed?("-", [:interval, :interval])
+    assert return_type("-", [:interval, :interval]) == :interval
+    assert apply_function("-", [Duration.parse!("P10DT10M"), Duration.parse!("P1DT1M")]) ===
+      Duration.parse!("P9DT9M")
+  end
 
   test "interval * number"
 

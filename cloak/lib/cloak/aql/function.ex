@@ -50,6 +50,7 @@ defmodule Cloak.Aql.Function do
       [:date, :interval] => :timestamp,
       [:time, :interval] => :time,
       [:timestamp, :interval] => :timestamp,
+      [:interval, :interval] => :interval,
     })},
     ~w(/) => %{type_specs: %{[numeric, numeric] => :real}},
     ~w(length) => %{type_specs: %{[:text] => :integer}},
