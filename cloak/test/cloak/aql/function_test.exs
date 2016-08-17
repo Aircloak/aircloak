@@ -204,7 +204,12 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("-", [~T[10:20:00], ~T[10:00:00]]) === Timex.Duration.from_minutes(20)
   end
 
-  test "subtracting timestamps"
+  test "subtracting timestamps" do
+    assert well_typed?("-", [:timestamp, :timestamp])
+    assert return_type("-", [:timestamp, :timestamp]) == :interval
+    assert apply_function("-", [~N[2015-01-02 10:20:00], ~N[2015-01-01 10:00:00]]) ===
+      Timex.Duration.parse!("P1DT20M")
+  end
 
   test "datetime + interval"
 

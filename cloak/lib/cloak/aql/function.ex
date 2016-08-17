@@ -36,6 +36,7 @@ defmodule Cloak.Aql.Function do
     ~w(-) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :date] => :interval,
       [:time, :time] => :interval,
+      [:timestamp, :timestamp] => :interval,
     })},
     ~w(/) => %{type_specs: %{[numeric, numeric] => :real}},
     ~w(length) => %{type_specs: %{[:text] => :integer}},
@@ -223,6 +224,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("/", [x, y]), do: x / y
   defp do_apply("+", [x, y]), do: x + y
   defp do_apply("-", [x = %Date{}, y = %Date{}]), do: Timex.diff(x, y, :duration)
+  defp do_apply("-", [x = %NaiveDateTime{}, y = %NaiveDateTime{}]), do: Timex.diff(x, y, :duration)
   defp do_apply("-", [x = %Time{}, y = %Time{}]), do:
     Timex.Duration.sub(Timex.Duration.from_time(x), Timex.Duration.from_time(y))
   defp do_apply("-", [x, y]), do: x - y
