@@ -198,7 +198,11 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("-", [~D[2015-01-30], ~D[2015-01-20]]) === Timex.Duration.from_days(10)
   end
 
-  test "subtracting times"
+  test "subtracting times" do
+    assert well_typed?("-", [:time, :time])
+    assert return_type("-", [:time, :time]) == :interval
+    assert apply_function("-", [~T[10:20:00], ~T[10:00:00]]) === Timex.Duration.from_minutes(20)
+  end
 
   test "subtracting timestamps"
 
