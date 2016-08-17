@@ -56,7 +56,10 @@ defmodule Cloak.Aql.Function do
        [:interval, numeric] => :interval,
        [numeric, :interval] => :interval,
      })},
-    ~w(/) => %{type_specs: %{[numeric, numeric] => :real}},
+    ~w(/) => %{type_specs: %{
+      [numeric, numeric] => :real,
+      [:interval, {:or, [:integer, :real]}] => :interval,
+    }},
     ~w(length) => %{type_specs: %{[:text] => :integer}},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
     ~w(left right) => %{type_specs: %{[:text, :integer] => :text}},
@@ -242,6 +245,8 @@ defmodule Cloak.Aql.Function do
     x |> Duration.to_seconds() |> Kernel.*(y) |> Duration.from_seconds()
   defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])
   defp do_apply("*", [x, y]), do: x * y
+  defp do_apply("/", [x = %Duration{}, y]), do:
+    x |> Duration.to_seconds() |> Kernel./(y) |> Duration.from_seconds()
   defp do_apply("/", [x, y]), do: x / y
   defp do_apply("+", [x = %Date{}, y = %Duration{}]), do:
     x |> Timex.to_naive_datetime() |> Timex.add(y)

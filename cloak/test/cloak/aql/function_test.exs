@@ -274,9 +274,17 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("*", [Duration.parse!("P10DT10M"), 0.5]) === Duration.parse!("P5DT5M")
   end
 
-  test "interval / number"
+  test "interval / number" do
+    assert return_type("/", [:interval, :integer]) == :interval
+    assert return_type("/", [:interval, :real]) == :interval
+    assert apply_function("/", [Duration.parse!("P10DT10M"), 2]) === Duration.parse!("P5DT5M")
+    assert apply_function("/", [Duration.parse!("P10DT10M"), 0.5]) === Duration.parse!("P20DT20M")
+  end
 
-  test "number / interval is ill-typed"
+  test "number / interval is ill-typed" do
+    refute well_typed?("/", [:integer, :interval])
+    refute well_typed?("/", [:real, :interval])
+  end
 
   test "% typing" do
     assert well_typed?("%", [:integer, :integer])
