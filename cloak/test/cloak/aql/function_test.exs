@@ -224,7 +224,11 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("+", [~T[10:20:30], Duration.parse!("P10DT1H10M")]) === ~T[11:30:30]
   end
 
-  test "timestamp + interval"
+  test "timestamp + interval" do
+    assert well_typed?("+", [:timestamp, :interval])
+    assert return_type("+", [:timestamp, :interval]) == :timestamp
+    assert apply_function("+", [~N[2015-01-01 10:20:30], Duration.parse!("P10DT10M")]) === ~N[2015-01-11 10:30:30]
+  end
 
   test "datetime - interval"
 
