@@ -362,6 +362,24 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function({:cast, :date}, ["some string"]) === nil
   end
 
+  test "cast to interval typing" do
+    assert well_typed?({:cast, :interval}, [:text])
+    refute well_typed?({:cast, :interval}, [:boolean])
+    refute well_typed?({:cast, :interval}, [:real])
+    refute well_typed?({:cast, :interval}, [:integer])
+    refute well_typed?({:cast, :interval}, [:timestamp])
+    refute well_typed?({:cast, :interval}, [:date])
+    refute well_typed?({:cast, :interval}, [:time])
+    assert well_typed?({:cast, :interval}, [:interval])
+  end
+
+  test "cast to interval" do
+    interval = Timex.Duration.from_seconds(10)
+    assert apply_function({:cast, :interval}, [interval]) === interval
+    assert apply_function({:cast, :interval}, ["PT10S"]) === interval
+    assert apply_function({:cast, :interval}, ["not an interval"]) === nil
+  end
+
   for type <- [:text, :boolean, :real, :integer, :timestamp, :date, :time, :interval] do
     test "casting nil to #{type}" do
       assert apply_function({:cast, unquote(type)}, [nil]) === nil

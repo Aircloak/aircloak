@@ -54,6 +54,8 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[{:or, [:text, :timestamp, :date]}] => :date}},
     [{:cast, :text}] =>
       %{type_specs: %{[:any] => :text}},
+    [{:cast, :interval}] =>
+      %{type_specs: %{[{:or, [:text, :interval]}] => :interval}}
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -314,6 +316,14 @@ defmodule Cloak.Aql.Function do
   defp cast(value, :date) when is_binary(value) do
     case Timex.parse(value, "{ISOdate}") do
       {:ok, result} -> NaiveDateTime.to_date(result)
+      {:error, _} -> nil
+    end
+  end
+  # cast to interval
+  defp cast(value = %Timex.Duration{}, :interval), do: value
+  defp cast(value, :interval) when is_binary(value) do
+    case Timex.Duration.parse(value) do
+      {:ok, result} -> result
       {:error, _} -> nil
     end
   end
