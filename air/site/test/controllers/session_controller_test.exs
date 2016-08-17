@@ -24,8 +24,8 @@ defmodule Air.SessionControllerTest do
     logged_in_conn = conn() |> post("/auth", email: user.email, password: "1234")
     assert "/" == redirected_to(logged_in_conn)
     assert get_flash(logged_in_conn)["info"] =~ "Logged in successfully"
-    # verify that the user can now access the root page
-    recycle(logged_in_conn) |> get("/") |> response(200)
+    # verify that the user can now access a page requiring authentication
+    recycle(logged_in_conn) |> get("/data_sources") |> response(200)
 
     # verify that we can now logout
     logged_out_conn = recycle(logged_in_conn) |> delete("/logout")
