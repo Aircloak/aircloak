@@ -35,6 +35,7 @@ defmodule Air.DataSourceController do
         conn
         |> put_flash(:error, "The data source is currently not available")
         |> redirect(to: "/data_sources")
+
       data_source ->
         last_query = case Query.load_recent_queries(conn.assigns.current_user, data_source, 1) do
           [query] -> query
