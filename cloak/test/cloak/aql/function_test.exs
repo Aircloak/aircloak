@@ -3,6 +3,7 @@ defmodule Cloak.Aql.Function.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.Aql.{Column, Function}
+  alias Timex.Duration
 
   test "sqrt", do:
     assert_in_delta(apply_function("sqrt", [3]), 1.73, 0.1)
@@ -195,20 +196,20 @@ defmodule Cloak.Aql.Function.Test do
   test "subtracting dates" do
     assert well_typed?("-", [:date, :date])
     assert return_type("-", [:date, :date]) == :interval
-    assert apply_function("-", [~D[2015-01-30], ~D[2015-01-20]]) === Timex.Duration.from_days(10)
+    assert apply_function("-", [~D[2015-01-30], ~D[2015-01-20]]) === Duration.from_days(10)
   end
 
   test "subtracting times" do
     assert well_typed?("-", [:time, :time])
     assert return_type("-", [:time, :time]) == :interval
-    assert apply_function("-", [~T[10:20:00], ~T[10:00:00]]) === Timex.Duration.from_minutes(20)
+    assert apply_function("-", [~T[10:20:00], ~T[10:00:00]]) === Duration.from_minutes(20)
   end
 
   test "subtracting timestamps" do
     assert well_typed?("-", [:timestamp, :timestamp])
     assert return_type("-", [:timestamp, :timestamp]) == :interval
     assert apply_function("-", [~N[2015-01-02 10:20:00], ~N[2015-01-01 10:00:00]]) ===
-      Timex.Duration.parse!("P1DT20M")
+      Duration.parse!("P1DT20M")
   end
 
   test "datetime + interval"
@@ -317,7 +318,7 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function({:cast, :text}, [~N[2015-01-02 03:04:05]]) === "2015-01-02 03:04:05"
     assert apply_function({:cast, :text}, [~T[03:04:05]]) === "03:04:05"
     assert apply_function({:cast, :text}, [~D[2015-01-02]]) === "2015-01-02"
-    assert apply_function({:cast, :text}, [Timex.Duration.from_days(3)]) === "P3D"
+    assert apply_function({:cast, :text}, [Duration.from_days(3)]) === "P3D"
   end
 
   test "cast to boolean typing" do
@@ -412,7 +413,7 @@ defmodule Cloak.Aql.Function.Test do
   end
 
   test "cast to interval" do
-    interval = Timex.Duration.from_seconds(10)
+    interval = Duration.from_seconds(10)
     assert apply_function({:cast, :interval}, [interval]) === interval
     assert apply_function({:cast, :interval}, ["PT10S"]) === interval
     assert apply_function({:cast, :interval}, ["not an interval"]) === nil

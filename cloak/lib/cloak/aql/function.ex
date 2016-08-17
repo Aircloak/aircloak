@@ -3,6 +3,7 @@ defmodule Cloak.Aql.Function do
 
   alias Cloak.Aql.{Column, Parser}
   alias Cloak.DataSource
+  alias Timex.Duration
 
   import Kernel, except: [apply: 2]
 
@@ -226,7 +227,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("-", [x = %Date{}, y = %Date{}]), do: Timex.diff(x, y, :duration)
   defp do_apply("-", [x = %NaiveDateTime{}, y = %NaiveDateTime{}]), do: Timex.diff(x, y, :duration)
   defp do_apply("-", [x = %Time{}, y = %Time{}]), do:
-    Timex.Duration.sub(Timex.Duration.from_time(x), Timex.Duration.from_time(y))
+    Duration.sub(Duration.from_time(x), Duration.from_time(y))
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
 
@@ -285,7 +286,7 @@ defmodule Cloak.Aql.Function do
   # cast to text
   defp cast(true, :text), do: "TRUE"
   defp cast(false, :text), do: "FALSE"
-  defp cast(value = %Timex.Duration{}, :text), do: Timex.Duration.to_string(value)
+  defp cast(value = %Duration{}, :text), do: Duration.to_string(value)
   defp cast(value = %NaiveDateTime{}, :text) do
     case Timex.format(value, "{ISOdate} {ISOtime}") do
       {:ok, result} -> result
@@ -331,9 +332,9 @@ defmodule Cloak.Aql.Function do
     end
   end
   # cast to interval
-  defp cast(value = %Timex.Duration{}, :interval), do: value
+  defp cast(value = %Duration{}, :interval), do: value
   defp cast(value, :interval) when is_binary(value) do
-    case Timex.Duration.parse(value) do
+    case Duration.parse(value) do
       {:ok, result} -> result
       {:error, _} -> nil
     end
