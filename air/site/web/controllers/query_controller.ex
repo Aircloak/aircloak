@@ -26,7 +26,7 @@ defmodule Air.QueryController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    case DataSource.latest_data_source(conn) do
+    case DataSource.latest_data_source(conn.assigns.current_user) do
       nil -> redirect(conn, to: "/data_sources")
       data_source -> redirect(conn, to: "/data_sources/#{data_source.id}")
     end
@@ -65,7 +65,7 @@ defmodule Air.QueryController do
   end
 
   def load_history(conn, %{"data_source_id" => data_source_id}) do
-    case DataSource.by_id(conn, data_source_id) do
+    case DataSource.by_id(conn.assigns.current_user, data_source_id) do
       nil ->
         response = %{
           success: false,
@@ -121,7 +121,7 @@ defmodule Air.QueryController do
     # Needed for temporary backwards compatibility, while clients are still sending
     # tokens rather than ID's.
     data_source_id = params["data_source_id"] || params["data_source_token"]
-    data_source  = DataSource.by_id(conn, data_source_id)
+    data_source  = DataSource.by_id(conn.assigns.current_user, data_source_id)
     Map.merge(params, %{"cloak_id" => data_source.cloak_id, "data_source" => data_source.name})
   end
 end

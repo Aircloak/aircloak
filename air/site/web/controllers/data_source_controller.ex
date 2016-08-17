@@ -26,11 +26,11 @@ defmodule Air.DataSourceController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    render(conn, "index.html", data_sources: DataSource.all(conn))
+    render(conn, "index.html", data_sources: DataSource.all(conn.assigns.current_user))
   end
 
   def show(conn, %{"data_source_id" => data_source_id}) do
-    case DataSource.by_id(conn, data_source_id) do
+    case DataSource.by_id(conn.assigns.current_user, data_source_id) do
       nil ->
         conn
         |> put_flash(:error, "The data source is currently not available")
