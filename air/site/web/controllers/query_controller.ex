@@ -4,9 +4,7 @@ defmodule Air.QueryController do
   use Timex
 
   require Logger
-  alias Air.{DataSource, Query, Repo, Token, AuditLog}
-  alias Poison, as: JSON
-  alias Plug.CSRFProtection
+  alias Air.{DataSource, Query, Repo, AuditLog}
   alias Plug.Conn.Status
   alias Air.Socket.Cloak.MainChannel
 
