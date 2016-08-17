@@ -9,6 +9,6 @@ defmodule Air.API.DataSourceController do
   end
 
   def index(conn, _params) do
-    json(conn, DataSource.all(conn.assigns.current_user.organisation))
+    json(conn, DataSource.all(conn))
   end
 end
