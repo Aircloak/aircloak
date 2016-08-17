@@ -42,8 +42,7 @@ Additionally to run it relies on `etcd` for configuration and `Postgres` for dat
 In order to run the system you need the following components:
 
 - Node.js 5 or newer
-- Elixir 1.2 or newer
-- Erlang 18
+- Erlang and Elixir (see [here](../../README.md#prerequisites) for details)
 - Ruby 2.x and bundler (for building API docs)
 
 Once you have all the main components, you also need the elixir and node.js dependencies required by our

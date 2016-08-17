@@ -12,3 +12,7 @@ There are two main components:
 
 - __air__: a central control point only operating on non-sensitive data
 - __cloak__: a component deployed close to the data, performing the querying and anonymization
+
+## Prerequisites
+
+You need to have Erlang and Elixir installed. The required versions are stated in [this file](.tool-versions). The easiest way to install is to use [asdf version manager](https://github.com/asdf-vm/asdf). You need to install it, together with Erlang and Elixir plugins. Then from the project root folder run `asdf install`.
