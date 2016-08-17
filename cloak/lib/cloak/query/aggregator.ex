@@ -105,7 +105,9 @@ defmodule Cloak.Query.Aggregator do
     {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
     lcf_users_rows = Enum.reduce(low_count_rows, %{},
       fn ({_property, _anonymizer, users_rows}, accumulator) ->
-        Map.merge(accumulator, users_rows, fn (_user, values1, values2) -> values1 ++ values2 end)
+        Map.merge(accumulator, users_rows, fn (_user, columns1, columns2) ->
+          for {values1, values2} <- Enum.zip(columns1, columns2), do: values1 ++ values2
+        end)
       end)
     anonymizer = Anonymizer.new(lcf_users_rows)
     lcf_property = List.duplicate(:*, length(query.property))
