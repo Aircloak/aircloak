@@ -1,0 +1,31 @@
+<ol class="breadcrumb">
+  <li><a href="/data_sources">Data sources</a></li>
+  <li class="active"><%= @data_source.name %></li>
+</ol>
+
+<h2>
+  <%= @data_source.name %>
+  <small>
+    @ <%= @data_source.cloak_name %>
+  </small>
+</h2>
+
+<hr />
+
+<div id="query-view" />
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = {
+        lastQuery: <%= {:safe, @last_query} %>,
+        dataSourceId: "<%= @data_source.id %>",
+        CSRFToken: "<%= @csrf_token %>",
+        guardianToken: "<%= @guardian_token %>",
+        userId: "<%= @current_user.id %>",
+      };
+
+      App.queryPage(props, document.getElementById("query-view"));
+    }
+  };
+</script>

@@ -42,7 +42,7 @@ defmodule Air.QueryController do
 
   def create(conn, %{"query" => params}) do
     {:ok, query} = build_assoc(conn.assigns.current_user, :queries)
-    |> Query.changeset(parse_query_params(params))
+    |> Query.changeset(parse_query_params(conn, params))
     |> Repo.insert()
 
     AuditLog.log(conn, "Executed query", query: query.statement, data_source: query.data_source)
@@ -72,8 +72,17 @@ defmodule Air.QueryController do
     end
   end
 
-  def load_history(conn, _params) do
-    json(conn, Query.load_recent_queries(conn.assigns.current_user, 10))
+  def load_history(conn, %{"data_source_id" => data_source_id}) do
+    case DataSource.by_id(conn, data_source_id) do
+      nil ->
+        response = %{
+          success: false,
+          error: "Datasource is not available. Cannot load history"
+        }
+        json(conn, response)
+      data_source ->
+        json(conn, Query.load_recent_queries(conn.assigns.current_user, data_source, 10))
+    end
   end
 
   def show(conn, %{"id" => id_type}) do
@@ -116,8 +125,11 @@ defmodule Air.QueryController do
     |> Repo.get(id)
   end
 
-  defp parse_query_params(params) do
-    {cloak_id, data_source} = Token.decode_data_source_token(params["data_source_token"])
-    Map.merge(params, %{"cloak_id" => cloak_id, "data_source" => data_source})
+  defp parse_query_params(conn, params) do
+    # Needed for temporary backwards compatibility, while clients are still sending
+    # tokens rather than ID's.
+    data_source_id = params["data_source_id"] || params["data_source_token"]
+    data_source  = DataSource.by_id(conn, data_source_id)
+    Map.merge(params, %{"cloak_id" => data_source.cloak_id, "data_source" => data_source.name})
   end
 end
