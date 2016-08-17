@@ -43,6 +43,9 @@ defmodule Cloak.Aql.Function do
       [:date, :date] => :interval,
       [:time, :time] => :interval,
       [:timestamp, :timestamp] => :interval,
+      [:date, :interval] => :timestamp,
+      [:time, :interval] => :time,
+      [:timestamp, :interval] => :timestamp,
     })},
     ~w(/) => %{type_specs: %{[numeric, numeric] => :real}},
     ~w(length) => %{type_specs: %{[:text] => :integer}},
@@ -238,6 +241,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("-", [x = %NaiveDateTime{}, y = %NaiveDateTime{}]), do: Timex.diff(x, y, :duration)
   defp do_apply("-", [x = %Time{}, y = %Time{}]), do:
     Duration.sub(Duration.from_time(x), Duration.from_time(y))
+  defp do_apply("-", [x, y = %Duration{}]), do: do_apply("+", [x, Duration.scale(y, -1)])
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
 
