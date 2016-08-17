@@ -33,7 +33,10 @@ defmodule Cloak.Aql.Function do
     }},
     ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
     ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
-    ~w(pow * + ^) => %{type_specs: arithmetic_operation},
+    ~w(pow * ^) => %{type_specs: arithmetic_operation},
+    ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
+      [:date, :interval] => :timestamp
+    })},
     ~w(-) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :date] => :interval,
       [:time, :time] => :interval,
@@ -223,6 +226,8 @@ defmodule Cloak.Aql.Function do
   defp do_apply("^", [x, y]), do: :math.pow(x, y)
   defp do_apply("*", [x, y]), do: x * y
   defp do_apply("/", [x, y]), do: x / y
+  defp do_apply("+", [x = %Date{}, y = %Duration{}]), do:
+    Timex.add(Timex.to_naive_datetime(x), y)
   defp do_apply("+", [x, y]), do: x + y
   defp do_apply("-", [x = %Date{}, y = %Date{}]), do: Timex.diff(x, y, :duration)
   defp do_apply("-", [x = %NaiveDateTime{}, y = %NaiveDateTime{}]), do: Timex.diff(x, y, :duration)
