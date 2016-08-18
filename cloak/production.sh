@@ -2,22 +2,28 @@
 
 set -eo pipefail
 
-
-function build_image {
-  ssh acdbuild.mpi-sws.org "
-    set -eo pipefail
-
-    echo 'Setting exclusive lock'
+function lock_command {
+  printf "
+    echo 'Setting exclusive lock for $1'
     retries=120
     while [ \$retries -gt 0 ]; do
-      if lockfile -r 0 /tmp/cloak_deploy; then
-        trap '{ rm -f /tmp/cloak_deploy; }' EXIT
+      if lockfile -r 0 /tmp/$1; then
+        trap '{ rm -f /tmp/$1; }' EXIT
         break
       else
         retries=\$((retries - 1))
         if [ \$retries -gt 0 ]; then sleep 1; fi
       fi
     done
+  "
+}
+
+
+function build_image {
+  ssh acdbuild.mpi-sws.org "
+    set -eo pipefail
+
+    $(lock_command cloak_build)
 
     if [ \$retries -eq 0 ]; then
       echo 'Another deploy in progress! Try again later.'
@@ -38,16 +44,21 @@ function start_cloak {
   full_image_name="$REGISTRY/aircloak/${IMAGE_CATEGORY}_cloak:$1"
 
   ssh $TARGET_MACHINE "
-    docker pull $full_image_name &&
-    echo 'Stopping cloak $CLOAK_NAME' &&
-    ( docker stop $CLOAK_NAME || true) &&
-    ( docker rm $CLOAK_NAME || true) &&
-    (
-      if [ \"\$(docker ps | grep epmd)\" == \"\" ]; then
-        docker run -d --net=host --name epmd $full_image_name /aircloak/cloak/erts-7.2.1/bin/epmd
-      fi
-    ) &&
-    echo 'Starting cloak $CLOAK_NAME' &&
+    set -eo pipefail
+
+    $(lock_command $CLOAK_NAME)
+
+    docker pull $full_image_name
+
+    echo 'Stopping cloak $CLOAK_NAME'
+    docker stop $CLOAK_NAME || true
+    docker rm $CLOAK_NAME || true
+
+    if [ \"\$(docker ps | grep epmd)\" == \"\" ]; then
+      docker run -d --net=host --name epmd $full_image_name /aircloak/cloak/erts-7.2.1/bin/epmd
+    fi
+
+    echo 'Starting cloak $CLOAK_NAME'
     docker run -d --net=host \\
       --name $CLOAK_NAME \\
       -e CLOAK_NAME=$CLOAK_NAME \\
