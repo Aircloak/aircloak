@@ -346,41 +346,28 @@ defmodule Cloak.Aql.Function do
   end
   # cast to timestamp
   defp cast(value = %NaiveDateTime{}, :timestamp), do: value
-  defp cast(value, :timestamp) when is_binary(value) do
-    case Cloak.Time.parse_datetime(value) do
-      {:ok, result} -> result
-      {:error, _} -> nil
-    end
-  end
+  defp cast(value, :timestamp) when is_binary(value), do:
+    value |> Cloak.Time.parse_datetime() |> error_to_nil()
   # cast to time
   defp cast(value = %Time{}, :time), do: value
   defp cast(value = %NaiveDateTime{}, :time), do: NaiveDateTime.to_time(value)
-  defp cast(value, :time) when is_binary(value) do
-    case Cloak.Time.parse_time(value) do
-      {:ok, result} -> result
-      {:error, _} -> nil
-    end
-  end
+  defp cast(value, :time) when is_binary(value), do:
+    value |> Cloak.Time.parse_time() |> error_to_nil()
   # cast to date
   defp cast(value = %Date{}, :date), do: value
   defp cast(value = %NaiveDateTime{}, :date), do: NaiveDateTime.to_date(value)
-  defp cast(value, :date) when is_binary(value) do
-    case Timex.parse(value, "{ISOdate}") do
-      {:ok, result} -> NaiveDateTime.to_date(result)
-      {:error, _} -> nil
-    end
-  end
+  defp cast(value, :date) when is_binary(value), do:
+    value |> Cloak.Time.parse_date() |> error_to_nil()
   # cast to interval
   defp cast(value = %Duration{}, :interval), do: value
-  defp cast(value, :interval) when is_binary(value) do
-    case Duration.parse(value) do
-      {:ok, result} -> result
-      {:error, _} -> nil
-    end
-  end
+  defp cast(value, :interval) when is_binary(value), do:
+    value |> Duration.parse() |> error_to_nil()
 
   defp duration_time_part(duration) do
     {hours, days, seconds, microseconds} = Duration.to_clock(duration)
     Duration.from_clock({rem(hours, 24), days, seconds, microseconds})
   end
+
+  defp error_to_nil({:ok, result}), do: result
+  defp error_to_nil({:error, _}), do: nil
 end

@@ -13,6 +13,8 @@ defmodule Cloak.Time do
     end
   end
 
+  def parse_date(string), do: Date.from_iso8601(string)
+
   def max_precision(datetime = %{microsecond: {usecs, _precision}}), do:
     %{datetime | microsecond: {usecs, 6}}
 end
