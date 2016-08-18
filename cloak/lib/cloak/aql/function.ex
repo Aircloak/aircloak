@@ -8,35 +8,52 @@ defmodule Cloak.Aql.Function do
 
   numeric = {:or, [:integer, :real]}
   @functions %{
-    ~w(count) => %{aggregate: true, return_type: :integer, argument_types: [:any]},
-    ~w(sum avg min max stddev median) => %{aggregate: true, return_type: :real, argument_types: [numeric]},
+    ~w(count) => %{aggregate: true, type_specs: %{[:any] => :integer}},
+    ~w(sum min max median) => %{aggregate: true, type_specs: %{
+      [:integer] => :integer,
+      [:real] => :real,
+    }},
+    ~w(avg stddev) => %{aggregate: true, type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
-      %{aggregate: false, return_type: :integer, argument_types: [{:or, [:timestamp, :time]}]},
+      %{type_specs: %{[{:or, [:timestamp, :time]}] => :integer}},
     ~w(year month day weekday) =>
-      %{aggregate: false, return_type: :integer, argument_types: [{:or, [:timestamp, :date]}]},
-    ~w(floor ceil ceiling) => %{aggregate: false, return_type: :integer, argument_types: [numeric]},
-    ~w(round trunc) => %{aggregate: false, return_type: :real, argument_types: [numeric, {:optional, :integer}]},
-    ~w(abs sqrt) => %{aggregate: false, return_type: :real, argument_types: [numeric]},
-    ~w(div mod %) => %{aggregate: false, return_type: :integer, argument_types: [:integer, :integer]},
-    ~w(pow * + - / ^) => %{aggregate: false, return_type: :real, argument_types: [numeric, numeric]},
-    ~w(length) => %{aggregate: false, return_type: :integer, argument_types: [:text]},
-    ~w(lower lcase upper ucase) => %{aggregate: false, return_type: :text, argument_types: [:text]},
-    ~w(left right) => %{aggregate: false, return_type: :text, argument_types: [:text, :integer]},
-    ~w(btrim ltrim rtrim) => %{aggregate: false, return_type: :text, argument_types: [:text, {:optional, :text}]},
+      %{type_specs: %{[{:or, [:timestamp, :date]}] => :integer}},
+    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
+    ~w(round trunc) => %{type_specs: %{
+       [numeric] => :integer,
+       [numeric, :integer] => :real,
+    }},
+    ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
+    ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
+    ~w(pow * + - ^) => %{type_specs: %{
+      [:integer, :integer] => :integer,
+      [:real, :integer] => :real,
+      [:integer, :real] => :real,
+      [:real, :real] => :real,
+    }},
+    ~w(/) => %{type_specs: %{[numeric, numeric] => :real}},
+    ~w(length) => %{type_specs: %{[:text] => :integer}},
+    ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
+    ~w(left right) => %{type_specs: %{[:text, :integer] => :text}},
+    ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, :text}] => :text}},
     ~w(substring substring_for) =>
-      %{aggregate: false, return_type: :text, argument_types: [:text, :integer, {:optional, :integer}]},
-    ~w(||) => %{aggregate: false, return_type: :text, argument_types: [:text, :text]},
-    ~w(concat) => %{aggregate: false, return_type: :text, argument_types: [{:many1, :text}]},
-    [{:cast, :integer}, {:cast, :real}, {:cast, :boolean}] =>
-      %{aggregate: false, return_type: :integer, argument_types: [{:or, [:real, :integer, :text, :boolean]}]},
+      %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text}},
+    ~w(||) => %{type_specs: %{[:text, :text] => :text}},
+    ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
+    [{:cast, :integer}] =>
+      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},
+    [{:cast, :real}] =>
+      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :real}},
+    [{:cast, :boolean}] =>
+      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :boolean}},
     [{:cast, :timestamp}] =>
-      %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp]}]},
+      %{type_specs: %{[{:or, [:text, :timestamp]}] => :timestamp}},
     [{:cast, :time}] =>
-      %{aggregate: false, return_type: :timestamp, argument_types: [{:or, [:text, :timestamp, :time]}]},
+      %{type_specs: %{[{:or, [:text, :timestamp, :time]}] => :time}},
     [{:cast, :date}] =>
-      %{aggregate: false, return_type: :date, argument_types: [{:or, [:text, :timestamp, :date]}]},
+      %{type_specs: %{[{:or, [:text, :timestamp, :date]}] => :date}},
     [{:cast, :text}] =>
-      %{aggregate: false, return_type: :date, argument_types: [:any]},
+      %{type_specs: %{[:any] => :text}},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -63,7 +80,7 @@ defmodule Cloak.Aql.Function do
   Returns true if the given column definition is a function call to an aggregate function, false otherwise.
   """
   @spec aggregate_function?(t) :: boolean
-  def aggregate_function?({:function, function, _}), do: @functions[function].aggregate
+  def aggregate_function?({:function, name, _}), do: @functions |> Map.fetch!(name) |> Map.get(:aggregate, false)
   def aggregate_function?(_), do: false
 
   @doc "Returns true if the given function call is a cast, false otherwise."
@@ -71,9 +88,9 @@ defmodule Cloak.Aql.Function do
   def cast?({:function, {:cast, _}, _}), do: true
   def cast?(_), do: false
 
-  @doc "Returns the argument type required by the given function call."
-  @spec argument_types(t) :: [argument_type]
-  def argument_types({:function, function, _}), do: @functions[function].argument_types
+  @doc "Returns a list of possible argument lists required by the given function call."
+  @spec argument_types(t) :: [[argument_type]]
+  def argument_types({:function, function, _}), do: @functions[function].type_specs |> Map.keys()
 
   @doc "Returns the argument specifiaction of the given function call."
   @spec arguments(t) :: [Column.t]
@@ -86,7 +103,15 @@ defmodule Cloak.Aql.Function do
 
   @doc "Returns the return type of the given function call."
   @spec return_type(t) :: data_type
-  def return_type({:function, name, _}), do: @functions[name].return_type
+  def return_type({:function, {:cast, type}, _}), do: type
+  def return_type(function = {:function, name, _}) do
+    @functions[name].type_specs
+    |> Enum.find(fn({arguments, _}) -> do_well_typed?(function, arguments) end)
+    |> case do
+      {_arguments, return_type} -> return_type
+      nil -> nil
+    end
+  end
 
   @doc "Returns the type of the given expression."
   @spec type(t) :: data_type
@@ -97,7 +122,7 @@ defmodule Cloak.Aql.Function do
   @spec well_typed?(t) :: boolean
   def well_typed?(column), do:
     if function?(column),
-      do: do_well_typed?(column, argument_types(column)),
+      do: Enum.any?(argument_types(column), &do_well_typed?(column, &1)),
       else: true
 
   @doc "Applies the function to the database row and returns its result."

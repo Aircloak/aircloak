@@ -120,13 +120,19 @@ export class Result extends React.Component {
         return null;
       }
     });
-    return _.filter(columns, (e) => e != null);
+    const filteredColumns = _.filter(columns, (e) => e != null);
+    // If all columns are eligible for being a y-column trace, then we'll make the first one the x-column.
+    if (filteredColumns.length === this.props.columns.length) {
+      return _.drop(filteredColumns, 1);
+    } else {
+      return filteredColumns;
+    }
   }
 
   canShowChart() {
     return this.props.columns.length >= 2 &&
       this.props.rows.length > 1 &&
-      this.props.rows.length < 20 &&
+      this.props.rows.length < 40 &&
       this.yColumns().length > 0;
   }
 

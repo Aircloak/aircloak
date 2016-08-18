@@ -79,12 +79,7 @@ defmodule Cloak.Query.Aggregator do
 
   defp aggregated_value_list(_row, :*), do: [:*]
   defp aggregated_value_list(row, {:distinct, column}), do: aggregated_value_list(row, column)
-  defp aggregated_value_list(row, column) do
-    case Function.apply_to_db_row(column, row) do
-      nil -> []
-      value -> [value]
-    end
-  end
+  defp aggregated_value_list(row, column), do: List.wrap(Function.apply_to_db_row(column, row))
 
   defp user_id([user_id | _rest]), do: user_id
 
@@ -110,7 +105,9 @@ defmodule Cloak.Query.Aggregator do
     {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
     lcf_users_rows = Enum.reduce(low_count_rows, %{},
       fn ({_property, _anonymizer, users_rows}, accumulator) ->
-        Map.merge(accumulator, users_rows, fn (_user, values1, values2) -> values1 ++ values2 end)
+        Map.merge(accumulator, users_rows, fn (_user, columns1, columns2) ->
+          for {values1, values2} <- Enum.zip(columns1, columns2), do: values1 ++ values2
+        end)
       end)
     anonymizer = Anonymizer.new(lcf_users_rows)
     lcf_property = List.duplicate(:*, length(query.property))
