@@ -40,7 +40,9 @@ config :air, :etcd_port, Air.EnvSettings.tcp_port("etcd/client")
 
 config :air, Air.Repo,
   adapter: Ecto.Adapters.Postgres,
-  pool_size: 10
+  pool_size: 10,
+  # We need it to work with `pgbouncer` (see https://github.com/elixir-ecto/postgrex#pgbouncer)
+  prepare: :unnamed
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

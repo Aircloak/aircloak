@@ -197,16 +197,14 @@ defmodule Cloak.QueryTest do
 
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    for id <- 5..10 do
-      range = (id * 4)..(id * 4 + 2)
-      assert :ok = insert_rows(_user_ids = range, "heights", ["height"], [100 + id])
-    end
+    :ok = insert_rows(_user_ids = 0..1, "heights", ["height"], [160])
+    :ok = insert_rows(_user_ids = 20..24, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 20..24, "heights", ["height"], [190])
+    :ok = insert_rows(_user_ids = 25..29, "heights", ["height"], [200])
+    :ok = insert_rows(_user_ids = 25..29, "heights", ["height"], [150])
 
-    assert_query "select height from heights", %{columns: ["height"], rows: rows}
-    assert Enum.sort_by(rows, &(&1[:row])) == [
-      %{row: [180], occurrences: 20},
-      %{row: [:*], occurrences: 18}
-    ]
+    assert_query "select height from heights order by height",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 20}, %{row: [:*], occurrences: 22}]}
   end
 
   test "should produce counts" do

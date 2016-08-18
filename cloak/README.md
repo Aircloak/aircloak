@@ -25,8 +25,7 @@ This component acts as a query layer over sensitive data. It works together with
 
 You need to have following installed:
 
-- Erlang 18.x
-- Elixir >= 1.2.3
+- Erlang and Elixir (see [here](../README.md#prerequisites) for details)
 - PostgreSQL 9.4
 - packages
     - Linux: `liblua5.1-0-dev`, `protobuf-compiler`, `protobuf-c-compiler`, `libprotobuf-c0-dev`

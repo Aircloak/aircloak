@@ -61,10 +61,9 @@ defmodule Air.DataSource do
 
     Enum.find_value(queries, fn(query) ->
       Enum.find_value(data_sources, fn(data_source) ->
-        cond do
-          query.cloak_id == data_source.cloak_id and query.data_source == data_source.name -> data_source
-          true -> nil
-        end
+        if query.cloak_id == data_source.cloak_id and query.data_source == data_source.name,
+          do: data_source,
+          else: nil
       end)
     end)
   end
