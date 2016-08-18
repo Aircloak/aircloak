@@ -126,7 +126,7 @@ export class Result extends React.Component {
   canShowChart() {
     return this.props.columns.length >= 2 &&
       this.props.rows.length > 1 &&
-      this.props.rows.length < 20 &&
+      this.props.rows.length < 40 &&
       this.yColumns().length > 0;
   }
 
