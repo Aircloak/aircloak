@@ -411,7 +411,7 @@ defmodule Cloak.Aql.Function.Test do
   end
 
   test "cast to timestamp" do
-    time = ~N[2015-01-01 10:22:23]
+    time = ~N[2015-01-01 10:22:23.000000]
     assert apply_function({:cast, :timestamp}, [time]) === time
     assert apply_function({:cast, :timestamp}, [Timex.format!(time, "{ISO:Extended:Z}")]) === time
     assert apply_function({:cast, :timestamp}, ["some string"]) === nil
@@ -429,10 +429,10 @@ defmodule Cloak.Aql.Function.Test do
   end
 
   test "cast to time" do
-    time = ~N[2015-01-02 03:04:05]
-    assert apply_function({:cast, :time}, [time]) === ~T[03:04:05]
-    assert apply_function({:cast, :time}, [~T[01:02:03]]) === ~T[01:02:03]
-    assert apply_function({:cast, :time}, ["12:00:23"]) === ~T[12:00:23]
+    time = ~N[2015-01-02 03:04:05.000000]
+    assert apply_function({:cast, :time}, [time]) === ~T[03:04:05.000000]
+    assert apply_function({:cast, :time}, [~T[01:02:03.000000]]) === ~T[01:02:03.000000]
+    assert apply_function({:cast, :time}, ["12:00:23"]) === ~T[12:00:23.000000]
     assert apply_function({:cast, :time}, ["some string"]) === nil
   end
 

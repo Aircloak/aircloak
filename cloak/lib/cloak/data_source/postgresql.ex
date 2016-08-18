@@ -95,16 +95,16 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   defp row_mapper(row), do: for field <- row, do: field_mapper(field)
 
-  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day, hour: hour, min: min, sec: sec}) do
-    %NaiveDateTime{year: year, month: month, day: day, hour: hour, minute: min, second: sec}
-  end
-  defp field_mapper(%Postgrex.Date{year: year, month: month, day: day}) do
-    %Date{year: year, month: month, day: day}
-  end
-  defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec}) do
-    %Time{hour: hour, minute: min, second: sec}
-  end
+  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day, hour: hour, min: min, sec: sec, usec: usec}), do:
+    NaiveDateTime.new(year, month, day, hour, min, sec, usec) |> error_to_nil()
+  defp field_mapper(%Postgrex.Date{year: year, month: month, day: day}), do:
+    Date.new(year, month, day) |> error_to_nil()
+  defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec, usec: usec}), do:
+    Time.new(hour, min, sec, usec) |> error_to_nil()
   defp field_mapper(field), do: field
+
+  defp error_to_nil({:ok, result}), do: result
+  defp error_to_nil({:error, _reason}), do: nil
 
 
   #-----------------------------------------------------------------------------------------------------------

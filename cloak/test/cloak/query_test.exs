@@ -883,7 +883,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["time_only"], [time])
 
     assert_query "select time_only from heights",
-      %{rows: [%{row: [~T[01:02:03]]}]}
+      %{rows: [%{row: [~T[01:02:03.000000]]}]}
   end
 
   test "selecting date" do
@@ -898,8 +898,7 @@ defmodule Cloak.QueryTest do
     time = %Postgrex.Timestamp{year: 2015, month: 1, day: 2, hour: 3, min: 4, sec: 5}
     :ok = insert_rows(_user_ids = 1..10, "heights", ["datetime"], [time])
 
-    assert_query "select datetime from heights",
-      %{rows: [%{row: [~N[2015-01-02 03:04:05]]}]}
+    assert_query "select datetime from heights", %{rows: [%{row: [~N[2015-01-02 03:04:05.000000]]}]}
   end
 
   defp start_query(statement) do

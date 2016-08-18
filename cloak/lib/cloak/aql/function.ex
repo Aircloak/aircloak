@@ -347,8 +347,8 @@ defmodule Cloak.Aql.Function do
   # cast to timestamp
   defp cast(value = %NaiveDateTime{}, :timestamp), do: value
   defp cast(value, :timestamp) when is_binary(value) do
-    case Timex.parse(value, "{ISO:Extended}") do
-      {:ok, result} -> DateTime.to_naive(result)
+    case Cloak.Time.parse_datetime(value) do
+      {:ok, result} -> result
       {:error, _} -> nil
     end
   end
@@ -356,8 +356,8 @@ defmodule Cloak.Aql.Function do
   defp cast(value = %Time{}, :time), do: value
   defp cast(value = %NaiveDateTime{}, :time), do: NaiveDateTime.to_time(value)
   defp cast(value, :time) when is_binary(value) do
-    case Timex.parse(value, "{ISOtime}") do
-      {:ok, result} -> NaiveDateTime.to_time(result)
+    case Cloak.Time.parse_time(value) do
+      {:ok, result} -> result
       {:error, _} -> nil
     end
   end

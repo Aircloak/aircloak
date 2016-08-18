@@ -17,20 +17,20 @@ defmodule Cloak.Aql.Compiler.Test do
   test "casts timestamp where conditions" do
     result = compile!("select * from table where column > '2015-01-01'", data_source())
 
-    assert [{:comparison, column("table", "column"), :>, ~N[2015-01-01 00:00:00]}] = result.where
+    assert [{:comparison, column("table", "column"), :>, ~N[2015-01-01 00:00:00.000000]}] = result.where
   end
 
   test "casts timestamp in `in` conditions" do
     result = compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source())
 
     assert [{:in, column("table", "column"), times}] = result.where
-    assert Enum.sort(times) == [~N[2015-01-01 00:00:00], ~N[2015-01-02 00:00:00]]
+    assert Enum.sort(times) == [~N[2015-01-01 00:00:00.000000], ~N[2015-01-02 00:00:00.000000]]
   end
 
   test "casts timestamp in negated conditions" do
     result = compile!("select * from table where column <> '2015-01-01'", data_source())
 
-    assert [{:comparison, column("table", "column"), :=, ~N[2015-01-01 00:00:00]}] = result.where_not
+    assert [{:comparison, column("table", "column"), :=, ~N[2015-01-01 00:00:00.000000]}] = result.where_not
   end
 
   test "reports malformed timestamps" do

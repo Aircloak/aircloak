@@ -492,10 +492,10 @@ defmodule Cloak.Aql.Compiler do
   defp do_cast_where_clause(clause, _), do: clause
 
   defp parse_time(%Column{constant?: true, type: :text, value: string}) do
-    case Timex.parse(string, "{ISO}") do
-      {:ok, value} -> value
+    case Cloak.Time.parse_datetime(string) do
+      {:ok, result} -> result
       _ -> case Timex.parse(string, "{ISOdate}") do
-        {:ok, value} -> value
+        {:ok, result} -> Cloak.Time.max_precision(result)
         _ -> raise CompilationError, message: "Cannot cast `#{string}` to timestamp."
       end
     end
