@@ -369,6 +369,12 @@ defmodule Cloak.Aql.Function.Test do
     end
   end
 
+  test "functions return nil when called with bad arguments" do
+    assert apply_function("length", [nil]) == nil
+    assert apply_function("+", [1, nil]) == nil
+    assert apply_function("/", [1, 0]) == nil
+  end
+
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})
 
