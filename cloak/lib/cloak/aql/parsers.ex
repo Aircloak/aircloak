@@ -239,39 +239,4 @@ defmodule Cloak.Aql.Parsers do
   defparser lazy(%ParserState{status: :ok} = state, generator) do
     (generator.()).(state)
   end
-
-  @doc """
-  This is a patched version of combine's `satisfy` that does not crash on parser results that can't be
-  converted to string.
-
-  This parser applies the given parser, and if successful, passes the result to
-  the predicate for validation. If either the parser or the predicate assertion fail,
-  this parser fails.
-  # Example
-      iex> import #{__MODULE__}
-      ...> import Combine.Parsers.Text
-      ...> parser = satisfy(char, fn x -> x == "H" end)
-      ...> Combine.parse("Hi", parser)
-      ["H"]
-      ...> parser = char("H") |> satisfy(char, fn x -> x == "i" end)
-      ...> Combine.parse("Hi", parser)
-      ["H", "i"]
-  """
-  @spec satisfy(Combine.previous_parser, Combine.parser, Combine.predicate) :: Combine.parser
-  defparser satisfy(%ParserState{status: :ok, line: line, column: col} = state, parser, predicate)
-    when is_function(parser, 1) and is_function(predicate, 1) do
-      case parser.(state) do
-        %ParserState{status: :ok, results: [h|_]} = s ->
-          if predicate.(h) do
-            s
-          else
-            %{s | :status => :error,
-                  :error => "Could not satisfy predicate for #{inspect(h)} at line #{line}, column #{col}",
-                  :line => line,
-                  :column => col
-            }
-          end
-        %ParserState{} = s -> s
-      end
-  end
 end

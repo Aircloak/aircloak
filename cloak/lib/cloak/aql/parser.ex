@@ -1,6 +1,6 @@
 defmodule Cloak.Aql.Parser do
   @moduledoc "Parser for SQL queries."
-  import Combine.Parsers.Base, except: [satisfy: 2]
+  import Combine.Parsers.Base
   import Cloak.Aql.Parsers
   alias Cloak.DataSource
 
