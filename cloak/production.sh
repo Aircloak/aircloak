@@ -24,7 +24,11 @@ function start_cloak {
     echo 'Stopping cloak $CLOAK_NAME' &&
     ( docker stop $CLOAK_NAME || true) &&
     ( docker rm $CLOAK_NAME || true) &&
-    ( docker run -d --net=host --name epmd $full_image_name /aircloak/cloak/erts-7.2.1/bin/epmd || true) &&
+    (
+      if [ \"\$(docker ps | grep epmd)\" == \"\" ]; then
+        docker run -d --net=host --name epmd $full_image_name /aircloak/cloak/erts-7.2.1/bin/epmd
+      fi
+    ) &&
     echo 'Starting cloak $CLOAK_NAME' &&
     docker run -d --net=host \\
       --name $CLOAK_NAME \\
