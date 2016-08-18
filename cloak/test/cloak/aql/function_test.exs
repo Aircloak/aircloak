@@ -25,10 +25,10 @@ defmodule Cloak.Aql.Function.Test do
   test "ceil" do
     assert apply_function("ceil", [3.99]) === 4
     assert apply_function("ceil", [3.01]) === 4
-    assert apply_function("ceil", 3) === 3
+    assert apply_function("ceil", [3]) === 3
     assert apply_function("ceiling", [3.99]) === 4
     assert apply_function("ceiling", [3.01]) === 4
-    assert apply_function("ceiling", 3) === 3
+    assert apply_function("ceiling", [3]) === 3
     assert apply_function("ceil", [pow(10, 5000)]) === pow(10, 5000)
   end
 

@@ -140,14 +140,13 @@ defmodule Cloak.Aql.Function do
 
   @doc "Returns the result of applying the given function definition to the given arguments."
   @spec apply([term], t) :: term
-  def apply(args = [_|_], {:function, name, _}) do
+  def apply(args, {:function, name, _}) do
     try do
       if Enum.member?(args, :*), do: :*, else: do_apply(name, args)
     rescue
       _ -> nil
     end
   end
-  def apply(value, _aggregate_function), do: value
 
 
   # -------------------------------------------------------------------
