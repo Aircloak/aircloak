@@ -95,8 +95,6 @@ You can now interact with the cloak via the dockerized air (https://insights.air
 
 #### Deploying
 
-__Warning:__ Running deploys in parallel may lead to strange results, so coordinate with colleagues before deploying.
-
 Typical deploys:
 
 - `./production.sh deploy_targets/master_prod deploy` - deploy production cloak to `srv-76-133`

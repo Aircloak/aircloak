@@ -5,14 +5,23 @@ set -eo pipefail
 
 function build_image {
   ssh acdbuild.mpi-sws.org "
-    echo 'Pulling the latest version' &&
-    cd $BUILD_FOLDER &&
-    git fetch &&
-    git checkout $BRANCH &&
-    git reset --hard origin/$BRANCH &&
-    echo 'Building the image' &&
-    CONTAINER_ENV=prod REGISTRY_URL=$REGISTRY IMAGE_CATEGORY=$IMAGE_CATEGORY \\
-      $BUILD_FOLDER/package.sh
+    {
+      lockfile -r 0 /tmp/cloak_deploy || {
+        echo 'Another deploy in progress! Try again later.'
+        exit 1
+      }
+    } && (
+      {
+        echo 'Pulling the latest version' &&
+        cd $BUILD_FOLDER &&
+        git fetch &&
+        git checkout $BRANCH &&
+        git reset --hard origin/$BRANCH &&
+        echo 'Building the image' &&
+        CONTAINER_ENV=prod REGISTRY_URL=$REGISTRY IMAGE_CATEGORY=$IMAGE_CATEGORY $BUILD_FOLDER/package.sh &&
+        rm -f /tmp/cloak_deploy
+      } || rm -f /tmp/cloak_deploy
+    )
   "
 }
 
