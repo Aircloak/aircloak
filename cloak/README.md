@@ -9,6 +9,7 @@
         - [Running partial tests](#running-partial-tests)
         - [Running a local docker container](#running-a-local-docker-container)
         - [Deploying](#deploying)
+        - [Rolling back](#rolling-back)
         - [Interacting with production cloaks](#interacting-with-production-cloaks)
 
 ----------------------
@@ -98,34 +99,13 @@ __Warning:__ Running deploys in parallel may lead to strange results, so coordin
 
 Typical deploys:
 
-- `./deploy.sh deploy_targets/master_prod` - deploy production cloak to `srv-76-133`
-- `./deploy.sh deploy_targets/master_stage` - deploy staging cloak to `srv-76-133`
-- `./deploy.sh deploy_targets/test_<dev-name>` - deploy test cloak to `srv-76-135`
+- `./production.sh deploy_targets/master_prod deploy` - deploy production cloak to `srv-76-133`
+- `./production.sh deploy_targets/master_stage deploy` - deploy staging cloak to `srv-76-133`
+- `./production.sh deploy_targets/test_<dev-name> deploy` - deploy test cloak to `srv-76-135`
 
 This will deploy all __pushed__ changes from your current local branch.
 If you want to add a new standard deployment target, please add it to the `deploy_targets` folder of
 this repo.
-
-It is also possible to deploy a custom cloak instance to an arbitrary thor machine:
-
-```bash
-./deploy.sh image_category target_machine runtime_configuration cloak_name
-```
-
-The parameters have following meaning:
-
-- `image_category` - Custom string which is prepended to the image name. You can use your own name, or the name of the feature you're experimenting with. Use only alphanumerics and underscores.
-- `target_machine` - Fully qualified name of the thor machine (e.g. `srv-76-133.mpi-sws.org`) which must be accessible via ssh. __Note__: currently docker is installed only on `srv-76-133` and `srv-76-135`. If you want to use another machine, ask our administrator to install docker there.
-- `runtime_configuration` - name of the configuration folder in `/opt/share/cloak_runtime_configs/` on the target machine. Currently we support `prod` and `stage`.
-- `cloak_name` - The name which will be given to the cloak and the docker container. Use only alphanumerics and underscores.
-
-__Note__: You can only provide one value for each argument. Quoting spaces (e.g. passing `"srv1 srv2 srv3"` as `target_machine`) will not work properly.
-
-Example:
-
-```bash
-./deploy.sh sasa srv-76-133.mpi-sws.org stage sasa
-```
 
 __Note__: You can run multiple cloaks on the same machine. As long as you're not doing any performance/load tests, that should be fine. `srv-76-135` exists for experimental loads that can potentially affect and break other cloaks. If you need a dedicated machine, feel free to take one.
 
@@ -134,6 +114,24 @@ If you want to add the additional configuration, you can add a new folder under 
 As a convenience, there are deploy targets set up for each developer.
 These deploy to the experimental thor node `srv-76-135` and do therefore not affect production cloaks.
 These cloaks are available for querying through insights-stage.
+
+#### Rolling back
+
+If something is wrong with the deployed version, you can easily rollback to a previously built version. First you need to list all published versions for the given cloak with `./production.sh deploy_targets/some_cloak_config versions`. This will print all published versions, with the top-most one being the latest published version (the one that was started after the latest deploy). To rollback to the older version, you can run `./production.sh deploy_targets/some_cloak_config rollback desired_version`.
+
+Example:
+
+```bash
+# list versions
+$ ./production.sh deploy_targets/some_cloak_config versions
+
+0.1.9 (2016-08-18T12:23:14.451047582Z)  # latest version
+0.1.8 (2016-08-18T06:46:11.273391659Z)
+...
+
+# rollback to the older version
+$ ./production.sh deploy_targets/test_sasa rollback 0.1.8
+```
 
 #### Interacting with production cloaks
 
