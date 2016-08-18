@@ -58,10 +58,11 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - The counts of values per-user are computed.
   - The first No users with the biggest overall counts are dropped,
     where No is a noisy number with mean 4, SD 1 and lower bound 1.
-  - The average count of the top Nc remaining users is computed,
-    where Nc is a noisy number with mean 5 and SD 1.
-  - The total count is the sum of all the remaining counts plus Nv multiplied by
-    the average count of the top, where NV is a noisy number with mean No and SD 2.
+  - The average count of the top Nt remaining users is computed,
+    where Nt is a noisy number with mean 5 and SD 1.
+  - The total count is the sum of all the remaining counts plus No multiplied by
+    the average count of the top Nt users plus Nv multiplied by the average count
+    of all the remaining users, where Nv is a noisy number with mean 0 and SD 2.
   - The final result is the maximum between the absolute lower bound of the LCF and the total count.
 
 
@@ -75,8 +76,9 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
       where No is a noisy number with mean 4, SD 1 and lower bound 1.
     - The average value of the top Nt remaining users is computed,
       where Nt is a noisy number with mean 5 and SD 1.
-    - The total sum is the sum of all the remaining values plus Nv multiplied by
-      the average count of the top, where NV is a noisy number with mean No and SD 2.
+    - The total sum is the sum of all the remaining values plus No multiplied by
+      the average value of the top Nt users plus Nv multiplied by the average value
+      of all the remaining users, where Nv is a noisy number with mean 0 and SD 2.
 
 
 ## AVG()
