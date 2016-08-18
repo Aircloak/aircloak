@@ -9,6 +9,8 @@ cd $ROOT_DIR
 . docker/docker_helper.sh
 . air/config/config.sh
 
+common/docker/elixir/build-image.sh
+
 # This will build a dockerized version of the air site.
 #
 # To reduce the final image size, we build in two steps:
@@ -32,8 +34,7 @@ docker stop $builder_container_id > /dev/null
 docker rm -v $builder_container_id > /dev/null
 cd site/artifacts/rel && \
   tar -xzf air.tar.gz && \
-  rm air.tar.gz && \
-  rm releases/0.0.1/air.tar.gz
+  rm air.tar.gz
 
 # Build the release image
 cd $ROOT_DIR

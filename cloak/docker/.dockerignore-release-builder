@@ -5,6 +5,13 @@
 # Whitelist only needed folders
 
 # The folders not copied in the base image
+!common
+!cloak/VERSION
+!cloak/Makefile
+!cloak/mix.exs
+!cloak/mix.lock
+!cloak/config
+!cloak/fetch_deps.sh
 !cloak/lib
 !cloak/src
 !cloak/include
