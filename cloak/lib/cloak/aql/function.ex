@@ -3,10 +3,18 @@ defmodule Cloak.Aql.Function do
 
   alias Cloak.Aql.{Column, Parser}
   alias Cloak.DataSource
+  alias Timex.Duration
 
   import Kernel, except: [apply: 2]
 
   numeric = {:or, [:integer, :real]}
+  arithmetic_operation = %{
+    [:integer, :integer] => :integer,
+    [:real, :integer] => :real,
+    [:integer, :real] => :real,
+    [:real, :real] => :real,
+  }
+
   @functions %{
     ~w(count) => %{aggregate: true, type_specs: %{[:any] => :integer}},
     ~w(sum min max median) => %{aggregate: true, type_specs: %{
@@ -25,13 +33,33 @@ defmodule Cloak.Aql.Function do
     }},
     ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
     ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
-    ~w(pow * + - ^) => %{type_specs: %{
-      [:integer, :integer] => :integer,
-      [:real, :integer] => :real,
-      [:integer, :real] => :real,
-      [:real, :real] => :real,
+    ~w(pow ^) => %{type_specs: arithmetic_operation},
+    ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
+      [:date, :interval] => :timestamp,
+      [:time, :interval] => :time,
+      [:timestamp, :interval] => :timestamp,
+      [:interval, :date] => :timestamp,
+      [:interval, :time] => :time,
+      [:interval, :timestamp] => :timestamp,
+      [:interval, :interval] => :interval,
+    })},
+    ~w(-) => %{type_specs: Map.merge(arithmetic_operation, %{
+      [:date, :date] => :interval,
+      [:time, :time] => :interval,
+      [:timestamp, :timestamp] => :interval,
+      [:date, :interval] => :timestamp,
+      [:time, :interval] => :time,
+      [:timestamp, :interval] => :timestamp,
+      [:interval, :interval] => :interval,
+    })},
+    ~w(*) => %{type_specs: Map.merge(arithmetic_operation, %{
+       [:interval, numeric] => :interval,
+       [numeric, :interval] => :interval,
+     })},
+    ~w(/) => %{type_specs: %{
+      [numeric, numeric] => :real,
+      [:interval, {:or, [:integer, :real]}] => :interval,
     }},
-    ~w(/) => %{type_specs: %{[numeric, numeric] => :real}},
     ~w(length) => %{type_specs: %{[:text] => :integer}},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
     ~w(left right) => %{type_specs: %{[:text, :integer] => :text}},
@@ -54,6 +82,8 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[{:or, [:text, :timestamp, :date]}] => :date}},
     [{:cast, :text}] =>
       %{type_specs: %{[:any] => :text}},
+    [{:cast, :interval}] =>
+      %{type_specs: %{[{:or, [:text, :interval]}] => :interval}}
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -211,9 +241,24 @@ defmodule Cloak.Aql.Function do
   defp do_apply("||", args), do: Enum.join(args)
   defp do_apply("concat", args), do: Enum.join(args)
   defp do_apply("^", [x, y]), do: :math.pow(x, y)
+  defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
+  defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])
   defp do_apply("*", [x, y]), do: x * y
+  defp do_apply("/", [x = %Duration{}, y]), do: Duration.scale(x, 1 / y)
   defp do_apply("/", [x, y]), do: x / y
+  defp do_apply("+", [x = %Date{}, y = %Duration{}]), do:
+    x |> Timex.to_naive_datetime() |> Timex.add(y)
+  defp do_apply("+", [x = %NaiveDateTime{}, y = %Duration{}]), do:
+    Timex.add(x, y)
+  defp do_apply("+", [x = %Duration{}, y = %Duration{}]), do: Duration.add(x, y)
+  defp do_apply("+", [x = %Duration{}, y]), do: do_apply("+", [y, x])
+  defp do_apply("+", [x = %Time{}, y = %Duration{}]), do: add_to_time(x, y)
   defp do_apply("+", [x, y]), do: x + y
+  defp do_apply("-", [x = %Date{}, y = %Date{}]), do: Timex.diff(x, y, :duration)
+  defp do_apply("-", [x = %NaiveDateTime{}, y = %NaiveDateTime{}]), do: Timex.diff(x, y, :duration)
+  defp do_apply("-", [x = %Time{}, y = %Time{}]), do:
+    Duration.sub(Duration.from_time(x), Duration.from_time(y))
+  defp do_apply("-", [x, y = %Duration{}]), do: do_apply("+", [x, Duration.scale(y, -1)])
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
 
@@ -239,6 +284,12 @@ defmodule Cloak.Aql.Function do
   defp substring(_string, _from, count) when count < 0, do: ""
   defp substring(string, from, count), do:
     String.slice(string, from - 1, count || String.length(string))
+
+  defp add_to_time(time, duration) do
+    NaiveDateTime.from_erl!({_arbitrary_date = {100, 1, 1}, Time.to_erl(time)})
+    |> Timex.add(duration_time_part(duration))
+    |> NaiveDateTime.to_time
+  end
 
   defp cast(nil, _), do: nil
   # cast to integer
@@ -272,7 +323,8 @@ defmodule Cloak.Aql.Function do
   # cast to text
   defp cast(true, :text), do: "TRUE"
   defp cast(false, :text), do: "FALSE"
-  defp cast(value = %Timex.DateTime{}, :text) do
+  defp cast(value = %Duration{}, :text), do: Duration.to_string(value)
+  defp cast(value = %NaiveDateTime{}, :text) do
     case Timex.format(value, "{ISOdate} {ISOtime}") do
       {:ok, result} -> result
       {:error, _} -> nil
@@ -291,19 +343,29 @@ defmodule Cloak.Aql.Function do
     end
   end
   # cast to timestamp
-  defp cast(value = %Timex.DateTime{}, :timestamp), do: value
-  defp cast(value, :timestamp) when is_binary(value), do: parse_time(value, "{ISO}")
+  defp cast(value = %NaiveDateTime{}, :timestamp), do: value
+  defp cast(value, :timestamp) when is_binary(value), do:
+    value |> Cloak.Time.parse_datetime() |> error_to_nil()
   # cast to time
-  defp cast(value = %Timex.DateTime{}, :time), do: %{value | year: 0, month: 0, day: 0}
-  defp cast(value, :time) when is_binary(value), do: parse_time(value, "{ISOtime}")
+  defp cast(value = %Time{}, :time), do: value
+  defp cast(value = %NaiveDateTime{}, :time), do: NaiveDateTime.to_time(value)
+  defp cast(value, :time) when is_binary(value), do:
+    value |> Cloak.Time.parse_time() |> error_to_nil()
   # cast to date
-  defp cast(value = %Timex.DateTime{}, :date), do: %{value | hour: 0, minute: 0, second: 0, millisecond: 0}
-  defp cast(value, :date) when is_binary(value), do: parse_time(value, "{ISOdate}")
+  defp cast(value = %Date{}, :date), do: value
+  defp cast(value = %NaiveDateTime{}, :date), do: NaiveDateTime.to_date(value)
+  defp cast(value, :date) when is_binary(value), do:
+    value |> Cloak.Time.parse_date() |> error_to_nil()
+  # cast to interval
+  defp cast(value = %Duration{}, :interval), do: value
+  defp cast(value, :interval) when is_binary(value), do:
+    value |> Duration.parse() |> error_to_nil()
 
-  defp parse_time(value, format) do
-    case Timex.parse(value, format) do
-      {:ok, result} -> result
-      {:error, _} -> nil
-    end
+  defp duration_time_part(duration) do
+    {hours, days, seconds, microseconds} = Duration.to_clock(duration)
+    Duration.from_clock({rem(hours, 24), days, seconds, microseconds})
   end
+
+  defp error_to_nil({:ok, result}), do: result
+  defp error_to_nil({:error, _}), do: nil
 end

@@ -5,7 +5,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
     [
       app: :aircloak_common,
       version: "0.0.1",
-      elixir: "~> 1.2",
+      elixir: "~> 1.3",
       elixirc_paths: elixirc_paths(Mix.env),
       erlc_paths: erlc_paths(Mix.env),
       erlc_options: erlc_options(Mix.env),
@@ -14,7 +14,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       deps: deps,
       aliases: [
         "test.standard": ["test", "eunit", "proper --level simple"],
-        "lint": ["credo --strict"]
+        "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
       ],
       preferred_cli_env: [
         eunit: :test, proper: :test, "test.standard": :test, dialyze: :dev,
@@ -37,16 +37,16 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:poison, "~> 1.5"},
       {:gproc, "~> 0.5.0"},
       {:protobuffs, github: "basho/erlang_protobuffs", tag: "0.8.2", warn_missing: false},
-      {:ex_doc, "~> 0.11", warn_missing: false},
-      {:earmark, "~> 0.2", warn_missing: false},
+      {:ex_doc, "~> 0.13", warn_missing: false},
+      {:earmark, "~> 1.0", warn_missing: false},
       {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, warn_missing: false},
-      {:credo, "~> 0.3.0", warn_missing: false},
+      {:credo, "~> 0.4.8", warn_missing: false},
       {:eunit_formatters, "~> 0.3.0", warn_missing: false},
       {:proper, github: "manopapad/proper", warn_missing: false},
       {:dialyze, "~> 0.2.1", warn_missing: false},
-      {:excoveralls, "~> 0.5", warn_missing: false},
-      {:exrm, "~> 1.0", warn_missing: false},
-      {:phoenix, "~> 1.1.4", only: :test},
+      {:excoveralls, "~> 0.5.5", warn_missing: false},
+      {:exrm, "~> 1.0.8", warn_missing: false},
+      {:phoenix, "~> 1.1.6", only: :test},
       {:cowboy, "~> 1.0", only: :test}
     ]
   end
@@ -64,4 +64,9 @@ defmodule Aircloak.ElixirCommon.Mixfile do
 
   defp applications(:test), do: [:logger, :gproc, :phoenix, :cowboy, :poison, :ex_unit]
   defp applications(_), do: [:logger, :gproc, :poison]
+
+  defp ignored_credo_checks(:test), do:
+    ["ModuleDoc" | ignored_credo_checks(:dev)]
+  defp ignored_credo_checks(_), do:
+    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 end

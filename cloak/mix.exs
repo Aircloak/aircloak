@@ -5,7 +5,7 @@ defmodule Cloak.Mixfile do
     [
       app: :cloak,
       version: "0.1.0",
-      elixir: "~> 1.2",
+      elixir: "~> 1.3",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       deps: deps,
@@ -30,20 +30,19 @@ defmodule Cloak.Mixfile do
     [
       {:aircloak_common, path: "../common/elixir"},
       {:gproc, "~> 0.5.0"},
-      {:exrm, "~> 1.0", warn_missing: false},
       {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, warn_missing: false},
       {:postgrex, "~> 0.11"},
       {:poolboy, "~> 1.5"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client"},
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
-      {:combine, github: "bitwalker/combine", override: true},
-      {:timex, "~> 2.1.6", github: "bitwalker/timex"},
-      {:poison, "~> 1.5.2"},
-      {:httpoison, "~> 0.8.3"},
+      {:combine, "~> 0.9.2"},
+      {:timex, "~> 3.0.8"},
+      {:poison, "~> 2.2.0", override: true},
+      {:httpoison, "~> 0.9.0"},
 
       # Test deps
 
-      {:phoenix, "~> 1.1.4", only: :test},
+      {:phoenix, "~> 1.1.6", only: :test},
       {:cowboy, "~> 1.0", only: :test},
       {:bypass, "~> 0.5.1", only: :test}
     ]
@@ -72,8 +71,13 @@ defmodule Cloak.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      "lint": ["credo --strict"]
+      "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
     ]
   end
   defp aliases(:prod), do: []
+
+  defp ignored_credo_checks(:test), do:
+    ["ModuleDoc" | ignored_credo_checks(:dev)]
+  defp ignored_credo_checks(_), do:
+    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 end

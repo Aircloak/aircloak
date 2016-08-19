@@ -91,12 +91,12 @@ defmodule Cloak.Query.Runner do
     # properly logged, so no need to add more noise.
     {:stop, :normal, state}
   end
-  def handle_info(msg, %{runner: runner} = state) do
-    with {result, ^runner} <- Task.find([runner], msg) do
-      report_result(state, result)
-    end
+  def handle_info({runner_ref, result}, %{runner: %Task{ref: runner_ref}} = state) do
+    report_result(state, result)
     {:noreply, state}
   end
+  def handle_info(_other, state), do:
+    {:noreply, state}
 
 
   ## ----------------------------------------------------------------

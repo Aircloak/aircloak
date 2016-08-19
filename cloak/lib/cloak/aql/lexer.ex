@@ -1,6 +1,7 @@
 defmodule Cloak.Aql.Lexer do
   @moduledoc "Lexer for SQL queries"
-  use Combine
+  import Combine.Parsers.Base
+  import Combine.Parsers.Text
   import Cloak.Aql.Parsers
   alias Cloak.Aql.Parsers.Token
 
@@ -30,6 +31,7 @@ defmodule Cloak.Aql.Lexer do
     "INNER", "OUTER", "LEFT", "RIGHT", "FULL", "JOIN", "ON", "CROSS",
     "WHERE", "AND", "NOT",
     "CAST",
+    "INTERVAL",
     "INTEGER", "REAL", "TEXT", "BOOLEAN", "TIMESTAMP", "DATE", "TIME",
     "LIKE", "ILIKE", "IN", "IS",
     "ORDER", "GROUP", "BY",

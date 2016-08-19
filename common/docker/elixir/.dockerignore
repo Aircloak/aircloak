@@ -1,0 +1,7 @@
+# ignore everything by default
+*
+
+# Whitelist only needed files and folders
+
+
+# This is the bare minimum needed to build the deps

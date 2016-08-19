@@ -142,14 +142,20 @@ function build_aircloak_image {
     if [ -f .dockerignore ]; then rm .dockerignore; fi
   fi
 
+  image_version=${4:-"latest"}
+
   full_image_name=$(aircloak_image_name $1)
 
   temp_docker_file="tmp/$(uuidgen).dockerfile"
   {
     mkdir -p tmp
     echo "[aircloak] building $full_image_name"
-    cat $dockerfile | dockerfile_content > "$temp_docker_file"
-    docker build -t $full_image_name:latest -f "$temp_docker_file" .
+    cat $dockerfile |
+      dockerfile_content |
+      sed "s/\$DEBIAN_VERSION/$(debian_version)/" |
+      sed "s/\$ERLANG_VERSION/$(erlang_version)/" |
+      sed "s/\$ELIXIR_VERSION/$(elixir_version)/" > "$temp_docker_file"
+    docker build -t $full_image_name:$image_version -f "$temp_docker_file" .
   } || {
     # called in the case of an error
     exit_code=$?
@@ -166,9 +172,15 @@ function build_aircloak_image {
   exited_containers=$(docker ps --quiet -f status=exited)
   if [ "$exited_containers" != "" ]; then docker rm $exited_containers || true; fi
 
-  # remove local version tags (obsolete in the new version of the build system)
-  local_version_tags=$(docker images | awk "{if (\$1 == \"$full_image_name\" && \$2 != \"latest\") print \$1\":\"\$2}")
-  if [ "$local_version_tags" != "" ]; then docker rmi $local_version_tags || true; fi
+  if [ "$image_version" == "latest" ]; then
+    # remove local non-latest version tags (obsolete in the new version of the build system)
+    local_version_tags=$(docker images | awk "{if (\$1 == \"$full_image_name\" && \$2 != \"latest\") print \$1\":\"\$2}")
+    if [ "$local_version_tags" != "" ]; then docker rmi $local_version_tags || true; fi
+  else
+    # remove local "latest" version tags
+    local_version_tags=$(docker images | awk "{if (\$1 == \"$full_image_name\" && \$2 == \"latest\") print \$1\":\"\$2}")
+    if [ "$local_version_tags" != "" ]; then docker rmi $local_version_tags || true; fi
+  fi
 
   # remove dangling images
   dangling_images=$(docker images --quiet --filter "dangling=true")
@@ -394,4 +406,39 @@ function untag_registry_tags {
   if [ "$repo_tags" != "" ]; then
     docker rmi $repo_tags
   fi
+}
+
+function debian_version {
+  echo "8.5"
+}
+
+function erlang_version {
+  cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep erlang | sed s/'erlang '//
+}
+
+function elixir_version {
+  cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep elixir | sed s/'elixir '//
+}
+
+function published_images {
+  registry_v2_req $1 _catalog |
+    jq --raw-output ".repositories []" |
+    grep aircloak |
+    sort
+}
+
+function published_image_versions {
+  for version in $(
+    registry_v2_req $1 $2/tags/list |
+      jq --raw-output ".tags | select(. != null) | .[]" |
+      grep -v latest |
+      sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn"
+  ); do
+    created_at=$(
+      registry_v2_req $1 $2/manifests/$version |
+        jq --raw-output ".history[0].v1Compatibility" |
+        jq --raw-output ".created"
+    )
+    echo "$version ($created_at)"
+  done
 }
