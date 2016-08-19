@@ -32,9 +32,6 @@ defmodule Cloak.QueryTest do
 
   setup do
     Cloak.Test.DB.clear_table("heights")
-    Cloak.Test.DB.clear_table("purchases")
-    Cloak.Test.DB.clear_table("children")
-    Cloak.Test.DB.clear_table("datetimes")
     :ok
   end
 
@@ -491,86 +488,6 @@ defmodule Cloak.QueryTest do
     ]
   end
 
-  test "selecting from multiple tables" do
-    :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
-
-    assert_query "select max(height), max(price) FROM heights, purchases WHERE heights.user_id = purchases.user_id",
-      %{columns: ["max", "max"], rows: rows}
-    assert rows == [%{row: [180, 200], occurrences: 1}]
-  end
-
-  test "selecting using INNER JOIN" do
-    :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
-
-    assert_query """
-      SELECT max(height), max(price)
-      FROM heights INNER JOIN purchases ON heights.user_id = purchases.user_id
-    """,
-      %{columns: ["max", "max"], rows: rows}
-    assert rows == [%{row: [180, 200], occurrences: 1}]
-  end
-
-  for negative_condition <- ["<>", "NOT LIKE", "NOT ILIKE"] do
-    test "#{negative_condition} not supported in a join" do
-      assert_query """
-        SELECT max(height), max(price)
-        FROM heights JOIN purchases ON heights.user_id = purchases.user_id AND
-        heights.user_id #{unquote(negative_condition)} ''
-      """,
-        %{error: "#{unquote(negative_condition)} not supported in joins."}
-    end
-  end
-
-  test "selecting using complex JOIN" do
-    :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
-    :ok = insert_rows(_user_ids = 0..100, "children", ["age"], [20])
-
-    assert_query """
-      SELECT max(height), max(price), max(age)
-      FROM
-        heights INNER JOIN purchases ON heights.user_id = purchases.user_id,
-        children
-      WHERE children.user_id = purchases.user_id
-    """, %{columns: ["max", "max", "max"], rows: rows}
-    assert rows == [%{row: [180, 200, 20], occurrences: 1}]
-  end
-
-  test "selecting using LEFT OUTER JOIN" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 1..50, "children", ["age"], [20])
-
-    assert_query """
-      SELECT count(*)
-      FROM heights LEFT OUTER JOIN children ON heights.user_id = children.user_id
-    """, %{columns: ["count"], rows: rows}
-    assert rows == [%{row: [100], occurrences: 1}]
-  end
-
-  test "selecting using RIGHT OUTER JOIN" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 1..50, "children", ["age"], [20])
-
-    assert_query """
-      SELECT count(*)
-      FROM heights RIGHT OUTER JOIN children ON heights.user_id = children.user_id
-    """, %{columns: ["count"], rows: rows}
-    assert rows == [%{row: [50], occurrences: 1}]
-  end
-
-  test "selecting using FULL OUTER JOIN" do
-    :ok = insert_rows(_user_ids = 1..50, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 101..150, "children", ["age"], [20])
-
-    assert_query """
-      SELECT count(*)
-      FROM heights FULL OUTER JOIN children ON heights.user_id = children.user_id
-    """, %{columns: ["count"], rows: rows}
-    assert rows == [%{row: [100], occurrences: 1}]
-  end
-
   test "query reports an error on invalid where clause identifier" do
     assert_query "select height from heights where nonexistant > 10", %{error: error}
     assert ~s/Column `nonexistant` doesn't exist in table `heights`./ == error
@@ -756,6 +673,90 @@ defmodule Cloak.QueryTest do
     )
   end
 
+  describe "JOINs" do
+    setup [:clear_heights, :clear_children, :clear_purchases]
+
+    test "selecting from multiple tables" do
+      :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+
+      assert_query "select max(height), max(price) FROM heights, purchases WHERE heights.user_id = purchases.user_id",
+        %{columns: ["max", "max"], rows: rows}
+      assert rows == [%{row: [180, 200], occurrences: 1}]
+    end
+
+    test "selecting using INNER JOIN" do
+      :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+
+      assert_query """
+        SELECT max(height), max(price)
+        FROM heights INNER JOIN purchases ON heights.user_id = purchases.user_id
+      """,
+        %{columns: ["max", "max"], rows: rows}
+      assert rows == [%{row: [180, 200], occurrences: 1}]
+    end
+
+    for negative_condition <- ["<>", "NOT LIKE", "NOT ILIKE"] do
+      test "#{negative_condition} not supported in a join" do
+        assert_query """
+          SELECT max(height), max(price)
+          FROM heights JOIN purchases ON heights.user_id = purchases.user_id AND
+          heights.user_id #{unquote(negative_condition)} ''
+        """,
+          %{error: "#{unquote(negative_condition)} not supported in joins."}
+      end
+    end
+
+    test "selecting using complex JOIN" do
+      :ok = insert_rows(_user_ids = 0..100, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+      :ok = insert_rows(_user_ids = 0..100, "children", ["age"], [20])
+
+      assert_query """
+        SELECT max(height), max(price), max(age)
+        FROM
+          heights INNER JOIN purchases ON heights.user_id = purchases.user_id,
+          children
+        WHERE children.user_id = purchases.user_id
+      """, %{columns: ["max", "max", "max"], rows: rows}
+      assert rows == [%{row: [180, 200, 20], occurrences: 1}]
+    end
+
+    test "selecting using LEFT OUTER JOIN" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 1..50, "children", ["age"], [20])
+
+      assert_query """
+        SELECT count(*)
+        FROM heights LEFT OUTER JOIN children ON heights.user_id = children.user_id
+      """, %{columns: ["count"], rows: rows}
+      assert rows == [%{row: [100], occurrences: 1}]
+    end
+
+    test "selecting using RIGHT OUTER JOIN" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 1..50, "children", ["age"], [20])
+
+      assert_query """
+        SELECT count(*)
+        FROM heights RIGHT OUTER JOIN children ON heights.user_id = children.user_id
+      """, %{columns: ["count"], rows: rows}
+      assert rows == [%{row: [50], occurrences: 1}]
+    end
+
+    test "selecting using FULL OUTER JOIN" do
+      :ok = insert_rows(_user_ids = 1..50, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 101..150, "children", ["age"], [20])
+
+      assert_query """
+        SELECT count(*)
+        FROM heights FULL OUTER JOIN children ON heights.user_id = children.user_id
+      """, %{columns: ["count"], rows: rows}
+      assert rows == [%{row: [100], occurrences: 1}]
+    end
+  end
+
   describe "date/time handling" do
     setup [:clear_datetimes]
 
@@ -918,8 +919,23 @@ defmodule Cloak.QueryTest do
     :ok
   end
 
-  def clear_datetimes(_context) do
+  defp clear_datetimes(_context) do
     Cloak.Test.DB.clear_table("datetimes")
+    :ok
+  end
+
+  defp clear_heights(_context) do
+    Cloak.Test.DB.clear_table("heights")
+    :ok
+  end
+
+  defp clear_children(_context) do
+    Cloak.Test.DB.clear_table("children")
+    :ok
+  end
+
+  defp clear_purchases(_context) do
+    Cloak.Test.DB.clear_table("purchases")
     :ok
   end
 
