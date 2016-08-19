@@ -97,16 +97,6 @@ defmodule Cloak.QueryTest do
       assert Enum.map(rows, &(&1[:row])) == [[:*, :*, :*]]
     end
 
-    test "warns when uid column is selected" do
-      assert_info "select user_id from heights", "`user_id` from table `heights`"
-      assert_info "select user_id, height from heights", "`user_id` from table `heights`"
-      assert_info "select * from heights", "`user_id` from table `heights`"
-
-      assert_query "select * from heights, purchases where heights.user_id = purchases.user_id", %{info: [info1, info2]}
-      assert info1 =~ "`user_id` from table `heights`"
-      assert info2 =~ "`user_id` from table `purchases`"
-    end
-
     test "should return LCF property when sufficient rows are filtered" do
       :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
       :ok = insert_rows(_user_ids = 0..1, "heights", ["height"], [160])
@@ -400,35 +390,6 @@ defmodule Cloak.QueryTest do
       assert rows == Enum.sort(rows)
     end
 
-    test "query reports an error on invalid statement" do
-      assert_query "invalid statement", %{error: "Expected `select or show` at line 1, column 1."}
-    end
-
-    test "query reports an error on invalid column" do
-      assert_query "select invalid_column from heights", %{error: error}
-      assert ~s/Column `invalid_column` doesn't exist in table `heights`./ == error
-    end
-
-    test "query reports an error on invalid table" do
-      assert_query "select column from invalid_table", %{error: error}
-      assert ~s/Table `invalid_table` doesn't exist./ == error
-    end
-
-    test "query reports an error when mixing aggregated and normal columns" do
-      assert_query "select count(*), height from heights", %{error: error}
-      assert error =~ ~r/`height` from table `heights` needs to appear in the `group by` clause/
-    end
-
-    test "query reports an error when grouping by nonexistent columns" do
-      assert_query "select count(*) from heights group by nothing", %{error: error}
-      assert error =~ ~r/Column `nothing` doesn't exist in table `heights`./
-    end
-
-    test "query reports an error when not grouping by some selected columns" do
-      assert_query "select name, height from heights group by height", %{error: error}
-      assert error =~ ~r/`name` from table `heights` needs to appear in the `group by` clause/
-    end
-
     test "query allows mixing aggregated and grouped columns" do
       :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
       :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
@@ -486,37 +447,6 @@ defmodule Cloak.QueryTest do
       ]
     end
 
-    test "query reports an error on invalid where clause identifier" do
-      assert_query "select height from heights where nonexistant > 10", %{error: error}
-      assert ~s/Column `nonexistant` doesn't exist in table `heights`./ == error
-    end
-
-    test "query reports an error on invalid order by field" do
-      assert_query "select height from heights order by name", %{error: error}
-      assert ~s/Non-selected column `name` from table `heights` specified in `order by` clause./ == error
-    end
-
-    test "query reports an error on unknown function" do
-      assert_query "select invalid_function(height) from heights", %{error: error}
-      assert ~s/Unknown function `invalid_function`./ == error
-    end
-
-    test "reports an error on wrong cast" do
-      assert_query "select * from datetimes where datetime > 0", %{error: error}
-      assert ~s/Cannot cast `0` to timestamp./ == error
-    end
-
-    test "reports an error on ambigous usage of an alias occurring multiple times" do
-      assert_query "select count(*) as x, count(height) as x from heights order by x", %{error: error}
-      assert ~s/Usage of `x` is ambiguous./ == error
-    end
-
-    test "query reports an error on runner crash" do
-      ExUnit.CaptureLog.capture_log(fn ->
-        assert_query :invalid_query_type, %{error: "Cloak error"}
-      end)
-    end
-
     test "query which returns zero rows" do
       Cloak.Test.DB.clear_table("heights")
       assert_query "select height from heights", result
@@ -561,12 +491,6 @@ defmodule Cloak.QueryTest do
       :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["a name"])
       assert_query "select substring(name for 4) from heights",
         %{columns: [_], rows: [%{row: ["a na"], occurrences: 10}]}
-    end
-
-    test "substring with neither for nor from" do
-      assert_query "select substring(name) from heights", %{error: error}
-      assert error == "Function `substring` requires arguments of type (`text`, `integer`, [`integer`]),"
-        <> " but got (`text`)"
     end
 
     test "concat" do
@@ -669,6 +593,84 @@ defmodule Cloak.QueryTest do
         """,
         %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
       )
+    end
+  end
+
+  describe "error handling" do
+    test "query reports an error on invalid where clause identifier" do
+      assert_query "select height from heights where nonexistant > 10", %{error: error}
+      assert ~s/Column `nonexistant` doesn't exist in table `heights`./ == error
+    end
+
+    test "query reports an error on invalid order by field" do
+      assert_query "select height from heights order by name", %{error: error}
+      assert ~s/Non-selected column `name` from table `heights` specified in `order by` clause./ == error
+    end
+
+    test "query reports an error on unknown function" do
+      assert_query "select invalid_function(height) from heights", %{error: error}
+      assert ~s/Unknown function `invalid_function`./ == error
+    end
+
+    test "reports an error on wrong cast" do
+      assert_query "select * from datetimes where datetime > 0", %{error: error}
+      assert ~s/Cannot cast `0` to timestamp./ == error
+    end
+
+    test "reports an error on ambigous usage of an alias occurring multiple times" do
+      assert_query "select count(*) as x, count(height) as x from heights order by x", %{error: error}
+      assert ~s/Usage of `x` is ambiguous./ == error
+    end
+
+    test "query reports an error on invalid statement" do
+      assert_query "invalid statement", %{error: "Expected `select or show` at line 1, column 1."}
+    end
+
+    test "query reports an error on invalid column" do
+      assert_query "select invalid_column from heights", %{error: error}
+      assert ~s/Column `invalid_column` doesn't exist in table `heights`./ == error
+    end
+
+    test "query reports an error on invalid table" do
+      assert_query "select column from invalid_table", %{error: error}
+      assert ~s/Table `invalid_table` doesn't exist./ == error
+    end
+
+    test "query reports an error when mixing aggregated and normal columns" do
+      assert_query "select count(*), height from heights", %{error: error}
+      assert error =~ ~r/`height` from table `heights` needs to appear in the `group by` clause/
+    end
+
+    test "query reports an error when grouping by nonexistent columns" do
+      assert_query "select count(*) from heights group by nothing", %{error: error}
+      assert error =~ ~r/Column `nothing` doesn't exist in table `heights`./
+    end
+
+    test "query reports an error when not grouping by some selected columns" do
+      assert_query "select name, height from heights group by height", %{error: error}
+      assert error =~ ~r/`name` from table `heights` needs to appear in the `group by` clause/
+    end
+
+    test "query reports an error on runner crash" do
+      ExUnit.CaptureLog.capture_log(fn ->
+        assert_query :invalid_query_type, %{error: "Cloak error"}
+      end)
+    end
+
+    test "warns when uid column is selected" do
+      assert_info "select user_id from heights", "`user_id` from table `heights`"
+      assert_info "select user_id, height from heights", "`user_id` from table `heights`"
+      assert_info "select * from heights", "`user_id` from table `heights`"
+
+      assert_query "select * from heights, purchases where heights.user_id = purchases.user_id", %{info: [info1, info2]}
+      assert info1 =~ "`user_id` from table `heights`"
+      assert info2 =~ "`user_id` from table `purchases`"
+    end
+
+    test "substring with neither for nor from" do
+      assert_query "select substring(name) from heights", %{error: error}
+      assert error == "Function `substring` requires arguments of type (`text`, `integer`, [`integer`]),"
+        <> " but got (`text`)"
     end
   end
 
