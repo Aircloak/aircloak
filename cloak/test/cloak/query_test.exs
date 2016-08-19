@@ -21,7 +21,10 @@ defmodule Cloak.QueryTest do
   setup_all do
     Cloak.Test.DB.setup()
     Cloak.Test.DB.create_test_schema()
-    Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, datetime TIMESTAMP, date DATE, time_only TIME")
+    Cloak.Test.DB.create_table(
+      "heights",
+      "height INTEGER, name TEXT, datetime TIMESTAMP, date_only DATE, time_only TIME"
+    )
     Cloak.Test.DB.create_table("floats", "float REAL")
     Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
     Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, datetime TIMESTAMP")
@@ -50,7 +53,7 @@ defmodule Cloak.QueryTest do
   test "show columns" do
     assert_query "show columns from heights", %{query_id: "1", columns: ["name", "type"], rows: rows}
     assert Enum.sort_by(rows, &(&1[:row])) == [
-      %{occurrences: 1, row: ["date", :date]},
+      %{occurrences: 1, row: ["date_only", :date]},
       %{occurrences: 1, row: ["datetime", :timestamp]},
       %{occurrences: 1, row: ["height", :integer]},
       %{occurrences: 1, row: ["name", :text]},
@@ -67,7 +70,7 @@ defmodule Cloak.QueryTest do
 
   test "select all query" do
     assert_query "select * from heights",
-      %{query_id: "1", columns: ["user_id", "height", "name", "datetime", "date", "time_only"], rows: _}
+      %{query_id: "1", columns: ["user_id", "height", "name", "datetime", "date_only", "time_only"], rows: _}
   end
 
   test "select date parts" do
@@ -178,7 +181,7 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
 
     assert_query "select * from heights order by name",
-      %{query_id: "1", columns: ["user_id", "height", "name", "datetime", "date", "time_only"], rows: rows}
+      %{query_id: "1", columns: ["user_id", "height", "name", "datetime", "date_only", "time_only"], rows: rows}
     assert Enum.map(rows, &(&1[:row])) == [[:*, :*, :*, :*, :*, :*]]
   end
 
@@ -873,6 +876,29 @@ defmodule Cloak.QueryTest do
       """,
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
     )
+  end
+
+  test "selecting time" do
+    time = %Postgrex.Time{hour: 1, min: 2, sec: 3}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["time_only"], [time])
+
+    assert_query "select time_only from heights",
+      %{rows: [%{row: [~T[01:02:03.000000]]}]}
+  end
+
+  test "selecting date" do
+    time = %Postgrex.Date{year: 1, month: 2, day: 3}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["date_only"], [time])
+
+    assert_query "select date_only from heights",
+      %{rows: [%{row: [~D[0001-02-03]]}]}
+  end
+
+  test "selecting datetime" do
+    time = %Postgrex.Timestamp{year: 2015, month: 1, day: 2, hour: 3, min: 4, sec: 5}
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["datetime"], [time])
+
+    assert_query "select datetime from heights", %{rows: [%{row: [~N[2015-01-02 03:04:05.000000]]}]}
   end
 
   defp start_query(statement) do

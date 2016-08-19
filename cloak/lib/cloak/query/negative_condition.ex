@@ -8,9 +8,7 @@ defmodule Cloak.Query.NegativeCondition do
   """
 
   alias Cloak.Query.Anonymizer
-  alias Cloak.Aql.Query
-  alias Cloak.Aql.Function
-  alias Cloak.Aql.Parsers.Token
+  alias Cloak.Aql.{Column, Function, Query}
 
 
   # -------------------------------------------------------------------
@@ -108,17 +106,17 @@ defmodule Cloak.Query.NegativeCondition do
     for clause <- clauses, do: %Filter{matcher: matcher(clause), match_hard_limit: hard_limit}
   end
 
-  defp matcher({:comparison, column, :=, %Token{value: %{value: value}}}) do
+  defp matcher({:comparison, column, :=, %Column{value: value}}) do
     fn (row) -> Function.apply_to_db_row(column, row) == value end
   end
   defp matcher({:comparison, column, :=, value}) do
     fn (row) -> Function.apply_to_db_row(column, row) == value end
   end
-  defp matcher({:like, column, %Token{value: %{type: :string, value: pattern}}}) do
+  defp matcher({:like, column, %Column{type: :text, value: pattern}}) do
     regex = to_regex(pattern)
     fn (row) -> Function.apply_to_db_row(column, row) =~ regex end
   end
-  defp matcher({:ilike, column, %Token{value: %{type: :string, value: pattern}}}) do
+  defp matcher({:ilike, column, %Column{type: :text, value: pattern}}) do
     regex = to_regex(pattern, [_case_insensitive = "i"])
     fn (row) -> Function.apply_to_db_row(column, row) =~ regex end
   end
