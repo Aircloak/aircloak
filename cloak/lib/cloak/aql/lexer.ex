@@ -33,7 +33,7 @@ defmodule Cloak.Aql.Lexer do
     "CAST",
     "INTERVAL",
     "INTEGER", "REAL", "TEXT", "BOOLEAN", "TIMESTAMP", "DATE", "TIME",
-    "LIKE", "ILIKE", "IN", "IS",
+    "LIKE", "ILIKE", "IN", "IS", "BETWEEN",
     "ORDER", "GROUP", "BY",
     "ASC", "DESC", "AS",
     "NULL", "TRUE", "FALSE",

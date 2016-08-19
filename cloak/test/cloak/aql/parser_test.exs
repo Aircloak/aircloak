@@ -256,6 +256,19 @@ defmodule Cloak.Aql.Parser.Test do
     )
   end
 
+  test "where clause with BETWEEN" do
+    assert_parse(
+      "select foo from bar where a between 10 and 20",
+      select(
+        columns: [{:identifier, :unknown, "foo"}], from: "bar",
+        where: [
+          {:comparison, {:identifier, :unknown, "a"}, :>=, constant(10)},
+          {:comparison, {:identifier, :unknown, "a"}, :<=, constant(20)}
+        ]
+      )
+    )
+  end
+
   test "where clause with LIKE is OK" do
     assert_parse(
       "select foo from bar where a LIKE '_ob d%'",
