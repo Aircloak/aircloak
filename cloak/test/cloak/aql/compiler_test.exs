@@ -25,7 +25,10 @@ defmodule Cloak.Aql.Compiler.Test do
       compile!("select * from table where column > '01:02:03'", time_data_source())
   end
 
-  test "casts date where conditions"
+  test "casts date where conditions" do
+    assert %{where: [{:comparison, column("table", "column"), :>, ~D[2015-01-02]}]} =
+      compile!("select * from table where column > '2015-01-02'", date_data_source())
+  end
 
   test "casts timestamp in `in` conditions" do
     result = compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source())
@@ -460,6 +463,17 @@ defmodule Cloak.Aql.Compiler.Test do
         name: "table",
         user_id: "uid",
         columns: [{"uid", :integer}, {"column", :time}]
+      }
+    }}
+  end
+
+  def date_data_source do
+    %{driver: Cloak.DataSource.PostgreSQL, tables: %{
+      table: %{
+        db_name: "table",
+        name: "table",
+        user_id: "uid",
+        columns: [{"uid", :integer}, {"column", :date}]
       }
     }}
   end
