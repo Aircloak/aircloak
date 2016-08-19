@@ -26,10 +26,10 @@ defmodule Cloak.Aql.Function.Test do
   test "ceil" do
     assert apply_function("ceil", [3.99]) === 4
     assert apply_function("ceil", [3.01]) === 4
-    assert apply_function("ceil", 3) === 3
+    assert apply_function("ceil", [3]) === 3
     assert apply_function("ceiling", [3.99]) === 4
     assert apply_function("ceiling", [3.01]) === 4
-    assert apply_function("ceiling", 3) === 3
+    assert apply_function("ceiling", [3]) === 3
     assert apply_function("ceil", [pow(10, 5000)]) === pow(10, 5000)
   end
 
@@ -477,6 +477,12 @@ defmodule Cloak.Aql.Function.Test do
     test "casting nil to #{type}" do
       assert apply_function({:cast, unquote(type)}, [nil]) === nil
     end
+  end
+
+  test "functions return nil when called with bad arguments" do
+    assert apply_function("length", [nil]) == nil
+    assert apply_function("+", [1, nil]) == nil
+    assert apply_function("/", [1, 0]) == nil
   end
 
   defp return_type(name, arg_types), do:
