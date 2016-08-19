@@ -30,647 +30,646 @@ defmodule Cloak.QueryTest do
     :ok
   end
 
-  setup do
-    Cloak.Test.DB.clear_table("heights")
-    :ok
-  end
+  describe "basic querying" do
+    setup [:clear_heights]
 
-  test "show tables" do
-    assert_query "show tables", %{columns: ["name"], rows: [
-      %{occurrences: 1, row: [:children]},
-      %{occurrences: 1, row: [:datetimes]},
-      %{occurrences: 1, row: [:floats]},
-      %{occurrences: 1, row: [:heights]},
-      %{occurrences: 1, row: [:heights_alias]},
-      %{occurrences: 1, row: [:purchases]}]
-    }
-  end
-
-  test "show columns" do
-    assert_query "show columns from heights", %{query_id: "1", columns: ["name", "type"], rows: rows}
-    assert Enum.sort_by(rows, &(&1[:row])) == [
-      %{occurrences: 1, row: ["height", :integer]},
-      %{occurrences: 1, row: ["name", :text]},
-      %{occurrences: 1, row: ["user_id", :text]}
-    ]
-  end
-
-  test "simple select query" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query "select height from heights",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-  end
-
-  test "select all query" do
-    assert_query "select * from heights",
-      %{query_id: "1", columns: ["user_id", "height", "name"], rows: _}
-  end
-
-  test "select a constant" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
-    assert_query "select 3 from heights", %{columns: [""], rows: [%{occurrences: 10, row: [3]}]}
-  end
-
-  test "select an aliased constant" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
-    assert_query "select 'text' as the_text from heights",
-      %{columns: ["the_text"], rows: [%{occurrences: 10, row: ["text"]}]}
-  end
-
-  test "a binary function of two columns" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
-    assert_query "select div(height, height) from heights",
-      %{columns: ["div"], rows: [%{occurrences: 10, row: [1]}]}
-  end
-
-  test "a binary function of a column and a constant" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
-    assert_query "select div(height, 3) from heights",
-      %{columns: ["div"], rows: [%{occurrences: 10, row: [7]}]}
-  end
-
-  test "select all and order query" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height"], ["john", 180])
-    :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height"], ["adam", 180])
-    :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
-
-    assert_query "select * from heights order by name",
-      %{query_id: "1", columns: ["user_id", "height", "name"], rows: rows}
-    assert Enum.map(rows, &(&1[:row])) == [[:*, :*, :*]]
-  end
-
-  test "warns when uid column is selected" do
-    assert_info "select user_id from heights", "`user_id` from table `heights`"
-    assert_info "select user_id, height from heights", "`user_id` from table `heights`"
-    assert_info "select * from heights", "`user_id` from table `heights`"
-
-    assert_query "select * from heights, purchases where heights.user_id = purchases.user_id", %{info: [info1, info2]}
-    assert info1 =~ "`user_id` from table `heights`"
-    assert info2 =~ "`user_id` from table `purchases`"
-  end
-
-  test "should return LCF property when sufficient rows are filtered" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 0..1, "heights", ["height"], [160])
-    :ok = insert_rows(_user_ids = 20..24, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 20..24, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 25..29, "heights", ["height"], [200])
-    :ok = insert_rows(_user_ids = 25..29, "heights", ["height"], [150])
-
-    assert_query "select height from heights order by height",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 20}, %{row: [:*], occurrences: 22}]}
-  end
-
-  test "should produce counts" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [nil])
-
-    assert_query "select count(*) from heights",
-      %{columns: ["count"], rows: [%{row: [40], occurrences: 1}]}
-
-    assert_query "select COUNT(height) from heights",
-      %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
-  end
-
-  test "count(distinct column)" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [175])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [160])
-    :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [150])
-    :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [151])
-    :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [152])
-    :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [153])
-    :ok = insert_rows(_user_ids = 41..49, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 50..59, "heights", ["height"], [190])
-
-    assert_query "select count(distinct height) from heights",
-      %{columns: ["count"], rows: [%{row: [5], occurrences: 1}]}
-  end
-
-  test "count(distinct column) for empty sets" do
-    assert_query "select count(distinct height) from heights",
-      %{columns: ["count"], rows: [%{row: [0], occurrences: 1}]}
-  end
-
-  test "aggregates of an empty table" do
-    assert_query "select count(*), count(height), avg(height) from heights",
-      %{columns: ["count", "count", "avg"],
-      rows: [%{row: [0, 0, nil], occurrences: 1}]}
-  end
-
-  test "should be able to aggregate positive values" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
-
-    assert_query "select sum(height) from heights",
-      %{columns: ["sum"], rows: [%{row: [5400], occurrences: 1}]}
-
-    assert_query "select min(height) from heights",
-      %{columns: ["min"], rows: [%{row: [170], occurrences: 1}]}
-
-    assert_query "select max(height) from heights",
-      %{columns: ["max"], rows: [%{row: [190], occurrences: 1}]}
-
-    assert_query "select avg(height) from heights",
-      %{columns: ["avg"], rows: [%{row: [180.0], occurrences: 1}]}
-
-    assert_query "select stddev(height) from heights",
-      %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
-    assert_in_delta(stddev, 8.1, 0.1)
-
-    assert_query "select median(height) from heights",
-      %{columns: ["median"], rows: [%{row: [179], occurrences: 1}]}
-  end
-
-  test "should be able to aggregate qualified columns values" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
-
-    assert_query "select sum(heights.height) from heights",
-      %{columns: ["sum"], rows: [%{row: [5400], occurrences: 1}]}
-
-    assert_query "select min(heights.height) from heights",
-      %{columns: ["min"], rows: [%{row: [170], occurrences: 1}]}
-
-    assert_query "select max(heights.height) from heights",
-      %{columns: ["max"], rows: [%{row: [190], occurrences: 1}]}
-
-    assert_query "select avg(heights.height) from heights",
-      %{columns: ["avg"], rows: [%{row: [180.0], occurrences: 1}]}
-
-    assert_query "select stddev(heights.height) from heights",
-      %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
-    assert_in_delta(stddev, 8.1, 0.1)
-
-    assert_query "select median(heights.height) from heights",
-      %{columns: ["median"], rows: [%{row: [179], occurrences: 1}]}
-  end
-
-  test "should be able to aggregate negative values" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-170])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [-183])
-
-    assert_query "select sum(height) from heights",
-      %{columns: ["sum"], rows: [%{row: [-5430], occurrences: 1}]}
-
-    assert_query "select min(height) from heights",
-      %{columns: ["min"], rows: [%{row: [-190], occurrences: 1}]}
-
-    assert_query "select max(height) from heights",
-      %{columns: ["max"], rows: [%{row: [-170], occurrences: 1}]}
-
-    assert_query "select avg(height) from heights",
-      %{columns: ["avg"], rows: [%{row: [-181.0], occurrences: 1}]}
-
-    assert_query "select stddev(height) from heights",
-      %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
-    assert_in_delta(stddev, 8.29, 0.1)
-
-    assert_query "select median(height) from heights",
-      %{columns: ["median"], rows: [%{row: [-184], occurrences: 1}]}
-  end
-
-  test "should be able to aggregate negative and positive values" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-175])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
-
-    assert_query "select sum(height) from heights",
-      %{columns: ["sum"], rows: [%{row: [-1850], occurrences: 1}]}
-
-    assert_query "select min(height) from heights",
-      %{columns: ["min"], rows: [%{row: [-190], occurrences: 1}]}
-
-    assert_query "select max(height) from heights",
-      %{columns: ["max"], rows: [%{row: [180], occurrences: 1}]}
-
-    assert_query "select avg(height) from heights",
-      %{columns: ["avg"], rows: [%{row: [-61.666666666666664], occurrences: 1}]}
-
-    assert_query "select stddev(height) from heights",
-      %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
-    assert_in_delta(stddev, 170.99, 0.1)
-
-    assert_query "select median(height) from heights",
-      %{columns: ["median"], rows: [%{row: [-176], occurrences: 1}]}
-  end
-
-  test "should return nil when not enough values present for anonymization" do
-    :ok = insert_rows(_user_ids = 0..8, "heights", ["height"], [180])
-
-    assert_query "select median(height) from heights",
-      %{columns: ["median"], rows: [%{row: [nil], occurrences: 1}]}
-  end
-
-  test "select the same column multiple times" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-
-    assert_query "select height, height from heights",
-      %{columns: ["height", "height"], rows: [%{row: [180, 180], occurrences: 100}]}
-  end
-
-  test "select the same aggregate multiple times" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-
-    assert_query "select count(height), count(*), count(*), count(height) from heights",
-      %{
-        columns: ["count", "count", "count", "count"],
-        rows: [%{row: [100, 100, 100, 100], occurrences: 1}]
+    test "show tables" do
+      assert_query "show tables", %{columns: ["name"], rows: [
+        %{occurrences: 1, row: [:children]},
+        %{occurrences: 1, row: [:datetimes]},
+        %{occurrences: 1, row: [:floats]},
+        %{occurrences: 1, row: [:heights]},
+        %{occurrences: 1, row: [:heights_alias]},
+        %{occurrences: 1, row: [:purchases]}]
       }
-  end
-
-  test "different aggregates on the same column" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    end
+
+    test "show columns" do
+      assert_query "show columns from heights", %{query_id: "1", columns: ["name", "type"], rows: rows}
+      assert Enum.sort_by(rows, &(&1[:row])) == [
+        %{occurrences: 1, row: ["height", :integer]},
+        %{occurrences: 1, row: ["name", :text]},
+        %{occurrences: 1, row: ["user_id", :text]}
+      ]
+    end
+
+    test "simple select query" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+      assert_query "select height from heights",
+        %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+    end
+
+    test "select all query" do
+      assert_query "select * from heights",
+        %{query_id: "1", columns: ["user_id", "height", "name"], rows: _}
+    end
+
+    test "select a constant" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
+      assert_query "select 3 from heights", %{columns: [""], rows: [%{occurrences: 10, row: [3]}]}
+    end
+
+    test "select an aliased constant" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
+      assert_query "select 'text' as the_text from heights",
+        %{columns: ["the_text"], rows: [%{occurrences: 10, row: ["text"]}]}
+    end
+
+    test "a binary function of two columns" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
+      assert_query "select div(height, height) from heights",
+        %{columns: ["div"], rows: [%{occurrences: 10, row: [1]}]}
+    end
+
+    test "a binary function of a column and a constant" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
+      assert_query "select div(height, 3) from heights",
+        %{columns: ["div"], rows: [%{occurrences: 10, row: [7]}]}
+    end
+
+    test "select all and order query" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height"], ["john", 180])
+      :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height"], ["adam", 180])
+      :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
+
+      assert_query "select * from heights order by name",
+        %{query_id: "1", columns: ["user_id", "height", "name"], rows: rows}
+      assert Enum.map(rows, &(&1[:row])) == [[:*, :*, :*]]
+    end
+
+    test "warns when uid column is selected" do
+      assert_info "select user_id from heights", "`user_id` from table `heights`"
+      assert_info "select user_id, height from heights", "`user_id` from table `heights`"
+      assert_info "select * from heights", "`user_id` from table `heights`"
+
+      assert_query "select * from heights, purchases where heights.user_id = purchases.user_id", %{info: [info1, info2]}
+      assert info1 =~ "`user_id` from table `heights`"
+      assert info2 =~ "`user_id` from table `purchases`"
+    end
+
+    test "should return LCF property when sufficient rows are filtered" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 0..1, "heights", ["height"], [160])
+      :ok = insert_rows(_user_ids = 20..24, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 20..24, "heights", ["height"], [190])
+      :ok = insert_rows(_user_ids = 25..29, "heights", ["height"], [200])
+      :ok = insert_rows(_user_ids = 25..29, "heights", ["height"], [150])
+
+      assert_query "select height from heights order by height",
+        %{columns: ["height"], rows: [%{row: [180], occurrences: 20}, %{row: [:*], occurrences: 22}]}
+    end
+
+    test "should produce counts" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [nil])
+
+      assert_query "select count(*) from heights",
+        %{columns: ["count"], rows: [%{row: [40], occurrences: 1}]}
+
+      assert_query "select COUNT(height) from heights",
+        %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
+    end
+
+    test "count(distinct column)" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [175])
+      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [160])
+      :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [150])
+      :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [151])
+      :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [152])
+      :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [153])
+      :ok = insert_rows(_user_ids = 41..49, "heights", ["height"], [nil])
+      :ok = insert_rows(_user_ids = 50..59, "heights", ["height"], [190])
+
+      assert_query "select count(distinct height) from heights",
+        %{columns: ["count"], rows: [%{row: [5], occurrences: 1}]}
+    end
 
-    assert_query "select count(height), max(height) from heights",
-      %{columns: ["count", "max"], rows: [%{row: [100, 180], occurrences: 1}]}
-  end
+    test "count(distinct column) for empty sets" do
+      assert_query "select count(distinct height) from heights",
+        %{columns: ["count"], rows: [%{row: [0], occurrences: 1}]}
+    end
 
-  test "should allow ranges for where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
-
-    assert_query "select count(*) from heights where height > 170 and height < 190",
-      %{query_id: "1", columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
-  end
-
-  test "should allow LIKE in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "bob"])
-
-    assert_query "select count(*) from heights where name LIKE 'b%'",
-      %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
-  end
-
-  test "should allow NOT LIKE in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "bob"])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height", "name"], [170, "alice"])
-
-    assert_query "select count(*) from heights where name NOT LIKE 'b%'",
-      %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
-  end
-
-  test "should allow NOT ILIKE in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "Bob"])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height", "name"], [170, "alice"])
-
-    assert_query "select count(*) from heights where name NOT ILIKE 'b%'",
-      %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
-  end
-
-  test "should allow ILIKE in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "Bob"])
-
-    assert_query "select count(*) from heights where name ILIKE 'b%'",
-      %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
-  end
-
-  test "should allow IN in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
-
-    assert_query "select count(*) from heights where height IN (170, 180, 190)",
-      %{columns: ["count"], rows: [%{row: [60], occurrences: 1}]}
-  end
-
-  test "should allow NOT IN in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
-
-    assert_query "select count(*) from heights where height NOT IN (170, 190)",
-      %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
-  end
-
-  test "should allow <> in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
-
-    assert_query "select count(*) from heights where height <> 180",
-      %{columns: ["count"], rows: [%{row: [40], occurrences: 1}]}
-  end
-
-  test "should drop <> conditions if they would expose small groups" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["name"], ["Alice"])
-    :ok = insert_rows(_user_ids = 10..11, "heights", ["name"], ["Bob"])
-
-    assert_query "select count(*) from heights where name <> 'Bob'",
-      %{columns: ["count"], rows: [%{row: [12], occurrences: 1}]}
-  end
-
-  test "<> conditions count unique users" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["name"], ["Alice"])
-    1..10 |> Enum.each(fn _ -> :ok = insert_rows(_user_ids = [10], "heights", ["name"], ["Bob"]) end)
-
-    assert_query "select count(*) from heights where name <> 'Bob'",
-      %{query_id: "1", columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
-  end
-
-  test "should allow IS NULL in where clause" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
-
-    assert_query "select count(*) from heights where height IS NULL",
-      %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
-  end
-
-  test "should allow IS NOT NULL in where clause" do
-    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [180])
-
-    assert_query "select count(*) from heights where height IS NOT NULL",
-      %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
-  end
-
-  test "should order rows when instructed" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-
-    assert_query "select height from heights order by height",
-      %{query_id: "1", columns: ["height"], rows: rows}
-    assert rows == Enum.sort(rows)
-  end
-
-  test "query reports an error on invalid statement" do
-    assert_query "invalid statement", %{error: "Expected `select or show` at line 1, column 1."}
-  end
-
-  test "query reports an error on invalid column" do
-    assert_query "select invalid_column from heights", %{error: error}
-    assert ~s/Column `invalid_column` doesn't exist in table `heights`./ == error
-  end
-
-  test "query reports an error on invalid table" do
-    assert_query "select column from invalid_table", %{error: error}
-    assert ~s/Table `invalid_table` doesn't exist./ == error
-  end
-
-  test "query reports an error when mixing aggregated and normal columns" do
-    assert_query "select count(*), height from heights", %{error: error}
-    assert error =~ ~r/`height` from table `heights` needs to appear in the `group by` clause/
-  end
-
-  test "query reports an error when grouping by nonexistent columns" do
-    assert_query "select count(*) from heights group by nothing", %{error: error}
-    assert error =~ ~r/Column `nothing` doesn't exist in table `heights`./
-  end
-
-  test "query reports an error when not grouping by some selected columns" do
-    assert_query "select name, height from heights group by height", %{error: error}
-    assert error =~ ~r/`name` from table `heights` needs to appear in the `group by` clause/
-  end
-
-  test "query allows mixing aggregated and grouped columns" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
-
-    assert_query "select count(*), height from heights group by height",
-      %{columns: ["count", "height"], rows: rows}
-    assert Enum.sort_by(rows, &(&1[:row])) ==
-      [%{row: [10, 180], occurrences: 1}, %{row: [20, 160], occurrences: 1}]
-  end
-
-  test "grouping works when the column is not selected" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
-
-    assert_query "select count(*) from heights group by height", %{columns: ["count"], rows: rows}
-    assert Enum.sort_by(rows, &(&1[:row])) == [%{row: [10], occurrences: 1}, %{row: [20], occurrences: 1}]
-  end
-
-  test "grouping and sorting by a count" do
-    :ok = insert_rows(_user_ids = 30..59, "heights", ["height"], [150])
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
-
-    assert_query "select count(*), height from heights group by height order by count(*) asc",
-      %{columns: ["count", "height"], rows: rows}
-    assert rows == [
-      %{row: [10, 180], occurrences: 1},
-      %{row: [20, 160], occurrences: 1},
-      %{row: [30, 150], occurrences: 1}
-    ]
-  end
-
-  test "ordering hidden values" do
-    :ok = insert_rows(_user_ids = 0..2, "heights", ["name"], ["Alice"])
-    :ok = insert_rows(_user_ids = 10..19, "heights", ["name"], ["Charlie"])
-    :ok = insert_rows(_user_ids = 3..6, "heights", ["name"], ["John"])
-    :ok = insert_rows(_user_ids = 7..9, "heights", ["name"], ["Bob"])
-
-    assert_query "select count(*), name from heights group by name order by name asc",
-      %{columns: ["count", "name"], rows: rows}
-    assert rows == [%{row: [10, "Charlie"], occurrences: 1}, %{row: [10, :*], occurrences: 1}]
-  end
-
-  test "grouping and sorting by a grouped field" do
-    :ok = insert_rows(_user_ids = 30..59, "heights", ["height"], [150])
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
-
-    assert_query "select count(*), height from heights group by height order by height asc",
-      %{columns: ["count", "height"], rows: rows}
-    assert rows == [
-      %{row: [30, 150], occurrences: 1},
-      %{row: [20, 160], occurrences: 1},
-      %{row: [10, 180], occurrences: 1}
-    ]
-  end
-
-  test "query reports an error on invalid where clause identifier" do
-    assert_query "select height from heights where nonexistant > 10", %{error: error}
-    assert ~s/Column `nonexistant` doesn't exist in table `heights`./ == error
-  end
-
-  test "query reports an error on invalid order by field" do
-    assert_query "select height from heights order by name", %{error: error}
-    assert ~s/Non-selected column `name` from table `heights` specified in `order by` clause./ == error
-  end
-
-  test "query reports an error on unknown function" do
-    assert_query "select invalid_function(height) from heights", %{error: error}
-    assert ~s/Unknown function `invalid_function`./ == error
-  end
-
-  test "reports an error on wrong cast" do
-    assert_query "select * from datetimes where datetime > 0", %{error: error}
-    assert ~s/Cannot cast `0` to timestamp./ == error
-  end
-
-  test "reports an error on ambigous usage of an alias occurring multiple times" do
-    assert_query "select count(*) as x, count(height) as x from heights order by x", %{error: error}
-    assert ~s/Usage of `x` is ambiguous./ == error
-  end
-
-  test "query reports an error on runner crash" do
-    ExUnit.CaptureLog.capture_log(fn ->
-      assert_query :invalid_query_type, %{error: "Cloak error"}
-    end)
-  end
-
-  test "query which returns zero rows" do
-    Cloak.Test.DB.clear_table("heights")
-    assert_query "select height from heights", result
-    assert %{query_id: "1", columns: ["height"], rows: []} = result
-  end
-
-  test "select with column alias" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
-
-    assert_query "select height as h from heights group by h order by h",
-      %{columns: ["h"], rows: [%{row: [170], occurrences: 1}, %{row: [180], occurrences: 1}]}
-    assert_query "select count(*) as c, count(height) as c from heights",
-      %{columns: ["c", "c"], rows: [%{row: [30, 30], occurrences: 1}]}
-  end
-
-  test "select comparing two columns" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query "select height from heights where height = height",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-  end
-
-  test "extended trim" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["bob"])
-    assert_query "select trim(both 'b' from name) from heights",
-      %{columns: ["btrim"], rows: [%{row: ["o"], occurrences: 10}]}
-  end
-
-  test "substring from" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["a name"])
-    assert_query "select substring(name from 3) from heights",
-      %{columns: [_], rows: [%{row: ["name"], occurrences: 10}]}
-  end
-
-  test "substring from ... for ..." do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["a name"])
-    assert_query "select substring(name from 3 for 2) from heights",
-      %{columns: [_], rows: [%{row: ["na"], occurrences: 10}]}
-  end
-
-  test "substring for" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["a name"])
-    assert_query "select substring(name for 4) from heights",
-      %{columns: [_], rows: [%{row: ["a na"], occurrences: 10}]}
-  end
-
-  test "substring with neither for nor from" do
-    assert_query "select substring(name) from heights", %{error: error}
-    assert error == "Function `substring` requires arguments of type (`text`, `integer`, [`integer`]),"
-      <> " but got (`text`)"
-  end
-
-  test "concat" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["x"])
-    assert_query "select concat(name, 'y', name) from heights",
-      %{columns: [_], rows: [%{row: ["xyx"], occurrences: 10}]}
-  end
-
-  test "concat with ||" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["x"])
-    assert_query "select name || 'y' || name from heights",
-      %{columns: [_], rows: [%{row: ["xyx"], occurrences: 10}]}
-  end
-
-  test "math functions with float constants" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [2])
-    assert_query "select pow(height, 3.5) from heights", %{columns: [_], rows: [%{row: [result]}]}
-    assert_in_delta result, 11.31, 0.01
-  end
-
-  test "table name is different from the database table name" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query "select height from heights_alias",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-  end
-
-  test "selecting from two tables which point to the same database table" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query(
-      "
-        select heights.height as h1, heights_alias.height as h2
-        from heights, heights_alias
-        where heights.user_id=heights_alias.user_id
-      ",
-      %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
-    )
-  end
-
-  test "same database columns are selected only once in implicit self-join" do
-    {:ok, query} = Cloak.Aql.Query.make(
-      Cloak.DataSource.fetch!(:local),
-      "
-        select heights.height as h1, heights_alias.height as h2
-        from heights, heights_alias
-        where heights.user_id=heights_alias.user_id
-      "
-    )
-    assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
-  end
-
-  test "selecting from a subquery" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query "select height from (select user_id, height from heights) alias",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-  end
-
-  test "user_id can be in any position in a subquery" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query "select height from (select height, user_id from heights) alias",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-  end
-
-  test "fully qualified names with subqueries" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query "select alias.height from (select user_id, height from heights) alias",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-  end
-
-  test "joining two subqueries" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query(
-      """
-        select t1.height as h1, t2.height as h2 from
-          (select user_id, height from heights) t1
-          inner join (select user_id, height from heights) t2 on t1.user_id = t2.user_id
-      """,
-      %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
-    )
-  end
-
-  test "joining a subquery and a table" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query(
-      """
-        select t1.height as h1, heights.height as h2 from
-          (select user_id, height from heights) t1
-          inner join heights on heights.user_id = t1.user_id
-      """,
-      %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
-    )
-  end
-
-  test "nesting subqueries" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query(
-      """
-        select height from (
-          select user_id, height from (select user_id, height from heights) inner_alias
-        ) outer_alias
-      """,
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-    )
+    test "aggregates of an empty table" do
+      assert_query "select count(*), count(height), avg(height) from heights",
+        %{columns: ["count", "count", "avg"],
+        rows: [%{row: [0, 0, nil], occurrences: 1}]}
+    end
+
+    test "should be able to aggregate positive values" do
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+      :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
+      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+
+      assert_query "select sum(height) from heights",
+        %{columns: ["sum"], rows: [%{row: [5400], occurrences: 1}]}
+
+      assert_query "select min(height) from heights",
+        %{columns: ["min"], rows: [%{row: [170], occurrences: 1}]}
+
+      assert_query "select max(height) from heights",
+        %{columns: ["max"], rows: [%{row: [190], occurrences: 1}]}
+
+      assert_query "select avg(height) from heights",
+        %{columns: ["avg"], rows: [%{row: [180.0], occurrences: 1}]}
+
+      assert_query "select stddev(height) from heights",
+        %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
+      assert_in_delta(stddev, 8.1, 0.1)
+
+      assert_query "select median(height) from heights",
+        %{columns: ["median"], rows: [%{row: [179], occurrences: 1}]}
+    end
+
+    test "should be able to aggregate qualified columns values" do
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+      :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
+      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+
+      assert_query "select sum(heights.height) from heights",
+        %{columns: ["sum"], rows: [%{row: [5400], occurrences: 1}]}
+
+      assert_query "select min(heights.height) from heights",
+        %{columns: ["min"], rows: [%{row: [170], occurrences: 1}]}
+
+      assert_query "select max(heights.height) from heights",
+        %{columns: ["max"], rows: [%{row: [190], occurrences: 1}]}
+
+      assert_query "select avg(heights.height) from heights",
+        %{columns: ["avg"], rows: [%{row: [180.0], occurrences: 1}]}
+
+      assert_query "select stddev(heights.height) from heights",
+        %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
+      assert_in_delta(stddev, 8.1, 0.1)
+
+      assert_query "select median(heights.height) from heights",
+        %{columns: ["median"], rows: [%{row: [179], occurrences: 1}]}
+    end
+
+    test "should be able to aggregate negative values" do
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+      :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-170])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
+      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [-183])
+
+      assert_query "select sum(height) from heights",
+        %{columns: ["sum"], rows: [%{row: [-5430], occurrences: 1}]}
+
+      assert_query "select min(height) from heights",
+        %{columns: ["min"], rows: [%{row: [-190], occurrences: 1}]}
+
+      assert_query "select max(height) from heights",
+        %{columns: ["max"], rows: [%{row: [-170], occurrences: 1}]}
+
+      assert_query "select avg(height) from heights",
+        %{columns: ["avg"], rows: [%{row: [-181.0], occurrences: 1}]}
+
+      assert_query "select stddev(height) from heights",
+        %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
+      assert_in_delta(stddev, 8.29, 0.1)
+
+      assert_query "select median(height) from heights",
+        %{columns: ["median"], rows: [%{row: [-184], occurrences: 1}]}
+    end
+
+    test "should be able to aggregate negative and positive values" do
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+      :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-175])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
+      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+
+      assert_query "select sum(height) from heights",
+        %{columns: ["sum"], rows: [%{row: [-1850], occurrences: 1}]}
+
+      assert_query "select min(height) from heights",
+        %{columns: ["min"], rows: [%{row: [-190], occurrences: 1}]}
+
+      assert_query "select max(height) from heights",
+        %{columns: ["max"], rows: [%{row: [180], occurrences: 1}]}
+
+      assert_query "select avg(height) from heights",
+        %{columns: ["avg"], rows: [%{row: [-61.666666666666664], occurrences: 1}]}
+
+      assert_query "select stddev(height) from heights",
+        %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
+      assert_in_delta(stddev, 170.99, 0.1)
+
+      assert_query "select median(height) from heights",
+        %{columns: ["median"], rows: [%{row: [-176], occurrences: 1}]}
+    end
+
+    test "should return nil when not enough values present for anonymization" do
+      :ok = insert_rows(_user_ids = 0..8, "heights", ["height"], [180])
+
+      assert_query "select median(height) from heights",
+        %{columns: ["median"], rows: [%{row: [nil], occurrences: 1}]}
+    end
+
+    test "select the same column multiple times" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+
+      assert_query "select height, height from heights",
+        %{columns: ["height", "height"], rows: [%{row: [180, 180], occurrences: 100}]}
+    end
+
+    test "select the same aggregate multiple times" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+
+      assert_query "select count(height), count(*), count(*), count(height) from heights",
+        %{
+          columns: ["count", "count", "count", "count"],
+          rows: [%{row: [100, 100, 100, 100], occurrences: 1}]
+        }
+    end
+
+    test "different aggregates on the same column" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+
+      assert_query "select count(height), max(height) from heights",
+        %{columns: ["count", "max"], rows: [%{row: [100, 180], occurrences: 1}]}
+    end
+
+    test "should allow ranges for where clause" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+
+      assert_query "select count(*) from heights where height > 170 and height < 190",
+        %{query_id: "1", columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
+    end
+
+    test "should allow LIKE in where clause" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "bob"])
+
+      assert_query "select count(*) from heights where name LIKE 'b%'",
+        %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
+    end
+
+    test "should allow NOT LIKE in where clause" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "bob"])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height", "name"], [170, "alice"])
+
+      assert_query "select count(*) from heights where name NOT LIKE 'b%'",
+        %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
+    end
+
+    test "should allow NOT ILIKE in where clause" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "Bob"])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height", "name"], [170, "alice"])
+
+      assert_query "select count(*) from heights where name NOT ILIKE 'b%'",
+        %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
+    end
+
+    test "should allow ILIKE in where clause" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "Bob"])
+
+      assert_query "select count(*) from heights where name ILIKE 'b%'",
+        %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
+    end
+
+    test "should allow IN in where clause" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+
+      assert_query "select count(*) from heights where height IN (170, 180, 190)",
+        %{columns: ["count"], rows: [%{row: [60], occurrences: 1}]}
+    end
+
+    test "should allow NOT IN in where clause" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+
+      assert_query "select count(*) from heights where height NOT IN (170, 190)",
+        %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
+    end
+
+    test "should allow <> in where clause" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+
+      assert_query "select count(*) from heights where height <> 180",
+        %{columns: ["count"], rows: [%{row: [40], occurrences: 1}]}
+    end
+
+    test "should drop <> conditions if they would expose small groups" do
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["name"], ["Alice"])
+      :ok = insert_rows(_user_ids = 10..11, "heights", ["name"], ["Bob"])
+
+      assert_query "select count(*) from heights where name <> 'Bob'",
+        %{columns: ["count"], rows: [%{row: [12], occurrences: 1}]}
+    end
+
+    test "<> conditions count unique users" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["name"], ["Alice"])
+      1..10 |> Enum.each(fn _ -> :ok = insert_rows(_user_ids = [10], "heights", ["name"], ["Bob"]) end)
+
+      assert_query "select count(*) from heights where name <> 'Bob'",
+        %{query_id: "1", columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
+    end
+
+    test "should allow IS NULL in where clause" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
+      :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+
+      assert_query "select count(*) from heights where height IS NULL",
+        %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
+    end
+
+    test "should allow IS NOT NULL in where clause" do
+      :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [nil])
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [180])
+
+      assert_query "select count(*) from heights where height IS NOT NULL",
+        %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
+    end
+
+    test "should order rows when instructed" do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [190])
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+
+      assert_query "select height from heights order by height",
+        %{query_id: "1", columns: ["height"], rows: rows}
+      assert rows == Enum.sort(rows)
+    end
+
+    test "query reports an error on invalid statement" do
+      assert_query "invalid statement", %{error: "Expected `select or show` at line 1, column 1."}
+    end
+
+    test "query reports an error on invalid column" do
+      assert_query "select invalid_column from heights", %{error: error}
+      assert ~s/Column `invalid_column` doesn't exist in table `heights`./ == error
+    end
+
+    test "query reports an error on invalid table" do
+      assert_query "select column from invalid_table", %{error: error}
+      assert ~s/Table `invalid_table` doesn't exist./ == error
+    end
+
+    test "query reports an error when mixing aggregated and normal columns" do
+      assert_query "select count(*), height from heights", %{error: error}
+      assert error =~ ~r/`height` from table `heights` needs to appear in the `group by` clause/
+    end
+
+    test "query reports an error when grouping by nonexistent columns" do
+      assert_query "select count(*) from heights group by nothing", %{error: error}
+      assert error =~ ~r/Column `nothing` doesn't exist in table `heights`./
+    end
+
+    test "query reports an error when not grouping by some selected columns" do
+      assert_query "select name, height from heights group by height", %{error: error}
+      assert error =~ ~r/`name` from table `heights` needs to appear in the `group by` clause/
+    end
+
+    test "query allows mixing aggregated and grouped columns" do
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
+
+      assert_query "select count(*), height from heights group by height",
+        %{columns: ["count", "height"], rows: rows}
+      assert Enum.sort_by(rows, &(&1[:row])) ==
+        [%{row: [10, 180], occurrences: 1}, %{row: [20, 160], occurrences: 1}]
+    end
+
+    test "grouping works when the column is not selected" do
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
+
+      assert_query "select count(*) from heights group by height", %{columns: ["count"], rows: rows}
+      assert Enum.sort_by(rows, &(&1[:row])) == [%{row: [10], occurrences: 1}, %{row: [20], occurrences: 1}]
+    end
+
+    test "grouping and sorting by a count" do
+      :ok = insert_rows(_user_ids = 30..59, "heights", ["height"], [150])
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
+
+      assert_query "select count(*), height from heights group by height order by count(*) asc",
+        %{columns: ["count", "height"], rows: rows}
+      assert rows == [
+        %{row: [10, 180], occurrences: 1},
+        %{row: [20, 160], occurrences: 1},
+        %{row: [30, 150], occurrences: 1}
+      ]
+    end
+
+    test "ordering hidden values" do
+      :ok = insert_rows(_user_ids = 0..2, "heights", ["name"], ["Alice"])
+      :ok = insert_rows(_user_ids = 10..19, "heights", ["name"], ["Charlie"])
+      :ok = insert_rows(_user_ids = 3..6, "heights", ["name"], ["John"])
+      :ok = insert_rows(_user_ids = 7..9, "heights", ["name"], ["Bob"])
+
+      assert_query "select count(*), name from heights group by name order by name asc",
+        %{columns: ["count", "name"], rows: rows}
+      assert rows == [%{row: [10, "Charlie"], occurrences: 1}, %{row: [10, :*], occurrences: 1}]
+    end
+
+    test "grouping and sorting by a grouped field" do
+      :ok = insert_rows(_user_ids = 30..59, "heights", ["height"], [150])
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
+
+      assert_query "select count(*), height from heights group by height order by height asc",
+        %{columns: ["count", "height"], rows: rows}
+      assert rows == [
+        %{row: [30, 150], occurrences: 1},
+        %{row: [20, 160], occurrences: 1},
+        %{row: [10, 180], occurrences: 1}
+      ]
+    end
+
+    test "query reports an error on invalid where clause identifier" do
+      assert_query "select height from heights where nonexistant > 10", %{error: error}
+      assert ~s/Column `nonexistant` doesn't exist in table `heights`./ == error
+    end
+
+    test "query reports an error on invalid order by field" do
+      assert_query "select height from heights order by name", %{error: error}
+      assert ~s/Non-selected column `name` from table `heights` specified in `order by` clause./ == error
+    end
+
+    test "query reports an error on unknown function" do
+      assert_query "select invalid_function(height) from heights", %{error: error}
+      assert ~s/Unknown function `invalid_function`./ == error
+    end
+
+    test "reports an error on wrong cast" do
+      assert_query "select * from datetimes where datetime > 0", %{error: error}
+      assert ~s/Cannot cast `0` to timestamp./ == error
+    end
+
+    test "reports an error on ambigous usage of an alias occurring multiple times" do
+      assert_query "select count(*) as x, count(height) as x from heights order by x", %{error: error}
+      assert ~s/Usage of `x` is ambiguous./ == error
+    end
+
+    test "query reports an error on runner crash" do
+      ExUnit.CaptureLog.capture_log(fn ->
+        assert_query :invalid_query_type, %{error: "Cloak error"}
+      end)
+    end
+
+    test "query which returns zero rows" do
+      Cloak.Test.DB.clear_table("heights")
+      assert_query "select height from heights", result
+      assert %{query_id: "1", columns: ["height"], rows: []} = result
+    end
+
+    test "select with column alias" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+
+      assert_query "select height as h from heights group by h order by h",
+        %{columns: ["h"], rows: [%{row: [170], occurrences: 1}, %{row: [180], occurrences: 1}]}
+      assert_query "select count(*) as c, count(height) as c from heights",
+        %{columns: ["c", "c"], rows: [%{row: [30, 30], occurrences: 1}]}
+    end
+
+    test "select comparing two columns" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+      assert_query "select height from heights where height = height",
+        %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+    end
+
+    test "extended trim" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["bob"])
+      assert_query "select trim(both 'b' from name) from heights",
+        %{columns: ["btrim"], rows: [%{row: ["o"], occurrences: 10}]}
+    end
+
+    test "substring from" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["a name"])
+      assert_query "select substring(name from 3) from heights",
+        %{columns: [_], rows: [%{row: ["name"], occurrences: 10}]}
+    end
+
+    test "substring from ... for ..." do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["a name"])
+      assert_query "select substring(name from 3 for 2) from heights",
+        %{columns: [_], rows: [%{row: ["na"], occurrences: 10}]}
+    end
+
+    test "substring for" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["a name"])
+      assert_query "select substring(name for 4) from heights",
+        %{columns: [_], rows: [%{row: ["a na"], occurrences: 10}]}
+    end
+
+    test "substring with neither for nor from" do
+      assert_query "select substring(name) from heights", %{error: error}
+      assert error == "Function `substring` requires arguments of type (`text`, `integer`, [`integer`]),"
+        <> " but got (`text`)"
+    end
+
+    test "concat" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["x"])
+      assert_query "select concat(name, 'y', name) from heights",
+        %{columns: [_], rows: [%{row: ["xyx"], occurrences: 10}]}
+    end
+
+    test "concat with ||" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["x"])
+      assert_query "select name || 'y' || name from heights",
+        %{columns: [_], rows: [%{row: ["xyx"], occurrences: 10}]}
+    end
+
+    test "math functions with float constants" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [2])
+      assert_query "select pow(height, 3.5) from heights", %{columns: [_], rows: [%{row: [result]}]}
+      assert_in_delta result, 11.31, 0.01
+    end
+
+    test "table name is different from the database table name" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+      assert_query "select height from heights_alias",
+        %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+    end
+
+    test "selecting from two tables which point to the same database table" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+      assert_query(
+        "
+          select heights.height as h1, heights_alias.height as h2
+          from heights, heights_alias
+          where heights.user_id=heights_alias.user_id
+        ",
+        %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
+      )
+    end
+
+    test "same database columns are selected only once in implicit self-join" do
+      {:ok, query} = Cloak.Aql.Query.make(
+        Cloak.DataSource.fetch!(:local),
+        "
+          select heights.height as h1, heights_alias.height as h2
+          from heights, heights_alias
+          where heights.user_id=heights_alias.user_id
+        "
+      )
+      assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
+    end
+
+    test "selecting from a subquery" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+      assert_query "select height from (select user_id, height from heights) alias",
+        %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+    end
+
+    test "user_id can be in any position in a subquery" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+      assert_query "select height from (select height, user_id from heights) alias",
+        %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+    end
+
+    test "fully qualified names with subqueries" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+      assert_query "select alias.height from (select user_id, height from heights) alias",
+        %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+    end
+
+    test "joining two subqueries" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+      assert_query(
+        """
+          select t1.height as h1, t2.height as h2 from
+            (select user_id, height from heights) t1
+            inner join (select user_id, height from heights) t2 on t1.user_id = t2.user_id
+        """,
+        %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
+      )
+    end
+
+    test "joining a subquery and a table" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+      assert_query(
+        """
+          select t1.height as h1, heights.height as h2 from
+            (select user_id, height from heights) t1
+            inner join heights on heights.user_id = t1.user_id
+        """,
+        %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
+      )
+    end
+
+    test "nesting subqueries" do
+      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+      assert_query(
+        """
+          select height from (
+            select user_id, height from (select user_id, height from heights) inner_alias
+          ) outer_alias
+        """,
+        %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+      )
+    end
   end
 
   describe "JOINs" do
