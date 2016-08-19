@@ -2,7 +2,6 @@ defmodule Cloak.Aql.Parser.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.Aql.Parser
-  alias Cloak.Aql.Parsers.Token
 
   @psql_data_source %{driver: Cloak.DataSource.PostgreSQL}
   @ds_proxy_data_source %{driver: Cloak.DataSource.DsProxy}
@@ -48,14 +47,14 @@ defmodule Cloak.Aql.Parser.Test do
   # Produces a pattern which matches an AST of a constant.
   defmacrop constant(value) do
     quote do
-      %Token{category: :constant, value: %{value: unquote(value)}}
+      {:constant, _, value}
     end
   end
 
-  # Produces a pattern which matches an AST of a constant column
-  defmacrop constant_column(value) do
+  # Produces a pattern which matches an AST of a constant with type
+  defmacrop constant(type, value) do
     quote do
-      {:constant, constant(value)}
+      {:constant, type, value}
     end
   end
 
@@ -625,7 +624,7 @@ defmodule Cloak.Aql.Parser.Test do
   end
 
   test "select a constant" do
-    assert_parse("select 10 from foo", select(columns: [constant_column(10)]))
+    assert_parse("select 10 from foo", select(columns: [constant(:integer, 10)]))
   end
 
   test "multi-argument function" do
@@ -651,22 +650,23 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "extended with character set" do
     assert_parse "select trim(both 'xyz' from foo) from bar",
-      select(columns: [{:function, "btrim", [identifier("foo"), constant_column("xyz")]}])
+      select(columns: [{:function, "btrim", [identifier("foo"), constant(:text, "xyz")]}])
   end
 
   test "substring from" do
     assert_parse "select substring(foo from 3) from bar",
-      select(columns: [{:function, "substring", [identifier("foo"), constant_column(3)]}])
+      select(columns: [{:function, "substring", [identifier("foo"), constant(:integer, 3)]}])
   end
 
   test "substring from ... for ..." do
     assert_parse "select substring(foo from 3 for 10) from bar",
-      select(columns: [{:function, "substring", [identifier("foo"), constant_column(3), constant_column(10)]}])
+      select(columns: [{:function, "substring", [
+        identifier("foo"), constant(:integer, 3), constant(:integer, 10)]}])
   end
 
   test "substring for" do
     assert_parse "select substring(foo for 3) from bar",
-      select(columns: [{:function, "substring_for", [identifier("foor"), constant_column(3)]}])
+      select(columns: [{:function, "substring_for", [identifier("foor"), constant(:integer, 3)]}])
   end
 
   test "||" do
@@ -734,6 +734,12 @@ defmodule Cloak.Aql.Parser.Test do
   test "extended cast" do
     assert_parse "select cast(a as text) from bar",
       select(columns: [{:function, {:cast, :text}, [identifier("a")]}])
+  end
+
+  test "select interval" do
+    duration = Timex.Duration.parse!("P1Y2M3DT4H5M6S")
+    assert_parse "select interval 'P1Y2M3DT4H5M6S' from bar",
+      select(columns: [constant(:interval, ^duration)])
   end
 
   create_test =
@@ -815,6 +821,8 @@ defmodule Cloak.Aql.Parser.Test do
         "select foo from", "Expected `table name`", {1, 16}},
       {"extended trim with two columns",
         "select trim(both a from b) from foo", "Expected `column definition`", {1, 8}},
+      {"invalid interval",
+        "select interval 'does not parse' from foo", "Expected `column definition`", {1, 8}},
       # parsed subqueries
       {"unclosed parens in a parsed subquery expression",
         "select foo from (select bar from baz", "Expected `)`", {1, 37}},

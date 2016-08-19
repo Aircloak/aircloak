@@ -1,6 +1,6 @@
 defmodule Cloak.Aql.Parser do
   @moduledoc "Parser for SQL queries."
-  use Combine
+  import Combine.Parsers.Base
   import Cloak.Aql.Parsers
   alias Cloak.DataSource
 
@@ -13,22 +13,23 @@ defmodule Cloak.Aql.Parser do
 
   @type qualified_identifier :: {:identifier, :unknown | String.t, String.t}
 
+  @type data_type :: DataSource.data_type | :interval
+
   @type column ::
       qualified_identifier
     | {:distinct, qualified_identifier}
     | {:function, String.t, [column]}
-    | {:constant, Parsers.Token.t}
+    | {:constant, data_type, any}
 
-  @type like :: {:like | :ilike, String.t, String.t}
-  @type is :: {:is, String.t, :null}
+  @type negatable_condition ::
+      {:comparison, String.t, :=, any}
+    | {:like | :ilike, String.t, String.t}
+    | {:is, String.t, :null}
+    | {:in, String.t, [any]}
 
   @type where_clause ::
-        {:comparison, String.t, comparator, any}
-      | like
-      | {:not, like}
-      | {:not, {:comparison, String.t, :=, any}}
-      | {:in, String.t, [any]}
-      | is | {:not, is}
+      negatable_condition | {:not, negatable_condition}
+    | {:comparison, String.t, comparator, any}
 
   @type from_clause :: table | parsed_subquery | unparsed_subquery | join
 
@@ -187,7 +188,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp constant_column() do
-    any_constant() |> map(&{:constant, &1})
+    either(interval(), any_constant())
   end
 
   defp select_column() do
@@ -274,7 +275,7 @@ defmodule Cloak.Aql.Parser do
        [:trim, :"(", trim_type, nil, :from, column, :")"] ->
          {:function, trim_function(trim_type), [column]}
        [:trim, :"(", trim_type, chars, :from, column, :")"] ->
-         {:function, trim_function(trim_type), [column, {:constant, chars}]}
+         {:function, trim_function(trim_type), [column, chars]}
      end
    )
   end
@@ -295,11 +296,11 @@ defmodule Cloak.Aql.Parser do
      ],
      fn
        [:substring, :"(", column, [:from, from], nil, :")"] ->
-         {:function, "substring", [column, {:constant, from}]}
+         {:function, "substring", [column, from]}
        [:substring, :"(", column, [:from, from], [:for, for_count], :")"] ->
-         {:function, "substring", [column, {:constant, from}, {:constant, for_count}]}
+         {:function, "substring", [column, from, for_count]}
        [:substring, :"(", column, nil, [:for, for_count], :")"] ->
-         {:function, "substring_for", [column, {:constant, for_count}]}
+         {:function, "substring_for", [column, for_count]}
        [:substring, :"(", column, nil, nil, :")"] ->
          {:function, "substring", [column]}
      end
@@ -508,7 +509,7 @@ defmodule Cloak.Aql.Parser do
   defp where_expression() do
     switch([
       {qualified_identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
-      {qualified_identifier() |> keyword(:in), in_values()},
+      {qualified_identifier() |> option(keyword(:not)) |> keyword(:in), in_values()},
       {qualified_identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
       {qualified_identifier(), pair_both(comparator(), allowed_where_value())},
       {:else, error_message(fail(""), "Invalid where expression")}
@@ -518,7 +519,8 @@ defmodule Cloak.Aql.Parser do
           {[identifier, :not, :like], [string_constant]} -> {:not, {:like, identifier, string_constant}}
           {[identifier, nil, :ilike], [string_constant]} -> {:ilike, identifier, string_constant}
           {[identifier, :not, :ilike], [string_constant]} -> {:not, {:ilike, identifier, string_constant}}
-          {[identifier, :in], [in_values]} -> {:in, identifier, in_values}
+          {[identifier, nil, :in], [in_values]} -> {:in, identifier, in_values}
+          {[identifier, :not, :in], [in_values]} -> {:not, {:in, identifier, in_values}}
           {[identifier, :is, nil], [:null]} -> {:is, identifier, :null}
           {[identifier, :is, :not], [:null]} -> {:not, {:is, identifier, :null}}
           {[identifier], [{:<>, value}]} -> {:not, {:comparison, identifier, :=, value}}
@@ -538,9 +540,20 @@ defmodule Cloak.Aql.Parser do
     )
   end
 
+  defp interval() do
+    pipe(
+      [
+        keyword(:interval),
+        constant_of([:string]),
+      ],
+      fn([:interval, {:constant, :string, value}]) -> Timex.Duration.parse(value) end
+    )
+    |> satisfy(&match?({:ok, _}, &1))
+    |> map(fn({:ok, result}) -> {:constant, :interval, result} end)
+  end
+
   defp any_constant() do
     constant_of([:string, :integer, :float, :boolean])
-    |> label("comparison value")
   end
 
   defp constant_of(expected_types) do
@@ -551,6 +564,7 @@ defmodule Cloak.Aql.Parser do
   defp constant(expected_type) do
     token(:constant)
     |> satisfy(fn(token) -> token.value.type == expected_type end)
+    |> map(&{:constant, &1.value.type, &1.value.value})
     |> label("#{expected_type} constant")
   end
 

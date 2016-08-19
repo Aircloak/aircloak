@@ -35,9 +35,9 @@ defmodule Cloak.Mixfile do
       {:poolboy, "~> 1.5"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client"},
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
-      {:combine, github: "bitwalker/combine", override: true},
-      {:timex, "~> 2.1.6", github: "bitwalker/timex"},
-      {:poison, "~> 1.5.2"},
+      {:combine, "~> 0.9.2"},
+      {:timex, "~> 3.0.8"},
+      {:poison, "~> 2.2.0", override: true},
       {:httpoison, "~> 0.9.0"},
 
       # Test deps

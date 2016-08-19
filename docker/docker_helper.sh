@@ -419,3 +419,26 @@ function erlang_version {
 function elixir_version {
   cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep elixir | sed s/'elixir '//
 }
+
+function published_images {
+  registry_v2_req $1 _catalog |
+    jq --raw-output ".repositories []" |
+    grep aircloak |
+    sort
+}
+
+function published_image_versions {
+  for version in $(
+    registry_v2_req $1 $2/tags/list |
+      jq --raw-output ".tags | select(. != null) | .[]" |
+      grep -v latest |
+      sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn"
+  ); do
+    created_at=$(
+      registry_v2_req $1 $2/manifests/$version |
+        jq --raw-output ".history[0].v1Compatibility" |
+        jq --raw-output ".created"
+    )
+    echo "$version ($created_at)"
+  done
+}

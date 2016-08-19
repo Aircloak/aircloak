@@ -8,9 +8,7 @@ defmodule Cloak.Query.NegativeCondition do
   """
 
   alias Cloak.Query.Anonymizer
-  alias Cloak.Aql.Query
-  alias Cloak.Aql.Function
-  alias Cloak.Aql.Parsers.Token
+  alias Cloak.Aql.{Column, Function, Query}
 
 
   # -------------------------------------------------------------------
@@ -108,20 +106,25 @@ defmodule Cloak.Query.NegativeCondition do
     for clause <- clauses, do: %Filter{matcher: matcher(clause), match_hard_limit: hard_limit}
   end
 
-  defp matcher({:comparison, column, :=, %Token{value: %{value: value}}}) do
-    fn (row) -> Function.apply_to_db_row(column, row) == value end
-  end
   defp matcher({:comparison, column, :=, value}) do
+    value = extract_value(value)
     fn (row) -> Function.apply_to_db_row(column, row) == value end
   end
-  defp matcher({:like, column, %Token{value: %{type: :string, value: pattern}}}) do
+  defp matcher({:like, column, %Column{type: :text, value: pattern}}) do
     regex = to_regex(pattern)
     fn (row) -> Function.apply_to_db_row(column, row) =~ regex end
   end
-  defp matcher({:ilike, column, %Token{value: %{type: :string, value: pattern}}}) do
+  defp matcher({:ilike, column, %Column{type: :text, value: pattern}}) do
     regex = to_regex(pattern, [_case_insensitive = "i"])
     fn (row) -> Function.apply_to_db_row(column, row) =~ regex end
   end
+  defp matcher({:in, column, values}) do
+    values = Enum.map(values, &extract_value/1)
+    fn (row) -> Enum.member?(values, Function.apply_to_db_row(column, row)) end
+  end
+
+  defp extract_value(%Column{value: value}), do: value
+  defp extract_value(value), do: value
 
   defp to_regex(sql_pattern, options \\ []) do
     options = Enum.join([_unicode = "u" | options])
