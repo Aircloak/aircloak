@@ -493,30 +493,20 @@ defmodule Cloak.Aql.Compiler do
   end
   defp do_cast_where_clause(clause, _), do: clause
 
-  defp parse_time(%Column{constant?: true, type: :text, value: string}, :date) do
-    case Cloak.Time.parse_date(string) do
+  defp parse_time(column = %Column{constant?: true, value: string}, type) do
+    case do_parse_time(column, type) do
       {:ok, result} -> result
-      _ -> raise CompilationError, message: "Cannot cast `#{string}` to date."
+      _ -> raise CompilationError, message: "Cannot cast `#{string}` to #{type}."
     end
   end
-  defp parse_time(%Column{constant?: true, type: :text, value: string}, :time) do
-    case Cloak.Time.parse_time(string) do
-      {:ok, result} -> result
-      _ -> raise CompilationError, message: "Cannot cast `#{string}` to time."
-    end
-  end
-  defp parse_time(%Column{constant?: true, type: :text, value: string}, :timestamp) do
-    case Cloak.Time.parse_datetime(string) do
-      {:ok, result} -> result
-      _ -> case Timex.parse(string, "{ISOdate}") do
-        {:ok, result} -> Cloak.Time.max_precision(result)
-        _ -> raise CompilationError, message: "Cannot cast `#{string}` to timestamp."
-      end
-    end
-  end
-  defp parse_time(%Column{constant?: true, value: value}, type) do
-    raise CompilationError, message: "Cannot cast `#{value}` to #{type}."
-  end
+
+  defp do_parse_time(%Column{type: :text, value: string}, :date), do:
+    Cloak.Time.parse_date(string)
+  defp do_parse_time(%Column{type: :text, value: string}, :time), do:
+    Cloak.Time.parse_time(string)
+  defp do_parse_time(%Column{type: :text, value: string}, :timestamp), do:
+    Cloak.Time.parse_datetime(string)
+  defp do_parse_time(_, _), do: {:error, :invalid_cast}
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
   defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
