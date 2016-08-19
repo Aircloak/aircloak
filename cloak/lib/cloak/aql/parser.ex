@@ -21,13 +21,15 @@ defmodule Cloak.Aql.Parser do
     | {:function, String.t, [column]}
     | {:constant, data_type, any}
 
-  @type condition ::
-      {:comparison, String.t, comparator, any}
+  @type negatable_condition ::
+      {:comparison, String.t, :=, any}
     | {:like | :ilike, String.t, String.t}
     | {:is, String.t, :null}
     | {:in, String.t, [any]}
 
-  @type where_clause :: condition | {:not, condition}
+  @type where_clause ::
+      negatable_condition | {:not, negatable_condition}
+    | {:comparison, String.t, comparator, any}
 
   @type from_clause :: table | parsed_subquery | unparsed_subquery | join
 
