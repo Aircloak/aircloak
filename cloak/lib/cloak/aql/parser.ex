@@ -21,16 +21,15 @@ defmodule Cloak.Aql.Parser do
     | {:function, String.t, [column]}
     | {:constant, data_type, any}
 
-  @type like :: {:like | :ilike, String.t, String.t}
-  @type is :: {:is, String.t, :null}
+  @type negatable_condition ::
+      {:comparison, String.t, :=, any}
+    | {:like | :ilike, String.t, String.t}
+    | {:is, String.t, :null}
+    | {:in, String.t, [any]}
 
   @type where_clause ::
-        {:comparison, String.t, comparator, any}
-      | like
-      | {:not, like}
-      | {:not, {:comparison, String.t, :=, any}}
-      | {:in, String.t, [any]}
-      | is | {:not, is}
+      negatable_condition | {:not, negatable_condition}
+    | {:comparison, String.t, comparator, any}
 
   @type from_clause :: table | parsed_subquery | unparsed_subquery | join
 
@@ -510,7 +509,7 @@ defmodule Cloak.Aql.Parser do
   defp where_expression() do
     switch([
       {qualified_identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
-      {qualified_identifier() |> keyword(:in), in_values()},
+      {qualified_identifier() |> option(keyword(:not)) |> keyword(:in), in_values()},
       {qualified_identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
       {qualified_identifier(), pair_both(comparator(), allowed_where_value())},
       {:else, error_message(fail(""), "Invalid where expression")}
@@ -520,7 +519,8 @@ defmodule Cloak.Aql.Parser do
           {[identifier, :not, :like], [string_constant]} -> {:not, {:like, identifier, string_constant}}
           {[identifier, nil, :ilike], [string_constant]} -> {:ilike, identifier, string_constant}
           {[identifier, :not, :ilike], [string_constant]} -> {:not, {:ilike, identifier, string_constant}}
-          {[identifier, :in], [in_values]} -> {:in, identifier, in_values}
+          {[identifier, nil, :in], [in_values]} -> {:in, identifier, in_values}
+          {[identifier, :not, :in], [in_values]} -> {:not, {:in, identifier, in_values}}
           {[identifier, :is, nil], [:null]} -> {:is, identifier, :null}
           {[identifier, :is, :not], [:null]} -> {:not, {:is, identifier, :null}}
           {[identifier], [{:<>, value}]} -> {:not, {:comparison, identifier, :=, value}}

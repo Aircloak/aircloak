@@ -448,6 +448,15 @@ defmodule Cloak.QueryTest do
       %{columns: ["count"], rows: [%{row: [60], occurrences: 1}]}
   end
 
+  test "should allow NOT IN in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+
+    assert_query "select count(*) from heights where height NOT IN (170, 190)",
+      %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
+  end
+
   test "should allow <> in where clause" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
