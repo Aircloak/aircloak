@@ -36,7 +36,6 @@ defmodule Cloak.QueryTest do
     Cloak.Test.DB.clear_table("heights")
     Cloak.Test.DB.clear_table("purchases")
     Cloak.Test.DB.clear_table("children")
-    Cloak.Test.DB.clear_table("floats")
     :ok
   end
 
@@ -154,24 +153,6 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
     assert_query "select div(height, 3) from heights",
       %{columns: ["div"], rows: [%{occurrences: 10, row: [7]}]}
-  end
-
-  test "unary trunc" do
-    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
-    assert_query "select trunc(float) from floats",
-      %{columns: ["trunc"], rows: [%{occurrences: 10, row: [12]}]}
-  end
-
-  test "binary trunc" do
-    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
-    assert_query "select trunc(float, 2) from floats",
-      %{columns: ["trunc"], rows: [%{occurrences: 10, row: [12.23]}]}
-  end
-
-  test "binary trunc in a grouped query" do
-    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
-    assert_query "select trunc(float, 2) from floats group by float",
-      %{columns: ["trunc"], rows: [%{occurrences: 1, row: [12.23]}]}
   end
 
   test "select all and order query" do
@@ -805,34 +786,6 @@ defmodule Cloak.QueryTest do
     assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
   end
 
-  test "nested function call" do
-    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [-4.2])
-    assert_query "select sqrt(abs(round(float))) from floats",
-      %{columns: ["sqrt"], rows: [%{row: [value], occurrences: 10}]}
-    assert_in_delta value, 2, 0.1
-  end
-
-  test "function on an aggregated value" do
-    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [4])
-    :ok = insert_rows(_user_ids = 11..100, "floats", ["float"], [9])
-    assert_query "select round(avg(float)) from floats",
-      %{columns: ["round"], rows: [%{row: [9], occurrences: 1}]}
-  end
-
-  test "aggregating a function" do
-    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [4])
-    :ok = insert_rows(_user_ids = 11..20, "floats", ["float"], [9])
-    assert_query "select avg(sqrt(float)) from floats",
-      %{columns: ["avg"], rows: [%{row: [value], occurrences: 1}]}
-    assert_in_delta value, 2.5, 0.01
-  end
-
-  test "arithmetic expressions" do
-    :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [4])
-    assert_query "select 2 ^ 3 * (3 + 4 - 1) / 5 from floats",
-      %{columns: [_], rows: [%{row: [9.6]}]}
-  end
-
   test "selecting from a subquery" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from (select user_id, height from heights) alias",
@@ -908,6 +861,61 @@ defmodule Cloak.QueryTest do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["datetime"], [time])
 
     assert_query "select datetime from heights", %{rows: [%{row: [~N[2015-01-02 03:04:05.000000]]}]}
+  end
+
+  describe "float tests" do
+    setup [:clear_floats]
+
+    test "unary trunc" do
+      :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
+      assert_query "select trunc(float) from floats",
+        %{columns: ["trunc"], rows: [%{occurrences: 10, row: [12]}]}
+    end
+
+    test "binary trunc" do
+      :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
+      assert_query "select trunc(float, 2) from floats",
+        %{columns: ["trunc"], rows: [%{occurrences: 10, row: [12.23]}]}
+    end
+
+    test "binary trunc in a grouped query" do
+      :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [12.234])
+      assert_query "select trunc(float, 2) from floats group by float",
+        %{columns: ["trunc"], rows: [%{occurrences: 1, row: [12.23]}]}
+    end
+
+    test "arithmetic expressions" do
+      :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [4])
+      assert_query "select 2 ^ 3 * (3 + 4 - 1) / 5 from floats",
+        %{columns: [_], rows: [%{row: [9.6]}]}
+    end
+
+    test "function on an aggregated value" do
+      :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [4])
+      :ok = insert_rows(_user_ids = 11..100, "floats", ["float"], [9])
+      assert_query "select round(avg(float)) from floats",
+        %{columns: ["round"], rows: [%{row: [9], occurrences: 1}]}
+    end
+
+    test "nested function call" do
+      :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [-4.2])
+      assert_query "select sqrt(abs(round(float))) from floats",
+        %{columns: ["sqrt"], rows: [%{row: [value], occurrences: 10}]}
+      assert_in_delta value, 2, 0.1
+    end
+
+    test "aggregating a function" do
+      :ok = insert_rows(_user_ids = 1..10, "floats", ["float"], [4])
+      :ok = insert_rows(_user_ids = 11..20, "floats", ["float"], [9])
+      assert_query "select avg(sqrt(float)) from floats",
+        %{columns: ["avg"], rows: [%{row: [value], occurrences: 1}]}
+      assert_in_delta value, 2.5, 0.01
+    end
+  end
+
+  defp clear_floats(_context) do
+    Cloak.Test.DB.clear_table("floats")
+    :ok
   end
 
   defp start_query(statement) do
