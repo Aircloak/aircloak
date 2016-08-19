@@ -81,9 +81,10 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("date"), do: :date
   defp parse_type(type), do: {:unsupported, type}
 
-  defp convert_param(%NaiveDateTime{} = time), do:
+  defp convert_param(%NaiveDateTime{microsecond: {usec, _precision}} = time), do:
     %Postgrex.Timestamp{
-      year: time.year, month: time.month, day: time.day, hour: time.hour, min: time.minute, sec: time.second
+      year: time.year, month: time.month, day: time.day, hour: time.hour, min: time.minute, sec: time.second,
+      usec: usec
     }
   defp convert_param(%Time{hour: hour, minute: min, second: sec, microsecond: {usec, _precision}}), do:
     %Postgrex.Time{hour: hour, min: min, sec: sec, usec: usec}
