@@ -4,17 +4,13 @@ set -eo pipefail
 
 function lock_command {
   printf "
-    echo 'Setting exclusive lock for $1'
-    retries=120
-    while [ \$retries -gt 0 ]; do
-      if lockfile -r 0 /tmp/$1; then
-        trap '{ rm -f /tmp/$1; }' EXIT
-        break
-      else
-        retries=\$((retries - 1))
-        if [ \$retries -gt 0 ]; then sleep 1; fi
-      fi
-    done
+    echo 'Acquiring lock for $1'
+    if lockfile -1 -r 120 /tmp/$1; then
+      trap '{ rm -f /tmp/$1; }' EXIT
+    else
+      echo 'Could not acquire lock for $1.'
+      exit 1
+    fi
   "
 }
 
@@ -24,11 +20,6 @@ function build_image {
     set -eo pipefail
 
     $(lock_command cloak_build)
-
-    if [ \$retries -eq 0 ]; then
-      echo 'Another deploy in progress! Try again later.'
-      exit 1
-    fi
 
     echo 'Pulling the latest version'
     cd $BUILD_FOLDER
