@@ -483,15 +483,21 @@ defmodule Cloak.Aql.Compiler do
   defp do_cast_where_clause({:not, subclause}, type) do
     {:not, do_cast_where_clause(subclause, type)}
   end
-  defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, :timestamp) do
-    {:comparison, identifier, comparator, parse_time(rhs)}
+  defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, type) when type in [:timestamp, :time] do
+    {:comparison, identifier, comparator, parse_time(rhs, type)}
   end
-  defp do_cast_where_clause({:in, column, values}, :timestamp) do
-    {:in, column, Enum.map(values, &parse_time/1)}
+  defp do_cast_where_clause({:in, column, values}, type) when type in [:timestamp, :time] do
+    {:in, column, Enum.map(values, &parse_time(&1, type))}
   end
   defp do_cast_where_clause(clause, _), do: clause
 
-  defp parse_time(%Column{constant?: true, type: :text, value: string}) do
+  defp parse_time(%Column{constant?: true, type: :text, value: string}, :time) do
+    case Cloak.Time.parse_time(string) do
+      {:ok, result} -> result
+      _ -> raise CompilationError, message: "Cannot cast `#{string}` to time."
+    end
+  end
+  defp parse_time(%Column{constant?: true, type: :text, value: string}, :timestamp) do
     case Cloak.Time.parse_datetime(string) do
       {:ok, result} -> result
       _ -> case Timex.parse(string, "{ISOdate}") do
@@ -500,8 +506,8 @@ defmodule Cloak.Aql.Compiler do
       end
     end
   end
-  defp parse_time(%Column{constant?: true, value: value}) do
-    raise CompilationError, message: "Cannot cast `#{value}` to timestamp."
+  defp parse_time(%Column{constant?: true, value: value}, type) do
+    raise CompilationError, message: "Cannot cast `#{value}` to #{type}."
   end
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
