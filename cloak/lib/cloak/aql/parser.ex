@@ -497,7 +497,7 @@ defmodule Cloak.Aql.Parser do
       {:else, noop()}
     ])
     |> map(fn
-          {[:where], [where_expressions]} -> {:where, where_expressions}
+          {[:where], [where_expressions]} -> {:where, List.flatten(where_expressions)}
           other -> other
         end)
   end
@@ -511,6 +511,7 @@ defmodule Cloak.Aql.Parser do
       {qualified_identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
       {qualified_identifier() |> option(keyword(:not)) |> keyword(:in), in_values()},
       {qualified_identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
+      {qualified_identifier() |> keyword(:between), allowed_where_range()},
       {qualified_identifier(), pair_both(comparator(), allowed_where_value())},
       {:else, error_message(fail(""), "Invalid where expression")}
     ])
@@ -525,12 +526,21 @@ defmodule Cloak.Aql.Parser do
           {[identifier, :is, :not], [:null]} -> {:not, {:is, identifier, :null}}
           {[identifier], [{:<>, value}]} -> {:not, {:comparison, identifier, :=, value}}
           {[identifier], [{comparator, value}]} -> {:comparison, identifier, comparator, value}
+          {[identifier, :between], [{min, max}]} ->
+            [{:comparison, identifier, :>=, min}, {:comparison, identifier, :<=, max}]
         end)
   end
 
   defp allowed_where_value() do
     choice([qualified_identifier(), any_constant()])
     |> label("comparison value")
+  end
+
+  defp allowed_where_range() do
+    pipe(
+      [allowed_where_value(), keyword(:and), allowed_where_value()],
+      fn([min, :and, max]) -> {min, max} end
+    )
   end
 
   defp in_values() do

@@ -251,12 +251,26 @@ defmodule Cloak.Aql.Parser.Test do
         columns: [{:identifier, :unknown, "foo"}], from: "bar",
         where: [
           {:not, {:comparison, {:identifier, :unknown, "a"}, :=, constant(10)}},
-          {:comparison, {:identifier, :unknown, "b"}, :=, constant("bar")}]
+          {:comparison, {:identifier, :unknown, "b"}, :=, constant("bar")}
+        ]
       )
     )
   end
 
-  test "where clause with LIKE is OK" do
+  test "where clause with BETWEEN" do
+    assert_parse(
+      "select foo from bar where a between 10 and 20",
+      select(
+        columns: [{:identifier, :unknown, "foo"}], from: "bar",
+        where: [
+          {:comparison, {:identifier, :unknown, "a"}, :>=, constant(10)},
+          {:comparison, {:identifier, :unknown, "a"}, :<=, constant(20)}
+        ]
+      )
+    )
+  end
+
+  test "where clause with LIKE" do
     assert_parse(
       "select foo from bar where a LIKE '_ob d%'",
       select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
@@ -286,7 +300,7 @@ defmodule Cloak.Aql.Parser.Test do
     )
   end
 
-  test "where clause with IN is OK" do
+  test "where clause with IN" do
     assert_parse(
       "select foo from bar where a IN (1, 2, 3)",
       select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
@@ -302,7 +316,7 @@ defmodule Cloak.Aql.Parser.Test do
     )
   end
 
-  test "where clause with all types of clauses is OK" do
+  test "where clause with all types of clauses" do
     assert_parse(
       "select foo from bar where a = 2 and b in (1,2,3) and c like '_o' and d is not null",
       select(
