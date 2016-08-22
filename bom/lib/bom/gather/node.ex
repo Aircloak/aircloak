@@ -24,7 +24,6 @@ defmodule BOM.Gather.Node do
            {:ok, package_description} <- Poison.decode(json)
       do
         License.find_by_name(package_description["license"])
-          || package_description["licenses"]
       else
         _ -> nil
       end
