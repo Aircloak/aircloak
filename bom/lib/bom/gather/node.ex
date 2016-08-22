@@ -26,7 +26,7 @@ defmodule BOM.Gather.Node do
       do
         license
       else
-        _ -> nil
+        _ -> BOM.Whitelist.find(:node, Path.basename(path))
       end
   end
 
