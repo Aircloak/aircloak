@@ -56,7 +56,7 @@ defmodule Cloak.Mixfile do
     [
       :logger, :gproc, :aircloak_common, :postgrex, :poolboy,
       :phoenix_gen_socket_client, :websocket_client, :combine,
-      :runtime_tools, :httpoison, :timex, :poison
+      :runtime_tools, :httpoison, :timex, :poison, :odbc
     ]
   end
 

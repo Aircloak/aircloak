@@ -170,6 +170,7 @@ defmodule Cloak.DataSource do
     driver_module = case params[:driver] do
       "postgresql" -> Cloak.DataSource.PostgreSQL
       "dsproxy" -> Cloak.DataSource.DsProxy
+      "odbc" -> Cloak.DataSource.ODBC
       other -> raise("Unknown driver `#{other}` for data source `#{data_source}`")
     end
 
