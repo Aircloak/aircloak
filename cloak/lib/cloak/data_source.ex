@@ -309,27 +309,29 @@ defmodule Cloak.DataSource do
   if Mix.env == :test do
     @doc false
     def register_test_table(table_id, table_name, user_id) do
-      source = Application.get_env(:cloak, :data_sources)[:local]
-      table = %{db_name: table_name, user_id: user_id}
-      tables = Map.put(source[:tables], table_id, table)
-      source = Map.put(source, :tables, tables)
-      {_id, source} = data_source_with_columns({:local, source})
-      Application.put_env(:cloak, :data_sources, %{local: source})
+      sources = for {id, source} <- Application.get_env(:cloak, :data_sources), into: %{} do
+        table = %{db_name: table_name, user_id: user_id}
+        tables = Map.put(source[:tables], table_id, table)
+        {id, Map.put(source, :tables, tables)} |> data_source_with_columns()
+      end
+      Application.put_env(:cloak, :data_sources, sources)
     end
 
     @doc false
     def unregister_test_table(table_id) do
-      source = Application.get_env(:cloak, :data_sources)[:local]
-      tables = Map.delete(source[:tables], table_id)
-      source = Map.put(source, :tables, tables)
-      Application.put_env(:cloak, :data_sources, %{local: source})
+      sources = for {id, source} <- Application.get_env(:cloak, :data_sources), into: %{} do
+        tables = Map.delete(source[:tables], table_id)
+        {id, Map.put(source, :tables, tables)}
+      end
+      Application.put_env(:cloak, :data_sources, sources)
     end
 
     @doc false
     def clear_test_tables() do
-      source = Application.get_env(:cloak, :data_sources)[:local]
-      source = Map.put(source, :tables, %{})
-      Application.put_env(:cloak, :data_sources, %{local: source})
+      sources = for {id, source} <- Application.get_env(:cloak, :data_sources), into: %{} do
+        {id, Map.put(source, :tables, %{})}
+      end
+      Application.put_env(:cloak, :data_sources, sources)
     end
   end
 end
