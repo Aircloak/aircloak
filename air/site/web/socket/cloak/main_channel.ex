@@ -38,6 +38,8 @@ defmodule Air.Socket.Cloak.MainChannel do
   @doc false
   def join("main", cloak_info, socket) do
     Process.flag(:trap_exit, true)
+    Air.Cloak.register(socket.assigns.cloak_id)
+
     {:ok, cloak_info_pid} = CloakInfo.start_link(%{
       name: socket.assigns.name,
       organisation: socket.assigns.organisation,
@@ -54,6 +56,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   @doc false
   def terminate(_reason, socket) do
     cloak_id = socket.assigns.cloak_id
+    Air.Cloak.unregister!(cloak_id)
     Logger.info("cloak '#{cloak_id}' left air")
     {:ok, socket}
   end
