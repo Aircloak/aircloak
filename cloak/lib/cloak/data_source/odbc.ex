@@ -88,10 +88,13 @@ defmodule Cloak.DataSource.ODBC do
   defp parse_type(:SQL_LONGVARCHAR), do: :text
   defp parse_type({:sql_varchar, _length}), do: :text
   defp parse_type(:sql_timestamp), do: :timestamp
+  defp parse_type(:SQL_TYPE_DATE), do: :date
+  defp parse_type(:SQL_TYPE_TIME), do: :time
   defp parse_type(type), do: {:unsupported, type}
 
+  defp field_mapper(:null), do: nil
   defp field_mapper({{year, month, day}, {hour, min, sec}}) when is_integer(sec), do:
-    NaiveDateTime.new(year, month, day, hour, min, sec) |> error_to_nil()
+    NaiveDateTime.new(year, month, day, hour, min, sec, {0, 6}) |> error_to_nil()
   defp field_mapper({{year, month, day}, {hour, min, fsec}}) when is_float(fsec) do
     sec = trunc(fsec)
     usec = {trunc((fsec - sec) * 1_000_000), 6}
