@@ -1,4 +1,5 @@
 defmodule Air.Cloak do
+  @moduledoc "Contains a record of connected cloak's, and their online status."
   use Air.Web, :model
 
   alias Air.{Repo, Cloak}
