@@ -42,8 +42,8 @@ defmodule Air.Cloak do
   If the cloak already exists, then it's online status is updated,
   rather than a new cloak being created.
   """
-  @spec register(String.t) :: Cloak.t
-  def register(name) do
+  @spec register(String.t, [Map.t]) :: Cloak.t
+  def register(name, _data_sources) do
     params = %{name: name, state: :online}
     case Repo.one(from c in Cloak, where: c.name == ^name) do
       nil ->

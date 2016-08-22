@@ -4,6 +4,7 @@ defmodule Air.CloakTest do
   alias Air.Cloak
 
   @valid_attrs %{name: "some content"}
+  @no_datasources []
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do
@@ -42,7 +43,7 @@ defmodule Air.CloakTest do
   end
 
   test "create or setup in one go" do
-    cloak = Cloak.register("test cloak")
+    cloak = Cloak.register("test cloak", @no_datasources)
     assert Cloak.state(cloak) == :online
 
     cloak
@@ -53,12 +54,12 @@ defmodule Air.CloakTest do
     assert Cloak.state(cloak) == :offline
 
     # Registering it, brings it back online again
-    cloak = Cloak.register("test cloak")
+    cloak = Cloak.register("test cloak", @no_datasources)
     assert Cloak.state(cloak) == :online
   end
 
   test "unregistering a cloak marks it as offline" do
-    Cloak.register("test cloak")
+    Cloak.register("test cloak", @no_datasources)
     cloak = Cloak.unregister!("test cloak")
     assert Cloak.state(cloak) == :offline
   end
