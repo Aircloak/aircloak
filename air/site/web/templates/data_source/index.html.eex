@@ -1,4 +1,5 @@
 <h2>Data sources</h2>
+<hr/>
 
 <%= if length(@data_sources) == 0 do %>
 
