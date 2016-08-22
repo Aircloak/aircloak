@@ -42,10 +42,10 @@ defmodule Air.Cloak do
   If the cloak already exists, then it's online status is updated,
   rather than a new cloak being created.
   """
-  @spec register(Keyword.t) :: Cloak.t
-  def register(params) do
-    params = Map.merge(Enum.into(params, %{}), %{state: :online})
-    case Repo.one(from c in Cloak, where: c.name == ^params.name) do
+  @spec register(String.t) :: Cloak.t
+  def register(name) do
+    params = %{name: name, state: :online}
+    case Repo.one(from c in Cloak, where: c.name == ^name) do
       nil ->
         %Cloak{}
         |> Cloak.changeset(params)
@@ -60,12 +60,12 @@ defmodule Air.Cloak do
   Marks a registered cloak as offline.
   Raises if no cloak exists under the name.
   """
-  @spec unregister!(name: String.t) :: :ok
-  def unregister!(params) do
-    params = %{name: Keyword.get(params, :name), state: :offline}
-    case Repo.one(from c in Cloak, where: c.name == ^params.name) do
+  @spec unregister!(String.t) :: :ok
+  def unregister!(name) do
+    params = %{name: name, state: :offline}
+    case Repo.one(from c in Cloak, where: c.name == ^name) do
       nil ->
-        raise RuntimeError, message: "Tried unregistering unknown cloak: #{params.name}"
+        raise RuntimeError, message: "Tried unregistering unknown cloak: #{name}"
       cloak ->
         Cloak.changeset(cloak, params)
         |> Repo.update!
