@@ -5,33 +5,15 @@
 <% else %>
   <%= for cloak <- @cloaks do %>
     <div>
-      <div><big><big><%= cloak.name %></big></big></div>
-      <div><small>Connected since <%= Air.Utils.DateTime.time_ago(cloak.created_at) %></small></div>
-      <ul>
-      <%= for data_source <- cloak.data_sources do %>
-        <li type="square">
-          <div><big><%= data_source.id %></big></div>
-          <%= for table <- data_source.tables do %>
-            <div>
-              <table class="table table-striped table-small">
-                <thead>
-                  <tr>
-                    <th colspan="2"><%= table.id %></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <%= for column <- table.columns do %>
-                    <tr>
-                      <td><%= column.name %></td><td><%= column.type %></td>
-                    </tr>
-                  <% end %>
-                </tbody>
-              </table>
-            </div>
-          <% end %>
-        </li>
-      <% end %>
-      </ul>
+      <div>
+        <h3><%= cloak.name %>
+          <small><%= Air.Cloak.state(cloak) %>
+            <%= if Air.Cloak.state(cloak) == :online do %>
+            since <%= Air.Utils.DateTime.time_ago(cloak.updated_at) %>
+            <% end %>
+          </small>
+        </h3>
+      </div>
     </div>
   <% end %>
 <% end %>
