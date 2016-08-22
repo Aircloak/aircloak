@@ -124,7 +124,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     [to_fragment(what), to_fragment(comparator), to_fragment(value)]
   end
   defp conditions_to_fragments({:in, what, values}) do
-    [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(","), ")"]
+    [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(", "), ")"]
   end
   defp conditions_to_fragments({:not, {:is, what, match}}) do
     [to_fragment(what), " IS NOT ", to_fragment(match)]
