@@ -841,6 +841,26 @@ defmodule Cloak.QueryTest do
         %{query_id: "1", columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
     end
 
+    test "comparing a time" do
+      early = %Postgrex.Time{hour: 1}
+      late = %Postgrex.Time{hour: 10}
+      :ok = insert_rows(_user_ids = 0..9, "datetimes", ["time_only"], [early])
+      :ok = insert_rows(_user_ids = 10..19, "datetimes", ["time_only"], [late])
+
+      assert_query "select count(*) from datetimes where time_only > '05:00:00'",
+        %{query_id: "1", columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
+    end
+
+    test "comparing a date" do
+      early = %Postgrex.Date{year: 2015, month: 1, day: 1}
+      late = %Postgrex.Date{year: 2017, month: 1, day: 1}
+      :ok = insert_rows(_user_ids = 0..9, "datetimes", ["date_only"], [early])
+      :ok = insert_rows(_user_ids = 10..19, "datetimes", ["date_only"], [late])
+
+      assert_query "select count(*) from datetimes where date_only > '2016-01-01'",
+        %{query_id: "1", columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
+    end
+
     test "selecting time" do
       time = %Postgrex.Time{hour: 1, min: 2, sec: 3}
       :ok = insert_rows(_user_ids = 1..10, "datetimes", ["time_only"], [time])
