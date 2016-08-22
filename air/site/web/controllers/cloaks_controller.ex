@@ -3,7 +3,7 @@ defmodule Air.CloaksController do
   use Air.Web, :controller
   use Timex
 
-  alias Air.{Organisation, CloakInfo}
+  alias Air.Cloak
 
 
   # -------------------------------------------------------------------
@@ -22,7 +22,7 @@ defmodule Air.CloaksController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    organisation = Repo.get!(Organisation, conn.assigns.current_user.organisation_id)
-    render(conn, "index.html", cloaks: CloakInfo.all(organisation))
+    cloaks = Repo.all(Cloak)
+    render(conn, "index.html", cloaks: cloaks)
   end
 end
