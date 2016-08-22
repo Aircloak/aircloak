@@ -1,4 +1,6 @@
 defmodule BOM.Gather.Node do
+  alias BOM.License
+
   def run(path) do
     path
     |> Path.join("*")
@@ -15,19 +17,22 @@ defmodule BOM.Gather.Node do
   end
 
   defp license(path) do
-    with package_path = Path.join(path, "/package.json"),
-         {:ok, json} <- File.read(package_path),
-         {:ok, package_description} <- Poison.decode(json)
-    do
-      package_description["license"] || package_description["licenses"] || license_from_file(path)
-    else
-      _ -> license_from_file(path)
-    end
+    license_from_file(path, "*LICENSE*") ||
+      license_from_file(path, "*LICENCE*") ||
+      with package_path = Path.join(path, "/package.json"),
+           {:ok, json} <- File.read(package_path),
+           {:ok, package_description} <- Poison.decode(json)
+      do
+        License.find_by_name(package_description["license"])
+          || package_description["licenses"]
+      else
+        _ -> nil
+      end
   end
 
-  defp license_from_file(path) do
+  defp license_from_file(path, pattern) do
     path
-    |> Path.join("*LICENSE*")
+    |> Path.join(pattern)
     |> Path.wildcard()
     |> Enum.find(&File.exists?/1)
     |> case do
@@ -35,7 +40,7 @@ defmodule BOM.Gather.Node do
       license_path ->
         File.read(license_path)
         |> case do
-          {:ok, text} -> %BOM.License{type: :custom, text: text}
+          {:ok, text} -> %License{type: :custom, text: text}
           _ -> nil
         end
     end
