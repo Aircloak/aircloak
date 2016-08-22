@@ -21,9 +21,10 @@ defmodule BOM.Gather.Node do
       license_from_file(path, "*LICENCE*") ||
       with package_path = Path.join(path, "/package.json"),
            {:ok, json} <- File.read(package_path),
-           {:ok, package_description} <- Poison.decode(json)
+           {:ok, package_description} <- Poison.decode(json),
+           {:ok, license} <- License.find_by_name(package_description["license"])
       do
-        License.find_by_name(package_description["license"])
+        license
       else
         _ -> nil
       end
