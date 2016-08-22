@@ -40,4 +40,20 @@ defmodule Air.CloakTest do
     cloak = Repo.one(Cloak)
     assert Cloak.state(cloak) == :offline
   end
+
+  test "create or setup in one go" do
+    cloak = Cloak.register(name: "test cloak")
+    assert Cloak.state(cloak) == :online
+
+    cloak
+    |> Cloak.changeset(%{state: :offline})
+    |> Air.Repo.update!
+
+    cloak = Repo.one(Cloak)
+    assert Cloak.state(cloak) == :offline
+
+    # Registering it, brings it back online again
+    cloak = Cloak.register(name: "test cloak")
+    assert Cloak.state(cloak) == :online
+  end
 end

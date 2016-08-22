@@ -1,6 +1,10 @@
 defmodule Air.Cloak do
   use Air.Web, :model
 
+  alias Air.{Repo, Cloak}
+
+  @type t :: %__MODULE__{}
+
   schema "cloaks" do
     field :name, :string
     field :state_int, :integer, default: 0
@@ -30,6 +34,25 @@ defmodule Air.Cloak do
 
   def state(model) do
     int_to_state(model.state_int)
+  end
+
+  @doc """
+  Registers a cloak and sets marks it as online.
+  If the cloak already exists, then it's online status is updated,
+  rather than a new cloak being created.
+  """
+  @spec register(Keyword.t) :: Cloak.t
+  def register(params) do
+    params = Map.merge(Enum.into(params, %{}), %{state: :online})
+    case Repo.one(from c in Cloak, where: c.name == ^params.name) do
+      nil ->
+        %Cloak{}
+        |> Cloak.changeset(params)
+        |> Repo.insert!
+      cloak ->
+        Cloak.changeset(cloak, params)
+        |> Repo.update!
+    end
   end
 
 
