@@ -1,3 +1,3 @@
 defmodule BOM.Package do
-  defstruct [:type, :name, :license]
+  defstruct [:type, :name, :license, :error]
 end
