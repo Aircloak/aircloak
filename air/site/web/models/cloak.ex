@@ -55,6 +55,22 @@ defmodule Air.Cloak do
     end
   end
 
+  @doc """
+  Marks a registered cloak as offline.
+  Raises if no cloak exists under the name.
+  """
+  @spec unregister!(name: String.t) :: :ok
+  def unregister!(params) do
+    params = %{name: Keyword.get(params, :name), state: :offline}
+    case Repo.one(from c in Cloak, where: c.name == ^params.name) do
+      nil ->
+        raise RuntimeError, message: "Tried unregistering unknown cloak: #{params.name}"
+      cloak ->
+        Cloak.changeset(cloak, params)
+        |> Repo.update!
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

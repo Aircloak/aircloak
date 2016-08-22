@@ -56,4 +56,14 @@ defmodule Air.CloakTest do
     cloak = Cloak.register(name: "test cloak")
     assert Cloak.state(cloak) == :online
   end
+
+  test "unregistering a cloak marks it as offline" do
+    Cloak.register(name: "test cloak")
+    cloak = Cloak.unregister!(name: "test cloak")
+    assert Cloak.state(cloak) == :offline
+  end
+
+  test "unregistering a non-existent cloak raises an exception" do
+    assert_raise RuntimeError, fn() -> Cloak.unregister!(name: "missing cloak") end
+  end
 end
