@@ -83,6 +83,19 @@ defmodule Air.Cloak do
     decode_data(cloak.raw_pid)
   end
 
+  @state_map %{0 => :unknown, 1 => :online, 2 => :offline}
+
+  @doc "Gives a state integer for a human state"
+  @spec state_to_int(atom) :: non_neg_integer
+  def state_to_int(state) do
+    @state_map
+    |> Enum.to_list()
+    |> Enum.find_value(fn
+      ({number, ^state}) -> number
+      (_) -> nil
+    end)
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -108,17 +121,6 @@ defmodule Air.Cloak do
     data
     |> :erlang.term_to_binary()
     |> Base.encode64()
-  end
-
-  @state_map %{0 => :unknown, 1 => :online, 2 => :offline}
-
-  defp state_to_int(state) do
-    @state_map
-    |> Enum.to_list()
-    |> Enum.find_value(fn
-      ({number, ^state}) -> number
-      (_) -> nil
-    end)
   end
 
   defp int_to_state(number) do
