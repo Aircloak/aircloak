@@ -20,7 +20,7 @@ defmodule BOM.License do
     end
   end
 
-  for path <- Path.wildcard("./licenses/*") do
+  for path <- Path.wildcard("./licenses/generic/*") do
     name = Path.basename(path) |> String.to_atom
     text = File.read!(path)
 
