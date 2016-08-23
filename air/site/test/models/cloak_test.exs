@@ -68,8 +68,6 @@ defmodule Air.CloakTest do
     assert_raise RuntimeError, fn() -> Cloak.unregister!("missing cloak") end
   end
 
-  test "registering with data source creates the data source"
-
   test "registers the pid of the caller upon registration" do
     cloak = Cloak.register("test cloak", @no_datasources, self())
     assert Cloak.channel_pid(cloak) == self()
