@@ -756,6 +756,11 @@ defmodule Cloak.Aql.Parser.Test do
       select(columns: [constant(:interval, ^duration)])
   end
 
+  test "quoted identifier" do
+    assert_parse "select `something that wouldn't normally work as a column name` from bar",
+      select(columns: [identifier("something that wouldn't normally work as a column name")])
+  end
+
   create_test =
     fn(description, data_source, statement, expected_error, line, column) ->
       test description do
