@@ -405,6 +405,11 @@ defmodule Cloak.Aql.Compiler.Test do
         "Function `%` requires arguments of type (`integer`, `integer`), but got (`real`, `integer`)"
   end
 
+  test "incorrect application of +" do
+    assert {:error, error} = compile("select 'a' + 'b' from table", data_source())
+    assert error == "Arguments of type (`text`, `text`) are incorrect for `+`"
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result

@@ -282,20 +282,32 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp function_argument_error_message(function_call) do
-    if Function.cast?(function_call) do
-      [cast_source] = Function.arguments(function_call) |> Enum.map(&Function.type/1)
-      cast_target = Function.return_type(function_call)
-
-      "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
-    else
-      expected_types = Function.argument_types(function_call)
-      actual_types = Function.arguments(function_call) |> Enum.map(&Function.type/1)
-      expected_string = expected_types |> Enum.map(&quoted_list/1) |> Enum.map(&"(#{&1})") |> Enum.join(" or ")
-
-      "Function `#{Function.name(function_call)}` requires arguments"
-        <> " of type #{expected_string}, but got (#{quoted_list(actual_types)})"
+    cond do
+      Function.cast?(function_call) ->
+        [cast_source] = actual_types(function_call)
+        cast_target = Function.return_type(function_call)
+        "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
+      many_overloads?(function_call) ->
+        "Arguments of type (#{function_call |> actual_types() |> quoted_list()}) are incorrect"
+          <> " for `#{Function.name(function_call)}`"
+      true ->
+        "Function `#{Function.name(function_call)}` requires arguments of type #{expected_types(function_call)}"
+          <> ", but got (#{function_call |> actual_types() |> quoted_list()})"
     end
   end
+
+  defp many_overloads?(function_call) do
+    length(Function.argument_types(function_call)) > 4
+  end
+
+  defp expected_types(function_call), do:
+    Function.argument_types(function_call)
+    |> Enum.map(&quoted_list/1)
+    |> Enum.map(&"(#{&1})")
+    |> Enum.join(" or ")
+
+  defp actual_types(function_call), do:
+    Function.arguments(function_call) |> Enum.map(&Function.type/1)
 
   defp expand_arguments(column) do
     (column |> Function.arguments() |> Enum.flat_map(&expand_arguments/1)) ++ [column]
