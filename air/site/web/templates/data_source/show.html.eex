@@ -20,6 +20,7 @@
       var props = {
         lastQuery: <%= {:safe, @last_query} %>,
         dataSourceId: "<%= @data_source.id %>",
+        dataSourceAvailable: <%= Air.Cloak.online?(@data_source.cloak) %>,
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
