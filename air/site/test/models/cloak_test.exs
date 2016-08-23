@@ -78,4 +78,16 @@ defmodule Air.CloakTest do
     cloak = Cloak.unregister!("test cloak")
     refute Cloak.channel_pid(cloak) == self()
   end
+
+  test "knows if online" do
+    cloak = Cloak.register("test cloak", @no_datasources, self())
+    assert Cloak.online?(cloak)
+    cloak = Cloak.unregister!("test cloak")
+    refute Cloak.online?(cloak)
+    cloak = cloak
+    |> Cloak.changeset(%{state: :unknown})
+    |> Repo.update!()
+    assert Cloak.state(cloak) == :unknown
+    refute Cloak.online?(cloak)
+  end
 end

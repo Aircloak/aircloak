@@ -96,6 +96,12 @@ defmodule Air.Cloak do
     end)
   end
 
+  @doc "Returns a boolean true if the cloak is online, false otherwise"
+  @spec online?(Cloak.t) :: boolean
+  def online?(cloak) do
+    int_to_state(cloak.state_int) === :online
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
