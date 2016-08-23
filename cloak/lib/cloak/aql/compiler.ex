@@ -286,15 +286,18 @@ defmodule Cloak.Aql.Compiler do
       Function.cast?(function_call) ->
         [cast_source] = actual_types(function_call)
         cast_target = Function.return_type(function_call)
-
         "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
-      length(Function.argument_types(function_call)) > (_a_lot_of_overloads = 4) ->
+      many_overloads?(function_call) ->
         "Arguments of type (#{function_call |> actual_types() |> quoted_list()}) are incorrect"
           <> " for `#{Function.name(function_call)}`"
-      :else ->
+      true ->
         "Function `#{Function.name(function_call)}` requires arguments of type #{expected_types(function_call)}"
           <> ", but got (#{function_call |> actual_types() |> quoted_list()})"
     end
+  end
+
+  defp many_overloads?(function_call) do
+    length(Function.argument_types(function_call)) > 4
   end
 
   defp expected_types(function_call), do:
