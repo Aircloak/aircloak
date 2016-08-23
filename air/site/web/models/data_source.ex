@@ -2,7 +2,7 @@ defmodule Air.DataSource do
   @moduledoc "Represents data sources made available through the cloaks"
   use Air.Web, :model
 
-  alias Air.{Cloak, DataSource, Repo}
+  alias Air.{Cloak, DataSource, Repo, Query}
 
   @type t :: %__MODULE__{}
 
@@ -11,6 +11,7 @@ defmodule Air.DataSource do
     field :tables, :string
 
     belongs_to :cloak, Cloak
+    has_many :queries, Query
 
     timestamps
   end

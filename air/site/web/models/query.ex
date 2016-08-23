@@ -10,13 +10,12 @@ defmodule Air.Query do
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "queries" do
     field :statement, :string
-    field :cloak_id, :string
-    field :data_source, :string
     field :tables, {:array, :string}
     field :result, :string
     field :execution_time, :integer
 
     belongs_to :user, User
+    belongs_to :data_source, DataSource
 
     timestamps
   end
