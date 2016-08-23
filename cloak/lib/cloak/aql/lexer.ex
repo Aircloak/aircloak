@@ -163,9 +163,9 @@ defmodule Cloak.Aql.Lexer do
 
   defp quoted_identifier() do
     sequence([
-      ignore(char("`")),
+      ignore(char(?`)),
       word_of(~r/[^`]/),
-      ignore(char("`"))
+      ignore(char(?`))
     ])
     |> map(fn([identifier]) -> {:identifier, identifier} end)
     |> output_token()
