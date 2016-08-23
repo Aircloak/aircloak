@@ -31,7 +31,7 @@
     "local_odbc": {
       "driver": "odbc",
       "parameters": {
-        "connect": "DSN=PostgreSQL;UID=cloak;Database=cloak;Server=localhost",
+        "connect": "DSN=PostgreSQL;UID=cloak;Database=cloak;Server=localhost;",
         "pool_size": 4
       },
       "tables": {
