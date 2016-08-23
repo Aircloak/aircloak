@@ -5,6 +5,7 @@ defmodule Cloak.DataSource.ODBC do
   """
 
   alias Cloak.DataSource.SqlBuilder
+  alias Cloak.Aql.Column
 
   defmodule Worker do
     @moduledoc false
@@ -50,12 +51,13 @@ defmodule Cloak.DataSource.ODBC do
     {query_string, params} = SqlBuilder.build(sql_query)
     query_string = query_string |> to_string() |> to_char_list()
     params = Enum.map(params, &convert_param/1)
+    field_mappers = for column <- sql_query.db_columns, do: column_to_field_mapper(column)
     execute(source_id, fn (conn) ->
       case :odbc.param_query(conn, query_string, params, 4 * 60 * 60_000) do
         {:selected, _columns, rows} ->
           result =
             rows
-            |> Stream.map(fn (row) -> Enum.map(row, &field_mapper/1) end)
+            |> Stream.map(&map_fields(&1, field_mappers))
             |> result_processor.()
           {:ok, result}
         {:error, reason} ->
@@ -92,15 +94,32 @@ defmodule Cloak.DataSource.ODBC do
   defp parse_type(:SQL_TYPE_TIME), do: :time
   defp parse_type(type), do: {:unsupported, type}
 
-  defp field_mapper(:null), do: nil
-  defp field_mapper({{year, month, day}, {hour, min, sec}}) when is_integer(sec), do:
+  defp map_fields([], []), do: []
+  defp map_fields([field | rest_fields], [mapper | rest_mappers]), do:
+    [mapper.(field) | map_fields(rest_fields, rest_mappers)]
+
+  defp column_to_field_mapper(%Column{type: :timestamp}), do: &timestamp_field_mapper/1
+  defp column_to_field_mapper(%Column{type: :time}), do: &time_field_mapper/1
+  defp column_to_field_mapper(%Column{type: :date}), do: &date_field_mapper/1
+  defp column_to_field_mapper(%Column{}), do: &generic_field_mapper/1
+
+  defp generic_field_mapper(:null), do: nil
+  defp generic_field_mapper(value), do: value
+
+  defp timestamp_field_mapper(:null), do: nil
+  defp timestamp_field_mapper({{year, month, day}, {hour, min, sec}}) when is_integer(sec), do:
     NaiveDateTime.new(year, month, day, hour, min, sec, {0, 6}) |> error_to_nil()
-  defp field_mapper({{year, month, day}, {hour, min, fsec}}) when is_float(fsec) do
+  defp timestamp_field_mapper({{year, month, day}, {hour, min, fsec}}) when is_float(fsec) do
     sec = trunc(fsec)
     usec = {trunc((fsec - sec) * 1_000_000), 6}
     NaiveDateTime.new(year, month, day, hour, min, sec, usec) |> error_to_nil()
   end
-  defp field_mapper(value), do: value
+
+  defp date_field_mapper(:null), do: nil
+  defp date_field_mapper(string) when is_binary(string), do: Cloak.Time.parse_date(string) |> error_to_nil()
+
+  defp time_field_mapper(:null), do: nil
+  defp time_field_mapper(string) when is_binary(string), do: Cloak.Time.parse_time(string) |> error_to_nil()
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
