@@ -19,28 +19,36 @@ defmodule BOM.Gather.Node do
   defp license(path) do
     license_from_file(path, "*LICENSE*") ||
       license_from_file(path, "*LICENCE*") ||
-      with package_path = Path.join(path, "/package.json"),
-           {:ok, json} <- File.read(package_path),
-           {:ok, package_description} <- Poison.decode(json),
-           {:ok, license} <- License.find_by_name(package_description["license"])
-      do
-        license
-      else
-        _ -> BOM.Whitelist.find(:node, Path.basename(path))
-      end
+      license_from_file(path, "*license*") ||
+      license_from_file(path, "*licence*") ||
+      license_from_readme(path, "*README*") ||
+      BOM.Whitelist.find(:node, Path.basename(path))
   end
 
   defp license_from_file(path, pattern) do
+    if_matching_file(path, pattern, fn text -> %License{type: :custom, text: text} end)
+  end
+
+  defp license_from_readme(path, pattern) do
+    if_matching_file(path, pattern, fn text ->
+      case Regex.run(~r/LICENSE(.|\n)*/, text) do
+        [text | _]-> %License{type: :custom, text: text}
+        _ -> nil
+      end
+    end)
+  end
+
+  defp if_matching_file(path, pattern, action) do
     path
     |> Path.join(pattern)
     |> Path.wildcard()
     |> Enum.find(&File.exists?/1)
     |> case do
       nil -> nil
-      license_path ->
-        File.read(license_path)
+      matching_path ->
+        File.read(matching_path)
         |> case do
-          {:ok, text} -> %License{type: :custom, text: text}
+          {:ok, text} -> action.(text)
           _ -> nil
         end
     end
