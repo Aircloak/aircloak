@@ -126,6 +126,8 @@ defmodule Cloak.DataSource.ODBC do
 
   defp convert_param(%NaiveDateTime{} = value), do:
     {:sql_timestamp, [{{value.year, value.month, value.day}, {value.hour, value.minute, value.second}}]}
+  defp convert_param(:true), do: {:sql_bit, [true]}
+  defp convert_param(:false), do: {:sql_bit, [false]}
   defp convert_param(value) when is_binary(value), do: {{:sql_varchar, byte_size(value)}, [value]}
   defp convert_param(value) when is_integer(value), do: {:sql_integer, [value]}
   defp convert_param(value) when is_float(value), do: {:sql_real, [value]}

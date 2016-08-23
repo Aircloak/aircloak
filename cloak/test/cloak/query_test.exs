@@ -24,7 +24,7 @@ defmodule Cloak.QueryTest do
   setup_all do
     Cloak.Test.DB.setup()
     Cloak.Test.DB.create_test_schema()
-    Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT")
+    Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
     Cloak.Test.DB.create_table("datetimes", "datetime TIMESTAMP, date_only DATE, time_only TIME")
     Cloak.Test.DB.create_table("floats", "float REAL")
     Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
@@ -51,6 +51,7 @@ defmodule Cloak.QueryTest do
       assert_query "show columns from heights", %{query_id: "1", columns: ["name", "type"], rows: rows}
       assert Enum.sort_by(rows, &(&1[:row])) == [
         %{occurrences: 1, row: ["height", :integer]},
+        %{occurrences: 1, row: ["male", :boolean]},
         %{occurrences: 1, row: ["name", :text]},
         %{occurrences: 1, row: ["user_id", :text]}
       ]
@@ -64,7 +65,7 @@ defmodule Cloak.QueryTest do
 
     test "select all query" do
       assert_query "select * from heights",
-        %{query_id: "1", columns: ["user_id", "height", "name"], rows: _}
+        %{query_id: "1", columns: ["user_id", "height", "name", "male"], rows: _}
     end
 
     test "select a constant" do
@@ -91,13 +92,13 @@ defmodule Cloak.QueryTest do
     end
 
     test "select all and order query" do
-      :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height"], ["john", 180])
-      :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height"], ["adam", 180])
-      :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
+      :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 180, true])
+      :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
       assert_query "select * from heights order by name",
-        %{query_id: "1", columns: ["user_id", "height", "name"], rows: rows}
-      assert Enum.map(rows, &(&1[:row])) == [[:*, :*, :*]]
+        %{query_id: "1", columns: ["user_id", "height", "name", "male"], rows: rows}
+      assert Enum.map(rows, &(&1[:row])) == [[:*, :*, :*, :*]]
     end
 
     test "should return LCF property when sufficient rows are filtered" do
@@ -381,6 +382,14 @@ defmodule Cloak.QueryTest do
 
       assert_query "select count(*) from heights where height IS NOT NULL",
         %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
+    end
+
+    test "select and filter booleans" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
+      :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["eva", 160, false])
+
+      assert_query "select height, male from heights where male = true",
+        %{query_id: "1", columns: ["height", "male"], rows: [%{row: [180, true], occurrences: 10}]}
     end
 
     test "should order rows when instructed" do
