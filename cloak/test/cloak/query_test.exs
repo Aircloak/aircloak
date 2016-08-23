@@ -6,8 +6,11 @@ defmodule Cloak.QueryTest do
 
   defmacrop assert_query(query, expected_response) do
     quote do
-      :ok = start_query(unquote(query))
-      assert_receive {:reply, unquote(expected_response)}, 1000
+      :ok = start_query(unquote(query), Cloak.DataSource.fetch!(:local))
+      assert_receive {:reply, response}, 1000
+      :ok = start_query(unquote(query), Cloak.DataSource.fetch!(:local_odbc))
+      assert_receive {:reply, response}, 1000
+      assert unquote(expected_response) = response
     end
   end
 
@@ -449,8 +452,7 @@ defmodule Cloak.QueryTest do
 
     test "query which returns zero rows" do
       Cloak.Test.DB.clear_table("heights")
-      assert_query "select height from heights", result
-      assert %{query_id: "1", columns: ["height"], rows: []} = result
+      assert_query "select height from heights", %{query_id: "1", columns: ["height"], rows: []}
     end
 
     test "select with column alias" do
@@ -940,8 +942,8 @@ defmodule Cloak.QueryTest do
     :ok
   end
 
-  defp start_query(statement) do
-    Query.Runner.start("1", Cloak.DataSource.fetch!(:local), statement, {:process, self()})
+  defp start_query(statement, data_source) do
+    Query.Runner.start("1", data_source, statement, {:process, self()})
   end
 
   defp insert_rows(user_id_range, table, columns, values) do
