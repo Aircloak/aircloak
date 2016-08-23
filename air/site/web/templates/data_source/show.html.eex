@@ -8,6 +8,9 @@
   <small>
     @ <%= @data_source.cloak.name %>
   </small>
+  <%= if not Air.Cloak.online?(@data_source.cloak) do %>
+    <span class="label label-info">currently unavailable</span>
+  <% end %>
 </h2>
 
 <hr />
