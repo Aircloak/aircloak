@@ -4,7 +4,7 @@ defmodule Air.QueryController do
   use Timex
 
   require Logger
-  alias Air.{DataSource, Query, Repo, AuditLog}
+  alias Air.{DataSource, Query, Repo, AuditLog, Cloak}
   alias Plug.Conn.Status
   alias Air.Socket.Cloak.MainChannel
 
@@ -33,15 +33,16 @@ defmodule Air.QueryController do
   end
 
   def create(conn, %{"query" => params}) do
-    {:ok, query} = build_assoc(conn.assigns.current_user, :queries)
-    |> Query.changeset(parse_query_params(conn, params))
-    |> Repo.insert()
+    query = build_assoc(conn.assigns.current_user, :queries)
+    |> Query.changeset(parse_query_params(params))
+    |> Repo.insert!()
+    |> Repo.preload([data_source: :cloak])
 
-    AuditLog.log(conn, "Executed query", query: query.statement, data_source: query.data_source)
+    AuditLog.log(conn, "Executed query", query: query.statement, data_source: query.data_source.id)
 
     try do
       case MainChannel.run_query(
-        query.cloak_id,
+        Cloak.channel_pid(query.data_source.cloak),
         conn.assigns.current_user.organisation,
         Query.to_cloak_query(query)
       ) do
@@ -65,7 +66,7 @@ defmodule Air.QueryController do
   end
 
   def load_history(conn, %{"data_source_id" => data_source_id}) do
-    case DataSource.by_id(conn.assigns.current_user, data_source_id) do
+    case Repo.get(DataSource, data_source_id) do
       nil ->
         response = %{
           success: false,
@@ -117,11 +118,11 @@ defmodule Air.QueryController do
     |> Repo.get(id)
   end
 
-  defp parse_query_params(conn, params) do
+  defp parse_query_params(params) do
     # Needed for temporary backwards compatibility, while clients are still sending
     # tokens rather than ID's.
     data_source_id = params["data_source_id"] || params["data_source_token"]
-    data_source  = DataSource.by_id(conn.assigns.current_user, data_source_id)
-    Map.merge(params, %{"cloak_id" => data_source.cloak_id, "data_source" => data_source.name})
+    data_source = Repo.get!(DataSource, data_source_id)
+    Map.merge(params, %{"data_source_id" => data_source.id})
   end
 end

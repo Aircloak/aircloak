@@ -17,10 +17,10 @@ defmodule Air.Socket.Cloak.MainChannel do
   The function returns when the cloak responds. If the timeout occurs, it is
   still possible that a cloak has received the request.
   """
-  @spec run_query(CloakInfo.cloak_id, Organisation.t, Air.Query.cloak_query) :: :ok | {:error, any}
-  def run_query(cloak_id, user_organisation, query) do
+  @spec run_query(pid | nil, Organisation.t, Air.Query.cloak_query) :: :ok | {:error, any}
+  def run_query(channel_pid, user_organisation, query) do
     try do
-      case call(cloak_id, user_organisation, "run_query", query, :timer.seconds(5)) do
+      case call(channel_pid, user_organisation, "run_query", query, :timer.seconds(5)) do
         {:ok, _} -> :ok
         error -> error
       end
@@ -40,7 +40,7 @@ defmodule Air.Socket.Cloak.MainChannel do
     Process.flag(:trap_exit, true)
     data_sources = Map.fetch!(cloak_info, "data_sources")
 
-    Air.Cloak.register(socket.assigns.cloak_id, data_sources)
+    Air.Cloak.register(socket.assigns.cloak_id, data_sources, self())
 
     {:ok, cloak_info_pid} = CloakInfo.start_link(%{
       name: socket.assigns.name,
@@ -157,22 +157,19 @@ defmodule Air.Socket.Cloak.MainChannel do
     send(client_pid, {mref, response})
   end
 
-  @spec call(String.t, Organisation.t, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
-  defp call(cloak_id, user_organisation, event, payload, timeout) do
-    case CloakInfo.main_channel_pid(cloak_id) do
-      nil -> exit(:noproc)
-      pid ->
-        mref = Process.monitor(pid)
-        send(pid, {{__MODULE__, :call}, timeout, {self(), mref}, user_organisation, event, payload})
-        receive do
-          {^mref, response} ->
-            Process.demonitor(mref, [:flush])
-            response
-          {:DOWN, ^mref, _, _, reason} ->
-            exit(reason)
-        after timeout ->
-          exit(:timeout)
-        end
+  @spec call(pid | nil, Organisation.t, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
+  defp call(nil, _user_organisation, _event, _payload, _timeout), do: exit(:noproc)
+  defp call(pid, user_organisation, event, payload, timeout) do
+    mref = Process.monitor(pid)
+    send(pid, {{__MODULE__, :call}, timeout, {self(), mref}, user_organisation, event, payload})
+    receive do
+      {^mref, response} ->
+        Process.demonitor(mref, [:flush])
+        response
+      {:DOWN, ^mref, _, _, reason} ->
+        exit(reason)
+    after timeout ->
+      exit(:timeout)
     end
   end
 end

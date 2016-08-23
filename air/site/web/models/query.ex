@@ -21,7 +21,7 @@ defmodule Air.Query do
   end
 
   @required_fields ~w()
-  @optional_fields ~w(statement cloak_id data_source tables result execution_time)
+  @optional_fields ~w(statement data_source_id tables result execution_time)
 
 
   # -------------------------------------------------------------------
@@ -42,8 +42,12 @@ defmodule Air.Query do
 
   @doc "Converts the query model to the cloak compliant data."
   @spec to_cloak_query(t) :: cloak_query
-  def to_cloak_query(model) do
-    Map.take(model, [:id, :statement, :data_source])
+  def to_cloak_query(query) do
+    %{
+      id: query.id,
+      statement: query.statement,
+      data_source: query.data_source.name
+    }
   end
 
   @doc "Produces a JSON blob of the query and it's result for rendering"
@@ -93,7 +97,7 @@ defmodule Air.Query do
   @spec for_data_source(Ecto.Queryable.t, DataSource.t) :: Ecto.Queryable.t
   def for_data_source(query \\ __MODULE__, data_source) do
     from q in query,
-    where: q.cloak_id == ^data_source.cloak_id and q.data_source == ^data_source.name
+    where: q.data_source_id == ^data_source.id
   end
 
   @doc "Adds a query filter limiting the number of selected queries"
