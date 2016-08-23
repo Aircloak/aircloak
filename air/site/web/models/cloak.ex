@@ -9,6 +9,7 @@ defmodule Air.Cloak do
   schema "cloaks" do
     field :name, :string
     field :state_int, :integer, default: 0
+    field :raw_pid, :string
 
     has_many :data_sources, DataSource
 
@@ -16,7 +17,7 @@ defmodule Air.Cloak do
   end
 
   @required_fields ~w(name)
-  @optional_fields ~w(state_int)
+  @optional_fields ~w(state_int raw_pid)
 
 
   # -------------------------------------------------------------------
@@ -44,9 +45,9 @@ defmodule Air.Cloak do
   If the cloak already exists, then it's online status is updated,
   rather than a new cloak being created.
   """
-  @spec register(String.t, [Map.t]) :: Cloak.t
-  def register(name, data_sources) do
-    params = %{name: name, state: :online}
+  @spec register(String.t, [Map.t], pid | nil) :: Cloak.t
+  def register(name, data_sources, channel_pid \\ nil) do
+    params = %{name: name, state: :online, raw_pid: encode_data(channel_pid)}
     cloak = case Repo.one(from c in Cloak, where: c.name == ^name) do
       nil ->
         %Cloak{}
@@ -66,7 +67,7 @@ defmodule Air.Cloak do
   """
   @spec unregister!(String.t) :: :ok
   def unregister!(name) do
-    params = %{name: name, state: :offline}
+    params = %{name: name, state: :offline, raw_pid: encode_data(nil)}
     case Repo.one(from c in Cloak, where: c.name == ^name) do
       nil ->
         raise RuntimeError, message: "Tried unregistering unknown cloak: #{name}"
@@ -74,6 +75,12 @@ defmodule Air.Cloak do
         Cloak.changeset(cloak, params)
         |> Repo.update!
     end
+  end
+
+  @doc "Returns the pid of the cloak channel if it exists, or nil"
+  @spec channel_pid(Cloak.t) :: pid | nil
+  def channel_pid(cloak) do
+    decode_data(cloak.raw_pid)
   end
 
 
@@ -87,6 +94,20 @@ defmodule Air.Cloak do
       nil -> params
       state_val -> Map.merge(params, %{state_int: state_to_int(state_val)})
     end
+  end
+
+  defp decode_data(nil), do: nil
+  defp decode_data(data) do
+    data
+    |> Base.decode64!()
+    |> :erlang.binary_to_term()
+  end
+
+  defp encode_data(nil), do: nil
+  defp encode_data(data) do
+    data
+    |> :erlang.term_to_binary()
+    |> Base.encode64()
   end
 
   @state_map %{0 => :unknown, 1 => :online, 2 => :offline}

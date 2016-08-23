@@ -69,4 +69,15 @@ defmodule Air.CloakTest do
   end
 
   test "registering with data source creates the data source"
+
+  test "registers the pid of the caller upon registration" do
+    cloak = Cloak.register("test cloak", @no_datasources, self())
+    assert Cloak.channel_pid(cloak) == self()
+  end
+
+  test "unregistering resets the pid" do
+    Cloak.register("test cloak", @no_datasources, self())
+    cloak = Cloak.unregister!("test cloak")
+    refute Cloak.channel_pid(cloak) == self()
+  end
 end
