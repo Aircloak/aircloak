@@ -4,7 +4,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  alias Air.{CloakInfo, Organisation}
+  alias Air.Organisation
 
 
   # -------------------------------------------------------------------
@@ -39,20 +39,8 @@ defmodule Air.Socket.Cloak.MainChannel do
   def join("main", cloak_info, socket) do
     Process.flag(:trap_exit, true)
     data_sources = Map.fetch!(cloak_info, "data_sources")
-
     Air.Cloak.register(socket.assigns.cloak_id, data_sources, self())
-
-    {:ok, cloak_info_pid} = CloakInfo.start_link(%{
-      name: socket.assigns.name,
-      organisation: socket.assigns.organisation,
-      data_sources: data_sources,
-    })
-
-    {:ok, %{},
-      socket
-      |> assign(:pending_calls, %{})
-      |> assign(:cloak_info_pid, cloak_info_pid)
-    }
+    {:ok, %{}, assign(socket, :pending_calls, %{})}
   end
 
   @doc false
@@ -112,10 +100,6 @@ defmodule Air.Socket.Cloak.MainChannel do
     Logger.warn("#{request_id} sync call timeout on #{socket.assigns.cloak_id}")
     pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
     {:noreply, assign(socket, :pending_calls, pending_calls)}
-  end
-  def handle_info({:EXIT, cloak_info_pid, reason}, %{assigns: %{cloak_info_pid: cloak_info_pid}} = socket) do
-    # cloak registration process terminated, so we need to stop as well
-    {:stop, reason, socket}
   end
   def handle_info({:EXIT, _, :normal}, socket) do
     # probably the linked reporter terminated successfully
