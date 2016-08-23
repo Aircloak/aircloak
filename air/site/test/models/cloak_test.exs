@@ -67,4 +67,6 @@ defmodule Air.CloakTest do
   test "unregistering a non-existent cloak raises an exception" do
     assert_raise RuntimeError, fn() -> Cloak.unregister!("missing cloak") end
   end
+
+  test "registering with data source creates the data source"
 end

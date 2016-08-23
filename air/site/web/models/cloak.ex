@@ -2,13 +2,15 @@ defmodule Air.Cloak do
   @moduledoc "Contains a record of connected cloak's, and their online status."
   use Air.Web, :model
 
-  alias Air.{Repo, Cloak}
+  alias Air.{Repo, Cloak, DataSource}
 
   @type t :: %__MODULE__{}
 
   schema "cloaks" do
     field :name, :string
     field :state_int, :integer, default: 0
+
+    has_many :data_sources, DataSource
 
     timestamps
   end
@@ -43,9 +45,9 @@ defmodule Air.Cloak do
   rather than a new cloak being created.
   """
   @spec register(String.t, [Map.t]) :: Cloak.t
-  def register(name, _data_sources) do
+  def register(name, data_sources) do
     params = %{name: name, state: :online}
-    case Repo.one(from c in Cloak, where: c.name == ^name) do
+    cloak = case Repo.one(from c in Cloak, where: c.name == ^name) do
       nil ->
         %Cloak{}
         |> Cloak.changeset(params)
@@ -54,6 +56,8 @@ defmodule Air.Cloak do
         Cloak.changeset(cloak, params)
         |> Repo.update!
     end
+    Enum.each(data_sources, &DataSource.register(cloak, &1))
+    cloak
   end
 
   @doc """
