@@ -21,7 +21,11 @@ defmodule BOM.Gather.Node do
       license_from_file(path, "*LICENCE*") ||
       license_from_file(path, "*license*") ||
       license_from_file(path, "*licence*") ||
+      license_from_file(path, "*License*") ||
+      license_from_file(path, "*Licence*") ||
       license_from_readme(path, "*README*") ||
+      license_from_readme(path, "*readme*") ||
+      license_from_readme(path, "*Readme*") ||
       BOM.Whitelist.find(:node, Path.basename(path))
   end
 
@@ -31,7 +35,7 @@ defmodule BOM.Gather.Node do
 
   defp license_from_readme(path, pattern) do
     if_matching_file(path, pattern, fn text ->
-      case Regex.run(~r/LICENSE(.|\n)*/, text) do
+      case Regex.run(~r/\n#* ?(license|licence)(.|\n)*/i, text) do
         [text | _]-> %License{type: :custom, text: text}
         _ -> nil
       end
