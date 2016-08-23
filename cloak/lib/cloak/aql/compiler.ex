@@ -282,20 +282,32 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp function_argument_error_message(function_call) do
-    if Function.cast?(function_call) do
-      [cast_source] = Function.arguments(function_call) |> Enum.map(&Function.type/1)
-      cast_target = Function.return_type(function_call)
-
-      "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
-    else
-      expected_types = Function.argument_types(function_call)
-      actual_types = Function.arguments(function_call) |> Enum.map(&Function.type/1)
-      expected_string = expected_types |> Enum.map(&quoted_list/1) |> Enum.map(&"(#{&1})") |> Enum.join(" or ")
-
-      "Function `#{Function.name(function_call)}` requires arguments"
-        <> " of type #{expected_string}, but got (#{quoted_list(actual_types)})"
+    cond do
+      Function.cast?(function_call) ->
+        [cast_source] = actual_types(function_call)
+        cast_target = Function.return_type(function_call)
+        "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
+      many_overloads?(function_call) ->
+        "Arguments of type (#{function_call |> actual_types() |> quoted_list()}) are incorrect"
+          <> " for `#{Function.name(function_call)}`"
+      true ->
+        "Function `#{Function.name(function_call)}` requires arguments of type #{expected_types(function_call)}"
+          <> ", but got (#{function_call |> actual_types() |> quoted_list()})"
     end
   end
+
+  defp many_overloads?(function_call) do
+    length(Function.argument_types(function_call)) > 4
+  end
+
+  defp expected_types(function_call), do:
+    Function.argument_types(function_call)
+    |> Enum.map(&quoted_list/1)
+    |> Enum.map(&"(#{&1})")
+    |> Enum.join(" or ")
+
+  defp actual_types(function_call), do:
+    Function.arguments(function_call) |> Enum.map(&Function.type/1)
 
   defp expand_arguments(column) do
     (column |> Function.arguments() |> Enum.flat_map(&expand_arguments/1)) ++ [column]
@@ -480,29 +492,33 @@ defmodule Cloak.Aql.Compiler do
     do_cast_where_clause(clause, column.type)
   end
 
+  @castable_conditions [:timestamp, :time, :date]
+
   defp do_cast_where_clause({:not, subclause}, type) do
     {:not, do_cast_where_clause(subclause, type)}
   end
-  defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, :timestamp) do
-    {:comparison, identifier, comparator, parse_time(rhs)}
+  defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, type) when type in @castable_conditions do
+    {:comparison, identifier, comparator, parse_time(rhs, type)}
   end
-  defp do_cast_where_clause({:in, column, values}, :timestamp) do
-    {:in, column, Enum.map(values, &parse_time/1)}
+  defp do_cast_where_clause({:in, column, values}, type) when type in @castable_conditions do
+    {:in, column, Enum.map(values, &parse_time(&1, type))}
   end
   defp do_cast_where_clause(clause, _), do: clause
 
-  defp parse_time(%Column{constant?: true, type: :text, value: string}) do
-    case Cloak.Time.parse_datetime(string) do
+  defp parse_time(column = %Column{constant?: true, value: string}, type) do
+    case do_parse_time(column, type) do
       {:ok, result} -> result
-      _ -> case Timex.parse(string, "{ISOdate}") do
-        {:ok, result} -> Cloak.Time.max_precision(result)
-        _ -> raise CompilationError, message: "Cannot cast `#{string}` to timestamp."
-      end
+      _ -> raise CompilationError, message: "Cannot cast `#{string}` to #{type}."
     end
   end
-  defp parse_time(%Column{constant?: true, value: value}) do
-    raise CompilationError, message: "Cannot cast `#{value}` to timestamp."
-  end
+
+  defp do_parse_time(%Column{type: :text, value: string}, :date), do:
+    Cloak.Time.parse_date(string)
+  defp do_parse_time(%Column{type: :text, value: string}, :time), do:
+    Cloak.Time.parse_time(string)
+  defp do_parse_time(%Column{type: :text, value: string}, :timestamp), do:
+    Cloak.Time.parse_datetime(string)
+  defp do_parse_time(_, _), do: {:error, :invalid_cast}
 
   defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
   defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)

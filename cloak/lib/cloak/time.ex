@@ -10,12 +10,15 @@ defmodule Cloak.Time do
     end
   end
 
-  @doc "Parses string as an ISO8601 date with time."
+  @doc "Parses string as an ISO8601 date with time. Will accept ISO date strings treating them as midnight."
   @spec parse_datetime(String.t) :: {:ok, NaiveDateTime.t} | {:error, atom}
   def parse_datetime(string) do
     case NaiveDateTime.from_iso8601(string) do
       {:ok, result} -> {:ok, max_precision(result)}
-      error -> error
+      _ -> case Timex.parse(string, "{ISOdate}") do
+        {:ok, result} -> {:ok, max_precision(result)}
+        error -> error
+      end
     end
   end
 

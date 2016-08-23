@@ -20,6 +20,16 @@ defmodule Cloak.Aql.Compiler.Test do
     assert [{:comparison, column("table", "column"), :>, ~N[2015-01-01 00:00:00.000000]}] = result.where
   end
 
+  test "casts time where conditions" do
+    assert %{where: [{:comparison, column("table", "column"), :>, ~T[01:02:03.000000]}]} =
+      compile!("select * from table where column > '01:02:03'", time_data_source())
+  end
+
+  test "casts date where conditions" do
+    assert %{where: [{:comparison, column("table", "column"), :>, ~D[2015-01-02]}]} =
+      compile!("select * from table where column > '2015-01-02'", date_data_source())
+  end
+
   test "casts timestamp in `in` conditions" do
     result = compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source())
 
@@ -395,6 +405,11 @@ defmodule Cloak.Aql.Compiler.Test do
         "Function `%` requires arguments of type (`integer`, `integer`), but got (`real`, `integer`)"
   end
 
+  test "incorrect application of +" do
+    assert {:error, error} = compile("select 'a' + 'b' from table", data_source())
+    assert error == "Arguments of type (`text`, `text`) are incorrect for `+`"
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result
@@ -442,6 +457,28 @@ defmodule Cloak.Aql.Compiler.Test do
         name: "t4",
         user_id: "uid",
         columns: [{"uid", :integer}, {"c1", :integer}]
+      }
+    }}
+  end
+
+  def time_data_source do
+    %{driver: Cloak.DataSource.PostgreSQL, tables: %{
+      table: %{
+        db_name: "table",
+        name: "table",
+        user_id: "uid",
+        columns: [{"uid", :integer}, {"column", :time}]
+      }
+    }}
+  end
+
+  def date_data_source do
+    %{driver: Cloak.DataSource.PostgreSQL, tables: %{
+      table: %{
+        db_name: "table",
+        name: "table",
+        user_id: "uid",
+        columns: [{"uid", :integer}, {"column", :date}]
       }
     }}
   end
