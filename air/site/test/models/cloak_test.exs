@@ -60,12 +60,12 @@ defmodule Air.CloakTest do
 
   test "unregistering a cloak marks it as offline" do
     Cloak.register("test cloak", @no_datasources)
-    cloak = Cloak.unregister!("test cloak")
+    cloak = Cloak.unregister("test cloak")
     assert Cloak.state(cloak) == :offline
   end
 
-  test "unregistering a non-existent cloak raises an exception" do
-    assert_raise RuntimeError, fn() -> Cloak.unregister!("missing cloak") end
+  test "unregistering a non-existent cloak fails silently" do
+    assert :ok == Cloak.unregister("missing cloak")
   end
 
   test "registers the pid of the caller upon registration" do
@@ -75,14 +75,14 @@ defmodule Air.CloakTest do
 
   test "unregistering resets the pid" do
     Cloak.register("test cloak", @no_datasources, self())
-    cloak = Cloak.unregister!("test cloak")
+    cloak = Cloak.unregister("test cloak")
     refute Cloak.channel_pid(cloak) == self()
   end
 
   test "knows if online" do
     cloak = Cloak.register("test cloak", @no_datasources, self())
     assert Cloak.online?(cloak)
-    cloak = Cloak.unregister!("test cloak")
+    cloak = Cloak.unregister("test cloak")
     refute Cloak.online?(cloak)
     cloak = cloak
     |> Cloak.changeset(%{state: :unknown})

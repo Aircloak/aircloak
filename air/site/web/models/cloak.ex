@@ -4,6 +4,8 @@ defmodule Air.Cloak do
 
   alias Air.{Repo, Cloak, DataSource}
 
+  require Logger
+
   @type t :: %__MODULE__{}
 
   schema "cloaks" do
@@ -61,16 +63,14 @@ defmodule Air.Cloak do
     cloak
   end
 
-  @doc """
-  Marks a registered cloak as offline.
-  Raises if no cloak exists under the name.
-  """
-  @spec unregister!(String.t) :: :ok
-  def unregister!(name) do
+  @doc "Marks a registered cloak as offline."
+  @spec unregister(String.t) :: :ok
+  def unregister(name) do
     params = %{name: name, state: :offline, raw_pid: encode_data(nil)}
     case Repo.one(from c in Cloak, where: c.name == ^name) do
       nil ->
-        raise RuntimeError, message: "Tried unregistering unknown cloak: #{name}"
+        Logger.error("Tried unregistering a cloak that is unknown")
+        :ok
       cloak ->
         Cloak.changeset(cloak, params)
         |> Repo.update!
