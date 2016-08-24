@@ -629,6 +629,8 @@ defmodule Cloak.Aql.Parser.Test do
   test "column alias" do
     assert_parse("select a as x from b",
       select(columns: [{{:identifier, :unknown, "a"}, :as, "x"}]))
+    assert_parse("select a as from from b",
+      select(columns: [{{:identifier, :unknown, "a"}, :as, "from"}]))
   end
 
   test "function in group by" do
