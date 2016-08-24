@@ -32,8 +32,6 @@ defmodule Cloak.DataSource.SqlBuilder do
   @doc "Returns a name uniquely identifying a column in the generated query."
   @spec column_name(Column.t) :: String.t
   def column_name(%Column{table: :unknown, name: name}), do: "\"#{name}\""
-  def column_name(%Column{alias: alias} = column) when alias != nil,
-    do: "\"#{column.table.name}\".\"#{column.name}\" AS #{alias}"
   def column_name(column), do: "\"#{column.table.name}\".\"#{column.name}\""
 
 
@@ -55,6 +53,9 @@ defmodule Cloak.DataSource.SqlBuilder do
     |> Enum.intersperse(?,)
   end
 
+  defp column_sql(%Column{alias: alias} = column) when alias != nil do
+    [column_sql(%Column{column | alias: nil}), "AS ", alias]
+  end
   defp column_sql(%Column{db_function: fun_name, db_function_args: args}) when fun_name != nil,
     do: function_sql(fun_name, args)
   defp column_sql(%Column{constant?: true, value: value, type: type}),
@@ -62,6 +63,11 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(column), do: column_name(column)
 
   defp function_sql("coalesce", args), do: ["COALESCE(", columns_sql(args), ")"]
+  for binary_infix_operator <- ["+", "-", "*", "/", "^"] do
+    defp function_sql(unquote(binary_infix_operator), [arg1, arg2]) do
+      ["(", column_sql(arg1), " #{unquote(binary_infix_operator)} ", column_sql(arg2), ")"]
+    end
+  end
 
   defp from_clause({:join, join}, query) do
     ["(", from_clause(join.lhs, query), " ", join_sql(join.type), " ", from_clause(join.rhs, query),
@@ -96,7 +102,6 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp query_string(fragments) do
     fragments
-    |> List.flatten()
     |> Enum.reduce(%{query_string: [], param_index: 1}, &parse_fragment(&2, &1))
     |> Map.fetch!(:query_string)
     |> to_string()

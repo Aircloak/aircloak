@@ -73,4 +73,16 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
     )
   end
+
+  test "arithmetic expressions in subqueries" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query(
+      """
+        select height from (
+          select user_id, (height - 1 + 4 / 2 * 3 + 3 ^ 2) as height from heights
+        ) alias
+      """,
+      %{columns: ["height"], rows: [%{row: [194.0], occurrences: 100}]}
+    )
+  end
 end
