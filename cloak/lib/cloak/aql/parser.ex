@@ -195,13 +195,25 @@ defmodule Cloak.Aql.Parser do
     pipe(
       [
         column(),
-        option(keyword(:as) |> identifier())
+        option(keyword(:as) |> column_name())
       ],
       fn
         ([column, nil]) -> column
         ([column, :as, name]) -> {column, :as, name}
       end
     )
+  end
+
+  defp valid_identifier?(name) when is_binary(name), do:
+    (name >= "a" and name <= "z") or (name >= "A" and name <= "Z")
+
+  defp column_name(parser) do
+    parser
+    |> either(
+      identifier(),
+      any_token() |> map(&to_string(&1.category)) |> satisfy(&valid_identifier?(&1))
+    )
+    |> label("column name")
   end
 
   defp cast_expression() do

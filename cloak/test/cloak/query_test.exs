@@ -463,6 +463,8 @@ defmodule Cloak.QueryTest do
         %{columns: ["h"], rows: [%{row: [170], occurrences: 1}, %{row: [180], occurrences: 1}]}
       assert_query "select count(*) as c, count(height) as c from heights",
         %{columns: ["c", "c"], rows: [%{row: [30, 30], occurrences: 1}]}
+      assert_query "select count(*) as select from heights",
+        %{columns: ["select"], rows: [%{row: [30], occurrences: 1}]}
     end
 
     test "select comparing two columns" do
