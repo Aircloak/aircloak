@@ -577,9 +577,9 @@ defmodule Cloak.Aql.Compiler do
   defp map_terminal_element({:identifier, _, _} = identifier, mapper_fun), do: mapper_fun.(identifier)
   defp map_terminal_element({:function, "count", :*} = function, _converter_fun), do: function
   defp map_terminal_element({:function, function, identifier}, converter_fun),
-    do: {:function, function, map_terminal_element(identifier, converter_fun)}
+    do: converter_fun.({:function, function, map_terminal_element(identifier, converter_fun)})
   defp map_terminal_element({:distinct, identifier}, converter_fun),
-    do: {:distinct, map_terminal_element(identifier, converter_fun)}
+    do: converter_fun.({:distinct, map_terminal_element(identifier, converter_fun)})
   defp map_terminal_element(elements, mapper_fun) when is_list(elements),
     do: Enum.map(elements, &map_terminal_element(&1, mapper_fun))
   defp map_terminal_element(constant, mapper_fun), do: mapper_fun.(constant)
@@ -628,6 +628,9 @@ defmodule Cloak.Aql.Compiler do
           column -> column
         end
     end
+  end
+  defp identifier_to_column({:function, name, args}, _columns_by_name, %Query{subquery?: true}) do
+    Column.db_function(name, args)
   end
   defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
     Column.constant(type, value)
@@ -695,7 +698,7 @@ defmodule Cloak.Aql.Compiler do
   defp id_column(query) do
     all_id_columns = all_id_columns_from_tables(query)
     if any_outer_join?(query.from),
-      do: Column.db_function(:coalesce, all_id_columns),
+      do: Column.db_function("coalesce", all_id_columns),
       else: hd(all_id_columns)
   end
 

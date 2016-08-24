@@ -54,9 +54,11 @@ defmodule Cloak.DataSource.SqlBuilder do
     |> Enum.join(",")
   end
 
-  defp column_sql(%Column{db_function: :coalesce, db_function_args: args}),
-    do: "COALESCE(#{columns_sql(args)})"
+  defp column_sql(%Column{db_function: fun_name, db_function_args: args}) when fun_name != nil,
+    do: function_sql(fun_name, args)
   defp column_sql(column), do: column_name(column)
+
+  defp function_sql("coalesce", args), do: ["COALESCE(", columns_sql(args), ")"]
 
   defp from_clause({:join, join}, query) do
     ["(", from_clause(join.lhs, query), " ", join_sql(join.type), " ", from_clause(join.rhs, query),
