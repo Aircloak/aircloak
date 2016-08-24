@@ -45,8 +45,8 @@ Now you can build Erlang and install it to `~/.asdf` folder:
 
 ```
 ./configure \
-  CFLAGS="-I/usr/local/Cellar/unixodbc/2.3.4/include" \
-  LDFLAGS="-L/usr/local/Cellar/unixodbc/2.3.4/lib -lodbc" \
+  CFLAGS="-I/usr/local/opt/unixodbc/include" \
+  LDFLAGS="-L/usr/local/opt/unixodbc/lib -lodbc" \
   --prefix=$HOME/.asdf/installs/erlang/18.2.1/ \
   --disable-hipe \
   --with-odbc=/usr/local/opt/unixodbc \
