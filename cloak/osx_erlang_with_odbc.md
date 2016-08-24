@@ -44,11 +44,15 @@ Now comes the hacky part. Open the entire folder in editor, search for `iodbc`, 
 Now you can build Erlang and install it to `~/.asdf` folder:
 
 ```
-./configure --prefix=$HOME/.asdf/installs/erlang/18.2.1/ --disable-hipe --with-odbc=/usr/local/opt/unixodbc/
+./configure \
+  CFLAGS="-I/usr/local/Cellar/unixodbc/2.3.4/include" \
+  LDFLAGS="-L/usr/local/Cellar/unixodbc/2.3.4/lib -lodbc" \
+  --prefix=$HOME/.asdf/installs/erlang/18.2.1/ \
+  --disable-hipe \
+  --with-odbc=/usr/local/opt/unixodbc \
+  --with-ssl=/usr/local/opt/openssl
 
-make
-
-make install
+make && make install
 ```
 
 Assuming you have setup local `cloak` database, you can verify that all is fine:
