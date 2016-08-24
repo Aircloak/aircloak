@@ -159,6 +159,22 @@ defmodule Cloak.DataSource.DsProxyTest do
     assert {:ok, {:buckets, ["foo", "count"], [%{occurrences: 1, row: [:*, 100]}]}, []} = query_result
   end
 
+  test "function types are not verified in an unparsed query", context do
+    expect_json_post(context.bypass, "/query",
+      fn(payload) ->
+        assert %{"statement" => statement} = payload
+        assert %{
+          "type" => "unsafe",
+          "val" => "SELECT __aircloak_user_id__,c FROM (select count(*) as c from foo) AS unsafe_subquery"
+        } = statement
+        {200, %{success: true, columns: ["user_id", "c"], rows: Enum.map(1..100, &[&1, 100])}}
+      end
+    )
+
+    query_result = run_query(context, "select max(c) from (select count(*) as c from foo) as sq")
+    assert {:ok, {:buckets, ["max"], [%{occurrences: 1, row: [100]}]}, []} = query_result
+  end
+
   test "propagating reported error", context do
     expect_json_post(context.bypass, "/query",
       fn(_) ->
