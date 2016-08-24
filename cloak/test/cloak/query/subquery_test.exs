@@ -20,6 +20,12 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "column alias in a subquery" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select h from (select user_id, height as h from heights) alias",
+      %{columns: ["h"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
   test "user_id can be in any position in a subquery" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from (select height, user_id from heights) alias",

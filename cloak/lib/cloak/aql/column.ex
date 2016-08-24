@@ -5,6 +5,7 @@ defmodule Cloak.Aql.Column do
   @type t :: %__MODULE__{
     table: :unknown | Cloak.DataSource.table,
     name: String.t,
+    alias: String.t | nil,
     type: column_type,
     user_id?: boolean,
     db_row_position: nil | non_neg_integer,
@@ -14,7 +15,7 @@ defmodule Cloak.Aql.Column do
     db_function_args: [t]
   }
   defstruct [
-    table: :unknown, name: nil, type: nil, user_id?: false, db_row_position: nil, constant?: false,
+    table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, db_row_position: nil, constant?: false,
     value: nil, db_function: nil, db_function_args: []
   ]
 

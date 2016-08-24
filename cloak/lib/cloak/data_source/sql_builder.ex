@@ -32,6 +32,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   @doc "Returns a name uniquely identifying a column in the generated query."
   @spec column_name(Column.t) :: String.t
   def column_name(%Column{table: :unknown, name: name}), do: "\"#{name}\""
+  def column_name(%Column{alias: alias} = column) when alias != nil,
+    do: "\"#{column.table.name}\".\"#{column.name}\" AS #{alias}"
   def column_name(column), do: "\"#{column.table.name}\".\"#{column.name}\""
 
 
@@ -163,7 +165,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp to_fragment(%Time{} = time), do: {:param, %{value: time}}
   defp to_fragment(%Date{} = time), do: {:param, %{value: time}}
   defp to_fragment(%Column{constant?: true, value: value}), do: {:param, %{value: value}}
-  defp to_fragment(%{} = column), do: "\"#{column.table.name}\".\"#{column.name}\""
+  defp to_fragment(%Column{} = column), do: "\"#{column.table.name}\".\"#{column.name}\""
 
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]
