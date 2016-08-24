@@ -25,16 +25,27 @@ defmodule BOM.Gather.Node do
   end
 
   defp license_from_file(path, pattern) do
-    if_matching_file(path, pattern, fn text -> %License{type: :custom, text: text} end)
+    if_matching_file(path, pattern, fn text -> %License{type: license_type(path), text: text} end)
   end
 
   defp license_from_readme(path, pattern) do
     if_matching_file(path, pattern, fn text ->
       case Regex.run(~r/\n#* ?(license|licence)(.|\n)*/i, text) do
-        [text | _]-> %License{type: :custom, text: text}
+        [text | _]-> %License{type: license_type(path), text: text}
         _ -> nil
       end
     end)
+  end
+
+  defp license_type(path) do
+    case package_json(path, "license") do
+      nil ->
+        package_json(path, "licenses", [])
+        |> Enum.map(&License.name_to_type(&1["type"]))
+        |> Enum.find(&License.allowed_type?/1)
+      value ->
+        License.name_to_type(value)
+    end
   end
 
   defp public_domain_license(path) do
@@ -48,9 +59,10 @@ defmodule BOM.Gather.Node do
   defp babel_license(path), do:
     if babel_package?(path), do: Whitelist.babel_license(), else: nil
 
-  defp package_json(path, field) do
-    if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] end)
-  end
+  defp package_json(path, field), do: package_json(path, field, nil)
+
+  defp package_json(path, field, default), do:
+    if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] || default end)
 
   defp if_matching_file(path, pattern, action) do
     path
