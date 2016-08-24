@@ -12,5 +12,8 @@ defmodule BOM.License do
     defp text(unquote(name)) do
       unquote(text)
     end
+
+    def allowed_type?(%__MODULE__{type: unquote(name)}), do: true
   end
+  def allowed_type?(_), do: false
 end
