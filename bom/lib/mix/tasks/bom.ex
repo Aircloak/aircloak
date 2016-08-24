@@ -4,6 +4,7 @@ defmodule Mix.Tasks.Bom do
   def run(_args) do
     {invalid, valid} = "../air/site/node_modules"
     |> BOM.Gather.node()
+    |> Enum.map(&BOM.Whitelist.update_license_type/1)
     |> Enum.map(&BOM.Validate.run/1)
     |> Enum.partition(&(&1.error))
 

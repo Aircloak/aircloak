@@ -1,4 +1,6 @@
 defmodule BOM.Whitelist do
+  alias BOM.License
+
   @licenses %{
     :node => %{
       "JSV" => %{type: :bsd_2_clause, text: :provided},
@@ -46,6 +48,10 @@ defmodule BOM.Whitelist do
     }
   }
 
+  @type_by_text_digest %{
+    "c06db4b145ce991f7e579f17699fdf2f" => :mit,
+  }
+
   def find(realm, package) do
     if Map.has_key?(@licenses[realm], package) do
       license(realm, package, @licenses[realm][package])
@@ -55,14 +61,37 @@ defmodule BOM.Whitelist do
   end
 
   def babel_license do
-    %BOM.License{type: :mit, text: get_text(:node, "babel")}
+    %License{type: :mit, text: get_text(:node, "babel")}
+  end
+
+  def update_license_type(package = %BOM.Package{license: license}) do
+    if License.allowed_type?(license.type) do
+      package
+    else
+      %{package | license: %{license | type: type_by_text(license.text)}}
+    end
+  end
+
+  defp type_by_text(text) do
+    digest = digest(text)
+    @type_by_text_digest[digest] || {:unknown, digest}
+  end
+
+  defp digest(text) do
+    text
+    |> :erlang.bitstring_to_list()
+    |> :erlang.md5()
+    |> :erlang.bitstring_to_list
+    |> Enum.map(&(:io_lib.format("~2.16.0b", [&1])))
+    |> List.flatten
+    |> to_string
   end
 
   defp license(realm, package, %{type: type, text: :provided}) do
-    %BOM.License{type: type, text: get_text(realm, package)}
+    %License{type: type, text: get_text(realm, package)}
   end
   defp license(_realm, _package, %{type: type, text: :standard}) do
-    BOM.License.find_by_type(type)
+    License.find_by_type(type)
   end
 
   defp get_text(realm, package) do
