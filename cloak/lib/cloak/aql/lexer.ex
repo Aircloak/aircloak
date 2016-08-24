@@ -56,6 +56,7 @@ defmodule Cloak.Aql.Lexer do
     many(choice([
       whitespace(),
       constant(),
+      quoted_identifier(),
       identifier(),
       keyword(),
       other()
@@ -157,6 +158,16 @@ defmodule Cloak.Aql.Lexer do
           not Enum.any?(@keywords, &(&1 == String.upcase(identifier)))
         end)
     |> map(&{:identifier, &1})
+    |> output_token()
+  end
+
+  defp quoted_identifier() do
+    sequence([
+      ignore(char(?")),
+      word_of(~r/[^"]/),
+      ignore(char(?"))
+    ])
+    |> map(fn([identifier]) -> {:identifier, identifier} end)
     |> output_token()
   end
 
