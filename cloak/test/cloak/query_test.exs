@@ -6,10 +6,13 @@ defmodule Cloak.QueryTest do
 
   defmacrop assert_query(query, expected_response) do
     quote do
-      :ok = start_query(unquote(query), Cloak.DataSource.fetch!(:local))
+      [first_ds | rest_ds] = Cloak.DataSource.all()
+      :ok = start_query(unquote(query), first_ds)
       assert_receive {:reply, response}, 1000
-      :ok = start_query(unquote(query), Cloak.DataSource.fetch!(:local_odbc))
-      assert_receive {:reply, response}, 1000
+      for next_ds <- rest_ds do
+        :ok = start_query(unquote(query), next_ds)
+        assert_receive {:reply, response}, 1000
+      end
       assert unquote(expected_response) = response
     end
   end
