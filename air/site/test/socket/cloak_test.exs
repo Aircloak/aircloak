@@ -4,10 +4,15 @@ defmodule Air.Socket.CloakTest do
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
   alias Air.Socket.Cloak.MainChannel
-  alias Air.{CloakInfo, Organisation, TestSocketHelper}
+  alias Air.{Organisation, TestSocketHelper, Cloak, Repo}
 
   import Air.TestRepoHelper
+  import Ecto.Query, only: [from: 2]
 
+  setup do
+    Repo.delete_all(Cloak)
+    :ok
+  end
 
   test "cloak name must be provided" do
     params = %{cloak_name: "", cloak_organisation: "some_organisation"}
@@ -35,7 +40,7 @@ defmodule Air.Socket.CloakTest do
     join_main_channel!(socket)
 
     async_query(
-      CloakInfo.cloak_id("some_organisation", "cloak_1"),
+      cloak_pid(),
       %Organisation{name: "some_organisation"},
       %{id: 42, code: ""}
     )
@@ -77,32 +82,21 @@ defmodule Air.Socket.CloakTest do
   test "getting data for connected cloaks" do
     socket1 = connect!(%{cloak_name: "cloak_3"})
     join_main_channel!(socket1)
-    assert [%Air.CloakInfo{name: "cloak_3"} = cloak_3] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
-    assert cloak_3 == CloakInfo.get(cloak_3.id)
-    assert nil == CloakInfo.get("non-existing cloak")
+    assert [cloak(cloak_name: "cloak_3").id] == Enum.map(Repo.all(Cloak), &(&1.id))
 
     socket2 = connect!(%{cloak_name: "cloak_4"})
     join_main_channel!(socket2)
 
     # admin org fetches all cloaks
-    all_cloaks = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
-    assert [%Air.CloakInfo{name: "cloak_3"}, %Air.CloakInfo{name: "cloak_4"} = cloak_4] = Enum.sort(all_cloaks)
-    assert cloak_4 == CloakInfo.get(cloak_4.id)
-
-    # owner org fetches all owned cloaks
-    all_cloaks = CloakInfo.all(%Air.Organisation{name: "some_organisation"})
-    assert [%Air.CloakInfo{name: "cloak_3"}, %Air.CloakInfo{name: "cloak_4"}] = Enum.sort(all_cloaks)
+    assert [cloak(cloak_name: "cloak_3"), cloak(cloak_name: "cloak_4")] == Enum.sort(Repo.all(Cloak))
 
     # cloak data disappears when it leaves the main channel
-    mref =
-      CloakInfo.cloak_id("some_organisation", "cloak_3")
-      |> CloakInfo.main_channel_pid()
-      |> Process.monitor()
+    mref = Process.monitor(Cloak.channel_pid(cloak(cloak_name: "cloak_3")))
 
     TestSocket.leave(socket1, "main")
     assert_receive {:DOWN, ^mref, _, _, _}
-    assert [%Air.CloakInfo{name: "cloak_4"}] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
-    assert nil == CloakInfo.get(cloak_3.id)
+    cloak3 = cloak(cloak_name: "cloak_3")
+    refute Cloak.online?(cloak3)
   end
 
   test "can't run a query on a cloak from another organisation" do
@@ -110,7 +104,7 @@ defmodule Air.Socket.CloakTest do
     join_main_channel!(socket)
 
     async_query(
-      CloakInfo.cloak_id("some_organisation", "cloak_1"),
+      cloak_pid(),
       %Organisation{name: "another_organisation"},
       %{id: 42, code: ""}
     )
@@ -123,7 +117,7 @@ defmodule Air.Socket.CloakTest do
     join_main_channel!(socket)
 
     async_query(
-      CloakInfo.cloak_id("some_organisation", "cloak_1"),
+      cloak_pid(),
       admin_organisation(),
       %{id: 42, code: ""}
     )
@@ -134,13 +128,27 @@ defmodule Air.Socket.CloakTest do
     assert :ok == query_response!()
   end
 
-
   defp connect!(params \\ %{}) do
     default_params = %{
       cloak_name: "cloak_1",
-      cloak_organisation: "some_organisation"
+      cloak_organisation: "some_organisation",
     }
     TestSocketHelper.connect!(Map.merge(default_params, params))
+  end
+
+  defp cloak_pid do
+    c = cloak()
+    assert Cloak.online?(c)
+    Cloak.channel_pid(c)
+  end
+
+  defp cloak(params \\ []) do
+    org_name = Keyword.get(params, :organisation) || "some_organisation"
+    cloak_name = Keyword.get(params, :cloak_name) || "cloak_1"
+    query = from c in Cloak,
+      where: c.name == ^"#{org_name}/#{cloak_name}",
+      select: c
+    Repo.one!(query)
   end
 
   defp join_main_channel!(socket, data_sources \\ []) do
