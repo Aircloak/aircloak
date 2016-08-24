@@ -32,8 +32,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @doc "Returns a name uniquely identifying a column in the generated query."
   @spec column_name(Column.t) :: String.t
-  def column_name(%Column{table: :unknown, name: name}), do: name
-  def column_name(column), do: "#{column.table.name}.#{column.name}"
+  def column_name(%Column{table: :unknown, name: name}), do: "\"#{name}\""
+  def column_name(column), do: "\"#{column.table.name}\".\"#{column.name}\""
 
 
   # -------------------------------------------------------------------
@@ -81,7 +81,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join_sql(:right_outer_join), do: "RIGHT OUTER JOIN"
 
   defp table_to_from(%{name: table_name, db_name: table_name}), do: table_name
-  defp table_to_from(table), do: "#{table.db_name} AS #{table.name}"
+  defp table_to_from(table), do: "#{table.db_name} AS \"#{table.name}\""
 
   @spec fragments_to_query_spec([fragment]) :: query_spec
   defp fragments_to_query_spec(fragments) do
@@ -145,7 +145,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp to_fragment(%Time{} = time), do: {:param, time}
   defp to_fragment(%Date{} = time), do: {:param, time}
   defp to_fragment(%Column{constant?: true, value: value}), do: {:param, value}
-  defp to_fragment(%{} = column), do: "#{column.table.name}.#{column.name}"
+  defp to_fragment(%{} = column), do: "\"#{column.table.name}\".\"#{column.name}\""
 
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]

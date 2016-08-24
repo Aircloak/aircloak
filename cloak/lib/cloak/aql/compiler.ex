@@ -270,6 +270,7 @@ defmodule Cloak.Aql.Compiler do
     warn_on_selected_uids(query)
   end
 
+  defp verify_function_arguments(%Query{mode: :unparsed}), do: :ok
   defp verify_function_arguments(query) do
     query.columns
     |> Enum.flat_map(&expand_arguments/1)

@@ -24,12 +24,13 @@ defmodule Cloak.QueryTest do
   setup_all do
     Cloak.Test.DB.setup()
     Cloak.Test.DB.create_test_schema()
-    Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
-    Cloak.Test.DB.create_table("datetimes", "datetime TIMESTAMP, date_only DATE, time_only TIME")
-    Cloak.Test.DB.create_table("floats", "float REAL")
-    Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
-    Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, datetime TIMESTAMP")
-    Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
+    :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
+    :ok = Cloak.Test.DB.create_table("datetimes", "datetime TIMESTAMP, date_only DATE, time_only TIME")
+    :ok = Cloak.Test.DB.create_table("floats", "float REAL")
+    :ok = Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
+    :ok = Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, datetime TIMESTAMP")
+    :ok = Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
+    :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird")
     :ok
   end
 
@@ -43,8 +44,9 @@ defmodule Cloak.QueryTest do
         %{occurrences: 1, row: [:floats]},
         %{occurrences: 1, row: [:heights]},
         %{occurrences: 1, row: [:heights_alias]},
-        %{occurrences: 1, row: [:purchases]}]
-      }
+        %{occurrences: 1, row: [:purchases]},
+        %{occurrences: 1, row: [:"weird things"]},
+      ]}
     end
 
     test "show columns" do
@@ -943,6 +945,13 @@ defmodule Cloak.QueryTest do
       assert_query "select avg(sqrt(float)) from floats",
         %{columns: ["avg"], rows: [%{row: [value], occurrences: 1}]}
       assert_in_delta value, 2.5, 0.01
+    end
+  end
+
+  describe "quoting" do
+    test "quoting table and column names" do
+      assert_query "select \"thing as thing\" from \"weird things\"",
+        %{columns: ["thing as thing"], rows: []}
     end
   end
 
