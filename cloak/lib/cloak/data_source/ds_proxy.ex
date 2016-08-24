@@ -107,7 +107,7 @@ defmodule Cloak.DataSource.DsProxy do
     %{
       type: query_type(sql_query),
       params: params,
-      val: query_string |> List.flatten |> Enum.join
+      val: query_string
     }
   end
 

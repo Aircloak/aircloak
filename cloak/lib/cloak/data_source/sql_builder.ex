@@ -4,10 +4,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   alias Cloak.Aql.Query
   alias Cloak.Aql.Column
 
-  @typep query_spec :: {statement, [constant]}
+  @typep query_spec :: {String.t, [constant]}
   @typep constant :: String.t | number | boolean
-  @typep statement :: iodata
-  @typep fragment :: String.t | {:param, constant} | [fragment]
+  @typep fragment :: String.t | {:param, %{value: constant, type: Cloa.DataSource.data_type}} | [fragment]
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -20,7 +19,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     {:subquery, %{unparsed_string: unsafe_subquery}} = query.from
 
     {
-      ["SELECT ", columns_sql(query.db_columns), " FROM (", unsafe_subquery, ") AS unsafe_subquery"],
+      to_string(["SELECT ", columns_sql(query.db_columns), " FROM (", unsafe_subquery, ") AS unsafe_subquery"]),
       []
     }
   end
@@ -51,11 +50,13 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp columns_sql(columns) do
     columns
     |> Enum.map(&column_sql/1)
-    |> Enum.join(",")
+    |> Enum.intersperse(?,)
   end
 
   defp column_sql(%Column{db_function: fun_name, db_function_args: args}) when fun_name != nil,
     do: function_sql(fun_name, args)
+  defp column_sql(%Column{constant?: true, value: value, type: type}),
+    do: {:param, %{value: value, type: type}}
   defp column_sql(column), do: column_name(column)
 
   defp function_sql("coalesce", args), do: ["COALESCE(", columns_sql(args), ")"]
@@ -87,6 +88,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @spec fragments_to_query_spec([fragment]) :: query_spec
   defp fragments_to_query_spec(fragments) do
+    fragments = List.flatten(fragments)
     {query_string(fragments), params(fragments)}
   end
 
@@ -95,10 +97,14 @@ defmodule Cloak.DataSource.SqlBuilder do
     |> List.flatten()
     |> Enum.reduce(%{query_string: [], param_index: 1}, &parse_fragment(&2, &1))
     |> Map.fetch!(:query_string)
+    |> to_string()
   end
 
-  defp parse_fragment(query_builder, string) when is_binary(string) do
-    %{query_builder | query_string: [query_builder.query_string, string]}
+  defp parse_fragment(query_builder, {:param, %{type: type}}) do
+    %{query_builder |
+      query_string: [query_builder.query_string, "$#{query_builder.param_index}::#{sql_type(type)}"],
+      param_index: query_builder.param_index + 1
+    }
   end
   defp parse_fragment(query_builder, {:param, _value}) do
     %{query_builder |
@@ -106,12 +112,22 @@ defmodule Cloak.DataSource.SqlBuilder do
       param_index: query_builder.param_index + 1
     }
   end
+  defp parse_fragment(query_builder, string) do
+    %{query_builder | query_string: [query_builder.query_string, string]}
+  end
+
+  defp sql_type(:integer), do: "integer"
+  defp sql_type(:real), do: "float"
+  defp sql_type(:boolean), do: "bool"
+  defp sql_type(:timestamp), do: "timestamp"
+  defp sql_type(:time), do: "time"
+  defp sql_type(:date), do: "date"
 
   defp params(fragments) do
     fragments
     |> List.flatten()
     |> Stream.filter(&match?({:param, _}, &1))
-    |> Enum.map(fn({:param, value}) -> value end)
+    |> Enum.map(fn({:param, param}) -> param.value end)
   end
 
   defp where_fragments([]), do: []
@@ -143,10 +159,10 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp to_fragment(string) when is_binary(string), do: string
   defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
-  defp to_fragment(%NaiveDateTime{} = time), do: {:param, time}
-  defp to_fragment(%Time{} = time), do: {:param, time}
-  defp to_fragment(%Date{} = time), do: {:param, time}
-  defp to_fragment(%Column{constant?: true, value: value}), do: {:param, value}
+  defp to_fragment(%NaiveDateTime{} = time), do: {:param, %{value: time}}
+  defp to_fragment(%Time{} = time), do: {:param, %{value: time}}
+  defp to_fragment(%Date{} = time), do: {:param, %{value: time}}
+  defp to_fragment(%Column{constant?: true, value: value}), do: {:param, %{value: value}}
   defp to_fragment(%{} = column), do: "\"#{column.table.name}\".\"#{column.name}\""
 
   defp join([], _joiner), do: []
