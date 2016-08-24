@@ -49,7 +49,23 @@ defmodule BOM.Whitelist do
   }
 
   @type_by_text_digest %{
-    "c06db4b145ce991f7e579f17699fdf2f" => :mit,
+    "c06db4b145ce991f7e579f17699fdf2f" => :mit,           # node/amdefine
+    "864383f6d0b46747d1d580ef2fc2f67a" => :isc,           # node/babel-brunch
+    "a4ae3515249a7180a4af2a7be17636d9" => :mit,           # node/colors
+    "95cc4f9fe9d1c095151534b92c412a9c" => :mit,           # node/css-brunch
+    "bc3c23d98d7aa86bbf232058884e19b2" => :mit,           # node/extsprintf
+    "478909a701ade1b289d6e548fc9a7999" => :isc,           # node/feature-filter
+    "df1ee3f3e3f8585543aca8ab319c7d8e" => :mit,           # node/growl
+    "950e018e87c0d974cc09cdc1aed56da1" => :mit,           # node/indexof
+    "2be2157b55ea281b7f4969d7ba05eea2" => :mit,           # node/ms
+    "0d8c303f84b56d8c334cffb5e6df6444" => :mit,           # node/nomnom
+    "5fc2c6d40f1d589b9530cbec8b857263" => :mit,           # node/numeric
+    "9dcefced2116bbfa2c3ea64b8f5dbbc2" => :mit,           # node/phoenix
+    "1dc701356996e3d0dd135248577c8ef7" => :mit,           # node/phoenix_html
+    "eacbaae25552d53aba44661c68b770d7" => :mit,           # node/progress
+    "c8307a7b7a1394f77e887475cf03cd1d" => :bsd_3_clause,  # node/rw
+    "62212b2d5d003ee7f76e89c7d15ef00e" => :public_domain, # node/tv4
+    "44348b65b421f5f075c74680c11786d4" => :mit,           # node/uglify-js-brunch
   }
 
   def find(realm, package) do
