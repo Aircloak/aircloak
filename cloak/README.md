@@ -37,6 +37,8 @@ You need to have following installed:
 
 __OS X related__:
 
+Before installing Erlang, you need to setup ODBC. See [here](./osx_erlang_with_odbc.md) for details.
+
 Prior to first build, you need to copy `lua_sandbox/Makefile.local-example-MacOSX` to `lua_sandbox/Makefile.local`.
 
 
