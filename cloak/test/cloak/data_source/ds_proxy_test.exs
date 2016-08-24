@@ -166,7 +166,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"statement" => statement} = payload
         assert %{
           "type" => "unsafe",
-          "val" => "SELECT __aircloak_user_id__,c FROM (select count(*) as c from foo) AS unsafe_subquery"
+          "val" => "SELECT \"__aircloak_user_id__\",\"c\" FROM (select count(*) as c from foo) AS unsafe_subquery"
         } = statement
         {200, %{success: true, columns: ["user_id", "c"], rows: Enum.map(1..100, &[&1, 100])}}
       end
