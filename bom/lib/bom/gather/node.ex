@@ -41,12 +41,15 @@ defmodule BOM.Gather.Node do
     case package_json(path, "license") do
       nil ->
         package_json(path, "licenses", [])
-        |> Enum.map(&License.name_to_type(&1["type"]))
+        |> Enum.map(&package_license_to_type/1)
         |> Enum.find(&License.allowed_type?/1)
       value ->
-        License.name_to_type(value)
+        package_license_to_type(value)
     end
   end
+
+  defp package_license_to_type(%{"type" => type}), do: package_license_to_type(type)
+  defp package_license_to_type(type), do: License.name_to_type(type)
 
   defp public_domain_license(path) do
     case package_json(path, "license") do
