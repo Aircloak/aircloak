@@ -23,11 +23,18 @@ defmodule BOM.Whitelist do
     end
   end
 
+  def babel_license do
+    %BOM.License{type: :mit, text: get_text(:node, "babel")}
+  end
+
   defp license(realm, package, %{type: type, text: :provided}) do
-    text = "licenses" |> Path.join(to_string(realm)) |> Path.join(package) |> File.read!()
-    %BOM.License{type: type, text: text}
+    %BOM.License{type: type, text: get_text(realm, package)}
   end
   defp license(_realm, _package, %{type: type, text: :standard}) do
     BOM.License.find_by_type(type)
+  end
+
+  defp get_text(realm, package) do
+    "licenses" |> Path.join(to_string(realm)) |> Path.join(package) |> File.read!()
   end
 end

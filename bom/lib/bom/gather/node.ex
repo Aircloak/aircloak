@@ -1,5 +1,5 @@
 defmodule BOM.Gather.Node do
-  alias BOM.License
+  alias BOM.{License, Whitelist}
 
   def run(path) do
     path
@@ -20,7 +20,8 @@ defmodule BOM.Gather.Node do
     license_from_file(path, "*{LICENSE,LICENCE,license,licence,License,License}*") ||
       license_from_readme(path, "*{README,readme,Readme}*") ||
       public_domain_license(path) ||
-      BOM.Whitelist.find(:node, Path.basename(path))
+      babel_license(path) ||
+      Whitelist.find(:node, Path.basename(path))
   end
 
   defp license_from_file(path, pattern) do
@@ -37,15 +38,22 @@ defmodule BOM.Gather.Node do
   end
 
   defp public_domain_license(path) do
-    case license_from_package_json(path) do
+    case package_json(path, "license") do
       "Public domain" -> License.find_by_type(:public_domain)
       "Public Domain" -> License.find_by_type(:public_domain)
       _ -> nil
     end
   end
 
-  defp license_from_package_json(path) do
-    if_matching_file(path, "package.json", fn text -> Poison.decode!(text)["license"] end)
+  defp babel_license(path) do
+    case {package_json(path, "license"), package_json(path, "homepage")} do
+      {"MIT", "https://babeljs.io/"} -> Whitelist.babel_license()
+      _ -> nil
+    end
+  end
+
+  defp package_json(path, field) do
+    if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] end)
   end
 
   defp if_matching_file(path, pattern, action) do
