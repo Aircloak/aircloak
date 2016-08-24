@@ -55,6 +55,12 @@ Now you can build Erlang and install it to `~/.asdf` folder:
 make && make install
 ```
 
+If the configure fails, make sure the paths are correct for your own system.
+You can check the paths for `--with-odbc` and --`with-ssl` with the following two commands
+`brew --prefix unixodbc` and `brew --prefix openssl` respectively.
+To get the `CFLAGS` and `LDFLAGS` path right, ensure that the version number also matches
+the one you have installed.
+
 Assuming you have setup local `cloak` database, you can verify that all is fine:
 
 ```
