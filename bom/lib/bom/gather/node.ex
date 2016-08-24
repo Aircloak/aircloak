@@ -19,6 +19,7 @@ defmodule BOM.Gather.Node do
   defp license(path) do
     license_from_file(path, "*{LICENSE,LICENCE,license,licence,License,License}*") ||
       license_from_readme(path, "*{README,readme,Readme}*") ||
+      public_domain_license(path) ||
       BOM.Whitelist.find(:node, Path.basename(path))
   end
 
@@ -33,6 +34,18 @@ defmodule BOM.Gather.Node do
         _ -> nil
       end
     end)
+  end
+
+  defp public_domain_license(path) do
+    case license_from_package_json(path) do
+      "Public domain" -> License.find_by_type(:public_domain)
+      "Public Domain" -> License.find_by_type(:public_domain)
+      _ -> nil
+    end
+  end
+
+  defp license_from_package_json(path) do
+    if_matching_file(path, "package.json", fn text -> Poison.decode!(text)["license"] end)
   end
 
   defp if_matching_file(path, pattern, action) do
