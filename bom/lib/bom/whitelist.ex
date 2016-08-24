@@ -1,7 +1,8 @@
 defmodule BOM.Whitelist do
   @licenses %{
     :node => %{
-      "JSV" => :custom,
+      "JSV" => %{type: :bsd_2_clause, text: :provided},
+      "wgs84" => %{type: :bsd_2_clause, text: :standard},
     }
   }
 
@@ -13,8 +14,11 @@ defmodule BOM.Whitelist do
     end
   end
 
-  defp license(realm, package, type) do
+  defp license(realm, package, %{type: type, text: :provided}) do
     text = "licenses" |> Path.join(to_string(realm)) |> Path.join(package) |> File.read!()
     %BOM.License{type: type, text: text}
+  end
+  defp license(_realm, _package, %{type: type, text: :standard}) do
+    BOM.License.find_by_type(type)
   end
 end
