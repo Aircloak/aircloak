@@ -17,15 +17,8 @@ defmodule BOM.Gather.Node do
   end
 
   defp license(path) do
-    license_from_file(path, "*LICENSE*") ||
-      license_from_file(path, "*LICENCE*") ||
-      license_from_file(path, "*license*") ||
-      license_from_file(path, "*licence*") ||
-      license_from_file(path, "*License*") ||
-      license_from_file(path, "*Licence*") ||
-      license_from_readme(path, "*README*") ||
-      license_from_readme(path, "*readme*") ||
-      license_from_readme(path, "*Readme*") ||
+    license_from_file(path, "*{LICENSE,LICENCE,license,licence,License,License}*") ||
+      license_from_readme(path, "*{README,readme,Readme}*") ||
       BOM.Whitelist.find(:node, Path.basename(path))
   end
 
