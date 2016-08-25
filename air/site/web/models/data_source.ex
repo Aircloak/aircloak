@@ -2,7 +2,7 @@ defmodule Air.DataSource do
   @moduledoc "Represents data sources made available through the cloaks"
   use Air.Web, :model
 
-  alias Air.{Cloak, DataSource, Repo, Query, User}
+  alias Air.{Cloak, DataSource, Repo, Query}
 
   @type t :: %__MODULE__{}
 
@@ -55,21 +55,6 @@ defmodule Air.DataSource do
   @spec tables(DataSource.t) :: [Map.t]
   def tables(data_source) do
     Poison.decode!(data_source.tables)
-  end
-
-  @doc "Returns the data source that was queried last. Nil if none is found"
-  @spec latest_data_source(User.t) :: DataSource.t | nil
-  def latest_data_source(user) do
-    query = from q in Query,
-      where: q.user_id == ^user.id,
-      join: ds in assoc(q, :data_source),
-      join: c in assoc(ds, :cloak),
-      where: c.state_int == ^Cloak.state_to_int(:online),
-      order_by: [desc: q.inserted_at],
-      select: ds,
-      limit: 1
-
-    Repo.one(query)
   end
 
   @doc "Format a data source as a map"

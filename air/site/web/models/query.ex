@@ -132,6 +132,14 @@ defmodule Air.Query do
     order_by: [desc: q.inserted_at]
   end
 
+  @doc "Return the last query made by a user"
+  @spec last(Ecto.Queryable.t) :: Ecto.Queryable.t
+  def last(query \\ __MODULE__) do
+    from q in query,
+    order_by: [desc: q.inserted_at],
+    limit: 1
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
