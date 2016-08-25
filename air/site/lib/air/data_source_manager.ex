@@ -6,6 +6,10 @@ defmodule Air.DataSourceManager do
   use GenServer
   require Logger
 
+  alias Air.{Repo, DataSource}
+
+  @server {:global, __MODULE__}
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -16,7 +20,14 @@ defmodule Air.DataSourceManager do
   discover whether a datastore is available for querying, and if so where.
   """
   @spec start_link() :: {:ok, pid} | {:error, term}
-  def start_link(), do: GenServer.start_link(__MODULE__, nil, name: {:global, __MODULE__})
+  def start_link(), do: GenServer.start_link(__MODULE__, nil, name: @server)
+
+  @doc """
+  Registers a data source (if needed), and associates the calling cloak with the data source
+  """
+  @spec register_cloak(Map.t, Map.t) :: :ok
+  def register_cloak(cloak_info, data_sources), do:
+    GenServer.cast(@server, {:register_cloak, cloak_info, data_sources})
 
 
   # -------------------------------------------------------------------
@@ -26,7 +37,9 @@ defmodule Air.DataSourceManager do
   @doc false
   def init(_) do
     Logger.info("Started the data source manager")
-    state = %{}
+    state = %{
+      data_source_to_cloak: Map.new(),
+    }
     {:ok, state}
   end
 
@@ -37,8 +50,46 @@ defmodule Air.DataSourceManager do
   end
 
   @doc false
+  def handle_cast({:register_cloak, cloak_info, data_sources}, state) do
+    state = Enum.reduce(data_sources, state, fn(data_source, state_acc) ->
+      register_data_source(data_source, cloak_info, state_acc)
+    end)
+    {:noreply, state}
+  end
   def handle_cast(msg, state) do
     raise "Unimplemented cast: #{inspect msg}"
     {:noreply, state}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp register_data_source(data_source_data, cloak_info, %{data_source_to_cloak: data_source_to_cloak} = state) do
+    create_or_update_datastore(data_source_data)
+    id = data_source_data["id"]
+    data_source_to_cloak = Map.update(data_source_to_cloak, id, [cloak_info],
+      fn(cloak_infos) -> [cloak_info | cloak_infos] end)
+    %{state | data_source_to_cloak: data_source_to_cloak}
+  end
+
+  defp create_or_update_datastore(data) do
+    params = %{
+      unique_id: data["id"],
+      name: data["name"],
+      tables: Poison.encode!(data["tables"]),
+    }
+
+    case Repo.get_by(DataSource, unique_id: data["id"]) do
+      nil ->
+        %DataSource{}
+        |> DataSource.changeset(params)
+        |> Repo.insert!()
+      data_source ->
+        data_source
+        |> DataSource.changeset(params)
+        |> Repo.update!()
+    end
   end
 end

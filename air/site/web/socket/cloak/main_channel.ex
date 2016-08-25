@@ -38,8 +38,15 @@ defmodule Air.Socket.Cloak.MainChannel do
   @doc false
   def join("main", cloak_info, socket) do
     Process.flag(:trap_exit, true)
+
+    cloak_info = %{
+      channel_pid: self(),
+      id: socket.assigns.cloak_id,
+      name: socket.assigns.name,
+    }
     data_sources = Map.fetch!(cloak_info, "data_sources")
-    Air.Cloak.register(socket.assigns.cloak_id, data_sources, self())
+    Air.DataSourceManager.register_cloak(cloak_info, data_sources)
+
     {:ok, %{}, assign(socket, :pending_calls, %{})}
   end
 

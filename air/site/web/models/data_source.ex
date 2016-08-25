@@ -70,12 +70,14 @@ defmodule Air.DataSource do
     }
   end
 
+  @doc """
+  Creates a changeset based on the `model` and `params`.
 
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp changeset(model, params) do
+  If no params are provided, an invalid changeset is returned
+  with no validation performed.
+  """
+  @spec changeset(t | Changeset.t, %{binary => term} | %{atom => term} | :empty) :: Changeset.t
+  def changeset(model, params) do
     cast(model, params, @required_fields, @optional_fields)
   end
 end
