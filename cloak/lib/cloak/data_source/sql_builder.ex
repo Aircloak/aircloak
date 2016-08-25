@@ -63,15 +63,16 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(column), do: column_name(column)
 
   defp function_sql("coalesce", args), do: function_call("coalesce", [columns_sql(args)])
-  defp function_sql("trunc", [arg]), do: function_call("trunc", [column_sql(arg)])
-  defp function_sql("trunc", [arg1, arg2]) do
-    function_call("trunc", [cast(column_sql(arg1), "numeric"), column_sql(arg2)])
-    |> cast("float")
-  end
-  for binary_infix_operator <- ["+", "-", "*", "/", "^"] do
+  defp function_sql("trunc", [arg]), do: cast(function_call("trunc", [column_sql(arg)]), "integer")
+  defp function_sql("trunc", [arg1, arg2]),
+    do: cast(function_call("trunc", [cast(column_sql(arg1), "numeric"), column_sql(arg2)]), "float")
+  for binary_infix_operator <- ["+", "-", "*", "^"] do
     defp function_sql(unquote(binary_infix_operator), [arg1, arg2]) do
-      ["(", column_sql(arg1), " #{unquote(binary_infix_operator)} ", column_sql(arg2), ")"]
+      binary_infix_call(unquote(binary_infix_operator), column_sql(arg1), column_sql(arg2))
     end
+  end
+  defp function_sql("/", [arg1, arg2]) do
+    cast(binary_infix_call("/", column_sql(arg1), column_sql(arg2)), "float")
   end
 
   defp cast(expr, type) do
@@ -80,6 +81,10 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp function_call(name, args) do
     [name, "(", Enum.intersperse(args, ",") ,")"]
+  end
+
+  defp binary_infix_call(operator, arg1, arg2) do
+    ["(", arg1, operator, arg2, ")"]
   end
 
   defp from_clause({:join, join}, query) do
