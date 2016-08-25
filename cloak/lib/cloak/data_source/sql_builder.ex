@@ -63,6 +63,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(column), do: column_name(column)
 
   defp function_sql("coalesce", args), do: ["COALESCE(", columns_sql(args), ")"]
+  defp function_sql("trunc", [arg]), do: ["trunc(", column_sql(arg), ")"]
+  defp function_sql("trunc", [arg1, arg2]), do:
+    ["(trunc((", column_sql(arg1), ")::numeric,", column_sql(arg2), ")::float)"]
   for binary_infix_operator <- ["+", "-", "*", "/", "^"] do
     defp function_sql(unquote(binary_infix_operator), [arg1, arg2]) do
       ["(", column_sql(arg1), " #{unquote(binary_infix_operator)} ", column_sql(arg2), ")"]

@@ -85,4 +85,28 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["height"], rows: [%{row: [194.0], occurrences: 100}]}
     )
   end
+
+  test "trunc/1" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query(
+      """
+        select height from (
+          select user_id, trunc(height + 0.6) as height from heights
+        ) alias
+      """,
+      %{columns: ["height"], rows: [%{row: [180.0], occurrences: 100}]}
+    )
+  end
+
+  test "trunc/2" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query(
+      """
+        select height from (
+          select user_id, trunc(height + 0.126, 2) as height from heights
+        ) alias
+      """,
+      %{columns: ["height"], rows: [%{row: [180.12], occurrences: 100}]}
+    )
+  end
 end
