@@ -6,7 +6,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @typep query_spec :: {String.t, [constant]}
   @typep constant :: String.t | number | boolean
-  @typep fragment :: String.t | {:param, %{value: constant, type: Cloa.DataSource.data_type}} | [fragment]
+  @typep fragment :: String.t | {:param, %{value: constant, type: Cloak.DataSource.data_type}} | [fragment]
 
 
   #-----------------------------------------------------------------------------------------------------------
