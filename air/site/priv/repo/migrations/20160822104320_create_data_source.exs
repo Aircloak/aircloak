@@ -3,13 +3,16 @@ defmodule Air.Repo.Migrations.CreateDataSource do
 
   def change do
     create table(:data_sources) do
+      # This is used in addition to, rather than instead of, the generic
+      # numerical ID column, as it simplifies working with Ecto.
+      add :unique_id, :string
+
       add :name, :string
       add :tables, :text
-      add :cloak_id, references(:cloaks, on_delete: :delete_all)
 
       timestamps
     end
 
-    create index(:data_sources, [:cloak_id])
+    create unique_index(:data_sources, [:unique_id])
   end
 end

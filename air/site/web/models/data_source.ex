@@ -7,16 +7,16 @@ defmodule Air.DataSource do
   @type t :: %__MODULE__{}
 
   schema "data_sources" do
+    field :unique_id, :string
     field :name, :string
     field :tables, :string
 
-    belongs_to :cloak, Cloak
     has_many :queries, Query
 
     timestamps
   end
 
-  @required_fields ~w(name tables cloak_id)
+  @required_fields ~w(name tables unique_id)
   @optional_fields ~w()
 
 
