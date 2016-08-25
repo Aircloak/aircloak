@@ -12,6 +12,15 @@
       },
       "tables": {
       }
+    },
+    "local_odbc": {
+      "driver": "odbc",
+      "parameters": {
+        "connect": "DSN=PostgreSQL;UID=postgres;Database=cloaktest1;Server=localhost;",
+        "pool_size": 2
+      },
+      "tables": {
+      }
     }
   }
 }

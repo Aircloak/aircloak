@@ -29,11 +29,15 @@ You need to have following installed:
 - Erlang and Elixir (see [here](../README.md#prerequisites) for details)
 - PostgreSQL 9.4
 - packages
-    - Linux: `liblua5.1-0-dev`, `protobuf-compiler`, `protobuf-c-compiler`, `libprotobuf-c0-dev`
+    - Linux: `liblua5.1-0-dev`, `protobuf-compiler`, `protobuf-c-compiler`, `libprotobuf-c0-dev`, `unixodbc`, `odbc-postgresql`
     - OS X (homebrew): `lua` (5.1), `protobuf`, `protobuf-c`
+- Configured ODBC DSN for PostgreSQL - execute the following as root from the `cloak` folder:
+  `odbcinst -i -d -l -f priv/odbc/odbcinst.ini && odbcinst -i -s -l -f priv/odbc/odbc.ini`
 
 
 __OS X related__:
+
+Before installing Erlang, you need to setup ODBC. See [here](./osx_erlang_with_odbc.md) for details.
 
 Prior to first build, you need to copy `lua_sandbox/Makefile.local-example-MacOSX` to `lua_sandbox/Makefile.local`.
 

@@ -17,29 +17,29 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "schema discovery" do
-    assert(DataSource.tables(local_data_source()) == [:test])
-    assert(DataSource.table(local_data_source(), :test).columns == [{"user_id", :text}, {"value", :integer}])
+    for data_source <- DataSource.all() do
+      assert(DataSource.tables(data_source) == [:test])
+      assert(DataSource.table(data_source, :test).columns == [{"user_id", :text}, {"value", :integer}])
+    end
   end
 
   test "data retrieval" do
     id_column = %Cloak.Aql.Column{table: %{db_name: "test", name: "test"}, name: "user_id"}
     data_column = %Cloak.Aql.Column{table: %{db_name: "test", name: "test"}, name: "value"}
-    assert {:ok, rows} = DataSource.select(%Query{
+    query = %Query{
       command: :select,
       columns: [data_column],
       db_columns: [id_column, data_column],
       unsafe_filter_columns: [],
       where: [],
       group_by: [],
-      data_source: local_data_source(),
+      data_source: nil,
       from: "test",
       selected_tables: [%{db_name: "cloak_test.test", name: "test"}]
-    }, &Enum.to_list/1)
-
-    assert [["user-id", 10], ["user-id", 20], ["user-id", 30]] == rows
-  end
-
-  defp local_data_source() do
-    Cloak.DataSource.fetch!(:local)
+    }
+    for data_source <- DataSource.all() do
+      assert {:ok, rows} = DataSource.select(%{query | data_source: data_source}, &Enum.to_list/1)
+      assert [["user-id", 10], ["user-id", 20], ["user-id", 30]] == rows
+    end
   end
 end

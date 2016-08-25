@@ -6,8 +6,14 @@ defmodule Cloak.QueryTest do
 
   defmacrop assert_query(query, expected_response) do
     quote do
-      :ok = start_query(unquote(query))
-      assert_receive {:reply, unquote(expected_response)}, 1000
+      [first_ds | rest_ds] = Cloak.DataSource.all()
+      :ok = start_query(unquote(query), first_ds)
+      assert_receive {:reply, response}, 1000
+      for next_ds <- rest_ds do
+        :ok = start_query(unquote(query), next_ds)
+        assert_receive {:reply, ^response}, 1000
+      end
+      assert unquote(expected_response) = response
     end
   end
 
@@ -21,7 +27,7 @@ defmodule Cloak.QueryTest do
   setup_all do
     Cloak.Test.DB.setup()
     Cloak.Test.DB.create_test_schema()
-    :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT")
+    :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
     :ok = Cloak.Test.DB.create_table("datetimes", "datetime TIMESTAMP, date_only DATE, time_only TIME")
     :ok = Cloak.Test.DB.create_table("floats", "float REAL")
     :ok = Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
@@ -50,6 +56,7 @@ defmodule Cloak.QueryTest do
       assert_query "show columns from heights", %{query_id: "1", columns: ["name", "type"], rows: rows}
       assert Enum.sort_by(rows, &(&1[:row])) == [
         %{occurrences: 1, row: ["height", :integer]},
+        %{occurrences: 1, row: ["male", :boolean]},
         %{occurrences: 1, row: ["name", :text]},
         %{occurrences: 1, row: ["user_id", :text]}
       ]
@@ -63,7 +70,7 @@ defmodule Cloak.QueryTest do
 
     test "select all query" do
       assert_query "select * from heights",
-        %{query_id: "1", columns: ["user_id", "height", "name"], rows: _}
+        %{query_id: "1", columns: ["user_id", "height", "name", "male"], rows: _}
     end
 
     test "select a constant" do
@@ -90,13 +97,13 @@ defmodule Cloak.QueryTest do
     end
 
     test "select all and order query" do
-      :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height"], ["john", 180])
-      :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height"], ["adam", 180])
-      :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height"], ["mike", 180])
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
+      :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 180, true])
+      :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
       assert_query "select * from heights order by name",
-        %{query_id: "1", columns: ["user_id", "height", "name"], rows: rows}
-      assert Enum.map(rows, &(&1[:row])) == [[:*, :*, :*]]
+        %{query_id: "1", columns: ["user_id", "height", "name", "male"], rows: rows}
+      assert Enum.map(rows, &(&1[:row])) == [[:*, :*, :*, :*]]
     end
 
     test "should return LCF property when sufficient rows are filtered" do
@@ -382,6 +389,14 @@ defmodule Cloak.QueryTest do
         %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
     end
 
+    test "select and filter booleans" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
+      :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["eva", 160, false])
+
+      assert_query "select height, male from heights where male = true",
+        %{query_id: "1", columns: ["height", "male"], rows: [%{row: [180, true], occurrences: 10}]}
+    end
+
     test "should order rows when instructed" do
       :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
       :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [190])
@@ -451,8 +466,7 @@ defmodule Cloak.QueryTest do
 
     test "query which returns zero rows" do
       Cloak.Test.DB.clear_table("heights")
-      assert_query "select height from heights", result
-      assert %{query_id: "1", columns: ["height"], rows: []} = result
+      assert_query "select height from heights", %{query_id: "1", columns: ["height"], rows: []}
     end
 
     test "select with column alias" do
@@ -969,8 +983,8 @@ defmodule Cloak.QueryTest do
     :ok
   end
 
-  defp start_query(statement) do
-    Query.Runner.start("1", Cloak.DataSource.fetch!(:local), statement, {:process, self()})
+  defp start_query(statement, data_source) do
+    Query.Runner.start("1", data_source, statement, {:process, self()})
   end
 
   defp insert_rows(user_id_range, table, columns, values) do
