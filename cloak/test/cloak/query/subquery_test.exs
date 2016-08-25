@@ -68,13 +68,17 @@ defmodule Cloak.Query.SubqueryTest do
     defmacrop assert_function(expression, expected) do
       quote do
         assert_query(
-          "select res from (select user_id, #{unquote(expression)} as res from heights) alias",
+          "select res from (select user_id, (#{unquote(expression)}) as res from heights) alias",
           %{columns: ["res"], rows: [%{row: [unquote(expected)], occurrences: 100}]}
         )
       end
     end
 
-    test "arithmetic expressions", do: assert_function("(height - 1 + 4 / 2 * 3 + 3 ^ 2)", 194.0)
+    test "+", do: assert_function("height + 1", 181)
+    test "-", do: assert_function("height - 1", 179)
+    test "*", do: assert_function("height * 2", 360)
+    test "/", do: assert_function("height / 2", 90)
+    test "^", do: assert_function("height ^ 2", 32400.0)
     test "trunc/1", do: assert_function("trunc(height + 0.6)", 180.0)
     test "trunc/2", do: assert_function("trunc(height + 0.126, 2)", 180.12)
   end
