@@ -9,7 +9,8 @@ defmodule Mix.Tasks.Bom do
     |> Enum.partition(&(&1.error))
 
     if Enum.empty?(invalid) do
-      IO.puts(Poison.encode!(valid))
+      json = Poison.encode!(valid)
+      File.write!("_build/bom.json", json)
       :ok
     else
       invalid
