@@ -117,10 +117,11 @@ defmodule Air.Query do
   @spec failed(Ecto.Queryable.t) :: Ecto.Queryable.t
   def failed(query \\ __MODULE__) do
     from q in query,
+    join: ds in assoc(q, :data_source),
     select: %{
       id: q.id,
       inserted_at: q.inserted_at,
-      data_source: q.data_source,
+      data_source: ds.name,
       statement: q.statement,
       error: fragment("?::json->>'error'", q.result)
     },
