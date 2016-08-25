@@ -322,6 +322,9 @@ defmodule Cloak.Aql.Compiler do
   defp quoted_item({:or, types}), do: types |> Enum.map(&quoted_item/1) |> Enum.join(" | ")
   defp quoted_item(item), do: "`#{item}`"
 
+  defp verify_aggregated_columns(%Query{subquery?: true, group_by: [_|_]}) do
+    raise CompilationError, message: "`GROUP BY` is not supported in a subquery."
+  end
   defp verify_aggregated_columns(query) do
     case invalid_not_aggregated_columns(query) do
       [] -> :ok
@@ -336,9 +339,6 @@ defmodule Cloak.Aql.Compiler do
   defp aggregated_expression_display(%Column{} = column), do:
     "Column `#{column.name}` from table `#{column.table.name}` needs"
 
-  defp verify_group_by_functions(%Query{subquery?: true, group_by: [_|_]}) do
-    raise CompilationError, message: "`GROUP BY` is not supported in a subquery."
-  end
   defp verify_group_by_functions(query) do
     query.group_by
     |> Enum.filter(&Function.aggregate_function?/1)
