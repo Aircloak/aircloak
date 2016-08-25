@@ -1,5 +1,5 @@
 defmodule Air.Socket.CloakTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
