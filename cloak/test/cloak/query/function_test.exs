@@ -4,16 +4,15 @@ defmodule Cloak.Query.FunctionTest do
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    Cloak.Test.DB.setup()
-    :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT")
-    Cloak.Test.DB.clear_table("heights")
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    :ok = Cloak.Test.DB.create_table("heights_ft", "height INTEGER, name TEXT")
+    Cloak.Test.DB.clear_table("heights_ft")
+    :ok = insert_rows(_user_ids = 1..100, "heights_ft", ["height"], [180])
   end
 
   defmacrop assert_top_level_function(expression, expected_match) do
     quote do
       assert_query(
-        "select (#{unquote(expression)}) as elixir_res from heights",
+        "select (#{unquote(expression)}) as elixir_res from heights_ft",
         unquote(expected_match)
       )
     end
@@ -23,7 +22,7 @@ defmodule Cloak.Query.FunctionTest do
     quote do
       assert_query(
         "select sql_res from (
-          select user_id, (#{unquote(expression)}) as sql_res from heights #{unquote(subquery_postfix)}
+          select user_id, (#{unquote(expression)}) as sql_res from heights_ft #{unquote(subquery_postfix)}
         ) alias",
         unquote(expected_match)
       )
@@ -56,7 +55,7 @@ defmodule Cloak.Query.FunctionTest do
   test "detect missing group by in subqueries" do
     assert_subquery_function(
       "count(*)",
-      %{error: "Column `user_id` from table `heights` needs to appear in the `group by`" <> _}
+      %{error: "Column `user_id` from table `heights_ft` needs to appear in the `group by`" <> _}
     )
   end
 

@@ -4,8 +4,7 @@ defmodule Cloak.DataSourceTest do
   alias Cloak.Aql.Query
   alias Cloak.DataSource
 
-  setup do
-    Cloak.Test.DB.setup()
+  setup_all do
     :ok = Cloak.Test.DB.create_table("test", "value INTEGER")
     data = [{"test", [
       {:columns, ["value"]},
@@ -17,7 +16,7 @@ defmodule Cloak.DataSourceTest do
 
   test "schema discovery" do
     for data_source <- DataSource.all() do
-      assert(DataSource.tables(data_source) == [:test])
+      assert(Enum.member?(DataSource.tables(data_source), :test))
       assert(DataSource.table(data_source, :test).columns == [{"user_id", :text}, {"value", :integer}])
     end
   end

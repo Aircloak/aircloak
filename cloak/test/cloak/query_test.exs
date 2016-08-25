@@ -5,7 +5,6 @@ defmodule Cloak.QueryTest do
   alias Cloak.Aql.Column
 
   setup_all do
-    Cloak.Test.DB.setup()
     :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
     :ok = Cloak.Test.DB.create_table("datetimes", "datetime TIMESTAMP, date_only DATE, time_only TIME")
     :ok = Cloak.Test.DB.create_table("floats", "float REAL")
@@ -20,15 +19,11 @@ defmodule Cloak.QueryTest do
     setup [:clear_heights]
 
     test "show tables" do
-      assert_query "show tables", %{columns: ["name"], rows: [
-        %{occurrences: 1, row: [:children]},
-        %{occurrences: 1, row: [:datetimes]},
-        %{occurrences: 1, row: [:floats]},
-        %{occurrences: 1, row: [:heights]},
-        %{occurrences: 1, row: [:heights_alias]},
-        %{occurrences: 1, row: [:purchases]},
-        %{occurrences: 1, row: [:"weird things"]},
-      ]}
+      assert_query "show tables", %{columns: ["name"], rows: table_rows}
+      tables = Enum.map(table_rows, fn(%{row: [table_name]}) -> table_name end)
+
+      [:children, :datetimes, :floats, :heights, :heights_alias, :purchases, :"weird things"]
+      |> Enum.each(&assert(Enum.member?(tables, &1)))
     end
 
     test "show columns" do

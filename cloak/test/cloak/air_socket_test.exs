@@ -66,8 +66,7 @@ defmodule Cloak.AirSocketTest do
   end
 
   test "starting a query", %{socket_pid: socket_pid, cloak_name: cloak_name} do
-    Cloak.Test.DB.setup()
-    Cloak.Test.DB.create_table("heights", "height INTEGER")
+    Cloak.Test.DB.create_table("heights_as", "height INTEGER")
 
     Process.register(socket_pid, AirSocket)
     ensure_joined(cloak_name)
@@ -75,7 +74,7 @@ defmodule Cloak.AirSocketTest do
     request = %{
       request_id: "foo",
       event: "run_query",
-      payload: %{id: 42, statement: "SELECT height FROM cloak_test.heights", data_source: "local"}
+      payload: %{id: 42, statement: "SELECT height FROM cloak_test.heights_as", data_source: "local"}
     }
     MainChannel.send_to_cloak(cloak_name, "air_call", request)
     assert_receive {:in_message, "call_response", response}
