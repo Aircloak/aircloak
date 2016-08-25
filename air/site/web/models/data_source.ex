@@ -91,7 +91,6 @@ defmodule Air.DataSource do
   # -------------------------------------------------------------------
 
   defp changeset(model, params) do
-    model
-    |> cast(params, @required_fields, @optional_fields)
+    cast(model, params, @required_fields, @optional_fields)
   end
 end
