@@ -11,7 +11,7 @@ defmodule Cloak.QueryTest do
       assert_receive {:reply, response}, 1000
       for next_ds <- rest_ds do
         :ok = start_query(unquote(query), next_ds)
-        assert_receive {:reply, response}, 1000
+        assert_receive {:reply, ^response}, 1000
       end
       assert unquote(expected_response) = response
     end
