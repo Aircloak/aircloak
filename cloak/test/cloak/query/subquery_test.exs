@@ -63,28 +63,4 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
     )
   end
-
-  describe "functions in subqueries" do
-    defmacrop assert_function(expression, expected) do
-      quote do
-        assert_query(
-          "select (#{unquote(expression)}) as elixir_res from heights",
-          %{columns: ["elixir_res"], rows: [%{row: [unquote(expected)], occurrences: 100}]}
-        )
-
-        assert_query(
-          "select sql_res from (select user_id, (#{unquote(expression)}) as sql_res from heights) alias",
-          %{columns: ["sql_res"], rows: [%{row: [unquote(expected)], occurrences: 100}]}
-        )
-      end
-    end
-
-    test "+", do: assert_function("height + 1", 181)
-    test "-", do: assert_function("height - 1", 179)
-    test "*", do: assert_function("height * 2", 360)
-    test "/", do: assert_function("height / 2", 90.0)
-    test "^", do: assert_function("height ^ 2", 32400.0)
-    test "trunc/1", do: assert_function("trunc(height + 0.6)", 180)
-    test "trunc/2", do: assert_function("trunc(height + 0.126, 2)", 180.12)
-  end
 end
