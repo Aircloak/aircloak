@@ -25,6 +25,7 @@ defmodule Air.Supervisor do
       worker(Air.Monitoring.FailedQueries, []),
       Air.ResultProcessor.observer_spec(),
       Air.Endpoint.supervisor_spec(),
+      worker(Air.BOM, []),
     ]
   end
 
