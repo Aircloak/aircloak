@@ -5,8 +5,7 @@ defmodule Cloak.DataSourceTest do
   alias Cloak.DataSource
 
   setup do
-    :ok = Cloak.Test.DB.setup()
-    {:ok, _} = Cloak.Test.DB.create_test_schema()
+    Cloak.Test.DB.setup()
     :ok = Cloak.Test.DB.create_table("test", "value INTEGER")
     data = [{"test", [
       {:columns, ["value"]},

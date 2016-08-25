@@ -5,7 +5,6 @@ defmodule Cloak.Query.SubqueryTest do
 
   setup_all do
     Cloak.Test.DB.setup()
-    Cloak.Test.DB.create_test_schema()
     :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT")
     Cloak.Test.DB.clear_table("heights")
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])

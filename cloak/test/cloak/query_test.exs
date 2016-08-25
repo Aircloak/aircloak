@@ -6,7 +6,6 @@ defmodule Cloak.QueryTest do
 
   setup_all do
     Cloak.Test.DB.setup()
-    Cloak.Test.DB.create_test_schema()
     :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
     :ok = Cloak.Test.DB.create_table("datetimes", "datetime TIMESTAMP, date_only DATE, time_only TIME")
     :ok = Cloak.Test.DB.create_table("floats", "float REAL")

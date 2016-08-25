@@ -5,9 +5,6 @@ defmodule Cloak.Test.DB do
   def setup do
     PostgreSQL.execute("DROP SCHEMA IF EXISTS cloak_test CASCADE", [])
     DataSource.clear_test_tables()
-  end
-
-  def create_test_schema do
     PostgreSQL.execute("CREATE SCHEMA cloak_test", [])
   end
 
