@@ -239,6 +239,7 @@ defmodule Cloak.Aql.Compiler do
   defp aggregated_column?(column, query) do
     Column.constant?(column) ||
       Function.aggregate_function?(column) ||
+      Column.aggregate_db_function?(column) ||
       Enum.member?(query.group_by, column) ||
       (Function.function?(column) && Enum.all?(Function.arguments(column), &aggregated_column?(&1, query)))
   end
@@ -322,9 +323,6 @@ defmodule Cloak.Aql.Compiler do
   defp quoted_item({:or, types}), do: types |> Enum.map(&quoted_item/1) |> Enum.join(" | ")
   defp quoted_item(item), do: "`#{item}`"
 
-  defp verify_aggregated_columns(%Query{subquery?: true, group_by: [_|_]}) do
-    raise CompilationError, message: "`GROUP BY` is not supported in a subquery."
-  end
   defp verify_aggregated_columns(query) do
     case invalid_not_aggregated_columns(query) do
       [] -> :ok
@@ -629,8 +627,11 @@ defmodule Cloak.Aql.Compiler do
         end
     end
   end
-  defp identifier_to_column({:function, name, args}, _columns_by_name, %Query{subquery?: true}) do
-    Column.db_function(name, args)
+  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, %Query{subquery?: true}) do
+    case Function.return_type(function_spec) do
+      nil -> raise CompilationError, message: function_argument_error_message(function_spec)
+      type -> Column.db_function(name, args, type, Function.aggregate_function?(function_spec))
+    end
   end
   defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
     Column.constant(type, value)

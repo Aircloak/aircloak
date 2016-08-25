@@ -390,11 +390,6 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error =~ "<> is not supported in a subquery."
   end
 
-  test "group by in subquery is not supported" do
-    assert {:error, error} = compile("select c1 from (select uid, avg(c1) from t1 group by uid) alias", data_source())
-    assert error =~ "`GROUP BY` is not supported in a subquery."
-  end
-
   test "integer operations are valid on sums of integer columns" do
     assert {:ok, _} = compile("select sum(numeric) % 3 from table", data_source())
   end

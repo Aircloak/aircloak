@@ -43,7 +43,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     [
       "SELECT ", columns_sql(query.db_columns), " ",
       "FROM ", from_clause(query.from, query), " ",
-      where_fragments(query.where)
+      where_fragments(query.where),
+      group_by_fragments(query)
     ]
   end
 
@@ -53,25 +54,34 @@ defmodule Cloak.DataSource.SqlBuilder do
     |> Enum.intersperse(?,)
   end
 
+  defp column_sql({:distinct, column}),
+    do: ["DISTINCT ", column_sql(column)]
   defp column_sql(%Column{alias: alias} = column) when alias != nil do
     [column_sql(%Column{column | alias: nil}), "AS ", alias]
   end
-  defp column_sql(%Column{db_function: fun_name, db_function_args: args}) when fun_name != nil,
-    do: function_sql(fun_name, args)
+  defp column_sql(%Column{db_function: fun_name, db_function_args: args, type: type}) when fun_name != nil,
+    do: function_sql(fun_name, args, type)
   defp column_sql(%Column{constant?: true, value: value, type: type}),
     do: {:param, %{value: value, type: type}}
   defp column_sql(column), do: column_name(column)
 
-  defp function_sql("coalesce", args), do: function_call("coalesce", [columns_sql(args)])
-  defp function_sql("trunc", [arg]), do: cast(function_call("trunc", [column_sql(arg)]), "integer")
-  defp function_sql("trunc", [arg1, arg2]),
+  defp function_sql("min", [arg], _type), do: function_call("min", [column_sql(arg)])
+  defp function_sql("max", [arg], _type), do: function_call("max", [column_sql(arg)])
+  defp function_sql("avg", [arg], type), do: cast(function_call("avg", [column_sql(arg)]), sql_type(type))
+  defp function_sql("sum", [arg], type), do: cast(function_call("sum", [column_sql(arg)]), sql_type(type))
+  defp function_sql("count", [:*], _type), do: cast(function_call("count", ["*"]), "integer")
+  defp function_sql("count", [arg], _type), do: cast(function_call("count", [column_sql(arg)]), "integer")
+  defp function_sql("coalesce", args, _type), do: function_call("coalesce", [columns_sql(args)])
+  defp function_sql({:cast, type}, [arg], _type), do: cast(column_sql(arg), sql_type(type))
+  defp function_sql("trunc", [arg], _type), do: cast(function_call("trunc", [column_sql(arg)]), "integer")
+  defp function_sql("trunc", [arg1, arg2], _type),
     do: cast(function_call("trunc", [cast(column_sql(arg1), "numeric"), column_sql(arg2)]), "float")
   for binary_operator <- ["+", "-", "*", "^"] do
-    defp function_sql(unquote(binary_operator), [arg1, arg2]) do
+    defp function_sql(unquote(binary_operator), [arg1, arg2], _type) do
       binary_operator_call(unquote(binary_operator), column_sql(arg1), column_sql(arg2))
     end
   end
-  defp function_sql("/", [arg1, arg2]) do
+  defp function_sql("/", [arg1, arg2], _type) do
     cast(binary_operator_call("/", column_sql(arg1), column_sql(arg2)), "float")
   end
 
@@ -147,6 +157,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp sql_type(:timestamp), do: "timestamp"
   defp sql_type(:time), do: "time"
   defp sql_type(:date), do: "date"
+  defp sql_type(:text), do: "text"
 
   defp params(fragments) do
     fragments
@@ -193,4 +204,12 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]
   defp join([first | rest], joiner), do: [first, joiner, join(rest, joiner)]
+
+  defp group_by_fragments(%Query{subquery?: true, group_by: [_|_] = group_by}) do
+    [
+      "GROUP BY ",
+      group_by |> Enum.map(&column_sql/1) |> Enum.intersperse(",")
+    ]
+  end
+  defp group_by_fragments(_query), do: []
 end
