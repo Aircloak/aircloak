@@ -750,6 +750,13 @@ defmodule Cloak.Aql.Parser.Test do
       select(columns: [{:function, {:cast, :text}, [identifier("a")]}])
   end
 
+  for word <- ~w(date time timestamp) do
+    test "#{word} as a column name" do
+      assert_parse "select #{unquote(word)} from bar",
+        select(columns: [identifier(unquote(word))])
+    end
+  end
+
   test "select interval" do
     duration = Timex.Duration.parse!("P1Y2M3DT4H5M6S")
     assert_parse "select interval 'P1Y2M3DT4H5M6S' from bar",
