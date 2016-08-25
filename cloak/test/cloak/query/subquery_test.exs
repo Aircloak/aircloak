@@ -7,39 +7,31 @@ defmodule Cloak.Query.SubqueryTest do
     Cloak.Test.DB.setup()
     Cloak.Test.DB.create_test_schema()
     :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT")
-  end
-
-  setup do
     Cloak.Test.DB.clear_table("heights")
-    :ok
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
   end
 
   test "selecting from a subquery" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from (select user_id, height from heights) alias",
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
   test "column alias in a subquery" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select h from (select user_id, height as h from heights) alias",
       %{columns: ["h"], rows: [%{row: [180], occurrences: 100}]}
   end
 
   test "user_id can be in any position in a subquery" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from (select height, user_id from heights) alias",
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
   test "fully qualified names with subqueries" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select alias.height from (select user_id, height from heights) alias",
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
   test "joining two subqueries" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query(
       """
         select t1.height as h1, t2.height as h2 from
@@ -51,7 +43,6 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "joining a subquery and a table" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query(
       """
         select t1.height as h1, heights.height as h2 from
@@ -63,7 +54,6 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "nesting subqueries" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query(
       """
         select height from (
@@ -75,7 +65,6 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "arithmetic expressions in subqueries" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query(
       """
         select height from (
@@ -87,7 +76,6 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "trunc/1" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query(
       """
         select height from (
@@ -99,7 +87,6 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "trunc/2" do
-    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query(
       """
         select height from (
