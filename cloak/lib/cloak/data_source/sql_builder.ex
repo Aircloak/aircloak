@@ -62,14 +62,24 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: {:param, %{value: value, type: type}}
   defp column_sql(column), do: column_name(column)
 
-  defp function_sql("coalesce", args), do: ["COALESCE(", columns_sql(args), ")"]
-  defp function_sql("trunc", [arg]), do: ["trunc(", column_sql(arg), ")"]
-  defp function_sql("trunc", [arg1, arg2]), do:
-    ["(trunc((", column_sql(arg1), ")::numeric,", column_sql(arg2), ")::float)"]
+  defp function_sql("coalesce", args), do: function_call("coalesce", [columns_sql(args)])
+  defp function_sql("trunc", [arg]), do: function_call("trunc", [column_sql(arg)])
+  defp function_sql("trunc", [arg1, arg2]) do
+    function_call("trunc", [cast(column_sql(arg1), "numeric"), column_sql(arg2)])
+    |> cast("float")
+  end
   for binary_infix_operator <- ["+", "-", "*", "/", "^"] do
     defp function_sql(unquote(binary_infix_operator), [arg1, arg2]) do
       ["(", column_sql(arg1), " #{unquote(binary_infix_operator)} ", column_sql(arg2), ")"]
     end
+  end
+
+  defp cast(expr, type) do
+    function_call("cast", [[expr, " AS ", type]])
+  end
+
+  defp function_call(name, args) do
+    [name, "(", Enum.intersperse(args, ",") ,")"]
   end
 
   defp from_clause({:join, join}, query) do
@@ -112,7 +122,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp parse_fragment(query_builder, {:param, %{type: type}}) do
     %{query_builder |
-      query_string: [query_builder.query_string, "$#{query_builder.param_index}::#{sql_type(type)}"],
+      query_string: [query_builder.query_string, cast("$#{query_builder.param_index}", sql_type(type))],
       param_index: query_builder.param_index + 1
     }
   end
