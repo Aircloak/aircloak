@@ -51,6 +51,7 @@ defmodule Air.DataSourceManager do
 
   @doc false
   def handle_cast({:register_cloak, cloak_info, data_sources}, state) do
+    Process.monitor(cloak_info.channel_pid)
     state = Enum.reduce(data_sources, state, fn(data_source, state_acc) ->
       register_data_source(data_source, cloak_info, state_acc)
     end)
@@ -59,6 +60,11 @@ defmodule Air.DataSourceManager do
   def handle_cast(msg, state) do
     raise "Unimplemented cast: #{inspect msg}"
     {:noreply, state}
+  end
+
+  @doc false
+  def handle_info({:DOWN, _ref, :process, channel_pid, _reason}, state) do
+    {:noreply, remove_disconnected_cloak(channel_pid, state)}
   end
 
 
@@ -91,5 +97,20 @@ defmodule Air.DataSourceManager do
         |> DataSource.changeset(params)
         |> Repo.update!()
     end
+  end
+
+  defp remove_disconnected_cloak(channel_pid, state) do
+    filtered_map = state.data_source_to_cloak
+    |> Enum.map(&remove_cloak_info(channel_pid, &1))
+    |> Enum.into(Map.new())
+    %{state | data_source_to_cloak: filtered_map}
+  end
+
+  defp remove_cloak_info(channel_pid, {unique_id, cloak_infos}) do
+    filtered_cloak_infos = Enum.reject(cloak_infos, fn(cloak_info) ->
+      cloak_info.channel_pid === channel_pid
+    end)
+    if filtered_cloak_infos === [], do: Logger.info("Data source #{unique_id} is now unavailable")
+    {unique_id, filtered_cloak_infos}
   end
 end
