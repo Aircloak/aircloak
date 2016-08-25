@@ -1,28 +1,8 @@
 defmodule Cloak.QueryTest do
   use ExUnit.Case, async: false
 
-  alias Cloak.Query
+  import Cloak.Test.QueryHelpers
   alias Cloak.Aql.Column
-
-  defmacrop assert_query(query, expected_response) do
-    quote do
-      [first_ds | rest_ds] = Cloak.DataSource.all()
-      :ok = start_query(unquote(query), first_ds)
-      assert_receive {:reply, response}, 1000
-      for next_ds <- rest_ds do
-        :ok = start_query(unquote(query), next_ds)
-        assert_receive {:reply, ^response}, 1000
-      end
-      assert unquote(expected_response) = response
-    end
-  end
-
-  defmacrop assert_info(query, expected_info_regex) do
-    quote do
-      assert_query unquote(query), %{info: [info]}
-      assert info =~ unquote(expected_info_regex)
-    end
-  end
 
   setup_all do
     Cloak.Test.DB.setup()
@@ -556,60 +536,6 @@ defmodule Cloak.QueryTest do
       )
       assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
     end
-
-    test "selecting from a subquery" do
-      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-      assert_query "select height from (select user_id, height from heights) alias",
-        %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-    end
-
-    test "user_id can be in any position in a subquery" do
-      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-      assert_query "select height from (select height, user_id from heights) alias",
-        %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-    end
-
-    test "fully qualified names with subqueries" do
-      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-      assert_query "select alias.height from (select user_id, height from heights) alias",
-        %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-    end
-
-    test "joining two subqueries" do
-      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-      assert_query(
-        """
-          select t1.height as h1, t2.height as h2 from
-            (select user_id, height from heights) t1
-            inner join (select user_id, height from heights) t2 on t1.user_id = t2.user_id
-        """,
-        %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
-      )
-    end
-
-    test "joining a subquery and a table" do
-      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-      assert_query(
-        """
-          select t1.height as h1, heights.height as h2 from
-            (select user_id, height from heights) t1
-            inner join heights on heights.user_id = t1.user_id
-        """,
-        %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
-      )
-    end
-
-    test "nesting subqueries" do
-      :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-      assert_query(
-        """
-          select height from (
-            select user_id, height from (select user_id, height from heights) inner_alias
-          ) outer_alias
-        """,
-        %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-      )
-    end
   end
 
   describe "error handling" do
@@ -956,47 +882,5 @@ defmodule Cloak.QueryTest do
       assert_query "select \"thing as thing\" from \"weird things\"",
         %{columns: ["thing as thing"], rows: []}
     end
-  end
-
-  defp clear_floats(_context) do
-    Cloak.Test.DB.clear_table("floats")
-    :ok
-  end
-
-  defp clear_datetimes(_context) do
-    Cloak.Test.DB.clear_table("datetimes")
-    :ok
-  end
-
-  defp clear_heights(_context) do
-    Cloak.Test.DB.clear_table("heights")
-    :ok
-  end
-
-  defp clear_children(_context) do
-    Cloak.Test.DB.clear_table("children")
-    :ok
-  end
-
-  defp clear_purchases(_context) do
-    Cloak.Test.DB.clear_table("purchases")
-    :ok
-  end
-
-  defp start_query(statement, data_source) do
-    Query.Runner.start("1", data_source, statement, {:process, self()})
-  end
-
-  defp insert_rows(user_id_range, table, columns, values) do
-    Cloak.Test.DB.add_users_data(
-      Enum.map(user_id_range,
-        &{"user#{&1}", [
-          {table, [
-            columns: columns,
-            data: [values]
-          ]}
-        ]}
-      )
-    )
   end
 end
