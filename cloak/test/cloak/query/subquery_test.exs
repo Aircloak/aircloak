@@ -64,36 +64,18 @@ defmodule Cloak.Query.SubqueryTest do
     )
   end
 
-  test "arithmetic expressions in subqueries" do
-    assert_query(
-      """
-        select height from (
-          select user_id, (height - 1 + 4 / 2 * 3 + 3 ^ 2) as height from heights
-        ) alias
-      """,
-      %{columns: ["height"], rows: [%{row: [194.0], occurrences: 100}]}
-    )
-  end
+  describe "functions in subqueries" do
+    defmacrop assert_function(expression, expected) do
+      quote do
+        assert_query(
+          "select res from (select user_id, #{unquote(expression)} as res from heights) alias",
+          %{columns: ["res"], rows: [%{row: [unquote(expected)], occurrences: 100}]}
+        )
+      end
+    end
 
-  test "trunc/1" do
-    assert_query(
-      """
-        select height from (
-          select user_id, trunc(height + 0.6) as height from heights
-        ) alias
-      """,
-      %{columns: ["height"], rows: [%{row: [180.0], occurrences: 100}]}
-    )
-  end
-
-  test "trunc/2" do
-    assert_query(
-      """
-        select height from (
-          select user_id, trunc(height + 0.126, 2) as height from heights
-        ) alias
-      """,
-      %{columns: ["height"], rows: [%{row: [180.12], occurrences: 100}]}
-    )
+    test "arithmetic expressions", do: assert_function("(height - 1 + 4 / 2 * 3 + 3 ^ 2)", 194.0)
+    test "trunc/1", do: assert_function("trunc(height + 0.6)", 180.0)
+    test "trunc/2", do: assert_function("trunc(height + 0.126, 2)", 180.12)
   end
 end
