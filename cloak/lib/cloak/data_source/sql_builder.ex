@@ -63,6 +63,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(column), do: column_name(column)
 
   defp function_sql("coalesce", args), do: function_call("coalesce", [columns_sql(args)])
+  defp function_sql({:cast, type}, [arg]), do: cast(column_sql(arg), sql_type(type))
   defp function_sql("trunc", [arg]), do: cast(function_call("trunc", [column_sql(arg)]), "integer")
   defp function_sql("trunc", [arg1, arg2]),
     do: cast(function_call("trunc", [cast(column_sql(arg1), "numeric"), column_sql(arg2)]), "float")
@@ -147,6 +148,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp sql_type(:timestamp), do: "timestamp"
   defp sql_type(:time), do: "time"
   defp sql_type(:date), do: "date"
+  defp sql_type(:text), do: "text"
 
   defp params(fragments) do
     fragments

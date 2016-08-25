@@ -44,6 +44,9 @@ defmodule Cloak.Query.FunctionTest do
   test "^", do: assert_function_success("height ^ 2", 32_400.0)
   test "trunc/1", do: assert_function_success("trunc(height + 0.6)", 180)
   test "trunc/2", do: assert_function_success("trunc(height + 0.126, 2)", 180.12)
+  test "cast as integer", do: assert_function_success("cast('42' AS integer)", 42)
+  test "cast as real", do: assert_function_success("cast('42' AS real)", 42.0)
+  test "cast as text", do: assert_function_success("cast(42 AS text)", "42")
 
   test "type errors", do: assert_function_error("trunc('foobar')", "Function `trunc` requires arguments of type" <> _)
 end
