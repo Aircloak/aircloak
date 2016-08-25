@@ -132,7 +132,7 @@ defmodule Cloak.Aql.Function do
   def name({:function, name, _}), do: name
 
   @doc "Returns the return type of the given function call."
-  @spec return_type(t) :: data_type
+  @spec return_type(t) :: data_type | nil
   def return_type({:function, {:cast, type}, _}), do: type
   def return_type(function = {:function, name, _}) do
     @functions[name].type_specs
