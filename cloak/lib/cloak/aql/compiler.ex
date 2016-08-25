@@ -637,7 +637,7 @@ defmodule Cloak.Aql.Compiler do
     Column.constant(type, value)
   defp identifier_to_column(other, _columns_by_name, _query), do: other
 
-  def column_title({:function, function, _}), do: function
+  def column_title(function = {:function, _, _}), do: Function.name(function)
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, column}), do: column
   def column_title({:constant, _, _}), do: ""
