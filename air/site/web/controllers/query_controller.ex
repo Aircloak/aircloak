@@ -104,7 +104,7 @@ defmodule Air.QueryController do
   end
 
   def failed(conn, _params) do
-    render(conn, "failed.html", failed_queries: Air.Repo.all(Air.Query.failed()))
+    render(conn, "failed.html", failed_queries: Repo.all(Query.failed()))
   end
 
 
