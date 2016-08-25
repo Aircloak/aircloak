@@ -63,7 +63,7 @@ defmodule Air.DataSource do
     %{
       id: data_source.id,
       # For backwards compatibility, we keep token in the structure,
-      # # so old API clients keep on working
+      # so old API clients keep on working
       token: data_source.id,
       name: data_source.name,
       tables: tables(data_source),
