@@ -97,10 +97,10 @@ defmodule BOM.Whitelist do
     text
     |> :erlang.bitstring_to_list()
     |> :erlang.md5()
-    |> :erlang.bitstring_to_list
+    |> :erlang.bitstring_to_list()
     |> Enum.map(&(:io_lib.format("~2.16.0b", [&1])))
-    |> List.flatten
-    |> to_string
+    |> List.flatten()
+    |> to_string()
   end
 
   defp license(realm, package, %{type: type, text: :provided}) do
