@@ -95,7 +95,6 @@ class QueriesView extends React.Component {
 
   runQuery() {
     if (! this.props.dataSourceAvailable) {
-      // abort if the data source isn't available
       return;
     }
     const statement = this.state.statement;
