@@ -26,9 +26,9 @@ defmodule Cloak.Aql.Column do
   end
 
   @doc "Creates a column representing a database function call."
-  @spec db_function(String.t, [t]) :: t
-  def db_function(db_function, db_function_args) do
-    %__MODULE__{db_function: db_function, db_function_args: db_function_args}
+  @spec db_function(String.t, [t], column_type) :: t
+  def db_function(db_function, db_function_args, type \\ nil) do
+    %__MODULE__{db_function: db_function, db_function_args: db_function_args, type: type}
   end
 
   @doc "Returns true if the given term is a constant column, false otherwise."
