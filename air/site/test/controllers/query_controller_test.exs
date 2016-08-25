@@ -2,9 +2,12 @@ defmodule Air.QueryControllerTest do
   use Air.ConnCase
 
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.TestSocketHelper
+  alias Air.{TestSocketHelper, Repo, DataSource, Cloak}
 
-  @query_data_params %{query: %{query: "Query code", name: "Query name", data_source_id: "data_source@cloak_1"}}
+  setup do
+    Repo.delete_all(Cloak)
+    :ok
+  end
 
   test "can run a query" do
     organisation = create_organisation!()
@@ -14,7 +17,11 @@ defmodule Air.QueryControllerTest do
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1", cloak_organisation: organisation.name})
     TestSocketHelper.join!(socket, "main", %{data_sources: [%{"id" => "data_source", "tables" => []}]})
 
-    task = Task.async(fn -> login(user) |> post("/queries", @query_data_params) |> response(200) end)
+    data_source = Repo.one(DataSource)
+    query_data_params = %{
+      query: %{query: "Query code", name: "Query name", data_source_id: data_source.id}
+    }
+    task = Task.async(fn -> login(user) |> post("/queries", query_data_params) |> response(200) end)
 
     TestSocketHelper.respond_to_start_task_request!(socket, "ok")
 
@@ -46,9 +53,12 @@ defmodule Air.QueryControllerTest do
   end
 
   defp insert_query(user, statement, result) do
+    data_sources = [%{"id" => "data_source", "tables" => []}]
+    Cloak.register("test_cloak", data_sources)
+    data_source = Repo.one(DataSource)
     create_query!(user, %{
       statement: statement,
-      data_source: "data_source",
+      data_source_id: data_source.id,
       result: Poison.encode!(result)
     })
   end
