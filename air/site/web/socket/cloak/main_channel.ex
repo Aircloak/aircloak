@@ -43,6 +43,7 @@ defmodule Air.Socket.Cloak.MainChannel do
       channel_pid: self(),
       id: socket.assigns.cloak_id,
       name: socket.assigns.name,
+      online_since: Timex.DateTime.now(),
     }
     data_sources = Map.fetch!(cloak_info, "data_sources")
     Air.DataSourceManager.register_cloak(cloak, data_sources)
