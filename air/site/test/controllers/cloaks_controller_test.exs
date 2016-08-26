@@ -51,7 +51,7 @@ defmodule Air.CloaksControllerTest do
       true
     else
       :timer.sleep(10)
-      dont_immediately_give_up(check, n-1)
+      dont_immediately_give_up(check, n - 1)
     end
   end
 end
