@@ -763,9 +763,8 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "literals containing escaped single-quotes" do
     assert_parse "select 'O''Brian' from names", select(columns: [constant(:text, "O'Brian")])
-    assert_parse ~S(select 'O\'Brian' from names), select(columns: [constant(:text, "O'Brian")])
     assert_parse "select 'O'\n'Brian' from names", select(columns: [constant(:text, "O'Brian")])
-    assert_parse ~S(select 'O\\Brian' from names), select(columns: [constant(:text, ~S(O\Brian))])
+    assert_parse ~S(select 'O\Brian' from names), select(columns: [constant(:text, ~S(O\Brian))])
   end
 
   create_test =

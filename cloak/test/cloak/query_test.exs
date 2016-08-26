@@ -877,22 +877,31 @@ defmodule Cloak.QueryTest do
     end
   end
 
-  describe "quoting" do
+  describe "miscellaneous" do
+    setup [:clear_heights]
+
     test "quoting table and column names" do
       assert_query "select \"thing as thing\" from \"weird things\"",
         %{columns: ["thing as thing"], rows: []}
     end
-  end
-
-  describe "miscellaneous" do
-    setup [:clear_heights]
 
     test "SQL injection" do
-      :ok = insert_rows(_user_ids = 1..10, "heights", ["height", "name"], [10, "jon"])
-      assert_query ~S(select height from heights where name = '\' or \'1\'=\'1'),
-        %{columns: ["height"], rows: []}
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height", "name"], [180, "jon"])
       assert_query ~S(select height from heights where name = ''' or ''1''=''1'),
         %{columns: ["height"], rows: []}
+    end
+
+    test "non-alphanumeric characters in string literal" do
+      weird_name = "abc ~!@\#{$1%^&1*(){}[]_+-=?/\\<>\b\z\",.:;\n\r\t 123"
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height", "name"], [180, weird_name])
+      assert_query "select count(height) from heights where name = '#{weird_name}'",
+        %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
+    end
+
+    test "proper escaping of quotes" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height", "name"], [180, "O'Brian"])
+      assert_query "select count(height) from heights where name = 'O''Brian'",
+        %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
     end
   end
 end
