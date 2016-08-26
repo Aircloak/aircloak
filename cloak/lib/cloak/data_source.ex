@@ -208,7 +208,7 @@ defmodule Cloak.DataSource do
     unique_id_data = ["acuid", aircloak_data_source_splitter, database_name, database_host, username]
     # MD5 is perfectly fine here, as the hash doesn't serve any other purpose than generating
     # a single ID based on the data. Of course collisions can be constructed, but doing so is
-    # not in anyone's interesting, and furthermore would not compromise any user data.
+    # not in anyone's interest, and furthermore would not compromise any user data.
     unique_id = :crypto.hash(:md5, unique_id_data) |> Base.encode64()
     {data_source_name, Map.merge(data, %{"unique_id" => unique_id})}
   end
