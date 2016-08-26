@@ -46,7 +46,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   #-----------------------------------------------------------------------------------------------------------
 
   defp run_query(source_id, statement, decode_mapper, result_processor) do
-    options = [timeout: 4 * 60 * 60_000, pool_timeout: 5 * 60_000, pool: @pool_name]
+    options = [timeout: :timer.hours(4), pool_timeout: :timer.minutes(5), pool: @pool_name]
     Postgrex.transaction(proc_name(source_id), fn(conn) ->
       with {:ok, query} <- Postgrex.prepare(conn, "data select", statement, []) do
         try do
@@ -106,7 +106,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   if Mix.env == :test do
     @doc false
     def execute(statement, parameters \\ []) do
-      options = [timeout: 2 * 60 * 1000, pool_timeout: 10 * 1000, pool: @pool_name]
+      options = [timeout: :timer.minutes(2), pool_timeout: :timer.seconds(2), pool: @pool_name]
       Postgrex.query(proc_name(:local), statement, parameters, options)
     end
   end
