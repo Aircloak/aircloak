@@ -4,29 +4,23 @@ defmodule Cloak.DataSource.SqlBuilder do
   alias Cloak.Aql.Query
   alias Cloak.Aql.Column
 
-  @typep query_spec :: {String.t, [constant]}
-  @typep constant :: String.t | number | boolean
-  @typep fragment :: String.t | {:param, %{value: constant, type: Cloak.DataSource.data_type}} | [fragment]
+  @typep fragment :: String.t | [fragment]
 
 
   #-----------------------------------------------------------------------------------------------------------
   # API
   #-----------------------------------------------------------------------------------------------------------
 
-  @spec build(Query.t) :: query_spec
+  @spec build(Query.t) :: String.t
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
   def build(%Query{mode: :unparsed} = query) do
     {:subquery, %{unparsed_string: unsafe_subquery}} = query.from
-
-    {
-      to_string(["SELECT ", columns_sql(query.db_columns), " FROM (", unsafe_subquery, ") AS unsafe_subquery"]),
-      []
-    }
+    to_string(["SELECT ", columns_sql(query.db_columns), " FROM (", unsafe_subquery, ") AS unsafe_subquery"])
   end
   def build(query) do
     query
     |> build_fragments()
-    |> fragments_to_query_spec()
+    |> to_string()
   end
 
   @doc "Returns a name uniquely identifying a column in the generated query."
@@ -62,7 +56,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Column{db_function: fun_name, db_function_args: args, type: type}) when fun_name != nil,
     do: function_sql(fun_name, args, type)
   defp column_sql(%Column{constant?: true, value: value, type: type}),
-    do: {:param, %{value: value, type: type}}
+    do: [cast(constant_to_fragment(value), sql_type(type))]
   defp column_sql(column), do: column_name(column)
 
   defp function_sql("min", [arg], _type), do: function_call("min", [column_sql(arg)])
@@ -122,35 +116,6 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp table_to_from(%{name: table_name, db_name: table_name}), do: table_name
   defp table_to_from(table), do: "#{table.db_name} AS \"#{table.name}\""
 
-  @spec fragments_to_query_spec([fragment]) :: query_spec
-  defp fragments_to_query_spec(fragments) do
-    fragments = List.flatten(fragments)
-    {query_string(fragments), params(fragments)}
-  end
-
-  defp query_string(fragments) do
-    fragments
-    |> Enum.reduce(%{query_string: [], param_index: 1}, &parse_fragment(&2, &1))
-    |> Map.fetch!(:query_string)
-    |> to_string()
-  end
-
-  defp parse_fragment(query_builder, {:param, %{type: type}}) do
-    %{query_builder |
-      query_string: [query_builder.query_string, cast("$#{query_builder.param_index}", sql_type(type))],
-      param_index: query_builder.param_index + 1
-    }
-  end
-  defp parse_fragment(query_builder, {:param, _value}) do
-    %{query_builder |
-      query_string: [query_builder.query_string, "$#{query_builder.param_index}"],
-      param_index: query_builder.param_index + 1
-    }
-  end
-  defp parse_fragment(query_builder, string) do
-    %{query_builder | query_string: [query_builder.query_string, string]}
-  end
-
   defp sql_type(:integer), do: "integer"
   defp sql_type(:real), do: "float"
   defp sql_type(:boolean), do: "bool"
@@ -158,13 +123,6 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp sql_type(:time), do: "time"
   defp sql_type(:date), do: "date"
   defp sql_type(:text), do: "text"
-
-  defp params(fragments) do
-    fragments
-    |> List.flatten()
-    |> Stream.filter(&match?({:param, _}, &1))
-    |> Enum.map(fn({:param, param}) -> param.value end)
-  end
 
   defp where_fragments([]), do: []
   defp where_fragments(where_clause) do
@@ -195,11 +153,15 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp to_fragment(string) when is_binary(string), do: string
   defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
-  defp to_fragment(%NaiveDateTime{} = time), do: {:param, %{value: time}}
-  defp to_fragment(%Time{} = time), do: {:param, %{value: time}}
-  defp to_fragment(%Date{} = time), do: {:param, %{value: time}}
-  defp to_fragment(%Column{constant?: true, value: value}), do: {:param, %{value: value}}
+  defp to_fragment(%NaiveDateTime{} = value), do: [?', to_string(value), ?']
+  defp to_fragment(%Time{} = value), do: [?', to_string(value), ?']
+  defp to_fragment(%Date{} = value), do: [?', to_string(value), ?']
+  defp to_fragment(%Column{constant?: true, value: value}), do: constant_to_fragment(value)
   defp to_fragment(%Column{} = column), do: "\"#{column.table.name}\".\"#{column.name}\""
+
+  defp constant_to_fragment(value) when is_binary(value), do: [?', value, ?']
+  defp constant_to_fragment(value) when is_number(value), do: to_string(value)
+  defp constant_to_fragment(value) when is_boolean(value), do: to_string(value)
 
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]
