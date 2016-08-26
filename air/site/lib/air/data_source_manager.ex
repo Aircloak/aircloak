@@ -63,9 +63,7 @@ defmodule Air.DataSourceManager do
   @doc false
   def handle_call({:register_cloak, cloak_info, data_sources}, _from, state) do
     Process.monitor(cloak_info.channel_pid)
-    state = Enum.reduce(data_sources, state, fn(data_source, state_acc) ->
-      register_data_source(data_source, cloak_info, state_acc)
-    end)
+    state = Enum.reduce(data_sources, state, &register_data_source(&1, cloak_info, &2))
     {:reply, :ok, state}
   end
   def handle_call({:channel_pids, data_source_id}, _from, state) do
@@ -100,8 +98,7 @@ defmodule Air.DataSourceManager do
   defp register_data_source(data_source_data, cloak_info, %{data_source_to_cloak: data_source_to_cloak} = state) do
     create_or_update_datastore(data_source_data)
     id = data_source_data["id"]
-    data_source_to_cloak = Map.update(data_source_to_cloak, id, [cloak_info],
-      fn(cloak_infos) -> [cloak_info | cloak_infos] end)
+    data_source_to_cloak = Map.update(data_source_to_cloak, id, [cloak_info], &([cloak_info | &1]))
     %{state | data_source_to_cloak: data_source_to_cloak}
   end
 
@@ -132,9 +129,7 @@ defmodule Air.DataSourceManager do
   end
 
   defp remove_cloak_info(channel_pid, {unique_id, cloak_infos}) do
-    filtered_cloak_infos = Enum.reject(cloak_infos, fn(cloak_info) ->
-      cloak_info.channel_pid === channel_pid
-    end)
+    filtered_cloak_infos = Enum.reject(cloak_infos, &(&1.channel_pid == channel_pid))
     if filtered_cloak_infos === [], do: Logger.info("Data source #{unique_id} is now unavailable")
     {unique_id, filtered_cloak_infos}
   end

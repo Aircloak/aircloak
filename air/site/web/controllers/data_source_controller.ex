@@ -27,9 +27,8 @@ defmodule Air.DataSourceController do
 
   def index(conn, _params) do
     data_sources = Repo.all(DataSource)
-    {available_data_sources, unavailable_data_sources} = Enum.partition(data_sources, fn(data_source) ->
-      DataSourceManager.available?(data_source.unique_id)
-    end)
+    {available_data_sources, unavailable_data_sources} = Enum.partition(data_sources,
+      &(DataSourceManager.available?(&1.unique_id)))
     render(conn, "index.html",
       available_data_sources: available_data_sources,
       unavailable_data_sources: unavailable_data_sources
