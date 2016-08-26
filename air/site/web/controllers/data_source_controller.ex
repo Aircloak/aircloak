@@ -5,7 +5,7 @@ defmodule Air.DataSourceController do
 
   use Air.Web, :controller
 
-  alias Air.{DataSource, Query}
+  alias Air.{DataSource, Query, DataSourceManager}
   alias Plug.CSRFProtection
 
 
@@ -26,8 +26,14 @@ defmodule Air.DataSourceController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    data_sources = Repo.all(DataSource) |> Repo.preload(:cloak)
-    render(conn, "index.html", data_sources: data_sources)
+    data_sources = Repo.all(DataSource)
+    {available_data_sources, unavailable_data_sources} = Enum.partition(data_sources, fn(data_source) ->
+      DataSourceManager.available?(data_source.unique_id)
+    end)
+    render(conn, "index.html",
+      available_data_sources: available_data_sources,
+      unavailable_data_sources: unavailable_data_sources
+    )
   end
 
   def show(conn, %{"data_source_id" => id}) do
