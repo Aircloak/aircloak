@@ -83,7 +83,7 @@ defmodule Air.DataSourceManager do
 
   @doc false
   def handle_cast(msg, state) do
-    raise "Unimplemented cast: #{inspect msg}"
+    Logger.error("Unimplemented cast: #{inspect msg}")
     {:noreply, state}
   end
 
