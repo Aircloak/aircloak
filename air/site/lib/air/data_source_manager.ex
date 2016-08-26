@@ -29,9 +29,14 @@ defmodule Air.DataSourceManager do
   def register_cloak(cloak_info, data_sources), do:
     GenServer.call(@server, {:register_cloak, cloak_info, data_sources})
 
-  @doc "Halts the data source manager"
-  @spec stop() :: :ok
-  def stop(), do: GenServer.stop(@server)
+  @doc "Returns the pids of all the phoenix channels of the cloaks that have the data source"
+  @spec channel_pids(String.t) :: [pid]
+  def channel_pids(data_source_id), do:
+    GenServer.call(@server, {:channel_pids, data_source_id})
+
+  @doc "Whether or not a data source is available for querying. True if it has one or more cloaks online"
+  @spec available?(String.t) :: boolean
+  def available?(data_source_id), do: channel_pids(data_source_id) !== []
 
 
   # -------------------------------------------------------------------
@@ -54,6 +59,11 @@ defmodule Air.DataSourceManager do
       register_data_source(data_source, cloak_info, state_acc)
     end)
     {:reply, :ok, state}
+  end
+  def handle_call({:channel_pids, data_source_id}, _from, state) do
+    cloak_infos = Map.get(state.data_source_to_cloak, data_source_id, [])
+    pids = Enum.map(cloak_infos, &(&1.channel_pid))
+    {:reply, pids, state}
   end
   def handle_call(msg, _from, state) do
     raise "Unimplemented call: #{inspect msg}"
