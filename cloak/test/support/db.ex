@@ -16,10 +16,10 @@ defmodule Cloak.Test.DB do
     GenServer.call(__MODULE__, {:create_table, table_name, definition, opts})
   end
 
-  def add_users_data(data) do
-    for {user_id, user_data} <- data, {table_name, table_data} <- user_data do
-      insert_rows(user_id, table_name, table_data)
-    end
+  def add_users_data(table_name, columns, rows) do
+    row_count = length(rows)
+    {sql, params} = prepare_insert(table_name, columns, rows)
+    {:ok, %Postgrex.Result{num_rows: ^row_count}} = PostgreSQL.execute(sql, params)
     :ok
   end
 
@@ -62,21 +62,26 @@ defmodule Cloak.Test.DB do
     end
   end
 
-  defp insert_rows(user_id, table_name, table_data) do
-    columns = Enum.map(["user_id" | Keyword.fetch!(table_data, :columns)], &sanitize_db_object/1)
-    rows = Enum.map(Keyword.fetch!(table_data, :data), fn(row) -> [user_id | row] end)
-    placeholders = 1..length(columns)
-    |> Enum.map(fn(index) -> "$#{index}" end)
-    |> Enum.join(",")
+  defp prepare_insert(table_name, columns, rows) do
+    columns = Enum.map(["user_id" | columns], &sanitize_db_object/1)
 
-    query = """
-    INSERT INTO #{sanitized_table(table_name)}
-    (#{Enum.join(columns, ",")})
-    VALUES(#{placeholders})
-    """
+    n_columns = length(columns)
+    value_tuples =
+      for {row, row_index} <- Enum.with_index(rows) do
+        params_string =
+          for {_column, column_index} <- Enum.with_index(row) do
+            ["$#{row_index * n_columns + column_index + 1}"]
+          end
+          |> Enum.join(",")
 
-    for row <- rows, do: {:ok, _} = PostgreSQL.execute(query, row)
-    :ok
+        "(#{params_string})"
+      end
+      |> Enum.join(",")
+
+    {
+      "INSERT INTO #{sanitized_table(table_name)}(#{Enum.join(columns, ",")}) VALUES #{value_tuples}",
+      Enum.flat_map(rows, &(&1))
+    }
   end
 
   defp sanitized_table(table_name), do: sanitize_db_object(full_table_name(table_name))

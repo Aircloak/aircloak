@@ -28,15 +28,6 @@ defmodule Cloak.Test.QueryHelpers do
   end
 
   def insert_rows(user_id_range, table, columns, values) do
-    Cloak.Test.DB.add_users_data(
-      Enum.map(user_id_range,
-        &{"user#{&1}", [
-          {table, [
-            columns: columns,
-            data: [values]
-          ]}
-        ]}
-      )
-    )
+    Cloak.Test.DB.add_users_data(table, columns, Enum.map(user_id_range, &["user#{&1}" | values]))
   end
 end
