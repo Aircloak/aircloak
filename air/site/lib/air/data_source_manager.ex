@@ -27,7 +27,11 @@ defmodule Air.DataSourceManager do
   """
   @spec register_cloak(Map.t, Map.t) :: :ok
   def register_cloak(cloak_info, data_sources), do:
-    GenServer.cast(@server, {:register_cloak, cloak_info, data_sources})
+    GenServer.call(@server, {:register_cloak, cloak_info, data_sources})
+
+  @doc "Halts the data source manager"
+  @spec stop() :: :ok
+  def stop(), do: GenServer.stop(@server)
 
 
   # -------------------------------------------------------------------
@@ -44,19 +48,19 @@ defmodule Air.DataSourceManager do
   end
 
   @doc false
+  def handle_call({:register_cloak, cloak_info, data_sources}, _from, state) do
+    Process.monitor(cloak_info.channel_pid)
+    state = Enum.reduce(data_sources, state, fn(data_source, state_acc) ->
+      register_data_source(data_source, cloak_info, state_acc)
+    end)
+    {:reply, :ok, state}
+  end
   def handle_call(msg, _from, state) do
     raise "Unimplemented call: #{inspect msg}"
     {:reply, {:error, :not_implemented}, state}
   end
 
   @doc false
-  def handle_cast({:register_cloak, cloak_info, data_sources}, state) do
-    Process.monitor(cloak_info.channel_pid)
-    state = Enum.reduce(data_sources, state, fn(data_source, state_acc) ->
-      register_data_source(data_source, cloak_info, state_acc)
-    end)
-    {:noreply, state}
-  end
   def handle_cast(msg, state) do
     raise "Unimplemented cast: #{inspect msg}"
     {:noreply, state}
