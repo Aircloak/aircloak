@@ -24,33 +24,6 @@ defmodule Air.DataSource do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc """
-  Create, or updates, a data source entry for a cloak.
-  The data source is associated with the cloak, and the
-  table data encoded as JSON
-  """
-  @spec register(Cloak.t, Map.t) :: :ok
-  def register(cloak, data) do
-    name = data["id"]
-    params = %{
-      cloak_id: cloak.id,
-      name: name,
-      tables: Poison.encode!(data["tables"]),
-    }
-
-    case Repo.one(from ds in DataSource, where: ds.name == ^name and ds.cloak_id == ^cloak.id) do
-      nil ->
-        %DataSource{}
-        |> changeset(params)
-        |> Repo.insert!()
-      data_source ->
-        data_source
-        |> changeset(params)
-        |> Repo.update!
-    end
-    :ok
-  end
-
   @doc "Returns a map representation of the data source tables"
   @spec tables(DataSource.t) :: [Map.t]
   def tables(data_source) do
