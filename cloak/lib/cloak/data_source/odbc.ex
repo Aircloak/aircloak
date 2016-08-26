@@ -41,7 +41,7 @@ defmodule Cloak.DataSource.ODBC do
   @doc false
   def get_columns(source_id, full_table_name) do
     {:ok, columns} = execute(source_id, fn (conn) ->
-      :odbc.describe_table(conn, to_char_list(full_table_name), 15_000)
+      :odbc.describe_table(conn, to_char_list(full_table_name), _timeout = 15_000)
     end)
     for {name, type} <- columns, do: {to_string(name), parse_type(type)}
   end
@@ -51,10 +51,10 @@ defmodule Cloak.DataSource.ODBC do
     statement = sql_query |> SqlBuilder.build() |> to_char_list()
     field_mappers = for column <- sql_query.db_columns, do: column_to_field_mapper(column)
     execute(source_id, fn (conn) ->
-      case :odbc.select_count(conn, statement, 4 * 60 * 60_000) do
+      case :odbc.select_count(conn, statement, _timeout = 4 * 60 * 60_000) do
         {:ok, _count} ->
           data_stream = Stream.resource(fn () -> conn end, fn (conn) ->
-            case :odbc.select(conn, :next, 25_000, 5 * 60_000) do
+            case :odbc.select(conn, :next, _rows_per_batch = 25_000, _timeout = 5 * 60_000) do
               {:selected, _columns, []} -> {:halt, conn}
               {:selected, _columns, rows} -> {Enum.map(rows, &map_fields(&1, field_mappers)), conn}
               {:error, reason} -> raise to_string(reason)
