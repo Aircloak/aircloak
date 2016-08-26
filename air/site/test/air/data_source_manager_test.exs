@@ -2,6 +2,8 @@ defmodule Air.DataSourceManager.Test do
   use ExUnit.Case, async: false
   use Air.ModelCase
 
+  import Air.AssertionHelper
+
   alias Air.{Repo, DataSource, DataSourceManager}
 
   setup do
@@ -46,7 +48,7 @@ defmodule Air.DataSourceManager.Test do
     {terminator, pid} = temporarily_alive()
     DataSourceManager.register_cloak(cloak_info(pid), @data_sources)
     terminator.()
-    assert dont_immediately_give_up(fn -> [] == DataSourceManager.channel_pids(@data_source_id) end)
+    assert soon([] == DataSourceManager.channel_pids(@data_source_id))
   end
 
   test "should unregister cloak when channel closes, but retain alternative cloaks" do
@@ -55,7 +57,7 @@ defmodule Air.DataSourceManager.Test do
     {_terminator2, pid2} = temporarily_alive()
     assert :ok == DataSourceManager.register_cloak(cloak_info(pid2), @data_sources)
     terminator1.()
-    assert dont_immediately_give_up(fn -> [pid2] == DataSourceManager.channel_pids(@data_source_id) end)
+    assert soon([pid2] == DataSourceManager.channel_pids(@data_source_id))
   end
 
   test "should be able to tell when a data source is available" do
@@ -88,17 +90,5 @@ defmodule Air.DataSourceManager.Test do
   defp temporarily_alive() do
     pid = spawn_link(fn -> receive do :stop -> :ok end end)
     {fn -> send(pid, :stop) end, pid}
-  end
-
-  defp dont_immediately_give_up(check), do: dont_immediately_give_up(check, 10)
-
-  defp dont_immediately_give_up(_, 0), do: false
-  defp dont_immediately_give_up(check, n) do
-    if check.() do
-      true
-    else
-      :timer.sleep(10)
-      dont_immediately_give_up(check, n - 1)
-    end
   end
 end
