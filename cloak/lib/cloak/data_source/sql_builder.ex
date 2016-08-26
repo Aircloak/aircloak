@@ -57,23 +57,27 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: [cast(constant_to_fragment(value), sql_type(type))]
   defp column_sql(column), do: column_name(column)
 
+  # aggregate functions
   defp function_sql("min", [arg], _type), do: function_call("min", [column_sql(arg)])
   defp function_sql("max", [arg], _type), do: function_call("max", [column_sql(arg)])
   defp function_sql("avg", [arg], type), do: cast(function_call("avg", [column_sql(arg)]), sql_type(type))
   defp function_sql("sum", [arg], type), do: cast(function_call("sum", [column_sql(arg)]), sql_type(type))
   defp function_sql("count", [:*], _type), do: cast(function_call("count", ["*"]), "integer")
   defp function_sql("count", [arg], _type), do: cast(function_call("count", [column_sql(arg)]), "integer")
-  defp function_sql("coalesce", args, _type), do: function_call("coalesce", [columns_sql(args)])
-  defp function_sql({:cast, type}, [arg], _type), do: cast(column_sql(arg), sql_type(type))
+  # math functions
   defp function_sql("trunc", [arg], _type), do: cast(function_call("trunc", [column_sql(arg)]), "integer")
   defp function_sql("trunc", [arg1, arg2], _type),
     do: cast(function_call("trunc", [cast(column_sql(arg1), "numeric"), column_sql(arg2)]), "float")
+  # datetime functions
   for datepart <- ["year", "month", "day", "hour", "minute", "second"] do
     defp function_sql(unquote(datepart), [arg], _type) do
       function_call("extract", [[unquote(datepart), " FROM ", column_sql(arg)]])
       |> cast("integer")
     end
   end
+  # misc functions
+  defp function_sql("coalesce", args, _type), do: function_call("coalesce", [columns_sql(args)])
+  defp function_sql({:cast, type}, [arg], _type), do: cast(column_sql(arg), sql_type(type))
   # binary operators
   for binary_operator <- ["+", "-", "*", "^"] do
     defp function_sql(unquote(binary_operator), [arg1, arg2], _type) do
