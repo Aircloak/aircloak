@@ -254,7 +254,7 @@ defmodule Cloak.Aql.Parser do
         keyword(:"("),
         identifier(),
         keyword(:from),
-        lazy(fn -> column() end),
+        lazy(fn -> map(column(), &[&1]) end),
         keyword(:")"),
       ],
       fn([:extract, :"(", part, :from, column, :")"]) -> {:function, String.downcase(part), column} end

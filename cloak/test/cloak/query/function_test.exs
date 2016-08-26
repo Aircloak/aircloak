@@ -92,6 +92,13 @@ defmodule Cloak.Query.FunctionTest do
   test "minute", do: assert_function_success("minute(datetime)", "datetimes_ft", 4)
   test "second", do: assert_function_success("second(datetime)", "datetimes_ft", 5)
 
+  test "extract(year)", do: assert_function_success("extract(year from datetime)", "datetimes_ft", 2015)
+  test "extract(month)", do: assert_function_success("extract(month from datetime)", "datetimes_ft", 1)
+  test "extract(day)", do: assert_function_success("extract(day from datetime)", "datetimes_ft", 2)
+  test "extract(hour)", do: assert_function_success("extract(hour from datetime)", "datetimes_ft", 3)
+  test "extract(minute)", do: assert_function_success("extract(minute from datetime)", "datetimes_ft", 4)
+  test "extract(second)", do: assert_function_success("extract(second from datetime)", "datetimes_ft", 5)
+
   test "type errors", do: assert_function_error(
     "trunc('foobar')",
     "heights_ft",
