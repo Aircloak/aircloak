@@ -27,10 +27,9 @@ defmodule Air.DataSource do
   @doc "Returns a map representation of the data source tables"
   @spec tables(DataSource.t) :: [Map.t]
   def tables(data_source) do
-    try do
-      Poison.decode!(data_source.tables)
-    rescue
-      Poison.SyntaxError -> []
+    case Poison.decode(data_source.tables) do
+      {:ok, tables} -> tables
+      _ -> []
     end
   end
 
