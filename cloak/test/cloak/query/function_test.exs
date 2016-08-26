@@ -80,6 +80,8 @@ defmodule Cloak.Query.FunctionTest do
 
   test "trunc/1", do: assert_function_success("trunc(height + 0.6)", "heights_ft", 180)
   test "trunc/2", do: assert_function_success("trunc(height + 0.126, 2)", "heights_ft", 180.12)
+  test "round/1", do: assert_function_success("round(height + 0.6)", "heights_ft", 181)
+  test "round/2", do: assert_function_success("round(height + 0.126, 2)", "heights_ft", 180.13)
 
   test "cast as integer", do: assert_function_success("cast('42' AS integer)", "heights_ft", 42)
   test "cast as real", do: assert_function_success("cast('42' AS real)", "heights_ft", 42.0)

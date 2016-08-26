@@ -68,6 +68,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp function_sql("trunc", [arg], _type), do: cast(function_call("trunc", [column_sql(arg)]), "integer")
   defp function_sql("trunc", [arg1, arg2], _type),
     do: cast(function_call("trunc", [cast(column_sql(arg1), "numeric"), column_sql(arg2)]), "float")
+  defp function_sql("round", [arg], _type), do: cast(function_call("round", [column_sql(arg)]), "integer")
+  defp function_sql("round", [arg1, arg2], _type),
+    do: cast(function_call("round", [cast(column_sql(arg1), "numeric"), column_sql(arg2)]), "float")
   # datetime functions
   for datepart <- ["year", "month", "day", "hour", "minute", "second"] do
     defp function_sql(unquote(datepart), [arg], _type) do
