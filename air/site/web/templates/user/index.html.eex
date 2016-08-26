@@ -1,5 +1,5 @@
 <h2>Users</h2>
-<hr/>
+
 <%= render "_users.html", users: @users, conn: @conn %>
 
 <a href="<%= user_path(@conn, :new) %>">Add user</a>

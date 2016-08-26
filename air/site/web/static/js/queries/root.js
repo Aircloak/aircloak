@@ -94,6 +94,9 @@ class QueriesView extends React.Component {
   }
 
   runQuery() {
+    if (! this.props.dataSourceAvailable) {
+      return;
+    }
     const statement = this.state.statement;
     $.ajax("/queries", {
       method: "POST",
@@ -163,10 +166,12 @@ class QueriesView extends React.Component {
           onSave={() => {}}
           onChange={this.setStatement}
           statement={this.state.statement}
+          readOnly={!this.props.dataSourceAvailable}
         />
 
         <div className="right-align">
-          <MenuButton onClick={this.runQuery} isActive>Run</MenuButton> or <kbd>Ctrl + Enter</kbd>
+          <MenuButton onClick={this.runQuery} isActive={this.props.dataSourceAvailable}>Run</MenuButton>&nbsp;
+          or <kbd>Ctrl + Enter</kbd>
         </div>
       </div>
 
@@ -184,6 +189,7 @@ export default function renderQueriesView(data, elem) {
 
 QueriesView.propTypes = {
   dataSourceId: React.PropTypes.string.isRequired,
+  dataSourceAvailable: React.PropTypes.bool.isRequired,
   lastQuery: React.PropTypes.shape({
     statement: React.PropTypes.string.isRequired,
   }),

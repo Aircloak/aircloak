@@ -98,6 +98,7 @@ defmodule Cloak.DataSource do
   def start_link() do
     data_sources =
       Cloak.DeployConfig.fetch!("data_sources")
+      |> add_unique_id()
       |> atomize_keys()
       |> Enum.map(&map_driver/1)
 
@@ -190,6 +191,27 @@ defmodule Cloak.DataSource do
     |> List.to_tuple()
   end
   defp atomize_keys(other), do: other
+
+  defp add_unique_id(data_sources) do
+    data_sources
+    |> Enum.map(&add_unique_id_to_data_source/1)
+    |> Enum.into(%{})
+  end
+
+  defp add_unique_id_to_data_source({data_source_name, data}) do
+    database_name = data["parameters"]["database"] || ""
+    database_host = data["parameters"]["hostname"] || ""
+    username = data["parameters"]["username"] || ""
+    # Useful when we want to make the same data source appear multiple times
+    # as if it was distinct data sources. Used in staging and testing environments.
+    aircloak_data_source_marker = data["data_source_marker"] || ""
+    unique_id_data = ["acuid", aircloak_data_source_marker, database_name, database_host, username]
+    # MD5 is perfectly fine here, as the hash doesn't serve any other purpose than generating
+    # a single ID based on the data. Of course collisions can be constructed, but doing so is
+    # not in anyone's interest, and furthermore would not compromise any user data.
+    unique_id = :crypto.hash(:md5, unique_id_data) |> Base.encode64()
+    {data_source_name, Map.merge(data, %{"unique_id" => unique_id})}
+  end
 
   # load the columns list for all defined tables in all data sources
   defp cache_columns(data_sources) do

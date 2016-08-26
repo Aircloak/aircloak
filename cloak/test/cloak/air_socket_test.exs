@@ -24,7 +24,9 @@ defmodule Cloak.AirSocketTest do
   test "connection", %{cloak_name: cloak_name} do
     MainChannel.await(cloak_name)
     cloak_info = MainChannel.cloak_info(cloak_name)
-    assert %{"data_sources" => [%{"id" => "local", "tables" => _}, %{"id" => "local_odbc", "tables" => _}]} = cloak_info
+    assert %{"data_sources" => [
+      %{"id" => _, "name" => "local", "tables" => _}, %{"id" => _, "name" => "local_odbc", "tables" => _}
+    ]} = cloak_info
   end
 
   test "disconnect/reconnect", %{cloak_name: cloak_name} do

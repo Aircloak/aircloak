@@ -1,13 +1,15 @@
 defmodule Air.Socket.CloakTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
   alias Air.Socket.Cloak.MainChannel
-  alias Air.{CloakInfo, Organisation, TestSocketHelper}
+  alias Air.{Organisation, TestSocketHelper, DataSourceManager}
 
-  import Air.TestRepoHelper
-
+  setup do
+    DataSourceManager.start_link()
+    :ok
+  end
 
   test "cloak name must be provided" do
     params = %{cloak_name: "", cloak_organisation: "some_organisation"}
@@ -35,7 +37,7 @@ defmodule Air.Socket.CloakTest do
     join_main_channel!(socket)
 
     async_query(
-      CloakInfo.cloak_id("some_organisation", "cloak_1"),
+      channel_pid(),
       %Organisation{name: "some_organisation"},
       %{id: 42, code: ""}
     )
@@ -74,43 +76,12 @@ defmodule Air.Socket.CloakTest do
     assert Air.Repo.get!(Air.Query, query.id).result != nil
   end
 
-  test "getting data for connected cloaks" do
-    socket1 = connect!(%{cloak_name: "cloak_3"})
-    join_main_channel!(socket1)
-    assert [%Air.CloakInfo{name: "cloak_3"} = cloak_3] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
-    assert cloak_3 == CloakInfo.get(cloak_3.id)
-    assert nil == CloakInfo.get("non-existing cloak")
-
-    socket2 = connect!(%{cloak_name: "cloak_4"})
-    join_main_channel!(socket2)
-
-    # admin org fetches all cloaks
-    all_cloaks = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
-    assert [%Air.CloakInfo{name: "cloak_3"}, %Air.CloakInfo{name: "cloak_4"} = cloak_4] = Enum.sort(all_cloaks)
-    assert cloak_4 == CloakInfo.get(cloak_4.id)
-
-    # owner org fetches all owned cloaks
-    all_cloaks = CloakInfo.all(%Air.Organisation{name: "some_organisation"})
-    assert [%Air.CloakInfo{name: "cloak_3"}, %Air.CloakInfo{name: "cloak_4"}] = Enum.sort(all_cloaks)
-
-    # cloak data disappears when it leaves the main channel
-    mref =
-      CloakInfo.cloak_id("some_organisation", "cloak_3")
-      |> CloakInfo.main_channel_pid()
-      |> Process.monitor()
-
-    TestSocket.leave(socket1, "main")
-    assert_receive {:DOWN, ^mref, _, _, _}
-    assert [%Air.CloakInfo{name: "cloak_4"}] = CloakInfo.all(Air.TestRepoHelper.admin_organisation())
-    assert nil == CloakInfo.get(cloak_3.id)
-  end
-
   test "can't run a query on a cloak from another organisation" do
     socket = connect!()
     join_main_channel!(socket)
 
     async_query(
-      CloakInfo.cloak_id("some_organisation", "cloak_1"),
+      channel_pid(),
       %Organisation{name: "another_organisation"},
       %{id: 42, code: ""}
     )
@@ -118,37 +89,29 @@ defmodule Air.Socket.CloakTest do
     assert {:error, :forbidden} == query_response!()
   end
 
-  test "admins can run a query on a cloak from another organisation" do
-    socket = connect!()
-    join_main_channel!(socket)
-
-    async_query(
-      CloakInfo.cloak_id("some_organisation", "cloak_1"),
-      admin_organisation(),
-      %{id: 42, code: ""}
-    )
-
-    request = next_cloak_request(socket)
-    respond_to_cloak(socket, request, %{status: "ok"})
-
-    assert :ok == query_response!()
-  end
-
-
   defp connect!(params \\ %{}) do
     default_params = %{
       cloak_name: "cloak_1",
-      cloak_organisation: "some_organisation"
+      cloak_organisation: "some_organisation",
     }
     TestSocketHelper.connect!(Map.merge(default_params, params))
   end
 
-  defp join_main_channel!(socket, data_sources \\ []) do
+  defp channel_pid do
+    [pid | _] = DataSourceManager.channel_pids("data_source_id")
+    pid
+  end
+
+  defp join_main_channel!(socket, data_sources \\ default_data_sources()) do
     {:ok, %{}} = join_main_channel(socket, data_sources)
   end
 
-  defp join_main_channel(socket, data_sources \\ []) do
+  defp join_main_channel(socket, data_sources \\ default_data_sources()) do
     TestSocketHelper.join!(socket, "main", %{data_sources: data_sources})
+  end
+
+  defp default_data_sources() do
+    [%{"id" => "data_source_id", "name" => "data source name", "tables" => []}]
   end
 
   defp async_query(cloak_id, user_organisation, payload) do

@@ -256,7 +256,7 @@ defmodule Cloak.AirSocket do
         end
         %{id: table, columns: columns}
       end
-      %{id: data_source.id, tables: tables}
+      %{id: data_source.unique_id, name: data_source.id, tables: tables}
     end
     %{data_sources: data_sources}
   end
