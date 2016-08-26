@@ -2,35 +2,56 @@ defmodule Air.CloaksControllerTest do
   use Air.ConnCase
 
   import Air.TestConnHelper
-  alias Air.{TestRepoHelper, TestSocketHelper, Repo, Cloak}
-  alias Phoenix.Channels.GenSocketClient.TestSocket
+  alias Air.{TestRepoHelper, DataSourceManager}
 
   test "anonymous user can't access the page", %{conn: conn} do
     conn |> get("/cloaks") |> redirected_to()
   end
 
-  test "listing connected cloaks" do
-    Repo.delete_all(Cloak)
-
+  test "only shows cloaks while they are online" do
     org = TestRepoHelper.create_organisation!("unknown_org")
     user = TestRepoHelper.create_user!(org, :user)
 
     # connect a mock cloak
-    socket = TestSocketHelper.connect!(%{cloak_name: "test_cloak1", cloak_organisation: org.name})
-    TestSocketHelper.join!(socket, "main", %{data_sources: []})
+    {terminator, pid} = temporarily_alive()
+    cloak_info = %{
+      channel_pid: pid,
+      id: "cloak id",
+      name: "cloak name",
+      online_since: Timex.DateTime.now(),
+    }
+
+    data_sources = [%{"id" => "id", "name" => "name", "tables" => []}]
+    DataSourceManager.register_cloak(cloak_info, data_sources)
 
     # verify that it's in the list
     html_response = login(user) |> get("/cloaks") |> response(200)
-    assert html_response =~ "test_cloak1"
-    assert html_response =~ "online"
+    assert html_response =~ "cloak name"
 
     # disconnect the cloak
-    mref = Process.monitor(Cloak.channel_pid(Repo.one(Cloak)))
-    TestSocket.leave(socket, "main")
-    assert_receive {:DOWN, ^mref, _, _, _}
+    terminator.()
 
-    # it shouldn't be in the list anymore
-    html_response = login(user) |> get("/cloaks") |> response(200)
-    assert html_response =~ "offline"
+    # verify that it's in the list
+    refute dont_immediately_give_up(fn ->
+      html_response = login(user) |> get("/cloaks") |> response(200)
+      html_response =~ "test_cloak1"
+    end)
+  end
+
+  defp temporarily_alive() do
+    pid = spawn(fn -> receive do :stop -> :ok end end)
+    {fn -> send(pid, :stop) end, pid}
+  end
+
+  defp dont_immediately_give_up(check), do: dont_immediately_give_up(check, 10)
+
+  defp dont_immediately_give_up(_, 0), do: false
+  defp dont_immediately_give_up(check, n) do
+    if check.() do
+      true
+    else
+      :timer.sleep(10)
+      dont_immediately_give_up(check, n-1)
+    end
   end
 end
