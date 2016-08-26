@@ -2,7 +2,7 @@ defmodule Air.DataSourceManager.Test do
   use ExUnit.Case, async: false
   use Air.ModelCase
 
-  import Air.AssertionHelper
+  import Air.{AssertionHelper, TestUtils}
 
   alias Air.{Repo, DataSource, DataSourceManager}
 
@@ -32,32 +32,36 @@ defmodule Air.DataSourceManager.Test do
   end
 
   test "should return a cloak channel pid given a registered data source" do
-    {_terminator, pid} = temporarily_alive()
+    {terminator, pid} = temporary_process()
     DataSourceManager.register_cloak(cloak_info(pid), @data_sources)
     assert [pid] == DataSourceManager.channel_pids(@data_source_id)
+    terminator.()
   end
 
   test "should allow assigning multiple cloaks to the same data source" do
-    {_terminator1, pid1} = temporarily_alive()
+    {terminator1, pid1} = temporary_process()
     assert :ok == DataSourceManager.register_cloak(cloak_info(pid1), @data_sources)
-    {_terminator2, pid2} = temporarily_alive()
+    {terminator2, pid2} = temporary_process()
     assert :ok == DataSourceManager.register_cloak(cloak_info(pid2), @data_sources)
+    terminator1.()
+    terminator2.()
   end
 
   test "should unregister cloak when channel closes" do
-    {terminator, pid} = temporarily_alive()
+    {terminator, pid} = temporary_process()
     DataSourceManager.register_cloak(cloak_info(pid), @data_sources)
     terminator.()
     assert soon([] == DataSourceManager.channel_pids(@data_source_id))
   end
 
   test "should unregister cloak when channel closes, but retain alternative cloaks" do
-    {terminator1, pid1} = temporarily_alive()
+    {terminator1, pid1} = temporary_process()
     assert :ok == DataSourceManager.register_cloak(cloak_info(pid1), @data_sources)
-    {_terminator2, pid2} = temporarily_alive()
+    {terminator2, pid2} = temporary_process()
     assert :ok == DataSourceManager.register_cloak(cloak_info(pid2), @data_sources)
     terminator1.()
     assert soon([pid2] == DataSourceManager.channel_pids(@data_source_id))
+    terminator2.()
   end
 
   test "should be able to tell when a data source is available" do
@@ -85,10 +89,5 @@ defmodule Air.DataSourceManager.Test do
       name: "cloak_name",
       online_since: Timex.DateTime.now()
     }
-  end
-
-  defp temporarily_alive() do
-    pid = spawn_link(fn -> receive do :stop -> :ok end end)
-    {fn -> send(pid, :stop) end, pid}
   end
 end

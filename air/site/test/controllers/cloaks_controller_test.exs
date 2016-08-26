@@ -1,7 +1,7 @@
 defmodule Air.CloaksControllerTest do
   use Air.ConnCase
 
-  import Air.{TestConnHelper, AssertionHelper}
+  import Air.{TestConnHelper, AssertionHelper, TestUtils}
   alias Air.{TestRepoHelper, DataSourceManager}
 
   test "anonymous user can't access the page", %{conn: conn} do
@@ -13,7 +13,7 @@ defmodule Air.CloaksControllerTest do
     user = TestRepoHelper.create_user!(org, :user)
 
     # connect a mock cloak
-    {terminator, pid} = temporarily_alive()
+    {terminator, pid} = temporary_process()
     cloak_info = %{
       channel_pid: pid,
       id: "cloak id",
@@ -33,10 +33,5 @@ defmodule Air.CloaksControllerTest do
 
     # verify that it's in the list
     refute soon((login(user) |> get("/cloaks") |> response(200)) =~ "test_cloak1")
-  end
-
-  defp temporarily_alive() do
-    pid = spawn(fn -> receive do :stop -> :ok end end)
-    {fn -> send(pid, :stop) end, pid}
   end
 end
