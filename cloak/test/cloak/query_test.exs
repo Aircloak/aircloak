@@ -1,5 +1,5 @@
 defmodule Cloak.QueryTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   import Cloak.Test.QueryHelpers
   alias Cloak.Aql.Column

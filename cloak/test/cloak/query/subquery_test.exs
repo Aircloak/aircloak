@@ -1,5 +1,5 @@
 defmodule Cloak.Query.SubqueryTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   import Cloak.Test.QueryHelpers
 
