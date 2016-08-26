@@ -54,6 +54,8 @@ defmodule Air.Router do
 
     get "/data_sources", DataSourceController, :index
     get "/data_sources/:data_source_id", DataSourceController, :show
+
+    get "/open_source", OpenSourceController, :index
   end
 
   scope "/api" do

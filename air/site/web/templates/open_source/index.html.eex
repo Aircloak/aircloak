@@ -1,0 +1,11 @@
+<h2>Package licenses</h2>
+
+<ul>
+  <%= for package <- @packages do %>
+    <li>
+      <a href="/open_source/<%= package.type %>/<%= package.name %>">
+        <%= package.name %>: <%= package.license_type %>
+      </a>
+    </li>
+  <% end %>
+</ul>
