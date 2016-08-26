@@ -136,3 +136,9 @@ ul.data-source li p {
   padding-top: 5px;
   margin-top: -1px;
 }
+
+h2 {
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgb(238, 238, 238);
+  margin-bottom: 20px;
+}

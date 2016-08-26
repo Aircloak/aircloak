@@ -1,5 +1,5 @@
 <h2>Cloaks</h2>
-<hr/>
+
 <%= if length(@cloaks) == 0 do %>
   <div><b>There are currently no cloaks registered.</b></div>
 <% else %>

@@ -1,5 +1,5 @@
 <h2>Edit organisation</h2>
-<hr/>
+
 <%= render "form.html", changeset: @changeset,
                         action: organisation_path(@conn, :update, @organisation) %>
 

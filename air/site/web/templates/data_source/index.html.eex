@@ -1,5 +1,4 @@
 <h2>Data sources</h2>
-<hr/>
 
 <%= if length(@available_data_sources ++ @unavailable_data_sources) == 0 do %>
 

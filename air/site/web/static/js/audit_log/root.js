@@ -70,7 +70,6 @@ class AuditLogView extends React.Component {
     return (
       <div>
         <h2>Audit log {loading}</h2>
-        <hr />
 
         <div className="controls">
           <FilterControl value={this.state.filterText} onChange={this.filterTextChange} className="filter" />

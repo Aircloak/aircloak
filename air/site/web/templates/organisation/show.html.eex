@@ -1,5 +1,5 @@
 <h2><%= @organisation.name %></h2>
-<hr/>
+
 <%= render Air.UserView, "_users.html",
     users: @organisation.users, conn: @conn %>
 
