@@ -123,6 +123,9 @@ defmodule Cloak.Aql.Lexer do
 
   defp string_content() do
     choice([
+      string("''") |> return("'"),
+      string("'\r\n'") |> return("'"),
+      string("'\n'") |> return("'"),
       string("\\'") |> return("'"),
       string("\\\\") |> return("\\"),
       word_of(~r/[^'\\]+/),
