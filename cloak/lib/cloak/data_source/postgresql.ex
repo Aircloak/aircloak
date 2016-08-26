@@ -35,10 +35,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   end
 
   @doc false
-  def select(source_id, sql_query, result_processor) do
-    {query_string, params} = SqlBuilder.build(sql_query)
-    params = Enum.map(params, &convert_param/1)
-    run_query(source_id, query_string, params, &row_mapper/1, result_processor)
+  def select(source_id, aql_query, result_processor) do
+    statement = SqlBuilder.build(aql_query)
+    run_query(source_id, statement, &row_mapper/1, result_processor)
   end
 
 
@@ -46,12 +45,12 @@ defmodule Cloak.DataSource.PostgreSQL do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp run_query(source_id, statement, params \\ [], decode_mapper, result_processor) do
+  defp run_query(source_id, statement, decode_mapper, result_processor) do
     options = [timeout: 4 * 60 * 60_000, pool_timeout: 5 * 60_000, pool: @pool_name]
     Postgrex.transaction(proc_name(source_id), fn(conn) ->
       with {:ok, query} <- Postgrex.prepare(conn, "data select", statement, []) do
         try do
-          Postgrex.stream(conn, query, params, [decode_mapper: decode_mapper, max_rows: 25_000])
+          Postgrex.stream(conn, query, [], [decode_mapper: decode_mapper, max_rows: 25_000])
           |> Stream.flat_map(fn (%Postgrex.Result{rows: rows}) -> rows end)
           |> result_processor.()
         after
@@ -80,13 +79,6 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("timetz"), do: :time
   defp parse_type("date"), do: :date
   defp parse_type(type), do: {:unsupported, type}
-
-  defp convert_param(%NaiveDateTime{} = time) do
-    %Postgrex.Timestamp{
-      year: time.year, month: time.month, day: time.day, hour: time.hour, min: time.minute, sec: time.second
-    }
-  end
-  defp convert_param(param), do: param
 
 
   # -------------------------------------------------------------------

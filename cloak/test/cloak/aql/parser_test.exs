@@ -251,12 +251,26 @@ defmodule Cloak.Aql.Parser.Test do
         columns: [{:identifier, :unknown, "foo"}], from: "bar",
         where: [
           {:not, {:comparison, {:identifier, :unknown, "a"}, :=, constant(10)}},
-          {:comparison, {:identifier, :unknown, "b"}, :=, constant("bar")}]
+          {:comparison, {:identifier, :unknown, "b"}, :=, constant("bar")}
+        ]
       )
     )
   end
 
-  test "where clause with LIKE is OK" do
+  test "where clause with BETWEEN" do
+    assert_parse(
+      "select foo from bar where a between 10 and 20",
+      select(
+        columns: [{:identifier, :unknown, "foo"}], from: "bar",
+        where: [
+          {:comparison, {:identifier, :unknown, "a"}, :>=, constant(10)},
+          {:comparison, {:identifier, :unknown, "a"}, :<=, constant(20)}
+        ]
+      )
+    )
+  end
+
+  test "where clause with LIKE" do
     assert_parse(
       "select foo from bar where a LIKE '_ob d%'",
       select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
@@ -286,7 +300,7 @@ defmodule Cloak.Aql.Parser.Test do
     )
   end
 
-  test "where clause with IN is OK" do
+  test "where clause with IN" do
     assert_parse(
       "select foo from bar where a IN (1, 2, 3)",
       select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
@@ -302,7 +316,7 @@ defmodule Cloak.Aql.Parser.Test do
     )
   end
 
-  test "where clause with all types of clauses is OK" do
+  test "where clause with all types of clauses" do
     assert_parse(
       "select foo from bar where a = 2 and b in (1,2,3) and c like '_o' and d is not null",
       select(
@@ -736,10 +750,28 @@ defmodule Cloak.Aql.Parser.Test do
       select(columns: [{:function, {:cast, :text}, [identifier("a")]}])
   end
 
+  for word <- ~w(date time timestamp) do
+    test "#{word} as a column name" do
+      assert_parse "select #{unquote(word)} from bar",
+        select(columns: [identifier(unquote(word))])
+    end
+  end
+
   test "select interval" do
     duration = Timex.Duration.parse!("P1Y2M3DT4H5M6S")
     assert_parse "select interval 'P1Y2M3DT4H5M6S' from bar",
       select(columns: [constant(:interval, ^duration)])
+  end
+
+  test "quoted identifier" do
+    assert_parse "select \"something that wouldn't normally work as a column name\" from bar",
+      select(columns: [identifier("something that wouldn't normally work as a column name")])
+  end
+
+  test "literals containing escaped single-quotes" do
+    assert_parse "select 'O''Brian' from names", select(columns: [constant(:text, "O'Brian")])
+    assert_parse "select 'O'\n'Brian' from names", select(columns: [constant(:text, "O'Brian")])
+    assert_parse ~S(select 'O\Brian' from names), select(columns: [constant(:text, ~S(O\Brian))])
   end
 
   create_test =

@@ -28,6 +28,30 @@
           "ignore_unsupported_types": false
         }
       }
+    },
+    "local_odbc": {
+      "driver": "odbc",
+      "parameters": {
+        "connect": "DSN=PostgreSQL;UID=cloak;Database=cloak;Server=localhost;",
+        "pool_size": 4
+      },
+      "tables": {
+        "test": {
+          "db_name": "user_data",
+          "user_id": "user_id",
+          "ignore_unsupported_types": false
+        },
+        "purchases": {
+          "db_name": "purchases",
+          "user_id": "uid",
+          "ignore_unsupported_types": false
+        },
+        "demographics": {
+          "db_name": "demographics",
+          "user_id": "uid",
+          "ignore_unsupported_types": false
+        }
+      }
     }
   }
 }

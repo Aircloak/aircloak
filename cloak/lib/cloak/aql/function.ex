@@ -129,10 +129,11 @@ defmodule Cloak.Aql.Function do
 
   @doc "Returns the function name of the given function call."
   @spec name(t) :: String.t
+  def name({:function, {:cast, _}, _}), do: "cast"
   def name({:function, name, _}), do: name
 
   @doc "Returns the return type of the given function call."
-  @spec return_type(t) :: data_type
+  @spec return_type(t) :: data_type | nil
   def return_type({:function, {:cast, type}, _}), do: type
   def return_type(function = {:function, name, _}) do
     @functions[name].type_specs
@@ -168,11 +169,15 @@ defmodule Cloak.Aql.Function do
     |> apply(function)
   end
 
-  @doc "Returns the result of applying the given function definition to the given value."
+  @doc "Returns the result of applying the given function definition to the given arguments."
   @spec apply([term], t) :: term
-  def apply(args = [_|_], {:function, name, _}), do:
-    if Enum.member?(args, :*), do: :*, else: do_apply(name, args)
-  def apply(value, _aggregate_function), do: value
+  def apply(args, {:function, name, _}) do
+    try do
+      if Enum.member?(args, :*), do: :*, else: do_apply(name, args)
+    rescue
+      _ -> nil
+    end
+  end
 
 
   # -------------------------------------------------------------------
