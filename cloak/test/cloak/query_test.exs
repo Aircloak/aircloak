@@ -536,6 +536,12 @@ defmodule Cloak.QueryTest do
       )
       assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
     end
+
+    test "cast" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
+      assert_query "select cast(height as text) from heights",
+        %{columns: ["cast"], rows: [%{row: ["10"], occurrences: 10}]}
+    end
   end
 
   describe "error handling" do
