@@ -19,4 +19,13 @@ defmodule Air.OpenSourceController do
 
     render(conn, "index.html", packages: packages)
   end
+
+  def show(conn, params) do
+    case Air.BOM.get(fn(packages) ->
+      Enum.find(packages, &(&1["type"] == params["realm"] and &1["name"] == params["name"]))
+    end) do
+      nil -> render(conn, Air.ErrorView, "404.html")
+      package -> render(conn, "show.html", package: package)
+    end
+  end
 end
