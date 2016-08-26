@@ -30,35 +30,32 @@ defmodule Air.DataSourceManager.Test do
   end
 
   test "should return a cloak channel pid given a registered data source" do
-    pid = self()
+    {_terminator, pid} = temporarily_alive()
     DataSourceManager.register_cloak(cloak_info(pid), @data_sources)
     assert [pid] == DataSourceManager.channel_pids(@data_source_id)
   end
 
   test "should allow assigning multiple cloaks to the same data source" do
-    {terminator1, pid1} = temporarily_alive()
+    {_terminator1, pid1} = temporarily_alive()
     assert :ok == DataSourceManager.register_cloak(cloak_info(pid1), @data_sources)
-    {terminator2, pid2} = temporarily_alive()
+    {_terminator2, pid2} = temporarily_alive()
     assert :ok == DataSourceManager.register_cloak(cloak_info(pid2), @data_sources)
-    terminator1.()
-    terminator2.()
   end
 
   test "should unregister cloak when channel closes" do
-    {terminator1, pid1} = temporarily_alive()
-    DataSourceManager.register_cloak(cloak_info(pid1), @data_sources)
-    terminator1.()
+    {terminator, pid} = temporarily_alive()
+    DataSourceManager.register_cloak(cloak_info(pid), @data_sources)
+    terminator.()
     assert dont_immediately_give_up(fn -> [] == DataSourceManager.channel_pids(@data_source_id) end)
   end
 
   test "should unregister cloak when channel closes, but retain alternative cloaks" do
     {terminator1, pid1} = temporarily_alive()
     assert :ok == DataSourceManager.register_cloak(cloak_info(pid1), @data_sources)
-    {terminator2, pid2} = temporarily_alive()
+    {_terminator2, pid2} = temporarily_alive()
     assert :ok == DataSourceManager.register_cloak(cloak_info(pid2), @data_sources)
     terminator1.()
     assert dont_immediately_give_up(fn -> [pid2] == DataSourceManager.channel_pids(@data_source_id) end)
-    terminator2.()
   end
 
   test "should be able to tell when a data source is available" do
@@ -89,7 +86,7 @@ defmodule Air.DataSourceManager.Test do
   end
 
   defp temporarily_alive() do
-    pid = spawn(fn -> receive do :stop -> :ok end end)
+    pid = spawn_link(fn -> receive do :stop -> :ok end end)
     {fn -> send(pid, :stop) end, pid}
   end
 
