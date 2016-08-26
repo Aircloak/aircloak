@@ -20,4 +20,8 @@ defmodule Air.DataSourceView do
     |> Enum.map(fn(%{"id" => name}) -> name end)
     |> Enum.join(", ")
   end
+
+  def to_json(map) do
+    {:safe, Poison.encode!(map)}
+  end
 end

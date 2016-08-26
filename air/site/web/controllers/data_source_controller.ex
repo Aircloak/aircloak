@@ -47,7 +47,7 @@ defmodule Air.DataSourceController do
       data_source: data_source,
       guardian_token: Guardian.Plug.current_token(conn),
       csrf_token: CSRFProtection.get_csrf_token(),
-      last_query: Poison.encode!(last_query),
+      last_query: last_query,
     )
   end
 end

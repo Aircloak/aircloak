@@ -18,7 +18,7 @@
   window.pageConfig = {
     onLoad: function(App) {
       var props = {
-        lastQuery: <%= {:safe, @last_query} %>,
+        lastQuery: <%= to_json(@last_query) %>,
         dataSourceId: "<%= @data_source.id %>",
         dataSourceAvailable: <%= available?(@data_source) %>,
         CSRFToken: "<%= @csrf_token %>",
