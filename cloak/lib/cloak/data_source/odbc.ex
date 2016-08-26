@@ -51,13 +51,16 @@ defmodule Cloak.DataSource.ODBC do
     statement = sql_query |> SqlBuilder.build() |> to_char_list()
     field_mappers = for column <- sql_query.db_columns, do: column_to_field_mapper(column)
     execute(source_id, fn (conn) ->
-      case :odbc.sql_query(conn, statement, 4 * 60 * 60_000) do
-        {:selected, _columns, rows} ->
-          result =
-            rows
-            |> Stream.map(&map_fields(&1, field_mappers))
-            |> result_processor.()
-          {:ok, result}
+      case :odbc.select_count(conn, statement, 4 * 60 * 60_000) do
+        {:ok, _count} ->
+          data_stream = Stream.resource(fn () -> conn end, fn (conn) ->
+            case :odbc.select(conn, :next, 25_000, 5 * 60_000) do
+              {:selected, _columns, []} -> {:halt, conn}
+              {:selected, _columns, rows} -> {Enum.map(rows, &map_fields(&1, field_mappers)), conn}
+              {:error, reason} -> raise to_string(reason)
+            end
+          end, fn (_conn) -> :ok end)
+          {:ok, result_processor.(data_stream)}
         {:error, reason} ->
           {:error, to_string(reason)}
       end
