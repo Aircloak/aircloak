@@ -7,12 +7,12 @@
     <div>
       <div>
         <h3><%= cloak.name %>
-          <small><%= Air.Cloak.state(cloak) %>
-            <%= if Air.Cloak.state(cloak) == :online do %>
-            since <%= Air.Utils.DateTime.time_ago(cloak.updated_at) %>
-            <% end %>
-          </small>
+          <small>since <%= time_ago(cloak.online_since) %></small>
         </h3>
+        <p>
+          <%= cloak.name %> makes the following data sources available:
+          <strong><%= data_source_names(cloak) %></strong>
+        </p>
       </div>
     </div>
   <% end %>

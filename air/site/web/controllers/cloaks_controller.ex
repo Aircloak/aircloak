@@ -3,7 +3,7 @@ defmodule Air.CloaksController do
   use Air.Web, :controller
   use Timex
 
-  alias Air.Cloak
+  alias Air.{DataSourceManager, Repo, DataSource}
 
 
   # -------------------------------------------------------------------
@@ -22,7 +22,18 @@ defmodule Air.CloaksController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    cloaks = Repo.all(Cloak)
+    cloaks = DataSourceManager.cloaks()
+    |> Enum.map(&load_data_sources/1)
     render(conn, "index.html", cloaks: cloaks)
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  def load_data_sources(cloak_info) do
+    data_sources = Enum.map(cloak_info.data_source_ids, &Repo.get_by(DataSource, unique_id: &1))
+    Map.merge(cloak_info, %{data_sources: data_sources})
   end
 end
