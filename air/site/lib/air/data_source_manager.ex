@@ -73,16 +73,6 @@ defmodule Air.DataSourceManager do
   def handle_call(:cloaks, _from, state) do
     {:reply, cloaks_from_state(state), state}
   end
-  def handle_call(msg, _from, state) do
-    raise "Unimplemented call: #{inspect msg}"
-    {:reply, {:error, :not_implemented}, state}
-  end
-
-  @doc false
-  def handle_cast(msg, state) do
-    Logger.error("Unimplemented cast: #{inspect msg}")
-    {:noreply, state}
-  end
 
   @doc false
   def handle_info({:DOWN, _ref, :process, channel_pid, _reason}, state) do
