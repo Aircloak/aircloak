@@ -38,6 +38,7 @@ defmodule Air.Query do
   def changeset(model, params \\ :empty) do
     model
     |> cast(params, @required_fields, @optional_fields)
+    |> foreign_key_constraint(:data_source_id)
   end
 
   @doc "Converts the query model to the cloak compliant data."
