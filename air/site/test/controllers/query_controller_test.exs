@@ -4,12 +4,6 @@ defmodule Air.QueryControllerTest do
   import Air.{TestConnHelper, TestRepoHelper}
   alias Air.{TestSocketHelper, Repo, DataSource}
 
-  setup_all do
-    on_exit fn ->
-      Repo.delete_all(DataSource)
-    end
-  end
-
   setup do
     params = %{
       "unique_id" => "data_source_id",
