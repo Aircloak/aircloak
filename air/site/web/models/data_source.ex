@@ -2,7 +2,7 @@ defmodule Air.DataSource do
   @moduledoc "Represents data sources made available through the cloaks"
   use Air.Web, :model
 
-  alias Air.{Cloak, DataSource, Repo, Query}
+  alias Air.{DataSource, Query}
 
   @type t :: %__MODULE__{}
 
@@ -51,6 +51,8 @@ defmodule Air.DataSource do
   """
   @spec changeset(t | Changeset.t, %{binary => term} | %{atom => term} | :empty) :: Changeset.t
   def changeset(model, params) do
-    cast(model, params, @required_fields, @optional_fields)
+    model
+    |> cast(params, @required_fields, @optional_fields)
+    |> unique_constraint(:unique_id)
   end
 end
