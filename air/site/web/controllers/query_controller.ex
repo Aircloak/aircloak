@@ -4,7 +4,7 @@ defmodule Air.QueryController do
   use Timex
 
   require Logger
-  alias Air.{DataSource, Query, Repo, AuditLog, Cloak}
+  alias Air.{DataSource, DataSourceManager, Query, Repo, AuditLog}
   alias Plug.Conn.Status
   alias Air.Socket.Cloak.MainChannel
 
@@ -42,32 +42,37 @@ defmodule Air.QueryController do
     query = build_assoc(conn.assigns.current_user, :queries)
     |> Query.changeset(parse_query_params(params))
     |> Repo.insert!()
-    |> Repo.preload([data_source: :cloak])
+    |> Repo.preload(:data_source)
 
-    AuditLog.log(conn, "Executed query", query: query.statement, data_source: query.data_source.id)
+    if DataSourceManager.available?(query.data_source.unique_id) do
+      AuditLog.log(conn, "Executed query", query: query.statement, data_source: query.data_source.id)
 
-    try do
-      case MainChannel.run_query(
-        Cloak.channel_pid(query.data_source.cloak),
-        conn.assigns.current_user.organisation,
-        Query.to_cloak_query(query)
-      ) do
-        :ok ->
-          json(conn, %{success: true, query_id: query.id})
-        {:error, :not_connected} ->
-          json(conn, %{success: false, reason: "the cloak is not connected"})
-        {:error, reason} ->
-          Logger.error(fn -> "Query start error: #{reason}" end)
-          json(conn, %{success: false, reason: reason})
+      try do
+        case MainChannel.run_query(
+          hd(DataSourceManager.channel_pids(query.data_source.unique_id)),
+          conn.assigns.current_user.organisation,
+          Query.to_cloak_query(query)
+        ) do
+          :ok ->
+            json(conn, %{success: true, query_id: query.id})
+          {:error, :not_connected} ->
+            json(conn, %{success: false, reason: "the cloak is not connected"})
+          {:error, reason} ->
+            Logger.error(fn -> "Query start error: #{reason}" end)
+            json(conn, %{success: false, reason: reason})
+        end
+      catch type, error ->
+        # We'll make a nice error log report and return 500
+        Logger.error([
+          "Error running a query: #{inspect(type)}:#{inspect(error)}\n",
+          Exception.format_stacktrace(System.stacktrace())
+        ])
+
+        send_resp(conn, Status.code(:internal_server_error), "")
       end
-    catch type, error ->
-      # We'll make a nice error log report and return 500
-      Logger.error([
-        "Error running a query: #{inspect(type)}:#{inspect(error)}\n",
-        Exception.format_stacktrace(System.stacktrace())
-      ])
 
-      send_resp(conn, Status.code(:internal_server_error), "")
+    else
+      send_resp(conn, Status.code(:service_unavailable), "No cloak is available for the given data source")
     end
   end
 
