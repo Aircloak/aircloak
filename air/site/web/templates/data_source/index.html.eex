@@ -6,12 +6,12 @@
 
 <% else %>
 
-  <%= if length(@available_data_sources) > 0 do %>
+  <%= unless Enum.empty?(@available_data_sources) do %>
   <h3>Available for querying</h3>
   <%= render "_data_sources.html", data_sources: @available_data_sources %>
   <% end %>
 
-  <%= if length(@unavailable_data_sources) > 0 do %>
+  <%= unless Enum.empty?(@unavailable_data_sources) do %>
   <h3>Currently unavailable for querying</h3>
   <%= render "_data_sources.html", data_sources: @unavailable_data_sources %>
   <% end %>
