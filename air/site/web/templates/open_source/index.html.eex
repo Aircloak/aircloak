@@ -3,7 +3,7 @@
 <ul>
   <%= for package <- @packages do %>
     <li>
-      <a href="/open_source/<%= package.type %>/<%= package.name %>">
+      <a href="/open_source/<%= package.realm %>/<%= package.name %>">
         <%= package.name %>: <%= package.license_type %>
       </a>
     </li>

@@ -10,7 +10,7 @@ defmodule BOM.Gather.Node do
 
   defp package(path) do
     %BOM.Package{
-      type: :node,
+      realm: :node,
       name: Path.basename(path),
       license: license(path)
     }
