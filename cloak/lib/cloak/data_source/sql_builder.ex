@@ -159,7 +159,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp to_fragment(%Column{constant?: true, value: value}), do: constant_to_fragment(value)
   defp to_fragment(%Column{} = column), do: "\"#{column.table.name}\".\"#{column.name}\""
 
-  defp constant_to_fragment(value) when is_binary(value), do: [?', value, ?']
+  defp escape_string(string), do: string |> String.replace("'", "''") |> String.replace("\\", "\\")
+
+  defp constant_to_fragment(value) when is_binary(value), do: [?', escape_string(value), ?']
   defp constant_to_fragment(value) when is_number(value), do: to_string(value)
   defp constant_to_fragment(value) when is_boolean(value), do: to_string(value)
 
