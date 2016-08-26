@@ -218,10 +218,11 @@ defmodule Cloak.Aql.Parser do
     )
   end
 
+  @data_types ~w(integer real text boolean timestamp date time)
   defp data_type() do
-    [:integer, :real, :text, :boolean, :timestamp, :date, :time]
-    |> Enum.map(&keyword/1)
-    |> choice()
+    identifier()
+    |> satisfy(&Enum.member?(@data_types, &1))
+    |> map(&String.to_atom/1)
   end
 
   defp function_expression() do
