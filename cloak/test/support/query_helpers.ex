@@ -23,45 +23,11 @@ defmodule Cloak.Test.QueryHelpers do
     end
   end
 
-  def clear_floats(_context) do
-    Cloak.Test.DB.clear_table("floats")
-    :ok
-  end
-
-  def clear_datetimes(_context) do
-    Cloak.Test.DB.clear_table("datetimes")
-    :ok
-  end
-
-  def clear_heights(_context) do
-    Cloak.Test.DB.clear_table("heights")
-    :ok
-  end
-
-  def clear_children(_context) do
-    Cloak.Test.DB.clear_table("children")
-    :ok
-  end
-
-  def clear_purchases(_context) do
-    Cloak.Test.DB.clear_table("purchases")
-    :ok
-  end
-
   def start_query(statement, data_source) do
     Query.Runner.start("1", data_source, statement, {:process, self()})
   end
 
   def insert_rows(user_id_range, table, columns, values) do
-    Cloak.Test.DB.add_users_data(
-      Enum.map(user_id_range,
-        &{"user#{&1}", [
-          {table, [
-            columns: columns,
-            data: [values]
-          ]}
-        ]}
-      )
-    )
+    Cloak.Test.DB.add_users_data(table, columns, Enum.map(user_id_range, &["user#{&1}" | values]))
   end
 end
