@@ -883,4 +883,16 @@ defmodule Cloak.QueryTest do
         %{columns: ["thing as thing"], rows: []}
     end
   end
+
+  describe "miscellaneous" do
+    setup [:clear_heights]
+
+    test "SQL injection" do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height", "name"], [10, "jon"])
+      assert_query ~S(select height from heights where name = '\' or \'1\'=\'1'),
+        %{columns: ["height"], rows: []}
+      assert_query ~S(select height from heights where name = ''' or ''1''=''1'),
+        %{columns: ["height"], rows: []}
+    end
+  end
 end
