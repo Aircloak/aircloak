@@ -4,8 +4,6 @@ defmodule Cloak.DataSource.SqlBuilder do
   alias Cloak.Aql.Query
   alias Cloak.Aql.Column
 
-  @typep fragment :: String.t | [fragment]
-
 
   #-----------------------------------------------------------------------------------------------------------
   # API
