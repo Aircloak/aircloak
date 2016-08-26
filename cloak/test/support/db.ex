@@ -2,10 +2,10 @@ defmodule Cloak.Test.DB do
   alias Cloak.DataSource
   alias Cloak.DataSource.PostgreSQL
 
-  def setup do
-    PostgreSQL.execute("DROP SCHEMA IF EXISTS cloak_test CASCADE", [])
-    DataSource.clear_test_tables()
-    PostgreSQL.execute("CREATE SCHEMA cloak_test", [])
+  use GenServer
+
+  def start_link() do
+    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
   def clear_table(db_name) do
@@ -13,9 +13,7 @@ defmodule Cloak.Test.DB do
   end
 
   def create_table(table_name, definition, opts \\ []) do
-    db_name = opts[:db_name] || table_name
-    with {:ok, _} <- create_db_table(db_name, definition, opts), do:
-      DataSource.register_test_table(String.to_atom(table_name), full_table_name(db_name), "user_id")
+    GenServer.call(__MODULE__, {:create_table, table_name, definition, opts})
   end
 
   def add_users_data(data) do
@@ -23,6 +21,29 @@ defmodule Cloak.Test.DB do
       insert_rows(user_id, table_name, table_data)
     end
     :ok
+  end
+
+
+  # -------------------------------------------------------------------
+  # GenServer callbacks
+  # -------------------------------------------------------------------
+
+  def init(_) do
+    PostgreSQL.execute("DROP SCHEMA IF EXISTS cloak_test CASCADE", [])
+    DataSource.clear_test_tables()
+    PostgreSQL.execute("CREATE SCHEMA cloak_test", [])
+    {:ok, nil}
+  end
+
+  def handle_call({:create_table, table_name, definition, opts}, _from, state) do
+    db_name = opts[:db_name] || table_name
+    case create_db_table(db_name, definition, opts) do
+      {:ok, _} ->
+        DataSource.register_test_table(String.to_atom(table_name), full_table_name(db_name), "user_id")
+        {:reply, :ok, state}
+      error ->
+        {:reply, error, state}
+    end
   end
 
 
