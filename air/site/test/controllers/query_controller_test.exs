@@ -2,12 +2,7 @@ defmodule Air.QueryControllerTest do
   use Air.ConnCase
 
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.{TestSocketHelper, Repo, DataSource, Cloak}
-
-  setup do
-    Repo.delete_all(Cloak)
-    :ok
-  end
+  alias Air.{TestSocketHelper, Repo, DataSource}
 
   test "can run a query" do
     organisation = create_organisation!()
@@ -15,7 +10,8 @@ defmodule Air.QueryControllerTest do
 
     # Open the cloak mock socket
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1", cloak_organisation: organisation.name})
-    TestSocketHelper.join!(socket, "main", %{data_sources: [%{"id" => "data_source", "tables" => []}]})
+    TestSocketHelper.join!(socket, "main",
+      %{data_sources: [%{"id" => "unique_name", "tables" => []}]})
 
     data_source = Repo.one(DataSource)
     query_data_params = %{
@@ -30,10 +26,18 @@ defmodule Air.QueryControllerTest do
 
   test "failed queries" do
     user = create_user!(create_organisation!())
+    params = %{
+      unique_id: "data_source_id",
+      name: "data source name",
+      tables: "[]",
+    }
+    data_source = %DataSource{}
+    |> DataSource.changeset(params)
+    |> Repo.insert!()
 
-    insert_query(user, "query 1", %{error: "some error"})
-    insert_query(user, "query 2", %{error: "some error"})
-    insert_query(user, "query 3", %{})
+    insert_query(user, data_source, "query 1", %{error: "some error"})
+    insert_query(user, data_source, "query 2", %{error: "some error"})
+    insert_query(user, data_source, "query 3", %{})
 
     admin = create_user!(admin_organisation())
     response = login(admin) |> get("/queries/failed") |> response(200)
@@ -52,10 +56,7 @@ defmodule Air.QueryControllerTest do
       |> redirected_to()
   end
 
-  defp insert_query(user, statement, result) do
-    data_sources = [%{"id" => "data_source", "tables" => []}]
-    Cloak.register("test_cloak", data_sources)
-    data_source = Repo.one(DataSource)
+  defp insert_query(user, data_source, statement, result) do
     create_query!(user, %{
       statement: statement,
       data_source_id: data_source.id,

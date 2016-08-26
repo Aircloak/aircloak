@@ -97,7 +97,7 @@ defmodule Air.DataSourceManager do
   defp create_or_update_datastore(data) do
     params = %{
       unique_id: data["id"],
-      name: data["name"],
+      name: data["name"] || data["id"],
       tables: Poison.encode!(data["tables"]),
     }
 
