@@ -28,6 +28,7 @@ defmodule Air.DataSourceTest do
   end
 
   test "invalid tables json defaults to no tables" do
+    Repo.delete_all(DataSource)
     data_source = Repo.insert!(
       DataSource.changeset(%DataSource{}, Map.merge(@valid_attrs, %{tables: "[invalid"})))
     assert [] == DataSource.tables(data_source)
