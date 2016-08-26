@@ -70,11 +70,21 @@ defmodule Air.DataSourceManager.Test do
     refute DataSourceManager.available?(@data_source_id)
   end
 
+  test "returns a list of cloaks and their data sources" do
+    DataSourceManager.register_cloak(cloak_info(), @data_sources)
+    [cloak] = DataSourceManager.cloaks()
+    assert cloak.id == cloak_info().id
+    assert cloak.name == cloak_info().name
+    assert cloak.channel_pid == self()
+    assert cloak.data_source_ids == [@data_source_id]
+  end
+
   defp cloak_info(pid \\ self()) do
     %{
       channel_pid: pid,
       id: "cloak_id",
       name: "cloak_name",
+      online_since: Timex.DateTime.now()
     }
   end
 

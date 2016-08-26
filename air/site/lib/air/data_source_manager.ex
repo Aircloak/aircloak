@@ -38,6 +38,14 @@ defmodule Air.DataSourceManager do
   @spec available?(String.t) :: boolean
   def available?(data_source_id), do: channel_pids(data_source_id) !== []
 
+  @doc """
+  Returns a list of the connected cloaks. The element returned for each cloak
+  corresponds to the cloak info that was used to register the cloak, but is
+  additionally augmented with a list of the IDs of the data sources served by the cloak
+  """
+  @spec cloaks() :: [Map.t]
+  def cloaks(), do: GenServer.call(@server, :cloaks)
+
 
   # -------------------------------------------------------------------
   # Callbacks
@@ -64,6 +72,9 @@ defmodule Air.DataSourceManager do
     cloak_infos = Map.get(state.data_source_to_cloak, data_source_id, [])
     pids = Enum.map(cloak_infos, &(&1.channel_pid))
     {:reply, pids, state}
+  end
+  def handle_call(:cloaks, _from, state) do
+    {:reply, cloaks_from_state(state), state}
   end
   def handle_call(msg, _from, state) do
     raise "Unimplemented call: #{inspect msg}"
@@ -126,5 +137,22 @@ defmodule Air.DataSourceManager do
     end)
     if filtered_cloak_infos === [], do: Logger.info("Data source #{unique_id} is now unavailable")
     {unique_id, filtered_cloak_infos}
+  end
+
+  defp cloaks_from_state(state) do
+    state.data_source_to_cloak
+    |> Enum.reduce(%{}, &convert_data_source_to_cloak/2)
+    |> Enum.map(fn({_key, value}) -> value end)
+  end
+
+  defp convert_data_source_to_cloak({data_source_unique_id, cloak_infos}, acc) do
+    Enum.reduce(cloak_infos, acc, &extend_cloak_info(data_source_unique_id, &1, &2))
+  end
+
+  defp extend_cloak_info(data_source_unique_id, cloak_info, acc) do
+    initial_value = Map.merge(cloak_info, %{data_source_ids: [data_source_unique_id]})
+    Map.update(acc, cloak_info.id, initial_value, fn(cloak_info) ->
+      %{cloak_info | data_source_ids: [data_source_unique_id | cloak_info.data_source_ids]}
+    end)
   end
 end
