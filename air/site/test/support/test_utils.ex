@@ -11,7 +11,7 @@ defmodule Air.TestUtils do
   Usage:
 
     {termination_callback, pid} = temporary_process()
-    # ... use pid in whatever process needs something to mintor
+    # ... use pid in whatever process needs something to monitor
     # then invoke the terminator once done in order to validate
     # the correct behaviuor.
     termination_callback.()
