@@ -3,7 +3,7 @@
   "data_sources": {
     "local": {
       "driver": "postgresql",
-      "data_source_splitter": "<optional data to create a distinct ID>",
+      "data_source_marker": "<optional data to create a distinct ID>",
       "parameters": {
         "hostname": "localhost",
         "username": "cloak",

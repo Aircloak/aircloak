@@ -204,8 +204,8 @@ defmodule Cloak.DataSource do
     username = data["parameters"]["username"] || ""
     # Useful when we want to make the same data source appear multiple times
     # as if it was distinct data sources. Used in staging and testing environments.
-    aircloak_data_source_splitter = data["data_source_splitter"] || ""
-    unique_id_data = ["acuid", aircloak_data_source_splitter, database_name, database_host, username]
+    aircloak_data_source_marker = data["data_source_marker"] || ""
+    unique_id_data = ["acuid", aircloak_data_source_marker, database_name, database_host, username]
     # MD5 is perfectly fine here, as the hash doesn't serve any other purpose than generating
     # a single ID based on the data. Of course collisions can be constructed, but doing so is
     # not in anyone's interest, and furthermore would not compromise any user data.
