@@ -65,23 +65,24 @@ defmodule Cloak.Test.DB do
   defp prepare_insert(table_name, columns, rows) do
     columns = Enum.map(["user_id" | columns], &sanitize_db_object/1)
 
-    n_columns = length(columns)
-    value_tuples =
-      for {row, row_index} <- Enum.with_index(rows) do
-        params_string =
-          for {_column, column_index} <- Enum.with_index(row) do
-            ["$#{row_index * n_columns + column_index + 1}"]
-          end
-          |> Enum.join(",")
-
-        "(#{params_string})"
-      end
-      |> Enum.join(",")
-
     {
-      "INSERT INTO #{sanitized_table(table_name)}(#{Enum.join(columns, ",")}) VALUES #{value_tuples}",
+      [
+        "INSERT INTO ", sanitized_table(table_name),
+          "( ", Enum.join(columns, ","), ") ",
+          "VALUES ", rows |> rows_tuples(length(columns)) |> Enum.join(",")
+      ],
       Enum.flat_map(rows, &(&1))
     }
+  end
+
+  defp rows_tuples(rows, num_columns) do
+    for {row, row_index} <- Enum.with_index(rows) do
+      [?(, Enum.join(row_params(row, row_index * num_columns), ","), ?)]
+    end
+  end
+
+  defp row_params(row, row_offset) do
+    for {_column, column_index} <- Enum.with_index(row), do: "$#{row_offset + column_index + 1}"
   end
 
   defp sanitized_table(table_name), do: sanitize_db_object(full_table_name(table_name))
