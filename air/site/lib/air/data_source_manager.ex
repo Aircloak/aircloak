@@ -53,7 +53,6 @@ defmodule Air.DataSourceManager do
 
   @doc false
   def init(_) do
-    Logger.info("Started the data source manager")
     state = %{
       data_source_to_cloak: Map.new(),
     }
