@@ -103,11 +103,10 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   defp sql_statement(sql_query) do
-    {query_string, params} = SqlBuilder.build(sql_query)
     %{
       type: query_type(sql_query),
-      params: params,
-      val: query_string
+      params: [],
+      val: SqlBuilder.build(sql_query)
     }
   end
 

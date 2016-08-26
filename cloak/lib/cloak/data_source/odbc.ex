@@ -48,12 +48,10 @@ defmodule Cloak.DataSource.ODBC do
 
   @doc false
   def select(source_id, sql_query, result_processor) do
-    {query_string, params} = SqlBuilder.build(sql_query)
-    query_string = query_string |> to_string() |> to_char_list()
-    params = Enum.map(params, &convert_param/1)
+    statement = sql_query |> SqlBuilder.build() |> to_char_list()
     field_mappers = for column <- sql_query.db_columns, do: column_to_field_mapper(column)
     execute(source_id, fn (conn) ->
-      case :odbc.param_query(conn, query_string, params, 4 * 60 * 60_000) do
+      case :odbc.sql_query(conn, statement, 4 * 60 * 60_000) do
         {:selected, _columns, rows} ->
           result =
             rows
@@ -123,14 +121,4 @@ defmodule Cloak.DataSource.ODBC do
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
-
-  defp convert_param(%NaiveDateTime{} = value), do:
-    {:sql_timestamp, [{{value.year, value.month, value.day}, {value.hour, value.minute, value.second}}]}
-  defp convert_param(%Time{} = value), do: value |> to_string() |> convert_param()
-  defp convert_param(%Date{} = value), do: value |> to_string() |> convert_param()
-  defp convert_param(:true), do: {:sql_bit, [true]}
-  defp convert_param(:false), do: {:sql_bit, [false]}
-  defp convert_param(value) when is_binary(value), do: {{:sql_varchar, byte_size(value)}, [value]}
-  defp convert_param(value) when is_integer(value), do: {:sql_integer, [value]}
-  defp convert_param(value) when is_float(value), do: {:sql_real, [value]}
 end
