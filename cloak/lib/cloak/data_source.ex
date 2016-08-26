@@ -98,7 +98,7 @@ defmodule Cloak.DataSource do
   def start_link() do
     data_sources =
       Cloak.DeployConfig.fetch!("data_sources")
-      |> add_unique_id_to_data_sources()
+      |> add_unique_id()
       |> atomize_keys()
       |> Enum.map(&map_driver/1)
 
@@ -192,7 +192,7 @@ defmodule Cloak.DataSource do
   end
   defp atomize_keys(other), do: other
 
-  defp add_unique_id_to_data_sources(data_sources) do
+  defp add_unique_id(data_sources) do
     data_sources
     |> Enum.map(&add_unique_id_to_data_source/1)
     |> Enum.into(%{})
