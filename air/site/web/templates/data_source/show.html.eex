@@ -5,10 +5,7 @@
 
 <h2>
   <%= @data_source.name %>
-  <small>
-    @ <%= @data_source.cloak.name %>
-  </small>
-  <%= if not Air.Cloak.online?(@data_source.cloak) do %>
+  <%= if not available?(@data_source) do %>
     <span class="label label-info">currently unavailable</span>
   <% end %>
 </h2>
@@ -23,7 +20,7 @@
       var props = {
         lastQuery: <%= {:safe, @last_query} %>,
         dataSourceId: "<%= @data_source.id %>",
-        dataSourceAvailable: <%= Air.Cloak.online?(@data_source.cloak) %>,
+        dataSourceAvailable: <%= available?(@data_source) %>,
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
