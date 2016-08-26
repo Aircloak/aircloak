@@ -125,18 +125,12 @@ defmodule Air.DataSourceManager do
 
   defp cloaks_from_state(state) do
     state.data_source_to_cloak
-    |> Enum.reduce(%{}, &convert_data_source_to_cloak/2)
-    |> Enum.map(fn({_key, value}) -> value end)
+    |> Enum.flat_map(&invert_data_source_to_cloak/1)
+    |> Enum.group_by(fn({cloak_info, _}) -> cloak_info end, fn({_, data_sources}) -> data_sources end)
+    |> Enum.map(fn({cloak_info, data_source_ids}) -> Map.merge(cloak_info, %{data_source_ids: data_source_ids}) end)
   end
 
-  defp convert_data_source_to_cloak({data_source_unique_id, cloak_infos}, acc) do
-    Enum.reduce(cloak_infos, acc, &extend_cloak_info(data_source_unique_id, &1, &2))
-  end
-
-  defp extend_cloak_info(data_source_unique_id, cloak_info, acc) do
-    initial_value = Map.merge(cloak_info, %{data_source_ids: [data_source_unique_id]})
-    Map.update(acc, cloak_info.id, initial_value, fn(cloak_info) ->
-      %{cloak_info | data_source_ids: [data_source_unique_id | cloak_info.data_source_ids]}
-    end)
+  defp invert_data_source_to_cloak({data_source_unique_id, cloak_infos}) do
+    Enum.map(cloak_infos, &({&1, data_source_unique_id}))
   end
 end
