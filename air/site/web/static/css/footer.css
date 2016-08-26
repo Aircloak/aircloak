@@ -1,0 +1,10 @@
+.footer {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  padding: 5px;
+}
+
+.footer a {
+  color: gray;
+}
