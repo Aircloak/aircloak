@@ -1,6 +1,9 @@
 defmodule Mix.Tasks.Bom do
   use Mix.Task
 
+  # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
+  @dialyzer :no_undefined_callbacks
+
   def run(_args) do
     {invalid, valid} = "../air/site/node_modules"
     |> BOM.Gather.node()
