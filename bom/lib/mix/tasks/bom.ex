@@ -1,4 +1,7 @@
 defmodule Mix.Tasks.Bom do
+  @shortdoc "Generate bom.json"
+  @moduledoc "Gathers information about dependencies and outputs a bom.json file into the _build directory."
+
   use Mix.Task
 
   # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
@@ -6,7 +9,7 @@ defmodule Mix.Tasks.Bom do
 
   def run(_args) do
     {invalid, valid} = "../air/site/node_modules"
-    |> BOM.Gather.node()
+    |> BOM.Gather.Node.run()
     |> Enum.map(&BOM.Whitelist.update_license_type/1)
     |> Enum.map(&BOM.Validate.run/1)
     |> Enum.partition(&(&1.error))

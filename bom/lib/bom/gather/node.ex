@@ -1,12 +1,26 @@
 defmodule BOM.Gather.Node do
+  @moduledoc "Logic for reading node dependency information."
+
   alias BOM.{License, Whitelist}
 
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
+  @doc "Returns a list of packages contained in the given `node_modules` directory."
+  @spec run(String.t) :: [Package.t]
   def run(path) do
     path
     |> Path.join("*")
     |> Path.wildcard()
     |> Enum.map(&package/1)
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp package(path) do
     %BOM.Package{

@@ -1,5 +1,12 @@
 defmodule BOM.Whitelist do
-  alias BOM.License
+  @moduledoc "Contains information about packages for which a license or its type could not be automatically found."
+
+  alias BOM.{License, Package}
+
+
+  # -------------------------------------------------------------------
+  # Whitelists
+  # -------------------------------------------------------------------
 
   @licenses %{
     :node => %{
@@ -68,6 +75,16 @@ defmodule BOM.Whitelist do
     "44348b65b421f5f075c74680c11786d4" => :mit,           # node/uglify-js-brunch
   }
 
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc """
+  Returns a License struct for the given package if a license for `package` in `realm` has been manually
+  checked and whitelisted, nil otherwise.
+  """
+  @spec find(atom, String.t) :: License.t | nil
   def find(realm, package) do
     if Map.has_key?(@licenses[realm], package) do
       license(realm, package, @licenses[realm][package])
@@ -76,17 +93,32 @@ defmodule BOM.Whitelist do
     end
   end
 
+  @doc "Returns the license for all babel packages (node.js package family)."
+  @spec babel_license :: License.t
   def babel_license do
     %License{type: :mit, text: get_text(:node, "babel")}
   end
 
-  def update_license_type(package = %BOM.Package{license: license}) do
+  @doc """
+  Returns the package with its license type set if its license has been whitelisted and classified. Otherwise
+  sets the license type to `{:unknown, digest}` - it will need to be manually classified and the digest
+  whitelisted if we can use that license.
+
+  Does not change packages which have been automatically determined to have a valid license.
+  """
+  @spec update_license_type(Package.t) :: Package.t
+  def update_license_type(package = %Package{license: license}) do
     if License.allowed_type?(license.type) do
       package
     else
       %{package | license: %{license | type: type_by_text(license.text)}}
     end
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp type_by_text(text) do
     digest = digest(text)
