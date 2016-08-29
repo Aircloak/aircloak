@@ -119,6 +119,9 @@ defmodule Cloak.Query.FunctionTest do
   test "rtrim/2", do: assert_function_success("rtrim('AbC', 'C')", "heights_ft", "Ab")
   test "btrim/1", do: assert_function_success("btrim(' AbC ')", "heights_ft", "AbC")
   test "btrim/2", do: assert_function_success("btrim('AbC', 'AC')", "heights_ft", "b")
+  test "substring from", do: assert_function_success("substring('AbC' from 2)", "heights_ft", "bC")
+  test "substring for", do: assert_function_success("substring('AbC' for 2)", "heights_ft", "Ab")
+  test "substring from for", do: assert_function_success("substring('AbC' from 2 for 1)", "heights_ft", "b")
 
   test "type errors", do: assert_function_error(
     "trunc('foobar')",

@@ -99,6 +99,12 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp function_sql("rtrim", [arg1, arg2], _type), do: function_call("rtrim", [column_sql(arg1), column_sql(arg2)])
   defp function_sql("btrim", [arg1], _type), do: function_call("btrim", [column_sql(arg1)])
   defp function_sql("btrim", [arg1, arg2], _type), do: function_call("btrim", [column_sql(arg1), column_sql(arg2)])
+  defp function_sql("substring", [arg1, arg2], _type), do:
+    function_call("substring", [[column_sql(arg1), " FROM ", column_sql(arg2)]])
+  defp function_sql("substring", [arg1, arg2, arg3], _type),
+    do: function_call("substring", [[column_sql(arg1), " FROM ", column_sql(arg2), " FOR ", column_sql(arg3)]])
+  defp function_sql("substring_for", [arg1, arg2], _type), do:
+    function_call("substring", [[column_sql(arg1), "FOR ", column_sql(arg2)]])
   # misc functions
   defp function_sql("coalesce", args, _type), do: function_call("coalesce", [columns_sql(args)])
   defp function_sql({:cast, type}, [arg], _type), do: cast(column_sql(arg), sql_type(type))
