@@ -85,6 +85,12 @@ defmodule Cloak.DataSource.SqlBuilder do
       |> cast("integer")
     end
   end
+  # string functions
+  defp function_sql("length", [arg], _type), do: function_call("length", [column_sql(arg)])
+  defp function_sql("lower", [arg], _type), do: function_call("lower", [column_sql(arg)])
+  defp function_sql("lcase", [arg], _type), do: function_call("lower", [column_sql(arg)])
+  defp function_sql("upper", [arg], _type), do: function_call("upper", [column_sql(arg)])
+  defp function_sql("ucase", [arg], _type), do: function_call("upper", [column_sql(arg)])
   # misc functions
   defp function_sql("coalesce", args, _type), do: function_call("coalesce", [columns_sql(args)])
   defp function_sql({:cast, type}, [arg], _type), do: cast(column_sql(arg), sql_type(type))

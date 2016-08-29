@@ -106,6 +106,12 @@ defmodule Cloak.Query.FunctionTest do
   test "extract(minute)", do: assert_function_success("extract(minute from datetime)", "datetimes_ft", 4)
   test "extract(second)", do: assert_function_success("extract(second from datetime)", "datetimes_ft", 5)
 
+  test "length", do: assert_function_success("length(cast(height as text))", "heights_ft", 3)
+  test "lower", do: assert_function_success("lower('AbC')", "heights_ft", "abc")
+  test "lcase", do: assert_function_success("lcase('AbC')", "heights_ft", "abc")
+  test "upper", do: assert_function_success("upper('AbC')", "heights_ft", "ABC")
+  test "ucase", do: assert_function_success("ucase('AbC')", "heights_ft", "ABC")
+
   test "type errors", do: assert_function_error(
     "trunc('foobar')",
     "heights_ft",
