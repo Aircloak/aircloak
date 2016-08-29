@@ -353,7 +353,7 @@ defmodule Cloak.Aql.Parser.Test do
   test "date extraction" do
     assert_parse(
       "SELECT extract(year FROM column) FROM table",
-      select(columns: [{:function, "year", {:identifier, :unknown, "column"}}])
+      select(columns: [{:function, "year", [{:identifier, :unknown, "column"}]}])
     )
   end
 
