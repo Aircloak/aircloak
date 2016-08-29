@@ -113,6 +113,12 @@ defmodule Cloak.Query.FunctionTest do
   test "ucase", do: assert_function_success("ucase('AbC')", "heights_ft", "ABC")
   test "left", do: assert_function_success("left('AbC', 1)", "heights_ft", "A")
   test "right", do: assert_function_success("right('AbC', 1)", "heights_ft", "C")
+  test "ltrim/1", do: assert_function_success("ltrim(' AbC')", "heights_ft", "AbC")
+  test "ltrim/2", do: assert_function_success("ltrim('AbC', 'A')", "heights_ft", "bC")
+  test "rtrim/1", do: assert_function_success("rtrim('AbC ')", "heights_ft", "AbC")
+  test "rtrim/2", do: assert_function_success("rtrim('AbC', 'C')", "heights_ft", "Ab")
+  test "btrim/1", do: assert_function_success("btrim(' AbC ')", "heights_ft", "AbC")
+  test "btrim/2", do: assert_function_success("btrim('AbC', 'AC')", "heights_ft", "b")
 
   test "type errors", do: assert_function_error(
     "trunc('foobar')",

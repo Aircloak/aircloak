@@ -93,6 +93,12 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp function_sql("ucase", [arg], _type), do: function_call("upper", [column_sql(arg)])
   defp function_sql("left", [arg1, arg2], _type), do: function_call("left", [column_sql(arg1), column_sql(arg2)])
   defp function_sql("right", [arg1, arg2], _type), do: function_call("right", [column_sql(arg1), column_sql(arg2)])
+  defp function_sql("ltrim", [arg1], _type), do: function_call("ltrim", [column_sql(arg1)])
+  defp function_sql("ltrim", [arg1, arg2], _type), do: function_call("ltrim", [column_sql(arg1), column_sql(arg2)])
+  defp function_sql("rtrim", [arg1], _type), do: function_call("rtrim", [column_sql(arg1)])
+  defp function_sql("rtrim", [arg1, arg2], _type), do: function_call("rtrim", [column_sql(arg1), column_sql(arg2)])
+  defp function_sql("btrim", [arg1], _type), do: function_call("btrim", [column_sql(arg1)])
+  defp function_sql("btrim", [arg1, arg2], _type), do: function_call("btrim", [column_sql(arg1), column_sql(arg2)])
   # misc functions
   defp function_sql("coalesce", args, _type), do: function_call("coalesce", [columns_sql(args)])
   defp function_sql({:cast, type}, [arg], _type), do: cast(column_sql(arg), sql_type(type))
