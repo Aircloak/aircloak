@@ -12,7 +12,7 @@ defmodule BOM.Validate do
   def errors(_), do: nil
 
   defp license_type_error(%License{type: type}) do
-    if !License.allowed_type?(type), do: "Forbidden license type - #{inspect(type)}", else: nil
+    if License.allowed_type?(type), do: nil, else: "Forbidden license type - #{inspect(type)}"
   end
 
   defp license_text_error(license) do

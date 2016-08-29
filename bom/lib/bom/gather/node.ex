@@ -31,7 +31,7 @@ defmodule BOM.Gather.Node do
   defp license_from_readme(path, pattern) do
     if_matching_file(path, pattern, fn text ->
       case Regex.run(~r/\n#* ?(license|licence)(.|\n)*/i, text) do
-        [text | _]-> %License{type: license_type(path), text: text}
+        [text | _] -> %License{type: license_type(path), text: text}
         _ -> nil
       end
     end)
