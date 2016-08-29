@@ -86,6 +86,7 @@ defmodule Cloak.Query.FunctionTest do
   test "sqrt", do: assert_function_success("sqrt(height/20)", "heights_ft", 3.0)
   test "div", do: assert_function_success("div(height, 100)", "heights_ft", 1)
   test "mod", do: assert_function_success("mod(height, 100)", "heights_ft", 80)
+  test "pow", do: assert_function_success("pow(height, 2)", "heights_ft", 32_400.0)
 
   test "cast as integer", do: assert_function_success("cast('42' AS integer)", "heights_ft", 42)
   test "cast as real", do: assert_function_success("cast('42' AS real)", "heights_ft", 42.0)

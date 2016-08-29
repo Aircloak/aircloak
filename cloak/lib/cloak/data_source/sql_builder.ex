@@ -77,6 +77,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: cast(function_call("div", [column_sql(arg1), column_sql(arg2)]), "integer")
   defp function_sql("mod", [arg1, arg2], _type),
     do: cast(function_call("mod", [column_sql(arg1), column_sql(arg2)]), "integer")
+  defp function_sql("pow", [arg1, arg2], _type), do: function_call("pow", [column_sql(arg1), column_sql(arg2)])
   # datetime functions
   for datepart <- ["year", "month", "day", "hour", "minute", "second"] do
     defp function_sql(unquote(datepart), [arg], _type) do
