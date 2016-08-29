@@ -122,6 +122,8 @@ defmodule Cloak.Query.FunctionTest do
   test "substring from", do: assert_function_success("substring('AbC' from 2)", "heights_ft", "bC")
   test "substring for", do: assert_function_success("substring('AbC' for 2)", "heights_ft", "Ab")
   test "substring from for", do: assert_function_success("substring('AbC' from 2 for 1)", "heights_ft", "b")
+  test "concat", do: assert_function_success("concat('A', 'b')", "heights_ft", "Ab")
+  test "||", do: assert_function_success("'A' || 'b' || 'c'", "heights_ft", "Abc")
 
   test "type errors", do: assert_function_error(
     "trunc('foobar')",
