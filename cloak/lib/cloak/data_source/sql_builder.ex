@@ -73,6 +73,10 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: cast(function_call("round", [cast(column_sql(arg1), "numeric"), column_sql(arg2)]), "float")
   defp function_sql("abs", [arg], _type), do: function_call("abs", [column_sql(arg)])
   defp function_sql("sqrt", [arg], _type), do: function_call("sqrt", [column_sql(arg)])
+  defp function_sql("div", [arg1, arg2], _type),
+    do: cast(function_call("div", [column_sql(arg1), column_sql(arg2)]), "integer")
+  defp function_sql("mod", [arg1, arg2], _type),
+    do: cast(function_call("mod", [column_sql(arg1), column_sql(arg2)]), "integer")
   # datetime functions
   for datepart <- ["year", "month", "day", "hour", "minute", "second"] do
     defp function_sql(unquote(datepart), [arg], _type) do
