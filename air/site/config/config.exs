@@ -45,7 +45,7 @@ config :air, Air.Repo,
   prepare: :unnamed
 
 config :air, Air.BOM,
-  location: "bom.json.example"
+  location: "priv/bom.json.example"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
