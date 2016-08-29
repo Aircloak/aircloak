@@ -227,12 +227,21 @@ defmodule Cloak.Aql.Parser do
 
   defp function_expression() do
     switch([
-      {identifier() |> keyword(:"("), lazy(fn -> function_arguments() end) |> keyword(:")")},
+      {function_name() |> keyword(:"("), lazy(fn -> function_arguments() end) |> keyword(:")")},
       {:else, error_message(fail(""), "Expected an argument list")}
     ])
     |> map(fn
       {[function, :"("], [arguments, :")"]} -> {:function, String.downcase(function), arguments}
     end)
+  end
+
+  defp function_name() do
+    choice([
+      identifier(),
+      keyword(:left),
+      keyword(:right),
+    ])
+    |> map(&to_string/1)
   end
 
   defp function_arguments() do

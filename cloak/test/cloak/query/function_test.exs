@@ -111,6 +111,8 @@ defmodule Cloak.Query.FunctionTest do
   test "lcase", do: assert_function_success("lcase('AbC')", "heights_ft", "abc")
   test "upper", do: assert_function_success("upper('AbC')", "heights_ft", "ABC")
   test "ucase", do: assert_function_success("ucase('AbC')", "heights_ft", "ABC")
+  test "left", do: assert_function_success("left('AbC', 1)", "heights_ft", "A")
+  test "right", do: assert_function_success("right('AbC', 1)", "heights_ft", "C")
 
   test "type errors", do: assert_function_error(
     "trunc('foobar')",
