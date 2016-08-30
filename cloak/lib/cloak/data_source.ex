@@ -227,6 +227,10 @@ defmodule Cloak.DataSource do
       after
         driver.disconnect(connection)
       end
+    else
+      {:error, reason} ->
+        Logger.error("Error connecting to #{data_source.id}: #{reason}")
+        nil
     end
   end
 
