@@ -23,14 +23,7 @@ defmodule Cloak.Test.DB do
   end
 
   def execute(statement, parameters) do
-    connection = case Process.get(:postgrex_connection) do
-      nil ->
-        local_ds = Cloak.DataSource.fetch!(:local)
-        {:ok, connection} = local_ds.parameters |> Enum.to_list() |> Postgrex.start_link()
-        Process.put(:postgrex_connection, connection)
-        connection
-      connection -> connection
-    end
+    connection = Process.get(:postgrex_connection) || create_connection()
     Postgrex.query(connection, statement, parameters, [timeout: :timer.minutes(2)])
   end
 
@@ -103,4 +96,11 @@ defmodule Cloak.Test.DB do
   end
 
   defp full_table_name(table_name), do: "cloak_test.#{table_name}"
+
+  defp create_connection() do
+    local_ds = Cloak.DataSource.fetch!(:local)
+    {:ok, connection} = local_ds.parameters |> Enum.to_list() |> Postgrex.start_link()
+    Process.put(:postgrex_connection, connection)
+    connection
+  end
 end
