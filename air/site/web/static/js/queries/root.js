@@ -37,7 +37,7 @@ class QueriesView extends React.Component {
 
     this.bindKeysWithoutEditorFocus();
     this.props.resultSocket.start({
-      result: this.resultReceived
+      result: this.resultReceived,
     });
   }
 
@@ -62,7 +62,7 @@ class QueriesView extends React.Component {
 
   resultReceived(result) {
     if (result.data_source_id === this.props.dataSourceId) {
-      this.addResult(result, true /* replace */)
+      this.addResult(result, true /* replace */);
     } else {
       // Ignore result
     }
