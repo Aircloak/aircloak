@@ -193,9 +193,7 @@ defmodule Cloak.DataSource do
   defp atomize_keys(other), do: other
 
   defp add_unique_id(data_sources) do
-    data_sources
-    |> Enum.map(&add_unique_id_to_data_source/1)
-    |> Enum.into(%{})
+    for data_source <- data_sources, into: %{}, do: add_unique_id_to_data_source(data_source)
   end
 
   defp add_unique_id_to_data_source({data_source_name, data}) do
@@ -212,11 +210,8 @@ defmodule Cloak.DataSource do
 
   # load the columns list for all defined tables in all data sources
   defp cache_columns(data_sources) do
-    Application.put_env(:cloak, :data_sources,
-      data_sources
-      |> Enum.map(&data_source_with_columns/1)
-      |> Enum.into(%{})
-    )
+    data_sources = for data_source <- data_sources, into: %{}, do: data_source_with_columns(data_source)
+    Application.put_env(:cloak, :data_sources, data_sources)
   end
 
   defp data_source_with_columns({id, data_source}) do
@@ -228,7 +223,7 @@ defmodule Cloak.DataSource do
     driver = data_source.driver
     with {:ok, connection} <- driver.connect(data_source.parameters) do
       try do
-        for table <- data_source.tables, do: table_with_columns(data_source, connection, table)
+        for table <- data_source.tables, into: %{}, do: table_with_columns(data_source, connection, table)
       after
         driver.disconnect(connection)
       end
