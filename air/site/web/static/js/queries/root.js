@@ -27,7 +27,6 @@ class QueriesView extends React.Component {
 
 
     this.setStatement = this.setStatement.bind(this);
-    this.setDataSource = this.setDataSource.bind(this);
     this.runQuery = this.runQuery.bind(this);
     this.queryData = this.queryData.bind(this);
     this.addResult = this.addResult.bind(this);
@@ -43,10 +42,6 @@ class QueriesView extends React.Component {
 
   setStatement(statement) {
     this.setState({statement});
-  }
-
-  setDataSource(dataSource) {
-    this.setState({dataSource});
   }
 
   setResults(results) {
