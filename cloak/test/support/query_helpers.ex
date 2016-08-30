@@ -5,14 +5,23 @@ defmodule Cloak.Test.QueryHelpers do
 
   defmacro assert_query(query, expected_response) do
     quote do
-      [first_ds | rest_ds] = Cloak.DataSource.all()
-      :ok = start_query(unquote(query), first_ds)
-      assert_receive {:reply, response}, 1000
-      for next_ds <- rest_ds do
-        :ok = start_query(unquote(query), next_ds)
-        assert_receive {:reply, ^response}, 1000
-      end
-      assert unquote(expected_response) = response
+      run_query =
+        fn(data_source) ->
+          Query.Runner.start("1", data_source, unquote(query), {:process, self()})
+          receive do
+            {:reply, response} -> response
+          end
+        end
+
+      [first_response | other_responses] =
+        Cloak.DataSource.all()
+        |> Enum.map(&Task.async(fn -> run_query.(&1) end))
+        |> Enum.map(&Task.await/1)
+
+      # make sure responses from all data_sources are equal
+      Enum.each(other_responses, &assert(first_response == &1))
+
+      assert unquote(expected_response) = first_response
     end
   end
 
@@ -21,10 +30,6 @@ defmodule Cloak.Test.QueryHelpers do
       assert_query unquote(query), %{info: [info]}
       assert info =~ unquote(expected_info_regex)
     end
-  end
-
-  def start_query(statement, data_source) do
-    Query.Runner.start("1", data_source, statement, {:process, self()})
   end
 
   def insert_rows(user_id_range, table, columns, values) do
