@@ -32,6 +32,8 @@ defmodule Cloak.DataSource.DsProxy do
 
   @behaviour Cloak.DataSource.Driver
 
+  #doc false
+  def sql_dialect(_parameters), do: :ansi
   @doc false
   def connect(parameters), do: {:ok, parameters}
   @doc false

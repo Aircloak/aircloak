@@ -14,10 +14,18 @@ defmodule Cloak.DataSource.ODBC do
 
   @behaviour Cloak.DataSource.Driver
 
+  #doc false
+  def sql_dialect("DSN=PostgreSQL;" <> _rest), do: :postgresql
+  def sql_dialect("DSN=MySQL;" <> _rest), do: :mysql
+  def sql_dialect(_parameters), do: :ansi
+
   @doc false
   def connect(parameters) do
     options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
-    parameters |> to_char_list() |> :odbc.connect(options)
+    with {:ok, connection} <- parameters |> to_char_list() |> :odbc.connect(options) do
+      parameters |> sql_dialect() |> set_options(connection)
+      {:ok, connection}
+    end
   end
   @doc false
   def disconnect(connection) do
@@ -53,6 +61,12 @@ defmodule Cloak.DataSource.ODBC do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp set_options(:mysql, connection), do:
+    {:updated, 0} = :odbc.sql_query(connection, 'SET sql_mode = "ANSI,NO_BACKSLASH_ESCAPES"')
+  defp set_options(:postgresql, connection), do:
+    {:updated, 0} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
+  defp set_options(:ansi, _connection), do: :ok
 
   defp parse_type(:sql_integer), do: :integer
   defp parse_type(:sql_smallint), do: :integer

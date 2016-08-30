@@ -7,9 +7,7 @@ defmodule Cloak.DataSource do
   config :cloak, data_sources: [
     data_source_id: [
       driver: DatabaseSpecificModule,
-      parameters: [
-        ... # database connection parameters
-      ],
+      parameters: ..., # database connection parameters
       tables: [
         table_id: [
           db_name: "table name",
@@ -42,6 +40,7 @@ defmodule Cloak.DataSource do
     id: atom,
     driver: module,
     parameters: Driver.parameters,
+    sql_dialect: atom,
     tables: %{atom => table}
   }
   @type table :: %{
@@ -69,6 +68,9 @@ defmodule Cloak.DataSource do
 
     @type connection :: any
     @type parameters :: any
+
+    @doc "Return the SQL dialect used by the driver."
+    @callback sql_dialect(parameters) :: atom
 
     @doc "Opens a new connection to the data store."
     @callback connect(parameters) :: {:ok, connection} | {:error, any}
@@ -167,15 +169,15 @@ defmodule Cloak.DataSource do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp map_driver({data_source, params}) do
-    driver_module = case params[:driver] do
+  defp map_driver({id, data_source}) do
+    driver_module = case data_source.driver do
       "postgresql" -> Cloak.DataSource.PostgreSQL
       "dsproxy" -> Cloak.DataSource.DsProxy
       "odbc" -> Cloak.DataSource.ODBC
-      other -> raise("Unknown driver `#{other}` for data source `#{data_source}`")
+      other -> raise("Unknown driver `#{other}` for data source `#{id}`")
     end
-
-    {data_source, Map.merge(params, %{driver: driver_module, id: data_source})}
+    sql_dialect = driver_module.sql_dialect(data_source.parameters)
+    {id, Map.merge(data_source, %{driver: driver_module, id: id, sql_dialect: sql_dialect})}
   end
 
   defp atomize_keys(%{} = map) do
