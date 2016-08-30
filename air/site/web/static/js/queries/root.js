@@ -36,7 +36,7 @@ class QueriesView extends React.Component {
 
     this.bindKeysWithoutEditorFocus();
     this.props.resultSocket.start({
-      result: this.addResult,
+      result: (result) => this.addResult(result, true /* replace */),
     });
   }
 
@@ -59,19 +59,25 @@ class QueriesView extends React.Component {
     this.setResults(sessionResults);
   }
 
-  addResult(result, dontReplace = false) {
+  resultReceived(result) {
+    if (result.data_source_id === this.props.dataSourceId) {
+      this.addResult(result, true /* replace */)
+    } else {
+      // Ignore result
+    }
+  }
+
+  addResult(result, replace = true) {
     const existingResult = this.state.sessionResults.find((item) => item.id === result.id);
     if (existingResult === undefined) {
       this.setResults([result].concat(this.state.sessionResults));
-    } else {
-      if (dontReplace) {
-        // This guards against a race condition where the response from the cloak comes through the websocket
-        // before we have had time to process the response from the AJAX runQuery call. What has happened if
-        // we end up here, is that we already have a response, which is more up to date than the one we are
-        // trying to add.
-        return;
-      }
+    } else if (replace) {
+      // This guards against a race condition where the response from the cloak comes through the websocket
+      // before we have had time to process the response from the AJAX runQuery call.
       this.replaceResult(result);
+    } else {
+      // Ignore. What has happened if we end up here, is that we already have a response, which is more up to
+      // date than the one we are trying to add.
     }
   }
 
@@ -107,7 +113,7 @@ class QueriesView extends React.Component {
             id: response.query_id,
             pendingResult: true,
           };
-          this.addResult(result, true /* dontReplace */);
+          this.addResult(result, false /* replace */);
         } else {
           this.addError(statement, response.reason);
         }
