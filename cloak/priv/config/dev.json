@@ -7,9 +7,7 @@
       "parameters": {
         "hostname": "localhost",
         "username": "cloak",
-        "database": "cloak",
-        "sync_connect": true,
-        "pool_size": 4
+        "database": "cloak"
       },
       "tables": {
         "test": {
@@ -31,10 +29,7 @@
     },
     "local_odbc": {
       "driver": "odbc",
-      "parameters": {
-        "connect": "DSN=PostgreSQL;UID=cloak;Database=cloak;Server=localhost;",
-        "pool_size": 4
-      },
+      "parameters": "DSN=PostgreSQL;UID=cloak;Database=cloak;Server=localhost;",
       "tables": {
         "test": {
           "db_name": "user_data",

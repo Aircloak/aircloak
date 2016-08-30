@@ -6,19 +6,14 @@
       "parameters": {
         "hostname": "localhost",
         "username": "postgres",
-        "database": "cloaktest1",
-        "sync_connect": true,
-        "pool_size": 2
+        "database": "cloaktest1"
       },
       "tables": {
       }
     },
     "local_odbc": {
       "driver": "odbc",
-      "parameters": {
-        "connect": "DSN=PostgreSQL;UID=postgres;Database=cloaktest1;Server=localhost;",
-        "pool_size": 2
-      },
+      "parameters": "DSN=PostgreSQL;UID=postgres;Database=cloaktest1;Server=localhost;",
       "tables": {
       }
     }

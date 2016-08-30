@@ -1,6 +1,5 @@
 defmodule Cloak.Test.DB do
   alias Cloak.DataSource
-  alias Cloak.DataSource.PostgreSQL
 
   use GenServer
 
@@ -9,7 +8,7 @@ defmodule Cloak.Test.DB do
   end
 
   def clear_table(db_name) do
-    PostgreSQL.execute("TRUNCATE TABLE #{sanitized_table(db_name)}", [])
+    execute("TRUNCATE TABLE #{sanitized_table(db_name)}", [])
   end
 
   def create_table(table_name, definition, opts \\ []) do
@@ -19,8 +18,13 @@ defmodule Cloak.Test.DB do
   def add_users_data(table_name, columns, rows) do
     row_count = length(rows)
     {sql, params} = prepare_insert(table_name, columns, rows)
-    {:ok, %Postgrex.Result{num_rows: ^row_count}} = PostgreSQL.execute(sql, params)
+    {:ok, %Postgrex.Result{num_rows: ^row_count}} = execute(sql, params)
     :ok
+  end
+
+  def execute(statement, parameters) do
+    connection = Process.get(:postgrex_connection) || create_connection()
+    Postgrex.query(connection, statement, parameters, [timeout: :timer.minutes(2)])
   end
 
 
@@ -29,9 +33,9 @@ defmodule Cloak.Test.DB do
   # -------------------------------------------------------------------
 
   def init(_) do
-    PostgreSQL.execute("DROP SCHEMA IF EXISTS cloak_test CASCADE", [])
+    execute("DROP SCHEMA IF EXISTS cloak_test CASCADE", [])
     DataSource.clear_test_tables()
-    PostgreSQL.execute("CREATE SCHEMA cloak_test", [])
+    execute("CREATE SCHEMA cloak_test", [])
     {:ok, nil}
   end
 
@@ -55,10 +59,7 @@ defmodule Cloak.Test.DB do
     if opts[:skip_db_create] do
       {:ok, :already_created}
     else
-      PostgreSQL.execute(
-        "CREATE TABLE #{sanitized_table(db_name)} (user_id VARCHAR(64), #{definition})",
-        []
-      )
+      execute("CREATE TABLE #{sanitized_table(db_name)} (user_id VARCHAR(64), #{definition})", [])
     end
   end
 
@@ -95,4 +96,11 @@ defmodule Cloak.Test.DB do
   end
 
   defp full_table_name(table_name), do: "cloak_test.#{table_name}"
+
+  defp create_connection() do
+    local_ds = Cloak.DataSource.fetch!(:local)
+    {:ok, connection} = local_ds.parameters |> Enum.to_list() |> Postgrex.start_link()
+    Process.put(:postgrex_connection, connection)
+    connection
+  end
 end

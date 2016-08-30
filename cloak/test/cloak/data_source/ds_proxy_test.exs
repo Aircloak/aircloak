@@ -7,7 +7,6 @@ defmodule Cloak.DataSource.DsProxyTest do
     data_source_id = :"data_source_#{:erlang.unique_integer()}"
     bypass = Bypass.open
     url = "http://localhost:#{bypass.port}"
-    {:ok, _} = DsProxy.start_link(data_source_id, url: url)
     {:ok, data_source_id: data_source_id, url: url, bypass: bypass}
   end
 
@@ -23,7 +22,7 @@ defmodule Cloak.DataSource.DsProxyTest do
       end
     )
 
-    columns = DsProxy.get_columns(context.data_source_id, "table_name")
+    columns = DsProxy.describe_table([url: context.url], "table_name")
     assert [{"column1", :text}, {"column2", :integer}] == columns
   end
 

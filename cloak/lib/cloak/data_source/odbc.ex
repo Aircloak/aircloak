@@ -7,19 +7,6 @@ defmodule Cloak.DataSource.ODBC do
   alias Cloak.DataSource.SqlBuilder
   alias Cloak.Aql.Column
 
-  defmodule Worker do
-    @moduledoc false
-
-    use GenServer
-
-    def init(parameters) do
-      options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
-      parameters[:connect] |> to_char_list() |> :odbc.connect(options)
-    end
-    def start_link(parameters), do: :gen_server.start_link(__MODULE__, parameters, [])
-    def handle_call({:execute, fun}, _from, conn), do: {:reply, fun.(conn), conn}
-  end
-
 
   #-----------------------------------------------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -28,59 +15,44 @@ defmodule Cloak.DataSource.ODBC do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def child_spec(source_id, parameters) do
-    pool_options = [
-      name: proc_name(source_id),
-      worker_module: Cloak.DataSource.ODBC.Worker,
-      size: parameters[:pool_size],
-      max_overflow: 0
-    ]
-    :poolboy.child_spec({__MODULE__, source_id}, pool_options, parameters)
+  def connect(parameters) do
+    options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
+    parameters |> to_char_list() |> :odbc.connect(options)
+  end
+  @doc false
+  def disconnect(connection) do
+    :odbc.disconnect(connection)
   end
 
   @doc false
-  def get_columns(source_id, full_table_name) do
-    {:ok, columns} = execute(source_id, fn (conn) ->
-      :odbc.describe_table(conn, to_char_list(full_table_name), _timeout = :timer.seconds(15))
-    end)
+  def describe_table(connection, table_name) do
+    {:ok, columns} = :odbc.describe_table(connection, to_char_list(table_name), _timeout = :timer.seconds(15))
     for {name, type} <- columns, do: {to_string(name), parse_type(type)}
   end
 
   @doc false
-  def select(source_id, sql_query, result_processor) do
+  def select(connection, sql_query, result_processor) do
     statement = sql_query |> SqlBuilder.build() |> to_char_list()
     field_mappers = for column <- sql_query.db_columns, do: column_to_field_mapper(column)
-    execute(source_id, fn (conn) ->
-      case :odbc.select_count(conn, statement, _timeout = :timer.hours(4)) do
-        {:ok, _count} ->
-          data_stream = Stream.resource(fn () -> conn end, fn (conn) ->
-            case :odbc.select(conn, :next, _rows_per_batch = 25_000, _timeout = :timer.minutes(5)) do
-              {:selected, _columns, []} -> {:halt, conn}
-              {:selected, _columns, rows} -> {Enum.map(rows, &map_fields(&1, field_mappers)), conn}
-              {:error, reason} -> raise to_string(reason)
-            end
-          end, fn (_conn) -> :ok end)
-          {:ok, result_processor.(data_stream)}
-        {:error, reason} ->
-          {:error, to_string(reason)}
-      end
-    end)
+    case :odbc.select_count(connection, statement, _timeout = :timer.hours(4)) do
+      {:ok, _count} ->
+        data_stream = Stream.resource(fn () -> connection end, fn (conn) ->
+          case :odbc.select(conn, :next, _rows_per_batch = 25_000, _timeout = :timer.minutes(5)) do
+            {:selected, _columns, []} -> {:halt, conn}
+            {:selected, _columns, rows} -> {Enum.map(rows, &map_fields(&1, field_mappers)), conn}
+            {:error, reason} -> raise to_string(reason)
+          end
+        end, fn (_conn) -> :ok end)
+        {:ok, result_processor.(data_stream)}
+      {:error, reason} ->
+        {:error, to_string(reason)}
+    end
   end
 
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
-
-  defp proc_name(source_id), do: {:via, :gproc, {:n, :l, {Cloak.DataSource, source_id}}}
-
-  defp execute(source_id, fun) do
-    # This copies data between processes, so it might be faster to just
-    # open a new connection each time and execute the query inline.
-    :poolboy.transaction(proc_name(source_id), fn(worker) ->
-      :gen_server.call(worker, {:execute, fun}, :infinity)
-    end)
-  end
 
   defp parse_type(:sql_integer), do: :integer
   defp parse_type(:sql_smallint), do: :integer
