@@ -12,15 +12,6 @@ defmodule Cloak.Query.FunctionTest do
       [%Postgrex.Timestamp{year: 2015, month: 1, day: 2, hour: 3, min: 4, sec: 5}])
   end
 
-  defmacrop assert_top_level_function(expression, table, expected_match) do
-    quote do
-      assert_query(
-        "select (#{unquote(expression)}) as elixir_res from #{unquote(table)}",
-        unquote(expected_match)
-      )
-    end
-  end
-
   defmacrop assert_subquery_function(expression, table, subquery_postfix \\ "", expected_match) do
     quote do
       assert_query(
@@ -29,20 +20,6 @@ defmodule Cloak.Query.FunctionTest do
         ) alias",
         unquote(expected_match)
       )
-    end
-  end
-
-  defmacrop assert_function_success(expression, table, expected_result) do
-    quote do
-      assert_top_level_function(unquote(expression), unquote(table), %{rows: [%{row: [unquote(expected_result)]}]})
-      assert_subquery_function(unquote(expression), unquote(table), %{rows: [%{row: [unquote(expected_result)]}]})
-    end
-  end
-
-  defmacrop assert_function_error(expression, table, expected_error) do
-    quote do
-      assert_top_level_function(unquote(expression), unquote(table), %{error: unquote(expected_error)})
-      assert_subquery_function(unquote(expression), unquote(table), %{error: unquote(expected_error)})
     end
   end
 
@@ -72,65 +49,74 @@ defmodule Cloak.Query.FunctionTest do
   test "count(height)", do: assert_subquery_aggregate("count(height)", "heights_ft", 1)
   test "count(distinct height)", do: assert_subquery_aggregate("count(distinct height)", "heights_ft", 1)
 
-  test "+", do: assert_function_success("height + 1", "heights_ft", 181)
-  test "-", do: assert_function_success("height - 1", "heights_ft", 179)
-  test "*", do: assert_function_success("height * 2", "heights_ft", 360)
-  test "/", do: assert_function_success("height / 2", "heights_ft", 90.0)
-  test "^", do: assert_function_success("height ^ 2", "heights_ft", 32_400.0)
+  test "+", do: assert 181 == apply_function("height + 1", "heights_ft")
+  test "-", do: assert 179 == apply_function("height - 1", "heights_ft")
+  test "*", do: assert 360 == apply_function("height * 2", "heights_ft")
+  test "/", do: assert 90.0 == apply_function("height / 2", "heights_ft")
+  test "^", do: assert 32_400.0 == apply_function("height ^ 2", "heights_ft")
 
-  test "trunc/1", do: assert_function_success("trunc(height + 0.6)", "heights_ft", 180)
-  test "trunc/2", do: assert_function_success("trunc(height + 0.126, 2)", "heights_ft", 180.12)
-  test "round/1", do: assert_function_success("round(height + 0.6)", "heights_ft", 181)
-  test "round/2", do: assert_function_success("round(height + 0.126, 2)", "heights_ft", 180.13)
-  test "abs", do: assert_function_success("abs(height * -1)", "heights_ft", 180)
-  test "sqrt", do: assert_function_success("sqrt(height/20)", "heights_ft", 3.0)
-  test "div", do: assert_function_success("div(height, 100)", "heights_ft", 1)
-  test "mod", do: assert_function_success("mod(height, 100)", "heights_ft", 80)
-  test "pow", do: assert_function_success("pow(height, 2)", "heights_ft", 32_400.0)
-  test "floor", do: assert_function_success("floor(height + 0.9)", "heights_ft", 180)
-  test "ceil", do: assert_function_success("ceil(height + 0.1)", "heights_ft", 181)
-  test "ceiling", do: assert_function_success("ceiling(height + 0.1)", "heights_ft", 181)
+  test "trunc/1", do: assert 180 == apply_function("trunc(height + 0.6)", "heights_ft")
+  test "trunc/2", do: assert 180.12 == apply_function("trunc(height + 0.126, 2)", "heights_ft")
+  test "round/1", do: assert 181 == apply_function("round(height + 0.6)", "heights_ft")
+  test "round/2", do: assert 180.13 == apply_function("round(height + 0.126, 2)", "heights_ft")
+  test "abs", do: assert 180 == apply_function("abs(height * -1)", "heights_ft")
+  test "sqrt", do: assert 3.0 == apply_function("sqrt(height/20)", "heights_ft")
+  test "div", do: assert 1 == apply_function("div(height, 100)", "heights_ft")
+  test "mod", do: assert 80 == apply_function("mod(height, 100)", "heights_ft")
+  test "pow", do: assert 32_400.0 == apply_function("pow(height, 2)", "heights_ft")
+  test "floor", do: assert 180 == apply_function("floor(height + 0.9)", "heights_ft")
+  test "ceil", do: assert 181 == apply_function("ceil(height + 0.1)", "heights_ft")
+  test "ceiling", do: assert 181 == apply_function("ceiling(height + 0.1)", "heights_ft")
 
-  test "cast as integer", do: assert_function_success("cast('42' AS integer)", "heights_ft", 42)
-  test "cast as real", do: assert_function_success("cast('42' AS real)", "heights_ft", 42.0)
-  test "cast as text", do: assert_function_success("cast(42 AS text)", "heights_ft", "42")
+  test "cast as integer", do: assert 42 == apply_function("cast('42' AS integer)", "heights_ft")
+  test "cast as real", do: assert 42.0 == apply_function("cast('42' AS real)", "heights_ft")
+  test "cast as text", do: assert "42" == apply_function("cast(42 AS text)", "heights_ft")
 
-  test "year", do: assert_function_success("year(datetime)", "datetimes_ft", 2015)
-  test "month", do: assert_function_success("month(datetime)", "datetimes_ft", 1)
-  test "day", do: assert_function_success("day(datetime)", "datetimes_ft", 2)
-  test "hour", do: assert_function_success("hour(datetime)", "datetimes_ft", 3)
-  test "minute", do: assert_function_success("minute(datetime)", "datetimes_ft", 4)
-  test "second", do: assert_function_success("second(datetime)", "datetimes_ft", 5)
+  test "year", do: assert 2015 == apply_function("year(datetime)", "datetimes_ft")
+  test "month", do: assert 1 == apply_function("month(datetime)", "datetimes_ft")
+  test "day", do: assert 2 == apply_function("day(datetime)", "datetimes_ft")
+  test "hour", do: assert 3 == apply_function("hour(datetime)", "datetimes_ft")
+  test "minute", do: assert 4 == apply_function("minute(datetime)", "datetimes_ft")
+  test "second", do: assert 5 == apply_function("second(datetime)", "datetimes_ft")
 
-  test "extract(year)", do: assert_function_success("extract(year from datetime)", "datetimes_ft", 2015)
-  test "extract(month)", do: assert_function_success("extract(month from datetime)", "datetimes_ft", 1)
-  test "extract(day)", do: assert_function_success("extract(day from datetime)", "datetimes_ft", 2)
-  test "extract(hour)", do: assert_function_success("extract(hour from datetime)", "datetimes_ft", 3)
-  test "extract(minute)", do: assert_function_success("extract(minute from datetime)", "datetimes_ft", 4)
-  test "extract(second)", do: assert_function_success("extract(second from datetime)", "datetimes_ft", 5)
+  test "extract(year)", do: assert 2015 == apply_function("extract(year from datetime)", "datetimes_ft")
+  test "extract(month)", do: assert 1 == apply_function("extract(month from datetime)", "datetimes_ft")
+  test "extract(day)", do: assert 2 == apply_function("extract(day from datetime)", "datetimes_ft")
+  test "extract(hour)", do: assert 3 == apply_function("extract(hour from datetime)", "datetimes_ft")
+  test "extract(minute)", do: assert 4 == apply_function("extract(minute from datetime)", "datetimes_ft")
+  test "extract(second)", do: assert 5 == apply_function("extract(second from datetime)", "datetimes_ft")
 
-  test "length", do: assert_function_success("length(cast(height as text))", "heights_ft", 3)
-  test "lower", do: assert_function_success("lower('AbC')", "heights_ft", "abc")
-  test "lcase", do: assert_function_success("lcase('AbC')", "heights_ft", "abc")
-  test "upper", do: assert_function_success("upper('AbC')", "heights_ft", "ABC")
-  test "ucase", do: assert_function_success("ucase('AbC')", "heights_ft", "ABC")
-  test "left", do: assert_function_success("left('AbC', 1)", "heights_ft", "A")
-  test "right", do: assert_function_success("right('AbC', 1)", "heights_ft", "C")
-  test "ltrim/1", do: assert_function_success("ltrim(' AbC')", "heights_ft", "AbC")
-  test "ltrim/2", do: assert_function_success("ltrim('AbC', 'A')", "heights_ft", "bC")
-  test "rtrim/1", do: assert_function_success("rtrim('AbC ')", "heights_ft", "AbC")
-  test "rtrim/2", do: assert_function_success("rtrim('AbC', 'C')", "heights_ft", "Ab")
-  test "btrim/1", do: assert_function_success("btrim(' AbC ')", "heights_ft", "AbC")
-  test "btrim/2", do: assert_function_success("btrim('AbC', 'AC')", "heights_ft", "b")
-  test "substring from", do: assert_function_success("substring('AbC' from 2)", "heights_ft", "bC")
-  test "substring for", do: assert_function_success("substring('AbC' for 2)", "heights_ft", "Ab")
-  test "substring from for", do: assert_function_success("substring('AbC' from 2 for 1)", "heights_ft", "b")
-  test "concat", do: assert_function_success("concat('A', 'b')", "heights_ft", "Ab")
-  test "||", do: assert_function_success("'A' || 'b' || 'c'", "heights_ft", "Abc")
+  test "length", do: assert 3 == apply_function("length(cast(height as text))", "heights_ft")
+  test "lower", do: assert "abc" == apply_function("lower('AbC')", "heights_ft")
+  test "lcase", do: assert "abc" == apply_function("lcase('AbC')", "heights_ft")
+  test "upper", do: assert "ABC" == apply_function("upper('AbC')", "heights_ft")
+  test "ucase", do: assert "ABC" == apply_function("ucase('AbC')", "heights_ft")
+  test "left", do: assert "A" == apply_function("left('AbC', 1)", "heights_ft")
+  test "right", do: assert "C" == apply_function("right('AbC', 1)", "heights_ft")
+  test "ltrim/1", do: assert "AbC" == apply_function("ltrim(' AbC')", "heights_ft")
+  test "ltrim/2", do: assert "bC" == apply_function("ltrim('AbC', 'A')", "heights_ft")
+  test "rtrim/1", do: assert "AbC" == apply_function("rtrim('AbC ')", "heights_ft")
+  test "rtrim/2", do: assert "Ab" == apply_function("rtrim('AbC', 'C')", "heights_ft")
+  test "btrim/1", do: assert "AbC" == apply_function("btrim(' AbC ')", "heights_ft")
+  test "btrim/2", do: assert "b" == apply_function("btrim('AbC', 'AC')", "heights_ft")
+  test "substring from", do: assert "bC" == apply_function("substring('AbC' from 2)", "heights_ft")
+  test "substring for", do: assert "Ab" == apply_function("substring('AbC' for 2)", "heights_ft")
+  test "substring from for", do: assert "b" == apply_function("substring('AbC' from 2 for 1)", "heights_ft")
+  test "concat", do: assert "Ab" == apply_function("concat('A', 'b')", "heights_ft")
+  test "||", do: assert "Abc" == apply_function("'A' || 'b' || 'c'", "heights_ft")
 
-  test "type errors", do: assert_function_error(
-    "trunc('foobar')",
-    "heights_ft",
-    "Function `trunc` requires arguments of type" <> _
-  )
+  defp apply_function(sql_fragment, table_name) do
+    assert_query(
+      "select (#{sql_fragment}) as elixir_res from #{table_name}",
+      %{rows: [%{row: [result_simple_query]}]}
+    )
+
+    assert_query(
+      "select sql_res from (select user_id, (#{sql_fragment}) as sql_res from #{table_name}) alias",
+      %{rows: [%{row: [result_subquery]}]}
+    )
+
+    assert result_simple_query == result_subquery
+    result_simple_query
+  end
 end
