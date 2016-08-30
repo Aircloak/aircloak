@@ -17,7 +17,7 @@
     onLoad: function(App) {
       var props = {
         lastQuery: <%= to_json(@last_query) %>,
-        dataSourceId: "<%= @data_source.id %>",
+        dataSourceId: <%= @data_source.id %>,
         dataSourceAvailable: <%= available?(@data_source) %>,
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",

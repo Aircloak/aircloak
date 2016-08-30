@@ -30,13 +30,14 @@ class QueriesView extends React.Component {
     this.runQuery = this.runQuery.bind(this);
     this.queryData = this.queryData.bind(this);
     this.addResult = this.addResult.bind(this);
+    this.resultReceived = this.resultReceived.bind(this);
     this.setResults = this.setResults.bind(this);
     this.handleLoadHistory = this.handleLoadHistory.bind(this);
     this.replaceResult = this.replaceResult.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     this.props.resultSocket.start({
-      result: (result) => this.addResult(result, true /* replace */),
+      result: this.resultReceived
     });
   }
 
@@ -189,7 +190,7 @@ export default function renderQueriesView(data, elem) {
 }
 
 QueriesView.propTypes = {
-  dataSourceId: React.PropTypes.string.isRequired,
+  dataSourceId: React.PropTypes.number.isRequired,
   dataSourceAvailable: React.PropTypes.bool.isRequired,
   lastQuery: React.PropTypes.shape({
     statement: React.PropTypes.string.isRequired,
