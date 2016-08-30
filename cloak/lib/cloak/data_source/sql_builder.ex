@@ -120,7 +120,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     end
   end
   defp function_sql("/", [arg1, arg2], _type) do
-    cast(binary_operator_call("/", column_sql(arg1), column_sql(arg2)), "float")
+    binary_operator_call("/", cast(column_sql(arg1), "float"), column_sql(arg2))
   end
 
   defp cast(expr, type) do

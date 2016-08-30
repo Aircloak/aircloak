@@ -52,7 +52,7 @@ defmodule Cloak.Query.FunctionTest do
   test "+", do: assert 181 == apply_function("height + 1", "heights_ft")
   test "-", do: assert 179 == apply_function("height - 1", "heights_ft")
   test "*", do: assert 360 == apply_function("height * 2", "heights_ft")
-  test "/", do: assert 90.0 == apply_function("height / 2", "heights_ft")
+  test "/", do: assert 22.5 == apply_function("height / 8", "heights_ft")
   test "^", do: assert 32_400.0 == apply_function("height ^ 2", "heights_ft")
 
   test "trunc/1", do: assert 180 == apply_function("trunc(height + 0.6)", "heights_ft")
