@@ -41,7 +41,7 @@ defmodule Cloak.DataSource do
   @type t :: %{
     id: atom,
     driver: module,
-    parameters: any,
+    parameters: Driver.parameters,
     tables: %{atom => table}
   }
   @type table :: %{
