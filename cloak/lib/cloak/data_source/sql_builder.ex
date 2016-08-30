@@ -78,6 +78,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp function_sql("mod", [arg1, arg2], _type),
     do: cast(function_call("mod", [column_sql(arg1), column_sql(arg2)]), "integer")
   defp function_sql("pow", [arg1, arg2], _type), do: function_call("pow", [column_sql(arg1), column_sql(arg2)])
+  defp function_sql("floor", [arg1], _type), do: cast(function_call("floor", [column_sql(arg1)]), "integer")
+  defp function_sql("ceil", [arg1], _type), do: cast(function_call("ceil", [column_sql(arg1)]), "integer")
+  defp function_sql("ceiling", [arg1], _type), do: cast(function_call("ceil", [column_sql(arg1)]), "integer")
   # datetime functions
   for datepart <- ["year", "month", "day", "hour", "minute", "second"] do
     defp function_sql(unquote(datepart), [arg], _type) do
@@ -117,7 +120,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     end
   end
   defp function_sql("/", [arg1, arg2], _type) do
-    cast(binary_operator_call("/", column_sql(arg1), column_sql(arg2)), "float")
+    binary_operator_call("/", cast(column_sql(arg1), "float"), column_sql(arg2))
   end
 
   defp cast(expr, type) do
