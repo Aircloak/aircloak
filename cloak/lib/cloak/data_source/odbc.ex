@@ -14,33 +14,27 @@ defmodule Cloak.DataSource.ODBC do
 
   @behaviour Cloak.DataSource.Driver
 
-  #doc false
-  def sql_dialect("DSN=PostgreSQL;" <> _rest), do: :postgresql
-  def sql_dialect("DSN=MySQL;" <> _rest), do: :mysql
-  def sql_dialect(_parameters), do: :ansi
-
   @doc false
   def connect(parameters) do
     options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
     with {:ok, connection} <- parameters |> to_char_list() |> :odbc.connect(options) do
-      parameters |> sql_dialect() |> set_options(connection)
-      {:ok, connection}
+      {:ok, set_dialect(parameters, connection)}
     end
   end
   @doc false
-  def disconnect(connection) do
+  def disconnect({_sql_dialect, connection}) do
     :odbc.disconnect(connection)
   end
 
   @doc false
-  def describe_table(connection, table_name) do
+  def describe_table({_sql_dialect, connection}, table_name) do
     {:ok, columns} = :odbc.describe_table(connection, to_char_list(table_name), _timeout = :timer.seconds(15))
     for {name, type} <- columns, do: {to_string(name), parse_type(type)}
   end
 
   @doc false
-  def select(connection, sql_query, result_processor) do
-    statement = sql_query |> SqlBuilder.build() |> to_char_list()
+  def select({sql_dialect, connection}, sql_query, result_processor) do
+    statement = SqlBuilder.build(sql_dialect, sql_query) |> to_char_list()
     field_mappers = for column <- sql_query.db_columns, do: column_to_field_mapper(column)
     case :odbc.select_count(connection, statement, _timeout = :timer.hours(4)) do
       {:ok, _count} ->
@@ -62,11 +56,15 @@ defmodule Cloak.DataSource.ODBC do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp set_options(:mysql, connection), do:
+  defp set_dialect("DSN=MySQL;" <> _rest, connection) do
     {:updated, 0} = :odbc.sql_query(connection, 'SET sql_mode = "ANSI,NO_BACKSLASH_ESCAPES"')
-  defp set_options(:postgresql, connection), do:
+    {:mysql, connection}
+  end
+  defp set_dialect("DSN=PostgreSQL;" <> _rest, connection) do
     {:updated, 0} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
-  defp set_options(:ansi, _connection), do: :ok
+    {:postgresql, connection}
+  end
+  defp set_dialect(parameters, _connection), do: raise "Unknown DSN type in `#{parameters}`."
 
   defp parse_type(:sql_integer), do: :integer
   defp parse_type(:sql_smallint), do: :integer

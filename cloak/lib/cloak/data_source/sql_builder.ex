@@ -9,13 +9,13 @@ defmodule Cloak.DataSource.SqlBuilder do
   # API
   #-----------------------------------------------------------------------------------------------------------
 
-  @spec build(Query.t) :: String.t
+  @spec build(atom, Query.t) :: String.t
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
-  def build(%Query{mode: :unparsed} = query) do
+  def build(_sql_dialect, %Query{mode: :unparsed} = query) do
     {:subquery, %{unparsed_string: unsafe_subquery}} = query.from
     to_string(["SELECT ", columns_sql(query.db_columns), " FROM (", unsafe_subquery, ") AS unsafe_subquery"])
   end
-  def build(query) do
+  def build(_sql_dialect, query) do
     query
     |> build_fragments()
     |> to_string()

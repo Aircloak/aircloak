@@ -40,7 +40,6 @@ defmodule Cloak.DataSource do
     id: atom,
     driver: module,
     parameters: Driver.parameters,
-    sql_dialect: atom,
     tables: %{atom => table}
   }
   @type table :: %{
@@ -68,9 +67,6 @@ defmodule Cloak.DataSource do
 
     @type connection :: any
     @type parameters :: any
-
-    @doc "Return the SQL dialect used by the driver."
-    @callback sql_dialect(parameters) :: atom
 
     @doc "Opens a new connection to the data store."
     @callback connect(parameters) :: {:ok, connection} | {:error, any}
@@ -176,8 +172,7 @@ defmodule Cloak.DataSource do
       "odbc" -> Cloak.DataSource.ODBC
       other -> raise("Unknown driver `#{other}` for data source `#{id}`")
     end
-    sql_dialect = driver_module.sql_dialect(data_source.parameters)
-    {id, Map.merge(data_source, %{driver: driver_module, id: id, sql_dialect: sql_dialect})}
+    {id, Map.merge(data_source, %{driver: driver_module, id: id})}
   end
 
   defp atomize_keys(%{} = map) do
