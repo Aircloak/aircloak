@@ -20,7 +20,7 @@ export class AuditLogEntryView extends React.Component {
   }
 
   containsFilterText(filter, text) {
-    return (text.toLowerCase().indexOf(filter) !== -1);
+    return (String(text).toLowerCase().indexOf(filter) !== -1);
   }
 
   render() {
