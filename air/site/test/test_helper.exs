@@ -1,4 +1,4 @@
-ExUnit.start(capture_log: true)
+ExUnit.start()
 
 Mix.Task.run "ecto.create", ~w(-r Air.Repo --quiet)
 Mix.Task.run "ecto.migrate", ~w(-r Air.Repo --quiet)
