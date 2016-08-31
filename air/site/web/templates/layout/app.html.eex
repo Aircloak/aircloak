@@ -74,7 +74,7 @@
       </main>
 
       <div class="footer">
-        <small><a href="/open_source">Open source</a></small>
+        <small><a href="<%= license_path(@conn, :index) %>">Third Party Licenses</a></small>
       </div>
 
     </div> <!-- /container -->

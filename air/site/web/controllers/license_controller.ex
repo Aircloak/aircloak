@@ -1,4 +1,4 @@
-defmodule Air.OpenSourceController do
+defmodule Air.LicenseController do
   @moduledoc false
   use Air.Web, :controller
 
