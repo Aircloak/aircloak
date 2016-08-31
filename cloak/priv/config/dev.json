@@ -3,13 +3,33 @@
   "data_sources": {
     "local": {
       "driver": "postgresql",
+      "data_source_marker": "<optional data to create a distinct ID>",
       "parameters": {
         "hostname": "localhost",
         "username": "cloak",
-        "database": "cloak",
-        "sync_connect": true,
-        "pool_size": 4
+        "database": "cloak"
       },
+      "tables": {
+        "test": {
+          "db_name": "user_data",
+          "user_id": "user_id",
+          "ignore_unsupported_types": false
+        },
+        "purchases": {
+          "db_name": "purchases",
+          "user_id": "uid",
+          "ignore_unsupported_types": false
+        },
+        "demographics": {
+          "db_name": "demographics",
+          "user_id": "uid",
+          "ignore_unsupported_types": false
+        }
+      }
+    },
+    "local_odbc": {
+      "driver": "odbc",
+      "parameters": "DSN=PostgreSQL;UID=cloak;Database=cloak;Server=localhost;",
       "tables": {
         "test": {
           "db_name": "user_data",

@@ -1,4 +1,4 @@
-sudo: false
+sudo: true
 language: elixir
 elixir:
   - 1.3.2
@@ -36,12 +36,16 @@ addons:
     - jq
     - gcc-4.8
     - g++-4.8
+    - unixodbc
+    - odbc-postgresql
   hosts:
     - travis.aircloak.local
 before_install:
   - curl -L  https://github.com/coreos/etcd/releases/download/v2.0.11/etcd-v2.0.11-linux-amd64.tar.gz -o etcd-v2.0.11-linux-amd64.tar.gz && tar xzvf etcd-v2.0.11-linux-amd64.tar.gz
   - etcd-v2.0.11-linux-amd64/etcd -addr 127.0.0.1:$(. ./air/config/config.sh && get_tcp_port test etcd/client) &
   - cd cloak; make regenerate_db; cd ..
+  - sudo odbcinst -i -d -l -f cloak/priv/odbc/odbcinst.ini
+  - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
   - nvm install node
 install:
   - mkdir -p $MIX_HOME

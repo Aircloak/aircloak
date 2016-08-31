@@ -104,7 +104,7 @@ export class Result extends React.Component {
     } else if (this.isNumeric(value)) {
       return Math.round(value * 1000) / 1000; // keep 3 decimals at most
     } else {
-      return value;
+      return value.toString();
     }
   }
 

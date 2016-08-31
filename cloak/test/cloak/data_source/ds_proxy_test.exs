@@ -7,7 +7,6 @@ defmodule Cloak.DataSource.DsProxyTest do
     data_source_id = :"data_source_#{:erlang.unique_integer()}"
     bypass = Bypass.open
     url = "http://localhost:#{bypass.port}"
-    {:ok, _} = DsProxy.start_link(data_source_id, url: url)
     {:ok, data_source_id: data_source_id, url: url, bypass: bypass}
   end
 
@@ -23,16 +22,16 @@ defmodule Cloak.DataSource.DsProxyTest do
       end
     )
 
-    columns = DsProxy.get_columns(context.data_source_id, "table_name")
+    columns = DsProxy.describe_table([url: context.url], "table_name")
     assert [{"column1", :text}, {"column2", :integer}] == columns
   end
 
   test "parsed select count(foo)", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["bar.user_id", "bar.foo"], "statement" => statement} = payload
+        assert %{"columns" => ["\"bar\".\"user_id\"", "\"bar\".\"foo\""], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT bar.user_id,bar.foo FROM bar "} == statement
+          "SELECT \"bar\".\"user_id\",\"bar\".\"foo\" FROM bar "} == statement
 
         {200, %{success: true, columns: ["bar.user_id", "bar.foo"], rows: Enum.map(1..100, &[&1, &1])}}
       end
@@ -45,9 +44,9 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "parsed select count(*)", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["bar.user_id"], "statement" => statement} = payload
+        assert %{"columns" => ["\"bar\".\"user_id\""], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" => query_string} = statement
-        assert "SELECT bar.user_id FROM bar " == query_string
+        assert "SELECT \"bar\".\"user_id\" FROM bar " == query_string
 
         {200, %{success: true, columns: ["bar.user_id"], rows: Enum.map(1..100, &[&1])}}
       end
@@ -60,9 +59,10 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "parsed column deduplication", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["bar.user_id", "bar.foo", "bar.baz"], "statement" => statement} = payload
+        assert %{"columns" => ["\"bar\".\"user_id\"", "\"bar\".\"foo\"", "\"bar\".\"baz\""],
+         "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT bar.user_id,bar.foo,bar.baz FROM bar "} == statement
+          "SELECT \"bar\".\"user_id\",\"bar\".\"foo\",\"bar\".\"baz\" FROM bar "} == statement
 
         {200, %{success: true, columns: ["bar.user_id", "bar.foo", "bar.baz"],
           rows: Enum.map(1..100, &[&1, 1, 2])}}
@@ -78,9 +78,9 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "deduplication of aggregate columns", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["bar.user_id", "bar.foo"], "statement" => statement} = payload
+        assert %{"columns" => ["\"bar\".\"user_id\"", "\"bar\".\"foo\""], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT bar.user_id,bar.foo FROM bar "} == statement
+          "SELECT \"bar\".\"user_id\",\"bar\".\"foo\" FROM bar "} == statement
 
         rows = Enum.map(1..49, &[&1, 0]) ++ Enum.map(50..100, &[&1, 10])
         {200, %{success: true, columns: ["bar.user_id", "bar.foo"], rows: rows}}
@@ -96,9 +96,9 @@ defmodule Cloak.DataSource.DsProxyTest do
   test "dsproxy returns empty set", context do
     expect_json_post(context.bypass, "/query",
       fn(payload) ->
-        assert %{"columns" => ["bar.user_id", "bar.foo"], "statement" => statement} = payload
+        assert %{"columns" => ["\"bar\".\"user_id\"", "\"bar\".\"foo\""], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT bar.user_id,bar.foo FROM bar "} == statement
+          "SELECT \"bar\".\"user_id\",\"bar\".\"foo\" FROM bar "} == statement
 
         {200, %{success: true, columns: ["bar.user_id", "bar.foo"], rows: [[]]}}
       end
@@ -114,7 +114,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"statement" => statement} = payload
         assert %{
           "type" => "unsafe",
-          "val" => "SELECT __aircloak_user_id__,foo FROM (select foo from bar) AS unsafe_subquery"
+          "val" => "SELECT \"__aircloak_user_id__\",\"foo\" FROM (select foo from bar) AS unsafe_subquery"
         } = statement
 
         {200, %{success: true, columns: ["user_id", "foo"], rows: Enum.map(1..100, &[&1, &1])}}
@@ -131,7 +131,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"statement" => statement} = payload
         assert %{
           "type" => "unsafe",
-          "val" => "SELECT __aircloak_user_id__ FROM (select * from bar) AS unsafe_subquery"
+          "val" => "SELECT \"__aircloak_user_id__\" FROM (select * from bar) AS unsafe_subquery"
         } = statement
 
         {200, %{success: true, columns: ["user_id"], rows: Enum.map(1..100, &[&1, &1])}}
@@ -148,7 +148,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"statement" => statement} = payload
         assert %{
           "type" => "unsafe",
-          "val" => "SELECT __aircloak_user_id__,foo FROM (select foo from bar) AS unsafe_subquery"
+          "val" => "SELECT \"__aircloak_user_id__\",\"foo\" FROM (select foo from bar) AS unsafe_subquery"
         } = statement
 
         {200, %{success: true, columns: ["user_id", "foo"], rows: Enum.map(1..100, &[&1, &1])}}
@@ -157,6 +157,22 @@ defmodule Cloak.DataSource.DsProxyTest do
 
     query_result = run_query(context, "select foo, count(*) from (select foo from bar) as baz group by foo")
     assert {:ok, {:buckets, ["foo", "count"], [%{occurrences: 1, row: [:*, 100]}]}, []} = query_result
+  end
+
+  test "function types are not verified in an unparsed query", context do
+    expect_json_post(context.bypass, "/query",
+      fn(payload) ->
+        assert %{"statement" => statement} = payload
+        assert %{
+          "type" => "unsafe",
+          "val" => "SELECT \"__aircloak_user_id__\",\"c\" FROM (select count(*) as c from foo) AS unsafe_subquery"
+        } = statement
+        {200, %{success: true, columns: ["user_id", "c"], rows: Enum.map(1..100, &[&1, 100])}}
+      end
+    )
+
+    query_result = run_query(context, "select max(c) from (select count(*) as c from foo) as sq")
+    assert {:ok, {:buckets, ["max"], [%{occurrences: 1, row: [100]}]}, []} = query_result
   end
 
   test "propagating reported error", context do

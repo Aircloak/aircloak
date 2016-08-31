@@ -10,19 +10,18 @@ defmodule Air.Query do
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "queries" do
     field :statement, :string
-    field :cloak_id, :string
-    field :data_source, :string
     field :tables, {:array, :string}
     field :result, :string
     field :execution_time, :integer
 
     belongs_to :user, User
+    belongs_to :data_source, DataSource
 
     timestamps
   end
 
   @required_fields ~w()
-  @optional_fields ~w(statement cloak_id data_source tables result execution_time)
+  @optional_fields ~w(statement data_source_id tables result execution_time)
 
 
   # -------------------------------------------------------------------
@@ -39,12 +38,17 @@ defmodule Air.Query do
   def changeset(model, params \\ :empty) do
     model
     |> cast(params, @required_fields, @optional_fields)
+    |> foreign_key_constraint(:data_source_id)
   end
 
   @doc "Converts the query model to the cloak compliant data."
   @spec to_cloak_query(t) :: cloak_query
-  def to_cloak_query(model) do
-    Map.take(model, [:id, :statement, :data_source])
+  def to_cloak_query(query) do
+    %{
+      id: query.id,
+      statement: query.statement,
+      data_source: query.data_source.name
+    }
   end
 
   @doc "Produces a JSON blob of the query and it's result for rendering"
@@ -94,7 +98,7 @@ defmodule Air.Query do
   @spec for_data_source(Ecto.Queryable.t, DataSource.t) :: Ecto.Queryable.t
   def for_data_source(query \\ __MODULE__, data_source) do
     from q in query,
-    where: q.cloak_id == ^data_source.cloak_id and q.data_source == ^data_source.name
+    where: q.data_source_id == ^data_source.id
   end
 
   @doc "Adds a query filter limiting the number of selected queries"
@@ -114,10 +118,11 @@ defmodule Air.Query do
   @spec failed(Ecto.Queryable.t) :: Ecto.Queryable.t
   def failed(query \\ __MODULE__) do
     from q in query,
+    join: ds in assoc(q, :data_source),
     select: %{
       id: q.id,
       inserted_at: q.inserted_at,
-      data_source: q.data_source,
+      data_source: ds.name,
       statement: q.statement,
       error: fragment("?::json->>'error'", q.result)
     },
@@ -126,6 +131,14 @@ defmodule Air.Query do
       q.inserted_at > fragment("(CURRENT_DATE - INTERVAL '7 day')::date") and
       fragment("?::json->>'error' <> ''", q.result),
     order_by: [desc: q.inserted_at]
+  end
+
+  @doc "Return the last query made by a user"
+  @spec last(Ecto.Queryable.t) :: Ecto.Queryable.t
+  def last(query \\ __MODULE__) do
+    from q in query,
+    order_by: [desc: q.inserted_at],
+    limit: 1
   end
 
 

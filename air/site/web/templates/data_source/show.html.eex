@@ -5,12 +5,10 @@
 
 <h2>
   <%= @data_source.name %>
-  <small>
-    @ <%= @data_source.cloak_name %>
-  </small>
+  <%= if not available?(@data_source) do %>
+    <span class="label label-info">currently unavailable</span>
+  <% end %>
 </h2>
-
-<hr />
 
 <div id="query-view" />
 
@@ -18,8 +16,9 @@
   window.pageConfig = {
     onLoad: function(App) {
       var props = {
-        lastQuery: <%= {:safe, @last_query} %>,
+        lastQuery: <%= to_json(@last_query) %>,
         dataSourceId: "<%= @data_source.id %>",
+        dataSourceAvailable: <%= available?(@data_source) %>,
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",

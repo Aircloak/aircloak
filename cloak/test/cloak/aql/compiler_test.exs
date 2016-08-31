@@ -390,9 +390,9 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error =~ "<> is not supported in a subquery."
   end
 
-  test "group by in subquery is not supported" do
-    assert {:error, error} = compile("select c1 from (select uid, avg(c1) from t1 group by uid) alias", data_source())
-    assert error =~ "`GROUP BY` is not supported in a subquery."
+  test "missing group by in a subquery" do
+    assert {:error, error} = compile("select c1 from (select uid, count(*) from t1) alias", data_source())
+    assert error =~ "Column `uid` from table `t1` needs to appear in the `group by`"
   end
 
   test "integer operations are valid on sums of integer columns" do
@@ -403,6 +403,11 @@ defmodule Cloak.Aql.Compiler.Test do
     assert {:error, error} = compile("select sum(float) % 3 from table", data_source())
     assert error ==
         "Function `%` requires arguments of type (`integer`, `integer`), but got (`real`, `integer`)"
+  end
+
+  test "incorrect application of +" do
+    assert {:error, error} = compile("select 'a' + 'b' from table", data_source())
+    assert error == "Arguments of type (`text`, `text`) are incorrect for `+`"
   end
 
   defp compile!(query_string, data_source) do

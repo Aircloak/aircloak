@@ -32,7 +32,6 @@ defmodule Cloak.Aql.Lexer do
     "WHERE", "AND", "NOT",
     "CAST",
     "INTERVAL",
-    "INTEGER", "REAL", "TEXT", "BOOLEAN", "TIMESTAMP", "DATE", "TIME",
     "LIKE", "ILIKE", "IN", "IS", "BETWEEN",
     "ORDER", "GROUP", "BY",
     "ASC", "DESC", "AS",
@@ -56,6 +55,7 @@ defmodule Cloak.Aql.Lexer do
     many(choice([
       whitespace(),
       constant(),
+      quoted_identifier(),
       identifier(),
       keyword(),
       other()
@@ -122,9 +122,9 @@ defmodule Cloak.Aql.Lexer do
 
   defp string_content() do
     choice([
-      string("\\'") |> return("'"),
-      string("\\\\") |> return("\\"),
-      word_of(~r/[^'\\]+/),
+      string("''") |> return("'"),
+      word_of(~r/'[\r\n]+'/) |> return("'"),
+      word_of(~r/[^']+/),
     ])
   end
 
@@ -157,6 +157,16 @@ defmodule Cloak.Aql.Lexer do
           not Enum.any?(@keywords, &(&1 == String.upcase(identifier)))
         end)
     |> map(&{:identifier, &1})
+    |> output_token()
+  end
+
+  defp quoted_identifier() do
+    sequence([
+      ignore(char(?")),
+      word_of(~r/[^"]/),
+      ignore(char(?"))
+    ])
+    |> map(fn([identifier]) -> {:identifier, identifier} end)
     |> output_token()
   end
 

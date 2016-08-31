@@ -1,4 +1,4 @@
 <h2>Edit <%= @changeset.model.name %></h2>
-<hr/>
+
 <%= render "_form.html", changeset: @changeset,
     action: user_path(@conn, :update, @changeset.model.id), conn: @conn %>

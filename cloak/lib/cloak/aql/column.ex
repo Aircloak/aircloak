@@ -2,21 +2,22 @@ defmodule Cloak.Aql.Column do
   @moduledoc "Represents a column in a compiled query."
 
   @type column_type :: Cloak.DataSource.data_type | nil
-  @type db_function :: :coalesce
   @type t :: %__MODULE__{
     table: :unknown | Cloak.DataSource.table,
     name: String.t,
+    alias: String.t | nil,
     type: column_type,
     user_id?: boolean,
     db_row_position: nil | non_neg_integer,
     constant?: boolean,
     value: any,
-    db_function: db_function | String.t,
-    db_function_args: [t]
+    db_function: String.t | nil,
+    db_function_args: [t],
+    aggregate?: boolean
   }
   defstruct [
-    table: :unknown, name: nil, type: nil, user_id?: false, db_row_position: nil, constant?: false,
-    value: nil, db_function: nil, db_function_args: []
+    table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, db_row_position: nil, constant?: false,
+    value: nil, db_function: nil, db_function_args: [], aggregate?: false
   ]
 
   @doc "Returns a column struct representing the constant `value`."
@@ -26,14 +27,24 @@ defmodule Cloak.Aql.Column do
   end
 
   @doc "Creates a column representing a database function call."
-  def db_function(db_function, db_function_args) do
-    %__MODULE__{db_function: db_function, db_function_args: db_function_args}
+  @spec db_function(String.t, [t], column_type) :: t
+  def db_function(db_function, db_function_args, type \\ nil, aggregate? \\ false) do
+    %__MODULE__{db_function: db_function, db_function_args: db_function_args, type: type, aggregate?: aggregate?}
   end
 
   @doc "Returns true if the given term is a constant column, false otherwise."
   @spec constant?(Cloak.Aql.Parser.column | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
   def constant?(_), do: false
+
+  @doc "Returns true if the given term represents a database function call."
+  @spec db_function?(Cloak.Aql.Parser.column | t) :: boolean
+  def db_function?(%__MODULE__{db_function: fun}) when fun != nil, do: true
+  def db_function?(_), do: false
+
+  @doc "Returns true if the given term represents a database function call."
+  @spec aggregate_db_function?(Cloak.Aql.Parser.column | t) :: boolean
+  def aggregate_db_function?(column), do: db_function?(column) && column.aggregate?
 
   @doc """
   Returns a display name of the column.

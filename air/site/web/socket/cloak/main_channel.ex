@@ -4,7 +4,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  alias Air.{CloakInfo, Organisation}
+  alias Air.Organisation
 
 
   # -------------------------------------------------------------------
@@ -17,10 +17,10 @@ defmodule Air.Socket.Cloak.MainChannel do
   The function returns when the cloak responds. If the timeout occurs, it is
   still possible that a cloak has received the request.
   """
-  @spec run_query(CloakInfo.cloak_id, Organisation.t, Air.Query.cloak_query) :: :ok | {:error, any}
-  def run_query(cloak_id, user_organisation, query) do
+  @spec run_query(pid | nil, Organisation.t, Air.Query.cloak_query) :: :ok | {:error, any}
+  def run_query(channel_pid, user_organisation, query) do
     try do
-      case call(cloak_id, user_organisation, "run_query", query, :timer.seconds(5)) do
+      case call(channel_pid, user_organisation, "run_query", query, :timer.seconds(5)) do
         {:ok, _} -> :ok
         error -> error
       end
@@ -38,17 +38,17 @@ defmodule Air.Socket.Cloak.MainChannel do
   @doc false
   def join("main", cloak_info, socket) do
     Process.flag(:trap_exit, true)
-    {:ok, cloak_info_pid} = CloakInfo.start_link(%{
-      name: socket.assigns.name,
-      organisation: socket.assigns.organisation,
-      data_sources: Map.fetch!(cloak_info, "data_sources")
-    })
 
-    {:ok, %{},
-      socket
-      |> assign(:pending_calls, %{})
-      |> assign(:cloak_info_pid, cloak_info_pid)
+    cloak = %{
+      channel_pid: self(),
+      id: socket.assigns.cloak_id,
+      name: socket.assigns.name,
+      online_since: Timex.DateTime.now(),
     }
+    data_sources = Map.fetch!(cloak_info, "data_sources")
+    Air.DataSourceManager.register_cloak(cloak, data_sources)
+
+    {:ok, %{}, assign(socket, :pending_calls, %{})}
   end
 
   @doc false
@@ -108,10 +108,6 @@ defmodule Air.Socket.Cloak.MainChannel do
     pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
     {:noreply, assign(socket, :pending_calls, pending_calls)}
   end
-  def handle_info({:EXIT, cloak_info_pid, reason}, %{assigns: %{cloak_info_pid: cloak_info_pid}} = socket) do
-    # cloak registration process terminated, so we need to stop as well
-    {:stop, reason, socket}
-  end
   def handle_info({:EXIT, _, :normal}, socket) do
     # probably the linked reporter terminated successfully
     {:noreply, socket}
@@ -152,22 +148,19 @@ defmodule Air.Socket.Cloak.MainChannel do
     send(client_pid, {mref, response})
   end
 
-  @spec call(String.t, Organisation.t, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
-  defp call(cloak_id, user_organisation, event, payload, timeout) do
-    case CloakInfo.main_channel_pid(cloak_id) do
-      nil -> exit(:noproc)
-      pid ->
-        mref = Process.monitor(pid)
-        send(pid, {{__MODULE__, :call}, timeout, {self(), mref}, user_organisation, event, payload})
-        receive do
-          {^mref, response} ->
-            Process.demonitor(mref, [:flush])
-            response
-          {:DOWN, ^mref, _, _, reason} ->
-            exit(reason)
-        after timeout ->
-          exit(:timeout)
-        end
+  @spec call(pid | nil, Organisation.t, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
+  defp call(nil, _user_organisation, _event, _payload, _timeout), do: exit(:noproc)
+  defp call(pid, user_organisation, event, payload, timeout) do
+    mref = Process.monitor(pid)
+    send(pid, {{__MODULE__, :call}, timeout, {self(), mref}, user_organisation, event, payload})
+    receive do
+      {^mref, response} ->
+        Process.demonitor(mref, [:flush])
+        response
+      {:DOWN, ^mref, _, _, reason} ->
+        exit(reason)
+    after timeout ->
+      exit(:timeout)
     end
   end
 end

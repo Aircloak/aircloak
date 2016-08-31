@@ -24,7 +24,9 @@ defmodule Cloak.AirSocketTest do
   test "connection", %{cloak_name: cloak_name} do
     MainChannel.await(cloak_name)
     cloak_info = MainChannel.cloak_info(cloak_name)
-    assert %{"data_sources" => [%{"id" => "local", "tables" => _}]} = cloak_info
+    assert %{"data_sources" => [
+      %{"id" => _, "name" => "local", "tables" => _}, %{"id" => _, "name" => "local_odbc", "tables" => _}
+    ]} = cloak_info
   end
 
   test "disconnect/reconnect", %{cloak_name: cloak_name} do
@@ -66,9 +68,7 @@ defmodule Cloak.AirSocketTest do
   end
 
   test "starting a query", %{socket_pid: socket_pid, cloak_name: cloak_name} do
-    Cloak.Test.DB.setup()
-    Cloak.Test.DB.create_test_schema()
-    Cloak.Test.DB.create_table("heights", "height INTEGER")
+    Cloak.Test.DB.create_table("heights_as", "height INTEGER")
 
     Process.register(socket_pid, AirSocket)
     ensure_joined(cloak_name)
@@ -76,12 +76,12 @@ defmodule Cloak.AirSocketTest do
     request = %{
       request_id: "foo",
       event: "run_query",
-      payload: %{id: 42, statement: "SELECT height FROM cloak_test.heights", data_source: "local"}
+      payload: %{id: 42, statement: "SELECT height FROM cloak_test.heights_as", data_source: "local"}
     }
     MainChannel.send_to_cloak(cloak_name, "air_call", request)
     assert_receive {:in_message, "call_response", response}
     assert %{"request_id" => "foo", "status" => "ok"} = response
-    assert_receive {:in_message, "cloak_call", response}
+    assert_receive {:in_message, "cloak_call", response}, 500
     assert %{"event" => "query_result", "payload" => %{"query_id" => 42}} = response
     Process.unregister(AirSocket)
   end

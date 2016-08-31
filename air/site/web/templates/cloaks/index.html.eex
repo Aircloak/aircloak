@@ -1,37 +1,19 @@
 <h2>Cloaks</h2>
-<hr/>
+
 <%= if length(@cloaks) == 0 do %>
   <div><b>There are currently no cloaks registered.</b></div>
 <% else %>
   <%= for cloak <- @cloaks do %>
     <div>
-      <div><big><big><%= cloak.name %></big></big></div>
-      <div><small>Connected since <%= Air.Utils.DateTime.time_ago(cloak.created_at) %></small></div>
-      <ul>
-      <%= for data_source <- cloak.data_sources do %>
-        <li type="square">
-          <div><big><%= data_source.id %></big></div>
-          <%= for table <- data_source.tables do %>
-            <div>
-              <table class="table table-striped table-small">
-                <thead>
-                  <tr>
-                    <th colspan="2"><%= table.id %></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <%= for column <- table.columns do %>
-                    <tr>
-                      <td><%= column.name %></td><td><%= column.type %></td>
-                    </tr>
-                  <% end %>
-                </tbody>
-              </table>
-            </div>
-          <% end %>
-        </li>
-      <% end %>
-      </ul>
+      <div>
+        <h3><%= cloak.name %>
+          <small>since <%= time_ago(cloak.online_since) %></small>
+        </h3>
+        <p>
+          <%= cloak.name %> makes the following data sources available:
+          <strong><%= data_source_names(cloak) %></strong>
+        </p>
+      </div>
     </div>
   <% end %>
 <% end %>

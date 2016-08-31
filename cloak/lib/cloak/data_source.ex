@@ -41,7 +41,7 @@ defmodule Cloak.DataSource do
   @type t :: %{
     id: atom,
     driver: module,
-    parameters: %{},
+    parameters: Driver.parameters,
     tables: %{atom => table}
   }
   @type table :: %{
@@ -67,14 +67,20 @@ defmodule Cloak.DataSource do
   defmodule Driver do
     @moduledoc "Specifies the interface for implementing the database specific data access operations."
 
-    @doc "Returns the Supervisor spec for monitoring worker processes for the given data source id and parameters."
-    @callback child_spec(atom, Keyword.t) :: Supervisor.Spec.spec
+    @type connection :: any
+    @type parameters :: any
 
-    @doc "Retrieves the existing columns for the specified table name and data source id."
-    @callback get_columns(Cloak.DataSource.t, String.t) :: [{String.t, DataSource.data_type}]
+    @doc "Opens a new connection to the data store."
+    @callback connect(parameters) :: {:ok, connection} | {:error, any}
 
-    @doc "Database specific implementation for the `DataSource.select` functionality."
-    @callback select(Cloak.DataSource.t, Aql.t, Cloak.DataSource.result_processor)
+    @doc "Closes the connection to the data store."
+    @callback disconnect(connection) :: :ok
+
+    @doc "Retrieves the existing columns for the specified table name."
+    @callback describe_table(connection, String.t) :: [{String.t, DataSource.data_type}]
+
+    @doc "Driver specific implementation for the `DataSource.select` functionality."
+    @callback select(connection, Aql.t, Cloak.DataSource.result_processor)
       :: {:ok, Cloak.DataSource.processed_result} | {:error, any}
   end
 
@@ -84,35 +90,22 @@ defmodule Cloak.DataSource do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc """
-  Starts data source adapter supervision subtree.
-
-  This function starts a datasource supervisor, and underneath it all data
-  source adapters specified in the deployment configuration.
+  Initializes the configured data sources.
 
   Starting is fault-tolerant: if some data sources can't be accessed, or if
   there are some errors in the configuration, the system will still start,
   using the valid datasources. Invalid data sources won't be accessible, but
   the system will log corresponding errors.
   """
-  @spec start_link() :: Supervisor.on_start
-  def start_link() do
+  @spec start() :: :ok
+  def start() do
     data_sources =
       Cloak.DeployConfig.fetch!("data_sources")
+      |> add_unique_id()
       |> atomize_keys()
       |> Enum.map(&map_driver/1)
 
-    child_specs =
-      for {_, data_source} <- data_sources do
-        data_source.driver.child_spec(data_source.id, Enum.to_list(data_source.parameters))
-      end
-
-    case Supervisor.start_link(child_specs, strategy: :one_for_one, name: __MODULE__) do
-      {:ok, pid} ->
-        cache_columns(data_sources)
-        {:ok, pid}
-      error ->
-        error
-    end
+    cache_columns(data_sources)
   end
 
   @doc "Returns the list of defined data sources."
@@ -144,8 +137,16 @@ defmodule Cloak.DataSource do
   for handling the stream of rows produced as a result of executing the query.
   """
   @spec select(Aql.t, result_processor) :: {:ok, processed_result} | {:error, any}
-  def select(%{data_source: data_source} = select_query, result_processor), do:
-    data_source.driver.select(data_source.id, select_query, result_processor)
+  def select(%{data_source: data_source} = select_query, result_processor) do
+    driver = data_source.driver
+    with {:ok, connection} <- driver.connect(data_source.parameters) do
+      try do
+        driver.select(connection, select_query, result_processor)
+      after
+        driver.disconnect(connection)
+      end
+    end
+  end
 
   @doc "Returns the datasource for the given id, raises if it's not found."
   @spec fetch!(atom) :: t
@@ -170,6 +171,7 @@ defmodule Cloak.DataSource do
     driver_module = case params[:driver] do
       "postgresql" -> Cloak.DataSource.PostgreSQL
       "dsproxy" -> Cloak.DataSource.DsProxy
+      "odbc" -> Cloak.DataSource.ODBC
       other -> raise("Unknown driver `#{other}` for data source `#{data_source}`")
     end
 
@@ -190,37 +192,50 @@ defmodule Cloak.DataSource do
   end
   defp atomize_keys(other), do: other
 
+  defp add_unique_id(data_sources) do
+    for data_source <- data_sources, into: %{}, do: add_unique_id_to_data_source(data_source)
+  end
+
+  defp add_unique_id_to_data_source({data_source_name, data}) do
+    # Useful when we want to make the same data source appear multiple times
+    # as if it was distinct data sources. Used in staging and testing environments.
+    aircloak_data_source_marker = data["data_source_marker"] || ""
+    unique_id_data = {aircloak_data_source_marker, data["parameters"]} |> :erlang.term_to_binary()
+    # MD5 is perfectly fine here, as the hash doesn't serve any other purpose than generating
+    # a single ID based on the data. Of course collisions can be constructed, but doing so is
+    # not in anyone's interest, and furthermore would not compromise any user data.
+    unique_id = :crypto.hash(:md5, unique_id_data) |> Base.encode64()
+    {data_source_name, Map.merge(data, %{"unique_id" => unique_id})}
+  end
+
   # load the columns list for all defined tables in all data sources
   defp cache_columns(data_sources) do
-    Application.put_env(:cloak, :data_sources,
-      data_sources
-      |> Stream.map(&data_source_with_columns/1)
-      |> Enum.into(%{})
-    )
+    data_sources = for data_source <- data_sources, into: %{}, do: data_source_with_columns(data_source)
+    Application.put_env(:cloak, :data_sources, data_sources)
   end
 
   defp data_source_with_columns({id, data_source}) do
-    # A reasonably sized chunk to avoid opening too many simultaneous connections
-    chunk_size = 50
-
-    tables =
-      data_source.tables
-      |> Enum.chunk(chunk_size, chunk_size, [])
-      |> Enum.map(&load_tables_columns(data_source, &1))
-      |> Enum.reduce(%{}, &Map.merge/2)
-
+    tables = load_tables_columns(data_source) |> Enum.into(%{})
     {id, Map.put(data_source, :tables, tables)}
   end
 
-  defp load_tables_columns(data_source, tables) do
-    Enum.map(tables, &Task.async(fn -> table_with_columns(data_source, &1) end))
-    |> Enum.map(&Task.await/1)
-    |> Stream.filter(&(&1 != nil))
-    |> Enum.into(%{})
+  defp load_tables_columns(data_source) do
+    driver = data_source.driver
+    with {:ok, connection} <- driver.connect(data_source.parameters) do
+      try do
+        for table <- data_source.tables, into: %{}, do: table_with_columns(data_source, connection, table)
+      after
+        driver.disconnect(connection)
+      end
+    else
+      {:error, reason} ->
+        Logger.error("Error connecting to #{data_source.id}: #{reason}")
+        nil
+    end
   end
 
-  defp table_with_columns(data_source, {table_id, table}) do
-    case load_table_columns(data_source, table) do
+  defp table_with_columns(data_source, connection, {table_id, table}) do
+    case load_table_columns(data_source, connection, table) do
       {:ok, columns} ->
         {table_id, Map.merge(table, %{columns: columns, name: to_string(table_id)})}
       {:error, reason} ->
@@ -229,24 +244,17 @@ defmodule Cloak.DataSource do
     end
   end
 
-  defp load_table_columns(data_source, table) do
-    with {:ok, columns} <- do_load_columns(data_source, table) do
+  defp load_table_columns(data_source, connection, table) do
+    with {:ok, columns} <- do_load_columns(data_source, connection, table) do
       {supported, unsupported} = Enum.partition(columns, &supported?/1)
       validate_unsupported_columns(unsupported, data_source, table)
       {:ok, supported}
     end
   end
 
-  defp do_load_columns(data_source, table) do
-    try do
-      columns = data_source.driver.get_columns(data_source.id, table.db_name)
-      with :ok <- verify_columns(table, columns), do: {:ok, columns}
-    catch type, error ->
-      {
-        :error,
-        Exception.format(type, error, :erlang.get_stacktrace())
-      }
-    end
+  defp do_load_columns(data_source, connection, table) do
+    columns = data_source.driver.describe_table(connection, table.db_name)
+    with :ok <- verify_columns(table, columns), do: {:ok, columns}
   end
 
   defp verify_columns(table, columns) do
@@ -308,27 +316,29 @@ defmodule Cloak.DataSource do
   if Mix.env == :test do
     @doc false
     def register_test_table(table_id, table_name, user_id) do
-      source = Application.get_env(:cloak, :data_sources)[:local]
-      table = %{db_name: table_name, user_id: user_id}
-      tables = Map.put(source[:tables], table_id, table)
-      source = Map.put(source, :tables, tables)
-      {_id, source} = data_source_with_columns({:local, source})
-      Application.put_env(:cloak, :data_sources, %{local: source})
+      sources = for {id, source} <- Application.get_env(:cloak, :data_sources), into: %{} do
+        table = %{db_name: table_name, user_id: user_id}
+        tables = Map.put(source[:tables], table_id, table)
+        {id, Map.put(source, :tables, tables)} |> data_source_with_columns()
+      end
+      Application.put_env(:cloak, :data_sources, sources)
     end
 
     @doc false
     def unregister_test_table(table_id) do
-      source = Application.get_env(:cloak, :data_sources)[:local]
-      tables = Map.delete(source[:tables], table_id)
-      source = Map.put(source, :tables, tables)
-      Application.put_env(:cloak, :data_sources, %{local: source})
+      sources = for {id, source} <- Application.get_env(:cloak, :data_sources), into: %{} do
+        tables = Map.delete(source[:tables], table_id)
+        {id, Map.put(source, :tables, tables)}
+      end
+      Application.put_env(:cloak, :data_sources, sources)
     end
 
     @doc false
     def clear_test_tables() do
-      source = Application.get_env(:cloak, :data_sources)[:local]
-      source = Map.put(source, :tables, %{})
-      Application.put_env(:cloak, :data_sources, %{local: source})
+      sources = for {id, source} <- Application.get_env(:cloak, :data_sources), into: %{} do
+        {id, Map.put(source, :tables, %{})}
+      end
+      Application.put_env(:cloak, :data_sources, sources)
     end
   end
 end

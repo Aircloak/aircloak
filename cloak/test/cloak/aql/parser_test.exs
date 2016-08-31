@@ -353,7 +353,7 @@ defmodule Cloak.Aql.Parser.Test do
   test "date extraction" do
     assert_parse(
       "SELECT extract(year FROM column) FROM table",
-      select(columns: [{:function, "year", {:identifier, :unknown, "column"}}])
+      select(columns: [{:function, "year", [{:identifier, :unknown, "column"}]}])
     )
   end
 
@@ -750,10 +750,28 @@ defmodule Cloak.Aql.Parser.Test do
       select(columns: [{:function, {:cast, :text}, [identifier("a")]}])
   end
 
+  for word <- ~w(date time timestamp) do
+    test "#{word} as a column name" do
+      assert_parse "select #{unquote(word)} from bar",
+        select(columns: [identifier(unquote(word))])
+    end
+  end
+
   test "select interval" do
     duration = Timex.Duration.parse!("P1Y2M3DT4H5M6S")
     assert_parse "select interval 'P1Y2M3DT4H5M6S' from bar",
       select(columns: [constant(:interval, ^duration)])
+  end
+
+  test "quoted identifier" do
+    assert_parse "select \"something that wouldn't normally work as a column name\" from bar",
+      select(columns: [identifier("something that wouldn't normally work as a column name")])
+  end
+
+  test "literals containing escaped single-quotes" do
+    assert_parse "select 'O''Brian' from names", select(columns: [constant(:text, "O'Brian")])
+    assert_parse "select 'O'\n'Brian' from names", select(columns: [constant(:text, "O'Brian")])
+    assert_parse ~S(select 'O\Brian' from names), select(columns: [constant(:text, ~S(O\Brian))])
   end
 
   create_test =

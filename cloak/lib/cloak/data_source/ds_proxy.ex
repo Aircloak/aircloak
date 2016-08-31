@@ -23,7 +23,6 @@ defmodule Cloak.DataSource.DsProxy do
       }
   """
 
-  import Supervisor.Spec
   alias Cloak.DataSource.SqlBuilder
 
 
@@ -33,26 +32,19 @@ defmodule Cloak.DataSource.DsProxy do
 
   @behaviour Cloak.DataSource.Driver
 
-  @pool_name DBConnection.Poolboy
+  @doc false
+  def connect(parameters), do: {:ok, parameters}
+  @doc false
+  def disconnect(_connection), do: :ok
 
   @doc false
-  def child_spec(source_id, parameters) do
-    worker(__MODULE__, [source_id, parameters], id: proc_name(source_id), restart: :permanent)
+  def describe_table(connection, table_name) do
+    load_column_definitions(connection, table_name)
   end
 
   @doc false
-  def start_link(source_id, parameters) do
-    Agent.start_link(fn() -> parameters end, name: proc_name(source_id))
-  end
-
-  @doc false
-  def get_columns(source_id, full_table_name) do
-    load_column_definitions(params(source_id), full_table_name)
-  end
-
-  @doc false
-  def select(source_id, sql_query, result_processor) do
-    run_query(params(source_id), sql_query, result_processor)
+  def select(connection, sql_query, result_processor) do
+    run_query(connection, sql_query, result_processor)
   end
 
 
@@ -60,17 +52,13 @@ defmodule Cloak.DataSource.DsProxy do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp params(source_id) do
-    Agent.get(proc_name(source_id), &(&1))
-  end
-
-  defp load_column_definitions(params, full_table_name) do
-    response = %{"success" => true} = post!(params, "show_columns", %{table: full_table_name})
+  defp load_column_definitions(connection, table_name) do
+    response = %{"success" => true} = post!(connection, "show_columns", %{table: table_name})
     Enum.map(response["columns"], &({&1["name"], parse_type(String.downcase(&1["type"]))}))
   end
 
-  defp run_query(params, query, result_processor) do
-    case post!(params, "query", request(query)) do
+  defp run_query(connection, query, result_processor) do
+    case post!(connection, "query", request(query)) do
       %{"success" => true} = response ->
         rows =
           case response["rows"] do
@@ -103,20 +91,19 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   defp sql_statement(sql_query) do
-    {query_string, params} = SqlBuilder.build(sql_query)
     %{
       type: query_type(sql_query),
-      params: params,
-      val: query_string |> List.flatten |> Enum.join
+      params: [],
+      val: SqlBuilder.build(sql_query)
     }
   end
 
   defp query_type(%{mode: :unparsed}), do: "unsafe"
   defp query_type(_query), do: "parsed"
 
-  defp post!(params, operation, payload) do
+  defp post!(connection, operation, payload) do
     %HTTPoison.Response{status_code: 200, body: body} = HTTPoison.post!(
-      "#{Keyword.fetch!(params, :url)}/#{operation}",
+      "#{Keyword.fetch!(connection, :url)}/#{operation}",
       Poison.encode!(payload),
       [{"Content-Type", "application/json"}],
       recv_timeout: :timer.hours(4)
@@ -124,8 +111,6 @@ defmodule Cloak.DataSource.DsProxy do
 
     Poison.decode!(body)
   end
-
-  defp proc_name(source_id), do: {:via, :gproc, {:n, :l, {Cloak.DataSource, source_id}}}
 
   defp parse_type("uniqueidentifier"), do: :uuid
   defp parse_type("nvarchar"), do: :text

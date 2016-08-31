@@ -180,7 +180,7 @@ defmodule Cloak.Aql.Compiler do
     [%{
       name: subquery.alias,
       db_name: nil,
-      columns: Enum.map(subquery.ast.db_columns, &{&1.name, &1.type}),
+      columns: Enum.map(subquery.ast.db_columns, &{&1.alias || &1.name, &1.type}),
       user_id: Enum.find(subquery.ast.db_columns, &(&1.user_id?)).name
     }]
   end
@@ -239,6 +239,7 @@ defmodule Cloak.Aql.Compiler do
   defp aggregated_column?(column, query) do
     Column.constant?(column) ||
       Function.aggregate_function?(column) ||
+      Column.aggregate_db_function?(column) ||
       Enum.member?(query.group_by, column) ||
       (Function.function?(column) && Enum.all?(Function.arguments(column), &aggregated_column?(&1, query)))
   end
@@ -270,6 +271,7 @@ defmodule Cloak.Aql.Compiler do
     warn_on_selected_uids(query)
   end
 
+  defp verify_function_arguments(%Query{mode: :unparsed}), do: :ok
   defp verify_function_arguments(query) do
     query.columns
     |> Enum.flat_map(&expand_arguments/1)
@@ -282,20 +284,32 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp function_argument_error_message(function_call) do
-    if Function.cast?(function_call) do
-      [cast_source] = Function.arguments(function_call) |> Enum.map(&Function.type/1)
-      cast_target = Function.return_type(function_call)
-
-      "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
-    else
-      expected_types = Function.argument_types(function_call)
-      actual_types = Function.arguments(function_call) |> Enum.map(&Function.type/1)
-      expected_string = expected_types |> Enum.map(&quoted_list/1) |> Enum.map(&"(#{&1})") |> Enum.join(" or ")
-
-      "Function `#{Function.name(function_call)}` requires arguments"
-        <> " of type #{expected_string}, but got (#{quoted_list(actual_types)})"
+    cond do
+      Function.cast?(function_call) ->
+        [cast_source] = actual_types(function_call)
+        cast_target = Function.return_type(function_call)
+        "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
+      many_overloads?(function_call) ->
+        "Arguments of type (#{function_call |> actual_types() |> quoted_list()}) are incorrect"
+          <> " for `#{Function.name(function_call)}`"
+      true ->
+        "Function `#{Function.name(function_call)}` requires arguments of type #{expected_types(function_call)}"
+          <> ", but got (#{function_call |> actual_types() |> quoted_list()})"
     end
   end
+
+  defp many_overloads?(function_call) do
+    length(Function.argument_types(function_call)) > 4
+  end
+
+  defp expected_types(function_call), do:
+    Function.argument_types(function_call)
+    |> Enum.map(&quoted_list/1)
+    |> Enum.map(&"(#{&1})")
+    |> Enum.join(" or ")
+
+  defp actual_types(function_call), do:
+    Function.arguments(function_call) |> Enum.map(&Function.type/1)
 
   defp expand_arguments(column) do
     (column |> Function.arguments() |> Enum.flat_map(&expand_arguments/1)) ++ [column]
@@ -323,9 +337,6 @@ defmodule Cloak.Aql.Compiler do
   defp aggregated_expression_display(%Column{} = column), do:
     "Column `#{column.name}` from table `#{column.table.name}` needs"
 
-  defp verify_group_by_functions(%Query{subquery?: true, group_by: [_|_]}) do
-    raise CompilationError, message: "`GROUP BY` is not supported in a subquery."
-  end
   defp verify_group_by_functions(query) do
     query.group_by
     |> Enum.filter(&Function.aggregate_function?/1)
@@ -564,9 +575,9 @@ defmodule Cloak.Aql.Compiler do
   defp map_terminal_element({:identifier, _, _} = identifier, mapper_fun), do: mapper_fun.(identifier)
   defp map_terminal_element({:function, "count", :*} = function, _converter_fun), do: function
   defp map_terminal_element({:function, function, identifier}, converter_fun),
-    do: {:function, function, map_terminal_element(identifier, converter_fun)}
+    do: converter_fun.({:function, function, map_terminal_element(identifier, converter_fun)})
   defp map_terminal_element({:distinct, identifier}, converter_fun),
-    do: {:distinct, map_terminal_element(identifier, converter_fun)}
+    do: converter_fun.({:distinct, map_terminal_element(identifier, converter_fun)})
   defp map_terminal_element(elements, mapper_fun) when is_list(elements),
     do: Enum.map(elements, &map_terminal_element(&1, mapper_fun))
   defp map_terminal_element(constant, mapper_fun), do: mapper_fun.(constant)
@@ -616,11 +627,17 @@ defmodule Cloak.Aql.Compiler do
         end
     end
   end
+  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, %Query{subquery?: true}) do
+    case Function.return_type(function_spec) do
+      nil -> raise CompilationError, message: function_argument_error_message(function_spec)
+      type -> Column.db_function(name, args, type, Function.aggregate_function?(function_spec))
+    end
+  end
   defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
     Column.constant(type, value)
   defp identifier_to_column(other, _columns_by_name, _query), do: other
 
-  def column_title({:function, function, _}), do: function
+  def column_title(function = {:function, _, _}), do: Function.name(function)
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, column}), do: column
   def column_title({:constant, _, _}), do: ""
@@ -676,13 +693,15 @@ defmodule Cloak.Aql.Compiler do
   defp select_expressions(%Query{command: :select, subquery?: true} = query) do
     # currently we don't support functions in subqueries
     true = Enum.all?(query.columns, &match?(%Column{}, &1))
-    query.columns
+
+    Enum.zip(query.column_titles, query.columns)
+    |> Enum.map(fn({column_alias, column}) -> %Column{column | alias: column_alias} end)
   end
 
   defp id_column(query) do
     all_id_columns = all_id_columns_from_tables(query)
     if any_outer_join?(query.from),
-      do: Column.db_function(:coalesce, all_id_columns),
+      do: Column.db_function("coalesce", all_id_columns),
       else: hd(all_id_columns)
   end
 

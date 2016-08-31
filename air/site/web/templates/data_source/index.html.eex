@@ -1,38 +1,19 @@
 <h2>Data sources</h2>
 
-<%= if length(@data_sources) == 0 do %>
+<%= if length(@available_data_sources ++ @unavailable_data_sources) == 0 do %>
 
   <strong>No data sources are currently available</strong>
 
 <% else %>
 
-  <ul class="data-source">
-    <%= for data_source <- @data_sources do %>
-      <li>
-        <a class="main-link" href="/data_sources/<%= data_source.id %>">
-          <h3>
-            <%= data_source.name %>
-            <small>
-              @ <%= data_source.cloak_name %>
-            </small>
-          </h3>
-        </a>
-        <p>
-          Has
-          <strong><%= length(data_source.tables) %></strong>
-          tables available for querying.
-          These include:
-          <strong>
-            <%=
-              data_source.tables
-              |> Enum.take(3)
-              |> Enum.map(fn(%{id: name}) -> name end)
-              |> Enum.join(", ")
-            %>
-          </strong>
-        </p>
-      </li>
-    <% end %>
-  </ul>
+  <%= unless Enum.empty?(@available_data_sources) do %>
+  <h3>Available for querying</h3>
+  <%= render "_data_sources.html", data_sources: @available_data_sources %>
+  <% end %>
+
+  <%= unless Enum.empty?(@unavailable_data_sources) do %>
+  <h3>Currently unavailable for querying</h3>
+  <%= render "_data_sources.html", data_sources: @unavailable_data_sources %>
+  <% end %>
 
 <% end %>

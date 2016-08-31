@@ -6,6 +6,7 @@ defmodule Cloak do
   # for more information on OTP Applications
   def start(_type, _args) do
     set_salt()
+    :ok = Cloak.DataSource.start()
     Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor)
   end
 
@@ -31,7 +32,6 @@ defmodule Cloak do
     import Supervisor.Spec, warn: false
 
     [
-      supervisor(Cloak.DataSource, []),
       Cloak.ResultSender.supervisor_spec(),
       Cloak.Query.Runner.supervisor_spec()
     ]
