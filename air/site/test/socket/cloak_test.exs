@@ -1,13 +1,33 @@
 defmodule Air.Socket.CloakTest do
+  # Despite using Ecto 2.0 with it's transactional DB sandbox model,
+  # we have to run these tests sequentially.
+  # The problem causing the sequential execution is that the database pool
+  # is used from a process distinct from the test one:
+
+  # Ecto provides two options:
+  #
+  # - explicitly allowing a third process to access a sandbox pool
+  # - sharing the test pool with the world
+  #
+  # Explicitly allowing the DataSourceManager access doesn't work as
+  # we would have to concurrently give it access to multiple test pools,
+  # which then in turns means it wouldn't know which to check out a connection from.
+  #
+  # Using distinct servers per test doesn't work either, since we don't
+  # control the calling site.
+  #
+  # The sharing option is the one we are using, but since any process can access
+  # the pool, we cannot run tests concurrently.
   use ExUnit.Case, async: false
 
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
   alias Air.Socket.Cloak.MainChannel
-  alias Air.{Organisation, TestSocketHelper, DataSourceManager}
+  alias Air.{Organisation, TestSocketHelper, DataSourceManager, Repo}
 
   setup do
-    DataSourceManager.start_link()
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
     :ok
   end
 

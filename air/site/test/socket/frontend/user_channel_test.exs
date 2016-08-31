@@ -6,6 +6,10 @@ defmodule Air.Socket.Frontend.UserChannelTest do
   use Air.ChannelCase
 
   setup do
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Air.Repo)
+  end
+
+  setup do
     user = create_user!()
     {:ok, _, _} =
       socket("user", %{user: user})

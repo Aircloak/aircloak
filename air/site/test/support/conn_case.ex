@@ -32,11 +32,8 @@ defmodule Air.ConnCase do
     end
   end
 
-  setup tags do
-    unless tags[:async] do
-      Ecto.Adapters.SQL.restart_test_transaction(Air.Repo, [])
-    end
-
+  setup do
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Air.Repo)
     {:ok, conn: Phoenix.ConnTest.conn()}
   end
 end
