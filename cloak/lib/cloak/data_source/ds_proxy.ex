@@ -94,7 +94,7 @@ defmodule Cloak.DataSource.DsProxy do
     %{
       type: query_type(sql_query),
       params: [],
-      val: SqlBuilder.build(sql_query)
+      val: SqlBuilder.build(:ansi, sql_query)
     }
   end
 

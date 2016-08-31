@@ -15,7 +15,10 @@ defmodule Cloak.DataSource.PostgreSQL do
   @doc false
   def connect(parameters) do
     parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, pool: DBConnection.Connection]
-    Postgrex.start_link(parameters)
+    with {:ok, connection} = Postgrex.start_link(parameters) do
+      {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
+      {:ok, connection}
+    end
   end
   @doc false
   def disconnect(connection) do
@@ -37,7 +40,7 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @doc false
   def select(connection, aql_query, result_processor) do
-    statement = SqlBuilder.build(aql_query)
+    statement = SqlBuilder.build(:postgresql, aql_query)
     run_query(connection, statement, &row_mapper/1, result_processor)
   end
 
