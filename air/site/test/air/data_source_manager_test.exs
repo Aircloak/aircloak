@@ -34,13 +34,11 @@ defmodule Air.DataSourceManager.Test do
   @data_sources [%{"id" => @data_source_id, "name" => "data_source_name", "tables" => []}]
 
   test "should register data sources in the database" do
-    Repo.delete_all(DataSource)
     DataSourceManager.register_cloak(cloak_info(), @data_sources)
     assert Repo.get_by!(DataSource, unique_id: @data_source_id).unique_id == @data_source_id
   end
 
   test "re-registering doesn't add multiple copies of the same data source" do
-    Repo.delete_all(DataSource)
     DataSourceManager.register_cloak(cloak_info(), @data_sources)
     DataSourceManager.register_cloak(cloak_info(), @data_sources)
     assert length(Repo.all(DataSource, unique_id: @data_source_id)) == 1

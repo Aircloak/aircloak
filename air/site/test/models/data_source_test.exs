@@ -21,14 +21,12 @@ defmodule Air.DataSourceTest do
   end
 
   test "validates uniqueness of unique id" do
-    Repo.delete_all(DataSource)
     Repo.insert!(DataSource.changeset(%DataSource{}, @valid_attrs))
     assert_raise Ecto.InvalidChangesetError,
       fn -> Repo.insert!(DataSource.changeset(%DataSource{}, @valid_attrs)) end
   end
 
   test "invalid tables json defaults to no tables" do
-    Repo.delete_all(DataSource)
     data_source = Repo.insert!(
       DataSource.changeset(%DataSource{}, Map.merge(@valid_attrs, %{tables: "[invalid"})))
     assert [] == DataSource.tables(data_source)
