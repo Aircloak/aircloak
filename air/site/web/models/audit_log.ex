@@ -5,6 +5,8 @@ defmodule Air.AuditLog do
 
   alias Air.Repo
 
+  @type t :: %__MODULE__{}
+
   schema "audit_logs" do
     field :event, :string
     field :user, :string
@@ -22,6 +24,7 @@ defmodule Air.AuditLog do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
+  @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
   def changeset(model, params \\ %{}) do
     model
     |> cast(params, @required_fields, @optional_fields)
