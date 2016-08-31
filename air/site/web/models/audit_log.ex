@@ -27,7 +27,8 @@ defmodule Air.AuditLog do
   @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
   def changeset(model, params \\ %{}) do
     model
-    |> cast(params, @required_fields, @optional_fields)
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
   end
 
   @doc "Converts a log entry model into a map that can be converted to JSON"

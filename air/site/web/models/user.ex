@@ -117,7 +117,8 @@ defmodule Air.User do
   @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
   def changeset(model, params \\ %{}) do
     model
-    |> cast(params, @required_fields, @optional_fields)
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
     |> validate_format(:email, ~r/@/)
     |> validate_length(:name, min: 2)
     |> validate_confirmation(:password)

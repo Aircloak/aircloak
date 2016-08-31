@@ -37,7 +37,8 @@ defmodule Air.Query do
   @spec changeset(t, Map.t) :: Ecto.Changeset.t
   def changeset(model, params \\ %{}) do
     model
-    |> cast(params, @required_fields, @optional_fields)
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
     |> foreign_key_constraint(:data_source_id)
   end
 

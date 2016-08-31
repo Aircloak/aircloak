@@ -32,10 +32,11 @@ defmodule Air.Organisation do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
-  @spec changeset(t, %{binary => term} | %{atom => term} | :empty) :: Ecto.Changeset.t
-  def changeset(model, params \\ :empty) do
+  @spec changeset(t, Map.t) :: Ecto.Changeset.t
+  def changeset(model, params \\ %{}) do
     model
-    |> cast(params, @required_fields, @optional_fields)
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
     |> unique_constraint(:name)
   end
 

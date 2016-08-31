@@ -55,7 +55,8 @@ defmodule Air.DataSource do
   @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
   def changeset(model, params) do
     model
-    |> cast(params, @required_fields, @optional_fields)
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
     |> unique_constraint(:unique_id)
   end
 end
