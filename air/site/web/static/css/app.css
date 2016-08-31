@@ -1,7 +1,27 @@
-body {
-  /* Because of the static navbar we need padding
-  on top so the content doesn't get hidden */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+.body-wrapper {
+  min-height: 100%;
+  /* For the navbar */
   padding-top: 70px;
+  /* For the footer */
+  padding-bottom: 30px;
+  position: relative;
+}
+
+.footer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 5px;
+}
+
+.footer a {
+  color: gray;
 }
 
 /* Phoenix flash messages */
