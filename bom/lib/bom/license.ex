@@ -24,23 +24,7 @@ defmodule BOM.License do
   "Apache-2.0" and "Apache version 2.0".
   """
   @spec name_to_type(String.t) :: atom
-  def name_to_type("MIT"), do: :mit
-  def name_to_type("MIT/X11"), do: :mit
-  def name_to_type("ISC"), do: :isc
-  def name_to_type("FreeBSD"), do: :bsd_3_clause
-  def name_to_type("BSD"), do: :bsd_3_clause
-  def name_to_type("BSD-3-Clause"), do: :bsd_3_clause
-  def name_to_type("BSD-2-Clause"), do: :bsd_2_clause
-  def name_to_type("Apache License, Version 2.0"), do: :apache2
-  def name_to_type("Apache version 2.0"), do: :apache2
-  def name_to_type("Apache-2.0"), do: :apache2
-  def name_to_type("Public Domain"), do: :public_domain
-  def name_to_type("Unlicense"), do: :public_domain
-  def name_to_type("BOOST"), do: :boost
-  def name_to_type("WTFPL"), do: :do_what_the_fuck_you_want
-  def name_to_type("Zlib"), do: :zlib
-  def name_to_type("zlib"), do: :zlib
-  def name_to_type(_), do: :unknown
+  def name_to_type(name), do: name |> String.downcase() |> do_name_to_type()
 
   @doc "Returns true if we can use the given license type in the product, false otherwise."
   @spec allowed_type?(atom) :: boolean
@@ -57,6 +41,23 @@ defmodule BOM.License do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp do_name_to_type("mit"), do: :mit
+  defp do_name_to_type("mit/x11"), do: :mit
+  defp do_name_to_type("isc"), do: :isc
+  defp do_name_to_type("freebsd"), do: :bsd_3_clause
+  defp do_name_to_type("bsd"), do: :bsd_3_clause
+  defp do_name_to_type("bsd-3-clause"), do: :bsd_3_clause
+  defp do_name_to_type("bsd-2-clause"), do: :bsd_2_clause
+  defp do_name_to_type("apache license, version 2.0"), do: :apache2
+  defp do_name_to_type("apache version 2.0"), do: :apache2
+  defp do_name_to_type("apache-2.0"), do: :apache2
+  defp do_name_to_type("public domain"), do: :public_domain
+  defp do_name_to_type("unlicense"), do: :public_domain
+  defp do_name_to_type("boost"), do: :boost
+  defp do_name_to_type("wtfpl"), do: :do_what_the_fuck_you_want
+  defp do_name_to_type("zlib"), do: :zlib
+  defp do_name_to_type(_), do: :unknown
 
   for path <- Path.wildcard("./licenses/generic/*") do
     name = Path.basename(path) |> String.to_atom
