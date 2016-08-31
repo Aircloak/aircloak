@@ -1,0 +1,20 @@
+[
+  {
+    "error": null,
+    "license": {
+      "text": "The full text of the license",
+      "type": "mit"
+    },
+    "name": "some dependency",
+    "realm": "node"
+  },
+  {
+    "error": null,
+    "license": {
+      "text": "The full text of the license",
+      "type": "mit"
+    },
+    "name": "another dependency",
+    "realm": "elixir"
+  }
+]

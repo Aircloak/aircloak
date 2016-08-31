@@ -73,6 +73,10 @@
         <%= render @view_module, @view_template, assigns %>
       </main>
 
+      <div class="footer">
+        <small><a href="<%= license_path(@conn, :index) %>">Third Party Licenses</a></small>
+      </div>
+
     </div> <!-- /container -->
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
   </body>
