@@ -1,5 +1,5 @@
 defmodule Air.OrganisationTest do
-  use Air.ModelCase
+  use Air.ModelCase, async: true
 
   alias Air.Organisation
 

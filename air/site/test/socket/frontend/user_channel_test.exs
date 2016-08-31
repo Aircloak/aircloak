@@ -3,7 +3,7 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
   import Air.{TestRepoHelper}
 
-  use Air.ChannelCase
+  use Air.ChannelCase, async: true
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Air.Repo)
