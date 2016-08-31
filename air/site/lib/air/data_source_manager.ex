@@ -29,6 +29,9 @@ defmodule Air.DataSourceManager do
   def register_cloak(cloak_info, data_sources), do:
     GenServer.call(@server, {:register_cloak, cloak_info, data_sources})
 
+  def monitor, do:
+    global_name() |> :global.whereis_name() |> Process.monitor()
+
   @doc "Returns the pids of all the phoenix channels of the cloaks that have the data source"
   @spec channel_pids(String.t) :: [pid]
   def channel_pids(data_source_id), do:
@@ -88,13 +91,15 @@ defmodule Air.DataSourceManager do
   # -------------------------------------------------------------------
 
   defp take_authority(state) do
-    {:global, name} = @server
-    case :global.register_name(name, self()) do
+    case :global.register_name(global_name(), self()) do
       :yes -> state
-      :no ->
-        ref = name |> :global.whereis_name() |> Process.monitor()
-        %{state | authority_ref: ref}
+      :no -> %{state | authority_ref: monitor()}
     end
+  end
+
+  defp global_name do
+    {:global, name} = @server
+    name
   end
 
   defp register_data_source(data_source_data, cloak_info, %{data_source_to_cloak: data_source_to_cloak} = state) do
