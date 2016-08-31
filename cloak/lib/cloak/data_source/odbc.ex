@@ -14,6 +14,8 @@ defmodule Cloak.DataSource.ODBC do
 
   @behaviour Cloak.DataSource.Driver
 
+  defstruct [:connection, :sql_dialect]
+
   @doc false
   def connect(parameters) do
     options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
@@ -22,18 +24,18 @@ defmodule Cloak.DataSource.ODBC do
     end
   end
   @doc false
-  def disconnect({_sql_dialect, connection}) do
+  def disconnect(%__MODULE__{connection: connection}) do
     :odbc.disconnect(connection)
   end
 
   @doc false
-  def describe_table({_sql_dialect, connection}, table_name) do
+  def describe_table(%__MODULE__{connection: connection}, table_name) do
     {:ok, columns} = :odbc.describe_table(connection, to_char_list(table_name), _timeout = :timer.seconds(15))
     for {name, type} <- columns, do: {to_string(name), parse_type(type)}
   end
 
   @doc false
-  def select({sql_dialect, connection}, sql_query, result_processor) do
+  def select(%__MODULE__{connection: connection, sql_dialect: sql_dialect}, sql_query, result_processor) do
     statement = SqlBuilder.build(sql_dialect, sql_query) |> to_char_list()
     field_mappers = for column <- sql_query.db_columns, do: column_to_field_mapper(column)
     case :odbc.select_count(connection, statement, _timeout = :timer.hours(4)) do
@@ -58,11 +60,11 @@ defmodule Cloak.DataSource.ODBC do
 
   defp set_dialect("DSN=MySQL;" <> _rest, connection) do
     {:updated, 0} = :odbc.sql_query(connection, 'SET sql_mode = "ANSI,NO_BACKSLASH_ESCAPES"')
-    {:mysql, connection}
+    %__MODULE__{sql_dialect: :mysql, connection: connection}
   end
   defp set_dialect("DSN=PostgreSQL;" <> _rest, connection) do
     {:updated, 0} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
-    {:postgresql, connection}
+    %__MODULE__{sql_dialect: :postgresql, connection: connection}
   end
   defp set_dialect(parameters, _connection), do: raise "Unknown DSN type in `#{parameters}`."
 
