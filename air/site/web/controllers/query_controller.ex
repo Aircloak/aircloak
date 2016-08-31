@@ -30,10 +30,11 @@ defmodule Air.QueryController do
     |> Query.for_user()
     |> Query.last()
     |> Repo.one()
-    |> (&(&1.data_source_id)).()
     |> case do
-      nil -> redirect(conn, to: "/data_sources")
-      data_source_id -> redirect(conn, to: "/data_sources/#{data_source_id}")
+      %Query{data_source_id: data_source_id} when data_source_id != nil ->
+        redirect(conn, to: "/data_sources/#{data_source_id}")
+      _ ->
+        redirect(conn, to: "/data_sources")
     end
   end
 
