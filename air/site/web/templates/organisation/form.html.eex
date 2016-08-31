@@ -5,7 +5,7 @@
     </div>
   <% end %>
 
-  <%= unless Air.Organisation.admins?(@changeset.model) do %>
+  <%= unless Air.Organisation.admins?(@changeset.data) do %>
     <div class="form-group">
       <%= label f, :name, class: "control-label" %>
       <%= text_input f, :name, class: "form-control" %>
