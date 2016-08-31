@@ -1,4 +1,4 @@
-.PHONY: all compile deps clean start test dialyze docs lint
+.PHONY: all compile deps clean test dialyze docs lint
 
 all: deps compile
 
@@ -10,9 +10,6 @@ deps:
 
 clean:
 	mix clean --deps
-
-start:
-	iex -S mix start
 
 test:
 	mix test
