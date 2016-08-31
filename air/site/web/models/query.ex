@@ -54,11 +54,9 @@ defmodule Air.Query do
   @doc "Produces a JSON blob of the query and it's result for rendering"
   @spec for_display(t) :: %{}
   def for_display(query) do
-    base_query = %{
-      statement: query.statement,
-      id: query.id
-    }
-    Map.merge(base_query, result_map(query))
+    query
+    |> Map.take([:id, :data_source_id, :statement])
+    |> Map.merge(result_map(query))
   end
 
   @doc "Exports the query as CSV"
