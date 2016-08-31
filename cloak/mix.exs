@@ -53,7 +53,7 @@ defmodule Cloak.Mixfile do
 
   defp common_applications do
     [
-      :logger, :gproc, :aircloak_common, :postgrex, :poolboy,
+      :logger, :gproc, :aircloak_common, :postgrex,
       :phoenix_gen_socket_client, :websocket_client, :combine,
       :runtime_tools, :httpoison, :timex, :poison, :odbc
     ]
