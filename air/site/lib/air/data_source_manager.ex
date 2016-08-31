@@ -29,6 +29,8 @@ defmodule Air.DataSourceManager do
   def register_cloak(cloak_info, data_sources), do:
     GenServer.call(@server, {:register_cloak, cloak_info, data_sources})
 
+  @doc "Attaches a monitor to the global DataSourceManager from the current process."
+  @spec monitor() :: reference()
   def monitor, do:
     global_name() |> :global.whereis_name() |> Process.monitor()
 
