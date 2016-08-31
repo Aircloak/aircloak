@@ -15,8 +15,8 @@ defmodule Air.AuditLog do
     timestamps
   end
 
-  @required_fields ~w(event user metadata)
-  @optional_fields ~w()
+  @required_fields ~w(event user metadata)a
+  @optional_fields ~w()a
 
   @doc """
   Creates a changeset based on the `model` and `params`.

@@ -32,8 +32,8 @@ defmodule Air.User do
     field :password_confirmation, :string, virtual: true
   end
 
-  @required_fields ~w(email name organisation_id role_id)
-  @optional_fields ~w(password password_confirmation)
+  @required_fields ~w(email name organisation_id role_id)a
+  @optional_fields ~w(password password_confirmation)a
 
   @roles %{
     0 => {:user, "user"},

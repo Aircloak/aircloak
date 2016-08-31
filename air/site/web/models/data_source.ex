@@ -16,8 +16,8 @@ defmodule Air.DataSource do
     timestamps
   end
 
-  @required_fields ~w(name tables unique_id)
-  @optional_fields ~w()
+  @required_fields ~w(name tables unique_id)a
+  @optional_fields ~w()a
 
 
   # -------------------------------------------------------------------

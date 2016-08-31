@@ -25,8 +25,8 @@ defmodule Air.ApiToken do
     timestamps
   end
 
-  @required_fields ~w(description user_id)
-  @optional_fields ~w()
+  @required_fields ~w(description user_id)a
+  @optional_fields ~w()a
 
   @doc """
   Creates a changeset based on the `model` and `params`.

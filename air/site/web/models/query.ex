@@ -20,8 +20,8 @@ defmodule Air.Query do
     timestamps
   end
 
-  @required_fields ~w()
-  @optional_fields ~w(statement data_source_id tables result execution_time)
+  @required_fields ~w()a
+  @optional_fields ~w(statement data_source_id tables result execution_time)a
 
 
   # -------------------------------------------------------------------
