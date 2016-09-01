@@ -9,15 +9,19 @@ html, body {
   /* For the navbar */
   padding-top: 70px;
   /* For the footer */
-  padding-bottom: 30px;
+  padding-bottom: 50px;
   position: relative;
 }
 
 .footer {
   position: absolute;
-  right: 0;
   bottom: 0;
-  padding: 5px;
+  width: 100%;
+}
+
+.footer .content {
+  padding: 10px 0 10px 0;
+  border-top: 1px solid #e5e5e5;
 }
 
 .footer a {
