@@ -26,15 +26,15 @@ defmodule Air.QueryController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    Query
-    |> Query.for_user(conn.assigns.current_user)
+    conn.assigns.current_user
+    |> Query.for_user()
     |> Query.last()
     |> Repo.one()
     |> case do
-      nil -> redirect(conn, to: "/data_sources")
-      query ->
-        query = Repo.preload(query, :data_source)
-        redirect(conn, to: "/data_sources/#{query.data_source.id}")
+      %Query{data_source_id: data_source_id} when data_source_id != nil ->
+        redirect(conn, to: "/data_sources/#{data_source_id}")
+      _ ->
+        redirect(conn, to: "/data_sources")
     end
   end
 
