@@ -1,7 +1,7 @@
 defmodule BOM.Gather.Node do
   @moduledoc "Logic for reading node dependency information."
 
-  alias BOM.{License, Whitelist}
+  alias BOM.{Gather, License, Whitelist}
 
 
   # -------------------------------------------------------------------
@@ -31,19 +31,18 @@ defmodule BOM.Gather.Node do
   end
 
   defp license(path) do
-    license_from_file(path, "*{LICENSE,LICENCE,license,licence,License,License}*") ||
+    license_from_file(path) ||
       license_from_readme(path, "*{README,readme,Readme}*") ||
       public_domain_license(path) ||
       babel_license(path) ||
       Whitelist.find(:node, Path.basename(path))
   end
 
-  defp license_from_file(path, pattern) do
-    if_matching_file(path, pattern, fn text -> %License{type: license_type(path), text: text} end)
-  end
+  defp license_from_file(path), do:
+    Gather.if_matching_file(path, Gather.license_files(), fn text -> %License{type: license_type(path), text: text} end)
 
   defp license_from_readme(path, pattern) do
-    if_matching_file(path, pattern, fn text ->
+    Gather.if_matching_file(path, pattern, fn text ->
       case Regex.run(~r/\n#* ?(license|licence)(.|\n)*/i, text) do
         [text | _] -> %License{type: license_type(path), text: text}
         _ -> nil
@@ -79,23 +78,7 @@ defmodule BOM.Gather.Node do
   defp package_json(path, field), do: package_json(path, field, nil)
 
   defp package_json(path, field, default), do:
-    if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] || default end)
-
-  defp if_matching_file(path, pattern, action) do
-    path
-    |> Path.join(pattern)
-    |> Path.wildcard()
-    |> Enum.find(&File.exists?/1)
-    |> case do
-      nil -> nil
-      matching_path ->
-        File.read(matching_path)
-        |> case do
-          {:ok, text} -> action.(text)
-          _ -> nil
-        end
-    end
-  end
+    Gather.if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] || default end)
 
   @babel_packages ~w(
     babel babel-cli babel-code-frame babel-core babel-generator babel-helper-bindify-decorators

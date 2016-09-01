@@ -9,6 +9,7 @@ defmodule BOM.Whitelist do
   # -------------------------------------------------------------------
 
   @licenses %{
+    :elixir => %{},
     :node => %{
       "jsv"                         => %{type: :bsd_2_clause, text: :provided},
       "browserify-cipher"           => %{type: :mit,          text: :standard},
@@ -89,7 +90,7 @@ defmodule BOM.Whitelist do
     if Map.has_key?(@licenses[realm], package) do
       license(realm, package, @licenses[realm][package])
     else
-      nil
+      License.unknown()
     end
   end
 

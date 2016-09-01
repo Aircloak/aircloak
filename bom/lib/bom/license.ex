@@ -37,6 +37,8 @@ defmodule BOM.License do
   def allowed_type?(:zlib), do: true
   def allowed_type?(_), do: false
 
+  def unknown(), do: %__MODULE__{type: :unknown, text: ""}
+
 
   # -------------------------------------------------------------------
   # Internal functions

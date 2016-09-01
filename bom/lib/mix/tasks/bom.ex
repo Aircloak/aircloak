@@ -8,8 +8,7 @@ defmodule Mix.Tasks.Bom do
   @dialyzer :no_undefined_callbacks
 
   def run(_args) do
-    {invalid, valid} = "../air/site/node_modules"
-    |> BOM.Gather.Node.run()
+    {invalid, valid} = packages()
     |> Enum.map(&BOM.Whitelist.update_license_type/1)
     |> Enum.map(&BOM.Validate.run/1)
     |> Enum.partition(&(&1.error))
@@ -25,5 +24,10 @@ defmodule Mix.Tasks.Bom do
 
       Mix.raise("#{Enum.count(invalid)} invalid packages")
     end
+  end
+
+  defp packages do
+    BOM.Gather.Node.run("../air/site/node_modules")
+      BOM.Gather.Elixir.run("../air/site/deps")
   end
 end
