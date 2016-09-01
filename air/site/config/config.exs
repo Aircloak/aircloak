@@ -44,6 +44,9 @@ config :air, Air.Repo,
   # We need it to work with `pgbouncer` (see https://github.com/elixir-ecto/postgrex#pgbouncer)
   prepare: :unnamed
 
+config :air, Air.BOM,
+  location: "priv/bom.json.example"
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env}.exs"

@@ -16,8 +16,8 @@ defmodule Air.DataSource do
     timestamps
   end
 
-  @required_fields ~w(name tables unique_id)
-  @optional_fields ~w()
+  @required_fields ~w(name tables unique_id)a
+  @optional_fields ~w()a
 
 
   # -------------------------------------------------------------------
@@ -52,10 +52,11 @@ defmodule Air.DataSource do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
-  @spec changeset(t | Changeset.t, %{binary => term} | %{atom => term} | :empty) :: Changeset.t
+  @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
   def changeset(model, params) do
     model
-    |> cast(params, @required_fields, @optional_fields)
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
     |> unique_constraint(:unique_id)
   end
 end

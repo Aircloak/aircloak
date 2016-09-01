@@ -60,3 +60,6 @@ config :logger, level: :info
 #     config :air, Air.Endpoint, root: "."
 
 config :phoenix, :serve_endpoints, true
+
+config :air, Air.BOM,
+  location: "priv/bom.json"

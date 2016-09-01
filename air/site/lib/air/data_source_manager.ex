@@ -20,7 +20,7 @@ defmodule Air.DataSourceManager do
   discover whether a datastore is available for querying, and if so where.
   """
   @spec start_link() :: {:ok, pid} | {:error, term}
-  def start_link(), do: GenServer.start_link(__MODULE__, nil, name: @server)
+  def start_link(), do: GenServer.start_link(__MODULE__, nil, name: __MODULE__)
 
   @doc """
   Registers a data source (if needed), and associates the calling cloak with the data source
@@ -28,6 +28,11 @@ defmodule Air.DataSourceManager do
   @spec register_cloak(Map.t, Map.t) :: :ok
   def register_cloak(cloak_info, data_sources), do:
     GenServer.call(@server, {:register_cloak, cloak_info, data_sources})
+
+  @doc "Attaches a monitor to the global DataSourceManager from the current process."
+  @spec monitor() :: reference()
+  def monitor, do:
+    global_name() |> :global.whereis_name() |> Process.monitor()
 
   @doc "Returns the pids of all the phoenix channels of the cloaks that have the data source"
   @spec channel_pids(String.t) :: [pid]
@@ -53,9 +58,9 @@ defmodule Air.DataSourceManager do
 
   @doc false
   def init(_) do
-    state = %{
-      data_source_to_cloak: Map.new(),
-    }
+    state = %{data_source_to_cloak: Map.new(), authority_ref: nil}
+    state = take_authority(state)
+
     {:ok, state}
   end
 
@@ -75,6 +80,9 @@ defmodule Air.DataSourceManager do
   end
 
   @doc false
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, state = %{authority_ref: ref}) do
+    {:noreply, take_authority(state)}
+  end
   def handle_info({:DOWN, _ref, :process, channel_pid, _reason}, state) do
     {:noreply, remove_disconnected_cloak(channel_pid, state)}
   end
@@ -83,6 +91,18 @@ defmodule Air.DataSourceManager do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp take_authority(state) do
+    case :global.register_name(global_name(), self()) do
+      :yes -> state
+      :no -> %{state | authority_ref: monitor()}
+    end
+  end
+
+  defp global_name do
+    {:global, name} = @server
+    name
+  end
 
   defp register_data_source(data_source_data, cloak_info, %{data_source_to_cloak: data_source_to_cloak} = state) do
     create_or_update_datastore(data_source_data)

@@ -39,6 +39,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   def join("main", cloak_info, socket) do
     Process.flag(:trap_exit, true)
 
+    socket = assign(socket, :manager_ref, Air.DataSourceManager.monitor())
     cloak = %{
       channel_pid: self(),
       id: socket.assigns.cloak_id,
@@ -112,6 +113,8 @@ defmodule Air.Socket.Cloak.MainChannel do
     # probably the linked reporter terminated successfully
     {:noreply, socket}
   end
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, socket = %{assigns: %{manager_ref: ref}}), do:
+    {:stop, :data_source_manager_down, socket}
   def handle_info(message, socket) do
     cloak_id = socket.assigns.cloak_id
     Logger.info("unhandled info #{inspect(message)} from '#{cloak_id}'")

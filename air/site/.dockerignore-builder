@@ -24,6 +24,7 @@
 !air/site/scripts
 !air/site/rel
 !air/site/fetch_deps.sh
+!air/site/priv/bom.json.example
 !common
 
 # blacklist some stuff

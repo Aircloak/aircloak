@@ -15,7 +15,10 @@ defmodule Cloak.DataSource.PostgreSQL do
   @doc false
   def connect(parameters) do
     parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, pool: DBConnection.Connection]
-    Postgrex.start_link(parameters)
+    with {:ok, connection} = Postgrex.start_link(parameters) do
+      {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
+      {:ok, connection}
+    end
   end
   @doc false
   def disconnect(connection) do
@@ -37,7 +40,7 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @doc false
   def select(connection, aql_query, result_processor) do
-    statement = SqlBuilder.build(aql_query)
+    statement = SqlBuilder.build(:postgresql, aql_query)
     run_query(connection, statement, &row_mapper/1, result_processor)
   end
 
@@ -95,4 +98,23 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Test functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  if Mix.env == :test do
+    defp parameter_mapper(%NaiveDateTime{} = dt), do:
+      %Postgrex.Timestamp{year: dt.year, month: dt.month, day: dt.day,
+        hour: dt.hour, min: dt.minute, sec: dt.second, usec: 0}
+    defp parameter_mapper(%Date{} = d), do: %Postgrex.Date{year: d.year, month: d.month, day: d.day}
+    defp parameter_mapper(%Time{} = t), do: %Postgrex.Time{hour: t.hour, min: t.minute, sec: t.second, usec: 0}
+    defp parameter_mapper(value), do: value
+    @doc false
+    def execute(connection, statement, parameters) do
+      parameters = Enum.map(parameters, &parameter_mapper/1)
+      Postgrex.query(connection, statement, parameters, [timeout: :timer.minutes(2)])
+    end
+  end
 end

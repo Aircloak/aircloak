@@ -1,5 +1,5 @@
 defmodule Air.OrganisationTest do
-  use Air.ModelCase
+  use Air.ModelCase, async: true
 
   alias Air.Organisation
 
@@ -19,12 +19,12 @@ defmodule Air.OrganisationTest do
   test "unique organisation name" do
     %Organisation{}
     |> Organisation.changeset(%{name: "Test organisation"})
-    |> Air.Repo.insert!
+    |> Air.Repo.insert!()
 
     assert {:error, changeset} = %Organisation{}
     |> Organisation.changeset(%{name: "Test organisation"})
-    |> Air.Repo.insert
+    |> Air.Repo.insert()
 
-    assert [name: "has already been taken"] = changeset.errors
+    assert [name: {"has already been taken", _}] = changeset.errors
   end
 end

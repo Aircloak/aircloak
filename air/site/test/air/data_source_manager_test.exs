@@ -1,4 +1,6 @@
 defmodule Air.DataSourceManager.Test do
+  # `async: false` because shared sandbox mode is used
+  # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
   use ExUnit.Case, async: false
   use Air.ModelCase
 
@@ -7,7 +9,7 @@ defmodule Air.DataSourceManager.Test do
   alias Air.{Repo, DataSource, DataSourceManager}
 
   setup do
-    DataSourceManager.start_link()
+    Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
     :ok
   end
 
@@ -15,13 +17,11 @@ defmodule Air.DataSourceManager.Test do
   @data_sources [%{"id" => @data_source_id, "name" => "data_source_name", "tables" => []}]
 
   test "should register data sources in the database" do
-    Repo.delete_all(DataSource)
     DataSourceManager.register_cloak(cloak_info(), @data_sources)
     assert Repo.get_by!(DataSource, unique_id: @data_source_id).unique_id == @data_source_id
   end
 
   test "re-registering doesn't add multiple copies of the same data source" do
-    Repo.delete_all(DataSource)
     DataSourceManager.register_cloak(cloak_info(), @data_sources)
     DataSourceManager.register_cloak(cloak_info(), @data_sources)
     assert length(Repo.all(DataSource, unique_id: @data_source_id)) == 1

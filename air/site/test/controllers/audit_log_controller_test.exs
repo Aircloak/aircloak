@@ -1,5 +1,5 @@
 defmodule Air.AuditLogControllerTest do
-  use Air.ConnCase
+  use Air.ConnCase, async: true
 
   import Air.{TestRepoHelper, TestConnHelper}
   alias Air.TestRepoHelper

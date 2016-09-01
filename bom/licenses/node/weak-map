@@ -1,0 +1,9 @@
+The canonical implementation of `WeakMap` exists in the Google Caja
+Subversion repository at http://google-caja.googlecode.com/svn/trunk.
+It was written by Mark S. Miller.  It is released by Google with the
+Apache 2.0 license.  This package is maintained by Kris Kowal.
+
+This work began with [Mark Miller’s proposal][Proposal] for `WeakMap` to ECMA’s
+TC-39, where the JavaScript standard is developed.
+
+[Proposal]: http://wiki.ecmascript.org/doku.php?id=harmony:weak_maps

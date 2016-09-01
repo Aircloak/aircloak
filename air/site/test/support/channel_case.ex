@@ -30,12 +30,4 @@ defmodule Air.ChannelCase do
       @endpoint Air.Endpoint
     end
   end
-
-  setup tags do
-    unless tags[:async] do
-      Ecto.Adapters.SQL.restart_test_transaction(Air.Repo, [])
-    end
-
-    :ok
-  end
 end

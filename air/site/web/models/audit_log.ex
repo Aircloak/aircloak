@@ -5,6 +5,8 @@ defmodule Air.AuditLog do
 
   alias Air.Repo
 
+  @type t :: %__MODULE__{}
+
   schema "audit_logs" do
     field :event, :string
     field :user, :string
@@ -13,8 +15,8 @@ defmodule Air.AuditLog do
     timestamps
   end
 
-  @required_fields ~w(event user metadata)
-  @optional_fields ~w()
+  @required_fields ~w(event user metadata)a
+  @optional_fields ~w()a
 
   @doc """
   Creates a changeset based on the `model` and `params`.
@@ -22,9 +24,11 @@ defmodule Air.AuditLog do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
-  def changeset(model, params \\ :empty) do
+  @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
+  def changeset(model, params \\ %{}) do
     model
-    |> cast(params, @required_fields, @optional_fields)
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
   end
 
   @doc "Converts a log entry model into a map that can be converted to JSON"

@@ -13,7 +13,7 @@ defmodule Air.UserView do
 
   defp select_org_options(changeset, options) do
     options = [{:prompt, "Please select an organisation"} | options]
-    case changeset.model.organisation_id do
+    case changeset.data.organisation_id do
       nil -> options
       id -> [{:selected, id} | options]
     end

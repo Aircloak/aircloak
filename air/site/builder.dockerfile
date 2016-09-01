@@ -22,6 +22,7 @@ COPY air/site/config /aircloak/air/site/config
 COPY common /aircloak/common
 COPY air/site/fetch_deps.sh /aircloak/air/site/
 COPY air/site/docs /aircloak/air/site/docs
+COPY air/site/priv/bom.json.example /aircloak/air/site/priv/bom.json
 
 RUN \
   . /tmp/build_config/proxies.sh && \

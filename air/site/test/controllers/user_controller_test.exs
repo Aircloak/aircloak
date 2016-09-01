@@ -1,5 +1,5 @@
 defmodule Air.UserControllerTest do
-  use Air.ConnCase, async: false
+  use Air.ConnCase, async: true
 
   import Air.TestConnHelper
   alias Air.TestRepoHelper

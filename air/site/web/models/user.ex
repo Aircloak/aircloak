@@ -32,8 +32,8 @@ defmodule Air.User do
     field :password_confirmation, :string, virtual: true
   end
 
-  @required_fields ~w(email name organisation_id role_id)
-  @optional_fields ~w(password password_confirmation)
+  @required_fields ~w(email name organisation_id role_id)a
+  @optional_fields ~w(password password_confirmation)a
 
   @roles %{
     0 => {:user, "user"},
@@ -114,10 +114,11 @@ defmodule Air.User do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
-  @spec changeset(t | Changeset.t, %{binary => term} | %{atom => term} | :empty) :: Changeset.t
-  def changeset(model, params \\ :empty) do
+  @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
+  def changeset(model, params \\ %{}) do
     model
-    |> cast(params, @required_fields, @optional_fields)
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
     |> validate_format(:email, ~r/@/)
     |> validate_length(:name, min: 2)
     |> validate_confirmation(:password)

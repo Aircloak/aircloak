@@ -24,9 +24,7 @@ defmodule Cloak.AirSocketTest do
   test "connection", %{cloak_name: cloak_name} do
     MainChannel.await(cloak_name)
     cloak_info = MainChannel.cloak_info(cloak_name)
-    assert %{"data_sources" => [
-      %{"id" => _, "name" => "local", "tables" => _}, %{"id" => _, "name" => "local_odbc", "tables" => _}
-    ]} = cloak_info
+    assert %{"data_sources" => [%{"id" => _, "name" => _, "tables" => _} | _rest]} = cloak_info
   end
 
   test "disconnect/reconnect", %{cloak_name: cloak_name} do
@@ -81,7 +79,7 @@ defmodule Cloak.AirSocketTest do
     MainChannel.send_to_cloak(cloak_name, "air_call", request)
     assert_receive {:in_message, "call_response", response}
     assert %{"request_id" => "foo", "status" => "ok"} = response
-    assert_receive {:in_message, "cloak_call", response}
+    assert_receive {:in_message, "cloak_call", response}, :timer.seconds(1)
     assert %{"event" => "query_result", "payload" => %{"query_id" => 42}} = response
     Process.unregister(AirSocket)
   end
