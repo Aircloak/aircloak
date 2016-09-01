@@ -76,13 +76,15 @@
 
       </div> <!-- /container -->
 
-      <div class="footer">
-        <div class="container">
-          <div class="content">
-            <small><a href="<%= license_path(@conn, :index) %>">Third Party Licenses</a></small>
+      <%= if permitted?(@conn, Air.LicenseController, :index) do %>
+        <div class="footer">
+          <div class="container">
+            <div class="content">
+              <small><a href="<%= license_path(@conn, :index) %>">Third Party Licenses</a></small>
+            </div>
           </div>
         </div>
-      </div>
+      <% end %>
     </div>
 
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
