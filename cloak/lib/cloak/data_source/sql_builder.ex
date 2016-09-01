@@ -3,6 +3,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   alias Cloak.Aql.Query
   alias Cloak.Aql.Column
+  alias Cloak.DataSource.SqlBuilder.DbFunction
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -46,94 +47,17 @@ defmodule Cloak.DataSource.SqlBuilder do
     |> Enum.intersperse(?,)
   end
 
+  defp column_sql(:*), do: "*"
   defp column_sql({:distinct, column}),
     do: ["DISTINCT ", column_sql(column)]
   defp column_sql(%Column{alias: alias} = column) when alias != nil do
     [column_sql(%Column{column | alias: nil}), "AS ", alias]
   end
   defp column_sql(%Column{db_function: fun_name, db_function_args: args, type: type}) when fun_name != nil,
-    do: function_sql(fun_name, args, type)
+    do: DbFunction.sql(fun_name, Enum.map(args, &column_sql/1), type)
   defp column_sql(%Column{constant?: true, value: value, type: type}),
-    do: [cast(constant_to_fragment(value), sql_type(type))]
+    do: DbFunction.sql({:cast, type}, [constant_to_fragment(value)], type)
   defp column_sql(column), do: column_name(column)
-
-  # aggregate functions
-  defp function_sql("min", [arg], _type), do: function_call("min", [column_sql(arg)])
-  defp function_sql("max", [arg], _type), do: function_call("max", [column_sql(arg)])
-  defp function_sql("avg", [arg], type), do: cast(function_call("avg", [column_sql(arg)]), sql_type(type))
-  defp function_sql("sum", [arg], type), do: cast(function_call("sum", [column_sql(arg)]), sql_type(type))
-  defp function_sql("count", [:*], _type), do: cast(function_call("count", ["*"]), "integer")
-  defp function_sql("count", [arg], _type), do: cast(function_call("count", [column_sql(arg)]), "integer")
-  # math functions
-  defp function_sql("trunc", [arg], _type), do: cast(function_call("trunc", [column_sql(arg)]), "integer")
-  defp function_sql("trunc", [arg1, arg2], _type),
-    do: cast(function_call("trunc", [cast(column_sql(arg1), "numeric"), column_sql(arg2)]), "float")
-  defp function_sql("round", [arg], _type), do: cast(function_call("round", [column_sql(arg)]), "integer")
-  defp function_sql("round", [arg1, arg2], _type),
-    do: cast(function_call("round", [cast(column_sql(arg1), "numeric"), column_sql(arg2)]), "float")
-  defp function_sql("abs", [arg], _type), do: function_call("abs", [column_sql(arg)])
-  defp function_sql("sqrt", [arg], _type), do: function_call("sqrt", [column_sql(arg)])
-  defp function_sql("div", [arg1, arg2], _type),
-    do: cast(function_call("div", [column_sql(arg1), column_sql(arg2)]), "integer")
-  defp function_sql("mod", [arg1, arg2], _type),
-    do: cast(function_call("mod", [column_sql(arg1), column_sql(arg2)]), "integer")
-  defp function_sql("pow", [arg1, arg2], _type), do: function_call("pow", [column_sql(arg1), column_sql(arg2)])
-  defp function_sql("floor", [arg1], _type), do: cast(function_call("floor", [column_sql(arg1)]), "integer")
-  defp function_sql("ceil", [arg1], _type), do: cast(function_call("ceil", [column_sql(arg1)]), "integer")
-  defp function_sql("ceiling", [arg1], _type), do: cast(function_call("ceil", [column_sql(arg1)]), "integer")
-  # datetime functions
-  for datepart <- ["year", "month", "day", "hour", "minute", "second"] do
-    defp function_sql(unquote(datepart), [arg], _type) do
-      function_call("extract", [[unquote(datepart), " FROM ", column_sql(arg)]])
-      |> cast("integer")
-    end
-  end
-  # string functions
-  defp function_sql("length", [arg], _type), do: function_call("length", [column_sql(arg)])
-  defp function_sql("lower", [arg], _type), do: function_call("lower", [column_sql(arg)])
-  defp function_sql("lcase", [arg], _type), do: function_call("lower", [column_sql(arg)])
-  defp function_sql("upper", [arg], _type), do: function_call("upper", [column_sql(arg)])
-  defp function_sql("ucase", [arg], _type), do: function_call("upper", [column_sql(arg)])
-  defp function_sql("left", [arg1, arg2], _type), do: function_call("left", [column_sql(arg1), column_sql(arg2)])
-  defp function_sql("right", [arg1, arg2], _type), do: function_call("right", [column_sql(arg1), column_sql(arg2)])
-  defp function_sql("ltrim", [arg1], _type), do: function_call("ltrim", [column_sql(arg1)])
-  defp function_sql("ltrim", [arg1, arg2], _type), do: function_call("ltrim", [column_sql(arg1), column_sql(arg2)])
-  defp function_sql("rtrim", [arg1], _type), do: function_call("rtrim", [column_sql(arg1)])
-  defp function_sql("rtrim", [arg1, arg2], _type), do: function_call("rtrim", [column_sql(arg1), column_sql(arg2)])
-  defp function_sql("btrim", [arg1], _type), do: function_call("btrim", [column_sql(arg1)])
-  defp function_sql("btrim", [arg1, arg2], _type), do: function_call("btrim", [column_sql(arg1), column_sql(arg2)])
-  defp function_sql("substring", [arg1, arg2], _type), do:
-    function_call("substring", [[column_sql(arg1), " FROM ", column_sql(arg2)]])
-  defp function_sql("substring", [arg1, arg2, arg3], _type),
-    do: function_call("substring", [[column_sql(arg1), " FROM ", column_sql(arg2), " FOR ", column_sql(arg3)]])
-  defp function_sql("substring_for", [arg1, arg2], _type), do:
-    function_call("substring", [[column_sql(arg1), "FOR ", column_sql(arg2)]])
-  defp function_sql("concat", [_ | _] = args, _type), do: function_call("concat", [columns_sql(args)])
-  defp function_sql("||", [_ | _] = args, _type), do: function_call("concat", [columns_sql(args)])
-  # misc functions
-  defp function_sql("coalesce", args, _type), do: function_call("coalesce", [columns_sql(args)])
-  defp function_sql({:cast, type}, [arg], _type), do: cast(column_sql(arg), sql_type(type))
-  # binary operators
-  for binary_operator <- ["+", "-", "*", "^"] do
-    defp function_sql(unquote(binary_operator), [arg1, arg2], _type) do
-      binary_operator_call(unquote(binary_operator), column_sql(arg1), column_sql(arg2))
-    end
-  end
-  defp function_sql("/", [arg1, arg2], _type) do
-    binary_operator_call("/", cast(column_sql(arg1), "float"), column_sql(arg2))
-  end
-
-  defp cast(expr, type) do
-    function_call("cast", [[expr, " AS ", type]])
-  end
-
-  defp function_call(name, args) do
-    [name, "(", Enum.intersperse(args, ",") ,")"]
-  end
-
-  defp binary_operator_call(operator, arg1, arg2) do
-    ["(", arg1, operator, arg2, ")"]
-  end
 
   defp from_clause({:join, join}, query) do
     ["(", from_clause(join.lhs, query), " ", join_sql(join.type), " ", from_clause(join.rhs, query),
@@ -159,14 +83,6 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp table_to_from(%{name: table_name, db_name: table_name}), do: table_name
   defp table_to_from(table), do: "#{table.db_name} AS \"#{table.name}\""
-
-  defp sql_type(:integer), do: "integer"
-  defp sql_type(:real), do: "float"
-  defp sql_type(:boolean), do: "bool"
-  defp sql_type(:timestamp), do: "timestamp"
-  defp sql_type(:time), do: "time"
-  defp sql_type(:date), do: "date"
-  defp sql_type(:text), do: "text"
 
   defp where_fragments([]), do: []
   defp where_fragments(where_clause) do
