@@ -1,9 +1,15 @@
 defmodule Air.API.QueryController.Test do
-  use Air.ConnCase
+  # `async: false` because shared sandbox mode is used
+  # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
+  use Air.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
   alias Air.{TestSocketHelper, Repo, DataSource}
   alias Poison, as: JSON
+
+  setup do
+    Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+  end
 
   test "can run a query" do
     organisation = create_organisation!()

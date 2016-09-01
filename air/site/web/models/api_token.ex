@@ -25,8 +25,8 @@ defmodule Air.ApiToken do
     timestamps
   end
 
-  @required_fields ~w(description user_id)
-  @optional_fields ~w()
+  @required_fields ~w(description user_id)a
+  @optional_fields ~w()a
 
   @doc """
   Creates a changeset based on the `model` and `params`.
@@ -34,9 +34,11 @@ defmodule Air.ApiToken do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
-  def changeset(model, params \\ :empty) do
+  @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
+  def changeset(model, params \\ %{}) do
     model
-    |> cast(params, @required_fields, @optional_fields)
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
     |> unique_constraint(:token, name: :api_tokens_pkey)
     |> validate_length(:description, min: 3)
   end

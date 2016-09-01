@@ -1,10 +1,13 @@
 defmodule Air.QueryControllerTest do
-  use Air.ConnCase
+  # `async: false` because shared sandbox mode is used
+  # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
+  use Air.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
   alias Air.{TestSocketHelper, Repo, DataSource}
 
   setup do
+    Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
     params = %{
       "unique_id" => "data_source_id",
       "name" => "data source name",

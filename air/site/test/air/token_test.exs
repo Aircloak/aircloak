@@ -1,5 +1,5 @@
 defmodule Air.Token.Test do
-  use Air.ModelCase
+  use Air.ModelCase, async: true
   alias Air.{ApiToken, Token, Repo}
   import Air.{TestRepoHelper}
 

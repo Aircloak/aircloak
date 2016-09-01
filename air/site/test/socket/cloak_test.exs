@@ -1,13 +1,16 @@
 defmodule Air.Socket.CloakTest do
+  # `async: false` because shared sandbox mode is used
+  # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
   use ExUnit.Case, async: false
 
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
   alias Air.Socket.Cloak.MainChannel
-  alias Air.{Organisation, TestSocketHelper, DataSourceManager}
+  alias Air.{Organisation, TestSocketHelper, DataSourceManager, Repo}
 
   setup do
-    DataSourceManager.start_link()
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
     :ok
   end
 
