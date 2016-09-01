@@ -8,8 +8,7 @@ defmodule Cloak.Query.FunctionTest do
     insert_rows(_user_ids = 1..100, "heights_ft", ["height"], [180])
 
     Cloak.Test.DB.create_table("datetimes_ft", "datetime TIMESTAMP, date_only DATE, time_only TIME")
-    insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"],
-      [%Postgrex.Timestamp{year: 2015, month: 1, day: 2, hour: 3, min: 4, sec: 5}])
+    insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-01-02 03:04:05]])
   end
 
   defmacrop assert_subquery_function(expression, table, subquery_postfix \\ "", expected_match) do
