@@ -14,70 +14,79 @@
   </head>
 
   <body>
-    <div class="container">
-      <header>
-        <nav role="navigation" class="navbar navbar-default navbar-fixed-top">
-          <div class="container-fluid">
-            <div class="navbar-header">
-              <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
-                <span class="sr-only">Toggle navigation</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-              </button>
-              <a class="navbar-brand logo" href="/"></a>
-            </div>
+    <div class="body-wrapper">
+      <div class="container">
+        <header>
+          <nav role="navigation" class="navbar navbar-default navbar-fixed-top">
+            <div class="container-fluid">
+              <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                  <span class="sr-only">Toggle navigation</span>
+                  <span class="icon-bar"></span>
+                  <span class="icon-bar"></span>
+                  <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand logo" href="/"></a>
+              </div>
 
-            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-              <ul class="nav navbar-nav navbar-right">
-                <%= if permitted?(@conn, Air.DataSourceController, :index) do %>
-                  <%= navbar_link(@conn, "Data sources", data_source_path(@conn, :index)) %>
-                <% end %>
-                <%= if permitted?(@conn, Air.QueryController, :failed) do %>
-                  <%= navbar_link(@conn, "Failed queries", query_path(@conn, :failed)) %>
-                <% end %>
-                <%= if permitted?(@conn, Air.CloaksController, :index) do %>
-                  <%= navbar_link(@conn, "Cloaks", cloaks_path(@conn, :index)) %>
-                <% end %>
-                <%= if permitted?(@conn, Air.UserController, :index) do %>
-                  <%= navbar_link(@conn, "Users", manage_users_link(@conn)) %>
-                <% end %>
-                <%= if permitted?(@conn, Air.OrganisationController, :index) do %>
-                  <%= navbar_link(@conn, "Organisations", organisation_path(@conn, :index)) %>
-                <% end %>
-                <%= if permitted?(@conn, Air.AuditLogController, :index) do %>
-                  <%= navbar_link(@conn, "Audit log", audit_log_path(@conn, :index)) %>
-                <% end %>
-                <%= if permitted?(@conn, Air.ApiTokenController, :index) do %>
-                  <%= navbar_link(@conn, "API Tokens", api_token_path(@conn, :index)) %>
-                <% end %>
-                <%= navbar_link(@conn, "User Guide", "/docs") %>
-                <%= if Guardian.Plug.authenticated?(@conn) do %>
-                  <li>
-                    <%= link "Sign out", to: session_path(@conn, :delete), method: :delete %>
-                  </li>
-                <% else %>
-                  <%= navbar_link(@conn, "Sign in", session_path(@conn, :new)) %>
-                <% end %>
-              </ul>
+              <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav navbar-right">
+                  <%= if permitted?(@conn, Air.DataSourceController, :index) do %>
+                    <%= navbar_link(@conn, "Data sources", data_source_path(@conn, :index)) %>
+                  <% end %>
+                  <%= if permitted?(@conn, Air.QueryController, :failed) do %>
+                    <%= navbar_link(@conn, "Failed queries", query_path(@conn, :failed)) %>
+                  <% end %>
+                  <%= if permitted?(@conn, Air.CloaksController, :index) do %>
+                    <%= navbar_link(@conn, "Cloaks", cloaks_path(@conn, :index)) %>
+                  <% end %>
+                  <%= if permitted?(@conn, Air.UserController, :index) do %>
+                    <%= navbar_link(@conn, "Users", manage_users_link(@conn)) %>
+                  <% end %>
+                  <%= if permitted?(@conn, Air.OrganisationController, :index) do %>
+                    <%= navbar_link(@conn, "Organisations", organisation_path(@conn, :index)) %>
+                  <% end %>
+                  <%= if permitted?(@conn, Air.AuditLogController, :index) do %>
+                    <%= navbar_link(@conn, "Audit log", audit_log_path(@conn, :index)) %>
+                  <% end %>
+                  <%= if permitted?(@conn, Air.ApiTokenController, :index) do %>
+                    <%= navbar_link(@conn, "API Tokens", api_token_path(@conn, :index)) %>
+                  <% end %>
+                  <%= navbar_link(@conn, "User Guide", "/docs") %>
+                  <%= if Guardian.Plug.authenticated?(@conn) do %>
+                    <li>
+                      <%= link "Sign out", to: session_path(@conn, :delete), method: :delete %>
+                    </li>
+                  <% else %>
+                    <%= navbar_link(@conn, "Sign in", session_path(@conn, :new)) %>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+            <%= help_links(@conn) %>
+          </nav>
+        </header>
+
+        <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
+        <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
+
+        <main role="main">
+          <%= render @view_module, @view_template, assigns %>
+        </main>
+
+      </div> <!-- /container -->
+
+      <%= if permitted?(@conn, Air.LicenseController, :index) do %>
+        <div class="footer">
+          <div class="container">
+            <div class="content">
+              <small><a href="<%= license_path(@conn, :index) %>">Third Party Licenses</a></small>
             </div>
           </div>
-          <%= help_links(@conn) %>
-        </nav>
-      </header>
+        </div>
+      <% end %>
+    </div>
 
-      <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
-      <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
-
-      <main role="main">
-        <%= render @view_module, @view_template, assigns %>
-      </main>
-
-      <div class="footer">
-        <small><a href="<%= license_path(@conn, :index) %>">Third Party Licenses</a></small>
-      </div>
-
-    </div> <!-- /container -->
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
   </body>
 </html>
