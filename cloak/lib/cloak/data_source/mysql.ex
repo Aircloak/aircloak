@@ -87,4 +87,29 @@ defmodule Cloak.DataSource.MySQL do
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Test functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  if Mix.env == :test do
+    defp parameter_mapper(%NaiveDateTime{} = dt), do:
+      {{dt.year, dt.month, dt.day}, {dt.hour, dt.minute, dt.second, 0}}
+    defp parameter_mapper(%Date{} = d), do: {d.year, d.month, d.day}
+    defp parameter_mapper(%Time{} = t), do: {t.hour, t.minute, t.second, 0}
+    defp parameter_mapper(value), do: value
+
+    @doc false
+    def execute(connection, statement, parameters \\ [])
+    def execute(connection, "DROP SCHEMA " <> _rest = statement, []), do:
+      Mariaex.query(connection, String.replace(statement, "CASCADE", ""))
+    def execute(connection, "CREATE TABLE " <> _rest = statement, []), do:
+      Mariaex.query(connection, String.replace(statement, " BOOLEAN", " BIT"))
+    def execute(connection, statement, parameters) do
+      parameters = Enum.map(parameters, &parameter_mapper/1)
+      statement = statement |> to_string() |> String.replace(~r/\$\d+/, "?")
+      Mariaex.query(connection, statement, parameters, [timeout: :timer.minutes(2)])
+    end
+  end
 end
