@@ -31,10 +31,12 @@ defmodule BOM.Gather.Node do
   end
 
   defp license(path) do
-    public_domain_license(path) ||
+    type = license_type(path)
+
+    Gather.public_domain_license(type) ||
       babel_license(path) ||
-      Gather.license_from_file(path, &license_type/1) ||
-      Gather.license_from_readme(path, &license_type/1) ||
+      Gather.license_from_file(path, type) ||
+      Gather.license_from_readme(path, type) ||
       Whitelist.find(:node, Path.basename(path))
   end
 
@@ -51,14 +53,6 @@ defmodule BOM.Gather.Node do
 
   defp package_license_to_type(%{"type" => type}), do: package_license_to_type(type)
   defp package_license_to_type(type), do: License.name_to_type(type)
-
-  defp public_domain_license(path) do
-    case package_json(path, "license") do
-      "Public domain" -> License.find_by_type(:public_domain)
-      "Public Domain" -> License.find_by_type(:public_domain)
-      _ -> nil
-    end
-  end
 
   defp babel_license(path), do:
     if babel_package?(path), do: Whitelist.babel_license(), else: nil

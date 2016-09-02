@@ -17,8 +17,11 @@ defmodule BOM.Gather.Elixir do
   end
 
   defp license(path) do
-    Gather.license_from_file(path, &license_type/1) ||
-      Gather.license_from_readme(path, &license_type/1) ||
+    type = license_type(path)
+
+    Gather.public_domain_license(type) ||
+      Gather.license_from_file(path, type) ||
+      Gather.license_from_readme(path, type) ||
       BOM.Whitelist.find(:elixir, package_name(path))
   end
 
