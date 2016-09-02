@@ -173,7 +173,7 @@ defmodule Cloak.DataSource do
       "odbc" -> Cloak.DataSource.ODBC
       other -> raise("Unknown driver `#{other}` for data source `#{id}`")
     end
-    {id, Map.merge(data_source, %{driver: driver_module, id: id})}
+    {id, Map.merge(data_source, %{driver: driver_module})}
   end
 
   defp atomize_keys(%{} = map) do
@@ -203,7 +203,7 @@ defmodule Cloak.DataSource do
     # a single ID based on the data. Of course collisions can be constructed, but doing so is
     # not in anyone's interest, and furthermore would not compromise any user data.
     unique_id = :crypto.hash(:md5, unique_id_data) |> Base.encode64()
-    {unique_id, Map.merge(data, %{"name" => data_source_name})}
+    {unique_id, Map.merge(data, %{"name" => data_source_name, "id" => unique_id})}
   end
 
   # load the columns list for all defined tables in all data sources
