@@ -148,14 +148,14 @@ defmodule Cloak.DataSource do
   end
 
   @doc "Returns the datasource for the given id, raises if it's not found."
-  @spec fetch!(atom) :: t
+  @spec fetch!(String.t) :: t
   def fetch!(data_source_id) do
     {:ok, data_source} = fetch(data_source_id)
     data_source
   end
 
   @doc "Returns the datasource with the given id, or `:error` if it's not found."
-  @spec fetch(atom) :: {:ok, t} | :error
+  @spec fetch(String.t) :: {:ok, t} | :error
   def fetch(data_source_id) do
     Application.get_env(:cloak, :data_sources)
     |> Map.fetch(data_source_id)

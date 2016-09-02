@@ -172,7 +172,7 @@ defmodule Cloak.AirSocket do
 
   defp handle_air_call("run_query", serialized_query, from, state) do
     %{"id" => id, "statement" => statement, "data_source" => data_source} = serialized_query
-    case Cloak.DataSource.fetch(String.to_existing_atom(data_source)) do
+    case Cloak.DataSource.fetch(data_source) do
       :error ->
         respond_to_air(from, :error, "unknown data source")
 
