@@ -25,12 +25,14 @@ defmodule BOM.Gather.Elixir do
     Gather.if_matching_file(path, Gather.license_files(), fn(text) -> %License{type: license_type(path), text: text} end)
 
   defp license_type(path) do
-    {200, package, _http_headers} = path |> package_name() |> Hex.API.Package.get()
-    %{"meta" => %{"licenses" => licenses}} = package
-
-    (licenses || [])
-    |> Enum.map(&License.name_to_type/1)
-    |> Enum.find(&License.allowed_type?/1)
+    case path |> package_name() |> BOM.Gather.Elixir.Hex.package() do
+      {:error, _} -> nil
+      {:ok, %{"meta" => %{"licenses" => nil}}} -> nil
+      {:ok, %{"meta" => %{"licenses" => licenses}}} ->
+        licenses
+        |> Enum.map(&License.name_to_type/1)
+        |> Enum.find(&License.allowed_type?/1)
+    end
   end
 
   defp package_name(path), do: Path.basename(path)
