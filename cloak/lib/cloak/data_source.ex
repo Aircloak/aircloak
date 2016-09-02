@@ -99,7 +99,7 @@ defmodule Cloak.DataSource do
   def start() do
     data_sources =
       Cloak.DeployConfig.fetch!("data_sources")
-      |> add_unique_id()
+      |> identify_by_unique_id()
       |> atomize_keys()
       |> Enum.map(&map_driver/1)
 
@@ -190,7 +190,7 @@ defmodule Cloak.DataSource do
   end
   defp atomize_keys(other), do: other
 
-  defp add_unique_id(data_sources) do
+  defp identify_by_unique_id(data_sources) do
     for data_source <- data_sources, into: %{}, do: add_unique_id_to_data_source(data_source)
   end
 
@@ -203,7 +203,7 @@ defmodule Cloak.DataSource do
     # a single ID based on the data. Of course collisions can be constructed, but doing so is
     # not in anyone's interest, and furthermore would not compromise any user data.
     unique_id = :crypto.hash(:md5, unique_id_data) |> Base.encode64()
-    {data_source_name, Map.merge(data, %{"unique_id" => unique_id})}
+    {unique_id, Map.merge(data, %{"name" => data_source_name})}
   end
 
   # load the columns list for all defined tables in all data sources
