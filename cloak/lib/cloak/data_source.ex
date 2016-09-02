@@ -99,10 +99,11 @@ defmodule Cloak.DataSource do
   def start() do
     data_sources =
       Cloak.DeployConfig.fetch!("data_sources")
-      |> identify_by_unique_id()
+      |> Enum.map(fn({data_source_id, values}) -> {data_source_id, atomize_keys(values)} end)
+      |> Enum.map(&identify_by_unique_id/1)
       |> Enum.map(&map_driver/1)
       |> Enum.map(&add_tables/1)
-      |> atomize_keys()
+      |> Enum.into(%{})
 
     cache_columns(data_sources)
   end
