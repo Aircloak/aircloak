@@ -102,6 +102,7 @@ defmodule Cloak.DataSource do
       |> identify_by_unique_id()
       |> atomize_keys()
       |> Enum.map(&map_driver/1)
+      |> Enum.map(&add_tables/1)
 
     cache_columns(data_sources)
   end
@@ -208,11 +209,10 @@ defmodule Cloak.DataSource do
 
   # load the columns list for all defined tables in all data sources
   defp cache_columns(data_sources) do
-    data_sources = for data_source <- data_sources, into: %{}, do: data_source_with_columns(data_source)
-    Application.put_env(:cloak, :data_sources, data_sources)
+    Application.put_env(:cloak, :data_sources, Enum.into(data_sources, %{}))
   end
 
-  defp data_source_with_columns({id, data_source}) do
+  defp add_tables({id, data_source}) do
     tables = load_tables_columns(data_source) |> Enum.into(%{})
     {id, Map.put(data_source, :tables, tables)}
   end
