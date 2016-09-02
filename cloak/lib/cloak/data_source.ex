@@ -322,7 +322,7 @@ defmodule Cloak.DataSource do
       sources = for {id, source} <- Application.get_env(:cloak, :data_sources), into: %{} do
         table = %{db_name: table_name, user_id: user_id}
         tables = Map.put(source[:tables], table_id, table)
-        {id, Map.put(source, :tables, tables)} |> data_source_with_columns()
+        {id, Map.put(source, :tables, tables)} |> add_tables()
       end
       Application.put_env(:cloak, :data_sources, sources)
     end
@@ -342,6 +342,11 @@ defmodule Cloak.DataSource do
         {id, Map.put(source, :tables, %{})}
       end
       Application.put_env(:cloak, :data_sources, sources)
+    end
+
+    @doc false
+    def ids() do
+      for {id, _source} <- Application.get_env(:cloak, :data_sources), do: id
     end
   end
 end

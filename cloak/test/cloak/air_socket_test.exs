@@ -71,10 +71,12 @@ defmodule Cloak.AirSocketTest do
     Process.register(socket_pid, AirSocket)
     ensure_joined(cloak_name)
     MainChannel.subscribe(cloak_name)
+
+    [data_source_id | _] = Cloak.DataSource.ids()
     request = %{
       request_id: "foo",
       event: "run_query",
-      payload: %{id: 42, statement: "SELECT height FROM cloak_test.heights_as", data_source: "local"}
+      payload: %{id: 42, statement: "SELECT height FROM cloak_test.heights_as", data_source: data_source_id}
     }
     MainChannel.send_to_cloak(cloak_name, "air_call", request)
     assert_receive {:in_message, "call_response", response}
