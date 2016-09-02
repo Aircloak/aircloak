@@ -57,15 +57,17 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   #-----------------------------------------------------------------------------------------------------------
 
   defp cast_spec(fun_name, fun_args) do
-    case Enum.find(function_casts(), &casts?(&1, fun_name, fun_args)) do
+    case Enum.find(
+      function_casts(),
+      fn({name, opts}) ->
+        fun_name == name &&
+        (opts[:args] == nil || length(opts[:args]) == length(fun_args))
+      end
+    ) do
       nil -> []
       {^fun_name, opts} -> opts
     end
   end
-
-  defp casts?({fun_name, opts}, fun_name, fun_args),
-    do: (opts[:args] == nil || length(opts[:args]) == length(fun_args))
-  defp casts?(_, _, _), do: false
 
   defp casted_args(fun_name, fun_args) do
     case cast_spec(fun_name, fun_args)[:args] do
