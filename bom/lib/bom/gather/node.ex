@@ -31,20 +31,11 @@ defmodule BOM.Gather.Node do
   end
 
   defp license(path) do
-    Gather.license_from_file(path, &license_type/1) ||
-      license_from_readme(path, "*{README,readme,Readme}*") ||
-      public_domain_license(path) ||
+    public_domain_license(path) ||
       babel_license(path) ||
+      Gather.license_from_file(path, &license_type/1) ||
+      Gather.license_from_readme(path, &license_type/1) ||
       Whitelist.find(:node, Path.basename(path))
-  end
-
-  defp license_from_readme(path, pattern) do
-    Gather.if_matching_file(path, pattern, fn text ->
-      case Regex.run(~r/\n#* ?(license|licence)(.|\n)*/i, text) do
-        [text | _] -> %License{type: license_type(path), text: text}
-        _ -> nil
-      end
-    end)
   end
 
   defp license_type(path) do
