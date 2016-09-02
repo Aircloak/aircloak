@@ -17,7 +17,10 @@ defmodule Bom.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger, :aircloak_common]]
+    [
+      mod: {BOM, []},
+      applications: [:logger, :aircloak_common],
+    ]
   end
 
   # Dependencies can be Hex packages:

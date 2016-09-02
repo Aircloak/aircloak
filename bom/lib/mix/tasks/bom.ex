@@ -8,6 +8,8 @@ defmodule Mix.Tasks.Bom do
   @dialyzer :no_undefined_callbacks
 
   def run(_args) do
+    {:ok, _} = Application.ensure_all_started(:bom)
+
     {invalid, valid} = packages()
     |> Enum.map(&BOM.Whitelist.update_license_type/1)
     |> Enum.map(&BOM.Validate.run/1)
