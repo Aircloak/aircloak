@@ -9,7 +9,11 @@ defmodule BOM.Whitelist do
   # -------------------------------------------------------------------
 
   @licenses %{
-    :elixir => %{},
+    :elixir => %{
+      "ecto" => %{type: :apache2, text: :provided},
+      "erlware_commons" => %{type: :mit, text: :provided},
+      "excoveralls" => %{type: :mit, text: :standard},
+    },
     :node => %{
       "jsv"                         => %{type: :bsd_2_clause, text: :provided},
       "browserify-cipher"           => %{type: :mit,          text: :standard},
@@ -74,6 +78,9 @@ defmodule BOM.Whitelist do
     "c8307a7b7a1394f77e887475cf03cd1d" => :bsd_3_clause,  # node/rw
     "62212b2d5d003ee7f76e89c7d15ef00e" => :public_domain, # node/tv4
     "44348b65b421f5f075c74680c11786d4" => :mit,           # node/uglify-js-brunch
+    "7c26dfe36e38a743a435b92f7e1260af" => :apache2,       # elixir/earmark
+    "0b36f89594d6a8a4b5e8efa73f1f4fc5" => :mit,           # elixir/fs
+    "0689a7b07fec79946ae192573e1450e8" => :bsd_3_clause,  # elixir/getopt
   }
 
 
