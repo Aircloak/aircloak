@@ -1,5 +1,13 @@
 defmodule BOM.Gather do
-  def license_files, do: "*{LICENSE,LICENCE,license,licence,License,License}*"
+  alias BOM.License
+
+  @license_files "*{LICENSE,LICENCE,license,licence,License,License}*"
+  @readme_files "*{README,Readme,readme}*"
+
+  def license_from_file(path, type_callback), do:
+    if_matching_file(path, @license_files, fn(text) -> %License{type: type_callback.(path), text: text} end)
+
+  def license_files, do: @license_files
 
   def if_matching_file(path, pattern, action) do
     path

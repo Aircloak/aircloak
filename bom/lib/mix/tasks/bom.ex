@@ -24,12 +24,12 @@ defmodule Mix.Tasks.Bom do
       |> Enum.map(&"#{&1.name}: #{&1.error}")
       |> Enum.map(&IO.puts/1)
 
-      Mix.raise("#{Enum.count(invalid)} invalid packages")
+      Mix.raise("#{Enum.count(invalid)}/#{Enum.count(valid) + Enum.count(invalid)} invalid packages")
     end
   end
 
   defp packages do
-    BOM.Gather.Node.run("../air/site/node_modules")
+    BOM.Gather.Node.run("../air/site/node_modules") ++
       BOM.Gather.Elixir.run("../air/site/deps")
   end
 end

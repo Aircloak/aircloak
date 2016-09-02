@@ -17,12 +17,9 @@ defmodule BOM.Gather.Elixir do
   end
 
   defp license(path) do
-    license_from_file(path) ||
+    Gather.license_from_file(path, &license_type/1) ||
       BOM.Whitelist.find(:elixir, package_name(path))
   end
-
-  defp license_from_file(path), do:
-    Gather.if_matching_file(path, Gather.license_files(), fn(text) -> %License{type: license_type(path), text: text} end)
 
   defp license_type(path) do
     case path |> package_name() |> BOM.Gather.Elixir.Hex.package() do
