@@ -86,6 +86,14 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   defp cast(expr, type), do: function_call("cast", [expr, sql_type(type)])
 
   # Specifies transformations of function arguments and return values
+  #
+  # To ensure consistent behavior for different implementations, we sometimes need to explicitly cast some
+  # arguments and/or return values. For example:
+  #   - In `trunc/2` we need to cast first argument to numeric, otherwise PostgreSQL complains.
+  #   - Casting the first argument of `/` operator to real avoids implicit integer division (in e.g. 3/2)
+  #   - Casting the return value of `trunc/1` ensures we're always returning an integer.
+  #
+  # The special `:parsed_type` atom is used to enforce casting to the return type determined by the compiler.
   defp function_casts() do
     [
       # aggregate functions
