@@ -14,11 +14,9 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   @spec sql(String.t | {:cast, Cloak.DataSource.data_type}, [iodata], Cloak.DataSource.data_type) :: iodata
   def sql({:cast, type}, [arg], _parsed_type), do: sql("cast", [arg, sql_type(type)], type)
   def sql(fun_name, fun_args, parsed_type) do
-    cast_spec = cast_spec(fun_name, fun_args)
-
     fun_name
-    |> function_call(casted_args(fun_args, cast_spec[:args]))
-    |> cast(return_type(cast_spec[:return], parsed_type))
+    |> function_call(casted_args(fun_name, fun_args))
+    |> cast(return_type(fun_name, fun_args, parsed_type))
   end
 
 
@@ -69,18 +67,23 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     do: (opts[:args] == nil || length(opts[:args]) == length(fun_args))
   defp casts?(_, _, _), do: false
 
-  defp casted_args(args, nil), do: args
-  defp casted_args(args, casts) do
-    for {arg, cast} <- Enum.zip(args, casts), do: cast(arg, cast)
+  defp casted_args(fun_name, fun_args) do
+    case cast_spec(fun_name, fun_args)[:args] do
+      nil -> fun_args
+      casts -> Enum.map(Enum.zip(fun_args, casts), fn({arg, cast}) -> cast(arg, cast) end)
+    end
+  end
+
+  defp return_type(fun_name, fun_args, parsed_type) do
+    case cast_spec(fun_name, fun_args)[:return] do
+      nil -> :pass
+      :parsed_type -> parsed_type
+      type -> type
+    end
   end
 
   defp cast(expr, :pass), do: expr
   defp cast(expr, type), do: function_call("cast", [expr, sql_type(type)])
-
-  defp return_type(nil, _), do: :pass
-  defp return_type(:pass, _), do: :pass
-  defp return_type(:parsed_type, parsed_type), do: parsed_type
-  defp return_type(type, _), do: type
 
   # Specifies transformations of function arguments and return values
   defp function_casts() do
