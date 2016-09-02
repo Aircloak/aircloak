@@ -14,11 +14,11 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   @spec sql(String.t | {:cast, Cloak.DataSource.data_type}, [iodata], Cloak.DataSource.data_type) :: iodata
   def sql({:cast, type}, [arg], _parsed_type), do: sql("cast", [arg, sql_type(type)], type)
   def sql(fun_name, fun_args, parsed_type) do
-    opts = function_opts(fun_name, fun_args)
+    cast_spec = cast_spec(fun_name, fun_args)
 
     fun_name
-    |> function_call(casted_args(fun_args, opts[:args]))
-    |> cast(return_type(opts[:return], parsed_type))
+    |> function_call(casted_args(fun_args, cast_spec[:args]))
+    |> cast(return_type(cast_spec[:return], parsed_type))
   end
 
 
@@ -58,7 +58,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   # Transformation helpers
   #-----------------------------------------------------------------------------------------------------------
 
-  defp function_opts(fun_name, fun_args) do
+  defp cast_spec(fun_name, fun_args) do
     case Enum.find(function_casts(), &casts?(&1, fun_name, fun_args)) do
       nil -> []
       {^fun_name, opts} -> opts
