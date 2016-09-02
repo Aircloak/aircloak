@@ -191,20 +191,16 @@ defmodule Cloak.DataSource do
   end
   defp atomize_keys(other), do: other
 
-  defp identify_by_unique_id(data_sources) do
-    for data_source <- data_sources, into: %{}, do: add_unique_id_to_data_source(data_source)
-  end
-
-  defp add_unique_id_to_data_source({data_source_name, data}) do
+  defp identify_by_unique_id({data_source_name, data}) do
     # Useful when we want to make the same data source appear multiple times
     # as if it was distinct data sources. Used in staging and testing environments.
-    aircloak_data_source_marker = data["data_source_marker"] || ""
-    unique_id_data = {aircloak_data_source_marker, data["parameters"]} |> :erlang.term_to_binary()
+    aircloak_data_source_marker = Map.get(data, "data_source_marker", "")
+    unique_id_data = {aircloak_data_source_marker, data.parameters} |> :erlang.term_to_binary()
     # MD5 is perfectly fine here, as the hash doesn't serve any other purpose than generating
     # a single ID based on the data. Of course collisions can be constructed, but doing so is
     # not in anyone's interest, and furthermore would not compromise any user data.
     unique_id = :crypto.hash(:md5, unique_id_data) |> Base.encode64()
-    {unique_id, Map.merge(data, %{"name" => data_source_name, "id" => unique_id})}
+    {unique_id, Map.merge(data, %{name: data_source_name, id: unique_id})}
   end
 
   # load the columns list for all defined tables in all data sources
