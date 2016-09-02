@@ -55,7 +55,11 @@ defmodule BOM.License do
   defp do_name_to_type("bsd-2-clause"), do: :bsd_2_clause
   defp do_name_to_type("apache license, version 2.0"), do: :apache2
   defp do_name_to_type("apache version 2.0"), do: :apache2
+  defp do_name_to_type("apache license 2.0"), do: :apache2
   defp do_name_to_type("apache-2.0"), do: :apache2
+  defp do_name_to_type("apache 2.0"), do: :apache2
+  defp do_name_to_type("apache 2"), do: :apache2
+  defp do_name_to_type("apache"), do: :apache2
   defp do_name_to_type("public domain"), do: :public_domain
   defp do_name_to_type("unlicense"), do: :public_domain
   defp do_name_to_type("boost"), do: :boost
