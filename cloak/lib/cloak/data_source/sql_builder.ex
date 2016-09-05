@@ -101,15 +101,15 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp conditions_to_fragments({:not, {:is, what, match}}) do
     [to_fragment(what), " IS NOT ", to_fragment(match)]
   end
-  Enum.each([
-    {:like, " LIKE "},
-    {:ilike, " ILIKE "},
-    {:is, " IS "},
-  ], fn({keyword, fragment}) ->
-    defp conditions_to_fragments({unquote(keyword), what, match}) do
-      [to_fragment(what), unquote(fragment), to_fragment(match)]
-    end
-  end)
+  defp conditions_to_fragments({:like, what, match}) do
+    [to_fragment(what), " LIKE ", to_fragment(match)]
+  end
+  defp conditions_to_fragments({:ilike, what, match}) do
+    [to_fragment(what), " ILIKE ", to_fragment(match)]
+  end
+  defp conditions_to_fragments({:is, what, match}) do
+    [to_fragment(what), " IS ", to_fragment(match)]
+  end
 
   defp to_fragment(string) when is_binary(string), do: string
   defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
