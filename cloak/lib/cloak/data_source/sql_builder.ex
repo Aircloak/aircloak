@@ -99,7 +99,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: [to_fragment(what), " COLLATE latin1_general_cs LIKE ", to_fragment(match)]
   defp conditions_to_fragments(:sqlserver, {:like, what, match}),
     do: [to_fragment(what), " COLLATE Latin1_General_CS_AS LIKE ", to_fragment(match)]
-  defp conditions_to_fragments(_sql_dialec, {:like, what, match}),
+  defp conditions_to_fragments(_sql_dialect, {:like, what, match}),
     do: [to_fragment(what), " LIKE ", to_fragment(match)]
   defp conditions_to_fragments(:postgresql, {:ilike, what, match}),
     do: [to_fragment(what), " ILIKE ", to_fragment(match)]
