@@ -81,6 +81,9 @@ defmodule BOM.Whitelist do
     "7c26dfe36e38a743a435b92f7e1260af" => :apache2,       # elixir/earmark
     "0b36f89594d6a8a4b5e8efa73f1f4fc5" => :mit,           # elixir/fs
     "0689a7b07fec79946ae192573e1450e8" => :bsd_3_clause,  # elixir/getopt
+    "9567c64d58e18a81951c75d00c10fa98" => :epl_1_1,       # elixir/gproc
+    "9741c346eef56131163e13b9db1241b3" => :mpl_2_0,       # elixir/jose
+    "4d8e2e181d7f8cdc38226f5ee04e5fdd" => :mit,           # elixir/phoenix_gen_socket_server
   }
 
 

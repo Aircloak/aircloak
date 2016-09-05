@@ -35,6 +35,8 @@ defmodule BOM.License do
   def allowed_type?(:boost), do: true
   def allowed_type?(:do_what_the_fuck_you_want), do: true
   def allowed_type?(:zlib), do: true
+  def allowed_type?(:epl_1_1), do: true
+  def allowed_type?(:mpl_2_0), do: true
   def allowed_type?(_), do: false
 
   @doc "Returns struct representing an unknown license."
