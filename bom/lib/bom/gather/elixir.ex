@@ -1,12 +1,26 @@
 defmodule BOM.Gather.Elixir do
+  @moduledoc "Logic for reading elixir dependency information."
+
   alias BOM.{Gather,License}
 
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
+  @doc "Returns a list of packages contained in the given `deps` directory."
+  @spec run(String.t) :: [Package.t]
   def run(deps_path) do
     deps_path
     |> Path.join("*")
     |> Path.wildcard()
     |> Enum.map(&package/1)
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp package(path) do
     %BOM.Package{
