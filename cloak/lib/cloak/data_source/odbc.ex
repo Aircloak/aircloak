@@ -35,9 +35,9 @@ defmodule Cloak.DataSource.ODBC do
   end
 
   @doc false
-  def select(%__MODULE__{connection: connection, sql_dialect: sql_dialect}, sql_query, result_processor) do
-    statement = SqlBuilder.build(sql_dialect, sql_query) |> to_char_list()
-    field_mappers = for column <- sql_query.db_columns, do: column_to_field_mapper(column)
+  def select(%__MODULE__{connection: connection, sql_dialect: sql_dialect}, aql_query, result_processor) do
+    statement = aql_query |> SqlBuilder.build(sql_dialect) |> to_char_list()
+    field_mappers = for column <- aql_query.db_columns, do: column_to_field_mapper(column)
     case :odbc.select_count(connection, statement, _timeout = :timer.hours(4)) do
       {:ok, _count} ->
         data_stream = Stream.resource(fn () -> connection end, fn (conn) ->

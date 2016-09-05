@@ -35,7 +35,7 @@ defmodule Cloak.DataSource.MySQL do
 
   @doc false
   def select(connection, aql_query, result_processor) do
-    statement = SqlBuilder.build(:mysql, aql_query)
+    statement = SqlBuilder.build(aql_query, :mysql)
     run_query(connection, statement, &row_mapper/1, result_processor)
   end
 
