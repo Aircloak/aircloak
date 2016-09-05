@@ -36,7 +36,7 @@ defmodule Bom.Mixfile do
     [
       {:poison, "~> 2.2.0", override: true},
       {:aircloak_common, path: "../common/elixir"},
-      {:hex, "~> 0.13.0", git: "git@github.com:hexpm/hex.git"},
+      {:hex, "~> 0.13.0", git: "git@github.com:Aircloak/hex.git"},
     ]
   end
 
