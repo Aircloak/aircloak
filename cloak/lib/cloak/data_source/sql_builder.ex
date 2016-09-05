@@ -84,31 +84,23 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp table_to_from(table), do: "#{table.db_name} AS \"#{table.name}\""
 
   defp where_fragments(_sql_dialect, []), do: []
-  defp where_fragments(sql_dialect, where_clause) do
-    ["WHERE ", conditions_to_fragments(sql_dialect, where_clause)]
-  end
+  defp where_fragments(sql_dialect, where_clause),
+    do: ["WHERE ", conditions_to_fragments(sql_dialect, where_clause)]
 
-  defp conditions_to_fragments(sql_dialect, and_clauses) when is_list(and_clauses) do
-    ["(", and_clauses |> Enum.map(&conditions_to_fragments(sql_dialect, &1)) |> join(" AND "), ")"]
-  end
-  defp conditions_to_fragments(_sql_dialect, {:comparison, what, comparator, value}) do
-    [to_fragment(what), to_fragment(comparator), to_fragment(value)]
-  end
-  defp conditions_to_fragments(_sql_dialect, {:in, what, values}) do
-    [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(", "), ")"]
-  end
-  defp conditions_to_fragments(_sql_dialect, {:not, {:is, what, match}}) do
-    [to_fragment(what), " IS NOT ", to_fragment(match)]
-  end
-  defp conditions_to_fragments(_sql_dialect, {:like, what, match}) do
-    [to_fragment(what), " LIKE ", to_fragment(match)]
-  end
-  defp conditions_to_fragments(_sql_dialect, {:ilike, what, match}) do
-    [to_fragment(what), " ILIKE ", to_fragment(match)]
-  end
-  defp conditions_to_fragments(_sql_dialect, {:is, what, match}) do
-    [to_fragment(what), " IS ", to_fragment(match)]
-  end
+  defp conditions_to_fragments(sql_dialect, and_clauses) when is_list(and_clauses),
+    do: ["(", and_clauses |> Enum.map(&conditions_to_fragments(sql_dialect, &1)) |> join(" AND "), ")"]
+  defp conditions_to_fragments(_sql_dialect, {:comparison, what, comparator, value}),
+    do: [to_fragment(what), to_fragment(comparator), to_fragment(value)]
+  defp conditions_to_fragments(_sql_dialect, {:in, what, values}),
+    do: [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(", "), ")"]
+  defp conditions_to_fragments(_sql_dialect, {:not, {:is, what, match}}),
+    do: [to_fragment(what), " IS NOT ", to_fragment(match)]
+  defp conditions_to_fragments(_sql_dialect, {:like, what, match}),
+    do: [to_fragment(what), " LIKE ", to_fragment(match)]
+  defp conditions_to_fragments(_sql_dialect, {:ilike, what, match}),
+    do: [to_fragment(what), " ILIKE ", to_fragment(match)]
+  defp conditions_to_fragments(_sql_dialect, {:is, what, match}),
+    do: [to_fragment(what), " IS ", to_fragment(match)]
 
   defp to_fragment(string) when is_binary(string), do: string
   defp to_fragment(atom) when is_atom(atom), do: to_string(atom) |> String.upcase()
