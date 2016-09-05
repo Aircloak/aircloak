@@ -16,10 +16,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     {:subquery, %{unparsed_string: unsafe_subquery}} = query.from
     to_string(["SELECT ", columns_sql(query.db_columns), " FROM (", unsafe_subquery, ") AS unsafe_subquery"])
   end
-  def build(_sql_dialect, query) do
-    query
-    |> build_fragments()
-    |> to_string()
+  def build(sql_dialect, query) do
+    build_fragments(sql_dialect, query) |> to_string()
   end
 
   @doc "Returns a name uniquely identifying a column in the generated query."
@@ -32,11 +30,11 @@ defmodule Cloak.DataSource.SqlBuilder do
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
 
-  defp build_fragments(query) do
+  defp build_fragments(sql_dialect, query) do
     [
       "SELECT ", columns_sql(query.db_columns), " ",
-      "FROM ", from_clause(query.from, query), " ",
-      where_fragments(query.where),
+      "FROM ", from_clause(sql_dialect, query.from, query), " ",
+      where_fragments(sql_dialect, query.where),
       group_by_fragments(query)
     ]
   end
@@ -59,21 +57,22 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: DbFunction.sql({:cast, type}, [constant_to_fragment(value)], type)
   defp column_sql(column), do: column_name(column)
 
-  defp from_clause({:join, join}, query) do
-    ["(", from_clause(join.lhs, query), " ", join_sql(join.type), " ", from_clause(join.rhs, query),
-      on_clause(join.conditions), ")"]
+  defp from_clause(sql_dialect, {:join, join}, query) do
+    ["(", from_clause(sql_dialect, join.lhs, query), " ", join_sql(join.type), " ",
+      from_clause(sql_dialect, join.rhs, query), on_clause(sql_dialect, join.conditions), ")"]
   end
-  defp from_clause({:subquery, subquery}, _query) do
-    ["(", build_fragments(subquery.ast), ") AS ", subquery.alias]
+  defp from_clause(sql_dialect, {:subquery, subquery}, _query) do
+    ["(", build_fragments(sql_dialect, subquery.ast), ") AS ", subquery.alias]
   end
-  defp from_clause(table_name, query) when is_binary(table_name) do
+  defp from_clause(_sql_dialect, table_name, query) when is_binary(table_name) do
     query.selected_tables
     |> Enum.find(&(&1.name == table_name))
     |> table_to_from()
   end
 
-  defp on_clause([]), do: []
-  defp on_clause([_|_] = conditions), do: [" ON ", conditions_to_fragments(conditions)]
+  defp on_clause(_sql_dialect, []), do: []
+  defp on_clause(sql_dialect, conditions) when is_list(conditions),
+    do: [" ON ", conditions_to_fragments(sql_dialect, conditions)]
 
   defp join_sql(:cross_join), do: "CROSS JOIN"
   defp join_sql(:inner_join), do: "INNER JOIN"
@@ -84,30 +83,30 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp table_to_from(%{name: table_name, db_name: table_name}), do: table_name
   defp table_to_from(table), do: "#{table.db_name} AS \"#{table.name}\""
 
-  defp where_fragments([]), do: []
-  defp where_fragments(where_clause) do
-    ["WHERE ", conditions_to_fragments(where_clause)]
+  defp where_fragments(_sql_dialect, []), do: []
+  defp where_fragments(sql_dialect, where_clause) do
+    ["WHERE ", conditions_to_fragments(sql_dialect, where_clause)]
   end
 
-  defp conditions_to_fragments([_|_] = and_clauses) do
-    ["(", and_clauses |> Enum.map(&conditions_to_fragments/1) |> join(" AND "), ")"]
+  defp conditions_to_fragments(sql_dialect, and_clauses) when is_list(and_clauses) do
+    ["(", and_clauses |> Enum.map(&conditions_to_fragments(sql_dialect, &1)) |> join(" AND "), ")"]
   end
-  defp conditions_to_fragments({:comparison, what, comparator, value}) do
+  defp conditions_to_fragments(_sql_dialect, {:comparison, what, comparator, value}) do
     [to_fragment(what), to_fragment(comparator), to_fragment(value)]
   end
-  defp conditions_to_fragments({:in, what, values}) do
+  defp conditions_to_fragments(_sql_dialect, {:in, what, values}) do
     [to_fragment(what), " IN (", values |> Enum.map(&to_fragment/1) |> join(", "), ")"]
   end
-  defp conditions_to_fragments({:not, {:is, what, match}}) do
+  defp conditions_to_fragments(_sql_dialect, {:not, {:is, what, match}}) do
     [to_fragment(what), " IS NOT ", to_fragment(match)]
   end
-  defp conditions_to_fragments({:like, what, match}) do
+  defp conditions_to_fragments(_sql_dialect, {:like, what, match}) do
     [to_fragment(what), " LIKE ", to_fragment(match)]
   end
-  defp conditions_to_fragments({:ilike, what, match}) do
+  defp conditions_to_fragments(_sql_dialect, {:ilike, what, match}) do
     [to_fragment(what), " ILIKE ", to_fragment(match)]
   end
-  defp conditions_to_fragments({:is, what, match}) do
+  defp conditions_to_fragments(_sql_dialect, {:is, what, match}) do
     [to_fragment(what), " IS ", to_fragment(match)]
   end
 
