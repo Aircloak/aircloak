@@ -35,9 +35,9 @@ defmodule Cloak.DataSource.ODBC do
   end
 
   @doc false
-  def select(%__MODULE__{connection: connection, sql_dialect: sql_dialect}, sql_query, result_processor) do
-    statement = SqlBuilder.build(sql_dialect, sql_query) |> to_char_list()
-    field_mappers = for column <- sql_query.db_columns, do: column_to_field_mapper(column)
+  def select(%__MODULE__{connection: connection, sql_dialect: sql_dialect}, aql_query, result_processor) do
+    statement = aql_query |> SqlBuilder.build(sql_dialect) |> to_char_list()
+    field_mappers = for column <- aql_query.db_columns, do: column_to_field_mapper(column)
     case :odbc.select_count(connection, statement, _timeout = :timer.hours(4)) do
       {:ok, _count} ->
         data_stream = Stream.resource(fn () -> connection end, fn (conn) ->
@@ -59,23 +59,30 @@ defmodule Cloak.DataSource.ODBC do
   #-----------------------------------------------------------------------------------------------------------
 
   defp set_dialect("DSN=MySQL;" <> _rest, connection) do
-    {:updated, 0} = :odbc.sql_query(connection, 'SET sql_mode = "ANSI,NO_BACKSLASH_ESCAPES"')
+    {:updated, _} = :odbc.sql_query(connection, 'SET sql_mode = "ANSI,NO_BACKSLASH_ESCAPES"')
     %__MODULE__{sql_dialect: :mysql, connection: connection}
   end
   defp set_dialect("DSN=PostgreSQL;" <> _rest, connection) do
-    {:updated, 0} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
+    {:updated, _} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
     %__MODULE__{sql_dialect: :postgresql, connection: connection}
+  end
+  defp set_dialect("DSN=SQLServer;" <> _rest, connection) do
+    {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
+    %__MODULE__{sql_dialect: :sqlserver, connection: connection}
   end
   defp set_dialect(parameters, _connection), do: raise "Unknown DSN type in `#{parameters}`."
 
   defp parse_type(:sql_integer), do: :integer
   defp parse_type(:sql_smallint), do: :integer
+  defp parse_type(:SQL_BIGINT), do: :integer
   defp parse_type(:sql_bit), do: :boolean
   defp parse_type(:sql_real), do: :real
   defp parse_type(:sql_float), do: :real
   defp parse_type(:sql_double), do: :real
   defp parse_type(:SQL_LONGVARCHAR), do: :text
   defp parse_type({:sql_varchar, _length}), do: :text
+  defp parse_type({:sql_wvarchar, _length}), do: :text
+  defp parse_type({:sql_wlongvarchar, _length}), do: :text
   defp parse_type(:sql_timestamp), do: :timestamp
   defp parse_type(:SQL_TYPE_DATE), do: :date
   defp parse_type(:SQL_TYPE_TIME), do: :time
