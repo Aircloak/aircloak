@@ -11,6 +11,7 @@ defmodule Mix.Tasks.Bom do
     {:ok, _} = Application.ensure_all_started(:bom)
 
     {invalid, valid} = packages()
+    |> Enum.filter(&BOM.Whitelist.shipped?/1)
     |> Enum.map(&BOM.Whitelist.update_license_type/1)
     |> Enum.map(&BOM.Validate.run/1)
     |> Enum.partition(&(&1.error))

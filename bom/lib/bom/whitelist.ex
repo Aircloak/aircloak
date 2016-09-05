@@ -126,6 +126,17 @@ defmodule BOM.Whitelist do
     end
   end
 
+  @not_shipped %{elixir: ~w(proper)}
+  @doc """
+  Returns false if the given package is used only for tests or building and not shipped with the product, true
+  otherwise.
+  """
+  @spec shipped?(Package.t) :: boolean
+  def shipped?(%Package{realm: realm, name: name}) do
+    not_shipped = Map.get(@not_shipped, realm, [])
+    !Enum.member?(not_shipped, name)
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
