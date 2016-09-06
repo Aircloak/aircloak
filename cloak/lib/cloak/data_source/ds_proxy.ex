@@ -87,7 +87,7 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   defp needed_columns(query) do
-    Enum.map(query.db_columns, &SqlBuilder.column_name/1)
+    Enum.map(query.db_columns, &SqlBuilder.column_name(&1, :ansi))
   end
 
   defp sql_statement(sql_query) do
