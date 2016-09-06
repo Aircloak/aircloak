@@ -11,7 +11,7 @@ defmodule BOM.Gather.Elixir.Hex do
   @doc "Searches for package metadata on hex.pm. Returns `{:ok, json}` if found, `{:error, :not_found}` otherwise."
   @spec package(String.t) :: {:ok, %{}} | {:error, :not_found}
   def package(name) do
-    send(__MODULE__, {:package, name, self()})
+    GenServer.cast(__MODULE__, {:package, name, self()})
 
     receive do
       message -> message
@@ -30,14 +30,23 @@ defmodule BOM.Gather.Elixir.Hex do
   def start_link, do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
   @doc false
-  def handle_info({:package, name, from}, state) do
+  def handle_cast({:package, name, from}, state) do
+    request_package(name, from)
+    {:noreply, state}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp request_package(name, from) do
     case Hex.API.Package.get(name) do
       {200, result, _headers} -> send(from, {:ok, result})
       {404, _content, _headers} -> send(from, {:error, :not_found})
       {429, _content, _headers} ->
-        Process.send_after(self(), {:package, name, from}, :timer.seconds(5))
+        :timer.sleep(:timer.seconds(5))
+        request_package(name, from)
     end
-
-    {:noreply, state}
   end
 end
