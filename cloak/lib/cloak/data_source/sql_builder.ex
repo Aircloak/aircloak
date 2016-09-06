@@ -100,18 +100,18 @@ defmodule Cloak.DataSource.SqlBuilder do
       Enum.map(values, &to_fragment(&1, sql_dialect)) |> join(", "), ")"]
   defp conditions_to_fragments({:not, {:is, what, match}}, sql_dialect),
     do: [to_fragment(what, sql_dialect), " IS NOT ", to_fragment(match, sql_dialect)]
-  defp conditions_to_fragments({:like, what, match}, :mysql),
-    do: [to_fragment(what, :mysql), " COLLATE latin1_general_cs LIKE ", to_fragment(match, :mysql)]
-  defp conditions_to_fragments({:like, what, match}, :sqlserver),
-    do: [to_fragment(what, :sqlserver), " COLLATE Latin1_General_CS_AS LIKE ", to_fragment(match, :sqlserver)]
+  defp conditions_to_fragments({:like, what, match}, :mysql = sql_dialect),
+    do: [to_fragment(what, sql_dialect), " COLLATE latin1_general_cs LIKE ", to_fragment(match, sql_dialect)]
+  defp conditions_to_fragments({:like, what, match}, :sqlserver = sql_dialect),
+    do: [to_fragment(what, sql_dialect), " COLLATE Latin1_General_CS_AS LIKE ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({:like, what, match}, sql_dialect),
     do: [to_fragment(what, sql_dialect), " LIKE ", to_fragment(match, sql_dialect)]
-  defp conditions_to_fragments({:ilike, what, match}, :postgresql),
-    do: [to_fragment(what, :postgresql), " ILIKE ", to_fragment(match, :postgresql)]
-  defp conditions_to_fragments({:ilike, what, match}, :mysql),
-    do: [to_fragment(what, :mysql), " COLLATE latin1_general_ci LIKE ", to_fragment(match, :mysql)]
-  defp conditions_to_fragments({:ilike, what, match}, :sqlserver),
-    do: [to_fragment(what, :sqlserver), " COLLATE Latin1_General_CI_AS LIKE ", to_fragment(match, :sqlserver)]
+  defp conditions_to_fragments({:ilike, what, match}, :postgresql = sql_dialect),
+    do: [to_fragment(what, sql_dialect), " ILIKE ", to_fragment(match, sql_dialect)]
+  defp conditions_to_fragments({:ilike, what, match}, :mysql = sql_dialect),
+    do: [to_fragment(what, sql_dialect), " COLLATE latin1_general_ci LIKE ", to_fragment(match, sql_dialect)]
+  defp conditions_to_fragments({:ilike, what, match}, :sqlserver = sql_dialect),
+    do: [to_fragment(what, sql_dialect), " COLLATE Latin1_General_CI_AS LIKE ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({:is, what, match}, sql_dialect),
     do: [to_fragment(what, sql_dialect), " IS ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({condition, _what, _match}, sql_dialect) do
