@@ -350,7 +350,9 @@ defmodule Cloak.DataSource do
 
     @doc false
     def ids() do
-      for {id, _source} <- Application.get_env(:cloak, :data_sources), do: id
+      Application.get_env(:cloak, :data_sources)
+      |> Enum.map(fn({id, _source}) -> id end)
+      |> Enum.sort()
     end
   end
 end
