@@ -2,9 +2,19 @@ defmodule Air.LicenseController do
   @moduledoc false
   use Air.Web, :controller
 
+
+  # -------------------------------------------------------------------
+  # Air.VerifyPermissions callback
+  # -------------------------------------------------------------------
+
   def permissions do
     %{user: :all}
   end
+
+
+  # -------------------------------------------------------------------
+  # Actions
+  # -------------------------------------------------------------------
 
   def index(conn, _params) do
     packages = Air.BOM.get(fn(packages) ->
