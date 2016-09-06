@@ -3,7 +3,7 @@ defmodule BOM.Gather do
 
   alias BOM.License
 
-  @license_files "*{LICENSE,LICENCE,license,licence,License,License}*"
+  @license_files "*{LICENSE,LICENCE,license,licence,License,Licence}*"
   @readme_files "*{README,Readme,readme}*"
 
   @doc """
