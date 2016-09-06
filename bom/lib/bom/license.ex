@@ -35,7 +35,13 @@ defmodule BOM.License do
   def allowed_type?(:boost), do: true
   def allowed_type?(:do_what_the_fuck_you_want), do: true
   def allowed_type?(:zlib), do: true
+  def allowed_type?(:epl_1_1), do: true
+  def allowed_type?(:mpl_2_0), do: true
   def allowed_type?(_), do: false
+
+  @doc "Returns struct representing an unknown license."
+  @spec unknown() :: t
+  def unknown(), do: %__MODULE__{type: :unknown, text: ""}
 
 
   # -------------------------------------------------------------------
@@ -51,7 +57,12 @@ defmodule BOM.License do
   defp do_name_to_type("bsd-2-clause"), do: :bsd_2_clause
   defp do_name_to_type("apache license, version 2.0"), do: :apache2
   defp do_name_to_type("apache version 2.0"), do: :apache2
+  defp do_name_to_type("apache license 2.0"), do: :apache2
   defp do_name_to_type("apache-2.0"), do: :apache2
+  defp do_name_to_type("apache 2.0"), do: :apache2
+  defp do_name_to_type("apache 2"), do: :apache2
+  defp do_name_to_type("apache2"), do: :apache2
+  defp do_name_to_type("apache"), do: :apache2
   defp do_name_to_type("public domain"), do: :public_domain
   defp do_name_to_type("unlicense"), do: :public_domain
   defp do_name_to_type("boost"), do: :boost

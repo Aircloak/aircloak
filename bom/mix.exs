@@ -17,7 +17,10 @@ defmodule Bom.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger, :aircloak_common]]
+    [
+      mod: {BOM, []},
+      applications: [:logger, :aircloak_common, :hex],
+    ]
   end
 
   # Dependencies can be Hex packages:
@@ -33,6 +36,7 @@ defmodule Bom.Mixfile do
     [
       {:poison, "~> 2.2.0", override: true},
       {:aircloak_common, path: "../common/elixir"},
+      {:hex, "~> 0.13.0", git: "git@github.com:Aircloak/hex.git"},
     ]
   end
 
