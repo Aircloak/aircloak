@@ -109,10 +109,12 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: [to_fragment(what, :mysql), " COLLATE latin1_general_ci LIKE ", to_fragment(match, :mysql)]
   defp conditions_to_fragments({:ilike, what, match}, :sqlserver),
     do: [to_fragment(what, :sqlserver), " COLLATE Latin1_General_CI_AS LIKE ", to_fragment(match, :sqlserver)]
-  defp conditions_to_fragments({:ilike, _what, _match}, sql_dialect),
-    do: raise "'ILIKE' not implemented for '#{sql_dialect}' data sources."
   defp conditions_to_fragments({:is, what, match}, sql_dialect),
     do: [to_fragment(what, sql_dialect), " IS ", to_fragment(match, sql_dialect)]
+  defp conditions_to_fragments({condition, _what, _match}, sql_dialect) do
+    condition = condition |> to_string() |> String.upcase()
+    raise "'#{condition}' conditions are not implemented for '#{sql_dialect}' data sources."
+  end
 
   defp to_fragment(string, _sql_dialect) when is_binary(string), do: string
   defp to_fragment(atom, _sql_dialect) when is_atom(atom), do: to_string(atom) |> String.upcase()
