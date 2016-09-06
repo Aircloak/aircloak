@@ -140,6 +140,8 @@ defmodule Cloak.DataSource do
     with {:ok, connection} <- driver.connect(data_source.parameters) do
       try do
         driver.select(connection, select_query, result_processor)
+      rescue
+        reason -> {:error, reason.message}
       after
         driver.disconnect(connection)
       end
