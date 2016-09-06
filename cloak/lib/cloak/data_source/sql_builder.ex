@@ -5,6 +5,11 @@ defmodule Cloak.DataSource.SqlBuilder do
   alias Cloak.Aql.Column
   alias Cloak.DataSource.SqlBuilder.DbFunction
 
+  defmodule SqlBuildError do
+    @moduledoc false
+    defexception message: "Error during sql query build."
+  end
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API
@@ -116,7 +121,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: [to_fragment(what, sql_dialect), " IS ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({condition, _what, _match}, sql_dialect) do
     condition = condition |> to_string() |> String.upcase()
-    raise "'#{condition}' conditions are not implemented for '#{sql_dialect}' data sources."
+    raise SqlBuildError, message:
+      "'#{condition}' conditions are not implemented for '#{sql_dialect}' data sources."
   end
 
   defp to_fragment(string, _sql_dialect) when is_binary(string), do: string
