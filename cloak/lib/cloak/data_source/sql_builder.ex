@@ -14,7 +14,10 @@ defmodule Cloak.DataSource.SqlBuilder do
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
   def build(%Query{mode: :unparsed} = query, sql_dialect) do
     {:subquery, %{unparsed_string: unsafe_subquery}} = query.from
-    to_string(["SELECT ", columns_sql(query.db_columns, sql_dialect), " FROM (", unsafe_subquery, ") AS unsafe_subquery"])
+    [
+      "SELECT ", columns_sql(query.db_columns, sql_dialect),
+      " FROM (", unsafe_subquery, ") AS unsafe_subquery"
+    ] |> to_string()
   end
   def build(query, sql_dialect) do
     query |> build_fragments(sql_dialect) |> to_string()
