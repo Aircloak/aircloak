@@ -97,13 +97,14 @@ defmodule Cloak.DataSource do
   """
   @spec start() :: :ok
   def start() do
-    Cloak.DeployConfig.fetch!("data_sources")
-    |> Enum.map(fn({data_source_id, values}) -> {data_source_id, atomize_keys(values)} end)
-    |> Enum.map(&identify_by_unique_id/1)
-    |> Enum.map(&map_driver/1)
-    |> Enum.map(&add_tables/1)
-    |> Enum.into(%{})
-    |> cache_columns()
+    data_sources = for data_source <- Cloak.DeployConfig.fetch!("data_sources"), into: %{} do
+      data_source
+      |> atomize_values()
+      |> identify_by_unique_id()
+      |> map_driver()
+      |> add_tables()
+    end
+    cache_columns(data_sources)
   end
 
   @doc "Returns the list of defined data sources."
@@ -175,6 +176,8 @@ defmodule Cloak.DataSource do
     end
     {id, Map.merge(data_source, %{driver: driver_module})}
   end
+
+  defp atomize_values({data_source_id, values}), do: {data_source_id, atomize_keys(values)}
 
   defp atomize_keys(%{} = map) do
     for {key, value} <- map, into: %{}, do: {String.to_atom(key), atomize_keys(value)}
