@@ -70,6 +70,9 @@ defmodule Cloak.DataSource.ODBC do
     {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
     %__MODULE__{sql_dialect: :sqlserver, connection: connection}
   end
+  defp set_dialect("DSN=Drill;" <> _rest, connection) do
+    %__MODULE__{sql_dialect: :drill, connection: connection}
+  end
   defp set_dialect(parameters, _connection), do: raise "Unknown DSN type in `#{parameters}`."
 
   defp parse_type(:sql_integer), do: :integer
@@ -80,6 +83,7 @@ defmodule Cloak.DataSource.ODBC do
   defp parse_type(:sql_float), do: :real
   defp parse_type(:sql_double), do: :real
   defp parse_type(:SQL_LONGVARCHAR), do: :text
+  defp parse_type(:SQL_VARBINARY), do: :text
   defp parse_type({:sql_varchar, _length}), do: :text
   defp parse_type({:sql_wvarchar, _length}), do: :text
   defp parse_type({:sql_wlongvarchar, _length}), do: :text
