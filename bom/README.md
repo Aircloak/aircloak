@@ -66,12 +66,12 @@ the name/realm/license information for that package.
 ### License empty
 
 An empty license text has been generated for the package. This most pobably means that the code responsible
-for automatically recovering the license text from files like `LICENSE` or `README` found an empty section -
-  see Manually Adding a License below.
+for automatically recovering the license text from files like `LICENSE` or `README` found an empty section.
+This is most likely a programming error unless - only the `:empty` license should have an empty text.
 
-### Forbidden license type :unknown
+### Forbidden license type :empty
 
-No license type _or_ text could be obtained for the package. See Manually Adding a License.
+No license text could be obtained for the package. See Manually Adding a License.
 
 ### Forbidden license type {:unknown, <hash>}
 

@@ -41,7 +41,12 @@ defmodule BOM.License do
 
   @doc "Returns struct representing an unknown license."
   @spec unknown() :: t
-  def unknown(), do: %__MODULE__{type: :unknown, text: ""}
+  def unknown(), do: %__MODULE__{type: :empty, text: ""}
+
+  @doc "Returns true if the text of the license is missing or has only whitespace, false otherwise."
+  @spec empty?(t) :: boolean
+  def empty?(%__MODULE__{text: nil}), do: true
+  def empty?(%__MODULE__{text: text}), do: String.trim(text) == ""
 
 
   # -------------------------------------------------------------------

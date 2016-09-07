@@ -119,10 +119,10 @@ defmodule BOM.Whitelist do
   """
   @spec update_license_type(Package.t) :: Package.t
   def update_license_type(package = %Package{license: license}) do
-    if License.allowed_type?(license.type) do
-      package
-    else
-      %{package | license: %{license | type: type_by_text(license.text)}}
+    cond do
+      License.allowed_type?(license.type) -> package
+      License.empty?(license) -> package
+      true -> %{package | license: %{license | type: type_by_text(license.text)}}
     end
   end
 
