@@ -66,19 +66,19 @@ defmodule Cloak.DataSource.ODBC do
     |> to_char_list()
   end
 
-  defp set_dialect("MySQL" <> _rest, connection) do
+  defp set_dialect("MySQL", connection) do
     {:updated, _} = :odbc.sql_query(connection, 'SET sql_mode = "ANSI,NO_BACKSLASH_ESCAPES"')
     %__MODULE__{sql_dialect: :mysql, connection: connection}
   end
-  defp set_dialect("PostgreSQL" <> _rest, connection) do
+  defp set_dialect("PostgreSQL", connection) do
     {:updated, _} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
     %__MODULE__{sql_dialect: :postgresql, connection: connection}
   end
-  defp set_dialect("SQLServer" <> _rest, connection) do
+  defp set_dialect("SQLServer", connection) do
     {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
     %__MODULE__{sql_dialect: :sqlserver, connection: connection}
   end
-  defp set_dialect("Drill" <> _rest, connection) do
+  defp set_dialect("Drill", connection) do
     %__MODULE__{sql_dialect: :drill, connection: connection}
   end
   defp set_dialect(parameters, _connection), do: raise "Unknown DSN type in `#{parameters}`."
