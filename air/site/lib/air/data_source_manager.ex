@@ -133,6 +133,7 @@ defmodule Air.DataSourceManager do
   defp remove_disconnected_cloak(channel_pid, state) do
     filtered_map = state.data_source_to_cloak
     |> Enum.map(&remove_cloak_info(channel_pid, &1))
+    |> Enum.reject(fn({_, cloaks}) -> cloaks === [] end)
     |> Enum.into(Map.new())
     %{state | data_source_to_cloak: filtered_map}
   end
