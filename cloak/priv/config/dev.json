@@ -29,7 +29,12 @@
     },
     {
       "driver": "odbc",
-      "parameters": "DSN=PostgreSQL;UID=cloak;Database=cloak;Server=localhost;",
+      "parameters": {
+        "DSN": "PostgreSQL",
+        "UID": "cloak",
+        "Database": "cloak",
+        "Server": "localhost"
+      },
       "tables": {
         "test": {
           "db_name": "user_data",

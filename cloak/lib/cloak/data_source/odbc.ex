@@ -4,6 +4,7 @@ defmodule Cloak.DataSource.ODBC do
   For more information, see `DataSource`.
   """
 
+  alias Cloak.DataSource
   alias Cloak.DataSource.SqlBuilder
   alias Cloak.Aql.Column
 
@@ -19,8 +20,8 @@ defmodule Cloak.DataSource.ODBC do
   @doc false
   def connect(parameters) do
     options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
-    with {:ok, connection} <- parameters |> to_char_list() |> :odbc.connect(options) do
-      {:ok, set_dialect(parameters, connection)}
+    with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
+      {:ok, set_dialect(DataSource.Parameters.get(parameters, "DSN"), connection)}
     end
   end
   @doc false
@@ -58,11 +59,18 @@ defmodule Cloak.DataSource.ODBC do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp set_dialect("DSN=MySQL;" <> _rest, connection) do
+  defp to_connection_string(parameters) do
+    parameters
+    |> Enum.map(fn({key, value}) -> "#{Atom.to_string(key)}=#{value}" end)
+    |> Enum.join(";")
+    |> to_char_list()
+  end
+
+  defp set_dialect("MySQL" <> _rest, connection) do
     {:updated, 0} = :odbc.sql_query(connection, 'SET sql_mode = "ANSI,NO_BACKSLASH_ESCAPES"')
     %__MODULE__{sql_dialect: :mysql, connection: connection}
   end
-  defp set_dialect("DSN=PostgreSQL;" <> _rest, connection) do
+  defp set_dialect("PostgreSQL" <> _rest, connection) do
     {:updated, 0} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
     %__MODULE__{sql_dialect: :postgresql, connection: connection}
   end

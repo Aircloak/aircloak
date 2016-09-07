@@ -13,7 +13,12 @@
     },
     {
       "driver": "odbc",
-      "parameters": "DSN=PostgreSQL;UID=postgres;Database=cloaktest1;Server=localhost;",
+      "parameters": {
+        "DSN": "PostgreSQL",
+        "UID": "postgres",
+        "Database": "cloaktest1",
+        "Server": "localhost"
+      },
       "tables": {
       }
     }
