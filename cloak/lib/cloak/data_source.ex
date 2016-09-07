@@ -209,7 +209,7 @@ defmodule Cloak.DataSource do
       raise "Misconfigured data source: user, database, and host parameters are required"
     end
 
-    marker = case Map.get(data, :data_source_marker) do
+    marker = case Map.get(data, :marker) do
       nil -> ""
       marker -> "-#{marker}"
     end
