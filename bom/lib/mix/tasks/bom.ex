@@ -53,7 +53,7 @@ defmodule Mix.Tasks.Bom do
     end
   end
 
-  defp packages(dirs), do: Enum.flat_map(dirs, &do_packages/1)
+  defp packages(dirs), do: dirs |> Enum.flat_map(&do_packages/1) |> Enum.uniq_by(&{&1.realm, &1.name})
 
   defp do_packages({:node, dir}), do: BOM.Gather.Node.run(dir)
   defp do_packages({:elixir, dir}), do: BOM.Gather.Elixir.run(dir)
