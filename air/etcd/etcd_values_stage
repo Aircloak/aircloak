@@ -3,5 +3,6 @@
 etcd_set /site/aircloak "www-stage.aircloak.com stage.aircloak.com"
 etcd_set /site/insights "insights-stage.aircloak.com"
 
-etcd_set /settings/air/db/host airdb-stage.aircloak.com
+etcd_set /settings/air/db/username aircloakstage
+etcd_set /settings/air/db/host actmpdb.mpi-sws.org
 etcd_set /settings/air/db/insights_database air_stage
