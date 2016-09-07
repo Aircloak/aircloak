@@ -33,6 +33,7 @@ defmodule Cloak.DataSource do
   """
 
   alias Cloak.Aql
+  alias Cloak.DataSource.Parameters
   require Logger
 
   # define returned data types and values
@@ -192,26 +193,29 @@ defmodule Cloak.DataSource do
   defp atomize_keys(other), do: other
 
   defp generate_global_id(data) do
-    # Useful when we you want to force identical data sources to get distinct global IDs.
-    # This can be used for exampel in staging and test environments.
-    aircloak_data_source_marker = Map.get(data, "data_source_marker", "")
-    global_id_data = {aircloak_data_source_marker,
-      parameters_without_password(data.parameters)} |> :erlang.term_to_binary()
-    # MD5 is perfectly fine here, as the hash doesn't serve any other purpose than generating
-    # a single ID based on the data. Of course collisions can be constructed, but doing so is
-    # not in anyone's interest, and furthermore would not compromise any user data.
-    global_id = :crypto.hash(:md5, global_id_data) |> Base.encode64()
-    {global_id, data}
-  end
+    # We want the global ID to take the form of:
+    # <database-user>/<database-name>[-<aircloak data source marker>]@<database-host>[:<database-port>]
+    # The data source marker is useful when we you want to force identical data sources to get
+    # distinct global IDs. This can be used for exampel in staging and test environments.
 
-  # We don't want user passwords to be part of the data used to calculate the data source id.
-  # Otherwise a new data source is created in the air every time a password is changed, which
-  # would require an administrator to step in and perform manual privilege management.
-  defp parameters_without_password(parameters) when is_map(parameters), do: Map.drop(parameters, [:password])
-  defp parameters_without_password(parameters) when is_binary(parameters) do
-    parameters
-    |> String.split(";", trim: true)
-    |> Enum.reject(fn(param) -> Regex.run(~r/^password/i, param) != nil end)
+    user = Parameters.get_one_of(data.parameters, ["uid", "user", "username"])
+    database = Parameters.get_one_of(data.parameters, ["database"])
+    host = Parameters.get_one_of(data.parameters, ["hostname", "server"])
+
+    if Enum.any?([user, database, host], &(is_nil(&1))) do
+      raise "Misconfigured data source: user, database, and host parameters are required"
+    end
+
+    marker = case Map.get(data, :data_source_marker) do
+      nil -> ""
+      marker -> "-#{marker}"
+    end
+    port = case Parameters.get_one_of(data.parameters, ["port"]) do
+      nil -> ""
+      port -> ":#{port}"
+    end
+    global_id = "#{user}/#{database}#{marker}@#{host}#{port}"
+    {global_id, data}
   end
 
   # load the columns list for all defined tables in all data sources
