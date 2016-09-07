@@ -154,4 +154,16 @@ defmodule Air.DataSourceManager do
   defp invert_data_source_to_cloak({data_source_unique_id, cloak_infos}) do
     Enum.map(cloak_infos, &({&1, data_source_unique_id}))
   end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Test functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  if Mix.env == :test do
+    @doc false
+    def do_remove_disconnected_cloak(channel_pid, state) do
+      remove_disconnected_cloak(channel_pid, state)
+    end
+  end
 end
