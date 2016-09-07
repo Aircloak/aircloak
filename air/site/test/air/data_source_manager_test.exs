@@ -82,6 +82,15 @@ defmodule Air.DataSourceManager.Test do
     assert cloak.data_source_ids == [@data_source_id]
   end
 
+  test "removes entries for which there are no cloaks" do
+    pid = :pid
+    cloak_info = %{channel_pid: pid}
+    state = %{
+      data_source_to_cloak: %{data_source: [cloak_info]}
+    }
+    assert %{data_source_to_cloak: %{}} === DataSourceManager.do_remove_disconnected_cloak(pid, state)
+  end
+
   defp cloak_info(pid \\ self()) do
     %{
       channel_pid: pid,
