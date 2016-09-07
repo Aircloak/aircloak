@@ -10,9 +10,9 @@ defmodule BOM.Whitelist do
 
   @licenses %{
     :elixir => %{
-      "ecto" => %{type: :apache2, text: :provided},
-      "erlware_commons" => %{type: :mit, text: :provided},
-      "excoveralls" => %{type: :mit, text: :standard},
+      "ecto"            => %{type: :apache2, text: :provided},
+      "erlware_commons" => %{type: :mit,     text: :provided},
+      "excoveralls"     => %{type: :mit,     text: :standard},
     },
     :node => %{
       "jsv"                         => %{type: :bsd_2_clause, text: :provided},
