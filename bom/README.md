@@ -2,6 +2,15 @@
 
 This subproject contains scripts generating a Bill of Materials for the whole solution.
 
+- [What it does](#what-it-does)
+- [What is it made up of](#what-is-it-made-up-of)
+- [Installation](#installation)
+- [Running](#running)
+- [Validation](#validation)
+- [Manually Adding a License](#manually-adding-a-license)
+- [Manually Classifying a License](#manually-classifying-a-license)
+- [Not Shipped packages](#not-shipped-packages)
+
 ## What it does
 
 It generates a JSON file describing all dependencies of the system along with their licenses. This can then be
@@ -28,11 +37,11 @@ describing dependencies and their licenses in the following format:
 ```json
 [
   {
-    name: "name of the package",
-    realm: "either 'elixir' or 'node'",
-    license: {
-      type: "one of a list of license types",
-      text: "the full text of the license"
+    "name": "name of the package",
+    "realm": "either 'elixir' or 'node'",
+    "license": {
+      "type": "one of a list of license types",
+      "text": "the full text of the license"
     }
   },
   ...
