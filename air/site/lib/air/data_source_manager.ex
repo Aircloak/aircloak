@@ -112,18 +112,21 @@ defmodule Air.DataSourceManager do
   end
 
   defp create_or_update_datastore(data) do
-    params = %{
-      unique_id: data["id"],
-      name: data["name"] || data["id"],
-      tables: Poison.encode!(data["tables"]),
-    }
-
     case Repo.get_by(DataSource, unique_id: data["id"]) do
       nil ->
+        params = %{
+          unique_id: data["id"],
+          name: data["id"],
+          tables: Poison.encode!(data["tables"]),
+        }
         %DataSource{}
         |> DataSource.changeset(params)
         |> Repo.insert!()
+
       data_source ->
+        params = %{
+          tables: Poison.encode!(data["tables"]),
+        }
         data_source
         |> DataSource.changeset(params)
         |> Repo.update!()
