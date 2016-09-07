@@ -39,7 +39,7 @@ defmodule Cloak.DataSource do
 
   # define returned data types and values
   @type t :: %{
-    id: atom,
+    global_id: atom,
     driver: module,
     parameters: Driver.parameters,
     tables: %{atom => table}
@@ -99,7 +99,7 @@ defmodule Cloak.DataSource do
   """
   @spec start() :: :ok
   def start() do
-    data_sources = for data_source <- Cloak.DeployConfig.fetch!("data_sources"), into: %{} do
+    data_sources = for data_source <- Cloak.DeployConfig.fetch!("data_sources") do
       data_source
       |> atomize_keys()
       |> generate_global_id()
@@ -110,7 +110,7 @@ defmodule Cloak.DataSource do
   end
 
   @doc "Returns the list of defined data sources."
-  @spec all() :: Map.t
+  @spec all() :: [DataSource.t]
   def all() do
     Application.get_env(:cloak, :data_sources)
   end
@@ -162,7 +162,11 @@ defmodule Cloak.DataSource do
   @spec fetch(String.t) :: {:ok, t} | :error
   def fetch(data_source_id) do
     Application.get_env(:cloak, :data_sources)
-    |> Map.fetch(data_source_id)
+    |> Enum.find(&(&1.global_id === data_source_id))
+    |> case do
+      nil -> :error
+      data_source -> {:ok, data_source}
+    end
   end
 
 
@@ -170,15 +174,15 @@ defmodule Cloak.DataSource do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp map_driver({id, data_source}) do
+  defp map_driver(data_source) do
     driver_module = case data_source.driver do
       "postgresql" -> Cloak.DataSource.PostgreSQL
       "mysql" -> Cloak.DataSource.MySQL
       "dsproxy" -> Cloak.DataSource.DsProxy
       "odbc" -> Cloak.DataSource.ODBC
-      other -> raise("Unknown driver `#{other}` for data source `#{id}`")
+      other -> raise("Unknown driver `#{other}` for data source `#{data_source.global_id}`")
     end
-    {id, Map.merge(data_source, %{driver: driver_module})}
+    Map.merge(data_source, %{driver: driver_module})
   end
 
   defp atomize_keys(%{} = map) do
@@ -218,17 +222,17 @@ defmodule Cloak.DataSource do
       port -> ":#{port}"
     end
     global_id = "#{user}/#{database}#{marker}@#{host}#{port}"
-    {global_id, data}
+    Map.merge(data, %{global_id: global_id})
   end
 
   # load the columns list for all defined tables in all data sources
   defp cache_columns(data_sources) do
-    Application.put_env(:cloak, :data_sources, Enum.into(data_sources, %{}))
+    Application.put_env(:cloak, :data_sources, data_sources)
   end
 
-  defp add_tables({id, data_source}) do
+  defp add_tables(data_source) do
     tables = load_tables_columns(data_source) |> Enum.into(%{})
-    {id, Map.put(data_source, :tables, tables)}
+    Map.put(data_source, :tables, tables)
   end
 
   defp load_tables_columns(data_source) do
@@ -328,36 +332,35 @@ defmodule Cloak.DataSource do
   if Mix.env == :test do
     @doc false
     def register_test_table(table_id, table_name, user_id) do
-      sources = for {id, source} <- Application.get_env(:cloak, :data_sources), into: %{} do
+      sources = for source <- Application.get_env(:cloak, :data_sources) do
         table = %{db_name: table_name, user_id: user_id}
         tables = Map.put(source[:tables], table_id, table)
-        {id, Map.put(source, :tables, tables)} |> add_tables()
+        Map.put(source, :tables, tables) |> add_tables()
       end
-      Application.put_env(:cloak, :data_sources, sources)
+      cache_columns(sources)
     end
 
     @doc false
     def unregister_test_table(table_id) do
-      sources = for {id, source} <- Application.get_env(:cloak, :data_sources), into: %{} do
+      sources = for source <- Application.get_env(:cloak, :data_sources) do
         tables = Map.delete(source[:tables], table_id)
-        {id, Map.put(source, :tables, tables)}
+        Map.put(source, :tables, tables)
       end
-      Application.put_env(:cloak, :data_sources, sources)
+      cache_columns(sources)
     end
 
     @doc false
     def clear_test_tables() do
-      sources = for {id, source} <- Application.get_env(:cloak, :data_sources), into: %{} do
-        {id, Map.put(source, :tables, %{})}
+      sources = for source <- Application.get_env(:cloak, :data_sources) do
+        Map.put(source, :tables, %{})
       end
-      Application.put_env(:cloak, :data_sources, sources)
+      cache_columns(sources)
     end
 
     @doc false
     def ids() do
       Application.get_env(:cloak, :data_sources)
-      |> Enum.map(fn({id, _source}) -> id end)
-      |> Enum.sort()
+      |> Enum.map(&(&1.global_id))
     end
   end
 end

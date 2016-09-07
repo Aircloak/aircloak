@@ -21,9 +21,9 @@ defmodule Cloak.Test.DB do
   end
 
   def execute!(statement, parameters \\ []) do
-    for {global_id, data_source} <- Cloak.DataSource.all() do
+    for data_source <- Cloak.DataSource.all() do
       if data_source.driver.__info__(:functions)[:execute] do # check if driver supports direct query execution
-        connection = Process.get({:connection, global_id}) || create_connection(global_id, data_source)
+        connection = Process.get({:connection, data_source.global_id}) || create_connection(data_source)
         {:ok, _result} = data_source.driver.execute(connection, statement, parameters)
       end
     end
@@ -96,9 +96,9 @@ defmodule Cloak.Test.DB do
 
   defp full_table_name(table_name), do: "cloak_test.#{table_name}"
 
-  defp create_connection(global_id, data_source) do
+  defp create_connection(data_source) do
     {:ok, connection} = data_source.driver.connect(data_source.parameters)
-    Process.put({:connection, global_id}, connection)
+    Process.put({:connection, data_source.global_id}, connection)
     connection
   end
 end
