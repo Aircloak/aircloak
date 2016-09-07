@@ -30,7 +30,11 @@ defmodule Mix.Tasks.Bom do
   defp do_run(dirs, output) do
     {:ok, _} = Application.ensure_all_started(:bom)
 
-    {invalid, valid} = packages(dirs)
+    IO.puts("Gathering package data...")
+    packages = packages(dirs)
+    IO.puts("Processing #{Enum.count(packages)} packages...")
+
+    {invalid, valid} = packages
     |> Enum.filter(&BOM.Whitelist.shipped?/1)
     |> Enum.map(&BOM.Whitelist.update_license_type/1)
     |> Enum.map(&BOM.Validate.run/1)
@@ -39,13 +43,13 @@ defmodule Mix.Tasks.Bom do
     if Enum.empty?(invalid) do
       json = Poison.encode!(valid)
       File.write!(output, json)
-      :ok
+      IO.puts("Bill of Materials written to #{output}")
     else
       invalid
       |> Enum.map(&"#{&1.name}: #{&1.error}")
       |> Enum.map(&IO.puts/1)
 
-      Mix.raise("#{Enum.count(invalid)}/#{Enum.count(valid) + Enum.count(invalid)} invalid packages")
+      Mix.raise("#{Enum.count(invalid)} invalid packages - see README.md for how to resolve this.")
     end
   end
 
