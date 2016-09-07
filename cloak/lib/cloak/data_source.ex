@@ -99,7 +99,7 @@ defmodule Cloak.DataSource do
   def start() do
     data_sources = for data_source <- Cloak.DeployConfig.fetch!("data_sources"), into: %{} do
       data_source
-      |> atomize_values()
+      |> atomize_keys()
       |> identify_by_unique_id()
       |> map_driver()
       |> add_tables()
@@ -176,8 +176,6 @@ defmodule Cloak.DataSource do
     end
     {id, Map.merge(data_source, %{driver: driver_module})}
   end
-
-  defp atomize_values({data_source_id, values}), do: {data_source_id, atomize_keys(values)}
 
   defp atomize_keys(%{} = map) do
     for {key, value} <- map, into: %{}, do: {String.to_atom(key), atomize_keys(value)}
