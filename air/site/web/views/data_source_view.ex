@@ -7,7 +7,7 @@ defmodule Air.DataSourceView do
   alias Air.{DataSource, DataSourceManager}
 
   def available?(data_source) do
-    DataSourceManager.available?(data_source.unique_id)
+    DataSourceManager.available?(data_source.global_id)
   end
 
   def number_of_tables(data_source) do

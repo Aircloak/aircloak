@@ -4,7 +4,7 @@ defmodule Air.DataSourceTest do
   alias Air.DataSource
 
   @valid_attrs %{
-    unique_id: "unique_id",
+    global_id: "global_id",
     name: "name",
     tables: "[]",
   }
@@ -20,7 +20,7 @@ defmodule Air.DataSourceTest do
     refute changeset.valid?
   end
 
-  test "validates uniqueness of unique id" do
+  test "validates uniqueness of global id" do
     Repo.insert!(DataSource.changeset(%DataSource{}, @valid_attrs))
     assert_raise Ecto.InvalidChangesetError,
       fn -> Repo.insert!(DataSource.changeset(%DataSource{}, @valid_attrs)) end

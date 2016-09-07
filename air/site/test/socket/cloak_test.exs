@@ -101,7 +101,7 @@ defmodule Air.Socket.CloakTest do
   end
 
   defp channel_pid do
-    [pid | _] = DataSourceManager.channel_pids("data_source_id")
+    [pid | _] = DataSourceManager.channel_pids("global_id")
     pid
   end
 
@@ -114,7 +114,7 @@ defmodule Air.Socket.CloakTest do
   end
 
   defp default_data_sources() do
-    [%{"id" => "data_source_id", "name" => "data source name", "tables" => []}]
+    [%{"global_id" => "global_id", "tables" => []}]
   end
 
   defp async_query(cloak_id, user_organisation, payload) do

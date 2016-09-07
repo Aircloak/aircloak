@@ -9,7 +9,7 @@ defmodule Air.QueryControllerTest do
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
     params = %{
-      "unique_id" => "data_source_id",
+      "global_id" => "data_source_global_id",
       "name" => "data source name",
       "tables" => "[]",
     }
@@ -26,7 +26,7 @@ defmodule Air.QueryControllerTest do
     # Open the cloak mock socket
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1", cloak_organisation: organisation.name})
     TestSocketHelper.join!(socket, "main",
-      %{data_sources: [%{"id" => "data_source_id", "tables" => []}]})
+      %{data_sources: [%{"global_id" => "data_source_global_id", "tables" => []}]})
 
     query_data_params = %{
       query: %{query: "Query code", name: "Query name", data_source_id: context[:data_source].id}

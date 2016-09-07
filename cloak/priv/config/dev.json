@@ -1,9 +1,9 @@
 {
   "air_socket_url": "wss://insights.air-local:20000/cloak/socket/websocket",
-  "data_sources": {
-    "local": {
+  "data_sources": [
+    {
       "driver": "postgresql",
-      "data_source_marker": "<optional data to create a distinct ID>",
+      "marker": "native",
       "parameters": {
         "hostname": "localhost",
         "username": "cloak",
@@ -27,9 +27,15 @@
         }
       }
     },
-    "local_odbc": {
+    {
       "driver": "odbc",
-      "parameters": "DSN=PostgreSQL;UID=cloak;Database=cloak;Server=localhost;",
+      "marker": "odbc",
+      "parameters": {
+        "DSN": "PostgreSQL",
+        "UID": "cloak",
+        "Database": "cloak",
+        "Server": "localhost"
+      },
       "tables": {
         "test": {
           "db_name": "user_data",
@@ -48,5 +54,5 @@
         }
       }
     }
-  }
+  ]
 }

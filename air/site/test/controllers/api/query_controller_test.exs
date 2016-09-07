@@ -17,7 +17,7 @@ defmodule Air.API.QueryController.Test do
 
     # Open the cloak mock socket
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1", cloak_organisation: organisation.name})
-    TestSocketHelper.join!(socket, "main", %{data_sources: [%{"id" => "data_source", "tables" => []}]})
+    TestSocketHelper.join!(socket, "main", %{data_sources: [%{"global_id" => "data_source", "tables" => []}]})
 
     query_data_params = %{
       query: %{query: "Query code", name: "Query name", data_source_id: Repo.one(DataSource).id}

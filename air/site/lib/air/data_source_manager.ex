@@ -106,24 +106,27 @@ defmodule Air.DataSourceManager do
 
   defp register_data_source(data_source_data, cloak_info, %{data_source_to_cloak: data_source_to_cloak} = state) do
     create_or_update_datastore(data_source_data)
-    id = data_source_data["id"]
+    id = data_source_data["global_id"]
     data_source_to_cloak = Map.update(data_source_to_cloak, id, [cloak_info], &([cloak_info | &1]))
     %{state | data_source_to_cloak: data_source_to_cloak}
   end
 
   defp create_or_update_datastore(data) do
-    params = %{
-      unique_id: data["id"],
-      name: data["name"] || data["id"],
-      tables: Poison.encode!(data["tables"]),
-    }
-
-    case Repo.get_by(DataSource, unique_id: data["id"]) do
+    case Repo.get_by(DataSource, global_id: data["global_id"]) do
       nil ->
+        params = %{
+          global_id: data["global_id"],
+          name: data["global_id"],
+          tables: Poison.encode!(data["tables"]),
+        }
         %DataSource{}
         |> DataSource.changeset(params)
         |> Repo.insert!()
+
       data_source ->
+        params = %{
+          tables: Poison.encode!(data["tables"]),
+        }
         data_source
         |> DataSource.changeset(params)
         |> Repo.update!()
@@ -138,10 +141,10 @@ defmodule Air.DataSourceManager do
     %{state | data_source_to_cloak: filtered_map}
   end
 
-  defp remove_cloak_info(channel_pid, {unique_id, cloak_infos}) do
+  defp remove_cloak_info(channel_pid, {global_id, cloak_infos}) do
     filtered_cloak_infos = Enum.reject(cloak_infos, &(&1.channel_pid == channel_pid))
-    if filtered_cloak_infos === [], do: Logger.info("Data source #{unique_id} is now unavailable")
-    {unique_id, filtered_cloak_infos}
+    if filtered_cloak_infos === [], do: Logger.info("Data source #{global_id} is now unavailable")
+    {global_id, filtered_cloak_infos}
   end
 
   defp cloaks_from_state(state) do
@@ -151,8 +154,8 @@ defmodule Air.DataSourceManager do
     |> Enum.map(fn({cloak_info, data_source_ids}) -> Map.merge(cloak_info, %{data_source_ids: data_source_ids}) end)
   end
 
-  defp invert_data_source_to_cloak({data_source_unique_id, cloak_infos}) do
-    Enum.map(cloak_infos, &({&1, data_source_unique_id}))
+  defp invert_data_source_to_cloak({data_source_global_id, cloak_infos}) do
+    Enum.map(cloak_infos, &({&1, data_source_global_id}))
   end
 
 
