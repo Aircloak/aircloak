@@ -19,7 +19,10 @@ defmodule BOM.Validate do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp errors(%{license: nil}), do: "No license found"
+  defp errors(%{name: nil}), do: "Name empty"
+  defp errors(%{name: ""}), do: "Name empty"
+  defp errors(%{realm: nil}), do: "Realm empty"
+  defp errors(%{license: nil}), do: "No license"
   defp errors(%{license: license}) do
     license_text_error(license) || license_type_error(license)
   end
