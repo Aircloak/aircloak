@@ -27,7 +27,7 @@ defmodule Air.CloaksControllerTest do
       online_since: Timex.DateTime.now(),
     }
 
-    data_sources = [%{"id" => "id", "name" => "name", "tables" => []}]
+    data_sources = [%{"global_id" => "global_id", "tables" => []}]
     DataSourceManager.register_cloak(cloak_info, data_sources)
 
     # verify that it's in the list

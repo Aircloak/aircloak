@@ -195,13 +195,13 @@ defmodule Cloak.DataSource do
     # Useful when we you want to force identical data sources to get distinct global IDs.
     # This can be used for exampel in staging and test environments.
     aircloak_data_source_marker = Map.get(data, "data_source_marker", "")
-    unique_id_data = {aircloak_data_source_marker,
+    global_id_data = {aircloak_data_source_marker,
       parameters_without_password(data.parameters)} |> :erlang.term_to_binary()
     # MD5 is perfectly fine here, as the hash doesn't serve any other purpose than generating
     # a single ID based on the data. Of course collisions can be constructed, but doing so is
     # not in anyone's interest, and furthermore would not compromise any user data.
-    unique_id = :crypto.hash(:md5, unique_id_data) |> Base.encode64()
-    {unique_id, data}
+    global_id = :crypto.hash(:md5, global_id_data) |> Base.encode64()
+    {global_id, data}
   end
 
   # We don't want user passwords to be part of the data used to calculate the data source id.
