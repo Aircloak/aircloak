@@ -1,7 +1,7 @@
 {
   "salt": "test salt which doesn't matter since tests have SD=0",
-  "data_sources": {
-    "local": {
+  "data_sources": [
+    {
       "driver": "postgresql",
       "parameters": {
         "hostname": "localhost",
@@ -11,11 +11,11 @@
       "tables": {
       }
     },
-    "local_odbc": {
+    {
       "driver": "odbc",
       "parameters": "DSN=PostgreSQL;UID=postgres;Database=cloaktest1;Server=localhost;",
       "tables": {
       }
     }
-  }
+  ]
 }
