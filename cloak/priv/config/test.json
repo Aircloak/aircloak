@@ -3,6 +3,7 @@
   "data_sources": [
     {
       "driver": "postgresql",
+      "data_source_marker": "native",
       "parameters": {
         "hostname": "localhost",
         "username": "postgres",
@@ -13,6 +14,7 @@
     },
     {
       "driver": "odbc",
+      "data_source_marker": "odbc",
       "parameters": {
         "DSN": "PostgreSQL",
         "UID": "postgres",
