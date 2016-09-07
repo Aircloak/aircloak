@@ -6,7 +6,7 @@ defmodule Cloak.Test.QueryHelpers do
   defmacro assert_query(query, expected_response) do
     quote do
       run_query =
-        fn(data_source) ->
+        fn({_global_id, data_source}) ->
           Query.Runner.start("1", data_source, unquote(query), {:process, self()})
           receive do
             {:reply, response} -> response

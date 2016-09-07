@@ -11,7 +11,7 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "schema discovery" do
-    for data_source <- DataSource.all() do
+    for {_global_id, data_source} <- DataSource.all() do
       assert(Enum.member?(DataSource.tables(data_source), :test))
       assert(DataSource.table(data_source, :test).columns == [{"user_id", :text}, {"value", :integer}])
     end
@@ -31,7 +31,7 @@ defmodule Cloak.DataSourceTest do
       from: "test",
       selected_tables: [%{db_name: "cloak_test.test", name: "test"}]
     }
-    for data_source <- DataSource.all() do
+    for {_global_id, data_source} <- DataSource.all() do
       assert {:ok, rows} = DataSource.select(%{query | data_source: data_source}, &Enum.to_list/1)
       assert [["user1", 10], ["user1", 20], ["user1", 30]] == rows
     end
