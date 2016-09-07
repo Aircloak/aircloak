@@ -108,9 +108,9 @@ defmodule Cloak.DataSource do
   end
 
   @doc "Returns the list of defined data sources."
-  @spec all() :: [t]
+  @spec all() :: Map.t
   def all() do
-    Map.values(Application.get_env(:cloak, :data_sources))
+    Application.get_env(:cloak, :data_sources)
   end
 
   @doc "Returns the list of defined tables for a specific data source."
