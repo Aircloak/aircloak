@@ -106,17 +106,20 @@ defmodule Air.DataSourceManager do
 
   defp register_data_source(data_source_data, cloak_info, %{data_source_to_cloak: data_source_to_cloak} = state) do
     create_or_update_datastore(data_source_data)
-    id = data_source_data["global_id"]
+    # Temporary backwards compatibility for older cloaks
+    id = data_source_data["global_id"] || data_source_data["id"]
     data_source_to_cloak = Map.update(data_source_to_cloak, id, [cloak_info], &([cloak_info | &1]))
     %{state | data_source_to_cloak: data_source_to_cloak}
   end
 
   defp create_or_update_datastore(data) do
-    case Repo.get_by(DataSource, global_id: data["global_id"]) do
+    # Temporary backwards compatibility for older cloaks
+    global_id = data["global_id"] || data["id"]
+    case Repo.get_by(DataSource, global_id: global_id) do
       nil ->
         params = %{
-          global_id: data["global_id"],
-          name: data["global_id"],
+          global_id: global_id,
+          name: global_id,
           tables: Poison.encode!(data["tables"]),
         }
         %DataSource{}

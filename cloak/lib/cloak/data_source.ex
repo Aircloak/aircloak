@@ -245,7 +245,7 @@ defmodule Cloak.DataSource do
       end
     else
       {:error, reason} ->
-        Logger.error("Error connecting to #{data_source.id}: #{reason}")
+        Logger.error("Error connecting to #{data_source.global_id}: #{reason}")
         nil
     end
   end
@@ -255,7 +255,7 @@ defmodule Cloak.DataSource do
       {:ok, columns} ->
         {table_id, Map.merge(table, %{columns: columns, name: to_string(table_id)})}
       {:error, reason} ->
-        Logger.error("Error fetching columns for table #{data_source.id}/#{table.db_name}: #{reason}")
+        Logger.error("Error fetching columns for table #{data_source.global_id}/#{table.db_name}: #{reason}")
         nil
     end
   end
@@ -305,15 +305,14 @@ defmodule Cloak.DataSource do
 
   defp validate_unsupported_columns([], _data_source, _table), do: nil
   defp validate_unsupported_columns(unsupported, data_source, table) do
-    table_string = "#{data_source.id}/#{table[:name]}"
-
     columns_string =
       unsupported
       |> Enum.map(fn({column_name, {:unsupported, type}}) -> "  #{column_name} :: #{type}" end)
       |> Enum.join("\n")
 
     msg =
-      "The following columns in `#{table_string}` have unsupported types and will be ignored:\n" <>
+      "The following columns in `#{table[:name]}` in data source `#{data_source.global_id}` " <>
+      "have unsupported types and will be ignored:\n" <>
       columns_string
 
     if table[:ignore_unsupported_types] do
