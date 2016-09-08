@@ -22,7 +22,6 @@ COPY air/site/config /aircloak/air/site/config
 COPY common /aircloak/common
 COPY air/site/fetch_deps.sh /aircloak/air/site/
 COPY air/site/docs /aircloak/air/site/docs
-COPY air/site/priv/bom.json.example /aircloak/air/site/priv/bom.json
 
 RUN \
   . /tmp/build_config/proxies.sh && \
@@ -32,6 +31,16 @@ RUN \
   echo "Fetching npm packages..." && \
   npm install && \
   cd docs && bundle install -j4 && cd ..
+
+# Build the Bill of Materials
+COPY bom /aircloak/bom
+RUN \
+  . /tmp/build_config/proxies.sh && \
+  cd /aircloak/bom && \
+  bash -c ". ~/.asdf/asdf.sh && ./fetch_deps.sh --only prod " && \
+  bash -c ". ~/.asdf/asdf.sh && mix deps.compile " && \
+  bash -c ". ~/.asdf/asdf.sh && mkdir /aircloak/air/site/priv " && \
+  bash -c ". ~/.asdf/asdf.sh && mix bom --elixir /aircloak/air/site/deps --node /aircloak/air/site/node_modules /aircloak/air/site/priv/bom.json "
 
 # Now we copy the rest of the site and build the release.
 COPY air/site /aircloak/air/site
