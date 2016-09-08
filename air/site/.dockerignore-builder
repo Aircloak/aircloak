@@ -30,6 +30,8 @@
 !bom/lib
 !bom/licenses
 !bom/fetch_deps.sh
+!cloak/mix.exs
+!cloak/fetch_deps.sh
 !common
 
 # blacklist some stuff

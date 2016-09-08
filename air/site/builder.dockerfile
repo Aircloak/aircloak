@@ -34,13 +34,16 @@ RUN \
 
 # Build the Bill of Materials
 COPY bom /aircloak/bom
+COPY cloak /aircloak/cloak
 RUN \
   . /tmp/build_config/proxies.sh && \
+  cd /aircloak/cloak && \
+  bash -c ". ~/.asdf/asdf.sh && ./fetch_deps.sh --only prod " && \
   cd /aircloak/bom && \
   bash -c ". ~/.asdf/asdf.sh && ./fetch_deps.sh --only prod " && \
   bash -c ". ~/.asdf/asdf.sh && mix deps.compile " && \
   bash -c ". ~/.asdf/asdf.sh && mkdir /aircloak/air/site/priv " && \
-  bash -c ". ~/.asdf/asdf.sh && mix bom --elixir /aircloak/air/site/deps --node /aircloak/air/site/node_modules /aircloak/air/site/priv/bom.json "
+  bash -c ". ~/.asdf/asdf.sh && mix bom --elixir /aircloak/cloak/deps --elixir /aircloak/air/site/deps --node /aircloak/air/site/node_modules /aircloak/air/site/priv/bom.json "
 
 # Now we copy the rest of the site and build the release.
 COPY air/site /aircloak/air/site
