@@ -86,6 +86,14 @@ be taken from `licenses/generic/<type>`. `text: :provided` means that the text w
 `licenses/<realm>/<package name>` - you should use this one when the package or its website includes some
 license file. Make sure the license text file exists.
 
+### Important - BSD 4-clause licenses
+
+The BSD 4-clause license requires that all marketing materials pertaining to the feature where the particular
+package is used include a notice that code provided by the package's copyright holder is included. Because of
+this weird requirement the license has been deprecated. Nevertheless, some packages might still use it.
+Consequently, this license will not be automatically recognized.  When whitelisting such a package try to make
+sure that this requirement won't be a problem - for example it's a test-only package.
+
 ## Manually Classifying a License
 
 When a license text is automatically found, but a type cannot be found the license is marked as `{:unknown,
