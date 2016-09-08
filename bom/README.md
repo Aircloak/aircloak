@@ -66,12 +66,12 @@ the name/realm/license information for that package.
 ### License empty
 
 An empty license text has been generated for the package. This most pobably means that the code responsible
-for automatically recovering the license text from files like `LICENSE` or `README` found an empty section -
-  see Manually Adding a License below.
+for automatically recovering the license text from files like `LICENSE` or `README` found an empty section.
+This is most likely a programming error unless - only the `:empty` license should have an empty text.
 
-### Forbidden license type :unknown
+### Forbidden license type :empty
 
-No license type _or_ text could be obtained for the package. See Manually Adding a License.
+No license text could be obtained for the package. See Manually Adding a License.
 
 ### Forbidden license type {:unknown, <hash>}
 
@@ -85,6 +85,14 @@ You can manually add a license for a package by adding a new entry in the `@lice
 be taken from `licenses/generic/<type>`. `text: :provided` means that the text will be taken from
 `licenses/<realm>/<package name>` - you should use this one when the package or its website includes some
 license file. Make sure the license text file exists.
+
+### Important - BSD 4-clause licenses
+
+The BSD 4-clause license requires that all marketing materials pertaining to the feature where the particular
+package is used include a notice that code provided by the package's copyright holder is included. Because of
+this weird requirement the license has been deprecated. Nevertheless, some packages might still use it.
+Consequently, this license will not be automatically recognized.  When whitelisting such a package try to make
+sure that this requirement won't be a problem - for example it's a test-only package.
 
 ## Manually Classifying a License
 
