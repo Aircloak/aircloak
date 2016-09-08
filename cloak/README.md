@@ -5,6 +5,7 @@
     - [Prerequisites](#prerequisites)
     - [First build](#first-build)
     - [Preparing the database](#preparing-the-database)
+    - [Cloak configuration](#cloak-configuration)
     - [Typical tasks](#typical-tasks)
         - [Running partial tests](#running-partial-tests)
         - [Running a local docker container](#running-a-local-docker-container)
@@ -57,6 +58,93 @@ You need a local PostgreSQL instance listening on port 5432. It is assumed that 
 You can create the empty database by running `make regenerate_db`.
 
 If everything is properly installed and setup, standard tests invoked with `make test` should pass.
+
+### Cloak configuration
+
+Cloaks have two sets of configuration files.
+One set contains static configuration that remain the same across
+installations. These configuration files can be found under `config/*`.
+The other contain configuration parameters that are potentially unique to a particular installation,
+and which are what you are going to adapt when installing a cloak. These configuration files are written
+as a JSON file that is mounted into the deployed cloak container.
+A sample cloak configuration can be found under `priv/config/dev.json`.
+
+The skeleton of a configuration looks like this:
+
+```json
+{
+  "air_socket_url": "<URL OF AIR INSTALLATION>/cloak/socket/websocket",
+  "data_sources": []
+}
+```
+
+The data sources section contain a list of individual data source configurations. A data source
+configuration might look like this:
+
+```json
+{
+  "driver": "<driver-name>",
+  "marker": "<optional marker>",
+  "parameters": {
+    ...
+  },
+  "tables": {
+    "<table name as seen by user>": {
+      "db_name": "<table as named in the database>",
+      "user_id": "<user id column name in the table>",
+      "ignore_unsupported_types": true | false
+    },
+    ...
+  }
+},
+```
+
+A data source requires a driver supported by the cloak. For example `postgressql`, `mysql` or `odbc`.
+The ODBC connector is a catch-all for drivers that don't have native support in the cloak.
+
+The parameters are used by the driver to connect to the data store. In the case of the `ODBC` driver, the
+parameters are concatenated into an ODBC connection string.
+
+#### Global identifier
+
+Data sources are identified by a global identifier created from a combination of the connection parameters.
+As a result, multiple distinct cloaks connecting to the same data store, will all make available a data source
+with the same id. If you want to make multiple data sources unique despite being backed by the same database and user,
+you can use the `marker` option to add more context to the global identifier produced.
+
+__Gotcha__:
+
+The data source requires one of each of the following to be present in the `parameters` section, in order to produce a `global_id`:
+
+- `uid`, `user`, `username`
+- `database`
+- `hostname`, `server`
+
+The data source setup will fail if this is not the case.
+As DSProxy data sources are only configured with a `url` parameter, you will need to add some extra
+shim entries to make them work. A DSProxy connection could therefore look like:
+
+```json
+"parameters": {
+  "# --": "Required parameter for DSProxy",
+  "url": "<DSProxy host>",
+
+  "# --": "Dummy data to get a globally unique ID",
+  "hostname": "stage",
+  "user": "dsproxy",
+  "database": "database-name"
+}
+```
+
+#### Tables
+
+The `tables` section lists the set of tables that should be made available to the analyst.
+It allows the system to be configured such that the table name presented to the analyst doesn't necessarily
+reflect the name used by the underlying data store.
+
+If `ignore_unsupported_types` is set to `true` the cloak will fail to start if there are columns with data
+types not natively supported by the cloak. If it is set to false, these columns will be ignored, and not made
+available for analysis to the analyst.
 
 
 ### Typical tasks
