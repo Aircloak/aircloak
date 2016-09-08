@@ -15,6 +15,7 @@ defmodule BOM.Whitelist do
       "excoveralls"     => %{type: :mit,     text: :standard},
     },
     :node => %{
+      "bcrypt-pbkdf"                => %{type: :bsd_4_clause, text: :standard},
       "browserify-cipher"           => %{type: :mit,          text: :standard},
       "browserify-des"              => %{type: :mit,          text: :standard},
       "brunch"                      => %{type: :mit,          text: :provided},
