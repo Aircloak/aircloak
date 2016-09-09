@@ -3,6 +3,7 @@
 <h3>License types</h3>
 
 <ul>
+  <li>Total - <%= length(@packages) %> packages</li>
   <%= for {type, count} <- type_counts(@packages) do %>
     <li>
       <%= type %> - <%= count %> packages
@@ -10,13 +11,13 @@
   <% end %>
 </ul>
 
-<h3>Package licenses</h3>
+<h3>Packages</h3>
 
 <ul>
   <%= for package <- @packages do %>
     <li>
       <a href="/licenses/<%= package.realm %>/<%= package.name %>">
-        <%= package.name %>: <%= package.license_type %>
+        <%= package.name %> - <%= package.license_type %>
       </a>
     </li>
   <% end %>
