@@ -2,23 +2,41 @@
 
 <h3>License types</h3>
 
-<ul>
-  <li>Total - <%= length(@packages) %> packages</li>
+<table class="table table-striped">
+  <tr>
+    <th>License type</th>
+    <th>Number of packages</th>
+  </tr>
+
   <%= for {type, count} <- type_counts(@packages) do %>
-    <li>
-      <%= license_name(type) %> - <%= count %> packages
-    </li>
+    <tr>
+      <td><%= license_name(type) %></td>
+      <td><%= count %></td>
+    </tr>
   <% end %>
-</ul>
+
+  <tr>
+    <td><strong>Total</strong></td>
+    <td><strong><%= length(@packages) %></strong></td>
+  </tr>
+</table>
 
 <h3>Packages</h3>
 
-<ul>
+<table class="table table-striped">
+  <tr>
+    <th>Name</th>
+    <th>License type</th>
+  </tr>
+
   <%= for package <- @packages do %>
-    <li>
-      <a href="/licenses/<%= package.realm %>/<%= package.name %>">
-        <%= package.name %> - <%= license_name(package.license_type) %>
-      </a>
-    </li>
+    <tr>
+      <td>
+        <a href="/licenses/<%= package.realm %>/<%= package.name %>">
+          <%= package.name %>
+        </a>
+      </td>
+      <td><%= license_name(package.license_type) %></td>
+    </tr>
   <% end %>
-</ul>
+</table>
