@@ -10,4 +10,18 @@ defmodule Air.LicenseView do
     |> Enum.map(fn({type, packages}) -> {type, length(packages)} end)
     |> Enum.sort_by(fn({type, count}) -> count end, &>=/2)
   end
+
+  def license_name("mit"),                       do: "MIT License"
+  def license_name("isc"),                       do: "ISC License"
+  def license_name("bsd_2_clause"),              do: "BSD 2-Clause"
+  def license_name("bsd_3_clause"),              do: "BSD 3-Clause"
+  def license_name("bsd_4_clause"),              do: "BSD 4-Clause"
+  def license_name("apache2"),                   do: "Apache License, Version 2.0"
+  def license_name("public_domain"),             do: "Public Domain"
+  def license_name("zlib"),                      do: "The zlib/libpng License"
+  def license_name("boost"),                     do: "Boost Software License 1.0"
+  def license_name("do_what_the_fuck_you_want"), do: "Do What the Fuck You Want To Public License"
+  def license_name("epl_1_1"),                   do: "Erlang Public License Version 1.1"
+  def license_name("mpl_2_0"),                   do: "Mozilla Public License, Version 2.0"
+  def license_name(type),                        do: type
 end

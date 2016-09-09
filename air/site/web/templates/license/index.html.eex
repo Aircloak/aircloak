@@ -6,7 +6,7 @@
   <li>Total - <%= length(@packages) %> packages</li>
   <%= for {type, count} <- type_counts(@packages) do %>
     <li>
-      <%= type %> - <%= count %> packages
+      <%= license_name(type) %> - <%= count %> packages
     </li>
   <% end %>
 </ul>
@@ -17,7 +17,7 @@
   <%= for package <- @packages do %>
     <li>
       <a href="/licenses/<%= package.realm %>/<%= package.name %>">
-        <%= package.name %> - <%= package.license_type %>
+        <%= package.name %> - <%= license_name(package.license_type) %>
       </a>
     </li>
   <% end %>
