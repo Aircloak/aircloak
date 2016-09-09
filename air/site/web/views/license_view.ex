@@ -8,7 +8,7 @@ defmodule Air.LicenseView do
     packages
     |> Enum.group_by(&(&1.license_type))
     |> Enum.map(fn({type, packages}) -> {type, length(packages)} end)
-    |> Enum.sort_by(fn({type, count}) -> count end, &>=/2)
+    |> Enum.sort_by(fn({_type, count}) -> count end, &>=/2)
   end
 
   def license_name("mit"),                       do: "MIT License"
