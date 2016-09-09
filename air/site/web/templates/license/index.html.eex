@@ -1,5 +1,17 @@
 <h2>Package licenses</h2>
 
+<h3>License types</h3>
+
+<ul>
+  <%= for {type, count} <- type_counts(@packages) do %>
+    <li>
+      <%= type %> - <%= count %> packages
+    </li>
+  <% end %>
+</ul>
+
+<h3>Package licenses</h3>
+
 <ul>
   <%= for package <- @packages do %>
     <li>
