@@ -39,6 +39,14 @@ defmodule Air.TestRepoHelper do
     create_user!(org, :user)
   end
 
+  @doc "Creates a group with default parameters with a random group name to avoid clashes"
+  @spec create_group!() :: Air.Group.t
+  def create_group!() do
+    %Air.Group{}
+    |> Air.Group.changeset(%{name: "group-#{random_string()}"})
+    |> Repo.insert!()
+  end
+
   @doc "Inserts a new token with default parameters into the database."
   @spec create_token!() :: Air.ApiToken.t
   @spec create_token!(Air.User.t) :: Air.ApiToken.t

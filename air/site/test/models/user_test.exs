@@ -1,7 +1,7 @@
 defmodule Air.UserTest do
   use Air.ModelCase, async: true
 
-  alias Air.User
+  alias Air.{User, TestRepoHelper}
 
   @valid_attrs %{
     email: "admin@aircloak.com",
@@ -116,6 +116,19 @@ defmodule Air.UserTest do
     assert true == User.permitted?(user(:user), :anon_op, %{anonymous: [:anon_op], user: :all})
     assert true == User.permitted?(user(:org_admin), :anon_op, %{anonymous: [:anon_op], user: :all})
     assert true == User.permitted?(user(:admin), :anon_op, %{anonymous: [:anon_op], user: :all})
+  end
+
+  test "a user can have many groups" do
+    org = TestRepoHelper.create_organisation!()
+    group1 = TestRepoHelper.create_group!()
+    group2 = TestRepoHelper.create_group!()
+    user = TestRepoHelper.create_user!(org, :user)
+    |> Repo.preload(:groups)
+    |> User.changeset()
+    |> put_assoc(:groups, [group1, group2])
+    |> Repo.update!()
+    |> Repo.preload(:groups)
+    assert [group1.id, group2.id] == Enum.map(user.groups, &(&1.id)) |> Enum.sort()
   end
 
   defp user(role_key, org_name \\ ""),
