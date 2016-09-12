@@ -47,11 +47,11 @@ defmodule Air.TestRepoHelper do
     |> Repo.insert!()
   end
 
-  @doc "Creates a data source with default parameters with a random unique id"
+  @doc "Creates a data source with default parameters with a random global id"
   @spec create_data_source!() :: Air.DataSource.t
   def create_data_source!() do
     params = %{
-      unique_id: "unique_id-#{random_string()}",
+      global_id: "global_id-#{random_string()}",
       name: "name-#{random_string()}",
       tables: "[]"
     }
