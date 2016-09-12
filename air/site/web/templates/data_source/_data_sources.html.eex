@@ -1,18 +1,23 @@
-<ul class="data-source">
-<%= for data_source <- @data_sources do %>
-  <li>
-    <a class="main-link" href="/data_sources/<%= data_source.id %>">
-      <h3>
-        <%= data_source.name %>
-      </h3>
-    </a>
-    <p>
-      Has
-      <strong><%= number_of_tables(data_source) %></strong>
-      tables available for querying.
-      These include:
-      <strong><%= sample_of_tables(data_source) %></strong>
-    </p>
-  </li>
-<% end %>
-</ul>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Data source name</th>
+      <th>Tables</th>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for data_source <- @data_sources do %>
+    <tr>
+      <td>
+        <a class="main-link" href="/data_sources/<%= data_source.id %>">
+          <%= data_source.name %>
+        </a>
+      </td>
+      <td>
+        <strong><%= number_of_tables(data_source) %></strong> tables. Amongst others
+        <strong><%= sample_of_tables(data_source) %></strong>
+      </td>
+    </tr>
+    <% end %>
+  </tbody>
+</table>
