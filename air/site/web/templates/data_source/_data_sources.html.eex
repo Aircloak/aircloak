@@ -3,6 +3,9 @@
     <tr>
       <th>Data source name</th>
       <th>Tables</th>
+      <%= if admin?(@conn) do %>
+      <th></th>
+      <% end %>
     </tr>
   </thead>
   <tbody>
@@ -15,6 +18,12 @@
         <strong><%= number_of_tables(data_source) %></strong> tables. Amongst others
         <strong><%= sample_of_tables(data_source) %></strong>
       </td>
+      <%= if admin?(@conn) do %>
+      <td>
+        <%= link "Delete", to: data_source_path(@conn, :delete, data_source),
+          method: :delete, class: "btn btn-danger btn-xs" %>
+      </td>
+      <% end %>
     </tr>
     <% end %>
   </tbody>
