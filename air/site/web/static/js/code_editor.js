@@ -142,9 +142,5 @@ CodeEditor.propTypes = {
   readOnly: React.PropTypes.bool,
   tableNames: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
   columnNames: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
-  completions: React.PropTypes.arrayOf(React.PropTypes.shape({
-    displayText: React.PropTypes.string,
-    text: React.PropTypes.string,
-  })),
   statement: React.PropTypes.string,
 };
