@@ -72,9 +72,10 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Column{alias: alias} = column, sql_dialect) when alias != nil,
     do: [column_sql(%Column{column | alias: nil}, sql_dialect), "AS ", alias]
   defp column_sql(%Column{db_function: fun_name, db_function_args: args, type: type}, sql_dialect)
-    when fun_name != nil, do: DbFunction.sql(fun_name, Enum.map(args, &column_sql(&1, sql_dialect)), type)
-  defp column_sql(%Column{constant?: true, value: value, type: type}, _sql_dialect),
-    do: DbFunction.sql({:cast, type}, [constant_to_fragment(value)], type)
+    when fun_name != nil, do: DbFunction.sql(fun_name,
+      Enum.map(args, &column_sql(&1, sql_dialect)), type, sql_dialect)
+  defp column_sql(%Column{constant?: true, value: value, type: type}, sql_dialect),
+    do: DbFunction.sql({:cast, type}, [constant_to_fragment(value)], type, sql_dialect)
   defp column_sql(column, sql_dialect), do: column_name(column, sql_dialect)
 
   defp from_clause({:join, join}, query, sql_dialect) do

@@ -11,12 +11,13 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
 
   Provided arguments list must contain SQL fragments.
   """
-  @spec sql(String.t | {:cast, Cloak.DataSource.data_type}, [iodata], Cloak.DataSource.data_type) :: iodata
-  def sql({:cast, type}, [arg], _parsed_type), do: sql("cast", [arg, sql_type(type)], type)
-  def sql(fun_name, fun_args, parsed_type) do
+  @spec sql(String.t | {:cast, Cloak.DataSource.data_type}, [iodata], Cloak.DataSource.data_type, atom) :: iodata
+  def sql({:cast, type}, [arg], _parsed_type, sql_dialect),
+    do: sql("cast", [arg, sql_type(type, sql_dialect)], type, sql_dialect)
+  def sql(fun_name, fun_args, parsed_type, sql_dialect) do
     fun_name
-    |> function_call(casted_args(fun_name, fun_args))
-    |> cast(return_type(fun_name, fun_args, parsed_type))
+    |> function_call(casted_args(fun_name, fun_args, sql_dialect))
+    |> cast(return_type(fun_name, fun_args, parsed_type), sql_dialect)
   end
 
 
@@ -47,9 +48,13 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   defp function_call(name, args),
     do: [name, "(", Enum.intersperse(args, ",") ,")"]
 
-  defp sql_type(:real), do: "float"
-  defp sql_type(:boolean), do: "bool"
-  defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
+  defp sql_type(:real, :mysql), do: "decimal"
+  defp sql_type(:real, _sql_dialect), do: "float"
+  defp sql_type(:boolean, _sql_dialect), do: "bool"
+  defp sql_type(:text, :mysql), do: "char"
+  defp sql_type(:integer, :mysql), do: "signed"
+  defp sql_type(:numeric, :mysql), do: "decimal"
+  defp sql_type(type, _sql_dialect) when is_atom(type), do: Atom.to_string(type)
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -69,10 +74,10 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     end
   end
 
-  defp casted_args(fun_name, fun_args) do
+  defp casted_args(fun_name, fun_args, sql_dialect) do
     case cast_spec(fun_name, fun_args)[:args] do
       nil -> fun_args
-      casts -> Enum.map(Enum.zip(fun_args, casts), fn({arg, cast}) -> cast(arg, cast) end)
+      casts -> Enum.map(Enum.zip(fun_args, casts), fn({arg, cast}) -> cast(arg, cast, sql_dialect) end)
     end
   end
 
@@ -84,8 +89,8 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     end
   end
 
-  defp cast(expr, :pass), do: expr
-  defp cast(expr, type), do: function_call("cast", [expr, sql_type(type)])
+  defp cast(expr, :pass, _sql_dialect), do: expr
+  defp cast(expr, type, sql_dialect), do: function_call("cast", [expr, sql_type(type, sql_dialect)])
 
   # Specifies transformations of function arguments and return values
   #
