@@ -85,6 +85,7 @@ defmodule Cloak.DataSource.ODBC do
 
   defp parse_type(:sql_integer), do: :integer
   defp parse_type(:sql_smallint), do: :integer
+  defp parse_type(:sql_tinyint), do: :integer
   defp parse_type(:SQL_BIGINT), do: :integer
   defp parse_type(:sql_bit), do: :boolean
   defp parse_type(:sql_real), do: :real
