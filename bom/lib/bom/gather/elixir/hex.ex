@@ -16,7 +16,7 @@ defmodule BOM.Gather.Elixir.Hex do
     receive do
       message -> message
     after
-      :timer.minutes(1) -> raise "Timeout while fetching from hex.pm"
+      :timer.minutes(2) -> raise "Timeout while fetching from hex.pm"
     end
   end
 

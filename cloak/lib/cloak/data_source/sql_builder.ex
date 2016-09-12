@@ -24,6 +24,18 @@ defmodule Cloak.DataSource.SqlBuilder do
       " FROM (", unsafe_subquery, ") AS unsafe_subquery"
     ] |> to_string()
   end
+  def build(query, :mysql = sql_dialect) do
+    # MySQL and MariaDB do not support FULL joins, so we have to split it into LEFT and RIGHT joins
+    # see: http://www.xaprb.com/blog/2006/05/26/how-to-write-full-outer-join-in-mysql/
+    case split_full_outer_join(query.from) do
+      {:union, left_join, right_join} ->
+        [%Column{db_function: "coalesce", db_function_args: [first_id | _]} | _] = query.db_columns
+        query1 = %Query{query | from: left_join}
+        query2 = %Query{query | from: right_join, where: query.where ++ [{:is, first_id, :null}]}
+        build(query1, sql_dialect) <> " UNION ALL " <> build(query2, sql_dialect)
+      _ -> query |> build_fragments(sql_dialect) |> to_string()
+    end
+  end
   def build(query, sql_dialect) do
     query |> build_fragments(sql_dialect) |> to_string()
   end
@@ -42,8 +54,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp build_fragments(query, sql_dialect) do
     [
-      "SELECT ", columns_sql(query.db_columns, sql_dialect), " ",
-      "FROM ", from_clause(query.from, query, sql_dialect), " ",
+      "SELECT ", columns_sql(query.db_columns, sql_dialect),
+      " FROM ", from_clause(query.from, query, sql_dialect),
       where_fragments(query.where, sql_dialect),
       group_by_fragments(query, sql_dialect)
     ]
@@ -60,9 +72,10 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Column{alias: alias} = column, sql_dialect) when alias != nil,
     do: [column_sql(%Column{column | alias: nil}, sql_dialect), "AS ", alias]
   defp column_sql(%Column{db_function: fun_name, db_function_args: args, type: type}, sql_dialect)
-    when fun_name != nil, do: DbFunction.sql(fun_name, Enum.map(args, &column_sql(&1, sql_dialect)), type)
-  defp column_sql(%Column{constant?: true, value: value, type: type}, _sql_dialect),
-    do: DbFunction.sql({:cast, type}, [constant_to_fragment(value)], type)
+    when fun_name != nil, do: DbFunction.sql(fun_name,
+      Enum.map(args, &column_sql(&1, sql_dialect)), type, sql_dialect)
+  defp column_sql(%Column{constant?: true, value: value, type: type}, sql_dialect),
+    do: DbFunction.sql({:cast, type}, [constant_to_fragment(value)], type, sql_dialect)
   defp column_sql(column, sql_dialect), do: column_name(column, sql_dialect)
 
   defp from_clause({:join, join}, query, sql_dialect) do
@@ -94,7 +107,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp where_fragments([], _sql_dialect), do: []
   defp where_fragments(where_clause, sql_dialect),
-    do: ["WHERE ", conditions_to_fragments(where_clause, sql_dialect)]
+    do: [" WHERE ", conditions_to_fragments(where_clause, sql_dialect)]
 
   defp conditions_to_fragments(and_clauses, sql_dialect) when is_list(and_clauses),
     do: ["(", and_clauses |> Enum.map(&conditions_to_fragments(&1, sql_dialect)) |> join(" AND "), ")"]
@@ -144,6 +157,30 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join([first | rest], joiner), do: [first, joiner, join(rest, joiner)]
 
   defp group_by_fragments(%Query{subquery?: true, group_by: [_|_] = group_by}, sql_dialect),
-    do: ["GROUP BY ", group_by |> Enum.map(&column_sql(&1, sql_dialect)) |> Enum.intersperse(",")]
+    do: [" GROUP BY ", group_by |> Enum.map(&column_sql(&1, sql_dialect)) |> Enum.intersperse(",")]
   defp group_by_fragments(_query, _sql_dialect), do: []
+
+  defp split_full_outer_join({:join, %{type: :full_outer_join} = join}) do
+    left_join = {:join, %{join | type: :left_outer_join}}
+    right_join = {:join, %{join | type: :right_outer_join}}
+    {:union, left_join, right_join}
+  end
+  defp split_full_outer_join({:join, join}) do
+    case split_full_outer_join(join.lhs) do
+      {:union, left_join, right_join} ->
+        left_join = {:join, %{join | lhs: left_join}}
+        right_join = {:join, %{join | lhs: right_join}}
+        {:union, left_join, right_join}
+      _ ->
+        case split_full_outer_join(join.rhs) do
+          {:union, left_join, right_join} ->
+            left_join = {:join, %{join | rhs: left_join}}
+            right_join = {:join, %{join | rhs: right_join}}
+            {:union, left_join, right_join}
+          _ ->
+            {:join, join}
+        end
+    end
+  end
+  defp split_full_outer_join(from), do: from
 end
