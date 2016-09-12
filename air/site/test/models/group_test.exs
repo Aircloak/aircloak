@@ -23,7 +23,7 @@ defmodule Air.GroupTest do
       fn -> Repo.insert!(Group.changeset(%Group{}, @valid_attrs)) end
   end
 
-  test "group can have many users" do
+  test "a group can have many users" do
     org = TestRepoHelper.create_organisation!()
     user1 = TestRepoHelper.create_user!(org, :user)
     user2 = TestRepoHelper.create_user!(org, :user)
@@ -34,5 +34,17 @@ defmodule Air.GroupTest do
     |> Repo.update!()
     |> Repo.preload(:users)
     assert [user1.id, user2.id] == Enum.map(group.users, &(&1.id)) |> Enum.sort()
+  end
+
+  test "a group can have many data sources" do
+    data_source1 = TestRepoHelper.create_data_source!()
+    data_source2 = TestRepoHelper.create_data_source!()
+    group = TestRepoHelper.create_group!()
+    |> Repo.preload(:data_sources)
+    |> Group.changeset()
+    |> put_assoc(:data_sources, [data_source1, data_source2])
+    |> Repo.update!()
+    |> Repo.preload(:data_sources)
+    assert [data_source1.id, data_source2.id] == Enum.map(group.data_sources, &(&1.id)) |> Enum.sort()
   end
 end

@@ -2,7 +2,7 @@ defmodule Air.DataSource do
   @moduledoc "Represents data sources made available through the cloaks"
   use Air.Web, :model
 
-  alias Air.{DataSource, Query}
+  alias Air.{DataSource, Query, Group}
 
   @type t :: %__MODULE__{}
 
@@ -12,6 +12,7 @@ defmodule Air.DataSource do
     field :tables, :string
 
     has_many :queries, Query
+    many_to_many :groups, Group, join_through: "data_sources_groups", on_delete: :delete_all
 
     timestamps
   end
@@ -53,7 +54,7 @@ defmodule Air.DataSource do
   with no validation performed.
   """
   @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
-  def changeset(model, params) do
+  def changeset(model, params \\ %{}) do
     model
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)

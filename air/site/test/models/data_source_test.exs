@@ -1,7 +1,7 @@
 defmodule Air.DataSourceTest do
   use Air.ModelCase, async: true
 
-  alias Air.DataSource
+  alias Air.{DataSource, TestRepoHelper}
 
   @valid_attrs %{
     unique_id: "unique_id",
@@ -30,5 +30,17 @@ defmodule Air.DataSourceTest do
     data_source = Repo.insert!(
       DataSource.changeset(%DataSource{}, Map.merge(@valid_attrs, %{tables: "[invalid"})))
     assert [] == DataSource.tables(data_source)
+  end
+
+  test "a data_source can have many groups" do
+    group1 = TestRepoHelper.create_group!()
+    group2 = TestRepoHelper.create_group!()
+    data_source = TestRepoHelper.create_data_source!()
+    |> Repo.preload(:groups)
+    |> DataSource.changeset()
+    |> put_assoc(:groups, [group1, group2])
+    |> Repo.update!()
+    |> Repo.preload(:groups)
+    assert [group1.id, group2.id] == Enum.map(data_source.groups, &(&1.id)) |> Enum.sort()
   end
 end

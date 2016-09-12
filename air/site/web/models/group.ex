@@ -8,13 +8,14 @@ defmodule Air.Group do
   """
   use Air.Web, :model
 
-  alias Air.User
+  alias Air.{User, DataSource}
 
   @type t :: %__MODULE__{}
 
   schema "groups" do
     field :name, :string
     many_to_many :users, User, join_through: "groups_users", on_delete: :delete_all
+    many_to_many :data_sources, DataSource, join_through: "data_sources_groups", on_delete: :delete_all
 
     timestamps
   end
