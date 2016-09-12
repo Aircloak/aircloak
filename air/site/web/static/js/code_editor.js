@@ -82,7 +82,6 @@ export class CodeEditor extends React.Component {
     const showColumnsFromTables =
       _.map(this.props.tableNames, tableName => `SHOW COLUMNS FROM ${tableName};`);
 
-    // TODO: auto-complete column and table names
     const list = _.chain(KEYWORDS).
     concat(this.props.tableNames).
     concat(showColumnsFromTables).
