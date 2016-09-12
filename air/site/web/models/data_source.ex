@@ -12,7 +12,10 @@ defmodule Air.DataSource do
     field :tables, :string
 
     has_many :queries, Query
-    many_to_many :groups, Group, join_through: "data_sources_groups", on_delete: :delete_all
+    many_to_many :groups, Group,
+      join_through: "data_sources_groups",
+      on_delete: :delete_all
+      on_replace: :delete
 
     timestamps
   end

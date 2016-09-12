@@ -23,7 +23,10 @@ defmodule Air.User do
     belongs_to :organisation, Organisation
 
     has_many :queries, Query
-    many_to_many :groups, Group, join_through: "groups_users", on_delete: :delete_all
+    many_to_many :groups, Group,
+      join_through: "groups_users",
+      on_delete: :delete_all
+      on_replace: :delete
 
     timestamps
 
