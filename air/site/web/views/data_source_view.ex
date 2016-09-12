@@ -31,4 +31,13 @@ defmodule Air.DataSourceView do
     |> Poison.encode!()
     {:safe, table_names}
   end
+
+  def column_names(data_source) do
+    column_names = DataSource.tables(data_source)
+    |> Enum.flat_map(&Map.get(&1, "columns", []))
+    |> Enum.map(&Map.get(&1, "name"))
+    |> Enum.uniq()
+    |> Poison.encode!()
+    {:safe, column_names}
+  end
 end

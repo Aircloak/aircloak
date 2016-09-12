@@ -86,6 +86,7 @@ export class CodeEditor extends React.Component {
     const list = _.chain(KEYWORDS).
     concat(this.props.tableNames).
     concat(showColumnsFromTables).
+    concat(this.props.columnNames).
     filter((candidate) => candidate.match(fuzzyMatcher)).
     sortBy((item) => sortOrder(item)).
     value();
@@ -141,6 +142,7 @@ CodeEditor.propTypes = {
   onChange: React.PropTypes.func.isRequired,
   readOnly: React.PropTypes.bool,
   tableNames: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
+  columnNames: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
   completions: React.PropTypes.arrayOf(React.PropTypes.shape({
     displayText: React.PropTypes.string,
     text: React.PropTypes.string,
