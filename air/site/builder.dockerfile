@@ -36,7 +36,6 @@ RUN \
 COPY bom /aircloak/bom
 COPY cloak /aircloak/cloak
 RUN \
-  . /tmp/build_config/proxies.sh && \
   cd /aircloak/cloak && \
   bash -c ". ~/.asdf/asdf.sh && ./fetch_deps.sh --only prod " && \
   cd /aircloak/bom && \
