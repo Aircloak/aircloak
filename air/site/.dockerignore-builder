@@ -24,7 +24,14 @@
 !air/site/scripts
 !air/site/rel
 !air/site/fetch_deps.sh
-!air/site/priv/bom.json.example
+!bom/config
+!bom/mix.exs
+!bom/mix.lock
+!bom/lib
+!bom/licenses
+!bom/fetch_deps.sh
+!cloak/mix.exs
+!cloak/fetch_deps.sh
 !common
 
 # blacklist some stuff
