@@ -9,8 +9,13 @@ defmodule BOM.Whitelist do
   # -------------------------------------------------------------------
 
   @licenses %{
+    :elixir => %{
+      "ecto"            => %{type: :apache2, text: :provided},
+      "erlware_commons" => %{type: :mit,     text: :provided},
+      "excoveralls"     => %{type: :mit,     text: :standard},
+    },
     :node => %{
-      "jsv"                         => %{type: :bsd_2_clause, text: :provided},
+      "bcrypt-pbkdf"                => %{type: :bsd_4_clause, text: :standard},
       "browserify-cipher"           => %{type: :mit,          text: :standard},
       "browserify-des"              => %{type: :mit,          text: :standard},
       "brunch"                      => %{type: :mit,          text: :provided},
@@ -20,6 +25,7 @@ defmodule BOM.Whitelist do
       "create-hash"                 => %{type: :mit,          text: :standard},
       "create-hmac"                 => %{type: :mit,          text: :standard},
       "csscolorparser"              => %{type: :mit,          text: :provided},
+      "damerau-levenshtein"         => %{type: :bsd_2_clause, text: :standard},
       "deppack"                     => %{type: :mit,          text: :provided},
       "diffie-hellman"              => %{type: :mit,          text: :standard},
       "envify"                      => %{type: :mit,          text: :standard},
@@ -29,6 +35,7 @@ defmodule BOM.Whitelist do
       "esrecurse"                   => %{type: :bsd_2_clause, text: :standard},
       "evp_bytestokey"              => %{type: :mit,          text: :standard},
       "fcache"                      => %{type: :isc,          text: :standard},
+      "findup-sync"                 => %{type: :mit,          text: :provided},
       "geojson-rewind"              => %{type: :bsd_2_clause, text: :standard},
       "gl-line2d"                   => %{type: :mit,          text: :standard},
       "glsl-read-float"             => %{type: :mit,          text: :standard},
@@ -36,18 +43,23 @@ defmodule BOM.Whitelist do
       "invariant"                   => %{type: :bsd_3_clause, text: :standard},
       "json-schema"                 => %{type: :bsd_3_clause, text: :provided},
       "jsonlint-lines-primitives"   => %{type: :mit,          text: :provided},
+      "jsv"                         => %{type: :bsd_2_clause, text: :provided},
       "kdbush"                      => %{type: :isc,          text: :standard},
       "loggy"                       => %{type: :mit,          text: :provided},
       "loose-envify"                => %{type: :mit,          text: :standard},
       "mapbox-gl-js-supported"      => %{type: :bsd_3_clause, text: :standard},
+      "mapbox-gl-shaders"           => %{type: :isc,          text: :standard},
+      "mapbox-gl-supported"         => %{type: :bsd_3_clause, text: :standard},
       "micro-promisify"             => %{type: :mit,          text: :provided},
       "minimalistic-assert"         => %{type: :isc,          text: :standard},
       "mousetrap"                   => %{type: :apache2,      text: :standard},
       "parse-asn1"                  => %{type: :isc,          text: :standard},
       "point-geometry"              => %{type: :isc,          text: :provided},
       "public-encrypt"              => %{type: :mit,          text: :standard},
+      "quickselect"                 => %{type: :isc,          text: :standard},
       "randombytes"                 => %{type: :mit,          text: :standard},
       "react-onclickoutside"        => %{type: :mit,          text: :standard},
+      "regenerator-runtime"         => %{type: :bsd_2_clause, text: :provided},
       "skemata"                     => %{type: :mit,          text: :standard},
       "unitbezier"                  => %{type: :bsd_3_clause, text: :standard},
       "weak-map"                    => %{type: :apache2,      text: :provided},
@@ -73,6 +85,12 @@ defmodule BOM.Whitelist do
     "c8307a7b7a1394f77e887475cf03cd1d" => :bsd_3_clause,  # node/rw
     "62212b2d5d003ee7f76e89c7d15ef00e" => :public_domain, # node/tv4
     "44348b65b421f5f075c74680c11786d4" => :mit,           # node/uglify-js-brunch
+    "7c26dfe36e38a743a435b92f7e1260af" => :apache2,       # elixir/earmark
+    "0b36f89594d6a8a4b5e8efa73f1f4fc5" => :mit,           # elixir/fs
+    "0689a7b07fec79946ae192573e1450e8" => :bsd_3_clause,  # elixir/getopt
+    "9567c64d58e18a81951c75d00c10fa98" => :epl_1_1,       # elixir/gproc
+    "9741c346eef56131163e13b9db1241b3" => :mpl_2_0,       # elixir/jose
+    "4d8e2e181d7f8cdc38226f5ee04e5fdd" => :mit,           # elixir/phoenix_gen_socket_server
   }
 
 
@@ -89,7 +107,7 @@ defmodule BOM.Whitelist do
     if Map.has_key?(@licenses[realm], package) do
       license(realm, package, @licenses[realm][package])
     else
-      nil
+      License.unknown()
     end
   end
 
@@ -108,11 +126,22 @@ defmodule BOM.Whitelist do
   """
   @spec update_license_type(Package.t) :: Package.t
   def update_license_type(package = %Package{license: license}) do
-    if License.allowed_type?(license.type) do
-      package
-    else
-      %{package | license: %{license | type: type_by_text(license.text)}}
+    cond do
+      License.allowed_type?(license.type) -> package
+      License.empty?(license) -> package
+      true -> %{package | license: %{license | type: type_by_text(license.text)}}
     end
+  end
+
+  @not_shipped %{elixir: ~w(proper)}
+  @doc """
+  Returns false if the given package is used only for tests or building and not shipped with the product, true
+  otherwise.
+  """
+  @spec shipped?(Package.t) :: boolean
+  def shipped?(%Package{realm: realm, name: name}) do
+    not_shipped = Map.get(@not_shipped, realm, [])
+    !Enum.member?(not_shipped, name)
   end
 
 

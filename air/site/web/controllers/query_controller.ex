@@ -44,7 +44,7 @@ defmodule Air.QueryController do
     |> Repo.insert!()
     |> Repo.preload(:data_source)
 
-    if DataSourceManager.available?(query.data_source.unique_id) do
+    if DataSourceManager.available?(query.data_source.global_id) do
       execute_query(conn, query)
     else
       send_resp(conn, Status.code(:service_unavailable), "No cloak is available for the given data source")
@@ -117,7 +117,7 @@ defmodule Air.QueryController do
 
     try do
       case MainChannel.run_query(
-        hd(DataSourceManager.channel_pids(query.data_source.unique_id)),
+        hd(DataSourceManager.channel_pids(query.data_source.global_id)),
         conn.assigns.current_user.organisation,
         Query.to_cloak_query(query)
       ) do

@@ -57,7 +57,7 @@ defmodule Air.TestSocketHelper do
     socket = connect!(%{cloak_name: cloak_name, cloak_organisation: cloak_organisation})
 
     try do
-      data_source = %{id: data_source_name, tables: []}
+      data_source = %{global_id: data_source_name, tables: []}
       join!(socket, "main", %{name: cloak_name, data_sources: [data_source]})
       action.()
     after

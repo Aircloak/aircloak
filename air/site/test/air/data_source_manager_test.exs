@@ -14,17 +14,17 @@ defmodule Air.DataSourceManager.Test do
   end
 
   @data_source_id "data_source_id"
-  @data_sources [%{"id" => @data_source_id, "name" => "data_source_name", "tables" => []}]
+  @data_sources [%{"global_id" => @data_source_id, "tables" => []}]
 
   test "should register data sources in the database" do
     DataSourceManager.register_cloak(cloak_info(), @data_sources)
-    assert Repo.get_by!(DataSource, unique_id: @data_source_id).unique_id == @data_source_id
+    assert Repo.get_by!(DataSource, global_id: @data_source_id).global_id == @data_source_id
   end
 
   test "re-registering doesn't add multiple copies of the same data source" do
     DataSourceManager.register_cloak(cloak_info(), @data_sources)
     DataSourceManager.register_cloak(cloak_info(), @data_sources)
-    assert length(Repo.all(DataSource, unique_id: @data_source_id)) == 1
+    assert length(Repo.all(DataSource, global_id: @data_source_id)) == 1
   end
 
   test "should return an empty list of channel_pids for a data source with no cloaks" do
@@ -80,6 +80,15 @@ defmodule Air.DataSourceManager.Test do
     assert cloak.name == cloak_info().name
     assert cloak.channel_pid == self()
     assert cloak.data_source_ids == [@data_source_id]
+  end
+
+  test "removes entries for which there are no cloaks" do
+    pid = :pid
+    cloak_info = %{channel_pid: pid}
+    state = %{
+      data_source_to_cloak: %{data_source: [cloak_info]}
+    }
+    assert %{data_source_to_cloak: %{}} === DataSourceManager.do_remove_disconnected_cloak(pid, state)
   end
 
   defp cloak_info(pid \\ self()) do

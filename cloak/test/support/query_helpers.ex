@@ -19,7 +19,11 @@ defmodule Cloak.Test.QueryHelpers do
         |> Enum.map(&Task.await/1)
 
       # make sure responses from all data_sources are equal
-      Enum.each(other_responses, &assert(first_response == &1))
+      # (ignoring differing execution times)
+      first_without_execution_time = Map.drop(first_response, [:execution_time])
+      other_responses
+      |> Enum.map(&Map.drop(&1, [:execution_time]))
+      |> Enum.each(&assert(first_without_execution_time == &1))
 
       assert unquote(expected_response) = first_response
     end

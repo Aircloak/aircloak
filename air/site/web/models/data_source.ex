@@ -7,7 +7,7 @@ defmodule Air.DataSource do
   @type t :: %__MODULE__{}
 
   schema "data_sources" do
-    field :unique_id, :string
+    field :global_id, :string
     field :name, :string
     field :tables, :string
 
@@ -17,7 +17,7 @@ defmodule Air.DataSource do
     timestamps
   end
 
-  @required_fields ~w(name tables unique_id)a
+  @required_fields ~w(name tables global_id)a
   @optional_fields ~w()a
 
 
@@ -58,6 +58,6 @@ defmodule Air.DataSource do
     model
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
-    |> unique_constraint(:unique_id)
+    |> unique_constraint(:global_id)
   end
 end

@@ -520,7 +520,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "same database columns are selected only once in implicit self-join" do
     {:ok, query} = Cloak.Aql.Query.make(
-      Cloak.DataSource.fetch!(:local),
+      Cloak.DataSource.fetch!(hd(Cloak.DataSource.ids())),
       "
         select heights.height as h1, heights_alias.height as h2
         from heights, heights_alias

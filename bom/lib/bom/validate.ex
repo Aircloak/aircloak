@@ -19,18 +19,17 @@ defmodule BOM.Validate do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp errors(%{license: nil}), do: "No license found"
-  defp errors(%{license: license}) do
-    license_text_error(license) || license_type_error(license)
-  end
+  defp errors(%{name: nil}), do: "Name empty"
+  defp errors(%{name: ""}), do: "Name empty"
+  defp errors(%{realm: nil}), do: "Realm empty"
+  defp errors(%{license: nil}), do: "No license"
+  defp errors(%{license: license}), do:
+    license_type_error(license) || license_text_error(license)
   defp errors(_), do: nil
 
-  defp license_type_error(%License{type: type}) do
+  defp license_type_error(%License{type: type}), do:
     if License.allowed_type?(type), do: nil, else: "Forbidden license type - #{inspect(type)}"
-  end
 
-  defp license_text_error(license) do
-    text = (license.text || "") |> String.trim()
-    if text == "", do: "License empty", else: nil
-  end
+  defp license_text_error(license), do:
+    if License.empty?(license), do: "License empty", else: nil
 end

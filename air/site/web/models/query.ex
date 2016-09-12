@@ -48,7 +48,7 @@ defmodule Air.Query do
     %{
       id: query.id,
       statement: query.statement,
-      data_source: query.data_source.name
+      data_source: query.data_source.global_id
     }
   end
 

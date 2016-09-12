@@ -33,7 +33,7 @@ defmodule Cloak.DataSource.DsProxy do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def connect(parameters), do: {:ok, parameters}
+  def connect(parameters), do: {:ok, Enum.to_list(parameters)}
   @doc false
   def disconnect(_connection), do: :ok
 
@@ -87,14 +87,14 @@ defmodule Cloak.DataSource.DsProxy do
   end
 
   defp needed_columns(query) do
-    Enum.map(query.db_columns, &SqlBuilder.column_name/1)
+    Enum.map(query.db_columns, &SqlBuilder.column_name(&1, :ansi))
   end
 
   defp sql_statement(sql_query) do
     %{
       type: query_type(sql_query),
       params: [],
-      val: SqlBuilder.build(:ansi, sql_query)
+      val: SqlBuilder.build(sql_query, :ansi)
     }
   end
 
