@@ -169,6 +169,7 @@ class QueriesView extends React.Component {
           onChange={this.setStatement}
           statement={this.state.statement}
           readOnly={!this.props.dataSourceAvailable}
+          tableNames={this.props.tableNames}
         />
 
         <div className="right-align">
@@ -192,6 +193,7 @@ export default function renderQueriesView(data, elem) {
 QueriesView.propTypes = {
   dataSourceId: React.PropTypes.number.isRequired,
   dataSourceAvailable: React.PropTypes.bool.isRequired,
+  tableNames: CodeEditor.propTypes.tableNames,
   lastQuery: React.PropTypes.shape({
     statement: React.PropTypes.string.isRequired,
   }),

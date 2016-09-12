@@ -24,4 +24,11 @@ defmodule Air.DataSourceView do
   def to_json(map) do
     {:safe, Poison.encode!(map)}
   end
+
+  def table_names(data_source) do
+    table_names = DataSource.tables(data_source)
+    |> Enum.map(&Map.get(&1, "id"))
+    |> Poison.encode!()
+    {:safe, table_names}
+  end
 end

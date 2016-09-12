@@ -10,7 +10,7 @@ require("codemirror/addon/hint/anyword-hint");
 const KEYWORDS = [
   "SELECT", "FROM",
   "COUNT(*)", "SUM()", "MIN()", "MAX()", "AVG()", "STDDEV()", "MEDIAN()",
-  "SHOW TABLES", "SHOW COLUMNS FROM",
+  "SHOW TABLES;",
   "LEFT INNER JOIN", "RIGHT INNER JOIN", "FULL OUTER JOIN", "LEFT OUTER JOIN", "RIGHT OUTER JOIN",
   "WHERE", "AND",
   "GROUP BY", "ORDER BY",
@@ -79,8 +79,13 @@ export class CodeEditor extends React.Component {
       }
     };
 
+    const showColumnsFromTables =
+      _.map(this.props.tableNames, tableName => `SHOW COLUMNS FROM ${tableName};`);
+
     // TODO: auto-complete column and table names
     const list = _.chain(KEYWORDS).
+    concat(this.props.tableNames).
+    concat(showColumnsFromTables).
     filter((candidate) => candidate.match(fuzzyMatcher)).
     sortBy((item) => sortOrder(item)).
     value();
@@ -135,6 +140,7 @@ CodeEditor.propTypes = {
   onRun: React.PropTypes.func.isRequired,
   onChange: React.PropTypes.func.isRequired,
   readOnly: React.PropTypes.bool,
+  tableNames: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
   completions: React.PropTypes.arrayOf(React.PropTypes.shape({
     displayText: React.PropTypes.string,
     text: React.PropTypes.string,

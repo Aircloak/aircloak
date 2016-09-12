@@ -22,6 +22,7 @@
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
+        tableNames: <%= table_names(@data_source) %>,
       };
 
       App.queryPage(props, document.getElementById("query-view"));
