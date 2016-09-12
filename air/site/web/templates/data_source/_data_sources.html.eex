@@ -9,9 +9,7 @@
     <%= for data_source <- @data_sources do %>
     <tr>
       <td>
-        <a class="main-link" href="/data_sources/<%= data_source.id %>">
-          <%= data_source.name %>
-        </a>
+        <%= link data_source.name, to: data_source_path(@conn, :show, data_source) %>
       </td>
       <td>
         <strong><%= number_of_tables(data_source) %></strong> tables. Amongst others

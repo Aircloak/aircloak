@@ -35,7 +35,7 @@ defmodule Air.DataSourceController do
     )
   end
 
-  def show(conn, %{"data_source_id" => id}) do
+  def show(conn, %{"id" => id}) do
     data_source = Repo.get!(DataSource, id)
     last_query = case Query.load_recent_queries(conn.assigns.current_user, data_source, 1) do
       [query] -> query
