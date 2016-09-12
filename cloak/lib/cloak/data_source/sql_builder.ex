@@ -42,8 +42,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp build_fragments(query, sql_dialect) do
     [
-      "SELECT ", columns_sql(query.db_columns, sql_dialect), " ",
-      "FROM ", from_clause(query.from, query, sql_dialect), " ",
+      "SELECT ", columns_sql(query.db_columns, sql_dialect),
+      " FROM ", from_clause(query.from, query, sql_dialect),
       where_fragments(query.where, sql_dialect),
       group_by_fragments(query, sql_dialect)
     ]
@@ -94,7 +94,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp where_fragments([], _sql_dialect), do: []
   defp where_fragments(where_clause, sql_dialect),
-    do: ["WHERE ", conditions_to_fragments(where_clause, sql_dialect)]
+    do: [" WHERE ", conditions_to_fragments(where_clause, sql_dialect)]
 
   defp conditions_to_fragments(and_clauses, sql_dialect) when is_list(and_clauses),
     do: ["(", and_clauses |> Enum.map(&conditions_to_fragments(&1, sql_dialect)) |> join(" AND "), ")"]
@@ -144,6 +144,6 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join([first | rest], joiner), do: [first, joiner, join(rest, joiner)]
 
   defp group_by_fragments(%Query{subquery?: true, group_by: [_|_] = group_by}, sql_dialect),
-    do: ["GROUP BY ", group_by |> Enum.map(&column_sql(&1, sql_dialect)) |> Enum.intersperse(",")]
+    do: [" GROUP BY ", group_by |> Enum.map(&column_sql(&1, sql_dialect)) |> Enum.intersperse(",")]
   defp group_by_fragments(_query, _sql_dialect), do: []
 end

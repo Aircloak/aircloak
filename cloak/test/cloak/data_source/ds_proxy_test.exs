@@ -31,7 +31,7 @@ defmodule Cloak.DataSource.DsProxyTest do
       fn(payload) ->
         assert %{"columns" => ["\"bar\".\"user_id\"", "\"bar\".\"foo\""], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT \"bar\".\"user_id\",\"bar\".\"foo\" FROM bar "} == statement
+          "SELECT \"bar\".\"user_id\",\"bar\".\"foo\" FROM bar"} == statement
 
         {200, %{success: true, columns: ["bar.user_id", "bar.foo"], rows: Enum.map(1..100, &[&1, &1])}}
       end
@@ -46,7 +46,7 @@ defmodule Cloak.DataSource.DsProxyTest do
       fn(payload) ->
         assert %{"columns" => ["\"bar\".\"user_id\""], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" => query_string} = statement
-        assert "SELECT \"bar\".\"user_id\" FROM bar " == query_string
+        assert "SELECT \"bar\".\"user_id\" FROM bar" == query_string
 
         {200, %{success: true, columns: ["bar.user_id"], rows: Enum.map(1..100, &[&1])}}
       end
@@ -62,7 +62,7 @@ defmodule Cloak.DataSource.DsProxyTest do
         assert %{"columns" => ["\"bar\".\"user_id\"", "\"bar\".\"foo\"", "\"bar\".\"baz\""],
          "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT \"bar\".\"user_id\",\"bar\".\"foo\",\"bar\".\"baz\" FROM bar "} == statement
+          "SELECT \"bar\".\"user_id\",\"bar\".\"foo\",\"bar\".\"baz\" FROM bar"} == statement
 
         {200, %{success: true, columns: ["bar.user_id", "bar.foo", "bar.baz"],
           rows: Enum.map(1..100, &[&1, 1, 2])}}
@@ -80,7 +80,7 @@ defmodule Cloak.DataSource.DsProxyTest do
       fn(payload) ->
         assert %{"columns" => ["\"bar\".\"user_id\"", "\"bar\".\"foo\""], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT \"bar\".\"user_id\",\"bar\".\"foo\" FROM bar "} == statement
+          "SELECT \"bar\".\"user_id\",\"bar\".\"foo\" FROM bar"} == statement
 
         rows = Enum.map(1..49, &[&1, 0]) ++ Enum.map(50..100, &[&1, 10])
         {200, %{success: true, columns: ["bar.user_id", "bar.foo"], rows: rows}}
@@ -98,7 +98,7 @@ defmodule Cloak.DataSource.DsProxyTest do
       fn(payload) ->
         assert %{"columns" => ["\"bar\".\"user_id\"", "\"bar\".\"foo\""], "statement" => statement} = payload
         assert %{"params" => [], "type" => "parsed", "val" =>
-          "SELECT \"bar\".\"user_id\",\"bar\".\"foo\" FROM bar "} == statement
+          "SELECT \"bar\".\"user_id\",\"bar\".\"foo\" FROM bar"} == statement
 
         {200, %{success: true, columns: ["bar.user_id", "bar.foo"], rows: [[]]}}
       end
