@@ -1,7 +1,7 @@
 defmodule Air.GroupTest do
   use Air.ModelCase
 
-  alias Air.{Group, TestRepoHelper}
+  alias Air.{Group, User, DataSource, TestRepoHelper}
 
   @valid_attrs %{name: "group name"}
   @invalid_attrs %{}
@@ -46,5 +46,21 @@ defmodule Air.GroupTest do
     |> Repo.update!()
     |> Repo.preload(:data_sources)
     assert [data_source1.id, data_source2.id] == Enum.map(group.data_sources, &(&1.id)) |> Enum.sort()
+  end
+
+  test "deleting a group doesn't delete users or data sources" do
+    org = TestRepoHelper.create_organisation!()
+    user = TestRepoHelper.create_user!(org, :user)
+    data_source = TestRepoHelper.create_data_source!()
+    TestRepoHelper.create_group!()
+    |> Repo.preload(:users)
+    |> Repo.preload(:data_sources)
+    |> Group.changeset()
+    |> put_assoc(:users, [user])
+    |> put_assoc(:data_sources, [data_source])
+    |> Repo.update!()
+    |> Repo.delete()
+    refute nil == Repo.get(User, user.id)
+    refute nil == Repo.get(DataSource, data_source.id)
   end
 end

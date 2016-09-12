@@ -1,7 +1,7 @@
 defmodule Air.DataSourceTest do
   use Air.ModelCase, async: true
 
-  alias Air.{DataSource, TestRepoHelper}
+  alias Air.{DataSource, Group, TestRepoHelper}
 
   @valid_attrs %{
     global_id: "global_id",
@@ -42,5 +42,16 @@ defmodule Air.DataSourceTest do
     |> Repo.update!()
     |> Repo.preload(:groups)
     assert [group1.id, group2.id] == Enum.map(data_source.groups, &(&1.id)) |> Enum.sort()
+  end
+
+  test "deleting a data source, doesn't delete the group" do
+    group = TestRepoHelper.create_group!()
+    TestRepoHelper.create_data_source!()
+    |> Repo.preload(:groups)
+    |> DataSource.changeset()
+    |> put_assoc(:groups, [group])
+    |> Repo.update!()
+    |> Repo.delete()
+    refute nil == Repo.get(Group, group.id)
   end
 end

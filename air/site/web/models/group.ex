@@ -16,11 +16,11 @@ defmodule Air.Group do
     field :name, :string
     many_to_many :users, User,
       join_through: "groups_users",
-      on_delete: :delete_all
+      on_delete: :delete_all,
       on_replace: :delete
     many_to_many :data_sources, DataSource,
       join_through: "data_sources_groups",
-      on_delete: :delete_all
+      on_delete: :delete_all,
       on_replace: :delete
 
     timestamps

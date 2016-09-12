@@ -1,7 +1,7 @@
 defmodule Air.UserTest do
   use Air.ModelCase, async: true
 
-  alias Air.{User, TestRepoHelper}
+  alias Air.{User, TestRepoHelper, Group}
 
   @valid_attrs %{
     email: "admin@aircloak.com",
@@ -129,6 +129,18 @@ defmodule Air.UserTest do
     |> Repo.update!()
     |> Repo.preload(:groups)
     assert [group1.id, group2.id] == Enum.map(user.groups, &(&1.id)) |> Enum.sort()
+  end
+
+  test "deleting a user, doesn't delete the group" do
+    org = TestRepoHelper.create_organisation!()
+    group = TestRepoHelper.create_group!()
+    TestRepoHelper.create_user!(org, :user)
+    |> Repo.preload(:groups)
+    |> User.changeset()
+    |> put_assoc(:groups, [group])
+    |> Repo.update!()
+    |> Repo.delete()
+    refute nil == Repo.get(Group, group.id)
   end
 
   defp user(role_key, org_name \\ ""),
