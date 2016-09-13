@@ -62,8 +62,6 @@ To start the development server, you run: `make start`.
 Assuming [common components are started](../README.md#starting-the-required-components), you can access the
 site at https://insights.air-local:20000/.
 
-It is possible to start additional nodes with `make start2` and `make start3`.
-
 Note that there's no need to migrate the database. This will happen automatically when the application starts.
 However, if you do need to manually migrate/rollback (for example while creating a new migration), you can do
 it with `make migrate` and `make rollback` respectively.

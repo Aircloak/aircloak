@@ -13,13 +13,7 @@ clean:
 	mix clean --deps
 
 start:
-	iex -S mix start
-
-start2:
-	iex -S mix start 2
-
-start3:
-	iex -S mix start 3
+	iex -S mix phoenix.server
 
 test:
 	mix test.standard
