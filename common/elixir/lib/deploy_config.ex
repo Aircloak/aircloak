@@ -44,8 +44,18 @@ defmodule Aircloak.DeployConfig do
 
   @doc false
   def do_read_config(app, env) do
-    app_priv_dir = Application.app_dir(app, "priv")
+    case Application.fetch_env(app, __MODULE__) do
+      {:ok, config} ->
+        config
 
+      :error ->
+        config = read_config_from_file(app, env)
+        Application.put_env(app, __MODULE__, config)
+        config
+    end
+  end
+
+  defp read_config_from_file(app, env) do
     data_sources_file_name =
       case env do
         :dev -> "dev.json"
@@ -53,7 +63,7 @@ defmodule Aircloak.DeployConfig do
         :prod -> "config.json"
       end
 
-    Path.join([app_priv_dir, "config", data_sources_file_name])
+    Path.join([Application.app_dir(app, "priv"), "config", data_sources_file_name])
     |> File.read!()
     |> Poison.decode!()
   end
