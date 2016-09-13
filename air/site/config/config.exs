@@ -5,11 +5,9 @@
 # is restricted to this project.
 use Mix.Config
 
-Code.require_file("config/env_settings.exs")
-
 # Configures the endpoint
 config :air, Air.Endpoint,
-  url: [host: "localhost"],
+  http: [port: 8080],
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
   pubsub: [name: Air.PubSub,
