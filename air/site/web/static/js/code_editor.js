@@ -35,11 +35,6 @@ export class CodeEditor extends React.Component {
   }
 
   setupComponent(codeMirrorComponent) {
-    // Skip setup for read-only
-    if (this.props.readOnly) {
-      return;
-    }
-
     this.editor = codeMirrorComponent.getCodeMirrorInstance();
     this.editor.commands.save = (_cm) => {
       this.props.onSave();
@@ -106,23 +101,22 @@ export class CodeEditor extends React.Component {
       lineNumbers: true,
       lineWrapping: true,
       matchBrackets: true,
-      readOnly: this.props.readOnly,
+      readOnly: false,
       mode: "text/x-pgsql",
       showCursorWhenSelecting: true,
       smartIndent: true,
       viewportMargin: Infinity,
-      cursorBlinkRate: (this.props.readOnly ? -1 : 530),
+      cursorBlinkRate: 530,
     };
 
-    if (! this.props.readOnly) {
-      $.extend(options, {
-        autofocus: true,
-        extraKeys: {
-          "Ctrl-Enter": "run",
-          "Cmd-Enter": "run",
-          "Ctrl-Space": "autoComplete",
-        }});
-    }
+    $.extend(options, {
+      autofocus: true,
+      extraKeys: {
+        "Ctrl-Enter": "run",
+        "Cmd-Enter": "run",
+        "Ctrl-Space": "autoComplete",
+      },
+    });
 
     return (
       <Codemirror
@@ -139,7 +133,6 @@ CodeEditor.propTypes = {
   onSave: React.PropTypes.func.isRequired,
   onRun: React.PropTypes.func.isRequired,
   onChange: React.PropTypes.func.isRequired,
-  readOnly: React.PropTypes.bool,
   tableNames: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
   columnNames: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
   statement: React.PropTypes.string,
