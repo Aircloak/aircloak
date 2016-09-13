@@ -6,7 +6,7 @@ const Columns = (props) =>
     {props.columns.map((column, i) =>
       <li key={i}>{column.name} - {column.type}</li>
     )}
-  </ul>
+  </ul>;
 
 const Table = (props) =>
   <li>
@@ -24,7 +24,7 @@ const Table = (props) =>
 
     {(() => {
       if (props.expanded) {
-        return <Columns columns={props.table.columns}/>;
+        return <Columns columns={props.table.columns} />;
       } else {
         return null;
       }
@@ -48,8 +48,8 @@ class TableInfo extends React.Component {
       } else {
         expanded.add(table.id);
       }
-      this.setState({expanded})
-    }
+      this.setState({expanded});
+    };
   }
 
   expanded(table) {
@@ -74,18 +74,18 @@ Columns.propTypes = {
     name: React.PropTypes.string.isRequired,
     type: React.PropTypes.string.isRequired,
   })).isRequired,
-}
+};
 
 Table.propTypes = {
   table: React.PropTypes.shape({
     id: React.PropTypes.string.isRequired,
     columns: Columns.propTypes.columns,
-  })
-}
+  }),
+};
 
 TableInfo.propTypes = {
   tables: React.PropTypes.arrayOf(Table.propTypes.table).isRequired,
-}
+};
 
 export default function renderTableInfo(data, elem) {
   ReactDOM.render(<TableInfo {...data} />, elem);
