@@ -25,7 +25,6 @@ class QueriesView extends React.Component {
       historyLoaded: false,
     };
 
-
     this.setStatement = this.setStatement.bind(this);
     this.runQuery = this.runQuery.bind(this);
     this.queryData = this.queryData.bind(this);

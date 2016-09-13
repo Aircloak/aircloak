@@ -10,7 +10,10 @@
   <% end %>
 </h2>
 
-<div id="query-view" />
+<div class="row">
+  <div class="col-sm-9" id="query-view"></div>
+  <div class="col-sm-3" id="table-info"></div>
+</div>
 
 <script>
   window.pageConfig = {
@@ -26,6 +29,7 @@
         columnNames: <%= column_names(@data_source) %>,
       };
 
+      App.tableInfo(props, document.getElementById("table-info"));
       App.queryPage(props, document.getElementById("query-view"));
     }
   };
