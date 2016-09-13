@@ -1,6 +1,7 @@
 defmodule Cloak do
   @moduledoc false
   use Application
+  require Aircloak.DeployConfig
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
@@ -11,7 +12,7 @@ defmodule Cloak do
   end
 
   defp set_salt() do
-    salt = case Cloak.DeployConfig.fetch("salt") do
+    salt = case Aircloak.DeployConfig.fetch("salt") do
       :error -> "default salt"
       {:ok, value} -> value
     end

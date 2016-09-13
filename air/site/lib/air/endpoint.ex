@@ -8,34 +8,6 @@ defmodule Air.Endpoint do
 
 
   # -------------------------------------------------------------------
-  # API functions
-  # -------------------------------------------------------------------
-
-  @doc """
-  Returns the supervisor specification for this endpoint.
-
-  The specification lists processes required to run this endpoint. This includes
-  the endpoint process as well as auxiliary processes which register the endpoint
-  to etcd.
-  """
-  @spec supervisor_spec() :: Supervisor.Spec.spec
-  def supervisor_spec do
-    import Supervisor.Spec, warn: false
-
-    http_host = System.get_env("HTTP_HOST_IP") || "127.0.0.1"
-    http_port = Application.get_env(:air, Air.Endpoint, [])[:http][:port]
-    key = "/service_instances/insights/#{http_host}_#{http_port}"
-    value = Poison.encode!(%{http_endpoint: "#{http_host}:#{http_port}"})
-
-    children = [
-      worker(__MODULE__, []),
-      worker(Air.ServiceRegistration, [key, value], id: Air.Endpoint.ServiceRegistration)
-    ]
-    supervisor(Supervisor, [children, [strategy: :one_for_all]], id: Module.concat(__MODULE__, Supervisor))
-  end
-
-
-  # -------------------------------------------------------------------
   # Endpoint HTTP specification
   # -------------------------------------------------------------------
 

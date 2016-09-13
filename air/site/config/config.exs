@@ -36,8 +36,6 @@ config :guardian, Guardian,
   verify_issuer: true,
   serializer: Air.GuardianSerializer
 
-config :air, :etcd_port, Air.EnvSettings.tcp_port("etcd/client")
-
 config :air, Air.Repo,
   adapter: Ecto.Adapters.Postgres,
   pool_size: 10,

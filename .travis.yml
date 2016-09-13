@@ -58,7 +58,7 @@ before_script:
   - MIX_ENV=test make all
   - cd ../..
   # air and insights
-  - air/etcd/config_travis.sh
+  - air/site/set_travis_config.sh
   - air/db/init_db.sh
   - cd air/site
   - make deps

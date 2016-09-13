@@ -42,21 +42,6 @@ defmodule Air.Token do
     end
   end
 
-  @doc "Generates a data source token for the given cloak_id and data source name."
-  @spec data_source_token(String.t | nil, String.t | nil) :: nil
-  def data_source_token(nil, nil), do: nil
-  def data_source_token(cloak_id, data_source) do
-    Phoenix.Token.sign(Endpoint, data_source_token_salt(), {cloak_id, data_source})
-  end
-
-  @doc "Unpacks a data source token."
-  @spec decode_data_source_token(String.t | nil) ::  {String.t | nil, String.t | nil}
-  def decode_data_source_token(nil), do: {nil, nil}
-  def decode_data_source_token(data_source_token) do
-    {:ok, {cloak_id, data_source}} = Phoenix.Token.verify(Endpoint, data_source_token_salt(), data_source_token)
-    {cloak_id, data_source}
-  end
-
 
   # -------------------------------------------------------------------
   # Salt configuration
@@ -64,9 +49,5 @@ defmodule Air.Token do
 
   defp api_token_salt do
     Application.get_env(:air, Air.Endpoint) |> Keyword.fetch!(:api_token_salt)
-  end
-
-  defp data_source_token_salt do
-    Application.get_env(:air, Endpoint) |> Keyword.fetch!(:data_source_token_salt)
   end
 end
