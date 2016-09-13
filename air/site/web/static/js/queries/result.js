@@ -2,7 +2,7 @@ import React from "react";
 import _ from "lodash";
 
 import Plotly from "../plotly.js";
-import {CodeEditor} from "../code_editor";
+import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 
 export class Result extends React.Component {
@@ -229,13 +229,7 @@ export class Result extends React.Component {
       <div className="panel panel-success">
         <div className="panel-heading" />
         <div className="panel-body">
-          <CodeEditor
-            onRun={() => {}}
-            onSave={() => {}}
-            onChange={() => {}}
-            statement={this.props.statement}
-            readOnly
-          />
+          <CodeViewer statement={this.props.statement} />
           <Info info={this.props.info} />
           <table className="table table-striped table-hover">
             <thead>

@@ -1,19 +1,13 @@
 import React from "react";
 
-import {CodeEditor} from "../code_editor";
+import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 
 export const Error = (props) =>
   <div className="panel panel-danger">
     <div className="panel-heading" />
     <div className="panel-body">
-      <CodeEditor
-        onRun={() => {}}
-        onSave={() => {}}
-        onChange={() => {}}
-        statement={props.statement}
-        readOnly
-      />
+      <CodeViewer statement={props.statement} />
 
       <h4>Query failed</h4>
       <p>{props.error}</p>

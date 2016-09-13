@@ -5,6 +5,7 @@ import _ from "lodash";
 import Mousetrap from "mousetrap";
 
 import {CodeEditor} from "../code_editor";
+import {CodeViewer} from "../code_viewer";
 import {Results} from "./results";
 import {MenuButton} from "../menu";
 import {ResultSocket} from "../result_socket";
@@ -172,18 +173,24 @@ class QueriesView extends React.Component {
     );
   }
 
+  renderCodeEditorOrViewer() {
+    if (this.props.dataSourceAvailable) {
+      return (<CodeEditor
+        onRun={this.runQuery}
+        onChange={this.setStatement}
+        statement={this.state.statement}
+        tableNames={this.tableNames()}
+        columnNames={this.columnNames()}
+      />);
+    } else {
+      return <CodeViewer statement={this.state.statement} />;
+    }
+  }
+
   render() {
     return (<div>
       <div id="aql-editor">
-        <CodeEditor
-          onRun={this.runQuery}
-          onSave={() => {}}
-          onChange={this.setStatement}
-          statement={this.state.statement}
-          readOnly={!this.props.dataSourceAvailable}
-          tableNames={this.tableNames()}
-          columnNames={this.columnNames()}
-        />
+        {this.renderCodeEditorOrViewer()}
 
         <div className="right-align">
           <MenuButton onClick={this.runQuery} isActive={this.props.dataSourceAvailable}>Run</MenuButton>&nbsp;
