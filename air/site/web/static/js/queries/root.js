@@ -206,8 +206,13 @@ export default function renderQueriesView(data, elem) {
 QueriesView.propTypes = {
   dataSourceId: React.PropTypes.number.isRequired,
   dataSourceAvailable: React.PropTypes.bool.isRequired,
-  tableNames: CodeEditor.propTypes.tableNames,
-  columnNames: CodeEditor.propTypes.columnNames,
+  tables: React.PropTypes.arrayOf(React.PropTypes.shape({
+    id: React.PropTypes.string.isRequired,
+    columns: React.PropTypes.arrayOf(React.PropTypes.shape({
+      name: React.PropTypes.string.isRequired,
+      type: React.PropTypes.string.isRequired,
+    })).isRequired,
+  })).isRequired,
   lastQuery: React.PropTypes.shape({
     statement: React.PropTypes.string.isRequired,
   }),
