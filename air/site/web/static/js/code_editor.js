@@ -11,7 +11,8 @@ const KEYWORDS = [
   "SELECT", "FROM",
   "COUNT(*)", "SUM()", "MIN()", "MAX()", "AVG()", "STDDEV()", "MEDIAN()",
   "SHOW TABLES;",
-  "LEFT INNER JOIN", "RIGHT INNER JOIN", "FULL OUTER JOIN", "LEFT OUTER JOIN", "RIGHT OUTER JOIN",
+  "LEFT JOIN", "LEFT INNER JOIN", "RIGHT INNER JOIN",
+  "OUTER JOIN", "FULL OUTER JOIN", "LEFT OUTER JOIN", "RIGHT OUTER JOIN",
   "WHERE", "AND",
   "GROUP BY", "ORDER BY",
   "ASC", "DESC", "NOT",
@@ -48,28 +49,43 @@ export class CodeEditor extends React.Component {
     const regex = /(\w|\.)/;
     const cur = cm.getCursor();
     const curLine = cm.getLine(cur.line);
-    let start = cur.ch;
-    let end = start;
+    let end = cur.ch;
 
-    // find start and end of the word
+    // find end of the word
     while (end < curLine.length && regex.test(curLine.charAt(end))) {
       end++;
     }
-    while (start > 0 && regex.test(curLine.charAt(start - 1))) {
-      start--;
-    }
 
-    const curWord = curLine.slice(start, end);
-    const fuzzyMatcher = new RegExp(curWord.replace(/(.)/g, "$1.*"), "i");
-
-    const sortOrder = (text) => {
-      // Place items that start with the given word at the top of the completion list.
-      if (text.startsWith(curWord)) {
-        return `0${text}`;
-      } else {
-        return `1${text}`;
+    // We want to construct the longest possible match using the previous
+    // SQL words the analyst has written. For example, if the analyst has
+    // already written "LEFT INNER J", then we want to take this into account,
+    // and only favour "LEFT INNER JOIN" as a match clause.
+    // The current approach taken doesn't work well across lines, as we (if
+    // we take the full document into account), lose the location info of
+    // where the match starts, when prepping and creating the RegExp match string.
+    // This could be worked around, but it seems only for marginal gains.
+    const codeWords = curLine.slice(0, end).split(/\s/);
+    const potentialMatchSequences = [];
+    for (let i = codeWords.length; i >= 0; i--) {
+      const wordsToUse = [];
+      for (let j = i; j < codeWords.length; j++) {
+        wordsToUse.push(codeWords[j]);
       }
-    };
+      if (wordsToUse.length > 0) {
+        const potentialMatchSequence = `(${wordsToUse.join(" ")})?`;
+        potentialMatchSequences.push(potentialMatchSequence);
+      }
+    }
+    const finalClause = _.chain(potentialMatchSequences).
+      reverse().
+      join("").
+      value();
+
+    const matcher = new RegExp(finalClause, "i");
+
+    const sortOrder = (candidate) =>
+      // We favour the longest matches over the more specific ones
+      candidate.text.length * -1;
 
     const showColumnsFromTables =
       _.map(this.props.tableNames, tableName => `SHOW COLUMNS FROM ${tableName};`);
@@ -78,16 +94,28 @@ export class CodeEditor extends React.Component {
     concat(this.props.tableNames).
     concat(showColumnsFromTables).
     concat(this.props.columnNames).
-    filter((candidate) => candidate.match(fuzzyMatcher)).
+    map((candidate) => {
+      const bestMatch = candidate.match(matcher).shift();
+      if (bestMatch === "") {
+        return null;
+      } else {
+        return {
+          text: candidate,
+          /* eslint-disable new-cap */
+          from: this.editor.Pos(cur.line, end - bestMatch.length),
+          to: this.editor.Pos(cur.line, end),
+          /* eslint-enable new-cap */
+        };
+      }
+    }).
+    reject((candidate) => candidate === null).
     sortBy((item) => sortOrder(item)).
     value();
 
     return {
       list,
-      /* eslint-disable new-cap */
-      from: this.editor.Pos(cur.line, start),
-      to: this.editor.Pos(cur.line, end),
-      /* eslint-enable new-cap */
+      from: 0,
+      end,
     };
   }
 
