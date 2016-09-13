@@ -38,9 +38,7 @@ defmodule Air.DataSource do
   def to_map(data_source) do
     %{
       id: data_source.id,
-      # For backwards compatibility, we keep token in the structure,
-      # so old API clients keep on working
-      token: data_source.id,
+      token: data_source.global_id,
       name: data_source.name,
       tables: tables(data_source),
     }
