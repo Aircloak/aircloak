@@ -36,6 +36,7 @@ defmodule Cloak.DataSource do
   alias Cloak.DataSource.Parameters
   alias Cloak.DataSource.SqlBuilder.SqlBuildError
   require Logger
+  require Aircloak.DeployConfig
 
   # define returned data types and values
   @type t :: %{
@@ -99,7 +100,7 @@ defmodule Cloak.DataSource do
   """
   @spec start() :: :ok
   def start() do
-    data_sources = for data_source <- Cloak.DeployConfig.fetch!("data_sources") do
+    data_sources = for data_source <- Aircloak.DeployConfig.fetch!("data_sources") do
       data_source
       |> atomize_keys()
       |> generate_global_id()
