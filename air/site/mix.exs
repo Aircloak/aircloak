@@ -62,7 +62,6 @@ defmodule Air.Mixfile do
       {:comeonin, "~> 2.5"},
       {:guardian, "~> 0.10.0"},
       {:lhttpc, github: "esl/lhttpc", override: true},
-      {:etcd, github: "spilgames/etcd.erl", ref: "79d04a775e4488b0eb6e5e07a8c0bf4803adb997"},
       {:hackney, "~> 1.5.0"},
       {:exrm, "~> 1.0.8", warn_missing: false},
       {:timex, "~> 2.2"},
@@ -103,7 +102,7 @@ defmodule Air.Mixfile do
   defp common_applications do
     [
       :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-      :lhttpc, :etcd, :hackney, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv
+      :lhttpc, :hackney, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv
     ]
   end
 

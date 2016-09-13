@@ -32,7 +32,7 @@ the system, as well as the end-points used by the cloaks when they communicate w
 The air is written as a single [elixir](elixir-lang.org/) [phoenix](www.phoenixframework.org) website. It
 contains both the front end facing as well as the backend services needed to operate the system.
 
-Additionally to run it relies on `etcd` for configuration and `Postgres` for datastorage.
+Additionally to run it relies on `Postgres` for datastorage.
 
 
 ## Getting started
