@@ -1,6 +1,7 @@
 defmodule Air do
   @moduledoc false
   use Application
+  require Aircloak.DeployConfig
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
@@ -20,13 +21,13 @@ defmodule Air do
 
   defp configure_secrets do
     Air.Utils.update_app_env(:guardian, Guardian,
-      &[{:secret_key, :air_etcd.get("/settings/air/insights/secrets/guardian_key")} | &1])
+      &[{:secret_key, site_setting("auth_secret")} | &1])
 
     Air.Utils.update_app_env(:air, Air.Endpoint, fn(config) ->
       [
-        {:secret_key_base, :air_etcd.get("/settings/air/insights/secrets/endpoint_key_base")},
-        {:api_token_salt, :air_etcd.get("/settings/air/insights/secrets/api_token_salt")},
-        {:data_source_token_salt, :air_etcd.get("/settings/air/insights/secrets/data_source_token_salt")}
+        {:secret_key_base, site_setting("endpoint_key_base")},
+        {:api_token_salt, site_setting("api_token_salt")},
+        {:data_source_token_salt, site_setting("data_source_token_salt")}
         | config
       ]
     end)
@@ -35,7 +36,9 @@ defmodule Air do
   # Configures the url setting of the Air.Endpoint config,
   # allowing phoenix to reject connections under unexpected urls.
   defp configure_endpoint_url do
-    url_config = [host: :air_etcd.get("/site/insights")]
+    url_config = [host: site_setting("url")]
     Air.Utils.update_app_env(:air, Air.Endpoint, &Keyword.merge(&1, url: url_config))
   end
+
+  defp site_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), name)
 end

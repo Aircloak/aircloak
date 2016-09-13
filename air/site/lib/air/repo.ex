@@ -1,6 +1,7 @@
 defmodule Air.Repo do
   @moduledoc false
   use Ecto.Repo, otp_app: :air
+  require Aircloak.DeployConfig
 
   # Need to disable due to error in old Ecto. Should be revised once we upgrade Ecto to 2.0
   @dialyzer :no_undefined_callbacks
@@ -8,27 +9,27 @@ defmodule Air.Repo do
   require Logger
 
   @doc """
-  Reads database settings from etcd and merges them into the existing repo
+  Reads database settings and merges them into the existing repo
   configuration as specified in `config.exs`.
 
-  This allows us to change database settings via etcd without needing to bake them into the
+  This allows us to change database settings for different deployments without needing to bake them into the
   release.
   """
   def configure do
     conn_params = [
-      hostname: :air_etcd.get("/settings/air/db/host"),
-      port: String.to_integer(:air_etcd.get("/settings/air/db/port")),
-      username: :air_etcd.get("/settings/air/db/username"),
-      database: :air_etcd.get("/settings/air/db/insights_database"),
-      ssl: String.to_existing_atom(:air_etcd.get("/settings/air/db/ssl"))
+      hostname: db_setting("host"),
+      port: db_setting("port"),
+      ssl: db_setting("ssl"),
+      username: db_setting("user"),
+      password: db_setting("password"),
+      database: db_setting("name")
     ]
 
-    Logger.info("connecting to database #{inspect(conn_params)}")
-    Air.Utils.update_app_env(
-      :air, Air.Repo,
-      &Keyword.merge(&1, [password: :air_etcd.get("/settings/air/db/password")] ++ conn_params)
-    )
+    Logger.info("connecting to database #{inspect(Keyword.delete(conn_params, :password))}")
+    Air.Utils.update_app_env(:air, Air.Repo, &Keyword.merge(&1, conn_params))
   end
+
+  defp db_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("database"), name)
 
   defmodule Migrator do
     @moduledoc false
