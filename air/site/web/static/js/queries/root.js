@@ -165,7 +165,6 @@ class QueriesView extends React.Component {
     if (this.props.dataSourceAvailable) {
       return (<CodeEditor
         onRun={this.runQuery}
-        onSave={() => {}}
         onChange={this.setStatement}
         statement={this.state.statement}
         tableNames={this.props.tableNames}

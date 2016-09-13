@@ -36,9 +36,6 @@ export class CodeEditor extends React.Component {
 
   setupComponent(codeMirrorComponent) {
     this.editor = codeMirrorComponent.getCodeMirrorInstance();
-    this.editor.commands.save = (_cm) => {
-      this.props.onSave();
-    };
     this.editor.commands.run = (_cm) => {
       this.props.onRun();
     };
@@ -130,7 +127,6 @@ export class CodeEditor extends React.Component {
 }
 
 CodeEditor.propTypes = {
-  onSave: React.PropTypes.func.isRequired,
   onRun: React.PropTypes.func.isRequired,
   onChange: React.PropTypes.func.isRequired,
   tableNames: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
