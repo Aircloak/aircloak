@@ -90,9 +90,13 @@ export class CodeEditor extends React.Component {
     const showColumnsFromTables =
       _.map(this.props.tableNames, tableName => `SHOW COLUMNS FROM ${tableName};`);
 
+    const fromWithTables =
+      _.map(this.props.tableNames, tableName => `FROM ${tableName};`);
+
     const list = _.chain(KEYWORDS).
     concat(this.props.tableNames).
     concat(showColumnsFromTables).
+    concat(fromWithTables).
     concat(this.props.columnNames).
     map((candidate) => {
       const bestMatch = candidate.match(matcher).shift();
