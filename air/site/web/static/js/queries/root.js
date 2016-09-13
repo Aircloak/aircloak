@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import $ from "jquery";
+import _ from "lodash";
 import Mousetrap from "mousetrap";
 
 import {CodeEditor} from "../code_editor";
@@ -33,6 +34,8 @@ class QueriesView extends React.Component {
     this.setResults = this.setResults.bind(this);
     this.handleLoadHistory = this.handleLoadHistory.bind(this);
     this.replaceResult = this.replaceResult.bind(this);
+    this.columnNames = this.columnNames.bind(this);
+    this.tableNames = this.tableNames.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     this.props.resultSocket.start({
@@ -159,6 +162,16 @@ class QueriesView extends React.Component {
     this.setResults([result].concat(this.state.sessionResults));
   }
 
+  tableNames() {
+    return this.props.tables.map((table) => table.id);
+  }
+
+  columnNames() {
+    return _.flatMap(this.props.tables, (table) =>
+      table.columns.map((column) => column.name)
+    );
+  }
+
   render() {
     return (<div>
       <div id="aql-editor">
@@ -168,8 +181,8 @@ class QueriesView extends React.Component {
           onChange={this.setStatement}
           statement={this.state.statement}
           readOnly={!this.props.dataSourceAvailable}
-          tableNames={this.props.tableNames}
-          columnNames={this.props.columnNames}
+          tableNames={this.tableNames()}
+          columnNames={this.columnNames()}
         />
 
         <div className="right-align">

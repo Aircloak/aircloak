@@ -25,8 +25,7 @@
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
-        tableNames: <%= table_names(@data_source) %>,
-        columnNames: <%= column_names(@data_source) %>,
+        tables: <%= tables(@data_source) %>,
       };
 
       App.tableInfo(props, document.getElementById("table-info"));

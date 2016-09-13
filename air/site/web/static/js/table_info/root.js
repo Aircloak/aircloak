@@ -3,10 +3,9 @@ import ReactDOM from "react-dom";
 
 const Columns = (props) =>
   <ul>
-    <li>Column 1</li>
-    <li>Column 2</li>
-    <li>Column 3</li>
-    <li>Column 4</li>
+    {props.table.columns.map((column, i) =>
+      <li key={i}>{column.name} - {column.type}</li>
+    )}
   </ul>
 
 const Table = (props) =>
@@ -20,7 +19,7 @@ const Table = (props) =>
         }
       })()}
 
-      {props.name}
+      {props.table.id}
     </a>
 
     {(() => {
@@ -45,16 +44,16 @@ class TableInfo extends React.Component {
     return () => {
       const expanded = this.state.expanded;
       if (this.expanded(table)) {
-        expanded.delete(table);
+        expanded.delete(table.id);
       } else {
-        expanded.add(table);
+        expanded.add(table.id);
       }
       this.setState({expanded})
     }
   }
 
   expanded(table) {
-    return this.state.expanded.has(table);
+    return this.state.expanded.has(table.id);
   }
 
   render() {
@@ -62,8 +61,8 @@ class TableInfo extends React.Component {
       <h2>Tables</h2>
 
       <ul className="list-unstyled">
-        {this.props.tableNames.map((name, i) =>
-          <Table key={i} name={name} expanded={this.expanded(name)} onClick={this.toggleExpand(name)} />
+        {this.props.tables.map((table, i) =>
+          <Table key={i} table={table} expanded={this.expanded(table)} onClick={this.toggleExpand(table)} />
         )}
       </ul>
     </div>);
