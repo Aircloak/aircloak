@@ -7,7 +7,6 @@ defmodule Air do
   # for more information on OTP Applications
   def start(_type, _args) do
     configure_secrets()
-    configure_endpoint_url()
     Air.Repo.configure()
     Air.Supervisor.start_link()
   end
@@ -31,13 +30,6 @@ defmodule Air do
         | config
       ]
     end)
-  end
-
-  # Configures the url setting of the Air.Endpoint config,
-  # allowing phoenix to reject connections under unexpected urls.
-  defp configure_endpoint_url do
-    url_config = [host: site_setting("url")]
-    Air.Utils.update_app_env(:air, Air.Endpoint, &Keyword.merge(&1, url: url_config))
   end
 
   defp site_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), name)
