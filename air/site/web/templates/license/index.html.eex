@@ -24,23 +24,23 @@
 <h3>Packages</h3>
 
 <%= for {type, packages} <- group_by_type(@packages) do %>
-<h4><a name="<%= type %>"></a><%= license_name(type) %></h4>
+  <h4><a name="<%= type %>"></a><%= license_name(type) %></h4>
 
-<table class="table table-striped">
-  <tr>
-    <th>Name</th>
-    <th>License type</th>
-  </tr>
-
-  <%= for package <- packages do %>
+  <table class="table table-striped">
     <tr>
-      <td>
-        <a href="/licenses/<%= package.realm %>/<%= package.name %>">
-          <%= package.name %>
-        </a>
-      </td>
-      <td><%= license_name(package.license_type) %></td>
+      <th>Name</th>
+      <th>License type</th>
     </tr>
-  <% end %>
-</table>
+
+    <%= for package <- packages do %>
+      <tr>
+        <td>
+          <a href="/licenses/<%= package.realm %>/<%= package.name %>">
+            <%= package.name %>
+          </a>
+        </td>
+        <td><%= license_name(package.license_type) %></td>
+      </tr>
+    <% end %>
+  </table>
 <% end %>
