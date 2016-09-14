@@ -11,6 +11,7 @@ needed to create, update and run tasks.
 - [Getting started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Running](#running)
+    - [Local docker container](#local-docker-container)
     - [Other common tasks](#other-common-tasks)
 
 ----------------------
@@ -73,6 +74,11 @@ of your existing data, so use with caution. To recreate the test database, you c
 
 The site also accepts HTTPS requests on port 8443. Self-signed certificates are provided for the site insights.air-local, meaning you need to add `/etc/hosts` entry which points this hostname to 127.0.0.1. You'll also need to import the certificate (located in `./priv/config/ssl_cert.pem`) into your browser. Once all is setup, you can access the site over HTTPS at https://insights.air-local:8443.
 
+### Local docker container
+
+To start a local docker container, you need to first build the image with `./build-image.sh`. Then you can start the container with `./container.sh console`. Once the container is started you can access it at http://localhost:9080/ and https://insights.air-local:9443. Since different ports are used, the container can run side-by-side to the local site.
+
+__OS X users__: if you're using `docker-machine`, you need to forward ports 9080 and 9443 in Virtual box.
 
 ### Other common tasks
 

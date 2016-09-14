@@ -26,5 +26,6 @@ export AIR_INSIGHTS_ENV="prod"
 # add_local_hosts
 
 log "Booting container."
-
+mkdir -p /aircloak/insights/lib/air-0.0.1/priv/config/
+cp -rp /runtime_config/* /aircloak/insights/lib/air-0.0.1/priv/config/
 exec gosu deployer /aircloak/insights/bin/air foreground

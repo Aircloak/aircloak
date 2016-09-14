@@ -183,7 +183,7 @@ It is possible to run cloak as a local docker container:
 4. Run `./build_image.sh` to create the docker image.
 5. Start the container with `./container.sh console`.
 
-You can now interact with the cloak via the dockerized air (https://insights.air-local:20100).
+You can now interact with the cloak via the dockerized air (https://insights.air-local:9443).
 
 #### Deploying
 

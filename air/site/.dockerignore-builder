@@ -4,10 +4,8 @@
 # whitelist only needed folders
 !air/VERSION
 !air/tmp/image_shell_init.sh
-!air/etcd
 !air/config/config.sh
 !air/config/tcp_ports.json
-!air/site/artifacts/cache/deps
 !air/site/brunch-config.js
 !air/site/package.json
 !air/site/priv/repo
@@ -36,3 +34,7 @@
 
 # blacklist some stuff
 air/site/priv/repo/seeds.exs
+
+# We don't want runtime config included. It needs to be provided through a
+# mounted volume
+air/site/priv/config

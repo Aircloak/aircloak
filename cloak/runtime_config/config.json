@@ -1,5 +1,5 @@
 {
-  "air_socket_url": "ws://insights.air-local:20123/cloak/socket/websocket",
+  "air_socket_url": "ws://insights.air-local:9080/cloak/socket/websocket",
   "data_sources": {
     "local": {
       "driver": "postgresql",

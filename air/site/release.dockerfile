@@ -20,4 +20,6 @@ USER root
 
 CMD /aircloak/start.sh
 
+VOLUME /runtime_config
+
 TAG_VERSION

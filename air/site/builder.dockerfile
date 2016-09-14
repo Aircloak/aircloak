@@ -16,7 +16,6 @@ ENV PATH=/usr/local/node/bin:$PATH
 # First we'll copy only the subset of needed files and compile deps
 # This will reduce the amount of rebuilding when only the source code is changed.
 COPY air/config/config.sh air/config/tcp_ports.json /aircloak/air/config/
-COPY air/etcd /aircloak/air/etcd
 COPY air/site/mix.exs air/site/mix.lock air/site/package.json /aircloak/air/site/
 COPY air/site/config /aircloak/air/site/config
 COPY common /aircloak/common
