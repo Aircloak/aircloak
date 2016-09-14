@@ -10,7 +10,10 @@
   <% end %>
 </h2>
 
-<div id="query-view" />
+<div class="row">
+  <div class="col-sm-9" id="query-view"></div>
+  <div class="col-sm-3" id="table-info"></div>
+</div>
 
 <script>
   window.pageConfig = {
@@ -22,10 +25,10 @@
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
-        tableNames: <%= table_names(@data_source) %>,
-        columnNames: <%= column_names(@data_source) %>,
+        tables: <%= tables(@data_source) %>,
       };
 
+      App.tableInfo(props, document.getElementById("table-info"));
       App.queryPage(props, document.getElementById("query-view"));
     }
   };

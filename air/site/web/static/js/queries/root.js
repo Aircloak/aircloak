@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import $ from "jquery";
+import _ from "lodash";
 import Mousetrap from "mousetrap";
 
 import {CodeEditor} from "../code_editor";
@@ -26,7 +27,6 @@ class QueriesView extends React.Component {
       historyLoaded: false,
     };
 
-
     this.setStatement = this.setStatement.bind(this);
     this.runQuery = this.runQuery.bind(this);
     this.queryData = this.queryData.bind(this);
@@ -35,6 +35,8 @@ class QueriesView extends React.Component {
     this.setResults = this.setResults.bind(this);
     this.handleLoadHistory = this.handleLoadHistory.bind(this);
     this.replaceResult = this.replaceResult.bind(this);
+    this.columnNames = this.columnNames.bind(this);
+    this.tableNames = this.tableNames.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     this.props.resultSocket.start({
@@ -161,14 +163,24 @@ class QueriesView extends React.Component {
     this.setResults([result].concat(this.state.sessionResults));
   }
 
+  tableNames() {
+    return this.props.tables.map((table) => table.id);
+  }
+
+  columnNames() {
+    return _.flatMap(this.props.tables, (table) =>
+      table.columns.map((column) => column.name)
+    );
+  }
+
   renderCodeEditorOrViewer() {
     if (this.props.dataSourceAvailable) {
       return (<CodeEditor
         onRun={this.runQuery}
         onChange={this.setStatement}
         statement={this.state.statement}
-        tableNames={this.props.tableNames}
-        columnNames={this.props.columnNames}
+        tableNames={this.tableNames()}
+        columnNames={this.columnNames()}
       />);
     } else {
       return <CodeViewer statement={this.state.statement} />;
@@ -201,8 +213,13 @@ export default function renderQueriesView(data, elem) {
 QueriesView.propTypes = {
   dataSourceId: React.PropTypes.number.isRequired,
   dataSourceAvailable: React.PropTypes.bool.isRequired,
-  tableNames: CodeEditor.propTypes.tableNames,
-  columnNames: CodeEditor.propTypes.columnNames,
+  tables: React.PropTypes.arrayOf(React.PropTypes.shape({
+    id: React.PropTypes.string.isRequired,
+    columns: React.PropTypes.arrayOf(React.PropTypes.shape({
+      name: React.PropTypes.string.isRequired,
+      type: React.PropTypes.string.isRequired,
+    })).isRequired,
+  })).isRequired,
   lastQuery: React.PropTypes.shape({
     statement: React.PropTypes.string.isRequired,
   }),
