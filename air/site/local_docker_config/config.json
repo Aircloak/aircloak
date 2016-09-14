@@ -6,7 +6,7 @@
   },
 
   "database": {
-    "host": "172.17.42.1",
+    "host": "air-db.local",
     "port": 20002,
     "ssl": false,
     "user": "air",

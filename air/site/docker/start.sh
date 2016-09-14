@@ -7,23 +7,10 @@ function log {
   echo "[aircloak] $msg"
 }
 
-function add_local_hosts {
-  . /aircloak/insights/bin/set_etcd_port.sh prod
-
-  for host in $(
-    curl -s -L http://127.0.0.1:$ETCD_CLIENT_PORT/v2/keys/service/local_names |
-    jq '.node.value' |
-    sed s/\"//g |
-    tr " " "\n"
-  ); do
-    echo "127.0.0.1 $host.air-local" >> /etc/hosts
-  done
-}
-
 export HTTP_HOST_IP=${AIR_HOST_NAME:-"127.0.0.1"}
 export AIR_INSIGHTS_ENV="prod"
 
-# add_local_hosts
+echo "$(ip route get 8.8.8.8 | grep via | awk '{print $3}') air-db.local" >> /etc/hosts
 
 log "Booting container."
 mkdir -p /aircloak/insights/lib/air-0.0.1/priv/config/
