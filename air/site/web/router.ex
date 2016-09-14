@@ -52,8 +52,7 @@ defmodule Air.Router do
     get "/audit_log/load_entries", AuditLogController, :load_entries
     get "/audit_log", AuditLogController, :index
 
-    get "/data_sources", DataSourceController, :index
-    get "/data_sources/:data_source_id", DataSourceController, :show
+    resources "/data_sources", DataSourceController
 
     get "/licenses", LicenseController, :index
     get "/licenses/:realm/:name", LicenseController, :show

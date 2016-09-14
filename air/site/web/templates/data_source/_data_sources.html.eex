@@ -1,18 +1,30 @@
-<ul class="data-source">
-<%= for data_source <- @data_sources do %>
-  <li>
-    <a class="main-link" href="/data_sources/<%= data_source.id %>">
-      <h3>
-        <%= data_source.name %>
-      </h3>
-    </a>
-    <p>
-      Has
-      <strong><%= number_of_tables(data_source) %></strong>
-      tables available for querying.
-      These include:
-      <strong><%= sample_of_tables(data_source) %></strong>
-    </p>
-  </li>
-<% end %>
-</ul>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Data source name</th>
+      <th>Tables</th>
+      <%= if admin?(@conn) do %>
+      <th></th>
+      <% end %>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for data_source <- @data_sources do %>
+    <tr>
+      <td>
+        <%= link data_source.name, to: data_source_path(@conn, :show, data_source) %>
+      </td>
+      <td>
+        <strong><%= number_of_tables(data_source) %></strong> tables. Amongst others
+        <strong><%= sample_of_tables(data_source) %></strong>
+      </td>
+      <%= if admin?(@conn) do %>
+      <td>
+        <%= link "Delete", to: data_source_path(@conn, :delete, data_source),
+          method: :delete, class: "btn btn-danger btn-xs" %>
+      </td>
+      <% end %>
+    </tr>
+    <% end %>
+  </tbody>
+</table>
