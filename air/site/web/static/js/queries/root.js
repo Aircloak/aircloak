@@ -4,6 +4,7 @@ import $ from "jquery";
 import Mousetrap from "mousetrap";
 
 import {CodeEditor} from "../code_editor";
+import {CodeViewer} from "../code_viewer";
 import {Results} from "./results";
 import {MenuButton} from "../menu";
 import {ResultSocket} from "../result_socket";
@@ -160,16 +161,24 @@ class QueriesView extends React.Component {
     this.setResults([result].concat(this.state.sessionResults));
   }
 
+  renderCodeEditorOrViewer() {
+    if (this.props.dataSourceAvailable) {
+      return (<CodeEditor
+        onRun={this.runQuery}
+        onChange={this.setStatement}
+        statement={this.state.statement}
+        tableNames={this.props.tableNames}
+        columnNames={this.props.columnNames}
+      />);
+    } else {
+      return <CodeViewer statement={this.state.statement} />;
+    }
+  }
+
   render() {
     return (<div>
       <div id="aql-editor">
-        <CodeEditor
-          onRun={this.runQuery}
-          onSave={() => {}}
-          onChange={this.setStatement}
-          statement={this.state.statement}
-          readOnly={!this.props.dataSourceAvailable}
-        />
+        {this.renderCodeEditorOrViewer()}
 
         <div className="right-align">
           <MenuButton onClick={this.runQuery} isActive={this.props.dataSourceAvailable}>Run</MenuButton>&nbsp;
@@ -192,6 +201,8 @@ export default function renderQueriesView(data, elem) {
 QueriesView.propTypes = {
   dataSourceId: React.PropTypes.number.isRequired,
   dataSourceAvailable: React.PropTypes.bool.isRequired,
+  tableNames: CodeEditor.propTypes.tableNames,
+  columnNames: CodeEditor.propTypes.columnNames,
   lastQuery: React.PropTypes.shape({
     statement: React.PropTypes.string.isRequired,
   }),
