@@ -6,9 +6,13 @@ defmodule Air.LicenseView do
 
   def type_counts(packages) do
     packages
-    |> Enum.group_by(&(&1.license_type))
+    |> group_by_type()
     |> Enum.map(fn({type, packages}) -> {type, length(packages)} end)
     |> Enum.sort_by(fn({_type, count}) -> count end, &>=/2)
+  end
+
+  def group_by_type(packages) do
+    Enum.group_by(packages, &(&1.license_type))
   end
 
   def license_name("mit"),                       do: "MIT License"
