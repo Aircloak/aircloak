@@ -1,52 +1,64 @@
-<h2>Package licenses</h2>
+<h2>Third party licenses</h2>
 
-<h3>License types</h3>
-
-<table class="table table-striped">
-  <tr>
-    <th>License type</th>
-    <th>Number of packages</th>
-  </tr>
-
-  <%= for {type, count} <- type_counts(@packages) do %>
-    <tr>
-      <td><a href="#<%= type %>"><%= license_name(type) %></a></td>
-      <td><%= count %></td>
-    </tr>
-  <% end %>
-
-  <tr>
-    <td><strong>Total</strong></td>
-    <td><strong><%= length(@packages) %></strong></td>
-  </tr>
-</table>
-
-<h3>Packages</h3>
-
-<%= for {type, packages} <- group_by_type(@packages) do %>
-  <h4><a name="<%= type %>"></a><%= license_name(type) %></h4>
+<div class="panel panel-default">
+  <div class="panel-heading"><h4>License count by type</h4></div>
 
   <table class="table table-striped">
     <thead>
       <tr>
-        <th>Name</th>
-        <th>Version</th>
         <th>License type</th>
+        <th>Number of packages</th>
       </tr>
     </thead>
 
     <tbody>
-      <%= for package <- packages do %>
+      <%= for {type, count} <- type_counts(@packages) do %>
         <tr>
-          <td>
-            <a href="/licenses/<%= package.realm %>/<%= package.name %>">
-              <%= package.name %>
-            </a>
-          </td>
-          <td><%= package.version %></td>
-          <td><%= license_name(package.license_type) %></td>
+          <td><a href="#<%= type %>"><%= license_name(type) %></a></td>
+          <td><%= count %></td>
         </tr>
       <% end %>
     </tbody>
+
+    <tfoot>
+      <tr>
+        <th>Total</td>
+        <th><%= length(@packages) %></td>
+      </tr>
+    </tfoot>
   </table>
+</div>
+
+<h3>Packages</h3>
+
+<%= for {type, packages} <- group_by_type(@packages) do %>
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4><a name="<%= type %>"></a><%= license_name(type) %></h4>
+    </div>
+
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Package Name</th>
+          <th>Version</th>
+          <th>License type</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <%= for package <- packages do %>
+          <tr>
+            <td>
+              <a href="/licenses/<%= package.realm %>/<%= package.name %>">
+                <%= package.name %>
+              </a>
+            </td>
+            <td><%= package.version %></td>
+            <td><%= license_name(package.license_type) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
 <% end %>
