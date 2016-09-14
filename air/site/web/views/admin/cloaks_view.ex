@@ -1,4 +1,4 @@
-defmodule Air.CloaksView do
+defmodule Air.Admin.CloaksView do
   @moduledoc false
   use Air.Web, :view
   # bug in the current Phoenix

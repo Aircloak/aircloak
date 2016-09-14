@@ -1,6 +1,6 @@
-defmodule Air.CloaksController do
+defmodule Air.Admin.CloaksController do
   @moduledoc false
-  use Air.Web, :controller
+  use Air.Web, :admin_controller
   use Timex
 
   alias Air.{DataSourceManager, Repo, DataSource}
@@ -12,7 +12,7 @@ defmodule Air.CloaksController do
 
   def permissions do
     %{
-      user: :all
+      admin: :all
     }
   end
 

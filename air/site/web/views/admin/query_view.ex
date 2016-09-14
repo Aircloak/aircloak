@@ -1,4 +1,4 @@
-defmodule Air.OrganisationView do
+defmodule Air.Admin.QueryView do
   @moduledoc false
   use Air.Web, :view
   # bug in the current Phoenix

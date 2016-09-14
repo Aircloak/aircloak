@@ -43,6 +43,14 @@ defmodule Air.Web do
     end
   end
 
+  def admin_controller do
+    quote do
+      use Air.Web, :controller
+
+      plug :put_layout, "admin.html"
+    end
+  end
+
   def view do
     quote do
       use Phoenix.View, root: "web/templates"

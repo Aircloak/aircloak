@@ -7,7 +7,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Aircloak – Web Query Interface</title>
+    <title>Aircloak – Admin - Air control</title>
     <link rel="shortcut icon" href="<%= static_path(@conn, "/images/favicon.ico") %>" type="image/x-icon">
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/vendor.css") %>">
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
@@ -22,7 +22,24 @@
         <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
 
         <main role="main">
-          <%= render @view_module, @view_template, assigns %>
+          <div class="container">
+
+            <div class="row">
+              <div class="col-md-3">
+                <ul class="nav nav-pills nav-stacked">
+                  <%= navbar_link(@conn, "Cloaks", cloaks_path(@conn, :index)) %>
+                  <%= navbar_link(@conn, "Failed queries", query_path(@conn, :failed)) %>
+                  <%= navbar_link(@conn, "Users", manage_users_link(@conn)) %>
+                  <%= navbar_link(@conn, "Organisations", organisation_path(@conn, :index)) %>
+                  <%= navbar_link(@conn, "Audit log", audit_log_path(@conn, :index)) %>
+                </ul>
+              </div>
+              <div class="col-md-9">
+                <%= render @view_module, @view_template, assigns %>
+              </div>
+            </div>
+          </div>
+
         </main>
 
       </div> <!-- /container -->

@@ -36,7 +36,7 @@ defmodule Air.ViewHelpers do
   @spec navbar_link(Plug.Conn.t, String.t, String.t) :: {:safe, String.t}
   def navbar_link(%{request_path: request_path}, name, desired_path) do
     link_html = if active?(request_path, desired_path) do
-      "<li class=\"active\"><a href=\"#{desired_path}\">#{name}</a></li>"
+      "<li role=\"presentation\" class=\"active\"><a href=\"#{desired_path}\">#{name}</a></li>"
     else
       "<li><a href=\"#{desired_path}\">#{name}</a></li>"
     end
@@ -45,6 +45,7 @@ defmodule Air.ViewHelpers do
 
   defp active?(request_path, link_path)
   defp active?("/", "/"), do: true
+  defp active?("/admin", "/admin/cloaks"), do: true
   defp active?(_, "/"), do: false
   defp active?(request_path, link_path), do: request_path =~ link_path
 end

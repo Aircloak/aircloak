@@ -1,6 +1,6 @@
-defmodule Air.OrganisationController do
+defmodule Air.Admin.OrganisationController do
   @moduledoc false
-  use Air.Web, :controller
+  use Air.Web, :admin_controller
 
   alias Air.{Organisation, AuditLog}
 
