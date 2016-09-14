@@ -60,7 +60,7 @@ with `make recreate_db`
 
 To start the development server, you run: `make start`.
 Assuming [common components are started](../README.md#starting-the-required-components), you can access the
-site at http://localhost:8080/ or https://insights.air-local:8443/.
+site at http://localhost:8080/.
 
 Note that there's no need to migrate the database. This will happen automatically when the application starts.
 However, if you do need to manually migrate/rollback (for example while creating a new migration), you can do
@@ -68,6 +68,10 @@ it with `make migrate` and `make rollback` respectively.
 
 If you need to repopulate the database, you can run `make recreate_db`. Keep in mind that this will erase all
 of your existing data, so use with caution. To recreate the test database, you can run `MIX_ENV=test make recreate_db`
+
+#### HTTPS endpoint
+
+The site also accepts HTTPS requests on port 8443. Self-signed certificates are provided for the site insights.air-local, meaning you need to add `/etc/hosts` entry which points this hostname to 127.0.0.1. You'll also need to import the certificate (located in `./priv/config/ssl_cert.pem`) into your browser. Once all is setup, you can access the site over HTTPS at https://insights.air-local:8443.
 
 
 ### Other common tasks
