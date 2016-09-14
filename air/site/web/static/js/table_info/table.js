@@ -1,6 +1,6 @@
 import React from "react";
 
-import {Columns} from "./columns"
+import {Columns} from "./columns";
 
 export const Table = (props) =>
   <a href="#" onClick={props.onClick} className="list-group-item">
@@ -32,4 +32,6 @@ Table.propTypes = {
     id: React.PropTypes.string.isRequired,
     columns: Columns.propTypes.columns,
   }),
+  onClick: React.PropTypes.func,
+  expanded: React.PropTypes.bool.isRequired,
 };
