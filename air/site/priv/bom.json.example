@@ -6,7 +6,8 @@
       "type": "mit"
     },
     "name": "some dependency",
-    "realm": "node"
+    "realm": "node",
+    "version": "1.2.3"
   },
   {
     "error": null,
@@ -15,6 +16,7 @@
       "type": "mit"
     },
     "name": "another dependency",
-    "realm": "elixir"
+    "realm": "elixir",
+    "version": "2.3.4"
   }
 ]
