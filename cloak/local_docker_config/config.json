@@ -1,11 +1,11 @@
 {
-  "air_socket_url": "ws://insights.air-local:20123/cloak/socket/websocket",
+  "air_socket_url": "ws://air_insights:8080/cloak/socket/websocket",
   "data_sources": {
     "local": {
       "driver": "postgresql",
       "parameters": {
-        "hostname": "127.0.0.1",
-        "port": 20002,
+        "hostname": "air_db",
+        "port": 5432,
         "username": "cloak",
         "database": "cloak",
         "sync_connect": true,
