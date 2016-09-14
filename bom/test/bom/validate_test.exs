@@ -3,7 +3,12 @@ defmodule BOM.Validate.Test do
 
   alias BOM.{License,Package}
 
-  @valid_package %Package{name: "the name", realm: :elixir, license: %License{type: :mit, text: "the text"}}
+  @valid_package %Package{
+    name: "the name",
+    realm: :elixir,
+    license: %License{type: :mit, text: "the text"},
+    version: "1.1.1",
+  }
 
   test "valid package", do:
     assert BOM.Validate.run(@valid_package).error == nil
@@ -19,4 +24,10 @@ defmodule BOM.Validate.Test do
 
   test "package with no realm", do:
     assert BOM.Validate.run(%{@valid_package | realm: nil}).error == "Realm empty"
+
+  test "package with no version", do:
+    assert BOM.Validate.run(%{@valid_package | version: nil}).error == "Version empty"
+
+  test "package with empty version", do:
+    assert BOM.Validate.run(%{@valid_package | version: ""}).error == "Version empty"
 end
