@@ -20,14 +20,16 @@ defmodule Air.DataSourceManager do
   discover whether a datastore is available for querying, and if so where.
   """
   @spec start_link() :: {:ok, pid} | {:error, term}
-  def start_link(), do: GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+  @spec start_link(term) :: {:ok, pid} | {:error, term}
+  def start_link(name \\ __MODULE__), do: GenServer.start_link(__MODULE__, nil, name: name)
 
   @doc """
   Registers a data source (if needed), and associates the calling cloak with the data source
   """
   @spec register_cloak(Map.t, Map.t) :: :ok
-  def register_cloak(cloak_info, data_sources), do:
-    GenServer.call(@server, {:register_cloak, cloak_info, data_sources})
+  @spec register_cloak(GenServer.server, Map.t, Map.t) :: :ok
+  def register_cloak(server \\ @server, cloak_info, data_sources), do:
+    GenServer.call(server, {:register_cloak, cloak_info, data_sources})
 
   @doc "Attaches a monitor to the global DataSourceManager from the current process."
   @spec monitor() :: reference()
@@ -36,12 +38,14 @@ defmodule Air.DataSourceManager do
 
   @doc "Returns the pids of all the phoenix channels of the cloaks that have the data source"
   @spec channel_pids(String.t) :: [pid]
-  def channel_pids(data_source_id), do:
-    GenServer.call(@server, {:channel_pids, data_source_id})
+  @spec channel_pids(GenServer.server, String.t) :: [pid]
+  def channel_pids(server \\ @server, data_source_id), do:
+    GenServer.call(server, {:channel_pids, data_source_id})
 
   @doc "Whether or not a data source is available for querying. True if it has one or more cloaks online"
   @spec available?(String.t) :: boolean
-  def available?(data_source_id), do: channel_pids(data_source_id) !== []
+  @spec available?(GenServer.server, String.t) :: boolean
+  def available?(server \\ @server, data_source_id), do: channel_pids(server, data_source_id) !== []
 
   @doc """
   Returns a list of the connected cloaks. The element returned for each cloak
@@ -49,7 +53,8 @@ defmodule Air.DataSourceManager do
   additionally augmented with a list of the IDs of the data sources served by the cloak
   """
   @spec cloaks() :: [Map.t]
-  def cloaks(), do: GenServer.call(@server, :cloaks)
+  @spec cloaks(GenServer.server) :: [Map.t]
+  def cloaks(server \\ @server), do: GenServer.call(server, :cloaks)
 
 
   # -------------------------------------------------------------------
