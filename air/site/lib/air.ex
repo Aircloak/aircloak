@@ -27,9 +27,20 @@ defmodule Air do
         {:secret_key_base, site_setting("endpoint_key_base")},
         {:api_token_salt, site_setting("api_token_salt")}
         | config
-      ]
+      ] ++ https_config()
     end)
   end
 
   defp site_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), name)
+
+  defp https_config() do
+    keyfile = Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
+    certfile = Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"])
+
+    if File.exists?(keyfile) && File.exists?(certfile) do
+      [https: [port: 8443, keyfile: keyfile, certfile: certfile]]
+    else
+      []
+    end
+  end
 end

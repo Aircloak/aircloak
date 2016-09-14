@@ -60,7 +60,7 @@ with `make recreate_db`
 
 To start the development server, you run: `make start`.
 Assuming [common components are started](../README.md#starting-the-required-components), you can access the
-site at https://insights.air-local:20000/.
+site at http://localhost:8080/ or https://insights.air-local:8443/.
 
 Note that there's no need to migrate the database. This will happen automatically when the application starts.
 However, if you do need to manually migrate/rollback (for example while creating a new migration), you can do
