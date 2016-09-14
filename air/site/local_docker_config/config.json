@@ -6,8 +6,8 @@
   },
 
   "database": {
-    "host": "air-db.local",
-    "port": 20002,
+    "host": "air_db",
+    "port": 5432,
     "ssl": false,
     "user": "air",
     "password": "",
