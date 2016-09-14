@@ -2,15 +2,22 @@ import React from "react";
 import ReactDOM from "react-dom";
 
 const Columns = (props) =>
-  <ul>
+  <table className="table">
+    <tr>
+      <th>Column</th>
+      <th>Type</th>
+    </tr>
     {props.columns.map((column, i) =>
-      <li key={i}>{column.name} - {column.type}</li>
+      <tr key={i}>
+        <td>{column.name}</td>
+        <td>{column.type}</td>
+      </tr>
     )}
-  </ul>;
+  </table>;
 
 const Table = (props) =>
-  <li>
-    <a onClick={props.onClick} href="#">
+  <a href="#" onClick={props.onClick} className="list-group-item">
+    <div className="list-group-item-heading">
       {(() => {
         if (props.expanded) {
           return <span className="glyphicon glyphicon-minus"></span>;
@@ -19,8 +26,10 @@ const Table = (props) =>
         }
       })()}
 
+      &nbsp;
+
       {props.table.id}
-    </a>
+    </div>
 
     {(() => {
       if (props.expanded) {
@@ -29,7 +38,7 @@ const Table = (props) =>
         return null;
       }
     })()}
-  </li>;
+  </a>;
 
 class TableInfo extends React.Component {
   constructor(props) {
@@ -57,14 +66,14 @@ class TableInfo extends React.Component {
   }
 
   render() {
-    return (<div>
-      <h2>Tables</h2>
+    return (<div className="panel panel-default">
+      <div className="panel-heading"><strong>Tables</strong></div>
 
-      <ul className="list-unstyled">
+      <div className="list-group">
         {this.props.tables.map((table, i) =>
           <Table key={i} table={table} expanded={this.expanded(table)} onClick={this.toggleExpand(table)} />
         )}
-      </ul>
+      </div>
     </div>);
   }
 }
