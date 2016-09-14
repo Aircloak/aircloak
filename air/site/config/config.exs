@@ -7,6 +7,7 @@ use Mix.Config
 
 # Configures the endpoint
 config :air, Air.Endpoint,
+  check_origin: false,
   http: [port: 8080],
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
