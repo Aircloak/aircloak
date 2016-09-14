@@ -10,7 +10,7 @@
 
   <%= for {type, count} <- type_counts(@packages) do %>
     <tr>
-      <td><%= license_name(type) %></td>
+      <td><a href="#<%= type %>"><%= license_name(type) %></a></td>
       <td><%= count %></td>
     </tr>
   <% end %>
@@ -24,7 +24,7 @@
 <h3>Packages</h3>
 
 <%= for {type, packages} <- group_by_type(@packages) do %>
-<h4><%= license_name(type) %></h4>
+<h4><a name="<%= type %>"></a><%= license_name(type) %></h4>
 
 <table class="table table-striped">
   <tr>
