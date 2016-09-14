@@ -1,7 +1,7 @@
 defmodule Air.UserTest do
   use Air.ModelCase, async: true
 
-  alias Air.User
+  alias Air.{User, TestRepoHelper, TestUtils, Group}
 
   @valid_attrs %{
     email: "admin@aircloak.com",
@@ -116,6 +116,69 @@ defmodule Air.UserTest do
     assert true == User.permitted?(user(:user), :anon_op, %{anonymous: [:anon_op], user: :all})
     assert true == User.permitted?(user(:org_admin), :anon_op, %{anonymous: [:anon_op], user: :all})
     assert true == User.permitted?(user(:admin), :anon_op, %{anonymous: [:anon_op], user: :all})
+  end
+
+  test "a user can have many groups" do
+    org = TestRepoHelper.create_organisation!()
+    group1 = TestRepoHelper.create_group!()
+    group2 = TestRepoHelper.create_group!()
+    user = TestRepoHelper.create_user!(org, :user)
+    |> set_groups([group1, group2])
+    assert [group1.id, group2.id] == Enum.map(user.groups, &(&1.id)) |> Enum.sort()
+  end
+
+  test "deleting a user, doesn't delete the group" do
+    org = TestRepoHelper.create_organisation!()
+    group = TestRepoHelper.create_group!()
+    TestRepoHelper.create_user!(org, :user)
+    |> set_groups([group])
+    |> Repo.delete()
+    refute nil == Repo.get(Group, group.id)
+  end
+
+  test "deleting a user, should remove entries from join table" do
+    org = TestRepoHelper.create_organisation!()
+    group = TestRepoHelper.create_group!()
+    user = TestRepoHelper.create_user!(org, :user)
+    |> set_groups([group])
+    TestUtils.assert_join_table_count_change(-1, fn() -> Repo.delete(user) end)
+  end
+
+  test "users and groups are joined through a join table" do
+    org = TestRepoHelper.create_organisation!()
+    group = TestRepoHelper.create_group!()
+    TestUtils.assert_join_table_count_change(1, fn() ->
+      TestRepoHelper.create_user!(org, :user)
+      |> set_groups([group])
+    end)
+  end
+
+  test "replacing a group for a user, removes the old relationship" do
+    org = TestRepoHelper.create_organisation!()
+    group1 = TestRepoHelper.create_group!()
+    group2 = TestRepoHelper.create_group!()
+    user = TestRepoHelper.create_user!(org, :user)
+    |> set_groups([group1])
+
+    TestUtils.assert_join_table_count_change(0, fn() -> set_groups(user, [group2]) end)
+
+    group1 = Repo.get(Group, group1.id) |> Repo.preload(:users)
+    assert [] == group1.users
+    group2 = Repo.get(Group, group2.id) |> Repo.preload(:users)
+    assert [user.id] == Enum.map(group2.users, &(&1.id))
+  end
+
+  defp set_groups(user, groups) do
+    Repo.get(User, user.id)
+    |> Repo.preload(:groups)
+    |> User.changeset()
+    |> put_assoc(:groups, groups)
+    |> Repo.update!()
+    # Load the user from the database again, in case it will be used further,
+    # just to ensure that the stored has the data we need, and that it isn't
+    # just in a cached local version.
+    Repo.get(User, user.id)
+    |> Repo.preload(:groups)
   end
 
   defp user(role_key, org_name \\ ""),
