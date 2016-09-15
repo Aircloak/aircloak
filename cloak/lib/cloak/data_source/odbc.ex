@@ -96,7 +96,7 @@ defmodule Cloak.DataSource.ODBC do
   defp parse_type({:sql_varchar, _length}), do: :text
   defp parse_type({:sql_wvarchar, _length}), do: :text
   defp parse_type({:sql_wlongvarchar, _length}), do: :text
-  defp parse_type(:sql_timestamp), do: :timestamp
+  defp parse_type(:sql_timestamp), do: :datetime
   defp parse_type(:SQL_TYPE_DATE), do: :date
   defp parse_type(:SQL_TYPE_TIME), do: :time
   defp parse_type(type), do: {:unsupported, type}
@@ -105,7 +105,7 @@ defmodule Cloak.DataSource.ODBC do
   defp map_fields([field | rest_fields], [mapper | rest_mappers]), do:
     [mapper.(field) | map_fields(rest_fields, rest_mappers)]
 
-  defp column_to_field_mapper(%Column{type: :timestamp}), do: &timestamp_field_mapper/1
+  defp column_to_field_mapper(%Column{type: :datetime}), do: &datetime_field_mapper/1
   defp column_to_field_mapper(%Column{type: :time}), do: &time_field_mapper/1
   defp column_to_field_mapper(%Column{type: :date}), do: &date_field_mapper/1
   defp column_to_field_mapper(%Column{}), do: &generic_field_mapper/1
@@ -113,10 +113,10 @@ defmodule Cloak.DataSource.ODBC do
   defp generic_field_mapper(:null), do: nil
   defp generic_field_mapper(value), do: value
 
-  defp timestamp_field_mapper(:null), do: nil
-  defp timestamp_field_mapper({{year, month, day}, {hour, min, sec}}) when is_integer(sec), do:
+  defp datetime_field_mapper(:null), do: nil
+  defp datetime_field_mapper({{year, month, day}, {hour, min, sec}}) when is_integer(sec), do:
     NaiveDateTime.new(year, month, day, hour, min, sec, {0, 6}) |> error_to_nil()
-  defp timestamp_field_mapper({{year, month, day}, {hour, min, fsec}}) when is_float(fsec) do
+  defp datetime_field_mapper({{year, month, day}, {hour, min, fsec}}) when is_float(fsec) do
     sec = trunc(fsec)
     usec = {trunc((fsec - sec) * 1_000_000), 6}
     NaiveDateTime.new(year, month, day, hour, min, sec, usec) |> error_to_nil()

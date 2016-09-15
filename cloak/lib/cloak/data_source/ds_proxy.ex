@@ -139,12 +139,12 @@ defmodule Cloak.DataSource.DsProxy do
   defp parse_type("smallmoney"), do: :real
   defp parse_type("numeric"), do: :real
   defp parse_type("double"), do: :real
-  defp parse_type("timestamp"), do: :timestamp
-  defp parse_type("timestamptz"), do: :timestamp
+  defp parse_type("timestamp"), do: :datetime
+  defp parse_type("timestamptz"), do: :datetime
   defp parse_type("time"), do: :time
   defp parse_type("timetz"), do: :time
   defp parse_type("date"), do: :date
-  defp parse_type("datetime"), do: :timestamp
-  defp parse_type("datetime2"), do: :timestamp
+  defp parse_type("datetime"), do: :datetime
+  defp parse_type("datetime2"), do: :datetime
   defp parse_type(type), do: {:unsupported, type}
 end

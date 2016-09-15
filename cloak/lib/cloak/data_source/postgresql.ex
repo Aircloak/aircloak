@@ -74,8 +74,8 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("float8"), do: :real
   defp parse_type("money"), do: :real
   defp parse_type("numeric"), do: :real
-  defp parse_type("timestamp"), do: :timestamp
-  defp parse_type("timestamptz"), do: :timestamp
+  defp parse_type("timestamp"), do: :datetime
+  defp parse_type("timestamptz"), do: :datetime
   defp parse_type("time"), do: :time
   defp parse_type("timetz"), do: :time
   defp parse_type("date"), do: :date
