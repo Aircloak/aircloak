@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import _ from "lodash";
 
 import {Table} from "./table";
 
@@ -30,12 +31,16 @@ class TableInfo extends React.Component {
     return this.state.expanded.has(table.id);
   }
 
+  tables() {
+    return _.sortBy(this.props.tables, (table) => table.id.toLowerCase());
+  }
+
   render() {
     return (<div className="panel panel-default table-info">
       <div className="panel-heading"><strong>Tables</strong></div>
 
       <div className="list-group">
-        {this.props.tables.map((table, i) =>
+        {this.tables().map((table, i) =>
           <Table key={i} table={table} expanded={this.expanded(table)} onClick={this.toggleExpand(table)} />
         )}
       </div>
