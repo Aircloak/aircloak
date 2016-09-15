@@ -13,7 +13,9 @@ class TableInfo extends React.Component {
   }
 
   toggleExpand(table) {
-    return () => {
+    return (event) => {
+      event.preventDefault();
+
       const expanded = this.state.expanded;
       if (this.expanded(table)) {
         expanded.delete(table.id);
