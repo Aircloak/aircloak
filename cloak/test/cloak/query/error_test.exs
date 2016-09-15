@@ -27,7 +27,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "reports an error on wrong cast" do
     assert_query "select * from test_errors where datetime > 0", %{error: error}
-    assert ~s/Cannot cast `0` to timestamp./ == error
+    assert ~s/Cannot cast `0` to datetime./ == error
   end
 
   test "reports an error on ambigous usage of an alias occurring multiple times" do
