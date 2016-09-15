@@ -1,6 +1,6 @@
-defmodule Air.AuditLogController do
+defmodule Air.Admin.AuditLogController do
   @moduledoc false
-  use Air.Web, :controller
+  use Air.Web, :admin_controller
 
   alias Air.{AuditLog, Utils}
 

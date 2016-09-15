@@ -1,4 +1,4 @@
-defmodule Air.OrganisationControllerTest do
+defmodule Air.Admin.OrganisationControllerTest do
   use Air.ConnCase, async: true
 
   import Air.TestConnHelper
@@ -10,15 +10,15 @@ defmodule Air.OrganisationControllerTest do
     for role <- [:user, :org_admin] do
       user = TestRepoHelper.create_user!(org, role)
 
-      assert "/" == login(user) |> get("/organisations") |> redirected_to()
-      assert "/" == login(user) |> get("/organisations/new") |> redirected_to()
-      assert "/" == login(user) |> get("/organisations/#{user.id}/edit") |> redirected_to()
-      assert "/" == login(user) |> post("/organisations") |> redirected_to()
-      assert "/" == login(user) |> put("/organisations/#{user.id}") |> redirected_to()
-      assert "/" == login(user) |> delete("/organisations/#{user.id}") |> redirected_to()
+      assert "/" == login(user) |> get("/admin/organisations") |> redirected_to()
+      assert "/" == login(user) |> get("/admin/organisations/new") |> redirected_to()
+      assert "/" == login(user) |> get("/admin/organisations/#{user.id}/edit") |> redirected_to()
+      assert "/" == login(user) |> post("/admin/organisations") |> redirected_to()
+      assert "/" == login(user) |> put("/admin/organisations/#{user.id}") |> redirected_to()
+      assert "/" == login(user) |> delete("/admin/organisations/#{user.id}") |> redirected_to()
 
       if role == :user do
-        assert "/" == login(user) |> get("/organisations/#{org.id}") |> redirected_to()
+        assert "/" == login(user) |> get("/admin/organisations/#{org.id}") |> redirected_to()
       end
     end
   end
@@ -28,7 +28,7 @@ defmodule Air.OrganisationControllerTest do
     admin = TestRepoHelper.create_user!(org)
     orgs = Enum.map(1..4, fn(_) -> TestRepoHelper.create_organisation!() end)
 
-    orgs_html = login(admin) |> get("/organisations") |> response(200)
+    orgs_html = login(admin) |> get("/admin/organisations") |> response(200)
     Enum.each([org | orgs], &assert(orgs_html =~ &1.name))
   end
 
@@ -36,8 +36,8 @@ defmodule Air.OrganisationControllerTest do
     org = TestRepoHelper.admin_organisation()
     admin = TestRepoHelper.create_user!(org)
 
-    login(admin) |> get("/organisations/new") |> response(200)
-    login(admin) |> get("/organisations/#{org.id}/edit") |> response(200)
+    login(admin) |> get("/admin/organisations/new") |> response(200)
+    login(admin) |> get("/admin/organisations/#{org.id}/edit") |> response(200)
   end
 
   test "viewing the organisation" do
@@ -46,7 +46,7 @@ defmodule Air.OrganisationControllerTest do
     admin = TestRepoHelper.create_user!(admin_org)
     user_from_another_org = TestRepoHelper.create_user!(another_org)
 
-    html = login(admin) |> get("/organisations/#{admin_org.id}") |> response(200)
+    html = login(admin) |> get("/admin/organisations/#{admin_org.id}") |> response(200)
     assert html =~ admin.email
     refute html =~ user_from_another_org.email
   end
@@ -56,8 +56,8 @@ defmodule Air.OrganisationControllerTest do
     org_admin = TestRepoHelper.create_user!(org, :org_admin)
     another_org = TestRepoHelper.create_organisation!()
 
-    login(org_admin) |> get("/organisations/#{org.id}") |> response(200)
-    assert "/" == login(org_admin) |> get("/organisations/#{another_org.id}") |> redirected_to()
+    login(org_admin) |> get("/admin/organisations/#{org.id}") |> response(200)
+    assert "/" == login(org_admin) |> get("/admin/organisations/#{another_org.id}") |> redirected_to()
   end
 
   test "admin can view all organisations" do
@@ -65,8 +65,8 @@ defmodule Air.OrganisationControllerTest do
     admin = TestRepoHelper.create_user!(org)
     another_org = TestRepoHelper.create_organisation!()
 
-    login(admin) |> get("/organisations/#{org.id}") |> response(200)
-    login(admin) |> get("/organisations/#{another_org.id}") |> response(200)
+    login(admin) |> get("/admin/organisations/#{org.id}") |> response(200)
+    login(admin) |> get("/admin/organisations/#{another_org.id}") |> response(200)
   end
 
   test "creating an organisation" do
@@ -77,10 +77,10 @@ defmodule Air.OrganisationControllerTest do
 
     conn =
     login(admin)
-    |> post("/organisations", organisation: %{name: new_org_name})
+    |> post("/admin/organisations", organisation: %{name: new_org_name})
 
-    assert "/organisations" == redirected_to(conn)
-    orgs_html = login(admin) |> get("/organisations") |> response(200)
+    assert "/admin/organisations" == redirected_to(conn)
+    orgs_html = login(admin) |> get("/admin/organisations") |> response(200)
     assert orgs_html =~ new_org_name
   end
 
@@ -93,10 +93,10 @@ defmodule Air.OrganisationControllerTest do
 
     conn =
     login(admin)
-    |> put("/organisations/#{another_org.id}", organisation: %{name: changed_name})
+    |> put("/admin/organisations/#{another_org.id}", organisation: %{name: changed_name})
 
-    assert "/organisations/#{another_org.id}" == redirected_to(conn)
-    orgs_html = login(admin) |> get("/organisations") |> response(200)
+    assert "/admin/organisations/#{another_org.id}" == redirected_to(conn)
+    orgs_html = login(admin) |> get("/admin/organisations") |> response(200)
     assert orgs_html =~ changed_name
     refute orgs_html =~ another_org.name
   end
@@ -129,8 +129,9 @@ defmodule Air.OrganisationControllerTest do
     admin = TestRepoHelper.create_user!(org)
     another_org = TestRepoHelper.create_organisation!()
 
-    assert "/organisations" == login(admin) |> delete("/organisations/#{another_org.id}") |> redirected_to()
-    orgs_html = login(admin) |> get("/organisations") |> response(200)
+    assert "/admin/organisations" == login(admin)
+      |> delete("/admin/organisations/#{another_org.id}") |> redirected_to()
+    orgs_html = login(admin) |> get("/admin/organisations") |> response(200)
     refute orgs_html =~ another_org.name
   end
 end

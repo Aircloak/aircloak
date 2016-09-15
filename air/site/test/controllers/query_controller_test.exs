@@ -47,36 +47,4 @@ defmodule Air.QueryControllerTest do
     }
     login(user) |> post("/queries", query_data_params) |> response(503)
   end
-
-  test "failed queries", context do
-    user = create_user!(create_organisation!())
-
-    insert_query(user, context[:data_source], "query 1", %{error: "some error"})
-    insert_query(user, context[:data_source], "query 2", %{error: "some error"})
-    insert_query(user, context[:data_source], "query 3", %{})
-
-    admin = create_user!(admin_organisation())
-    response = login(admin) |> get("/queries/failed") |> response(200)
-
-    assert response =~ "query 1"
-    assert response =~ "query 2"
-    refute response =~ "query 3"
-  end
-
-  test "user can't fetch failed queries" do
-    assert "/" ==
-      create_organisation!()
-      |> create_user!()
-      |> login()
-      |> get("/queries/failed")
-      |> redirected_to()
-  end
-
-  defp insert_query(user, data_source, statement, result) do
-    create_query!(user, %{
-      statement: statement,
-      data_source_id: data_source.id,
-      result: Poison.encode!(result)
-    })
-  end
 end

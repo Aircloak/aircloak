@@ -36,7 +36,6 @@ defmodule Air.Router do
     get "/", QueryController, :index
     post "/queries", QueryController, :create
     get "/queries/load_history/:data_source_id", QueryController, :load_history
-    get "/queries/failed", QueryController, :failed
     get "/queries/:id", QueryController, :show
 
     delete "/logout", SessionController, :delete
@@ -45,17 +44,26 @@ defmodule Air.Router do
     get "/help_guide/:article", HelpGuideController, :article
 
     resources "/api_tokens", ApiTokenController
-    resources "/cloaks", CloaksController
+
+    resources "/data_sources", DataSourceController
+
+    get "/licenses", LicenseController, :index
+    get "/licenses/:realm/:name", LicenseController, :show
+  end
+
+  scope "/admin", Air.Admin do
+    pipe_through [:browser, :browser_auth]
+
+    get "/queries/failed", QueryController, :failed
+
     resources "/organisations", OrganisationController
     resources "/users", UserController
 
     get "/audit_log/load_entries", AuditLogController, :load_entries
     get "/audit_log", AuditLogController, :index
 
-    resources "/data_sources", DataSourceController
-
-    get "/licenses", LicenseController, :index
-    get "/licenses/:realm/:name", LicenseController, :show
+    resources "/cloaks", CloaksController
+    get "/", CloaksController, :index
   end
 
   scope "/api" do
