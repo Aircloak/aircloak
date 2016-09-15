@@ -9,9 +9,9 @@ defmodule Air.Admin.GroupControllerTest do
     user = TestRepoHelper.create_user!(org, :user)
     group = TestRepoHelper.create_group!()
 
-    assert "/" == login(user) |> get("/admin/groups") |> redirected_to()
-    assert "/" == login(user) |> post("/admin/groups") |> redirected_to()
-    assert "/" == login(user) |> delete("/admin/groups/#{group.id}") |> redirected_to()
+    assert login(user) |> get("/admin/groups") |> redirected_to() === "/"
+    assert login(user) |> post("/admin/groups") |> redirected_to() === "/"
+    assert login(user) |> delete("/admin/groups/#{group.id}") |> redirected_to() === "/"
   end
 
   test "listing groups" do
