@@ -58,6 +58,7 @@ defmodule Air.Router do
 
     resources "/organisations", OrganisationController
     resources "/users", UserController
+    resources "/groups", GroupController
 
     get "/audit_log/load_entries", AuditLogController, :load_entries
     get "/audit_log", AuditLogController, :index
