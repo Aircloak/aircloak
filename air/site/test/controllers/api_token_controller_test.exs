@@ -12,7 +12,7 @@ defmodule Air.ApiTokenControllerTest do
     user = create_user!()
     token = create_token(user)
 
-    assert "/auth" == conn() |> get(api_token_path(conn, :index)) |> redirected_to()
+    assert "/auth" == build_conn() |> get(api_token_path(conn, :index)) |> redirected_to()
     assert "/auth" == delete(conn, api_token_path(conn, :delete, token)) |> redirected_to()
   end
 
