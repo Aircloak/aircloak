@@ -25,8 +25,14 @@ defmodule Air.ModelCase do
     end
   end
 
-  setup do
+  setup tags do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Air.Repo)
+
+    unless tags[:async] do
+      Ecto.Adapters.SQL.Sandbox.mode(Air.Repo, {:shared, self()})
+    end
+
+    :ok
   end
 
   @doc """
