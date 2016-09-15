@@ -23,6 +23,7 @@ defmodule Air.LicenseController do
           name: package["name"],
           realm: package["realm"],
           license_type: package["license"]["type"],
+          version: package["version"],
         }
       end)
     end)

@@ -5,8 +5,12 @@ defmodule Mix.Tasks.Bom do
 
       mix bom [--node <path>]+ [--elixir <path>]+ <output>
 
-      Add a --node switch for every node_modules directory to be searched.
-      Add a --elixir switch for every elixir deps directory to be searched.
+      Add a --node switch for every node_modules directory to be searched. An npm-shrinkwrap.json file is
+      assumed to exist at the same level as this directory.
+
+      Add a --elixir switch for every elixir deps directory to be searched. A mix.lock file is assumed to
+      exist at the same level as this directory.
+
       The file will be generated at <output>
   """
 
@@ -53,7 +57,7 @@ defmodule Mix.Tasks.Bom do
     end
   end
 
-  defp packages(dirs), do: dirs |> Enum.flat_map(&do_packages/1) |> Enum.uniq_by(&{&1.realm, &1.name})
+  defp packages(dirs), do: dirs |> Enum.flat_map(&do_packages/1) |> Enum.uniq_by(&{&1.realm, &1.name, &1.version})
 
   defp do_packages({:node, dir}), do: BOM.Gather.Node.run(dir)
   defp do_packages({:elixir, dir}), do: BOM.Gather.Elixir.run(dir)

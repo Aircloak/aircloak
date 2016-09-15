@@ -29,9 +29,6 @@ defmodule BOM.Whitelist do
       "deppack"                     => %{type: :mit,          text: :provided},
       "diffie-hellman"              => %{type: :mit,          text: :standard},
       "envify"                      => %{type: :mit,          text: :standard},
-      "eslint-config-airbnb"        => %{type: :mit,          text: :provided},
-      "eslint-config-airbnb-base"   => %{type: :mit,          text: :provided},
-      "eslint-import-resolver-node" => %{type: :mit,          text: :provided},
       "esrecurse"                   => %{type: :bsd_2_clause, text: :standard},
       "evp_bytestokey"              => %{type: :mit,          text: :standard},
       "fcache"                      => %{type: :isc,          text: :standard},
@@ -134,7 +131,13 @@ defmodule BOM.Whitelist do
     end
   end
 
-  @not_shipped %{elixir: ~w(proper)}
+  @not_shipped %{
+    elixir: ~w(proper),
+    node: ~w(
+      eslint eslint-config-airbnb eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-react
+      eslint-config-airbnb-base eslint-import-resolver-node
+    ),
+  }
   @doc """
   Returns false if the given package is used only for tests or building and not shipped with the product, true
   otherwise.

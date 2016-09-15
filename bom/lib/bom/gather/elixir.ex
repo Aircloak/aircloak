@@ -11,9 +11,13 @@ defmodule BOM.Gather.Elixir do
   @doc "Returns a list of packages contained in the given `deps` directory."
   @spec run(String.t) :: [Package.t]
   def run(deps_path) do
+    version_map = version_map(deps_path)
+
     deps_path
     |> Path.join("*")
     |> Path.wildcard()
+    |> Enum.map(&{&1, version_map[package_name(&1)]})
+    |> Enum.filter(fn {_, version} -> version end)
     |> Enum.map(&package/1)
   end
 
@@ -22,11 +26,12 @@ defmodule BOM.Gather.Elixir do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp package(path) do
+  defp package({path, version}) do
     %BOM.Package{
       realm: :elixir,
       name: package_name(path),
       license: license(path),
+      version: version,
     }
   end
 
@@ -48,6 +53,17 @@ defmodule BOM.Gather.Elixir do
         |> Enum.map(&License.name_to_type/1)
         |> Enum.find(&License.allowed_type?/1)
     end
+  end
+
+  defp version_map(deps_path) do
+    Gather.if_matching_file(deps_path, "../mix.lock", fn text ->
+      {deps, []} = Code.eval_string(text)
+
+      for {package, spec} <- deps, into: %{} do
+        [_, _, version | _] = Tuple.to_list(spec)
+        {to_string(package), version}
+      end
+    end)
   end
 
   defp package_name(path), do: Path.basename(path)
