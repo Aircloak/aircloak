@@ -12,7 +12,7 @@ export const Columns = (props) =>
     <tbody>
       {props.columns.map((column, i) =>
         <tr key={i}>
-          <td>{column.name}</td>
+          <td className="name-column">{column.name}</td>
           <td>{column.type}</td>
         </tr>
       )}
