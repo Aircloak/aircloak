@@ -12,7 +12,7 @@ defmodule Air.ApiToken do
   """
   use Air.Web, :model
 
-  alias Air.{User}
+  alias Air.User
   alias Ecto.Changeset
 
   @type t :: %__MODULE__{}
