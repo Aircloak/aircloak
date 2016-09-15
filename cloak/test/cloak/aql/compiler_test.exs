@@ -14,7 +14,7 @@ defmodule Cloak.Aql.Compiler.Test do
     assert %{group_by: []} = compile!("select * from table", data_source())
   end
 
-  test "casts timestamp where conditions" do
+  test "casts datetime where conditions" do
     result = compile!("select * from table where column > '2015-01-01'", data_source())
 
     assert [{:comparison, column("table", "column"), :>, ~N[2015-01-01 00:00:00.000000]}] = result.where
@@ -30,21 +30,21 @@ defmodule Cloak.Aql.Compiler.Test do
       compile!("select * from table where column > '2015-01-02'", date_data_source())
   end
 
-  test "casts timestamp in `in` conditions" do
+  test "casts datetime in `in` conditions" do
     result = compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source())
 
     assert [{:in, column("table", "column"), times}] = result.where
     assert Enum.sort(times) == [~N[2015-01-01 00:00:00.000000], ~N[2015-01-02 00:00:00.000000]]
   end
 
-  test "casts timestamp in negated conditions" do
+  test "casts datetime in negated conditions" do
     result = compile!("select * from table where column <> '2015-01-01'", data_source())
 
     assert [{:comparison, column("table", "column"), :=, ~N[2015-01-01 00:00:00.000000]}] = result.where_not
   end
 
-  test "reports malformed timestamps" do
-    assert {:error, "Cannot cast `something stupid` to timestamp."} =
+  test "reports malformed datetimes" do
+    assert {:error, "Cannot cast `something stupid` to datetime."} =
       compile("select * from table where column > 'something stupid'", data_source())
   end
 
@@ -56,7 +56,7 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} on non-numerical columns" do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
       assert error ==
-        "Function `#{unquote(function)}` requires arguments of type (`integer`) or (`real`), but got (`timestamp`)"
+        "Function `#{unquote(function)}` requires arguments of type (`integer`) or (`real`), but got (`datetime`)"
     end
   end
 
@@ -68,7 +68,7 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} on non-numerical columns" do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
       assert error ==
-        "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`timestamp`)"
+        "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`datetime`)"
     end
   end
 
@@ -87,7 +87,7 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   for function <- ~w(year month day hour minute second weekday) do
-    test "allowing #{function} on timestamp columns" do
+    test "allowing #{function} on datetime columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(column) from table", data_source())
     end
 
@@ -104,18 +104,18 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   for function <- ~w(hour minute second) do
-    test "rejecting #{function} on non-timestamp columns" do
+    test "rejecting #{function} on non-datetime columns" do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source())
       assert error ==
-        "Function `#{unquote(function)}` requires arguments of type (`timestamp` | `time`), but got (`integer`)"
+        "Function `#{unquote(function)}` requires arguments of type (`datetime` | `time`), but got (`integer`)"
     end
   end
 
   for function <- ~w(year month day weekday) do
-    test "rejecting #{function} on non-timestamp columns" do
+    test "rejecting #{function} on non-datetime columns" do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source())
       assert error ==
-        "Function `#{unquote(function)}` requires arguments of type (`timestamp` | `date`), but got (`integer`)"
+        "Function `#{unquote(function)}` requires arguments of type (`datetime` | `date`), but got (`integer`)"
     end
   end
 
@@ -127,7 +127,7 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} on non-numeric columns" do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
       assert error ==
-        "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`timestamp`)"
+        "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`datetime`)"
     end
   end
 
@@ -139,20 +139,20 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} on non-numeric columns" do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
       assert error == "Function `#{unquote(function)}` requires arguments of type"
-       <> " (`integer` | `real`) or (`integer` | `real`, `integer`), but got (`timestamp`)"
+       <> " (`integer` | `real`) or (`integer` | `real`, `integer`), but got (`datetime`)"
     end
   end
 
   test "multiarg function argument verification" do
     assert {:error, error} = compile("select div(numeric, column) from table", data_source())
     assert error ==
-      "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `timestamp`)"
+      "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `datetime`)"
   end
 
   test "rejecting a function with too many arguments" do
     assert {:error, error} = compile("select avg(numeric, column) from table", data_source())
     assert error ==
-      "Function `avg` requires arguments of type (`integer` | `real`), but got (`integer`, `timestamp`)"
+      "Function `avg` requires arguments of type (`integer` | `real`), but got (`integer`, `datetime`)"
   end
 
   test "rejecting a function with too few arguments" do
@@ -185,7 +185,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "typechecking nested function calls recursively" do
     assert {:error, error} = compile("select sqrt(abs(avg(column))) from table", data_source())
-    assert error == "Function `avg` requires arguments of type (`integer` | `real`), but got (`timestamp`)"
+    assert error == "Function `avg` requires arguments of type (`integer` | `real`), but got (`datetime`)"
   end
 
   test "accepting constants as aggregated", do:
@@ -373,7 +373,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "rejecting invalid casts" do
     assert {:error, error} = compile("select cast(column as integer) from table", data_source())
-    assert error == "Cannot cast value of type `timestamp` to type `integer`."
+    assert error == "Cannot cast value of type `datetime` to type `integer`."
   end
 
   test "accepting valid casts" do
@@ -426,13 +426,13 @@ defmodule Cloak.Aql.Compiler.Test do
         db_name: "table",
         name: "table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"column", :timestamp}, {"numeric", :integer}, {"float", :real}]
+        columns: [{"uid", :integer}, {"column", :datetime}, {"numeric", :integer}, {"float", :real}]
       },
       other_table: %{
         db_name: "other_table",
         name: "other_table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"other_column", :timestamp}]
+        columns: [{"uid", :integer}, {"other_column", :datetime}]
       },
       t1: %{
         db_name: "t1",

@@ -23,9 +23,9 @@ defmodule Cloak.Aql.Function do
     }},
     ~w(avg stddev) => %{aggregate: true, type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
-      %{type_specs: %{[{:or, [:timestamp, :time]}] => :integer}},
+      %{type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year month day weekday) =>
-      %{type_specs: %{[{:or, [:timestamp, :date]}] => :integer}},
+      %{type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
     ~w(round trunc) => %{type_specs: %{
        [numeric] => :integer,
@@ -35,21 +35,21 @@ defmodule Cloak.Aql.Function do
     ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
     ~w(pow ^) => %{type_specs: arithmetic_operation},
     ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
-      [:date, :interval] => :timestamp,
+      [:date, :interval] => :datetime,
       [:time, :interval] => :time,
-      [:timestamp, :interval] => :timestamp,
-      [:interval, :date] => :timestamp,
+      [:datetime, :interval] => :datetime,
+      [:interval, :date] => :datetime,
       [:interval, :time] => :time,
-      [:interval, :timestamp] => :timestamp,
+      [:interval, :datetime] => :datetime,
       [:interval, :interval] => :interval,
     })},
     ~w(-) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :date] => :interval,
       [:time, :time] => :interval,
-      [:timestamp, :timestamp] => :interval,
-      [:date, :interval] => :timestamp,
+      [:datetime, :datetime] => :interval,
+      [:date, :interval] => :datetime,
       [:time, :interval] => :time,
-      [:timestamp, :interval] => :timestamp,
+      [:datetime, :interval] => :datetime,
       [:interval, :interval] => :interval,
     })},
     ~w(*) => %{type_specs: Map.merge(arithmetic_operation, %{
@@ -74,12 +74,12 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :real}},
     [{:cast, :boolean}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :boolean}},
-    [{:cast, :timestamp}] =>
-      %{type_specs: %{[{:or, [:text, :timestamp]}] => :timestamp}},
+    [{:cast, :datetime}] =>
+      %{type_specs: %{[{:or, [:text, :datetime]}] => :datetime}},
     [{:cast, :time}] =>
-      %{type_specs: %{[{:or, [:text, :timestamp, :time]}] => :time}},
+      %{type_specs: %{[{:or, [:text, :datetime, :time]}] => :time}},
     [{:cast, :date}] =>
-      %{type_specs: %{[{:or, [:text, :timestamp, :date]}] => :date}},
+      %{type_specs: %{[{:or, [:text, :datetime, :date]}] => :date}},
     [{:cast, :text}] =>
       %{type_specs: %{[:any] => :text}},
     [{:cast, :interval}] =>
@@ -347,9 +347,9 @@ defmodule Cloak.Aql.Function do
       _ -> nil
     end
   end
-  # cast to timestamp
-  defp cast(value = %NaiveDateTime{}, :timestamp), do: value
-  defp cast(value, :timestamp) when is_binary(value), do:
+  # cast to datetime
+  defp cast(value = %NaiveDateTime{}, :datetime), do: value
+  defp cast(value, :datetime) when is_binary(value), do:
     value |> Cloak.Time.parse_datetime() |> error_to_nil()
   # cast to time
   defp cast(value = %Time{}, :time), do: value

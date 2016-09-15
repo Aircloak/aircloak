@@ -171,7 +171,7 @@ defmodule Cloak.Aql.Function.Test do
 
   for function <- ~w(year month day weekday) do
     test function do
-      assert well_typed?(unquote(function), [:timestamp])
+      assert well_typed?(unquote(function), [:datetime])
       assert well_typed?(unquote(function), [:date])
       refute well_typed?(unquote(function), [:time])
     end
@@ -179,7 +179,7 @@ defmodule Cloak.Aql.Function.Test do
 
   for function <- ~w(hour minute second) do
     test function do
-      assert well_typed?(unquote(function), [:timestamp])
+      assert well_typed?(unquote(function), [:datetime])
       refute well_typed?(unquote(function), [:date])
       assert well_typed?(unquote(function), [:time])
     end
@@ -205,16 +205,16 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("-", [~T[10:20:00], ~T[10:00:00]]) === Duration.from_minutes(20)
   end
 
-  test "subtracting timestamps" do
-    assert well_typed?("-", [:timestamp, :timestamp])
-    assert return_type("-", [:timestamp, :timestamp]) == :interval
+  test "subtracting datetimes" do
+    assert well_typed?("-", [:datetime, :datetime])
+    assert return_type("-", [:datetime, :datetime]) == :interval
     assert apply_function("-", [~N[2015-01-02 10:20:00], ~N[2015-01-01 10:00:00]]) ===
       Duration.parse!("P1DT20M")
   end
 
   test "date + interval" do
     assert well_typed?("+", [:date, :interval])
-    assert return_type("+", [:date, :interval]) == :timestamp
+    assert return_type("+", [:date, :interval]) == :datetime
     assert apply_function("+", [~D[2015-01-01], Duration.parse!("P10DT10M")]) === ~N[2015-01-11 00:10:00]
   end
 
@@ -224,13 +224,13 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("+", [~T[10:20:30], Duration.parse!("P10DT1H10M")]) === ~T[11:30:30]
   end
 
-  test "timestamp + interval" do
-    assert well_typed?("+", [:timestamp, :interval])
-    assert return_type("+", [:timestamp, :interval]) == :timestamp
+  test "datetime + interval" do
+    assert well_typed?("+", [:datetime, :interval])
+    assert return_type("+", [:datetime, :interval]) == :datetime
     assert apply_function("+", [~N[2015-01-01 10:20:30], Duration.parse!("P10DT10M")]) === ~N[2015-01-11 10:30:30]
   end
 
-  for {type, value} <- %{time: ~T[10:20:30], date: ~D[2015-01-02], timestamp: ~N[2015-01-02 10:20:30]} do
+  for {type, value} <- %{time: ~T[10:20:30], date: ~D[2015-01-02], datetime: ~N[2015-01-02 10:20:30]} do
     @value value
     @interval Duration.parse!("P10DT10M")
 
@@ -311,7 +311,7 @@ defmodule Cloak.Aql.Function.Test do
     assert well_typed?({:cast, :integer}, [:boolean])
     assert well_typed?({:cast, :integer}, [:real])
     assert well_typed?({:cast, :integer}, [:integer])
-    refute well_typed?({:cast, :integer}, [:timestamp])
+    refute well_typed?({:cast, :integer}, [:datetime])
     refute well_typed?({:cast, :integer}, [:date])
     refute well_typed?({:cast, :integer}, [:time])
     refute well_typed?({:cast, :integer}, [:interval])
@@ -334,7 +334,7 @@ defmodule Cloak.Aql.Function.Test do
     assert well_typed?({:cast, :real}, [:boolean])
     assert well_typed?({:cast, :real}, [:real])
     assert well_typed?({:cast, :real}, [:integer])
-    refute well_typed?({:cast, :real}, [:timestamp])
+    refute well_typed?({:cast, :real}, [:datetime])
     refute well_typed?({:cast, :real}, [:date])
     refute well_typed?({:cast, :real}, [:time])
     refute well_typed?({:cast, :real}, [:interval])
@@ -357,7 +357,7 @@ defmodule Cloak.Aql.Function.Test do
     assert well_typed?({:cast, :text}, [:boolean])
     assert well_typed?({:cast, :text}, [:real])
     assert well_typed?({:cast, :text}, [:integer])
-    assert well_typed?({:cast, :text}, [:timestamp])
+    assert well_typed?({:cast, :text}, [:datetime])
     assert well_typed?({:cast, :text}, [:date])
     assert well_typed?({:cast, :text}, [:time])
     assert well_typed?({:cast, :text}, [:interval])
@@ -380,7 +380,7 @@ defmodule Cloak.Aql.Function.Test do
     assert well_typed?({:cast, :boolean}, [:boolean])
     assert well_typed?({:cast, :boolean}, [:real])
     assert well_typed?({:cast, :boolean}, [:integer])
-    refute well_typed?({:cast, :boolean}, [:timestamp])
+    refute well_typed?({:cast, :boolean}, [:datetime])
     refute well_typed?({:cast, :boolean}, [:date])
     refute well_typed?({:cast, :boolean}, [:time])
     refute well_typed?({:cast, :boolean}, [:interval])
@@ -399,22 +399,22 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function({:cast, :boolean}, [false]) === false
   end
 
-  test "cast to timestamp typing" do
-    assert well_typed?({:cast, :timestamp}, [:text])
-    refute well_typed?({:cast, :timestamp}, [:boolean])
-    refute well_typed?({:cast, :timestamp}, [:real])
-    refute well_typed?({:cast, :timestamp}, [:integer])
-    assert well_typed?({:cast, :timestamp}, [:timestamp])
-    refute well_typed?({:cast, :timestamp}, [:date])
-    refute well_typed?({:cast, :timestamp}, [:time])
-    refute well_typed?({:cast, :timestamp}, [:interval])
+  test "cast to datetime typing" do
+    assert well_typed?({:cast, :datetime}, [:text])
+    refute well_typed?({:cast, :datetime}, [:boolean])
+    refute well_typed?({:cast, :datetime}, [:real])
+    refute well_typed?({:cast, :datetime}, [:integer])
+    assert well_typed?({:cast, :datetime}, [:datetime])
+    refute well_typed?({:cast, :datetime}, [:date])
+    refute well_typed?({:cast, :datetime}, [:time])
+    refute well_typed?({:cast, :datetime}, [:interval])
   end
 
-  test "cast to timestamp" do
+  test "cast to datetime" do
     time = ~N[2015-01-01 10:22:23.000000]
-    assert apply_function({:cast, :timestamp}, [time]) === time
-    assert apply_function({:cast, :timestamp}, [Timex.format!(time, "{ISO:Extended:Z}")]) === time
-    assert apply_function({:cast, :timestamp}, ["some string"]) === nil
+    assert apply_function({:cast, :datetime}, [time]) === time
+    assert apply_function({:cast, :datetime}, [Timex.format!(time, "{ISO:Extended:Z}")]) === time
+    assert apply_function({:cast, :datetime}, ["some string"]) === nil
   end
 
   test "cast to time typing" do
@@ -422,7 +422,7 @@ defmodule Cloak.Aql.Function.Test do
     refute well_typed?({:cast, :time}, [:boolean])
     refute well_typed?({:cast, :time}, [:real])
     refute well_typed?({:cast, :time}, [:integer])
-    assert well_typed?({:cast, :time}, [:timestamp])
+    assert well_typed?({:cast, :time}, [:datetime])
     refute well_typed?({:cast, :time}, [:date])
     assert well_typed?({:cast, :time}, [:time])
     refute well_typed?({:cast, :time}, [:interval])
@@ -441,7 +441,7 @@ defmodule Cloak.Aql.Function.Test do
     refute well_typed?({:cast, :date}, [:boolean])
     refute well_typed?({:cast, :date}, [:real])
     refute well_typed?({:cast, :date}, [:integer])
-    assert well_typed?({:cast, :date}, [:timestamp])
+    assert well_typed?({:cast, :date}, [:datetime])
     assert well_typed?({:cast, :date}, [:date])
     refute well_typed?({:cast, :date}, [:time])
     refute well_typed?({:cast, :date}, [:interval])
@@ -460,7 +460,7 @@ defmodule Cloak.Aql.Function.Test do
     refute well_typed?({:cast, :interval}, [:boolean])
     refute well_typed?({:cast, :interval}, [:real])
     refute well_typed?({:cast, :interval}, [:integer])
-    refute well_typed?({:cast, :interval}, [:timestamp])
+    refute well_typed?({:cast, :interval}, [:datetime])
     refute well_typed?({:cast, :interval}, [:date])
     refute well_typed?({:cast, :interval}, [:time])
     assert well_typed?({:cast, :interval}, [:interval])
@@ -473,7 +473,7 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function({:cast, :interval}, ["not an interval"]) === nil
   end
 
-  for type <- [:text, :boolean, :real, :integer, :timestamp, :date, :time, :interval] do
+  for type <- [:text, :boolean, :real, :integer, :datetime, :date, :time, :interval] do
     test "casting nil to #{type}" do
       assert apply_function({:cast, unquote(type)}, [nil]) === nil
     end

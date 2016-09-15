@@ -1,7 +1,5 @@
 defmodule Air.DataSourceManager.Test do
-  # `async: false` because shared sandbox mode is used
-  # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   use Air.ModelCase
 
   import Air.{AssertionHelper, TestUtils}
@@ -9,7 +7,7 @@ defmodule Air.DataSourceManager.Test do
   alias Air.{Repo, DataSource, DataSourceManager}
 
   setup do
-    {:ok, server} = DataSourceManager.start_link(__MODULE__)
+    {:ok, server} = DataSourceManager.start_link(name: nil)
     Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), server)
 
     {:ok, server: server}

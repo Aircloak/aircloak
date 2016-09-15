@@ -20,8 +20,10 @@ defmodule Air.DataSourceManager do
   discover whether a datastore is available for querying, and if so where.
   """
   @spec start_link() :: {:ok, pid} | {:error, term}
-  @spec start_link(term) :: {:ok, pid} | {:error, term}
-  def start_link(name \\ __MODULE__), do: GenServer.start_link(__MODULE__, nil, name: name)
+  @spec start_link(Keyword.t) :: {:ok, pid} | {:error, term}
+  def start_link(options \\ []) do
+    GenServer.start_link(__MODULE__, nil, Keyword.merge([name: __MODULE__], options))
+  end
 
   @doc """
   Registers a data source (if needed), and associates the calling cloak with the data source
