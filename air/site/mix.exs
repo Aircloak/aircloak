@@ -53,6 +53,7 @@ defmodule Air.Mixfile do
   defp deps do
     [
       {:phoenix, "~> 1.2.1"},
+      {:phoenix_pubsub, "~> 1.0"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_ecto, "~> 3.0"},
       {:phoenix_html, "~> 2.4"},
@@ -103,7 +104,8 @@ defmodule Air.Mixfile do
   defp common_applications do
     [
       :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-      :lhttpc, :etcd, :hackney, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv
+      :lhttpc, :etcd, :hackney, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv,
+      :phoenix_pubsub
     ]
   end
 
