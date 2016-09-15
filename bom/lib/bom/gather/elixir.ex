@@ -11,12 +11,9 @@ defmodule BOM.Gather.Elixir do
   @doc "Returns a list of packages contained in the given `deps` directory."
   @spec run(String.t) :: [Package.t]
   def run(deps_path) do
-    versions = version_map(deps_path)
-
     deps_path
-    |> Path.join("*")
-    |> Path.wildcard()
-    |> Enum.map(&package(&1, versions))
+    |> version_map()
+    |> Enum.map(&package(&1, deps_path))
   end
 
 
@@ -24,12 +21,14 @@ defmodule BOM.Gather.Elixir do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp package(path, versions) do
+  defp package({package, version}, deps_path) do
+    package_path = Path.join(deps_path, package)
+
     %BOM.Package{
       realm: :elixir,
-      name: package_name(path),
-      license: license(path),
-      version: versions[package_name(path)]
+      name: package,
+      license: license(package_path),
+      version: version
     }
   end
 
