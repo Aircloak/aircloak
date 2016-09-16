@@ -2,7 +2,7 @@ defmodule Air.DataSource do
   @moduledoc "Represents data sources made available through the cloaks"
   use Air.Web, :model
 
-  alias Air.{DataSource, Query, Group}
+  alias Air.DataSource
 
   @type t :: %__MODULE__{}
 
@@ -11,8 +11,8 @@ defmodule Air.DataSource do
     field :name, :string
     field :tables, :string
 
-    has_many :queries, Query
-    many_to_many :groups, Group,
+    has_many :queries, Air.Query
+    many_to_many :groups, Air.Group,
       join_through: "data_sources_groups",
       on_delete: :delete_all,
       on_replace: :delete

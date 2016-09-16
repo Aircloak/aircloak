@@ -67,7 +67,7 @@ defmodule Air.Socket.CloakTest do
       payload: %{query_id: query.id, rows: [], columns: []}
     }
 
-    Air.Endpoint.subscribe(self(), "user:#{query.user_id}")
+    Air.Endpoint.subscribe("user:#{query.user_id}")
     TestSocket.push(socket, "main", "cloak_call", request)
 
     assert {:ok, {"main", "call_response", response}} = TestSocket.await_message(socket, 100)

@@ -32,8 +32,13 @@ defmodule Air.ConnCase do
     end
   end
 
-  setup do
+  setup tags do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Air.Repo)
-    {:ok, conn: Phoenix.ConnTest.conn()}
+
+    unless tags[:async] do
+      Ecto.Adapters.SQL.Sandbox.mode(Air.Repo, {:shared, self()})
+    end
+
+    {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end
