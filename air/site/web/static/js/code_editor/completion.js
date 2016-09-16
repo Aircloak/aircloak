@@ -14,18 +14,26 @@ const KEYWORDS = [
   "IN ()", "NOT IN ()",
 ];
 
-export default function completionList(curLine, curPos, posBuilder, tableNames, columnNames) {
-  const regex = /(\w|\.)/;
-  let start = curPos;
+const longestFirst = (candidate) => candidate.text.length * -1;
+
+const wordCharRegex = /(\w|\.)/;
+
+const findBounds = (string, initial, regex) => {
+  let start = initial;
   let end = start;
 
-  // find start and end of the word
-  while (end < curLine.length && regex.test(curLine.charAt(end))) {
+  while (end < string.length && regex.test(string.charAt(end))) {
     end++;
   }
-  while (start > 0 && regex.test(curLine.charAt(start - 1))) {
+  while (start > 0 && regex.test(string.charAt(start - 1))) {
     start--;
   }
+
+  return {start, end};
+};
+
+export default function completionList(curLine, curPos, posBuilder, tableNames, columnNames) {
+  const {end, start} = findBounds(curLine, curPos, wordCharRegex);
 
   // We want to construct the longest possible match using the previous
   // SQL words the analyst has written. For example, if the analyst has
@@ -54,10 +62,6 @@ export default function completionList(curLine, curPos, posBuilder, tableNames, 
 
   const matcher = new RegExp(finalClause, "i");
 
-  const sortOrder = (candidate) =>
-    // We favour the longest matches over the more specific ones
-    candidate.text.length * -1;
-
   const showColumnsFromTables =
     _.map(tableNames, tableName => `SHOW COLUMNS FROM ${tableName};`);
 
@@ -82,7 +86,7 @@ export default function completionList(curLine, curPos, posBuilder, tableNames, 
       }
     }).
     reject((candidate) => candidate === null).
-    sortBy((item) => sortOrder(item)).
+    sortBy(longestFirst).
     value();
 
   return {list};
