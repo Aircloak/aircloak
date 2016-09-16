@@ -491,7 +491,7 @@ defmodule Cloak.Aql.Compiler do
     do_cast_where_clause(clause, column.type)
   end
 
-  @castable_conditions [:timestamp, :time, :date]
+  @castable_conditions [:datetime, :time, :date]
 
   defp do_cast_where_clause({:not, subclause}, type) do
     {:not, do_cast_where_clause(subclause, type)}
@@ -515,7 +515,7 @@ defmodule Cloak.Aql.Compiler do
     Cloak.Time.parse_date(string)
   defp do_parse_time(%Column{type: :text, value: string}, :time), do:
     Cloak.Time.parse_time(string)
-  defp do_parse_time(%Column{type: :text, value: string}, :timestamp), do:
+  defp do_parse_time(%Column{type: :text, value: string}, :datetime), do:
     Cloak.Time.parse_datetime(string)
   defp do_parse_time(_, _), do: {:error, :invalid_cast}
 

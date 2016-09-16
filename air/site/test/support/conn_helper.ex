@@ -7,7 +7,7 @@ defmodule Air.TestConnHelper do
   @doc "Logs-in as the given user, and returns the recycled connection."
   defmacro login(user) do
     quote do
-      conn()
+      build_conn()
       |> post("/auth", email: unquote(user).email, password: "1234")
       |> recycle()
     end
@@ -19,7 +19,7 @@ defmodule Air.TestConnHelper do
       token_salt = Application.get_env(:air, Endpoint) |> Keyword.fetch!(:api_token_salt)
       token_text = Phoenix.Token.sign(Endpoint, token_salt, unquote(token).id)
 
-      put_req_header(conn(), "auth-token", token_text)
+      put_req_header(build_conn(), "auth-token", token_text)
     end
   end
 end

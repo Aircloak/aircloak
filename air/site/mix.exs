@@ -52,7 +52,8 @@ defmodule Air.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.1.6"},
+      {:phoenix, "~> 1.2.1"},
+      {:phoenix_pubsub, "~> 1.0"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_ecto, "~> 3.0"},
       {:phoenix_html, "~> 2.4"},
@@ -81,9 +82,9 @@ defmodule Air.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      "recreate_db": ["app.start", "ecto.rollback --all", "ecto.migrate", "run priv/repo/seeds.exs"],
-      "migrate": ["app.start", "ecto.migrate"],
       "rollback": ["app.start", "ecto.rollback"],
+      "migrate": ["app.start", "ecto.migrate"],
+      "seed": ["app.start", "run priv/repo/seeds.exs"],
       "test.standard": ["test", "eunit"],
       "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
     ]
@@ -102,7 +103,8 @@ defmodule Air.Mixfile do
   defp common_applications do
     [
       :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-      :lhttpc, :hackney, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv
+      :lhttpc, :hackney, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv,
+      :phoenix_pubsub
     ]
   end
 

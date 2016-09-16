@@ -72,9 +72,9 @@ ul.nav.navbar-nav.navbar-right li form.link a:hover {
 }
 
 /* Customize container */
-@media (min-width: 768px) {
+@media (min-width: 1060px) {
   .container {
-    max-width: 730px;
+    max-width: 1024px;
   }
 }
 .container-narrow > hr {
@@ -128,41 +128,13 @@ a.suggested-reading:hover {
   color: black;
 }
 
-ul.data-source {
-  margin: 0 -10px;
-  padding: 0;
-}
-
-ul.data-source li {
-  list-style-type: none;
-}
-
-ul.data-source li h3 {
-  padding: 10px;
-  margin: 0;
-}
-
-ul.data-source li a.main-link {
-  display: table;
-  width: 100%;
-  height: 100%;
-  text-decoration: none;
-}
-
-ul.data-source li a.main-link:hover {
-  background-color: #ccc;
-}
-
-ul.data-source li p {
-  border-top: 1px solid #ecebed;
-  margin-left: 10px;
-  margin-right: 10px;
-  padding-top: 5px;
-  margin-top: -1px;
-}
-
 h2 {
   padding-bottom: 15px;
   border-bottom: 1px solid rgb(238, 238, 238);
   margin-bottom: 20px;
+}
+
+.mode-select {
+  margin-top: 10px;
+  margin-right: 0px;
 }

@@ -24,4 +24,8 @@ defmodule Air.DataSourceView do
   def to_json(map) do
     {:safe, Poison.encode!(map)}
   end
+
+  def tables(data_source) do
+    {:safe, data_source |> DataSource.tables() |> Poison.encode!()}
+  end
 end

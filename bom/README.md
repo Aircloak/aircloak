@@ -42,7 +42,8 @@ describing dependencies and their licenses in the following format:
     "license": {
       "type": "one of a list of license types",
       "text": "the full text of the license"
-    }
+    },
+    "version": "a version number or git hash"
   },
   ...
 ]

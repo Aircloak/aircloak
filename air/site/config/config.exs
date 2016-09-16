@@ -41,6 +41,8 @@ config :air, Air.Repo,
   # We need it to work with `pgbouncer` (see https://github.com/elixir-ecto/postgrex#pgbouncer)
   prepare: :unnamed
 
+config :air, ecto_repos: [Air.Repo]
+
 config :air, Air.BOM,
   location: "priv/bom.json.example"
 

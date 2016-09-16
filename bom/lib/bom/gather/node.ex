@@ -11,10 +11,12 @@ defmodule BOM.Gather.Node do
   @doc "Returns a list of packages contained in the given `node_modules` directory."
   @spec run(String.t) :: [Package.t]
   def run(path) do
+    shrinkwrap = Gather.if_matching_file(path, "../npm-shrinkwrap.json", &Poison.decode!/1)
+
     path
     |> Path.join("*")
     |> Path.wildcard()
-    |> Enum.map(&package/1)
+    |> Enum.map(&package(&1, shrinkwrap))
   end
 
 
@@ -22,11 +24,12 @@ defmodule BOM.Gather.Node do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp package(path) do
+  defp package(path, shrinkwrap) do
     %BOM.Package{
       realm: :node,
       name: Path.basename(path),
-      license: license(path)
+      license: license(path),
+      version: shrinkwrap["dependencies"][Path.basename(path)]["version"],
     }
   end
 

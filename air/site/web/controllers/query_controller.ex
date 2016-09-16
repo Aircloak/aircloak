@@ -105,10 +105,10 @@ defmodule Air.QueryController do
   end
 
   defp parse_query_params(params) do
-    # Needed for temporary backwards compatibility, while clients are still sending
-    # tokens rather than ID's.
-    data_source_id = params["data_source_id"] || params["data_source_token"]
-    data_source = Repo.get!(DataSource, data_source_id)
+    data_source = case params["data_source_id"] do
+      nil -> Repo.get_by!(DataSource, global_id: params["data_source_token"])
+      id -> Repo.get!(DataSource, id)
+    end
     Map.merge(params, %{"data_source_id" => data_source.id})
   end
 

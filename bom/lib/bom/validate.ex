@@ -21,6 +21,8 @@ defmodule BOM.Validate do
 
   defp errors(%{name: nil}), do: "Name empty"
   defp errors(%{name: ""}), do: "Name empty"
+  defp errors(%{version: nil}), do: "Version empty"
+  defp errors(%{version: ""}), do: "Version empty"
   defp errors(%{realm: nil}), do: "Realm empty"
   defp errors(%{license: nil}), do: "No license"
   defp errors(%{license: license}), do:

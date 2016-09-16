@@ -19,7 +19,8 @@ test:
 	mix test.standard
 
 recreate_db:
-	mix recreate_db
+	mix rollback --all
+	mix seed
 
 migrate:
 	mix migrate
