@@ -76,10 +76,8 @@ export default function completionList(curLine, curPos, posBuilder, tableNames, 
       } else {
         return {
           text: candidate,
-          /* eslint-disable new-cap */
           from: posBuilder(end - bestMatch.length),
           to: posBuilder(end),
-          /* eslint-enable new-cap */
         };
       }
     }).

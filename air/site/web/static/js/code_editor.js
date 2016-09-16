@@ -36,7 +36,9 @@ export class CodeEditor extends React.Component {
     return completions(
       cm.getLine(cm.getCursor().line),
       cm.getCursor().ch,
+      /* eslint-disable new-cap */
       (pos) => this.editor.Pos(cm.getCursor().line, pos),
+      /* eslint-enable new-cap */
       this.props.tableNames,
       this.props.columnNames
     );
