@@ -6,6 +6,7 @@ module.exports = {
     "quotes": ["error", "double"],
     "object-curly-spacing": ["error", "never"],
     "max-len": ["error", {"code": 110}],
+    "import/no-unresolved": ["off"],
   },
   "env": {
     "node": true,
