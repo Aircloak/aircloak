@@ -83,9 +83,9 @@ defmodule Air.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      "recreate_db": ["app.start", "ecto.rollback --all", "ecto.migrate", "run priv/repo/seeds.exs"],
-      "migrate": ["app.start", "ecto.migrate"],
       "rollback": ["app.start", "ecto.rollback"],
+      "migrate": ["app.start", "ecto.migrate"],
+      "seed": ["app.start", "run priv/repo/seeds.exs"],
       "test.standard": ["test", "eunit"],
       "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
     ]
