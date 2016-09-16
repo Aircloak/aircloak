@@ -12,7 +12,6 @@ defmodule Air.ApiToken do
   """
   use Air.Web, :model
 
-  alias Air.{User}
   alias Ecto.Changeset
 
   @type t :: %__MODULE__{}
@@ -20,7 +19,7 @@ defmodule Air.ApiToken do
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "api_tokens" do
     field :description, :string
-    belongs_to :user, User, references: :id
+    belongs_to :user, Air.User, references: :id
 
     timestamps
   end

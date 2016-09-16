@@ -8,8 +8,8 @@ defmodule Air.Repo.Migrations.RenameUniqueId do
   end
 
   def down do
-    create unique_index(:data_sources, [:global_id])
+    drop unique_index(:data_sources, [:global_id])
     rename table(:data_sources), :global_id, to: :unique_id
-    drop unique_index(:data_sources, [:unique_id])
+    create unique_index(:data_sources, [:unique_id])
   end
 end

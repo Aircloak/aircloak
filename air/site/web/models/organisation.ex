@@ -2,14 +2,12 @@ defmodule Air.Organisation do
   @moduledoc "The organisation model."
   use Air.Web, :model
 
-  alias Air.User
-
   @type t :: %__MODULE__{}
 
   schema "organisations" do
     field :name, :string
 
-    has_many :users, User
+    has_many :users, Air.User
 
     timestamps
   end

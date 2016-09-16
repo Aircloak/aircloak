@@ -1,4 +1,4 @@
-defmodule Air.Repo.Migrations.AddUserToGroupAssociation do
+defmodule Air.Repo.Migrations.AddDataSourceToGroupAssociation do
   use Ecto.Migration
 
   def change do
