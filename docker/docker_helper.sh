@@ -313,9 +313,9 @@ function cleanup_unused_images {
 }
 
 function check_registry {
-  response=$(registry_v2_req $REGISTRY_URL "")
+  response=$(registry_v2_req "")
 
-  if [ "$response" != "{}" ]; then
+  if [ "$response" != "true" ]; then
     printf "\nCan't connect to registry ($REGISTRY_URL): $response\n\n"
     exit 1
   fi
@@ -343,10 +343,8 @@ function check_registry {
 #     you need to force the new version to be pushed, you can delete the local
 #     image.
 function build_and_push_to_registry {
-  image_name=$1
-
   latest_registry_version=$(
-        registry_v2_req $REGISTRY_URL $image_name/tags/list |
+        registry_v2_req $image_name/tags/list |
         jq --raw-output ".tags | select(. != null) | .[]" |
         sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
         head -n 1
@@ -374,35 +372,47 @@ function build_and_push_to_registry {
   # push if needed
   if [ "$new_version" != "" ]; then
     echo "Pushing $image_name:$new_version to the registry"
-    docker tag -f "$new_image_id" "$REGISTRY_URL/$image_name:$new_version"
-    docker push "$REGISTRY_URL/$image_name:$new_version"
+    docker tag -f "$new_image_id" "quay.io/$image_name:$new_version"
+    docker push "quay.io/$image_name:$new_version"
 
     # also tag with latest
-    docker tag -f "$new_image_id" "$REGISTRY_URL/$image_name:latest"
-    docker push "$REGISTRY_URL/$image_name:latest"
+    docker tag -f "$new_image_id" "quay.io/$image_name:latest"
+    docker push "quay.io/$image_name:latest"
   fi
 }
 
 function registry_v2_req {
-  protocol="http"
-  if [ -e "$HOME/.docker/config.json" ]; then
-    token=$(
-          cat $HOME/.docker/config.json |
-          jq --raw-output ".auths[\"https://$1/v2/\"] | select(. != null) | .auth"
-        )
-    if [ "$token" != "" ]; then
-      protocol="https"
-      auth_header="-H 'Authorization: Basic $token'"
-    fi
-  fi
+  # Authentication as described in https://docs.docker.com/registry/spec/auth/token/#/how-to-authenticate
 
-  eval "curl -s $auth_header $protocol://$1/v2/$2"
+  # 1. make a request which is bound to fail, but will return auth specification in `WWW-Authenticate`
+  authenticate_header=$(
+    curl -s -I https://quay.io/v2/$1 |
+      grep 'WWW-Authenticate: ' |
+      sed 's/WWW-Authenticate: //'
+  )
+
+  # 2. Extract auth params
+  IFS=" " read auth_method auth_spec < <(echo "$authenticate_header")
+  IFS="," read realm auth_params < <(echo "$auth_spec")
+
+  # 3. shape auth url
+  auth_params=$(echo "$auth_params" | sed 's/,/\&/g' | sed 's/"//g')
+  url="https://quay.io/v2/auth?$auth_params"
+  url=${url%$'\r'} # remove trailing \n
+
+  # 4. read user auth token from the secrets folder and use it to fetch operation auth token
+  quay_auth_token=$(cat $(dirname ${BASH_SOURCE[0]})/../secrets/quay_auth_token)
+  operation_token=$(curl -s -H "Authorization: Basic $quay_auth_token" "$url" | jq --raw-output ".token")
+
+  # 5. Now we can make authorized request
+  result=$(curl -s -H "Authorization: $auth_method $operation_token" https://quay.io/v2/$1)
+  echo $result
 }
 
 function untag_registry_tags {
   # Remove all local repo tags. We don't need those, since the image is tagged
   # anyway, and this allows us proper local cleanup of older images.
-  repo_tags=$(docker images | grep "$1" | awk '{print $1":"$2}' || true)
+  repo_tags=$(docker images | grep "quay.io/$1" | awk '{print $1":"$2}' || true)
   if [ "$repo_tags" != "" ]; then
     docker rmi $repo_tags
   fi
@@ -421,7 +431,7 @@ function elixir_version {
 }
 
 function published_images {
-  registry_v2_req $1 _catalog |
+  registry_v2_req _catalog |
     jq --raw-output ".repositories []" |
     grep aircloak |
     sort
@@ -429,13 +439,13 @@ function published_images {
 
 function published_image_versions {
   for version in $(
-    registry_v2_req $1 $2/tags/list |
+    registry_v2_req $1/tags/list |
       jq --raw-output ".tags | select(. != null) | .[]" |
       grep -v latest |
       sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn"
   ); do
     created_at=$(
-      registry_v2_req $1 $2/manifests/$version |
+      registry_v2_req $1/manifests/$version |
         jq --raw-output ".history[0].v1Compatibility" |
         jq --raw-output ".created"
     )

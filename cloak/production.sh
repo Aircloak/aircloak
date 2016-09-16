@@ -14,6 +14,10 @@ function lock_command {
   "
 }
 
+function image_name {
+  IMAGE_CATEGORY="$IMAGE_CATEGORY" ./container.sh image_name
+}
+
 
 function build_image {
   ssh acdbuild.mpi-sws.org "
@@ -27,12 +31,12 @@ function build_image {
     git checkout $BRANCH
     git reset --hard origin/$BRANCH
     echo 'Building the image'
-    CONTAINER_ENV=prod REGISTRY_URL=$REGISTRY IMAGE_CATEGORY=$IMAGE_CATEGORY $BUILD_FOLDER/package.sh
+    CONTAINER_ENV=prod IMAGE_CATEGORY=$IMAGE_CATEGORY $BUILD_FOLDER/package.sh
   "
 }
 
 function start_cloak {
-  full_image_name="$REGISTRY/aircloak/${IMAGE_CATEGORY}_cloak:$1"
+  full_image_name="quay.io/$(image_name):$1"
 
   ssh $TARGET_MACHINE "
     set -eo pipefail
@@ -67,10 +71,8 @@ function print_usage {
   echo
 }
 
-REGISTRY="registry.aircloak.com"
-BUILD_FOLDER="/aircloak/cloak_mpi/aircloak/cloak/"
+BUILD_FOLDER="/aircloak/quay_deploy/aircloak/cloak/"
 BRANCH=$(git symbolic-ref --short HEAD)
-IMAGE="${IMAGE_CATEGORY}_cloak"
 
 if [ $# -lt 2 ]; then
   print_usage
@@ -84,7 +86,7 @@ case "$1" in
   versions)
     ssh acdbuild.mpi-sws.org "
       . $BUILD_FOLDER/../docker/docker_helper.sh &&
-      published_image_versions $REGISTRY aircloak/${IMAGE_CATEGORY}_cloak
+      published_image_versions $(image_name)
     "
     ;;
 
