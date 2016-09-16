@@ -85,11 +85,5 @@ export default function completionList(curLine, curPos, posBuilder, tableNames, 
     sortBy((item) => sortOrder(item)).
     value();
 
-  return {
-    list,
-    /* eslint-disable new-cap */
-    from: posBuilder(start),
-    to: posBuilder(end),
-    /* eslint-enable new-cap */
-  };
+  return {list};
 }
