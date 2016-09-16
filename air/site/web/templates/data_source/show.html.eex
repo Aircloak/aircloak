@@ -24,7 +24,7 @@
       </div>
     </div>
 
-    <div class="column col-sm-3" id="table-info"></div>
+    <div class="column align-footer col-sm-3" id="table-info"></div>
   </div>
 </div>
 
