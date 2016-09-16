@@ -32,6 +32,6 @@
     "navigator": "^1.0.1"
   },
   "scripts": {
-    "test": "mocha --compilers js:babel-register test/js/**/*.js"
+    "test": "mocha --reporter dot --compilers js:babel-register test/js/**/*.js"
   }
 }
