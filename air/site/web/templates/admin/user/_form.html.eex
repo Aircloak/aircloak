@@ -56,7 +56,7 @@
 <% end %>
 
 <%= PhoenixMTM.Helpers.collection_checkboxes f, :groups, Enum.map(available_groups(), &({&1.name, &1.id})),
-  selected: Enum.map(f.data.groups, &(&1.id)), mapper: &(content_tag(:div, &1, class: "group_checkbox")) %>
+  selected: Enum.map(@chosen_groups, &(&1.id)), mapper: &(content_tag(:div, &1, class: "group_checkbox")) %>
 
 <hr />
 

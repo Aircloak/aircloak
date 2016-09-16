@@ -70,7 +70,8 @@ defmodule Air.Mixfile do
       {:inflex, "~> 1.5.0"},
       {:csv, "~> 1.4.2"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", only: :test},
-      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0", only: :test}
+      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0", only: :test},
+      {:phoenix_mtm, github: "sebastian/phoenix_mtm", branch: "master"}
     ]
   end
 
