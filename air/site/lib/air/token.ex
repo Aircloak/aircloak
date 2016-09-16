@@ -12,9 +12,8 @@ defmodule Air.Token do
   @spec create_api_token(User.t, String.t) :: String.t | {:error, Ecto.Changeset.t}
   def create_api_token(user, description) do
     changeset = ApiToken.changeset(%ApiToken{}, %{description: description, user_id: user.id})
-    case Repo.insert(changeset) do
-      {:ok, token_entry} -> Phoenix.Token.sign(Endpoint, api_token_salt(), token_entry.id)
-      {:error, _} = error -> error
+    with {:ok, token_entry} <- Repo.insert(changeset) do
+      Phoenix.Token.sign(Endpoint, api_token_salt(), token_entry.id)
     end
   end
 
