@@ -43,7 +43,9 @@ defmodule Air.DataSourceController do
       _ -> nil
     end
 
-    render(conn, "show.html",
+    conn
+    |> put_layout("raw.html")
+    |> render("show.html",
       data_source: data_source,
       guardian_token: Guardian.Plug.current_token(conn),
       csrf_token: CSRFProtection.get_csrf_token(),
