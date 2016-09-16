@@ -58,3 +58,13 @@ it("completes column names", () => {
     ]}
   );
 });
+
+it("completes mid-word", () => {
+  assert.deepEqual(
+    completions("col rest", 2, _.identity, [], ["column1", "column2"]),
+    {list: [
+      {text: "column1", from: 0, to: 3},
+      {text: "column2", from: 0, to: 3},
+    ]}
+  );
+});
