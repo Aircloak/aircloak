@@ -33,7 +33,13 @@ export class CodeEditor extends React.Component {
   }
 
   completionList(cm) {
-    return completions(cm, this.editor, this.props.tableNames, this.props.columnNames);
+    return completions(
+      cm.getLine(cm.getCursor().line),
+      cm.getCursor().ch,
+      (pos) => this.editor.Pos(cm.getCursor().line, pos),
+      this.props.tableNames,
+      this.props.columnNames
+    );
   }
 
   render() {

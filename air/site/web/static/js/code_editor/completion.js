@@ -14,11 +14,9 @@ const KEYWORDS = [
   "IN ()", "NOT IN ()",
 ];
 
-export default function completionList(cm, editor, tableNames, columnNames) {
-  const cur = cm.getCursor();
-  const curLine = cm.getLine(cur.line);
+export default function completionList(curLine, curPos, posBuilder, tableNames, columnNames) {
   const regex = /(\w|\.)/;
-  let start = cur.ch;
+  let start = curPos;
   let end = start;
 
   // find start and end of the word
@@ -79,8 +77,8 @@ export default function completionList(cm, editor, tableNames, columnNames) {
       return {
         text: candidate,
         /* eslint-disable new-cap */
-        from: editor.Pos(cur.line, end - bestMatch.length),
-        to: editor.Pos(cur.line, end),
+        from: posBuilder(end - bestMatch.length),
+        to: posBuilder(end),
         /* eslint-enable new-cap */
       };
     }
@@ -92,8 +90,8 @@ export default function completionList(cm, editor, tableNames, columnNames) {
   return {
     list,
     /* eslint-disable new-cap */
-    from: editor.Pos(cur.line, start),
-    to: editor.Pos(cur.line, end),
+    from: posBuilder(start),
+    to: posBuilder(end),
     /* eslint-enable new-cap */
   };
 }
