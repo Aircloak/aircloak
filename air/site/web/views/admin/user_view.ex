@@ -34,4 +34,19 @@ defmodule Air.Admin.UserView do
     |> Stream.filter(&(not match?({_id, {:admin, _}}, &1)))
     |> Enum.map(fn({id, {_key, desc}}) -> {desc, id} end)
   end
+
+  defp group_names(user) do
+    {first_groups, rest} = Enum.split(user.groups, 3)
+    names = case first_groups do
+      [] -> "No groups"
+      _ ->
+        first_groups
+        |> Enum.map(&(&1.name))
+        |> Enum.join(", ")
+    end
+    case length(rest) do
+      0 -> names
+      n -> "#{names} and #{n} others"
+    end
+  end
 end

@@ -23,7 +23,7 @@ defmodule Air.Admin.UserController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    users = Repo.all(User) |> Repo.preload([:organisation])
+    users = Repo.all(User) |> Repo.preload([:organisation, :groups])
     render(conn, "index.html", users: users)
   end
 
@@ -33,7 +33,7 @@ defmodule Air.Admin.UserController do
   end
 
   def edit(conn, %{"id" => id}) do
-    user = Repo.get!(User, id)
+    user = Repo.get!(User, id) |> Repo.preload([:groups])
     render(conn, "edit.html", changeset: User.changeset(user))
   end
 
