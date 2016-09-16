@@ -9,10 +9,10 @@ defmodule Air.Token do
   # -------------------------------------------------------------------
 
   @doc "Given a user and a description, a token is created and assigned to the user"
-  @spec create_api_token(User.t, String.t) :: {:ok, String.t} | {:error, String.t}
+  @spec create_api_token(User.t, String.t) :: String.t | {:error, Ecto.Changeset.t}
   def create_api_token(user, description) do
     changeset = ApiToken.changeset(%ApiToken{}, %{description: description, user_id: user.id})
-    case Air.Repo.insert(changeset) do
+    case Repo.insert(changeset) do
       {:ok, token_entry} -> Phoenix.Token.sign(Endpoint, api_token_salt(), token_entry.id)
       {:error, _} = error -> error
     end
