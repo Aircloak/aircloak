@@ -106,7 +106,7 @@ defmodule Air.Mixfile do
     [
       :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
       :lhttpc, :etcd, :hackney, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv,
-      :phoenix_pubsub
+      :phoenix_pubsub, :phoenix_mtm
     ]
   end
 
