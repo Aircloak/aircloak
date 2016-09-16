@@ -4,6 +4,8 @@ defmodule Air.Admin.UserView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
+  alias Air.{Repo, Group}
+
   defp select_org_values(conn) do
     organisations = conn.assigns[:organisations]
     Enum.reduce(organisations, [], fn(org, acc) ->
@@ -48,5 +50,9 @@ defmodule Air.Admin.UserView do
       0 -> names
       n -> "#{names} and #{n} others"
     end
+  end
+
+  defp available_groups() do
+    Repo.all(Group)
   end
 end

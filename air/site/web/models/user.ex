@@ -129,6 +129,7 @@ defmodule Air.User do
     |> validate_change(:role_id, &validate_role_id/2)
     |> update_password_hash
     |> unique_constraint(:email)
+    |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
   end
 
   @doc "Validates the user password."

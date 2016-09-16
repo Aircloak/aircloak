@@ -34,7 +34,7 @@ defmodule Air.Admin.UserController do
 
   def edit(conn, %{"id" => id}) do
     user = Repo.get!(User, id) |> Repo.preload([:groups])
-    render(conn, "edit.html", changeset: User.changeset(user))
+    render(conn, "edit.html", changeset: User.changeset(user), user: user)
   end
 
   def create(conn, params) do
@@ -56,7 +56,7 @@ defmodule Air.Admin.UserController do
   end
 
   def update(conn, %{"id" => id} = params) do
-    user = Repo.get!(User, id)
+    user = Repo.get!(User, id) |> Repo.preload([:groups])
     user_params = params["user"]
 
     if edit_permitted?(conn, user, user_params) do
