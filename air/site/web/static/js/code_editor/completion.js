@@ -18,10 +18,10 @@ const longestFirst = (candidate) => candidate.text.length * -1;
 
 const wordCharRegex = /(\w|\.)/;
 
-const findEnd = (string, start, regex) => {
+const wordEnd = (string, start) => {
   let end = start;
 
-  while (end < string.length && regex.test(string.charAt(end))) {
+  while (end < string.length && wordCharRegex.test(string.charAt(end))) {
     end++;
   }
 
@@ -29,7 +29,7 @@ const findEnd = (string, start, regex) => {
 };
 
 export default function completionList(curLine, curPos, posBuilder, tableNames, columnNames) {
-  const end = findEnd(curLine, curPos, wordCharRegex);
+  const end = wordEnd(curLine, curPos);
 
   // We want to construct the longest possible match using the previous
   // SQL words the analyst has written. For example, if the analyst has
