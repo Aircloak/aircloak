@@ -37,19 +37,27 @@ defmodule Air.Admin.UserView do
     |> Enum.map(fn({id, {_key, desc}}) -> {desc, id} end)
   end
 
-  defp group_names(user) do
-    {first_groups, rest} = Enum.split(user.groups, 3)
-    names = case first_groups do
-      [] -> "No groups"
-      _ ->
-        first_groups
-        |> Enum.map(&(&1.name))
-        |> Enum.join(", ")
-    end
-    case length(rest) do
-      0 -> names
-      n -> "#{names} and #{n} others"
-    end
+  defp group_names([]), do: "No groups"
+  defp group_names(groups) when length(groups) <= 3 do
+    join_groups(groups)
+  end
+  defp group_names(groups) do
+    {first_groups, rest} = Enum.split(groups, 2)
+    join_groups(first_groups ++ [%{name: "#{length(rest)} other groups"}])
+  end
+
+  # Goddamn Oxford comman :|
+  defp join_groups(groups) when length(groups) < 3 do
+    groups
+    |> Enum.map(&(&1.name))
+    |> Enum.join(", ")
+  end
+  defp join_groups(groups) do
+    {most, last} = groups
+    |> Enum.map(&(&1.name))
+    |> Enum.split(length(groups) - 1)
+    most = Enum.join(most, ", ")
+    "#{most}, and #{last}"
   end
 
   defp available_groups() do

@@ -20,7 +20,7 @@
         <td><%= user.name %></td>
         <td><%= user.email %></td>
         <td><%= organisation_name(user) %></td>
-        <td><%= group_names(user)%></td>
+        <td><%= group_names(user.groups)%></td>
         <td><%= role(user)%></td>
         <td>
           <%= link "Edit", to: user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %>
