@@ -65,27 +65,27 @@ export default function completionList(curLine, curPos, posBuilder, tableNames, 
     _.map(tableNames, tableName => `FROM ${tableName};`);
 
   const list = _.chain(KEYWORDS).
-  concat(tableNames).
-  concat(showColumnsFromTables).
-  concat(fromWithTables).
-  concat(columnNames).
-  map((candidate) => {
-    const bestMatch = candidate.match(matcher).shift();
-    if (bestMatch === "") {
-      return null;
-    } else {
-      return {
-        text: candidate,
-        /* eslint-disable new-cap */
-        from: posBuilder(end - bestMatch.length),
-        to: posBuilder(end),
-        /* eslint-enable new-cap */
-      };
-    }
-  }).
-  reject((candidate) => candidate === null).
-  sortBy((item) => sortOrder(item)).
-  value();
+    concat(tableNames).
+    concat(showColumnsFromTables).
+    concat(fromWithTables).
+    concat(columnNames).
+    map((candidate) => {
+      const bestMatch = candidate.match(matcher).shift();
+      if (bestMatch === "") {
+        return null;
+      } else {
+        return {
+          text: candidate,
+          /* eslint-disable new-cap */
+          from: posBuilder(end - bestMatch.length),
+          to: posBuilder(end),
+          /* eslint-enable new-cap */
+        };
+      }
+    }).
+    reject((candidate) => candidate === null).
+    sortBy((item) => sortOrder(item)).
+    value();
 
   return {
     list,
