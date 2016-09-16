@@ -1,7 +1,7 @@
 <div class="data-source body-wrapper">
   <div class="container">
     <div class="column col-sm-9">
-      <div class="content">
+      <div class="content-wrapper">
         <ol class="breadcrumb">
           <li><a href="/data_sources">Data sources</a></li>
           <li class="active"><%= @data_source.name %></li>

@@ -8,7 +8,9 @@
   height: 100%;
 }
 
-.data-source .column .content {
+.data-source .column .content-wrapper {
   position: relative;
   min-height: 100%;
+  /* Footer */
+  padding-bottom: 50px;
 }
