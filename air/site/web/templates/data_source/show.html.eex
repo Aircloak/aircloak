@@ -1,7 +1,7 @@
-<div style="padding-bottom: 0; height: 100%" class="data-source body-wrapper">
-  <div style="height: 100%" class="container">
-    <div style="height: 100%" class="col-sm-9">
-      <div style="min-height: 100%; position: relative">
+<div class="data-source body-wrapper">
+  <div class="container">
+    <div class="column col-sm-9">
+      <div class="content">
         <ol class="breadcrumb">
           <li><a href="/data_sources">Data sources</a></li>
           <li class="active"><%= @data_source.name %></li>
@@ -24,7 +24,7 @@
       </div>
     </div>
 
-    <div style="height: 100%;" class="col-sm-3" id="table-info"></div>
+    <div class="column col-sm-3" id="table-info"></div>
   </div>
 </div>
 

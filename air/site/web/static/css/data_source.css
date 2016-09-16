@@ -1,0 +1,14 @@
+.body-wrapper.data-source {
+  padding-bottom: 0px;
+  height: 100%;
+}
+
+.data-source .container,
+.data-source .column {
+  height: 100%;
+}
+
+.data-source .column .content {
+  position: relative;
+  min-height: 100%;
+}
