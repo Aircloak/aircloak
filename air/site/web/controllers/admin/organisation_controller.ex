@@ -47,7 +47,7 @@ defmodule Air.Admin.OrganisationController do
 
   def show(conn, %{"id" => id}) do
     with %{halted: false} <- verify_org_permissions(conn, id) do
-      organisation = Repo.get!(Organisation, id) |> Repo.preload([users: :organisation])
+      organisation = Repo.get!(Organisation, id) |> Repo.preload([users: [:organisation, :groups]])
       render(conn, "show.html", organisation: organisation)
     end
   end
