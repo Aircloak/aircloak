@@ -1,4 +1,2 @@
-IMAGE_CATEGORY=test_sasa
+DEPLOYMENT_NAME=sasa
 TARGET_MACHINE=srv-76-135.mpi-sws.org
-RUNTIME_CONFIG=sasa
-CLOAK_NAME=test_sasa
