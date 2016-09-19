@@ -10,11 +10,6 @@
     </tr>
   </thead>
   <tbody>
-    <%= if length(@groups) == 0 do %>
-      <tr>
-        <td colspan=4>There are currently no groups</td>
-      </tr>
-    <% end %>
     <tr>
       <td colspan=4>
         <%= form_for @changeset, group_path(@conn, :create), [class: "form-inline"], fn f -> %>
@@ -36,6 +31,11 @@
         <% end %>
       </td>
     </tr>
+    <%= if length(@groups) == 0 do %>
+      <tr>
+        <td colspan=4>There are currently no groups</td>
+      </tr>
+    <% end %>
     <%= for group <- @groups |> Enum.sort_by(&(&1.name)) do %>
       <tr>
         <td><%= group.name %></td>
