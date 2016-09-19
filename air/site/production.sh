@@ -49,14 +49,11 @@ function start_air {
     docker stop $AIR_NAME || true
     docker rm $AIR_NAME || true
 
-    if [ \"\$(docker ps | grep epmd)\" == \"\" ]; then
-      docker run -d --name epmd $full_image_name /aircloak/air/erts-7.2.1/bin/epmd
-    fi
-
     echo 'Starting air $AIR_NAME'
-    docker run -d --net=host \\
+    docker run -d \\
       --name $AIR_NAME \\
       -e AIR_NAME=$AIR_NAME \\
+      -p $AIR_HTTP_PORT:8080 \\
       -v /opt/share/air_runtime_configs/$RUNTIME_CONFIG/:/runtime_config \\
       $full_image_name
   "
@@ -71,7 +68,7 @@ function print_usage {
   echo
 }
 
-BUILD_FOLDER="/aircloak/quay_deploy/aircloak/air/"
+BUILD_FOLDER="/aircloak/quay_deploy/aircloak/air/site"
 BRANCH=$(git symbolic-ref --short HEAD)
 
 if [ $# -lt 2 ]; then

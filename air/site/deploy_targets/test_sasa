@@ -1,0 +1,5 @@
+IMAGE_CATEGORY=test_sasa
+TARGET_MACHINE=srv-76-135.mpi-sws.org
+RUNTIME_CONFIG=sasa
+AIR_NAME=air_sasa
+AIR_HTTP_PORT=10000
