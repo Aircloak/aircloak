@@ -14,12 +14,23 @@
     },
     {
       "driver": "odbc",
-      "marker": "odbc",
+      "marker": "odbc-postgresql",
       "parameters": {
         "DSN": "PostgreSQL",
         "UID": "postgres",
         "Database": "cloaktest1",
         "Server": "localhost"
+      },
+      "tables": {
+      }
+    },
+    {
+      "driver": "mysql",
+      "marker": "native",
+      "parameters": {
+        "hostname": "localhost",
+        "username": "root",
+        "database": "cloaktest1"
       },
       "tables": {
       }
