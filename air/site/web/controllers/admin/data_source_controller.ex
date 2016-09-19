@@ -31,11 +31,11 @@ defmodule Air.Admin.DataSourceController do
 
   def edit(conn, %{"id" => id}) do
     data_source = Repo.get(DataSource, id) |> Repo.preload([:groups])
-    render(conn, "edit.html", changeset: DataSource.changeset(data_source))
+    render(conn, "edit.html", changeset: DataSource.changeset(data_source), chosen_groups: data_source.groups)
   end
 
   def update(conn, %{"id" => id} = params) do
-    user = Repo.get!(DataSource, id)
+    user = Repo.get!(DataSource, id) |> Repo.preload([:groups])
     changeset = DataSource.changeset(user, params["data_source"])
     case Repo.update(changeset) do
       {:ok, data_source} ->
