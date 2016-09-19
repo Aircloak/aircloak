@@ -57,7 +57,7 @@ defmodule Air.Admin.CloaksControllerTest do
     DataSourceManager.register_cloak(cloak_info, data_sources)
 
     # verify that it's in the list
-    login(user) |> get("/admin/cloaks") |> redirected_to()
+    assert login(user) |> get("/admin/cloaks") |> redirected_to() === "/"
     html_response = login(admin) |> get("/admin/cloaks") |> response(200)
     assert html_response =~ "cloak name"
 

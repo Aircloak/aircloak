@@ -118,7 +118,6 @@ defmodule Air.QueryController do
     try do
       case MainChannel.run_query(
         hd(DataSourceManager.channel_pids(query.data_source.global_id)),
-        conn.assigns.current_user.organisation,
         Query.to_cloak_query(query)
       ) do
         :ok ->

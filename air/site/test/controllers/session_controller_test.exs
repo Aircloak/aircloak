@@ -9,8 +9,7 @@ defmodule Air.SessionControllerTest do
   end
 
   test "logging in/out" do
-    org = TestRepoHelper.create_organisation!()
-    user = TestRepoHelper.create_user!(org, :user)
+    user = TestRepoHelper.create_user!()
 
     # invalid e-mail
     html = build_conn() |> post("/auth", email: "foo@aircloak.com", password: "1234") |> response(200)
@@ -34,8 +33,7 @@ defmodule Air.SessionControllerTest do
   end
 
   test "logged in user can't log in" do
-    org = TestRepoHelper.create_organisation!()
-    user = TestRepoHelper.create_user!(org, :user)
+    user = TestRepoHelper.create_user!()
 
     response = login(user) |> get("/auth") |> response(400)
     assert response =~ "already authenticated"

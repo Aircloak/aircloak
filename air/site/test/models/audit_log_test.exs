@@ -18,8 +18,7 @@ defmodule Air.AuditLogTest do
   end
 
   test "creating audit log entries should save a db record" do
-    organisation = create_organisation!()
-    user = create_user!(organisation)
+    user = create_user!()
     conn = assign_user(%Plug.Conn{}, user)
 
     assert AuditLog.log(conn, "event", meta: true) == :ok
@@ -31,8 +30,7 @@ defmodule Air.AuditLogTest do
   end
 
   test "reads user from connection if none provided" do
-    organisation = create_organisation!()
-    user = create_user!(organisation)
+    user = create_user!()
     conn = assign_user(%Plug.Conn{}, user)
 
     assert AuditLog.log(conn, "event") == :ok
@@ -43,8 +41,7 @@ defmodule Air.AuditLogTest do
   end
 
   test "sets IP and remote_ip in metadata" do
-    organisation = create_organisation!()
-    user = create_user!(organisation)
+    user = create_user!()
     conn = %{%Plug.Conn{} | remote_ip: {127, 0, 0, 1}, peer: {{127, 0, 0, 1}, 1234}}
     conn = assign_user(conn, user)
 

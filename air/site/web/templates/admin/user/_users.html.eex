@@ -3,7 +3,6 @@
     <tr>
       <th>Name</th>
       <th>Email</th>
-      <th>Organisation</th>
       <th>Groups</th>
       <th>Role</th>
       <th></th>
@@ -19,9 +18,12 @@
       <tr>
         <td><%= user.name %></td>
         <td><%= user.email %></td>
-        <td><%= organisation_name(user) %></td>
         <td><%= group_names(user.groups)%></td>
-        <td><%= role(user)%></td>
+        <td>
+          <%= if admin?(user) do %>
+            <span class="label label-danger">Admin</span>
+          <% end %>
+        </td>
         <td>
           <%= link "Edit", to: user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %>
           <%= link "Delete", to: user_path(@conn, :delete, user), method: :delete, class: "btn btn-danger btn-xs" %>

@@ -56,7 +56,6 @@ defmodule Air.Router do
 
     get "/queries/failed", QueryController, :failed
 
-    resources "/organisations", OrganisationController
     resources "/users", UserController
     resources "/groups", GroupController
 

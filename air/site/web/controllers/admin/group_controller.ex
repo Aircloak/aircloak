@@ -11,7 +11,7 @@ defmodule Air.Admin.GroupController do
 
   def permissions do
     %{
-      org_admin: :all
+      admin: :all
     }
   end
 

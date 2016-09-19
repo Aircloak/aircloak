@@ -13,7 +13,6 @@ defmodule Air.VerifyPermissions do
   ```
   %{
     anonymous: [:action_1, :action_2],
-    org_admin: [:action_3],
     admin: :all % all actions are permitted
   }
   ```

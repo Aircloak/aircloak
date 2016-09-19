@@ -36,8 +36,7 @@ defmodule Air.Admin.QueryControllerTest do
 
   test "user can't fetch failed queries" do
     assert "/" ==
-      create_organisation!()
-      |> create_user!()
+      create_user!()
       |> login()
       |> get("/admin/queries/failed")
       |> redirected_to()

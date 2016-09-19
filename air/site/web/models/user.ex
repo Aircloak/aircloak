@@ -10,7 +10,7 @@ defmodule Air.User do
 
   @type t :: %__MODULE__{}
   @type role_id :: non_neg_integer
-  @type role_key :: :anonymous | :user | :org_admin | :admin
+  @type role_key :: :anonymous | :user | :admin
   @type operation :: atom
   @type permissions :: %{role_key => [operation] | :all}
 
@@ -19,8 +19,6 @@ defmodule Air.User do
     field :hashed_password, :string
     field :name, :string
     field :role_id, :integer
-
-    belongs_to :organisation, Air.Organisation
 
     has_many :queries, Air.Query
     many_to_many :groups, Group,
@@ -36,19 +34,17 @@ defmodule Air.User do
     field :password_confirmation, :string, virtual: true
   end
 
-  @required_fields ~w(email name organisation_id role_id)a
+  @required_fields ~w(email name)a
   @optional_fields ~w(password password_confirmation)a
 
   @roles %{
     0 => {:user, "user"},
-    1 => {:org_admin, "organisation manager"},
-    2 => {:admin, "administrator"}
+    1 => {:admin, "administrator"}
   }
 
   @included_roles %{
     user: [:anonymous],
-    org_admin: [:user, :anonymous],
-    admin: [:org_admin, :user, :anonymous]
+    admin: [:user, :anonymous]
   }
 
 
@@ -60,17 +56,10 @@ defmodule Air.User do
   @spec all_roles :: %{role_id => {role_key, description::String.t}}
   def all_roles, do: @roles
 
-  @doc """
-  Returns all user's roles.
-
-  Note: You need to preload the organisation association before calling this
-  function.
-  """
+  @doc "Returns all user's roles."
   @spec roles(nil | t) :: [role_key]
   def roles(nil),
     do: [:anonymous]
-  def roles(%{organisation: %Ecto.Association.NotLoaded{}}),
-    do: raise "organisation is not preloaded"
   def roles(%{role_id: role_id} = user) do
     if admin?(user) do
       expand_role(:admin)
