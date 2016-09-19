@@ -59,6 +59,17 @@ defmodule Air.Admin.UserView do
     "#{most}, and #{last}"
   end
 
+  @max_length 10
+
+  def shorten_name(name) do
+    if String.length(name) > @max_length do
+      {first, _} = String.split_at(name, @max_length - 3)
+      "#{first}..."
+    else
+      name
+    end
+  end
+
   defp available_groups() do
     Repo.all(Group)
   end
