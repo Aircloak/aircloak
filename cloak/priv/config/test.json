@@ -11,18 +11,6 @@
       },
       "tables": {
       }
-    },
-    {
-      "driver": "odbc",
-      "marker": "odbc",
-      "parameters": {
-        "DSN": "PostgreSQL",
-        "UID": "postgres",
-        "Database": "cloaktest1",
-        "Server": "localhost"
-      },
-      "tables": {
-      }
     }
   ]
 }
