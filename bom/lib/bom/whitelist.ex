@@ -16,6 +16,7 @@ defmodule BOM.Whitelist do
     },
     :node => %{
       "bcrypt-pbkdf"                => %{type: :bsd_4_clause, text: :standard},
+      "browser-stdout"              => %{type: :isc,          text: :standard},
       "browserify-cipher"           => %{type: :mit,          text: :standard},
       "browserify-des"              => %{type: :mit,          text: :standard},
       "brunch"                      => %{type: :mit,          text: :provided},
@@ -61,6 +62,7 @@ defmodule BOM.Whitelist do
       "unitbezier"                  => %{type: :bsd_3_clause, text: :standard},
       "weak-map"                    => %{type: :apache2,      text: :provided},
       "wgs84"                       => %{type: :bsd_2_clause, text: :standard},
+      "wordwrap"                    => %{type: :mit,          text: :provided},
     }
   }
 
