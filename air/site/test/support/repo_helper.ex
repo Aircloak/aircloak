@@ -43,7 +43,7 @@ defmodule Air.TestRepoHelper do
   @spec create_group!() :: Air.Group.t
   def create_group!() do
     %Air.Group{}
-    |> Air.Group.changeset(%{name: "group-#{random_string()}"})
+    |> Air.Group.changeset(%{name: "group-#{random_string()}", admin: false})
     |> Repo.insert!()
   end
 

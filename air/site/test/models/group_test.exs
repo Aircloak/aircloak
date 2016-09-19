@@ -3,7 +3,7 @@ defmodule Air.GroupTest do
 
   alias Air.{Group, User, DataSource, TestRepoHelper, TestUtils}
 
-  @valid_attrs %{name: "group name"}
+  @valid_attrs %{name: "group name", admin: false}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do

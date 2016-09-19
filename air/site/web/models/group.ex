@@ -14,6 +14,8 @@ defmodule Air.Group do
 
   schema "groups" do
     field :name, :string
+    field :admin, :boolean
+
     many_to_many :users, User,
       join_through: "groups_users",
       on_delete: :delete_all,
@@ -26,7 +28,7 @@ defmodule Air.Group do
     timestamps
   end
 
-  @required_fields ~w(name)a
+  @required_fields ~w(name admin)a
   @optional_fields ~w()a
 
   @doc """
