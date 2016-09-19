@@ -54,12 +54,14 @@ defmodule Air.Admin.UserView do
   end
 
   @max_length 10
+  @front_length trunc(Float.ceil(2 * @max_length / 3)) - 1
+  @end_length trunc(Float.floor(@max_length / 3)) - 1
 
   def shorten_name(name) do
     if String.length(name) > @max_length do
-      {first, _} = String.split_at(name, 4)
+      {first, _} = String.split_at(name, @front_length)
       first = String.trim(first)
-      {_, last} = String.split_at(name, String.length(name) - 4)
+      {_, last} = String.split_at(name, String.length(name) - @end_length)
       last = String.trim(last)
       "#{first}..#{last}"
     else
