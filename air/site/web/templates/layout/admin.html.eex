@@ -30,7 +30,6 @@
                   <%= navbar_link(@conn, "Cloaks", cloaks_path(@conn, :index)) %>
                   <%= navbar_link(@conn, "Failed queries", query_path(@conn, :failed)) %>
                   <%= navbar_link(@conn, "Users", manage_users_link(@conn)) %>
-                  <%= navbar_link(@conn, "Organisations", organisation_path(@conn, :index)) %>
                   <%= navbar_link(@conn, "Groups", group_path(@conn, :index)) %>
                   <%= navbar_link(@conn, "Audit log", audit_log_path(@conn, :index)) %>
                 </ul>
