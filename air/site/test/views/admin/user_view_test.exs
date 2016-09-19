@@ -14,4 +14,15 @@ defmodule Air.Admin.UserViewTest do
   test "shortened names are trimmed too" do
     assert shorten_name("namert hats") == "namert..."
   end
+
+  Enum.each([
+    {["a", "b"], "a, b"},
+    {["a", "b", "c"], "a, b, and c"},
+    {["a", "b", "c", "d"], "a, b, and 2 other groups"},
+    {["a", "b", "c", "d", "e"], "a, b, and 3 other groups"},
+  ], fn({names, expected}) ->
+    test "Formats group of names (#{inspect names}) to #{expected}" do
+      assert format_names(unquote(names)) === unquote(expected)
+    end
+  end)
 end
