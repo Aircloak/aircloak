@@ -11,8 +11,12 @@ defmodule Air.Admin.UserViewTest do
     assert shorten_name("0123456789") == "0123456789"
   end
 
-  test "shortened names are trimmed too" do
-    assert shorten_name("namert hats") == "namert..."
+  test "long names are shortened in the middle" do
+    assert shorten_name("much and too long") == "much..long"
+  end
+
+  test "when shortened, the individual parts are trimmed too" do
+    assert shorten_name("too and too long") == "too..long"
   end
 
   Enum.each([

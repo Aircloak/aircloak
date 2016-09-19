@@ -57,9 +57,11 @@ defmodule Air.Admin.UserView do
 
   def shorten_name(name) do
     if String.length(name) > @max_length do
-      {first, _} = String.split_at(name, @max_length - 3)
+      {first, _} = String.split_at(name, 4)
       first = String.trim(first)
-      "#{first}..."
+      {_, last} = String.split_at(name, String.length(name) - 4)
+      last = String.trim(last)
+      "#{first}..#{last}"
     else
       name
     end
