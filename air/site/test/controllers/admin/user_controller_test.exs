@@ -35,7 +35,7 @@ defmodule Air.Admin.UserControllerTest do
 
   test "admins can change user's organisation" do
     org = TestRepoHelper.admin_organisation()
-    admin = TestRepoHelper.create_user!(org)
+    admin = TestRepoHelper.create_user!(org) |> TestRepoHelper.make_admin!()
 
     html = login(admin) |> get("/admin/users/new") |> response(200)
     assert html =~ ~s(name="user[organisation_id]")
@@ -77,8 +77,7 @@ defmodule Air.Admin.UserControllerTest do
   end
 
   test "admin can create a user in another org" do
-    org = TestRepoHelper.admin_organisation()
-    admin = TestRepoHelper.create_user!(org)
+    admin = TestRepoHelper.create_admin_user!()
     another_org = TestRepoHelper.create_organisation!()
 
     new_user_email = "foo@bar.baz"
@@ -144,7 +143,7 @@ defmodule Air.Admin.UserControllerTest do
 
   test "admin can change user's org" do
     admin_org = TestRepoHelper.admin_organisation()
-    admin = TestRepoHelper.create_user!(admin_org)
+    admin = TestRepoHelper.create_user!(admin_org) |> TestRepoHelper.make_admin!()
     another_org = TestRepoHelper.create_organisation!()
     user = TestRepoHelper.create_user!(another_org, :user)
 

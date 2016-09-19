@@ -6,7 +6,7 @@ defmodule Air.User do
 
   alias Ecto.Changeset
   alias Comeonin.Pbkdf2, as: Hash
-  alias Air.{Organisation, Group}
+  alias Air.Group
 
   @type t :: %__MODULE__{}
   @type role_id :: non_neg_integer
@@ -20,7 +20,7 @@ defmodule Air.User do
     field :name, :string
     field :role_id, :integer
 
-    belongs_to :organisation, Organisation
+    belongs_to :organisation, Air.Organisation
 
     has_many :queries, Air.Query
     many_to_many :groups, Group,
@@ -71,9 +71,8 @@ defmodule Air.User do
     do: [:anonymous]
   def roles(%{organisation: %Ecto.Association.NotLoaded{}}),
     do: raise "organisation is not preloaded"
-  def roles(%{organisation: org, role_id: role_id}) do
-    if Organisation.admins?(org) do
-      # user in the administrators group is always the admin
+  def roles(%{role_id: role_id} = user) do
+    if admin?(user) do
       expand_role(:admin)
     else
       expand_role(role_key(role_id))

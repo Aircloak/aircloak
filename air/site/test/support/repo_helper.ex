@@ -30,6 +30,7 @@ defmodule Air.TestRepoHelper do
       role_id: Air.User.role_id(role_key)
     })
     |> Repo.insert!()
+    |> Repo.preload([:groups])
   end
 
   @doc "Inserts a new user with default parameters into the database. See create_user!/2 for details"
@@ -39,12 +40,30 @@ defmodule Air.TestRepoHelper do
     create_user!(org, :user)
   end
 
+  @doc "Creates a user that is an admin. See create_user!/0 and make_admin!/1"
+  @spec create_admin_user!() :: Air.User.t
+  def create_admin_user!() do
+    create_user!() |> make_admin!()
+  end
+
   @doc "Creates a group with default parameters with a random group name to avoid clashes"
   @spec create_group!() :: Air.Group.t
   def create_group!() do
     %Air.Group{}
     |> Air.Group.changeset(%{name: "group-#{random_string()}", admin: false})
     |> Repo.insert!()
+  end
+
+  @doc "Adds a group with admin rights to the user"
+  @spec make_admin!(Air.User.t) :: Air.User.t
+  def make_admin!(user) do
+    admin_group = %Air.Group{}
+    |> Air.Group.changeset(%{name: "admin-group-#{random_string()}", admin: true})
+    |> Repo.insert!()
+    user
+    |> Air.User.changeset(%{groups: [admin_group.id]})
+    |> Repo.update!()
+    |> Repo.preload([:groups])
   end
 
   @doc "Creates a data source with default parameters with a random global id"
