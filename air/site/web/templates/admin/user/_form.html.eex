@@ -48,7 +48,7 @@
 
 <p>The user's group memberships determine which data sources are available for querying.</p>
 
-<%= if length(available_groups()) == 0 do %>
+<%= if length(Air.Admin.GroupView.available_groups()) == 0 do %>
   <strong>
     There are currently no groups available. You can add some on the group page:
     <%= link "Groups", to: admin_group_path(@conn, :index) %>
@@ -57,7 +57,8 @@
 
 <div class="group-selector">
 
-  <%= PhoenixMTM.Helpers.collection_checkboxes f, :groups, Enum.map(available_groups(), &({&1.name, &1.id})),
+  <%= PhoenixMTM.Helpers.collection_checkboxes f, :groups,
+    Enum.map(Air.Admin.GroupView.available_groups(), &({&1.name, &1.id})),
     selected: Enum.map(@chosen_groups, &(&1.id)), mapper: &(content_tag(:div, &1, class: "group-checkbox")) %>
 
 </div>

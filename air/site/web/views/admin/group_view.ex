@@ -4,6 +4,8 @@ defmodule Air.Admin.GroupView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
+  alias Air.{Repo, Group}
+
   def names(groups) do
     groups
     |> Enum.map(&(&1.name))
@@ -35,5 +37,9 @@ defmodule Air.Admin.GroupView do
     else
       name
     end
+  end
+
+  def available_groups() do
+    Repo.all(Group)
   end
 end

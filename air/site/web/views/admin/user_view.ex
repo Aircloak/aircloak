@@ -4,8 +4,6 @@ defmodule Air.Admin.UserView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
-  alias Air.{Repo, Group}
-
   defp select_org_values(conn) do
     organisations = conn.assigns[:organisations]
     Enum.reduce(organisations, [], fn(org, acc) ->
@@ -35,9 +33,5 @@ defmodule Air.Admin.UserView do
     Air.User.all_roles()
     |> Stream.filter(&(not match?({_id, {:admin, _}}, &1)))
     |> Enum.map(fn({id, {_key, desc}}) -> {desc, id} end)
-  end
-
-  defp available_groups() do
-    Repo.all(Group)
   end
 end
