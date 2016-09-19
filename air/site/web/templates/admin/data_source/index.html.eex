@@ -4,7 +4,7 @@
   <thead>
     <tr>
       <th>Name</th>
-      <th>Global ID</th>
+      <th>Id</th>
       <th>Available</th>
       <th># tables</th>
       <th></th>
