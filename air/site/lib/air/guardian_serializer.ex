@@ -18,6 +18,7 @@ defmodule Air.GuardianSerializer do
       where: user.id == ^id,
       preload: [organisation: organisation]
     )
+    |> Repo.preload([:groups])
     {:ok, user}
   end
   def from_token(_), do: {:error, "Unknown resource type"}

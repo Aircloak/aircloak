@@ -80,10 +80,13 @@ defmodule Air.User do
     end
   end
 
-  @doc "Returns true if the user belongs to the administrator role."
+  @doc """
+  Returns true if the user belongs to the administrator role.
+  Note that the groups association needs to be preloaded before calling this method.
+  """
   @spec admin?(nil | t) :: boolean
-  def admin?(user),
-    do: Enum.member?(roles(user), :admin)
+  def admin?(nil), do: false
+  def admin?(user), do: Enum.any?(user.groups, &(&1.admin))
 
   @doc "Returns the role id for the given role key."
   @spec role_id(role_key) :: role_id
