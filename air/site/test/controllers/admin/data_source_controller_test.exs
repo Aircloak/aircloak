@@ -79,7 +79,7 @@ defmodule Air.Admin.DataSourceControllerTest do
     end))
   end
 
-  test "deleting a data source" do
+  test "deleting an unavailable data source" do
     register_data_source()
 
     organisation = TestRepoHelper.admin_organisation()
