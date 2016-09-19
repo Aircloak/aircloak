@@ -134,7 +134,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp conditions_to_fragments({condition, _what, _match}, sql_dialect) do
     condition = condition |> to_string() |> String.upcase()
     raise SqlBuildError, message:
-      "'#{condition}' conditions are not implemented for '#{sql_dialect}' data sources."
+      "'#{condition}' conditions are not supported on '#{sql_dialect}' data sources."
   end
 
   defp to_fragment(string, _sql_dialect) when is_binary(string), do: string
