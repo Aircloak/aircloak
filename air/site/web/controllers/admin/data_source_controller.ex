@@ -24,13 +24,13 @@ defmodule Air.Admin.DataSourceController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    data_sources = Repo.all(DataSource)
+    data_sources = Repo.all(DataSource) |> Repo.preload([:groups])
     |> Enum.sort_by(&({DataSourceManager.available?(&1.global_id), &1.name}))
     render(conn, "index.html", data_sources: data_sources)
   end
 
   def edit(conn, %{"id" => id}) do
-    data_source = Repo.get(DataSource, id)
+    data_source = Repo.get(DataSource, id) |> Repo.preload([:groups])
     render(conn, "edit.html", changeset: DataSource.changeset(data_source))
   end
 
@@ -48,7 +48,7 @@ defmodule Air.Admin.DataSourceController do
   end
 
   def show(conn, %{"id" => id}) do
-    data_source = Repo.get(DataSource, id)
+    data_source = Repo.get(DataSource, id) |> Repo.preload([:groups])
     render(conn, "show.html",
       data_source: data_source,
       conn: conn,
