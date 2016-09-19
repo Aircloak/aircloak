@@ -51,7 +51,7 @@
 <%= if length(available_groups()) == 0 do %>
   <strong>
     There are currently no groups available. You can add some on the group page:
-    <%= link "Groups", to: group_path(@conn, :index) %>
+    <%= link "Groups", to: admin_group_path(@conn, :index) %>
   </strong>
 <% end %>
 
