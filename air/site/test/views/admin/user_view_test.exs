@@ -20,6 +20,7 @@ defmodule Air.Admin.UserViewTest do
   end
 
   Enum.each([
+    {["a"], "a"},
     {["a", "b"], "a, b"},
     {["a", "b", "c"], "a, b, and c"},
     {["a", "b", "c", "d"], "a, b, and 2 other groups"},

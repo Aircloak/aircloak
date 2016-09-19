@@ -45,6 +45,7 @@ defmodule Air.Admin.UserView do
   end
 
   def format_names([]), do: "No groups"
+  def format_names([group]), do: group
   def format_names([group1, group2]), do: "#{group1}, #{group2}"
   def format_names([group1, group2, group3]), do: "#{group1}, #{group2}, and #{group3}"
   def format_names(groups) do
