@@ -40,6 +40,7 @@ defmodule Air.Admin.UserView do
   defp group_names(groups) do
     groups
     |> Enum.map(&(&1.name))
+    |> Enum.map(&shorten_name/1)
     |> format_names()
   end
 
