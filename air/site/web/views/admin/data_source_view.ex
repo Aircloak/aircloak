@@ -13,8 +13,4 @@ defmodule Air.Admin.DataSourceView do
   def number_of_tables(data_source) do
     length(DataSource.tables(data_source))
   end
-
-  def tables(data_source) do
-    data_source |> DataSource.tables()
-  end
 end
