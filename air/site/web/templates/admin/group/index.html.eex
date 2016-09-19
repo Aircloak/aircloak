@@ -53,9 +53,9 @@
         <td colspan=4>There are currently no groups</td>
       </tr>
     <% end %>
-    <%= for group <- @groups |> Enum.sort_by(&(&1.name)) do %>
-      <tr>
-        <td><%= group.name %></td>
+    <%= for group <- @groups do %>
+      <tr class="<%= group_row_class(group) %>">
+        <td><%= group_name(group) %></td>
         <td><%= length(group.users) %></td>
         <td><%= length(group.data_sources) %></td>
         <td>
