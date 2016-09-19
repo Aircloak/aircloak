@@ -5,7 +5,7 @@ defmodule Air.DataSourceController do
 
   use Air.Web, :controller
 
-  alias Air.{DataSource, Query, DataSourceManager, AuditLog}
+  alias Air.{DataSource, Query, DataSourceManager}
   alias Plug.CSRFProtection
 
 
@@ -43,20 +43,13 @@ defmodule Air.DataSourceController do
       _ -> nil
     end
 
-    render(conn, "show.html",
+    conn
+    |> put_layout("raw.html")
+    |> render("show.html",
       data_source: data_source,
       guardian_token: Guardian.Plug.current_token(conn),
       csrf_token: CSRFProtection.get_csrf_token(),
       last_query: last_query,
     )
-  end
-
-  def delete(conn, %{"id" => id}) do
-    data_source = Repo.get!(DataSource, id)
-    Repo.delete!(data_source)
-    AuditLog.log(conn, "Removed data source", name: data_source.name, global_id: data_source.global_id)
-    conn
-    |> put_flash(:info, "Data source deleted")
-    |> redirect(to: data_source_path(conn, :index))
   end
 end

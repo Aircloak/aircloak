@@ -1,0 +1,26 @@
+<h2><%= @data_source.name %></h2>
+
+<div class="row">
+  <div class="col-md-2">Name</div>
+  <div class="col-md-10"><%= @data_source.name %></div>
+</div>
+<div class="row">
+  <div class="col-md-2">Id</div>
+  <div class="col-md-10"><%= @data_source.global_id %></div>
+</div>
+<div class="row">
+  <div class="col-md-2">Available</div>
+  <div class="col-md-10"><%= available?(@data_source) %></div>
+</div>
+<div class="row">
+  <div class="col-md-2">Tables</div>
+  <div class="col-md-10">
+    <strong><%= @data_source.name %></strong> makes
+    <strong><%= number_of_tables(@data_source) %> tables</strong> available:
+    <ul>
+      <%= for table <- DataSource.tables(@data_source) do %>
+        <li><%= table["id"] %></li>
+      <% end %>
+    </ul>
+  </div>
+</div>

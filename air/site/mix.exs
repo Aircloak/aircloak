@@ -70,7 +70,8 @@ defmodule Air.Mixfile do
       {:inflex, "~> 1.5.0"},
       {:csv, "~> 1.4.2"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", only: :test},
-      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0", only: :test}
+      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0", only: :test},
+      {:phoenix_mtm, github: "sebastian/phoenix_mtm", branch: "master"}
     ]
   end
 
@@ -104,7 +105,7 @@ defmodule Air.Mixfile do
     [
       :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
       :lhttpc, :hackney, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv,
-      :phoenix_pubsub
+      :phoenix_pubsub, :phoenix_mtm
     ]
   end
 

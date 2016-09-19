@@ -1,18 +1,31 @@
-<ol class="breadcrumb">
-  <li><a href="/data_sources">Data sources</a></li>
-  <li class="active"><%= @data_source.name %></li>
-</ol>
+<div class="data-source body-wrapper">
+  <div class="container">
+    <div class="column col-sm-9">
+      <div class="content-wrapper">
+        <ol class="breadcrumb">
+          <li><a href="/data_sources">Data sources</a></li>
+          <li class="active"><%= @data_source.name %></li>
+        </ol>
 
-<h2>
-  <%= @data_source.name %>
-  <%= if not available?(@data_source) do %>
-    <span class="label label-info">currently unavailable</span>
-  <% end %>
-</h2>
+        <h2>
+          <%= @data_source.name %>
+          <%= if not available?(@data_source) do %>
+            <span class="label label-info">currently unavailable</span>
+          <% end %>
+        </h2>
 
-<div class="row">
-  <div class="col-sm-9" id="query-view"></div>
-  <div class="col-sm-3" id="table-info"></div>
+        <div id="query-view"></div>
+
+        <div class="footer">
+          <div class="content">
+            <small><a href="<%= license_path(@conn, :index) %>">Third Party Licenses</a></small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="column align-footer col-sm-3" id="table-info"></div>
+  </div>
 </div>
 
 <script>

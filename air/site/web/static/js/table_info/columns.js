@@ -1,7 +1,10 @@
 import React from "react";
+import _ from "lodash";
 
-export const Columns = (props) =>
-  <table className="table">
+export const Columns = (props) => {
+  const columns = _.sortBy(props.columns, (column) => column.name.toLowerCase());
+
+  return (<table className="table">
     <thead>
       <tr>
         <th>Column</th>
@@ -10,14 +13,15 @@ export const Columns = (props) =>
     </thead>
 
     <tbody>
-      {props.columns.map((column, i) =>
+      {columns.map((column, i) =>
         <tr key={i}>
-          <td>{column.name}</td>
+          <td className="name-column">{column.name}</td>
           <td>{column.type}</td>
         </tr>
       )}
     </tbody>
-  </table>;
+  </table>);
+};
 
 Columns.propTypes = {
   columns: React.PropTypes.arrayOf(React.PropTypes.shape({

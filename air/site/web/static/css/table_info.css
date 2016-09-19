@@ -1,0 +1,17 @@
+.table-info {
+  height: 100%;
+  overflow: hidden;
+}
+
+.table-info .list-group {
+  max-height: 100%;
+  overflow: scroll;
+}
+
+.table-info .list-group-item-heading {
+  word-break: break-all;
+}
+
+.table-info .name-column {
+  word-break: break-all;
+}
