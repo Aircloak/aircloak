@@ -46,7 +46,6 @@ defmodule Air.Admin.UserView do
     join_groups(first_groups ++ [%{name: "#{length(rest)} other groups"}])
   end
 
-  # Goddamn Oxford comman :|
   defp join_groups(groups) when length(groups) < 3 do
     groups
     |> Enum.map(&(&1.name))
