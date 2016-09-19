@@ -32,7 +32,7 @@ defmodule Air.Admin.GroupController do
         AuditLog.log(conn, "Created group", name: group.name)
         conn
         |> put_flash(:info, "Group created")
-        |> redirect(to: group_path(conn, :index))
+        |> redirect(to: admin_group_path(conn, :index))
       {:error, changeset} ->
         render(conn, "index.html", changeset: changeset, groups: all_groups())
     end
@@ -44,7 +44,7 @@ defmodule Air.Admin.GroupController do
     AuditLog.log(conn, "Removed group", name: group.name)
     conn
     |> put_flash(:info, "Group deleted")
-    |> redirect(to: group_path(conn, :index))
+    |> redirect(to: admin_group_path(conn, :index))
   end
 
 

@@ -2,4 +2,4 @@
 
 <%= render "_users.html", users: @users, conn: @conn %>
 
-<a href="<%= user_path(@conn, :new) %>">Add user</a>
+<a href="<%= admin_user_path(@conn, :new) %>">Add user</a>

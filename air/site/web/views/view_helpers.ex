@@ -24,9 +24,9 @@ defmodule Air.ViewHelpers do
   @spec manage_users_link(Plug.Conn.t) :: String.t
   def manage_users_link(conn) do
     if Air.User.admin?(conn.assigns.current_user) do
-      Air.Router.Helpers.user_path(conn, :index)
+      Air.Router.Helpers.admin_user_path(conn, :index)
     else
-      Air.Router.Helpers.organisation_path(conn, :show, conn.assigns.current_user.organisation_id)
+      Air.Router.Helpers.admin_organisation_path(conn, :show, conn.assigns.current_user.organisation_id)
     end
   end
 

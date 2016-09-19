@@ -39,7 +39,7 @@ defmodule Air.Admin.OrganisationController do
         AuditLog.log(conn, "Created organisation", name: organisation.name)
         conn
         |> put_flash(:info, "Organisation created successfully.")
-        |> redirect(to: organisation_path(conn, :index))
+        |> redirect(to: admin_organisation_path(conn, :index))
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset)
     end
@@ -67,7 +67,7 @@ defmodule Air.Admin.OrganisationController do
         AuditLog.log(conn, "Updated organisation", name: organisation.name)
         conn
         |> put_flash(:info, "Organisation updated successfully.")
-        |> redirect(to: organisation_path(conn, :show, organisation))
+        |> redirect(to: admin_organisation_path(conn, :show, organisation))
       {:error, changeset} ->
         render(conn, "edit.html", organisation: organisation, changeset: changeset)
     end
@@ -83,7 +83,7 @@ defmodule Air.Admin.OrganisationController do
     AuditLog.log(conn, "Removed organisation", name: organisation.name)
     conn
     |> put_flash(:info, "Organisation deleted successfully.")
-    |> redirect(to: organisation_path(conn, :index))
+    |> redirect(to: admin_organisation_path(conn, :index))
   end
 
   defp verify_org_permissions(conn, id) do
