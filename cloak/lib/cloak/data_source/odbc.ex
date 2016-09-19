@@ -99,6 +99,7 @@ defmodule Cloak.DataSource.ODBC do
   defp parse_type(:sql_timestamp), do: :datetime
   defp parse_type(:SQL_TYPE_DATE), do: :date
   defp parse_type(:SQL_TYPE_TIME), do: :time
+  defp parse_type({:sql_numeric, _, _}), do: :real
   defp parse_type(type), do: {:unsupported, type}
 
   defp map_fields([], []), do: []
@@ -108,6 +109,8 @@ defmodule Cloak.DataSource.ODBC do
   defp column_to_field_mapper(%Column{type: :datetime}), do: &datetime_field_mapper/1
   defp column_to_field_mapper(%Column{type: :time}), do: &time_field_mapper/1
   defp column_to_field_mapper(%Column{type: :date}), do: &date_field_mapper/1
+  defp column_to_field_mapper(%Column{type: :real}), do: &numeric_field_mapper/1
+  defp column_to_field_mapper(%Column{type: :integer}), do: &numeric_field_mapper/1
   defp column_to_field_mapper(%Column{}), do: &generic_field_mapper/1
 
   defp generic_field_mapper(:null), do: nil
@@ -130,4 +133,11 @@ defmodule Cloak.DataSource.ODBC do
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
+
+  defp numeric_field_mapper(:null), do: nil
+  defp numeric_field_mapper(value) when is_binary(value) do
+    {value, ""} = Float.parse(value)
+    value
+  end
+  defp numeric_field_mapper(value), do: value
 end
