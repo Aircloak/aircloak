@@ -46,7 +46,7 @@ defmodule Cloak.DeployConfig do
   @data_sources_file_name (
     case Mix.env do
       :dev -> "dev.json"
-      :test -> "test.json"
+      :test -> if System.get_env("TRAVIS") == "true "do "travis.json" else "test.json" end
       :prod -> "config.json"
     end
   )
