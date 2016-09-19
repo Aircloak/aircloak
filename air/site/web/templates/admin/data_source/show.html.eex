@@ -15,7 +15,8 @@
 <div class="row">
   <div class="col-md-2">Tables</div>
   <div class="col-md-10">
-    <%= @data_source.name %> makes <%= number_of_tables(@data_source) %> tables available:
+    <strong><%= @data_source.name %></strong> makes
+    <strong><%= number_of_tables(@data_source) %> tables</strong> available:
     <ul>
       <%= for table <- DataSource.tables(@data_source) do %>
         <li><%= table["id"] %></li>
