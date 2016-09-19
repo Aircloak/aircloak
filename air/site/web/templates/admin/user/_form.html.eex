@@ -55,10 +55,12 @@
   </strong>
 <% end %>
 
-<%= PhoenixMTM.Helpers.collection_checkboxes f, :groups, Enum.map(available_groups(), &({&1.name, &1.id})),
-  selected: Enum.map(@chosen_groups, &(&1.id)), mapper: &(content_tag(:div, &1, class: "group_checkbox")) %>
+<div class="group-selector">
 
-<hr />
+  <%= PhoenixMTM.Helpers.collection_checkboxes f, :groups, Enum.map(available_groups(), &({&1.name, &1.id})),
+    selected: Enum.map(@chosen_groups, &(&1.id)), mapper: &(content_tag(:div, &1, class: "group_checkbox")) %>
+
+</div>
 
 <div class="form-group">
   <%= submit "Save", class: "btn btn-primary" %>
