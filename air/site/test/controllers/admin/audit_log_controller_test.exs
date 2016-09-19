@@ -11,8 +11,7 @@ defmodule Air.Admin.AuditLogControllerTest do
   end
 
   test "can view audit log as an admin" do
-    org = TestRepoHelper.admin_organisation()
-    admin = TestRepoHelper.create_user!(org)
+    admin = TestRepoHelper.create_admin_user!()
     login(admin) |> get("/admin/audit_log") |> response(200)
   end
 end

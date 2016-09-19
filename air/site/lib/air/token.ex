@@ -34,7 +34,7 @@ defmodule Air.Token do
             Task.Supervisor.start_child(Air.ApiTokenTimestampUpdater, fn() ->
               Repo.update(ApiToken.touch(token))
             end)
-            token.user
+            token.user |> Repo.preload([:groups])
           _ -> :error
         end
       _ -> :error

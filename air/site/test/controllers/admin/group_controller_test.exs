@@ -23,16 +23,15 @@ defmodule Air.Admin.GroupControllerTest do
   end
 
   test "creating a group" do
-    org = TestRepoHelper.admin_organisation()
-    org_admin = TestRepoHelper.create_user!(org, :org_admin)
+    admin = TestRepoHelper.create_admin_user!()
 
     group_name = "test group"
 
-    conn = login(org_admin)
-    |> post("/admin/groups", group: %{name: group_name})
+    conn = login(admin)
+    |> post("/admin/groups", group: %{name: group_name, admin: false})
 
     assert "/admin/groups" == redirected_to(conn)
-    groups_html = login(org_admin) |> get("/admin/groups") |> response(200)
+    groups_html = login(admin) |> get("/admin/groups") |> response(200)
     assert groups_html =~ group_name
   end
 
