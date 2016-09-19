@@ -45,7 +45,7 @@ defmodule Air.Admin.UserController do
           AuditLog.log(conn, "Created user", user: user.email, name: user.name)
           conn
           |> put_flash(:info, "User created")
-          |> redirect(to: user_path(conn, :index))
+          |> redirect(to: admin_user_path(conn, :index))
         {:error, changeset} -> render(conn, "new.html", changeset: changeset)
       end
     else
@@ -66,13 +66,13 @@ defmodule Air.Admin.UserController do
           AuditLog.log(conn, "Altered user", user: user.email, name: user.name)
           conn
           |> put_flash(:info, "User updated")
-          |> redirect(to: user_path(conn, :index))
+          |> redirect(to: admin_user_path(conn, :index))
         {:error, changeset} -> render(conn, "edit.html", changeset: changeset)
       end
     else
       conn
       |> put_flash(:error, "Action not allowed!")
-      |> redirect(to: user_path(conn, :index))
+      |> redirect(to: admin_user_path(conn, :index))
       |> Plug.Conn.halt()
     end
   end
@@ -83,7 +83,7 @@ defmodule Air.Admin.UserController do
     AuditLog.log(conn, "Removed user", user: user.email, name: user.name)
     conn
     |> put_flash(:info, "User deleted")
-    |> redirect(to: user_path(conn, :index))
+    |> redirect(to: admin_user_path(conn, :index))
   end
 
 

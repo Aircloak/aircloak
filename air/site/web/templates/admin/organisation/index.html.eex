@@ -14,10 +14,10 @@
       <td><%= organisation.name %></td>
 
       <td class="text-right">
-        <%= link "Show", to: organisation_path(@conn, :show, organisation), class: "btn btn-default btn-xs" %>
-        <%= link "Edit", to: organisation_path(@conn, :edit, organisation), class: "btn btn-default btn-xs" %>
+        <%= link "Show", to: admin_organisation_path(@conn, :show, organisation), class: "btn btn-default btn-xs" %>
+        <%= link "Edit", to: admin_organisation_path(@conn, :edit, organisation), class: "btn btn-default btn-xs" %>
         <%= unless Air.Organisation.admins?(organisation) do %>
-          <%= link "Delete", to: organisation_path(@conn, :delete, organisation), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+          <%= link "Delete", to: admin_organisation_path(@conn, :delete, organisation), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
         <% end %>
       </td>
     </tr>
@@ -25,4 +25,4 @@
   </tbody>
 </table>
 
-<%= link "New organisation", to: organisation_path(@conn, :new) %>
+<%= link "New organisation", to: admin_organisation_path(@conn, :new) %>
