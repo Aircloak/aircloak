@@ -45,23 +45,12 @@ defmodule Air.Admin.UserView do
   end
 
   def format_names([]), do: "No groups"
-  def format_names(groups) when length(groups) <= 3 do
-    join_groups(groups)
-  end
+  def format_names([group1, group2]), do: "#{group1}, #{group2}"
+  def format_names([group1, group2, group3]), do: "#{group1}, #{group2}, and #{group3}"
   def format_names(groups) do
     {first_groups, rest} = Enum.split(groups, 2)
-    join_groups(first_groups ++ ["#{length(rest)} other groups"])
-  end
-
-  defp join_groups(groups) when length(groups) < 3 do
-    groups
+    first_groups ++ ["and #{length(rest)} other groups"]
     |> Enum.join(", ")
-  end
-  defp join_groups(groups) do
-    {most, last} = groups
-    |> Enum.split(length(groups) - 1)
-    most = Enum.join(most, ", ")
-    "#{most}, and #{last}"
   end
 
   @max_length 10
