@@ -10,4 +10,8 @@ defmodule Air.Admin.UserViewTest do
   test "leaves short names untouched" do
     assert shorten_name("0123456789") == "0123456789"
   end
+
+  test "shortened names are trimmed too" do
+    assert shorten_name("namert hats") == "namert..."
+  end
 end
