@@ -97,31 +97,6 @@ defmodule Air.Admin.UserControllerTest do
     assert users_html =~ new_user_email
   end
 
-  test "org admin can't create a user in another org" do
-    org = TestRepoHelper.create_organisation!()
-    another_org = TestRepoHelper.create_organisation!()
-    org_admin = TestRepoHelper.create_user!(org, :org_admin)
-    admin_org = TestRepoHelper.admin_organisation()
-    admin = TestRepoHelper.create_user!(admin_org)
-
-    new_user_email = "foo@bar.baz"
-
-    conn = login(org_admin)
-    |> post("/admin/users", user: %{
-      email: new_user_email,
-      name: "foobarbaz",
-      password: "1234",
-      password_confirmation: "1234",
-      role_id: Air.User.role_id(:user),
-      organisation_id: another_org.id
-    })
-
-    response(conn, 200)
-    assert get_flash(conn)["error"] =~ "Action not allowed!"
-    users_html = login(admin) |> get("/admin/users") |> response(200)
-    refute users_html =~ new_user_email
-  end
-
   test "updating a user" do
     org = TestRepoHelper.create_organisation!()
     org_admin = TestRepoHelper.create_user!(org, :org_admin)
