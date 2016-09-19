@@ -23,3 +23,16 @@
     </ul>
   </div>
 </div>
+<div class="row">
+  <div class="col-md-2">Groups</div>
+  <div class="col-md-10">
+    <%= if length(@data_source.groups) == 0 do %>
+      <p>This data source has not been assigned any groups. As a result it will not be queryable by anyone.</p>
+    <% end %>
+    <ul>
+      <%= for group <- @data_source.groups do %>
+        <li><%= group.name %></li>
+      <% end %>
+    </ul>
+  </div>
+</div>
