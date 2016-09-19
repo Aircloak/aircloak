@@ -12,6 +12,6 @@
 set -eo pipefail
 
 cd $(dirname $0)
-. ../docker/docker_helper.sh
+. ../../docker/docker_helper.sh
 
 package_image

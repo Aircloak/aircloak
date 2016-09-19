@@ -452,3 +452,15 @@ function published_image_versions {
     echo "$version ($created_at)"
   done
 }
+
+function package_image {
+  if [ "$IMAGE_CATEGORY" == "" ]; then
+    echo "Please specify some deploy environment through IMAGE_CATEGORY variable."
+    exit 1
+  fi
+
+  image_name=$(./container.sh image_name)
+  check_registry
+  build_and_push_to_registry $image_name "./build-image.sh" $(cat ./VERSION)
+  untag_registry_tags "$image_name"
+}
