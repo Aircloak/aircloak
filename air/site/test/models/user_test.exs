@@ -140,7 +140,6 @@ defmodule Air.UserTest do
 
   defp user(role_key) do
     %User{
-      role_id: User.role_id(role_key),
       groups: [%Air.Group{admin: role_key == :admin}]
     }
   end

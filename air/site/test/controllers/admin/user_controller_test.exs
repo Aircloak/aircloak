@@ -56,8 +56,7 @@ defmodule Air.Admin.UserControllerTest do
     conn = login(admin)
     |> put("/admin/users/#{admin.id}", user: %{
       email: changed_email,
-      name: admin.name,
-      role_id: admin.role_id
+      name: admin.name
     })
 
     assert "/admin/users" == redirected_to(conn)

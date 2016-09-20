@@ -9,7 +9,6 @@ defmodule Air.User do
   alias Air.Group
 
   @type t :: %__MODULE__{}
-  @type role_id :: non_neg_integer
   @type role_key :: :anonymous | :user | :admin
   @type operation :: atom
   @type permissions :: %{role_key => [operation] | :all}
@@ -51,19 +50,15 @@ defmodule Air.User do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns a list of all supported roles."
-  @spec all_roles :: %{role_id => {role_key, description::String.t}}
-  def all_roles, do: @roles
-
   @doc "Returns all user's roles."
   @spec roles(nil | t) :: [role_key]
   def roles(nil),
     do: [:anonymous]
-  def roles(%{role_id: role_id} = user) do
+  def roles(user) do
     if admin?(user) do
       expand_role(:admin)
     else
-      expand_role(role_key(role_id))
+      expand_role(:user)
     end
   end
 
@@ -74,19 +69,6 @@ defmodule Air.User do
   @spec admin?(nil | t) :: boolean
   def admin?(nil), do: false
   def admin?(user), do: Enum.any?(user.groups, &(&1.admin))
-
-  @doc "Returns the role id for the given role key."
-  @spec role_id(role_key) :: role_id
-  for {id, {key, _desc}} <- @roles do
-    def role_id(unquote(key)), do: unquote(id)
-  end
-
-  @doc "Returns the role description of the given user."
-  @spec role_description(t) :: String.t
-  def role_description(user) do
-    {_key, desc} = Map.fetch!(all_roles(), user.role_id)
-    desc
-  end
 
   @doc "Verifies whether the provided user has permission for the given operation"
   @spec permitted?(nil | t, operation, permissions) :: boolean
@@ -140,11 +122,6 @@ defmodule Air.User do
   for {_id, {key, _desc}} <- @roles do
     all_roles = [key | Map.get(@included_roles, key, [])]
     defp expand_role(unquote(key)), do: unquote(all_roles)
-  end
-
-  defp role_key(role_id) do
-    {key, _desc} = Map.fetch!(all_roles(), role_id)
-    key
   end
 
   defimpl Inspect do
