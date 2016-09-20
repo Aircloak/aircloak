@@ -18,7 +18,6 @@ defmodule Air.User do
     field :email, :string
     field :hashed_password, :string
     field :name, :string
-    field :role_id, :integer
 
     has_many :queries, Air.Query
     many_to_many :groups, Group,
@@ -117,7 +116,6 @@ defmodule Air.User do
     |> validate_format(:email, ~r/@/)
     |> validate_length(:name, min: 2)
     |> validate_confirmation(:password)
-    |> validate_change(:role_id, &validate_role_id/2)
     |> update_password_hash
     |> unique_constraint(:email)
     |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
@@ -138,14 +136,6 @@ defmodule Air.User do
     put_change(changeset, :hashed_password, Hash.hashpwsalt(password))
   end
   defp update_password_hash(changeset), do: changeset
-
-  defp validate_role_id(:role_id, role_id) do
-    if role_id != role_id(:admin) and Map.has_key?(all_roles(), role_id) do
-      []
-    else
-      [role_id: "invalid role specified"]
-    end
-  end
 
   for {_id, {key, _desc}} <- @roles do
     all_roles = [key | Map.get(@included_roles, key, [])]

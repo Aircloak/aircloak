@@ -51,13 +51,14 @@ defmodule Air.Router do
     get "/licenses/:realm/:name", LicenseController, :show
   end
 
-  scope "/admin", Air.Admin do
+  scope "/admin", Air.Admin, as: :admin do
     pipe_through [:browser, :browser_auth]
 
     get "/queries/failed", QueryController, :failed
 
     resources "/users", UserController
     resources "/groups", GroupController
+    resources "/data_sources", DataSourceController
 
     get "/audit_log/load_entries", AuditLogController, :load_entries
     get "/audit_log", AuditLogController, :index

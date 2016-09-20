@@ -42,21 +42,20 @@ defmodule Air.Admin.UserController do
         AuditLog.log(conn, "Created user", user: user.email, name: user.name)
         conn
         |> put_flash(:info, "User created")
-        |> redirect(to: user_path(conn, :index))
+        |> redirect(to: admin_user_path(conn, :index))
       {:error, changeset} -> render(conn, "new.html", changeset: changeset)
     end
   end
 
   def update(conn, %{"id" => id} = params) do
     user = Repo.get!(User, id) |> Repo.preload([:groups])
-
     changeset = User.changeset(user, params["user"])
     case Repo.update(changeset) do
       {:ok, user} ->
         AuditLog.log(conn, "Altered user", user: user.email, name: user.name)
         conn
         |> put_flash(:info, "User updated")
-        |> redirect(to: user_path(conn, :index))
+        |> redirect(to: admin_user_path(conn, :index))
       {:error, changeset} -> render(conn, "edit.html", changeset: changeset)
     end
   end
@@ -67,6 +66,6 @@ defmodule Air.Admin.UserController do
     AuditLog.log(conn, "Removed user", user: user.email, name: user.name)
     conn
     |> put_flash(:info, "User deleted")
-    |> redirect(to: user_path(conn, :index))
+    |> redirect(to: admin_user_path(conn, :index))
   end
 end

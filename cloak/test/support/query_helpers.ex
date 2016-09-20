@@ -17,13 +17,12 @@ defmodule Cloak.Test.QueryHelpers do
         Cloak.DataSource.all()
         |> Enum.map(&Task.async(fn -> run_query.(&1) end))
         |> Enum.map(&Task.await/1)
+        # ignore differing execution times and data sources not supporting this query
+        |> Enum.map(&Map.drop(&1, [:execution_time]))
+        |> Enum.reject(&Regex.match?(~r/not supported on '[\w\d\s]+' data sources\.$/, Map.get(&1, :error, "")))
 
       # make sure responses from all data_sources are equal
-      # (ignoring differing execution times)
-      first_without_execution_time = Map.drop(first_response, [:execution_time])
-      other_responses
-      |> Enum.map(&Map.drop(&1, [:execution_time]))
-      |> Enum.each(&assert(first_without_execution_time == &1))
+      for other_response <- other_responses, do: assert(first_response == other_response)
 
       assert unquote(expected_response) = first_response
     end
