@@ -38,6 +38,7 @@ defmodule BOM.Whitelist do
       {"glsl-read-float",           "1.1.0"} => %{type: :mit,          text: :standard},
       {"glslify-deps",              "1.2.5"} => %{type: :isc,          text: :standard},
       {"invariant",                 "2.2.1"} => %{type: :bsd_3_clause, text: :standard},
+      {"json-schema",               "0.2.2"} => %{type: :bsd_3_clause, text: :provided},
       {"json-schema",               "0.2.3"} => %{type: :bsd_3_clause, text: :provided},
       {"jsonlint-lines-primitives", "1.6.0"} => %{type: :mit,          text: :provided},
       {"kdbush",                    "1.0.0"} => %{type: :isc,          text: :standard},
@@ -59,6 +60,14 @@ defmodule BOM.Whitelist do
       {"weak-map",                  "1.0.5"} => %{type: :apache2,      text: :provided},
       {"wgs84",                     "0.0.0"} => %{type: :bsd_2_clause, text: :standard},
       {"wordwrap",                  "0.0.2"} => %{type: :mit,          text: :provided},
+      {"source-map", "0.4.4"} => %{type: :bsd_3_clause, text: :provided},
+      {"esprima", "1.1.1"} => %{type: :bsd_2_clause, text: :provided},
+      {"object-keys", "0.4.0"} => %{type: :mit, text: :provided},
+      {"simplicial-complex", "0.3.3"} => %{type: :mit, text: :provided},
+      {"bit-twiddle", "0.0.2"} => %{type: :mit, text: :provided},
+      {"union-find", "0.0.4"} => %{type: :mit, text: :provided},
+      {"base64-js", "0.0.2"} => %{type: :mit, text: :provided},
+      {"tweetnacl", "0.14.3"} => %{type: :public_domain, text: :standard},
     }
   }
 
@@ -81,6 +90,8 @@ defmodule BOM.Whitelist do
     "62212b2d5d003ee7f76e89c7d15ef00e" => :public_domain, # node/tv4
     "44348b65b421f5f075c74680c11786d4" => :mit,           # node/uglify-js-brunch
     "8de5f23be471b6814f19b2ad82a5208a" => :mit,           # node/path-is-inside
+    "ffcf739dca268cb0f20336d6c1a038f1" => :apache2,       # node/rc
+    "99d097ff2dae4db019dd8ac5144f1efc" => :mit,           # node/commander
     "7c26dfe36e38a743a435b92f7e1260af" => :apache2,       # elixir/earmark
     "0b36f89594d6a8a4b5e8efa73f1f4fc5" => :mit,           # elixir/fs
     "0689a7b07fec79946ae192573e1450e8" => :bsd_3_clause,  # elixir/getopt
