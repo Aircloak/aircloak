@@ -21,7 +21,7 @@ common/docker/elixir/build-image.sh
 #    the need to install Erlang.
 
 # Build deps locally
-SYSTEM_VERSION=$(cat air/VERSION) \
+SYSTEM_VERSION=$(cat air/site/VERSION) \
   build_aircloak_image air_insights_build air/site/builder.dockerfile air/site/.dockerignore-builder
 
 # Start the instance of the builder image and copy the generated release back to the disk
@@ -38,5 +38,5 @@ cd site/artifacts/rel && \
 
 # Build the release image
 cd $ROOT_DIR
-SYSTEM_VERSION=$(cat air/VERSION) \
+SYSTEM_VERSION=$(cat air/site/VERSION) \
   build_aircloak_image air_insights air/site/release.dockerfile air/site/.dockerignore-release
