@@ -4,3 +4,4 @@
 # whitelist only needed folders
 !cloak/artifacts/rel
 !cloak/docker
+!cloak/priv/odbc/docker
