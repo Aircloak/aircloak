@@ -12,8 +12,7 @@ defmodule BOM.Gather.Node do
   @spec run(String.t) :: [Package.t]
   def run(path) do
     path
-    |> Path.join("*")
-    |> Path.wildcard()
+    |> list_packages()
     |> Enum.map(&package/1)
   end
 
@@ -111,5 +110,14 @@ defmodule BOM.Gather.Node do
   )
   defp babel_package?(path) do
     Enum.member?(@babel_packages, Path.basename(path))
+  end
+
+  defp list_packages(path) do
+    {result, 0} = System.cmd("npm", ["ls", "--parseable"], cd: Path.join(path, ".."))
+
+    result
+    |> String.split("\n")
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.drop(1) # The first line is always the top-level package
   end
 end
