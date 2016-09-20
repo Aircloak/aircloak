@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function named_container_running {
-  if [ -z "$(docker ps --filter=name=$1 | grep -v CONTAINER)" ]; then
+  if [ -z "$(docker ps --filter=name=$1 | grep -w $1)" ]; then
     return 1
   else
     return 0
@@ -34,7 +34,7 @@ function stop_named_container {
     fi
   fi
 
-  if [ ! -z "$(docker ps -a --filter=name=$1 | grep -v CONTAINER)" ]; then
+  if [ ! -z "$(docker ps -a --filter=name=$1 | grep -w $1)" ]; then
     echo "Removing container $1"
     docker rm $1 > /dev/null
   fi
