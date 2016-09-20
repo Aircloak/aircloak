@@ -88,7 +88,7 @@ function run_production_command {
   case "$1" in
     versions)
       ssh acdbuild.mpi-sws.org "
-        . $(build_folder $component_folder)/../docker/docker_helper.sh &&
+        . /aircloak/quay_deploy/aircloak/docker/docker_helper.sh &&
         published_image_versions $(image_name)
       "
       ;;
