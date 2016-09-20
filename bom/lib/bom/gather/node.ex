@@ -22,23 +22,25 @@ defmodule BOM.Gather.Node do
   # -------------------------------------------------------------------
 
   defp package(path) do
+    version = package_json(path, "version")
+
     %BOM.Package{
       realm: :node,
       name: Path.basename(path),
       path: path,
-      license: license(path),
-      version: package_json(path, "version"),
+      license: license(path, version),
+      version: version,
     }
   end
 
-  defp license(path) do
+  defp license(path, version) do
     type = license_type(path)
 
     Gather.public_domain_license(type) ||
       babel_license(path) ||
       Gather.license_from_file(path, type) ||
       Gather.license_from_readme(path, type) ||
-      Whitelist.find(:node, Path.basename(path))
+      Whitelist.find(:node, Path.basename(path), version)
   end
 
   defp license_type(path) do

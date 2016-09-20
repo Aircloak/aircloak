@@ -10,59 +10,55 @@ defmodule BOM.Whitelist do
 
   @licenses %{
     :elixir => %{
-      "ecto"            => %{type: :apache2, text: :provided},
-      "erlware_commons" => %{type: :mit,     text: :provided},
-      "excoveralls"     => %{type: :mit,     text: :standard},
+      {"ecto",            "2.0.5"}  => %{type: :apache2, text: :provided},
+      {"erlware_commons", "0.21.0"} => %{type: :mit,     text: :provided},
+      {"excoveralls",     "0.5.5"}  => %{type: :mit,     text: :standard},
     },
     :node => %{
-      "bcrypt-pbkdf"                => %{type: :bsd_4_clause, text: :standard},
-      "browser-stdout"              => %{type: :isc,          text: :standard},
-      "browserify-cipher"           => %{type: :mit,          text: :standard},
-      "browserify-des"              => %{type: :mit,          text: :standard},
-      "brunch"                      => %{type: :mit,          text: :provided},
-      "brunch-skeletons"            => %{type: :mit,          text: :standard},
-      "cipher-base"                 => %{type: :mit,          text: :standard},
-      "create-ecdh"                 => %{type: :mit,          text: :standard},
-      "create-hash"                 => %{type: :mit,          text: :standard},
-      "create-hmac"                 => %{type: :mit,          text: :standard},
-      "csscolorparser"              => %{type: :mit,          text: :provided},
-      "damerau-levenshtein"         => %{type: :bsd_2_clause, text: :standard},
-      "deppack"                     => %{type: :mit,          text: :provided},
-      "diffie-hellman"              => %{type: :mit,          text: :standard},
-      "envify"                      => %{type: :mit,          text: :standard},
-      "esrecurse"                   => %{type: :bsd_2_clause, text: :standard},
-      "evp_bytestokey"              => %{type: :mit,          text: :standard},
-      "fcache"                      => %{type: :isc,          text: :standard},
-      "findup-sync"                 => %{type: :mit,          text: :provided},
-      "geojson-rewind"              => %{type: :bsd_2_clause, text: :standard},
-      "gl-line2d"                   => %{type: :mit,          text: :standard},
-      "glsl-read-float"             => %{type: :mit,          text: :standard},
-      "glslify-deps"                => %{type: :isc,          text: :standard},
-      "invariant"                   => %{type: :bsd_3_clause, text: :standard},
-      "json-schema"                 => %{type: :bsd_3_clause, text: :provided},
-      "jsonlint-lines-primitives"   => %{type: :mit,          text: :provided},
-      "jsv"                         => %{type: :bsd_2_clause, text: :provided},
-      "kdbush"                      => %{type: :isc,          text: :standard},
-      "loggy"                       => %{type: :mit,          text: :provided},
-      "loose-envify"                => %{type: :mit,          text: :standard},
-      "mapbox-gl-js-supported"      => %{type: :bsd_3_clause, text: :standard},
-      "mapbox-gl-shaders"           => %{type: :isc,          text: :standard},
-      "mapbox-gl-supported"         => %{type: :bsd_3_clause, text: :standard},
-      "micro-promisify"             => %{type: :mit,          text: :provided},
-      "minimalistic-assert"         => %{type: :isc,          text: :standard},
-      "mousetrap"                   => %{type: :apache2,      text: :standard},
-      "parse-asn1"                  => %{type: :isc,          text: :standard},
-      "point-geometry"              => %{type: :isc,          text: :provided},
-      "public-encrypt"              => %{type: :mit,          text: :standard},
-      "quickselect"                 => %{type: :isc,          text: :standard},
-      "randombytes"                 => %{type: :mit,          text: :standard},
-      "react-onclickoutside"        => %{type: :mit,          text: :standard},
-      "regenerator-runtime"         => %{type: :bsd_2_clause, text: :provided},
-      "skemata"                     => %{type: :mit,          text: :standard},
-      "unitbezier"                  => %{type: :bsd_3_clause, text: :standard},
-      "weak-map"                    => %{type: :apache2,      text: :provided},
-      "wgs84"                       => %{type: :bsd_2_clause, text: :standard},
-      "wordwrap"                    => %{type: :mit,          text: :provided},
+      {"bcrypt-pbkdf",              "1.0.0"} => %{type: :bsd_4_clause, text: :standard},
+      {"browser-stdout",            "1.3.0"} => %{type: :isc,          text: :standard},
+      {"browserify-cipher",         "1.0.0"} => %{type: :mit,          text: :standard},
+      {"browserify-des",            "1.0.0"} => %{type: :mit,          text: :standard},
+      {"brunch",                    "2.8.2"} => %{type: :mit,          text: :provided},
+      {"brunch-skeletons",          "0.1.4"} => %{type: :mit,          text: :standard},
+      {"cipher-base",               "1.0.2"} => %{type: :mit,          text: :standard},
+      {"create-ecdh",               "4.0.0"} => %{type: :mit,          text: :standard},
+      {"create-hash",               "1.1.2"} => %{type: :mit,          text: :standard},
+      {"create-hmac",               "1.1.4"} => %{type: :mit,          text: :standard},
+      {"csscolorparser",            "1.0.3"} => %{type: :mit,          text: :provided},
+      {"damerau-levenshtein",       "1.0.0"} => %{type: :bsd_2_clause, text: :standard},
+      {"deppack",                   "0.6.4"} => %{type: :mit,          text: :provided},
+      {"diffie-hellman",            "5.0.2"} => %{type: :mit,          text: :standard},
+      {"esrecurse",                 "4.1.0"} => %{type: :bsd_2_clause, text: :standard},
+      {"evp_bytestokey",            "1.0.0"} => %{type: :mit,          text: :standard},
+      {"fcache",                    "0.1.1"} => %{type: :isc,          text: :standard},
+      {"findup-sync",               "0.4.2"} => %{type: :mit,          text: :provided},
+      {"geojson-rewind",            "0.1.0"} => %{type: :bsd_2_clause, text: :standard},
+      {"gl-line2d",                 "1.3.0"} => %{type: :mit,          text: :standard},
+      {"glsl-read-float",           "1.1.0"} => %{type: :mit,          text: :standard},
+      {"glslify-deps",              "1.2.5"} => %{type: :isc,          text: :standard},
+      {"invariant",                 "2.2.1"} => %{type: :bsd_3_clause, text: :standard},
+      {"json-schema",               "0.2.3"} => %{type: :bsd_3_clause, text: :provided},
+      {"jsonlint-lines-primitives", "1.6.0"} => %{type: :mit,          text: :provided},
+      {"kdbush",                    "1.0.0"} => %{type: :isc,          text: :standard},
+      {"loggy",                     "0.3.5"} => %{type: :mit,          text: :provided},
+      {"loose-envify",              "1.2.0"} => %{type: :mit,          text: :standard},
+      {"mapbox-gl-shaders",         "1.0.0"} => %{type: :isc,          text: :standard},
+      {"mapbox-gl-supported",       "1.2.0"} => %{type: :bsd_3_clause, text: :standard},
+      {"micro-promisify",           "0.1.1"} => %{type: :mit,          text: :provided},
+      {"minimalistic-assert",       "1.0.0"} => %{type: :isc,          text: :standard},
+      {"parse-asn1",                "5.0.0"} => %{type: :isc,          text: :standard},
+      {"point-geometry",            "0.0.0"} => %{type: :isc,          text: :provided},
+      {"public-encrypt",            "4.0.0"} => %{type: :mit,          text: :standard},
+      {"quickselect",               "1.0.0"} => %{type: :isc,          text: :standard},
+      {"randombytes",               "2.0.3"} => %{type: :mit,          text: :standard},
+      {"react-onclickoutside",      "4.9.0"} => %{type: :mit,          text: :standard},
+      {"regenerator-runtime",       "0.9.5"} => %{type: :bsd_2_clause, text: :provided},
+      {"skemata",                   "0.1.2"} => %{type: :mit,          text: :standard},
+      {"unitbezier",                "0.0.0"} => %{type: :bsd_3_clause, text: :standard},
+      {"weak-map",                  "1.0.5"} => %{type: :apache2,      text: :provided},
+      {"wgs84",                     "0.0.0"} => %{type: :bsd_2_clause, text: :standard},
+      {"wordwrap",                  "0.0.2"} => %{type: :mit,          text: :provided},
     }
   }
 
@@ -100,12 +96,13 @@ defmodule BOM.Whitelist do
 
   @doc """
   Returns a License struct for the given package if a license for `package` in `realm` has been manually
-  checked and whitelisted, nil otherwise.
+  checked and whitelisted, an unknown license otherwise.
   """
-  @spec find(atom, String.t) :: License.t | nil
-  def find(realm, package) do
-    if Map.has_key?(@licenses[realm], package) do
-      license(realm, package, @licenses[realm][package])
+  @spec find(atom, String.t, String.t) :: License.t | nil
+  def find(realm, package, version) do
+    key = {package, version}
+    if Map.has_key?(@licenses[realm], key) do
+      license(realm, package, @licenses[realm][key])
     else
       License.unknown()
     end
