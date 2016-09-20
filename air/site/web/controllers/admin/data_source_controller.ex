@@ -25,7 +25,7 @@ defmodule Air.Admin.DataSourceController do
 
   def index(conn, _params) do
     data_sources = Repo.all(DataSource) |> Repo.preload([:groups])
-    |> Enum.sort_by(&({DataSourceManager.available?(&1.global_id), &1.name}))
+    data_sources = Enum.sort_by(data_sources, &{DataSourceManager.available?(&1.global_id), &1.name})
     render(conn, "index.html", data_sources: data_sources)
   end
 
