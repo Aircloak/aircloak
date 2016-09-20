@@ -30,6 +30,7 @@ defmodule BOM.Gather.Elixir do
     %BOM.Package{
       realm: :elixir,
       name: package_name(path),
+      path: path,
       license: license(path),
       version: version,
     }

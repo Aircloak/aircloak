@@ -25,6 +25,7 @@ defmodule BOM.Gather.Node do
     %BOM.Package{
       realm: :node,
       name: Path.basename(path),
+      path: path,
       license: license(path),
       version: package_json(path, "version"),
     }
