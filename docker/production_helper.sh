@@ -64,9 +64,9 @@ function start_component {
 function print_usage {
   echo
   echo "Usage:"
-  echo "  $0 deploy_target/desired_configuration deploy"
-  echo "  $0 deploy_target/desired_configuration versions"
-  echo "  $0 deploy_target/desired_configuration rollback version"
+  echo "  $0 deploy_configuration deploy"
+  echo "  $0 deploy_configuration versions"
+  echo "  $0 deploy_configuration rollback version"
   echo
 }
 
@@ -121,5 +121,5 @@ if [ "$1" == "" ]; then
   exit 1
 fi
 
-. $1
+. "$(dirname ${BASH_SOURCE[0]})/../deploy_targets/$1"
 shift
