@@ -98,7 +98,7 @@ function run_production_command {
       ;;
 
     deploy)
-      if [ "$(build_branch)" != "master" ]; then
+      if [ "$SKIP_BRANCH_CHECK" != "true" ] && [ "$(build_branch)" != "master" ]; then
         echo "Warning: deploying from branch $(build_branch)"
         read -p "Continue (y/N)? " -r
         if ! [[ $REPLY =~ ^[Yy]$ ]]; then exit 1; fi
