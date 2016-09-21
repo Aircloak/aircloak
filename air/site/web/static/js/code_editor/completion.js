@@ -14,7 +14,7 @@ const KEYWORDS = [
   "IN ()", "NOT IN ()",
 ];
 
-const longestFirst = (candidate) => candidate.text.length * -1;
+const longestFirst = (candidate) => -candidate.text.length;
 
 const wordCharRegex = /(\w|\.)/;
 
