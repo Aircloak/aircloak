@@ -36,7 +36,7 @@ defmodule Air.Admin.UserController do
   end
 
   def create(conn, params) do
-    changeset = User.changeset(%User{}, params["user"])
+    changeset = User.new_user_changeset(%User{}, params["user"])
     case Repo.insert(changeset) do
       {:ok, user} ->
         AuditLog.log(conn, "Created user", user: user.email, name: user.name)
