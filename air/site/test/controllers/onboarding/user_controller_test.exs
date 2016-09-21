@@ -12,8 +12,18 @@ defmodule Air.Onboarding.UserControllerTest do
     }
   }
 
-  test "creating an admin user" do
-    post(build_conn(), "/onboarding/", @valid_params)
+  setup do
+    # Ugly, but needed because:
+    # a) sometimes there are user's in the DB already
+    # b) because of foreign key constraints in the join table,
+    #    we can't just issue a `Repo.delete_all/1`
+    Repo.all(User) |> Enum.each(&Repo.delete(&1))
+    Repo.all(Group) |> Enum.each(&Repo.delete(&1))
+    :ok
+  end
+
+  test "creating an admin user", %{conn: conn} do
+    post(conn, "/onboarding/", @valid_params)
     [user | _] = users = Repo.all(User) |> Repo.preload([:groups])
     assert length(users) == 1
     assert Enum.any?(user.groups, &(&1.admin))
