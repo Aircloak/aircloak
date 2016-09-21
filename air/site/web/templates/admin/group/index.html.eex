@@ -1,5 +1,43 @@
 <h2>Groups</h2>
 
+<h3>Add a group</h3>
+<%= form_for @changeset, admin_group_path(@conn, :create), [class: "form-horizontal"], fn f -> %>
+  <%= if @changeset.action do %>
+    <div class="alert alert-danger">
+      <p>Oops, something went wrong! Please check the errors below.</p>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <%= label f, :name, "Name", class: "col-sm-2 control-label" %>
+    <div class="col-sm-5">
+      <%= text_input f, :name, class: "form-control", placeholder: "Group name" %>
+      <%= error_tag f, :name %>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <div class="col-sm-offset-2 col-sm-5">
+      <div class="checkbox">
+        <label>
+          <%= checkbox f, :admin %>
+          <%= error_tag f, :admin %>
+          Admin rights?
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <div class="col-sm-offset-2 col-sm-10">
+      <%= submit "Add group", class: "btn btn-primary" %>
+    </div>
+  </div>
+<% end %>
+
+
+<h3>Existing groups</h3>
+
 <table class="table table-striped">
   <thead>
     <tr>
@@ -15,30 +53,9 @@
         <td colspan=4>There are currently no groups</td>
       </tr>
     <% end %>
-    <tr>
-      <td colspan=4>
-        <%= form_for @changeset, admin_group_path(@conn, :create), [class: "form-inline"], fn f -> %>
-          <%= if @changeset.action do %>
-            <div class="alert alert-danger">
-              <p>Oops, something went wrong! Please check the errors below.</p>
-            </div>
-          <% end %>
-
-          <div class="form-group">
-            <label>Add a new group</label>
-            <%= text_input f, :name, class: "form-control", placeholder: "Group name" %>
-            <%= error_tag f, :name %>
-          </div>
-
-          <div class="form-group">
-            <%= submit "Add group", class: "btn btn-primary" %>
-          </div>
-        <% end %>
-      </td>
-    </tr>
-    <%= for group <- @groups |> Enum.sort_by(&(&1.name)) do %>
-      <tr>
-        <td><%= group.name %></td>
+    <%= for group <- @groups do %>
+      <tr class="<%= group_row_class(group) %>">
+        <td><%= group_name(group) %></td>
         <td><%= length(group.users) %></td>
         <td><%= length(group.data_sources) %></td>
         <td>
@@ -48,5 +65,3 @@
     <% end %>
   </tbody>
 </table>
-
-<%# <a href="<%= user_path(@conn, :new) %1>">Add user</a> %>

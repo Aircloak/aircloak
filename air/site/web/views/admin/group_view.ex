@@ -6,6 +6,16 @@ defmodule Air.Admin.GroupView do
 
   alias Air.{Repo, Group}
 
+  def group_name(group) do
+    if group.admin do
+      [html_escape(group.name), " ", content_tag(:span, "Admin", class: "label label-danger")]
+    else
+      html_escape(group.name)
+    end
+  end
+
+  def group_row_class(group), do: if group.admin, do: "danger"
+
   def names(groups) do
     groups
     |> Enum.map(&(&1.name))

@@ -12,49 +12,37 @@
 # is meant to be forward only. If existing rows have to be changed, for example
 # if the database structure changes, it's advised to recreate the entire database.
 
-alias Air.User
-alias Air.Organisation
+alias Air.{User, Group, Repo}
+import Ecto.Query, only: [from: 2]
 
 # admin user
-admin_organisation = Air.Repo.get_by!(Organisation, name: Organisation.admin_group_name())
+admin_group = case Repo.all(from g in Group, where: g.admin) do
+  [] ->
+    %Group{}
+    |> Group.changeset(%{
+      name: "admin",
+      admin: true,
+    })
+    |> Repo.insert!()
+  [group | _] -> group
+end
 
-admin_organisation
-|> Ecto.build_assoc(:users)
+%User{}
 |> User.changeset(%{
   email: "admin@aircloak.com",
   password: "1234",
   password_confirmation: "1234",
   name: "Aircloak test administrator",
-  role_id: User.role_id(:org_admin)
+  groups: [admin_group.id],
 })
-|> Air.Repo.insert!
-
-
-# test client organisation
-client_organisation = %Organisation{}
-  |> Organisation.changeset(%{name: "Client test organisation"})
-  |> Air.Repo.insert!
-
-# org admin
-client_organisation
-|> Ecto.build_assoc(:users)
-|> User.changeset(%{
-  email: "org_admin@aircloak.com",
-  password: "1234",
-  password_confirmation: "1234",
-  name: "Test client org admin",
-  role_id: User.role_id(:org_admin)
-})
-|> Air.Repo.insert!
+|> Repo.insert!()
 
 # plain user
-client_organisation
-|> Ecto.build_assoc(:users)
+%User{}
 |> User.changeset(%{
   email: "user@aircloak.com",
   password: "1234",
   password_confirmation: "1234",
   name: "Test client regular user",
-  role_id: User.role_id(:user)
 })
-|> Air.Repo.insert!
+|> Air.Repo.insert!()

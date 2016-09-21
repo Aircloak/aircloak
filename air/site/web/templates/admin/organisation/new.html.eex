@@ -1,6 +1,0 @@
-<h2>New organisation</h2>
-
-<%= render "form.html", changeset: @changeset,
-  action: admin_organisation_path(@conn, :create) %>
-
-<%= link "Back", to: admin_organisation_path(@conn, :index) %>

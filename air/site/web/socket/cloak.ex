@@ -28,14 +28,12 @@ defmodule Air.Socket.Cloak do
   def connect(params, socket) do
     Logger.info("Cloak connecting #{inspect params}")
     cloak_name = params["cloak_name"]
-    cloak_organisation = params["cloak_organisation"]
-    if valid_required_param?(cloak_name) && valid_required_param?(cloak_organisation) do
-      cloak_id = "#{cloak_organisation}/#{cloak_name}"
+    if valid_required_param?(cloak_name) do
+      cloak_id = "#{cloak_name}"
       {:ok,
         socket
         |> assign(:cloak_id, cloak_id)
         |> assign(:name, cloak_name)
-        |> assign(:organisation, cloak_organisation)
       }
     else
       Logger.info("Connection refused")

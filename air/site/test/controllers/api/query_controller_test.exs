@@ -12,11 +12,10 @@ defmodule Air.API.QueryController.Test do
   end
 
   test "can run a query" do
-    organisation = create_organisation!()
-    token = create_token!(create_user!(organisation))
+    token = create_token!(create_user!())
 
     # Open the cloak mock socket
-    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1", cloak_organisation: organisation.name})
+    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main", %{data_sources: [%{"global_id" => "data_source", "tables" => []}]})
 
     query_data_params = %{

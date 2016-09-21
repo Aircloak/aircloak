@@ -13,10 +13,7 @@ defmodule Air.Admin.DataSourceControllerTest do
 
   test "regular user can't manage data sources" do
     register_data_source()
-
-    org = TestRepoHelper.create_organisation!()
-    user = TestRepoHelper.create_user!(org, :user)
-
+    user = TestRepoHelper.create_user!()
     conn = build_conn()
 
     assert login(user) |> get(admin_data_source_path(conn, :index)) |> redirected_to() === "/"
@@ -34,12 +31,10 @@ defmodule Air.Admin.DataSourceControllerTest do
 
   test "lists data sources" do
     register_data_source()
-
-    organisation = TestRepoHelper.admin_organisation()
-    user = TestRepoHelper.create_user!(organisation)
+    admin = TestRepoHelper.create_admin_user!()
 
     assert soon(
-      user
+      admin
       |> login()
       |> get(admin_data_source_path(build_conn(), :index))
       |> response(200) =~ "data_source_name"
@@ -48,28 +43,22 @@ defmodule Air.Admin.DataSourceControllerTest do
 
   test "accessing edit" do
     register_data_source()
-
-    organisation = TestRepoHelper.admin_organisation()
-    user = TestRepoHelper.create_user!(organisation)
-
+    admin = TestRepoHelper.create_admin_user!()
     conn = build_conn()
 
     assert soon(given_data_source(fn(data_source) ->
-      html = login(user) |> get(admin_data_source_path(conn, :edit, data_source.id)) |> response(200)
+      html = login(admin) |> get(admin_data_source_path(conn, :edit, data_source.id)) |> response(200)
       assert html =~ data_source.name
     end))
   end
 
   test "can edit data source name" do
     register_data_source()
-
-    organisation = TestRepoHelper.admin_organisation()
-    user = TestRepoHelper.create_user!(organisation)
-
+    admin = TestRepoHelper.create_admin_user!()
     conn = build_conn()
 
     assert soon(given_data_source(fn(data_source) ->
-      assert user
+      assert admin
       |> login()
       |> put(admin_data_source_path(conn, :update, data_source.id), data_source: %{name: "new name"})
       |> redirected_to() == admin_data_source_path(conn, :index)
@@ -81,14 +70,11 @@ defmodule Air.Admin.DataSourceControllerTest do
 
   test "deleting an unavailable data source" do
     register_data_source()
-
-    organisation = TestRepoHelper.admin_organisation()
-    user = TestRepoHelper.create_user!(organisation)
-
+    admin = TestRepoHelper.create_admin_user!()
     conn = build_conn()
 
     assert soon(given_data_source(fn(data_source) ->
-      assert user
+      assert admin
       |> login()
       |> delete(admin_data_source_path(conn, :delete, data_source.id))
       |> redirected_to() == admin_data_source_path(conn, :index)
@@ -98,8 +84,7 @@ defmodule Air.Admin.DataSourceControllerTest do
   end
 
   defp register_data_source() do
-    organisation = TestRepoHelper.admin_organisation()
-    TestSocketHelper.with_cloak("cloak_name", organisation.name, "data_source_name", fn -> :ok end)
+    TestSocketHelper.with_cloak("cloak_name", "data_source_name", fn -> :ok end)
   end
 
   defp given_data_source(callback) do
