@@ -71,7 +71,7 @@ defmodule Air.Router do
     pipe_through [:browser, :anonymous_only]
 
     get "/", UserController, :new
-    post "/add_user", UserController, :create
+    post "/", UserController, :create
   end
 
   scope "/api" do
