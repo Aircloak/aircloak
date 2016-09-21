@@ -1,5 +1,5 @@
 defmodule Air.GroupTest do
-  use Air.ModelCase
+  use Air.ModelCase, async: true
 
   alias Air.{Group, User, DataSource, TestRepoHelper, TestUtils}
 
