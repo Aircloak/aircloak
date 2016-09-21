@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# preapre system
+# prepare system
 apt-get install -y libgss3
 sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
 locale-gen en_US.UTF-8
