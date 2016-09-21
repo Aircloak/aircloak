@@ -8,6 +8,7 @@ compile:
 deps:
 	mix deps.get
 	npm install
+	npm prune
 
 clean:
 	mix clean --deps
