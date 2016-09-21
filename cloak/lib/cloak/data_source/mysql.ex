@@ -77,12 +77,13 @@ defmodule Cloak.DataSource.MySQL do
 
   defp field_mapper({{year, month, day}, {hour, min, sec, msec}}), do:
     NaiveDateTime.new(year, month, day, hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
-  defp field_mapper({year, month, day}), do:
-    Date.new(year, month, day) |> error_to_nil()
-  defp field_mapper({hour, min, sec, msec}), do:
-    Time.new(hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
+  defp field_mapper({year, month, day}), do: Date.new(year, month, day) |> error_to_nil()
+  defp field_mapper({hour, min, sec, msec}), do: Time.new(hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
   defp field_mapper(<<0>>), do: false
   defp field_mapper(<<1>>), do: true
+  @decimal_precision :math.pow(10, 15)
+  defp field_mapper(%Decimal{} = value), do:
+    (value |> Decimal.mult(Decimal.new(@decimal_precision)) |> Decimal.to_integer()) / @decimal_precision
   defp field_mapper(field), do: field
 
   defp error_to_nil({:ok, result}), do: result

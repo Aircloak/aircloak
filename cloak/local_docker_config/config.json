@@ -3,13 +3,11 @@
   "data_sources": {
     "local": {
       "driver": "postgresql",
+      "marker": "postgrex",
       "parameters": {
         "hostname": "air_db",
-        "port": 5432,
         "username": "cloak",
-        "database": "cloak",
-        "sync_connect": true,
-        "pool_size": 4
+        "database": "cloak"
       },
       "tables": {
         "test": {
@@ -21,8 +19,40 @@
           "db_name": "purchases",
           "user_id": "uid",
           "ignore_unsupported_types": false
+        },
+        "demographics": {
+          "db_name": "demographics",
+          "user_id": "uid",
+          "ignore_unsupported_types": false
+        }
+      }
+    },
+    {
+      "driver": "odbc",
+      "marker": "odbc-postgresql",
+      "parameters": {
+        "DSN": "PostgreSQL",
+        "UserName": "cloak",
+        "Database": "cloak",
+        "Server": "air_db"
+      },
+      "tables": {
+        "test": {
+          "db_name": "user_data",
+          "user_id": "user_id",
+          "ignore_unsupported_types": false
+        },
+        "purchases": {
+          "db_name": "purchases",
+          "user_id": "uid",
+          "ignore_unsupported_types": false
+        },
+        "demographics": {
+          "db_name": "demographics",
+          "user_id": "uid",
+          "ignore_unsupported_types": false
         }
       }
     }
-  }
+  ]
 }

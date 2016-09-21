@@ -18,6 +18,9 @@ RUN chown -R deployer:deployer /aircloak/cloak && chown -R deployer:deployer /va
 # We'll run as root, but step down in the init script to the non-privileged user
 USER root
 
+RUN apt-get update && apt-get install -y unixodbc odbc-postgresql libmyodbc
+COPY cloak/priv/odbc/docker/odbc.ini /etc/
+
 CMD /aircloak/start.sh
 
 VOLUME /runtime_config

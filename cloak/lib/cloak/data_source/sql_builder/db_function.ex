@@ -1,6 +1,8 @@
 defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   @moduledoc "SQL code generation for database function invocations"
 
+  alias Cloak.DataSource.SqlBuilder.SqlBuildError
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API
@@ -14,23 +16,25 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   @spec sql(String.t | {:cast, Cloak.DataSource.data_type}, [iodata], Cloak.DataSource.data_type, atom) :: iodata
   def sql({:cast, type}, [arg], _parsed_type, sql_dialect),
     do: sql("cast", [arg, sql_type(type, sql_dialect)], type, sql_dialect)
-  def sql(fun_name, fun_args, parsed_type, sql_dialect) do
-    fun_name
-    |> function_call(casted_args(fun_name, fun_args, sql_dialect))
-    |> cast(return_type(fun_name, fun_args, parsed_type), sql_dialect)
-  end
+  def sql(fun_name, fun_args, _parsed_type, sql_dialect), do: function_call(fun_name, fun_args, sql_dialect)
 
 
   #-----------------------------------------------------------------------------------------------------------
   # SQL generation
   #-----------------------------------------------------------------------------------------------------------
 
+  for func <- ~w(ltrim btrim rtrim) do
+    defp function_call(unquote(func), [_arg1, _arg2], :mysql),
+      do: raise SqlBuildError, message: "Function #{unquote(func)} is not supported on 'mysql' data sources."
+  end
+  defp function_call("^", [arg1, arg2], :mysql), do: ["POW(", arg1, ", ", arg2, ")"]
+  defp function_call("/", [arg1, arg2], :postgresql),  do: ["(", arg1, " :: double precision / ", arg2, ")"]
   for binary_operator <- ~w(+ - * ^ /) do
-    defp function_call(unquote(binary_operator), [arg1, arg2]),
+    defp function_call(unquote(binary_operator), [arg1, arg2], _sql_dialect),
       do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
   for datepart <- ~w(year month day hour minute second) do
-    defp function_call(unquote(datepart), args),
+    defp function_call(unquote(datepart), args, _sql_dialect),
       do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
   for {fun, delegate_to} <- %{
@@ -39,92 +43,23 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     "ucase" => "upper",
     "||" => "concat"
   } do
-    defp function_call(unquote(fun), args), do: function_call(unquote(delegate_to), args)
+    defp function_call(unquote(fun), args, sql_dialect),
+      do: function_call(unquote(delegate_to), args, sql_dialect)
   end
-  defp function_call("substring_for", [arg1, arg2]),
-    do: function_call("substring", [arg1, "1", arg2])
-  defp function_call("cast", [arg1, arg2]),
+  defp function_call("substring_for", [arg1, arg2], sql_dialect),
+    do: function_call("substring", [arg1, "1", arg2], sql_dialect)
+  defp function_call("cast", [arg1, arg2], _sql_dialect),
     do: ["CAST(", arg1, " AS ", arg2, ")"]
-  defp function_call(name, args),
-    do: [name, "(", Enum.intersperse(args, ",") ,")"]
+  defp function_call("trunc", [arg1, arg2], :mysql), do: ["TRUNCATE(", arg1, ", ", arg2, ")"]
+  defp function_call("trunc", [arg1], :mysql), do: ["TRUNCATE(", arg1, ", 0)"]
+  defp function_call("btrim", [arg1], :mysql), do: ["TRIM(", arg1, ")"]
+  defp function_call("div", [arg1, arg2], :mysql), do: [arg1, " DIV ", arg2]
+  defp function_call(name, args, _sql_dialect), do: [name, "(", Enum.intersperse(args, ", ") ,")"]
 
-  defp sql_type(:real, :mysql), do: "decimal"
+  defp sql_type(:real, :mysql), do: "decimal(65, 15)"
   defp sql_type(:real, _sql_dialect), do: "float"
   defp sql_type(:boolean, _sql_dialect), do: "bool"
   defp sql_type(:text, :mysql), do: "char"
   defp sql_type(:integer, :mysql), do: "signed"
-  defp sql_type(:numeric, :mysql), do: "decimal"
   defp sql_type(type, _sql_dialect) when is_atom(type), do: Atom.to_string(type)
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Transformation helpers
-  #-----------------------------------------------------------------------------------------------------------
-
-  defp cast_spec(fun_name, fun_args) do
-    case Enum.find(
-      function_casts(),
-      fn({name, opts}) ->
-        fun_name == name &&
-        (opts[:args] == nil || length(opts[:args]) == length(fun_args))
-      end
-    ) do
-      nil -> []
-      {^fun_name, opts} -> opts
-    end
-  end
-
-  defp casted_args(fun_name, fun_args, sql_dialect) do
-    case cast_spec(fun_name, fun_args)[:args] do
-      nil -> fun_args
-      casts -> Enum.map(Enum.zip(fun_args, casts), fn({arg, cast}) -> cast(arg, cast, sql_dialect) end)
-    end
-  end
-
-  defp return_type(fun_name, fun_args, parsed_type) do
-    case cast_spec(fun_name, fun_args)[:return] do
-      nil -> :pass
-      :parsed_type -> parsed_type
-      type -> type
-    end
-  end
-
-  defp cast(expr, :pass, _sql_dialect), do: expr
-  defp cast(expr, type, sql_dialect), do: function_call("cast", [expr, sql_type(type, sql_dialect)])
-
-  # Specifies transformations of function arguments and return values
-  #
-  # To ensure consistent behavior for different implementations, we sometimes need to explicitly cast some
-  # arguments and/or return values. For example:
-  #   - In `trunc/2` we need to cast first argument to numeric, otherwise PostgreSQL complains.
-  #   - Casting the first argument of `/` operator to real avoids implicit integer division (in e.g. 3/2)
-  #   - Casting the return value of `trunc/1` ensures we're always returning an integer.
-  #
-  # The special `:parsed_type` atom is used to enforce casting to the return type determined by the compiler.
-  defp function_casts() do
-    [
-      # aggregate functions
-      {"avg", return: :parsed_type},
-      {"sum", return: :parsed_type},
-      {"count", return: :integer},
-      # math functions
-      {"/", args: [:real, :pass]},
-      {"trunc", args: [:pass], return: :integer},
-      {"trunc", args: [:numeric, :pass], return: :real},
-      {"round", args: [:pass], return: :integer},
-      {"round", args: [:numeric, :pass], return: :real},
-      {"div", return: :integer},
-      {"mod", return: :integer},
-      {"floor", return: :integer},
-      {"ceil", return: :integer},
-      {"ceiling", return: :integer},
-      #datetime functions
-      {"year", return: :integer},
-      {"month", return: :integer},
-      {"day", return: :integer},
-      {"hour", return: :integer},
-      {"minute", return: :integer},
-      {"second", return: :integer}
-    ]
-  end
 end

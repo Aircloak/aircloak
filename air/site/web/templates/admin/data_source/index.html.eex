@@ -7,13 +7,14 @@
       <th>Id</th>
       <th>Available</th>
       <th># tables</th>
+      <th>Groups</th>
       <th></th>
     </tr>
   </thead>
   <tbody>
   <%= if length(@data_sources) == 0 do %>
     <tr>
-      <td colspan=4>No data sources have been registered</td>
+      <td colspan=5>No data sources have been registered</td>
     </tr>
   <% end %>
   <%= for data_source <- @data_sources do %>
@@ -22,6 +23,7 @@
       <td><%= data_source.global_id %></td>
       <td><%= available?(data_source) %></td>
       <td><%= number_of_tables(data_source) %></td>
+      <td><%= Air.Admin.GroupView.names(data_source.groups)%></td>
       <td>
         <%= link "Show", to: admin_data_source_path(@conn, :show, data_source), class: "btn btn-default btn-xs" %>
         <%= link "Edit", to: admin_data_source_path(@conn, :edit, data_source), class: "btn btn-default btn-xs" %>

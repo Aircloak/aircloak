@@ -2,7 +2,7 @@ defmodule Air.DataSource do
   @moduledoc "Represents data sources made available through the cloaks"
   use Air.Web, :model
 
-  alias Air.DataSource
+  alias Air.{DataSource, Group}
 
   @type t :: %__MODULE__{}
 
@@ -12,7 +12,7 @@ defmodule Air.DataSource do
     field :tables, :string
 
     has_many :queries, Air.Query
-    many_to_many :groups, Air.Group,
+    many_to_many :groups, Group,
       join_through: "data_sources_groups",
       on_delete: :delete_all,
       on_replace: :delete
@@ -60,5 +60,6 @@ defmodule Air.DataSource do
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> unique_constraint(:global_id)
+    |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
   end
 end

@@ -15,8 +15,7 @@ defmodule Air.Admin.CloaksControllerTest do
   end
 
   test "only shows cloaks while they are online" do
-    admin_org = TestRepoHelper.admin_organisation()
-    admin = TestRepoHelper.create_user!(admin_org, :org_admin)
+    admin = TestRepoHelper.create_admin_user!()
 
     # connect a mock cloak
     {terminator, pid} = temporary_process()
@@ -42,10 +41,8 @@ defmodule Air.Admin.CloaksControllerTest do
   end
 
   test "only shows cloaks to admin" do
-    org = TestRepoHelper.create_organisation!("unknown_org")
-    user = TestRepoHelper.create_user!(org, :user)
-    admin_org = TestRepoHelper.admin_organisation()
-    admin = TestRepoHelper.create_user!(admin_org, :org_admin)
+    user = TestRepoHelper.create_user!()
+    admin = TestRepoHelper.create_admin_user!()
 
     # connect a mock cloak
     {terminator, pid} = temporary_process()
@@ -60,7 +57,7 @@ defmodule Air.Admin.CloaksControllerTest do
     DataSourceManager.register_cloak(cloak_info, data_sources)
 
     # verify that it's in the list
-    login(user) |> get("/admin/cloaks") |> redirected_to()
+    assert login(user) |> get("/admin/cloaks") |> redirected_to() === "/"
     html_response = login(admin) |> get("/admin/cloaks") |> response(200)
     assert html_response =~ "cloak name"
 

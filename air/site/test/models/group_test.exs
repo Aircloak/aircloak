@@ -1,9 +1,9 @@
 defmodule Air.GroupTest do
-  use Air.ModelCase
+  use Air.ModelCase, async: true
 
   alias Air.{Group, User, DataSource, TestRepoHelper, TestUtils}
 
-  @valid_attrs %{name: "group name"}
+  @valid_attrs %{name: "group name", admin: false}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do
@@ -17,16 +17,14 @@ defmodule Air.GroupTest do
   end
 
   test "validates uniqueness of name" do
-    Repo.delete_all(Group)
     Repo.insert!(Group.changeset(%Group{}, @valid_attrs))
     assert_raise Ecto.InvalidChangesetError,
       fn -> Repo.insert!(Group.changeset(%Group{}, @valid_attrs)) end
   end
 
   test "a group can have many users" do
-    org = TestRepoHelper.create_organisation!()
-    user1 = TestRepoHelper.create_user!(org, :user)
-    user2 = TestRepoHelper.create_user!(org, :user)
+    user1 = TestRepoHelper.create_user!()
+    user2 = TestRepoHelper.create_user!()
     group = TestRepoHelper.create_group!()
     |> set_users([user1, user2])
     assert [user1.id, user2.id] == Enum.map(group.users, &(&1.id)) |> Enum.sort()
@@ -41,8 +39,7 @@ defmodule Air.GroupTest do
   end
 
   test "deleting a group doesn't delete users or data sources" do
-    org = TestRepoHelper.create_organisation!()
-    user = TestRepoHelper.create_user!(org, :user)
+    user = TestRepoHelper.create_user!()
     data_source = TestRepoHelper.create_data_source!()
     TestRepoHelper.create_group!()
     |> set_users([user])
@@ -53,8 +50,7 @@ defmodule Air.GroupTest do
   end
 
   test "deleting a group, should remove entries from join table" do
-    org = TestRepoHelper.create_organisation!()
-    user = TestRepoHelper.create_user!(org, :user)
+    user = TestRepoHelper.create_user!()
     data_source = TestRepoHelper.create_data_source!()
     group = TestRepoHelper.create_group!()
     |> set_users([user])
@@ -63,8 +59,7 @@ defmodule Air.GroupTest do
   end
 
   test "groups, users, and data sources are joined through a join table" do
-    org = TestRepoHelper.create_organisation!()
-    user = TestRepoHelper.create_user!(org, :user)
+    user = TestRepoHelper.create_user!()
     data_source = TestRepoHelper.create_data_source!()
     TestUtils.assert_join_table_count_change(2, fn() ->
       TestRepoHelper.create_group!()
@@ -74,9 +69,8 @@ defmodule Air.GroupTest do
   end
 
   test "replacing a user or data source for a group, removes the old relationship" do
-    org = TestRepoHelper.create_organisation!()
-    user1 = TestRepoHelper.create_user!(org, :user)
-    user2 = TestRepoHelper.create_user!(org, :user)
+    user1 = TestRepoHelper.create_user!()
+    user2 = TestRepoHelper.create_user!()
     data_source1 = TestRepoHelper.create_data_source!()
     data_source2 = TestRepoHelper.create_data_source!()
 

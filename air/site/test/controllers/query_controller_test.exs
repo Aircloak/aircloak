@@ -20,11 +20,10 @@ defmodule Air.QueryControllerTest do
   end
 
   test "can run a query", context do
-    organisation = create_organisation!()
-    user = create_user!(organisation)
+    user = create_user!()
 
     # Open the cloak mock socket
-    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1", cloak_organisation: organisation.name})
+    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main",
       %{data_sources: [%{"global_id" => "data_source_global_id", "tables" => []}]})
 
@@ -39,8 +38,7 @@ defmodule Air.QueryControllerTest do
   end
 
   test "returns error when data source unavailable", context do
-    organisation = create_organisation!()
-    user = create_user!(organisation)
+    user = create_user!()
 
     query_data_params = %{
       query: %{query: "Query code", name: "Query name", data_source_id: context[:data_source].id}

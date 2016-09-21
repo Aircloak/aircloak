@@ -36,10 +36,10 @@ docs:
 proper: proper-std proper-extended
 
 proper-std:
-	mix proper --level simple
+	MIX_ENV=test mix proper --level simple
 
 proper-extended:
-	mix proper --level extended
+	MIX_ENV=test mix proper --level extended
 
 dialyze:
 	mix dialyze_retry

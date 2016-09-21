@@ -6,7 +6,7 @@ defmodule Air.Socket.CloakTest do
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
   alias Air.Socket.Cloak.MainChannel
-  alias Air.{Organisation, TestSocketHelper, DataSourceManager, Repo}
+  alias Air.{TestSocketHelper, DataSourceManager, Repo}
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
@@ -15,12 +15,7 @@ defmodule Air.Socket.CloakTest do
   end
 
   test "cloak name must be provided" do
-    params = %{cloak_name: "", cloak_organisation: "some_organisation"}
-    assert {{:disconnected, {403, "Forbidden"}}, _} = TestSocketHelper.connect(params)
-  end
-
-  test "cloak org must be provided" do
-    params = %{cloak_name: "some_name", cloak_organisation: ""}
+    params = %{cloak_name: ""}
     assert {{:disconnected, {403, "Forbidden"}}, _} = TestSocketHelper.connect(params)
   end
 
@@ -41,7 +36,6 @@ defmodule Air.Socket.CloakTest do
 
     async_query(
       channel_pid(),
-      %Organisation{name: "some_organisation"},
       %{id: 42, code: ""}
     )
 
@@ -53,8 +47,7 @@ defmodule Air.Socket.CloakTest do
   end
 
   test "receiving a query result" do
-    query = Air.TestRepoHelper.create_organisation!()
-    |> Air.TestRepoHelper.create_user!()
+    query = Air.TestRepoHelper.create_user!()
     |> Air.TestRepoHelper.create_query!()
 
     nil = Air.Repo.get!(Air.Query, query.id).result
@@ -79,24 +72,8 @@ defmodule Air.Socket.CloakTest do
     assert Air.Repo.get!(Air.Query, query.id).result != nil
   end
 
-  test "can't run a query on a cloak from another organisation" do
-    socket = connect!()
-    join_main_channel!(socket)
-
-    async_query(
-      channel_pid(),
-      %Organisation{name: "another_organisation"},
-      %{id: 42, code: ""}
-    )
-
-    assert {:error, :forbidden} == query_response!()
-  end
-
   defp connect!(params \\ %{}) do
-    default_params = %{
-      cloak_name: "cloak_1",
-      cloak_organisation: "some_organisation",
-    }
+    default_params = %{cloak_name: "cloak_1"}
     TestSocketHelper.connect!(Map.merge(default_params, params))
   end
 
@@ -117,10 +94,10 @@ defmodule Air.Socket.CloakTest do
     [%{"global_id" => "global_id", "tables" => []}]
   end
 
-  defp async_query(cloak_id, user_organisation, payload) do
+  defp async_query(cloak_id, payload) do
     caller = self()
     spawn(fn ->
-      start_query_result = MainChannel.run_query(cloak_id, user_organisation, payload)
+      start_query_result = MainChannel.run_query(cloak_id, payload)
       send(caller, {:query_response, start_query_result})
     end)
   end

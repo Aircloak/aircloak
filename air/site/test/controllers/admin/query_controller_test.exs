@@ -20,13 +20,13 @@ defmodule Air.Admin.QueryControllerTest do
   end
 
   test "failed queries", context do
-    user = create_user!(create_organisation!())
+    user = create_user!()
 
     insert_query(user, context[:data_source], "query 1", %{error: "some error"})
     insert_query(user, context[:data_source], "query 2", %{error: "some error"})
     insert_query(user, context[:data_source], "query 3", %{})
 
-    admin = create_user!(admin_organisation())
+    admin = create_admin_user!()
     response = login(admin) |> get("/admin/queries/failed") |> response(200)
 
     assert response =~ "query 1"
@@ -36,8 +36,7 @@ defmodule Air.Admin.QueryControllerTest do
 
   test "user can't fetch failed queries" do
     assert "/" ==
-      create_organisation!()
-      |> create_user!()
+      create_user!()
       |> login()
       |> get("/admin/queries/failed")
       |> redirected_to()

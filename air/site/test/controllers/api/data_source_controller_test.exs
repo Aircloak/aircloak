@@ -13,12 +13,11 @@ defmodule Air.API.DataSourceController.Test do
   end
 
   test "getting all sources" do
-    organisation = admin_organisation()
-    user = create_user!(organisation)
+    user = create_user!()
     api_token = create_token!(user)
     cloak_name = "cloak_name"
 
-    [api_cloak] = TestSocketHelper.with_cloak(cloak_name, organisation.name, "data_source_name", fn ->
+    [api_cloak] = TestSocketHelper.with_cloak(cloak_name, "data_source_name", fn ->
       api_conn(api_token)
       |> get("/api/data_sources")
       |> response(200)

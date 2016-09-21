@@ -11,7 +11,7 @@ defmodule Air.Admin.GroupController do
 
   def permissions do
     %{
-      org_admin: :all
+      admin: :all
     }
   end
 
@@ -53,6 +53,9 @@ defmodule Air.Admin.GroupController do
   # -------------------------------------------------------------------
 
   defp all_groups() do
-    Repo.all(Group) |> Repo.preload([:users, :data_sources])
+    Group
+    |> Repo.all()
+    |> Repo.preload([:users, :data_sources])
+    |> Enum.sort_by(&{not &1.admin, &1.id})
   end
 end

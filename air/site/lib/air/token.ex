@@ -25,10 +25,8 @@ defmodule Air.Token do
     case Phoenix.Token.verify(Endpoint, api_token_salt(), token) do
       {:ok, token_id} ->
         case Repo.one(from token in ApiToken,
-            join: user in User, on: user.id == token.user_id,
             where: token.id == ^token_id,
-            join: organisation in assoc(user, :organisation),
-            preload: [{:user, :organisation}],
+            preload: [{:user, :groups}],
             select: token) do
           %{} = token ->
             Task.Supervisor.start_child(Air.ApiTokenTimestampUpdater, fn() ->

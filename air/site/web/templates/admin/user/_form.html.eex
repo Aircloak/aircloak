@@ -6,12 +6,6 @@
 <% end %>
 
 <div class="form-group">
-  <%= label f, :role_id, class: "control-label" %>
-  <%= select f, :role_id, possible_roles() %>
-  <%= error_tag f, :role_id %>
-</div>
-
-<div class="form-group">
   <label>Email address</label>
   <%= text_input f, :email, class: "form-control" %>
   <%= error_tag f, :email %>
@@ -35,20 +29,12 @@
   <%= error_tag f, :password_confirmation %>
 </div>
 
-<%= if admin?(@conn) do %>
-  <div class="form-group">
-    <label>Organisation</label>
-    <%= select f, :organisation_id, select_org_values(@conn),
-        select_org_options(@changeset, class: "form-control") %>
-    <%= error_tag f, :organisation_id %>
-  </div>
-<% end %>
 
 <h3>Groups</h3>
 
 <p>The user's group memberships determine which data sources are available for querying.</p>
 
-<%= if length(available_groups()) == 0 do %>
+<%= if length(Air.Admin.GroupView.available_groups()) == 0 do %>
   <strong>
     There are currently no groups available. You can add some on the group page:
     <%= link "Groups", to: admin_group_path(@conn, :index) %>
@@ -57,7 +43,8 @@
 
 <div class="group-selector">
 
-  <%= PhoenixMTM.Helpers.collection_checkboxes f, :groups, Enum.map(available_groups(), &({&1.name, &1.id})),
+  <%= PhoenixMTM.Helpers.collection_checkboxes f, :groups,
+    Enum.map(Air.Admin.GroupView.available_groups(), &({&1.name, &1.id})),
     selected: Enum.map(@chosen_groups, &(&1.id)), mapper: &(content_tag(:div, &1, class: "group-checkbox")) %>
 
 </div>

@@ -6,7 +6,6 @@ defmodule Air.Monitoring.FailedQueries do
   def start_link, do: Task.start_link(&work/0)
 
   alias Air.{Repo, Query, QueryEvents}
-  import Ecto.Query
 
 
   # -------------------------------------------------------------------
@@ -22,14 +21,8 @@ defmodule Air.Monitoring.FailedQueries do
   defp log_error(%{"error" => error, "query_id" => query_id}) do
     import Logger, warn: false
 
-    db_query = from q in Query,
-      where: q.id == ^query_id,
-      preload: [{:user, :organisation}],
-      select: q
-
-    query = Repo.one!(db_query)
+    query = Repo.get(Query, query_id) |> Repo.preload([:user])
     user = query.user
-    organisation = user.organisation
 
     message = %{
       type: "failed_query",
@@ -37,9 +30,7 @@ defmodule Air.Monitoring.FailedQueries do
       statement: query.statement,
       data_source_id: query.data_source_id,
       user_id: user.id,
-      user_email: user.email,
-      organisation_id: organisation.id,
-      organisation_name: organisation.name,
+      user_email: user.email
     }
 
     Logger.error("JSON_LOG #{Poison.encode!(message)}")
