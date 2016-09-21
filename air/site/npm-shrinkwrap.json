@@ -2674,11 +2674,13 @@
         },
         "isarray": {
           "version": "0.0.1",
-          "from": "isarray@0.0.1"
+          "from": "isarray@0.0.1",
+          "resolved": "https://registry.npmjs.org/isarray/-/isarray-0.0.1.tgz"
         },
         "readable-stream": {
           "version": "1.0.34",
-          "from": "readable-stream@>=1.0.26 <1.1.0"
+          "from": "https://registry.npmjs.org/readable-stream/-/readable-stream-1.0.34.tgz",
+          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-1.0.34.tgz"
         }
       }
     },
@@ -3643,29 +3645,29 @@
     "mapbox-gl": {
       "version": "0.22.1",
       "from": "mapbox-gl@>=0.22.0 <0.23.0",
-      "resolved": "https://registry.npmjs.org/mapbox-gl/-/mapbox-gl-0.22.1.tgz"
-    },
-    "mapbox-gl-function": {
-      "version": "1.2.1",
-      "from": "mapbox-gl-function@>=1.2.1 <2.0.0",
-      "resolved": "https://registry.npmjs.org/mapbox-gl-function/-/mapbox-gl-function-1.2.1.tgz"
-    },
-    "mapbox-gl-shaders": {
-      "version": "1.0.0",
-      "from": "mapbox/mapbox-gl-shaders#de2ab007455aa2587c552694c68583f94c9f2747",
-      "resolved": "git://github.com/mapbox/mapbox-gl-shaders.git#de2ab007455aa2587c552694c68583f94c9f2747"
-    },
-    "mapbox-gl-style-spec": {
-      "version": "8.8.0",
-      "from": "mapbox/mapbox-gl-style-spec#83b1a3e5837d785af582efd5ed1a212f2df6a4ae",
-      "resolved": "git://github.com/mapbox/mapbox-gl-style-spec.git#83b1a3e5837d785af582efd5ed1a212f2df6a4ae",
+      "resolved": "https://registry.npmjs.org/mapbox-gl/-/mapbox-gl-0.22.1.tgz",
       "dependencies": {
+        "mapbox-gl-shaders": {
+          "version": "1.0.0",
+          "from": "mapbox/mapbox-gl-shaders#de2ab007455aa2587c552694c68583f94c9f2747",
+          "resolved": "git://github.com/mapbox/mapbox-gl-shaders.git#de2ab007455aa2587c552694c68583f94c9f2747"
+        },
+        "mapbox-gl-style-spec": {
+          "version": "8.8.0",
+          "from": "mapbox/mapbox-gl-style-spec#83b1a3e5837d785af582efd5ed1a212f2df6a4ae",
+          "resolved": "git://github.com/mapbox/mapbox-gl-style-spec.git#83b1a3e5837d785af582efd5ed1a212f2df6a4ae"
+        },
         "minimist": {
           "version": "0.0.8",
           "from": "minimist@0.0.8",
           "resolved": "https://registry.npmjs.org/minimist/-/minimist-0.0.8.tgz"
         }
       }
+    },
+    "mapbox-gl-function": {
+      "version": "1.2.1",
+      "from": "mapbox-gl-function@>=1.2.1 <2.0.0",
+      "resolved": "https://registry.npmjs.org/mapbox-gl-function/-/mapbox-gl-function-1.2.1.tgz"
     },
     "mapbox-gl-supported": {
       "version": "1.2.0",
