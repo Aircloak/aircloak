@@ -11,14 +11,14 @@
   <tbody>
   <%= if length(@users) == 0 do %>
     <tr>
-      <td colspan=4>There are currently no users</td>
+      <td colspan=5>There are currently no users</td>
     </tr>
   <% else %>
     <%= for user <- @users do %>
       <tr>
         <td><%= user.name %></td>
         <td><%= user.email %></td>
-        <td><%= group_names(user.groups)%></td>
+        <td><%= Air.Admin.GroupView.names(user.groups)%></td>
         <td>
           <%= if admin?(user) do %>
             <span class="label label-danger">Admin</span>

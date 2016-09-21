@@ -1,7 +1,7 @@
-defmodule Air.Admin.UserViewTest do
+defmodule Air.Admin.GroupViewTest do
   use Air.ConnCase, async: true
 
-  import Air.Admin.UserView
+  import Air.Admin.GroupView
 
   test "shortes names down to 10 characters" do
     assert String.length(shorten_name("0123456789012")) == 10
