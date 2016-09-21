@@ -21,7 +21,11 @@ defmodule Air.SessionController do
   # -------------------------------------------------------------------
 
   def new(conn, _params) do
-    render(conn, "new.html")
+    if User.admin_user_exists?() do
+      render(conn, "new.html")
+    else
+      redirect(conn, to: onboarding_user_path(conn, :new))
+    end
   end
 
   def create(conn, params) do

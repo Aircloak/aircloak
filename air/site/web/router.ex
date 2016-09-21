@@ -67,6 +67,14 @@ defmodule Air.Router do
     get "/", CloaksController, :index
   end
 
+  scope "/onboarding", Air.Onboarding, as: :onboarding do
+    pipe_through [:browser, :anonymous_only]
+
+    get "/", UserController, :new
+    post "/", UserController, :create
+    get "/already_setup", UserController, :already_setup
+  end
+
   scope "/api" do
     pipe_through [:api]
 

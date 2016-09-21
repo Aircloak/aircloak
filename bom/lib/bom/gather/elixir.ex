@@ -30,18 +30,19 @@ defmodule BOM.Gather.Elixir do
     %BOM.Package{
       realm: :elixir,
       name: package_name(path),
-      license: license(path),
+      path: path,
+      license: license(path, version),
       version: version,
     }
   end
 
-  defp license(path) do
+  defp license(path, version) do
     type = license_type(path)
 
     Gather.public_domain_license(type) ||
       Gather.license_from_file(path, type) ||
       Gather.license_from_readme(path, type) ||
-      BOM.Whitelist.find(:elixir, package_name(path))
+      BOM.Whitelist.find(:elixir, package_name(path), version)
   end
 
   defp license_type(path) do

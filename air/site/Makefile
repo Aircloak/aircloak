@@ -1,4 +1,4 @@
-.PHONY: all compile deps clean start start2 start3 test recreate_db migrate rollback dialyze docs release lint
+.PHONY: all compile deps clean start start2 start3 test recreate_db migrate rollback dialyze docs release lint mocha
 
 all: deps compile
 
@@ -8,6 +8,7 @@ compile:
 deps:
 	mix deps.get
 	npm install
+	npm prune
 
 clean:
 	mix clean --deps
@@ -15,7 +16,7 @@ clean:
 start:
 	iex -S mix phoenix.server
 
-test:
+test: mocha
 	mix test.standard
 
 recreate_db:
@@ -45,6 +46,10 @@ lint: eslint
 
 eslint:
 	node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules web/static/js/*.js web/static/js/**/*.js
+	node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules --config .eslintrc-test.js test/js/**/*.js
+
+mocha:
+	NODE_PATH=test/js:web/static/js npm test
 
 check_dependent_apps:
 	mix check_dependent_apps

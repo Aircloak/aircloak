@@ -11,12 +11,9 @@ defmodule BOM.Gather.Node do
   @doc "Returns a list of packages contained in the given `node_modules` directory."
   @spec run(String.t) :: [Package.t]
   def run(path) do
-    shrinkwrap = Gather.if_matching_file(path, "../npm-shrinkwrap.json", &Poison.decode!/1)
-
     path
-    |> Path.join("*")
-    |> Path.wildcard()
-    |> Enum.map(&package(&1, shrinkwrap))
+    |> list_packages()
+    |> Enum.map(&package/1)
   end
 
 
@@ -24,23 +21,26 @@ defmodule BOM.Gather.Node do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp package(path, shrinkwrap) do
+  defp package(path) do
+    version = package_json(path, "version")
+
     %BOM.Package{
       realm: :node,
       name: Path.basename(path),
-      license: license(path),
-      version: shrinkwrap["dependencies"][Path.basename(path)]["version"],
+      path: path,
+      license: license(path, version),
+      version: version,
     }
   end
 
-  defp license(path) do
+  defp license(path, version) do
     type = license_type(path)
 
     Gather.public_domain_license(type) ||
       babel_license(path) ||
       Gather.license_from_file(path, type) ||
       Gather.license_from_readme(path, type) ||
-      Whitelist.find(:node, Path.basename(path))
+      Whitelist.find(:node, Path.basename(path), version)
   end
 
   defp license_type(path) do
@@ -113,5 +113,14 @@ defmodule BOM.Gather.Node do
   )
   defp babel_package?(path) do
     Enum.member?(@babel_packages, Path.basename(path))
+  end
+
+  defp list_packages(path) do
+    {result, 0} = System.cmd("npm", ["ls", "--parseable"], cd: Path.join(path, ".."))
+
+    result
+    |> String.split("\n")
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.drop(1) # The first line is always the top-level package
   end
 end
