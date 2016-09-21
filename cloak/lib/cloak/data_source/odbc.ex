@@ -4,7 +4,6 @@ defmodule Cloak.DataSource.ODBC do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource
   alias Cloak.DataSource.SqlBuilder
   alias Cloak.Aql.Column
 
@@ -21,7 +20,9 @@ defmodule Cloak.DataSource.ODBC do
   def connect(parameters) do
     options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
     with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
-      {:ok, set_dialect(DataSource.Parameters.get(parameters, "DSN"), connection)}
+      sql_dialect = parameters.'DSN' |> String.downcase() |> String.to_existing_atom()
+      set_dialect(sql_dialect, connection)
+      {:ok, %__MODULE__{sql_dialect: sql_dialect, connection: connection}}
     end
   end
   @doc false
@@ -61,27 +62,21 @@ defmodule Cloak.DataSource.ODBC do
 
   defp to_connection_string(parameters) do
     parameters
-    |> Enum.map(fn({key, value}) -> "#{Atom.to_string(key)}=#{value}" end)
+    |> Enum.map(fn({key, value}) ->
+      if String.contains?(value, ";") do raise "The character ';' is not allowed in ODBC driver parameters!" end
+      "#{Atom.to_string(key)}=#{value}"
+    end)
     |> Enum.join(";")
     |> to_char_list()
   end
 
-  defp set_dialect("MySQL", connection) do
+  defp set_dialect(:mysql, connection), do:
     {:updated, _} = :odbc.sql_query(connection, 'SET sql_mode = "ANSI,NO_BACKSLASH_ESCAPES"')
-    %__MODULE__{sql_dialect: :mysql, connection: connection}
-  end
-  defp set_dialect("PostgreSQL", connection) do
+  defp set_dialect(:postgresql, connection), do:
     {:updated, _} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
-    %__MODULE__{sql_dialect: :postgresql, connection: connection}
-  end
-  defp set_dialect("SQLServer", connection) do
+  defp set_dialect(:sqlserver, connection), do:
     {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
-    %__MODULE__{sql_dialect: :sqlserver, connection: connection}
-  end
-  defp set_dialect("Drill", connection) do
-    %__MODULE__{sql_dialect: :drill, connection: connection}
-  end
-  defp set_dialect(parameters, _connection), do: raise "Unknown DSN type in `#{parameters}`."
+  defp set_dialect(:drill, _connection), do: :ok
 
   defp parse_type(:sql_integer), do: :integer
   defp parse_type(:sql_smallint), do: :integer
