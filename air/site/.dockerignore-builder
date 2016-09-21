@@ -2,7 +2,7 @@
 *
 
 # whitelist only needed folders
-!air/VERSION
+!air/site/VERSION
 !air/tmp/image_shell_init.sh
 !air/config/config.sh
 !air/config/tcp_ports.json

@@ -1,4 +1,0 @@
-IMAGE_CATEGORY=master_stage
-TARGET_MACHINE=srv-76-133.mpi-sws.org
-RUNTIME_CONFIG=stage
-CLOAK_NAME=master_stage

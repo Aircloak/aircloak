@@ -13,6 +13,7 @@ needed to create, update and run tasks.
     - [Running](#running)
     - [Local docker container](#local-docker-container)
     - [Other common tasks](#other-common-tasks)
+    - [Deploying](#deploying)
 
 ----------------------
 
@@ -88,3 +89,7 @@ __OS X users__: if you're using `docker-machine`, you need to forward ports 9080
 - documentation: `make docs`
 - lint: `make lint`
 - building a release: `make release`
+
+### Deploying
+
+See [here](../../README.md#deploying).

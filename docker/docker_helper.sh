@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function named_container_running {
-  if [ -z "$(docker ps --filter=name=$1 | grep -v CONTAINER)" ]; then
+  if [ -z "$(docker ps --filter=name=$1 | grep -w $1)" ]; then
     return 1
   else
     return 0
@@ -34,7 +34,7 @@ function stop_named_container {
     fi
   fi
 
-  if [ ! -z "$(docker ps -a --filter=name=$1 | grep -v CONTAINER)" ]; then
+  if [ ! -z "$(docker ps -a --filter=name=$1 | grep -w $1)" ]; then
     echo "Removing container $1"
     docker rm $1 > /dev/null
   fi
@@ -451,4 +451,16 @@ function published_image_versions {
     )
     echo "$version ($created_at)"
   done
+}
+
+function package_image {
+  if [ "$IMAGE_CATEGORY" == "" ]; then
+    echo "Please specify some deploy environment through IMAGE_CATEGORY variable."
+    exit 1
+  fi
+
+  image_name=$(./container.sh image_name)
+  check_registry
+  build_and_push_to_registry $image_name "./build-image.sh" $(cat ./VERSION)
+  untag_registry_tags "$image_name"
 }
