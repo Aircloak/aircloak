@@ -19,28 +19,28 @@ defmodule Air.Onboarding.UserControllerTest do
     assert Enum.any?(user.groups, &(&1.admin))
   end
 
-  test "re-uses admin group if it exists" do
+  test "re-uses admin group if it exists", %{conn: conn} do
     group = %Group{}
     |> Group.changeset(%{name: "admin", admin: true})
     |> Repo.insert!()
-    post(build_conn(), "/onboarding/", @valid_params)
+    post(conn, "/onboarding/", @valid_params)
     [user | _] = Repo.all(User) |> Repo.preload([:groups])
     assert hd(user.groups).id == group.id
   end
 
-  test "redirects to users admin page" do
-    assert post(build_conn(), "/onboarding/", @valid_params) |> redirected_to() === "/admin/users"
+  test "redirects to users admin page", %{conn: conn} do
+    assert post(conn, onboarding_user_path(conn, :create), @valid_params) |> redirected_to() === "/admin/users"
   end
 
-  test "requires correct master password" do
-    invalid_params = %{@valid_params | user: %{ @valid_params[:user] | master_password: "WRONG PASSWORD"}}
-    html = build_conn()
+  test "requires correct master password", %{conn: conn} do
+    invalid_params = %{@valid_params | user: %{@valid_params[:user] | master_password: "WRONG PASSWORD"}}
+    html = conn
     |> post("/onboarding/", invalid_params)
     |> response(200)
     assert html =~ "The master password is incorrect"
   end
 
-  test "instructs user about setup done if has been done in past" do
+  test "instructs user about setup done if has been done in past", %{conn: conn} do
     group = %Group{}
     |> Group.changeset(%{name: "admin", admin: true})
     |> Repo.insert!()
@@ -55,6 +55,6 @@ defmodule Air.Onboarding.UserControllerTest do
     })
     |> Repo.insert!()
 
-    assert get(build_conn(), "/onboarding/") |> redirected_to() === "/onboarding/already_setup"
+    assert get(conn, "/onboarding/") |> redirected_to() === "/onboarding/already_setup"
   end
 end
