@@ -119,6 +119,16 @@ defmodule Air.User do
   def validate_password(nil, _password), do: Hash.dummy_checkpw
   def validate_password(user, password), do: Hash.checkpw(password, user.hashed_password)
 
+  @doc "Returns a boolean regarding whether a administrator account already exists"
+  @spec admin_user_exists?() :: boolean
+  def admin_user_exists?() do
+    query = from u in Air.User,
+      inner_join: g in assoc(u, :groups),
+      where: g.admin,
+      limit: 1
+    Air.Repo.one(query) != nil
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

@@ -21,7 +21,7 @@ defmodule Air.SessionController do
   # -------------------------------------------------------------------
 
   def new(conn, _params) do
-    if admin_user_exists?() do
+    if User.admin_user_exists?() do
       render(conn, "new.html")
     else
       redirect(conn, to: onboarding_user_path(conn, :new))
@@ -68,12 +68,4 @@ defmodule Air.SessionController do
     Air.Plug.Session.Restoration.persist_token(conn)
   end
   defp conditionally_create_persistent_login(conn, _params), do: conn
-
-  defp admin_user_exists?() do
-    query = from u in User,
-      inner_join: g in assoc(u, :groups),
-      where: g.admin,
-      limit: 1
-    Repo.one(query) != nil
-  end
 end

@@ -72,6 +72,7 @@ defmodule Air.Router do
 
     get "/", UserController, :new
     post "/", UserController, :create
+    get "/already_setup", UserController, :already_setup
   end
 
   scope "/api" do

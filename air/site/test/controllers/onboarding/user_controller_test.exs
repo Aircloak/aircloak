@@ -39,4 +39,22 @@ defmodule Air.Onboarding.UserControllerTest do
     |> response(200)
     assert html =~ "The master password is incorrect"
   end
+
+  test "instructs user about setup done if has been done in past" do
+    group = %Group{}
+    |> Group.changeset(%{name: "admin", admin: true})
+    |> Repo.insert!()
+
+    %User{}
+    |> User.changeset(%{
+      name: "test",
+      email: "test@example.com",
+      password: "1234",
+      password_confirmation: "1234",
+      groups: [group.id],
+    })
+    |> Repo.insert!()
+
+    assert get(build_conn(), "/onboarding/") |> redirected_to() === "/onboarding/already_setup"
+  end
 end

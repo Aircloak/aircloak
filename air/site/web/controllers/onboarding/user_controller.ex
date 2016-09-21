@@ -11,7 +11,7 @@ defmodule Air.Onboarding.UserController do
 
   def permissions do
     %{
-      anonymous: [:new, :create]
+      anonymous: [:new, :create, :already_setup]
     }
   end
 
@@ -21,8 +21,16 @@ defmodule Air.Onboarding.UserController do
   # -------------------------------------------------------------------
 
   def new(conn, _params) do
-    changeset = User.changeset(%User{})
-    render(conn, "new.html", changeset: changeset)
+    unless User.admin_user_exists?() do
+      changeset = User.changeset(%User{})
+      render(conn, "new.html", changeset: changeset)
+    else
+      redirect(conn, to: onboarding_user_path(conn, :already_setup))
+    end
+  end
+
+  def already_setup(conn, _params) do
+    render(conn, "already_setup.html")
   end
 
   def create(conn, params) do
