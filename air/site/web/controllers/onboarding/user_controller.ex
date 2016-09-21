@@ -69,6 +69,7 @@ defmodule Air.Onboarding.UserController do
 
   defp login(conn, params) do
     login_params = Map.take(params, ["email", "password"])
+    conn = put_session(conn, :return_path, admin_user_path(conn, :index))
     Air.SessionController.create(conn, login_params)
   end
 end
