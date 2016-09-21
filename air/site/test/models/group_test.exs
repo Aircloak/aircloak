@@ -17,7 +17,6 @@ defmodule Air.GroupTest do
   end
 
   test "validates uniqueness of name" do
-    Repo.delete_all(Group)
     Repo.insert!(Group.changeset(%Group{}, @valid_attrs))
     assert_raise Ecto.InvalidChangesetError,
       fn -> Repo.insert!(Group.changeset(%Group{}, @valid_attrs)) end
