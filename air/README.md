@@ -46,6 +46,7 @@ In order to run the system you need the following components:
 - Node.js 5 or newer
 - Erlang and Elixir (see [here](../README.md#prerequisites) for details)
 - Ruby 2.x and bundler (for building API docs)
+- Docker 1.8.3 (+ docker-machine if on OS X)
 
 Once you have all the main components, you also need the elixir and node.js dependencies required by our
 application. Node.js is included to compile our javascript and css dependencies.
@@ -60,8 +61,7 @@ with `make recreate_db`
 
 ### Running
 
-To start the development server, you run: `make start`.
-Assuming [common components are started](../README.md#starting-the-required-components), you can access the
+First, make sure the dependencies are started by running `./start_dependencies.sh`. To start the development server, you run: `make start`. Now you can access the
 site at http://localhost:8080/.
 
 Note that there's no need to migrate the database. This will happen automatically when the application starts.
@@ -79,7 +79,11 @@ The site also accepts HTTPS requests on port 8443. Self-signed certificates are 
 
 To start a local docker container, you need to first build the image with `./build-image.sh`. Then you can start the container with `./container.sh console`. Once the container is started you can access it at http://localhost:9080/ and https://insights.air-local:9443. Since different ports are used, the container can run side-by-side to the local site.
 
-__OS X users__: if you're using `docker-machine`, you need to forward ports 9080 and 9443 in Virtual box.
+__Linux developers__: Scripts in this project use docker in the context of the logged in user (without root
+privileges). To enable this, you need to add yourself to the `docker` group. See
+[here](http://askubuntu.com/a/477554) for explanation.
+
+__OS X users__: see [here](./osx_setup.md) for additional instructions.
 
 ### Other common tasks
 
