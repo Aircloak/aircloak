@@ -4,6 +4,14 @@ This document serves to describe breaking changes and provide upgrade hints when
 
 The change was made to get Travis to pick up our caches, and secondly it's what most people and projects expect. Update your local git remotes.
 
+## Standalone air
+
+- Air web project now resides directly in the `air` folder.
+- Air listens on ports 8080 and 8443.
+- Change in deploy syntax: use `air/production.sh target deploy` or `cloak/production.sh target deploy`, where `target` is your first name (without paths).
+- New command to deploy air and cloak together: `./publish.sh target`.
+- Air is deployed to srv-76-135.
+- Following components are not used anymore: `nginx`, `haproxy`, `etcd`, `coreos`.
 
 ## Mixification of cloak
 
