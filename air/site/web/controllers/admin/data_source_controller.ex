@@ -26,7 +26,20 @@ defmodule Air.Admin.DataSourceController do
   def index(conn, _params) do
     data_sources = Repo.all(DataSource) |> Repo.preload([:groups])
     data_sources = Enum.sort_by(data_sources, &{DataSourceManager.available?(&1.global_id), &1.name})
-    render(conn, "index.html", data_sources: data_sources)
+
+    query = from d in DataSource,
+      inner_join: g in assoc(d, :groups),
+      inner_join: u in assoc(g, :users),
+      group_by: d.id,
+      select: %{
+        id: d.id,
+        users_count: count(u.id, :distinct)
+      }
+    users_count = Repo.all(query)
+    |> Enum.map(&({&1.id, &1.users_count}))
+    |> Enum.into(%{})
+
+    render(conn, "index.html", data_sources: data_sources, users_count: users_count)
   end
 
   def edit(conn, %{"id" => id}) do
