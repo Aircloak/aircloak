@@ -22,7 +22,20 @@ defmodule Air.Admin.UserController do
 
   def index(conn, _params) do
     users = Repo.all(User) |> Repo.preload([:groups])
-    render(conn, "index.html", users: users)
+
+    query = from u in User,
+      inner_join: g in assoc(u, :groups),
+      inner_join: d in assoc(g, :data_sources),
+      group_by: u.id,
+      select: %{
+        id: u.id,
+        users_count: count(d.id, :distinct)
+      }
+    data_sources_count = Repo.all(query)
+    |> Enum.map(&({&1.id, &1.users_count}))
+    |> Enum.into(%{})
+
+    render(conn, "index.html", users: users, data_sources_count: data_sources_count)
   end
 
   def new(conn, _params) do
