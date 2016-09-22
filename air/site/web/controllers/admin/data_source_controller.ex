@@ -5,7 +5,7 @@ defmodule Air.Admin.DataSourceController do
 
   use Air.Web, :admin_controller
 
-  alias Air.{DataSource, DataSourceManager, AuditLog}
+  alias Air.{DataSource, DataSourceManager, AuditLog, User}
 
 
   # -------------------------------------------------------------------
@@ -62,9 +62,19 @@ defmodule Air.Admin.DataSourceController do
 
   def show(conn, %{"id" => id}) do
     data_source = Repo.get(DataSource, id) |> Repo.preload([:groups])
+
+    query = from u in User,
+      distinct: u.id,
+      inner_join: g in assoc(u, :groups),
+      inner_join: d in assoc(g, :data_sources),
+      where: d.id == ^id,
+      select: u
+    users = Repo.all(query)
+
     render(conn, "show.html",
       data_source: data_source,
       conn: conn,
+      users: users
     )
   end
 
