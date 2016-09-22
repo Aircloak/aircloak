@@ -2,5 +2,5 @@
 *
 
 # whitelist only needed folders
-!air/site/artifacts/rel
-!air/site/docker
+!air/artifacts/rel
+!air/docker

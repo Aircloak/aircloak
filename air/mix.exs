@@ -66,7 +66,7 @@ defmodule Air.Mixfile do
       {:hackney, "~> 1.5.0"},
       {:exrm, "~> 1.0.8", warn_missing: false},
       {:timex, "~> 2.2"},
-      {:aircloak_common, path: "../../common/elixir"},
+      {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
       {:csv, "~> 1.4.2"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", only: :test},

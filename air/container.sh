@@ -3,7 +3,7 @@
 set -e
 
 cd $(dirname $0)
-. ../../docker/docker_helper.sh
+. ../docker/docker_helper.sh
 
 # Override the generic function, since we need to perform special handling
 function gracefully_stop_container {

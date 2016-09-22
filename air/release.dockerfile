@@ -10,8 +10,8 @@ RUN useradd --create-home --shell /bin/bash deployer && mkdir -p /aircloak/app
 
 WORKDIR /aircloak/air
 
-COPY air/site/artifacts/rel /aircloak/air
-COPY air/site/docker/start.sh /aircloak/
+COPY air/artifacts/rel /aircloak/air
+COPY air/docker/start.sh /aircloak/
 
 RUN chown -R deployer:deployer /aircloak/air && chown -R deployer:deployer /var/run/
 

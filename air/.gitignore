@@ -19,5 +19,6 @@ erl_crash.dump
 /doc/
 /cover/
 /artifacts/
+/tmp/
 
 npm-debug.log.*

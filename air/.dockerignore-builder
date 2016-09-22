@@ -1,0 +1,40 @@
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!air/VERSION
+!air/tmp/image_shell_init.sh
+!air/brunch-config.js
+!air/package.json
+!air/npm-shrinkwrap.json
+!air/priv/repo
+!air/priv/task_post_processor
+!air/Makefile
+!air/mix.exs
+!air/mix.lock
+!air/config
+!air/lib
+!air/docs
+!air/web
+!air/src
+!air/include
+!air/scripts
+!air/rel
+!air/fetch_deps.sh
+!bom/config
+!bom/mix.exs
+!bom/mix.lock
+!bom/lib
+!bom/licenses
+!bom/fetch_deps.sh
+!cloak/mix.exs
+!cloak/mix.lock
+!cloak/fetch_deps.sh
+!common
+
+# blacklist some stuff
+air/priv/repo/seeds.exs
+
+# We don't want runtime config included. It needs to be provided through a
+# mounted volume
+air/priv/config
