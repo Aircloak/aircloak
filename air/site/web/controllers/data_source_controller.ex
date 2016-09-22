@@ -40,19 +40,26 @@ defmodule Air.DataSourceController do
   end
 
   def show(conn, %{"id" => id}) do
-    data_source = Repo.get!(DataSource, id)
-    last_query = case Query.load_recent_queries(conn.assigns.current_user, data_source, 1) do
-      [query] -> query
-      _ -> nil
-    end
+    if DataSource.available_to_user?(id, conn.assigns.current_user) do
+      data_source = Repo.get!(DataSource, id)
+      last_query = case Query.load_recent_queries(conn.assigns.current_user, data_source, 1) do
+        [query] -> query
+        _ -> nil
+      end
 
-    conn
-    |> put_layout("raw.html")
-    |> render("show.html",
-      data_source: data_source,
-      guardian_token: Guardian.Plug.current_token(conn),
-      csrf_token: CSRFProtection.get_csrf_token(),
-      last_query: last_query,
-    )
+      conn
+      |> put_layout("raw.html")
+      |> render("show.html",
+        data_source: data_source,
+        guardian_token: Guardian.Plug.current_token(conn),
+        csrf_token: CSRFProtection.get_csrf_token(),
+        last_query: last_query,
+      )
+    else
+      conn
+      |> put_flash(:error, "Not permitted to access data source")
+      |> redirect(to: data_source_path(conn, :index))
+      |> halt()
+    end
   end
 end
