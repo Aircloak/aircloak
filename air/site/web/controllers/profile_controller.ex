@@ -4,6 +4,8 @@ defmodule Air.ProfileController do
 
   alias Air.{AuditLog, User}
 
+  @allowed_params ~w(name email password password_confirmation)
+
   def permissions do
     %{user: :all}
   end
@@ -13,10 +15,11 @@ defmodule Air.ProfileController do
   end
 
   def update(conn, params) do
-    changeset = User.changeset(conn.assigns.current_user, params["user"])
+    allowed_params = Map.take(params["user"], @allowed_params)
+    changeset = User.changeset(conn.assigns.current_user, allowed_params)
 
     case Repo.update(changeset) do
-      {:ok, user} ->
+      {:ok, _} ->
         AuditLog.log(conn, "Altered own profile")
         conn
         |> put_flash(:info, "Profile updated")
