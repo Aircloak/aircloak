@@ -36,18 +36,6 @@ form.link, form.button {
   display: inline;
 }
 
-ul.nav.navbar-nav.navbar-right li form.link a {
-  position: relative;
-  top: 15px;
-  margin-right: 10px;
-  margin-left: 5px;
-  padding: 10px;
-}
-
-ul.nav.navbar-nav.navbar-right li form.link a:hover {
-  text-decoration: none;
-}
-
 .logo {
   margin: 10px;
   width: 160px;
