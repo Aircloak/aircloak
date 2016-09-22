@@ -42,8 +42,6 @@ addons:
   hosts:
     - travis.aircloak.local
 before_install:
-  - curl -L  https://github.com/coreos/etcd/releases/download/v2.0.11/etcd-v2.0.11-linux-amd64.tar.gz -o etcd-v2.0.11-linux-amd64.tar.gz && tar xzvf etcd-v2.0.11-linux-amd64.tar.gz
-  - etcd-v2.0.11-linux-amd64/etcd -addr 127.0.0.1:$(. ./air/config/config.sh && get_tcp_port test etcd/client) &
   - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
   - mysql -e "CREATE DATABASE cloaktest1 DEFAULT CHARACTER SET utf8;" -u root
   - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
