@@ -18,6 +18,9 @@ defmodule Air do
     :ok
   end
 
+  # returns the site setting from the current deployment configuration (config.json)
+  def site_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), name)
+
   defp configure_secrets do
     Air.Utils.update_app_env(:guardian, Guardian,
       &[{:secret_key, site_setting("auth_secret")} | &1])
@@ -30,8 +33,6 @@ defmodule Air do
       ] ++ https_config()
     end)
   end
-
-  defp site_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), name)
 
   defp https_config() do
     keyfile = Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])

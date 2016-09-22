@@ -8,7 +8,7 @@ defmodule Air.Onboarding.UserControllerTest do
       name: "admin",
       password: "1234",
       password_confirmation: "1234",
-      master_password: "bubblegum",
+      master_password: "super_secret_master_password",
     }
   }
 

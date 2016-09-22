@@ -35,7 +35,7 @@ defmodule Air.Onboarding.UserController do
 
   def create(conn, params) do
     changeset = User.new_user_changeset(%User{}, params["user"])
-    case params["user"]["master_password"] == "bubblegum" do
+    case params["user"]["master_password"] == Air.site_setting("master_password") do
       true ->
         group = get_admin_group()
         changeset = User.changeset(changeset, %{groups: [group.id]})
