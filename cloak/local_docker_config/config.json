@@ -1,7 +1,7 @@
 {
-  "air_socket_url": "ws://air_insights:8080/cloak/socket/websocket",
-  "data_sources": {
-    "local": {
+  "air_socket_url": "ws://air:8080/cloak/socket/websocket",
+  "data_sources": [
+    {
       "driver": "postgresql",
       "marker": "postgrex",
       "parameters": {
