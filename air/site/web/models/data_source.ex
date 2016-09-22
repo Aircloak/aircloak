@@ -62,4 +62,18 @@ defmodule Air.DataSource do
     |> unique_constraint(:global_id)
     |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
   end
+
+
+  # -------------------------------------------------------------------
+  # Query functions
+  # -------------------------------------------------------------------
+
+  @doc "Adds a query filter selecting only those for the given user"
+  @spec for_user(Ecto.Queryable.t, User.t) :: Ecto.Queryable.t
+  def for_user(query, user) do
+    from d in query,
+    inner_join: g in assoc(d, :groups),
+    inner_join: u in assoc(g, :users),
+    where: u.id == ^user.id
+  end
 end
