@@ -53,7 +53,8 @@ defmodule Cloak.Aql.Parser do
     from: from_clause,
     where: [where_clause],
     order_by: [{String.t, :asc | :desc}],
-    show: :tables | :columns
+    show: :tables | :columns,
+    limit: integer
   }
 
 
@@ -137,7 +138,8 @@ defmodule Cloak.Aql.Parser do
       from(data_source),
       optional_where(),
       optional_group_by(),
-      optional_order_by()
+      optional_order_by(),
+      optional_limit()
     ])
   end
 
@@ -662,6 +664,15 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp replace(parser, value), do: map(parser, fn(_) -> value end)
+
+  defp optional_limit() do
+    switch([
+      {keyword(:limit), constant(:integer)},
+      {:else, noop()}
+    ])
+    |> map(fn {[:limit], [{:constant, :integer, amount}]} -> {:limit, amount} end)
+  end
+
 
   # -------------------------------------------------------------------
   # Work around invalid combine spec (see below)

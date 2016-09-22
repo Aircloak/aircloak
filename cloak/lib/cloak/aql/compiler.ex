@@ -76,6 +76,7 @@ defmodule Cloak.Aql.Compiler do
     |> compile_order_by()
     |> partition_selected_columns()
     |> calculate_db_columns()
+    |> verify_limit()
     {:ok, query}
   end
   defp compile_prepped_query(%Query{command: :show} = query) do
@@ -98,6 +99,7 @@ defmodule Cloak.Aql.Compiler do
       |> partition_selected_columns()
       |> partition_where_clauses()
       |> calculate_db_columns()
+      |> verify_limit()
       {:ok, query}
     rescue
       e in CompilationError -> {:error, e.message}
@@ -780,4 +782,8 @@ defmodule Cloak.Aql.Compiler do
   defp negative_condition_string({:not, {:like, _, _}}), do: "NOT LIKE"
   defp negative_condition_string({:not, {:ilike, _, _}}), do: "NOT ILIKE"
   defp negative_condition_string({:not, {:comparison, _, :=, _}}), do: "<>"
+
+  defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:
+    raise CompilationError, message: "LIMIT clause expects a positive value."
+  defp verify_limit(query), do: query
 end

@@ -133,6 +133,7 @@ defmodule Cloak.Query.Runner do
         |> NegativeCondition.apply(query)
         |> Aggregator.aggregate(query)
         |> Sorter.order(query)
+        |> limit(query)
       end), do: successful_result({:buckets, query.column_titles, buckets}, query)
     rescue e in [RuntimeError] ->
       {:error, e.message}
@@ -195,6 +196,14 @@ defmodule Cloak.Query.Runner do
   defp execution_time_in_s(%{execution_time: execution_time}) do
     div(execution_time, 1000)
   end
+
+  defp limit(rows, %Query{limit: nil}), do: rows
+  defp limit(rows, %Query{limit: amount}), do: rows |> take(amount, []) |> Enum.reverse()
+
+  defp take([], _amount, acc), do: acc
+  defp take([%{occurrences: occurrences} = bucket | rest], amount, acc) when occurrences < amount, do:
+    take(rest, amount - occurrences, [bucket | acc])
+  defp take([%{} = bucket | _rest], amount, acc), do: [%{bucket | occurrences: amount} | acc]
 
 
   # -------------------------------------------------------------------
