@@ -21,7 +21,13 @@
     </div>
 
     <div class="form-group">
-      <label>Password</label>
+      <label>Old Password</label>
+      <%= password_input f, :old_password, class: "form-control" %>
+      <%= error_tag f, :old_password %>
+    </div>
+
+    <div class="form-group">
+      <label>New Password</label>
       <%= password_input f, :password, class: "form-control" %>
       <%= error_tag f, :password %>
     </div>

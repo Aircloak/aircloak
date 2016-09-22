@@ -31,4 +31,32 @@ defmodule Air.ProfileController.Test do
     user = User |> Repo.get!(user.id) |> Repo.preload([:groups])
     assert user.groups == []
   end
+
+  test "cannot change password without the old password" do
+    user = TestRepoHelper.create_user!()
+    old_password_hash = user.hashed_password
+
+    login(user)
+    |> put("/profile", user: %{
+      old_password: "incorrect",
+      password: "new password",
+      password_confirmation: "new password"
+    })
+
+    assert Repo.get!(User, user.id).hashed_password == old_password_hash
+  end
+
+  test "can change password with the old password" do
+    user = TestRepoHelper.create_user!()
+    old_password_hash = user.hashed_password
+
+    login(user)
+    |> put("/profile", user: %{
+      old_password: "1234",
+      password: "new password",
+      password_confirmation: "new password"
+    })
+
+    assert Repo.get!(User, user.id).hashed_password != old_password_hash
+  end
 end
