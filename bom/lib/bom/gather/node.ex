@@ -116,7 +116,7 @@ defmodule BOM.Gather.Node do
   end
 
   defp list_packages(path) do
-    {result, 0} = System.cmd("npm", ["ls", "--parseable"], cd: Path.join(path, ".."))
+    {result, _} = System.cmd("npm", ["ls", "--parseable"], cd: Path.join(path, ".."))
 
     result
     |> String.split("\n")
