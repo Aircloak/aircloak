@@ -31,6 +31,11 @@ RUN \
   npm install && \
   cd docs && bundle install -j4 && cd ..
 
+# Workaround for node vs docker's filesystem interaction. See https://github.com/npm/npm/issues/9863
+RUN \
+  cd /aircloak/air/site && \
+  mv node_modules node_modules.tmp && mv node_modules.tmp node_modules && npm install && npm prune
+
 # Build the Bill of Materials
 COPY bom /aircloak/bom
 COPY cloak /aircloak/cloak

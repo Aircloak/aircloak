@@ -30,6 +30,7 @@
 !bom/licenses
 !bom/fetch_deps.sh
 !cloak/mix.exs
+!cloak/mix.lock
 !cloak/fetch_deps.sh
 !common
 
