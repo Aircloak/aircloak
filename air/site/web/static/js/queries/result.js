@@ -14,6 +14,7 @@ export class Result extends React.Component {
     this.state = {
       rowsToShowCount: this.minRowsToShow,
       showChart: false,
+      mode: "bar",
     };
 
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
@@ -26,6 +27,7 @@ export class Result extends React.Component {
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
     this.setChartDataOnRef = this.setChartDataOnRef.bind(this);
     this.plotChart = this.plotChart.bind(this);
+    this.changeGraphType = this.changeGraphType.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
@@ -62,7 +64,7 @@ export class Result extends React.Component {
       const columnName = value[1];
       const renderableValues = this.props.rows.map((accumulateRow) => accumulateRow.row[columnIndex]);
       return {
-        type: "bar",
+        type: this.state.mode,
         name: columnName,
         y: renderableValues,
         x: xAxisValues,
@@ -136,10 +138,18 @@ export class Result extends React.Component {
       this.yColumns().length > 0;
   }
 
+  changeGraphType(e) {
+    this.setState({mode: e.target.value});
+  }
+
   conditionallyRenderChart() {
     if (this.state.showChart) {
       return (
         <div>
+          Show as: <select onChange={this.changeGraphType}>
+            <option value="bar">Bar chart</option>
+            <option value="line">Line chart</option>
+          </select>
           <div
             ref={this.setChartDataOnRef}
             className="plotlyGraph" style={{width: "100%", height: "500px"}}
