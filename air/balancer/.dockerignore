@@ -1,8 +1,0 @@
-# ignore everything by default
-*
-
-# whitelist only needed folders
-!air/VERSION
-!air/config/config.sh
-!air/config/tcp_ports.json
-!air/balancer
