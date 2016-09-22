@@ -116,11 +116,14 @@ defmodule BOM.Gather.Node do
   end
 
   defp list_packages(path) do
-    {result, 0} = System.cmd("npm", ["ls", "--parseable"], cd: Path.join(path, ".."))
-
-    result
-    |> String.split("\n")
-    |> Enum.reject(&(&1 == ""))
-    |> Enum.drop(1) # The first line is always the top-level package
+    path
+    |> Path.join("*")
+    |> Path.wildcard()
+    |> Enum.flat_map(fn(package_path) ->
+      [
+        package_path |
+        package_path |> Path.join("node_modules") |> list_packages()
+      ]
+    end)
   end
 end
