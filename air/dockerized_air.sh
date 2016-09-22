@@ -4,8 +4,6 @@ set -eo pipefail
 
 cd $(dirname $0)
 
-. ./config/config.sh
-
 function stop_docker_services {
   site/container.sh stop&
   router/container.sh stop&

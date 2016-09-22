@@ -4,8 +4,6 @@
 # whitelist only needed folders
 !air/site/VERSION
 !air/tmp/image_shell_init.sh
-!air/config/config.sh
-!air/config/tcp_ports.json
 !air/site/brunch-config.js
 !air/site/package.json
 !air/site/npm-shrinkwrap.json
