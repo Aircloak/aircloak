@@ -7,9 +7,19 @@ defmodule Air.ProfileController do
 
   @simple_fields ~w(name email)
 
+
+  # -------------------------------------------------------------------
+  # Air.VerifyPermissions callback
+  # -------------------------------------------------------------------
+
   def permissions do
     %{user: :all}
   end
+
+
+  # -------------------------------------------------------------------
+  # Actions
+  # -------------------------------------------------------------------
 
   def edit(conn, _params) do
     render(conn, "edit.html", changeset: User.changeset(conn.assigns.current_user))
@@ -28,6 +38,11 @@ defmodule Air.ProfileController do
       {:error, changeset} -> render(conn, "edit.html", changeset: changeset)
     end
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp build_changeset(conn, params) do
     Changeset.merge(
