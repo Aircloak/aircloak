@@ -7,6 +7,21 @@
   overflow: scroll;
 }
 
+.list-group-item {
+  padding: 0;
+  margin: 0;
+}
+
+.list-group-item-heading {
+  padding: 5px 5px 5px 5px;
+  margin: 0;
+  background-color: rgba(245,245,245,0.50);
+}
+
+.list-group table {
+  margin-bottom: 10px;
+}
+
 .table-info .list-group-item-heading {
   word-break: break-all;
 }

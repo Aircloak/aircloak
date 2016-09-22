@@ -4,7 +4,7 @@ import _ from "lodash";
 export const Columns = (props) => {
   const columns = _.sortBy(props.columns, (column) => column.name.toLowerCase());
 
-  return (<table className="table">
+  return (<table className="table table-condensed">
     <thead>
       <tr>
         <th>Column</th>
