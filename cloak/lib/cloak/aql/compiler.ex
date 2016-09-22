@@ -77,6 +77,7 @@ defmodule Cloak.Aql.Compiler do
     |> partition_selected_columns()
     |> calculate_db_columns()
     |> verify_limit()
+    |> verify_offset()
     {:ok, query}
   end
   defp compile_prepped_query(%Query{command: :show} = query) do
@@ -100,6 +101,7 @@ defmodule Cloak.Aql.Compiler do
       |> partition_where_clauses()
       |> calculate_db_columns()
       |> verify_limit()
+      |> verify_offset()
       {:ok, query}
     rescue
       e in CompilationError -> {:error, e.message}
@@ -786,4 +788,8 @@ defmodule Cloak.Aql.Compiler do
   defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:
     raise CompilationError, message: "LIMIT clause expects a positive value."
   defp verify_limit(query), do: query
+
+  defp verify_offset(%Query{command: :select, offset: amount}) when amount < 0, do:
+    raise CompilationError, message: "OFFSET clause expects a non-negative value."
+  defp verify_offset(query), do: query
 end

@@ -54,7 +54,8 @@ defmodule Cloak.Aql.Parser do
     where: [where_clause],
     order_by: [{String.t, :asc | :desc}],
     show: :tables | :columns,
-    limit: integer
+    limit: integer,
+    offset: integer
   }
 
 
@@ -139,7 +140,8 @@ defmodule Cloak.Aql.Parser do
       optional_where(),
       optional_group_by(),
       optional_order_by(),
-      optional_limit()
+      optional_limit(),
+      optional_offset()
     ])
   end
 
@@ -671,6 +673,14 @@ defmodule Cloak.Aql.Parser do
       {:else, noop()}
     ])
     |> map(fn {[:limit], [{:constant, :integer, amount}]} -> {:limit, amount} end)
+  end
+
+  defp optional_offset() do
+    switch([
+      {keyword(:offset), constant(:integer)},
+      {:else, noop()}
+    ])
+    |> map(fn {[:offset], [{:constant, :integer, amount}]} -> {:offset, amount} end)
   end
 
 

@@ -45,7 +45,7 @@ defmodule Cloak.Aql.Lexer do
     ",", ".", ";",
     "<=", ">=", "<>", "=", "<", ">",
     "*",
-    "LIMIT"
+    "LIMIT", "OFFSET"
   ]
 
   defp lexer() do

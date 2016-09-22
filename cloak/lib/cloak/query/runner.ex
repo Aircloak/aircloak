@@ -133,6 +133,7 @@ defmodule Cloak.Query.Runner do
         |> NegativeCondition.apply(query)
         |> Aggregator.aggregate(query)
         |> Sorter.order(query)
+        |> offset(query)
         |> limit(query)
       end), do: successful_result({:buckets, query.column_titles, buckets}, query)
     rescue e in [RuntimeError] ->
@@ -204,6 +205,15 @@ defmodule Cloak.Query.Runner do
   defp take([%{occurrences: occurrences} = bucket | rest], amount, acc) when occurrences < amount, do:
     take(rest, amount - occurrences, [bucket | acc])
   defp take([%{} = bucket | _rest], amount, acc), do: [%{bucket | occurrences: amount} | acc]
+
+  defp offset(rows, %Query{offset: amount}), do: drop(rows, amount)
+
+  defp drop(buckets, 0), do: buckets
+  defp drop([], _amount), do: []
+  defp drop([%{occurrences: occurrences} | rest], amount) when occurrences <= amount, do:
+    drop(rest, amount - occurrences)
+  defp drop([%{occurrences: occurrences} = bucket | rest], amount), do:
+    [%{bucket | occurrences: occurrences - amount} | rest]
 
 
   # -------------------------------------------------------------------
