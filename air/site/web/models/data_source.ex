@@ -77,9 +77,9 @@ defmodule Air.DataSource do
   @doc "Adds a query filter selecting only those for the given user"
   @spec for_user(Ecto.Queryable.t, User.t) :: Ecto.Queryable.t
   def for_user(query, user) do
-    from d in query,
-    inner_join: g in assoc(d, :groups),
-    inner_join: u in assoc(g, :users),
-    where: u.id == ^user.id
+    from data_source in query,
+    inner_join: group in assoc(data_source, :groups),
+    inner_join: user in assoc(group, :users),
+    where: user.id == ^user.id
   end
 end
