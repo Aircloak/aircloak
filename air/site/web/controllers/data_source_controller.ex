@@ -29,7 +29,6 @@ defmodule Air.DataSourceController do
     data_sources = DataSource
     |> DataSource.for_user(conn.assigns.current_user)
     |> Repo.all()
-    # data_sources = Repo.all(DataSource)
     {available_data_sources, unavailable_data_sources} = Enum.partition(data_sources,
       &(DataSourceManager.available?(&1.global_id)))
     render(conn, "index.html",
