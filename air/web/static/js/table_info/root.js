@@ -39,7 +39,7 @@ class TableInfo extends React.Component {
     return (<div data-spy="affix" className="panel panel-default table-info">
       <div className="panel-heading"><strong>Tables</strong></div>
 
-      <div className="list-group">
+      <div className="table-info-content">
         {this.tables().map((table, i) =>
           <Table key={i} table={table} expanded={this.expanded(table)} onClick={this.toggleExpand(table)} />
         )}
