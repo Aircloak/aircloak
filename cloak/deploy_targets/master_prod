@@ -1,4 +1,0 @@
-IMAGE_CATEGORY=master_prod
-TARGET_MACHINE=srv-76-133.mpi-sws.org
-RUNTIME_CONFIG=prod
-CLOAK_NAME=master_prod

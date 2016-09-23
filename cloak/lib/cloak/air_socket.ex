@@ -9,6 +9,7 @@ defmodule Cloak.AirSocket do
   """
 
   require Logger
+  require Aircloak.DeployConfig
   alias Phoenix.Channels.GenSocketClient
 
   @behaviour GenSocketClient
@@ -192,7 +193,7 @@ defmodule Cloak.AirSocket do
 
   defp socket_url() do
     # deploy specific configuration takes precedence over OTP app configuration
-    case Cloak.DeployConfig.fetch("air_socket_url") do
+    case Aircloak.DeployConfig.fetch("air_socket_url") do
       {:ok, socket_url} -> socket_url
       :error -> config(:socket_url)
     end
@@ -233,7 +234,7 @@ defmodule Cloak.AirSocket do
   defp cloak_params() do
     %{
       cloak_name: cloak_name(),
-      cloak_organisation: Cloak.DeployConfig.get("organisation", "unknown")
+      cloak_organisation: Aircloak.DeployConfig.get("organisation", "unknown")
     }
   end
 

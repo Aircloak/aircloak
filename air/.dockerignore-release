@@ -1,0 +1,6 @@
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!air/artifacts/rel
+!air/docker

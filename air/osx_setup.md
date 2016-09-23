@@ -14,18 +14,15 @@ You can consider putting these statements inside `~/.bash_profile`
 
 You need to forward following ports from your localhost to docker-machine VM:
 
+- 9080 (air http)
+- 9443 (air https)
 - 20002 (database container)
-- 20020 (etcd for local dev)
-- 20100 (balancer container https)
-- 20120 (etcd for docker containers)
-- 20126 (docker registry container)
-- 20220 (etcd for tests)
 
 ## Mounting non-home folders
 
 If your repository is located outside of your home directory, you need to mount the top most
 parent folder to docker-machine VM under the same location. For example, if this repo is locally situated under
-`/projects/aircloak/web`, you need to map your local `/projects` folder to `/projects` on docker-machine VM.
+`/projects/aircloak`, you need to map your local `/projects` folder to `/projects` on docker-machine VM.
 
 You can use a helper script in the root of this repository to setup an NFS mount:
 

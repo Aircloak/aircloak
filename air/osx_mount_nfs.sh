@@ -6,7 +6,7 @@
 # default vboxsf). It's probably not a good idea to run it while there are
 # Docker containers running in docker-machine.
 #
-# Usage: sudo ./osx_mount_nfs.sh abs_path1 abs_path2 ...
+# Usage: sudo ./osx_mount_nfs.sh docker_machine_name my_machine_ip abs_path1 abs_path2 ...
 #
 # Note: You need to add the following line in the /etc/nfs.conf file:
 #       nfs.server.mount.require_resv_port = 0
