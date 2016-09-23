@@ -22,7 +22,20 @@ defmodule Air.Admin.UserController do
 
   def index(conn, _params) do
     users = Repo.all(User) |> Repo.preload([:groups])
-    render(conn, "index.html", users: users)
+
+    query = from user in User,
+      inner_join: group in assoc(user, :groups),
+      inner_join: data_source in assoc(group, :data_sources),
+      group_by: user.id,
+      select: %{
+        id: user.id,
+        data_source_count: count(data_source.id, :distinct)
+      }
+    data_sources_count = for user <- Repo.all(query), into: %{} do
+      {user.id, user.data_source_count}
+    end
+
+    render(conn, "index.html", users: users, data_sources_count: data_sources_count)
   end
 
   def new(conn, _params) do

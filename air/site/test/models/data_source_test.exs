@@ -1,7 +1,7 @@
 defmodule Air.DataSourceTest do
   use Air.ModelCase, async: true
 
-  alias Air.{DataSource, Group, TestRepoHelper, TestUtils}
+  alias Air.{DataSource, Group, User, TestRepoHelper, TestUtils}
 
   @valid_attrs %{
     global_id: "global_id",
@@ -75,6 +75,27 @@ defmodule Air.DataSourceTest do
 
     assert [] == data_source_ids_from_group(group1)
     assert [data_source.id] == data_source_ids_from_group(group2)
+  end
+
+  test "knows if a data source IS available to a user" do
+    group = TestRepoHelper.create_group!()
+
+    user = TestRepoHelper.create_user!()
+    |> User.changeset(%{groups: [group.id]})
+    |> Repo.update!()
+
+    data_source = TestRepoHelper.create_data_source!()
+    |> set_groups([group])
+
+    assert DataSource.available_to_user?(data_source.id, user)
+  end
+
+  test "knows if a data source IS NOT available to a user" do
+    user = TestRepoHelper.create_user!()
+    data_source = TestRepoHelper.create_data_source!()
+    |> set_groups([TestRepoHelper.create_group!()])
+
+    refute DataSource.available_to_user?(data_source.id, user)
   end
 
   defp data_source_ids_from_group(group) do

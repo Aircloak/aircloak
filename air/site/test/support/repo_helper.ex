@@ -53,6 +53,7 @@ defmodule Air.TestRepoHelper do
     %Air.DataSource{}
     |> Air.DataSource.changeset(params)
     |> Repo.insert!()
+    |> Repo.preload([:groups])
   end
 
   @doc "Inserts a new token with default parameters into the database."
