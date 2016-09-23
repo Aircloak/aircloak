@@ -57,7 +57,8 @@ defmodule Cloak.DataSource.SqlBuilder do
       " FROM ", from_clause(query.from, query, sql_dialect),
       where_fragments(query.where, sql_dialect),
       group_by_fragments(query, sql_dialect),
-      order_by_fragments(query, sql_dialect)
+      order_by_fragments(query, sql_dialect),
+      range_fragments(query, sql_dialect)
     ]
   end
 
@@ -172,6 +173,30 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp quote_name(name, :drill), do: "`#{name}`"
   defp quote_name(name, _sql_dialect), do: "\"#{name}\""
+
+  defp range_fragments(%Query{subquery?: true, limit: nil, offset: 0}, _sql_dialect), do: []
+  defp range_fragments(%Query{subquery?: true, limit: nil, offset: offset}, :postgresql), do:
+    [" OFFSET ", to_string(offset)]
+  defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :postgresql), do:
+    [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
+  defp range_fragments(%Query{subquery?: true, limit: limit, offset: 0}, :mysql), do:
+    [" LIMIT ", to_string(limit)]
+  defp range_fragments(%Query{subquery?: true, limit: nil}, :mysql), do:
+    raise SqlBuildError, message: "OFFSET without LIMIT clause is not supported on 'mysql' data sources."
+  defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :mysql), do:
+    [" LIMIT ", to_string(offset), ", ", to_string(limit)]
+  defp range_fragments(%Query{subquery?: true, order_by: []}, :sqlserver), do:
+    raise SqlBuildError,
+      message: "LIMIT and/or OFFSET clauses without ORDER BY are not supported on 'sqlserver' data sources."
+  defp range_fragments(%Query{subquery?: true, limit: nil, offset: offset}, :sqlserver), do:
+    [" OFFSET ", to_string(offset), " ROWS"]
+  defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :sqlserver), do:
+    [" OFFSET ", to_string(offset), " ROWS FETCH NEXT ", to_string(limit), " ROWS ONLY"]
+  defp range_fragments(%Query{subquery?: true, limit: limit}, sql_dialect) when limit != nil, do:
+    raise SqlBuildError, message: "LIMIT clause is not supported on '#{sql_dialect}' data sources."
+  defp range_fragments(%Query{subquery?: true, offset: offset}, sql_dialect) when offset > 0, do:
+    raise SqlBuildError, message: "OFFSET clause is not supported on '#{sql_dialect}' data sources."
+  defp range_fragments(_query, _sql_dialect), do: []
 
   defp split_full_outer_join({:join, %{type: :full_outer_join} = join}) do
     left_join = {:join, %{join | type: :left_outer_join}}
