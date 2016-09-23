@@ -57,7 +57,8 @@ defmodule Cloak.DataSource.SqlBuilder do
       "SELECT ", columns_sql(query.db_columns, sql_dialect),
       " FROM ", from_clause(query.from, query, sql_dialect),
       where_fragments(query.where, sql_dialect),
-      group_by_fragments(query, sql_dialect)
+      group_by_fragments(query, sql_dialect),
+      order_by_fragments(query, sql_dialect)
     ]
   end
 
@@ -158,6 +159,19 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp group_by_fragments(%Query{subquery?: true, group_by: [_|_] = group_by}, sql_dialect),
     do: [" GROUP BY ", group_by |> Enum.map(&column_sql(&1, sql_dialect)) |> Enum.intersperse(",")]
   defp group_by_fragments(_query, _sql_dialect), do: []
+
+  defp order_by_fragments(%Query{subquery?: true, order_by: [_|_] = order_by} = query, sql_dialect) do
+    order_by = for {index, dir} <- order_by do
+      dir = if dir == :desc do " DESC" else " ASC" end
+      column = query.db_columns |> Enum.at(index) |> order_column_sql(sql_dialect)
+      [column, dir]
+    end
+    [" ORDER BY ", Enum.intersperse(order_by, ",")]
+  end
+  defp order_by_fragments(_query, _sql_dialect), do: []
+
+  defp order_column_sql(%Column{alias: alias}, sql_dialect) when alias != nil, do: alias
+  defp order_column_sql(column, sql_dialect), do: column_sql(column, sql_dialect)
 
   defp split_full_outer_join({:join, %{type: :full_outer_join} = join}) do
     left_join = {:join, %{join | type: :left_outer_join}}
