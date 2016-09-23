@@ -49,6 +49,9 @@ defmodule Air.Router do
 
     get "/licenses", LicenseController, :index
     get "/licenses/:realm/:name", LicenseController, :show
+
+    get "/profile", ProfileController, :edit
+    put "/profile", ProfileController, :update
   end
 
   scope "/admin", Air.Admin, as: :admin do

@@ -51,8 +51,8 @@ lint: eslint
 	MIX_ENV=test mix lint
 
 eslint:
-	node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules web/static/js/*.js web/static/js/**/*.js
-	node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules --config .eslintrc-test.js test/js/**/*.js
+	node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules web/static/js
+	node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules --config .eslintrc-test.js test/js
 
 mocha:
 	NODE_PATH=test/js:web/static/js npm test
