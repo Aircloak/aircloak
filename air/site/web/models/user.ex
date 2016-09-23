@@ -97,6 +97,7 @@ defmodule Air.User do
     |> validate_required(@required_fields)
     |> validate_format(:email, ~r/@/)
     |> validate_length(:name, min: 2)
+    |> validate_length(:password, min: 4)
     |> validate_confirmation(:password)
     |> update_password_hash
     |> unique_constraint(:email)

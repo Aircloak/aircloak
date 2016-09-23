@@ -36,6 +36,11 @@ defmodule Air.UserTest do
     assert errors_on(%User{}, :name, attributes)
   end
 
+  test "requires password to be 4 or more characters" do
+    attributes = %{@valid_attrs | password: "123"}
+    assert errors_on(%User{}, :password, attributes)
+  end
+
   test "only update hashed password on password change" do
     initial_changeset = Map.merge(%User{}, @valid_attrs)
     has_change_fn = fn(attr) ->
