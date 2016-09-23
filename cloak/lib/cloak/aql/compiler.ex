@@ -397,9 +397,9 @@ defmodule Cloak.Aql.Compiler do
           {index, direction}
         end
         %Query{query | order_by: order_list}
-      [{column, _direction} | _rest] ->
+      [{_column, _direction} | _rest] ->
         raise CompilationError, message:
-          "Non-selected #{Column.display_name(column)} specified in `order by` clause."
+          "Non-selected column specified in `order by` clause."
     end
   end
 
