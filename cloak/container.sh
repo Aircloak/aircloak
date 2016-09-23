@@ -12,7 +12,11 @@ function gracefully_stop_container {
 
 CONTAINER_NAME="cloak"
 DOCKER_IMAGE=$(aircloak_image_name $CONTAINER_NAME)
-DOCKER_START_ARGS="--net=host -v $(pwd)/runtime_config:/runtime_config"
+DOCKER_START_ARGS="
+  -v $(pwd)/local_docker_config:/runtime_config
+  --link air:air
+  --link air_db:air_db
+"
 REMOTE_CONSOLE_COMMAND="bin/cloak remote_console"
 
 container_ctl $@
