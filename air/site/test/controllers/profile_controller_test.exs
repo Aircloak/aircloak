@@ -15,7 +15,7 @@ defmodule Air.ProfileController.Test do
       email: changed_email
     })
 
-    assert redirected_to(conn) == "/profile"
+    assert redirected_to(conn) == "/profile/edit"
     assert Repo.get!(User, user.id).email == changed_email
   end
 
