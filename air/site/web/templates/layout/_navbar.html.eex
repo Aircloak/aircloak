@@ -24,7 +24,7 @@
             </a>
 
             <ul class="dropdown-menu">
-              <%= if permitted?(@conn, Air.ApiTokenController, :index) do %>
+              <%= if permitted?(@conn, Air.ProfileController, :edit) do %>
                 <%= navbar_link(@conn, "Profile", profile_path(@conn, :edit)) %>
               <% end %>
 
