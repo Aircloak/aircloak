@@ -5,6 +5,7 @@ defmodule Air.SessionControllerTest do
   alias Air.TestRepoHelper
 
   test "anonymous user can access the login page", %{conn: conn} do
+    TestRepoHelper.create_admin_user!() # Otherwise we are redirected to the onboarding
     conn |> get("/auth") |> response(200)
   end
 

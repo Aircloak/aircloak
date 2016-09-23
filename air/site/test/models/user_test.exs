@@ -36,6 +36,14 @@ defmodule Air.UserTest do
     assert errors_on(%User{}, :name, attributes)
   end
 
+  test "requires password for new users" do
+    attributes = %{@valid_attrs | password: ""}
+    errors = User.new_user_changeset(%User{}, attributes)
+    |> Ecto.Changeset.traverse_errors(&Air.ErrorHelpers.translate_error/1)
+    |> Enum.flat_map(fn {key, errors} -> for msg <- errors, do: {key, msg} end)
+    assert Keyword.has_key?(errors, :password)
+  end
+
   test "only update hashed password on password change" do
     initial_changeset = Map.merge(%User{}, @valid_attrs)
     has_change_fn = fn(attr) ->
