@@ -61,4 +61,13 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
     )
   end
+
+  test "limit and offset in subqueries" do
+    assert_query "select height from (select user_id, height from heights_sq limit 50) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 50}]}
+    assert_query "select height from (select user_id, height from heights_sq offset 50) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 50}]}
+    assert_query "select height from (select user_id, height from heights_sq limit 50 offset 80) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 20}]}
+  end
 end
