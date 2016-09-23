@@ -239,4 +239,27 @@ defmodule Cloak.Aql.Parsers do
   defparser lazy(%ParserState{status: :ok} = state, generator) do
     (generator.()).(state)
   end
+
+  @doc """
+  Parses one or more instances of `term` separated by `separator`. Unlike the combine `sep_by1` consumes
+  separators eagerly, making it possible to detect wrong `term`s that are later in the chain. For example for
+  input of `"a,b,a"` `sep_by1` will consume only the first `a` and succeed while this one will fail on the
+  `b`.
+  """
+  @spec sep_by1_failing(Combine.previous_parser, Combine.parser, Combine.parser) :: Combine.parser
+  defparser sep_by1_failing(state, term, separator) do
+    (
+      Base.pair_both(
+        term,
+        switch([
+          {separator, lazy(fn -> sep_by1_failing(term, separator) end)},
+          {noop(), noop()}
+        ])
+      )
+      |> Base.map(fn
+        {first, {_sep, [rest]}} -> [first | rest]
+        {single, {[], []}} -> [single]
+      end)
+    ).(state)
+  end
 end

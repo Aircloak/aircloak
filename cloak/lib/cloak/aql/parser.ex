@@ -590,18 +590,18 @@ defmodule Cloak.Aql.Parser do
 
   defp optional_order_by() do
     switch([
-      {keyword(:order), keyword(:by) |> comma_delimited(order_by_field())},
+      {keyword(:order), pair_both(keyword(:by), comma_delimited(order_by_field()))},
       {:else, noop()}
     ])
-    |> map(fn({[:order], [:by, fields]}) -> {:order_by, fields} end)
+    |> map(fn({[:order], [{:by, fields}]}) -> {:order_by, fields} end)
   end
 
   defp optional_group_by() do
     switch([
-      {keyword(:group), keyword(:by) |> comma_delimited(column())},
+      {keyword(:group), pair_both(keyword(:by), comma_delimited(column()))},
       {:else, noop()}
     ])
-    |> map(fn {_, [:by, columns]} -> {:group_by, columns} end)
+    |> map(fn {_, [{:by, columns}]} -> {:group_by, columns} end)
   end
 
   defp order_by_field() do
@@ -646,13 +646,12 @@ defmodule Cloak.Aql.Parser do
     |> label(to_string(type))
   end
 
-  defp comma_delimited(previous \\ noop(), term_parser) do
-    previous
-    |> sep_by1(term_parser, keyword(:","))
+  defp comma_delimited(term_parser) do
+    sep_by1_failing(term_parser, keyword(:","))
   end
 
   defp and_delimited(term_parser) do
-    sep_by1(term_parser, keyword(:and))
+    sep_by1_failing(term_parser, keyword(:and))
   end
 
   defp end_of_input(parser) do

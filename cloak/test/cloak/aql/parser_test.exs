@@ -866,6 +866,8 @@ defmodule Cloak.Aql.Parser.Test do
         "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}},
       {"invalid subquery in a join",
         "select foo from bar cross join (select) alias", "Expected `column definition`", {1, 39}},
+      {"invalid column other than the first one",
+        "select foo, cast(3 as) from foo", "Expected `column definition`", {1, 8}},
       # unparsed subqueries
       {"unclosed parens in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz", "Expected `)`", {1, 37}},
