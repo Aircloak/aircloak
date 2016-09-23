@@ -63,12 +63,12 @@ defmodule Air.Admin.DataSourceController do
   def show(conn, %{"id" => id}) do
     data_source = Repo.get(DataSource, id) |> Repo.preload([:groups])
 
-    query = from u in User,
-      distinct: u.id,
-      inner_join: g in assoc(u, :groups),
-      inner_join: d in assoc(g, :data_sources),
-      where: d.id == ^id,
-      select: u
+    query = from user in User,
+      distinct: user.id,
+      inner_join: group in assoc(user, :groups),
+      inner_join: data_source in assoc(group, :data_sources),
+      where: data_source.id == ^id,
+      select: user
     users = Repo.all(query)
 
     render(conn, "show.html",
