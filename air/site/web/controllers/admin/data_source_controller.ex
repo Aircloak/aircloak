@@ -35,9 +35,9 @@ defmodule Air.Admin.DataSourceController do
         id: data_source.id,
         users_count: count(user.id, :distinct)
       }
-    users_count = Repo.all(query)
-    |> Enum.map(&({&1.id, &1.users_count}))
-    |> Enum.into(%{})
+    users_count = for data_source <- Repo.all(query), into: %{} do
+      {data_source.id, data_source.users_count}
+    end
 
     render(conn, "index.html", data_sources: data_sources, users_count: users_count)
   end
