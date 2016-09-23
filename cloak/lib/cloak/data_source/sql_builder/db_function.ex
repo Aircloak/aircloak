@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   @moduledoc "SQL code generation for database function invocations"
 
-  alias Cloak.DataSource.SqlBuilder.SqlBuildError
+  alias Cloak.Query.Runner.RuntimeError
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
 
   for func <- ~w(ltrim btrim rtrim) do
     defp function_call(unquote(func), [_arg1, _arg2], :mysql),
-      do: raise SqlBuildError, message: "Function #{unquote(func)} is not supported on 'mysql' data sources."
+      do: raise RuntimeError, message: "Function #{unquote(func)} is not supported on 'mysql' data sources."
   end
   defp function_call("^", [arg1, arg2], :mysql), do: ["POW(", arg1, ", ", arg2, ")"]
   defp function_call("/", [arg1, arg2], :postgresql),  do: ["(", arg1, " :: double precision / ", arg2, ")"]

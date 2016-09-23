@@ -34,7 +34,6 @@ defmodule Cloak.DataSource do
 
   alias Cloak.Aql
   alias Cloak.DataSource.Parameters
-  alias Cloak.DataSource.SqlBuilder.SqlBuildError
   require Logger
 
   # define returned data types and values
@@ -143,8 +142,6 @@ defmodule Cloak.DataSource do
     with {:ok, connection} <- driver.connect(data_source.parameters) do
       try do
         driver.select(connection, select_query, result_processor)
-      rescue
-        reason in SqlBuildError -> {:error, reason.message}
       after
         driver.disconnect(connection)
       end

@@ -184,9 +184,8 @@ defmodule Cloak.Query.Runner do
   end
 
   defp format_error_reason(text) when is_binary(text), do: text
-  defp format_error_reason(%Postgrex.Error{} = error), do: Exception.message(error)
   defp format_error_reason(reason) do
-    Logger.error("Unknown query error reason: #{inspect(reason)}")
+    Logger.error("Unknown query error: #{inspect(reason)}")
     "Cloak error"
   end
 
