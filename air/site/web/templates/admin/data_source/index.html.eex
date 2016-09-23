@@ -6,8 +6,8 @@
       <th>Name</th>
       <th>Id</th>
       <th>Available</th>
-      <th># tables</th>
-      <th># users</th>
+      <th>Tables</th>
+      <th>Users</th>
       <th>Groups</th>
       <th></th>
     </tr>

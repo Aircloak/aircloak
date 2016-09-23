@@ -42,8 +42,8 @@
   <thead>
     <tr>
       <th>Name</th>
-      <th># users</th>
-      <th># data sources</th>
+      <th>Users</th>
+      <th>Data sources</th>
       <th></th>
     </tr>
   </thead>

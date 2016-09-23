@@ -6,7 +6,7 @@
       <th>Name</th>
       <th>Email</th>
       <th>Groups</th>
-      <th># data sources</th>
+      <th>Data sources</th>
       <th>Role</th>
       <th></th>
     </tr>
