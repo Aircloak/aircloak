@@ -16,14 +16,28 @@
           <%= if permitted?(@conn, Air.DataSourceController, :index) do %>
             <%= navbar_link(@conn, "Data sources", data_source_path(@conn, :index)) %>
           <% end %>
-          <%= if permitted?(@conn, Air.ApiTokenController, :index) do %>
-            <%= navbar_link(@conn, "API Tokens", api_token_path(@conn, :index)) %>
-          <% end %>
           <%= navbar_link(@conn, "User Guide", "/docs") %>
 
-          <%= if admin?(@conn) do %>
-            <%= navbar_link(@conn, "Admin", "/admin") %>
-          <% end %>
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+              <span class="glyphicon glyphicon-cog"></span> <span class="caret"></span>
+            </a>
+
+            <ul class="dropdown-menu">
+              <%= if permitted?(@conn, Air.ProfileController, :edit) do %>
+                <%= navbar_link(@conn, "Profile", profile_path(@conn, :edit)) %>
+              <% end %>
+
+              <%= if permitted?(@conn, Air.ApiTokenController, :index) do %>
+                <%= navbar_link(@conn, "API Tokens", api_token_path(@conn, :index)) %>
+              <% end %>
+
+              <%= if admin?(@conn) do %>
+                <li role="separator" class="divider"></li>
+                <%= navbar_link(@conn, "Admin", "/admin") %>
+              <% end %>
+            </ul>
+          </li>
 
           <%= if Guardian.Plug.authenticated?(@conn) do %>
             <li>

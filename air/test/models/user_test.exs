@@ -36,6 +36,11 @@ defmodule Air.UserTest do
     assert errors_on(%User{}, :name, attributes)
   end
 
+  test "requires password to be 4 or more characters" do
+    attributes = %{@valid_attrs | password: "123"}
+    assert errors_on(%User{}, :password, attributes)
+  end
+
   test "requires password for new users" do
     attributes = %{@valid_attrs | password: ""}
     errors = User.new_user_changeset(%User{}, attributes)
