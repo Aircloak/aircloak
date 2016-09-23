@@ -2,7 +2,7 @@
   min-width: 200px;
 }
 
-.table-info .list-group {
+.table-info .table-info-content {
   max-height: calc(100vh - 153px);
   overflow: scroll;
 }
@@ -15,10 +15,6 @@
 .list-group-item-heading {
   padding: 5px 5px 5px 5px;
   margin: 0;
-}
-
-.list-group table {
-  margin-bottom: 10px;
 }
 
 .table-info .list-group-item-heading {
