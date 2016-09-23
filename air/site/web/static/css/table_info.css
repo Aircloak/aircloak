@@ -1,5 +1,5 @@
 .table-info {
-  display: block;
+  min-width: 200px;
 }
 
 .table-info .list-group {

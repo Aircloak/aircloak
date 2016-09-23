@@ -36,7 +36,7 @@ class TableInfo extends React.Component {
   }
 
   render() {
-    return (<div className="panel panel-default table-info">
+    return (<div data-spy="affix" className="panel panel-default table-info">
       <div className="panel-heading"><strong>Tables</strong></div>
 
       <div className="list-group">
