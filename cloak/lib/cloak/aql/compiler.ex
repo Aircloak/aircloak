@@ -697,7 +697,6 @@ defmodule Cloak.Aql.Compiler do
   defp select_expressions(%Query{command: :select, subquery?: true} = query) do
     # currently we don't support functions in subqueries
     true = Enum.all?(query.columns, &match?(%Column{}, &1))
-
     Enum.zip(query.column_titles, query.columns)
     |> Enum.map(fn({column_alias, column}) -> %Column{column | alias: column_alias} end)
   end
