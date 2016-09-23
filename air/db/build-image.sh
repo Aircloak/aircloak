@@ -5,7 +5,6 @@ set -e
 cd $(dirname ${BASH_SOURCE[0]})/../..
 
 . docker/docker_helper.sh
-. air/config/config.sh
 
 cd air/db
 

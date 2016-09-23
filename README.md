@@ -25,7 +25,7 @@ To deploy both air and cloak, you can run `./publish.sh deploy_target`, where `d
 
 Deploying will always publish all __pushed__ changes from your current local branch.
 
-You can also deploy each component separately using `./cloak/production.sh` and `./air/site/production.sh` scripts. Run these scripts without any argument for instructions.
+You can also deploy each component separately using `./cloak/production.sh` and `./air/production.sh` scripts. Run these scripts without any argument for instructions.
 
 ### Rolling back
 

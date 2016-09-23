@@ -23,4 +23,4 @@ SKIP_BRANCH_CHECK=true ./cloak/production.sh $1 deploy
 
 echo
 echo "Deploying air"
-SKIP_BRANCH_CHECK=true ./air/site/production.sh $1 deploy
+SKIP_BRANCH_CHECK=true ./air/production.sh $1 deploy

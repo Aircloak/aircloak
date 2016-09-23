@@ -55,6 +55,8 @@ You need a local PostgreSQL instance listening on port 5432. It is assumed that 
 
 You can create the empty database by running `make regenerate_db`.
 
+If you want to run cloak in a local docker container, you need to run this command once more to create the database in the PostgreSQL container: `DB_PORT=20002 ./regenerate_db.sh`.
+
 If everything is properly installed and setup, standard tests invoked with `make test` should pass.
 
 ### Cloak configuration
@@ -177,7 +179,7 @@ It is possible to run cloak as a local docker container:
 
 1. Make sure all the air dependencies are started with `../air/start_dependencies.sh`.
 2. If needed, create the cloak database on docker with `DB_PORT=20002 ./regenerate_db.sh`.
-3. Start the `air` container with `../air/site/container.sh console`.
+3. Start the `air` container with `../air/container.sh console`.
 4. Run `./build_image.sh` to create the docker image.
 5. Start the container with `./container.sh console`.
 
