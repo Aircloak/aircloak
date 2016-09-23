@@ -37,3 +37,16 @@
     </ul>
   </div>
 </div>
+<div class="row">
+  <div class="col-md-2">Users</div>
+  <div class="col-md-10">
+    <%= if length(@users) == 0 do %>
+      <p>No users currently have the privileges to query this data source</p>
+    <% end %>
+    <ul>
+      <%= for user <- @users do %>
+        <li><%= user.email %></li>
+      <% end %>
+    </ul>
+  </div>
+</div>

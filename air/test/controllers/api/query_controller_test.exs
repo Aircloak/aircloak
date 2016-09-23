@@ -4,7 +4,7 @@ defmodule Air.API.QueryController.Test do
   use Air.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.{TestSocketHelper, Repo, DataSource}
+  alias Air.{TestSocketHelper, Repo, DataSource, User}
   alias Poison, as: JSON
 
   setup do
@@ -12,14 +12,23 @@ defmodule Air.API.QueryController.Test do
   end
 
   test "can run a query" do
-    token = create_token!(create_user!())
+    group = create_group!()
+    user = create_user!()
+    |> User.changeset(%{groups: [group.id]})
+    |> Repo.update!()
+    token = create_token!(user)
 
     # Open the cloak mock socket
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main", %{data_sources: [%{"global_id" => "data_source", "tables" => []}]})
 
+    data_source = Repo.one(DataSource)
+    |> Repo.preload([:groups])
+    |> DataSource.changeset(%{groups: [group.id]})
+    |> Repo.update!()
+
     query_data_params = %{
-      query: %{query: "Query code", name: "Query name", data_source_id: Repo.one(DataSource).id}
+      query: %{query: "Query code", name: "Query name", data_source_id: data_source.id}
     }
     task = Task.async(fn -> api_conn(token) |> post("/api/queries", query_data_params) |> response(200) end)
 

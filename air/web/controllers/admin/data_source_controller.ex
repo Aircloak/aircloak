@@ -5,7 +5,7 @@ defmodule Air.Admin.DataSourceController do
 
   use Air.Web, :admin_controller
 
-  alias Air.{DataSource, DataSourceManager, AuditLog}
+  alias Air.{DataSource, DataSourceManager, AuditLog, User}
 
 
   # -------------------------------------------------------------------
@@ -26,7 +26,20 @@ defmodule Air.Admin.DataSourceController do
   def index(conn, _params) do
     data_sources = Repo.all(DataSource) |> Repo.preload([:groups])
     data_sources = Enum.sort_by(data_sources, &{DataSourceManager.available?(&1.global_id), &1.name})
-    render(conn, "index.html", data_sources: data_sources)
+
+    query = from data_source in DataSource,
+      inner_join: group in assoc(data_source, :groups),
+      inner_join: user in assoc(group, :users),
+      group_by: data_source.id,
+      select: %{
+        id: data_source.id,
+        users_count: count(user.id, :distinct)
+      }
+    users_count = for data_source <- Repo.all(query), into: %{} do
+      {data_source.id, data_source.users_count}
+    end
+
+    render(conn, "index.html", data_sources: data_sources, users_count: users_count)
   end
 
   def edit(conn, %{"id" => id}) do
@@ -49,9 +62,19 @@ defmodule Air.Admin.DataSourceController do
 
   def show(conn, %{"id" => id}) do
     data_source = Repo.get(DataSource, id) |> Repo.preload([:groups])
+
+    query = from user in User,
+      distinct: user.id,
+      inner_join: group in assoc(user, :groups),
+      inner_join: data_source in assoc(group, :data_sources),
+      where: data_source.id == ^id,
+      select: user
+    users = Repo.all(query)
+
     render(conn, "show.html",
       data_source: data_source,
       conn: conn,
+      users: users
     )
   end
 

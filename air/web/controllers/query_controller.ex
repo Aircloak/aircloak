@@ -44,23 +44,31 @@ defmodule Air.QueryController do
     |> Repo.insert!()
     |> Repo.preload(:data_source)
 
-    if DataSourceManager.available?(query.data_source.global_id) do
-      execute_query(conn, query)
+    if DataSource.available_to_user?(query.data_source.id, conn.assigns.current_user) do
+      if DataSourceManager.available?(query.data_source.global_id) do
+        execute_query(conn, query)
+      else
+        send_resp(conn, Status.code(:service_unavailable), "No cloak is available for the given data source")
+      end
     else
-      send_resp(conn, Status.code(:service_unavailable), "No cloak is available for the given data source")
+      send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
     end
   end
 
   def load_history(conn, %{"data_source_id" => data_source_id}) do
-    case Repo.get(DataSource, data_source_id) do
-      nil ->
-        response = %{
-          success: false,
-          error: "Datasource is not available. Cannot load history"
-        }
-        json(conn, response)
-      data_source ->
-        json(conn, Query.load_recent_queries(conn.assigns.current_user, data_source, 10))
+    if DataSource.available_to_user?(data_source_id, conn.assigns.current_user) do
+      case Repo.get(DataSource, data_source_id) do
+        nil ->
+          response = %{
+            success: false,
+            error: "Datasource is not available. Cannot load history"
+          }
+          json(conn, response)
+        data_source ->
+          json(conn, Query.load_recent_queries(conn.assigns.current_user, data_source, 10))
+      end
+    else
+      send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
     end
   end
 
