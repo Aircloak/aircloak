@@ -30,6 +30,10 @@
   border-bottom: 1px solid #ccc;
 }
 
+.panel-info .spinner {
+  margin-top: 20px;
+}
+
 #aql-editor {
   margin-bottom: 3em;
 }
