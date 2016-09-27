@@ -702,11 +702,17 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp id_column(query) do
-    all_id_columns = all_id_columns_from_tables(query)
+    all_id_columns = all_id_columns_from_tables(query) |> Enum.map(&cast_unknown_id/1)
     if any_outer_join?(query.from),
       do: Column.db_function("coalesce", all_id_columns),
       else: hd(all_id_columns)
   end
+
+  # We can't directly select a field with an unknown type, so convert it to binary
+  # This is needed in the case of using the ODBC driver with a GUID user id,
+  # as the GUID type is not supported by the Erlang ODBC library
+  def cast_unknown_id(%Column{type: :unknown} = column), do: Column.db_function({:cast, :varbinary}, [column])
+  def cast_unknown_id(column), do: column
 
   defp all_id_columns_from_tables(%Query{command: :select, mode: :unparsed}) do
     # We don't know the name of the user_id column for an unsafe query, so we're generating

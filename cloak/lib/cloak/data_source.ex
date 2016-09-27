@@ -49,13 +49,13 @@ defmodule Cloak.DataSource do
     db_name: String.t, # table name in the database
     user_id: String.t,
     ignore_unsupported_types: boolean,
-    columns: [{column, data_type}]
+    columns: [{column, data_type | :unknown}]
   }
   @type num_rows :: non_neg_integer
   @type column :: String.t
   @type field :: String.t | integer | number | boolean | nil
   @type row :: [field]
-  @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | {:unsupported, String.t}
+  @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | :uuid | {:unsupported, String.t}
   @type query_result :: Enumerable.t
   @type processed_result :: any
   @type result_processor :: (query_result -> processed_result)
@@ -259,23 +259,19 @@ defmodule Cloak.DataSource do
   end
 
   defp load_table_columns(data_source, connection, table) do
-    with {:ok, columns} <- do_load_columns(data_source, connection, table) do
-      {supported, unsupported} = Enum.partition(columns, &supported?/1)
-      validate_unsupported_columns(unsupported, data_source, table)
-      {:ok, supported}
-    end
-  end
-
-  defp do_load_columns(data_source, connection, table) do
     columns = data_source.driver.describe_table(connection, table.db_name)
-    with :ok <- verify_columns(table, columns), do: {:ok, columns}
+    unsupported = Enum.reject(columns, &supported?/1)
+    validate_unsupported_columns(unsupported, data_source, table)
+    with {:ok, columns} <- verify_columns(table, columns), do: {:ok, columns}
   end
 
   defp verify_columns(table, columns) do
+    columns = for {name, _type} = column <- columns, do:
+      if supported?(column), do: column, else: {name, :unknown}
     with :ok <- verify_user_id(table, columns) do
       case columns do
         [] -> {:error, "no data columns found in table"}
-        [_|_] -> :ok
+        [_|_] -> {:ok, columns}
       end
     end
   end
@@ -284,7 +280,7 @@ defmodule Cloak.DataSource do
     user_id = table.user_id
     case List.keyfind(columns, user_id, 0) do
       {^user_id, type} ->
-        if type in [:integer, :text, :uuid, :real] do
+        if type in [:integer, :text, :uuid, :real, :unknown] do
           :ok
         else
           {:error, "unsupported user id type: #{type}"}
@@ -308,8 +304,8 @@ defmodule Cloak.DataSource do
       |> Enum.map(fn({column_name, {:unsupported, type}}) -> "  #{column_name} :: #{inspect(type)}" end)
       |> Enum.join("\n")
 
-    msg = "The following columns in `#{table[:name]}` in data source `#{data_source.global_id}` " <>
-      "have unsupported types and will be ignored:\n" <> columns_string
+    msg = "The following columns from table `#{table[:db_name]}` in data source `#{data_source.global_id}` " <>
+      "have unsupported types:\n" <> columns_string
 
     if table[:ignore_unsupported_types] do
       Logger.warn(msg)

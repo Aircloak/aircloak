@@ -61,5 +61,6 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   defp sql_type(:boolean, _sql_dialect), do: "bool"
   defp sql_type(:text, :mysql), do: "char"
   defp sql_type(:integer, :mysql), do: "signed"
+  defp sql_type(:text, :sqlserver), do: "char"
   defp sql_type(type, _sql_dialect) when is_atom(type), do: Atom.to_string(type)
 end
