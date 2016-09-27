@@ -8,7 +8,7 @@ export const PendingResult = (props) =>
     <div className="panel-body">
       <CodeViewer statement={props.statement} />
 
-      <p>
+      <p className="spinner">
         <img src="/images/loader.gif" role="presentation" /> loading results
       </p>
     </div>

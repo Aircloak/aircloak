@@ -34,4 +34,8 @@ defmodule Air.ViewHelpers do
   defp active?("/admin", "/admin/cloaks"), do: true
   defp active?(_, "/"), do: false
   defp active?(request_path, link_path), do: request_path =~ link_path
+
+  def logged_in?(conn) do
+    conn.assigns.current_user != nil
+  end
 end
