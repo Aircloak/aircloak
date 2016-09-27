@@ -232,10 +232,7 @@ defmodule Cloak.AirSocket do
   end
 
   defp cloak_params() do
-    %{
-      cloak_name: cloak_name(),
-      cloak_organisation: Aircloak.DeployConfig.get("organisation", "unknown")
-    }
+    %{cloak_name: cloak_name()}
   end
 
   defp cloak_name() do
