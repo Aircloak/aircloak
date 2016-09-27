@@ -190,7 +190,9 @@ function build_aircloak_image {
 }
 
 function aircloak_image_name {
-  if [ "$IMAGE_CATEGORY" == "" ]; then
+  # Aircloak images are non prefixed, since we treat them as official
+  # production releases.
+  if [ "$IMAGE_CATEGORY" == "" ] || [ "$IMAGE_CATEGORY" == "aircloak" ]; then
     image_name="$1"
   else
     image_name="${IMAGE_CATEGORY}_$1"
