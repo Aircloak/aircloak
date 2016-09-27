@@ -35,7 +35,6 @@ defmodule Cloak.CloakSocketMock do
     def connect(params, socket) do
       cloak_name = params["cloak_name"]
       if cloak_name != nil do
-        #TODO: get organization's name from the supplied client certificate's subject info
         cloak_name = "#{cloak_name}"
         :gproc.reg({:n, :l, {:socket, cloak_name}})
         {:ok, assign(socket, :cloak_name, cloak_name)}
