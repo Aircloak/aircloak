@@ -17,7 +17,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports an error on invalid order by field" do
     assert_query "select height from test_errors order by name", %{error: error}
-    assert ~s/Non-selected column `name` from table `test_errors` specified in `order by` clause./ == error
+    assert ~s/Non-selected column specified in `order by` clause./ == error
   end
 
   test "query reports an error on unknown function" do
@@ -85,5 +85,12 @@ defmodule Cloak.Query.ErrorTest do
     assert_query "select substring(name) from test_errors", %{error: error}
     assert error == "Function `substring` requires arguments of type (`text`, `integer`, [`integer`]),"
       <> " but got (`text`)"
+  end
+
+  test "query reports error on invalid limit / offset parameters" do
+    assert_query "select name from test_errors limit -1", %{error: error}
+    assert ~s/LIMIT clause expects a positive value./ == error
+    assert_query "select name from test_errors offset -1", %{error: error}
+    assert ~s/OFFSET clause expects a non-negative value./ == error
   end
 end

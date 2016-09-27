@@ -4,11 +4,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   alias Cloak.Aql.Query
   alias Cloak.Aql.Column
   alias Cloak.DataSource.SqlBuilder.DbFunction
-
-  defmodule SqlBuildError do
-    @moduledoc false
-    defexception message: "Error during sql query build."
-  end
+  alias Cloak.Query.Runner.RuntimeError
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -42,10 +38,9 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @doc "Returns a name uniquely identifying a column in the generated query."
   @spec column_name(Column.t, atom) :: String.t
-  def column_name(%Column{table: :unknown, name: name}, :drill), do: "`#{name}`"
-  def column_name(column,  :drill), do: "`#{column.table.name}`.`#{column.name}`"
-  def column_name(%Column{table: :unknown, name: name}, _sql_dialect), do: "\"#{name}\""
-  def column_name(column, _sql_dialect), do: "\"#{column.table.name}\".\"#{column.name}\""
+  def column_name(%Column{table: :unknown, name: name}, sql_dialect), do: quote_name(name, sql_dialect)
+  def column_name(column, sql_dialect), do:
+    "#{quote_name(column.table.name, sql_dialect)}.#{quote_name(column.name, sql_dialect)}"
 
 
   # -------------------------------------------------------------------
@@ -57,7 +52,9 @@ defmodule Cloak.DataSource.SqlBuilder do
       "SELECT ", columns_sql(query.db_columns, sql_dialect),
       " FROM ", from_clause(query.from, query, sql_dialect),
       where_fragments(query.where, sql_dialect),
-      group_by_fragments(query, sql_dialect)
+      group_by_fragments(query, sql_dialect),
+      order_by_fragments(query, sql_dialect),
+      range_fragments(query, sql_dialect)
     ]
   end
 
@@ -70,7 +67,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(:*, _sql_dialect), do: "*"
   defp column_sql({:distinct, column}, sql_dialect), do: ["DISTINCT ", column_sql(column, sql_dialect)]
   defp column_sql(%Column{alias: alias} = column, sql_dialect) when alias != nil,
-    do: [column_sql(%Column{column | alias: nil}, sql_dialect), " AS ", alias]
+    do: [column_sql(%Column{column | alias: nil}, sql_dialect), " AS ", quote_name(alias, sql_dialect)]
   defp column_sql(%Column{db_function: fun_name, db_function_args: args, type: type}, sql_dialect)
     when fun_name != nil, do: DbFunction.sql(fun_name,
       Enum.map(args, &column_sql(&1, sql_dialect)), type, sql_dialect)
@@ -82,7 +79,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       from_clause(join.rhs, query, sql_dialect), on_clause(join.conditions, sql_dialect), ")"]
   end
   defp from_clause({:subquery, subquery}, _query, sql_dialect) do
-    ["(", build_fragments(subquery.ast, sql_dialect), ") AS ", subquery.alias]
+    ["(", build_fragments(subquery.ast, sql_dialect), ") AS ", quote_name(subquery.alias, sql_dialect)]
   end
   defp from_clause(table_name, query, sql_dialect) when is_binary(table_name) do
     query.selected_tables
@@ -100,9 +97,10 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join_sql(:left_outer_join), do: "LEFT OUTER JOIN"
   defp join_sql(:right_outer_join), do: "RIGHT OUTER JOIN"
 
-  defp table_to_from(%{name: table_name, db_name: table_name}, _sql_dialect), do: table_name
-  defp table_to_from(table, :drill), do: "#{table.db_name} AS `#{table.name}`"
-  defp table_to_from(table, _sql_dialect), do: "#{table.db_name} AS \"#{table.name}\""
+  defp table_to_from(%{name: table_name, db_name: table_name}, sql_dialect), do:
+    quote_name(table_name, sql_dialect)
+  defp table_to_from(table, sql_dialect), do:
+    "#{table.db_name} AS #{quote_name(table.name, sql_dialect)}"
 
   defp where_fragments([], _sql_dialect), do: []
   defp where_fragments(where_clause, sql_dialect),
@@ -133,7 +131,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: [to_fragment(what, sql_dialect), " IS ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({condition, _what, _match}, sql_dialect) do
     condition = condition |> to_string() |> String.upcase()
-    raise SqlBuildError, message:
+    raise RuntimeError, message:
       "'#{condition}' conditions are not supported on '#{sql_dialect}' data sources."
   end
 
@@ -158,6 +156,43 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp group_by_fragments(%Query{subquery?: true, group_by: [_|_] = group_by}, sql_dialect),
     do: [" GROUP BY ", group_by |> Enum.map(&column_sql(&1, sql_dialect)) |> Enum.intersperse(",")]
   defp group_by_fragments(_query, _sql_dialect), do: []
+
+  defp order_by_fragments(%Query{subquery?: true, order_by: [_|_] = order_by} = query, sql_dialect) do
+    order_by = for {index, dir} <- order_by do
+      dir = if dir == :desc do " DESC" else " ASC" end
+      name = query.db_columns |> Enum.at(index) |> Map.get(:alias) |> quote_name(sql_dialect)
+      [name, dir]
+    end
+    [" ORDER BY ", Enum.intersperse(order_by, ",")]
+  end
+  defp order_by_fragments(_query, _sql_dialect), do: []
+
+  defp quote_name(name, :drill), do: "`#{name}`"
+  defp quote_name(name, _sql_dialect), do: "\"#{name}\""
+
+  defp range_fragments(%Query{subquery?: true, limit: nil, offset: 0}, _sql_dialect), do: []
+  defp range_fragments(%Query{subquery?: true, limit: nil, offset: offset}, :postgresql), do:
+    [" OFFSET ", to_string(offset)]
+  defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :postgresql), do:
+    [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
+  defp range_fragments(%Query{subquery?: true, limit: limit, offset: 0}, :mysql), do:
+    [" LIMIT ", to_string(limit)]
+  defp range_fragments(%Query{subquery?: true, limit: nil}, :mysql), do:
+    raise RuntimeError, message: "OFFSET without LIMIT clause is not supported on 'mysql' data sources."
+  defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :mysql), do:
+    [" LIMIT ", to_string(offset), ", ", to_string(limit)]
+  defp range_fragments(%Query{subquery?: true, order_by: []}, :sqlserver), do:
+    raise RuntimeError,
+      message: "LIMIT and/or OFFSET clauses without ORDER BY are not supported on 'sqlserver' data sources."
+  defp range_fragments(%Query{subquery?: true, limit: nil, offset: offset}, :sqlserver), do:
+    [" OFFSET ", to_string(offset), " ROWS"]
+  defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :sqlserver), do:
+    [" OFFSET ", to_string(offset), " ROWS FETCH NEXT ", to_string(limit), " ROWS ONLY"]
+  defp range_fragments(%Query{subquery?: true, limit: limit}, sql_dialect) when limit != nil, do:
+    raise RuntimeError, message: "LIMIT clause is not supported on '#{sql_dialect}' data sources."
+  defp range_fragments(%Query{subquery?: true, offset: offset}, sql_dialect) when offset > 0, do:
+    raise RuntimeError, message: "OFFSET clause is not supported on '#{sql_dialect}' data sources."
+  defp range_fragments(_query, _sql_dialect), do: []
 
   defp split_full_outer_join({:join, %{type: :full_outer_join} = join}) do
     left_join = {:join, %{join | type: :left_outer_join}}

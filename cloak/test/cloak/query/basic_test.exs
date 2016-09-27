@@ -559,4 +559,16 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select count(height) from heights where name = 'O''Brian'",
       %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
   end
+
+  test "limit and offset" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["aaa"])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["name"], ["bbb"])
+
+    assert_query "select name from heights order by name limit 5",
+      %{columns: ["name"], rows: [%{row: ["aaa"], occurrences: 5}]}
+    assert_query "select name from heights order by name offset 15",
+      %{columns: ["name"], rows: [%{row: ["bbb"], occurrences: 5}]}
+    assert_query "select name from heights order by name limit 10 offset 5",
+      %{columns: ["name"], rows: [%{row: ["aaa"], occurrences: 5}, %{row: ["bbb"], occurrences: 5}]}
+  end
 end

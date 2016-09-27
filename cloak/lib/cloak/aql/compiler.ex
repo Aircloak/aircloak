@@ -76,6 +76,8 @@ defmodule Cloak.Aql.Compiler do
     |> compile_order_by()
     |> partition_selected_columns()
     |> calculate_db_columns()
+    |> verify_limit()
+    |> verify_offset()
     {:ok, query}
   end
   defp compile_prepped_query(%Query{command: :show} = query) do
@@ -98,6 +100,8 @@ defmodule Cloak.Aql.Compiler do
       |> partition_selected_columns()
       |> partition_where_clauses()
       |> calculate_db_columns()
+      |> verify_limit()
+      |> verify_offset()
       {:ok, query}
     rescue
       e in CompilationError -> {:error, e.message}
@@ -393,9 +397,9 @@ defmodule Cloak.Aql.Compiler do
           {index, direction}
         end
         %Query{query | order_by: order_list}
-      [{column, _direction} | _rest] ->
+      [{_column, _direction} | _rest] ->
         raise CompilationError, message:
-          "Non-selected #{Column.display_name(column)} specified in `order by` clause."
+          "Non-selected column specified in `order by` clause."
     end
   end
 
@@ -693,7 +697,6 @@ defmodule Cloak.Aql.Compiler do
   defp select_expressions(%Query{command: :select, subquery?: true} = query) do
     # currently we don't support functions in subqueries
     true = Enum.all?(query.columns, &match?(%Column{}, &1))
-
     Enum.zip(query.column_titles, query.columns)
     |> Enum.map(fn({column_alias, column}) -> %Column{column | alias: column_alias} end)
   end
@@ -780,4 +783,12 @@ defmodule Cloak.Aql.Compiler do
   defp negative_condition_string({:not, {:like, _, _}}), do: "NOT LIKE"
   defp negative_condition_string({:not, {:ilike, _, _}}), do: "NOT ILIKE"
   defp negative_condition_string({:not, {:comparison, _, :=, _}}), do: "<>"
+
+  defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:
+    raise CompilationError, message: "LIMIT clause expects a positive value."
+  defp verify_limit(query), do: query
+
+  defp verify_offset(%Query{command: :select, offset: amount}) when amount < 0, do:
+    raise CompilationError, message: "OFFSET clause expects a non-negative value."
+  defp verify_offset(query), do: query
 end

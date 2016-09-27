@@ -133,6 +133,8 @@ defmodule Cloak.Query.Runner do
         |> NegativeCondition.apply(query)
         |> Aggregator.aggregate(query)
         |> Sorter.order(query)
+        |> offset(query)
+        |> limit(query)
       end), do: successful_result({:buckets, query.column_titles, buckets}, query)
     rescue e in [RuntimeError] ->
       {:error, e.message}
@@ -182,9 +184,8 @@ defmodule Cloak.Query.Runner do
   end
 
   defp format_error_reason(text) when is_binary(text), do: text
-  defp format_error_reason(%Postgrex.Error{} = error), do: Exception.message(error)
   defp format_error_reason(reason) do
-    Logger.error("Unknown query error reason: #{inspect(reason)}")
+    Logger.error("Unknown query error: #{inspect(reason)}")
     "Cloak error"
   end
 
@@ -195,6 +196,23 @@ defmodule Cloak.Query.Runner do
   defp execution_time_in_s(%{execution_time: execution_time}) do
     div(execution_time, 1000)
   end
+
+  defp limit(rows, %Query{limit: nil}), do: rows
+  defp limit(rows, %Query{limit: amount}), do: rows |> take(amount, []) |> Enum.reverse()
+
+  defp take([], _amount, acc), do: acc
+  defp take([%{occurrences: occurrences} = bucket | rest], amount, acc) when occurrences < amount, do:
+    take(rest, amount - occurrences, [bucket | acc])
+  defp take([%{} = bucket | _rest], amount, acc), do: [%{bucket | occurrences: amount} | acc]
+
+  defp offset(rows, %Query{offset: amount}), do: drop(rows, amount)
+
+  defp drop(buckets, 0), do: buckets
+  defp drop([], _amount), do: []
+  defp drop([%{occurrences: occurrences} | rest], amount) when occurrences <= amount, do:
+    drop(rest, amount - occurrences)
+  defp drop([%{occurrences: occurrences} = bucket | rest], amount), do:
+    [%{bucket | occurrences: occurrences - amount} | rest]
 
 
   # -------------------------------------------------------------------

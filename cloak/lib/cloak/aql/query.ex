@@ -27,14 +27,16 @@ defmodule Cloak.Aql.Query do
     mode: :parsed | :unparsed,
     db_columns: [Column.t],
     from: Parser.from_clause | nil,
-    subquery?: boolean
+    subquery?: boolean,
+    limit: pos_integer | nil,
+    offset: non_neg_integer
   }
 
   defstruct [
     columns: [], where: [], where_not: [], unsafe_filter_columns: [], group_by: [], order_by: [],
     column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
-    db_columns: [], from: nil, subquery?: false
+    db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0
   ]
 
 
