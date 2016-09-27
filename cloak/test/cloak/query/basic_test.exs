@@ -9,6 +9,7 @@ defmodule Cloak.Query.BasicTest do
     :ok = Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
     :ok = Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
     :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird")
+    :ok = Cloak.Test.DB.create_table("dates", "date timestamp")
     :ok
   end
 
@@ -21,7 +22,7 @@ defmodule Cloak.Query.BasicTest do
     assert_query "show tables", %{columns: ["name"], rows: table_rows}
     tables = Enum.map(table_rows, fn(%{row: [table_name]}) -> table_name end)
 
-    [:children, :heights, :heights_alias, :"weird things"]
+    [:children, :heights, :heights_alias, :"weird things", :dates]
     |> Enum.each(&assert(Enum.member?(tables, &1)))
   end
 
@@ -378,6 +379,43 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select height from heights order by height",
       %{query_id: "1", columns: ["height"], rows: rows}
     assert rows == Enum.sort(rows)
+  end
+
+  test "should order dates sensibly" do
+    dates = [
+      {2014, 09, 01},
+      {2014, 10, 01},
+      {2014, 11, 01},
+      {2014, 12, 01},
+      {2015, 01, 01},
+      {2015, 02, 01},
+      {2015, 03, 01},
+      {2015, 04, 01},
+      {2015, 05, 01},
+      {2015, 06, 01},
+      {2015, 07, 01},
+      {2015, 08, 01},
+      {2015, 09, 01},
+      {2015, 10, 01},
+      {2015, 11, 01},
+      {2015, 12, 01},
+    ]
+    dates = for {year, month, day} <- dates do
+      date = %NaiveDateTime{
+        year: year, month: month, day: day,
+        hour: 0, minute: 0, second: 0, microsecond: {0, 6}
+      }
+      :ok = insert_rows(_user_ids = 0..100, "dates", ["date"], [date])
+      date
+    end
+
+    assert_query "select date from dates group by date order by date asc",
+      %{query_id: "1", columns: ["date"], rows: rows}
+    assert (for data <- rows, do: hd(data.row)) == dates
+
+    assert_query "select date from dates group by date order by date desc",
+      %{query_id: "1", columns: ["date"], rows: rows}
+    assert (for data <- rows, do: hd(data.row)) == Enum.reverse(dates)
   end
 
   test "query allows mixing aggregated and grouped columns" do
