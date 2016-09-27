@@ -305,8 +305,8 @@ defmodule Cloak.DataSource do
       |> Enum.map(fn({column_name, {:unsupported, type}}) -> "  #{column_name} :: #{inspect(type)}" end)
       |> Enum.join("\n")
 
-    msg = "The following columns in `#{table[:name]}` in data source `#{data_source.global_id}` " <>
-      "have unsupported types and will be ignored:\n" <> columns_string
+    msg = "The following columns from table `#{table[:db_name]}` in data source `#{data_source.global_id}` " <>
+      "have unsupported types:\n" <> columns_string
 
     if table[:ignore_unsupported_types] do
       Logger.warn(msg)
