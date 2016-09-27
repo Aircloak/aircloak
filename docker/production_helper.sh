@@ -97,6 +97,16 @@ function run_production_command {
       start_component $container_name $2
       ;;
 
+    publish)
+      if [ "$SKIP_BRANCH_CHECK" != "true" ] && [ "$(build_branch)" != "master" ]; then
+        echo "Warning: deploying from branch $(build_branch)"
+        read -p "Continue (y/N)? " -r
+        if ! [[ $REPLY =~ ^[Yy]$ ]]; then exit 1; fi
+      fi
+
+      build_image $component_name $component_folder
+      ;;
+
     deploy)
       if [ "$SKIP_BRANCH_CHECK" != "true" ] && [ "$(build_branch)" != "master" ]; then
         echo "Warning: deploying from branch $(build_branch)"
