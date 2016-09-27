@@ -179,9 +179,6 @@ defmodule Cloak.DataSource.SqlBuilder do
       [" LIMIT ", to_string(offset), ", 18446744073709551615"]
   defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :mysql), do:
     [" LIMIT ", to_string(offset), ", ", to_string(limit)]
-  defp range_fragments(%Query{subquery?: true, order_by: []}, :sqlserver), do:
-    raise RuntimeError,
-      message: "LIMIT and/or OFFSET clauses without ORDER BY are not supported on 'sqlserver' data sources."
   defp range_fragments(%Query{subquery?: true, limit: nil, offset: offset}, :sqlserver), do:
     [" OFFSET ", to_string(offset), " ROWS"]
   defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :sqlserver), do:
