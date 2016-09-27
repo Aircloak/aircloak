@@ -91,6 +91,8 @@ defmodule Cloak.DataSource.ODBC do
   defp parse_type(:SQL_VARBINARY), do: :text
   defp parse_type({:sql_varchar, _length}), do: :text
   defp parse_type({:sql_wvarchar, _length}), do: :text
+  defp parse_type({:sql_wchar, _length}), do: :text
+  defp parse_type({:sql_char, _length}), do: :text
   defp parse_type({:sql_wlongvarchar, _length}), do: :text
   defp parse_type(:sql_timestamp), do: :datetime
   defp parse_type(:SQL_TYPE_DATE), do: :date
