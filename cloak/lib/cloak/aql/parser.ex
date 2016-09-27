@@ -547,7 +547,7 @@ defmodule Cloak.Aql.Parser do
 
   defp allowed_where_value() do
     either(qualified_identifier(), any_constant())
-    |> label('comparison value')
+    |> label("comparison value")
   end
 
   defp allowed_where_range() do
