@@ -786,9 +786,13 @@ defmodule Cloak.Aql.Compiler do
 
   defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:
     raise CompilationError, message: "LIMIT clause expects a positive value."
+  defp verify_limit(%Query{command: :select, order_by: [], limit: amount}) when amount != nil, do:
+    raise CompilationError, message: "LIMIT clause needs the ORDER BY clause to be specified."
   defp verify_limit(query), do: query
 
   defp verify_offset(%Query{command: :select, offset: amount}) when amount < 0, do:
     raise CompilationError, message: "OFFSET clause expects a non-negative value."
+  defp verify_offset(%Query{command: :select, order_by: [], offset: amount}) when amount > 0, do:
+    raise CompilationError, message: "OFFSET clause needs the ORDER BY clause to be specified."
   defp verify_offset(query), do: query
 end

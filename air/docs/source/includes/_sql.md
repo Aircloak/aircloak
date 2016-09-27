@@ -20,7 +20,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     FROM from_expression [, ...]
     [ WHERE where_expression [AND ...] ]
     [ GROUP BY column_name [, ...] ]
-    [ ORDER BY column_name [ASC | DESC] [, ...] ]
+    [ ORDER BY column_name [ASC | DESC] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
 
   column_expression :=
     column_name |
@@ -46,6 +46,8 @@ __Notes__:
 - The `*` argument and the `DISTINCT` modifier can only be provided to the `COUNT` function.
 - The operator `OR` is currently not supported.
 - The operator `NOT` can only be used in the cases mentioned above (`IS NOT NULL`, `NOT LIKE`, and `NOT ILIKE`).
+- You can restrict the range of returned rows by a query using the LIMIT and/or OFFSET clauses, but you need to
+ provide the ORDER BY clause to ensure a stable order for the rows.
 
 ## JOIN restrictions
 
