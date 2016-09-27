@@ -48,15 +48,26 @@ defmodule Cloak.Aql.Compiler.Test do
       compile("select * from table where column > 'something stupid'", data_source())
   end
 
-  for function <- ~w(min max sum median) do
+  for function <- ~w(sum median) do
     test "allowing #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
     end
 
     test "rejecting #{function} on non-numerical columns" do
-      assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
+      assert {:error, error} = compile("select #{unquote(function)}(string) from table", data_source())
       assert error ==
-        "Function `#{unquote(function)}` requires arguments of type (`integer`) or (`real`), but got (`datetime`)"
+        "Function `#{unquote(function)}` requires arguments of type (`integer`) or (`real`), but got (`text`)"
+    end
+  end
+
+  for function <- ~w(min max) do
+    test "allowing #{function} on numeric columns" do
+      assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
+    end
+
+    test "rejecting #{function} on non-numerical columns" do
+      assert {:error, error} = compile("select #{unquote(function)}(string) from table", data_source())
+      assert error == "Arguments of type (`text`) are incorrect for `#{unquote(function)}`"
     end
   end
 
@@ -426,7 +437,9 @@ defmodule Cloak.Aql.Compiler.Test do
         db_name: "table",
         name: "table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"column", :datetime}, {"numeric", :integer}, {"float", :real}]
+        columns: [
+          {"uid", :integer}, {"column", :datetime}, {"numeric", :integer}, {"float", :real}, {"string", :text}
+        ]
       },
       other_table: %{
         db_name: "other_table",
