@@ -8,57 +8,71 @@
 
 <h2>API tokens</h2>
 
-<p>
-  The Aircloak API is authenticated using API tokens.
-  For more information about their usage, and how to authenticated
-  against the API, please visit the
-  <%= link "authentication section in the API documentation", to: "/docs#authentication"  %>
-</p>
-
-
-<%= if length(@api_tokens) > 0 do %>
-<h3>Existing tokens</h3>
-<hr/>
-<table class="table">
-  <thead>
-    <tr>
-      <th>Description</th>
-      <th>Last used</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <%= for api_token <- @api_tokens do %>
-    <tr>
-      <td><%= api_token.description %></td>
-      <td><%= Air.Utils.DateTime.time_ago(api_token.updated_at) %></td>
-      <td>
-        <%= link "Revoke API token", to: api_token_path(@conn, :delete, api_token),
-            method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
-      </td>
-    </tr>
-    <% end %>
-  </tbody>
-</table>
-<% end %>
-
-
-<h2>Add a new token</h2>
-
-<%= form_for @changeset, api_token_path(@conn, :create), fn f -> %>
-<%= if @changeset.action do %>
-  <div class="alert alert-danger">
-    <p>Oops, something went wrong! Please check the errors below.</p>
+<div class="row">
+  <div class="col-sm-6">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">Existing tokens</h3>
+      </div>
+      <p class="panel-body">
+        The Aircloak API is authenticated using API tokens.
+        For more information about their usage, and how to authenticated
+        against the API, please visit the
+        <%= link "authentication section in the API documentation", to: "/docs#authentication"  %>
+      </p>
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Last used</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= if length(@api_tokens) == 0 do %>
+          <tr>
+            <td colspan="3">No token has been added</td>
+          </tr>
+          <% end %>
+          <%= for api_token <- @api_tokens do %>
+          <tr>
+            <td><%= api_token.description %></td>
+            <td><%= Air.Utils.DateTime.time_ago(api_token.updated_at) %></td>
+            <td>
+              <%= link "Revoke API token", to: api_token_path(@conn, :delete, api_token),
+                  method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+            </td>
+          </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   </div>
-<% end %>
 
-<div class="form-group">
-  <label>Token description</label>
-  <%= text_input f, :description, class: "form-control" %>
-  <%= error_tag f, :description %>
-</div>
+  <div class="col-sm-6">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">Add a new token</h3>
+      </div>
+      <div class="panel-body">
+        <%= form_for @changeset, api_token_path(@conn, :create), fn f -> %>
+        <%= if @changeset.action do %>
+          <div class="alert alert-danger">
+            <p>Oops, something went wrong! Please check the errors below.</p>
+          </div>
+        <% end %>
 
-<div class="form-group">
-  <%= submit "Create token", class: "btn btn-primary" %>
+        <div class="form-group">
+          <%= label f, :description, "Token description" %>
+          <%= text_input f, :description, class: "form-control" %>
+          <%= error_tag f, :description %>
+        </div>
+
+        <div class="form-group">
+          <%= submit "Create token", class: "btn btn-primary" %>
+        </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
 </div>
-<% end %>
