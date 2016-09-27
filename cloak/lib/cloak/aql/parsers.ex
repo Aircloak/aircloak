@@ -264,11 +264,18 @@ defmodule Cloak.Aql.Parsers do
     ).(state)
   end
 
-  def either_deepest_error(parser1, parser2), do: choice_deepest_error([parser1, parser2])
+  @doc "Same as `choice_deepest_error([parser1, parser2])`"
+  @spec either_deepest_error(Combine.previous_parser, Combine.parser, Combine.parser) :: Combine.parser
+  defparser either_deepest_error(state, parser1, parser2), do:
+    choice_deepest_error([parser1, parser2]).(state)
 
-  defparser choice_deepest_error(%ParserState{status: :ok, line: line, column: column} = state, parsers) do
+  @doc """
+  Tries parsers in order and returns the result of the first one that succeeds. In case of failure returns the
+  error returned by the parser which consumed the most input.
+  """
+  @spec choice_deepest_error(Combine.previous_parser, [Combine.parser]) :: Combine.parser
+  defparser choice_deepest_error(%ParserState{status: :ok, line: line, column: column} = state, parsers), do:
     do_choice_deepest_error(parsers, state, "No possible parsers at line #{line}, column #{column}.")
-  end
 
 
   # -------------------------------------------------------------------
