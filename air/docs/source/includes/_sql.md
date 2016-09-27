@@ -398,19 +398,19 @@ Types can be converted according to the following tables:
 | boolean   | ✓    | ✓       | ✓    | ✓       |
 | date      | ✓    |         |      |         |
 | time      | ✓    |         |      |         |
-| timestamp | ✓    |         |      |         |
+| datetime  | ✓    |         |      |         |
 | interval  | ✓    |         |      |         |
 
 |           |      |      |           |          |
 |-----------|------|------|-----------|----------|
-| from\to   | date | time | timestamp | interval |
+| from\to   | date | time | datetime  | interval |
 | text      | ✓    | ✓    | ✓         | ✓        |
 | integer   |      |      |           |          |
 | real      |      |      |           |          |
 | boolean   |      |      |           |          |
 | date      | ✓    |      |           |          |
 | time      |      | ✓    |           |          |
-| timestamp | ✓    | ✓    | ✓         |          |
+| datetime  | ✓    | ✓    | ✓         |          |
 | interval  |      |      |           | ✓        |
 
 A cast may fail even when it's valid according to the table. For example a text field may contain data that
@@ -423,7 +423,7 @@ Casting from text will accept the same format as the cast to text produces for t
 * `'TRUE'`/`'FALSE'` for booleans
 * A base-10 notation for integers
 * `1.23` or `1e23` for reals
-* ISO-8601 notation for dates, times, timestamps and intervals
+* ISO-8601 notation for dates, times, datetimes and intervals
 
 ### Casting to integer
 
@@ -434,6 +434,6 @@ Casting a real to integer rounds the number to the closests integer.
 When converting numbers to booleans non-zero numbers are converted to `TRUE` and zero is converted to `FALSE`.
 When converting from booleans `TRUE` is converted to `1` and `FALSE` is converted to `0`.
 
-### Casting from timestamp
+### Casting from datetime
 
-Casting from timestamp to date or time will select the date/time part of the timestamp.
+Casting from datetime to date or time will select the date/time part of the datetime.
