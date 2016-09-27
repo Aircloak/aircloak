@@ -36,17 +36,18 @@ defmodule Cloak.Aql.Parsers do
   specifically by providing the `{:else, parser}` pair which will always run.
   """
   @spec switch(Combine.previous_parser, [{Combine.parser | :else, Combine.parser}]) :: Combine.parser
-  defparser switch(%ParserState{status: :ok} = state, switch_rules) do
-    interpret_switch_rules(switch_rules, state)
+  defparser switch(%ParserState{status: :ok, line: line, column: column} = state, switch_rules) do
+    interpret_switch_rules(switch_rules, state,
+      "Expected at least one parser to succeed at line #{line}, column #{column}.")
   end
 
-  defp interpret_switch_rules([], _state) do
-    %ParserState{status: :error, error: "Expected at least one parser to succeed"}
+  defp interpret_switch_rules([], _state, deepest_error) do
+    %ParserState{status: :error, error: deepest_error}
   end
-  defp interpret_switch_rules([{:else, parser} | _], state) do
+  defp interpret_switch_rules([{:else, parser} | _], state, _deepest_error) do
     parser.(state)
   end
-  defp interpret_switch_rules([{parser, next_parser} | other_rules], state) do
+  defp interpret_switch_rules([{parser, next_parser} | other_rules], state, deepest_error) do
     case parser.(%ParserState{state | results: []}) do
       %ParserState{status: :ok, results: switch_results} = next_state ->
         case next_parser.(%ParserState{next_state | results: []}) do
@@ -56,8 +57,8 @@ defmodule Cloak.Aql.Parsers do
             }
           other -> other
         end
-      _ ->
-        interpret_switch_rules(other_rules, state)
+      %ParserState{error: error} ->
+        interpret_switch_rules(other_rules, state, deeper_error(deepest_error, error))
     end
   end
 
@@ -288,7 +289,9 @@ defmodule Cloak.Aql.Parsers do
 
   @error_regex ~r/at line ([0-9]+), column ([0-9]+)/
   defp error_deepness(error) do
-    [_, line, column] = Regex.run(@error_regex, error)
-    {String.to_integer(line), String.to_integer(column)}
+    case Regex.run(@error_regex, error) do
+      [_, line, column] -> {String.to_integer(line), String.to_integer(column)}
+      nil -> nil
+    end
   end
 end

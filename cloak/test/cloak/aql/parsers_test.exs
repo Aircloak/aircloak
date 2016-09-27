@@ -35,4 +35,14 @@ defmodule Cloak.Aql.Parsers.Test do
       assert error =~ ~r/Expected `b`, but found `c`/
     end
   end
+
+  describe "switch" do
+    test "reports the deeper error if all options fail" do
+      assert {:error, error} = Combine.parse("abc", switch([
+        {char("a") |> char("a"), noop()},
+        {char("a") |> char("b") |> char("b"), noop()}
+      ]))
+      assert error =~ ~r/Expected `b`, but found `c`/
+    end
+  end
 end
