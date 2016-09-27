@@ -24,13 +24,10 @@
   </strong>
 <% end %>
 
-<div class="group-selector">
-
-  <%= PhoenixMTM.Helpers.collection_checkboxes f, :groups,
-    Enum.map(Air.Admin.GroupView.available_groups(), &({&1.name, &1.id})),
-    selected: Enum.map(@chosen_groups, &(&1.id)), mapper: &(content_tag(:div, &1, class: "group-checkbox")) %>
-
-</div>
+<%= PhoenixMTM.Helpers.collection_checkboxes f, :groups,
+  Enum.map(Air.Admin.GroupView.available_groups(), &({&1, &1.id})),
+  selected: Enum.map(@chosen_groups, &(&1.id)),
+  mapper: &Air.Utils.CheckboxMapper.for_data_source/6 %>
 
 <div class="form-group">
   <%= submit "Save", class: "btn btn-primary" %>
