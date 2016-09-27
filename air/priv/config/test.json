@@ -8,7 +8,7 @@
 
   "database": {
     "host": "localhost",
-    "port": 20002,
+    "port": 20003,
     "ssl": false,
     "user": "airtest",
     "password": "",

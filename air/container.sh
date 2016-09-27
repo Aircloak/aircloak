@@ -19,7 +19,7 @@ DOCKER_START_ARGS="
   -v $(pwd)/local_docker_config:/runtime_config
   -p 9080:8080
   -p 9443:8443
-  --link air_db:air_db
+  --link air_db_dev:air_db
 "
 if [ "$AIR_HOST_NAME" != "" ]; then DOCKER_START_ARGS="$DOCKER_START_ARGS -e AIR_HOST_NAME=$AIR_HOST_NAME"; fi
 
