@@ -281,7 +281,7 @@ defmodule Cloak.DataSource do
     user_id = table.user_id
     case List.keyfind(columns, user_id, 0) do
       {^user_id, type} ->
-        if type in [:integer, :text, :uuid, :real] do
+        if type in [:integer, :text, :uuid, :real, :unknown] do
           :ok
         else
           {:error, "unsupported user id type: #{type}"}
