@@ -262,4 +262,33 @@ defmodule Cloak.Aql.Parsers do
       end)
     ).(state)
   end
+
+  def either_deepest_error(parser1, parser2), do: choice_deepest_error([parser1, parser2])
+
+  defparser choice_deepest_error(%ParserState{status: :ok, line: line, column: column} = state, parsers) do
+    do_choice_deepest_error(parsers, state, "No possible parsers at line #{line}, column #{column}.")
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp do_choice_deepest_error([], state, deepest_error), do:
+    %{state | :status => :error, :error => deepest_error}
+  defp do_choice_deepest_error([parser | rest], state, deepest_error) do
+    case parser.(state) do
+      %ParserState{status: :ok} = result -> result
+      %ParserState{error: error} -> do_choice_deepest_error(rest, state, deeper_error(deepest_error, error))
+    end
+  end
+
+  defp deeper_error(error1, error2), do:
+    if error_deepness(error1) > error_deepness(error2), do: error1, else: error2
+
+  @error_regex ~r/at line ([0-9]+), column ([0-9]+)/
+  defp error_deepness(error) do
+    [_, line, column] = Regex.run(@error_regex, error)
+    {String.to_integer(line), String.to_integer(column)}
+  end
 end

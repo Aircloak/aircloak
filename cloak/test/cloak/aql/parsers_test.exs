@@ -17,4 +17,22 @@ defmodule Cloak.Aql.Parsers.Test do
     test "multiple items with a wrong one", do:
       assert {:error, _} = Combine.parse("a,b,a", sep_by1_failing(char("a"), char(",")))
   end
+
+  describe "choice_deepest_error" do
+    test "success - the first clause matches", do:
+      assert ["a"] = Combine.parse("a", choice_deepest_error([char("a"), char("b") |> char("b")]))
+
+    test "success - the second clause matches", do:
+      assert ["b", "b"] = Combine.parse("bb", choice_deepest_error([char("a"), char("b") |> char("b")]))
+
+    test "failure - the second clause matches more" do
+      assert {:error, error} = Combine.parse("bc", choice_deepest_error([char("a"), char("b") |> char("b")]))
+      assert error =~ ~r/Expected `b`, but found `c`/
+    end
+
+    test "failure - the first clause matches more" do
+      assert {:error, error} = Combine.parse("bc", choice_deepest_error([char("b") |> char("b"), char("a")]))
+      assert error =~ ~r/Expected `b`, but found `c`/
+    end
+  end
 end

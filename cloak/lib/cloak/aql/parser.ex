@@ -142,11 +142,10 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp select_columns() do
-    either(
-      keyword(:*),
+    either_deepest_error(
+      keyword(:*) |> label("column definition"),
       comma_delimited(select_column())
     ) |> map(&{:columns, &1})
-    |> label("column definition")
   end
 
   defp column() do
@@ -166,7 +165,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp simple_expression() do
-    choice([
+    choice_deepest_error([
       parenthesised_expression(),
       cast_expression(),
       function_expression(),
@@ -175,9 +174,8 @@ defmodule Cloak.Aql.Parser do
       substring_expression(),
       concat_expression(),
       qualified_identifier(),
-      constant_column()
+      constant_column() |> label("column definition")
     ])
-    |> label("column name or function")
   end
 
   defp parenthesised_expression() do
@@ -188,7 +186,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp constant_column() do
-    either(interval(), any_constant())
+    either_deepest_error(interval(), any_constant())
   end
 
   defp select_column() do
@@ -245,7 +243,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp function_arguments() do
-    choice([
+    choice_deepest_error([
       comma_delimited(column()),
       distinct_identifier(),
       keyword(:*)
@@ -318,7 +316,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp concat_expression() do
-    infix_expression([keyword(:||)], either(qualified_identifier(), constant_column()))
+    infix_expression([keyword(:||)], either_deepest_error(qualified_identifier(), constant_column()))
   end
 
   defp infix_expression(operators, inner_expression) do
@@ -335,7 +333,7 @@ defmodule Cloak.Aql.Parser do
 
   defp qualified_identifier() do
     map(
-      either(
+      either_deepest_error(
         sequence(
           [
             identifier(),
@@ -414,7 +412,7 @@ defmodule Cloak.Aql.Parser do
   defp next_join(data_source) do
     switch([
       {cross_join(),join_expression(data_source)},
-      {either(inner_join(), outer_join()), join_expression_with_on_clause(data_source)},
+      {either_deepest_error(inner_join(), outer_join()), join_expression_with_on_clause(data_source)},
       {:else, noop()}
     ])
     |> map(&join_clause/1)
@@ -451,8 +449,10 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp table_name() do
-    either(table_with_schema(), identifier())
-    |> label("table name")
+    either_deepest_error(
+      table_with_schema(),
+      identifier() |> label("table name")
+    )
   end
 
   defp parsed_subquery(data_source) do
@@ -488,7 +488,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp unparsed_subquery_token() do
-    either(
+    either_deepest_error(
       sequence([keyword(:"("), lazy(fn -> many(unparsed_subquery_token()) end), keyword(:")")]),
       any_token() |> satisfy(&(&1.category != :")" && &1.category != :eof))
     )
@@ -542,8 +542,8 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp allowed_where_value() do
-    choice([qualified_identifier(), any_constant()])
-    |> label("comparison value")
+    either(qualified_identifier(), any_constant())
+    |> label('comparison value')
   end
 
   defp allowed_where_range() do
