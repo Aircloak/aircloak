@@ -262,8 +262,7 @@ defmodule Cloak.DataSource do
     columns = data_source.driver.describe_table(connection, table.db_name)
     unsupported = Enum.reject(columns, &supported?/1)
     validate_unsupported_columns(unsupported, data_source, table)
-    with :ok <- verify_columns(table, columns), do:
-      {:ok, columns}
+    with {:ok, columns} <- verify_columns(table, columns), do: {:ok, columns}
   end
 
   defp verify_columns(table, columns) do
