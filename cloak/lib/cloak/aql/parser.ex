@@ -220,6 +220,7 @@ defmodule Cloak.Aql.Parser do
   defp data_type() do
     identifier()
     |> satisfy(&Enum.member?(@data_types, &1))
+    |> label("type name")
     |> map(&String.to_atom/1)
   end
 

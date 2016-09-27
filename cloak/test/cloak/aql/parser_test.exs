@@ -869,7 +869,9 @@ defmodule Cloak.Aql.Parser.Test do
       {"invalid column other than the first one",
         "select foo, & from foo", "Expected `column definition`", {1, 13}},
       {"error inside an item in the select list",
-        "select foo, cast(3 as) from foo", "Expected `identifier`", {1, 22}},
+        "select foo, cast(3 as) from foo", "Expected `type name`", {1, 22}},
+      {"wrong cast",
+        "select cast(foo as bar) from baz", "Expected `type name`", {1, 20}},
       # unparsed subqueries
       {"unclosed parens in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz", "Expected `)`", {1, 37}},
