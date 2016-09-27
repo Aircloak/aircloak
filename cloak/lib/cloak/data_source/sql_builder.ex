@@ -175,10 +175,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     [" OFFSET ", to_string(offset)]
   defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :postgresql), do:
     [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
-  defp range_fragments(%Query{subquery?: true, limit: limit, offset: 0}, :mysql), do:
-    [" LIMIT ", to_string(limit)]
-  defp range_fragments(%Query{subquery?: true, limit: nil}, :mysql), do:
-    raise RuntimeError, message: "OFFSET without LIMIT clause is not supported on 'mysql' data sources."
+  defp range_fragments(%Query{subquery?: true, limit: nil, offset: offset}, :mysql), do:
+      [" LIMIT ", to_string(offset), ", 18446744073709551615"]
   defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :mysql), do:
     [" LIMIT ", to_string(offset), ", ", to_string(limit)]
   defp range_fragments(%Query{subquery?: true, order_by: []}, :sqlserver), do:
