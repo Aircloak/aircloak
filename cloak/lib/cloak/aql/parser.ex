@@ -222,7 +222,7 @@ defmodule Cloak.Aql.Parser do
     )
   end
 
-  @data_types ~w(integer real text boolean timestamp date time)
+  @data_types ~w(integer real text boolean datetime date time)
   defp data_type() do
     identifier()
     |> satisfy(&Enum.member?(@data_types, &1))
