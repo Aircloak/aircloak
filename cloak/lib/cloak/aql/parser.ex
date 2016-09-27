@@ -218,10 +218,13 @@ defmodule Cloak.Aql.Parser do
 
   @data_types ~w(integer real text boolean timestamp date time)
   defp data_type() do
-    identifier()
-    |> satisfy(&Enum.member?(@data_types, &1))
+    non_keyword_type =
+      identifier()
+      |> satisfy(&Enum.member?(@data_types, &1))
+      |> map(&String.to_atom/1)
+
+    either(non_keyword_type, keyword(:interval))
     |> label("type name")
-    |> map(&String.to_atom/1)
   end
 
   defp function_expression() do
