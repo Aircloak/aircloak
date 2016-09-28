@@ -8,7 +8,7 @@ defmodule Cloak.Query.FunctionTest do
     insert_rows(_user_ids = 1..100, "heights_ft", ["height"], [180])
 
     Cloak.Test.DB.create_table("datetimes_ft", "datetime TIMESTAMP, date_only DATE, time_only TIME")
-    insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-01-02 03:04:05]])
+    insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-01-02 03:04:05.000000]])
   end
 
   defmacrop assert_subquery_function(expression, table, subquery_postfix \\ "", expected_match) do
@@ -42,6 +42,8 @@ defmodule Cloak.Query.FunctionTest do
 
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)
   test "max(height)", do: assert_subquery_aggregate("max(height)", "heights_ft", 180)
+  test "min(datetime)", do: assert_subquery_aggregate("min(datetime)", "datetimes_ft", ~N[2015-01-02 03:04:05.000000])
+  test "max(datetime)", do: assert_subquery_aggregate("max(datetime)", "datetimes_ft", ~N[2015-01-02 03:04:05.000000])
   test "avg(height)", do: assert_subquery_aggregate("avg(height)", "heights_ft", 180.0)
   test "sum(height)", do: assert_subquery_aggregate("sum(height)", "heights_ft", 180)
   test "count(*)", do: assert_subquery_aggregate("count(*)", "heights_ft", 1)
