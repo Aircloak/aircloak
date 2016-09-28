@@ -115,12 +115,6 @@ defmodule Cloak.DataSource do
     Application.get_env(:cloak, :data_sources)
   end
 
-  @doc "Returns the list of defined tables for a specific data source."
-  @spec tables(t) :: [table]
-  def tables(data_source) do
-    Map.keys(data_source.tables)
-  end
-
   @doc "Returns the table descriptor for the given table."
   @spec table(t, atom | String.t) :: table | nil
   def table(data_source, table_id) when is_atom(table_id), do: Map.fetch!(data_source.tables, table_id)
