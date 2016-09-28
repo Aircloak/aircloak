@@ -120,8 +120,7 @@ defmodule Air.DataSourceManager do
   end
 
   defp create_or_update_datastore(data) do
-    # Temporary backwards compatibility for older cloaks
-    global_id = data["global_id"] || data["id"]
+    global_id = data["global_id"]
     case Repo.get_by(DataSource, global_id: global_id) do
       nil ->
         params = %{
