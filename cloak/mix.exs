@@ -44,7 +44,9 @@ defmodule Cloak.Mixfile do
 
       {:phoenix, "~> 1.1.6", only: :test},
       {:cowboy, "~> 1.0", only: :test},
-      {:bypass, "~> 0.5.1", only: :test}
+      {:bypass, "~> 0.5.1", only: :test},
+      {:excheck, "~> 0.5", only: :test},
+      {:triq, github: "triqng/triq", only: :test}
     ]
   end
 
