@@ -146,11 +146,10 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp select_columns() do
-    either(
-      keyword(:*),
+    either_deepest_error(
+      keyword(:*) |> label("column definition"),
       comma_delimited(select_column())
     ) |> map(&{:columns, &1})
-    |> label("column definition")
   end
 
   defp column() do
@@ -170,7 +169,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp simple_expression() do
-    choice([
+    choice_deepest_error([
       parenthesised_expression(),
       cast_expression(),
       function_expression(),
@@ -179,9 +178,8 @@ defmodule Cloak.Aql.Parser do
       substring_expression(),
       concat_expression(),
       qualified_identifier(),
-      constant_column()
+      constant_column() |> label("column definition")
     ])
-    |> label("column name or function")
   end
 
   defp parenthesised_expression() do
@@ -192,7 +190,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp constant_column() do
-    either(interval(), any_constant())
+    either_deepest_error(interval(), any_constant())
   end
 
   defp select_column() do
@@ -224,9 +222,13 @@ defmodule Cloak.Aql.Parser do
 
   @data_types ~w(integer real text boolean datetime date time)
   defp data_type() do
-    identifier()
-    |> satisfy(&Enum.member?(@data_types, &1))
-    |> map(&String.to_atom/1)
+    non_keyword_type =
+      identifier()
+      |> satisfy(&Enum.member?(@data_types, &1))
+      |> map(&String.to_atom/1)
+
+    either(non_keyword_type, keyword(:interval))
+    |> label("type name")
   end
 
   defp function_expression() do
@@ -249,7 +251,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp function_arguments() do
-    choice([
+    choice_deepest_error([
       comma_delimited(column()),
       distinct_identifier(),
       keyword(:*)
@@ -322,7 +324,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp concat_expression() do
-    infix_expression([keyword(:||)], either(qualified_identifier(), constant_column()))
+    infix_expression([keyword(:||)], either_deepest_error(qualified_identifier(), constant_column()))
   end
 
   defp infix_expression(operators, inner_expression) do
@@ -339,7 +341,7 @@ defmodule Cloak.Aql.Parser do
 
   defp qualified_identifier() do
     map(
-      either(
+      either_deepest_error(
         sequence(
           [
             identifier(),
@@ -418,7 +420,7 @@ defmodule Cloak.Aql.Parser do
   defp next_join(data_source) do
     switch([
       {cross_join(),join_expression(data_source)},
-      {either(inner_join(), outer_join()), join_expression_with_on_clause(data_source)},
+      {either_deepest_error(inner_join(), outer_join()), join_expression_with_on_clause(data_source)},
       {:else, noop()}
     ])
     |> map(&join_clause/1)
@@ -455,8 +457,10 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp table_name() do
-    either(table_with_schema(), identifier())
-    |> label("table name")
+    either_deepest_error(
+      table_with_schema(),
+      identifier() |> label("table name")
+    )
   end
 
   defp parsed_subquery(data_source) do
@@ -492,7 +496,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp unparsed_subquery_token() do
-    either(
+    either_deepest_error(
       sequence([keyword(:"("), lazy(fn -> many(unparsed_subquery_token()) end), keyword(:")")]),
       any_token() |> satisfy(&(&1.category != :")" && &1.category != :eof))
     )
@@ -546,7 +550,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp allowed_where_value() do
-    choice([qualified_identifier(), any_constant()])
+    either(qualified_identifier(), any_constant())
     |> label("comparison value")
   end
 
@@ -594,18 +598,18 @@ defmodule Cloak.Aql.Parser do
 
   defp optional_order_by() do
     switch([
-      {keyword(:order), keyword(:by) |> comma_delimited(order_by_field())},
+      {keyword(:order), pair_both(keyword(:by), comma_delimited(order_by_field()))},
       {:else, noop()}
     ])
-    |> map(fn({[:order], [:by, fields]}) -> {:order_by, fields} end)
+    |> map(fn({[:order], [{:by, fields}]}) -> {:order_by, fields} end)
   end
 
   defp optional_group_by() do
     switch([
-      {keyword(:group), keyword(:by) |> comma_delimited(column())},
+      {keyword(:group), pair_both(keyword(:by), comma_delimited(column()))},
       {:else, noop()}
     ])
-    |> map(fn {_, [:by, columns]} -> {:group_by, columns} end)
+    |> map(fn {_, [{:by, columns}]} -> {:group_by, columns} end)
   end
 
   defp order_by_field() do
@@ -650,13 +654,12 @@ defmodule Cloak.Aql.Parser do
     |> label(to_string(type))
   end
 
-  defp comma_delimited(previous \\ noop(), term_parser) do
-    previous
-    |> sep_by1(term_parser, keyword(:","))
+  defp comma_delimited(term_parser) do
+    sep_by1_eager(term_parser, keyword(:","))
   end
 
   defp and_delimited(term_parser) do
-    sep_by1(term_parser, keyword(:and))
+    sep_by1_eager(term_parser, keyword(:and))
   end
 
   defp end_of_input(parser) do

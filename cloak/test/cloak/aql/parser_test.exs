@@ -745,6 +745,9 @@ defmodule Cloak.Aql.Parser.Test do
       select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
   end
 
+  test "cast to interval", do:
+    assert_parse "select cast(a, interval) from bar", select(columns: [{:function, {:cast, :interval}, _}])
+
   test "extended cast" do
     assert_parse "select cast(a as text) from bar",
       select(columns: [{:function, {:cast, :text}, [identifier("a")]}])
@@ -855,7 +858,7 @@ defmodule Cloak.Aql.Parser.Test do
       {"assert at least one table",
         "select foo from", "Expected `table name`", {1, 16}},
       {"extended trim with two columns",
-        "select trim(both a from b) from foo", "Expected `column definition`", {1, 8}},
+        "select trim(both a from b) from foo", "Expected `from`", {1, 18}},
       {"invalid interval",
         "select interval 'does not parse' from foo", "Expected `column definition`", {1, 8}},
       # parsed subqueries
@@ -869,6 +872,12 @@ defmodule Cloak.Aql.Parser.Test do
         "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}},
       {"invalid subquery in a join",
         "select foo from bar cross join (select) alias", "Expected `column definition`", {1, 39}},
+      {"invalid column other than the first one",
+        "select foo, & from foo", "Expected `column definition`", {1, 13}},
+      {"error inside an item in the select list",
+        "select foo, cast(3 as) from foo", "Expected `type name`", {1, 22}},
+      {"wrong cast",
+        "select cast(foo as bar) from baz", "Expected `type name`", {1, 20}},
       # unparsed subqueries
       {"unclosed parens in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz", "Expected `)`", {1, 37}},

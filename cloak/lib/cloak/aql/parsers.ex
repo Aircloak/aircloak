@@ -36,17 +36,18 @@ defmodule Cloak.Aql.Parsers do
   specifically by providing the `{:else, parser}` pair which will always run.
   """
   @spec switch(Combine.previous_parser, [{Combine.parser | :else, Combine.parser}]) :: Combine.parser
-  defparser switch(%ParserState{status: :ok} = state, switch_rules) do
-    interpret_switch_rules(switch_rules, state)
+  defparser switch(%ParserState{status: :ok, line: line, column: column} = state, switch_rules) do
+    interpret_switch_rules(switch_rules, state,
+      "Expected at least one parser to succeed at line #{line}, column #{column}.")
   end
 
-  defp interpret_switch_rules([], _state) do
-    %ParserState{status: :error, error: "Expected at least one parser to succeed"}
+  defp interpret_switch_rules([], _state, deepest_error) do
+    %ParserState{status: :error, error: deepest_error}
   end
-  defp interpret_switch_rules([{:else, parser} | _], state) do
+  defp interpret_switch_rules([{:else, parser} | _], state, _deepest_error) do
     parser.(state)
   end
-  defp interpret_switch_rules([{parser, next_parser} | other_rules], state) do
+  defp interpret_switch_rules([{parser, next_parser} | other_rules], state, deepest_error) do
     case parser.(%ParserState{state | results: []}) do
       %ParserState{status: :ok, results: switch_results} = next_state ->
         case next_parser.(%ParserState{next_state | results: []}) do
@@ -56,8 +57,8 @@ defmodule Cloak.Aql.Parsers do
             }
           other -> other
         end
-      _ ->
-        interpret_switch_rules(other_rules, state)
+      %ParserState{error: error} ->
+        interpret_switch_rules(other_rules, state, deeper_error(deepest_error, error))
     end
   end
 
@@ -238,5 +239,66 @@ defmodule Cloak.Aql.Parsers do
   @spec lazy(Combine.previous_parser, (() -> Combine.parser)) :: Combine.parser
   defparser lazy(%ParserState{status: :ok} = state, generator) do
     (generator.()).(state)
+  end
+
+  @doc """
+  Parses one or more instances of `term` separated by `separator`. Unlike the combine `sep_by1` consumes
+  separators eagerly, making it possible to detect wrong `term`s that are later in the chain. For example for
+  input of `"a,b,a"` `sep_by1` will consume only the first `a` and succeed while this one will fail on the
+  `b`.
+  """
+  @spec sep_by1_eager(Combine.previous_parser, Combine.parser, Combine.parser) :: Combine.parser
+  defparser sep_by1_eager(state, term, separator) do
+    (
+      Base.pair_both(
+        term,
+        switch([
+          {separator, lazy(fn -> sep_by1_eager(term, separator) end)},
+          {noop(), noop()}
+        ])
+      )
+      |> Base.map(fn
+        {first, {_sep, [rest]}} -> [first | rest]
+        {single, {[], []}} -> [single]
+      end)
+    ).(state)
+  end
+
+  @doc "Same as `choice_deepest_error([parser1, parser2])`"
+  @spec either_deepest_error(Combine.previous_parser, Combine.parser, Combine.parser) :: Combine.parser
+  defparser either_deepest_error(state, parser1, parser2), do:
+    choice_deepest_error([parser1, parser2]).(state)
+
+  @doc """
+  Tries parsers in order and returns the result of the first one that succeeds. In case of failure returns the
+  error returned by the parser which consumed the most input.
+  """
+  @spec choice_deepest_error(Combine.previous_parser, [Combine.parser]) :: Combine.parser
+  defparser choice_deepest_error(%ParserState{status: :ok, line: line, column: column} = state, parsers), do:
+    do_choice_deepest_error(parsers, state, "No possible parsers at line #{line}, column #{column}.")
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp do_choice_deepest_error([], state, deepest_error), do:
+    %{state | :status => :error, :error => deepest_error}
+  defp do_choice_deepest_error([parser | rest], state, deepest_error) do
+    case parser.(state) do
+      %ParserState{status: :ok} = result -> result
+      %ParserState{error: error} -> do_choice_deepest_error(rest, state, deeper_error(deepest_error, error))
+    end
+  end
+
+  defp deeper_error(error1, error2), do:
+    if error_deepness(error1) > error_deepness(error2), do: error1, else: error2
+
+  @error_regex ~r/at line ([0-9]+), column ([0-9]+)/
+  defp error_deepness(error) do
+    case Regex.run(@error_regex, error) do
+      [_, line, column] -> {String.to_integer(line), String.to_integer(column)}
+      nil -> nil
+    end
   end
 end
