@@ -1,8 +1,10 @@
 This document serves to describe breaking changes and provide upgrade hints when major changes are introduced. When you're creating a pull with some major changes, please add brief upgrade instructions here.
 
-## Main branch change from `develop` to `master`
+## Standalone database container
 
-The change was made to get Travis to pick up our caches, and secondly it's what most people and projects expect. Update your local git remotes.
+Development and test databases are now running in the separate containers. After fetching the latest master, you need to stop the old container (`docker stop air_db`), and then you can run `air/start_dependencies.sh` which will start both database containers.
+
+__OS X developers__: you also need to forward port 20003 from `docker-machine` VM.
 
 ## Standalone air
 
@@ -12,6 +14,10 @@ The change was made to get Travis to pick up our caches, and secondly it's what 
 - New command to deploy air and cloak together: `./publish.sh target`.
 - Air is deployed to srv-76-135.
 - Following components are not used anymore: `nginx`, `haproxy`, `etcd`, `coreos`.
+
+## Main branch change from `develop` to `master`
+
+The change was made to get Travis to pick up our caches, and secondly it's what most people and projects expect. Update your local git remotes.
 
 ## Mixification of cloak
 

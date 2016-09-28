@@ -59,7 +59,10 @@ before_script:
   - cd ../..
   # air
   - air/set_travis_config.sh
-  - air/db/init_db.sh
+  - psql -U postgres -c "CREATE USER airtest CREATEDB;"
+  - psql -U postgres -c "CREATE DATABASE air_test ENCODING 'UTF8';"
+  - psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE air_test TO airtest;"
+  - psql -U postgres -c "ALTER DATABASE air_test OWNER TO airtest;"
   - cd air
   - make deps
   - mix compile --warnings-as-errors
