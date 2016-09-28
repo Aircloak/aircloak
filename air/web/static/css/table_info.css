@@ -24,3 +24,8 @@
 .table-info .name-column {
   word-break: break-all;
 }
+
+.table-info .id-column {
+  word-break: break-all;
+  font-weight: bold;
+}
