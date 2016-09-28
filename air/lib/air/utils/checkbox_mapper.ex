@@ -11,6 +11,7 @@ defmodule Air.Utils.CheckboxMapper do
   # API
   # -------------------------------------------------------------------
 
+  @lint false
   def for_users(form, field, input_opts, group, label_opts, _opts) do
     content_tag(:div, class: "checkbox") do
       label(form, field, label_opts) do
@@ -22,6 +23,7 @@ defmodule Air.Utils.CheckboxMapper do
     end
   end
 
+  @lint false
   def for_data_source(form, field, input_opts, group, label_opts, _opts) do
     content_tag(:div, class: "checkbox") do
       label(form, field, label_opts) do
