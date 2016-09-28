@@ -16,7 +16,8 @@ You need to forward following ports from your localhost to docker-machine VM:
 
 - 9080 (air http)
 - 9443 (air https)
-- 20002 (database container)
+- 20002 (database dev container)
+- 20003 (database test container)
 
 ## Mounting non-home folders
 
