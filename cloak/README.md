@@ -73,7 +73,7 @@ The skeleton of a configuration looks like this:
 
 ```json
 {
-  "air_socket_url": "<URL OF AIR INSTALLATION>/cloak/socket/websocket",
+  "air_site": "<URL OF AIR INSTALLATION>",
   "data_sources": []
 }
 ```
