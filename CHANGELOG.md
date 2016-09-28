@@ -1,5 +1,11 @@
 This document serves to describe breaking changes and provide upgrade hints when major changes are introduced. When you're creating a pull with some major changes, please add brief upgrade instructions here.
 
+## Standalone database container
+
+Development and test databases are now running in the separate containers. After fetching the latest master, you need to stop the old container (`docker stop air_db`), and then you can run `air/start_dependencies.sh` which will start both database containers.
+
+__OS X developers__: you also need to forward port 20003 from `docker-machine` VM.
+
 ## Standalone air
 
 - Air web project now resides directly in the `air` folder.
