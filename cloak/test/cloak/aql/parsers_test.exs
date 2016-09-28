@@ -4,18 +4,18 @@ defmodule Cloak.Aql.Parsers.Test do
   import Combine.Parsers.Text
   import Cloak.Aql.Parsers
 
-  describe "sep_by1_failing" do
+  describe "sep_by1_eager" do
     test "a single item", do:
-      assert [["a"]] = Combine.parse("a", sep_by1_failing(char("a"), char(",")))
+      assert [["a"]] = Combine.parse("a", sep_by1_eager(char("a"), char(",")))
 
     test "a single wrong item", do:
-      assert {:error, _} = Combine.parse("b", sep_by1_failing(char("a"), char(",")))
+      assert {:error, _} = Combine.parse("b", sep_by1_eager(char("a"), char(",")))
 
     test "multiple items", do:
-      assert [["a", "a", "a"]] = Combine.parse("a,a,a", sep_by1_failing(char("a"), char(",")))
+      assert [["a", "a", "a"]] = Combine.parse("a,a,a", sep_by1_eager(char("a"), char(",")))
 
     test "multiple items with a wrong one", do:
-      assert {:error, _} = Combine.parse("a,b,a", sep_by1_failing(char("a"), char(",")))
+      assert {:error, _} = Combine.parse("a,b,a", sep_by1_eager(char("a"), char(",")))
   end
 
   describe "choice_deepest_error" do

@@ -651,11 +651,11 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp comma_delimited(term_parser) do
-    sep_by1_failing(term_parser, keyword(:","))
+    sep_by1_eager(term_parser, keyword(:","))
   end
 
   defp and_delimited(term_parser) do
-    sep_by1_failing(term_parser, keyword(:and))
+    sep_by1_eager(term_parser, keyword(:and))
   end
 
   defp end_of_input(parser) do
