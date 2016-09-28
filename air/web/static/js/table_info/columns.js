@@ -1,8 +1,7 @@
 import React from "react";
-import _ from "lodash";
 
-export const Columns = (props) => {
-  return (<table className="table table-condensed">
+export const Columns = (props) =>
+  <table className="table table-condensed">
     <thead>
       <tr>
         <th>Column</th>
@@ -13,13 +12,12 @@ export const Columns = (props) => {
     <tbody>
       {props.columns.map((column, i) =>
         <tr key={i}>
-          <td className={column.user_id?"id-column":"name-column"}>{column.name}</td>
+          <td className={column.user_id ? "id-column" : "name-column"}>{column.name}</td>
           <td>{column.type}</td>
         </tr>
       )}
     </tbody>
-  </table>);
-};
+  </table>;
 
 Columns.propTypes = {
   columns: React.PropTypes.arrayOf(React.PropTypes.shape({
