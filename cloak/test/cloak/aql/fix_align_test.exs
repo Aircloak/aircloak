@@ -4,18 +4,18 @@ defmodule Cloak.Aql.FixAlign.Test do
 
   alias Cloak.Aql.FixAlign
 
-  property "aligned interval contains both ends ends of input" do
+  property "aligned interval contains both ends of input" do
     for_all {x, y} in int_interval do
       {left, right} = FixAlign.align({x, y})
       left <= x && y <= right
     end
   end
 
-  property "the endpoints are multiples of the size" do
+  property "the endpoints are multiples of half the size" do
     for_all interval in int_interval do
       {left, right} = FixAlign.align(interval)
-      size = right - left
-      rem(left, size) == 0 && rem(right, size) == 0
+      half_size = (right - left) / 2
+      even_multiple?(left, half_size) && even_multiple?(right, half_size)
     end
   end
 
@@ -31,7 +31,12 @@ defmodule Cloak.Aql.FixAlign.Test do
 
   defp even_power_of_10?(x) do
     log = :math.log10(x)
-    epsilon = 1.0e-6
-    abs(round(log) - log) < epsilon
+    abs(round(log) - log) < epsilon()
   end
+
+  defp even_multiple?(x, y) do
+    abs(round(x / y) - (x / y)) <= abs((x / y) * epsilon())
+  end
+
+  defp epsilon, do: 1.0e-6
 end
