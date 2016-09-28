@@ -371,3 +371,69 @@ UPPER('Some Text')
 UCASE('Some Text')
 -- 'SOME TEXT'
 ```
+
+## Casting
+
+You can convert values between different types using a cast expression.
+
+```sql
+CAST('3' AS INTEGER)
+-- 3
+
+CAST(3, TEXT)
+-- '3'
+
+CAST('NOT A NUMBER', INTEGER)
+-- NULL
+```
+
+Types can be converted according to the following tables:
+
+|           |      |         |      |         |
+|-----------|------|---------|------|---------|
+| from\to   | text | integer | real | boolean |
+| text      | ✓    | ✓       | ✓    | ✓       |
+| integer   | ✓    | ✓       | ✓    | ✓       |
+| real      | ✓    | ✓       | ✓    | ✓       |
+| boolean   | ✓    | ✓       | ✓    | ✓       |
+| date      | ✓    |         |      |         |
+| time      | ✓    |         |      |         |
+| datetime  | ✓    |         |      |         |
+| interval  | ✓    |         |      |         |
+
+|           |      |      |           |          |
+|-----------|------|------|-----------|----------|
+| from\to   | date | time | datetime  | interval |
+| text      | ✓    | ✓    | ✓         | ✓        |
+| integer   |      |      |           |          |
+| real      |      |      |           |          |
+| boolean   |      |      |           |          |
+| date      | ✓    |      |           |          |
+| time      |      | ✓    |           |          |
+| datetime  | ✓    | ✓    | ✓         |          |
+| interval  |      |      |           | ✓        |
+
+A cast may fail even when it's valid according to the table. For example a text field may contain data that
+does not have the correct format. In that case a `NULL` is returned.
+
+### Casting to/from text
+
+Casting from text will accept the same format as the cast to text produces for the given type. That means:
+
+* `'TRUE'`/`'FALSE'` for booleans
+* A base-10 notation for integers
+* `1.23` or `1e23` for reals
+* ISO-8601 notation for dates, times, datetimes and intervals
+
+### Casting to integer
+
+Casting a real to integer rounds the number to the closests integer.
+
+### Casting to/from boolean
+
+When converting numbers to booleans non-zero numbers are converted to `TRUE` and zero is converted to `FALSE`.
+When converting from booleans `TRUE` is converted to `1` and `FALSE` is converted to `0`.
+
+### Casting from datetime
+
+Casting from datetime to date or time will select the date/time part of the datetime.
