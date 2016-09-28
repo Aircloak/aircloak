@@ -116,10 +116,8 @@ defmodule Cloak.DataSource do
   end
 
   @doc "Returns the list of defined tables for a specific data source."
-  @spec tables(t) :: [table]
-  def tables(data_source) do
-    Map.keys(data_source.tables)
-  end
+  @spec tables(t) :: [atom]
+  def tables(data_source), do: Map.keys(data_source.tables)
 
   @doc "Returns the table descriptor for the given table."
   @spec table(t, atom | String.t) :: table | nil
