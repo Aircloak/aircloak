@@ -1,61 +1,25 @@
 defmodule Air.Utils.CheckboxMapper do
   @moduledoc """
-  Mappers for the PhoneixMTM checkbox MTM mapping library
+  Utilities used when creating checkboxes using the PhoenixMTM library
   """
-  use PhoenixMTM.Mappers
+  alias Air.Group
 
-  alias Air.{Group, Repo}
+  import Phoenix.HTML.Tag, only: [content_tag: 2, content_tag: 3]
+  import Phoenix.HTML, only: [html_escape: 1, raw: 1]
 
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
-  @lint false
-  def for_users(form, field, input_opts, group, label_opts, _opts) do
-    content_tag(:div, class: "checkbox") do
-      label(form, field, label_opts) do
-        [
-          tag(:input, input_opts),
-          data_source_content(group)
-        ]
-      end
-    end
-  end
-
-  @lint false
-  def for_data_source(form, field, input_opts, group, label_opts, _opts) do
-    content_tag(:div, class: "checkbox") do
-      label(form, field, label_opts) do
-        [
-          tag(:input, input_opts),
-          users_content(group)
-        ]
-      end
-    end
-  end
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp data_source_content(group) do
-    [
-      group_label_text(group),
-      raw(" &ndash; ") | data_sources_given_access_to(group)
-    ]
-  end
-
-  defp users_content(group) do
-    [
-      group_label_text(group),
-      raw(" &ndash; ") | users_given_access_to(group)
-    ]
-  end
-
-  defp group_label_text(%Group{admin: false, name: name}), do: content_tag(:strong, html_escape(name))
-  defp group_label_text(%Group{admin: true, name: name}) do
+  @doc """
+  Given a group model, it will produce a HTML safe representation of the
+  strongly formatted group name, along with auxiliary labels indication
+  properties of the group, such as whether it gives admin privileges.
+  """
+  @spec group_label_text(Group.t) :: Phoenix.HTML.safe
+  def group_label_text(%Group{admin: false, name: name}), do: content_tag(:strong, html_escape(name))
+  def group_label_text(%Group{admin: true, name: name}) do
     [
       content_tag(:strong, html_escape(name)), raw("&nbsp;"),
       content_tag(:span, class: "label label-danger") do
@@ -64,35 +28,15 @@ defmodule Air.Utils.CheckboxMapper do
     ]
   end
 
-
-  @num_to_take 5
-
-  defp data_sources_given_access_to(group) do
-    group = Repo.preload(group, :data_sources)
-    case group.data_sources do
-      [] -> ["Doesn't give access to any data sources"]
-      data_sources when length(data_sources) <= @num_to_take ->
-        [raw("Gives access to #{length(data_sources)} data_sources: ") | names(data_sources)]
-      data_sources ->
-        [raw("Gives access to #{length(data_sources)} data_sources, including: ") | names(data_sources)]
-    end
-  end
-
-  defp users_given_access_to(group) do
-    group = Repo.preload(group, :users)
-    case group.users do
-      [] -> ["Doesn't give access to any users"]
-      users when length(users) <= @num_to_take ->
-        [raw("Gives access to #{length(users)} users: ") | names(users)]
-      users ->
-        [raw("Gives access to #{length(users)} users, including: ") | names(users)]
-    end
-  end
-
-  defp names(entities) do
+  @doc """
+  Takes a list of entities, and returns N of them, strongly formatted,
+  and intersperced with commas.
+  """
+  @spec highlighted_and_comma_separated(String.t, pos_integer) :: Phoenix.HTML.safe
+  def highlighted_and_comma_separated(entities, n) do
     entities
-    |> Enum.take(@num_to_take)
-    |> Enum.map(&content_tag(:strong, html_escape(&1.name)))
+    |> Enum.take(n)
+    |> Enum.map(&content_tag(:strong, html_escape(&1)))
     |> Enum.intersperse(raw(", "))
   end
 end

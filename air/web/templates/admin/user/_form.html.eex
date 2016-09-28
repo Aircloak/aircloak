@@ -45,7 +45,7 @@
   <%= PhoenixMTM.Helpers.collection_checkboxes f, :groups,
     Enum.map(Air.Admin.GroupView.available_groups(), &({&1, &1.id})),
     selected: Enum.map(@chosen_groups, &(&1.id)),
-    mapper: &Air.Utils.CheckboxMapper.for_users/6 %>
+    mapper: &checkbox_mapper/6 %>
 </div>
 
 <div class="form-group">
