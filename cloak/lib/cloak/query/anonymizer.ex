@@ -213,8 +213,8 @@ defmodule Cloak.Query.Anonymizer do
     outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
     {top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
     top_count = round(top_count)
-    {sum, noise_scale} = sum_positives(rows, outliers_count, top_count, row_accumulator)
-    noise_sigma = config(:sum_noise_sigma) * noise_scale
+    {sum, noise_sigma_scale} = sum_positives(rows, outliers_count, top_count, row_accumulator)
+    noise_sigma = config(:sum_noise_sigma) * noise_sigma_scale
     {noisy_sum, anonymizer} = add_noise(anonymizer, {sum, noise_sigma})
     {noisy_sum, round_noise_sigma(noise_sigma), anonymizer}
   end
@@ -232,7 +232,7 @@ defmodule Cloak.Query.Anonymizer do
 
   # Given a list of rows, a row accumulator functor and the anonymization parameters,
   # this method will drop the rows with negative values, and, for the remaining rows,
-  # will return the anonymized sum plus the required noise scale.
+  # will return the anonymized sum plus the required scale for the noise standard deviation.
   defp sum_positives(rows, outliers_count, top_count, row_accumulator) do
     {sum, count, top_length, top_values} = Enum.reduce(rows, {0, 0, 0, []}, fn
       (row, {sum, count, top_length, top}) when top_length <= outliers_count + top_count ->
