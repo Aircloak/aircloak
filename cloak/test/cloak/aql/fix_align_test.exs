@@ -27,6 +27,12 @@ defmodule Cloak.Aql.FixAlign.Test do
     end
   end
 
+  property "fix align is idempotent" do
+    for_all interval in int_interval do
+      FixAlign.align(interval) == FixAlign.align(FixAlign.align(interval))
+    end
+  end
+
   defp int_interval, do: such_that({x, y} in {int, int} when x < y)
 
   defp even_power_of_10?(x) do
