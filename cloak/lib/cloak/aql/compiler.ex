@@ -2,7 +2,7 @@ defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Column, Comparison, Function, Parser, Query}
+  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query}
   alias Cloak.Aql.Parsers.Token
 
   defmodule CompilationError do
@@ -95,6 +95,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_joins()
       |> cast_where_clauses()
       |> verify_ranges()
+      |> align_ranges()
       |> partition_selected_columns()
       |> partition_where_clauses()
       |> calculate_db_columns()
@@ -485,9 +486,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp verify_ranges(%Query{where: [_|_] = clauses} = query) do
     clauses
-    |> Enum.filter(&Comparison.inequality?/1)
-    |> Enum.group_by(&where_clause_to_identifier/1)
-    |> Enum.filter(fn({column, _}) -> Enum.member?([:integer, :real], column.type) end)
+    |> ranges()
     |> Enum.reject(fn
       {_, [comparison1, comparison2]} -> Comparison.direction(comparison1) != Comparison.direction(comparison2)
       _ -> false
@@ -498,6 +497,36 @@ defmodule Cloak.Aql.Compiler do
     end
   end
   defp verify_ranges(query), do: query
+
+  defp align_ranges(%Query{where: [_|_] = clauses} = query) do
+    ranges = ranges(clauses)
+
+    non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), where_clause_to_identifier(&1)))
+
+    range_clauses = Enum.flat_map(ranges, fn({column, conditions}) ->
+      {left, right} = conditions
+      |> Enum.map(&Comparison.value/1)
+      |> Enum.sort()
+      |> List.to_tuple()
+      |> FixAlign.align()
+
+      [
+        {:comparison, column, :>=, Column.constant(:float, left)},
+        {:comparison, column, :<, Column.constant(:float, right)}
+      ]
+    end)
+
+    %{query | where: range_clauses ++ non_range_clauses}
+  end
+  defp align_ranges(query), do: query
+
+  defp ranges(where_clauses) do
+    where_clauses
+    |> Enum.filter(&Comparison.inequality?/1)
+    |> Enum.group_by(&where_clause_to_identifier/1)
+    |> Enum.filter(fn({column, _}) -> Enum.member?([:integer, :real], column.type) end)
+    |> Enum.into(%{})
+  end
 
   defp cast_where_clauses(%Query{where: [_|_] = clauses} = query) do
     %Query{query | where: Enum.map(clauses, &cast_where_clause/1)}

@@ -344,7 +344,7 @@ defmodule Cloak.Aql.Compiler.Test do
       data_source)
     assert [column("t1", "c1")] = result.columns
     assert [comparison1, comparison2, comparison3] = result.where
-    assert {:comparison, column("t1", "c2"), :>, _} = comparison1
+    assert {:comparison, column("t1", "c2"), :>=, _} = comparison1
     assert {:comparison, column("t1", "c2"), :<, _} = comparison2
     assert {:comparison, column("t1", "uid"), :=, column("t2", "uid")} = comparison3
     assert [column("t1", "c1"), column("t2", "c3")] = result.group_by
@@ -423,8 +423,6 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error == "Arguments of type (`text`, `text`) are incorrect for `+`"
   end
 
-  test "fixes alignment of ranges"
-
   test "rejects inequalities on numeric columns that are not ranges" do
     assert {:error, error} = compile("select * from table where numeric > 5", data_source())
     assert error == "Column `numeric` must be limited by a range"
@@ -432,6 +430,11 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "accepts inequalities on numeric columns that are ranges" do
     assert {:ok, _} = compile("select * from table where numeric > 5 and numeric < 8", data_source())
+  end
+
+  test "fixes alignment of ranges" do
+    assert compile!("select * from table where numeric > 1 and numeric < 9", data_source()).where
+      == compile!("select * from table where numeric > 0 and numeric < 10", data_source()).where
   end
 
   defp compile!(query_string, data_source) do
