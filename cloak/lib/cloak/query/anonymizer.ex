@@ -249,7 +249,7 @@ defmodule Cloak.Query.Anonymizer do
         end
     end)
     case top_length - outliers_count do
-      0 -> 0
+      0 -> {0, 0}
       top_length ->
         top_values_sum = top_values |> Enum.take(top_length) |> Enum.sum()
         top_average = top_values_sum / top_length
