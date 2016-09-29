@@ -27,11 +27,11 @@ defmodule Cloak.Aql.FixAlign.Test do
         even_power_of_10?(size) || even_power_of_10?(size / 2) || even_power_of_10?(size / 5)
       end
     end
+  end
 
-    property "fix align is idempotent on #{interval_type} intervals" do
-      for_all interval in interval(unquote(interval_type)) do
-        interval |> FixAlign.align() == interval |> FixAlign.align() |> FixAlign.align()
-      end
+  property "fix align is idempotent on integer intervals" do
+    for_all interval in int_interval do
+      interval |> FixAlign.align() == interval |> FixAlign.align() |> FixAlign.align()
     end
   end
 
