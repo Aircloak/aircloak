@@ -2,11 +2,8 @@ defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.DataSource
-  alias Cloak.Aql.Query
-  alias Cloak.Aql.Column
-  alias Cloak.Aql.Parser
+  alias Cloak.Aql.{Column, Comparison, Function, Parser, Query}
   alias Cloak.Aql.Parsers.Token
-  alias Cloak.Aql.Function
 
   defmodule CompilationError do
     @moduledoc false
@@ -97,6 +94,7 @@ defmodule Cloak.Aql.Compiler do
       |> compile_order_by()
       |> verify_joins()
       |> cast_where_clauses()
+      |> verify_ranges()
       |> partition_selected_columns()
       |> partition_where_clauses()
       |> calculate_db_columns()
@@ -484,6 +482,22 @@ defmodule Cloak.Aql.Compiler do
     join.conditions ++ all_join_conditions(join.lhs) ++ all_join_conditions(join.rhs)
   end
   defp all_join_conditions(_), do: []
+
+  defp verify_ranges(%Query{where: [_|_] = clauses} = query) do
+    clauses
+    |> Enum.filter(&Comparison.inequality?/1)
+    |> Enum.group_by(&where_clause_to_identifier/1)
+    |> Enum.filter(fn({column, _}) -> Enum.member?([:integer, :real], column.type) end)
+    |> Enum.reject(fn
+      {_, [comparison1, comparison2]} -> Comparison.direction(comparison1) != Comparison.direction(comparison2)
+      _ -> false
+    end)
+    |> case do
+      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited by a range"
+      _ -> query
+    end
+  end
+  defp verify_ranges(query), do: query
 
   defp cast_where_clauses(%Query{where: [_|_] = clauses} = query) do
     %Query{query | where: Enum.map(clauses, &cast_where_clause/1)}
