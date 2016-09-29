@@ -101,7 +101,10 @@ defmodule Cloak.Query.Anonymizer do
     get_max(anonymizer, rows, &Enum.max/1)
   end
 
-  @doc "Computes the noisy average value and noise sigma of all values in rows, where each row is an enumerable of numbers."
+  @doc """
+    Computes the noisy average value and noise sigma of all values in rows,
+    where each row is an enumerable of numbers.
+  """
   @spec avg(t, Enumerable.t) :: {float, float}
   def avg(anonymizer, rows) do
     {sum, sum_noise_sigma} = sum(anonymizer, rows)
@@ -109,7 +112,10 @@ defmodule Cloak.Query.Anonymizer do
     {sum / count, sum_noise_sigma / count}
   end
 
-  @doc "Computes the noisy standard deviation and noise sigma of all values in rows, where each row is an enumerable of numbers."
+  @doc """
+    Computes the noisy standard deviation and noise sigma of all values in rows,
+    where each row is an enumerable of numbers.
+  """
   @spec stddev(t, Enumerable.t) :: {float, float}
   def stddev(anonymizer, rows) do
     real_sum = rows |> Stream.map(&Enum.sum(&1)) |> Enum.sum()
