@@ -94,7 +94,6 @@ defmodule Cloak.Aql.Compiler do
       |> compile_order_by()
       |> verify_joins()
       |> cast_where_clauses()
-      |> verify_ranges()
       |> align_ranges()
       |> partition_selected_columns()
       |> partition_where_clauses()
@@ -484,43 +483,44 @@ defmodule Cloak.Aql.Compiler do
   end
   defp all_join_conditions(_), do: []
 
-  defp verify_ranges(%Query{where: [_|_] = clauses} = query) do
-    clauses
-    |> ranges()
-    |> Enum.reject(fn
-      {_, [comparison1, comparison2]} -> Comparison.direction(comparison1) != Comparison.direction(comparison2)
-      _ -> false
-    end)
-    |> case do
-      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited by a range"
-      _ -> query
-    end
-  end
-  defp verify_ranges(query), do: query
-
   defp align_ranges(%Query{where: [_|_] = clauses} = query) do
-    ranges = ranges(clauses)
+    verify_ranges(query)
 
+    ranges = inequalities_by_column(clauses)
     non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), where_clause_to_identifier(&1)))
-
-    range_clauses = Enum.flat_map(ranges, fn({column, conditions}) ->
-      {left, right} = conditions
-      |> Enum.map(&Comparison.value/1)
-      |> Enum.sort()
-      |> List.to_tuple()
-      |> FixAlign.align()
-
-      [
-        {:comparison, column, :>=, Column.constant(:float, left)},
-        {:comparison, column, :<, Column.constant(:float, right)}
-      ]
-    end)
+    range_clauses = Enum.flat_map(ranges, fn({column, conditions}) -> aligned_range(column, conditions) end)
 
     %{query | where: range_clauses ++ non_range_clauses}
   end
   defp align_ranges(query), do: query
 
-  defp ranges(where_clauses) do
+  defp aligned_range(column, conditions) do
+    {left, right} = conditions
+                    |> Enum.map(&Comparison.value/1)
+                    |> Enum.sort()
+                    |> List.to_tuple()
+                    |> FixAlign.align()
+
+    [
+      {:comparison, column, :>=, Column.constant(:float, left)},
+      {:comparison, column, :<, Column.constant(:float, right)}
+    ]
+  end
+
+  defp verify_ranges(%Query{where: clauses}) do
+    clauses
+    |> inequalities_by_column()
+    |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
+    |> case do
+      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited by a range"
+      _ -> :ok
+    end
+  end
+
+  defp valid_range?([cmp1, cmp2]), do: Comparison.direction(cmp1) != Comparison.direction(cmp2)
+  defp valid_range?(_), do: false
+
+  defp inequalities_by_column(where_clauses) do
     where_clauses
     |> Enum.filter(&Comparison.inequality?/1)
     |> Enum.group_by(&where_clause_to_identifier/1)
