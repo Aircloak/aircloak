@@ -748,7 +748,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp set_column_db_row_position(other, _query), do: other
 
-  defp db_column_name(%Column{table: :unknown, name: name}), do: name
+  defp db_column_name(%Column{table: :unknown} = column), do: (column.name || column.alias)
   defp db_column_name(column), do: "#{column.table.db_name}.#{column.name}"
 
   defp join_conditions_scope_check(from) do
