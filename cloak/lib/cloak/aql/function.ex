@@ -16,8 +16,8 @@ defmodule Cloak.Aql.Function do
   }
 
   @functions %{
-    ~w(count) => %{aggregate: true, type_specs: %{[:any] => :integer}},
-    ~w(sum median) => %{aggregate: true, type_specs: %{
+    ~w(count count_noise) => %{aggregate: true, type_specs: %{[:any] => :integer}},
+    ~w(sum median sum_noise) => %{aggregate: true, type_specs: %{
       [:integer] => :integer,
       [:real] => :real,
     }},
@@ -28,7 +28,7 @@ defmodule Cloak.Aql.Function do
       [:time] => :time,
       [:datetime] => :datetime,
     }},
-    ~w(avg stddev) => %{aggregate: true, type_specs: %{[numeric] => :real}},
+    ~w(avg stddev avg_noise stddev_noise) => %{aggregate: true, type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
       %{type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year month day weekday) =>
