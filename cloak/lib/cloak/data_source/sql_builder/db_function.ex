@@ -54,6 +54,9 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   defp function_call("trunc", [arg1], :mysql), do: ["TRUNCATE(", arg1, ", 0)"]
   defp function_call("btrim", [arg1], :mysql), do: ["TRIM(", arg1, ")"]
   defp function_call("div", [arg1, arg2], :mysql), do: [arg1, " DIV ", arg2]
+  @noise_aggregates ["count_noise", "sum_noise", "avg_noise", "stddev_noise"]
+  defp function_call(name, _args, _sql_dialect) when name in @noise_aggregates,
+    do: raise RuntimeError, "Aggregation functions for noise estimation are not allowed in sub-queries!"
   defp function_call(name, args, _sql_dialect), do: [name, "(", Enum.intersperse(args, ", ") ,")"]
 
   defp sql_type(:real, :mysql), do: "decimal(65, 15)"

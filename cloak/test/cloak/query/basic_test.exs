@@ -609,4 +609,23 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select name from heights order by name limit 10 offset 5",
       %{columns: ["name"], rows: [%{row: ["aaa"], occurrences: 5}, %{row: ["bbb"], occurrences: 5}]}
   end
+
+  test "should be able to provide noise estimates for count, sum, avg and stddev aggregators" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
+    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+
+    assert_query "select count_noise(*) from heights",
+      %{columns: ["count_noise"], rows: [%{row: [0], occurrences: 1}]}
+
+    assert_query "select sum_noise(height) from heights",
+      %{columns: ["sum_noise"], rows: [%{row: [0], occurrences: 1}]}
+
+    assert_query "select avg_noise(height) from heights",
+      %{columns: ["avg_noise"], rows: [%{row: [0.0], occurrences: 1}]}
+
+    assert_query "select stddev_noise(height) from heights",
+      %{columns: ["stddev_noise"], rows: [%{row: [0.0], occurrences: 1}]}
+  end
 end

@@ -155,15 +155,43 @@ defmodule Cloak.Query.Aggregator do
   end
   defp preprocess_for_aggregation(values, _column), do: values
 
-  defp aggregate_by(aggregation_data, "count", anonymizer), do: Anonymizer.count(anonymizer, aggregation_data)
-  defp aggregate_by(aggregation_data, "sum", anonymizer), do: Anonymizer.sum(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "count", anonymizer) do
+    {count, _noise_sigma} = Anonymizer.count(anonymizer, aggregation_data)
+    count
+  end
+  defp aggregate_by(aggregation_data, "sum", anonymizer) do
+    {sum, _noise_sigma} = Anonymizer.sum(anonymizer, aggregation_data)
+    sum
+  end
+  defp aggregate_by(aggregation_data, "avg", anonymizer) do
+    {avg, _noise_sigma} = Anonymizer.avg(anonymizer, aggregation_data)
+    avg
+  end
+  defp aggregate_by(aggregation_data, "stddev", anonymizer) do
+    {stddev, _noise_sigma} = Anonymizer.stddev(anonymizer, aggregation_data)
+    stddev
+  end
+  defp aggregate_by(aggregation_data, "count_noise", anonymizer) do
+    {_count, noise_sigma} = Anonymizer.count(anonymizer, aggregation_data)
+    noise_sigma
+  end
+  defp aggregate_by(aggregation_data, "sum_noise", anonymizer) do
+    {_sum, noise_sigma} = Anonymizer.sum(anonymizer, aggregation_data)
+    noise_sigma
+  end
+  defp aggregate_by(aggregation_data, "avg_noise", anonymizer) do
+    {_avg, noise_sigma} = Anonymizer.avg(anonymizer, aggregation_data)
+    noise_sigma
+  end
+  defp aggregate_by(aggregation_data, "stddev_noise", anonymizer) do
+    {_stddev, noise_sigma} = Anonymizer.stddev(anonymizer, aggregation_data)
+    noise_sigma
+  end
   defp aggregate_by(aggregation_data, "min", anonymizer), do: Anonymizer.min(anonymizer, aggregation_data)
   defp aggregate_by(aggregation_data, "max", anonymizer), do: Anonymizer.max(anonymizer, aggregation_data)
-  defp aggregate_by(aggregation_data, "avg", anonymizer), do: Anonymizer.avg(anonymizer, aggregation_data)
-  defp aggregate_by(aggregation_data, "stddev", anonymizer), do: Anonymizer.stddev(anonymizer, aggregation_data)
   defp aggregate_by(aggregation_data, "median", anonymizer), do: Anonymizer.median(anonymizer, aggregation_data)
   defp aggregate_by(_, unknown_aggregator, _) do
-    raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
+    raise "Aggregator '#{unknown_aggregator}' is not supported!"
   end
 
   defp make_buckets([], %Query{property: []} = query) do

@@ -70,20 +70,22 @@ defmodule Cloak.Query.Anonymizer do
     {count > noisy_lower_bound, anonymizer}
   end
 
-  @doc "Computes the noisy count of all values in rows, where each row is an enumerable."
-  @spec count(t, Enumerable.t) :: non_neg_integer
+  @doc "Computes the noisy count and noise sigma of all values in rows, where each row is an enumerable."
+  @spec count(t, Enumerable.t) :: {non_neg_integer, non_neg_integer}
   def count(anonymizer, rows) do
-    {count, _anonymizer} = sum_positives(anonymizer, rows, &Enum.count(&1))
-    count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
+    {count, noise_sigma, _anonymizer} = sum_positives(anonymizer, rows, &Enum.count(&1))
+    {count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound)), round(noise_sigma)}
   end
 
-  @doc "Computes the noisy sum of all values in rows, where each row is an enumerable of numbers."
-  @spec sum(t, Enumerable.t) :: number
+  @doc "Computes the noisy sum and noise sigma of all values in rows, where each row is an enumerable of numbers."
+  @spec sum(t, Enumerable.t) :: {number, number}
   def sum(anonymizer, rows) do
-    {positives_sum, anonymizer} = sum_positives(anonymizer, rows, &Enum.sum(&1))
-    {negatives_sum, _anonymizer} = sum_positives(anonymizer, rows, & -Enum.sum(&1))
+    {positives_sum, positives_noise_sigma, anonymizer} = sum_positives(anonymizer, rows, &Enum.sum(&1))
+    {negatives_sum, negatives_noise_sigma, _anonymizer} = sum_positives(anonymizer, rows, & -Enum.sum(&1))
+    noise_sigma = sum_noise_sigmas(positives_noise_sigma, negatives_noise_sigma)
+    sum = positives_sum - negatives_sum
     first_value = rows |> Enum.at(0) |> Enum.sum()
-    maybe_round_result(positives_sum - negatives_sum, first_value)
+    {maybe_round_result(sum, first_value), maybe_round_result(noise_sigma, first_value)}
   end
 
   @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
@@ -99,12 +101,22 @@ defmodule Cloak.Query.Anonymizer do
     get_max(anonymizer, rows, &Enum.max/1)
   end
 
-  @doc "Computes the average value of all values in rows, where each row is an enumerable of numbers."
-  @spec avg(t, Enumerable.t) :: float
-  def avg(anonymizer, rows), do: sum(anonymizer, rows) / count(anonymizer, rows)
+  @doc """
+    Computes the noisy average value and noise sigma of all values in rows,
+    where each row is an enumerable of numbers.
+  """
+  @spec avg(t, Enumerable.t) :: {float, float}
+  def avg(anonymizer, rows) do
+    {sum, sum_noise_sigma} = sum(anonymizer, rows)
+    {count, _count_noise_sigma} = count(anonymizer, rows)
+    {sum / count, sum_noise_sigma / count}
+  end
 
-  @doc "Computes the standard deviation of all values in rows, where each row is an enumerable of numbers."
-  @spec stddev(t, Enumerable.t) :: float
+  @doc """
+    Computes the noisy standard deviation and noise sigma of all values in rows,
+    where each row is an enumerable of numbers.
+  """
+  @spec stddev(t, Enumerable.t) :: {float, float}
   def stddev(anonymizer, rows) do
     real_sum = rows |> Stream.map(&Enum.sum(&1)) |> Enum.sum()
     real_count = rows |> Stream.map(&Enum.count(&1)) |> Enum.sum()
@@ -113,7 +125,8 @@ defmodule Cloak.Query.Anonymizer do
     get_variance = fn (value) -> (real_avg - value) * (real_avg - value) end
     variances = Stream.map(rows, &Stream.map(&1, get_variance))
 
-    :math.sqrt(avg(anonymizer, variances))
+    {avg_variance, noise_sigma_variance} = avg(anonymizer, variances)
+    {:math.sqrt(avg_variance), :math.sqrt(noise_sigma_variance)}
   end
 
   @doc "Computes the median value of all values in rows, where each row is an enumerable of numbers."
@@ -200,10 +213,10 @@ defmodule Cloak.Query.Anonymizer do
     outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
     {top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
     top_count = round(top_count)
-    {noise, anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
-
-    sum = sum_positives(rows, outliers_count, top_count, row_accumulator, noise)
-    {sum, anonymizer}
+    {sum, noise_sigma_scale} = sum_positives(rows, outliers_count, top_count, row_accumulator)
+    noise_sigma = config(:sum_noise_sigma) * noise_sigma_scale
+    {noisy_sum, anonymizer} = add_noise(anonymizer, {sum, noise_sigma})
+    {noisy_sum, round_noise_sigma(noise_sigma), anonymizer}
   end
 
   # Round the final result of an aggregator depending on the type of aggregated values.
@@ -219,8 +232,8 @@ defmodule Cloak.Query.Anonymizer do
 
   # Given a list of rows, a row accumulator functor and the anonymization parameters,
   # this method will drop the rows with negative values, and, for the remaining rows,
-  # will return the anonymized sum.
-  defp sum_positives(rows, outliers_count, top_count, row_accumulator, noise) do
+  # will return the anonymized sum plus the required scale for the noise standard deviation.
+  defp sum_positives(rows, outliers_count, top_count, row_accumulator) do
     {sum, count, top_length, top_values} = Enum.reduce(rows, {0, 0, 0, []}, fn
       (row, {sum, count, top_length, top}) when top_length <= outliers_count + top_count ->
         row_value = row_accumulator.(row)
@@ -236,14 +249,14 @@ defmodule Cloak.Query.Anonymizer do
         end
     end)
     case top_length - outliers_count do
-      0 -> 0
+      0 -> {0, 0}
       top_length ->
         top_values_sum = top_values |> Enum.take(top_length) |> Enum.sum()
         top_average = top_values_sum / top_length
         sum = sum + top_values_sum
         count = count + top_length
         average = sum / count
-        sum + outliers_count * top_average + noise * average
+        {sum + outliers_count * top_average, average}
     end
   end
 
@@ -274,4 +287,23 @@ defmodule Cloak.Query.Anonymizer do
         maybe_round_result(top_average, Enum.at(top_values, 0))
     end
   end
+
+  # Rounds a value to money style increments (1, 2, 5, 10, 20, 50, 100, ...).
+  defp money_round(value) when value >= 0.0 and value < 0.0001, do: 0.0
+  defp money_round(value) when value >= 1.0 and value < 1.5, do: 1.0
+  defp money_round(value) when value >= 1.5 and value < 3.5, do: 2.0
+  defp money_round(value) when value >= 3.5 and value < 7.5, do: 5.0
+  defp money_round(value) when value >= 7.5 and value < 10.0, do: 10.0
+  defp money_round(value) when value >= 0.0001 and value < 1.0, do: 0.1 * money_round(10.0 * value)
+  defp money_round(value) when value >= 10.0, do: 10.0 * money_round(0.1 * value)
+
+  # Rounds the noise sigma to a value that can be provided back to the analyst.
+  # For more info, see this: https://github.com/Aircloak/aircloak/issues/267.
+  defp round_noise_sigma(sigma) do
+    sigma_fraction = sigma * 0.05
+    rounded_fraction = money_round(sigma_fraction)
+    sigma - sigma_fraction + rounded_fraction
+  end
+
+  defp sum_noise_sigmas(sigma1, sigma2), do: :math.sqrt(sigma1 * sigma1 + sigma2 * sigma2)
 end
