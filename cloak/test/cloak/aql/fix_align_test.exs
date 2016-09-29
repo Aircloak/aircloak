@@ -35,6 +35,13 @@ defmodule Cloak.Aql.FixAlign.Test do
     end
   end
 
+  property "an aligned interval is not much larger than the input" do
+    for_all {x, y} in float_interval do
+      interval = {x / 10, y / 10}
+      10 * width(interval) >= interval |> FixAlign.align() |> width()
+    end
+  end
+
   defp interval(:int), do: int_interval
   defp interval(:float), do: float_interval
 
@@ -52,4 +59,6 @@ defmodule Cloak.Aql.FixAlign.Test do
   end
 
   defp epsilon, do: 1.0e-6
+
+  defp width({x, y}), do: y - x
 end
