@@ -86,7 +86,7 @@ defmodule Air.Admin.DataSourceController do
     AuditLog.log(conn, "Removed data source", name: data_source.name, global_id: data_source.global_id)
     conn
     |> put_flash(:info, "Data source deleted")
-    |> redirect(to: "/admin/data_sources")
+    |> redirect(to: admin_data_source_path(conn, :index))
   end
 
 
