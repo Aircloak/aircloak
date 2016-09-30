@@ -530,8 +530,14 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp valid_range?([cmp1, cmp2]), do: Comparison.direction(cmp1) != Comparison.direction(cmp2)
-  defp valid_range?(_), do: false
+  defp valid_range?(comparisons) do
+    case Enum.sort_by(comparisons, &Comparison.direction/1, &Kernel.>/2) do
+      [cmp1, cmp2] ->
+        Comparison.direction(cmp1) != Comparison.direction(cmp2) &&
+          Comparison.value(cmp1) <= Comparison.value(cmp2)
+      _ -> false
+    end
+  end
 
   defp inequalities_by_column(where_clauses) do
     where_clauses

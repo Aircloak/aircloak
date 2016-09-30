@@ -428,6 +428,11 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error == "Column `numeric` must be limited by a range"
   end
 
+  test "rejects inequalities on numeric columns that are negatives of ranges" do
+    assert {:error, error} = compile("select * from table where numeric < 2 and numeric > 5", data_source())
+    assert error == "Column `numeric` must be limited by a range"
+  end
+
   test "accepts inequalities on numeric columns that are ranges" do
     assert {:ok, _} = compile("select * from table where numeric > 5 and numeric < 8", data_source())
   end
