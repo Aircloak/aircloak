@@ -1,11 +1,30 @@
 defmodule Cloak.Aql.FixAlign do
-  def align({x, y}) when x > y, do: raise "Invalid range"
+  @moduledoc "Implements fixing the alignment of ranges to a predetermined grid."
+
+  @type interval :: {number, number}
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc """
+  Returns a interval that has been aligned to a fixed grid. The density of the grid depends on the size of the
+  input interval. Both ends of the input will be contained inside the output.
+  """
+  @spec align(interval) :: interval
+  def align({x, y}) when x > y, do: raise "Invalid interval"
   def align(interval) do
     interval
     |> sizes()
     |> Stream.map(&snap(&1, interval))
     |> Enum.find(&(&1))
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp snap(size, {x, y}) do
     left = floor_to(x, size / 2)
