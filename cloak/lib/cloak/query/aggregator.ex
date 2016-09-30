@@ -83,22 +83,19 @@ defmodule Cloak.Query.Aggregator do
 
   defp user_id([user_id | _rest]), do: user_id
 
-  defp init_anonymizer(grouped_rows) do
-    for {property, users_rows} <- grouped_rows,
-      do: {property, Anonymizer.new(users_rows), users_rows}
-  end
+  defp init_anonymizer(grouped_rows), do:
+    for {property, users_rows} <- grouped_rows, do:
+      {property, Anonymizer.new(users_rows), users_rows}
 
-  defp low_users_count?({_property, anonymizer, users_rows}),
-    do: low_users_count?(users_rows, anonymizer)
+  defp low_users_count?({_property, anonymizer, users_rows}), do:
+    low_users_count?(users_rows, anonymizer)
 
-  defp low_users_count?(count, anonymizer) when is_number(count) do
+  defp low_users_count?(count, anonymizer) when is_integer(count) do
     {sufficiently_large?, _} = Anonymizer.sufficiently_large?(anonymizer, count)
     not sufficiently_large?
   end
-  defp low_users_count?(values, anonymizer) do
-    {sufficiently_large?, _} = Anonymizer.sufficiently_large?(anonymizer, Enum.count(values))
-    not sufficiently_large?
-  end
+  defp low_users_count?(values, anonymizer), do:
+    values |> Enum.count() |> low_users_count?(anonymizer)
 
   @spec process_low_count_users(properties, Query.t) :: properties
   defp process_low_count_users(rows, query) do
@@ -119,15 +116,14 @@ defmodule Cloak.Query.Aggregator do
   end
 
   @spec aggregate_properties(properties, Query.t) :: [DataSource.row]
-  defp aggregate_properties(properties, query) do
+  defp aggregate_properties(properties, query), do:
     Enum.map(properties, &aggregate_property(&1, query))
-  end
 
   defp aggregate_property({property_values, anonymizer, users_rows}, query) do
     all_users_rows = Map.values(users_rows)
     aggregated_columns = Query.aggregated_columns(query)
 
-    aggregation_results = for {:function, function, arguments}  <- query.aggregators, column <- arguments do
+    aggregation_results = for {:function, function, [column]}  <- query.aggregators do
       values_index = Enum.find_index(aggregated_columns, &column == &1)
       aggregated_values = all_users_rows |> Stream.map(&Enum.at(&1, values_index)) |> Stream.reject(&[] === &1)
       case low_users_count?(aggregated_values, anonymizer) do
@@ -198,8 +194,8 @@ defmodule Cloak.Query.Aggregator do
     # If there are no results for a global aggregation, we'll produce one row.
     # All results will be `nil`-ed except for `count` which will have the value of 0.
     aggregated_values = Enum.map(query.aggregators, fn
-      {_, "count", _} -> 0
-      _ -> nil
+      {:function, "count", _args} -> 0
+      {:function, _name, _args} -> nil
     end)
     [%{row: aggregated_values, occurrences: 1}]
   end
@@ -208,20 +204,18 @@ defmodule Cloak.Query.Aggregator do
       (query.property ++ query.aggregators)
       |> Enum.with_index()
       |> Enum.into(%{})
-
-    Enum.map(rows,
-      &%{
-        row: selected_values(&1, columns, query),
-        occurrences: occurrences(&1, columns, query)
-      }
-    )
+    Enum.map(rows, &make_bucket(&1, columns, query))
   end
 
-  defp selected_values(row, columns, query) do
-    for selected_column <- query.columns do
+  defp make_bucket(row, columns, query), do:
+    %{
+      row: selected_values(row, columns, query),
+      occurrences: occurrences(row, columns, query)
+    }
+
+  defp selected_values(row, columns, query), do:
+    for selected_column <- query.columns, do:
       fetch_bucket_value!(row, columns, selected_column)
-    end
-  end
 
   defp occurrences(row, columns, %Query{implicit_count: true}), do:
     fetch_bucket_value!(row, columns, {:function, "count", [:*]})
@@ -231,12 +225,8 @@ defmodule Cloak.Query.Aggregator do
     if selected?(columns, function),
       do: Enum.at(row, Map.fetch!(columns, function)),
       else: Enum.map(args, &fetch_bucket_value!(row, columns, &1)) |> Function.apply(function)
-  defp fetch_bucket_value!(_row, _columns, %Column{constant?: true, value: value}), do:
-    value
-  defp fetch_bucket_value!(row, columns, column), do:
-    Enum.at(row, Map.fetch!(columns, column))
+  defp fetch_bucket_value!(_row, _columns, %Column{constant?: true, value: value}), do: value
+  defp fetch_bucket_value!(row, columns, column), do: Enum.at(row, Map.fetch!(columns, column))
 
-  defp selected?(columns, column) do
-    Map.has_key?(columns, column)
-  end
+  defp selected?(columns, column), do: Map.has_key?(columns, column)
 end
