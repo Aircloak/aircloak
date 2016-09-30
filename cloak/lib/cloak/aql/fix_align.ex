@@ -1,4 +1,5 @@
 defmodule Cloak.Aql.FixAlign do
+  def align({x, y}) when x > y, do: raise "Invalid range"
   def align(interval) do
     interval
     |> sizes()
