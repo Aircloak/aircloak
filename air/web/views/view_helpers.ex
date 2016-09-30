@@ -29,11 +29,8 @@ defmodule Air.ViewHelpers do
     {:safe, link_html}
   end
 
-  defp active?(request_path, link_path)
-  defp active?("/", "/"), do: true
   defp active?("/admin", "/admin/cloaks"), do: true
-  defp active?(_, "/"), do: false
-  defp active?(request_path, link_path), do: request_path =~ link_path
+  defp active?(request_path, link_path), do: String.starts_with?(request_path, link_path)
 
   def logged_in?(conn) do
     conn.assigns.current_user != nil
