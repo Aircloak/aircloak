@@ -507,7 +507,7 @@ defmodule Cloak.Aql.Compiler do
       query
       |> add_where_clause({:comparison, column, :<, Column.constant(:float, right)})
       |> add_where_clause({:comparison, column, :>=, Column.constant(:float, left)})
-      |> add_info_message("The range for column `#{column.name}` has been adjusted to [#{left}, #{right})")
+      |> add_info_message("The range for column `#{column.name}` has been adjusted to #{left} <= `#{column.name}` < #{right}")
     end
   end
 
@@ -525,7 +525,7 @@ defmodule Cloak.Aql.Compiler do
     |> inequalities_by_column()
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
-      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited by a range"
+      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited on both sides"
       _ -> :ok
     end
   end

@@ -425,12 +425,12 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "rejects inequalities on numeric columns that are not ranges" do
     assert {:error, error} = compile("select * from table where numeric > 5", data_source())
-    assert error == "Column `numeric` must be limited by a range"
+    assert error == "Column `numeric` must be limited on both sides"
   end
 
   test "rejects inequalities on numeric columns that are negatives of ranges" do
     assert {:error, error} = compile("select * from table where numeric < 2 and numeric > 5", data_source())
-    assert error == "Column `numeric` must be limited by a range"
+    assert error == "Column `numeric` must be limited on both sides"
   end
 
   test "accepts inequalities on numeric columns that are ranges" do
@@ -444,7 +444,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "includes an info message when the aligment is fixed" do
     assert [msg] = compile!("select count(*) from table where numeric >= 0.1 and numeric < 1.9", data_source()).info
-    assert msg == "The range for column `numeric` has been adjusted to [0.0, 2.0)"
+    assert msg == "The range for column `numeric` has been adjusted to 0.0 <= `numeric` < 2.0"
   end
 
   test "does not include an info message when the alignment does not need to be fixed" do
