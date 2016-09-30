@@ -488,24 +488,37 @@ defmodule Cloak.Aql.Compiler do
 
     ranges = inequalities_by_column(clauses)
     non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), where_clause_to_identifier(&1)))
-    range_clauses = Enum.flat_map(ranges, fn({column, conditions}) -> aligned_range(column, conditions) end)
 
-    %{query | where: range_clauses ++ non_range_clauses}
+    Enum.reduce(ranges, %{query | where: non_range_clauses}, &add_aligned_range/2)
   end
   defp align_ranges(query), do: query
 
-  defp aligned_range(column, conditions) do
-    {left, right} = conditions
-                    |> Enum.map(&Comparison.value/1)
-                    |> Enum.sort()
-                    |> List.to_tuple()
-                    |> FixAlign.align()
+  defp add_aligned_range({column, conditions}, query) do
+    {left, right} =
+      conditions
+      |> Enum.map(&Comparison.value/1)
+      |> Enum.sort()
+      |> List.to_tuple()
+      |> FixAlign.align()
 
-    [
-      {:comparison, column, :>=, Column.constant(:float, left)},
-      {:comparison, column, :<, Column.constant(:float, right)}
-    ]
+    if implement_range?({left, right}, conditions) do
+      %{query | where: conditions ++ query.where}
+    else
+      query
+      |> add_where_clause({:comparison, column, :<, Column.constant(:float, right)})
+      |> add_where_clause({:comparison, column, :>=, Column.constant(:float, left)})
+      |> add_info_message("The range for column `#{column.name}` has been adjusted to [#{left}, #{right})")
+    end
   end
+
+  defp implement_range?({left, right}, conditions) do
+    [{_, _, left_operator, left_column}, {_, _, right_operator, right_column}] =
+      Enum.sort_by(conditions, &Comparison.value/1)
+
+    left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
+  end
+
+  defp add_where_clause(query, clause), do: %{query | where: [clause | query.where]}
 
   defp verify_ranges(%Query{where: clauses}) do
     clauses
