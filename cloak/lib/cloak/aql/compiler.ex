@@ -505,8 +505,8 @@ defmodule Cloak.Aql.Compiler do
       %{query | where: conditions ++ query.where}
     else
       query
-      |> add_where_clause({:comparison, column, :<, Column.constant(:float, right)})
-      |> add_where_clause({:comparison, column, :>=, Column.constant(:float, left)})
+      |> add_where_clause({:comparison, column, :<, Column.constant(:real, right)})
+      |> add_where_clause({:comparison, column, :>=, Column.constant(:real, left)})
       |> add_info_message("The range for column `#{column.name}` has been adjusted to #{left} <= `#{column.name}` < #{right}")
     end
   end
