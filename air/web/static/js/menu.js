@@ -1,10 +1,15 @@
+// @flow
+
 import React from "react";
 
-export const Menu = (props) => <div id="task-menu">{props.children}</div>;
+type Info = {
+  action: () => void;
+  message: string;
+};
 
-Menu.propTypes = {children: React.PropTypes.node};
+export const Menu = (props: {children: Node}) => <div id="task-menu">{props.children}</div>;
 
-export const MenuButton = (props) =>
+export const MenuButton = (props: {onClick: () => void, isActive: boolean, children: Node}) =>
   <button
     type="button"
     className="btn btn-primary"
@@ -14,13 +19,7 @@ export const MenuButton = (props) =>
     {props.children}
   </button>;
 
-MenuButton.propTypes = {
-  onClick: React.PropTypes.func.isRequired,
-  isActive: React.PropTypes.bool.isRequired,
-  children: React.PropTypes.node,
-};
-
-export const PaneSelectButton = (props) => {
+export const PaneSelectButton = (props: {isActive: boolean, onClick: () => void, children: Node}) => {
   const classes = props.isActive ? "selection active" : "selection";
 
   return (
@@ -30,13 +29,7 @@ export const PaneSelectButton = (props) => {
   );
 };
 
-PaneSelectButton.propTypes = {
-  isActive: React.PropTypes.bool.isRequired,
-  onClick: React.PropTypes.func.isRequired,
-  children: React.PropTypes.node,
-};
-
-export const InfoBox = (props) => {
+export const InfoBox = (props: {info: Info}) => {
   if (props.info == null) {
     return null;
   } else {
@@ -47,11 +40,4 @@ export const InfoBox = (props) => {
       </div>
     );
   }
-};
-
-InfoBox.propTypes = {
-  info: React.PropTypes.shape({
-    action: React.PropTypes.func,
-    message: React.PropTypes.string,
-  }),
 };
