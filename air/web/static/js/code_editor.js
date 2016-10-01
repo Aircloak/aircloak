@@ -1,3 +1,5 @@
+// @flow
+
 import React from "react";
 import Codemirror from "react-codemirror";
 import $ from "jquery";
@@ -8,8 +10,16 @@ require("codemirror/mode/sql/sql");
 require("codemirror/addon/hint/show-hint");
 require("codemirror/addon/hint/anyword-hint");
 
+type Props = {
+  onRun: () => void;
+  onChange: () => void;
+  tableNames: string[],
+  columnNames: string[],
+  statement: string,
+}
+
 export class CodeEditor extends React.Component {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     this.setupComponent = this.setupComponent.bind(this);
     this.completionList = this.completionList.bind(this);
@@ -22,7 +32,12 @@ export class CodeEditor extends React.Component {
     this.editor = undefined;
   }
 
-  setupComponent(codeMirrorComponent) {
+  props: Props;
+  setupComponent: () => void;
+  completionList: () => void;
+  editor: Codemirror;
+
+  setupComponent(codeMirrorComponent: {getCodeMirrorInstance: () => Codemirror}) {
     this.editor = codeMirrorComponent.getCodeMirrorInstance();
     this.editor.commands.run = (_cm) => {
       this.props.onRun();
@@ -32,7 +47,7 @@ export class CodeEditor extends React.Component {
     };
   }
 
-  completionList(cm) {
+  completionList(cm: Codemirror) {
     return completions(
       cm.getLine(cm.getCursor().line),
       cm.getCursor().ch,
@@ -78,11 +93,3 @@ export class CodeEditor extends React.Component {
     );
   }
 }
-
-CodeEditor.propTypes = {
-  onRun: React.PropTypes.func.isRequired,
-  onChange: React.PropTypes.func.isRequired,
-  tableNames: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
-  columnNames: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
-  statement: React.PropTypes.string,
-};
