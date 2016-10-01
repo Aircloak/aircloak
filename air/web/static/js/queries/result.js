@@ -48,7 +48,13 @@ export class Result extends React.Component {
     if (! this.state.showChart || ! this.chartRef) {
       return;
     }
-    const yValueIndices = _.map(this.yColumns(), (v) => v.index);
+    const yValueIndices = _.flatMap(this.yColumns(), (v) => {
+      if (v.noise) {
+        return [v.index, v.noise.index];
+      } else {
+        return [v.index];
+      }
+    });
     const xAxisValues = this.props.rows.map((accumulateRow) => {
       let index = 0;
       const nonNumericalValues = _.reduce(accumulateRow.row, (acc, value) => {
@@ -63,7 +69,15 @@ export class Result extends React.Component {
     const traces = _.flatMap(this.yColumns(), (value, _index, collection) =>
       this.produceTrace(value, collection, xAxisValues));
     const layout = {
+      margin: {
+        r: 0,
+        b: 0,
+        t: 0,
+      },
       showlegend: true,
+      legend: {
+        orientation: "h",
+      },
     };
     const displayOptions = {
       staticPlot: true,
@@ -75,12 +89,95 @@ export class Result extends React.Component {
     const columnIndex = value.index;
     const columnName = value.name;
     const renderableValues = this.props.rows.map((accumulateRow) => accumulateRow.row[columnIndex]);
-    return [{
+    const trace = {
       type: this.state.mode,
       name: columnName,
       y: renderableValues,
       x: xAxisValues,
-    }];
+      line: {color: value.colour.primary},
+      marker: {color: value.colour.primary},
+    };
+    if (this.state.mode === "bar" && value.noise) {
+      const yErrorData = this.props.rows.map((accumulateRow) => accumulateRow.row[value.noise.index]);
+      trace.error_y = {
+        type: "data",
+        array: yErrorData,
+        visible: true,
+      };
+      return [trace];
+    } else if (this.state.mode === "line" && value.noise) {
+      return [
+        this.errorTraceWithSD(value, renderableValues, xAxisValues, 3, value.colour.error3, false),
+        this.errorTraceWithSD(value, renderableValues, xAxisValues, 2, value.colour.error2, false),
+        this.errorTraceWithSD(value, renderableValues, xAxisValues, 1, value.colour.error1, true),
+        trace,
+      ];
+    } else {
+      return [trace];
+    }
+  }
+
+  errorTraceWithSD(value, yValues, xAxisValues, n, colour, showByDefault) {
+    const yErrorData = this.props.rows.map((accumulateRow) => accumulateRow.row[value.noise.index]);
+    const combinedData = _.zip(yValues, yErrorData);
+    const forwardYValues = _.map(combinedData, ([a, b]) => a + n * b);
+    const backwardYValues = _.map(_.reverse(combinedData), ([a, b]) => a - n * b);
+    const errorYValues = _.concat(forwardYValues, backwardYValues);
+    const errorXValues = _.concat(xAxisValues, _.reverse(_.clone(xAxisValues)));
+    let trace = {
+      x: errorXValues,
+      y: errorYValues,
+      fill: "tozerox",
+      fillcolor: colour,
+      line: {color: "transparent"},
+      name: `${value.name} noise (${n} SDs)`,
+      showlegend: true,
+      type: "scatter",
+    };
+    if (! showByDefault) {
+      trace.visible = "legendonly";
+    }
+    return trace;
+  }
+
+  nextAvailableColour() {
+    const colours = [
+      {
+        primary: "rgb(110,110,110)",
+        error1: "rgba(147,147,147,0.3)",
+        error2: "rgba(183,183,183,0.3)",
+        error3: "rgba(219,219,219,0.3)",
+      },
+      {
+        primary: "rgb(33,139,150)",
+        error1: "rgba(89,168,176,0.3)",
+        error2: "rgba(194,197,202,0.3)",
+        error3: "rgba(200,226,229,0.3)",
+      },
+      {
+        primary: "rgb(0,170,150)",
+        error1: "rgba(64,192,176,0.3)",
+        error2: "rgba(128,213,202,0.3)",
+        error3: "rgba(191,234,229,0.3)",
+      },
+      {
+        primary: "rgb(148,193,26)",
+        error1: "rgba(179,207,94,0.3)",
+        error2: "rgba(201,224,140,0.3)",
+        error3: "rgba(228,239,198,0.3)",
+      },
+      {
+        primary: "rgb(30,185,214)",
+        error1: "rgba(124,203,225,0.3)",
+        error2: "rgba(142,220,234,0.3)",
+        error3: "rgba(199,237,245,0.3)",
+      },
+    ];
+    if (! this.colourIndex) {
+      this.colourIndex = 0;
+    }
+    this.colourIndex = (this.colourIndex + 1) % colours.length;
+    return colours[this.colourIndex];
   }
 
   handleClickMoreRows() {
@@ -129,12 +226,34 @@ export class Result extends React.Component {
         return null;
       }
     });
-    const filteredColumns = _.filter(columns, (e) => e != null);
+    let renderableColumnsUsed = 0;
+    const preppedColumns = _.chain(columns)
+      .filter((e) => e != null)
+      .reduce((acc, column) => {
+        renderableColumnsUsed = renderableColumnsUsed + 1;
+        if (_.endsWith(column.name, "_noise")) {
+          const namePart = column.name.substring(0, column.name.length - 6);
+          const value = _.find(acc, col => col.name === namePart && col.noise === undefined);
+          if (value) {
+            value.noise = column;
+          } else {
+            acc.push(column);
+          }
+        } else {
+          acc.push(column);
+        }
+        return acc;
+      }, [])
+      .map(column => {
+        column.colour = this.nextAvailableColour();
+        return column;
+      })
+      .value();
     // If all columns are eligible for being a y-column trace, then we'll make the first one the x-column.
-    if (filteredColumns.length === this.props.columns.length) {
-      return _.drop(filteredColumns, 1);
+    if (renderableColumnsUsed === this.props.columns.length) {
+      return _.drop(preppedColumns, 1);
     } else {
-      return filteredColumns;
+      return preppedColumns;
     }
   }
 
