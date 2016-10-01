@@ -28,6 +28,7 @@ export class Result extends React.Component {
     this.setChartDataOnRef = this.setChartDataOnRef.bind(this);
     this.plotChart = this.plotChart.bind(this);
     this.changeGraphType = this.changeGraphType.bind(this);
+    this.produceTrace = this.produceTrace.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
@@ -47,7 +48,7 @@ export class Result extends React.Component {
     if (! this.state.showChart || ! this.chartRef) {
       return;
     }
-    const yValueIndices = _.map(this.yColumns(), (v) => v[0]);
+    const yValueIndices = _.map(this.yColumns(), (v) => v.index);
     const xAxisValues = this.props.rows.map((accumulateRow) => {
       let index = 0;
       const nonNumericalValues = _.reduce(accumulateRow.row, (acc, value) => {
@@ -59,17 +60,8 @@ export class Result extends React.Component {
       }, []);
       return _.join(nonNumericalValues, ", ");
     });
-    const traces = _.flatMap(this.yColumns(), (value) => {
-      const columnIndex = value[0];
-      const columnName = value[1];
-      const renderableValues = this.props.rows.map((accumulateRow) => accumulateRow.row[columnIndex]);
-      return [{
-        type: this.state.mode,
-        name: columnName,
-        y: renderableValues,
-        x: xAxisValues,
-      }];
-    });
+    const traces = _.flatMap(this.yColumns(), (value, _index, collection) =>
+      this.produceTrace(value, collection, xAxisValues));
     const layout = {
       showlegend: true,
     };
@@ -77,6 +69,18 @@ export class Result extends React.Component {
       staticPlot: true,
     };
     Plotly.newPlot(this.chartRef, traces, layout, displayOptions);
+  }
+
+  produceTrace(value, collection, xAxisValues) {
+    const columnIndex = value.index;
+    const columnName = value.name;
+    const renderableValues = this.props.rows.map((accumulateRow) => accumulateRow.row[columnIndex]);
+    return [{
+      type: this.state.mode,
+      name: columnName,
+      y: renderableValues,
+      x: xAxisValues,
+    }];
   }
 
   handleClickMoreRows() {
@@ -117,7 +121,10 @@ export class Result extends React.Component {
   yColumns() {
     const columns = this.props.columns.map((column, i) => {
       if (this.isNumeric(this.props.rows[0].row[i])) {
-        return [i, column];
+        return {
+          index: i,
+          name: column,
+        };
       } else {
         return null;
       }
