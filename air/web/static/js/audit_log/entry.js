@@ -3,7 +3,7 @@
 import React from "react";
 import _ from "lodash";
 
-type Entry = {
+export type Entry = {
   user: string;
   event: string;
   inserted_at: string;
