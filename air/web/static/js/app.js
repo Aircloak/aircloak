@@ -1,3 +1,5 @@
+// @flow
+//
 // Brunch automatically concatenates all files in your
 // watched paths. Those paths can be configured at
 // config.paths.watched in "brunch-config.js".
