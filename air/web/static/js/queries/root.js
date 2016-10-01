@@ -23,8 +23,6 @@ class QueriesView extends React.Component {
         loading: false,
         loaded: false,
       },
-      historyLoading: false,
-      historyLoaded: false,
     };
 
     this.setStatement = this.setStatement.bind(this);
