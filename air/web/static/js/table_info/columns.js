@@ -2,13 +2,13 @@
 
 import React from "react";
 
-type Column = {
+export type Column = {
   name: string,
   type: string,
   user_id: boolean,
 };
 
-export const Columns = (props: {columns: Column[]}) =>
+export const ColumnsView = (props: {columns: Column[]}) =>
   <table className="table table-condensed">
     <thead>
       <tr>
