@@ -3,11 +3,13 @@
 import React from "react";
 import _ from "lodash";
 
+type MetadataItem = string[];
+
 export type Entry = {
   user: string;
   event: string;
   inserted_at: string;
-  metadata: string[][];
+  metadata: MetadataItem[];
 };
 
 type Props = {

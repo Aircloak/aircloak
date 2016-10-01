@@ -7,4 +7,4 @@ Plotly.register([
   Bar,
 ]);
 
-module.exports = Plotly;
+export default Plotly;

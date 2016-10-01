@@ -50,7 +50,13 @@ class TableInfo extends React.Component {
 
       <div className="table-info-content">
         {this.tables().map((table, i) =>
-          <TableView key={i} table={table} expanded={this.expanded(table)} onClick={this.toggleExpand(table)} />
+          <
+            TableView
+            key={i}
+            table={table}
+            expanded={this.expanded(table)}
+            onClick={this.toggleExpand(table)}
+          />
         )}
       </div>
     </div>);

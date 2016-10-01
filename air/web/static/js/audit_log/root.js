@@ -26,8 +26,8 @@ class AuditLogView extends React.Component {
     this.loadData = this.loadData.bind(this);
   }
 
-  props: Props;
   state: {filterText: string, loadingData: boolean, entries: Entry[]}
+  props: Props;
   filterTextChange: () => void;
   filterTextToFilters: () => void;
   loadData: () => void;

@@ -32,11 +32,6 @@ export class CodeEditor extends React.Component {
     this.editor = undefined;
   }
 
-  props: Props;
-  setupComponent: () => void;
-  completionList: () => void;
-  editor: Codemirror;
-
   setupComponent(codeMirrorComponent: {getCodeMirrorInstance: () => Codemirror}) {
     this.editor = codeMirrorComponent.getCodeMirrorInstance();
     this.editor.commands.run = (_cm) => {
@@ -46,6 +41,11 @@ export class CodeEditor extends React.Component {
       cm.showHint({hint: this.completionList});
     };
   }
+
+  props: Props;
+  setupComponent: () => void;
+  completionList: () => void;
+  editor: Codemirror;
 
   completionList(cm: Codemirror) {
     return completions(

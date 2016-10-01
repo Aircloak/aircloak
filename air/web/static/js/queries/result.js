@@ -174,7 +174,7 @@ export class ResultView extends React.Component {
   changeGraphType(e: Event) {
     if (e.target instanceof HTMLInputElement) {
       this.setState({mode: e.target.value});
-    };
+    }
   }
 
   conditionallyRenderChart() {
