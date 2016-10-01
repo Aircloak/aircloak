@@ -59,16 +59,16 @@ export class Result extends React.Component {
       }, []);
       return _.join(nonNumericalValues, ", ");
     });
-    const traces = _.map(this.yColumns(), (value) => {
+    const traces = _.flatMap(this.yColumns(), (value) => {
       const columnIndex = value[0];
       const columnName = value[1];
       const renderableValues = this.props.rows.map((accumulateRow) => accumulateRow.row[columnIndex]);
-      return {
+      return [{
         type: this.state.mode,
         name: columnName,
         y: renderableValues,
         x: xAxisValues,
-      };
+      }];
     });
     const layout = {
       showlegend: true,
