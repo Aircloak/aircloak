@@ -1,6 +1,14 @@
+// @flow
+
 import React from "react";
 
-export const Columns = (props) =>
+type Column = {
+  name: string,
+  type: string,
+  user_id: boolean,
+};
+
+export const Columns = (props: {columns: Column[]}) =>
   <table className="table table-condensed">
     <thead>
       <tr>
@@ -18,11 +26,3 @@ export const Columns = (props) =>
       )}
     </tbody>
   </table>;
-
-Columns.propTypes = {
-  columns: React.PropTypes.arrayOf(React.PropTypes.shape({
-    name: React.PropTypes.string.isRequired,
-    type: React.PropTypes.string.isRequired,
-    user_id: React.PropTypes.bool,
-  })).isRequired,
-};
