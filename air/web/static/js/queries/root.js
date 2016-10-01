@@ -1,3 +1,5 @@
+// @flow
+
 import React from "react";
 import ReactDOM from "react-dom";
 import $ from "jquery";
@@ -7,12 +9,26 @@ import Mousetrap from "mousetrap";
 import {CodeEditor} from "../code_editor";
 import {CodeViewer} from "../code_viewer";
 import {Results} from "./results";
+import type {Result} from "./result";
+import type {Table} from "../table_info/table";
 import {MenuButton} from "../menu";
 import {ResultSocket} from "../result_socket";
 import {HistoryLoader} from "./history_loader";
+import type {History} from "./history_loader";
+
+type Props = {
+  userId: number,
+  guardianToken: string,
+  dataSourceId: number,
+  dataSourceAvailable: boolean,
+  tables: Table[],
+  lastQuery: {statement: string},
+  CSRFToken: string,
+  resultSocket: ResultSocket,
+};
 
 class QueriesView extends React.Component {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     this.state = {
@@ -41,6 +57,22 @@ class QueriesView extends React.Component {
       result: this.resultReceived,
     });
   }
+
+  state: {
+    statement: string,
+    sessionResults: Result[],
+    history: History,
+  }
+  setStatement: () => void;
+  runQuery: () => void;
+  queryData: () => void;
+  addResult: () => void;
+  resultReceived: () => void;
+  setResults: () => void;
+  handleLoadHistory: () => void;
+  replaceResult: () => void;
+  columnNames: () => void;
+  tableNames: () => void;
 
   setStatement(statement) {
     this.setState({statement});
@@ -203,24 +235,7 @@ class QueriesView extends React.Component {
   }
 }
 
-export default function renderQueriesView(data, elem) {
+export default function renderQueriesView(data: Props, elem: Node) {
   const socket = new ResultSocket(data.userId, data.guardianToken);
   ReactDOM.render(<QueriesView resultSocket={socket} {...data} />, elem);
 }
-
-QueriesView.propTypes = {
-  dataSourceId: React.PropTypes.number.isRequired,
-  dataSourceAvailable: React.PropTypes.bool.isRequired,
-  tables: React.PropTypes.arrayOf(React.PropTypes.shape({
-    id: React.PropTypes.string.isRequired,
-    columns: React.PropTypes.arrayOf(React.PropTypes.shape({
-      name: React.PropTypes.string.isRequired,
-      type: React.PropTypes.string.isRequired,
-    })).isRequired,
-  })).isRequired,
-  lastQuery: React.PropTypes.shape({
-    statement: React.PropTypes.string.isRequired,
-  }),
-  CSRFToken: React.PropTypes.string.isRequired,
-  resultSocket: React.PropTypes.instanceOf(ResultSocket).isRequired,
-};

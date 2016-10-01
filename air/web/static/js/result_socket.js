@@ -3,7 +3,7 @@
 import {Socket} from "phoenix";
 
 type Callback = () => void;
-type Callbacks = {joined: Callback, failedJoin: Callback, result: Callback};
+type Callbacks = {joined?: Callback, failedJoin?: Callback, result?: Callback};
 
 export class ResultSocket {
   constructor(userId: number, userToken: string) {

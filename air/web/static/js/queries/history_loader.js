@@ -2,10 +2,10 @@
 
 import React from "react";
 
-type History = {
+export type History = {
   loaded: boolean,
   loading: boolean,
-  error: boolean
+  error?: boolean
 };
 
 type Props = {
