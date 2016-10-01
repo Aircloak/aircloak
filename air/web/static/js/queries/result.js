@@ -12,7 +12,7 @@ type Row = {
   row: any[],
 };
 
-type Props = {
+export type Result = {
   id: string,
   statement: string,
   columns: string[],
@@ -21,8 +21,8 @@ type Props = {
   info: string[]
 };
 
-export class Result extends React.Component {
-  constructor(props: Props) {
+export class ResultView extends React.Component {
+  constructor(props: Result) {
     super(props);
 
     this.minRowsToShow = 10;
@@ -51,7 +51,7 @@ export class Result extends React.Component {
   }
 
   state: {rowsToShowCount: number, showChart: boolean, mode: string};
-  props: Props;
+  props: Result;
   minRowsToShow: number;
   chartRef: Node;
   handleClickMoreRows: () => void;
