@@ -1,13 +1,31 @@
+// @flow
+
 import React from "react";
 import _ from "lodash";
 
+type Entry = {
+  user: string;
+  event: string;
+  inserted_at: string;
+  metadata: string[][];
+};
+
+type Props = {
+  entry: Entry,
+  filters: string[],
+};
+
 export class AuditLogEntryView extends React.Component {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     this.shouldBeVisible = this.shouldBeVisible.bind(this);
     this.containsFilterText = this.containsFilterText.bind(this);
   }
+
+  props: Props;
+  shouldBeVisible: () => boolean;
+  containsFilterText: (filter: string, text: string) => boolean;
 
   shouldBeVisible() {
     return _.every(this.props.filters, (filter) =>
@@ -19,7 +37,7 @@ export class AuditLogEntryView extends React.Component {
     );
   }
 
-  containsFilterText(filter, text) {
+  containsFilterText(filter: string, text: string) {
     return (String(text).toLowerCase().indexOf(filter) !== -1);
   }
 
@@ -41,13 +59,3 @@ export class AuditLogEntryView extends React.Component {
     );
   }
 }
-
-AuditLogEntryView.propTypes = {
-  entry: React.PropTypes.shape({
-    user: React.PropTypes.string.isRequired,
-    event: React.PropTypes.string.isRequired,
-    inserted_at: React.PropTypes.string.isRequired,
-    metadata: React.PropTypes.arrayOf(React.PropTypes.array),
-  }),
-  filters: React.PropTypes.arrayOf(React.PropTypes.string),
-};
