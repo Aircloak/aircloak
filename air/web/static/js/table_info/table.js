@@ -5,7 +5,7 @@ import React from "react";
 import {ColumnsView} from "./columns";
 import type {Column} from "./columns";
 
-type Table = {
+export type Table = {
   id: string,
   columns: Column[],
 };
