@@ -31,11 +31,11 @@ const wordEnd = (string, start) => {
 };
 
 export default function completionList(
-  curLine : string,
-  curPos : number,
-  posBuilder : (x: number) => any,
-  tableNames : string[],
-  columnNames : string[]
+  curLine: string,
+  curPos: number,
+  posBuilder: (x: number) => any,
+  tableNames: string[],
+  columnNames: string[]
 ) {
   const end = wordEnd(curLine, curPos);
 
