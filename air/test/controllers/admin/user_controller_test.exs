@@ -73,4 +73,20 @@ defmodule Air.Admin.UserControllerTest do
     users_html = login(admin) |> get("/admin/users") |> response(200)
     refute users_html =~ user.email
   end
+
+  test "redirect to index on attempting to render edit form for non-existent user" do
+    admin = TestRepoHelper.create_admin_user!()
+    assert login(admin) |> get("/admin/users/99999/edit") |> redirected_to() === "/admin/users"
+  end
+
+  test "redirect to index on attempting to update a non-existent user" do
+    admin = TestRepoHelper.create_admin_user!()
+    conn = login(admin) |> put("/admin/users/99999", user: %{email: "some@email.com", name: "some name"})
+    assert conn |> redirected_to() === "/admin/users"
+  end
+
+  test "redirect to index on attempting to delete a non-existent user" do
+    admin = TestRepoHelper.create_admin_user!()
+    assert login(admin) |> delete("/admin/users/99999") |> redirected_to() === "/admin/users"
+  end
 end
