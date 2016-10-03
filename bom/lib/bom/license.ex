@@ -73,6 +73,7 @@ defmodule BOM.License do
   defp do_name_to_type("boost"), do: :boost
   defp do_name_to_type("wtfpl"), do: :do_what_the_fuck_you_want
   defp do_name_to_type("zlib"), do: :zlib
+  defp do_name_to_type("cc0-1.0"), do: :"cc0-1.0"
   defp do_name_to_type(_), do: :unknown
 
   for path <- Path.wildcard("./licenses/generic/*") do
