@@ -17,6 +17,8 @@ There are two main components:
 
 You need to have Erlang and Elixir installed. The required versions are stated in [this file](.tool-versions). The easiest way to install is to use [asdf version manager](https://github.com/asdf-vm/asdf). You need to install it, together with Erlang and Elixir plugins. Then from the project root folder run `asdf install`. Before installing, make sure you have `unixodbc` installed (__OS X developers__ see [here](./cloak/osx_erlang_with_odbc.md) for detailed instructions).
 
+You will also need Docker 1.11 (__OS X developers__ also need [Docker for Mac](https://docs.docker.com/docker-for-mac/), see [here](./osx_docker.md) for instructions).
+
 ## Deploying
 
 Each component can be deployed to a __deploy target__. The targets are provided in the [deploy_targets](./deploy_targets) folder.
