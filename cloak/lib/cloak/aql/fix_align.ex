@@ -9,8 +9,8 @@ defmodule Cloak.Aql.FixAlign do
   # -------------------------------------------------------------------
 
   @doc """
-  Returns a interval that has been aligned to a fixed grid. The density of the grid depends on the size of the
-  input interval. Both ends of the input will be contained inside the output.
+  Returns an interval that has been aligned to a fixed grid. The density of the grid depends on the size of
+  the input interval. Both ends of the input will be contained inside the output.
   """
   @spec align(interval) :: interval
   def align({x, y}) when x > y, do: raise "Invalid interval"
