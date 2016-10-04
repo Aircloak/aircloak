@@ -86,7 +86,7 @@ export class GraphData {
     const backwardYValues = _.map(_.reverse(combinedData), ([a, b]) => a - n * b);
     const errorYValues = _.concat(forwardYValues, backwardYValues);
     const errorXValues = _.concat(xAxisValues, _.reverse(_.clone(xAxisValues)));
-    let trace = {
+    const trace = {
       x: errorXValues,
       y: errorYValues,
       fill: "tozerox",
@@ -157,27 +157,33 @@ export class GraphData {
       .filter((e) => e != null)
       .value();
 
-    var [noiseColumns, valueColumns] = _.partition(usableColumns, (column) => 
+    const partitionedValues = _.partition(usableColumns, (column) =>
       _.endsWith(column.name, "_noise"));
+    let noiseColumns = partitionedValues[0];
+    const valueColumns = partitionedValues[1];
 
     const valueColumnsWithNoise = _.map(valueColumns, column => {
-      const noiseColumn = _.find(noiseColumns, {'name': `${column.name}_noise`});
+      const noiseColumn = _.find(noiseColumns, {name: `${column.name}_noise`});
       if (noiseColumn) {
         noiseColumns = _.without(noiseColumns, noiseColumn);
-        column.noise = noiseColumn;
         noiseColumnsConsumed = noiseColumnsConsumed + 1;
+        const clonedColumn = _.clone(column);
+        clonedColumn.noise = noiseColumn;
+        return clonedColumn;
+      } else {
+        return column;
       }
-      return column
     });
 
-    let renderableColumns = _.chain(valueColumnsWithNoise)
+    const renderableColumns = _.chain(valueColumnsWithNoise)
       // The noise columns that haven't already been consumed
       .concat(noiseColumns)
       .orderBy(column => column.index)
       .map(column => {
-        column.colour = this.nextColour(colourIndex);
+        const clonedColumn = _.clone(column);
+        clonedColumn.colour = this.nextColour(colourIndex);
         colourIndex = colourIndex + 1;
-        return column;
+        return clonedColumn;
       })
       .value();
 
@@ -211,5 +217,3 @@ export class GraphData {
     return xAxisValues;
   }
 }
-
-
