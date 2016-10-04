@@ -2,7 +2,7 @@ On macOS, we're using Docker for Mac, so some additional setting up is needed. I
 
 1. Once Docker for Mac is installed, you need to create the `/docker_volumes` folder by running `sudo mkdir -p /docker_volumes && sudo chown $USER /docker_volumes/`.
 1. Then in your Docker for Mac settings you need to share this project folder and `/docker_volumes`.
-1. Build the images by running `air/db/build.sh`, `air/build.sh`, and `cloak/build.sh`.
+1. Build the images by running `air/db/build-image.sh`, `air/build-image.sh`, and `cloak/build-image.sh`.
 1. Start air dependencies with `air/start_dependencies.sh`.
 1. Create the air database: `cd air && make recreate_db`.
 1. Create the cloak container database: `cd cloak && DB_PORT=20002 ./regenerate_db.sh`
