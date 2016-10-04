@@ -56,7 +56,7 @@ export class Result extends React.Component {
       margin: {
         r: 0,
         b: 0,
-        t: 0,
+        t: 10,
       },
       showlegend: true,
       legend: {
