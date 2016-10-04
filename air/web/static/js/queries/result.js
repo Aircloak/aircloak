@@ -29,7 +29,6 @@ export class Result extends React.Component {
     this.setChartDataOnRef = this.setChartDataOnRef.bind(this);
     this.plotChart = this.plotChart.bind(this);
     this.changeGraphType = this.changeGraphType.bind(this);
-    this.produceTrace = this.produceTrace.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
@@ -51,9 +50,7 @@ export class Result extends React.Component {
     if (! this.state.showChart || ! this.chartRef) {
       return;
     }
-    const xAxisValues = this.graphData.xAxisValues();
-    const traces = _.flatMap(this.yColumns(), (value, _index, collection) =>
-      this.produceTrace(value, collection, xAxisValues));
+    const traces = this.graphData.traces(this.state.mode);
     const layout = {
       margin: {
         r: 0,
@@ -69,61 +66,6 @@ export class Result extends React.Component {
       staticPlot: true,
     };
     Plotly.newPlot(this.chartRef, traces, layout, displayOptions);
-  }
-
-  produceTrace(value, collection, xAxisValues) {
-    const columnIndex = value.index;
-    const columnName = value.name;
-    const renderableValues = this.props.rows.map((accumulateRow) => accumulateRow.row[columnIndex]);
-    const trace = {
-      type: this.state.mode,
-      name: columnName,
-      y: renderableValues,
-      x: xAxisValues,
-      line: {color: value.colour.primary},
-      marker: {color: value.colour.primary},
-    };
-    if (this.state.mode === "bar" && value.noise) {
-      const yErrorData = this.props.rows.map((accumulateRow) => accumulateRow.row[value.noise.index]);
-      trace.error_y = {
-        type: "data",
-        array: yErrorData,
-        visible: true,
-      };
-      return [trace];
-    } else if (this.state.mode === "line" && value.noise) {
-      return [
-        this.errorTraceWithSD(value, renderableValues, xAxisValues, 3, value.colour.error3, false),
-        this.errorTraceWithSD(value, renderableValues, xAxisValues, 2, value.colour.error2, false),
-        this.errorTraceWithSD(value, renderableValues, xAxisValues, 1, value.colour.error1, true),
-        trace,
-      ];
-    } else {
-      return [trace];
-    }
-  }
-
-  errorTraceWithSD(value, yValues, xAxisValues, n, colour, showByDefault) {
-    const yErrorData = this.props.rows.map((accumulateRow) => accumulateRow.row[value.noise.index]);
-    const combinedData = _.zip(yValues, yErrorData);
-    const forwardYValues = _.map(combinedData, ([a, b]) => a + n * b);
-    const backwardYValues = _.map(_.reverse(combinedData), ([a, b]) => a - n * b);
-    const errorYValues = _.concat(forwardYValues, backwardYValues);
-    const errorXValues = _.concat(xAxisValues, _.reverse(_.clone(xAxisValues)));
-    let trace = {
-      x: errorXValues,
-      y: errorYValues,
-      fill: "tozerox",
-      fillcolor: colour,
-      line: {color: "transparent"},
-      name: `${value.name} noise (${n} SDs)`,
-      showlegend: true,
-      type: "scatter",
-    };
-    if (! showByDefault) {
-      trace.visible = "legendonly";
-    }
-    return trace;
   }
 
   handleClickMoreRows() {

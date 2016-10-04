@@ -6,6 +6,7 @@ export class GraphData {
     this.columns = columns;
 
     this.yColumns = this.yColumns.bind(this);
+    this.traces = this.traces.bind(this);
     this.formatValue = valueFormatter;
   }
 
@@ -88,6 +89,67 @@ export class GraphData {
   // Dummy implementation, replaced by called
   defaultValueFormatter(value) {
     return value;
+  }
+
+  traces(mode) {
+    const xAxisValues = this.xAxisValues();
+    return _.flatMap(this.yColumns(), (value, _index, collection) =>
+      this.produceTrace(value, collection, xAxisValues, mode));
+  }
+
+  produceTrace(value, collection, xAxisValues, mode) {
+    const columnIndex = value.index;
+    const columnName = value.name;
+    const renderableValues = this.rows.map((accumulateRow) => accumulateRow.row[columnIndex]);
+    const trace = {
+      type: mode,
+      name: columnName,
+      y: renderableValues,
+      x: xAxisValues,
+      line: {color: value.colour.primary},
+      marker: {color: value.colour.primary},
+    };
+    if (mode === "bar" && value.noise) {
+      const yErrorData = this.rows.map((accumulateRow) => accumulateRow.row[value.noise.index]);
+      trace.error_y = {
+        type: "data",
+        array: yErrorData,
+        visible: true,
+      };
+      return [trace];
+    } else if (mode === "line" && value.noise) {
+      return [
+        this.errorTraceWithSD(value, renderableValues, xAxisValues, 3, value.colour.error3, false),
+        this.errorTraceWithSD(value, renderableValues, xAxisValues, 2, value.colour.error2, false),
+        this.errorTraceWithSD(value, renderableValues, xAxisValues, 1, value.colour.error1, true),
+        trace,
+      ];
+    } else {
+      return [trace];
+    }
+  }
+
+  errorTraceWithSD(value, yValues, xAxisValues, n, colour, showByDefault) {
+    const yErrorData = this.rows.map((accumulateRow) => accumulateRow.row[value.noise.index]);
+    const combinedData = _.zip(yValues, yErrorData);
+    const forwardYValues = _.map(combinedData, ([a, b]) => a + n * b);
+    const backwardYValues = _.map(_.reverse(combinedData), ([a, b]) => a - n * b);
+    const errorYValues = _.concat(forwardYValues, backwardYValues);
+    const errorXValues = _.concat(xAxisValues, _.reverse(_.clone(xAxisValues)));
+    let trace = {
+      x: errorXValues,
+      y: errorYValues,
+      fill: "tozerox",
+      fillcolor: colour,
+      line: {color: "transparent"},
+      name: `${value.name} noise (${n} SDs)`,
+      showlegend: true,
+      type: "scatter",
+    };
+    if (! showByDefault) {
+      trace.visible = "legendonly";
+    }
+    return trace;
   }
 
   nextColour(colourIndex) {

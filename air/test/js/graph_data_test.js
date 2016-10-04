@@ -91,3 +91,59 @@ it("produces x-axis values when column order is odd", () => {
   const prepper = new GraphData(rows, columns)
   assert.deepEqual(prepper.xAxisValues(), ["a, b", "c, d"]);
 });
+
+it("produces traces for each y-value column", () => {
+  const rows = [{row: ["a", 1, "b"]}, {row: ["c", 2, "d"]}];
+  const columns = ["l1", "l2", "col"];
+  const prepper = new GraphData(rows, columns)
+  assert.equal(prepper.traces("bar").length, 1);
+});
+
+it("produces traces with the right mode", () => {
+  const rows = [{row: ["a", 1]}, {row: ["b", 2]}];
+  const columns = ["x", "y"];
+  const prepper = new GraphData(rows, columns)
+  _.forEach(prepper.traces("bar"), trace => assert.equal(trace.type, "bar"));
+  _.forEach(prepper.traces("line"), trace => assert.equal(trace.type, "line"));
+});
+
+it("traces have the name of the column", () => {
+  const rows = [{row: ["a", 1]}, {row: ["b", 2]}];
+  const columns = ["x", "y"];
+  const prepper = new GraphData(rows, columns)
+  const trace = prepper.traces("bar")[0];
+  assert.equal(trace.name, "y");
+});
+
+it("traces have valid x-axis values", () => {
+  const rows = [{row: ["a", 1]}, {row: ["b", 2]}];
+  const columns = ["x", "y"];
+  const prepper = new GraphData(rows, columns)
+  const trace = prepper.traces("bar")[0];
+  assert.deepEqual(trace.x, prepper.xAxisValues());
+});
+
+it("bar columns with noise data contain error information", () => {
+  const rows = [{row: ["a", 1, 2]}, {row: ["b", 3, 4]}];
+  const columns = ["x", "y", "y_noise"];
+  const prepper = new GraphData(rows, columns)
+  const trace = prepper.traces("bar")[0];
+  assert.deepEqual(trace.error_y.array, [2, 4]);
+});
+
+it("line graphs with noise data contain error traces centered around real value for 1, 2, 3 SDs", () => {
+  const rows = [{row: ["a", 1, 2]}, {row: ["b", 3, 4]}];
+  const columns = ["x", "y", "y_noise"];
+  const prepper = new GraphData(rows, columns)
+  const errorTrace1 = prepper.traces("line")[0];
+  const errorTrace2 = prepper.traces("line")[1];
+  const errorTrace3 = prepper.traces("line")[2];
+  const lineTrace = prepper.traces("line")[3];
+  assert.ok(_.startsWith(errorTrace1.name, "y noise"));
+  assert.ok(_.startsWith(errorTrace2.name, "y noise"));
+  assert.ok(_.startsWith(errorTrace3.name, "y noise"));
+  assert.equal(lineTrace.name, "y");
+  assert.deepEqual(errorTrace1.y, [7, 15, -9, -5]);
+  assert.deepEqual(errorTrace2.y, [5, 11, -5, -3]);
+  assert.deepEqual(errorTrace3.y, [3, 7, -1, -1]);
+});
