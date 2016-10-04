@@ -1,5 +1,3 @@
-# macOS and docker-machine
-
 On macOS, we're using Docker for Mac, so some additional setting up is needed. If you've been previously running docker-machine, see [below](#migrating-from-docker-machine).
 
 1. Once Docker for Mac is installed, you need to create the `/docker_volumes` folder by running `sudo mkdir -p /docker_volumes && sudo chown $USER /docker_volumes/`.
