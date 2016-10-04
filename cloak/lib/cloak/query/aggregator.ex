@@ -120,15 +120,21 @@ defmodule Cloak.Query.Aggregator do
     Enum.map(properties, &aggregate_property(&1, query))
 
   defp aggregate_property({property_values, anonymizer, users_rows}, query) do
-    all_users_rows = Map.values(users_rows)
     aggregated_columns = Query.aggregated_columns(query)
 
     aggregation_results = for {:function, function, [column]}  <- query.aggregators do
       values_index = Enum.find_index(aggregated_columns, &column == &1)
-      aggregated_values = all_users_rows |> Stream.map(&Enum.at(&1, values_index)) |> Stream.reject(&[] === &1)
+      aggregated_values =
+        users_rows
+        |> Stream.map(fn ({_user, values}) -> Enum.at(values, values_index) end)
+        |> Enum.reject(&[] === &1)
       case low_users_count?(aggregated_values, anonymizer) do
         true  -> nil
-        false -> aggregated_values |> preprocess_for_aggregation(column) |> aggregate_by(function, anonymizer)
+        false ->
+          aggregated_values
+          |> preprocess_for_aggregation(column)
+          |> aggregate_by(function, anonymizer)
+          |> post_process_result(function, users_rows, values_index)
       end
     end
 
@@ -188,6 +194,34 @@ defmodule Cloak.Query.Aggregator do
   defp aggregate_by(aggregation_data, "median", anonymizer), do: Anonymizer.median(anonymizer, aggregation_data)
   defp aggregate_by(_, unknown_aggregator, _) do
     raise "Aggregator '#{unknown_aggregator}' is not supported!"
+  end
+
+  # For min / max aggregators, if there is a value which passes the LCF and
+  # it is lower / greater than the aggregated result, we want to show that instead.
+  defp post_process_result(result, "max", users_rows, values_index) do
+    group_values(users_rows, fn (rows) ->
+      rows |> Enum.at(values_index) |> Enum.filter(& &1 > result)
+    end)
+    |> Stream.concat([result])
+    |> Enum.max()
+  end
+  defp post_process_result(result, "min", users_rows, values_index) do
+    group_values(users_rows, fn (rows) ->
+      rows |> Enum.at(values_index) |> Enum.filter(& &1 < result)
+    end)
+    |> Stream.concat([result])
+    |> Enum.min()
+  end
+  defp post_process_result(result, _function, _users_rows, _values_index), do: result
+
+  defp group_values(users_rows, rows_reducer) do
+    users_rows
+    |> Enum.map(fn ({user, rows}) -> {user, rows_reducer.(rows)} end)
+    |> Enum.reduce(%{}, fn ({user, values}, acc) ->
+      Enum.reduce(values, acc, fn (value, acc) -> Map.update(acc, value, [user], &[user | &1]) end)
+    end)
+    |> Enum.reject(fn ({_value, users}) -> low_users_count?(users, Anonymizer.new(users)) end)
+    |> Enum.map(fn ({value, _users}) -> value end)
   end
 
   defp make_buckets([], %Query{property: []} = query) do
