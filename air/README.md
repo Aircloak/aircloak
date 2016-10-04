@@ -46,7 +46,7 @@ In order to run the system you need the following components:
 - Node.js 5 or newer
 - Erlang and Elixir (see [here](../README.md#prerequisites) for details)
 - Ruby 2.x and bundler (for building API docs)
-- Docker 1.11 (+ [Docker for Mac](https://docs.docker.com/docker-for-mac/) if on OS X)
+- Docker 1.11 (+ [Docker for Mac](https://docs.docker.com/docker-for-mac/) if on macOS)
 
 Once you have all the main components, you also need the elixir and node.js dependencies required by our
 application. Node.js is included to compile our javascript and css dependencies.
@@ -83,7 +83,7 @@ __Linux developers__: Scripts in this project use docker in the context of the l
 privileges). To enable this, you need to add yourself to the `docker` group. See
 [here](http://askubuntu.com/a/477554) for explanation.
 
-__OS X users__: see [here](../osx_docker.md) for additional instructions.
+__macOS users__: see [here](../macos_docker.md) for additional instructions.
 
 ### Other common tasks
 
