@@ -1,9 +1,16 @@
+// @flow
+
 import React from "react";
 import DatePicker from "react-datepicker";
 import moment from "moment";
 
+type Props = {
+  className: string,
+  handleDateChange: () => void
+}
+
 export class DateFilter extends React.Component {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     this.state = {
@@ -15,12 +22,16 @@ export class DateFilter extends React.Component {
     this.handleDateEndChange = this.handleDateEndChange.bind(this);
   }
 
-  handleDateStartChange(startDate) {
+  state: {startDate: Date, endDate: Date}
+  handleDateStartChange: (startDate: Date) => void;
+  handleDateEndChange: (endDate: Date) => void;
+
+  handleDateStartChange(startDate: Date) {
     this.setState({startDate});
     this.props.handleDateChange(startDate, this.state.endDate);
   }
 
-  handleDateEndChange(endDate) {
+  handleDateEndChange(endDate: Date) {
     this.setState({endDate});
     this.props.handleDateChange(this.state.startDate, endDate);
   }
@@ -50,8 +61,3 @@ export class DateFilter extends React.Component {
     );
   }
 }
-
-DateFilter.propTypes = {
-  className: React.PropTypes.string,
-  handleDateChange: React.PropTypes.func,
-};

@@ -1,8 +1,16 @@
+// @flow
+
 import React from "react";
 
-import {Columns} from "./columns";
+import {ColumnsView} from "./columns";
+import type {Column} from "./columns";
 
-export const Table = (props) =>
+export type Table = {
+  id: string,
+  columns: Column[],
+};
+
+export const TableView = (props: {table: Table, onClick: () => void, expanded: boolean}) =>
   <a href="#" onClick={props.onClick} className="list-group-item">
     <div className="list-group-item-heading">
       {(() => {
@@ -20,18 +28,9 @@ export const Table = (props) =>
 
     {(() => {
       if (props.expanded) {
-        return <Columns columns={props.table.columns} />;
+        return <ColumnsView columns={props.table.columns} />;
       } else {
         return null;
       }
     })()}
   </a>;
-
-Table.propTypes = {
-  table: React.PropTypes.shape({
-    id: React.PropTypes.string.isRequired,
-    columns: Columns.propTypes.columns,
-  }),
-  onClick: React.PropTypes.func,
-  expanded: React.PropTypes.bool.isRequired,
-};

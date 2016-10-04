@@ -1,3 +1,5 @@
+// @flow
+
 import React from "react";
 import _ from "lodash";
 
@@ -5,8 +7,22 @@ import Plotly from "../plotly.js";
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 
-export class Result extends React.Component {
-  constructor(props) {
+type Row = {
+  occurrences: number,
+  row: any[],
+};
+
+export type Result = {
+  id: string,
+  statement: string,
+  columns: string[],
+  rows: Row[],
+  row_count: number,
+  info: string[]
+};
+
+export class ResultView extends React.Component {
+  constructor(props: Result) {
     super(props);
 
     this.minRowsToShow = 10;
@@ -34,11 +50,28 @@ export class Result extends React.Component {
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
   }
 
+  state: {rowsToShowCount: number, showChart: boolean, mode: string};
+  props: Result;
+  minRowsToShow: number;
+  chartRef: Node;
+  handleClickMoreRows: () => void;
+  handleClickLessRows: () => void;
+  renderRows: () => void;
+  renderShowAll: () => void;
+  renderOptionMenu: () => void;
+  conditionallyRenderChart: () => void;
+  setChartDataOnRef: () => void;
+  plotChart: () => void;
+  changeGraphType: () => void;
+  showingAllOfFewRows: () => void;
+  showingAllOfManyRows: () => void;
+  showingMinimumNumberOfManyRows: () => void;
+
   componentDidUpdate() {
     this.plotChart();
   }
 
-  setChartDataOnRef(ref) {
+  setChartDataOnRef(ref: Node) {
     this.chartRef = ref;
     this.plotChart();
   }
@@ -100,7 +133,7 @@ export class Result extends React.Component {
     return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
-  formatValue(value) {
+  formatValue(value: any) {
     if (value === null) {
       return "<null>";
     } else if (this.isNumeric(value)) {
@@ -110,7 +143,7 @@ export class Result extends React.Component {
     }
   }
 
-  isNumeric(n) {
+  isNumeric(n: any) {
     return typeof(n) === "number" && isFinite(n);
   }
 
@@ -138,8 +171,10 @@ export class Result extends React.Component {
       this.yColumns().length > 0;
   }
 
-  changeGraphType(e) {
-    this.setState({mode: e.target.value});
+  changeGraphType(e: Event) {
+    if (e.target instanceof HTMLInputElement) {
+      this.setState({mode: e.target.value});
+    }
   }
 
   conditionallyRenderChart() {
@@ -263,15 +298,3 @@ export class Result extends React.Component {
   }
 
 }
-
-Result.propTypes = {
-  id: React.PropTypes.string,
-  statement: React.PropTypes.string,
-  columns: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
-  rows: React.PropTypes.arrayOf(React.PropTypes.shape({
-    occurrences: React.PropTypes.integer,
-    row: React.PropTypes.array,
-  })).isRequired,
-  row_count: React.PropTypes.number,
-  info: Info.propTypes.info,
-};

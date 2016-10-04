@@ -1,3 +1,5 @@
+// @flow
+
 import _ from "lodash";
 
 const KEYWORDS = [
@@ -28,7 +30,13 @@ const wordEnd = (string, start) => {
   return end;
 };
 
-export default function completionList(curLine, curPos, posBuilder, tableNames, columnNames) {
+export default function completionList(
+  curLine: string,
+  curPos: number,
+  posBuilder: (x: number) => any,
+  tableNames: string[],
+  columnNames: string[]
+) {
   const end = wordEnd(curLine, curPos);
 
   // We want to construct the longest possible match using the previous
