@@ -70,3 +70,24 @@ it("retains column order for un-matched noise", () => {
   assert.equal(results[1].index, 2);
   assert.equal(results[1].noise.index, 3);
 });
+
+it("produces a list of x-axis values", () => {
+  const rows = [{row: [0, 1]}, {row: [2, 3]}];
+  const columns = ["x-axis", "col"];
+  const prepper = new GraphData(rows, columns)
+  assert.deepEqual(prepper.xAxisValues(), ["0", "2"]);
+});
+
+it("produces x-axis values of multiple values", () => {
+  const rows = [{row: ["a", "b", 1]}, {row: ["c", "d", 2]}];
+  const columns = ["l1", "l2", "col"];
+  const prepper = new GraphData(rows, columns)
+  assert.deepEqual(prepper.xAxisValues(), ["a, b", "c, d"]);
+});
+
+it("produces x-axis values when column order is odd", () => {
+  const rows = [{row: ["a", 1, "b"]}, {row: ["c", 2, "d"]}];
+  const columns = ["l1", "l2", "col"];
+  const prepper = new GraphData(rows, columns)
+  assert.deepEqual(prepper.xAxisValues(), ["a, b", "c, d"]);
+});

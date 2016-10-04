@@ -1,11 +1,12 @@
 import _ from "lodash";
 
 export class GraphData {
-  constructor(rows, columns) {
+  constructor(rows, columns, valueFormatter = this.defaultValueFormatter) {
     this.rows = rows;
     this.columns = columns;
 
     this.yColumns = this.yColumns.bind(this);
+    this.formatValue = valueFormatter;
   }
 
   yColumns() {
@@ -58,8 +59,35 @@ export class GraphData {
     }
   }
 
+  xAxisValues() {
+    const yValueIndices = _.flatMap(this.yColumns(), v => {
+      if (v.noise) {
+        return [v.index, v.noise.index];
+      } else {
+        return [v.index];
+      }
+    });
+    const xAxisValues = this.rows.map(accumulateRow => {
+      let index = 0;
+      const nonNumericalValues = _.reduce(accumulateRow.row, (acc, value) => {
+        if (! _.includes(yValueIndices, index)) {
+          acc.push(this.formatValue(value));
+        }
+        index = index + 1;
+        return acc;
+      }, []);
+      return _.join(nonNumericalValues, ", ");
+    });
+    return xAxisValues;
+  }
+
   isNumeric(n) {
     return typeof(n) === "number" && isFinite(n);
+  }
+
+  // Dummy implementation, replaced by called
+  defaultValueFormatter(value) {
+    return value;
   }
 
   nextColour(colourIndex) {

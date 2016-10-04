@@ -4,7 +4,7 @@ import _ from "lodash";
 import Plotly from "../plotly.js";
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
-import {GraphData} from "./graph_data_prepper";
+import {GraphData} from "./graph_data";
 
 export class Result extends React.Component {
   constructor(props) {
@@ -35,7 +35,7 @@ export class Result extends React.Component {
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
 
-    this.graphData = new GraphData(this.props.rows, this.props.columns);
+    this.graphData = new GraphData(this.props.rows, this.props.columns, this.formatValue);
   }
 
   componentDidUpdate() {
@@ -51,24 +51,7 @@ export class Result extends React.Component {
     if (! this.state.showChart || ! this.chartRef) {
       return;
     }
-    const yValueIndices = _.flatMap(this.yColumns(), (v) => {
-      if (v.noise) {
-        return [v.index, v.noise.index];
-      } else {
-        return [v.index];
-      }
-    });
-    const xAxisValues = this.props.rows.map((accumulateRow) => {
-      let index = 0;
-      const nonNumericalValues = _.reduce(accumulateRow.row, (acc, value) => {
-        if (! _.includes(yValueIndices, index)) {
-          acc.push(this.formatValue(value));
-        }
-        index = index + 1;
-        return acc;
-      }, []);
-      return _.join(nonNumericalValues, ", ");
-    });
+    const xAxisValues = this.graphData.xAxisValues();
     const traces = _.flatMap(this.yColumns(), (value, _index, collection) =>
       this.produceTrace(value, collection, xAxisValues));
     const layout = {
