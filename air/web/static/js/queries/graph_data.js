@@ -4,84 +4,16 @@ export class GraphData {
   constructor(rows, columns, valueFormatter = this.defaultValueFormatter) {
     this.rows = rows;
     this.columns = columns;
+    this.formatValue = valueFormatter;
 
-    this.yColumns = this.yColumns.bind(this);
     this.traces = this.traces.bind(this);
     this.charteable = this.charteable.bind(this);
-    this.formatValue = valueFormatter;
   }
 
-  yColumns() {
-    let noiseColumnsConsumed = 0;
-    let colourIndex = 0;
 
-    const usableColumns = _.chain(this.columns)
-      .map((column, i) => {
-        if (this.isNumeric(this.rows[0].row[i])) {
-          return {
-            index: i,
-            name: column,
-          };
-        } else {
-          return null;
-        }
-      })
-      .filter((e) => e != null)
-      .value();
-
-    var [noiseColumns, valueColumns] = _.partition(usableColumns, (column) => 
-      _.endsWith(column.name, "_noise"));
-
-    const valueColumnsWithNoise = _.map(valueColumns, column => {
-      const noiseColumn = _.find(noiseColumns, {'name': `${column.name}_noise`});
-      if (noiseColumn) {
-        noiseColumns = _.without(noiseColumns, noiseColumn);
-        column.noise = noiseColumn;
-        noiseColumnsConsumed = noiseColumnsConsumed + 1;
-      }
-      return column
-    });
-
-    let renderableColumns = _.chain(valueColumnsWithNoise)
-      // The noise columns that haven't already been consumed
-      .concat(noiseColumns)
-      .orderBy(column => column.index)
-      .map(column => {
-        column.colour = this.nextColour(colourIndex);
-        colourIndex = colourIndex + 1;
-        return column;
-      })
-      .value();
-
-    // If all columns are eligible for being a y-column trace, then we'll make the first one the x-column.
-    if (renderableColumns.length + noiseColumnsConsumed === this.columns.length) {
-      return _.drop(renderableColumns, 1);
-    } else {
-      return renderableColumns;
-    }
-  }
-
-  xAxisValues() {
-    const yValueIndices = _.flatMap(this.yColumns(), v => {
-      if (v.noise) {
-        return [v.index, v.noise.index];
-      } else {
-        return [v.index];
-      }
-    });
-    const xAxisValues = this.rows.map(accumulateRow => {
-      let index = 0;
-      const nonNumericalValues = _.reduce(accumulateRow.row, (acc, value) => {
-        if (! _.includes(yValueIndices, index)) {
-          acc.push(this.formatValue(value));
-        }
-        index = index + 1;
-        return acc;
-      }, []);
-      return _.join(nonNumericalValues, ", ");
-    });
-    return xAxisValues;
-  }
+  // ----------------------------------------------------------------
+  // API
+  // ----------------------------------------------------------------
 
   charteable() {
     return this.columns.length >= 2 &&
@@ -89,6 +21,17 @@ export class GraphData {
       this.rows.length <= 1000 &&
       this.hasNumericalColumn();
   }
+
+  traces(mode) {
+    const xAxisValues = this.xAxisValues();
+    return _.flatMap(this.yColumns(), (value, _index, collection) =>
+      this.produceTrace(value, collection, xAxisValues, mode));
+  }
+
+
+  // ----------------------------------------------------------------
+  // Internal functions
+  // ----------------------------------------------------------------
 
   hasNumericalColumn() {
     return _.some(this.rows[0].row, value => this.isNumeric(value));
@@ -103,11 +46,6 @@ export class GraphData {
     return value;
   }
 
-  traces(mode) {
-    const xAxisValues = this.xAxisValues();
-    return _.flatMap(this.yColumns(), (value, _index, collection) =>
-      this.produceTrace(value, collection, xAxisValues, mode));
-  }
 
   produceTrace(value, collection, xAxisValues, mode) {
     const columnIndex = value.index;
@@ -199,6 +137,78 @@ export class GraphData {
     ];
     const usableColourIndex = colourIndex % colours.length;
     return colours[usableColourIndex];
+  }
+
+  yColumns() {
+    let noiseColumnsConsumed = 0;
+    let colourIndex = 0;
+
+    const usableColumns = _.chain(this.columns)
+      .map((column, i) => {
+        if (this.isNumeric(this.rows[0].row[i])) {
+          return {
+            index: i,
+            name: column,
+          };
+        } else {
+          return null;
+        }
+      })
+      .filter((e) => e != null)
+      .value();
+
+    var [noiseColumns, valueColumns] = _.partition(usableColumns, (column) => 
+      _.endsWith(column.name, "_noise"));
+
+    const valueColumnsWithNoise = _.map(valueColumns, column => {
+      const noiseColumn = _.find(noiseColumns, {'name': `${column.name}_noise`});
+      if (noiseColumn) {
+        noiseColumns = _.without(noiseColumns, noiseColumn);
+        column.noise = noiseColumn;
+        noiseColumnsConsumed = noiseColumnsConsumed + 1;
+      }
+      return column
+    });
+
+    let renderableColumns = _.chain(valueColumnsWithNoise)
+      // The noise columns that haven't already been consumed
+      .concat(noiseColumns)
+      .orderBy(column => column.index)
+      .map(column => {
+        column.colour = this.nextColour(colourIndex);
+        colourIndex = colourIndex + 1;
+        return column;
+      })
+      .value();
+
+    // If all columns are eligible for being a y-column trace, then we'll make the first one the x-column.
+    if (renderableColumns.length + noiseColumnsConsumed === this.columns.length) {
+      return _.drop(renderableColumns, 1);
+    } else {
+      return renderableColumns;
+    }
+  }
+
+  xAxisValues() {
+    const yValueIndices = _.flatMap(this.yColumns(), v => {
+      if (v.noise) {
+        return [v.index, v.noise.index];
+      } else {
+        return [v.index];
+      }
+    });
+    const xAxisValues = this.rows.map(accumulateRow => {
+      let index = 0;
+      const nonNumericalValues = _.reduce(accumulateRow.row, (acc, value) => {
+        if (! _.includes(yValueIndices, index)) {
+          acc.push(this.formatValue(value));
+        }
+        index = index + 1;
+        return acc;
+      }, []);
+      return _.join(nonNumericalValues, ", ");
+    });
+    return xAxisValues;
   }
 }
 
