@@ -103,17 +103,6 @@ export class Result extends React.Component {
     return typeof(n) === "number" && isFinite(n);
   }
 
-  yColumns() {
-    return this.graphData.yColumns();
-  }
-
-  canShowChart() {
-    return this.props.columns.length >= 2 &&
-      this.props.rows.length > 1 &&
-      this.props.rows.length < 500 &&
-      this.yColumns().length > 0;
-  }
-
   changeGraphType(e) {
     this.setState({mode: e.target.value});
   }
@@ -185,7 +174,7 @@ export class Result extends React.Component {
   }
 
   renderChartButton() {
-    if (this.canShowChart()) {
+    if (this.graphData.charteable()) {
       const chartButtonText = this.state.showChart ? "Hide chart" : "Show chart";
       return (
         <button

@@ -147,3 +147,44 @@ it("line graphs with noise data contain error traces centered around real value 
   assert.deepEqual(errorTrace2.y, [5, 11, -5, -3]);
   assert.deepEqual(errorTrace3.y, [3, 7, -1, -1]);
 });
+
+it("can chart if an x and a y column", () => {
+  const rows = [{row: ["a", 1]}, {row: ["b", 2]}];
+  const columns = ["x", "y"];
+  const prepper = new GraphData(rows, columns)
+  assert.ok(prepper.charteable());
+});
+
+it("can chart up to 1000 rows", () => {
+  const rows = [];
+  for (var i = 0; i < 1000; i++) {
+    rows.push({row: ["a", 1]});
+  }
+  const columns = ["x", "y"];
+  const prepper = new GraphData(rows, columns)
+  assert.ok(prepper.charteable());
+  rows.push({row: ["b", 2]}); // now we have 1001 lines which is over the limit
+  const prepper2 = new GraphData(rows, columns)
+  assert.equal(prepper2.charteable(), false);
+});
+
+it("not charteable if only one column", () => {
+  const rows = [{row: [1]}, {row: [2]}];
+  const columns = ["x"];
+  const prepper = new GraphData(rows, columns)
+  assert.equal(prepper.charteable(), false);
+});
+
+it("not charteable if only one row", () => {
+  const rows = [{row: [1, 2, 3]}];
+  const columns = ["x", "y", "z"];
+  const prepper = new GraphData(rows, columns)
+  assert.equal(prepper.charteable(), false);
+});
+
+it("not charteable if none of the columns are numerical", () => {
+  const rows = [{row: ["a", "b"]}, {row: ["c", "d"]}];
+  const columns = ["x", "y"];
+  const prepper = new GraphData(rows, columns)
+  assert.equal(prepper.charteable(), false);
+});

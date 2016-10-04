@@ -7,6 +7,7 @@ export class GraphData {
 
     this.yColumns = this.yColumns.bind(this);
     this.traces = this.traces.bind(this);
+    this.charteable = this.charteable.bind(this);
     this.formatValue = valueFormatter;
   }
 
@@ -80,6 +81,17 @@ export class GraphData {
       return _.join(nonNumericalValues, ", ");
     });
     return xAxisValues;
+  }
+
+  charteable() {
+    return this.columns.length >= 2 &&
+      this.rows.length > 1 &&
+      this.rows.length <= 1000 &&
+      this.hasNumericalColumn();
+  }
+
+  hasNumericalColumn() {
+    return _.some(this.rows[0].row, value => this.isNumeric(value));
   }
 
   isNumeric(n) {
