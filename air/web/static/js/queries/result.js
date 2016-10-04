@@ -1,3 +1,5 @@
+// @flow
+
 import React from "react";
 import _ from "lodash";
 
@@ -6,8 +8,22 @@ import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 import {GraphData} from "./graph_data";
 
-export class Result extends React.Component {
-  constructor(props) {
+type Row = {
+  occurrences: number,
+  row: any[],
+};
+
+export type Result = {
+  id: string,
+  statement: string,
+  columns: string[],
+  rows: Row[],
+  row_count: number,
+  info: string[]
+};
+
+export class ResultView extends React.Component {
+  constructor(props: Result) {
     super(props);
 
     this.minRowsToShow = 10;
@@ -38,11 +54,28 @@ export class Result extends React.Component {
     this.graphData = new GraphData(this.props.rows, this.props.columns, this.formatValue);
   }
 
+  state: {rowsToShowCount: number, showChart: boolean, mode: string};
+  props: Result;
+  minRowsToShow: number;
+  chartRef: Node;
+  handleClickMoreRows: () => void;
+  handleClickLessRows: () => void;
+  renderRows: () => void;
+  renderShowAll: () => void;
+  renderOptionMenu: () => void;
+  conditionallyRenderChart: () => void;
+  setChartDataOnRef: () => void;
+  plotChart: () => void;
+  changeGraphType: () => void;
+  showingAllOfFewRows: () => void;
+  showingAllOfManyRows: () => void;
+  showingMinimumNumberOfManyRows: () => void;
+
   componentDidUpdate() {
     this.plotChart();
   }
 
-  setChartDataOnRef(ref) {
+  setChartDataOnRef(ref: Node) {
     this.chartRef = ref;
     this.plotChart();
   }
@@ -91,7 +124,7 @@ export class Result extends React.Component {
     return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
-  formatValue(value) {
+  formatValue(value: any) {
     if (value === null) {
       return "<null>";
     } else if (this.isNumeric(value)) {
@@ -101,12 +134,14 @@ export class Result extends React.Component {
     }
   }
 
-  isNumeric(n) {
+  isNumeric(n: any) {
     return typeof(n) === "number" && isFinite(n);
   }
 
   changeGraphType(e) {
-    this.setState({mode: e.target.value, chartIsStale: true});
+    if (e.target instanceof HTMLInputElement) {
+      this.setState({mode: e.target.value, chartIsStale: true});
+    }
   }
 
   conditionallyRenderChart() {
@@ -230,15 +265,3 @@ export class Result extends React.Component {
   }
 
 }
-
-Result.propTypes = {
-  id: React.PropTypes.string,
-  statement: React.PropTypes.string,
-  columns: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
-  rows: React.PropTypes.arrayOf(React.PropTypes.shape({
-    occurrences: React.PropTypes.integer,
-    row: React.PropTypes.array,
-  })).isRequired,
-  row_count: React.PropTypes.number,
-  info: Info.propTypes.info,
-};

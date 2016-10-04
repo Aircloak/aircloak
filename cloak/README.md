@@ -29,12 +29,12 @@ You need to have following installed:
 - PostgreSQL 9.4
 - packages
     - Linux: `liblua5.1-0-dev`, `protobuf-compiler`, `protobuf-c-compiler`, `libprotobuf-c0-dev`, `unixodbc`, `odbc-postgresql`
-    - OS X (homebrew): `lua` (5.1), `protobuf`, `protobuf-c`
+    - macOS (homebrew): `lua` (5.1), `protobuf`, `protobuf-c`
 - Configured ODBC DSN for PostgreSQL - execute the following as root from the `cloak` folder:
   `odbcinst -i -d -l -f priv/odbc/odbcinst.ini && odbcinst -i -s -l -f priv/odbc/odbc.ini`
 
 
-__OS X related__:
+__macOS related__:
 
 Before installing Erlang, you need to setup ODBC. See [here](./osx_erlang_with_odbc.md) for details.
 
@@ -183,7 +183,7 @@ It is possible to run cloak as a local docker container:
 4. Run `./build_image.sh` to create the docker image.
 5. Start the container with `./container.sh console`.
 
-You can now interact with the cloak via the dockerized air (https://insights.air-local:9443).
+You can now interact with the cloak via the dockerized air (http://localhost:8080 or https://insights.air-local:8443).
 
 #### Deploying
 

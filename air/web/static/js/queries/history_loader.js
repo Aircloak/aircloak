@@ -1,6 +1,19 @@
+// @flow
+
 import React from "react";
 
-export const HistoryLoader = (props) => {
+export type History = {
+  loaded: boolean,
+  loading: boolean,
+  error?: boolean
+};
+
+type Props = {
+  history: History,
+  handleLoadHistory: () => void
+};
+
+export const HistoryLoader = (props: Props) => {
   if (props.history.error) {
     return (
       <div>
@@ -25,13 +38,4 @@ export const HistoryLoader = (props) => {
       </button>
     );
   }
-};
-
-HistoryLoader.propTypes = {
-  history: React.PropTypes.shape({
-    loaded: React.PropTypes.bool.isRequired,
-    loading: React.PropTypes.bool.isRequired,
-    error: React.PropTypes.bool,
-  }),
-  handleLoadHistory: React.PropTypes.func,
 };

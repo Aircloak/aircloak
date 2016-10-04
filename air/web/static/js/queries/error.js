@@ -1,9 +1,11 @@
+// @flow
+
 import React from "react";
 
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 
-export const Error = (props) =>
+export const Error = (props: {statement: string, error: string, info: string[]}) =>
   <div className="panel panel-danger">
     <div className="panel-heading" />
     <div className="panel-body">
@@ -15,9 +17,3 @@ export const Error = (props) =>
       <Info info={props.info} />
     </div>
   </div>;
-
-Error.propTypes = {
-  statement: React.PropTypes.string,
-  error: React.PropTypes.string,
-  info: Info.propTypes.info,
-};
