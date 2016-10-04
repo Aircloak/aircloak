@@ -16,6 +16,7 @@ export class Result extends React.Component {
       rowsToShowCount: this.minRowsToShow,
       showChart: false,
       mode: "bar",
+      chartIsStale: true, // Hack to avoid slow Plotly redraws
     };
 
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
@@ -47,7 +48,7 @@ export class Result extends React.Component {
   }
 
   plotChart() {
-    if (! this.state.showChart || ! this.chartRef) {
+    if (! this.state.showChart || ! this.chartRef || ! this.state.chartIsStale) {
       return;
     }
     const traces = this.graphData.traces(this.state.mode);
@@ -66,6 +67,7 @@ export class Result extends React.Component {
       staticPlot: true,
     };
     Plotly.newPlot(this.chartRef, traces, layout, displayOptions);
+    this.setState({chartIsStale: false});
   }
 
   handleClickMoreRows() {
@@ -104,7 +106,7 @@ export class Result extends React.Component {
   }
 
   changeGraphType(e) {
-    this.setState({mode: e.target.value});
+    this.setState({mode: e.target.value, chartIsStale: true});
   }
 
   conditionallyRenderChart() {
