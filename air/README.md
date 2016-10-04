@@ -77,7 +77,7 @@ The site also accepts HTTPS requests on port 8443. Self-signed certificates are 
 
 ### Local docker container
 
-To start a local docker container, you need to first build the image with `./build-image.sh`. Then you can start the container with `./container.sh console`. Once the container is started you can access it at http://localhost:9080/ and https://insights.air-local:9443. Since different ports are used, the container can run side-by-side to the local site.
+To start a local docker container, you need to first build the image with `./build-image.sh`. Then you can start the container with `./container.sh console`. Once the container is started you can access it at http://localhost:8080/ and https://insights.air-local:8443. Since different ports are used, the container can run side-by-side to the local site.
 
 __Linux developers__: Scripts in this project use docker in the context of the logged in user (without root
 privileges). To enable this, you need to add yourself to the `docker` group. See
