@@ -4,6 +4,7 @@ import _ from "lodash";
 import Plotly from "../plotly.js";
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
+import {GraphData} from "./graph_data_prepper";
 
 export class Result extends React.Component {
   constructor(props) {
@@ -33,6 +34,8 @@ export class Result extends React.Component {
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
+
+    this.graphData = new GraphData(this.props.rows, this.props.columns);
   }
 
   componentDidUpdate() {
@@ -140,46 +143,6 @@ export class Result extends React.Component {
     return trace;
   }
 
-  nextAvailableColour() {
-    const colours = [
-      {
-        primary: "rgb(110,110,110)",
-        error1: "rgba(147,147,147,0.3)",
-        error2: "rgba(183,183,183,0.3)",
-        error3: "rgba(219,219,219,0.3)",
-      },
-      {
-        primary: "rgb(33,139,150)",
-        error1: "rgba(89,168,176,0.3)",
-        error2: "rgba(194,197,202,0.3)",
-        error3: "rgba(200,226,229,0.3)",
-      },
-      {
-        primary: "rgb(0,170,150)",
-        error1: "rgba(64,192,176,0.3)",
-        error2: "rgba(128,213,202,0.3)",
-        error3: "rgba(191,234,229,0.3)",
-      },
-      {
-        primary: "rgb(148,193,26)",
-        error1: "rgba(179,207,94,0.3)",
-        error2: "rgba(201,224,140,0.3)",
-        error3: "rgba(228,239,198,0.3)",
-      },
-      {
-        primary: "rgb(30,185,214)",
-        error1: "rgba(124,203,225,0.3)",
-        error2: "rgba(142,220,234,0.3)",
-        error3: "rgba(199,237,245,0.3)",
-      },
-    ];
-    if (! this.colourIndex) {
-      this.colourIndex = 0;
-    }
-    this.colourIndex = (this.colourIndex + 1) % colours.length;
-    return colours[this.colourIndex];
-  }
-
   handleClickMoreRows() {
     this.setState({rowsToShowCount: Math.min(this.state.rowsToShowCount * 2, this.props.row_count)});
   }
@@ -216,45 +179,7 @@ export class Result extends React.Component {
   }
 
   yColumns() {
-    const columns = this.props.columns.map((column, i) => {
-      if (this.isNumeric(this.props.rows[0].row[i])) {
-        return {
-          index: i,
-          name: column,
-        };
-      } else {
-        return null;
-      }
-    });
-    let renderableColumnsUsed = 0;
-    const preppedColumns = _.chain(columns)
-      .filter((e) => e != null)
-      .reduce((acc, column) => {
-        renderableColumnsUsed = renderableColumnsUsed + 1;
-        if (_.endsWith(column.name, "_noise")) {
-          const namePart = column.name.substring(0, column.name.length - 6);
-          const value = _.find(acc, col => col.name === namePart && col.noise === undefined);
-          if (value) {
-            value.noise = column;
-          } else {
-            acc.push(column);
-          }
-        } else {
-          acc.push(column);
-        }
-        return acc;
-      }, [])
-      .map(column => {
-        column.colour = this.nextAvailableColour();
-        return column;
-      })
-      .value();
-    // If all columns are eligible for being a y-column trace, then we'll make the first one the x-column.
-    if (renderableColumnsUsed === this.props.columns.length) {
-      return _.drop(preppedColumns, 1);
-    } else {
-      return preppedColumns;
-    }
+    return this.graphData.yColumns();
   }
 
   canShowChart() {
