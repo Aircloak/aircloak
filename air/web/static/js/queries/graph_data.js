@@ -12,7 +12,7 @@ export type GraphDataT = {
 type ValueFormatter = (value: any) => any;
 
 export const GraphData = (rows: Row[], columns: Column[], valueFormatter: ValueFormatter) => {
-  // We use our own defautl value formatter if none is provided
+  // We use our own default value formatter if none is provided
   const formatValue = valueFormatter || ((v) => v);
 
 
@@ -39,7 +39,6 @@ export const GraphData = (rows: Row[], columns: Column[], valueFormatter: ValueF
       line: {color: "transparent"},
       name: `${value.name} noise (${n} SDs)`,
       showlegend: true,
-      // defaults to true, but set to undefined to avoid type error for "legenonly" (string)
       visible: "true",
       type: "scatter",
     };
