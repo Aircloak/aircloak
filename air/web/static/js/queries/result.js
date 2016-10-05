@@ -92,10 +92,19 @@ export class ResultView extends React.Component {
     }
     const traces = this.graphData.traces(this.state.mode);
     const layout = {
+      // This excessive amount of margin is currently
+      // needed as long label names otherwise don't fit
+      // inside the graph. Unfortunately this is somewhat
+      // of a magic value, that seems to accommodate most
+      // long strings, while at the same time, not leaving
+      // all too much white space under the graph when
+      // short labels are used.
       margin: {
-        r: 0,
-        b: 0,
-        t: 10,
+        b: 200,
+      },
+      width: 714,
+      xaxis: {
+        title: this.graphData.xAxisLabel(),
       },
       showlegend: true,
       legend: {
@@ -162,7 +171,7 @@ export class ResultView extends React.Component {
           </select>
           <div
             ref={this.setChartDataOnRef}
-            className="plotlyGraph" style={{width: "100%", height: "500px"}}
+            className="plotlyGraph"
           />
         </div>
       );
