@@ -6,6 +6,7 @@ import type {Row, Column} from "./result";
 export type GraphDataT = {
   charteable: () => boolean,
   traces: (mode: string) => any[],
+  xAxisLabel: () => string,
 };
 
 type ValueFormatter = (value: any) => any;
@@ -215,5 +216,13 @@ export const GraphData = (rows: Row[], columns: Column[], valueFormatter: ValueF
     return _.flatMap(yColumns(), value => produceTrace(value, xAxisValues, mode));
   };
 
-  return {charteable, traces};
+  const xAxisLabel = (): string => {
+    const yIndices = yValueIndices();
+    return _.chain(columns)
+      .reject((value, index) => _.includes(yIndices, index))
+      .join(", ")
+      .value();
+  };
+
+  return {charteable, traces, xAxisLabel};
 };

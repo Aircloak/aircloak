@@ -173,3 +173,10 @@ it("not charteable if none of the columns are numerical", () => {
   const prepper = new GraphData(rows, columns);
   assert.equal(prepper.charteable(), false);
 });
+
+it("can produce an x-axis label", () => {
+  const rows = [{row: ["a", "b", 3]}, {row: ["c", "d", 6]}];
+  const columns = ["x", "y", "z"];
+  const prepper = new GraphData(rows, columns);
+  assert.equal(prepper.xAxisLabel(), "x, y");
+});
