@@ -99,6 +99,8 @@ export class ResultView extends React.Component {
       },
       showlegend: true,
       legend: {
+        x: 100,
+        y: 100,
         orientation: "h",
       },
     };
