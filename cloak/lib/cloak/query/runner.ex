@@ -104,6 +104,7 @@ defmodule Cloak.Query.Runner do
   ## ----------------------------------------------------------------
 
   defp run_query(data_source, statement) do
+    Logger.debug("Parsing statement `#{statement}` ...")
     with {:ok, sql_query} <- Query.make(data_source, statement) do
       execute_sql_query(sql_query)
     end
@@ -123,6 +124,7 @@ defmodule Cloak.Query.Runner do
   defp execute_sql_query(%Query{command: :select} = query) do
     try do
       with {:ok, buckets} <- DataSource.select(query, fn (rows) ->
+        Logger.debug("Processing rows ...")
         rows
         |> NegativeCondition.apply(query)
         |> Aggregator.aggregate(query)
