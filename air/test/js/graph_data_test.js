@@ -3,93 +3,86 @@ import assert from "assert";
 
 import {GraphData} from "queries/graph_data";
 
+const columnNames = prepper => _.map(prepper.traces("line"), trace => trace.name);
+
+const xAxisValues = prepper => {
+  const firstTrace = prepper.traces("line")[0];
+  return firstTrace.x;
+};
+
 it("handles results without errors", () => {
   const rows = [{row: [0, 1, 2]}];
   const columns = ["x-axis", "col1", "col2"];
   const prepper = new GraphData(rows, columns);
-  const results = prepper.yColumns();
-  assert.equal(results[0].name, "col1");
-  assert.equal(results[0].index, 1);
-  assert.equal(results[1].name, "col2");
-  assert.equal(results[1].index, 2);
+  assert.deepEqual(["col1", "col2"], columnNames(prepper));
 });
 
 it("rows have distinct colours", () => {
   const rows = [{row: [0, 1, 2]}];
   const columns = ["x-axis", "col1", "col2"];
   const prepper = new GraphData(rows, columns);
-  const results = prepper.yColumns();
-  assert.notEqual(results[0].colour, results[1].colour);
+  const colours = _.map(prepper.traces("bar"), trace => trace.line.color);
+  assert.notEqual(colours[0], colours[1]);
 });
 
 it("pairs result and error", () => {
   const rows = [{row: [0, 1, 2]}];
   const columns = ["x-axis", "col", "col_noise"];
   const prepper = new GraphData(rows, columns);
-  const result = prepper.yColumns()[0];
-  assert.equal(result.index, 1);
-  assert.equal(result.noise.index, 2);
+  _.forEach(columnNames(prepper), name => assert.ok(_.startsWith(name, "col")));
+  assert.equal(columnNames(prepper).length, 4); // col + 3 error traces
 });
 
 it("pairs result and error even when noise comes first", () => {
   const rows = [{row: [0, 1, 2]}];
   const columns = ["x-axis", "col_noise", "col"];
   const prepper = new GraphData(rows, columns);
-  const result = prepper.yColumns()[0];
-  assert.equal(result.index, 2);
-  assert.equal(result.noise.index, 1);
+  _.forEach(columnNames(prepper), name => assert.ok(_.startsWith(name, "col")));
+  assert.equal(columnNames(prepper).length, 4); // col + 3 error traces
 });
 
 it("handles multiple val+noise with same name", () => {
   const rows = [{row: [0, 1, 2, 3, 4]}];
   const columns = ["x-axis", "col", "col_noise", "col", "col_noise"];
   const prepper = new GraphData(rows, columns);
-  const results = prepper.yColumns();
-  assert.equal(results[0].index, 1);
-  assert.equal(results[0].noise.index, 2);
-  assert.equal(results[1].index, 3);
-  assert.equal(results[1].noise.index, 4);
+  _.forEach(columnNames(prepper), name => assert.ok(_.startsWith(name, "col")));
+  assert.equal(columnNames(prepper).length, 8); // 2 * (col + 3 error traces)
 });
 
 it("leaves un-matched noise value", () => {
   const rows = [{row: [0, 1]}];
   const columns = ["x-axis", "col_noise"];
   const prepper = new GraphData(rows, columns);
-  const result = prepper.yColumns()[0];
-  assert.equal(result.index, 1);
-  assert.equal(result.name, "col_noise");
+  assert.deepEqual(["col_noise"], columnNames(prepper));
 });
 
 it("retains column order for un-matched noise", () => {
   const rows = [{row: [0, 1, 2, 3, 4]}];
   const columns = ["x-axis", "val_noise", "col", "col_noise"];
   const prepper = new GraphData(rows, columns);
-  const results = prepper.yColumns();
-  assert.equal(results[0].index, 1);
-  assert.equal(results[0].name, "val_noise");
-  assert.equal(results[1].index, 2);
-  assert.equal(results[1].noise.index, 3);
+  const namePrefixes = _.map(columnNames(prepper), name => name.substring(0, 3));
+  assert.deepEqual(["val", "col", "col", "col", "col"], namePrefixes);
 });
 
 it("produces a list of x-axis values", () => {
   const rows = [{row: [0, 1]}, {row: [2, 3]}];
   const columns = ["x-axis", "col"];
   const prepper = new GraphData(rows, columns);
-  assert.deepEqual(prepper.xAxisValues(), ["0", "2"]);
+  assert.deepEqual(xAxisValues(prepper), ["0", "2"]);
 });
 
 it("produces x-axis values of multiple values", () => {
   const rows = [{row: ["a", "b", 1]}, {row: ["c", "d", 2]}];
   const columns = ["l1", "l2", "col"];
   const prepper = new GraphData(rows, columns);
-  assert.deepEqual(prepper.xAxisValues(), ["a, b", "c, d"]);
+  assert.deepEqual(xAxisValues(prepper), ["a, b", "c, d"]);
 });
 
 it("produces x-axis values when column order is odd", () => {
   const rows = [{row: ["a", 1, "b"]}, {row: ["c", 2, "d"]}];
   const columns = ["l1", "l2", "col"];
   const prepper = new GraphData(rows, columns);
-  assert.deepEqual(prepper.xAxisValues(), ["a, b", "c, d"]);
+  assert.deepEqual(xAxisValues(prepper), ["a, b", "c, d"]);
 });
 
 it("produces traces for each y-value column", () => {
@@ -113,14 +106,6 @@ it("traces have the name of the column", () => {
   const prepper = new GraphData(rows, columns);
   const trace = prepper.traces("bar")[0];
   assert.equal(trace.name, "y");
-});
-
-it("traces have valid x-axis values", () => {
-  const rows = [{row: ["a", 1]}, {row: ["b", 2]}];
-  const columns = ["x", "y"];
-  const prepper = new GraphData(rows, columns);
-  const trace = prepper.traces("bar")[0];
-  assert.deepEqual(trace.x, prepper.xAxisValues());
 });
 
 it("bar columns with noise data contain error information", () => {
