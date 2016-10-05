@@ -7,16 +7,19 @@ import Plotly from "../plotly.js";
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 import {GraphData} from "./graph_data";
+import type {GraphDataT} from "./graph_data";
 
-type Row = {
+export type Row = {
   occurrences: number,
   row: any[],
 };
 
+export type Column = string;
+
 export type Result = {
   id: string,
   statement: string,
-  columns: string[],
+  columns: Column[],
   rows: Row[],
   row_count: number,
   info: string[]
@@ -46,6 +49,7 @@ export class ResultView extends React.Component {
     this.setChartDataOnRef = this.setChartDataOnRef.bind(this);
     this.plotChart = this.plotChart.bind(this);
     this.changeGraphType = this.changeGraphType.bind(this);
+    this.formatValue = this.formatValue.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
@@ -54,10 +58,12 @@ export class ResultView extends React.Component {
     this.graphData = new GraphData(this.props.rows, this.props.columns, this.formatValue);
   }
 
-  state: {rowsToShowCount: number, showChart: boolean, mode: string};
+  state: {rowsToShowCount: number, showChart: boolean, mode: string, chartIsStale: boolean};
   props: Result;
   minRowsToShow: number;
+  graphData: GraphDataT;
   chartRef: Node;
+  formatValue: (value: any) => string | number;
   handleClickMoreRows: () => void;
   handleClickLessRows: () => void;
   renderRows: () => void;
@@ -124,7 +130,7 @@ export class ResultView extends React.Component {
     return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
-  formatValue(value: any) {
+  formatValue(value: any): number | string {
     if (value === null) {
       return "<null>";
     } else if (this.isNumeric(value)) {
@@ -138,8 +144,8 @@ export class ResultView extends React.Component {
     return typeof(n) === "number" && isFinite(n);
   }
 
-  changeGraphType(e) {
-    if (e.target instanceof HTMLInputElement) {
+  changeGraphType(e: Event) {
+    if (e.target instanceof HTMLSelectElement) {
       this.setState({mode: e.target.value, chartIsStale: true});
     }
   }

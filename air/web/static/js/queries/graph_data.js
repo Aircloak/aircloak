@@ -1,86 +1,30 @@
+// @flow
+
 import _ from "lodash";
+import type {Row, Column} from "./result";
 
-export class GraphData {
-  constructor(rows, columns, valueFormatter = this.defaultValueFormatter) {
-    this.rows = rows;
-    this.columns = columns;
-    this.formatValue = valueFormatter;
+export type GraphDataT = {
+  charteable: () => boolean,
+  traces: (mode: string) => any[],
+};
 
-    this.traces = this.traces.bind(this);
-    this.charteable = this.charteable.bind(this);
-  }
+type ValueFormatter = (value: any) => any;
 
-
-  // ----------------------------------------------------------------
-  // API
-  // ----------------------------------------------------------------
-
-  charteable() {
-    return this.columns.length >= 2 &&
-      this.rows.length > 1 &&
-      this.rows.length <= 1000 &&
-      this.hasNumericalColumn();
-  }
-
-  traces(mode) {
-    const xAxisValues = this.xAxisValues();
-    return _.flatMap(this.yColumns(), (value, _index, collection) =>
-      this.produceTrace(value, collection, xAxisValues, mode));
-  }
+export const GraphData = (rows: Row[], columns: Column[], valueFormatter: ValueFormatter) => {
+  // We use our own defautl value formatter if none is provided
+  const formatValue = valueFormatter || ((v) => v);
 
 
   // ----------------------------------------------------------------
   // Internal functions
   // ----------------------------------------------------------------
 
-  hasNumericalColumn() {
-    return _.some(this.rows[0].row, value => this.isNumeric(value));
-  }
+  const isNumeric = (n) => typeof(n) === "number" && isFinite(n);
 
-  isNumeric(n) {
-    return typeof(n) === "number" && isFinite(n);
-  }
+  const hasNumericalColumn = () => _.some(rows[0].row, value => isNumeric(value));
 
-  // Dummy implementation, replaced by called
-  defaultValueFormatter(value) {
-    return value;
-  }
-
-
-  produceTrace(value, collection, xAxisValues, mode) {
-    const columnIndex = value.index;
-    const columnName = value.name;
-    const renderableValues = this.rows.map((accumulateRow) => accumulateRow.row[columnIndex]);
-    const trace = {
-      type: mode,
-      name: columnName,
-      y: renderableValues,
-      x: xAxisValues,
-      line: {color: value.colour.primary},
-      marker: {color: value.colour.primary},
-    };
-    if (mode === "bar" && value.noise) {
-      const yErrorData = this.rows.map((accumulateRow) => accumulateRow.row[value.noise.index]);
-      trace.error_y = {
-        type: "data",
-        array: yErrorData,
-        visible: true,
-      };
-      return [trace];
-    } else if (mode === "line" && value.noise) {
-      return [
-        this.errorTraceWithSD(value, renderableValues, xAxisValues, 3, value.colour.error3, false),
-        this.errorTraceWithSD(value, renderableValues, xAxisValues, 2, value.colour.error2, false),
-        this.errorTraceWithSD(value, renderableValues, xAxisValues, 1, value.colour.error1, true),
-        trace,
-      ];
-    } else {
-      return [trace];
-    }
-  }
-
-  errorTraceWithSD(value, yValues, xAxisValues, n, colour, showByDefault) {
-    const yErrorData = this.rows.map((accumulateRow) => accumulateRow.row[value.noise.index]);
+  const errorTraceWithSD = (value, yValues, xAxisValues, n, colour, showByDefault) => {
+    const yErrorData = rows.map((accumulateRow) => accumulateRow.row[value.noise.index]);
     const combinedData = _.zip(yValues, yErrorData);
     const forwardYValues = _.map(combinedData, ([a, b]) => a + n * b);
     const backwardYValues = _.map(_.reverse(combinedData), ([a, b]) => a - n * b);
@@ -94,15 +38,50 @@ export class GraphData {
       line: {color: "transparent"},
       name: `${value.name} noise (${n} SDs)`,
       showlegend: true,
+      // defaults to true, but set to undefined to avoid type error for "legenonly" (string)
+      visible: "true",
       type: "scatter",
     };
     if (! showByDefault) {
       trace.visible = "legendonly";
     }
     return trace;
-  }
+  };
 
-  nextColour(colourIndex) {
+  const produceTrace = (value, xAxisValues, mode) => {
+    const columnIndex = value.index;
+    const columnName = value.name;
+    const renderableValues = rows.map((accumulateRow) => accumulateRow.row[columnIndex]);
+    const trace = {
+      type: mode,
+      name: columnName,
+      y: renderableValues,
+      x: xAxisValues,
+      line: {color: value.colour.primary},
+      marker: {color: value.colour.primary},
+      error_y: {},
+    };
+    if (mode === "bar" && value.noise) {
+      const yErrorData = rows.map((accumulateRow) => accumulateRow.row[value.noise.index]);
+      trace.error_y = {
+        type: "data",
+        array: yErrorData,
+        visible: true,
+      };
+      return [trace];
+    } else if (mode === "line" && value.noise) {
+      return [
+        errorTraceWithSD(value, renderableValues, xAxisValues, 3, value.colour.error3, false),
+        errorTraceWithSD(value, renderableValues, xAxisValues, 2, value.colour.error2, false),
+        errorTraceWithSD(value, renderableValues, xAxisValues, 1, value.colour.error1, true),
+        trace,
+      ];
+    } else {
+      return [trace];
+    }
+  };
+
+  const nextColour = (colourIndex) => {
     const colours = [
       {
         primary: "rgb(110,110,110)",
@@ -137,15 +116,15 @@ export class GraphData {
     ];
     const usableColourIndex = colourIndex % colours.length;
     return colours[usableColourIndex];
-  }
+  };
 
-  yColumns() {
+  const yColumns = () => {
     let noiseColumnsConsumed = 0;
     let colourIndex = 0;
 
-    const usableColumns = _.chain(this.columns)
+    const usableColumns = _.chain(columns)
       .map((column, i) => {
-        if (this.isNumeric(this.rows[0].row[i])) {
+        if (isNumeric(rows[0].row[i])) {
           return {
             index: i,
             name: column,
@@ -181,33 +160,33 @@ export class GraphData {
       .orderBy(column => column.index)
       .map(column => {
         const clonedColumn = _.clone(column);
-        clonedColumn.colour = this.nextColour(colourIndex);
+        clonedColumn.colour = nextColour(colourIndex);
         colourIndex = colourIndex + 1;
         return clonedColumn;
       })
       .value();
 
     // If all columns are eligible for being a y-column trace, then we'll make the first one the x-column.
-    if (renderableColumns.length + noiseColumnsConsumed === this.columns.length) {
+    if (renderableColumns.length + noiseColumnsConsumed === columns.length) {
       return _.drop(renderableColumns, 1);
     } else {
       return renderableColumns;
     }
-  }
+  };
 
-  xAxisValues() {
-    const yValueIndices = _.flatMap(this.yColumns(), v => {
+  const produceXAxisValues = () => {
+    const yValueIndices = _.flatMap(yColumns(), v => {
       if (v.noise) {
         return [v.index, v.noise.index];
       } else {
         return [v.index];
       }
     });
-    const xAxisValues = this.rows.map(accumulateRow => {
+    const xAxisValues = rows.map(accumulateRow => {
       let index = 0;
       const nonNumericalValues = _.reduce(accumulateRow.row, (acc, value) => {
         if (! _.includes(yValueIndices, index)) {
-          acc.push(this.formatValue(value));
+          acc.push(formatValue(value));
         }
         index = index + 1;
         return acc;
@@ -215,5 +194,23 @@ export class GraphData {
       return _.join(nonNumericalValues, ", ");
     });
     return xAxisValues;
-  }
-}
+  };
+
+
+  // ----------------------------------------------------------------
+  // Exportable API functions
+  // ----------------------------------------------------------------
+
+  const charteable = (): boolean =>
+    columns.length >= 2 &&
+    rows.length > 1 &&
+    rows.length <= 1000 &&
+    hasNumericalColumn();
+
+  const traces = (mode: string): any[] => {
+    const xAxisValues = produceXAxisValues();
+    return _.flatMap(yColumns(), value => produceTrace(value, xAxisValues, mode));
+  };
+
+  return {charteable, traces};
+};
