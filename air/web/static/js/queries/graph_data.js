@@ -174,18 +174,21 @@ export const GraphData = (rows: Row[], columns: Column[], valueFormatter: ValueF
     }
   };
 
-  const produceXAxisValues = () => {
-    const yValueIndices = _.flatMap(yColumns(), v => {
+  const yValueIndices = () =>
+    _.flatMap(yColumns(), v => {
       if (v.noise) {
         return [v.index, v.noise.index];
       } else {
         return [v.index];
       }
     });
+
+  const produceXAxisValues = () => {
+    const yIndices = yValueIndices();
     const xAxisValues = rows.map(accumulateRow => {
       let index = 0;
       const nonNumericalValues = _.reduce(accumulateRow.row, (acc, value) => {
-        if (! _.includes(yValueIndices, index)) {
+        if (! _.includes(yIndices, index)) {
           acc.push(formatValue(value));
         }
         index = index + 1;
