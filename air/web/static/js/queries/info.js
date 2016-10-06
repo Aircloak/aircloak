@@ -1,6 +1,8 @@
+// @flow
+
 import React from "react";
 
-export const Info = (props) => {
+export const Info = (props: {info: string[]}) => {
   if (props.info && props.info.length > 0) {
     return (
       <div>
@@ -11,8 +13,4 @@ export const Info = (props) => {
   } else {
     return null;
   }
-};
-
-Info.propTypes = {
-  info: React.PropTypes.array,
 };

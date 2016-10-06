@@ -46,7 +46,7 @@ In order to run the system you need the following components:
 - Node.js 5 or newer
 - Erlang and Elixir (see [here](../README.md#prerequisites) for details)
 - Ruby 2.x and bundler (for building API docs)
-- Docker 1.8.3 (+ docker-machine if on OS X)
+- Docker 1.11 (+ [Docker for Mac](https://docs.docker.com/docker-for-mac/) if on macOS)
 
 Once you have all the main components, you also need the elixir and node.js dependencies required by our
 application. Node.js is included to compile our javascript and css dependencies.
@@ -77,13 +77,13 @@ The site also accepts HTTPS requests on port 8443. Self-signed certificates are 
 
 ### Local docker container
 
-To start a local docker container, you need to first build the image with `./build-image.sh`. Then you can start the container with `./container.sh console`. Once the container is started you can access it at http://localhost:9080/ and https://insights.air-local:9443. Since different ports are used, the container can run side-by-side to the local site.
+To start a local docker container, you need to first build the image with `./build-image.sh`. Then you can start the container with `./container.sh console`. Once the container is started you can access it at http://localhost:8080/ and https://insights.air-local:8443. Since different ports are used, the container can run side-by-side to the local site.
 
 __Linux developers__: Scripts in this project use docker in the context of the logged in user (without root
 privileges). To enable this, you need to add yourself to the `docker` group. See
 [here](http://askubuntu.com/a/477554) for explanation.
 
-__OS X users__: see [here](./osx_setup.md) for additional instructions.
+__macOS users__: see [here](../macos_docker.md) for additional instructions.
 
 ### Other common tasks
 

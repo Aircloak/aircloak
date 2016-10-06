@@ -7,6 +7,7 @@ module.exports = {
     "object-curly-spacing": ["error", "never"],
     "max-len": ["error", {"code": 110}],
     "import/no-unresolved": ["off"],
+    "flowtype/require-valid-file-annotation": ["off"],
   },
   "env": {
     "node": true,

@@ -50,6 +50,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec new(MapSet.t | %{String.t => any}) :: t
   def new(%MapSet{} = users), do: new_instance(users)
   def new(%{} = users_map), do: new_instance(Map.keys(users_map))
+  def new(users) when is_list(users), do: new_instance(users)
 
   @doc """
   Returns a `{boolean, anonymizer}` tuple, where the boolean value is
@@ -300,9 +301,10 @@ defmodule Cloak.Query.Anonymizer do
   # Rounds the noise sigma to a value that can be provided back to the analyst.
   # For more info, see this: https://github.com/Aircloak/aircloak/issues/267.
   defp round_noise_sigma(sigma) do
-    sigma_fraction = sigma * 0.05
-    rounded_fraction = money_round(sigma_fraction)
-    sigma - sigma_fraction + rounded_fraction
+    case money_round(sigma * 0.05) do
+      0.0 -> 0.0
+      round_step -> Float.round(sigma / round_step) * round_step
+    end
   end
 
   defp sum_noise_sigmas(sigma1, sigma2), do: :math.sqrt(sigma1 * sigma1 + sigma2 * sigma2)

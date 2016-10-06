@@ -1,5 +1,9 @@
 This document serves to describe breaking changes and provide upgrade hints when major changes are introduced. When you're creating a pull with some major changes, please add brief upgrade instructions here.
 
+## Replace docker-machine with Docker for Mac
+
+- see [here](./macos_docker.md) for migration instructions
+
 ## Standalone database container
 
 Development and test databases are now running in the separate containers. After fetching the latest master, you need to stop the old container (`docker stop air_db`), and then you can run `air/start_dependencies.sh` which will start both database containers.

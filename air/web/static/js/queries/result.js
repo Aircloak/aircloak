@@ -1,12 +1,32 @@
+// @flow
+
 import React from "react";
 import _ from "lodash";
 
 import Plotly from "../plotly.js";
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
+import {GraphData} from "./graph_data";
+import type {GraphDataT} from "./graph_data";
 
-export class Result extends React.Component {
-  constructor(props) {
+export type Row = {
+  occurrences: number,
+  row: any[],
+};
+
+export type Column = string;
+
+export type Result = {
+  id: string,
+  statement: string,
+  columns: Column[],
+  rows: Row[],
+  row_count: number,
+  info: string[]
+};
+
+export class ResultView extends React.Component {
+  constructor(props: Result) {
     super(props);
 
     this.minRowsToShow = 10;
@@ -15,6 +35,7 @@ export class Result extends React.Component {
       rowsToShowCount: this.minRowsToShow,
       showChart: false,
       mode: "bar",
+      chartIsStale: true, // Hack to avoid slow Plotly redraws
     };
 
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
@@ -28,55 +49,75 @@ export class Result extends React.Component {
     this.setChartDataOnRef = this.setChartDataOnRef.bind(this);
     this.plotChart = this.plotChart.bind(this);
     this.changeGraphType = this.changeGraphType.bind(this);
+    this.formatValue = this.formatValue.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
+
+    this.graphData = new GraphData(this.props.rows, this.props.columns, this.formatValue);
   }
+
+  state: {rowsToShowCount: number, showChart: boolean, mode: string, chartIsStale: boolean};
+  props: Result;
+  minRowsToShow: number;
+  graphData: GraphDataT;
+  chartRef: Node;
+  formatValue: (value: any) => string | number;
+  handleClickMoreRows: () => void;
+  handleClickLessRows: () => void;
+  renderRows: () => void;
+  renderShowAll: () => void;
+  renderOptionMenu: () => void;
+  conditionallyRenderChart: () => void;
+  setChartDataOnRef: () => void;
+  plotChart: () => void;
+  changeGraphType: () => void;
+  showingAllOfFewRows: () => void;
+  showingAllOfManyRows: () => void;
+  showingMinimumNumberOfManyRows: () => void;
 
   componentDidUpdate() {
     this.plotChart();
   }
 
-  setChartDataOnRef(ref) {
+  setChartDataOnRef(ref: Node) {
     this.chartRef = ref;
     this.plotChart();
   }
 
   plotChart() {
-    if (! this.state.showChart || ! this.chartRef) {
+    if (! this.state.showChart || ! this.chartRef || ! this.state.chartIsStale) {
       return;
     }
-    const yValueIndices = _.map(this.yColumns(), (v) => v[0]);
-    const xAxisValues = this.props.rows.map((accumulateRow) => {
-      let index = 0;
-      const nonNumericalValues = _.reduce(accumulateRow.row, (acc, value) => {
-        if (! _.includes(yValueIndices, index)) {
-          acc.push(this.formatValue(value));
-        }
-        index = index + 1;
-        return acc;
-      }, []);
-      return _.join(nonNumericalValues, ", ");
-    });
-    const traces = _.map(this.yColumns(), (value) => {
-      const columnIndex = value[0];
-      const columnName = value[1];
-      const renderableValues = this.props.rows.map((accumulateRow) => accumulateRow.row[columnIndex]);
-      return {
-        type: this.state.mode,
-        name: columnName,
-        y: renderableValues,
-        x: xAxisValues,
-      };
-    });
+    const traces = this.graphData.traces(this.state.mode);
     const layout = {
+      // This excessive amount of margin is currently
+      // needed as long label names otherwise don't fit
+      // inside the graph. Unfortunately this is somewhat
+      // of a magic value, that seems to accommodate most
+      // long strings, while at the same time, not leaving
+      // all too much white space under the graph when
+      // short labels are used.
+      margin: {
+        b: 200,
+      },
+      width: 714,
+      xaxis: {
+        title: this.graphData.xAxisLabel(),
+      },
       showlegend: true,
+      legend: {
+        x: 100,
+        y: 100,
+        orientation: "h",
+      },
     };
     const displayOptions = {
       staticPlot: true,
     };
     Plotly.newPlot(this.chartRef, traces, layout, displayOptions);
+    this.setState({chartIsStale: false});
   }
 
   handleClickMoreRows() {
@@ -100,7 +141,7 @@ export class Result extends React.Component {
     return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
-  formatValue(value) {
+  formatValue(value: any): number | string {
     if (value === null) {
       return "<null>";
     } else if (this.isNumeric(value)) {
@@ -110,36 +151,14 @@ export class Result extends React.Component {
     }
   }
 
-  isNumeric(n) {
+  isNumeric(n: any) {
     return typeof(n) === "number" && isFinite(n);
   }
 
-  yColumns() {
-    const columns = this.props.columns.map((column, i) => {
-      if (this.isNumeric(this.props.rows[0].row[i])) {
-        return [i, column];
-      } else {
-        return null;
-      }
-    });
-    const filteredColumns = _.filter(columns, (e) => e != null);
-    // If all columns are eligible for being a y-column trace, then we'll make the first one the x-column.
-    if (filteredColumns.length === this.props.columns.length) {
-      return _.drop(filteredColumns, 1);
-    } else {
-      return filteredColumns;
+  changeGraphType(e: Event) {
+    if (e.target instanceof HTMLSelectElement) {
+      this.setState({mode: e.target.value, chartIsStale: true});
     }
-  }
-
-  canShowChart() {
-    return this.props.columns.length >= 2 &&
-      this.props.rows.length > 1 &&
-      this.props.rows.length < 500 &&
-      this.yColumns().length > 0;
-  }
-
-  changeGraphType(e) {
-    this.setState({mode: e.target.value});
   }
 
   conditionallyRenderChart() {
@@ -152,7 +171,7 @@ export class Result extends React.Component {
           </select>
           <div
             ref={this.setChartDataOnRef}
-            className="plotlyGraph" style={{width: "100%", height: "500px"}}
+            className="plotlyGraph"
           />
         </div>
       );
@@ -209,7 +228,7 @@ export class Result extends React.Component {
   }
 
   renderChartButton() {
-    if (this.canShowChart()) {
+    if (this.graphData.charteable()) {
       const chartButtonText = this.state.showChart ? "Hide chart" : "Show chart";
       return (
         <button
@@ -263,15 +282,3 @@ export class Result extends React.Component {
   }
 
 }
-
-Result.propTypes = {
-  id: React.PropTypes.string,
-  statement: React.PropTypes.string,
-  columns: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
-  rows: React.PropTypes.arrayOf(React.PropTypes.shape({
-    occurrences: React.PropTypes.integer,
-    row: React.PropTypes.array,
-  })).isRequired,
-  row_count: React.PropTypes.number,
-  info: Info.propTypes.info,
-};
