@@ -7,8 +7,19 @@ defmodule Air.PsqlServer.Protocol.Messages do
   # a separate module so we can reuse them in tests.
 
   def authentication_method(:cleartext), do: <<?R, 8::32, 3::32>>
+
   def authentication_ok(), do: <<?R, 8::32, 0::32>>
+
+  def fatal_error(code, message), do:
+    message_with_size(?E, <<
+      ?S, "FATAL", 0,
+      ?C, code::binary, 0,
+      ?M, message::binary, 0,
+      0
+    >>)
+
   def no_ssl(), do: <<?N>>
+
   def ready_for_query(), do: <<?Z, 5::32, ?I>>
 
   def password_length(<<?p, length::32>>), do: length - 4
@@ -31,4 +42,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     |> Stream.map(&List.to_tuple/1)
     |> Enum.into(%{})
   end
+
+  defp message_with_size(type, payload), do:
+    <<type, (4 + byte_size(payload))::32, payload::binary>>
 end

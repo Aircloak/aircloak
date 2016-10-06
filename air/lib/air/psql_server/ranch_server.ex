@@ -10,6 +10,7 @@ defmodule Air.PsqlServer.RanchServer do
   @behaviour :ranch_protocol
   use GenServer
 
+  alias Air.{Repo, User}
   alias Air.PsqlServer.Protocol
 
   #-----------------------------------------------------------------------------------------------------------
@@ -47,7 +48,8 @@ defmodule Air.PsqlServer.RanchServer do
       ref: ref,
       socket: socket,
       transport: transport,
-      protocol: Protocol.new()
+      protocol: Protocol.new(),
+      login_params: %{}
     }}
   end
 
@@ -66,6 +68,10 @@ defmodule Air.PsqlServer.RanchServer do
   def handle_info({:tcp_passive, _socket}, state) do
     set_active_mode(state)
     {:noreply, state}
+  end
+  def handle_info(:close, state) do
+    state.transport.close(state.socket)
+    {:stop, :normal, state}
   end
   def handle_info(_msg, state), do:
     {:noreply, state}
@@ -106,10 +112,18 @@ defmodule Air.PsqlServer.RanchServer do
     }
   end
 
-  defp handle_protocol_action({:login_params, _login_params}, state), do:
-    update_protocol(state, &Protocol.authentication_method(&1, :cleartext))
-  defp handle_protocol_action({:authenticate, _password}, state), do:
-    update_protocol(state, &Protocol.authenticated/1)
+  defp handle_protocol_action({:close, _reason}, state) do
+    send(self(), :close)
+    state
+  end
+  defp handle_protocol_action({:login_params, login_params}, state), do:
+    state
+    |> Map.put(:login_params, login_params)
+    |> update_protocol(&Protocol.authentication_method(&1, :cleartext))
+  defp handle_protocol_action({:authenticate, password}, state) do
+    user = Repo.get_by(User, email: state.login_params["user"])
+    update_protocol(state, &Protocol.authenticated(&1, User.validate_password(user, password)))
+  end
 
   defp update_protocol(state, fun), do:
     %{state | protocol: fun.(state.protocol)}

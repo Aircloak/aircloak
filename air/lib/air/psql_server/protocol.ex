@@ -77,9 +77,9 @@ defmodule Air.PsqlServer.Protocol do
     transition(state, {:authentication_method, authentication_method})
 
   @doc "Should be invoked by the driver if the user has been authenticated."
-  @spec authenticated(t) :: t
-  def authenticated(state), do:
-    transition(state, :authenticated)
+  @spec authenticated(t, boolean) :: t
+  def authenticated(state, success), do:
+    transition(state, {:authenticated, success})
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -105,6 +105,11 @@ defmodule Air.PsqlServer.Protocol do
   defp next_state(state, next_state_name, expecting \\ 0), do:
     %{state | name: next_state_name, expecting: expecting}
 
+  defp close(state, reason), do:
+    state
+    |> add_action({:close, reason})
+    |> next_state(:closed)
+
 
   #-----------------------------------------------------------------------------------------------------------
   # State transitions
@@ -125,9 +130,7 @@ defmodule Air.PsqlServer.Protocol do
         |> next_state(:initial, 8)
       startup_message ->
         if startup_message.version.major != 3 do
-          state
-          |> add_action({:close, :unsupported_protocol_version})
-          |> next_state(:closed)
+          close(state, :unsupported_protocol_version)
         else
           next_state(state, :login_params, startup_message.length)
         end
@@ -152,10 +155,15 @@ defmodule Air.PsqlServer.Protocol do
     |> add_action({:authenticate, null_terminated_to_string(null_terminated_password)})
     |> next_state(:authenticating)
   # :authenticating -> expecting authentication result from the driver
-  defp transition(state(:authenticating), :authenticated) do
+  defp transition(state(:authenticating), {:authenticated, true}) do
     state
     |> request_send(authentication_ok())
     |> request_send(ready_for_query())
     |> next_state(:connected)
   end
+  defp transition(state(:authenticating), {:authenticated, false}), do:
+    state
+    |> request_send(authentication_ok())
+    |> request_send(fatal_error("28000", "Authentication failed!"))
+    |> close(:not_authenticated)
 end
