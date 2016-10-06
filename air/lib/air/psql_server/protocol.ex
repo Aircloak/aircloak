@@ -7,7 +7,8 @@ defmodule Air.PsqlServer.Protocol do
 
   The module is implemented as a pure passive state machine, and doesn't deal with
   temporal logic, TCP communication, interaction with the system, or other side-effects.
-  These are left to the driver of the module (e.g. TCP server, or a test).
+  These are left to the driver of the module (e.g. TCP server, or a test). For an example
+  usage see `Air.PsqlServer.RanchServer`.
 
   The general usage flow starts by creating the initial protocol state with `new/0`.
   Then, the driver must feed input bytes to the state with `process/2`. As the result,

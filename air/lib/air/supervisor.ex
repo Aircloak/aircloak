@@ -15,6 +15,7 @@ defmodule Air.Supervisor do
       Air.ResultProcessor.observer_spec(),
       worker(Air.Endpoint, []),
       worker(Air.BOM, []),
+      Air.PsqlServer.RanchServer.supervisor_spec(8432)
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Air.Supervisor)
