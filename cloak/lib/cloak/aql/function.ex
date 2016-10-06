@@ -16,8 +16,8 @@ defmodule Cloak.Aql.Function do
   }
 
   @functions %{
-    ~w(count) => %{aggregate: true, type_specs: %{[:any] => :integer}},
-    ~w(sum median) => %{aggregate: true, type_specs: %{
+    ~w(count count_noise) => %{aggregate: true, type_specs: %{[:any] => :integer}},
+    ~w(sum median sum_noise) => %{aggregate: true, type_specs: %{
       [:integer] => :integer,
       [:real] => :real,
     }},
@@ -28,7 +28,7 @@ defmodule Cloak.Aql.Function do
       [:time] => :time,
       [:datetime] => :datetime,
     }},
-    ~w(avg stddev) => %{aggregate: true, type_specs: %{[numeric] => :real}},
+    ~w(avg stddev avg_noise stddev_noise) => %{aggregate: true, type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
       %{type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year month day weekday) =>
@@ -155,6 +155,7 @@ defmodule Cloak.Aql.Function do
   @spec type(t) :: data_type
   def type(function = {:function, _, _}), do: return_type(function)
   def type(%Column{type: type}), do: type
+  def type(:*), do: :any
 
   @doc "Returns true if the arguments to the given function call match the expected argument types, false otherwise."
   @spec well_typed?(t) :: boolean
@@ -207,6 +208,7 @@ defmodule Cloak.Aql.Function do
   defp type_matches?({:optional, type}, argument), do: type_matches?(type, argument)
   defp type_matches?({:or, types}, argument), do: Enum.any?(types, &type_matches?(&1, argument))
   defp type_matches?(:any, _), do: true
+  defp type_matches?(_, :*), do: false
   defp type_matches?(expected_type, %{type: actual_type}), do:
     expected_type == actual_type
 

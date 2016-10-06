@@ -1,10 +1,15 @@
+// @flow
+
 import React from "react";
 import ReactDOM from "react-dom";
 import $ from "jquery";
 
 import {AuditLogEntryView} from "./entry";
+import type {Entry} from "./entry";
 import {DateFilter} from "./date_filter";
 import {FilterControl} from "./filter_control";
+
+type Props = {entries: Entry[]}
 
 class AuditLogView extends React.Component {
   constructor(props) {
@@ -20,6 +25,12 @@ class AuditLogView extends React.Component {
     this.filterTextToFilters = this.filterTextToFilters.bind(this);
     this.loadData = this.loadData.bind(this);
   }
+
+  state: {filterText: string, loadingData: boolean, entries: Entry[]}
+  props: Props;
+  filterTextChange: () => void;
+  filterTextToFilters: () => void;
+  loadData: () => void;
 
   filterTextChange(event) {
     const filterText = event.target.value;
@@ -94,10 +105,6 @@ class AuditLogView extends React.Component {
   }
 }
 
-export default function renderAuditLogView(data, elem) {
+export default function renderAuditLogView(data: Props, elem: Node) {
   ReactDOM.render(<AuditLogView {...data} />, elem);
 }
-
-AuditLogView.propTypes = {
-  entries: React.PropTypes.arrayOf(AuditLogEntryView.propTypes.entry),
-};

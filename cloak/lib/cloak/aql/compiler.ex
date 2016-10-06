@@ -652,6 +652,7 @@ defmodule Cloak.Aql.Compiler do
   defp map_terminal_element(%Column{} = column, mapper_fun), do: mapper_fun.(column)
   defp map_terminal_element({:identifier, _, _} = identifier, mapper_fun), do: mapper_fun.(identifier)
   defp map_terminal_element({:function, "count", :*} = function, _converter_fun), do: function
+  defp map_terminal_element({:function, "count_noise", :*} = function, _converter_fun), do: function
   defp map_terminal_element({:function, function, identifier}, converter_fun),
     do: converter_fun.({:function, function, map_terminal_element(identifier, converter_fun)})
   defp map_terminal_element({:distinct, identifier}, converter_fun),
@@ -736,6 +737,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp extract_columns(%Column{} = column), do: [column]
   defp extract_columns({:function, "count", [:*]}), do: [nil]
+  defp extract_columns({:function, "count_noise", [:*]}), do: [nil]
   defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)
   defp extract_columns({:distinct, expression}), do: extract_columns(expression)
   defp extract_columns([columns]), do: Enum.flat_map(columns, &extract_columns(&1))
@@ -822,7 +824,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp set_column_db_row_position(other, _query), do: other
 
-  defp db_column_name(%Column{table: :unknown, name: name}), do: name
+  defp db_column_name(%Column{table: :unknown} = column), do: (column.name || column.alias)
   defp db_column_name(column), do: "#{column.table.db_name}.#{column.name}"
 
   defp join_conditions_scope_check(from) do

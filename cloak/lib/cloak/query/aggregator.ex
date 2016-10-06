@@ -1,5 +1,8 @@
 defmodule Cloak.Query.Aggregator do
   @moduledoc "This module aggregates the values into an anonymized result. See `aggregate/2` for details."
+
+  require Logger
+
   alias Cloak.DataSource
   alias Cloak.Aql.Query
   alias Cloak.Aql.{Column, Function}
@@ -65,6 +68,7 @@ defmodule Cloak.Query.Aggregator do
   end
 
   defp group_by_property(rows, query) do
+    Logger.debug("Grouping rows ...")
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
       property = for column <- query.property, do: Function.apply_to_db_row(column, row)
@@ -83,25 +87,23 @@ defmodule Cloak.Query.Aggregator do
 
   defp user_id([user_id | _rest]), do: user_id
 
-  defp init_anonymizer(grouped_rows) do
-    for {property, users_rows} <- grouped_rows,
-      do: {property, Anonymizer.new(users_rows), users_rows}
-  end
+  defp init_anonymizer(grouped_rows), do:
+    for {property, users_rows} <- grouped_rows, do:
+      {property, Anonymizer.new(users_rows), users_rows}
 
-  defp low_users_count?({_property, anonymizer, users_rows}),
-    do: low_users_count?(users_rows, anonymizer)
+  defp low_users_count?({_property, anonymizer, users_rows}), do:
+    low_users_count?(users_rows, anonymizer)
 
-  defp low_users_count?(count, anonymizer) when is_number(count) do
+  defp low_users_count?(count, anonymizer) when is_integer(count) do
     {sufficiently_large?, _} = Anonymizer.sufficiently_large?(anonymizer, count)
     not sufficiently_large?
   end
-  defp low_users_count?(values, anonymizer) do
-    {sufficiently_large?, _} = Anonymizer.sufficiently_large?(anonymizer, Enum.count(values))
-    not sufficiently_large?
-  end
+  defp low_users_count?(values, anonymizer), do:
+    values |> Enum.count() |> low_users_count?(anonymizer)
 
   @spec process_low_count_users(properties, Query.t) :: properties
   defp process_low_count_users(rows, query) do
+    Logger.debug("Processing low count users ...")
     {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
     lcf_users_rows = Enum.reduce(low_count_rows, %{},
       fn ({_property, _anonymizer, users_rows}, accumulator) ->
@@ -120,19 +122,26 @@ defmodule Cloak.Query.Aggregator do
 
   @spec aggregate_properties(properties, Query.t) :: [DataSource.row]
   defp aggregate_properties(properties, query) do
+    Logger.debug("Aggregating properties ...")
     Enum.map(properties, &aggregate_property(&1, query))
   end
 
   defp aggregate_property({property_values, anonymizer, users_rows}, query) do
-    all_users_rows = Map.values(users_rows)
     aggregated_columns = Query.aggregated_columns(query)
 
-    aggregation_results = for {:function, function, arguments}  <- query.aggregators, column <- arguments do
+    aggregation_results = for {:function, function, [column]}  <- query.aggregators do
       values_index = Enum.find_index(aggregated_columns, &column == &1)
-      aggregated_values = all_users_rows |> Stream.map(&Enum.at(&1, values_index)) |> Stream.reject(&[] === &1)
+      aggregated_values =
+        users_rows
+        |> Stream.map(fn ({_user, values}) -> Enum.at(values, values_index) end)
+        |> Enum.reject(&[] === &1)
       case low_users_count?(aggregated_values, anonymizer) do
         true  -> nil
-        false -> aggregated_values |> preprocess_for_aggregation(column) |> aggregate_by(function, anonymizer)
+        false ->
+          aggregated_values
+          |> preprocess_for_aggregation(column)
+          |> aggregate_by(function, anonymizer)
+          |> post_process_result(function, users_rows, values_index)
       end
     end
 
@@ -155,45 +164,100 @@ defmodule Cloak.Query.Aggregator do
   end
   defp preprocess_for_aggregation(values, _column), do: values
 
-  defp aggregate_by(aggregation_data, "count", anonymizer), do: Anonymizer.count(anonymizer, aggregation_data)
-  defp aggregate_by(aggregation_data, "sum", anonymizer), do: Anonymizer.sum(anonymizer, aggregation_data)
+  defp aggregate_by(aggregation_data, "count", anonymizer) do
+    {count, _noise_sigma} = Anonymizer.count(anonymizer, aggregation_data)
+    count
+  end
+  defp aggregate_by(aggregation_data, "sum", anonymizer) do
+    {sum, _noise_sigma} = Anonymizer.sum(anonymizer, aggregation_data)
+    sum
+  end
+  defp aggregate_by(aggregation_data, "avg", anonymizer) do
+    {avg, _noise_sigma} = Anonymizer.avg(anonymizer, aggregation_data)
+    avg
+  end
+  defp aggregate_by(aggregation_data, "stddev", anonymizer) do
+    {stddev, _noise_sigma} = Anonymizer.stddev(anonymizer, aggregation_data)
+    stddev
+  end
+  defp aggregate_by(aggregation_data, "count_noise", anonymizer) do
+    {_count, noise_sigma} = Anonymizer.count(anonymizer, aggregation_data)
+    noise_sigma
+  end
+  defp aggregate_by(aggregation_data, "sum_noise", anonymizer) do
+    {_sum, noise_sigma} = Anonymizer.sum(anonymizer, aggregation_data)
+    noise_sigma
+  end
+  defp aggregate_by(aggregation_data, "avg_noise", anonymizer) do
+    {_avg, noise_sigma} = Anonymizer.avg(anonymizer, aggregation_data)
+    noise_sigma
+  end
+  defp aggregate_by(aggregation_data, "stddev_noise", anonymizer) do
+    {_stddev, noise_sigma} = Anonymizer.stddev(anonymizer, aggregation_data)
+    noise_sigma
+  end
   defp aggregate_by(aggregation_data, "min", anonymizer), do: Anonymizer.min(anonymizer, aggregation_data)
   defp aggregate_by(aggregation_data, "max", anonymizer), do: Anonymizer.max(anonymizer, aggregation_data)
-  defp aggregate_by(aggregation_data, "avg", anonymizer), do: Anonymizer.avg(anonymizer, aggregation_data)
-  defp aggregate_by(aggregation_data, "stddev", anonymizer), do: Anonymizer.stddev(anonymizer, aggregation_data)
   defp aggregate_by(aggregation_data, "median", anonymizer), do: Anonymizer.median(anonymizer, aggregation_data)
   defp aggregate_by(_, unknown_aggregator, _) do
-    raise "Aggregator '#{unknown_aggregator}' is not implemented yet!"
+    raise "Aggregator '#{unknown_aggregator}' is not supported!"
+  end
+
+  # For min / max aggregators, if there is a value which passes the LCF and
+  # it is lower / greater than the aggregated result, we want to show that instead.
+  defp post_process_result(result, "max", users_rows, values_index) do
+    group_values(users_rows, fn (rows) ->
+      rows |> Enum.at(values_index) |> Enum.filter(& &1 > result)
+    end)
+    |> Stream.concat([result])
+    |> Enum.max()
+  end
+  defp post_process_result(result, "min", users_rows, values_index) do
+    group_values(users_rows, fn (rows) ->
+      rows |> Enum.at(values_index) |> Enum.filter(& &1 < result)
+    end)
+    |> Stream.concat([result])
+    |> Enum.min()
+  end
+  defp post_process_result(result, _function, _users_rows, _values_index), do: result
+
+  defp group_values(users_rows, rows_reducer) do
+    users_rows
+    |> Enum.map(fn ({user, rows}) -> {user, rows_reducer.(rows)} end)
+    |> Enum.reduce(%{}, fn ({user, values}, acc) ->
+      Enum.reduce(values, acc, fn (value, acc) -> Map.update(acc, value, [user], &[user | &1]) end)
+    end)
+    |> Enum.reject(fn ({_value, users}) -> low_users_count?(users, Anonymizer.new(users)) end)
+    |> Enum.map(fn ({value, _users}) -> value end)
   end
 
   defp make_buckets([], %Query{property: []} = query) do
     # If there are no results for a global aggregation, we'll produce one row.
     # All results will be `nil`-ed except for `count` which will have the value of 0.
     aggregated_values = Enum.map(query.aggregators, fn
-      {_, "count", _} -> 0
-      _ -> nil
+      {:function, "count", _args} -> 0
+      {:function, _name, _args} -> nil
     end)
     [%{row: aggregated_values, occurrences: 1}]
   end
   defp make_buckets(rows, query) do
+    Logger.debug("Making buckets ...")
     columns =
       (query.property ++ query.aggregators)
       |> Enum.with_index()
       |> Enum.into(%{})
-
-    Enum.map(rows,
-      &%{
-        row: selected_values(&1, columns, query),
-        occurrences: occurrences(&1, columns, query)
-      }
-    )
+    Enum.map(rows, &make_bucket(&1, columns, query))
   end
 
-  defp selected_values(row, columns, query) do
-    for selected_column <- query.columns do
+  defp make_bucket(row, columns, query), do:
+    %{
+      row: selected_values(row, columns, query),
+      occurrences: occurrences(row, columns, query)
+    }
+
+  defp selected_values(row, columns, query), do:
+    for selected_column <- query.columns, do:
       fetch_bucket_value!(row, columns, selected_column)
-    end
-  end
 
   defp occurrences(row, columns, %Query{implicit_count: true}), do:
     fetch_bucket_value!(row, columns, {:function, "count", [:*]})
@@ -203,12 +267,8 @@ defmodule Cloak.Query.Aggregator do
     if selected?(columns, function),
       do: Enum.at(row, Map.fetch!(columns, function)),
       else: Enum.map(args, &fetch_bucket_value!(row, columns, &1)) |> Function.apply(function)
-  defp fetch_bucket_value!(_row, _columns, %Column{constant?: true, value: value}), do:
-    value
-  defp fetch_bucket_value!(row, columns, column), do:
-    Enum.at(row, Map.fetch!(columns, column))
+  defp fetch_bucket_value!(_row, _columns, %Column{constant?: true, value: value}), do: value
+  defp fetch_bucket_value!(row, columns, column), do: Enum.at(row, Map.fetch!(columns, column))
 
-  defp selected?(columns, column) do
-    Map.has_key?(columns, column)
-  end
+  defp selected?(columns, column), do: Map.has_key?(columns, column)
 end

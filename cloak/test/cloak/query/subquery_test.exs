@@ -70,4 +70,17 @@ defmodule Cloak.Query.SubqueryTest do
     assert_query "select height from (select user_id, height from heights_sq order by height limit 50 offset 80) alias",
       %{columns: ["height"], rows: [%{row: [180], occurrences: 20}]}
   end
+
+  test "subquery can handle multiple functions" do
+    assert_query(
+      """
+        select min_h, max_h
+        from (select user_id, min(height) as min_h, max(height) as max_h
+              from heights_sq
+              group by user_id
+             ) t
+      """,
+      %{columns: ["min_h", "max_h"], rows: [%{occurrences: 100, row: [180, 180]}]}
+    )
+  end
 end

@@ -1,9 +1,11 @@
+// @flow
+
 import React from "react";
 import Codemirror from "react-codemirror";
 
 require("codemirror/mode/sql/sql");
 
-export const CodeViewer = (props) => {
+export const CodeViewer = (props: {statement: string}) => {
   const options = {
     indentUnit: 2,
     indentWithTabs: false,
@@ -23,8 +25,4 @@ export const CodeViewer = (props) => {
       options={options}
     />
   );
-};
-
-CodeViewer.propTypes = {
-  statement: React.PropTypes.string,
 };

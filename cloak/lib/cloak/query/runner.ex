@@ -104,6 +104,7 @@ defmodule Cloak.Query.Runner do
   ## ----------------------------------------------------------------
 
   defp run_query(data_source, statement) do
+    Logger.debug("Parsing statement `#{statement}` ...")
     with {:ok, sql_query} <- Query.make(data_source, statement) do
       execute_sql_query(sql_query)
     end
@@ -111,24 +112,19 @@ defmodule Cloak.Query.Runner do
 
   defp execute_sql_query(%Query{command: :show, show: :tables} = query) do
     columns = ["name"]
-    rows = DataSource.tables(query.data_source)
-    |> Enum.map(fn(table) -> %{occurrences: 1, row: [table]} end)
-
+    rows = for {id, _table} <- query.data_source.tables, do: %{occurrences: 1, row: [id]}
     successful_result({:buckets, columns, rows}, query)
   end
   defp execute_sql_query(%Query{command: :show, show: :columns} = query) do
     columns = ["name", "type"]
     [table] = query.selected_tables
-    rows = Enum.map(
-      table.columns,
-      fn({name, type}) -> %{occurrences: 1, row: [name, type]} end
-    )
-
+    rows = for {name, type} <- table.columns, do: %{occurrences: 1, row: [name, type]}
     successful_result({:buckets, columns, rows}, query)
   end
   defp execute_sql_query(%Query{command: :select} = query) do
     try do
       with {:ok, buckets} <- DataSource.select(query, fn (rows) ->
+        Logger.debug("Processing rows ...")
         rows
         |> NegativeCondition.apply(query)
         |> Aggregator.aggregate(query)

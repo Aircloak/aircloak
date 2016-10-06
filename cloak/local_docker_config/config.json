@@ -1,5 +1,5 @@
 {
-  "air_socket_url": "ws://air:8080/cloak/socket/websocket",
+  "air_site": "ws://air:8080",
   "data_sources": [
     {
       "driver": "postgresql",

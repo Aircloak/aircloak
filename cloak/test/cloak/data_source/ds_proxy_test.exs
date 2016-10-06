@@ -220,7 +220,7 @@ defmodule Cloak.DataSource.DsProxyTest do
 
   defp default_data_source(test_context) do
     %{
-      id: test_context.data_source_id,
+      global_id: test_context.data_source_id,
       driver: DsProxy,
       salt: "test-salt",
       parameters: [url: test_context.url],
