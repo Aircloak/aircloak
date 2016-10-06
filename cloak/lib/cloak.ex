@@ -2,6 +2,7 @@ defmodule Cloak do
   @moduledoc false
   use Application
   require Aircloak.DeployConfig
+  require Logger
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
@@ -13,12 +14,8 @@ defmodule Cloak do
   end
 
   defp set_salt() do
-    salt = case Aircloak.DeployConfig.fetch("salt") do
-      :error -> "default salt"
-      {:ok, value} -> value
-    end
     existing_env = Application.get_env(:cloak, :anonymizer)
-    new_env = Keyword.put(existing_env, :salt, salt)
+    new_env = Keyword.put(existing_env, :salt, get_salt())
     Application.put_env(:cloak, :anonymizer, new_env)
   end
 
@@ -47,6 +44,15 @@ defmodule Cloak do
       [
         worker(Cloak.AirSocket, [])
       ]
+    end
+  end
+
+  defp get_salt() do
+    case Aircloak.DeployConfig.fetch("salt") do
+      :error ->
+        raise("Please specify a salt in the cloak configuration file (config.json). " <>
+          "The salt is a requirement for strong anonymization.")
+      {:ok, value} -> value
     end
   end
 end
