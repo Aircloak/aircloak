@@ -413,7 +413,6 @@ defmodule Cloak.Aql.Compiler do
   end
   defp partition_where_clauses(query) do
     {require_lcf_check, safe_clauses} = Enum.partition(query.where, &requires_lcf_check?/1)
-    require_lcf_check = Enum.map(require_lcf_check, fn({:not, clause}) -> clause end)
     unsafe_filter_columns = Enum.map(require_lcf_check, &where_clause_to_identifier/1)
 
     %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_check,
@@ -422,6 +421,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp requires_lcf_check?({:not, {:is, _, :null}}), do: false
   defp requires_lcf_check?({:not, _other}), do: true
+  defp requires_lcf_check?({:in, _column, _values}), do: true
   defp requires_lcf_check?(_other), do: false
 
   defp verify_joins(query) do

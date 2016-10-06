@@ -42,38 +42,62 @@ defmodule Cloak.Query.LowCountFilterableConditions do
     @moduledoc false
     # This holds the state for a filter during the stream processing.
     # We capture all matched rows and users until we are have enough information to make a decision.
-    # If we hit the `hard_limit` amount of users, we stop gathering and start dropping rows directly.
-    # Otherwise, we make a decision when the end of the stream is reached.
-    defstruct matcher: nil, matched_rows: [], matched_users: MapSet.new(), match_hard_limit: 0
+    # If we hit the `hard_limit` amount of users, we stop gathering rows and instead either drop of keep
+    # the rows based on the `match_decision`-criteria. The keep or drop decision is perform at the very
+    # latest when the end of the stream is reached.
+    defstruct matcher: nil, matched_rows: [], matched_users: MapSet.new(), match_hard_limit: 0, match_decision: nil
 
     # Returns true if a filter matches a row.
     def matches?(%Filter{matcher: matcher}, row), do: matcher.(row)
 
     # At the end of the stream we need to make a decision about the matched rows.
-    # If we have enough matched users, we drop any rows captured,
-    # otherwise we send them forward for processing.
-    @dialyzer [:no_opaque, :no_return] # needed becaus of the Anonymizer.new(MapSet.t) call
-    def flush(%Filter{matched_users: users, matched_rows: rows, match_hard_limit: hard_limit}) do
+    @dialyzer [:no_opaque, :no_return] # needed because of the Anonymizer.new(MapSet.t) call
+    def flush(%Filter{matched_users: users, matched_rows: rows, match_hard_limit: hard_limit,
+        match_decision: match_decision}) do
       matched_users_count = MapSet.size(users)
       {sufficient_matches, _} = Anonymizer.sufficiently_large?(Anonymizer.new(users), matched_users_count)
       case matched_users_count >= hard_limit or sufficient_matches do
-        true -> []
-        false -> rows
+        true -> flush_action(match_decision, :sufficient_matches, rows)
+        false -> flush_action(match_decision, :insufficient_matches, rows)
       end
     end
 
     defp user_id([user_id | _rest]), do: user_id
 
     # This is called when a row is matched by the filter.
-    # If we are under the hard limit of matched users, we store the row for later processing.
-    # otherwise, we can drop the row right now and not worry about it anymore.
+    # If the number of distinct users for whom we have collected rows does not exceed the hard limit, we store the
+    # row in the filter. This allows us to make a final keep or throw decision once the threshold has been reached.
+    # If the number of distinct users exceeds the limit, we either drop or keep the row, based on the `match_decision`
+    # filter criteria.
     def take(%Filter{matched_rows: rows, matched_users: users, match_hard_limit: hard_limit} = filter, row) do
       matched_users_count = MapSet.size(users)
       case matched_users_count >= hard_limit do
-        true -> filter
-        false -> %Filter{filter | matched_rows: [row | rows], matched_users: MapSet.put(users, user_id(row))}
+        true -> enough_users_take_or_drop_row(row, filter)
+        false ->
+          filter_with_row = %Filter{filter | matched_rows: [row | rows],
+            matched_users: MapSet.put(users, user_id(row))}
+          {filter_with_row, :drop}
       end
     end
+
+    # This is called when:
+    # - a row matches a filter, and
+    # - there are enough distinct users with the same row to pass the low count filter
+    # Depending on the `match_decision` criteria, the row is either kept or dropped from the stream.
+    defp enough_users_take_or_drop_row(row, %Filter{match_decision: :keep} = filter), do: {filter, row}
+    defp enough_users_take_or_drop_row(_row, %Filter{match_decision: :drop} = filter), do: {filter, :drop}
+
+    # This is called when we have reached the end of the stream, and decides how to handle rows cached in a filter.
+    # If the `match_decision` criteria is to:
+    # - `keep` and there were sufficient users, then the cached rows are passed on for further processing since
+    #   the low count filter was satisfied,
+    # - `drop` and there _were not_ sufficient users to reach the low count filter threshold, then the cached
+    #   rows are also passed on for further processing, since the negative condition was not satisfied,
+    # - otherwise, the rows are dropped
+    @dialyzer [:no_unused] # needed because Dialyzer things the parent won't be called
+    defp flush_action(:keep, :sufficient_matches, rows), do: rows
+    defp flush_action(:drop, :insufficient_matches, rows), do: rows
+    defp flush_action(_decision, _whether_sufficient_matches, _rows), do: []
   end
 
   defp process_input_row(:done, filters), do:
@@ -95,33 +119,40 @@ defmodule Cloak.Query.LowCountFilterableConditions do
   defp match_filter(filter, row) do
     case Filter.matches?(filter, row) do
       false -> {filter, row}
-      true -> {Filter.take(filter, row), :drop}
+      true -> Filter.take(filter, row)
     end
   end
 
-  # Converts the 'where not' clauses into filters for the stream of rows.
+  # Converts the lcf check condition clauses into filters for the stream of rows.
   defp filters(clauses) do
     {low_count_mean, low_count_sd} = Anonymizer.config(:low_count_soft_lower_bound)
     # Once we match this amount of users we can confidently make a decision to apply the filter.
     hard_limit = low_count_sd * 5 + low_count_mean
-    for clause <- clauses, do: %Filter{matcher: matcher(clause), match_hard_limit: hard_limit}
+    Enum.flat_map(clauses, fn(clause) ->
+      for {matcher, match_decision} <- matchers(clause), do:
+        %Filter{matcher: matcher, match_hard_limit: hard_limit, match_decision: match_decision}
+    end)
   end
 
-  defp matcher({:comparison, column, :=, value}) do
+  defp matchers({:not, {:comparison, column, :=, value}}) do
     value = extract_value(value)
-    fn (row) -> Function.apply_to_db_row(column, row) == value end
+    [{fn (row) -> Function.apply_to_db_row(column, row) == value end, :drop}]
   end
-  defp matcher({:like, column, %Column{type: :text, value: pattern}}) do
+  defp matchers({:not, {:like, column, %Column{type: :text, value: pattern}}}) do
     regex = to_regex(pattern)
-    fn (row) -> Function.apply_to_db_row(column, row) =~ regex end
+    [{fn (row) -> Function.apply_to_db_row(column, row) =~ regex end, :drop}]
   end
-  defp matcher({:ilike, column, %Column{type: :text, value: pattern}}) do
+  defp matchers({:not, {:ilike, column, %Column{type: :text, value: pattern}}}) do
     regex = to_regex(pattern, [_case_insensitive = "i"])
-    fn (row) -> Function.apply_to_db_row(column, row) =~ regex end
+    [{fn (row) -> Function.apply_to_db_row(column, row) =~ regex end, :drop}]
   end
-  defp matcher({:in, column, values}) do
-    values = Enum.map(values, &extract_value/1)
-    fn (row) -> Enum.member?(values, Function.apply_to_db_row(column, row)) end
+  defp matchers({:not, {:in, column, values}}) do
+    Enum.flat_map(values, &matchers({:not, {:comparison, column, :=, &1}}))
+  end
+  defp matchers({:in, column, values}) do
+    values
+    |> Enum.flat_map(&matchers({:not, {:comparison, column, :=, &1}}))
+    |> Enum.map(fn({matcher, _action}) -> {matcher, :keep} end)
   end
 
   defp extract_value(%Column{value: value}), do: value
