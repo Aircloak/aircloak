@@ -128,10 +128,12 @@ defmodule Cloak.Query.LowCountFilterableConditions do
     {low_count_mean, low_count_sd} = Anonymizer.config(:low_count_soft_lower_bound)
     # Once we match this amount of users we can confidently make a decision to apply the filter.
     hard_limit = low_count_sd * 5 + low_count_mean
-    Enum.flat_map(clauses, fn(clause) ->
+    clauses
+    |> Enum.flat_map(fn(clause) ->
       for {matcher, match_decision} <- matchers(clause), do:
         %Filter{matcher: matcher, match_hard_limit: hard_limit, match_decision: match_decision}
     end)
+    |> Enum.sort_by(&(&1.match_decision))
   end
 
   defp matchers({:not, {:comparison, column, :=, value}}) do
