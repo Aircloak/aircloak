@@ -7,6 +7,7 @@ defmodule Cloak do
   # for more information on OTP Applications
   def start(_type, _args) do
     set_salt()
+    if Aircloak.DeployConfig.fetch("debug") === {:ok, true} do Logger.configure(level: :debug) end
     :ok = Cloak.DataSource.start()
     Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor)
   end

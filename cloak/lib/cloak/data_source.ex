@@ -134,10 +134,13 @@ defmodule Cloak.DataSource do
   @spec select(Aql.t, result_processor) :: {:ok, processed_result} | {:error, any}
   def select(%{data_source: data_source} = select_query, result_processor) do
     driver = data_source.driver
+    Logger.debug("Connecting to `#{data_source.global_id}` ...")
     with {:ok, connection} <- driver.connect(data_source.parameters) do
       try do
+        Logger.debug("Selecting data ...")
         driver.select(connection, select_query, result_processor)
       after
+        Logger.debug("Disconnecting ...")
         driver.disconnect(connection)
       end
     end
