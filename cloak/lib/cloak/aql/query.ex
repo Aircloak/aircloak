@@ -20,7 +20,7 @@ defmodule Cloak.Aql.Query do
     unsafe_filter_columns: [Column.t],
     group_by: [Function.t],
     where: [Parser.where_clause],
-    where_not: [Parser.where_clause],
+    lcf_check_conditions: [Parser.where_clause],
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [DataSource.table],
@@ -33,8 +33,8 @@ defmodule Cloak.Aql.Query do
   }
 
   defstruct [
-    columns: [], where: [], where_not: [], unsafe_filter_columns: [], group_by: [], order_by: [],
-    column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
+    columns: [], where: [], lcf_check_conditions: [], unsafe_filter_columns: [], group_by: [],
+    order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0
   ]

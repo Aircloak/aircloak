@@ -40,7 +40,7 @@ defmodule Cloak.Aql.Compiler.Test do
   test "casts datetime in negated conditions" do
     result = compile!("select * from table where column <> '2015-01-01'", data_source())
 
-    assert [{:comparison, column("table", "column"), :=, ~N[2015-01-01 00:00:00.000000]}] = result.where_not
+    assert [{:comparison, column("table", "column"), :=, ~N[2015-01-01 00:00:00.000000]}] = result.lcf_check_conditions
   end
 
   test "reports malformed datetimes" do
@@ -302,7 +302,7 @@ defmodule Cloak.Aql.Compiler.Test do
       data_source)
     assert [column("table", "column"), {:function, "count", [column("table", "column")]}] = result.columns
     assert [{:comparison, column("table", "column"), :>, _}] = result.where
-    assert [{:comparison, column("table", "column"), :=, _}] = result.where_not
+    assert [{:comparison, column("table", "column"), :=, _}] = result.lcf_check_conditions
     assert [column("table", "column")] = result.unsafe_filter_columns
     assert [column("table", "column")] = result.group_by
     assert result.order_by == [{1, :desc}, {1, :desc}]

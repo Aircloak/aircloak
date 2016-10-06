@@ -1,6 +1,7 @@
-defmodule Cloak.Query.NegativeCondition do
+defmodule Cloak.Query.LowCountFilterableConditions do
   @moduledoc """
-  Implements handling of negated LIKE, ILIKE and equality WHERE clauses on the side of the application.
+  Implements handling of filters that should not apply if there are not enough users present.
+  This includes negated LIKE, ILIKE and equality WHERE clauses, as well as the IN-clause.
   These need special handling, because a malicious analyst would be able to find out information about
   individuals by adding a condition that would exclude an individual from a result set. Then by comparing
   the result of a query with and without that condition the analyst can find out if that user was in fact
@@ -16,16 +17,16 @@ defmodule Cloak.Query.NegativeCondition do
   # -------------------------------------------------------------------
 
   @doc """
-  Applies or ignores negative conditions in the query to the given rows.
+  Applies or ignores potentially low countable conditions in the query to the given rows.
   The input is wrapped in our custom stream object and filtered during processing.
   Note: the order of the input rows is not guaranteed to be kept after filtering.
   """
   @spec apply(Enumerable.t, Query.t) :: Enumerable.t
-  def apply(rows, %Query{where_not: []}),
+  def apply(rows, %Query{lcf_check_conditions: []}),
     # no negative conditions, so we immediately pass all the rows through to avoid
     # needless intermediate wrapping which will return all rows anyway
     do: rows
-  def apply(rows, %Query{where_not: clauses}) do
+  def apply(rows, %Query{lcf_check_conditions: clauses}) do
     rows
     # add one more element so we can produce additional rows after the input has been exhausted
     |> Stream.concat([:done])
