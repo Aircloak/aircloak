@@ -19,13 +19,7 @@ defmodule Air.PsqlServer.ProtocolTest do
       |> standard_login()
       |> out_actions()
 
-    assert out_actions == [
-      login_params: %{"user" => "some_user"},
-      send: authentication_method(:cleartext),
-      authenticate: "some_password",
-      send: authentication_ok(),
-      send: ready_for_query()
-    ]
+    assert out_actions == successful_login_actions()
   end
 
   test "login with ssl attempt" do
@@ -35,14 +29,7 @@ defmodule Air.PsqlServer.ProtocolTest do
       |> standard_login()
       |> out_actions()
 
-    assert out_actions == [
-      send: no_ssl(),
-      login_params: %{"user" => "some_user"},
-      send: authentication_method(:cleartext),
-      authenticate: "some_password",
-      send: authentication_ok(),
-      send: ready_for_query()
-    ]
+    assert out_actions == [send: no_ssl()] ++ successful_login_actions()
   end
 
   test "failed login" do
@@ -82,4 +69,15 @@ defmodule Air.PsqlServer.ProtocolTest do
       fn({fun_name, args}, protocol_acc) -> apply(Protocol, fun_name, [protocol_acc | args]) end
     )
   end
+
+  defp successful_login_actions(), do:
+    [
+      login_params: %{"user" => "some_user"},
+      send: authentication_method(:cleartext),
+      authenticate: "some_password",
+      send: authentication_ok(),
+      send: parameter_status("application_name", "aircloak"),
+      send: parameter_status("server_version", "1.0.0"),
+      send: ready_for_query()
+    ]
 end

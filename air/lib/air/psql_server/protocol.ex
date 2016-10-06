@@ -158,6 +158,8 @@ defmodule Air.PsqlServer.Protocol do
   defp transition(state(:authenticating), {:authenticated, true}) do
     state
     |> request_send(authentication_ok())
+    |> request_send(parameter_status("application_name", "aircloak"))
+    |> request_send(parameter_status("server_version", "1.0.0"))
     |> request_send(ready_for_query())
     |> next_state(:connected)
   end

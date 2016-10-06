@@ -22,6 +22,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def ready_for_query(), do: <<?Z, 5::32, ?I>>
 
+  def parameter_status(name, value), do:
+    message_with_size(?S, <<name::binary, 0, value::binary, 0>>)
+
   def password_length(<<?p, length::32>>), do: length - 4
 
   def startup_message(<<8::32, 1234::16, 5679::16>>), do:
