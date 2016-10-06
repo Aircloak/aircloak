@@ -40,9 +40,12 @@ docs:
 release:
 	NODE_ENV=production MIX_ENV=prod mix do compile, site_release
 
-lint: eslint
+lint: eslint flow
 	MIX_ENV=dev mix lint
 	MIX_ENV=test mix lint
+
+flow:
+	node_modules/.bin/flow check
 
 eslint:
 	node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules web/static/js

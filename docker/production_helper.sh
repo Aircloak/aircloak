@@ -53,7 +53,7 @@ function start_component {
     docker rm $1 || true
 
     echo 'Starting container $1'
-    docker run -d \\
+    docker run -d -t \\
       --name $1 \\
       -v $RUNTIME_CONFIG_PATH:/runtime_config \\
       $DOCKER_ARGS \\

@@ -1,10 +1,19 @@
+// @flow
+
 import React from "react";
 import ReactDOM from "react-dom";
 import _ from "lodash";
 
-import {Table} from "./table";
+import {TableView} from "./table";
+import type {Table} from "./table";
+
+type Props = {tables: Table[]};
 
 class TableInfo extends React.Component {
+  props: Props;
+  state: {expanded: Set<string>};
+  toggleExpand: (t: Table) => (() => void);
+
   constructor(props) {
     super(props);
 
@@ -41,17 +50,19 @@ class TableInfo extends React.Component {
 
       <div className="table-info-content">
         {this.tables().map((table, i) =>
-          <Table key={i} table={table} expanded={this.expanded(table)} onClick={this.toggleExpand(table)} />
+          <
+            TableView
+            key={i}
+            table={table}
+            expanded={this.expanded(table)}
+            onClick={this.toggleExpand(table)}
+          />
         )}
       </div>
     </div>);
   }
 }
 
-TableInfo.propTypes = {
-  tables: React.PropTypes.arrayOf(Table.propTypes.table).isRequired,
-};
-
-export default function renderTableInfo(data, elem) {
+export default function renderTableInfo(data: Props, elem: Node) {
   ReactDOM.render(<TableInfo {...data} />, elem);
 }

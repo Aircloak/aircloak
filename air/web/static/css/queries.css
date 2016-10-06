@@ -52,3 +52,9 @@
   margin-top: -20px;
   font-size: 0.9em;
 }
+
+.plotlyGraph {
+  margin-left: -15px;
+  min-height: 600px;
+  display: block;
+}

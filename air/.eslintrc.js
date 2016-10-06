@@ -1,7 +1,14 @@
 module.exports = {
-  "extends": "airbnb",
+  "extends": [
+    "airbnb",
+    "plugin:flowtype/recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+  ],
+  "parser": "babel-eslint",
   "plugins": [
-    "react"
+    "react",
+    "flowtype"
   ],
   "rules": {
     "allow-unused-underscore-vars": ["error"],
@@ -11,5 +18,15 @@ module.exports = {
     "max-len": ["error", {"code": 110}],
     /* FIXME break out all components to separate files and turn this on */
     "react/no-multi-comp": ["off"],
+    "flowtype/require-valid-file-annotation": [2, "always"],
+    /* Does not play well with flow annotations */
+    "react/sort-comp": ["off"],
+    /* Handled by plugin-import */
+    "no-duplicate-imports": ["off"],
+  },
+  "settings": {
+    "flowtype": {
+      "onlyFilesWithFlowAnnotation": false
+    }
   }
 };
