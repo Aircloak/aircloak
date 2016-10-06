@@ -527,7 +527,7 @@ defmodule Cloak.Aql.Compiler do
     |> inequalities_by_column()
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
-      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited on both sides"
+      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited to a finite range"
       _ -> :ok
     end
   end

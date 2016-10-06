@@ -425,12 +425,12 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "rejects inequalities on numeric columns that are not ranges" do
     assert {:error, error} = compile("select * from table where numeric > 5", data_source())
-    assert error == "Column `numeric` must be limited on both sides"
+    assert error == "Column `numeric` must be limited to a finite range"
   end
 
   test "rejects inequalities on numeric columns that are negatives of ranges" do
     assert {:error, error} = compile("select * from table where numeric < 2 and numeric > 5", data_source())
-    assert error == "Column `numeric` must be limited on both sides"
+    assert error == "Column `numeric` must be limited to a finite range"
   end
 
   test "accepts inequalities on numeric columns that are ranges" do
