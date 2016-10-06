@@ -49,9 +49,8 @@ defmodule Cloak do
   defp get_salt() do
     case Aircloak.DeployConfig.fetch("salt") do
       :error ->
-        Logger.warn("Generating a custom random salt. Results will differ after a cloak restart. " <>
-          "Please add a salt to your cloak configuration file (config.json) to get consistent " <>
-          "results.")
+        raise("Please specify a salt in the cloak configuration file (config.json). " <>
+          "The salt is a requirement for strong anonymization.")
         :crypto.strong_rand_bytes(64) |> Base.encode64()
       {:ok, value} -> value
     end
