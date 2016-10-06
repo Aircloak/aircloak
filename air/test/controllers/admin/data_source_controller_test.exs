@@ -83,25 +83,24 @@ defmodule Air.Admin.DataSourceControllerTest do
     end))
   end
 
-  test "redirect to index on attempting to show non-existent data source" do
+  test "render 404 on attempting to show non-existent data source" do
     admin = TestRepoHelper.create_admin_user!()
-    assert login(admin) |> get("/admin/data_sources/99999") |> redirected_to() === "/admin/data_sources"
+    assert login(admin) |> get("/admin/data_sources/99999") |> response(404)
   end
 
-  test "redirect to index on attempting to render edit form for non-existent data source" do
+  test "render 404 on attempting to render edit form for non-existent data source" do
     admin = TestRepoHelper.create_admin_user!()
-    assert login(admin) |> get("/admin/data_sources/99999/edit") |> redirected_to() === "/admin/data_sources"
+    assert login(admin) |> get("/admin/data_sources/99999/edit") |> response(404)
   end
 
-  test "redirect to index on attempting to update a non-existent data source" do
+  test "render 404 on attempting to update a non-existent data source" do
     admin = TestRepoHelper.create_admin_user!()
-    conn = login(admin) |> put("/admin/data_sources/99999", data_source: %{name: "some name"})
-    assert conn |> redirected_to() === "/admin/data_sources"
+    assert login(admin) |> put("/admin/data_sources/99999", data_source: %{name: "some name"}) |> response(404)
   end
 
-  test "redirect to index on attempting to delete a non-existent data source" do
+  test "render 404 on attempting to delete a non-existent data source" do
     admin = TestRepoHelper.create_admin_user!()
-    assert login(admin) |> delete("/admin/data_sources/99999") |> redirected_to() === "/admin/data_sources"
+    assert login(admin) |> delete("/admin/data_sources/99999") |> response(404)
   end
 
   defp register_data_source() do

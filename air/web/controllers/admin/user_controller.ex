@@ -92,8 +92,9 @@ defmodule Air.Admin.UserController do
     case Repo.get(User, conn.params["id"]) do
       nil ->
         conn
-        |> put_flash(:error, "The user could not be found")
-        |> redirect(to: admin_user_path(conn, :index))
+        |> put_layout(false)
+        |> put_status(:not_found)
+        |> render(Air.ErrorView, "404.html")
         |> halt()
       user ->
         user = Repo.preload(user, [:groups])

@@ -98,8 +98,9 @@ defmodule Air.Admin.DataSourceController do
     case Repo.get(DataSource, conn.params["id"]) do
       nil ->
         conn
-        |> put_flash(:error, "The data source could not be found")
-        |> redirect(to: admin_data_source_path(conn, :index))
+        |> put_layout(false)
+        |> put_status(:not_found)
+        |> render(Air.ErrorView, "404.html")
         |> halt()
       data_source ->
         data_source = Repo.preload(data_source, [:groups])
