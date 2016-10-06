@@ -1,5 +1,5 @@
 defmodule Air.PsqlServer.Protocol.Messages do
-  @doc false
+  @moduledoc false
 
   # Helpers for working with PostgreSQL protocol messages described in
   # https://www.postgresql.org/docs/9.6/static/protocol-message-formats.html.
