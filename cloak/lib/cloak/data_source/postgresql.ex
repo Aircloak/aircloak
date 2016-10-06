@@ -65,6 +65,7 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   defp parse_type("varchar"), do: :text
   defp parse_type("char"), do: :text
+  defp parse_type("bpchar"), do: :text
   defp parse_type("text"), do: :text
   defp parse_type("bool"), do: :boolean
   defp parse_type("int2"), do: :integer
