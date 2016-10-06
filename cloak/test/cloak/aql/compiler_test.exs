@@ -451,6 +451,12 @@ defmodule Cloak.Aql.Compiler.Test do
     assert compile!("select count(*) from table where numeric >= 1 and numeric < 2", data_source()).info == []
   end
 
+  test "silently discards redundant inequalities" do
+    assert compile("select count(*) from table
+      where numeric >= 1 and numeric > 0.9 and numeric < 2 and numeric <= 2.1", data_source()) ==
+      compile("select count(*) from table where numeric >= 1 and numeric < 2", data_source())
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result

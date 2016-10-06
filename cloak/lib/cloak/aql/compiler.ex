@@ -546,7 +546,17 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.filter(&Comparison.inequality?/1)
     |> Enum.group_by(&where_clause_to_identifier/1)
     |> Enum.filter(fn({column, _}) -> Enum.member?([:integer, :real], column.type) end)
+    |> Enum.map(&discard_redundant_inequalities/1)
     |> Enum.into(%{})
+  end
+
+  defp discard_redundant_inequalities({column, inequalities}) do
+    case {bottom, top} = Enum.partition(inequalities, &(Comparison.direction(&1) == :>)) do
+      {[], []} -> {column, []}
+      {_, []} -> {column, [Enum.max_by(bottom, &Comparison.value/1)]}
+      {[], _} -> {column, [Enum.min_by(top, &Comparison.value/1)]}
+      {_, _} -> {column, [Enum.max_by(bottom, &Comparison.value/1), Enum.min_by(top, &Comparison.value/1)]}
+    end
   end
 
   defp cast_where_clauses(%Query{where: [_|_] = clauses} = query) do
