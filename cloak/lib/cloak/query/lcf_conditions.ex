@@ -1,4 +1,4 @@
-defmodule Cloak.Query.LowCountFilterableConditions do
+defmodule Cloak.Query.LCFConditions do
   @moduledoc """
   Implements handling of filters that should not apply if there are not enough users present.
   This includes negated LIKE, ILIKE and equality WHERE clauses, as well as the IN-clause.

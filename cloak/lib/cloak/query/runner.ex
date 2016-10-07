@@ -12,7 +12,7 @@ defmodule Cloak.Query.Runner do
 
   alias Cloak.Aql.Query
   alias Cloak.DataSource
-  alias Cloak.Query.{Aggregator, LowCountFilterableConditions, Sorter}
+  alias Cloak.Query.{Aggregator, LCFConditions, Sorter}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
 
@@ -126,7 +126,7 @@ defmodule Cloak.Query.Runner do
       with {:ok, buckets} <- DataSource.select(query, fn (rows) ->
         Logger.debug("Processing rows ...")
         rows
-        |> LowCountFilterableConditions.apply(query)
+        |> LCFConditions.apply(query)
         |> Aggregator.aggregate(query)
         |> Sorter.order(query)
         |> offset(query)
