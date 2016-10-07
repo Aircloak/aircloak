@@ -13,6 +13,7 @@ defmodule Air.Query do
     field :tables, {:array, :string}
     field :result, :string
     field :execution_time, :integer
+    field :au_count, :integer
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
