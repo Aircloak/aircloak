@@ -12,7 +12,7 @@ defmodule Cloak.Query.Runner do
 
   alias Cloak.Aql.Query
   alias Cloak.DataSource
-  alias Cloak.Query.{Aggregator, NegativeCondition, Sorter}
+  alias Cloak.Query.{Aggregator, NegativeCondition, Sorter, Result}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
 
@@ -113,17 +113,17 @@ defmodule Cloak.Query.Runner do
   defp execute_sql_query(%Query{command: :show, show: :tables} = query) do
     columns = ["name"]
     rows = for {id, _table} <- query.data_source.tables, do: %{occurrences: 1, row: [id]}
-    successful_result({:buckets, columns, rows}, query)
+    successful_result(%Result{rows: rows, columns: columns}, query)
   end
   defp execute_sql_query(%Query{command: :show, show: :columns} = query) do
     columns = ["name", "type"]
     [table] = query.selected_tables
     rows = for {name, type} <- table.columns, do: %{occurrences: 1, row: [name, type]}
-    successful_result({:buckets, columns, rows}, query)
+    successful_result(%Result{rows: rows, columns: columns}, query)
   end
   defp execute_sql_query(%Query{command: :select} = query) do
     try do
-      with {:ok, buckets} <- DataSource.select(query, fn (rows) ->
+      with {:ok, result} <- DataSource.select(query, fn (rows) ->
         Logger.debug("Processing rows ...")
         rows
         |> NegativeCondition.apply(query)
@@ -131,7 +131,7 @@ defmodule Cloak.Query.Runner do
         |> Sorter.order(query)
         |> offset(query)
         |> limit(query)
-      end), do: successful_result({:buckets, query.column_titles, buckets}, query)
+      end), do: successful_result(%Result{result | columns: query.column_titles}, query)
     rescue e in [RuntimeError] ->
       {:error, e.message}
     end
@@ -145,7 +145,7 @@ defmodule Cloak.Query.Runner do
   # Result reporting
   # -------------------------------------------------------------------
 
-  defp report_result(state, {:ok, {:buckets, columns, rows}, info}) do
+  defp report_result(state, {:ok, %Result{rows: rows, columns: columns}, info}) do
     state = add_execution_time(state)
     log_completion(state, status: :success, row_count: length(rows))
     result = %{
@@ -193,15 +193,22 @@ defmodule Cloak.Query.Runner do
     div(execution_time, 1000)
   end
 
-  defp limit(rows, %Query{limit: nil}), do: rows
-  defp limit(rows, %Query{limit: amount}), do: rows |> take(amount, []) |> Enum.reverse()
+  defp limit(result, %Query{limit: nil}), do: result
+  defp limit(%Result{rows: rows} = result, %Query{limit: amount}) do
+    limited_rows = rows
+      |> take(amount, [])
+      |> Enum.reverse()
+    %Result{result | rows: limited_rows}
+  end
 
   defp take([], _amount, acc), do: acc
   defp take([%{occurrences: occurrences} = bucket | rest], amount, acc) when occurrences < amount, do:
     take(rest, amount - occurrences, [bucket | acc])
   defp take([%{} = bucket | _rest], amount, acc), do: [%{bucket | occurrences: amount} | acc]
 
-  defp offset(rows, %Query{offset: amount}), do: drop(rows, amount)
+  defp offset(%Result{rows: rows} = result, %Query{offset: amount}) do
+    %Result{result | rows: drop(rows, amount)}
+  end
 
   defp drop(buckets, 0), do: buckets
   defp drop([], _amount), do: []

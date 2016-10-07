@@ -6,7 +6,7 @@ defmodule Cloak.Query.Aggregator do
   alias Cloak.DataSource
   alias Cloak.Aql.Query
   alias Cloak.Aql.{Column, Function}
-  alias Cloak.Query.Anonymizer
+  alias Cloak.Query.{Anonymizer, Result}
 
   @typep property_values :: [DataSource.field | :*]
   @typep user_id :: DataSource.field
@@ -44,13 +44,14 @@ defmodule Cloak.Query.Aggregator do
 
   Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
   """
-  @spec aggregate(Enumerable.t, Query.t) :: [bucket]
+  @spec aggregate(Enumerable.t, Query.t) :: Result.t
   def aggregate(rows, query) do
-    rows
-    |> group_by_property(query)
-    |> process_low_count_users(query)
-    |> aggregate_properties(query)
-    |> make_buckets(query)
+    aggregated_rows = rows
+      |> group_by_property(query)
+      |> process_low_count_users(query)
+      |> aggregate_properties(query)
+      |> make_buckets(query)
+    %Result{rows: aggregated_rows}
   end
 
 

@@ -2,6 +2,7 @@ defmodule Cloak.Test.QueryHelpers do
   @moduledoc false
 
   alias Cloak.Query
+  alias Cloak.Query.Result
 
   defmacro assert_query(query, expected_response) do
     quote do
