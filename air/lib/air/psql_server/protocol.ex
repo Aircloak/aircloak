@@ -87,16 +87,14 @@ defmodule Air.PsqlServer.Protocol do
   #-----------------------------------------------------------------------------------------------------------
 
   defp process_buffer(%{expecting: expecting, buffer: buffer} = state)
-    when expecting > 0 and byte_size(buffer) >= expecting
-  do
+      when expecting > 0 and byte_size(buffer) >= expecting do
     <<message::binary-size(expecting)>> <> rest_buffer = buffer
 
     %{state | expecting: 0, buffer: rest_buffer}
     |> transition({:message, message})
     |> process_buffer()
   end
-  defp process_buffer(state), do:
-    state
+  defp process_buffer(state), do: state
 
   defp request_send(state, action), do: add_action(state, {:send, action})
 
