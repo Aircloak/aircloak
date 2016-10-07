@@ -165,6 +165,10 @@ defmodule Air.PsqlServer.Protocol do
   end
   defp transition(state(:authenticating), {:authenticated, false}), do:
     state
+    # We're sending AuthenticationOK to indicate to the client that the auth procedure went fine. Then
+    # we'll send a fatal error with a custom error message. It is unclear from the official docs that it
+    # should be done this way. However, this approach produces a nicer error message, and it's the same
+    # in PostgreSQL server (determined by wireshark).
     |> request_send(authentication_ok())
     |> request_send(fatal_error("28000", "Authentication failed!"))
     |> close(:not_authenticated)
