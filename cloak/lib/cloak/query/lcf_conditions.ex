@@ -17,7 +17,7 @@ defmodule Cloak.Query.LCFConditions do
   # -------------------------------------------------------------------
 
   @doc """
-  Applies or ignores potentially low countable conditions in the query to the given rows.
+  Applies or ignores potentially low-count filtered conditions in the query to the given rows.
   The input is wrapped in our custom stream object and filtered during processing.
   Note: the order of the input rows is not guaranteed to be kept after filtering.
   """
@@ -42,9 +42,11 @@ defmodule Cloak.Query.LCFConditions do
     @moduledoc false
     # This holds the state for a filter during the stream processing.
     # We capture all matched rows and users until we are have enough information to make a decision.
-    # If we hit the `hard_limit` amount of users, we stop gathering rows and instead either drop of keep
-    # the rows based on the `match_decision`-criteria. The keep or drop decision is perform at the very
-    # latest when the end of the stream is reached.
+    # Upon reaching the `hard_limit` number of users the low count threshold is satisfied. We can then
+    # either immediately remove rows from the stream (if the `match_decision` is set to `:drop`), or
+    # immediately let them pass on for further processing (if the `match_decision` is set to `:keep`).
+    # When the end of the stream is reached we also make a final decision based on the `match_decision`
+    # and whether or not the `hard_limit` was reached.
     defstruct matcher: nil, matched_rows: [], matched_users: MapSet.new(), match_hard_limit: 0, match_decision: nil
 
     # Returns true if a filter matches a row.
@@ -72,7 +74,7 @@ defmodule Cloak.Query.LCFConditions do
     def take(%Filter{matched_rows: rows, matched_users: users, match_hard_limit: hard_limit} = filter, row) do
       matched_users_count = MapSet.size(users)
       case matched_users_count >= hard_limit do
-        true -> enough_users_take_or_drop_row(row, filter)
+        true -> apply_match_decision(row, filter)
         false ->
           filter_with_row = %Filter{filter | matched_rows: [row | rows],
             matched_users: MapSet.put(users, user_id(row))}
@@ -84,8 +86,8 @@ defmodule Cloak.Query.LCFConditions do
     # - a row matches a filter, and
     # - there are enough distinct users with the same row to pass the low count filter
     # Depending on the `match_decision` criteria, the row is either kept or dropped from the stream.
-    defp enough_users_take_or_drop_row(row, %Filter{match_decision: :keep} = filter), do: {filter, row}
-    defp enough_users_take_or_drop_row(_row, %Filter{match_decision: :drop} = filter), do: {filter, :drop}
+    defp apply_match_decision(row, %Filter{match_decision: :keep} = filter), do: {filter, row}
+    defp apply_match_decision(_row, %Filter{match_decision: :drop} = filter), do: {filter, :drop}
 
     # This is called when we have reached the end of the stream, and decides how to handle rows cached in a filter.
     # If the `match_decision` criteria is to:
@@ -123,7 +125,7 @@ defmodule Cloak.Query.LCFConditions do
     end
   end
 
-  # Converts the lcf check condition clauses into filters for the stream of rows.
+  # Converts the lcf check conditions into filters for the stream of rows.
   defp filters(clauses) do
     {low_count_mean, low_count_sd} = Anonymizer.config(:low_count_soft_lower_bound)
     # Once we match this amount of users we can confidently make a decision to apply the filter.
