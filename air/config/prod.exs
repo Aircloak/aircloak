@@ -51,3 +51,6 @@ config :phoenix, :serve_endpoints, true
 
 config :air, Air.BOM,
   location: "priv/bom.json"
+
+config :air, Air.PsqlServer,
+  port: 5432
