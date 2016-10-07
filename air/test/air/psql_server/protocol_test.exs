@@ -5,11 +5,9 @@ defmodule Air.PsqlServer.ProtocolTest do
   import Air.PsqlServer.Protocol.Messages
 
   test "invalid version number" do
-    major = 4
-    minor = 0
     assert {:close, :unsupported_protocol_version} ==
       negotiate_ssl()
-      |> run_actions(process: [<<8::32, major::16, minor::16>>])
+      |> run_actions(process: [startup_message(4, 0, [])])
       |> last_action()
   end
 
@@ -22,7 +20,7 @@ defmodule Air.PsqlServer.ProtocolTest do
   test "ssl required" do
     assert {:close, :required_ssl} ==
       Protocol.new()
-      |> run_actions(process: [<<23::32, 3::16, 0::16, "user", 0, "some_user", 0>>])
+      |> run_actions(process: [startup_message(3, 0, [])])
       |> last_action()
   end
 
@@ -33,7 +31,7 @@ defmodule Air.PsqlServer.ProtocolTest do
 
   defp negotiate_ssl() do
     protocol = run_actions(Protocol.new(),
-      process: [<<8::32, 1234::16, 5679::16>>],
+      process: [ssl_message()],
       ssl_negotiated: []
     )
 
@@ -46,9 +44,9 @@ defmodule Air.PsqlServer.ProtocolTest do
   defp authenticate(authentication_success) do
     protocol =
       run_actions(negotiate_ssl(),
-        process: [<<23::32, 3::16, 0::16, "user", 0, "some_user", 0>>],
+        process: [startup_message(3, 0, user: "some_user")],
         authentication_method: [:cleartext],
-        process: [<<?p, 18::32, "some_password", 0>>]
+        process: [password_message("some_password")]
       )
 
     {actions, protocol} = Protocol.actions(protocol)

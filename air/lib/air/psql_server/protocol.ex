@@ -142,7 +142,7 @@ defmodule Air.PsqlServer.Protocol do
     next_state(state, :startup_message, 8)
   # :startup_message -> expecting startup message from the client
   defp transition(state(:startup_message), {:message, message}) do
-    startup_message = startup_message(message)
+    startup_message = parse_startup_message(message)
     if startup_message.version.major != 3 do
       close(state, :unsupported_protocol_version)
     else
