@@ -7,6 +7,8 @@ defmodule Air.Admin.DataSourceController do
 
   alias Air.{DataSource, DataSourceManager, AuditLog, User}
 
+  plug :load_data_source when action in [:show, :edit, :update, :delete]
+
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -42,13 +44,13 @@ defmodule Air.Admin.DataSourceController do
     render(conn, "index.html", data_sources: data_sources, users_count: users_count)
   end
 
-  def edit(conn, %{"id" => id}) do
-    data_source = Repo.get(DataSource, id) |> Repo.preload([:groups])
+  def edit(conn, _params) do
+    data_source = conn.assigns.data_source
     render(conn, "edit.html", changeset: DataSource.changeset(data_source), chosen_groups: data_source.groups)
   end
 
-  def update(conn, %{"id" => id} = params) do
-    user = Repo.get!(DataSource, id) |> Repo.preload([:groups])
+  def update(conn, params) do
+    user = conn.assigns.data_source
     changeset = DataSource.changeset(user, params["data_source"])
     case Repo.update(changeset) do
       {:ok, data_source} ->
@@ -60,14 +62,14 @@ defmodule Air.Admin.DataSourceController do
     end
   end
 
-  def show(conn, %{"id" => id}) do
-    data_source = Repo.get(DataSource, id) |> Repo.preload([:groups])
+  def show(conn, _params) do
+    data_source = conn.assigns.data_source
 
     query = from user in User,
       distinct: user.id,
       inner_join: group in assoc(user, :groups),
       inner_join: data_source in assoc(group, :data_sources),
-      where: data_source.id == ^id,
+      where: data_source.id == ^data_source.id,
       select: user
     users = Repo.all(query)
 
@@ -78,12 +80,31 @@ defmodule Air.Admin.DataSourceController do
     )
   end
 
-  def delete(conn, %{"id" => id}) do
-    data_source = Repo.get!(DataSource, id)
+  def delete(conn, _params) do
+    data_source = conn.assigns.data_source
     Repo.delete!(data_source)
     AuditLog.log(conn, "Removed data source", name: data_source.name, global_id: data_source.global_id)
     conn
     |> put_flash(:info, "Data source deleted")
-    |> redirect(to: "/admin/data_sources")
+    |> redirect(to: admin_data_source_path(conn, :index))
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp load_data_source(conn, _) do
+    case Repo.get(DataSource, conn.params["id"]) do
+      nil ->
+        conn
+        |> put_layout(false)
+        |> put_status(:not_found)
+        |> render(Air.ErrorView, "404.html")
+        |> halt()
+      data_source ->
+        data_source = Repo.preload(data_source, [:groups])
+        assign(conn, :data_source, data_source)
+    end
   end
 end

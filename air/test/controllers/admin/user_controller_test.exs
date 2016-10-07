@@ -73,4 +73,21 @@ defmodule Air.Admin.UserControllerTest do
     users_html = login(admin) |> get("/admin/users") |> response(200)
     refute users_html =~ user.email
   end
+
+  test "render 404 on attempting to render edit form for non-existent user" do
+    admin = TestRepoHelper.create_admin_user!()
+    assert login(admin) |> get("/admin/users/99999/edit") |> response(404)
+  end
+
+  test "render 404 on attempting to update a non-existent user" do
+    admin = TestRepoHelper.create_admin_user!()
+    assert login(admin)
+    |> put("/admin/users/99999", user: %{email: "some@email.com", name: "some name"})
+    |> response(404)
+  end
+
+  test "render 404 on attempting to delete a non-existent user" do
+    admin = TestRepoHelper.create_admin_user!()
+    assert login(admin) |> delete("/admin/users/99999") |> response(404)
+  end
 end

@@ -4,6 +4,8 @@ defmodule Air.Admin.UserController do
 
   alias Air.{User, AuditLog}
 
+  plug :load_user when action in [:edit, :update, :delete]
+
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -43,8 +45,8 @@ defmodule Air.Admin.UserController do
     render(conn, "new.html", changeset: changeset)
   end
 
-  def edit(conn, %{"id" => id}) do
-    user = Repo.get!(User, id) |> Repo.preload([:groups])
+  def edit(conn, _params) do
+    user = conn.assigns.user
     render(conn, "edit.html", changeset: User.changeset(user), user: user)
   end
 
@@ -60,9 +62,8 @@ defmodule Air.Admin.UserController do
     end
   end
 
-  def update(conn, %{"id" => id} = params) do
-    user = Repo.get!(User, id) |> Repo.preload([:groups])
-    changeset = User.changeset(user, params["user"])
+  def update(conn, params) do
+    changeset = User.changeset(conn.assigns.user, params["user"])
     case Repo.update(changeset) do
       {:ok, user} ->
         AuditLog.log(conn, "Altered user", user: user.email, name: user.name)
@@ -73,12 +74,31 @@ defmodule Air.Admin.UserController do
     end
   end
 
-  def delete(conn, %{"id" => id}) do
-    user = Repo.get!(User, id)
+  def delete(conn, _params) do
+    user = conn.assigns.user
     Repo.delete!(user)
     AuditLog.log(conn, "Removed user", user: user.email, name: user.name)
     conn
     |> put_flash(:info, "User deleted")
     |> redirect(to: admin_user_path(conn, :index))
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp load_user(conn, _) do
+    case Repo.get(User, conn.params["id"]) do
+      nil ->
+        conn
+        |> put_layout(false)
+        |> put_status(:not_found)
+        |> render(Air.ErrorView, "404.html")
+        |> halt()
+      user ->
+        user = Repo.preload(user, [:groups])
+        assign(conn, :user, user)
+    end
   end
 end

@@ -35,7 +35,7 @@ defmodule Air.ApiTokenControllerTest do
     other_user_token = create_token_entity!(other_user)
 
     not_found_html = login(user) |> delete(api_token_path(conn, :delete, other_user_token)) |> response(404)
-    assert not_found_html =~ "not found"
+    assert not_found_html =~ "Not found"
   end
 
   test "deletes chosen api token", %{conn: conn} do
