@@ -10,6 +10,8 @@ defmodule Air.PsqlServer.RanchServer do
   @behaviour :ranch_protocol
   use GenServer
 
+  require Logger
+
   alias Air.{Repo, User}
   alias Air.PsqlServer.Protocol
 
@@ -17,15 +19,18 @@ defmodule Air.PsqlServer.RanchServer do
   # API
   #-----------------------------------------------------------------------------------------------------------
 
-  @doc "Returns the supervisor specification for the TCP server on the given port."
-  @spec supervisor_spec(pos_integer) :: Supervisor.child_spec
-  def supervisor_spec(port), do:
+  @doc "Returns the supervisor specification for the TCP server."
+  @spec supervisor_spec() :: Supervisor.child_spec
+  def supervisor_spec() do
+    port = Application.fetch_env!(:air, Air.PsqlServer)[:port]
+    Logger.info("Accepting PostgreSQL requests on port #{port}")
     :ranch.child_spec(
       __MODULE__,
       100,
       :ranch_tcp, [port: port],
       __MODULE__, nil
     )
+  end
 
 
   #-----------------------------------------------------------------------------------------------------------
