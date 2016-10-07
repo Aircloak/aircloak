@@ -270,7 +270,7 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
 
-    assert_query "select count(*) from heights where height > 170 and height < 190",
+    assert_query "select count(*) from heights where height >= 180 and height < 190",
       %{query_id: "1", columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
   end
 

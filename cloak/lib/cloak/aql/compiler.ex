@@ -2,11 +2,8 @@ defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.DataSource
-  alias Cloak.Aql.Query
-  alias Cloak.Aql.Column
-  alias Cloak.Aql.Parser
+  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query}
   alias Cloak.Aql.Parsers.Token
-  alias Cloak.Aql.Function
 
   defmodule CompilationError do
     @moduledoc false
@@ -97,6 +94,7 @@ defmodule Cloak.Aql.Compiler do
       |> compile_order_by()
       |> verify_joins()
       |> cast_where_clauses()
+      |> align_ranges()
       |> partition_selected_columns()
       |> partition_where_clauses()
       |> calculate_db_columns()
@@ -484,6 +482,82 @@ defmodule Cloak.Aql.Compiler do
     join.conditions ++ all_join_conditions(join.lhs) ++ all_join_conditions(join.rhs)
   end
   defp all_join_conditions(_), do: []
+
+  defp align_ranges(%Query{where: [_|_] = clauses} = query) do
+    verify_ranges(query)
+
+    ranges = inequalities_by_column(clauses)
+    non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), where_clause_to_identifier(&1)))
+
+    Enum.reduce(ranges, %{query | where: non_range_clauses}, &add_aligned_range/2)
+  end
+  defp align_ranges(query), do: query
+
+  defp add_aligned_range({column, conditions}, query) do
+    {left, right} =
+      conditions
+      |> Enum.map(&Comparison.value/1)
+      |> Enum.sort()
+      |> List.to_tuple()
+      |> FixAlign.align()
+
+    if implement_range?({left, right}, conditions) do
+      %{query | where: conditions ++ query.where}
+    else
+      query
+      |> add_where_clause({:comparison, column, :<, Column.constant(:real, right)})
+      |> add_where_clause({:comparison, column, :>=, Column.constant(:real, left)})
+      |> add_info_message(
+        "The range for column `#{column.name}` has been adjusted to #{left} <= `#{column.name}` < #{right}"
+      )
+    end
+  end
+
+  defp implement_range?({left, right}, conditions) do
+    [{_, _, left_operator, left_column}, {_, _, right_operator, right_column}] =
+      Enum.sort_by(conditions, &Comparison.value/1)
+
+    left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
+  end
+
+  defp add_where_clause(query, clause), do: %{query | where: [clause | query.where]}
+
+  defp verify_ranges(%Query{where: clauses}) do
+    clauses
+    |> inequalities_by_column()
+    |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
+    |> case do
+      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited to a finite range"
+      _ -> :ok
+    end
+  end
+
+  defp valid_range?(comparisons) do
+    case Enum.sort_by(comparisons, &Comparison.direction/1, &Kernel.>/2) do
+      [cmp1, cmp2] ->
+        Comparison.direction(cmp1) != Comparison.direction(cmp2) &&
+          Comparison.value(cmp1) <= Comparison.value(cmp2)
+      _ -> false
+    end
+  end
+
+  defp inequalities_by_column(where_clauses) do
+    where_clauses
+    |> Enum.filter(&Comparison.inequality?/1)
+    |> Enum.group_by(&where_clause_to_identifier/1)
+    |> Enum.filter(fn({column, _}) -> Enum.member?([:integer, :real], column.type) end)
+    |> Enum.map(&discard_redundant_inequalities/1)
+    |> Enum.into(%{})
+  end
+
+  defp discard_redundant_inequalities({column, inequalities}) do
+    case {bottom, top} = Enum.partition(inequalities, &(Comparison.direction(&1) == :>)) do
+      {[], []} -> {column, []}
+      {_, []} -> {column, [Enum.max_by(bottom, &Comparison.value/1)]}
+      {[], _} -> {column, [Enum.min_by(top, &Comparison.value/1)]}
+      {_, _} -> {column, [Enum.max_by(bottom, &Comparison.value/1), Enum.min_by(top, &Comparison.value/1)]}
+    end
+  end
 
   defp cast_where_clauses(%Query{where: [_|_] = clauses} = query) do
     %Query{query | where: Enum.map(clauses, &cast_where_clause/1)}

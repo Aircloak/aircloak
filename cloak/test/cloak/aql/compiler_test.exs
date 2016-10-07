@@ -336,15 +336,17 @@ defmodule Cloak.Aql.Compiler.Test do
     result = compile!("""
         SELECT t1.c1
         FROM t1, t2
-        WHERE c2 > 10 AND t1.uid = t2.uid
+        WHERE c2 > 10 AND c2 < 20
+        AND t1.uid = t2.uid
         GROUP BY t1.c1, c3
         ORDER BY t1.c1 DESC
       """,
       data_source)
     assert [column("t1", "c1")] = result.columns
-    assert [comparison1, comparison2] = result.where
-    assert {:comparison, column("t1", "c2"), :>, _} = comparison1
-    assert {:comparison, column("t1", "uid"), :=, column("t2", "uid")} = comparison2
+    assert [comparison1, comparison2, comparison3] = result.where
+    assert {:comparison, column("t1", "c2"), :>=, _} = comparison1
+    assert {:comparison, column("t1", "c2"), :<, _} = comparison2
+    assert {:comparison, column("t1", "uid"), :=, column("t2", "uid")} = comparison3
     assert [column("t1", "c1"), column("t2", "c3")] = result.group_by
     assert result.order_by == [{0, :desc}]
   end
@@ -419,6 +421,40 @@ defmodule Cloak.Aql.Compiler.Test do
   test "incorrect application of +" do
     assert {:error, error} = compile("select 'a' + 'b' from table", data_source())
     assert error == "Arguments of type (`text`, `text`) are incorrect for `+`"
+  end
+
+  test "rejects inequalities on numeric columns that are not ranges" do
+    assert {:error, error} = compile("select * from table where numeric > 5", data_source())
+    assert error == "Column `numeric` must be limited to a finite range"
+  end
+
+  test "rejects inequalities on numeric columns that are negatives of ranges" do
+    assert {:error, error} = compile("select * from table where numeric < 2 and numeric > 5", data_source())
+    assert error == "Column `numeric` must be limited to a finite range"
+  end
+
+  test "accepts inequalities on numeric columns that are ranges" do
+    assert {:ok, _} = compile("select * from table where numeric > 5 and numeric < 8", data_source())
+  end
+
+  test "fixes alignment of ranges" do
+    assert compile!("select * from table where numeric > 1 and numeric < 9", data_source()).where
+      == compile!("select * from table where numeric > 0 and numeric < 10", data_source()).where
+  end
+
+  test "includes an info message when the aligment is fixed" do
+    assert [msg] = compile!("select count(*) from table where numeric >= 0.1 and numeric < 1.9", data_source()).info
+    assert msg == "The range for column `numeric` has been adjusted to 0.0 <= `numeric` < 2.0"
+  end
+
+  test "does not include an info message when the alignment does not need to be fixed" do
+    assert compile!("select count(*) from table where numeric >= 1 and numeric < 2", data_source()).info == []
+  end
+
+  test "silently discards redundant inequalities" do
+    assert compile("select count(*) from table
+      where numeric >= 1 and numeric > 0.9 and numeric < 2 and numeric <= 2.1", data_source()) ==
+      compile("select count(*) from table where numeric >= 1 and numeric < 2", data_source())
   end
 
   defp compile!(query_string, data_source) do
