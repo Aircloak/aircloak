@@ -71,7 +71,7 @@ defmodule Air.PsqlServer.Protocol do
   def process(state, input), do:
     process_buffer(%{state | buffer: state.buffer <> input})
 
-  @doc "Should be invoked by the driver to feed input bytes to the protocol state machine."
+  @doc "Should be invoked by the driver to choose the authentication method."
   @spec authentication_method(t, authentication_method) :: t
   def authentication_method(state, authentication_method), do:
     transition(state, {:authentication_method, authentication_method})
