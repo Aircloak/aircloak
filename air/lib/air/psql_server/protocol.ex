@@ -66,6 +66,11 @@ defmodule Air.PsqlServer.Protocol do
   def actions(state), do:
     {Enum.reverse(state.actions), %{state | actions: []}}
 
+  @doc "Should be invoked by the driver after the connection is upgraded to ssl."
+  @spec ssl_negotiated(t) :: t
+  def ssl_negotiated(state), do:
+    transition(state, :ssl_negotiated)
+
   @doc "Should be invoked by the driver to feed input bytes to the protocol state machine."
   @spec process(t, binary) :: t
   def process(state, input), do:
@@ -121,17 +126,27 @@ defmodule Air.PsqlServer.Protocol do
     state
   # :initial -> awaiting SSLRequest or StartupMessage
   defp transition(state(:initial), {:message, message}) do
-    case startup_message(message) do
-      :ssl_request ->
-        state
-        |> request_send(no_ssl())
-        |> next_state(:initial, 8)
-      startup_message ->
-        if startup_message.version.major != 3 do
-          close(state, :unsupported_protocol_version)
-        else
-          next_state(state, :login_params, startup_message.length)
-        end
+    if ssl_message?(message) do
+      state
+      |> request_send(require_ssl())
+      |> add_action(:upgrade_to_ssl)
+      |> next_state(:ssl)
+    else
+      state
+      |> request_send(fatal_error("28000", "Only SSL connections are allowed!"))
+      |> close(:required_ssl)
+    end
+  end
+  # :ssl -> waiting for the connection to be upgraded to SSL
+  defp transition(state(:ssl), :ssl_negotiated), do:
+    next_state(state, :startup_message, 8)
+  # :startup_message -> expecting startup message from the client
+  defp transition(state(:startup_message), {:message, message}) do
+    startup_message = startup_message(message)
+    if startup_message.version.major != 3 do
+      close(state, :unsupported_protocol_version)
+    else
+      next_state(state, :login_params, startup_message.length)
     end
   end
   # :login_params -> expecting login params from the client

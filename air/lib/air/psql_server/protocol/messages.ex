@@ -18,7 +18,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
       0
     >>)
 
-  def no_ssl(), do: <<?N>>
+  def require_ssl(), do: <<?S>>
 
   def ready_for_query(), do: <<?Z, 5::32, ?I>>
 
@@ -27,8 +27,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def password_length(<<?p, length::32>>), do: length - 4
 
-  def startup_message(<<8::32, 1234::16, 5679::16>>), do:
-    :ssl_request
+  def ssl_message?(<<8::32, 1234::16, 5679::16>>), do: true
+  def ssl_message?(_), do: false
+
   def startup_message(<<length::32, major::16, minor::16>> = message), do:
     %{length: length - byte_size(message), version: %{major: major, minor: minor}}
 
