@@ -5,9 +5,11 @@ defmodule Air.PsqlServer.ProtocolTest do
   import Air.PsqlServer.Protocol.Messages
 
   test "invalid version number" do
+    major = 4
+    minor = 0
     out_actions =
       Protocol.new()
-      |> run_actions(process: ["12345678"])
+      |> run_actions(process: [<<8::32, major::16, minor::16>>])
       |> out_actions()
 
     assert out_actions == [close: :unsupported_protocol_version]
