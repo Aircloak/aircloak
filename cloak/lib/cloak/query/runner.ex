@@ -145,14 +145,15 @@ defmodule Cloak.Query.Runner do
   # Result reporting
   # -------------------------------------------------------------------
 
-  defp report_result(state, {:ok, %Result{rows: rows, columns: columns}, info}) do
+  defp report_result(state, {:ok, result, info}) do
     state = add_execution_time(state)
-    log_completion(state, status: :success, row_count: length(rows))
+    log_completion(state, status: :success, row_count: length(result.rows))
     result = %{
-      columns: columns,
-      rows: rows,
+      columns: result.columns,
+      rows: result.rows,
       info: info,
       execution_time: execution_time_in_s(state),
+      au_count: result.au_count,
     }
     send_result(state, result)
   end

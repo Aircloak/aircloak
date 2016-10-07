@@ -8,8 +8,9 @@ defmodule Cloak.Query.Result do
 
   @type t :: %__MODULE__{
     rows: [Aggregator.bucket],
-    columns: [String.t]
+    columns: [String.t],
+    au_count: non_neg_integer,
   }
 
-  defstruct rows: [], columns: []
+  defstruct rows: [], columns: [], au_count: 0
 end
