@@ -18,7 +18,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
       0
     >>)
 
-  def no_ssl(), do: <<?N>>
+  def require_ssl(), do: <<?S>>
 
   def ready_for_query(), do: <<?Z, 5::32, ?I>>
 
@@ -27,10 +27,23 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def password_length(<<?p, length::32>>), do: length - 4
 
-  def startup_message(<<8::32, 1234::16, 5679::16>>), do:
-    :ssl_request
-  def startup_message(<<length::32, major::16, minor::16>> = message), do:
+  def password_message(password), do: message_with_size(?p, <<password::binary, 0>>)
+
+  def ssl_message(), do: message_with_size(<<1234::16, 5679::16>>)
+
+  def ssl_message?(message), do: message == ssl_message()
+
+  def parse_startup_message(<<length::32, major::16, minor::16>> = message), do:
     %{length: length - byte_size(message), version: %{major: major, minor: minor}}
+
+  def startup_message(major, minor, opts) do
+    [
+      <<major::16, minor::16>>,
+      Enum.map(opts, fn({key, value}) -> [to_string(key), 0, value, 0] end)
+    ]
+    |> to_string()
+    |> message_with_size()
+  end
 
   def null_terminated_to_string(null_terminated_string) do
     string_size = byte_size(null_terminated_string) - 1
@@ -46,6 +59,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
     |> Enum.into(%{})
   end
 
+  defp message_with_size(payload), do:
+    <<(4 + byte_size(payload))::32, payload::binary>>
+
   defp message_with_size(type, payload), do:
-    <<type, (4 + byte_size(payload))::32, payload::binary>>
+    <<type, message_with_size(payload)::binary>>
 end

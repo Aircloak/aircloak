@@ -5,63 +5,58 @@ defmodule Air.PsqlServer.ProtocolTest do
   import Air.PsqlServer.Protocol.Messages
 
   test "invalid version number" do
-    major = 4
-    minor = 0
-    out_actions =
-      Protocol.new()
-      |> run_actions(process: [<<8::32, major::16, minor::16>>])
-      |> out_actions()
-
-    assert out_actions == [close: :unsupported_protocol_version]
+    assert {:close, :unsupported_protocol_version} ==
+      negotiate_ssl()
+      |> run_actions(process: [startup_message(4, 0, [])])
+      |> last_action()
   end
 
-  test "normal login sequence" do
-    out_actions =
-      Protocol.new()
-      |> standard_login()
-      |> out_actions()
+  test "normal login sequence", do:
+    assert {:send, ready_for_query()} == last_action(authenticate(true))
 
-    assert out_actions == successful_login_actions()
+  test "failed login", do:
+    assert {:close, :not_authenticated} == last_action(authenticate(false))
+
+  test "ssl required" do
+    assert {:close, :required_ssl} ==
+      Protocol.new()
+      |> run_actions(process: [startup_message(3, 0, [])])
+      |> last_action()
   end
 
-  test "login with ssl attempt" do
-    out_actions =
-      Protocol.new()
-      |> run_actions(process: [<<8::32, 1234::16, 5679::16>>])
-      |> standard_login()
-      |> out_actions()
 
-    assert out_actions == [send: no_ssl()] ++ successful_login_actions()
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  defp negotiate_ssl() do
+    protocol = run_actions(Protocol.new(),
+      process: [ssl_message()],
+      ssl_negotiated: []
+    )
+
+    {actions, protocol} = Protocol.actions(protocol)
+    assert actions == [{:send, require_ssl()}, :upgrade_to_ssl]
+
+    protocol
   end
 
-  test "failed login" do
-    out_actions =
-      Protocol.new()
-      |> standard_login(false)
-      |> out_actions()
+  defp authenticate(authentication_success) do
+    protocol =
+      run_actions(negotiate_ssl(),
+        process: [startup_message(3, 0, user: "some_user")],
+        authentication_method: [:cleartext],
+        process: [password_message("some_password")]
+      )
 
-    assert out_actions == [
+    {actions, protocol} = Protocol.actions(protocol)
+    assert actions == [
       login_params: %{"user" => "some_user"},
       send: authentication_method(:cleartext),
-      authenticate: "some_password",
-      send: authentication_ok(),
-      send: fatal_error("28000", "Authentication failed!"),
-      close: :not_authenticated
+      authenticate: "some_password"
     ]
-  end
 
-  defp standard_login(protocol, authenticated \\ true) do
-    run_actions(protocol, [
-      process: [<<23::32, 3::16, 0::16, "user", 0, "some_user", 0>>],
-      authentication_method: [:cleartext],
-      process: [<<?p, 18::32, "some_password", 0>>],
-      authenticated: [authenticated]
-    ])
-  end
-
-  defp out_actions(protocol) do
-    {actions, _} = Protocol.actions(protocol)
-    actions
+    run_actions(protocol, authenticated: [authentication_success])
   end
 
   defp run_actions(protocol, actions) do
@@ -72,14 +67,10 @@ defmodule Air.PsqlServer.ProtocolTest do
     )
   end
 
-  defp successful_login_actions(), do:
-    [
-      login_params: %{"user" => "some_user"},
-      send: authentication_method(:cleartext),
-      authenticate: "some_password",
-      send: authentication_ok(),
-      send: parameter_status("application_name", "aircloak"),
-      send: parameter_status("server_version", "1.0.0"),
-      send: ready_for_query()
-    ]
+  defp out_actions(protocol) do
+    {actions, _} = Protocol.actions(protocol)
+    actions
+  end
+
+  defp last_action(protocol), do: List.last(out_actions(protocol))
 end
