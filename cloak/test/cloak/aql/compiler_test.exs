@@ -458,6 +458,18 @@ defmodule Cloak.Aql.Compiler.Test do
       compile("select count(*) from table where numeric >= 1 and numeric < 2", data_source())
   end
 
+  test "unquoted columns are case-insensitive" do
+    first = "select CoLumn from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    second = "select column from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    assert first == second
+  end
+
+  test "unquoted qualified columns are case-insensitive" do
+    first = "select table.CoLumn from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    second = "select table.column from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    assert first == second
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result

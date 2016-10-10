@@ -675,7 +675,7 @@ defmodule Cloak.Aql.Compiler do
   defp identifier_to_column({:identifier, :unknown, column_name}, _columns_by_name, %Query{mode: :unparsed}),
     do: %Column{name: column_name, table: :unknown}
   defp identifier_to_column({:identifier, :unknown, column_name}, columns_by_name, _query) do
-    case Map.get(columns_by_name, column_name) do
+    case get_insensitive(columns_by_name, column_name) do
       [column] -> column
       [_|_] -> raise CompilationError, message: "Column `#{column_name}` is ambiguous."
       nil ->
@@ -696,10 +696,10 @@ defmodule Cloak.Aql.Compiler do
     unless Enum.any?(query.selected_tables, &(&1.name == table)),
       do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
 
-    case Map.fetch(columns_by_name, column_name) do
-      :error ->
+    case get_insensitive(columns_by_name, column_name) do
+      nil ->
         raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
-      {:ok, columns} ->
+      columns ->
         case Enum.find(columns, &(&1.table.name == table)) do
           nil ->
             raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
@@ -716,6 +716,15 @@ defmodule Cloak.Aql.Compiler do
   defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
     Column.constant(type, value)
   defp identifier_to_column(other, _columns_by_name, _query), do: other
+
+  defp get_insensitive(columns_by_name, name) do
+    columns_by_name
+    |> Enum.find(fn({k, _}) -> String.downcase(name) == String.downcase(k) end)
+    |> case do
+      nil -> nil
+      {_, v} -> v
+    end
+  end
 
   def column_title(function = {:function, _, _}), do: Function.name(function)
   def column_title({:distinct, identifier}), do: column_title(identifier)
