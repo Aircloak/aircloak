@@ -7,23 +7,38 @@
       <h1 class="panel-title">No data sources</h1>
     </div>
     <div class="panel-body">
-      <p>
-        Your user account currently does not have access to any data sources.
-        <%= if not admin?(@conn) and @data_source_count > 0 do %>
-          Please ask your administrator to give you access to one or more data sources.
+      <%= if @data_source_count == 0 do %>
+        <%= if admin?(@conn) do %>
+          <p>
+            There are currently no <strong>cloaks</strong> connected.
+            Please verify that your <strong>cloaks</strong> are running and have been configured to make
+            one or more data sources available.
+          </p>
+
+          <p>
+            Inspecting the logs of your <strong>cloaks</strong> might help in debugging the problem.
+            If you are running the <strong>cloak</strong> using plain docker, and you have access to
+            the host on which the docker container runs, you can view the log using:
+            <pre>docker logs -f cloak</pre>
+          </p>
+
+          <p>
+            Please contact support on <a href="mailto:support@aircloak.com">support@aircloak.com</a> if the problem persists.
+          </p>
+
+        <% else %>
+          <p>
+            The setup of your Aricloak system is not yet complete.
+            Please consult yours administrator for more information about when you will be able to
+            query your data sources using this platform.
+          </p>
         <% end %>
-      </p>
-
-      <%= if admin?(@conn) and @data_source_count == 0 do %>
+      <% else %>
         <p>
-          No data sources have been registered by the Aircloak system.
-          This is either a result of there no yet being any <strong>cloaks</strong> registered
-          with the <strong>air</strong> system, or the registered <strong>cloaks</strong> not having been
-          configured with any data sources.
-        </p>
-
-        <p>
-          Please contact support on <a href="mailto:support@aircloak.com">support@aircloak.com</a> if the problem persists.
+          Your user account does not currently have access to any data sources.
+          <%= unless admin?(@conn) do %>
+            Please ask your administrator to give you access to one or more data sources.
+          <% end %>
         </p>
       <% end %>
     </div>
