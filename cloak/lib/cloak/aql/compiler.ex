@@ -402,24 +402,25 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp partition_where_clauses(%Query{subquery?: true} = query) do
-    case Enum.find(query.where, &negative_condition?/1) do
+    case Enum.find(query.where, &requires_lcf_check?/1) do
       nil -> query
-      negative_condition ->
+      condition_requiring_lcf_check ->
         raise CompilationError,
-          message: "#{negative_condition_string(negative_condition)} is not supported in a subquery."
+          message: "#{negative_condition_string(condition_requiring_lcf_check)} is not supported in a subquery."
     end
   end
   defp partition_where_clauses(query) do
-    {negative, positive} = Enum.partition(query.where, &negative_condition?/1)
-    negative = Enum.map(negative, fn({:not, clause}) -> clause end)
-    unsafe_filter_columns = Enum.map(negative, &where_clause_to_identifier/1)
+    {require_lcf_check, safe_clauses} = Enum.partition(query.where, &requires_lcf_check?/1)
+    unsafe_filter_columns = Enum.map(require_lcf_check, &where_clause_to_identifier/1)
 
-    %Query{query | where: positive, where_not: negative, unsafe_filter_columns: unsafe_filter_columns}
+    %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_check,
+      unsafe_filter_columns: unsafe_filter_columns}
   end
 
-  defp negative_condition?({:not, {:is, _, :null}}), do: false
-  defp negative_condition?({:not, _other}), do: true
-  defp negative_condition?(_other), do: false
+  defp requires_lcf_check?({:not, {:is, _, :null}}), do: false
+  defp requires_lcf_check?({:not, _other}), do: true
+  defp requires_lcf_check?({:in, _column, _values}), do: true
+  defp requires_lcf_check?(_other), do: false
 
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
@@ -608,7 +609,7 @@ defmodule Cloak.Aql.Compiler do
       columns: Enum.map(query.columns, &map_terminal_element(&1, mapper_fun)),
       group_by: Enum.map(query.group_by, &map_terminal_element(&1, mapper_fun)),
       where: Enum.map(query.where, &map_where_clause(&1, mapper_fun)),
-      where_not: Enum.map(query.where_not, &map_where_clause(&1, mapper_fun)),
+      lcf_check_conditions: Enum.map(query.lcf_check_conditions, &map_where_clause(&1, mapper_fun)),
       order_by: Enum.map(query.order_by, &map_order_by(&1, mapper_fun)),
       db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
       property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
@@ -858,7 +859,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp verify_supported_join_condition(join_condition) do
-    if negative_condition?(join_condition), do: raise CompilationError,
+    if requires_lcf_check?(join_condition), do: raise CompilationError,
       message: "#{negative_condition_string(join_condition)} not supported in joins."
   end
 
