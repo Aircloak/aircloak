@@ -330,7 +330,7 @@ defmodule Cloak.Aql.Compiler do
       [] -> :ok
       [column | _rest] ->
         raise CompilationError, message: "#{aggregated_expression_display(column)} " <>
-          "to appear in the `group by` clause or be used in an aggregate function."
+          "to appear in the `GROUP BY` clause or be used in an aggregate function."
     end
   end
 
@@ -344,8 +344,8 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.filter(&Function.aggregate_function?/1)
     |> case do
       [] -> :ok
-      [function | _] -> raise CompilationError, message: "Aggregate function `#{Function.name(function)}`"
-        <> " used in the group by clause"
+      [function | _] ->
+        raise CompilationError, message: "Aggregate function `#{Function.name(function)}` used in the `GROUP BY` clause"
     end
   end
 
@@ -397,7 +397,7 @@ defmodule Cloak.Aql.Compiler do
         %Query{query | order_by: order_list}
       [{_column, _direction} | _rest] ->
         raise CompilationError, message:
-          "Non-selected column specified in `order by` clause."
+          "Non-selected column specified in `ORDER BY` clause."
     end
   end
 
@@ -867,14 +867,14 @@ defmodule Cloak.Aql.Compiler do
   defp negative_condition_string({:not, {:comparison, _, :=, _}}), do: "<>"
 
   defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:
-    raise CompilationError, message: "LIMIT clause expects a positive value."
+    raise CompilationError, message: "`LIMIT` clause expects a positive value."
   defp verify_limit(%Query{command: :select, order_by: [], limit: amount}) when amount != nil, do:
-    raise CompilationError, message: "LIMIT clause needs the ORDER BY clause to be specified."
+    raise CompilationError, message: "Using the `LIMIT` clause requires the `ORDER BY` clause to be specified."
   defp verify_limit(query), do: query
 
   defp verify_offset(%Query{command: :select, offset: amount}) when amount < 0, do:
-    raise CompilationError, message: "OFFSET clause expects a non-negative value."
+    raise CompilationError, message: "`OFFSET` clause expects a non-negative value."
   defp verify_offset(%Query{command: :select, order_by: [], offset: amount}) when amount > 0, do:
-    raise CompilationError, message: "OFFSET clause needs the ORDER BY clause to be specified."
+    raise CompilationError, message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
   defp verify_offset(query), do: query
 end
