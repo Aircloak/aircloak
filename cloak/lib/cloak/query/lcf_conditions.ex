@@ -130,33 +130,38 @@ defmodule Cloak.Query.LCFConditions do
     {low_count_mean, low_count_sd} = Anonymizer.config(:low_count_soft_lower_bound)
     # Once we match this amount of users we can confidently make a decision to apply the filter.
     hard_limit = low_count_sd * 5 + low_count_mean
-    filter_wrapper = &%Filter{matcher: &1, match_hard_limit: hard_limit, match_decision: &2}
     clauses
-    |> Enum.map(&matchers(&1, filter_wrapper))
+    |> Enum.map(&matchers/1)
     |> List.flatten()
+    |> Enum.map(fn({matcher, match_decision}) ->
+        %Filter{matcher: matcher, match_hard_limit: hard_limit, match_decision: match_decision}
+      end)
     |> Enum.sort_by(&(&1.match_decision))
   end
 
-  defp matchers({:not, {:comparison, column, :=, value}}, filter_wrapper) do
+  defp matchers({:not, {:comparison, column, :=, value}}) do
     value = extract_value(value)
-    filter_wrapper.(fn(row) -> Function.apply_to_db_row(column, row) == value end, :drop)
+    {fn(row) -> Function.apply_to_db_row(column, row) == value end, :drop}
   end
-  defp matchers({:not, {:like, column, %Column{type: :text, value: pattern}}}, filter_wrapper) do
+  defp matchers({:not, {:like, column, %Column{type: :text, value: pattern}}}) do
     regex = to_regex(pattern)
-    filter_wrapper.(fn(row) -> Function.apply_to_db_row(column, row) =~ regex end, :drop)
+    {fn(row) -> Function.apply_to_db_row(column, row) =~ regex end, :drop}
   end
-  defp matchers({:not, {:ilike, column, %Column{type: :text, value: pattern}}}, filter_wrapper) do
+  defp matchers({:not, {:ilike, column, %Column{type: :text, value: pattern}}}) do
     regex = to_regex(pattern, [_case_insensitive = "i"])
-    filter_wrapper.(fn(row) -> Function.apply_to_db_row(column, row) =~ regex end, :drop)
+    {fn(row) -> Function.apply_to_db_row(column, row) =~ regex end, :drop}
   end
-  defp matchers({:not, {:in, column, values}}, filter_wrapper) do
-    Enum.map(values, &matchers({:not, {:comparison, column, :=, &1}}, filter_wrapper))
+  defp matchers({:not, {:in, column, values}}) do
+    for value <- values do
+      value = extract_value(value)
+      {fn(row) -> Function.apply_to_db_row(column, row) == value end, :drop}
+    end
   end
-  defp matchers({:in, column, values}, filter_wrapper) do
-    Enum.map(values, fn(value) ->
-      filter = matchers({:not, {:comparison, column, :=, value}}, filter_wrapper)
-      %Filter{filter | match_decision: :keep}
-    end)
+  defp matchers({:in, column, values}) do
+    for value <- values do
+      value = extract_value(value)
+      {fn(row) -> Function.apply_to_db_row(column, row) == value end, :keep}
+    end
   end
 
   defp extract_value(%Column{value: value}), do: value
