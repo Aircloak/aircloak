@@ -17,3 +17,34 @@
   <% end %>
 
 <% end %>
+
+<%= if admin?(@conn) and length(@available_data_sources ++ @unavailable_data_sources) < @data_source_count do %>
+
+  <div class="panel panel-info">
+    <div class="panel-heading">
+      <h1 class="panel-title">Notice</h1>
+    </div>
+    <div class="panel-body">
+      <p>
+        If the list of data sources does not include the data sources you expect to see there,
+        this might be due to one of the following reasons:
+      </p>
+
+      <ol>
+        <li>
+          You have not granted your user account the right access privileges.
+          Your user needs to have a <strong>group</strong> in common with a data source in order to see it.
+          You can adjust the group settings on the
+          <%= link "data source administration page", to: admin_data_source_path(@conn, :index) %>
+        </li>
+        <li>
+          Your cloaks do not make the data sources available, and the Aircloak system
+          therefore doesn't know about them.
+          This can be solved by adding additional data sources to your cloak config
+          file and restarting your cloak
+        </li>
+      </ol>
+    </div>
+  </div>
+
+<% end %>
