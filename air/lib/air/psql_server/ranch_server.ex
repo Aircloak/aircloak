@@ -147,9 +147,26 @@ defmodule Air.PsqlServer.RanchServer do
     state
     |> Map.put(:login_params, login_params)
     |> update_protocol(&Protocol.authentication_method(&1, :cleartext))
-  defp handle_protocol_action({:authenticate, password}, state) do
-    user = Repo.get_by(User, email: state.login_params["user"])
-    update_protocol(state, &Protocol.authenticated(&1, User.validate_password(user, password)))
+  defp handle_protocol_action({:authenticate, password}, state), do:
+    update_protocol(
+      state,
+      &Protocol.authenticated(&1, authenticated?(state.login_params, password))
+    )
+
+  defp authenticated?(login_params, password) do
+    user = Repo.get_by(User, email: login_params["user"])
+    (
+      User.validate_password(user, password) &&
+      data_source_available?(user, login_params["database"])
+    )
+  end
+
+  defp data_source_available?(user, name) do
+    Air.DataSource
+    |> Air.DataSource.for_user(user)
+    |> Air.Repo.all()
+    |> Stream.filter(&(Air.DataSourceManager.available?(&1.global_id)))
+    |> Enum.any?(&(&1.name == name))
   end
 
   defp update_protocol(state, fun), do:
