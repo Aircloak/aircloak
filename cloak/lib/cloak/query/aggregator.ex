@@ -280,8 +280,10 @@ defmodule Cloak.Query.Aggregator do
     |> Enum.flat_map(&Map.keys/1)
     |> Enum.into(MapSet.new())
     anonymizer = Anonymizer.new(unique_user_ids)
-    unique_users_count = Enum.count(unique_user_ids)
-    {count, _noise} = Anonymizer.count(anonymizer, List.duplicate([:*], unique_users_count))
-    count
+    unique_users_count = MapSet.size(unique_user_ids)
+    case Anonymizer.sufficiently_large?(anonymizer, unique_users_count) do
+      {true, anonymizer} -> Anonymizer.noisy_count(anonymizer, unique_users_count)
+      _ -> 0
+    end
   end
 end

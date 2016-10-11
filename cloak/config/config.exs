@@ -47,7 +47,11 @@ config :cloak, :anonymizer,
   top_count: {5, 1},
 
   # The standard deviation for the noisy top average added to summed values.
-  sum_noise_sigma: 2
+  sum_noise_sigma: 2,
+
+  # The noise added to absolute values passed to the anonymizers `noisy_count` function.
+  # Each user is at most present once in the count.
+  noisy_count: {0, 2}
 
 config :cloak, :in_development, false
 

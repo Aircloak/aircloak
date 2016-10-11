@@ -160,6 +160,23 @@ defmodule Cloak.Query.Anonymizer do
     end
   end
 
+  @doc """
+    Returns a noisy version of the value passed as the parameter.
+    This anonymization function is only to be used when each user
+    is only represented at most once in the value.
+
+    A good example of a valid use would be to get a noisy count of
+    distinct users in a result set.
+
+    No low count check is done, and should be separately performed
+    using `sufficiently_large?/1`.
+  """
+  @spec noisy_count(t, integer) :: integer
+  def noisy_count(anonymizer, count) do
+    {noise, _anonymizer} = add_noise(anonymizer, config(:noisy_count))
+    round(count + noise)
+  end
+
   @doc "Returns the configuration value for an anonymizer parameter."
   @spec config(atom) :: term
   def config(name), do: Application.get_env(:cloak, :anonymizer) |> Keyword.fetch!(name)
