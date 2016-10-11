@@ -31,9 +31,11 @@ defmodule Air.DataSourceController do
     |> Repo.all()
     {available_data_sources, unavailable_data_sources} = Enum.partition(data_sources,
       &(DataSourceManager.available?(&1.global_id)))
+    data_source_count = Repo.aggregate(DataSource, :count, :id)
     render(conn, "index.html",
       available_data_sources: available_data_sources,
       unavailable_data_sources: unavailable_data_sources,
+      data_source_count: data_source_count,
       conn: conn,
     )
   end

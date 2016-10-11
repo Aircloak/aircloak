@@ -2,7 +2,47 @@
 
 <%= if length(@available_data_sources ++ @unavailable_data_sources) == 0 do %>
 
-  <strong>No data sources are currently available</strong>
+  <div class="panel panel-info">
+    <div class="panel-heading">
+      <h1 class="panel-title">No data sources</h1>
+    </div>
+    <div class="panel-body">
+      <%= if @data_source_count == 0 do %>
+        <%= if admin?(@conn) do %>
+          <p>
+            There are currently no <strong>cloaks</strong> connected.
+            Please verify that your <strong>cloaks</strong> are running and have been configured to make
+            one or more data sources available.
+          </p>
+
+          <p>
+            Inspecting the logs of your <strong>cloaks</strong> might help in debugging the problem.
+            If you are running the <strong>cloak</strong> using plain docker, and you have access to
+            the host on which the docker container runs, you can view the log using:
+            <pre>docker logs -f cloak</pre>
+          </p>
+
+          <p>
+            Please contact support on <a href="mailto:support@aircloak.com">support@aircloak.com</a> if the problem persists.
+          </p>
+
+        <% else %>
+          <p>
+            The setup of your Aircloak system is not yet complete.
+            Please consult yours administrator for more information about when you will be able to
+            query your data sources using this platform.
+          </p>
+        <% end %>
+      <% else %>
+        <p>
+          Your user account does not currently have access to any data sources.
+          <%= unless admin?(@conn) do %>
+            Please ask your administrator to give you access to one or more data sources.
+          <% end %>
+        </p>
+      <% end %>
+    </div>
+  </div>
 
 <% else %>
 
@@ -15,5 +55,36 @@
   <h3>Currently unavailable for querying</h3>
   <%= render "_data_sources.html", data_sources: @unavailable_data_sources, conn: @conn %>
   <% end %>
+
+<% end %>
+
+<%= if admin?(@conn) and length(@available_data_sources ++ @unavailable_data_sources) < @data_source_count do %>
+
+  <div class="panel panel-info">
+    <div class="panel-heading">
+      <h1 class="panel-title">Notice</h1>
+    </div>
+    <div class="panel-body">
+      <p>
+        If the list of data sources does not include the data sources you expect to see there,
+        this might be due to one of the following reasons:
+      </p>
+
+      <ol>
+        <li>
+          You have not granted your user account the right access privileges.
+          Your user needs to have a <strong>group</strong> in common with a data source in order to see it.
+          You can adjust the group settings on the
+          <%= link "data source administration page", to: admin_data_source_path(@conn, :index) %>
+        </li>
+        <li>
+          Your cloaks do not make the data sources available, and the Aircloak system
+          therefore doesn't know about them.
+          This can be solved by adding additional data sources to your cloak config
+          file and restarting your cloak
+        </li>
+      </ol>
+    </div>
+  </div>
 
 <% end %>
