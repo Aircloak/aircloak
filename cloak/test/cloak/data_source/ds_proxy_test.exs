@@ -39,7 +39,7 @@ defmodule Cloak.DataSource.DsProxyTest do
     )
 
     query_result = run_query(context, "select count(foo) from bar")
-    assert {:ok, %Result{columns: ["count"], rows: [%{occurrences: 1, row: [100]}]}, []} = query_result
+    assert {:ok, %Result{columns: ["count"], buckets: [%{occurrences: 1, row: [100]}]}, []} = query_result
   end
 
   test "parsed select count(*)", context do
@@ -54,7 +54,7 @@ defmodule Cloak.DataSource.DsProxyTest do
     )
 
     query_result = run_query(context, "select count(*) from bar")
-    assert {:ok, %Result{columns: ["count"], rows: [%{occurrences: 1, row: [100]}]}, []} = query_result
+    assert {:ok, %Result{columns: ["count"], buckets: [%{occurrences: 1, row: [100]}]}, []} = query_result
   end
 
   test "parsed column deduplication", context do
@@ -71,7 +71,7 @@ defmodule Cloak.DataSource.DsProxyTest do
     )
 
     query_result = run_query(context, "select foo, baz, foo, baz from \"bar\"")
-    assert {:ok, %Result{columns: columns, rows: [row]}, []} = query_result
+    assert {:ok, %Result{columns: columns, buckets: [row]}, []} = query_result
     assert ["foo", "baz", "foo", "baz"] == columns
     assert %{occurrences: 100, row: [1, 2, 1, 2]} == row
   end
@@ -89,9 +89,9 @@ defmodule Cloak.DataSource.DsProxyTest do
     )
 
     query_result = run_query(context, "select min(foo), max(foo) from bar")
-    assert {:ok, %Result{rows: [row], columns: columns}, []} = query_result
+    assert {:ok, %Result{buckets: [bucket], columns: columns}, []} = query_result
     assert ["min", "max"] == columns
-    assert %{occurrences: 1, row: [0.0, 10.0]} == row
+    assert %{occurrences: 1, row: [0.0, 10.0]} == bucket
   end
 
   test "dsproxy returns empty set", context do
@@ -106,7 +106,7 @@ defmodule Cloak.DataSource.DsProxyTest do
     )
 
     query_result = run_query(context, "select foo from bar")
-    assert {:ok, %Result{columns: ["foo"], rows: []}, []} = query_result
+    assert {:ok, %Result{columns: ["foo"], buckets: []}, []} = query_result
   end
 
   test "unsafe select count(foo)", context do
@@ -123,7 +123,7 @@ defmodule Cloak.DataSource.DsProxyTest do
     )
 
     query_result = run_query(context, "select count(foo) from (select foo from bar) as baz")
-    assert {:ok, %Result{columns: ["count"], rows: [%{occurrences: 1, row: [100]}]}, []} = query_result
+    assert {:ok, %Result{columns: ["count"], buckets: [%{occurrences: 1, row: [100]}]}, []} = query_result
   end
 
   test "unsafe select count(*)", context do
@@ -140,7 +140,7 @@ defmodule Cloak.DataSource.DsProxyTest do
     )
 
     query_result = run_query(context, "select count(*) from (select * from bar) as baz")
-    assert {:ok, %Result{columns: ["count"], rows: [%{occurrences: 1, row: [100]}]}, []} = query_result
+    assert {:ok, %Result{columns: ["count"], buckets: [%{occurrences: 1, row: [100]}]}, []} = query_result
   end
 
   test "unsafe select count(*) group by foo", context do
@@ -157,7 +157,7 @@ defmodule Cloak.DataSource.DsProxyTest do
     )
 
     query_result = run_query(context, "select foo, count(*) from (select foo from bar) as \"baz\" group by foo")
-    assert {:ok, %Result{columns: ["foo", "count"], rows: [%{occurrences: 1, row: [:*, 100]}]}, []} = query_result
+    assert {:ok, %Result{columns: ["foo", "count"], buckets: [%{occurrences: 1, row: [:*, 100]}]}, []} = query_result
   end
 
   test "function types are not verified in an unparsed query", context do
@@ -173,7 +173,7 @@ defmodule Cloak.DataSource.DsProxyTest do
     )
 
     query_result = run_query(context, "select max(c) from (select count(*) as c from foo) as sq")
-    assert {:ok, %Result{columns: ["max"], rows: [%{occurrences: 1, row: [100]}]}, []} = query_result
+    assert {:ok, %Result{columns: ["max"], buckets: [%{occurrences: 1, row: [100]}]}, []} = query_result
   end
 
   test "propagating reported error", context do

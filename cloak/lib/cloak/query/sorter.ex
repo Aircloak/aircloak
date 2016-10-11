@@ -12,10 +12,10 @@ defmodule Cloak.Query.Sorter do
   @doc "Sorts the buckets in the order defined in the query."
   @spec order(%Result{}, Query.t) :: Result.t
   def order(result, %Query{order_by: order_list}) do
-    sorted_rows = Enum.sort(result.rows, fn(%{row: row1}, %{row: row2}) ->
+    sorted_buckets = Enum.sort(result.buckets, fn(%{row: row1}, %{row: row2}) ->
       compare_rows(row1, row2, order_list)
     end)
-    %Result{result | rows: sorted_rows}
+    %Result{result | buckets: sorted_buckets}
   end
   def order(result, _), do: result
 

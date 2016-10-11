@@ -7,10 +7,10 @@ defmodule Cloak.Query.Result do
   alias Air.Query.Aggregator
 
   @type t :: %__MODULE__{
-    rows: [Aggregator.bucket],
+    buckets: [Aggregator.bucket],
     columns: [String.t],
     users_count: non_neg_integer,
   }
 
-  defstruct rows: [], columns: [], users_count: 0
+  defstruct buckets: [], columns: [], users_count: 0
 end

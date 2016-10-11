@@ -6,9 +6,9 @@ defmodule Cloak.Query.SorterTest do
 
   defp list_to_buckets(values), do: for value <- values, do: %{row: [value]}
 
-  defp sort(rows, query) do
-    %Result{rows: ordered_rows} = Sorter.order(%Result{rows: rows}, query)
-    for %{row: [value]} <- ordered_rows, do: value
+  defp sort(buckets, query) do
+    %Result{buckets: ordered_buckets} = Sorter.order(%Result{buckets: buckets}, query)
+    for %{row: [value]} <- ordered_buckets, do: value
   end
 
   Enum.each([

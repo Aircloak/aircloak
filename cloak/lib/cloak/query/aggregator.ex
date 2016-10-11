@@ -48,11 +48,11 @@ defmodule Cloak.Query.Aggregator do
   def aggregate(rows, query) do
     rows_by_property = group_by_property(rows, query)
     users_count = number_of_anonymized_users(rows_by_property)
-    aggregated_rows = rows_by_property
+    aggregated_buckets = rows_by_property
       |> process_low_count_users(query)
       |> aggregate_properties(query)
       |> make_buckets(query)
-    %Result{rows: aggregated_rows, users_count: users_count}
+    %Result{buckets: aggregated_buckets, users_count: users_count}
   end
 
 
