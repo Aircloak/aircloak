@@ -46,9 +46,9 @@ defmodule Cloak.Query.Aggregator do
   """
   @spec aggregate(Enumerable.t, Query.t) :: Result.t
   def aggregate(rows, query) do
-    rows_by_propery = group_by_property(rows, query)
-    au_count = number_of_anonymized_users(rows_by_propery)
-    aggregated_rows = rows_by_propery
+    rows_by_property = group_by_property(rows, query)
+    au_count = number_of_anonymized_users(rows_by_property)
+    aggregated_rows = rows_by_property
       |> process_low_count_users(query)
       |> aggregate_properties(query)
       |> make_buckets(query)
