@@ -4,6 +4,8 @@ config :air, Air.Endpoint,
   http: [port: 8081],
   server: true
 
+config :air, :https_port, 8444
+
 # Print only warnings and errors during test
 config :logger, level: :warn
 
