@@ -4,7 +4,7 @@ defmodule Cloak.Query.SubqueryTest do
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("heights_sq", "height INTEGER, name TEXT")
+    :ok = Cloak.Test.DB.create_table("heights_sq", "height INTEGER")
     Cloak.Test.DB.clear_table("heights_sq")
     :ok = insert_rows(_user_ids = 1..100, "heights_sq", ["height"], [180])
   end
@@ -69,6 +69,16 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 50}]}
     assert_query "select height from (select user_id, height from heights_sq order by height limit 50 offset 80) alias",
       %{columns: ["height"], rows: [%{row: [180], occurrences: 20}]}
+  end
+
+  test "group by with having in subqueries" do
+    assert_query """
+        select count(height) from
+        (select user_id, avg(height) as height from heights_sq
+        group by user_id
+        having max(height) = min(height)) alias
+        """,
+      %{columns: ["count"], rows: [%{row: [100], occurrences: 1}]}
   end
 
   test "subquery can handle multiple functions" do
