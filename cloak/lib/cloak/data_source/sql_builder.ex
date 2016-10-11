@@ -53,6 +53,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       " FROM ", from_clause(query.from, query, sql_dialect),
       where_fragments(query.where, sql_dialect),
       group_by_fragments(query, sql_dialect),
+      having_fragments(query, sql_dialect),
       order_by_fragments(query, sql_dialect),
       range_fragments(query, sql_dialect)
     ]
@@ -141,7 +142,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp to_fragment(%Time{} = value, _sql_dialect), do: [?', to_string(value), ?']
   defp to_fragment(%Date{} = value, _sql_dialect), do: [?', to_string(value), ?']
   defp to_fragment(%Column{constant?: true, value: value}, _sql_dialect), do: constant_to_fragment(value)
-  defp to_fragment(%Column{} = column, sql_dialect), do: column_name(column, sql_dialect)
+  defp to_fragment(%Column{} = column, sql_dialect), do: column_sql(column, sql_dialect)
 
   defp escape_string(string), do: String.replace(string, "'", "''")
 
@@ -154,8 +155,12 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join([first | rest], joiner), do: [first, joiner, join(rest, joiner)]
 
   defp group_by_fragments(%Query{subquery?: true, group_by: [_|_] = group_by}, sql_dialect),
-    do: [" GROUP BY ", group_by |> Enum.map(&column_sql(&1, sql_dialect)) |> Enum.intersperse(",")]
+    do: [" GROUP BY ", group_by |> Enum.map(&column_sql(&1, sql_dialect)) |> Enum.intersperse(", ")]
   defp group_by_fragments(_query, _sql_dialect), do: []
+
+  defp having_fragments(%Query{subquery?: true, having: [_|_] = and_clauses}, sql_dialect),
+    do: [" HAVING ", and_clauses |> Enum.map(&conditions_to_fragments(&1, sql_dialect)) |> join(" AND ")]
+  defp having_fragments(_query, _sql_dialect), do: []
 
   defp order_by_fragments(%Query{subquery?: true, order_by: [_|_] = order_by} = query, sql_dialect) do
     order_by = for {index, dir} <- order_by do
@@ -163,7 +168,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       name = query.db_columns |> Enum.at(index) |> Map.get(:alias) |> quote_name(sql_dialect)
       [name, dir]
     end
-    [" ORDER BY ", Enum.intersperse(order_by, ",")]
+    [" ORDER BY ", Enum.intersperse(order_by, ", ")]
   end
   defp order_by_fragments(_query, _sql_dialect), do: []
 

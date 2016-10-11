@@ -650,6 +650,18 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["name"], rows: [%{row: ["aaa"], occurrences: 5}, %{row: ["bbb"], occurrences: 5}]}
   end
 
+  test "grouping with having filters" do
+    :ok = insert_rows(_user_ids = 30..59, "heights", ["height", "name"], [150, "jon"])
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height", "name"], [180, "dan"])
+    :ok = insert_rows(_user_ids = 10..29, "heights", ["height", "name"], [160, "dan"])
+
+    assert_query "select height, count(*) from heights group by height having count(*) > 25",
+      %{columns: ["height", "count"], rows: [%{row: [150, 30], occurrences: 1}]}
+
+    assert_query "select name, count(*) from heights group by name having avg(height) <> min(height)",
+      %{columns: ["name", "count"], rows: [%{row: ["dan", 30], occurrences: 1}]}
+  end
+
   test "should be able to provide noise estimates for count, sum, avg and stddev aggregators" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
     :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])

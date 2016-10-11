@@ -29,14 +29,15 @@ defmodule Cloak.Aql.Query do
     from: Parser.from_clause | nil,
     subquery?: boolean,
     limit: pos_integer | nil,
-    offset: non_neg_integer
+    offset: non_neg_integer,
+    having: [Parser.having_clause]
   }
 
   defstruct [
     columns: [], where: [], lcf_check_conditions: [], unsafe_filter_columns: [], group_by: [],
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
-    db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0
+    db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: []
   ]
 
 

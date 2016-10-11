@@ -94,7 +94,7 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} in group by" do
       query = "select #{unquote(function)}(numeric) from table group by #{unquote(function)}(numeric)"
       assert {:error, error} = compile(query, data_source)
-      assert error == "Aggregate function `#{unquote(function)}` used in the group by clause"
+      assert error == "Aggregate function `#{unquote(function)}` used in the `GROUP BY` clause"
     end
   end
 
@@ -175,14 +175,14 @@ defmodule Cloak.Aql.Compiler.Test do
   test "rejecting a column in select when its function is grouped" do
     assert {:error, error} = compile("select column from table group by day(column)", data_source())
     assert error ==
-      "Column `column` from table `table` needs to appear in the `group by` clause" <>
+      "Column `column` from table `table` needs to appear in the `GROUP BY` clause" <>
       " or be used in an aggregate function."
   end
 
   test "rejecting a function in select when another function is grouped" do
     assert {:error, error} = compile("select div(numeric, numeric) from table group by abs(numeric)", data_source())
     assert error ==
-      "Columns (`numeric`, `numeric`) need to appear in the `group by` clause or be used in an aggregate function."
+      "Columns (`numeric`, `numeric`) need to appear in the `GROUP BY` clause or be used in an aggregate function."
   end
 
   test "rejecting concat on non-strings" do
@@ -406,7 +406,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "missing group by in a subquery" do
     assert {:error, error} = compile("select c1 from (select uid, count(*) from t1) alias", data_source())
-    assert error =~ "Column `uid` from table `t1` needs to appear in the `group by`"
+    assert error =~ "Column `uid` from table `t1` needs to appear in the `GROUP BY`"
   end
 
   test "integer operations are valid on sums of integer columns" do

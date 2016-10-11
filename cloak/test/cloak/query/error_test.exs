@@ -17,7 +17,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports an error on invalid order by field" do
     assert_query "select height from test_errors order by name", %{error: error}
-    assert ~s/Non-selected column specified in `order by` clause./ == error
+    assert ~s/Non-selected column specified in `ORDER BY` clause./ == error
   end
 
   test "query reports an error on unknown function" do
@@ -51,7 +51,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports an error when mixing aggregated and normal columns" do
     assert_query "select count(*), height from test_errors", %{error: error}
-    assert error =~ ~r/`height` from table `test_errors` needs to appear in the `group by` clause/
+    assert error =~ ~r/`height` from table `test_errors` needs to appear in the `GROUP BY` clause/
   end
 
   test "query reports an error when grouping by nonexistent columns" do
@@ -61,7 +61,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports an error when not grouping by some selected columns" do
     assert_query "select name, height from test_errors group by height", %{error: error}
-    assert error =~ ~r/`name` from table `test_errors` needs to appear in the `group by` clause/
+    assert error =~ ~r/`name` from table `test_errors` needs to appear in the `GROUP BY` clause/
   end
 
   test "query reports an error on runner crash" do
@@ -89,8 +89,15 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports error on invalid limit / offset parameters" do
     assert_query "select name from test_errors limit -1", %{error: error}
-    assert ~s/LIMIT clause expects a positive value./ == error
+    assert ~s/`LIMIT` clause expects a positive value./ == error
     assert_query "select name from test_errors offset -1", %{error: error}
-    assert ~s/OFFSET clause expects a non-negative value./ == error
+    assert ~s/`OFFSET` clause expects a non-negative value./ == error
+  end
+
+  test "query reports error on invalid having clause" do
+    assert_query "select name from test_errors group by name having height >= 100", %{error: error}
+    assert ~s/`HAVING` clause can not be applied over non-aggregated columns./ == error
+    assert_query "select name from test_errors having count(*) >= 10", %{error: error}
+    assert ~s/Using the `HAVING` clause requires the `GROUP BY` clause to be specified./ == error
   end
 end
