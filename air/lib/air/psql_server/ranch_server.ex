@@ -12,7 +12,6 @@ defmodule Air.PsqlServer.RanchServer do
 
   require Logger
 
-  alias Air.{Repo, User}
   alias Air.PsqlServer.Protocol
 
   #-----------------------------------------------------------------------------------------------------------
@@ -157,21 +156,8 @@ defmodule Air.PsqlServer.RanchServer do
     update_protocol(state, &Protocol.select_result(&1, []))
   end
 
-  defp authenticated?(login_params, password) do
-    user = Repo.get_by(User, email: login_params["user"])
-    (
-      User.validate_password(user, password) &&
-      data_source_available?(user, login_params["database"])
-    )
-  end
-
-  defp data_source_available?(user, name) do
-    Air.DataSource
-    |> Air.DataSource.for_user(user)
-    |> Air.Repo.all()
-    |> Stream.filter(&(Air.DataSourceManager.available?(&1.global_id)))
-    |> Enum.any?(&(&1.name == name))
-  end
+  defp authenticated?(login_params, password), do:
+    match?({:ok, _user}, Air.Service.User.login(login_params["user"], password, login_params["database"]))
 
   defp update_protocol(state, fun), do:
     %{state | protocol: fun.(state.protocol)}

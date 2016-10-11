@@ -29,9 +29,8 @@ defmodule Air.SessionController do
   end
 
   def create(conn, params) do
-    user = Repo.get_by(User, email: params["email"])
-    case User.validate_password(user, params["password"]) do
-      true ->
+    case Air.Service.User.login(params["email"], params["password"]) do
+      {:ok, user} ->
         AuditLog.log(temporary_set_user(conn, user), "Logged in")
         return_path = get_session(conn, :return_path) || query_path(conn, :index)
         conn
@@ -40,7 +39,7 @@ defmodule Air.SessionController do
         |> put_session(:return_path, nil)
         |> put_flash(:info, "Logged in successfully. Welcome back!")
         |> redirect(to: return_path)
-      false ->
+      {:error, user} ->
         AuditLog.log(temporary_set_user(conn, user), "Failed login")
         conn
         |> put_flash(:error, "Invalid e-mail or password.")
