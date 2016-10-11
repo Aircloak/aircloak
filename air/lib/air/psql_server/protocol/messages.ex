@@ -19,13 +19,13 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def authentication_ok(), do: <<?R, 8::32, 0::32>>
 
-  def command_complete(tag), do: message_with_size(?C, <<tag::binary, 0>>)
+  def command_complete(tag), do: message_with_size(?C, null_terminate(tag))
 
   def fatal_error(code, message), do:
     message_with_size(?E, <<
       ?S, "FATAL", 0,
-      ?C, code::binary, 0,
-      ?M, message::binary, 0,
+      ?C, null_terminate(code)::binary,
+      ?M, null_terminate(message)::binary,
       0
     >>)
 
@@ -34,11 +34,11 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def ready_for_query(), do: <<?Z, 5::32, ?I>>
 
   def parameter_status(name, value), do:
-    message_with_size(?S, <<name::binary, 0, value::binary, 0>>)
+    message_with_size(?S, null_terminate(name) <> null_terminate(value))
 
-  def password_message(password), do: message_with_size(?p, <<password::binary, 0>>)
+  def password_message(password), do: message_with_size(?p, null_terminate(password))
 
-  def query_message(query), do: message_with_size(?Q, <<query::binary, 0>>)
+  def query_message(query), do: message_with_size(?Q, null_terminate(query))
 
   def ssl_message(), do: message_with_size(<<1234::16, 5679::16>>)
 
@@ -63,6 +63,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
     <<string::binary-size(string_size), 0>> = null_terminated_string
     string
   end
+
+  def null_terminate(string), do: <<string::binary, 0>>
 
   def login_params(raw_login_params) do
     raw_login_params
