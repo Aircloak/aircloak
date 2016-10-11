@@ -40,7 +40,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def fatal_error(code, message), do:
     message_with_size(:error_response, <<
-      ?S, "FATAL", 0,
+      ?S, null_terminate("FATAL")::binary,
       ?C, null_terminate(code)::binary,
       ?M, null_terminate(message)::binary,
       0
@@ -62,7 +62,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def startup_message(major, minor, opts) do
     [
       <<major::16, minor::16>>,
-      Enum.map(opts, fn({key, value}) -> [to_string(key), 0, value, 0] end)
+      Enum.map(opts, fn({key, value}) -> null_terminate(to_string(key)) <> null_terminate(value) end)
     ]
     |> to_string()
     |> message_with_size()
