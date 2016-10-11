@@ -64,7 +64,7 @@ defmodule Air.ResultProcessor do
     |> Query.changeset(%{
       result: storable_result,
       execution_time: result["execution_time"],
-      au_count: result["au_count"],
+      users_count: result["users_count"],
     })
     |> Repo.update!()
     |> UserChannel.broadcast_result()

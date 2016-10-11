@@ -16,12 +16,12 @@ defmodule Cloak.Query.AccountingTest do
   test "account for the number of users processed" do
     :ok = insert_rows(_user_ids = 1..50, "numerics", ["number"], [1])
     :ok = insert_rows(_user_ids = 51..100, "numerics", ["number"], [2])
-    assert_query "select number from numerics", %{au_count: 100}
+    assert_query "select number from numerics", %{users_count: 100}
   end
 
   test "only count each user once" do
     :ok = insert_rows(_user_ids = 1..100, "numerics", ["number"], [1])
     :ok = insert_rows(_user_ids = 1..100, "numerics", ["number"], [2])
-    assert_query "SELECT number FROM numerics WHERE number IN (1, 2)", %{au_count: 100}
+    assert_query "SELECT number FROM numerics WHERE number IN (1, 2)", %{users_count: 100}
   end
 end

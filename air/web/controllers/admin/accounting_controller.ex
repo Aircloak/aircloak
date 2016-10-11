@@ -30,7 +30,7 @@ defmodule Air.Admin.AccountingController do
       select: %{
         year: fragment("extract(year from updated_at) as year"),
         month: fragment("extract(month from updated_at) as month"),
-        sum: sum(query.au_count),
+        sum: sum(query.users_count),
       }
     by_month = Repo.all(au_per_month)
 
@@ -40,7 +40,7 @@ defmodule Air.Admin.AccountingController do
       order_by: user.name,
       select: %{
         name: user.name,
-        sum: sum(query.au_count)
+        sum: sum(query.users_count)
       }
     by_user = Repo.all(au_by_user)
 

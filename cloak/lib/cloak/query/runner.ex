@@ -153,7 +153,7 @@ defmodule Cloak.Query.Runner do
       rows: result.rows,
       info: info,
       execution_time: execution_time_in_s(state),
-      au_count: result.au_count,
+      users_count: result.users_count,
     }
     send_result(state, result)
   end
