@@ -8,6 +8,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   @messages %{
     ?p => :password,
+    ?Q => :query,
     ?X => :terminate
   }
 
@@ -17,6 +18,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def authentication_method(:cleartext), do: <<?R, 8::32, 3::32>>
 
   def authentication_ok(), do: <<?R, 8::32, 0::32>>
+
+  def command_complete(tag), do: message_with_size(?C, <<tag::binary, 0>>)
 
   def fatal_error(code, message), do:
     message_with_size(?E, <<
@@ -34,6 +37,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
     message_with_size(?S, <<name::binary, 0, value::binary, 0>>)
 
   def password_message(password), do: message_with_size(?p, <<password::binary, 0>>)
+
+  def query_message(query), do: message_with_size(?Q, <<query::binary, 0>>)
 
   def ssl_message(), do: message_with_size(<<1234::16, 5679::16>>)
 

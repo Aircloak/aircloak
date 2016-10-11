@@ -152,6 +152,10 @@ defmodule Air.PsqlServer.RanchServer do
       state,
       &Protocol.authenticated(&1, authenticated?(state.login_params, password))
     )
+  defp handle_protocol_action({:run_query, query}, state) do
+    Logger.debug("Running query: `#{query}`")
+    update_protocol(state, &Protocol.select_result(&1, []))
+  end
 
   defp authenticated?(login_params, password) do
     user = Repo.get_by(User, email: login_params["user"])

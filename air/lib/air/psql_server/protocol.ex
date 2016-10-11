@@ -86,6 +86,11 @@ defmodule Air.PsqlServer.Protocol do
   def authenticated(state, success), do:
     transition(state, {:authenticated, success})
 
+  @doc "Should be invoked by the driver when the select query rows are available."
+  @spec select_result(t, [any]) :: t
+  def select_result(state, rows), do:
+    transition(state, {:select_result, rows})
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
@@ -204,4 +209,14 @@ defmodule Air.PsqlServer.Protocol do
   # :ready -> ready to accept queries
   defp transition(state(:ready), {:message, %{type: :terminate}}), do:
     close(state, :normal)
+  defp transition(state(:ready), {:message, %{type: :query} = message}), do:
+    state
+    |> add_action({:run_query, null_terminated_to_string(message.payload)})
+    |> next_state(:running_query)
+  # :running_query -> awaiting query result
+  defp transition(state(:running_query), {:select_result, rows}), do:
+    state
+    |> request_send(command_complete("SELECT #{length(rows)}"))
+    |> request_send(ready_for_query())
+    |> transition_after_message(:ready)
 end
