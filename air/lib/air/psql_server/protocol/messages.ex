@@ -6,6 +6,13 @@ defmodule Air.PsqlServer.Protocol.Messages do
   # These functions basically belong to Air.PsqlServer.Protocol, but they're extracted into
   # a separate module so we can reuse them in tests.
 
+  @messages %{
+    ?p => :password
+  }
+
+  def parse_message_header(<<type::8, length::32>>), do:
+    %{type: Map.fetch!(@messages, type), length: length - 4}
+
   def authentication_method(:cleartext), do: <<?R, 8::32, 3::32>>
 
   def authentication_ok(), do: <<?R, 8::32, 0::32>>
@@ -24,8 +31,6 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def parameter_status(name, value), do:
     message_with_size(?S, <<name::binary, 0, value::binary, 0>>)
-
-  def password_length(<<?p, length::32>>), do: length - 4
 
   def password_message(password), do: message_with_size(?p, <<password::binary, 0>>)
 

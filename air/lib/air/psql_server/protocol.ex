@@ -113,6 +113,9 @@ defmodule Air.PsqlServer.Protocol do
     |> add_action({:close, reason})
     |> next_state(:closed)
 
+  defp transition_after_message(state, next_state), do:
+    next_state(state, {:message_header, next_state}, 5)
+
 
   #-----------------------------------------------------------------------------------------------------------
   # State transitions
@@ -137,6 +140,22 @@ defmodule Air.PsqlServer.Protocol do
       |> close(:required_ssl)
     end
   end
+  # :message_header -> awaiting a message header
+  defp transition(state({:message_header, next_state}), {:message, raw_message_header}) do
+    message_header = parse_message_header(raw_message_header)
+    if message_header.length > 0 do
+      next_state(state, {:message_payload, next_state, message_header.type}, message_header.length)
+    else
+      state
+      |> next_state(next_state)
+      |> transition({:message, %{type: message_header.type, payload: nil}})
+    end
+  end
+  # :message_payload -> awaiting a message payload
+  defp transition(state({:message_payload, next_state, message_type}), {:message, payload}), do:
+    state
+    |> next_state(next_state)
+    |> transition({:message, %{type: message_type, payload: payload}})
   # :ssl -> waiting for the connection to be upgraded to SSL
   defp transition(state(:ssl), :ssl_negotiated), do:
     next_state(state, :startup_message, 8)
@@ -158,14 +177,11 @@ defmodule Air.PsqlServer.Protocol do
   defp transition(state(:authentication_method), {:authentication_method, authentication_method}), do:
     state
     |> request_send(authentication_method(authentication_method))
-    |> next_state(:password_message, 5)
-  # :password_message -> expecting password message from the client
-  defp transition(state(:password_message), {:message, password_message}), do:
-    next_state(state, :password, password_length(password_message))
+    |> transition_after_message(:password)
   # :password -> expecting password from the client
-  defp transition(state(:password), {:message, null_terminated_password}), do:
+  defp transition(state(:password), {:message, %{type: :password} = password_message}), do:
     state
-    |> add_action({:authenticate, null_terminated_to_string(null_terminated_password)})
+    |> add_action({:authenticate, null_terminated_to_string(password_message.payload)})
     |> next_state(:authenticating)
   # :authenticating -> expecting authentication result from the driver
   defp transition(state(:authenticating), {:authenticated, true}) do
