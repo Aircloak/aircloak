@@ -3,7 +3,7 @@
 <p>
   The aircloak platform accounts for how many users were part of each query
   run on the platform. The number does not reflect how much data was analyzed
-  per user, but rather for how many distinct users data was anaonymized.
+  per user, but rather for how many distinct users data was anonymized.
 </p>
 
 <p>
