@@ -172,7 +172,26 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_tables(%Query{from: nil} = query), do: query
   defp compile_tables(query) do
-    %Query{query | selected_tables: selected_tables(query.from, query.data_source)}
+    normalized = normalize_from(query.from, query.data_source)
+    %Query{query |
+      from: normalized,
+      selected_tables: selected_tables(normalized, query.data_source),
+    }
+  end
+
+  defp normalize_from(join = {:join, _}, data_source) do
+    join
+    |> update_in([Access.elem(1), :lhs], &normalize_from(&1, data_source))
+    |> update_in([Access.elem(1), :rhs], &normalize_from(&1, data_source))
+  end
+  defp normalize_from(subquery = {:subquery, _}, data_source) do
+    update_in(subquery, [Access.elem(1), :ast, :from], &normalize_from(&1, data_source))
+  end
+  defp normalize_from(table_name, data_source) do
+    case DataSource.table(data_source, table_name) do
+      nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
+      table -> table.name
+    end
   end
 
   defp selected_tables({:join, join}, data_source) do
@@ -693,14 +712,14 @@ defmodule Cloak.Aql.Compiler do
     end
   end
   defp identifier_to_column({:identifier, table, column_name}, columns_by_name, query) do
-    unless Enum.any?(query.selected_tables, &(&1.name == table)),
+    unless Enum.any?(query.selected_tables, &insensitive_equal(&1.name, table)),
       do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
 
     case get_insensitive(columns_by_name, column_name) do
       nil ->
         raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
       columns ->
-        case Enum.find(columns, &(&1.table.name == table)) do
+        case Enum.find(columns, &insensitive_equal(&1.table.name, table)) do
           nil ->
             raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
           column -> column
@@ -719,12 +738,14 @@ defmodule Cloak.Aql.Compiler do
 
   defp get_insensitive(columns_by_name, name) do
     columns_by_name
-    |> Enum.find(fn({k, _}) -> String.downcase(name) == String.downcase(k) end)
+    |> Enum.find(fn({k, _}) -> insensitive_equal(name, k) end)
     |> case do
       nil -> nil
       {_, v} -> v
     end
   end
+
+  defp insensitive_equal(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 
   def column_title(function = {:function, _, _}), do: Function.name(function)
   def column_title({:distinct, identifier}), do: column_title(identifier)

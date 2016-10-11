@@ -470,6 +470,12 @@ defmodule Cloak.Aql.Compiler.Test do
     assert first == second
   end
 
+  test "unquoted tables are case-insensitive" do
+    first = "select tAbLe.column from tabLe" |> compile!(data_source()) |> Map.drop([:column_titles])
+    second = "select table.column from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    assert first == second
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result

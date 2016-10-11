@@ -7,6 +7,12 @@ defmodule Cloak.Aql.Query do
   database, perform anonymized aggregation, and produce the final output.
   """
 
+  @behaviour Access
+  defdelegate fetch(t, key), to: Map
+  defdelegate get(t, key, value), to: Map
+  defdelegate get_and_update(t, key, list), to: Map
+  defdelegate pop(t, key), to: Map
+
   alias Cloak.Aql.{Column, Function, Parser}
 
   @type t :: %__MODULE__{
