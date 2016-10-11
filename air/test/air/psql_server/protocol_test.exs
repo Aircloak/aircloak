@@ -24,6 +24,12 @@ defmodule Air.PsqlServer.ProtocolTest do
       |> last_action()
   end
 
+  test "termination", do:
+    assert {:close, :normal} ==
+      authenticate(true)
+      |> run_actions(process: [terminate_message()])
+      |> last_action()
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions

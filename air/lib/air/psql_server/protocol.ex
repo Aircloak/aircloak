@@ -190,7 +190,7 @@ defmodule Air.PsqlServer.Protocol do
     |> request_send(parameter_status("application_name", "aircloak"))
     |> request_send(parameter_status("server_version", "1.0.0"))
     |> request_send(ready_for_query())
-    |> next_state(:connected)
+    |> transition_after_message(:ready)
   end
   defp transition(state(:authenticating), {:authenticated, false}), do:
     state
@@ -201,4 +201,7 @@ defmodule Air.PsqlServer.Protocol do
     |> request_send(authentication_ok())
     |> request_send(fatal_error("28000", "Authentication failed!"))
     |> close(:not_authenticated)
+  # :ready -> ready to accept queries
+  defp transition(state(:ready), {:message, %{type: :terminate}}), do:
+    close(state, :normal)
 end

@@ -7,7 +7,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
   # a separate module so we can reuse them in tests.
 
   @messages %{
-    ?p => :password
+    ?p => :password,
+    ?X => :terminate
   }
 
   def parse_message_header(<<type::8, length::32>>), do:
@@ -49,6 +50,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
     |> to_string()
     |> message_with_size()
   end
+
+  def terminate_message(), do: message_with_size(?X, <<>>)
 
   def null_terminated_to_string(null_terminated_string) do
     string_size = byte_size(null_terminated_string) - 1
