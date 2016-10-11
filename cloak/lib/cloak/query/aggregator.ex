@@ -278,7 +278,6 @@ defmodule Cloak.Query.Aggregator do
     unique_user_ids = data
     |> Enum.map(fn({_result, _anonymizer, user_data}) -> user_data end)
     |> Enum.flat_map(&Map.keys/1)
-    |> Enum.uniq()
     |> Enum.into(MapSet.new())
     anonymizer = Anonymizer.new(unique_user_ids)
     unique_users_count = Enum.count(unique_user_ids)
