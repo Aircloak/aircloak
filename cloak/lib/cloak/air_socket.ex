@@ -77,7 +77,7 @@ defmodule Cloak.AirSocket do
 
   @doc false
   def handle_disconnected(reason, %{reconnect_interval: interval} = state) do
-    Logger.error("disconnected: #{inspect reason}")
+    log_disconnected(reason)
     Process.send_after(self(), :connect, interval)
     {:ok, %{state | reconnect_interval: next_interval(interval)}}
   end
@@ -135,7 +135,7 @@ defmodule Cloak.AirSocket do
 
   @doc false
   def handle_info(:connect, _transport, state) do
-    Logger.info("connecting")
+    log_connect()
     {:connect, state}
   end
   def handle_info({:join, topic}, transport, state) do
@@ -271,5 +271,14 @@ defmodule Cloak.AirSocket do
 
   defp config(key) do
     Application.get_env(:cloak, :air) |> Keyword.fetch!(key)
+  end
+
+  if Mix.env == :dev do
+    # suppressing of some common log messages in dev env to avoid excessive noise
+    defp log_connect(), do: :ok
+    defp log_disconnected(_reason), do: :ok
+  else
+    defp log_connect(), do: Logger.info("connecting")
+    defp log_disconnected(reason), do: Logger.error("disconnected: #{inspect reason}")
   end
 end
