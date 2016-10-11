@@ -248,7 +248,9 @@ defmodule Cloak.Query.Aggregator do
       (query.property ++ query.aggregators)
       |> Enum.with_index()
       |> Enum.into(%{})
-    Enum.map(rows, &make_bucket(&1, columns, query))
+    rows
+    |> Enum.filter(&matches_having_clause?(&1, columns, query))
+    |> Enum.map(&make_bucket(&1, columns, query))
   end
 
   defp make_bucket(row, columns, query), do:
@@ -286,4 +288,20 @@ defmodule Cloak.Query.Aggregator do
       _ -> 0
     end
   end
+
+  defp matches_having_clause?(row, columns, query), do:
+    Enum.all?(query.having, &matches_having_condition?(row, &1, columns))
+
+  defp matches_having_condition?(row, {:comparison, column, operator, target}, columns) do
+    value = fetch_bucket_value!(row, columns, column)
+    target = fetch_bucket_value!(row, columns, target)
+    compare(value, operator, target)
+  end
+
+  defp compare(value, :=, target), do: value == target
+  defp compare(value, :<, target), do: value < target
+  defp compare(value, :<=, target), do: value <= target
+  defp compare(value, :>, target), do: value > target
+  defp compare(value, :>=, target), do: value >= target
+  defp compare(value, :<>, target), do: value != target
 end

@@ -36,7 +36,7 @@ defmodule Cloak.Query.FunctionTest do
     assert_subquery_function(
       "count(*)",
       "heights_ft",
-      %{error: "Column `user_id` from table `heights_ft` needs to appear in the `group by`" <> _}
+      %{error: "Column `user_id` from table `heights_ft` needs to appear in the `GROUP BY`" <> _}
     )
   end
 

@@ -20,6 +20,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     FROM from_expression [, ...]
     [ WHERE where_expression [AND ...] ]
     [ GROUP BY column_name [, ...] ]
+    [ HAVING having_expression [AND ...] ]
     [ ORDER BY column_name [ASC | DESC] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
 
   column_expression :=
@@ -39,15 +40,20 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     column_name IS [NOT] NULL |
     column_name IN (constant [, ...])
     column_name [NOT] LIKE | ILIKE string_pattern
+
+  having_expression :=
+      column_expression comparison_operator (value | column_expression)
 </pre>
 
 __Notes__:
 
-- The `*` argument and the `DISTINCT` modifier can only be provided to the `COUNT` function.
+- The `*` argument can only be provided to the `COUNT` aggregator and it specifies counting rows
+  instead of otherwise counting only non-`NULL` values. `NULL` values are ignored by all other aggregators.
 - The operator `OR` is currently not supported.
 - The operator `NOT` can only be used in the cases mentioned above (`IS NOT NULL`, `NOT LIKE`, and `NOT ILIKE`).
-- You can restrict the range of returned rows by a query using the LIMIT and/or OFFSET clauses, but you need to
+- You can restrict the range of returned rows by a query using the `LIMIT` and/or `OFFSET` clauses, but you need to
  provide the ORDER BY clause to ensure a stable order for the rows.
+- Using the `HAVING` clause requires the `GROUP BY` clause to be specified and conditions must not refer to non-aggregated fields.
 
 ## JOIN restrictions
 

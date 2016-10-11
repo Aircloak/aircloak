@@ -64,19 +64,37 @@ defmodule Air.PsqlServer.RanchServer do
     set_active_mode(state)
     {:noreply, state}
   end
-  def handle_info({:tcp, _socket, input}, state), do:
-    {:noreply, process_input(state, input)}
-  def handle_info({:tcp_closed, _socket}, state), do:
-    {:stop, :normal, state}
-  def handle_info({:tcp_error, _socket, reason}, state), do:
-    {:stop, reason, state}
-  def handle_info({:tcp_passive, _socket}, state) do
-    set_active_mode(state)
-    {:noreply, state}
-  end
   def handle_info(:close, state) do
     state.transport.close(state.socket)
     {:stop, :normal, state}
+  end
+  for transport <- [:tcp, :ssl] do
+    def handle_info({unquote(transport), _socket, input}, state) do
+      state = process_input(state, input)
+      set_active_mode(state)
+      {:noreply, state}
+    end
+    def handle_info({unquote(:"#{transport}_closed"), _socket}, state), do:
+      {:stop, :normal, state}
+    def handle_info({unquote(:"#{transport}_error"), _socket, reason}, state), do:
+      {:stop, reason, state}
+  end
+  def handle_info(:upgrade_to_ssl, state) do
+    state.transport.setopts(state.socket, active: false)
+    {:ok, ssl_socket} = :ssl.ssl_accept(
+      state.socket,
+      certfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"]),
+      keyfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
+    )
+
+    state =
+      update_protocol(
+        %{state | socket: ssl_socket, transport: :ranch_ssl},
+        &Protocol.ssl_negotiated(&1)
+      )
+
+    :ok = set_active_mode(state)
+    {:noreply, state}
   end
   def handle_info(_msg, state), do:
     {:noreply, state}
@@ -87,7 +105,7 @@ defmodule Air.PsqlServer.RanchServer do
   #-----------------------------------------------------------------------------------------------------------
 
   defp set_active_mode(state), do:
-    :ok = state.transport.setopts(state.socket, active: 1)
+    state.transport.setopts(state.socket, active: true)
 
   defp process_input(state, input), do:
     state
@@ -119,6 +137,10 @@ defmodule Air.PsqlServer.RanchServer do
 
   defp handle_protocol_action({:close, _reason}, state) do
     send(self(), :close)
+    state
+  end
+  defp handle_protocol_action(:upgrade_to_ssl, state) do
+    send(self(), :upgrade_to_ssl)
     state
   end
   defp handle_protocol_action({:login_params, login_params}, state), do:
