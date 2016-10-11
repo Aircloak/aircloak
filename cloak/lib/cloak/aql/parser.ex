@@ -10,6 +10,7 @@ defmodule Cloak.Aql.Parser do
     | :<=
     | :>=
     | :>
+    | :<>
 
   @type qualified_identifier :: {:identifier, :unknown | String.t, String.t}
 
@@ -30,6 +31,8 @@ defmodule Cloak.Aql.Parser do
   @type where_clause ::
       negatable_condition | {:not, negatable_condition}
     | {:comparison, String.t, comparator, any}
+
+  @type having_clause :: {:comparison, column, comparator, any}
 
   @type from_clause :: table | parsed_subquery | unparsed_subquery | join
 
@@ -53,6 +56,7 @@ defmodule Cloak.Aql.Parser do
     from: from_clause,
     where: [where_clause],
     order_by: [{String.t, :asc | :desc}],
+    having: [having_clause],
     show: :tables | :columns,
     limit: integer,
     offset: integer
@@ -139,6 +143,7 @@ defmodule Cloak.Aql.Parser do
       from(data_source),
       optional_where(),
       optional_group_by(),
+      optional_having(),
       optional_order_by(),
       optional_limit(),
       optional_offset()
@@ -520,9 +525,7 @@ defmodule Cloak.Aql.Parser do
         end)
   end
 
-  defp where_expressions() do
-    and_delimited(where_expression())
-  end
+  defp where_expressions(), do: and_delimited(where_expression())
 
   defp where_expression() do
     switch([
@@ -531,7 +534,7 @@ defmodule Cloak.Aql.Parser do
       {qualified_identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
       {qualified_identifier() |> keyword(:between), allowed_where_range()},
       {qualified_identifier(), pair_both(comparator(), allowed_where_value())},
-      {:else, error_message(fail(""), "Invalid where expression")}
+      {:else, error_message(fail(""), "Invalid where expression.")}
     ])
     |> map(fn
           {[identifier, nil, :like], [string_constant]} -> {:like, identifier, string_constant}
@@ -684,6 +687,32 @@ defmodule Cloak.Aql.Parser do
       {:else, noop()}
     ])
     |> map(fn {[:offset], [{:constant, :integer, amount}]} -> {:offset, amount} end)
+  end
+
+  defp optional_having() do
+    switch([
+      {keyword(:having), having_expressions()},
+      {:else, noop()}
+    ])
+    |> map(fn
+          {[:having], [having_expressions]} -> {:having, List.flatten(having_expressions)}
+          other -> other
+        end)
+  end
+
+  defp having_expressions(), do: and_delimited(having_expression())
+
+  defp having_expression() do
+    switch([
+      {column() |> keyword(:between), allowed_where_range()},
+      {column(), pair_both(comparator(), column())},
+      {:else, error_message(fail(""), "Invalid having expression.")}
+    ])
+    |> map(fn
+          {[column], [{comparator, value}]} -> {:comparison, column, comparator, value}
+          {[column, :between], [{min, max}]} ->
+            [{:comparison, column, :>=, min}, {:comparison, column, :<=, max}]
+        end)
   end
 
 

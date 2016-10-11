@@ -72,6 +72,7 @@ defmodule Cloak.Aql.Compiler do
     |> verify_columns()
     |> compile_order_by()
     |> partition_selected_columns()
+    |> verify_having()
     |> calculate_db_columns()
     |> verify_limit()
     |> verify_offset()
@@ -96,6 +97,7 @@ defmodule Cloak.Aql.Compiler do
       |> cast_where_clauses()
       |> align_ranges()
       |> partition_selected_columns()
+      |> verify_having()
       |> partition_where_clauses()
       |> calculate_db_columns()
       |> verify_limit()
@@ -238,13 +240,12 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp aggregated_column?(column, query) do
+  defp aggregated_column?(column, query), do:
     Column.constant?(column) ||
-      Function.aggregate_function?(column) ||
-      Column.aggregate_db_function?(column) ||
-      Enum.member?(query.group_by, column) ||
-      (Function.function?(column) && Enum.all?(Function.arguments(column), &aggregated_column?(&1, query)))
-  end
+    Function.aggregate_function?(column) ||
+    Column.aggregate_db_function?(column) ||
+    Enum.member?(query.group_by, column) ||
+    (Function.function?(column) && Enum.all?(Function.arguments(column), &aggregated_column?(&1, query)))
 
   defp compile_columns(query) do
     query
@@ -367,15 +368,16 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp partition_selected_columns(%Query{subquery?: true} = query), do: query
-  defp partition_selected_columns(%Query{group_by: groups = [_|_], columns: columns} = query) do
-    aggregators = filter_aggregators(columns)
+  defp partition_selected_columns(%Query{group_by: groups = [_|_], columns: selected_columns} = query) do
+    having_columns = Enum.flat_map(query.having, fn ({:comparison, column, _operator, target}) -> [column, target] end)
+    aggregators = filter_aggregators(selected_columns ++ having_columns)
     %Query{query | property: groups |> Enum.uniq(), aggregators: aggregators |> Enum.uniq()}
   end
-  defp partition_selected_columns(%Query{columns: columns} = query) do
-    case filter_aggregators(columns) do
+  defp partition_selected_columns(%Query{columns: selected_columns} = query) do
+    case filter_aggregators(selected_columns) do
       [] ->
         %Query{query |
-          property: columns |> Enum.uniq(), aggregators: [{:function, "count", [:*]}], implicit_count: true
+          property: selected_columns |> Enum.uniq(), aggregators: [{:function, "count", [:*]}], implicit_count: true
         }
       aggregators ->
         %Query{query | property: [], aggregators: aggregators |> Enum.uniq()}
@@ -610,6 +612,7 @@ defmodule Cloak.Aql.Compiler do
       where: Enum.map(query.where, &map_where_clause(&1, mapper_fun)),
       where_not: Enum.map(query.where_not, &map_where_clause(&1, mapper_fun)),
       order_by: Enum.map(query.order_by, &map_order_by(&1, mapper_fun)),
+      having: Enum.map(query.having, &map_where_clause(&1, mapper_fun)),
       db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
       property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
       aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun)),
@@ -740,6 +743,7 @@ defmodule Cloak.Aql.Compiler do
   defp extract_columns({:function, "count_noise", [:*]}), do: [nil]
   defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)
   defp extract_columns({:distinct, expression}), do: extract_columns(expression)
+  defp extract_columns({:comparison, column, _operator, target}), do: extract_columns(column) ++ extract_columns(target)
   defp extract_columns([columns]), do: Enum.flat_map(columns, &extract_columns(&1))
 
   defp warn_on_selected_uid(query, column) do
@@ -765,7 +769,7 @@ defmodule Cloak.Aql.Compiler do
   defp select_expressions(%Query{command: :select, subquery?: false} = query) do
     # top-level query -> we,re fetching only columns, while other expressions (e.g. function calls)
     # will be resolved in the post-processing phase
-    [id_column(query) | query.columns ++ query.group_by ++ query.unsafe_filter_columns]
+    [id_column(query) | query.columns ++ query.group_by ++ query.unsafe_filter_columns ++ query.having]
     |> Enum.flat_map(&extract_columns/1)
     |> Enum.reject(&(&1 == nil))
     |> Enum.reject(&(&1.constant?))
@@ -877,4 +881,15 @@ defmodule Cloak.Aql.Compiler do
   defp verify_offset(%Query{command: :select, order_by: [], offset: amount}) when amount > 0, do:
     raise CompilationError, message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
   defp verify_offset(query), do: query
+
+  defp verify_having(%Query{command: :select, group_by: [], having: [_|_]}), do:
+    raise CompilationError, message: "Using the `HAVING` clause requires the `GROUP BY` clause to be specified."
+  defp verify_having(%Query{command: :select, having: [_|_]} = query) do
+    for {:comparison, column, _operator, target} <- query.having do
+      unless aggregated_column?(column, query) and aggregated_column?(target, query), do:
+        raise CompilationError, message: "`HAVING` clause can not be applied over non-aggregated columns."
+    end
+    query
+  end
+  defp verify_having(query), do: query
 end
