@@ -34,12 +34,14 @@ defmodule Air do
     end)
   end
 
+  @https_port if Mix.env != :test, do: 8443, else: 8444
+
   defp https_config() do
     keyfile = Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
     certfile = Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"])
 
     if File.exists?(keyfile) && File.exists?(certfile) do
-      [https: [port: 8443, keyfile: keyfile, certfile: certfile]]
+      [https: [port: @https_port, keyfile: keyfile, certfile: certfile]]
     else
       []
     end
