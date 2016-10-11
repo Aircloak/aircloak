@@ -4,6 +4,8 @@ config :air, Air.Endpoint,
   http: [port: 8081],
   server: true
 
+config :air, :https_port, 8444
+
 # Print only warnings and errors during test
 config :logger, level: :warn
 
@@ -12,3 +14,6 @@ config :air, Air.Repo, pool: Ecto.Adapters.SQL.Sandbox
 
 # Make tests related to hashing run faster
 config :comeonin, :pbkdf2_rounds, 1
+
+config :air, Air.PsqlServer,
+  port: 8433

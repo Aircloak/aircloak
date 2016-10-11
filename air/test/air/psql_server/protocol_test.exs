@@ -24,6 +24,22 @@ defmodule Air.PsqlServer.ProtocolTest do
       |> last_action()
   end
 
+  test "termination", do:
+    assert {:close, :normal} ==
+      authenticate(true)
+      |> run_actions(process: [terminate_message()])
+      |> last_action()
+
+  test "running a query" do
+    assert [{:send, command_complete("SELECT 3")}, {:send, ready_for_query()}] ==
+      authenticate(true)
+      |> run_actions(
+            process: [query_message("select foo from bar")],
+            select_result: [[1, 2, 3]]
+          )
+      |> last_actions(2)
+  end
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
@@ -72,5 +88,12 @@ defmodule Air.PsqlServer.ProtocolTest do
     actions
   end
 
-  defp last_action(protocol), do: List.last(out_actions(protocol))
+  defp last_action(protocol), do: hd(last_actions(protocol, 1))
+
+  defp last_actions(protocol, n), do:
+    protocol
+    |> out_actions()
+    |> Enum.reverse()
+    |> Enum.take(n)
+    |> Enum.reverse()
 end

@@ -26,9 +26,7 @@ defmodule Air.DataSourceController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    data_sources = DataSource
-    |> DataSource.for_user(conn.assigns.current_user)
-    |> Repo.all()
+    data_sources = Air.Service.User.data_sources(conn.assigns.current_user)
     {available_data_sources, unavailable_data_sources} = Enum.partition(data_sources,
       &(DataSourceManager.available?(&1.global_id)))
     data_source_count = Repo.aggregate(DataSource, :count, :id)

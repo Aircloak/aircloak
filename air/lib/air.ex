@@ -39,7 +39,7 @@ defmodule Air do
     certfile = Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"])
 
     if File.exists?(keyfile) && File.exists?(certfile) do
-      [https: [port: 8443, keyfile: keyfile, certfile: certfile]]
+      [https: [port: Application.fetch_env!(:air, :https_port), keyfile: keyfile, certfile: certfile]]
     else
       []
     end

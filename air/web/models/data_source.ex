@@ -66,7 +66,7 @@ defmodule Air.DataSource do
   @doc "Returns a boolean whether a data source is available to a user"
   @spec available_to_user?(integer, User.t) :: boolean
   def available_to_user?(data_source_id, user) do
-    Repo.get(for_user(DataSource, user), data_source_id) !== nil
+    Repo.get(for_user(user), data_source_id) !== nil
   end
 
 
@@ -75,9 +75,9 @@ defmodule Air.DataSource do
   # -------------------------------------------------------------------
 
   @doc "Adds a query filter selecting only those for the given user"
-  @spec for_user(Ecto.Queryable.t, User.t) :: Ecto.Queryable.t
-  def for_user(query, user) do
-    from data_source in query,
+  @spec for_user(User.t) :: Ecto.Queryable.t
+  def for_user(user) do
+    from data_source in __MODULE__,
     inner_join: group in assoc(data_source, :groups),
     inner_join: user in assoc(group, :users),
     where: user.id == ^user.id

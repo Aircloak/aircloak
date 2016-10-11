@@ -69,7 +69,7 @@ defmodule Air.PsqlServer.Protocol do
   @doc "Should be invoked by the driver after the connection is upgraded to ssl."
   @spec ssl_negotiated(t) :: t
   def ssl_negotiated(state), do:
-    transition(state, :ssl_negotiated)
+    handle_event(state, :ssl_negotiated)
 
   @doc "Should be invoked by the driver to feed input bytes to the protocol state machine."
   @spec process(t, binary) :: t
@@ -79,12 +79,17 @@ defmodule Air.PsqlServer.Protocol do
   @doc "Should be invoked by the driver to choose the authentication method."
   @spec authentication_method(t, authentication_method) :: t
   def authentication_method(state, authentication_method), do:
-    transition(state, {:authentication_method, authentication_method})
+    handle_event(state, {:authentication_method, authentication_method})
 
   @doc "Should be invoked by the driver if the user has been authenticated."
   @spec authenticated(t, boolean) :: t
   def authenticated(state, success), do:
-    transition(state, {:authenticated, success})
+    handle_event(state, {:authenticated, success})
+
+  @doc "Should be invoked by the driver when the select query rows are available."
+  @spec select_result(t, [any]) :: t
+  def select_result(state, rows), do:
+    handle_event(state, {:select_result, rows})
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -96,7 +101,7 @@ defmodule Air.PsqlServer.Protocol do
     <<message::binary-size(expecting)>> <> rest_buffer = buffer
 
     %{state | expecting: 0, buffer: rest_buffer}
-    |> transition({:message, message})
+    |> handle_event({:message, message})
     |> process_buffer()
   end
   defp process_buffer(state), do: state
@@ -113,19 +118,22 @@ defmodule Air.PsqlServer.Protocol do
     |> add_action({:close, reason})
     |> next_state(:closed)
 
+  defp transition_after_message(state, next_state), do:
+    next_state(state, {:message_header, next_state}, 5)
+
 
   #-----------------------------------------------------------------------------------------------------------
-  # State transitions
+  # Handling events
   #-----------------------------------------------------------------------------------------------------------
 
   defmacrop state(name), do:
     quote(do: %{name: unquote(name)} = var!(state))
 
   # :closed -> ignore all actions
-  defp transition(state(:closed), _), do:
+  defp handle_event(state(:closed), _), do:
     state
   # :initial -> awaiting SSLRequest or StartupMessage
-  defp transition(state(:initial), {:message, message}) do
+  defp handle_event(state(:initial), {:message, message}) do
     if ssl_message?(message) do
       state
       |> request_send(require_ssl())
@@ -137,11 +145,27 @@ defmodule Air.PsqlServer.Protocol do
       |> close(:required_ssl)
     end
   end
+  # :message_header -> awaiting a message header
+  defp handle_event(state({:message_header, next_state_name}), {:message, raw_message_header}) do
+    message_header = parse_message_header(raw_message_header)
+    if message_header.length > 0 do
+      next_state(state, {:message_payload, next_state_name, message_header.type}, message_header.length)
+    else
+      state
+      |> next_state(next_state_name)
+      |> handle_event({:message, %{type: message_header.type, payload: nil}})
+    end
+  end
+  # :message_payload -> awaiting a message payload
+  defp handle_event(state({:message_payload, next_state_name, message_type}), {:message, payload}), do:
+    state
+    |> next_state(next_state_name)
+    |> handle_event({:message, %{type: message_type, payload: payload}})
   # :ssl -> waiting for the connection to be upgraded to SSL
-  defp transition(state(:ssl), :ssl_negotiated), do:
+  defp handle_event(state(:ssl), :ssl_negotiated), do:
     next_state(state, :startup_message, 8)
   # :startup_message -> expecting startup message from the client
-  defp transition(state(:startup_message), {:message, message}) do
+  defp handle_event(state(:startup_message), {:message, message}) do
     startup_message = parse_startup_message(message)
     if startup_message.version.major != 3 do
       close(state, :unsupported_protocol_version)
@@ -150,33 +174,30 @@ defmodule Air.PsqlServer.Protocol do
     end
   end
   # :login_params -> expecting login params from the client
-  defp transition(state(:login_params), {:message, raw_login_params}), do:
+  defp handle_event(state(:login_params), {:message, raw_login_params}), do:
     state
-    |> add_action({:login_params, login_params(raw_login_params)})
+    |> add_action({:login_params, parse_login_params(raw_login_params)})
     |> next_state(:authentication_method)
   # :authentication_method -> expecting the driver to choose the authentication method
-  defp transition(state(:authentication_method), {:authentication_method, authentication_method}), do:
+  defp handle_event(state(:authentication_method), {:authentication_method, authentication_method}), do:
     state
     |> request_send(authentication_method(authentication_method))
-    |> next_state(:password_message, 5)
-  # :password_message -> expecting password message from the client
-  defp transition(state(:password_message), {:message, password_message}), do:
-    next_state(state, :password, password_length(password_message))
+    |> transition_after_message(:password)
   # :password -> expecting password from the client
-  defp transition(state(:password), {:message, null_terminated_password}), do:
+  defp handle_event(state(:password), {:message, %{type: :password} = password_message}), do:
     state
-    |> add_action({:authenticate, null_terminated_to_string(null_terminated_password)})
+    |> add_action({:authenticate, null_terminated_to_string(password_message.payload)})
     |> next_state(:authenticating)
   # :authenticating -> expecting authentication result from the driver
-  defp transition(state(:authenticating), {:authenticated, true}) do
+  defp handle_event(state(:authenticating), {:authenticated, true}) do
     state
     |> request_send(authentication_ok())
     |> request_send(parameter_status("application_name", "aircloak"))
     |> request_send(parameter_status("server_version", "1.0.0"))
     |> request_send(ready_for_query())
-    |> next_state(:connected)
+    |> transition_after_message(:ready)
   end
-  defp transition(state(:authenticating), {:authenticated, false}), do:
+  defp handle_event(state(:authenticating), {:authenticated, false}), do:
     state
     # We're sending AuthenticationOK to indicate to the client that the auth procedure went fine. Then
     # we'll send a fatal error with a custom error message. It is unclear from the official docs that it
@@ -185,4 +206,17 @@ defmodule Air.PsqlServer.Protocol do
     |> request_send(authentication_ok())
     |> request_send(fatal_error("28000", "Authentication failed!"))
     |> close(:not_authenticated)
+  # :ready -> ready to accept queries
+  defp handle_event(state(:ready), {:message, %{type: :terminate}}), do:
+    close(state, :normal)
+  defp handle_event(state(:ready), {:message, %{type: :query} = message}), do:
+    state
+    |> add_action({:run_query, null_terminated_to_string(message.payload)})
+    |> next_state(:running_query)
+  # :running_query -> awaiting query result
+  defp handle_event(state(:running_query), {:select_result, rows}), do:
+    state
+    |> request_send(command_complete("SELECT #{length(rows)}"))
+    |> request_send(ready_for_query())
+    |> transition_after_message(:ready)
 end

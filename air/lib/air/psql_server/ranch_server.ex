@@ -12,7 +12,6 @@ defmodule Air.PsqlServer.RanchServer do
 
   require Logger
 
-  alias Air.{Repo, User}
   alias Air.PsqlServer.Protocol
 
   #-----------------------------------------------------------------------------------------------------------
@@ -147,10 +146,18 @@ defmodule Air.PsqlServer.RanchServer do
     state
     |> Map.put(:login_params, login_params)
     |> update_protocol(&Protocol.authentication_method(&1, :cleartext))
-  defp handle_protocol_action({:authenticate, password}, state) do
-    user = Repo.get_by(User, email: state.login_params["user"])
-    update_protocol(state, &Protocol.authenticated(&1, User.validate_password(user, password)))
+  defp handle_protocol_action({:authenticate, password}, state), do:
+    update_protocol(
+      state,
+      &Protocol.authenticated(&1, authenticated?(state.login_params, password))
+    )
+  defp handle_protocol_action({:run_query, query}, state) do
+    Logger.debug("Running query: `#{query}`")
+    update_protocol(state, &Protocol.select_result(&1, []))
   end
+
+  defp authenticated?(login_params, password), do:
+    Air.Service.User.login(login_params["user"], password, login_params["database"]) != nil
 
   defp update_protocol(state, fun), do:
     %{state | protocol: fun.(state.protocol)}
