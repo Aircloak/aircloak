@@ -6,23 +6,40 @@ defmodule Air.PsqlServer.Protocol.Messages do
   # These functions basically belong to Air.PsqlServer.Protocol, but they're extracted into
   # a separate module so we can reuse them in tests.
 
-  @messages %{
-    ?p => :password,
-    ?Q => :query,
-    ?X => :terminate
-  }
 
-  def parse_message_header(<<type::8, length::32>>), do:
-    %{type: Map.fetch!(@messages, type), length: length - 4}
+  #-----------------------------------------------------------------------------------------------------------
+  # Decoding functions
+  #-----------------------------------------------------------------------------------------------------------
 
-  def authentication_method(:cleartext), do: <<?R, 8::32, 3::32>>
+  def ssl_message?(message), do: message == ssl_message()
 
-  def authentication_ok(), do: <<?R, 8::32, 0::32>>
+  def parse_startup_message(<<length::32, major::16, minor::16>> = message), do:
+    %{length: length - byte_size(message), version: %{major: major, minor: minor}}
 
-  def command_complete(tag), do: message_with_size(?C, null_terminate(tag))
+  def parse_message_header(<<message_byte::8, length::32>>), do:
+    %{type: message_name(message_byte), length: length - 4}
+
+  def parse_login_params(raw_login_params) do
+    raw_login_params
+    |> String.split(<<0>>)
+    |> Stream.chunk(2)
+    |> Stream.map(&List.to_tuple/1)
+    |> Enum.into(%{})
+  end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Encoding functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  def authentication_method(:cleartext), do: message_with_size(:authentication, <<3::32>>)
+
+  def authentication_ok(), do: message_with_size(:authentication, <<0::32>>)
+
+  def command_complete(tag), do: message_with_size(:command_complete, null_terminate(tag))
 
   def fatal_error(code, message), do:
-    message_with_size(?E, <<
+    message_with_size(:error_response, <<
       ?S, "FATAL", 0,
       ?C, null_terminate(code)::binary,
       ?M, null_terminate(message)::binary,
@@ -31,21 +48,16 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def require_ssl(), do: <<?S>>
 
-  def ready_for_query(), do: <<?Z, 5::32, ?I>>
+  def ready_for_query(), do: message_with_size(:ready_for_query, <<?I>>)
 
   def parameter_status(name, value), do:
-    message_with_size(?S, null_terminate(name) <> null_terminate(value))
+    message_with_size(:parameter_status, null_terminate(name) <> null_terminate(value))
 
-  def password_message(password), do: message_with_size(?p, null_terminate(password))
+  def password_message(password), do: message_with_size(:password, null_terminate(password))
 
-  def query_message(query), do: message_with_size(?Q, null_terminate(query))
+  def query_message(query), do: message_with_size(:query, null_terminate(query))
 
   def ssl_message(), do: message_with_size(<<1234::16, 5679::16>>)
-
-  def ssl_message?(message), do: message == ssl_message()
-
-  def parse_startup_message(<<length::32, major::16, minor::16>> = message), do:
-    %{length: length - byte_size(message), version: %{major: major, minor: minor}}
 
   def startup_message(major, minor, opts) do
     [
@@ -56,7 +68,38 @@ defmodule Air.PsqlServer.Protocol.Messages do
     |> message_with_size()
   end
 
-  def terminate_message(), do: message_with_size(?X, <<>>)
+  def terminate_message(), do: message_with_size(:terminate, <<>>)
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Message helpers
+  #-----------------------------------------------------------------------------------------------------------
+
+  defp message_with_size(payload), do:
+    <<(4 + byte_size(payload))::32, payload::binary>>
+
+  defp message_with_size(message_name, payload), do:
+    <<message_byte(message_name)::8, message_with_size(payload)::binary>>
+
+  for {message_name, message_byte} <-
+      %{
+        authentication: ?R,
+        command_complete: ?C,
+        error_response: ?E,
+        password: ?p,
+        parameter_status: ?S,
+        query: ?Q,
+        ready_for_query: ?Z,
+        terminate: ?X
+      } do
+    defp message_name(unquote(message_byte)), do: unquote(message_name)
+    defp message_byte(unquote(message_name)), do: unquote(message_byte)
+  end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Other helpers
+  #-----------------------------------------------------------------------------------------------------------
 
   def null_terminated_to_string(null_terminated_string) do
     string_size = byte_size(null_terminated_string) - 1
@@ -64,19 +107,5 @@ defmodule Air.PsqlServer.Protocol.Messages do
     string
   end
 
-  def null_terminate(string), do: <<string::binary, 0>>
-
-  def login_params(raw_login_params) do
-    raw_login_params
-    |> String.split(<<0>>)
-    |> Stream.chunk(2)
-    |> Stream.map(&List.to_tuple/1)
-    |> Enum.into(%{})
-  end
-
-  defp message_with_size(payload), do:
-    <<(4 + byte_size(payload))::32, payload::binary>>
-
-  defp message_with_size(type, payload), do:
-    <<type, message_with_size(payload)::binary>>
+  defp null_terminate(string), do: <<string::binary, 0>>
 end

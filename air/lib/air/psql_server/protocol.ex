@@ -176,7 +176,7 @@ defmodule Air.PsqlServer.Protocol do
   # :login_params -> expecting login params from the client
   defp transition(state(:login_params), {:message, raw_login_params}), do:
     state
-    |> add_action({:login_params, login_params(raw_login_params)})
+    |> add_action({:login_params, parse_login_params(raw_login_params)})
     |> next_state(:authentication_method)
   # :authentication_method -> expecting the driver to choose the authentication method
   defp transition(state(:authentication_method), {:authentication_method, authentication_method}), do:
