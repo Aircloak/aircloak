@@ -29,9 +29,8 @@ defmodule Air.SessionController do
   end
 
   def create(conn, params) do
-    case Air.Service.User.login(params["email"], params["password"]) do
-      {:ok, user} ->
-        AuditLog.log(temporary_set_user(conn, user), "Logged in")
+    case Air.Service.User.login(params["email"], params["password"], nil, conn) do
+      %User{} = user ->
         return_path = get_session(conn, :return_path) || query_path(conn, :index)
         conn
         |> Guardian.Plug.sign_in(user)
@@ -39,8 +38,7 @@ defmodule Air.SessionController do
         |> put_session(:return_path, nil)
         |> put_flash(:info, "Logged in successfully. Welcome back!")
         |> redirect(to: return_path)
-      {:error, user} ->
-        AuditLog.log(temporary_set_user(conn, user), "Failed login")
+      nil ->
         conn
         |> put_flash(:error, "Invalid e-mail or password.")
         |> render("new.html")
@@ -60,8 +58,6 @@ defmodule Air.SessionController do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp temporary_set_user(conn, user), do: Plug.Conn.assign(conn, :current_user, user)
 
   defp conditionally_create_persistent_login(conn, %{"remember" => "on"}) do
     Air.Plug.Session.Restoration.persist_token(conn)

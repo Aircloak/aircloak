@@ -157,7 +157,7 @@ defmodule Air.PsqlServer.RanchServer do
   end
 
   defp authenticated?(login_params, password), do:
-    match?({:ok, _user}, Air.Service.User.login(login_params["user"], password, login_params["database"]))
+    Air.Service.User.login(login_params["user"], password, login_params["database"]) != nil
 
   defp update_protocol(state, fun), do:
     %{state | protocol: fun.(state.protocol)}
