@@ -2,7 +2,7 @@ defmodule Air.Admin.GroupController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.{Group, AuditLog}
+  alias Air.Group
 
 
   # -------------------------------------------------------------------
@@ -29,7 +29,7 @@ defmodule Air.Admin.GroupController do
     changeset = Group.changeset(%Group{}, params["group"])
     case Repo.insert(changeset) do
       {:ok, group} ->
-        AuditLog.log(conn, "Created group", name: group.name)
+        audit_log(conn, "Created group", name: group.name)
         conn
         |> put_flash(:info, "Group created")
         |> redirect(to: admin_group_path(conn, :index))
@@ -41,7 +41,7 @@ defmodule Air.Admin.GroupController do
   def delete(conn, %{"id" => id}) do
     group = Repo.get!(Group, id)
     Repo.delete!(group)
-    AuditLog.log(conn, "Removed group", name: group.name)
+    audit_log(conn, "Removed group", name: group.name)
     conn
     |> put_flash(:info, "Group deleted")
     |> redirect(to: admin_group_path(conn, :index))

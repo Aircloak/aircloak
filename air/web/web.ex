@@ -40,6 +40,32 @@ defmodule Air.Web do
       # Each controller must verify permissions
       @behaviour Air.VerifyPermissions
       plug Air.VerifyPermissions, controller: __MODULE__
+
+      @doc false
+      def audit_log(conn, event, metadata \\ []) do
+        Air.Service.AuditLog.log(conn.assigns.current_user, event,
+          conn
+          |> audit_log_meta()
+          |> Map.merge(Enum.into(metadata, %{}))
+        )
+      end
+
+      @doc false
+      def audit_log_meta(conn) do
+        %{
+          peer:
+            case conn.peer do
+              {{a, b, c, d}, port} -> "#{a}.#{b}.#{c}.#{d}:#{port}"
+              _ -> "Unknown"
+            end,
+
+          remote_ip:
+            case conn.remote_ip do
+              {a, b, c, d} -> "#{a}.#{b}.#{c}.#{d}"
+              _ -> "Unknown"
+            end
+        }
+      end
     end
   end
 

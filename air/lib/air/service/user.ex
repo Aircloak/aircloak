@@ -1,7 +1,8 @@
 defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
-  alias Air.{AuditLog, DataSource, DataSourceManager, Repo, User}
+  alias Air.{DataSource, DataSourceManager, Repo, User}
+  alias Air.Service.AuditLog
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -13,15 +14,14 @@ defmodule Air.Service.User do
 
   If data source name is provided, it has to be available to the given user.
   """
-  @spec login(String.t, String.t, nil | String.t, Plug.Conn.t) :: User.t | nil
-  def login(email, password, data_source_name, conn \\ %Plug.Conn{}) do
+  @spec login(String.t, String.t, nil | String.t, Keyword.t) :: User.t | nil
+  def login(email, password, data_source_name, meta \\ []) do
     user = Repo.get_by(User, email: email)
-    conn = Plug.Conn.assign(conn, :current_user, user)
     if User.validate_password(user, password) && can_login_to_data_source?(user, data_source_name) do
-      AuditLog.log(conn, "Logged in")
+      AuditLog.log(user, "Logged in", meta)
       user
     else
-      AuditLog.log(conn, "Failed login")
+      AuditLog.log(user, "Failed login", meta)
       nil
     end
   end

@@ -2,7 +2,7 @@ defmodule Air.Admin.UserController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.{User, AuditLog}
+  alias Air.User
 
   plug :load_user when action in [:edit, :update, :delete]
 
@@ -54,7 +54,7 @@ defmodule Air.Admin.UserController do
     changeset = User.new_user_changeset(%User{}, params["user"])
     case Repo.insert(changeset) do
       {:ok, user} ->
-        AuditLog.log(conn, "Created user", user: user.email, name: user.name)
+        audit_log(conn, "Created user", user: user.email, name: user.name)
         conn
         |> put_flash(:info, "User created")
         |> redirect(to: admin_user_path(conn, :index))
@@ -66,7 +66,7 @@ defmodule Air.Admin.UserController do
     changeset = User.changeset(conn.assigns.user, params["user"])
     case Repo.update(changeset) do
       {:ok, user} ->
-        AuditLog.log(conn, "Altered user", user: user.email, name: user.name)
+        audit_log(conn, "Altered user", user: user.email, name: user.name)
         conn
         |> put_flash(:info, "User updated")
         |> redirect(to: admin_user_path(conn, :index))
@@ -77,7 +77,7 @@ defmodule Air.Admin.UserController do
   def delete(conn, _params) do
     user = conn.assigns.user
     Repo.delete!(user)
-    AuditLog.log(conn, "Removed user", user: user.email, name: user.name)
+    audit_log(conn, "Removed user", user: user.email, name: user.name)
     conn
     |> put_flash(:info, "User deleted")
     |> redirect(to: admin_user_path(conn, :index))

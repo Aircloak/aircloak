@@ -2,7 +2,7 @@ defmodule Air.ProfileController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.{AuditLog, User}
+  alias Air.User
   alias Ecto.Changeset
 
   @simple_fields ~w(name email)
@@ -31,7 +31,7 @@ defmodule Air.ProfileController do
     |> Repo.update()
     |> case do
       {:ok, _} ->
-        AuditLog.log(conn, "Altered own profile")
+        audit_log(conn, "Altered own profile")
         conn
         |> put_flash(:info, "Profile updated")
         |> redirect(to: profile_path(conn, :edit))
