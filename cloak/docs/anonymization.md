@@ -102,11 +102,6 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - The final result is the average of the real median and the extracted values from above and below.
   - In case we don't have enough values available to compute the average, `null` is returned.
 
-## NOISY COUNT
-
-  - Assumes the provided count has each distinct user represented at most once
-  - Adds a noisy value (mean: 0, SD: 2) to the count and returns the rounded noisy count
-
 ## Example SUM() computation of positive values
 
 - Input values (with total sum: 14020):
