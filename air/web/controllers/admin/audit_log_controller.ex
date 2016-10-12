@@ -42,8 +42,23 @@ defmodule Air.Admin.AuditLogController do
     where: a.inserted_at >= ^from and a.inserted_at <= ^to,
     order_by: [desc: :inserted_at])
     |> Repo.all()
-    |> Enum.map(&AuditLog.for_display/1)
+    |> Enum.map(&audit_log_data/1)
     |> Poison.encode!()
+  end
+
+  defp audit_log_data(log_entry) do
+    metadata =
+      log_entry.metadata
+      |> Poison.decode!()
+      |> Map.to_list()
+      |> Enum.map(fn({name, value}) -> [Phoenix.Naming.humanize(name), value] end)
+
+    %{
+      user: log_entry.user,
+      event: log_entry.event,
+      metadata: metadata,
+      inserted_at: Air.Utils.DateTime.time_ago(log_entry.inserted_at),
+    }
   end
 
   # The datetime is expected to have the format YYYY-MM-DDTHH:MM:SSZ, if it doesn't,

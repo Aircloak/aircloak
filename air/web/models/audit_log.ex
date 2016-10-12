@@ -28,19 +28,4 @@ defmodule Air.AuditLog do
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
   end
-
-  @doc "Converts a log entry model into a map that can be converted to JSON"
-  @spec for_display(AuditLog.t) :: Map.t
-  def for_display(log_entry) do
-    metadata = Poison.decode!(log_entry.metadata)
-    |> Map.to_list()
-    |> Enum.map(fn({name, value}) -> [Phoenix.Naming.humanize(name), value] end)
-
-    %{
-      user: log_entry.user,
-      event: log_entry.event,
-      metadata: metadata,
-      inserted_at: Air.Utils.DateTime.time_ago(log_entry.inserted_at),
-    }
-  end
 end
