@@ -486,6 +486,12 @@ defmodule Cloak.Aql.Compiler.Test do
     assert first == second
   end
 
+  test "quoted tables are case-sensitive" do
+    assert {:error, _} = compile("select table.column from \"tabLe\"", data_source())
+    assert {:error, reason} = compile("select \"tAbLe\".column from table", data_source())
+    assert reason =~ ~r/Missing FROM clause entry for table `tAbLe`/
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result

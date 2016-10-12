@@ -140,7 +140,7 @@ defmodule Cloak.Aql.Compiler do
   defp do_compile_subqueries({:subquery, subquery}, data_source) do
     {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast)}}
   end
-  defp do_compile_subqueries({_, table}, _data_source) when is_binary(table), do: table
+  defp do_compile_subqueries(identifier = {_, table}, _data_source) when is_binary(table), do: identifier
 
   defp compiled_subquery(data_source, parsed_query) do
     case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
@@ -187,11 +187,21 @@ defmodule Cloak.Aql.Compiler do
   defp normalize_from(subquery = {:subquery, _}, data_source) do
     update_in(subquery, [Access.elem(1), :ast, :from], &normalize_from(&1, data_source))
   end
-  defp normalize_from({_, table_name}, data_source), do: normalize_from(table_name, data_source)
-  defp normalize_from(table_name, data_source) do
-    case DataSource.table(data_source, table_name) do
+  defp normalize_from(table_identifier = {_, table_name}, data_source) do
+    case table(data_source, table_identifier) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
       table -> table.name
+    end
+  end
+  defp normalize_from(table_name, data_source), do: normalize_from({:unquoted, table_name}, data_source)
+
+  defp table(data_source, {:quoted, name}), do: DataSource.table(data_source, name)
+  defp table(data_source, {:unquoted, name}) do
+    data_source.tables
+    |> Enum.find(fn({_id, table}) -> insensitive_equal?(table.name, name) end)
+    |> case do
+      {_id, table} -> table
+      nil -> nil
     end
   end
 
@@ -690,12 +700,20 @@ defmodule Cloak.Aql.Compiler do
       |> Enum.group_by(&(&1.name))
 
     query
-    |> map_terminal_elements(&normalize_table_name/1)
-    |> map_terminal_elements(&(identifier_to_column(&1, columns_by_name, query)))
+    |> map_terminal_elements(&normalize_table_name(&1, query.data_source))
+    |> map_terminal_elements(&identifier_to_column(&1, columns_by_name, query))
   end
 
-  defp normalize_table_name({:identifier, {_, name}, column}), do: {:identifier, name, column}
-  defp normalize_table_name(x), do: x
+  defp normalize_table_name({:identifier, {:quoted, name}, column}, _data_source), do: {:identifier, name, column}
+  defp normalize_table_name({:identifier, {:unquoted, name}, column}, data_source) do
+    data_source.tables
+    |> Enum.find(fn({_id, table}) -> insensitive_equal?(table.name, name) end)
+    |> case do
+      {_id, table} -> {:identifier, table.name, column}
+      _ -> {:identifier, name, column}
+    end
+  end
+  defp normalize_table_name(x, _), do: x
 
   defp identifier_to_column({:identifier, :unknown, {_, column_name}}, _columns_by_name, %Query{mode: :unparsed}),
     do: %Column{name: column_name, table: :unknown}
@@ -718,14 +736,14 @@ defmodule Cloak.Aql.Compiler do
     end
   end
   defp identifier_to_column({:identifier, table, identifier = {_, column_name}}, columns_by_name, query) do
-    unless Enum.any?(query.selected_tables, &insensitive_equal(&1.name, table)),
+    unless Enum.any?(query.selected_tables, &(&1.name == table)),
       do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
 
     case get_columns(columns_by_name, identifier) do
       nil ->
         raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
       columns ->
-        case Enum.find(columns, &insensitive_equal(&1.table.name, table)) do
+        case Enum.find(columns, &insensitive_equal?(&1.table.name, table)) do
           nil ->
             raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
           column -> column
@@ -744,7 +762,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp get_columns(columns_by_name, {:unquoted, name}) do
     columns_by_name
-    |> Enum.find(fn({k, _}) -> insensitive_equal(name, k) end)
+    |> Enum.find(fn({k, _}) -> insensitive_equal?(name, k) end)
     |> case do
       nil -> nil
       {_, v} -> v
@@ -752,7 +770,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp get_columns(columns_by_name, {:quoted, name}), do: Map.get(columns_by_name, name)
 
-  defp insensitive_equal(s1, s2), do: String.downcase(s1) == String.downcase(s2)
+  defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 
   def column_title(function = {:function, _, _}), do: Function.name(function)
   def column_title({:distinct, identifier}), do: column_title(identifier)

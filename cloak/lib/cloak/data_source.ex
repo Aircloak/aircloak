@@ -119,8 +119,7 @@ defmodule Cloak.DataSource do
   @spec table(t, atom | String.t) :: table | nil
   def table(data_source, table_id) when is_atom(table_id), do: Map.fetch!(data_source.tables, table_id)
   def table(data_source, table_name) when is_binary(table_name) do
-    table_name = String.downcase(table_name)
-    case Enum.find(data_source.tables, fn({_id, table}) -> String.downcase(table.name) == table_name end) do
+    case Enum.find(data_source.tables, fn({_id, table}) -> table.name == table_name end) do
       nil -> nil
       {_id, table} -> table
     end
