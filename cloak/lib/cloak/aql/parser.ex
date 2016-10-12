@@ -505,10 +505,10 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp table_with_schema() do
-    pipe(
-      [unquoted_identifier(), keyword(:.), unquoted_identifier()],
-      &{:unquoted, Enum.join(&1)}
-    )
+    pipe([identifier(), keyword(:.), identifier()], fn
+      [{:unquoted, schema}, _, {:unquoted, table}] -> {:unquoted, "#{schema}.#{table}"}
+      [{_, schema}, _, {_, table}] -> {:quoted, "#{schema}.#{table}"}
+    end)
   end
 
   defp optional_where() do

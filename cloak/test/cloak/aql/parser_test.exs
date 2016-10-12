@@ -137,7 +137,10 @@ defmodule Cloak.Aql.Parser.Test do
       select(columns: [identifier("foo")], from: unquoted("bar.baz")))
   end
 
-  test "quoted fully qualified table name"
+  test "quoted fully qualified table name" do
+    assert_parse("select foo from \"bar\".baz",
+      select(columns: [identifier("foo")], from: quoted("bar.baz")))
+  end
 
   test "query with a terminating semicolon" do
     assert_parse("select foo from baz;",
