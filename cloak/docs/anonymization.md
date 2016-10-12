@@ -102,7 +102,6 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - The final result is the average of the real median and the extracted values from above and below.
   - In case we don't have enough values available to compute the average, `null` is returned.
 
-
 ## Example SUM() computation of positive values
 
 - Input values (with total sum: 14020):

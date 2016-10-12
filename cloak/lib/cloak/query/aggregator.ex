@@ -6,7 +6,7 @@ defmodule Cloak.Query.Aggregator do
   alias Cloak.DataSource
   alias Cloak.Aql.Query
   alias Cloak.Aql.{Column, Function}
-  alias Cloak.Query.Anonymizer
+  alias Cloak.Query.{Anonymizer, Result}
 
   @typep property_values :: [DataSource.field | :*]
   @typep user_id :: DataSource.field
@@ -44,13 +44,15 @@ defmodule Cloak.Query.Aggregator do
 
   Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
   """
-  @spec aggregate(Enumerable.t, Query.t) :: [bucket]
+  @spec aggregate(Enumerable.t, Query.t) :: Result.t
   def aggregate(rows, query) do
-    rows
-    |> group_by_property(query)
-    |> process_low_count_users(query)
-    |> aggregate_properties(query)
-    |> make_buckets(query)
+    rows_by_property = group_by_property(rows, query)
+    users_count = number_of_anonymized_users(rows_by_property)
+    aggregated_buckets = rows_by_property
+      |> process_low_count_users(query)
+      |> aggregate_properties(query)
+      |> make_buckets(query)
+    %Result{buckets: aggregated_buckets, users_count: users_count}
   end
 
 
@@ -273,6 +275,19 @@ defmodule Cloak.Query.Aggregator do
   defp fetch_bucket_value!(row, columns, column), do: Enum.at(row, Map.fetch!(columns, column))
 
   defp selected?(columns, column), do: Map.has_key?(columns, column)
+
+  defp number_of_anonymized_users(data) do
+    unique_user_ids = data
+    |> Enum.map(fn({_result, _anonymizer, user_data}) -> user_data end)
+    |> Enum.flat_map(&Map.keys/1)
+    |> Enum.into(MapSet.new())
+    anonymizer = Anonymizer.new(unique_user_ids)
+    unique_users_count = MapSet.size(unique_user_ids)
+    case Anonymizer.sufficiently_large?(anonymizer, unique_users_count) do
+      {true, anonymizer} -> Anonymizer.noisy_count(anonymizer, unique_users_count)
+      _ -> 0
+    end
+  end
 
   defp matches_having_clause?(row, columns, query), do:
     Enum.all?(query.having, &matches_having_condition?(row, &1, columns))
