@@ -85,7 +85,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports error on invalid having clause" do
     assert_query "select name from test_errors group by name having height >= 100", %{error: error}
-    assert ~s/`HAVING` clause can not be applied over individual columns./ == error
+    assert ~s/`HAVING` clause can not be applied over column `height` from table `test_errors`./ == error
     assert_query "select name from test_errors having count(*) >= 10", %{error: error}
     assert ~s/Using the `HAVING` clause requires the `GROUP BY` clause to be specified./ == error
   end

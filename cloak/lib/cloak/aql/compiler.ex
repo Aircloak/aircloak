@@ -896,10 +896,10 @@ defmodule Cloak.Aql.Compiler do
   defp verify_having(%Query{command: :select, group_by: [], having: [_|_]}), do:
     raise CompilationError, message: "Using the `HAVING` clause requires the `GROUP BY` clause to be specified."
   defp verify_having(%Query{command: :select, having: [_|_]} = query) do
-    for {:comparison, column, _operator, target} <- query.having do
-      if individual_column?(column, query) or individual_column?(target, query), do:
-        raise CompilationError, message: "`HAVING` clause can not be applied over individual columns."
-    end
+    for {:comparison, column, _operator, target} <- query.having, do:
+      for term <- [column, target], do:
+        if individual_column?(term, query), do:
+          raise CompilationError, message: "`HAVING` clause can not be applied over #{Column.display_name(term)}."
     query
   end
   defp verify_having(query), do: query
