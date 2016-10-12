@@ -699,8 +699,8 @@ defmodule Cloak.Aql.Compiler do
 
   defp identifier_to_column({:identifier, :unknown, {_, column_name}}, _columns_by_name, %Query{mode: :unparsed}),
     do: %Column{name: column_name, table: :unknown}
-  defp identifier_to_column({:identifier, :unknown, {_, column_name}}, columns_by_name, _query) do
-    case get_insensitive(columns_by_name, column_name) do
+  defp identifier_to_column({:identifier, :unknown, identifier = {_, column_name}}, columns_by_name, _query) do
+    case get_columns(columns_by_name, identifier) do
       [column] -> column
       [_|_] -> raise CompilationError, message: "Column `#{column_name}` is ambiguous."
       nil ->
@@ -717,11 +717,11 @@ defmodule Cloak.Aql.Compiler do
           end
     end
   end
-  defp identifier_to_column({:identifier, table, {_, column_name}}, columns_by_name, query) do
+  defp identifier_to_column({:identifier, table, identifier = {_, column_name}}, columns_by_name, query) do
     unless Enum.any?(query.selected_tables, &insensitive_equal(&1.name, table)),
       do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
 
-    case get_insensitive(columns_by_name, column_name) do
+    case get_columns(columns_by_name, identifier) do
       nil ->
         raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
       columns ->
@@ -742,7 +742,7 @@ defmodule Cloak.Aql.Compiler do
     Column.constant(type, value)
   defp identifier_to_column(other, _columns_by_name, _query), do: other
 
-  defp get_insensitive(columns_by_name, name) do
+  defp get_columns(columns_by_name, {:unquoted, name}) do
     columns_by_name
     |> Enum.find(fn({k, _}) -> insensitive_equal(name, k) end)
     |> case do
@@ -750,6 +750,7 @@ defmodule Cloak.Aql.Compiler do
       {_, v} -> v
     end
   end
+  defp get_columns(columns_by_name, {:quoted, name}), do: Map.get(columns_by_name, name)
 
   defp insensitive_equal(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 

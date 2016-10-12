@@ -464,10 +464,20 @@ defmodule Cloak.Aql.Compiler.Test do
     assert first == second
   end
 
+  test "quoted columns are case-sensitite" do
+    assert {:error, reason} = compile("select \"CoLumn\" from table", data_source())
+    assert reason =~ ~r/Column `CoLumn` doesn't exist/
+  end
+
   test "unquoted qualified columns are case-insensitive" do
     first = "select table.CoLumn from table" |> compile!(data_source()) |> Map.drop([:column_titles])
     second = "select table.column from table" |> compile!(data_source()) |> Map.drop([:column_titles])
     assert first == second
+  end
+
+  test "quoted qualified columns are case-sensitite" do
+    assert {:error, reason} = compile("select table.\"CoLumn\" from table", data_source())
+    assert reason =~ ~r/Column `CoLumn` doesn't exist/
   end
 
   test "unquoted tables are case-insensitive" do
