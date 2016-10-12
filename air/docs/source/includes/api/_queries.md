@@ -55,7 +55,7 @@ The API return value is the success information and the id of the query. You can
 ### Getting the result of a query
 
 ```ruby
-RestClient.get "#{site_url}/api/queries/#{query_id}",
+RestClient.get "#{site_url}/api/queries/#{query_id}"
 ```
 
 ```shell
