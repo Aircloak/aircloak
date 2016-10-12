@@ -112,22 +112,22 @@ defmodule Cloak.Query.Runner do
 
   defp execute_sql_query(%Query{command: :show, show: :tables} = query) do
     columns = ["name"]
-    columns_types = [:text]
+    types = [:text]
     buckets = for {id, _table} <- query.data_source.tables, do: %{occurrences: 1, row: [id]}
-    successful_result(%Result{buckets: buckets, columns: columns, columns_types: columns_types}, query)
+    successful_result(%Result{buckets: buckets, columns: columns, types: types}, query)
   end
   defp execute_sql_query(%Query{command: :show, show: :columns} = query) do
     columns = ["name", "type"]
-    columns_types = [:text, :text]
+    types = [:text, :text]
     [table] = query.selected_tables
     buckets = for {name, type} <- table.columns, do: %{occurrences: 1, row: [name, type]}
-    successful_result(%Result{buckets: buckets, columns: columns, columns_types: columns_types}, query)
+    successful_result(%Result{buckets: buckets, columns: columns, types: types}, query)
   end
   defp execute_sql_query(%Query{command: :select} = query) do
     try do
       with {:ok, result} <- select_rows(query), do:
         successful_result(
-          %Result{result | columns: query.column_titles, columns_types: Query.selected_columns_types(query)},
+          %Result{result | columns: query.column_titles, types: Query.selected_types(query)},
           query
         )
     rescue e in [RuntimeError] ->
@@ -159,7 +159,7 @@ defmodule Cloak.Query.Runner do
     log_completion(state, status: :success, row_count: length(result.buckets))
     result = %{
       columns: result.columns,
-      columns_types: result.columns_types,
+      types: result.types,
       rows: result.buckets,
       info: info,
       execution_time: execution_time_in_s(state),

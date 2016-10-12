@@ -73,7 +73,7 @@ defmodule Cloak.Aql.Query do
   end
 
   @doc "Returns the list of types of selected columns."
-  @spec selected_columns_types(t) :: [atom]
-  def selected_columns_types(query), do:
+  @spec selected_types(t) :: [atom]
+  def selected_types(query), do:
     Enum.map(query.columns, &Function.type/1)
 end
