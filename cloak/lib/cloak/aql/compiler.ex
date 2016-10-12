@@ -70,6 +70,7 @@ defmodule Cloak.Aql.Compiler do
     query = query
     |> compile_columns()
     |> verify_columns()
+    |> censor_selected_uids()
     |> compile_order_by()
     |> partition_selected_columns()
     |> verify_having()
@@ -92,6 +93,7 @@ defmodule Cloak.Aql.Compiler do
       |> compile_tables()
       |> compile_columns()
       |> verify_columns()
+      |> censor_selected_uids()
       |> compile_order_by()
       |> verify_joins()
       |> cast_where_clauses()
@@ -287,7 +289,7 @@ defmodule Cloak.Aql.Compiler do
     verify_aggregated_columns(query)
     verify_group_by_functions(query)
     verify_function_arguments(query)
-    warn_on_selected_uids(query)
+    query
   end
 
   defp verify_function_arguments(%Query{mode: :unparsed}), do: :ok
@@ -743,19 +745,17 @@ defmodule Cloak.Aql.Compiler do
   def column_title({:identifier, _table, column}), do: column
   def column_title({:constant, _, _}), do: ""
 
-  defp warn_on_selected_uids(query) do
-    case selected_uid_columns(query) do
-      [] -> query
-      [_|_] = selected_uid_columns ->
-        Enum.reduce(selected_uid_columns, query, &warn_on_selected_uid(&2, &1))
-    end
+  defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
+    columns = for column <- query.columns, do:
+      if is_uid_column?(column), do: Column.constant(:text, :*), else: column
+    %Query{query | columns: columns}
   end
+  defp censor_selected_uids(query), do: query
 
-  defp selected_uid_columns(query) do
-    query.columns
-    |> Enum.flat_map(&extract_columns/1)
-    |> Enum.filter(&(&1 != nil and &1.user_id?))
-  end
+  defp is_uid_column?(column), do:
+    column
+    |> extract_columns()
+    |> Enum.any?(&(&1 != nil and &1.user_id?))
 
   defp extract_columns(%Column{} = column), do: [column]
   defp extract_columns({:function, "count", [:*]}), do: [nil]
@@ -764,13 +764,6 @@ defmodule Cloak.Aql.Compiler do
   defp extract_columns({:distinct, expression}), do: extract_columns(expression)
   defp extract_columns({:comparison, column, _operator, target}), do: extract_columns(column) ++ extract_columns(target)
   defp extract_columns([columns]), do: Enum.flat_map(columns, &extract_columns(&1))
-
-  defp warn_on_selected_uid(query, column) do
-    add_info_message(query,
-      "Selecting #{Column.display_name(column)} will cause all values to be anonymized. " <>
-      "Consider removing this column from the list of selected columns."
-    )
-  end
 
   defp add_info_message(query, info_message), do: %Query{query | info: [info_message | query.info]}
 

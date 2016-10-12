@@ -70,17 +70,6 @@ defmodule Cloak.Query.ErrorTest do
     end)
   end
 
-  test "warns when uid column is selected" do
-    assert_info "select user_id from test_errors", "`user_id` from table `test_errors`"
-    assert_info "select user_id, height from test_errors", "`user_id` from table `test_errors`"
-    assert_info "select * from test_errors", "`user_id` from table `test_errors`"
-
-    assert_query "select * from test_errors, test_errors2 where test_errors.user_id = test_errors2.user_id",
-      %{info: [info1, info2]}
-    assert info1 =~ "`user_id` from table `test_errors`"
-    assert info2 =~ "`user_id` from table `test_errors2`"
-  end
-
   test "substring with neither for nor from" do
     assert_query "select substring(name) from test_errors", %{error: error}
     assert error == "Function `substring` requires arguments of type (`text`, `integer`, [`integer`]),"

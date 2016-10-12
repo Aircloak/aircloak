@@ -80,7 +80,7 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select * from heights order by name",
       %{query_id: "1", columns: ["user_id", "height", "name", "male"], rows: rows}
-    assert Enum.map(rows, &(&1[:row])) == [[:*, :*, :*, :*]]
+    assert Enum.map(rows, &(&1[:row])) == [[:*, 180, "adam", true], [:*, 180, "john", true], [:*, 180, "mike", true]]
   end
 
   test "should return LCF property when sufficient rows are filtered" do
