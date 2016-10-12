@@ -55,7 +55,7 @@ defmodule Cloak.Aql.Compiler do
   defp validate_dsproxy_from_for_parsed_query!({:subquery, _}) do
     raise CompilationError, message: "Joining subqueries is not supported for this data source"
   end
-  defp validate_dsproxy_from_for_parsed_query!(table_name) when is_binary(table_name), do: :ok
+  defp validate_dsproxy_from_for_parsed_query!({_, table_name}) when is_binary(table_name), do: :ok
 
   # Due to the blackbox nature of the subquery, there are a whole lot
   # of validations we cannot do when using DS proxy. Conversely, there
@@ -140,7 +140,7 @@ defmodule Cloak.Aql.Compiler do
   defp do_compile_subqueries({:subquery, subquery}, data_source) do
     {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast)}}
   end
-  defp do_compile_subqueries(table, _data_source) when is_binary(table), do: table
+  defp do_compile_subqueries({_, table}, _data_source) when is_binary(table), do: table
 
   defp compiled_subquery(data_source, parsed_query) do
     case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
@@ -187,6 +187,7 @@ defmodule Cloak.Aql.Compiler do
   defp normalize_from(subquery = {:subquery, _}, data_source) do
     update_in(subquery, [Access.elem(1), :ast, :from], &normalize_from(&1, data_source))
   end
+  defp normalize_from({_, table_name}, data_source), do: normalize_from(table_name, data_source)
   defp normalize_from(table_name, data_source) do
     case DataSource.table(data_source, table_name) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
@@ -218,7 +219,7 @@ defmodule Cloak.Aql.Compiler do
       ({_column, :as, name}) -> name
       (column) -> column_title(column)
     end)
-    aliases = (for {column, :as, name} <- columns, do: {{:identifier, :unknown, name}, column}) |> Enum.into(%{})
+    aliases = (for {column, :as, name} <- columns, do: {{:identifier, :unknown, {:unquoted, name}}, column}) |> Enum.into(%{})
     columns = Enum.map(columns, fn
       ({column, :as, _name}) -> column
       (column) -> column
@@ -236,7 +237,7 @@ defmodule Cloak.Aql.Compiler do
   defp verify_aliases(query) do
     aliases = for {_column, :as, name} <- query.columns, do: name
     all_identifiers = aliases ++ all_column_identifiers(query)
-    referenced_names = (for {{:identifier, _table, name}, _direction} <- query.order_by, do: name) ++
+    referenced_names = (for {{:identifier, _table, {_, name}}, _direction} <- query.order_by, do: name) ++
       query.group_by
     ambiguous_names = for name <- referenced_names, Enum.count(all_identifiers, &name == &1) > 1, do: name
     case ambiguous_names do
@@ -274,7 +275,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp expand_star_select(%Query{columns: :*} = query) do
     columns = all_column_identifiers(query)
-    column_names = for {:identifier, _table, name} <- columns, do: name
+    column_names = for {:identifier, _table, {_, name}} <- columns, do: name
     %Query{query | columns: columns, column_titles: column_names}
   end
   defp expand_star_select(query), do: query
@@ -381,7 +382,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp all_column_identifiers(query) do
     for table <- query.selected_tables, {column_name, _type} <- table.columns do
-      {:identifier, table.name, column_name}
+      {:identifier, table.name, {:unquoted, column_name}}
     end
   end
 
@@ -688,12 +689,17 @@ defmodule Cloak.Aql.Compiler do
       end
       |> Enum.group_by(&(&1.name))
 
-    map_terminal_elements(query, &(identifier_to_column(&1, columns_by_name, query)))
+    query
+    |> map_terminal_elements(&normalize_table_name/1)
+    |> map_terminal_elements(&(identifier_to_column(&1, columns_by_name, query)))
   end
 
-  defp identifier_to_column({:identifier, :unknown, column_name}, _columns_by_name, %Query{mode: :unparsed}),
+  defp normalize_table_name({:identifier, {_, name}, column}), do: {:identifier, name, column}
+  defp normalize_table_name(x), do: x
+
+  defp identifier_to_column({:identifier, :unknown, {_, column_name}}, _columns_by_name, %Query{mode: :unparsed}),
     do: %Column{name: column_name, table: :unknown}
-  defp identifier_to_column({:identifier, :unknown, column_name}, columns_by_name, _query) do
+  defp identifier_to_column({:identifier, :unknown, {_, column_name}}, columns_by_name, _query) do
     case get_insensitive(columns_by_name, column_name) do
       [column] -> column
       [_|_] -> raise CompilationError, message: "Column `#{column_name}` is ambiguous."
@@ -711,7 +717,7 @@ defmodule Cloak.Aql.Compiler do
           end
     end
   end
-  defp identifier_to_column({:identifier, table, column_name}, columns_by_name, query) do
+  defp identifier_to_column({:identifier, table, {_, column_name}}, columns_by_name, query) do
     unless Enum.any?(query.selected_tables, &insensitive_equal(&1.name, table)),
       do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
 
@@ -749,7 +755,7 @@ defmodule Cloak.Aql.Compiler do
 
   def column_title(function = {:function, _, _}), do: Function.name(function)
   def column_title({:distinct, identifier}), do: column_title(identifier)
-  def column_title({:identifier, _table, column}), do: column
+  def column_title({:identifier, _table, {_, column}}), do: column
   def column_title({:constant, _, _}), do: ""
 
   defp warn_on_selected_uids(query) do
@@ -868,7 +874,7 @@ defmodule Cloak.Aql.Compiler do
     mapper_fun = fn
       (%Cloak.Aql.Column{table: %{name: table_name}, name: column_name}) ->
         scope_check(selected_tables, table_name, column_name)
-      ({:identifier, table_name, column_name}) -> scope_check(selected_tables, table_name, column_name)
+      ({:identifier, table_name, {_, column_name}}) -> scope_check(selected_tables, table_name, column_name)
       (_) -> :ok
     end
     Enum.each(join.conditions, &map_where_clause(&1, mapper_fun))
