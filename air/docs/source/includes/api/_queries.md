@@ -3,15 +3,14 @@
 ### Running a query
 
 ```ruby
-RestClient.post "#{site_url}/api/queries",
-  api_token,
-  {
-    query: {
-      statement: statement,
-      data_source_id: data_source_id
-    }
-  }.to_json,
-  {"Content-Type" => "application/json"}
+payload = {
+  query: {
+    statement: statement,
+    data_source_id: data_source_id
+  }
+}.to_json
+content_type = {"Content-Type" => "application/json"}
+RestClient.post("#{site_url}/api/queries", api_token, payload, content_type)
 ```
 
 ```shell
@@ -55,7 +54,7 @@ The API return value is the success information and the id of the query. You can
 ### Getting the result of a query
 
 ```ruby
-RestClient.get "#{site_url}/api/queries/#{query_id}",
+RestClient.get("#{site_url}/api/queries/#{query_id}")
 ```
 
 ```shell
@@ -82,7 +81,7 @@ This endpoint returns the status of the query started by the [run query endpoint
 
 #### Response
 
-```text
+```
 {
   "query": {
     "completed": true,

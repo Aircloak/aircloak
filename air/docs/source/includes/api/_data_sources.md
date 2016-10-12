@@ -3,7 +3,7 @@
 ### Get the list of all data sources
 
 ```ruby
-RestClient.get "#{site_url}/api/data_sources", api_token
+RestClient.get("#{site_url}/api/data_sources", api_token)
 ```
 
 ```shell
