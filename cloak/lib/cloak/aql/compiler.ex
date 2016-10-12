@@ -179,13 +179,11 @@ defmodule Cloak.Aql.Compiler do
     }
   end
 
-  defp normalize_from(join = {:join, _}, data_source) do
-    join
-    |> update_in([Access.elem(1), :lhs], &normalize_from(&1, data_source))
-    |> update_in([Access.elem(1), :rhs], &normalize_from(&1, data_source))
+  defp normalize_from({:join, join = %{lhs: lhs, rhs: rhs}}, data_source) do
+    {:join, %{join | lhs: normalize_from(lhs, data_source), rhs: normalize_from(rhs, data_source)}}
   end
-  defp normalize_from(subquery = {:subquery, _}, data_source) do
-    update_in(subquery, [Access.elem(1), :ast, :from], &normalize_from(&1, data_source))
+  defp normalize_from({:subquery, subquery}, data_source) do
+    {:subquery, update_in(subquery, [:ast, :from], &normalize_from(&1, data_source))}
   end
   defp normalize_from(table_identifier = {_, table_name}, data_source) do
     case table(data_source, table_identifier) do
