@@ -173,8 +173,9 @@ defmodule Cloak.Query.Anonymizer do
   """
   @spec noisy_count(t, integer) :: integer
   def noisy_count(anonymizer, count) do
-    {noise, _anonymizer} = add_noise(anonymizer, config(:noisy_count))
-    Kernel.max(round(count + noise), config(:low_count_absolute_lower_bound))
+    sigma = config(:sum_noise_sigma)
+    {noisy_count, _anonymizer} = add_noise(anonymizer, {count, sigma})
+    Kernel.max(round(noisy_count), config(:low_count_absolute_lower_bound))
   end
 
   @doc "Returns the configuration value for an anonymizer parameter."
