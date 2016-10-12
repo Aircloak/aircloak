@@ -82,7 +82,7 @@ This endpoint returns the status of the query started by the [run query endpoint
 
 #### Response
 
-```text
+```
 {
   "query": {
     "completed": true,
