@@ -157,11 +157,14 @@ defmodule Cloak.Aql.Compiler do
         possible_uid_columns =
           all_id_columns_from_tables(subquery)
           |> Enum.map(&Column.display_name/1)
-          |> Enum.join(", ")
+          |> case do
+            [column] -> "the #{column}"
+            columns -> "one of the #{Enum.join(columns, ", ")}"
+          end
 
         raise CompilationError, message:
           "Missing a user id column in the select list of a subquery. " <>
-          "To fix this error, add one of #{possible_uid_columns} to the subquery select list."
+          "To fix this error, add #{possible_uid_columns} to the subquery select list."
       _ ->
         subquery
     end
