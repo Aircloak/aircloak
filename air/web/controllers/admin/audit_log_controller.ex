@@ -2,7 +2,7 @@ defmodule Air.Admin.AuditLogController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.{AuditLog, Utils}
+  alias Air.Utils
 
 
   # -------------------------------------------------------------------
@@ -38,10 +38,7 @@ defmodule Air.Admin.AuditLogController do
   # -------------------------------------------------------------------
 
   defp load_entries_json(from, to) do
-    (from a in AuditLog,
-    where: a.inserted_at >= ^from and a.inserted_at <= ^to,
-    order_by: [desc: :inserted_at])
-    |> Repo.all()
+    Air.Service.AuditLog.between(from, to)
     |> Enum.map(&audit_log_data/1)
     |> Poison.encode!()
   end
