@@ -14,8 +14,8 @@ defmodule Air.Service.User do
 
   If data source name is provided, it has to be available to the given user.
   """
-  @spec login(String.t, String.t, nil | String.t, Keyword.t) :: User.t | nil
-  def login(email, password, data_source_name, meta \\ []) do
+  @spec login(String.t, String.t, nil | String.t, %{atom => any}) :: User.t | nil
+  def login(email, password, data_source_name, meta \\ %{}) do
     user = Repo.get_by(User, email: email)
     if User.validate_password(user, password) && can_login_to_data_source?(user, data_source_name) do
       AuditLog.log(user, "Logged in", meta)
