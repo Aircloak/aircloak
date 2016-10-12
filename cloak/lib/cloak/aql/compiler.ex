@@ -233,9 +233,8 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp invalid_individual_columns(%Query{command: :select, group_by: [_|_]} = query) do
-    query.columns |> Enum.filter(&individual_column?(&1, query))
-  end
+  defp invalid_individual_columns(%Query{command: :select, group_by: [_|_]} = query), do:
+    Enum.filter(query.columns, &individual_column?(&1, query))
   defp invalid_individual_columns(%Query{command: :select} = query) do
     query.columns
     |> Enum.reject(&constant_column?/1)
