@@ -9,8 +9,9 @@ defmodule Cloak.Query.Result do
   @type t :: %__MODULE__{
     buckets: [Aggregator.bucket],
     columns: [String.t],
+    columns_types: [atom],
     users_count: non_neg_integer,
   }
 
-  defstruct buckets: [], columns: [], users_count: 0
+  defstruct buckets: [], columns: [], columns_types: [], users_count: 0
 end
