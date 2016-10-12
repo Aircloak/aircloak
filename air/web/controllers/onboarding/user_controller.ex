@@ -2,7 +2,7 @@ defmodule Air.Onboarding.UserController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.{User, Group, AuditLog}
+  alias Air.{User, Group}
 
 
   # -------------------------------------------------------------------
@@ -41,7 +41,7 @@ defmodule Air.Onboarding.UserController do
         changeset = User.changeset(changeset, %{groups: [group.id]})
         case Repo.insert(changeset) do
           {:ok, user} ->
-            AuditLog.log(conn, "Created onboarding admin user", user: user.email, name: user.name)
+            audit_log(conn, "Created onboarding admin user", user: user.email, name: user.name)
             login(conn, params["user"])
           {:error, changeset} -> render(conn, "new.html", changeset: changeset)
         end

@@ -4,7 +4,7 @@ defmodule Air.QueryController do
   use Timex
 
   require Logger
-  alias Air.{DataSource, DataSourceManager, Query, Repo, AuditLog}
+  alias Air.{DataSource, DataSourceManager, Query, Repo}
   alias Plug.Conn.Status
   alias Air.Socket.Cloak.MainChannel
 
@@ -121,7 +121,7 @@ defmodule Air.QueryController do
   end
 
   defp execute_query(conn, query) do
-    AuditLog.log(conn, "Executed query", query: query.statement, data_source: query.data_source.id)
+    audit_log(conn, "Executed query", query: query.statement, data_source: query.data_source.id)
 
     try do
       case MainChannel.run_query(
