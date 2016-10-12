@@ -229,7 +229,7 @@ defmodule Cloak.Aql.Compiler do
       ({_column, :as, name}) -> name
       (column) -> column_title(column)
     end)
-    aliases = (for {column, :as, name} <- columns, do: {{:identifier, :unknown, {:unquoted, name}}, column}) |> Enum.into(%{})
+    aliases = for {column, :as, name} <- columns, into: %{}, do: {{:identifier, :unknown, {:unquoted, name}}, column}
     columns = Enum.map(columns, fn
       ({column, :as, _name}) -> column
       (column) -> column
