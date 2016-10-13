@@ -754,10 +754,10 @@ defmodule Cloak.Aql.Compiler do
 
   defp get_columns(columns_by_name, {:unquoted, name}) do
     columns_by_name
-    |> Enum.find(fn({k, _}) -> insensitive_equal?(name, k) end)
+    |> Enum.find(fn({key, _}) -> insensitive_equal?(name, key) end)
     |> case do
       nil -> nil
-      {_, v} -> v
+      {_, columns} -> columns
     end
   end
   defp get_columns(columns_by_name, {:quoted, name}), do: Map.get(columns_by_name, name)
