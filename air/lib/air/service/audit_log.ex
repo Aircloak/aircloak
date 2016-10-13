@@ -5,6 +5,11 @@ defmodule Air.Service.AuditLog do
   import Ecto.Query, only: [from: 2]
   require Logger
 
+
+  #-----------------------------------------------------------------------------------------------------------
+  # API functions
+  #-----------------------------------------------------------------------------------------------------------
+
   @doc "Creates an audit log entry."
   @spec log(nil | Air.User.t, String.t, %{atom => any}) :: :ok | {:error, any}
   def log(user, event, metadata \\ %{}) do
