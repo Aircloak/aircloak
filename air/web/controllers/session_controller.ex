@@ -30,7 +30,7 @@ defmodule Air.SessionController do
 
   def create(conn, params) do
     case Air.Service.User.login(params["email"], params["password"], nil, audit_log_meta(conn)) do
-      %User{} = user ->
+      {:ok, user} ->
         return_path = get_session(conn, :return_path) || query_path(conn, :index)
         conn
         |> Guardian.Plug.sign_in(user)
@@ -38,7 +38,7 @@ defmodule Air.SessionController do
         |> put_session(:return_path, nil)
         |> put_flash(:info, "Logged in successfully. Welcome back!")
         |> redirect(to: return_path)
-      nil ->
+      _ ->
         conn
         |> put_flash(:error, "Invalid e-mail or password.")
         |> render("new.html")
