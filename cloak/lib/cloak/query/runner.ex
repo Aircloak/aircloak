@@ -57,17 +57,14 @@ defmodule Cloak.Query.Runner do
   """
   @spec start(String.t, Cloak.DataSource.t, String.t Cloak.ResultSender.target) :: :ok
   def start(query_id, data_source, statement, result_target \\ :air_socket) do
-    {:ok, _} = Supervisor.start_child(@supervisor_name, [{query_id, data_source, statement, result_target}])
+    {:ok, _} = Supervisor.start_child(@supervisor_name,
+      [{query_id, data_source, statement, result_target}, [name: worker_name(query_id)]])
     :ok
   end
 
-  @spec stop(String.t) :: :ok | :error
-  def stop(query_id) do
-    case lookup_worker(query_id) do
-      :undefined -> :error
-      pid -> GenServer.cast(pid, :stop_query)
-    end
-  end
+  @spec stop(String.t) :: :ok
+  def stop(query_id), do:
+    query_id |> worker_name() |> GenServer.cast(:stop_query)
 
 
   # -------------------------------------------------------------------
@@ -77,7 +74,6 @@ defmodule Cloak.Query.Runner do
   @doc false
   def init({query_id, data_source, statement, result_target}) do
     Process.flag(:trap_exit, true)
-    register_worker(query_id)
     {:ok, %{
       query_id: query_id,
       result_target: result_target,
@@ -161,8 +157,8 @@ defmodule Cloak.Query.Runner do
       |> limit(query)
     end)
 
-  defp successful_result(result, query),
-    do: {:ok, result, Enum.reverse(query.info)}
+  defp successful_result(result, query), do:
+    {:ok, result, Enum.reverse(query.info)}
 
 
   # -------------------------------------------------------------------
@@ -250,10 +246,9 @@ defmodule Cloak.Query.Runner do
 
   if Mix.env == :test do
     def run_sync(data_source, statement), do: run_query(data_source, statement)
-    def register_worker(query_id), do: :ok
-    def lookup_worker(query_id), do: :undefined
+    # tests run the same query in parallel, so we make the process name unique to avoid conflicts
+    def worker_name(_query_id), do: {:via, :gproc, {:n, :l, {__MODULE__, :erlang.unique_integer()}}}
   else
-    def register_worker(query_id), do: :gproc.reg({:n, :l, query_id})
-    def lookup_worker(query_id), do: :gproc.where({:n, :l, query_id})
+    def worker_name(query_id), do: {:via, :gproc, {:n, :l, {__MODULE__, query_id}}}
   end
 end
