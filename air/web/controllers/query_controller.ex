@@ -102,14 +102,10 @@ defmodule Air.QueryController do
     if query == nil do
       send_resp(conn, Status.code(:not_found), " query with that id does not exist")
     else
-      if DataSource.available_to_user?(query.data_source.id, conn.assigns.current_user) do
-        if DataSourceManager.available?(query.data_source.global_id) do
-          stop_query(conn, query)
-        else
-          send_resp(conn, Status.code(:service_unavailable), "No cloak is available for the given data source")
-        end
+      if DataSourceManager.available?(query.data_source.global_id) do
+        stop_query(conn, query)
       else
-        send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
+        send_resp(conn, Status.code(:service_unavailable), "No cloak is available for the given data source")
       end
     end
   end
@@ -173,10 +169,9 @@ defmodule Air.QueryController do
       |> hd()
       |> MainChannel.stop_query(query.id)
       |> case do
-        :ok -> IO.puts("success")
+        :ok ->
           json(conn, %{success: true})
         {:error, :not_connected} ->
-          IO.puts("not connected")
           json(conn, %{success: false, reason: "The cloak is not connected."})
         {:error, reason} ->
           Logger.error(fn -> "Query stop error: #{reason}" end)
