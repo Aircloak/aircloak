@@ -317,13 +317,13 @@ defmodule Cloak.Aql.Compiler.Test do
   test "expands all columns for all tables when joining" do
     result = compile!("SELECT * FROM t1, t2 JOIN t3 on t2.uid = t3.uid WHERE t1.uid = t2.uid", data_source())
     assert [
-      column("t1", "uid"),
+      %{value: :*},
       column("t1", "c1"),
       column("t1", "c2"),
-      column("t2", "uid"),
+      %{value: :*},
       column("t2", "c1"),
       column("t2", "c3"),
-      column("t3", "uid"),
+      %{value: :*},
       column("t3", "c1")
     ] = result.columns
   end

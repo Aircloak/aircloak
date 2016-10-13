@@ -70,6 +70,7 @@ defmodule Cloak.Aql.Compiler do
     query = query
     |> compile_columns()
     |> verify_columns()
+    |> censor_selected_uids()
     |> compile_order_by()
     |> partition_selected_columns()
     |> verify_having()
@@ -92,6 +93,7 @@ defmodule Cloak.Aql.Compiler do
       |> compile_tables()
       |> compile_columns()
       |> verify_columns()
+      |> censor_selected_uids()
       |> compile_order_by()
       |> verify_joins()
       |> cast_where_clauses()
@@ -157,11 +159,14 @@ defmodule Cloak.Aql.Compiler do
         possible_uid_columns =
           all_id_columns_from_tables(subquery)
           |> Enum.map(&Column.display_name/1)
-          |> Enum.join(", ")
+          |> case do
+            [column] -> "the #{column}"
+            columns -> "one of the #{Enum.join(columns, ", ")}"
+          end
 
         raise CompilationError, message:
           "Missing a user id column in the select list of a subquery. " <>
-          "To fix this error, add one of #{possible_uid_columns} to the subquery select list."
+          "To fix this error, add #{possible_uid_columns} to the subquery select list."
       _ ->
         subquery
     end
@@ -228,24 +233,36 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp invalid_not_aggregated_columns(%Query{command: :select, group_by: [_|_]} = query) do
+  defp invalid_individual_columns(%Query{command: :select, group_by: [_|_]} = query), do:
+    Enum.filter(query.columns, &individual_column?(&1, query))
+  defp invalid_individual_columns(%Query{command: :select} = query) do
     query.columns
-    |> Stream.reject(&aggregated_column?(&1, query))
-    |> Enum.reject(fn(column) -> Enum.member?(query.group_by, column) end)
-  end
-  defp invalid_not_aggregated_columns(%Query{command: :select} = query) do
-    case Enum.partition(query.columns, &aggregated_column?(&1, query)) do
-      {[_|_] = _aggregates, [_|_] = non_aggregates} -> non_aggregates
+    |> Enum.reject(&constant_column?/1)
+    |> Enum.partition(&aggregated_column?(&1, query))
+    |> case  do
+      {[_|_] = _aggregates, [_|_] = individual_columns} -> individual_columns
       _ -> []
     end
   end
 
   defp aggregated_column?(column, query), do:
-    Column.constant?(column) ||
-    Function.aggregate_function?(column) ||
-    Column.aggregate_db_function?(column) ||
-    Enum.member?(query.group_by, column) ||
-    (Function.function?(column) && Enum.all?(Function.arguments(column), &aggregated_column?(&1, query)))
+    Function.aggregate_function?(column) or
+    Column.aggregate_db_function?(column) or
+    Enum.member?(query.group_by, column) or
+    (
+      Function.function?(column) and
+      column |> Function.arguments() |> Enum.any?(&aggregated_column?(&1, query))
+    )
+
+  defp constant_column?(column), do:
+    Column.constant?(column) or
+    (
+      Function.function?(column) and
+      column |> Function.arguments() |> Enum.all?(&constant_column?/1)
+    )
+
+  defp individual_column?(column, query), do:
+    not constant_column?(column) and not aggregated_column?(column, query)
 
   defp compile_columns(query) do
     query
@@ -271,7 +288,7 @@ defmodule Cloak.Aql.Compiler do
     verify_aggregated_columns(query)
     verify_group_by_functions(query)
     verify_function_arguments(query)
-    warn_on_selected_uids(query)
+    query
   end
 
   defp verify_function_arguments(%Query{mode: :unparsed}), do: :ok
@@ -327,7 +344,7 @@ defmodule Cloak.Aql.Compiler do
   defp quoted_item(item), do: "`#{item}`"
 
   defp verify_aggregated_columns(query) do
-    case invalid_not_aggregated_columns(query) do
+    case invalid_individual_columns(query) do
       [] -> :ok
       [column | _rest] ->
         raise CompilationError, message: "#{aggregated_expression_display(column)} " <>
@@ -335,6 +352,8 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
+  defp aggregated_expression_display({:function, _function, [arg]}), do:
+    "Column #{quoted_item(arg.name)} needs"
   defp aggregated_expression_display({:function, _function, args}), do:
     "Columns (#{args |> Enum.map(&(&1.name)) |> quoted_list()}) need"
   defp aggregated_expression_display(%Column{} = column), do:
@@ -725,19 +744,17 @@ defmodule Cloak.Aql.Compiler do
   def column_title({:identifier, _table, column}), do: column
   def column_title({:constant, _, _}), do: ""
 
-  defp warn_on_selected_uids(query) do
-    case selected_uid_columns(query) do
-      [] -> query
-      [_|_] = selected_uid_columns ->
-        Enum.reduce(selected_uid_columns, query, &warn_on_selected_uid(&2, &1))
-    end
+  defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
+    columns = for column <- query.columns, do:
+      if is_uid_column?(column), do: Column.constant(:text, :*), else: column
+    %Query{query | columns: columns}
   end
+  defp censor_selected_uids(query), do: query
 
-  defp selected_uid_columns(query) do
-    query.columns
-    |> Enum.flat_map(&extract_columns/1)
-    |> Enum.filter(&(&1 != nil and &1.user_id?))
-  end
+  defp is_uid_column?(column), do:
+    column
+    |> extract_columns()
+    |> Enum.any?(&(&1 != nil and &1.user_id?))
 
   defp extract_columns(%Column{} = column), do: [column]
   defp extract_columns({:function, "count", [:*]}), do: [nil]
@@ -746,13 +763,6 @@ defmodule Cloak.Aql.Compiler do
   defp extract_columns({:distinct, expression}), do: extract_columns(expression)
   defp extract_columns({:comparison, column, _operator, target}), do: extract_columns(column) ++ extract_columns(target)
   defp extract_columns([columns]), do: Enum.flat_map(columns, &extract_columns(&1))
-
-  defp warn_on_selected_uid(query, column) do
-    add_info_message(query,
-      "Selecting #{Column.display_name(column)} will cause all values to be anonymized. " <>
-      "Consider removing this column from the list of selected columns."
-    )
-  end
 
   defp add_info_message(query, info_message), do: %Query{query | info: [info_message | query.info]}
 
@@ -886,10 +896,10 @@ defmodule Cloak.Aql.Compiler do
   defp verify_having(%Query{command: :select, group_by: [], having: [_|_]}), do:
     raise CompilationError, message: "Using the `HAVING` clause requires the `GROUP BY` clause to be specified."
   defp verify_having(%Query{command: :select, having: [_|_]} = query) do
-    for {:comparison, column, _operator, target} <- query.having do
-      unless aggregated_column?(column, query) and aggregated_column?(target, query), do:
-        raise CompilationError, message: "`HAVING` clause can not be applied over non-aggregated columns."
-    end
+    for {:comparison, column, _operator, target} <- query.having, do:
+      for term <- [column, target], do:
+        if individual_column?(term, query), do:
+          raise CompilationError, message: "`HAVING` clause can not be applied over #{Column.display_name(term)}."
     query
   end
   defp verify_having(query), do: query
