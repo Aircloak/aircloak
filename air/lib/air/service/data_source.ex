@@ -87,9 +87,9 @@ defmodule Air.Service.DataSource do
 
   defp users_data_sources(user) do
     from data_source in Air.DataSource,
-    inner_join: group in assoc(data_source, :groups),
-    inner_join: user in assoc(group, :users),
-    where: user.id == ^user.id
+      inner_join: group in assoc(data_source, :groups),
+      inner_join: user in assoc(group, :users),
+      where: user.id == ^user.id
   end
 
   defp data_source_id({:data_source_id, id}), do: id
