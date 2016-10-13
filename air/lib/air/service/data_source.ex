@@ -52,7 +52,7 @@ defmodule Air.Service.DataSource do
     User.t,
     String.t,
     %{atom => any}
-  ) :: {:ok, Query.t} | {:error, :unauthorized, :not_connected, :internal_error, any}
+  ) :: {:ok, Query.t} | {:error, :unauthorized | :not_connected | :internal_error | any}
   def start_query(data_source_id_or_token, user, statement, audit_meta \\ %{}) do
     with data_source_id <- data_source_id(data_source_id_or_token),
          {:ok, _data_source} <- fetch_as_user(data_source_id, user),
