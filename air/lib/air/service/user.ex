@@ -1,8 +1,8 @@
 defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
-  alias Air.{DataSource, DataSourceManager, Repo, User}
-  alias Air.Service.AuditLog
+  alias Air.{DataSourceManager, Repo, User}
+  alias Air.Service.{AuditLog, DataSource}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -26,13 +26,6 @@ defmodule Air.Service.User do
     end
   end
 
-  @doc "Returns data sources visible to the given user."
-  @spec data_sources(User.t) :: DataSource.t
-  def data_sources(user), do:
-    user
-    |> DataSource.for_user()
-    |> Repo.all()
-
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
@@ -41,7 +34,7 @@ defmodule Air.Service.User do
   defp can_login_to_data_source?(_user, nil), do: true
   defp can_login_to_data_source?(user, name), do:
     user
-    |> data_sources()
+    |> DataSource.for_user()
     |> Enum.filter(&(DataSourceManager.available?(&1.global_id)))
     |> Enum.any?(&(&1.name == name))
 end

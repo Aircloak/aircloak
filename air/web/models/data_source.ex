@@ -2,7 +2,7 @@ defmodule Air.DataSource do
   @moduledoc "Represents data sources made available through the cloaks"
   use Air.Web, :model
 
-  alias Air.{DataSource, Group, Repo}
+  alias Air.{DataSource, Group}
 
   @type t :: %__MODULE__{}
 
@@ -61,25 +61,5 @@ defmodule Air.DataSource do
     |> validate_required(@required_fields)
     |> unique_constraint(:global_id)
     |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
-  end
-
-  @doc "Returns a boolean whether a data source is available to a user"
-  @spec available_to_user?(integer, User.t) :: boolean
-  def available_to_user?(data_source_id, user) do
-    Repo.get(for_user(user), data_source_id) !== nil
-  end
-
-
-  # -------------------------------------------------------------------
-  # Query functions
-  # -------------------------------------------------------------------
-
-  @doc "Adds a query filter selecting only those for the given user"
-  @spec for_user(User.t) :: Ecto.Queryable.t
-  def for_user(user) do
-    from data_source in __MODULE__,
-    inner_join: group in assoc(data_source, :groups),
-    inner_join: user in assoc(group, :users),
-    where: user.id == ^user.id
   end
 end
