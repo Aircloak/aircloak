@@ -71,4 +71,82 @@ defmodule Cloak.Aql.Query do
     |> Enum.flat_map(&Function.arguments/1)
     |> Enum.uniq()
   end
+
+  @doc """
+  Returns a list of features used by a query, that can be used for
+  analytics purposes by Aircloak.
+  Examples include how many columns were selected, which, if any
+  functions where used, etc.
+  """
+  @spec extract_features(t) :: Map.t
+  def extract_features(query) do
+    %{
+      num_columns: num_columns(query.columns),
+      num_tables: num_tables(query.selected_tables),
+      num_group_by: num_group_by(query),
+      functions: extract_functions(query.columns),
+      where_conditions: extract_where_conditions(query.where ++ query.lcf_check_conditions),
+      column_types: extract_column_types(query.columns),
+    }
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp num_columns(columns), do:
+    columns
+    |> extract_columns()
+    |> Enum.reject(&(&1.constant?))
+    |> length()
+
+  defp num_tables(tables), do: length(tables)
+
+  defp num_group_by(%{group_by: clauses}), do: length(clauses)
+
+  defp extract_functions([:*]), do: []
+  defp extract_functions(columns), do:
+    columns
+    |> Enum.flat_map(&extract_function/1)
+    |> Enum.uniq()
+
+  defp extract_function(%Column{}), do: []
+  defp extract_function({:distinct, param}), do: extract_function(param)
+  defp extract_function({:function, name, params}), do: [name | extract_functions(params)]
+
+  defp extract_where_conditions(clauses), do: Enum.map(clauses, &extract_where_condition/1)
+
+  defp extract_where_condition({:not, {:comparison, _column, :=, _comparator}}), do: "<>"
+  defp extract_where_condition({:not, something}), do:
+    "not #{extract_where_condition(something)}"
+  defp extract_where_condition({:comparison, _column, comparison, _comparator}), do:
+    Atom.to_string(comparison)
+  defp extract_where_condition({:is, _column, :null}), do: "null"
+  defp extract_where_condition({condition, _column, _value_or_pattern}), do:
+    Atom.to_string(condition)
+
+  defp extract_column_types(columns), do:
+    columns
+    |> extract_columns()
+    |> Enum.flat_map(&extract_column_type/1)
+    |> Enum.uniq()
+    |> Enum.map(&stringify/1)
+
+  defp extract_column_type(%Column{constant?: true, type: type}), do: [type]
+  defp extract_column_type(%Column{table: :unknown}), do: []
+  defp extract_column_type(%Column{table: %{columns: columns}, name: name}), do:
+    columns
+    |> Enum.filter(& elem(&1, 0) == name)
+    |> Enum.map(& elem(&1, 1))
+
+  defp extract_columns(columns), do: Enum.flat_map(columns, &extract_column/1)
+
+  defp extract_column({:function, _, [:*]}), do: []
+  defp extract_column({:function, _, params}), do: extract_columns(params)
+  defp extract_column({:distinct, value}), do: extract_column(value)
+  defp extract_column(%Column{} = column), do: [column]
+
+  defp stringify(string) when is_binary(string), do: string
+  defp stringify(atom) when is_atom(atom), do: Atom.to_string(atom)
 end
