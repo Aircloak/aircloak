@@ -40,13 +40,13 @@ defmodule Air.Service.User do
       else: {:error, :invalid_email_or_password}
 
   defp validate_data_source_access(_user, nil), do: :ok
-  defp validate_data_source_access(user, name), do:
-    if (
+  defp validate_data_source_access(user, name) do
+    data_source_authorized? =
       user
       |> DataSource.for_user()
       |> Enum.filter(&(DataSourceManager.available?(&1.global_id)))
       |> Enum.any?(&(&1.name == name))
-    ),
-      do: :ok,
-      else: {:error, :unauthorized}
+
+    if data_source_authorized?, do: :ok, else: {:error, :unauthorized}
+  end
 end
