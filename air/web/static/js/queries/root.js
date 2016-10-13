@@ -11,7 +11,6 @@ import {CodeViewer} from "../code_viewer";
 import {Results} from "./results";
 import type {Result} from "./result";
 import type {Table} from "../table_info/table";
-import {MenuButton} from "../menu";
 import {ResultSocket} from "../result_socket";
 import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
@@ -43,6 +42,7 @@ class QueriesView extends React.Component {
 
     this.setStatement = this.setStatement.bind(this);
     this.runQuery = this.runQuery.bind(this);
+    this.stopQuery = this.stopQuery.bind(this);
     this.queryData = this.queryData.bind(this);
     this.addResult = this.addResult.bind(this);
     this.resultReceived = this.resultReceived.bind(this);
@@ -65,6 +65,7 @@ class QueriesView extends React.Component {
   }
   setStatement: () => void;
   runQuery: () => void;
+  stopQuery: () => void;
   queryData: () => void;
   addResult: () => void;
   resultReceived: () => void;
@@ -117,6 +118,7 @@ class QueriesView extends React.Component {
 
   bindKeysWithoutEditorFocus() {
     Mousetrap.bind(["command+enter", "ctrl+enter"], this.runQuery);
+    Mousetrap.bind(["command+escape", "ctrl+escape"], this.stopQuery);
   }
 
   queryData() {
@@ -153,6 +155,24 @@ class QueriesView extends React.Component {
         }
       },
       error: (error) => this.addError(statement, error.statusText),
+    });
+  }
+
+  stopQuery() {
+    if (! this.props.dataSourceAvailable) {
+      return;
+    }
+    if (this.state.sessionResults.length === 0 || ! this.state.sessionResults[0].pendingResult) {
+      return;
+    }
+    const queryId = this.state.sessionResults[0].id;
+    $.ajax("/queries/cancel", {
+      method: "POST",
+      headers: {
+        "X-CSRF-TOKEN": this.props.CSRFToken,
+        "Content-Type": "application/json",
+      },
+      data: JSON.stringify({id: queryId}),
     });
   }
 
@@ -207,6 +227,7 @@ class QueriesView extends React.Component {
     if (this.props.dataSourceAvailable) {
       return (<CodeEditor
         onRun={this.runQuery}
+        onStop={this.stopQuery}
         onChange={this.setStatement}
         statement={this.state.statement}
         tableNames={this.tableNames()}
@@ -218,14 +239,32 @@ class QueriesView extends React.Component {
   }
 
   render() {
+    let button;
+    if (this.state.sessionResults.length > 0 && this.state.sessionResults[0].pendingResult) {
+      button = (<div className="right-align">
+        <button
+          className="btn btn-small btn-warning"
+          onClick={this.stopQuery}
+        >Cancel</button>
+        <span> or </span>
+        <kbd>Ctrl + Escape</kbd>
+      </div>);
+    } else {
+      button = (<div className="right-align">
+        <button
+          className="btn btn-primary"
+          onClick={this.runQuery}
+          disabled={!this.props.dataSourceAvailable}
+        >Run</button>
+        <span> or </span>
+        <kbd>Ctrl + Enter</kbd>
+      </div>);
+    }
     return (<div>
       <div id="aql-editor">
         {this.renderCodeEditorOrViewer()}
 
-        <div className="right-align">
-          <MenuButton onClick={this.runQuery} isActive={this.props.dataSourceAvailable}>Run</MenuButton>&nbsp;
-          or <kbd>Ctrl + Enter</kbd>
-        </div>
+        {button}
       </div>
 
       <Results results={this.state.sessionResults} />

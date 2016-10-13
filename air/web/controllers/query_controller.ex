@@ -97,6 +97,23 @@ defmodule Air.QueryController do
     end
   end
 
+  def cancel(conn, %{"id" => query_id}) do
+    query = find_query(conn.assigns.current_user, query_id) |> Repo.preload(:data_source)
+    if query == nil do
+      send_resp(conn, Status.code(:not_found), " query with that id does not exist")
+    else
+      if DataSource.available_to_user?(query.data_source.id, conn.assigns.current_user) do
+        if DataSourceManager.available?(query.data_source.global_id) do
+          stop_query(conn, query)
+        else
+          send_resp(conn, Status.code(:service_unavailable), "No cloak is available for the given data source")
+        end
+      else
+        send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
+      end
+    end
+  end
+
   def failed(conn, _params) do
     render(conn, "failed.html", failed_queries: Repo.all(Query.failed()))
   end
@@ -131,7 +148,7 @@ defmodule Air.QueryController do
         :ok ->
           json(conn, %{success: true, query_id: query.id})
         {:error, :not_connected} ->
-          json(conn, %{success: false, reason: "the cloak is not connected"})
+          json(conn, %{success: false, reason: "The cloak is not connected."})
         {:error, reason} ->
           Logger.error(fn -> "Query start error: #{reason}" end)
           json(conn, %{success: false, reason: reason})
@@ -143,6 +160,34 @@ defmodule Air.QueryController do
         Exception.format_stacktrace(System.stacktrace())
       ])
 
+      send_resp(conn, Status.code(:internal_server_error), "")
+    end
+  end
+
+  defp stop_query(conn, query) do
+    audit_log(conn, "Stopped query", query: query.statement, data_source: query.data_source.id)
+
+    try do
+      query.data_source.global_id
+      |> DataSourceManager.channel_pids()
+      |> hd()
+      |> MainChannel.stop_query(query.id)
+      |> case do
+        :ok -> IO.puts("success")
+          json(conn, %{success: true})
+        {:error, :not_connected} ->
+          IO.puts("not connected")
+          json(conn, %{success: false, reason: "The cloak is not connected."})
+        {:error, reason} ->
+          Logger.error(fn -> "Query stop error: #{reason}" end)
+          json(conn, %{success: false, reason: reason})
+      end
+    catch type, error ->
+      # We'll make a nice error log report and return 500
+      Logger.error([
+        "Error stopping query: #{inspect(type)}:#{inspect(error)}\n",
+        Exception.format_stacktrace(System.stacktrace())
+      ])
       send_resp(conn, Status.code(:internal_server_error), "")
     end
   end

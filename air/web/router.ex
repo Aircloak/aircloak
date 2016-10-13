@@ -35,6 +35,7 @@ defmodule Air.Router do
 
     get "/", QueryController, :index
     post "/queries", QueryController, :create
+    post "/queries/cancel", QueryController, :cancel
     get "/queries/load_history/:data_source_id", QueryController, :load_history
     get "/queries/:id", QueryController, :show
 
