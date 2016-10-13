@@ -14,15 +14,18 @@ defmodule Air.Service.User do
 
   If data source name is provided, it has to be available to the given user.
   """
-  @spec login(String.t, String.t, nil | String.t, %{atom => any}) :: User.t | nil
+  @spec login(String.t, String.t, nil | String.t, %{atom => any}) ::
+    {:ok, User.t} | {:error, :invalid_email_or_password | :unauthorized}
   def login(email, password, data_source_name, meta \\ %{}) do
     user = Repo.get_by(User, email: email)
-    if User.validate_password(user, password) && can_login_to_data_source?(user, data_source_name) do
+    with :ok <- validate_password(user, password),
+         :ok <- validate_data_source_access(user, data_source_name) do
       AuditLog.log(user, "Logged in", meta)
-      user
+      {:ok, user}
     else
-      AuditLog.log(user, "Failed login", meta)
-      nil
+      error ->
+        AuditLog.log(user, "Failed login", meta)
+        error
     end
   end
 
@@ -31,10 +34,19 @@ defmodule Air.Service.User do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp can_login_to_data_source?(_user, nil), do: true
-  defp can_login_to_data_source?(user, name), do:
-    user
-    |> DataSource.for_user()
-    |> Enum.filter(&(DataSourceManager.available?(&1.global_id)))
-    |> Enum.any?(&(&1.name == name))
+  defp validate_password(user, password), do:
+    if User.validate_password(user, password),
+      do: :ok,
+      else: {:error, :invalid_email_or_password}
+
+  defp validate_data_source_access(_user, nil), do: :ok
+  defp validate_data_source_access(user, name), do:
+    if (
+      user
+      |> DataSource.for_user()
+      |> Enum.filter(&(DataSourceManager.available?(&1.global_id)))
+      |> Enum.any?(&(&1.name == name))
+    ),
+      do: :ok,
+      else: {:error, :unauthorized}
 end
