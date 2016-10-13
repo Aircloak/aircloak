@@ -182,16 +182,13 @@ defmodule Cloak.Aql.Compiler do
   defp normalize_from({:join, join = %{lhs: lhs, rhs: rhs}}, data_source) do
     {:join, %{join | lhs: normalize_from(lhs, data_source), rhs: normalize_from(rhs, data_source)}}
   end
-  defp normalize_from({:subquery, subquery}, data_source) do
-    {:subquery, update_in(subquery, [:ast, :from], &normalize_from(&1, data_source))}
-  end
+  defp normalize_from(already_compiled_subquery = {:subquery, _}, _data_source), do: already_compiled_subquery
   defp normalize_from(table_identifier = {_, table_name}, data_source) do
     case table(data_source, table_identifier) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
       table -> table.name
     end
   end
-  defp normalize_from(table_name, data_source), do: normalize_from({:unquoted, table_name}, data_source)
 
   defp table(data_source, {:quoted, name}), do: DataSource.table(data_source, name)
   defp table(data_source, {:unquoted, name}) do
@@ -702,13 +699,10 @@ defmodule Cloak.Aql.Compiler do
     |> map_terminal_elements(&identifier_to_column(&1, columns_by_name, query))
   end
 
-  defp normalize_table_name({:identifier, {:quoted, name}, column}, _data_source), do: {:identifier, name, column}
-  defp normalize_table_name({:identifier, {:unquoted, name}, column}, data_source) do
-    data_source.tables
-    |> Enum.find(fn({_id, table}) -> insensitive_equal?(table.name, name) end)
-    |> case do
-      {_id, table} -> {:identifier, table.name, column}
-      _ -> {:identifier, name, column}
+  defp normalize_table_name({:identifier, table_identifier = {_, name}, column}, data_source) do
+    case table(data_source, table_identifier) do
+      nil -> {:identifier, name, column}
+      table -> {:identifier, table.name, column}
     end
   end
   defp normalize_table_name(x, _), do: x
