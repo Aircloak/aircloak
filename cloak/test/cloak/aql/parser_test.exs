@@ -75,10 +75,27 @@ defmodule Cloak.Aql.Parser.Test do
     end
   end
 
-  # Produces a pattern which matches an identifier with the given name.
   defmacrop identifier(name) do
     quote do
-      {:identifier, :unknown, name}
+      {:identifier, _, unquoted(unquote(name))}
+    end
+  end
+
+  defmacrop quoted_identifier(name) do
+    quote do
+      {:identifier, _, quoted(unquote(name))}
+    end
+  end
+
+  defmacrop unquoted(name) do
+    quote do
+      {:unquoted, unquote(name)}
+    end
+  end
+
+  defmacrop quoted(name) do
+    quote do
+      {:quoted, unquote(name)}
     end
   end
 
@@ -112,40 +129,45 @@ defmodule Cloak.Aql.Parser.Test do
   # -------------------------------------------------------------------
 
   test "simple select query" do
-    assert_parse("select foo from baz", select(columns: [{:identifier, :unknown, "foo"}], from: "baz"))
+    assert_parse("select foo from baz", select(columns: [identifier("foo")], from: unquoted("baz")))
   end
 
   test "fully qualified table name" do
     assert_parse("select foo from bar.baz",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar.baz"))
+      select(columns: [identifier("foo")], from: unquoted("bar.baz")))
+  end
+
+  test "quoted fully qualified table name" do
+    assert_parse("select foo from \"bar\".baz",
+      select(columns: [identifier("foo")], from: quoted("bar.baz")))
   end
 
   test "query with a terminating semicolon" do
     assert_parse("select foo from baz;",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "baz"))
+      select(columns: [identifier("foo")], from: unquoted("baz")))
   end
 
   test "multiple fields" do
     assert_parse("select foo, bar from baz",
-      select(columns: [{:identifier, :unknown, "foo"}, {:identifier, :unknown, "bar"}], from: "baz"))
+      select(columns: [identifier("foo"), identifier("bar")], from: unquoted("baz")))
   end
 
   test "all fields" do
-    assert_parse("select * from baz", select(columns: :*, from: "baz"))
+    assert_parse("select * from baz", select(columns: :*, from: unquoted("baz")))
   end
 
   test "whitespaces are ignored" do
     assert_parse("select  foo\n from \n \n baz \n ; \n  ",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "baz"))
+      select(columns: [identifier("foo")], from: unquoted("baz")))
   end
 
   test "all allowed identifier characters" do
     assert_parse("select foO1_ from Ba_z2",
-      select(columns: [{:identifier, :unknown, "foO1_"}], from: "Ba_z2"))
+      select(columns: [identifier("foO1_")], from: unquoted("Ba_z2")))
   end
 
   test "case insensivity of commands" do
-    assert_parse("SELECT foo FROM baz", select(columns: [{:identifier, :unknown, "foo"}], from: "baz"))
+    assert_parse("SELECT foo FROM baz", select(columns: [identifier("foo")], from: unquoted("baz")))
   end
 
   test "show tables" do
@@ -153,94 +175,94 @@ defmodule Cloak.Aql.Parser.Test do
   end
 
   test "show columns" do
-    assert_parse("show columns from foo", show(:columns, from: "foo"))
+    assert_parse("show columns from foo", show(:columns, from: unquoted("foo")))
   end
 
   test "where clause with equality" do
     assert_parse(
       "select foo from bar where a = 10",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:comparison, {:identifier, :unknown, "a"}, :=, constant(10)}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:comparison, identifier("a"), :=, constant(10)}])
     )
   end
 
   test "where clause with <" do
     assert_parse(
       "select foo from bar where a < 10",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:comparison, {:identifier, :unknown, "a"}, :<, constant(10)}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:comparison, identifier("a"), :<, constant(10)}])
     )
   end
 
   test "where clause with >" do
     assert_parse(
       "select foo from bar where a > 10",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:comparison, {:identifier, :unknown, "a"}, :>, constant(10)}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:comparison, identifier("a"), :>, constant(10)}])
     )
   end
 
   test "where clause with >=" do
     assert_parse(
       "select foo from bar where a >= 10",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:comparison, {:identifier, :unknown, "a"}, :>=, constant(10)}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:comparison, identifier("a"), :>=, constant(10)}])
     )
   end
 
   test "where clause with <=" do
     assert_parse(
       "select foo from bar where a <= 10",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:comparison, {:identifier, :unknown, "a"}, :<=, constant(10)}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:comparison, identifier("a"), :<=, constant(10)}])
     )
   end
 
   test "where clause with <>" do
     assert_parse(
       "select foo from bar where a <> 10",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:not, {:comparison, {:identifier, :unknown, "a"}, :=, constant(10)}}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:not, {:comparison, identifier("a"), :=, constant(10)}}])
     )
   end
 
   test "where clause can have float values" do
     assert_parse(
       "select foo from bar where a = 10.0",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:comparison, {:identifier, :unknown, "a"}, :=, constant(10.0)}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:comparison, identifier("a"), :=, constant(10.0)}])
     )
   end
 
   test "where clause can have string values" do
     assert_parse(
       "select foo from bar where name = 'tom'",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:comparison, {:identifier, :unknown, "name"}, :=, constant("tom")}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:comparison, identifier("name"), :=, constant("tom")}])
     )
   end
 
   test "where clause comparing two columns" do
     assert_parse(
       "select foo from bar where a = b",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:comparison, identifier("a"), :=, identifier("b")}])
     )
   end
 
   test "where clause can have string values of any case" do
     assert_parse(
       "select foo from bar where name = 'tOm'",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:comparison, {:identifier, :unknown, "name"}, :=, constant("tOm")}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:comparison, identifier("name"), :=, constant("tOm")}])
     )
   end
 
   test "where clause can have multi-word string values" do
     assert_parse(
       "select foo from bar where name = 'avishai cohen'",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:comparison, {:identifier, :unknown, "name"}, :=, constant("avishai cohen")}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:comparison, identifier("name"), :=, constant("avishai cohen")}])
     )
   end
 
@@ -248,10 +270,10 @@ defmodule Cloak.Aql.Parser.Test do
     assert_parse(
       "select foo from bar where a <> 10 and b = 'bar'",
       select(
-        columns: [{:identifier, :unknown, "foo"}], from: "bar",
+        columns: [identifier("foo")], from: unquoted("bar"),
         where: [
-          {:not, {:comparison, {:identifier, :unknown, "a"}, :=, constant(10)}},
-          {:comparison, {:identifier, :unknown, "b"}, :=, constant("bar")}
+          {:not, {:comparison, identifier("a"), :=, constant(10)}},
+          {:comparison, identifier("b"), :=, constant("bar")}
         ]
       )
     )
@@ -261,10 +283,10 @@ defmodule Cloak.Aql.Parser.Test do
     assert_parse(
       "select foo from bar where a between 10 and 20",
       select(
-        columns: [{:identifier, :unknown, "foo"}], from: "bar",
+        columns: [identifier("foo")], from: unquoted("bar"),
         where: [
-          {:comparison, {:identifier, :unknown, "a"}, :>=, constant(10)},
-          {:comparison, {:identifier, :unknown, "a"}, :<=, constant(20)}
+          {:comparison, identifier("a"), :>=, constant(10)},
+          {:comparison, identifier("a"), :<=, constant(20)}
         ]
       )
     )
@@ -273,46 +295,46 @@ defmodule Cloak.Aql.Parser.Test do
   test "where clause with LIKE" do
     assert_parse(
       "select foo from bar where a LIKE '_ob d%'",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:like, {:identifier, :unknown, "a"}, constant("_ob d%")}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:like, identifier("a"), constant("_ob d%")}])
     )
   end
 
   test "where clause with NOT LIKE" do
     assert_parse(
       "select foo from bar where a NOT LIKE '%pattern%'",
-      select(where: [{:not, {:like, {:identifier, :unknown, "a"}, constant("%pattern%")}}])
+      select(where: [{:not, {:like, identifier("a"), constant("%pattern%")}}])
     )
   end
 
   test "where clause with ILIKE" do
     assert_parse(
       "select foo from bar where a ILIKE '_ob d%'",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:ilike, {:identifier, :unknown, "a"}, constant("_ob d%")}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:ilike, identifier("a"), constant("_ob d%")}])
     )
   end
 
   test "where clause with NOT ILIKE" do
     assert_parse(
       "select foo from bar where a NOT ILIKE '%pattern%'",
-      select(where: [{:not, {:ilike, {:identifier, :unknown, "a"}, constant("%pattern%")}}])
+      select(where: [{:not, {:ilike, identifier("a"), constant("%pattern%")}}])
     )
   end
 
   test "where clause with IN" do
     assert_parse(
       "select foo from bar where a IN (1, 2, 3)",
-      select(columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:in, {:identifier, :unknown, "a"}, constants([1, 2, 3])}])
+      select(columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:in, identifier("a"), constants([1, 2, 3])}])
     )
   end
 
   test "where clause with IS and IS NOT" do
     assert_parse(
       "select foo from bar where a is null and b is not null",
-      select(where: [{:is, {:identifier, :unknown, "a"}, :null},
-        {:not, {:is, {:identifier, :unknown, "b"}, :null}}])
+      select(where: [{:is, identifier("a"), :null},
+        {:not, {:is, identifier("b"), :null}}])
     )
   end
 
@@ -320,12 +342,12 @@ defmodule Cloak.Aql.Parser.Test do
     assert_parse(
       "select foo from bar where a = 2 and b in (1,2,3) and c like '_o' and d is not null",
       select(
-        columns: [{:identifier, :unknown, "foo"}], from: "bar",
+        columns: [identifier("foo")], from: unquoted("bar"),
         where: [
-          {:comparison, {:identifier, :unknown, "a"}, :=, constant(2)},
-          {:in, {:identifier, :unknown, "b"}, constants([1, 2, 3])},
-          {:like, {:identifier, :unknown, "c"}, constant("_o")},
-          {:not, {:is, {:identifier, :unknown, "d"}, :null}},
+          {:comparison, identifier("a"), :=, constant(2)},
+          {:in, identifier("b"), constants([1, 2, 3])},
+          {:like, identifier("c"), constant("_o")},
+          {:not, {:is, identifier("d"), :null}},
         ]
       )
     )
@@ -335,9 +357,9 @@ defmodule Cloak.Aql.Parser.Test do
     assert_parse(
       "select foo from bar where a = true and b in (true, false)",
       select(
-        columns: [{:identifier, :unknown, "foo"}], from: "bar",
-        where: [{:comparison, {:identifier, :unknown, "a"}, :=, constant(true)},
-          {:in, {:identifier, :unknown, "b"}, constants([true, false])}]
+        columns: [identifier("foo")], from: unquoted("bar"),
+        where: [{:comparison, identifier("a"), :=, constant(true)},
+          {:in, identifier("b"), constants([true, false])}]
       )
     )
   end
@@ -345,50 +367,50 @@ defmodule Cloak.Aql.Parser.Test do
   test "it's valid to have a identifier contain a keyword" do
     assert_parse(
       "SELECT INvalid, selectiscious FROM whereables",
-      select(columns: [{:identifier, :unknown, "INvalid"},
-        {:identifier, :unknown, "selectiscious"}], from: "whereables")
+      select(columns: [identifier("INvalid"),
+        identifier("selectiscious")], from: unquoted("whereables"))
     )
   end
 
   test "date extraction" do
     assert_parse(
       "SELECT extract(year FROM column) FROM table",
-      select(columns: [{:function, "year", [{:identifier, :unknown, "column"}]}])
+      select(columns: [{:function, "year", [identifier("column")]}])
     )
   end
 
   test "count(*)" do
-    assert_parse("select count(*) from foo", select(columns: [{:function, "count", [:*]}], from: "foo"))
+    assert_parse("select count(*) from foo", select(columns: [{:function, "count", [:*]}], from: unquoted("foo")))
   end
 
   test "aggregation functions" do
     assert_parse(
       "select sum(price), min(value) from foo",
-      select(columns: [{:function, "sum", [{:identifier, :unknown, "price"}]},
-        {:function, "min", [{:identifier, :unknown, "value"}]}], from: "foo")
+      select(columns: [{:function, "sum", [identifier("price")]},
+        {:function, "min", [identifier("value")]}], from: unquoted("foo"))
     )
   end
 
   test "group by multiple columns" do
     assert_parse(
       "select x from b group by x, y, z",
-      select(columns: [{:identifier, :unknown, "x"}], from: "b",
-        group_by: [{:identifier, :unknown, "x"}, {:identifier, :unknown, "y"}, {:identifier, :unknown, "z"}])
+      select(columns: [identifier("x")], from: unquoted("b"),
+        group_by: [identifier("x"), identifier("y"), identifier("z")])
     )
   end
 
   test "group by just one column" do
-    assert_parse("select a from b group by a", select(group_by: [{:identifier, :unknown, "a"}]))
+    assert_parse("select a from b group by a", select(group_by: [identifier("a")]))
   end
 
   test "order by clause" do
     assert_parse(
       "select a, b, c from foo order by a desc, b asc, c",
       select(columns: [
-          {:identifier, :unknown, "a"}, {:identifier, :unknown, "b"}, {:identifier, :unknown, "c"}
-        ], from: "foo", order_by: [
-          {{:identifier, :unknown, "a"}, :desc}, {{:identifier, :unknown, "b"}, :asc},
-          {{:identifier, :unknown, "c"}, nil}
+          identifier("a"), identifier("b"), identifier("c")
+        ], from: unquoted("foo"), order_by: [
+          {identifier("a"), :desc}, {identifier("b"), :asc},
+          {identifier("c"), nil}
         ])
     )
   end
@@ -396,52 +418,52 @@ defmodule Cloak.Aql.Parser.Test do
   test "parsed subquery sql" do
     assert_parse(
       "select foo from (select foo from bar) alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: parsed_subquery(subquery, "alias"))
+      select(columns: [identifier("foo")], from: parsed_subquery(subquery, "alias"))
     )
-    assert select(columns: [{:identifier, :unknown, "foo"}], from: "bar") = subquery
+    assert select(columns: [identifier("foo")], from: unquoted("bar")) = subquery
   end
 
   test "parsed nested subquery sql" do
     assert_parse(
       "select foo from (select foo from (select foo from bar) inner_alias) outer_alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: parsed_subquery(subquery, "outer_alias"))
+      select(columns: [identifier("foo")], from: parsed_subquery(subquery, "outer_alias"))
     )
 
     assert select(
-      columns: [{:identifier, :unknown, "foo"}],
+      columns: [identifier("foo")],
       from: parsed_subquery(inner_subquery, "inner_alias")
     ) = subquery
 
-    assert select(columns: [{:identifier, :unknown, "foo"}], from: "bar") = inner_subquery
+    assert select(columns: [identifier("foo")], from: unquoted("bar")) = inner_subquery
   end
 
   test "join of parsed subqueries" do
     assert_parse(
       "select foo from (select foo from bar) sq1, (select foo from baz) sq2",
       select(
-        columns: [{:identifier, :unknown, "foo"}],
+        columns: [identifier("foo")],
         from: cross_join(parsed_subquery(sq1, "sq1"), parsed_subquery(sq2, "sq2"))
       )
     )
-    assert select(columns: [{:identifier, :unknown, "foo"}], from: "bar") = sq1
-    assert select(columns: [{:identifier, :unknown, "foo"}], from: "baz") = sq2
+    assert select(columns: [identifier("foo")], from: unquoted("bar")) = sq1
+    assert select(columns: [identifier("foo")], from: unquoted("baz")) = sq2
   end
 
   test "joining table with a parsed subquery" do
     assert_parse(
       "select foo from bar inner join (select foo from baz) sq on bar.id = sq.id",
       select(
-        columns: [{:identifier, :unknown, "foo"}],
-        from: inner_join("bar", parsed_subquery(sq, "sq"), _comparison)
+        columns: [identifier("foo")],
+        from: inner_join(unquoted("bar"), parsed_subquery(sq, "sq"), _comparison)
       )
     )
-    assert select(columns: [{:identifier, :unknown, "foo"}], from: "baz") = sq
+    assert select(columns: [identifier("foo")], from: unquoted("baz")) = sq
   end
 
   test "unparsed subquery sql" do
     assert_parse(
       "select foo from (select bar from baz) alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: unparsed_subquery("select bar from baz")),
+      select(columns: [identifier("foo")], from: unparsed_subquery("select bar from baz")),
       @ds_proxy_data_source
     )
   end
@@ -449,7 +471,7 @@ defmodule Cloak.Aql.Parser.Test do
   test "unparsed subquery sql with AS" do
     assert_parse(
       "select foo from (select bar from baz) as alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: unparsed_subquery("select bar from baz")),
+      select(columns: [identifier("foo")], from: unparsed_subquery("select bar from baz")),
       @ds_proxy_data_source
     )
   end
@@ -457,7 +479,7 @@ defmodule Cloak.Aql.Parser.Test do
   test "subquery sql with semicolon" do
     assert_parse(
       "select foo from (select bar from baz) alias;",
-      select(columns: [{:identifier, :unknown, "foo"}], from: unparsed_subquery("select bar from baz")),
+      select(columns: [identifier("foo")], from: unparsed_subquery("select bar from baz")),
       @ds_proxy_data_source
     )
   end
@@ -465,7 +487,7 @@ defmodule Cloak.Aql.Parser.Test do
   test "unparsed subquery sql with an unknown token" do
     assert_parse(
       "select foo from (select `bar` from baz) alias",
-      select(columns: [{:identifier, :unknown, "foo"}], from: unparsed_subquery("select `bar` from baz")),
+      select(columns: [identifier("foo")], from: unparsed_subquery("select `bar` from baz")),
       @ds_proxy_data_source
     )
   end
@@ -474,7 +496,7 @@ defmodule Cloak.Aql.Parser.Test do
     assert_parse(
       "select foo from (select bar, cast(now() as text) from baz) alias",
       select(
-        columns: [{:identifier, :unknown, "foo"}],
+        columns: [identifier("foo")],
         from: unparsed_subquery("select bar, cast(now() as text) from baz")
       ),
       @ds_proxy_data_source
@@ -484,7 +506,7 @@ defmodule Cloak.Aql.Parser.Test do
   test "unparsed subquery sql with newlines" do
     assert_parse(
       "select foo from (select bar\n, \n\ncast(now()\n as text) from baz\n) alias",
-      select(columns: [{:identifier, :unknown, "foo"}],
+      select(columns: [identifier("foo")],
         from: unparsed_subquery("select bar\n, \n\ncast(now()\n as text) from baz\n")),
       @ds_proxy_data_source
     )
@@ -493,7 +515,7 @@ defmodule Cloak.Aql.Parser.Test do
   test "count(distinct column)" do
     assert_parse(
       "select count(distinct foo) from bar",
-      select(columns: [{:function, "count", [{:distinct, {:identifier, :unknown, "foo"}}]}])
+      select(columns: [{:function, "count", [{:distinct, identifier("foo")}]}])
     )
   end
 
@@ -508,15 +530,15 @@ defmodule Cloak.Aql.Parser.Test do
       """,
       select(
         columns: [
-          {:identifier, "table", "column"},
-          {:function, "count", [{:identifier, "table", "column"}]},
-          {:function, "count", [{:distinct, {:identifier, "table", "column"}}]}
+          identifier("column"),
+          {:function, "count", [identifier("column")]},
+          {:function, "count", [{:distinct, identifier("column")}]}
         ],
-        where: [{:comparison, {:identifier, "table", "column"}, :=, _}],
-        group_by: [{:identifier, "table", "column"}],
+        where: [{:comparison, identifier("column"), :=, _}],
+        group_by: [identifier("column")],
         order_by: [
-          {{:identifier, "table", "column"}, :desc},
-          {{:function, "count", [{:distinct, {:identifier, "table", "column"}}]}, :nil}
+          {identifier("column"), :desc},
+          {{:function, "count", [{:distinct, identifier("column")}]}, :nil}
         ]
       )
     )
@@ -524,97 +546,97 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "allow selection of multiple tables" do
     assert_parse("select a from foo, bar, baz",
-      select(columns: [{:identifier, :unknown, "a"}],
-        from: cross_join("foo", cross_join("bar", "baz"))))
+      select(columns: [identifier("a")],
+        from: cross_join(unquoted("foo"), cross_join(unquoted("bar"), unquoted("baz")))))
   end
 
   test "allow CROSS JOINs" do
     assert_parse("select a from foo CROSS JOIN bar",
-      select(columns: [{:identifier, :unknown, "a"}], from: cross_join("foo", "bar")))
+      select(columns: [identifier("a")], from: cross_join(unquoted("foo"), unquoted("bar"))))
   end
 
   test "allow multiple CROSS JOINs" do
     assert_parse("select a from t1 CROSS JOIN t2 CROSS JOIN t3 CROSS JOIN t4",
-      select(columns: [{:identifier, :unknown, "a"}], from:
-        cross_join(cross_join(cross_join("t1", "t2"), "t3"), "t4")
+      select(columns: [identifier("a")], from:
+        cross_join(cross_join(cross_join(unquoted("t1"), unquoted("t2")), unquoted("t3")), unquoted("t4"))
       ))
   end
 
   test "allow INNER JOINs" do
     assert_parse("select a from foo JOIN bar ON a = b",
-      select(columns: [{:identifier, :unknown, "a"}],
-        from: inner_join("foo", "bar", [
-          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+      select(columns: [identifier("a")],
+        from: inner_join(unquoted("foo"), unquoted("bar"), [
+          {:comparison, identifier("a"), :=, identifier("b")}
         ])))
     assert_parse("select a from foo INNER JOIN bar ON a = b",
-      select(columns: [{:identifier, :unknown, "a"}],
-        from: inner_join("foo", "bar", [
-          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+      select(columns: [identifier("a")],
+        from: inner_join(unquoted("foo"), unquoted("bar"), [
+          {:comparison, identifier("a"), :=, identifier("b")}
         ])))
   end
 
   test "allow multiple INNER JOINs" do
     assert_parse("select a from foo JOIN bar ON a = b INNER JOIN baz ON b = c",
-      select(columns: [{:identifier, :unknown, "a"}],
+      select(columns: [identifier("a")],
         from: inner_join(
-            inner_join("foo", "bar", [
-            {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
-          ]), "baz", [
-          {:comparison, {:identifier, :unknown, "b"}, :=, {:identifier, :unknown, "c"}}
+            inner_join(unquoted("foo"), unquoted("bar"), [
+            {:comparison, identifier("a"), :=, identifier("b")}
+          ]), unquoted("baz"), [
+          {:comparison, identifier("b"), :=, identifier("c")}
         ])))
   end
 
   test "allow LEFT JOINs" do
     assert_parse("select a from foo LEFT JOIN bar ON a = b",
-      select(columns: [{:identifier, :unknown, "a"}],
-        from: left_outer_join("foo", "bar", [
-          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+      select(columns: [identifier("a")],
+        from: left_outer_join(unquoted("foo"), unquoted("bar"), [
+          {:comparison, identifier("a"), :=, identifier("b")}
         ])))
     assert_parse("select a from foo LEFT OUTER JOIN bar ON a = b",
-      select(columns: [{:identifier, :unknown, "a"}],
-        from: left_outer_join("foo", "bar", [
-          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+      select(columns: [identifier("a")],
+        from: left_outer_join(unquoted("foo"), unquoted("bar"), [
+          {:comparison, identifier("a"), :=, identifier("b")}
         ])))
   end
 
   test "allow RIGHT JOINs" do
     assert_parse("select a from foo RIGHT JOIN bar ON a = b",
-      select(columns: [{:identifier, :unknown, "a"}],
-        from: right_outer_join("foo", "bar", [
-          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+      select(columns: [identifier("a")],
+        from: right_outer_join(unquoted("foo"), unquoted("bar"), [
+          {:comparison, identifier("a"), :=, identifier("b")}
         ])))
     assert_parse("select a from foo RIGHT OUTER JOIN bar ON a = b",
-      select(columns: [{:identifier, :unknown, "a"}],
-        from: right_outer_join("foo", "bar", [
-          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+      select(columns: [identifier("a")],
+        from: right_outer_join(unquoted("foo"), unquoted("bar"), [
+          {:comparison, identifier("a"), :=, identifier("b")}
         ])))
   end
 
   test "allow FULL OUTER JOINs" do
     assert_parse("select a from foo FULL JOIN bar ON a = b",
-      select(columns: [{:identifier, :unknown, "a"}],
-        from: full_outer_join("foo", "bar", [
-          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+      select(columns: [identifier("a")],
+        from: full_outer_join(unquoted("foo"), unquoted("bar"), [
+          {:comparison, identifier("a"), :=, identifier("b")}
         ])))
     assert_parse("select a from foo FULL OUTER JOIN bar ON a = b",
-      select(columns: [{:identifier, :unknown, "a"}],
-        from: full_outer_join("foo", "bar", [
-          {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+      select(columns: [identifier("a")],
+        from: full_outer_join(unquoted("foo"), unquoted("bar"), [
+          {:comparison, identifier("a"), :=, identifier("b")}
         ])))
   end
 
   test "allow combining JOIN types" do
     assert_parse("select a from t1, t2 JOIN t3 ON a = b CROSS JOIN t4, t5 CROSS JOIN t6",
-      select(columns: [{:identifier, :unknown, "a"}],
-        from: cross_join("t1",
+      select(columns: [identifier("a")],
+        from: cross_join(unquoted("t1"),
                 cross_join(
                   cross_join(
-                    inner_join("t2", "t3", [
-                      {:comparison, {:identifier, :unknown, "a"}, :=, {:identifier, :unknown, "b"}}
+                    inner_join(unquoted("t2"), unquoted("t3"), [
+                      {:comparison, identifier("a"), :=, identifier("b")}
                     ]),
-                    "t4"
+                    unquoted("t4")
                   ),
-                  cross_join("t5", "t6")))))
+                  cross_join(unquoted("t5"), unquoted("t6"))))))
   end
 
   Enum.each(["JOIN", "INNER JOIN", "RIGHT JOIN", "RIGHT OUTER JOIN", "LEFT JOIN", "LEFT OUTER JOIN",
@@ -628,12 +650,12 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "column alias" do
     assert_parse("select a as x from b",
-      select(columns: [{{:identifier, :unknown, "a"}, :as, "x"}]))
+      select(columns: [{identifier("a"), :as, "x"}]))
   end
 
   test "function in group by" do
     assert_parse("select * from foo group by bar(x)",
-      select(group_by: [{:function, "bar", [{:identifier, :unknown, "x"}]}])
+      select(group_by: [{:function, "bar", [identifier("x")]}])
     )
   end
 
@@ -680,7 +702,7 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "substring for" do
     assert_parse "select substring(foo for 3) from bar",
-      select(columns: [{:function, "substring_for", [identifier("foor"), constant(:integer, 3)]}])
+      select(columns: [{:function, "substring_for", [identifier("foo"), constant(:integer, 3)]}])
   end
 
   test "||" do
@@ -711,8 +733,8 @@ defmodule Cloak.Aql.Parser.Test do
   test "^" do
     assert_parse "select a ^ b ^ c from bar",
       select(columns: [{:function, "^", [
-        {:function, "^", [identifier("b"), identifier("c")]},
-        identifier("a")]}])
+        {:function, "^", [identifier("a"), identifier("b")]},
+        identifier("c")]}])
   end
 
   test "()" do
@@ -771,7 +793,7 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "quoted identifier" do
     assert_parse "select \"something that wouldn't normally work as a column name\" from bar",
-      select(columns: [identifier("something that wouldn't normally work as a column name")])
+      select(columns: [quoted_identifier("something that wouldn't normally work as a column name")])
   end
 
   test "literals containing escaped single-quotes" do
