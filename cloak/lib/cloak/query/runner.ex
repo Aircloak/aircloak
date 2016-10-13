@@ -61,6 +61,14 @@ defmodule Cloak.Query.Runner do
     :ok
   end
 
+  @spec stop(String.t) :: :ok | :error
+  def stop(query_id) do
+    case lookup_worker(query_id) do
+      :undefined -> :error
+      pid -> GenServer.cast(pid, :stop_query)
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -69,6 +77,7 @@ defmodule Cloak.Query.Runner do
   @doc false
   def init({query_id, data_source, statement, result_target}) do
     Process.flag(:trap_exit, true)
+    register_worker(query_id)
     {:ok, %{
       query_id: query_id,
       result_target: result_target,
@@ -84,7 +93,7 @@ defmodule Cloak.Query.Runner do
   @doc false
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
     if reason != :normal do
-      report_result(state, {:error, "Cloak error"})
+      report_result(state, {:error, "Unknown cloak error."})
     end
 
     # Note: we're always exiting with a reason normal. If a query crashed, the error will be
@@ -97,6 +106,12 @@ defmodule Cloak.Query.Runner do
   end
   def handle_info(_other, state), do:
     {:noreply, state}
+
+  def handle_cast(:stop_query, %{runner: task} = state) do
+    Task.shutdown(task)
+    report_result(state, {:error, "Cancelled."})
+    {:stop, :normal, %{state | runner: nil}}
+  end
 
 
   ## ----------------------------------------------------------------
@@ -193,7 +208,7 @@ defmodule Cloak.Query.Runner do
   defp format_error_reason(text) when is_binary(text), do: text
   defp format_error_reason(reason) do
     Logger.error("Unknown query error: #{inspect(reason)}")
-    "Cloak error"
+    "Unknown cloak error."
   end
 
   defp add_execution_time(state) do
@@ -235,5 +250,10 @@ defmodule Cloak.Query.Runner do
 
   if Mix.env == :test do
     def run_sync(data_source, statement), do: run_query(data_source, statement)
+    def register_worker(query_id), do: :ok
+    def lookup_worker(query_id), do: :undefined
+  else
+    def register_worker(query_id), do: :gproc.reg({:n, :l, query_id})
+    def lookup_worker(query_id), do: :gproc.where({:n, :l, query_id})
   end
 end
