@@ -130,10 +130,14 @@ class QueriesView extends React.Component {
     });
   }
 
+  isQueryPending() {
+    return this.state.sessionResults.length > 0 && this.state.sessionResults[0].pendingResult;
+  }
+
   runQuery() {
-    if (! this.props.dataSourceAvailable) {
-      return;
-    }
+    if (! this.props.dataSourceAvailable) return;
+    if (this.isQueryPending()) return;
+
     const statement = this.state.statement;
     $.ajax("/queries", {
       method: "POST",
@@ -159,12 +163,9 @@ class QueriesView extends React.Component {
   }
 
   stopQuery() {
-    if (! this.props.dataSourceAvailable) {
-      return;
-    }
-    if (this.state.sessionResults.length === 0 || ! this.state.sessionResults[0].pendingResult) {
-      return;
-    }
+    if (! this.props.dataSourceAvailable) return;
+    if (! this.isQueryPending()) return;
+
     const queryId = this.state.sessionResults[0].id;
     $.ajax("/queries/cancel", {
       method: "POST",
@@ -240,7 +241,7 @@ class QueriesView extends React.Component {
 
   render() {
     let button;
-    if (this.state.sessionResults.length > 0 && this.state.sessionResults[0].pendingResult) {
+    if (this.isQueryPending()) {
       button = (<div className="right-align">
         <button
           className="btn btn-small btn-warning"
