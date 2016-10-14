@@ -802,6 +802,14 @@ defmodule Cloak.Aql.Parser.Test do
     assert_parse ~S(select 'O\Brian' from names), select(columns: [constant(:text, ~S(O\Brian))])
   end
 
+  for type <- ~w(lower upper middle)a do
+    test "bucket(*, *, #{type})" do
+      assert_parse "select bucket(foo by 10 align #{unquote(type)}) from bar", select(columns: [
+        {:function, {:bucket, unquote(type)}, [identifier("foo"), constant(:integer, 10)]}
+      ])
+    end
+  end
+
   create_test =
     fn(description, data_source, statement, expected_error, line, column) ->
       test description do

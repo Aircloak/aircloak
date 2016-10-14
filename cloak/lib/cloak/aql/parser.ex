@@ -179,6 +179,7 @@ defmodule Cloak.Aql.Parser do
     choice_deepest_error([
       parenthesised_expression(),
       cast_expression(),
+      bucket_expression(),
       function_expression(),
       extract_expression(),
       trim_expression(),
@@ -227,15 +228,40 @@ defmodule Cloak.Aql.Parser do
     )
   end
 
-  @data_types ~w(integer real text boolean datetime date time)
   defp data_type() do
-    non_keyword_type =
-      unquoted_identifier()
-      |> satisfy(&Enum.member?(@data_types, &1))
-      |> map(&String.to_atom/1)
-
-    either(non_keyword_type, keyword(:interval))
+    either(
+      raw_identifier_of(~w(integer real text boolean datetime date time)),
+      keyword(:interval)
+    )
     |> label("type name")
+  end
+
+  defp bucket_expression() do
+    pipe(
+      [
+        keyword(:bucket),
+        keyword(:"("),
+        lazy(fn -> column() end),
+        keyword(:by),
+        lazy(fn -> column() end),
+        keyword(:align),
+        align_type(),
+        keyword(:")"),
+      ],
+      fn
+        [:bucket, :"(", arg1, :by, arg2, :align, type, :")"] -> {:function, {:bucket, type}, [arg1, arg2]}
+      end
+    )
+  end
+
+  defp align_type() do
+    raw_identifier_of(~w(lower upper middle))
+  end
+
+  defp raw_identifier_of(words) do
+    unquoted_identifier()
+    |> satisfy(&Enum.member?(words, &1))
+    |> map(&String.to_atom/1)
   end
 
   defp function_expression() do

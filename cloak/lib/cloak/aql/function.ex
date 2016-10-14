@@ -38,7 +38,7 @@ defmodule Cloak.Aql.Function do
       [numeric] => :integer,
       [numeric, :integer] => :real,
     }},
-    ~w(bucket) => %{type_specs: %{
+    [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{type_specs: %{
       [numeric, numeric] => :real,
     }},
     ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
@@ -140,6 +140,7 @@ defmodule Cloak.Aql.Function do
   @doc "Returns the function name of the given function call."
   @spec name(t) :: String.t
   def name({:function, {:cast, _}, _}), do: "cast"
+  def name({:function, {:bucket, _}, _}), do: "bucket"
   def name({:function, name, _}), do: name
 
   @doc "Returns the return type of the given function call."
@@ -278,7 +279,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("-", [x, y = %Duration{}]), do: do_apply("+", [x, Duration.scale(y, -1)])
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
-  defp do_apply("bucket", [value, bucket_size]), do: Float.floor(value / bucket_size) * bucket_size
+  defp do_apply({:bucket, _}, [value, bucket_size]), do: Float.floor(value / bucket_size) * bucket_size
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
