@@ -243,7 +243,7 @@ defmodule Cloak.Aql.Parser do
         keyword(:"("),
         column(),
         keyword(:by),
-        column(),
+        constant_of([:integer, :float]),
         option(sequence([
           keyword(:align),
           align_type(),
