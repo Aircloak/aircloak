@@ -22,7 +22,8 @@ export type Result = {
   columns: Column[],
   rows: Row[],
   row_count: number,
-  info: string[]
+  info: string[],
+  pendingResult: boolean
 };
 
 export class ResultView extends React.Component {
