@@ -279,7 +279,12 @@ defmodule Cloak.Aql.Function do
   defp do_apply("-", [x, y = %Duration{}]), do: do_apply("+", [x, Duration.scale(y, -1)])
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
-  defp do_apply({:bucket, _}, [value, bucket_size]), do: Float.floor(value / bucket_size) * bucket_size
+  defp do_apply({:bucket, :lower}, [value, bucket_size]), do:
+    Float.floor(value / bucket_size) * bucket_size
+  defp do_apply({:bucket, :upper}, [value, bucket_size]), do:
+    Float.floor(value / bucket_size) * bucket_size + bucket_size
+  defp do_apply({:bucket, :middle}, [value, bucket_size]), do:
+    Float.floor(value / bucket_size) * bucket_size + 0.5 * bucket_size
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
