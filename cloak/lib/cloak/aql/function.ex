@@ -38,6 +38,9 @@ defmodule Cloak.Aql.Function do
       [numeric] => :integer,
       [numeric, :integer] => :real,
     }},
+    ~w(bucket) => %{type_specs: %{
+      [numeric, numeric] => :real,
+    }},
     ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
     ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
     ~w(pow ^) => %{type_specs: arithmetic_operation},
@@ -275,6 +278,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("-", [x, y = %Duration{}]), do: do_apply("+", [x, Duration.scale(y, -1)])
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
+  defp do_apply("bucket", [value, bucket_size]), do: Float.floor(value / bucket_size) * bucket_size
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)

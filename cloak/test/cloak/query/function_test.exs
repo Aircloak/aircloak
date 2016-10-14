@@ -68,6 +68,7 @@ defmodule Cloak.Query.FunctionTest do
   test "floor", do: assert 180 == apply_function("floor(height + 0.9)", "heights_ft")
   test "ceil", do: assert 181 == apply_function("ceil(height + 0.1)", "heights_ft")
   test "ceiling", do: assert 181 == apply_function("ceiling(height + 0.1)", "heights_ft")
+  test "bucket", do: assert 150 == apply_function("bucket(height, 50)", "heights_ft")
 
   test "cast as integer", do: assert 42 == apply_function("cast('42' AS integer)", "heights_ft")
   test "cast as real", do: assert 42.0 == apply_function("cast('42' AS real)", "heights_ft")
