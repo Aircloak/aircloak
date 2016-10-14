@@ -824,6 +824,10 @@ defmodule Cloak.Aql.Parser.Test do
     end
   end
 
+  test "bucket aligns lower by default" do
+    assert_equal_parse "select bucket(foo by 10) from bar", "select bucket(foo by 10 align lower) from bar"
+  end
+
   create_test =
     fn(description, data_source, statement, expected_error, line, column) ->
       test description do

@@ -244,12 +244,15 @@ defmodule Cloak.Aql.Parser do
         lazy(fn -> column() end),
         keyword(:by),
         lazy(fn -> column() end),
-        keyword(:align),
-        align_type(),
+        option(sequence([
+          keyword(:align),
+          align_type(),
+        ])),
         keyword(:")"),
       ],
       fn
-        [:bucket, :"(", arg1, :by, arg2, :align, type, :")"] -> {:function, {:bucket, type}, [arg1, arg2]}
+        [:bucket, :"(", arg1, :by, arg2, [:align, type], :")"] -> {:function, {:bucket, type}, [arg1, arg2]}
+        [:bucket, :"(", arg1, :by, arg2, nil, :")"] -> {:function, {:bucket, :lower}, [arg1, arg2]}
       end
     )
   end
