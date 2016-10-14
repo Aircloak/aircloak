@@ -35,8 +35,8 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
     ~w(round trunc) => %{type_specs: %{
-       [numeric] => :integer,
-       [numeric, :integer] => :real,
+      [numeric] => :integer,
+      [numeric, :integer] => :real,
     }},
     ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
     ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
