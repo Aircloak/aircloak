@@ -160,7 +160,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp column() do
-    additive_expression()
+    lazy(fn -> additive_expression() end)
   end
 
   defp additive_expression() do
@@ -192,7 +192,7 @@ defmodule Cloak.Aql.Parser do
 
   defp parenthesised_expression() do
     pipe(
-      [keyword(:"("), lazy(fn -> column() end), keyword(:")")],
+      [keyword(:"("), column(), keyword(:")")],
       fn([:"(", result, :")"]) -> result end
     )
   end
@@ -219,7 +219,7 @@ defmodule Cloak.Aql.Parser do
       [
         keyword(:cast),
         keyword(:"("),
-        lazy(fn -> column() end),
+        column(),
         either(keyword(:","), keyword(:as)),
         data_type(),
         keyword(:")"),
@@ -241,9 +241,9 @@ defmodule Cloak.Aql.Parser do
       [
         keyword(:bucket),
         keyword(:"("),
-        lazy(fn -> column() end),
+        column(),
         keyword(:by),
-        lazy(fn -> column() end),
+        column(),
         option(sequence([
           keyword(:align),
           align_type(),
@@ -325,7 +325,7 @@ defmodule Cloak.Aql.Parser do
         choice([keyword(:both), keyword(:leading), keyword(:trailing)]),
         option(constant(:string)),
         keyword(:from),
-        lazy(fn -> column() end),
+        column(),
         keyword(:")"),
      ],
      fn
@@ -346,7 +346,7 @@ defmodule Cloak.Aql.Parser do
       [
         keyword(:substring),
         keyword(:"("),
-        lazy(fn -> column() end),
+        column(),
         option(sequence([keyword(:from), constant(:integer)])),
         option(sequence([keyword(:for), constant(:integer)])),
         keyword(:")"),
