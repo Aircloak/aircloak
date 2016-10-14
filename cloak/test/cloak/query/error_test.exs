@@ -66,7 +66,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports an error on runner crash" do
     ExUnit.CaptureLog.capture_log(fn ->
-      assert_query :invalid_query_type, %{error: "Cloak error"}
+      assert_query :invalid_query_type, %{error: "Unknown cloak error."}
     end)
   end
 

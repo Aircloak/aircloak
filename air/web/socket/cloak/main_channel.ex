@@ -29,6 +29,20 @@ defmodule Air.Socket.Cloak.MainChannel do
     end
   end
 
+  @doc "Stops a query on the given cloak."
+  @spec stop_query(pid | nil, String.t) :: :ok | {:error, any}
+  def stop_query(channel_pid, query_id) do
+    try do
+      case call(channel_pid, "stop_query", query_id, :timer.seconds(5)) do
+        {:ok, _} -> :ok
+        error -> error
+      end
+    catch
+      :exit, :noproc ->
+        {:error, :not_connected}
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions

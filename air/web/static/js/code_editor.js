@@ -12,6 +12,7 @@ require("codemirror/addon/hint/anyword-hint");
 
 type Props = {
   onRun: () => void;
+  onStop: () => void;
   onChange: () => void;
   tableNames: string[],
   columnNames: string[],
@@ -36,6 +37,9 @@ export class CodeEditor extends React.Component {
     this.editor = codeMirrorComponent.getCodeMirrorInstance();
     this.editor.commands.run = (_cm) => {
       this.props.onRun();
+    };
+    this.editor.commands.stop = (_cm) => {
+      this.props.onStop();
     };
     this.editor.commands.autoComplete = (cm) => {
       cm.showHint({hint: this.completionList});
@@ -79,6 +83,8 @@ export class CodeEditor extends React.Component {
       extraKeys: {
         "Ctrl-Enter": "run",
         "Cmd-Enter": "run",
+        "Ctrl-Esc": "stop",
+        "Cmd-Esc": "stop",
         "Ctrl-Space": "autoComplete",
       },
     });

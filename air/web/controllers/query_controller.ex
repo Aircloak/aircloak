@@ -88,6 +88,18 @@ defmodule Air.QueryController do
     end
   end
 
+  def cancel(conn, %{"id" => query_id}) do
+    query = find_query(conn.assigns.current_user, query_id) |> Repo.preload(:data_source)
+    if query == nil do
+      send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
+    else
+      case DataSource.stop_query(query, conn.assigns.current_user, audit_log_meta(conn)) do
+        :ok -> json(conn, %{success: true})
+        {:error, reason} -> query_error(conn, reason)
+      end
+    end
+  end
+
   def failed(conn, _params) do
     render(conn, "failed.html", failed_queries: Repo.all(Query.failed()))
   end

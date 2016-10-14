@@ -80,6 +80,29 @@ defmodule Air.Service.DataSource do
     end
   end
 
+  @doc "Stops a previously started query."
+  @spec stop_query(Query.t, User.t, %{atom => any}) :: :ok | {:error, :internal_error | :not_connected}
+  def stop_query(query, user, audit_meta \\ %{}) do
+    Air.Service.AuditLog.log(user, "Stopped query",
+      Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.id}))
+
+    try do
+      if DataSourceManager.available?(query.data_source.global_id) do
+        for channel <- DataSourceManager.channel_pids(query.data_source.global_id), do:
+          MainChannel.stop_query(channel, query.id)
+        :ok
+      else
+        {:error, :not_connected}
+      end
+    catch type, error ->
+      Logger.error([
+        "Error stopping query: #{inspect(type)}:#{inspect(error)}\n",
+        Exception.format_stacktrace(System.stacktrace())
+      ])
+      {:error, :internal_error}
+    end
+  end
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions

@@ -174,14 +174,19 @@ defmodule Cloak.AirSocket do
     %{"id" => id, "statement" => statement, "data_source" => data_source} = serialized_query
     case Cloak.DataSource.fetch(data_source) do
       :error ->
-        respond_to_air(from, :error, "unknown data source")
+        respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
-        Logger.info("starting query #{id}")
+        Logger.info("starting query #{id} ...")
         Cloak.Query.Runner.start(id, data_source, statement)
-
         respond_to_air(from, :ok)
     end
+    {:ok, state}
+  end
+  defp handle_air_call("stop_query", query_id, from, state) do
+    Logger.info("stopping query #{query_id} ...")
+    Cloak.Query.Runner.stop(query_id)
+    respond_to_air(from, :ok)
     {:ok, state}
   end
 

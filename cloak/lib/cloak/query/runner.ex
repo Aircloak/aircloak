@@ -57,9 +57,14 @@ defmodule Cloak.Query.Runner do
   """
   @spec start(String.t, Cloak.DataSource.t, String.t Cloak.ResultSender.target) :: :ok
   def start(query_id, data_source, statement, result_target \\ :air_socket) do
-    {:ok, _} = Supervisor.start_child(@supervisor_name, [{query_id, data_source, statement, result_target}])
+    {:ok, _} = Supervisor.start_child(@supervisor_name,
+      [{query_id, data_source, statement, result_target}, [name: worker_name(query_id)]])
     :ok
   end
+
+  @spec stop(String.t) :: :ok
+  def stop(query_id), do:
+    query_id |> worker_name() |> GenServer.cast(:stop_query)
 
 
   # -------------------------------------------------------------------
@@ -84,7 +89,7 @@ defmodule Cloak.Query.Runner do
   @doc false
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
     if reason != :normal do
-      report_result(state, {:error, "Cloak error"})
+      report_result(state, {:error, "Unknown cloak error."})
     end
 
     # Note: we're always exiting with a reason normal. If a query crashed, the error will be
@@ -97,6 +102,12 @@ defmodule Cloak.Query.Runner do
   end
   def handle_info(_other, state), do:
     {:noreply, state}
+
+  def handle_cast(:stop_query, %{runner: task} = state) do
+    Task.shutdown(task)
+    report_result(state, {:error, "Cancelled."})
+    {:stop, :normal, %{state | runner: nil}}
+  end
 
 
   ## ----------------------------------------------------------------
@@ -146,8 +157,8 @@ defmodule Cloak.Query.Runner do
       |> limit(query)
     end)
 
-  defp successful_result(result, query),
-    do: {:ok, result, Enum.reverse(query.info)}
+  defp successful_result(result, query), do:
+    {:ok, result, Enum.reverse(query.info)}
 
 
   # -------------------------------------------------------------------
@@ -193,7 +204,7 @@ defmodule Cloak.Query.Runner do
   defp format_error_reason(text) when is_binary(text), do: text
   defp format_error_reason(reason) do
     Logger.error("Unknown query error: #{inspect(reason)}")
-    "Cloak error"
+    "Unknown cloak error."
   end
 
   defp add_execution_time(state) do
@@ -235,5 +246,9 @@ defmodule Cloak.Query.Runner do
 
   if Mix.env == :test do
     def run_sync(data_source, statement), do: run_query(data_source, statement)
+    # tests run the same query in parallel, so we make the process name unique to avoid conflicts
+    def worker_name(_query_id), do: {:via, :gproc, {:n, :l, {__MODULE__, :erlang.unique_integer()}}}
+  else
+    def worker_name(query_id), do: {:via, :gproc, {:n, :l, {__MODULE__, query_id}}}
   end
 end
