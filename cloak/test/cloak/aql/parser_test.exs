@@ -24,6 +24,13 @@ defmodule Cloak.Aql.Parser.Test do
     end
   end
 
+  defmacrop assert_equal_parse(query1, query2, data_source \\ quote(do: @psql_data_source)) do
+    quote do
+      assert Parser.parse(unquote(data_source), unquote(query1)) ==
+        Parser.parse(unquote(data_source), unquote(query2))
+    end
+  end
+
   defmacrop assert_parse_error(query_string, expected_pattern, data_source \\ quote(do: @psql_data_source)) do
     quote do
       assert {:error, unquote(expected_pattern)} = Parser.parse(unquote(data_source), unquote(query_string))
@@ -807,6 +814,13 @@ defmodule Cloak.Aql.Parser.Test do
       assert_parse "select bucket(foo by 10 align #{unquote(type)}) from bar", select(columns: [
         {:function, {:bucket, unquote(type)}, [identifier("foo"), constant(:integer, 10)]}
       ])
+    end
+  end
+
+  for {type, synonym} <- [{:lower, :bottom}, {:upper, :top}] do
+    test "bucket(*, *, #{synonym}) is bucket(*, *, #{type})" do
+      assert_equal_parse "select bucket(foo by 10 align #{unquote(type)}) from bar",
+        "select bucket(foo by 10 align #{unquote(synonym)}) from bar"
     end
   end
 

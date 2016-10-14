@@ -255,7 +255,12 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp align_type() do
-    raw_identifier_of(~w(lower upper middle))
+    raw_identifier_of(~w(bottom lower top upper middle))
+    |> map(fn
+      :bottom -> :lower
+      :top -> :upper
+      x -> x
+    end)
   end
 
   defp raw_identifier_of(words) do
