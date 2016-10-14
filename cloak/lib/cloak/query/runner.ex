@@ -129,7 +129,6 @@ defmodule Cloak.Query.Runner do
         result = %Result{result |
           columns: query.column_titles,
           features: Query.extract_features(query),
-          types: Query.selected_types(query),
         }
         successful_result(result, query)
       end
@@ -162,7 +161,6 @@ defmodule Cloak.Query.Runner do
     log_completion(state, status: :success, row_count: length(result.buckets))
     result = %{
       columns: result.columns,
-      types: result.types,
       rows: result.buckets,
       info: info,
       execution_time: execution_time_in_s(state),

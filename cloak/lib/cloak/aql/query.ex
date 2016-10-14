@@ -87,18 +87,19 @@ defmodule Cloak.Aql.Query do
       functions: extract_functions(query.columns),
       where_conditions: extract_where_conditions(query.where ++ query.lcf_check_conditions),
       column_types: extract_column_types(query.columns),
+      selected_types: selected_types(query.columns),
     }
   end
-
-  @doc "Returns the list of types of selected columns."
-  @spec selected_types(t) :: [DataSource.data_type]
-  def selected_types(query), do:
-    Enum.map(query.columns, &Function.type/1)
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  def selected_types(columns), do:
+    columns
+    |> Enum.map(&Function.type/1)
+    |> Enum.map(&stringify/1)
 
   defp num_columns(columns), do:
     columns

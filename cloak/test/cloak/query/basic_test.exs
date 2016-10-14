@@ -19,7 +19,7 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "show tables" do
-    assert_query "show tables", %{columns: ["name"], types: [:text], rows: table_rows}
+    assert_query "show tables", %{columns: ["name"], rows: table_rows}
     tables = Enum.map(table_rows, fn(%{row: [table_name]}) -> table_name end)
 
     [:children, :heights, :heights_alias, :"weird things", :dates]
@@ -27,8 +27,7 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "show columns" do
-    assert_query "show columns from heights", %{query_id: "1", columns: ["name", "type"],
-      types: [:text, :text], rows: rows}
+    assert_query "show columns from heights", %{query_id: "1", columns: ["name", "type"], rows: rows}
 
     assert Enum.sort_by(rows, &(&1[:row])) == [
       %{occurrences: 1, row: ["height", :integer]},
@@ -51,26 +50,24 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "select all query" do
-    assert_query "select * from heights", %{query_id: "1", columns: ["user_id", "height", "name", "male"],
-      types: [:text, :integer, :text, :boolean], rows: _}
+    assert_query "select * from heights", %{query_id: "1", columns: ["user_id", "height", "name", "male"], rows: _}
   end
 
   test "select a constant" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
-    assert_query "select 3 from heights", %{columns: [""], types: [:integer],
-      rows: [%{occurrences: 10, row: [3]}]}
+    assert_query "select 3 from heights", %{columns: [""], rows: [%{occurrences: 10, row: [3]}]}
   end
 
   test "select an aliased constant" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
     assert_query "select 'text' as the_text from heights",
-      %{columns: ["the_text"], types: [:text], rows: [%{occurrences: 10, row: ["text"]}]}
+      %{columns: ["the_text"], rows: [%{occurrences: 10, row: ["text"]}]}
   end
 
   test "a binary function of two columns" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
     assert_query "select div(height, height) from heights",
-      %{columns: ["div"], types: [:integer], rows: [%{occurrences: 10, row: [1]}]}
+      %{columns: ["div"], rows: [%{occurrences: 10, row: [1]}]}
   end
 
   test "a binary function of a column and a constant" do
@@ -106,10 +103,10 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [nil])
 
     assert_query "select count(*) from heights",
-      %{columns: ["count"], types: [:integer], rows: [%{row: [40], occurrences: 1}]}
+      %{columns: ["count"], rows: [%{row: [40], occurrences: 1}]}
 
     assert_query "select COUNT(height) from heights",
-      %{columns: ["count"], types: [:integer], rows: [%{row: [20], occurrences: 1}]}
+      %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
   end
 
   test "count(distinct column)" do
@@ -135,8 +132,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "aggregates of an empty table" do
     assert_query "select count(*), count(height), avg(height) from heights",
-      %{columns: ["count", "count", "avg"], types: [:integer, :integer, :real],
-      rows: [%{row: [0, 0, nil], occurrences: 1}]}
+      %{columns: ["count", "count", "avg"], rows: [%{row: [0, 0, nil], occurrences: 1}]}
   end
 
   test "should be able to aggregate positive values" do

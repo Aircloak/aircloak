@@ -54,7 +54,7 @@ defmodule Air.ResultProcessor do
 
     storable_result = Poison.encode!(%{
       columns: result["columns"],
-      types: result["types"],
+      types: result["features"]["selected_types"],
       rows: result["rows"],
       error: result["error"],
       info: result["info"],
