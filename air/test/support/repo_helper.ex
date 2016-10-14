@@ -4,14 +4,15 @@ defmodule Air.TestRepoHelper do
   alias Air.{ApiToken, Repo}
 
   @doc "Inserts the new user with default parameters into the database."
-  @spec create_user!() :: Air.User.t
-  def create_user!() do
+  @spec create_user!(%{}) :: Air.User.t
+  def create_user!(additional_changes \\ %{}) do
     Air.User.changeset(%Air.User{}, %{
       email: "#{random_string()}@aircloak.com",
       password: "1234",
       password_confirmation: "1234",
       name: random_string()
     })
+    |> Air.User.changeset(additional_changes)
     |> Repo.insert!()
     |> Repo.preload([:groups])
   end
@@ -43,8 +44,8 @@ defmodule Air.TestRepoHelper do
   end
 
   @doc "Creates a data source with default parameters with a random global id"
-  @spec create_data_source!() :: Air.DataSource.t
-  def create_data_source!() do
+  @spec create_data_source!(%{}) :: Air.DataSource.t
+  def create_data_source!(additional_changes \\ %{}) do
     params = %{
       global_id: "global_id-#{random_string()}",
       name: "name-#{random_string()}",
@@ -52,6 +53,7 @@ defmodule Air.TestRepoHelper do
     }
     %Air.DataSource{}
     |> Air.DataSource.changeset(params)
+    |> Air.DataSource.changeset(additional_changes)
     |> Repo.insert!()
     |> Repo.preload([:groups])
   end
@@ -66,7 +68,7 @@ defmodule Air.TestRepoHelper do
 
   @doc "Inserts a test query into the database"
   @spec create_query!(Air.User.t, %{}) :: Air.Query.t
-  def create_query!(user, params \\ %{query: "query content"}) do
+  def create_query!(user, params \\ %{statement: "query content"}) do
     user
     |> Ecto.build_assoc(:queries)
     |> Air.Query.changeset(params)

@@ -12,7 +12,9 @@ defmodule Cloak.Aql.Parser do
     | :>
     | :<>
 
-  @type qualified_identifier :: {:identifier, :unknown | String.t, String.t}
+  @type unqualified_identifier :: {:quoted, String.t} | {:unquoted, String.t}
+
+  @type qualified_identifier :: {:identifier, :unknown | table, unqualified_identifier}
 
   @type data_type :: DataSource.data_type | :interval
 
@@ -36,7 +38,7 @@ defmodule Cloak.Aql.Parser do
 
   @type from_clause :: table | parsed_subquery | unparsed_subquery | join
 
-  @type table :: String.t
+  @type table :: unqualified_identifier
 
   @type join ::
     {:join, %{
@@ -206,7 +208,7 @@ defmodule Cloak.Aql.Parser do
       ],
       fn
         ([column, nil]) -> column
-        ([column, :as, name]) -> {column, :as, name}
+        ([column, :as, {_, name}]) -> {column, :as, name}
       end
     )
   end
@@ -228,7 +230,7 @@ defmodule Cloak.Aql.Parser do
   @data_types ~w(integer real text boolean datetime date time)
   defp data_type() do
     non_keyword_type =
-      identifier()
+      unquoted_identifier()
       |> satisfy(&Enum.member?(@data_types, &1))
       |> map(&String.to_atom/1)
 
@@ -248,7 +250,7 @@ defmodule Cloak.Aql.Parser do
 
   defp function_name() do
     choice([
-      identifier(),
+      unquoted_identifier(),
       keyword(:left),
       keyword(:right),
     ])
@@ -272,7 +274,7 @@ defmodule Cloak.Aql.Parser do
       [
         keyword(:extract),
         keyword(:"("),
-        identifier(),
+        unquoted_identifier(),
         keyword(:from),
         lazy(fn -> map(column(), &[&1]) end),
         keyword(:")"),
@@ -474,7 +476,7 @@ defmodule Cloak.Aql.Parser do
       lazy(fn -> select_statement(data_source) end),
       ignore(keyword(:")")),
       option(keyword(:as)),
-      label(identifier(), "subquery alias")
+      label(unquoted_identifier(), "subquery alias")
     ])
     |> map(
           fn([select_statement, _as_keyword, alias]) ->
@@ -508,10 +510,10 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp table_with_schema() do
-    pipe(
-      [identifier(), keyword(:.), identifier()],
-      &Enum.join/1
-    )
+    pipe([identifier(), keyword(:.), identifier()], fn
+      [{:unquoted, schema}, _, {:unquoted, table}] -> {:unquoted, "#{schema}.#{table}"}
+      [{_, schema}, _, {_, table}] -> {:quoted, "#{schema}.#{table}"}
+    end)
   end
 
   defp optional_where() do
@@ -633,7 +635,14 @@ defmodule Cloak.Aql.Parser do
 
   defp identifier(parser \\ noop()) do
     parser
-    |> token(:identifier)
+    |> either(token(:quoted), token(:unquoted))
+    |> map(&{&1.category, &1.value})
+    |> label("identifier")
+  end
+
+  defp unquoted_identifier(parser \\ noop()) do
+    parser
+    |> token(:unquoted)
     |> map(&(&1.value))
     |> label("identifier")
   end

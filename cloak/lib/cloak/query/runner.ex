@@ -112,29 +112,24 @@ defmodule Cloak.Query.Runner do
 
   defp execute_sql_query(%Query{command: :show, show: :tables} = query) do
     columns = ["name"]
+    types = [:text]
     buckets = for {id, _table} <- query.data_source.tables, do: %{occurrences: 1, row: [id]}
-    successful_result(%Result{buckets: buckets, columns: columns}, query)
+    successful_result(%Result{buckets: buckets, columns: columns, types: types}, query)
   end
   defp execute_sql_query(%Query{command: :show, show: :columns} = query) do
     columns = ["name", "type"]
+    types = [:text, :text]
     [table] = query.selected_tables
     buckets = for {name, type} <- table.columns, do: %{occurrences: 1, row: [name, type]}
-    successful_result(%Result{buckets: buckets, columns: columns}, query)
+    successful_result(%Result{buckets: buckets, columns: columns, types: types}, query)
   end
   defp execute_sql_query(%Query{command: :select} = query) do
     try do
-      with {:ok, result} <- DataSource.select(query, fn (rows) ->
-        Logger.debug("Processing rows ...")
-        rows
-        |> LCFConditions.apply(query)
-        |> Aggregator.aggregate(query)
-        |> Sorter.order(query)
-        |> offset(query)
-        |> limit(query)
-      end) do
+      with {:ok, result} <- select_rows(query) do
         result = %Result{result |
           columns: query.column_titles,
           features: Query.extract_features(query),
+          types: Query.selected_types(query),
         }
         successful_result(result, query)
       end
@@ -142,6 +137,17 @@ defmodule Cloak.Query.Runner do
       {:error, e.message}
     end
   end
+
+  defp select_rows(query), do:
+    DataSource.select(query, fn(rows) ->
+      Logger.debug("Processing rows ...")
+      rows
+      |> LCFConditions.apply(query)
+      |> Aggregator.aggregate(query)
+      |> Sorter.order(query)
+      |> offset(query)
+      |> limit(query)
+    end)
 
   defp successful_result(result, query),
     do: {:ok, result, Enum.reverse(query.info)}
@@ -156,6 +162,7 @@ defmodule Cloak.Query.Runner do
     log_completion(state, status: :success, row_count: length(result.buckets))
     result = %{
       columns: result.columns,
+      types: result.types,
       rows: result.buckets,
       info: info,
       execution_time: execution_time_in_s(state),

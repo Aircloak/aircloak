@@ -49,13 +49,13 @@ defmodule Cloak.DataSource do
     db_name: String.t, # table name in the database
     user_id: String.t,
     ignore_unsupported_types: boolean,
-    columns: [{column, data_type | :unknown}]
+    columns: [{column, data_type}]
   }
   @type num_rows :: non_neg_integer
   @type column :: String.t
   @type field :: String.t | integer | number | boolean | nil
   @type row :: [field]
-  @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | :uuid | {:unsupported, String.t}
+  @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | :uuid | :unknown
   @type query_result :: Enumerable.t
   @type processed_result :: any
   @type result_processor :: (query_result -> processed_result)
@@ -77,7 +77,7 @@ defmodule Cloak.DataSource do
     @callback disconnect(connection) :: :ok
 
     @doc "Retrieves the existing columns for the specified table name."
-    @callback describe_table(connection, String.t) :: [{String.t, DataSource.data_type}]
+    @callback describe_table(connection, String.t) :: [{String.t, DataSource.data_type | {:unsupported, String.t}}]
 
     @doc "Driver specific implementation for the `DataSource.select` functionality."
     @callback select(connection, Aql.t, Cloak.DataSource.result_processor)

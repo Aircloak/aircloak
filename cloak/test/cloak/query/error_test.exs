@@ -70,17 +70,6 @@ defmodule Cloak.Query.ErrorTest do
     end)
   end
 
-  test "warns when uid column is selected" do
-    assert_info "select user_id from test_errors", "`user_id` from table `test_errors`"
-    assert_info "select user_id, height from test_errors", "`user_id` from table `test_errors`"
-    assert_info "select * from test_errors", "`user_id` from table `test_errors`"
-
-    assert_query "select * from test_errors, test_errors2 where test_errors.user_id = test_errors2.user_id",
-      %{info: [info1, info2]}
-    assert info1 =~ "`user_id` from table `test_errors`"
-    assert info2 =~ "`user_id` from table `test_errors2`"
-  end
-
   test "substring with neither for nor from" do
     assert_query "select substring(name) from test_errors", %{error: error}
     assert error == "Function `substring` requires arguments of type (`text`, `integer`, [`integer`]),"
@@ -96,7 +85,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports error on invalid having clause" do
     assert_query "select name from test_errors group by name having height >= 100", %{error: error}
-    assert ~s/`HAVING` clause can not be applied over non-aggregated columns./ == error
+    assert ~s/`HAVING` clause can not be applied over column `height` from table `test_errors`./ == error
     assert_query "select name from test_errors having count(*) >= 10", %{error: error}
     assert ~s/Using the `HAVING` clause requires the `GROUP BY` clause to be specified./ == error
   end

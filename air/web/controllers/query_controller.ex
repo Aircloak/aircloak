@@ -4,9 +4,8 @@ defmodule Air.QueryController do
   use Timex
 
   require Logger
-  alias Air.{DataSource, DataSourceManager, Query, Repo, AuditLog}
+  alias Air.{Query, Repo, Service.DataSource}
   alias Plug.Conn.Status
-  alias Air.Socket.Cloak.MainChannel
 
 
   # -------------------------------------------------------------------
@@ -39,36 +38,28 @@ defmodule Air.QueryController do
   end
 
   def create(conn, %{"query" => params}) do
-    query = build_assoc(conn.assigns.current_user, :queries)
-    |> Query.changeset(parse_query_params(params))
-    |> Repo.insert!()
-    |> Repo.preload(:data_source)
+    data_source_id_or_token =
+      if params["data_source_id"],
+        do: {:data_source_id, params["data_source_id"]},
+        else: {:data_source_token, params["data_source_token"]}
 
-    if DataSource.available_to_user?(query.data_source.id, conn.assigns.current_user) do
-      if DataSourceManager.available?(query.data_source.global_id) do
-        execute_query(conn, query)
-      else
-        send_resp(conn, Status.code(:service_unavailable), "No cloak is available for the given data source")
-      end
-    else
-      send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
+    case DataSource.start_query(
+      data_source_id_or_token,
+      conn.assigns.current_user,
+      Map.fetch!(params, "statement"),
+      audit_log_meta(conn)
+    ) do
+      {:ok, query} -> json(conn, %{success: true, query_id: query.id})
+      {:error, reason} -> query_error(conn, reason)
     end
   end
 
   def load_history(conn, %{"data_source_id" => data_source_id}) do
-    if DataSource.available_to_user?(data_source_id, conn.assigns.current_user) do
-      case Repo.get(DataSource, data_source_id) do
-        nil ->
-          response = %{
-            success: false,
-            error: "Datasource is not available. Cannot load history"
-          }
-          json(conn, response)
-        data_source ->
-          json(conn, Query.load_recent_queries(conn.assigns.current_user, data_source, 10))
-      end
-    else
-      send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
+    case DataSource.history(data_source_id, conn.assigns.current_user, 10) do
+      {:ok, queries} ->
+        json(conn, queries)
+      _ ->
+        send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
     end
   end
 
@@ -112,38 +103,14 @@ defmodule Air.QueryController do
     |> Repo.get(id)
   end
 
-  defp parse_query_params(params) do
-    data_source = case params["data_source_id"] do
-      nil -> Repo.get_by!(DataSource, global_id: params["data_source_token"])
-      id -> Repo.get!(DataSource, id)
-    end
-    Map.merge(params, %{"data_source_id" => data_source.id})
-  end
-
-  defp execute_query(conn, query) do
-    AuditLog.log(conn, "Executed query", query: query.statement, data_source: query.data_source.id)
-
-    try do
-      case MainChannel.run_query(
-        hd(DataSourceManager.channel_pids(query.data_source.global_id)),
-        Query.to_cloak_query(query)
-      ) do
-        :ok ->
-          json(conn, %{success: true, query_id: query.id})
-        {:error, :not_connected} ->
-          json(conn, %{success: false, reason: "the cloak is not connected"})
-        {:error, reason} ->
-          Logger.error(fn -> "Query start error: #{reason}" end)
-          json(conn, %{success: false, reason: reason})
-      end
-    catch type, error ->
-      # We'll make a nice error log report and return 500
-      Logger.error([
-        "Error running a query: #{inspect(type)}:#{inspect(error)}\n",
-        Exception.format_stacktrace(System.stacktrace())
-      ])
-
-      send_resp(conn, Status.code(:internal_server_error), "")
-    end
+  defp query_error(conn, :unauthorized), do:
+    send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
+  defp query_error(conn, :not_connected), do:
+    send_resp(conn, Status.code(:service_unavailable), "No cloak is available for the given data source")
+  defp query_error(conn, :internal_error), do:
+    send_resp(conn, Status.code(:internal_server_error), "")
+  defp query_error(conn, other_error) do
+    Logger.error(fn -> "Query start error: #{other_error}" end)
+    json(conn, %{success: false, reason: other_error})
   end
 end

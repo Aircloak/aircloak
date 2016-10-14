@@ -158,7 +158,7 @@ defmodule Cloak.Aql.Lexer do
     |> satisfy(fn(identifier) ->
           not Enum.any?(@keywords, &(&1 == String.upcase(identifier)))
         end)
-    |> map(&{:identifier, &1})
+    |> map(&{:unquoted, &1})
     |> output_token()
   end
 
@@ -168,7 +168,7 @@ defmodule Cloak.Aql.Lexer do
       word_of(~r/[^"]/),
       ignore(char(?"))
     ])
-    |> map(fn([identifier]) -> {:identifier, identifier} end)
+    |> map(fn([identifier]) -> {:quoted, identifier} end)
     |> output_token()
   end
 

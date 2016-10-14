@@ -28,7 +28,7 @@ defmodule Air.API.QueryController.Test do
     |> Repo.update!()
 
     query_data_params = %{
-      query: %{query: "Query code", name: "Query name", data_source_id: data_source.id}
+      query: %{statement: "Query code", data_source_id: data_source.id}
     }
     task = Task.async(fn -> api_conn(token) |> post("/api/queries", query_data_params) |> response(200) end)
 
