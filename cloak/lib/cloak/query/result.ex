@@ -10,7 +10,8 @@ defmodule Cloak.Query.Result do
     buckets: [Aggregator.bucket],
     columns: [String.t],
     users_count: non_neg_integer,
+    features: Map.t,
   }
 
-  defstruct buckets: [], columns: [], users_count: 0
+  defstruct buckets: [], columns: [], users_count: 0, features: %{}
 end

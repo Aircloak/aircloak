@@ -131,7 +131,13 @@ defmodule Cloak.Query.Runner do
         |> Sorter.order(query)
         |> offset(query)
         |> limit(query)
-      end), do: successful_result(%Result{result | columns: query.column_titles}, query)
+      end) do
+        result = %Result{result |
+          columns: query.column_titles,
+          features: Query.extract_features(query),
+        }
+        successful_result(result, query)
+      end
     rescue e in [RuntimeError] ->
       {:error, e.message}
     end
@@ -154,6 +160,7 @@ defmodule Cloak.Query.Runner do
       info: info,
       execution_time: execution_time_in_s(state),
       users_count: result.users_count,
+      features: result.features,
     }
     send_result(state, result)
   end
