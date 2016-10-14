@@ -44,6 +44,12 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "identifiers are case-insensitive" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select HeiGht, Heights.heighT from heIghts",
+      %{columns: ["HeiGht", "heighT"], rows: [%{row: [180, 180], occurrences: 100}]}
+  end
+
   test "select all query" do
     assert_query "select * from heights", %{query_id: "1", columns: ["user_id", "height", "name", "male"],
       types: [:text, :integer, :text, :boolean], rows: _}

@@ -34,7 +34,7 @@ defmodule Air.QueryControllerTest do
       %{data_sources: [%{"global_id" => "data_source_global_id", "tables" => []}]})
 
     query_data_params = %{
-      query: %{query: "Query code", name: "Query name", data_source_id: context[:data_source].id}
+      query: %{statement: "Query code", data_source_id: context[:data_source].id}
     }
     task = Task.async(fn -> login(context[:user]) |> post("/queries", query_data_params) |> response(200) end)
 
@@ -47,14 +47,14 @@ defmodule Air.QueryControllerTest do
     user = create_user!()
 
     query_data_params = %{
-      query: %{query: "Query code", name: "Query name", data_source_id: context[:data_source].id}
+      query: %{statement: "Query code", data_source_id: context[:data_source].id}
     }
     assert login(user) |> post("/queries", query_data_params) |> response(401)
   end
 
   test "returns error when data source unavailable", context do
     query_data_params = %{
-      query: %{query: "Query code", name: "Query name", data_source_id: context[:data_source].id}
+      query: %{statement: "Query code", data_source_id: context[:data_source].id}
     }
     login(context[:user]) |> post("/queries", query_data_params) |> response(503)
   end

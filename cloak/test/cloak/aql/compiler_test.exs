@@ -458,6 +458,40 @@ defmodule Cloak.Aql.Compiler.Test do
       compile("select count(*) from table where numeric >= 1 and numeric < 2", data_source())
   end
 
+  test "unquoted columns are case-insensitive" do
+    first = "select CoLumn from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    second = "select column from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    assert first == second
+  end
+
+  test "quoted columns are case-sensitite" do
+    assert {:error, reason} = compile("select \"CoLumn\" from table", data_source())
+    assert reason =~ ~r/Column `CoLumn` doesn't exist/
+  end
+
+  test "unquoted qualified columns are case-insensitive" do
+    first = "select table.CoLumn from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    second = "select table.column from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    assert first == second
+  end
+
+  test "quoted qualified columns are case-sensitite" do
+    assert {:error, reason} = compile("select table.\"CoLumn\" from table", data_source())
+    assert reason =~ ~r/Column `CoLumn` doesn't exist/
+  end
+
+  test "unquoted tables are case-insensitive" do
+    first = "select tAbLe.column from tabLe" |> compile!(data_source()) |> Map.drop([:column_titles])
+    second = "select table.column from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    assert first == second
+  end
+
+  test "quoted tables are case-sensitive" do
+    assert {:error, _} = compile("select table.column from \"tabLe\"", data_source())
+    assert {:error, reason} = compile("select \"tAbLe\".column from table", data_source())
+    assert reason =~ ~r/Missing FROM clause entry for table `tAbLe`/
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result

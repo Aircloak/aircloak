@@ -18,7 +18,7 @@ defmodule Air.Query do
     belongs_to :user, User
     belongs_to :data_source, DataSource
 
-    timestamps
+    timestamps usec: true
   end
 
   @required_fields ~w()a
