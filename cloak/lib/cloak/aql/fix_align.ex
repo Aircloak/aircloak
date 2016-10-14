@@ -12,9 +12,9 @@ defmodule Cloak.Aql.FixAlign do
   Returns an interval that has been aligned to a fixed grid. The density of the grid depends on the size of
   the input interval. Both ends of the input will be contained inside the output.
   """
-  @spec align(interval) :: interval
-  def align({x, y}) when x > y, do: raise "Invalid interval"
-  def align(interval) do
+  @spec align_interval(interval) :: interval
+  def align_interval({x, y}) when x > y, do: raise "Invalid interval"
+  def align_interval(interval) do
     interval
     |> sizes()
     |> Stream.map(&snap(&1, interval))

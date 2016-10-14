@@ -546,7 +546,7 @@ defmodule Cloak.Aql.Compiler do
       |> Enum.map(&Comparison.value/1)
       |> Enum.sort()
       |> List.to_tuple()
-      |> FixAlign.align()
+      |> FixAlign.align_interval()
 
     if implement_range?({left, right}, conditions) do
       %{query | where: conditions ++ query.where}
