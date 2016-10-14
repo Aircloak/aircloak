@@ -5,6 +5,8 @@ defmodule Air.Service.DataSource do
   import Ecto.Query, only: [from: 2]
   require Logger
 
+  @type data_source_id_spec :: {:id, String.t} | {:global_id, String.t}
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -20,25 +22,25 @@ defmodule Air.Service.DataSource do
   def for_user(user), do: Repo.all(users_data_sources(user))
 
   @doc "Retrieves the data source and verifies whether it is available to the given user."
-  @spec fetch_as_user(String.t, User.t) :: {:ok, DataSource.t} | {:error, :unauthorized}
-  def fetch_as_user(data_source_id, user) do
-    case Repo.one(from data_source in users_data_sources(user), where: data_source.id == ^data_source_id) do
+  @spec fetch_as_user(data_source_id_spec, User.t) :: {:ok, DataSource.t} | {:error, :unauthorized}
+  def fetch_as_user(data_source_id_spec, user) do
+    case Repo.one(user_data_source(user, data_source_id_spec)) do
       %Air.DataSource{} = data_source -> {:ok, data_source}
       nil -> {:error, :unauthorized}
     end
   end
 
   @doc "Returns most recent queries executed on the given data source by the given user."
-  @spec history(String.t, User.t, pos_integer) :: {:ok, [Query.t]} | {:error, :unauthorized}
-  def history(data_source_id, user, count) do
-    with {:ok, data_source} <- fetch_as_user(data_source_id, user), do:
+  @spec history(data_source_id_spec, User.t, pos_integer) :: {:ok, [Query.t]} | {:error, :unauthorized}
+  def history(data_source_id_spec, user, count) do
+    with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user), do:
       {:ok, Query.load_recent_queries(user, data_source, count)}
   end
 
   @doc "Returns the last query executed on the given data source by the given user."
-  @spec last_query(String.t, User.t) :: {:ok, Query.t | nil} | {:error, :unauthorized}
-  def last_query(data_source_id, user) do
-    with {:ok, queries} <- history(data_source_id, user, 1) do
+  @spec last_query(data_source_id_spec, User.t) :: {:ok, Query.t | nil} | {:error, :unauthorized}
+  def last_query(data_source_id_spec, user) do
+    with {:ok, queries} <- history(data_source_id_spec, user, 1) do
       case queries do
         [query] -> {:ok, query}
         [] -> {:ok, nil}
@@ -47,19 +49,14 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Starts the query on the given data source as the given user."
-  @spec start_query(
-    {:data_source_id, String.t} | {:data_source_token, String.t},
-    User.t,
-    String.t,
-    %{atom => any}
-  ) :: {:ok, Query.t} | {:error, :unauthorized | :not_connected | :internal_error | any}
-  def start_query(data_source_id_or_token, user, statement, audit_meta \\ %{}) do
-    with data_source_id <- data_source_id(data_source_id_or_token),
-         {:ok, _data_source} <- fetch_as_user(data_source_id, user),
-         query <- create_query(data_source_id, user, statement)
+  @spec start_query(data_source_id_spec, User.t, String.t, %{atom => any}) ::
+    {:ok, Query.t} | {:error, :unauthorized | :not_connected | :internal_error | any}
+  def start_query(data_source_id_spec, user, statement, audit_meta \\ %{}) do
+    with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user),
+         query <- create_query(data_source.id, user, statement)
     do
       Air.Service.AuditLog.log(user, "Executed query",
-        Map.merge(audit_meta, %{query: statement, data_source: data_source_id}))
+        Map.merge(audit_meta, %{query: statement, data_source: data_source.id}))
 
       try do
         case DataSourceManager.channel_pids(query.data_source.global_id) do
@@ -92,8 +89,10 @@ defmodule Air.Service.DataSource do
       where: user.id == ^user.id
   end
 
-  defp data_source_id({:data_source_id, id}), do: id
-  defp data_source_id({:data_source_token, token}), do: Repo.get_by!(DataSource, global_id: token)
+  defp user_data_source(user, {:id, id}), do:
+    from data_source in users_data_sources(user), where: data_source.id == ^id
+  defp user_data_source(user, {:global_id, global_id}), do:
+    from data_source in users_data_sources(user), where: data_source.global_id == ^global_id
 
   defp create_query(data_source_id, user, statement) do
     user

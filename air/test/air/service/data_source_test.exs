@@ -34,40 +34,45 @@ defmodule Air.Service.DataSourceTest do
   end
 
   test "fetching available data source", context do
-    assert {:ok, data_source} = DataSource.fetch_as_user(context.ds1.id, context.user1)
+    assert {:ok, data_source} = DataSource.fetch_as_user({:id, context.ds1.id}, context.user1)
+    assert data_source.id == context.ds1.id
+  end
+
+  test "fetching available data source with a global id", context do
+    assert {:ok, data_source} = DataSource.fetch_as_user({:global_id, context.ds1.global_id}, context.user1)
     assert data_source.id == context.ds1.id
   end
 
   test "fetching unavailable data source", context, do:
-    assert {:error, :unauthorized} == DataSource.fetch_as_user(context.ds1.id, context.user3)
+    assert {:error, :unauthorized} == DataSource.fetch_as_user({:id, context.ds1.id}, context.user3)
 
   test "fetching user's history", context do
     queries = Enum.map(1..5, fn(_) -> create_query(context.user1, context.ds2) end)
     _other_user_queries = Enum.map(1..5, fn(_) -> create_query(context.user2, context.ds2) end)
 
     for count <- 1..6 do
-      assert {:ok, history} = DataSource.history(context.ds2.id, context.user1, count)
+      assert {:ok, history} = DataSource.history({:id, context.ds2.id}, context.user1, count)
       assert Enum.map(history, &(&1.id)) ==
         queries |> Enum.reverse() |> Enum.take(min(5, count)) |> Enum.map(&(&1.id))
     end
   end
 
   test "fetching history for the unavailable data source", context, do:
-    assert {:error, :unauthorized} == DataSource.history(context.ds2.id, context.user3, 1)
+    assert {:error, :unauthorized} == DataSource.history({:id, context.ds2.id}, context.user3, 1)
 
   test "fetching last query", context do
     queries = Enum.map(1..5, fn(_) -> create_query(context.user1, context.ds2) end)
     _other_user_queries = Enum.map(1..5, fn(_) -> create_query(context.user2, context.ds2) end)
 
-    assert {:ok, query} = DataSource.last_query(context.ds2.id, context.user1)
+    assert {:ok, query} = DataSource.last_query({:id, context.ds2.id}, context.user1)
     assert query.id == List.last(queries).id
   end
 
   test "fetching last query when there are no queries", context, do:
-    assert {:ok, nil} == DataSource.last_query(context.ds2.id, context.user1)
+    assert {:ok, nil} == DataSource.last_query({:id, context.ds2.id}, context.user1)
 
   test "fetching last query for the unavailable data source", context, do:
-    assert {:error, :unauthorized} == DataSource.last_query(context.ds2.id, context.user3)
+    assert {:error, :unauthorized} == DataSource.last_query({:id, context.ds2.id}, context.user3)
 
   defp create_query(user, data_source), do:
     TestRepoHelper.create_query!(user, %{statement: "query content", data_source_id: data_source.id})

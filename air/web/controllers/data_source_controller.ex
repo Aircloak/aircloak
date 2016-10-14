@@ -38,8 +38,8 @@ defmodule Air.DataSourceController do
   end
 
   def show(conn, %{"id" => id}) do
-    with {:ok, data_source} <- DataSource.fetch_as_user(id, conn.assigns.current_user),
-         {:ok, last_query} <- DataSource.last_query(id, conn.assigns.current_user)
+    with {:ok, data_source} <- DataSource.fetch_as_user({:id, id}, conn.assigns.current_user),
+         {:ok, last_query} <- DataSource.last_query({:id, id}, conn.assigns.current_user)
     do
       conn
       |> put_layout("raw.html")
