@@ -93,13 +93,9 @@ defmodule Air.QueryController do
     if query == nil do
       send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
     else
-      if DataSourceManager.available?(query.data_source.global_id) do
-        case DataSource.stop_query(query, conn.assigns.current_user, audit_log_meta(conn)) do
-          :ok -> json(conn, %{success: true})
-          {:error, reason} -> query_error(conn, reason)
-        end
-      else
-        send_resp(conn, Status.code(:service_unavailable), "No cloak is available for the given data source")
+      case DataSource.stop_query(query, conn.assigns.current_user, audit_log_meta(conn)) do
+        :ok -> json(conn, %{success: true})
+        {:error, reason} -> query_error(conn, reason)
       end
     end
   end
