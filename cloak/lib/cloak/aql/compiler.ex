@@ -400,8 +400,8 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.reject(&Function.valid_function?/1)
     |> case do
       [] -> :ok
-      [{:function, invalid_function, _} | _rest] ->
-        raise CompilationError, message: ~s/Unknown function `#{invalid_function}`./
+      [function | _rest] ->
+        raise CompilationError, message: ~s/Unknown function `#{Function.name(function)}`./
     end
   end
 
