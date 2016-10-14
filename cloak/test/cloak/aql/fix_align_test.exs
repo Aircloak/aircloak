@@ -29,7 +29,7 @@ defmodule Cloak.Aql.FixAlign.Test do
     end
   end
 
-  property "fix align is idempotent on integer intervals" do
+  property "align_interval is idempotent on integer intervals" do
     for_all interval in int_interval do
       interval |> FixAlign.align_interval() == interval |> FixAlign.align_interval() |> FixAlign.align_interval()
     end
@@ -39,6 +39,26 @@ defmodule Cloak.Aql.FixAlign.Test do
     for_all {x, y} in float_interval do
       interval = {x / 10, y / 10}
       10 * width(interval) >= interval |> FixAlign.align_interval() |> width()
+    end
+  end
+
+  property "numbers are money-aligned" do
+    for_all x in (such_that y in float when y != 0) do
+      result = x |> FixAlign.align() |> abs()
+      even_power_of_10?(result) || even_power_of_10?(result / 2) || even_power_of_10?(result / 5)
+    end
+  end
+
+  property "money-aligned numbers are close to the input" do
+    for_all x in (such_that y in float when y != 0) do
+      result = x |> FixAlign.align()
+      abs(result - x) <= 0.45 * abs(x)
+    end
+  end
+
+  property "align is idempotent" do
+    for_all x in float do
+      x |> FixAlign.align() == x |> FixAlign.align() |> FixAlign.align()
     end
   end
 
