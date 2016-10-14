@@ -164,19 +164,9 @@ defmodule Air.QueryController do
     audit_log(conn, "Stopped query", query: query.statement, data_source: query.data_source.id)
 
     try do
-      query.data_source.global_id
-      |> DataSourceManager.channel_pids()
-      |> hd()
-      |> MainChannel.stop_query(query.id)
-      |> case do
-        :ok ->
-          json(conn, %{success: true})
-        {:error, :not_connected} ->
-          json(conn, %{success: false, reason: "The cloak is not connected."})
-        {:error, reason} ->
-          Logger.error(fn -> "Query stop error: #{reason}" end)
-          json(conn, %{success: false, reason: reason})
-      end
+      for channel <- DataSourceManager.channel_pids(query.data_source.global_id), do:
+        MainChannel.stop_query(channel, query.id)
+      json(conn, %{success: true})
     catch type, error ->
       # We'll make a nice error log report and return 500
       Logger.error([
