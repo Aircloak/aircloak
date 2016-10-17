@@ -108,7 +108,6 @@ defmodule Cloak.Query.LCFConditions do
     case Enum.map_reduce(filters, row, &match_filter/2) do
       {filters, :drop} ->
         {[], filters}
-
       {filters, _row} ->
         {[row], filters}
     end

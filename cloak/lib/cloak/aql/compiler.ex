@@ -458,6 +458,7 @@ defmodule Cloak.Aql.Compiler do
   defp partition_where_clauses(query) do
     {require_lcf_check, safe_clauses} = Enum.partition(query.where, &requires_lcf_check?/1)
     unsafe_filter_columns = Enum.map(require_lcf_check, &where_clause_to_identifier/1)
+    safe_clauses = safe_clauses ++ Enum.reject(require_lcf_check, &negative_clause?/1)
 
     %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_check,
       unsafe_filter_columns: unsafe_filter_columns}
@@ -467,6 +468,9 @@ defmodule Cloak.Aql.Compiler do
   defp requires_lcf_check?({:not, _other}), do: true
   defp requires_lcf_check?({:in, _column, _values}), do: true
   defp requires_lcf_check?(_other), do: false
+
+  defp negative_clause?({:not, _}), do: true
+  defp negative_clause?(_), do: false
 
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
@@ -927,6 +931,8 @@ defmodule Cloak.Aql.Compiler do
   defp negative_condition_string({:not, {:like, _, _}}), do: "NOT LIKE"
   defp negative_condition_string({:not, {:ilike, _, _}}), do: "NOT ILIKE"
   defp negative_condition_string({:not, {:comparison, _, :=, _}}), do: "<>"
+  defp negative_condition_string({:not, {:in, _, _}}), do: "NOT IN"
+  defp negative_condition_string({:in, _, _}), do: "IN"
 
   defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:
     raise CompilationError, message: "`LIMIT` clause expects a positive value."
