@@ -18,10 +18,12 @@ defmodule Cloak.Aql.Parser do
 
   @type data_type :: DataSource.data_type | :interval
 
+  @type function_name :: String.t | {:bucket, atom} | {:cast, data_type}
+
   @type column ::
       qualified_identifier
     | {:distinct, qualified_identifier}
-    | {:function, String.t, [column]}
+    | {:function, function_name, [column]}
     | {:constant, data_type, any}
 
   @type negatable_condition ::
