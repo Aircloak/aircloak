@@ -14,7 +14,7 @@ defmodule Air.Query do
     field :result, :string
     field :execution_time, :integer
     field :users_count, :integer
-    field :features, :string
+    field :features, :map
 
     belongs_to :user, User
     belongs_to :data_source, DataSource

@@ -66,7 +66,7 @@ defmodule Air.ResultProcessor do
       result: storable_result,
       execution_time: result["execution_time"],
       users_count: result["users_count"],
-      features: Poison.encode!(result["features"]),
+      features: result["features"],
     })
     |> Repo.update!()
     |> UserChannel.broadcast_result()
