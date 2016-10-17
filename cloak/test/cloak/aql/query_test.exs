@@ -10,12 +10,28 @@ defmodule Cloak.Aql.QueryTest do
   end
 
   test "extracts number of selected columns" do
-    assert %{num_columns: 1} = features_from("SELECT height FROM feat_users")
-    assert %{num_columns: 3} = features_from("SELECT height, name, male FROM feat_users")
+    assert %{num_selected_columns: 1} = features_from("SELECT height FROM feat_users")
+    assert %{num_selected_columns: 3} = features_from("SELECT height, name, male FROM feat_users")
   end
 
-  test "constants don't count towards selected columns" do
-    assert %{num_columns: 0} = features_from("SELECT '1' FROM feat_users")
+  test "extracts number of selected columns - duplicates count too" do
+    assert %{num_selected_columns: 3} = features_from("SELECT name, name, name FROM feat_users")
+  end
+
+  test "extracts number of selected columns - constants count too" do
+    assert %{num_selected_columns: 1} = features_from("SELECT '1' FROM feat_users")
+  end
+
+  test "extracts number of columns loaded from the database" do
+    assert %{num_db_columns: 1} = features_from("SELECT height FROM feat_users")
+  end
+
+  test "extracts number of columns loaded from the database - deduplicated" do
+    assert %{num_db_columns: 1} = features_from("SELECT height, height FROM feat_users")
+  end
+
+  test "extracts number of columns loaded from the database - constants don't count" do
+    assert %{num_db_columns: 0} = features_from("SELECT '1' FROM feat_users")
   end
 
   test "extracts number of selected tables" do

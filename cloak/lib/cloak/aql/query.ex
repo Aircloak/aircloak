@@ -81,7 +81,8 @@ defmodule Cloak.Aql.Query do
   @spec extract_features(t) :: Map.t
   def extract_features(query) do
     %{
-      num_columns: num_columns(query.columns),
+      num_selected_columns: num_selected_columns(query.column_titles),
+      num_db_columns: num_db_columns(query.columns),
       num_tables: num_tables(query.selected_tables),
       num_group_by: num_group_by(query),
       functions: extract_functions(query.columns),
@@ -101,11 +102,14 @@ defmodule Cloak.Aql.Query do
     |> Enum.map(&Function.type/1)
     |> Enum.map(&stringify/1)
 
-  defp num_columns(columns), do:
+  defp num_selected_columns(columns), do: length(columns)
+
+  defp num_db_columns(columns), do:
     columns
     |> extract_columns()
+    |> Enum.uniq()
     |> Enum.reject(&(&1.constant?))
-    |> length()
+    |> Enum.count()
 
   defp num_tables(tables), do: length(tables)
 
