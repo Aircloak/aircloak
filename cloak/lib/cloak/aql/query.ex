@@ -97,7 +97,7 @@ defmodule Cloak.Aql.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  def selected_types(columns), do:
+  defp selected_types(columns), do:
     columns
     |> Enum.map(&Function.type/1)
     |> Enum.map(&stringify/1)
