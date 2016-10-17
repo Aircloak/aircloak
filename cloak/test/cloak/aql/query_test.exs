@@ -81,7 +81,9 @@ defmodule Cloak.Aql.QueryTest do
     assert %{where_conditions: ["in", "not in"]} = features_from("""
       SELECT height
       FROM feat_users
-      WHERE height IN (10, 11) and height NOT IN (12, 13)
+      WHERE
+        height IN (10, 11) and height NOT IN (12, 13) and
+        name IN ('bob', 'alice')
     """)
     assert %{where_conditions: ["null", "not null"]} = features_from("""
       SELECT height

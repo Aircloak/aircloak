@@ -125,7 +125,10 @@ defmodule Cloak.Aql.Query do
   defp extract_function({:distinct, param}), do: extract_function(param)
   defp extract_function({:function, name, params}), do: [name | extract_functions(params)]
 
-  defp extract_where_conditions(clauses), do: Enum.map(clauses, &extract_where_condition/1)
+  defp extract_where_conditions(clauses), do:
+    clauses
+    |> Enum.map(&extract_where_condition/1)
+    |> Enum.uniq()
 
   defp extract_where_condition({:not, {:comparison, _column, :=, _comparator}}), do: "<>"
   defp extract_where_condition({:not, something}), do:
