@@ -311,6 +311,10 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp align_bucket(column, {output_columns, messages}) do
+    if Function.bucket_size(column) <= 0 do
+      raise CompilationError, message: "Bucket size #{Function.bucket_size(column)} must be > 0"
+    end
+
     aligned = Function.update_bucket_size(column, &FixAlign.align/1)
     if aligned == column do
       {[column | output_columns], messages}

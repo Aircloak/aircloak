@@ -501,7 +501,11 @@ defmodule Cloak.Aql.Compiler.Test do
     assert [] = second.info
   end
 
-  test "negative and 0 bucket sizes are not allowed"
+  test "negative and 0 bucket sizes are not allowed" do
+    assert {:error, _} = compile("select bucket(numeric by 0) from table", data_source())
+    assert {:error, error} = compile("select bucket(numeric by -10) from table", data_source())
+    assert error =~ ~r/Bucket size -10 must be > 0/
+  end
 
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
