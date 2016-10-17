@@ -12,7 +12,7 @@ defmodule Air.PsqlServer.RanchServer do
 
   require Logger
 
-  alias Air.PsqlServer.Protocol
+  alias Air.{PsqlServer.Protocol, Service.User, Service.DataSource}
 
   #-----------------------------------------------------------------------------------------------------------
   # API
@@ -53,7 +53,9 @@ defmodule Air.PsqlServer.RanchServer do
       socket: socket,
       transport: transport,
       protocol: Protocol.new(),
-      login_params: %{}
+      login_params: %{},
+      user: nil,
+      data_source: nil
     }}
   end
 
@@ -146,18 +148,25 @@ defmodule Air.PsqlServer.RanchServer do
     state
     |> Map.put(:login_params, login_params)
     |> update_protocol(&Protocol.authentication_method(&1, :cleartext))
-  defp handle_protocol_action({:authenticate, password}, state), do:
-    update_protocol(
-      state,
-      &Protocol.authenticated(&1, authenticated?(state.login_params, password))
-    )
+  defp handle_protocol_action({:authenticate, password}, state) do
+    with {:ok, user} <- User.login(state.login_params["user"], password),
+         {:ok, _} <- DataSource.fetch_as_user({:global_id, state.login_params["database"]}, user)
+    do
+      # We're not storing data source, since access permissions have to be checked on every query.
+      # Otherwise, revoking permissions on a data source would have no effects on currently connected
+      # cloak.
+      # However, we're also checking access permissions now, so we can report error immediately.
+      state
+      |> Map.put(:user, user)
+      |> update_protocol(&(Protocol.authenticated(&1, true)))
+    else
+      _ -> update_protocol(state, &Protocol.authenticated(&1, false))
+    end
+  end
   defp handle_protocol_action({:run_query, query}, state) do
     Logger.debug("Running query: `#{query}`")
     update_protocol(state, &Protocol.select_result(&1, []))
   end
-
-  defp authenticated?(login_params, password), do:
-    match?({:ok, _}, Air.Service.User.login(login_params["user"], password, login_params["database"]))
 
   defp update_protocol(state, fun), do:
     %{state | protocol: fun.(state.protocol)}
