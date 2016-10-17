@@ -294,6 +294,32 @@ defmodule Cloak.Aql.Compiler do
     |> expand_star_select()
     |> compile_aliases()
     |> identifiers_to_columns()
+    |> compile_buckets()
+  end
+
+  defp compile_buckets(query) do
+    {columns, messages} = Enum.reduce(query.columns, {[], []}, &compile_bucket/2)
+    %{query | columns: Enum.reverse(columns), info: messages ++ query.info}
+  end
+
+  defp compile_bucket(column, {output_columns, messages}) do
+    if Function.bucket?(column) do
+      align_bucket(column, {output_columns, messages})
+    else
+      {[column | output_columns], messages}
+    end
+  end
+
+  defp align_bucket(column, {output_columns, messages}) do
+    aligned = Function.update_bucket_size(column, &FixAlign.align/1)
+    if aligned == column do
+      {[column | output_columns], messages}
+    else
+      {
+        [aligned | output_columns],
+        ["Bucket size adjusted from #{Function.bucket_size(column)} to #{Function.bucket_size(aligned)}" | messages]
+      }
+    end
   end
 
   defp expand_star_select(%Query{columns: :*} = query) do

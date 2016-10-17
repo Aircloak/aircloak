@@ -492,6 +492,17 @@ defmodule Cloak.Aql.Compiler.Test do
     assert reason =~ ~r/Missing FROM clause entry for table `tAbLe`/
   end
 
+  test "bucket sizes are aligned, adding an info message" do
+    first = compile!("select bucket(numeric by 0.11) from table", data_source())
+    second = compile!("select bucket(numeric by 0.1) from table", data_source())
+
+    assert Map.drop(first, [:info]) == Map.drop(second, [:info])
+    assert ["Bucket size adjusted from 0.11 to 0.1"] = first.info
+    assert [] = second.info
+  end
+
+  test "negative and 0 bucket sizes are not allowed"
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result

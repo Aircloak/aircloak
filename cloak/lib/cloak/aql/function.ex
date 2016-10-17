@@ -191,6 +191,19 @@ defmodule Cloak.Aql.Function do
     end
   end
 
+  @doc "Returns true if the argument is a call to a 'bucket' function call, false otherwise."
+  @spec bucket?(t) :: boolean
+  def bucket?({:function, {:bucket, _}, _}), do: true
+  def bucket?(_), do: false
+
+  @doc "Updates the bucket size argument of the given 'bucket' function with the given function call."
+  @spec update_bucket_size(t, (number -> number)) :: t
+  def update_bucket_size({:function, {:bucket, type}, [arg1, size]}, fun), do:
+    {:function, {:bucket, type}, [arg1, Column.constant(:real, fun.(size.value))]}
+
+  @doc "Returns the value of the bucket size argument of the given 'bucket' function call."
+  @spec bucket_size(t) :: number
+  def bucket_size({:function, {:bucket, _}, [_, size]}), do: size.value
 
   # -------------------------------------------------------------------
   # Internal functions
