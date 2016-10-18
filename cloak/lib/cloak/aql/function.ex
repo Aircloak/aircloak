@@ -295,7 +295,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply({:bucket, :lower}, [value, bucket_size]), do:
     Float.floor(value / bucket_size) * bucket_size
   defp do_apply({:bucket, :upper}, [value, bucket_size]), do:
-    Float.floor(value / bucket_size) * bucket_size + bucket_size
+    Float.ceil(value / bucket_size) * bucket_size
   defp do_apply({:bucket, :middle}, [value, bucket_size]), do:
     Float.floor(value / bucket_size) * bucket_size + 0.5 * bucket_size
 

@@ -15,7 +15,7 @@ defmodule Cloak.Aql.FixAlign do
   @spec align(number) :: number
   def align(x) when x < 0, do: -align(-x)
   def align(x) when x > 0 do
-    baseline = log_round(10, x)
+    baseline = order_of_magnitude(x)
     Enum.min_by([baseline, baseline * 2, baseline * 5, baseline * 10], fn(y) -> abs(x - y) end)
   end
   def align(_), do: 0
@@ -63,8 +63,8 @@ defmodule Cloak.Aql.FixAlign do
 
   defp large_sizes, do: Stream.iterate(1, &(&1 * 10))
 
-  defp log_round(base, x) do
+  defp order_of_magnitude(x) do
     floor_log = x |> :math.log10() |> Float.floor()
-    :math.pow(base, floor_log)
+    :math.pow(10, floor_log)
   end
 end
