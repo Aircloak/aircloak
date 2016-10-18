@@ -193,7 +193,10 @@ defmodule Air.PsqlServer.RanchServer do
   defp result_map(query_result), do:
     %{
       columns:
-        Enum.zip(Map.fetch!(query_result, "columns"), Map.fetch!(query_result, "types"))
+        Enum.zip(
+          Map.fetch!(query_result, "columns"),
+          query_result |> Map.fetch!("features") |> Map.fetch!("selected_types")
+        )
         |> Enum.map(fn({name, type}) -> %{name: name, type: type_atom(type)} end),
       rows:
         query_result
