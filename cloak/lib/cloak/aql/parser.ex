@@ -61,7 +61,8 @@ defmodule Cloak.Aql.Parser do
     having: [having_clause],
     show: :tables | :columns,
     limit: integer,
-    offset: integer
+    offset: integer,
+    distinct: boolean
   }
 
 
@@ -141,6 +142,7 @@ defmodule Cloak.Aql.Parser do
 
   defp select_statement(data_source) do
     sequence([
+      optional_distinct(),
       select_columns(),
       from(data_source),
       optional_where(),
@@ -722,6 +724,15 @@ defmodule Cloak.Aql.Parser do
           {[column, :between], [{min, max}]} ->
             [{:comparison, column, :>=, min}, {:comparison, column, :<=, max}]
         end)
+  end
+
+  defp optional_distinct() do
+    keyword(:distinct)
+    |> option()
+    |> map(fn
+      (:distinct) -> {:distinct, true}
+      (nil) -> {:distinct, false}
+    end)
   end
 
 
