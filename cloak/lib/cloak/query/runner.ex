@@ -155,6 +155,7 @@ defmodule Cloak.Query.Runner do
       |> LCFConditions.apply(query)
       |> Aggregator.aggregate(query)
       |> Sorter.order(query)
+      |> distinct(query)
       |> offset(query)
       |> limit(query)
     end)
@@ -240,6 +241,10 @@ defmodule Cloak.Query.Runner do
     drop(rest, amount - occurrences)
   defp drop([%{occurrences: occurrences} = bucket | rest], amount), do:
     [%{bucket | occurrences: occurrences - amount} | rest]
+
+  defp distinct(%Result{buckets: buckets} = result, %Query{distinct: true}), do:
+    %Result{result | buckets: Enum.map(buckets, &Map.put(&1, :occurrences, 1))}
+  defp distinct(result, %Query{distinct: false}), do: result
 
 
   # -------------------------------------------------------------------

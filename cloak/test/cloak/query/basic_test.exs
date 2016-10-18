@@ -130,6 +130,36 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["count"], rows: [%{row: [0], occurrences: 1}]}
   end
 
+  test "distinct column" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [175])
+
+    assert_query "select distinct height from heights order by height",
+      %{
+        columns: ["height"],
+        rows: [%{row: [170], occurrences: 1}, %{row: [175], occurrences: 1}, %{row: [180], occurrences: 1}]
+      }
+  end
+
+  test "aggregate on distinct column" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+
+    assert_query "select avg(distinct height) from heights",
+      %{columns: ["avg"], rows: [%{row: [0.0], occurrences: 1}]}
+
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [175])
+    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 40..49, "heights", ["height"], [160])
+    :ok = insert_rows(_user_ids = 50..59, "heights", ["height"], [190])
+    :ok = insert_rows(_user_ids = 60..69, "heights", ["height"], [165])
+    :ok = insert_rows(_user_ids = 70..79, "heights", ["height"], [185])
+
+    assert_query "select avg(distinct height) from heights",
+      %{columns: ["avg"], rows: [%{row: [162.5], occurrences: 1}]}
+  end
+
   test "aggregates of an empty table" do
     assert_query "select count(*), count(height), avg(height) from heights",
       %{columns: ["count", "count", "avg"], rows: [%{row: [0, 0, nil], occurrences: 1}]}
