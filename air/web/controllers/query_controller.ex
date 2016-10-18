@@ -38,13 +38,8 @@ defmodule Air.QueryController do
   end
 
   def create(conn, %{"query" => params}) do
-    data_source_id_or_token =
-      if params["data_source_id"],
-        do: {:data_source_id, params["data_source_id"]},
-        else: {:data_source_token, params["data_source_token"]}
-
     case DataSource.start_query(
-      data_source_id_or_token,
+      data_source_id_spec(params),
       conn.assigns.current_user,
       Map.fetch!(params, "statement"),
       audit_log_meta(conn)
@@ -54,8 +49,8 @@ defmodule Air.QueryController do
     end
   end
 
-  def load_history(conn, %{"data_source_id" => data_source_id}) do
-    case DataSource.history(data_source_id, conn.assigns.current_user, 10) do
+  def load_history(conn, params) do
+    case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, 10) do
       {:ok, queries} ->
         json(conn, queries)
       _ ->
@@ -108,6 +103,9 @@ defmodule Air.QueryController do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp data_source_id_spec(%{"data_source_id" => id}), do: {:id, id}
+  defp data_source_id_spec(%{"data_source_token" => global_id}), do: {:global_id, global_id}
 
   defp find_query(user, id) do
     user

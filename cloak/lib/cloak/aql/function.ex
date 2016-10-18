@@ -158,6 +158,7 @@ defmodule Cloak.Aql.Function do
   @doc "Returns the type of the given expression."
   @spec type(t) :: data_type
   def type(function = {:function, _, _}), do: return_type(function)
+  def type({:distinct, column}), do: type(column)
   def type(%Column{type: type}), do: type
   def type(:*), do: :any
 
@@ -172,6 +173,8 @@ defmodule Cloak.Aql.Function do
   @spec apply_to_db_row(t, DataSource.row) :: term
   def apply_to_db_row(%Column{} = column, row),
     do: Column.value(column, row)
+  def apply_to_db_row({:distinct, column}, row),
+    do: apply_to_db_row(column, row)
   def apply_to_db_row(function, row) do
     true = function?(function)
 
@@ -218,16 +221,15 @@ defmodule Cloak.Aql.Function do
       |> Enum.all?(fn({type, index}) -> type_matches?(type, Enum.at(arguments(function), index)) end)
   end
 
-  defp type_matches?(type, function = {:function, _, _}), do:
-    type_matches?(type, %{type: return_type(function)})
+  defp type_matches?(type, function = {:function, _, _}), do: type_matches?(type, %{type: return_type(function)})
+  defp type_matches?(type, {:distinct, column}), do: type_matches?(type, column)
   defp type_matches?({:optional, _}, nil), do: true
   defp type_matches?(_, nil), do: false
   defp type_matches?({:optional, type}, argument), do: type_matches?(type, argument)
   defp type_matches?({:or, types}, argument), do: Enum.any?(types, &type_matches?(&1, argument))
   defp type_matches?(:any, _), do: true
   defp type_matches?(_, :*), do: false
-  defp type_matches?(expected_type, %{type: actual_type}), do:
-    expected_type == actual_type
+  defp type_matches?(expected_type, %{type: actual_type}), do: expected_type == actual_type
 
   defp do_apply("year", [value]), do: value.year
   defp do_apply("month", [value]), do: value.month

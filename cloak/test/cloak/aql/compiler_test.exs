@@ -57,7 +57,7 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} on non-numerical columns" do
       assert {:error, error} = compile("select #{unquote(function)}(string) from table", data_source())
       assert error ==
-        "Function `#{unquote(function)}` requires arguments of type (`integer`) or (`real`), but got (`text`)"
+        "Function `#{unquote(function)}` requires arguments of type (`integer`) or (`real`), but got (`text`)."
     end
   end
 
@@ -68,7 +68,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
     test "rejecting #{function} on non-numerical columns" do
       assert {:error, error} = compile("select #{unquote(function)}(string) from table", data_source())
-      assert error == "Arguments of type (`text`) are incorrect for `#{unquote(function)}`"
+      assert error == "Arguments of type (`text`) are incorrect for `#{unquote(function)}`."
     end
   end
 
@@ -80,7 +80,7 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} on non-numerical columns" do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
       assert error ==
-        "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`datetime`)"
+        "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`datetime`)."
     end
   end
 
@@ -94,7 +94,7 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} in group by" do
       query = "select #{unquote(function)}(numeric) from table group by #{unquote(function)}(numeric)"
       assert {:error, error} = compile(query, data_source)
-      assert error == "Aggregate function `#{unquote(function)}` used in the `GROUP BY` clause"
+      assert error == "Aggregate function `#{unquote(function)}` can not be used in the `GROUP BY` clause."
     end
   end
 
@@ -119,7 +119,7 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} on non-datetime columns" do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source())
       assert error ==
-        "Function `#{unquote(function)}` requires arguments of type (`datetime` | `time`), but got (`integer`)"
+        "Function `#{unquote(function)}` requires arguments of type (`datetime` | `time`), but got (`integer`)."
     end
   end
 
@@ -127,7 +127,7 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} on non-datetime columns" do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source())
       assert error ==
-        "Function `#{unquote(function)}` requires arguments of type (`datetime` | `date`), but got (`integer`)"
+        "Function `#{unquote(function)}` requires arguments of type (`datetime` | `date`), but got (`integer`)."
     end
   end
 
@@ -139,7 +139,7 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} on non-numeric columns" do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
       assert error ==
-        "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`datetime`)"
+        "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`datetime`)."
     end
   end
 
@@ -151,25 +151,25 @@ defmodule Cloak.Aql.Compiler.Test do
     test "rejecting #{function} on non-numeric columns" do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
       assert error == "Function `#{unquote(function)}` requires arguments of type"
-       <> " (`integer` | `real`) or (`integer` | `real`, `integer`), but got (`datetime`)"
+       <> " (`integer` | `real`) or (`integer` | `real`, `integer`), but got (`datetime`)."
     end
   end
 
   test "multiarg function argument verification" do
     assert {:error, error} = compile("select div(numeric, column) from table", data_source())
     assert error ==
-      "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `datetime`)"
+      "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `datetime`)."
   end
 
   test "rejecting a function with too many arguments" do
     assert {:error, error} = compile("select avg(numeric, column) from table", data_source())
     assert error ==
-      "Function `avg` requires arguments of type (`integer` | `real`), but got (`integer`, `datetime`)"
+      "Function `avg` requires arguments of type (`integer` | `real`), but got (`integer`, `datetime`)."
   end
 
   test "rejecting a function with too few arguments" do
     assert {:error, error} = compile("select div(numeric) from table", data_source())
-    assert error == "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`)"
+    assert error == "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`)."
   end
 
   test "rejecting a column in select when its function is grouped" do
@@ -187,17 +187,17 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "rejecting concat on non-strings" do
     assert {:error, error} = compile("select concat(numeric) from table", data_source())
-    assert error == "Function `concat` requires arguments of type ([`text`]+), but got (`integer`)"
+    assert error == "Function `concat` requires arguments of type ([`text`]+), but got (`integer`)."
   end
 
   test "rejecting ill-typed nested function calls" do
     assert {:error, error} = compile("select concat(avg(numeric)) from table", data_source())
-    assert error == "Function `concat` requires arguments of type ([`text`]+), but got (`real`)"
+    assert error == "Function `concat` requires arguments of type ([`text`]+), but got (`real`)."
   end
 
   test "typechecking nested function calls recursively" do
     assert {:error, error} = compile("select sqrt(abs(avg(column))) from table", data_source())
-    assert error == "Function `avg` requires arguments of type (`integer` | `real`), but got (`datetime`)"
+    assert error == "Function `avg` requires arguments of type (`integer` | `real`), but got (`datetime`)."
   end
 
   test "accepting constants as aggregated", do:
@@ -227,7 +227,7 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   test "rejecting outer where clause in queries unchecked sub-select" do
-    assert {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery"} =
+    assert {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery."} =
       compile("SELECT a FROM (unchecked inner select) t WHERE a > 10", data_source(Cloak.DataSource.DsProxy))
   end
 
@@ -247,27 +247,27 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   test "rejecting qualified SELECT from not selected table" do
-    assert {:error, "Missing FROM clause entry for table `other_table`"} =
+    assert {:error, "Missing FROM clause entry for table `other_table`."} =
       compile("SELECT other_table.other_column FROM table", data_source())
   end
 
   test "rejecting qualified SELECT from not selected table when join" do
-    assert {:error, "Missing FROM clause entry for table `other_table`"} =
+    assert {:error, "Missing FROM clause entry for table `other_table`."} =
       compile("SELECT other_table.other_column FROM t1, t2", data_source())
   end
 
   test "rejecting qualified ORDER BY from not selected table" do
-    assert {:error, "Missing FROM clause entry for table `other_table`"} =
+    assert {:error, "Missing FROM clause entry for table `other_table`."} =
       compile("SELECT column FROM table ORDER BY other_table.other_column", data_source())
   end
 
   test "rejecting qualified GROUP BY from not selected table" do
-    assert {:error, "Missing FROM clause entry for table `other_table`"} =
+    assert {:error, "Missing FROM clause entry for table `other_table`."} =
       compile("SELECT column FROM table GROUP BY other_table.other_column", data_source())
   end
 
   test "rejecting qualified WHERE from not selected table" do
-    assert {:error, "Missing FROM clause entry for table `other_table`"} =
+    assert {:error, "Missing FROM clause entry for table `other_table`."} =
       compile("SELECT column FROM table WHERE other_table.other_column <> ''", data_source())
   end
 
@@ -416,22 +416,22 @@ defmodule Cloak.Aql.Compiler.Test do
   test "integer operations are invalid on sums of real columns" do
     assert {:error, error} = compile("select sum(float) % 3 from table", data_source())
     assert error ==
-        "Function `%` requires arguments of type (`integer`, `integer`), but got (`real`, `integer`)"
+        "Function `%` requires arguments of type (`integer`, `integer`), but got (`real`, `integer`)."
   end
 
   test "incorrect application of +" do
     assert {:error, error} = compile("select 'a' + 'b' from table", data_source())
-    assert error == "Arguments of type (`text`, `text`) are incorrect for `+`"
+    assert error == "Arguments of type (`text`, `text`) are incorrect for `+`."
   end
 
   test "rejects inequalities on numeric columns that are not ranges" do
     assert {:error, error} = compile("select * from table where numeric > 5", data_source())
-    assert error == "Column `numeric` must be limited to a finite range"
+    assert error == "Column `numeric` must be limited to a finite range."
   end
 
   test "rejects inequalities on numeric columns that are negatives of ranges" do
     assert {:error, error} = compile("select * from table where numeric < 2 and numeric > 5", data_source())
-    assert error == "Column `numeric` must be limited to a finite range"
+    assert error == "Column `numeric` must be limited to a finite range."
   end
 
   test "accepts inequalities on numeric columns that are ranges" do

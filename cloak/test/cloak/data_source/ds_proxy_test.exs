@@ -188,7 +188,7 @@ defmodule Cloak.DataSource.DsProxyTest do
 
   test "can't join subqueries in dsproxy", context do
     assert {:error, error} = run_query(context, "select foo from bar, (select foo from baz) sq")
-    assert error == "Joining subqueries is not supported for this data source"
+    assert error == "Joining subqueries is not supported for this data source."
   end
 
 

@@ -136,11 +136,13 @@ defmodule Cloak.Query.Runner do
   end
   defp execute_sql_query(%Query{command: :select} = query) do
     try do
-      with {:ok, result} <- select_rows(query), do:
-        successful_result(
-          %Result{result | columns: query.column_titles, types: Query.selected_types(query)},
-          query
-        )
+      with {:ok, result} <- select_rows(query) do
+        result = %Result{result |
+          columns: query.column_titles,
+          features: Query.extract_features(query),
+        }
+        successful_result(result, query)
+      end
     rescue e in [RuntimeError] ->
       {:error, e.message}
     end
@@ -153,6 +155,7 @@ defmodule Cloak.Query.Runner do
       |> LCFConditions.apply(query)
       |> Aggregator.aggregate(query)
       |> Sorter.order(query)
+      |> distinct(query)
       |> offset(query)
       |> limit(query)
     end)
@@ -170,11 +173,11 @@ defmodule Cloak.Query.Runner do
     log_completion(state, status: :success, row_count: length(result.buckets))
     result = %{
       columns: result.columns,
-      types: result.types,
       rows: result.buckets,
       info: info,
       execution_time: execution_time_in_s(state),
       users_count: result.users_count,
+      features: result.features,
     }
     send_result(state, result)
   end
@@ -238,6 +241,10 @@ defmodule Cloak.Query.Runner do
     drop(rest, amount - occurrences)
   defp drop([%{occurrences: occurrences} = bucket | rest], amount), do:
     [%{bucket | occurrences: occurrences - amount} | rest]
+
+  defp distinct(%Result{buckets: buckets} = result, %Query{distinct: true}), do:
+    %Result{result | buckets: Enum.map(buckets, &Map.put(&1, :occurrences, 1))}
+  defp distinct(result, %Query{distinct: false}), do: result
 
 
   # -------------------------------------------------------------------

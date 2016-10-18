@@ -49,7 +49,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp build_fragments(query, sql_dialect) do
     [
-      "SELECT ", columns_sql(query.db_columns, sql_dialect),
+      "SELECT ", distinct(query), columns_sql(query.db_columns, sql_dialect),
       " FROM ", from_clause(query.from, query, sql_dialect),
       where_fragments(query.where, sql_dialect),
       group_by_fragments(query, sql_dialect),
@@ -58,6 +58,9 @@ defmodule Cloak.DataSource.SqlBuilder do
       range_fragments(query, sql_dialect)
     ]
   end
+
+  defp distinct(%Query{distinct: true}), do: "DISTINCT "
+  defp distinct(%Query{distinct: false}), do: ""
 
   defp columns_sql(columns, sql_dialect) do
     columns
