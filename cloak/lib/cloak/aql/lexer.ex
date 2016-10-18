@@ -30,7 +30,7 @@ defmodule Cloak.Aql.Lexer do
     "FROM",
     "INNER", "OUTER", "LEFT", "RIGHT", "FULL", "JOIN", "ON", "CROSS",
     "WHERE", "AND", "NOT",
-    "CAST",
+    "CAST", "BUCKET", "ALIGN",
     "INTERVAL",
     "LIKE", "ILIKE", "IN", "IS", "BETWEEN",
     "ORDER", "GROUP", "BY",

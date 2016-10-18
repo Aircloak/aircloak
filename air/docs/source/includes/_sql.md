@@ -163,6 +163,24 @@ ABS(-3)
 -- 3
 ```
 
+### bucket
+
+Rounds the input to the given bucket size.
+
+```sql
+BUCKET(180 BY 50)
+-- 150
+
+BUCKET(180 BY 50 ALIGN LOWER)
+-- 150
+
+BUCKET(180 BY 50 ALIGN UPPER)
+-- 200
+
+BUCKET(180 BY 50 ALIGN MIDDLE)
+-- 175
+```
+
 ### ceil / ceiling
 
 Computes the smallest integer that is greater than or equal to its argument.

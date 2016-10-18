@@ -294,6 +294,36 @@ defmodule Cloak.Aql.Compiler do
     |> expand_star_select()
     |> compile_aliases()
     |> identifiers_to_columns()
+    |> compile_buckets()
+  end
+
+  defp compile_buckets(query) do
+    {columns, messages} = Enum.reduce(query.columns, {[], []}, &compile_bucket/2)
+    %{query | columns: Enum.reverse(columns), info: messages ++ query.info}
+  end
+
+  defp compile_bucket(column, {output_columns, messages}) do
+    if Function.bucket?(column) do
+      align_bucket(column, {output_columns, messages})
+    else
+      {[column | output_columns], messages}
+    end
+  end
+
+  defp align_bucket(column, {output_columns, messages}) do
+    if Function.bucket_size(column) <= 0 do
+      raise CompilationError, message: "Bucket size #{Function.bucket_size(column)} must be > 0"
+    end
+
+    aligned = Function.update_bucket_size(column, &FixAlign.align/1)
+    if aligned == column do
+      {[column | output_columns], messages}
+    else
+      {
+        [aligned | output_columns],
+        ["Bucket size adjusted from #{Function.bucket_size(column)} to #{Function.bucket_size(aligned)}" | messages]
+      }
+    end
   end
 
   defp expand_star_select(%Query{columns: :*} = query) do
@@ -400,8 +430,8 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.reject(&Function.valid_function?/1)
     |> case do
       [] -> :ok
-      [{:function, invalid_function, _} | _rest] ->
-        raise CompilationError, message: "Unknown function `#{invalid_function}`."
+      [function | _rest] ->
+        raise CompilationError, message: "Unknown function `#{Function.name(function)}`."
     end
   end
 
@@ -547,7 +577,7 @@ defmodule Cloak.Aql.Compiler do
       |> Enum.map(&Comparison.value/1)
       |> Enum.sort()
       |> List.to_tuple()
-      |> FixAlign.align()
+      |> FixAlign.align_interval()
 
     if implement_range?({left, right}, conditions) do
       %{query | where: conditions ++ query.where}

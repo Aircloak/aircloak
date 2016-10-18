@@ -24,6 +24,13 @@ defmodule Cloak.Aql.Parser.Test do
     end
   end
 
+  defmacrop assert_equal_parse(query1, query2, data_source \\ quote(do: @psql_data_source)) do
+    quote do
+      assert Parser.parse(unquote(data_source), unquote(query1)) ==
+        Parser.parse(unquote(data_source), unquote(query2))
+    end
+  end
+
   defmacrop assert_parse_error(query_string, expected_pattern, data_source \\ quote(do: @psql_data_source)) do
     quote do
       assert {:error, unquote(expected_pattern)} = Parser.parse(unquote(data_source), unquote(query_string))
@@ -802,6 +809,25 @@ defmodule Cloak.Aql.Parser.Test do
     assert_parse ~S(select 'O\Brian' from names), select(columns: [constant(:text, ~S(O\Brian))])
   end
 
+  for type <- ~w(lower upper middle)a do
+    test "bucket(*, *, #{type})" do
+      assert_parse "select bucket(foo by 10 align #{unquote(type)}) from bar", select(columns: [
+        {:function, {:bucket, unquote(type)}, [identifier("foo"), constant(:integer, 10)]}
+      ])
+    end
+  end
+
+  for {type, synonym} <- [{:lower, :bottom}, {:upper, :top}] do
+    test "bucket(*, *, #{synonym}) is bucket(*, *, #{type})" do
+      assert_equal_parse "select bucket(foo by 10 align #{unquote(type)}) from bar",
+        "select bucket(foo by 10 align #{unquote(synonym)}) from bar"
+    end
+  end
+
+  test "bucket aligns lower by default" do
+    assert_equal_parse "select bucket(foo by 10) from bar", "select bucket(foo by 10 align lower) from bar"
+  end
+
   create_test =
     fn(description, data_source, statement, expected_error, line, column) ->
       test description do
@@ -900,6 +926,10 @@ defmodule Cloak.Aql.Parser.Test do
         "select foo, cast(3 as) from foo", "Expected `type name`", {1, 22}},
       {"wrong cast",
         "select cast(foo as bar) from baz", "Expected `type name`", {1, 20}},
+      {"bucket size is not constant",
+        "select bucket(foo by bar) from baz", "Expected `integer constant or float constant`", {1, 22}},
+      {"bad bucket align part",
+        "select bucket(foo by 10 by) from baz", "Expected `)`", {1, 25}},
       # unparsed subqueries
       {"unclosed parens in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz", "Expected `)`", {1, 37}},

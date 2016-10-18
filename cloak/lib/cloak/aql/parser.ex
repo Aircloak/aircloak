@@ -18,10 +18,12 @@ defmodule Cloak.Aql.Parser do
 
   @type data_type :: DataSource.data_type | :interval
 
+  @type function_name :: String.t | {:bucket, atom} | {:cast, data_type}
+
   @type column ::
       qualified_identifier
     | {:distinct, qualified_identifier}
-    | {:function, String.t, [column]}
+    | {:function, function_name, [column]}
     | {:constant, data_type, any}
 
   @type negatable_condition ::
@@ -162,7 +164,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp column() do
-    additive_expression()
+    lazy(fn -> additive_expression() end)
   end
 
   defp additive_expression() do
@@ -181,6 +183,7 @@ defmodule Cloak.Aql.Parser do
     choice_deepest_error([
       parenthesised_expression(),
       cast_expression(),
+      bucket_expression(),
       function_expression(),
       extract_expression(),
       trim_expression(),
@@ -193,7 +196,7 @@ defmodule Cloak.Aql.Parser do
 
   defp parenthesised_expression() do
     pipe(
-      [keyword(:"("), lazy(fn -> column() end), keyword(:")")],
+      [keyword(:"("), column(), keyword(:")")],
       fn([:"(", result, :")"]) -> result end
     )
   end
@@ -220,7 +223,7 @@ defmodule Cloak.Aql.Parser do
       [
         keyword(:cast),
         keyword(:"("),
-        lazy(fn -> column() end),
+        column(),
         either(keyword(:","), keyword(:as)),
         data_type(),
         keyword(:")"),
@@ -229,15 +232,48 @@ defmodule Cloak.Aql.Parser do
     )
   end
 
-  @data_types ~w(integer real text boolean datetime date time)
   defp data_type() do
-    non_keyword_type =
-      unquoted_identifier()
-      |> satisfy(&Enum.member?(@data_types, &1))
-      |> map(&String.to_atom/1)
-
-    either(non_keyword_type, keyword(:interval))
+    either(
+      raw_identifier_of(~w(integer real text boolean datetime date time)),
+      keyword(:interval)
+    )
     |> label("type name")
+  end
+
+  defp bucket_expression() do
+    pipe(
+      [
+        keyword(:bucket),
+        keyword(:"("),
+        column(),
+        keyword(:by),
+        constant_of([:integer, :float]),
+        option(sequence([
+          keyword(:align),
+          align_type(),
+        ])),
+        keyword(:")"),
+      ],
+      fn
+        [:bucket, :"(", arg1, :by, arg2, [:align, type], :")"] -> {:function, {:bucket, type}, [arg1, arg2]}
+        [:bucket, :"(", arg1, :by, arg2, nil, :")"] -> {:function, {:bucket, :lower}, [arg1, arg2]}
+      end
+    )
+  end
+
+  defp align_type() do
+    raw_identifier_of(~w(bottom lower top upper middle))
+    |> map(fn
+      :bottom -> :lower
+      :top -> :upper
+      x -> x
+    end)
+  end
+
+  defp raw_identifier_of(words) do
+    unquoted_identifier()
+    |> satisfy(&Enum.member?(words, &1))
+    |> map(&String.to_atom/1)
   end
 
   defp function_expression() do
@@ -293,7 +329,7 @@ defmodule Cloak.Aql.Parser do
         choice([keyword(:both), keyword(:leading), keyword(:trailing)]),
         option(constant(:string)),
         keyword(:from),
-        lazy(fn -> column() end),
+        column(),
         keyword(:")"),
      ],
      fn
@@ -314,7 +350,7 @@ defmodule Cloak.Aql.Parser do
       [
         keyword(:substring),
         keyword(:"("),
-        lazy(fn -> column() end),
+        column(),
         option(sequence([keyword(:from), constant(:integer)])),
         option(sequence([keyword(:for), constant(:integer)])),
         keyword(:")"),

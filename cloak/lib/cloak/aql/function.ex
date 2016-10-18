@@ -35,8 +35,11 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
     ~w(round trunc) => %{type_specs: %{
-       [numeric] => :integer,
-       [numeric, :integer] => :real,
+      [numeric] => :integer,
+      [numeric, :integer] => :real,
+    }},
+    [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{type_specs: %{
+      [numeric, numeric] => :real,
     }},
     ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
     ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
@@ -137,6 +140,7 @@ defmodule Cloak.Aql.Function do
   @doc "Returns the function name of the given function call."
   @spec name(t) :: String.t
   def name({:function, {:cast, _}, _}), do: "cast"
+  def name({:function, {:bucket, _}, _}), do: "bucket"
   def name({:function, name, _}), do: name
 
   @doc "Returns the return type of the given function call."
@@ -190,6 +194,19 @@ defmodule Cloak.Aql.Function do
     end
   end
 
+  @doc "Returns true if the argument is a call to a 'bucket' function call, false otherwise."
+  @spec bucket?(t) :: boolean
+  def bucket?({:function, {:bucket, _}, _}), do: true
+  def bucket?(_), do: false
+
+  @doc "Updates the bucket size argument of the given 'bucket' function with the given function call."
+  @spec update_bucket_size(t, (number -> number)) :: t
+  def update_bucket_size({:function, {:bucket, type}, [arg1, size]}, fun), do:
+    {:function, {:bucket, type}, [arg1, Column.constant(:real, fun.(size.value))]}
+
+  @doc "Returns the value of the bucket size argument of the given 'bucket' function call."
+  @spec bucket_size(t) :: number
+  def bucket_size({:function, {:bucket, _}, [_, size]}), do: size.value
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -277,6 +294,12 @@ defmodule Cloak.Aql.Function do
   defp do_apply("-", [x, y = %Duration{}]), do: do_apply("+", [x, Duration.scale(y, -1)])
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
+  defp do_apply({:bucket, :lower}, [value, bucket_size]), do:
+    Float.floor(value / bucket_size) * bucket_size
+  defp do_apply({:bucket, :upper}, [value, bucket_size]), do:
+    Float.ceil(value / bucket_size) * bucket_size
+  defp do_apply({:bucket, :middle}, [value, bucket_size]), do:
+    Float.floor(value / bucket_size) * bucket_size + 0.5 * bucket_size
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
