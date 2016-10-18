@@ -53,7 +53,7 @@ defmodule Cloak.Aql.Compiler do
     validate_dsproxy_from_for_parsed_query!(join.rhs)
   end
   defp validate_dsproxy_from_for_parsed_query!({:subquery, _}) do
-    raise CompilationError, message: "Joining subqueries is not supported for this data source"
+    raise CompilationError, message: "Joining subqueries is not supported for this data source."
   end
   defp validate_dsproxy_from_for_parsed_query!({_, table_name}) when is_binary(table_name), do: :ok
 
@@ -116,13 +116,13 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   defp ds_proxy_validate_no_wildcard(%Query{command: :select, columns: :*}) do
-    raise CompilationError, message: "Unfortunately wildcard selects are not supported together with subselects"
+    raise CompilationError, message: "Unfortunately wildcard selects are not supported together with subselects."
   end
   defp ds_proxy_validate_no_wildcard(_), do: :ok
 
   defp ds_proxy_validate_no_where(%Query{where: []}), do: :ok
   defp ds_proxy_validate_no_where(_) do
-    raise CompilationError, message: "WHERE-clause in outer SELECT is not allowed in combination with a subquery"
+    raise CompilationError, message: "WHERE-clause in outer SELECT is not allowed in combination with a subquery."
   end
 
 
@@ -336,10 +336,10 @@ defmodule Cloak.Aql.Compiler do
         "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
       many_overloads?(function_call) ->
         "Arguments of type (#{function_call |> actual_types() |> quoted_list()}) are incorrect"
-          <> " for `#{Function.name(function_call)}`"
+          <> " for `#{Function.name(function_call)}`."
       true ->
         "Function `#{Function.name(function_call)}` requires arguments of type #{expected_types(function_call)}"
-          <> ", but got (#{function_call |> actual_types() |> quoted_list()})"
+          <> ", but got (#{function_call |> actual_types() |> quoted_list()})."
     end
   end
 
@@ -389,8 +389,8 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.filter(&Function.aggregate_function?/1)
     |> case do
       [] -> :ok
-      [function | _] ->
-        raise CompilationError, message: "Aggregate function `#{Function.name(function)}` used in the `GROUP BY` clause"
+      [function | _] -> raise CompilationError,
+        message: "Aggregate function `#{Function.name(function)}` can not be used in the `GROUP BY` clause."
     end
   end
 
@@ -401,7 +401,7 @@ defmodule Cloak.Aql.Compiler do
     |> case do
       [] -> :ok
       [{:function, invalid_function, _} | _rest] ->
-        raise CompilationError, message: ~s/Unknown function `#{invalid_function}`./
+        raise CompilationError, message: "Unknown function `#{invalid_function}`."
     end
   end
 
@@ -431,9 +431,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_order_by(%Query{order_by: []} = query), do: query
   defp compile_order_by(%Query{columns: columns, order_by: order_by_spec} = query) do
-    invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) ->
-      Enum.member?(columns, column)
-    end)
+    invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
     case invalid_fields do
       [] ->
         order_list = for {column, direction} <- order_by_spec do
@@ -442,8 +440,7 @@ defmodule Cloak.Aql.Compiler do
         end
         %Query{query | order_by: order_list}
       [{_column, _direction} | _rest] ->
-        raise CompilationError, message:
-          "Non-selected column specified in `ORDER BY` clause."
+        raise CompilationError, message: "Non-selected column specified in `ORDER BY` clause."
     end
   end
 
@@ -578,7 +575,7 @@ defmodule Cloak.Aql.Compiler do
     |> inequalities_by_column()
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
-      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited to a finite range"
+      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited to a finite range."
       _ -> :ok
     end
   end
@@ -755,7 +752,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp identifier_to_column({:identifier, table, identifier = {_, column_name}}, columns_by_name, query) do
     unless Enum.any?(query.selected_tables, &(&1.name == table)),
-      do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
+      do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`."
 
     case get_columns(columns_by_name, identifier) do
       nil ->
@@ -917,15 +914,13 @@ defmodule Cloak.Aql.Compiler do
   defp scope_check(tables_in_scope, table_name, column_name) do
     case Enum.member?(tables_in_scope, table_name) do
       true -> :ok
-      _ ->
-        raise CompilationError,
-          message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
+      _ -> raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
     end
   end
 
   defp verify_supported_join_condition(join_condition) do
-    if requires_lcf_check?(join_condition), do: raise CompilationError,
-      message: "#{negative_condition_string(join_condition)} not supported in joins."
+    if requires_lcf_check?(join_condition), do:
+      raise CompilationError, message: "#{negative_condition_string(join_condition)} not supported in joins."
   end
 
   defp negative_condition_string({:not, {:like, _, _}}), do: "NOT LIKE"

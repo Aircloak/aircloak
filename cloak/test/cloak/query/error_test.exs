@@ -72,8 +72,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "substring with neither for nor from" do
     assert_query "select substring(name) from test_errors", %{error: error}
-    assert error == "Function `substring` requires arguments of type (`text`, `integer`, [`integer`]),"
-      <> " but got (`text`)"
+    assert error == "Function `substring` requires arguments of type (`text`, `integer`, [`integer`]), but got (`text`)."
   end
 
   test "query reports error on invalid limit / offset parameters" do
