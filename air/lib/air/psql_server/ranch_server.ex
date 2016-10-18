@@ -12,7 +12,7 @@ defmodule Air.PsqlServer.RanchServer do
 
   require Logger
 
-  alias Air.PsqlServer.Protocol
+  alias Air.{PsqlServer.Protocol, Service.User, Service.DataSource}
 
   #-----------------------------------------------------------------------------------------------------------
   # API
@@ -53,7 +53,10 @@ defmodule Air.PsqlServer.RanchServer do
       socket: socket,
       transport: transport,
       protocol: Protocol.new(),
-      login_params: %{}
+      login_params: %{},
+      user: nil,
+      data_source: nil,
+      query_runner: nil
     }}
   end
 
@@ -94,6 +97,17 @@ defmodule Air.PsqlServer.RanchServer do
 
     :ok = set_active_mode(state)
     {:noreply, state}
+  end
+  def handle_info(
+    {query_runner_ref, query_result},
+    %{query_runner: %Task{ref: query_runner_ref}} = state
+  ) do
+    {:noreply,
+      state
+      |> Map.put(:query_runner, nil)
+      |> handle_query_result(query_result)
+      |> handle_protocol_actions()
+    }
   end
   def handle_info(_msg, state), do:
     {:noreply, state}
@@ -146,19 +160,52 @@ defmodule Air.PsqlServer.RanchServer do
     state
     |> Map.put(:login_params, login_params)
     |> update_protocol(&Protocol.authentication_method(&1, :cleartext))
-  defp handle_protocol_action({:authenticate, password}, state), do:
-    update_protocol(
-      state,
-      &Protocol.authenticated(&1, authenticated?(state.login_params, password))
-    )
+  defp handle_protocol_action({:authenticate, password}, state) do
+    with {:ok, user} <- User.login(state.login_params["user"], password),
+         {:ok, _} <- DataSource.fetch_as_user(data_source_id_spec(state), user)
+    do
+      # We're not storing data source, since access permissions have to be checked on every query.
+      # Otherwise, revoking permissions on a data source would have no effects on currently connected
+      # cloak.
+      # However, we're also checking access permissions now, so we can report error immediately.
+      state
+      |> Map.put(:user, user)
+      |> update_protocol(&(Protocol.authenticated(&1, true)))
+    else
+      _ -> update_protocol(state, &Protocol.authenticated(&1, false))
+    end
+  end
   defp handle_protocol_action({:run_query, query}, state) do
-    Logger.debug("Running query: `#{query}`")
-    update_protocol(state, &Protocol.select_result(&1, []))
+    query_runner = Task.async(fn -> DataSource.run_query(data_source_id_spec(state), state.user, query) end)
+    %{state | query_runner: query_runner}
   end
 
-  defp authenticated?(login_params, password), do:
-    match?({:ok, _}, Air.Service.User.login(login_params["user"], password, login_params["database"]))
+  defp data_source_id_spec(state), do:
+    {:global_id, state.login_params["database"]}
 
   defp update_protocol(state, fun), do:
     %{state | protocol: fun.(state.protocol)}
+
+  defp handle_query_result(state, {:ok, query_result}) do
+    update_protocol(state, &Protocol.select_result(&1, result_map(query_result)))
+  end
+
+  defp result_map(query_result), do:
+    %{
+      columns:
+        Enum.zip(
+          Map.fetch!(query_result, "columns"),
+          query_result |> Map.fetch!("features") |> Map.fetch!("selected_types")
+        )
+        |> Enum.map(fn({name, type}) -> %{name: name, type: type_atom(type)} end),
+      rows:
+        query_result
+        |> Map.fetch!("rows")
+        |> Enum.flat_map(&List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
+    }
+
+  for supported_type <- [:integer, :text] do
+    defp type_atom(unquote(to_string(supported_type))), do: unquote(supported_type)
+  end
+  defp type_atom(_other), do: :unknown
 end

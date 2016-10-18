@@ -33,6 +33,11 @@ defmodule Air.PsqlServer.Protocol do
 
   @type authentication_method :: :cleartext
 
+  @type query_result :: %{
+    columns: [%{name: String.t, type: :integer | :string | :unknown}],
+    rows: [any]
+  }
+
   @doc "Creates the initial protocol state."
   @spec new() :: t
   def new() do
@@ -86,10 +91,10 @@ defmodule Air.PsqlServer.Protocol do
   def authenticated(state, success), do:
     handle_event(state, {:authenticated, success})
 
-  @doc "Should be invoked by the driver when the select query rows are available."
-  @spec select_result(t, [any]) :: t
-  def select_result(state, rows), do:
-    handle_event(state, {:select_result, rows})
+  @doc "Should be invoked by the driver when the select query result is available."
+  @spec select_result(t, query_result) :: t
+  def select_result(state, result), do:
+    handle_event(state, {:select_result, result})
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -214,9 +219,13 @@ defmodule Air.PsqlServer.Protocol do
     |> add_action({:run_query, null_terminated_to_string(message.payload)})
     |> next_state(:running_query)
   # :running_query -> awaiting query result
-  defp handle_event(state(:running_query), {:select_result, rows}), do:
-    state
-    |> request_send(command_complete("SELECT #{length(rows)}"))
+  defp handle_event(state(:running_query), {:select_result, result}), do:
+    Enum.reduce(
+      result.rows,
+      request_send(state, row_description(result.columns)),
+      &request_send(&2, data_row(&1))
+    )
+    |> request_send(command_complete("SELECT #{length(result.rows)}"))
     |> request_send(ready_for_query())
     |> transition_after_message(:ready)
 end

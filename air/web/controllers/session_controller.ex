@@ -29,7 +29,7 @@ defmodule Air.SessionController do
   end
 
   def create(conn, params) do
-    case Air.Service.User.login(params["email"], params["password"], nil, audit_log_meta(conn)) do
+    case Air.Service.User.login(params["email"], params["password"], audit_log_meta(conn)) do
       {:ok, user} ->
         return_path = get_session(conn, :return_path) || query_path(conn, :index)
         conn

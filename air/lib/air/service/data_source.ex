@@ -49,18 +49,21 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Starts the query on the given data source as the given user."
-  @spec start_query(data_source_id_spec, User.t, String.t, %{atom => any}) ::
+  @spec start_query(data_source_id_spec, User.t, String.t, [audit_meta: %{atom => any}, notify: boolean]) ::
     {:ok, Query.t} | {:error, :unauthorized | :not_connected | :internal_error | any}
-  def start_query(data_source_id_spec, user, statement, audit_meta \\ %{}) do
+  def start_query(data_source_id_spec, user, statement, opts \\ []) do
+    opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
+
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user),
          query <- create_query(data_source.id, user, statement)
     do
       Air.Service.AuditLog.log(user, "Executed query",
-        Map.merge(audit_meta, %{query: statement, data_source: data_source.id}))
+        Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))
 
       try do
         case DataSourceManager.channel_pids(query.data_source.global_id) do
           [channel_pid | _] ->
+            if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
             with :ok <- MainChannel.run_query(channel_pid, Query.to_cloak_query(query)), do:
               {:ok, query}
 
@@ -73,6 +76,19 @@ defmodule Air.Service.DataSource do
         ])
 
         {:error, :internal_error}
+      end
+    end
+  end
+
+  @doc "Runs the query synchronously and returns its result."
+  @spec run_query(data_source_id_spec, User.t, String.t, [audit_meta: %{atom => any}]) ::
+    {:ok, %{}} | {:error, :unauthorized | :not_connected | :internal_error | any}
+  def run_query(data_source_id_spec, user, statement, opts \\ []) do
+    with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, statement, [{:notify, true} | opts]) do
+      receive do
+        {:query_result, %{"query_id" => ^query_id} = result} ->
+          Air.QueryEvents.unsubscribe(query_id)
+          {:ok, result}
       end
     end
   end
