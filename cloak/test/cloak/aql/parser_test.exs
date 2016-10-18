@@ -928,6 +928,8 @@ defmodule Cloak.Aql.Parser.Test do
         "select cast(foo as bar) from baz", "Expected `type name`", {1, 20}},
       {"bucket size is not constant",
         "select bucket(foo by bar) from baz", "Expected `integer constant or float constant`", {1, 22}},
+      {"bad bucket align part",
+        "select bucket(foo by 10 by) from baz", "Expected `)`", {1, 25}},
       # unparsed subqueries
       {"unclosed parens in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
         "select foo from (select bar from baz", "Expected `)`", {1, 37}},
