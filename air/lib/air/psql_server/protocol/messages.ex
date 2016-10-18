@@ -19,6 +19,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def parse_message_header(<<message_byte::8, length::32>>), do:
     %{type: message_name(message_byte), length: length - 4}
 
+  def message_type(<<message_header::binary-size(5), _::binary>>), do:
+    parse_message_header(message_header).type
+
   def parse_login_params(raw_login_params) do
     raw_login_params
     |> String.split(<<0>>)
@@ -38,6 +41,15 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def command_complete(tag), do: message_with_size(:command_complete, null_terminate(tag))
 
+  def data_row(values) do
+    encoded_row =
+      values
+      |> Enum.map(&value_to_text/1)
+      |> IO.iodata_to_binary()
+
+    message_with_size(:data_row, <<length(values)::16, encoded_row::binary>>)
+  end
+
   def fatal_error(code, message), do:
     message_with_size(:error_response, <<
       ?S, null_terminate("FATAL")::binary,
@@ -49,6 +61,15 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def require_ssl(), do: <<?S>>
 
   def ready_for_query(), do: message_with_size(:ready_for_query, <<?I>>)
+
+  def row_description(columns) do
+    columns_descriptions =
+      columns
+      |> Enum.map(&column_description/1)
+      |> IO.iodata_to_binary()
+
+    message_with_size(:row_description, <<length(columns)::16, columns_descriptions::binary>>)
+  end
 
   def parameter_status(name, value), do:
     message_with_size(:parameter_status, null_terminate(name) <> null_terminate(value))
@@ -72,6 +93,35 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
 
   #-----------------------------------------------------------------------------------------------------------
+  # Types encoding
+  #-----------------------------------------------------------------------------------------------------------
+
+  for {type, oid, len} <- [
+    # Obtained as `select typname, oid, typlen from pg_type`
+    {:integer, 20, 8}, # int8
+    {:text, 25, -1}, # text
+    {:unknown, 705, -2}, # unknown
+  ] do
+    defp column_description(%{type: unquote(type)} = column), do:
+      <<
+        null_terminate(column.name)::binary,
+        0::32,
+        0::16,
+        unquote(oid)::32,
+        unquote(len)::16,
+        -1::32,
+        0::16
+      >>
+  end
+
+  defp value_to_text(nil), do: <<-1::32>>
+  defp value_to_text(other) do
+    string_representation = to_string(other)
+    <<byte_size(string_representation)::32, string_representation::binary>>
+  end
+
+
+  #-----------------------------------------------------------------------------------------------------------
   # Message helpers
   #-----------------------------------------------------------------------------------------------------------
 
@@ -85,11 +135,13 @@ defmodule Air.PsqlServer.Protocol.Messages do
       %{
         authentication: ?R,
         command_complete: ?C,
+        data_row: ?D,
         error_response: ?E,
         password: ?p,
         parameter_status: ?S,
         query: ?Q,
         ready_for_query: ?Z,
+        row_description: ?T,
         terminate: ?X
       } do
     defp message_name(unquote(message_byte)), do: unquote(message_name)

@@ -187,18 +187,22 @@ defmodule Air.PsqlServer.RanchServer do
     %{state | protocol: fun.(state.protocol)}
 
   defp handle_query_result(state, {:ok, query_result}) do
-    Logger.debug("query result: #{inspect result_map(query_result)}")
-    update_protocol(state, &Protocol.select_result(&1, []))
+    update_protocol(state, &Protocol.select_result(&1, result_map(query_result)))
   end
 
   defp result_map(query_result), do:
     %{
       columns:
         Enum.zip(Map.fetch!(query_result, "columns"), Map.fetch!(query_result, "types"))
-        |> Enum.map(fn({name, type}) -> %{name: name, type: type} end),
+        |> Enum.map(fn({name, type}) -> %{name: name, type: type_atom(type)} end),
       rows:
         query_result
         |> Map.fetch!("rows")
         |> Enum.flat_map(&List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
     }
+
+  for supported_type <- [:integer, :text] do
+    defp type_atom(unquote(to_string(supported_type))), do: unquote(supported_type)
+  end
+  defp type_atom(_other), do: :unknown
 end
