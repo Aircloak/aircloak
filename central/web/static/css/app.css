@@ -1,0 +1,128 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+.body-wrapper {
+  min-height: 100%;
+  /* For the navbar */
+  padding-top: 70px;
+  /* For the footer */
+  padding-bottom: 50px;
+  position: relative;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+}
+
+.footer .content {
+  padding: 10px 0 10px 0;
+  border-top: 1px solid #e5e5e5;
+}
+
+.footer a {
+  color: gray;
+}
+
+/* Phoenix flash messages */
+.alert:empty { display: none; }
+
+/* Phoenix inline forms in links and buttons */
+form.link, form.button {
+  display: inline;
+}
+
+.logo {
+  margin: 10px;
+  width: 160px;
+  height: 30px;
+  display: inline-block;
+  background-image: url("/images/aircloak_web.png");
+  background-repeat: no-repeat;
+  background-size: 160 30;
+}
+
+.marketing {
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+.table-small {
+  width: 50%;
+}
+
+.table-hover tbody tr:hover td {
+  background: rgb(255,255,155);
+}
+
+/* Customize container */
+@media (min-width: 1060px) {
+  .container {
+    max-width: 1024px;
+  }
+}
+.container-narrow > hr {
+  margin: 30px 0;
+}
+
+/* Main marketing message */
+.jumbotron {
+  text-align: center;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+/* Supporting marketing content */
+.marketing {
+  margin: 35px 0;
+}
+
+/* Responsive: Portrait tablets and up */
+@media screen and (min-width: 768px) {
+  /* Remove the padding we set earlier */
+  .marketing {
+    padding-right: 0;
+    padding-left: 0;
+  }
+  /* Remove the bottom border on the jumbotron for visual effect */
+  .jumbotron {
+    border-bottom: 0;
+  }
+}
+
+.signout-btn {
+  padding: 10px;
+  display: block;
+}
+.signout-btn:hover {
+  text-decoration: none;
+}
+
+.help-links {
+  margin-bottom: 10px;
+}
+
+a.suggested-reading {
+  z-index: 99999999999;
+  color: black;
+  background-color: rgba(254,251,0,0.2);
+}
+
+a.suggested-reading:hover {
+  background-color: yellow;
+  color: black;
+}
+
+h2 {
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgb(238, 238, 238);
+  margin-bottom: 20px;
+}
+
+.mode-select {
+  margin-top: 10px;
+  margin-right: 0px;
+}
