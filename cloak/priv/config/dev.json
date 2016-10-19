@@ -1,6 +1,9 @@
 {
   "air_site": "wss://insights.air-local:8443",
   "salt": "Salt for local dev cloak",
+  "features": {
+    "math": true
+  },
   "data_sources": [
     {
       "driver": "postgresql",
