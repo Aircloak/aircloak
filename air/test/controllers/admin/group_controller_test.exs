@@ -2,15 +2,16 @@ defmodule Air.Admin.GroupControllerTest do
   use Air.ConnCase, async: true
 
   import Air.TestConnHelper
-  alias Air.TestRepoHelper
+  alias Air.{TestRepoHelper, Group, Repo}
 
-  test "regular user can't manage users" do
+  test "regular user can't manage users", %{conn: conn} do
     user = TestRepoHelper.create_user!()
     group = TestRepoHelper.create_group!()
 
-    assert login(user) |> get("/admin/groups") |> redirected_to() === "/"
-    assert login(user) |> post("/admin/groups") |> redirected_to() === "/"
-    assert login(user) |> delete("/admin/groups/#{group.id}") |> redirected_to() === "/"
+    assert login(user) |> get(admin_group_path(conn, :index)) |> redirected_to() === "/"
+    assert login(user) |> post(admin_group_path(conn, :create)) |> redirected_to() === "/"
+    assert login(user) |> get(admin_group_path(conn, :edit, group)) |> redirected_to() === "/"
+    assert login(user) |> delete(admin_group_path(conn, :delete, group)) |> redirected_to() === "/"
   end
 
   test "listing groups" do
@@ -33,6 +34,28 @@ defmodule Air.Admin.GroupControllerTest do
     assert groups_html =~ group_name
   end
 
+  test "access edit page for group", %{conn: conn} do
+    admin = TestRepoHelper.create_admin_user!()
+    group = TestRepoHelper.create_group!()
+
+    edit_html = login(admin) |> get(admin_group_path(conn, :edit, group)) |> response(200)
+    assert edit_html =~ group.name
+  end
+
+  test "update a group", %{conn: conn} do
+    admin = TestRepoHelper.create_admin_user!()
+    group = TestRepoHelper.create_group!()
+    new_group_name = "new group name"
+
+    assert login(admin)
+    |> put(admin_group_path(conn, :update, group), group: %{name: new_group_name, admin: !group.admin})
+    |> redirected_to() === admin_group_path(conn, :index)
+
+    updated_group = Repo.get(Group, group.id)
+    assert updated_group.name === new_group_name
+    assert updated_group.admin != group.admin
+  end
+
   test "deleting a group" do
     admin = TestRepoHelper.create_admin_user!()
     group = TestRepoHelper.create_group!()
@@ -40,5 +63,22 @@ defmodule Air.Admin.GroupControllerTest do
     assert "/admin/groups" == login(admin) |> delete("/admin/groups/#{group.id}") |> redirected_to()
     groups_html = login(admin) |> get("/admin/groups") |> response(200)
     refute groups_html =~ group.name
+  end
+
+  test "render 404 on attempting to render edit form for non-existent group" do
+    admin = TestRepoHelper.create_admin_user!()
+    assert login(admin) |> get("/admin/groups/99999/edit") |> response(404)
+  end
+
+  test "render 404 on attempting to update a non-existent group" do
+    admin = TestRepoHelper.create_admin_user!()
+    assert login(admin)
+    |> put("/admin/groups/99999", group: %{name: "group name"})
+    |> response(404)
+  end
+
+  test "render 404 on attempting to delete a non-existent group" do
+    admin = TestRepoHelper.create_admin_user!()
+    assert login(admin) |> delete("/admin/groups/99999") |> response(404)
   end
 end
