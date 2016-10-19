@@ -117,9 +117,9 @@ defmodule Cloak.Aql.Function do
   @spec valid_function?(t, Features.t) :: boolean
   def valid_function?({:function, function, _}, features) do
     case @functions[function] do
-      nil                          -> false
+      nil -> false
       %{required_feature: feature} -> Features.has?(features, feature)
-      _                            -> true
+      _ -> true
     end
   end
 

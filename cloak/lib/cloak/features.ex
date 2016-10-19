@@ -1,5 +1,5 @@
 defmodule Cloak.Features do
-  @moduledoc "Contains functions for checking if configurable features are available."
+  @moduledoc "Contains functions for checking if configurable features are enabled."
 
   require Aircloak.DeployConfig
 
