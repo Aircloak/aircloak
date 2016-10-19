@@ -292,9 +292,9 @@ defmodule Cloak.Aql.Compiler do
   defp compile_columns(query) do
     query
     |> expand_star_select()
+    |> compile_buckets()
     |> compile_aliases()
     |> identifiers_to_columns()
-    |> compile_buckets()
   end
 
   defp compile_buckets(query) do
