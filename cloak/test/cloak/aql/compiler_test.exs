@@ -507,14 +507,19 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error =~ ~r/Bucket size -10 must be > 0/
   end
 
+  test "math can be disabled with a config setting" do
+    assert {:error, error} = compile("select numeric * 2 from table", data_source(), %{math: false})
+    assert error =~ ~r/Unknown function `*`/
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result
   end
 
-  defp compile(query_string, data_source) do
+  defp compile(query_string, data_source, features \\ Cloak.Features.from_config) do
     query = Parser.parse!(data_source, query_string)
-    Compiler.compile(data_source, query)
+    Compiler.compile(data_source, query, features)
   end
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do

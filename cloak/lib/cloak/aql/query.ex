@@ -11,6 +11,7 @@ defmodule Cloak.Aql.Query do
 
   @type t :: %__MODULE__{
     data_source: DataSource.t,
+    features: Features.t,
     command: :select | :show,
     columns: [Column.t],
     column_titles: [String.t],
@@ -38,7 +39,8 @@ defmodule Cloak.Aql.Query do
     columns: [], where: [], lcf_check_conditions: [], unsafe_filter_columns: [], group_by: [],
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
-    db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct: false
+    db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct: false,
+    features: nil
   ]
 
 

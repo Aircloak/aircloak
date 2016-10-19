@@ -2,7 +2,7 @@ defmodule Cloak.Aql.Function do
   @moduledoc "Includes information about functions and implementation of non-aggregation functions."
 
   alias Cloak.Aql.{Column, Parser}
-  alias Cloak.DataSource
+  alias Cloak.{DataSource, Features}
   alias Timex.Duration
 
   import Kernel, except: [apply: 2]
@@ -33,18 +33,19 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year month day weekday) =>
       %{type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
-    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
-    ~w(round trunc) => %{type_specs: %{
+    ~w(floor ceil ceiling) => %{required_feature: :math, type_specs: %{[numeric] => :integer}},
+    ~w(round trunc) => %{required_feature: :math, type_specs: %{
       [numeric] => :integer,
       [numeric, :integer] => :real,
     }},
     [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{type_specs: %{
       [numeric, numeric] => :real,
     }},
-    ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
-    ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
-    ~w(pow ^) => %{type_specs: arithmetic_operation},
-    ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
+    ~w(abs) => %{required_feature: :math, type_specs: %{[numeric] => :real}},
+    ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
+    ~w(div mod %) => %{required_feature: :math, type_specs: %{[:integer, :integer] => :integer}},
+    ~w(pow ^) => %{required_feature: :math, type_specs: arithmetic_operation},
+    ~w(+) => %{required_feature: :math, type_specs: Map.merge(arithmetic_operation, %{
       [:date, :interval] => :datetime,
       [:time, :interval] => :time,
       [:datetime, :interval] => :datetime,
@@ -53,7 +54,7 @@ defmodule Cloak.Aql.Function do
       [:interval, :datetime] => :datetime,
       [:interval, :interval] => :interval,
     })},
-    ~w(-) => %{type_specs: Map.merge(arithmetic_operation, %{
+    ~w(-) => %{required_feature: :math, type_specs: Map.merge(arithmetic_operation, %{
       [:date, :date] => :interval,
       [:time, :time] => :interval,
       [:datetime, :datetime] => :interval,
@@ -62,11 +63,11 @@ defmodule Cloak.Aql.Function do
       [:datetime, :interval] => :datetime,
       [:interval, :interval] => :interval,
     })},
-    ~w(*) => %{type_specs: Map.merge(arithmetic_operation, %{
+    ~w(*) => %{required_feature: :math, type_specs: Map.merge(arithmetic_operation, %{
        [:interval, numeric] => :interval,
        [numeric, :interval] => :interval,
      })},
-    ~w(/) => %{type_specs: %{
+    ~w(/) => %{required_feature: :math, type_specs: %{
       [numeric, numeric] => :real,
       [:interval, {:or, [:integer, :real]}] => :interval,
     }},
@@ -113,8 +114,14 @@ defmodule Cloak.Aql.Function do
   def function?(_), do: false
 
   @doc "Returns true if the given function call to a known function, false otherwise."
-  @spec valid_function?(t) :: boolean
-  def valid_function?({:function, function, _}), do: Map.has_key?(@functions, function)
+  @spec valid_function?(t, Features.t) :: boolean
+  def valid_function?({:function, function, _}, features) do
+    case @functions[function] do
+      nil                          -> false
+      %{required_feature: feature} -> Features.has?(features, feature)
+      _                            -> true
+    end
+  end
 
   @doc """
   Returns true if the given column definition is a function call to an aggregate function, false otherwise.
