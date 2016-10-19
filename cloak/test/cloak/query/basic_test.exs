@@ -715,4 +715,13 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select stddev_noise(height) from heights",
       %{columns: ["stddev_noise"], rows: [%{row: [0.0], occurrences: 1}]}
   end
+
+  test "bucketing values" do
+    :ok = insert_rows(_user_ids = 0..5, "heights", ["height"], [175])
+    :ok = insert_rows(_user_ids = 6..9, "heights", ["height"], [176])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [190])
+
+    assert_query "select count(*), bucket(height by 10) as foo from heights group by foo",
+      %{columns: ["count", "foo"], rows: [%{row: [10, 170.0]}, %{row: [10, 190.0]}]}
+  end
 end
