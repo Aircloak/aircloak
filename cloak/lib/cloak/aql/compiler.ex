@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
-  alias Cloak.DataSource
+  alias Cloak.{DataSource, Features}
   alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query}
   alias Cloak.Aql.Parsers.Token
 
@@ -17,10 +17,10 @@ defmodule Cloak.Aql.Compiler do
 
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(DataSource.t, Parser.parsed_query) :: {:ok, Query.t} | {:error, String.t}
-  def compile(data_source, parsed_query) do
+  def compile(data_source, parsed_query, features \\ Features.from_config()) do
     try do
       parsed_query
-      |> to_prepped_query(data_source)
+      |> to_prepped_query(data_source, features)
       |> compile_prepped_query()
     rescue
       e in CompilationError -> {:error, e.message}
@@ -32,10 +32,11 @@ defmodule Cloak.Aql.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp to_prepped_query(parsed_query, data_source) do
+  defp to_prepped_query(parsed_query, data_source, features) do
     %Query{
       data_source: data_source,
-      mode: query_mode(data_source.driver, parsed_query[:from])
+      mode: query_mode(data_source.driver, parsed_query[:from]),
+      features: features,
     }
     |> Map.merge(parsed_query)
   end
@@ -427,7 +428,7 @@ defmodule Cloak.Aql.Compiler do
   defp verify_functions(query) do
     query.columns
     |> Enum.filter(&Function.function?/1)
-    |> Enum.reject(&Function.valid_function?/1)
+    |> Enum.reject(&Function.valid_function?(&1, query.features))
     |> case do
       [] -> :ok
       [function | _rest] ->
