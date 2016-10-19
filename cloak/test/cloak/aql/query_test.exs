@@ -52,7 +52,7 @@ defmodule Cloak.Aql.QueryTest do
   end
 
   test "extracts types of functions used - function used" do
-    assert %{functions: ["count"]} = features_from("SELECT count(*) FROM feat_users")
+    assert %{functions: ["abs", "cast"]} = features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
   end
 
   test "extracts types of functions used - multiple functions used" do

@@ -89,6 +89,7 @@ defmodule Cloak.DataSource.ODBC do
   defp parse_type(:sql_double), do: :real
   defp parse_type(:SQL_LONGVARCHAR), do: :text
   defp parse_type(:SQL_VARBINARY), do: :text
+  defp parse_type(:SQL_LONGVARBINARY), do: :text
   defp parse_type({:sql_varchar, _length}), do: :text
   defp parse_type({:sql_wvarchar, _length}), do: :text
   defp parse_type({:sql_wchar, _length}), do: :text
@@ -98,6 +99,8 @@ defmodule Cloak.DataSource.ODBC do
   defp parse_type(:SQL_TYPE_DATE), do: :date
   defp parse_type(:SQL_TYPE_TIME), do: :time
   defp parse_type({:sql_numeric, _, _}), do: :real
+  defp parse_type({:sql_decimal, _, _}), do: :real
+  defp parse_type({:sql_float, _}), do: :real
   defp parse_type(type), do: {:unsupported, type}
 
   defp map_fields([], []), do: []

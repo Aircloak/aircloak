@@ -52,4 +52,20 @@ defmodule Air.Admin.GroupView do
   def available_groups() do
     Repo.all(Group)
   end
+
+  @lint false
+  defp checkbox_mapper(form, field, input_opts, name, label_opts, _opts) do
+    content_tag(:tr) do
+      [
+        content_tag(:td, class: "col-md-1") do
+          tag(:input, input_opts)
+        end,
+        content_tag(:td, class: "col-md-11") do
+          label(form, field, label_opts) do
+            name
+          end
+        end
+      ]
+    end
+  end
 end

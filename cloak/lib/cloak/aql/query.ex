@@ -126,7 +126,7 @@ defmodule Cloak.Aql.Query do
 
   defp extract_function(%Column{}), do: []
   defp extract_function({:distinct, param}), do: extract_function(param)
-  defp extract_function({:function, name, params}), do: [name | extract_functions(params)]
+  defp extract_function(function = {:function, _, params}), do: [Function.name(function) | extract_functions(params)]
 
   defp extract_where_conditions(clauses), do:
     clauses
