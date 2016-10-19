@@ -51,7 +51,7 @@ defmodule Air.Admin.GroupController do
         audit_log(conn, "Created group", name: group.name)
         conn
         |> put_flash(:info, "Group created")
-        |> redirect(to: admin_group_path(conn, :index))
+        |> redirect(to: admin_group_path(conn, :edit, group))
       {:error, changeset} ->
         render(conn, "index.html", changeset: changeset, groups: all_groups())
     end

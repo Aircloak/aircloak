@@ -29,7 +29,9 @@ defmodule Air.Admin.GroupControllerTest do
     conn = login(admin)
     |> post("/admin/groups", group: %{name: group_name, admin: false})
 
-    assert "/admin/groups" == redirected_to(conn)
+    group = Repo.get_by(Group, name: group_name)
+    assert admin_group_path(conn, :edit, group) == redirected_to(conn)
+
     groups_html = login(admin) |> get("/admin/groups") |> response(200)
     assert groups_html =~ group_name
   end
