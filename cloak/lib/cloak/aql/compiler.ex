@@ -156,7 +156,7 @@ defmodule Cloak.Aql.Compiler do
     case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
       {:ok, compiled_query} ->
         compiled_query
-        |> validate_uid()
+        |> validate_uid(alias)
         |> validate_offset(alias)
         |> align_limit()
       {:error, error} -> raise CompilationError, message: error
@@ -171,7 +171,7 @@ defmodule Cloak.Aql.Compiler do
     |> add_info_message("Limit adjusted from #{limit} to #{aligned}")
   end
 
-  defp validate_uid(subquery) do
+  defp validate_uid(subquery, alias) do
     case Enum.find(subquery.db_columns, &(&1.user_id?)) do
       nil ->
         possible_uid_columns =
@@ -183,7 +183,7 @@ defmodule Cloak.Aql.Compiler do
           end
 
         raise CompilationError, message:
-          "Missing a user id column in the select list of a subquery. " <>
+          "Missing a user id column in the select list of subquery `#{alias}`. " <>
           "To fix this error, add #{possible_uid_columns} to the subquery select list."
       _ ->
         subquery
