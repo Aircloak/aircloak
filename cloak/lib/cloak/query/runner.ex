@@ -160,63 +160,51 @@ defmodule Cloak.Query.Runner do
       |> limit(query)
     end)
 
-  defp successful_result(result, query), do:
-    {:ok, result, Enum.reverse(query.info)}
+  defp successful_result(result, query), do: {:ok, result, Enum.reverse(query.info)}
 
 
   # -------------------------------------------------------------------
   # Result reporting
   # -------------------------------------------------------------------
 
-  defp report_result(state, {:ok, result, info}) do
-    state = add_execution_time(state)
-    log_completion(state, status: :success, row_count: length(result.buckets))
-    result = %{
-      columns: result.columns,
-      rows: result.buckets,
-      info: info,
-      execution_time: execution_time_in_s(state),
-      users_count: result.users_count,
-      features: result.features,
-    }
-    send_result(state, result)
-  end
-  defp report_result(state, {:error, reason}) do
-    state = add_execution_time(state)
-    log_completion(state, status: :error, reason: reason)
-    send_result(state, %{error: format_error_reason(reason), execution_time: execution_time_in_s(state)})
+  defp report_result(state, result) do
+    result =
+      result
+      |> format_result()
+      |> Map.put(:query_id, state.query_id)
+      |> Map.put(:execution_time, execution_time_in_seconds(state))
+    log_completion(result)
+    Cloak.ResultSender.send_result(state.result_target, result)
   end
 
-  defp send_result(%{result_target: target, query_id: query_id}, partial_result) do
-    Cloak.ResultSender.send_result(target, Map.put(partial_result, :query_id, query_id))
-  end
-
-  defp log_completion(state, options) do
+  defp log_completion(result) do
     message = Poison.encode!(%{
-      query_id: state.query_id,
+      query_id: result.query_id,
       type: :query_complete,
-      execution_time: state.execution_time,
-      status: Keyword.get(options, :status),
-      reason: Keyword.get(options, :reason, ""),
-      row_count: Keyword.get(options, :row_count, 0),
+      execution_time: result.execution_time,
+      status: result[:error] || "Successful.",
     })
 
     Logger.info("JSON_LOG #{message}")
   end
 
-  defp format_error_reason(text) when is_binary(text), do: text
-  defp format_error_reason(reason) do
+  defp format_result({:ok, result, info}), do:
+    %{
+      columns: result.columns,
+      rows: result.buckets,
+      info: info,
+      users_count: result.users_count,
+      features: result.features,
+    }
+  defp format_result({:error, reason}) when is_binary(reason), do:
+    %{error: reason}
+  defp format_result({:error, reason}) do
     Logger.error("Unknown query error: #{inspect(reason)}")
-    "Unknown cloak error."
+    format_result({:error, "Unknown cloak error."})
   end
 
-  defp add_execution_time(state) do
-    %{state | execution_time: :erlang.monotonic_time(:milli_seconds) - state.start_time}
-  end
-
-  defp execution_time_in_s(%{execution_time: execution_time}) do
-    div(execution_time, 1000)
-  end
+  defp execution_time_in_seconds(state), do:
+    div(:erlang.monotonic_time(:milli_seconds) - state.start_time, 1000)
 
   defp limit(result, %Query{limit: nil}), do: result
   defp limit(%Result{buckets: buckets} = result, %Query{limit: amount}) do

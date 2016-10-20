@@ -15,7 +15,7 @@ The `SELECT` statement can be used to obtain anonymized data from tables. See [U
 The syntax conforms to the standard SQL syntax, but only a subset of features is supported. The general shape of the query looks like:
 
 <pre style="float:left; background-color:inherit; color:inherit; text-shadow:inherit; padding-top: inherit;">
-  SELECT
+  SELECT [DISTINCT]
     column_expression [, ...]
     FROM from_expression [, ...]
     [ WHERE where_expression [AND ...] ]

@@ -138,8 +138,10 @@ defmodule Cloak.Aql.QueryTest do
   end
 
   defp features_from(query) do
-    [data_source] = Cloak.DataSource.all()
-    query = Query.make!(data_source, query)
+    [first_ds | rest_ds] = Cloak.DataSource.all()
+    query = Query.make!(first_ds, query)
+    for data_source <- rest_ds, do:
+      assert(query == Query.make!(data_source, query))
     Query.extract_features(query)
   end
 end
