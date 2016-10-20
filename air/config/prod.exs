@@ -54,3 +54,9 @@ config :air, Air.BOM,
 
 config :air, Air.PsqlServer,
   port: 5432
+
+# Where to expect the Central endpoint to be located
+config :air, :central,
+  central_site: "wss://central.aircloak.com",
+  min_reconnect_interval: 1,
+  max_reconnect_interval: 100

@@ -58,6 +58,8 @@ defmodule Air.Mixfile do
       {:phoenix_ecto, "~> 3.0"},
       {:phoenix_html, "~> 2.4"},
       {:phoenix_live_reload, "~> 1.0", only: :dev},
+      {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client"},
+      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
       {:gettext, "~> 0.9"},
       {:cowboy, "~> 1.0"},
       {:comeonin, "~> 2.5"},
@@ -69,8 +71,6 @@ defmodule Air.Mixfile do
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
       {:csv, "~> 1.4.2"},
-      {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", only: :test},
-      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0", only: :test},
       {:phoenix_mtm, "~> 0.5.0"}
     ]
   end
@@ -97,7 +97,7 @@ defmodule Air.Mixfile do
   defp ignored_credo_checks(_), do:
     ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 
-  defp applications(:test), do: [:phoenix_gen_socket_client, :websocket_client | common_applications()]
+  defp applications(:test), do: common_applications()
   defp applications(:dev), do: common_applications() ++ dialyzer_required_deps()
   defp applications(:prod), do: common_applications()
 
@@ -105,7 +105,7 @@ defmodule Air.Mixfile do
     [
       :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
       :lhttpc, :hackney, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv,
-      :phoenix_pubsub, :phoenix_mtm, :ranch
+      :phoenix_pubsub, :phoenix_mtm, :ranch, :phoenix_gen_socket_client, :websocket_client,
     ]
   end
 

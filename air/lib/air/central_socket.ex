@@ -1,0 +1,216 @@
+defmodule Air.CentralSocket do
+  @moduledoc """
+  Client side of the socket connection to the Central system.
+
+  This module will connect to the Central system. The connection parameters are
+  hardcoded in the configuration file. If the connection can't be established,
+  the process will attempt to reconnect in regular intervals specified in the
+  configuration file.
+  """
+
+  require Logger
+  require Aircloak.DeployConfig
+  alias Phoenix.Channels.GenSocketClient
+
+  @behaviour GenSocketClient
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Starts the socket client."
+  @spec start_link(%{}, GenServer.options) :: GenServer.on_start
+  def start_link(air_params \\ air_params(), gen_server_opts \\ [name: __MODULE__]) do
+    GenSocketClient.start_link(
+      __MODULE__,
+      GenSocketClient.Transport.WebSocketClient,
+      central_socket_url(air_params),
+      [
+        serializer: config(:serializer),
+        transport_opts: [
+          keepalive: :timer.seconds(30)
+        ]
+      ],
+      gen_server_opts
+    )
+  end
+
+
+  # -------------------------------------------------------------------
+  # GenSocketClient callbacks
+  # -------------------------------------------------------------------
+
+  @doc false
+  def init(air_socket_url) do
+    initial_interval = config(:min_reconnect_interval)
+    state = %{
+      pending_calls: %{},
+      reconnect_interval: initial_interval,
+      rejoin_interval: initial_interval
+    }
+    Logger.info("Trying to connect to Central on #{air_socket_url}")
+    {:connect, air_socket_url, state}
+  end
+
+  @doc false
+  def handle_connected(_transport, state) do
+    Logger.info("connected")
+    send(self(), {:join, "main"})
+    initial_interval = config(:min_reconnect_interval)
+    {:ok, %{state | reconnect_interval: initial_interval}}
+  end
+
+  @doc false
+  def handle_disconnected(reason, %{reconnect_interval: interval} = state) do
+    log_disconnected(reason)
+    Process.send_after(self(), :connect, interval)
+    {:ok, %{state | reconnect_interval: next_interval(interval)}}
+  end
+
+  @doc false
+  def handle_joined(topic, _payload, _transport, state) do
+    Logger.info("joined the topic #{topic}")
+    initial_interval = config(:min_reconnect_interval)
+    {:ok, %{state | rejoin_interval: initial_interval}}
+  end
+
+  @doc false
+  def handle_join_error(topic, payload, _transport, state) do
+    Logger.error("join error on the topic #{topic}: #{inspect payload}")
+    {:ok, state}
+  end
+
+  @doc false
+  def handle_channel_closed(topic, payload, _transport, %{rejoin_interval: interval} = state) do
+    Logger.error("disconnected from the topic #{topic}: #{inspect payload}")
+    Process.send_after(self(), {:join, topic}, interval)
+    {:ok, %{state | rejoin_interval: next_interval(interval)}}
+  end
+
+  @doc false
+  def handle_message("main", "central_call", request, transport, state) do
+    handle_central_call(request["event"], request["payload"], {transport, request["request_id"]}, state)
+  end
+  def handle_message("main", "call_response", payload, _transport, state) do
+    request_id = payload["request_id"]
+    case Map.fetch(state.pending_calls, request_id) do
+      {:ok, request_data} ->
+        Process.cancel_timer(request_data.timeout_ref)
+        response = case payload["status"] do
+          "ok" -> {:ok, payload["result"]}
+          "error" -> {:error, payload["result"]}
+          _other -> {:error, {:invalid_status, payload}}
+        end
+        respond_to_internal_request(request_data.from, response)
+      :error ->
+        Logger.warn("unknown sync call response: #{inspect payload}")
+    end
+    {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
+  end
+  def handle_message(topic, event, payload, _transport, state) do
+    Logger.warn("unhandled message on topic #{topic}: #{event} #{inspect payload}")
+    {:ok, state}
+  end
+
+  @doc false
+  def handle_reply(topic, _ref, payload, _transport, state) do
+    Logger.warn("unhandled reply on topic #{topic}: #{inspect payload}")
+    {:ok, state}
+  end
+
+  @doc false
+  def handle_info(:connect, _transport, state) do
+    log_connect()
+    {:connect, state}
+  end
+  def handle_info({:join, topic}, transport, state) do
+    case GenSocketClient.join(transport, topic, get_join_info()) do
+      {:error, reason} ->
+        Logger.error("error joining the topic #{topic}: #{inspect reason}")
+        Process.send_after(self(), {:join, topic}, config(:rejoin_interval))
+      {:ok, _ref} -> :ok
+    end
+    {:ok, state}
+  end
+  def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, transport, state) do
+    request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
+    GenSocketClient.push(transport, "main", "cenrtal_call",
+      %{request_id: request_id, event: event, payload: payload})
+    timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
+    {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
+  end
+  def handle_info({:call_timeout, request_id}, _transport, state) do
+    # We're just removing entries here without responding. It is the responsibility of the
+    # client code to give up at some point.
+    Logger.warn("#{request_id} sync call timeout")
+    {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
+  end
+  def handle_info(message, _transport, state) do
+    Logger.warn("unhandled message #{inspect message}")
+    {:ok, state}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Handling central sync calls
+  # -------------------------------------------------------------------
+
+  defp handle_central_call(event, payload, _from, state) do
+    Logger.info("Received call from central: #{event}, with payload: #{inspect payload}")
+    {:ok, state}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp central_socket_url(air_params) do
+    config(:central_site)
+    |> URI.parse()
+    |> Map.put(:path, "/air/socket/websocket")
+    |> Map.put(:query, URI.encode_query(air_params))
+    |> URI.to_string()
+  end
+
+  defp respond_to_internal_request({client_pid, mref}, response) do
+    send(client_pid, {mref, response})
+  end
+
+  defp air_params() do
+    %{air_name: cloak_name()}
+  end
+
+  defp cloak_name() do
+    vm_short_name =
+      Node.self()
+      |> Atom.to_string()
+      |> String.split("@")
+      |> hd()
+    {:ok, hostname} = :inet.gethostname()
+
+    "#{vm_short_name}@#{hostname}"
+  end
+
+  defp get_join_info() do
+    %{cloaks: []}
+  end
+
+  defp next_interval(current_interval) do
+    min(current_interval * 2, config(:max_reconnect_interval))
+  end
+
+  defp config(key) do
+    Application.get_env(:air, :central) |> Keyword.fetch!(key)
+  end
+
+  if Mix.env == :dev do
+    # suppressing of some common log messages in dev env to avoid excessive noise
+    defp log_connect(), do: :ok
+    defp log_disconnected(_reason), do: :ok
+  else
+    defp log_connect(), do: Logger.info("connecting")
+    defp log_disconnected(reason), do: Logger.error("disconnected: #{inspect reason}")
+  end
+end

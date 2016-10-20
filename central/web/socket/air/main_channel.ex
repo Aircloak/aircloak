@@ -25,7 +25,7 @@ defmodule Central.Socket.Air.MainChannel do
   @doc false
   def terminate(_reason, socket) do
     air_id = socket.assigns.air_id
-    Logger.info("air '#{air_id}' left air")
+    Logger.info("air '#{air_id}' left central")
     {:ok, socket}
   end
 

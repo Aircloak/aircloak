@@ -16,8 +16,26 @@ defmodule Air.Supervisor do
       worker(Air.Endpoint, []),
       worker(Air.BOM, []),
       Air.PsqlServer.RanchServer.supervisor_spec()
-    ]
+    ] ++ system_processes()
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Air.Supervisor)
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  unless Mix.env == :test do
+    # Processes which we don't want to start in the test environment
+    defp system_processes do
+      import Supervisor.Spec, warn: false
+
+      [
+        worker(Air.CentralSocket, [])
+      ]
+    end
+  else
+    defp system_processes, do: []
   end
 end
