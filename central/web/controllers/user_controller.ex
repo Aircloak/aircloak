@@ -2,7 +2,7 @@ defmodule Central.UserController do
   @moduledoc false
   use Central.Web, :controller
 
-  alias Central.Schemas.User
+  alias Central.{Schemas, Service}
 
   plug :load_user when action in [:edit, :update, :delete]
 
@@ -12,24 +12,21 @@ defmodule Central.UserController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    users = Repo.all(User)
-    render(conn, "index.html", users: users)
+    render(conn, "index.html", users: Service.User.all())
   end
 
   def new(conn, _params) do
-    changeset = User.changeset(%User{})
-    render(conn, "new.html", changeset: changeset)
+    render(conn, "new.html", changeset: Schemas.User.empty_changeset())
   end
 
   def edit(conn, _params) do
     user = conn.assigns.user
-    render(conn, "edit.html", changeset: User.changeset(user), user: user)
+    render(conn, "edit.html", changeset: Schemas.User.changeset(user), user: user)
   end
 
   def create(conn, params) do
-    changeset = User.new_user_changeset(%User{}, params["user"])
-    case Repo.insert(changeset) do
-      {:ok, user} ->
+    case Service.User.create(params["user"]) do
+      {:ok, _user} ->
         conn
         |> put_flash(:info, "User created")
         |> redirect(to: user_path(conn, :index))
@@ -38,9 +35,8 @@ defmodule Central.UserController do
   end
 
   def update(conn, params) do
-    changeset = User.changeset(conn.assigns.user, params["user"])
-    case Repo.update(changeset) do
-      {:ok, user} ->
+    case Service.User.update(conn.assigns.user, params["user"]) do
+      {:ok, _user} ->
         conn
         |> put_flash(:info, "User updated")
         |> redirect(to: user_path(conn, :index))
@@ -49,11 +45,16 @@ defmodule Central.UserController do
   end
 
   def delete(conn, _params) do
-    user = conn.assigns.user
-    Repo.delete!(user)
-    conn
-    |> put_flash(:info, "User deleted")
-    |> redirect(to: user_path(conn, :index))
+    case Service.User.delete(conn.assigns.user) do
+      :ok ->
+        conn
+        |> put_flash(:info, "User deleted")
+        |> redirect(to: user_path(conn, :index))
+      :error ->
+        conn
+        |> put_flash(:error, "Could not delete the user")
+        |> redirect(to: user_path(conn, :index))
+    end
   end
 
 
@@ -62,14 +63,14 @@ defmodule Central.UserController do
   # -------------------------------------------------------------------
 
   defp load_user(conn, _) do
-    case Repo.get(User, conn.params["id"]) do
-      nil ->
+    case Service.User.get(conn.params["id"]) do
+      {:error, :not_found} ->
         conn
         |> put_layout(false)
         |> put_status(:not_found)
         |> render(Central.ErrorView, "404.html")
         |> halt()
-      user -> assign(conn, :user, user)
+      {:ok, user} -> assign(conn, :user, user)
     end
   end
 end

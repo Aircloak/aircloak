@@ -1,10 +1,11 @@
 defmodule Central.Schemas.User do
-  @moduledoc "The user model."
+  @moduledoc "The user schema."
   require Logger
 
   use Central.Web, :model
 
   alias Ecto.Changeset
+  alias Central.Schemas.User
   alias Comeonin.Pbkdf2, as: Hash
 
   @type t :: %__MODULE__{}
@@ -47,6 +48,12 @@ defmodule Central.Schemas.User do
     |> validate_confirmation(:password)
     |> update_password_hash
     |> unique_constraint(:email)
+  end
+
+  @doc "Returns an empty changeset to use in forms"
+  @spec empty_changeset() :: Changeset.t
+  def empty_changeset() do
+    User.changeset(%User{})
   end
 
   @doc """
