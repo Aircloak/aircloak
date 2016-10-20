@@ -16,7 +16,7 @@ defmodule Cloak.Aql.FixAlign do
   def align(x) when x < 0, do: -align(-x)
   def align(x) when x > 0 do
     baseline = order_of_magnitude(x)
-    Enum.min_by([baseline, baseline * 2, baseline * 5, baseline * 10], fn(y) -> abs(x - y) end)
+    Enum.min_by([baseline * 10, baseline * 5, baseline * 2, baseline], fn(y) -> abs(x - y) end)
   end
   def align(_), do: 0
 
