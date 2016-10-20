@@ -1,4 +1,4 @@
-defmodule Central.User do
+defmodule Central.Schemas.User do
   @moduledoc "The user model."
   require Logger
 

@@ -1,7 +1,7 @@
 defmodule Central.UserTest do
   use Central.ModelCase, async: true
 
-  alias Central.User
+  alias Central.Schemas.User
 
   @valid_attrs %{
     email: "admin@aircloak.com",

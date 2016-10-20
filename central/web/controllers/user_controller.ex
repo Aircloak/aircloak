@@ -2,7 +2,7 @@ defmodule Central.UserController do
   @moduledoc false
   use Central.Web, :controller
 
-  alias Central.User
+  alias Central.Schemas.User
 
   plug :load_user when action in [:edit, :update, :delete]
 

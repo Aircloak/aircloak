@@ -3,7 +3,8 @@ defmodule Central.GuardianSerializer do
   @behaviour Guardian.Serializer
 
   import Ecto.Query, only: [from: 2]
-  alias Central.{Repo, User}
+  alias Central.Repo
+  alias Central.Schemas.User
 
   # Temporarily suppress dialyzer due to typespec error in Guardian
   @dialyzer {:nowarn_function, for_token: 1}

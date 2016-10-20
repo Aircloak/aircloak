@@ -1,7 +1,8 @@
 defmodule Central.Service.User do
   @moduledoc "Service module for working with users"
 
-  alias Central.{Repo, User}
+  alias Central.Repo
+  alias Central.Schemas.User
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
