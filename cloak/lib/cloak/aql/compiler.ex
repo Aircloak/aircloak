@@ -159,6 +159,7 @@ defmodule Cloak.Aql.Compiler do
         |> validate_uid(alias)
         |> validate_offset(alias)
         |> align_limit()
+        |> align_offset()
       {:error, error} -> raise CompilationError, message: error
     end
   end
@@ -167,8 +168,23 @@ defmodule Cloak.Aql.Compiler do
   defp align_limit(query = %{limit: nil}), do: query
   defp align_limit(query = %{limit: limit}) do
     aligned = limit |> FixAlign.align() |> round() |> max(@minimum_subquery_limit)
-    %{query | limit: aligned}
-    |> add_info_message("Limit adjusted from #{limit} to #{aligned}")
+    if aligned != limit do
+      %{query | limit: aligned}
+      |> add_info_message("Limit adjusted from #{limit} to #{aligned}")
+    else
+      query
+    end
+  end
+
+  defp align_offset(query = %{offset: 0}), do: query
+  defp align_offset(query = %{limit: limit, offset: offset}) do
+    aligned = round(offset / limit) * limit
+    if aligned != offset do
+      %{query | offset: aligned}
+      |> add_info_message("Offset adjusted from #{offset} to #{aligned}")
+    else
+      query
+    end
   end
 
   defp validate_uid(subquery, alias) do
