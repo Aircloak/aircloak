@@ -525,12 +525,14 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   test "offset requires limit in subqueries" do
-    assert {:error, error} = compile("select count(*) from (select * from table order by numeric offset 20) foo", data_source())
+    assert {:error, error} = compile("select count(*) from (select * from table order by numeric offset 20) foo",
+      data_source())
     assert error =~ ~r/Subquery `foo` has an OFFSET clause without a LIMIT clause/
   end
 
   test "offset must be a multiple of limit post-alignment" do
-    result = compile!("select count(*) from (select * from table order by numeric limit 20 offset 31) foo", data_source())
+    result = compile!("select count(*) from (select * from table order by numeric limit 20 offset 31) foo",
+      data_source())
     assert %{from: {:subquery, %{ast: %{offset: 40}}}} = result
     assert ["Offset adjusted from 31 to 40"] = result.info
   end
