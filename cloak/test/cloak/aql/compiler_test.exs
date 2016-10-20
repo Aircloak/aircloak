@@ -513,7 +513,11 @@ defmodule Cloak.Aql.Compiler.Test do
     assert ["Limit adjusted from 24 to 20"] = result.info
   end
 
-  test "minimum limit is 10 in subqueries"
+  test "minimum limit is 10 in subqueries" do
+    result = compile!("select count(*) from (select * from table order by numeric limit 5) foo", data_source())
+    assert %{from: {:subquery, %{ast: %{limit: 10}}}} = result
+    assert ["Limit adjusted from 5 to 10"] = result.info
+  end
 
   test "limit is not changed in the root query" do
     result = compile!("select * from table order by numeric limit 9", data_source())

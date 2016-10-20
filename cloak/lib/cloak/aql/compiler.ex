@@ -162,9 +162,10 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
+  @minimum_subquery_limit 10
   defp align_limit(query = %{limit: nil}), do: query
   defp align_limit(query = %{limit: limit}) do
-    aligned = limit |> FixAlign.align() |> round()
+    aligned = limit |> FixAlign.align() |> round() |> max(@minimum_subquery_limit)
     %{query | limit: aligned}
     |> add_info_message("Limit adjusted from #{limit} to #{aligned}")
   end
