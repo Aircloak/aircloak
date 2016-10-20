@@ -133,7 +133,8 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_subqueries(%Query{from: nil} = query), do: query
   defp compile_subqueries(query) do
-    %Query{query | from: do_compile_subqueries(query.from, query.data_source)}
+    compiled = do_compile_subqueries(query.from, query.data_source)
+    %Query{query | from: compiled, info: query.info ++ gather_info(compiled)}
   end
 
   defp do_compile_subqueries({:join, join}, data_source) do
@@ -147,11 +148,25 @@ defmodule Cloak.Aql.Compiler do
   end
   defp do_compile_subqueries(identifier = {_, table}, _data_source) when is_binary(table), do: identifier
 
+  defp gather_info({:join, %{lhs: lhs, rhs: rhs}}), do: gather_info(rhs) ++ gather_info(lhs)
+  defp gather_info({:subquery, subquery}), do: subquery.ast.info
+  defp gather_info(_), do: []
+
   defp compiled_subquery(data_source, parsed_query) do
     case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
-      {:ok, compiled_query} -> validate_subquery(compiled_query)
+      {:ok, compiled_query} ->
+        compiled_query
+        |> validate_subquery()
+        |> align_limit()
       {:error, error} -> raise CompilationError, message: error
     end
+  end
+
+  defp align_limit(query = %{limit: nil}), do: query
+  defp align_limit(query = %{limit: limit}) do
+    aligned = limit |> FixAlign.align() |> round()
+    %{query | limit: aligned}
+    |> add_info_message("Limit adjusted from #{limit} to #{aligned}")
   end
 
   defp validate_subquery(subquery) do
