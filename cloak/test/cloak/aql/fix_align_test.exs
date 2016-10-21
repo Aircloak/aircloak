@@ -29,6 +29,13 @@ defmodule Cloak.Aql.FixAlign.Test do
     end
   end
 
+  property "aligned datetime interval contains both ends of the input" do
+    for_all {x, y} in datetime_interval do
+      {left, right} = FixAlign.align_interval({x, y})
+      Timex.diff(x, left) >= 0 && Timex.diff(right, y) >= 0
+    end
+  end
+
   property "align_interval is idempotent on integer intervals" do
     for_all interval in int_interval do
       interval |> FixAlign.align_interval() == interval |> FixAlign.align_interval() |> FixAlign.align_interval()
@@ -70,10 +77,29 @@ defmodule Cloak.Aql.FixAlign.Test do
 
   defp interval(:int), do: int_interval
   defp interval(:float), do: float_interval
+  defp interval(:datetime), do: datetime_interval
 
   defp int_interval, do: such_that({x, y} in {int, int} when x < y)
 
   defp float_interval, do: such_that({x, y} in {float, float} when x < y)
+
+  defp datetime_interval, do: such_that({x, y} in {datetime, datetime} when Timex.diff(x, y) < 0)
+
+  defp datetime do
+    domain(
+      :datetime,
+      fn(domain, size) ->
+        size = size |> :math.pow(4) |> round()
+        {domain, Timex.shift(~N[2000-06-15 12:20:30], seconds: draw(int, size))}
+      end,
+      fn(domain, item) -> {domain, item} end
+    )
+  end
+
+  defp draw(domain, size) do
+    {_, result} = pick(domain, size)
+    result
+  end
 
   defp even_power_of_10?(x) do
     log = :math.log10(x)

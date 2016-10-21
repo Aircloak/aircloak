@@ -25,12 +25,19 @@ defmodule Cloak.Aql.FixAlign do
   the input interval. Both ends of the input will be contained inside the output.
   """
   @spec align_interval(interval) :: interval
-  def align_interval({x, y}) when x > y, do: raise "Invalid interval"
-  def align_interval(interval) do
+  def align_interval({x, y}) when is_number(x) and is_number(y) and x > y, do: raise "Invalid interval"
+  def align_interval(interval = {x, y}) when is_number(x) and is_number(y) do
     interval
     |> sizes()
     |> Stream.map(&snap(&1, interval))
     |> Enum.find(&(&1))
+  end
+  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}) do
+    if Timex.diff(y, x) <= 0 do
+      raise "Invalid interval"
+    else
+      {x, y}
+    end
   end
 
 
