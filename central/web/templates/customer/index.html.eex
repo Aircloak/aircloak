@@ -17,6 +17,7 @@
       <tr>
         <td><%= customer.name %></td>
         <td>
+          <%= link "Token", to: customer_token_path(@conn, :token, customer), class: "btn btn-default btn-xs" %>
           <%= link "Edit", to: customer_path(@conn, :edit, customer), class: "btn btn-default btn-xs" %>
           <%= link "Delete", to: customer_path(@conn, :delete, customer), method: :delete, class: "btn btn-danger btn-xs" %>
         </td>

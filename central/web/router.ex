@@ -28,7 +28,9 @@ defmodule Central.Router do
   scope "/", Central do
     pipe_through [:browser, :browser_auth]
     resources "/users", UserController
-    resources "/customers", CustomerController
+    resources "/customers", CustomerController do
+      get "/token", CustomerController, :token, as: :token
+    end
 
     get "/", UserController, :index
     delete "/logout", SessionController, :delete

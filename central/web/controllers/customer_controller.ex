@@ -4,7 +4,7 @@ defmodule Central.CustomerController do
 
   alias Central.{Schemas, Service}
 
-  plug :load_customer when action in [:edit, :update, :delete]
+  plug :load_customer when action in [:edit, :update, :delete, :token]
 
 
   # -------------------------------------------------------------------
@@ -17,6 +17,12 @@ defmodule Central.CustomerController do
 
   def new(conn, _params) do
     render(conn, "new.html", changeset: Schemas.Customer.empty_changeset())
+  end
+
+  def token(conn, _params) do
+    customer = conn.assigns.customer
+    {:ok, token} = Service.Customer.generate_token(conn.assigns.customer)
+    render(conn, "token.html", customer: customer, token: token)
   end
 
   def edit(conn, _params) do
@@ -63,7 +69,8 @@ defmodule Central.CustomerController do
   # -------------------------------------------------------------------
 
   defp load_customer(conn, _) do
-    case Service.Customer.get(conn.params["id"]) do
+    id = conn.params["id"] || conn.params["customer_id"]
+    case Service.Customer.get(id) do
       {:error, :not_found} ->
         conn
         |> put_layout(false)
