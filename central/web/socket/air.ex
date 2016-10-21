@@ -14,6 +14,8 @@ defmodule Central.Socket.Air do
   use Phoenix.Socket
   require Logger
 
+  alias Central.Service.Customer
+
   transport :websocket, Phoenix.Transports.WebSocket, serializer: Central.Socket.Air.Serializer
 
   # List of exposed channels
@@ -27,30 +29,28 @@ defmodule Central.Socket.Air do
   @doc false
   def connect(params, socket) do
     Logger.info("Air connecting #{inspect params}")
-    air_name = params["air_name"]
-    if valid_required_param?(air_name) do
-      air_id = "#{air_name}"
-      {:ok,
-        socket
-        |> assign(:air_id, air_id)
-        |> assign(:name, air_name)
-      }
-    else
-      Logger.info("Connection refused")
-      :error
+    case values_from_params(params) do
+      {:ok, token, air_name} ->
+        case Customer.from_token(params["token"]) do
+          {:ok, customer} -> {:ok, assign(socket, :customer, customer)}
+          {:error, :invalid_token} ->
+            Logger.info("Connection refused - invalid customer token")
+            :error
+        end
+      :error ->
+        Logger.info("Connection refused - incomplete parameters")
+        :error
     end
   end
 
   @doc false
   def id(socket),
-    do: "air_socket:#{socket.assigns.air_id}"
-
+    do: "air_socket:#{socket.assigns.customer.id}"
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp valid_required_param?(nil), do: false
-  defp valid_required_param?(""), do: false
-  defp valid_required_param?(_value), do: true
+  defp values_from_params(%{"token" => token, "air_name" => air_name}), do: {:ok, token, air_name}
+  defp values_from_params(_), do: :error
 end

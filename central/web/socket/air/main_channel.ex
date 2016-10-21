@@ -19,13 +19,15 @@ defmodule Central.Socket.Air.MainChannel do
   @doc false
   def join("main", air_info, socket) do
     Process.flag(:trap_exit, true)
+    customer = socket.assigns.customer
+    Logger.info("air for '#{customer.name}' (id: #{customer.id}) joined central")
     {:ok, %{}, socket}
   end
 
   @doc false
   def terminate(_reason, socket) do
-    air_id = socket.assigns.air_id
-    Logger.info("air '#{air_id}' left central")
+    customer = socket.assigns.customer
+    Logger.info("air for '#{customer.name}' (id: #{customer.id}) left central")
     {:ok, socket}
   end
 

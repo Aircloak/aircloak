@@ -179,7 +179,7 @@ defmodule Air.CentralSocket do
   end
 
   defp air_params() do
-    %{air_name: cloak_name()}
+    %{air_name: cloak_name(), token: customer_token()}
   end
 
   defp cloak_name() do
@@ -200,6 +200,8 @@ defmodule Air.CentralSocket do
   defp next_interval(current_interval) do
     min(current_interval * 2, config(:max_reconnect_interval))
   end
+
+  defp customer_token(), do: Air.site_setting("customer_token")
 
   defp config(key) do
     Application.get_env(:air, :central) |> Keyword.fetch!(key)
