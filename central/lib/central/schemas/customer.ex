@@ -4,12 +4,14 @@ defmodule Central.Schemas.Customer do
   use Central.Web, :model
 
   alias Ecto.Changeset
-  alias Central.Schemas.Customer
+  alias Central.Schemas.{Customer, Query}
 
   @type t :: %__MODULE__{}
 
   schema "customers" do
     field :name, :string
+
+    has_many :queries, Query
 
     timestamps
   end

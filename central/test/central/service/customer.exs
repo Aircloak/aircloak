@@ -72,6 +72,22 @@ defmodule Central.Service.CustomerTest do
     assert {:error, :invalid_token} = Customer.from_token("bogus token")
   end
 
+  test "records query executions" do
+    params = %{"user_count" => 10, "features" => %{"some" => "features"}}
+    customer = create_customer()
+    assert :ok == Customer.record_query(customer, params)
+    customer = Repo.preload(customer, :queries)
+    [query] = customer.queries
+    assert query.user_count == 10
+    assert query.features == %{"some" => "features"}
+  end
+
+  test "fails to record query executions when invalid params" do
+    params = %{}
+    customer = create_customer()
+    assert :error == Customer.record_query(customer, params)
+  end
+
   defp create_customer(name \\ "default customer") do
     assert {:ok, customer} = Repo.insert(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
     customer

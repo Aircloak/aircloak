@@ -1,9 +1,11 @@
 defmodule Central.Service.Customer do
   @moduledoc "Service module for working with users"
 
+  require Logger
+
   alias Ecto.Changeset
   alias Central.Repo
-  alias Central.Schemas.Customer
+  alias Central.Schemas.{Customer, Query}
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -70,6 +72,21 @@ defmodule Central.Service.Customer do
           other -> other
         end
       _ -> {:error, :invalid_token}
+    end
+  end
+
+  @doc "Records a query execution associated with a customer"
+  @spec record_query(Customer.t, Map.t) :: :ok | :error
+  def record_query(customer, params) do
+    changeset = customer
+      |> Ecto.build_assoc(:queries)
+      |> Query.changeset(%{user_count: params["user_count"], features: params["features"]})
+    case Repo.insert(changeset) do
+      {:ok, _} -> :ok
+      {:error, changeset} ->
+        Logger.error("Failed to insert query for customer #{customer.name} (#{customer.id}): " <>
+          inspect(changeset))
+        :error
     end
   end
 
