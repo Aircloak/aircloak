@@ -507,6 +507,36 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error =~ ~r/Bucket size -10 must be > 0/
   end
 
+  test "limit is aligned with a message in subqueries" do
+    result = compile!("select count(*) from (select * from table order by numeric limit 24) foo", data_source())
+    assert %{from: {:subquery, %{ast: %{limit: 20}}}} = result
+    assert ["Limit adjusted from 24 to 20"] = result.info
+  end
+
+  test "minimum limit is 10 in subqueries" do
+    result = compile!("select count(*) from (select * from table order by numeric limit 5) foo", data_source())
+    assert %{from: {:subquery, %{ast: %{limit: 10}}}} = result
+    assert ["Limit adjusted from 5 to 10"] = result.info
+  end
+
+  test "limit is not changed in the root query" do
+    result = compile!("select * from table order by numeric limit 9", data_source())
+    assert result.limit == 9
+  end
+
+  test "offset requires limit in subqueries" do
+    assert {:error, error} = compile("select count(*) from (select * from table order by numeric offset 20) foo",
+      data_source())
+    assert error =~ ~r/Subquery `foo` has an OFFSET clause without a LIMIT clause/
+  end
+
+  test "offset must be a multiple of limit post-alignment" do
+    result = compile!("select count(*) from (select * from table order by numeric limit 20 offset 31) foo",
+      data_source())
+    assert %{from: {:subquery, %{ast: %{offset: 40}}}} = result
+    assert ["Offset adjusted from 31 to 40"] = result.info
+  end
+
   test "math can be disabled with a config setting" do
     assert {:error, error} = compile("select numeric * 2 from table", data_source(), %{math: false})
     assert error =~ ~r/Unknown function `*`/

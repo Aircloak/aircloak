@@ -133,7 +133,8 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_subqueries(%Query{from: nil} = query), do: query
   defp compile_subqueries(query) do
-    %Query{query | from: do_compile_subqueries(query.from, query.data_source)}
+    compiled = do_compile_subqueries(query.from, query.data_source)
+    %Query{query | from: compiled, info: query.info ++ gather_info(compiled)}
   end
 
   defp do_compile_subqueries({:join, join}, data_source) do
@@ -143,18 +144,50 @@ defmodule Cloak.Aql.Compiler do
     }}
   end
   defp do_compile_subqueries({:subquery, subquery}, data_source) do
-    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast)}}
+    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast, subquery.alias)}}
   end
   defp do_compile_subqueries(identifier = {_, table}, _data_source) when is_binary(table), do: identifier
 
-  defp compiled_subquery(data_source, parsed_query) do
+  defp gather_info({:join, %{lhs: lhs, rhs: rhs}}), do: gather_info(rhs) ++ gather_info(lhs)
+  defp gather_info({:subquery, subquery}), do: subquery.ast.info
+  defp gather_info(_), do: []
+
+  defp compiled_subquery(data_source, parsed_query, alias) do
     case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
-      {:ok, compiled_query} -> validate_subquery(compiled_query)
+      {:ok, compiled_query} ->
+        compiled_query
+        |> validate_uid(alias)
+        |> validate_offset(alias)
+        |> align_limit()
+        |> align_offset()
       {:error, error} -> raise CompilationError, message: error
     end
   end
 
-  defp validate_subquery(subquery) do
+  @minimum_subquery_limit 10
+  defp align_limit(query = %{limit: nil}), do: query
+  defp align_limit(query = %{limit: limit}) do
+    aligned = limit |> FixAlign.align() |> round() |> max(@minimum_subquery_limit)
+    if aligned != limit do
+      %{query | limit: aligned}
+      |> add_info_message("Limit adjusted from #{limit} to #{aligned}")
+    else
+      query
+    end
+  end
+
+  defp align_offset(query = %{offset: 0}), do: query
+  defp align_offset(query = %{limit: limit, offset: offset}) do
+    aligned = round(offset / limit) * limit
+    if aligned != offset do
+      %{query | offset: aligned}
+      |> add_info_message("Offset adjusted from #{offset} to #{aligned}")
+    else
+      query
+    end
+  end
+
+  defp validate_uid(subquery, alias) do
     case Enum.find(subquery.db_columns, &(&1.user_id?)) do
       nil ->
         possible_uid_columns =
@@ -166,12 +199,16 @@ defmodule Cloak.Aql.Compiler do
           end
 
         raise CompilationError, message:
-          "Missing a user id column in the select list of a subquery. " <>
+          "Missing a user id column in the select list of subquery `#{alias}`. " <>
           "To fix this error, add #{possible_uid_columns} to the subquery select list."
       _ ->
         subquery
     end
   end
+
+  defp validate_offset(%{offset: offset, limit: limit}, alias) when is_nil(limit) and offset > 0, do:
+      raise CompilationError, message: "Subquery `#{alias}` has an OFFSET clause without a LIMIT clause."
+  defp validate_offset(subquery, _), do: subquery
 
 
   # -------------------------------------------------------------------

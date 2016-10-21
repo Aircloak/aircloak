@@ -62,6 +62,12 @@ defmodule Cloak.Aql.FixAlign.Test do
     end
   end
 
+  test "rounds the mid-point up" do
+    assert FixAlign.align(0.75) == 1
+    assert FixAlign.align(35) == 50
+    assert FixAlign.align(15) == 20
+  end
+
   defp interval(:int), do: int_interval
   defp interval(:float), do: float_interval
 
