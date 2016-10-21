@@ -52,13 +52,12 @@ defmodule Central.TestSocketHelper do
   end
 
   @doc "Runs the action while a air with the given name and data source exists and returns its result."
-  @spec with_air(String.t, String.t, (() -> any)) :: any
-  def with_air(air_name, data_source_name, action) do
-    socket = connect!(%{air_name: air_name})
+  @spec with_air(Map.t, (() -> any)) :: any
+  def with_air(params, action) do
+    socket = connect!(params)
 
     try do
-      data_source = %{global_id: data_source_name, tables: []}
-      join!(socket, "main", %{name: air_name, data_sources: [data_source]})
+      join!(socket, "main", %{})
       action.()
     after
       TestSocket.leave(socket, "main")

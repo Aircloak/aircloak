@@ -4,6 +4,7 @@ defmodule Central.Socket.Air.MainChannel do
   """
   use Phoenix.Channel
   require Logger
+  alias Central.Service.Customer
 
 
   # -------------------------------------------------------------------
@@ -17,7 +18,7 @@ defmodule Central.Socket.Air.MainChannel do
   # -------------------------------------------------------------------
 
   @doc false
-  def join("main", air_info, socket) do
+  def join("main", _air_info, socket) do
     Process.flag(:trap_exit, true)
     customer = socket.assigns.customer
     Logger.info("air for '#{customer.name}' (id: #{customer.id}) joined central")
@@ -54,8 +55,8 @@ defmodule Central.Socket.Air.MainChannel do
     handle_air_call(request["event"], request["payload"], request["request_id"], socket)
   end
   def handle_in(event, _payload, socket) do
-    air_id = socket.assigns.air_id
-    Logger.warn("unknown event #{event} from '#{air_id}'")
+    air_name = socket.assigns.air_name
+    Logger.warn("unknown event #{event} from '#{air_name}'")
     {:noreply, socket}
   end
 
@@ -93,9 +94,11 @@ defmodule Central.Socket.Air.MainChannel do
   # Handling air sync calls
   # -------------------------------------------------------------------
 
-  defp handle_air_call(" < TODO > ", query_result, request_id, socket) do
-    Logger.info("received result for query #{query_result["query_id"]}")
-    respond_to_air(socket, request_id, :ok)
+  defp handle_air_call("query_execution", payload, request_id, socket) do
+    Logger.info("Received query execution update with payload: #{inspect payload}")
+    customer = socket.assigns.customer
+    result = Customer.record_query(customer, payload["metrics"], payload["features"])
+    respond_to_air(socket, request_id, result)
     {:noreply, socket}
   end
 
@@ -115,21 +118,5 @@ defmodule Central.Socket.Air.MainChannel do
 
   defp respond_to_internal_request({client_pid, mref}, response) do
     send(client_pid, {mref, response})
-  end
-
-  @spec call(pid | nil, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
-  defp call(nil, _event, _payload, _timeout), do: exit(:noproc)
-  defp call(pid, event, payload, timeout) do
-    mref = Process.monitor(pid)
-    send(pid, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
-    receive do
-      {^mref, response} ->
-        Process.demonitor(mref, [:flush])
-        response
-      {:DOWN, ^mref, _, _, reason} ->
-        exit(reason)
-    after timeout ->
-      exit(:timeout)
-    end
   end
 end

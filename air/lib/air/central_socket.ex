@@ -36,6 +36,18 @@ defmodule Air.CentralSocket do
     )
   end
 
+  @doc "Records a completed query in the central - useful for billing and stats"
+  @spec record_query(Map.t) :: :ok | :error
+  def record_query(payload) do
+    case call(__MODULE__, "query_execution", payload, :timer.seconds(5)) do
+      {:ok, _} -> :ok
+      error ->
+        Logger.error("Communication with Aircloak Central, to record a query execution failed: " <>
+          inspect(error))
+        :error
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # GenSocketClient callbacks
@@ -125,7 +137,7 @@ defmodule Air.CentralSocket do
     {:connect, state}
   end
   def handle_info({:join, topic}, transport, state) do
-    case GenSocketClient.join(transport, topic, get_join_info()) do
+    case GenSocketClient.join(transport, topic, %{}) do
       {:error, reason} ->
         Logger.error("error joining the topic #{topic}: #{inspect reason}")
         Process.send_after(self(), {:join, topic}, config(:rejoin_interval))
@@ -135,7 +147,7 @@ defmodule Air.CentralSocket do
   end
   def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, transport, state) do
     request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
-    GenSocketClient.push(transport, "main", "cenrtal_call",
+    GenSocketClient.push(transport, "main", "air_call",
       %{request_id: request_id, event: event, payload: payload})
     timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
     {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
@@ -166,6 +178,21 @@ defmodule Air.CentralSocket do
   # Internal functions
   # -------------------------------------------------------------------
 
+  @spec call(GenServer.server, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
+  defp call(socket, event, payload, timeout) do
+    mref = Process.monitor(socket)
+    send(socket, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
+    receive do
+      {^mref, response} ->
+        Process.demonitor(mref, [:flush])
+        response
+      {:DOWN, ^mref, _, _, reason} ->
+        exit(reason)
+    after timeout ->
+      exit(:timeout)
+    end
+  end
+
   defp central_socket_url(air_params) do
     config(:central_site)
     |> URI.parse()
@@ -191,10 +218,6 @@ defmodule Air.CentralSocket do
     {:ok, hostname} = :inet.gethostname()
 
     "#{vm_short_name}@#{hostname}"
-  end
-
-  defp get_join_info() do
-    %{cloaks: []}
   end
 
   defp next_interval(current_interval) do

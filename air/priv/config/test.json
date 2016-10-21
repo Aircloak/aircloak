@@ -4,7 +4,7 @@
     "endpoint_key_base": "7nOn9WDwUZLjXnQah8+ocSF0r/YhYpDp0hSw4FE6Zq+Ic2TVYcDCQe+2MT8wqD/R",
     "api_token_salt": "ik/WxOrtgkv5Aervx2GPbxXYNxMOVw9QEgfe+NMUhjblzYon8ivPXGa+7Y2WI54n1inakG3wm1fQGRg7xFoIMA",
     "master_password": "super_secret_master_password",
-    "customer_token": "SFMyNTY.g3QAAAACZAAEZGF0YWECZAAGc2lnbmVkbgYAWSdP5lcB.Tsbc0JntKwUHm4kYZ9YkJOcDakBJRXFQCfpkNHbQANk"
+    "customer_token": "SFMyNTY.g3QAAAACZAAEZGF0YWEBZAAGc2lnbmVkbgYATV3G51cB.1LXLKOkgEkqewVdqnce63D281FV9mTwe1fAv8dzZpIA"
   },
 
   "database": {

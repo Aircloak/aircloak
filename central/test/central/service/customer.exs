@@ -73,19 +73,14 @@ defmodule Central.Service.CustomerTest do
   end
 
   test "records query executions" do
-    params = %{"user_count" => 10, "features" => %{"some" => "features"}}
+    metrics = %{"user_count" => 10}
+    features = %{"some" => "feature"}
     customer = create_customer()
-    assert :ok == Customer.record_query(customer, params)
+    assert :ok == Customer.record_query(customer, metrics, features)
     customer = Repo.preload(customer, :queries)
     [query] = customer.queries
-    assert query.user_count == 10
-    assert query.features == %{"some" => "features"}
-  end
-
-  test "fails to record query executions when invalid params" do
-    params = %{}
-    customer = create_customer()
-    assert :error == Customer.record_query(customer, params)
+    assert query.metrics == metrics
+    assert query.features == features
   end
 
   defp create_customer(name \\ "default customer") do

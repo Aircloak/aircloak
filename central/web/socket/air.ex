@@ -32,7 +32,11 @@ defmodule Central.Socket.Air do
     case values_from_params(params) do
       {:ok, token, air_name} ->
         case Customer.from_token(params["token"]) do
-          {:ok, customer} -> {:ok, assign(socket, :customer, customer)}
+          {:ok, customer} ->
+            socket = socket
+              |> assign(:customer, customer)
+              |> assign(:air_name, air_name)
+            {:ok, socket}
           {:error, :invalid_token} ->
             Logger.info("Connection refused - invalid customer token")
             :error

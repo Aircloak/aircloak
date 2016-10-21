@@ -6,6 +6,7 @@ defmodule Central.Socket.AirTest do
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
   alias Central.{TestSocketHelper, Repo}
+  alias Central.Service.Customer
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
@@ -30,11 +31,16 @@ defmodule Central.Socket.AirTest do
   end
 
   defp connect!(params \\ %{}) do
-    default_params = %{air_name: "air_1"}
     TestSocketHelper.connect!(Map.merge(default_params, params))
   end
 
   defp join_main_channel(socket) do
     TestSocketHelper.join!(socket, "main", %{})
+  end
+
+  defp default_params() do
+    {:ok, customer} = Customer.create(%{name: "test customer"})
+    {:ok, token} = Customer.generate_token(customer)
+    %{air_name: "air_1", token: token}
   end
 end

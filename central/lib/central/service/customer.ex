@@ -76,11 +76,11 @@ defmodule Central.Service.Customer do
   end
 
   @doc "Records a query execution associated with a customer"
-  @spec record_query(Customer.t, Map.t) :: :ok | :error
-  def record_query(customer, params) do
+  @spec record_query(Customer.t, Map.t, Map.t) :: :ok | :error
+  def record_query(customer, metrics, features) do
     changeset = customer
       |> Ecto.build_assoc(:queries)
-      |> Query.changeset(%{user_count: params["user_count"], features: params["features"]})
+      |> Query.changeset(%{metrics: metrics, features: features})
     case Repo.insert(changeset) do
       {:ok, _} -> :ok
       {:error, changeset} ->
