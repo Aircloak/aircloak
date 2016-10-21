@@ -20,6 +20,7 @@
               </a>
 
               <ul class="dropdown-menu">
+                <%= navbar_link(@conn, "Customers", customer_path(@conn, :index)) %>
                 <%= navbar_link(@conn, "Users", user_path(@conn, :index)) %>
               </ul>
             </li>
