@@ -46,4 +46,39 @@ defmodule Central.Service.Customer do
       user -> {:ok, user}
     end
   end
+
+  @doc """
+  Generates a cryptographically signed token that is tied to a customer, and can
+  be used to identify a customer through APIs.
+  """
+  @spec generate_token(Customer.t) :: {:ok, String.t}
+  def generate_token(customer) do
+    {:ok, Phoenix.Token.sign(Central.Endpoint, customer_token_salt(), customer.id)}
+  end
+
+  @doc """
+  Returns the customer associated with a token.
+  Returns an error either if the customer doesn't exist, and likewise
+  if the token is invalid.
+  """
+  @spec from_token(String.t) :: {:ok, Customer.t} | {:error, :invalid_token}
+  def from_token(token) do
+    case Phoenix.Token.verify(Central.Endpoint, customer_token_salt(), token) do
+      {:ok, customer_id} ->
+        case get(customer_id) do
+          {:error, :not_found} -> {:error, :invalid_token}
+          other -> other
+        end
+      _ -> {:error, :invalid_token}
+    end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp customer_token_salt do
+    Application.get_env(:central, Central.Endpoint) |> Keyword.fetch!(:customer_token_salt)
+  end
 end
