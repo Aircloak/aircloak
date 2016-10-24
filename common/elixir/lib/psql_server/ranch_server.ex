@@ -1,4 +1,4 @@
-defmodule Air.PsqlServer.RanchServer do
+defmodule Aircloak.PsqlServer.RanchServer do
   @moduledoc """
   Ranch powered TCP server which understands the PostgreSQL message protocol.
 
@@ -15,7 +15,7 @@ defmodule Air.PsqlServer.RanchServer do
 
   require Logger
 
-  alias Air.PsqlServer.Protocol
+  alias Aircloak.PsqlServer.Protocol
 
   defstruct [:ref, :socket, :transport, :opts, :behaviour_mod, :protocol, :login_params, assigns: %{},
     query_result: nil]

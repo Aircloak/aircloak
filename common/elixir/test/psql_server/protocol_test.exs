@@ -1,8 +1,8 @@
-defmodule Air.PsqlServer.ProtocolTest do
+defmodule Aircloak.PsqlServer.ProtocolTest do
   use ExUnit.Case, async: true
 
-  alias Air.PsqlServer.Protocol
-  import Air.PsqlServer.Protocol.Messages
+  alias Aircloak.PsqlServer.Protocol
+  import Aircloak.PsqlServer.Protocol.Messages
 
   test "invalid version number" do
     assert {:close, :unsupported_protocol_version} ==
