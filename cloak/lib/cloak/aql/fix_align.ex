@@ -4,6 +4,7 @@ defmodule Cloak.Aql.FixAlign do
   @type interval :: {number, number}
 
   @epoch ~N[1970-01-01 00:00:00]
+  @time_units [:year, :month, :day, :hour, :minute, :second]
   @days_in_year 365
   @days_in_month 30
   @months_in_year 12
@@ -50,33 +51,51 @@ defmodule Cloak.Aql.FixAlign do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp align_date_time({x, y}) do
-    [:year, :month, :day, :hour, :minute, :second]
+  defp align_date_time(interval), do: interval |> align_date_time_once() |> align_date_time_once()
+
+  defp align_date_time_once({x, y}) do
+    @time_units
     |> Enum.find(fn(component) -> duration_component(component, Timex.diff(y, x, :duration)) >= 1 end)
     |> case do
       :year ->
         {x, y}
-        |> year_since_epoch()
+        |> units_since_epoch(:year)
         |> align_interval()
-        |> datetime_from_year()
+        |> datetime_from_units(:year)
+      :month ->
+        {x, y}
+        |> units_since_epoch(:month)
+        |> align_interval()
+        |> datetime_from_units(:month)
       _ -> {x, y}
     end
   end
 
-  defp year_since_epoch({x, y}) do
-    if y == Timex.beginning_of_month(y) do
-      {year_since_epoch(x), year_since_epoch(y)}
-    else
-      {year_since_epoch(x), year_since_epoch(%{y | month: y.month + 1})}
-    end
-  end
-  defp year_since_epoch(%NaiveDateTime{year: year, month: month}) do
+  defp units_since_epoch({x, y}, unit), do:
+    {units_since_epoch(x, unit), y |> datetime_ceil(lower_unit(unit)) |> units_since_epoch(unit)}
+  defp units_since_epoch(%NaiveDateTime{year: year, month: month}, :year), do:
     year - @epoch.year + (month - @epoch.month) / @months_in_year
-  end
+  defp units_since_epoch(%NaiveDateTime{year: year, month: month, day: day}, :month), do:
+    (year - @epoch.year) * @months_in_year + (month - @epoch.month) + (day - @epoch.day) / @days_in_month
 
-  defp datetime_from_year({x, y}), do: {datetime_from_year(x), datetime_from_year(y)}
-  defp datetime_from_year(x) do
-    @epoch |> Timex.shift(months: round(@months_in_year * x))
+  defp datetime_ceil(datetime, :month), do:
+    if datetime == Timex.beginning_of_month(datetime),
+      do: datetime,
+      else: %{datetime | month: datetime.month + 1, day: 1, hour: 0, minute: 0, second: 0}
+  defp datetime_ceil(datetime, :day), do:
+    if datetime == Timex.beginning_of_day(datetime),
+      do: datetime,
+      else: %{datetime | day: datetime.day + 1, hour: 0, minute: 0, second: 0}
+
+  defp lower_unit(:second), do: :second
+  defp lower_unit(unit), do: Enum.at(@time_units, Enum.find_index(@time_units, &(&1 == unit)) + 1)
+
+  defp datetime_from_units({x, y}, unit), do: {datetime_from_units(x, unit), datetime_from_units(y, unit)}
+  defp datetime_from_units(x, :year), do: @epoch |> Timex.shift(months: round(@months_in_year * x))
+  defp datetime_from_units(x, :month) do
+    days = (x - Float.floor(x)) * @days_in_month |> round()
+    months = x |> Float.floor() |> round()
+    Timex.shift(@epoch, months: months, days: days)
   end
 
   defp duration_component(:year, duration), do: Timex.Duration.to_days(duration) / @days_in_year
