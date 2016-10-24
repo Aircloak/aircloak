@@ -81,6 +81,19 @@ before_script:
   - make deps
   - mix compile --warnings-as-errors
   - cd ..
+  # central
+  - central/set_travis_config.sh
+  - psql -U postgres -c "CREATE USER central_test CREATEDB;"
+  - psql -U postgres -c "CREATE DATABASE central_test ENCODING 'UTF8';"
+  - psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE central_test TO central_test;"
+  - psql -U postgres -c "ALTER DATABASE central_test OWNER TO central_test;"
+  - cd central
+  - make deps
+  - mix compile --warnings-as-errors
+  - MIX_ENV=test mix compile --warnings-as-errors
+  - MIX_ENV=prod mix compile --warnings-as-errors
+  - MIX_ENV=test make recreate_db
+  - cd ..
 script:
   # common/elixir
   - cd common/elixir
