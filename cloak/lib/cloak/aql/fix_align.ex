@@ -9,12 +9,24 @@ defmodule Cloak.Aql.FixAlign do
   # -------------------------------------------------------------------
 
   @doc """
+  Returns the closest money-aligned number (from the sequence ..., 0.1, 0.2, 0.5, 1, 2, 5, 10, ...). Returns
+  0 for 0. Returns -align(-x) for negative x.
+  """
+  @spec align(number) :: number
+  def align(x) when x < 0, do: -align(-x)
+  def align(x) when x > 0 do
+    baseline = order_of_magnitude(x)
+    Enum.min_by([baseline * 10, baseline * 5, baseline * 2, baseline], fn(y) -> abs(x - y) end)
+  end
+  def align(_), do: 0
+
+  @doc """
   Returns an interval that has been aligned to a fixed grid. The density of the grid depends on the size of
   the input interval. Both ends of the input will be contained inside the output.
   """
-  @spec align(interval) :: interval
-  def align({x, y}) when x > y, do: raise "Invalid interval"
-  def align(interval) do
+  @spec align_interval(interval) :: interval
+  def align_interval({x, y}) when x > y, do: raise "Invalid interval"
+  def align_interval(interval) do
     interval
     |> sizes()
     |> Stream.map(&snap(&1, interval))
@@ -50,4 +62,9 @@ defmodule Cloak.Aql.FixAlign do
   end
 
   defp large_sizes, do: Stream.iterate(1, &(&1 * 10))
+
+  defp order_of_magnitude(x) do
+    floor_log = x |> :math.log10() |> Float.floor()
+    :math.pow(10, floor_log)
+  end
 end

@@ -48,8 +48,9 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - The maximum / minimum values per-user are taken.
   - The first No users with the maximum / minimum overall values are dropped,
     where No is a noisy number with mean 4, SD 1 and lower bound 1.
-  - Final result is the average value of the top Nt remaining users,
-    where Nt is a noisy number with mean 5 and SD 1.
+  - Take the average value of the top Nt remaining users, where Nt is a noisy number with mean 5 and SD 1.
+  - Final result is the maximum / minimum between the result of the previous step and
+    the biggest / smallest value that would pass the low-count filter.
   - In case we don't have enough values available to compute the average, `null` is returned.
 
 

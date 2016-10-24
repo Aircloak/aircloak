@@ -2,7 +2,7 @@ defmodule Cloak.Aql.Function do
   @moduledoc "Includes information about functions and implementation of non-aggregation functions."
 
   alias Cloak.Aql.{Column, Parser}
-  alias Cloak.DataSource
+  alias Cloak.{DataSource, Features}
   alias Timex.Duration
 
   import Kernel, except: [apply: 2]
@@ -33,15 +33,19 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year month day weekday) =>
       %{type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
-    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
-    ~w(round trunc) => %{type_specs: %{
-       [numeric] => :integer,
-       [numeric, :integer] => :real,
+    ~w(floor ceil ceiling) => %{required_feature: :math, type_specs: %{[numeric] => :integer}},
+    ~w(round trunc) => %{required_feature: :math, type_specs: %{
+      [numeric] => :integer,
+      [numeric, :integer] => :real,
     }},
-    ~w(abs sqrt) => %{type_specs: %{[numeric] => :real}},
-    ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
-    ~w(pow ^) => %{type_specs: arithmetic_operation},
-    ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
+    [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{type_specs: %{
+      [numeric, numeric] => :real,
+    }},
+    ~w(abs) => %{required_feature: :math, type_specs: %{[numeric] => :real}},
+    ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
+    ~w(div mod %) => %{required_feature: :math, type_specs: %{[:integer, :integer] => :integer}},
+    ~w(pow ^) => %{required_feature: :math, type_specs: arithmetic_operation},
+    ~w(+) => %{required_feature: :math, type_specs: Map.merge(arithmetic_operation, %{
       [:date, :interval] => :datetime,
       [:time, :interval] => :time,
       [:datetime, :interval] => :datetime,
@@ -50,7 +54,7 @@ defmodule Cloak.Aql.Function do
       [:interval, :datetime] => :datetime,
       [:interval, :interval] => :interval,
     })},
-    ~w(-) => %{type_specs: Map.merge(arithmetic_operation, %{
+    ~w(-) => %{required_feature: :math, type_specs: Map.merge(arithmetic_operation, %{
       [:date, :date] => :interval,
       [:time, :time] => :interval,
       [:datetime, :datetime] => :interval,
@@ -59,11 +63,11 @@ defmodule Cloak.Aql.Function do
       [:datetime, :interval] => :datetime,
       [:interval, :interval] => :interval,
     })},
-    ~w(*) => %{type_specs: Map.merge(arithmetic_operation, %{
+    ~w(*) => %{required_feature: :math, type_specs: Map.merge(arithmetic_operation, %{
        [:interval, numeric] => :interval,
        [numeric, :interval] => :interval,
      })},
-    ~w(/) => %{type_specs: %{
+    ~w(/) => %{required_feature: :math, type_specs: %{
       [numeric, numeric] => :real,
       [:interval, {:or, [:integer, :real]}] => :interval,
     }},
@@ -110,8 +114,14 @@ defmodule Cloak.Aql.Function do
   def function?(_), do: false
 
   @doc "Returns true if the given function call to a known function, false otherwise."
-  @spec valid_function?(t) :: boolean
-  def valid_function?({:function, function, _}), do: Map.has_key?(@functions, function)
+  @spec valid_function?(t, Features.t) :: boolean
+  def valid_function?({:function, function, _}, features) do
+    case @functions[function] do
+      nil -> false
+      %{required_feature: feature} -> Features.has?(features, feature)
+      _ -> true
+    end
+  end
 
   @doc """
   Returns true if the given column definition is a function call to an aggregate function, false otherwise.
@@ -137,6 +147,7 @@ defmodule Cloak.Aql.Function do
   @doc "Returns the function name of the given function call."
   @spec name(t) :: String.t
   def name({:function, {:cast, _}, _}), do: "cast"
+  def name({:function, {:bucket, _}, _}), do: "bucket"
   def name({:function, name, _}), do: name
 
   @doc "Returns the return type of the given function call."
@@ -154,6 +165,7 @@ defmodule Cloak.Aql.Function do
   @doc "Returns the type of the given expression."
   @spec type(t) :: data_type
   def type(function = {:function, _, _}), do: return_type(function)
+  def type({:distinct, column}), do: type(column)
   def type(%Column{type: type}), do: type
   def type(:*), do: :any
 
@@ -168,6 +180,8 @@ defmodule Cloak.Aql.Function do
   @spec apply_to_db_row(t, DataSource.row) :: term
   def apply_to_db_row(%Column{} = column, row),
     do: Column.value(column, row)
+  def apply_to_db_row({:distinct, column}, row),
+    do: apply_to_db_row(column, row)
   def apply_to_db_row(function, row) do
     true = function?(function)
 
@@ -187,6 +201,19 @@ defmodule Cloak.Aql.Function do
     end
   end
 
+  @doc "Returns true if the argument is a call to a 'bucket' function call, false otherwise."
+  @spec bucket?(t) :: boolean
+  def bucket?({:function, {:bucket, _}, _}), do: true
+  def bucket?(_), do: false
+
+  @doc "Updates the bucket size argument of the given 'bucket' function with the given function call."
+  @spec update_bucket_size(t, (number -> number)) :: t
+  def update_bucket_size({:function, {:bucket, type}, [arg1, {:constant, size_type, size}]}, fun), do:
+    {:function, {:bucket, type}, [arg1, {:constant, size_type, fun.(size)}]}
+
+  @doc "Returns the value of the bucket size argument of the given 'bucket' function call."
+  @spec bucket_size(t) :: number
+  def bucket_size({:function, {:bucket, _}, [_, {:constant, _, size}]}), do: size
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -201,16 +228,15 @@ defmodule Cloak.Aql.Function do
       |> Enum.all?(fn({type, index}) -> type_matches?(type, Enum.at(arguments(function), index)) end)
   end
 
-  defp type_matches?(type, function = {:function, _, _}), do:
-    type_matches?(type, %{type: return_type(function)})
+  defp type_matches?(type, function = {:function, _, _}), do: type_matches?(type, %{type: return_type(function)})
+  defp type_matches?(type, {:distinct, column}), do: type_matches?(type, column)
   defp type_matches?({:optional, _}, nil), do: true
   defp type_matches?(_, nil), do: false
   defp type_matches?({:optional, type}, argument), do: type_matches?(type, argument)
   defp type_matches?({:or, types}, argument), do: Enum.any?(types, &type_matches?(&1, argument))
   defp type_matches?(:any, _), do: true
   defp type_matches?(_, :*), do: false
-  defp type_matches?(expected_type, %{type: actual_type}), do:
-    expected_type == actual_type
+  defp type_matches?(expected_type, %{type: actual_type}), do: expected_type == actual_type
 
   defp do_apply("year", [value]), do: value.year
   defp do_apply("month", [value]), do: value.month
@@ -275,6 +301,12 @@ defmodule Cloak.Aql.Function do
   defp do_apply("-", [x, y = %Duration{}]), do: do_apply("+", [x, Duration.scale(y, -1)])
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
+  defp do_apply({:bucket, :lower}, [value, bucket_size]), do:
+    Float.floor(value / bucket_size) * bucket_size
+  defp do_apply({:bucket, :upper}, [value, bucket_size]), do:
+    Float.ceil(value / bucket_size) * bucket_size
+  defp do_apply({:bucket, :middle}, [value, bucket_size]), do:
+    Float.floor(value / bucket_size) * bucket_size + 0.5 * bucket_size
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)

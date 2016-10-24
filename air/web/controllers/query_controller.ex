@@ -42,7 +42,7 @@ defmodule Air.QueryController do
       data_source_id_spec(params),
       conn.assigns.current_user,
       Map.fetch!(params, "statement"),
-      audit_log_meta(conn)
+      audit_meta: audit_log_meta(conn)
     ) do
       {:ok, query} -> json(conn, %{success: true, query_id: query.id})
       {:error, reason} -> query_error(conn, reason)

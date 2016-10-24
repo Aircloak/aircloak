@@ -8,7 +8,7 @@ defmodule Air.Group do
   """
   use Air.Web, :model
 
-  alias Air.{User, DataSource}
+  alias Air.{User, DataSource, Repo}
 
   @type t :: %__MODULE__{}
 
@@ -43,5 +43,7 @@ defmodule Air.Group do
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> unique_constraint(:name)
+    |> PhoenixMTM.Changeset.cast_collection(:users, Repo, User)
+    |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
   end
 end

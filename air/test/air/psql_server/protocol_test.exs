@@ -31,13 +31,25 @@ defmodule Air.PsqlServer.ProtocolTest do
       |> last_action()
 
   test "running a query" do
-    assert [{:send, command_complete("SELECT 3")}, {:send, ready_for_query()}] ==
+    assert [
+      {:send, row_description_message},
+      {:send, data_row1_message},
+      {:send, data_row2_message},
+      {:send, command_complete_message},
+      {:send, ready_for_query_message}
+    ] =
       authenticate(true)
       |> run_actions(
             process: [query_message("select foo from bar")],
-            select_result: [[1, 2, 3]]
+            select_result: [%{columns: [%{name: "x", type: :integer}], rows: [[1], [2]]}]
           )
-      |> last_actions(2)
+      |> last_actions(5)
+
+    assert message_type(row_description_message) == :row_description
+    assert message_type(data_row1_message) == :data_row
+    assert message_type(data_row2_message) == :data_row
+    assert ready_for_query_message == ready_for_query()
+    assert command_complete_message == command_complete("SELECT 2")
   end
 
 

@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
-  alias Cloak.DataSource
+  alias Cloak.{DataSource, Features}
   alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query}
   alias Cloak.Aql.Parsers.Token
 
@@ -17,10 +17,10 @@ defmodule Cloak.Aql.Compiler do
 
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(DataSource.t, Parser.parsed_query) :: {:ok, Query.t} | {:error, String.t}
-  def compile(data_source, parsed_query) do
+  def compile(data_source, parsed_query, features \\ Features.from_config()) do
     try do
       parsed_query
-      |> to_prepped_query(data_source)
+      |> to_prepped_query(data_source, features)
       |> compile_prepped_query()
     rescue
       e in CompilationError -> {:error, e.message}
@@ -32,10 +32,11 @@ defmodule Cloak.Aql.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp to_prepped_query(parsed_query, data_source) do
+  defp to_prepped_query(parsed_query, data_source, features) do
     %Query{
       data_source: data_source,
-      mode: query_mode(data_source.driver, parsed_query[:from])
+      mode: query_mode(data_source.driver, parsed_query[:from]),
+      features: features,
     }
     |> Map.merge(parsed_query)
   end
@@ -53,7 +54,7 @@ defmodule Cloak.Aql.Compiler do
     validate_dsproxy_from_for_parsed_query!(join.rhs)
   end
   defp validate_dsproxy_from_for_parsed_query!({:subquery, _}) do
-    raise CompilationError, message: "Joining subqueries is not supported for this data source"
+    raise CompilationError, message: "Joining subqueries is not supported for this data source."
   end
   defp validate_dsproxy_from_for_parsed_query!({_, table_name}) when is_binary(table_name), do: :ok
 
@@ -116,13 +117,13 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   defp ds_proxy_validate_no_wildcard(%Query{command: :select, columns: :*}) do
-    raise CompilationError, message: "Unfortunately wildcard selects are not supported together with subselects"
+    raise CompilationError, message: "Unfortunately wildcard selects are not supported together with subselects."
   end
   defp ds_proxy_validate_no_wildcard(_), do: :ok
 
   defp ds_proxy_validate_no_where(%Query{where: []}), do: :ok
   defp ds_proxy_validate_no_where(_) do
-    raise CompilationError, message: "WHERE-clause in outer SELECT is not allowed in combination with a subquery"
+    raise CompilationError, message: "WHERE-clause in outer SELECT is not allowed in combination with a subquery."
   end
 
 
@@ -132,7 +133,8 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_subqueries(%Query{from: nil} = query), do: query
   defp compile_subqueries(query) do
-    %Query{query | from: do_compile_subqueries(query.from, query.data_source)}
+    compiled = do_compile_subqueries(query.from, query.data_source)
+    %Query{query | from: compiled, info: query.info ++ gather_info(compiled)}
   end
 
   defp do_compile_subqueries({:join, join}, data_source) do
@@ -142,18 +144,50 @@ defmodule Cloak.Aql.Compiler do
     }}
   end
   defp do_compile_subqueries({:subquery, subquery}, data_source) do
-    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast)}}
+    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast, subquery.alias)}}
   end
   defp do_compile_subqueries(identifier = {_, table}, _data_source) when is_binary(table), do: identifier
 
-  defp compiled_subquery(data_source, parsed_query) do
+  defp gather_info({:join, %{lhs: lhs, rhs: rhs}}), do: gather_info(rhs) ++ gather_info(lhs)
+  defp gather_info({:subquery, subquery}), do: subquery.ast.info
+  defp gather_info(_), do: []
+
+  defp compiled_subquery(data_source, parsed_query, alias) do
     case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
-      {:ok, compiled_query} -> validate_subquery(compiled_query)
+      {:ok, compiled_query} ->
+        compiled_query
+        |> validate_uid(alias)
+        |> validate_offset(alias)
+        |> align_limit()
+        |> align_offset()
       {:error, error} -> raise CompilationError, message: error
     end
   end
 
-  defp validate_subquery(subquery) do
+  @minimum_subquery_limit 10
+  defp align_limit(query = %{limit: nil}), do: query
+  defp align_limit(query = %{limit: limit}) do
+    aligned = limit |> FixAlign.align() |> round() |> max(@minimum_subquery_limit)
+    if aligned != limit do
+      %{query | limit: aligned}
+      |> add_info_message("Limit adjusted from #{limit} to #{aligned}")
+    else
+      query
+    end
+  end
+
+  defp align_offset(query = %{offset: 0}), do: query
+  defp align_offset(query = %{limit: limit, offset: offset}) do
+    aligned = round(offset / limit) * limit
+    if aligned != offset do
+      %{query | offset: aligned}
+      |> add_info_message("Offset adjusted from #{offset} to #{aligned}")
+    else
+      query
+    end
+  end
+
+  defp validate_uid(subquery, alias) do
     case Enum.find(subquery.db_columns, &(&1.user_id?)) do
       nil ->
         possible_uid_columns =
@@ -165,12 +199,16 @@ defmodule Cloak.Aql.Compiler do
           end
 
         raise CompilationError, message:
-          "Missing a user id column in the select list of a subquery. " <>
+          "Missing a user id column in the select list of subquery `#{alias}`. " <>
           "To fix this error, add #{possible_uid_columns} to the subquery select list."
       _ ->
         subquery
     end
   end
+
+  defp validate_offset(%{offset: offset, limit: limit}, alias) when is_nil(limit) and offset > 0, do:
+      raise CompilationError, message: "Subquery `#{alias}` has an OFFSET clause without a LIMIT clause."
+  defp validate_offset(subquery, _), do: subquery
 
 
   # -------------------------------------------------------------------
@@ -292,8 +330,38 @@ defmodule Cloak.Aql.Compiler do
   defp compile_columns(query) do
     query
     |> expand_star_select()
+    |> compile_buckets()
     |> compile_aliases()
     |> identifiers_to_columns()
+  end
+
+  defp compile_buckets(query) do
+    {columns, messages} = Enum.reduce(query.columns, {[], []}, &compile_bucket/2)
+    %{query | columns: Enum.reverse(columns), info: messages ++ query.info}
+  end
+
+  defp compile_bucket(column, {output_columns, messages}) do
+    if Function.bucket?(column) do
+      align_bucket(column, {output_columns, messages})
+    else
+      {[column | output_columns], messages}
+    end
+  end
+
+  defp align_bucket(column, {output_columns, messages}) do
+    if Function.bucket_size(column) <= 0 do
+      raise CompilationError, message: "Bucket size #{Function.bucket_size(column)} must be > 0"
+    end
+
+    aligned = Function.update_bucket_size(column, &FixAlign.align/1)
+    if aligned == column do
+      {[column | output_columns], messages}
+    else
+      {
+        [aligned | output_columns],
+        ["Bucket size adjusted from #{Function.bucket_size(column)} to #{Function.bucket_size(aligned)}" | messages]
+      }
+    end
   end
 
   defp expand_star_select(%Query{columns: :*} = query) do
@@ -336,10 +404,10 @@ defmodule Cloak.Aql.Compiler do
         "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
       many_overloads?(function_call) ->
         "Arguments of type (#{function_call |> actual_types() |> quoted_list()}) are incorrect"
-          <> " for `#{Function.name(function_call)}`"
+          <> " for `#{Function.name(function_call)}`."
       true ->
         "Function `#{Function.name(function_call)}` requires arguments of type #{expected_types(function_call)}"
-          <> ", but got (#{function_call |> actual_types() |> quoted_list()})"
+          <> ", but got (#{function_call |> actual_types() |> quoted_list()})."
     end
   end
 
@@ -389,19 +457,19 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.filter(&Function.aggregate_function?/1)
     |> case do
       [] -> :ok
-      [function | _] ->
-        raise CompilationError, message: "Aggregate function `#{Function.name(function)}` used in the `GROUP BY` clause"
+      [function | _] -> raise CompilationError,
+        message: "Aggregate function `#{Function.name(function)}` can not be used in the `GROUP BY` clause."
     end
   end
 
   defp verify_functions(query) do
     query.columns
     |> Enum.filter(&Function.function?/1)
-    |> Enum.reject(&Function.valid_function?/1)
+    |> Enum.reject(&Function.valid_function?(&1, query.features))
     |> case do
       [] -> :ok
-      [{:function, invalid_function, _} | _rest] ->
-        raise CompilationError, message: ~s/Unknown function `#{invalid_function}`./
+      [function | _rest] ->
+        raise CompilationError, message: "Unknown function `#{Function.name(function)}`."
     end
   end
 
@@ -431,9 +499,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_order_by(%Query{order_by: []} = query), do: query
   defp compile_order_by(%Query{columns: columns, order_by: order_by_spec} = query) do
-    invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) ->
-      Enum.member?(columns, column)
-    end)
+    invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
     case invalid_fields do
       [] ->
         order_list = for {column, direction} <- order_by_spec do
@@ -442,8 +508,7 @@ defmodule Cloak.Aql.Compiler do
         end
         %Query{query | order_by: order_list}
       [{_column, _direction} | _rest] ->
-        raise CompilationError, message:
-          "Non-selected column specified in `ORDER BY` clause."
+        raise CompilationError, message: "Non-selected column specified in `ORDER BY` clause."
     end
   end
 
@@ -458,6 +523,7 @@ defmodule Cloak.Aql.Compiler do
   defp partition_where_clauses(query) do
     {require_lcf_check, safe_clauses} = Enum.partition(query.where, &requires_lcf_check?/1)
     unsafe_filter_columns = Enum.map(require_lcf_check, &where_clause_to_identifier/1)
+    safe_clauses = safe_clauses ++ Enum.reject(require_lcf_check, &negative_clause?/1)
 
     %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_check,
       unsafe_filter_columns: unsafe_filter_columns}
@@ -467,6 +533,9 @@ defmodule Cloak.Aql.Compiler do
   defp requires_lcf_check?({:not, _other}), do: true
   defp requires_lcf_check?({:in, _column, _values}), do: true
   defp requires_lcf_check?(_other), do: false
+
+  defp negative_clause?({:not, _}), do: true
+  defp negative_clause?(_), do: false
 
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
@@ -546,7 +615,7 @@ defmodule Cloak.Aql.Compiler do
       |> Enum.map(&Comparison.value/1)
       |> Enum.sort()
       |> List.to_tuple()
-      |> FixAlign.align()
+      |> FixAlign.align_interval()
 
     if implement_range?({left, right}, conditions) do
       %{query | where: conditions ++ query.where}
@@ -574,7 +643,7 @@ defmodule Cloak.Aql.Compiler do
     |> inequalities_by_column()
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
-      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited to a finite range"
+      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited to a finite range."
       _ -> :ok
     end
   end
@@ -751,7 +820,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp identifier_to_column({:identifier, table, identifier = {_, column_name}}, columns_by_name, query) do
     unless Enum.any?(query.selected_tables, &(&1.name == table)),
-      do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`"
+      do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`."
 
     case get_columns(columns_by_name, identifier) do
       nil ->
@@ -913,20 +982,20 @@ defmodule Cloak.Aql.Compiler do
   defp scope_check(tables_in_scope, table_name, column_name) do
     case Enum.member?(tables_in_scope, table_name) do
       true -> :ok
-      _ ->
-        raise CompilationError,
-          message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
+      _ -> raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
     end
   end
 
   defp verify_supported_join_condition(join_condition) do
-    if requires_lcf_check?(join_condition), do: raise CompilationError,
-      message: "#{negative_condition_string(join_condition)} not supported in joins."
+    if requires_lcf_check?(join_condition), do:
+      raise CompilationError, message: "#{negative_condition_string(join_condition)} not supported in joins."
   end
 
   defp negative_condition_string({:not, {:like, _, _}}), do: "NOT LIKE"
   defp negative_condition_string({:not, {:ilike, _, _}}), do: "NOT ILIKE"
   defp negative_condition_string({:not, {:comparison, _, :=, _}}), do: "<>"
+  defp negative_condition_string({:not, {:in, _, _}}), do: "NOT IN"
+  defp negative_condition_string({:in, _, _}), do: "IN"
 
   defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:
     raise CompilationError, message: "`LIMIT` clause expects a positive value."
