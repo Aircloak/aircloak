@@ -3,6 +3,11 @@ defmodule Cloak.Aql.FixAlign do
 
   @type interval :: {number, number}
 
+  @epoch ~N[1970-01-01 00:00:00]
+  @days_in_year 365
+  @days_in_month 30
+  @months_in_year 12
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -36,7 +41,7 @@ defmodule Cloak.Aql.FixAlign do
     if Timex.diff(y, x) <= 0 do
       raise "Invalid interval"
     else
-      {x, y}
+      align_date_time({x, y})
     end
   end
 
@@ -44,6 +49,42 @@ defmodule Cloak.Aql.FixAlign do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp align_date_time({x, y}) do
+    [:year, :month, :day, :hour, :minute, :second]
+    |> Enum.find(fn(component) -> duration_component(component, Timex.diff(y, x, :duration)) >= 1 end)
+    |> case do
+      :year ->
+        {x, y}
+        |> year_since_epoch()
+        |> align_interval()
+        |> datetime_from_year()
+      _ -> {x, y}
+    end
+  end
+
+  defp year_since_epoch({x, y}) do
+    if y == Timex.beginning_of_month(y) do
+      {year_since_epoch(x), year_since_epoch(y)}
+    else
+      {year_since_epoch(x), year_since_epoch(%{y | month: y.month + 1})}
+    end
+  end
+  defp year_since_epoch(%NaiveDateTime{year: year, month: month}) do
+    year - @epoch.year + (month - @epoch.month) / @months_in_year
+  end
+
+  defp datetime_from_year({x, y}), do: {datetime_from_year(x), datetime_from_year(y)}
+  defp datetime_from_year(x) do
+    @epoch |> Timex.shift(months: round(@months_in_year * x))
+  end
+
+  defp duration_component(:year, duration), do: Timex.Duration.to_days(duration) / @days_in_year
+  defp duration_component(:month, duration), do: Timex.Duration.to_days(duration) / @days_in_month
+  defp duration_component(:day, duration), do: Timex.Duration.to_days(duration)
+  defp duration_component(:hour, duration), do: Timex.Duration.to_hours(duration)
+  defp duration_component(:minute, duration), do: Timex.Duration.to_minutes(duration)
+  defp duration_component(:second, duration), do: Timex.Duration.to_seconds(duration)
 
   defp snap(size, {x, y}) do
     left = floor_to(x, size / 2)
