@@ -4,7 +4,6 @@ defmodule Central.Schemas.Query do
   use Central.Web, :model
 
   alias Ecto.Changeset
-  alias Central.Schemas.{Query, Customer}
 
   @type t :: %__MODULE__{}
 
@@ -12,7 +11,7 @@ defmodule Central.Schemas.Query do
     field :metrics, :map
     field :features, :map
 
-    belongs_to :customer, Customer
+    belongs_to :customer, Central.Schemas.Customer
 
     timestamps
   end
