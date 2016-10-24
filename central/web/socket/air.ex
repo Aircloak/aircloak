@@ -31,7 +31,7 @@ defmodule Central.Socket.Air do
     Logger.info("Air connecting #{inspect params}")
     case values_from_params(params) do
       {:ok, token, air_name} ->
-        case Customer.from_token(params["token"]) do
+        case Customer.from_token(token) do
           {:ok, customer} ->
             socket = socket
               |> assign(:customer, customer)
