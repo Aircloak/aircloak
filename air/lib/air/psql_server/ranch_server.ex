@@ -3,8 +3,11 @@ defmodule Air.PsqlServer.RanchServer do
   Ranch powered TCP server which understands the PostgreSQL message protocol.
 
   This module can be used to serve PostgreSQL clients, such as the `psql`
-  command-line tool, or ODBC drivers. Internally, the module is implemented as a
-  driver of the `Air.PsqlServer.Protocol` state machine.
+  command-line tool, or ODBC drivers. The module is implemented as the behaviour
+  which allows easy plugging of system specific logic. The module will drive
+  the common workflow of PostgreSQL connection, invoking callback module's
+  functions for specific tasks, such as authentication or query execution.
+  __Note__: all callback functions are invoked in the connection process.
   """
 
   @behaviour :ranch_protocol
@@ -12,24 +15,64 @@ defmodule Air.PsqlServer.RanchServer do
 
   require Logger
 
-  alias Air.{PsqlServer.Protocol, Service.User, Service.DataSource}
+  alias Air.PsqlServer.Protocol
+
+  defstruct [:ref, :socket, :transport, :opts, :behaviour_mod, :protocol, :login_params, assigns: %{},
+    query_result: nil]
+
+  @type t :: %__MODULE__{
+    # Only fields open to clients are specified here
+    login_params: %{String.t => String.t},
+    assigns: %{any => any}
+  }
+
+  @type opts :: [ssl: [:ssl.ssl_option]]
+
+  @type behaviour_init_arg :: any
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Behaviour callbacks
+  #-----------------------------------------------------------------------------------------------------------
+
+  @doc "Invoked to allow callback module to initialize its state."
+  @callback init(t, behaviour_init_arg) :: {:ok, t} | {:error, any}
+
+  @doc "Invoked to login the user."
+  @callback login(t, String.t) :: {:ok, t} | :error
+
+  @doc "Invoked to run the query."
+  @callback run_query(t, String.t) :: t
+
+  @doc "Invoked when a message is received by the connection process."
+  @callback handle_message(t, any) :: t
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API
   #-----------------------------------------------------------------------------------------------------------
 
   @doc "Returns the supervisor specification for the TCP server."
-  @spec supervisor_spec() :: Supervisor.child_spec
-  def supervisor_spec() do
-    port = Application.fetch_env!(:air, Air.PsqlServer)[:port]
+  @spec child_spec(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.child_spec
+  def child_spec(port, behaviour_mod, behaviour_init_arg, opts \\ []) do
     Logger.info("Accepting PostgreSQL requests on port #{port}")
     :ranch.child_spec(
       __MODULE__,
       100,
       :ranch_tcp, [port: port],
-      __MODULE__, nil
+      __MODULE__, {opts, behaviour_mod, behaviour_init_arg}
     )
   end
+
+  @doc "Stores an arbitrary key-value pair into a connection state."
+  @spec assign(t, any, any) :: t
+  def assign(conn, key, value), do:
+    put_in(conn.assigns[key], value)
+
+  @doc "Stores a query result into a connection state."
+  @spec set_query_result(t, %{}) :: t
+  def set_query_result(%{query_result: nil} = conn, query_result), do:
+    %__MODULE__{conn | query_result: query_result}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -37,8 +80,8 @@ defmodule Air.PsqlServer.RanchServer do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc false
-  def start_link(ref, socket, transport, _arg), do:
-    GenServer.start_link(__MODULE__, {ref, socket, transport})
+  def start_link(ref, socket, transport, {opts, behaviour_mod, behaviour_init_arg}), do:
+    GenServer.start_link(__MODULE__, {ref, socket, transport, opts, behaviour_mod, behaviour_init_arg})
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -46,95 +89,87 @@ defmodule Air.PsqlServer.RanchServer do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc false
-  def init({ref, socket, transport}) do
-    send(self, :after_init)
-    {:ok, %{
+  def init({ref, socket, transport, opts, behaviour_mod, behaviour_init_arg}) do
+    send(self, {:after_init, behaviour_init_arg})
+    {:ok, %__MODULE__{
       ref: ref,
       socket: socket,
       transport: transport,
-      protocol: Protocol.new(),
-      login_params: %{},
-      user: nil,
-      data_source: nil,
-      query_runner: nil
+      behaviour_mod: behaviour_mod,
+      opts: opts,
+      protocol: Protocol.new()
     }}
   end
 
   @doc false
-  def handle_info(:after_init, state) do
-    :ok = :ranch.accept_ack(state.ref)
-    set_active_mode(state)
-    {:noreply, state}
+  def handle_info({:after_init, behaviour_init_arg}, conn) do
+    :ok = :ranch.accept_ack(conn.ref)
+    set_active_mode(conn)
+
+    # We need to init behaviour after the connection has been accepted. Otherwise
+    # in the case of an error, the client might hang forever.
+    case conn.behaviour_mod.init(conn, behaviour_init_arg) do
+      {:ok, conn} -> {:noreply, conn}
+      {:error, reason} -> {:stop, reason, conn}
+    end
   end
-  def handle_info(:close, state) do
-    state.transport.close(state.socket)
-    {:stop, :normal, state}
+  def handle_info(:close, conn) do
+    conn.transport.close(conn.socket)
+    {:stop, :normal, conn}
   end
   for transport <- [:tcp, :ssl] do
-    def handle_info({unquote(transport), _socket, input}, state) do
-      state = process_input(state, input)
-      set_active_mode(state)
-      {:noreply, state}
+    def handle_info({unquote(transport), _socket, input}, conn) do
+      conn = process_input(conn, input)
+      set_active_mode(conn)
+      {:noreply, conn}
     end
-    def handle_info({unquote(:"#{transport}_closed"), _socket}, state), do:
-      {:stop, :normal, state}
-    def handle_info({unquote(:"#{transport}_error"), _socket, reason}, state), do:
-      {:stop, reason, state}
+    def handle_info({unquote(:"#{transport}_closed"), _socket}, conn), do:
+      {:stop, :normal, conn}
+    def handle_info({unquote(:"#{transport}_error"), _socket, reason}, conn), do:
+      {:stop, reason, conn}
   end
-  def handle_info(:upgrade_to_ssl, state) do
-    state.transport.setopts(state.socket, active: false)
-    {:ok, ssl_socket} = :ssl.ssl_accept(
-      state.socket,
-      certfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"]),
-      keyfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
-    )
+  def handle_info(:upgrade_to_ssl, conn) do
+    with {:ok, ssl_opts} <- Keyword.fetch(conn.opts, :ssl),
+         :ok <- conn.transport.setopts(conn.socket, active: false),
+         {:ok, ssl_socket} = :ssl.ssl_accept(conn.socket, ssl_opts) do
+      conn =
+        update_protocol(
+          %__MODULE__{conn | socket: ssl_socket, transport: :ranch_ssl},
+          &Protocol.ssl_negotiated(&1)
+        )
 
-    state =
-      update_protocol(
-        %{state | socket: ssl_socket, transport: :ranch_ssl},
-        &Protocol.ssl_negotiated(&1)
-      )
-
-    :ok = set_active_mode(state)
-    {:noreply, state}
+      :ok = set_active_mode(conn)
+      {:noreply, conn}
+    else
+      _ -> {:stop, :ssl_error, conn}
+    end
   end
-  def handle_info(
-    {query_runner_ref, query_result},
-    %{query_runner: %Task{ref: query_runner_ref}} = state
-  ) do
-    {:noreply,
-      state
-      |> Map.put(:query_runner, nil)
-      |> handle_query_result(query_result)
-      |> handle_protocol_actions()
-    }
-  end
-  def handle_info(_msg, state), do:
-    {:noreply, state}
+  def handle_info(msg, conn), do:
+    {:noreply, handle_query_result(conn.behaviour_mod.handle_message(conn, msg))}
 
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp set_active_mode(state), do:
-    state.transport.setopts(state.socket, active: true)
+  defp set_active_mode(conn), do:
+    conn.transport.setopts(conn.socket, active: true)
 
-  defp process_input(state, input), do:
-    state
+  defp process_input(conn, input), do:
+    conn
     |> update_protocol(&Protocol.process(&1, input))
     |> handle_protocol_actions()
 
-  defp handle_protocol_actions(state) do
-    {actions, protocol} = Protocol.actions(state.protocol)
-    state = %{state | protocol: protocol}
+  defp handle_protocol_actions(conn) do
+    {actions, protocol} = Protocol.actions(conn.protocol)
+    conn = %__MODULE__{conn | protocol: protocol}
     {output_chunks, other_actions} = extract_output_chunks(actions)
-    state.transport.send(state.socket, output_chunks)
+    conn.transport.send(conn.socket, output_chunks)
     case other_actions do
-      [] -> state
+      [] -> conn
       _ ->
         other_actions
-        |> Enum.reduce(state, &handle_protocol_action/2)
+        |> Enum.reduce(conn, &handle_protocol_action/2)
         |> handle_protocol_actions()
     end
   end
@@ -148,64 +183,37 @@ defmodule Air.PsqlServer.RanchServer do
     }
   end
 
-  defp handle_protocol_action({:close, _reason}, state) do
+  defp handle_protocol_action({:close, _reason}, conn) do
     send(self(), :close)
-    state
+    conn
   end
-  defp handle_protocol_action(:upgrade_to_ssl, state) do
+  defp handle_protocol_action(:upgrade_to_ssl, conn) do
     send(self(), :upgrade_to_ssl)
-    state
+    conn
   end
-  defp handle_protocol_action({:login_params, login_params}, state), do:
-    state
+  defp handle_protocol_action({:login_params, login_params}, conn), do:
+    conn
     |> Map.put(:login_params, login_params)
     |> update_protocol(&Protocol.authentication_method(&1, :cleartext))
-  defp handle_protocol_action({:authenticate, password}, state) do
-    with {:ok, user} <- User.login(state.login_params["user"], password),
-         {:ok, _} <- DataSource.fetch_as_user(data_source_id_spec(state), user)
-    do
-      # We're not storing data source, since access permissions have to be checked on every query.
-      # Otherwise, revoking permissions on a data source would have no effects on currently connected
-      # cloak.
-      # However, we're also checking access permissions now, so we can report error immediately.
-      state
-      |> Map.put(:user, user)
-      |> update_protocol(&(Protocol.authenticated(&1, true)))
-    else
-      _ -> update_protocol(state, &Protocol.authenticated(&1, false))
+  defp handle_protocol_action({:authenticate, password}, conn) do
+    case conn.behaviour_mod.login(conn, password) do
+      {:ok, conn} ->
+        update_protocol(conn, &Protocol.authenticated(&1, true))
+      :error ->
+        update_protocol(conn, &Protocol.authenticated(&1, false))
     end
   end
-  defp handle_protocol_action({:run_query, query}, state) do
-    query_runner = Task.async(fn -> DataSource.run_query(data_source_id_spec(state), state.user, query) end)
-    %{state | query_runner: query_runner}
-  end
+  defp handle_protocol_action({:run_query, query}, conn), do:
+    handle_query_result(conn.behaviour_mod.run_query(conn, query))
 
-  defp data_source_id_spec(state), do:
-    {:global_id, state.login_params["database"]}
+  defp update_protocol(conn, fun), do:
+    %__MODULE__{conn | protocol: fun.(conn.protocol)}
 
-  defp update_protocol(state, fun), do:
-    %{state | protocol: fun.(state.protocol)}
-
-  defp handle_query_result(state, {:ok, query_result}) do
-    update_protocol(state, &Protocol.select_result(&1, result_map(query_result)))
-  end
-
-  defp result_map(query_result), do:
-    %{
-      columns:
-        Enum.zip(
-          Map.fetch!(query_result, "columns"),
-          query_result |> Map.fetch!("features") |> Map.fetch!("selected_types")
-        )
-        |> Enum.map(fn({name, type}) -> %{name: name, type: type_atom(type)} end),
-      rows:
-        query_result
-        |> Map.fetch!("rows")
-        |> Enum.flat_map(&List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
-    }
-
-  for supported_type <- [:integer, :text] do
-    defp type_atom(unquote(to_string(supported_type))), do: unquote(supported_type)
-  end
-  defp type_atom(_other), do: :unknown
+  defp handle_query_result(%{query_result: nil} = conn), do:
+    conn
+  defp handle_query_result(conn), do:
+    conn
+    |> update_protocol(&Protocol.select_result(&1, conn.query_result))
+    |> Map.put(:query_result, nil)
+    |> handle_protocol_actions()
 end
