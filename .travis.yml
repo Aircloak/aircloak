@@ -45,6 +45,8 @@ before_install:
   - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
   - mysql -e "CREATE DATABASE cloaktest1 DEFAULT CHARACTER SET utf8;" -u root
   - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
+  - curl -o- -L https://yarnpkg.com/install.sh | bash
+  - yarn --version
   - nvm install node
 install:
   - mkdir -p $MIX_HOME
