@@ -82,6 +82,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp parse_type("string"), do: :text
   defp parse_type("datetime"), do: :datetime
 
+  @dialyzer [:no_fail_call, :no_return] # `mc_worker_api.command` has incorrect type spec.
   defp mapreduce(conn, collection, map_code, reduce_code) do
     {true, %{"results" => results}} = :mc_worker_api.command(
       conn,
@@ -90,8 +91,8 @@ defmodule Cloak.DataSource.MongoDB do
         :map, map_code,
         :reduce, reduce_code,
         :out, {:inline, 1}
-        }
-      )
+      }
+    )
     results
   end
 
