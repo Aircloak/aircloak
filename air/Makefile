@@ -7,7 +7,7 @@ compile:
 
 deps:
 	mix deps.get
-	npm install
+	npm install --no-optional
 	npm prune
 
 clean:
