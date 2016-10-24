@@ -26,6 +26,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   @doc false
   def describe_table(connection, table_name) do
+    # We assume that all fields have a single, consistent type (no mixing of values).
     map_code = """
       function() {
         m_sub = function(base, object) {
