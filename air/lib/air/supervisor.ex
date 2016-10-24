@@ -28,7 +28,9 @@ defmodule Air.Supervisor do
   # Internal functions
   # -------------------------------------------------------------------
 
-  unless Mix.env == :test do
+  if Mix.env == :test do
+    defp system_processes, do: []
+  else
     # Processes which we don't want to start in the test environment
     defp system_processes do
       import Supervisor.Spec, warn: false
@@ -37,7 +39,5 @@ defmodule Air.Supervisor do
         worker(Air.CentralSocket, [])
       ]
     end
-  else
-    defp system_processes, do: []
   end
 end
