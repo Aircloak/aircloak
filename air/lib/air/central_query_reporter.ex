@@ -53,7 +53,7 @@ defmodule Air.CentralQueryReporter do
         row_count: row_count,
         execution_time: result["execution_time"],
       },
-      features: %{},
+      features: result["features"],
     }
 
     case Air.CentralSocket.record_query(payload) do
