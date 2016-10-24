@@ -6,7 +6,7 @@
 !central/tmp/image_shell_init.sh
 !central/brunch-config.js
 !central/package.json
-!central/npm-shrinkwrap.json
+!central/yarn.lock
 !central/priv/repo
 !central/priv/task_post_processor
 !central/Makefile

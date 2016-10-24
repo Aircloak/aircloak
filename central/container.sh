@@ -19,7 +19,7 @@ DOCKER_START_ARGS="
   -v $(pwd)/local_docker_config:/runtime_config
   -p 7080:7080
   -p 7443:7443
-  --link air_db_dev:air_db
+  --link central_db_dev:central_db
 "
 if [ "$CENTRAL_HOST_NAME" != "" ]; then DOCKER_START_ARGS="$DOCKER_START_ARGS -e CENTRAL_HOST_NAME=$CENTRAL_HOST_NAME"; fi
 

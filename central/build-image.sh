@@ -8,7 +8,7 @@ cd $ROOT_DIR
 
 . docker/docker_helper.sh
 
-common/docker/elixir/build-image.sh
+common/docker/nodejs/build-image.sh
 
 # This will build a dockerized version of the central site.
 #

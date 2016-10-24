@@ -6,7 +6,7 @@
   },
 
   "database": {
-    "host": "air_db",
+    "host": "central_db",
     "port": 5432,
     "ssl": false,
     "user": "central",
