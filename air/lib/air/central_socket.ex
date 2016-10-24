@@ -54,15 +54,15 @@ defmodule Air.CentralSocket do
   # -------------------------------------------------------------------
 
   @doc false
-  def init(air_socket_url) do
+  def init(central_socket_url) do
     initial_interval = config(:min_reconnect_interval)
     state = %{
       pending_calls: %{},
       reconnect_interval: initial_interval,
       rejoin_interval: initial_interval
     }
-    Logger.info("Trying to connect to Central on #{air_socket_url}")
-    {:connect, air_socket_url, state}
+    Logger.info("Trying to connect to Central on #{central_socket_url}")
+    {:connect, central_socket_url, state}
   end
 
   @doc false
@@ -206,10 +206,10 @@ defmodule Air.CentralSocket do
   end
 
   defp air_params() do
-    %{air_name: cloak_name(), token: customer_token()}
+    %{air_name: air_name(), token: customer_token()}
   end
 
-  defp cloak_name() do
+  defp air_name() do
     vm_short_name =
       Node.self()
       |> Atom.to_string()
