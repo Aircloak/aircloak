@@ -54,12 +54,22 @@ defmodule Aircloak.PsqlServer.RanchServer do
 
   @doc "Returns the supervisor specification for the TCP server."
   @spec child_spec(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.child_spec
-  def child_spec(port, behaviour_mod, behaviour_init_arg, opts \\ []) do
-    Logger.info("Accepting PostgreSQL requests on port #{port}")
-    :ranch.child_spec(
+  def child_spec(port, behaviour_mod, behaviour_init_arg, opts \\ []), do:
+    Supervisor.Spec.supervisor(
       __MODULE__,
+      [port, behaviour_mod, behaviour_init_arg, opts],
+      function: :start_embedded_server
+    )
+
+  @doc "Starts the TCP server as the linked child of the caller process."
+  @spec start_embedded_server(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.on_start
+  def start_embedded_server(port, behaviour_mod, behaviour_init_arg, opts \\ []) do
+    Logger.info("Accepting PostgreSQL requests on port #{port}")
+    :ranch_listener_sup.start_link(
+      {__MODULE__, port},
       100,
-      :ranch_tcp, [port: port],
+      :ranch_tcp,
+      [port: port],
       __MODULE__, {opts, behaviour_mod, behaviour_init_arg}
     )
   end
