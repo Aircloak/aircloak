@@ -63,6 +63,8 @@ defmodule Cloak.Aql.FixAlign.Test do
       {~N[2010-01-01 00:00:00], ~N[2015-01-01 00:00:00]}
     assert FixAlign.align_interval({~N[2010-12-30 00:00:00], ~N[2011-01-30 00:00:00]}) ==
       {~N[2010-12-01 00:00:00], ~N[2011-02-01 00:00:00]}
+    assert FixAlign.align_interval({~N[2010-10-10 00:00:00], ~N[2010-10-19 00:00:00]}) ==
+      {~N[2010-10-08 00:00:00], ~N[2010-10-28 00:00:00]}
   end
 
   property "numbers are money-aligned" do
