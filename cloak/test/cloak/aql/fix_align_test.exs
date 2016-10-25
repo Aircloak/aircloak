@@ -76,6 +76,11 @@ defmodule Cloak.Aql.FixAlign.Test do
     assert Cloak.Aql.FixAlign.align_interval({~D[2000-06-10], ~D[2000-06-13]}) == {~D[2000-06-07], ~D[2000-06-17]}
   end
 
+  test "aligning intervals before epoch" do
+    assert Cloak.Aql.FixAlign.align_interval({~D[1956-11-25], ~D[1957-11-04]}) == {~D[1955-01-01], ~D[1960-01-01]}
+    assert Cloak.Aql.FixAlign.align_interval({~D[1959-09-14], ~D[1963-12-14]}) == {~D[1955-01-01], ~D[1965-01-01]}
+  end
+
   property "numbers are money-aligned" do
     for_all x in (such_that y in float when y != 0) do
       result = x |> FixAlign.align() |> abs()
