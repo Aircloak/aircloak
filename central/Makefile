@@ -34,7 +34,7 @@ dialyze:
 	mix dialyze_retry
 
 docs:
-	mix docs.all
+	mix docs
 
 release:
 	NODE_ENV=production MIX_ENV=prod mix do compile, site_release
