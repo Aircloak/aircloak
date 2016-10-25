@@ -31,8 +31,8 @@ defmodule Cloak.Aql.Comparison do
     |> Regex.escape()
     |> String.replace("%", ".*")
     |> String.replace("_", ".")
-    |> String.replace(".*.*", "%")
-    |> String.replace(".*.", "_")
+    |> String.replace(".*.*", "%") # handle escaped `%` (`%%`)
+    |> String.replace(".*.", "_") # handle escaped `_` (`%_`)
     |> anchor()
 
 
