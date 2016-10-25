@@ -49,7 +49,7 @@ defmodule Cloak.DataSource.MongoDB do
       function() {
         m_sub = function(base, object) {
           for(var key in object) {
-            value = object[key]
+            const value = object[key];
             emit(base + "." + key, typeof value);
             if(typeof value == 'object') {
               m_sub(base + "." + key, value);
@@ -57,7 +57,7 @@ defmodule Cloak.DataSource.MongoDB do
           }
         };
         for(var key in this) {
-          value = this[key]
+          const value = this[key];
           if(key != "_id" && typeof value == 'object') {
             m_sub(key, value);
           } else {
