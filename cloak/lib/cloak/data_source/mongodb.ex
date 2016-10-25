@@ -2,6 +2,24 @@ defmodule Cloak.DataSource.MongoDB do
   @moduledoc """
   Implements the DataSource.Driver behaviour for MongoDB.
   For more information, see `DataSource`.
+
+  Sample configuration for a MongoDB data source:
+  {
+    "driver": "mongodb",
+    "marker": "mongodb",
+    "parameters": {
+      "host": "...",
+      "login": "...",
+      "password": "...",
+      "database": "..."
+    },
+    "tables": {
+      "test": {
+        "db_name": "...",
+        "user_id": "_id"
+      }
+    }
+  }
   """
 
   alias Cloak.Aql.{Query, Column, Comparison}
