@@ -116,14 +116,27 @@ defmodule BOM.Gather.Node do
   end
 
   defp list_packages(path) do
-    path
-    |> Path.join("*")
-    |> Path.wildcard()
-    |> Enum.flat_map(fn(package_path) ->
-      [
-        package_path |
-        package_path |> Path.join("node_modules") |> list_packages()
-      ]
-    end)
+    sub_paths = path
+      |> Path.join("*")
+      |> Path.wildcard()
+
+    sub_paths
+    |> Enum.all?(&File.dir?/1)
+    |> case do
+      true ->
+        # This is a normal node_modules folder with sub-packages
+        Enum.flat_map(sub_paths, fn(package_path) ->
+          [
+            package_path |
+            package_path |> Path.join("node_modules") |> list_packages()
+          ]
+        end)
+      false ->
+        # This seems to be a folder which contains a package embedded directly
+        # inside of it. `clean-pslg` is an example. We here have to treat the
+        # directory as the top-level directory for a package, rather than a
+        # parent directory to multiple packages.
+        [path]
+    end
   end
 end
