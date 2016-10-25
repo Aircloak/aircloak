@@ -63,7 +63,7 @@ defmodule BOM.Gather.Node do
   defp package_json(path, field), do: package_json(path, field, nil)
 
   defp package_json(path, field, default), do:
-    Gather.if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] || default end)
+    Gather.if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] end) || default
 
   @babel_packages ~w(
     babel babel-cli babel-code-frame babel-core babel-generator babel-helper-bindify-decorators
