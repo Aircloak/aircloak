@@ -54,7 +54,7 @@ defmodule Cloak.Aql.FixAlign.Test do
   property "an aligned datetime interval is not much larger than the input" do
     for_all {x, y} in datetime_interval do
       {left, right} = FixAlign.align_interval({x, y})
-      Timex.diff(right, left) < 5 * Timex.diff(y, x)
+      Timex.diff(right, left) < 10 * Timex.diff(y, x)
     end
   end
 
@@ -65,6 +65,8 @@ defmodule Cloak.Aql.FixAlign.Test do
       {~N[2010-12-01 00:00:00], ~N[2011-02-01 00:00:00]}
     assert FixAlign.align_interval({~N[2010-10-10 00:00:00], ~N[2010-10-19 00:00:00]}) ==
       {~N[2010-10-08 00:00:00], ~N[2010-10-28 00:00:00]}
+    assert FixAlign.align_interval({~N[2000-05-31 11:19:05], ~N[2000-07-07 11:46:44]}) ==
+      FixAlign.align_interval({~N[2000-05-30 11:19:05], ~N[2000-07-07 11:46:44]})
   end
 
   property "numbers are money-aligned" do

@@ -79,8 +79,8 @@ defmodule Cloak.Aql.FixAlign do
     {units_since_epoch(x, unit), y |> datetime_ceil(lower_unit(unit)) |> units_since_epoch(unit)}
   defp units_since_epoch(%NaiveDateTime{year: year, month: month}, :years), do:
     year - @epoch.year + (month - @epoch.month) / @months_in_year
-  defp units_since_epoch(%NaiveDateTime{year: year, month: month, day: day}, :months), do:
-    (year - @epoch.year) * @months_in_year + (month - @epoch.month) + (day - @epoch.day) / @days_in_month
+  defp units_since_epoch(datetime = %NaiveDateTime{year: year, month: month, day: day}, :months), do:
+    (year - @epoch.year) * @months_in_year + (month - @epoch.month) + (day - @epoch.day) / Timex.days_in_month(datetime)
   defp units_since_epoch(datetime, :days), do:
     Timex.diff(datetime, @epoch, :days) + datetime.hour / @hours_in_day
   defp units_since_epoch(datetime, :hours), do:
@@ -104,7 +104,6 @@ defmodule Cloak.Aql.FixAlign do
   defp datetime_ceil(datetime, :seconds), do: datetime
 
   defp datetime_from_units({x, y}, unit), do: {datetime_from_units(x, unit), datetime_from_units(y, unit)}
-  # defp datetime_from_units(x, :years), do: @epoch |> Timex.shift(months: round(@months_in_year * x))
   defp datetime_from_units(x, unit) do
     less_significant = (x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit)) |> round()
     more_significant = x |> Float.floor() |> round()
