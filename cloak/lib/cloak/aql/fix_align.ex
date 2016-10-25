@@ -3,6 +3,7 @@ defmodule Cloak.Aql.FixAlign do
 
   @type interval :: {number, number}
 
+  @default_size_factors [1, 2, 5]
   @epoch ~N[1970-01-01 00:00:00]
   @time_units [:years, :months, :days, :hours, :minutes, :seconds]
   @months_in_year 12
@@ -33,15 +34,16 @@ defmodule Cloak.Aql.FixAlign do
   Returns an interval that has been aligned to a fixed grid. The density of the grid depends on the size of
   the input interval. Both ends of the input will be contained inside the output.
   """
-  @spec align_interval(interval) :: interval
-  def align_interval({x, y}) when is_number(x) and is_number(y) and x > y, do: raise "Invalid interval"
-  def align_interval(interval = {x, y}) when is_number(x) and is_number(y) do
+  @spec align_interval(interval, [number]) :: interval
+  def align_interval(interval, size_factors \\ @default_size_factors)
+  def align_interval({x, y}, _) when is_number(x) and is_number(y) and x > y, do: raise "Invalid interval"
+  def align_interval(interval = {x, y}, size_factors) when is_number(x) and is_number(y) do
     interval
-    |> sizes()
+    |> sizes(size_factors)
     |> Stream.map(&snap(&1, interval))
     |> Enum.find(&(&1))
   end
-  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}) do
+  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _) do
     if Timex.diff(y, x) <= 0 do
       raise "Invalid interval"
     else
@@ -62,9 +64,16 @@ defmodule Cloak.Aql.FixAlign do
 
     {x, y}
     |> units_since_epoch(unit)
-    |> align_interval()
+    |> align_interval(size_factors(unit))
     |> datetime_from_units(unit)
   end
+
+  defp size_factors(:years), do: @default_size_factors
+  defp size_factors(:months), do: [1, 2, 6]
+  defp size_factors(:days), do: @default_size_factors
+  defp size_factors(:hours), do: [1, 2, 6, 12, 24]
+  defp size_factors(:minutes), do: [1, 2, 5, 15, 30, 60]
+  defp size_factors(:seconds), do: [1, 2, 5, 15, 30, 60]
 
   defp units_since_epoch({x, y}, unit), do:
     {units_since_epoch(x, unit), y |> datetime_ceil(lower_unit(unit)) |> units_since_epoch(unit)}
@@ -127,9 +136,9 @@ defmodule Cloak.Aql.FixAlign do
 
   defp floor_to(x, grid), do: Float.floor(x / grid) * grid
 
-  defp sizes(interval) do
+  defp sizes(interval, size_factors) do
     Stream.concat(small_sizes(interval), large_sizes)
-    |> Stream.flat_map(&[&1, &1 * 2, &1 * 5])
+    |> Stream.flat_map(&(for factor <- size_factors, do: &1 * factor))
   end
 
   defp small_sizes({x, y}) do
