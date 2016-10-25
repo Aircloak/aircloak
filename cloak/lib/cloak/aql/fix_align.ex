@@ -34,29 +34,32 @@ defmodule Cloak.Aql.FixAlign do
   Returns an interval that has been aligned to a fixed grid. The density of the grid depends on the size of
   the input interval. Both ends of the input will be contained inside the output.
   """
-  @spec align_interval(interval, [number]) :: interval
-  def align_interval(interval, size_factors \\ @default_size_factors)
+  @spec align_interval(interval, Keyword.t) :: interval
+  def align_interval(interval, opts \\ [])
   def align_interval({x, y}, _) when is_number(x) and is_number(y) and x > y, do: raise "Invalid interval"
-  def align_interval(interval = {x, y}, size_factors) when is_number(x) and is_number(y) do
+  def align_interval(interval = {x, y}, opts) when is_number(x) and is_number(y) do
     interval
-    |> sizes(size_factors)
-    |> Stream.map(&snap(&1, interval))
+    |> sizes(Keyword.get(opts, :size_factors, @default_size_factors))
+    |> Stream.map(&snap(&1, interval, Keyword.get(opts, :allow_half, true)))
     |> Enum.find(&(&1))
   end
-  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _) do
-    if Timex.diff(y, x) <= 0 do
-      raise "Invalid interval"
-    else
-      align_date_time({x, y})
-    end
-  end
+  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _), do: align_date_time({x, y})
+  def align_interval({%Date{} = x, %Date{} = y}, _), do: {x, y} |> align_date_time() |> to_date()
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp align_date_time(interval), do: interval |> align_date_time_once() |> align_date_time_once()
+  defp to_date({x, y}), do: {NaiveDateTime.to_date(x), NaiveDateTime.to_date(y)}
+
+  defp align_date_time({x, y}) do
+    if Timex.diff(y, x) <= 0 do
+      raise "Invalid interval"
+    else
+      {x, y} |> align_date_time_once() |> align_date_time_once()
+    end
+  end
 
   defp align_date_time_once({x, y}) do
     unit = @time_units
@@ -64,9 +67,13 @@ defmodule Cloak.Aql.FixAlign do
 
     {x, y}
     |> units_since_epoch(unit)
-    |> align_interval(size_factors(unit))
+    |> align_interval(size_factors: size_factors(unit), allow_half: allow_half?(x, unit))
     |> datetime_from_units(unit)
   end
+
+  defp allow_half?(%Date{}, :days), do: false
+  defp allow_half?(_, :seconds), do: false
+  defp allow_half?(_, _), do: true
 
   defp size_factors(:years), do: @default_size_factors
   defp size_factors(:months), do: [1, 2, 6]
@@ -77,10 +84,11 @@ defmodule Cloak.Aql.FixAlign do
 
   defp units_since_epoch({x, y}, unit), do:
     {units_since_epoch(x, unit), y |> datetime_ceil(lower_unit(unit)) |> units_since_epoch(unit)}
-  defp units_since_epoch(%NaiveDateTime{year: year, month: month}, :years), do:
+  defp units_since_epoch(%{year: year, month: month}, :years), do:
     year - @epoch.year + (month - @epoch.month) / @months_in_year
-  defp units_since_epoch(datetime = %NaiveDateTime{year: year, month: month, day: day}, :months), do:
+  defp units_since_epoch(datetime = %{year: year, month: month, day: day}, :months), do:
     (year - @epoch.year) * @months_in_year + (month - @epoch.month) + (day - @epoch.day) / Timex.days_in_month(datetime)
+  defp units_since_epoch(datetime = %Date{}, :days), do: Timex.diff(datetime, @epoch, :days)
   defp units_since_epoch(datetime, :days), do:
     Timex.diff(datetime, @epoch, :days) + datetime.hour / @hours_in_day
   defp units_since_epoch(datetime, :hours), do:
@@ -92,11 +100,12 @@ defmodule Cloak.Aql.FixAlign do
   defp datetime_ceil(datetime, :months), do:
     if datetime == Timex.beginning_of_month(datetime),
       do: datetime,
-      else: %{datetime | month: datetime.month + 1, day: 1, hour: 0, minute: 0, second: 0}
+      else: Timex.beginning_of_month(datetime) |> Timex.shift(months: 1)
   defp datetime_ceil(datetime, :days), do:
     if datetime == Timex.beginning_of_day(datetime),
       do: datetime,
-      else: %{datetime | day: datetime.day + 1, hour: 0, minute: 0, second: 0}
+      else: Timex.beginning_of_day(datetime) |> Timex.shift(days: 1)
+  defp datetime_ceil(datetime = %Date{}, :hours), do: datetime
   defp datetime_ceil(datetime = %{minute: 0, second: 0}, :hours), do: datetime
   defp datetime_ceil(datetime, :hours), do: %{datetime | hour: datetime.hour + 1, minute: 0, second: 0}
   defp datetime_ceil(datetime = %{second: 0}, :minutes), do: datetime
@@ -127,8 +136,11 @@ defmodule Cloak.Aql.FixAlign do
   defp duration_component(:minutes, duration), do: Timex.Duration.to_minutes(duration)
   defp duration_component(:seconds, duration), do: Timex.Duration.to_seconds(duration)
 
-  defp snap(size, {x, y}) do
-    left = floor_to(x, size / 2)
+  defp snap(size, {x, y}, allow_half) do
+    require Integer
+
+    can_halve = allow_half || Integer.is_even(round(size))
+    left = if can_halve, do: floor_to(x, size / 2), else: floor_to(x, size)
 
     if y <= left + size, do: {left, left + size}, else: nil
   end
