@@ -48,20 +48,21 @@ defmodule Cloak.DataSource.MongoDB do
     map_code = """
       function() {
         m_sub = function(base, object) {
-          for(var key in object) {
-            const value = object[key];
-            emit(base + "." + key, typeof value);
-            if(typeof value == 'object') {
-              m_sub(base + "." + key, value);
+          if (object instanceof Date) {
+            emit(base, "date");
+          } else if (typeof object == "object") {
+            for(var key in object) {
+              m_sub(base + "." + key, object[key]);
             }
+          } else {
+            emit(base, typeof object);
           }
         };
         for(var key in this) {
-          const value = this[key];
-          if(key != "_id" && typeof value == 'object') {
-            m_sub(key, value);
+          if (key != "_id") {
+            m_sub(key, this[key]);
           } else {
-            emit(key, typeof value);
+            emit("_id", "id");
           }
         }
       }
@@ -95,11 +96,11 @@ defmodule Cloak.DataSource.MongoDB do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp parse_type("object"), do: :text
+  defp parse_type("id"), do: :text
   defp parse_type("number"), do: :real
   defp parse_type("boolean"), do: :boolean
   defp parse_type("string"), do: :text
-  defp parse_type("datetime"), do: :datetime
+  defp parse_type("date"), do: :datetime
 
   @dialyzer [:no_fail_call, :no_return] # `mc_worker_api.command` has incorrect type spec.
   defp mapreduce(conn, collection, map_code, reduce_code) do
@@ -126,12 +127,22 @@ defmodule Cloak.DataSource.MongoDB do
     raise RuntimeError, message: "Table joins and inner selects are not supported on 'mongodb' data sources."
 
   defp extract_fields(object, columns), do:
-    for column <- columns, do: extract_field(object, column)
+    for column <- columns, do: object |> extract_field(column) |> map_field()
 
   defp extract_field(nil, _), do: nil
   defp extract_field(%{"_id" => {value}}, ["_id"]), do: value
   defp extract_field(value, []), do: value
   defp extract_field(%{} = object, [key | rest]), do: extract_field(object[key], rest)
+
+  defp map_field({mega_sec, sec, micro_sec}), do:
+    {mega_sec, sec, 0}
+    |> :calendar.now_to_datetime()
+    |> NaiveDateTime.from_erl({micro_sec, 6})
+    |> error_to_nil()
+  defp map_field(value), do: value
+
+  defp error_to_nil({:ok, result}), do: result
+  defp error_to_nil({:error, _reason}), do: nil
 
   defp cursor_to_stream(cursor) do
     Stream.resource(
@@ -157,16 +168,16 @@ defmodule Cloak.DataSource.MongoDB do
   defp parse_operator(:<=), do: :'$lte'
   defp parse_operator(:<>), do: :'$neq'
 
-  defp parse_where_condition({:comparison, %Column{name: field}, operator, %Column{value: value}}), do:
-    %{field => %{parse_operator(operator) => value}}
-  defp parse_where_condition({:not, {:comparison, %Column{name: field}, :=, %Column{value: value}}}), do:
-    %{field => %{'$neq': value}}
+  defp parse_where_condition({:comparison, %Column{name: field}, operator, value}), do:
+    %{field => %{parse_operator(operator) => map_parameter(value)}}
+  defp parse_where_condition({:not, {:comparison, %Column{name: field}, :=, value}}), do:
+    %{field => %{'$neq': map_parameter(value)}}
   defp parse_where_condition({:is, %Column{name: field}, :null}), do: %{field => nil}
   defp parse_where_condition({:not, {:is, %Column{name: field}, :null}}), do: %{field => %{'$exists': true}}
   defp parse_where_condition({:in, %Column{name: field}, values}), do:
-    %{field => %{'$in': (for %Column{value: value} <- values, do: value)}}
+    %{field => %{'$in': Enum.map(values, &map_parameter/1)}}
   defp parse_where_condition({:not, {:in, %Column{name: field}, values}}), do:
-    %{field => %{'$nin': (for %Column{value: value} <- values, do: value)}}
+    %{field => %{'$nin': Enum.map(values, &map_parameter/1)}}
   defp parse_where_condition({:like, %Column{name: field}, %Column{value: pattern}}), do:
     %{field => %{'$regex': Comparison.to_regex(pattern), '$options': "ms"}}
   defp parse_where_condition({:ilike, %Column{name: field}, %Column{value: pattern}}), do:
@@ -175,4 +186,16 @@ defmodule Cloak.DataSource.MongoDB do
     %{field => %{'$not': %{'$regex': Comparison.to_regex(pattern), '$options': "ms"}}}
   defp parse_where_condition({:not, {:ilike, %Column{name: field}, %Column{value: pattern}}}), do:
     %{field => %{'$not': %{'$regex': Comparison.to_regex(pattern), '$options': "msi"}}}
+
+  defp map_parameter(%NaiveDateTime{} = datetime), do:
+    datetime |> NaiveDateTime.to_erl() |> erlang_datetime_to_timestamp(datetime.microsecond)
+  defp map_parameter(%Date{} = date), do:
+    date |> Date.to_erl() |> erlang_datetime_to_timestamp()
+  defp map_parameter(%Column{value: value}), do: value
+
+  @epoch :calendar.datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}})
+  defp erlang_datetime_to_timestamp(datetime, {microsecond, _precision} \\ {0, 0}) do
+    seconds = :calendar.datetime_to_gregorian_seconds(datetime) - @epoch
+    {seconds |> div(1_000_000), seconds |> rem(1_000_000), microsecond}
+  end
 end
