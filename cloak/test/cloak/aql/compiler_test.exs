@@ -14,10 +14,10 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   test "casts datetime where conditions" do
-    result = compile!("select * from table where column > '2015-01-01'", data_source())
+    result = compile!("select * from table where column > '2015-01-01' and column < '2016-01-01'", data_source())
 
-    assert [{:comparison, column("table", "column"), :>, value}] = result.where
-    assert value == Column.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+    assert [{:comparison, column("table", "column"), :>=, value}, _] = result.where
+    assert value == Column.constant(:datetime, ~N[2015-01-01 00:00:00])
   end
 
   test "casts time where conditions" do
@@ -300,13 +300,14 @@ defmodule Cloak.Aql.Compiler.Test do
     result = compile!("""
         SELECT column, count(column)
         FROM table
-        WHERE column > '2015-01-01' and column <> '2015-01-02'
+        WHERE numeric >= 1 and numeric < 9 and column <> '2015-01-02'
         GROUP BY column
         ORDER BY count(column) DESC, count(table.column) DESC
       """,
       data_source)
     assert [column("table", "column"), {:function, "count", [column("table", "column")]}] = result.columns
-    assert [{:comparison, column("table", "column"), :>, _}] = result.where
+    assert [{:comparison, column("table", "numeric"), :>=, _}, {:comparison, column("table", "numeric"), :<, _}]
+      = result.where
     assert [{:not, {:comparison, column("table", "column"), :=, _}}] = result.lcf_check_conditions
     assert [column("table", "column")] = result.unsafe_filter_columns
     assert [column("table", "column")] = result.group_by
@@ -438,6 +439,12 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error == "Column `numeric` must be limited to a finite range."
   end
 
+  test "rejects inequalities on datetime columns that are not ranges" do
+    assert {:error, _} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'", data_source())
+    assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
+    assert error == "Column `column` must be limited to a finite range."
+  end
+
   test "accepts inequalities on numeric columns that are ranges" do
     assert {:ok, _} = compile("select * from table where numeric > 5 and numeric < 8", data_source())
   end
@@ -445,6 +452,14 @@ defmodule Cloak.Aql.Compiler.Test do
   test "fixes alignment of ranges" do
     assert compile!("select * from table where numeric > 1 and numeric < 9", data_source()).where
       == compile!("select * from table where numeric > 0 and numeric < 10", data_source()).where
+  end
+
+  test "fixes alignment of datetime ranges" do
+    aligned = compile!("select * from table where column > '2015-01-02' and column < '2016-07-01'", data_source())
+    assert compile!("select * from table where column > '2015-01-01' and column < '2016-08-02'", data_source()).where
+      == aligned.where
+    assert aligned.info == ["The range for column `column` has been adjusted to 2015-01-01 00:00:00"
+      <> " <= `column` < 2017-01-01 00:00:00"]
   end
 
   test "includes an info message when the aligment is fixed" do
