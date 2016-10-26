@@ -10,7 +10,7 @@ defmodule Cloak.Query.Runner do
   use GenServer
   require Logger
 
-  alias Cloak.Aql.Query
+  alias Cloak.Aql.{Query, Column}
   alias Cloak.DataSource
   alias Cloak.Query.{Aggregator, LCFConditions, Sorter, Result}
 
@@ -122,17 +122,25 @@ defmodule Cloak.Query.Runner do
   end
 
   defp execute_sql_query(%Query{command: :show, show: :tables} = query) do
-    columns = ["name"]
-    types = [:text]
+    query = %Query{query | columns: [%Column{table: :unknown, constant?: true, name: "name", type: :string}]}
     buckets = for {id, _table} <- query.data_source.tables, do: %{occurrences: 1, row: [id]}
-    successful_result(%Result{buckets: buckets, columns: columns, types: types}, query)
+    successful_result(
+      %Result{columns: ["name"], buckets: buckets, features: Query.extract_features(query)},
+      query
+    )
   end
   defp execute_sql_query(%Query{command: :show, show: :columns} = query) do
     columns = ["name", "type"]
-    types = [:text, :text]
+    query = %Query{query | columns: Enum.map(
+      columns,
+      &%Column{table: :unknown, constant?: true, name: &1, type: :string}
+    )}
     [table] = query.selected_tables
     buckets = for {name, type} <- table.columns, do: %{occurrences: 1, row: [name, type]}
-    successful_result(%Result{buckets: buckets, columns: columns, types: types}, query)
+    successful_result(
+      %Result{buckets: buckets, columns: columns, features: Query.extract_features(query)},
+      query
+    )
   end
   defp execute_sql_query(%Query{command: :select} = query) do
     try do
