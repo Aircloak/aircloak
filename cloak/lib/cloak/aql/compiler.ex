@@ -700,7 +700,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp parse_time(column = %Column{constant?: true, value: string}, type) do
     case do_parse_time(column, type) do
-      {:ok, result} -> result
+      {:ok, result} -> Column.constant(type, result)
       _ -> raise CompilationError, message: "Cannot cast `#{string}` to #{type}."
     end
   end

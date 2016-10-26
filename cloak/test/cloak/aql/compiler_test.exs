@@ -1,8 +1,7 @@
 defmodule Cloak.Aql.Compiler.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.Compiler
-  alias Cloak.Aql.Parser
+  alias Cloak.Aql.{Column, Compiler, Parser}
 
   defmacrop column(table_name, column_name) do
     quote do
@@ -17,31 +16,36 @@ defmodule Cloak.Aql.Compiler.Test do
   test "casts datetime where conditions" do
     result = compile!("select * from table where column > '2015-01-01'", data_source())
 
-    assert [{:comparison, column("table", "column"), :>, ~N[2015-01-01 00:00:00.000000]}] = result.where
+    assert [{:comparison, column("table", "column"), :>, value}] = result.where
+    assert value == Column.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
   test "casts time where conditions" do
-    assert %{where: [{:comparison, column("table", "column"), :>, ~T[01:02:03.000000]}]} =
+    assert %{where: [{:comparison, column("table", "column"), :>, value}]} =
       compile!("select * from table where column > '01:02:03'", time_data_source())
+    assert value == Column.constant(:time, ~T[01:02:03.000000])
   end
 
   test "casts date where conditions" do
-    assert %{where: [{:comparison, column("table", "column"), :>, ~D[2015-01-02]}]} =
+    assert %{where: [{:comparison, column("table", "column"), :>, value}]} =
       compile!("select * from table where column > '2015-01-02'", date_data_source())
+    assert value == Column.constant(:date, ~D[2015-01-02])
   end
 
   test "casts datetime in `in` conditions" do
     result = compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source())
 
     assert [{:in, column("table", "column"), times}] = result.lcf_check_conditions
-    assert Enum.sort(times) == [~N[2015-01-01 00:00:00.000000], ~N[2015-01-02 00:00:00.000000]]
+    assert times |> Enum.map(&(&1.value)) |> Enum.sort() ==
+      [~N[2015-01-01 00:00:00.000000], ~N[2015-01-02 00:00:00.000000]]
   end
 
   test "casts datetime in negated conditions" do
     result = compile!("select * from table where column <> '2015-01-01'", data_source())
 
-    assert [{:not, {:comparison, column("table", "column"), :=, ~N[2015-01-01 00:00:00.000000]}}] =
+    assert [{:not, {:comparison, column("table", "column"), :=, value}}] =
       result.lcf_check_conditions
+    assert value == Column.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
   test "reports malformed datetimes" do
