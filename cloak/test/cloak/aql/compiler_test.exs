@@ -440,13 +440,15 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   test "rejects inequalities on datetime columns that are not ranges" do
-    assert {:error, _} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'", data_source())
+    assert {:error, _} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'",
+      data_source())
     assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
     assert error == "Column `column` must be limited to a finite range."
   end
 
   test "rejects inequalities on date columns that are not ranges" do
-    assert {:error, _} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'", date_data_source())
+    assert {:error, _} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'",
+      date_data_source())
     assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
     assert error == "Column `column` must be limited to a finite range."
   end
@@ -470,8 +472,10 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "fixes alignment of date ranges" do
     aligned = compile!("select * from table where column > '2015-01-02' and column < '2016-07-01'", date_data_source())
-    assert compile!("select * from table where column > '2015-01-01' and column < '2016-08-02'", date_data_source()).where
-      == aligned.where
+    assert compile!(
+      "select * from table where column > '2015-01-01' and column < '2016-08-02'",
+      date_data_source()
+    ).where == aligned.where
     assert aligned.info == ["The range for column `column` has been adjusted to 2015-01-01 <= `column` < 2017-01-01"]
   end
 
