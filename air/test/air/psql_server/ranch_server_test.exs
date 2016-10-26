@@ -1,13 +1,13 @@
-defmodule Aircloak.PsqlServer.RanchServerTest do
+defmodule Air.PsqlServer.RanchServerTest do
   use ExUnit.Case, async: true
 
-  alias Aircloak.PsqlServer.RanchServer
-  import Aircloak.PsqlTestDriver, only: :macros
+  alias Air.PsqlServer.RanchServer
+  import Air.PsqlTestDriver, only: :macros
 
   @port 20_000
 
   setup_all do
-    {:ok, _} = Aircloak.PsqlTestDriver.listen(@port)
+    {:ok, _} = Air.PsqlTestDriver.listen(@port)
     :ok
   end
 

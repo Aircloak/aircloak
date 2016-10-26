@@ -1,7 +1,7 @@
 defmodule Air.PsqlServer do
   @moduledoc "Server for PostgreSQL protocol which allows PostgreSQL clients to query cloaks."
 
-  alias Aircloak.PsqlServer.RanchServer
+  alias Air.PsqlServer.RanchServer
   alias Air.Service.{User, DataSource}
 
   @behaviour RanchServer

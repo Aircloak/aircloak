@@ -1,9 +1,9 @@
-defmodule Aircloak.PsqlServer.Protocol.Messages do
+defmodule Air.PsqlServer.Protocol.Messages do
   @moduledoc false
 
   # Helpers for working with PostgreSQL protocol messages described in
   # https://www.postgresql.org/docs/9.6/static/protocol-message-formats.html.
-  # These functions basically belong to Aircloak.PsqlServer.Protocol, but they're extracted into
+  # These functions basically belong to Air.PsqlServer.Protocol, but they're extracted into
   # a separate module so we can reuse them in tests.
 
 

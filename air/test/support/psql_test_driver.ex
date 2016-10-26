@@ -1,7 +1,7 @@
-defmodule Aircloak.PsqlTestDriver do
+defmodule Air.PsqlTestDriver do
   @moduledoc false
 
-  alias Aircloak.PsqlServer.RanchServer
+  alias Air.PsqlServer.RanchServer
   @behaviour RanchServer
 
   defmacro run_client(port, user, pass, query \\ nil, opts) do
@@ -36,8 +36,8 @@ defmodule Aircloak.PsqlTestDriver do
   def listen(port), do:
     RanchServer.start_embedded_server(port, __MODULE__, nil,
       ssl: [
-        certfile: "../../air/priv/config/ssl_cert.pem",
-        keyfile: "../../air/priv/config/ssl_key.pem"
+        certfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"]),
+        keyfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
       ])
 
   def init(conn, nil), do:
