@@ -54,6 +54,10 @@ defmodule Central.Service.Customer do
   be used to identify a customer through APIs.
   """
   @spec generate_token(Customer.t) :: {:ok, String.t}
+  # The dialyzer suppression is due to a bug in Phoenix whereby :milli_seconds
+  # is used instead of :milliseconds. This has been fixed in more recent
+  # versions of Phoenix: https://github.com/phoenixframework/phoenix/pull/1986
+  @dialyzer :no_return
   def generate_token(customer) do
     {:ok, Phoenix.Token.sign(Central.Endpoint, customer_token_salt(), customer.id)}
   end
