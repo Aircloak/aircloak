@@ -41,7 +41,7 @@ defmodule Central.Service.Customer do
   end
 
   @doc "Returns a cusstomer by id"
-  @spec get(non_neg_integer) :: {:ok, User.t} | {:error, :not_found}
+  @spec get(non_neg_integer) :: {:ok, Customer.t} | {:error, :not_found}
   def get(id) do
     case Repo.get(Customer, id) do
       nil -> {:error, :not_found}
