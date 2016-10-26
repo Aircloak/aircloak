@@ -175,6 +175,7 @@ defmodule Cloak.DataSource do
       "mysql" -> Cloak.DataSource.MySQL
       "dsproxy" -> Cloak.DataSource.DsProxy
       "odbc" -> Cloak.DataSource.ODBC
+      "mongodb" -> Cloak.DataSource.MongoDB
       other -> raise("Unknown driver `#{other}` for data source `#{data_source.global_id}`")
     end
     Map.merge(data_source, %{driver: driver_module})
@@ -200,9 +201,9 @@ defmodule Cloak.DataSource do
     # The data source marker is useful when we you want to force identical data sources to get
     # distinct global IDs. This can be used for exampel in staging and test environments.
 
-    user = Parameters.get_one_of(data.parameters, ["uid", "user", "username"])
+    user = Parameters.get_one_of(data.parameters, ["uid", "user", "username", "login"])
     database = Parameters.get_one_of(data.parameters, ["database"])
-    host = Parameters.get_one_of(data.parameters, ["hostname", "server"])
+    host = Parameters.get_one_of(data.parameters, ["hostname", "server", "host"])
 
     if Enum.any?([user, database, host], &(is_nil(&1))) do
       raise "Misconfigured data source: user, database, and host parameters are required"

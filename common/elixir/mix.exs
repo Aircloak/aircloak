@@ -46,6 +46,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:dialyze, "~> 0.2.1", warn_missing: false},
       {:excoveralls, "~> 0.5.5", warn_missing: false},
       {:exrm, "~> 1.0.8", warn_missing: false},
+      {:ranch, "~> 1.0", optional: true, only: [:dev, :test]},
       {:phoenix, "~> 1.1.6", only: :test},
       {:cowboy, "~> 1.0", only: :test}
     ]
@@ -62,7 +63,8 @@ defmodule Aircloak.ElixirCommon.Mixfile do
   defp erlc_options(:dev), do: [:debug_info]
   defp erlc_options(:prod), do: []
 
-  defp applications(:test), do: [:logger, :gproc, :phoenix, :cowboy, :poison, :ex_unit]
+  defp applications(:test), do: [:logger, :gproc, :phoenix, :cowboy, :poison, :ex_unit, :ranch]
+  defp applications(:dev), do: [:ranch | applications(:prod)]
   defp applications(_), do: [:logger, :gproc, :poison]
 
   defp ignored_credo_checks(:test), do:

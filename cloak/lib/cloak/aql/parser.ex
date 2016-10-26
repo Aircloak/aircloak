@@ -386,19 +386,23 @@ defmodule Cloak.Aql.Parser do
 
   defp qualified_identifier() do
     map(
-      either_deepest_error(
-        sequence(
-          [
-            identifier(),
+      pair_both(
+        identifier(),
+        many(
+          pair_both(
             keyword(:"."),
             identifier()
-          ]
-        ),
-        identifier()
+          )
+        )
       ),
       fn
-        ([table, :".", column]) -> {:identifier, table, column}
-        (column) -> {:identifier, :unknown, column}
+        ({column, []}) ->
+          {:identifier, :unknown, column}
+        ({table, [{:., column}]}) ->
+          {:identifier, table, column}
+        ({table, parts}) ->
+          column = parts |> Enum.map(fn ({:., {:unquoted, part}}) -> part end) |> Enum.join(".")
+          {:identifier, table, {:unquoted, column}}
       end
     )
   end

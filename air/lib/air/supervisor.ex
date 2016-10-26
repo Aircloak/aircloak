@@ -17,7 +17,7 @@ defmodule Air.Supervisor do
       Air.CentralQueryReporter.observer_spec(),
       worker(Air.Endpoint, []),
       worker(Air.BOM, []),
-      Air.PsqlServer.RanchServer.supervisor_spec()
+      Air.PsqlServer.child_spec()
     ] ++ system_processes()
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Air.Supervisor)

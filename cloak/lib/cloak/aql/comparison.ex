@@ -23,4 +23,22 @@ defmodule Cloak.Aql.Comparison do
   def direction({:comparison, _, :<=, _}), do: :<
   def direction({:comparison, _, :>, _}), do: :>
   def direction({:comparison, _, :>=, _}), do: :>
+
+  @doc "Converts a 'LIKE' pattern string to a regex string."
+  @spec to_regex(String.t) :: String.t
+  def to_regex(pattern), do:
+    pattern
+    |> Regex.escape()
+    |> String.replace("%", ".*")
+    |> String.replace("_", ".")
+    |> String.replace(".*.*", "%") # handle escaped `%` (`%%`)
+    |> String.replace(".*.", "_") # handle escaped `_` (`%_`)
+    |> anchor()
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  defp anchor(pattern), do: "^#{pattern}$"
 end
