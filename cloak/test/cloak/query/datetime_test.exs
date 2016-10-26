@@ -91,7 +91,7 @@ defmodule Cloak.Query.DatetimeTest do
     :ok = insert_rows(_user_ids = 0..9, "datetimes", ["date_only"], [~D[2015-01-01]])
     :ok = insert_rows(_user_ids = 10..19, "datetimes", ["date_only"], [~D[2017-01-01]])
 
-    assert_query "select count(*) from datetimes where date_only > '2016-01-01'",
+    assert_query "select count(*) from datetimes where date_only > '2016-01-01' and date_only < '2018-01-01'",
       %{query_id: "1", columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
   end
 

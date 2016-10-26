@@ -661,7 +661,7 @@ defmodule Cloak.Aql.Compiler do
   def lt_eq(x = %Date{}, y = %Date{}), do: Timex.diff(x, y) <= 0
   def lt_eq(x, y), do: x <= y
 
-  @aligned_types ~w(integer real datetime)a
+  @aligned_types ~w(integer real datetime date)a
   defp inequalities_by_column(where_clauses) do
     where_clauses
     |> Enum.filter(&Comparison.inequality?/1)
