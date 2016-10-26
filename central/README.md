@@ -61,8 +61,8 @@ with `make recreate_db`
 
 ### Running
 
-First, make sure the dependencies are started by running `./start_dependencies.sh`. To start the development server, you run: `make start`. Now you can access the
-site at http://localhost:8080/.
+First, make sure the dependencies are started by running `../start_dependencies.sh`. To start the development server, you run: `make start`. Now you can access the
+site at http://localhost:7080/.
 
 Note that there's no need to migrate the database. This will happen automatically when the application starts.
 However, if you do need to manually migrate/rollback (for example while creating a new migration), you can do

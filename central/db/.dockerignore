@@ -1,0 +1,5 @@
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!central/db/init_db.sh
