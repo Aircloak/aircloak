@@ -29,21 +29,12 @@ defmodule Central.Socket.Air do
   @doc false
   def connect(params, socket) do
     Logger.info("Air connecting #{inspect params}")
-    case values_from_params(params) do
-      {:ok, token, air_name} ->
-        case Customer.from_token(token) do
-          {:ok, customer} ->
-            socket = socket
-              |> assign(:customer, customer)
-              |> assign(:air_name, air_name)
-            {:ok, socket}
-          {:error, :invalid_token} ->
-            Logger.info("Connection refused - invalid customer token")
-            :error
-        end
-      :error ->
-        Logger.info("Connection refused - incomplete parameters")
-        :error
+    with {:ok, token, air_name} <- values_from_params(params),
+         {:ok, customer} <- get_customer(token) do
+      socket = socket
+        |> assign(:customer, customer)
+        |> assign(:air_name, air_name)
+      {:ok, socket}
     end
   end
 
@@ -57,4 +48,13 @@ defmodule Central.Socket.Air do
 
   defp values_from_params(%{"token" => token, "air_name" => air_name}), do: {:ok, token, air_name}
   defp values_from_params(_), do: :error
+
+  defp get_customer(token) do
+    case Customer.from_token(token) do
+      {:error, :invalid_token} ->
+        Logger.info("Connection refused - invalid customer token")
+        :error
+      {:ok, _} = success -> success
+    end
+  end
 end
