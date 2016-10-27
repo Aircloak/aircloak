@@ -44,7 +44,6 @@ defmodule Cloak.DataSource.MongoDB do
 
   @doc false
   def describe_table(connection, table_name) do
-    # We assume that all fields have a single, consistent type (no mixing of values).
     map_code = """
       function() {
         m_sub = function(base, object) {
@@ -69,7 +68,7 @@ defmodule Cloak.DataSource.MongoDB do
     """
     reduce_code = """
       function(key, types) {
-        return types[0];
+        return types.every(function (type) { return type === types[0]; }) ? types[0] : "mixed";
       }
     """
     connection
@@ -101,6 +100,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp parse_type("boolean"), do: :boolean
   defp parse_type("string"), do: :text
   defp parse_type("date"), do: :datetime
+  defp parse_type(type), do: {:unsupported, type}
 
   @dialyzer [:no_fail_call, :no_return] # `mc_worker_api.command` has incorrect type spec.
   defp mapreduce(conn, collection, map_code, reduce_code) do
