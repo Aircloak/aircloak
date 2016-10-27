@@ -41,7 +41,7 @@ defmodule Cloak.Mixfile do
       {:httpoison, "~> 0.9.0"},
       {:poolboy, "~> 1.5", override: true},
       {:mongodb, github: "comtihon/mongodb-erlang"},
-      {:lens, github: "obrok/lens"},
+      {:lens, "0.0.1"},
 
       # Test deps
 
