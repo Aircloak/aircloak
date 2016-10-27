@@ -30,6 +30,7 @@ defmodule Air.ResultProcessor do
     supervisor(Task.Supervisor, [[name: __MODULE__, restart: :temporary]], [id: :result_processor])
   end
 
+  @spec observer_spec() :: Supervisor.Spec.spec
   def observer_spec do
     worker(Task, [fn() ->
       for {:result, result} <- Air.QueryEvents.stream, do: start_processor(result)

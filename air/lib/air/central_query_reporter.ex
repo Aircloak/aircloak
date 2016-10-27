@@ -27,6 +27,7 @@ defmodule Air.CentralQueryReporter do
     supervisor(Task.Supervisor, [[name: __MODULE__, restart: :temporary]], [id: :central_query_reporter])
   end
 
+  @spec observer_spec() :: Supervisor.Spec.spec
   def observer_spec do
     worker(Task, [fn() ->
       for {:result, result} <- Air.QueryEvents.stream, do: start_processor(result)
