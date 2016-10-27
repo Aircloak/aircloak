@@ -12,7 +12,7 @@ common/docker/elixir/build-image.sh
 
 # build the base image
 IMAGE_CATEGORY="" build_aircloak_image \
-  nodejs \
-  common/docker/nodejs/Dockerfile \
-  common/docker/nodejs/.dockerignore \
+  phoenix \
+  common/docker/phoenix/Dockerfile \
+  common/docker/phoenix/.dockerignore \
   $(nodejs_version)

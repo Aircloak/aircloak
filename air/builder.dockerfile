@@ -1,4 +1,4 @@
-FROM aircloak/nodejs:$NODEJS_VERSION
+FROM aircloak/phoenix:$NODEJS_VERSION
 MAINTAINER Aircloak
 
 # Install dependencies and configure UTF-8
