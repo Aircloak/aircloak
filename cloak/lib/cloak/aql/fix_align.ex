@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.FixAlign do
   @moduledoc "Implements fixing the alignment of ranges to a predetermined grid."
 
-  @type interval :: {number, number}
+  @type interval(x) :: {x, x}
 
   @default_size_factors [1, 2, 5]
   @epoch ~N[1970-01-01 00:00:00]
@@ -34,7 +34,7 @@ defmodule Cloak.Aql.FixAlign do
   Returns an interval that has been aligned to a fixed grid. The density of the grid depends on the size of
   the input interval. Both ends of the input will be contained inside the output.
   """
-  @spec align_interval(interval, Keyword.t) :: interval
+  @spec align_interval(interval(x), Keyword.t) :: interval(x) when x: var
   def align_interval(interval, opts \\ [])
   def align_interval({x, y}, _) when is_number(x) and is_number(y) and x > y, do: raise "Invalid interval"
   def align_interval(interval = {x, y}, opts) when is_number(x) and is_number(y) do
@@ -62,13 +62,23 @@ defmodule Cloak.Aql.FixAlign do
   end
 
   defp align_date_time_once({x, y}) do
-    unit = @time_units
-    |> Enum.find(fn(component) -> duration_component(component, Timex.diff(y, x, :duration)) >= 1 end)
+    case largest_changed_unit({x, y}) do
+      nil -> raise "Invalid interval"
+      unit ->
+        {x, y}
+        |> units_since_epoch(unit)
+        |> align_interval(size_factors: size_factors(unit), allow_half: allow_half?(x, unit))
+        |> datetime_from_units(unit)
+    end
+  end
 
-    {x, y}
-    |> units_since_epoch(unit)
-    |> align_interval(size_factors: size_factors(unit), allow_half: allow_half?(x, unit))
-    |> datetime_from_units(unit)
+  defp largest_changed_unit({x, y}) do
+    Enum.find(@time_units, fn(component) ->
+      case Timex.diff(y, x, :duration) do
+        %Timex.Duration{} = duration -> duration_component(component, duration) >= 1
+        _ -> false
+      end
+    end)
   end
 
   defp allow_half?(%Date{}, :days), do: false
@@ -100,17 +110,20 @@ defmodule Cloak.Aql.FixAlign do
   defp datetime_ceil(datetime, :months), do:
     if datetime == Timex.beginning_of_month(datetime),
       do: datetime,
-      else: Timex.beginning_of_month(datetime) |> Timex.shift(months: 1)
+      else: Timex.beginning_of_month(datetime) |> shift(months: 1)
   defp datetime_ceil(datetime, :days), do:
     if datetime == Timex.beginning_of_day(datetime),
       do: datetime,
-      else: Timex.beginning_of_day(datetime) |> Timex.shift(days: 1)
+      else: Timex.beginning_of_day(datetime) |> shift(days: 1)
   defp datetime_ceil(datetime = %Date{}, :hours), do: datetime
   defp datetime_ceil(datetime = %{minute: 0, second: 0}, :hours), do: datetime
   defp datetime_ceil(datetime, :hours), do: %{datetime | hour: datetime.hour + 1, minute: 0, second: 0}
   defp datetime_ceil(datetime = %{second: 0}, :minutes), do: datetime
   defp datetime_ceil(datetime, :minutes), do: %{datetime | minute: datetime.minute + 1, second: 0}
   defp datetime_ceil(datetime, :seconds), do: datetime
+
+  # Workaround for https://github.com/bitwalker/timex/pull/232
+  defp shift(datetime, spec), do: Timex.Protocol.shift(datetime, spec)
 
   defp datetime_from_units({x, y}, unit), do: {datetime_from_units(x, unit), datetime_from_units(y, unit)}
   defp datetime_from_units(x, :months) do
@@ -127,7 +140,6 @@ defmodule Cloak.Aql.FixAlign do
   end
 
   defp conversion_factor(:years, :months), do: @months_in_year
-  defp conversion_factor(:months, :days), do: @days_in_month
   defp conversion_factor(:days, :hours), do: @hours_in_day
   defp conversion_factor(:hours, :minutes), do: @minutes_in_hour
   defp conversion_factor(:minutes, :seconds), do: @seconds_in_minute
