@@ -32,13 +32,13 @@ defmodule Air.ResultProcessor do
 
   def observer_spec do
     worker(Task, [fn() ->
-      for {:result, result} <- Air.QueryEvents.stream, do: start(result)
+      for {:result, result} <- Air.QueryEvents.stream, do: start_processor(result)
     end])
   end
 
   @doc "Starts a result processor."
-  @spec start(%{String.t => any}) :: {:ok, pid}
-  def start(result) do
+  @spec start_processor(%{String.t => any}) :: {:ok, pid}
+  def start_processor(result) do
     Task.Supervisor.start_child(__MODULE__, fn() -> process_result(result) end)
   end
 
