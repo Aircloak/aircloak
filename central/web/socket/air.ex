@@ -30,11 +30,15 @@ defmodule Central.Socket.Air do
   def connect(params, socket) do
     Logger.info("Air connecting #{inspect params}")
     with {:ok, token, air_name} <- values_from_params(params),
-         {:ok, customer} <- get_customer(token) do
+         {:ok, customer} <- Customer.from_token(token) do
       socket = socket
         |> assign(:customer, customer)
         |> assign(:air_name, air_name)
       {:ok, socket}
+    else
+      _ ->
+        Logger.info("Connection refused - invalid params or customer token")
+        :error
     end
   end
 
@@ -48,13 +52,4 @@ defmodule Central.Socket.Air do
 
   defp values_from_params(%{"token" => token, "air_name" => air_name}), do: {:ok, token, air_name}
   defp values_from_params(_), do: :error
-
-  defp get_customer(token) do
-    case Customer.from_token(token) do
-      {:error, :invalid_token} ->
-        Logger.info("Connection refused - invalid customer token")
-        :error
-      {:ok, _} = success -> success
-    end
-  end
 end
