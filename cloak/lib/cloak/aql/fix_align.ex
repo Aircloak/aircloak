@@ -48,7 +48,7 @@ defmodule Cloak.Aql.FixAlign do
 
 
   # -------------------------------------------------------------------
-  # Internal functions
+  # Internal functions for Dates and NaiveDateTimes
   # -------------------------------------------------------------------
 
   defp to_date({x, y}), do: {NaiveDateTime.to_date(x), NaiveDateTime.to_date(y)}
@@ -154,6 +154,11 @@ defmodule Cloak.Aql.FixAlign do
   defp duration_component(:hours, duration), do: Timex.Duration.to_hours(duration)
   defp duration_component(:minutes, duration), do: Timex.Duration.to_minutes(duration)
   defp duration_component(:seconds, duration), do: Timex.Duration.to_seconds(duration)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions for numeric intervals
+  # -------------------------------------------------------------------
 
   defp snap(size, {x, y}, allow_half) do
     require Integer
