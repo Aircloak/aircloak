@@ -62,7 +62,7 @@ defmodule Cloak.DataSource.MongoDB do
           if (key != "_id") {
             m_sub(key, this[key]);
           } else {
-            emit("_id", "id");
+            emit("_id", "object_id");
           }
         }
       }
@@ -96,7 +96,7 @@ defmodule Cloak.DataSource.MongoDB do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp parse_type("id"), do: :text
+  defp parse_type("object_id"), do: :text
   defp parse_type("number"), do: :real
   defp parse_type("boolean"), do: :boolean
   defp parse_type("string"), do: :text
