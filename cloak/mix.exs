@@ -41,6 +41,7 @@ defmodule Cloak.Mixfile do
       {:httpoison, "~> 0.9.0"},
       {:poolboy, "~> 1.5", override: true},
       {:mongodb, github: "comtihon/mongodb-erlang"},
+      {:lens, github: "obrok/lens"},
 
       # Test deps
 
@@ -60,7 +61,7 @@ defmodule Cloak.Mixfile do
     [
       :logger, :gproc, :aircloak_common, :postgrex, :mariaex,
       :phoenix_gen_socket_client, :websocket_client, :combine,
-      :runtime_tools, :httpoison, :timex, :poison, :odbc,
+      :runtime_tools, :httpoison, :timex, :poison, :odbc, :lens,
       :bson, :crypto, :mongodb
     ]
   end

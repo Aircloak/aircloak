@@ -133,24 +133,15 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_subqueries(%Query{from: nil} = query), do: query
   defp compile_subqueries(query) do
-    compiled = do_compile_subqueries(query.from, query.data_source)
-    %Query{query | from: compiled, info: query.info ++ gather_info(compiled)}
-  end
+    {info, compiled} =
+      query
+      |> Lens.get_and_map(Query.subqueries(), fn(subquery = %{ast: ast, alias: alias}) ->
+        compiled_one = compiled_subquery(query.data_source, ast, alias)
+        {compiled_one.info, %{subquery | ast: compiled_one}}
+      end)
 
-  defp do_compile_subqueries({:join, join}, data_source) do
-    {:join, %{join |
-      lhs: do_compile_subqueries(join.lhs, data_source),
-      rhs: do_compile_subqueries(join.rhs, data_source)
-    }}
+    %Query{compiled | info: Enum.concat(info)}
   end
-  defp do_compile_subqueries({:subquery, subquery}, data_source) do
-    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast, subquery.alias)}}
-  end
-  defp do_compile_subqueries(identifier = {_, table}, _data_source) when is_binary(table), do: identifier
-
-  defp gather_info({:join, %{lhs: lhs, rhs: rhs}}), do: gather_info(rhs) ++ gather_info(lhs)
-  defp gather_info({:subquery, subquery}), do: subquery.ast.info
-  defp gather_info(_), do: []
 
   defp compiled_subquery(data_source, parsed_query, alias) do
     case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
