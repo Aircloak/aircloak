@@ -50,9 +50,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
     message_with_size(:data_row, <<length(values)::16, encoded_row::binary>>)
   end
 
-  def fatal_error(code, message), do:
+  def error_message(severity, code, message), do:
     message_with_size(:error_response, <<
-      ?S, null_terminate("FATAL")::binary,
+      ?S, null_terminate(severity)::binary,
       ?C, null_terminate(code)::binary,
       ?M, null_terminate(message)::binary,
       0

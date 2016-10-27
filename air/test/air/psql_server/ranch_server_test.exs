@@ -48,4 +48,17 @@ defmodule Air.PsqlServer.RanchServerTest do
     assert output =~ ~r/2\n/
     assert output =~ ~r/2 rows/
   end
+
+  test "query error" do
+    output =
+      run_client(@port, "some_user", "some_pass", "select foo from bar") do
+        handle_server_event {:login, _password}, conn, do: {:ok, conn}
+
+        handle_server_event {:run_query, _query}, conn, do:
+          RanchServer.set_query_result(conn, %{error: "some error"})
+      end
+      |> Task.await()
+
+    assert output =~ ~r/some error/
+  end
 end
