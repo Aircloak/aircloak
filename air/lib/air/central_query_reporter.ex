@@ -27,6 +27,7 @@ defmodule Air.CentralQueryReporter do
     supervisor(Task.Supervisor, [[name: __MODULE__, restart: :temporary]], [id: :central_query_reporter])
   end
 
+  @doc "Returns a worker specification for the query result processor"
   @spec observer_spec() :: Supervisor.Spec.spec
   def observer_spec do
     worker(Task, [fn() ->
