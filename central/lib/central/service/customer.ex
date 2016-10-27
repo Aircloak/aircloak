@@ -2,6 +2,7 @@ defmodule Central.Service.Customer do
   @moduledoc "Service module for working with users"
 
   require Logger
+  require Aircloak.DeployConfig
 
   alias Ecto.Changeset
   alias Central.Repo
@@ -59,7 +60,7 @@ defmodule Central.Service.Customer do
   # versions of Phoenix: https://github.com/phoenixframework/phoenix/pull/1986
   @dialyzer :no_return
   def generate_token(customer) do
-    {:ok, Phoenix.Token.sign(Central.Endpoint, customer_token_salt(), customer.id)}
+    {:ok, Phoenix.Token.sign(secret_key_base(), customer_token_salt(), customer.id)}
   end
 
   @doc """
@@ -69,7 +70,7 @@ defmodule Central.Service.Customer do
   """
   @spec from_token(String.t) :: {:ok, Customer.t} | {:error, :invalid_token}
   def from_token(token) do
-    case Phoenix.Token.verify(Central.Endpoint, customer_token_salt(), token) do
+    case Phoenix.Token.verify(secret_key_base(), customer_token_salt(), token) do
       {:ok, customer_id} ->
         case get(customer_id) do
           {:error, :not_found} -> {:error, :invalid_token}
@@ -99,7 +100,11 @@ defmodule Central.Service.Customer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp customer_token_salt do
-    Application.get_env(:central, Central.Endpoint) |> Keyword.fetch!(:customer_token_salt)
+  defp customer_token_salt() do
+    Central.site_setting("customer_token_salt")
+  end
+
+  defp secret_key_base() do
+    Central.site_setting("endpoint_key_base")
   end
 end
