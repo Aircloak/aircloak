@@ -38,6 +38,7 @@ defmodule Central.Schemas.Customer do
   end
 
   @doc "Validates a changeset for insertion"
+  @spec new_customer_changeset(t | Changeset.t, Map.t) :: Changeset.t
   def new_customer_changeset(model, params \\ %{}) do
     model
     |> changeset(params)
