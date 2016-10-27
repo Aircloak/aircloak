@@ -1,6 +1,6 @@
 # Central
 
-The `central` is an Aircloak hosted application used for management of customers,
+`central` is an Aircloak hosted application used for management of customers,
 recording of Aircloak usage for billing purpose, as well as for collecting usage
 information for analytics purposes.
 
