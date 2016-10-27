@@ -1,0 +1,4 @@
+<h2>New customer</h2>
+
+<%= render "_form.html", changeset: @changeset,
+  action: customer_path(@conn, :create), conn: @conn %>

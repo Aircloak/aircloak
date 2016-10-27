@@ -17,7 +17,9 @@ defmodule Mix.Tasks.SiteRelease do
   @doc false
   def run(_args) do
     File.rm_rf!("rel/air")
-    {_, 0} = System.cmd("brunch", ["build", "--production"])
+    {:ok, cwd} = File.cwd()
+    brunch_bin = Path.join([cwd, "node_modules/brunch/bin/brunch"])
+    {_, 0} = System.cmd(brunch_bin, ["build", "--production"])
     :ok = Mix.Task.run("phoenix.digest")
     :ok = Mix.Task.run("release", ["--no-confirm-missing"])
   end

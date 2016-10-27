@@ -26,7 +26,7 @@ defmodule BOM.Gather.Node do
 
     %BOM.Package{
       realm: :node,
-      name: Path.basename(path),
+      name: package_json(path, "name"),
       path: path,
       license: license(path, version),
       version: version,
@@ -63,7 +63,7 @@ defmodule BOM.Gather.Node do
   defp package_json(path, field), do: package_json(path, field, nil)
 
   defp package_json(path, field, default), do:
-    Gather.if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] || default end)
+    Gather.if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] end) || default
 
   @babel_packages ~w(
     babel babel-cli babel-code-frame babel-core babel-generator babel-helper-bindify-decorators
@@ -116,14 +116,27 @@ defmodule BOM.Gather.Node do
   end
 
   defp list_packages(path) do
-    path
-    |> Path.join("*")
-    |> Path.wildcard()
-    |> Enum.flat_map(fn(package_path) ->
-      [
-        package_path |
-        package_path |> Path.join("node_modules") |> list_packages()
-      ]
-    end)
+    sub_paths = path
+      |> Path.join("*")
+      |> Path.wildcard()
+
+    sub_paths
+    |> Enum.all?(&File.dir?/1)
+    |> case do
+      true ->
+        # This is a normal node_modules folder with sub-packages
+        Enum.flat_map(sub_paths, fn(package_path) ->
+          [
+            package_path |
+            package_path |> Path.join("node_modules") |> list_packages()
+          ]
+        end)
+      false ->
+        # This seems to be a folder which contains a package embedded directly
+        # inside of it. `clean-pslg` is an example. We here have to treat the
+        # directory as the top-level directory for a package, rather than a
+        # parent directory to multiple packages.
+        [path]
+    end
   end
 end

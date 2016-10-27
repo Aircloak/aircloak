@@ -1,0 +1,6 @@
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!central/artifacts/rel
+!central/docker

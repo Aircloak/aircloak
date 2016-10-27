@@ -30,3 +30,9 @@ config :logger, :console, format: "[$level] $message\n"
 # Do not configure such in production as keeping
 # and calculating stacktraces is usually expensive.
 config :phoenix, :stacktrace_depth, 20
+
+# Where to expect the Central endpoint to be located
+config :air, :central,
+  central_site: "ws://localhost:7080",
+  min_reconnect_interval: 1000,
+  max_reconnect_interval: 50000

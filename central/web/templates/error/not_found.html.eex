@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Aircloak – 404 - Not found</title>
+    <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/css/vendor.css">
+    <link rel="stylesheet" href="/css/app.css">
+  </head>
+
+  <body>
+    <div class="body-wrapper">
+      <div class="container">
+        <main role="main">
+          <div class="col-sm-6 col-sm-offset-3">
+            <img src="/images/aircloak_web.png" alt="Aircloak Logo"
+              style="padding-left: 50%; padding-bottom: 50px; margin-left: -80px;" />
+            <div class="panel panel-info">
+              <div class="panel-heading">
+                <h1 class="panel-title">The page could not be found</h1>
+              </div>
+              <div class="panel-body">
+                <p>
+                  The resource you are trying to access might have been removed
+                  or you might not be allowed to access it.
+                </p>
+              </div>
+            </div>
+          </div>
+        </main>
+
+      </div> <!-- /container -->
+    </div>
+  </body>
+</html>
