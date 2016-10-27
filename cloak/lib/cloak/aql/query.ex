@@ -104,6 +104,8 @@ defmodule Cloak.Aql.Query do
 
   deflens subqueries, do: from_leaves() |> L.satisfy(&match?({:subquery, _}, &1)) |> L.at(1)
 
+  deflens from_tables, do: from_leaves() |> L.satisfy(&(match?({:quoted, _}, &1) or match?({:unquoted, _}, &1)))
+
   deflens from_leaves, do: L.key(:from) |> do_from_leaves()
 
   deflens do_from_leaves do
