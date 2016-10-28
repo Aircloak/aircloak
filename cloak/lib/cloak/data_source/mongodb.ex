@@ -72,19 +72,20 @@ defmodule Cloak.DataSource.MongoDB do
       }
     """
     connection
-    |> mapreduce(table_name, map_code, reduce_code)
-    |> Enum.map(fn (%{"_id" => name, "value" => type}) -> {name, parse_type(type)} end)
+    |> execute!({:mapreduce, table_name, :map, map_code, :reduce, reduce_code, :out, {:inline, 1}})
+    |> Enum.map(fn (%{"_id" => name, "value" => type}) ->
+      {String.split(name, "[]."), parse_type(type)}
+    end)
   end
 
   @doc false
   def select(connection, query, result_processor) do
-    {collection, columns, selector, projector} = parse_query(query)
+    {collection, columns, pipeline} = parse_query(query)
     columns = Enum.map(columns, &String.split(&1, "."))
 
     result =
       connection
-      |> :mc_worker_api.find(collection, selector, %{projector: projector})
-      |> cursor_to_stream()
+      |> execute!({:aggregate, collection, :pipeline, pipeline})
       |> Stream.map(&extract_fields(&1, columns))
       |> result_processor.()
     {:ok, result}
@@ -103,17 +104,12 @@ defmodule Cloak.DataSource.MongoDB do
   defp parse_type(type), do: {:unsupported, type}
 
   @dialyzer [:no_fail_call, :no_return] # `mc_worker_api.command` has incorrect type spec.
-  defp mapreduce(conn, collection, map_code, reduce_code) do
-    {true, %{"results" => results}} = :mc_worker_api.command(
-      conn,
-      {
-        :mapreduce, collection,
-        :map, map_code,
-        :reduce, reduce_code,
-        :out, {:inline, 1}
-      }
-    )
-    results
+  defp execute!(conn, command) do
+    case :mc_worker_api.command(conn, command) do
+      {true, %{"results" => results}} -> results
+      {true, %{"result" => result}} -> result
+      {false, _error} -> raise RuntimeError, message: "Runtime error while executing MongoDB command."
+    end
   end
 
   defp parse_query(%Query{from: name} = query) when is_binary(name) do
@@ -121,7 +117,8 @@ defmodule Cloak.DataSource.MongoDB do
     projector = for column <- columns, into: %{"_id" => false}, do: {column, true}
     [%Column{table: %{db_name: collection}} | _] = query.db_columns
     selector = parse_where_clause(query.where)
-    {collection, columns, selector, projector}
+    pipeline = [%{'$match': selector}, %{'$project': projector}]
+    {collection, columns, pipeline}
   end
   defp parse_query(%Query{}), do:
     raise RuntimeError, message: "Table joins and inner selects are not supported on 'mongodb' data sources."
@@ -143,19 +140,6 @@ defmodule Cloak.DataSource.MongoDB do
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
-
-  defp cursor_to_stream(cursor) do
-    Stream.resource(
-      fn () -> cursor end,
-      fn (cursor) ->
-        case :mc_cursor.take(cursor, 25_000, :timer.minutes(5)) do
-          :error -> {:halt, cursor}
-          objects -> {objects, cursor}
-        end
-      end,
-      &:mc_cursor.close/1
-    )
-  end
 
   defp parse_where_clause([]), do: %{}
   defp parse_where_clause([condition]), do: parse_where_condition(condition)
