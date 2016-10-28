@@ -17,7 +17,7 @@ defmodule Cloak.Aql.Compiler.Test do
     result = compile!("select * from table where column > '2015-01-01' and column < '2016-01-01'", data_source())
 
     assert [{:comparison, column("table", "column"), :>=, value}, _] = result.where
-    assert value == Column.constant(:datetime, ~N[2015-01-01 00:00:00])
+    assert value == Column.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
   test "casts time where conditions" do
@@ -466,8 +466,13 @@ defmodule Cloak.Aql.Compiler.Test do
     aligned = compile!("select * from table where column > '2015-01-02' and column < '2016-07-01'", data_source())
     assert compile!("select * from table where column > '2015-01-01' and column < '2016-08-02'", data_source()).where
       == aligned.where
-    assert aligned.info == ["The range for column `column` has been adjusted to 2015-01-01 00:00:00"
-      <> " <= `column` < 2017-01-01 00:00:00"]
+    assert aligned.info == ["The range for column `column` has been adjusted to 2015-01-01 00:00:00.000000"
+      <> " <= `column` < 2017-01-01 00:00:00.000000"]
+  end
+
+  test "no message when datetime alignment does not require fixing" do
+    assert compile!("select * from table where column >= '2014-01-01' and column < '2016-01-01'", data_source()).
+      info == []
   end
 
   test "fixes alignment of date ranges" do

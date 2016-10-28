@@ -43,13 +43,15 @@ defmodule Cloak.Aql.FixAlign do
     |> Stream.map(&snap(&1, interval, Keyword.get(opts, :allow_half, true)))
     |> Enum.find(&(&1))
   end
-  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _), do: align_date_time({x, y})
+  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _), do: align_date_time({x, y}) |> max_precision()
   def align_interval({%Date{} = x, %Date{} = y}, _), do: {x, y} |> align_date_time() |> to_date()
 
 
   # -------------------------------------------------------------------
   # Internal functions for Dates and NaiveDateTimes
   # -------------------------------------------------------------------
+
+  defp max_precision({x, y}), do: {Cloak.Time.max_precision(x), Cloak.Time.max_precision(y)}
 
   defp to_date({x, y}), do: {NaiveDateTime.to_date(x), NaiveDateTime.to_date(y)}
 
@@ -108,11 +110,11 @@ defmodule Cloak.Aql.FixAlign do
   defp units_since_epoch(datetime, :seconds), do: Timex.diff(datetime, @epoch, :seconds)
 
   defp datetime_ceil(datetime, :months), do:
-    if datetime == Timex.beginning_of_month(datetime),
+    if Timex.diff(datetime, Timex.beginning_of_month(datetime)) == 0,
       do: datetime,
       else: Timex.beginning_of_month(datetime) |> shift(months: 1)
   defp datetime_ceil(datetime, :days), do:
-    if datetime == Timex.beginning_of_day(datetime),
+    if Timex.diff(datetime, Timex.beginning_of_day(datetime)) == 0,
       do: datetime,
       else: Timex.beginning_of_day(datetime) |> shift(days: 1)
   defp datetime_ceil(datetime = %Date{}, :hours), do: datetime
