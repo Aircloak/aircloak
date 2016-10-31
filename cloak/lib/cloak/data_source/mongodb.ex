@@ -50,6 +50,10 @@ defmodule Cloak.DataSource.MongoDB do
           if (object instanceof Date) {
             emit(base, "date");
           } else if (typeof object == "object") {
+            if (Array.isArray(object)) {
+              base += "[]";
+              object = object[0];
+            }
             for(var key in object) {
               m_sub(base + "." + key, object[key]);
             }
@@ -71,11 +75,13 @@ defmodule Cloak.DataSource.MongoDB do
         return types.every(function (type) { return type === types[0]; }) ? types[0] : "mixed";
       }
     """
-    connection
-    |> execute!({:mapreduce, table_name, :map, map_code, :reduce, reduce_code, :out, {:inline, 1}})
-    |> Enum.map(fn (%{"_id" => name, "value" => type}) ->
-      {String.split(name, "[]."), parse_type(type)}
-    end)
+    schema = connection
+      |> execute!({:mapreduce, table_name, :map, map_code, :reduce, reduce_code, :out, {:inline, 1}})
+      |> Enum.map(fn (%{"_id" => name, "value" => type}) ->
+        {String.split(name, "[]."), parse_type(type)}
+      end)
+      |> Enum.reduce(%{}, &build_schema/2)
+    schema.base
   end
 
   @doc false
@@ -113,15 +119,24 @@ defmodule Cloak.DataSource.MongoDB do
   end
 
   defp parse_query(%Query{from: name} = query) when is_binary(name) do
-    columns = for %Column{name: name} <- query.db_columns, do: name
-    projector = for column <- columns, into: %{"_id" => false}, do: {column, true}
-    [%Column{table: %{db_name: collection}} | _] = query.db_columns
-    selector = parse_where_clause(query.where)
-    pipeline = [%{'$match': selector}, %{'$project': projector}]
-    {collection, columns, pipeline}
+    [%Column{table: table} | _] = query.db_columns
+    array_size_projector = for {name, _type} <- table.columns, into: %{}, do: {name, project_column(name)}
+    column_names = for %Column{name: name} <- query.db_columns, do: name
+    select_projector = for name <- column_names, into: %{"_id" => false}, do: {name, true}
+    {array_size_conditions, regular_conditions} =
+      Enum.partition(query.where, &String.first(Comparison.column(&1)) == "#")
+    pipeline =
+      parse_where_conditions(regular_conditions) ++
+      [%{'$project': array_size_projector}] ++
+      parse_where_conditions(array_size_conditions) ++
+      [%{'$project': select_projector}]
+    {table.db_name, column_names, pipeline}
   end
   defp parse_query(%Query{}), do:
     raise RuntimeError, message: "Table joins and inner selects are not supported on 'mongodb' data sources."
+
+  defp project_column("#" <> array), do: %{'$size': "$" <> array}
+  defp project_column(_), do: true
 
   defp extract_fields(object, columns), do:
     for column <- columns, do: object |> extract_field(column) |> map_field()
@@ -141,9 +156,9 @@ defmodule Cloak.DataSource.MongoDB do
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
 
-  defp parse_where_clause([]), do: %{}
-  defp parse_where_clause([condition]), do: parse_where_condition(condition)
-  defp parse_where_clause(conditions), do: %{'$and': Enum.map(conditions, &parse_where_condition/1)}
+  defp parse_where_conditions([]), do: []
+  defp parse_where_conditions([condition]), do: [%{'$match': parse_where_condition(condition)}]
+  defp parse_where_conditions(conditions), do: [%{'$match': %{'$and': Enum.map(conditions, &parse_where_condition/1)}}]
 
   defp parse_operator(:=), do: :'$eq'
   defp parse_operator(:>), do: :'$gt'
@@ -181,5 +196,21 @@ defmodule Cloak.DataSource.MongoDB do
   defp erlang_datetime_to_timestamp(datetime, {microsecond, _precision} \\ {0, 0}) do
     seconds = :calendar.datetime_to_gregorian_seconds(datetime) - @epoch
     {seconds |> div(1_000_000), seconds |> rem(1_000_000), microsecond}
+  end
+
+  defp schema_append(schema, key, value), do: Map.update(schema, key, [value], & &1 ++ [value])
+
+  defp build_schema({[name], type}, schema), do: schema_append(schema, :base, {name, type})
+  defp build_schema({[array | name], type}, schema) do
+    schema = case schema[array] do
+      nil ->
+        schema
+        |> schema_append(:base, {"#" <> array, :integer})
+        |> Map.put(array, %{})
+      _ ->
+        schema
+    end
+    array_schema = build_schema({name, type}, schema[array])
+    Map.put(schema, array, array_schema)
   end
 end

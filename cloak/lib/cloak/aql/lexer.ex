@@ -154,7 +154,7 @@ defmodule Cloak.Aql.Lexer do
   end
 
   defp identifier() do
-    word_of(~r/[a-zA-Z_][a-zA-Z0-9_]*/)
+    word_of(~r/[a-zA-Z_#][a-zA-Z0-9_#]*/)
     |> satisfy(fn(identifier) ->
           not Enum.any?(@keywords, &(&1 == String.upcase(identifier)))
         end)
