@@ -594,6 +594,13 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error =~ ~r/Unknown function `*`/
   end
 
+  test "dotted columns can be used unquoted" do
+    assert %{columns: [column("table", "column.with.dots")]} =
+      compile!("select column.with.dots from table", dotted_data_source())
+    assert %{columns: [column("table", "column.with.dots")]} =
+      compile!("select table.column.with.dots from table", dotted_data_source())
+  end
+
   defp compile!(query_string, data_source) do
     {:ok, result} = compile(query_string, data_source)
     result
@@ -665,6 +672,17 @@ defmodule Cloak.Aql.Compiler.Test do
         name: "table",
         user_id: "uid",
         columns: [{"uid", :integer}, {"column", :date}]
+      }
+    }}
+  end
+
+  def dotted_data_source do
+    %{driver: Cloak.DataSource.MongoDB, tables: %{
+      table: %{
+        db_name: "table",
+        name: "table",
+        user_id: "uid",
+        columns: [{"uid", :integer}, {"column.with.dots", :number}]
       }
     }}
   end

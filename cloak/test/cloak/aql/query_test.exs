@@ -137,11 +137,11 @@ defmodule Cloak.Aql.QueryTest do
     assert %{selected_types: ["integer"]} = features_from("SELECT length(name) FROM feat_users")
   end
 
-  defp features_from(query) do
+  defp features_from(statement) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
-    query = Query.make!(first_ds, query)
+    query = Query.make!(first_ds, statement) |> Map.delete(:data_source)
     for data_source <- rest_ds, do:
-      assert(query == Query.make!(data_source, query))
+      assert(query == Query.make!(data_source, statement) |> Map.delete(:data_source))
     Query.extract_features(query)
   end
 end

@@ -825,18 +825,23 @@ defmodule Cloak.Aql.Compiler do
     end
   end
   defp identifier_to_column({:identifier, table, identifier = {_, column_name}}, columns_by_name, query) do
-    unless Enum.any?(query.selected_tables, &(&1.name == table)),
-      do: raise CompilationError, message: "Missing FROM clause entry for table `#{table}`."
-
-    case get_columns(columns_by_name, identifier) do
-      nil ->
-        raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
-      columns ->
-        case Enum.find(columns, &insensitive_equal?(&1.table.name, table)) do
-          nil ->
-            raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
-          column -> column
-        end
+    if Enum.any?(query.selected_tables, &(&1.name == table)) do
+      case get_columns(columns_by_name, identifier) do
+        nil ->
+          raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
+        columns ->
+          case Enum.find(columns, &insensitive_equal?(&1.table.name, table)) do
+            nil ->
+              raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
+            column -> column
+          end
+      end
+    else
+      case get_columns(columns_by_name, {:unquoted, "#{table}.#{column_name}"}) do
+        [column] -> column
+        [_|_] -> raise CompilationError, message: "Column `#{table}.#{column_name}` is ambiguous."
+        nil -> raise CompilationError, message: "Missing FROM clause entry for table `#{table}`."
+      end
     end
   end
   defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, %Query{subquery?: true}) do

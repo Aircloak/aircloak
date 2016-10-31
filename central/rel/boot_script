@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Set default variables
+export RELX_REPLACE_OS_VARS=true
+export CENTRAL_HOST_NAME=${CENTRAL_HOST_NAME:-"127.0.0.1"}
+
+# call the control script
+$(dirname "$0")/release $@

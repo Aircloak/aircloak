@@ -19,6 +19,7 @@ Before installing components, make sure that the following prerequisites are met
 
 - Docker 1.8 or higher should be installed on the host machines.
 - The user which installs the components is logged into `quay.io` with `docker login` using credentials provided by Aircloak.
+- You have your Aircloak provided `customer-token` available.
 
 ### Installing the air component
 
@@ -72,7 +73,8 @@ $ cat << EOF > /aircloak/air/config/config.json
       "auth_secret": auth_secret,
       "endpoint_key_base": endpoint_key_base,
       "api_token_salt": api_token_salt,
-      "master_password": master_password
+      "master_password": master_password,
+      "customer_token": customer_token
     },
 
     "database": {
@@ -91,6 +93,7 @@ The configuration consists of the following settings:
 
 - site secrets (`auth_secret`, `endpoint_key_base`, `api_token_salt` under the `site` key) - These are used to sign and encrypt various data exchanged with the clients. All secrets should consist of at least 64 characters. For example, you can generate a random secret with the following command: `cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1`
 - master site password - you will need this password to create the first user in your site
+- customer token - this identifies your `air` installation with the central Aircloak systems
 - database settings for the air database
 
 The values chosen above will suffice for this simple demo. In particular the database parameters point to the test-only local database which we configured in the previous step.

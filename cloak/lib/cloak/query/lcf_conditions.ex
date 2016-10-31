@@ -9,7 +9,7 @@ defmodule Cloak.Query.LCFConditions do
   """
 
   alias Cloak.Query.Anonymizer
-  alias Cloak.Aql.{Column, Function, Query}
+  alias Cloak.Aql.{Column, Function, Query, Comparison}
 
 
   # -------------------------------------------------------------------
@@ -143,11 +143,11 @@ defmodule Cloak.Query.LCFConditions do
     {fn(row) -> Function.apply_to_db_row(column, row) == value end, :drop}
   end
   defp matchers({:not, {:like, column, %Column{type: :text, value: pattern}}}) do
-    regex = to_regex(pattern)
+    regex = pattern |> Comparison.to_regex() |> Regex.compile!("ums")
     {fn(row) -> Function.apply_to_db_row(column, row) =~ regex end, :drop}
   end
   defp matchers({:not, {:ilike, column, %Column{type: :text, value: pattern}}}) do
-    regex = to_regex(pattern, [_case_insensitive = "i"])
+    regex = pattern |> Comparison.to_regex() |> Regex.compile!("uims")
     {fn(row) -> Function.apply_to_db_row(column, row) =~ regex end, :drop}
   end
   defp matchers({:not, {:in, column, values}}) do
@@ -165,17 +165,4 @@ defmodule Cloak.Query.LCFConditions do
 
   defp extract_value(%Column{value: value}), do: value
   defp extract_value(value), do: value
-
-  defp to_regex(sql_pattern, options \\ []) do
-    options = Enum.join([_unicode = "u" | options])
-
-    sql_pattern
-    |> Regex.escape
-    |> String.replace("%", ".*")
-    |> String.replace("_", ".")
-    |> anchor()
-    |> Regex.compile!(options)
-  end
-
-  defp anchor(pattern), do: "^#{pattern}$"
 end

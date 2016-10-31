@@ -15,9 +15,18 @@ There are two main components:
 
 ## Prerequisites
 
-You need to have Erlang and Elixir installed. The required versions are stated in [this file](.tool-versions). The easiest way to install is to use [asdf version manager](https://github.com/asdf-vm/asdf). You need to install it, together with Erlang and Elixir plugins. Then from the project root folder run `asdf install`. Before installing, make sure you have `unixodbc` installed (__macOS developers__ see [here](./cloak/osx_erlang_with_odbc.md) for detailed instructions).
+You need to have Erlang, Elixir, and NodeJS installed. The required versions are stated in [this file](.tool-versions).
+Please use the [asdf version manager](https://github.com/asdf-vm/asdf) to install the correct versions. `asdf` is also
+used on travis as well as when building docker containers.
+This way you can ensure the version you are using locally is the same as the one being used in production and during testing.
+You need to install it, together with the Erlang, Elixir and NodeJS plugins. Then from the project root folder run `asdf install`.
+Before installing, make sure you have `unixodbc` installed (__macOS developers__ see [here](./cloak/osx_erlang_with_odbc.md) for detailed instructions).
 
 You will also need Docker 1.11 (__macOS developers__ also need [Docker for Mac](https://docs.docker.com/docker-for-mac/), see [here](./macos_docker.md) for instructions).
+
+You will need to install [yarn](https://yarnpkg.com/en/docs/install) on your development machine as well.
+It replaces the node package manager. Using `yarn` we ensure we are using the same JavaScript packages
+across our individual development machines.
 
 ## Deploying
 
