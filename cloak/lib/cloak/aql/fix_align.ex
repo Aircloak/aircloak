@@ -124,17 +124,10 @@ defmodule Cloak.Aql.FixAlign do
   defp datetime_ceil(datetime, :minutes), do: %{datetime | minute: datetime.minute + 1, second: 0}
   defp datetime_ceil(datetime, :seconds), do: datetime
 
-  # Workaround for https://github.com/bitwalker/timex/pull/232
+  # Workaround for https://github.com/bitwalker/timex/pull/235
   defp shift(datetime, spec), do: Timex.Protocol.shift(datetime, spec)
 
   defp datetime_from_units({x, y}, unit), do: {datetime_from_units(x, unit), datetime_from_units(y, unit)}
-  defp datetime_from_units(x, :months) do
-    # Workaround for https://github.com/bitwalker/timex/issues/230
-    years = x |> Float.floor() |> round() |> div(@months_in_year)
-    months = x |> Float.floor() |> round() |> rem(@months_in_year)
-    days = (x - Float.floor(x)) * @days_in_month |> round()
-    Timex.shift(@epoch, years: years, months: months, days: days)
-  end
   defp datetime_from_units(x, unit) do
     less_significant = (x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit)) |> round()
     more_significant = x |> Float.floor() |> round()
@@ -142,6 +135,7 @@ defmodule Cloak.Aql.FixAlign do
   end
 
   defp conversion_factor(:years, :months), do: @months_in_year
+  defp conversion_factor(:months, :days), do: @days_in_month
   defp conversion_factor(:days, :hours), do: @hours_in_day
   defp conversion_factor(:hours, :minutes), do: @minutes_in_hour
   defp conversion_factor(:minutes, :seconds), do: @seconds_in_minute
