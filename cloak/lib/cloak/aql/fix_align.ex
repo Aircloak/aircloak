@@ -5,6 +5,7 @@ defmodule Cloak.Aql.FixAlign do
 
   @default_size_factors [1, 2, 5]
   @epoch ~N[1970-01-01 00:00:00]
+  @full_day {~T[00:00:00], ~T[23:59:59]}
   @time_units [:years, :months, :days, :hours, :minutes, :seconds]
   @months_in_year 12
   @days_in_year 365
@@ -12,6 +13,8 @@ defmodule Cloak.Aql.FixAlign do
   @hours_in_day 24
   @minutes_in_hour 60
   @seconds_in_minute 60
+  @seconds_in_day 24 * 60 * 60
+  @seconds_in_hour 60 * 60
 
 
   # -------------------------------------------------------------------
@@ -46,18 +49,38 @@ defmodule Cloak.Aql.FixAlign do
   def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _), do: align_date_time({x, y}) |> max_precision()
   def align_interval({%Date{} = x, %Date{} = y}, _), do: {x, y} |> align_date_time() |> to_date()
   def align_interval({%Time{} = x, %Time{} = y}, _), do:
-    {x, y} |> time_to_datetime() |> align_date_time() |> datetime_to_time()
+    {x, y} |> time_to_datetime() |> align_date_time() |> datetime_to_time() |> cap_midnight()
 
 
   # -------------------------------------------------------------------
   # Internal functions for Dates and NaiveDateTimes
   # -------------------------------------------------------------------
 
-  defp time_to_datetime({x, y}), do: {time_to_datetime(x), time_to_datetime(y)}
+  defp time_to_datetime({x, y}) do
+    if Cloak.Time.time_to_seconds(x) < Cloak.Time.time_to_seconds(y) do
+      {time_to_datetime(x), time_to_datetime(y)}
+    else
+      raise "Invalid interval"
+    end
+  end
   defp time_to_datetime(%Time{hour: h, minute: m, second: s}), do: %{@epoch | hour: h, minute: m, second: s}
 
-  defp datetime_to_time({x, y}), do: {datetime_to_time(x), datetime_to_time(y)}
+  defp datetime_to_time({x, y}) do
+    if Timex.diff(x, y, :seconds) |> abs() >= @seconds_in_day do
+      @full_day
+    else
+      {datetime_to_time(x), datetime_to_time(y)}
+    end
+  end
   defp datetime_to_time(%NaiveDateTime{hour: h, minute: m, second: s}), do: %Time{hour: h, minute: m, second: s}
+
+  defp cap_midnight({x, y}) do
+    if Cloak.Time.time_to_seconds(x) > Cloak.Time.time_to_seconds(y) do
+      {x, ~T[23:59:59]}
+    else
+      {x, y}
+    end
+  end
 
   defp max_precision({x, y}), do: {Cloak.Time.max_precision(x), Cloak.Time.max_precision(y)}
 
@@ -110,11 +133,11 @@ defmodule Cloak.Aql.FixAlign do
     (year - @epoch.year) * @months_in_year + (month - @epoch.month) + (day - @epoch.day) / Timex.days_in_month(datetime)
   defp units_since_epoch(datetime = %Date{}, :days), do: Timex.diff(datetime, @epoch, :days)
   defp units_since_epoch(datetime, :days), do:
-    Timex.diff(datetime, @epoch, :days) + datetime.hour / @hours_in_day
+    Timex.diff(datetime, @epoch, :seconds) / @seconds_in_day
   defp units_since_epoch(datetime, :hours), do:
-    Timex.diff(datetime, @epoch, :hours) + datetime.minute / @minutes_in_hour
+    Timex.diff(datetime, @epoch, :seconds) / @seconds_in_hour
   defp units_since_epoch(datetime, :minutes), do:
-    Timex.diff(datetime, @epoch, :minutes) + datetime.second / @seconds_in_minute
+    Timex.diff(datetime, @epoch, :seconds) / @seconds_in_minute
   defp units_since_epoch(datetime, :seconds), do: Timex.diff(datetime, @epoch, :seconds)
 
   defp datetime_ceil(datetime, :months), do:

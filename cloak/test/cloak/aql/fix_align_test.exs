@@ -29,7 +29,7 @@ defmodule Cloak.Aql.FixAlign.Test do
     end
   end
 
-  for interval_type <- [:int, :datetime, :date] do
+  for interval_type <- [:int, :datetime, :date, :time] do
     property "align_interval is idempotent on #{interval_type} intervals" do
       for_all interval in interval(unquote(interval_type)) do
         interval |> FixAlign.align_interval() == interval |> FixAlign.align_interval() |> FixAlign.align_interval()
@@ -57,6 +57,13 @@ defmodule Cloak.Aql.FixAlign.Test do
         {left, right} = FixAlign.align_interval({x, y})
         Timex.diff(right, left) < 20 * Timex.diff(y, x)
       end
+    end
+  end
+
+  property "an aligned time interval contains both ends of the input" do
+    for_all {x, y} in time_interval do
+      {left, right} = FixAlign.align_interval({x, y})
+      lt_eq(left, x) && lt_eq(y, right)
     end
   end
 
@@ -127,7 +134,7 @@ defmodule Cloak.Aql.FixAlign.Test do
 
   defp date_interval, do: such_that({x, y} in {date, date} when Timex.diff(x, y) < 0)
 
-  defp time_interval, do: such_that({_x, _y} in {time, time} when true)
+  defp time_interval, do: such_that({x, y} in {time, time} when lt_eq(x, y) and x != y)
 
   defp datetime do
     domain(
