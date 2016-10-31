@@ -45,11 +45,19 @@ defmodule Cloak.Aql.FixAlign do
   end
   def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _), do: align_date_time({x, y}) |> max_precision()
   def align_interval({%Date{} = x, %Date{} = y}, _), do: {x, y} |> align_date_time() |> to_date()
+  def align_interval({%Time{} = x, %Time{} = y}, _), do:
+    {x, y} |> time_to_datetime() |> align_date_time() |> datetime_to_time()
 
 
   # -------------------------------------------------------------------
   # Internal functions for Dates and NaiveDateTimes
   # -------------------------------------------------------------------
+
+  defp time_to_datetime({x, y}), do: {time_to_datetime(x), time_to_datetime(y)}
+  defp time_to_datetime(%Time{hour: h, minute: m, second: s}), do: %{@epoch | hour: h, minute: m, second: s}
+
+  defp datetime_to_time({x, y}), do: {datetime_to_time(x), datetime_to_time(y)}
+  defp datetime_to_time(%NaiveDateTime{hour: h, minute: m, second: s}), do: %Time{hour: h, minute: m, second: s}
 
   defp max_precision({x, y}), do: {Cloak.Time.max_precision(x), Cloak.Time.max_precision(y)}
 

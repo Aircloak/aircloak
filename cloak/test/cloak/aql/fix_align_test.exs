@@ -81,6 +81,12 @@ defmodule Cloak.Aql.FixAlign.Test do
     assert Cloak.Aql.FixAlign.align_interval({~D[1959-09-14], ~D[1963-12-14]}) == {~D[1955-01-01], ~D[1965-01-01]}
   end
 
+  test "align time intervals" do
+    assert FixAlign.align_interval({~T[10:20:30], ~T[10:20:34]}) == {~T[10:20:30], ~T[10:20:35]}
+    assert FixAlign.align_interval({~T[10:23:30], ~T[10:30:00]}) == {~T[10:22:30], ~T[10:37:30]}
+    assert FixAlign.align_interval({~T[09:20:30], ~T[10:20:34]}) == {~T[09:00:00], ~T[11:00:00]}
+  end
+
   property "numbers are money-aligned" do
     for_all x in (such_that y in float when y != 0) do
       result = x |> FixAlign.align() |> abs()
@@ -111,6 +117,7 @@ defmodule Cloak.Aql.FixAlign.Test do
   defp interval(:float), do: float_interval
   defp interval(:datetime), do: datetime_interval
   defp interval(:date), do: date_interval
+  defp interval(:time), do: time_interval
 
   defp int_interval, do: such_that({x, y} in {int, int} when x < y)
 
@@ -120,25 +127,39 @@ defmodule Cloak.Aql.FixAlign.Test do
 
   defp date_interval, do: such_that({x, y} in {date, date} when Timex.diff(x, y) < 0)
 
+  defp time_interval, do: such_that({_x, _y} in {time, time} when true)
+
   defp datetime do
     domain(
       :datetime,
-      fn(domain, size) ->
+      _generate = fn(domain, size) ->
         size = size |> :math.pow(4) |> round()
         {domain, Timex.shift(~N[2000-06-15 12:20:30], seconds: draw(int, size))}
       end,
-      fn(domain, item) -> {domain, item} end
+      _shrink = fn(domain, item) -> {domain, item} end
     )
   end
 
   defp date do
     domain(
       :datetime,
-      fn(domain, size) ->
+      _generate = fn(domain, size) ->
         size = size |> :math.pow(2) |> round()
         {domain, Timex.shift(~D[2000-06-15], days: draw(int, size))}
       end,
-      fn(domain, item) -> {domain, item} end
+      _shrink = fn(domain, item) -> {domain, item} end
+    )
+  end
+
+  @seconds_in_day 86400
+  defp time do
+    domain(
+      :time,
+      _generate = fn(domain, size) ->
+        size = size |> :math.pow(2.5) |> round() |> min(@seconds_in_day - 1)
+        {domain, draw(pos_integer, size) |> Cloak.Time.seconds_to_time()}
+      end,
+      _shrink = fn(domain, item) -> {domain, item} end
     )
   end
 
@@ -159,4 +180,6 @@ defmodule Cloak.Aql.FixAlign.Test do
   defp epsilon, do: 1.0e-6
 
   defp width({x, y}), do: y - x
+
+  defp lt_eq(%Time{} = x, %Time{} = y), do: Cloak.Time.time_to_seconds(x) <= Cloak.Time.time_to_seconds(y)
 end
