@@ -38,8 +38,8 @@ defmodule Cloak.DataSource.DsProxy do
   def disconnect(_connection), do: :ok
 
   @doc false
-  def describe_table(connection, table_name) do
-    load_column_definitions(connection, table_name)
+  def load_tables(connection, table_id, table_name) do
+    [{table_id, load_column_definitions(connection, table_name)}]
   end
 
   @doc false

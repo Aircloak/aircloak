@@ -43,7 +43,7 @@ defmodule Cloak.DataSource.MongoDB do
     :mc_worker_api.disconnect(connection)
 
   @doc false
-  def describe_table(connection, table_name) do
+  def load_tables(connection, table_id, table_name) do
     map_code = """
       function() {
         m_sub = function(base, object) {
@@ -81,7 +81,7 @@ defmodule Cloak.DataSource.MongoDB do
         {String.split(name, "[]."), parse_type(type)}
       end)
       |> Enum.reduce(%{}, &build_schema/2)
-    schema.base
+    [{table_id, schema.base}]
   end
 
   @doc false

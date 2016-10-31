@@ -76,8 +76,9 @@ defmodule Cloak.DataSource do
     @doc "Closes the connection to the data store."
     @callback disconnect(connection) :: :ok
 
-    @doc "Retrieves the existing columns for the specified table name."
-    @callback describe_table(connection, String.t) :: [{String.t, DataSource.data_type | {:unsupported, String.t}}]
+    @doc "Loads one or more table definitions from the data store."
+    @callback load_tables(connection, String.t, String.t) ::
+      [{String.t, [{String.t, DataSource.data_type | {:unsupported, String.t}}]}]
 
     @doc "Driver specific implementation for the `DataSource.select` functionality."
     @callback select(connection, Aql.t, Cloak.DataSource.result_processor)
@@ -227,15 +228,24 @@ defmodule Cloak.DataSource do
   end
 
   defp add_tables(data_source) do
-    tables = load_tables_columns(data_source) |> Enum.into(%{})
+    tables = load_tables(data_source) |> Enum.into(%{})
     Map.put(data_source, :tables, tables)
   end
 
-  defp load_tables_columns(data_source) do
+  defp load_tables(data_source) do
     driver = data_source.driver
     with {:ok, connection} <- driver.connect(data_source.parameters) do
       try do
-        for table <- data_source.tables, into: %{}, do: table_with_columns(data_source, connection, table)
+        data_source.tables
+        |> Enum.flat_map(fn ({table_id, table}) ->
+          connection
+          |> driver.load_tables(to_string(table_id), table.db_name)
+          |> Enum.map(fn ({table_id, columns}) ->
+            {table_id, table |> Map.put(:columns, columns) |> Map.put(:name, table_id)}
+          end)
+        end)
+        |> Enum.map(&parse_columns(data_source, &1))
+        |> Enum.into(%{})
       after
         driver.disconnect(connection)
       end
@@ -246,30 +256,26 @@ defmodule Cloak.DataSource do
     end
   end
 
-  defp table_with_columns(data_source, connection, {table_id, table}) do
-    case load_table_columns(data_source, connection, table) do
-      {:ok, columns} ->
-        {table_id, Map.merge(table, %{columns: columns, name: to_string(table_id)})}
+  defp parse_columns(data_source, {table_id, table}) do
+    table.columns
+    |> Enum.reject(&supported?/1)
+    |> validate_unsupported_columns(data_source, table)
+    case verify_columns(table) do
+      {:ok, table} ->
+        {table_id, table}
       {:error, reason} ->
         Logger.error("Error fetching columns for table #{data_source.global_id}/#{table.db_name}: #{reason}")
         nil
     end
   end
 
-  defp load_table_columns(data_source, connection, table) do
-    columns = data_source.driver.describe_table(connection, table.db_name)
-    unsupported = Enum.reject(columns, &supported?/1)
-    validate_unsupported_columns(unsupported, data_source, table)
-    with {:ok, columns} <- verify_columns(table, columns), do: {:ok, columns}
-  end
-
-  defp verify_columns(table, columns) do
-    columns = for {name, _type} = column <- columns, do:
+  defp verify_columns(table) do
+    columns = for {name, _type} = column <- table.columns, do:
       if supported?(column), do: column, else: {name, :unknown}
     with :ok <- verify_user_id(table, columns) do
       case columns do
         [] -> {:error, "no data columns found in table"}
-        [_|_] -> {:ok, columns}
+        [_|_] -> {:ok, %{table | columns: columns}}
       end
     end
   end
