@@ -158,7 +158,7 @@ defmodule Cloak.Aql.FixAlign.Test do
     )
   end
 
-  @seconds_in_day 86400
+  @seconds_in_day 24 * 60 * 60
   defp time do
     domain(
       :time,

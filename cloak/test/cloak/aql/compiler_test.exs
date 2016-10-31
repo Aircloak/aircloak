@@ -484,7 +484,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "fixes alignment of time ranges" do
     aligned = compile!("select * from table where column > '00:00:01' and column < '00:00:04'", time_data_source())
-    assert compile!( "select * from table where column >= '00:00:00' and column < '00:00:05'", time_data_source()).
+    assert compile!("select * from table where column >= '00:00:00' and column < '00:00:05'", time_data_source()).
       where == aligned.where
     assert aligned.
       info == ["The range for column `column` has been adjusted to 00:00:00.000000 <= `column` < 00:00:05.000000"]
