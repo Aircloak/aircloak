@@ -49,7 +49,7 @@ defmodule Cloak.Aql.FixAlign do
   def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _), do: align_date_time({x, y}) |> max_precision()
   def align_interval({%Date{} = x, %Date{} = y}, _), do: {x, y} |> align_date_time() |> to_date()
   def align_interval({%Time{} = x, %Time{} = y}, _), do:
-    {x, y} |> time_to_datetime() |> align_date_time() |> datetime_to_time() |> cap_midnight()
+    {x, y} |> time_to_datetime() |> align_date_time() |> datetime_to_time() |> cap_midnight() |> max_precision()
 
 
   # -------------------------------------------------------------------

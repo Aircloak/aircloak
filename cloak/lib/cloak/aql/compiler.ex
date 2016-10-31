@@ -657,11 +657,12 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  def lt_eq(x = %NaiveDateTime{}, y = %NaiveDateTime{}), do: Timex.diff(x, y) <= 0
-  def lt_eq(x = %Date{}, y = %Date{}), do: Timex.diff(x, y) <= 0
-  def lt_eq(x, y), do: x <= y
+  defp lt_eq(x = %NaiveDateTime{}, y = %NaiveDateTime{}), do: Timex.diff(x, y) <= 0
+  defp lt_eq(x = %Date{}, y = %Date{}), do: Timex.diff(x, y) <= 0
+  defp lt_eq(x = %Time{}, y = %Time{}), do: Cloak.Time.time_to_seconds(x) <= Cloak.Time.time_to_seconds(y)
+  defp lt_eq(x, y), do: x <= y
 
-  @aligned_types ~w(integer real datetime date)a
+  @aligned_types ~w(integer real datetime date time)a
   defp inequalities_by_column(where_clauses) do
     where_clauses
     |> Enum.filter(&Comparison.inequality?/1)

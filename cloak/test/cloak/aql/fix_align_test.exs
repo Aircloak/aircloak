@@ -89,9 +89,9 @@ defmodule Cloak.Aql.FixAlign.Test do
   end
 
   test "align time intervals" do
-    assert FixAlign.align_interval({~T[10:20:30], ~T[10:20:34]}) == {~T[10:20:30], ~T[10:20:35]}
-    assert FixAlign.align_interval({~T[10:23:30], ~T[10:30:00]}) == {~T[10:22:30], ~T[10:37:30]}
-    assert FixAlign.align_interval({~T[09:20:30], ~T[10:20:34]}) == {~T[09:00:00], ~T[11:00:00]}
+    assert FixAlign.align_interval({~T[10:20:30], ~T[10:20:34]}) == {~T[10:20:30.000000], ~T[10:20:35.000000]}
+    assert FixAlign.align_interval({~T[10:23:30], ~T[10:30:00]}) == {~T[10:22:30.000000], ~T[10:37:30.000000]}
+    assert FixAlign.align_interval({~T[09:20:30], ~T[10:20:34]}) == {~T[09:00:00.000000], ~T[11:00:00.000000]}
   end
 
   property "numbers are money-aligned" do
