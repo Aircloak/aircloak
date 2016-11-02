@@ -91,7 +91,7 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 
   - The real average is computed.
   - For each value, the square of the difference between the value and the real average is computed.
-  - The anonymized average of the squared differences.
+  - The anonymized average of the squared differences is computed.
   - The final output is the square root of the anonymized average.
 
 
