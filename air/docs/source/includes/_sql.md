@@ -123,17 +123,22 @@ The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymiz
 ## Optional features
 
 Some features of the platform can be enabled/disabled by setting flags in the
-data source configuration located at `[data_source_directory]/priv/config/prod.json`.
+data source configuration located at `[cloak_config_directory]/config.json`.
 These might affect the ease of use, but also the level of anonymization provided.
 Currently the only such feature is `math`, which enables/disables mathematical
 operators and some mathematical functions in queries.
 
-```json
+```js
+// All features are disabled by default. To enable:
+
 {
+  ...
   "features": {
     "math": true
-  }
+  },
+  ...
 }
+
 ```
 
 ## Date functions
