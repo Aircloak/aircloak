@@ -7,7 +7,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Aircloak – Web Query Interface</title>
+    <title>Aircloak Central</title>
     <link rel="shortcut icon" href="<%= static_path(@conn, "/images/favicon.ico") %>" type="image/x-icon">
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/vendor.css") %>">
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
