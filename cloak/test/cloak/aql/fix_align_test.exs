@@ -55,7 +55,7 @@ defmodule Cloak.Aql.FixAlign.Test do
     property "an aligned #{interval_type} interval is not much larger than the input" do
       for_all {x, y} in interval(unquote(interval_type)) do
         {left, right} = FixAlign.align_interval({x, y})
-        Timex.diff(right, left) < 20 * Timex.diff(y, x)
+        Timex.diff(right, left) < 6 * Timex.diff(y, x)
       end
     end
   end
@@ -79,18 +79,22 @@ defmodule Cloak.Aql.FixAlign.Test do
       FixAlign.align_interval({~N[2000-05-30 11:19:05.000000], ~N[2000-07-07 11:46:44.000000]})
   end
 
+  test "aligning date intervals" do
+    assert FixAlign.align_interval({~D[1997-08-16], ~D[1997-09-16]}) == {~D[1997-08-01], ~D[1997-10-01]}
+  end
+
   test "aligning dates doesn't consider half-days" do
     assert Cloak.Aql.FixAlign.align_interval({~D[2000-06-10], ~D[2000-06-13]}) == {~D[2000-06-07], ~D[2000-06-17]}
   end
 
   test "aligning intervals before epoch" do
-    assert Cloak.Aql.FixAlign.align_interval({~D[1956-11-25], ~D[1957-11-04]}) == {~D[1955-01-01], ~D[1960-01-01]}
+    assert Cloak.Aql.FixAlign.align_interval({~D[1956-11-25], ~D[1957-11-04]}) == {~D[1956-01-01], ~D[1958-01-01]}
     assert Cloak.Aql.FixAlign.align_interval({~D[1959-09-14], ~D[1963-12-14]}) == {~D[1955-01-01], ~D[1965-01-01]}
   end
 
   test "align time intervals" do
     assert FixAlign.align_interval({~T[10:20:30], ~T[10:20:34]}) == {~T[10:20:30.000000], ~T[10:20:35.000000]}
-    assert FixAlign.align_interval({~T[10:23:30], ~T[10:30:00]}) == {~T[10:22:30.000000], ~T[10:37:30.000000]}
+    assert FixAlign.align_interval({~T[10:23:30], ~T[10:30:00]}) == {~T[10:15:00.000000], ~T[10:30:00.000000]}
     assert FixAlign.align_interval({~T[09:20:30], ~T[10:20:34]}) == {~T[09:00:00.000000], ~T[11:00:00.000000]}
   end
 
