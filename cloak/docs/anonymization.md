@@ -90,8 +90,9 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 ## STDDEV()
 
   - The real average is computed.
-  - For each value, the real variance is computed.
-  - The final result is the anonymized average of the real variances.
+  - For each value, the square of the difference between the value and the real average is computed.
+  - The anonymized average of the squared differences.
+  - The final output is the square root of the anonymized average.
 
 
 ## MEDIAN
