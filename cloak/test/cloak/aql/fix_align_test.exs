@@ -29,9 +29,11 @@ defmodule Cloak.Aql.FixAlign.Test do
     end
   end
 
-  property "align_interval is idempotent on integer intervals" do
-    for_all interval in int_interval do
-      interval |> FixAlign.align_interval() == interval |> FixAlign.align_interval() |> FixAlign.align_interval()
+  for interval_type <- [:int, :datetime, :date] do
+    property "align_interval is idempotent on #{interval_type} intervals" do
+      for_all interval in interval(unquote(interval_type)) do
+        interval |> FixAlign.align_interval() == interval |> FixAlign.align_interval() |> FixAlign.align_interval()
+      end
     end
   end
 
@@ -40,6 +42,47 @@ defmodule Cloak.Aql.FixAlign.Test do
       interval = {x / 10, y / 10}
       10 * width(interval) >= interval |> FixAlign.align_interval() |> width()
     end
+  end
+
+  for interval_type <- [:datetime, :date] do
+    property "aligned #{interval_type} interval contains both ends of the input" do
+      for_all {x, y} in interval(unquote(interval_type)) do
+        {left, right} = FixAlign.align_interval({x, y})
+        Timex.diff(x, left) >= 0 && Timex.diff(right, y) >= 0
+      end
+    end
+
+    property "an aligned #{interval_type} interval is not much larger than the input" do
+      for_all {x, y} in interval(unquote(interval_type)) do
+        {left, right} = FixAlign.align_interval({x, y})
+        Timex.diff(right, left) < 6 * Timex.diff(y, x)
+      end
+    end
+  end
+
+  test "align datetime interval" do
+    assert FixAlign.align_interval({~N[2010-01-01 00:00:00.000000], ~N[2012-10-01 00:00:00.000000]}) ==
+      {~N[2010-01-01 00:00:00.000000], ~N[2015-01-01 00:00:00.000000]}
+    assert FixAlign.align_interval({~D[2010-01-01], ~D[2012-10-01]}) == {~D[2010-01-01], ~D[2015-01-01]}
+    assert FixAlign.align_interval({~N[2010-12-30 00:00:00.000000], ~N[2011-01-30 00:00:00.000000]}) ==
+      {~N[2010-12-01 00:00:00.000000], ~N[2011-02-01 00:00:00.000000]}
+    assert FixAlign.align_interval({~N[2010-10-10 00:00:00.000000], ~N[2010-10-19 00:00:00.000000]}) ==
+      {~N[2010-10-08 00:00:00.000000], ~N[2010-10-28 00:00:00.000000]}
+    assert FixAlign.align_interval({~N[2000-05-31 11:19:05.000000], ~N[2000-07-07 11:46:44.000000]}) ==
+      FixAlign.align_interval({~N[2000-05-30 11:19:05.000000], ~N[2000-07-07 11:46:44.000000]})
+  end
+
+  test "aligning date intervals" do
+    assert FixAlign.align_interval({~D[1997-08-16], ~D[1997-09-16]}) == {~D[1997-08-01], ~D[1997-10-01]}
+  end
+
+  test "aligning dates doesn't consider half-days" do
+    assert Cloak.Aql.FixAlign.align_interval({~D[2000-06-10], ~D[2000-06-13]}) == {~D[2000-06-07], ~D[2000-06-17]}
+  end
+
+  test "aligning intervals before epoch" do
+    assert Cloak.Aql.FixAlign.align_interval({~D[1956-11-25], ~D[1957-11-04]}) == {~D[1956-01-01], ~D[1958-01-01]}
+    assert Cloak.Aql.FixAlign.align_interval({~D[1959-09-14], ~D[1963-12-14]}) == {~D[1955-01-01], ~D[1965-01-01]}
   end
 
   property "numbers are money-aligned" do
@@ -70,10 +113,43 @@ defmodule Cloak.Aql.FixAlign.Test do
 
   defp interval(:int), do: int_interval
   defp interval(:float), do: float_interval
+  defp interval(:datetime), do: datetime_interval
+  defp interval(:date), do: date_interval
 
   defp int_interval, do: such_that({x, y} in {int, int} when x < y)
 
   defp float_interval, do: such_that({x, y} in {float, float} when x < y)
+
+  defp datetime_interval, do: such_that({x, y} in {datetime, datetime} when Timex.diff(x, y) < 0)
+
+  defp date_interval, do: such_that({x, y} in {date, date} when Timex.diff(x, y) < 0)
+
+  defp datetime do
+    domain(
+      :datetime,
+      fn(domain, size) ->
+        size = size |> :math.pow(4) |> round()
+        {domain, Timex.shift(~N[2000-06-15 12:20:30], seconds: draw(int, size))}
+      end,
+      fn(domain, item) -> {domain, item} end
+    )
+  end
+
+  defp date do
+    domain(
+      :datetime,
+      fn(domain, size) ->
+        size = size |> :math.pow(2) |> round()
+        {domain, Timex.shift(~D[2000-06-15], days: draw(int, size))}
+      end,
+      fn(domain, item) -> {domain, item} end
+    )
+  end
+
+  defp draw(domain, size) do
+    {_, result} = pick(domain, size)
+    result
+  end
 
   defp even_power_of_10?(x) do
     log = :math.log10(x)

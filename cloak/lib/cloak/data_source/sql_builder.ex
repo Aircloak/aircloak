@@ -141,14 +141,14 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp to_fragment(string, _sql_dialect) when is_binary(string), do: string
   defp to_fragment(atom, _sql_dialect) when is_atom(atom), do: to_string(atom) |> String.upcase()
-  defp to_fragment(%NaiveDateTime{} = value, _sql_dialect), do: [?', to_string(value), ?']
-  defp to_fragment(%Time{} = value, _sql_dialect), do: [?', to_string(value), ?']
-  defp to_fragment(%Date{} = value, _sql_dialect), do: [?', to_string(value), ?']
   defp to_fragment(%Column{constant?: true, value: value}, _sql_dialect), do: constant_to_fragment(value)
   defp to_fragment(%Column{} = column, sql_dialect), do: column_sql(column, sql_dialect)
 
   defp escape_string(string), do: String.replace(string, "'", "''")
 
+  defp constant_to_fragment(%NaiveDateTime{} = value), do: [?', to_string(value), ?']
+  defp constant_to_fragment(%Time{} = value), do: [?', to_string(value), ?']
+  defp constant_to_fragment(%Date{} = value), do: [?', to_string(value), ?']
   defp constant_to_fragment(value) when is_binary(value), do: [?', escape_string(value), ?']
   defp constant_to_fragment(value) when is_number(value), do: to_string(value)
   defp constant_to_fragment(value) when is_boolean(value), do: to_string(value)

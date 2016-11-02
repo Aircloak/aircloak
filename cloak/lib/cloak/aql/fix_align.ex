@@ -1,7 +1,17 @@
 defmodule Cloak.Aql.FixAlign do
   @moduledoc "Implements fixing the alignment of ranges to a predetermined grid."
 
-  @type interval :: {number, number}
+  @type interval(x) :: {x, x}
+
+  @default_size_factors [1, 2, 5]
+  @epoch ~N[1970-01-01 00:00:00]
+  @time_units [:years, :months, :days, :hours, :minutes, :seconds]
+  @months_in_year 12
+  @days_in_year 365
+  @days_in_month 30
+  @hours_in_day 24
+  @minutes_in_hour 60
+  @seconds_in_minute 60
 
 
   # -------------------------------------------------------------------
@@ -24,34 +34,154 @@ defmodule Cloak.Aql.FixAlign do
   Returns an interval that has been aligned to a fixed grid. The density of the grid depends on the size of
   the input interval. Both ends of the input will be contained inside the output.
   """
-  @spec align_interval(interval) :: interval
-  def align_interval({x, y}) when x > y, do: raise "Invalid interval"
-  def align_interval(interval) do
+  @spec align_interval(interval(x), Keyword.t) :: interval(x) when x: var
+  def align_interval(interval, opts \\ [])
+  def align_interval({x, y}, _) when is_number(x) and is_number(y) and x > y, do: raise "Invalid interval"
+  def align_interval(interval = {x, y}, opts) when is_number(x) and is_number(y) do
+    allow_fractions = Keyword.get(opts, :allow_fractions, true)
+    size_factors = Keyword.get(opts, :size_factors, @default_size_factors)
+
     interval
-    |> sizes()
-    |> Stream.map(&snap(&1, interval))
+    |> sizes(size_factors, allow_fractions)
+    |> Stream.map(&snap(&1, interval, allow_fractions))
     |> Enum.find(&(&1))
   end
+  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _), do: align_date_time({x, y}) |> max_precision()
+  def align_interval({%Date{} = x, %Date{} = y}, _), do: {x, y} |> align_date_time() |> to_date()
 
 
   # -------------------------------------------------------------------
-  # Internal functions
+  # Internal functions for Dates and NaiveDateTimes
   # -------------------------------------------------------------------
 
-  defp snap(size, {x, y}) do
-    left = floor_to(x, size / 2)
+  defp max_precision({x, y}), do: {Cloak.Time.max_precision(x), Cloak.Time.max_precision(y)}
+
+  defp to_date({x, y}), do: {NaiveDateTime.to_date(x), NaiveDateTime.to_date(y)}
+
+  defp align_date_time({x, y}) do
+    if Timex.diff(y, x) <= 0 do
+      raise "Invalid interval"
+    else
+      aligned = align_date_time_once({x, y}, largest_changed_unit({x, y}))
+      if largest_changed_unit(aligned) == largest_changed_unit({x, y}) do
+        aligned
+      else
+        align_date_time_once({x, y}, largest_changed_unit(aligned))
+      end
+    end
+  end
+
+  defp align_date_time_once(_interval, nil), do: raise "Invalid interval"
+  defp align_date_time_once({x, y}, unit) do
+    {x, y}
+    |> units_since_epoch(unit)
+    |> align_interval(size_factors: size_factors(unit), allow_fractions: allow_fractions?(x, unit))
+    |> datetime_from_units(unit)
+  end
+
+  defp largest_changed_unit({x, y}) do
+    Enum.find(@time_units, fn(component) ->
+      case Timex.diff(y, x, :duration) do
+        %Timex.Duration{} = duration -> duration_component(component, duration) >= 1
+        _ -> false
+      end
+    end)
+  end
+
+  defp allow_fractions?(_, :months), do: false
+  defp allow_fractions?(%Date{}, :days), do: false
+  defp allow_fractions?(_, :hours), do: false
+  defp allow_fractions?(_, :minutes), do: false
+  defp allow_fractions?(_, :seconds), do: false
+  defp allow_fractions?(_, _), do: true
+
+  defp size_factors(:years), do: @default_size_factors
+  defp size_factors(:months), do: [1, 2, 6]
+  defp size_factors(:days), do: @default_size_factors
+  defp size_factors(:hours), do: [1, 2, 6, 12, 24]
+  defp size_factors(:minutes), do: [1, 2, 5, 15, 30, 60]
+  defp size_factors(:seconds), do: [1, 2, 5, 15, 30, 60]
+
+  defp units_since_epoch({x, y}, unit), do:
+    {units_since_epoch(x, unit), y |> datetime_ceil(lower_unit(unit)) |> units_since_epoch(unit)}
+  defp units_since_epoch(%{year: year, month: month}, :years), do:
+    year - @epoch.year + (month - @epoch.month) / @months_in_year
+  defp units_since_epoch(datetime = %{year: year, month: month, day: day}, :months), do:
+    (year - @epoch.year) * @months_in_year + (month - @epoch.month) + (day - @epoch.day) / Timex.days_in_month(datetime)
+  defp units_since_epoch(datetime = %Date{}, :days), do: Timex.diff(datetime, @epoch, :days)
+  defp units_since_epoch(datetime, :days), do:
+    Timex.diff(datetime, @epoch, :days) + datetime.hour / @hours_in_day
+  defp units_since_epoch(datetime, :hours), do:
+    Timex.diff(datetime, @epoch, :hours) + datetime.minute / @minutes_in_hour
+  defp units_since_epoch(datetime, :minutes), do:
+    Timex.diff(datetime, @epoch, :minutes) + datetime.second / @seconds_in_minute
+  defp units_since_epoch(datetime, :seconds), do: Timex.diff(datetime, @epoch, :seconds)
+
+  defp datetime_ceil(datetime, :months), do:
+    if Timex.diff(datetime, Timex.beginning_of_month(datetime)) == 0,
+      do: datetime,
+      else: Timex.beginning_of_month(datetime) |> shift(months: 1)
+  defp datetime_ceil(datetime, :days), do:
+    if Timex.diff(datetime, Timex.beginning_of_day(datetime)) == 0,
+      do: datetime,
+      else: Timex.beginning_of_day(datetime) |> shift(days: 1)
+  defp datetime_ceil(datetime = %Date{}, :hours), do: datetime
+  defp datetime_ceil(datetime = %{minute: 0, second: 0}, :hours), do: datetime
+  defp datetime_ceil(datetime, :hours), do: %{datetime | hour: datetime.hour + 1, minute: 0, second: 0}
+  defp datetime_ceil(datetime = %{second: 0}, :minutes), do: datetime
+  defp datetime_ceil(datetime, :minutes), do: %{datetime | minute: datetime.minute + 1, second: 0}
+  defp datetime_ceil(datetime, :seconds), do: datetime
+
+  # Workaround for https://github.com/bitwalker/timex/pull/235
+  defp shift(datetime, spec), do: Timex.Protocol.shift(datetime, spec)
+
+  defp datetime_from_units({x, y}, unit), do: {datetime_from_units(x, unit), datetime_from_units(y, unit)}
+  defp datetime_from_units(x, unit) do
+    less_significant = (x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit)) |> round()
+    more_significant = x |> Float.floor() |> round()
+    Timex.shift(@epoch, [{unit, more_significant}, {lower_unit(unit), less_significant}])
+  end
+
+  defp conversion_factor(:years, :months), do: @months_in_year
+  defp conversion_factor(:months, :days), do: @days_in_month
+  defp conversion_factor(:days, :hours), do: @hours_in_day
+  defp conversion_factor(:hours, :minutes), do: @minutes_in_hour
+  defp conversion_factor(:minutes, :seconds), do: @seconds_in_minute
+  defp conversion_factor(:seconds, :seconds), do: 1
+
+  defp lower_unit(:seconds), do: :seconds
+  defp lower_unit(unit), do: Enum.at(@time_units, Enum.find_index(@time_units, &(&1 == unit)) + 1)
+
+  defp duration_component(:years, duration), do: Timex.Duration.to_days(duration) / @days_in_year
+  defp duration_component(:months, duration), do: Timex.Duration.to_days(duration) / @days_in_month
+  defp duration_component(:days, duration), do: Timex.Duration.to_days(duration)
+  defp duration_component(:hours, duration), do: Timex.Duration.to_hours(duration)
+  defp duration_component(:minutes, duration), do: Timex.Duration.to_minutes(duration)
+  defp duration_component(:seconds, duration), do: Timex.Duration.to_seconds(duration)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions for numeric intervals
+  # -------------------------------------------------------------------
+
+  defp snap(size, {x, y}, allow_fractions) do
+    require Integer
+
+    can_halve = allow_fractions || (is_integer(size) && Integer.is_even(size))
+    left = if can_halve, do: floor_to(x, size / 2), else: floor_to(x, size)
 
     if y <= left + size, do: {left, left + size}, else: nil
   end
 
   defp floor_to(x, grid), do: Float.floor(x / grid) * grid
 
-  defp sizes(interval) do
-    Stream.concat(small_sizes(interval), large_sizes)
-    |> Stream.flat_map(&[&1, &1 * 2, &1 * 5])
+  defp sizes(interval, size_factors, allow_fractions) do
+    Stream.concat(small_sizes(interval, allow_fractions), large_sizes)
+    |> Stream.flat_map(&(for factor <- size_factors, do: &1 * factor))
   end
 
-  defp small_sizes({x, y}) do
+  defp small_sizes(_, _allow_fractions = false), do: []
+  defp small_sizes({x, y}, _allow_fractions = true) do
     start =
       (y - x)
       |> :math.log10()
