@@ -36,17 +36,24 @@ defmodule Cloak.Aql.FixAlign do
   @doc """
   Returns an interval that has been aligned to a fixed grid. The density of the grid depends on the size of
   the input interval. Both ends of the input will be contained inside the output.
+
+  Options:
+  :allow_fractions - allow intervals smaller than 1 unit, defaults to true
+  :allow_half - allow intervals to be aligned by half their size (for example {2.5, 7.5}), defaults to true
+  :size_factors - the sizes of intervals to use, defaults to [1, 2, 5] (money-aligned), will be extended both ways
+    (for example to [..., 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, ...])
   """
   @spec align_interval(interval(x), Keyword.t) :: interval(x) when x: var
   def align_interval(interval, opts \\ [])
   def align_interval({x, y}, _) when is_number(x) and is_number(y) and x > y, do: raise "Invalid interval"
   def align_interval(interval = {x, y}, opts) when is_number(x) and is_number(y) do
     allow_fractions = Keyword.get(opts, :allow_fractions, true)
+    allow_half = Keyword.get(opts, :allow_half, true)
     size_factors = Keyword.get(opts, :size_factors, @default_size_factors)
 
     interval
     |> sizes(size_factors, allow_fractions)
-    |> Stream.map(&snap(&1, interval, allow_fractions))
+    |> Stream.map(&snap(&1, interval, allow_half))
     |> Enum.find(&(&1))
   end
   def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _), do: align_date_time({x, y}) |> max_precision()
@@ -106,7 +113,7 @@ defmodule Cloak.Aql.FixAlign do
   defp align_date_time_once({x, y}, unit) do
     {x, y}
     |> units_since_epoch(unit)
-    |> align_interval(size_factors: size_factors(unit), allow_fractions: allow_fractions?(x, unit))
+    |> align_interval(size_factors: size_factors(unit), allow_fractions: false, allow_half: allow_half?(x, unit))
     |> datetime_from_units(unit)
   end
 
@@ -119,12 +126,10 @@ defmodule Cloak.Aql.FixAlign do
     end)
   end
 
-  defp allow_fractions?(_, :months), do: false
-  defp allow_fractions?(%Date{}, :days), do: false
-  defp allow_fractions?(_, :hours), do: false
-  defp allow_fractions?(_, :minutes), do: false
-  defp allow_fractions?(_, :seconds), do: false
-  defp allow_fractions?(_, _), do: true
+  defp allow_half?(_, :months), do: false
+  defp allow_half?(%Date{}, :days), do: false
+  defp allow_half?(_, :seconds), do: false
+  defp allow_half?(_, _), do: true
 
   defp size_factors(:years), do: @default_size_factors
   defp size_factors(:months), do: [1, 2, 6]
@@ -195,10 +200,10 @@ defmodule Cloak.Aql.FixAlign do
   # Internal functions for numeric intervals
   # -------------------------------------------------------------------
 
-  defp snap(size, {x, y}, allow_fractions) do
+  defp snap(size, {x, y}, allow_half) do
     require Integer
 
-    can_halve = allow_fractions || (is_integer(size) && Integer.is_even(size))
+    can_halve = allow_half || (is_integer(size) && Integer.is_even(size))
     left = if can_halve, do: floor_to(x, size / 2), else: floor_to(x, size)
 
     if y <= left + size, do: {left, left + size}, else: nil
