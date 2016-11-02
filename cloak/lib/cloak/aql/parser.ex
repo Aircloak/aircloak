@@ -33,7 +33,8 @@ defmodule Cloak.Aql.Parser do
     | {:in, String.t, [any]}
 
   @type where_clause ::
-      negatable_condition | {:not, negatable_condition}
+      negatable_condition
+    | {:not, negatable_condition}
     | {:comparison, String.t, comparator, any}
 
   @type having_clause :: {:comparison, column, comparator, any}
