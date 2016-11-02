@@ -31,10 +31,10 @@ defmodule Cloak.DataSource.ODBC do
   end
 
   @doc false
-  def load_tables(%__MODULE__{connection: connection}, table_id, table_name) do
-    {:ok, columns} = :odbc.describe_table(connection, to_char_list(table_name), _timeout = :timer.seconds(15))
+  def load_tables(%__MODULE__{connection: connection}, table) do
+    {:ok, columns} = :odbc.describe_table(connection, to_char_list(table.db_name), _timeout = :timer.seconds(15))
     columns = for {name, type} <- columns, do: {to_string(name), parse_type(type)}
-    [{table_id, columns}]
+    [%{table | columns: columns}]
   end
 
   @doc false

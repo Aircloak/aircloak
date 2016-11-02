@@ -77,8 +77,7 @@ defmodule Cloak.DataSource do
     @callback disconnect(connection) :: :ok
 
     @doc "Loads one or more table definitions from the data store."
-    @callback load_tables(connection, String.t, String.t) ::
-      [{String.t, [{String.t, DataSource.data_type | {:unsupported, String.t}}]}]
+    @callback load_tables(connection, Cloak.DataSource.table) :: [Cloak.DataSource.table]
 
     @doc "Driver specific implementation for the `DataSource.select` functionality."
     @callback select(connection, Aql.t, Cloak.DataSource.result_processor)
@@ -237,14 +236,12 @@ defmodule Cloak.DataSource do
     with {:ok, connection} <- driver.connect(data_source.parameters) do
       try do
         data_source.tables
-        |> Enum.flat_map(fn ({table_id, table}) ->
-          connection
-          |> driver.load_tables(to_string(table_id), table.db_name)
-          |> Enum.map(fn ({table_id, columns}) ->
-            {table_id, table |> Map.put(:columns, columns) |> Map.put(:name, table_id)}
-          end)
+        |> Enum.map(fn ({table_id, table}) ->
+          table |> Map.put(:columns, []) |> Map.put(:name, to_string(table_id))
         end)
+        |> Enum.flat_map(&driver.load_tables(connection, &1))
         |> Enum.map(&parse_columns(data_source, &1))
+        |> Enum.map(&{&1.name, &1})
         |> Enum.into(%{})
       after
         driver.disconnect(connection)
@@ -256,13 +253,13 @@ defmodule Cloak.DataSource do
     end
   end
 
-  defp parse_columns(data_source, {table_id, table}) do
+  defp parse_columns(data_source, table) do
     table.columns
     |> Enum.reject(&supported?/1)
     |> validate_unsupported_columns(data_source, table)
     case verify_columns(table) do
       {:ok, table} ->
-        {table_id, table}
+        table
       {:error, reason} ->
         Logger.error("Error fetching columns for table #{data_source.global_id}/#{table.db_name}: #{reason}")
         nil
