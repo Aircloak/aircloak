@@ -241,7 +241,7 @@ defmodule Cloak.DataSource do
         end)
         |> Enum.flat_map(&driver.load_tables(connection, &1))
         |> Enum.map(&parse_columns(data_source, &1))
-        |> Enum.map(&{&1.name, &1})
+        |> Enum.map(&{String.to_atom(&1.name), &1})
         |> Enum.into(%{})
       after
         driver.disconnect(connection)
