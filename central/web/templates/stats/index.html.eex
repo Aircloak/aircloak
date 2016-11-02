@@ -6,7 +6,7 @@
   <div class="row">
     <%= for stat <- @basic_stats do %>
       <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
-        <p class="lead"><%= stat.customer_name %></p>
+        <p class="lead"><%= link stat.customer_name, to: stats_path(@conn, :show, stat.customer_id) %></p>
         <h1><%= stat.query_count %> <small>queries</small></h1>
         <h1><%= stat.users_count %> <small>users anonymized</small></h1>
       </div>

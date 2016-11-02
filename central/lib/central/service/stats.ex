@@ -27,4 +27,22 @@ defmodule Central.Service.Stats do
       }
     Repo.all(query)
   end
+
+  @doc "Returns a selection of stats for a given customer"
+  @spec for_customer(Customer.t) :: Map.t
+  def for_customer(customer) do
+    query = from customer in Customer,
+      inner_join: query in assoc(customer, :queries),
+      where: customer.id == ^customer.id,
+      select: %{
+        query_count: count(query.id),
+        users_count: fragment("SUM(cast(?::json->>'users_count' as integer))", query.metrics),
+        average_row_count: fragment("cast(AVG(cast(?::json->>'row_count' as integer)) as integer)",
+          query.metrics),
+        average_execution_time: fragment("cast(AVG(cast(?::json->>'execution_time' as integer)) as integer)",
+          query.metrics),
+        max_execution_time: max(fragment("cast(?::json->>'execution_time' as integer)", query.metrics)),
+      }
+    Repo.one(query)
+  end
 end
