@@ -5,7 +5,9 @@ defmodule Cloak.Aql.FixAlign do
 
   @default_size_factors [1, 2, 5]
   @epoch ~N[1970-01-01 00:00:00]
-  @full_day {~T[00:00:00], ~T[23:59:59]}
+  @midnight ~T[00:00:00]
+  @just_before_midnight ~T[23:59:59.999999]
+  @full_day {@midnight, @just_before_midnight}
   @time_units [:years, :months, :days, :hours, :minutes, :seconds]
   @months_in_year 12
   @days_in_year 365
@@ -86,7 +88,7 @@ defmodule Cloak.Aql.FixAlign do
 
   defp cap_midnight({x, y}) do
     if Cloak.Time.time_to_seconds(x) > Cloak.Time.time_to_seconds(y) do
-      {x, ~T[23:59:59]}
+      {x, @just_before_midnight}
     else
       {x, y}
     end
