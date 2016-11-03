@@ -199,7 +199,7 @@ defmodule Cloak.DataSource.MongoDB do
       Enum.partition(conditions, &Comparison.column(&1) |> is_array_size?())
     {array_conditions, base_conditions} =
       Enum.partition(non_array_size_conditions, &Comparison.column(&1) |> String.starts_with?(array <> "."))
-    {array_conditions, array_size_conditions, base_conditions}
+    {base_conditions, array_conditions, array_size_conditions}
   end
 
   defp project_array_sizes(table) do
