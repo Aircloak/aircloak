@@ -26,6 +26,7 @@ cache:
 addons:
   postgresql: "9.4"
   mariadb: "10.0"
+  mongodb: "3.2"
   apt:
     sources:
     - ubuntu-toolchain-r-test
