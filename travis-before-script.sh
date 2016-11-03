@@ -73,7 +73,6 @@ function banner() {
   banner "central"
   pushd central
 
-  ./set_travis_config.sh
   psql -U postgres -c "CREATE USER central_test CREATEDB;"
   psql -U postgres -c "CREATE DATABASE central_test ENCODING 'UTF8';"
   psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE central_test TO central_test;"
