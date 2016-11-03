@@ -11,6 +11,7 @@ defmodule Air.CentralSocket do
   require Logger
   require Aircloak.DeployConfig
   alias Phoenix.Channels.GenSocketClient
+  alias Air.{CentralCall, Repo}
 
   @behaviour GenSocketClient
 
@@ -37,15 +38,9 @@ defmodule Air.CentralSocket do
   end
 
   @doc "Records a completed query in the central - useful for billing and stats"
-  @spec record_query(Map.t) :: :ok | :error
+  @spec record_query(Map.t) :: :ok
   def record_query(payload) do
-    case call(__MODULE__, "query_execution", payload, :timer.seconds(5)) do
-      {:ok, _} -> :ok
-      error ->
-        Logger.error("Communication with Aircloak Central, to record a query execution failed: " <>
-          inspect(error))
-        :error
-    end
+    cast(__MODULE__, "query_execution", payload)
   end
 
 
@@ -179,7 +174,7 @@ defmodule Air.CentralSocket do
   # -------------------------------------------------------------------
 
   @spec call(GenServer.server, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
-  defp call(socket, event, payload, timeout) do
+  defp call(socket, event, payload, timeout \\ :timer.seconds(5)) do
     mref = Process.monitor(socket)
     send(socket, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
     receive do
@@ -187,9 +182,33 @@ defmodule Air.CentralSocket do
         Process.demonitor(mref, [:flush])
         response
       {:DOWN, ^mref, _, _, reason} ->
-        exit(reason)
+        {:error, reason}
     after timeout ->
-      exit(:timeout)
+      {:error, :timeout}
+    end
+  end
+
+  @spec cast(GenServer.server, String.t, %{}) :: :ok
+  defp cast(socket, event, payload) do
+    Task.start(fn() ->
+      case call(socket, event, payload) do
+        {:error, _} -> save_cast_for_later(event, payload)
+        {:ok, _} -> :ok
+      end
+    end)
+    :ok
+  end
+
+  defp save_cast_for_later(event, payload) do
+    changeset = CentralCall.changeset(%CentralCall{}, %{event: event, payload: payload})
+    case Repo.insert(changeset) do
+      {:ok, _} ->
+        Logger.info("Persisted Central RPC '#{event}' locally. Will reattempt RPC later")
+        :ok
+      {:error, changeset} ->
+        Logger.error("Unable to persist failed RPC call to central to the database for later retry. " <>
+          "Failure: #{inspect changeset}")
+        :error
     end
   end
 
