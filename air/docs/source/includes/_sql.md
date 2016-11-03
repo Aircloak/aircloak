@@ -28,7 +28,12 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
 
   column_expression :=
     column_name |
-    aggregation_function([DISTINCT] column_name)
+    aggregation_function([DISTINCT] column_name) |
+    function(column_expression) |
+    column_expression binary_operator column_expression
+
+  binary_operator :=
+    + | - | * | / | ^ | %
 
   from_expression :=
     table | join
