@@ -28,9 +28,14 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     aggregation_function([DISTINCT] column_name)
 
   from_expression :=
-    table_name |
-    table1 CROSS JOIN table2 |
-    table1 { [INNER] | { LEFT | RIGHT | FULL } [OUTER] } JOIN table2 ON where_expression
+    table | join
+
+  table :=
+    table_name | (select_expression) [AS] alias
+
+  join :=
+    table CROSS JOIN table |
+    table { [INNER] | { LEFT | RIGHT | FULL } [OUTER] } JOIN table ON where_expression
 
   aggregation_function :=
     COUNT | SUM | AVG | MIN | MAX | STDDEV | MEDIAN
@@ -75,6 +80,15 @@ Note:
 
 - `OUTER` is automatically implied when you use `LEFT`, `RIGHT` or `FULL` joins. Writing `LEFT OUTER JOIN` is therefore equivalent to writing `LEFT JOIN`
 - `INNER` is automatically implied when you use `JOIN` without any other qualifiers. Writing `t1 JOIN t2` is therefore the same as writing `t1 INNER JOIN t2`
+
+## Subquery restrictions
+
+A subquery expression must always select the user-id column. For example, assuming table `t1` with the user-id column called `uid`:
+
+- __Valid__: `SELECT name FROM (SELECT uid, name FROM t1) sq`
+- __Invalid__: `SELECT name FROM (SELECT name FROM t1) sq`
+
+Operators `<>`, `IN`, and `NOT` (except `IS NOT NULL`) can't be used in subquery `WHERE` expressions.
 
 
 ## Understanding query results
