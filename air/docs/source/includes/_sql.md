@@ -16,12 +16,15 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
 
 <pre style="float:left; background-color:inherit; color:inherit; text-shadow:inherit; padding-top: inherit;">
   SELECT [DISTINCT]
-    column_expression [, ...]
+    field_expression [, ...]
     FROM from_expression [, ...]
     [ WHERE where_expression [AND ...] ]
     [ GROUP BY column_name [, ...] ]
     [ HAVING having_expression [AND ...] ]
     [ ORDER BY column_name [ASC | DESC] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
+
+  field_expression :=
+    column_expression [AS alias]
 
   column_expression :=
     column_name |
