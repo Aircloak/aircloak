@@ -7,8 +7,7 @@ compile:
 
 deps:
 	mix deps.get
-	npm install
-	npm prune
+	yarn install
 
 clean:
 	mix clean --deps

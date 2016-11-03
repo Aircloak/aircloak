@@ -3,6 +3,7 @@ defmodule Air.PsqlServer do
 
   alias Air.PsqlServer.RanchServer
   alias Air.Service.{User, DataSource}
+  require Logger
 
   @behaviour RanchServer
 
@@ -73,6 +74,10 @@ defmodule Air.PsqlServer do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
+  defp parse_response({:error, :not_connected}), do:
+    %{error: "Data source is not available!"}
+  defp parse_response({:ok, %{"error" => error}}), do:
+    %{error: error}
   defp parse_response({:ok, query_result}), do:
     %{
       columns:
@@ -86,6 +91,10 @@ defmodule Air.PsqlServer do
         |> Map.fetch!("rows")
         |> Enum.flat_map(&List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
     }
+  defp parse_response(other) do
+    Logger.error("Error running a query: #{inspect other}")
+    %{error: "System error!"}
+  end
 
   for supported_type <- [:integer, :text] do
     defp type_atom(unquote(to_string(supported_type))), do: unquote(supported_type)

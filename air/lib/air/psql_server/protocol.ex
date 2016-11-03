@@ -146,7 +146,7 @@ defmodule Air.PsqlServer.Protocol do
       |> next_state(:ssl)
     else
       state
-      |> request_send(fatal_error("28000", "Only SSL connections are allowed!"))
+      |> request_send(error_message("FATAL", "28000", "Only SSL connections are allowed!"))
       |> close(:required_ssl)
     end
   end
@@ -209,7 +209,7 @@ defmodule Air.PsqlServer.Protocol do
     # should be done this way. However, this approach produces a nicer error message, and it's the same
     # in PostgreSQL server (determined by wireshark).
     |> request_send(authentication_ok())
-    |> request_send(fatal_error("28000", "Authentication failed!"))
+    |> request_send(error_message("FATAL", "28000", "Authentication failed!"))
     |> close(:not_authenticated)
   # :ready -> ready to accept queries
   defp handle_event(state(:ready), {:message, %{type: :terminate}}), do:
@@ -220,12 +220,19 @@ defmodule Air.PsqlServer.Protocol do
     |> next_state(:running_query)
   # :running_query -> awaiting query result
   defp handle_event(state(:running_query), {:select_result, result}), do:
-    Enum.reduce(
-      result.rows,
-      request_send(state, row_description(result.columns)),
-      &request_send(&2, data_row(&1))
-    )
-    |> request_send(command_complete("SELECT #{length(result.rows)}"))
+    state
+    |> send_result(result)
     |> request_send(ready_for_query())
     |> transition_after_message(:ready)
+
+  defp send_result(state, %{rows: rows, columns: columns}), do:
+    state
+    |> request_send(row_description(columns))
+    |> send_rows(rows)
+    |> request_send(command_complete("SELECT #{length(rows)}"))
+  defp send_result(state, %{error: error}), do:
+    request_send(state, error_message("ERROR", "42P01", error))
+
+  defp send_rows(state, rows), do:
+    Enum.reduce(rows, state, &request_send(&2, data_row(&1)))
 end

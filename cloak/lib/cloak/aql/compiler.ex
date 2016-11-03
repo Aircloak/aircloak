@@ -613,7 +613,7 @@ defmodule Cloak.Aql.Compiler do
     {left, right} =
       conditions
       |> Enum.map(&Comparison.value/1)
-      |> Enum.sort()
+      |> Enum.sort(&lt_eq/2)
       |> List.to_tuple()
       |> FixAlign.align_interval()
 
@@ -621,8 +621,8 @@ defmodule Cloak.Aql.Compiler do
       %{query | where: conditions ++ query.where}
     else
       query
-      |> add_where_clause({:comparison, column, :<, Column.constant(:real, right)})
-      |> add_where_clause({:comparison, column, :>=, Column.constant(:real, left)})
+      |> add_where_clause({:comparison, column, :<, Column.constant(column.type, right)})
+      |> add_where_clause({:comparison, column, :>=, Column.constant(column.type, left)})
       |> add_info_message(
         "The range for column `#{column.name}` has been adjusted to #{left} <= `#{column.name}` < #{right}"
       )
@@ -652,16 +652,22 @@ defmodule Cloak.Aql.Compiler do
     case Enum.sort_by(comparisons, &Comparison.direction/1, &Kernel.>/2) do
       [cmp1, cmp2] ->
         Comparison.direction(cmp1) != Comparison.direction(cmp2) &&
-          Comparison.value(cmp1) <= Comparison.value(cmp2)
+          lt_eq(Comparison.value(cmp1), Comparison.value(cmp2))
       _ -> false
     end
   end
 
+  defp lt_eq(x = %NaiveDateTime{}, y = %NaiveDateTime{}), do: Timex.diff(x, y) <= 0
+  defp lt_eq(x = %Date{}, y = %Date{}), do: Timex.diff(x, y) <= 0
+  defp lt_eq(x = %Time{}, y = %Time{}), do: Cloak.Time.time_to_seconds(x) <= Cloak.Time.time_to_seconds(y)
+  defp lt_eq(x, y), do: x <= y
+
+  @aligned_types ~w(integer real datetime date time)a
   defp inequalities_by_column(where_clauses) do
     where_clauses
     |> Enum.filter(&Comparison.inequality?/1)
     |> Enum.group_by(&where_clause_to_identifier/1)
-    |> Enum.filter(fn({column, _}) -> Enum.member?([:integer, :real], column.type) end)
+    |> Enum.filter(fn({column, _}) -> Enum.member?(@aligned_types, column.type) end)
     |> Enum.map(&discard_redundant_inequalities/1)
     |> Enum.into(%{})
   end
@@ -700,7 +706,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp parse_time(column = %Column{constant?: true, value: string}, type) do
     case do_parse_time(column, type) do
-      {:ok, result} -> result
+      {:ok, result} -> Column.constant(type, result)
       _ -> raise CompilationError, message: "Cannot cast `#{string}` to #{type}."
     end
   end

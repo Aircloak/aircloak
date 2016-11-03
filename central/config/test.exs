@@ -1,0 +1,16 @@
+use Mix.Config
+
+config :central, Central.Endpoint,
+  http: [port: 7081],
+  server: true
+
+config :central, :https_port, 7444
+
+# Print only warnings and errors during test
+config :logger, level: :warn
+
+# Configure your database
+config :central, Central.Repo, pool: Ecto.Adapters.SQL.Sandbox
+
+# Make tests related to hashing run faster
+config :comeonin, :pbkdf2_rounds, 1

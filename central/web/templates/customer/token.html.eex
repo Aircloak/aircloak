@@ -1,0 +1,10 @@
+<ol class="breadcrumb">
+  <li><%= link "Customers", to: customer_path(@conn, :index) %></li>
+  <li class="active"><%= @customer.name %></li>
+</ol>
+
+<h2>Token for <%= @customer.name %></h2>
+
+<pre>
+  <%= @token %>
+</pre>

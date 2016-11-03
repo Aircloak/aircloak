@@ -6,18 +6,37 @@ defmodule Air.Supervisor do
 
     children = [
       Air.ResultProcessor.supervisor_spec(),
+      Air.CentralQueryReporter.supervisor_spec(),
       supervisor(Air.Repo, []),
       worker(Air.Repo.Migrator, [], restart: :transient),
       worker(Air.QueryEvents, []),
-      worker(Air.DataSourceManager, []),
       supervisor(Task.Supervisor, [[name: Air.ApiTokenTimestampUpdater]], [id: :api_token_updater]),
       worker(Air.Monitoring.FailedQueries, []),
       Air.ResultProcessor.observer_spec(),
+      Air.CentralQueryReporter.observer_spec(),
       worker(Air.Endpoint, []),
       worker(Air.BOM, []),
       Air.PsqlServer.child_spec()
-    ]
+    ] ++ system_processes()
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Air.Supervisor)
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  if Mix.env == :test do
+    defp system_processes, do: []
+  else
+    # Processes which we don't want to start in the test environment
+    defp system_processes do
+      import Supervisor.Spec, warn: false
+
+      [
+        worker(Air.CentralSocket, [])
+      ]
+    end
   end
 end

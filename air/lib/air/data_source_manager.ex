@@ -3,12 +3,9 @@ defmodule Air.DataSourceManager do
   The DataSourceManager holds metadata about cloaks and their datastores as well as facilities
   for registering them with the database backing the air system.
   """
-  use GenServer
   require Logger
 
   alias Air.{Repo, DataSource}
-
-  @server {:global, __MODULE__}
 
 
   # -------------------------------------------------------------------
@@ -16,38 +13,24 @@ defmodule Air.DataSourceManager do
   # -------------------------------------------------------------------
 
   @doc """
-  Starts the DataSourceManager which allows the air application to, among other things,
-  discover whether a datastore is available for querying, and if so where.
-  """
-  @spec start_link() :: {:ok, pid} | {:error, term}
-  @spec start_link(Keyword.t) :: {:ok, pid} | {:error, term}
-  def start_link(options \\ []) do
-    GenServer.start_link(__MODULE__, nil, Keyword.merge([name: __MODULE__], options))
-  end
-
-  @doc """
   Registers a data source (if needed), and associates the calling cloak with the data source
   """
   @spec register_cloak(Map.t, Map.t) :: :ok
-  @spec register_cloak(GenServer.server, Map.t, Map.t) :: :ok
-  def register_cloak(server \\ @server, cloak_info, data_sources), do:
-    GenServer.call(server, {:register_cloak, cloak_info, data_sources})
+  def register_cloak(cloak_info, data_sources) do
+    data_source_ids = register_data_sources(cloak_info, data_sources)
+    :gproc.reg({:p, :l, {__MODULE__, :cloak}}, Map.put(cloak_info, :data_source_ids, data_source_ids))
+    :ok
+  end
 
-  @doc "Attaches a monitor to the global DataSourceManager from the current process."
-  @spec monitor() :: reference()
-  def monitor, do:
-    global_name() |> :global.whereis_name() |> Process.monitor()
 
   @doc "Returns the pids of all the phoenix channels of the cloaks that have the data source"
-  @spec channel_pids(String.t) :: [pid]
-  @spec channel_pids(GenServer.server, String.t) :: [pid]
-  def channel_pids(server \\ @server, data_source_id), do:
-    GenServer.call(server, {:channel_pids, data_source_id})
+  @spec channel_pids(String.t) :: [pid()]
+  def channel_pids(global_id), do:
+    :gproc.lookup_pids({:p, :l, {__MODULE__, :data_source, global_id}})
 
   @doc "Whether or not a data source is available for querying. True if it has one or more cloaks online"
   @spec available?(String.t) :: boolean
-  @spec available?(GenServer.server, String.t) :: boolean
-  def available?(server \\ @server, data_source_id), do: channel_pids(server, data_source_id) !== []
+  def available?(data_source_id), do: channel_pids(data_source_id) !== []
 
   @doc """
   Returns a list of the connected cloaks. The element returned for each cloak
@@ -55,77 +38,43 @@ defmodule Air.DataSourceManager do
   additionally augmented with a list of the IDs of the data sources served by the cloak
   """
   @spec cloaks() :: [Map.t]
-  @spec cloaks(GenServer.server) :: [Map.t]
-  def cloaks(server \\ @server), do: GenServer.call(server, :cloaks)
-
-
-  # -------------------------------------------------------------------
-  # Callbacks
-  # -------------------------------------------------------------------
-
-  @doc false
-  def init(_) do
-    state = %{data_source_to_cloak: Map.new(), authority_ref: nil}
-    state = take_authority(state)
-
-    {:ok, state}
-  end
-
-  @doc false
-  def handle_call({:register_cloak, cloak_info, data_sources}, _from, state) do
-    Process.monitor(cloak_info.channel_pid)
-    state = Enum.reduce(data_sources, state, &register_data_source(&1, cloak_info, &2))
-    {:reply, :ok, state}
-  end
-  def handle_call({:channel_pids, data_source_id}, _from, state) do
-    cloak_infos = Map.get(state.data_source_to_cloak, data_source_id, [])
-    pids = Enum.map(cloak_infos, &(&1.channel_pid))
-    {:reply, pids, state}
-  end
-  def handle_call(:cloaks, _from, state) do
-    {:reply, cloaks_from_state(state), state}
-  end
-
-  @doc false
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, state = %{authority_ref: ref}) do
-    {:noreply, take_authority(state)}
-  end
-  def handle_info({:DOWN, _ref, :process, channel_pid, _reason}, state) do
-    {:noreply, remove_disconnected_cloak(channel_pid, state)}
-  end
+  def cloaks(), do:
+    for {_pid, cloak_info} <- :gproc.lookup_values({:p, :l, {__MODULE__, :cloak}}), do: cloak_info
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp take_authority(state) do
-    case :global.register_name(global_name(), self()) do
-      :yes -> state
-      :no -> %{state | authority_ref: monitor()}
-    end
+  defp register_data_sources(cloak_info, data_sources) do
+    data_source_ids =
+      data_sources
+      |> Enum.map(&Task.async(fn ->
+            global_id = Map.fetch!(&1, "global_id")
+
+            # locking on a local node to prevent two simultaneous db registrations of the same datasource
+            :global.trans(
+              {{__MODULE__, :create_or_update_datastore, global_id}, self()},
+              fn -> create_or_update_datastore(global_id, &1) end,
+              [node()]
+            )
+
+            global_id
+          end))
+      |> Enum.map(&Task.await/1)
+
+    Enum.each(data_source_ids, &:gproc.reg({:p, :l, {__MODULE__, :data_source, &1}}, cloak_info))
+
+    data_source_ids
   end
 
-  defp global_name do
-    {:global, name} = @server
-    name
-  end
-
-  defp register_data_source(data_source_data, cloak_info, %{data_source_to_cloak: data_source_to_cloak} = state) do
-    create_or_update_datastore(data_source_data)
-    id = data_source_data["global_id"]
-    data_source_to_cloak = Map.update(data_source_to_cloak, id, [cloak_info], &([cloak_info | &1]))
-    %{state | data_source_to_cloak: data_source_to_cloak}
-  end
-
-  defp create_or_update_datastore(data) do
-    global_id = data["global_id"]
+  defp create_or_update_datastore(global_id, data) do
     case Repo.get_by(DataSource, global_id: global_id) do
       nil ->
         params = %{
           global_id: global_id,
           name: global_id,
-          tables: Poison.encode!(data["tables"]),
+          tables: Poison.encode!(Map.fetch!(data, "tables")),
         }
         %DataSource{}
         |> DataSource.changeset(params)
@@ -133,48 +82,11 @@ defmodule Air.DataSourceManager do
 
       data_source ->
         params = %{
-          tables: Poison.encode!(data["tables"]),
+          tables: Poison.encode!(Map.fetch!(data, "tables")),
         }
         data_source
         |> DataSource.changeset(params)
         |> Repo.update!()
-    end
-  end
-
-  defp remove_disconnected_cloak(channel_pid, state) do
-    filtered_map = state.data_source_to_cloak
-    |> Enum.map(&remove_cloak_info(channel_pid, &1))
-    |> Enum.reject(fn({_, cloaks}) -> cloaks === [] end)
-    |> Enum.into(Map.new())
-    %{state | data_source_to_cloak: filtered_map}
-  end
-
-  defp remove_cloak_info(channel_pid, {global_id, cloak_infos}) do
-    filtered_cloak_infos = Enum.reject(cloak_infos, &(&1.channel_pid == channel_pid))
-    if filtered_cloak_infos === [], do: Logger.info("Data source #{global_id} is now unavailable")
-    {global_id, filtered_cloak_infos}
-  end
-
-  defp cloaks_from_state(state) do
-    state.data_source_to_cloak
-    |> Enum.flat_map(&invert_data_source_to_cloak/1)
-    |> Enum.group_by(fn({cloak_info, _}) -> cloak_info end, fn({_, data_sources}) -> data_sources end)
-    |> Enum.map(fn({cloak_info, data_source_ids}) -> Map.merge(cloak_info, %{data_source_ids: data_source_ids}) end)
-  end
-
-  defp invert_data_source_to_cloak({data_source_global_id, cloak_infos}) do
-    Enum.map(cloak_infos, &({&1, data_source_global_id}))
-  end
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Test functions
-  #-----------------------------------------------------------------------------------------------------------
-
-  if Mix.env == :test do
-    @doc false
-    def do_remove_disconnected_cloak(channel_pid, state) do
-      remove_disconnected_cloak(channel_pid, state)
     end
   end
 end

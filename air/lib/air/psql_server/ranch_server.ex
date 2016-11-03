@@ -167,7 +167,7 @@ defmodule Air.PsqlServer.RanchServer do
   #-----------------------------------------------------------------------------------------------------------
 
   defp set_active_mode(conn), do:
-    conn.transport.setopts(conn.socket, active: true)
+    conn.transport.setopts(conn.socket, active: :once)
 
   defp process_input(conn, input), do:
     conn

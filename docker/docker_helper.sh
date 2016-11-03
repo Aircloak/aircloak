@@ -154,7 +154,8 @@ function build_aircloak_image {
       dockerfile_content |
       sed "s/\$DEBIAN_VERSION/$(debian_version)/" |
       sed "s/\$ERLANG_VERSION/$(erlang_version)/" |
-      sed "s/\$ELIXIR_VERSION/$(elixir_version)/" > "$temp_docker_file"
+      sed "s/\$ELIXIR_VERSION/$(elixir_version)/" |
+      sed "s/\$NODEJS_VERSION/$(nodejs_version)/" > "$temp_docker_file"
     docker build -t $full_image_name:$image_version -f "$temp_docker_file" .
   } || {
     # called in the case of an error
@@ -430,6 +431,10 @@ function erlang_version {
 
 function elixir_version {
   cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep elixir | sed s/'elixir '//
+}
+
+function nodejs_version {
+  cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep nodejs | sed s/'nodejs '//
 }
 
 function published_images {
