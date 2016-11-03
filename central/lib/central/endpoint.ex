@@ -5,6 +5,8 @@ defmodule Central.Endpoint do
 
   # bug in the current Phoenix -> should be fixed with the next version
   @dialyzer :no_unused
+  # bug in Erlang 19.1 (see https://github.com/phoenixframework/phoenix/issues/1872)
+  @dialyzer :no_match
 
 
   # -------------------------------------------------------------------

@@ -20,6 +20,7 @@ defmodule Central.Socket.Air.MainChannel do
   # -------------------------------------------------------------------
 
   @doc false
+  @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
   def join("main", _air_info, socket) do
     Process.flag(:trap_exit, true)
     customer = socket.assigns.customer
@@ -28,6 +29,7 @@ defmodule Central.Socket.Air.MainChannel do
   end
 
   @doc false
+  @dialyzer {:nowarn_function, terminate: 2} # Phoenix bug, fixed in master
   def terminate(_reason, socket) do
     customer = socket.assigns.customer
     Logger.info("air for '#{customer.name}' (id: #{customer.id}) left central")

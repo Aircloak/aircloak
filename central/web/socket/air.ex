@@ -43,6 +43,7 @@ defmodule Central.Socket.Air do
   end
 
   @doc false
+  @dialyzer {:nowarn_function, id: 1} # Phoenix bug, fixed in master
   def id(socket),
     do: "air_socket:#{socket.assigns.customer.id}"
 
