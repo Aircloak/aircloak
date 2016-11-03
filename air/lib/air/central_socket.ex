@@ -79,6 +79,7 @@ defmodule Air.CentralSocket do
   def handle_joined(topic, _payload, _transport, state) do
     Logger.info("joined the topic #{topic}")
     initial_interval = config(:min_reconnect_interval)
+    reattempt_pending_rpcs()
     {:ok, %{state | rejoin_interval: initial_interval}}
   end
 
@@ -211,6 +212,14 @@ defmodule Air.CentralSocket do
         Logger.error("Unable to persist failed RPC call to central to the database for later retry. " <>
           "Failure: #{inspect changeset}")
         :error
+    end
+  end
+
+  defp reattempt_pending_rpcs() do
+    Logger.info("Checking for buffered RPC calls to central")
+    for %CentralCall{event: event, payload: payload} = rpc <- Repo.all(CentralCall) do
+      Repo.delete(rpc)
+      cast(__MODULE__, event, payload)
     end
   end
 
