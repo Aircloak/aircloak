@@ -67,6 +67,7 @@ __Notes__:
 - You can restrict the range of returned rows by a query using the `LIMIT` and/or `OFFSET` clauses, but you need to
  provide the ORDER BY clause to ensure a stable order for the rows.
 - Using the `HAVING` clause requires the `GROUP BY` clause to be specified and conditions must not refer to non-aggregated fields.
+- Binary operators are only supported if the `math` feature is enabled in the cloak configuration.
 
 ## JOIN restrictions
 
