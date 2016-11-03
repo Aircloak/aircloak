@@ -55,7 +55,7 @@ defmodule Air.Query do
   end
 
   @doc "Produces a JSON blob of the query and it's result for rendering"
-  @spec for_display(t) :: %{}
+  @spec for_display(t) :: Map.t
   def for_display(query) do
     query
     |> Map.take([:id, :data_source_id, :statement])
