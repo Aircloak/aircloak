@@ -9,11 +9,12 @@ defmodule Aircloak.DeployConfig do
 
   The parameters are fetched from files which are residing in the `priv/config`
   folder of the caller app. For development and test environments, files `dev.json` and
-  `test.json` are used. For production, the file `config.json` is used.
+  `test.json` are used. For production, the file `config.json` is used. On Travis,
+  the file `travis.json` is used.
 
   You shouldn't keep `config.json` in the repository, because it is specific for
-  each deployment. In contrast, `dev.json` and `test.json` should be committed to
-  have out-of-the-box default configurations for developers.
+  each deployment. In contrast, `dev.json`, `test.json` and `travis.json` should be
+  committed to have out-of-the-box default configurations for developers.
   """
 
 
