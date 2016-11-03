@@ -1,5 +1,5 @@
 defmodule Central.Service.Stats do
-  @moduledoc "Service module for working statts"
+  @moduledoc "Service module for working stats"
 
   require Logger
   require Aircloak.DeployConfig
