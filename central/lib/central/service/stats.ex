@@ -36,11 +36,11 @@ defmodule Central.Service.Stats do
       where: customer.id == ^customer.id,
       select: %{
         query_count: count(query.id),
-        users_count: fragment("SUM(cast(?::json->>'users_count' as integer))", query.metrics),
-        average_row_count: fragment("cast(AVG(cast(?::json->>'row_count' as integer)) as integer)",
-          query.metrics),
-        average_execution_time: fragment("cast(AVG(cast(?::json->>'execution_time' as integer)) as integer)",
-          query.metrics),
+        users_count: sum(fragment("cast(?::json->>'users_count' as integer)", query.metrics)),
+        average_row_count: avg(fragment("cast(?::json->>'row_count' as integer)",
+          query.metrics)),
+        average_execution_time: avg(fragment("cast(?::json->>'execution_time' as integer)",
+          query.metrics)),
         max_execution_time: max(fragment("cast(?::json->>'execution_time' as integer)", query.metrics)),
       }
     Repo.one(query)
