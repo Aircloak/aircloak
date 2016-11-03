@@ -21,9 +21,9 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   test "casts time where conditions" do
-    assert %{where: [{:comparison, column("table", "column"), :>, value}]} =
-      compile!("select * from table where column > '01:02:03'", time_data_source())
-    assert value == Column.constant(:time, ~T[01:02:03.000000])
+    assert %{where: [{:comparison, column("table", "column"), :>=, value} | _]} =
+      compile!("select * from table where column >= '01:00:00' and column < '02:00:00'", time_data_source())
+    assert value == Column.constant(:time, ~T[01:00:00.000000])
   end
 
   test "casts date where conditions" do
@@ -485,11 +485,22 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "fixes alignment of date ranges" do
     aligned = compile!("select * from table where column > '2015-01-02' and column < '2016-07-01'", date_data_source())
-    assert compile!(
-      "select * from table where column > '2015-01-01' and column < '2016-08-02'",
-      date_data_source()
-    ).where == aligned.where
+    assert compile!("select * from table where column > '2015-01-01' and column < '2016-08-02'", date_data_source()).
+      where == aligned.where
     assert aligned.info == ["The range for column `column` has been adjusted to 2015-01-01 <= `column` < 2017-01-01"]
+  end
+
+  test "fixes alignment of time ranges" do
+    aligned = compile!("select * from table where column > '00:00:01' and column < '00:00:04'", time_data_source())
+    assert compile!("select * from table where column >= '00:00:00' and column < '00:00:05'", time_data_source()).
+      where == aligned.where
+    assert aligned.
+      info == ["The range for column `column` has been adjusted to 00:00:00.000000 <= `column` < 00:00:05.000000"]
+  end
+
+  test "no message when time alignment does not require fixing" do
+    assert compile!("select * from table where column >= '00:00:00' and column < '00:00:05'", time_data_source()).
+      info == []
   end
 
   test "includes an info message when the aligment is fixed" do

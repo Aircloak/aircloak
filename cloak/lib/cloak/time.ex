@@ -30,4 +30,12 @@ defmodule Cloak.Time do
   @spec max_precision(x) :: x when x: Time.t | NaiveDateTime.t
   def max_precision(datetime = %{microsecond: {usecs, _precision}}), do:
     %{datetime | microsecond: {usecs, 6}}
+
+  @doc "Converts a %Time{} into the number of seconds since midnight"
+  @spec time_to_seconds(Time.t) :: pos_integer
+  def time_to_seconds(x), do: x |> Time.to_erl() |> :calendar.time_to_seconds()
+
+  @doc "Converts a number of seconds since midnight to a %Time{}"
+  @spec seconds_to_time(pos_integer) :: Time.t
+  def seconds_to_time(x), do: x |> :calendar.seconds_to_time() |> Time.from_erl!()
 end
