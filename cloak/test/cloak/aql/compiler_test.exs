@@ -26,6 +26,10 @@ defmodule Cloak.Aql.Compiler.Test do
     assert value == Column.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
+  test "allows comparing datetime columns to other datetime columns" do
+    assert {:ok, _} = compile("select * from table where column = column", data_source())
+  end
+
   test "casts time where conditions" do
     assert %{where: [{:comparison, column("table", "column"), :>=, value} | _]} =
       compile!("select * from table where column >= '01:00:00' and column < '02:00:00'", time_data_source())

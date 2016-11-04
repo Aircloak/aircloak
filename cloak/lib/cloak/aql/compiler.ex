@@ -694,15 +694,17 @@ defmodule Cloak.Aql.Compiler do
 
   @castable_conditions [:datetime, :time, :date]
 
-  defp do_cast_where_clause({:not, subclause}, type) do
+  defp do_cast_where_clause({:not, subclause}, type), do:
     {:not, do_cast_where_clause(subclause, type)}
-  end
   defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, type) when type in @castable_conditions do
-    {:comparison, identifier, comparator, parse_time(rhs, type)}
+    if Column.constant?(rhs) do
+      {:comparison, identifier, comparator, parse_time(rhs, type)}
+    else
+      {:comparison, identifier, comparator, rhs}
+    end
   end
-  defp do_cast_where_clause({:in, column, values}, type) when type in @castable_conditions do
+  defp do_cast_where_clause({:in, column, values}, type) when type in @castable_conditions, do:
     {:in, column, Enum.map(values, &parse_time(&1, type))}
-  end
   defp do_cast_where_clause(clause, _), do: clause
 
   defp parse_time(column = %Column{constant?: true, value: string}, type) do
