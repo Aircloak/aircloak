@@ -1,5 +1,6 @@
 defmodule Air.PsqlServer.RanchServerTest do
   use ExUnit.Case, async: true
+  @moduletag :disabled
 
   alias Air.PsqlServer.RanchServer
   use Air.PsqlTestDriver
