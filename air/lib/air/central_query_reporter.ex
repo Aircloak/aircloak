@@ -49,6 +49,14 @@ defmodule Air.CentralQueryReporter do
 
   defp process_result(result) do
     query = Repo.get!(Query, result["query_id"]) |> Repo.preload([:user, :data_source])
+    user = query.user || %{
+      name: "Uknown user",
+      email: "Uknown email",
+    }
+    data_source = query.data_source || %{
+      name: "Unknown data source",
+      global_id: "Unknown data source",
+    }
 
     row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
 
@@ -61,12 +69,12 @@ defmodule Air.CentralQueryReporter do
       features: result["features"],
       aux: %{
         user: %{
-          name: query.user.name,
-          email: query.user.email,
+          name: user.name,
+          email: user.email,
         },
         data_source: %{
-          name: query.data_source.name,
-          id: query.data_source.global_id,
+          name: data_source.name,
+          id: data_source.global_id,
         }
       },
     }
