@@ -44,12 +44,13 @@ defmodule Air.DataSourceController do
       conn
       |> put_layout("raw.html")
       |> render(
-            "show.html",
-            data_source: data_source,
-            guardian_token: Guardian.Plug.current_token(conn),
-            csrf_token: CSRFProtection.get_csrf_token(),
-            last_query: last_query,
-          )
+        "show.html",
+        data_source: data_source,
+        guardian_token: Guardian.Plug.current_token(conn),
+        csrf_token: CSRFProtection.get_csrf_token(),
+        last_query: last_query,
+        session_id: Ecto.UUID.generate()
+      )
     else
       _ ->
         conn

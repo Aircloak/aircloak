@@ -17,6 +17,7 @@ import type {History} from "./history_loader";
 
 type Props = {
   userId: number,
+  sessionId: string,
   guardianToken: string,
   dataSourceId: number,
   dataSourceAvailable: boolean,
@@ -95,7 +96,7 @@ class QueriesView extends React.Component {
   }
 
   resultReceived(result) {
-    if (result.data_source_id === this.props.dataSourceId) {
+    if (result.data_source_id === this.props.dataSourceId && result.session_id === this.props.sessionId) {
       this.addResult(result, true /* replace */);
     } else {
       // Ignore result
@@ -126,6 +127,7 @@ class QueriesView extends React.Component {
       query: {
         statement: this.state.statement,
         data_source_id: this.props.dataSourceId,
+        session_id: this.props.sessionId,
       },
     });
   }

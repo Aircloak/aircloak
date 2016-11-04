@@ -38,6 +38,7 @@
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
+        sessionId: "<%= @session_id %>",
         tables: <%= tables(@data_source) %>,
       };
 
