@@ -23,7 +23,7 @@ defmodule Cloak.DataSource.DsProxyTest do
       end
     )
 
-    columns = DsProxy.describe_table([url: context.url], "table_name")
+    [%{columns: columns}] = DsProxy.load_tables([url: context.url], %{db_name: "table_name", columns: []})
     assert [{"column1", :text}, {"column2", :integer}] == columns
   end
 
