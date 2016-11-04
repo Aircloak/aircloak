@@ -186,6 +186,8 @@ defmodule Air.CentralSocket do
     after timeout ->
       {:error, :timeout}
     end
+  rescue
+    e in ArgumentError -> {:error, e}
   end
 
   @spec cast(GenServer.server, String.t, %{}) :: :ok
