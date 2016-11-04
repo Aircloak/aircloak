@@ -98,6 +98,7 @@ defmodule Cloak.Aql.Compiler do
       |> compile_order_by()
       |> verify_joins()
       |> cast_where_clauses()
+      |> verify_where_clauses()
       |> align_ranges()
       |> partition_selected_columns()
       |> verify_having()
@@ -1030,4 +1031,19 @@ defmodule Cloak.Aql.Compiler do
     query
   end
   defp verify_having(query), do: query
+
+  defp verify_where_clauses(%Query{where: clauses = [_|_]} = query) do
+    Enum.each(clauses, &verify_where_clause/1)
+    query
+  end
+  defp verify_where_clauses(query), do: query
+
+  defp verify_where_clause({:comparison, column_a, _, column_b}) do
+    if not Column.constant?(column_a) and not Column.constant?(column_b) and column_a.type != column_b.type do
+      raise CompilationError, message: "#{column_a |> Column.display_name() |> String.capitalize} and "
+        <> "#{Column.display_name(column_b)} cannot be compared without a cast."
+    end
+  end
+  defp verify_where_clause({:not, clause}), do: verify_where_clause(clause)
+  defp verify_where_clause(_), do: :ok
 end
