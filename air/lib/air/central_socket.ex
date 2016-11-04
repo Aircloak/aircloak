@@ -57,6 +57,7 @@ defmodule Air.CentralSocket do
       rejoin_interval: initial_interval
     }
     Logger.info("Trying to connect to Central on #{central_socket_url}")
+    :timer.send_interval(:timer.hours(1), :check_for_pending_rpcs)
     {:connect, central_socket_url, state}
   end
 
@@ -153,6 +154,10 @@ defmodule Air.CentralSocket do
     # client code to give up at some point.
     Logger.warn("#{request_id} sync call timeout")
     {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
+  end
+  def handle_info(:check_for_pending_rpcs, _transport, state) do
+    reattempt_pending_rpcs()
+    {:ok, state}
   end
   def handle_info(message, _transport, state) do
     Logger.warn("unhandled message #{inspect message}")
