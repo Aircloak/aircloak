@@ -40,7 +40,7 @@ defmodule Air.CentralSocket do
   @doc "Records a completed query in the central - useful for billing and stats"
   @spec record_query(Map.t) :: :ok
   def record_query(payload) do
-    cast(__MODULE__, "query_execution", payload)
+    cast_with_retry(__MODULE__, "query_execution", payload)
   end
 
 
@@ -191,8 +191,8 @@ defmodule Air.CentralSocket do
     e in ArgumentError -> {:error, e}
   end
 
-  @spec cast(GenServer.server, String.t, %{}) :: :ok
-  defp cast(socket, event, payload) do
+  @spec cast_with_retry(GenServer.server, String.t, %{}) :: :ok
+  defp cast_with_retry(socket, event, payload) do
     Task.start(fn() ->
       case call(socket, event, payload) do
         {:error, _} -> save_cast_for_later(event, payload)
