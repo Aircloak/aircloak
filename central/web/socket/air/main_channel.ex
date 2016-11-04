@@ -94,10 +94,8 @@ defmodule Central.Socket.Air.MainChannel do
   # Handling air sync calls
   # -------------------------------------------------------------------
 
-  defp handle_air_call("query_execution", payload, request_id, socket) do
-    Logger.info("Received query execution update with payload: #{inspect payload}")
-    customer = socket.assigns.customer
-    result = Customer.record_query(customer, payload["metrics"], payload["features"])
+  defp handle_air_call("cast_with_retry", payload, request_id, socket) do
+    result = handle_cast_with_retry(payload["event"], payload["event_payload"], socket)
     respond_to_air(socket, request_id, result)
     {:noreply, socket}
   end
@@ -118,5 +116,11 @@ defmodule Central.Socket.Air.MainChannel do
 
   defp respond_to_internal_request({client_pid, mref}, response) do
     send(client_pid, {mref, response})
+  end
+
+  defp handle_cast_with_retry("query_execution", payload, socket) do
+    Logger.info("Received query execution update with payload: #{inspect payload}")
+    customer = socket.assigns.customer
+    Customer.record_query(customer, payload["metrics"], payload["features"])
   end
 end

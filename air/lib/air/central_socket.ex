@@ -191,35 +191,44 @@ defmodule Air.CentralSocket do
     e in ArgumentError -> {:error, e}
   end
 
-  @spec cast_with_retry(GenServer.server, String.t, %{}) :: :ok
   defp cast_with_retry(socket, event, payload) do
+    case persist_rpc(event, payload) do
+      {:ok, rpc} -> perform_cast(socket, rpc)
+      :error -> :error
+    end
+  end
+
+  defp persist_rpc(event, payload) do
+    changeset = CentralCall.changeset(%CentralCall{}, %{event: event, payload: payload})
+    case Repo.insert(changeset) do
+      {:error, changeset} ->
+        Logger.error("Unable to persist RPC call to central to guarantee delivery. Aborting RPC. "
+          <> "Failure: #{inspect changeset}")
+        :error
+      {:ok, _} = result -> result
+    end
+  end
+
+  defp perform_cast(socket, rpc) do
     Task.start(fn() ->
-      case call(socket, event, payload) do
-        {:error, _} -> save_cast_for_later(event, payload)
-        {:ok, _} -> :ok
+      payload = %{
+        id: rpc.id,
+        event: rpc.event,
+        event_payload: rpc.payload,
+      }
+      case call(socket, "cast_with_retry", payload) do
+        {:error, reason} ->
+          Logger.error("RPC '#{rpc.event}' to central failed: #{inspect reason}. Will retry later.")
+        {:ok, _} -> Repo.delete!(rpc)
       end
     end)
     :ok
   end
 
-  defp save_cast_for_later(event, payload) do
-    changeset = CentralCall.changeset(%CentralCall{}, %{event: event, payload: payload})
-    case Repo.insert(changeset) do
-      {:ok, _} ->
-        Logger.info("Persisted Central RPC '#{event}' locally. Will reattempt RPC later")
-        :ok
-      {:error, changeset} ->
-        Logger.error("Unable to persist failed RPC call to central to the database for later retry. " <>
-          "Failure: #{inspect changeset}")
-        :error
-    end
-  end
-
   defp reattempt_pending_rpcs() do
     Logger.info("Checking for buffered RPC calls to central")
-    for %CentralCall{event: event, payload: payload} = rpc <- Repo.all(CentralCall) do
-      Repo.delete(rpc)
-      cast(__MODULE__, event, payload)
+    for rpc <- Repo.all(CentralCall) do
+      perform_cast(__MODULE__, rpc)
     end
   end
 
