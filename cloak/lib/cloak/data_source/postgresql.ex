@@ -26,16 +26,16 @@ defmodule Cloak.DataSource.PostgreSQL do
   end
 
   @doc false
-  def describe_table(connection, full_table_name) do
-    {schema_name, table_name} = case String.split(full_table_name, ".") do
+  def load_tables(connection, table) do
+    {schema_name, table_name} = case String.split(table.db_name, ".") do
       [full_table_name] -> {"public", full_table_name}
       [schema_name, table_name] -> {schema_name, table_name}
     end
     query = "SELECT column_name, udt_name FROM information_schema.columns " <>
       "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
     row_mapper = fn [name, type_name] -> {name, parse_type(type_name)} end
-    {:ok, columns_list} = run_query(connection, query, row_mapper, &Enum.to_list/1)
-    columns_list
+    {:ok, columns} = run_query(connection, query, row_mapper, &Enum.to_list/1)
+    [%{table | columns: columns}]
   end
 
   @doc false

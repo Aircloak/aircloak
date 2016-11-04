@@ -29,7 +29,7 @@ defmodule Cloak.Aql.FixAlign.Test do
     end
   end
 
-  for interval_type <- [:int, :datetime, :date] do
+  for interval_type <- [:int, :datetime, :date, :time] do
     property "align_interval is idempotent on #{interval_type} intervals" do
       for_all interval in interval(unquote(interval_type)) do
         interval |> FixAlign.align_interval() == interval |> FixAlign.align_interval() |> FixAlign.align_interval()
@@ -55,8 +55,20 @@ defmodule Cloak.Aql.FixAlign.Test do
     property "an aligned #{interval_type} interval is not much larger than the input" do
       for_all {x, y} in interval(unquote(interval_type)) do
         {left, right} = FixAlign.align_interval({x, y})
-        Timex.diff(right, left) < 6 * Timex.diff(y, x)
+
+        if Timex.diff(y, x, :minutes) < 1 do
+          Timex.diff(right, left) <= 10 * Timex.diff(y, x)
+        else
+          Timex.diff(right, left) <= 6 * Timex.diff(y, x)
+        end
       end
+    end
+  end
+
+  property "an aligned time interval contains both ends of the input" do
+    for_all {x, y} in time_interval do
+      {left, right} = FixAlign.align_interval({x, y})
+      lt_eq(left, x) && lt_eq(y, right)
     end
   end
 
@@ -83,6 +95,12 @@ defmodule Cloak.Aql.FixAlign.Test do
   test "aligning intervals before epoch" do
     assert Cloak.Aql.FixAlign.align_interval({~D[1956-11-25], ~D[1957-11-04]}) == {~D[1956-01-01], ~D[1958-01-01]}
     assert Cloak.Aql.FixAlign.align_interval({~D[1959-09-14], ~D[1963-12-14]}) == {~D[1955-01-01], ~D[1965-01-01]}
+  end
+
+  test "align time intervals" do
+    assert FixAlign.align_interval({~T[10:20:30], ~T[10:20:34]}) == {~T[10:20:30.000000], ~T[10:20:35.000000]}
+    assert FixAlign.align_interval({~T[10:23:30], ~T[10:30:00]}) == {~T[10:22:30.000000], ~T[10:37:30.000000]}
+    assert FixAlign.align_interval({~T[09:20:30], ~T[10:20:34]}) == {~T[09:00:00.000000], ~T[11:00:00.000000]}
   end
 
   property "numbers are money-aligned" do
@@ -115,6 +133,7 @@ defmodule Cloak.Aql.FixAlign.Test do
   defp interval(:float), do: float_interval
   defp interval(:datetime), do: datetime_interval
   defp interval(:date), do: date_interval
+  defp interval(:time), do: time_interval
 
   defp int_interval, do: such_that({x, y} in {int, int} when x < y)
 
@@ -124,25 +143,39 @@ defmodule Cloak.Aql.FixAlign.Test do
 
   defp date_interval, do: such_that({x, y} in {date, date} when Timex.diff(x, y) < 0)
 
+  defp time_interval, do: such_that({x, y} in {time, time} when lt_eq(x, y) and x != y)
+
   defp datetime do
     domain(
       :datetime,
-      fn(domain, size) ->
+      _generate = fn(domain, size) ->
         size = size |> :math.pow(4) |> round()
         {domain, Timex.shift(~N[2000-06-15 12:20:30], seconds: draw(int, size))}
       end,
-      fn(domain, item) -> {domain, item} end
+      _shrink = fn(domain, item) -> {domain, item} end
     )
   end
 
   defp date do
     domain(
       :datetime,
-      fn(domain, size) ->
+      _generate = fn(domain, size) ->
         size = size |> :math.pow(2) |> round()
         {domain, Timex.shift(~D[2000-06-15], days: draw(int, size))}
       end,
-      fn(domain, item) -> {domain, item} end
+      _shrink = fn(domain, item) -> {domain, item} end
+    )
+  end
+
+  @seconds_in_day 24 * 60 * 60
+  defp time do
+    domain(
+      :time,
+      _generate = fn(domain, size) ->
+        size = size |> :math.pow(2.5) |> round() |> min(@seconds_in_day - 1)
+        {domain, draw(pos_integer, size) |> Cloak.Time.seconds_to_time()}
+      end,
+      _shrink = fn(domain, item) -> {domain, item} end
     )
   end
 
@@ -163,4 +196,6 @@ defmodule Cloak.Aql.FixAlign.Test do
   defp epsilon, do: 1.0e-6
 
   defp width({x, y}), do: y - x
+
+  defp lt_eq(%Time{} = x, %Time{} = y), do: Cloak.Time.time_to_seconds(x) <= Cloak.Time.time_to_seconds(y)
 end

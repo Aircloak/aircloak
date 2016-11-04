@@ -9,6 +9,19 @@ defmodule Cloak.Aql.Query do
 
   alias Cloak.Aql.{Column, Function, Parser}
 
+  @type negatable_condition ::
+      {:comparison, Column.t, :=, Column.t}
+    | {:like | :ilike, Column.t, Column.t}
+    | {:is, Column.t, :null}
+    | {:in, Column.t, [Column.t]}
+
+  @type where_clause ::
+      negatable_condition
+    | {:not, negatable_condition}
+    | {:comparison, Column.t, Parser.comparator, Column.t}
+
+  @type having_clause :: {:comparison, Column.t, Parser.comparator, Column.t}
+
   @type t :: %__MODULE__{
     data_source: DataSource.t,
     features: Features.t,
@@ -20,8 +33,8 @@ defmodule Cloak.Aql.Query do
     implicit_count: true,
     unsafe_filter_columns: [Column.t],
     group_by: [Function.t],
-    where: [Parser.where_clause],
-    lcf_check_conditions: [Parser.where_clause],
+    where: [where_clause],
+    lcf_check_conditions: [where_clause],
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [DataSource.table],
@@ -31,7 +44,7 @@ defmodule Cloak.Aql.Query do
     subquery?: boolean,
     limit: pos_integer | nil,
     offset: non_neg_integer,
-    having: [Parser.having_clause],
+    having: [having_clause],
     distinct: boolean
   }
 
