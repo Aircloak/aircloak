@@ -9,6 +9,7 @@ defmodule Air.CentralQueryReporter do
 
   import Supervisor.Spec, warn: false
   require Logger
+  alias Air.{Repo, Query}
 
 
   # -------------------------------------------------------------------
@@ -47,6 +48,8 @@ defmodule Air.CentralQueryReporter do
   # -------------------------------------------------------------------
 
   defp process_result(result) do
+    query = Repo.get!(Query, result["query_id"]) |> Repo.preload([:user, :data_source])
+
     row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
 
     payload = %{
@@ -56,6 +59,16 @@ defmodule Air.CentralQueryReporter do
         execution_time: result["execution_time"],
       },
       features: result["features"],
+      aux: %{
+        user: %{
+          name: query.user.name,
+          email: query.user.email,
+        },
+        data_source: %{
+          name: query.data_source.name,
+          id: query.data_source.global_id,
+        }
+      },
     }
 
     case Air.CentralSocket.record_query(payload) do
