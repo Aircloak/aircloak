@@ -119,6 +119,8 @@ defmodule Cloak.Aql.FixAlign do
     |> datetime_from_units(unit)
   end
 
+  # because of the timex bug (https://github.com/bitwalker/timex/pull/239)
+  @dialyzer {:no_match, largest_changed_unit: 1}
   defp largest_changed_unit({x, y}) do
     Enum.find(@time_units, fn(component) ->
       case Timex.diff(y, x, :duration) do
@@ -190,6 +192,8 @@ defmodule Cloak.Aql.FixAlign do
   defp lower_unit(:seconds), do: :seconds
   defp lower_unit(unit), do: Enum.at(@time_units, Enum.find_index(@time_units, &(&1 == unit)) + 1)
 
+  # because of the timex bug (https://github.com/bitwalker/timex/pull/239)
+  @dialyzer {:no_unused, duration_component: 2}
   defp duration_component(:years, duration), do: Timex.Duration.to_days(duration) / @days_in_year
   defp duration_component(:months, duration), do: Timex.Duration.to_days(duration) / @days_in_month
   defp duration_component(:days, duration), do: Timex.Duration.to_days(duration)

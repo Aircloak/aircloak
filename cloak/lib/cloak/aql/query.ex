@@ -30,7 +30,7 @@ defmodule Cloak.Aql.Query do
     column_titles: [String.t],
     property: [Function.t],
     aggregators: [Function.t],
-    implicit_count: true,
+    implicit_count: boolean,
     unsafe_filter_columns: [Column.t],
     group_by: [Function.t],
     where: [where_clause],
