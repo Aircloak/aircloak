@@ -16,8 +16,8 @@ defmodule Central.Schemas.Query do
     timestamps
   end
 
-  @required_fields ~w(metrics features)a
-  @optional_fields ~w()a
+  @required_fields ~w()a
+  @optional_fields ~w(metrics features)a
 
 
   # -------------------------------------------------------------------
