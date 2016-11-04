@@ -188,12 +188,10 @@ defmodule Air.CentralSocket do
         Process.demonitor(mref, [:flush])
         response
       {:DOWN, ^mref, _, _, reason} ->
-        {:error, reason}
+        exit(reason)
     after timeout ->
-      {:error, :timeout}
+      exit(:timeout)
     end
-  rescue
-    e in ArgumentError -> {:error, e}
   end
 
   defp cast_with_retry(socket, event, payload) do
