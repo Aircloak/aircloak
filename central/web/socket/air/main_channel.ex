@@ -139,6 +139,11 @@ defmodule Central.Socket.Air.MainChannel do
   defp handle_call_with_retry("query_execution", payload, socket) do
     Logger.info("Received query execution update with payload: #{inspect payload}")
     customer = socket.assigns.customer
-    Customer.record_query(customer, payload["metrics"], payload["features"])
+    params = %{
+      metrics: payload["metrics"],
+      features: payload["features"],
+      aux: payload["aux"],
+    }
+    Customer.record_query(customer, params)
   end
 end
