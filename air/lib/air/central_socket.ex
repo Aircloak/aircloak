@@ -193,7 +193,7 @@ defmodule Air.CentralSocket do
 
   defp cast_with_retry(socket, event, payload) do
     case persist_rpc(event, payload) do
-      {:ok, rpc} -> perform_cast(socket, rpc)
+      {:ok, rpc} -> perform_cast_with_retry(socket, rpc)
       :error -> :error
     end
   end
@@ -209,14 +209,14 @@ defmodule Air.CentralSocket do
     end
   end
 
-  defp perform_cast(socket, rpc) do
+  defp perform_cast_with_retry(socket, rpc) do
     Task.start(fn() ->
       payload = %{
         id: rpc.id,
         event: rpc.event,
         event_payload: rpc.payload,
       }
-      case call(socket, "cast_with_retry", payload) do
+      case call(socket, "call_with_retry", payload) do
         {:error, reason} ->
           Logger.error("RPC '#{rpc.event}' to central failed: #{inspect reason}. Will retry later.")
         {:ok, _} -> Repo.delete!(rpc)
@@ -228,7 +228,7 @@ defmodule Air.CentralSocket do
   defp reattempt_pending_rpcs() do
     Logger.info("Checking for buffered RPC calls to central")
     for rpc <- Repo.all(CentralCall) do
-      perform_cast(__MODULE__, rpc)
+      perform_cast_with_retry(__MODULE__, rpc)
     end
   end
 
