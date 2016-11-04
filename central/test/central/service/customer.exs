@@ -75,12 +75,19 @@ defmodule Central.Service.CustomerTest do
   test "records query executions" do
     metrics = %{"user_count" => 10}
     features = %{"some" => "feature"}
+    aux = %{"other" => "data"}
+    params = %{
+      metrics,
+      features,
+      aux,
+    }
     customer = create_customer()
-    assert :ok == Customer.record_query(customer, metrics, features)
+    assert :ok == Customer.record_query(customer, params)
     customer = Repo.preload(customer, :queries)
     [query] = customer.queries
     assert query.metrics == metrics
     assert query.features == features
+    assert query.aux == aux
   end
 
   defp create_customer(name \\ "default customer") do

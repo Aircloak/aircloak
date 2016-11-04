@@ -97,7 +97,12 @@ defmodule Central.Socket.Air.MainChannel do
   defp handle_air_call("query_execution", payload, request_id, socket) do
     Logger.info("Received query execution update with payload: #{inspect payload}")
     customer = socket.assigns.customer
-    result = Customer.record_query(customer, payload["metrics"], payload["features"])
+    params = %{
+      metrics: payload["metrics"],
+      features: payload["features"],
+      aux: payload["aux"],
+    }
+    result = Customer.record_query(customer, params)
     respond_to_air(socket, request_id, result)
     {:noreply, socket}
   end
