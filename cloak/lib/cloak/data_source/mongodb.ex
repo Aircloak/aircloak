@@ -123,8 +123,7 @@ defmodule Cloak.DataSource.MongoDB do
     end
   end
 
-  defp parse_query(%Query{from: name} = query) when is_binary(name) do
-    [%Column{table: table} | _] = query.db_columns
+  defp parse_query(%Query{from: table_name, selected_tables: [table]} = query) when is_binary(table_name) do
     columns = for %Column{name: name} <- query.db_columns, do: name
     {base_conditions, array_conditions, array_size_conditions} = split_conditions(table.array_path, query.where)
     pipeline =
