@@ -15,8 +15,8 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "rejects mistyped where conditions" do
     {:error, error} = compile("select * from table where numeric = column", data_source())
-    assert error == "Column `numeric` from table `table` and column `column` from table `table` cannot be compared "
-      <> "without a cast."
+    assert error == "Column `numeric` from table `table` of type `integer` and column `column` from table `table` "
+      <> "of type `datetime` cannot be compared."
   end
 
   test "casts datetime where conditions" do
