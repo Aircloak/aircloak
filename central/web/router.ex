@@ -2,9 +2,6 @@ defmodule Central.Router do
   @moduledoc false
   use Central.Web, :router
 
-  # bug in Erlang 19.1 (see https://github.com/phoenixframework/phoenix/issues/1872)
-  @dialyzer :no_match
-
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session

@@ -30,9 +30,6 @@ defmodule Central.Web do
     quote do
       use Phoenix.Controller
 
-      # bug in Erlang 19.1 (see https://github.com/phoenixframework/phoenix/issues/1872)
-      @dialyzer :no_match
-
       alias Central.Repo
       import Ecto
       import Ecto.Query, only: [from: 1, from: 2]

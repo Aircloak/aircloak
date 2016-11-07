@@ -154,9 +154,6 @@ defmodule Air.Plug.Session do
     """
     use Plug.Builder
 
-    # bug in Erlang 19.1 (see https://github.com/phoenixframework/phoenix/issues/1872)
-    @dialyzer :no_match
-
     plug Air.Plug.Session.Restoration
     plug Guardian.Plug.VerifySession
     plug Guardian.Plug.EnsureAuthenticated, handler: __MODULE__
@@ -185,9 +182,6 @@ defmodule Air.Plug.Session do
     can be safely used in subsequent controllers and views.
     """
     use Plug.Builder
-
-    # bug in Erlang 19.1 (see https://github.com/phoenixframework/phoenix/issues/1872)
-    @dialyzer :no_match
 
     plug Guardian.Plug.VerifySession
     plug Guardian.Plug.EnsureNotAuthenticated, handler: __MODULE__
