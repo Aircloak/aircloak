@@ -9,7 +9,7 @@ defmodule BOM.Gather.Elixir.Hex do
   # -------------------------------------------------------------------
 
   @doc "Searches for package metadata on hex.pm. Returns `{:ok, json}` if found, `{:error, :not_found}` otherwise."
-  @spec package(String.t) :: {:ok, %{}} | {:error, :not_found}
+  @spec package(String.t) :: {:ok, Map.t} | {:error, :not_found}
   def package(name) do
     GenServer.cast(__MODULE__, {:package, name, self()})
 
