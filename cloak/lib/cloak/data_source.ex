@@ -201,12 +201,12 @@ defmodule Cloak.DataSource do
     # The data source marker is useful when we you want to force identical data sources to get
     # distinct global IDs. This can be used for exampel in staging and test environments.
 
-    user = Parameters.get_one_of(data.parameters, ["uid", "user", "username", "login"])
+    user = Parameters.get_one_of(data.parameters, ["uid", "user", "username", "login"]) || "anon"
     database = Parameters.get_one_of(data.parameters, ["database"])
     host = Parameters.get_one_of(data.parameters, ["hostname", "server", "host"])
 
-    if Enum.any?([user, database, host], &(is_nil(&1))) do
-      raise "Misconfigured data source: user, database, and host parameters are required"
+    if Enum.any?([database, host], &(is_nil(&1))) do
+      raise "Misconfigured data source: database and hostname parameters are required."
     end
 
     marker = case Map.get(data, :marker) do
@@ -237,7 +237,10 @@ defmodule Cloak.DataSource do
       try do
         data_source.tables
         |> Enum.map(fn ({table_id, table}) ->
-          table |> Map.put(:columns, []) |> Map.put(:name, to_string(table_id))
+          table
+          |> Map.put(:columns, [])
+          |> Map.put(:name, to_string(table_id))
+          |> Map.put_new(:db_name, to_string(table_id))
         end)
         |> Enum.flat_map(&driver.load_tables(connection, &1))
         |> Enum.map(&parse_columns(data_source, &1))
