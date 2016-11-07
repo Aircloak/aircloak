@@ -48,10 +48,6 @@ before_install:
   - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
   - ./travis-asdf-setup.sh
   - npm i -g yarn
-install:
-  - mkdir -p $MIX_HOME
-  - mix local.hex --force
-  - mix local.rebar --force
 before_script:
   - ./travis-before-script.sh
 script:
