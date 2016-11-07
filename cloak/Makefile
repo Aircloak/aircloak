@@ -23,9 +23,9 @@ start:
 test:
 	mix test
 
-regenerate_db:
+recreate_db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
-	./regenerate_db.sh
+	./recreate_db.sh
 
 docs:
 	mix docs
