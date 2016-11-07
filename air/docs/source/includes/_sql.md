@@ -49,13 +49,23 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     COUNT | SUM | AVG | MIN | MAX | STDDEV | MEDIAN
 
   where_expression :=
-    column_name comparison_operator value |
+    column_name equality_operator (value | column_name) |
+    column_name inequality_operator value |
     column_name IS [NOT] NULL |
     column_name IN (constant [, ...])
     column_name [NOT] LIKE | ILIKE string_pattern
 
   having_expression :=
       column_expression comparison_operator (value | column_expression)
+
+  comparison_operator :=
+      equality_operator | inequality_operator
+
+  quality_operator :=
+      = | <>
+
+  inequality_operator :=
+      > | >= | < | <=
 </pre>
 
 __Notes__:
