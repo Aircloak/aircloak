@@ -56,8 +56,8 @@ defmodule Air.CentralSocket do
       reconnect_interval: initial_interval,
       rejoin_interval: initial_interval
     }
-    Logger.info("Trying to connect to Central on #{central_socket_url}")
     :timer.send_interval(:timer.minutes(5), :check_for_pending_rpcs)
+    Logger.debug("Trying to connect to Central on #{central_socket_url}")
     {:connect, central_socket_url, state}
   end
 
