@@ -71,7 +71,8 @@ defmodule Air.Mixfile do
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
       {:csv, "~> 1.4.2"},
-      {:phoenix_mtm, "~> 0.5.0"}
+      {:phoenix_mtm, "~> 0.5.0"},
+      {:scrivener_ecto, "~> 1.0"},
     ]
   end
 
@@ -106,6 +107,7 @@ defmodule Air.Mixfile do
       :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
       :lhttpc, :hackney, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv,
       :phoenix_pubsub, :phoenix_mtm, :ranch, :phoenix_gen_socket_client, :websocket_client,
+      :scrivener_ecto,
     ]
   end
 

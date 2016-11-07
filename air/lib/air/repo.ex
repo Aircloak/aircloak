@@ -1,6 +1,8 @@
 defmodule Air.Repo do
   @moduledoc false
   use Ecto.Repo, otp_app: :air
+  use Scrivener, page_size: 20
+
   require Aircloak.DeployConfig
 
   # Need to disable due to error in old Ecto. Should be revised once we upgrade Ecto to 2.0
