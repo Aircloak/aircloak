@@ -112,7 +112,8 @@ GRANT ALL ON TABLE user_data TO cloak;
 --
 
 CREATE TABLE purchases (
-    uid character varying(20),
+    uid integer not null,
+    user_name character varying(20),
     row_id integer not null,
     itemname text,
     price integer,
@@ -155,234 +156,234 @@ CREATE UNIQUE INDEX ON purchases (row_id);
 -- Data for Name: purchases; Type: TABLE DATA; Schema: public; Owner: cloak
 --
 
-COPY purchases (uid, itemname, price, date) FROM stdin;
-sebastian	toaster	10	2016-05-18 00:00:00
-sebastian	toaster	11	2016-05-17 10:00:01
-sebastian	toaster	10	2016-05-17 11:00:01
-sebastian	smoothie	3	2016-05-16 05:00:00
-sebastian	car	30000	2016-05-16 05:00:00
-sebastian	castle	3000000	2016-02-10 15:00:00
-sebastian	jam jar	2	2015-09-01 13:00:00
-cristian	shampoo	5	2015-09-01 13:00:00
-sasa	shampoo	5	2015-09-02 13:00:00
-pascal	shampoo	5	2016-02-01 13:00:00
-pascal	shampoo	5	2016-01-01 13:00:00
-pawel	shampoo	5	2015-12-01 13:00:00
-felix	shampoo	5	2015-12-12 13:00:00
-felix	shampoo	5	2016-01-12 13:00:00
-felix	shampoo	5	2016-02-12 13:00:00
-felix	shampoo	5	2015-03-12 13:00:00
-sebastian	toaster	11	2015-05-17 10:00:01
-felix	toaster	10	2016-05-17 11:00:01
-paul	smoothie	3	2016-05-16 05:00:00
-paul	smoothie	3	2016-05-17 05:00:00
-paul	smoothie	3	2016-05-18 05:00:00
-paul	smoothie	3	2016-05-19 05:00:00
-paul	smoothie	3	2016-05-20 05:00:00
-paul	smoothie	3	2016-05-20 06:00:00
-paul	smoothie	3	2016-05-20 07:00:00
-paul	smoothie	3	2016-05-20 08:00:00
-paul	smoothie	3	2016-05-20 09:00:00
-paul	smoothie	3	2016-05-20 10:00:00
-paul	smoothie	3	2016-05-16 05:00:00
-mamiko	smoothie	3	2016-05-16 05:00:00
-mamiko	smoothie	3	2016-05-17 05:00:00
-mamiko	smoothie	3	2016-05-18 05:00:00
-mamiko	smoothie	3	2016-05-19 05:00:00
-mamiko	smoothie	3	2016-05-20 05:00:00
-mamiko	smoothie	3	2016-05-20 06:00:00
-mamiko	smoothie	3	2016-05-20 07:00:00
-mamiko	smoothie	3	2016-05-20 08:00:00
-mamiko	smoothie	3	2016-05-20 09:00:00
-mamiko	smoothie	3	2016-05-20 10:00:00
-cristian	smoothie	3	2015-05-20 07:00:00
-cristian	smoothie	3	2015-05-20 08:00:00
-cristian	smoothie	3	2015-05-20 09:00:00
-cristian	smoothie	3	2015-05-20 10:00:00
-sasa	car	35000	2016-04-20 10:00:00
-pascal	car	40000	2016-04-21 10:00:00
-paul	car	45000	2016-04-22 10:00:00
-felix	car	50000	2016-04-23 10:00:00
-cristian	car	55000	2016-04-24 10:00:00
-pawel	car	100000	2016-04-25 10:00:00
-sebastian	car	5000	2016-04-26 10:00:00
-person1	lottery ticket	2	2016-04-26 10:00:00
-person2	lottery ticket	2	2016-04-26 10:00:00
-person3	lottery ticket	2	2016-04-26 10:00:00
-person4	lottery ticket	2	2016-04-26 10:00:00
-person5	lottery ticket	2	2016-04-26 10:00:00
-person6	lottery ticket	2	2016-04-26 10:00:00
-person7	lottery ticket	2	2016-04-26 10:00:00
-person8	lottery ticket	2	2016-04-26 10:00:00
-person9	lottery ticket	2	2016-04-26 10:00:00
-person10	lottery ticket	2	2016-04-26 10:00:00
-person11	lottery ticket	2	2016-04-26 10:00:00
-person12	lottery ticket	2	2016-04-26 10:00:00
-person13	lottery ticket	2	2016-04-26 10:00:00
-person14	lottery ticket	2	2016-04-26 10:00:00
-person15	lottery ticket	2	2016-04-26 10:00:00
-person13	lottery ticket	2	2016-04-26 10:00:00
-person14	lottery ticket	2	2016-04-26 10:00:00
-person15	lottery ticket	2	2016-04-26 10:00:00
-person13	lottery ticket	2	2016-04-26 10:00:00
-person14	lottery ticket	2	2016-04-26 10:00:00
-person15	lottery ticket	2	2016-04-26 10:00:00
-person13	lottery ticket	2	2016-04-26 10:00:00
-person14	lottery ticket	2	2016-04-26 10:00:00
-person15	lottery ticket	2	2016-04-26 10:00:00
-person16	lottery ticket	2	2016-04-26 10:00:00
-person17	lottery ticket	2	2016-04-26 10:00:00
-person18	lottery ticket	2	2016-04-26 10:00:00
-person19	lottery ticket	2	2016-04-26 10:00:00
-person20	lottery ticket	2	2016-04-26 10:00:00
-person20	lottery ticket	4	2016-04-22 10:00:00
-person20	lottery ticket	2	2016-04-23 10:00:00
-person20	lottery ticket	2	2016-04-24 10:00:00
-person1	gym membership	20	2016-04-26 10:00:00
-person2	gym membership	20	2016-04-26 10:00:00
-person3	gym membership	20	2016-04-26 10:00:00
-person4	gym membership	20	2016-04-26 10:00:00
-person5	gym membership	20	2016-04-26 10:00:00
-person6	gym membership	20	2016-04-26 10:00:00
-person7	gym membership	20	2016-04-26 10:00:00
-person8	gym membership	20	2016-04-26 10:00:00
-person9	gym membership	20	2016-04-26 10:00:00
-person10	gym membership	20	2016-03-26 10:00:00
-person11	gym membership	20	2016-03-26 10:00:00
-person12	gym membership	20	2016-03-26 10:00:00
-person13	gym membership	20	2016-03-26 10:00:00
-person14	gym membership	20	2016-03-26 10:00:00
-person15	gym membership	20	2016-03-26 10:00:00
-person13	gym membership	20	2016-03-26 10:00:00
-person14	gym membership	20	2016-03-26 10:00:00
-person15	gym membership	20	2016-03-26 10:00:00
-person13	gym membership	20	2016-03-26 10:00:00
-person14	gym membership	20	2016-03-26 10:00:00
-person15	gym membership	20	2016-03-26 10:00:00
-person13	gym membership	20	2016-03-26 10:00:00
-person14	gym membership	20	2016-03-26 10:00:00
-person15	gym membership	20	2016-03-26 10:00:00
-person16	gym membership	20	2016-03-26 10:00:00
-person17	gym membership	20	2016-03-26 10:00:00
-person18	gym membership	20	2016-03-26 10:00:00
-person19	gym membership	20	2016-03-26 10:00:00
-person20	gym membership	20	2016-03-26 10:00:00
-person20	gym membership	4	2016-03-22 10:00:00
-person20	gym membership	20	2016-03-23 10:00:00
-person20	gym membership	20	2016-03-24 10:00:00
-sebastian	toaster	11	2014-05-17 10:00:01
-sebastian	toaster	10	2014-05-17 11:00:01
-sebastian	smoothie	3	2014-05-16 05:00:00
-sebastian	car	30000	2014-05-16 05:00:00
-sebastian	castle	3000000	2014-02-10 15:00:00
-sebastian	jam jar	2	2013-09-01 13:00:00
-cristian	shampoo	5	2013-09-01 13:00:00
-sasa	shampoo	5	2013-09-02 13:00:00
-pascal	shampoo	5	2014-02-01 13:00:00
-pascal	shampoo	5	2014-01-01 13:00:00
-pawel	shampoo	5	2013-12-01 13:00:00
-felix	shampoo	5	2013-12-12 13:00:00
-felix	shampoo	5	2014-01-12 13:00:00
-felix	shampoo	5	2014-02-12 13:00:00
-felix	shampoo	5	2013-03-12 13:00:00
-sebastian	toaster	11	2013-05-17 10:00:01
-felix	toaster	10	2014-05-17 11:00:01
-paul	smoothie	3	2014-05-16 05:00:00
-paul	smoothie	3	2014-05-17 05:00:00
-paul	smoothie	3	2014-05-18 05:00:00
-paul	smoothie	3	2014-05-19 05:00:00
-paul	smoothie	3	2014-05-20 05:00:00
-paul	smoothie	3	2014-05-20 06:00:00
-paul	smoothie	3	2014-05-20 07:00:00
-paul	smoothie	3	2014-05-20 08:00:00
-paul	smoothie	3	2014-05-20 09:00:00
-paul	smoothie	3	2014-05-20 10:00:00
-paul	smoothie	3	2014-05-16 05:00:00
-mamiko	smoothie	3	2014-05-16 05:00:00
-mamiko	smoothie	3	2014-05-17 05:00:00
-mamiko	smoothie	3	2014-05-18 05:00:00
-mamiko	smoothie	3	2014-05-19 05:00:00
-mamiko	smoothie	3	2014-05-20 05:00:00
-mamiko	smoothie	3	2014-05-20 06:00:00
-mamiko	smoothie	3	2014-05-20 07:00:00
-mamiko	smoothie	3	2014-05-20 08:00:00
-mamiko	smoothie	3	2014-05-20 09:00:00
-mamiko	smoothie	3	2014-05-20 10:00:00
-cristian	smoothie	3	2013-05-20 07:00:00
-cristian	smoothie	3	2013-05-20 08:00:00
-cristian	smoothie	3	2013-05-20 09:00:00
-cristian	smoothie	3	2013-05-20 10:00:00
-sasa	car	35000	2014-04-20 10:00:00
-pascal	car	40000	2014-04-21 10:00:00
-paul	car	45000	2014-04-22 10:00:00
-felix	car	50000	2014-04-23 10:00:00
-cristian	car	55000	2014-04-24 10:00:00
-pawel	car	100000	2014-04-25 10:00:00
-sebastian	car	5000	2014-04-26 10:00:00
-person1	lottery ticket	2	2014-04-26 10:00:00
-person2	lottery ticket	2	2014-04-26 10:00:00
-person3	lottery ticket	2	2014-04-26 10:00:00
-person4	lottery ticket	2	2014-04-26 10:00:00
-person5	lottery ticket	2	2014-04-26 10:00:00
-person6	lottery ticket	2	2014-04-26 10:00:00
-person7	lottery ticket	2	2014-04-26 10:00:00
-person8	lottery ticket	2	2014-04-26 10:00:00
-person9	lottery ticket	2	2014-04-26 10:00:00
-person10	lottery ticket	2	2014-04-26 10:00:00
-person11	lottery ticket	2	2014-04-26 10:00:00
-person12	lottery ticket	2	2014-04-26 10:00:00
-person13	lottery ticket	2	2014-04-26 10:00:00
-person14	lottery ticket	2	2014-04-26 10:00:00
-person15	lottery ticket	2	2014-04-26 10:00:00
-person13	lottery ticket	2	2014-04-26 10:00:00
-person14	lottery ticket	2	2014-04-26 10:00:00
-person15	lottery ticket	2	2014-04-26 10:00:00
-person13	lottery ticket	2	2014-04-26 10:00:00
-person14	lottery ticket	2	2014-04-26 10:00:00
-person15	lottery ticket	2	2014-04-26 10:00:00
-person13	lottery ticket	2	2014-04-26 10:00:00
-person14	lottery ticket	2	2014-04-26 10:00:00
-person15	lottery ticket	2	2014-04-26 10:00:00
-person16	lottery ticket	2	2014-04-26 10:00:00
-person17	lottery ticket	2	2014-04-26 10:00:00
-person18	lottery ticket	2	2014-04-26 10:00:00
-person19	lottery ticket	2	2014-04-26 10:00:00
-person20	lottery ticket	2	2014-04-26 10:00:00
-person20	lottery ticket	4	2014-04-22 10:00:00
-person20	lottery ticket	2	2014-04-23 10:00:00
-person20	lottery ticket	2	2014-04-24 10:00:00
-person1	gym membership	20	2014-04-26 10:00:00
-person2	gym membership	20	2014-04-26 10:00:00
-person3	gym membership	20	2014-04-26 10:00:00
-person4	gym membership	20	2014-04-26 10:00:00
-person5	gym membership	20	2014-04-26 10:00:00
-person6	gym membership	20	2014-04-26 10:00:00
-person7	gym membership	20	2014-04-26 10:00:00
-person8	gym membership	20	2014-04-26 10:00:00
-person9	gym membership	20	2014-04-26 10:00:00
-person10	gym membership	20	2014-03-26 10:00:00
-person11	gym membership	20	2014-03-26 10:00:00
-person12	gym membership	20	2014-03-26 10:00:00
-person13	gym membership	20	2014-03-26 10:00:00
-person14	gym membership	20	2014-03-26 10:00:00
-person15	gym membership	20	2014-03-26 10:00:00
-person13	gym membership	20	2014-03-26 10:00:00
-person14	gym membership	20	2014-03-26 10:00:00
-person15	gym membership	20	2014-03-26 10:00:00
-person13	gym membership	20	2014-03-26 10:00:00
-person14	gym membership	20	2014-03-26 10:00:00
-person15	gym membership	20	2014-03-26 10:00:00
-person13	gym membership	20	2014-03-26 10:00:00
-person14	gym membership	20	2014-03-26 10:00:00
-person15	gym membership	20	2014-03-26 10:00:00
-person16	gym membership	20	2014-03-26 10:00:00
-person17	gym membership	20	2014-03-26 10:00:00
-person18	gym membership	20	2014-03-26 10:00:00
-person19	gym membership	20	2014-03-26 10:00:00
-person20	gym membership	20	2014-03-26 10:00:00
-person20	gym membership	4	2014-03-22 10:00:00
-person20	gym membership	20	2014-03-23 10:00:00
-person20	gym membership	20	2014-03-24 10:00:00
+COPY purchases (uid, user_name, itemname, price, date) FROM stdin;
+1	sebastian	toaster	10	2016-05-18 00:00:00
+1	sebastian	toaster	11	2016-05-17 10:00:01
+1	sebastian	toaster	10	2016-05-17 11:00:01
+1	sebastian	smoothie	3	2016-05-16 05:00:00
+1	sebastian	car	30000	2016-05-16 05:00:00
+1	sebastian	castle	3000000	2016-02-10 15:00:00
+1	sebastian	jam jar	2	2015-09-01 13:00:00
+2	cristian	shampoo	5	2015-09-01 13:00:00
+3	sasa	shampoo	5	2015-09-02 13:00:00
+4	pascal	shampoo	5	2016-02-01 13:00:00
+4	pascal	shampoo	5	2016-01-01 13:00:00
+5	pawel	shampoo	5	2015-12-01 13:00:00
+6	felix	shampoo	5	2015-12-12 13:00:00
+6	felix	shampoo	5	2016-01-12 13:00:00
+6	felix	shampoo	5	2016-02-12 13:00:00
+6	felix	shampoo	5	2015-03-12 13:00:00
+1	sebastian	toaster	11	2015-05-17 10:00:01
+6	felix	toaster	10	2016-05-17 11:00:01
+7	paul	smoothie	3	2016-05-16 05:00:00
+7	paul	smoothie	3	2016-05-17 05:00:00
+7	paul	smoothie	3	2016-05-18 05:00:00
+7	paul	smoothie	3	2016-05-19 05:00:00
+7	paul	smoothie	3	2016-05-20 05:00:00
+7	paul	smoothie	3	2016-05-20 06:00:00
+7	paul	smoothie	3	2016-05-20 07:00:00
+7	paul	smoothie	3	2016-05-20 08:00:00
+7	paul	smoothie	3	2016-05-20 09:00:00
+7	paul	smoothie	3	2016-05-20 10:00:00
+7	paul	smoothie	3	2016-05-16 05:00:00
+8	mamiko	smoothie	3	2016-05-16 05:00:00
+8	mamiko	smoothie	3	2016-05-17 05:00:00
+8	mamiko	smoothie	3	2016-05-18 05:00:00
+8	mamiko	smoothie	3	2016-05-19 05:00:00
+8	mamiko	smoothie	3	2016-05-20 05:00:00
+8	mamiko	smoothie	3	2016-05-20 06:00:00
+8	mamiko	smoothie	3	2016-05-20 07:00:00
+8	mamiko	smoothie	3	2016-05-20 08:00:00
+8	mamiko	smoothie	3	2016-05-20 09:00:00
+8	mamiko	smoothie	3	2016-05-20 10:00:00
+2	cristian	smoothie	3	2015-05-20 07:00:00
+2	cristian	smoothie	3	2015-05-20 08:00:00
+2	cristian	smoothie	3	2015-05-20 09:00:00
+2	cristian	smoothie	3	2015-05-20 10:00:00
+3	sasa	car	35000	2016-04-20 10:00:00
+4	pascal	car	40000	2016-04-21 10:00:00
+7	paul	car	45000	2016-04-22 10:00:00
+6	felix	car	50000	2016-04-23 10:00:00
+2	cristian	car	55000	2016-04-24 10:00:00
+5	pawel	car	100000	2016-04-25 10:00:00
+1	sebastian	car	5000	2016-04-26 10:00:00
+9	person1	lottery ticket	2	2016-04-26 10:00:00
+10	person2	lottery ticket	2	2016-04-26 10:00:00
+11	person3	lottery ticket	2	2016-04-26 10:00:00
+12	person4	lottery ticket	2	2016-04-26 10:00:00
+13	person5	lottery ticket	2	2016-04-26 10:00:00
+14	person6	lottery ticket	2	2016-04-26 10:00:00
+15	person7	lottery ticket	2	2016-04-26 10:00:00
+16	person8	lottery ticket	2	2016-04-26 10:00:00
+17	person9	lottery ticket	2	2016-04-26 10:00:00
+18	person10	lottery ticket	2	2016-04-26 10:00:00
+19	person11	lottery ticket	2	2016-04-26 10:00:00
+20	person12	lottery ticket	2	2016-04-26 10:00:00
+21	person13	lottery ticket	2	2016-04-26 10:00:00
+22	person14	lottery ticket	2	2016-04-26 10:00:00
+23	person15	lottery ticket	2	2016-04-26 10:00:00
+21	person13	lottery ticket	2	2016-04-26 10:00:00
+22	person14	lottery ticket	2	2016-04-26 10:00:00
+23	person15	lottery ticket	2	2016-04-26 10:00:00
+21	person13	lottery ticket	2	2016-04-26 10:00:00
+22	person14	lottery ticket	2	2016-04-26 10:00:00
+23	person15	lottery ticket	2	2016-04-26 10:00:00
+21	person13	lottery ticket	2	2016-04-26 10:00:00
+22	person14	lottery ticket	2	2016-04-26 10:00:00
+23	person15	lottery ticket	2	2016-04-26 10:00:00
+24	person16	lottery ticket	2	2016-04-26 10:00:00
+25	person17	lottery ticket	2	2016-04-26 10:00:00
+26	person18	lottery ticket	2	2016-04-26 10:00:00
+27	person19	lottery ticket	2	2016-04-26 10:00:00
+28	person20	lottery ticket	2	2016-04-26 10:00:00
+28	person20	lottery ticket	4	2016-04-22 10:00:00
+28	person20	lottery ticket	2	2016-04-23 10:00:00
+28	person20	lottery ticket	2	2016-04-24 10:00:00
+10	person1	gym membership	20	2016-04-26 10:00:00
+11	person2	gym membership	20	2016-04-26 10:00:00
+12	person3	gym membership	20	2016-04-26 10:00:00
+13	person4	gym membership	20	2016-04-26 10:00:00
+14	person5	gym membership	20	2016-04-26 10:00:00
+15	person6	gym membership	20	2016-04-26 10:00:00
+16	person7	gym membership	20	2016-04-26 10:00:00
+17	person8	gym membership	20	2016-04-26 10:00:00
+18	person9	gym membership	20	2016-04-26 10:00:00
+19	person10	gym membership	20	2016-03-26 10:00:00
+20	person11	gym membership	20	2016-03-26 10:00:00
+21	person12	gym membership	20	2016-03-26 10:00:00
+22	person13	gym membership	20	2016-03-26 10:00:00
+23	person14	gym membership	20	2016-03-26 10:00:00
+24	person15	gym membership	20	2016-03-26 10:00:00
+22	person13	gym membership	20	2016-03-26 10:00:00
+23	person14	gym membership	20	2016-03-26 10:00:00
+24	person15	gym membership	20	2016-03-26 10:00:00
+22	person13	gym membership	20	2016-03-26 10:00:00
+23	person14	gym membership	20	2016-03-26 10:00:00
+24	person15	gym membership	20	2016-03-26 10:00:00
+22	person13	gym membership	20	2016-03-26 10:00:00
+23	person14	gym membership	20	2016-03-26 10:00:00
+23	person15	gym membership	20	2016-03-26 10:00:00
+24	person16	gym membership	20	2016-03-26 10:00:00
+25	person17	gym membership	20	2016-03-26 10:00:00
+26	person18	gym membership	20	2016-03-26 10:00:00
+27	person19	gym membership	20	2016-03-26 10:00:00
+28	person20	gym membership	20	2016-03-26 10:00:00
+28	person20	gym membership	4	2016-03-22 10:00:00
+28	person20	gym membership	20	2016-03-23 10:00:00
+28	person20	gym membership	20	2016-03-24 10:00:00
+1	sebastian	toaster	11	2014-05-17 10:00:01
+1	sebastian	toaster	10	2014-05-17 11:00:01
+1	sebastian	smoothie	3	2014-05-16 05:00:00
+1	sebastian	car	30000	2014-05-16 05:00:00
+1	sebastian	castle	3000000	2014-02-10 15:00:00
+1	sebastian	jam jar	2	2013-09-01 13:00:00
+2	cristian	shampoo	5	2013-09-01 13:00:00
+3	sasa	shampoo	5	2013-09-02 13:00:00
+4	pascal	shampoo	5	2014-02-01 13:00:00
+4	pascal	shampoo	5	2014-01-01 13:00:00
+5	pawel	shampoo	5	2013-12-01 13:00:00
+6	felix	shampoo	5	2013-12-12 13:00:00
+6	felix	shampoo	5	2014-01-12 13:00:00
+6	felix	shampoo	5	2014-02-12 13:00:00
+6	felix	shampoo	5	2013-03-12 13:00:00
+1	sebastian	toaster	11	2013-05-17 10:00:01
+6	felix	toaster	10	2014-05-17 11:00:01
+7	paul	smoothie	3	2014-05-16 05:00:00
+7	paul	smoothie	3	2014-05-17 05:00:00
+7	paul	smoothie	3	2014-05-18 05:00:00
+7	paul	smoothie	3	2014-05-19 05:00:00
+7	paul	smoothie	3	2014-05-20 05:00:00
+7	paul	smoothie	3	2014-05-20 06:00:00
+7	paul	smoothie	3	2014-05-20 07:00:00
+7	paul	smoothie	3	2014-05-20 08:00:00
+7	paul	smoothie	3	2014-05-20 09:00:00
+7	paul	smoothie	3	2014-05-20 10:00:00
+7	paul	smoothie	3	2014-05-16 05:00:00
+8	mamiko	smoothie	3	2014-05-16 05:00:00
+8	mamiko	smoothie	3	2014-05-17 05:00:00
+8	mamiko	smoothie	3	2014-05-18 05:00:00
+8	mamiko	smoothie	3	2014-05-19 05:00:00
+8	mamiko	smoothie	3	2014-05-20 05:00:00
+8	mamiko	smoothie	3	2014-05-20 06:00:00
+8	mamiko	smoothie	3	2014-05-20 07:00:00
+8	mamiko	smoothie	3	2014-05-20 08:00:00
+8	mamiko	smoothie	3	2014-05-20 09:00:00
+8	mamiko	smoothie	3	2014-05-20 10:00:00
+2	cristian	smoothie	3	2013-05-20 07:00:00
+2	cristian	smoothie	3	2013-05-20 08:00:00
+2	cristian	smoothie	3	2013-05-20 09:00:00
+2	cristian	smoothie	3	2013-05-20 10:00:00
+3	sasa	car	35000	2014-04-20 10:00:00
+4	pascal	car	40000	2014-04-21 10:00:00
+7	paul	car	45000	2014-04-22 10:00:00
+6	felix	car	50000	2014-04-23 10:00:00
+2	cristian	car	55000	2014-04-24 10:00:00
+5	pawel	car	100000	2014-04-25 10:00:00
+1	sebastian	car	5000	2014-04-26 10:00:00
+9	person1	lottery ticket	2	2014-04-26 10:00:00
+10	person2	lottery ticket	2	2014-04-26 10:00:00
+11	person3	lottery ticket	2	2014-04-26 10:00:00
+12	person4	lottery ticket	2	2014-04-26 10:00:00
+13	person5	lottery ticket	2	2014-04-26 10:00:00
+14	person6	lottery ticket	2	2014-04-26 10:00:00
+15	person7	lottery ticket	2	2014-04-26 10:00:00
+16	person8	lottery ticket	2	2014-04-26 10:00:00
+17	person9	lottery ticket	2	2014-04-26 10:00:00
+18	person10	lottery ticket	2	2014-04-26 10:00:00
+19	person11	lottery ticket	2	2014-04-26 10:00:00
+20	person12	lottery ticket	2	2014-04-26 10:00:00
+21	person13	lottery ticket	2	2014-04-26 10:00:00
+23	person14	lottery ticket	2	2014-04-26 10:00:00
+23	person15	lottery ticket	2	2014-04-26 10:00:00
+21	person13	lottery ticket	2	2014-04-26 10:00:00
+23	person14	lottery ticket	2	2014-04-26 10:00:00
+23	person15	lottery ticket	2	2014-04-26 10:00:00
+21	person13	lottery ticket	2	2014-04-26 10:00:00
+23	person14	lottery ticket	2	2014-04-26 10:00:00
+23	person15	lottery ticket	2	2014-04-26 10:00:00
+21	person13	lottery ticket	2	2014-04-26 10:00:00
+23	person14	lottery ticket	2	2014-04-26 10:00:00
+23	person15	lottery ticket	2	2014-04-26 10:00:00
+24	person16	lottery ticket	2	2014-04-26 10:00:00
+25	person17	lottery ticket	2	2014-04-26 10:00:00
+26	person18	lottery ticket	2	2014-04-26 10:00:00
+27	person19	lottery ticket	2	2014-04-26 10:00:00
+28	person20	lottery ticket	2	2014-04-26 10:00:00
+28	person20	lottery ticket	4	2014-04-22 10:00:00
+28	person20	lottery ticket	2	2014-04-23 10:00:00
+28	person20	lottery ticket	2	2014-04-24 10:00:00
+9	person1	gym membership	20	2014-04-26 10:00:00
+10	person2	gym membership	20	2014-04-26 10:00:00
+11	person3	gym membership	20	2014-04-26 10:00:00
+12	person4	gym membership	20	2014-04-26 10:00:00
+13	person5	gym membership	20	2014-04-26 10:00:00
+14	person6	gym membership	20	2014-04-26 10:00:00
+15	person7	gym membership	20	2014-04-26 10:00:00
+16	person8	gym membership	20	2014-04-26 10:00:00
+17	person9	gym membership	20	2014-04-26 10:00:00
+18	person10	gym membership	20	2014-03-26 10:00:00
+19	person11	gym membership	20	2014-03-26 10:00:00
+20	person12	gym membership	20	2014-03-26 10:00:00
+21	person13	gym membership	20	2014-03-26 10:00:00
+23	person14	gym membership	20	2014-03-26 10:00:00
+23	person15	gym membership	20	2014-03-26 10:00:00
+21	person13	gym membership	20	2014-03-26 10:00:00
+23	person14	gym membership	20	2014-03-26 10:00:00
+23	person15	gym membership	20	2014-03-26 10:00:00
+21	person13	gym membership	20	2014-03-26 10:00:00
+23	person14	gym membership	20	2014-03-26 10:00:00
+23	person15	gym membership	20	2014-03-26 10:00:00
+21	person13	gym membership	20	2014-03-26 10:00:00
+23	person14	gym membership	20	2014-03-26 10:00:00
+23	person15	gym membership	20	2014-03-26 10:00:00
+24	person16	gym membership	20	2014-03-26 10:00:00
+25	person17	gym membership	20	2014-03-26 10:00:00
+26	person18	gym membership	20	2014-03-26 10:00:00
+27	person19	gym membership	20	2014-03-26 10:00:00
+28	person20	gym membership	20	2014-03-26 10:00:00
+28	person20	gym membership	4	2014-03-22 10:00:00
+28	person20	gym membership	20	2014-03-23 10:00:00
+28	person20	gym membership	20	2014-03-24 10:00:00
 \.
 
 REVOKE ALL ON TABLE purchases FROM PUBLIC;
@@ -395,7 +396,7 @@ GRANT ALL ON TABLE purchases TO cloak;
 --
 
 CREATE TABLE demographics (
-    uid character varying(20),
+    uid integer,
     name character varying(40),
     age integer
 );
@@ -409,37 +410,37 @@ CREATE INDEX ON demographics (uid);
 --
 
 COPY demographics (uid, name, age) FROM stdin;
-sebastian	Sebastian	31
-cristian	Cristian	10
-sasa	Sasa	10
-pascal	Pascal	10
-pawel	Pawel	10
-felix	Felix	29
-paul	Paul	10
-mamiko	Mamiko	10
-person1	Fred	20
-person2	Bob	25
-person3	Lisa	15
-person4	Laura	30
-person5	Bob	45
-person6	Bob	50
-person7	George	60
-person8	Lisa	25
-person9	Steven	50
-person10	Isabel	27
-person11	Isabel	28
-person12	Isabel	29
-person13	Isabel	30
-person14	Isabel	31
-person15	Isabel	32
-person13	Isabel	33
-person14	Lisa	34
-person15	Weronika	24
-person16	Muni	28
-person17	Melanie	27
-person18	Elena	32
-person19	Isabel	26
-person20	Isabel	25
+1	Sebastian	31
+2	Cristian	10
+3	Sasa	10
+4	Pascal	10
+5	Pawel	10
+6	Felix	29
+7	Paul	10
+8	Mamiko	10
+9	Fred	20
+10	Bob	25
+11	Lisa	15
+12	Laura	30
+13	Bob	45
+14	Bob	50
+15	George	60
+16	Lisa	25
+17	Steven	50
+18	Isabel	27
+19	Isabel	28
+20	Isabel	29
+21	Isabel	30
+22	Isabel	31
+23	Isabel	32
+24	Isabel	33
+25	Lisa	34
+26	Weronika	24
+27	Muni	28
+28	Melanie	27
+29	Elena	32
+30	Isabel	26
+31	Isabel	25
 \.
 
 REVOKE ALL ON TABLE demographics FROM PUBLIC;
