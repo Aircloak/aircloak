@@ -20,7 +20,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   @spec broadcast_result(Query.t) :: :ok
   def broadcast_result(query) do
-    Air.Endpoint.broadcast_from!(self(), "user:#{query.user_id}", "result", Query.for_display(query))
+    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "result", Query.for_display(query))
     :ok
   end
 
@@ -30,11 +30,10 @@ defmodule Air.Socket.Frontend.UserChannel do
   # -------------------------------------------------------------------
 
   @doc false
-  def join("user:" <> user_id, _, socket) do
-    if socket.assigns.user.id == String.to_integer(user_id) do
-      {:ok, socket}
-    else
-      {:error, %{success: false, description: "Channel not found"}}
+  def join("session:" <> session_id, _, socket) do
+    case Ecto.UUID.cast(session_id) do
+      {:ok, _} -> {:ok, socket}
+      _ -> {:error, %{success: false, description: "Channel not found"}}
     end
   end
 end

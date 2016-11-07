@@ -96,7 +96,7 @@ class QueriesView extends React.Component {
   }
 
   resultReceived(result) {
-    if (result.data_source_id === this.props.dataSourceId && result.session_id === this.props.sessionId) {
+    if (result.data_source_id === this.props.dataSourceId) {
       this.addResult(result, true /* replace */);
     } else {
       // Ignore result
@@ -278,6 +278,6 @@ class QueriesView extends React.Component {
 }
 
 export default function renderQueriesView(data: Props, elem: Node) {
-  const socket = new ResultSocket(data.userId, data.guardianToken);
+  const socket = new ResultSocket(data.sessionId, data.guardianToken);
   ReactDOM.render(<QueriesView resultSocket={socket} {...data} />, elem);
 }
