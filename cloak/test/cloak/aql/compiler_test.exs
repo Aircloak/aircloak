@@ -13,11 +13,21 @@ defmodule Cloak.Aql.Compiler.Test do
     assert %{group_by: []} = compile!("select * from table", data_source())
   end
 
+  test "rejects mistyped where conditions" do
+    {:error, error} = compile("select * from table where numeric = column", data_source())
+    assert error == "Column `numeric` from table `table` of type `integer` and column `column` from table `table` "
+      <> "of type `datetime` cannot be compared."
+  end
+
   test "casts datetime where conditions" do
     result = compile!("select * from table where column > '2015-01-01' and column < '2016-01-01'", data_source())
 
     assert [{:comparison, column("table", "column"), :>=, value}, _] = result.where
     assert value == Column.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+  end
+
+  test "allows comparing datetime columns to other datetime columns" do
+    assert {:ok, _} = compile("select * from table where column = column", data_source())
   end
 
   test "casts time where conditions" do

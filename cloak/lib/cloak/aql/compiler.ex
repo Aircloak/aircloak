@@ -98,6 +98,7 @@ defmodule Cloak.Aql.Compiler do
       |> compile_order_by()
       |> verify_joins()
       |> cast_where_clauses()
+      |> verify_where_clauses()
       |> align_ranges()
       |> partition_selected_columns()
       |> verify_having()
@@ -693,15 +694,17 @@ defmodule Cloak.Aql.Compiler do
 
   @castable_conditions [:datetime, :time, :date]
 
-  defp do_cast_where_clause({:not, subclause}, type) do
+  defp do_cast_where_clause({:not, subclause}, type), do:
     {:not, do_cast_where_clause(subclause, type)}
-  end
   defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, type) when type in @castable_conditions do
-    {:comparison, identifier, comparator, parse_time(rhs, type)}
+    if Column.constant?(rhs) do
+      {:comparison, identifier, comparator, parse_time(rhs, type)}
+    else
+      {:comparison, identifier, comparator, rhs}
+    end
   end
-  defp do_cast_where_clause({:in, column, values}, type) when type in @castable_conditions do
+  defp do_cast_where_clause({:in, column, values}, type) when type in @castable_conditions, do:
     {:in, column, Enum.map(values, &parse_time(&1, type))}
-  end
   defp do_cast_where_clause(clause, _), do: clause
 
   defp parse_time(column = %Column{constant?: true, value: string}, type) do
@@ -983,6 +986,7 @@ defmodule Cloak.Aql.Compiler do
       (_) -> :ok
     end
     Enum.each(join.conditions, &map_where_clause(&1, mapper_fun))
+    Enum.each(join.conditions, &verify_where_clause/1)
     selected_tables
   end
   defp do_join_conditions_scope_check({:subquery, subquery}, selected_tables),
@@ -1030,4 +1034,19 @@ defmodule Cloak.Aql.Compiler do
     query
   end
   defp verify_having(query), do: query
+
+  defp verify_where_clauses(%Query{where: clauses = [_|_]} = query) do
+    Enum.each(clauses, &verify_where_clause/1)
+    query
+  end
+  defp verify_where_clauses(query), do: query
+
+  defp verify_where_clause({:comparison, column_a, _, column_b}) do
+    if not Column.constant?(column_a) and not Column.constant?(column_b) and column_a.type != column_b.type do
+      raise CompilationError, message: "#{column_a |> Column.display_name() |> String.capitalize} of type "
+        <> "`#{column_a.type}` and #{Column.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
+    end
+  end
+  defp verify_where_clause({:not, clause}), do: verify_where_clause(clause)
+  defp verify_where_clause(_), do: :ok
 end
