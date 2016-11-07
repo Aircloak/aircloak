@@ -40,7 +40,7 @@ defmodule Air.PsqlTestDriver do
 
   defmacro handle_server_event(message_pattern, conn_pattern, opts) do
     quote do
-      assert_receive({:"$gen_call", from, {unquote(conn_pattern), unquote(message_pattern)}}, :timer.seconds(1))
+      assert_receive({:"$gen_call", from, {unquote(conn_pattern), unquote(message_pattern)}}, :timer.seconds(2))
       response = unquote(Keyword.fetch!(opts, :do))
       GenServer.reply(from, response)
     end
