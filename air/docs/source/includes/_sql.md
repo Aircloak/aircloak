@@ -143,6 +143,27 @@ After low-count values are filtered, some amount of noise is introduced. Conside
 
 The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymized. The returned values will slightly differ from the real values.
 
+## Optional features
+
+Some features of the platform can be enabled/disabled by setting flags in the
+data source configuration located at `[cloak_config_directory]/config.json`.
+These might affect the ease of use, but also the level of anonymization provided.
+Currently the only such feature is `math`, which enables/disables mathematical
+operators and some mathematical functions in queries.
+
+```js
+// All features are disabled by default. To enable:
+
+{
+  ...
+  "features": {
+    "math": true
+  },
+  ...
+}
+
+```
+
 ## Date functions
 
 The functions `year`, `month`, `day`, `hour`, `minute`, `second`, and `weekday` are supported. They extract
@@ -155,6 +176,8 @@ SELECT EXTRACT(year FROM date_column) FROM table;
 ```
 
 ## Mathematical operators
+
+[Requires `math`](#optional-features)
 
 The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtraction, division, and
 multiplication respectively. The operator `^` denotes exponentiation. The operator `%` denotes the division
@@ -175,6 +198,8 @@ remainder.
 ## Mathematical functions
 
 ### abs
+
+[Requires `math`](#optional-features)
 
 Computes the absolute value of the given number.
 
@@ -206,6 +231,8 @@ BUCKET(180 BY 50 ALIGN MIDDLE)
 
 ### ceil / ceiling
 
+[Requires `math`](#optional-features)
+
 Computes the smallest integer that is greater than or equal to its argument.
 
 ```sql
@@ -214,6 +241,8 @@ CEIL(3.22)
 ```
 
 ### div
+
+[Requires `math`](#optional-features)
 
 Performs integer division on its arguments.
 
@@ -227,6 +256,8 @@ DIV(10, 3)
 
 ### floor
 
+[Requires `math`](#optional-features)
+
 Computes the largest integer that is less than or equal to its argument.
 
 ```sql
@@ -236,6 +267,8 @@ FLOOR(3.22)
 
 ### mod
 
+[Requires `math`](#optional-features)
+
 `MOD(a, b)` computes the remainder from `DIV(a, b)`.
 
 ```sql
@@ -244,6 +277,8 @@ MOD(10, 3)
 ```
 
 ### pow
+
+[Requires `math`](#optional-features)
 
 `POW(a, b)` computes `a` to the `b`-th power.
 
@@ -256,6 +291,8 @@ POW(2, 3.5)
 ```
 
 ### round
+
+[Requires `math`](#optional-features)
 
 Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
 
@@ -280,6 +317,8 @@ SQRT(2)
 ```
 
 ### trunc
+
+[Requires `math`](#optional-features)
 
 Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
 

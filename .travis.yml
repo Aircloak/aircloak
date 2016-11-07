@@ -28,22 +28,22 @@ cache:
   - central/node_modules
   - $HOME/.asdf
   - $HOME/.yarn-cache
+services:
+  - mongodb
 addons:
   postgresql: "9.4"
   mariadb: "10.0"
   apt:
     sources:
     - ubuntu-toolchain-r-test
+    - mongodb-3.0-precise
     packages:
-    - protobuf-compiler
-    - protobuf-c-compiler
-    - liblua5.1-0-dev
-    - libprotobuf-c0-dev
     - jq
     - gcc-4.8
     - g++-4.8
     - unixodbc
     - odbc-postgresql
+    - mongodb-org-server
   hosts:
     - travis.aircloak.local
 before_install:

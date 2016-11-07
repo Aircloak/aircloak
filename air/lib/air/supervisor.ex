@@ -6,14 +6,12 @@ defmodule Air.Supervisor do
 
     children = [
       Air.ResultProcessor.supervisor_spec(),
-      Air.CentralQueryReporter.supervisor_spec(),
       supervisor(Air.Repo, []),
       worker(Air.Repo.Migrator, [], restart: :transient),
       worker(Air.QueryEvents, []),
       supervisor(Task.Supervisor, [[name: Air.ApiTokenTimestampUpdater]], [id: :api_token_updater]),
       worker(Air.Monitoring.FailedQueries, []),
       Air.ResultProcessor.observer_spec(),
-      Air.CentralQueryReporter.observer_spec(),
       worker(Air.Endpoint, []),
       worker(Air.BOM, []),
       Air.PsqlServer.child_spec()
@@ -35,7 +33,9 @@ defmodule Air.Supervisor do
       import Supervisor.Spec, warn: false
 
       [
-        worker(Air.CentralSocket, [])
+        worker(Air.CentralSocket, []),
+        Air.CentralQueryReporter.supervisor_spec(),
+        Air.CentralQueryReporter.observer_spec(),
       ]
     end
   end

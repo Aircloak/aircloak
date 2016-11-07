@@ -11,6 +11,7 @@ defmodule Air.CentralSocket do
   require Logger
   require Aircloak.DeployConfig
   alias Phoenix.Channels.GenSocketClient
+  alias Air.{CentralCall, Repo}
 
   @behaviour GenSocketClient
 
@@ -37,15 +38,9 @@ defmodule Air.CentralSocket do
   end
 
   @doc "Records a completed query in the central - useful for billing and stats"
-  @spec record_query(Map.t) :: :ok | :error
+  @spec record_query(Map.t) :: :ok
   def record_query(payload) do
-    case call(__MODULE__, "query_execution", payload, :timer.seconds(5)) do
-      {:ok, _} -> :ok
-      error ->
-        Logger.error("Communication with Aircloak Central, to record a query execution failed: " <>
-          inspect(error))
-        :error
-    end
+    cast_with_retry(__MODULE__, "query_execution", payload)
   end
 
 
@@ -61,7 +56,8 @@ defmodule Air.CentralSocket do
       reconnect_interval: initial_interval,
       rejoin_interval: initial_interval
     }
-    Logger.info("Trying to connect to Central on #{central_socket_url}")
+    :timer.send_interval(:timer.minutes(5), :check_for_pending_rpcs)
+    Logger.debug("Trying to connect to Central on #{central_socket_url}")
     {:connect, central_socket_url, state}
   end
 
@@ -84,6 +80,7 @@ defmodule Air.CentralSocket do
   def handle_joined(topic, _payload, _transport, state) do
     Logger.info("joined the topic #{topic}")
     initial_interval = config(:min_reconnect_interval)
+    reattempt_pending_rpcs()
     {:ok, %{state | rejoin_interval: initial_interval}}
   end
 
@@ -158,6 +155,10 @@ defmodule Air.CentralSocket do
     Logger.warn("#{request_id} sync call timeout")
     {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
   end
+  def handle_info(:check_for_pending_rpcs, _transport, state) do
+    reattempt_pending_rpcs()
+    {:ok, state}
+  end
   def handle_info(message, _transport, state) do
     Logger.warn("unhandled message #{inspect message}")
     {:ok, state}
@@ -179,7 +180,7 @@ defmodule Air.CentralSocket do
   # -------------------------------------------------------------------
 
   @spec call(GenServer.server, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
-  defp call(socket, event, payload, timeout) do
+  defp call(socket, event, payload, timeout \\ :timer.seconds(5)) do
     mref = Process.monitor(socket)
     send(socket, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
     receive do
@@ -190,6 +191,47 @@ defmodule Air.CentralSocket do
         exit(reason)
     after timeout ->
       exit(:timeout)
+    end
+  end
+
+  defp cast_with_retry(socket, event, payload) do
+    case persist_rpc(event, payload) do
+      {:ok, rpc} -> perform_cast_with_retry(socket, rpc)
+      :error -> :error
+    end
+  end
+
+  defp persist_rpc(event, payload) do
+    changeset = CentralCall.changeset(%CentralCall{}, %{event: event, payload: payload})
+    case Repo.insert(changeset) do
+      {:error, changeset} ->
+        Logger.error("Unable to persist RPC call to central to guarantee delivery. Aborting RPC. "
+          <> "Failure: #{inspect changeset}")
+        :error
+      {:ok, _} = result -> result
+    end
+  end
+
+  defp perform_cast_with_retry(socket, rpc) do
+    Task.start(fn() ->
+      payload = %{
+        id: rpc.id,
+        event: rpc.event,
+        event_payload: rpc.payload,
+      }
+      case call(socket, "call_with_retry", payload) do
+        {:error, reason} ->
+          Logger.error("RPC '#{rpc.event}' to central failed: #{inspect reason}. Will retry later.")
+        {:ok, _} -> Repo.delete!(rpc)
+      end
+    end)
+    :ok
+  end
+
+  defp reattempt_pending_rpcs() do
+    Logger.info("Checking for buffered RPC calls to central")
+    for rpc <- Repo.all(CentralCall) do
+      perform_cast_with_retry(__MODULE__, rpc)
     end
   end
 

@@ -1,0 +1,32 @@
+<h1>Stats for <%= @customer.name %></h1>
+
+<hr />
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-2 col-md-4 col-sm-6 col-xs-12">
+      <p class="lead">Query count</p>
+      <h1><%= @stats.query_count %></h1>
+    </div>
+
+    <div class="col-lg-2 col-md-4 col-sm-6 col-xs-12">
+      <p class="lead">Anonymized users</p>
+      <h1><%= @stats.users_count %></h1>
+    </div>
+
+    <div class="col-lg-2 col-md-4 col-sm-6 col-xs-12">
+      <p class="lead">Average num rows returned</p>
+      <h1><%= to_int(@stats.average_row_count) %></h1>
+    </div>
+
+    <div class="col-lg-2 col-md-4 col-sm-6 col-xs-12">
+      <p class="lead">Average execution time /s</p>
+      <h1><%= to_int(@stats.average_execution_time) %></h1>
+    </div>
+
+    <div class="col-lg-2 col-md-4 col-sm-6 col-xs-12">
+      <p class="lead">Max execution time /s</p>
+      <h1><%= @stats.max_execution_time %></h1>
+    </div>
+  </div>
+</div>

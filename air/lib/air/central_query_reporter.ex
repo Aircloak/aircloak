@@ -9,6 +9,7 @@ defmodule Air.CentralQueryReporter do
 
   import Supervisor.Spec, warn: false
   require Logger
+  alias Air.{Repo, Query}
 
 
   # -------------------------------------------------------------------
@@ -47,8 +48,17 @@ defmodule Air.CentralQueryReporter do
   # -------------------------------------------------------------------
 
   defp process_result(result) do
-    row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
+    query = Repo.get!(Query, result["query_id"]) |> Repo.preload([:user, :data_source])
+    user = query.user || %{
+      name: "Uknown user",
+      email: "Uknown email",
+    }
+    data_source = query.data_source || %{
+      name: "Unknown data source",
+      global_id: "Unknown data source",
+    }
 
+    row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
     payload = %{
       metrics: %{
         users_count: result["users_count"],
@@ -56,15 +66,18 @@ defmodule Air.CentralQueryReporter do
         execution_time: result["execution_time"],
       },
       features: result["features"],
+      aux: %{
+        user: %{
+          name: user.name,
+          email: user.email,
+        },
+        data_source: %{
+          name: data_source.name,
+          id: data_source.global_id,
+        }
+      },
     }
-
-    case Air.CentralSocket.record_query(payload) do
-      :ok ->
-        Logger.info("sent report about query #{result["query_id"]} to Aircloak Central")
-      :error ->
-        Logger.error("failed to report query completion for query #{result["query_id"]} "
-          <> "to Aircloak Central")
-    end
+    Air.CentralSocket.record_query(payload)
   end
 end
 

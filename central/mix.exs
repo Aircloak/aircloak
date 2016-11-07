@@ -65,7 +65,7 @@ defmodule Central.Mixfile do
       {:lhttpc, github: "esl/lhttpc", override: true},
       {:hackney, "~> 1.5.0"},
       {:exrm, "~> 1.0.8", warn_missing: false},
-      {:timex, "~> 2.2"},
+      {:timex, "~> 3.1"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", only: :test},
