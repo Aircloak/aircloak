@@ -881,10 +881,15 @@ defmodule Cloak.Aql.Compiler do
   end
   defp censor_selected_uids(query), do: query
 
-  defp is_uid_column?(column), do:
-    column
-    |> extract_columns()
-    |> Enum.any?(&(&1 != nil and &1.user_id?))
+  defp is_uid_column?(column) do
+    if Function.aggregate_function?(column) do
+      false
+    else
+      column
+      |> extract_columns()
+      |> Enum.any?(&(&1 != nil and &1.user_id?))
+    end
+  end
 
   defp extract_columns(%Column{} = column), do: [column]
   defp extract_columns({:function, "count", [:*]}), do: [nil]
