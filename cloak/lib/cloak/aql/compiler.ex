@@ -986,6 +986,7 @@ defmodule Cloak.Aql.Compiler do
       (_) -> :ok
     end
     Enum.each(join.conditions, &map_where_clause(&1, mapper_fun))
+    Enum.each(join.conditions, &verify_where_clause/1)
     selected_tables
   end
   defp do_join_conditions_scope_check({:subquery, subquery}, selected_tables),
