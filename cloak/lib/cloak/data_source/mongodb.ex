@@ -54,8 +54,14 @@ defmodule Cloak.DataSource.MongoDB do
     map_code = """
       function() {
         m_sub = function(base, object) {
-          if (object instanceof Date) {
+          if (object === undefined || object == null) {
+            return;
+          } else if (object instanceof Date) {
             emit(base, "date");
+          } else if (object instanceof ObjectId) {
+            emit(base, "object_id");
+          } else if (object instanceof BinData) {
+            emit(base, "bin_data");
           } else if (Array.isArray(object)) {
             m_sub(base + "[]", object[0]);
           } else if (typeof object == "object") {
@@ -67,11 +73,7 @@ defmodule Cloak.DataSource.MongoDB do
           }
         };
         for(var key in this) {
-          if (key != "_id") {
-            m_sub(key, this[key]);
-          } else {
-            emit("_id", "object_id");
-          }
+          m_sub(key, this[key]);
         }
       }
     """
@@ -111,6 +113,8 @@ defmodule Cloak.DataSource.MongoDB do
   defp parse_type("number"), do: :real
   defp parse_type("boolean"), do: :boolean
   defp parse_type("string"), do: :text
+  defp parse_type("bin_data"), do: :text
+  defp parse_type("mixed"), do: :text
   defp parse_type("date"), do: :datetime
   defp parse_type(type), do: {:unsupported, type}
 
@@ -144,10 +148,11 @@ defmodule Cloak.DataSource.MongoDB do
   defp is_array_size?(name), do: String.contains?(name, "#")
 
   defp extract_field(nil, _), do: nil
-  defp extract_field(%{"_id" => {value}}, ["_id"]), do: value
   defp extract_field(value, []), do: value
   defp extract_field(%{} = object, [key | rest]), do: extract_field(object[key], rest)
 
+  defp map_field({value}), do: value
+  defp map_field({:bin, :bin, value}), do: value
   defp map_field({mega_sec, sec, micro_sec}), do:
     {mega_sec, sec, 0}
     |> :calendar.now_to_datetime()
