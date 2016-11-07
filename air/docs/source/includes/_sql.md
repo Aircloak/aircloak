@@ -16,21 +16,34 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
 
 <pre style="float:left; background-color:inherit; color:inherit; text-shadow:inherit; padding-top: inherit;">
   SELECT [DISTINCT]
-    column_expression [, ...]
+    field_expression [, ...]
     FROM from_expression [, ...]
     [ WHERE where_expression [AND ...] ]
     [ GROUP BY column_name [, ...] ]
     [ HAVING having_expression [AND ...] ]
     [ ORDER BY column_name [ASC | DESC] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
 
+  field_expression :=
+    column_expression [AS alias]
+
   column_expression :=
     column_name |
-    aggregation_function([DISTINCT] column_name)
+    aggregation_function([DISTINCT] column_name) |
+    function(column_expression) |
+    column_expression binary_operator column_expression
+
+  binary_operator :=
+    + | - | * | / | ^ | %
 
   from_expression :=
-    table_name |
-    table1 CROSS JOIN table2 |
-    table1 { [INNER] | { LEFT | RIGHT | FULL } [OUTER] } JOIN table2 ON where_expression
+    table | join
+
+  table :=
+    table_name | (select_expression) [AS] alias
+
+  join :=
+    table CROSS JOIN table |
+    table { [INNER] | { LEFT | RIGHT | FULL } [OUTER] } JOIN table ON where_expression
 
   aggregation_function :=
     COUNT | SUM | AVG | MIN | MAX | STDDEV | MEDIAN
@@ -54,6 +67,7 @@ __Notes__:
 - You can restrict the range of returned rows by a query using the `LIMIT` and/or `OFFSET` clauses, but you need to
  provide the ORDER BY clause to ensure a stable order for the rows.
 - Using the `HAVING` clause requires the `GROUP BY` clause to be specified and conditions must not refer to non-aggregated fields.
+- Binary operators are only supported if the `math` feature is enabled in the cloak configuration.
 
 ## JOIN restrictions
 
@@ -75,6 +89,15 @@ Note:
 
 - `OUTER` is automatically implied when you use `LEFT`, `RIGHT` or `FULL` joins. Writing `LEFT OUTER JOIN` is therefore equivalent to writing `LEFT JOIN`
 - `INNER` is automatically implied when you use `JOIN` without any other qualifiers. Writing `t1 JOIN t2` is therefore the same as writing `t1 INNER JOIN t2`
+
+## Subquery restrictions
+
+A subquery expression must always select the user-id column. For example, assuming table `t1` with the user-id column called `uid`:
+
+- __Valid__: `SELECT name FROM (SELECT uid, name FROM t1) sq`
+- __Invalid__: `SELECT name FROM (SELECT name FROM t1) sq`
+
+Operators `<>`, `IN`, and `NOT` (except `IS NOT NULL`) can't be used in subquery `WHERE` expressions.
 
 
 ## Understanding query results
