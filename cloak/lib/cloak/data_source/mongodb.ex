@@ -206,6 +206,8 @@ defmodule Cloak.DataSource.MongoDB do
     {base_conditions, array_conditions, array_size_conditions}
   end
 
+  defp array_size_projector(name), do: %{'$size': %{'$ifNull': ["$" <> name, []]}}
+
   defp project_array_sizes(table) do
     columns = for {name, _type} <- table.columns, do: name
     case Enum.partition(columns, &is_array_size?/1) do
@@ -213,13 +215,13 @@ defmodule Cloak.DataSource.MongoDB do
       {array_sizes, regular_columns} ->
         projected_columns =
           Enum.map(regular_columns, &{&1, true}) ++
-          Enum.map(array_sizes, &{&1, %{'$size': "$" <> String.replace(&1, "#", "")}})
+          Enum.map(array_sizes, &{&1, &1 |> String.replace("#", "") |> array_size_projector()})
         [%{'$project': Enum.into(projected_columns, %{})}]
     end
   end
 
   defp project_columns(columns), do:
-    [%{'$project': (for name <- columns, into: %{"_id" => false}, do: {name, true})}]
+    [%{'$project': columns |> Enum.map(&project_column/1) |> Enum.into(%{"_id" => false})}]
 
   defp map_parameter(%NaiveDateTime{} = datetime), do:
     datetime |> NaiveDateTime.to_erl() |> erlang_datetime_to_timestamp(datetime.microsecond)
