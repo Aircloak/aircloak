@@ -44,4 +44,13 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
     refute_push("result", ^result)
   end
+
+  test "even obtaining the session id does not allow a user to listen on another's session", %{session: session_id} do
+    query = create_query!(_other_user = create_user!(), %{session_id: session_id})
+    result = Air.Query.for_display(query)
+
+    UserChannel.broadcast_result(query)
+
+    refute_push("result", ^result)
+  end
 end
