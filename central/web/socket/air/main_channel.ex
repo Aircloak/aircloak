@@ -5,6 +5,8 @@ defmodule Central.Socket.Air.MainChannel do
   use Phoenix.Channel
   require Logger
   alias Central.Service.Customer
+  alias Central.Schemas.AirRPC
+  alias Central.Repo
 
 
   # -------------------------------------------------------------------
@@ -94,15 +96,20 @@ defmodule Central.Socket.Air.MainChannel do
   # Handling air sync calls
   # -------------------------------------------------------------------
 
-  defp handle_air_call("query_execution", payload, request_id, socket) do
-    Logger.info("Received query execution update with payload: #{inspect payload}")
-    customer = socket.assigns.customer
-    params = %{
-      metrics: payload["metrics"],
-      features: payload["features"],
-      aux: payload["aux"],
-    }
-    result = Customer.record_query(customer, params)
+  defp handle_air_call("call_with_retry", payload, request_id, socket) do
+    id = construct_rpc_id(payload, socket)
+    result = case Repo.get(AirRPC, id) do
+      nil ->
+        result = handle_call_with_retry(payload["event"], payload["event_payload"], socket)
+        binary_result = :erlang.term_to_binary(result)
+        changeset = AirRPC.changeset(%AirRPC{}, %{id: id, result: binary_result})
+        Repo.insert!(changeset)
+        result
+      rpc ->
+        Logger.info("Received a repeast RPC call for RPC id '#{rpc.id}'. The RPC was not re-executed. " <>
+          "The type of the incoming RPC was '#{payload["event"]}'")
+        :erlang.binary_to_term(rpc.result)
+    end
     respond_to_air(socket, request_id, result)
     {:noreply, socket}
   end
@@ -123,5 +130,20 @@ defmodule Central.Socket.Air.MainChannel do
 
   defp respond_to_internal_request({client_pid, mref}, response) do
     send(client_pid, {mref, response})
+  end
+
+  defp construct_rpc_id(payload, socket) do
+    "#{socket.assigns.air_name}|#{payload["id"]}"
+  end
+
+  defp handle_call_with_retry("query_execution", payload, socket) do
+    Logger.info("Received query execution update with payload: #{inspect payload}")
+    customer = socket.assigns.customer
+    params = %{
+      metrics: payload["metrics"],
+      features: payload["features"],
+      aux: payload["aux"],
+    }
+    Customer.record_query(customer, params)
   end
 end

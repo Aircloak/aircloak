@@ -59,7 +59,6 @@ defmodule Air.CentralQueryReporter do
     }
 
     row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
-
     payload = %{
       metrics: %{
         users_count: result["users_count"],
@@ -78,14 +77,7 @@ defmodule Air.CentralQueryReporter do
         }
       },
     }
-
-    case Air.CentralSocket.record_query(payload) do
-      :ok ->
-        Logger.info("sent report about query #{result["query_id"]} to Aircloak Central")
-      :error ->
-        Logger.error("failed to report query completion for query #{result["query_id"]} "
-          <> "to Aircloak Central")
-    end
+    Air.CentralSocket.record_query(payload)
   end
 end
 

@@ -1,5 +1,5 @@
-defmodule Central.Schemas.Query do
-  @moduledoc "The query schema."
+defmodule Central.Schemas.AirRPC do
+  @moduledoc "Schema for Air RPCs. Allows us to ensure that perform an RPC at most once."
 
   use Central.Web, :model
 
@@ -7,18 +7,16 @@ defmodule Central.Schemas.Query do
 
   @type t :: %__MODULE__{}
 
-  schema "queries" do
-    field :metrics, :map
-    field :features, :map
-    field :aux, :map
-
-    belongs_to :customer, Central.Schemas.Customer
+  @primary_key {:id, :string, []}
+  @derive {Phoenix.Param, key: :id}
+  schema "air_rpcs" do
+    field :result, :binary
 
     timestamps
   end
 
-  @required_fields ~w()a
-  @optional_fields ~w(metrics features aux)a
+  @required_fields ~w(id result)a
+  @optional_fields ~w()a
 
 
   # -------------------------------------------------------------------
