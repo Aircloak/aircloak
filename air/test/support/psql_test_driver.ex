@@ -40,7 +40,7 @@ defmodule Air.PsqlTestDriver do
 
   defmacro handle_server_event(message_pattern, conn_pattern, opts) do
     quote do
-      assert_receive({:"$gen_call", from, {unquote(conn_pattern), unquote(message_pattern)}}, :timer.seconds(1))
+      assert_receive({:"$gen_call", from, {unquote(conn_pattern), unquote(message_pattern)}}, :timer.seconds(2))
       response = unquote(Keyword.fetch!(opts, :do))
       GenServer.reply(from, response)
     end
@@ -65,22 +65,25 @@ defmodule Air.PsqlTestDriver do
         )
     |> call({:login, password})
 
-  def run_query(conn, query)
-    # A few queries always sent by the ODBC driver. We're ignoring them here for now.
-    when query in [
-      "SET DateStyle = 'ISO'",
-      "SET extra_float_digits = 2",
-      "select oid, typbasetype from pg_type where typname = 'lo'"
-    ]
-  do
-    RanchServer.set_query_result(conn, %{columns: [], rows: []})
+  def run_query(conn, query) do
+    downcased_query = String.downcase(query)
+    if match?("set " <> _, downcased_query) or
+       downcased_query == "select oid, typbasetype from pg_type where typname = 'lo'" do
+      # A few queries always sent by the ODBC driver. We're ignoring them here for now.
+      RanchServer.set_query_result(conn, %{columns: [], rows: []})
+    else
+      call(conn, {:run_query, query})
+    end
   end
-  def run_query(conn, query), do:
-    call(conn, {:run_query, query})
 
   def handle_message(conn, message), do:
     call(conn, {:handle_message, message})
 
-  defp call(conn, message), do:
-    GenServer.call(conn.assigns.test_pid, {conn, message})
+  defp call(conn, message) do
+    try do
+      GenServer.call(conn.assigns.test_pid, {conn, message}, :timer.seconds(2))
+    catch type, reason ->
+      raise "Error calling test process:\n#{inspect message}\n#{inspect type}:#{inspect reason}"
+    end
+  end
 end
