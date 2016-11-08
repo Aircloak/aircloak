@@ -210,11 +210,32 @@ defmodule Cloak.Aql.Parser do
     pipe(
       [
         column(),
-        option(keyword(:as) |> identifier())
+        option(
+          keyword(:as)
+          |> name()
+        )
       ],
       fn
         ([column, nil]) -> column
-        ([column, :as, {_, name}]) -> {column, :as, name}
+        ([column, :as, name]) -> {column, :as, name}
+      end
+    )
+  end
+
+  defp name(parser) do
+    map(
+      parser,
+      pair_both(
+        identifier(),
+        many(
+          pair_both(
+            keyword(:"."),
+            identifier()
+          )
+        )
+      ),
+      fn ({{_, first}, rest}) ->
+          [first | Enum.map(rest, fn ({:., {_, part}}) -> part end)] |> Enum.join(".")
       end
     )
   end
