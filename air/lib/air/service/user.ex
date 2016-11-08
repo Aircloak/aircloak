@@ -21,4 +21,10 @@ defmodule Air.Service.User do
       {:error, :invalid_email_or_password}
     end
   end
+
+  @doc "Returns a list of all users in the system"
+  @spec all() :: [User.t]
+  def all() do
+    Repo.all(User)
+  end
 end

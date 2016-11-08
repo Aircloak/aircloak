@@ -31,13 +31,27 @@ defmodule Air.Service.AuditLog do
 
   Returned entries are descending sorted by the creation date.
   """
-  @spec for(Map.t) :: [Air.AuditLog.t]
-  def for(params) do
+  @spec for(Map.t) :: Scrivener.Page.t
+  def for(params \\ %{}) do
     AuditLog
-    |> date_range(params.from, params.to)
+    |> for_user(Map.get(params, :users, []))
+    |> for_event(Map.get(params, :events, []))
     |> order_by_event()
-    |> Repo.paginate(page: params.page)
+    |> Repo.paginate(page: Map.get(params, :page, 1))
   end
+
+  @doc """
+  Returns a list of distinct event types given a set of users.
+  If no users are given, all event types across all users are returned.
+  """
+  @spec event_types([String.t]) :: [String.t]
+  def event_types(users \\ []) do
+    AuditLog
+    |> for_user(users)
+    |> select_event_types()
+    |> Repo.all()
+  end
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
@@ -48,8 +62,22 @@ defmodule Air.Service.AuditLog do
     order_by: [desc: :inserted_at]
   end
 
-  defp date_range(query, from, to) do
+  defp for_user(query, []), do: query
+  defp for_user(query, users) do
     from a in query,
-    where: a.inserted_at >= ^from and a.inserted_at <= ^to
+    where: a.user in ^users
+  end
+
+  defp for_event(query, []), do: query
+  defp for_event(query, events) do
+    from a in query,
+    where: a.event in ^events
+  end
+
+  defp select_event_types(query) do
+    from a in query,
+    group_by: a.event,
+    order_by: [asc: :event],
+    select: a.event
   end
 end

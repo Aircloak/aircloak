@@ -3,7 +3,7 @@ defmodule Air.AuditLogTest do
 
   alias Air.AuditLog
 
-  @valid_attrs %{event: "some content", metadata: "some content", user: "some content"}
+  @valid_attrs %{event: "some content", metadata: %{value: "some content"}, user: "some content"}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do

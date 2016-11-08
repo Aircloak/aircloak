@@ -15,14 +15,14 @@
 
   <body>
     <div class="body-wrapper">
-      <div class="container">
+      <div class="<%= if is_nil(assigns[:full_width]), do: "container", else: "container-fluid" %>">
         <%= render "_navbar.html", conn: @conn %>
 
         <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
         <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
 
         <main role="main">
-          <div class="container">
+          <div class="<%= if is_nil(assigns[:full_width]), do: "container", else: "container-fluid" %>">
 
             <div class="row">
               <div class="col-md-3">
