@@ -8,7 +8,7 @@ defmodule Air.AuditLog do
   schema "audit_logs" do
     field :event, :string
     field :user, :string
-    field :metadata, :string
+    field :metadata, :map
 
     timestamps
   end

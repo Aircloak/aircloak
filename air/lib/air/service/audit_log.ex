@@ -16,7 +16,7 @@ defmodule Air.Service.AuditLog do
     email = if user != nil, do: user.email, else: "Unknown user"
 
     %AuditLog{}
-    |> AuditLog.changeset(%{user: email, event: event, metadata: Poison.encode!(metadata)})
+    |> AuditLog.changeset(%{user: email, event: event, metadata: metadata})
     |> Repo.insert()
     |> case do
           {:ok, _} -> :ok
