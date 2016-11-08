@@ -93,7 +93,10 @@ defmodule Cloak.Query.Anonymizer do
   @spec min(t, Enumerable.t) :: number | nil
   def min(anonymizer, rows) do
     # we use the fact that min([value]) = -max([-value])
-    -get_max(anonymizer, rows, &(-Enum.min(&1)))
+    case get_max(anonymizer, rows, & -Enum.min(&1)) do
+      nil -> nil
+      value -> -value
+    end
   end
 
   @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."

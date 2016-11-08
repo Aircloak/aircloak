@@ -1,4 +1,4 @@
-if System.get_env("TRAVIS") == "true" do
+if :os.cmd('ps -edaf | grep mongo | grep -v grep') != '' do
 defmodule Cloak.DataSource.MongoDBTest do
   use ExUnit.Case, async: true
 
